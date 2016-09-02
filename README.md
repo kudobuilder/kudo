@@ -18,6 +18,14 @@ You can reach the maintainers of this project at:
 - Slack: #kubernetes-dev
 - Mailing List: https://groups.google.com/forum/#!forum/kubernetes-dev
 
+## Kubernetes Incubator
+
+This is a [Kubernetes Incubator project](https://github.com/kubernetes/community/blob/master/incubator.md). The project was established 2006-01-02. The incubator team for the project is:
+
+- Sponsor: Sally (@sallygithubhandle)
+- Champion: Sue (@suegithubhandle)
+- SIG: sig-awesome
+
 ### Code of conduct
 
 Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](code-of-conduct.md).
