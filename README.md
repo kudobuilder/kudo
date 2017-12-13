@@ -15,8 +15,8 @@ Learn how to engage with the Kubernetes community on the [community page](http:/
 
 You can reach the maintainers of this project at:
 
-- Slack: #kubernetes-dev
-- Mailing List: https://groups.google.com/forum/#!forum/kubernetes-dev
+- [Slack](http://slack.k8s.io/)
+- [Mailing List](https://groups.google.com/forum/#!forum/kubernetes-dev)
 
 ## Kubernetes Incubator
 
@@ -24,7 +24,7 @@ This is a [Kubernetes Incubator project](https://github.com/kubernetes/community
 
 - Sponsor: Sally (@sallygithubhandle)
 - Champion: Sue (@suegithubhandle)
-- SIG: sig-awesome
+- SIG: [sig-list](https://github.com/kubernetes/community/blob/master/sig-list.md)
 
 ### Code of conduct
 
