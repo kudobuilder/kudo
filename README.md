@@ -1,13 +1,12 @@
 # Kubernetes Template Project
 
-The Kubernetes Template Project is a template for starting new projects on the github.com/kubernetes organization. All Kubernetes projects, at mimimum, must have the following files:
+The Kubernetes Template Project is a template for starting new projects in the GitHub organizations owned by Kubernetes. All Kubernetes projects, at mimimum, must have the following files:
 
 - a `README.md` outlining the project goals, sponsoring sig, and community contact information
-- an `OWNERS` file with the project leads listed
+- an `OWNERS` with the project leads listed as approvers ([docs on OWNERS files](https://git.k8s.io/community/contributors/devel/owners.md))
 - a `CONTRIBUTING.md` outlining how to contribute to the project
-- a `code-of-conduct.md` outlining community behavior and the consequences of breaking the code
-- a `LICENSE` which must be Apache 2.0
-- a `RELEASE.md` file that talks about the process for releases
+- the `code-of-conduct.md` from this repo, which outlines community behavior and the consequences of breaking the code
+- a `LICENSE` which must be Apache 2.0 for code projects, or Creative Commons 4.0 for documentation repositories
 
 ## Community, discussion, contribution, and support
 
@@ -17,14 +16,6 @@ You can reach the maintainers of this project at:
 
 - [Slack](http://slack.k8s.io/)
 - [Mailing List](https://groups.google.com/forum/#!forum/kubernetes-dev)
-
-## Kubernetes Incubator
-
-This is a [Kubernetes Incubator project](https://github.com/kubernetes/community/blob/master/incubator.md). The project was established 2016-01-02. The incubator team for the project is:
-
-- Sponsor: Sally (@sallygithubhandle)
-- Champion: Sue (@suegithubhandle)
-- SIG: [sig-list](https://github.com/kubernetes/community/blob/master/sig-list.md)
 
 ### Code of conduct
 
