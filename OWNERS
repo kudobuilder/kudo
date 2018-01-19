@@ -1,5 +1,4 @@
-# See the OWNERS file documentation:
-#  https://github.com/kubernetes/kubernetes/blob/master/docs/devel/owners.md
+# See the OWNERS docs: https://git.k8s.io/community/contributors/devel/owners.md
 
 approvers:
   - steering-committee
