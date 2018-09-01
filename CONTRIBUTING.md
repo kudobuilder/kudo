@@ -1,12 +1,12 @@
 # Contributing Guidelines
 
-Welcome to Kubernetes. We are excited about the prospect of you joining our [community](https://github.com/kubernetes/community)! The Kubernetes community abides by the CNCF [code of conduct](https://github.com/cncf/foundation/blob/master/code-of-conduct.md). Here is an excerpt:
+Welcome to Kubernetes. We are excited about the prospect of you joining our [community](https://github.com/kubernetes/community)! The Kubernetes community abides by the CNCF [code of conduct](code-of-conduct.md). Here is an excerpt:
 
 _As contributors and maintainers of this project, and in the interest of fostering an open and welcoming community, we pledge to respect all people who contribute through reporting issues, posting feature requests, updating documentation, submitting pull requests or patches, and other activities._
 
 ## Getting Started
 
-We have full documentation on how to get started contributing here: 
+We have full documentation on how to get started contributing here:
 
 <!---
 If your repo has certain guidelines for contribution, put them here ahead of the general k8s resources
@@ -26,6 +26,6 @@ Custom Information - if you're copying this template for the first time you can 
 ## Contact Information
 
 - [Slack channel](https://kubernetes.slack.com/messages/kubernetes-users) - Replace `kubernetes-users` with your slack channel string, this will send users directly to your channel. 
-- [Mailing list](URL) 
+- [Mailing list](URL)
 
 -->
