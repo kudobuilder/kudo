@@ -1,31 +1,32 @@
 # Contributing Guidelines
 
-Welcome to Kubernetes. We are excited about the prospect of you joining our [community](https://github.com/kubernetes/community)! The Kubernetes community abides by the CNCF [code of conduct](code-of-conduct.md). Here is an excerpt:
+## Sign the CLA
 
-_As contributors and maintainers of this project, and in the interest of fostering an open and welcoming community, we pledge to respect all people who contribute through reporting issues, posting feature requests, updating documentation, submitting pull requests or patches, and other activities._
+Kubernetes projects require that you sign a Contributor License Agreement (CLA) before we can accept your pull requests.
 
-## Getting Started
+Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CLA.md) for more info.
 
-We have full documentation on how to get started contributing here:
+## Contributing Steps
 
-<!---
-If your repo has certain guidelines for contribution, put them here ahead of the general k8s resources
--->
+1. Submit an issue describing your proposed change to the repo in question.
+2. The [repo owners](https://github.com/kubernetes-sigs/kubebuilder/blob/master/OWNERS) will respond to your issue promptly.
+3. If your proposed change is accepted, and you haven't already done so, sign a Contributor License Agreement (see details above).
+4. Fork the desired repo, develop and test your code changes.
+5. Submit a pull request.
+6.
+## How to build Maestro locally
 
-- [Contributor License Agreement](https://git.k8s.io/community/CLA.md) Kubernetes projects require that you sign a Contributor License Agreement (CLA) before we can accept your pull requests
-- [Kubernetes Contributor Guide](http://git.k8s.io/community/contributors/guide) - Main contributor documentation, or you can just jump directly to the [contributing section](http://git.k8s.io/community/contributors/guide#contributing)
-- [Contributor Cheat Sheet](https://git.k8s.io/community/contributors/guide/contributor-cheatsheet.md) - Common resources for existing developers
+TBD
 
-## Mentorship
+## Community, discussion, and support
 
-- [Mentoring Initiatives](https://git.k8s.io/community/mentoring) - We have a diverse set of mentorship programs available that are always looking for volunteers!
+Learn how to engage with the Kubernetes community on the [community page](community page).
 
-<!---
-Custom Information - if you're copying this template for the first time you can add custom content here, for example:
+You can reach the maintainers of this project at:
 
-## Contact Information
+[Slack](http://slack.k8s.io/)
+[Mailing List](https://groups.google.com/forum/#!forum/kubernetes-kubebuilder)
 
-- [Slack channel](https://kubernetes.slack.com/messages/kubernetes-users) - Replace `kubernetes-users` with your slack channel string, this will send users directly to your channel. 
-- [Mailing list](URL)
+## Code of conduct
 
--->
+Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](https://github.com/kubernetes-sigs/kubebuilder/blob/master/code-of-conduct.md).
