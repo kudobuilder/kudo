@@ -22,10 +22,35 @@ spec:
           type: object
         spec:
           properties:
-            name:
-              type: string
+            serviceSpec:
+              properties:
+                name:
+                  type: string
+                plans:
+                  type: object
+                pods:
+                  type: object
+                scheduler:
+                  properties:
+                    principal:
+                      type: string
+                    user:
+                      type: string
+                    zookeeper:
+                      type: string
+                  required:
+                  - principal
+                  - zookeeper
+                  - user
+                  type: object
+              required:
+              - name
+              - scheduler
+              - pods
+              - plans
+              type: object
           required:
-          - name
+          - serviceSpec
           type: object
         status:
           type: object

@@ -153,4 +153,3 @@ func (r *ReconcileFramework) Reconcile(request reconcile.Request) (reconcile.Res
 
 	return reconcile.Result{}, nil
 }
-
