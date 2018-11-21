@@ -18,14 +18,15 @@ package framework
 import (
 	"context"
 	"fmt"
+	"log"
+	"reflect"
+
 	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"log"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -130,7 +131,7 @@ func (r *ReconcileFramework) Reconcile(request reconcile.Request) (reconcile.Res
 		},
 	})
 
-	if err != nil && runtime.IsNotRegisteredError(err) && errors.IsNotFound(err) {
+	if err != nil && (runtime.IsNotRegisteredError(err) || errors.IsNotFound(err)) {
 		log.Printf("Creating CRD %s/%s\n", crd.Namespace, crd.Name)
 		_, err = r.apiextensionsClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd)
 		if err != nil {
