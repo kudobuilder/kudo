@@ -27,6 +27,8 @@ type FrameworkSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	Name string `json:"name"`
+	//TODO: Define ServiceSpec a bit more strictly
+	ServiceSpec map[string]interface{} `json:"serviceSpec"`
 }
 
 // FrameworkStatus defines the observed state of Framework
