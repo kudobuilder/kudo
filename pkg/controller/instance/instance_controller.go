@@ -17,12 +17,14 @@ package instance
 
 import (
 	"context"
-	"log"
-	"reflect"
+	"fmt"
 
 	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
+	"github.com/kubernetes-sigs/kubebuilder-maestro/pkg/util/template"
 	appsv1 "k8s.io/api/apps/v1"
+	appv1beta1 "k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -90,8 +92,6 @@ type ReconcileInstance struct {
 
 // Reconcile reads that state of the cluster for a Instance object and makes changes based on the state read
 // and what is in the Instance.Spec
-// TODO(user): Modify this Reconcile function to implement your Controller logic.  The scaffolding writes
-// a Deployment as an example
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=maestro.k8s.io,resources=instances,verbs=get;list;watch;create;update;patch;delete
@@ -109,57 +109,155 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	// TODO(user): Change this to be the object type created by your controller
-	// Define the desired Deployment object
-	deploy := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name + "-deployment",
-			Namespace: instance.Namespace,
-		},
-		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"deployment": instance.Name + "-deployment"},
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"deployment": instance.Name + "-deployment"}},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  "nginx",
-							Image: "nginx",
-						},
-					},
-				},
-			},
-		},
+	//Create configmap to hold all parameters for instantiation
+	configs := make(map[string]string)
+	//Default parameters from instance metadata
+	configs["FRAMEWORK_NAME"] = instance.Name
+	configs["NAMESPACE"] = instance.Namespace
+	//parameters from instance spec
+	for k, v := range instance.Spec.Parameters {
+		configs[k] = v
 	}
-	if err := controllerutil.SetControllerReference(instance, deploy, r.scheme); err != nil {
+
+	//grab Framework instance (TODO Switch to FrameworkVersion)
+	framework := &maestrov1alpha1.Framework{}
+	err = r.Get(context.TODO(), types.NamespacedName{
+		Name: instance.Spec.Framework.Name,
+	}, framework)
+
+	if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	// TODO(user): Change this for the object type created by your controller
-	// Check if the Deployment already exists
-	found := &appsv1.Deployment{}
-	err = r.Get(context.TODO(), types.NamespacedName{Name: deploy.Name, Namespace: deploy.Namespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		log.Printf("Creating Deployment %s/%s\n", deploy.Namespace, deploy.Name)
-		err = r.Create(context.TODO(), deploy)
-		if err != nil {
-			return reconcile.Result{}, err
+	//merge defaults with customizations
+	for k, v := range framework.Spec.Defaults {
+		_, ok := configs[k]
+		if !ok { //not specified in params
+			configs[k] = v
 		}
-	} else if err != nil {
+	}
+
+	appliedYaml, err := template.ExpandMustache(framework.Spec.Yaml, configs)
+	if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	// TODO(user): Change this for the object type created by your controller
-	// Update the found object and write the result back if there are any changes
-	if !reflect.DeepEqual(deploy.Spec, found.Spec) {
-		found.Spec = deploy.Spec
-		log.Printf("Updating Deployment %s/%s\n", deploy.Namespace, deploy.Name)
-		err = r.Update(context.TODO(), found)
+	objs, err := template.ParseKubernetesObjects(*appliedYaml)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	for _, obj := range objs {
+		err = r.ApplyObject(obj, instance)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 	}
+
 	return reconcile.Result{}, nil
+}
+
+//ApplyObject takes the object provided and either creates or updates it depending on whether the object
+// exixts or not
+func (r *ReconcileInstance) ApplyObject(obj runtime.Object, parent metav1.Object) error {
+	nnn, _ := client.ObjectKeyFromObject(obj)
+	switch o := obj.(type) {
+	//Service
+	case *corev1.Service:
+		svc := &corev1.Service{}
+		err := r.Get(context.TODO(), nnn, svc)
+		if err != nil && errors.IsNotFound(err) {
+			svc = obj.(*corev1.Service)
+			if err := controllerutil.SetControllerReference(parent, svc, r.scheme); err != nil {
+				return err
+			}
+			err = r.Create(context.TODO(), svc)
+			if err != nil {
+				return err
+			}
+		} else if err != nil {
+			return err
+		} else {
+			svc.Spec = obj.(*corev1.Service).Spec
+			svc.Labels = obj.(*corev1.Service).Labels
+			svc.Annotations = obj.(*corev1.Service).Annotations
+			err = r.Update(context.TODO(), svc)
+		}
+		if err != nil {
+			return err
+		}
+	case *appv1beta1.StatefulSet:
+		ss := &appv1beta1.StatefulSet{}
+		err := r.Get(context.TODO(), nnn, ss)
+		if err != nil && errors.IsNotFound(err) {
+			ss = obj.(*appv1beta1.StatefulSet)
+			if err := controllerutil.SetControllerReference(parent, ss, r.scheme); err != nil {
+				return err
+			}
+			err = r.Create(context.TODO(), ss)
+			if err != nil {
+				return err
+			}
+		} else if err != nil {
+			return err
+		} else {
+			ss.Spec = obj.(*appv1beta1.StatefulSet).Spec
+			ss.Labels = obj.(*appv1beta1.StatefulSet).Labels
+			ss.Annotations = obj.(*appv1beta1.StatefulSet).Annotations
+			err = r.Update(context.TODO(), ss)
+		}
+		if err != nil {
+			return err
+		}
+	case *policyv1beta1.PodDisruptionBudget:
+		pdb := &policyv1beta1.PodDisruptionBudget{}
+		err := r.Get(context.TODO(), nnn, pdb)
+		if err != nil && errors.IsNotFound(err) {
+			pdb = obj.(*policyv1beta1.PodDisruptionBudget)
+			if err := controllerutil.SetControllerReference(parent, pdb, r.scheme); err != nil {
+				return err
+			}
+			err = r.Create(context.TODO(), pdb)
+			if err != nil {
+				return err
+			}
+		} else if err != nil {
+			return err
+		} else {
+			pdb.Spec = obj.(*policyv1beta1.PodDisruptionBudget).Spec
+			pdb.Labels = obj.(*policyv1beta1.PodDisruptionBudget).Labels
+			pdb.Annotations = obj.(*policyv1beta1.PodDisruptionBudget).Annotations
+			err = r.Update(context.TODO(), pdb)
+		}
+		if err != nil {
+			return err
+		}
+	case *corev1.ConfigMap:
+		cm := &corev1.ConfigMap{}
+		err := r.Get(context.TODO(), nnn, cm)
+		if err != nil && errors.IsNotFound(err) {
+			cm = obj.(*corev1.ConfigMap)
+			if err := controllerutil.SetControllerReference(parent, cm, r.scheme); err != nil {
+				return err
+			}
+			err = r.Create(context.TODO(), cm)
+			if err != nil {
+				return err
+			}
+		} else if err != nil {
+			return err
+		} else {
+			cm.Data = obj.(*corev1.ConfigMap).Data
+			cm.Labels = obj.(*corev1.ConfigMap).Labels
+			cm.Annotations = obj.(*corev1.ConfigMap).Annotations
+			err = r.Update(context.TODO(), cm)
+		}
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("I dont know how to update types %v.  Please implement", o)
+
+	}
+	return nil
 }
