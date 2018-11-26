@@ -16,16 +16,17 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // InstanceSpec defines the desired state of Instance
 type InstanceSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	//Framework specifies a reference to a specific Framework object
+	Framework corev1.ObjectReference `json:"framework"`
+	//Dependnecy references specific
+	Dependencies []FrameworkDependency `json:"dependencies"`
+	Parameters   map[string]string     `json:"parameters"`
 }
 
 // InstanceStatus defines the observed state of Instance
