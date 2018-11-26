@@ -18,11 +18,11 @@ package instance
 import (
 	"context"
 	"fmt"
+	"log"
 
 	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
 	"github.com/kubernetes-sigs/kubebuilder-maestro/pkg/util/template"
 	appsv1 "k8s.io/api/apps/v1"
-	appv1beta1 "k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -109,47 +109,56 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
+	log.Printf("InstanceController: Recieved Reconcile request for %v\n", request.Name)
+
 	//Create configmap to hold all parameters for instantiation
 	configs := make(map[string]string)
 	//Default parameters from instance metadata
 	configs["FRAMEWORK_NAME"] = instance.Name
+	configs["NAME"] = instance.Name
 	configs["NAMESPACE"] = instance.Namespace
 	//parameters from instance spec
 	for k, v := range instance.Spec.Parameters {
 		configs[k] = v
 	}
-
 	//grab Framework instance (TODO Switch to FrameworkVersion)
-	framework := &maestrov1alpha1.Framework{}
+	frameworkVersion := &maestrov1alpha1.FrameworkVersion{}
 	err = r.Get(context.TODO(), types.NamespacedName{
-		Name: instance.Spec.Framework.Name,
-	}, framework)
+		Name:      instance.Spec.FrameworkVersion.Name,
+		Namespace: instance.Spec.FrameworkVersion.Namespace,
+	}, frameworkVersion)
 
 	if err != nil {
+		log.Printf("InstanceController: Could not find FrameworkVersion with name %v: %v\n", instance.Spec.FrameworkVersion.Name, err)
 		return reconcile.Result{}, err
 	}
 
 	//merge defaults with customizations
-	for k, v := range framework.Spec.Defaults {
+	for k, v := range frameworkVersion.Spec.Defaults {
 		_, ok := configs[k]
 		if !ok { //not specified in params
 			configs[k] = v
 		}
 	}
 
-	appliedYaml, err := template.ExpandMustache(framework.Spec.Yaml, configs)
+	appliedYaml, err := template.ExpandMustache(frameworkVersion.Spec.Yaml, configs)
 	if err != nil {
+		log.Printf("InstanceController: Error expanding mustache: %v\n", err)
 		return reconcile.Result{}, err
 	}
 
 	objs, err := template.ParseKubernetesObjects(*appliedYaml)
 	if err != nil {
+
+		log.Printf("InstanceController: Error parsing yaml into k8s objects: %v\n", err)
 		return reconcile.Result{}, err
 	}
 
 	for _, obj := range objs {
 		err = r.ApplyObject(obj, instance)
 		if err != nil {
+			log.Printf("InstanceController: Error applying object: %v\n", obj)
+			log.Printf("InstanceController: Error: %v\n", err)
 			return reconcile.Result{}, err
 		}
 	}
@@ -178,6 +187,9 @@ func (r *ReconcileInstance) ApplyObject(obj runtime.Object, parent metav1.Object
 		} else if err != nil {
 			return err
 		} else {
+			//This gets autogetnerated, so don't overwrite it with a blank
+			//value
+			obj.(*corev1.Service).Spec.ClusterIP = svc.Spec.ClusterIP
 			svc.Spec = obj.(*corev1.Service).Spec
 			svc.Labels = obj.(*corev1.Service).Labels
 			svc.Annotations = obj.(*corev1.Service).Annotations
@@ -186,11 +198,11 @@ func (r *ReconcileInstance) ApplyObject(obj runtime.Object, parent metav1.Object
 		if err != nil {
 			return err
 		}
-	case *appv1beta1.StatefulSet:
-		ss := &appv1beta1.StatefulSet{}
+	case *appsv1.StatefulSet:
+		ss := &appsv1.StatefulSet{}
 		err := r.Get(context.TODO(), nnn, ss)
 		if err != nil && errors.IsNotFound(err) {
-			ss = obj.(*appv1beta1.StatefulSet)
+			ss = obj.(*appsv1.StatefulSet)
 			if err := controllerutil.SetControllerReference(parent, ss, r.scheme); err != nil {
 				return err
 			}
@@ -201,9 +213,9 @@ func (r *ReconcileInstance) ApplyObject(obj runtime.Object, parent metav1.Object
 		} else if err != nil {
 			return err
 		} else {
-			ss.Spec = obj.(*appv1beta1.StatefulSet).Spec
-			ss.Labels = obj.(*appv1beta1.StatefulSet).Labels
-			ss.Annotations = obj.(*appv1beta1.StatefulSet).Annotations
+			ss.Spec = obj.(*appsv1.StatefulSet).Spec
+			ss.Labels = obj.(*appsv1.StatefulSet).Labels
+			ss.Annotations = obj.(*appsv1.StatefulSet).Annotations
 			err = r.Update(context.TODO(), ss)
 		}
 		if err != nil {

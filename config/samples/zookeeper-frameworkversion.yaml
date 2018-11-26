@@ -1,19 +1,20 @@
 apiVersion: maestro.k8s.io/v1alpha1
-kind: Framework
+kind: FrameworkVersion
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-  name: zookeeper
+  name: zookeeper-1.0
+  namespace: default
 spec:
+  framework:
+    name: zookeeper
+    kind: Framework
   # Add fields here
-  serviceSpec:
-    name: "Zookeeper"
-  version: "alpha"
+  version: "1.0"
   connectionString: "{{NAME}}-0.{{NAME}}-hs:2181,{{NAME}}-1.{{NAME}}-hs:2181,{{NAME}}-.{{NAME}}-hs:2181"
   defaults.config:
-    EVERYTHING: hardcoded
-    zookeeper.mem: "1Gi"
-    zookeeper.cpus: "0.25"
+    ZOOKEEPER_MEM: "1Gi"
+    ZOOKEEPER_CPUS: "0.25"
   yaml: |
     apiVersion: v1
     kind: Service
@@ -91,8 +92,8 @@ spec:
               image: "k8s.gcr.io/kubernetes-zookeeper:1.0-3.4.10"
               resources:
                 requests:
-                  memory: "{{zookeeper.mem}}"
-                  cpu: "{{zookeeper.cpus}}"
+                  memory: "{{ZOOKEEPER_MEM}}"
+                  cpu: "{{ZOOKEEPER_CPUS}}"
               ports:
                 - containerPort: 2181
                   name: client
@@ -151,20 +152,3 @@ spec:
             resources:
               requests:
                 storage: 2Gi
-
----
-apiVersion: maestro.k8s.io/v1alpha1
-kind: Instance
-metadata:
-  labels:
-    controller-tools.k8s.io: "1.0"
-    framework: zookeeper
-  name: zk
-spec:
-  framework:
-    name: Zookeeper
-    type: Framework
-  # Add fields here
-  name: "zk"
-  parameters:
-    zookeeper.mem: "512Mi"

@@ -13,14 +13,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package framework
+package frameworkversion
 
 import (
 	"context"
 	"log"
 
 	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
-	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,36 +30,33 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// Add creates a new Framework Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
+/**
+* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
+* business logic.  Delete these comments after modifying this file.*
+ */
+
+// Add creates a new FrameworkVersion Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
+// USER ACTION REQUIRED: update cmd/manager/main.go to call this maestro.Add(mgr) to install this Controller
 func Add(mgr manager.Manager) error {
-	log.Printf("Registering framework.\n")
-	reconciler, err := newReconciler(mgr)
-	if err != nil {
-		return err
-	}
-	return add(mgr, reconciler)
+	return add(mgr, newReconciler(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
-	apiextensionsClient, err := apiextensionsclientset.NewForConfig(mgr.GetConfig())
-	if err != nil {
-		return nil, err
-	}
-	return &ReconcileFramework{Client: mgr.GetClient(), scheme: mgr.GetScheme(), apiextensionsClient: apiextensionsClient}, nil
+func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+	return &ReconcileFrameworkVersion{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("framework-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("frameworkversion-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to Framework
-	err = c.Watch(&source.Kind{Type: &maestrov1alpha1.Framework{}}, &handler.EnqueueRequestForObject{})
+	// Watch for changes to FrameworkVersion
+	err = c.Watch(&source.Kind{Type: &maestrov1alpha1.FrameworkVersion{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -68,23 +64,23 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-var _ reconcile.Reconciler = &ReconcileFramework{}
+var _ reconcile.Reconciler = &ReconcileFrameworkVersion{}
 
-// ReconcileFramework reconciles a Framework object
-type ReconcileFramework struct {
-	apiextensionsClient *apiextensionsclientset.Clientset
+// ReconcileFrameworkVersion reconciles a FrameworkVersion object
+type ReconcileFrameworkVersion struct {
 	client.Client
 	scheme *runtime.Scheme
 }
 
-// Reconcile reads that state of the cluster for a Framework object and makes changes based on the state read
-// and what is in the Framework.Spec
+// Reconcile reads that state of the cluster for a FrameworkVersion object and makes changes based on the state read
+// and what is in the FrameworkVersion.Spec
+
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=maestro.k8s.io,resources=frameworks,verbs=get;list;watch;create;update;patch;delete
-func (r *ReconcileFramework) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	// Fetch the Framework instance
-	instance := &maestrov1alpha1.Framework{}
+// +kubebuilder:rbac:groups=maestro.k8s.io,resources=frameworkversions,verbs=get;list;watch;create;update;patch;delete
+func (r *ReconcileFrameworkVersion) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	// Fetch the FrameworkVersion instance
+	instance := &maestrov1alpha1.FrameworkVersion{}
 	err := r.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -96,7 +92,8 @@ func (r *ReconcileFramework) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	log.Printf("FrameworkController: Recieved Reconcile request for %v\n", request.Name)
+	log.Printf("FrameworkVersionController: Recieved Reconcile request for %v\n", request.Name)
 
+	//TODO Validate FrameworkVersion is appropriate
 	return reconcile.Result{}, nil
 }
