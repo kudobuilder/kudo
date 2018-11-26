@@ -16,6 +16,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -28,6 +29,28 @@ type FrameworkSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	//TODO: Should SerivceSpec live here?
 	ServiceSpec `json:"serviceSpec"`
+	Version     string `json:"version"`
+	//Defaults captures the default parameter values defined in the Yaml section.
+	Defaults map[string]string `json:"defaults.config"`
+	//Yaml captures a mustached yaml list of elements that define the application framework instance
+	Yaml string `json:"yaml"`
+	//ConnectionString defines a mustached string that can be used
+	// to connect to an instance of the Framework
+	ConnectionString string `json:"connectionString"`
+
+	//Dependencies a list of
+	Dependencies []FrameworkDependency `json:"dependencies"`
+}
+
+//FrameworkDependency references a defined framework
+type FrameworkDependency struct {
+	//Name specifies the name of the dependency.  Referenced via this in defaults.config
+	ReferenceName string `json:"referenceName"`
+	corev1.ObjectReference
+	//Version captures the requirements for what versions
+	// of the above object are allowed
+	// Example: ^3.1.4
+	Version string `json:"version"`
 }
 
 // Type representations for srvc.yml as defined http://mesosphere.github.io/dcos-commons/yaml-reference/
