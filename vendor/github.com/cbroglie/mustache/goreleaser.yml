@@ -1,0 +1,9 @@
+builds:
+  - main: ./cmd/mustache/main.go
+    binary: mustache
+    goos:
+      - windows
+      - darwin
+      - linux
+    goarch:
+      - amd64
