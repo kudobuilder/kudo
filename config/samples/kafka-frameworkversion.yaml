@@ -239,7 +239,7 @@ spec:
           containers:
           - name: k8skafka
             imagePullPolicy: Always
-            image: runyontr/kafka-broker:latest
+            image: gcr.io/google_samples/k8skafka:v1
             resources:
               requests:
                 memory: {{BROKER_MEM}}
@@ -250,7 +250,7 @@ spec:
             command:
             - sh
             - -c
-            - "exec /kafka_${KAFKA_VERSION}/bin/kafka-server-start.sh /config/server.properties --override broker.id=${HOSTNAME##*-}"
+            - "exec kafka-server-start.sh /config/server.properties --override broker.id=${HOSTNAME##*-}"
             env:
             - name: KAFKA_HEAP_OPTS
               value : "-Xmx512M -Xms512M"
@@ -266,7 +266,7 @@ spec:
                 command: 
                   - sh 
                   - -c 
-                  - "/kafka_2.12-1.1.0/bin/kafka-broker-api-versions.sh --bootstrap-server=localhost:{{BROKER_PORT}}"
+                  - "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server=localhost:{{BROKER_PORT}}"
           securityContext:
             runAsUser: 1000
             fsGroup: 1000
