@@ -32,7 +32,8 @@ spec:
           name: leader-election
       clusterIP: None
       selector:
-        app: {{NAME}}
+        app: zookeeper
+        zookeeper: {{NAME}}
     ---
     apiVersion: v1
     kind: Service
