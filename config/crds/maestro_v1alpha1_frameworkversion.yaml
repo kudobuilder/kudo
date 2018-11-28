@@ -32,17 +32,14 @@ spec:
                   version:
                     type: string
                 required:
-                - referenceName
-                - version
+                  - referenceName
+                  - version
                 type: object
               type: array
             framework:
               type: object
-<<<<<<< HEAD
             plans:
               type: object
-=======
->>>>>>> origin/master
             upgradableFrom:
               items:
                 type: object
@@ -52,12 +49,8 @@ spec:
             yaml:
               type: string
           required:
-          - framework
-          - version
-<<<<<<< HEAD
-=======
-          - yaml
->>>>>>> origin/master
+            - framework
+            - version
           type: object
         status:
           type: object
