@@ -93,6 +93,8 @@ func (r *ReconcileFrameworkVersion) Reconcile(request reconcile.Request) (reconc
 	}
 
 	log.Printf("FrameworkVersionController: Recieved Reconcile request for %v\n", request.Name)
+	//When this is changed, we need to Reconcile all instances objects that reference this
+	//object.
 
 	//TODO Validate FrameworkVersion is appropriate
 	return reconcile.Result{}, nil
