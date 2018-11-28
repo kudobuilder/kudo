@@ -1,32 +1,36 @@
 apiVersion: maestro.k8s.io/v1alpha1
-kind: Framework
+kind: FrameworkVersion
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-  name: kafka
+  name: kafka-2.11-2.4.0
+  namespace: default
 spec:
   serviceSpec:
   version: "2.11-2.4.0"
   connectionString: ""
+  framework:
+    name: kafka
+    kind: Framework
   defaults.config:
-    broker.count: 3
-    broker.cpus: 200m
-    broker.mem: 512Mi
-    broker.port: 9093
-    kafka.num.partitions: 3
-    kafka.zookeeper.uri: "{{ zookeeper.connectionString }}"
-    kafka.zookeeper.path: "/kafka"
-    kafka.auto.create.topics.enabled: true
-    kafka.auto.leader.rebalance.enable: true
-    kafka.background.threads: 10
-    kafka.compression.type: producer
-    kafka.delete.topic.enable: true
-    kafka.leader.imbalance.check.interval.seconds: 300
-    kafka.leader.imbalance.per.broker.percentage: 10
-    kafka.log.flush.interval.messages: 9223372036854775807
-    kafka.log.flush.interval.ms: 60000
+    BROKER_COUNT: "3"
+    BROKER_CPUS: 200m
+    BROKER_MEM: 512Mi
+    BROKER_PORT: "9093"
+    KAFKA_NUM_PARTITIONS: "3"
+    KAFKA_ZOOKEEPER_URI: "{{ zookeeper.connectionString }}"
+    KAFKA_ZOOKEEPER_PATH: "/kafka"
+    KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    KAFKA_AUTO_LEADER_REBALANCE_ENABLE: "true"
+    KAFKA_BACKGROUND_THREADS: "10"
+    KAFKA_COMPRESSION_TYPE: producer
+    KAFKA_DELETE_TOPIC_ENABLE: "true"
+    KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: "300"
+    KAKFA_LEADER_IMBALANCE_PER_BROKER_PERCENTAGE: "10"
+    KAFKA_LOG_FLUSH_INTERVAL_MESSAGES: "9223372036854775807"
+    KAFKA_LOG_FLUSH_INTERVAL_MS: "60000"
   dependencies:
-    - refrenceName: zookeeper
+    - referenceName: zookeeper
       type: Framework
       name: zookeeper
       version: "^3.1.4"
@@ -41,7 +45,7 @@ spec:
         app: kafka
     spec:
       ports:
-      - port: {{broker.port}}
+      - port: {{BROKER_PORT}}
         name: server
       clusterIP: None
       selector:
@@ -95,7 +99,7 @@ spec:
         #     listeners = listener_name://host_name:port
         #   EXAMPLE:
         #     listeners = PLAINTEXT://your.host.name:9092
-        listeners=PLAINTEXT://:{{broker.port}}
+        listeners=PLAINTEXT://:{{BROKER_PORT}}
 
         # Hostname and port the broker will advertise to producers and consumers. If not set, 
         # it uses the value for "listeners" if configured.  Otherwise, it will use the value
@@ -129,7 +133,7 @@ spec:
         # The default number of log partitions per topic. More partitions allow greater
         # parallelism for consumption, but this will also result in more files across
         # the brokers.
-        num.partitions={{kafka.num.partitions}}
+        num.partitions={{KAFKA_NUM_PARTITIONS}}
 
         # The number of threads per data directory to be used for log recovery at startup and flushing at shutdown.
         # This value is recommended to be increased for installations with data dirs located in RAID array.
@@ -141,9 +145,9 @@ spec:
         offsets.topic.replication.factor=1
         transaction.state.log.replication.factor=1
         transaction.state.log.min.isr=1
-        auto.create.topics.enable={{kafka.auto.create.topics.enabled}}
-        auto.leader.rebalance.enable={{kafka.auto.leader.rebalance.enable}}
-        delete.topic.enable={{kafka.delete.topic.enable}}
+        auto.create.topics.enable={{KAFKA_AUTO_CREATE_TOPICS_ENABLE}}
+        auto.leader.rebalance.enable={{KAFKA_AUTO_LEADER_REBALANCE_ENABLE}}
+        delete.topic.enable={{KAFKA_DELETE_TOPIC_ENABLE}}
 
         ############################# Log Flush Policy #############################
 
@@ -190,7 +194,7 @@ spec:
         # server. e.g. "127.0.0.1:3000,127.0.0.1:3001,127.0.0.1:3002".
         # You can also append an optional chroot string to the urls to specify the
         # root directory for all kafka znodes.
-        zookeeper.connect={{kafka.zookeeper.uri}}{{kafka.zookeeper.path}}
+        zookeeper.connect={{KAFKA_ZOOKEEPER_URI}}{{KAFKA_ZOOKEEPER_PATH}}
 
         # Timeout in ms for connecting to zookeeper
         zookeeper.connection.timeout.ms=6000
@@ -210,7 +214,7 @@ spec:
       name: {{FRAMEWORK_NAME}}-serverproperties
       namespace: {{NAMESPACE}}
     ---
-    apiVersion: apps/v1beta1
+    apiVersion: apps/v1
     kind: StatefulSet
     metadata:
       name: {{FRAMEWORK_NAME}}
@@ -219,8 +223,12 @@ spec:
         kafka: {{FRAMEWORK_NAME}}
         app: kafka
     spec:
+      selector:
+        matchLabels:
+          app: kafka
+          kafka: {{FRAMEWORK_NAME}}
       serviceName: {{FRAMEWORK_NAME}}-svc
-      replicas: {{broker.count}}
+      replicas: {{BROKER_COUNT}}
       template:
         metadata:
           labels:
@@ -231,18 +239,18 @@ spec:
           containers:
           - name: k8skafka
             imagePullPolicy: Always
-            image: runyontr/kafka-broker:latest
+            image: gcr.io/google_samples/k8skafka:v1
             resources:
               requests:
-                memory: {{broker.mem}}
-                cpu: {{broker.cpus}}
+                memory: {{BROKER_MEM}}
+                cpu: {{BROKER_CPUS}}
             ports:
-            - containerPort: {{broker.port}}
+            - containerPort: {{BROKER_PORT}}
               name: server
             command:
             - sh
             - -c
-            - "exec /kafka_${KAFKA_VERSION}/bin/kafka-server-start.sh /config/server.properties --override broker.id=${HOSTNAME##*-}"
+            - "exec kafka-server-start.sh /config/server.properties --override broker.id=${HOSTNAME##*-}"
             env:
             - name: KAFKA_HEAP_OPTS
               value : "-Xmx512M -Xms512M"
@@ -255,10 +263,10 @@ spec:
               mountPath: /config
             readinessProbe:
               exec:
-              command: 
-                - sh 
-                - -c 
-                - "/kafka_2.12-1.1.0/bin/kafka-broker-api-versions.sh --bootstrap-server=localhost:{{BROKER_PORT}}"
+                command: 
+                  - sh 
+                  - -c 
+                  - "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server=localhost:{{BROKER_PORT}}"
           securityContext:
             runAsUser: 1000
             fsGroup: 1000
@@ -274,23 +282,3 @@ spec:
           resources:
             requests:
               storage: 1Gi
----
-apiVersion: maestro.k8s.io/v1alpha1
-kind: Instance
-metadata:
-  labels:
-    controller-tools.k8s.io: "1.0"
-    framework: kafka
-  name: small
-spec:
-  framework:
-    name: Kafka
-    type: Framework
-  # Add fields here
-  dependency:
-    - referenaceName: zookeeper
-      name: zk
-      type: Instance
-  parameters:
-    zookeeper.path: "small"
-    brokers.count: "3"

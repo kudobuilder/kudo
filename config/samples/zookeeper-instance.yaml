@@ -1,0 +1,16 @@
+apiVersion: maestro.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+    framework: zookeeper
+  name: zk
+spec:
+  frameworkVersion:
+    name: zookeeper-1.0
+    namespace: default
+    type: FrameworkVersions
+  # Add fields here
+  name: "zk"
+  parameters:
+    ZOOKEEPER_CPUS: "0.3"

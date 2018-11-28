@@ -4,12 +4,12 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: instances.maestro.k8s.io
+  name: frameworkversions.maestro.k8s.io
 spec:
   group: maestro.k8s.io
   names:
-    kind: Instance
-    plural: instances
+    kind: FrameworkVersion
+    plural: frameworkversions
   scope: Namespaced
   validation:
     openAPIV3Schema:
@@ -22,6 +22,8 @@ spec:
           type: object
         spec:
           properties:
+            connectionString:
+              type: string
             dependencies:
               items:
                 properties:
@@ -34,10 +36,20 @@ spec:
                 - version
                 type: object
               type: array
-            frameworkVersion:
+            framework:
               type: object
-            parameters:
-              type: object
+            upgradableFrom:
+              items:
+                type: object
+              type: array
+            version:
+              type: string
+            yaml:
+              type: string
+          required:
+          - framework
+          - version
+          - yaml
           type: object
         status:
           type: object

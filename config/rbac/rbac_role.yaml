@@ -43,6 +43,30 @@ rules:
 - apiGroups:
   - maestro.k8s.io
   resources:
+  - frameworkversions
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - maestro.k8s.io
+  resources:
   - instances
   verbs:
   - get

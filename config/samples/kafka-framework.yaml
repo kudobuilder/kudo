@@ -3,7 +3,4 @@ kind: Framework
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-  name: kafka-sample
-spec:
-  # Add fields here
-  name: "Kafka"
+  name: kafka

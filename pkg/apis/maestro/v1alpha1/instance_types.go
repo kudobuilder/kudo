@@ -23,10 +23,10 @@ import (
 // InstanceSpec defines the desired state of Instance
 type InstanceSpec struct {
 	//Framework specifies a reference to a specific Framework object
-	Framework corev1.ObjectReference `json:"framework"`
+	FrameworkVersion corev1.ObjectReference `json:"frameworkVersion,omitempty"`
 	//Dependnecy references specific
-	Dependencies []FrameworkDependency `json:"dependencies"`
-	Parameters   map[string]string     `json:"parameters"`
+	Dependencies []FrameworkDependency `json:"dependencies,omitempty"`
+	Parameters   map[string]string     `json:"parameters,omitempty"`
 }
 
 // InstanceStatus defines the observed state of Instance
