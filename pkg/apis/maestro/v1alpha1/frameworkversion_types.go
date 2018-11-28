@@ -19,6 +19,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+
 )
 
 // FrameworkVersionSpec defines the desired state of FrameworkVersion
@@ -29,6 +30,7 @@ type FrameworkVersionSpec struct {
 	//Defaults captures the default parameter values defined in the Yaml section.
 	Defaults map[string]string `json:"defaults.config"`
 	//Yaml captures a mustached yaml list of elements that define the application framework instance
+
 	Yaml string `json:"yaml,omitempty"`
 
 	//Plans specify a map a plans that specify how to
@@ -40,6 +42,7 @@ type FrameworkVersionSpec struct {
 	ConnectionString string `json:"connectionString,omitempty"`
 
 	//Dependencies a list of
+
 	Dependencies []FrameworkDependency `json:"dependencies,omitempty"`
 
 	//UpgradableFrom lists all FrameworkVersions that can upgrade to this FrameworkVersion
@@ -275,6 +278,7 @@ type HostVolume struct {
 	ContainerPath *string `json:"container-path" yaml:"container-path"`
 }
 
+<<<<<<< HEAD
 // // Plan represents a deployment/recovery plan.
 // type Plan struct {
 // 	Strategy *string           `json:"strategy" yaml:"strategy"`
@@ -287,3 +291,17 @@ type HostVolume struct {
 // 	Steps    []*map[string]*[][]string `json:"steps" yaml:"steps"`
 // 	Pod      *string                   `json:"pod" yaml:"pod"`
 // }
+=======
+// Plan represents a deployment/recovery plan.
+type Plan struct {
+	Strategy *string           `json:"strategy" yaml:"strategy"`
+	Phases   map[string]*Phase `json:"phases" yaml:"phases"`
+}
+
+// Phase represents a subphase of a given plan.
+type Phase struct {
+	Strategy *string                   `json:"strategy" yaml:"strategy"`
+	Steps    []*map[string]*[][]string `json:"steps" yaml:"steps"`
+	Pod      *string                   `json:"pod" yaml:"pod"`
+}
+>>>>>>> origin/master

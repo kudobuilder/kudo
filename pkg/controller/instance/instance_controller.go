@@ -24,6 +24,7 @@ import (
 
 	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
 	"github.com/kubernetes-sigs/kubebuilder-maestro/pkg/util/health"
+
 	"github.com/kubernetes-sigs/kubebuilder-maestro/pkg/util/template"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -356,6 +357,7 @@ func (r *ReconcileInstance) ApplyObject(obj runtime.Object, parent metav1.Object
 		//get the copy from the cluster now that things have been applied:
 		err = r.Get(context.TODO(), nnn, svc)
 		return svc, err
+
 	case *appsv1.StatefulSet:
 		ss := &appsv1.StatefulSet{}
 		err := r.Get(context.TODO(), nnn, ss)
