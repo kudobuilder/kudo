@@ -8,3 +8,9 @@ Thank you to the following **GIANTS**:
 * [github.com/gobuffalo/envy](https://godoc.org/github.com/gobuffalo/envy)
 
 * [github.com/joho/godotenv](https://godoc.org/github.com/joho/godotenv)
+
+* [github.com/rogpeppe/go-internal/modfile](https://godoc.org/github.com/rogpeppe/go-internal/modfile)
+
+* [github.com/rogpeppe/go-internal/module](https://godoc.org/github.com/rogpeppe/go-internal/module)
+
+* [github.com/rogpeppe/go-internal/semver](https://godoc.org/github.com/rogpeppe/go-internal/semver)
