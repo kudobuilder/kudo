@@ -7,6 +7,99 @@ metadata:
   namespace: default
 spec:
   serviceSpec:
+    templates:
+      service.yaml: |
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: svc
+        spec:
+          ports:
+          - port: {{BROKER_PORT}}
+            name: server
+          clusterIP: None
+          selector:
+            app: kafka
+            kafka: {{FRAMEWORK_NAME}}
+      statefulset.yaml: |
+        apiVersion: apps/v1
+        kind: StatefulSet
+        metadata:
+          name: {{FRAMEWORK_NAME}}
+          namespace: {{NAMESPACE}}
+          labels:
+            kafka: {{FRAMEWORK_NAME}}
+            app: kafka
+        spec:
+          selector:
+            matchLabels:
+              app: kafka
+              kafka: {{FRAMEWORK_NAME}}
+          serviceName: {{FRAMEWORK_NAME}}-svc
+          replicas: {{BROKER_COUNT}}
+          template:
+            metadata:
+              labels:
+                app: kafka
+                kafka: {{FRAMEWORK_NAME}}
+            spec:
+              terminationGracePeriodSeconds: 300
+              containers:
+              - name: k8skafka
+                imagePullPolicy: Always
+                image: gcr.io/google_samples/k8skafka:v1
+                resources:
+                  requests:
+                    memory: {{BROKER_MEM}}
+                    cpu: {{BROKER_CPUS}}
+                ports:
+                - containerPort: {{BROKER_PORT}}
+                  name: server
+                command:
+                - sh
+                - -c
+                - "exec kafka-server-start.sh /config/server.properties --override broker.id=${HOSTNAME##*-}"
+                env:
+                - name: KAFKA_HEAP_OPTS
+                  value : "-Xmx512M -Xms512M"
+                - name: KAFKA_OPTS
+                  value: "-Dlogging.level=INFO"
+                volumeMounts:
+                - name: datadir
+                  mountPath: /var/lib/kafka
+                - name: config
+                  mountPath: /config
+                readinessProbe:
+                  exec:
+                    command:
+                      - sh
+                      - -c
+                      - "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server=localhost:{{BROKER_PORT}}"
+              securityContext:
+                runAsUser: 1000
+                fsGroup: 1000
+              volumes:
+              - name: config
+                configMap:
+                  name: {{FRAMEWORK_NAME}}-serverproperties
+          volumeClaimTemplates:
+          - metadata:
+              name: datadir
+            spec:
+              accessModes: [ "ReadWriteOnce" ]
+              resources:
+                requests:
+                  storage: 1Gi
+    tasks:
+      broker:
+        commonLabels:
+          heritage: maestro
+          app: kafka
+      resources:
+      - service
+      - poddisruptionbudget
+      - serverproperties
+      - statefulset
   version: "2.11-2.4.0"
   connectionString: ""
   framework:
@@ -30,10 +123,10 @@ spec:
     KAFKA_LOG_FLUSH_INTERVAL_MESSAGES: "9223372036854775807"
     KAFKA_LOG_FLUSH_INTERVAL_MS: "60000"
   dependencies:
-    - referenceName: zookeeper
-      type: Framework
-      name: zookeeper
-      version: "^3.1.4"
+  - referenceName: zookeeper
+    type: Framework
+    name: zookeeper
+    version: "^3.1.4"
   yaml: |
     apiVersion: v1
     kind: Service
@@ -93,7 +186,7 @@ spec:
         broker.id=${HOSTNAME##*-}
         ############################# Socket Server Settings #############################
 
-        # The address the socket server listens on. It will get the value returned from 
+        # The address the socket server listens on. It will get the value returned from
         # java.net.InetAddress.getCanonicalHostName() if not configured.
         #   FORMAT:
         #     listeners = listener_name://host_name:port
@@ -101,7 +194,7 @@ spec:
         #     listeners = PLAINTEXT://your.host.name:9092
         listeners=PLAINTEXT://:{{BROKER_PORT}}
 
-        # Hostname and port the broker will advertise to producers and consumers. If not set, 
+        # Hostname and port the broker will advertise to producers and consumers. If not set,
         # it uses the value for "listeners" if configured.  Otherwise, it will use the value
         # returned from java.net.InetAddress.getCanonicalHostName().
         #advertised.listeners=PLAINTEXT://your.host.name:9092
@@ -263,9 +356,9 @@ spec:
               mountPath: /config
             readinessProbe:
               exec:
-                command: 
-                  - sh 
-                  - -c 
+                command:
+                  - sh
+                  - -c
                   - "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server=localhost:{{BROKER_PORT}}"
           securityContext:
             runAsUser: 1000

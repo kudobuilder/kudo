@@ -20,7 +20,6 @@ import (
 	"log"
 
 	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
-	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -44,11 +43,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
-	apiextensionsClient, err := apiextensionsclientset.NewForConfig(mgr.GetConfig())
-	if err != nil {
-		return nil, err
-	}
-	return &ReconcileFramework{Client: mgr.GetClient(), scheme: mgr.GetScheme(), apiextensionsClient: apiextensionsClient}, nil
+	return &ReconcileFramework{Client: mgr.GetClient(), scheme: mgr.GetScheme()}, nil
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -72,7 +67,6 @@ var _ reconcile.Reconciler = &ReconcileFramework{}
 
 // ReconcileFramework reconciles a Framework object
 type ReconcileFramework struct {
-	apiextensionsClient *apiextensionsclientset.Clientset
 	client.Client
 	scheme *runtime.Scheme
 }
