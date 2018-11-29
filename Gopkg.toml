@@ -13,7 +13,7 @@ required = [
     "sigs.k8s.io/controller-runtime/pkg/runtime/signals",
     "sigs.k8s.io/controller-runtime/pkg/source",
     "sigs.k8s.io/testing_frameworks/integration", # for integration testing
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
+    "sigs.k8s.io/kustomize",
     ]
 
 [prune]
@@ -35,3 +35,32 @@ required = [
 name = "gopkg.in/fsnotify.v1"
 source = "https://github.com/fsnotify/fsnotify.git"
 version="v1.4.7"
+
+[[constraint]]
+  name = "sigs.k8s.io/kustomize"
+  #1.0.8 but includes a GVK sorting patch
+  branch = "master"
+
+[[override]]
+  name = "k8s.io/kubernetes"
+  version = "1.11.3"
+
+[[override]]
+  name = "k8s.io/code-generator"
+  version = "kubernetes-1.11.3"
+
+[[override]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.11.3"
+
+[[override]]
+  name = "k8s.io/apiserver"
+  version = "kubernetes-1.11.3"
+
+[[override]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.11.3"
+
+[[override]]
+  name = "k8s.io/client-go"
+  version = "kubernetes-1.11.3"
