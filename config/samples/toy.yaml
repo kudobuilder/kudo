@@ -1,0 +1,174 @@
+apiVersion: maestro.k8s.io/v1alpha1
+kind: Framework
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: toy
+---
+apiVersion: maestro.k8s.io/v1alpha1
+kind: FrameworkVersion
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: toy-v1
+  namespace: default
+spec:
+  version: "1.0.0"
+  connectionString: ""
+  framework:
+    name: Toy
+    kind: Framework
+  defaults.config:
+    SLEEP: "600"
+  plans:
+    deploy:
+      strategy: serial
+      phases:
+        - name: par
+          strategy: parallel
+          steps:
+            - name: par-one
+              mustache: |
+                apiVersion: batch/v1
+                kind: Job
+                metadata:
+                  namespace: default
+                  name: par-one
+                spec:
+                  template:
+                    metadata:
+                      name: par-one
+                    spec:
+                      restartPolicy: OnFailure
+                      containers:
+                      - name: bb
+                        image: busybox:latest
+                        imagePullPolicy: IfNotPresent
+                        command:
+                        - /bin/sh
+                        - -c
+                        - "sleep {{SLEEP}}"
+            - name: par-two
+              mustache: |
+                apiVersion: batch/v1
+                kind: Job
+                metadata:
+                  namespace: default
+                  name: par-two
+                spec:
+                  template:
+                    metadata:
+                      name: par-two
+                    spec:
+                      restartPolicy: OnFailure
+                      containers:
+                      - name: bb
+                        image: busybox:latest
+                        imagePullPolicy: IfNotPresent
+                        command:
+                        - /bin/sh
+                        - -c
+                        - "sleep {{SLEEP}}"
+            - name: par-three
+              mustache: |
+                apiVersion: batch/v1
+                kind: Job
+                metadata:
+                  namespace: default
+                  name: par-three
+                spec:
+                  template:
+                    metadata:
+                      name: par-three
+                    spec:
+                      restartPolicy: OnFailure
+                      containers:
+                      - name: bb
+                        image: busybox:latest
+                        imagePullPolicy: IfNotPresent
+                        command:
+                        - /bin/sh
+                        - -c
+                        - "sleep {{SLEEP}}"
+        - name: serial
+          strategy: serial
+          steps:
+            - name: serial-one
+              mustache: |
+                apiVersion: batch/v1
+                kind: Job
+                metadata:
+                  namespace: default
+                  name: serial-one
+                spec:
+                  template:
+                    metadata:
+                      name: serial-one
+                    spec:
+                      restartPolicy: OnFailure
+                      containers:
+                      - name: bb
+                        image: busybox:latest
+                        imagePullPolicy: IfNotPresent
+                        command:
+                        - /bin/sh
+                        - -c
+                        - "sleep {{SLEEP}}"
+            - name: serial-two
+              mustache: |
+                apiVersion: batch/v1
+                kind: Job
+                metadata:
+                  namespace: default
+                  name: serial-two
+                spec:
+                  template:
+                    metadata:
+                      name: serial-two
+                    spec:
+                      restartPolicy: OnFailure
+                      containers:
+                      - name: bb
+                        image: busybox:latest
+                        imagePullPolicy: IfNotPresent
+                        command:
+                        - /bin/sh
+                        - -c
+                        - "sleep {{SLEEP}}"
+            - name: serial-three
+              mustache: |
+                apiVersion: batch/v1
+                kind: Job
+                metadata:
+                  namespace: default
+                  name: serial-three
+                spec:
+                  template:
+                    metadata:
+                      name: serial-three
+                    spec:
+                      restartPolicy: OnFailure
+                      containers:
+                      - name: bb
+                        image: busybox:latest
+                        imagePullPolicy: IfNotPresent
+                        command:
+                        - /bin/sh
+                        - -c
+                        - "sleep {{SLEEP}}"
+---
+apiVersion: maestro.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+    framework: toy
+  name: toy1
+spec:
+  frameworkVersion:
+    name: toy-v1
+    namespace: default
+    type: FrameworkVersions
+  # Add fields here
+  parameters:
+    SLEEP: "30"
