@@ -61,6 +61,25 @@
   version = "v0.1.0"
 
 [[projects]]
+  digest = "1:9786ddd8ff742e4ad1d8b68f9b1d551584fac49009d5a1680bfb8f812ed1c0ff"
+  name = "github.com/go-playground/locales"
+  packages = [
+    ".",
+    "currency",
+  ]
+  pruneopts = "T"
+  revision = "f63010822830b6fe52288ee52d5a1151088ce039"
+  version = "v0.12.1"
+
+[[projects]]
+  digest = "1:c7965197b6ef4e3f0464248b6a4a6db0b5678e68ed0c7e6aeced022b0c62ac74"
+  name = "github.com/go-playground/universal-translator"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "b32fa301c9fe55953584134cb6853a13c87ec0a1"
+  version = "v0.16.0"
+
+[[projects]]
   digest = "1:2e2e504f10412c94bbe34b1d9fed61a785049843774e5fa17d3d814f61553ecf"
   name = "github.com/gobuffalo/envy"
   packages = ["."]
@@ -521,6 +540,14 @@
   version = "v1.4.7"
 
 [[projects]]
+  digest = "1:d7bdbdb2a48efb0ad1db7d8a97fb9860db04f3a10d92383daf66fb4ad173d961"
+  name = "gopkg.in/go-playground/validator.v9"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "1fa3c8d6336562f0a3f95c73593ee2b57ff4da11"
+  version = "v9.23.0"
+
+[[projects]]
   digest = "1:2d1fbdc6777e5408cabeb02bf336305e724b925ff4546ded0fa8715a7267922a"
   name = "gopkg.in/inf.v0"
   packages = ["."]
@@ -847,8 +874,10 @@
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "golang.org/x/net/context",
+    "gopkg.in/go-playground/validator.v9",
     "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",
+    "k8s.io/api/policy/v1beta1",
     "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
     "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset",
     "k8s.io/apimachinery/pkg/api/errors",
