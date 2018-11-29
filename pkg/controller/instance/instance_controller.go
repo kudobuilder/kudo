@@ -101,14 +101,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// The object doesn't contain label "foo", so the event will be
 			// ignored.
-			fmt.Printf("Recieved UpdateEvent for event %v/%v:\n", e.ObjectNew.GetObjectKind(), e.MetaNew.GetName())
-			fmt.Printf("NewSpec:\n")
-			fmt.Printf("%v\n", e.ObjectNew)
-			fmt.Printf("OldSpec:\n")
-			fmt.Printf("%v\n", e.ObjectOld)
-			if _, ok := e.MetaOld.GetLabels()["foo"]; !ok {
-				return false
-			}
 			return e.ObjectOld != e.ObjectNew
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
@@ -277,7 +269,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 				// the cluster so we can see if it's healthy or not
 				obj, err = r.ApplyObject(obj, instance)
 				if err != nil {
-					log.Printf("Error applying Object: type: %v step:%v: %v\n", obj.GetObjectKind().GroupVersionKind(), s.Name, err)
+					log.Printf("Error applying Object in step:%v: %v\n", s.Name, err)
 					instance.Status.PlanStatus.Phases[i].State = maestrov1alpha1.PhaseStateError
 					instance.Status.PlanStatus.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateError
 					return reconcile.Result{}, err
@@ -289,6 +281,18 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 					instance.Status.PlanStatus.Phases[i].State = maestrov1alpha1.PhaseStateInProgress
 				}
 			}
+			fmt.Printf("Phase %v has strategy %v\n", phase.Name, phase.Strategy)
+			if phase.Strategy == maestrov1alpha1.Serial {
+				//we need to skip the rest of the steps if this step is unhealthy
+				fmt.Printf("Phase %v marked as serial\n", phase.Name)
+				if instance.Status.PlanStatus.Phases[i].Steps[j].State != maestrov1alpha1.PhaseStateComplete {
+					fmt.Printf("Step %v isn't complete, skipping rest of steps in phase until it is\n", instance.Status.PlanStatus.Phases[i].Steps[j].Name)
+					break //break step loop
+				} else {
+					fmt.Printf("Step %v is healthy, so I can continue on\n", instance.Status.PlanStatus.Phases[i].Steps[j].Name)
+				}
+			}
+
 			fmt.Printf("Step %v looked at\n", s.Name)
 		}
 		if health.IsPhaseHealthy(instance.Status.PlanStatus.Phases[i]) {
@@ -301,7 +305,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		instance.Status.PlanStatus.Phases[i].State = maestrov1alpha1.PhaseStateInProgress
 
 		//Don't keep goign to other plans if we're flagged to perform the phases in serial
-		if phase.Strategy == maestrov1alpha1.Serial {
+		if executedPlan.Strategy == maestrov1alpha1.Serial {
 			fmt.Printf("Phase %v not healthy, and plan marked as serial, so breaking.\n", phase.Name)
 			break
 		}
@@ -445,6 +449,29 @@ func (r *ReconcileInstance) ApplyObject(obj runtime.Object, parent metav1.Object
 		//get the copy from the cluster now that things have been applied:
 		err = r.Get(context.TODO(), nnn, cm)
 		return cm, err
+	case *batchv1.Job:
+		job := &batchv1.Job{}
+		err := r.Get(context.TODO(), nnn, job)
+		if err != nil && errors.IsNotFound(err) {
+			job = obj.(*batchv1.Job)
+			if err := controllerutil.SetControllerReference(parent, job, r.scheme); err != nil {
+				return nil, err
+			}
+			err = r.Create(context.TODO(), job)
+			if err != nil {
+				return nil, err
+			}
+		} else if err != nil {
+			return nil, err
+		}
+		//Don't update Jobs if they're already running.
+
+		//Sleep to wait for the obejct to show up?
+		time.Sleep(1 * time.Second)
+
+		//get the copy from the cluster now that things have been applied:
+		err = r.Get(context.TODO(), nnn, job)
+		return job, err
 	default:
 		return nil, fmt.Errorf("I dont know how to update types %v.  Please implement", o)
 

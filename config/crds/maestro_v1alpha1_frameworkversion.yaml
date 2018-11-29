@@ -32,8 +32,8 @@ spec:
                   version:
                     type: string
                 required:
-                  - referenceName
-                  - version
+                - referenceName
+                - version
                 type: object
               type: array
             framework:
@@ -49,8 +49,8 @@ spec:
             yaml:
               type: string
           required:
-            - framework
-            - version
+          - framework
+          - version
           type: object
         status:
           type: object

@@ -27,8 +27,15 @@ func IsHealthy(obj runtime.Object) error {
 		return nil
 	case *batchv1.Job:
 		job := obj.(*batchv1.Job)
-		fmt.Printf("Job %v is marked healthy\n", job.Name)
-		return nil
+		// job.Status.
+
+		if job.Status.Succeeded == int32(1) {
+			//done!
+
+			fmt.Printf("Job %v is marked healthy\n", job.Name)
+			return nil
+		}
+		return fmt.Errorf("Job %v still running or failed", job.Name)
 	//unless we build logic for what a healthy object is, assume its healthy when created
 	default:
 		fmt.Printf("Unkonwn type is marked healthy by default\n")
