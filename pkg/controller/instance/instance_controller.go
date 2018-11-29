@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sigs.k8s.io/kustomize/pkg/fs"
 
 	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
 	"github.com/kubernetes-sigs/kubebuilder-maestro/pkg/util/template"
@@ -96,6 +97,8 @@ type ReconcileInstance struct {
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=maestro.k8s.io,resources=instances,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+
+	fs.MakeFakeFS()
 	// Fetch the Instance instance
 	instance := &maestrov1alpha1.Instance{}
 	err := r.Get(context.TODO(), request.NamespacedName, instance)
