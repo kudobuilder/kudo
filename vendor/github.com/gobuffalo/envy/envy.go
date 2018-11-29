@@ -11,8 +11,10 @@ package envy makes working with ENV variables in Go trivial.
 package envy
 
 import (
+	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,6 +23,7 @@ import (
 	"sync"
 
 	"github.com/joho/godotenv"
+	"github.com/rogpeppe/go-internal/modfile"
 )
 
 var gil = &sync.RWMutex{}
@@ -216,7 +219,29 @@ func importPath(path string) string {
 	return filepath.ToSlash(rel)
 }
 
+// CurrentModule will attempt to return the module name from `go.mod` if
+// modules are enabled.
+// If modules are not enabled it will fallback to using CurrentPackage instead.
+func CurrentModule() (string, error) {
+	if !Mods() {
+		return CurrentPackage(), nil
+	}
+	moddata, err := ioutil.ReadFile("go.mod")
+	if err != nil {
+		return "", errors.New("go.mod cannot be read or does not exist while go module is enabled")
+	}
+	packagePath := modfile.ModulePath(moddata)
+	if packagePath == "" {
+		return "", errors.New("go.mod is malformed")
+	}
+	return packagePath, nil
+}
+
+// CurrentPackage attempts to figure out the current package name from the PWD
+// Use CurrentModule for a more accurate package name.
 func CurrentPackage() string {
+	if Mods() {
+	}
 	pwd, _ := os.Getwd()
 	return importPath(pwd)
 }
