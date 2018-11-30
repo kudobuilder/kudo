@@ -18,6 +18,7 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
 // FrameworkVersionSpec defines the desired state of FrameworkVersion
@@ -28,18 +29,56 @@ type FrameworkVersionSpec struct {
 	//Defaults captures the default parameter values defined in the Yaml section.
 	Defaults map[string]string `json:"defaults.config"`
 	//Yaml captures a mustached yaml list of elements that define the application framework instance
-	Yaml string `json:"yaml"`
+
+	Yaml string `json:"yaml,omitempty"`
+
+	//Plans specify a map a plans that specify how to
+	Plans map[string]Plan `json:"plans,omitempty"`
+
 	//ConnectionString defines a mustached string that can be used
 	// to connect to an instance of the Framework
 	// +optional
 	ConnectionString string `json:"connectionString,omitempty"`
 
 	//Dependencies a list of
-	// +optional
+
 	Dependencies []FrameworkDependency `json:"dependencies,omitempty"`
+
 	//UpgradableFrom lists all FrameworkVersions that can upgrade to this FrameworkVersion
-	// +optional
 	UpgradableFrom []FrameworkVersion `json:"upgradableFrom,omitempty"`
+}
+
+//Ordering specifies how the subitems in this plan/phase should be rolled out
+type Ordering string
+
+//Serial specifies that the plans or objects should be created in order.  The first should be healthy before
+// continuing on
+const Serial Ordering = "serial"
+
+//Parallel specifies that the plan or objects in the phase can all be lauched at the same time
+const Parallel Ordering = "parallel"
+
+//Plan specifies a series of Phases that need to be completed.
+type Plan struct {
+	Strategy Ordering `json:"strategy"`
+	//Phases maps a phase name to a Phase object
+	Phases []Phase `json:"phases"`
+}
+
+//Phase specifies a list of steps that contain Kubernetes objects.
+type Phase struct {
+	Name     string   `json:"name"`
+	Strategy Ordering `json:"strategy"`
+	//Steps maps a step name to a list of mustached kubernetes objects stored as a string
+	Steps []Step `json:"steps"`
+}
+
+type Step struct {
+	Name     string `json:"name"`
+	Mustache string `json:"mustache"`
+	//Objects will be serialized for each instance as the params and defaults
+	// are provided
+	Objects []runtime.Object `json:"-"`
 }
 
 // FrameworkVersionStatus defines the observed state of FrameworkVersion
@@ -239,15 +278,16 @@ type HostVolume struct {
 	ContainerPath *string `json:"container-path" yaml:"container-path" validate:"required,gt=0"` // makes field mandatory and checks if set and non empty (TODO: MatchRegex Custom Validation)
 }
 
-// Plan represents a deployment/recovery plan.
-type Plan struct {
-	Strategy *string           `json:"strategy" yaml:"strategy" validate:"required,gt=0"`                        // makes field mandatory and checks if set and non empty
-	Phases   map[string]*Phase `json:"phases" yaml:"phases" validate:"gt=0,dive,keys,required,endkeys,required"` // makes field mandatory but when set it checks for non empty keys and non empty&nil values
-}
+// // Plan represents a deployment/recovery plan.
+// type Plan struct {
+// 	Strategy *string           `json:"strategy" yaml:"strategy"`
+// 	Phases   map[string]*Phase `json:"phases" yaml:"phases"`
+// }
 
-// Phase represents a subphase of a given plan.
-type Phase struct {
-	Strategy *string                   `json:"strategy" yaml:"strategy" validate:"required,gt=0"`        // makes field mandatory and checks if set and non empty
-	Steps    []*map[string]*[][]string `json:"steps" yaml:"steps" validate:"gte=0,dive,gte=1,dive,gt=0"` // makes field mandatory and checks if
-	Pod      *string                   `json:"pod" yaml:"pod" validate:"required,gt=0"`                  // makes field mandatory and checks if set and non empty
-}
+// // Phase represents a subphase of a given plan.
+// type Phase struct {
+// 	Strategy *string                   `json:"strategy" yaml:"strategy"`
+// 	Steps    []*map[string]*[][]string `json:"steps" yaml:"steps"`
+// 	Pod      *string                   `json:"pod" yaml:"pod"`
+// }
+

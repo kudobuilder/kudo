@@ -18,6 +18,7 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
 // InstanceSpec defines the desired state of Instance
@@ -33,6 +34,76 @@ type InstanceSpec struct {
 type InstanceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	//TODO turn into struct
+	ActivePlan string `json:"activePlan,omitempty"`
+
+	PlanStatus PlanStatus `json:"status,omitempty"`
+}
+
+/*
+Using Kubernetes cluster: kubernetes-cluster1
+deploy (serial strategy) (IN_PROGRESS)
+├─ etcd (serial strategy) (STARTED)
+│  ├─ etcd-0:[peer] (STARTED)
+│  ├─ etcd-1:[peer] (PENDING)
+│  └─ etcd-2:[peer] (PENDING)
+├─ control-plane (dependency strategy) (PENDING)
+│  ├─ kube-control-plane-0:[instance] (PENDING)
+│  ├─ kube-control-plane-1:[instance] (PENDING)
+│  └─ kube-control-plane-2:[instance] (PENDING)
+├─ mandatory-addons (serial strategy) (PENDING)
+│  └─ mandatory-addons-0:[instance] (PENDING)
+├─ node (dependency strategy) (PENDING)
+│  ├─ kube-node-0:[kubelet] (PENDING)
+│  ├─ kube-node-1:[kubelet] (PENDING)
+│  ├─ kube-node-2:[kubelet] (PENDING)
+│  ├─ kube-node-3:[kubelet] (PENDING)
+│  └─ kube-node-4:[kubelet] (PENDING)
+└─ public-node (dependency strategy) (COMPLETE)
+*/
+
+//PhaseState captures the state of the rollout
+type PhaseState string
+
+//PhaseStateInProgress actively deploying, but not yet healthy
+const PhaseStateInProgress PhaseState = "IN_PROGRESS"
+
+//PhaseStatePending Not ready to deploy because dependent phases/steps not
+// healthy
+const PhaseStatePending PhaseState = "PENDING"
+
+//PhaseStateComplete deployed and healthy
+const PhaseStateComplete PhaseState = "COMPLETE"
+
+//PhaseStateError there was an error deploying the application
+const PhaseStateError PhaseState = "ERROR"
+
+//PlanStatus specifies a series of Phases that need to be completed.
+type PlanStatus struct {
+	Name     string     `json:"name"`
+	Strategy Ordering   `json:"strategy"`
+	State    PhaseState `json:"state"`
+	//Phases maps a phase name to a Phase object
+	Phases []PhaseStatus `json:"phases"`
+}
+
+//PhaseStatus specifies the status of list of steps that contain Kubernetes objects.
+type PhaseStatus struct {
+	Name     string     `json:"name"`
+	Strategy Ordering   `json:"strategy"`
+	State    PhaseState `json:"state"`
+	//Steps maps a step name to a list of mustached kubernetes objects stored as a string
+	Steps []StepStatus `json:"steps"`
+}
+
+//StepStatus shows the status of the Step
+type StepStatus struct {
+	Name  string     `json:"name"`
+	State PhaseState `json:"state"`
+	//Objects will be serialized for each instance as the params and defaults
+	// are provided, but not serialized in the payload
+	Objects []runtime.Object `json:"-"`
 }
 
 // +genclient

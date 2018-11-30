@@ -40,6 +40,51 @@ spec:
               type: object
           type: object
         status:
+          properties:
+            activePlan:
+              type: string
+            status:
+              properties:
+                name:
+                  type: string
+                phases:
+                  items:
+                    properties:
+                      name:
+                        type: string
+                      state:
+                        type: string
+                      steps:
+                        items:
+                          properties:
+                            name:
+                              type: string
+                            state:
+                              type: string
+                          required:
+                          - name
+                          - state
+                          type: object
+                        type: array
+                      strategy:
+                        type: string
+                    required:
+                    - name
+                    - strategy
+                    - state
+                    - steps
+                    type: object
+                  type: array
+                state:
+                  type: string
+                strategy:
+                  type: string
+              required:
+              - name
+              - strategy
+              - state
+              - phases
+              type: object
           type: object
   version: v1alpha1
 status:

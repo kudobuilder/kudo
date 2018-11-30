@@ -38,6 +38,8 @@ spec:
               type: array
             framework:
               type: object
+            plans:
+              type: object
             upgradableFrom:
               items:
                 type: object
@@ -49,7 +51,6 @@ spec:
           required:
           - framework
           - version
-          - yaml
           type: object
         status:
           type: object
