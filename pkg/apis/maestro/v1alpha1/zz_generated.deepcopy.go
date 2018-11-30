@@ -256,6 +256,13 @@ func (in *FrameworkVersionSpec) DeepCopyInto(out *FrameworkVersionSpec) {
 			(*out)[key] = val
 		}
 	}
+	if in.Templates != nil {
+		in, out := &in.Templates, &out.Templates
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.Dependencies != nil {
 		in, out := &in.Dependencies, &out.Dependencies
 		*out = make([]FrameworkDependency, len(*in))

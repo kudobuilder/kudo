@@ -28,7 +28,7 @@ type FrameworkVersionSpec struct {
 	//Defaults captures the default parameter values defined in the Yaml section.
 	Defaults map[string]string `json:"defaults.config"`
 	//Yaml captures a mustached yaml list of elements that define the application framework instance
-	Yaml string `json:"yaml"`
+	Templates map[string]string `json:"templates"`
 	//ConnectionString defines a mustached string that can be used
 	// to connect to an instance of the Framework
 	// +optional

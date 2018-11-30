@@ -38,18 +38,18 @@ spec:
               type: array
             framework:
               type: object
+            templates:
+              type: object
             upgradableFrom:
               items:
                 type: object
               type: array
             version:
               type: string
-            yaml:
-              type: string
           required:
           - framework
           - version
-          - yaml
+          - templates
           type: object
         status:
           type: object
