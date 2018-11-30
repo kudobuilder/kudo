@@ -199,6 +199,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+	defer ldr.Cleanup()
 
 	rf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()))
 	kt, err := target.NewKustTarget(ldr, fsys, rf, transformer.NewFactoryImpl())

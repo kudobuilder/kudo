@@ -16,6 +16,6 @@ spec:
       name: zk
       type: Instance
   parameters:
-    KAFKA_ZOOKEEPER_URI: zk-0.zk-hs:2181,zk-1.zk-hs:2181,zk-2.zk-hs:2181
+    KAFKA_ZOOKEEPER_URI: zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181
     KAFKA_ZOOKEEPER_PATH: "/small"
     BROKERS_COUNT: "3"
