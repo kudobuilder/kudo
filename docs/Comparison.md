@@ -61,18 +61,23 @@ What are the control mechanisms?  CRDs allow for RBAC control at a namespace lev
 
 
 
+## Discoverable Repo for Applications
+
+It should be easy to convert a Helm chart into a FrameworkVersion since we can just "render" the chart.  Additionally we plan to build the Universe Shim to accept any DC/OS framework.  Thus we should be able to pull from either of these public repos of apps (and any internally hosted app site)
+
+
 ## Comparison Table
 
 
 
 
-| Project | Defininition Language |Uses CRDs |  Dependencies | Multi Step |  Parameters |  Custom Lifecycles | Install Component|
-|---------|----|-------|-----------|--|-------------------|----------------| --|
-|Raw Yaml |YAML| No | No | No | No | No| No |
-|Helm 3 | Lua | No | Yes | No | Yes | Yes | CLI |
-|Helm 2|  Also lua? |No | ?? | No | Yes | No | CLI + Tiller |
-| ksonnet|  jsonnet/libsonnet | No | ?? | No | Yes | ?? | CLI|
-| OpenShift Templates| yaml| No | No | No | Yes | No | Just Openshift....|
-| Kustomize | yaml | No | No | Yes | No | No| CLI|
-|Maestro| Yaml + Kustomize | Yes | Yes | Yes |Yes | Yes | Yes
+| Project | Defininition Language |Uses CRDs |  Dependencies | Multi Step |  Parameters |  Custom Lifecycles | Install Component| App Repo|
+|---------|----|-------|-----------|--|-------------------|--------------|--| --|
+|Raw Yaml |YAML| No | No | No | No | No| No | No|
+|Helm 3 | Lua | No | Yes | No | Yes | Yes | CLI | Yes |
+|Helm 2|  Also lua? |No | ?? | No | Yes | No | CLI + Tiller | Yes|
+| ksonnet|  jsonnet/libsonnet | No | ?? | No | Yes | ?? | CLI| No |
+| OpenShift Templates| yaml| No | No | No | Yes | No | Just Openshift....| No |
+| Kustomize | yaml | No | No | Yes | No | No| CLI| No|
+|Maestro| Yaml + Kustomize | Yes | Yes | Yes |Yes | Yes | Yes | Yes| 
 
