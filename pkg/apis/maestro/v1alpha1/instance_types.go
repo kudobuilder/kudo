@@ -25,7 +25,7 @@ import (
 type InstanceSpec struct {
 	//Framework specifies a reference to a specific Framework object
 	FrameworkVersion corev1.ObjectReference `json:"frameworkVersion,omitempty"`
-	//Dependnecy references specific
+	//Dependency references specific
 	Dependencies []FrameworkDependency `json:"dependencies,omitempty"`
 	Parameters   map[string]string     `json:"parameters,omitempty"`
 }

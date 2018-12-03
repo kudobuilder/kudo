@@ -276,16 +276,3 @@ type HostVolume struct {
 	HostPath      *string `json:"host-path" yaml:"host-path" validate:"required,gt=0"`           // makes field mandatory and checks if set and non empty (TODO: MatchRegex Custom Validation)
 	ContainerPath *string `json:"container-path" yaml:"container-path" validate:"required,gt=0"` // makes field mandatory and checks if set and non empty (TODO: MatchRegex Custom Validation)
 }
-
-// // Plan represents a deployment/recovery plan.
-// type Plan struct {
-// 	Strategy *string           `json:"strategy" yaml:"strategy"`
-// 	Phases   map[string]*Phase `json:"phases" yaml:"phases"`
-// }
-
-// // Phase represents a subphase of a given plan.
-// type Phase struct {
-// 	Strategy *string                   `json:"strategy" yaml:"strategy"`
-// 	Steps    []*map[string]*[][]string `json:"steps" yaml:"steps"`
-// 	Pod      *string                   `json:"pod" yaml:"pod"`
-// }

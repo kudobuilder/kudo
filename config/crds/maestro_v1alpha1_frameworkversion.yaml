@@ -40,17 +40,18 @@ spec:
               type: object
             plans:
               type: object
+            templates:
+              type: object
             upgradableFrom:
               items:
                 type: object
               type: array
             version:
               type: string
-            yaml:
-              type: string
           required:
           - framework
           - version
+          - templates
           type: object
         status:
           type: object
