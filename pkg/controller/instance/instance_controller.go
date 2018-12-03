@@ -19,7 +19,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"log"
+	"sigs.k8s.io/kustomize/k8sdeps/kunstruct"
+	"sigs.k8s.io/kustomize/k8sdeps/transformer"
+	"sigs.k8s.io/kustomize/pkg/fs"
+	"sigs.k8s.io/kustomize/pkg/loader"
+	"sigs.k8s.io/kustomize/pkg/patch"
+	"sigs.k8s.io/kustomize/pkg/resmap"
+	"sigs.k8s.io/kustomize/pkg/resource"
+	"sigs.k8s.io/kustomize/pkg/target"
+	ktypes "sigs.k8s.io/kustomize/pkg/types"
 	"time"
 
 	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
@@ -44,6 +54,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
+
+const basePath = "/kustomize"
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
@@ -181,10 +193,27 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	log.Printf("InstanceController: Recieved Reconcile request for %v\n", request.Name)
 
+	frameworkVersion := &maestrov1alpha1.FrameworkVersion{}
+	err = r.Get(context.TODO(), types.NamespacedName{
+		Name:      instance.Spec.FrameworkVersion.Name,
+		Namespace: instance.Spec.FrameworkVersion.Namespace,
+	}, frameworkVersion)
+
+	framework := &maestrov1alpha1.Framework{}
+	err = r.Get(context.TODO(), types.NamespacedName{
+		Name:      frameworkVersion.Spec.Framework.Name,
+		Namespace: "default",
+	}, framework)
+
+	if err != nil {
+		log.Printf("InstanceController: Could not find Framework with name %v: %v\n", frameworkVersion.Spec.Framework.Name, err)
+		return reconcile.Result{}, err
+	}
+
 	//Create configmap to hold all parameters for instantiation
 	configs := make(map[string]string)
 	//Default parameters from instance metadata
-	configs["FRAMEWORK_NAME"] = instance.Name
+	configs["FRAMEWORK_NAME"] = framework.Name
 	configs["NAME"] = instance.Name
 	configs["NAMESPACE"] = instance.Namespace
 	//parameters from instance spec
@@ -192,11 +221,6 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		configs[k] = v
 	}
 	//grab Framework instance (TODO Switch to FrameworkVersion)
-	frameworkVersion := &maestrov1alpha1.FrameworkVersion{}
-	err = r.Get(context.TODO(), types.NamespacedName{
-		Name:      instance.Spec.FrameworkVersion.Name,
-		Namespace: instance.Spec.FrameworkVersion.Namespace,
-	}, frameworkVersion)
 
 	if err != nil {
 		log.Printf("InstanceController: Could not find FrameworkVersion with name %v: %v\n", instance.Spec.FrameworkVersion.Name, err)
@@ -240,12 +264,60 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		instance.Status.PlanStatus.Phases[i].State = maestrov1alpha1.PhaseStatePending
 		instance.Status.PlanStatus.Phases[i].Steps = make([]maestrov1alpha1.StepStatus, len(phase.Steps))
 		for j, step := range phase.Steps {
-			appliedYaml, err := template.ExpandMustache(step.Mustache, configs)
+			var resources []string
+			fsys := fs.MakeFakeFS()
+			for k, v := range frameworkVersion.Spec.Templates {
+				templatedYaml, err := template.ExpandMustache(v, configs)
+				if err != nil {
+					log.Printf("InstanceController: Error expanding mustache: %v\n", err)
+					return reconcile.Result{}, err
+				}
+
+				fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, k), []byte(*templatedYaml))
+				resources = append(resources, k)
+			}
+
+			kustomization := &ktypes.Kustomization{
+				NamePrefix: instance.Name + "-",
+				Namespace:  instance.Namespace,
+				CommonLabels: map[string]string{
+					"heritage": "maestro",
+					"app":      framework.Name,
+					"instance": instance.Name,
+				},
+				Resources:             resources,
+				PatchesStrategicMerge: []patch.StrategicMerge{},
+			}
+
+			yamlBytes, err := yaml.Marshal(kustomization)
+			if err != nil {
+				return reconcile.Result{}, err
+			}
+
+			fsys.WriteFile(fmt.Sprintf("%s/kustomization.yaml", basePath), yamlBytes)
+			ldr, err := loader.NewLoader(basePath, fsys)
+			if err != nil {
+				return reconcile.Result{}, nil
+			}
+			defer ldr.Cleanup()
+
+			rf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()))
+			kt, err := target.NewKustTarget(ldr, fsys, rf, transformer.NewFactoryImpl())
+			if err != nil {
+				return reconcile.Result{}, nil
+			}
+
+			allResources, err := kt.MakeCustomizedResMap()
+			if err != nil {
+				return reconcile.Result{}, nil
+			}
+			res, err := allResources.EncodeAsYaml()
 			if err != nil {
 				log.Printf("Error applying configs to step %v in phase %v of plan %v: %v", step.Name, phase.Name, planName, err)
 				return reconcile.Result{}, err
 			}
-			objs, err := template.ParseKubernetesObjects(*appliedYaml)
+
+			objs, err := template.ParseKubernetesObjects(string(res))
 			if err != nil {
 				log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planName, err)
 				return reconcile.Result{}, err
