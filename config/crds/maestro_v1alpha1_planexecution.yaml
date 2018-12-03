@@ -22,15 +22,55 @@ spec:
           type: object
         spec:
           properties:
-            instanceName:
+            instance:
               type: object
             planName:
               type: string
           required:
           - planName
-          - instanceName
+          - instance
           type: object
         status:
+          properties:
+            name:
+              type: string
+            phases:
+              items:
+                properties:
+                  name:
+                    type: string
+                  state:
+                    type: string
+                  steps:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        state:
+                          type: string
+                      required:
+                      - name
+                      - state
+                      type: object
+                    type: array
+                  strategy:
+                    type: string
+                required:
+                - name
+                - strategy
+                - state
+                - steps
+                type: object
+              type: array
+            state:
+              type: string
+            strategy:
+              type: string
+          required:
+          - name
+          - strategy
+          - state
+          - phases
           type: object
   version: v1alpha1
 status:

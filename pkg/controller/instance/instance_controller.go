@@ -252,17 +252,17 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 	//populate the correct objects inside of the instance
 	//Clean start:
 	instance.Status.ActivePlan = planName
-	instance.Status.PlanStatus = maestrov1alpha1.PlanStatus{
+	instance.Status.PlanExecutionStatus = maestrov1alpha1.PlanExecutionStatus{
 		Name:     planName,
 		Strategy: executedPlan.Strategy,
 	}
-	instance.Status.PlanStatus.Phases = make([]maestrov1alpha1.PhaseStatus, len(executedPlan.Phases))
+	instance.Status.PlanExecutionStatus.Phases = make([]maestrov1alpha1.PhaseStatus, len(executedPlan.Phases))
 	for i, phase := range executedPlan.Phases {
 		//populate the Status elements in instance
-		instance.Status.PlanStatus.Phases[i].Name = phase.Name
-		instance.Status.PlanStatus.Phases[i].Strategy = phase.Strategy
-		instance.Status.PlanStatus.Phases[i].State = maestrov1alpha1.PhaseStatePending
-		instance.Status.PlanStatus.Phases[i].Steps = make([]maestrov1alpha1.StepStatus, len(phase.Steps))
+		instance.Status.PlanExecutionStatus.Phases[i].Name = phase.Name
+		instance.Status.PlanExecutionStatus.Phases[i].Strategy = phase.Strategy
+		instance.Status.PlanExecutionStatus.Phases[i].State = maestrov1alpha1.PhaseStatePending
+		instance.Status.PlanExecutionStatus.Phases[i].Steps = make([]maestrov1alpha1.StepStatus, len(phase.Steps))
 		for j, step := range phase.Steps {
 			var resources []string
 			fsys := fs.MakeFakeFS()
@@ -322,19 +322,19 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 				log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planName, err)
 				return reconcile.Result{}, err
 			}
-			instance.Status.PlanStatus.Phases[i].Steps[j].Name = step.Name
-			instance.Status.PlanStatus.Phases[i].Steps[j].Objects = objs
+			instance.Status.PlanExecutionStatus.Phases[i].Steps[j].Name = step.Name
+			instance.Status.PlanExecutionStatus.Phases[i].Steps[j].Objects = objs
 		}
 	}
 
 	//Before returning from this function, update the status
 	defer r.Update(context.Background(), instance)
 
-	for i, phase := range instance.Status.PlanStatus.Phases {
+	for i, phase := range instance.Status.PlanExecutionStatus.Phases {
 		//If we still want to execute phases in this plan
 		//check if phase is healthy
 		for j, s := range phase.Steps {
-			instance.Status.PlanStatus.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateComplete
+			instance.Status.PlanExecutionStatus.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateComplete
 
 			for _, obj := range s.Objects {
 				//Make sure this objet is applied to the cluster.  Get back the instance from
@@ -342,39 +342,39 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 				obj, err = r.ApplyObject(obj, instance)
 				if err != nil {
 					log.Printf("Error applying Object in step:%v: %v\n", s.Name, err)
-					instance.Status.PlanStatus.Phases[i].State = maestrov1alpha1.PhaseStateError
-					instance.Status.PlanStatus.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateError
+					instance.Status.PlanExecutionStatus.Phases[i].State = maestrov1alpha1.PhaseStateError
+					instance.Status.PlanExecutionStatus.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateError
 					return reconcile.Result{}, err
 				}
 				err = health.IsHealthy(obj)
 				if err != nil {
 					fmt.Printf("Obj is NOT healthy: %v\n", obj)
-					instance.Status.PlanStatus.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateInProgress
-					instance.Status.PlanStatus.Phases[i].State = maestrov1alpha1.PhaseStateInProgress
+					instance.Status.PlanExecutionStatus.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateInProgress
+					instance.Status.PlanExecutionStatus.Phases[i].State = maestrov1alpha1.PhaseStateInProgress
 				}
 			}
 			fmt.Printf("Phase %v has strategy %v\n", phase.Name, phase.Strategy)
 			if phase.Strategy == maestrov1alpha1.Serial {
 				//we need to skip the rest of the steps if this step is unhealthy
 				fmt.Printf("Phase %v marked as serial\n", phase.Name)
-				if instance.Status.PlanStatus.Phases[i].Steps[j].State != maestrov1alpha1.PhaseStateComplete {
-					fmt.Printf("Step %v isn't complete, skipping rest of steps in phase until it is\n", instance.Status.PlanStatus.Phases[i].Steps[j].Name)
+				if instance.Status.PlanExecutionStatus.Phases[i].Steps[j].State != maestrov1alpha1.PhaseStateComplete {
+					fmt.Printf("Step %v isn't complete, skipping rest of steps in phase until it is\n", instance.Status.PlanExecutionStatus.Phases[i].Steps[j].Name)
 					break //break step loop
 				} else {
-					fmt.Printf("Step %v is healthy, so I can continue on\n", instance.Status.PlanStatus.Phases[i].Steps[j].Name)
+					fmt.Printf("Step %v is healthy, so I can continue on\n", instance.Status.PlanExecutionStatus.Phases[i].Steps[j].Name)
 				}
 			}
 
 			fmt.Printf("Step %v looked at\n", s.Name)
 		}
-		if health.IsPhaseHealthy(instance.Status.PlanStatus.Phases[i]) {
+		if health.IsPhaseHealthy(instance.Status.PlanExecutionStatus.Phases[i]) {
 			fmt.Printf("Phase %v marked as healthy\n", phase.Name)
-			instance.Status.PlanStatus.Phases[i].State = maestrov1alpha1.PhaseStateComplete
+			instance.Status.PlanExecutionStatus.Phases[i].State = maestrov1alpha1.PhaseStateComplete
 			continue
 		}
 
 		//This phase isn't quite ready yet.  Lets see what needs to be done
-		instance.Status.PlanStatus.Phases[i].State = maestrov1alpha1.PhaseStateInProgress
+		instance.Status.PlanExecutionStatus.Phases[i].State = maestrov1alpha1.PhaseStateInProgress
 
 		//Don't keep goign to other plans if we're flagged to perform the phases in serial
 		if executedPlan.Strategy == maestrov1alpha1.Serial {
@@ -384,10 +384,10 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		fmt.Printf("Phase %v looked at\n", phase.Name)
 	}
 
-	if health.IsPlanHealthy(instance.Status.PlanStatus) {
-		instance.Status.PlanStatus.State = maestrov1alpha1.PhaseStateComplete
+	if health.IsPlanHealthy(instance.Status.PlanExecutionStatus) {
+		instance.Status.PlanExecutionStatus.State = maestrov1alpha1.PhaseStateComplete
 	} else {
-		instance.Status.PlanStatus.State = maestrov1alpha1.PhaseStateInProgress
+		instance.Status.PlanExecutionStatus.State = maestrov1alpha1.PhaseStateInProgress
 	}
 
 	//defer call from above should apply the status changes to the object

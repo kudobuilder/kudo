@@ -18,6 +18,7 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -27,15 +28,37 @@ import (
 type PlanExecutionSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	PlanName     string                 `json:"planName"`
-	InstanceName corev1.ObjectReference `json:"instanceName"`
+	PlanName string                 `json:"planName"`
+	Instance corev1.ObjectReference `json:"instance"`
 }
 
 // PlanExecutionStatus defines the observed state of PlanExecution
 type PlanExecutionStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	PlanStatus
+	Name     string     `json:"name"`
+	Strategy Ordering   `json:"strategy"`
+	State    PhaseState `json:"state"`
+	//Phases maps a phase name to a Phase object
+	Phases []PhaseStatus `json:"phases"`
+}
+
+//PhaseStatus specifies the status of list of steps that contain Kubernetes objects.
+type PhaseStatus struct {
+	Name     string     `json:"name"`
+	Strategy Ordering   `json:"strategy"`
+	State    PhaseState `json:"state"`
+	//Steps maps a step name to a list of mustached kubernetes objects stored as a string
+	Steps []StepStatus `json:"steps"`
+}
+
+//StepStatus shows the status of the Step
+type StepStatus struct {
+	Name  string     `json:"name"`
+	State PhaseState `json:"state"`
+	//Objects will be serialized for each instance as the params and defaults
+	// are provided, but not serialized in the payload
+	Objects []runtime.Object `json:"-"`
 }
 
 // +genclient
