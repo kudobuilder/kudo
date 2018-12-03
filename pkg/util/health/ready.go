@@ -64,7 +64,7 @@ func IsPhaseHealthy(phase maestrov1alpha1.PhaseStatus) bool {
 	return true
 }
 
-func IsPlanHealthy(plan maestrov1alpha1.PlanStatus) bool {
+func IsPlanHealthy(plan maestrov1alpha1.PlanExecutionStatus) bool {
 	for _, phase := range plan.Phases {
 		if !IsPhaseHealthy(phase) {
 			return false
