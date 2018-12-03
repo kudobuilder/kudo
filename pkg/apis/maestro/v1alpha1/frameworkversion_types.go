@@ -29,8 +29,7 @@ type FrameworkVersionSpec struct {
 	//Defaults captures the default parameter values defined in the Yaml section.
 	Defaults map[string]string `json:"defaults.config"`
 	//Yaml captures a mustached yaml list of elements that define the application framework instance
-
-	Yaml string `json:"yaml,omitempty"`
+	Templates map[string]string `json:"templates"`
 
 	//Plans specify a map a plans that specify how to
 	Plans map[string]Plan `json:"plans,omitempty"`
@@ -290,4 +289,3 @@ type HostVolume struct {
 // 	Steps    []*map[string]*[][]string `json:"steps" yaml:"steps"`
 // 	Pod      *string                   `json:"pod" yaml:"pod"`
 // }
-
