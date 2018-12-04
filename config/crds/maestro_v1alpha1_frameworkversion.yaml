@@ -40,6 +40,8 @@ spec:
               type: object
             plans:
               type: object
+            tasks:
+              type: object
             templates:
               type: object
             upgradableFrom:
