@@ -19,7 +19,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"log"
+	"sigs.k8s.io/kustomize/k8sdeps/kunstruct"
+	"sigs.k8s.io/kustomize/k8sdeps/transformer"
+	"sigs.k8s.io/kustomize/pkg/fs"
+	"sigs.k8s.io/kustomize/pkg/loader"
+	"sigs.k8s.io/kustomize/pkg/patch"
+	"sigs.k8s.io/kustomize/pkg/resmap"
+	"sigs.k8s.io/kustomize/pkg/resource"
+	"sigs.k8s.io/kustomize/pkg/target"
+	ktypes "sigs.k8s.io/kustomize/pkg/types"
 
 	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
 	"github.com/kubernetes-sigs/kubebuilder-maestro/pkg/util/health"
@@ -41,6 +51,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
+
+const basePath = "/kustomize"
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
@@ -302,16 +314,88 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStatePending
 		planExecution.Status.Phases[i].Steps = make([]maestrov1alpha1.StepStatus, len(phase.Steps))
 		for j, step := range phase.Steps {
-			appliedYaml, err := template.ExpandMustache(step.Mustache, configs)
-			if err != nil {
-				log.Printf("Error applying configs to step %v in phase %v of plan %v: %v", step.Name, phase.Name, planExecution.Name, err)
-				return reconcile.Result{}, err
+			// fetch FrameworkVersion
+			// get the task name from the step
+			// get the task definition from the FV
+			// create the kustomize templates
+			// apply
+
+			var objs []runtime.Object
+			for _, t := range step.Tasks {
+				// resolve task
+				if taskSpec, ok := frameworkVersion.Spec.Tasks[t]; ok {
+					var resources []string
+					fsys := fs.MakeFakeFS()
+
+					for _, r := range taskSpec.Resources {
+						if resource, ok := frameworkVersion.Spec.Templates[r]; ok {
+							templatedYaml, err := template.ExpandMustache(resource, configs)
+							if err != nil {
+								log.Printf("Error expanding mustache: %v\n", err)
+							}
+							fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, r), []byte(*templatedYaml))
+							resources = append(resources, r)
+						} else {
+							log.Printf("Error finding resource named %s for framework version %s\n", r, frameworkVersion.Name)
+							return reconcile.Result{}, err
+						}
+					}
+
+					kustomization := &ktypes.Kustomization{
+						NamePrefix: instance.Name + "-",
+						Namespace:  instance.Namespace,
+						CommonLabels: map[string]string{
+							"heritage": "maestro",
+							"app":      frameworkVersion.Spec.Framework.Name,
+							"version":  frameworkVersion.Spec.Version,
+							"instance": instance.Name,
+						},
+						Resources:             resources,
+						PatchesStrategicMerge: []patch.StrategicMerge{},
+					}
+
+					yamlBytes, err := yaml.Marshal(kustomization)
+					if err != nil {
+						return reconcile.Result{}, err
+					}
+
+					fsys.WriteFile(fmt.Sprintf("%s/kustomization.yaml", basePath), yamlBytes)
+
+					ldr, err := loader.NewLoader(basePath, fsys)
+					if err != nil {
+						return reconcile.Result{}, err
+					}
+					defer ldr.Cleanup()
+
+					rf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()))
+					kt, err := target.NewKustTarget(ldr, fsys, rf, transformer.NewFactoryImpl())
+					if err != nil {
+						return reconcile.Result{}, err
+					}
+
+					allResources, err := kt.MakeCustomizedResMap()
+					if err != nil {
+						return reconcile.Result{}, err
+					}
+
+					res, err := allResources.EncodeAsYaml()
+					if err != nil {
+						return reconcile.Result{}, err
+					}
+
+					objsToAdd, err := template.ParseKubernetesObjects(string(res))
+					if err != nil {
+						log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planExecution.Name, err)
+						return reconcile.Result{}, err
+					}
+
+					objs = append(objs, objsToAdd...)
+				} else {
+					log.Printf("Error finding task named %s for framework version %s", taskSpec, frameworkVersion.Name)
+					return reconcile.Result{}, err
+				}
 			}
-			objs, err := template.ParseKubernetesObjects(*appliedYaml)
-			if err != nil {
-				log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planExecution.Name, err)
-				return reconcile.Result{}, err
-			}
+
 			planExecution.Status.Phases[i].Steps[j].Name = step.Name
 			planExecution.Status.Phases[i].Steps[j].Objects = objs
 		}

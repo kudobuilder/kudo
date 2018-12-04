@@ -19,7 +19,52 @@ spec:
     name: Toy
     kind: Framework
   templates:
-    something.yaml: blah
+    serial.yaml: |
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        namespace: default
+        name: serial-one
+      spec:
+        template:
+          metadata:
+            name: serial-one
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - name: bb
+              image: busybox:latest
+              imagePullPolicy: IfNotPresent
+              command:
+              - /bin/sh
+              - -c
+              - "sleep {{SLEEP}}"
+    par.yaml: |
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: par
+      spec:
+        template:
+          metadata:
+            name: par
+          spec:
+            containers:
+            - name: bb
+              image: busybox:latest
+              imagePullPolicy: IfNotPresent
+              command:
+              - /bin/sh
+              - -c
+              - "sleep {{SLEEP}}"
+  tasks:
+    par:
+      resources:
+      - job.yaml
+    serial:
+      resources:
+      - serial.yaml
+
   defaults.config:
     SLEEP: "600"
   plans:
@@ -30,134 +75,26 @@ spec:
           strategy: parallel
           steps:
             - name: par-one
-              mustache: |
-                apiVersion: batch/v1
-                kind: Job
-                metadata:
-                  namespace: default
-                  name: par-one
-                spec:
-                  template:
-                    metadata:
-                      name: par-one
-                    spec:
-                      restartPolicy: OnFailure
-                      containers:
-                      - name: bb
-                        image: busybox:latest
-                        imagePullPolicy: IfNotPresent
-                        command:
-                        - /bin/sh
-                        - -c
-                        - "sleep {{SLEEP}}"
+              tasks:
+              - par
             - name: par-two
-              mustache: |
-                apiVersion: batch/v1
-                kind: Job
-                metadata:
-                  namespace: default
-                  name: par-two
-                spec:
-                  template:
-                    metadata:
-                      name: par-two
-                    spec:
-                      restartPolicy: OnFailure
-                      containers:
-                      - name: bb
-                        image: busybox:latest
-                        imagePullPolicy: IfNotPresent
-                        command:
-                        - /bin/sh
-                        - -c
-                        - "sleep {{SLEEP}}"
+              tasks:
+              - par
             - name: par-three
-              mustache: |
-                apiVersion: batch/v1
-                kind: Job
-                metadata:
-                  namespace: default
-                  name: par-three
-                spec:
-                  template:
-                    metadata:
-                      name: par-three
-                    spec:
-                      restartPolicy: OnFailure
-                      containers:
-                      - name: bb
-                        image: busybox:latest
-                        imagePullPolicy: IfNotPresent
-                        command:
-                        - /bin/sh
-                        - -c
-                        - "sleep {{SLEEP}}"
+              tasks:
+              - par
         - name: serial
           strategy: serial
           steps:
             - name: serial-one
-              mustache: |
-                apiVersion: batch/v1
-                kind: Job
-                metadata:
-                  namespace: default
-                  name: serial-one
-                spec:
-                  template:
-                    metadata:
-                      name: serial-one
-                    spec:
-                      restartPolicy: OnFailure
-                      containers:
-                      - name: bb
-                        image: busybox:latest
-                        imagePullPolicy: IfNotPresent
-                        command:
-                        - /bin/sh
-                        - -c
-                        - "sleep {{SLEEP}}"
+              tasks:
+              - serial
             - name: serial-two
-              mustache: |
-                apiVersion: batch/v1
-                kind: Job
-                metadata:
-                  namespace: default
-                  name: serial-two
-                spec:
-                  template:
-                    metadata:
-                      name: serial-two
-                    spec:
-                      restartPolicy: OnFailure
-                      containers:
-                      - name: bb
-                        image: busybox:latest
-                        imagePullPolicy: IfNotPresent
-                        command:
-                        - /bin/sh
-                        - -c
-                        - "sleep {{SLEEP}}"
+              tasks:
+              - serial
             - name: serial-three
-              mustache: |
-                apiVersion: batch/v1
-                kind: Job
-                metadata:
-                  namespace: default
-                  name: serial-three
-                spec:
-                  template:
-                    metadata:
-                      name: serial-three
-                    spec:
-                      restartPolicy: OnFailure
-                      containers:
-                      - name: bb
-                        image: busybox:latest
-                        imagePullPolicy: IfNotPresent
-                        command:
-                        - /bin/sh
-                        - -c
-                        - "sleep {{SLEEP}}"
+              tasks:
+              - serial
 ---
 apiVersion: maestro.k8s.io/v1alpha1
 kind: Instance

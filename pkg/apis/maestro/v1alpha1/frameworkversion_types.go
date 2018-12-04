@@ -18,7 +18,7 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // FrameworkVersionSpec defines the desired state of FrameworkVersion
@@ -29,7 +29,8 @@ type FrameworkVersionSpec struct {
 	//Defaults captures the default parameter values defined in the Yaml section.
 	Defaults map[string]string `json:"defaults.config,omitempty"`
 	//Yaml captures a mustached yaml list of elements that define the application framework instance
-	Templates map[string]string `json:"templates,omitempty"`
+	Templates map[string]string   `json:"templates,omitempty"`
+	Tasks     map[string]TaskSpec `json:"tasks,omitempty"`
 
 	//Plans specify a map a plans that specify how to
 	Plans map[string]Plan `json:"plans,omitempty"`
@@ -64,6 +65,11 @@ type Plan struct {
 	Phases []Phase `json:"phases"`
 }
 
+// TaskSpec is a struct containing lists of of Kustomize resources
+type TaskSpec struct {
+	Resources []string `json:"resources"`
+}
+
 //Phase specifies a list of steps that contain Kubernetes objects.
 type Phase struct {
 	Name     string   `json:"name"`
@@ -73,8 +79,8 @@ type Phase struct {
 }
 
 type Step struct {
-	Name     string `json:"name"`
-	Mustache string `json:"mustache"`
+	Name  string   `json:"name"`
+	Tasks []string `json:"tasks"`
 	//Objects will be serialized for each instance as the params and defaults
 	// are provided
 	Objects []runtime.Object `json:"-"`
