@@ -319,6 +319,9 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			// get the task definition from the FV
 			// create the kustomize templates
 			// apply
+			configs["PLAN_NAME"] = planExecution.Spec.PlanName
+			configs["PHASE_NAME"] = phase.Name
+			configs["STEP_NAME"] = step.Name
 			configs["STEP_NUMBER"] = string(j)
 
 			var objs []runtime.Object
