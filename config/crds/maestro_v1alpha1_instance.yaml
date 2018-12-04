@@ -61,17 +61,11 @@ spec:
                               type: string
                             state:
                               type: string
-                          required:
-                          - name
-                          - state
                           type: object
                         type: array
                       strategy:
                         type: string
                     required:
-                    - name
-                    - strategy
-                    - state
                     - steps
                     type: object
                   type: array
@@ -79,11 +73,6 @@ spec:
                   type: string
                 strategy:
                   type: string
-              required:
-              - name
-              - strategy
-              - state
-              - phases
               type: object
           type: object
   version: v1alpha1
