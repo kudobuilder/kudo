@@ -42,37 +42,6 @@ spec:
         status:
           properties:
             activePlan:
-              type: string
-            status:
-              properties:
-                name:
-                  type: string
-                phases:
-                  items:
-                    properties:
-                      name:
-                        type: string
-                      state:
-                        type: string
-                      steps:
-                        items:
-                          properties:
-                            name:
-                              type: string
-                            state:
-                              type: string
-                          type: object
-                        type: array
-                      strategy:
-                        type: string
-                    required:
-                    - steps
-                    type: object
-                  type: array
-                state:
-                  type: string
-                strategy:
-                  type: string
               type: object
           type: object
   version: v1alpha1

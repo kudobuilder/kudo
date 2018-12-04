@@ -17,6 +17,7 @@ package planexecution
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -25,6 +26,7 @@ import (
 	"github.com/kubernetes-sigs/kubebuilder-maestro/pkg/util/template"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -74,13 +76,25 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			owners := a.Meta.GetOwnerReferences()
 			requests := make([]reconcile.Request, 0)
 			for _, owner := range owners {
-				//TODO maybe check the owner is the correct type?
-				requests = append(requests, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      owner.Name,
-						Namespace: a.Meta.GetNamespace(),
-					},
-				})
+				//if owner is an instance, we also want to queue up the
+				// PlanExecution in the Status section
+				inst := &maestrov1alpha1.Instance{}
+				err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{
+					Name:      owner.Name,
+					Namespace: a.Meta.GetNamespace(),
+				}, inst)
+
+				if err != nil {
+					fmt.Printf("Error getting instance object: %v\n", err)
+				} else {
+					fmt.Printf("Adding %v to reconcile\n", inst.Status.ActivePlan.Name)
+					requests = append(requests, reconcile.Request{
+						NamespacedName: types.NamespacedName{
+							Name:      inst.Status.ActivePlan.Name,
+							Namespace: inst.Status.ActivePlan.Namespace,
+						},
+					})
+				}
 			}
 			return requests
 		})
@@ -166,6 +180,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	err := r.Get(context.TODO(), request.NamespacedName, planExecution)
 	if err != nil {
 		if errors.IsNotFound(err) {
+			fmt.Printf("Could not find planExecution %v: %v\n", request.Name, err)
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
 			return reconcile.Result{}, nil
@@ -195,6 +210,22 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			planExecution.Spec.Instance.Namespace,
 			err)
 		return reconcile.Result{}, err
+	}
+
+	//need to add ownerRefernce as the Instance
+
+	instance.Status.ActivePlan = corev1.ObjectReference{
+		Name:       planExecution.Name,
+		Kind:       planExecution.Kind,
+		Namespace:  planExecution.Namespace,
+		APIVersion: planExecution.APIVersion,
+		UID:        planExecution.UID,
+	}
+	err = r.Update(context.TODO(), instance)
+	if err != nil {
+		fmt.Printf("Upate of instance with ActivePlan errored: %v\n", err)
+		b, _ := json.MarshalIndent(instance, "", "\t")
+		fmt.Println(string(b))
 	}
 
 	//TODO add the reference

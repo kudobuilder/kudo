@@ -73,6 +73,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		},
 		//New Instances should have Deploy called
 		CreateFunc: func(e event.CreateEvent) bool {
+			fmt.Printf("Recieved create event for %v\n", e.Meta)
 			gvk, _ := apiutil.GVKForObject(e.Object, mgr.GetScheme())
 
 			// Create a new ref
@@ -92,10 +93,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					PlanName: "deploy",
 				},
 			}
-
-			controllerutil.SetControllerReference(&deploy, e.Meta, mgr.GetScheme())
+			//Make this instance the owner of the PlanExecution
+			controllerutil.SetControllerReference(e.Meta, &deploy, mgr.GetScheme())
 			//new!
 			err := mgr.GetClient().Create(context.TODO(), &deploy)
+			if err != nil {
+				fmt.Printf("Error creating deploy object for %v: %v\n", e.Meta.GetName(), err)
+			}
 			return err == nil
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
