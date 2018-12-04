@@ -24,12 +24,12 @@ import (
 // FrameworkVersionSpec defines the desired state of FrameworkVersion
 type FrameworkVersionSpec struct {
 	// +optional
-	Framework corev1.ObjectReference `json:"framework"`
-	Version   string                 `json:"version"`
+	Framework corev1.ObjectReference `json:"framework,omitempty"`
+	Version   string                 `json:"version,omitempty"`
 	//Defaults captures the default parameter values defined in the Yaml section.
-	Defaults map[string]string `json:"defaults.config"`
+	Defaults map[string]string `json:"defaults.config,omitempty"`
 	//Yaml captures a mustached yaml list of elements that define the application framework instance
-	Templates map[string]string `json:"templates"`
+	Templates map[string]string `json:"templates,omitempty"`
 
 	//Plans specify a map a plans that specify how to
 	Plans map[string]Plan `json:"plans,omitempty"`

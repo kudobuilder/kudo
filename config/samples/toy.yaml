@@ -18,6 +18,8 @@ spec:
   framework:
     name: Toy
     kind: Framework
+  templates:
+    something.yaml: blah
   defaults.config:
     SLEEP: "600"
   plans:
