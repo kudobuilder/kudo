@@ -319,10 +319,10 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			// get the task definition from the FV
 			// create the kustomize templates
 			// apply
+			configs["STEP_NUMBER"] = string(j)
 
 			var objs []runtime.Object
-			for k, t := range step.Tasks {
-				configs["STEP_NUMBER"] = string(i)
+			for _, t := range step.Tasks {
 				// resolve task
 				if taskSpec, ok := frameworkVersion.Spec.Tasks[t]; ok {
 					var resources []string
