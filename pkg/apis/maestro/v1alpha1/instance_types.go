@@ -35,9 +35,9 @@ type InstanceStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	//TODO turn into struct
-	ActivePlan string `json:"activePlan,omitempty"`
+	ActivePlan corev1.ObjectReference `json:"activePlan,omitempty"`
 
-	PlanExecutionStatus PlanExecutionStatus `json:"status,omitempty"`
+	// PlanExecutionStatus PlanExecutionStatus `json:"status,omitempty"`
 }
 
 /*
