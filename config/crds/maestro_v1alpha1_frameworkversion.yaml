@@ -48,10 +48,6 @@ spec:
               type: array
             version:
               type: string
-          required:
-          - framework
-          - version
-          - templates
           type: object
         status:
           type: object

@@ -36,26 +36,26 @@ type PlanExecutionSpec struct {
 type PlanExecutionStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Name     string     `json:"name"`
-	Strategy Ordering   `json:"strategy"`
-	State    PhaseState `json:"state"`
+	Name     string     `json:"name,omitempty"`
+	Strategy Ordering   `json:"strategy,omitempty"`
+	State    PhaseState `json:"state,omitempty"`
 	//Phases maps a phase name to a Phase object
-	Phases []PhaseStatus `json:"phases"`
+	Phases []PhaseStatus `json:"phases,omitempty"`
 }
 
 //PhaseStatus specifies the status of list of steps that contain Kubernetes objects.
 type PhaseStatus struct {
-	Name     string     `json:"name"`
-	Strategy Ordering   `json:"strategy"`
-	State    PhaseState `json:"state"`
+	Name     string     `json:"name,omitempty"`
+	Strategy Ordering   `json:"strategy,omitempty"`
+	State    PhaseState `json:"state,omitempty"`
 	//Steps maps a step name to a list of mustached kubernetes objects stored as a string
 	Steps []StepStatus `json:"steps"`
 }
 
 //StepStatus shows the status of the Step
 type StepStatus struct {
-	Name  string     `json:"name"`
-	State PhaseState `json:"state"`
+	Name  string     `json:"name,omitempty"`
+	State PhaseState `json:"state,omitempty"`
 	//Objects will be serialized for each instance as the params and defaults
 	// are provided, but not serialized in the payload
 	Objects []runtime.Object `json:"-"`
