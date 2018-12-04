@@ -321,7 +321,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			// apply
 
 			var objs []runtime.Object
-			for _, t := range step.Tasks {
+			for k, t := range step.Tasks {
+				configs["STEP_NUMBER"] = string(i)
 				// resolve task
 				if taskSpec, ok := frameworkVersion.Spec.Tasks[t]; ok {
 					var resources []string

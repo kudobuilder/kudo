@@ -24,11 +24,11 @@ spec:
       kind: Job
       metadata:
         namespace: default
-        name: serial-one
+        name: serial-
       spec:
         template:
           metadata:
-            name: serial-one
+            name: "{{STEP_NAME}}-serial-{{STEP_NUMBER}}"
           spec:
             restartPolicy: OnFailure
             containers:
@@ -47,7 +47,7 @@ spec:
       spec:
         template:
           metadata:
-            name: par
+            name: "{{STEP_NAME}}-parallel-{{STEP_NUMBER}}"
           spec:
             containers:
             - name: bb
