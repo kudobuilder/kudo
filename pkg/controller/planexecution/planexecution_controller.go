@@ -19,7 +19,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
 	"github.com/kubernetes-sigs/kubebuilder-maestro/pkg/util/health"
@@ -27,12 +26,10 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -200,17 +197,18 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	gvk, err := apiutil.GVKForObject(planExecution.(runtime.Object), r.scheme)
-	if err != nil {
-		return err
-	}
+	//TODO add the reference
+	// gvk, err := apiutil.GVKForObject(planExecution.(runtime.Object), r.scheme)
+	// if err != nil {
+	// 	return err
+	// }
 
-	// Create a new ref
-	ref := *v1.NewControllerRef(planExecution, schema.GroupVersionKind{Group: gvk.Group, Version: gvk.Version, Kind: gvk.Kind})
+	// // Create a new ref
+	// ref := *v1.NewControllerRef(planExecution, schema.GroupVersionKind{Group: gvk.Group, Version: gvk.Version, Kind: gvk.Kind})
 
-	//see if we need to update the status of Instance
-	instance.Status.ActivePlan = ref
-	err = r.A
+	// //see if we need to update the status of Instance
+	// instance.Status.ActivePlan = ref
+	// err = r.A
 
 	//Get associated FrameworkVersion
 	err = r.Get(context.TODO(),
@@ -230,6 +228,25 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
+	//Load parameters:
+	//Create configmap to hold all parameters for instantiation
+	configs := make(map[string]string)
+	//Default parameters from instance metadata
+	configs["FRAMEWORK_NAME"] = frameworkVersion.Spec.Framework.Name
+	configs["NAME"] = instance.Name
+	configs["NAMESPACE"] = instance.Namespace
+	//parameters from instance spec
+	for k, v := range instance.Spec.Parameters {
+		configs[k] = v
+	}
+	//merge defaults with customizations
+	for k, v := range frameworkVersion.Spec.Defaults {
+		_, ok := configs[k]
+		if !ok { //not specified in params
+			configs[k] = v
+		}
+	}
+
 	//Get Plan from FrameworkVersion:
 	//Right now must match exactly.  In the future have defaults/backups:
 	// e.g. if no "upgrade", call "update"
@@ -243,83 +260,100 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	planExecution.Status.ActivePlan = planName
-	planExecution.Status.PlanStatus = maestrov1alpha1.PlanStatus{
-		Name:     planName,
-		Strategy: executedPlan.Strategy,
-	}
+	planExecution.Status.Name = planExecution.Spec.PlanName
+	planExecution.Status.Strategy = executedPlan.Strategy
 
-	planExecution.Status.PlanStatus.Phases = make([]maestrov1alpha1.PhaseStatus, len(executedPlan.Phases))
+	planExecution.Status.Phases = make([]maestrov1alpha1.PhaseStatus, len(executedPlan.Phases))
 	for i, phase := range executedPlan.Phases {
 		//populate the Status elements in instance
-		planExecution.Status.PlanStatus.Phases[i].Name = phase.Name
-		planExecution.Status.PlanStatus.Phases[i].Strategy = phase.Strategy
-		planExecution.Status.PlanStatus.Phases[i].State = maestrov1alpha1.PhaseStatePending
-		planExecution.Status.PlanStatus.Phases[i].Steps = make([]maestrov1alpha1.StepStatus, len(phase.Steps))
+		planExecution.Status.Phases[i].Name = phase.Name
+		planExecution.Status.Phases[i].Strategy = phase.Strategy
+		planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStatePending
+		planExecution.Status.Phases[i].Steps = make([]maestrov1alpha1.StepStatus, len(phase.Steps))
 		for j, step := range phase.Steps {
 			appliedYaml, err := template.ExpandMustache(step.Mustache, configs)
 			if err != nil {
-				log.Printf("Error applying configs to step %v in phase %v of plan %v: %v", step.Name, phase.Name, planName, err)
+				log.Printf("Error applying configs to step %v in phase %v of plan %v: %v", step.Name, phase.Name, planExecution.Name, err)
 				return reconcile.Result{}, err
 			}
 			objs, err := template.ParseKubernetesObjects(*appliedYaml)
 			if err != nil {
-				log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planName, err)
+				log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planExecution.Name, err)
 				return reconcile.Result{}, err
 			}
-			planExecution.Status.PlanStatus.Phases[i].Steps[j].Name = step.Name
-			planExecution.Status.PlanStatus.Phases[i].Steps[j].Objects = objs
+			planExecution.Status.Phases[i].Steps[j].Name = step.Name
+			planExecution.Status.Phases[i].Steps[j].Objects = objs
 		}
 	}
 
-	for i, phase := range planExecution.Status.PlanStatus.Phases {
+	for i, phase := range planExecution.Status.Phases {
 		//If we still want to execute phases in this plan
 		//check if phase is healthy
 		for j, s := range phase.Steps {
-			planExecution.Status.PlanStatus.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateComplete
+			planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateComplete
 
 			for _, obj := range s.Objects {
 				//Make sure this objet is applied to the cluster.  Get back the instance from
 				// the cluster so we can see if it's healthy or not
-				if err = controllerutil.SetControllerReference(instance, obj, r.scheme); err != nil {
-					return nil, err
+				if err = controllerutil.SetControllerReference(instance, obj.(metav1.Object), r.scheme); err != nil {
+					return reconcile.Result{}, err
 				}
-				obj, err = r.ApplyObject(obj)
+
+				result, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, obj, func(runtime.Object) error { return nil })
+
+				log.Printf("CreateOrUpdate resulted in: %v\n", result)
 				if err != nil {
-					log.Printf("Error applying Object in step:%v: %v\n", s.Name, err)
-					planExecution.Status.PlanStatus.Phases[i].State = maestrov1alpha1.PhaseStateError
-					planExecution.Status.PlanStatus.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateError
+					log.Printf("Error CreateOrUpdate Object in step:%v: %v\n", s.Name, err)
+					planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateError
+					planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateError
+					return reconcile.Result{}, err
+				}
+				// get the existing object meta
+				metaObj := obj.(metav1.Object)
+
+				// retrieve the existing object
+				key := client.ObjectKey{
+					Name:      metaObj.GetName(),
+					Namespace: metaObj.GetNamespace(),
+				}
+
+				err = r.Client.Get(context.TODO(), key, obj)
+
+				if err != nil {
+					log.Printf("Error Getting new Object in step:%v: %v\n", s.Name, err)
+					planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateError
+					planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateError
 					return reconcile.Result{}, err
 				}
 				err = health.IsHealthy(obj)
 				if err != nil {
 					fmt.Printf("Obj is NOT healthy: %v\n", obj)
-					planExecution.Status.PlanStatus.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateInProgress
-					planExecution.Status.PlanStatus.Phases[i].State = maestrov1alpha1.PhaseStateInProgress
+					planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateInProgress
+					planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateInProgress
 				}
 			}
 			fmt.Printf("Phase %v has strategy %v\n", phase.Name, phase.Strategy)
 			if phase.Strategy == maestrov1alpha1.Serial {
 				//we need to skip the rest of the steps if this step is unhealthy
 				fmt.Printf("Phase %v marked as serial\n", phase.Name)
-				if planExecution.Status.PlanStatus.Phases[i].Steps[j].State != maestrov1alpha1.PhaseStateComplete {
-					fmt.Printf("Step %v isn't complete, skipping rest of steps in phase until it is\n", instance.Status.PlanStatus.Phases[i].Steps[j].Name)
+				if planExecution.Status.Phases[i].Steps[j].State != maestrov1alpha1.PhaseStateComplete {
+					fmt.Printf("Step %v isn't complete, skipping rest of steps in phase until it is\n", planExecution.Status.Phases[i].Steps[j].Name)
 					break //break step loop
 				} else {
-					fmt.Printf("Step %v is healthy, so I can continue on\n", planExecution.Status.PlanStatus.Phases[i].Steps[j].Name)
+					fmt.Printf("Step %v is healthy, so I can continue on\n", planExecution.Status.Phases[i].Steps[j].Name)
 				}
 			}
 
 			fmt.Printf("Step %v looked at\n", s.Name)
 		}
-		if health.IsPhaseHealthy(planExecution.Status.PlanStatus.Phases[i]) {
+		if health.IsPhaseHealthy(planExecution.Status.Phases[i]) {
 			fmt.Printf("Phase %v marked as healthy\n", phase.Name)
-			planExecution.Status.PlanStatus.Phases[i].State = maestrov1alpha1.PhaseStateComplete
+			planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateComplete
 			continue
 		}
 
 		//This phase isn't quite ready yet.  Lets see what needs to be done
-		planExecution.Status.PlanStatus.Phases[i].State = maestrov1alpha1.PhaseStateInProgress
+		planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateInProgress
 
 		//Don't keep goign to other plans if we're flagged to perform the phases in serial
 		if executedPlan.Strategy == maestrov1alpha1.Serial {
@@ -329,155 +363,11 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		fmt.Printf("Phase %v looked at\n", phase.Name)
 	}
 
-	if health.IsPlanHealthy(planExecution.Status.PlanStatus) {
-		planExecution.Status.PlanStatus.State = maestrov1alpha1.PhaseStateComplete
+	if health.IsPlanHealthy(planExecution.Status) {
+		planExecution.Status.State = maestrov1alpha1.PhaseStateComplete
 	} else {
-		planExecution.Status.PlanStatus.State = maestrov1alpha1.PhaseStateInProgress
+		planExecution.Status.State = maestrov1alpha1.PhaseStateInProgress
 	}
 
 	return reconcile.Result{}, nil
-}
-
-//ApplyObject takes the object provided and either creates or updates it depending on whether the object
-// exixts or not
-func (r *ReconcileInstance) ApplyObject(obj runtime.Object) (runtime.Object, error) {
-	nnn, _ := client.ObjectKeyFromObject(obj)
-	switch o := obj.(type) {
-	//Service
-	case *corev1.Service:
-		svc := &corev1.Service{}
-		err := r.Get(context.TODO(), nnn, svc)
-		if err != nil && errors.IsNotFound(err) {
-			svc = obj.(*corev1.Service)
-			err = r.Create(context.TODO(), svc)
-			if err != nil {
-				return nil, err
-			}
-		} else if err != nil {
-			return nil, err
-		} else {
-			//This gets autogetnerated, so don't overwrite it with a blank
-			//value
-			obj.(*corev1.Service).Spec.ClusterIP = svc.Spec.ClusterIP
-			svc.Spec = obj.(*corev1.Service).Spec
-			svc.Labels = obj.(*corev1.Service).Labels
-			svc.Annotations = obj.(*corev1.Service).Annotations
-			err = r.Update(context.TODO(), svc)
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		//Sleep to wait for the obejct to show up?
-		time.Sleep(1 * time.Second)
-
-		//get the copy from the cluster now that things have been applied:
-		err = r.Get(context.TODO(), nnn, svc)
-		return svc, err
-
-	case *appsv1.StatefulSet:
-		ss := &appsv1.StatefulSet{}
-		err := r.Get(context.TODO(), nnn, ss)
-		if err != nil && errors.IsNotFound(err) {
-			ss = obj.(*appsv1.StatefulSet)
-			err = r.Create(context.TODO(), ss)
-			if err != nil {
-				return nil, err
-			}
-		} else if err != nil {
-			return nil, err
-		} else {
-			ss.Spec = obj.(*appsv1.StatefulSet).Spec
-			ss.Labels = obj.(*appsv1.StatefulSet).Labels
-			ss.Annotations = obj.(*appsv1.StatefulSet).Annotations
-			err = r.Update(context.TODO(), ss)
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		//Sleep to wait for the obejct to show up?
-		time.Sleep(1 * time.Second)
-		//get the copy from the cluster now that things have been applied:
-		err = r.Get(context.TODO(), nnn, ss)
-		return ss, err
-	case *policyv1beta1.PodDisruptionBudget:
-		pdb := &policyv1beta1.PodDisruptionBudget{}
-		err := r.Get(context.TODO(), nnn, pdb)
-		if err != nil && errors.IsNotFound(err) {
-			pdb = obj.(*policyv1beta1.PodDisruptionBudget)
-			err = r.Create(context.TODO(), pdb)
-			if err != nil {
-				return nil, err
-			}
-		} else if err != nil {
-			return nil, err
-		} else {
-			pdb.Spec = obj.(*policyv1beta1.PodDisruptionBudget).Spec
-			pdb.Labels = obj.(*policyv1beta1.PodDisruptionBudget).Labels
-			pdb.Annotations = obj.(*policyv1beta1.PodDisruptionBudget).Annotations
-			err = r.Update(context.TODO(), pdb)
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		//Sleep to wait for the obejct to show up?
-		time.Sleep(1 * time.Second)
-		//get the copy from the cluster now that things have been applied:
-		err = r.Get(context.TODO(), nnn, pdb)
-		return pdb, err
-	case *corev1.ConfigMap:
-		cm := &corev1.ConfigMap{}
-		err := r.Get(context.TODO(), nnn, cm)
-		if err != nil && errors.IsNotFound(err) {
-			cm = obj.(*corev1.ConfigMap)
-			if err := controllerutil.SetControllerReference(parent, cm, r.scheme); err != nil {
-				return nil, err
-			}
-			err = r.Create(context.TODO(), cm)
-			if err != nil {
-				return nil, err
-			}
-		} else if err != nil {
-			return nil, err
-		} else {
-			cm.Data = obj.(*corev1.ConfigMap).Data
-			cm.Labels = obj.(*corev1.ConfigMap).Labels
-			cm.Annotations = obj.(*corev1.ConfigMap).Annotations
-			err = r.Update(context.TODO(), cm)
-		}
-		if err != nil {
-			return nil, err
-		}
-		//Sleep to wait for the obejct to show up?
-		time.Sleep(1 * time.Second)
-
-		//get the copy from the cluster now that things have been applied:
-		err = r.Get(context.TODO(), nnn, cm)
-		return cm, err
-	case *batchv1.Job:
-		job := &batchv1.Job{}
-		err := r.Get(context.TODO(), nnn, job)
-		if err != nil && errors.IsNotFound(err) {
-			job = obj.(*batchv1.Job)
-			err = r.Create(context.TODO(), job)
-			if err != nil {
-				return nil, err
-			}
-		} else if err != nil {
-			return nil, err
-		}
-		//Don't update Jobs if they're already running.
-
-		//Sleep to wait for the obejct to show up?
-		time.Sleep(1 * time.Second)
-
-		//get the copy from the cluster now that things have been applied:
-		err = r.Get(context.TODO(), nnn, job)
-		return job, err
-	default:
-		return nil, fmt.Errorf("I dont know how to update types %v.  Please implement", o)
-
-	}
 }

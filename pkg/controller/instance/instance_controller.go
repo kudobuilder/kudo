@@ -17,16 +17,24 @@ package instance
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -58,8 +66,45 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	p := predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+
+			return e.ObjectOld != e.ObjectNew
+		},
+		//New Instances should have Deploy called
+		CreateFunc: func(e event.CreateEvent) bool {
+			gvk, _ := apiutil.GVKForObject(e.Object, mgr.GetScheme())
+
+			// Create a new ref
+			ref := corev1.ObjectReference{
+				Kind:      gvk.Kind,
+				Name:      e.Meta.GetName(),
+				Namespace: e.Meta.GetNamespace(),
+			}
+
+			deploy := maestrov1alpha1.PlanExecution{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("%v-deploy", e.Meta.GetName()),
+					Namespace: e.Meta.GetNamespace(),
+				},
+				Spec: maestrov1alpha1.PlanExecutionSpec{
+					Instance: ref,
+					PlanName: "deploy",
+				},
+			}
+
+			controllerutil.SetControllerReference(&deploy, e.Meta, mgr.GetScheme())
+			//new!
+			err := mgr.GetClient().Create(context.TODO(), &deploy)
+			return err == nil
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return true
+		},
+	}
+
 	// Watch for changes to Instance
-	err = c.Watch(&source.Kind{Type: &maestrov1alpha1.Instance{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &maestrov1alpha1.Instance{}}, &handler.EnqueueRequestForObject{}, p)
 	if err != nil {
 		return err
 	}
