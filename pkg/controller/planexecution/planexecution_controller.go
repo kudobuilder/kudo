@@ -209,6 +209,11 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
+	//See if this has already been proceeded
+	if planExecution.Status.State == maestrov1alpha1.PhaseStateComplete {
+		fmt.Printf("PlanExecution %v has already run to completion, not processing.\n", planExecution.Name)
+	}
+
 	//Get Instance Object
 	instance := &maestrov1alpha1.Instance{}
 	frameworkVersion := &maestrov1alpha1.FrameworkVersion{}
@@ -345,6 +350,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 							if err != nil {
 								log.Printf("Error expanding mustache: %v\n", err)
 							}
+							// fmt.Printf("templatedYam for %v/%v task %v\n", phase.Name, step.Name, t)
+							// fmt.Printf("%v\n", *templatedYaml)
 							fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, r), []byte(*templatedYaml))
 							resources = append(resources, r)
 						} else {
@@ -357,10 +364,17 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						NamePrefix: instance.Name + "-",
 						Namespace:  instance.Namespace,
 						CommonLabels: map[string]string{
-							"heritage": "maestro",
-							"app":      frameworkVersion.Spec.Framework.Name,
-							"version":  frameworkVersion.Spec.Version,
-							"instance": instance.Name,
+							"heritage":      "maestro",
+							"app":           frameworkVersion.Spec.Framework.Name,
+							"version":       frameworkVersion.Spec.Version,
+							"instance":      instance.Name,
+							"planexecution": planExecution.Name,
+							"plan":          planExecution.Spec.PlanName,
+							"phase":         phase.Name,
+							"step":          step.Name,
+						},
+						GeneratorOptions: &ktypes.GeneratorOptions{
+							DisableNameSuffixHash: true,
 						},
 						Resources:             resources,
 						PatchesStrategicMerge: []patch.StrategicMerge{},
@@ -400,7 +414,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planExecution.Name, err)
 						return reconcile.Result{}, err
 					}
-
 					objs = append(objs, objsToAdd...)
 				} else {
 					log.Printf("Error finding task named %s for framework version %s", taskSpec, frameworkVersion.Name)
@@ -410,6 +423,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 			planExecution.Status.Phases[i].Steps[j].Name = step.Name
 			planExecution.Status.Phases[i].Steps[j].Objects = objs
+			fmt.Printf("Phase %v Step %v has %v objects\n", i, j, len(objs))
 		}
 	}
 
@@ -426,6 +440,11 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					return reconcile.Result{}, err
 				}
 
+				//Some objects don't update well.  We capture the logic here to see if we need to cleanup the current object
+				err = r.Cleanup(obj)
+				if err != nil {
+					fmt.Printf("Cleanup failed: %v\n", err)
+				}
 				result, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, obj, func(runtime.Object) error { return nil })
 
 				log.Printf("CreateOrUpdate resulted in: %v\n", result)
@@ -497,4 +516,48 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	}
 
 	return reconcile.Result{}, nil
+}
+
+//Cleanup modfies objects on the cluster to allow for the provided obj to get CreateOrApply.  Currently
+//only needs to clean up Jobs that get run from multiple PlanExecutions
+func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
+	switch obj.(type) {
+	case *batchv1.Job:
+		//We need to see if there's a current job on the system that matches this exactly (with labels)
+		job := obj.(*batchv1.Job)
+		fmt.Printf("PlanExecutionController.Cleanup: *batchv1.Job %v\n", job.Name)
+
+		present := &batchv1.Job{}
+		key, _ := client.ObjectKeyFromObject(obj)
+		err := r.Get(context.TODO(), key, present)
+		if errors.IsNotFound(err) {
+			//this is fine, its good to go
+			fmt.Printf("Could not find job %v on cluster.  Good to make a new one:\n", key)
+			return nil
+		}
+		if err != nil {
+			//Something else happened
+			return err
+		}
+		//see if thie job on the cluster has the same labels as the one we're looking to add.
+		for k, v := range job.Labels {
+			if v != present.Labels[k] {
+				//need to delete the present job since its got labels that aren't the same
+				fmt.Printf("Different values for key %v: %v and %v\n", k, v, present.Labels[k])
+				err = r.Delete(context.TODO(), present)
+				return err
+			}
+		}
+		for k, v := range present.Labels {
+			if v != job.Labels[k] {
+				//need to delete the present job since its got labels that aren't the same
+				fmt.Printf("Different values for key %v: %v and %v\n", k, v, job.Labels[k])
+				err = r.Delete(context.TODO(), present)
+				return err
+			}
+		}
+		return nil
+	}
+
+	return nil
 }
