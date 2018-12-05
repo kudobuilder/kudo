@@ -127,6 +127,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			return true
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
+			//TODO send event for Instance that plan was deleted
 			return true
 		},
 	}
@@ -178,7 +179,7 @@ var _ reconcile.Reconciler = &ReconcilePlanExecution{}
 // ReconcilePlanExecution reconciles a PlanExecution object
 type ReconcilePlanExecution struct {
 	client.Client
-	scheme *runtime.Scheme
+	scheme   *runtime.Scheme
 	recorder record.EventRecorder
 }
 
@@ -204,19 +205,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	//Check for Suspend set.
-	if planExecution.Spec.Suspend != nil && *planExecution.Spec.Suspend {
-		planExecution.Status.State = maestrov1alpha1.PhaseStateSuspend
-		err = r.Update(context.TODO(), planExecution)
-		return reconcile.Result{}, err
-	}
-
-	//Get Instance Object
 	instance := &maestrov1alpha1.Instance{}
-	frameworkVersion := &maestrov1alpha1.FrameworkVersion{}
-	//Before returning from this function, update the status
-	defer r.Update(context.Background(), planExecution)
-
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      planExecution.Spec.Instance.Name,
@@ -235,6 +224,25 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
+	//Check for Suspend set.
+	if planExecution.Spec.Suspend != nil && *planExecution.Spec.Suspend {
+		planExecution.Status.State = maestrov1alpha1.PhaseStateSuspend
+		err = r.Update(context.TODO(), planExecution)
+		r.recorder.Event(instance, "Normal", "PlanSuspend", fmt.Sprintf("PlanExecution %v suspended", planExecution.Name))
+		return reconcile.Result{}, err
+	}
+
+	//See if this has already been proceeded
+	if planExecution.Status.State == maestrov1alpha1.PhaseStateComplete {
+		fmt.Printf("PlanExecution %v has already run to completion, not processing.\n", planExecution.Name)
+	}
+
+	//Get Instance Object
+
+	frameworkVersion := &maestrov1alpha1.FrameworkVersion{}
+	//Before returning from this function, update the status
+	defer r.Update(context.Background(), planExecution)
+
 	//need to add ownerRefernce as the Instance
 
 	instance.Status.ActivePlan = corev1.ObjectReference{
@@ -251,19 +259,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		b, _ := json.MarshalIndent(instance, "", "\t")
 		fmt.Println(string(b))
 	}
-
-	//TODO add the reference
-	// gvk, err := apiutil.GVKForObject(planExecution.(runtime.Object), r.scheme)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// // Create a new ref
-	// ref := *v1.NewControllerRef(planExecution, schema.GroupVersionKind{Group: gvk.Group, Version: gvk.Version, Kind: gvk.Kind})
-
-	// //see if we need to update the status of Instance
-	// instance.Status.ActivePlan = ref
-	// err = r.A
 
 	//Get associated FrameworkVersion
 	err = r.Get(context.TODO(),
@@ -354,6 +349,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 							}
 							fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, res), []byte(*templatedYaml))
 							resources = append(resources, res)
+
 						} else {
 							r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding resource named %s for framework version %s", res, frameworkVersion.Name))
 							log.Printf("Error finding resource named %s for framework version %s\n", res, frameworkVersion.Name)
@@ -365,10 +361,17 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						NamePrefix: instance.Name + "-",
 						Namespace:  instance.Namespace,
 						CommonLabels: map[string]string{
-							"heritage": "maestro",
-							"app":      frameworkVersion.Spec.Framework.Name,
-							"version":  frameworkVersion.Spec.Version,
-							"instance": instance.Name,
+							"heritage":      "maestro",
+							"app":           frameworkVersion.Spec.Framework.Name,
+							"version":       frameworkVersion.Spec.Version,
+							"instance":      instance.Name,
+							"planexecution": planExecution.Name,
+							"plan":          planExecution.Spec.PlanName,
+							"phase":         phase.Name,
+							"step":          step.Name,
+						},
+						GeneratorOptions: &ktypes.GeneratorOptions{
+							DisableNameSuffixHash: true,
 						},
 						Resources:             resources,
 						PatchesStrategicMerge: []patch.StrategicMerge{},
@@ -409,7 +412,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planExecution.Name, err)
 						return reconcile.Result{}, err
 					}
-
 					objs = append(objs, objsToAdd...)
 				} else {
 					r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding task named %s for framework version %s", taskSpec, frameworkVersion.Name))
@@ -420,6 +422,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 			planExecution.Status.Phases[i].Steps[j].Name = step.Name
 			planExecution.Status.Phases[i].Steps[j].Objects = objs
+			fmt.Printf("Phase %v Step %v has %v objects\n", i, j, len(objs))
 		}
 	}
 
@@ -436,6 +439,11 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					return reconcile.Result{}, err
 				}
 
+				//Some objects don't update well.  We capture the logic here to see if we need to cleanup the current object
+				err = r.Cleanup(obj)
+				if err != nil {
+					fmt.Printf("Cleanup failed: %v\n", err)
+				}
 				result, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, obj, func(runtime.Object) error { return nil })
 
 				log.Printf("CreateOrUpdate resulted in: %v\n", result)
@@ -502,10 +510,55 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 	if health.IsPlanHealthy(planExecution.Status) {
 		r.recorder.Event(planExecution, "Normal", "PhaseStateComplete", fmt.Sprintf("Instances healthy, phase marked as COMPLETE"))
+		r.recorder.Event(instance, "Normal", "PlanComplete", fmt.Sprintf("PlanExecution %v completed", planExecution.Name))
 		planExecution.Status.State = maestrov1alpha1.PhaseStateComplete
 	} else {
 		planExecution.Status.State = maestrov1alpha1.PhaseStateInProgress
 	}
 
 	return reconcile.Result{}, nil
+}
+
+//Cleanup modfies objects on the cluster to allow for the provided obj to get CreateOrApply.  Currently
+//only needs to clean up Jobs that get run from multiple PlanExecutions
+func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
+	switch obj.(type) {
+	case *batchv1.Job:
+		//We need to see if there's a current job on the system that matches this exactly (with labels)
+		job := obj.(*batchv1.Job)
+		fmt.Printf("PlanExecutionController.Cleanup: *batchv1.Job %v\n", job.Name)
+
+		present := &batchv1.Job{}
+		key, _ := client.ObjectKeyFromObject(obj)
+		err := r.Get(context.TODO(), key, present)
+		if errors.IsNotFound(err) {
+			//this is fine, its good to go
+			fmt.Printf("Could not find job %v on cluster.  Good to make a new one:\n", key)
+			return nil
+		}
+		if err != nil {
+			//Something else happened
+			return err
+		}
+		//see if thie job on the cluster has the same labels as the one we're looking to add.
+		for k, v := range job.Labels {
+			if v != present.Labels[k] {
+				//need to delete the present job since its got labels that aren't the same
+				fmt.Printf("Different values for key %v: %v and %v\n", k, v, present.Labels[k])
+				err = r.Delete(context.TODO(), present)
+				return err
+			}
+		}
+		for k, v := range present.Labels {
+			if v != job.Labels[k] {
+				//need to delete the present job since its got labels that aren't the same
+				fmt.Printf("Different values for key %v: %v and %v\n", k, v, job.Labels[k])
+				err = r.Delete(context.TODO(), present)
+				return err
+			}
+		}
+		return nil
+	}
+
+	return nil
 }

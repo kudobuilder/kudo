@@ -43,7 +43,7 @@ spec:
       apiVersion: batch/v1
       kind: Job
       metadata:
-        name: par
+        name: {{STEP_NAME}}-parallel-{{STEP_NUMBER}}
       spec:
         template:
           metadata:
@@ -65,7 +65,6 @@ spec:
     serial:
       resources:
       - serial.yaml
-
   defaults.config:
     SLEEP: "600"
   plans:

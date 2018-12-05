@@ -76,6 +76,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			old := e.ObjectOld.(*maestrov1alpha1.Instance)
 			new := e.ObjectNew.(*maestrov1alpha1.Instance)
 
+			//Haven't done anything yet
+			if new.Status.ActivePlan.Name == "" {
+				err = createPlan(mgr, "deploy", new)
+				if err != nil {
+					fmt.Printf("Error creating %v object for %v: %v\n", "deploy", new.Name, err)
+				}
+				return true
+			}
+
 			//get the new FrameworkVersion object
 			fv := &maestrov1alpha1.FrameworkVersion{}
 			err = mgr.GetClient().Get(context.TODO(),
@@ -131,6 +140,33 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			}
 			//we found something
 			if ok {
+
+				//mark the current plan as Suspend,
+				current := &maestrov1alpha1.PlanExecution{}
+				fmt.Println("\n\n\n\n\n------------------------------")
+				err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{Name: new.Status.ActivePlan.Name, Namespace: new.Status.ActivePlan.Namespace}, current)
+				if err != nil {
+					fmt.Printf("Error getting plan for newInstance... Ignoring")
+				} else {
+					if current.Status.State == maestrov1alpha1.PhaseStateComplete {
+						fmt.Println("Current Plan for Instance is already done, wont change the Suspend flag")
+					} else {
+						fmt.Println("Setting PlanExecution to Suspend")
+						t := true
+						current.Spec.Suspend = &t
+						did, err := controllerutil.CreateOrUpdate(context.TODO(), mgr.GetClient(), current, func(o runtime.Object) error {
+							t := true
+							o.(*maestrov1alpha1.PlanExecution).Spec.Suspend = &t
+							return nil
+						})
+						if err != nil {
+							fmt.Printf("Error changing the current PlanExecution to Suspend: %v\n", err)
+						} else {
+							fmt.Printf("No error in setting PlanExecution.Suspend to true.  Returned %v\n", did)
+						}
+					}
+				}
+
 				err = createPlan(mgr, planName, new)
 				if err != nil {
 					fmt.Printf("Error creating %v object for %v: %v\n", planName, new.Name, err)
@@ -220,9 +256,11 @@ func createPlan(mgr manager.Manager, planName string, instance *maestrov1alpha1.
 	controllerutil.SetControllerReference(instance, &planExecution, mgr.GetScheme())
 	//new!
 	if err := mgr.GetClient().Create(context.TODO(), &planExecution); err != nil {
-		recorder.Event(instance, "Warning", "CreatePlanExecution", "Error creating plan execution: %v", )
+		recorder.Event(instance, "Warning", "CreatePlanExecution", "Error creating plan execution: %v")
 		return err
 	}
+	recorder.Event(instance, "Normal", "PlanCreated", fmt.Sprintf("PlanExecution %v created", planExecution.Name))
+	return nil
 }
 
 var _ reconcile.Reconciler = &ReconcileInstance{}
@@ -230,7 +268,7 @@ var _ reconcile.Reconciler = &ReconcileInstance{}
 // ReconcileInstance reconciles a Instance object
 type ReconcileInstance struct {
 	client.Client
-	scheme *runtime.Scheme
+	scheme   *runtime.Scheme
 	recorder record.EventRecorder
 }
 
