@@ -155,7 +155,6 @@ spec:
                 requests:
                   storage: 2Gi
     validation.yaml: |
-      #make a job that runs successfully when up and running
       apiVersion: batch/v1
       kind: Job
       metadata:
