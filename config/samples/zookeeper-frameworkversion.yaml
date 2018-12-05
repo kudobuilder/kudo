@@ -77,7 +77,7 @@ spec:
           matchLabels:
             app: zookeeper
             zookeeper: {{NAME}}
-        serviceName: hs
+        serviceName: {{NAME}}-hs
         replicas: 3
         updateStrategy:
           type: RollingUpdate
@@ -156,6 +156,33 @@ spec:
                   storage: 2Gi
     validation.yaml: |
       #make a job that runs successfully when up and running
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: zookeeper-validation
+      spec:
+        template:
+          metadata:
+            name: "validation"
+          spec:
+            restartPolicy: Never
+            containers:
+            - name: kubernetes-zookeeper
+              imagePullPolicy: Always
+              image: "k8s.gcr.io/kubernetes-zookeeper:1.0-3.4.10"
+              env:
+              - name: CONN
+                value: zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181
+              resources:
+                requests:
+                  memory: "{{ZOOKEEPER_MEM}}"
+                  cpu: "{{ZOOKEEPER_CPUS}}"
+                command:
+                  - sh
+                  - -c
+                  - "/opt/zookeeper/bin/zkCLI.sh \
+                    --server $CONN \
+                    ls /"
   tasks:
     infra:
       resources:
