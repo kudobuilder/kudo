@@ -70,7 +70,7 @@ var _ reconcile.Reconciler = &ReconcileFramework{}
 // ReconcileFramework reconciles a Framework object
 type ReconcileFramework struct {
 	client.Client
-	scheme *runtime.Scheme
+	scheme   *runtime.Scheme
 	recorder record.EventRecorder
 }
 
