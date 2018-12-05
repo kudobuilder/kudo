@@ -1,16 +1,17 @@
 package health
 
 import (
+	"context"
 	"fmt"
-
 	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 //IsHealthy returns whether an object is healthy.  Must be implemented for each type
-func IsHealthy(obj runtime.Object) error {
+func IsHealthy(c client.Client, obj runtime.Object) error {
 
 	switch obj.(type) {
 	case *appsv1.StatefulSet:
@@ -36,6 +37,20 @@ func IsHealthy(obj runtime.Object) error {
 			return nil
 		}
 		return fmt.Errorf("Job %v still running or failed", job.Name)
+	case *maestrov1alpha1.Instance:
+		i := obj.(*maestrov1alpha1.Instance)
+		//Instances are healthy when their Active Plan has succeeded
+		plan := &maestrov1alpha1.PlanExecution{}
+		c.Get(context.TODO(), client.ObjectKey{
+			Name:      i.Status.ActivePlan.Name,
+			Namespace: i.Status.ActivePlan.Namespace,
+		}, plan)
+		fmt.Printf("Instance %v is in state %v\n", i.Name, plan.Status.State)
+		if plan.Status.State == maestrov1alpha1.PhaseStateComplete {
+			return nil
+		}
+		return fmt.Errorf("instance's active plan is in state %v", plan.Status.State)
+
 	//unless we build logic for what a healthy object is, assume its healthy when created
 	default:
 		fmt.Printf("Unkonwn type is marked healthy by default\n")
@@ -43,9 +58,9 @@ func IsHealthy(obj runtime.Object) error {
 	}
 }
 
-func IsStepHealthy(step maestrov1alpha1.StepStatus) bool {
+func IsStepHealthy(c client.Client, step maestrov1alpha1.StepStatus) bool {
 	for _, obj := range step.Objects {
-		if e := IsHealthy(obj); e != nil {
+		if e := IsHealthy(c, obj); e != nil {
 			fmt.Printf("Step %v is not healthy\n", step.Name)
 			return false
 		}
