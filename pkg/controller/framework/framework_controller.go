@@ -17,6 +17,7 @@ package framework
 
 import (
 	"context"
+	"k8s.io/client-go/tools/record"
 	"log"
 
 	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
@@ -43,7 +44,8 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
-	return &ReconcileFramework{Client: mgr.GetClient(), scheme: mgr.GetScheme()}, nil
+
+	return &ReconcileFramework{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("framework-controller")}, nil
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -69,6 +71,7 @@ var _ reconcile.Reconciler = &ReconcileFramework{}
 type ReconcileFramework struct {
 	client.Client
 	scheme *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 // Reconcile reads that state of the cluster for a Framework object and makes changes based on the state read
