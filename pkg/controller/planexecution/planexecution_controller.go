@@ -341,12 +341,10 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 					for _, r := range taskSpec.Resources {
 						if resource, ok := frameworkVersion.Spec.Templates[r]; ok {
-							fmt.Printf("Resource %v: \n%v\n", r, resource)
 							templatedYaml, err := template.ExpandMustache(resource, configs)
 							if err != nil {
 								log.Printf("Error expanding mustache: %v\n", err)
 							}
-							fmt.Printf("Exapnded with configs: \n%v\n", *templatedYaml)
 							fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, r), []byte(*templatedYaml))
 							resources = append(resources, r)
 						} else {
