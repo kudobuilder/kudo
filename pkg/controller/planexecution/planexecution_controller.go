@@ -343,8 +343,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					for _, res := range taskSpec.Resources {
 						if resource, ok := frameworkVersion.Spec.Templates[res]; ok {
 							templatedYaml, err := template.ExpandMustache(resource, configs)
-							r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error expanding mustache: %v", err))
 							if err != nil {
+								r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error expanding mustache: %v", err))
 								log.Printf("Error expanding mustache: %v\n", err)
 							}
 							fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, res), []byte(*templatedYaml))
