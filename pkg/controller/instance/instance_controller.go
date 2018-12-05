@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"log"
 	"reflect"
 	"time"
@@ -58,7 +59,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileInstance{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileInstance{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("instance-controller")}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -115,6 +116,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 							fmt.Println("Could not find any plan to use for upgrade")
 							return false
 						} else {
+
 							planName = "deploy"
 						}
 					} else {
@@ -230,6 +232,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 func createPlan(mgr manager.Manager, planName string, instance *maestrov1alpha1.Instance) error {
 	gvk, _ := apiutil.GVKForObject(instance, mgr.GetScheme())
+	recorder := mgr.GetRecorder("instance-controller")
+	recorder.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating %v plan execution", planName))
 
 	// Create a new ref
 	ref := corev1.ObjectReference{
@@ -251,7 +255,10 @@ func createPlan(mgr manager.Manager, planName string, instance *maestrov1alpha1.
 	//Make this instance the owner of the PlanExecution
 	controllerutil.SetControllerReference(instance, &planExecution, mgr.GetScheme())
 	//new!
-	return mgr.GetClient().Create(context.TODO(), &planExecution)
+	if err := mgr.GetClient().Create(context.TODO(), &planExecution); err != nil {
+		recorder.Event(instance, "Warning", "CreatePlanExecution", "Error creating plan execution: %v", )
+		return err
+	}
 }
 
 var _ reconcile.Reconciler = &ReconcileInstance{}
@@ -260,6 +267,7 @@ var _ reconcile.Reconciler = &ReconcileInstance{}
 type ReconcileInstance struct {
 	client.Client
 	scheme *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 // Reconcile reads that state of the cluster for a Instance object and makes changes based on the state read
