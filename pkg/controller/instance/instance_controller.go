@@ -18,7 +18,10 @@ package instance
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
 	"log"
+	"reflect"
+	"time"
 
 	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
 
@@ -69,36 +72,110 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	p := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 
+			old := e.ObjectOld.(*maestrov1alpha1.Instance)
+			new := e.ObjectNew.(*maestrov1alpha1.Instance)
+
+			//get the new FrameworkVersion object
+			fv := &maestrov1alpha1.FrameworkVersion{}
+			err = mgr.GetClient().Get(context.TODO(),
+				types.NamespacedName{
+					Name:      new.Spec.FrameworkVersion.Name,
+					Namespace: new.Spec.FrameworkVersion.Namespace,
+				},
+				fv)
+			if err != nil {
+				fmt.Printf("Error getting FrameworkVersion %v for instance %v: %v\n",
+					new.Spec.FrameworkVersion.Name,
+					new.Name,
+					err)
+				//TODO
+				//We probably want to handle this differently and mark this instance as unhealthy
+				//since its linking to a bad FV
+				return false
+			}
+			var planName string
+			var ok bool
+			if old.Spec.FrameworkVersion != new.Spec.FrameworkVersion {
+				//Its an Upgrade!
+				_, ok = fv.Spec.Plans["upgrade"]
+				if !ok {
+					_, ok = fv.Spec.Plans["update"]
+					if !ok {
+						_, ok = fv.Spec.Plans["deploy"]
+						if !ok {
+							fmt.Println("Could not find any plan to use for upgrade")
+							return false
+						} else {
+							planName = "deploy"
+						}
+					} else {
+						planName = "update"
+					}
+				} else {
+					planName = "upgrade"
+				}
+			} else if !reflect.DeepEqual(old.Spec, new.Spec) {
+				_, ok = fv.Spec.Plans["update"]
+				if !ok {
+					_, ok = fv.Spec.Plans["deploy"]
+					if !ok {
+						fmt.Println("could not find any plan to use for update")
+					} else {
+						planName = "deploy"
+					}
+				} else {
+					planName = "update"
+				}
+			}
+			//we found something
+			if ok {
+				err = createPlan(mgr, planName, new)
+				if err != nil {
+					fmt.Printf("Error creating %v object for %v: %v\n", planName, new.Name, err)
+				}
+			}
+
+			//status change?  Sent it along
+
+			//See if there's a current plan being run.
+			//if so "cancel" the plan run
+			//create a new plan
 			return e.ObjectOld != e.ObjectNew
 		},
 		//New Instances should have Deploy called
 		CreateFunc: func(e event.CreateEvent) bool {
 			fmt.Printf("Recieved create event for %v\n", e.Meta)
-			gvk, _ := apiutil.GVKForObject(e.Object, mgr.GetScheme())
+			new := e.Object.(*maestrov1alpha1.Instance)
 
-			// Create a new ref
-			ref := corev1.ObjectReference{
-				Kind:      gvk.Kind,
-				Name:      e.Meta.GetName(),
-				Namespace: e.Meta.GetNamespace(),
-			}
-
-			deploy := maestrov1alpha1.PlanExecution{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("%v-deploy", e.Meta.GetName()),
-					Namespace: e.Meta.GetNamespace(),
+			//get the new FrameworkVersion object
+			fv := &maestrov1alpha1.FrameworkVersion{}
+			err = mgr.GetClient().Get(context.TODO(),
+				types.NamespacedName{
+					Name:      new.Spec.FrameworkVersion.Name,
+					Namespace: new.Spec.FrameworkVersion.Namespace,
 				},
-				Spec: maestrov1alpha1.PlanExecutionSpec{
-					Instance: ref,
-					PlanName: "deploy",
-				},
-			}
-			//Make this instance the owner of the PlanExecution
-			controllerutil.SetControllerReference(e.Meta, &deploy, mgr.GetScheme())
-			//new!
-			err := mgr.GetClient().Create(context.TODO(), &deploy)
+				fv)
 			if err != nil {
-				fmt.Printf("Error creating deploy object for %v: %v\n", e.Meta.GetName(), err)
+				fmt.Printf("Error getting FrameworkVersion %v for instance %v: %v\n",
+					new.Spec.FrameworkVersion.Name,
+					new.Name,
+					err)
+				//TODO
+				//We probably want to handle this differently and mark this instance as unhealthy
+				//since its linking to a bad FV
+				return false
+			}
+			planName := "deploy"
+			ok := false
+			_, ok = fv.Spec.Plans[planName]
+			if !ok {
+				fmt.Println("Could not find deploy plan")
+				return false
+			}
+
+			err = createPlan(mgr, planName, new)
+			if err != nil {
+				fmt.Printf("Error creating %v object for %v: %v\n", planName, new.Name, err)
 			}
 			return err == nil
 		},
@@ -113,6 +190,32 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 	return nil
+}
+
+func createPlan(mgr manager.Manager, planName string, instance *maestrov1alpha1.Instance) error {
+	gvk, _ := apiutil.GVKForObject(instance, mgr.GetScheme())
+
+	// Create a new ref
+	ref := corev1.ObjectReference{
+		Kind:      gvk.Kind,
+		Name:      instance.Name,
+		Namespace: instance.Namespace,
+	}
+
+	planExecution := maestrov1alpha1.PlanExecution{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%v-%v-%v", instance.Name, planName, time.Now().Nanosecond()),
+			Namespace: instance.GetNamespace(),
+		},
+		Spec: maestrov1alpha1.PlanExecutionSpec{
+			Instance: ref,
+			PlanName: planName,
+		},
+	}
+	//Make this instance the owner of the PlanExecution
+	controllerutil.SetControllerReference(instance, &planExecution, mgr.GetScheme())
+	//new!
+	return mgr.GetClient().Create(context.TODO(), &planExecution)
 }
 
 var _ reconcile.Reconciler = &ReconcileInstance{}
