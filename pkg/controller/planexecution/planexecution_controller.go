@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"gopkg.in/yaml.v2"
+	"k8s.io/client-go/tools/record"
 	"log"
 	"sigs.k8s.io/kustomize/k8sdeps/kunstruct"
 	"sigs.k8s.io/kustomize/k8sdeps/transformer"
@@ -69,7 +70,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcilePlanExecution{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcilePlanExecution{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("planexecution-controller")}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -178,6 +179,7 @@ var _ reconcile.Reconciler = &ReconcilePlanExecution{}
 type ReconcilePlanExecution struct {
 	client.Client
 	scheme *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 // Reconcile reads that state of the cluster for a PlanExecution object and makes changes based on the state read
@@ -224,6 +226,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	if err != nil {
 		//TODO how to handle errors.
 		//Can't find the instance.  Update sta
+		r.recorder.Event(planExecution, "Warning", "InvalidInstance", fmt.Sprintf("Could not find required instance (%v)", planExecution.Spec.Instance.Name))
 		planExecution.Status.State = maestrov1alpha1.PhaseStateError
 		log.Printf("Error getting Instance %v in %v: %v\n",
 			planExecution.Spec.Instance.Name,
@@ -243,6 +246,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	}
 	err = r.Update(context.TODO(), instance)
 	if err != nil {
+		r.recorder.Event(planExecution, "Warning", "UpdateError", fmt.Sprintf("Could not update the ActivePlan for (%v): %v", planExecution.Spec.Instance.Name, err))
 		fmt.Printf("Upate of instance with ActivePlan errored: %v\n", err)
 		b, _ := json.MarshalIndent(instance, "", "\t")
 		fmt.Println(string(b))
@@ -272,6 +276,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		//TODO how to handle errors.
 		//Can't find the instance.  Update sta
 		planExecution.Status.State = maestrov1alpha1.PhaseStateError
+		r.recorder.Event(planExecution, "Warning", "InvalidFrameworkVersion", fmt.Sprintf("Could not find FrameworkVersion %v", instance.Spec.FrameworkVersion.Name))
 		log.Printf("Error getting FrameworkVersion %v in %v: %v\n",
 			instance.Spec.FrameworkVersion.Name,
 			instance.Spec.FrameworkVersion.Namespace,
@@ -306,6 +311,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	// that might not match the "requested" plan.
 	executedPlan, ok := frameworkVersion.Spec.Plans[planExecution.Spec.PlanName]
 	if !ok {
+		r.recorder.Event(planExecution, "Warning", "InvalidPlan", fmt.Sprintf("Could not find required plan (%v)", planExecution.Spec.PlanName))
 		err = fmt.Errorf("Could not find required plan (%v)", planExecution.Spec.PlanName)
 		planExecution.Status.State = maestrov1alpha1.PhaseStateError
 		return reconcile.Result{}, err
@@ -339,16 +345,18 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					var resources []string
 					fsys := fs.MakeFakeFS()
 
-					for _, r := range taskSpec.Resources {
-						if resource, ok := frameworkVersion.Spec.Templates[r]; ok {
+					for _, res := range taskSpec.Resources {
+						if resource, ok := frameworkVersion.Spec.Templates[res]; ok {
 							templatedYaml, err := template.ExpandMustache(resource, configs)
+							r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error expanding mustache: %v", err))
 							if err != nil {
 								log.Printf("Error expanding mustache: %v\n", err)
 							}
-							fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, r), []byte(*templatedYaml))
-							resources = append(resources, r)
+							fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, res), []byte(*templatedYaml))
+							resources = append(resources, res)
 						} else {
-							log.Printf("Error finding resource named %s for framework version %s\n", r, frameworkVersion.Name)
+							r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding resource named %s for framework version %s", res, frameworkVersion.Name))
+							log.Printf("Error finding resource named %s for framework version %s\n", res, frameworkVersion.Name)
 							return reconcile.Result{}, err
 						}
 					}
@@ -397,12 +405,14 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 					objsToAdd, err := template.ParseKubernetesObjects(string(res))
 					if err != nil {
+						r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planExecution.Name, err))
 						log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planExecution.Name, err)
 						return reconcile.Result{}, err
 					}
 
 					objs = append(objs, objsToAdd...)
 				} else {
+					r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding task named %s for framework version %s", taskSpec, frameworkVersion.Name))
 					log.Printf("Error finding task named %s for framework version %s", taskSpec, frameworkVersion.Name)
 					return reconcile.Result{}, err
 				}
@@ -491,6 +501,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	}
 
 	if health.IsPlanHealthy(planExecution.Status) {
+		r.recorder.Event(planExecution, "Normal", "PhaseStateComplete", fmt.Sprintf("Instances healthy, phase marked as COMPLETE))
 		planExecution.Status.State = maestrov1alpha1.PhaseStateComplete
 	} else {
 		planExecution.Status.State = maestrov1alpha1.PhaseStateInProgress
