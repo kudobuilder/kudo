@@ -256,9 +256,11 @@ func createPlan(mgr manager.Manager, planName string, instance *maestrov1alpha1.
 	controllerutil.SetControllerReference(instance, &planExecution, mgr.GetScheme())
 	//new!
 	if err := mgr.GetClient().Create(context.TODO(), &planExecution); err != nil {
-		recorder.Event(instance, "Warning", "CreatePlanExecution", "Error creating plan execution: %v", )
+		recorder.Event(instance, "Warning", "CreatePlanExecution", "Error creating plan execution: %v")
 		return err
 	}
+	recorder.Event(instance, "Normal", "PlanCreated", fmt.Sprintf("PlanExecution %v created", planExecution.Name))
+	return nil
 }
 
 var _ reconcile.Reconciler = &ReconcileInstance{}
@@ -266,7 +268,7 @@ var _ reconcile.Reconciler = &ReconcileInstance{}
 // ReconcileInstance reconciles a Instance object
 type ReconcileInstance struct {
 	client.Client
-	scheme *runtime.Scheme
+	scheme   *runtime.Scheme
 	recorder record.EventRecorder
 }
 

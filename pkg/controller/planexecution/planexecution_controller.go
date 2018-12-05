@@ -127,6 +127,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			return true
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
+			//TODO send event for Instance that plan was deleted
 			return true
 		},
 	}
@@ -204,24 +205,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	//Check for Suspend set.
-	if planExecution.Spec.Suspend != nil && *planExecution.Spec.Suspend {
-		planExecution.Status.State = maestrov1alpha1.PhaseStateSuspend
-		err = r.Update(context.TODO(), planExecution)
-		return reconcile.Result{}, err
-	}
-
-	//See if this has already been proceeded
-	if planExecution.Status.State == maestrov1alpha1.PhaseStateComplete {
-		fmt.Printf("PlanExecution %v has already run to completion, not processing.\n", planExecution.Name)
-	}
-
-	//Get Instance Object
 	instance := &maestrov1alpha1.Instance{}
-	frameworkVersion := &maestrov1alpha1.FrameworkVersion{}
-	//Before returning from this function, update the status
-	defer r.Update(context.Background(), planExecution)
-
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      planExecution.Spec.Instance.Name,
@@ -240,6 +224,25 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
+	//Check for Suspend set.
+	if planExecution.Spec.Suspend != nil && *planExecution.Spec.Suspend {
+		planExecution.Status.State = maestrov1alpha1.PhaseStateSuspend
+		err = r.Update(context.TODO(), planExecution)
+		r.recorder.Event(instance, "Normal", "PlanSuspend", fmt.Sprintf("PlanExecution %v suspended", planExecution.Name))
+		return reconcile.Result{}, err
+	}
+
+	//See if this has already been proceeded
+	if planExecution.Status.State == maestrov1alpha1.PhaseStateComplete {
+		fmt.Printf("PlanExecution %v has already run to completion, not processing.\n", planExecution.Name)
+	}
+
+	//Get Instance Object
+
+	frameworkVersion := &maestrov1alpha1.FrameworkVersion{}
+	//Before returning from this function, update the status
+	defer r.Update(context.Background(), planExecution)
+
 	//need to add ownerRefernce as the Instance
 
 	instance.Status.ActivePlan = corev1.ObjectReference{
@@ -256,19 +259,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		b, _ := json.MarshalIndent(instance, "", "\t")
 		fmt.Println(string(b))
 	}
-
-	//TODO add the reference
-	// gvk, err := apiutil.GVKForObject(planExecution.(runtime.Object), r.scheme)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// // Create a new ref
-	// ref := *v1.NewControllerRef(planExecution, schema.GroupVersionKind{Group: gvk.Group, Version: gvk.Version, Kind: gvk.Kind})
-
-	// //see if we need to update the status of Instance
-	// instance.Status.ActivePlan = ref
-	// err = r.A
 
 	//Get associated FrameworkVersion
 	err = r.Get(context.TODO(),
@@ -520,6 +510,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 	if health.IsPlanHealthy(planExecution.Status) {
 		r.recorder.Event(planExecution, "Normal", "PhaseStateComplete", fmt.Sprintf("Instances healthy, phase marked as COMPLETE"))
+		r.recorder.Event(instance, "Normal", "PlanComplete", fmt.Sprintf("PlanExecution %v completed", planExecution.Name))
 		planExecution.Status.State = maestrov1alpha1.PhaseStateComplete
 	} else {
 		planExecution.Status.State = maestrov1alpha1.PhaseStateInProgress
