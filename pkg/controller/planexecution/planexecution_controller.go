@@ -452,7 +452,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateError
 					return reconcile.Result{}, err
 				}
-				err = health.IsHealthy(obj)
+				err = health.IsHealthy(r.Client, obj)
 				if err != nil {
 					fmt.Printf("Obj is NOT healthy: %v\n", obj)
 					planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateInProgress
