@@ -21,13 +21,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // PlanExecutionSpec defines the desired state of PlanExecution
 type PlanExecutionSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+
+	// This is copied from the CronJob Spec
+	// This flag tells the controller to suspend subsequent executions, it does
+	// not apply to already started executions.  Defaults to false.
+	// +optional
+	Suspend *bool `json:"suspend,omitempty" protobuf:"varint,4,opt,name=suspend"`
+
 	PlanName string                 `json:"planName"`
 	Instance corev1.ObjectReference `json:"instance"`
 }

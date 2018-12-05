@@ -26,6 +26,8 @@ spec:
               type: object
             planName:
               type: string
+            suspend:
+              type: boolean
           required:
           - planName
           - instance

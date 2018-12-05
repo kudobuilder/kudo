@@ -78,6 +78,9 @@ const PhaseStateComplete PhaseState = "COMPLETE"
 //PhaseStateError there was an error deploying the application
 const PhaseStateError PhaseState = "ERROR"
 
+//PhaseStateSuspend Spec was triggered to stop this plan execution
+const PhaseStateSuspend PhaseState = "SUSPEND"
+
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

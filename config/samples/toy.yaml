@@ -24,7 +24,7 @@ spec:
       kind: Job
       metadata:
         namespace: default
-        name: serial-
+        name: serial-{{STEP_NAME}}
       spec:
         template:
           metadata:
@@ -49,6 +49,7 @@ spec:
           metadata:
             name: "{{STEP_NAME}}-parallel-{{STEP_NUMBER}}"
           spec:
+            restartPolicy: Never
             containers:
             - name: bb
               image: busybox:latest
@@ -60,7 +61,7 @@ spec:
   tasks:
     par:
       resources:
-      - job.yaml
+      - par.yaml
     serial:
       resources:
       - serial.yaml

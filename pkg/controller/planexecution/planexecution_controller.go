@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/kustomize/pkg/resource"
 	"sigs.k8s.io/kustomize/pkg/target"
 	ktypes "sigs.k8s.io/kustomize/pkg/types"
+	"strconv"
 
 	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
 	"github.com/kubernetes-sigs/kubebuilder-maestro/pkg/util/health"
@@ -201,6 +202,13 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
+	//Check for Suspend set.
+	if planExecution.Spec.Suspend != nil && *planExecution.Spec.Suspend {
+		planExecution.Status.State = maestrov1alpha1.PhaseStateSuspend
+		err = r.Update(context.TODO(), planExecution)
+		return reconcile.Result{}, err
+	}
+
 	//Get Instance Object
 	instance := &maestrov1alpha1.Instance{}
 	frameworkVersion := &maestrov1alpha1.FrameworkVersion{}
@@ -322,7 +330,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			configs["PLAN_NAME"] = planExecution.Spec.PlanName
 			configs["PHASE_NAME"] = phase.Name
 			configs["STEP_NAME"] = step.Name
-			configs["STEP_NUMBER"] = string(j)
+			configs["STEP_NUMBER"] = strconv.FormatInt(int64(j), 10)
 
 			var objs []runtime.Object
 			for _, t := range step.Tasks {
@@ -333,10 +341,12 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 					for _, r := range taskSpec.Resources {
 						if resource, ok := frameworkVersion.Spec.Templates[r]; ok {
+							fmt.Printf("Resource %v: \n%v\n", r, resource)
 							templatedYaml, err := template.ExpandMustache(resource, configs)
 							if err != nil {
 								log.Printf("Error expanding mustache: %v\n", err)
 							}
+							fmt.Printf("Exapnded with configs: \n%v\n", *templatedYaml)
 							fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, r), []byte(*templatedYaml))
 							resources = append(resources, r)
 						} else {
