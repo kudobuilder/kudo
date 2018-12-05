@@ -15,6 +15,158 @@ spec:
   defaults.config:
     ZOOKEEPER_MEM: "1Gi"
     ZOOKEEPER_CPUS: "0.25"
+  templates:
+    services.yaml: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: hs
+        namespace: {{NAMESPACE}}
+        labels:
+          app: zookeeper
+          zookeeper: {{NAME}}
+      spec:
+        ports:
+          - port: 2888
+            name: server
+          - port: 3888
+            name: leader-election
+        clusterIP: None
+        selector:
+          app: zookeeper
+          zookeeper: {{NAME}}
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: cs
+        namespace: {{NAMESPACE}}
+        labels:
+          app: zookeeper
+          zookeeper: {{NAME}}
+      spec:
+        ports:
+          - port: 2181
+            name: client
+        selector:
+          app: zookeeper
+          zookeeper: {{NAME}}
+    pdb.yaml: |
+      apiVersion: policy/v1beta1
+      kind: PodDisruptionBudget
+      metadata:
+        name: {{NAME}}-pdb
+        namespace: {{NAMESPACE}}
+        labels:
+          app: zookeeper
+          zookeeper: {{NAME}}
+      spec:
+        selector:
+          matchLabels:
+            app: zookeeper
+            zookeeper: {{NAME}}
+        maxUnavailable: 1
+    statefulset.yaml: |
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: {{NAME}}
+        namespace: {{NAMESPACE}}
+      spec:
+        selector:
+          matchLabels:
+            app: zookeeper
+            zookeeper: {{NAME}}
+        serviceName: hs
+        replicas: 3
+        updateStrategy:
+          type: RollingUpdate
+        podManagementPolicy: Parallel
+        template:
+          metadata:
+            labels:
+              app: zookeeper
+              zookeeper: {{NAME}}
+          spec:
+            containers:
+              - name: kubernetes-zookeeper
+                imagePullPolicy: Always
+                image: "k8s.gcr.io/kubernetes-zookeeper:1.0-3.4.10"
+                resources:
+                  requests:
+                    memory: "{{ZOOKEEPER_MEM}}"
+                    cpu: "{{ZOOKEEPER_CPUS}}"
+                ports:
+                  - containerPort: 2181
+                    name: client
+                  - containerPort: 2888
+                    name: server
+                  - containerPort: 3888
+                    name: leader-election
+                command:
+                  - sh
+                  - -c
+                  - "start-zookeeper \
+                    --servers=3 \
+                    --data_dir=/var/lib/zookeeper/data \
+                    --data_log_dir=/var/lib/zookeeper/data/log \
+                    --conf_dir=/opt/zookeeper/conf \
+                    --client_port=2181 \
+                    --election_port=3888 \
+                    --server_port=2888 \
+                    --tick_time=2000 \
+                    --init_limit=10 \
+                    --sync_limit=5 \
+                    --heap=512M \
+                    --max_client_cnxns=60 \
+                    --snap_retain_count=3 \
+                    --purge_interval=12 \
+                    --max_session_timeout=40000 \
+                    --min_session_timeout=4000 \
+                    --log_level=INFO"
+                readinessProbe:
+                  exec:
+                    command:
+                      - sh
+                      - -c
+                      - "zookeeper-ready 2181"
+                  initialDelaySeconds: 10
+                  timeoutSeconds: 5
+                livenessProbe:
+                  exec:
+                    command:
+                      - sh
+                      - -c
+                      - "zookeeper-ready 2181"
+                  initialDelaySeconds: 10
+                  timeoutSeconds: 5
+                volumeMounts:
+                  - name: datadir
+                    mountPath: /var/lib/zookeeper
+            securityContext:
+              runAsUser: 1000
+              fsGroup: 1000
+        volumeClaimTemplates:
+          - metadata:
+              name: datadir
+            spec:
+              accessModes: ["ReadWriteOnce"]
+              resources:
+                requests:
+                  storage: 2Gi
+    validation.yaml: |
+      #make a job that runs successfully when up and running
+  tasks:
+    infra:
+      resources:
+      - services.yaml
+      - pdb.yaml
+    app:
+      resources:
+      - statefulset.yaml
+    validation:
+      resources:
+      - validation.yaml
   plans:
     deploy:
       strategy: serial
@@ -23,164 +175,16 @@ spec:
           strategy: parallel
           steps:
             - name: everything
-              mustache: |
-                apiVersion: v1
-                kind: Service
-                metadata:
-                  name: {{NAME}}-hs
-                  namespace: {{NAMESPACE}}
-                  labels:
-                    app: zookeeper
-                    zookeeper: {{NAME}}
-                spec:
-                  ports:
-                    - port: 2888
-                      name: server
-                    - port: 3888
-                      name: leader-election
-                  clusterIP: None
-                  selector:
-                    app: zookeeper
-                    zookeeper: {{NAME}}
-                ---
-                apiVersion: v1
-                kind: Service
-                metadata:
-                  name: {{NAME}}-cs
-                  namespace: {{NAMESPACE}}
-                  labels:
-                    app: zookeeper
-                    zookeeper: {{NAME}}
-                spec:
-                  ports:
-                    - port: 2181
-                      name: client
-                  selector:
-                    app: zookeeper
-                    zookeeper: {{NAME}}
-                ---
-                apiVersion: policy/v1beta1
-                kind: PodDisruptionBudget
-                metadata:
-                  name: {{NAME}}-pdb
-                  namespace: {{NAMESPACE}}
-                  labels:
-                    app: zookeeper
-                    zookeeper: {{NAME}}
-                spec:
-                  selector:
-                    matchLabels:
-                      app: zookeeper
-                      zookeeper: {{NAME}}
-                  maxUnavailable: 1
-                ---
-                apiVersion: apps/v1
-                kind: StatefulSet
-                metadata:
-                  name: {{NAME}}
-                  namespace: {{NAMESPACE}}
-                spec:
-                  selector:
-                    matchLabels:
-                      app: zookeeper
-                      zookeeper: {{NAME}}
-                  serviceName: zk-hs
-                  replicas: 3
-                  updateStrategy:
-                    type: RollingUpdate
-                  podManagementPolicy: Parallel
-                  template:
-                    metadata:
-                      labels:
-                        app: zookeeper
-                        zookeeper: {{NAME}}
-                    spec:
-                      containers:
-                        - name: kubernetes-zookeeper
-                          imagePullPolicy: Always
-                          image: "k8s.gcr.io/kubernetes-zookeeper:1.0-3.4.10"
-                          resources:
-                            requests:
-                              memory: "{{ZOOKEEPER_MEM}}"
-                              cpu: "{{ZOOKEEPER_CPUS}}"
-                          ports:
-                            - containerPort: 2181
-                              name: client
-                            - containerPort: 2888
-                              name: server
-                            - containerPort: 3888
-                              name: leader-election
-                          command:
-                            - sh
-                            - -c
-                            - "start-zookeeper \
-                              --servers=3 \
-                              --data_dir=/var/lib/zookeeper/data \
-                              --data_log_dir=/var/lib/zookeeper/data/log \
-                              --conf_dir=/opt/zookeeper/conf \
-                              --client_port=2181 \
-                              --election_port=3888 \
-                              --server_port=2888 \
-                              --tick_time=2000 \
-                              --init_limit=10 \
-                              --sync_limit=5 \
-                              --heap=512M \
-                              --max_client_cnxns=60 \
-                              --snap_retain_count=3 \
-                              --purge_interval=12 \
-                              --max_session_timeout=40000 \
-                              --min_session_timeout=4000 \
-                              --log_level=INFO"
-                          readinessProbe:
-                            exec:
-                              command:
-                                - sh
-                                - -c
-                                - "zookeeper-ready 2181"
-                            initialDelaySeconds: 10
-                            timeoutSeconds: 5
-                          livenessProbe:
-                            exec:
-                              command:
-                                - sh
-                                - -c
-                                - "zookeeper-ready 2181"
-                            initialDelaySeconds: 10
-                            timeoutSeconds: 5
-                          volumeMounts:
-                            - name: datadir
-                              mountPath: /var/lib/zookeeper
-                      securityContext:
-                        runAsUser: 1000
-                        fsGroup: 1000
-                  volumeClaimTemplates:
-                    - metadata:
-                        name: datadir
-                      spec:
-                        accessModes: ["ReadWriteOnce"]
-                        resources:
-                          requests:
-                            storage: 2Gi
-        - name: validation
-          strategy: parallel
-          steps:
-            - name: something
-              mustache: |
-                apiVersion: v1
-                kind: Service
-                metadata:
-                  name: something-service
-                  namespace: {{NAMESPACE}}
-                  labels:
-                    app: zookeeper
-                    zookeeper: {{NAME}}
-                spec:
-                  ports:
-                    - port: 2888
-                      name: server
-                    - port: 3888
-                      name: leader-election
-                  clusterIP: None
-                  selector:
-                    app: zookeeper
-                    zookeeper: {{NAME}}
+              tasks:
+              - infra
+              - app
+    validation:
+      strategy: serial
+      phases:
+      - name: connection
+        strategy: parallel
+        steps:
+        - name: connection
+          tasks:
+          - validation
+              
