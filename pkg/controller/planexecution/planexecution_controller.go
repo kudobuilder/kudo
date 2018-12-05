@@ -501,7 +501,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	}
 
 	if health.IsPlanHealthy(planExecution.Status) {
-		r.recorder.Event(planExecution, "Normal", "PhaseStateComplete", fmt.Sprintf("Instances healthy, phase marked as COMPLETE))
+		r.recorder.Event(planExecution, "Normal", "PhaseStateComplete", fmt.Sprintf("Instances healthy, phase marked as COMPLETE"))
 		planExecution.Status.State = maestrov1alpha1.PhaseStateComplete
 	} else {
 		planExecution.Status.State = maestrov1alpha1.PhaseStateInProgress
