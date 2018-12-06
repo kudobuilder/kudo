@@ -65,8 +65,12 @@ spec:
     serial:
       resources:
       - serial.yaml
-  defaults.config:
-    SLEEP: "600"
+  parameters:
+  - name: SLEEP
+    description: "how long to have the container sleep for before returning"
+    default: "15"
+    required: false
+    displayName: "Sleep Time"
   plans:
     deploy:
       strategy: serial

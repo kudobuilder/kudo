@@ -12,9 +12,13 @@ spec:
   # Add fields here
   version: "1.0"
   connectionString: "{{NAME}}-0.{{NAME}}-hs:2181,{{NAME}}-1.{{NAME}}-hs:2181,{{NAME}}-.{{NAME}}-hs:2181"
-  defaults.config:
-    ZOOKEEPER_MEM: "1Gi"
-    ZOOKEEPER_CPUS: "0.25"
+  parameters:
+  - name: ZOOKEEPER_MEM
+    description: Amount of memory to provide to Zookeeper pods
+    default: "1Gi"
+  - name: ZOOKEEPER_CPUS
+    description: Amount of cpu to provide to Zookeeper pods
+    default: "0.25"
   templates:
     services.yaml: |
       apiVersion: v1

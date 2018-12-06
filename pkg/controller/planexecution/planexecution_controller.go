@@ -291,10 +291,16 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		configs[k] = v
 	}
 	//merge defaults with customizations
-	for k, v := range frameworkVersion.Spec.Defaults {
-		_, ok := configs[k]
+	for _, param := range frameworkVersion.Spec.Parameters {
+		_, ok := configs[param.Name]
 		if !ok { //not specified in params
-			configs[k] = v
+			if param.Required {
+				err = fmt.Errorf("Parameter %v was required but not provided by instance %v", param.Name, instance.Name)
+				fmt.Printf("%v\n", err)
+				r.recorder.Event(planExecution, "Warning", "MissingParameter", fmt.Sprintf("Could not find required parameter (%v)", param.Name))
+				return reconcile.Result{}, err
+			}
+			configs[param.Name] = param.Default
 		}
 	}
 

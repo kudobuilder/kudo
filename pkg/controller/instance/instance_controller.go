@@ -115,10 +115,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 						if !ok {
 							fmt.Println("Could not find any plan to use for upgrade")
 							return false
-						} else {
-
-							planName = "deploy"
 						}
+						ok = true
+						planName = "deploy"
 					} else {
 						planName = "update"
 					}
@@ -301,6 +300,32 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 
 	log.Printf("InstanceController: Recieved Reconcile request for %v\n", request.Name)
+
+	//Make sure the FrameworkVersion is present
+	fv := &maestrov1alpha1.FrameworkVersion{}
+	err = r.Get(context.TODO(),
+		types.NamespacedName{
+			Name:      instance.Spec.FrameworkVersion.Name,
+			Namespace: instance.Spec.FrameworkVersion.Namespace,
+		},
+		fv)
+	if err != nil {
+		fmt.Printf("Error getting FrameworkVersion %v for instance %v: %v\n",
+			instance.Spec.FrameworkVersion.Name,
+			instance.Name,
+			err)
+		r.recorder.Event(instance, "Warning", "InvalidFrameworkVersion", fmt.Sprintf("Error getting FrameworkVersion %v: %v", fv.Name, err))
+		return reconcile.Result{}, err
+	}
+
+	//make sure all the required parameters in the frameworkversion are present
+	for _, param := range fv.Spec.Parameters {
+		if param.Required {
+			if _, ok := instance.Spec.Parameters[param.Name]; !ok {
+				r.recorder.Event(instance, "Warning", "MissingParameter", fmt.Sprintf("Missing parameter %v required by FrameworkVersion %v", param.Name, fv.Name))
+			}
+		}
+	}
 
 	//defer call from above should apply the status changes to the object
 	return reconcile.Result{}, nil

@@ -26,11 +26,12 @@ type FrameworkVersionSpec struct {
 	// +optional
 	Framework corev1.ObjectReference `json:"framework,omitempty"`
 	Version   string                 `json:"version,omitempty"`
-	//Defaults captures the default parameter values defined in the Yaml section.
-	Defaults map[string]string `json:"defaults.config,omitempty"`
+
 	//Yaml captures a mustached yaml list of elements that define the application framework instance
 	Templates map[string]string   `json:"templates,omitempty"`
 	Tasks     map[string]TaskSpec `json:"tasks,omitempty"`
+
+	Parameters []Parameter `json:"parameters,omitempty"`
 
 	//Plans specify a map a plans that specify how to
 	Plans map[string]Plan `json:"plans,omitempty"`
@@ -63,6 +64,34 @@ type Plan struct {
 	Strategy Ordering `json:"strategy"`
 	//Phases maps a phase name to a Phase object
 	Phases []Phase `json:"phases"`
+}
+
+//Parameter captures the variability of a FrameworkVersion being instantiated in an instance.  Describes
+//
+type Parameter struct {
+	//DisplayName can be used by UI's looking to
+	DisplayName string `json:"displayName,omitempty"`
+	//Name is the string that should be used in the mustached file
+	// for example, if `name: COUNT`
+	// then using the variable in a spec like:
+	//
+	// spec:
+	//   replicas:  {{COUNT}}
+	Name string `json:"name,omitempty"`
+
+	//Description captures a longer description of how the variable will be used
+	Description string `json:"description,omitempty"`
+
+	//Required specifies if the parameter is required to be provided by all instances, or whether a default can suffice
+	Required bool `json:"required,omitempty"`
+
+	//Default is a default value if no paramter is provided by the instance
+	Default string `json:"default,omitempty"`
+
+	//TODO Add generated parameters (e.g. passwords)
+	//These values should be saved off in a secret instead of updating the spec
+	// with values so viewing the instance doesn't give crednetials
+
 }
 
 // TaskSpec is a struct containing lists of of Kustomize resources
