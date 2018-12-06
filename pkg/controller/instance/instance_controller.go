@@ -137,7 +137,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				} else {
 					planName = "update"
 				}
+			} else {
+				fmt.Println("Old and new spec matched...")
 			}
+
+			fmt.Printf("InstanceController: UpdateInstance: Going to call plan %v\n", planName)
 			//we found something
 			if ok {
 
@@ -246,6 +250,11 @@ func createPlan(mgr manager.Manager, planName string, instance *maestrov1alpha1.
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%v-%v-%v", instance.Name, planName, time.Now().Nanosecond()),
 			Namespace: instance.GetNamespace(),
+			//Should also add one for Framework in here as well.
+			Labels: map[string]string{
+				"framework-version": instance.Spec.FrameworkVersion.Name,
+				"instance":          instance.Name,
+			},
 		},
 		Spec: maestrov1alpha1.PlanExecutionSpec{
 			Instance: ref,

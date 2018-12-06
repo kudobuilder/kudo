@@ -19,7 +19,30 @@ spec:
     name: upgrade
     kind: Framework
   templates:
-    something.yaml: blah
+    job.yaml: |
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        namespace: default
+        name: {{PLAN_NAME}}-job
+      spec:
+        template:
+          metadata:
+            name: {{PLAN_NAME}}-job
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - name: bb
+              image: busybox:latest
+              imagePullPolicy: IfNotPresent
+              command:
+              - /bin/sh
+              - -c
+              - "echo {{PLAN_NAME}} for v1 && echo Going to sleep for {{SLEEP}} seconds && sleep {{SLEEP}}"
+  tasks:
+    run:
+      resources:
+      - job.yaml
   defaults.config:
     SLEEP: "15"
   plans:
@@ -29,81 +52,27 @@ spec:
         - name: par
           strategy: serial
           steps:
-            - name: par-one
-              mustache: |
-                apiVersion: batch/v1
-                kind: Job
-                metadata:
-                  namespace: default
-                  name: deploy-job
-                spec:
-                  template:
-                    metadata:
-                      name: deploy-job
-                    spec:
-                      restartPolicy: OnFailure
-                      containers:
-                      - name: bb
-                        image: busybox:latest
-                        imagePullPolicy: IfNotPresent
-                        command:
-                        - /bin/sh
-                        - -c
-                        - "sleep {{SLEEP}}"
+          - name: run-step
+            tasks:
+            - run
     upgrade:
       strategy: serial
       phases:
-        - name: upgrade
+        - name: par
           strategy: serial
           steps:
-            - name: upgrade-one
-              mustache: |
-                apiVersion: batch/v1
-                kind: Job
-                metadata:
-                  namespace: default
-                  name: upgrade-job
-                spec:
-                  template:
-                    metadata:
-                      name: upgrade-job
-                    spec:
-                      restartPolicy: OnFailure
-                      containers:
-                      - name: bb
-                        image: busybox:latest
-                        imagePullPolicy: IfNotPresent
-                        command:
-                        - /bin/sh
-                        - -c
-                        - "sleep {{SLEEP}}"
+          - name: run-step
+            tasks:
+            - run
     update:
       strategy: serial
       phases:
-        - name: update
+        - name: par
           strategy: serial
           steps:
-            - name: update-one
-              mustache: |
-                apiVersion: batch/v1
-                kind: Job
-                metadata:
-                  namespace: default
-                  name: update-job
-                spec:
-                  template:
-                    metadata:
-                      name: update-job
-                    spec:
-                      restartPolicy: OnFailure
-                      containers:
-                      - name: bb
-                        image: busybox:latest
-                        imagePullPolicy: IfNotPresent
-                        command:
-                        - /bin/sh
-                        - -c
-                        - "sleep {{SLEEP}}"         
+          - name: run-step
+            tasks:
+            - run       
 ---
 apiVersion: maestro.k8s.io/v1alpha1
 kind: FrameworkVersion
@@ -119,91 +88,60 @@ spec:
     name: upgrade
     kind: Framework
   templates:
-    something.yaml: blah
+    job.yaml: |
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        namespace: default
+        name: {{PLAN_NAME}}-job
+      spec:
+        template:
+          metadata:
+            name: {{PLAN_NAME}}-job
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - name: bb
+              image: busybox:latest
+              imagePullPolicy: IfNotPresent
+              command:
+              - /bin/sh
+              - -c
+              - "echo {{PLAN_NAME}} for v2 && echo Going to sleep for {{SLEEP}} seconds && sleep {{SLEEP}}"
+  tasks:
+    run:
+      resources:
+      - job.yaml
   defaults.config:
     SLEEP: "15"
   plans:
     deploy:
       strategy: serial
       phases:
-        - name: deploy
+        - name: par
           strategy: serial
           steps:
-            - name: deploy-one
-              mustache: |
-                apiVersion: batch/v1
-                kind: Job
-                metadata:
-                  namespace: default
-                  name: deploy-job
-                spec:
-                  template:
-                    metadata:
-                      name: deploy-job
-                    spec:
-                      restartPolicy: OnFailure
-                      containers:
-                      - name: bb
-                        image: busybox:latest
-                        imagePullPolicy: IfNotPresent
-                        command:
-                        - /bin/sh
-                        - -c
-                        - "sleep {{SLEEP}}"
+          - name: run-step
+            tasks:
+            - run
     upgrade:
       strategy: serial
       phases:
-        - name: upgrade
+        - name: par
           strategy: serial
           steps:
-            - name: upgrade-one
-              mustache: |
-                apiVersion: batch/v1
-                kind: Job
-                metadata:
-                  namespace: default
-                  name: upgrade-job
-                spec:
-                  template:
-                    metadata:
-                      name: upgrade-job
-                    spec:
-                      restartPolicy: OnFailure
-                      containers:
-                      - name: bb
-                        image: busybox:latest
-                        imagePullPolicy: IfNotPresent
-                        command:
-                        - /bin/sh
-                        - -c
-                        - "sleep {{SLEEP}}"
+          - name: run-step
+            tasks:
+            - run
     update:
       strategy: serial
       phases:
-        - name: update
+        - name: par
           strategy: serial
           steps:
-            - name: update-one
-              mustache: |
-                apiVersion: batch/v1
-                kind: Job
-                metadata:
-                  namespace: default
-                  name: update-job
-                spec:
-                  template:
-                    metadata:
-                      name: update-job
-                    spec:
-                      restartPolicy: OnFailure
-                      containers:
-                      - name: bb
-                        image: busybox:latest
-                        imagePullPolicy: IfNotPresent
-                        command:
-                        - /bin/sh
-                        - -c
-                        - "sleep {{SLEEP}}"                   
+          - name: run-step
+            tasks:
+            - run             
 ---
 apiVersion: maestro.k8s.io/v1alpha1
 kind: Instance
