@@ -59,25 +59,25 @@ const Parallel Ordering = "parallel"
 
 //Plan specifies a series of Phases that need to be completed.
 type Plan struct {
-	Strategy Ordering `json:"strategy"`
+	Strategy Ordering `json:"strategy" validate:"required,gt=0"` // makes field mandatory and checks if set and non empty
 	//Phases maps a phase name to a Phase object
-	Phases []Phase `json:"phases"`
+	Phases []Phase `json:"phases" validate:"gt=0,dive"` // makes field mandatory and checks if its gt 0
 }
 
 //Phase specifies a list of steps that contain Kubernetes objects.
 type Phase struct {
-	Name     string   `json:"name"`
-	Strategy Ordering `json:"strategy"`
+	Name     string   `json:"name" validate:"required,gt=0"`     // makes field mandatory and checks if set and non empty
+	Strategy Ordering `json:"strategy" validate:"required,gt=0"` // makes field mandatory and checks if set and non empty
 	//Steps maps a step name to a list of mustached kubernetes objects stored as a string
-	Steps []Step `json:"steps"`
+	Steps []Step `json:"steps" validate:"gt=0,dive"` // makes field mandatory and checks if its gt 0
 }
 
 type Step struct {
-	Name     string `json:"name"`
-	Mustache string `json:"mustache"`
+	Name     string `json:"name" validate:"required,gt=0"`     // makes field mandatory and checks if set and non empty
+	Mustache string `json:"mustache" validate:"required,gt=0"` // makes field mandatory and checks if set and non empty
 	//Objects will be serialized for each instance as the params and defaults
 	// are provided
-	Objects []runtime.Object `json:"-"`
+	Objects []runtime.Object `json:"-"` // no checks needed
 }
 
 // FrameworkVersionStatus defines the observed state of FrameworkVersion
