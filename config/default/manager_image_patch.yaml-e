@@ -8,5 +8,5 @@ spec:
     spec:
       containers:
       # Change the value of image field below to your controller image URL
-      - image: maestrosdk/controller:0.2.0
+      - image: maestrosdk/controller:latest
         name: manager
