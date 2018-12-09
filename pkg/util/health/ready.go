@@ -3,7 +3,7 @@ package health
 import (
 	"context"
 	"fmt"
-	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
+	maestrov1alpha1 "github.com/kubernetes-sigs/maestro/pkg/apis/maestro/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/runtime"

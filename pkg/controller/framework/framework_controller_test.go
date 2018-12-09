@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
+	maestrov1alpha1 "github.com/kubernetes-sigs/maestro/pkg/apis/maestro/v1alpha1"
 	"github.com/onsi/gomega"
 	"golang.org/x/net/context"
 	appsv1 "k8s.io/api/apps/v1"
