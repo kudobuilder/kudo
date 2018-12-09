@@ -16,7 +16,7 @@ limitations under the License.
 package controller
 
 import (
-	"github.com/kubernetes-sigs/maestro/pkg/controller/framework"
+	"github.com/maestrosdk/maestro/pkg/controller/framework"
 )
 
 func init() {

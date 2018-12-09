@@ -18,9 +18,9 @@ package main
 import (
 	"os"
 
-	"github.com/kubernetes-sigs/maestro/pkg/apis"
-	"github.com/kubernetes-sigs/maestro/pkg/controller"
-	"github.com/kubernetes-sigs/maestro/pkg/webhook"
+	"github.com/maestrosdk/maestro/pkg/apis"
+	"github.com/maestrosdk/maestro/pkg/controller"
+	"github.com/maestrosdk/maestro/pkg/webhook"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
