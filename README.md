@@ -1,17 +1,15 @@
-# Kubernetes Template Project
+# Maestro
 
-The Kubernetes Template Project is a template for starting new projects in the GitHub organizations owned by Kubernetes. All Kubernetes projects, at minimum, must have the following files:
+Maestro provides a declarative approach to building production-grade Kubernetes Operators covering the entire application lifecycle. 
 
-- a `README.md` outlining the project goals, sponsoring sig, and community contact information
-- an `OWNERS` with the project leads listed as approvers ([docs on `OWNERS` files][owners])
-- a `CONTRIBUTING.md` outlining how to contribute to the project
-- an unmodified copy of `code-of-conduct.md` from this repo, which outlines community behavior and the consequences of breaking the code
-- a `LICENSE` which must be Apache 2.0 for code projects, or [Creative Commons 4.0] for documentation repositories, without any custom content
-- a `SECURITY_CONTACTS` with the contact points for the Product Security Team 
-  to reach out to for triaging and handling of incoming issues. They must agree to abide by the
-  [Embargo Policy](https://github.com/kubernetes/sig-release/blob/master/security-release-process-documentation/security-release-process.md#embargo-policy) 
-  and will be removed and replaced if they violate that agreement.
+## Installation Instructions
 
+[Configure kubectl ](https://kubernetes.io/docs/tasks/tools/install-kubectl/) 
+Get maestro repo: go get github.com/maestrosdk/maestro/
+` cd $GOPATH/src/github.com/maestrosdk/maestro`
+      -    `make install` to deploy universal CRDs
+      -	`make run` to run the Operator with local go environment
+ 
 ## Community, discussion, contribution, and support
 
 Learn how to engage with the Kubernetes community on the [community page](http://kubernetes.io/community/).
