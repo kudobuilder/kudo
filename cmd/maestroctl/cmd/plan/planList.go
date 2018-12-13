@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/xlab/treeprint"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/clientcmd"
 	"log"
@@ -54,15 +55,26 @@ func planListCmd(cmd *cobra.Command, args []string) {
 
 	mustKubeConfig()
 
-	kubeConfigFlag, err := cmd.Flags().GetString("kubeconfig")
+	_, err = cmd.Flags().GetString("kubeconfig")
 	if err != nil || instanceFlag == "" {
 		log.Printf("Flag Error: %v", err)
 	}
 
-	planList(instanceFlag, kubeConfigFlag)
+	p, err := planList()
+	if err != nil {
+		log.Printf("Error: %v", err)
+	}
+	tree := treeprint.New()
+
+	for _, plan := range p {
+		tree.AddBranch(plan)
+	}
+	fmt.Printf("List of current plans for \"%s\" in namespace \"%s\":\n", instance, namespace)
+	fmt.Println(tree.String())
+
 }
 
-func planList(i, k string) ([]string, error) {
+func planList() ([]string, error) {
 
 	planList := make([]string, 0)
 
@@ -83,7 +95,6 @@ func planList(i, k string) ([]string, error) {
 		Resource: "instances",
 	}
 
-	//  List all of the Virtual Services.
 	instObj, err := dynamicClient.Resource(instancesGVR).Namespace(namespace).Get(instance, metav1.GetOptions{})
 	if err != nil {
 		log.Printf("Error: %v", err)
@@ -126,9 +137,6 @@ func planList(i, k string) ([]string, error) {
 	for planName, _ := range plans {
 		planList = append(planList, planName)
 	}
-
-	fmt.Printf("%v\n", planList)
-
 	return planList, nil
 }
 
