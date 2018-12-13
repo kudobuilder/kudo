@@ -2,6 +2,7 @@ package plan
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
 	"github.com/spf13/cobra"
@@ -40,15 +41,18 @@ func planStatusCmd(cmd *cobra.Command, args []string) {
 
 	mustKubeConfig()
 
-	kubeConfigFlag, err := cmd.Flags().GetString("kubeconfig")
+	_, err = cmd.Flags().GetString("kubeconfig")
 	if err != nil || instanceFlag == "" {
 		log.Printf("Flag Error: %v", err)
 	}
 
-	planStatus(instanceFlag, kubeConfigFlag, args[0])
+	err = planStatus(args[0])
+	if err != nil {
+		log.Printf("Error: %v", err)
+	}
 }
 
-func planStatus(i, k, a string) error {
+func planStatus(a string) error {
 
 	tree := treeprint.New()
 
@@ -83,6 +87,7 @@ func planStatus(i, k, a string) error {
 		return err
 	}
 
+	// To get the current active plan
 	activePlanNameOfInstance := instance.Status.ActivePlan.Name
 
 	frameworkGVR := schema.GroupVersionResource{
@@ -105,6 +110,11 @@ func planStatus(i, k, a string) error {
 		return err
 	}
 
+	if activePlanType.Spec.PlanName != a {
+		errM := fmt.Sprintf("Plan \"%s\" not found in \"%s\" of instance \"%s\"", a, activePlanNameOfInstance, instance.Name)
+		return errors.New(errM)
+	}
+
 	activePlan := activePlanType.Status
 
 	planDisplay := fmt.Sprintf("%s (%s strategy) [%s]", activePlan.Name, activePlan.Strategy, activePlan.State)
@@ -123,6 +133,7 @@ func planStatus(i, k, a string) error {
 		}
 	}
 
+	fmt.Printf("Status of current active plan for \"%s\" in namespace \"%s\":\n", instance.Name, namespace)
 	fmt.Println(tree.String())
 
 	return nil
