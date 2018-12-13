@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kubernetes-sigs/kubebuilder-maestro/cmd/maestroctl/cmd"
+	"github.com/maestrosdk/maestro/cmd/maestroctl/cmd"
 )
 
 func main() {

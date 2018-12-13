@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/kubernetes-sigs/kubebuilder-maestro/version"
+	"github.com/maestrosdk/maestro/version"
 	"github.com/spf13/cobra"
 )
 
