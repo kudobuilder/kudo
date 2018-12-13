@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/kubernetes-sigs/kubebuilder-maestro/cmd/maestroctl/cmd/plan"
+	"github.com/maestrosdk/maestro/cmd/maestroctl/cmd/plan"
 	"github.com/spf13/cobra"
 )
 
