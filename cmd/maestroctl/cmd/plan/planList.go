@@ -50,7 +50,8 @@ func planListCmd(cmd *cobra.Command, args []string) {
 
 	instanceFlag, err := cmd.Flags().GetString("instance")
 	if err != nil || instanceFlag == "" {
-		log.Printf("Flag Error: %v", err)
+		log.Printf("Error: No instance was provided")
+		return
 	}
 
 	mustKubeConfig()
