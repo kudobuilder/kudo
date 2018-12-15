@@ -14,6 +14,9 @@ Maestro CLI and future sub-commands can be used to manipulate, inspect and troub
 and serves as an API aggregation layer.
 `,
 		Example: `
+	# List instances
+	maestroctl list instances --namespace=<default> --kubeconfig=<$HOME/.kube/config>
+
 	# View plans
 	maestroctl plan --instance=<instanceName> --namespace=<default> --kubeconfig=<$HOME/.kube/config>
 
@@ -23,7 +26,8 @@ and serves as an API aggregation layer.
 		Version: version.Version,
 	}
 
-	cmd.AddCommand(NewMaestroCTLCmd())
+	cmd.AddCommand(NewListCmd())
+	cmd.AddCommand(NewPlanCmd())
 
 	return cmd
 }

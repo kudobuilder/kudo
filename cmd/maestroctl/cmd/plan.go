@@ -5,13 +5,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewMaestroCTLCmd() *cobra.Command {
+func NewPlanCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "plan",
 		Short: "-> Show all available plans.",
 		Long:  `The plan command has subcommands to show all available plans.`,
 	}
 
+	newCmd.AddCommand(plan.NewPlanHistoryCmd())
 	newCmd.AddCommand(plan.NewPlanListCmd())
 	newCmd.AddCommand(plan.NewPlanStatusCmd())
 
