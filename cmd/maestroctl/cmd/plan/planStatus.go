@@ -15,12 +15,11 @@ import (
 
 func NewPlanStatusCmd() *cobra.Command {
 	statusCmd := &cobra.Command{
-		//Args:  cobra.ExactArgs(1),
 		Use:   "status",
-		Short: "Shows the status of a particular plan of an instance.",
+		Short: "Shows the status of all plans to an particular instance.",
 		Long: `
 	# View plan status
-	maestroctl plan status --instance=<instanceName>`,
+	maestroctl plan status --instance=<instanceName> --kubeconfig=<$HOME/.kube/config>`,
 		Run: planStatusCmd,
 	}
 
