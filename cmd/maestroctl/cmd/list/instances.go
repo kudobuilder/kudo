@@ -33,7 +33,7 @@ func NewListInstancesCmd() *cobra.Command {
 		Short: "Lists all available instances.",
 		Long: `
 	# List all available instances
-	maestroctl list instances>`,
+	maestroctl list instances`,
 		Run: instancesListCmd,
 	}
 

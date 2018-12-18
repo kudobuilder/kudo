@@ -17,11 +17,14 @@ and serves as an API aggregation layer.
 	# List instances
 	maestroctl list instances --namespace=<default> --kubeconfig=<$HOME/.kube/config>
 
-	# View plans
-	maestroctl plan --instance=<instanceName> --namespace=<default> --kubeconfig=<$HOME/.kube/config>
-
 	# View plan status
-	maestroctl plan list <planName> --instance=<instanceName> --namespace=<default> --kubeconfig=<$HOME/.kube/config>
+	maestroctl plan status --instance=<instanceName> --kubeconfig=<$HOME/.kube/config>
+
+	# View plan history of a specific FrameworkVersion and Instance
+	maestroctl plan history <FrameworkVersion> --instance=<instanceName> --namespace=<default> --kubeconfig=<$HOME/.kube/config>
+
+	# View all plan history of a specific Instance
+	maestroctl plan history --instance=<instanceName> --namespace=<default> --kubeconfig=<$HOME/.kube/config>
 `,
 		Version: version.Version,
 	}
