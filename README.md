@@ -5,7 +5,7 @@ Maestro provides a declarative approach to building production-grade Kubernetes 
 ## Installation Instructions
 
 - [Configure kubectl ](https://kubernetes.io/docs/tasks/tools/install-kubectl/) 
-- Get maestro repo: go get github.com/maestrosdk/maestro/
+- Get maestro repo: `go get github.com/maestrosdk/maestro/`
 - `cd $GOPATH/src/github.com/maestrosdk/maestro`
 - `make install` to deploy universal CRDs
 - `make run` to run the Operator with local go environment
