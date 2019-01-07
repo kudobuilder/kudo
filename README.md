@@ -2,9 +2,17 @@
 
 Maestro provides a declarative approach to building production-grade Kubernetes Operators covering the entire application lifecycle. 
 
+## Pre-requisites
+
+Before you get started:
+
+- Install Go `1.11` or later
+- Latest version of `dep`
+- Kubernetes Cluster `1.12` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
+- [Configure kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) 
+
 ## Installation Instructions
 
-- [Configure kubectl ](https://kubernetes.io/docs/tasks/tools/install-kubectl/) 
 - Get maestro repo: `go get github.com/maestrosdk/maestro/`
 - `cd $GOPATH/src/github.com/maestrosdk/maestro`
 - `make install` to deploy universal CRDs
