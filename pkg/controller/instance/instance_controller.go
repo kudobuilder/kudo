@@ -80,7 +80,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			if new.Status.ActivePlan.Name == "" {
 				err = createPlan(mgr, "deploy", new)
 				if err != nil {
-					fmt.Printf("Error creating %v object for %v: %v\n", "deploy", new.Name, err)
+					log.Printf("Error creating %v object for %v: %v\n", "deploy", new.Name, err)
 				}
 				return true
 			}
@@ -94,7 +94,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				},
 				fv)
 			if err != nil {
-				fmt.Printf("Error getting FrameworkVersion %v for instance %v: %v\n",
+				log.Printf("Error getting FrameworkVersion %v for instance %v: %v\n",
 					new.Spec.FrameworkVersion.Name,
 					new.Name,
 					err)
@@ -113,7 +113,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					if !ok {
 						_, ok = fv.Spec.Plans["deploy"]
 						if !ok {
-							fmt.Println("Could not find any plan to use for upgrade")
+							log.Println("Could not find any plan to use for upgrade")
 							return false
 						}
 						ok = true
@@ -129,7 +129,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				if !ok {
 					_, ok = fv.Spec.Plans["deploy"]
 					if !ok {
-						fmt.Println("could not find any plan to use for update")
+						log.Println("could not find any plan to use for update")
 					} else {
 						planName = "deploy"
 					}
@@ -137,24 +137,23 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					planName = "update"
 				}
 			} else {
-				fmt.Println("Old and new spec matched...")
+				log.Println("Old and new spec matched...")
 			}
 
-			fmt.Printf("InstanceController: UpdateInstance: Going to call plan %v\n", planName)
+			log.Printf("InstanceController: UpdateInstance: Going to call plan %v\n", planName)
 			//we found something
 			if ok {
 
 				//mark the current plan as Suspend,
 				current := &maestrov1alpha1.PlanExecution{}
-				fmt.Println("\n\n\n\n\n------------------------------")
 				err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{Name: new.Status.ActivePlan.Name, Namespace: new.Status.ActivePlan.Namespace}, current)
 				if err != nil {
-					fmt.Printf("Error getting plan for newInstance... Ignoring")
+					log.Printf("Error getting plan for newInstance... Ignoring")
 				} else {
 					if current.Status.State == maestrov1alpha1.PhaseStateComplete {
-						fmt.Println("Current Plan for Instance is already done, wont change the Suspend flag")
+						log.Println("Current Plan for Instance is already done, wont change the Suspend flag")
 					} else {
-						fmt.Println("Setting PlanExecution to Suspend")
+						log.Println("Setting PlanExecution to Suspend")
 						t := true
 						current.Spec.Suspend = &t
 						did, err := controllerutil.CreateOrUpdate(context.TODO(), mgr.GetClient(), current, func(o runtime.Object) error {
@@ -163,16 +162,16 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 							return nil
 						})
 						if err != nil {
-							fmt.Printf("Error changing the current PlanExecution to Suspend: %v\n", err)
+							log.Printf("Error changing the current PlanExecution to Suspend: %v\n", err)
 						} else {
-							fmt.Printf("No error in setting PlanExecution.Suspend to true.  Returned %v\n", did)
+							log.Printf("No error in setting PlanExecution.Suspend to true.  Returned %v\n", did)
 						}
 					}
 				}
 
 				err = createPlan(mgr, planName, new)
 				if err != nil {
-					fmt.Printf("Error creating %v object for %v: %v\n", planName, new.Name, err)
+					log.Printf("Error creating %v object for %v: %v\n", planName, new.Name, err)
 				}
 			}
 
@@ -185,7 +184,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		},
 		//New Instances should have Deploy called
 		CreateFunc: func(e event.CreateEvent) bool {
-			fmt.Printf("Recieved create event for %v\n", e.Meta)
+			log.Printf("Recieved create event for %v\n", e.Meta)
 			new := e.Object.(*maestrov1alpha1.Instance)
 
 			//get the new FrameworkVersion object
@@ -197,7 +196,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				},
 				fv)
 			if err != nil {
-				fmt.Printf("Error getting FrameworkVersion %v for instance %v: %v\n",
+				log.Printf("Error getting FrameworkVersion %v for instance %v: %v\n",
 					new.Spec.FrameworkVersion.Name,
 					new.Name,
 					err)
@@ -210,13 +209,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			ok := false
 			_, ok = fv.Spec.Plans[planName]
 			if !ok {
-				fmt.Println("Could not find deploy plan")
+				log.Println("Could not find deploy plan")
 				return false
 			}
 
 			err = createPlan(mgr, planName, new)
 			if err != nil {
-				fmt.Printf("Error creating %v object for %v: %v\n", planName, new.Name, err)
+				log.Printf("Error creating %v object for %v: %v\n", planName, new.Name, err)
 			}
 			return err == nil
 		},
@@ -310,7 +309,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		},
 		fv)
 	if err != nil {
-		fmt.Printf("Error getting FrameworkVersion %v for instance %v: %v\n",
+		log.Printf("Error getting FrameworkVersion %v for instance %v: %v\n",
 			instance.Spec.FrameworkVersion.Name,
 			instance.Name,
 			err)

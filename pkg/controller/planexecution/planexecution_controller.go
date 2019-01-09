@@ -17,7 +17,6 @@ package planexecution
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/tools/record"
@@ -99,9 +98,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				}, inst)
 
 				if err != nil {
-					fmt.Printf("Error getting instance object: %v\n", err)
+					log.Printf("Error getting instance object: %v\n", err)
 				} else {
-					fmt.Printf("Adding %v to reconcile\n", inst.Status.ActivePlan.Name)
+					log.Printf("Adding %v to reconcile\n", inst.Status.ActivePlan.Name)
 					requests = append(requests, reconcile.Request{
 						NamespacedName: types.NamespacedName{
 							Name:      inst.Status.ActivePlan.Name,
@@ -196,7 +195,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	err := r.Get(context.TODO(), request.NamespacedName, planExecution)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			fmt.Printf("Could not find planExecution %v: %v\n", request.Name, err)
+			log.Printf("Could not find planExecution %v: %v\n", request.Name, err)
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
 			return reconcile.Result{}, nil
@@ -234,8 +233,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 	//See if this has already been proceeded
 	if planExecution.Status.State == maestrov1alpha1.PhaseStateComplete {
-		fmt.Printf("PlanExecution %v has already run to completion, not processing.\n", planExecution.Name)
-		return reconcile.Result{}, nil
+		log.Printf("PlanExecution %v has already run to completion, not processing.\n", planExecution.Name)
+    return reconcile.Result{}, nil
 	}
 
 	//Get Instance Object
@@ -256,9 +255,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	err = r.Update(context.TODO(), instance)
 	if err != nil {
 		r.recorder.Event(planExecution, "Warning", "UpdateError", fmt.Sprintf("Could not update the ActivePlan for (%v): %v", planExecution.Spec.Instance.Name, err))
-		fmt.Printf("Upate of instance with ActivePlan errored: %v\n", err)
-		b, _ := json.MarshalIndent(instance, "", "\t")
-		fmt.Println(string(b))
+		log.Printf("Upate of instance with ActivePlan errored: %v\n", err)
 	}
 
 	//Get associated FrameworkVersion
@@ -297,7 +294,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		if !ok { //not specified in params
 			if param.Required {
 				err = fmt.Errorf("Parameter %v was required but not provided by instance %v", param.Name, instance.Name)
-				fmt.Printf("%v\n", err)
+				log.Printf("%v\n", err)
 				r.recorder.Event(planExecution, "Warning", "MissingParameter", fmt.Sprintf("Could not find required parameter (%v)", param.Name))
 				return reconcile.Result{}, err
 			}
@@ -429,7 +426,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 			planExecution.Status.Phases[i].Steps[j].Name = step.Name
 			planExecution.Status.Phases[i].Steps[j].Objects = objs
-			fmt.Printf("Phase %v Step %v has %v objects\n", i, j, len(objs))
+			log.Printf("Phase %v Step %v has %v objects\n", i, j, len(objs))
 		}
 	}
 
@@ -449,7 +446,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				//Some objects don't update well.  We capture the logic here to see if we need to cleanup the current object
 				err = r.Cleanup(obj)
 				if err != nil {
-					fmt.Printf("Cleanup failed: %v\n", err)
+					log.Printf("Cleanup failed: %v\n", err)
 				}
 				result, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, obj, func(runtime.Object) error { return nil })
 
@@ -479,27 +476,27 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				}
 				err = health.IsHealthy(r.Client, obj)
 				if err != nil {
-					fmt.Printf("Obj is NOT healthy: %v\n", obj)
+					log.Printf("Obj is NOT healthy: %v\n", obj)
 					planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateInProgress
 					planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateInProgress
 				}
 			}
-			fmt.Printf("Phase %v has strategy %v\n", phase.Name, phase.Strategy)
+			log.Printf("Phase %v has strategy %v\n", phase.Name, phase.Strategy)
 			if phase.Strategy == maestrov1alpha1.Serial {
 				//we need to skip the rest of the steps if this step is unhealthy
-				fmt.Printf("Phase %v marked as serial\n", phase.Name)
+				log.Printf("Phase %v marked as serial\n", phase.Name)
 				if planExecution.Status.Phases[i].Steps[j].State != maestrov1alpha1.PhaseStateComplete {
-					fmt.Printf("Step %v isn't complete, skipping rest of steps in phase until it is\n", planExecution.Status.Phases[i].Steps[j].Name)
+					log.Printf("Step %v isn't complete, skipping rest of steps in phase until it is\n", planExecution.Status.Phases[i].Steps[j].Name)
 					break //break step loop
 				} else {
-					fmt.Printf("Step %v is healthy, so I can continue on\n", planExecution.Status.Phases[i].Steps[j].Name)
+					log.Printf("Step %v is healthy, so I can continue on\n", planExecution.Status.Phases[i].Steps[j].Name)
 				}
 			}
 
-			fmt.Printf("Step %v looked at\n", s.Name)
+			log.Printf("Step %v looked at\n", s.Name)
 		}
 		if health.IsPhaseHealthy(planExecution.Status.Phases[i]) {
-			fmt.Printf("Phase %v marked as healthy\n", phase.Name)
+			log.Printf("Phase %v marked as healthy\n", phase.Name)
 			planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateComplete
 			continue
 		}
@@ -509,10 +506,10 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 		//Don't keep goign to other plans if we're flagged to perform the phases in serial
 		if executedPlan.Strategy == maestrov1alpha1.Serial {
-			fmt.Printf("Phase %v not healthy, and plan marked as serial, so breaking.\n", phase.Name)
+			log.Printf("Phase %v not healthy, and plan marked as serial, so breaking.\n", phase.Name)
 			break
 		}
-		fmt.Printf("Phase %v looked at\n", phase.Name)
+		log.Printf("Phase %v looked at\n", phase.Name)
 	}
 
 	if health.IsPlanHealthy(planExecution.Status) {
@@ -533,14 +530,14 @@ func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
 	case *batchv1.Job:
 		//We need to see if there's a current job on the system that matches this exactly (with labels)
 		job := obj.(*batchv1.Job)
-		fmt.Printf("PlanExecutionController.Cleanup: *batchv1.Job %v\n", job.Name)
+		log.Printf("PlanExecutionController.Cleanup: *batchv1.Job %v\n", job.Name)
 
 		present := &batchv1.Job{}
 		key, _ := client.ObjectKeyFromObject(obj)
 		err := r.Get(context.TODO(), key, present)
 		if errors.IsNotFound(err) {
 			//this is fine, its good to go
-			fmt.Printf("Could not find job %v on cluster.  Good to make a new one:\n", key)
+			log.Printf("Could not find job %v on cluster.  Good to make a new one:\n", key)
 			return nil
 		}
 		if err != nil {
@@ -551,7 +548,7 @@ func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
 		for k, v := range job.Labels {
 			if v != present.Labels[k] {
 				//need to delete the present job since its got labels that aren't the same
-				fmt.Printf("Different values for key %v: %v and %v\n", k, v, present.Labels[k])
+				log.Printf("Different values for key %v: %v and %v\n", k, v, present.Labels[k])
 				err = r.Delete(context.TODO(), present)
 				return err
 			}
@@ -559,7 +556,7 @@ func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
 		for k, v := range present.Labels {
 			if v != job.Labels[k] {
 				//need to delete the present job since its got labels that aren't the same
-				fmt.Printf("Different values for key %v: %v and %v\n", k, v, job.Labels[k])
+				log.Printf("Different values for key %v: %v and %v\n", k, v, job.Labels[k])
 				err = r.Delete(context.TODO(), present)
 				return err
 			}

@@ -2,14 +2,28 @@
 
 Maestro provides a declarative approach to building production-grade Kubernetes Operators covering the entire application lifecycle. 
 
+## Pre-requisites
+
+Before you get started:
+
+- Install Go `1.11` or later
+- Latest version of `dep`
+- Kubernetes Cluster `1.12` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
+- [Configure kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) 
+
 ## Installation Instructions
 
-- [Configure kubectl ](https://kubernetes.io/docs/tasks/tools/install-kubectl/) 
-- Get maestro repo: go get github.com/maestrosdk/maestro/
+- Get maestro repo: `go get github.com/maestrosdk/maestro/`
 - `cd $GOPATH/src/github.com/maestrosdk/maestro`
 - `make install` to deploy universal CRDs
 - `make run` to run the Operator with local go environment
 
+
+## Concepts
+- *Framework*: High-level description of a deployable application (e.g., Apache Kafka)
+- *FrameworkVersion*: Specific version of a deployable application, including lifecycle hooks for deployments, upgrades, and rollbacks (e.g., Kafka version 2.4.1)
+- *Instance*: Resource created to manage an instance of specific FrameworkVersion. Instances are pets and have the same name throughout its entire lifecycle. (e.g., Kafka 2.4.1 cluster with 3 brokers) 
+- *PlanExecution*: Maestro-managed resource defining the inputs and status of an instance’s executable plans (e.g., upgrade kafka from version 2.4.1 -> 2.4.2)
 
 ## Deploy your first Application
 
