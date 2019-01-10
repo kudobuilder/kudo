@@ -187,8 +187,12 @@ type ReconcilePlanExecution struct {
 // TODO(user): Modify this Reconcile function to implement your Controller logic.  The scaffolding writes
 // a Deployment as an example
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=maestro.k8s.io,resources=planexecutions,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=events;configmaps,verbs=get;list;watch;create;patch
+// +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets;poddisruptionbudgets.policy,verbs=get;list;watch;create;update;patch;delete
+
 func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the PlanExecution instance
 	planExecution := &maestrov1alpha1.PlanExecution{}

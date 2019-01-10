@@ -1,6 +1,7 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+TAG ?= latest
+IMG ?= maestrosdk/controller:${TAG}
 
 all: test manager
 
