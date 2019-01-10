@@ -48,6 +48,8 @@ Now that we know the available instances we can get the current status of all pl
 
 `maestroctl plan status --instance=<instanceName> --kubeconfig=<$HOME/.kube/config>`
 
+*Note: The `--instance` flag is mandatory and **not optional**.*
+
 ```bash
 $ maestroctl plan status --instance=up
   Plan(s) for "up" in namespace "default":

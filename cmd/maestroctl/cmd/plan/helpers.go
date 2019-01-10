@@ -1,7 +1,7 @@
 package plan
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -23,13 +23,13 @@ func mustKubeConfig() {
 	if len(kubeConfig) == 0 {
 		usr, err := user.Current()
 		if err != nil {
-			fmt.Printf("Error: failed to determine user's home dir: %v", err)
+			log.Printf("Error: failed to determine user's home dir: %v", err)
 		}
 		kubeConfig = filepath.Join(usr.HomeDir, defaultConfigPath)
 	}
 
 	_, err := os.Stat(kubeConfig)
 	if err != nil && os.IsNotExist(err) {
-		fmt.Printf("Error: failed to find the kubeconfig file (%v): %v", kubeConfig, err)
+		log.Fatalf("Error: failed to find kubeconfig file (%v): %v", kubeConfig, err)
 	}
 }

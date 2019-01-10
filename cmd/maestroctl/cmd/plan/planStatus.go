@@ -34,19 +34,19 @@ func planStatusCmd(cmd *cobra.Command, args []string) {
 
 	instanceFlag, err := cmd.Flags().GetString("instance")
 	if err != nil || instanceFlag == "" {
-		log.Printf("Flag Error: %v", err)
+		log.Fatal("Flag Error: Please set instance flag, e.g. \"--instance=<instanceName>\"")
 	}
 
 	mustKubeConfig()
 
 	_, err = cmd.Flags().GetString("kubeconfig")
 	if err != nil || instanceFlag == "" {
-		log.Printf("Flag Error: %v", err)
+		log.Fatal("Flag Error: Please set kubeconfig flag, e.g. \"--kubeconfig=<$HOME/.kube/config>\"")
 	}
 
 	err = planStatus()
 	if err != nil {
-		log.Printf("Error: %v", err)
+		log.Fatalf("Client Error: %v", err)
 	}
 }
 
@@ -75,7 +75,11 @@ func planStatus() error {
 	if err != nil {
 		return err
 	}
+
 	mInstObj, err := instObj.MarshalJSON()
+	if err != nil {
+		return err
+	}
 
 	instance := maestrov1alpha1.Instance{}
 
@@ -95,10 +99,13 @@ func planStatus() error {
 	//  List all of the Virtual Services.
 	frameworkObj, err := dynamicClient.Resource(frameworkGVR).Namespace(namespace).Get(frameworkVersionNameOfInstance, metav1.GetOptions{})
 	if err != nil {
-		log.Printf("Error: %v", err)
 		return err
 	}
+
 	mFrameworkObj, err := frameworkObj.MarshalJSON()
+	if err != nil {
+		return err
+	}
 
 	framework := maestrov1alpha1.FrameworkVersion{}
 
@@ -115,10 +122,13 @@ func planStatus() error {
 
 	activePlanObj, err := dynamicClient.Resource(planExecutionsGVR).Namespace(namespace).Get(instance.Status.ActivePlan.Name, metav1.GetOptions{})
 	if err != nil {
-		log.Printf("Error: %v", err)
 		return err
 	}
+
 	mPlanObj, err := activePlanObj.MarshalJSON()
+	if err != nil {
+		return err
+	}
 
 	activePlanType := maestrov1alpha1.PlanExecution{}
 

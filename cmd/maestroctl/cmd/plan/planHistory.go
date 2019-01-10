@@ -36,18 +36,20 @@ func planHistoryCmd(cmd *cobra.Command, args []string) {
 
 	instanceFlag, err := cmd.Flags().GetString("instance")
 	if err != nil || instanceFlag == "" {
-		log.Printf("Error: No framework-version was provided")
-		return
+		log.Fatal("Flag Error: Please set instance flag, e.g. \"--instance=<instanceName>\"")
 	}
 
 	mustKubeConfig()
 
 	_, err = cmd.Flags().GetString("kubeconfig")
 	if err != nil || instanceFlag == "" {
-		log.Printf("Flag Error: %v", err)
+		log.Fatalf("Flag Error: %v", err)
 	}
 
-	planHistory(args)
+	err = planHistory(args)
+	if err != nil {
+		log.Fatalf("Client Error: %v", err)
+	}
 }
 
 func planHistory(args []string) error {
@@ -71,10 +73,10 @@ func planHistory(args []string) error {
 
 	var labelSelector string
 	if len(args) == 0 {
-		fmt.Printf("History of all plan-executions for \"%s\" in namespace \"%s\":\n", instance, namespace)
+		fmt.Printf("History of all plan-executions for instance \"%s\" in namespace \"%s\":\n", instance, namespace)
 		labelSelector = "instance=" + instance
 	} else {
-		fmt.Printf("History of plan-executions for \"%s\" in namespace \"%s\" to framework-version \"%s\":\n", instance, namespace, args[0])
+		fmt.Printf("History of plan-executions for instance \"%s\" in namespace \"%s\" to framework-version \"%s\":\n", instance, namespace, args[0])
 		labelSelector = "framework-version=" + args[0] + ", instance=" + instance
 	}
 
@@ -82,15 +84,15 @@ func planHistory(args []string) error {
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
-		log.Printf("Error: %v", err)
 		return err
 	}
 
 	mInstObj, err := instObj.MarshalJSON()
+	if err != nil {
+		return err
+	}
 
 	planExecutionList := maestrov1alpha1.PlanExecutionList{}
-
-	//log.Println(instObj)
 
 	err = json.Unmarshal(mInstObj, &planExecutionList)
 	if err != nil {
