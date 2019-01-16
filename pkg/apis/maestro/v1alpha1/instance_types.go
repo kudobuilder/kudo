@@ -36,7 +36,7 @@ type InstanceStatus struct {
 
 	//TODO turn into struct
 	ActivePlan corev1.ObjectReference `json:"activePlan,omitempty"`
-
+	Status     PhaseState             `json:"status,omitempty"`
 	// PlanExecutionStatus PlanExecutionStatus `json:"status,omitempty"`
 }
 

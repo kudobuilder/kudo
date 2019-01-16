@@ -42,10 +42,14 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 		i := obj.(*maestrov1alpha1.Instance)
 		//Instances are healthy when their Active Plan has succeeded
 		plan := &maestrov1alpha1.PlanExecution{}
-		c.Get(context.TODO(), client.ObjectKey{
+		err := c.Get(context.TODO(), client.ObjectKey{
 			Name:      i.Status.ActivePlan.Name,
 			Namespace: i.Status.ActivePlan.Namespace,
 		}, plan)
+		if err != nil {
+			log.Printf("Error getting PlaneExecution %v/%v: %v\n", i.Status.ActivePlan.Name, i.Status.ActivePlan.Namespace, err)
+			return fmt.Errorf("instance active plan not found: %v", err)
+		}
 		log.Printf("Instance %v is in state %v\n", i.Name, plan.Status.State)
 		if plan.Status.State == maestrov1alpha1.PhaseStateComplete {
 			return nil

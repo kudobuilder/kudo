@@ -93,6 +93,7 @@ rules:
   - maestro.k8s.io
   resources:
   - planexecutions
+  - instances
   verbs:
   - get
   - list

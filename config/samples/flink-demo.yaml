@@ -1,0 +1,94 @@
+apiVersion: maestro.k8s.io/v1alpha1
+kind: Framework
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: flink-financial-demo
+---
+apiVersion: maestro.k8s.io/v1alpha1
+kind: FrameworkVersion
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: flink-financial-demo
+  namespace: default
+spec:
+  framework:
+    name: flink-financial-demo
+    kind: Framework
+  # Add fields here
+  parameters:
+  - name: DOWNLOAD_URL
+    description: URL To download the application from
+    default: "https://downloads.mesosphere.com/dcos-demo/flink/flink-job-1.0.jar"
+  templates:
+    zookeeper.yaml: |
+      apiVersion: maestro.k8s.io/v1alpha1
+      kind: Instance
+      metadata:
+        labels:
+          controller-tools.k8s.io: "1.0"
+          framework: zookeeper
+        name: zk
+      spec:
+        frameworkVersion:
+          name: zookeeper-1.0
+          namespace: default
+          type: FrameworkVersions
+        # Add fields here
+        name: "zk"
+        parameters:
+          ZOOKEEPER_CPUS: "0.3"
+    kafka.yaml: |
+      apiVersion: maestro.k8s.io/v1alpha1
+      kind: Instance
+      metadata:
+        labels:
+          controller-tools.k8s.io: "1.0"
+          framework: kafka
+        name: {{NAME}}
+      spec:
+        frameworkVersion:
+          name: kafka-2.11-2.4.0
+          namespace: default
+          type: FrameworkVersion
+        parameters:
+          KAFKA_ZOOKEEPER_URI: "{{NAME}}-zk-{{NAME}}-zk-0.{{NAME}}-zk-hs:2181,{{NAME}}-zk-{{NAME}}-zk-1.{{NAME}}-zk-hs:2181,{{NAME}}-zk-{{NAME}}-zk-2.{{NAME}}-zk-hs:2181"
+          KAFKA_ZOOKEEPER_PATH: "/kafka"
+          BROKERS_COUNT: "3"
+          KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+  tasks:
+    kafka:
+      resources:
+      - kafka.yaml
+    zookeeper:
+      resources:
+      - zookeeper.yaml
+  plans:
+    deploy:
+      strategy: serial
+      phases:
+        - name: dependencies
+          strategy: serial
+          steps:
+            - name: zookeeper
+              tasks:
+              - zookeeper
+            - name: kafka
+              tasks:
+              - kafka
+---
+apiVersion: maestro.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+    framework: flink-financial-demo
+  name: demo
+spec:
+  frameworkVersion:
+    name: flink-financial-demo
+    namespace: default
+    type: FrameworkVersion
+  parameters:
+    NONE: "true"
