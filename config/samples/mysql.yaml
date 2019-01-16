@@ -103,6 +103,19 @@ spec:
               volumeMounts:
               - name: mysql-persistent-storage
                 mountPath: /var/lib/mysql
+              livenessProbe:
+                exec:
+                  command: ["mysqladmin", "-p{{PASSWORD}}", "ping"]
+                initialDelaySeconds: 30
+                periodSeconds: 10
+                timeoutSeconds: 5
+              readinessProbe:
+                exec:
+                  # Check we can execute queries over TCP (skip-networking is off).
+                  command: ["mysql", "-p{{PASSWORD}}", "-h", "127.0.0.1", "-e", "SELECT 1"]
+                initialDelaySeconds: 5
+                periodSeconds: 2
+                timeoutSeconds: 1
             volumes:
             - name: mysql-persistent-storage
               persistentVolumeClaim:

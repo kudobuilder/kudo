@@ -25,8 +25,12 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 		return fmt.Errorf("Ready Replicas (%v) does not equal Requested Replicas (%v)", ss.Status.ReadyReplicas, ss.Status.Replicas)
 	case *appsv1.Deployment:
 		d := obj.(*appsv1.Deployment)
-		log.Printf("Deployment %v is marked healthy\n", d.Name)
-		return nil
+		if d.Spec.Replicas != nil && d.Status.ReadyReplicas == *d.Spec.Replicas {
+			log.Printf("Deployment %v is marked healthy\n", d.Name)
+			return nil
+		}
+		log.Printf("Deployment %v is NOT healthy.  Not enough ready replicas: %v/%v\n", d.Name, d.Status.ReadyReplicas, d.Spec.Replicas)
+		return fmt.Errorf("Ready Replicas (%v) does not equal Requested Replicas (%v)", d.Status.ReadyReplicas, d.Spec.Replicas)
 	case *batchv1.Job:
 		job := obj.(*batchv1.Job)
 		// job.Status.
