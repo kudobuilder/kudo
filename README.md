@@ -4,7 +4,7 @@ Maestro provides a declarative approach to building production-grade Kubernetes 
 
 ## Getting Started
 
-See the [Documentation](master/docs) with [Examples](config/samples).
+See the [Documentation](docs) with [Examples](config/samples).
 
 ![Quick Start](docs/gif/quickstart-0.1.0.gif)
 
