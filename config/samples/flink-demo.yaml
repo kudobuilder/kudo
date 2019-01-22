@@ -45,7 +45,7 @@ spec:
       metadata:
         labels:
           controller-tools.k8s.io: "1.0"
-          framework: kafka
+          framework: kafka 
         name: {{NAME}}
       spec:
         frameworkVersion:
@@ -55,8 +55,58 @@ spec:
         parameters:
           KAFKA_ZOOKEEPER_URI: "{{NAME}}-zk-{{NAME}}-zk-0.{{NAME}}-zk-hs:2181,{{NAME}}-zk-{{NAME}}-zk-1.{{NAME}}-zk-hs:2181,{{NAME}}-zk-{{NAME}}-zk-2.{{NAME}}-zk-hs:2181"
           KAFKA_ZOOKEEPER_PATH: "/kafka"
-          BROKERS_COUNT: "3"
+          BROKERS_COUNT: "1"
           KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    flink.yaml: |
+      apiVersion: maestro.k8s.io/v1alpha1
+      kind: Instance
+      metadata:
+        labels:
+          controller-tools.k8s.io: "1.0"
+          framework: flink 
+        name: {{NAME}}
+      spec:
+        frameworkVersion:
+          name: flink
+          namespace: default
+          type: FrameworkVersion
+    generator.yaml: |
+      apiVersion: apps/v1beta1
+      kind: Deployment
+      metadata:
+        name: generator
+      spec:
+        replicas: 1
+        template:
+          metadata:
+            name: flink-demo-generator
+            labels:
+              app: flink-demo-generator
+          spec:
+            containers:
+            - name: flink-demo-generator
+              image: mesosphere/flink-generator:0.1
+              command: ["/generator-linux"]
+              imagePullPolicy: Always
+              args: ["--broker", "{{NAME}}-{{NAME}}-svc:9093"]
+    actor.yaml: |
+      apiVersion: apps/v1beta1
+      kind: Deployment
+      metadata:
+        name: actor
+      spec:
+        replicas: 1
+        template:
+          metadata:
+            name: flink-demo-actor
+            labels:
+              app: flink-demo-actor
+          spec:
+            containers:
+            - name: actor
+              image: mesosphere/flink-demo-actor:0.2
+              imagePullPolicy: Always
+              args: ["--broker", "{{NAME}}-{{NAME}}-svc:9093"]
   tasks:
     kafka:
       resources:
@@ -64,6 +114,15 @@ spec:
     zookeeper:
       resources:
       - zookeeper.yaml
+    flink:
+      resources:
+      - flink.yaml
+    generator:
+      resource:
+      - generator.yaml
+    actor:
+      resource:
+      - actor.yaml
   plans:
     deploy:
       strategy: serial
@@ -77,6 +136,21 @@ spec:
             - name: kafka
               tasks:
               - kafka
+        - name: flink-cluster
+          strategy: serial
+          steps:
+            - name: flink
+              tasks:
+              - flink
+        - name: demo
+          strategy: serial
+          steps:
+            - name: gen
+              tasks:
+              - generator
+            - name: act
+              tasks:
+              - actor
 ---
 apiVersion: maestro.k8s.io/v1alpha1
 kind: Instance
