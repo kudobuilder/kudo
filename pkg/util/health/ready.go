@@ -2,7 +2,9 @@ package health
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+
 	maestrov1alpha1 "github.com/maestrosdk/maestro/pkg/apis/maestro/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -17,7 +19,15 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 	switch obj.(type) {
 	case *appsv1.StatefulSet:
 		ss := obj.(*appsv1.StatefulSet)
-		if ss.Status.ReadyReplicas == ss.Status.Replicas {
+		log.Println("------HEALTH---------")
+		log.Printf("Looking at Statefulset: %v\n", ss.Name)
+		b, _ := json.MarshalIndent(ss, "", "\t")
+		log.Printf("\n%v\n", string(b))
+		log.Println("---------------------")
+		if ss.Spec.Replicas == nil {
+			return fmt.Errorf("replicas not set, so can't be healthy")
+		}
+		if ss.Status.ReadyReplicas == *ss.Spec.Replicas {
 			log.Printf("Statefulset %v is marked healthy\n", ss.Name)
 			return nil
 		}

@@ -46,7 +46,7 @@ spec:
         labels:
           controller-tools.k8s.io: "1.0"
           framework: kafka 
-        name: {{NAME}}
+        name: kafka
       spec:
         frameworkVersion:
           name: kafka-2.11-2.4.0
@@ -64,7 +64,7 @@ spec:
         labels:
           controller-tools.k8s.io: "1.0"
           framework: flink 
-        name: {{NAME}}
+        name: flink
       spec:
         frameworkVersion:
           name: flink
@@ -88,7 +88,7 @@ spec:
               image: mesosphere/flink-generator:0.1
               command: ["/generator-linux"]
               imagePullPolicy: Always
-              args: ["--broker", "{{NAME}}-{{NAME}}-svc:9093"]
+              args: ["--broker", "{{NAME}}-kafka-svc:9093"]
     actor.yaml: |
       apiVersion: apps/v1beta1
       kind: Deployment
@@ -105,8 +105,9 @@ spec:
             containers:
             - name: actor
               image: mesosphere/flink-demo-actor:0.2
+              command: ["/fraudDisplay-linux"]
               imagePullPolicy: Always
-              args: ["--broker", "{{NAME}}-{{NAME}}-svc:9093"]
+              args: ["--broker", "{{NAME}}-kafka-svc:9093"]
   tasks:
     kafka:
       resources:
@@ -118,10 +119,10 @@ spec:
       resources:
       - flink.yaml
     generator:
-      resource:
+      resources:
       - generator.yaml
     actor:
-      resource:
+      resources:
       - actor.yaml
   plans:
     deploy:
