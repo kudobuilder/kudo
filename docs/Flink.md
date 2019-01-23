@@ -76,3 +76,22 @@ We need to figure this out, but it could be a simple image that
 ### Flink Actor Phase
 
 This phase deploys a `Flink` actor that mirrors the deployment [here](kubectl apply -f https://raw.githubusercontent.com/dcos/demos/master/flink-k8s/1.11/actor/flink-demo-actor.yaml)
+
+
+
+# Scratch
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: maestro.k8s.io/v1alpha1
+kind: PlanExecution
+metadata:
+  name: upload
+  namespace: default
+spec:
+  instance:
+    kind: Instance
+    name: demo
+    namespace: default
+  planName: upload
+EOF
+```
