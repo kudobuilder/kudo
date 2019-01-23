@@ -122,9 +122,5 @@ spec:
             - name: jobmanager
               tasks:
               - jobmanager
-            - name: services
-              tasks:
               - jobmanager-service
-            - name: taskmanager
-              tasks:
               - taskmanager

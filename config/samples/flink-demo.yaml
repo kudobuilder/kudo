@@ -55,7 +55,7 @@ spec:
         parameters:
           KAFKA_ZOOKEEPER_URI: "{{NAME}}-zk-{{NAME}}-zk-0.{{NAME}}-zk-hs:2181,{{NAME}}-zk-{{NAME}}-zk-1.{{NAME}}-zk-hs:2181,{{NAME}}-zk-{{NAME}}-zk-2.{{NAME}}-zk-hs:2181"
           KAFKA_ZOOKEEPER_PATH: "/kafka"
-          BROKERS_COUNT: "1"
+          BROKER_COUNT: "3"
           KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     flink.yaml: |
       apiVersion: maestro.k8s.io/v1alpha1
@@ -88,7 +88,7 @@ spec:
               image: mesosphere/flink-generator:0.1
               command: ["/generator-linux"]
               imagePullPolicy: Always
-              args: ["--broker", "{{NAME}}-kafka-svc:9093"]
+              args: ["--broker", "{{NAME}}-kafka-kafka-0.{{NAME}}-kafka-svc:9093"]
     actor.yaml: |
       apiVersion: apps/v1beta1
       kind: Deployment
@@ -104,10 +104,31 @@ spec:
           spec:
             containers:
             - name: actor
-              image: mesosphere/flink-demo-actor:0.2
+              image: runyonsolutions/flink-actor:0.1
               command: ["/fraudDisplay-linux"]
               imagePullPolicy: Always
-              args: ["--broker", "{{NAME}}-kafka-svc:9093"]
+              args: ["--broker", "{{NAME}}-kafka-kafka-0.{{NAME}}-kafka-svc:9093"]
+    uploader.yaml: |
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        namespace: default
+        name: upload-job
+      spec:
+        template:
+          metadata:
+            name: {{PLAN_NAME}}-job
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - env:
+              - name: DOWNLOAD_URL
+                value: {{DOWNLOAD_URL}}
+              - name: JOBMANAGER
+                value: {{NAME}}-flink-jobmanager
+              name: {{PLAN_NAME}}
+              image: runyonsolutions/flink-uploader
+              imagePullPolicy: Always
   tasks:
     kafka:
       resources:
@@ -124,6 +145,9 @@ spec:
     actor:
       resources:
       - actor.yaml
+    upload:
+      resources:
+      - uploader.yaml
   plans:
     deploy:
       strategy: serial
@@ -152,6 +176,15 @@ spec:
             - name: act
               tasks:
               - actor
+    upload:
+      strategy: serial
+      phases:
+        - name: dependencies
+          strategy: serial
+          steps:
+            - name: upload
+              tasks:
+              - upload
 ---
 apiVersion: maestro.k8s.io/v1alpha1
 kind: Instance
