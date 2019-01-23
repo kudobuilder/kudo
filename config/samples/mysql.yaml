@@ -1,0 +1,257 @@
+apiVersion: maestro.k8s.io/v1alpha1
+kind: Framework
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: mysql
+---
+apiVersion: maestro.k8s.io/v1alpha1
+kind: FrameworkVersion
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: mysql-57
+  namespace: default
+spec:
+  serviceSpec:
+  version: "5.7"
+  connectionString: ""
+  framework:
+    name: mysql
+    kind: Framework
+  parameters:
+  - name: BACKUP_FILE
+    description: "Filename to save the backups to"
+    default: "backup.sql"
+    displayName: "BackupFile"
+  - name: PASSWORD
+    default: "password"
+  tasks:
+    deploy:
+      resources:
+      - mysql.yaml
+    init:
+      resources:
+      - init.yaml
+    backup:
+      resources:
+      - backup-pv.yaml
+      - backup.yaml
+    restore:
+      resources:
+      - restore.yaml
+    load-data:
+      resources:
+      - job.yaml
+    clear-data:
+      resources:
+      - job.yaml
+    query:
+      resources:
+      - job.yaml
+  templates:
+    mysql.yaml: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: mysql
+      spec:
+        ports:
+        - port: 3306
+        selector:
+          app: mysql
+        clusterIP: None
+      ---
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: mysql-pv
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: mysql
+      spec:
+        selector:
+          matchLabels:
+            app: mysql
+        strategy:
+          type: Recreate
+        template:
+          metadata:
+            labels:
+              app: mysql
+          spec:
+            containers:
+            - image: mysql:5.7
+              name: mysql
+              env:
+                # Use secret in real usage
+              - name: MYSQL_ROOT_PASSWORD
+                value: {{PASSWORD}}
+              - name: MYSQL_DATABASE
+                value: maestro
+              ports:
+              - containerPort: 3306
+                name: mysql
+              volumeMounts:
+              - name: mysql-persistent-storage
+                mountPath: /var/lib/mysql
+              livenessProbe:
+                exec:
+                  command: ["mysqladmin", "-p{{PASSWORD}}", "ping"]
+                initialDelaySeconds: 30
+                periodSeconds: 10
+                timeoutSeconds: 5
+              readinessProbe:
+                exec:
+                  # Check we can execute queries over TCP (skip-networking is off).
+                  command: ["mysql", "-p{{PASSWORD}}", "-h", "127.0.0.1", "-e", "SELECT 1"]
+                initialDelaySeconds: 5
+                periodSeconds: 2
+                timeoutSeconds: 1
+            volumes:
+            - name: mysql-persistent-storage
+              persistentVolumeClaim:
+                claimName: mysql-pv
+    backup-pv.yaml: |
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: backup-pv
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    init.yaml: |
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        namespace: default
+        name: {{PLAN_NAME}}-job
+      spec:
+        template:
+          metadata:
+            name: {{PLAN_NAME}}-job
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - name: {{PLAN_NAME}}
+              image: mysql:5.7
+              imagePullPolicy: IfNotPresent
+              command:
+              - /bin/sh
+              - -c
+              - "mysql -u root -h {{NAME}}-mysql -p{{PASSWORD}} -e \"CREATE TABLE example ( id smallint unsigned not null auto_increment, name varchar(20) not null, constraint pk_example primary key (id) );\" maestro "       
+    backup.yaml: |
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        namespace: default
+        name: {{PLAN_NAME}}-job
+      spec:
+        template:
+          metadata:
+            name: {{PLAN_NAME}}-job
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - name: bb
+              image: mysql:5.7
+              imagePullPolicy: IfNotPresent
+              command:
+              - /bin/sh
+              - -c
+              - "mysqldump -u root -h {{NAME}}-mysql -p{{PASSWORD}} maestro > /backups/{{BACKUP_FILE}}"
+              volumeMounts:
+              - name: backup-pv
+                mountPath: /backups
+            volumes:
+            - name: backup-pv
+              persistentVolumeClaim:
+                claimName: backup-pv
+    restore.yaml: |
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        namespace: default
+        name: {{PLAN_NAME}}-job
+      spec:
+        template:
+          metadata:
+            name: {{PLAN_NAME}}-job
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - name: {{PLAN_NAME}}
+              image: mysql:5.7
+              imagePullPolicy: IfNotPresent
+              command:
+              - /bin/sh
+              - -c
+              - "mysql -u root -h {{NAME}}-mysql -p{{PASSWORD}} --database=maestro < /backups/{{BACKUP_FILE}}"
+              volumeMounts:
+              - name: backup-pv
+                mountPath: /backups
+            volumes:
+            - name: backup-pv
+              persistentVolumeClaim:
+                claimName: {{NAME}}-backup-pv
+  plans:
+    deploy:
+      strategy: serial
+      phases:
+        - name: deploy
+          strategy: serial
+          steps:
+            - name: deploy
+              tasks:
+              - deploy
+            - name: init
+              tasks:
+              - init
+    backup:
+      strategy: serial
+      phases:
+        - name: backup
+          strategy: serial
+          steps:
+            - name: backup
+              tasks:
+              - backup
+    restore:
+      strategy: serial
+      phases:
+        - name: restore
+          strategy: serial
+          steps:
+            - name: restore
+              tasks:
+              - restore
+---
+apiVersion: maestro.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+    framework: mysql
+  name: mysql
+spec:
+  frameworkVersion:
+    name: mysql-57
+    namespace: default
+    type: FrameworkVersions
+  # Add fields here
+  parameters:
+    PASSWORD: password
+
+
+

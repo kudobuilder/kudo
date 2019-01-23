@@ -238,7 +238,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	//See if this has already been proceeded
 	if planExecution.Status.State == maestrov1alpha1.PhaseStateComplete {
 		log.Printf("PlanExecution %v has already run to completion, not processing.\n", planExecution.Name)
-    return reconcile.Result{}, nil
+		return reconcile.Result{}, nil
 	}
 
 	//Get Instance Object
