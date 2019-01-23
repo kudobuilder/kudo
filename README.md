@@ -2,6 +2,12 @@
 
 Maestro provides a declarative approach to building production-grade Kubernetes Operators covering the entire application lifecycle. 
 
+## Getting Started
+
+See the [Documentation](docs) with [Examples](config/samples).
+
+![Quick Start](docs/gif/quickstart-0.1.0.gif)
+
 ## Pre-requisites
 
 Before you get started:
