@@ -1,0 +1,382 @@
+#!/bin/bash
+
+KAFKA_DEPENDENCY_LIST=("zookeeper")
+FLINK_DEPENDENCY_LIST=("kafka" "zookeeper")
+
+# optional argument handling
+if [[ "$1" == "version" ]]
+then
+    echo "0.0.1"
+    exit 0
+fi
+
+function frameworkInstall {
+    if [[ "$1" == "" ]]
+    then
+        echo "Cannot install empty framework."
+        exit 1
+    else
+        if [[ "$1" == "flink" ]]
+        then
+            echo "Installing $1 framework..."
+            kubectl apply -f https://raw.githubusercontent.com/maestrosdk/maestro/bf665a30809fa5c18ecee6396203472e252fa15d/config/samples/flink.yaml
+            if [[ "$?" == "1" ]]
+            then
+                echo "Failed to install framework flink."
+                exit 1
+            fi
+            echo "Flink framework successfully installed."
+            exit 0
+        fi
+        echo "Installing $1 framework..."
+        kubectl apply -f https://raw.githubusercontent.com/maestrosdk/maestro/master/config/samples/$1-framework.yaml
+        kubectl apply -f https://raw.githubusercontent.com/maestrosdk/maestro/master/config/samples/$1-frameworkversion.yaml
+        if [[ "$?" == "1" ]]
+        then
+            echo "Failed to install framework $1"
+            exit 1
+        fi
+    fi
+}
+
+function frameworkUninstall {
+    if [[ "$1" == "" ]]
+    then
+        echo "Cannot uninstall empty framework."
+        exit 1
+    else
+        if [[ "$1" == "flink" ]]
+        then
+            echo "Uninstalling $1 framework..."
+            kubectl delete -f https://raw.githubusercontent.com/maestrosdk/maestro/bf665a30809fa5c18ecee6396203472e252fa15d/config/samples/flink.yaml
+            if [[ "$?" == "1" ]]
+            then
+                echo "Failed to uninstall framework flink."
+                exit 1
+            fi
+            echo "Flink framework successfully uninstalled."
+            exit 0
+        fi
+        echo "Uninstalling $1 framework..."
+        kubectl delete -f https://raw.githubusercontent.com/maestrosdk/maestro/master/config/samples/$1-framework.yaml
+        kubectl delete -f https://raw.githubusercontent.com/maestrosdk/maestro/master/config/samples/$1-frameworkversion.yaml
+        if [[ "$?" == "1" ]]
+        then
+            echo "Failed to uninstall framework $1"
+            exit 1
+        fi
+    fi
+}
+
+function compareArray {
+  awk 'BEGIN{RS=ORS=" "}
+       {NR==FNR?a[$0]++:a[$0]--}
+       END{for(k in a)if(a[k])print k}' <(echo -n "${!1}") <(echo -n "${!2}")
+}
+
+# install argument handling
+if [[ "$1" == "install" ]]
+then
+    if ! [ -x "$(command -v jq)" ]; then
+        echo 'Error: jq is not installed.' >&2
+        exit 1
+    fi
+    if [[ "$2" == "flink" ]]
+    then
+        # checking to see if Flink framework is already installed
+        FLINK_INSTALLED=$(kubectl get framework flink -o jsonpath="{.metadata.name}")
+        if [ -z "$FLINK_INSTALLED" ]
+        then
+            echo "Flink framework has not been installed yet."
+        else
+            echo "Flink framework already installed."
+            exit 1
+            #todo: installFlinkInstance
+        fi
+
+        # checking dependencies
+        echo "Checking for Flink dependencies..."
+
+        FRAMEWORKS_INSTALLED=$(kubectl get framework ${FLINK_DEPENDENCY_LIST[@]} -o jsonpath="{.items[*].metadata.name}")
+        if [ -z "$FRAMEWORKS_INSTALLED" ]
+        then
+            echo "No dependency frameworks are installed."
+            ## now loop through the dependencies to install
+            for d in "${FLINK_DEPENDENCY_LIST[@]}"
+            do
+            frameworkInstall $d
+            done
+            frameworkInstall flink
+            exit 0
+        else
+            #TO_INSTALL_FRAMEWORKS=$(${FRAMEWORKS_INSTALLED[@]} ${FLINK_DEPENDENCY_LIST[@]} | tr ' ' '\n' | sort | uniq -u)7
+            #TO_INSTALL_FRAMEWORKS=${FLINK_DEPENDENCY_LIST[@]} ${FRAMEWORKS_INSTALLED[@]} ${FRAMEWORKS_INSTALLED[@]} | tr ' ' '\n' | sort | uniq -u
+            #echo $TO_INSTALL_FRAMEWORKS
+            TO_INSTALL_FRAMEWORKS=($(compareArray FLINK_DEPENDENCY_LIST[@] FRAMEWORKS_INSTALLED[@]))
+            if [ -z "$TO_INSTALL_FRAMEWORKS" ]
+            then
+                echo "All dependency frameworks are installed."
+                frameworkInstall flink
+            else
+                echo -e "Found missing framework(s):\n\t${TO_INSTALL_FRAMEWORKS[@]}"
+                for d in "${TO_INSTALL_FRAMEWORKS[@]}"
+                do
+                frameworkInstall $d
+                done
+                echo "All dependency frameworks are installed now."
+                frameworkInstall flink
+            fi
+        fi
+    elif [[ "$2" == "kafka" ]]
+    then
+        # checking to see if Kafka framework is already installed
+        KAFKA_INSTALLED=$(kubectl get framework kafka -o jsonpath="{.metadata.name}")
+        if [ -z "$KAFKA_INSTALLED" ]
+        then
+            echo "KAFKA framework has not been installed yet."
+        else
+            echo "KAFKA framework already installed."
+            exit 1
+        fi
+
+        # checking dependencies
+        echo "Checking for Kafka dependencies..."
+
+        FRAMEWORKS_INSTALLED=$(kubectl get framework ${KAFKA_DEPENDENCY_LIST[@]} -o jsonpath="{.items[*].metadata.name}")
+        if [ -z "$FRAMEWORKS_INSTALLED" ]
+        then
+            echo "No dependency frameworks are installed."
+            ## now loop through the dependencies to install
+            for d in "${KAFKA_DEPENDENCY_LIST[@]}"
+            do
+            frameworkInstall $d
+            done
+            frameworkInstall kafka
+            exit 0
+        else
+            TO_INSTALL_FRAMEWORKS=($(compareArray KAFKA_DEPENDENCY_LIST[@] FRAMEWORKS_INSTALLED[@]))
+            if [ -z "$TO_INSTALL_FRAMEWORKS" ]
+            then
+                echo "All dependency frameworks are installed."
+                frameworkInstall kafka
+            else
+                echo -e "Found missing framework(s):\n\t${TO_INSTALL_FRAMEWORKS[@]}"
+                for d in "${TO_INSTALL_FRAMEWORKS[@]}"
+                do
+                frameworkInstall $d
+                done
+                echo "All dependency frameworks are installed now."
+                frameworkInstall kafka
+            fi
+        fi
+    elif [[ "$2" == "zookeeper" ]]
+    then
+        # checking to see if Zookeeper framework is already installed
+        ZOOKEEPER_INSTALLED=$(kubectl get framework zookeeper -o jsonpath="{.metadata.name}")
+        if [ -z "$ZOOKEEPER_INSTALLED" ]
+        then
+            echo "Zookeeper framework has not been installed yet."
+            frameworkInstall zookeeper
+            exit 0
+        else
+            echo "Zookeeper framework already installed."
+            exit 1
+        fi
+    else
+        echo -e "$2 is not a known framework.\n"
+        echo "Please select the framework to install:"
+        sampleRegistry=$(curl -s https://api.github.com/repos/maestrosdk/maestro/contents/config/samples | jq -r ".[] | .name ")
+        echo ""
+        for t in ${sampleRegistry[@]}; do
+            if [[ $t == *"framework.yaml" ]]; then
+                #echo -e "\t$t"
+                echo -e "\t${t%-framework.yaml*}"
+            fi
+        done
+
+        # hack to always show flink until we refactored config/samples
+        echo -e "\tflink"
+        echo ""
+        echo "Syntax:"
+        echo -e "\tkubectl maestro install <frameworkName>"
+        echo ""
+        echo "Example:"
+        echo -e "\tkubectl maestro install flink"
+        exit 1
+    fi
+fi
+
+# uninstall argument handling
+if [[ "$1" == "uninstall" ]]
+then
+    if ! [ -x "$(command -v jq)" ]; then
+        echo 'Error: jq is not installed.' >&2
+        exit 1
+    fi
+    if [[ "$2" == "flink" ]]
+    then
+        # checking to see if Flink framework is already uninstalled
+        FLINK_INSTALLED=$(kubectl get framework flink -o jsonpath="{.metadata.name}")
+        if [ -z "$FLINK_INSTALLED" ]
+        then
+            echo "Flink framework is already uninstalled."
+            exit 1
+
+        else
+            echo "Flink framework is installed."
+        fi
+
+        # checking dependencies
+        echo "Checking for Flink dependencies..."
+
+        FRAMEWORKS_INSTALLED=$(kubectl get framework ${FLINK_DEPENDENCY_LIST[@]} -o jsonpath="{.items[*].metadata.name}")
+        if [ -z "$FRAMEWORKS_INSTALLED" ]
+        then
+            echo "Dependency frameworks are uninstalled."
+            frameworkUninstall flink
+        else
+            echo -e "Found installed dependency framework(s):\n\t${FRAMEWORKS_INSTALLED[@]}"
+            for i in "${FLINK_DEPENDENCY_LIST[@]}"
+            do
+            frameworkUninstall $i
+            done
+            echo "All dependency frameworks are uninstalled now."
+            frameworkUninstall flink
+        fi
+    elif [[ "$2" == "kafka" ]]
+    then
+        # checking to see if Kafka framework is already uninstalled
+        KAFKA_INSTALLED=$(kubectl get framework kafka -o jsonpath="{.metadata.name}")
+        if [ -z "$KAFKA_INSTALLED" ]
+        then
+            echo "Kafka framework is already uninstalled."
+            exit 1
+
+        else
+            echo "Kafka framework is installed."
+        fi
+
+        # checking dependencies
+        echo "Checking for Kafka dependencies..."
+
+        FRAMEWORKS_INSTALLED=$(kubectl get framework ${KAFKA_DEPENDENCY_LIST[@]} -o jsonpath="{.metadata.name}")
+        if [ -z "$FRAMEWORKS_INSTALLED" ]
+        then
+            echo "No dependency frameworks are uninstalled."
+            frameworkUninstall kafka
+        else
+            echo -e "Found installed dependency framework(s):\n\t${FRAMEWORKS_INSTALLED[@]}"
+            for d in "${FRAMEWORKS_INSTALLED[@]}"
+            do
+            frameworkUninstall $d
+            done
+            echo "All dependency frameworks are uninstalled now."
+            frameworkUninstall kafka
+            exit 0
+        fi
+    elif [[ "$2" == "zookeeper" ]]
+    then
+        # checking to see if Kafka framework is already uninstalled
+        ZOOKEEPER_INSTALLED=$(kubectl get framework zookeeper -o jsonpath="{.metadata.name}")
+        if [ -z "$ZOOKEEPER_INSTALLED" ]
+        then
+            echo "Zookeeper framework is already uninstalled."
+            exit 1
+
+        else
+            echo "Zookeeper framework is installed."
+            frameworkUninstall zookeeper
+            exit 0
+        fi
+    else
+        echo -e "$2 is not a known framework.\n"
+        echo "Please choose from the list of frameworks to uninstall:"
+        FRAMEWORKS_INSTALLED=$(kubectl get frameworks -o jsonpath="{.items[*].metadata.name}")
+        echo ""
+        for t in ${FRAMEWORKS_INSTALLED[@]}; do
+            echo -e "\t$t"
+        done
+        echo ""
+        echo "Syntax:"
+        echo -e "\tkubectl maestro uninstall <frameworkName>"
+        echo ""
+        echo "Example:"
+        echo -e "\tkubectl maestro uninstall kafka"
+        exit 1
+    fi
+fi
+
+# shell argument handling
+if [[ "$1" == "shell" ]]
+then
+    if [[ "$2" == "flink" ]]
+    then
+        # --generator=run-pod/v1 -it --rm --image=superorbital/bash --restart=Never -- curl http://demo-flink-jobmanager:8081/jars
+        # kubectl run -i --tty --rm bash --image=bash --restart=Never -- bash -c "curl http://demo-flink-jobmanager:8081/jars"
+        #kubectl run shell ${@:2}
+        # Get current running jobmanager
+        JOBMANAGER_POD=$(kubectl get pods -l heritage=maestro,component=jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
+        if [ -z "$JOBMANAGER_POD" ]
+        then
+            echo "No running jobmanager found."
+            exit 1
+        else
+            kubectl exec -i --tty $JOBMANAGER_POD -- /bin/bash
+            exit 0
+        fi
+    fi
+    echo "Please verify the framework to get a shell:"
+    kubectl get frameworks
+    echo ""
+    echo "Syntax: kubectl maestro shell <frameworkName>"
+    echo ""
+    echo "Example: kubectl maestro shell flink"
+    exit 1
+fi
+
+# exec argument handling
+if [[ "$1" == "exec" ]]
+then
+    if [[ "$2" == "flink" ]]
+    then
+        # Get current running jobmanager
+        JOBMANAGER_POD=$(kubectl get pods -l heritage=maestro,component=jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
+        if [ -z "$JOBMANAGER_POD" ]
+        then
+            echo "No running jobmanager found."
+            exit 1
+        else
+            kubectl exec -it $JOBMANAGER_POD -- ${@:3}
+            exit 0
+        fi
+    fi
+    echo "Please verify the framework to exec command:"
+    kubectl get frameworks
+    echo ""
+    echo "Syntax: kubectl maestro exec <frameworkName>"
+    echo ""
+    echo "Example: kubectl maestro exec flink"
+    exit 1
+fi
+
+# exec argument handling
+if [[ "$1" == "flink" ]]
+then
+    # Get current running jobmanager
+    JOBMANAGER_POD=$(kubectl get pods -l heritage=maestro,component=jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
+    if [ -z "$JOBMANAGER_POD" ]
+    then
+        echo "No running jobmanager found."
+        exit 1
+    else
+        kubectl exec -it $JOBMANAGER_POD -- bin/flink ${@:2}
+        exit 0
+    fi
+fi
+
+echo "Kubectl Maestro Plugin v0.0.1"
+echo ""
+echo "# Available commands"
+echo "kubectl maestro shell <Frameworkname>"
+echo "kubectl maestro exec <Frameworkname>"
+echo "kubectl maestro flink <CLI Command>"
