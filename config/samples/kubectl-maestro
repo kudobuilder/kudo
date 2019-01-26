@@ -1,7 +1,7 @@
 #!/bin/bash
 
-KAFKA_DEPENDENCY_LIST=("zookeeper")
-FLINK_DEPENDENCY_LIST=("kafka" "zookeeper")
+kafka_dependency_list=("zookeeper")
+flink_dependency_list=("kafka" "zookeeper")
 
 # optional argument handling
 if [[ "$1" == "version" ]]
@@ -68,6 +68,34 @@ function frameworkUninstall {
     fi
 }
 
+function deleteDependencies {
+    # checking dependencies
+    echo "Checking for $1 dependencies..."
+    # copying from the right array
+    eval dependency_list=('$'{$1_dependency_list[@]})
+    # adjusting the kubectl command for the case of a single dependency
+    if [[ ${#dependency_list[@]} -lt "2" ]]
+    then
+        jsonpath=".metadata.name"
+    else
+        jsonpath=".items[*].metadata.name"
+    fi
+    FRAMEWORKS_INSTALLED=$(kubectl get framework ${dependency_list[@]} -o jsonpath="{$jsonpath}")
+    if [ -z "$FRAMEWORKS_INSTALLED" ]
+    then
+        echo "Dependency frameworks are uninstalled."
+        frameworkUninstall $1
+    else
+        echo -e "Found installed dependency framework(s):\n\t${FRAMEWORKS_INSTALLED[@]}"
+        for i in "${dependency_list[@]}"
+        do
+        frameworkUninstall $i
+        done
+        echo "All dependency frameworks are uninstalled now."
+        frameworkUninstall $1
+    fi
+}
+
 function compareArray {
   awk 'BEGIN{RS=ORS=" "}
        {NR==FNR?a[$0]++:a[$0]--}
@@ -97,22 +125,22 @@ then
         # checking dependencies
         echo "Checking for Flink dependencies..."
 
-        FRAMEWORKS_INSTALLED=$(kubectl get framework ${FLINK_DEPENDENCY_LIST[@]} -o jsonpath="{.items[*].metadata.name}")
+        FRAMEWORKS_INSTALLED=$(kubectl get framework ${flink_dependency_list[@]} -o jsonpath="{.items[*].metadata.name}")
         if [ -z "$FRAMEWORKS_INSTALLED" ]
         then
             echo "No dependency frameworks are installed."
             ## now loop through the dependencies to install
-            for d in "${FLINK_DEPENDENCY_LIST[@]}"
+            for d in "${flink_dependency_list[@]}"
             do
             frameworkInstall $d
             done
             frameworkInstall flink
             exit 0
         else
-            #TO_INSTALL_FRAMEWORKS=$(${FRAMEWORKS_INSTALLED[@]} ${FLINK_DEPENDENCY_LIST[@]} | tr ' ' '\n' | sort | uniq -u)7
-            #TO_INSTALL_FRAMEWORKS=${FLINK_DEPENDENCY_LIST[@]} ${FRAMEWORKS_INSTALLED[@]} ${FRAMEWORKS_INSTALLED[@]} | tr ' ' '\n' | sort | uniq -u
+            #TO_INSTALL_FRAMEWORKS=$(${FRAMEWORKS_INSTALLED[@]} ${flink_dependency_list[@]} | tr ' ' '\n' | sort | uniq -u)7
+            #TO_INSTALL_FRAMEWORKS=${flink_dependency_list[@]} ${FRAMEWORKS_INSTALLED[@]} ${FRAMEWORKS_INSTALLED[@]} | tr ' ' '\n' | sort | uniq -u
             #echo $TO_INSTALL_FRAMEWORKS
-            TO_INSTALL_FRAMEWORKS=($(compareArray FLINK_DEPENDENCY_LIST[@] FRAMEWORKS_INSTALLED[@]))
+            TO_INSTALL_FRAMEWORKS=($(compareArray flink_dependency_list[@] FRAMEWORKS_INSTALLED[@]))
             if [ -z "$TO_INSTALL_FRAMEWORKS" ]
             then
                 echo "All dependency frameworks are installed."
@@ -133,28 +161,28 @@ then
         KAFKA_INSTALLED=$(kubectl get framework kafka -o jsonpath="{.metadata.name}")
         if [ -z "$KAFKA_INSTALLED" ]
         then
-            echo "KAFKA framework has not been installed yet."
+            echo "Kafka framework has not been installed yet."
         else
-            echo "KAFKA framework already installed."
+            echo "Kafka framework already installed."
             exit 1
         fi
 
         # checking dependencies
         echo "Checking for Kafka dependencies..."
 
-        FRAMEWORKS_INSTALLED=$(kubectl get framework ${KAFKA_DEPENDENCY_LIST[@]} -o jsonpath="{.items[*].metadata.name}")
+        FRAMEWORKS_INSTALLED=$(kubectl get framework ${kafka_dependency_list[@]} -o jsonpath="{.items[*].metadata.name}")
         if [ -z "$FRAMEWORKS_INSTALLED" ]
         then
             echo "No dependency frameworks are installed."
             ## now loop through the dependencies to install
-            for d in "${KAFKA_DEPENDENCY_LIST[@]}"
+            for d in "${kafka_dependency_list[@]}"
             do
             frameworkInstall $d
             done
             frameworkInstall kafka
             exit 0
         else
-            TO_INSTALL_FRAMEWORKS=($(compareArray KAFKA_DEPENDENCY_LIST[@] FRAMEWORKS_INSTALLED[@]))
+            TO_INSTALL_FRAMEWORKS=($(compareArray kafka_dependency_list[@] FRAMEWORKS_INSTALLED[@]))
             if [ -z "$TO_INSTALL_FRAMEWORKS" ]
             then
                 echo "All dependency frameworks are installed."
@@ -226,23 +254,19 @@ then
             echo "Flink framework is installed."
         fi
 
-        # checking dependencies
-        echo "Checking for Flink dependencies..."
-
-        FRAMEWORKS_INSTALLED=$(kubectl get framework ${FLINK_DEPENDENCY_LIST[@]} -o jsonpath="{.items[*].metadata.name}")
-        if [ -z "$FRAMEWORKS_INSTALLED" ]
-        then
-            echo "Dependency frameworks are uninstalled."
-            frameworkUninstall flink
-        else
-            echo -e "Found installed dependency framework(s):\n\t${FRAMEWORKS_INSTALLED[@]}"
-            for i in "${FLINK_DEPENDENCY_LIST[@]}"
-            do
-            frameworkUninstall $i
-            done
-            echo "All dependency frameworks are uninstalled now."
-            frameworkUninstall flink
-        fi
+        while [ ! $# -eq 0 ]
+        do
+            case "$1" in
+                --all-dependencies | -a)
+                    deleteDependencies flink
+                    exit 0
+                    ;;
+            esac
+            shift
+        done
+        echo "Uninstalling Flink..."
+        frameworkUninstall flink
+        exit 0
     elif [[ "$2" == "kafka" ]]
     then
         # checking to see if Kafka framework is already uninstalled
@@ -256,24 +280,19 @@ then
             echo "Kafka framework is installed."
         fi
 
-        # checking dependencies
-        echo "Checking for Kafka dependencies..."
-
-        FRAMEWORKS_INSTALLED=$(kubectl get framework ${KAFKA_DEPENDENCY_LIST[@]} -o jsonpath="{.metadata.name}")
-        if [ -z "$FRAMEWORKS_INSTALLED" ]
-        then
-            echo "No dependency frameworks are uninstalled."
-            frameworkUninstall kafka
-        else
-            echo -e "Found installed dependency framework(s):\n\t${FRAMEWORKS_INSTALLED[@]}"
-            for d in "${FRAMEWORKS_INSTALLED[@]}"
-            do
-            frameworkUninstall $d
-            done
-            echo "All dependency frameworks are uninstalled now."
-            frameworkUninstall kafka
-            exit 0
-        fi
+        while [ ! $# -eq 0 ]
+        do
+            case "$1" in
+                --all-dependencies | -a)
+                    deleteDependencies kafka
+                    exit 0
+                    ;;
+            esac
+            shift
+        done
+        echo "Uninstalling Kafka..."
+        frameworkUninstall kafka
+        exit 0
     elif [[ "$2" == "zookeeper" ]]
     then
         # checking to see if Kafka framework is already uninstalled
@@ -372,6 +391,96 @@ then
         kubectl exec -it $JOBMANAGER_POD -- bin/flink ${@:2}
         exit 0
     fi
+fi
+
+function createFunction {
+    framework=$2
+    shift 2
+    while getopts ":n:v:p:" opt ; do
+        case "$opt" in
+                p)   
+                c+=("$OPTARG")
+                ;;
+                n)
+                echo "name is: $OPTARG"
+                name=$OPTARG
+                ;;
+                v)
+                echo "version is: $OPTARG"
+                frameworkversion=$OPTARG
+                ;;                
+                \?)
+                echo "Invalid option: -$OPTARG" >&2
+                exit 1
+                ;;
+                :)
+                echo "Option -$OPTARG requires an argument." >&2
+                exit 1
+                ;;
+        esac
+    done
+    shift $((OPTIND-1))
+    rm /tmp/maestro_instance_parameter
+    replace=": "
+    for t in ${c[@]}; do
+        param_clean=${t/:/$replace}
+        cat <<EOF >> "/tmp/maestro_instance_parameter"
+        $param_clean
+EOF
+    done
+    cat <<EOF > "/tmp/maestro_instance"
+apiVersion: maestro.k8s.io/v1alpha1
+kind: Instance
+metadata:
+    labels:
+        controller-tools.k8s.io: "1.0"
+        framework: $framework
+    name: $name
+spec:
+    frameworkVersion:
+        name: $framework-$frameworkversion
+        namespace: default
+        type: FrameworkVersion
+    parameters:
+EOF
+    cat /tmp/maestro_instance /tmp/maestro_instance_parameter > /tmp/maestro_instance_joined
+    kubectl apply -f /tmp/maestro_instance_joined
+}
+
+# create argument handling
+if [[ "$1" == "create" ]]
+then
+    createFunction "$@"
+    if [[ "$?" == "1" ]]
+    then
+        echo ""
+        echo "Failed to create instance for framework $2."
+        echo ""
+        echo "Invalid create command."
+        echo ""
+        echo "Syntax: kubectl maestro create -n <instanceName> -v <versionNumber> -p PARAM1=VALUE -p PARAM2=Value"
+        echo ""
+        echo "Example: kubectl maestro create kafka -n kafka -v 2.11-2.4.0 -p KAFKA_ZOOKEEPER_URI:zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181 -p KAFKA_ZOOKEEPER_PATH:/small -p BROKERS_COUNT:3"
+        exit 1
+    fi
+    exit 0
+fi
+
+# delete argument handling
+if [[ "$1" == "delete" ]]
+then
+    kubectl delete instance $2
+    if [[ "$?" == "1" ]]
+    then
+        echo ""
+        echo "Failed to delete instance $2."
+        echo ""
+        echo "Syntax: kubectl maestro delete <instanceName> -v <versionNumber> -p PARAM1=VALUE -p PARAM2=Value"
+        echo ""
+        echo "Example: kubectl maestro delete kafka"
+        exit 1
+    fi
+    exit 0
 fi
 
 echo "Kubectl Maestro Plugin v0.0.1"
