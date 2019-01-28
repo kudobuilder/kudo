@@ -82,9 +82,9 @@ function deleteDependencies {
 }
 
 function compareArray {
-  awk 'BEGIN{RS=ORS=" "}
-       {NR==FNR?a[$0]++:a[$0]--}
-       END{for(k in a)if(a[k])print k}' <(echo -n "${!1}") <(echo -n "${!2}")
+    awk 'BEGIN{RS=ORS=" "}
+         {NR==FNR?a[$0]++:a[$0]--}
+         END{for(k in a)if(a[k])print k}' <(echo -n "${!1}") <(echo -n "${!2}")
 }
 
 function frameworkLookup {
@@ -193,7 +193,13 @@ then
     # checking dependencies
     echo "Checking for $2 dependencies..."
     eval dependency_list=('$'{$2_dependency_list[@]})
-    FRAMEWORKS_INSTALLED=$(kubectl get framework ${dependency_list[@]} -o jsonpath="{.items[*].metadata.name}")
+    if [[ ${#dependency_list[@]} -lt "2" ]]
+    then
+        jsonpath=".metadata.name"
+    else
+        jsonpath=".items[*].metadata.name"
+    fi
+    FRAMEWORKS_INSTALLED=$(kubectl get framework ${dependency_list[@]} -o jsonpath="{$jsonpath}")
     if [ -z "$FRAMEWORKS_INSTALLED" ]
     then
         echo "No dependency frameworks are installed."
