@@ -2,7 +2,14 @@
 
 This document demonstrates how to use the CLI but also shows what happens in `Maestro` under the hood, which can be helpful when troubleshooting.
 
-The usage is intended to make your life easier when working with `Maestro`. A work flow would look lik this:
+There are two CLIs you can use at the moment:
+
+- Maestrctl
+- Kubectl Maestro Plugin
+
+## Maestroctl
+
+The usage is intended to make your life easier when working with `Maestro`. A work flow would look like this:
 
 1) You get a list of all available Instances deployed by `Maestro`
 2) You get the status the particular Instance of interest
@@ -262,3 +269,130 @@ $ maestroctl plan history --instance=up
 ```
 
 This includes the previous history but also all FrameworkVersions that have been applied to the selected instance.
+
+## Kubectl Maestro Plugin
+
+### Install
+
+Install the plugin to your `PATH` e.g. in the maestro repo root via:
+
+- `ln -s $GOPATH/src/github.com/maestrosdk/maestro/cmd/kubectl-plugin/kubectl-maestro /usr/local/bin/kubectl-maestro`
+- Make it executable `chmod 755 $(GOPATH)/src/github.com/maestrosdk/maestro/cmd/kubectl-plugin/kubectl-maestro`
+
+### Commands
+
+|  Syntax | Description  | 
+|---|---|
+| `kubectl maestro create -n <instanceName> -v <versionNumber> -p PARAM1=\"VALUE\" -p PARAM2=Value`|  Creates an instance of an installed framework| 
+| `kubectl maestro delete <instanceName>`|  Deletes a specified instance| 
+| `kubectl maestro exec <frameworkName>  <cmd>`|  Executes a command for a particular framework - right now just Flink supported | 
+| `kubectl maestro flink  <cmd>`|  Wrapper arround `Flink CLI` that supports all https://ci.apache.org/projects/flink/flink-docs-release-1.7/ops/cli.html commands | 
+| `kubectl maestro install something`  |  Lists all available frameworks from the `Maestro App Store` that can be installed | 
+| `kubectl maestro install <frameworkName>`  |  Installs a framework from the `Maestro App Store` with dependencies | 
+| `kubectl maestro uninstall <frameworkName> --all-dependencies` | Uninstalls a framework/frameworkversion with all dependencies | 
+| `kubectl maestro uninstall <frameworkName>` | Uninstalls just the specified framework/frameworkversion| 
+| `kubectl maestro scale <instanceName> --replicas=<number>` |  Scales an instance deployment/statefulset | 
+| `kubectl maestro shell` |  Lists all available frameworks of which you could get a shell  | 
+| `kubectl maestro shell <frameworkName>` |  gives you a shell - right now just Flink supported | 
+
+Run `kubectl maestro install something` and you see a list of available frameworks:
+
+```bash
+maestro-demo $ kubectl maestro install something
+Stable version of something not found. 
+Looking up incubating versions...
+	Framework something not found in registry.
+
+Available stable frameworks to install:
+	kafka
+	zookeeper
+Available incubating frameworks to install:
+	flink
+```
+
+### Creating Example
+
+```bash
+maestro-demo $ kubectl maestro create kafka -n kafka -v 2.11-2.4.0 -p KAFKA_ZOOKEEPER_URI:zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181 -p KAFKA_ZOOKEEPER_PATH:\"/small\" -p BROKERS_COUNT:\"3\"
+name is: kafka
+version is: 2.11-2.4.0
+instance.maestro.k8s.io/kafka created
+```
+
+### Delete Example
+
+```bash
+maestro-demo $ kubectl maestro delete kafka
+instance.maestro.k8s.io "kafka" deleted
+```
+
+### Install framework
+
+```bash
+maestro-demo $ kubectl maestro install kafka
+Checking for kafka dependencies...
+Error from server (NotFound): frameworks.maestro.k8s.io "zookeeper" not found
+No dependency frameworks are installed.
+Looking up stable version of zookeeper
+	Found 1 stable version
+Found latest stable version 0
+Installing zookeeper framework...
+framework.maestro.k8s.io/zookeeper created
+frameworkversion.maestro.k8s.io/zookeeper-1.0 created
+stable framework zookeeper successfully installed.
+Looking up stable version of kafka
+	Found 1 stable version
+Found latest stable version 0
+Installing kafka framework...
+framework.maestro.k8s.io/kafka created
+frameworkversion.maestro.k8s.io/kafka-2.11-2.4.0 created
+stable framework kafka successfully installed.
+```
+
+### Uninstall without dependencies (default)
+
+```bash
+maestro-demo $ kubectl maestro uninstall kafka
+kafka framework is installed.
+Uninstalling kafka...
+Looking up stable version of kafka
+	Found 1 stable version
+Found latest stable version 0
+Uninstalling kafka framework...
+framework.maestro.k8s.io "kafka" deleted
+frameworkversion.maestro.k8s.io "kafka-2.11-2.4.0" deleted
+stable framework kafka successfully uninstalled.
+```
+
+### Uninstall with dependencies
+
+```bash
+maestro-demo $ kubectl maestro uninstall kafka --all-dependencies
+kafka framework is installed.
+Checking for kafka dependencies...
+Found installed dependency framework(s):
+	zookeeper
+Looking up stable version of zookeeper
+	Found 1 stable version
+Found latest stable version 0
+Uninstalling zookeeper framework...
+framework.maestro.k8s.io "zookeeper" deleted
+frameworkversion.maestro.k8s.io "zookeeper-1.0" deleted
+stable framework zookeeper successfully uninstalled.
+All dependency frameworks are uninstalled now.
+Looking up stable version of kafka
+	Found 1 stable version
+Found latest stable version 0
+Uninstalling kafka framework...
+framework.maestro.k8s.io "kafka" deleted
+frameworkversion.maestro.k8s.io "kafka-2.11-2.4.0" deleted
+stable framework kafka successfully uninstalled.
+```
+
+### Scaling Example
+
+```bash
+maestro-demo $ kubectl maestro scale kafka-kafka --replicas=4
+Error from server (NotFound): deployments.extensions "kafka-kafka" not found
+statefulset.apps/kafka-kafka scaled
+```
