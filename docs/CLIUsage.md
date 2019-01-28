@@ -283,7 +283,7 @@ Install the plugin to your `PATH` e.g. in the maestro repo root via:
 
 |  Syntax | Description  | 
 |---|---|
-| `kubectl maestro create -n <instanceName> -v <versionNumber> -p PARAM1=\"VALUE\" -p PARAM2=Value`|  Creates an instance of an installed framework| 
+| `kubectl maestro create <framework> -n <instanceName> -v <versionNumber> -p PARAM1="\VALUE\" -p PARAM2=Value`|  Creates an instance of an installed framework| 
 | `kubectl maestro delete <instanceName>`|  Deletes a specified instance| 
 | `kubectl maestro exec <frameworkName>  <cmd>`|  Executes a command for a particular framework - right now just Flink supported | 
 | `kubectl maestro flink  <cmd>`|  Wrapper arround `Flink CLI` that supports all https://ci.apache.org/projects/flink/flink-docs-release-1.7/ops/cli.html commands | 
@@ -293,7 +293,8 @@ Install the plugin to your `PATH` e.g. in the maestro repo root via:
 | `kubectl maestro uninstall <frameworkName>` | Uninstalls just the specified framework/frameworkversion| 
 | `kubectl maestro scale <instanceName> --replicas=<number>` |  Scales an instance deployment/statefulset | 
 | `kubectl maestro shell` |  Lists all available frameworks of which you could get a shell  | 
-| `kubectl maestro shell <frameworkName>` |  gives you a shell - right now just Flink supported | 
+| `kubectl maestro shell <frameworkName>` | Gives you a shell - right now just Flink supported |
+| `kubectl maestro start -n <instanceName> -v <version> -p <planName>` | Starts a specified plan of your instance |
 
 Run `kubectl maestro install something` and you see a list of available frameworks:
 
@@ -314,8 +315,6 @@ Available incubating frameworks to install:
 
 ```bash
 maestro-demo $ kubectl maestro create kafka -n kafka -v 2.11-2.4.0 -p KAFKA_ZOOKEEPER_URI:zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181 -p KAFKA_ZOOKEEPER_PATH:\"/small\" -p BROKERS_COUNT:\"3\"
-name is: kafka
-version is: 2.11-2.4.0
 instance.maestro.k8s.io/kafka created
 ```
 
@@ -395,4 +394,11 @@ stable framework kafka successfully uninstalled.
 maestro-demo $ kubectl maestro scale kafka-kafka --replicas=4
 Error from server (NotFound): deployments.extensions "kafka-kafka" not found
 statefulset.apps/kafka-kafka scaled
+```
+
+### Start Plan Example
+
+```bash
+maestro-demo $ kubectl maestro start -n demo -v flink-financial-demo -p upload
+planexecution.maestro.k8s.io/demo unchanged
 ```
