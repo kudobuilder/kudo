@@ -276,7 +276,7 @@ if [[ "$1" == "shell" ]]
 then
     if [[ "$2" == "flink" ]]
     then
-        JOBMANAGER_POD=$(kubectl get pods -l heritage=maestro,component=jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
+        JOBMANAGER_POD=$(kubectl get pods -l heritage=maestro,component=demo-flink-jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
         if [ -z "$JOBMANAGER_POD" ]
         then
             echo "No running jobmanager found."
@@ -301,7 +301,7 @@ then
     if [[ "$2" == "flink" ]]
     then
         # Get current running jobmanager
-        JOBMANAGER_POD=$(kubectl get pods -l heritage=maestro,component=jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
+        JOBMANAGER_POD=$(kubectl get pods -l heritage=maestro,component=demo-flink-jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
         if [ -z "$JOBMANAGER_POD" ]
         then
             echo "No running jobmanager found."
@@ -324,7 +324,7 @@ fi
 if [[ "$1" == "flink" ]]
 then
     # Get current running jobmanager
-    JOBMANAGER_POD=$(kubectl get pods -l heritage=maestro,component=jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
+    JOBMANAGER_POD=$(kubectl get pods -l heritage=maestro,component=demo-flink-jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
     if [ -z "$JOBMANAGER_POD" ]
     then
         echo "No running jobmanager found."

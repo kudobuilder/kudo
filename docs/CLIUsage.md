@@ -4,7 +4,7 @@ This document demonstrates how to use the CLI but also shows what happens in `Ma
 
 There are two CLIs you can use at the moment:
 
-- Maestrctl
+- Maestroctl
 - Kubectl Maestro Plugin
 
 ## Maestroctl
