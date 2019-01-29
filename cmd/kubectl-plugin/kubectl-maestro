@@ -330,7 +330,7 @@ then
         echo "No running jobmanager found."
         exit 1
     else
-        kubectl exec -it $JOBMANAGER_POD -- bin/flink ${@:2}
+        kubectl exec -it $JOBMANAGER_POD -- bin/flink ${@:2} -m localhost:8081
         exit 0
     fi
 fi

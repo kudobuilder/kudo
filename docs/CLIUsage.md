@@ -272,12 +272,15 @@ This includes the previous history but also all FrameworkVersions that have been
 
 ## Kubectl Maestro Plugin
 
+### Dependencies
+
+The Kubectl Plugin currently expects `jq` to be installed on the system.
+
 ### Install
 
 Install the plugin to your `PATH` e.g. in the maestro repo root via:
 
 - `ln -s $GOPATH/src/github.com/maestrosdk/maestro/cmd/kubectl-plugin/kubectl-maestro /usr/local/bin/kubectl-maestro`
-- Make it executable `chmod 755 $(GOPATH)/src/github.com/maestrosdk/maestro/cmd/kubectl-plugin/kubectl-maestro`
 
 ### Commands
 

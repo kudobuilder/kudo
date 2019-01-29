@@ -233,6 +233,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 func createPlan(mgr manager.Manager, planName string, instance *maestrov1alpha1.Instance) error {
+	log.Printf("InstanceController: createPlan %v for instance %v\n", planName, instance.Name)
 	gvk, _ := apiutil.GVKForObject(instance, mgr.GetScheme())
 	recorder := mgr.GetRecorder("instance-controller")
 	recorder.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating %v plan execution", planName))
@@ -260,10 +261,14 @@ func createPlan(mgr manager.Manager, planName string, instance *maestrov1alpha1.
 		},
 	}
 	//Make this instance the owner of the PlanExecution
-	controllerutil.SetControllerReference(instance, &planExecution, mgr.GetScheme())
+	err := controllerutil.SetControllerReference(instance, &planExecution, mgr.GetScheme())
+	if err != nil {
+		log.Printf("InstanceController: createPlan error SetControllerReference: %v\n", err)
+	}
 	//new!
-	if err := mgr.GetClient().Create(context.TODO(), &planExecution); err != nil {
+	if err = mgr.GetClient().Create(context.TODO(), &planExecution); err != nil {
 		recorder.Event(instance, "Warning", "CreatePlanExecution", "Error creating plan execution: %v")
+		log.Printf("InstanceController: createPlan: Error creating plan %v: %v\n", planExecution.Name, err)
 		return err
 	}
 	recorder.Event(instance, "Normal", "PlanCreated", fmt.Sprintf("PlanExecution %v created", planExecution.Name))
