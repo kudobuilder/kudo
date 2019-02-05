@@ -16,7 +16,7 @@ limitations under the License.
 package controller
 
 import (
-	"github.com/maestrosdk/maestro/pkg/controller/instance"
+	"github.com/universal-operator/universal-operator/pkg/controller/instance"
 )
 
 func init() {

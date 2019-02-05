@@ -32,9 +32,9 @@ import (
 	ktypes "sigs.k8s.io/kustomize/pkg/types"
 	"strconv"
 
-	maestrov1alpha1 "github.com/maestrosdk/maestro/pkg/apis/maestro/v1alpha1"
-	"github.com/maestrosdk/maestro/pkg/util/health"
-	"github.com/maestrosdk/maestro/pkg/util/template"
+	maestrov1alpha1 "github.com/universal-operator/universal-operator/pkg/apis/maestro/v1alpha1"
+	"github.com/universal-operator/universal-operator/pkg/util/health"
+	"github.com/universal-operator/universal-operator/pkg/util/template"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"

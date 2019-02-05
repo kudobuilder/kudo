@@ -3,7 +3,7 @@ package plan
 import (
 	"encoding/json"
 	"fmt"
-	maestrov1alpha1 "github.com/maestrosdk/maestro/pkg/apis/maestro/v1alpha1"
+	maestrov1alpha1 "github.com/universal-operator/universal-operator/pkg/apis/maestro/v1alpha1"
 	"github.com/spf13/cobra"
 	"github.com/xlab/treeprint"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

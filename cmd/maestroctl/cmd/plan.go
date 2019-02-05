@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/maestrosdk/maestro/cmd/maestroctl/cmd/plan"
+	"github.com/universal-operator/universal-operator/cmd/maestroctl/cmd/plan"
 	"github.com/spf13/cobra"
 )
 

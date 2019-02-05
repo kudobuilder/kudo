@@ -11,7 +11,7 @@ test: generate fmt vet manifests
 
 # Build manager binary
 manager: generate fmt vet
-	go build -o bin/manager github.com/maestrosdk/maestro/cmd/manager
+	go build -o bin/manager github.com/universal-operator/universal-operator/cmd/manager
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet

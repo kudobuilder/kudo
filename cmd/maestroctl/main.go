@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/maestrosdk/maestro/cmd/maestroctl/cmd"
+	"github.com/universal-operator/universal-operator/cmd/maestroctl/cmd"
 )
 
 func main() {

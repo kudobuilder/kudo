@@ -22,7 +22,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/maestrosdk/maestro/pkg/apis"
+	"github.com/universal-operator/universal-operator/pkg/apis"
 	"github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"

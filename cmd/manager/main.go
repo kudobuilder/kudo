@@ -18,9 +18,9 @@ package main
 import (
 	"os"
 
-	"github.com/maestrosdk/maestro/pkg/apis"
-	"github.com/maestrosdk/maestro/pkg/controller"
-	"github.com/maestrosdk/maestro/pkg/webhook"
+	"github.com/universal-operator/universal-operator/pkg/apis"
+	"github.com/universal-operator/universal-operator/pkg/controller"
+	"github.com/universal-operator/universal-operator/pkg/webhook"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"

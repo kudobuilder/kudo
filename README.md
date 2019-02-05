@@ -19,8 +19,8 @@ Before you get started:
 
 ## Installation Instructions
 
-- Get maestro repo: `go get github.com/maestrosdk/maestro/`
-- `cd $GOPATH/src/github.com/maestrosdk/maestro`
+- Get maestro repo: `go get github.com/universal-operator/universal-operator/`
+- `cd $GOPATH/src/github.com/universal-operator/universal-operator`
 - `make install` to deploy universal CRDs
 - `make run` to run the Operator with local go environment
 

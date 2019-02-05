@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/maestrosdk/maestro/version"
+	"github.com/universal-operator/universal-operator/version"
 	"github.com/spf13/cobra"
 )
 
