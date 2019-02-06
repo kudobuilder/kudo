@@ -43,6 +43,8 @@ spec:
           properties:
             activePlan:
               type: object
+            status:
+              type: string
           type: object
   version: v1alpha1
 status:
