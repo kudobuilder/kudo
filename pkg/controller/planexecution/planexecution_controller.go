@@ -64,6 +64,8 @@ const basePath = "/kustomize"
 // and Start it when the Manager is Started.
 // USER ACTION REQUIRED: update cmd/manager/main.go to call this maestro.Add(mgr) to install this Controller
 func Add(mgr manager.Manager) error {
+	log.Printf("PlanExecutionController: Registering planexecution controller.")
+
 	return add(mgr, newReconciler(mgr))
 }
 
@@ -98,9 +100,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				}, inst)
 
 				if err != nil {
-					log.Printf("Error getting instance object: %v\n", err)
+					log.Printf("PlanExecutionController: Error getting instance object: %v", err)
 				} else {
-					log.Printf("Adding %v to reconcile\n", inst.Status.ActivePlan.Name)
+					log.Printf("PlanExecutionController: Adding \"%v\" to reconcile", inst.Status.ActivePlan.Name)
 					requests = append(requests, reconcile.Request{
 						NamespacedName: types.NamespacedName{
 							Name:      inst.Status.ActivePlan.Name,
@@ -119,14 +121,16 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	p := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-
+			log.Printf("PlanExecutionController: Recieved update event for an instance named: %v", e.MetaNew.GetName())
 			return e.ObjectOld != e.ObjectNew
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
+			log.Printf("PlanExecutionController: Recieved create event for an instance named: %v", e.Meta.GetName())
 			return true
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			//TODO send event for Instance that plan was deleted
+			log.Printf("PlanExecutionController: Recieved delete event for an instance named: %v", e.Meta.GetName())
 			return true
 		},
 	}
@@ -199,7 +203,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	err := r.Get(context.TODO(), request.NamespacedName, planExecution)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			log.Printf("Could not find planExecution %v: %v\n", request.Name, err)
+			log.Printf("PlanExecutionController: Error finding planexecution \"%v\": %v", request.Name, err)
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
 			return reconcile.Result{}, nil
@@ -220,7 +224,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		//Can't find the instance.  Update sta
 		r.recorder.Event(planExecution, "Warning", "InvalidInstance", fmt.Sprintf("Could not find required instance (%v)", planExecution.Spec.Instance.Name))
 		planExecution.Status.State = maestrov1alpha1.PhaseStateError
-		log.Printf("Error getting Instance %v in %v: %v\n",
+		log.Printf("PlanExecutionController: Error getting Instance %v in %v: %v",
 			planExecution.Spec.Instance.Name,
 			planExecution.Spec.Instance.Namespace,
 			err)
@@ -237,7 +241,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 	//See if this has already been proceeded
 	if planExecution.Status.State == maestrov1alpha1.PhaseStateComplete {
-		log.Printf("PlanExecution %v has already run to completion, not processing.\n", planExecution.Name)
+		log.Printf("PlanExecutionController: PlanExecution \"%v\" has already run to completion, not processing.", planExecution.Name)
 		return reconcile.Result{}, nil
 	}
 
@@ -259,7 +263,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	err = r.Update(context.TODO(), instance)
 	if err != nil {
 		r.recorder.Event(planExecution, "Warning", "UpdateError", fmt.Sprintf("Could not update the ActivePlan for (%v): %v", planExecution.Spec.Instance.Name, err))
-		log.Printf("Upate of instance with ActivePlan errored: %v\n", err)
+		log.Printf("PlanExecutionController: Upate of instance with ActivePlan errored: %v", err)
 	}
 
 	//Get associated FrameworkVersion
@@ -274,7 +278,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		//Can't find the instance.  Update sta
 		planExecution.Status.State = maestrov1alpha1.PhaseStateError
 		r.recorder.Event(planExecution, "Warning", "InvalidFrameworkVersion", fmt.Sprintf("Could not find FrameworkVersion %v", instance.Spec.FrameworkVersion.Name))
-		log.Printf("Error getting FrameworkVersion %v in %v: %v\n",
+		log.Printf("PlanExecutionController: Error getting FrameworkVersion %v in %v: %v",
 			instance.Spec.FrameworkVersion.Name,
 			instance.Spec.FrameworkVersion.Namespace,
 			err)
@@ -298,7 +302,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		if !ok { //not specified in params
 			if param.Required {
 				err = fmt.Errorf("Parameter %v was required but not provided by instance %v", param.Name, instance.Name)
-				log.Printf("%v\n", err)
+				log.Printf("PlanExecutionController: %v", err)
 				r.recorder.Event(planExecution, "Warning", "MissingParameter", fmt.Sprintf("Could not find required parameter (%v)", param.Name))
 				return reconcile.Result{}, err
 			}
@@ -353,14 +357,14 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 							templatedYaml, err := template.ExpandMustache(resource, configs)
 							if err != nil {
 								r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error expanding mustache: %v", err))
-								log.Printf("Error expanding mustache: %v\n", err)
+								log.Printf("PlanExecutionController: Error expanding mustache: %v", err)
 							}
 							fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, res), []byte(*templatedYaml))
 							resources = append(resources, res)
 
 						} else {
-							r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding resource named %s for framework version %s", res, frameworkVersion.Name))
-							log.Printf("Error finding resource named %s for framework version %s\n", res, frameworkVersion.Name)
+							r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding resource named %v for framework version %v", res, frameworkVersion.Name))
+							log.Printf("PlanExecutionController: Error finding resource named %v for framework version %v", res, frameworkVersion.Name)
 							return reconcile.Result{}, err
 						}
 					}
@@ -417,20 +421,20 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					objsToAdd, err := template.ParseKubernetesObjects(string(res))
 					if err != nil {
 						r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planExecution.Name, err))
-						log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planExecution.Name, err)
+						log.Printf("PlanExecutionController: Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planExecution.Name, err)
 						return reconcile.Result{}, err
 					}
 					objs = append(objs, objsToAdd...)
 				} else {
 					r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding task named %s for framework version %s", taskSpec, frameworkVersion.Name))
-					log.Printf("Error finding task named %s for framework version %s", taskSpec, frameworkVersion.Name)
+					log.Printf("PlanExecutionController: Error finding task named %s for framework version %s", taskSpec, frameworkVersion.Name)
 					return reconcile.Result{}, err
 				}
 			}
 
 			planExecution.Status.Phases[i].Steps[j].Name = step.Name
 			planExecution.Status.Phases[i].Steps[j].Objects = objs
-			log.Printf("Phase %v Step %v has %v objects\n", i, j, len(objs))
+			log.Printf("PlanExecutionController: Phase %v Step %v has %v objects", i, j, len(objs))
 		}
 	}
 
@@ -450,13 +454,13 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				//Some objects don't update well.  We capture the logic here to see if we need to cleanup the current object
 				err = r.Cleanup(obj)
 				if err != nil {
-					log.Printf("Cleanup failed: %v\n", err)
+					log.Printf("PlanExecutionController: Cleanup failed: %v", err)
 				}
 				result, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, obj, func(runtime.Object) error { return nil })
 
-				log.Printf("CreateOrUpdate resulted in: %v\n", result)
+				log.Printf("PlanExecutionController: CreateOrUpdate resulted in: %v", result)
 				if err != nil {
-					log.Printf("Error CreateOrUpdate Object in step:%v: %v\n", s.Name, err)
+					log.Printf("PlanExecutionController: Error CreateOrUpdate Object in step \"%v\": %v", s.Name, err)
 					planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateError
 					planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateError
 					return reconcile.Result{}, err
@@ -473,34 +477,34 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				err = r.Client.Get(context.TODO(), key, obj)
 
 				if err != nil {
-					log.Printf("Error Getting new Object in step:%v: %v\n", s.Name, err)
+					log.Printf("PlanExecutionController: Error getting new Object in step \"%v\": %v", s.Name, err)
 					planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateError
 					planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateError
 					return reconcile.Result{}, err
 				}
 				err = health.IsHealthy(r.Client, obj)
 				if err != nil {
-					log.Printf("Obj is NOT healthy: %v\n", obj)
+					log.Printf("PlanExecutionController: Obj is NOT healthy: %+v", obj)
 					planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateInProgress
 					planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateInProgress
 				}
 			}
-			log.Printf("Phase %v has strategy %v\n", phase.Name, phase.Strategy)
+			log.Printf("PlanExecutionController: Phase \"%v\" has strategy %v", phase.Name, phase.Strategy)
 			if phase.Strategy == maestrov1alpha1.Serial {
 				//we need to skip the rest of the steps if this step is unhealthy
-				log.Printf("Phase %v marked as serial\n", phase.Name)
+				log.Printf("PlanExecutionController: Phase \"%v\" marked as serial", phase.Name)
 				if planExecution.Status.Phases[i].Steps[j].State != maestrov1alpha1.PhaseStateComplete {
-					log.Printf("Step %v isn't complete, skipping rest of steps in phase until it is\n", planExecution.Status.Phases[i].Steps[j].Name)
+					log.Printf("PlanExecutionController: Step \"%v\" isn't complete, skipping rest of steps in phase until it is", planExecution.Status.Phases[i].Steps[j].Name)
 					break //break step loop
 				} else {
-					log.Printf("Step %v is healthy, so I can continue on\n", planExecution.Status.Phases[i].Steps[j].Name)
+					log.Printf("PlanExecutionController: Step \"%v\" is healthy, so I can continue on", planExecution.Status.Phases[i].Steps[j].Name)
 				}
 			}
 
-			log.Printf("Step %v looked at\n", s.Name)
+			log.Printf("PlanExecutionController: Looked at step \"%v\"", s.Name)
 		}
 		if health.IsPhaseHealthy(planExecution.Status.Phases[i]) {
-			log.Printf("Phase %v marked as healthy\n", phase.Name)
+			log.Printf("PlanExecutionController: Phase \"%v\" marked as healthy", phase.Name)
 			planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateComplete
 			continue
 		}
@@ -508,12 +512,12 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		//This phase isn't quite ready yet.  Lets see what needs to be done
 		planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateInProgress
 
-		//Don't keep goign to other plans if we're flagged to perform the phases in serial
+		//Don't keep going to other plans if we're flagged to perform the phases in serial
 		if executedPlan.Strategy == maestrov1alpha1.Serial {
-			log.Printf("Phase %v not healthy, and plan marked as serial, so breaking.\n", phase.Name)
+			log.Printf("PlanExecutionController: Phase \"%v\" not healthy, and plan marked as serial, so breaking.", phase.Name)
 			break
 		}
-		log.Printf("Phase %v looked at\n", phase.Name)
+		log.Printf("PlanExecutionController: Looked at phase \"%v\"", phase.Name)
 	}
 
 	if health.IsPlanHealthy(planExecution.Status) {
@@ -534,25 +538,25 @@ func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
 	case *batchv1.Job:
 		//We need to see if there's a current job on the system that matches this exactly (with labels)
 		job := obj.(*batchv1.Job)
-		log.Printf("PlanExecutionController.Cleanup: *batchv1.Job %v\n", job.Name)
+		log.Printf("PlanExecutionController.Cleanup: *batchv1.Job %v", job.Name)
 
 		present := &batchv1.Job{}
 		key, _ := client.ObjectKeyFromObject(obj)
 		err := r.Get(context.TODO(), key, present)
 		if errors.IsNotFound(err) {
 			//this is fine, its good to go
-			log.Printf("Could not find job %v on cluster.  Good to make a new one:\n", key)
+			log.Printf("PlanExecutionController: Could not find job \"%v\" in cluster. Good to make a new one.", key)
 			return nil
 		}
 		if err != nil {
 			//Something else happened
 			return err
 		}
-		//see if thie job on the cluster has the same labels as the one we're looking to add.
+		//see if the job in the cluster has the same labels as the one we're looking to add.
 		for k, v := range job.Labels {
 			if v != present.Labels[k] {
 				//need to delete the present job since its got labels that aren't the same
-				log.Printf("Different values for key %v: %v and %v\n", k, v, present.Labels[k])
+				log.Printf("PlanExecutionController: Different values for job key \"%v\": \"%v\" and \"%v\"", k, v, present.Labels[k])
 				err = r.Delete(context.TODO(), present)
 				return err
 			}
@@ -560,7 +564,7 @@ func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
 		for k, v := range present.Labels {
 			if v != job.Labels[k] {
 				//need to delete the present job since its got labels that aren't the same
-				log.Printf("Different values for key %v: %v and %v\n", k, v, job.Labels[k])
+				log.Printf("PlanExecutionController: Different values for job key \"%v\": \"%v\" and \"%v\"", k, v, job.Labels[k])
 				err = r.Delete(context.TODO(), present)
 				return err
 			}
