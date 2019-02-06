@@ -1,0 +1,126 @@
+apiVersion: maestro.k8s.io/v1alpha1
+kind: Framework
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: flink
+---
+apiVersion: maestro.k8s.io/v1alpha1
+kind: FrameworkVersion
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: flink
+  namespace: default
+spec:
+  framework:
+    name: flink
+    kind: Framework
+  # Add fields here
+  version: "1.0"
+  parameters:
+  - name: FLINK_TASKMANAGER_REPLICAS
+    description: Number of task managers to run
+    default: "2"
+  - name: FLINK_JOBMANAGER_REPLICAS
+    description: Number of job managers to run
+    default: "2"
+  templates:
+    services.yaml: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: jobmanager
+      spec:
+        ports:
+        - name: rpc
+          port: 6123
+        - name: blob
+          port: 6124
+        - name: query
+          port: 6125
+        - name: ui
+          port: 8081
+        selector:
+          app: flink
+          component: jobmanager
+    taskmanager-deployment.yaml: |
+      apiVersion: extensions/v1beta1
+      kind: Deployment
+      metadata:
+        name: taskmanager
+      spec:
+        replicas: {{FLINK_TASKMANAGER_REPLICAS}}
+        template:
+          metadata:
+            labels:
+              app: flink
+              component: taskmanager
+          spec:
+            containers:
+            - name: taskmanager
+              image: flink:latest
+              args:
+              - taskmanager
+              ports:
+              - containerPort: 6121
+                name: data
+              - containerPort: 6122
+                name: rpc
+              - containerPort: 6125
+                name: query
+              env:
+              - name: JOB_MANAGER_RPC_ADDRESS
+                value: {{NAME}}-jobmanager 
+    jobmanager-deployment.yaml: |
+      apiVersion: extensions/v1beta1
+      kind: Deployment
+      metadata:
+        name: jobmanager
+      spec:
+        replicas: {{FLINK_JOBMANAGER_REPLICAS}}
+        template:
+          metadata:
+            labels:
+              app: flink
+              component: jobmanager
+          spec:
+            containers:
+            - name: jobmanager
+              image: flink:latest
+              args:
+              - jobmanager
+              ports:
+              - containerPort: 6123
+                name: rpc
+              - containerPort: 6124
+                name: blob
+              - containerPort: 6125
+                name: query
+              - containerPort: 8081
+                name: ui
+              env:
+              - name: JOB_MANAGER_RPC_ADDRESS
+                value: {{NAME}}-jobmanager
+  tasks:
+    jobmanager:
+      resources:
+      - jobmanager-deployment.yaml
+    jobmanager-service:
+      resources:
+      - services.yaml
+    taskmanager:
+      resources:
+      - taskmanager-deployment.yaml
+  plans:
+    deploy:
+      strategy: serial
+      phases:
+        - name: flink
+          strategy: serial
+          steps:
+            - name: jobmanager
+              tasks:
+              - jobmanager
+              - jobmanager-service
+              - taskmanager
