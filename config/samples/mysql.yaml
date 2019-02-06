@@ -33,9 +33,11 @@ spec:
     init:
       resources:
       - init.yaml
-    backup:
+    pv:
       resources:
       - backup-pv.yaml
+    backup:
+      resources:
       - backup.yaml
     restore:
       resources:
@@ -177,7 +179,7 @@ spec:
             volumes:
             - name: backup-pv
               persistentVolumeClaim:
-                claimName: backup-pv
+                claimName: {{NAME}}-backup-pv
     restore.yaml: |
       apiVersion: batch/v1
       kind: Job
@@ -218,15 +220,26 @@ spec:
             - name: init
               tasks:
               - init
+            - name: cleanup
+              tasks:
+              - init
+              delete: true
     backup:
       strategy: serial
       phases:
         - name: backup
           strategy: serial
           steps:
+            - name: pv
+              tasks:
+              - pv
             - name: backup
               tasks:
               - backup
+            - name: cleanup
+              tasks:
+              - backup
+              delete: true
     restore:
       strategy: serial
       phases:
@@ -236,6 +249,10 @@ spec:
             - name: restore
               tasks:
               - restore
+            - name: cleanup
+              tasks:
+              - restore
+              delete: true
 ---
 apiVersion: maestro.k8s.io/v1alpha1
 kind: Instance

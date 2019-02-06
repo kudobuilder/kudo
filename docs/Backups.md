@@ -32,22 +32,7 @@ kubectl exec -it $MYSQL_POD -- mysql -ppassword  -e "select * from example;" mae
 ## Take a backup
 
 ```bash
-cat <<EOF | kubectl apply -f -
-apiVersion: maestro.k8s.io/v1alpha1
-kind: PlanExecution
-metadata:
-  labels:
-    framework-version: mysql-57
-    instance: mysql
-  name: mysql-backup
-  namespace: default
-spec:
-  instance:
-    kind: Instance
-    name: mysql
-    namespace: default
-  planName: backup
-EOF
+kubectl maestro start -n mysql -p backup
 ```
 
 ## Delete data from the datbase
@@ -60,22 +45,7 @@ kubectl exec -it $MYSQL_POD -- mysql -ppassword  -e "select * from example;" mae
 ## Perform a restore
 
 ```bash
-cat <<EOF | kubectl apply -f -
-apiVersion: maestro.k8s.io/v1alpha1
-kind: PlanExecution
-metadata:
-  labels:
-    framework-version: mysql-57
-    instance: mysql
-  name: mysql-restore
-  namespace: default
-spec:
-  instance:
-    kind: Instance
-    name: mysql
-    namespace: default
-  planName: restore
-EOF
+kubectl maestro start -n mysql -p restore
 ```
  And then query to see the data from before
 

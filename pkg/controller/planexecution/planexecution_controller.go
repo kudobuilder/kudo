@@ -440,6 +440,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 			planExecution.Status.Phases[i].Steps[j].Name = step.Name
 			planExecution.Status.Phases[i].Steps[j].Objects = objs
+			planExecution.Status.Phases[i].Steps[j].Delete = step.Delete
 			log.Printf("Phase %v Step %v has %v objects\n", i, j, len(objs))
 		}
 	}
@@ -448,11 +449,13 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		//If we still want to execute phases in this plan
 		//check if phase is healthy
 		for j, s := range phase.Steps {
+			log.Printf("PlanExecutionController Step %v\n", s)
 			planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateComplete
 
 			for _, obj := range s.Objects {
 				if s.Delete {
-					err = r.Client.Delete(context.TODO(), obj)
+					log.Printf("Step %v was marked to delete object %v\n", s, obj)
+					err = r.Client.Delete(context.TODO(), obj, client.PropagationPolicy(metav1.DeletePropagationForeground))
 					if errors.IsNotFound(err) || err == nil {
 						//This is okay
 						log.Printf("Deleted obj in step: %v\n", s.Name)
