@@ -88,6 +88,10 @@ type Parameter struct {
 	//Default is a default value if no paramter is provided by the instance
 	Default string `json:"default,omitempty"`
 
+	//Trigger identifies the plan that gets executed when this parameter changes in the Instance object.
+	//Default is `update` if present, or `deploy` if not present
+	Trigger string `json:"trigger,omitempty"`
+
 	//TODO Add generated parameters (e.g. passwords)
 	//These values should be saved off in a secret instead of updating the spec
 	// with values so viewing the instance doesn't give crednetials
