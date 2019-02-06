@@ -441,6 +441,21 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateComplete
 
 			for _, obj := range s.Objects {
+				if s.Delete {
+					err = r.Client.Delete(context.TODO(), obj)
+					if errors.IsNotFound(err) || err == nil {
+						//This is okay
+						log.Printf("Deleted obj in step: %v\n", s.Name)
+					}
+					if err != nil {
+						log.Printf("Error deleting object in step: %v: %v\n", s.Name, err)
+						planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateError
+						planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateError
+						return reconcile.Result{}, err
+					}
+					continue
+				}
+
 				//Make sure this objet is applied to the cluster.  Get back the instance from
 				// the cluster so we can see if it's healthy or not
 				if err = controllerutil.SetControllerReference(instance, obj.(metav1.Object), r.scheme); err != nil {
@@ -452,6 +467,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				if err != nil {
 					log.Printf("Cleanup failed: %v\n", err)
 				}
+
 				result, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, obj, func(runtime.Object) error { return nil })
 
 				log.Printf("CreateOrUpdate resulted in: %v\n", result)

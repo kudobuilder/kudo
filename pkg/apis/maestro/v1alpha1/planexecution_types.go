@@ -56,8 +56,9 @@ type PhaseStatus struct {
 
 //StepStatus shows the status of the Step
 type StepStatus struct {
-	Name  string     `json:"name,omitempty"`
-	State PhaseState `json:"state,omitempty"`
+	Name   string     `json:"name,omitempty"`
+	State  PhaseState `json:"state,omitempty"`
+	Delete bool       `json:"delete,omitempty"`
 	//Objects will be serialized for each instance as the params and defaults
 	// are provided, but not serialized in the payload
 	Objects []runtime.Object `json:"-"`
