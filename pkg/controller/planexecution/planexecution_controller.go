@@ -444,7 +444,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 			planExecution.Status.Phases[i].Steps[j].Name = step.Name
 			planExecution.Status.Phases[i].Steps[j].Objects = objs
-			log.Printf("PlanExecutionController: Phase %v Step %v has %v objects", i, j, len(objs))
+			planExecution.Status.Phases[i].Steps[j].Delete = step.Delete
+			log.Printf("PlanExecutionController: Phase \"%v\" Step \"%v\" has %v object(s)", phase.Name, step.Name, len(objs))
 		}
 	}
 
@@ -455,6 +456,22 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateComplete
 
 			for _, obj := range s.Objects {
+				if s.Delete {
+					log.Printf("PlanExecutionController: Step \"%v\" was marked to delete object %+v", s.Name, obj)
+					err = r.Client.Delete(context.TODO(), obj, client.PropagationPolicy(metav1.DeletePropagationForeground))
+					if errors.IsNotFound(err) || err == nil {
+						//This is okay
+						log.Printf("PlanExecutionController: Object was already deleted or did not exist in step \"%v\"", s.Name)
+					}
+					if err != nil {
+						log.Printf("PlanExecutionController: Error deleting object in step \"%v\": %v", s.Name, err)
+						planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateError
+						planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateError
+						return reconcile.Result{}, err
+					}
+					continue
+				}
+
 				//Make sure this objet is applied to the cluster.  Get back the instance from
 				// the cluster so we can see if it's healthy or not
 				if err = controllerutil.SetControllerReference(instance, obj.(metav1.Object), r.scheme); err != nil {
@@ -467,14 +484,14 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					log.Printf("PlanExecutionController: Cleanup failed: %v", err)
 				}
 				result, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, obj, func(runtime.Object) error { return nil })
-
-				log.Printf("PlanExecutionController: CreateOrUpdate resulted in: %v", result)
 				if err != nil {
 					log.Printf("PlanExecutionController: Error CreateOrUpdate Object in step \"%v\": %v", s.Name, err)
 					planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateError
 					planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateError
 					return reconcile.Result{}, err
 				}
+				log.Printf("PlanExecutionController: CreateOrUpdate resulted in: %v", result)
+
 				// get the existing object meta
 				metaObj := obj.(metav1.Object)
 
@@ -487,7 +504,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				err = r.Client.Get(context.TODO(), key, obj)
 
 				if err != nil {
-					log.Printf("PlanExecutionController: Error getting new Object in step \"%v\": %v", s.Name, err)
+					log.Printf("PlanExecutionController: Error getting new object in step \"%v\": %v", s.Name, err)
 					planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateError
 					planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateError
 					return reconcile.Result{}, err
