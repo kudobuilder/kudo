@@ -39,6 +39,7 @@ import (
 // and Start it when the Manager is Started.
 // USER ACTION REQUIRED: update cmd/manager/main.go to call this maestro.Add(mgr) to install this Controller
 func Add(mgr manager.Manager) error {
+	log.Printf("FrameworkVersionController: Registering frameworkversion controller.")
 	return add(mgr, newReconciler(mgr))
 }
 
@@ -92,7 +93,7 @@ func (r *ReconcileFrameworkVersion) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 
-	log.Printf("FrameworkVersionController: Recieved Reconcile request for %v\n", request.Name)
+	log.Printf("FrameworkVersionController: Recieved Reconcile request for a frameworkversion named: %v", request.Name)
 	//When this is changed, we need to Reconcile all instances objects that reference this
 	//object.
 
