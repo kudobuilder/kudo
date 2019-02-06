@@ -135,7 +135,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		},
 	}
 
-	// Watch for changes to PlanExecution
+	// Watch for changes to PlanExecution,
 	err = c.Watch(&source.Kind{Type: &maestrov1alpha1.PlanExecution{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
@@ -174,6 +174,17 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	err = c.Watch(
+		&source.Kind{Type: &maestrov1alpha1.Instance{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: mapFn,
+		},
+		// Comment it if default predicate fun is used.
+		p)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -192,11 +203,10 @@ type ReconcilePlanExecution struct {
 // a Deployment as an example
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=maestro.k8s.io,resources=planexecutions,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=maestro.k8s.io,resources=planexecutions;instances,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=events;configmaps,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets;poddisruptionbudgets.policy,verbs=get;list;watch;create;update;patch;delete
-
 func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the PlanExecution instance
 	planExecution := &maestrov1alpha1.PlanExecution{}
@@ -526,6 +536,12 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		planExecution.Status.State = maestrov1alpha1.PhaseStateComplete
 	} else {
 		planExecution.Status.State = maestrov1alpha1.PhaseStateInProgress
+	}
+
+	instance.Status.Status = planExecution.Status.State
+	err = r.Client.Update(context.TODO(), instance)
+	if err != nil {
+		log.Printf("Error updating instance status to %v: %v\n", instance.Status.Status, err)
 	}
 
 	return reconcile.Result{}, nil

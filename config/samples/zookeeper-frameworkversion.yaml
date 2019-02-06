@@ -128,22 +128,6 @@ spec:
                     --max_session_timeout=40000 \
                     --min_session_timeout=4000 \
                     --log_level=INFO"
-                readinessProbe:
-                  exec:
-                    command:
-                      - sh
-                      - -c
-                      - "zookeeper-ready 2181"
-                  initialDelaySeconds: 10
-                  timeoutSeconds: 5
-                livenessProbe:
-                  exec:
-                    command:
-                      - sh
-                      - -c
-                      - "zookeeper-ready 2181"
-                  initialDelaySeconds: 10
-                  timeoutSeconds: 5
                 volumeMounts:
                   - name: datadir
                     mountPath: /var/lib/zookeeper

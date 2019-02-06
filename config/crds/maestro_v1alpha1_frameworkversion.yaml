@@ -38,6 +38,21 @@ spec:
               type: array
             framework:
               type: object
+            parameters:
+              items:
+                properties:
+                  default:
+                    type: string
+                  description:
+                    type: string
+                  displayName:
+                    type: string
+                  name:
+                    type: string
+                  required:
+                    type: boolean
+                type: object
+              type: array
             plans:
               type: object
             tasks:
