@@ -154,7 +154,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 						}
 					}
 				}
-				//Not currentl doing anything for Dependency changes
+				//Not currently doing anything for Dependency changes
 			} else {
 				log.Println("InstanceController: Old and new spec matched...")
 				planName = "deploy"
