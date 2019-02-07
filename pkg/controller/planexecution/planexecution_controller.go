@@ -489,9 +489,9 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					//TODO Clean this up.  I don't like having to do a switch here
 					switch t := newObj.(type) {
 					case *appsv1.StatefulSet:
-						log.Printf("PlanExecutionController: CreateOrUpdate Type %v\n", t)
+						log.Printf("PlanExecutionController: CreateOrUpdate Type %v", t)
 
-						newSs := newObj.(*appsv1.StatefulSet)
+						newSs := newObj.(*appsv1.StatefulSet)P
 						ss, ok := obj.(*appsv1.StatefulSet)
 						if !ok {
 							return fmt.Errorf("object passed in doesn't match StatefulSet type expected")
@@ -521,7 +521,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 					//unless we build logic for what a healthy object is, assume its healthy when created
 					default:
-						log.Printf("CreateOrUpdate: Type %v CreateOrUpdate is not implemented yet\n", t)
+						log.Printf("PlanExecutionController: Type %v CreateOrUpdate is not implemented yet\n", t)
 						return nil
 					}
 
