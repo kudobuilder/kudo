@@ -104,6 +104,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				//since its linking to a bad FV
 				return false
 			}
+			//Identify plan to be executed by this change
 			var planName string
 			var ok bool
 			if old.Spec.FrameworkVersion != new.Spec.FrameworkVersion {
@@ -126,17 +127,34 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					planName = "upgrade"
 				}
 			} else if !reflect.DeepEqual(old.Spec, new.Spec) {
-				_, ok = fv.Spec.Plans["update"]
-				if !ok {
-					_, ok = fv.Spec.Plans["deploy"]
-					if !ok {
-						log.Println("InstanceController: Could not find any plan to use for update")
-					} else {
-						planName = "deploy"
+				for k, v := range new.Spec.Parameters {
+					if old.Spec.Parameters[k] != v {
+						//Find the right parameter in the FV
+						for _, param := range fv.Spec.Parameters {
+							if param.Name == k {
+								planName = param.Trigger
+								ok = true
+							}
+						}
+						if !ok {
+							log.Printf("InstanceController: Instance %v updated parameter %v, but parameter not found in FrameworkVersion %v\n", new.Name, k, fv.Name)
+						} else if planName == "" {
+							_, ok = fv.Spec.Plans["update"]
+							if !ok {
+								_, ok = fv.Spec.Plans["deploy"]
+								if !ok {
+									log.Println("InstanceController: Could not find any plan to use for update")
+								} else {
+									planName = "deploy"
+								}
+							} else {
+								planName = "update"
+							}
+							log.Printf("InstanceController: Instance %v updated parameter %v, but no specified trigger.  Using default plan %v\n", new.Name, k, planName)
+						}
 					}
-				} else {
-					planName = "update"
 				}
+				//Not currently doing anything for Dependency changes
 			} else {
 				log.Println("InstanceController: Old and new spec matched...")
 				planName = "deploy"

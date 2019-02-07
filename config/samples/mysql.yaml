@@ -24,6 +24,7 @@ spec:
     description: "Filename to save the backups to"
     default: "backup.sql"
     displayName: "BackupFile"
+    trigger: backup
   - name: PASSWORD
     default: "password"
   tasks:
@@ -269,6 +270,7 @@ spec:
   # Add fields here
   parameters:
     PASSWORD: password
+    BACKUP_FILE: backup.sql
 
 
 
