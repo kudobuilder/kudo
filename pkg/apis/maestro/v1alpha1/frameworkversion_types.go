@@ -108,8 +108,9 @@ type Phase struct {
 }
 
 type Step struct {
-	Name  string   `json:"name"`
-	Tasks []string `json:"tasks"`
+	Name   string   `json:"name"`
+	Tasks  []string `json:"tasks"`
+	Delete bool     `json:"delete,omitempty"`
 	//Objects will be serialized for each instance as the params and defaults
 	// are provided
 	Objects []runtime.Object `json:"-"`

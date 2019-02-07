@@ -46,6 +46,8 @@ spec:
                   steps:
                     items:
                       properties:
+                        delete:
+                          type: boolean
                         name:
                           type: string
                         state:

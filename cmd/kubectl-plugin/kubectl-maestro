@@ -476,7 +476,7 @@ metadata:
     labels:
         framework-version: $frameworkversion
         instance: $name
-    name: $name
+    name: $name-$planName
 spec:
     instance:
         kind: Instance
