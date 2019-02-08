@@ -3,7 +3,7 @@ package plan
 import (
 	"encoding/json"
 	"fmt"
-	maestrov1alpha1 "github.com/maestrosdk/maestro/pkg/apis/maestro/v1alpha1"
+	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/spf13/cobra"
 	"github.com/xlab/treeprint"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,7 +19,7 @@ func NewPlanStatusCmd() *cobra.Command {
 		Short: "Shows the status of all plans to an particular instance.",
 		Long: `
 	# View plan status
-	maestroctl plan status --instance=<instanceName> --kubeconfig=<$HOME/.kube/config>`,
+	kudoctl plan status --instance=<instanceName> --kubeconfig=<$HOME/.kube/config>`,
 		Run: planStatusCmd,
 	}
 
@@ -66,7 +66,7 @@ func planStatus() error {
 	}
 
 	instancesGVR := schema.GroupVersionResource{
-		Group:    "maestro.k8s.io",
+		Group:    "kudo.k8s.io",
 		Version:  "v1alpha1",
 		Resource: "instances",
 	}
@@ -81,7 +81,7 @@ func planStatus() error {
 		return err
 	}
 
-	instance := maestrov1alpha1.Instance{}
+	instance := kudov1alpha1.Instance{}
 
 	err = json.Unmarshal(mInstObj, &instance)
 	if err != nil {
@@ -91,7 +91,7 @@ func planStatus() error {
 	frameworkVersionNameOfInstance := instance.Spec.FrameworkVersion.Name
 
 	frameworkGVR := schema.GroupVersionResource{
-		Group:    "maestro.k8s.io",
+		Group:    "kudo.k8s.io",
 		Version:  "v1alpha1",
 		Resource: "frameworkversions",
 	}
@@ -107,7 +107,7 @@ func planStatus() error {
 		return err
 	}
 
-	framework := maestrov1alpha1.FrameworkVersion{}
+	framework := kudov1alpha1.FrameworkVersion{}
 
 	err = json.Unmarshal(mFrameworkObj, &framework)
 	if err != nil {
@@ -115,7 +115,7 @@ func planStatus() error {
 	}
 
 	planExecutionsGVR := schema.GroupVersionResource{
-		Group:    "maestro.k8s.io",
+		Group:    "kudo.k8s.io",
 		Version:  "v1alpha1",
 		Resource: "planexecutions",
 	}
@@ -130,7 +130,7 @@ func planStatus() error {
 		return err
 	}
 
-	activePlanType := maestrov1alpha1.PlanExecution{}
+	activePlanType := kudov1alpha1.PlanExecution{}
 
 	err = json.Unmarshal(mPlanObj, &activePlanType)
 	if err != nil {

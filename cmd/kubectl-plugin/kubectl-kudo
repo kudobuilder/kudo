@@ -19,8 +19,8 @@ function frameworkInstall {
         exit 1
     else
         echo "Installing $1 framework..."
-        kubectl apply -f https://raw.githubusercontent.com/maestrosdk/frameworks/master/repo/$2/$1/versions/$3/$1-framework.yaml
-        kubectl apply -f https://raw.githubusercontent.com/maestrosdk/frameworks/master/repo/$2/$1/versions/$3/$1-frameworkversion.yaml
+        kubectl apply -f https://raw.githubusercontent.com/kudobuilder/frameworks/master/repo/$2/$1/versions/$3/$1-framework.yaml
+        kubectl apply -f https://raw.githubusercontent.com/kudobuilder/frameworks/master/repo/$2/$1/versions/$3/$1-frameworkversion.yaml
         if [[ "$?" == "1" ]]
         then
             echo "Failed to install framework $1"
@@ -37,13 +37,13 @@ function frameworkUninstall {
         exit 1
     else
         echo "Uninstalling $1 framework..."
-        kubectl delete -f https://raw.githubusercontent.com/maestrosdk/frameworks/master/repo/$2/$1/versions/$3/$1-framework.yaml
+        kubectl delete -f https://raw.githubusercontent.com/kudobuilder/frameworks/master/repo/$2/$1/versions/$3/$1-framework.yaml
         if [[ "$?" == "1" ]]
         then
             echo "Failed to uninstall framework $1"
             exit 1
         fi
-        kubectl delete -f https://raw.githubusercontent.com/maestrosdk/frameworks/master/repo/$2/$1/versions/$3/$1-frameworkversion.yaml
+        kubectl delete -f https://raw.githubusercontent.com/kudobuilder/frameworks/master/repo/$2/$1/versions/$3/$1-frameworkversion.yaml
         if [[ "$?" == "1" ]]
         then
             echo "Failed to uninstall frameworkversion $1"
@@ -94,11 +94,11 @@ function frameworkLookup {
         # Install part
         echo "Looking up stable version of $2"
         version="stable"
-        frameworkVersions=$(curl -s --user $githubCredentials https://api.github.com/repos/maestrosdk/frameworks/contents/repo/stable/$2/versions | jq -r ".[] | .name ")
+        frameworkVersions=$(curl -s --user $githubCredentials https://api.github.com/repos/kudobuilder/frameworks/contents/repo/stable/$2/versions | jq -r ".[] | .name ")
         if [[ $frameworkVersions == "" ]]
         then
             echo "Stable version of $2 not found. Looking up incubating versions..."
-            frameworkVersions=$(curl -s --user $githubCredentials https://api.github.com/repos/maestrosdk/frameworks/contents/repo/incubating/$2/versions | jq -r ".[] | .name ")
+            frameworkVersions=$(curl -s --user $githubCredentials https://api.github.com/repos/kudobuilder/frameworks/contents/repo/incubating/$2/versions | jq -r ".[] | .name ")
             if [[ $frameworkVersions == "" ]]
             then
                 echo -e "\tFramework $2 not found in registry."
@@ -121,22 +121,22 @@ function frameworkLookup {
         frameworkInstall $2 $version $latestVersion
     elif [[ "$1" == "lookup" ]]
     then
-        frameworkVersions=$(curl -s --user $githubCredentials https://api.github.com/repos/maestrosdk/frameworks/contents/repo/stable/$2/versions | jq -r ".[] | .name ")
+        frameworkVersions=$(curl -s --user $githubCredentials https://api.github.com/repos/kudobuilder/frameworks/contents/repo/stable/$2/versions | jq -r ".[] | .name ")
         if [[ $frameworkVersions == "" ]]
         then
             echo "Stable version of $2 not found. Looking up incubating versions..."
-            frameworkVersions=$(curl -s --user $githubCredentials https://api.github.com/repos/maestrosdk/frameworks/contents/repo/incubating/$2/versions | jq -r ".[] | .name ")
+            frameworkVersions=$(curl -s --user $githubCredentials https://api.github.com/repos/kudobuilder/frameworks/contents/repo/incubating/$2/versions | jq -r ".[] | .name ")
             if [[ $frameworkVersions == "" ]]
             then
                 echo -e "\tFramework $2 not found in registry."
                 echo ""
                 echo "Available stable frameworks to install:"
-                availableStable=$(curl -s --user $githubCredentials https://api.github.com/repos/maestrosdk/frameworks/contents/repo/stable | jq -r ".[] | .name ")
+                availableStable=$(curl -s --user $githubCredentials https://api.github.com/repos/kudobuilder/frameworks/contents/repo/stable | jq -r ".[] | .name ")
                 for f in ${availableStable[@]}; do
                     echo -e "\t$f"
                 done
                 echo "Available incubating frameworks to install:"
-                availableIncubating=$(curl -s --user $githubCredentials https://api.github.com/repos/maestrosdk/frameworks/contents/repo/incubating | jq -r ".[] | .name ")
+                availableIncubating=$(curl -s --user $githubCredentials https://api.github.com/repos/kudobuilder/frameworks/contents/repo/incubating | jq -r ".[] | .name ")
                 for f in ${availableIncubating[@]}; do
                     echo -e "\t$f"
                 done
@@ -148,11 +148,11 @@ function frameworkLookup {
         # Uninstall part
         echo "Looking up stable version of $2"
         version="stable"
-        frameworkVersions=$(curl -s --user $githubCredentials https://api.github.com/repos/maestrosdk/frameworks/contents/repo/stable/$2/versions | jq -r ".[] | .name ")
+        frameworkVersions=$(curl -s --user $githubCredentials https://api.github.com/repos/kudobuilder/frameworks/contents/repo/stable/$2/versions | jq -r ".[] | .name ")
         if [[ $frameworkVersions == "" ]]
         then
             echo "Stable version of $2 not found. Looking up incubating versions..."
-            frameworkVersions=$(curl -s --user $githubCredentials https://api.github.com/repos/maestrosdk/frameworks/contents/repo/incubating/$2/versions | jq -r ".[] | .name ")
+            frameworkVersions=$(curl -s --user $githubCredentials https://api.github.com/repos/kudobuilder/frameworks/contents/repo/incubating/$2/versions | jq -r ".[] | .name ")
             if [[ $frameworkVersions == "" ]]
             then
                 echo -e "\tFramework $2 not found in registry."
@@ -247,10 +247,10 @@ then
         echo "$FRAMEWORKS_INSTALLED"
         echo ""
         echo "Syntax:"
-        echo -e "\tkubectl maestro uninstall <frameworkName>"
+        echo -e "\tkubectl kudo uninstall <frameworkName>"
         echo ""
         echo "Example:"
-        echo -e "\tkubectl maestro uninstall kafka"
+        echo -e "\tkubectl kudo uninstall kafka"
         exit 1
     else
         echo "$2 framework is installed."
@@ -276,7 +276,7 @@ if [[ "$1" == "shell" ]]
 then
     if [[ "$2" == "flink" ]]
     then
-        JOBMANAGER_POD=$(kubectl get pods -l heritage=maestro,component=demo-flink-jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
+        JOBMANAGER_POD=$(kubectl get pods -l heritage=kudo,component=demo-flink-jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
         if [ -z "$JOBMANAGER_POD" ]
         then
             echo "No running jobmanager found."
@@ -289,9 +289,9 @@ then
     echo "Please verify the framework to get a shell:"
     kubectl get frameworks
     echo ""
-    echo "Syntax: kubectl maestro shell <frameworkName>"
+    echo "Syntax: kubectl kudo shell <frameworkName>"
     echo ""
-    echo "Example: kubectl maestro shell flink"
+    echo "Example: kubectl kudo shell flink"
     exit 1
 fi
 
@@ -301,7 +301,7 @@ then
     if [[ "$2" == "flink" ]]
     then
         # Get current running jobmanager
-        JOBMANAGER_POD=$(kubectl get pods -l heritage=maestro,component=demo-flink-jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
+        JOBMANAGER_POD=$(kubectl get pods -l heritage=kudo,component=demo-flink-jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
         if [ -z "$JOBMANAGER_POD" ]
         then
             echo "No running jobmanager found."
@@ -314,9 +314,9 @@ then
     echo "Please verify the framework to exec command:"
     kubectl get frameworks
     echo ""
-    echo "Syntax: kubectl maestro exec <frameworkName>"
+    echo "Syntax: kubectl kudo exec <frameworkName>"
     echo ""
-    echo "Example: kubectl maestro exec flink"
+    echo "Example: kubectl kudo exec flink"
     exit 1
 fi
 
@@ -324,7 +324,7 @@ fi
 if [[ "$1" == "flink" ]]
 then
     # Get current running jobmanager
-    JOBMANAGER_POD=$(kubectl get pods -l heritage=maestro,component=demo-flink-jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
+    JOBMANAGER_POD=$(kubectl get pods -l heritage=kudo,component=demo-flink-jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
     if [ -z "$JOBMANAGER_POD" ]
     then
         echo "No running jobmanager found."
@@ -360,17 +360,17 @@ function createInstance {
         esac
     done
     shift $((OPTIND-1))
-    rm /tmp/maestro_instance_parameter
+    rm /tmp/kudo_instance_parameter
     replace=": "
     c+=("KUBECTL_PLUGIN:\"true\"")
     for t in ${c[@]}; do
         param_clean=${t/:/$replace}
-        cat <<EOF >> "/tmp/maestro_instance_parameter"
+        cat <<EOF >> "/tmp/kudo_instance_parameter"
         $param_clean
 EOF
     done
-    cat <<EOF > "/tmp/maestro_instance"
-apiVersion: maestro.k8s.io/v1alpha1
+    cat <<EOF > "/tmp/kudo_instance"
+apiVersion: kudo.k8s.io/v1alpha1
 kind: Instance
 metadata:
     labels:
@@ -384,8 +384,8 @@ spec:
         type: FrameworkVersion
     parameters:
 EOF
-    cat /tmp/maestro_instance /tmp/maestro_instance_parameter > /tmp/maestro_instance_joined
-    kubectl apply -f /tmp/maestro_instance_joined
+    cat /tmp/kudo_instance /tmp/kudo_instance_parameter > /tmp/kudo_instance_joined
+    kubectl apply -f /tmp/kudo_instance_joined
 }
 
 # create argument handling
@@ -399,9 +399,9 @@ then
         echo ""
         echo "Invalid create command."
         echo ""
-        echo "Syntax: kubectl maestro create <framework> -n <instanceName> -v <versionNumber> -p PARAM1=VALUE -p PARAM2=Value"
+        echo "Syntax: kubectl kudo create <framework> -n <instanceName> -v <versionNumber> -p PARAM1=VALUE -p PARAM2=Value"
         echo ""
-        echo "Example: kubectl maestro create kafka -n kafka -v 2.11-2.4.0 -p KAFKA_ZOOKEEPER_URI:zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181 -p KAFKA_ZOOKEEPER_PATH:\"/small\" -p BROKERS_COUNT:\"3\""
+        echo "Example: kubectl kudo create kafka -n kafka -v 2.11-2.4.0 -p KAFKA_ZOOKEEPER_URI:zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181 -p KAFKA_ZOOKEEPER_PATH:\"/small\" -p BROKERS_COUNT:\"3\""
         exit 1
     fi
     exit 0
@@ -416,9 +416,9 @@ then
         echo ""
         echo "Failed to delete instance $2."
         echo ""
-        echo "Syntax: kubectl maestro delete <instanceName>"
+        echo "Syntax: kubectl kudo delete <instanceName>"
         echo ""
-        echo "Example: kubectl maestro delete kafka"
+        echo "Example: kubectl kudo delete kafka"
         exit 1
     fi
     exit 0
@@ -436,9 +436,9 @@ then
         echo ""
         echo "Failed to scale instance $2."
         echo ""
-        echo "Syntax: kubectl maestro scale <instanceName> --replicas=<number>"
+        echo "Syntax: kubectl kudo scale <instanceName> --replicas=<number>"
         echo ""
-        echo "Example: kubectl maestro scale kafka --replicas=1"
+        echo "Example: kubectl kudo scale kafka --replicas=1"
         exit 1
         fi
     fi
@@ -470,7 +470,7 @@ function startPlan {
     done
     shift $((OPTIND-1))
     cat <<EOF | kubectl apply -f -
-apiVersion: maestro.k8s.io/v1alpha1
+apiVersion: kudo.k8s.io/v1alpha1
 kind: PlanExecution
 metadata:
     labels:
@@ -497,21 +497,21 @@ then
         echo ""
         echo "Invalid create command."
         echo ""
-        echo "Syntax: kubectl maestro start -n <instanceName> -v <version> -p <planName>"
+        echo "Syntax: kubectl kudo start -n <instanceName> -v <version> -p <planName>"
         echo ""
-        echo "Example: kubectl maestro start -n demo -v flink-financial-demo -p upload"
+        echo "Example: kubectl kudo start -n demo -v flink-financial-demo -p upload"
         exit 1
     fi
     exit 0
 fi
 
 
-echo "Kubectl Maestro Plugin v0.0.1"
+echo "Kubectl Kudo Plugin v0.0.1"
 echo ""
 echo "# Available commands"
-echo "kubectl maestro create -n <instanceName> -v <versionNumber> -p PARAM1=\"VALUE\" -p PARAM2=Value"
-echo "kubectl maestro delete <instanceName>"
-echo "kubectl maestro exec <Frameworkname>"
-echo "kubectl maestro flink <CLI Command>"
-echo "kubectl maestro scale <instanceName> --replicas=<number>"
-echo "kubectl maestro shell <Frameworkname>"
+echo "kubectl kudo create -n <instanceName> -v <versionNumber> -p PARAM1=\"VALUE\" -p PARAM2=Value"
+echo "kubectl kudo delete <instanceName>"
+echo "kubectl kudo exec <Frameworkname>"
+echo "kubectl kudo flink <CLI Command>"
+echo "kubectl kudo scale <instanceName> --replicas=<number>"
+echo "kubectl kudo shell <Frameworkname>"

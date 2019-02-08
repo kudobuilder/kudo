@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/maestrosdk/maestro/cmd/maestroctl/cmd"
+	"github.com/kudobuilder/kudo/cmd/kudoctl/cmd"
 )
 
 func main() {

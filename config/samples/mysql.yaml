@@ -1,11 +1,11 @@
-apiVersion: maestro.k8s.io/v1alpha1
+apiVersion: kudo.k8s.io/v1alpha1
 kind: Framework
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: mysql
 ---
-apiVersion: maestro.k8s.io/v1alpha1
+apiVersion: kudo.k8s.io/v1alpha1
 kind: FrameworkVersion
 metadata:
   labels:
@@ -99,7 +99,7 @@ spec:
               - name: MYSQL_ROOT_PASSWORD
                 value: {{PASSWORD}}
               - name: MYSQL_DATABASE
-                value: maestro
+                value: kudo
               ports:
               - containerPort: 3306
                 name: mysql
@@ -153,7 +153,7 @@ spec:
               command:
               - /bin/sh
               - -c
-              - "mysql -u root -h {{NAME}}-mysql -p{{PASSWORD}} -e \"CREATE TABLE example ( id smallint unsigned not null auto_increment, name varchar(20) not null, constraint pk_example primary key (id) );\" maestro "       
+              - "mysql -u root -h {{NAME}}-mysql -p{{PASSWORD}} -e \"CREATE TABLE example ( id smallint unsigned not null auto_increment, name varchar(20) not null, constraint pk_example primary key (id) );\" kudo "
     backup.yaml: |
       apiVersion: batch/v1
       kind: Job
@@ -173,7 +173,7 @@ spec:
               command:
               - /bin/sh
               - -c
-              - "mysqldump -u root -h {{NAME}}-mysql -p{{PASSWORD}} maestro > /backups/{{BACKUP_FILE}}"
+              - "mysqldump -u root -h {{NAME}}-mysql -p{{PASSWORD}} kudo > /backups/{{BACKUP_FILE}}"
               volumeMounts:
               - name: backup-pv
                 mountPath: /backups
@@ -200,7 +200,7 @@ spec:
               command:
               - /bin/sh
               - -c
-              - "mysql -u root -h {{NAME}}-mysql -p{{PASSWORD}} --database=maestro < /backups/{{BACKUP_FILE}}"
+              - "mysql -u root -h {{NAME}}-mysql -p{{PASSWORD}} --database=kudo < /backups/{{BACKUP_FILE}}"
               volumeMounts:
               - name: backup-pv
                 mountPath: /backups
@@ -255,7 +255,7 @@ spec:
               - restore
               delete: true
 ---
-apiVersion: maestro.k8s.io/v1alpha1
+apiVersion: kudo.k8s.io/v1alpha1
 kind: Instance
 metadata:
   labels:

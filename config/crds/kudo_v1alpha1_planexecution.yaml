@@ -4,9 +4,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: planexecutions.maestro.k8s.io
+  name: planexecutions.kudo.k8s.io
 spec:
-  group: maestro.k8s.io
+  group: kudo.k8s.io
   names:
     kind: PlanExecution
     plural: planexecutions

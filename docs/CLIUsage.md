@@ -1,31 +1,31 @@
 # CLI Usage
 
-This document demonstrates how to use the CLI but also shows what happens in `Maestro` under the hood, which can be helpful when troubleshooting.
+This document demonstrates how to use the CLI but also shows what happens in `Kudo` under the hood, which can be helpful when troubleshooting.
 
 There are two CLIs you can use at the moment:
 
-- Maestroctl
-- Kubectl Maestro Plugin
+- Kudoctl
+- Kubectl Kudo Plugin
 
-## Maestroctl
+## Kudoctl
 
-The usage is intended to make your life easier when working with `Maestro`. A work flow would look like this:
+The usage is intended to make your life easier when working with `Kudo`. A work flow would look like this:
 
-1) You get a list of all available Instances deployed by `Maestro`
+1) You get a list of all available Instances deployed by `Kudo`
 2) You get the status the particular Instance of interest
 3) You see a history to a specific Instance
 
 # List Instances
 
-In order to inspect instances deployed by `Maestro` we need to get an overview of all instances running.
+In order to inspect instances deployed by `Kudo` we need to get an overview of all instances running.
 Therefor we use the `list` command which has subcommands to show all available instances:
 
-`maestroctl list instances --namespace=<default> --kubeconfig=<$HOME/.kube/config>`
+`kudoctl list instances --namespace=<default> --kubeconfig=<$HOME/.kube/config>`
 
 Example:
 
 ```bash
-$ maestroctl list instances
+$ kudoctl list instances
   List of current instances in namespace "default":
   .
   ├── small
@@ -53,12 +53,12 @@ $ kubectl get instances
 
 Now that we know the available instances we can get the current status of all plans to an particular instance. The command for this is:
 
-`maestroctl plan status --instance=<instanceName> --kubeconfig=<$HOME/.kube/config>`
+`kudoctl plan status --instance=<instanceName> --kubeconfig=<$HOME/.kube/config>`
 
 *Note: The `--instance` flag is mandatory and **not optional**.*
 
 ```bash
-$ maestroctl plan status --instance=up
+$ kudoctl plan status --instance=up
   Plan(s) for "up" in namespace "default":
   .
   └── up (Framework-Version: "upgrade-v1" Active-Plan: "up-deploy-493146000")
@@ -106,15 +106,15 @@ $ kubectl describe frameworkversion upgrade-v1
 Name:         upgrade-v1
 Namespace:    default
 Labels:       controller-tools.k8s.io=1.0
-Annotations:  kubectl.kubernetes.io/last-applied-configuration={"apiVersion":"maestro.k8s.io/v1alpha1","kind":"FrameworkVersion","metadata":{"annotations":{},"labels":{"controller-tools.k8s.io":"1.0"},"name":"upgra...
-API Version:  maestro.k8s.io/v1alpha1
+Annotations:  kubectl.kubernetes.io/last-applied-configuration={"apiVersion":"kudo.k8s.io/v1alpha1","kind":"FrameworkVersion","metadata":{"annotations":{},"labels":{"controller-tools.k8s.io":"1.0"},"name":"upgra...
+API Version:  kudo.k8s.io/v1alpha1
 Kind:         FrameworkVersion
 Metadata:
   Cluster Name:        
   Creation Timestamp:  2018-12-14T19:26:44Z
   Generation:          1
   Resource Version:    63769
-  Self Link:           /apis/maestro.k8s.io/v1alpha1/namespaces/default/frameworkversions/upgrade-v1
+  Self Link:           /apis/kudo.k8s.io/v1alpha1/namespaces/default/frameworkversions/upgrade-v1
   UID:                 30fe6209-ffd6-11e8-abd5-080027d506c7
 Spec:
   Connection String:  
@@ -193,21 +193,21 @@ $ kubectl describe planexecution up-deploy-493146000
   Labels:       framework-version=upgrade-v1
                 instance=up
   Annotations:  <none>
-  API Version:  maestro.k8s.io/v1alpha1
+  API Version:  kudo.k8s.io/v1alpha1
   Kind:         PlanExecution
   Metadata:
     Cluster Name:        
     Creation Timestamp:  2018-12-14T19:26:44Z
     Generation:          1
     Owner References:
-      API Version:           maestro.k8s.io/v1alpha1
+      API Version:           kudo.k8s.io/v1alpha1
       Block Owner Deletion:  true
       Controller:            true
       Kind:                  Instance
       Name:                  up
       UID:                   3101bbe5-ffd6-11e8-abd5-080027d506c7
     Resource Version:        63815
-    Self Link:               /apis/maestro.k8s.io/v1alpha1/namespaces/default/planexecutions/up-deploy-493146000
+    Self Link:               /apis/kudo.k8s.io/v1alpha1/namespaces/default/planexecutions/up-deploy-493146000
     UID:                     31037dd0-ffd6-11e8-abd5-080027d506c7
   Spec:
     Instance:
@@ -253,7 +253,7 @@ This is helpful if you want to find out which plan ran on your instance to a par
 Let's say you want to know all plans that ran for the instance `up` and its FrameworkVersion `upgrade-v1`:
 
 ```bash
-$ maestroctl plan history upgrade-v1 --instance=up
+$ kudoctl plan history upgrade-v1 --instance=up
   History of plan-executions for "up" in namespace "default" to framework-version "upgrade-v1":
   .
   └── up-deploy-493146000 (created 4h56m12s ago)
@@ -262,7 +262,7 @@ $ maestroctl plan history upgrade-v1 --instance=up
 If you want to have a broader history to all plans applied to an instance:
 
 ```bash
-$ maestroctl plan history --instance=up
+$ kudoctl plan history --instance=up
   History of all plan-executions for "up" in namespace "default":
   .
   └── up-deploy-493146000 (created 4h52m34s ago)
@@ -270,7 +270,7 @@ $ maestroctl plan history --instance=up
 
 This includes the previous history but also all FrameworkVersions that have been applied to the selected instance.
 
-## Kubectl Maestro Plugin
+## Kubectl kudo Plugin
 
 ### Dependencies
 
@@ -278,31 +278,31 @@ The Kubectl Plugin currently expects `jq` to be installed on the system.
 
 ### Install
 
-Install the plugin to your `PATH` e.g. in the maestro repo root via:
+Install the plugin to your `PATH` e.g. in the kudo repo root via:
 
-- `ln -s $GOPATH/src/github.com/maestrosdk/maestro/cmd/kubectl-plugin/kubectl-maestro /usr/local/bin/kubectl-maestro`
+- `ln -s $GOPATH/src/github.com/kudobuilder/kudo/cmd/kubectl-plugin/kubectl-kudo /usr/local/bin/kubectl-kudo`
 
 ### Commands
 
 |  Syntax | Description  | 
 |---|---|
-| `kubectl maestro create <framework> -n <instanceName> -v <versionNumber> -p PARAM1="\VALUE\" -p PARAM2=Value`|  Creates an instance of an installed framework| 
-| `kubectl maestro delete <instanceName>`|  Deletes a specified instance| 
-| `kubectl maestro exec <frameworkName>  <cmd>`|  Executes a command for a particular framework - right now just Flink supported | 
-| `kubectl maestro flink  <cmd>`|  Wrapper arround `Flink CLI` that supports all https://ci.apache.org/projects/flink/flink-docs-release-1.7/ops/cli.html commands | 
-| `kubectl maestro install something`  |  Lists all available frameworks from the `Maestro App Store` that can be installed | 
-| `kubectl maestro install <frameworkName>`  |  Installs a framework from the `Maestro App Store` with dependencies | 
-| `kubectl maestro uninstall <frameworkName> --all-dependencies` | Uninstalls a framework/frameworkversion with all dependencies | 
-| `kubectl maestro uninstall <frameworkName>` | Uninstalls just the specified framework/frameworkversion| 
-| `kubectl maestro scale <instanceName> --replicas=<number>` |  Scales an instance deployment/statefulset | 
-| `kubectl maestro shell` |  Lists all available frameworks of which you could get a shell  | 
-| `kubectl maestro shell <frameworkName>` | Gives you a shell - right now just Flink supported |
-| `kubectl maestro start -n <instanceName> -v <version> -p <planName>` | Starts a specified plan of your instance |
+| `kubectl kudo create <framework> -n <instanceName> -v <versionNumber> -p PARAM1="\VALUE\" -p PARAM2=Value`|  Creates an instance of an installed framework| 
+| `kubectl kudo delete <instanceName>`|  Deletes a specified instance| 
+| `kubectl kudo exec <frameworkName>  <cmd>`|  Executes a command for a particular framework - right now just Flink supported | 
+| `kubectl kudo flink  <cmd>`|  Wrapper arround `Flink CLI` that supports all https://ci.apache.org/projects/flink/flink-docs-release-1.7/ops/cli.html commands | 
+| `kubectl kudo install something`  |  Lists all available frameworks from the `kudo App Store` that can be installed | 
+| `kubectl kudo install <frameworkName>`  |  Installs a framework from the `kudo App Store` with dependencies | 
+| `kubectl kudo uninstall <frameworkName> --all-dependencies` | Uninstalls a framework/frameworkversion with all dependencies | 
+| `kubectl kudo uninstall <frameworkName>` | Uninstalls just the specified framework/frameworkversion| 
+| `kubectl kudo scale <instanceName> --replicas=<number>` |  Scales an instance deployment/statefulset | 
+| `kubectl kudo shell` |  Lists all available frameworks of which you could get a shell  | 
+| `kubectl kudo shell <frameworkName>` | Gives you a shell - right now just Flink supported |
+| `kubectl kudo start -n <instanceName> -v <version> -p <planName>` | Starts a specified plan of your instance |
 
-Run `kubectl maestro install something` and you see a list of available frameworks:
+Run `kubectl kudo install something` and you see a list of available frameworks:
 
 ```bash
-maestro-demo $ kubectl maestro install something
+kudo-demo $ kubectl kudo install something
 Stable version of something not found. 
 Looking up incubating versions...
 	Framework something not found in registry.
@@ -317,59 +317,59 @@ Available incubating frameworks to install:
 ### Creating Example
 
 ```bash
-maestro-demo $ kubectl maestro create kafka -n kafka -v 2.11-2.4.0 -p KAFKA_ZOOKEEPER_URI:zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181 -p KAFKA_ZOOKEEPER_PATH:\"/small\" -p BROKERS_COUNT:\"3\"
-instance.maestro.k8s.io/kafka created
+kudo-demo $ kubectl kudo create kafka -n kafka -v 2.11-2.4.0 -p KAFKA_ZOOKEEPER_URI:zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181 -p KAFKA_ZOOKEEPER_PATH:\"/small\" -p BROKERS_COUNT:\"3\"
+instance.kudo.k8s.io/kafka created
 ```
 
 ### Delete Example
 
 ```bash
-maestro-demo $ kubectl maestro delete kafka
-instance.maestro.k8s.io "kafka" deleted
+kudo-demo $ kubectl kudo delete kafka
+instance.kudo.k8s.io "kafka" deleted
 ```
 
 ### Install framework
 
 ```bash
-maestro-demo $ kubectl maestro install kafka
+kudo-demo $ kubectl kudo install kafka
 Checking for kafka dependencies...
-Error from server (NotFound): frameworks.maestro.k8s.io "zookeeper" not found
+Error from server (NotFound): frameworks.kudo.k8s.io "zookeeper" not found
 No dependency frameworks are installed.
 Looking up stable version of zookeeper
 	Found 1 stable version
 Found latest stable version 0
 Installing zookeeper framework...
-framework.maestro.k8s.io/zookeeper created
-frameworkversion.maestro.k8s.io/zookeeper-1.0 created
+framework.kudo.k8s.io/zookeeper created
+frameworkversion.kudo.k8s.io/zookeeper-1.0 created
 stable framework zookeeper successfully installed.
 Looking up stable version of kafka
 	Found 1 stable version
 Found latest stable version 0
 Installing kafka framework...
-framework.maestro.k8s.io/kafka created
-frameworkversion.maestro.k8s.io/kafka-2.11-2.4.0 created
+framework.kudo.k8s.io/kafka created
+frameworkversion.kudo.k8s.io/kafka-2.11-2.4.0 created
 stable framework kafka successfully installed.
 ```
 
 ### Uninstall without dependencies (default)
 
 ```bash
-maestro-demo $ kubectl maestro uninstall kafka
+kudo-demo $ kubectl kudo uninstall kafka
 kafka framework is installed.
 Uninstalling kafka...
 Looking up stable version of kafka
 	Found 1 stable version
 Found latest stable version 0
 Uninstalling kafka framework...
-framework.maestro.k8s.io "kafka" deleted
-frameworkversion.maestro.k8s.io "kafka-2.11-2.4.0" deleted
+framework.kudo.k8s.io "kafka" deleted
+frameworkversion.kudo.k8s.io "kafka-2.11-2.4.0" deleted
 stable framework kafka successfully uninstalled.
 ```
 
 ### Uninstall with dependencies
 
 ```bash
-maestro-demo $ kubectl maestro uninstall kafka --all-dependencies
+kudo-demo $ kubectl kudo uninstall kafka --all-dependencies
 kafka framework is installed.
 Checking for kafka dependencies...
 Found installed dependency framework(s):
@@ -378,23 +378,23 @@ Looking up stable version of zookeeper
 	Found 1 stable version
 Found latest stable version 0
 Uninstalling zookeeper framework...
-framework.maestro.k8s.io "zookeeper" deleted
-frameworkversion.maestro.k8s.io "zookeeper-1.0" deleted
+framework.kudo.k8s.io "zookeeper" deleted
+frameworkversion.kudo.k8s.io "zookeeper-1.0" deleted
 stable framework zookeeper successfully uninstalled.
 All dependency frameworks are uninstalled now.
 Looking up stable version of kafka
 	Found 1 stable version
 Found latest stable version 0
 Uninstalling kafka framework...
-framework.maestro.k8s.io "kafka" deleted
-frameworkversion.maestro.k8s.io "kafka-2.11-2.4.0" deleted
+framework.kudo.k8s.io "kafka" deleted
+frameworkversion.kudo.k8s.io "kafka-2.11-2.4.0" deleted
 stable framework kafka successfully uninstalled.
 ```
 
 ### Scaling Example
 
 ```bash
-maestro-demo $ kubectl maestro scale kafka-kafka --replicas=4
+kudo-demo $ kubectl kudo scale kafka-kafka --replicas=4
 Error from server (NotFound): deployments.extensions "kafka-kafka" not found
 statefulset.apps/kafka-kafka scaled
 ```
@@ -402,6 +402,6 @@ statefulset.apps/kafka-kafka scaled
 ### Start Plan Example
 
 ```bash
-maestro-demo $ kubectl maestro start -n demo -v flink-financial-demo -p upload
-planexecution.maestro.k8s.io/demo unchanged
+kudo-demo $ kubectl kudo start -n demo -v flink-financial-demo -p upload
+planexecution.kudo.k8s.io/demo unchanged
 ```

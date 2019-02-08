@@ -20,7 +20,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"log"
 
-	maestrov1alpha1 "github.com/maestrosdk/maestro/pkg/apis/maestro/v1alpha1"
+	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -57,7 +57,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to Framework
-	err = c.Watch(&source.Kind{Type: &maestrov1alpha1.Framework{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &kudov1alpha1.Framework{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -78,10 +78,10 @@ type ReconcileFramework struct {
 // and what is in the Framework.Spec
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=maestro.k8s.io,resources=frameworks,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kudo.k8s.io,resources=frameworks,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileFramework) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the Framework instance
-	instance := &maestrov1alpha1.Framework{}
+	instance := &kudov1alpha1.Framework{}
 	err := r.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {

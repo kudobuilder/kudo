@@ -82,7 +82,7 @@ This phase deploys a `Flink` actor that mirrors the deployment [here](kubectl ap
 # Scratch
 ```bash
 cat <<EOF | kubectl apply -f -
-apiVersion: maestro.k8s.io/v1alpha1
+apiVersion: kudo.k8s.io/v1alpha1
 kind: PlanExecution
 metadata:
   name: upload

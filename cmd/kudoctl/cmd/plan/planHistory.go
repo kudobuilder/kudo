@@ -3,7 +3,7 @@ package plan
 import (
 	"encoding/json"
 	"fmt"
-	maestrov1alpha1 "github.com/maestrosdk/maestro/pkg/apis/maestro/v1alpha1"
+	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/spf13/cobra"
 	"github.com/xlab/treeprint"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,7 +21,7 @@ func NewPlanHistoryCmd() *cobra.Command {
 		Short: "Lists history to a specific framework-version of an instance.",
 		Long: `
 	# View plan status
-	maestroctl plan history <frameworkVersion> --instance=<instanceName>`,
+	kudoctl plan history <frameworkVersion> --instance=<instanceName>`,
 		Run: planHistoryCmd,
 	}
 
@@ -66,7 +66,7 @@ func planHistory(args []string) error {
 	}
 
 	planExecutionsGVR := schema.GroupVersionResource{
-		Group:    "maestro.k8s.io",
+		Group:    "kudo.k8s.io",
 		Version:  "v1alpha1",
 		Resource: "planexecutions",
 	}
@@ -92,7 +92,7 @@ func planHistory(args []string) error {
 		return err
 	}
 
-	planExecutionList := maestrov1alpha1.PlanExecutionList{}
+	planExecutionList := kudov1alpha1.PlanExecutionList{}
 
 	err = json.Unmarshal(mInstObj, &planExecutionList)
 	if err != nil {

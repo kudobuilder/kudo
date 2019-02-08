@@ -24,7 +24,7 @@ import (
 	"reflect"
 	"time"
 
-	maestrov1alpha1 "github.com/maestrosdk/maestro/pkg/apis/maestro/v1alpha1"
+	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -52,7 +52,7 @@ const basePath = "/kustomize"
 
 // Add creates a new Instance Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-// USER ACTION REQUIRED: update cmd/manager/main.go to call this maestro.Add(mgr) to install this Controller
+// USER ACTION REQUIRED: update cmd/manager/main.go to call this kudo.Add(mgr) to install this Controller
 func Add(mgr manager.Manager) error {
 	log.Printf("InstanceController: Registering instance controller.")
 	return add(mgr, newReconciler(mgr))
@@ -74,8 +74,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	p := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 
-			old := e.ObjectOld.(*maestrov1alpha1.Instance)
-			new := e.ObjectNew.(*maestrov1alpha1.Instance)
+			old := e.ObjectOld.(*kudov1alpha1.Instance)
+			new := e.ObjectNew.(*kudov1alpha1.Instance)
 
 			//Haven't done anything yet
 			if new.Status.ActivePlan.Name == "" {
@@ -87,7 +87,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			}
 
 			//get the new FrameworkVersion object
-			fv := &maestrov1alpha1.FrameworkVersion{}
+			fv := &kudov1alpha1.FrameworkVersion{}
 			err = mgr.GetClient().Get(context.TODO(),
 				types.NamespacedName{
 					Name:      new.Spec.FrameworkVersion.Name,
@@ -165,12 +165,12 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			if ok {
 
 				//mark the current plan as Suspend,
-				current := &maestrov1alpha1.PlanExecution{}
+				current := &kudov1alpha1.PlanExecution{}
 				err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{Name: new.Status.ActivePlan.Name, Namespace: new.Status.ActivePlan.Namespace}, current)
 				if err != nil {
 					log.Printf("InstanceController: Ignoring error when getting plan for new instance: %v", err)
 				} else {
-					if current.Status.State == maestrov1alpha1.PhaseStateComplete {
+					if current.Status.State == kudov1alpha1.PhaseStateComplete {
 						log.Println("InstanceController: Current Plan for Instance is already done, won't change the Suspend flag.")
 					} else {
 						log.Println("InstanceController: Setting PlanExecution to Suspend")
@@ -178,7 +178,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 						current.Spec.Suspend = &t
 						did, err := controllerutil.CreateOrUpdate(context.TODO(), mgr.GetClient(), current, func(o runtime.Object) error {
 							t := true
-							o.(*maestrov1alpha1.PlanExecution).Spec.Suspend = &t
+							o.(*kudov1alpha1.PlanExecution).Spec.Suspend = &t
 							return nil
 						})
 						if err != nil {
@@ -205,10 +205,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		//New Instances should have Deploy called
 		CreateFunc: func(e event.CreateEvent) bool {
 			log.Printf("InstanceController: Recieved create event for an instance named: %v", e.Meta.GetName())
-			new := e.Object.(*maestrov1alpha1.Instance)
+			new := e.Object.(*kudov1alpha1.Instance)
 
 			//get the new FrameworkVersion object
-			fv := &maestrov1alpha1.FrameworkVersion{}
+			fv := &kudov1alpha1.FrameworkVersion{}
 			err = mgr.GetClient().Get(context.TODO(),
 				types.NamespacedName{
 					Name:      new.Spec.FrameworkVersion.Name,
@@ -246,14 +246,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to Instance
-	err = c.Watch(&source.Kind{Type: &maestrov1alpha1.Instance{}}, &handler.EnqueueRequestForObject{}, p)
+	err = c.Watch(&source.Kind{Type: &kudov1alpha1.Instance{}}, &handler.EnqueueRequestForObject{}, p)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func createPlan(mgr manager.Manager, planName string, instance *maestrov1alpha1.Instance) error {
+func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Instance) error {
 	gvk, _ := apiutil.GVKForObject(instance, mgr.GetScheme())
 	recorder := mgr.GetRecorder("instance-controller")
 	recorder.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" plan execution", planName))
@@ -265,7 +265,7 @@ func createPlan(mgr manager.Manager, planName string, instance *maestrov1alpha1.
 		Namespace: instance.Namespace,
 	}
 
-	planExecution := maestrov1alpha1.PlanExecution{
+	planExecution := kudov1alpha1.PlanExecution{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%v-%v-%v", instance.Name, planName, time.Now().Nanosecond()),
 			Namespace: instance.GetNamespace(),
@@ -275,7 +275,7 @@ func createPlan(mgr manager.Manager, planName string, instance *maestrov1alpha1.
 				"instance":          instance.Name,
 			},
 		},
-		Spec: maestrov1alpha1.PlanExecutionSpec{
+		Spec: kudov1alpha1.PlanExecutionSpec{
 			Instance: ref,
 			PlanName: planName,
 		},
@@ -305,10 +305,10 @@ type ReconcileInstance struct {
 // and what is in the Instance.Spec
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=maestro.k8s.io,resources=instances,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kudo.k8s.io,resources=instances,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the Instance instance
-	instance := &maestrov1alpha1.Instance{}
+	instance := &kudov1alpha1.Instance{}
 	err := r.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -323,7 +323,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 	log.Printf("InstanceController: Recieved Reconcile request for \"%+v\"", request.Name)
 
 	//Make sure the FrameworkVersion is present
-	fv := &maestrov1alpha1.FrameworkVersion{}
+	fv := &kudov1alpha1.FrameworkVersion{}
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      instance.Spec.FrameworkVersion.Name,

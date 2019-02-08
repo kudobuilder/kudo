@@ -16,7 +16,7 @@ limitations under the License.
 package controller
 
 import (
-	"github.com/maestrosdk/maestro/pkg/controller/instance"
+	"github.com/kudobuilder/kudo/pkg/controller/instance"
 )
 
 func init() {

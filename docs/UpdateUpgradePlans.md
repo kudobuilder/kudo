@@ -10,10 +10,10 @@ The deploy plan is automatically run for new instances:
 
 ```bash
 $ kubectl apply -f config/samples/upgrade.yaml
-framework.maestro.k8s.io/upgrade created
-frameworkversion.maestro.k8s.io/upgrade-v1 created
-frameworkversion.maestro.k8s.io/upgrade-v2 created
-instance.maestro.k8s.io/up created
+framework.kudo.k8s.io/upgrade created
+frameworkversion.kudo.k8s.io/upgrade-v1 created
+frameworkversion.kudo.k8s.io/upgrade-v2 created
+instance.kudo.k8s.io/up created
 ```
 
 The PlanExecution object that gets created gets suffixed with a timestamp for uniqueness.
@@ -38,7 +38,7 @@ An upgrade of the instance is run when the Spec of the Instance is changed, but 
 
 ```
 kubectl patch instance up -p '{"spec":{"parameters":{"SLEEP":"60"}}}' --type=merge
-instance.maestro.k8s.io/up patched
+instance.kudo.k8s.io/up patched
 ```
 
 ```bash
@@ -61,7 +61,7 @@ Upgrades occur when the `FrameworkVersion` is changed.  The Upgrade from the NEW
 
 ```bash
 $  kubectl patch instance up -p '{"spec":{"frameworkVersion":{"name":"upgrade-v2"}}}' --type=merge
-instance.maestro.k8s.io/up patched
+instance.kudo.k8s.io/up patched
 $ kubectl get planexecutions -l instance=up
 NAME                   AGE
 up-deploy-539794000    3m

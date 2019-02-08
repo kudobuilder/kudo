@@ -3,7 +3,7 @@ package health
 import (
 	"context"
 	"fmt"
-	maestrov1alpha1 "github.com/maestrosdk/maestro/pkg/apis/maestro/v1alpha1"
+	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,16 +42,16 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 			return nil
 		}
 		return fmt.Errorf("Job \"%v\" still running or failed", job.Name)
-	case *maestrov1alpha1.Instance:
-		i := obj.(*maestrov1alpha1.Instance)
+	case *kudov1alpha1.Instance:
+		i := obj.(*kudov1alpha1.Instance)
 		//Instances are healthy when their Active Plan has succeeded
-		plan := &maestrov1alpha1.PlanExecution{}
+		plan := &kudov1alpha1.PlanExecution{}
 		c.Get(context.TODO(), client.ObjectKey{
 			Name:      i.Status.ActivePlan.Name,
 			Namespace: i.Status.ActivePlan.Namespace,
 		}, plan)
 		log.Printf("HealthUtil: Instance %v is in state %v", i.Name, plan.Status.State)
-		if plan.Status.State == maestrov1alpha1.PhaseStateComplete {
+		if plan.Status.State == kudov1alpha1.PhaseStateComplete {
 			return nil
 		}
 		return fmt.Errorf("instance's active plan is in state %v", plan.Status.State)
@@ -64,7 +64,7 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 }
 
 //IsStepHealthy returns whether each object in the given step is healthy
-func IsStepHealthy(c client.Client, step maestrov1alpha1.StepStatus) bool {
+func IsStepHealthy(c client.Client, step kudov1alpha1.StepStatus) bool {
 	for _, obj := range step.Objects {
 		if e := IsHealthy(c, obj); e != nil {
 			log.Printf("HealthUtil: Step %v is not healthy", step.Name)
@@ -75,9 +75,9 @@ func IsStepHealthy(c client.Client, step maestrov1alpha1.StepStatus) bool {
 }
 
 //IsPhaseHealthy returns whether each step in the phase is healthy.  See IsStepHealthy for step health
-func IsPhaseHealthy(phase maestrov1alpha1.PhaseStatus) bool {
+func IsPhaseHealthy(phase kudov1alpha1.PhaseStatus) bool {
 	for _, step := range phase.Steps {
-		if step.State != maestrov1alpha1.PhaseStateComplete {
+		if step.State != kudov1alpha1.PhaseStateComplete {
 			log.Printf("HealthUtil: Phase %v is not healthy b/c step %v is not healthy", phase.Name, step.Name)
 			return false
 		}
@@ -87,7 +87,7 @@ func IsPhaseHealthy(phase maestrov1alpha1.PhaseStatus) bool {
 }
 
 //IsPlanHealthy returns whether each Phase in the plan is healthy.  See IsPhaseHealthy for phase health
-func IsPlanHealthy(plan maestrov1alpha1.PlanExecutionStatus) bool {
+func IsPlanHealthy(plan kudov1alpha1.PlanExecutionStatus) bool {
 	for _, phase := range plan.Phases {
 		if !IsPhaseHealthy(phase) {
 			return false
