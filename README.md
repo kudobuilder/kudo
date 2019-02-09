@@ -1,6 +1,6 @@
-# Kudo
+# KUDO
 
-Kudo provides a declarative approach to building production-grade Kubernetes Operators covering the entire application lifecycle. 
+Kubernetes Universal Declarative Operator (KUDO) provides a declarative approach to building production-grade Kubernetes Operators covering the entire application lifecycle. 
 
 ## Getting Started
 
@@ -19,7 +19,7 @@ Before you get started:
 
 ## Installation Instructions
 
-- Get kudo repo: `go get github.com/kudobuilder/kudo/`
+- Get KUDO repo: `go get github.com/kudobuilder/kudo/`
 - `cd $GOPATH/src/github.com/kudobuilder/kudo`
 - `make install` to deploy universal CRDs
 - `make run` to run the Operator with local go environment
