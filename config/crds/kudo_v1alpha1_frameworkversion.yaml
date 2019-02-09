@@ -4,9 +4,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: frameworkversions.maestro.k8s.io
+  name: frameworkversions.kudo.k8s.io
 spec:
-  group: maestro.k8s.io
+  group: kudo.k8s.io
   names:
     kind: FrameworkVersion
     plural: frameworkversions
@@ -51,6 +51,8 @@ spec:
                     type: string
                   required:
                     type: boolean
+                  trigger:
+                    type: string
                 type: object
               type: array
             plans:

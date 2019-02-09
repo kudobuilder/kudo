@@ -9,12 +9,12 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 ## Contributing Steps
 
 1. Submit an issue describing your proposed change to the repo in question.
-2. The [repo owners](https://github.com/maestrosdk/maestro/blob/master/OWNERS) will respond to your issue promptly.
+2. The [repo owners](https://github.com/kudobuilder/kudo/blob/master/OWNERS) will respond to your issue promptly.
 3. If your proposed change is accepted, and you haven't already done so, sign a Contributor License Agreement (see details above).
 4. Fork the desired repo, develop and test your code changes.
 5. Submit a pull request.
 6.
-## How to build Maestro locally
+## How to build Kudo locally
 
 TBD
 
@@ -29,4 +29,4 @@ You can reach the maintainers of this project at:
 
 ## Code of conduct
 
-Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](https://github.com/maestrosdk/maestro/blob/master/code-of-conduct.md).
+Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](https://github.com/kudobuilder/kudo/blob/master/code-of-conduct.md).

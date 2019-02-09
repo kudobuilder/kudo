@@ -17,7 +17,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - maestro.k8s.io
+  - kudo.k8s.io
   resources:
   - frameworks
   verbs:
@@ -41,7 +41,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - maestro.k8s.io
+  - kudo.k8s.io
   resources:
   - frameworkversions
   verbs:
@@ -65,7 +65,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - maestro.k8s.io
+  - kudo.k8s.io
   resources:
   - instances
   verbs:
@@ -90,7 +90,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - maestro.k8s.io
+  - kudo.k8s.io
   resources:
   - planexecutions
   - instances

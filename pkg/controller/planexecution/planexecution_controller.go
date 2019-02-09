@@ -32,9 +32,9 @@ import (
 	ktypes "sigs.k8s.io/kustomize/pkg/types"
 	"strconv"
 
-	maestrov1alpha1 "github.com/maestrosdk/maestro/pkg/apis/maestro/v1alpha1"
-	"github.com/maestrosdk/maestro/pkg/util/health"
-	"github.com/maestrosdk/maestro/pkg/util/template"
+	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/util/health"
+	"github.com/kudobuilder/kudo/pkg/util/template"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -62,7 +62,7 @@ const basePath = "/kustomize"
 
 // Add creates a new PlanExecution Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-// USER ACTION REQUIRED: update cmd/manager/main.go to call this maestro.Add(mgr) to install this Controller
+// USER ACTION REQUIRED: update cmd/manager/main.go to call this kudo.Add(mgr) to install this Controller
 func Add(mgr manager.Manager) error {
 	log.Printf("PlanExecutionController: Registering planexecution controller.")
 
@@ -93,7 +93,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			for _, owner := range owners {
 				//if owner is an instance, we also want to queue up the
 				// PlanExecution in the Status section
-				inst := &maestrov1alpha1.Instance{}
+				inst := &kudov1alpha1.Instance{}
 				err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{
 					Name:      owner.Name,
 					Namespace: a.Meta.GetNamespace(),
@@ -136,7 +136,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to PlanExecution,
-	err = c.Watch(&source.Kind{Type: &maestrov1alpha1.PlanExecution{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &kudov1alpha1.PlanExecution{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -175,7 +175,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	err = c.Watch(
-		&source.Kind{Type: &maestrov1alpha1.Instance{}},
+		&source.Kind{Type: &kudov1alpha1.Instance{}},
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: mapFn,
 		},
@@ -203,13 +203,13 @@ type ReconcilePlanExecution struct {
 // a Deployment as an example
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=maestro.k8s.io,resources=planexecutions;instances,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kudo.k8s.io,resources=planexecutions;instances,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=events;configmaps,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets;poddisruptionbudgets.policy,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the PlanExecution instance
-	planExecution := &maestrov1alpha1.PlanExecution{}
+	planExecution := &kudov1alpha1.PlanExecution{}
 	err := r.Get(context.TODO(), request.NamespacedName, planExecution)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -222,7 +222,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	instance := &maestrov1alpha1.Instance{}
+	instance := &kudov1alpha1.Instance{}
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      planExecution.Spec.Instance.Name,
@@ -233,7 +233,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		//TODO how to handle errors.
 		//Can't find the instance.  Update sta
 		r.recorder.Event(planExecution, "Warning", "InvalidInstance", fmt.Sprintf("Could not find required instance (%v)", planExecution.Spec.Instance.Name))
-		planExecution.Status.State = maestrov1alpha1.PhaseStateError
+		planExecution.Status.State = kudov1alpha1.PhaseStateError
 		log.Printf("PlanExecutionController: Error getting Instance %v in %v: %v",
 			planExecution.Spec.Instance.Name,
 			planExecution.Spec.Instance.Namespace,
@@ -243,21 +243,21 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 	//Check for Suspend set.
 	if planExecution.Spec.Suspend != nil && *planExecution.Spec.Suspend {
-		planExecution.Status.State = maestrov1alpha1.PhaseStateSuspend
+		planExecution.Status.State = kudov1alpha1.PhaseStateSuspend
 		err = r.Update(context.TODO(), planExecution)
 		r.recorder.Event(instance, "Normal", "PlanSuspend", fmt.Sprintf("PlanExecution %v suspended", planExecution.Name))
 		return reconcile.Result{}, err
 	}
 
 	//See if this has already been proceeded
-	if planExecution.Status.State == maestrov1alpha1.PhaseStateComplete {
+	if planExecution.Status.State == kudov1alpha1.PhaseStateComplete {
 		log.Printf("PlanExecutionController: PlanExecution \"%v\" has already run to completion, not processing.", planExecution.Name)
 		return reconcile.Result{}, nil
 	}
 
 	//Get Instance Object
 
-	frameworkVersion := &maestrov1alpha1.FrameworkVersion{}
+	frameworkVersion := &kudov1alpha1.FrameworkVersion{}
 	//Before returning from this function, update the status
 	defer r.Update(context.Background(), planExecution)
 
@@ -286,7 +286,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	if err != nil {
 		//TODO how to handle errors.
 		//Can't find the instance.  Update sta
-		planExecution.Status.State = maestrov1alpha1.PhaseStateError
+		planExecution.Status.State = kudov1alpha1.PhaseStateError
 		r.recorder.Event(planExecution, "Warning", "InvalidFrameworkVersion", fmt.Sprintf("Could not find FrameworkVersion %v", instance.Spec.FrameworkVersion.Name))
 		log.Printf("PlanExecutionController: Error getting FrameworkVersion %v in %v: %v",
 			instance.Spec.FrameworkVersion.Name,
@@ -330,20 +330,20 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	if !ok {
 		r.recorder.Event(planExecution, "Warning", "InvalidPlan", fmt.Sprintf("Could not find required plan (%v)", planExecution.Spec.PlanName))
 		err = fmt.Errorf("Could not find required plan (%v)", planExecution.Spec.PlanName)
-		planExecution.Status.State = maestrov1alpha1.PhaseStateError
+		planExecution.Status.State = kudov1alpha1.PhaseStateError
 		return reconcile.Result{}, err
 	}
 
 	planExecution.Status.Name = planExecution.Spec.PlanName
 	planExecution.Status.Strategy = executedPlan.Strategy
 
-	planExecution.Status.Phases = make([]maestrov1alpha1.PhaseStatus, len(executedPlan.Phases))
+	planExecution.Status.Phases = make([]kudov1alpha1.PhaseStatus, len(executedPlan.Phases))
 	for i, phase := range executedPlan.Phases {
 		//populate the Status elements in instance
 		planExecution.Status.Phases[i].Name = phase.Name
 		planExecution.Status.Phases[i].Strategy = phase.Strategy
-		planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStatePending
-		planExecution.Status.Phases[i].Steps = make([]maestrov1alpha1.StepStatus, len(phase.Steps))
+		planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStatePending
+		planExecution.Status.Phases[i].Steps = make([]kudov1alpha1.StepStatus, len(phase.Steps))
 		for j, step := range phase.Steps {
 			// fetch FrameworkVersion
 			// get the task name from the step
@@ -383,7 +383,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						NamePrefix: instance.Name + "-",
 						Namespace:  instance.Namespace,
 						CommonLabels: map[string]string{
-							"heritage":      "maestro",
+							"heritage":      "kudo",
 							"app":           frameworkVersion.Spec.Framework.Name,
 							"version":       frameworkVersion.Spec.Version,
 							"instance":      instance.Name,
@@ -453,7 +453,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		//If we still want to execute phases in this plan
 		//check if phase is healthy
 		for j, s := range phase.Steps {
-			planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateComplete
+			planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateComplete
 
 			for _, obj := range s.Objects {
 				if s.Delete {
@@ -465,8 +465,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					}
 					if err != nil {
 						log.Printf("PlanExecutionController: Error deleting object in step \"%v\": %v", s.Name, err)
-						planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateError
-						planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateError
+						planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateError
+						planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateError
 						return reconcile.Result{}, err
 					}
 					continue
@@ -532,9 +532,10 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				log.Printf("PlanExecutionController: CreateOrUpdate resulted in: %v", result)
 
 				if err != nil {
-					log.Printf("PlanExecutionController: Error CreateOrUpdate object in step \"%v\": %v", s.Name, err)
-					planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateError
-					planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateError
+					log.Printf("PlanExecutionController: Error CreateOrUpdate Object in step \"%v\": %v", s.Name, err)
+					planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateError
+					planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateError
+
 					return reconcile.Result{}, err
 				}
 				log.Printf("PlanExecutionController: CreateOrUpdate resulted in: %v", result)
@@ -552,22 +553,22 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 				if err != nil {
 					log.Printf("PlanExecutionController: Error getting new object in step \"%v\": %v", s.Name, err)
-					planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateError
-					planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateError
+					planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateError
+					planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateError
 					return reconcile.Result{}, err
 				}
 				err = health.IsHealthy(r.Client, obj)
 				if err != nil {
 					log.Printf("PlanExecutionController: Obj is NOT healthy: %+v", obj)
-					planExecution.Status.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateInProgress
-					planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateInProgress
+					planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateInProgress
+					planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateInProgress
 				}
 			}
 			log.Printf("PlanExecutionController: Phase \"%v\" has strategy %v", phase.Name, phase.Strategy)
-			if phase.Strategy == maestrov1alpha1.Serial {
+			if phase.Strategy == kudov1alpha1.Serial {
 				//we need to skip the rest of the steps if this step is unhealthy
 				log.Printf("PlanExecutionController: Phase \"%v\" marked as serial", phase.Name)
-				if planExecution.Status.Phases[i].Steps[j].State != maestrov1alpha1.PhaseStateComplete {
+				if planExecution.Status.Phases[i].Steps[j].State != kudov1alpha1.PhaseStateComplete {
 					log.Printf("PlanExecutionController: Step \"%v\" isn't complete, skipping rest of steps in phase until it is", planExecution.Status.Phases[i].Steps[j].Name)
 					break //break step loop
 				} else {
@@ -579,15 +580,15 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		}
 		if health.IsPhaseHealthy(planExecution.Status.Phases[i]) {
 			log.Printf("PlanExecutionController: Phase \"%v\" marked as healthy", phase.Name)
-			planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateComplete
+			planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateComplete
 			continue
 		}
 
 		//This phase isn't quite ready yet.  Lets see what needs to be done
-		planExecution.Status.Phases[i].State = maestrov1alpha1.PhaseStateInProgress
+		planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateInProgress
 
 		//Don't keep going to other plans if we're flagged to perform the phases in serial
-		if executedPlan.Strategy == maestrov1alpha1.Serial {
+		if executedPlan.Strategy == kudov1alpha1.Serial {
 			log.Printf("PlanExecutionController: Phase \"%v\" not healthy, and plan marked as serial, so breaking.", phase.Name)
 			break
 		}
@@ -597,9 +598,9 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	if health.IsPlanHealthy(planExecution.Status) {
 		r.recorder.Event(planExecution, "Normal", "PhaseStateComplete", fmt.Sprintf("Instances healthy, phase marked as COMPLETE"))
 		r.recorder.Event(instance, "Normal", "PlanComplete", fmt.Sprintf("PlanExecution %v completed", planExecution.Name))
-		planExecution.Status.State = maestrov1alpha1.PhaseStateComplete
+		planExecution.Status.State = kudov1alpha1.PhaseStateComplete
 	} else {
-		planExecution.Status.State = maestrov1alpha1.PhaseStateInProgress
+		planExecution.Status.State = kudov1alpha1.PhaseStateInProgress
 	}
 
 	instance.Status.Status = planExecution.Status.State

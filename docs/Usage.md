@@ -19,9 +19,9 @@ For each framework there will be a coresponding CustomResourceDefinition:
 ```bash
 $ kubectl get crds -l type=framework
 NAME                                AGE
-kafkas.packages.maestro.k8s.io      37m
-hdfs.packages.maestro.k8s.io        37m
-zookeeper.packages.maestro.k8s.io   37m
+kafkas.packages.kudo.k8s.io      37m
+hdfs.packages.kudo.k8s.io        37m
+zookeeper.packages.kudo.k8s.io   37m
 ```
 
 And each framework will have different versions available (not actual kubectl call):
@@ -101,7 +101,7 @@ When deploying an instance of a framework the correct values will get imported c
 Create a Kafka instance that uses it:
 
 ```
-apiVersion: packages.maestro.k8s.io/alpha
+apiVersion: packages.kudo.k8s.io/alpha
 kind: Kafka
 metadata:
   labels:

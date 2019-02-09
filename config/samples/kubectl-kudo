@@ -19,7 +19,7 @@ function frameworkInstall {
         if [[ "$1" == "flink" ]]
         then
             echo "Installing $1 framework..."
-            kubectl apply -f https://raw.githubusercontent.com/maestrosdk/maestro/bf665a30809fa5c18ecee6396203472e252fa15d/config/samples/flink.yaml
+            kubectl apply -f https://raw.githubusercontent.com/kudobuilder/kudo/bf665a30809fa5c18ecee6396203472e252fa15d/config/samples/flink.yaml
             if [[ "$?" == "1" ]]
             then
                 echo "Failed to install framework flink."
@@ -29,8 +29,8 @@ function frameworkInstall {
             exit 0
         fi
         echo "Installing $1 framework..."
-        kubectl apply -f https://raw.githubusercontent.com/maestrosdk/maestro/master/config/samples/$1-framework.yaml
-        kubectl apply -f https://raw.githubusercontent.com/maestrosdk/maestro/master/config/samples/$1-frameworkversion.yaml
+        kubectl apply -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-framework.yaml
+        kubectl apply -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-frameworkversion.yaml
         if [[ "$?" == "1" ]]
         then
             echo "Failed to install framework $1"
@@ -48,7 +48,7 @@ function frameworkUninstall {
         if [[ "$1" == "flink" ]]
         then
             echo "Uninstalling $1 framework..."
-            kubectl delete -f https://raw.githubusercontent.com/maestrosdk/maestro/bf665a30809fa5c18ecee6396203472e252fa15d/config/samples/flink.yaml
+            kubectl delete -f https://raw.githubusercontent.com/kudobuilder/kudo/bf665a30809fa5c18ecee6396203472e252fa15d/config/samples/flink.yaml
             if [[ "$?" == "1" ]]
             then
                 echo "Failed to uninstall framework flink."
@@ -58,8 +58,8 @@ function frameworkUninstall {
             exit 0
         fi
         echo "Uninstalling $1 framework..."
-        kubectl delete -f https://raw.githubusercontent.com/maestrosdk/maestro/master/config/samples/$1-framework.yaml
-        kubectl delete -f https://raw.githubusercontent.com/maestrosdk/maestro/master/config/samples/$1-frameworkversion.yaml
+        kubectl delete -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-framework.yaml
+        kubectl delete -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-frameworkversion.yaml
         if [[ "$?" == "1" ]]
         then
             echo "Failed to uninstall framework $1"
@@ -213,7 +213,7 @@ then
     else
         echo -e "$2 is not a known framework.\n"
         echo "Please select the framework to install:"
-        sampleRegistry=$(curl -s https://api.github.com/repos/maestrosdk/maestro/contents/config/samples | jq -r ".[] | .name ")
+        sampleRegistry=$(curl -s https://api.github.com/repos/kudobuilder/kudo/contents/config/samples | jq -r ".[] | .name ")
         echo ""
         for t in ${sampleRegistry[@]}; do
             if [[ $t == *"framework.yaml" ]]; then
@@ -226,10 +226,10 @@ then
         echo -e "\tflink"
         echo ""
         echo "Syntax:"
-        echo -e "\tkubectl maestro install <frameworkName>"
+        echo -e "\tkubectl kudo install <frameworkName>"
         echo ""
         echo "Example:"
-        echo -e "\tkubectl maestro install flink"
+        echo -e "\tkubectl kudo install flink"
         exit 1
     fi
 fi
@@ -317,10 +317,10 @@ then
         done
         echo ""
         echo "Syntax:"
-        echo -e "\tkubectl maestro uninstall <frameworkName>"
+        echo -e "\tkubectl kudo uninstall <frameworkName>"
         echo ""
         echo "Example:"
-        echo -e "\tkubectl maestro uninstall kafka"
+        echo -e "\tkubectl kudo uninstall kafka"
         exit 1
     fi
 fi
@@ -334,7 +334,7 @@ then
         # kubectl run -i --tty --rm bash --image=bash --restart=Never -- bash -c "curl http://demo-flink-jobmanager:8081/jars"
         #kubectl run shell ${@:2}
         # Get current running jobmanager
-        JOBMANAGER_POD=$(kubectl get pods -l heritage=maestro,component=jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
+        JOBMANAGER_POD=$(kubectl get pods -l heritage=kudo,component=jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
         if [ -z "$JOBMANAGER_POD" ]
         then
             echo "No running jobmanager found."
@@ -347,9 +347,9 @@ then
     echo "Please verify the framework to get a shell:"
     kubectl get frameworks
     echo ""
-    echo "Syntax: kubectl maestro shell <frameworkName>"
+    echo "Syntax: kubectl kudo shell <frameworkName>"
     echo ""
-    echo "Example: kubectl maestro shell flink"
+    echo "Example: kubectl kudo shell flink"
     exit 1
 fi
 
@@ -359,7 +359,7 @@ then
     if [[ "$2" == "flink" ]]
     then
         # Get current running jobmanager
-        JOBMANAGER_POD=$(kubectl get pods -l heritage=maestro,component=jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
+        JOBMANAGER_POD=$(kubectl get pods -l heritage=kudo,component=jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
         if [ -z "$JOBMANAGER_POD" ]
         then
             echo "No running jobmanager found."
@@ -372,9 +372,9 @@ then
     echo "Please verify the framework to exec command:"
     kubectl get frameworks
     echo ""
-    echo "Syntax: kubectl maestro exec <frameworkName>"
+    echo "Syntax: kubectl kudo exec <frameworkName>"
     echo ""
-    echo "Example: kubectl maestro exec flink"
+    echo "Example: kubectl kudo exec flink"
     exit 1
 fi
 
@@ -382,7 +382,7 @@ fi
 if [[ "$1" == "flink" ]]
 then
     # Get current running jobmanager
-    JOBMANAGER_POD=$(kubectl get pods -l heritage=maestro,component=jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
+    JOBMANAGER_POD=$(kubectl get pods -l heritage=kudo,component=jobmanager --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
     if [ -z "$JOBMANAGER_POD" ]
     then
         echo "No running jobmanager found."
@@ -420,16 +420,16 @@ function createFunction {
         esac
     done
     shift $((OPTIND-1))
-    rm /tmp/maestro_instance_parameter
+    rm /tmp/kudo_instance_parameter
     replace=": "
     for t in ${c[@]}; do
         param_clean=${t/:/$replace}
-        cat <<EOF >> "/tmp/maestro_instance_parameter"
+        cat <<EOF >> "/tmp/kudo_instance_parameter"
         $param_clean
 EOF
     done
-    cat <<EOF > "/tmp/maestro_instance"
-apiVersion: maestro.k8s.io/v1alpha1
+    cat <<EOF > "/tmp/kudo_instance"
+apiVersion: kudo.k8s.io/v1alpha1
 kind: Instance
 metadata:
     labels:
@@ -443,8 +443,8 @@ spec:
         type: FrameworkVersion
     parameters:
 EOF
-    cat /tmp/maestro_instance /tmp/maestro_instance_parameter > /tmp/maestro_instance_joined
-    kubectl apply -f /tmp/maestro_instance_joined
+    cat /tmp/kudo_instance /tmp/kudo_instance_parameter > /tmp/kudo_instance_joined
+    kubectl apply -f /tmp/kudo_instance_joined
 }
 
 # create argument handling
@@ -458,9 +458,9 @@ then
         echo ""
         echo "Invalid create command."
         echo ""
-        echo "Syntax: kubectl maestro create -n <instanceName> -v <versionNumber> -p PARAM1=VALUE -p PARAM2=Value"
+        echo "Syntax: kubectl kudo create -n <instanceName> -v <versionNumber> -p PARAM1=VALUE -p PARAM2=Value"
         echo ""
-        echo "Example: kubectl maestro create kafka -n kafka -v 2.11-2.4.0 -p KAFKA_ZOOKEEPER_URI:zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181 -p KAFKA_ZOOKEEPER_PATH:/small -p BROKERS_COUNT:3"
+        echo "Example: kubectl kudo create kafka -n kafka -v 2.11-2.4.0 -p KAFKA_ZOOKEEPER_URI:zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181 -p KAFKA_ZOOKEEPER_PATH:/small -p BROKERS_COUNT:3"
         exit 1
     fi
     exit 0
@@ -475,17 +475,17 @@ then
         echo ""
         echo "Failed to delete instance $2."
         echo ""
-        echo "Syntax: kubectl maestro delete <instanceName> -v <versionNumber> -p PARAM1=VALUE -p PARAM2=Value"
+        echo "Syntax: kubectl kudo delete <instanceName> -v <versionNumber> -p PARAM1=VALUE -p PARAM2=Value"
         echo ""
-        echo "Example: kubectl maestro delete kafka"
+        echo "Example: kubectl kudo delete kafka"
         exit 1
     fi
     exit 0
 fi
 
-echo "Kubectl Maestro Plugin v0.0.1"
+echo "Kubectl kudo Plugin v0.0.1"
 echo ""
 echo "# Available commands"
-echo "kubectl maestro shell <Frameworkname>"
-echo "kubectl maestro exec <Frameworkname>"
-echo "kubectl maestro flink <CLI Command>"
+echo "kubectl kudo shell <Frameworkname>"
+echo "kubectl kudo exec <Frameworkname>"
+echo "kubectl kudo flink <CLI Command>"

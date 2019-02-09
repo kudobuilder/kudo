@@ -1,4 +1,4 @@
-apiVersion: maestro.k8s.io/v1alpha1
+apiVersion: kudo.k8s.io/v1alpha1
 kind: PlanExecution
 metadata:
   labels:
@@ -6,7 +6,7 @@ metadata:
   name: validation
   namespace: default
   ownerReferences:
-  - apiVersion: maestro.k8s.io/v1alpha1
+  - apiVersion: kudo.k8s.io/v1alpha1
     blockOwnerDeletion: true
     controller: true
     kind: Instance

@@ -1,10 +1,10 @@
 # See the OWNERS_ALIASES docs: https://git.k8s.io/community/contributors/guide/owners.md#owners_aliases
 
 aliases:
-  maestro-admins:
+  kudo-admins:
     - gerred
     - joerg84
     - pwittrock
-  maestro-maintainers:
+  kudo-maintainers:
     - fabianbaier
     - runyontr

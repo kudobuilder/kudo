@@ -15,12 +15,12 @@ limitations under the License.
 
 // NOTE: Boilerplate only.  Ignore this file.
 
-// Package v1alpha1 contains API Schema definitions for the maestro v1alpha1 API group
+// Package v1alpha1 contains API Schema definitions for the kudo v1alpha1 API group
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=github.com/maestrosdk/maestro/pkg/apis/maestro
+// +k8s:conversion-gen=github.com/kudobuilder/kudo/pkg/apis/kudo
 // +k8s:defaulter-gen=TypeMeta
-// +groupName=maestro.k8s.io
+// +groupName=kudo.k8s.io
 package v1alpha1
 
 import (
@@ -30,7 +30,7 @@ import (
 
 var (
 	// SchemeGroupVersion is group version used to register these objects
-	SchemeGroupVersion = schema.GroupVersion{Group: "maestro.k8s.io", Version: "v1alpha1"}
+	SchemeGroupVersion = schema.GroupVersion{Group: "kudo.k8s.io", Version: "v1alpha1"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}

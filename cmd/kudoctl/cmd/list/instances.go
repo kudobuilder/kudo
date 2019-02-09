@@ -13,7 +13,7 @@ import (
 
 	"path/filepath"
 
-	maestrov1alpha1 "github.com/maestrosdk/maestro/pkg/apis/maestro/v1alpha1"
+	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 )
@@ -33,7 +33,7 @@ func NewListInstancesCmd() *cobra.Command {
 		Short: "Lists all available instances.",
 		Long: `
 	# List all available instances
-	maestroctl list instances`,
+	kudoctl list instances`,
 		Run: instancesListCmd,
 	}
 
@@ -82,7 +82,7 @@ func listInstances() ([]string, error) {
 	}
 
 	instancesGVR := schema.GroupVersionResource{
-		Group:    "maestro.k8s.io",
+		Group:    "kudo.k8s.io",
 		Version:  "v1alpha1",
 		Resource: "instances",
 	}
@@ -95,7 +95,7 @@ func listInstances() ([]string, error) {
 
 	mInstObj, err := instObj.MarshalJSON()
 
-	instance := maestrov1alpha1.InstanceList{}
+	instance := kudov1alpha1.InstanceList{}
 
 	//log.Println(instObj)
 

@@ -1,12 +1,12 @@
-apiVersion: maestro.k8s.io/v1alpha1
-apiVersion: maestro.k8s.io/v1alpha1
+apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.k8s.io/v1alpha1
 kind: Framework
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: canary-app
 ---
-apiVersion: maestro.k8s.io/v1alpha1
+apiVersion: kudo.k8s.io/v1alpha1
 kind: FrameworkVersion
 metadata:
   labels:
@@ -120,7 +120,7 @@ spec:
       phases:
         - name: deploy-canary
 ---
-apiVersion: maestro.k8s.io/v1alpha1
+apiVersion: kudo.k8s.io/v1alpha1
 kind: Instance
 metadata:
   labels:
