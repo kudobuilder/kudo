@@ -483,11 +483,59 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				if err != nil {
 					log.Printf("PlanExecutionController: Cleanup failed: %v", err)
 				}
-				result, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, obj, func(runtime.Object) error { return nil })
+
+				arg := obj.DeepCopyObject()
+				result, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, arg, func(newObj runtime.Object) error {
+					//TODO Clean this up.  I don't like having to do a switch here
+					switch t := newObj.(type) {
+					case *appsv1.StatefulSet:
+						log.Printf("PlanExecutionController: CreateOrUpdate: StatefulSet %+v", t.Name)
+
+						newSs := newObj.(*appsv1.StatefulSet)
+						ss, ok := obj.(*appsv1.StatefulSet)
+						if !ok {
+							return fmt.Errorf("object passed in doesn't match expected StatefulSet type")
+						}
+
+						// We need some specilized logic in there.  We can't jsut copy the Spec since there are other values
+						// like spec.updateStrate, spec.volumeClaimTemplates, etc that are all
+						// generated from the object by the k8s controller.  We just want to update things we can change
+						newSs.Spec.Replicas = ss.Spec.Replicas
+
+						return nil
+
+					case *appsv1.Deployment:
+						newD := newObj.(*appsv1.Deployment)
+						d, ok := obj.(*appsv1.Deployment)
+						if !ok {
+							return fmt.Errorf("object passed in doesn't match expected deployment type")
+						}
+						newD.Spec.Replicas = d.Spec.Replicas
+						return nil
+
+					case *batchv1.Job:
+						// job := obj.(*batchv1.Job)
+
+					case *maestrov1alpha1.Instance:
+						// i := obj.(*maestrov1alpha1.Instance)
+
+					//unless we build logic for what a healthy object is, assume its healthy when created
+					default:
+						log.Print("PlanExecutionController: CreateOrUpdate: Type is not implemented yet")
+						return nil
+					}
+
+					return nil
+
+				})
+
+				log.Printf("PlanExecutionController: CreateOrUpdate resulted in: %v", result)
+
 				if err != nil {
 					log.Printf("PlanExecutionController: Error CreateOrUpdate Object in step \"%v\": %v", s.Name, err)
 					planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateError
 					planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateError
+
 					return reconcile.Result{}, err
 				}
 				log.Printf("PlanExecutionController: CreateOrUpdate resulted in: %v", result)
