@@ -31,16 +31,16 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 			log.Printf("Statefulset %v is marked healthy\n", ss.Name)
 			return nil
 		}
-		log.Printf("Statefulset %v is NOT healthy.  Not enough ready replicas: %v/%v\n", ss.Name, ss.Status.ReadyReplicas, ss.Status.Replicas)
+		log.Printf("HealthUtil: Statefulset %v is NOT healthy. Not enough ready replicas: %v/%v", ss.Name, ss.Status.ReadyReplicas, ss.Status.Replicas)
 		return fmt.Errorf("Ready Replicas (%v) does not equal Requested Replicas (%v)", ss.Status.ReadyReplicas, ss.Status.Replicas)
 	case *appsv1.Deployment:
 		d := obj.(*appsv1.Deployment)
 		if d.Spec.Replicas != nil && d.Status.ReadyReplicas == *d.Spec.Replicas {
-			log.Printf("Deployment %v is marked healthy\n", d.Name)
+			log.Printf("HealthUtil: Deployment %v is marked healthy", d.Name)
 			return nil
 		}
-		log.Printf("Deployment %v is NOT healthy.  Not enough ready replicas: %v/%v\n", d.Name, d.Status.ReadyReplicas, d.Spec.Replicas)
-		return fmt.Errorf("Ready Replicas (%v) does not equal Requested Replicas (%v)", d.Status.ReadyReplicas, d.Spec.Replicas)
+		log.Printf("HealthUtil: Deployment %v is NOT healthy. Not enough ready replicas: %v/%v", d.Name, d.Status.ReadyReplicas, *d.Spec.Replicas)
+		return fmt.Errorf("Ready Replicas (%v) does not equal Requested Replicas (%v)", d.Status.ReadyReplicas, *d.Spec.Replicas)
 	case *batchv1.Job:
 		job := obj.(*batchv1.Job)
 		// job.Status.
@@ -48,10 +48,10 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 		if job.Status.Succeeded == int32(1) {
 			//done!
 
-			log.Printf("Job %v is marked healthy\n", job.Name)
+			log.Printf("HealthUtil: Job \"%v\" is marked healthy", job.Name)
 			return nil
 		}
-		return fmt.Errorf("Job %v still running or failed", job.Name)
+		return fmt.Errorf("Job \"%v\" still running or failed", job.Name)
 	case *maestrov1alpha1.Instance:
 		i := obj.(*maestrov1alpha1.Instance)
 		//Instances are healthy when their Active Plan has succeeded
@@ -60,11 +60,15 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 			Name:      i.Status.ActivePlan.Name,
 			Namespace: i.Status.ActivePlan.Namespace,
 		}, plan)
+<<<<<<< HEAD
 		if err != nil {
 			log.Printf("Error getting PlaneExecution %v/%v: %v\n", i.Status.ActivePlan.Name, i.Status.ActivePlan.Namespace, err)
 			return fmt.Errorf("instance active plan not found: %v", err)
 		}
 		log.Printf("Instance %v is in state %v\n", i.Name, plan.Status.State)
+=======
+		log.Printf("HealthUtil: Instance %v is in state %v", i.Name, plan.Status.State)
+>>>>>>> origin/master
 		if plan.Status.State == maestrov1alpha1.PhaseStateComplete {
 			return nil
 		}
@@ -72,7 +76,7 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 
 	//unless we build logic for what a healthy object is, assume its healthy when created
 	default:
-		log.Printf("Unkonwn type is marked healthy by default\n")
+		log.Printf("HealthUtil: Unknown type is marked healthy by default")
 		return nil
 	}
 }
@@ -81,7 +85,7 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 func IsStepHealthy(c client.Client, step maestrov1alpha1.StepStatus) bool {
 	for _, obj := range step.Objects {
 		if e := IsHealthy(c, obj); e != nil {
-			log.Printf("Step %v is not healthy\n", step.Name)
+			log.Printf("HealthUtil: Step %v is not healthy", step.Name)
 			return false
 		}
 	}
@@ -92,11 +96,11 @@ func IsStepHealthy(c client.Client, step maestrov1alpha1.StepStatus) bool {
 func IsPhaseHealthy(phase maestrov1alpha1.PhaseStatus) bool {
 	for _, step := range phase.Steps {
 		if step.State != maestrov1alpha1.PhaseStateComplete {
-			log.Printf("Phase %v is not healthy b/c step %v is not healthy\n", phase.Name, step.Name)
+			log.Printf("HealthUtil: Phase %v is not healthy b/c step %v is not healthy", phase.Name, step.Name)
 			return false
 		}
 	}
-	log.Printf("Phase %v is healthy\n", phase.Name)
+	log.Printf("HealthUtil: Phase %v is healthy", phase.Name)
 	return true
 }
 

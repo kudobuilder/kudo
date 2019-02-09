@@ -34,7 +34,7 @@ import (
 // Add creates a new Framework Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	log.Printf("Registering framework.\n")
+	log.Printf("FrameworkController: Registering framework controller.")
 	reconciler, err := newReconciler(mgr)
 	if err != nil {
 		return err
@@ -93,7 +93,7 @@ func (r *ReconcileFramework) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	log.Printf("FrameworkController: Recieved Reconcile request for %v\n", request.Name)
+	log.Printf("FrameworkController: Recieved Reconcile request for a framework named: %v", request.Name)
 
 	return reconcile.Result{}, nil
 }

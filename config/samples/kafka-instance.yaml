@@ -4,7 +4,7 @@ metadata:
   labels:
     controller-tools.k8s.io: "1.0"
     framework: kafka
-  name: small
+  name: kafka
 spec:
   frameworkVersion:
     name: kafka-2.11-2.4.0
@@ -17,5 +17,5 @@ spec:
       type: Instance
   parameters:
     KAFKA_ZOOKEEPER_URI: zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181
-    KAFKA_ZOOKEEPER_PATH: "/small"
-    BROKERS_COUNT: "3"
+    KAFKA_ZOOKEEPER_PATH: "/kafka"
+    BROKER_COUNT: "1"
