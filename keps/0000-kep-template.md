@@ -3,16 +3,13 @@ kep-number: 0
 title: My First KEP
 authors:
   - "@janedoe"
-reviewers:
+owners:
   - TBD
-  - "@alicedoe"
-approvers:
-  - TBD
-  - "@oscardoe"
+  - "@johndoe"
 editor: TBD
 creation-date: yyyy-mm-dd
 last-updated: yyyy-mm-dd
-status: provisional
+status: provisional/implementable/implemented/deferred/rejected/withdrawn/replaced
 see-also:
   - KEP-1
   - KEP-2
