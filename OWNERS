@@ -1,12 +1,11 @@
 # See the OWNERS docs: https://git.k8s.io/community/contributors/guide/owners.md
 
-owners:
-  - gerred
-  - joerg84
-  - pwittrock
 approvers:
-  - kudo-admins
-  - kudo-maintainers
+  - gerred
+  - runyontr
+  - fabianbaier
 reviewers:
-  - kudo-admins
-  - kudo-maintainers
+  - gerred
+  - runyontr
+  - fabianbaier
+  - joerg84
