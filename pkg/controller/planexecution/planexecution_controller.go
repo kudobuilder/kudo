@@ -516,8 +516,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					case *batchv1.Job:
 						// job := obj.(*batchv1.Job)
 
-					case *maestrov1alpha1.Instance:
-						// i := obj.(*maestrov1alpha1.Instance)
+					case *kudov1alpha1.Instance:
+						// i := obj.(*kudov1alpha1.Instance)
 
 					//unless we build logic for what a healthy object is, assume its healthy when created
 					default:
