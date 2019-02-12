@@ -21,7 +21,7 @@ superseded-by:
 
 # Title
 
-This is the title of the KEP.
+This is the title of the KUDO Enhancement Proposal (KEP).
 Keep it simple and descriptive.
 A good title can help communicate what the KEP is and should be considered as part of any review.
 
