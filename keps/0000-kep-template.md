@@ -140,8 +140,8 @@ Major milestones might include
 - the `Summary` and `Motivation` sections being merged signaling owner acceptance
 - the `Proposal` section being merged signaling agreement on a proposed design
 - the date implementation started
-- the first Kubernetes release where an initial version of the KEP was available
-- the version of Kubernetes where the KEP graduated to general availability
+- the first KUDO release where an initial version of the KEP was available
+- the version of KUDO where the KEP graduated to general availability
 - when the KEP was retired or superseded
 
 ## Drawbacks [optional]
