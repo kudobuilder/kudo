@@ -1,0 +1,168 @@
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Framework
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: upgrade
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: FrameworkVersion
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: upgrade-v1
+  namespace: default
+spec:
+  version: "1.0.0"
+  connectionString: ""
+  framework:
+    name: upgrade
+    kind: Framework
+  templates:
+    job.yaml: |
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        namespace: default
+        name: {{PLAN_NAME}}-job
+      spec:
+        template:
+          metadata:
+            name: {{PLAN_NAME}}-job
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - name: bb
+              image: busybox:latest
+              imagePullPolicy: IfNotPresent
+              command:
+              - /bin/sh
+              - -c
+              - "echo {{PLAN_NAME}} for v1 && echo Going to sleep for {{SLEEP}} seconds && sleep {{SLEEP}}"
+  tasks:
+    run:
+      resources:
+      - job.yaml
+  parameters:
+  - name: SLEEP
+    description: "how long to have the container sleep for before returning"
+    default: "15"
+    required: false
+    displayName: "Sleep Time"
+  plans:
+    deploy:
+      strategy: serial
+      phases:
+        - name: par
+          strategy: serial
+          steps:
+          - name: run-step
+            tasks:
+            - run
+    upgrade:
+      strategy: serial
+      phases:
+        - name: par
+          strategy: serial
+          steps:
+          - name: run-step
+            tasks:
+            - run
+    update:
+      strategy: serial
+      phases:
+        - name: par
+          strategy: serial
+          steps:
+          - name: run-step
+            tasks:
+            - run       
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: FrameworkVersion
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: upgrade-v2
+  namespace: default
+spec:
+  version: "1.0.1"
+  connectionString: ""
+  framework:
+    name: upgrade
+    kind: Framework
+  templates:
+    job.yaml: |
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        namespace: default
+        name: {{PLAN_NAME}}-job
+      spec:
+        template:
+          metadata:
+            name: {{PLAN_NAME}}-job
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - name: bb
+              image: busybox:latest
+              imagePullPolicy: IfNotPresent
+              command:
+              - /bin/sh
+              - -c
+              - "echo {{PLAN_NAME}} for v2 && echo Going to sleep for {{SLEEP}} seconds && sleep {{SLEEP}}"
+  tasks:
+    run:
+      resources:
+      - job.yaml
+  parameters:
+  - name: SLEEP
+    description: "how long to have the container sleep for before returning"
+    default: "15"
+    required: false
+    displayName: "Sleep Time"
+  plans:
+    deploy:
+      strategy: serial
+      phases:
+        - name: par
+          strategy: serial
+          steps:
+          - name: run-step
+            tasks:
+            - run
+    upgrade:
+      strategy: serial
+      phases:
+        - name: par
+          strategy: serial
+          steps:
+          - name: run-step
+            tasks:
+            - run
+    update:
+      strategy: serial
+      phases:
+        - name: par
+          strategy: serial
+          steps:
+          - name: run-step
+            tasks:
+            - run             
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+    framework: upgrade
+  name: up
+spec:
+  frameworkVersion:
+    name: upgrade-v1
+    namespace: default
+    type: FrameworkVersions
+  # Add fields here
+  parameters:
+    SLEEP: "15"

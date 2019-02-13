@@ -1,0 +1,14 @@
+apiVersion: kudo.k8s.io/v1alpha1
+kind: PlanExecution
+metadata:
+  labels:
+    framework-version: mysql-57
+    instance: mysql
+  name: mysql-backup
+  namespace: default
+spec:
+  instance:
+    kind: Instance
+    name: mysql
+    namespace: default
+  planName: backup

@@ -17,9 +17,10 @@ package framework
 
 import (
 	"context"
+	"k8s.io/client-go/tools/record"
 	"log"
 
-	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
+	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,7 +34,7 @@ import (
 // Add creates a new Framework Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	log.Printf("Registering framework.\n")
+	log.Printf("FrameworkController: Registering framework controller.")
 	reconciler, err := newReconciler(mgr)
 	if err != nil {
 		return err
@@ -43,7 +44,8 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
-	return &ReconcileFramework{Client: mgr.GetClient(), scheme: mgr.GetScheme()}, nil
+
+	return &ReconcileFramework{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("framework-controller")}, nil
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -55,7 +57,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to Framework
-	err = c.Watch(&source.Kind{Type: &maestrov1alpha1.Framework{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &kudov1alpha1.Framework{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -68,17 +70,18 @@ var _ reconcile.Reconciler = &ReconcileFramework{}
 // ReconcileFramework reconciles a Framework object
 type ReconcileFramework struct {
 	client.Client
-	scheme *runtime.Scheme
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 // Reconcile reads that state of the cluster for a Framework object and makes changes based on the state read
 // and what is in the Framework.Spec
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=maestro.k8s.io,resources=frameworks,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kudo.k8s.io,resources=frameworks,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileFramework) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the Framework instance
-	instance := &maestrov1alpha1.Framework{}
+	instance := &kudov1alpha1.Framework{}
 	err := r.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -90,7 +93,7 @@ func (r *ReconcileFramework) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	log.Printf("FrameworkController: Recieved Reconcile request for %v\n", request.Name)
+	log.Printf("FrameworkController: Recieved Reconcile request for a framework named: %v", request.Name)
 
 	return reconcile.Result{}, nil
 }

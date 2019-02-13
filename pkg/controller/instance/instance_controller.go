@@ -17,34 +17,22 @@ package instance
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"gopkg.in/yaml.v2"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"log"
-	"sigs.k8s.io/kustomize/k8sdeps/kunstruct"
-	"sigs.k8s.io/kustomize/k8sdeps/transformer"
-	"sigs.k8s.io/kustomize/pkg/fs"
-	"sigs.k8s.io/kustomize/pkg/loader"
-	"sigs.k8s.io/kustomize/pkg/patch"
-	"sigs.k8s.io/kustomize/pkg/resmap"
-	"sigs.k8s.io/kustomize/pkg/resource"
-	"sigs.k8s.io/kustomize/pkg/target"
-	ktypes "sigs.k8s.io/kustomize/pkg/types"
+	"reflect"
 	"time"
 
-	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
-	"github.com/kubernetes-sigs/kubebuilder-maestro/pkg/util/health"
+	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 
-	"github.com/kubernetes-sigs/kubebuilder-maestro/pkg/util/template"
-	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -64,14 +52,15 @@ const basePath = "/kustomize"
 
 // Add creates a new Instance Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-// USER ACTION REQUIRED: update cmd/manager/main.go to call this maestro.Add(mgr) to install this Controller
+// USER ACTION REQUIRED: update cmd/manager/main.go to call this kudo.Add(mgr) to install this Controller
 func Add(mgr manager.Manager) error {
+	log.Printf("InstanceController: Registering instance controller.")
 	return add(mgr, newReconciler(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileInstance{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileInstance{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("instance-controller")}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -82,85 +71,224 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes to Instance
-	err = c.Watch(&source.Kind{Type: &maestrov1alpha1.Instance{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
-	//Watch for Deployments, Jobs and StatefulSets
-	// Define a mapping from the object in the event to one or more
-	// objects to Reconcile
-	mapFn := handler.ToRequestsFunc(
-		func(a handler.MapObject) []reconcile.Request {
-			owners := a.Meta.GetOwnerReferences()
-			requests := make([]reconcile.Request, 0)
-			for _, owner := range owners {
-				//TODO maybe check the owner is the correct type?
-				requests = append(requests, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      owner.Name,
-						Namespace: a.Meta.GetNamespace(),
-					},
-				})
-			}
-			return requests
-		})
-
-	// 'UpdateFunc' and 'CreateFunc' used to judge if a event about the object is
-	// what we want. If that is true, the event will be processed by the reconciler.
 	p := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			// The object doesn't contain label "foo", so the event will be
-			// ignored.
-			return e.ObjectOld != e.ObjectNew
-		},
-		CreateFunc: func(e event.CreateEvent) bool {
-			fmt.Printf("Recieved CreateEvent for event %v/%v:\n", e.Object.GetObjectKind(), e.Meta.GetName())
-			if _, ok := e.Meta.GetLabels()["foo"]; !ok {
+
+			old := e.ObjectOld.(*kudov1alpha1.Instance)
+			new := e.ObjectNew.(*kudov1alpha1.Instance)
+
+			//Haven't done anything yet
+			if new.Status.ActivePlan.Name == "" {
+				err = createPlan(mgr, "deploy", new)
+				if err != nil {
+					log.Printf("InstanceController: Error creating \"%v\" object for \"%v\": %v", "deploy", new.Name, err)
+				}
+				return true
+			}
+
+			//get the new FrameworkVersion object
+			fv := &kudov1alpha1.FrameworkVersion{}
+			err = mgr.GetClient().Get(context.TODO(),
+				types.NamespacedName{
+					Name:      new.Spec.FrameworkVersion.Name,
+					Namespace: new.Spec.FrameworkVersion.Namespace,
+				},
+				fv)
+			if err != nil {
+				log.Printf("InstanceController: Error getting frameworkversion \"%v\" for instance \"%v\": %v",
+					new.Spec.FrameworkVersion.Name,
+					new.Name,
+					err)
+				//TODO
+				//We probably want to handle this differently and mark this instance as unhealthy
+				//since its linking to a bad FV
 				return false
 			}
-			return true
+			//Identify plan to be executed by this change
+			var planName string
+			var ok bool
+			if old.Spec.FrameworkVersion != new.Spec.FrameworkVersion {
+				//Its an Upgrade!
+				_, ok = fv.Spec.Plans["upgrade"]
+				if !ok {
+					_, ok = fv.Spec.Plans["update"]
+					if !ok {
+						_, ok = fv.Spec.Plans["deploy"]
+						if !ok {
+							log.Println("InstanceController: Could not find any plan to use for upgrade")
+							return false
+						}
+						ok = true // Do we need this here?
+						planName = "deploy"
+					} else {
+						planName = "update"
+					}
+				} else {
+					planName = "upgrade"
+				}
+			} else if !reflect.DeepEqual(old.Spec, new.Spec) {
+				for k, v := range new.Spec.Parameters {
+					if old.Spec.Parameters[k] != v {
+						//Find the right parameter in the FV
+						for _, param := range fv.Spec.Parameters {
+							if param.Name == k {
+								planName = param.Trigger
+								ok = true
+							}
+						}
+						if !ok {
+							log.Printf("InstanceController: Instance %v updated parameter %v, but parameter not found in FrameworkVersion %v\n", new.Name, k, fv.Name)
+						} else if planName == "" {
+							_, ok = fv.Spec.Plans["update"]
+							if !ok {
+								_, ok = fv.Spec.Plans["deploy"]
+								if !ok {
+									log.Println("InstanceController: Could not find any plan to use for update")
+								} else {
+									planName = "deploy"
+								}
+							} else {
+								planName = "update"
+							}
+							log.Printf("InstanceController: Instance %v updated parameter %v, but no specified trigger.  Using default plan %v\n", new.Name, k, planName)
+						}
+					}
+				}
+				//Not currently doing anything for Dependency changes
+			} else {
+				log.Println("InstanceController: Old and new spec matched...")
+				planName = "deploy"
+			}
+			log.Printf("InstanceController: Going to call plan \"%v\"", planName)
+
+			//we found something
+			if ok {
+
+				//mark the current plan as Suspend,
+				current := &kudov1alpha1.PlanExecution{}
+				err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{Name: new.Status.ActivePlan.Name, Namespace: new.Status.ActivePlan.Namespace}, current)
+				if err != nil {
+					log.Printf("InstanceController: Ignoring error when getting plan for new instance: %v", err)
+				} else {
+					if current.Status.State == kudov1alpha1.PhaseStateComplete {
+						log.Println("InstanceController: Current Plan for Instance is already done, won't change the Suspend flag.")
+					} else {
+						log.Println("InstanceController: Setting PlanExecution to Suspend")
+						t := true
+						current.Spec.Suspend = &t
+						did, err := controllerutil.CreateOrUpdate(context.TODO(), mgr.GetClient(), current, func(o runtime.Object) error {
+							t := true
+							o.(*kudov1alpha1.PlanExecution).Spec.Suspend = &t
+							return nil
+						})
+						if err != nil {
+							log.Printf("InstanceController: Error changing the current PlanExecution to Suspend: %v", err)
+						} else {
+							log.Printf("InstanceController: No error in setting PlanExecution.Suspend to true. Returned %v", did)
+						}
+					}
+				}
+
+				err = createPlan(mgr, planName, new)
+				if err != nil {
+					log.Printf("InstanceController: Error creating \"%v\" object for \"%v\": %v", planName, new.Name, err)
+				}
+			}
+
+			//status change?  Sent it along
+
+			//See if there's a current plan being run.
+			//if so "cancel" the plan run
+			//create a new plan
+			return e.ObjectOld != e.ObjectNew
+		},
+		//New Instances should have Deploy called
+		CreateFunc: func(e event.CreateEvent) bool {
+			log.Printf("InstanceController: Recieved create event for an instance named: %v", e.Meta.GetName())
+			new := e.Object.(*kudov1alpha1.Instance)
+
+			//get the new FrameworkVersion object
+			fv := &kudov1alpha1.FrameworkVersion{}
+			err = mgr.GetClient().Get(context.TODO(),
+				types.NamespacedName{
+					Name:      new.Spec.FrameworkVersion.Name,
+					Namespace: new.Spec.FrameworkVersion.Namespace,
+				},
+				fv)
+			if err != nil {
+				log.Printf("InstanceController: Error getting frameworkversion \"%v\" for instance \"%v\": %v",
+					new.Spec.FrameworkVersion.Name,
+					new.Name,
+					err)
+				//TODO
+				//We probably want to handle this differently and mark this instance as unhealthy
+				//since its linking to a bad FV
+				return false
+			}
+			planName := "deploy"
+			ok := false
+			_, ok = fv.Spec.Plans[planName]
+			if !ok {
+				log.Println("InstanceController: Could not find deploy plan")
+				return false
+			}
+
+			err = createPlan(mgr, planName, new)
+			if err != nil {
+				log.Printf("InstanceController: Error creating \"%v\" object for \"%v\": %v", planName, new.Name, err)
+			}
+			return err == nil
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			fmt.Printf("Recieved DeleteEvent for event %v/%v:\n", e.Object.GetObjectKind(), e.Meta.GetName())
+			log.Printf("InstanceController: Recieved delete event for an instance named: %v", e.Meta.GetName())
 			return true
-
 		},
 	}
 
-	// Watch Deployments and trigger Reconciles for objects
-	// mapped from the Deployment in the event
-	err = c.Watch(
-		&source.Kind{Type: &appsv1.StatefulSet{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFn,
-		},
-		// Comment it if default predicate fun is used.
-		p)
+	// Watch for changes to Instance
+	err = c.Watch(&source.Kind{Type: &kudov1alpha1.Instance{}}, &handler.EnqueueRequestForObject{}, p)
 	if err != nil {
 		return err
 	}
-	err = c.Watch(
-		&source.Kind{Type: &appsv1.Deployment{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFn,
+	return nil
+}
+
+func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Instance) error {
+	gvk, _ := apiutil.GVKForObject(instance, mgr.GetScheme())
+	recorder := mgr.GetRecorder("instance-controller")
+	recorder.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" plan execution", planName))
+
+	// Create a new ref
+	ref := corev1.ObjectReference{
+		Kind:      gvk.Kind,
+		Name:      instance.Name,
+		Namespace: instance.Namespace,
+	}
+
+	planExecution := kudov1alpha1.PlanExecution{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%v-%v-%v", instance.Name, planName, time.Now().Nanosecond()),
+			Namespace: instance.GetNamespace(),
+			//Should also add one for Framework in here as well.
+			Labels: map[string]string{
+				"framework-version": instance.Spec.FrameworkVersion.Name,
+				"instance":          instance.Name,
+			},
 		},
-		// Comment it if default predicate fun is used.
-		p)
-	if err != nil {
+		Spec: kudov1alpha1.PlanExecutionSpec{
+			Instance: ref,
+			PlanName: planName,
+		},
+	}
+	//Make this instance the owner of the PlanExecution
+	controllerutil.SetControllerReference(instance, &planExecution, mgr.GetScheme())
+	//new!
+	if err := mgr.GetClient().Create(context.TODO(), &planExecution); err != nil {
+		log.Printf("InstanceController: Error creating planexecution \"%v\": %v", planExecution.Name, err)
+		recorder.Event(instance, "Warning", "CreatePlanExecution", fmt.Sprintf("Error creating planexecution \"%v\": %v", planExecution.Name, err))
 		return err
 	}
-	err = c.Watch(
-		&source.Kind{Type: &batchv1.Job{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFn,
-		},
-		// Comment it if default predicate fun is used.
-		p)
-	if err != nil {
-		return err
-	}
+	recorder.Event(instance, "Normal", "PlanCreated", fmt.Sprintf("PlanExecution \"%v\" created", planExecution.Name))
 	return nil
 }
 
@@ -169,17 +297,18 @@ var _ reconcile.Reconciler = &ReconcileInstance{}
 // ReconcileInstance reconciles a Instance object
 type ReconcileInstance struct {
 	client.Client
-	scheme *runtime.Scheme
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 // Reconcile reads that state of the cluster for a Instance object and makes changes based on the state read
 // and what is in the Instance.Spec
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=maestro.k8s.io,resources=instances,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kudo.k8s.io,resources=instances,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the Instance instance
-	instance := &maestrov1alpha1.Instance{}
+	instance := &kudov1alpha1.Instance{}
 	err := r.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -191,361 +320,34 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	log.Printf("InstanceController: Recieved Reconcile request for %v\n", request.Name)
+	log.Printf("InstanceController: Recieved Reconcile request for \"%+v\"", request.Name)
 
-	frameworkVersion := &maestrov1alpha1.FrameworkVersion{}
-	err = r.Get(context.TODO(), types.NamespacedName{
-		Name:      instance.Spec.FrameworkVersion.Name,
-		Namespace: instance.Spec.FrameworkVersion.Namespace,
-	}, frameworkVersion)
-
-	framework := &maestrov1alpha1.Framework{}
-	err = r.Get(context.TODO(), types.NamespacedName{
-		Name:      frameworkVersion.Spec.Framework.Name,
-		Namespace: "default",
-	}, framework)
-
+	//Make sure the FrameworkVersion is present
+	fv := &kudov1alpha1.FrameworkVersion{}
+	err = r.Get(context.TODO(),
+		types.NamespacedName{
+			Name:      instance.Spec.FrameworkVersion.Name,
+			Namespace: instance.Spec.FrameworkVersion.Namespace,
+		},
+		fv)
 	if err != nil {
-		log.Printf("InstanceController: Could not find Framework with name %v: %v\n", frameworkVersion.Spec.Framework.Name, err)
+		log.Printf("InstanceController: Error getting frameworkversion \"%v\" for instance \"%v\": %v",
+			instance.Spec.FrameworkVersion.Name,
+			instance.Name,
+			err)
+		r.recorder.Event(instance, "Warning", "InvalidFrameworkVersion", fmt.Sprintf("Error getting frameworkversion \"%v\": %v", fv.Name, err))
 		return reconcile.Result{}, err
 	}
 
-	//Create configmap to hold all parameters for instantiation
-	configs := make(map[string]string)
-	//Default parameters from instance metadata
-	configs["FRAMEWORK_NAME"] = framework.Name
-	configs["NAME"] = instance.Name
-	configs["NAMESPACE"] = instance.Namespace
-	//parameters from instance spec
-	for k, v := range instance.Spec.Parameters {
-		configs[k] = v
-	}
-	//grab Framework instance (TODO Switch to FrameworkVersion)
-
-	if err != nil {
-		log.Printf("InstanceController: Could not find FrameworkVersion with name %v: %v\n", instance.Spec.FrameworkVersion.Name, err)
-		return reconcile.Result{}, err
-	}
-
-	//merge defaults with customizations
-	for k, v := range frameworkVersion.Spec.Defaults {
-		_, ok := configs[k]
-		if !ok { //not specified in params
-			configs[k] = v
+	//make sure all the required parameters in the frameworkversion are present
+	for _, param := range fv.Spec.Parameters {
+		if param.Required {
+			if _, ok := instance.Spec.Parameters[param.Name]; !ok {
+				r.recorder.Event(instance, "Warning", "MissingParameter", fmt.Sprintf("Missing parameter \"%v\" required by frameworkversion \"%v\"", param.Name, fv.Name))
+			}
 		}
-	}
-
-	if true {
-		b, _ := json.MarshalIndent(frameworkVersion, "", "\t")
-		fmt.Println(string(b))
-	}
-
-	//Now we need to see what plan should be executed:
-	//TODO actually figure it out, for now assume deploy == update
-	planName := "deploy"
-	executedPlan, ok := frameworkVersion.Spec.Plans[planName]
-	if !ok {
-		err = fmt.Errorf("Could not find required plan (%v)", planName)
-		return reconcile.Result{}, err
-	}
-
-	//populate the correct objects inside of the instance
-	//Clean start:
-	instance.Status.ActivePlan = planName
-	instance.Status.PlanExecutionStatus = maestrov1alpha1.PlanExecutionStatus{
-		Name:     planName,
-		Strategy: executedPlan.Strategy,
-	}
-	instance.Status.PlanExecutionStatus.Phases = make([]maestrov1alpha1.PhaseStatus, len(executedPlan.Phases))
-	for i, phase := range executedPlan.Phases {
-		//populate the Status elements in instance
-		instance.Status.PlanExecutionStatus.Phases[i].Name = phase.Name
-		instance.Status.PlanExecutionStatus.Phases[i].Strategy = phase.Strategy
-		instance.Status.PlanExecutionStatus.Phases[i].State = maestrov1alpha1.PhaseStatePending
-		instance.Status.PlanExecutionStatus.Phases[i].Steps = make([]maestrov1alpha1.StepStatus, len(phase.Steps))
-		for j, step := range phase.Steps {
-			var resources []string
-			fsys := fs.MakeFakeFS()
-			for k, v := range frameworkVersion.Spec.Templates {
-				templatedYaml, err := template.ExpandMustache(v, configs)
-				if err != nil {
-					log.Printf("InstanceController: Error expanding mustache: %v\n", err)
-					return reconcile.Result{}, err
-				}
-
-				fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, k), []byte(*templatedYaml))
-				resources = append(resources, k)
-			}
-
-			kustomization := &ktypes.Kustomization{
-				NamePrefix: instance.Name + "-",
-				Namespace:  instance.Namespace,
-				CommonLabels: map[string]string{
-					"heritage": "maestro",
-					"app":      framework.Name,
-					"instance": instance.Name,
-				},
-				Resources:             resources,
-				PatchesStrategicMerge: []patch.StrategicMerge{},
-			}
-
-			yamlBytes, err := yaml.Marshal(kustomization)
-			if err != nil {
-				return reconcile.Result{}, err
-			}
-
-			fsys.WriteFile(fmt.Sprintf("%s/kustomization.yaml", basePath), yamlBytes)
-			ldr, err := loader.NewLoader(basePath, fsys)
-			if err != nil {
-				return reconcile.Result{}, nil
-			}
-			defer ldr.Cleanup()
-
-			rf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()))
-			kt, err := target.NewKustTarget(ldr, fsys, rf, transformer.NewFactoryImpl())
-			if err != nil {
-				return reconcile.Result{}, nil
-			}
-
-			allResources, err := kt.MakeCustomizedResMap()
-			if err != nil {
-				return reconcile.Result{}, nil
-			}
-			res, err := allResources.EncodeAsYaml()
-			if err != nil {
-				log.Printf("Error applying configs to step %v in phase %v of plan %v: %v", step.Name, phase.Name, planName, err)
-				return reconcile.Result{}, err
-			}
-
-			objs, err := template.ParseKubernetesObjects(string(res))
-			if err != nil {
-				log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planName, err)
-				return reconcile.Result{}, err
-			}
-			instance.Status.PlanExecutionStatus.Phases[i].Steps[j].Name = step.Name
-			instance.Status.PlanExecutionStatus.Phases[i].Steps[j].Objects = objs
-		}
-	}
-
-	//Before returning from this function, update the status
-	defer r.Update(context.Background(), instance)
-
-	for i, phase := range instance.Status.PlanExecutionStatus.Phases {
-		//If we still want to execute phases in this plan
-		//check if phase is healthy
-		for j, s := range phase.Steps {
-			instance.Status.PlanExecutionStatus.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateComplete
-
-			for _, obj := range s.Objects {
-				//Make sure this objet is applied to the cluster.  Get back the instance from
-				// the cluster so we can see if it's healthy or not
-				obj, err = r.ApplyObject(obj, instance)
-				if err != nil {
-					log.Printf("Error applying Object in step:%v: %v\n", s.Name, err)
-					instance.Status.PlanExecutionStatus.Phases[i].State = maestrov1alpha1.PhaseStateError
-					instance.Status.PlanExecutionStatus.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateError
-					return reconcile.Result{}, err
-				}
-				err = health.IsHealthy(obj)
-				if err != nil {
-					fmt.Printf("Obj is NOT healthy: %v\n", obj)
-					instance.Status.PlanExecutionStatus.Phases[i].Steps[j].State = maestrov1alpha1.PhaseStateInProgress
-					instance.Status.PlanExecutionStatus.Phases[i].State = maestrov1alpha1.PhaseStateInProgress
-				}
-			}
-			fmt.Printf("Phase %v has strategy %v\n", phase.Name, phase.Strategy)
-			if phase.Strategy == maestrov1alpha1.Serial {
-				//we need to skip the rest of the steps if this step is unhealthy
-				fmt.Printf("Phase %v marked as serial\n", phase.Name)
-				if instance.Status.PlanExecutionStatus.Phases[i].Steps[j].State != maestrov1alpha1.PhaseStateComplete {
-					fmt.Printf("Step %v isn't complete, skipping rest of steps in phase until it is\n", instance.Status.PlanExecutionStatus.Phases[i].Steps[j].Name)
-					break //break step loop
-				} else {
-					fmt.Printf("Step %v is healthy, so I can continue on\n", instance.Status.PlanExecutionStatus.Phases[i].Steps[j].Name)
-				}
-			}
-
-			fmt.Printf("Step %v looked at\n", s.Name)
-		}
-		if health.IsPhaseHealthy(instance.Status.PlanExecutionStatus.Phases[i]) {
-			fmt.Printf("Phase %v marked as healthy\n", phase.Name)
-			instance.Status.PlanExecutionStatus.Phases[i].State = maestrov1alpha1.PhaseStateComplete
-			continue
-		}
-
-		//This phase isn't quite ready yet.  Lets see what needs to be done
-		instance.Status.PlanExecutionStatus.Phases[i].State = maestrov1alpha1.PhaseStateInProgress
-
-		//Don't keep goign to other plans if we're flagged to perform the phases in serial
-		if executedPlan.Strategy == maestrov1alpha1.Serial {
-			fmt.Printf("Phase %v not healthy, and plan marked as serial, so breaking.\n", phase.Name)
-			break
-		}
-		fmt.Printf("Phase %v looked at\n", phase.Name)
-	}
-
-	if health.IsPlanHealthy(instance.Status.PlanExecutionStatus) {
-		instance.Status.PlanExecutionStatus.State = maestrov1alpha1.PhaseStateComplete
-	} else {
-		instance.Status.PlanExecutionStatus.State = maestrov1alpha1.PhaseStateInProgress
 	}
 
 	//defer call from above should apply the status changes to the object
 	return reconcile.Result{}, nil
-}
-
-//ApplyObject takes the object provided and either creates or updates it depending on whether the object
-// exixts or not
-func (r *ReconcileInstance) ApplyObject(obj runtime.Object, parent metav1.Object) (runtime.Object, error) {
-	nnn, _ := client.ObjectKeyFromObject(obj)
-	switch o := obj.(type) {
-	//Service
-	case *corev1.Service:
-		svc := &corev1.Service{}
-		err := r.Get(context.TODO(), nnn, svc)
-		if err != nil && errors.IsNotFound(err) {
-			svc = obj.(*corev1.Service)
-			if err = controllerutil.SetControllerReference(parent, svc, r.scheme); err != nil {
-				return nil, err
-			}
-			err = r.Create(context.TODO(), svc)
-			if err != nil {
-				return nil, err
-			}
-		} else if err != nil {
-			return nil, err
-		} else {
-			//This gets autogetnerated, so don't overwrite it with a blank
-			//value
-			obj.(*corev1.Service).Spec.ClusterIP = svc.Spec.ClusterIP
-			svc.Spec = obj.(*corev1.Service).Spec
-			svc.Labels = obj.(*corev1.Service).Labels
-			svc.Annotations = obj.(*corev1.Service).Annotations
-			err = r.Update(context.TODO(), svc)
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		//Sleep to wait for the obejct to show up?
-		time.Sleep(1 * time.Second)
-
-		//get the copy from the cluster now that things have been applied:
-		err = r.Get(context.TODO(), nnn, svc)
-		return svc, err
-
-	case *appsv1.StatefulSet:
-		ss := &appsv1.StatefulSet{}
-		err := r.Get(context.TODO(), nnn, ss)
-		if err != nil && errors.IsNotFound(err) {
-			ss = obj.(*appsv1.StatefulSet)
-			if err := controllerutil.SetControllerReference(parent, ss, r.scheme); err != nil {
-				return nil, err
-			}
-			err = r.Create(context.TODO(), ss)
-			if err != nil {
-				return nil, err
-			}
-		} else if err != nil {
-			return nil, err
-		} else {
-			ss.Spec = obj.(*appsv1.StatefulSet).Spec
-			ss.Labels = obj.(*appsv1.StatefulSet).Labels
-			ss.Annotations = obj.(*appsv1.StatefulSet).Annotations
-			err = r.Update(context.TODO(), ss)
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		//Sleep to wait for the obejct to show up?
-		time.Sleep(1 * time.Second)
-		//get the copy from the cluster now that things have been applied:
-		err = r.Get(context.TODO(), nnn, ss)
-		return ss, err
-	case *policyv1beta1.PodDisruptionBudget:
-		pdb := &policyv1beta1.PodDisruptionBudget{}
-		err := r.Get(context.TODO(), nnn, pdb)
-		if err != nil && errors.IsNotFound(err) {
-			pdb = obj.(*policyv1beta1.PodDisruptionBudget)
-			if err := controllerutil.SetControllerReference(parent, pdb, r.scheme); err != nil {
-				return nil, err
-			}
-			err = r.Create(context.TODO(), pdb)
-			if err != nil {
-				return nil, err
-			}
-		} else if err != nil {
-			return nil, err
-		} else {
-			pdb.Spec = obj.(*policyv1beta1.PodDisruptionBudget).Spec
-			pdb.Labels = obj.(*policyv1beta1.PodDisruptionBudget).Labels
-			pdb.Annotations = obj.(*policyv1beta1.PodDisruptionBudget).Annotations
-			err = r.Update(context.TODO(), pdb)
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		//Sleep to wait for the obejct to show up?
-		time.Sleep(1 * time.Second)
-		//get the copy from the cluster now that things have been applied:
-		err = r.Get(context.TODO(), nnn, pdb)
-		return pdb, err
-	case *corev1.ConfigMap:
-		cm := &corev1.ConfigMap{}
-		err := r.Get(context.TODO(), nnn, cm)
-		if err != nil && errors.IsNotFound(err) {
-			cm = obj.(*corev1.ConfigMap)
-			if err := controllerutil.SetControllerReference(parent, cm, r.scheme); err != nil {
-				return nil, err
-			}
-			err = r.Create(context.TODO(), cm)
-			if err != nil {
-				return nil, err
-			}
-		} else if err != nil {
-			return nil, err
-		} else {
-			cm.Data = obj.(*corev1.ConfigMap).Data
-			cm.Labels = obj.(*corev1.ConfigMap).Labels
-			cm.Annotations = obj.(*corev1.ConfigMap).Annotations
-			err = r.Update(context.TODO(), cm)
-		}
-		if err != nil {
-			return nil, err
-		}
-		//Sleep to wait for the obejct to show up?
-		time.Sleep(1 * time.Second)
-
-		//get the copy from the cluster now that things have been applied:
-		err = r.Get(context.TODO(), nnn, cm)
-		return cm, err
-	case *batchv1.Job:
-		job := &batchv1.Job{}
-		err := r.Get(context.TODO(), nnn, job)
-		if err != nil && errors.IsNotFound(err) {
-			job = obj.(*batchv1.Job)
-			if err := controllerutil.SetControllerReference(parent, job, r.scheme); err != nil {
-				return nil, err
-			}
-			err = r.Create(context.TODO(), job)
-			if err != nil {
-				return nil, err
-			}
-		} else if err != nil {
-			return nil, err
-		}
-		//Don't update Jobs if they're already running.
-
-		//Sleep to wait for the obejct to show up?
-		time.Sleep(1 * time.Second)
-
-		//get the copy from the cluster now that things have been applied:
-		err = r.Get(context.TODO(), nnn, job)
-		return job, err
-	default:
-		return nil, fmt.Errorf("I dont know how to update types %v.  Please implement", o)
-
-	}
 }

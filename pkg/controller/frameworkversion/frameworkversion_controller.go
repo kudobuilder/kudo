@@ -19,7 +19,7 @@ import (
 	"context"
 	"log"
 
-	maestrov1alpha1 "github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis/maestro/v1alpha1"
+	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,8 +37,9 @@ import (
 
 // Add creates a new FrameworkVersion Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-// USER ACTION REQUIRED: update cmd/manager/main.go to call this maestro.Add(mgr) to install this Controller
+// USER ACTION REQUIRED: update cmd/manager/main.go to call this kudo.Add(mgr) to install this Controller
 func Add(mgr manager.Manager) error {
+	log.Printf("FrameworkVersionController: Registering frameworkversion controller.")
 	return add(mgr, newReconciler(mgr))
 }
 
@@ -56,7 +57,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to FrameworkVersion
-	err = c.Watch(&source.Kind{Type: &maestrov1alpha1.FrameworkVersion{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &kudov1alpha1.FrameworkVersion{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -77,10 +78,10 @@ type ReconcileFrameworkVersion struct {
 
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=maestro.k8s.io,resources=frameworkversions,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kudo.k8s.io,resources=frameworkversions,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileFrameworkVersion) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the FrameworkVersion instance
-	instance := &maestrov1alpha1.FrameworkVersion{}
+	instance := &kudov1alpha1.FrameworkVersion{}
 	err := r.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -92,7 +93,7 @@ func (r *ReconcileFrameworkVersion) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 
-	log.Printf("FrameworkVersionController: Recieved Reconcile request for %v\n", request.Name)
+	log.Printf("FrameworkVersionController: Recieved Reconcile request for a frameworkversion named: %v", request.Name)
 	//When this is changed, we need to Reconcile all instances objects that reference this
 	//object.
 

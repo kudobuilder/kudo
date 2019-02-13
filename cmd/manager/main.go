@@ -18,9 +18,9 @@ package main
 import (
 	"os"
 
-	"github.com/kubernetes-sigs/kubebuilder-maestro/pkg/apis"
-	"github.com/kubernetes-sigs/kubebuilder-maestro/pkg/controller"
-	"github.com/kubernetes-sigs/kubebuilder-maestro/pkg/webhook"
+	"github.com/kudobuilder/kudo/pkg/apis"
+	"github.com/kudobuilder/kudo/pkg/controller"
+	"github.com/kudobuilder/kudo/pkg/webhook"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"

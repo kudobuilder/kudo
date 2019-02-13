@@ -1,0 +1,79 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: frameworkversions.kudo.k8s.io
+spec:
+  group: kudo.k8s.io
+  names:
+    kind: FrameworkVersion
+    plural: frameworkversions
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            connectionString:
+              type: string
+            dependencies:
+              items:
+                properties:
+                  referenceName:
+                    type: string
+                  version:
+                    type: string
+                required:
+                - referenceName
+                - version
+                type: object
+              type: array
+            framework:
+              type: object
+            parameters:
+              items:
+                properties:
+                  default:
+                    type: string
+                  description:
+                    type: string
+                  displayName:
+                    type: string
+                  name:
+                    type: string
+                  required:
+                    type: boolean
+                  trigger:
+                    type: string
+                type: object
+              type: array
+            plans:
+              type: object
+            tasks:
+              type: object
+            templates:
+              type: object
+            upgradableFrom:
+              items:
+                type: object
+              type: array
+            version:
+              type: string
+          type: object
+        status:
+          type: object
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
