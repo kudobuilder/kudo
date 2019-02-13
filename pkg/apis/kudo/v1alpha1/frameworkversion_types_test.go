@@ -178,9 +178,9 @@ func TestFrameworkType_Validation(t *testing.T) {
 						Steps: []Step{
 							{},
 							{
-								Name:     " d", // ideally this should fail to
-								Mustache: "  ", // ideally this should fail to
-								Objects:  []runtime.Object{},
+								Name:    " d",         // ideally this should fail to
+								Tasks:   []string{""}, // ideally this should fail to
+								Objects: []runtime.Object{},
 							},
 						},
 					},
@@ -327,7 +327,8 @@ func TestFrameworkType_Validation(t *testing.T) {
 		"ServiceSpec.Plans[plan2].Phases[0].Strategy:required: cannot be ",
 		"ServiceSpec.Plans[plan2].Phases[0].Steps:gt: cannot be []",
 		"ServiceSpec.Plans[plan2].Phases[1].Steps[0].Name:required: cannot be empty",
-		"ServiceSpec.Plans[plan2].Phases[1].Steps[0].Mustache:required: cannot be empty",
+		"ServiceSpec.Plans[plan2].Phases[1].Steps[0].Tasks:required: cannot be []",
+		"ServiceSpec.Plans[plan2].Phases[1].Steps[1].Tasks[0]:gt: cannot be empty",
 	}
 
 	expectedTaskErrors := []string{

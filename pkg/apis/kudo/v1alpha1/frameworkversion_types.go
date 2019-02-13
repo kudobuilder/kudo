@@ -66,6 +66,43 @@ type Plan struct {
 	Phases []Phase `json:"phases" validate:"gt=0,dive"` // makes field mandatory and checks if its gt 0
 }
 
+//Parameter captures the variability of a FrameworkVersion being instantiated in an instance.  Describes
+//
+type Parameter struct {
+	//DisplayName can be used by UI's looking to
+	DisplayName string `json:"displayName,omitempty"`
+	//Name is the string that should be used in the mustached file
+	// for example, if `name: COUNT`
+	// then using the variable in a spec like:
+	//
+	// spec:
+	//   replicas:  {{COUNT}}
+	Name string `json:"name,omitempty"`
+
+	//Description captures a longer description of how the variable will be used
+	Description string `json:"description,omitempty"`
+
+	//Required specifies if the parameter is required to be provided by all instances, or whether a default can suffice
+	Required bool `json:"required,omitempty"`
+
+	//Default is a default value if no paramter is provided by the instance
+	Default string `json:"default,omitempty"`
+
+	//Trigger identifies the plan that gets executed when this parameter changes in the Instance object.
+	//Default is `update` if present, or `deploy` if not present
+	Trigger string `json:"trigger,omitempty"`
+
+	//TODO Add generated parameters (e.g. passwords)
+	//These values should be saved off in a secret instead of updating the spec
+	// with values so viewing the instance doesn't give crednetials
+
+}
+
+// TaskSpec is a struct containing lists of of Kustomize resources
+type TaskSpec struct {
+	Resources []string `json:"resources"`
+}
+
 //Phase specifies a list of steps that contain Kubernetes objects.
 type Phase struct {
 	Name     string   `json:"name" validate:"required,gt=0"`     // makes field mandatory and checks if set and non empty
@@ -75,8 +112,9 @@ type Phase struct {
 }
 
 type Step struct {
-	Name     string `json:"name" validate:"required,gt=0"`     // makes field mandatory and checks if set and non empty
-	Mustache string `json:"mustache" validate:"required,gt=0"` // makes field mandatory and checks if set and non empty
+	Name   string   `json:"name" validate:"required,gt=0"`            // makes field mandatory and checks if set and non empty
+	Tasks  []string `json:"tasks" validate:"required,gt=0,dive,gt=0"` // makes field mandatory and checks if set and non empty
+	Delete bool     `json:"delete,omitempty"`                         // no checks needed
 	//Objects will be serialized for each instance as the params and defaults
 	// are provided
 	Objects []runtime.Object `json:"-"` // no checks needed
