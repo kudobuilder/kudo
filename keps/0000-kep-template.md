@@ -45,7 +45,7 @@ The canonical place for the latest set of instructions (and the likely source of
 
 The `Metadata` section above is intended to support the creation of tooling around the KEP process.
 This will be a YAML section that is fenced as a code block.
-See the KEP process for details on each of these items.
+See the [KEP process](/keps/0001-kep-process.md) for details on each of these items.
 
 ## Table of Contents
 

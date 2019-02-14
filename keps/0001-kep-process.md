@@ -1,5 +1,5 @@
 ---
-kep-number: draft-20190214
+kep-number: 1
 title: KUDO Enhancement Proposal Process
 authors:
   - "@fabianbaier"
@@ -9,7 +9,7 @@ owners:
   - "@runyontr"
 editor: "@fabianbaier"
 creation-date: 2019-02-14
-status: provisional
+status: implemented
 ---
 
 # KUDO Enhancement Proposal Process
