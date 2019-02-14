@@ -1,13 +1,17 @@
 # Backup Jobs
 
-Kudo has the ability to capture the backup and restoration process for database applications.  
+KUDO has the ability to capture the backup and restoration process for database applications.
+
+## Demo
+
+Watch the explained demo video of the steps beneath [here](https://youtu.be/e_xUVS_bB2g?t=1433).  
 
 ## MySQL
 
-Create an instance of MySQL using the provded Framework
+Create an instance of MySQL using the provided Framework
 
 ```bash
-$ kubectl apply -f samples/config/mysql.yaml
+$ kubectl apply -f config/samples/mysql.yaml
 framework.kudo.k8s.io/mysql created
 frameworkversion.kudo.k8s.io/mysql-57 created
 instance.kudo.k8s.io/mysql created
@@ -37,7 +41,7 @@ kubectl exec -it $MYSQL_POD -- mysql -ppassword  -e "select * from example;" kud
 kubectl kudo start -n mysql -p backup
 ```
 
-## Delete data from the datbase
+## Delete data from the database
 
 ```bash
 kubectl exec -it $MYSQL_POD -- mysql -ppassword  -e "delete from example;" kudo
