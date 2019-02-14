@@ -44,21 +44,18 @@ This KEP aims to make the end user experience for frameworks more specific to th
 
 ## Motivation
 
-This section is for explicitly listing the motivation, goals and non-goals of this KEP.
-Describe why the change is important and the benefits to users.
-The motivation section can optionally provide links to [experience reports][] to demonstrate the interest in a KEP within the wider Kubernetes community.
+Currently, the interface for using frameworks in KUDO is very generic. Users create an `Instance` CRD with specs. Operator developers and users expect to be able to use contextual business objects for their operators instead of generic objects. This enables a more focused experience for users of KEP.
 
-[experience reports]: https://github.com/golang/go/wiki/ExperienceReports
+The goal of this KEP is to improve the end user UX through dynamic CRDs. Other than the ability to specfiy CRDs, and adjusting existing framework development CRDs to accomodate this change, it is not the goal of this KEP to change the framework development UX.
 
 ### Goals
 
-List the specific goals of the KEP.
-How will we know that this has succeeded?
+- Create a mechanism for framework developers to specify a CRD
+- Enable management for custom resources based on dynamic CRDs. Deploying a framework specific custom resource should deploy a plan as `Instance` was able to before.
 
 ### Non-Goals
 
-What is out of scope for his KEP?
-Listing non-goals helps to focus discussion and make progress.
+- Change the framework developer UX for templates, parameters, tasks, and plans.
 
 ## Proposal
 
