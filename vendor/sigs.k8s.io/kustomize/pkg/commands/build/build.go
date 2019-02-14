@@ -29,9 +29,18 @@ import (
 	"sigs.k8s.io/kustomize/pkg/target"
 )
 
-type buildOptions struct {
+// Options contain the options for running a build
+type Options struct {
 	kustomizationPath string
 	outputPath        string
+}
+
+// NewOptions creates a Options object
+func NewOptions(p, o string) *Options {
+	return &Options{
+		kustomizationPath: p,
+		outputPath:        o,
+	}
 }
 
 var examples = `
@@ -54,11 +63,11 @@ func NewCmdBuild(
 	out io.Writer, fs fs.FileSystem,
 	rf *resmap.Factory,
 	ptf transformer.Factory) *cobra.Command {
-	var o buildOptions
+	var o Options
 
 	cmd := &cobra.Command{
 		Use:          "build [path]",
-		Short:        "Print current configuration per contents of " + constants.KustomizationFileName,
+		Short:        "Print current configuration per contents of " + constants.KustomizationFileNames[0],
 		Example:      examples,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -77,9 +86,9 @@ func NewCmdBuild(
 }
 
 // Validate validates build command.
-func (o *buildOptions) Validate(args []string) error {
+func (o *Options) Validate(args []string) error {
 	if len(args) > 1 {
-		return errors.New("specify one path to " + constants.KustomizationFileName)
+		return errors.New("specify one path to " + constants.KustomizationFileNames[0])
 	}
 	if len(args) == 0 {
 		o.kustomizationPath = "./"
@@ -91,7 +100,7 @@ func (o *buildOptions) Validate(args []string) error {
 }
 
 // RunBuild runs build command.
-func (o *buildOptions) RunBuild(
+func (o *Options) RunBuild(
 	out io.Writer, fSys fs.FileSystem,
 	rf *resmap.Factory, ptf transformer.Factory) error {
 	ldr, err := loader.NewLoader(o.kustomizationPath, fSys)

@@ -4,12 +4,33 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: toys.fun.myk8s.io
+  name: services.fun.myk8s.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.conditions[?(@.type==\"Ready\")].status
+    description: descr1
+    format: date
+    name: toy
+    priority: 3
+    type: string
+  - JSONPath: status
+    description: descr2
+    format: int32
+    name: abc
+    priority: 1
+    type: integer
+  - JSONPath: .status.conditions.ready
+    description: descr3
+    format: byte
+    name: service
+    priority: 2
+    type: string
   group: fun.myk8s.io
   names:
     kind: Toy
-    plural: toys
+    plural: services
+    shortNames:
+    - ty
   scope: Namespaced
   subresources:
     scale:
@@ -20,8 +41,14 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -42,11 +69,17 @@ spec:
               format: byte
               type: string
             knights:
+              description: This is a comment on an array field.
               items:
                 type: string
               maxItems: 500
               minItems: 1
               type: array
+            location:
+              additionalProperties:
+                type: string
+              description: This is a comment on a map field.
+              type: object
             name:
               maxLength: 15
               minLength: 1
@@ -65,20 +98,32 @@ spec:
               format: int64
               type: integer
             replicas:
+              description: This is a dummy comment. Just checking if the multi-line
+                comments are working or not.
               format: int32
               type: integer
+            rook:
+              description: This is a newly added field. Using this for testing purpose.
+              oneOf:
+              - type: string
+              - type: integer
             template:
+              description: This is a comment on an object field.
               type: object
             winner:
+              description: This is a comment on a boolean field.
               type: boolean
           required:
           - rank
           - template
           - replicas
+          - rook
+          - location
           type: object
         status:
           properties:
             replicas:
+              description: It tracks the number of replicas.
               format: int32
               type: integer
           required:

@@ -5,6 +5,7 @@
 package lsp
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"strings"
@@ -13,28 +14,28 @@ import (
 	"golang.org/x/tools/internal/lsp/source"
 )
 
-func toProtocolCompletionItems(items []source.CompletionItem, prefix string, pos protocol.Position, snippetsSupported, signatureHelpEnabled bool) []protocol.CompletionItem {
-	var results []protocol.CompletionItem
-	sort.Slice(items, func(i, j int) bool {
-		return items[i].Score > items[j].Score
-	})
+func toProtocolCompletionItems(candidates []source.CompletionItem, prefix string, pos protocol.Position, snippetsSupported, signatureHelpEnabled bool) []protocol.CompletionItem {
 	insertTextFormat := protocol.PlainTextFormat
 	if snippetsSupported {
 		insertTextFormat = protocol.SnippetTextFormat
 	}
-	for i, item := range items {
+	sort.SliceStable(candidates, func(i, j int) bool {
+		return candidates[i].Score > candidates[j].Score
+	})
+	var items []protocol.CompletionItem
+	for i, candidate := range candidates {
 		// Matching against the label.
-		if !strings.HasPrefix(item.Label, prefix) {
+		if !strings.HasPrefix(candidate.Label, prefix) {
 			continue
 		}
-		insertText, triggerSignatureHelp := labelToProtocolSnippets(item.Label, item.Kind, insertTextFormat, signatureHelpEnabled)
-		if prefix != "" {
+		insertText, triggerSignatureHelp := labelToProtocolSnippets(candidate.Label, candidate.Kind, insertTextFormat, signatureHelpEnabled)
+		if strings.HasPrefix(insertText, prefix) {
 			insertText = insertText[len(prefix):]
 		}
-		i := protocol.CompletionItem{
-			Label:            item.Label,
-			Detail:           item.Detail,
-			Kind:             float64(toProtocolCompletionItemKind(item.Kind)),
+		item := protocol.CompletionItem{
+			Label:            candidate.Label,
+			Detail:           candidate.Detail,
+			Kind:             float64(toProtocolCompletionItemKind(candidate.Kind)),
 			InsertTextFormat: insertTextFormat,
 			TextEdit: &protocol.TextEdit{
 				NewText: insertText,
@@ -52,13 +53,13 @@ func toProtocolCompletionItems(items []source.CompletionItem, prefix string, pos
 		}
 		// If we are completing a function, we should trigger signature help if possible.
 		if triggerSignatureHelp && signatureHelpEnabled {
-			i.Command = &protocol.Command{
+			item.Command = &protocol.Command{
 				Command: "editor.action.triggerParameterHints",
 			}
 		}
-		results = append(results, i)
+		items = append(items, item)
 	}
-	return results
+	return items
 }
 
 func toProtocolCompletionItemKind(kind source.CompletionItemKind) protocol.CompletionItemKind {
@@ -90,14 +91,17 @@ func labelToProtocolSnippets(label string, kind source.CompletionItemKind, inser
 	switch kind {
 	case source.ConstantCompletionItem:
 		// The label for constants is of the format "<identifier> = <value>".
-		// We should now insert the " = <value>" part of the label.
+		// We should not insert the " = <value>" part of the label.
 		if i := strings.Index(label, " ="); i >= 0 {
 			return label[:i], false
 		}
 	case source.FunctionCompletionItem, source.MethodCompletionItem:
-		trimmed := label[:strings.Index(label, "(")]
-		params := strings.Trim(label[strings.Index(label, "("):], "()")
-		if params == "" {
+		var trimmed, params string
+		if i := strings.Index(label, "("); i >= 0 {
+			trimmed = label[:i]
+			params = strings.Trim(label[i:], "()")
+		}
+		if params == "" || trimmed == "" {
 			return label, true
 		}
 		// Don't add parameters or parens for the plaintext insert format.
@@ -118,14 +122,16 @@ func labelToProtocolSnippets(label string, kind source.CompletionItemKind, inser
 			`}`, `\}`,
 			`$`, `\$`,
 		)
-		trimmed += "("
+		b := bytes.NewBufferString(trimmed)
+		b.WriteByte('(')
 		for i, p := range strings.Split(params, ",") {
 			if i != 0 {
-				trimmed += ", "
+				b.WriteString(", ")
 			}
-			trimmed += fmt.Sprintf("${%v:%v}", i+1, r.Replace(strings.Trim(p, " ")))
+			fmt.Fprintf(b, "${%v:%v}", i+1, r.Replace(strings.Trim(p, " ")))
 		}
-		return trimmed + ")", false
+		b.WriteByte(')')
+		return b.String(), false
 
 	}
 	return label, false

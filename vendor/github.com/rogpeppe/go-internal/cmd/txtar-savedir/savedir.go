@@ -31,8 +31,6 @@ func usage() {
 	os.Exit(2)
 }
 
-const goCmd = "go"
-
 func main() {
 	os.Exit(main1())
 }
@@ -44,7 +42,7 @@ func main1() int {
 		usage()
 	}
 
-	log.SetPrefix("savedir: ")
+	log.SetPrefix("txtar-savedir: ")
 	log.SetFlags(0)
 
 	dir := flag.Arg(0)

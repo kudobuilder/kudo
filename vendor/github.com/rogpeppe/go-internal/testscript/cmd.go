@@ -5,12 +5,16 @@
 package testscript
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/rogpeppe/go-internal/internal/textutil"
 )
 
 // scriptCmds are the script command implementations.
@@ -22,6 +26,7 @@ var scriptCmds = map[string]func(*TestScript, bool, []string){
 	"cd":      (*TestScript).cmdCd,
 	"chmod":   (*TestScript).cmdChmod,
 	"cmp":     (*TestScript).cmdCmp,
+	"cmpenv":  (*TestScript).cmdCmpenv,
 	"cp":      (*TestScript).cmdCp,
 	"env":     (*TestScript).cmdEnv,
 	"exec":    (*TestScript).cmdExec,
@@ -30,10 +35,12 @@ var scriptCmds = map[string]func(*TestScript, bool, []string){
 	"mkdir":   (*TestScript).cmdMkdir,
 	"rm":      (*TestScript).cmdRm,
 	"skip":    (*TestScript).cmdSkip,
+	"stdin":   (*TestScript).cmdStdin,
 	"stderr":  (*TestScript).cmdStderr,
 	"stdout":  (*TestScript).cmdStdout,
 	"stop":    (*TestScript).cmdStop,
 	"symlink": (*TestScript).cmdSymlink,
+	"wait":    (*TestScript).cmdWait,
 }
 
 // cd changes to a different directory.
@@ -94,6 +101,21 @@ func (ts *TestScript) cmdCmp(neg bool, args []string) {
 		ts.Fatalf("usage: cmp file1 file2")
 	}
 
+	ts.doCmdCmp(args, false)
+}
+
+// cmpenv compares two files with environment variable substitution.
+func (ts *TestScript) cmdCmpenv(neg bool, args []string) {
+	if neg {
+		ts.Fatalf("unsupported: ! cmpenv")
+	}
+	if len(args) != 2 {
+		ts.Fatalf("usage: cmpenv file1 file2")
+	}
+	ts.doCmdCmp(args, true)
+}
+
+func (ts *TestScript) doCmdCmp(args []string, env bool) {
 	name1, name2 := args[0], args[1]
 	var text1, text2 string
 	if name1 == "stdout" {
@@ -110,11 +132,15 @@ func (ts *TestScript) cmdCmp(neg bool, args []string) {
 	ts.Check(err)
 	text2 = string(data)
 
+	if env {
+		text2 = ts.expand(text2)
+	}
+
 	if text1 == text2 {
 		return
 	}
 
-	ts.Logf("[diff -%s +%s]\n%s\n", name1, name2, diff(text1, text2))
+	ts.Logf("[diff -%s +%s]\n%s\n", name1, name2, textutil.Diff(text1, text2))
 	ts.Fatalf("%s and %s differ", name1, name2)
 }
 
@@ -156,8 +182,9 @@ func (ts *TestScript) cmdEnv(neg bool, args []string) {
 	if len(args) == 0 {
 		printed := make(map[string]bool) // env list can have duplicates; only print effective value (from envMap) once
 		for _, kv := range ts.env {
-			k := kv[:strings.Index(kv, "=")]
+			k := envvarname(kv[:strings.Index(kv, "=")])
 			if !printed[k] {
+				printed[k] = true
 				ts.Logf("%s=%s\n", k, ts.envMap[k])
 			}
 		}
@@ -167,28 +194,51 @@ func (ts *TestScript) cmdEnv(neg bool, args []string) {
 		i := strings.Index(env, "=")
 		if i < 0 {
 			// Display value instead of setting it.
-			ts.Logf("%s=%s\n", env, ts.envMap[env])
+			ts.Logf("%s=%s\n", env, ts.Getenv(env))
 			continue
 		}
-		ts.env = append(ts.env, env)
-		ts.envMap[env[:i]] = env[i+1:]
+		ts.Setenv(env[:i], env[i+1:])
 	}
 }
 
 // exec runs the given command.
 func (ts *TestScript) cmdExec(neg bool, args []string) {
-	if len(args) < 1 {
-		ts.Fatalf("usage: exec program [args...]")
+	if len(args) < 1 || (len(args) == 1 && args[0] == "&") {
+		ts.Fatalf("usage: exec program [args...] [&]")
 	}
-	err := ts.Exec(args[0], args[1:]...)
-	if err != nil {
-		ts.Logf("[%v]\n", err)
-		if !neg {
-			ts.Fatalf("unexpected command failure")
+
+	var err error
+	if len(args) > 0 && args[len(args)-1] == "&" {
+		var cmd *exec.Cmd
+		cmd, err = ts.execBackground(args[0], args[1:len(args)-1]...)
+		if err == nil {
+			wait := make(chan struct{})
+			go func() {
+				ctxWait(ts.ctxt, cmd)
+				close(wait)
+			}()
+			ts.background = append(ts.background, backgroundCmd{cmd, wait, neg})
 		}
+		ts.stdout, ts.stderr = "", ""
 	} else {
-		if neg {
+		ts.stdout, ts.stderr, err = ts.exec(args[0], args[1:]...)
+		if ts.stdout != "" {
+			fmt.Fprintf(&ts.log, "[stdout]\n%s", ts.stdout)
+		}
+		if ts.stderr != "" {
+			fmt.Fprintf(&ts.log, "[stderr]\n%s", ts.stderr)
+		}
+		if err == nil && neg {
 			ts.Fatalf("unexpected command success")
+		}
+	}
+
+	if err != nil {
+		fmt.Fprintf(&ts.log, "[%v]\n", err)
+		if ts.ctxt.Err() != nil {
+			ts.Fatalf("test timed out while running command")
+		} else if !neg {
+			ts.Fatalf("unexpected command failure")
 		}
 	}
 }
@@ -259,10 +309,30 @@ func (ts *TestScript) cmdSkip(neg bool, args []string) {
 	if neg {
 		ts.Fatalf("unsupported: ! skip")
 	}
+
+	// Before we mark the test as skipped, shut down any background processes and
+	// make sure they have returned the correct status.
+	for _, bg := range ts.background {
+		interruptProcess(bg.cmd.Process)
+	}
+	ts.cmdWait(false, nil)
+
 	if len(args) == 1 {
 		ts.t.Skip(args[0])
 	}
 	ts.t.Skip()
+}
+
+func (ts *TestScript) cmdStdin(neg bool, args []string) {
+	if neg {
+		ts.Fatalf("unsupported: ! stdin")
+	}
+	if len(args) != 1 {
+		ts.Fatalf("usage: stdin filename")
+	}
+	data, err := ioutil.ReadFile(ts.MkAbs(args[0]))
+	ts.Check(err)
+	ts.stdin = string(data)
 }
 
 // stdout checks that the last go command standard output matches a regexp.
@@ -308,6 +378,52 @@ func (ts *TestScript) cmdSymlink(neg bool, args []string) {
 	// Note that the link target args[2] is not interpreted with MkAbs:
 	// it will be interpreted relative to the directory file is in.
 	ts.Check(os.Symlink(args[2], ts.MkAbs(args[0])))
+}
+
+// Tait waits for background commands to exit, setting stderr and stdout to their result.
+func (ts *TestScript) cmdWait(neg bool, args []string) {
+	if neg {
+		ts.Fatalf("unsupported: ! wait")
+	}
+	if len(args) > 0 {
+		ts.Fatalf("usage: wait")
+	}
+
+	var stdouts, stderrs []string
+	for _, bg := range ts.background {
+		<-bg.wait
+
+		args := append([]string{filepath.Base(bg.cmd.Args[0])}, bg.cmd.Args[1:]...)
+		fmt.Fprintf(&ts.log, "[background] %s: %v\n", strings.Join(args, " "), bg.cmd.ProcessState)
+
+		cmdStdout := bg.cmd.Stdout.(*strings.Builder).String()
+		if cmdStdout != "" {
+			fmt.Fprintf(&ts.log, "[stdout]\n%s", cmdStdout)
+			stdouts = append(stdouts, cmdStdout)
+		}
+
+		cmdStderr := bg.cmd.Stderr.(*strings.Builder).String()
+		if cmdStderr != "" {
+			fmt.Fprintf(&ts.log, "[stderr]\n%s", cmdStderr)
+			stderrs = append(stderrs, cmdStderr)
+		}
+
+		if bg.cmd.ProcessState.Success() {
+			if bg.neg {
+				ts.Fatalf("unexpected command success")
+			}
+		} else {
+			if ts.ctxt.Err() != nil {
+				ts.Fatalf("test timed out while running command")
+			} else if !bg.neg {
+				ts.Fatalf("unexpected command failure")
+			}
+		}
+	}
+
+	ts.stdout = strings.Join(stdouts, "")
+	ts.stderr = strings.Join(stderrs, "")
+	ts.background = nil
 }
 
 // scriptMatch implements both stdout and stderr.

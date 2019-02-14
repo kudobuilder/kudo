@@ -1,0 +1,24 @@
+apiVersion: frameworks.kudo.sh/v1beta1
+kind: Component
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: zookeeper-component
+spec:
+  # Add fields here
+  customresourcedefinition:
+    metadata:
+      name: zookeepers.zookeeper.kudo.sh
+    spec:
+      group: zookeeper.kudo.sh
+      versions:
+        - name: v1beta1
+          served: true
+          storage: true
+      scope: Namespaced
+      names:
+        plural: zookeepers
+        singular: zookeeper
+        kind: Zookeeper
+        shortNames:
+          - zk

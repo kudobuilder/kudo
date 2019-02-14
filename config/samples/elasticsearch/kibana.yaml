@@ -1,0 +1,6 @@
+apiVerison: elastic.kudo.sh/v1alpha1
+kind: Kibana
+metadata:
+  name: gerreds-kibana
+spec:
+  elastic: gerreds-es

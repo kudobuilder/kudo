@@ -48,17 +48,13 @@ type Options struct {
 	Objects []runtime.Object
 }
 
-// Provision provisions certificates for for the WebhookClientConfig.
+// Provision provisions certificates for the WebhookClientConfig.
 // It ensures the cert and CA are valid and not expiring.
 // It updates the CABundle in the webhookClientConfig if necessary.
 // It inject the WebhookClientConfig into options.Objects.
 func (cp *Provisioner) Provision(options Options) (bool, error) {
 	if cp.CertWriter == nil {
 		return false, errors.New("CertWriter need to be set")
-	}
-	// If the objects need to be updated, just be lazy and return.
-	if len(options.Objects) == 0 {
-		return false, nil
 	}
 
 	dnsName, err := dnsNameFromClientConfig(options.ClientConfig)

@@ -4,9 +4,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: instances.kudo.k8s.io
+  name: instances.kudo.kudo.sh
 spec:
-  group: kudo.k8s.io
+  group: kudo.kudo.sh
   names:
     kind: Instance
     plural: instances
@@ -15,19 +15,30 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
           properties:
             dependencies:
+              description: Dependency references specific
               items:
                 properties:
                   referenceName:
+                    description: Name specifies the name of the dependency.  Referenced
+                      via this in defaults.config
                     type: string
                   version:
+                    description: 'Version captures the requirements for what versions
+                      of the above object are allowed Example: ^3.1.4'
                     type: string
                 required:
                 - referenceName
@@ -35,6 +46,8 @@ spec:
                 type: object
               type: array
             frameworkVersion:
+              description: Framework specifies a reference to a specific Framework
+                object
               type: object
             parameters:
               type: object
@@ -42,6 +55,7 @@ spec:
         status:
           properties:
             activePlan:
+              description: TODO turn into struct
               type: object
             status:
               type: string

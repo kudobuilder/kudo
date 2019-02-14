@@ -22,7 +22,7 @@ import (
 
 	"cloud.google.com/go/internal"
 	"cloud.google.com/go/internal/trace"
-	gax "github.com/googleapis/gax-go"
+	gax "github.com/googleapis/gax-go/v2"
 	bq "google.golang.org/api/bigquery/v2"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
@@ -382,6 +382,14 @@ type QueryStatistics struct {
 
 	// Total bytes processed for the job.
 	TotalBytesProcessed int64
+
+	// For dry run queries, indicates how accurate the TotalBytesProcessed value is.
+	// When indicated, values include:
+	// UNKNOWN: accuracy of the estimate is unknown.
+	// PRECISE: estimate is precise.
+	// LOWER_BOUND: estimate is lower bound of what the query would cost.
+	// UPPER_BOUND: estiamte is upper bound of what the query would cost.
+	TotalBytesProcessedAccuracy string
 
 	// Describes execution plan for the query.
 	QueryPlan []*ExplainQueryStage
@@ -749,6 +757,7 @@ func (j *Job) setStatistics(s *bq.JobStatistics, c *Client) {
 			StatementType:                 s.Query.StatementType,
 			TotalBytesBilled:              s.Query.TotalBytesBilled,
 			TotalBytesProcessed:           s.Query.TotalBytesProcessed,
+			TotalBytesProcessedAccuracy:   s.Query.TotalBytesProcessedAccuracy,
 			NumDMLAffectedRows:            s.Query.NumDmlAffectedRows,
 			QueryPlan:                     queryPlanFromProto(s.Query.QueryPlan),
 			Schema:                        bqToSchema(s.Query.Schema),

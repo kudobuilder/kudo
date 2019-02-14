@@ -10,7 +10,7 @@ To invoke the tests, call testscript.Run. For example:
 
 	func TestFoo(t *testing.T) {
 		testscript.Run(t, testscript.Params{
-			Dir: "scripts",
+			Dir: "testdata",
 		})
 	}
 
@@ -46,11 +46,11 @@ create in the script's temporary file system before it starts executing.
 As an example:
 
 	# hello world
-	exec cat hello
-	stdout "hello world\n"
+	exec cat hello.text
+	stdout 'hello world\n'
 	! stderr .
 
-	-- hello.txt--
+	-- hello.text --
 	hello world
 
 Each script runs in a fresh temporary work directory tree, available to scripts as $WORK.
@@ -60,6 +60,7 @@ Scripts also have access to these other environment variables:
 	PATH=<actual PATH>
 	TMPDIR=$WORK/tmp
 	devnull=<value of os.DevNull>
+	goversion=<current Go version; for example, 1.12>
 
 The environment variable $exe (lowercase) is an empty string on most
 systems, ".exe" on Windows.
@@ -85,6 +86,12 @@ quote indicates a literal single quote, as in:
 
 A line beginning with # is a comment and conventionally explains what is
 being done or tested at the start of a new phase in the script.
+
+A special form of environment variable syntax can be used to quote
+regexp metacharacters inside environment variables. The "@R" suffix
+is special, and indicates that the variable should be quoted.
+
+	${VAR@R}
 
 The command prefix ! indicates that the command on the rest of the line
 (typically go or a matching predicate) must fail, not succeed. Only certain
@@ -117,8 +124,12 @@ The predefined commands are:
   Check that the named files have the same content.
   By convention, file1 is the actual data and file2 the expected data.
   File1 can be "stdout" or "stderr" to use the standard output or standard error
-  from the most recent exec or go command.
+  from the most recent exec or wait command.
   (If the files have differing content, the failure prints a diff.)
+
+- cmpenv file1 file2
+  Like cmp, but environment variables in file2 are substituted before the
+  comparison. For example, $GOOS is replaced by the target GOOS.
 
 - cp src... dst
   Copy the listed files to the target file or existing directory.
@@ -127,10 +138,20 @@ The predefined commands are:
   With no arguments, print the environment (useful for debugging).
   Otherwise add the listed key=value pairs to the environment.
 
-- [!] exec program [args...]
+- [!] exec program [args...] [&]
   Run the given executable program with the arguments.
   It must (or must not) succeed.
   Note that 'exec' does not terminate the script (unlike in Unix shells).
+
+  If the last token is '&', the program executes in the background. The standard
+  output and standard error of the previous command is cleared, but the output
+  of the background process is buffered — and checking of its exit status is
+  delayed — until the next call to 'wait', 'skip', or 'stop' or the end of the
+  test. At the end of the test, any remaining background processes are
+  terminated using os.Interrupt (if supported) or os.Kill.
+
+  Standard input can be provided using the stdin command; this will be
+  cleared after exec has been called.
 
 - [!] exists [-readonly] file...
   Each of the listed files or directories must (or must not) exist.
@@ -149,19 +170,29 @@ The predefined commands are:
 - skip [message]
   Mark the test skipped, including the message if given.
 
+- stdin file
+  Set the standard input for the next exec command to the contents of the given file.
+
 - [!] stderr [-count=N] pattern
   Apply the grep command (see above) to the standard error
-  from the most recent exec or go command.
+  from the most recent exec or wait command.
 
 - [!] stdout [-count=N] pattern
   Apply the grep command (see above) to the standard output
-  from the most recent exec or go command.
+  from the most recent exec or wait command.
 
 - stop [message]
   Stop the test early (marking it as passing), including the message if given.
 
 - symlink file -> target
   Create file as a symlink to target. The -> (like in ls -l output) is required.
+
+- wait
+  Wait for all 'exec' and 'go' commands started in the background (with the '&'
+  token) to exit, and display success or failure status for them.
+  After a call to wait, the 'stderr' and 'stdout' commands will apply to the
+  concatenation of the corresponding streams of the background commands,
+  in the order in which those commands were started.
 
 When TestScript runs a script and the script fails, by default TestScript shows
 the execution of the most recent phase of the script (since the last # comment)

@@ -45,7 +45,7 @@ const (
 // When invoking a method the expressions in the parameter list need to be
 // converted to values to be passed to the method.
 // There are a very limited set of types the arguments are allowed to be.
-//   expect.Comment : passed the Comment instance being evaluated.
+//   expect.Note : passed the Note instance being evaluated.
 //   string : can be supplied either a string literal or an identifier.
 //   int : can only be supplied an integer literal.
 //   *regexp.Regexp : can only be supplied a regular expression literal
@@ -146,7 +146,11 @@ func (e *Exported) getNotes() error {
 	}
 	for _, pkg := range pkgs {
 		for _, filename := range pkg.GoFiles {
-			l, err := expect.Parse(e.fset, filename, nil)
+			content, err := e.FileContents(filename)
+			if err != nil {
+				return err
+			}
+			l, err := expect.Parse(e.fset, filename, content)
 			if err != nil {
 				return fmt.Errorf("Failed to extract expectations: %v", err)
 			}
@@ -232,6 +236,9 @@ func (e *Exported) buildConverter(pt reflect.Type) (converter, error) {
 		}, nil
 	case pt == identifierType:
 		return func(n *expect.Note, args []interface{}) (reflect.Value, []interface{}, error) {
+			if len(args) < 1 {
+				return reflect.Value{}, nil, fmt.Errorf("missing argument")
+			}
 			arg := args[0]
 			args = args[1:]
 			switch arg := arg.(type) {
@@ -244,6 +251,9 @@ func (e *Exported) buildConverter(pt reflect.Type) (converter, error) {
 
 	case pt == regexType:
 		return func(n *expect.Note, args []interface{}) (reflect.Value, []interface{}, error) {
+			if len(args) < 1 {
+				return reflect.Value{}, nil, fmt.Errorf("missing argument")
+			}
 			arg := args[0]
 			args = args[1:]
 			if _, ok := arg.(*regexp.Regexp); !ok {
@@ -254,6 +264,9 @@ func (e *Exported) buildConverter(pt reflect.Type) (converter, error) {
 
 	case pt.Kind() == reflect.String:
 		return func(n *expect.Note, args []interface{}) (reflect.Value, []interface{}, error) {
+			if len(args) < 1 {
+				return reflect.Value{}, nil, fmt.Errorf("missing argument")
+			}
 			arg := args[0]
 			args = args[1:]
 			switch arg := arg.(type) {
@@ -267,6 +280,9 @@ func (e *Exported) buildConverter(pt reflect.Type) (converter, error) {
 		}, nil
 	case pt.Kind() == reflect.Int64:
 		return func(n *expect.Note, args []interface{}) (reflect.Value, []interface{}, error) {
+			if len(args) < 1 {
+				return reflect.Value{}, nil, fmt.Errorf("missing argument")
+			}
 			arg := args[0]
 			args = args[1:]
 			switch arg := arg.(type) {
@@ -278,6 +294,9 @@ func (e *Exported) buildConverter(pt reflect.Type) (converter, error) {
 		}, nil
 	case pt.Kind() == reflect.Bool:
 		return func(n *expect.Note, args []interface{}) (reflect.Value, []interface{}, error) {
+			if len(args) < 1 {
+				return reflect.Value{}, nil, fmt.Errorf("missing argument")
+			}
 			arg := args[0]
 			args = args[1:]
 			b, ok := arg.(bool)
@@ -306,6 +325,9 @@ func (e *Exported) buildConverter(pt reflect.Type) (converter, error) {
 	default:
 		if pt.Kind() == reflect.Interface && pt.NumMethod() == 0 {
 			return func(n *expect.Note, args []interface{}) (reflect.Value, []interface{}, error) {
+				if len(args) < 1 {
+					return reflect.Value{}, nil, fmt.Errorf("missing argument")
+				}
 				return reflect.ValueOf(args[0]), args[1:], nil
 			}, nil
 		}
@@ -337,7 +359,7 @@ func (e *Exported) rangeConverter(n *expect.Note, args []interface{}) (Range, []
 			return mark, args, nil
 		}
 	case string:
-		start, end, err := expect.MatchBefore(e.fset, e.fileContents, n.Pos, arg)
+		start, end, err := expect.MatchBefore(e.fset, e.FileContents, n.Pos, arg)
 		if err != nil {
 			return Range{}, nil, err
 		}
@@ -346,7 +368,7 @@ func (e *Exported) rangeConverter(n *expect.Note, args []interface{}) (Range, []
 		}
 		return Range{Start: start, End: end}, args, nil
 	case *regexp.Regexp:
-		start, end, err := expect.MatchBefore(e.fset, e.fileContents, n.Pos, arg)
+		start, end, err := expect.MatchBefore(e.fset, e.FileContents, n.Pos, arg)
 		if err != nil {
 			return Range{}, nil, err
 		}

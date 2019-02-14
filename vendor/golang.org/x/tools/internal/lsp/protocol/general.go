@@ -33,11 +33,11 @@ type InitializeParams struct {
 	RootPath *string `json:"rootPath"`
 
 	/**
-	 * The rootURI of the workspace. Is null if no
-	 * folder is open. If both `rootPath` and `rootURI` are set
-	 * `rootURI` wins.
+	 * The rootUri of the workspace. Is null if no
+	 * folder is open. If both `rootPath` and `rootUri` are set
+	 * `rootUri` wins.
 	 */
-	RootURI *DocumentURI `json:"rootURI"`
+	RootURI *DocumentURI `json:"rootUri"`
 
 	/**
 	 * User provided initialization options.
@@ -655,7 +655,7 @@ type DocumentLinkOptions struct {
  */
 type ExecuteCommandOptions struct {
 	/**
-	 * The commands to be executed on the server
+	 * The commands to be executed on the server.
 	 */
 	Commands []string `json:"commands"`
 }
@@ -812,7 +812,7 @@ type ServerCapabilities struct {
 	/**
 	 * The server provides execute command support.
 	 */
-	ExecuteCommandProvider ExecuteCommandOptions `json:"executeCommandProvider,omitempty"`
+	ExecuteCommandProvider *ExecuteCommandOptions `json:"executeCommandProvider,omitempty"`
 	/**
 	 * Workspace specific server capabilities
 	 */

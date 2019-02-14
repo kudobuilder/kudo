@@ -25,7 +25,7 @@ import (
 	"sync"
 
 	"cloud.google.com/go/internal/fields"
-	pb "google.golang.org/genproto/googleapis/firestore/v1beta1"
+	pb "google.golang.org/genproto/googleapis/firestore/v1"
 )
 
 // A FieldPath is a non-empty sequence of non-empty fields that reference a value.
@@ -109,24 +109,6 @@ func (fp FieldPath) with(k string) FieldPath {
 	r := make(FieldPath, len(fp), len(fp)+1)
 	copy(r, fp)
 	return append(r, k)
-}
-
-// concat creates a new FieldPath consisting of fp1 followed by fp2.
-func (fp1 FieldPath) concat(fp2 FieldPath) FieldPath {
-	r := make(FieldPath, len(fp1)+len(fp2))
-	copy(r, fp1)
-	copy(r[len(fp1):], fp2)
-	return r
-}
-
-// in reports whether fp is equal to one of the fps.
-func (fp FieldPath) in(fps []FieldPath) bool {
-	for _, e := range fps {
-		if fp.equal(e) {
-			return true
-		}
-	}
-	return false
 }
 
 // checkNoDupOrPrefix checks whether any FieldPath is a prefix of (or equal to)

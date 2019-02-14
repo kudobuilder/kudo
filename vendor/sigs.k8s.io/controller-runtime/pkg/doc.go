@@ -47,7 +47,7 @@ system must be read for each Reconciler.
 
 * Controllers require a Reconciler to be provided to perform the work pulled from the work queue.
 
-* Controller require Watches to be configured to enqueue reconcile.Requests in response to events.
+* Controllers require Watches to be configured to enqueue reconcile.Requests in response to events.
 
 Webhook
 
@@ -170,7 +170,7 @@ Owning ReplicaSet Namespace and Name.
 Watching and EventHandling
 
 Controllers may Watch multiple Kinds of objects (e.g. Pods, ReplicaSets and Deployments), but they Reconciler
-only a single Type.  When one Type of object must be be updated in response to changes in another Type of object,
+only a single Type.  When one Type of object must be updated in response to changes in another Type of object,
 an EnqueueRequestFromMapFunc may be used to map events from one type to another.  e.g. Respond to a cluster resize
 event (add / delete Node) by re-reconciling all instances of some API.
 

@@ -29,7 +29,7 @@ import (
 
 // newCmdAddConfigMap returns a new command.
 func newCmdAddConfigMap(fSys fs.FileSystem, kf ifc.KunstructuredFactory) *cobra.Command {
-	var flagsAndArgs cMapFlagsAndArgs
+	var flags flagsAndArgs
 	cmd := &cobra.Command{
 		Use:   "configmap NAME [--from-file=[key=]source] [--from-literal=key1=value1]",
 		Short: "Adds a configmap to the kustomization file.",
@@ -45,12 +45,12 @@ func newCmdAddConfigMap(fSys fs.FileSystem, kf ifc.KunstructuredFactory) *cobra.
 	kustomize edit add configmap my-configmap --from-env-file=env/path.env
 `,
 		RunE: func(_ *cobra.Command, args []string) error {
-			err := flagsAndArgs.ExpandFileSource(fSys)
+			err := flags.ExpandFileSource(fSys)
 			if err != nil {
 				return err
 			}
 
-			err = flagsAndArgs.Validate(args)
+			err = flags.Validate(args)
 			if err != nil {
 				return err
 			}
@@ -67,8 +67,8 @@ func newCmdAddConfigMap(fSys fs.FileSystem, kf ifc.KunstructuredFactory) *cobra.
 			}
 
 			// Add the flagsAndArgs map to the kustomization file.
-			kf.Set(fSys, loader.NewFileLoaderAtCwd(fSys))
-			err = addConfigMap(kustomization, flagsAndArgs, kf)
+			kf.Set(loader.NewFileLoaderAtCwd(fSys))
+			err = addConfigMap(kustomization, flags, kf)
 			if err != nil {
 				return err
 			}
@@ -79,19 +79,19 @@ func newCmdAddConfigMap(fSys fs.FileSystem, kf ifc.KunstructuredFactory) *cobra.
 	}
 
 	cmd.Flags().StringSliceVar(
-		&flagsAndArgs.FileSources,
+		&flags.FileSources,
 		"from-file",
 		[]string{},
 		"Key file can be specified using its file path, in which case file basename will be used as configmap "+
 			"key, or optionally with a key and file path, in which case the given key will be used.  Specifying a "+
 			"directory will iterate each named file in the directory whose basename is a valid configmap key.")
 	cmd.Flags().StringArrayVar(
-		&flagsAndArgs.LiteralSources,
+		&flags.LiteralSources,
 		"from-literal",
 		[]string{},
 		"Specify a key and literal value to insert in configmap (i.e. mykey=somevalue)")
 	cmd.Flags().StringVar(
-		&flagsAndArgs.EnvFileSource,
+		&flags.EnvFileSource,
 		"from-env-file",
 		"",
 		"Specify the path to a file to read lines of key=val pairs to create a configmap (i.e. a Docker .env file).")
@@ -104,9 +104,9 @@ func newCmdAddConfigMap(fSys fs.FileSystem, kf ifc.KunstructuredFactory) *cobra.
 // Suggest passing a copy of kustomization file.
 func addConfigMap(
 	k *types.Kustomization,
-	flagsAndArgs cMapFlagsAndArgs, kf ifc.KunstructuredFactory) error {
-	cmArgs := makeConfigMapArgs(k, flagsAndArgs.Name)
-	err := mergeFlagsIntoCmArgs(&cmArgs.DataSources, flagsAndArgs)
+	flags flagsAndArgs, kf ifc.KunstructuredFactory) error {
+	cmArgs := makeConfigMapArgs(k, flags.Name)
+	err := mergeFlagsIntoCmArgs(&cmArgs.DataSources, flags)
 	if err != nil {
 		return err
 	}
@@ -125,12 +125,12 @@ func makeConfigMapArgs(m *types.Kustomization, name string) *types.ConfigMapArgs
 		}
 	}
 	// config map not found, create new one and add it to the kustomization file.
-	cm := &types.ConfigMapArgs{Name: name}
+	cm := &types.ConfigMapArgs{GeneratorArgs: types.GeneratorArgs{Name: name}}
 	m.ConfigMapGenerator = append(m.ConfigMapGenerator, *cm)
 	return &m.ConfigMapGenerator[len(m.ConfigMapGenerator)-1]
 }
 
-func mergeFlagsIntoCmArgs(src *types.DataSources, flags cMapFlagsAndArgs) error {
+func mergeFlagsIntoCmArgs(src *types.DataSources, flags flagsAndArgs) error {
 	src.LiteralSources = append(src.LiteralSources, flags.LiteralSources...)
 	src.FileSources = append(src.FileSources, flags.FileSources...)
 	if src.EnvSource != "" && src.EnvSource != flags.EnvFileSource {

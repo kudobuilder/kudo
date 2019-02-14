@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
-	pb "google.golang.org/genproto/googleapis/firestore/v1beta1"
+	pb "google.golang.org/genproto/googleapis/firestore/v1"
 )
 
 // A Precondition modifies a Firestore update or delete operation.
@@ -92,7 +92,7 @@ func processPreconditionsForUpdate(preconds []Precondition) (*pb.Precondition, e
 		return exists(true).preconditionProto()
 	case 1:
 		if _, ok := preconds[0].(exists); ok {
-			return nil, errors.New("Cannot use Exists with Update")
+			return nil, errors.New("cannot use Exists with Update")
 		}
 		return preconds[0].preconditionProto()
 	default:

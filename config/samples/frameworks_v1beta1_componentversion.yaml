@@ -1,0 +1,17 @@
+apiVersion: frameworks.kudo.sh/v1beta1
+kind: ComponentVersion
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: zookeeper-1.0
+spec:
+  # Add fields here
+  version: "1.0"
+  parameters:
+    memory:
+      description: Amount of memory to provide Zookeeper pods
+      default: "1Gi"
+      trigger: update
+    cpus:
+      description: Amount of cpu to provide Zooekeper pods
+      default: "0.25"

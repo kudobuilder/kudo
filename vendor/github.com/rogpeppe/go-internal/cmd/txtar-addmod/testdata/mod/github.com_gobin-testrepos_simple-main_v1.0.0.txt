@@ -14,3 +14,6 @@ import "fmt"
 func main() {
 	fmt.Println("I am a simple module-based main")
 }
+-- foobar --
+This is an extra file that can't be imported with the Go package, but may still
+be used in a test.

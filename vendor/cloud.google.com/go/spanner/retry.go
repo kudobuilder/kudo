@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/spanner/internal/backoff"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	edpb "google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -155,7 +156,7 @@ func extractRetryDelay(err error) (time.Duration, bool) {
 // runRetryable keeps attempting to run f until one of the following happens:
 //     1) f returns nil error or an unretryable error;
 //     2) context is cancelled or timeout.
-// TODO: consider using https://github.com/googleapis/gax-go once it
+// TODO: consider using https://github.com/googleapis/gax-go/v2 once it
 // becomes available internally.
 func runRetryable(ctx context.Context, f func(context.Context) error) error {
 	return toSpannerError(runRetryableNoWrap(ctx, f))
@@ -182,9 +183,9 @@ func runRetryableNoWrap(ctx context.Context, f func(context.Context) error) erro
 			// Error is retryable, do exponential backoff and continue.
 			b, ok := extractRetryDelay(funcErr)
 			if !ok {
-				b = defaultBackoff.delay(retryCount)
+				b = backoff.DefaultBackoff.Delay(retryCount)
 			}
-			tracePrintf(ctx, nil, "Backing off for %s, then retrying", b)
+			statsPrintf(ctx, nil, "Backing off for %s, then retrying", b)
 			select {
 			case <-ctx.Done():
 				return errContextCanceled(ctx, funcErr)

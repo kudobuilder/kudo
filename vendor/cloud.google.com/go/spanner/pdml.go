@@ -32,8 +32,8 @@ import (
 // PartitionedUpdate returns an estimated count of the number of rows affected. The actual
 // number of affected rows may be greater than the estimate.
 func (c *Client) PartitionedUpdate(ctx context.Context, statement Statement) (count int64, err error) {
-	ctx = traceStartSpan(ctx, "cloud.google.com/go/spanner.PartitionedUpdate")
-	defer func() { traceEndSpan(ctx, err) }()
+	ctx = startSpan(ctx, "cloud.google.com/go/spanner.PartitionedUpdate")
+	defer func() { endSpan(ctx, err) }()
 	if err := checkNestedTxn(ctx); err != nil {
 		return 0, err
 	}

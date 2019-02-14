@@ -1,0 +1,10 @@
+apiVerison: kafka.kudo.sh/v1alpha1
+kind: Topic
+metadata:
+  name: billing-events
+spec:
+  kafka: gerreds-kafka
+  partitions: 6
+  maxMessages: 100000
+status:
+  state: created

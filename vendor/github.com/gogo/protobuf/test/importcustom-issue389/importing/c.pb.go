@@ -27,7 +27,7 @@ var _ = math.Inf
 const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
 type C struct {
-	F2                   *github_com_gogo_protobuf_test_importcustom_issue389_imported.B `protobuf:"bytes,1,opt,name=f2,customtype=github.com/gogo/protobuf/test/importcustom-issue389/imported.B" json:"f2,omitempty"`
+	F2                   *github_com_gogo_protobuf_test_importcustom_issue389_imported.B `protobuf:"bytes,1,opt,name=f2,proto3,customtype=github.com/gogo/protobuf/test/importcustom-issue389/imported.B" json:"f2,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                                                        `json:"-"`
 	XXX_unrecognized     []byte                                                          `json:"-"`
 	XXX_sizecache        int32                                                           `json:"-"`
@@ -224,6 +224,9 @@ func encodeVarintPopulateC(dAtA []byte, v uint64) []byte {
 	return dAtA
 }
 func (m *C) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.F2 != nil {

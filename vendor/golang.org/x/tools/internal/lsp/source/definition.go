@@ -5,77 +5,68 @@
 package source
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
-	"io/ioutil"
 
 	"golang.org/x/tools/go/ast/astutil"
 )
 
-func Definition(ctx context.Context, f *File, pos token.Pos) (Range, error) {
-	fAST, err := f.GetAST()
-	if err != nil {
-		return Range{}, err
+// IdentifierInfo holds information about an identifier in Go source.
+type IdentifierInfo struct {
+	Name  string
+	Range Range
+	File  File
+	Type  struct {
+		Range  Range
+		Object types.Object
 	}
-	pkg, err := f.GetPackage()
-	if err != nil {
-		return Range{}, err
+	Declaration struct {
+		Range  Range
+		Object types.Object
 	}
-	i, err := findIdentifier(fAST, pos)
-	if err != nil {
-		return Range{}, err
-	}
-	if i.ident == nil {
-		return Range{}, fmt.Errorf("definition was not a valid identifier")
-	}
-	obj := pkg.TypesInfo.ObjectOf(i.ident)
-	if obj == nil {
-		return Range{}, fmt.Errorf("no object")
-	}
-	if i.wasEmbeddedField {
-		// the original position was on the embedded field declaration
-		// so we try to dig out the type and jump to that instead
-		if v, ok := obj.(*types.Var); ok {
-			if n, ok := v.Type().(*types.Named); ok {
-				obj = n.Obj()
-			}
-		}
-	}
-	return objToRange(f.view.Config.Fset, obj), nil
-}
 
-// ident returns the ident plus any extra information needed
-type ident struct {
 	ident            *ast.Ident
 	wasEmbeddedField bool
 }
 
-// findIdentifier returns the ast.Ident for a position
+// Identifier returns identifier information for a position
 // in a file, accounting for a potentially incomplete selector.
-func findIdentifier(f *ast.File, pos token.Pos) (ident, error) {
-	m, err := checkIdentifier(f, pos)
-	if err != nil {
-		return ident{}, err
-	}
-	if m.ident != nil {
-		return m, nil
+func Identifier(ctx context.Context, v View, f File, pos token.Pos) (*IdentifierInfo, error) {
+	if result, err := identifier(ctx, v, f, pos); err != nil || result != nil {
+		return result, err
 	}
 	// If the position is not an identifier but immediately follows
 	// an identifier or selector period (as is common when
 	// requesting a completion), use the path to the preceding node.
-	return checkIdentifier(f, pos-1)
+	result, err := identifier(ctx, v, f, pos-1)
+	if result == nil && err == nil {
+		err = fmt.Errorf("no identifier found")
+	}
+	return result, err
 }
 
-// checkIdentifier checks a single position for a potential identifier.
-func checkIdentifier(f *ast.File, pos token.Pos) (ident, error) {
-	path, _ := astutil.PathEnclosingInterval(f, pos, pos)
-	result := ident{}
+func (i *IdentifierInfo) Hover(q types.Qualifier) (string, error) {
+	if q == nil {
+		fAST := i.File.GetAST()
+		pkg := i.File.GetPackage()
+		q = qualifier(fAST, pkg.Types, pkg.TypesInfo)
+	}
+	return types.ObjectString(i.Declaration.Object, q), nil
+}
+
+// identifier checks a single position for a potential identifier.
+func identifier(ctx context.Context, v View, f File, pos token.Pos) (*IdentifierInfo, error) {
+	fAST := f.GetAST()
+	pkg := f.GetPackage()
+	path, _ := astutil.PathEnclosingInterval(fAST, pos, pos)
+	result := &IdentifierInfo{
+		File: f,
+	}
 	if path == nil {
-		return result, fmt.Errorf("can't find node enclosing position")
+		return nil, fmt.Errorf("can't find node enclosing position")
 	}
 	switch node := path[0].(type) {
 	case *ast.Ident:
@@ -83,39 +74,99 @@ func checkIdentifier(f *ast.File, pos token.Pos) (ident, error) {
 	case *ast.SelectorExpr:
 		result.ident = node.Sel
 	}
-	if result.ident != nil {
-		for _, n := range path[1:] {
-			if field, ok := n.(*ast.Field); ok {
-				result.wasEmbeddedField = len(field.Names) == 0
+	if result.ident == nil {
+		return nil, nil
+	}
+	for _, n := range path[1:] {
+		if field, ok := n.(*ast.Field); ok {
+			result.wasEmbeddedField = len(field.Names) == 0
+		}
+	}
+	result.Name = result.ident.Name
+	result.Range = Range{Start: result.ident.Pos(), End: result.ident.End()}
+	result.Declaration.Object = pkg.TypesInfo.ObjectOf(result.ident)
+	if result.Declaration.Object == nil {
+		return nil, fmt.Errorf("no object for ident %v", result.Name)
+	}
+	if result.wasEmbeddedField {
+		// The original position was on the embedded field declaration, so we
+		// try to dig out the type and jump to that instead.
+		if v, ok := result.Declaration.Object.(*types.Var); ok {
+			if n, ok := v.Type().(*types.Named); ok {
+				result.Declaration.Object = n.Obj()
 			}
+		}
+	}
+	var err error
+	if result.Declaration.Range, err = objToRange(ctx, v, result.Declaration.Object); err != nil {
+		return nil, err
+	}
+	typ := pkg.TypesInfo.TypeOf(result.ident)
+	if typ == nil {
+		return nil, fmt.Errorf("no type for %s", result.Name)
+	}
+	result.Type.Object = typeToObject(typ)
+	if result.Type.Object != nil {
+		if result.Type.Range, err = objToRange(ctx, v, result.Type.Object); err != nil {
+			return nil, err
 		}
 	}
 	return result, nil
 }
 
-func objToRange(fSet *token.FileSet, obj types.Object) Range {
+func typeToObject(typ types.Type) types.Object {
+	switch typ := typ.(type) {
+	case *types.Named:
+		return typ.Obj()
+	case *types.Pointer:
+		return typeToObject(typ.Elem())
+	default:
+		return nil
+	}
+}
+
+func objToRange(ctx context.Context, v View, obj types.Object) (Range, error) {
 	p := obj.Pos()
-	f := fSet.File(p)
-	pos := f.Position(p)
-	if pos.Column == 1 {
-		// Column is 1, so we probably do not have full position information
-		// Currently exportdata does not store the column.
-		// For now we attempt to read the original source and  find the identifier
-		// within the line. If we find it we patch the column to match its offset.
-		// TODO: we have probably already added the full data for the file to the
-		// fileset, we ought to track it rather than adding it over and over again
-		// TODO: if we parse from source, we will never need this hack
-		if src, err := ioutil.ReadFile(pos.Filename); err == nil {
-			newF := fSet.AddFile(pos.Filename, -1, len(src))
-			newF.SetLinesForContent(src)
-			lineStart := lineStart(newF, pos.Line)
-			offset := newF.Offset(lineStart)
-			col := bytes.Index(src[offset:], []byte(obj.Name()))
-			p = newF.Pos(offset + col)
-		}
+	if !p.IsValid() {
+		return Range{}, fmt.Errorf("invalid position for %v", obj.Name())
 	}
 	return Range{
 		Start: p,
-		End:   p + token.Pos(len([]byte(obj.Name()))), // TODO: use real range of obj
+		End:   p + token.Pos(identifierLen(obj.Name())),
+	}, nil
+}
+
+// TODO: This needs to be fixed to address golang.org/issue/29149.
+func identifierLen(ident string) int {
+	return len([]byte(ident))
+}
+
+// this functionality was borrowed from the analysisutil package
+func lineStart(f *token.File, line int) token.Pos {
+	// Use binary search to find the start offset of this line.
+	//
+	// TODO(rstambler): eventually replace this function with the
+	// simpler and more efficient (*go/token.File).LineStart, added
+	// in go1.12.
+
+	min := 0        // inclusive
+	max := f.Size() // exclusive
+	for {
+		offset := (min + max) / 2
+		pos := f.Pos(offset)
+		posn := f.Position(pos)
+		if posn.Line == line {
+			return pos - (token.Pos(posn.Column) - 1)
+		}
+
+		if min+1 >= max {
+			return token.NoPos
+		}
+
+		if posn.Line < line {
+			min = offset
+		} else {
+			max = offset
+		}
 	}
 }

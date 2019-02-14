@@ -29,11 +29,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/rogpeppe/go-internal/module"
 	"github.com/rogpeppe/go-internal/txtar"
 )
 
 func usage() {
 	fmt.Fprintf(os.Stderr, "usage: txtar-addmod dir path@version...\n")
+	flag.PrintDefaults()
 	os.Exit(2)
 }
 
@@ -49,6 +51,8 @@ const goCmd = "go"
 func main() {
 	os.Exit(main1())
 }
+
+var allFiles = flag.Bool("all", false, "include all source files")
 
 func main1() int {
 	flag.Usage = usage
@@ -103,6 +107,14 @@ func main1() int {
 			continue
 		}
 		path, vers, dir := f[0], f[1], f[2]
+
+		encpath, err := module.EncodePath(path)
+		if err != nil {
+			log.Printf("failed to encode path %q: %v", path, err)
+			continue
+		}
+		path = encpath
+
 		mod, err := ioutil.ReadFile(filepath.Join(gopath, "pkg/mod/cache/download", path, "@v", vers+".mod"))
 		if err != nil {
 			log.Printf("%s: %v", arg, err)
@@ -131,14 +143,23 @@ func main1() int {
 			if !info.Mode().IsRegular() {
 				return nil
 			}
+			// TODO: skip dirs like "testdata" or "_foo" unless -all
+			// is given?
 			name := info.Name()
-			if name == "go.mod" || strings.HasSuffix(name, ".go") {
-				data, err := ioutil.ReadFile(path)
-				if err != nil {
-					return err
-				}
-				a.Files = append(a.Files, txtar.File{Name: strings.TrimPrefix(path, dir+string(filepath.Separator)), Data: data})
+			switch {
+			case *allFiles:
+			case name == "go.mod":
+			case strings.HasSuffix(name, ".go"):
+			default:
+				// the name is not in the whitelist, and we're
+				// not including all files via -all
+				return nil
 			}
+			data, err := ioutil.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			a.Files = append(a.Files, txtar.File{Name: strings.TrimPrefix(path, dir+string(filepath.Separator)), Data: data})
 			return nil
 		})
 		if err != nil {

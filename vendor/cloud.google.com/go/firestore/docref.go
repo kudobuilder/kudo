@@ -22,9 +22,9 @@ import (
 	"reflect"
 	"sort"
 
-	vkit "cloud.google.com/go/firestore/apiv1beta1"
+	vkit "cloud.google.com/go/firestore/apiv1"
 	"google.golang.org/api/iterator"
-	pb "google.golang.org/genproto/googleapis/firestore/v1beta1"
+	pb "google.golang.org/genproto/googleapis/firestore/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -36,8 +36,13 @@ type DocumentRef struct {
 	// The CollectionRef that this document is a part of. Never nil.
 	Parent *CollectionRef
 
-	// The full resource path of the document: "projects/P/databases/D/documents..."
+	// The full resource path of the document. A document "doc-1" in collection
+	// "coll-1" would be: "projects/P/databases/D/documents/coll-1/doc-1".
 	Path string
+
+	// The shorter resource path of the document. A document "doc-1" in
+	// collection "coll-1" would be: "coll-1/doc-1".
+	shortPath string
 
 	// The ID of the document: the last component of the resource path.
 	ID string
@@ -45,9 +50,10 @@ type DocumentRef struct {
 
 func newDocRef(parent *CollectionRef, id string) *DocumentRef {
 	return &DocumentRef{
-		Parent: parent,
-		ID:     id,
-		Path:   parent.Path + "/" + id,
+		Parent:    parent,
+		ID:        id,
+		Path:      parent.Path + "/" + id,
+		shortPath: parent.selfPath + "/" + id,
 	}
 }
 
@@ -62,9 +68,6 @@ func (d *DocumentRef) Collection(id string) *CollectionRef {
 // In that case, Get returns a non-nil DocumentSnapshot whose Exists method return false and whose
 // ReadTime is the time of the failed read operation.
 func (d *DocumentRef) Get(ctx context.Context) (*DocumentSnapshot, error) {
-	if err := checkTransaction(ctx); err != nil {
-		return nil, err
-	}
 	if d == nil {
 		return nil, errNilDocRef
 	}
@@ -90,9 +93,9 @@ func (d *DocumentRef) Get(ctx context.Context) (*DocumentSnapshot, error) {
 //   - bool converts to Bool.
 //   - string converts to String.
 //   - int, int8, int16, int32 and int64 convert to Integer.
-//   - uint8, uint16 and uint32 convert to Integer. uint64 is disallowed,
-//     because it can represent values that cannot be represented in an int64, which
-//     is the underlying type of a Integer.
+//   - uint8, uint16 and uint32 convert to Integer. uint, uint64 and uintptr are disallowed,
+//     because they may be able to represent values that cannot be represented in an int64,
+//     which is the underlying type of a Integer.
 //   - float32 and float64 convert to Double.
 //   - []byte converts to Bytes.
 //   - time.Time and *ts.Timestamp convert to Timestamp. ts is the package
@@ -220,22 +223,6 @@ func fpvsFromData(v reflect.Value, prefix FieldPath, fpvs *[]fpv) {
 		}
 		*fpvs = append(*fpvs, fpv{prefix, val})
 	}
-}
-
-// removePathsIf creates a new slice of FieldPaths that contains
-// exactly those elements of fps for which pred returns false.
-func removePathsIf(fps []FieldPath, pred func(FieldPath) bool) []FieldPath {
-	// Return fps if it's empty to preserve the distinction betweeen nil and zero-length.
-	if len(fps) == 0 {
-		return fps
-	}
-	var result []FieldPath
-	for _, fp := range fps {
-		if !pred(fp) {
-			result = append(result, fp)
-		}
-	}
-	return result
 }
 
 // Delete deletes the document. If the document doesn't exist, it does nothing
@@ -383,25 +370,6 @@ func (d *DocumentRef) newUpdateWithTransform(doc *pb.Document, updatePaths []Fie
 		})
 	}
 	return ws
-}
-
-// This helper turns server timestamp fields into a transform proto.
-func (d *DocumentRef) newServerTimestampTransform(serverTimestampFieldPaths []FieldPath, pc *pb.Precondition) *pb.Write {
-	sort.Sort(byPath(serverTimestampFieldPaths)) // TODO(jba): make tests pass without this
-	var fts []*pb.DocumentTransform_FieldTransform
-	for _, p := range serverTimestampFieldPaths {
-		fts = append(fts, serverTimestamp(p.toServiceFieldPath()))
-	}
-	return &pb.Write{
-		Operation: &pb.Write_Transform{
-			&pb.DocumentTransform{
-				Document:        d.Path,
-				FieldTransforms: fts,
-				// TODO(jba): should the transform have the same preconditions as the write?
-			},
-		},
-		CurrentDocument: pc,
-	}
 }
 
 // arrayUnion is a special type in firestore. It instructs the server to add its
@@ -564,7 +532,6 @@ func (d *DocumentRef) Update(ctx context.Context, updates []Update, preconds ...
 func (d *DocumentRef) Collections(ctx context.Context) *CollectionIterator {
 	client := d.Parent.c
 	it := &CollectionIterator{
-		err:    checkTransaction(ctx),
 		client: client,
 		parent: d,
 		it: client.c.ListCollectionIds(

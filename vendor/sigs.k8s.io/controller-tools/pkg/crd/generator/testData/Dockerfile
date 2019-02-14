@@ -12,6 +12,6 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager sigs.k8s.io/con
 
 # Copy the controller-manager into a thin image
 FROM ubuntu:latest
-WORKDIR /root/
+WORKDIR /
 COPY --from=builder /go/src/sigs.k8s.io/controller-tools/pkg/crd/generator/testData/manager .
-ENTRYPOINT ["./manager"]
+ENTRYPOINT ["/manager"]

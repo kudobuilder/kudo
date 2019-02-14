@@ -1,3 +1,7 @@
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package testscript
 
 import (
@@ -36,6 +40,12 @@ func IgnoreMissedCoverage() {
 // with an associated run function which should return the
 // code to pass to os.Exit. It's OK for a command function to
 // exit itself, but this may result in loss of coverage information.
+//
+// When Run is called, these commands will be available as
+// testscript commands; note that these commands behave like
+// commands run with the "exec" command: they set stdout
+// and stderr, and can be run in the background by passing "&"
+// as a final argument.
 //
 // This function returns an exit code to pass to os.Exit, after calling m.Run.
 func RunMain(m TestingM, commands map[string]func() int) (exitCode int) {

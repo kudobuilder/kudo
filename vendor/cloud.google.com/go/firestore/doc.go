@@ -18,6 +18,8 @@
 Package firestore provides a client for reading and writing to a Cloud Firestore
 database.
 
+   NOTE: This package is in beta. It is not stable, and may be subject to changes.
+
 See https://cloud.google.com/firestore/docs for an introduction
 to Cloud Firestore and additional help on using the Firestore API.
 
@@ -214,5 +216,15 @@ read and write methods of the Transaction passed to it.
 	if err != nil {
 		// TODO: Handle error.
 	}
+
+Google Cloud Firestore Emulator
+
+This package supports the Cloud Firestore emulator, which is useful for testing and
+development. Environment variables are used to indicate that Firestore traffic should be
+directed to the emulator instead of the production Firestore service.
+
+To install and run the emulator and its environment variables, see the documentation
+at https://cloud.google.com/sdk/gcloud/reference/beta/emulators/firestore/. Once the
+emulator is running, set FIRESTORE_EMULATOR_HOST to the API endpoint.
 */
 package firestore

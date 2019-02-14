@@ -168,7 +168,7 @@ StructOnly
 
 When a field that is a nested struct is encountered, and contains this flag
 any validation on the nested struct will be run, but none of the nested
-struct fields will be validated. This is useful if inside of you program
+struct fields will be validated. This is useful if inside of your program
 you know the struct will be valid, but need to verify it has been assigned.
 NOTE: only "required" and "omitempty" can be used on a struct itself.
 
@@ -503,6 +503,22 @@ to the top level struct.
 
 	Usage: ltecsfield=InnerStructField.Field
 
+Field Contains Another Field
+
+This does the same as contains except for struct fields. It should only be used
+with string types. See the behavior of reflect.Value.String() for behavior on
+other types.
+
+	Usage: containsfield=InnerStructField.Field
+
+Field Excludes Another Field
+
+This does the same as excludes except for struct fields. It should only be used
+with string types. See the behavior of reflect.Value.String() for behavior on
+other types.
+
+	Usage: excludesfield=InnerStructField.Field
+
 Unique
 
 For arrays & slices, unique will ensure that there are no duplicates.
@@ -583,7 +599,7 @@ E-mail String
 
 This validates that a string value contains a valid email
 This may not conform to all possibilities of any rfc standard, but neither
-does any email provider accept all posibilities.
+does any email provider accept all possibilities.
 
 	Usage: email
 
@@ -609,6 +625,13 @@ This validates that a string value contains a valid uri
 This will accept any uri the golang request uri accepts
 
 	Usage: uri
+
+Urn RFC 2141 String
+
+This validataes that a string value contains a valid URN
+according to the RFC 2141 spec.
+
+	Usage: urn_rfc2141
 
 Base64 String
 
@@ -923,6 +946,14 @@ This validates that a string value is percent-encoded (URL encoded) according
 to https://tools.ietf.org/html/rfc3986#section-2.1
 
 	Usage: url_encoded
+
+Directory
+
+This validates that a string value contains a valid directory and that
+it exists on the machine.
+This is done using os.Stat, which is a platform independent function.
+
+	Usage: dir
 
 Alias Validators and Tags
 

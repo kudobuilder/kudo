@@ -203,6 +203,7 @@ func filesToReleases(fs []File) (stable, unstable, archive []Release) {
 				return
 			}
 			unstable = append(unstable, *r)
+			return
 		}
 
 		// Reports whether the release is the most recent minor version of the
@@ -315,7 +316,7 @@ func parseVersion(v string) (maj, min int, tail string) {
 
 func validUser(user string) bool {
 	switch user {
-	case "adg", "bradfitz", "cbro", "andybons", "valsorda", "dmitshur", "katiehockman":
+	case "adg", "bradfitz", "cbro", "andybons", "valsorda", "dmitshur", "katiehockman", "julieqiu":
 		return true
 	}
 	return false

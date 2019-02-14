@@ -24,15 +24,9 @@ type ParameterInformation struct {
 	Label string
 }
 
-func SignatureHelp(ctx context.Context, f *File, pos token.Pos) (*SignatureInformation, error) {
-	fAST, err := f.GetAST()
-	if err != nil {
-		return nil, err
-	}
-	pkg, err := f.GetPackage()
-	if err != nil {
-		return nil, err
-	}
+func SignatureHelp(ctx context.Context, f File, pos token.Pos) (*SignatureInformation, error) {
+	fAST := f.GetAST()
+	pkg := f.GetPackage()
 
 	// Find a call expression surrounding the query position.
 	var callExpr *ast.CallExpr

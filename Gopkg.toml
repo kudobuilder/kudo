@@ -24,11 +24,11 @@ required = [
 
 [[constraint]]
   name="sigs.k8s.io/controller-runtime"
-  version="v0.1.7"
+  version="v0.1.10"
 
 [[constraint]]
   name="sigs.k8s.io/controller-tools"
-  version="v0.1.6"
+  version="v0.1.9"
 
 # For dependency below: Refer to issue https://github.com/golang/dep/issues/1799
 [[override]]
@@ -38,29 +38,73 @@ version="v1.4.7"
 
 [[constraint]]
   name = "sigs.k8s.io/kustomize"
+  version="v2.0.1"
   #1.0.8 but includes a GVK sorting patch
-  branch = "master"
 
-[[override]]
-  name = "k8s.io/kubernetes"
-  version = "1.11.3"
-
-[[override]]
-  name = "k8s.io/code-generator"
-  version = "kubernetes-1.11.3"
-
-[[override]]
+[[constraint]]
   name = "k8s.io/api"
-  version = "kubernetes-1.11.3"
+  version = "kubernetes-1.13.1"
 
-[[override]]
-  name = "k8s.io/apiserver"
-  version = "kubernetes-1.11.3"
+[[constraint]]
+  name = "k8s.io/apiextensions-apiserver"
+  version = "kubernetes-1.13.1"
 
-[[override]]
+[[constraint]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.11.3"
+  version = "kubernetes-1.13.1"
 
-[[override]]
+[[constraint]]
   name = "k8s.io/client-go"
-  version = "kubernetes-1.11.3"
+  version = "kubernetes-1.13.1"
+
+[[constraint]]
+  name = "sigs.k8s.io/testing_frameworks"
+  version = "v0.1.1"
+
+[[constraint]]
+  name = "github.com/onsi/ginkgo"
+  version = "v1.5.0"
+
+[[constraint]]
+  name = "github.com/onsi/gomega"
+  version = "v1.4.0"
+
+[[constraint]]
+  name = "github.com/ghodss/yaml"
+  version = "1.0.0"
+
+[[constraint]]
+  name = "go.uber.org/zap"
+  version = "1.8.0"
+
+[[constraint]]
+  name = "github.com/prometheus/client_golang"
+  version = "0.9.0"
+
+  [[override]]
+    name = "k8s.io/code-generator"
+    version = "kubernetes-1.13.1"
+
+  [[override]]
+    name = "k8s.io/api"
+    version = "kubernetes-1.13.1"
+
+  [[override]]
+    name = "k8s.io/apiserver"
+    version = "kubernetes-1.13.1"
+
+  [[override]]
+    name = "k8s.io/apimachinery"
+    version = "kubernetes-1.13.1"
+
+  [[override]]
+    name = "k8s.io/apiextensions-apiserver"
+    version = "kubernetes-1.13.1"
+
+  [[override]]
+    name = "k8s.io/cli-runtime"
+    version = "kubernetes-1.13.1"
+
+  [[override]]
+    name = "k8s.io/client-go"
+    version = "kubernetes-1.13.1"

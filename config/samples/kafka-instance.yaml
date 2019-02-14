@@ -1,5 +1,5 @@
 apiVersion: kudo.k8s.io/v1alpha1
-kind: Instance
+kind: Kafka
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
@@ -12,10 +12,17 @@ spec:
     type: FrameworkVersion
   # Add fields here
   dependency:
-    - referenaceName: zookeeper
+    - referenceName: zookeeper
       name: zk
       type: Instance
   parameters:
     KAFKA_ZOOKEEPER_URI: zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181
     KAFKA_ZOOKEEPER_PATH: "/kafka"
     BROKER_COUNT: "1"
+---
+apiVersion: kafka.kudo.sh/v1beta1
+kind: Topic
+spec:
+  name: dev-messages
+  readQuorum: 1000
+  parititions: 5

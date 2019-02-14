@@ -109,9 +109,7 @@ setup_envs
 
 header_text "running go vet"
 
-go generate ./test/pkg/apis/...
-
-go vet ./pkg/... ./test/pkg/... ./test/cmd/... ./cmd/...
+go vet ./pkg/... ./cmd/...
 
 # go get is broken for golint.  re-enable this once it is fixed.
 header_text "running golint"
@@ -137,16 +135,10 @@ gometalinter.v2 --disable-all \
     --enable=misspell \
     --enable=gocyclo \
     --skip=parse \
-    ./pkg/... ./cmd/... ./test/pkg/... ./test/cmd/...
+    ./pkg/... ./cmd/...
 # enable this after fixing linting error
 #    --enable=gosec \
 
 header_text "running go test"
 
 go test ./pkg/... ./cmd/... -parallel 4
-
-header_text "running test package tests"
-
-cd test
-make
-cd -

@@ -3,10 +3,6 @@
 The analysis package defines the interface between a modular static
 analysis and an analysis driver program.
 
-
-THIS INTERFACE IS EXPERIMENTAL AND SUBJECT TO CHANGE.
-We aim to finalize it by November 2018.
-
 Background
 
 A static analysis is a function that inspects a package of Go code and
@@ -250,7 +246,7 @@ An Analyzer that uses facts must declare their types:
 
 	var Analyzer = &analysis.Analyzer{
 		Name:       "printf",
-		FactTypes: []reflect.Type{reflect.TypeOf(new(isWrapper))},
+		FactTypes: []analysis.Fact{new(isWrapper)},
 		...
 	}
 

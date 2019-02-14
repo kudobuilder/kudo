@@ -9,18 +9,22 @@ package testscript
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/rogpeppe/go-internal/imports"
+	"github.com/rogpeppe/go-internal/internal/os/execpath"
 	"github.com/rogpeppe/go-internal/par"
 	"github.com/rogpeppe/go-internal/testenv"
 	"github.com/rogpeppe/go-internal/txtar"
@@ -38,6 +42,16 @@ type Env struct {
 	WorkDir string
 	Vars    []string
 	Cd      string
+
+	ts *TestScript
+}
+
+// Defer arranges for f to be called at the end
+// of the test. If Defer is called multiple times, the
+// defers are executed in reverse order (similar
+// to Go's defer statement)
+func (e *Env) Defer(f func()) {
+	e.ts.Defer(f)
 }
 
 // Params holds parameters for a call to Run.
@@ -50,7 +64,8 @@ type Params struct {
 
 	// Setup is called, if not nil, to complete any setup required
 	// for a test. The WorkDir and Vars fields will have already
-	// been initialized, and Cd will be the same as WorkDir.
+	// been initialized and all the files extracted into WorkDir,
+	// and Cd will be the same as WorkDir.
 	// The Setup function may modify Vars and Cd as it wishes.
 	Setup func(*Env) error
 
@@ -78,6 +93,40 @@ type Params struct {
 // RunDir runs the tests in the given directory. All files in dir with a ".txt"
 // are considered to be test files.
 func Run(t *testing.T, p Params) {
+	RunT(tshim{t}, p)
+}
+
+// T holds all the methods of the *testing.T type that
+// are used by testscript.
+type T interface {
+	Skip(...interface{})
+	Fatal(...interface{})
+	Parallel()
+	Log(...interface{})
+	FailNow()
+	Run(string, func(T))
+	// Verbose is usually implemented by the testing package
+	// directly rather than on the *testing.T type.
+	Verbose() bool
+}
+
+type tshim struct {
+	*testing.T
+}
+
+func (t tshim) Run(name string, f func(T)) {
+	t.T.Run(name, func(t *testing.T) {
+		f(tshim{t})
+	})
+}
+
+func (t tshim) Verbose() bool {
+	return testing.Verbose()
+}
+
+// RunT is like Run but uses an interface type instead of the concrete *testing.T
+// type to make it possible to use testscript functionality outside of go test.
+func RunT(t T, p Params) {
 	files, err := filepath.Glob(filepath.Join(p.Dir, "*.txt"))
 	if err != nil {
 		t.Fatal(err)
@@ -90,7 +139,7 @@ func Run(t *testing.T, p Params) {
 	for _, file := range files {
 		file := file
 		name := strings.TrimSuffix(filepath.Base(file), ".txt")
-		t.Run(name, func(t *testing.T) {
+		t.Run(name, func(t T) {
 			t.Parallel()
 			ts := &TestScript{
 				t:           t,
@@ -98,18 +147,20 @@ func Run(t *testing.T, p Params) {
 				name:        name,
 				file:        file,
 				params:      p,
+				ctxt:        context.Background(),
+				deferred:    func() {},
 			}
-			ts.setup()
-			if !p.TestWork {
-				defer func() {
-					removeAll(ts.workdir)
-					if atomic.AddInt32(&refCount, -1) == 0 {
-						// This is the last subtest to finish. Remove the
-						// parent directory too.
-						os.Remove(testTempDir)
-					}
-				}()
-			}
+			defer func() {
+				if p.TestWork {
+					return
+				}
+				removeAll(ts.workdir)
+				if atomic.AddInt32(&refCount, -1) == 0 {
+					// This is the last subtest to finish. Remove the
+					// parent directory too.
+					os.Remove(testTempDir)
+				}
+			}()
 			ts.run()
 		})
 	}
@@ -118,7 +169,7 @@ func Run(t *testing.T, p Params) {
 // A TestScript holds execution state for a single test script.
 type TestScript struct {
 	params      Params
-	t           *testing.T
+	t           T
 	testTempDir string
 	workdir     string            // temporary work dir ($WORK)
 	log         bytes.Buffer      // test execution log (printed at end of test)
@@ -129,15 +180,27 @@ type TestScript struct {
 	lineno      int               // line number currently executing
 	line        string            // line currently executing
 	env         []string          // environment list (for os/exec)
-	envMap      map[string]string // environment mapping (matches env)
+	envMap      map[string]string // environment mapping (matches env; on Windows keys are lowercase)
+	stdin       string            // standard input to next 'go' command; set by 'stdin' command.
 	stdout      string            // standard output from last 'go' command; for 'stdout' command
 	stderr      string            // standard error from last 'go' command; for 'stderr' command
 	stopped     bool              // test wants to stop early
 	start       time.Time         // time phase started
+	background  []backgroundCmd   // backgrounded 'exec' and 'go' commands
+	deferred    func()            // deferred cleanup actions.
+
+	ctxt context.Context // per TestScript context
+}
+
+type backgroundCmd struct {
+	cmd  *exec.Cmd
+	wait <-chan struct{}
+	neg  bool // if true, cmd should fail
 }
 
 // setup sets up the test execution temporary directory and environment.
-func (ts *TestScript) setup() {
+// It returns the comment section of the txtar archive.
+func (ts *TestScript) setup() string {
 	ts.workdir = filepath.Join(ts.testTempDir, "script-"+ts.name)
 	ts.Check(os.MkdirAll(filepath.Join(ts.workdir, "tmp"), 0777))
 	env := &Env{
@@ -151,7 +214,29 @@ func (ts *TestScript) setup() {
 		},
 		WorkDir: ts.workdir,
 		Cd:      ts.workdir,
+		ts:      ts,
 	}
+	// Must preserve SYSTEMROOT on Windows: https://github.com/golang/go/issues/25513 et al
+	if runtime.GOOS == "windows" {
+		env.Vars = append(env.Vars,
+			"SYSTEMROOT="+os.Getenv("SYSTEMROOT"),
+			"exe=.exe",
+		)
+	} else {
+		env.Vars = append(env.Vars,
+			"exe=",
+		)
+	}
+	ts.cd = env.Cd
+	// Unpack archive.
+	a, err := txtar.ParseFile(ts.file)
+	ts.Check(err)
+	for _, f := range a.Files {
+		name := ts.MkAbs(ts.expand(f.Name))
+		ts.Check(os.MkdirAll(filepath.Dir(name), 0777))
+		ts.Check(ioutil.WriteFile(name, f.Data, 0666))
+	}
+	// Run any user-defined setup.
 	if ts.params.Setup != nil {
 		ts.Check(ts.params.Setup(env))
 	}
@@ -161,9 +246,10 @@ func (ts *TestScript) setup() {
 	ts.envMap = make(map[string]string)
 	for _, kv := range ts.env {
 		if i := strings.Index(kv, "="); i >= 0 {
-			ts.envMap[kv[:i]] = kv[i+1:]
+			ts.envMap[envvarname(kv[:i])] = kv[i+1:]
 		}
 	}
+	return string(a.Comment)
 }
 
 // run runs the test script.
@@ -171,7 +257,7 @@ func (ts *TestScript) run() {
 	// Truncate log at end of last phase marker,
 	// discarding details of successful phase.
 	rewind := func() {
-		if !testing.Verbose() {
+		if !ts.t.Verbose() {
 			ts.log.Truncate(ts.mark)
 		}
 	}
@@ -188,22 +274,28 @@ func (ts *TestScript) run() {
 	}
 
 	defer func() {
+		// On a normal exit from the test loop, background processes are cleaned up
+		// before we print PASS. If we return early (e.g., due to a test failure),
+		// don't print anything about the processes that were still running.
+		for _, bg := range ts.background {
+			interruptProcess(bg.cmd.Process)
+		}
+		for _, bg := range ts.background {
+			<-bg.wait
+		}
+		ts.background = nil
+
 		markTime()
 		// Flush testScript log to testing.T log.
 		ts.t.Log("\n" + ts.abbrev(ts.log.String()))
 	}()
-
-	// Unpack archive.
-	a, err := txtar.ParseFile(ts.file)
-	ts.Check(err)
-	for _, f := range a.Files {
-		name := ts.MkAbs(ts.expand(f.Name))
-		ts.Check(os.MkdirAll(filepath.Dir(name), 0777))
-		ts.Check(ioutil.WriteFile(name, f.Data, 0666))
-	}
+	defer func() {
+		ts.deferred()
+	}()
+	script := ts.setup()
 
 	// With -v or -testwork, start log with full environment.
-	if *testWork || testing.Verbose() {
+	if *testWork || ts.t.Verbose() {
 		// Display environment.
 		ts.cmdEnv(false, nil)
 		fmt.Fprintf(&ts.log, "\n")
@@ -212,7 +304,6 @@ func (ts *TestScript) run() {
 
 	// Run script.
 	// See testdata/script/README for documentation of script form.
-	script := string(a.Comment)
 Script:
 	for script != "" {
 		// Extract next line.
@@ -298,14 +389,23 @@ Script:
 
 		// Command can ask script to stop early.
 		if ts.stopped {
-			return
+			// Break instead of returning, so that we check the status of any
+			// background processes and print PASS.
+			break
 		}
 	}
+
+	for _, bg := range ts.background {
+		interruptProcess(bg.cmd.Process)
+	}
+	ts.cmdWait(false, nil)
 
 	// Final phase ended.
 	rewind()
 	markTime()
-	fmt.Fprintf(&ts.log, "PASS\n")
+	if !ts.stopped {
+		fmt.Fprintf(&ts.log, "PASS\n")
+	}
 }
 
 // condition reports whether the given condition is satisfied.
@@ -319,11 +419,16 @@ func (ts *TestScript) condition(cond string) (bool, error) {
 		return testenv.HasLink(), nil
 	case "symlink":
 		return testenv.HasSymlink(), nil
+	case runtime.GOOS, runtime.GOARCH:
+		return true, nil
 	default:
+		if imports.KnownArch[cond] || imports.KnownOS[cond] {
+			return false, nil
+		}
 		if strings.HasPrefix(cond, "exec:") {
 			prog := cond[len("exec:"):]
 			ok := execCache.Do(prog, func() interface{} {
-				_, err := exec.LookPath(prog)
+				_, err := execpath.Look(prog, ts.Getenv)
 				return err == nil
 			}).(bool)
 			return ok, nil
@@ -349,6 +454,18 @@ func (ts *TestScript) abbrev(s string) string {
 	return s
 }
 
+// Defer arranges for f to be called at the end
+// of the test. If Defer is called multiple times, the
+// defers are executed in reverse order (similar
+// to Go's defer statement)
+func (ts *TestScript) Defer(f func()) {
+	old := ts.deferred
+	ts.deferred = func() {
+		defer old()
+		f()
+	}
+}
+
 // Check calls ts.Fatalf if err != nil.
 func (ts *TestScript) Check(err error) {
 	if err != nil {
@@ -366,14 +483,87 @@ func (ts *TestScript) Logf(format string, args ...interface{}) {
 // exec runs the given command line (an actual subprocess, not simulated)
 // in ts.cd with environment ts.env and then returns collected standard output and standard error.
 func (ts *TestScript) exec(command string, args ...string) (stdout, stderr string, err error) {
-	cmd := exec.Command(command, args...)
+	cmd, err := ts.buildExecCmd(command, args...)
+	if err != nil {
+		return "", "", err
+	}
 	cmd.Dir = ts.cd
 	cmd.Env = append(ts.env, "PWD="+ts.cd)
+	cmd.Stdin = strings.NewReader(ts.stdin)
 	var stdoutBuf, stderrBuf strings.Builder
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
-	err = cmd.Run()
+	if err = cmd.Start(); err == nil {
+		err = ctxWait(ts.ctxt, cmd)
+	}
+	ts.stdin = ""
 	return stdoutBuf.String(), stderrBuf.String(), err
+}
+
+// execBackground starts the given command line (an actual subprocess, not simulated)
+// in ts.cd with environment ts.env.
+func (ts *TestScript) execBackground(command string, args ...string) (*exec.Cmd, error) {
+	cmd, err := ts.buildExecCmd(command, args...)
+	if err != nil {
+		return nil, err
+	}
+	cmd.Dir = ts.cd
+	cmd.Env = append(ts.env, "PWD="+ts.cd)
+	var stdoutBuf, stderrBuf strings.Builder
+	cmd.Stdin = strings.NewReader(ts.stdin)
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
+	ts.stdin = ""
+	return cmd, cmd.Start()
+}
+
+func (ts *TestScript) buildExecCmd(command string, args ...string) (*exec.Cmd, error) {
+	if filepath.Base(command) == command {
+		if lp, err := execpath.Look(command, ts.Getenv); err != nil {
+			return nil, err
+		} else {
+			command = lp
+		}
+	}
+	return exec.Command(command, args...), nil
+}
+
+// BackgroundCmds returns a slice containing all the commands that have
+// been started in the background since the most recent wait command, or
+// the start of the script if wait has not been called.
+func (ts *TestScript) BackgroundCmds() []*exec.Cmd {
+	cmds := make([]*exec.Cmd, len(ts.background))
+	for i, b := range ts.background {
+		cmds[i] = b.cmd
+	}
+	return cmds
+}
+
+// ctxWait is like cmd.Wait, but terminates cmd with os.Interrupt if ctx becomes done.
+//
+// This differs from exec.CommandContext in that it prefers os.Interrupt over os.Kill.
+// (See https://golang.org/issue/21135.)
+func ctxWait(ctx context.Context, cmd *exec.Cmd) error {
+	errc := make(chan error, 1)
+	go func() { errc <- cmd.Wait() }()
+
+	select {
+	case err := <-errc:
+		return err
+	case <-ctx.Done():
+		interruptProcess(cmd.Process)
+		return <-errc
+	}
+}
+
+// interruptProcess sends os.Interrupt to p if supported, or os.Kill otherwise.
+func interruptProcess(p *os.Process) {
+	if err := p.Signal(os.Interrupt); err != nil {
+		// Per https://golang.org/pkg/os/#Signal, “Interrupt is not implemented on
+		// Windows; using it with os.Process.Signal will return an error.”
+		// Fall back to Kill instead.
+		p.Kill()
+	}
 }
 
 // Exec runs the given command and saves its stdout and stderr so
@@ -392,7 +582,12 @@ func (ts *TestScript) Exec(command string, args ...string) error {
 
 // expand applies environment variable expansion to the string s.
 func (ts *TestScript) expand(s string) string {
-	return os.Expand(s, func(key string) string { return ts.envMap[key] })
+	return os.Expand(s, func(key string) string {
+		if key1 := strings.TrimSuffix(key, "@R"); len(key1) != len(key) {
+			return regexp.QuoteMeta(ts.Getenv(key1))
+		}
+		return ts.Getenv(key)
+	})
 }
 
 // fatalf aborts the test with the given failure message.
@@ -408,6 +603,17 @@ func (ts *TestScript) MkAbs(file string) string {
 		return file
 	}
 	return filepath.Join(ts.cd, file)
+}
+
+// Setenv sets the value of the environment variable named by the key.
+func (ts *TestScript) Setenv(key, value string) {
+	ts.env = append(ts.env, key+"="+value)
+	ts.envMap[envvarname(key)] = value
+}
+
+// Getenv gets the value of the environment variable named by the key.
+func (ts *TestScript) Getenv(key string) string {
+	return ts.envMap[envvarname(key)]
 }
 
 // parse parses a single line as a list of space-separated arguments
@@ -469,74 +675,6 @@ func (ts *TestScript) parse(line string) []string {
 		}
 	}
 	return args
-}
-
-// diff returns a formatted diff of the two texts,
-// showing the entire text and the minimum line-level
-// additions and removals to turn text1 into text2.
-// (That is, lines only in text1 appear with a leading -,
-// and lines only in text2 appear with a leading +.)
-func diff(text1, text2 string) string {
-	if text1 != "" && !strings.HasSuffix(text1, "\n") {
-		text1 += "(missing final newline)"
-	}
-	lines1 := strings.Split(text1, "\n")
-	lines1 = lines1[:len(lines1)-1] // remove empty string after final line
-	if text2 != "" && !strings.HasSuffix(text2, "\n") {
-		text2 += "(missing final newline)"
-	}
-	lines2 := strings.Split(text2, "\n")
-	lines2 = lines2[:len(lines2)-1] // remove empty string after final line
-
-	// Naive dynamic programming algorithm for edit distance.
-	// https://en.wikipedia.org/wiki/Wagner–Fischer_algorithm
-	// dist[i][j] = edit distance between lines1[:len(lines1)-i] and lines2[:len(lines2)-j]
-	// (The reversed indices make following the minimum cost path
-	// visit lines in the same order as in the text.)
-	dist := make([][]int, len(lines1)+1)
-	for i := range dist {
-		dist[i] = make([]int, len(lines2)+1)
-		if i == 0 {
-			for j := range dist[0] {
-				dist[0][j] = j
-			}
-			continue
-		}
-		for j := range dist[i] {
-			if j == 0 {
-				dist[i][0] = i
-				continue
-			}
-			cost := dist[i][j-1] + 1
-			if cost > dist[i-1][j]+1 {
-				cost = dist[i-1][j] + 1
-			}
-			if lines1[len(lines1)-i] == lines2[len(lines2)-j] {
-				if cost > dist[i-1][j-1] {
-					cost = dist[i-1][j-1]
-				}
-			}
-			dist[i][j] = cost
-		}
-	}
-
-	var buf strings.Builder
-	i, j := len(lines1), len(lines2)
-	for i > 0 || j > 0 {
-		cost := dist[i][j]
-		if i > 0 && j > 0 && cost == dist[i-1][j-1] && lines1[len(lines1)-i] == lines2[len(lines2)-j] {
-			fmt.Fprintf(&buf, " %s\n", lines1[len(lines1)-i])
-			i--
-			j--
-		} else if i > 0 && cost == dist[i-1][j]+1 {
-			fmt.Fprintf(&buf, "-%s\n", lines1[len(lines1)-i])
-			i--
-		} else {
-			fmt.Fprintf(&buf, "+%s\n", lines2[len(lines2)-j])
-			j--
-		}
-	}
-	return buf.String()
 }
 
 func removeAll(dir string) error {
