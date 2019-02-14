@@ -34,7 +34,6 @@ A table of contents is helpful for quickly jumping to sections of a KEP and for 
   - [Implementation History](#implementation-history)
   - [Drawbacks [optional]](#drawbacks-optional)
   - [Alternatives [optional]](#alternatives-optional)
-  - [Infrastructure Needed [optional]](#infrastructure-needed-optional)
 
 [tools for generating]: https://github.com/ekalinin/github-markdown-toc
 
@@ -94,15 +93,7 @@ Hopefully the content previously contained in [umbrella issues][] will be tracke
 
 ## Implementation History
 
-Major milestones in the life cycle of a KEP should be tracked in `Implementation History`.
-Major milestones might include
-
-- the `Summary` and `Motivation` sections being merged signaling owner acceptance
-- the `Proposal` section being merged signaling agreement on a proposed design
-- the date implementation started
-- the first KUDO release where an initial version of the KEP was available
-- the version of KUDO where the KEP graduated to general availability
-- when the KEP was retired or superseded
+- `Summary`, `Motivation`, and `Goals` being merged.
 
 ## Drawbacks [optional]
 
@@ -111,9 +102,3 @@ Why should this KEP _not_ be implemented.
 ## Alternatives [optional]
 
 Similar to the `Drawbacks` section the `Alternatives` section is used to highlight and record other possible approaches to delivering the value proposed by a KEP.
-
-## Infrastructure Needed [optional]
-
-Use this section if you need things from the project/owner.
-Examples include a new subproject, repos requested, github details.
-Listing these here allows a owner to get the process for these resources started right away.
