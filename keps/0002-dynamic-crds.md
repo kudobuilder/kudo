@@ -32,8 +32,6 @@ A table of contents is helpful for quickly jumping to sections of a KEP and for 
     - [Risks and Mitigations](#risks-and-mitigations)
   - [Graduation Criteria](#graduation-criteria)
   - [Implementation History](#implementation-history)
-  - [Drawbacks [optional]](#drawbacks-optional)
-  - [Alternatives [optional]](#alternatives-optional)
 
 [tools for generating]: https://github.com/ekalinin/github-markdown-toc
 
@@ -94,11 +92,3 @@ Hopefully the content previously contained in [umbrella issues][] will be tracke
 ## Implementation History
 
 - `Summary`, `Motivation`, and `Goals` being merged.
-
-## Drawbacks [optional]
-
-Why should this KEP _not_ be implemented.
-
-## Alternatives [optional]
-
-Similar to the `Drawbacks` section the `Alternatives` section is used to highlight and record other possible approaches to delivering the value proposed by a KEP.
