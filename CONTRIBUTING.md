@@ -13,7 +13,7 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 3. If your proposed change is accepted, and you haven't already done so, sign a Contributor License Agreement (see details above).
 4. Fork the desired repo, develop and test your code changes.
 5. Submit a pull request.
-6.
+
 ## How to build Kudo locally
 
 TBD
