@@ -90,7 +90,7 @@ You can reach the maintainers of this project at:
 
 ### Code of Conduct
 
-Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](code-of-conduct.md).
+Participation in the Kudo community is governed by the [Kubernetes Code of Conduct](code-of-conduct.md).
 
 - [OWNERS](https://github.com/kudobuilder/kudo/blob/master/OWNERS)
 - [Creative Commons 4.0](https://git.k8s.io/website/LICENSE)
