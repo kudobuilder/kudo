@@ -24,8 +24,8 @@ Learn how to engage with the Kubernetes community on the [community page](commun
 
 You can reach the maintainers of this project at:
 
-[Slack](https://kubernetes.slack.com/messages/kudo/)
-[Mailing List](https://groups.google.com/d/forum/kudobuilder)
+- [Slack](https://kubernetes.slack.com/messages/kudo/)
+- [Mailing List](https://groups.google.com/d/forum/kudobuilder)
 
 ## Is My Thing an Enhancement?
 
