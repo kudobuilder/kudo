@@ -14,6 +14,7 @@ Before you get started:
 
 - Install Go `1.11` or later
 - Latest version of `dep`
+- [Install Kubebuilder](https://book.kubebuilder.io/getting_started/installation_and_setup.html)
 - Kubernetes Cluster `1.12` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
 - [Configure kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) 
 
