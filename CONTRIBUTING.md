@@ -31,6 +31,7 @@ Before you get started:
 - Get KUDO repo: `go get github.com/kudobuilder/kudo/`
 - `cd $GOPATH/src/github.com/kudobuilder/kudo`
 - `make all` to build project
+- [optionally] `make docker-build` to build docker images and `make docker-push` to push images
 
 ## Community, Discussion, and Support
 
