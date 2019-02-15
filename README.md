@@ -79,18 +79,18 @@ zk-zk-2                 1/1     Running            0          23s
 ```
 
 
-## Community, discussion, contribution, and support
+## Community, Discussion, Contribution, and Support
 
 Learn how to engage with the Kubernetes community on the [community page](http://kubernetes.io/community/).
 
 You can reach the maintainers of this project at:
 
 - [Slack](http://slack.k8s.io/)
-- [Mailing List](https://groups.google.com/forum/#!forum/kubernetes-dev)
+- [Mailing List](https://groups.google.com/d/forum/kudobuilder)
 
-### Code of conduct
+### Code of Conduct
 
-Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](code-of-conduct.md).
+Participation in the Kudo community is governed by the [Kubernetes Code of Conduct](code-of-conduct.md).
 
-[owners]: https://git.k8s.io/community/contributors/guide/owners.md
-[Creative Commons 4.0]: https://git.k8s.io/website/LICENSE
+- [OWNERS](https://github.com/kudobuilder/kudo/blob/master/OWNERS)
+- [Creative Commons 4.0](https://git.k8s.io/website/LICENSE)
