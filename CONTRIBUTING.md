@@ -18,14 +18,14 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 
 TBD
 
-## Community, discussion, and support
+## Community, Discussion, and Support
 
 Learn how to engage with the Kubernetes community on the [community page](community page).
 
 You can reach the maintainers of this project at:
 
 [Slack](https://kubernetes.slack.com/messages/kudo/)
-[Mailing List](https://groups.google.com/forum/#!forum/kubernetes-kudo)
+[Mailing List](https://groups.google.com/d/forum/kudobuilder)
 
 ## Is My Thing an Enhancement?
 
@@ -59,6 +59,6 @@ Create an issue in this repo once you:
   - you and your team should be prepared to work on the approx. 9mo - 1 year that it takes to progress to Stable status
 - are ready to be the project-manager for the enhancement
 
-## Code of conduct
+## Code of Conduct
 
 Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](https://github.com/kudobuilder/kudo/blob/master/code-of-conduct.md).
