@@ -16,7 +16,22 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 
 ## How to build Kudo locally
 
-TBD
+### Pre-requisites
+
+Before you get started:
+
+- Install Go `1.11` or later
+- Latest version of `dep`
+- [Install Kubebuilder](https://book.kubebuilder.io/getting_started/installation_and_setup.html)
+- Kubernetes Cluster `1.12` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
+- [Configure kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) 
+
+### Build Instructions
+
+- Get KUDO repo: `go get github.com/kudobuilder/kudo/`
+- `cd $GOPATH/src/github.com/kudobuilder/kudo`
+- `make all` to build project
+- [optionally] `make docker-build` to build docker images and `make docker-push` to push images
 
 ## Community, Discussion, and Support
 
