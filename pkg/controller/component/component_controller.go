@@ -17,6 +17,9 @@ package component
 
 import (
 	"context"
+	"fmt"
+	"reflect"
+
 	frameworksv1beta1 "github.com/kudobuilder/kudo/pkg/apis/frameworks/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/controller/dynamic"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -81,6 +84,44 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	// Have the ComponentVersion trigger the Component it references
+	//Watch for Deployments, Jobs and StatefulSets
+	// Define a mapping from the object in the event to one or more
+	// objects to Reconcile.  Specifically this calls for
+	// a reconsiliation of any objects "Owner".
+	mapFn := handler.ToRequestsFunc(
+		func(a handler.MapObject) []reconcile.Request {
+			requests := make([]reconcile.Request, 0)
+			cv, ok := a.Object.(*frameworksv1beta1.ComponentVersion)
+			if ok {
+				compName := cv.Spec.Component
+				comp := &frameworksv1beta1.Component{}
+				err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{
+					Name: compName,
+				}, comp)
+				if err != nil {
+					fmt.Printf("Error: ComponentVersion %v references unknown Component %v\n", cv.Name, compName)
+					return nil
+				} else {
+					requests = append(requests, reconcile.Request{
+						NamespacedName: types.NamespacedName{
+							Name: compName,
+						},
+					})
+				}
+			}
+			return requests
+		})
+
+	// Watch for changes to ComponentVersion and trigger a Component reconcile
+	err = c.Watch(&source.Kind{Type: &frameworksv1beta1.ComponentVersion{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: mapFn,
+		})
+	if err != nil {
+		return err
+	}
+
 	// TODO(user): Modify this to be the types you create
 	// Uncomment watch a Deployment created by Component - change this for objects you create
 	err = c.Watch(&source.Kind{Type: &apiextv1beta1.CustomResourceDefinition{}}, &handler.EnqueueRequestForOwner{
@@ -118,12 +159,63 @@ func (r *ReconcileComponent) Reconcile(request reconcile.Request) (reconcile.Res
 	err := r.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
+			fmt.Printf("Could not find Component %v\n", request.NamespacedName)
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
+	}
+
+	//List all the ComponentVersions and find the ones referencing this component
+	cvs := frameworksv1beta1.ComponentVersionList{}
+	err = r.List(context.TODO(), &client.ListOptions{}, &cvs)
+
+	dynamicFinalizer := "dynamic.finalizers.kudo.sh"
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		//if the component doesn't have the required finalizer, but isn't flagged for deletion
+		//add it
+		if !containsString(instance.ObjectMeta.Finalizers, dynamicFinalizer) {
+			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, dynamicFinalizer)
+			if err := r.Update(context.Background(), instance); err != nil {
+				return reconcile.Result{}, err
+			}
+		}
+	} else {
+		//if its marked for deletion and has the finalizer, do some cleanup
+		if containsString(instance.ObjectMeta.Finalizers, dynamicFinalizer) {
+			for _, cv := range cvs.Items {
+				if cv.Spec.Component == instance.Name {
+					u := unstructured.Unstructured{}
+					u.SetGroupVersionKind(schema.GroupVersionKind{
+						Kind:    instance.Spec.Spec.Names.Kind,
+						Group:   instance.Spec.Spec.Group,
+						Version: cv.Spec.Version,
+					})
+					err = r.cr.Stop(u)
+					if err != nil {
+						return reconcile.Result{}, err
+					}
+				}
+			}
+			instance.ObjectMeta.Finalizers = removeString(instance.ObjectMeta.Finalizers, dynamicFinalizer)
+			if err := r.Update(context.Background(), instance); err != nil {
+				return reconcile.Result{}, err
+			}
+		}
+
+		return reconcile.Result{}, nil
+	}
+
+	myCvs := make([]frameworksv1beta1.ComponentVersion, 0)
+	for _, cv := range cvs.Items {
+		if cv.Spec.Component == instance.Name {
+			myCvs = append(myCvs, cv)
+		}
+	}
+	if len(myCvs) == 0 {
+		fmt.Printf("Error:  Component %v Created but not ComponentVersion pointing at it\n", instance.Name)
 	}
 
 	crd := &apiextv1beta1.CustomResourceDefinition{
@@ -135,6 +227,20 @@ func (r *ReconcileComponent) Reconcile(request reconcile.Request) (reconcile.Res
 		},
 		Spec: instance.Spec.Spec,
 	}
+	crd.Spec.Versions = make([]apiextv1beta1.CustomResourceDefinitionVersion, 0)
+	for i, cv := range myCvs {
+		crd.Spec.Versions = append(crd.Spec.Versions,
+			apiextv1beta1.CustomResourceDefinitionVersion{
+				Name:    cv.Spec.Version,
+				Served:  true,
+				Storage: i == 0, //Not sure what the right version should be here
+				//TODO add these to part of the CV schema
+				//Schema *CustomResourceValidation `json:"schema,omitempty" protobuf:"bytes,4,opt,name=schema"`
+				//Subresources *CustomResourceSubresources `json:"subresources,omitempty" protobuf:"bytes,5,opt,name=subresources"`
+				//AdditionalPrinterColumns []CustomResourceColumnDefinition `json:"additionalPrinterColumns,omitempty" protobuf:"bytes,6,rep,name=additionalPrinterColumns"`
+			},
+		)
+	}
 
 	if err := controllerutil.SetControllerReference(instance, crd, r.scheme); err != nil {
 		return reconcile.Result{}, err
@@ -142,41 +248,50 @@ func (r *ReconcileComponent) Reconcile(request reconcile.Request) (reconcile.Res
 
 	found := &apiextv1beta1.CustomResourceDefinition{}
 	err = r.Get(context.TODO(), types.NamespacedName{Name: crd.Name, Namespace: crd.Namespace}, found)
-	u := unstructured.Unstructured{}
-	u.SetGroupVersionKind(schema.GroupVersionKind{
-		Kind:    crd.Spec.Names.Kind,
-		Group:   crd.Spec.Group,
-		Version: crd.Spec.Versions[0].Name,
-	})
-
-	dynamicFinalizer := "dynamic.finalizers.kudo.sh"
-	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !containsString(instance.ObjectMeta.Finalizers, dynamicFinalizer) {
-			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, dynamicFinalizer)
-			if err := r.Update(context.Background(), instance); err != nil {
-				return reconcile.Result{}, err
-			}
-		}
-	} else {
-		if containsString(instance.ObjectMeta.Finalizers, dynamicFinalizer) {
-			r.cr.Stop(u)
-			instance.ObjectMeta.Finalizers = removeString(instance.ObjectMeta.Finalizers, dynamicFinalizer)
-			if err := r.Update(context.Background(), instance); err != nil {
-				return reconcile.Result{}, err
-			}
-		}
-
-		return reconcile.Result{}, nil
-	}
-
 	if err != nil && errors.IsNotFound(err) {
+		// we need to create the crd.
 		err = r.Create(context.TODO(), crd)
-
+		if err != nil {
+			log.Error(err, "Error creating crd %v: %+v\n", crd.Name, err)
+			return reconcile.Result{}, err
+		}
 		time.Sleep(1 * time.Second)
-		r.cr.Register(u)
+		//We only need to watch this once.  If we watch once per version, we end up with multiple events to handle:
+
+		u := unstructured.Unstructured{}
+		u.SetGroupVersionKind(schema.GroupVersionKind{
+			Kind:    crd.Spec.Names.Kind,
+			Group:   crd.Spec.Group,
+			Version: crd.Spec.Versions[0].Name,
+		})
+		err = r.cr.Register(u)
+		if err != nil {
+			fmt.Printf("Error registering GVK (%v,%v,%v): %v\n", crd.Spec.Group, crd.Spec.Names.Kind, crd.Spec.Versions[0].Name, err)
+		}
 		return reconcile.Result{}, err
 	} else if err != nil {
 		return reconcile.Result{}, err
+	}
+	//Now we already have one, so we need to update it with a new FV if applicable
+	if !reflect.DeepEqual(found.Spec.Versions, crd.Spec.Versions) {
+		found.Spec.Versions = crd.Spec.Versions
+		err = r.Update(context.TODO(), found)
+		if err != nil {
+			fmt.Printf("Error updating CRD %v: %v\n", crd.Name, err)
+			return reconcile.Result{}, err
+		}
+		for _, v := range found.Spec.Versions {
+			u := unstructured.Unstructured{}
+			u.SetGroupVersionKind(schema.GroupVersionKind{
+				Kind:    found.Spec.Names.Kind,
+				Group:   found.Spec.Group,
+				Version: v.Name,
+			})
+			err = r.cr.Register(u)
+			if err != nil {
+				fmt.Printf("Error registering GVK (%v,%v,%v): %v\n", crd.Spec.Group, crd.Spec.Names.Kind, v.Name, err)
+			}
+		}
 	}
 
 	return reconcile.Result{}, nil
