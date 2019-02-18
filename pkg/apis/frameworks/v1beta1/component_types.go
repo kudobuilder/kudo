@@ -36,6 +36,7 @@ type ComponentStatus struct {
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient:nonNamespaced
 
 // Component is the Schema for the components API
 // +k8s:openapi-gen=true
@@ -48,6 +49,7 @@ type Component struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient:nonNamespaced
 
 // ComponentList contains a list of Component
 type ComponentList struct {

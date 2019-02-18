@@ -26,6 +26,8 @@ import (
 type ComponentVersionSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	Version   string `json:"version,omitempty"`
+	Component string `json:"component,omitempty"`
 }
 
 // ComponentVersionStatus defines the observed state of ComponentVersion
@@ -36,6 +38,7 @@ type ComponentVersionStatus struct {
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient:nonNamespaced
 
 // ComponentVersion is the Schema for the componentversions API
 // +k8s:openapi-gen=true
@@ -48,6 +51,7 @@ type ComponentVersion struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient:nonNamespaced
 
 // ComponentVersionList contains a list of ComponentVersion
 type ComponentVersionList struct {
