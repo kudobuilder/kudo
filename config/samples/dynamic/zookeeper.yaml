@@ -1,0 +1,81 @@
+apiVersion: frameworks.kudo.sh/v1beta1
+kind: Component
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: zookeeper
+spec:
+  # Add fields here
+  customresourcedefinition:
+    metadata:
+      name: zookeepers.zookeeper.kudo.sh
+    spec:
+      group: zookeeper.kudo.sh
+      versions:
+        - name: v1beta1
+          served: true
+          storage: true
+      scope: Namespaced
+      names:
+        plural: zookeepers
+        singular: zookeeper
+        kind: Zookeeper
+        shortNames:
+          - zk
+---
+apiVersion: frameworks.kudo.sh/v1beta1
+kind: ComponentVersion
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: zookeeper-1.0
+spec:
+  # Add fields here
+  version: "v1"
+  component: zookeeper
+  parameters:
+    memory:
+      description: Amount of memory to provide Zookeeper pods
+      default: "1Gi"
+      trigger: update
+    cpus:
+      description: Amount of cpu to provide Zooekeper pods
+      default: "0.25"
+---
+apiVersion: frameworks.kudo.sh/v1beta1
+kind: ComponentVersion
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: zookeeper-1.5
+spec:
+  # Add fields here
+  version: "v1-5"
+  component: zookeeper
+  parameters:
+    memory:
+      description: Amount of memory to provide Zookeeper pods
+      default: "1Gi"
+      trigger: update
+    cpus:
+      description: Amount of cpu to provide Zooekeper pods
+      default: "0.25"
+---
+apiVersion: frameworks.kudo.sh/v1beta1
+kind: ComponentVersion
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: zookeeper-2.0
+spec:
+  # Add fields here
+  version: "v2"
+  component: zookeeper
+  parameters:
+    memory:
+      description: Amount of memory to provide Zookeeper pods
+      default: "1Gi"
+      trigger: update
+    cpus:
+      description: Amount of cpu to provide Zooekeper pods
+      default: "0.25"
