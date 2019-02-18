@@ -10,7 +10,7 @@ spec:
   names:
     kind: ComponentVersion
     plural: componentversions
-  scope: Namespaced
+  scope: Cluster
   validation:
     openAPIV3Schema:
       properties:
@@ -27,6 +27,13 @@ spec:
         metadata:
           type: object
         spec:
+          properties:
+            component:
+              type: string
+            version:
+              description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                Important: Run "make" to regenerate code after modifying this file'
+              type: string
           type: object
         status:
           type: object

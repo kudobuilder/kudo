@@ -10,7 +10,7 @@ spec:
   names:
     kind: Component
     plural: components
-  scope: Namespaced
+  scope: Cluster
   validation:
     openAPIV3Schema:
       properties:
