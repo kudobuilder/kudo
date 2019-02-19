@@ -15,28 +15,28 @@ status: provisional
 
 ## Table of Contents
 
- * [KEP CLI Proposal](#kep-cli-proposal)
-      * [Table of Contents](#table-of-contents)
-      * [Summary](#summary)
-      * [Motivation](#motivation)
-         * [Goals](#goals)
-         * [Non-Goals](#non-goals)
-      * [Proposal](#proposal)
-         * [User Stories](#user-stories)
-            * [Installing a framework](#installing-a-framework)
-            * [Uninstalling a framework](#uninstalling-a-framework)
-            * [Listing running frameworks](#listing-running-frameworks)
-            * [Getting the status of a running framework](#getting-the-status-of-a-running-framework)
-            * [Start specific plans](#start-specific-plans)
-            * [Get the history of planexecutions](#get-the-history-of-planexecutions)
-            * [Executing into a particular framework](#executing-into-a-particular-framework)
-            * [Run framework specific commands](#run-framework-specific-commands)
-            * [Shell into containers of a framework](#shell-into-containers-of-a-framework)
-            * [Read all combined logs of a framework](#read-all-combined-logs-of-a-framework)
-         * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
-         * [Risks and Mitigations](#risks-and-mitigations)
-      * [Graduation Criteria](#graduation-criteria)
-      * [Implementation History](#implementation-history)
+* [KEP CLI Proposal](#kep-cli-proposal)
+  * [Table of Contents](#table-of-contents)
+  * [Summary](#summary)
+  * [Motivation](#motivation)
+     * [Goals](#goals)
+     * [Non-Goals](#non-goals)
+  * [Proposal](#proposal)
+     * [User Stories](#user-stories)
+        * [Installing a Framework](#installing-a-framework)
+        * [Uninstalling a Framework](#uninstalling-a-framework)
+        * [Listing running Instances](#listing-running-instances)
+        * [Getting the status of an Instance](#getting-the-status-of-an-instance)
+        * [Start specific plans](#start-specific-plans)
+        * [Get the history of Planexecutions](#get-the-history-of-planexecutions)
+        * [Executing into a particular Instance](#executing-into-a-particular-instance)
+        * [Run Framework specific commands](#run-framework-specific-commands)
+        * [Shell into containers of a Framework](#shell-into-containers-of-a-framework)
+        * [Read all combined logs of a Framework](#read-all-combined-logs-of-a-framework)
+     * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+     * [Risks and Mitigations](#risks-and-mitigations)
+  * [Graduation Criteria](#graduation-criteria)
+  * [Implementation History](#implementation-history)
 
 ## Summary
 
@@ -72,43 +72,43 @@ This is where we get down to the nitty gritty of what the proposal actually is.
 
 ### User Stories
 
-#### Installing a framework
+#### Installing a Framework
 
 As a user I want to be able to install a framework to my cluster.
 
-#### Uninstalling a framework
+#### Uninstalling a Framework
 
 As a user I want to be able to uninstall a framework from my cluster.
 
-#### Listing running frameworks
+#### Listing running Instances
 
 As a user I want to be able to list current installed frameworks in my namespace.
 
-#### Getting the status of a running framework
+#### Getting the status of an Instance
 
-As a user I want to be able to get the status of plans a framework can have.
+As a user I want to be able to get the status of all plans of an Instance.
 
 #### Start specific plans
 
-As a user I want to be able to trigger specific plans of a framework.
+As a user I want to be able to trigger specific plans of an Instance.
 
-#### Get the history of planexecutions
+#### Get the history of Planexecutions
 
 As a user I want to be able to audit the trail of executed plans.
 
-#### Executing into a particular framework
+#### Executing into a particular Instance
 
-As a user I want to be able to execute into my framework environment.
+As a user I want to be able to execute into my Instance environment.
 
-#### Run framework specific commands
+#### Run Framework specific commands
 
-As a user I want to be able to use framework specific logic, e.g. in Kafka create a topic or in Flink to upload a new job.
+As an application operator, I want to be able to run CLI tooling, built for the Framework against an Instance.
 
-#### Shell into containers of a framework
+#### Shell into containers of a Framework
 
 As a user I want to be able to get a shell to a specific framework.
 
-#### Read all combined logs of a framework
+#### Read all combined logs of a Framework
 
 As a user I want to be able to read logs to a specific framework and its components.
 
@@ -126,7 +126,7 @@ TBD
 
 ## Graduation Criteria
 
-If we found adaption in the community.
+If we see adoption in the community.
 
 ## Implementation History
 
