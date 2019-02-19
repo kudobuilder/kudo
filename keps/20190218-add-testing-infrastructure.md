@@ -53,8 +53,6 @@ to particular versions of KUDO.
 
 ### Goals
 
-List the specific goals of the KEP:
-
 * Ensure validation of API objects is functioning correctly
 * Ensure controllers execute known process flows correctly
 * Validate Framework and FrameworkVersions in kudobuilder/frameworks adhere to the API spec defined by Kudo.  Provide common
@@ -62,7 +60,6 @@ List the specific goals of the KEP:
 * Reduce review time for code changes by not requiring reviewers to validate functionality of test cases
 * Reduce developer time for code changes by providing tools to validate functionality
 * Provide developers clear tooling for addition additional tests to infrastructure to validate bug fixes and new features
-
 
 ### Non-Goals
 
@@ -93,12 +90,12 @@ Identify and implement a CICD toolkit that can be integrated into GitHub to vali
 
 #### Story 1
 
-As a developer, I want to ensure my change's don't break existing functionality, even if I don't understand all the capabilities
+As a developer, I want to ensure my changes don't break existing functionality, even if I don't understand all the capabilities
 of Kudo.
 
 #### Story 2
 
-As a repository owner, I don't want to have to validate the exeuction of common plans/functionality as part of the review process.
+As a repository owner, I don't want to have to validate the execution of common plans/functionality as part of the review process.
 
 ### Implementation Details/Notes/Constraints [optional]
 
@@ -117,9 +114,9 @@ of that capability and might not be worth the effort
 
 How will we know that this has succeeded?
 
-* When repository owners can feel confidant that code changes are not breaking functionality.
+* When repository owners can feel confident that code changes are not breaking functionality.
 * Tests pass for the API objects
-* Leverage testing skaffolding provided by (and subsequently removed by us) Kubebuilder for 
+* Leverage testing scaffolding provided by (and subsequently removed by us) Kubebuilder for 
   controller logic.
 
 ## Implementation History
