@@ -1,5 +1,5 @@
 ---
-kep-number: 1
+kep-number: draft-20190219
 title: KUDO Enhancement Proposal Process
 authors:
   - "@fabianbaier"
@@ -9,7 +9,8 @@ owners:
   - "@runyontr"
 editor: "@fabianbaier"
 creation-date: 2019-02-14
-status: implemented
+last-updated: 2019-02-19
+status: provisional
 ---
 
 # KUDO Enhancement Proposal Process
@@ -201,8 +202,10 @@ A KEP has the following states
 - `provisional`: The KEP has been proposed and is actively being defined.
   This is the starting state while the KEP is being fleshed out and actively defined and discussed.
   The OWNER has accepted that this is work that needs to be done.
-- `implementable`: The approvers have approved this KEP for implementation.
-- `implemented`: The KEP has been implemented and is no longer actively changed.
+- `implementable`: The approvers have approved this KEP for implementation and OWNERs create, if appropriate, 
+  a [milestone](https://github.com/kudobuilder/kudo/milestones) to track implementation work.
+- `implemented`: The KEP has been implemented and is no longer actively changed. OWNERs reflect
+  the status change and close its matching milestone, if appropriate.
 - `deferred`: The KEP is proposed but not actively being worked on.
 - `rejected`: The approvers and authors have decided that this KEP is not moving forward.
   The KEP is kept around as a historical document.
