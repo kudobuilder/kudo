@@ -1,5 +1,5 @@
 ---
-kep-number: draft-20190214
+kep-number: 3
 title: KEP CLI Proposal
 authors:
   - "@fabianbaier"
@@ -8,7 +8,8 @@ owners:
   - "@fabianbaier"
 editor: TBD
 creation-date: 2019-02-14
-status: provisional
+last-updated: 2019-02-20
+status: implementable
 ---
 
 # KEP CLI Proposal
