@@ -21,6 +21,9 @@ assignees: ''
 
 **Environment**:
 - Kubernetes version (use `kubectl version`):
+- Kudo version (use `kubectl kudoctl version`): 
+- Framework:
+- Frameworkversion:
 - Cloud provider or hardware configuration:
 - OS (e.g. from /etc/os-release):
 - Kernel (e.g. `uname -a`):
