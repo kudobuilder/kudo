@@ -33,6 +33,7 @@ To get started with this template:
 1. **Fill out the "overview" sections.**
   This includes the Summary and Motivation sections.
 1. **Create a PR.**
+  Name it `[KEP NUMBER] Title`, e.g. `[KEP 0002] Initial work on Dynamic CRDs`.
   Assign it to owner(s) that are sponsoring this process.
 1. **Merge early.**
   Avoid getting hung up on specific details and instead aim to get the goal of the KEP merged quickly.
