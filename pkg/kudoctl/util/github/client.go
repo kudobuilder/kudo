@@ -3,11 +3,17 @@ package github
 import (
 	"context"
 	"github.com/google/go-github/github" // with go modules disabled
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/helpers"
+	"github.com/pkg/errors"
 	"os"
 	"strings"
 )
 
-func NewGithubClient(cred string) (*github.Client, error) {
+type GithubClient struct {
+	client *github.Client
+}
+
+func NewGithubClient(cred string) (*GithubClient, error) {
 
 	// Giving the option to set a Github user and password
 	gitUser := os.Getenv("GIT_USER")
@@ -37,5 +43,29 @@ func NewGithubClient(cred string) (*github.Client, error) {
 		tp.OTP = cred
 	}
 
-	return client, nil
+	return &GithubClient{client: client}, nil
+}
+
+func (g *GithubClient) GetMostRecentContentDir(framework string) (*github.RepositoryContent, error) {
+	_, directoryContents, _, err := g.client.Repositories.GetContents(context.Background(), "kudobuilder", "frameworks", "repo/stable/"+framework+"/versions", &github.RepositoryContentGetOptions{})
+	if err != nil {
+		switch err.(type) {
+		case *github.ErrorResponse:
+			errM := err.(*github.ErrorResponse)
+			if errM.Response.StatusCode == 404 {
+				// Todo: try incubating repos
+				return nil, errors.Wrap(err, "github repo not found")
+			}
+		default:
+			return nil, errors.Wrap(err, "getting github content")
+		}
+	}
+	directoryContentsSorted, err := helpers.SortDirectoryContent(directoryContents)
+	if err != nil {
+		return nil, errors.Wrap(err, "sorting dir content")
+	}
+
+	mostRecentContentDir := directoryContentsSorted[0]
+
+	return mostRecentContentDir, nil
 }

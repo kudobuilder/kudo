@@ -16,7 +16,7 @@ func NewCmdInstall() *cobra.Command {
 		SilenceUsage: false,
 	}
 
-	installCmd.Flags().StringVar(&vars.FrameworkName, "frameworkname", "", "The Framework name.")
+	//installCmd.Flags().StringVar(&vars.FrameworkName, "frameworkname",  "", "The Framework name.")
 	installCmd.Flags().StringVar(&vars.KubeConfigPath, "kubeconfig", "", "The file path to kubernetes configuration file; defaults to $HOME/.kube/config")
 	installCmd.Flags().StringVar(&vars.GithubCredentialPath, "githubcredential", "", "The file path to github credential file; defaults to $HOME/.git-credentials")
 
