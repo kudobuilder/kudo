@@ -44,6 +44,7 @@ func planHistoryCmd(cmd *cobra.Command, args []string) {
 	mustKubeConfig()
 
 	_, err = cmd.Flags().GetString("kubeconfig")
+	// Todo: wrong flag
 	if err != nil || instanceFlag == "" {
 		log.Fatalf("Flag Error: %v", err)
 	}

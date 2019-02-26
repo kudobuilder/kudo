@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/kudobuilder/kudo/cmd/kudoctl/cmd/plan"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/plan"
 	"github.com/spf13/cobra"
 )
 

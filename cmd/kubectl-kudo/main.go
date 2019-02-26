@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kudobuilder/kudo/cmd/kudoctl/cmd"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd"
 )
 
 func main() {
