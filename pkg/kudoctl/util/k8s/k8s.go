@@ -29,8 +29,3 @@ func NewK8sClient() (*K8sClient, error) {
 		client: clientset,
 	}, nil
 }
-
-func (k *K8sClient) FrameworkExists(name string) error {
-
-	return nil
-}

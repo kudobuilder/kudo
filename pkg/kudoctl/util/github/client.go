@@ -2,9 +2,12 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/go-github/github" // with go modules disabled
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/helpers"
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
 	"os"
 	"strings"
 )
@@ -68,4 +71,35 @@ func (g *GithubClient) GetMostRecentContentDir(framework string) (*github.Reposi
 	mostRecentContentDir := directoryContentsSorted[0]
 
 	return mostRecentContentDir, nil
+}
+
+func (g *GithubClient) GetMostRecentFrameworkVersion(name, path string) (string, error) {
+	filePath := path + "/" + name + "-frameworkversion.yaml"
+	filecontent, _, _, err := g.client.Repositories.GetContents(context.Background(), "kudobuilder", "frameworks", filePath, &github.RepositoryContentGetOptions{})
+	if err != nil {
+		switch err.(type) {
+		case *github.ErrorResponse:
+			errM := err.(*github.ErrorResponse)
+			if errM.Response.StatusCode == 404 {
+				return "", errors.Wrap(err, "github repo not found")
+			}
+		default:
+			return "", errors.Wrap(err, "getting github content")
+		}
+	}
+	var fv v1alpha1.FrameworkVersion
+	fileContentStr, err := filecontent.GetContent()
+	if err != nil {
+		return "", errors.Wrap(err, "getting file content")
+	}
+	err = yaml.Unmarshal([]byte(fileContentStr), &fv)
+	if err != nil {
+		return "", errors.Wrap(err, "unmarshalling file content")
+	}
+
+	if fv.Spec.Version == "" {
+		return "", fmt.Errorf("cannot be empty")
+	}
+
+	return fv.Spec.Version, nil
 }
