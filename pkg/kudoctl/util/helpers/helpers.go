@@ -33,7 +33,20 @@ func AskForConfirmation() bool {
 	}
 }
 
-// You might want to put the following two functions in a separate utility package.
+// SortDirectoryContent sorts a versions directory in descending order
+func SortDirectoryContent(dc []*github.RepositoryContent) ([]*github.RepositoryContent, error) {
+	if len(dc) < 1 {
+		return nil, fmt.Errorf("empty repository slice")
+	}
+	sortedDirectoryContent := dc
+	// Sorting with highest number first
+	sort.Slice(sortedDirectoryContent, func(i, j int) bool {
+		v1, _ := strconv.Atoi(*sortedDirectoryContent[i].Name)
+		v2, _ := strconv.Atoi(*sortedDirectoryContent[j].Name)
+		return v1 > v2
+	})
+	return sortedDirectoryContent, nil
+}
 
 // posString returns the first index of element in slice.
 // If slice does not contain element, returns -1.
@@ -49,18 +62,4 @@ func posString(slice []string, element string) int {
 // containsString returns true iff slice contains element
 func containsString(slice []string, element string) bool {
 	return !(posString(slice, element) == -1)
-}
-
-func SortDirectoryContent(dc []*github.RepositoryContent) ([]*github.RepositoryContent, error) {
-	if len(dc) < 1 {
-		return nil, fmt.Errorf("empty repository slice")
-	}
-	sortedDirectoryContent := dc
-	// Sorting with highest number first
-	sort.Slice(sortedDirectoryContent, func(i, j int) bool {
-		v1, _ := strconv.Atoi(*sortedDirectoryContent[i].Name)
-		v2, _ := strconv.Atoi(*sortedDirectoryContent[j].Name)
-		return v1 > v2
-	})
-	return sortedDirectoryContent, nil
 }

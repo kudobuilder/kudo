@@ -33,18 +33,22 @@ func InstallCmd(cmd *cobra.Command, args []string) error {
 		return errors.WithMessage(err, "could not check kubeconfig path")
 	}
 
-	err = installFramework(args)
+	err = installFrameworks(args)
 	if err != nil {
-		return errors.WithMessage(err, "could not install framework")
+		return errors.WithMessage(err, "could not install framework(s)")
 	}
 
 	return nil
 }
 
-func installFramework(args []string) error {
+func installFrameworks(args []string) error {
 
 	if len(args) < 1 {
 		return fmt.Errorf("no argument provided")
+	}
+
+	if len(args) > 1 && vars.RepoVersion != "" {
+		return fmt.Errorf("--repo-version not supported in multi framework install")
 	}
 
 	err := check.GithubCredentials()
@@ -72,51 +76,121 @@ func installFramework(args []string) error {
 		return errors.Wrap(err, "creating kudo client")
 	}
 
-	// Check if all CRDs are installed
+	// SanityCheck if all CRDs are installed
 	err = check.KudoCRDs(k2c)
 	if err != nil {
 		return errors.Wrap(err, "checking kudo crd types")
 	}
 
 	for _, name := range args {
-		// Check if Framework exists
-		if !k2c.FrameworkExists(name) {
-			return fmt.Errorf("framework crd for %s does not exist", name)
-		}
-		// Check if AnyFrameworkVersion for Framework exists
-		if !k2c.AnyFrameworkVersionExists(name) {
-			// Todo: install latest frameworkVersion
-			return fmt.Errorf("frameworkversion crd for %s does not exist", name)
-		}
-
-		content, err := gc.GetMostRecentContentDir(name)
+		err := installSingleFramework(name, gc, k2c)
 		if err != nil {
-			return errors.Wrap(err, "sorting most recent content dir")
+			return err
 		}
+	}
+	return nil
+}
 
-		mostRecentVersion, err := gc.GetMostRecentFrameworkVersion(name, *content.Path)
+func installSingleFramework(name string, gc *github.GithubClient, k2c *k8s.K2oClient) error {
+	// Get most recent ContentDir for selected Framework
+	content, err := gc.GetMostRecentFrameworkContentDir(name)
+	if err != nil {
+		return errors.Wrap(err, "sorting most recent content dir")
+	}
+
+	if vars.RepoVersion != "" {
+		content, err = gc.GetSpecificFrameworkContentDir(name)
 		if err != nil {
-			return errors.Wrap(err, "getting most recent frameworkversion version")
+			return errors.Wrap(err, "getting specific content dir")
 		}
+	}
 
-		// Check if FrameworkVersion is out of sync with official FrameworkVersion for this Framework
-		if !k2c.FrameworkVersionOutdated(name, mostRecentVersion) {
-			// This happens when the most recent official FrameworkVersion is not existing. E.g.
-			// when a version has been installed that is not part of the official kudobuilder/frameworks repo.
-			if !vars.AutoApprove {
-				fmt.Printf("No official FrameworkVersion has been found for \"%s\". "+
-					"Do you want to install the most recent? (Yes/no) ", name)
-				if helpers.AskForConfirmation() {
-					// Todo: Install FrameworkVersion
+	// Framework part
+
+	// Check if Framework exists
+	if !k2c.FrameworkExistsInCluster(name) {
+		err := installSingleFrameworkToCluster(name, *content.Path, gc, k2c)
+		if err != nil {
+			return errors.Wrap(err, "installing single Framework")
+		}
+	}
+
+	// FrameworkVersion part
+
+	// Get the string of the version in FrameworkVersion of a selected Framework
+	frameworkVersion, err := gc.GetFrameworkVersion(name, *content.Path)
+	if err != nil {
+		return errors.Wrap(err, "getting most recent FrameworkVersion version")
+	}
+
+	// Check if AnyFrameworkVersion for Framework exists
+	if !k2c.AnyFrameworkVersionExistsInCluster(name) {
+		// FrameworkVersion CRD for Framework does not exist
+		err := installSingleFrameworkVersionToCluster(name, *content.Path, gc, k2c)
+		if err != nil {
+			return errors.Wrap(err, "installing single FrameworkVersion")
+		}
+	}
+
+	// Check if FrameworkVersion is out of sync with official FrameworkVersion for this Framework
+	if !k2c.FrameworkVersionInClusterOutOfSync(name, frameworkVersion) {
+		// This happens when the most recent official FrameworkVersion is not existing. E.g.
+		// when a version has been installed that is not part of the official kudobuilder/frameworks repo.
+		if !vars.AutoApprove {
+			fmt.Printf("No official FrameworkVersion has been found for \"%s\". "+
+				"Do you want to install the most recent? (Yes/no) ", name)
+			if helpers.AskForConfirmation() {
+				err := installSingleFrameworkVersionToCluster(name, *content.Path, gc, k2c)
+				if err != nil {
+					return errors.Wrap(err, "installing single FrameworkVersion")
 				}
 			}
-			fmt.Printf("No official FrameworkVersion has been found, installing most recent...")
-			// Todo: Install FrameworkVersion
+		} else {
+			err := installSingleFrameworkVersionToCluster(name, *content.Path, gc, k2c)
+			if err != nil {
+				return errors.Wrap(err, "installing single FrameworkVersion")
+			}
 		}
-
-		fmt.Println(content)
 
 	}
 
+	if vars.AllDependencies {
+		dependencyFrameworks, err := gc.GetFrameworkVersionDependencies(name, *content.Path)
+		if err != nil {
+			return errors.Wrap(err, "getting Framework dependencies")
+		}
+		for _, v := range dependencyFrameworks {
+			err := installSingleFramework(v, gc, k2c)
+			if err != nil {
+				return errors.Wrapf(err, "installing dependency Framework %s", v)
+			}
+		}
+	}
+	return nil
+}
+
+func installSingleFrameworkToCluster(name, path string, gc *github.GithubClient, k2c *k8s.K2oClient) error {
+	frameworkYaml, err := gc.GetFrameworkYaml(name, path)
+	if err != nil {
+		return errors.Wrapf(err, "getting %s-framework.yaml", name)
+	}
+	_, err = k2c.InstallFrameworkYamlToCluster(frameworkYaml)
+	if err != nil {
+		return errors.Wrapf(err, "installing %s-framework.yaml", name)
+	}
+	fmt.Printf("framework.%s/%s created\n", frameworkYaml.APIVersion, frameworkYaml.Name)
+	return nil
+}
+
+func installSingleFrameworkVersionToCluster(name, path string, gc *github.GithubClient, k2c *k8s.K2oClient) error {
+	frameworkVersionYaml, err := gc.GetFrameworkVersionYaml(name, path)
+	if err != nil {
+		return errors.Wrapf(err, "getting %s-framework.yaml", name)
+	}
+	_, err = k2c.InstallFrameworkVersionYamlToCluster(frameworkVersionYaml)
+	if err != nil {
+		return errors.Wrapf(err, "installing %s-framework.yaml", name)
+	}
+	fmt.Printf("frameworkversion.%s/%s created\n", frameworkVersionYaml.APIVersion, frameworkVersionYaml.Name)
 	return nil
 }
