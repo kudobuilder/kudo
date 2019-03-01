@@ -84,7 +84,7 @@ func installFrameworks(args []string) error {
 	}
 
 	for _, name := range args {
-		err := installSingleFramework(name, gc, k2c)
+		err := installSingleFramework(name, "", gc, k2c)
 		if err != nil {
 			return err
 		}
@@ -94,7 +94,7 @@ func installFrameworks(args []string) error {
 
 // installSingleFramework is the umbrella for a single framework installation that gathers the business logic
 // for a cluster and returns an error in case there is a problem
-func installSingleFramework(name string, gc *github.GithubClient, k2c *k8s.K2oClient) error {
+func installSingleFramework(name, previous string, gc *github.GithubClient, k2c *k8s.K2oClient) error {
 	// Get most recent ContentDir for selected Framework
 	content, err := gc.GetMostRecentFrameworkContentDir(name)
 	if err != nil {
@@ -166,8 +166,9 @@ func installSingleFramework(name string, gc *github.GithubClient, k2c *k8s.K2oCl
 		for _, v := range dependencyFrameworks {
 			// recursive function call
 			// Dependencies should not be as big as that they will have an overflow in the function stack frame
-			// Also makes sure that dependency Frameworks are created before the Framework itself
-			err := installSingleFramework(v, gc, k2c)
+			// installSingleFramework makes sure that dependency Frameworks are created before the Framework itself
+			// and it allows to inherit dependencies.
+			err := installSingleFramework(v, name, gc, k2c)
 			if err != nil {
 				return errors.Wrapf(err, "installing dependency Framework %s", v)
 			}
@@ -176,7 +177,9 @@ func installSingleFramework(name string, gc *github.GithubClient, k2c *k8s.K2oCl
 
 	// Instances part
 	// For a Framework without dependencies this means it creates the Instances object just after Framework and
-	// FrameworkVersion objects are created to ensure Instances can be created
+	// FrameworkVersion objects are created to ensure Instances can be created.
+	// This is also the part you end up when no dependencies are found or installed and all Framework and
+	// FrameworkVersions are already installed.
 
 	// Check if Instance exists in cluster
 	// It won't create the Instance if any in combination with given Framework Name and FrameworkVersion exists
@@ -187,13 +190,15 @@ func installSingleFramework(name string, gc *github.GithubClient, k2c *k8s.K2oCl
 			fmt.Printf("No Instance tied to this \"%s\" version has been found. "+
 				"Do you want to create one? (Yes/no) ", name)
 			if helpers.AskForConfirmation() {
-				err := installSingleInstanceToCluster(name, *content.Path, gc, k2c)
+				// If Instance is a dependency we need to make sure installSingleInstanceToCluster is aware of it.
+				// By having the previous string set we can make this distinction.
+				err := installSingleInstanceToCluster(name, previous, *content.Path, gc, k2c)
 				if err != nil {
-					return errors.Wrap(err, "installing single FrameworkVersion")
+					return errors.Wrap(err, "installing single Instance")
 				}
 			}
 		} else {
-			err := installSingleInstanceToCluster(name, *content.Path, gc, k2c)
+			err := installSingleInstanceToCluster(name, previous, *content.Path, gc, k2c)
 			if err != nil {
 				return errors.Wrap(err, "installing single Instance")
 			}
@@ -233,14 +238,19 @@ func installSingleFrameworkVersionToCluster(name, path string, gc *github.Github
 }
 
 // installSingleInstanceToCluster installs a given Instance to the cluster
-func installSingleInstanceToCluster(name, path string, gc *github.GithubClient, k2c *k8s.K2oClient) error {
+func installSingleInstanceToCluster(name, previous, path string, gc *github.GithubClient, k2c *k8s.K2oClient) error {
 	instanceYaml, err := gc.GetInstanceYaml(name, path)
 	if err != nil {
 		return errors.Wrapf(err, "getting %s-instance.yaml", name)
 	}
 	// Customizing Instance
-	// TODO: traversing
-	if vars.Instance != "" {
+	// TODO: traversing, e.g. check function that looksup if key exists in the current FrameworkVersion
+	// That way just Parameters will be applied if they exist in the matching FrameworkVersion
+	// More checking required
+	// E.g. when installing with flag --all-dependencies to prevent overwriting dependency Instance name
+
+	// This checks if flag --instance was set with a name and it is the not a dependency Instance
+	if vars.Instance != "" && previous == "" {
 		instanceYaml.ObjectMeta.SetName(vars.Instance)
 	}
 	if vars.Parameter != nil {
