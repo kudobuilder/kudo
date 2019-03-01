@@ -90,6 +90,43 @@ func (k *K2oClient) AnyFrameworkVersionExistsInCluster(framework string) bool {
 	return true
 }
 
+// AnyInstanceExistsInCluster checks if any FrameworkVersion object matches to the given Framework name
+// in the cluster.
+// An Instance has two identifiers:
+// 		1) Spec.FrameworkVersion.Name
+// 		spec:
+//    		frameworkVersion:
+//      		name: kafka-2.11-2.4.0
+// 		2) LabelSelector
+// 		metadata:
+//    		creationTimestamp: "2019-02-28T14:39:20Z"
+//    		generation: 1
+//    		labels:
+//      		controller-tools.k8s.io: "1.0"
+//      		framework: kafka
+// This function also just returns true if the Instance matches a specific FrameworkVersion of a Framework
+func (k *K2oClient) AnyInstanceExistsInCluster(name, version string) bool {
+	fv, err := k.client.KudoV1alpha1().Instances(vars.Namespace).List(v1.ListOptions{LabelSelector: "framework=" + name})
+	if err != nil {
+		return false
+	}
+	if len(fv.Items) < 1 {
+		return false
+	}
+
+	var i int
+	for _, v := range fv.Items {
+		if v.Spec.FrameworkVersion.Name == name+"-"+version {
+			i++
+		}
+	}
+	if i < 1 {
+		return false
+	}
+	fmt.Printf("instance.kudo.k8s.io/%s unchanged\n", name)
+	return true
+}
+
 // AnyFrameworkVersionInClusterOutOfSync checks if any FrameworkVersion object matches to the given Framework name and
 // if not it returns false. False means that for the given Framework the most recent official FrameworkVersion
 // is not installed in the cluster.
@@ -130,6 +167,15 @@ func (k *K2oClient) InstallFrameworkVersionYamlToCluster(obj *v1alpha1.Framework
 	createdObj, err := k.client.KudoV1alpha1().FrameworkVersions(vars.Namespace).Create(obj)
 	if err != nil {
 		return nil, errors.WithMessage(err, "installing FrameworkVersion")
+	}
+	return createdObj, nil
+}
+
+// InstallInstanceYamlToCluster expects a valid Instance obj to install
+func (k *K2oClient) InstallInstanceYamlToCluster(obj *v1alpha1.Instance) (*v1alpha1.Instance, error) {
+	createdObj, err := k.client.KudoV1alpha1().Instances(vars.Namespace).Create(obj)
+	if err != nil {
+		return nil, errors.WithMessage(err, "installing Instance")
 	}
 	return createdObj, nil
 }

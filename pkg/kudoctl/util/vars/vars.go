@@ -9,5 +9,6 @@ var (
 	Instance             string
 	KubeConfigPath       string
 	Namespace            string
+	Parameter            []string
 	RepoVersion          string
 )
