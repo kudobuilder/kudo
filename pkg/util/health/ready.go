@@ -2,7 +2,6 @@ package health
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -18,11 +17,6 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 	switch obj.(type) {
 	case *appsv1.StatefulSet:
 		ss := obj.(*appsv1.StatefulSet)
-		log.Println("------HEALTH---------")
-		log.Printf("Looking at Statefulset: %v\n", ss.Name)
-		b, _ := json.MarshalIndent(ss, "", "\t")
-		log.Printf("\n%v\n", string(b))
-		log.Println("---------------------")
 		if ss.Spec.Replicas == nil {
 			return fmt.Errorf("replicas not set, so can't be healthy")
 		}
