@@ -5,8 +5,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewRootCmd creates a new root command for kudoctl
-func NewRootCmd() *cobra.Command {
+// NewKudoctlCmd creates a new root command for kudoctl
+func NewKudoctlCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "kudoctl",
 		Short: "CLI to manipulate, inspect and troubleshoot Kudo-specific CRDs.",
@@ -15,17 +15,21 @@ Kudo CLI and future sub-commands can be used to manipulate, inspect and troubles
 and serves as an API aggregation layer.
 `,
 		Example: `
-	# List instances
-	kudoctl list instances --namespace=<default> --kubeconfig=<$HOME/.kube/config>
-
-	# View plan status
-	kudoctl plan status --instance=<instanceName> --kubeconfig=<$HOME/.kube/config>
+	# Install a KUDO Framework and FrameworkVersion from the official GitHub repo.
+	kudoctl install <name> [flags]
 
 	# View plan history of a specific FrameworkVersion and Instance
-	kudoctl plan history <frameworkVersion> --instance=<instanceName> --namespace=<default> --kubeconfig=<$HOME/.kube/config>
+	kudoctl plan history <name> [flags]
 
 	# View all plan history of a specific Instance
-	kudoctl plan history --instance=<instanceName> --namespace=<default> --kubeconfig=<$HOME/.kube/config>
+	kudoctl plan history [flags]
+
+	# List instances
+	kudoctl list instances [flags]
+
+	# View plan status
+	kudoctl plan status [flags]
+
 `,
 		Version: version.Version,
 	}

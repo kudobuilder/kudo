@@ -14,7 +14,6 @@ import (
 )
 
 func InstallCmd(cmd *cobra.Command, args []string) error {
-
 	// Validating flags
 	/*
 		// this makes --frameworkname mandatory
@@ -26,7 +25,7 @@ func InstallCmd(cmd *cobra.Command, args []string) error {
 	_, err := cmd.Flags().GetString("kubeconfig")
 	// This makes --kubeconfig flag optional
 	if err != nil {
-		return fmt.Errorf("Please set --kubeconfig flag")
+		return fmt.Errorf("get flag: %+v", err)
 	}
 
 	err = check.KubeConfigPath()

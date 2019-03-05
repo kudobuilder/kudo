@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"strings"
+	"time"
 )
 
 type K2oClient struct {
@@ -23,6 +24,9 @@ func NewK2oClient() (*K2oClient, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// set default configs
+	config.Timeout = time.Second * 3
 
 	// create the clientset
 	clientset, err := versioned.NewForConfig(config)
