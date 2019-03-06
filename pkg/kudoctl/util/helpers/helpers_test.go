@@ -26,9 +26,9 @@ func TestSortDirectoryContent(t *testing.T) {
 	}
 
 	tests := []struct {
-		in  []*github.RepositoryContent
-		exp []*github.RepositoryContent
-		err []string
+		in       []*github.RepositoryContent
+		expected []*github.RepositoryContent
+		err      []string
 	}{
 		{nil, nil, expectedEmptyRepositoryErrors},               // 1
 		{directoryContentSorted, directoryContentSorted, nil},   // 2
@@ -53,11 +53,10 @@ func TestSortDirectoryContent(t *testing.T) {
 					t.Errorf("%d: Missed expected error: %v", i+1, err)
 				}
 			}
-
 		}
 
-		if !reflect.DeepEqual(actual, tt.exp) {
-			t.Errorf("%d:\nexpected: %+v\n     got: %+v", i+1, tt.exp, actual)
+		if !reflect.DeepEqual(actual, tt.expected) {
+			t.Errorf("%d:\nexpected: %+v\n     got: %+v", i+1, tt.expected, actual)
 		}
 	}
 }
