@@ -104,3 +104,5 @@ The MySQL Framework could be modified to deploy a central repo for backups and l
 
 * More complicated Framework/FrameworkVersion specs
 * Implications of FrameworkVersion installation making MORE cluster level changes than just a CRD.
+* Security around leveraging the common component.  If deploying minio for backups, how do we ensure Instances don't restore someone else's data, or overwrite someone else's backup?
+* Shared Components: What happens when two different Frameworks require the same common object?
