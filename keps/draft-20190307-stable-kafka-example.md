@@ -32,6 +32,8 @@ In order to get KUDO ready for production it's useful to pick a specific workloa
 
 ## Motivation
 
+A team-sponsored production ready framework using KUDO helps with prioritizing features needed to achieve this goal.
+
 ### Goals
 
 * Define criteria for what is considered a stable KUDO framework
