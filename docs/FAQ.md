@@ -1,21 +1,27 @@
 ### Frequently Asked Questions
 
 #### Table of Contents
-* [What is KUDO?](#what-is-kudo)
-* [When would you use KUDO?](#when-would-you-use-kudo)
-* [What is a Framework](#what-is-a-framework)
-* [What is a Frameworkversion?](#what-is-a-frameworkversion)
-* [What is an Instance?](#what-is-an-instance)
-* [What is a Planexecution?](#what-is-a-planexecution)
-* [What is a Parameter?](#what-is-a-parameter)
-* [What is a Trigger?](#what-is-a-trigger)
-* [When I create a Framework, it is automatically creating new CRDs?](#when-i-create-a-framework-it-is-automatically-creating-new-crds)
-* [How does it work from a RBAC perspective?](#how-does-it-work-from-a-rbac-perspective)
-* [Is the dependency model an individual controller per workload?](#is-the-dependency-model-an-individual-controller-per-workload)
+
+         * [Frequently Asked Questions](#frequently-asked-questions)
+            * [Table of Contents](#table-of-contents)
+            * [What is KUDO?](#what-is-kudo)
+            * [When would you use KUDO?](#when-would-you-use-kudo)
+            * [What is a Framework](#what-is-a-framework)
+            * [What is a FrameworkVersion?](#what-is-a-frameworkversion)
+            * [What is an Instance?](#what-is-an-instance)
+            * [What is a Plan?](#what-is-a-plan)
+            * [What is a PlanExecution?](#what-is-a-planexecution)
+            * [What is a Parameter?](#what-is-a-parameter)
+            * [What is a Strategy?](#what-is-a-strategy)
+            * [What is a Trigger?](#what-is-a-trigger)
+            * [When I create a Framework, it is automatically creating new CRDs?](#when-i-create-a-framework-it-is-automatically-creating-new-crds)
+               * [How does it work from a RBAC perspective?](#how-does-it-work-from-a-rbac-perspective)
+            * [Is the dependency model an individual controller per workload?](#is-the-dependency-model-an-individual-controller-per-workload)
+
 
 #### What is KUDO?
 
-KUDO is an operator we are building that is specifically designed to help provide operations to operators. We want to capture the actions that are required for managing applications in production as part of the deployment for the applications themself. To embed those best practices in the operator CRD. So KUDO is the operator that handles those specs that are provided as declarative CRDs.
+KUDO is an operator we are building that is specifically designed to help provide operations to operators. We want to capture the actions that are required for managing applications in production as part of the definition for the applications themself. Further we want to embed those best practices in the operator CRD. So KUDO is the operator that handles those specs that are provided as declarative CRDs.
 
 #### When would you use KUDO?
 
@@ -23,21 +29,61 @@ You would use KUDO when `kubectl apply -f` isn't quite enough to manage your app
 
 #### What is a Framework
 
-`Framework` is the highlevel CRD object.
+`Framework` is the highlevel CRD object. An example for a `Framework` is e.g. the [kafka-framework.yaml](https://github.com/kudobuilder/frameworks/blob/master/repo/stable/kafka/versions/0/kafka-framework.yaml) that you find in the [kudobuilder/frameworks](https://github.com/kudobuilder/frameworks) repo.
 
-#### What is a Frameworkversion?
+#### What is a FrameworkVersion?
+
+A `FrameworkVersion` is the particular implementation of a `Framework`. It contains: 
+
+- [Parameters](#what-is-a-parameter)
+- [Plans](#what-is-a-plan)
+- Kubernetes Objects
+
+An example for a `FrameworkVersion` is e.g. the [kafka-frameworkversion.yaml](https://github.com/kudobuilder/frameworks/blob/master/repo/stable/kafka/versions/0/kafka-frameworkversion.yaml) that you find in the [kudobuilder/frameworks](https://github.com/kudobuilder/frameworks) repo.
 
 #### What is an Instance?
 
-`Instance` is a CRD object used as *linker* which ties an application instantiation to a `Frameworkversion`.
+`Instance` is a CRD object used as *linker* which ties an application instantiation to a `FrameworkVersion`.
 
-#### What is a Planexecution?
+#### What is a Plan?
+
+Plans are how KUDO frameworks convey progress through service management operations, such as repairing failed tasks and/or rolling out changes to the service’s configuration. Each Plan is a tree with a fixed three-level hierarchy of the Plan itself, its Phases, and then Steps within those Phases. These are all collectively referred to as “Elements”. The choice of three levels was arbitrarily chosen as “enough levels for anybody”. The fixed tree hierarchy was chosen in order to simplify building UIs that display plan content. In particular, lots of suggestions were made to have a full DAG structure, which were ultimately rejected. This three-level hierarchy can look as follows:
+
+```bash
+Plan foo
+├─ Phase bar
+│  ├─ Step qux
+│  └─ Step quux
+└─ Phase baz
+   ├─ Step quuz
+   ├─ Step corge
+   └─ Step grault
+```
+
+The status of the execution of a Plan is captured an extra [PlanExecution](#what-is-a-planexecution) CRD. Each execution of a Plan has intentional its own `PlanExecution` CRD. Plans drive the transition between current and desired states, and are built based on the current progress of that transition. They are not themselves part of those states.
+
+KUDO expects by default the `deploy` Plan.
+
+#### What is a PlanExecution?
+
+This CRD captures the status of the execution of a Plan defined in a `FrameworkVersion` on an `Instance`. The Plan status is solely determined based on the statuses of its child Phases, and the Phases in turn determine their statuses based on their Steps.
 
 #### What is a Parameter?
 
+Parameters provide configuration for the Instance.
+
+#### What is a Strategy?
+
+The following strategies are available by default, these can be used in a `FrameworkVersion` YAML definition:
+
+- `serial` and `parallel`
+
+An example for a `serial` Plan is [kafka-frameworkversion.yaml](https://github.com/kudobuilder/frameworks/blob/master/repo/stable/kafka/versions/0/kafka-frameworkversion.yaml).
+An example for a `parallel` Plan is [zookeeper-frameworkversion.yaml](https://github.com/kudobuilder/frameworks/blob/master/repo/stable/kafka/versions/0/zookeeper-frameworkversion.yaml)`
+
 #### What is a Trigger?
 
-When a value is updated in an `Instance` object it defines which plan should run. This gives you also the option of customizing your plans a little bit further, e.g. that a change of a specific value triggers a pre-defined plan, for example the `deploy` plan. 
+When a Parameter is updated in an `Instance` object it defines the "update strategy" for the Parameter in the `FrameworkVersion`. This gives you also the option to customize your Plan a little bit further, e.g. that a change of a specific value triggers a pre-defined Plan, for example the `update` plan. It also allows different update strategies for different Parameters (e.g. `replicas` vs `image`)
 
 #### When I create a Framework, it is automatically creating new CRDs?
 
