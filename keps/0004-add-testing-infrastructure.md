@@ -91,6 +91,7 @@ For OpenSource projects we will recieve 1,000 monthly build minutes.  With the t
 
 All Pull Requests into master need to have the following checks pass.  These should be ordered in fastest to slowest to reduce the time spent when/if failures occur
 
+0) Check author has signed CLA
 1) `go fmt` does not change anything 
 2) `go lint` and `go vet` both pass
 3) All unit tests pass (with `-race` flag)
