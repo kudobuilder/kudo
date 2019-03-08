@@ -91,6 +91,7 @@ func installFrameworks(args []string) error {
 	return nil
 }
 
+// Todo: needs testing
 // installSingleFramework is the umbrella for a single framework installation that gathers the business logic
 // for a cluster and returns an error in case there is a problem
 func installSingleFramework(name, previous string, gc *github.GithubClient, k2c *k8s.K2oClient) error {
@@ -208,6 +209,7 @@ func installSingleFramework(name, previous string, gc *github.GithubClient, k2c 
 	return nil
 }
 
+// Todo: needs testing
 // installSingleFrameworkToCluster installs a given Framework to the cluster
 func installSingleFrameworkToCluster(name, path string, gc *github.GithubClient, k2c *k8s.K2oClient) error {
 	frameworkYaml, err := gc.GetFrameworkYaml(name, path)
@@ -222,6 +224,7 @@ func installSingleFrameworkToCluster(name, path string, gc *github.GithubClient,
 	return nil
 }
 
+// Todo: needs testing
 // installSingleFrameworkVersionToCluster installs a given FrameworkVersion to the cluster
 func installSingleFrameworkVersionToCluster(name, path string, gc *github.GithubClient, k2c *k8s.K2oClient) error {
 	frameworkVersionYaml, err := gc.GetFrameworkVersionYaml(name, path)
@@ -236,6 +239,7 @@ func installSingleFrameworkVersionToCluster(name, path string, gc *github.Github
 	return nil
 }
 
+// Todo: needs testing
 // installSingleInstanceToCluster installs a given Instance to the cluster
 func installSingleInstanceToCluster(name, previous, path string, gc *github.GithubClient, k2c *k8s.K2oClient) error {
 	instanceYaml, err := gc.GetInstanceYaml(name, path)

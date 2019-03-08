@@ -20,18 +20,50 @@ type GithubClient struct {
 // NewGithubClient generates a new Github client and returns an error if it failed.
 func NewGithubClient(cred string) (*GithubClient, error) {
 
+	var result []string
+	var gitUser string
+	var gitPassword string
+
 	// Giving the option to set a Github user and password
-	gitUser := os.Getenv("GIT_USER")
-	gitPassword := os.Getenv("GIT_PASSWORD")
+	gitUserEnv := os.Getenv("GIT_USER")
+	gitPasswordEnv := os.Getenv("GIT_PASSWORD")
 
-	result := strings.Split(cred, ":")
-
-	if gitUser == "" {
+	if gitUserEnv == "" {
+		if cred == "" {
+			return nil, errors.Errorf("no credentials or user environment variable provided")
+		}
+		result = strings.Split(cred, ":")
+		if len(result) == 1 {
+			return nil, errors.Errorf("wrong credentials file format")
+		}
+		if result[0] == "" {
+			return nil, errors.Errorf("missing github user")
+		}
 		gitUser = result[0]
+	} else {
+		gitUser = gitUserEnv
 	}
 
-	if gitPassword == "" {
+	if gitPasswordEnv == "" {
+		if cred == "" {
+			return nil, errors.Errorf("no credentials or password environment variable provided")
+		}
+		result = strings.Split(cred, ":")
+		if len(result) == 1 {
+			return nil, errors.Errorf("wrong credentials format")
+		}
+		/* not needed to support OTP
+		if result[1] == "" {
+			return nil, errors.Errorf("missing github password")
+		}
+		*/
 		gitPassword = result[1]
+	} else {
+		gitPassword = gitPasswordEnv
+	}
+
+	if len(result) == 1 {
+		return nil, errors.Errorf("wrong total credentials format")
 	}
 
 	tp := github.BasicAuthTransport{
@@ -42,6 +74,9 @@ func NewGithubClient(cred string) (*GithubClient, error) {
 	client := github.NewClient(tp.Client())
 	ctx := context.Background()
 	_, _, err := client.Users.Get(ctx, "")
+	if err != nil {
+		return nil, errors.WithMessage(err, "client test")
+	}
 
 	// Is this a two-factor auth error? If so, set cred as OTP token
 	if _, ok := err.(*github.TwoFactorAuthError); ok {
@@ -53,6 +88,10 @@ func NewGithubClient(cred string) (*GithubClient, error) {
 
 // GetMostRecentFrameworkContentDir returns the content of the most recent Framework
 func (g *GithubClient) GetMostRecentFrameworkContentDir(framework string) (*github.RepositoryContent, error) {
+	if framework == "" {
+		return nil, errors.Errorf("no framework provided")
+	}
+
 	var directoryContents []*github.RepositoryContent
 	directoryContents, err := g.GetStableFrameworkContentDir(framework)
 	if err != nil {
@@ -71,9 +110,13 @@ func (g *GithubClient) GetMostRecentFrameworkContentDir(framework string) (*gith
 	return mostRecentContentDir, nil
 }
 
-// GetSpecificFrameworkContentDir returns the content of a specific Framework. If no Framework was found there will
-// an error returned.
+// GetSpecificFrameworkContentDir returns the content of a Framework of specific repo version. If no Framework was found
+// there will an error returned. Requires vars.RepoVersion set otherwise it returns "no matching repo version found"
 func (g *GithubClient) GetSpecificFrameworkContentDir(framework string) (*github.RepositoryContent, error) {
+	if framework == "" {
+		return nil, errors.Errorf("no framework provided")
+	}
+
 	var directoryContents []*github.RepositoryContent
 	directoryContents, err := g.GetStableFrameworkContentDir(framework)
 	if err != nil {
@@ -94,6 +137,10 @@ func (g *GithubClient) GetSpecificFrameworkContentDir(framework string) (*github
 // GetStableFrameworkContentDir returns the content of a stable Framework. It returns an error if no Framework was
 // found.
 func (g *GithubClient) GetStableFrameworkContentDir(framework string) ([]*github.RepositoryContent, error) {
+	if framework == "" {
+		return nil, errors.Errorf("no framework provided")
+	}
+
 	_, directoryContents, _, err := g.client.Repositories.GetContents(context.Background(), "kudobuilder",
 		"frameworks", "repo/stable/"+framework+"/versions", &github.RepositoryContentGetOptions{})
 	if err != nil {
@@ -113,6 +160,9 @@ func (g *GithubClient) GetStableFrameworkContentDir(framework string) ([]*github
 // GetIncubatingFrameworkContentDir returns the content of an incubating Framework. It returns an error if no Framework
 // was found.
 func (g *GithubClient) GetIncubatingFrameworkContentDir(framework string) ([]*github.RepositoryContent, error) {
+	if framework == "" {
+		return nil, errors.Errorf("no framework provided")
+	}
 	_, directoryContents, _, err := g.client.Repositories.GetContents(context.Background(), "kudobuilder",
 		"frameworks", "repo/incubating/"+framework+"/versions", &github.RepositoryContentGetOptions{})
 	if err != nil {
@@ -131,6 +181,12 @@ func (g *GithubClient) GetIncubatingFrameworkContentDir(framework string) ([]*gi
 
 // GetFrameworkVersion returns the version to a given Framework
 func (g *GithubClient) GetFrameworkVersion(name, path string) (string, error) {
+	if name == "" {
+		return "", errors.Errorf("no name provided")
+	}
+	if path == "" {
+		return "", errors.Errorf("no path provided")
+	}
 	filePath := path + "/" + name + "-frameworkversion.yaml"
 	filecontent, _, _, err := g.client.Repositories.GetContents(context.Background(), "kudobuilder",
 		"frameworks", filePath, &github.RepositoryContentGetOptions{})
