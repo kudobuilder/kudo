@@ -1,5 +1,5 @@
 ---
-kep-number: draft-20190307
+kep-number: 6
 title: Stable Kafka Example
 authors:
   - "@guenter"
@@ -8,7 +8,7 @@ owners:
   - "@guenter"
 editor: TBD
 creation-date: 2019-03-07
-status: provisional
+status: implementable
 ---
 
 # Stable Kafka Example
