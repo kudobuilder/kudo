@@ -84,7 +84,40 @@ exists in real world situations.
 
 ### CICD
 
-Identify and implement a CICD toolkit that can be integrated into GitHub to validate all PRs.
+Use [CircleCI](https://circleci.com/docs/) and the [GitHub Plugin](https://github.com/marketplace/circleci/plan/MDIyOk1hcmtldHBsYWNlTGlzdGluZ1BsYW45MA==#pricing-and-setup).
+For OpenSource projects we will recieve 1,000 monthly build minutes.  With the test suite below, that should suffice as a baseline.
+
+#### Pull Requests
+
+All Pull Requests into master need to have the following checks pass.  These should be ordered in fastest to slowest to reduce the time spent when/if failures occur
+
+1) `go fmt` does not change anything 
+2) `go lint` and `go vet` both pass
+3) All unit tests pass (with `-race` flag)
+4) Dockerfile builds (this requires all dependencies in the vendor folder)
+
+Perform the same set of tests after merging master into the branch.
+
+#### Master Branch
+
+##### Pushes
+
+Once merged into master a build process occurs to deploy the latest image at `kudobuilder/controller:latest`
+
+##### Schedule
+
+Running the build nightly/frequently will increaes the chancing of finding flakey tests.
+
+##### Base Image Change
+
+Since we don't have any tests that validate the image works (no integration tests) this seems uneccessary.
+
+
+#### Tags/Release
+
+* Build process occurs to deploy the image at `kudobuilder/controller:latest`.
+* Create the YAML to deploy Kudo, and package up to store in GitHub Release
+
 
 ### User Stories
 
