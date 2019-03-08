@@ -8,27 +8,28 @@ import (
 // NewKudoctlCmd creates a new root command for kudoctl
 func NewKudoctlCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "kudoctl",
-		Short: "CLI to manipulate, inspect and troubleshoot Kudo-specific CRDs.",
+		// Workaround or Compromise as "kubectl kudo" would result in Usage print out "kubectl install <name> [flags]"
+		Use:   "kubectl-kudo",
+		Short: "CLI to manipulate, inspect and troubleshoot KUDO-specific CRDs.",
 		Long: `
-Kudo CLI and future sub-commands can be used to manipulate, inspect and troubleshoot Kudo-specific CRDs
+KUDO CLI and future sub-commands can be used to manipulate, inspect and troubleshoot KUDO-specific CRDs
 and serves as an API aggregation layer.
 `,
 		Example: `
-	# Install a KUDO Framework and FrameworkVersion from the official GitHub repo.
-	kudoctl install <name> [flags]
+	# Install a KUDO package from the official GitHub repo.
+	kubectl kudo install <name> [flags]
 
-	# View plan history of a specific FrameworkVersion and Instance
-	kudoctl plan history <name> [flags]
+	# View plan history of a specific package
+	kubectl kudo plan history <name> [flags]
 
-	# View all plan history of a specific Instance
-	kudoctl plan history [flags]
+	# View all plan history of a specific package
+	kubectl kudo plan history [flags]
 
 	# List instances
-	kudoctl list instances [flags]
+	kubectl kudo list instances [flags]
 
 	# View plan status
-	kudoctl plan status [flags]
+	kubectl kudo plan status [flags]
 
 `,
 		Version: version.Version,

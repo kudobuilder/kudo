@@ -111,7 +111,7 @@ func (g *GithubClient) GetMostRecentFrameworkContentDir(framework string) (*gith
 }
 
 // GetSpecificFrameworkContentDir returns the content of a Framework of specific repo version. If no Framework was found
-// there will an error returned. Requires vars.RepoVersion set otherwise it returns "no matching repo version found"
+// there will an error returned. Requires vars.PackageVersion set otherwise it returns "no matching repo version found"
 func (g *GithubClient) GetSpecificFrameworkContentDir(framework string) (*github.RepositoryContent, error) {
 	if framework == "" {
 		return nil, errors.Errorf("no framework provided")
@@ -127,7 +127,7 @@ func (g *GithubClient) GetSpecificFrameworkContentDir(framework string) (*github
 	}
 
 	for k, v := range directoryContents {
-		if vars.RepoVersion == *v.Name {
+		if vars.PackageVersion == *v.Name {
 			return directoryContents[k], nil
 		}
 	}

@@ -10,5 +10,5 @@ var (
 	KubeConfigPath       string
 	Namespace            string
 	Parameter            []string
-	RepoVersion          string
+	PackageVersion       string
 )

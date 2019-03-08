@@ -72,9 +72,9 @@ func TestInstallFrameworks(t *testing.T) {
 
 	// For test case #2
 	vars.KubeConfigPath = ""
-	vars.RepoVersion = "0.0"
-	installCmdRepoVersionArgs := []string{"one", "two"}
-	expectedRepoVersionFlagErrors := []string{
+	vars.PackageVersion = "0.0"
+	installCmdPackageVersionArgs := []string{"one", "two"}
+	expectedPackageVersionFlagErrors := []string{
 		"--repo-version not supported in multi framework install",
 	}
 
@@ -82,8 +82,8 @@ func TestInstallFrameworks(t *testing.T) {
 		args []string
 		err  []string
 	}{
-		{nil, expectedNoArgumentErrors},                            // 1
-		{installCmdRepoVersionArgs, expectedRepoVersionFlagErrors}, // 2
+		{nil, expectedNoArgumentErrors},                                  // 1
+		{installCmdPackageVersionArgs, expectedPackageVersionFlagErrors}, // 2
 	}
 
 	for i, tt := range tests {

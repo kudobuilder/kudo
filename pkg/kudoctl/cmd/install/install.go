@@ -5,7 +5,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/github"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/helpers"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/k8s"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -14,14 +14,7 @@ import (
 )
 
 func InstallCmd(cmd *cobra.Command, args []string) error {
-	// Validating flags
-	/*
-		// this makes --frameworkname mandatory
-		frameworkNameFlag, err := cmd.Flags().GetString("frameworkname")
-		if err != nil || frameworkNameFlag == "" {
-			return fmt.Errorf("Please set Frameworkname flag, e.g. \"--frameworkname=kafka\"")
-		}
-	*/
+
 	_, err := cmd.Flags().GetString("kubeconfig")
 	// This makes --kubeconfig flag optional
 	if err != nil {
@@ -47,7 +40,7 @@ func installFrameworks(args []string) error {
 		return fmt.Errorf("no argument provided")
 	}
 
-	if len(args) > 1 && vars.RepoVersion != "" {
+	if len(args) > 1 && vars.PackageVersion != "" {
 		return fmt.Errorf("--repo-version not supported in multi framework install")
 	}
 
@@ -71,19 +64,13 @@ func installFrameworks(args []string) error {
 		return errors.Wrap(err, "getting config failed")
 	}
 
-	k2c, err := k8s.NewK2oClient()
+	kudoclient, err := kudo.NewKudoClient()
 	if err != nil {
 		return errors.Wrap(err, "creating kudo client")
 	}
 
-	// SanityCheck if all CRDs are installed
-	err = check.KudoCRDs(k2c)
-	if err != nil {
-		return errors.Wrap(err, "checking kudo crd types")
-	}
-
 	for _, name := range args {
-		err := installSingleFramework(name, "", gc, k2c)
+		err := installSingleFramework(name, "", gc, kudoclient)
 		if err != nil {
 			return err
 		}
@@ -94,14 +81,14 @@ func installFrameworks(args []string) error {
 // Todo: needs testing
 // installSingleFramework is the umbrella for a single framework installation that gathers the business logic
 // for a cluster and returns an error in case there is a problem
-func installSingleFramework(name, previous string, gc *github.GithubClient, k2c *k8s.K2oClient) error {
+func installSingleFramework(name, previous string, gc *github.GithubClient, k2c *kudo.KudoClient) error {
 	// Get most recent ContentDir for selected Framework
 	content, err := gc.GetMostRecentFrameworkContentDir(name)
 	if err != nil {
 		return errors.Wrap(err, "sorting most recent content dir")
 	}
 
-	if vars.RepoVersion != "" {
+	if vars.PackageVersion != "" {
 		content, err = gc.GetSpecificFrameworkContentDir(name)
 		if err != nil {
 			return errors.Wrap(err, "getting specific content dir")
@@ -211,12 +198,12 @@ func installSingleFramework(name, previous string, gc *github.GithubClient, k2c 
 
 // Todo: needs testing
 // installSingleFrameworkToCluster installs a given Framework to the cluster
-func installSingleFrameworkToCluster(name, path string, gc *github.GithubClient, k2c *k8s.K2oClient) error {
+func installSingleFrameworkToCluster(name, path string, gc *github.GithubClient, k2c *kudo.KudoClient) error {
 	frameworkYaml, err := gc.GetFrameworkYaml(name, path)
 	if err != nil {
 		return errors.Wrapf(err, "getting %s-framework.yaml", name)
 	}
-	_, err = k2c.InstallFrameworkYamlToCluster(frameworkYaml)
+	_, err = k2c.InstallFrameworkObjToCluster(frameworkYaml)
 	if err != nil {
 		return errors.Wrapf(err, "installing %s-framework.yaml", name)
 	}
@@ -226,12 +213,12 @@ func installSingleFrameworkToCluster(name, path string, gc *github.GithubClient,
 
 // Todo: needs testing
 // installSingleFrameworkVersionToCluster installs a given FrameworkVersion to the cluster
-func installSingleFrameworkVersionToCluster(name, path string, gc *github.GithubClient, k2c *k8s.K2oClient) error {
+func installSingleFrameworkVersionToCluster(name, path string, gc *github.GithubClient, k2c *kudo.KudoClient) error {
 	frameworkVersionYaml, err := gc.GetFrameworkVersionYaml(name, path)
 	if err != nil {
 		return errors.Wrapf(err, "getting %s-framework.yaml", name)
 	}
-	_, err = k2c.InstallFrameworkVersionYamlToCluster(frameworkVersionYaml)
+	_, err = k2c.InstallFrameworkVersionObjToCluster(frameworkVersionYaml)
 	if err != nil {
 		return errors.Wrapf(err, "installing %s-framework.yaml", name)
 	}
@@ -241,7 +228,7 @@ func installSingleFrameworkVersionToCluster(name, path string, gc *github.Github
 
 // Todo: needs testing
 // installSingleInstanceToCluster installs a given Instance to the cluster
-func installSingleInstanceToCluster(name, previous, path string, gc *github.GithubClient, k2c *k8s.K2oClient) error {
+func installSingleInstanceToCluster(name, previous, path string, gc *github.GithubClient, k2c *kudo.KudoClient) error {
 	instanceYaml, err := gc.GetInstanceYaml(name, path)
 	if err != nil {
 		return errors.Wrapf(err, "getting %s-instance.yaml", name)
@@ -275,7 +262,7 @@ func installSingleInstanceToCluster(name, previous, path string, gc *github.Gith
 		}
 		instanceYaml.Spec.Parameters = p
 	}
-	_, err = k2c.InstallInstanceYamlToCluster(instanceYaml)
+	_, err = k2c.InstallInstanceObjToCluster(instanceYaml)
 	if err != nil {
 		return errors.Wrapf(err, "installing %s-instance.yaml", name)
 	}

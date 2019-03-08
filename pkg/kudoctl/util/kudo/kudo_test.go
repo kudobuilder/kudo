@@ -1,4 +1,4 @@
-package k8s
+package kudo
 
 import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
@@ -9,8 +9,8 @@ import (
 	"testing"
 )
 
-func newTestSimpleK2o() *K2oClient {
-	client := K2oClient{}
+func newTestSimpleK2o() *KudoClient {
+	client := KudoClient{}
 	client.clientset = fake.NewSimpleClientset()
 	return &client
 }
@@ -28,7 +28,7 @@ func TestNewK2oClient(t *testing.T) {
 
 	for _, tt := range tests {
 		// Just interested in errors
-		_, err := NewK2oClient()
+		_, err := NewKudoClient()
 		if err.Error() != tt.err {
 			t.Errorf("non existing test:\nexpected: %v\n     got: %v", tt.err, err.Error())
 		}
@@ -274,7 +274,7 @@ func TestK2oClient_FrameworkVersionInClusterOutOfSync(t *testing.T) {
 	}
 }
 
-func TestK2oClient_InstallFrameworkYamlToCluster(t *testing.T) {
+func TestK2oClient_InstallFrameworkObjToCluster(t *testing.T) {
 	obj := v1alpha1.Framework{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.k8s.io/v1alpha1",
@@ -310,7 +310,7 @@ func TestK2oClient_InstallFrameworkYamlToCluster(t *testing.T) {
 
 		// test if Framework exists in namespace
 		vars.Namespace = tt.createns
-		k2o.InstallFrameworkYamlToCluster(tt.obj)
+		k2o.InstallFrameworkObjToCluster(tt.obj)
 
 		_, err := k2o.clientset.KudoV1alpha1().Frameworks(tt.createns).Get(tt.name, metav1.GetOptions{})
 		if err != nil {
@@ -321,7 +321,7 @@ func TestK2oClient_InstallFrameworkYamlToCluster(t *testing.T) {
 	}
 }
 
-func TestK2oClient_InstallFrameworkVersionYamlToCluster(t *testing.T) {
+func TestK2oClient_InstallFrameworkVersionObjToCluster(t *testing.T) {
 	obj := v1alpha1.FrameworkVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.k8s.io/v1alpha1",
@@ -358,7 +358,7 @@ func TestK2oClient_InstallFrameworkVersionYamlToCluster(t *testing.T) {
 
 		// test if Framework exists in namespace
 		vars.Namespace = tt.createns
-		k2o.InstallFrameworkVersionYamlToCluster(tt.obj)
+		k2o.InstallFrameworkVersionObjToCluster(tt.obj)
 
 		_, err := k2o.clientset.KudoV1alpha1().FrameworkVersions(tt.createns).Get(tt.name, metav1.GetOptions{})
 		if err != nil {
@@ -369,7 +369,7 @@ func TestK2oClient_InstallFrameworkVersionYamlToCluster(t *testing.T) {
 	}
 }
 
-func TestK2oClient_InstallInstanceYamlToCluster(t *testing.T) {
+func TestK2oClient_InstallInstanceObjToCluster(t *testing.T) {
 	obj := v1alpha1.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.k8s.io/v1alpha1",
@@ -406,7 +406,7 @@ func TestK2oClient_InstallInstanceYamlToCluster(t *testing.T) {
 
 		// test if Framework exists in namespace
 		vars.Namespace = tt.createns
-		k2o.InstallInstanceYamlToCluster(tt.obj)
+		k2o.InstallInstanceObjToCluster(tt.obj)
 
 		_, err := k2o.clientset.KudoV1alpha1().Instances(tt.createns).Get(tt.name, metav1.GetOptions{})
 		if err != nil {

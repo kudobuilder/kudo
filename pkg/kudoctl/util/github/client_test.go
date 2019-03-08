@@ -90,7 +90,7 @@ func TestGithubClient_GetSpecificFrameworkContentDir(t *testing.T) {
 	for i, tt := range tests {
 		i := i
 		gc := newTestGitHubClient()
-		vars.RepoVersion = tt.version
+		vars.PackageVersion = tt.version
 		_, err := gc.GetSpecificFrameworkContentDir(tt.framework)
 		if err != nil {
 			if err.Error() != tt.err {

@@ -15,7 +15,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd"
@@ -23,7 +22,6 @@ import (
 
 func main() {
 	if err := cmd.NewKudoctlCmd().Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
 		os.Exit(-1)
 	}
 }
