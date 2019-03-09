@@ -1,3 +1,8 @@
+---
+title: MySQL with Backup
+type: docs
+---
+
 # Backup Jobs
 
 KUDO has the ability to capture the backup and restoration process for database applications.

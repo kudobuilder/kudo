@@ -1,3 +1,9 @@
+---
+title: Usage
+type: docs
+weight: 3
+---
+
 # Workflow
 
 This outlines an ideal workflow for both sys admins and application operators
@@ -56,8 +62,6 @@ To issue an upgrade, a command similiar to this would be executed
 ```bash
 kubectl patch kafka instance-name -p '{"spec": {"version":"2.11-2.1.0"}}'
 ```
-
-####
 
 ### Parameters
 

@@ -1,33 +1,22 @@
-# Flink
+---
+title: Apache Flink
+type: docs
+---
+
+# Apache Flink
 
 https://ci.apache.org/projects/flink/flink-docs-stable/ops/deployment/kubernetes.html
 
 There's a note about running `minikube ssh 'sudo ip link set docker0 promisc on'`, need to dive into this and see if we understand the requirement.
 
 
-
-
-
-
-
-
-
-
-
 ## Flink Demo
 
-
-
-
-This demo follows the outline provided by [DCOS's](https://github.com/dcos/demos/tree/master/flink-k8s/1.11) demo
-
-
+This demo follows the outline provided by the [DC/OS](https://github.com/dcos/demos/tree/master/flink-k8s/1.11) demo
 
 ### Architecture
 
 We should modify the demo image to have everything run on K8s
-
-
 
 ## Prerequisites
 

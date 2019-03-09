@@ -1,3 +1,9 @@
+---
+title: CLI Usage
+type: docs
+weight: 4
+---
+
 # CLI Usage
 
 This document demonstrates how to use the CLI but also shows what happens in `Kudo` under the hood, which can be helpful when troubleshooting.
@@ -11,9 +17,9 @@ There are two CLIs you can use at the moment:
 
 The usage is intended to make your life easier when working with `Kudo`. A work flow would look like this:
 
-1) You get a list of all available Instances deployed by `Kudo`
-2) You get the status the particular Instance of interest
-3) You see a history to a specific Instance
+1. You get a list of all available Instances deployed by `Kudo`
+2. You get the status the particular Instance of interest
+3. You see a history to a specific Instance
 
 # List Instances
 
@@ -284,10 +290,10 @@ Install the plugin to your `PATH` e.g. in the kudo repo root via:
 
 ### Commands
 
-|  Syntax | Description  | 
-|---|---|
+| Syntax | Description |
+|--------|-------------|
 | `kubectl kudo create <framework> -n <instanceName> -v <versionNumber> -p PARAM1="\VALUE\" -p PARAM2=Value`|  Creates an instance of an installed framework| 
-| `kubectl kudo delete <instanceName>`|  Deletes a specified instance| 
+ `kubectl kudo delete <instanceName>`|  Deletes a specified instance| 
 | `kubectl kudo exec <frameworkName>  <cmd>`|  Executes a command for a particular framework - right now just Flink supported | 
 | `kubectl kudo flink  <cmd>`|  Wrapper arround `Flink CLI` that supports all https://ci.apache.org/projects/flink/flink-docs-release-1.7/ops/cli.html commands | 
 | `kubectl kudo install something`  |  Lists all available frameworks from the `kudo App Store` that can be installed | 
