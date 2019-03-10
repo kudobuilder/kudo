@@ -1,4 +1,9 @@
-# Kudo Managing Deployment Upgrades
+---
+title: Controlled Parameter Changes
+type: docs
+---
+
+# Controlled Parameter Changes
 
 
 

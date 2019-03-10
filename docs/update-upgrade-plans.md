@@ -1,3 +1,8 @@
+---
+title: Update and Upgrade Plans
+type: docs
+---
+
 # Update and Upgrade Plans
 
 
