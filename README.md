@@ -1,6 +1,6 @@
 # KUDO
 
-Kubernetes Universal Declarative Operator (KUDO) provides a declarative approach to building production-grade Kubernetes Operators covering the entire application lifecycle. 
+Kubernetes Universal Declarative Operator (KUDO) provides a declarative approach to building production-grade Kubernetes Operators covering the entire application lifecycle.
 
 ## Getting Started
 
@@ -15,7 +15,7 @@ Before you get started:
 - Install Go `1.11` or later
 - Latest version of `dep`
 - Kubernetes Cluster `1.12` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
-- [Configure kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) 
+- [Configure kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
 ## Installation Instructions
 
@@ -28,7 +28,7 @@ Before you get started:
 ## Concepts
 - *Framework*: High-level description of a deployable application (e.g., Apache Kafka)
 - *FrameworkVersion*: Specific version of a deployable application, including lifecycle hooks for deployments, upgrades, and rollbacks (e.g., Kafka version 2.4.1)
-- *Instance*: Resource created to manage an instance of specific FrameworkVersion. Instances are pets and have the same name throughout its entire lifecycle. (e.g., Kafka 2.4.1 cluster with 3 brokers) 
+- *Instance*: Resource created to manage an instance of specific FrameworkVersion. Instances are pets and have the same name throughout its entire lifecycle. (e.g., Kafka 2.4.1 cluster with 3 brokers)
 - *PlanExecution*: Kudo-managed resource defining the inputs and status of an instance’s executable plans (e.g., upgrade kafka from version 2.4.1 -> 2.4.2)
 
 ## Deploy your first Application
@@ -45,7 +45,7 @@ Create a `FrameworkVersion` for the Zookeeper  `Framework`
 $ kubectl apply -f config/samples/zookeeper-frameworkversion.yaml
 frameworkversion.kudo.k8s.io/zookeeper-1.0 created
 ```
- 
+
 
 Create an Instance of the Zookeeper
 ```
@@ -82,10 +82,19 @@ zk-zk-2                 1/1     Running            0          23s
 
 Learn how to engage with the Kubernetes community on the [community page](http://kubernetes.io/community/).
 
-You can reach the maintainers of this project at:
+### KUDO Weekly Community Meetings
+
+Weekly meetings occur every Thursday at [3pm UTC](https://www.google.com/search?q=3pm+UTC)
+
+You can discuss the agenda or reach the maintainers of this project at:
 
 - [Slack](https://kubernetes.slack.com/messages/kudo/)
 - [Mailing List](https://groups.google.com/d/forum/kudobuilder)
+
+Quick links:
+
+- [Agenda document](https://docs.google.com/document/d/1UqgtCMUHSsOohZYF8K7zX8WcErttuMSx7NbvksIbZgg)
+- [Zoom meeting link](https://mesosphere.zoom.us/j/443128842)
 
 ### Code of Conduct
 
