@@ -82,7 +82,7 @@ zk-zk-2                 1/1     Running            0          23s
 
 Learn how to engage with the Kubernetes community on the [community page](http://kubernetes.io/community/).
 
-### KUDO Weekly Community Meetings
+### KUDO Weekly Community Meetings 
 
 Weekly meetings occur every Thursday at [3pm UTC](https://www.google.com/search?q=3pm+UTC)
 
