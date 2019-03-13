@@ -8,7 +8,7 @@ owners:
   - "@guenter"
 editor: TBD
 creation-date: 2019-03-07
-status: implementable
+status: provisional
 ---
 
 # Stable Kafka Example
@@ -33,6 +33,15 @@ In order to get KUDO ready for production it's useful to pick a specific workloa
 ## Motivation
 
 A team-sponsored production ready framework using KUDO helps with prioritizing features needed to achieve this goal.
+
+## Proposal
+
+TBD. For example:
+Here are some features and things we should be able to do to consider Kafka production ready.
+
+* Deploy single broker and multiple broker configurations
+* Vertically scale brokers
+* Update from one version to another
 
 ### Goals
 
