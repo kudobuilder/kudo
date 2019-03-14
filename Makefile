@@ -6,6 +6,8 @@ IMG ?= kudobuilder/controller:${TAG}
 all: test manager
 
 deps:
+	go install github.com/kudobuilder/kudo/vendor/github.com/golang/dep/cmd/dep
+	dep check
 	go install github.com/kudobuilder/kudo/vendor/golang.org/x/tools/cmd/goimports
 	go install github.com/kudobuilder/kudo/vendor/golang.org/x/lint/golint
 

@@ -1,0 +1,3 @@
+[[projects]]
+  name = "github.com/golang/dep"
+  packages = ["."]

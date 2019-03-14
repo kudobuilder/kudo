@@ -1,0 +1,7 @@
+{
+  "commands": [
+    ["status"]
+  ],
+  "error-expected": "is out of sync with imports",
+  "vendor-final": []
+}
