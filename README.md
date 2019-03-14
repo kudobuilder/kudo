@@ -1,5 +1,7 @@
 # KUDO
 
+[![CircleCI](https://circleci.com/gh/kudobuilder/kudo.svg?style=svg)](https://circleci.com/gh/kudobuilder/kudo)
+
 Kubernetes Universal Declarative Operator (KUDO) provides a declarative approach to building production-grade Kubernetes Operators covering the entire application lifecycle.
 
 ## Getting Started

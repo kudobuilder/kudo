@@ -22,7 +22,7 @@ jobs:
       - checkout
 
       # specify any bash command here prefixed with `run: `
-      - run: make generate deps fmt vet lint imports manifests
+      - run: make check-formatting
   merge-formatting:
     docker:
       - image: kudobuilder/golang:1.11
@@ -32,7 +32,7 @@ jobs:
 
       # specify any bash command here prefixed with `run: `
       - run: git merge origin/master
-      - run: make generate deps fmt vet lint imports manifests
+      - run: make check-formatting
 workflows:
   version: 2
   formatting:
