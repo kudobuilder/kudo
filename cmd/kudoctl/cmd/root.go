@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewRootCmd creates a new root command for kudoctl
 func NewRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "kudoctl",

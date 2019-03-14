@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewPlanCmd creates a new command that shows the plans available for an instance
 func NewPlanCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "plan",

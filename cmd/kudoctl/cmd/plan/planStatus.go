@@ -3,6 +3,8 @@ package plan
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/spf13/cobra"
 	"github.com/xlab/treeprint"
@@ -10,9 +12,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/clientcmd"
-	"log"
 )
 
+//NewPlanStatusCmd creates a new command that shows the status of an instance by looking at its current plan
 func NewPlanStatusCmd() *cobra.Command {
 	statusCmd := &cobra.Command{
 		Use:   "status",

@@ -18,9 +18,11 @@ package planexecution
 import (
 	"context"
 	"fmt"
+	"log"
+	"strconv"
+
 	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/tools/record"
-	"log"
 	"sigs.k8s.io/kustomize/k8sdeps/kunstruct"
 	"sigs.k8s.io/kustomize/k8sdeps/transformer"
 	"sigs.k8s.io/kustomize/pkg/fs"
@@ -30,7 +32,6 @@ import (
 	"sigs.k8s.io/kustomize/pkg/resource"
 	"sigs.k8s.io/kustomize/pkg/target"
 	ktypes "sigs.k8s.io/kustomize/pkg/types"
-	"strconv"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/util/health"

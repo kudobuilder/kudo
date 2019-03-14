@@ -502,6 +502,17 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:2f8b355c7bf40ff4559aee617f43ce572afaed911647c2a09410865067817ebc"
+  name = "golang.org/x/lint"
+  packages = [
+    ".",
+    "golint",
+  ]
+  pruneopts = "T"
+  revision = "d0100b6bd8b389f0385611eb39152c4d7c3a7905"
+
+[[projects]]
+  branch = "master"
   digest = "1:a92d7dd2268883d2d466576cb7319cc5321c906d853da4b4ac1ffc407895f809"
   name = "golang.org/x/net"
   packages = [
@@ -592,7 +603,11 @@
   digest = "1:f382834e1324c85d54adb7eccfde8acf994319c6d942e55c294b7476af1d17e2"
   name = "golang.org/x/tools"
   packages = [
+    "cmd/goimports",
     "go/ast/astutil",
+    "go/gcexportdata",
+    "go/internal/gcimporter",
+    "go/types/typeutil",
     "imports",
     "internal/fastwalk",
     "internal/gopathwalk",
@@ -1013,7 +1028,9 @@
     "github.com/onsi/gomega",
     "github.com/spf13/cobra",
     "github.com/xlab/treeprint",
+    "golang.org/x/lint/golint",
     "golang.org/x/net/context",
+    "golang.org/x/tools/cmd/goimports",
     "gopkg.in/go-playground/validator.v9",
     "gopkg.in/yaml.v2",
     "k8s.io/api/apps/v1",

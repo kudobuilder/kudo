@@ -14,11 +14,12 @@ required = [
     "sigs.k8s.io/controller-runtime/pkg/source",
     "sigs.k8s.io/testing_frameworks/integration", # for integration testing
     "sigs.k8s.io/kustomize",
+    "golang.org/x/tools/cmd/goimports", # for testing
+    "golang.org/x/lint/golint", #for linting
     ]
 
 [prune]
   go-tests = true
-
 
 # STANZAS BELOW ARE GENERATED AND MAY BE WRITTEN - DO NOT MODIFY BELOW THIS LINE.
 
@@ -64,3 +65,6 @@ version="v1.4.7"
 [[override]]
   name = "k8s.io/client-go"
   version = "kubernetes-1.11.3"
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/tools"

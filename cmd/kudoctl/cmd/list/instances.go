@@ -3,13 +3,14 @@ package list
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
+	"os/user"
+
 	"github.com/spf13/cobra"
 	"github.com/xlab/treeprint"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/clientcmd"
-	"log"
-	"os"
-	"os/user"
 
 	"path/filepath"
 
@@ -27,6 +28,7 @@ const (
 	defaultConfigPath = ".kube/config"
 )
 
+// NewListInstancesCmd creates a command that lists the instances in the cluster
 func NewListInstancesCmd() *cobra.Command {
 	listCmd := &cobra.Command{
 		Use:   "instances",

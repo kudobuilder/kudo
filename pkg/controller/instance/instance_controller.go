@@ -18,11 +18,12 @@ package instance
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
 	"log"
 	"reflect"
 	"time"
+
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 
