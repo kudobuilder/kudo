@@ -61,9 +61,9 @@ const Parallel Ordering = "parallel"
 
 //Plan specifies a series of Phases that need to be completed.
 type Plan struct {
-	Strategy Ordering `json:"strategy" validate:"required,gt=0"` // makes field mandatory and checks if set and non empty
+	Strategy Ordering `json:"strategy" validate:"required"` // makes field mandatory and checks if set and non empty
 	//Phases maps a phase name to a Phase object
-	Phases []Phase `json:"phases" validate:"gt=0,dive"` // makes field mandatory and checks if its gt 0
+	Phases []Phase `json:"phases" validate:"required,gt=0,dive"` // makes field mandatory and checks if its gt 0
 }
 
 //Parameter captures the variability of a FrameworkVersion being instantiated in an instance.  Describes
@@ -105,16 +105,16 @@ type TaskSpec struct {
 
 //Phase specifies a list of steps that contain Kubernetes objects.
 type Phase struct {
-	Name     string   `json:"name" validate:"required,gt=0"`     // makes field mandatory and checks if set and non empty
-	Strategy Ordering `json:"strategy" validate:"required,gt=0"` // makes field mandatory and checks if set and non empty
+	Name     string   `json:"name" validate:"required"`     // makes field mandatory and checks if set and non empty
+	Strategy Ordering `json:"strategy" validate:"required"` // makes field mandatory and checks if set and non empty
 	//Steps maps a step name to a list of mustached kubernetes objects stored as a string
-	Steps []Step `json:"steps" validate:"gt=0,dive"` // makes field mandatory and checks if its gt 0
+	Steps []Step `json:"steps" validate:"required,gt=0,dive"` // makes field mandatory and checks if its gt 0
 }
 
 type Step struct {
-	Name   string   `json:"name" validate:"required,gt=0"`            // makes field mandatory and checks if set and non empty
-	Tasks  []string `json:"tasks" validate:"required,gt=0,dive,gt=0"` // makes field mandatory and checks if set and non empty
-	Delete bool     `json:"delete,omitempty"`                         // no checks needed
+	Name   string   `json:"name" validate:"required"`                     // makes field mandatory and checks if set and non empty
+	Tasks  []string `json:"tasks" validate:"required,gt=0,dive,required"` // makes field mandatory and checks if non empty
+	Delete bool     `json:"delete,omitempty"`                             // no checks needed
 	//Objects will be serialized for each instance as the params and defaults
 	// are provided
 	Objects []runtime.Object `json:"-"` // no checks needed
@@ -169,55 +169,55 @@ type FrameworkDependency struct {
 
 // ServiceSpec represents the overall service definition.
 type ServiceSpec struct {
-	Name      *string          `json:"name" yaml:"name" validate:"required,gt=0"`                              // makes field mandatory and checks if set and non empty
-	WebUrl    *string          `json:"web-url" yaml:"web-url" validate:"required,gt=0"`                        // makes field mandatory and checks if set and non empty
-	Scheduler *Scheduler       `json:"scheduler" yaml:"scheduler"`                                             // field optional, no need to validate
-	Pods      map[string]*Pod  `json:"pods" yaml:"pods" validate:"gt=0,dive,keys,required,endkeys,required"`   // makes field mandatory but when set it checks for non empty keys and non empty&nil values
-	Plans     map[string]*Plan `json:"plans" yaml:"plans" validate:"gt=0,dive,keys,required,endkeys,required"` // makes field mandatory but when set it checks for non empty keys and non empty&nil values
+	Name      *string          `json:"name" yaml:"name" validate:"required,gt=0"`                                             // makes field mandatory and checks if non empty
+	WebUrl    *string          `json:"web-url" yaml:"web-url" validate:"required,gt=0"`                                       // makes field mandatory and checks if non empty
+	Scheduler *Scheduler       `json:"scheduler" yaml:"scheduler"`                                                            // field optional, no need to validate
+	Pods      map[string]*Pod  `json:"pods" yaml:"pods" validate:"required,gt=0,dive,keys,required,endkeys,required,dive"`    // makes field mandatory and checks nil pointer, empty keys and dives into nested object
+	Plans     map[string]*Plan `json:"plans" yaml:"plans" validate:"omitempty,gt=0,dive,keys,required,endkeys,required,dive"` // makes field optional and checks nil pointer, empty keys and dives into nested object
 }
 
 // Scheduler contains settings for the (Mesos) scheduler from the original yaml.
 // It is not required for this project, but kept for compatibility reasons.
 type Scheduler struct {
-	Principal *string `json:"principal" yaml:"principal" validate:"omitempty,gt=0"` // makes field optional but when set checks if non empty&nil values
-	Zookeeper *string `json:"zookeeper" yaml:"zookeeper" validate:"omitempty,gt=0"` // makes field optional but when set checks if non empty&nil values
-	User      *string `json:"user" yaml:"user" validate:"omitempty,gt=0"`           // makes field optional but when set checks if non empty&nil values
+	Principal *string `json:"principal" yaml:"principal" validate:"omitempty,gt=0"` // makes field optional and checks if non empty
+	Zookeeper *string `json:"zookeeper" yaml:"zookeeper" validate:"omitempty,gt=0"` // makes field optional and checks if non empty
+	User      *string `json:"user" yaml:"user" validate:"omitempty,gt=0"`           // makes field optional and checks if non empty
 }
 
 // Pod represents a pod definition which could be deployed as part of a plan.
 type Pod struct {
-	ResourceSets      map[string]*ResourceSet `json:"resource-sets" yaml:"resource-sets" validate:"gte=0,dive,keys,required,endkeys,required"` // makes field optional but when set it checks for non empty keys and non empty&nil values
-	Placement         *string                 `json:"placement" yaml:"placement" validate:"omitempty,gt=0"`                                    // makes field optional but when set checks if non empty&nil values
-	Count             int32                   `json:"count" yaml:"count" validate:"gte=1"`                                                     // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)
-	Image             *string                 `json:"image" yaml:"image" validate:"omitempty,gt=0"`                                            // makes field optional but when set checks if non empty&nil values
-	Networks          map[string]*Network     `json:"networks" yaml:"networks" validate:"gte=0,dive,keys,required,endkeys,required"`           // makes field optional but when set it checks for non empty keys and non empty&nil values
-	RLimits           map[string]*RLimit      `json:"rlimits" yaml:"rlimits" validate:"gte=0,dive,keys,required,endkeys,required"`             // makes field optional but when set it checks for non empty keys and non empty&nil values
-	Uris              []*string               `json:"uris" yaml:"uris" validate:"gte=0,dive,gte=1"`                                            // makes field mandatory and checks if its a valid port (TODO: check for duplicates)
-	Tasks             map[string]*Task        `json:"tasks" yaml:"tasks" validate:"required,dive,keys,required,endkeys,required"`              // makes field optional but when set it checks for non empty keys and non empty&nil values
-	Volume            *Volume                 `json:"volume" yaml:"volume"`                                                                    // field optional, no need to validate
-	Volumes           map[string]*Volume      `json:"volumes" yaml:"volumes" validate:"gte=0,dive,keys,required,endkeys,required"`             // makes field optional but when set it checks for non empty keys and non empty&nil values
-	PreReservedRole   *string                 `json:"pre-reserved-role" yaml:"pre-reserved-role" validate:"omitempty,gt=0"`                    // makes field optional but when set checks if non empty&nil values
-	Secrets           map[string]*Secret      `json:"secrets" yaml:"secrets" validate:"gte=0,dive,keys,required,endkeys,required"`             // makes field optional but when set it checks for non empty keys and non empty&nil values
-	SharePidNamespace bool                    `json:"share-pid-namespace" yaml:"share-pid-namespace"`                                          // no checks needed
-	AllowDecommission bool                    `json:"allow-decommission" yaml:"allow-decommission"`                                            // no checks needed
-	HostVolumes       map[string]*HostVolume  `json:"host-volumes" yaml:"host-volumes" validate:"gte=0,dive,keys,required,endkeys,required"`   // makes field optional but when set it checks for non empty keys and non empty&nil values
+	ResourceSets      map[string]*ResourceSet `json:"resource-sets" yaml:"resource-sets" validate:"omitempty,gt=0,dive,keys,required,endkeys,required,dive"` // makes field optional and checks nil pointer, empty keys and dives into nested object
+	Placement         *string                 `json:"placement" yaml:"placement" validate:"omitempty,gt=0"`                                                  // makes field optional and checks if non empty
+	Count             int32                   `json:"count" yaml:"count" validate:"gte=1"`                                                                   // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)
+	Image             *string                 `json:"image" yaml:"image" validate:"omitempty,gt=0"`                                                          // makes field optional and checks if non empty
+	Networks          map[string]*Network     `json:"networks" yaml:"networks" validate:"omitempty,gt=0,dive,keys,required,endkeys,required,dive"`           // makes field optional and checks nil pointer, empty keys and dives into nested object
+	RLimits           map[string]*RLimit      `json:"rlimits" yaml:"rlimits" validate:"omitempty,gt=0,dive,keys,required,endkeys,required,dive"`             // makes field optional and checks nil pointer, empty keys and dives into nested object
+	Uris              []*string               `json:"uris" yaml:"uris" validate:"required,gt=0,dive,required,gt=0"`                                          // makes field mandatory and checks if non empty (TODO: check for duplicates)
+	Tasks             map[string]*Task        `json:"tasks" yaml:"tasks" validate:"omitempty,gt=0,dive,keys,required,endkeys,required,dive"`                 // makes field optional and checks nil pointer, empty keys and dives into nested object
+	Volume            *Volume                 `json:"volume" yaml:"volume"`                                                                                  // field optional, no need to validate
+	Volumes           map[string]*Volume      `json:"volumes" yaml:"volumes" validate:"omitempty,gt=0,dive,keys,required,endkeys,required,dive"`             // makes field optional and checks nil pointer, empty keys and dives into nested object
+	PreReservedRole   *string                 `json:"pre-reserved-role" yaml:"pre-reserved-role" validate:"omitempty,gt=0"`                                  // makes field optional and checks if non empty
+	Secrets           map[string]*Secret      `json:"secrets" yaml:"secrets" validate:"omitempty,gt=0,dive,keys,required,endkeys,required,dive"`             // makes field optional and checks nil pointer, empty keys and dives into nested object
+	SharePidNamespace bool                    `json:"share-pid-namespace" yaml:"share-pid-namespace"`                                                        // no checks needed
+	AllowDecommission bool                    `json:"allow-decommission" yaml:"allow-decommission"`                                                          // no checks needed
+	HostVolumes       map[string]*HostVolume  `json:"host-volumes" yaml:"host-volumes" validate:"omitempty,gt=0,dive,keys,required,endkeys,required,dive"`   // makes field optional and checks nil pointer, empty keys and dives into nested objects
 }
 
 // ResourceSets defines a single set of resources which can be reused across tasks.
 type ResourceSet struct {
-	Cpus     float64            `json:"cpus" yaml:"cpus" validate:"omitempty,gt=0"`                                  // makes field optional but if set value needs to be gt 0 (TODO: we should make this a pointer to check if set)
-	Gpus     float64            `json:"gpus" yaml:"gpus" validate:"omitempty,gt=0"`                                  // makes field optional but if set value needs to be gt 0 (TODO: we should make this a pointer to check if set)
-	MemoryMB int32              `json:"memory" yaml:"memory" validate:"omitempty,gte=1"`                             // makes field optional but if set value needs to be gte 1 (TODO: we should make this a pointer to check if set)
-	Ports    map[string]*Port   `json:"ports" yaml:"ports" validate:"gte=0,dive,keys,required,endkeys,required"`     // makes field optional but when set it checks for non empty keys and non empty&nil values
-	Volume   *Volume            `json:"volume" yaml:"volume"`                                                        // field optional, no need to validate
-	Volumes  map[string]*Volume `json:"volumes" yaml:"volumes" validate:"gte=0,dive,keys,required,endkeys,required"` // makes field optional but when set it checks for non empty keys and non empty&nil values
+	Cpus     float64            `json:"cpus" yaml:"cpus" validate:"omitempty,gt=0"`                                                // makes field optional and checks if non empty (TODO: we should make this a pointer to check if set)
+	Gpus     float64            `json:"gpus" yaml:"gpus" validate:"omitempty,gt=0"`                                                // makes field optional and checks if non empty (TODO: we should make this a pointer to check if set)
+	MemoryMB int32              `json:"memory" yaml:"memory" validate:"omitempty,gte=1"`                                           // makes field optional and checks if its gte 1 (TODO: we should make this a pointer to check if set)
+	Ports    map[string]*Port   `json:"ports" yaml:"ports" validate:"omitempty,gt=0,dive,keys,required,endkeys,required,dive"`     // makes field optional and checks nil pointer, empty keys and dives into nested object
+	Volume   *Volume            `json:"volume" yaml:"volume"`                                                                      // field optional, no need to validate
+	Volumes  map[string]*Volume `json:"volumes" yaml:"volumes" validate:"omitempty,gt=0,dive,keys,required,endkeys,required,dive"` // makes field optional and checks nil pointer, empty keys and dives into nested object
 }
 
 // Network represents a network setting or virtual network to be joined.
 type Network struct {
-	HostPorts      []int32 `json:"host-ports" yaml:"host-ports" validate:"gte=1,dive,gte=1,max=65535"`           // makes field mandatory and checks if its a valid port (TODO: we should make this a pointer to check if set, also check for duplicates)
-	ContainerPorts []int32 `json:"container-ports" yaml:"container-ports" validate:"gte=1,dive,gte=1,max=65535"` // makes field mandatory and checks if its a valid port (TODO: we should make this a pointer to check if set, also check for duplicates)
-	Labels         string  `json:"labels" yaml:"labels"`                                                         // no checks needed (TODO: not sure if needed at all, e.g. would it map to a service in k8s)
+	HostPorts      []int32 `json:"host-ports" yaml:"host-ports" validate:"required,gt=0,dive,gte=1,max=65535"`           // makes field mandatory and checks if its a valid port (TODO: we should make this a pointer to check if set, also check for duplicates)
+	ContainerPorts []int32 `json:"container-ports" yaml:"container-ports" validate:"required,gt=0,dive,gte=1,max=65535"` // makes field mandatory and checks if its a valid port (TODO: we should make this a pointer to check if set, also check for duplicates)
+	Labels         string  `json:"labels" yaml:"labels"`                                                                 // no checks needed (TODO: not sure if needed at all, e.g. would it map to a service in k8s)
 }
 
 // RLmit represents a rlimit setting to be applied to the pod.
@@ -228,47 +228,47 @@ type RLimit struct {
 
 // Task specifies a task to be run inside the pod.
 type Task struct {
-	Goal                    *string                `json:"goal" yaml:"goal" validate:"required,gt=0,eq=RUNNING|eq=FINISH|eq=ONCE"`          // makes field mandatory and checks if set and non empty, allows just RUNNING,FINISH,ONCE
-	Essential               bool                   `json:"essential" yaml:"essential" validate:"isdefault"`                                 // makes field optional but if set it expects it to be false and will fail if true (TODO: we should make this a pointer to check if set)
-	Cmd                     *string                `json:"cmd" yaml:"cmd" validate:"required,gt=0"`                                         // makes field mandatory and checks if set and non empty
-	Env                     map[string]*string     `json:"env" yaml:"env" validate:"gte=0,dive,keys,required,endkeys,required"`             // makes field optional but when set it checks for non empty keys and non empty&nil values
-	Configs                 map[string]*Config     `json:"configs" yaml:"configs" validate:"gte=0,dive,keys,required,endkeys,required"`     // makes field optional but when set it checks for non empty keys and non empty&nil values
-	Cpus                    float64                `json:"cpus" yaml:"cpus" validate:"omitempty,gt=0"`                                      // makes field optional but if set value needs to be gt 0 (TODO: we should make this a pointer to check if set)
-	Gpus                    float64                `json:"gpus" yaml:"gpus" validate:"omitempty,gt=0"`                                      // makes field optional but if set value needs to be gt 0 (TODO: we should make this a pointer to check if set)
-	MemoryMB                float64                `json:"memory" yaml:"memory" validate:"omitempty,gte=1"`                                 // makes field optional but if set value needs to be gte 1 (TODO: we should make this a pointer to check if set)
-	Ports                   map[string]*Port       `json:"ports" yaml:"ports" validate:"gte=0,dive,keys,required,endkeys,required"`         // makes field optional but when set it checks for non empty keys and non empty&nil values
-	HealthCheck             *HealthCheck           `json:"health-check" yaml:"health-check"`                                                // field optional, no need to validate
-	ReadinessCheck          *ReadinessCheck        `json:"readiness-check" yaml:"readiness-check"`                                          // field optional, no need to validate
-	Volume                  *Volume                `json:"volume" yaml:"volume"`                                                            // field optional, no need to validate
-	Volumes                 map[string]*Volume     `json:"volumes" yaml:"volumes" validate:"gte=0,dive,keys,required,endkeys,required"`     // makes field optional but when set it checks for non empty keys and non empty&nil values
-	ResourceSet             *string                `json:"resource-set" yaml:"resource-set" validate:"omitempty,gt=0"`                      // makes field optional but when set checks if non empty&nil values
-	Discovery               *Discovery             `json:"discovery" yaml:"discovery"`                                                      // field optional, no need to validate
-	TaskKillGracePeriodSecs int32                  `json:"kill-grace-period" yaml:"kill-grace-period" validate:"gte=0"`                     // makes field optional and checks if its gte 0 (TODO: we should make this a pointer to check if set)
-	TransportEncryption     []*TransportEncryption `json:"transport-encryption" yaml:"transport-encryption" validate:"omitempty,gt=0,dive"` // makes field optional and checks if its gt 0
+	Goal                    *string                `json:"goal" yaml:"goal" validate:"required,gt=0,eq=RUNNING|eq=FINISH|eq=ONCE"`                    // makes field mandatory and checks if set and non empty, allows just RUNNING,FINISH,ONCE
+	Essential               bool                   `json:"essential" yaml:"essential" validate:"isdefault"`                                           // makes field optional but if set it expects it to be false and will fail if true (TODO: we should make this a pointer to check if set)
+	Cmd                     *string                `json:"cmd" yaml:"cmd" validate:"required,gt=0"`                                                   // makes field mandatory and checks if set and non empty
+	Env                     map[string]*string     `json:"env" yaml:"env" validate:"omitempty,gt=0,dive,keys,required,endkeys,required,gt=0"`         // makes field optional and checks nil pointer, empty strings for keys and values
+	Configs                 map[string]*Config     `json:"configs" yaml:"configs" validate:"omitempty,gt=0,dive,keys,required,endkeys,required,dive"` // makes field optional and checks nil pointer, empty keys and dives into nested object
+	Cpus                    float64                `json:"cpus" yaml:"cpus" validate:"gte=1"`                                                         // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)
+	Gpus                    float64                `json:"gpus" yaml:"gpus" validate:"omitempty,gte=1"`                                               // makes field optional but if set value needs to be gt 0 (TODO: we should make this a pointer to check if set)
+	MemoryMB                float64                `json:"memory" yaml:"memory" validate:"gte=1"`                                                     // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)
+	Ports                   map[string]*Port       `json:"ports" yaml:"ports" validate:"omitempty,gt=0,dive,keys,required,endkeys,required,dive"`     // makes field optional and checks nil pointer, empty strings for keys and values
+	HealthCheck             *HealthCheck           `json:"health-check" yaml:"health-check"`                                                          // field optional, no need to validate
+	ReadinessCheck          *ReadinessCheck        `json:"readiness-check" yaml:"readiness-check"`                                                    // field optional, no need to validate
+	Volume                  *Volume                `json:"volume" yaml:"volume"`                                                                      // field optional, no need to validate
+	Volumes                 map[string]*Volume     `json:"volumes" yaml:"volumes" validate:"omitempty,gt=0,dive,keys,required,endkeys,required,dive"` // makes field optional and checks nil pointer, empty strings for keys and values
+	ResourceSet             *string                `json:"resource-set" yaml:"resource-set" validate:"omitempty,gt=0"`                                // makes field optional and checks if non empty
+	Discovery               *Discovery             `json:"discovery" yaml:"discovery"`                                                                // field optional, no need to validate
+	TaskKillGracePeriodSecs int32                  `json:"kill-grace-period" yaml:"kill-grace-period" validate:"omitempty,gte=1"`                     // makes field optional and checks if its gte 1 (TODO: we should make this a pointer to check if set)
+	TransportEncryption     []*TransportEncryption `json:"transport-encryption" yaml:"transport-encryption" validate:"omitempty,gt=0,dive"`           // makes field optional and checks if object is non empty
 }
 
 // Config represents a config templates which is rendered before the pods is launched.
 type Config struct {
-	Template *string `json:"template" yaml:"template" validate:"required,gt=0"` // makes field mandatory and checks if set and non empty
-	Dest     *string `json:"dest" yaml:"dest" validate:"required,gt=0"`         // makes field mandatory and checks if set and non empty
+	Template *string `json:"template" yaml:"template" validate:"required,gt=0"` // makes field mandatory and checks if non empty
+	Dest     *string `json:"dest" yaml:"dest" validate:"required,gt=0"`         // makes field mandatory and checks if non empty
 }
 
 // HealthCheck represents a validation that a pod is healthy.
 type HealthCheck struct {
-	Cmd *string `json:"cmd" yaml:"cmd" validate:"omitempty,gt=0"` // makes field optional but when set checks if non empty&nil values
+	Cmd *string `json:"cmd" yaml:"cmd" validate:"omitempty,gt=0"` // makes field optional and checks if non empty
 	//Interval               int32   `json:"interval" yaml:"interval" validate:"gte=1"`                                 // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)
-	GracePeriodSecs        int32 `json:"grace-period" yaml:"grace-period" validate:"gte=1"`                         // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)
-	MaxConsecutiveFailures int32 `json:"max-consecutive-failures" yaml:"max-consecutive-failures" validate:"gte=0"` // makes field optional and checks if its gte 0 (TODO: we should make this a pointer to check if set | can it be zero?)
-	DelaySecs              int32 `json:"delay" yaml:"delay" validate:"gte=0"`                                       // makes field optional and checks if its gte 0 (TODO: we should make this a pointer to check if set)
-	TimeoutSecs            int32 `json:"timeout" yaml:"timeout" validate:"gte=1"`                                   // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)
+	GracePeriodSecs        int32 `json:"grace-period" yaml:"grace-period" validate:"gte=1"`                                   // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)
+	MaxConsecutiveFailures int32 `json:"max-consecutive-failures" yaml:"max-consecutive-failures" validate:"omitempty,gte=1"` // makes field optional and checks if its gte 1 (TODO: we should make this a pointer to check if set | can it be zero?)
+	DelaySecs              int32 `json:"delay" yaml:"delay" validate:"omitempty,gte=1"`                                       // makes field optional and checks if its gte 1 (TODO: we should make this a pointer to check if set)
+	TimeoutSecs            int32 `json:"timeout" yaml:"timeout" validate:"gte=1"`                                             // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)
 }
 
 // ReadinessCheck represents an additional HealthCheck which is used when a task is first started.
 type ReadinessCheck struct {
-	Cmd          *string `json:"cmd" yaml:"cmd" validate:"omitempty,gt=0"`  // makes field optional but when set checks if non empty&nil values
-	IntervalSecs int32   `json:"interval" yaml:"interval" validate:"gte=1"` // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)
-	DelaySecs    int32   `json:"delay" yaml:"delay" validate:"gte=0"`       // makes field optional and checks if its gte 0 (TODO: we should make this a pointer to check if set)
-	TimeoutSecs  int32   `json:"timeout" yaml:"timeout" validate:"gte=1"`   // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)
+	Cmd          *string `json:"cmd" yaml:"cmd" validate:"omitempty,gt=0"`      // makes field mandatory and checks if non empty
+	IntervalSecs int32   `json:"interval" yaml:"interval" validate:"gte=1"`     // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)
+	DelaySecs    int32   `json:"delay" yaml:"delay" validate:"omitempty,gte=1"` // makes field optional and checks if its gte 1 (TODO: we should make this a pointer to check if set)
+	TimeoutSecs  int32   `json:"timeout" yaml:"timeout" validate:"gte=1"`       // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)
 }
 
 // Discovery represents information about how a tasks should be exposed.
@@ -279,8 +279,8 @@ type Discovery struct {
 
 // TransportEncryption represents information about the TLS certificate used for encrypting traffic.
 type TransportEncryption struct {
-	Name *string `json:"name" yaml:"name" validate:"required,gt=0"`                    // makes field mandatory and checks if set and non empty
-	Type *string `json:"type" yaml:"type" validate:"required,gt=0,eq=TLS|eq=KEYSTORE"` // makes field mandatory and checks if set and non empty, allows just TLS or KEYSTORE
+	Name *string `json:"name" yaml:"name" validate:"required,gt=0"`                    // makes field mandatory and checks if non empty
+	Type *string `json:"type" yaml:"type" validate:"required,gt=0,eq=TLS|eq=KEYSTORE"` // makes field mandatory and checks if non empty, allows just TLS or KEYSTORE
 }
 
 // Port represents a port an application should listen on.
@@ -299,20 +299,20 @@ type VIP struct {
 
 // Volume to be mounted in the Pod environment.
 type Volume struct {
-	Path   *string `json:"path" yaml:"path" validate:"required,gt=0"`                  // makes field mandatory and checks if set and non empty (TODO: MatchRegex Custom Validation)
-	Type   *string `json:"type" yaml:"type" validate:"required,gt=0,eq=ROOT|eq=MOUNT"` // makes field mandatory and checks if set and non empty, allows just ROOT or MOUNT
+	Path   *string `json:"path" yaml:"path" validate:"required,gt=0"`                  // makes field mandatory and checks if non empty (TODO: MatchRegex Custom Validation)
+	Type   *string `json:"type" yaml:"type" validate:"required,gt=0,eq=ROOT|eq=MOUNT"` // makes field mandatory and checks if non empty, allows just ROOT or MOUNT
 	SizeMB int32   `json:"size" yaml:"size" validate:"gte=1"`                          // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)`
 }
 
 // Secret to be made available in the Pod environment.
 type Secret struct {
-	SecretPath *string `json:"secret" yaml:"secret" validate:"required,gt=0"`    // makes field mandatory and checks if set and non empty
-	EnvKey     *string `json:"env-key" yaml:"env-key" validate:"omitempty,gt=0"` // makes field optional but when set checks if non empty&nil values
-	FilePath   *string `json:"file" yaml:"file" validate:"omitempty,gt=0"`       // makes field optional but when set checks if non empty&nil values (TODO: MatchRegex Custom Validation)
+	SecretPath *string `json:"secret" yaml:"secret" validate:"required,gt=0"`    // makes field mandatory and checks if non empty
+	EnvKey     *string `json:"env-key" yaml:"env-key" validate:"omitempty,gt=0"` // makes field optional and checks if non empty
+	FilePath   *string `json:"file" yaml:"file" validate:"omitempty,gt=0"`       // makes field optional and checks if non empty (TODO: MatchRegex Custom Validation)
 }
 
 // HostVolume to be mounted in the Pod environment.
 type HostVolume struct {
-	HostPath      *string `json:"host-path" yaml:"host-path" validate:"required,gt=0"`           // makes field mandatory and checks if set and non empty (TODO: MatchRegex Custom Validation)
-	ContainerPath *string `json:"container-path" yaml:"container-path" validate:"required,gt=0"` // makes field mandatory and checks if set and non empty (TODO: MatchRegex Custom Validation)
+	HostPath      *string `json:"host-path" yaml:"host-path" validate:"required,gt=0"`           // makes field mandatory and checks if non empty (TODO: MatchRegex Custom Validation)
+	ContainerPath *string `json:"container-path" yaml:"container-path" validate:"required,gt=0"` // makes field mandatory and checks if non empty (TODO: MatchRegex Custom Validation)
 }
