@@ -75,7 +75,6 @@ type ReconcileFrameworkVersion struct {
 
 // Reconcile reads that state of the cluster for a FrameworkVersion object and makes changes based on the state read
 // and what is in the FrameworkVersion.Spec
-
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kudo.k8s.io,resources=frameworkversions,verbs=get;list;watch;create;update;patch;delete

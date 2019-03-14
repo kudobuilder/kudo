@@ -17,9 +17,10 @@ package v1alpha1
 
 import (
 	"fmt"
+	"testing"
+
 	"gopkg.in/go-playground/validator.v9"
 	"k8s.io/apimachinery/pkg/runtime"
-	"testing"
 
 	"github.com/onsi/gomega"
 	"golang.org/x/net/context"
@@ -331,7 +332,7 @@ func TestFrameworkType_Validation(t *testing.T) {
 		"ServiceSpec.Scheduler.Principal:gt: cannot be empty",
 		"ServiceSpec.Scheduler.Zookeeper:gt: cannot be empty",
 		"ServiceSpec.Scheduler.User:gt: cannot be empty",
-		"ServiceSpec.WebUrl:required: cannot be <nil>",
+		"ServiceSpec.WebURL:required: cannot be <nil>",
 	}
 
 	expectedTaskErrors := []string{
@@ -433,7 +434,7 @@ func createSlice(e error) []string {
 func compareSlice(real, mock []string) []string {
 	lm := len(mock)
 
-	var diff []string = nil
+	var diff []string
 
 	for _, rv := range real {
 		i := 0

@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewListCmd creates a new command that lists instances
 func NewListCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "list",

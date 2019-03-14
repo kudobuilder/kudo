@@ -10,6 +10,22 @@
   version = "v0.33.1"
 
 [[projects]]
+  branch = "2.x"
+  digest = "1:5fb9305900d6f7c94d6f663880185504bb0ac9b149d02f73966a31ed04000ebb"
+  name = "github.com/Masterminds/semver"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "3c92f33da7a84de8314f3ff82e5f919b89fd1492"
+
+[[projects]]
+  digest = "1:74334b154a542b15a7391df3db5428675fdaa56b4d3f3de7b750289b9500d70e"
+  name = "github.com/Masterminds/vcs"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "b4f55832432b95a611cf1495272b5c8e24952a1a"
+  version = "v1.13.0"
+
+[[projects]]
   digest = "1:352fc094dbd1438593b64251de6788bffdf30f9925cf763c7f62e1fd27142b76"
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
@@ -24,6 +40,22 @@
   packages = ["."]
   pruneopts = "T"
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
+
+[[projects]]
+  digest = "1:c47f4964978e211c6e566596ec6246c329912ea92e9bb99c00798bb4564c5b09"
+  name = "github.com/armon/go-radix"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "1a2de0c21c94309923825da3df33a4381872c795"
+  version = "v1.0.0"
+
+[[projects]]
+  digest = "1:8497f5ae29db3c6f5492cea78b0a72e0fb6779a835219980977097fa256082c2"
+  name = "github.com/boltdb/bolt"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "2f1ce7a837dcb8da3ec595b1dac9d0632f0f99e8"
+  version = "v1.3.1"
 
 [[projects]]
   digest = "1:fa9fd6522a597ebc28b66c9d308b610aa48d67b9f0a360e38868eb09358967b7"
@@ -155,6 +187,33 @@
   version = "v1.1.1"
 
 [[projects]]
+  digest = "1:c0b03169a48ec5076164803c76cbb37afda470245bcba5bb27aecf91efe64e8f"
+  name = "github.com/golang/dep"
+  packages = [
+    ".",
+    "cmd/dep",
+    "gps",
+    "gps/internal/pb",
+    "gps/paths",
+    "gps/pkgtree",
+    "gps/verify",
+    "internal/feedback",
+    "internal/fs",
+    "internal/importers",
+    "internal/importers/base",
+    "internal/importers/glide",
+    "internal/importers/glock",
+    "internal/importers/godep",
+    "internal/importers/govend",
+    "internal/importers/govendor",
+    "internal/importers/gvt",
+    "internal/importers/vndr",
+  ]
+  pruneopts = "T"
+  revision = "faa6189302b8a862e5612d332ff3755c19784749"
+  version = "v0.5.1"
+
+[[projects]]
   branch = "master"
   digest = "1:1ba1d79f2810270045c328ae5d674321db34e3aae468eb4233883b473c5c0467"
   name = "github.com/golang/glog"
@@ -273,6 +332,14 @@
   version = "v1.0"
 
 [[projects]]
+  digest = "1:962b7edf7c879bc465f6a45ce9c6d3899f3280865b7c69fba2d580bec29b2aca"
+  name = "github.com/jmank88/nuts"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "8b28145dffc87104e66d074f62ea8080edfad7c8"
+  version = "v0.3.0"
+
+[[projects]]
   digest = "1:ee5840274624ad20cac08227aeca582fbdaf3727ef9dd37ae935706240679e09"
   name = "github.com/joho/godotenv"
   packages = ["."]
@@ -333,6 +400,14 @@
   version = "1.0.1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:6491080aa184f88c2bb8e2f6056e5e0e9a578b2d8666efbd6e97bc37a0c41e72"
+  name = "github.com/nightlyone/lockfile"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "0ad87eef1443f64d3d8c50da647e2b1552851124"
+
+[[projects]]
   digest = "1:1de2ef6996903caab4bcf41f7885aa276d8e20076ba52ca80b2c6c32efb9c5f5"
   name = "github.com/onsi/ginkgo"
   packages = [
@@ -391,6 +466,14 @@
   version = "v1.2"
 
 [[projects]]
+  digest = "1:ccf9949c9c53e85dcb7e2905fc620571422567040925381e6baa62f0b7b850fe"
+  name = "github.com/pelletier/go-toml"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "c01d1270ff3e442a8a57cddc1c92dc1138598194"
+  version = "v1.2.0"
+
+[[projects]]
   branch = "master"
   digest = "1:0c29d499ffc3b9f33e7136444575527d0c3a9463a89b3cbeda0523b737f910b3"
   name = "github.com/petar/GoLLRB"
@@ -425,6 +508,14 @@
   pruneopts = "T"
   revision = "d87f08a7d80821c797ffc8eb8f4e01675f378736"
   version = "v1.0.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:3b2f0fcb35e10e0f7845f2182e4dd22f5a6fe3db5d1044ca815d646992a2444f"
+  name = "github.com/sdboyer/constext"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "836a144573533ea4da4e6929c235fd348aed1c80"
 
 [[projects]]
   digest = "1:b7bf9fd95d38ebe6726a63b7d0320611f7c920c64e2c8313eba0cec51926bf55"
@@ -502,6 +593,17 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:2f8b355c7bf40ff4559aee617f43ce572afaed911647c2a09410865067817ebc"
+  name = "golang.org/x/lint"
+  packages = [
+    ".",
+    "golint",
+  ]
+  pruneopts = "T"
+  revision = "d0100b6bd8b389f0385611eb39152c4d7c3a7905"
+
+[[projects]]
+  branch = "master"
   digest = "1:a92d7dd2268883d2d466576cb7319cc5321c906d853da4b4ac1ffc407895f809"
   name = "golang.org/x/net"
   packages = [
@@ -531,6 +633,14 @@
   ]
   pruneopts = "T"
   revision = "28207608b83849a028d4f12e46533a6b6894ecaf"
+
+[[projects]]
+  branch = "master"
+  digest = "1:7054d0b00df4ca102284022b5014be2a790bf3bc5dda947678e4c1f0d8238287"
+  name = "golang.org/x/sync"
+  packages = ["errgroup"]
+  pruneopts = "T"
+  revision = "e225da77a7e68af35c70ccbf71af2b83e6acac3c"
 
 [[projects]]
   branch = "master"
@@ -592,7 +702,11 @@
   digest = "1:f382834e1324c85d54adb7eccfde8acf994319c6d942e55c294b7476af1d17e2"
   name = "golang.org/x/tools"
   packages = [
+    "cmd/goimports",
     "go/ast/astutil",
+    "go/gcexportdata",
+    "go/internal/gcimporter",
+    "go/types/typeutil",
     "imports",
     "internal/fastwalk",
     "internal/gopathwalk",
@@ -1009,11 +1123,14 @@
   input-imports = [
     "github.com/cbroglie/mustache",
     "github.com/emicklei/go-restful",
+    "github.com/golang/dep/cmd/dep",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "github.com/spf13/cobra",
     "github.com/xlab/treeprint",
+    "golang.org/x/lint/golint",
     "golang.org/x/net/context",
+    "golang.org/x/tools/cmd/goimports",
     "gopkg.in/go-playground/validator.v9",
     "gopkg.in/yaml.v2",
     "k8s.io/api/apps/v1",

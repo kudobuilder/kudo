@@ -111,6 +111,7 @@ type Phase struct {
 	Steps []Step `json:"steps" validate:"required,gt=0,dive"` // makes field mandatory and checks if its gt 0
 }
 
+// Step defines a specific set of operations that occur
 type Step struct {
 	Name   string   `json:"name" validate:"required"`                     // makes field mandatory and checks if set and non empty
 	Tasks  []string `json:"tasks" validate:"required,gt=0,dive,required"` // makes field mandatory and checks if non empty
@@ -170,7 +171,7 @@ type FrameworkDependency struct {
 // ServiceSpec represents the overall service definition.
 type ServiceSpec struct {
 	Name      *string          `json:"name" yaml:"name" validate:"required,gt=0"`                                             // makes field mandatory and checks if non empty
-	WebUrl    *string          `json:"web-url" yaml:"web-url" validate:"required,gt=0"`                                       // makes field mandatory and checks if non empty
+	WebURL    *string          `json:"web-url" yaml:"web-url" validate:"required,gt=0"`                                       // makes field mandatory and checks if non empty
 	Scheduler *Scheduler       `json:"scheduler" yaml:"scheduler"`                                                            // field optional, no need to validate
 	Pods      map[string]*Pod  `json:"pods" yaml:"pods" validate:"required,gt=0,dive,keys,required,endkeys,required,dive"`    // makes field mandatory and checks nil pointer, empty keys and dives into nested object
 	Plans     map[string]*Plan `json:"plans" yaml:"plans" validate:"omitempty,gt=0,dive,keys,required,endkeys,required,dive"` // makes field optional and checks nil pointer, empty keys and dives into nested object
@@ -203,7 +204,7 @@ type Pod struct {
 	HostVolumes       map[string]*HostVolume  `json:"host-volumes" yaml:"host-volumes" validate:"omitempty,gt=0,dive,keys,required,endkeys,required,dive"`   // makes field optional and checks nil pointer, empty keys and dives into nested objects
 }
 
-// ResourceSets defines a single set of resources which can be reused across tasks.
+// ResourceSet defines a single set of resources which can be reused across tasks.
 type ResourceSet struct {
 	Cpus     float64            `json:"cpus" yaml:"cpus" validate:"omitempty,gt=0"`                                                // makes field optional and checks if non empty (TODO: we should make this a pointer to check if set)
 	Gpus     float64            `json:"gpus" yaml:"gpus" validate:"omitempty,gt=0"`                                                // makes field optional and checks if non empty (TODO: we should make this a pointer to check if set)
@@ -220,7 +221,7 @@ type Network struct {
 	Labels         string  `json:"labels" yaml:"labels"`                                                                 // no checks needed (TODO: not sure if needed at all, e.g. would it map to a service in k8s)
 }
 
-// RLmit represents a rlimit setting to be applied to the pod.
+// RLimit represents a rlimit setting to be applied to the pod.
 type RLimit struct {
 	Soft int64 `json:"soft" yaml:"soft" validate:"gte=1"` // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set | does this apply in k8s land?)
 	Hard int64 `json:"hard" yaml:"hard" validate:"gte=1"` // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set | does this apply in k8s land?)

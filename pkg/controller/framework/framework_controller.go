@@ -17,8 +17,9 @@ package framework
 
 import (
 	"context"
-	"k8s.io/client-go/tools/record"
 	"log"
+
+	"k8s.io/client-go/tools/record"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"

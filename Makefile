@@ -5,11 +5,18 @@ IMG ?= kudobuilder/controller:${TAG}
 
 all: test manager
 
-
+deps:
+	go install github.com/kudobuilder/kudo/vendor/github.com/golang/dep/cmd/dep
+	dep check -skip-vendor
+	go install github.com/kudobuilder/kudo/vendor/golang.org/x/tools/cmd/goimports
+	go install github.com/kudobuilder/kudo/vendor/golang.org/x/lint/golint
 
 # Run tests
-test: generate fmt vet manifests
+test: generate deps fmt vet lint imports manifests
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
+
+check-formatting: generate deps vet lint
+	./test/formatting.sh
 
 # Build manager binary
 manager: generate fmt vet
@@ -39,6 +46,14 @@ fmt:
 # Run go vet against code
 vet:
 	go vet ./pkg/... ./cmd/...
+
+# Run go lint against code
+lint: 
+	golint ./pkg/... ./cmd/...
+
+# Run go imports against code
+imports:
+	goimports ./pkg/ ./cmd/
 
 # Generate code
 generate:

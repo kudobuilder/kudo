@@ -1023,8 +1023,8 @@ func (in *ServiceSpec) DeepCopyInto(out *ServiceSpec) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.WebUrl != nil {
-		in, out := &in.WebUrl, &out.WebUrl
+	if in.WebURL != nil {
+		in, out := &in.WebURL, &out.WebURL
 		*out = new(string)
 		**out = **in
 	}

@@ -3,6 +3,9 @@ package plan
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"time"
+
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/spf13/cobra"
 	"github.com/xlab/treeprint"
@@ -10,10 +13,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/clientcmd"
-	"log"
-	"time"
 )
 
+// NewPlanHistoryCmd creates a command that shows the plan instory for an instance
 func NewPlanHistoryCmd() *cobra.Command {
 	listCmd := &cobra.Command{
 		//Args: cobra.ExactArgs(1),
