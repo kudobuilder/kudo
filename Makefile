@@ -15,6 +15,9 @@ deps:
 test: generate deps fmt vet lint imports manifests
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
 
+check-formatting: generate deps vet lint
+	./test/formatting.sh
+
 # Build manager binary
 manager: generate fmt vet
 	go build -o bin/manager github.com/kudobuilder/kudo/cmd/manager
@@ -50,7 +53,7 @@ lint:
 
 # Run go imports against code
 imports:
-	goimports -w ./pkg/ ./cmd/
+	goimports ./pkg/ ./cmd/
 
 # Generate code
 generate:
