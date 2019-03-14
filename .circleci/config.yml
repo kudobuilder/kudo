@@ -22,4 +22,14 @@ jobs:
       - checkout
 
       # specify any bash command here prefixed with `run: `
-      - run: make test
+      - run: make generate deps fmt vet lint imports manifests
+  merge:
+    docker:
+      - image: kudobuilder/golang:1.11
+    working_directory: /go/src/github.com/kudobuilder/kudo
+    steps:
+      - checkout
+
+      # specify any bash command here prefixed with `run: `
+      - run: git merge origin/master
+      - run: make generate deps fmt vet lint imports manifests
