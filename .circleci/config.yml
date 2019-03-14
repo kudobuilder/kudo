@@ -1,12 +1,30 @@
 # Golang CircleCI 2.0 configuration file
 #
 # Check https://circleci.com/docs/2.0/language-go/ for more details
+
+base: &base
+  working_directory: /go/src/github.com/kudobuilder/kudo
+  steps:
+    - checkout
+
+    # specify any bash command here prefixed with `run: `
+    - run: make test
+
 version: 2
 jobs:
-  build:
+  go-current:
     docker:
       # specify the version
-      - image: circleci/golang:1.11
+      - image: kubebuilder/golang:1.10
+    <<: *base
+  go-previous:
+    docker:
+    - image: kubebuilder/golang:1.11
+    <<: *base
+  go-latest:
+    docker:
+    - image: kubebuilder/golang:latest
+    <<: *base
 
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
@@ -17,9 +35,4 @@ jobs:
     #### expecting it in the form of
     ####   /go/src/github.com/circleci/go-tool
     ####   /go/src/bitbucket.org/circleci/go-tool
-    working_directory: /go/src/github.com/kudobuilder/kudo
-    steps:
-      - checkout
-
-      # specify any bash command here prefixed with `run: `
-      - run: make test
+   
