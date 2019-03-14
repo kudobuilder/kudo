@@ -7,7 +7,7 @@ all: test manager
 
 deps:
 	go install github.com/kudobuilder/kudo/vendor/github.com/golang/dep/cmd/dep
-	dep check
+	dep check -skip-vendor
 	go install github.com/kudobuilder/kudo/vendor/golang.org/x/tools/cmd/goimports
 	go install github.com/kudobuilder/kudo/vendor/golang.org/x/lint/golint
 
