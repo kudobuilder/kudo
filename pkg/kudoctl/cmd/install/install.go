@@ -41,7 +41,7 @@ func installFrameworks(args []string) error {
 	}
 
 	if len(args) > 1 && vars.PackageVersion != "" {
-		return fmt.Errorf("--repo-version not supported in multi framework install")
+		return fmt.Errorf("--package-version not supported in multi framework install")
 	}
 
 	err := check.GithubCredentials()

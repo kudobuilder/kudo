@@ -18,7 +18,7 @@ This document demonstrates how to use the CLI but also shows what happens in `KU
          * [Flags](#flags)
          * [Environment Variables](#environment-variables)
          * [Examples](#examples)
-            * [Install a Framework](#install-a-framework)
+            * [Install a Package](#install-a-package)
                * [Install just the KUDO Package without Dependencies](#install-just-the-kudo-package-without-dependencies)
             * [Install a KUDO Package with Dependencies](#install-a-kudo-package-with-dependencies)
             * [Install a Package with InstanceName &amp; Parameters](#install-a-package-with-instancename--parameters)
@@ -82,7 +82,7 @@ Environment Variables override flags and are intended to give the user more cust
 
 ### Examples
 
-#### Install a Framework
+#### Install a Package
 
 There are two options installing a package. While `kubectl apply -f *.yaml` is encouraged when developing and
 having `framework.yaml`, `frameworkversion.yaml` and `instance.yaml` locally present, it is recommended to use the 
