@@ -252,6 +252,22 @@
   revision = "4030bb1f1f0c35b30ca7009e9ebd06849dd45306"
 
 [[projects]]
+  digest = "1:7386c2b67fe76099198ba7f28c0a7e641c82076c77a84299fc9f9ea75b646824"
+  name = "github.com/google/go-github"
+  packages = ["github"]
+  pruneopts = "T"
+  revision = "7462feb2032c2da9e3b85e9b04e6853a6e9e14ca"
+  version = "v24.0.1"
+
+[[projects]]
+  digest = "1:a98aaa0376806017a5d6f88cb8c3b8206943bd16585f58b394ac62d6e8abbc73"
+  name = "github.com/google/go-querystring"
+  packages = ["query"]
+  pruneopts = "T"
+  revision = "44c6ddd0a2342c386950e880b658017258da92fc"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   digest = "1:3ee90c0d94da31b442dde97c99635aaafec68d0b8a3c12ee2075c6bdabeec6bb"
   name = "github.com/google/gofuzz"
@@ -886,6 +902,7 @@
   name = "k8s.io/client-go"
   packages = [
     "discovery",
+    "discovery/fake",
     "dynamic",
     "kubernetes",
     "kubernetes/scheme",
@@ -927,6 +944,7 @@
     "rest",
     "rest/watch",
     "restmapper",
+    "testing",
     "third_party/forked/golang/template",
     "tools/auth",
     "tools/cache",
@@ -1117,15 +1135,25 @@
   pruneopts = "T"
   revision = "5818a3a284a11812aaed11d5ca0bcadec2c50e83"
 
+[[projects]]
+  digest = "1:7719608fe0b52a4ece56c2dde37bedd95b938677d1ab0f84b8a7852e4c59f849"
+  name = "sigs.k8s.io/yaml"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "fd68e9863619f6ec2fdd8625fe1f02e7c877e480"
+  version = "v1.1.0"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
     "github.com/cbroglie/mustache",
     "github.com/emicklei/go-restful",
+    "github.com/google/go-github/github",
     "github.com/golang/dep/cmd/dep",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
+    "github.com/pkg/errors",
     "github.com/spf13/cobra",
     "github.com/xlab/treeprint",
     "golang.org/x/lint/golint",
@@ -1138,15 +1166,24 @@
     "k8s.io/api/core/v1",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
+    "k8s.io/apimachinery/pkg/labels",
     "k8s.io/apimachinery/pkg/runtime",
     "k8s.io/apimachinery/pkg/runtime/schema",
+    "k8s.io/apimachinery/pkg/runtime/serializer",
     "k8s.io/apimachinery/pkg/types",
+    "k8s.io/apimachinery/pkg/util/runtime",
+    "k8s.io/apimachinery/pkg/watch",
+    "k8s.io/client-go/discovery",
+    "k8s.io/client-go/discovery/fake",
     "k8s.io/client-go/dynamic",
     "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/plugin/pkg/client/auth/gcp",
     "k8s.io/client-go/rest",
+    "k8s.io/client-go/testing",
+    "k8s.io/client-go/tools/cache",
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/client-go/tools/record",
+    "k8s.io/client-go/util/flowcontrol",
     "k8s.io/code-generator/cmd/client-gen",
     "k8s.io/code-generator/cmd/deepcopy-gen",
     "sigs.k8s.io/controller-runtime/pkg/client",
@@ -1176,6 +1213,7 @@
     "sigs.k8s.io/kustomize/pkg/target",
     "sigs.k8s.io/kustomize/pkg/types",
     "sigs.k8s.io/testing_frameworks/integration",
+    "sigs.k8s.io/yaml",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

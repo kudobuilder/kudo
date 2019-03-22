@@ -3,35 +3,141 @@ title: CLI Usage
 type: docs
 weight: 4
 ---
-
 # CLI Usage
 
-This document demonstrates how to use the CLI but also shows what happens in `Kudo` under the hood, which can be helpful when troubleshooting.
+This document demonstrates how to use the CLI but also shows what happens in `KUDO` under the hood, which can be helpful when troubleshooting.
 
-There are two CLIs you can use at the moment:
+## Table of Contents
 
-- Kudoctl
-- Kubectl Kudo Plugin
+   * [CLI Usage](#cli-usage)
+      * [Table of Contents](#table-of-contents)
+      * [Kubectl KUDO Plugin](#kubectl-kudo-plugin)
+         * [Requirements](#requirements)
+         * [Install](#install)
+         * [Commands](#commands)
+         * [Flags](#flags)
+         * [Environment Variables](#environment-variables)
+         * [Examples](#examples)
+            * [Install a Package](#install-a-package)
+               * [Install just the KUDO Package without Dependencies](#install-just-the-kudo-package-without-dependencies)
+            * [Install a KUDO Package with Dependencies](#install-a-kudo-package-with-dependencies)
+            * [Install a Package with InstanceName &amp; Parameters](#install-a-package-with-instancename--parameters)
+            * [List Instances](#list-instances)
+            * [Get the Status of an Instance](#get-the-status-of-an-instance)
+            * [Get the History to PlanExecutions](#get-the-history-to-planexecutions)
 
-## Kudoctl
 
-The usage is intended to make your life easier when working with `Kudo`. A work flow would look like this:
+## Kubectl KUDO Plugin
 
-1. You get a list of all available Instances deployed by `Kudo`
-2. You get the status the particular Instance of interest
-3. You see a history to a specific Instance
+### Requirements
 
-# List Instances
+- GitHub set up
+  - GitHub OTP token in `$HOME/.git-credentials` OR
+  - GitHub Basic Auth via `GIT_USER` and `GIT_PASSWORD` environment variables exposed
+- KUDO CRDs installed to your cluster
+- `kubectl kudo` is running outside your cluster
+- KUDO controller is running
 
-In order to inspect instances deployed by `Kudo` we need to get an overview of all instances running.
+### Install
+
+Install the plugin from your `$GOPATH/src/github.com/kudobuilder/kudo` root folder via:
+
+- `go install ./cmd/kubectl-kudo`
+
+### Commands
+
+|  Syntax | Description  | 
+|---|---|
+| `kubectl kudo install <name> [flags]`  |  Installs a Framework from the official [KUDO repo](https://github.com/kudobuilder/frameworks). |
+| `kubectl kudo list instances [flags]` | Show all available instances. | 
+| `kubectl kudo plan status [flags]` | View all available plans. |
+| `kubectl kudo plan history <name> [flags]` | View all available plans. |
+
+### Flags
+
+```
+Usage:
+  kubectl-kudo install <name> [flags]
+
+Flags:
+      --all-dependencies          Installs all dependency packages. (default "false")
+      --auto-approve              Skip interactive approval when existing version found. (default "false")
+      --githubcredential string   The file path to GitHub credential file. (default "$HOME/.git-credentials")
+  -h, --help                      help for install
+      --instance string           The instance name. (default to Framework name)
+      --kubeconfig string         The file path to Kubernetes configuration file. (default "$HOME/.kube/config")
+      --namespace string          The namespace where the operator watches for changes. (default to (default "default")
+      --package-version string    A specific package version on the official GitHub repo. (default to the most recent)
+  -p, --parameter stringArray     The parameter name.
+```
+
+### Environment Variables
+
+Environment Variables override flags and are intended to give the user more customizable CLI options.
+
+|  Environment Variable | Description  | 
+|---|---|
+| `GIT_USER`  |  Set a GitHub user to connect via the GitHub API with |
+| `GIT_PASSWORD` | Set a GitHub password to connect via the GitHub API with | 
+
+### Examples
+
+#### Install a Package
+
+There are two options installing a package. While `kubectl apply -f *.yaml` is encouraged when developing and
+having `framework.yaml`, `frameworkversion.yaml` and `instance.yaml` locally present, it is recommended to use the 
+official packages provided through the [kubebuilder/frameworks](https://github.com/kudobuilder/frameworks) repo. 
+The `KUDO` plugin for `kubectl` offers a convenient way of installing those files via command line.
+
+##### Install just the KUDO Package without Dependencies
+
+This is the default behavior and just installs the according package.
+
+```bash
+$ kubectl kudo install kafka
+framework.kudo.k8s.io/v1alpha1/kafka created
+frameworkversion.kudo.k8s.io/v1alpha1/kafka-2.11-2.4.0 created
+```
+
+#### Install a KUDO Package with Dependencies
+
+Sometimes you want to automatically install all dependencies a package comes with. This behavior is controlled via
+the flag `--all-dependencies`, and if set installs all dependencies a package has as well.
+
+```bash
+$ kubectl kudo install kafka --all-dependencies
+framework.kudo.k8s.io/v1alpha1/kafka created
+frameworkversion.kudo.k8s.io/v1alpha1/kafka-2.11-2.4.0 created
+framework.kudo.k8s.io/v1alpha1/zookeeper created
+frameworkversion.kudo.k8s.io/v1alpha1/zookeeper-1.0 created
+```
+
+#### Install a Package with InstanceName & Parameters
+
+Use `--instance` and `--parameter`/`-p` for setting an Instance name or Parameter:
+
+```bash
+$ kubectl kudo install kafka --instance=my-kafka-name --parameter="KAFKA_ZOOKEEPER_URI,zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181" --parameter="KAFKA_ZOOKEEPER_PATH,/small" -p="BROKERS_COUNTER,3"
+framework.kudo.k8s.io/kafka unchanged
+frameworkversion.kudo.k8s.io/kafka unchanged
+No Instance tied to this "kafka" version has been found. Do you want to create one? (Yes/no) 
+instance.kudo.k8s.io/v1alpha1/my-kafka-name created
+$ kubectl get instances
+NAME            AGE
+my-kafka-name   6s
+```
+
+#### List Instances
+
+In order to inspect instances deployed by `KUDO` we need to get an overview of all instances running.
 Therefor we use the `list` command which has subcommands to show all available instances:
 
-`kudoctl list instances --namespace=<default> --kubeconfig=<$HOME/.kube/config>`
+`kubectl kudo list instances --namespace=<default> --kubeconfig=<$HOME/.kube/config>`
 
 Example:
 
 ```bash
-$ kudoctl list instances
+$ kubectl kudo list instances
   List of current instances in namespace "default":
   .
   ├── small
@@ -46,25 +152,25 @@ This maps to the `kubectl` command:
 Example:
 
 ```bash
-$ kubectl get instances
+$ kubectl kudo instances
   NAME      CREATED AT
   small     4d
   up        3d
   zk        4d
 ```
 
-# Get the Status of an Instance
+#### Get the Status of an Instance
 
 (Or how to look up your instance status)
 
 Now that we know the available instances we can get the current status of all plans to an particular instance. The command for this is:
 
-`kudoctl plan status --instance=<instanceName> --kubeconfig=<$HOME/.kube/config>`
+`kubectl kudo plan status --instance=<instanceName> --kubeconfig=<$HOME/.kube/config>`
 
 *Note: The `--instance` flag is mandatory and **not optional**.*
 
 ```bash
-$ kudoctl plan status --instance=up
+$ kubectl kudo plan status --instance=up
   Plan(s) for "up" in namespace "default":
   .
   └── up (Framework-Version: "upgrade-v1" Active-Plan: "up-deploy-493146000")
@@ -253,13 +359,13 @@ The status information for the `Active-Plan` is nested in this part:
 
 Our tree view makes this information more readable to the user and creates a better user experience through one command rather than picking from multiple responses the bits and pieces.
 
-# Get the History to PlanExecutions
+#### Get the History to PlanExecutions
 
 This is helpful if you want to find out which plan ran on your instance to a particular `FrameworkVersion`.
 Let's say you want to know all plans that ran for the instance `up` and its FrameworkVersion `upgrade-v1`:
 
 ```bash
-$ kudoctl plan history upgrade-v1 --instance=up
+$ kubectl kudo plan history upgrade-v1 --instance=up
   History of plan-executions for "up" in namespace "default" to framework-version "upgrade-v1":
   .
   └── up-deploy-493146000 (created 4h56m12s ago)
@@ -268,146 +374,10 @@ $ kudoctl plan history upgrade-v1 --instance=up
 If you want to have a broader history to all plans applied to an instance:
 
 ```bash
-$ kudoctl plan history --instance=up
+$ kubectl kudo plan history --instance=up
   History of all plan-executions for "up" in namespace "default":
   .
   └── up-deploy-493146000 (created 4h52m34s ago)
 ```
 
 This includes the previous history but also all FrameworkVersions that have been applied to the selected instance.
-
-## Kubectl kudo Plugin
-
-### Dependencies
-
-The Kubectl Plugin currently expects `jq` to be installed on the system.
-
-### Install
-
-Install the plugin to your `PATH` e.g. in the kudo repo root via:
-
-- `ln -s $GOPATH/src/github.com/kudobuilder/kudo/cmd/kubectl-plugin/kubectl-kudo /usr/local/bin/kubectl-kudo`
-
-### Commands
-
-| Syntax | Description |
-|--------|-------------|
-| `kubectl kudo create <framework> -n <instanceName> -v <versionNumber> -p PARAM1="\VALUE\" -p PARAM2=Value`|  Creates an instance of an installed framework| 
- `kubectl kudo delete <instanceName>`|  Deletes a specified instance| 
-| `kubectl kudo exec <frameworkName>  <cmd>`|  Executes a command for a particular framework - right now just Flink supported | 
-| `kubectl kudo flink  <cmd>`|  Wrapper arround `Flink CLI` that supports all https://ci.apache.org/projects/flink/flink-docs-release-1.7/ops/cli.html commands | 
-| `kubectl kudo install something`  |  Lists all available frameworks from the `kudo App Store` that can be installed | 
-| `kubectl kudo install <frameworkName>`  |  Installs a framework from the `kudo App Store` with dependencies | 
-| `kubectl kudo uninstall <frameworkName> --all-dependencies` | Uninstalls a framework/frameworkversion with all dependencies | 
-| `kubectl kudo uninstall <frameworkName>` | Uninstalls just the specified framework/frameworkversion| 
-| `kubectl kudo scale <instanceName> --replicas=<number>` |  Scales an instance deployment/statefulset | 
-| `kubectl kudo shell` |  Lists all available frameworks of which you could get a shell  | 
-| `kubectl kudo shell <frameworkName>` | Gives you a shell - right now just Flink supported |
-| `kubectl kudo start -n <instanceName> -v <version> -p <planName>` | Starts a specified plan of your instance |
-
-Run `kubectl kudo install something` and you see a list of available frameworks:
-
-```bash
-kudo-demo $ kubectl kudo install something
-Stable version of something not found. 
-Looking up incubating versions...
-	Framework something not found in registry.
-
-Available stable frameworks to install:
-	kafka
-	zookeeper
-Available incubating frameworks to install:
-	flink
-```
-
-### Creating Example
-
-```bash
-kudo-demo $ kubectl kudo create kafka -n kafka -v 2.11-2.4.0 -p KAFKA_ZOOKEEPER_URI:zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181 -p KAFKA_ZOOKEEPER_PATH:\"/small\" -p BROKERS_COUNT:\"3\"
-instance.kudo.k8s.io/kafka created
-```
-
-### Delete Example
-
-```bash
-kudo-demo $ kubectl kudo delete kafka
-instance.kudo.k8s.io "kafka" deleted
-```
-
-### Install framework
-
-```bash
-kudo-demo $ kubectl kudo install kafka
-Checking for kafka dependencies...
-Error from server (NotFound): frameworks.kudo.k8s.io "zookeeper" not found
-No dependency frameworks are installed.
-Looking up stable version of zookeeper
-	Found 1 stable version
-Found latest stable version 0
-Installing zookeeper framework...
-framework.kudo.k8s.io/zookeeper created
-frameworkversion.kudo.k8s.io/zookeeper-1.0 created
-stable framework zookeeper successfully installed.
-Looking up stable version of kafka
-	Found 1 stable version
-Found latest stable version 0
-Installing kafka framework...
-framework.kudo.k8s.io/kafka created
-frameworkversion.kudo.k8s.io/kafka-2.11-2.4.0 created
-stable framework kafka successfully installed.
-```
-
-### Uninstall without dependencies (default)
-
-```bash
-kudo-demo $ kubectl kudo uninstall kafka
-kafka framework is installed.
-Uninstalling kafka...
-Looking up stable version of kafka
-	Found 1 stable version
-Found latest stable version 0
-Uninstalling kafka framework...
-framework.kudo.k8s.io "kafka" deleted
-frameworkversion.kudo.k8s.io "kafka-2.11-2.4.0" deleted
-stable framework kafka successfully uninstalled.
-```
-
-### Uninstall with dependencies
-
-```bash
-kudo-demo $ kubectl kudo uninstall kafka --all-dependencies
-kafka framework is installed.
-Checking for kafka dependencies...
-Found installed dependency framework(s):
-	zookeeper
-Looking up stable version of zookeeper
-	Found 1 stable version
-Found latest stable version 0
-Uninstalling zookeeper framework...
-framework.kudo.k8s.io "zookeeper" deleted
-frameworkversion.kudo.k8s.io "zookeeper-1.0" deleted
-stable framework zookeeper successfully uninstalled.
-All dependency frameworks are uninstalled now.
-Looking up stable version of kafka
-	Found 1 stable version
-Found latest stable version 0
-Uninstalling kafka framework...
-framework.kudo.k8s.io "kafka" deleted
-frameworkversion.kudo.k8s.io "kafka-2.11-2.4.0" deleted
-stable framework kafka successfully uninstalled.
-```
-
-### Scaling Example
-
-```bash
-kudo-demo $ kubectl kudo scale kafka-kafka --replicas=4
-Error from server (NotFound): deployments.extensions "kafka-kafka" not found
-statefulset.apps/kafka-kafka scaled
-```
-
-### Start Plan Example
-
-```bash
-kudo-demo $ kubectl kudo start -n demo -v flink-financial-demo -p upload
-planexecution.kudo.k8s.io/demo unchanged
-```
