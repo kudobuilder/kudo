@@ -46,10 +46,10 @@ Install the plugin from your `$GOPATH/src/github.com/kudobuilder/kudo` root fold
 
 ### Commands
 
-|  Syntax | Description  | 
+|  Syntax | Description  |
 |---|---|
 | `kubectl kudo install <name> [flags]`  |  Installs a Framework from the official [KUDO repo](https://github.com/kudobuilder/frameworks). |
-| `kubectl kudo list instances [flags]` | Show all available instances. | 
+| `kubectl kudo list instances [flags]` | Show all available instances. |
 | `kubectl kudo plan status [flags]` | View all available plans. |
 | `kubectl kudo plan history <name> [flags]` | View all available plans. |
 
@@ -75,10 +75,10 @@ Flags:
 
 Environment Variables override flags and are intended to give the user more customizable CLI options.
 
-|  Environment Variable | Description  | 
+|  Environment Variable | Description  |
 |---|---|
 | `GIT_USER`  |  Set a GitHub user to connect via the GitHub API with |
-| `GIT_PASSWORD` | Set a GitHub password to connect via the GitHub API with | 
+| `GIT_PASSWORD` | Set a GitHub password to connect via the GitHub API with |
 
 ### Examples
 
