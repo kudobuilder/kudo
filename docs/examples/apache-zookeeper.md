@@ -36,13 +36,13 @@ zk-deploy-392770000   11s
 The statefulset defined in the `FrameworkVersion` comes up with 3 pods:
 
 ```bash
-kubectl get statefulset zk-zk
+$ kubectl get statefulset zk-zk
 NAME    DESIRED   CURRENT   AGE
 zk-zk   3         3         1m20s
 ```
 
 ```bash
- kubectl get pods
+$ kubectl get pods
 NAME                    READY   STATUS             RESTARTS   AGE
 zk-zk-0                 1/1     Running            0          23s
 zk-zk-1                 1/1     Running            0          23s
