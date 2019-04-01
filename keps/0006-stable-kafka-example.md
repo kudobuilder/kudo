@@ -19,8 +19,27 @@ status: provisional
   * [Table of Contents](#table-of-contents)
   * [Summary](#summary)
   * [Motivation](#motivation)
+  * [Proposal](#proposal)
       * [Goals](#goals)
       * [Non-Goals](#non-goals)
+      * [User Stories](#user-stories)
+        * [Install](#install)
+        * [Cluster Size](#cluster-size)
+        * [Multiple Clusters](#multiple-clusters)
+        * [Zookeeper Dependency](#zookeeper-dependency)
+        * [Readiness Check](#readiness-check)
+        * [Health Check](#health-check)
+        * [Vertical Scaling](#vertical-scaling)
+        * [Horizontal Scaling](#horizontal-scaling)
+        * [Configuration Changes](#configuration-changes)
+        * [Upgrades](#upgrades)
+        * [TLS](#tls)
+        * [Kerberos](#kerberos)
+        * [Secrets Integration](#secrets-integration)
+        * [Logging](#logging)
+        * [JMX Metrics](#jmx-metrics)
+
+Created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc)
 
 ## Summary
 
@@ -36,13 +55,6 @@ A team-sponsored production ready framework using KUDO helps with prioritizing f
 
 ## Proposal
 
-TBD. For example:
-Here are some features and things we should be able to do to consider Kafka production ready.
-
-* Deploy single broker and multiple broker configurations
-* Vertically scale brokers
-* Update from one version to another
-
 ### Goals
 
 * Define criteria for what is considered a stable KUDO framework
@@ -53,3 +65,65 @@ Here are some features and things we should be able to do to consider Kafka prod
 ### Non-Goals
 
 * Any new KUDO features will not be covered by this KEP
+
+### User Stories
+
+#### Install
+
+As a Kafka administrator I want to deploy a Kafka cluster with a single command so I can get started quickly.
+
+#### Cluster Size
+
+As a Kafka administrator I want to deploy Kafka clusters of different sizes so I can size my cluster to the application.
+
+#### Multiple Clusters
+
+As a Kafka administrator I want to deploy multiple Kafka clusters on the same Kubernetes cluster so that I can use my resources efficiently.
+
+#### Zookeeper Dependency
+
+As a Kafka administrator I want a Zookeeper cluster to be automatically deployed when I deploy Kafka so I don't have to learn how to manage it.
+
+#### Readiness Check
+
+As a Kafka administrator I want to have an indication of when my cluster is ready so that know when to start using it.
+
+#### Health Check
+
+As a Kafka administrator I want to have an indication of cluster health so that know when it is degraded.
+
+#### Vertical Scaling
+
+As a Kafka administrator I want to change the resources used by Kafka brokers (CPU, memory) with minimal disruption to clients so I can scale my cluster vertically when the workload increases.
+
+#### Horizontal Scaling
+
+As a Kafka administrator I want to change the number of Kafka brokers in a cluster with minimal disruption to clients so I can scale my cluster horizontally when the workload increases.
+
+#### Configuration Changes
+
+As a Kafka administrator I want to deploy configuration changes to the cluster with minimal disruption to clients so I can make changes without creating a new cluster.
+
+#### Upgrades
+
+As a Kafka administrator I want to upgrade to a new Kafka version with minimal disruption to clients so I can deploy bug fixes and enable new features.
+
+#### TLS
+
+As a Kafka administrator I want to optionally deploy Kafka with TLS enabled so that I can secure it.
+
+#### Kerberos
+
+As a Kafka administrator I want to optionally deploy Kafka with Kerberos enabled so that I can secure it.
+
+#### Secrets Integration
+
+As a Kafka administrator I want to use a secrets store so that Kafka can retrieve passwords and key material securely.
+
+#### Logging
+
+As a Kafka administrator I want to have easy access to all relevant logs so I can easily debug problems.
+
+#### JMX Metrics
+
+As a Kafka administrator I want to have easy access to Kafka's JMX metrics so I can easily debug problems.
