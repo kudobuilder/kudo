@@ -37,25 +37,25 @@ Before you get started:
 
 Create a `Framework` object for Zookeeper
 ```bash
-$ kubectl apply -f config/samples/zookeeper-framework.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/kudobuilder/frameworks/master/repo/stable/zookeeper/versions/0/zookeeper-framework.yaml
 framework.kudo.k8s.io/zookeeper created
 ```
 
 Create a `FrameworkVersion` for the Zookeeper  `Framework`
 
 ```bash
-$ kubectl apply -f config/samples/zookeeper-frameworkversion.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/kudobuilder/frameworks/master/repo/stable/zookeeper/versions/0/zookeeper-frameworkversion.yaml
 frameworkversion.kudo.k8s.io/zookeeper-1.0 created
 ```
 
 
 Create an Instance of the Zookeeper
-```
-$ kubectl apply -f config/samples/zookeeper-instance.yaml
+```bash
+$ kubectl apply -f https://raw.githubusercontent.com/kudobuilder/frameworks/master/repo/stable/zookeeper/versions/0/zookeeper-instance.yaml
 instance.kudo.k8s.io/zk created
 ```
 
-When an instance is created, the default `deploy` plan is executed
+When an instance is created, the default `deploy` plan is executed.
 
 ```
 $ kubectl get planexecutions
