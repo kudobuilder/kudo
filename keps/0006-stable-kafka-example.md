@@ -26,7 +26,7 @@ status: provisional
         * [Install](#install)
         * [Cluster Size](#cluster-size)
         * [Multiple Clusters](#multiple-clusters)
-        * [Zookeeper Dependency](#zookeeper-dependency)
+        * [ZooKeeper Dependency](#zookeeper-dependency)
         * [Readiness Check](#readiness-check)
         * [Health Check](#health-check)
         * [Vertical Scaling](#vertical-scaling)
@@ -58,9 +58,9 @@ A team-sponsored production ready framework using KUDO helps with prioritizing f
 ### Goals
 
 * Define criteria for what is considered a stable KUDO framework
-* Identify features required for a stable Kafka and Zookeeper framework, create KEPs for them
+* Identify features required for a stable Kafka and ZooKeeper framework, create KEPs for them
 * Create a stable Kafka framework
-* Create a stable Zookeeper framework
+* Create a stable ZooKeeper framework
 
 ### Non-Goals
 
@@ -80,9 +80,9 @@ As a Kafka administrator I want to deploy Kafka clusters of different sizes so I
 
 As a Kafka administrator I want to deploy multiple Kafka clusters on the same Kubernetes cluster so that I can use my resources efficiently.
 
-#### Zookeeper Dependency
+#### ZooKeeper Dependency
 
-As a Kafka administrator I want a Zookeeper cluster to be automatically deployed when I deploy Kafka so I don't have to learn how to manage it.
+As a Kafka administrator I want to deploy Kafka with a dedicated ZooKeeper, so that I can minimize the impact of ZooKeeper downtime to a single Kafka cluster and not learn how to manage it.
 
 #### Readiness Check
 
@@ -118,7 +118,7 @@ As a Kafka administrator I want to optionally deploy Kafka with Kerberos enabled
 
 #### Secrets Integration
 
-As a Kafka administrator I want to use a secrets store so that Kafka can retrieve passwords and key material securely.
+As a Kafka administrator I want to use a secrets store for secure storage and distribution of the credentials for Kafka.
 
 #### Logging
 
