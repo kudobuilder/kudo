@@ -39,6 +39,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -504,10 +505,17 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						newSs.Spec.Replicas = ss.Spec.Replicas
 
 						return nil
-
 					case *appsv1.Deployment:
 						newD := newObj.(*appsv1.Deployment)
 						d, ok := obj.(*appsv1.Deployment)
+						if !ok {
+							return fmt.Errorf("object passed in doesn't match expected deployment type")
+						}
+						newD.Spec.Replicas = d.Spec.Replicas
+						return nil
+					case *v1beta1.Deployment:
+						newD := newObj.(*v1beta1.Deployment)
+						d, ok := obj.(*v1beta1.Deployment)
 						if !ok {
 							return fmt.Errorf("object passed in doesn't match expected deployment type")
 						}
