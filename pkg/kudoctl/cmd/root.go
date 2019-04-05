@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/kudobuilder/kudo/version"
+	"github.com/kudobuilder/kudo/pkg/version"
 	"github.com/spf13/cobra"
 )
 
@@ -31,13 +31,17 @@ and serves as an API aggregation layer.
 	# View plan status
 	kubectl kudo plan status [flags]
 
+	# View KUDO version
+	kubectl kudo version
+
 `,
-		Version: version.Version,
+		Version: version.Get().GitVersion,
 	}
 
 	cmd.AddCommand(NewInstallCmd())
 	cmd.AddCommand(NewListCmd())
 	cmd.AddCommand(NewPlanCmd())
+	cmd.AddCommand(NewCmdVersion())
 
 	return cmd
 }

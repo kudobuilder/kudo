@@ -42,7 +42,7 @@ This document demonstrates how to use the CLI but also shows what happens in `KU
 
 Install the plugin from your `$GOPATH/src/github.com/kudobuilder/kudo` root folder via:
 
-- `go install ./cmd/kubectl-kudo`
+- `make cli-install`
 
 ## Commands
 
@@ -52,6 +52,7 @@ Install the plugin from your `$GOPATH/src/github.com/kudobuilder/kudo` root fold
 | `kubectl kudo list instances [flags]` | Show all available instances. |
 | `kubectl kudo plan status [flags]` | View all available plans. |
 | `kubectl kudo plan history <name> [flags]` | View all available plans. |
+| `kubectl kudo version` | Print the current KUDO package version. |
 
 ## Flags
 

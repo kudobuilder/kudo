@@ -1,9 +1,16 @@
 
 # Image URL to use all building/pushing image targets
-TAG ?= latest
-IMG ?= kudobuilder/controller:${TAG}
+DOCKER_TAG ?= $(shell git rev-parse HEAD)
+DOCKER_IMG ?= kudobuilder/controller
 EXECUTABLE := manager
 CLI := kubectl-kudo
+GIT_VERSION_PATH := github.com/kudobuilder/kudo/pkg/version.gitVersion
+GIT_VERSION := $(shell git describe --abbrev=0 --tags)
+GIT_COMMIT_PATH := github.com/kudobuilder/kudo/pkg/version.gitCommit
+GIT_COMMIT := $(shell git rev-parse HEAD)
+SOURCE_DATE_EPOCH := $(shell git show -s --format=format:%ct HEAD)
+BUILD_DATE_PATH := github.com/kudobuilder/kudo/pkg/version.buildDate
+BUILD_DATE := $(shell date -r ${SOURCE_DATE_EPOCH} '+%Y-%m-%dT%H:%M:%SZ')
 
 all: test manager
 
@@ -33,9 +40,18 @@ manager: prebuild
 	go build -o bin/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
 
 	# platforms for distribution
-	GOARCH=amd64 GOOS=darwin go build -o bin/darwin/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
-	GOARCH=amd64 GOOS=linux go build -o bin/linux/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
-	GOARCH=amd64 GOOS=windows go build -o bin/windows/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
+	GOARCH=amd64 GOOS=darwin go build -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
+                                        -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
+                                        -X ${BUILD_DATE_PATH}=${BUILD_DATE}" \
+                                        -o bin/darwin/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
+	GOARCH=amd64 GOOS=linux go build -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
+                                     -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
+                                     -X ${BUILD_DATE_PATH}=${BUILD_DATE}" \
+                                     -o bin/linux/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
+	GOARCH=amd64 GOOS=windows go build -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
+                                       -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
+                                       -X ${BUILD_DATE_PATH}=${BUILD_DATE}" \
+                                       -o bin/windows/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
 
 # Clean manager build
 manager-clean:
@@ -46,7 +62,9 @@ manager-clean:
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet
-	go run ./cmd/manager/main.go
+	go run -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
+                     -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
+                     -X ${BUILD_DATE_PATH}=${BUILD_DATE}" ./cmd/manager/main.go
 
 # Install CRDs into a cluster
 install: manifests
@@ -94,12 +112,24 @@ generate:
 # Build CLI
 cli: prebuild
 	# developer convince for platform they are running
-	go build -o bin/${CLI} cmd/kubectl-kudo/main.go
+	go build -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
+              -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
+              -X ${BUILD_DATE_PATH}=${BUILD_DATE}" \
+              -o bin/${CLI} cmd/kubectl-kudo/main.go
 
 	# platforms for distribution
-	GOARCH=amd64 GOOS=darwin go build -o bin/darwin/amd64/${CLI} cmd/kubectl-kudo/main.go
-	GOARCH=amd64 GOOS=linux go build -o bin/linux/amd64/${CLI} cmd/kubectl-kudo/main.go
-	GOARCH=amd64 GOOS=windows go build -o bin/windows/${CLI} cmd/kubectl-kudo/main.go
+	GOARCH=amd64 GOOS=darwin go build -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
+                                       -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
+                                       -X ${BUILD_DATE_PATH}=${BUILD_DATE}" \
+                                       -o bin/darwin/amd64/${CLI} cmd/kubectl-kudo/main.go
+	GOARCH=amd64 GOOS=linux go build -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
+                                      -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
+                                      -X ${BUILD_DATE_PATH}=${BUILD_DATE}" \
+                                      -o bin/linux/amd64/${CLI} cmd/kubectl-kudo/main.go
+	GOARCH=amd64 GOOS=windows go build -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
+                                        -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
+                                        -X ${BUILD_DATE_PATH}=${BUILD_DATE}" \
+                                        -o bin/windows/${CLI} cmd/kubectl-kudo/main.go
 
 # Clean CLI build
 cli-clean:
@@ -107,6 +137,12 @@ cli-clean:
 	rm -rf bin/darwin/amd64/${CLI}
 	rm -rf bin/linux/amd64/${CLI}
 	rm -rf bin/windows/${CLI}
+
+# Install CLI
+cli-install:
+	go install -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
+                         -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
+                         -X ${BUILD_DATE_PATH}=${BUILD_DATE}" ./cmd/kubectl-kudo
 
 # Clean all
 clean:  cli-clean test-clean manager-clean deploy-clean
@@ -116,10 +152,16 @@ clean:  cli-clean test-clean manager-clean deploy-clean
 
 # Build the docker image
 docker-build: generate fmt vet manifests
-	docker build . -t ${IMG}
+	docker build --build-arg git_version_arg=${GIT_VERSION_PATH}=${GIT_VERSION} \
+	--build-arg git_commit_arg=${GIT_COMMIT_PATH}=${GIT_COMMIT} \
+	--build-arg build_date_arg=${BUILD_DATE_PATH}=${BUILD_DATE} . -t ${DOCKER_IMG}:${DOCKER_TAG}
+	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:${GIT_VERSION}
+	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:latest
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${IMG}"'@' ./config/default/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"${DOCKER_IMG}:${GIT_VERSION}"'@' ./config/default/manager_image_patch.yaml
 
 # Push the docker image
 docker-push:
-	docker push ${IMG}
+	docker push ${DOCKER_IMG}:${DOCKER_TAG}
+    docker push ${DOCKER_IMG}:${GIT_VERSION}
+   	docker push ${DOCKER_IMG}:latest
