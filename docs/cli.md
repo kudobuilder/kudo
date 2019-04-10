@@ -27,17 +27,16 @@ This document demonstrates how to use the CLI but also shows what happens in `KU
             * [Get the History to PlanExecutions](#get-the-history-to-planexecutions)
 
 
-## Kubectl KUDO Plugin
+## Setup the KUDO Kubectl Plugin
 
 ### Requirements
 
-- Kubectl version of `1.12.0` or later
-- GitHub set up
-  - GitHub OTP token in `$HOME/.git-credentials` OR
+- `kubectl` version `1.12.0` or newer
+- Configure GitHub authentication to be able to pull from [kudobuilder/frameworks](https://github.com/kudobuilder/frameworks). See instructions for [git-credential-store](https://git-scm.com/docs/git-credential-store) and [creating a personal access token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line). 
+  - GitHub personal access token in `$HOME/.git-credentials` or
   - GitHub Basic Auth via `GIT_USER` and `GIT_PASSWORD` environment variables exposed
-- KUDO CRDs installed to your cluster
+- KUDO CRDs installed to your cluster and KUDO controller is running. See the [getting started guide](/docs/getting-started/) for instructions
 - `kubectl kudo` is running outside your cluster
-- KUDO controller is running
 
 ### Install
 
@@ -45,7 +44,7 @@ Install the plugin from your `$GOPATH/src/github.com/kudobuilder/kudo` root fold
 
 - `go install ./cmd/kubectl-kudo`
 
-### Commands
+## Commands
 
 |  Syntax | Description  |
 |---|---|
@@ -54,7 +53,7 @@ Install the plugin from your `$GOPATH/src/github.com/kudobuilder/kudo` root fold
 | `kubectl kudo plan status [flags]` | View all available plans. |
 | `kubectl kudo plan history <name> [flags]` | View all available plans. |
 
-### Flags
+## Flags
 
 ```
 Usage:
@@ -72,7 +71,7 @@ Flags:
   -p, --parameter stringArray     The parameter name.
 ```
 
-### Environment Variables
+## Environment Variables
 
 Environment Variables override flags and are intended to give the user more customizable CLI options.
 
@@ -81,16 +80,16 @@ Environment Variables override flags and are intended to give the user more cust
 | `GIT_USER`  |  Set a GitHub user to connect via the GitHub API with |
 | `GIT_PASSWORD` | Set a GitHub password to connect via the GitHub API with |
 
-### Examples
+## Examples
 
-#### Install a Package
+### Install a Package
 
 There are two options installing a package. While `kubectl apply -f *.yaml` is encouraged when developing and
 having `framework.yaml`, `frameworkversion.yaml` and `instance.yaml` locally present, it is recommended to use the 
 official packages provided through the [kubebuilder/frameworks](https://github.com/kudobuilder/frameworks) repo. 
 The `KUDO` plugin for `kubectl` offers a convenient way of installing those files via command line.
 
-##### Install just the KUDO Package without Dependencies
+#### Install just the KUDO Package without Dependencies
 
 This is the default behavior and just installs the according package.
 
@@ -128,7 +127,7 @@ NAME            AGE
 my-kafka-name   6s
 ```
 
-#### List Instances
+### List Instances
 
 In order to inspect instances deployed by `KUDO` we need to get an overview of all instances running.
 Therefor we use the `list` command which has subcommands to show all available instances:
@@ -160,7 +159,7 @@ $ kubectl kudo instances
   zk        4d
 ```
 
-#### Get the Status of an Instance
+### Get the Status of an Instance
 
 (Or how to look up your instance status)
 
@@ -360,7 +359,7 @@ The status information for the `Active-Plan` is nested in this part:
 
 Our tree view makes this information more readable to the user and creates a better user experience through one command rather than picking from multiple responses the bits and pieces.
 
-#### Get the History to PlanExecutions
+### Get the History to PlanExecutions
 
 This is helpful if you want to find out which plan ran on your instance to a particular `FrameworkVersion`.
 Let's say you want to know all plans that ran for the instance `up` and its FrameworkVersion `upgrade-v1`:
