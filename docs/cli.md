@@ -31,6 +31,7 @@ This document demonstrates how to use the CLI but also shows what happens in `KU
 
 ### Requirements
 
+- Kubectl version of `1.12.0` or later
 - GitHub set up
   - GitHub OTP token in `$HOME/.git-credentials` OR
   - GitHub Basic Auth via `GIT_USER` and `GIT_PASSWORD` environment variables exposed

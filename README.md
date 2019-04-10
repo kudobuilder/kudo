@@ -17,7 +17,7 @@ Before you get started:
 - Install Go `1.11` or later
 - Latest version of `dep`
 - Kubernetes Cluster `1.12` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
-- [Configure kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- [Configure kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) with version `1.12` or later
 
 ## Installation Instructions
 
