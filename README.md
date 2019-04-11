@@ -17,7 +17,7 @@ Before you get started:
 - Install Go `1.11` or later
 - Latest version of `dep`
 - Kubernetes Cluster `1.12` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
-- [Configure kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) with version `1.12` or later
+- [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) with version `1.12` or later
 
 ## Installation Instructions
 
@@ -26,6 +26,16 @@ Before you get started:
 - `make install` to deploy universal CRDs
 - `make run` to run the Operator with local go environment
 
+**Notes:**
+1. If `go get ...` is not functioning, an alternative is to:
+  * `cd $GOPATH`
+  * `mkdir -p src/github.com/kudobuilder`
+  * `cd src/github.com/kudobuilder`
+  * `git clone git@github.com:kudobuilder/kudo.git`
+2. **Before** `make install` you will need to have:
+  * minikube running (some of the tests run against it)
+  * `~/.git-credentials` must exist with git credentials. If you are using two-factor auth you will need a create a [personal access token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
+  * `lint` in $PATH which is provided by having `$GOPATH\bin` in `$PATH` as in `export PATH=$GOPATH/bin:$PATH`.
 
 ## Concepts
 - *Framework*: High-level description of a deployable application (e.g., Apache Kafka)
@@ -84,7 +94,7 @@ zk-zk-2                 1/1     Running            0          23s
 
 Learn how to engage with the Kubernetes community on the [community page](http://kubernetes.io/community/).
 
-### KUDO Weekly Community Meetings 
+### KUDO Weekly Community Meetings
 
 Weekly meetings occur every Thursday at [3pm UTC](https://www.google.com/search?q=3pm+UTC)
 
