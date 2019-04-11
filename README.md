@@ -34,7 +34,7 @@ Before you get started:
   * `git clone git@github.com:kudobuilder/kudo.git`
 2. **Before** `make install` you will need to have:
   * minikube running (some of the tests run against it)
-  * `~/.git-credentials` must exist with git credentials.   If you are two-factor auth you will need a create a [personal access token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
+  * `~/.git-credentials` must exist with git credentials. If you are using two-factor auth you will need a create a [personal access token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
   * `lint` in $PATH which is provided by having `$GOPATH\bin` in `$PATH` as in `export PATH=$GOPATH/bin:$PATH`.
 
 ## Concepts
