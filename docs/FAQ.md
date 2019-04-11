@@ -18,18 +18,16 @@
                * [How does it work from a RBAC perspective?](#how-does-it-work-from-a-rbac-perspective)
             * [Is the dependency model an individual controller per workload?](#is-the-dependency-model-an-individual-controller-per-workload)
 
-
 #### What is KUDO?
 
-Kubernetes Universal Declarative Operator (KUDO) provides a declarative approach to building production-grade Kubernetes [Operators](https://coreos.com/operators/).  It is an operator that is specifically designed to help provide operations to operators. We want to capture the actions that are required for managing applications in production as part of the definition for the applications themself. Further we want to embed those best practices in the operator [CRD](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/).
+Kubernetes Universal Declarative Operator (KUDO) provides a declarative approach to building production-grade Kubernetes [Operators](https://coreos.com/operators/). It is an operator that is specifically designed to help provide operations to operators. We want to capture the actions that are required for managing applications in production as part of the definition for the applications themself. Further we want to embed those best practices in the operator [CRD](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/).
 
 KUDO-based Operators don’t require any code in most cases, which significantly accelerates the development of Operators. It also eliminates sources of error and code duplication.
-
 
 #### When would you use KUDO?
 
 You would use KUDO when `kubectl apply -f` isn't quite enough to manage your application. If you are just applying the same YAML on updates you probably won't need the extra business logic KUDO gives you.
-Kudo should be used any time you would use an Operator.  It can provide an advanced user experience, automating such features as updates, backups and scaling.
+KUDO should be used any time you would use an Operator. It can provide an advanced user experience, automating such features as updates, backups and scaling.
 
 #### What is a Framework
 
@@ -45,7 +43,12 @@ metadata:
   name: kafka
 ```
 
-More examples can be found in the https://github.com/kudobuilder/frameworks project and include: [flink](https://flink.apache.org/), [kafka](https://kafka.apache.org/), and [zookeeper](https://zookeeper.apache.org/).
+More examples can be found in the [https://github.com/kudobuilder/frameworks](https://github.com/kudobuilder/frameworks) project and include: [flink](https://flink.apache.org/), [kafka](https://kafka.apache.org/), and [zookeeper](https://zookeeper.apache.org/).
+
+
+#### What is a deployable service?
+
+Deployable service is simple a service that is deployed on a cluster, however some services are more conceptual which is what KUDO aims to help with. For instance, Cassandra is a service, however in another since it is a concept. It really is a collection of data service nodes. It is the collection of these instances that make of Cassandra. A Cassandra Framework would capture the concept that you want to manage a Cassandra cluster. The FrameworkVersion is the specific version of Cassandra along with any special plans to manage that cluster as outlined below.
 
 
 #### What is a FrameworkVersion?
@@ -54,7 +57,7 @@ A `FrameworkVersion` is the particular implementation of a `Framework` containin
 
 - [Parameters](#what-is-a-parameter)
 - [Plans](#what-is-a-plan)
-- Kubernetes Objects
+- [Kubernetes Objects](https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/)
 
 An example for a `FrameworkVersion` is the [kafka-frameworkversion.yaml](https://github.com/kudobuilder/frameworks/blob/master/repo/stable/kafka/versions/0/kafka-frameworkversion.yaml) that you find in the [kudobuilder/frameworks](https://github.com/kudobuilder/frameworks) repository.
 
@@ -91,7 +94,7 @@ plans:
                - deploy      
 ```
 
-The purpose of the FrameworkVersion is to provide the details necessary for KUDO to become an operator for a specific capability (such as Kafka) for a version of the framework.  As the operator it will execute a `Plan` to establish an all the instances of Kakfa components in the cluster as detailed in the framework yaml.  In the example provided it would make sure there are 3 brokers for instance.
+The purpose of the FrameworkVersion is to provide the details necessary for KUDO to become an operator for a specific capability (such as Kafka) for a version of the framework. As the operator it will execute a `Plan` to establish an all the instances of Kakfa components in the cluster as detailed in the Framework yaml. In the example provided it would make sure there are 3 brokers for instance.
 
 #### What is an Instance?
 
@@ -99,7 +102,7 @@ The purpose of the FrameworkVersion is to provide the details necessary for KUDO
 
 #### What is a Plan?
 
-Plans are how KUDO frameworks convey progress through service management operations, such as repairing failed tasks and/or rolling out changes to the service’s configuration. Each Plan is a tree with a fixed three-level hierarchy of the Plan itself, its Phases, and then Steps within those Phases. These are all collectively referred to as “Elements”. The fixed tree hierarchy was chosen in order to simplify building UIs that display plan content.  This three-level hierarchy can look as follows:
+Plans are how KUDO frameworks convey progress through service management operations, such as repairing failed tasks and/or rolling out changes to the service’s configuration. Each Plan is a tree with a fixed three-level hierarchy of the Plan itself, its Phases, and then Steps within those Phases. These are all collectively referred to as “Elements”. The fixed tree hierarchy was chosen in order to simplify building UIs that display plan content. This three-level hierarchy can look as follows:
 
 ```bash
 Plan foo
@@ -126,7 +129,7 @@ Parameters provide configuration for the Instance.
 
 #### What is a Deployment Strategy?
 
-A deployments strategy indicates the way in which a plan, or step must be executed.  If a step requires another step to complete first it is necessary to declare them as `serial`.  The following strategies are available by default, these can be used in a `FrameworkVersion` YAML definition:
+A deployments strategy indicates the way in which a plan, or Step must be executed. If a Step requires another Step to complete first it is necessary to declare them as `serial`. The following strategies are available by default, these can be used in a `FrameworkVersion` YAML definition:
 
 - `serial` and `parallel`
 
@@ -137,9 +140,9 @@ An example for a `parallel` Plan is [zookeeper-frameworkversion.yaml](https://gi
 
 When a Parameter is updated in an `Instance` object it defines the "update strategy" for the Parameter in the `FrameworkVersion`. This gives you also the option to customize your Plan a little bit further, for instance a change of a specific value triggers a pre-defined Plan, for example the `update` plan. It also allows different update strategies for different Parameters (e.g. `replicas` vs `image`)
 
-#### When I create a Framework, will it automatically creating new CRDs?
+#### When I create a Framework, will it automatically create new CRDs?
 
-That is the eventual goal. We want each FrameworkVersion (those versions of a framework) to be a different API version of a command CRD that gets mapped to the framework (see also image below). A Framework creates a CRD and then the versions of those are defined by the FrameworkVersion.
+That is the eventual goal. We want each FrameworkVersion (those versions of a Framework) to be a different API version of a command CRD that gets mapped to the Framework (see also image below). A Framework creates a CRD and then the versions of those are defined by the FrameworkVersion.
 
 ![Quick Start](images/kudo-dymanic-crd.png)
 
