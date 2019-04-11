@@ -1,3 +1,9 @@
+---
+title: FAQ
+type: docs
+weight: 7
+---
+
 ### Frequently Asked Questions
 
 #### Table of Contents
