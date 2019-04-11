@@ -32,9 +32,9 @@ params:
 
   # Set source repository location.
   # Used for 'Last Modified' and 'Edit this page' links.
-  BookRepo: https://github.com/kudobuilder/www
+  BookRepo: https://github.com/kudobuilder/kudo
 
   # Enable "Edit this page" links for 'doc' page type.
   # Disabled by default. Uncomment to enable. Requires 'BookRepo' param.
   # Path must point to 'content' directory of repo.
-  BookEditPath: edit/master/content
+  # BookEditPath: edit/master/site/content
