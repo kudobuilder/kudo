@@ -346,7 +346,7 @@ func TestK2oClient_InstallFrameworkVersionObjToCluster(t *testing.T) {
 		{"", "frameworkversions.kudo.k8s.io \"\" not found", "default", nil},         // 2
 		{"", "frameworkversions.kudo.k8s.io \"\" not found", "kudo", nil},            // 3
 		{"test2", "frameworkversions.kudo.k8s.io \"test2\" not found", "kudo", &obj}, // 4
-		{"test", "", "kudo", &obj},                                                   // 5
+		{"test", "", "kudo", &obj}, // 5
 
 	}
 
