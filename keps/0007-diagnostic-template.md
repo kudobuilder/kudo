@@ -14,29 +14,12 @@ status: provisional
 
 # KUDO Diagnostic Template
 
-## Table of Contents
-
-A table of contents is helpful for quickly jumping to sections of a KEP and for highlighting any additional information provided beyond the standard KEP template.
-[Tools for generating][] a table of contents from markdown are available.
-
-* [Table of Contents](#table-of-contents)
-* [Summary](#summary)
-* [Motivation](#motivation)
-    * [Goals](#goals)
-    * [Non-Goals](#non-goals)
-* [Proposal](#proposal)
-    * [User Stories [optional]](#user-stories-optional)
-      * [Story 1](#story-1)
-      * [Story 2](#story-2)
-    * [Implementation Details/Notes/Constraints [optional]](#implementation-detailsnotesconstraints-optional)
-    * [Risks and Mitigations](#risks-and-mitigations)
-* [Graduation Criteria](#graduation-criteria)
-* [Implementation History](#implementation-history)
-* [Drawbacks [optional]](#drawbacks-optional)
-* [Alternatives [optional]](#alternatives-optional)
-* [Infrastructure Needed [optional]](#infrastructure-needed-optional)
-
-[Tools for generating]: https://github.com/ekalinin/github-markdown-toc
+- [KUDO Diagnostic Template](#kudo-diagnostic-template)
+  - [Summary](#summary)
+  - [Motivation](#motivation)
+    - [Goals](#goals)
+    - [Non-Goals](#non-goals)
+  - [Proposal](#proposal)
 
 ## Summary
 
