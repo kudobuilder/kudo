@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x -e -o pipefail
+
 ROOT=$(dirname "${BASH_SOURCE}")/..
 PACKAGES="${ROOT}/pkg/ ${ROOT}/cmd/"
 
