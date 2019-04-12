@@ -1,9 +1,10 @@
 package helpers
 
 import (
-	"github.com/google/go-github/github"
 	"reflect"
 	"testing"
+
+	"github.com/google/go-github/github"
 )
 
 func TestSortDirectoryContent(t *testing.T) {

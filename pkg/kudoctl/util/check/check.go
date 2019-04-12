@@ -1,11 +1,12 @@
 package check
 
 import (
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
-	"github.com/pkg/errors"
 	"os"
 	"os/user"
 	"path/filepath"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
+	"github.com/pkg/errors"
 )
 
 const (

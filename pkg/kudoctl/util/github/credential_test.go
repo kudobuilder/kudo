@@ -1,8 +1,9 @@
 package github
 
 import (
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 	"testing"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 )
 
 func TestGetGithubCredentials(t *testing.T) {

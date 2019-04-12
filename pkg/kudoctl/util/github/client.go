@@ -3,14 +3,15 @@ package github
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/google/go-github/github" // with go modules disabled
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/helpers"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 	"github.com/pkg/errors"
-	"os"
 	"sigs.k8s.io/yaml"
-	"strings"
 )
 
 type GithubClient struct {

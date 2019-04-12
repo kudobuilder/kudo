@@ -1,10 +1,11 @@
 package github
 
 import (
-	"github.com/google/go-github/github"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 	"os"
 	"testing"
+
+	"github.com/google/go-github/github"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 )
 
 // Todo: implementing a mocking interface ala https://github.com/google/go-github/issues/113

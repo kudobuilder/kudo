@@ -2,6 +2,8 @@ package install
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/github"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/helpers"
@@ -10,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
-	"strings"
 )
 
 func InstallCmd(cmd *cobra.Command, args []string) error {

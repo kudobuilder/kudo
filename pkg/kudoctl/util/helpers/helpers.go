@@ -2,9 +2,10 @@ package helpers
 
 import (
 	"fmt"
-	"github.com/google/go-github/github" // with go modules disabled
 	"sort"
 	"strconv"
+
+	"github.com/google/go-github/github" // with go modules disabled
 )
 
 // askForConfirmation uses Scanln to parse user input. A user must type in "yes" or "no" and

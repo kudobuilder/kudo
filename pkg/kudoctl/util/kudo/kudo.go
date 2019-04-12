@@ -2,14 +2,15 @@ package kudo
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
-	"strings"
-	"time"
 )
 
 type KudoClient struct {
