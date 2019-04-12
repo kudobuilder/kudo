@@ -14,7 +14,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-func InstallCmd(cmd *cobra.Command, args []string) error {
+// CmdErrorProcessor returns the errors associated with cmd env
+func CmdErrorProcessor(cmd *cobra.Command, args []string) error {
 
 	_, err := cmd.Flags().GetString("kubeconfig")
 	// This makes --kubeconfig flag optional
@@ -27,7 +28,7 @@ func InstallCmd(cmd *cobra.Command, args []string) error {
 		return errors.WithMessage(err, "could not check kubeconfig path")
 	}
 
-	err = installFrameworks(args)
+	err = verifyFrameworks(args)
 	if err != nil {
 		return errors.WithMessage(err, "could not install framework(s)")
 	}
@@ -35,7 +36,7 @@ func InstallCmd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func installFrameworks(args []string) error {
+func verifyFrameworks(args []string) error {
 
 	if len(args) < 1 {
 		return fmt.Errorf("no argument provided")
@@ -71,7 +72,7 @@ func installFrameworks(args []string) error {
 	}
 
 	for _, name := range args {
-		err := installSingleFramework(name, "", gc, kudoclient)
+		err := verifySingleFramework(name, "", gc, kudoclient)
 		if err != nil {
 			return err
 		}
@@ -80,9 +81,9 @@ func installFrameworks(args []string) error {
 }
 
 // Todo: needs testing
-// installSingleFramework is the umbrella for a single framework installation that gathers the business logic
+// verifySingleFramework is the umbrella for a single framework installation that gathers the business logic
 // for a cluster and returns an error in case there is a problem
-func installSingleFramework(name, previous string, gc *github.GithubClient, k2c *kudo.KudoClient) error {
+func verifySingleFramework(name, previous string, gc *github.Client, k2c *kudo.Client) error {
 	// Get most recent ContentDir for selected Framework
 	content, err := gc.GetMostRecentFrameworkContentDir(name)
 	if err != nil {
@@ -154,9 +155,9 @@ func installSingleFramework(name, previous string, gc *github.GithubClient, k2c 
 		for _, v := range dependencyFrameworks {
 			// recursive function call
 			// Dependencies should not be as big as that they will have an overflow in the function stack frame
-			// installSingleFramework makes sure that dependency Frameworks are created before the Framework itself
+			// verifySingleFramework makes sure that dependency Frameworks are created before the Framework itself
 			// and it allows to inherit dependencies.
-			err := installSingleFramework(v, name, gc, k2c)
+			err := verifySingleFramework(v, name, gc, k2c)
 			if err != nil {
 				return errors.Wrapf(err, "installing dependency Framework %s", v)
 			}
@@ -199,7 +200,7 @@ func installSingleFramework(name, previous string, gc *github.GithubClient, k2c 
 
 // Todo: needs testing
 // installSingleFrameworkToCluster installs a given Framework to the cluster
-func installSingleFrameworkToCluster(name, path string, gc *github.GithubClient, k2c *kudo.KudoClient) error {
+func installSingleFrameworkToCluster(name, path string, gc *github.Client, k2c *kudo.Client) error {
 	frameworkYaml, err := gc.GetFrameworkYaml(name, path)
 	if err != nil {
 		return errors.Wrapf(err, "getting %s-framework.yaml", name)
@@ -214,7 +215,7 @@ func installSingleFrameworkToCluster(name, path string, gc *github.GithubClient,
 
 // Todo: needs testing
 // installSingleFrameworkVersionToCluster installs a given FrameworkVersion to the cluster
-func installSingleFrameworkVersionToCluster(name, path string, gc *github.GithubClient, k2c *kudo.KudoClient) error {
+func installSingleFrameworkVersionToCluster(name, path string, gc *github.Client, k2c *kudo.Client) error {
 	frameworkVersionYaml, err := gc.GetFrameworkVersionYaml(name, path)
 	if err != nil {
 		return errors.Wrapf(err, "getting %s-framework.yaml", name)
@@ -229,7 +230,7 @@ func installSingleFrameworkVersionToCluster(name, path string, gc *github.Github
 
 // Todo: needs testing
 // installSingleInstanceToCluster installs a given Instance to the cluster
-func installSingleInstanceToCluster(name, previous, path string, gc *github.GithubClient, k2c *kudo.KudoClient) error {
+func installSingleInstanceToCluster(name, previous, path string, gc *github.Client, k2c *kudo.Client) error {
 	instanceYaml, err := gc.GetInstanceYaml(name, path)
 	if err != nil {
 		return errors.Wrapf(err, "getting %s-instance.yaml", name)

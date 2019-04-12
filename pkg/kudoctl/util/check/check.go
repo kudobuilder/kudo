@@ -14,9 +14,9 @@ const (
 	defaultGithubCredentialPath = ".git-credentials"
 )
 
-// KubeConfig checks if the kubeconfig file exists.
+// KubeConfigPath checks if the kubeconfig file exists.
 func KubeConfigPath() error {
-	// if kubeConfig is not specified, search for the default kubeconfig file under the $HOME/.kube/config.
+	// if KubeConfigPath is not specified, search for the default kubeconfig file under the $HOME/.kube/config.
 	if len(vars.KubeConfigPath) == 0 {
 		usr, err := user.Current()
 		if err != nil {
