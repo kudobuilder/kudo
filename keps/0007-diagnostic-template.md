@@ -3,6 +3,7 @@ kep-number: 7
 title: Diagnostic Template
 authors:
   - "@gerred"
+  - "@meichstedt"
 owners:
   - "@gerred"
   - "@meichstedt"
