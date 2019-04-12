@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ROOT=$(dirname "${BASH_SOURCE}")/..
 PACKAGES="${ROOT}/pkg/ ${ROOT}/cmd/"
