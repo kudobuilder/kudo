@@ -1,8 +1,9 @@
 package check
 
 import (
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 	"testing"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 )
 
 func TestKubeConfigPath(t *testing.T) {

@@ -1,10 +1,11 @@
 package github
 
 import (
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"strings"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
+	"github.com/pkg/errors"
 )
 
 // GetGithubCredentials stores credentials to GithubCredentials variable.

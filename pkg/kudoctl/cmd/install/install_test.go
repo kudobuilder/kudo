@@ -1,9 +1,10 @@
 package install
 
 import (
+	"testing"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 	"github.com/spf13/cobra"
-	"testing"
 )
 
 func TestInstallCmd(t *testing.T) {

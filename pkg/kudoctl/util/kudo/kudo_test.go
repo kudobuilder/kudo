@@ -1,12 +1,13 @@
 package kudo
 
 import (
+	"testing"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 )
 
 func newTestSimpleK2o() *KudoClient {
@@ -345,7 +346,7 @@ func TestK2oClient_InstallFrameworkVersionObjToCluster(t *testing.T) {
 		{"", "frameworkversions.kudo.k8s.io \"\" not found", "default", nil},         // 2
 		{"", "frameworkversions.kudo.k8s.io \"\" not found", "kudo", nil},            // 3
 		{"test2", "frameworkversions.kudo.k8s.io \"test2\" not found", "kudo", &obj}, // 4
-		{"test", "", "kudo", &obj}, // 5
+		{"test", "", "kudo", &obj},                                                   // 5
 
 	}
 
