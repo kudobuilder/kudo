@@ -35,7 +35,7 @@ and serves as an API aggregation layer.
 		Version: version.Version,
 	}
 
-	cmd.AddCommand(NewCmdInstall())
+	cmd.AddCommand(NewInstallCmd())
 	cmd.AddCommand(NewListCmd())
 	cmd.AddCommand(NewPlanCmd())
 

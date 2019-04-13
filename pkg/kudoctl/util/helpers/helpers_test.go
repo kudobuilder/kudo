@@ -119,7 +119,7 @@ func TestContainsString(t *testing.T) {
 func compareSlice(real, mock []string) []string {
 	lm := len(mock)
 
-	var diff []string = nil
+	var diff []string
 
 	for _, rv := range real {
 		i := 0

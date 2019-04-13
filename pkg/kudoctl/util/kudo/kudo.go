@@ -13,12 +13,13 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-type KudoClient struct {
+// Client is a KUDO Client providing access to a clientset
+type Client struct {
 	clientset versioned.Interface
 }
 
-// Create new Kudo client
-func NewKudoClient() (*KudoClient, error) {
+// NewKudoClient creates new KUDO Client
+func NewKudoClient() (*Client, error) {
 
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", vars.KubeConfigPath)
@@ -52,26 +53,26 @@ func NewKudoClient() (*KudoClient, error) {
 		return nil, errors.WithMessage(err, "planexecutions")
 	}
 
-	return &KudoClient{
+	return &Client{
 		clientset: kudoClientset,
 	}, nil
 }
 
 // CRDsInstalled checks for essential CRDs of KUDO to be installed
-func (k *KudoClient) CRDsInstalled() error {
-	_, err := k.clientset.KudoV1alpha1().Frameworks(vars.Namespace).List(v1.ListOptions{})
+func (c *Client) CRDsInstalled() error {
+	_, err := c.clientset.KudoV1alpha1().Frameworks(vars.Namespace).List(v1.ListOptions{})
 	if err != nil {
 		return errors.WithMessage(err, "frameworks")
 	}
-	_, err = k.clientset.KudoV1alpha1().FrameworkVersions(vars.Namespace).List(v1.ListOptions{})
+	_, err = c.clientset.KudoV1alpha1().FrameworkVersions(vars.Namespace).List(v1.ListOptions{})
 	if err != nil {
 		return errors.WithMessage(err, "frameworkversions")
 	}
-	_, err = k.clientset.KudoV1alpha1().Instances(vars.Namespace).List(v1.ListOptions{})
+	_, err = c.clientset.KudoV1alpha1().Instances(vars.Namespace).List(v1.ListOptions{})
 	if err != nil {
 		return errors.WithMessage(err, "instances")
 	}
-	_, err = k.clientset.KudoV1alpha1().PlanExecutions(vars.Namespace).List(v1.ListOptions{})
+	_, err = c.clientset.KudoV1alpha1().PlanExecutions(vars.Namespace).List(v1.ListOptions{})
 	if err != nil {
 		return errors.WithMessage(err, "planexecutions")
 	}
@@ -79,8 +80,8 @@ func (k *KudoClient) CRDsInstalled() error {
 }
 
 // FrameworkExistsInCluster checks if a given Framework object is installed on the current k8s cluster
-func (k *KudoClient) FrameworkExistsInCluster(name string) bool {
-	framework, err := k.clientset.KudoV1alpha1().Frameworks(vars.Namespace).Get(name, v1.GetOptions{})
+func (c *Client) FrameworkExistsInCluster(name string) bool {
+	framework, err := c.clientset.KudoV1alpha1().Frameworks(vars.Namespace).Get(name, v1.GetOptions{})
 	if err != nil {
 		return false
 	}
@@ -90,8 +91,8 @@ func (k *KudoClient) FrameworkExistsInCluster(name string) bool {
 
 // AnyFrameworkVersionExistsInCluster checks if any FrameworkVersion object matches to the given Framework name
 // in the cluster
-func (k *KudoClient) AnyFrameworkVersionExistsInCluster(framework string) bool {
-	fv, err := k.clientset.KudoV1alpha1().FrameworkVersions(vars.Namespace).List(v1.ListOptions{})
+func (c *Client) AnyFrameworkVersionExistsInCluster(framework string) bool {
+	fv, err := c.clientset.KudoV1alpha1().FrameworkVersions(vars.Namespace).List(v1.ListOptions{})
 	if err != nil {
 		return false
 	}
@@ -127,8 +128,8 @@ func (k *KudoClient) AnyFrameworkVersionExistsInCluster(framework string) bool {
 //      		controller-tools.k8s.io: "1.0"
 //      		framework: kafka
 // This function also just returns true if the Instance matches a specific FrameworkVersion of a Framework
-func (k *KudoClient) AnyInstanceExistsInCluster(name, version string) bool {
-	instances, err := k.clientset.KudoV1alpha1().Instances(vars.Namespace).List(v1.ListOptions{LabelSelector: "framework=" + name})
+func (c *Client) AnyInstanceExistsInCluster(name, version string) bool {
+	instances, err := c.clientset.KudoV1alpha1().Instances(vars.Namespace).List(v1.ListOptions{LabelSelector: "framework=" + name})
 	if err != nil {
 		return false
 	}
@@ -152,11 +153,11 @@ func (k *KudoClient) AnyInstanceExistsInCluster(name, version string) bool {
 	return true
 }
 
-// AnyFrameworkVersionInClusterOutOfSync checks if any FrameworkVersion object matches a given Framework name and
+// FrameworkVersionInClusterOutOfSync checks if any FrameworkVersion object matches a given Framework name and
 // if not it returns false. False means that for the given Framework the most recent official FrameworkVersion
 // is not installed in the cluster or an error occurred.
-func (k *KudoClient) FrameworkVersionInClusterOutOfSync(framework, mostRecentVersion string) bool {
-	fv, err := k.clientset.KudoV1alpha1().FrameworkVersions(vars.Namespace).List(v1.ListOptions{})
+func (c *Client) FrameworkVersionInClusterOutOfSync(framework, mostRecentVersion string) bool {
+	fv, err := c.clientset.KudoV1alpha1().FrameworkVersions(vars.Namespace).List(v1.ListOptions{})
 	if err != nil {
 		return false
 	}
@@ -179,8 +180,8 @@ func (k *KudoClient) FrameworkVersionInClusterOutOfSync(framework, mostRecentVer
 }
 
 // InstallFrameworkObjToCluster expects a valid Framework obj to install
-func (k *KudoClient) InstallFrameworkObjToCluster(obj *v1alpha1.Framework) (*v1alpha1.Framework, error) {
-	createdObj, err := k.clientset.KudoV1alpha1().Frameworks(vars.Namespace).Create(obj)
+func (c *Client) InstallFrameworkObjToCluster(obj *v1alpha1.Framework) (*v1alpha1.Framework, error) {
+	createdObj, err := c.clientset.KudoV1alpha1().Frameworks(vars.Namespace).Create(obj)
 	if err != nil {
 		return nil, errors.WithMessage(err, "installing Framework")
 	}
@@ -188,8 +189,8 @@ func (k *KudoClient) InstallFrameworkObjToCluster(obj *v1alpha1.Framework) (*v1a
 }
 
 // InstallFrameworkVersionObjToCluster expects a valid Framework obj to install
-func (k *KudoClient) InstallFrameworkVersionObjToCluster(obj *v1alpha1.FrameworkVersion) (*v1alpha1.FrameworkVersion, error) {
-	createdObj, err := k.clientset.KudoV1alpha1().FrameworkVersions(vars.Namespace).Create(obj)
+func (c *Client) InstallFrameworkVersionObjToCluster(obj *v1alpha1.FrameworkVersion) (*v1alpha1.FrameworkVersion, error) {
+	createdObj, err := c.clientset.KudoV1alpha1().FrameworkVersions(vars.Namespace).Create(obj)
 	if err != nil {
 		return nil, errors.WithMessage(err, "installing FrameworkVersion")
 	}
@@ -197,8 +198,8 @@ func (k *KudoClient) InstallFrameworkVersionObjToCluster(obj *v1alpha1.Framework
 }
 
 // InstallInstanceObjToCluster expects a valid Instance obj to install
-func (k *KudoClient) InstallInstanceObjToCluster(obj *v1alpha1.Instance) (*v1alpha1.Instance, error) {
-	createdObj, err := k.clientset.KudoV1alpha1().Instances(vars.Namespace).Create(obj)
+func (c *Client) InstallInstanceObjToCluster(obj *v1alpha1.Instance) (*v1alpha1.Instance, error) {
+	createdObj, err := c.clientset.KudoV1alpha1().Instances(vars.Namespace).Create(obj)
 	if err != nil {
 		return nil, errors.WithMessage(err, "installing Instance")
 	}

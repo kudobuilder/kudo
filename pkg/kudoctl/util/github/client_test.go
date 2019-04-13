@@ -10,9 +10,9 @@ import (
 
 // Todo: implementing a mocking interface ala https://github.com/google/go-github/issues/113
 // or https://github.com/google/go-github/blob/530b7c552e7576b823c5a3534b6f181ae4340591/github/github_test.go
-func newTestGitHubClient() *GithubClient {
+func newTestGitHubClient() *Client {
 	gclient := github.NewClient(nil)
-	client := GithubClient{
+	client := Client{
 		client: gclient,
 	}
 	return &client

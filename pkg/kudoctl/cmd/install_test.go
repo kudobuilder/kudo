@@ -7,7 +7,7 @@ import (
 
 func TestNewCmdInstallReturnsCmd(t *testing.T) {
 
-	newCmdInstall := NewCmdInstall()
+	newCmdInstall := NewInstallCmd()
 
 	if newCmdInstall.Parent() != nil {
 		t.Fatal("We expect the newCmdInstall command to be returned")

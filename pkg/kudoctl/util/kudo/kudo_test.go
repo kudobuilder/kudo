@@ -10,8 +10,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func newTestSimpleK2o() *KudoClient {
-	client := KudoClient{}
+func newTestSimpleK2o() *Client {
+	client := Client{}
 	client.clientset = fake.NewSimpleClientset()
 	return &client
 }
