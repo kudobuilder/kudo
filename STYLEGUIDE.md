@@ -10,6 +10,7 @@ We favor for golang code is golang idioms over K8S style. Worth reading:
 
 * [Effective Go](https://golang.org/doc/effective_go.html)
 * [Idiomatic Go](https://dmitri.shuralyov.com/idiomatic-go)
+* [Idiomatic Go Resources](https://medium.com/@dgryski/idiomatic-go-resources-966535376dba)
 * [Go for Industrial Programming](https://peter.bourgon.org/go-for-industrial-programming/)
 * [A theory of modern Go](https://peter.bourgon.org/blog/2017/06/09/theory-of-modern-go.html)
 * [Go best practices, six years in](https://peter.bourgon.org/go-best-practices-2016/)
