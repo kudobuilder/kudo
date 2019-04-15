@@ -52,7 +52,7 @@ In order to run KUDO CRDs must be installed. `make install` or `make manifests` 
   planexecutions.kudo.k8s.io      2019-04-12T19:50:18Z
 ```
 
-To run server: `make run`
+To run operator: `make run`
 
 ## Running the CLI
 
