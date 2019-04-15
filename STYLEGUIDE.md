@@ -18,13 +18,24 @@ We favor for golang code is golang idioms over K8S style. Worth reading:
 
 Here are some common cases / deviations:
 
-### Lint
+### Lint and Code Checks
 
 All code should pass the linter.   For cases of intentional lint deviation, it is expected that:
 
 * The linter is configured with the new rule.
 * The linter is configured to ignore the case.
 * The case is documented in code
+
+`make lint`
+
+All code should pass [staticcheck](http://staticcheck.io/)
+
+`make staticcheck`
+
+All code should pass `go vet`.
+
+`make vet`
+
 
 ### import
 

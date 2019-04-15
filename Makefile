@@ -48,8 +48,12 @@ vet:
 	go vet ./pkg/... ./cmd/...
 
 # Run go lint against code
-lint: 
+lint:
 	golint ./pkg/... ./cmd/...
+
+# Runs static check
+staticcheck:
+	staticcheck ./...
 
 # Run go imports against code
 imports:
