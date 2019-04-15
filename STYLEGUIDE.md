@@ -2,11 +2,11 @@
 
 In an effort to encourage clear, clean, uniform and readable code it is useful to have a style guide to establish standards and expectations for code and artifact files.
 
-KUDO is a [Kubernetes (K8S)](https://kubernetes.io/) project written primarily in [golang](https://golang.org/), both of which have some differences in their style and expectation of code and APIs. In addition the founders of KUDO have some of their own preferences. This guide captures the preferred standards of this project.
+KUDO is a [Kubernetes (K8S)](https://kubernetes.io/) project written primarily in [Golang](https://golang.org/), both of which have some differences in their style and expectation of code and APIs. In addition the founders of KUDO have some of their own preferences. This guide captures the preferred standards of this project.
 
 ## Golang
 
-We favor for golang code is golang idioms over K8S style. Worth reading:
+When writing Golang code, We favor is Golang idioms over Kubernetes style. Worth reading:
 
 * [Effective Go](https://golang.org/doc/effective_go.html)
 * [Idiomatic Go](https://dmitri.shuralyov.com/idiomatic-go)
@@ -20,11 +20,11 @@ Here are some common cases / deviations:
 
 ### Lint and Code Checks
 
-All code should pass the linter.   For cases of intentional lint deviation, it is expected that:
+All code should pass the linter. For cases of intentional lint deviation, it is expected that:
 
 * The linter is configured with the new rule.
 * The linter is configured to ignore the case.
-* The case is documented in code
+* The case is documented in code.
 
 `make lint`
 
@@ -39,7 +39,7 @@ All code should pass `go vet`.
 
 ### import
 
-The general golang approach is to have a line of separation between golang libraries and external packages.   We prefer to have an additional line of separation grouping K8S packages.  Example:
+The general Golang approach is to have a line of separation between Golang libraries and external packages. We prefer to have an additional line of separation grouping Kubernetes packages. Example:
 
 ```
 import (
@@ -59,4 +59,4 @@ import (
 
 ### Naming
 
-In general, naming should follow golang conventions over kubernetes conventions.
+In general, naming should follow Golang conventions over Kubernetes conventions.
