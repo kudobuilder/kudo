@@ -28,7 +28,7 @@ All code should pass the linter. For cases of intentional lint deviation, it is 
 
 `make lint`
 
-All code should pass [staticcheck](http://staticcheck.io/)
+All code should pass [staticcheck](http://staticcheck.io/).
 
 `make staticcheck`
 
