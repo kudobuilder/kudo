@@ -25,7 +25,16 @@ Before you get started:
 
 **Before** `make install` you will need to have:
   * minikube running
-  * `~/.git-credentials` must exist with git credentials. If you are using two-factor auth you will need a create a [personal access token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
+  * `~/.git-credentials` must exist with git credentials with details below.
+
+### Setting up GitHub Credentials
+In order to setup `~.git-credentials` the file needs to have the format of:
+```
+https://<username>:<credential>@github.com
+```
+
+The username is your GitHub user name and the credential is your password. If you are using 2-factor authentication, the credentials will need to be an application [personal access token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line).
+
 
 ## Deploy your first Application
 
