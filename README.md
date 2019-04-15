@@ -40,6 +40,32 @@ Before you get started:
   * `~/.git-credentials` must exist with git credentials. If you are using two-factor auth you will need a create a [personal access token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
   * `lint` in $PATH which is provided by having `$GOPATH\bin` in `$PATH` as in `export PATH=$GOPATH/bin:$PATH`.
 
+## Running the Server
+In order to run KUDO, [kubebuilder](https://book.kubebuilder.io/getting_started/installation_and_setup.html) must be installed and in your `PATH` and CRDs must be installed.   CRDs are installed with `make install` or `make manifests` and can be confirmed with `kubectl get crds` resulting in something looking like:
+
+```
+  $ kubectl get crds
+  NAME                            CREATED AT
+  frameworks.kudo.k8s.io          2019-04-12T19:50:18Z
+  frameworkversions.kudo.k8s.io   2019-04-12T19:50:18Z
+  instances.kudo.k8s.io           2019-04-12T19:50:18Z
+  planexecutions.kudo.k8s.io      2019-04-12T19:50:18Z
+```
+
+To run server:  `make run`
+
+## Running the CLI
+
+* To create CLI: `make cli`
+* ensure `$GOPATH/src/github.com/kudobuilder/kudo/bin` is in your `PATH`
+
+To run CLI: `kubectl kudo`
+
+## Useful Tools
+  * [kustomize](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md)
+  * [goimports](https://godoc.org/golang.org/x/tools/cmd/goimports)
+  * [golint](https://github.com/golang/lint)
+
 ## Concepts
 - *Framework*: High-level description of a deployable application (e.g., Apache Kafka)
 - *FrameworkVersion*: Specific version of a deployable application, including lifecycle hooks for deployments, upgrades, and rollbacks (e.g., Kafka version 2.4.1)
