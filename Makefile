@@ -30,7 +30,7 @@ prebuild: generate fmt vet
 manager: prebuild
 	# developer convince for platform they are running
 	go build -o bin/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
-		
+
 	# platforms for distribution
 	GOARCH=amd64 GOOS=darwin go build -o bin/darwin/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
 	GOARCH=amd64 GOOS=linux go build -o bin/linux/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
@@ -89,7 +89,7 @@ generate:
 	go generate ./pkg/... ./cmd/...
 
 # Build CLI
-cli:
+cli: prebuild
 	# developer convince for platform they are running
 	go build -o bin/${CLI} cmd/kubectl-kudo/main.go
 
