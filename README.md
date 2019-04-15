@@ -20,7 +20,7 @@ Before you get started:
 - Latest version of `dep`
 - Kubernetes Cluster `1.12` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
 - [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) with version `1.12` or later
-- [Install Kustomize](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md)
+- [Install Kustomize](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md) with version `2.0.3` or later
 
 ## Installation Instructions
 
@@ -37,8 +37,35 @@ Before you get started:
   * `git clone git@github.com:kudobuilder/kudo.git`
 2. **Before** `make install` you will need to have:
   * minikube running (some of the tests run against it)
-  * `~/.git-credentials` must exist with git credentials. If you are using two-factor auth you will need a create a [personal access token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
+  * `~/.git-credentials` must [exist with git credentials](https://kudo.dev/docs/getting-started#setting-up-github-credentials).
   * `lint` in $PATH which is provided by having `$GOPATH\bin` in `$PATH` as in `export PATH=$GOPATH/bin:$PATH`.
+
+## Running the Operator
+In order to run KUDO CRDs must be installed. `make install` or `make manifests` will install the CRDs which can be confirmed with `kubectl get crds` resulting in something looking like:
+
+```
+  $ kubectl get crds
+  NAME                            CREATED AT
+  frameworks.kudo.k8s.io          2019-04-12T19:50:18Z
+  frameworkversions.kudo.k8s.io   2019-04-12T19:50:18Z
+  instances.kudo.k8s.io           2019-04-12T19:50:18Z
+  planexecutions.kudo.k8s.io      2019-04-12T19:50:18Z
+```
+
+To run operator: `make run`
+
+## Running the CLI
+
+* To create CLI: `make cli`
+* ensure `$GOPATH/src/github.com/kudobuilder/kudo/bin` is in your `PATH`
+
+To run CLI: `kubectl kudo`
+
+## Useful Tools
+  * [goimports](https://godoc.org/golang.org/x/tools/cmd/goimports)
+  * [golint](https://github.com/golang/lint)
+  * [staticcheck](https://github.com/dominikh/go-tools#installation)
+  * [kubebuilder](https://book.kubebuilder.io/getting_started/installation_and_setup.html)
 
 ## Concepts
 - *Framework*: High-level description of a deployable application (e.g., Apache Kafka)
@@ -54,7 +81,7 @@ $ kubectl apply -f https://raw.githubusercontent.com/kudobuilder/frameworks/mast
 framework.kudo.k8s.io/zookeeper created
 ```
 
-Create a `FrameworkVersion` for the Zookeeper  `Framework`
+Create a `FrameworkVersion` for the Zookeeper `Framework`
 
 ```bash
 $ kubectl apply -f https://raw.githubusercontent.com/kudobuilder/frameworks/master/repo/stable/zookeeper/versions/0/zookeeper-frameworkversion.yaml
