@@ -6,7 +6,7 @@ KUDO is a [Kubernetes (K8S)](https://kubernetes.io/) project written primarily i
 
 ## Golang
 
-When writing Golang code, We favor is Golang idioms over Kubernetes style. Worth reading:
+When writing Golang code, We favor Golang idioms over Kubernetes style. Worth reading:
 
 * [Effective Go](https://golang.org/doc/effective_go.html)
 * [Idiomatic Go](https://dmitri.shuralyov.com/idiomatic-go)

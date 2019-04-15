@@ -20,6 +20,7 @@ Before you get started:
 - Latest version of `dep`
 - Kubernetes Cluster `1.12` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
 - [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) with version `1.12` or later
+- [Install Kustomize](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md)
 
 ## Installation Instructions
 
