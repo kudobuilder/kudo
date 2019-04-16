@@ -12,7 +12,7 @@ deps:
 	dep check -skip-vendor
 	go install github.com/kudobuilder/kudo/vendor/golang.org/x/tools/cmd/goimports
 	go install github.com/kudobuilder/kudo/vendor/golang.org/x/lint/golint
-	go install honnef.co/go/tools/cmd/staticcheck
+	go get -u honnef.co/go/tools/cmd/staticcheck
 
 # Run tests
 test: generate deps fmt vet lint imports manifests
