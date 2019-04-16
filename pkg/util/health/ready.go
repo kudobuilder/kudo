@@ -15,50 +15,45 @@ import (
 //IsHealthy returns whether an object is healthy.  Must be implemented for each type
 func IsHealthy(c client.Client, obj runtime.Object) error {
 
-	switch obj.(type) {
+	switch obj := obj.(type) {
 	case *appsv1.StatefulSet:
-		ss := obj.(*appsv1.StatefulSet)
-		if ss.Spec.Replicas == nil {
+		if obj.Spec.Replicas == nil {
 			return fmt.Errorf("replicas not set, so can't be healthy")
 		}
-		if ss.Status.ReadyReplicas == *ss.Spec.Replicas {
-			log.Printf("Statefulset %v is marked healthy\n", ss.Name)
+		if obj.Status.ReadyReplicas == *obj.Spec.Replicas {
+			log.Printf("Statefulset %v is marked healthy\n", obj.Name)
 			return nil
 		}
-		log.Printf("HealthUtil: Statefulset %v is NOT healthy. Not enough ready replicas: %v/%v", ss.Name, ss.Status.ReadyReplicas, ss.Status.Replicas)
-		return fmt.Errorf("ready replicas (%v) does not equal requested replicas (%v)", ss.Status.ReadyReplicas, ss.Status.Replicas)
+		log.Printf("HealthUtil: Statefulset %v is NOT healthy. Not enough ready replicas: %v/%v", obj.Name, obj.Status.ReadyReplicas, obj.Status.Replicas)
+		return fmt.Errorf("ready replicas (%v) does not equal requested replicas (%v)", obj.Status.ReadyReplicas, obj.Status.Replicas)
 	case *appsv1.Deployment:
-		d := obj.(*appsv1.Deployment)
-		if d.Spec.Replicas != nil && d.Status.ReadyReplicas == *d.Spec.Replicas {
-			log.Printf("HealthUtil: Deployment %v is marked healthy", d.Name)
+		if obj.Spec.Replicas != nil && obj.Status.ReadyReplicas == *obj.Spec.Replicas {
+			log.Printf("HealthUtil: Deployment %v is marked healthy", obj.Name)
 			return nil
 		}
-		log.Printf("HealthUtil: Deployment %v is NOT healthy. Not enough ready replicas: %v/%v", d.Name, d.Status.ReadyReplicas, *d.Spec.Replicas)
-		return fmt.Errorf("ready replicas (%v) does not equal requested replicas (%v)", d.Status.ReadyReplicas, *d.Spec.Replicas)
+		log.Printf("HealthUtil: Deployment %v is NOT healthy. Not enough ready replicas: %v/%v", obj.Name, obj.Status.ReadyReplicas, *obj.Spec.Replicas)
+		return fmt.Errorf("ready replicas (%v) does not equal requested replicas (%v)", obj.Status.ReadyReplicas, *obj.Spec.Replicas)
 	case *batchv1.Job:
-		job := obj.(*batchv1.Job)
-		// job.Status.
 
-		if job.Status.Succeeded == int32(1) {
+		if obj.Status.Succeeded == int32(1) {
 			//done!
 
-			log.Printf("HealthUtil: Job \"%v\" is marked healthy", job.Name)
+			log.Printf("HealthUtil: Job \"%v\" is marked healthy", obj.Name)
 			return nil
 		}
-		return fmt.Errorf("job \"%v\" still running or failed", job.Name)
+		return fmt.Errorf("job \"%v\" still running or failed", obj.Name)
 	case *kudov1alpha1.Instance:
-		i := obj.(*kudov1alpha1.Instance)
 		//Instances are healthy when their Active Plan has succeeded
 		plan := &kudov1alpha1.PlanExecution{}
 		err := c.Get(context.TODO(), client.ObjectKey{
-			Name:      i.Status.ActivePlan.Name,
-			Namespace: i.Status.ActivePlan.Namespace,
+			Name:      obj.Status.ActivePlan.Name,
+			Namespace: obj.Status.ActivePlan.Namespace,
 		}, plan)
 		if err != nil {
-			log.Printf("Error getting PlaneExecution %v/%v: %v\n", i.Status.ActivePlan.Name, i.Status.ActivePlan.Namespace, err)
+			log.Printf("Error getting PlaneExecution %v/%v: %v\n", obj.Status.ActivePlan.Name, obj.Status.ActivePlan.Namespace, err)
 			return fmt.Errorf("instance active plan not found: %v", err)
 		}
-		log.Printf("HealthUtil: Instance %v is in state %v", i.Name, plan.Status.State)
+		log.Printf("HealthUtil: Instance %v is in state %v", obj.Name, plan.Status.State)
 
 		if plan.Status.State == kudov1alpha1.PhaseStateComplete {
 			return nil
