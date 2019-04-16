@@ -26,7 +26,7 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 			return nil
 		}
 		log.Printf("HealthUtil: Statefulset %v is NOT healthy. Not enough ready replicas: %v/%v", ss.Name, ss.Status.ReadyReplicas, ss.Status.Replicas)
-		return fmt.Errorf("Ready Replicas (%v) does not equal Requested Replicas (%v)", ss.Status.ReadyReplicas, ss.Status.Replicas)
+		return fmt.Errorf("ready replicas (%v) does not equal requested replicas (%v)", ss.Status.ReadyReplicas, ss.Status.Replicas)
 	case *appsv1.Deployment:
 		d := obj.(*appsv1.Deployment)
 		if d.Spec.Replicas != nil && d.Status.ReadyReplicas == *d.Spec.Replicas {
@@ -34,7 +34,7 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 			return nil
 		}
 		log.Printf("HealthUtil: Deployment %v is NOT healthy. Not enough ready replicas: %v/%v", d.Name, d.Status.ReadyReplicas, *d.Spec.Replicas)
-		return fmt.Errorf("Ready Replicas (%v) does not equal Requested Replicas (%v)", d.Status.ReadyReplicas, *d.Spec.Replicas)
+		return fmt.Errorf("ready replicas (%v) does not equal requested replicas (%v)", d.Status.ReadyReplicas, *d.Spec.Replicas)
 	case *batchv1.Job:
 		job := obj.(*batchv1.Job)
 		// job.Status.
@@ -45,7 +45,7 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 			log.Printf("HealthUtil: Job \"%v\" is marked healthy", job.Name)
 			return nil
 		}
-		return fmt.Errorf("Job \"%v\" still running or failed", job.Name)
+		return fmt.Errorf("job \"%v\" still running or failed", job.Name)
 	case *kudov1alpha1.Instance:
 		i := obj.(*kudov1alpha1.Instance)
 		//Instances are healthy when their Active Plan has succeeded

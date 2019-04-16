@@ -47,19 +47,14 @@ func TestInstallCmd(t *testing.T) {
 		if err != nil {
 			receivedErrorList := []string{err.Error()}
 			diff := compareSlice(receivedErrorList, tt.err)
-			if diff != nil {
-				for _, err := range diff {
-					t.Errorf("%d: Found unexpected error: %v", i+1, err)
-				}
+			for _, err := range diff {
+				t.Errorf("%d: Found unexpected error: %v", i+1, err)
 			}
 
 			missing := compareSlice(tt.err, receivedErrorList)
-			if missing != nil {
-				for _, err := range missing {
-					t.Errorf("%d: Missed expected error: %v", i+1, err)
-				}
+			for _, err := range missing {
+				t.Errorf("%d: Missed expected error: %v", i+1, err)
 			}
-
 		}
 	}
 }
@@ -93,19 +88,14 @@ func TestInstallFrameworks(t *testing.T) {
 		if err != nil {
 			receivedErrorList := []string{err.Error()}
 			diff := compareSlice(receivedErrorList, tt.err)
-			if diff != nil {
-				for _, err := range diff {
-					t.Errorf("%d: Found unexpected error: %v", i+1, err)
-				}
+			for _, err := range diff {
+				t.Errorf("%d: Found unexpected error: %v", i+1, err)
 			}
 
 			missing := compareSlice(tt.err, receivedErrorList)
-			if missing != nil {
-				for _, err := range missing {
-					t.Errorf("%d: Missed expected error: %v", i+1, err)
-				}
+			for _, err := range missing {
+				t.Errorf("%d: Missed expected error: %v", i+1, err)
 			}
-
 		}
 	}
 }

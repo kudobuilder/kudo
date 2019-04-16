@@ -313,7 +313,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		_, ok := configs[param.Name]
 		if !ok { //not specified in params
 			if param.Required {
-				err = fmt.Errorf("Parameter %v was required but not provided by instance %v", param.Name, instance.Name)
+				err = fmt.Errorf("parameter %v was required but not provided by instance %v", param.Name, instance.Name)
 				log.Printf("PlanExecutionController: %v", err)
 				r.recorder.Event(planExecution, "Warning", "MissingParameter", fmt.Sprintf("Could not find required parameter (%v)", param.Name))
 				return reconcile.Result{}, err
@@ -331,7 +331,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	executedPlan, ok := frameworkVersion.Spec.Plans[planExecution.Spec.PlanName]
 	if !ok {
 		r.recorder.Event(planExecution, "Warning", "InvalidPlan", fmt.Sprintf("Could not find required plan (%v)", planExecution.Spec.PlanName))
-		err = fmt.Errorf("Could not find required plan (%v)", planExecution.Spec.PlanName)
+		err = fmt.Errorf("could not find required plan (%v)", planExecution.Spec.PlanName)
 		planExecution.Status.State = kudov1alpha1.PhaseStateError
 		return reconcile.Result{}, err
 	}
