@@ -87,7 +87,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	//Watch for Deployments, Jobs and StatefulSets
 	// Define a mapping from the object in the event to one or more
 	// objects to Reconcile.  Specifically this calls for
-	// a reconsiliation of any objects "Owner".
+	// a reconciliation of any objects "Owner".
 	mapFn := handler.ToRequestsFunc(
 		func(a handler.MapObject) []reconcile.Request {
 			owners := a.Meta.GetOwnerReferences()
@@ -263,7 +263,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	//Before returning from this function, update the status
 	defer r.Update(context.Background(), planExecution)
 
-	//need to add ownerRefernce as the Instance
+	//need to add ownerReference as the Instance
 
 	instance.Status.ActivePlan = corev1.ObjectReference{
 		Name:       planExecution.Name,
@@ -298,7 +298,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	}
 
 	//Load parameters:
-	//Create configmap to hold all parameters for instantiation
+	//Create config map to hold all parameters for instantiation
 	configs := make(map[string]string)
 	//Default parameters from instance metadata
 	configs["FRAMEWORK_NAME"] = frameworkVersion.Spec.Framework.Name
@@ -313,7 +313,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		_, ok := configs[param.Name]
 		if !ok { //not specified in params
 			if param.Required {
-				err = fmt.Errorf("Parameter %v was required but not provided by instance %v", param.Name, instance.Name)
+				err = fmt.Errorf("parameter %v was required but not provided by instance %v", param.Name, instance.Name)
 				log.Printf("PlanExecutionController: %v", err)
 				r.recorder.Event(planExecution, "Warning", "MissingParameter", fmt.Sprintf("Could not find required parameter (%v)", param.Name))
 				return reconcile.Result{}, err
@@ -331,7 +331,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	executedPlan, ok := frameworkVersion.Spec.Plans[planExecution.Spec.PlanName]
 	if !ok {
 		r.recorder.Event(planExecution, "Warning", "InvalidPlan", fmt.Sprintf("Could not find required plan (%v)", planExecution.Spec.PlanName))
-		err = fmt.Errorf("Could not find required plan (%v)", planExecution.Spec.PlanName)
+		err = fmt.Errorf("could not find required plan (%v)", planExecution.Spec.PlanName)
 		planExecution.Status.State = kudov1alpha1.PhaseStateError
 		return reconcile.Result{}, err
 	}
@@ -499,8 +499,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 							return fmt.Errorf("object passed in doesn't match expected StatefulSet type")
 						}
 
-						// We need some specilized logic in there.  We can't jsut copy the Spec since there are other values
-						// like spec.updateStrate, spec.volumeClaimTemplates, etc that are all
+						// We need some specialized logic in there.  We can't just copy the Spec since there are other values
+						// like spec.updateState, spec.volumeClaimTemplates, etc that are all
 						// generated from the object by the k8s controller.  We just want to update things we can change
 						newSs.Spec.Replicas = ss.Spec.Replicas
 
@@ -621,14 +621,14 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	return reconcile.Result{}, nil
 }
 
-//Cleanup modfies objects on the cluster to allow for the provided obj to get CreateOrApply.  Currently
+//Cleanup modifies objects on the cluster to allow for the provided obj to get CreateOrApply.  Currently
 //only needs to clean up Jobs that get run from multiple PlanExecutions
 func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
-	switch obj.(type) {
+
+	switch obj := obj.(type) {
 	case *batchv1.Job:
 		//We need to see if there's a current job on the system that matches this exactly (with labels)
-		job := obj.(*batchv1.Job)
-		log.Printf("PlanExecutionController.Cleanup: *batchv1.Job %v", job.Name)
+		log.Printf("PlanExecutionController.Cleanup: *batchv1.Job %v", obj.Name)
 
 		present := &batchv1.Job{}
 		key, _ := client.ObjectKeyFromObject(obj)
@@ -643,7 +643,7 @@ func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
 			return err
 		}
 		//see if the job in the cluster has the same labels as the one we're looking to add.
-		for k, v := range job.Labels {
+		for k, v := range obj.Labels {
 			if v != present.Labels[k] {
 				//need to delete the present job since its got labels that aren't the same
 				log.Printf("PlanExecutionController: Different values for job key \"%v\": \"%v\" and \"%v\"", k, v, present.Labels[k])
@@ -652,9 +652,9 @@ func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
 			}
 		}
 		for k, v := range present.Labels {
-			if v != job.Labels[k] {
+			if v != obj.Labels[k] {
 				//need to delete the present job since its got labels that aren't the same
-				log.Printf("PlanExecutionController: Different values for job key \"%v\": \"%v\" and \"%v\"", k, v, job.Labels[k])
+				log.Printf("PlanExecutionController: Different values for job key \"%v\": \"%v\" and \"%v\"", k, v, obj.Labels[k])
 				err = r.Delete(context.TODO(), present)
 				return err
 			}

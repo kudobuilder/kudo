@@ -12,6 +12,7 @@ deps:
 	dep check -skip-vendor
 	go install github.com/kudobuilder/kudo/vendor/golang.org/x/tools/cmd/goimports
 	go install github.com/kudobuilder/kudo/vendor/golang.org/x/lint/golint
+	go get -u honnef.co/go/tools/cmd/staticcheck
 
 # Run tests
 test: generate deps fmt vet lint imports manifests
@@ -21,7 +22,7 @@ test: generate deps fmt vet lint imports manifests
 test-clean:
 	rm -f cover.out
 
-check-formatting: generate deps vet lint
+check-formatting: generate deps vet lint staticcheck
 	./test/formatting.sh
 
 prebuild: generate fmt vet

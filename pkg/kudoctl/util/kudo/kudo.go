@@ -173,10 +173,7 @@ func (c *Client) FrameworkVersionInClusterOutOfSync(framework, mostRecentVersion
 			}
 		}
 	}
-	if i < 1 {
-		return false
-	}
-	return true
+	return !(i < 1)
 }
 
 // InstallFrameworkObjToCluster expects a valid Framework obj to install
