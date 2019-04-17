@@ -14,7 +14,7 @@ var (
 		kubectl kudo version`
 )
 
-func NewCmdVersion() *cobra.Command {
+func NewVersionCmd() *cobra.Command {
 	versionCmd := &cobra.Command{
 		Use:          "version",
 		Short:        "-> Print the current KUDO package version.",

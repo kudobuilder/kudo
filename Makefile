@@ -37,7 +37,10 @@ prebuild: generate fmt vet
 # Build manager binary
 manager: prebuild
 	# developer convince for platform they are running
-	go build -o bin/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
+	go build -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
+                -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
+                -X ${BUILD_DATE_PATH}=${BUILD_DATE}" \
+                -o bin/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
 
 	# platforms for distribution
 	GOARCH=amd64 GOOS=darwin go build -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
@@ -163,5 +166,5 @@ docker-build: generate fmt vet manifests
 # Push the docker image
 docker-push:
 	docker push ${DOCKER_IMG}:${DOCKER_TAG}
-    docker push ${DOCKER_IMG}:${GIT_VERSION}
-   	docker push ${DOCKER_IMG}:latest
+	docker push ${DOCKER_IMG}:${GIT_VERSION}
+	docker push ${DOCKER_IMG}:latest
