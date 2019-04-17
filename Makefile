@@ -63,7 +63,9 @@ deploy-clean:
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests:
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
+	# controller-gen/main.go all == [rbac, crd]
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go rbac --output-dir=config/default/rbac
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd
 
 # Run go fmt against code
 fmt:
