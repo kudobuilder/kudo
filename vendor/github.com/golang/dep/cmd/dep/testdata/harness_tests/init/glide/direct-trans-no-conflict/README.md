@@ -1,1 +1,0 @@
-Take a direct dependency on a transient dependency where the versions are not conflicted. Resolving should pass.
