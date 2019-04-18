@@ -22,7 +22,7 @@ test-clean:
 
 .PHONY: check-formatting
 check-formatting: vet lint staticcheck
-	./test/formatting.sh
+	./hack/check_formatting.sh
 
 .PHONY: download
 download:
