@@ -15,8 +15,14 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -27,6 +33,9 @@ spec:
             planName:
               type: string
             suspend:
+              description: This is copied from the CronJob Spec This flag tells the
+                controller to suspend subsequent executions, it does not apply to
+                already started executions.  Defaults to false.
               type: boolean
           required:
           - planName
@@ -35,8 +44,12 @@ spec:
         status:
           properties:
             name:
+              description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
+                of cluster Important: Run "make" to regenerate code after modifying
+                this file'
               type: string
             phases:
+              description: Phases maps a phase name to a Phase object
               items:
                 properties:
                   name:
@@ -44,6 +57,8 @@ spec:
                   state:
                     type: string
                   steps:
+                    description: Steps maps a step name to a list of mustached kubernetes
+                      objects stored as a string
                     items:
                       properties:
                         delete:

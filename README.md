@@ -16,11 +16,15 @@ See the [Documentation](docs) with [Examples](config/samples).
 
 Before you get started:
 
-- Install Go `1.11` or later
-- Latest version of `dep`
-- Kubernetes Cluster `1.12` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
-- [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) with version `1.12` or later
+- Install Go `1.12.3` or later
+- This project uses [Go Modules](https://github.com/golang/go/wiki/Modules). Set `GO111MODULE=on` in your environment.
+- Kubernetes Cluster `1.13` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
+- [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) with version `1.13` or later
 - [Install Kustomize](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md) with version `2.0.3` or later
+
+## Go Modules
+
+> ⚠️ This project uses Go Modules. Due to the current state of code generation in [controller-tools](https://github.com/kubernetes-sigs/controller-tools) and [code-generator](https://github.com/kubernetes/code-generator), KUDO currently **must** be cloned into its `$GOPATH`-based location.
 
 ## Installation Instructions
 
@@ -66,6 +70,8 @@ To run CLI: `kubectl kudo`
   * [golint](https://github.com/golang/lint)
   * [staticcheck](https://github.com/dominikh/go-tools#installation)
   * [kubebuilder](https://book.kubebuilder.io/getting_started/installation_and_setup.html)
+
+Tools are located in `tools.go` to pin their versions. Refer to (https://github.com/go-modules-by-example/index/blob/ac9bf72/010_tools/README.md)[https://github.com/go-modules-by-example/index/blob/ac9bf72/010_tools/README.md] for more information.
 
 ## Concepts
 - *Framework*: High-level description of a deployable application (e.g., Apache Kafka)

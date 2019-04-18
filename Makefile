@@ -7,22 +7,15 @@ CLI := kubectl-kudo
 
 all: test manager
 
-deps:
-	go install github.com/kudobuilder/kudo/vendor/github.com/golang/dep/cmd/dep
-	dep check -skip-vendor
-	go install github.com/kudobuilder/kudo/vendor/golang.org/x/tools/cmd/goimports
-	go install github.com/kudobuilder/kudo/vendor/golang.org/x/lint/golint
-	go get -u honnef.co/go/tools/cmd/staticcheck
-
 # Run tests
-test: generate deps fmt vet lint imports manifests
+test: generate fmt vet lint imports manifests
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
 
 # Clean test reports
 test-clean:
 	rm -f cover.out
 
-check-formatting: generate deps vet lint staticcheck
+check-formatting: generate vet lint staticcheck
 	./test/formatting.sh
 
 prebuild: generate fmt vet
@@ -63,9 +56,7 @@ deploy-clean:
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests:
-	# controller-gen/main.go all == [rbac, crd]
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go rbac --output-dir=config/default/rbac
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd
+	./hack/update_manifests.sh
 
 # Run go fmt against code
 fmt:
@@ -77,19 +68,22 @@ vet:
 
 # Run go lint against code
 lint:
+	go install golang.org/x/lint/golint
 	golint ./pkg/... ./cmd/...
 
 # Runs static check
 staticcheck:
+	go install honnef.co/go/tools/cmd/staticcheck
 	staticcheck ./...
 
 # Run go imports against code
 imports:
+	go install golang.org/x/tools/cmd/goimports
 	goimports ./pkg/ ./cmd/
 
 # Generate code
 generate:
-	go generate ./pkg/... ./cmd/...
+	./hack/update_codegen.sh
 
 # Build CLI
 cli: prebuild
