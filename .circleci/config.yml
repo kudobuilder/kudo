@@ -20,19 +20,36 @@ jobs:
     working_directory: /go/src/github.com/kudobuilder/kudo
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
 
       # specify any bash command here prefixed with `run: `
       - run: make check-formatting
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+            - "/go/bin"
+
   merge-formatting:
     docker:
       - image: kudobuilder/golang:1.11
     working_directory: /go/src/github.com/kudobuilder/kudo
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
 
       # specify any bash command here prefixed with `run: `
       - run: git merge origin/master
       - run: make check-formatting
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+            - "/go/bin"
 workflows:
   version: 2
   formatting:
