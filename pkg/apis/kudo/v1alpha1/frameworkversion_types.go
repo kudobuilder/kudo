@@ -133,7 +133,7 @@ type FrameworkVersionStatus struct {
 // FrameworkVersion is the Schema for the frameworkversions API
 // +k8s:openapi-gen=true
 type FrameworkVersion struct {
-	metav1.TypeMeta   `json:"inline"`
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   FrameworkVersionSpec   `json:"spec,omitempty"`
@@ -144,7 +144,7 @@ type FrameworkVersion struct {
 
 // FrameworkVersionList contains a list of FrameworkVersion
 type FrameworkVersionList struct {
-	metav1.TypeMeta `json:"inline"`
+	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []FrameworkVersion `json:"items"`
 }

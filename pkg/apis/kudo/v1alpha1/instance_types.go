@@ -87,7 +87,7 @@ const PhaseStateSuspend PhaseState = "SUSPEND"
 // Instance is the Schema for the instances API
 // +k8s:openapi-gen=true
 type Instance struct {
-	metav1.TypeMeta   `json:"inline"`
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   InstanceSpec   `json:"spec,omitempty"`
@@ -98,7 +98,7 @@ type Instance struct {
 
 // InstanceList contains a list of Instance
 type InstanceList struct {
-	metav1.TypeMeta `json:"inline"`
+	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Instance `json:"items"`
 }

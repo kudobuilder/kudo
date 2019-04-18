@@ -40,7 +40,7 @@ type FrameworkStatus struct {
 // Framework is the Schema for the frameworks API
 // +k8s:openapi-gen=true
 type Framework struct {
-	metav1.TypeMeta   `json:"inline"`
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   FrameworkSpec   `json:"spec,omitempty"`
@@ -51,7 +51,7 @@ type Framework struct {
 
 // FrameworkList contains a list of Framework
 type FrameworkList struct {
-	metav1.TypeMeta `json:"inline"`
+	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Framework `json:"items"`
 }
