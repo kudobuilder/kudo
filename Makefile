@@ -10,7 +10,7 @@ export GO111MODULE=on
 all: test manager
 
 # Run tests
-test: install
+test:
 	go test ./pkg/... ./cmd/... -mod=readonly -coverprofile cover.out
 
 # Clean test reports
@@ -45,9 +45,6 @@ manager-clean:
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run:
 	go run ./cmd/manager/main.go
-
-install:
-	go install -mod=readonly -v ./...
 
 install-crds:
 	kubectl apply -f config/crds
