@@ -4,20 +4,24 @@ TAG ?= latest
 IMG ?= kudobuilder/controller:${TAG}
 EXECUTABLE := manager
 CLI := kubectl-kudo
-export GO111MODULE = on
+
+export GO111MODULE=on
 
 all: test manager
 
 # Run tests
-test: generate fmt vet lint imports manifests
-	go test ./pkg/... ./cmd/... -coverprofile cover.out
+test: install
+	go test ./pkg/... ./cmd/... -mod=readonly -coverprofile cover.out
 
 # Clean test reports
 test-clean:
 	rm -f cover.out
 
-check-formatting: generate vet lint staticcheck
+check-formatting: vet lint staticcheck
 	./test/formatting.sh
+
+download:
+	go mod download
 
 prebuild: generate fmt vet
 
@@ -39,12 +43,11 @@ manager-clean:
 	rm -rf bin/windows/amd64/$(EXECUTABLE)
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet
+run:
 	go run ./cmd/manager/main.go
 
-# Install CRDs into a cluster
-install: manifests
-	kubectl apply -f config/crds
+install:
+	go install -mod=readonly -v ./...
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests

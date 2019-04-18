@@ -33,6 +33,8 @@ Before you get started:
 - `make all` to build project
 - [optionally] `make docker-build` to build docker images and `make docker-push` to push images
 
+When updating the structs under APIs, or any other code generated item, use `make generate` to generate the new DeepCopy structs. Use `make manifests` to generate out new YAML manifests representing these CRDs.
+
 ## Community, Discussion, and Support
 
 Learn how to engage with the Kubernetes community on the [community page](community page).
