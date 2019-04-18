@@ -35,6 +35,8 @@ Before you get started:
 
 When updating the structs under APIs, or any other code generated item, use `make generate` to generate the new DeepCopy structs. Use `make manifests` to generate out new YAML manifests representing these CRDs.
 
+After updating CRD manifests, use `make install-crds` to apply the new CRDs to your cluster.
+
 ## Community, Discussion, and Support
 
 Learn how to engage with the Kubernetes community on the [community page](community page).
