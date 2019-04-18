@@ -195,16 +195,6 @@ func GoBin() string {
 	return Get("GO_BIN", "go")
 }
 
-func InGoPath() bool {
-	pwd, _ := os.Getwd()
-	for _, p := range GoPaths() {
-		if strings.HasPrefix(pwd, p) {
-			return true
-		}
-	}
-	return false
-}
-
 // GoPaths returns all possible GOPATHS that are set.
 func GoPaths() []string {
 	gp := Get("GOPATH", "")
@@ -215,7 +205,6 @@ func GoPaths() []string {
 }
 
 func importPath(path string) string {
-	path = strings.TrimPrefix(path, "/private")
 	for _, gopath := range GoPaths() {
 		srcpath := filepath.Join(gopath, "src")
 		rel, err := filepath.Rel(srcpath, path)

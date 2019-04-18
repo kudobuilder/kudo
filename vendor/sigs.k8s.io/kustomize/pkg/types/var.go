@@ -17,14 +17,10 @@ limitations under the License.
 package types
 
 import (
-	"fmt"
-	"sort"
 	"strings"
 
 	"sigs.k8s.io/kustomize/pkg/gvk"
 )
-
-const defaultFieldPath = "metadata.name"
 
 // Var represents a variable whose value will be sourced
 // from a field in a Kubernetes object.
@@ -42,7 +38,7 @@ type Var struct {
 	// FieldRef refers to the field of the object referred to by
 	// ObjRef whose value will be extracted for use in
 	// replacing $(FOO).
-	// If unspecified, this defaults to fieldPath: $defaultFieldPath
+	// If unspecified, this defaults to fieldPath: metadata.name
 	FieldRef FieldSelector `json:"fieldref,omitempty" yaml:"fieldref,omitempty"`
 }
 
@@ -56,74 +52,18 @@ type Target struct {
 	Name       string `json:"name" yaml:"name"`
 }
 
-// FieldSelector contains the fieldPath to an object field.
+// FieldSelector contains the fieldPath to an object field, such as metadata.name
 // This struct is added to keep the backward compatibility of using ObjectFieldSelector
 // for Var.FieldRef
 type FieldSelector struct {
 	FieldPath string `json:"fieldPath,omitempty" yaml:"fieldPath,omitempty"`
 }
 
-// defaulting sets reference to field used by default.
-func (v *Var) defaulting() {
+// Defaulting sets reference to field used by default.
+func (v *Var) Defaulting() {
 	if v.FieldRef.FieldPath == "" {
-		v.FieldRef.FieldPath = defaultFieldPath
+		v.FieldRef.FieldPath = "metadata.name"
 	}
-}
-
-// VarSet is a slice of Vars where no var.Name is repeated.
-type VarSet struct {
-	set []Var
-}
-
-// Set returns the var set.
-func (vs *VarSet) Set() []Var {
-	return vs.set
-}
-
-// MergeSet absorbs other vars with error on name collision.
-func (vs *VarSet) MergeSet(incoming *VarSet) error {
-	return vs.MergeSlice(incoming.set)
-}
-
-// MergeSlice absorbs other vars with error on name collision.
-// Empty fields in incoming vars are defaulted.
-func (vs *VarSet) MergeSlice(incoming []Var) error {
-	for _, v := range incoming {
-		if vs.Contains(v) {
-			return fmt.Errorf(
-				"var %s already encountered", v.Name)
-		}
-		v.defaulting()
-		vs.insert(v)
-	}
-	return nil
-}
-
-func (vs *VarSet) insert(v Var) {
-	index := sort.Search(
-		len(vs.set),
-		func(i int) bool { return vs.set[i].Name > v.Name })
-	// make room
-	vs.set = append(vs.set, Var{})
-	// shift right at index.
-	// copy will not increase size of destination.
-	copy(vs.set[index+1:], vs.set[index:])
-	vs.set[index] = v
-}
-
-// Contains is true if the set has the other var.
-func (vs *VarSet) Contains(other Var) bool {
-	return vs.Get(other.Name) != nil
-}
-
-// Get returns the var with the given name, else nil.
-func (vs *VarSet) Get(name string) *Var {
-	for _, v := range vs.set {
-		if v.Name == name {
-			return &v
-		}
-	}
-	return nil
 }
 
 // GVK returns the Gvk object in Target

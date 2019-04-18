@@ -46,7 +46,7 @@ func (uc *unstructuredClient) Create(_ context.Context, obj runtime.Object) erro
 	if err != nil {
 		return err
 	}
-	i, err := r.Create(u, metav1.CreateOptions{})
+	i, err := r.Create(u)
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func (uc *unstructuredClient) Update(_ context.Context, obj runtime.Object) erro
 	if err != nil {
 		return err
 	}
-	i, err := r.Update(u, metav1.UpdateOptions{})
+	i, err := r.Update(u)
 	if err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func (uc *unstructuredClient) UpdateStatus(_ context.Context, obj runtime.Object
 	if err != nil {
 		return err
 	}
-	i, err := r.UpdateStatus(u, metav1.UpdateOptions{})
+	i, err := r.UpdateStatus(u)
 	if err != nil {
 		return err
 	}

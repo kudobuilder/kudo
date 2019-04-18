@@ -14,8 +14,6 @@ import (
 	"sync"
 	"time"
 	"unicode/utf8"
-
-	urn "github.com/leodido/go-urn"
 )
 
 // Func accepts a FieldLevel interface for all validation needs. The return
@@ -85,8 +83,6 @@ var (
 		"gtfield":          isGtField,
 		"ltefield":         isLteField,
 		"ltfield":          isLtField,
-		"fieldcontains":    fieldContains,
-		"fieldexcludes":    fieldExcludes,
 		"alpha":            isAlpha,
 		"alphanum":         isAlphanum,
 		"alphaunicode":     isAlphaUnicode,
@@ -102,7 +98,6 @@ var (
 		"email":            isEmail,
 		"url":              isURL,
 		"uri":              isURI,
-		"urn_rfc2141":      isUrnRFC2141, // RFC 2141
 		"file":             isFile,
 		"base64":           isBase64,
 		"base64url":        isBase64URL,
@@ -122,10 +117,6 @@ var (
 		"uuid3":            isUUID3,
 		"uuid4":            isUUID4,
 		"uuid5":            isUUID5,
-		"uuid_rfc4122":     isUUIDRFC4122,
-		"uuid3_rfc4122":    isUUID3RFC4122,
-		"uuid4_rfc4122":    isUUID4RFC4122,
-		"uuid5_rfc4122":    isUUID5RFC4122,
 		"ascii":            isASCII,
 		"printascii":       isPrintableASCII,
 		"multibyte":        hasMultiByteCharacter,
@@ -158,7 +149,6 @@ var (
 		"html":             isHTML,
 		"html_encoded":     isHTMLEncoded,
 		"url_encoded":      isURLEncoded,
-		"dir":              isDir,
 	}
 )
 
@@ -310,48 +300,12 @@ func isSSN(fl FieldLevel) bool {
 
 // IsLongitude is the validation function for validating if the field's value is a valid longitude coordinate.
 func isLongitude(fl FieldLevel) bool {
-	field := fl.Field()
-
-	var v string
-	switch field.Kind() {
-	case reflect.String:
-		v = field.String()
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		v = strconv.FormatInt(field.Int(), 10)
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		v = strconv.FormatUint(field.Uint(), 10)
-	case reflect.Float32:
-		v = strconv.FormatFloat(field.Float(), 'f', -1, 32)
-	case reflect.Float64:
-		v = strconv.FormatFloat(field.Float(), 'f', -1, 64)
-	default:
-		panic(fmt.Sprintf("Bad field type %T", field.Interface()))
-	}
-
-	return longitudeRegex.MatchString(v)
+	return longitudeRegex.MatchString(fl.Field().String())
 }
 
 // IsLatitude is the validation function for validating if the field's value is a valid latitude coordinate.
 func isLatitude(fl FieldLevel) bool {
-	field := fl.Field()
-
-	var v string
-	switch field.Kind() {
-	case reflect.String:
-		v = field.String()
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		v = strconv.FormatInt(field.Int(), 10)
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		v = strconv.FormatUint(field.Uint(), 10)
-	case reflect.Float32:
-		v = strconv.FormatFloat(field.Float(), 'f', -1, 32)
-	case reflect.Float64:
-		v = strconv.FormatFloat(field.Float(), 'f', -1, 64)
-	default:
-		panic(fmt.Sprintf("Bad field type %T", field.Interface()))
-	}
-
-	return latitudeRegex.MatchString(v)
+	return latitudeRegex.MatchString(fl.Field().String())
 }
 
 // IsDataURI is the validation function for validating if the field's value is a valid data URI.
@@ -410,26 +364,6 @@ func isUUID3(fl FieldLevel) bool {
 // IsUUID is the validation function for validating if the field's value is a valid UUID of any version.
 func isUUID(fl FieldLevel) bool {
 	return uUIDRegex.MatchString(fl.Field().String())
-}
-
-// IsUUID5RFC4122 is the validation function for validating if the field's value is a valid RFC4122 v5 UUID.
-func isUUID5RFC4122(fl FieldLevel) bool {
-	return uUID5RFC4122Regex.MatchString(fl.Field().String())
-}
-
-// IsUUID4RFC4122 is the validation function for validating if the field's value is a valid RFC4122 v4 UUID.
-func isUUID4RFC4122(fl FieldLevel) bool {
-	return uUID4RFC4122Regex.MatchString(fl.Field().String())
-}
-
-// IsUUID3RFC4122 is the validation function for validating if the field's value is a valid RFC4122 v3 UUID.
-func isUUID3RFC4122(fl FieldLevel) bool {
-	return uUID3RFC4122Regex.MatchString(fl.Field().String())
-}
-
-// IsUUIDRFC4122 is the validation function for validating if the field's value is a valid RFC4122 UUID of any version.
-func isUUIDRFC4122(fl FieldLevel) bool {
-	return uUIDRFC4122Regex.MatchString(fl.Field().String())
 }
 
 // IsISBN is the validation function for validating if the field's value is a valid v10 or v13 ISBN.
@@ -648,31 +582,6 @@ func containsAny(fl FieldLevel) bool {
 // Contains is the validation function for validating that the field's value contains the text specified within the param.
 func contains(fl FieldLevel) bool {
 	return strings.Contains(fl.Field().String(), fl.Param())
-}
-
-// FieldContains is the validation function for validating if the current field's value contains the field specified by the param's value.
-func fieldContains(fl FieldLevel) bool {
-	field := fl.Field()
-
-	currentField, _, ok := fl.GetStructFieldOK()
-
-	if !ok {
-		return false
-	}
-
-	return strings.Contains(field.String(), currentField.String())
-}
-
-// FieldExcludes is the validation function for validating if the current field's value excludes the field specified by the param's value.
-func fieldExcludes(fl FieldLevel) bool {
-	field := fl.Field()
-
-	currentField, _, ok := fl.GetStructFieldOK()
-	if !ok {
-		return true
-	}
-
-	return !strings.Contains(field.String(), currentField.String())
 }
 
 // IsNeField is the validation function for validating if the current field's value is not equal to the field specified by the param's value.
@@ -1163,24 +1072,6 @@ func isURL(fl FieldLevel) bool {
 		}
 
 		return err == nil
-	}
-
-	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
-}
-
-// isUrnRFC2141 is the validation function for validating if the current field's value is a valid URN as per RFC 2141.
-func isUrnRFC2141(fl FieldLevel) bool {
-	field := fl.Field()
-
-	switch field.Kind() {
-
-	case reflect.String:
-
-		str := field.String()
-
-		_, match := urn.Parse([]byte(str))
-
-		return match
 	}
 
 	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
@@ -1881,20 +1772,4 @@ func isFQDN(fl FieldLevel) bool {
 
 	return strings.ContainsAny(val, ".") &&
 		hostnameRegexRFC952.MatchString(val)
-}
-
-// IsDir is the validation function for validating if the current field's value is a valid directory.
-func isDir(fl FieldLevel) bool {
-	field := fl.Field()
-
-	if field.Kind() == reflect.String {
-		fileInfo, err := os.Stat(field.String())
-		if err != nil {
-			return false
-		}
-
-		return fileInfo.IsDir()
-	}
-
-	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
 }

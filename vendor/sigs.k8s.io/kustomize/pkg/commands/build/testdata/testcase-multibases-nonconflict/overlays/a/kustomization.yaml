@@ -1,0 +1,5 @@
+bases:
+- ../../base/
+
+namePrefix: a-
+nameSuffix: -suffixA

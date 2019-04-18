@@ -22,14 +22,13 @@ import (
 
 	"sigs.k8s.io/kustomize/pkg/ifc"
 	"sigs.k8s.io/kustomize/pkg/resid"
-	"sigs.k8s.io/kustomize/pkg/types"
 )
 
 // Resource is map representation of a Kubernetes API resource object
 // paired with a GenerationBehavior.
 type Resource struct {
 	ifc.Kunstructured
-	options *types.GenArgs
+	b ifc.GenerationBehavior
 }
 
 // String returns resource as JSON.
@@ -38,25 +37,23 @@ func (r *Resource) String() string {
 	if err != nil {
 		return "<" + err.Error() + ">"
 	}
-	return strings.TrimSpace(string(bs))
-}
-
-// DeepCopy returns a new copy of resource
-func (r *Resource) DeepCopy() *Resource {
-	return &Resource{
-		Kunstructured: r.Kunstructured.Copy(),
-		options:       r.options,
-	}
+	return r.b.String() + ":" + strings.TrimSpace(string(bs))
 }
 
 // Behavior returns the behavior for the resource.
-func (r *Resource) Behavior() types.GenerationBehavior {
-	return r.options.Behavior()
+func (r *Resource) Behavior() ifc.GenerationBehavior {
+	return r.b
 }
 
-// NeedAppendHash checks if the resource need a hash suffix
-func (r *Resource) NeedHashSuffix() bool {
-	return r.options != nil && r.options.NeedsHashSuffix()
+// SetBehavior changes the resource to the new behavior
+func (r *Resource) SetBehavior(b ifc.GenerationBehavior) *Resource {
+	r.b = b
+	return r
+}
+
+// IsGenerated checks if the resource is generated from a generator
+func (r *Resource) IsGenerated() bool {
+	return r.b != ifc.BehaviorUnspecified
 }
 
 // Id returns the ResId for the resource.
@@ -77,7 +74,6 @@ func (r *Resource) Replace(other *Resource) {
 	r.SetAnnotations(
 		mergeStringMaps(other.GetAnnotations(), r.GetAnnotations()))
 	r.SetName(other.GetName())
-	r.options = other.options
 }
 
 // TODO: Add BinaryData once we sync to new k8s.io/api

@@ -26,7 +26,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/appscode/jsonpatch"
+	"github.com/mattbaird/jsonpatch"
 
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
@@ -132,7 +132,6 @@ func (w *Webhook) handleMutating(ctx context.Context, req atypes.Request) atypes
 	for _, handler := range w.Handlers {
 		resp := handler.Handle(ctx, req)
 		if !resp.Response.Allowed {
-			setStatusOKInAdmissionResponse(resp.Response)
 			return resp
 		}
 		if resp.Response.PatchType != nil && *resp.Response.PatchType != admissionv1beta1.PatchTypeJSONPatch {
@@ -149,10 +148,7 @@ func (w *Webhook) handleMutating(ctx context.Context, req atypes.Request) atypes
 	}
 	return atypes.Response{
 		Response: &admissionv1beta1.AdmissionResponse{
-			Allowed: true,
-			Result: &metav1.Status{
-				Code: http.StatusOK,
-			},
+			Allowed:   true,
 			Patch:     marshaledPatch,
 			PatchType: func() *admissionv1beta1.PatchType { pt := admissionv1beta1.PatchTypeJSONPatch; return &pt }(),
 		},
@@ -163,29 +159,13 @@ func (w *Webhook) handleValidating(ctx context.Context, req atypes.Request) atyp
 	for _, handler := range w.Handlers {
 		resp := handler.Handle(ctx, req)
 		if !resp.Response.Allowed {
-			setStatusOKInAdmissionResponse(resp.Response)
 			return resp
 		}
 	}
 	return atypes.Response{
 		Response: &admissionv1beta1.AdmissionResponse{
 			Allowed: true,
-			Result: &metav1.Status{
-				Code: http.StatusOK,
-			},
 		},
-	}
-}
-
-func setStatusOKInAdmissionResponse(resp *admissionv1beta1.AdmissionResponse) {
-	if resp == nil {
-		return
-	}
-	if resp.Result == nil {
-		resp.Result = &metav1.Status{}
-	}
-	if resp.Result.Code == 0 {
-		resp.Result.Code = http.StatusOK
 	}
 }
 

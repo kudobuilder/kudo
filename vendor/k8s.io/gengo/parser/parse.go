@@ -403,7 +403,7 @@ func (b *Builder) typeCheckPackage(pkgPath importPathString) (*tc.Package, error
 	}
 	parsedFiles, ok := b.parsed[pkgPath]
 	if !ok {
-		return nil, fmt.Errorf("No files for pkg %q", pkgPath)
+		return nil, fmt.Errorf("No files for pkg %q: %#v", pkgPath, b.parsed)
 	}
 	files := make([]*ast.File, len(parsedFiles))
 	for i := range parsedFiles {

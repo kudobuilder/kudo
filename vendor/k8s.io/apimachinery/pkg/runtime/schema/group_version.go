@@ -66,7 +66,7 @@ func (gr GroupResource) Empty() bool {
 	return len(gr.Group) == 0 && len(gr.Resource) == 0
 }
 
-func (gr GroupResource) String() string {
+func (gr *GroupResource) String() string {
 	if len(gr.Group) == 0 {
 		return gr.Resource
 	}
@@ -85,10 +85,11 @@ func ParseGroupKind(gk string) GroupKind {
 // ParseGroupResource turns "resource.group" string into a GroupResource struct.  Empty strings are allowed
 // for each field.
 func ParseGroupResource(gr string) GroupResource {
-	if i := strings.Index(gr, "."); i >= 0 {
+	if i := strings.Index(gr, "."); i == -1 {
+		return GroupResource{Resource: gr}
+	} else {
 		return GroupResource{Group: gr[i+1:], Resource: gr[:i]}
 	}
-	return GroupResource{Resource: gr}
 }
 
 // GroupVersionResource unambiguously identifies a resource.  It doesn't anonymously include GroupVersion
@@ -111,7 +112,7 @@ func (gvr GroupVersionResource) GroupVersion() GroupVersion {
 	return GroupVersion{Group: gvr.Group, Version: gvr.Version}
 }
 
-func (gvr GroupVersionResource) String() string {
+func (gvr *GroupVersionResource) String() string {
 	return strings.Join([]string{gvr.Group, "/", gvr.Version, ", Resource=", gvr.Resource}, "")
 }
 
@@ -130,7 +131,7 @@ func (gk GroupKind) WithVersion(version string) GroupVersionKind {
 	return GroupVersionKind{Group: gk.Group, Version: version, Kind: gk.Kind}
 }
 
-func (gk GroupKind) String() string {
+func (gk *GroupKind) String() string {
 	if len(gk.Group) == 0 {
 		return gk.Kind
 	}
@@ -281,8 +282,8 @@ func bestMatch(kinds []GroupVersionKind, targets []GroupVersionKind) GroupVersio
 
 // ToAPIVersionAndKind is a convenience method for satisfying runtime.Object on types that
 // do not use TypeMeta.
-func (gvk GroupVersionKind) ToAPIVersionAndKind() (string, string) {
-	if gvk.Empty() {
+func (gvk *GroupVersionKind) ToAPIVersionAndKind() (string, string) {
+	if gvk == nil {
 		return "", ""
 	}
 	return gvk.GroupVersion().String(), gvk.Kind

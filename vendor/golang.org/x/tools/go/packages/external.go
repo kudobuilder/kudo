@@ -18,7 +18,8 @@ import (
 
 // Driver
 type driverRequest struct {
-	Command    string            `json "command"`
+	// TODO(matloob): Add a "command" option, so the "list" argument
+	// to the command is instead supplied in the driverRequest?
 	Mode       LoadMode          `json:"mode"`
 	Env        []string          `json:"env"`
 	BuildFlags []string          `json:"build_flags"`
@@ -26,7 +27,7 @@ type driverRequest struct {
 	Overlay    map[string][]byte `json:"overlay"`
 }
 
-// findExternalDriver returns the file path of a tool that supplies
+// findExternalTool returns the file path of a tool that supplies
 // the build system package structure, or "" if not found."
 // If GOPACKAGESDRIVER is set in the environment findExternalTool returns its
 // value, otherwise it searches for a binary named gopackagesdriver on the PATH.
