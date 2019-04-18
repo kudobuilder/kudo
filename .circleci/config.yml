@@ -6,7 +6,7 @@ jobs:
   branch-formatting:
     docker:
       # specify the version
-      - image: kudobuilder/golang:1.11
+      - image: kudobuilder/golang:1.12
 
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
@@ -34,7 +34,7 @@ jobs:
 
   merge-formatting:
     docker:
-      - image: kudobuilder/golang:1.11
+      - image: kudobuilder/golang:1.12
     working_directory: /go/src/github.com/kudobuilder/kudo
     steps:
       - checkout
