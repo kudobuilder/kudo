@@ -1,8 +1,0 @@
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/sdboyer/deptest"
-
-[prune]
-  go-tests = true
-  unused-packages = true
