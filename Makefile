@@ -4,6 +4,7 @@ TAG ?= latest
 IMG ?= kudobuilder/controller:${TAG}
 EXECUTABLE := manager
 CLI := kubectl-kudo
+export GO111MODULE = on
 
 all: test manager
 
@@ -79,7 +80,7 @@ staticcheck:
 # Run go imports against code
 imports:
 	go install golang.org/x/tools/cmd/goimports
-	goimports ./pkg/ ./cmd/
+	goimports -w ./pkg/ ./cmd/
 
 # Generate code
 generate:
