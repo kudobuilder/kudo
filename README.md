@@ -73,7 +73,7 @@ To run CLI: `kubectl kudo`
   * [staticcheck](https://github.com/dominikh/go-tools#installation)
   * [kubebuilder](https://book.kubebuilder.io/getting_started/installation_and_setup.html)
 
-Tools are located in `tools.go` to pin their versions. Refer to (https://github.com/go-modules-by-example/index/blob/ac9bf72/010_tools/README.md)[https://github.com/go-modules-by-example/index/blob/ac9bf72/010_tools/README.md] for more information. The Makefile will automatically `go install` the required tools before they are installed, using the versions specified by the module.
+Tools are located in `tools.go` in order to pin their versions. Refer to (https://github.com/go-modules-by-example/index/blob/ac9bf72/010_tools/README.md)[https://github.com/go-modules-by-example/index/blob/ac9bf72/010_tools/README.md] for more information. The Makefile will automatically `go install` the required tools before they are installed, using the versions specified by the module.
 
 ## Concepts
 - *Framework*: High-level description of a deployable application (e.g., Apache Kafka)
