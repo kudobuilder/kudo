@@ -45,7 +45,7 @@ Before you get started:
   * `lint` in $PATH which is provided by having `$GOPATH\bin` in `$PATH` as in `export PATH=$GOPATH/bin:$PATH`.
 
 ## Running the Operator
-In order to run KUDO CRDs must be installed. `make install` or `make manifests` will install the CRDs which can be confirmed with `kubectl get crds` resulting in something looking like:
+In order to run KUDO CRDs must be installed. `make install-crds` will install the CRDs which can be confirmed with `kubectl get crds` resulting in something looking like:
 
 ```
   $ kubectl get crds
@@ -55,6 +55,8 @@ In order to run KUDO CRDs must be installed. `make install` or `make manifests` 
   instances.kudo.k8s.io           2019-04-12T19:50:18Z
   planexecutions.kudo.k8s.io      2019-04-12T19:50:18Z
 ```
+
+To update code generation and these manifests after an API object change, run `make generate` and `make manifests`.
 
 To run operator: `make run`
 
@@ -71,7 +73,7 @@ To run CLI: `kubectl kudo`
   * [staticcheck](https://github.com/dominikh/go-tools#installation)
   * [kubebuilder](https://book.kubebuilder.io/getting_started/installation_and_setup.html)
 
-Tools are located in `tools.go` to pin their versions. Refer to (https://github.com/go-modules-by-example/index/blob/ac9bf72/010_tools/README.md)[https://github.com/go-modules-by-example/index/blob/ac9bf72/010_tools/README.md] for more information.
+Tools are located in `tools.go` to pin their versions. Refer to (https://github.com/go-modules-by-example/index/blob/ac9bf72/010_tools/README.md)[https://github.com/go-modules-by-example/index/blob/ac9bf72/010_tools/README.md] for more information. The Makefile will automatically `go install` the required tools before they are installed, using the versions specified by the module.
 
 ## Concepts
 - *Framework*: High-level description of a deployable application (e.g., Apache Kafka)
