@@ -203,7 +203,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		},
 		//New Instances should have Deploy called
 		CreateFunc: func(e event.CreateEvent) bool {
-			log.Printf("InstanceController: Recieved create event for an instance named: %v", e.Meta.GetName())
+			log.Printf("InstanceController: Received create event for an instance named: %v", e.Meta.GetName())
 			new := e.Object.(*kudov1alpha1.Instance)
 
 			//get the new FrameworkVersion object
@@ -225,8 +225,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				return false
 			}
 			planName := "deploy"
-			ok := false
-			_, ok = fv.Spec.Plans[planName]
+
+			_, ok := fv.Spec.Plans[planName]
 			if !ok {
 				log.Println("InstanceController: Could not find deploy plan")
 				return false
@@ -239,7 +239,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			return err == nil
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			log.Printf("InstanceController: Recieved delete event for an instance named: %v", e.Meta.GetName())
+			log.Printf("InstanceController: Received delete event for an instance named: %v", e.Meta.GetName())
 			return true
 		},
 	}
