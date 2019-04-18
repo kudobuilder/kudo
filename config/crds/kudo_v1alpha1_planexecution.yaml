@@ -14,8 +14,10 @@ spec:
   validation:
     openAPIV3Schema:
       properties:
-        inline:
-          type: object
+        apiVersion:
+          type: string
+        kind:
+          type: string
         metadata:
           type: object
         spec:
@@ -63,8 +65,6 @@ spec:
             strategy:
               type: string
           type: object
-      required:
-      - inline
   version: v1alpha1
 status:
   acceptedNames:
