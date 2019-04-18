@@ -28,6 +28,8 @@ Also, any Framework will have a `Task` in the `deploy` plan to create similar Ku
 
 A Skeleton generator could create `yaml` templates with the common `Plans`, `Phases`, `Steps` and `Tasks`.
 
+This generator should be part of the KUDO CLI.
+
 With the new proposed approach based on dynamic CRDs, these elements will be defined in separated `yaml` files, so it will be even easier to create a Skeleton generator with a clear directory structure.
 
 ## Motivation
