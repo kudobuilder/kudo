@@ -49,6 +49,9 @@ run:
 install:
 	go install -mod=readonly -v ./...
 
+install-crds:
+	kubectl apply -f config/crds
+
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests
 	kubectl apply -f config/crds
