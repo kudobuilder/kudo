@@ -226,8 +226,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			}
 			planName := "deploy"
 
-			_, ok := fv.Spec.Plans[planName]
-			if !ok {
+			if _, ok := fv.Spec.Plans[planName]; !ok {
 				log.Println("InstanceController: Could not find deploy plan")
 				return false
 			}
