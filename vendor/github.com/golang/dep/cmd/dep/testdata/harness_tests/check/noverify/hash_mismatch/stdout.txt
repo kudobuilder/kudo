@@ -1,2 +1,0 @@
-# out of sync, but ignored, due to noverify in Gopkg.toml:
-github.com/sdboyer/deptest: hash of vendored tree not equal to digest in Gopkg.lock

@@ -10,8 +10,7 @@ weight: 1
 
 Before you get started:
 
-- Install Go `1.11` or later
-- Latest version of `dep`
+- Install Go `1.12` or later
 - Kubernetes Cluster `1.12` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
 - [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) with version `1.12` or later
 - [Install Kustomize](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md) with version `2.0.3` or later
@@ -20,7 +19,7 @@ Before you get started:
 
 - Get KUDO repo: `go get github.com/kudobuilder/kudo/`
 - `cd $GOPATH/src/github.com/kudobuilder/kudo`
-- `make install` to deploy universal CRDs
+- `make install-crds` to deploy universal CRDs
 - `make run` to run the Operator with local go environment
 
 **Before** `make install` you will need to have:
@@ -38,4 +37,4 @@ The username is your GitHub user name and the credential is your password. If yo
 
 ## Deploy your first Application
 
-Follow the instructions in the [Apache Kafka example](/docs/examples/apache-kafka/) to deploy a Kafka cluster along with its dependency Zookeeper.
+Follow the instructions in the [Apache Kafka example](/docs/examples/apache-kafka.md) to deploy a Kafka cluster along with its dependency Zookeeper.

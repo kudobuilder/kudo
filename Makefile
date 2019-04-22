@@ -12,28 +12,33 @@ SOURCE_DATE_EPOCH := $(shell git show -s --format=format:%ct HEAD)
 BUILD_DATE_PATH := github.com/kudobuilder/kudo/pkg/version.buildDate
 BUILD_DATE := $(shell date -r ${SOURCE_DATE_EPOCH} '+%Y-%m-%dT%H:%M:%SZ')
 
+export GO111MODULE=on
+
+.PHONY: all
 all: test manager
 
-deps:
-	go install github.com/kudobuilder/kudo/vendor/github.com/golang/dep/cmd/dep
-	dep check -skip-vendor
-	go install github.com/kudobuilder/kudo/vendor/golang.org/x/tools/cmd/goimports
-	go install github.com/kudobuilder/kudo/vendor/golang.org/x/lint/golint
-	go get -u honnef.co/go/tools/cmd/staticcheck
-
+.PHONY: test
 # Run tests
-test: generate deps fmt vet lint imports manifests
-	go test ./pkg/... ./cmd/... -coverprofile cover.out
+test:
+	go test ./pkg/... ./cmd/... -mod=readonly -coverprofile cover.out
 
+.PHONY: test-clean
 # Clean test reports
 test-clean:
 	rm -f cover.out
 
-check-formatting: generate deps vet lint staticcheck
-	./test/formatting.sh
+.PHONY: check-formatting
+check-formatting: vet lint staticcheck
+	./hack/check_formatting.sh
 
+.PHONY: download
+download:
+	go mod download
+
+.PHONY: prebuild
 prebuild: generate fmt vet
 
+.PHONY: manager
 # Build manager binary
 manager: prebuild
 	# developer convince for platform they are running
@@ -56,6 +61,7 @@ manager: prebuild
                                        -X ${BUILD_DATE_PATH}=${BUILD_DATE}" \
                                        -o bin/windows/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
 
+.PHONY: manager-clean
 # Clean manager build
 manager-clean:
 	rm -f bin/manager
@@ -63,55 +69,67 @@ manager-clean:
 	rm -rf bin/linux/amd64/$(EXECUTABLE)
 	rm -rf bin/windows/amd64/$(EXECUTABLE)
 
+.PHONY: run
 # Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet
+run:
 	go run -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
                      -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
                      -X ${BUILD_DATE_PATH}=${BUILD_DATE}" ./cmd/manager/main.go
 
-# Install CRDs into a cluster
-install: manifests
+.PHONY: install-crds
+install-crds:
 	kubectl apply -f config/crds
 
+.PHONY: deploy
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests
 	kubectl apply -f config/crds
 	kustomize build config/default | kubectl apply -f -
 
+.PHONY: deploy-clean
 deploy-clean:
 	kubectl delete -f config/crds
 	# kustomize build config/default | kubectl delete -f -
 
+.PHONY: manifests
 # Generate manifests e.g. CRD, RBAC etc.
 manifests:
-	# controller-gen/main.go all == [rbac, crd]
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go rbac --output-dir=config/default/rbac
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd
+	./hack/update_manifests.sh
 
+.PHONY: fmt
 # Run go fmt against code
 fmt:
 	go fmt ./pkg/... ./cmd/...
 
+.PHONY: vet
 # Run go vet against code
 vet:
 	go vet ./pkg/... ./cmd/...
 
+.PHONY: lint
 # Run go lint against code
 lint:
+	go install golang.org/x/lint/golint
 	golint ./pkg/... ./cmd/...
 
+.PHONY: staticcheck
 # Runs static check
 staticcheck:
+	go install honnef.co/go/tools/cmd/staticcheck
 	staticcheck ./...
 
+.PHONY: imports
 # Run go imports against code
 imports:
-	goimports ./pkg/ ./cmd/
+	go install golang.org/x/tools/cmd/goimports
+	goimports -w ./pkg/ ./cmd/
 
+.PHONY: generate
 # Generate code
 generate:
-	go generate ./pkg/... ./cmd/...
+	./hack/update_codegen.sh
 
+.PHONY: cli
 # Build CLI
 cli: prebuild
 	# developer convince for platform they are running
@@ -134,6 +152,7 @@ cli: prebuild
                                         -X ${BUILD_DATE_PATH}=${BUILD_DATE}" \
                                         -o bin/windows/${CLI} cmd/kubectl-kudo/main.go
 
+.PHONY: cli-clean
 # Clean CLI build
 cli-clean:
 	rm -f bin/${CLI}
@@ -147,12 +166,14 @@ cli-install:
                          -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
                          -X ${BUILD_DATE_PATH}=${BUILD_DATE}" ./cmd/kubectl-kudo
 
+.PHONY: clean
 # Clean all
 clean:  cli-clean test-clean manager-clean deploy-clean
 	rm -rf bin/darwin
 	rm -rf bin/linux
 	rm -rf bin/windows
 
+.PHONY: docker-build
 # Build the docker image
 docker-build: generate fmt vet manifests
 	docker build --build-arg git_version_arg=${GIT_VERSION_PATH}=${GIT_VERSION} \
@@ -163,6 +184,7 @@ docker-build: generate fmt vet manifests
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"${DOCKER_IMG}:${GIT_VERSION}"'@' ./config/default/manager_image_patch.yaml
 
+.PHONY: docker-push
 # Push the docker image
 docker-push:
 	docker push ${DOCKER_IMG}:${DOCKER_TAG}
