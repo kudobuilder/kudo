@@ -14,6 +14,7 @@ var (
 		kubectl kudo version`
 )
 
+// NewVersionCMD returns a new initialized instance of the version sub command
 func NewVersionCmd() *cobra.Command {
 	versionCmd := &cobra.Command{
 		Use:          "version",
@@ -32,6 +33,7 @@ func NewVersionCmd() *cobra.Command {
 	return versionCmd
 }
 
+// VersionCMD performs the version sub command
 func VersionCmd(cmd *cobra.Command, args []string) error {
 	kudoVersion := version.Get()
 	fmt.Printf("KUDO Version: %s\n", fmt.Sprintf("%#v", kudoVersion))

@@ -11,6 +11,7 @@ GIT_COMMIT := $(shell git rev-parse HEAD)
 SOURCE_DATE_EPOCH := $(shell git show -s --format=format:%ct HEAD)
 BUILD_DATE_PATH := github.com/kudobuilder/kudo/pkg/version.buildDate
 BUILD_DATE := $(shell date -r ${SOURCE_DATE_EPOCH} '+%Y-%m-%dT%H:%M:%SZ')
+LDFLAGS := -X ${GIT_VERSION_PATH}=${GIT_VERSION} -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} -X ${BUILD_DATE_PATH}=${BUILD_DATE}
 
 export GO111MODULE=on
 
@@ -42,24 +43,12 @@ prebuild: generate fmt vet
 # Build manager binary
 manager: prebuild
 	# developer convince for platform they are running
-	go build -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
-                -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
-                -X ${BUILD_DATE_PATH}=${BUILD_DATE}" \
-                -o bin/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
+	go build -ldflags "${LDFLAGS}" -o bin/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
 
 	# platforms for distribution
-	GOARCH=amd64 GOOS=darwin go build -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
-                                        -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
-                                        -X ${BUILD_DATE_PATH}=${BUILD_DATE}" \
-                                        -o bin/darwin/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
-	GOARCH=amd64 GOOS=linux go build -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
-                                     -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
-                                     -X ${BUILD_DATE_PATH}=${BUILD_DATE}" \
-                                     -o bin/linux/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
-	GOARCH=amd64 GOOS=windows go build -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
-                                       -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
-                                       -X ${BUILD_DATE_PATH}=${BUILD_DATE}" \
-                                       -o bin/windows/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
+	GOARCH=amd64 GOOS=darwin go build -ldflags "${LDFLAGS}" -o bin/darwin/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
+	GOARCH=amd64 GOOS=linux go build -ldflags "${LDFLAGS}" -o bin/linux/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
+	GOARCH=amd64 GOOS=windows go build -ldflags "${LDFLAGS}"-o bin/windows/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
 
 .PHONY: manager-clean
 # Clean manager build
@@ -72,9 +61,7 @@ manager-clean:
 .PHONY: run
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run:
-	go run -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
-                     -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
-                     -X ${BUILD_DATE_PATH}=${BUILD_DATE}" ./cmd/manager/main.go
+	go run -ldflags "${LDFLAGS}" ./cmd/manager/main.go
 
 .PHONY: install-crds
 install-crds:
@@ -133,24 +120,12 @@ generate:
 # Build CLI
 cli: prebuild
 	# developer convince for platform they are running
-	go build -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
-              -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
-              -X ${BUILD_DATE_PATH}=${BUILD_DATE}" \
-              -o bin/${CLI} cmd/kubectl-kudo/main.go
+	go build -ldflags "${LDFLAGS}" -o bin/${CLI} cmd/kubectl-kudo/main.go
 
 	# platforms for distribution
-	GOARCH=amd64 GOOS=darwin go build -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
-                                       -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
-                                       -X ${BUILD_DATE_PATH}=${BUILD_DATE}" \
-                                       -o bin/darwin/amd64/${CLI} cmd/kubectl-kudo/main.go
-	GOARCH=amd64 GOOS=linux go build -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
-                                      -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
-                                      -X ${BUILD_DATE_PATH}=${BUILD_DATE}" \
-                                      -o bin/linux/amd64/${CLI} cmd/kubectl-kudo/main.go
-	GOARCH=amd64 GOOS=windows go build -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
-                                        -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
-                                        -X ${BUILD_DATE_PATH}=${BUILD_DATE}" \
-                                        -o bin/windows/${CLI} cmd/kubectl-kudo/main.go
+	GOARCH=amd64 GOOS=darwin go build -ldflags "${LDFLAGS}" -o bin/darwin/amd64/${CLI} cmd/kubectl-kudo/main.go
+	GOARCH=amd64 GOOS=linux go build -ldflags "${LDFLAGS}" -o bin/linux/amd64/${CLI} cmd/kubectl-kudo/main.go
+	GOARCH=amd64 GOOS=windows go build -ldflags "${LDFLAGS}" -o bin/windows/${CLI} cmd/kubectl-kudo/main.go
 
 .PHONY: cli-clean
 # Clean CLI build
@@ -162,9 +137,7 @@ cli-clean:
 
 # Install CLI
 cli-install:
-	go install -ldflags "-X ${GIT_VERSION_PATH}=${GIT_VERSION} \
-                         -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} \
-                         -X ${BUILD_DATE_PATH}=${BUILD_DATE}" ./cmd/kubectl-kudo
+	go install -ldflags "${LDFLAGS}" ./cmd/kubectl-kudo
 
 .PHONY: clean
 # Clean all

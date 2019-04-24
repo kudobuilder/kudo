@@ -11,6 +11,7 @@ package version
 // strange. They are modified on the fly by the build process. The
 // in-tree values are dummy values used for "git archive", which also
 // works for GitHub tar downloads.
+
 var (
 	// semantic version, derived by build scripts (see
 	// https://github.com/kubernetes/community/blob/master/contributors/design-proposals/release/versioning.md
