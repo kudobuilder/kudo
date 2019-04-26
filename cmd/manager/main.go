@@ -16,7 +16,10 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"os"
+
+	"github.com/kudobuilder/kudo/pkg/version"
 
 	"github.com/kudobuilder/kudo/pkg/apis"
 	"github.com/kudobuilder/kudo/pkg/controller"
@@ -31,6 +34,9 @@ import (
 func main() {
 	logf.SetLogger(logf.ZapLogger(false))
 	log := logf.Log.WithName("entrypoint")
+
+	// Get version of KUDO
+	log.Info(fmt.Sprintf("KUDO Version: %s", fmt.Sprintf("%#v", version.Get())))
 
 	// Get a config to talk to the apiserver
 	log.Info("setting up client for manager")
