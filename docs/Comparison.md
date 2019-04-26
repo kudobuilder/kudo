@@ -65,13 +65,12 @@ It should be easy to convert a Helm chart into a FrameworkVersion since we can j
 
 ## Comparison Table
 
-
-| Project | Definition Language |Uses CRDs |  Dependencies | Multi Step |  Parameters |  Custom Lifecycles | Install Component| App Repo|
-|---------|----|-------|-----------|--|-------------------|--------------|--| --|
-|Raw Yaml |YAML| No | No | No | No | No| No | No|
-|Helm 3 | Lua | No | Yes | No | Yes | Yes | CLI | Yes |
-|Helm 2|  Also lua? |No | ?? | No | Yes | No | CLI + Tiller | Yes|
-| ksonnet|  jsonnet/libsonnet | No | ?? | No | Yes | ?? | CLI| No |
-| OpenShift Templates| yaml| No | No | No | Yes | No | Just Openshift....| No |
-| Kustomize | yaml | No | No | Yes | No | No| CLI| No|
-|KUDO| Yaml + Kustomize | Yes | Yes | Yes |Yes | Yes | Yes | Yes|
+| Project | Definition Language | Uses CRDs | Dependencies | Multi Step | Parameters | Custom Lifecycles | Install Component | App Repo |
+|--------:|:-------------------:|---------:|--------------:|-----------:|:-----------:|-------------------:|:----------------:|--------:|
+| **Raw Yaml** | YAML | No | No | No | No | No | No | No |
+| **Helm 3** | Lua | No | Yes | No | Yes | Yes | CLI | Yes |
+| **Helm 2** | Also Lua? | No | ?? | No | Yes | No | CLI + Tiller | Yes |
+| **ksonnet** | jsonnet/libsonnet | No | ?? | No | Yes | ?? | CLI | No |
+| **OpenShift Templates** | yaml | No | No | No | Yes | No | Openshift | No |
+| **Kustomize** | YAML | No | No | Yes | No | No| CLI | No |
+| **KUDO** | YAML + Kustomize | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
