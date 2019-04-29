@@ -10,10 +10,10 @@
 # In this example, @doctocat owns any files in the build/logs
 # directory at the root of the repository and any of its
 # subdirectories.
-/pkg/apis/ @gerred @runyontr
-/pkg/client/ @fabianbaier
-/pkg/controller/ @gerred @runyontr
-/pkg/kudoctl/ @fabianbaier
-/pkg/util/ @gerred @runyontr
-/pkg/webhook/ @gerred @runyontr
+/pkg/apis/ @gerred @runyontr @kensipe
+/pkg/client/ @fabianbaier @kensipe
+/pkg/controller/ @gerred @runyontr @kensipe
+/pkg/kudoctl/ @fabianbaier @kensipe
+/pkg/util/ @gerred @runyontr @kensipe
+/pkg/webhook/ @gerred @runyontr @kensipe
 /site/ @guenter
