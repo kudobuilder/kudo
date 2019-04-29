@@ -37,7 +37,7 @@ download:
 	go mod download
 
 .PHONY: prebuild
-prebuild: generate fmt vet
+prebuild: generate check-formatting
 
 .PHONY: manager
 # Build manager binary
@@ -83,6 +83,10 @@ deploy-clean:
 manifests:
 	./hack/update_manifests.sh
 
+.PHONY: manifests-clean
+manifests-clean:
+	rm -rf hack/controller-gen
+
 .PHONY: fmt
 # Run go fmt against code
 fmt:
@@ -116,6 +120,10 @@ imports:
 generate:
 	./hack/update_codegen.sh
 
+.PHONY: generate-clean
+generate-clean:
+	rm -rf hack/code-gen
+
 .PHONY: cli
 # Build CLI
 cli: prebuild
@@ -148,7 +156,7 @@ clean:  cli-clean test-clean manager-clean deploy-clean
 
 .PHONY: docker-build
 # Build the docker image
-docker-build: generate fmt vet manifests
+docker-build: generate check-formatting manifests
 	docker build --build-arg git_version_arg=${GIT_VERSION_PATH}=${GIT_VERSION} \
 	--build-arg git_commit_arg=${GIT_COMMIT_PATH}=${GIT_COMMIT} \
 	--build-arg build_date_arg=${BUILD_DATE_PATH}=${BUILD_DATE} . -t ${DOCKER_IMG}:${DOCKER_TAG}

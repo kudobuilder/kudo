@@ -1,7 +1,8 @@
 ### Project specific
 bin/
 vendor/
-
+hack/code-gen
+hack/controller-gen
 
 ### mac
 .DS_Store
