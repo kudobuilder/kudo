@@ -11,9 +11,9 @@
 # directory at the root of the repository and any of its
 # subdirectories.
 /pkg/apis/ @gerred @runyontr @kensipe
-/pkg/client/ @fabianbaier
+/pkg/client/ @fabianbaier @kensipe
 /pkg/controller/ @gerred @runyontr @kensipe
-/pkg/kudoctl/ @fabianbaier
+/pkg/kudoctl/ @fabianbaier @kensipe
 /pkg/util/ @gerred @runyontr @kensipe
 /pkg/webhook/ @gerred @runyontr @kensipe
 /site/ @guenter
