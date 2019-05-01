@@ -95,11 +95,9 @@ func listInstances() ([]string, error) {
 		return nil, err
 	}
 
-	mInstObj, err := instObj.MarshalJSON()
+	mInstObj, _ := instObj.MarshalJSON()
 
 	instance := kudov1alpha1.InstanceList{}
-
-	//log.Println(instObj)
 
 	err = json.Unmarshal(mInstObj, &instance)
 	if err != nil {

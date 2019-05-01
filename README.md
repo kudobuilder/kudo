@@ -16,10 +16,15 @@ See the [Documentation](docs) with [Examples](config/samples).
 
 Before you get started:
 
-- Install Go `1.11` or later
-- Latest version of `dep`
-- Kubernetes Cluster `1.12` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
-- [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) with version `1.12` or later
+- Install Go `1.12.3` or later
+- This project uses [Go Modules](https://github.com/golang/go/wiki/Modules). Set `GO111MODULE=on` in your environment.
+- Kubernetes Cluster `1.13` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
+- [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) with version `1.13` or later
+- [Install Kustomize](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md) with version `2.0.3` or later
+
+## Go Modules
+
+> ⚠️ This project uses Go Modules. Due to the current state of code generation in [controller-tools](https://github.com/kubernetes-sigs/controller-tools) and [code-generator](https://github.com/kubernetes/code-generator), KUDO currently **must** be cloned into its `$GOPATH`-based location.
 
 ## Installation Instructions
 
@@ -36,8 +41,39 @@ Before you get started:
   * `git clone git@github.com:kudobuilder/kudo.git`
 2. **Before** `make install` you will need to have:
   * minikube running (some of the tests run against it)
-  * `~/.git-credentials` must exist with git credentials. If you are using two-factor auth you will need a create a [personal access token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
+  * `~/.git-credentials` must [exist with git credentials](https://kudo.dev/docs/getting-started#setting-up-github-credentials).
   * `lint` in $PATH which is provided by having `$GOPATH\bin` in `$PATH` as in `export PATH=$GOPATH/bin:$PATH`.
+
+## Running the Operator
+In order to run KUDO CRDs must be installed. `make install-crds` will install the CRDs which can be confirmed with `kubectl get crds` resulting in something looking like:
+
+```
+  $ kubectl get crds
+  NAME                            CREATED AT
+  frameworks.kudo.k8s.io          2019-04-12T19:50:18Z
+  frameworkversions.kudo.k8s.io   2019-04-12T19:50:18Z
+  instances.kudo.k8s.io           2019-04-12T19:50:18Z
+  planexecutions.kudo.k8s.io      2019-04-12T19:50:18Z
+```
+
+To update code generation and these manifests after an API object change, run `make generate` and `make manifests`.
+
+To run operator: `make run`
+
+## Running the CLI
+
+* To create CLI: `make cli`
+* ensure `$GOPATH/src/github.com/kudobuilder/kudo/bin` is in your `PATH`
+
+To run CLI: `kubectl kudo`
+
+## Useful Tools
+  * [goimports](https://godoc.org/golang.org/x/tools/cmd/goimports)
+  * [golint](https://github.com/golang/lint)
+  * [staticcheck](https://github.com/dominikh/go-tools#installation)
+  * [kubebuilder](https://book.kubebuilder.io/getting_started/installation_and_setup.html)
+
+Tools are located in `tools.go` in order to pin their versions. Refer to (https://github.com/go-modules-by-example/index/blob/ac9bf72/010_tools/README.md)[https://github.com/go-modules-by-example/index/blob/ac9bf72/010_tools/README.md] for more information. The Makefile will automatically `go install` the required tools before they are installed, using the versions specified by the module.
 
 ## Concepts
 - *Framework*: High-level description of a deployable application (e.g., Apache Kafka)
@@ -53,7 +89,7 @@ $ kubectl apply -f https://raw.githubusercontent.com/kudobuilder/frameworks/mast
 framework.kudo.k8s.io/zookeeper created
 ```
 
-Create a `FrameworkVersion` for the Zookeeper  `Framework`
+Create a `FrameworkVersion` for the Zookeeper `Framework`
 
 ```bash
 $ kubectl apply -f https://raw.githubusercontent.com/kudobuilder/frameworks/master/repo/stable/zookeeper/versions/0/zookeeper-frameworkversion.yaml

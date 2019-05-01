@@ -44,8 +44,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-const basePath = "/kustomize"
-
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
 * business logic.  Delete these comments after modifying this file.*
@@ -205,7 +203,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		},
 		//New Instances should have Deploy called
 		CreateFunc: func(e event.CreateEvent) bool {
-			log.Printf("InstanceController: Recieved create event for an instance named: %v", e.Meta.GetName())
+			log.Printf("InstanceController: Received create event for an instance named: %v", e.Meta.GetName())
 			new := e.Object.(*kudov1alpha1.Instance)
 
 			//get the new FrameworkVersion object
@@ -227,9 +225,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				return false
 			}
 			planName := "deploy"
-			ok := false
-			_, ok = fv.Spec.Plans[planName]
-			if !ok {
+
+			if _, ok := fv.Spec.Plans[planName]; !ok {
 				log.Println("InstanceController: Could not find deploy plan")
 				return false
 			}
@@ -241,7 +238,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			return err == nil
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			log.Printf("InstanceController: Recieved delete event for an instance named: %v", e.Meta.GetName())
+			log.Printf("InstanceController: Received delete event for an instance named: %v", e.Meta.GetName())
 			return true
 		},
 	}

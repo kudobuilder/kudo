@@ -1,0 +1,19 @@
+# This is a comment.
+# Each line is a file pattern followed by one or more owners.
+
+# These owners will be the default owners for everything in
+# the repo. Unless a later match takes precedence,
+# @global-owner1 and @global-owner2 will be requested for
+# review when someone opens a pull request.
+*       @gerred
+
+# In this example, @doctocat owns any files in the build/logs
+# directory at the root of the repository and any of its
+# subdirectories.
+/pkg/apis/ @gerred @runyontr @kensipe
+/pkg/client/ @fabianbaier @kensipe
+/pkg/controller/ @gerred @runyontr @kensipe
+/pkg/kudoctl/ @fabianbaier @kensipe
+/pkg/util/ @gerred @runyontr @kensipe
+/pkg/webhook/ @gerred @runyontr @kensipe
+/site/ @guenter

@@ -1,3 +1,0 @@
-# out of sync, but ignored, due to noverify in Gopkg.toml:
-foo: orphaned file
-orphdir: unused project

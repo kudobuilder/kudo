@@ -1,1 +1,0 @@
-Test if a transitive glide manifest is read.
