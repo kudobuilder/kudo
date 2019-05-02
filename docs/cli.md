@@ -87,7 +87,7 @@ Environment Variables override flags and are intended to give the user more cust
 
 There are two options installing a package. While `kubectl apply -f *.yaml` is encouraged when developing and
 having `framework.yaml`, `frameworkversion.yaml` and `instance.yaml` locally present, it is recommended to use the 
-official packages provided through the [kubebuilder/frameworks](https://github.com/kudobuilder/frameworks) repo. 
+official packages provided through the [kudobuilder/frameworks](https://github.com/kudobuilder/frameworks) repo. 
 The `KUDO` plugin for `kubectl` offers a convenient way of installing those files via command line.
 
 #### Install just the KUDO Package without Dependencies
