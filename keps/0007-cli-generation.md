@@ -1,11 +1,12 @@
 ---
-kep-number: draft-20190418
+kep-number: 7
 title: Skeleton generator
 authors:
   - "@djannot"
 owners:
-  - TBD
-editor: TBD
+  - "@djannot"
+  - "@fabianbaier"
+editor: "@fabianbaier"
 creation-date: 2019-04-18
 status: provisional
 ---
