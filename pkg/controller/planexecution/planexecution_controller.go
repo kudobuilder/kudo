@@ -57,11 +57,6 @@ import (
 
 const basePath = "/kustomize"
 
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
-
 // Add creates a new PlanExecution Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 // USER ACTION REQUIRED: update cmd/manager/main.go to call this kudo.Add(mgr) to install this Controller
@@ -118,9 +113,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// 'UpdateFunc' and 'CreateFunc' used to judge if a event about the object is
 	// what we want. If that is true, the event will be processed by the reconciler.
-
 	//PlanExecutions should be mostly immutable.  Updates should only
-
 	p := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			log.Printf("PlanExecutionController: Recieved update event for an instance named: %v", e.MetaNew.GetName())
@@ -201,7 +194,6 @@ type ReconcilePlanExecution struct {
 
 // Reconcile reads that state of the cluster for a PlanExecution object and makes changes based on the state read
 // and what is in the PlanExecution.Spec
-// TODO(user): Modify this Reconcile function to implement your Controller logic.  The scaffolding writes
 // a Deployment as an example
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete
@@ -232,7 +224,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		},
 		instance)
 	if err != nil {
-		//TODO how to handle errors.
 		//Can't find the instance.  Update sta
 		r.recorder.Event(planExecution, "Warning", "InvalidInstance", fmt.Sprintf("Could not find required instance (%v)", planExecution.Spec.Instance.Name))
 		planExecution.Status.State = kudov1alpha1.PhaseStateError
@@ -286,7 +277,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		},
 		frameworkVersion)
 	if err != nil {
-		//TODO how to handle errors.
 		//Can't find the instance.  Update sta
 		planExecution.Status.State = kudov1alpha1.PhaseStateError
 		r.recorder.Event(planExecution, "Warning", "InvalidFrameworkVersion", fmt.Sprintf("Could not find FrameworkVersion %v", instance.Spec.FrameworkVersion.Name))
