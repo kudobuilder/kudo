@@ -44,11 +44,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
-
 // Add creates a new Instance Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 // USER ACTION REQUIRED: update cmd/manager/main.go to call this kudo.Add(mgr) to install this Controller
@@ -204,20 +199,20 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		//New Instances should have Deploy called
 		CreateFunc: func(e event.CreateEvent) bool {
 			log.Printf("InstanceController: Received create event for an instance named: %v", e.Meta.GetName())
-			new := e.Object.(*kudov1alpha1.Instance)
+			instance := e.Object.(*kudov1alpha1.Instance)
 
-			//get the new FrameworkVersion object
+			//get the instance FrameworkVersion object
 			fv := &kudov1alpha1.FrameworkVersion{}
 			err = mgr.GetClient().Get(context.TODO(),
 				types.NamespacedName{
-					Name:      new.Spec.FrameworkVersion.Name,
-					Namespace: new.Spec.FrameworkVersion.Namespace,
+					Name:      instance.Spec.FrameworkVersion.Name,
+					Namespace: instance.Spec.FrameworkVersion.Namespace,
 				},
 				fv)
 			if err != nil {
 				log.Printf("InstanceController: Error getting frameworkversion \"%v\" for instance \"%v\": %v",
-					new.Spec.FrameworkVersion.Name,
-					new.Name,
+					instance.Spec.FrameworkVersion.Name,
+					instance.Name,
 					err)
 				//TODO
 				//We probably want to handle this differently and mark this instance as unhealthy
@@ -231,9 +226,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				return false
 			}
 
-			err = createPlan(mgr, planName, new)
+			err = createPlan(mgr, planName, instance)
 			if err != nil {
-				log.Printf("InstanceController: Error creating \"%v\" object for \"%v\": %v", planName, new.Name, err)
+				log.Printf("InstanceController: Error creating \"%v\" object for \"%v\": %v", planName, instance.Name, err)
 			}
 			return err == nil
 		},
@@ -279,7 +274,10 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 		},
 	}
 	//Make this instance the owner of the PlanExecution
-	controllerutil.SetControllerReference(instance, &planExecution, mgr.GetScheme())
+	if err := controllerutil.SetControllerReference(instance, &planExecution, mgr.GetScheme()); err != nil {
+		log.Printf("InstanceController: Error setting ControllerReference")
+		return err
+	}
 	//new!
 	if err := mgr.GetClient().Create(context.TODO(), &planExecution); err != nil {
 		log.Printf("InstanceController: Error creating planexecution \"%v\": %v", planExecution.Name, err)
