@@ -6,7 +6,7 @@ weight: 3
 
 # Workflow
 
-This outlines an ideal workflow for both sys admins and application operators
+This outlines an ideal workflow for both sys admins and application operators.
 
 ## SysAdmins
 
@@ -20,7 +20,7 @@ hdfs          37m
 zookeeper     37m
 ```
 
-For each framework there will be a coresponding CustomResourceDefinition:
+For each framework there will be a corresponding CustomResourceDefinition:
 
 ```bash
 $ kubectl get crds -l type=framework
@@ -49,15 +49,15 @@ The Plans for each application will be captured in the spec for each framework.
 
 The controller interprets the Spec provided for each framework as a list of Kubernetes objects. The default deploy plan creates all of the
 Kubernetes objects and waits for them to become healthy. Multistep deploy plans break the set of kubernetes objects into groups and
-waits to create the second group until the first group is created an healthy.
+waits to create the second group until the first group is created and healthy.
 
 #### Upgrade
 
 The controller interprets the Spec provided for each version of the framework into Kubernetes objects. For objects present in both versions,
-(if they're the same), the controller doesn't modify the objects. The controller will create new objects in new versions and remove objects in previous
-versions. Custom Upgrade plans may cause the order of deleting and creation to be customized.
+the controller doesn't modify the objects if they're the same. The controller will create new objects in new versions and remove objects in previous
+versions. Custom upgrade plans can adjust the order of deletion and creation.
 
-To issue an upgrade, a command similiar to this would be executed
+To issue an upgrade, a command similar to this would be executed
 
 ```bash
 kubectl patch kafka instance-name -p '{"spec": {"version":"2.11-2.1.0"}}'
@@ -75,7 +75,7 @@ data.dir.size          Size of persistent volume used to store Zookeeper data
 ...
 ```
 
-This gives an easy overview for Application Operators to understand how to configre the application.
+This gives an easy overview for Application Operators to understand how to configure the application.
 
 ## Application Operators
 
@@ -100,11 +100,11 @@ EOF
 
 ### Dependencies
 
-When deploying an instance of a framework the correct values will get imported correctly
+When deploying an instance of a framework, values defined on a dependency will be applied automatically.
 
-Create a Kafka instance that uses it:
+Create a Kafka instance that declares the above as a dependency:
 
-```
+```bash
 apiVersion: packages.kudo.k8s.io/alpha
 kind: Kafka
 metadata:
@@ -121,4 +121,4 @@ spec:
     zk.path: "/custom-path"
 ```
 
-Would correctly set the `zk.uri` parameters to be interpreted from the `zk` instance of Zookeeper.
+This will apply the `zookeeper.count` and `data.dir.size` parameters from the `zk` instance of Zookeeper.
