@@ -22,7 +22,7 @@ If the matter is security sensitive, please disclose it privately to a security 
 
 **Environment**:
 - Kubernetes version (use `kubectl version`):
-- Kudo version (use `kubectl kudoctl version`): 
+- Kudo version (use `kubectl kudo version`): 
 - Framework:
 - Frameworkversion:
 - Cloud provider or hardware configuration:
