@@ -22,10 +22,10 @@ see-also:
      * [Goals](#goals)
      * [Non-Goals](#non-goals)
   * [User Stories](#user-stories)
-        * [KUDO Developers](#kudo-developers)
-        * [Framework Developer](#framework-developer)
-        * [Cluster Administrator](#cluster-administrator)
-        * [Application Operator](#application-operator)
+     * [KUDO Developers](#kudo-developers)
+     * [Framework Developer](#framework-developer)
+     * [Cluster Administrator](#cluster-administrator)
+     * [Application Operator](#application-operator)
   * [Risks and Mitigations](#risks-and-mitigations)
   * [Proposal](#proposal)
      * [Definitions](#definitions)
@@ -151,7 +151,7 @@ allows test authors to model state transitions of Frameworks as different config
 
 Tests will be invoked via a CLI tool that runs the tests against the current Kubernetes context. It will be packaged with
 the default set of tests from the KUDO frameworks repository using go-bindata, with the ability to provide alternative
-directories containg tests to use.
+directories containing tests to use.
 
 The tool will enumerate each test (group of test cases) and run them concurrently in batches. Each test will run in its own
 namespace (care must be taken that cluster-level resources do not collide with other tests [??? TODO: solvable?]) which will
@@ -298,7 +298,7 @@ leaks from running the tests and also ensuring that Frameworks can be uninstalle
 
 * Integration into KUDO frameworks's pull request pipeline.
 * Integration into KUDO's pull request pipeline.
-* CLI for running integration tests.
+* CLI for running tests.
 * Plugin for [Sonobuoy](https://github.com/heptio/sonobuoy/blob/master/docs/plugins.md) available.
 * Adoption by two stable frameworks.
 
@@ -313,7 +313,7 @@ and examples can provide good inspiration and insights into how to test framewor
 spirit of KUDO making them unsuitable for use as the user-facing interface for writing tests.
 
 * [Kubernetes e2e test framework](https://godoc.org/k8s.io/kubernetes/test/e2e/framework) provides a methods that interact with Kubernetes
-  resources, wait for certain Kubernetes state. It also supports conditionally running tests and collecting logs and results from pods and
+  resources and wait for certain Kubernetes state. It also supports conditionally running tests and collecting logs and results from pods and
   nodes.
 * Unit tests can be written using the [Kubernetes fake clientset](https://godoc.org/k8s.io/client-go/kubernetes/fake) without needing
   a Kubernetes API at all - allowing easy testing of expected state transitions in a controller.
@@ -335,4 +335,4 @@ machinery provided here will be able to easily incorporate these tests to improv
 ## Infrastructure Needed
 
 A CI system and cloud infrastructure for running the tests are required (see
-[0004-add-testing-infrastructure](https://github.com/kudobuilder/kudo/blob/master/keps/0004-add-testing-infrastructure.md).
+[0004-add-testing-infrastructure](https://github.com/kudobuilder/kudo/blob/master/keps/0004-add-testing-infrastructure.md)).
