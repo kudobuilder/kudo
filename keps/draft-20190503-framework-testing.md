@@ -17,22 +17,30 @@ see-also:
 
 ## Table of Contents
 
-* [Table of Contents](#table-of-contents)
-* [Summary](#summary)
-* [Motivation](#motivation)
-    * [Goals](#goals)
-    * [Non-Goals](#non-goals)
-* [Proposal](#proposal)
-    * [User Stories [optional]](#user-stories-optional)
-      * [Story 1](#story-1)
-      * [Story 2](#story-2)
-    * [Implementation Details/Notes/Constraints [optional]](#implementation-detailsnotesconstraints-optional)
-    * [Risks and Mitigations](#risks-and-mitigations)
-* [Graduation Criteria](#graduation-criteria)
-* [Implementation History](#implementation-history)
-* [Drawbacks [optional]](#drawbacks-optional)
-* [Alternatives [optional]](#alternatives-optional)
-* [Infrastructure Needed [optional]](#infrastructure-needed-optional)
+  * [Summary](#summary)
+  * [Motivation](#motivation)
+     * [Goals](#goals)
+     * [Non-Goals](#non-goals)
+  * [User Stories](#user-stories)
+        * [KUDO Developers](#kudo-developers)
+        * [Framework Developer](#framework-developer)
+        * [Cluster Administrator](#cluster-administrator)
+        * [Application Operator](#application-operator)
+  * [Risks and Mitigations](#risks-and-mitigations)
+  * [Proposal](#proposal)
+     * [Definitions](#definitions)
+     * [Running the tests](#running-the-tests)
+     * [Directory structure](#directory-structure)
+     * [Test case file structure](#test-case-file-structure)
+        * [TestCase object](#testcase-object)
+        * [TestAssert object](#testassert-object)
+        * [Test constraints](#test-constraints)
+     * [Results collection](#results-collection)
+     * [Garbage collection](#garbage-collection)
+  * [Graduation Criteria](#graduation-criteria)
+  * [Implementation History](#implementation-history)
+  * [Alternatives](#alternatives)
+  * [Infrastructure Needed](#infrastructure-needed)
 
 ## Summary
 
@@ -99,7 +107,7 @@ As an Application Operator, I...
 
 * *Must* be able to validate that my Instances are working correctly.
 
-### Risks and Mitigations
+## Risks and Mitigations
 
 * Perhaps the most important consideration when building any testing pipeline is
   ensuring that developer velocity is not impacted. This is especially important
@@ -304,21 +312,21 @@ Controllers are typically tested using test libraries in the same lanuage that t
 and examples can provide good inspiration and insights into how to test frameworks, they depart from the declarative
 spirit of KUDO making them unsuitable for use as the user-facing interface for writing tests.
 
-* [https://godoc.org/k8s.io/kubernetes/test/e2e/framework](Kubernetes e2e test framework) provides a methods that interact with Kubernetes
+* [Kubernetes e2e test framework](https://godoc.org/k8s.io/kubernetes/test/e2e/framework) provides a methods that interact with Kubernetes
   resources, wait for certain Kubernetes state. It also supports conditionally running tests and collecting logs and results from pods and
   nodes.
-* Unit tests can be written using the [https://godoc.org/k8s.io/client-go/kubernetes/fake](Kubernetes fake clientset) without needing
+* Unit tests can be written using the [Kubernetes fake clientset](https://godoc.org/k8s.io/client-go/kubernetes/fake) without needing
   a Kubernetes API at all - allowing easy testing of expected state transitions in a controller.
-* The [https://godoc.org/sigs.k8s.io/controller-runtime/pkg](controller-runtime) provides test machinery that makes it easy to
+* The [controller-runtime](https://godoc.org/sigs.k8s.io/controller-runtime/pkg) provides test machinery that makes it easy to
   integration test controllers without a running Kubernetes cluster. The KUDO project itself uses these extensively.
-* [https://godoc.org/github.com/gruntwork-io/terratest/modules/k8s](Terratest) is a Go-based testing framework that provides
+* [Terratest](https://godoc.org/github.com/gruntwork-io/terratest/modules/k8s) is a Go-based testing framework that provides
   methods for interacting with Kubernetes resources and waiting for them to be ready.
-* [https://github.com/GoogleCloudPlatform/metacontroller/blob/master/examples/daemonjob/test.sh](metacontroller) does not provide a
+* [metacontroller](https://github.com/GoogleCloudPlatform/metacontroller/blob/master/examples/daemonjob/test.sh) does not provide a
   test framework out of the box, but many of their examples use a bash script with kubectl commands to compose simple tests.
-* [https://www.terraform.io/docs/extend/testing/acceptance-tests/testcase.html](Terraform provider acceptance tests) are authored by
+* [Terraform provider acceptance tests](https://www.terraform.io/docs/extend/testing/acceptance-tests/testcase.html) are authored by
   providing a series of configurations to apply with expected states and provided some inspiration for this design.
 
-[https://github.com/helm/helm/blob/master/docs/chart_tests.md](Helm charts) use a scheme for running tests where tests are defined
+[Helm charts](https://github.com/helm/helm/blob/master/docs/chart_tests.md) use a scheme for running tests where tests are defined
 as Kubernetes Jobs that are run and the result is determined by the Job status. This methodology is compatible with KUDO and can be
 seen applied in the Zookeeper framework's [validation job](https://github.com/kudobuilder/frameworks/blob/2b1151eca761c0fbe61474ba44b0bdaa4f80a0fb/repo/stable/zookeeper/versions/0/zookeeper-frameworkversion.yaml#L161-L188).
 This document does not supercede this technique (tests written for KUDO frameworks can easily incorporate these validation stages), the
@@ -327,4 +335,4 @@ machinery provided here will be able to easily incorporate these tests to improv
 ## Infrastructure Needed
 
 A CI system and cloud infrastructure for running the tests are required (see
-[https://github.com/kudobuilder/kudo/blob/master/keps/0004-add-testing-infrastructure.md](0004-add-testing-infrastructure.md)).
+[0004-add-testing-infrastructure](https://github.com/kudobuilder/kudo/blob/master/keps/0004-add-testing-infrastructure.md).
