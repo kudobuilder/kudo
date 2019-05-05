@@ -332,6 +332,12 @@ seen applied in the Zookeeper framework's [validation job](https://github.com/ku
 This document does not supercede this technique (tests written for KUDO frameworks can easily incorporate these validation stages), the
 machinery provided here will be able to easily incorporate these tests to improve test quality.
 
+[OPA's testing framework](https://www.openpolicyagent.org/docs/v0.10.7/how-do-i-test-policies/) takes a similar approach to testing
+JSON objects, by allowing evaluating OPA policies and then asserting on certain attributes or responses given mock inputs and OPA in
+general is a good example of testing declarative resources (see [terraform testing](https://www.openpolicyagent.org/docs/latest/terraform/)). If we
+find the proposed scheme for asserting on resource attributes is not powerful enough, then OPA policies may be a good approach for
+authoring assertions.
+
 ## Infrastructure Needed
 
 A CI system and cloud infrastructure for running the tests are required (see
