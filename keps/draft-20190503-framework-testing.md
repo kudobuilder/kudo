@@ -1,4 +1,4 @@
----
+
 kep-number: draft-20190503
 title: Framework Testing
 authors:
@@ -319,6 +319,9 @@ spirit of KUDO making them unsuitable for use as the user-facing interface for w
   a Kubernetes API at all - allowing easy testing of expected state transitions in a controller.
 * The [controller-runtime](https://godoc.org/sigs.k8s.io/controller-runtime/pkg) provides test machinery that makes it easy to
   integration test controllers without a running Kubernetes cluster. The KUDO project itself uses these extensively.
+* The [Kubernetes command-line integration test suite](https://github.com/kubernetes/kubernetes/tree/master/test/cmd) is a BASH-driven
+  integration test suite that uses kubectl commands to run tests. This could be a suitable option as it is not a specialized
+  programming language, but it is an imperative method of testing which may not be the right UX for KUDO.
 * [Terratest](https://godoc.org/github.com/gruntwork-io/terratest/modules/k8s) is a Go-based testing framework that provides
   methods for interacting with Kubernetes resources and waiting for them to be ready.
 * [metacontroller](https://github.com/GoogleCloudPlatform/metacontroller/blob/master/examples/daemonjob/test.sh) does not provide a
