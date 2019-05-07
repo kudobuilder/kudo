@@ -1,15 +1,15 @@
 package check
 
 import (
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
+	"github.com/pkg/errors"
 	"os"
 	"os/user"
 	"path/filepath"
-
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
-	"github.com/pkg/errors"
 )
 
 const (
+	defaultKUDORepoPath         = ".kudo/repo"
 	defaultKubeConfigPath       = ".kube/config"
 	defaultGithubCredentialPath = ".git-credentials"
 )
@@ -28,6 +28,35 @@ func KubeConfigPath() error {
 	_, err := os.Stat(vars.KubeConfigPath)
 	if err != nil && os.IsNotExist(err) {
 		return errors.Wrap(err, "failed to find kubeconfig file")
+	}
+	return nil
+}
+
+// RepoPath checks if the repo path folder exists.
+func RepoPath() error {
+	// if RepoPath is not specified, search for the default under the $HOME/.kudo/repo.
+	if len(vars.RepoPath) == 0 {
+		usr, err := user.Current()
+		if err != nil {
+			return errors.Wrap(err, "failed to determine user's home dir")
+		}
+		vars.RepoPath = filepath.Join(usr.HomeDir, defaultKUDORepoPath)
+	}
+
+	// Option to set a repo path within the environment
+	// overrides passed repo path parameter
+	repoPathEnv := os.Getenv("KUDO_REPO_PATH")
+
+	if repoPathEnv != "" {
+		vars.RepoPath = repoPathEnv
+	}
+
+	_, err := os.Stat(vars.RepoPath)
+	if err != nil && os.IsNotExist(err) {
+		err = os.MkdirAll(vars.RepoPath, 0755)
+		if err != nil {
+			return errors.Wrap(err, "failed to create repo path")
+		}
 	}
 	return nil
 }

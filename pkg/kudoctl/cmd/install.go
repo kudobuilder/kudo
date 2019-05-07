@@ -36,9 +36,11 @@ func NewInstallCmd() *cobra.Command {
 	installCmd.Flags().StringVar(&vars.KubeConfigPath, "kubeconfig", "", "The file path to Kubernetes configuration file. (default \"$HOME/.kube/config\")")
 	installCmd.Flags().StringVar(&vars.GithubCredentialPath, "githubcredential", "", "The file path to GitHub credential file. (default \"$HOME/.git-credentials\")")
 	installCmd.Flags().StringVar(&vars.Instance, "instance", "", "The instance name. (default to Framework name)")
-	installCmd.Flags().StringVar(&vars.Namespace, "namespace", "default", "The namespace where the operator watches for changes. (default to")
+	installCmd.Flags().StringVar(&vars.Namespace, "namespace", "default", "The namespace where the operator watches for changes. (default to \"default\"")
 	installCmd.Flags().StringArrayVarP(&vars.Parameter, "parameter", "p", nil, "The parameter name.")
 	installCmd.Flags().StringVar(&vars.PackageVersion, "package-version", "", "A specific package version on the official GitHub repo. (default to the most recent)")
+	installCmd.Flags().StringVar(&vars.RepoName, "repo-name", "kudo-test-repo", "The storage bucket name of the repo. (default to official \"kudo-frameworks\")")
+	installCmd.Flags().StringVar(&vars.RepoPath, "repo-path", "", "The path of the repo. (default to \"$HOME/.kudo/repo\")")
 
 	const usageFmt = "Usage:\n  %s\n\nFlags:\n%s"
 	installCmd.SetUsageFunc(func(cmd *cobra.Command) error {

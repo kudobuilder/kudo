@@ -11,4 +11,8 @@ var (
 	Namespace            string
 	Parameter            []string
 	PackageVersion       string
+	RepoName             string
+	RepoPath             string
+	StorageBucket        string
+	StoragePrefix        string
 )
