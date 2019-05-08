@@ -57,6 +57,7 @@ frameworks.
 ### Goals
 
 * Allow Framework developers to write acceptance and unit tests for Frameworks.
+* Allow Application Operators and Cluster Administrators to write tests that validate their customizations to Frameworks.
 * Run tests for Frameworks on pull requests for Frameworks.
 * Support running tests via a CLI against any cluster.
 * Integration with Sonobuoy to validate Frameworks in any cluster.
@@ -91,6 +92,7 @@ As a Framework Developer, I...
 * *Want to* be able to author tests in a declarative language, without
   resorting to writing code in a normal programming language.
 * *Must* be able to easily understand test results and failures.
+* *Must* be able to incorporate KUDO Framework plans into my tests.
 
 #### Cluster Administrator
 
