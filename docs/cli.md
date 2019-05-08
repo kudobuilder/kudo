@@ -85,14 +85,14 @@ Environment Variables override flags and are intended to give the user more cust
 
 ### Install a Package
 
-There are two options installing a package. While `kubectl apply -f *.yaml` is encouraged when developing and
-having `framework.yaml`, `frameworkversion.yaml` and `instance.yaml` locally present, it is recommended to use the 
-official packages provided through the [kudobuilder/frameworks](https://github.com/kudobuilder/frameworks) repo. 
+There are two options when installing a package. When developing, you are encouraged to use `kubectl apply -f *.yaml`
+in case you have `framework.yaml`, `frameworkversion.yaml` and `instance.yaml` locally present. For normal operations,
+it is recommended to use the official packages provided through the [kudobuilder/frameworks](https://github.com/kudobuilder/frameworks) repository.
 The `KUDO` plugin for `kubectl` offers a convenient way of installing those files via command line.
 
 #### Install just the KUDO Package without Dependencies
 
-This is the default behavior and just installs the according package.
+This is the default behavior and only installs the given package.
 
 ```bash
 $ kubectl kudo install kafka
@@ -102,8 +102,8 @@ frameworkversion.kudo.k8s.io/v1alpha1/kafka-2.11-2.4.0 created
 
 #### Install a KUDO Package with Dependencies
 
-Sometimes you want to automatically install all dependencies a package comes with. This behavior is controlled via
-the flag `--all-dependencies`, and if set installs all dependencies a package has as well.
+Sometimes you want to automatically install all dependencies a package comes with. This behavior is enabled via
+the flag `--all-dependencies`, which will instruct KUDO to install all dependencies of a package as well.
 
 ```bash
 $ kubectl kudo install kafka --all-dependencies
@@ -115,7 +115,7 @@ frameworkversion.kudo.k8s.io/v1alpha1/zookeeper-1.0 created
 
 #### Install a Package with InstanceName & Parameters
 
-Use `--instance` and `--parameter`/`-p` for setting an Instance name or Parameter:
+Use `--instance` and `--parameter`/`-p` for setting an Instance name and Parameters, respectively:
 
 ```bash
 $ kubectl kudo install kafka --instance=my-kafka-name --parameter="KAFKA_ZOOKEEPER_URI,zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181" --parameter="KAFKA_ZOOKEEPER_PATH,/small" -p="BROKERS_COUNTER,3"
@@ -130,8 +130,8 @@ my-kafka-name   6s
 
 ### List Instances
 
-In order to inspect instances deployed by `KUDO` we need to get an overview of all instances running.
-Therefor we use the `list` command which has subcommands to show all available instances:
+In order to inspect instances deployed by `KUDO`, we can get an overview of all instances running by using the `list`
+command. This command has subcommands to filter its result:
 
 `kubectl kudo list instances --namespace=<default> --kubeconfig=<$HOME/.kube/config>`
 
@@ -162,13 +162,11 @@ $ kubectl kudo instances
 
 ### Get the Status of an Instance
 
-(Or how to look up your instance status)
-
-Now that we know the available instances we can get the current status of all plans to an particular instance. The command for this is:
+Now that we have a list of available instances, we can get the current status of all plans for an particular instance. The command for this is:
 
 `kubectl kudo plan status --instance=<instanceName> --kubeconfig=<$HOME/.kube/config>`
 
-*Note: The `--instance` flag is mandatory and **not optional**.*
+*Note: The `--instance` flag is **mandatory**.*
 
 ```bash
 $ kubectl kudo plan status --instance=up
@@ -190,9 +188,9 @@ $ kubectl kudo plan status --instance=up
 
 In this tree chart we see all important information in one screen:
 
-* `up` is the current instance we are looking at.
-* `default` is the current namespace we are in.
-* `upgrade-v1` is the current **Framework-Version**.
+* `up` is the instance we specified.
+* `default` is the namespace we are in.
+* `upgrade-v1` is the instance's **Framework-Version**.
 * `up-deploy-493146000` is the current **Active-Plan**.
     + `par` is a serial phase within the `deploy` plan that has been `COMPLETE`
     + `deploy` is a `serial` plan that has been `COMPLETE`.
@@ -206,13 +204,13 @@ In this tree chart we see all important information in one screen:
     + `par` is a `serial` collection of steps that has been `NOT ACTIVE`.
     + `run-step` is a `serial` step within the `par` step collection that has been `NOT ACTIVE`.
     
-This would translate to the following manual `kubectl` commands:
+For comparison, the according `kubectl` commands to retrieve the above information are:
 
 * `kubectl get instances` (to get the matching `FrameworkVersion`)
 * `kubectl describe frameworkversion upgrade-v1` (to get the current `PlanExecution`)
 * `kubectl describe planexecution up-deploy-493146000` (to get the status of the `Active-Plan`)
 
-The overall overview of all available plans can be found in `Spec.Plans` of the matching `FrameworkVersion`.
+Here, the overview of all available plans can be found in `Spec.Plans` of the matching `FrameworkVersion`:
 
 ```bash
 $ kubectl describe frameworkversion upgrade-v1
@@ -297,7 +295,7 @@ spec:
 Events:     <none>
 ```
 
-When looking at the particular `PlanExecution` we are able to see the status of the current applied plan.
+The status of the currently applied plan can then be found when looking at the particular `PlanExecution`:
 
 ```bash
 $ kubectl describe planexecution up-deploy-493146000
@@ -342,7 +340,7 @@ $ kubectl describe planexecution up-deploy-493146000
   Events:        <none>
 ```
 
-The status information for the `Active-Plan` is nested in this part:
+Finally, the status information for the `Active-Plan` is nested in this part:
 
 ```bash
   Status:
@@ -358,12 +356,12 @@ The status information for the `Active-Plan` is nested in this part:
     Strategy:    serial
 ```
 
-Our tree view makes this information more readable to the user and creates a better user experience through one command rather than picking from multiple responses the bits and pieces.
+Apparently, KUDO's tree view makes this information easier to understand and prevents you from putting together the bits and pieces of various commands.
 
 ### Get the History to PlanExecutions
 
 This is helpful if you want to find out which plan ran on your instance to a particular `FrameworkVersion`.
-Let's say you want to know all plans that ran for the instance `up` and its FrameworkVersion `upgrade-v1`:
+Run this command to retrieve all plans that ran for the instance `up` and its FrameworkVersion `upgrade-v1`:
 
 ```bash
 $ kubectl kudo plan history upgrade-v1 --instance=up
@@ -372,7 +370,7 @@ $ kubectl kudo plan history upgrade-v1 --instance=up
   └── up-deploy-493146000 (created 4h56m12s ago)
 ```
 
-If you want to have a broader history to all plans applied to an instance:
+Run this command to retrieve the history of all plans applied to an instance:
 
 ```bash
 $ kubectl kudo plan history --instance=up
