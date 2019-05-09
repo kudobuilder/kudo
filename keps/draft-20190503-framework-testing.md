@@ -44,9 +44,9 @@ see-also:
 
 ## Summary
 
-In order to ensure the reliability of frameworks built on KUDO, it is important that developers of Frameworks are able to simply author and run tests that validate that their frameworks are running correctly. Tests can be run in CI to verify changes, by Framework developers in their development cycle, and by cluster admnistrators to verify that Frameworks are fully functional in their Kubernetes clusters, across a variety of configurations.
+In order to ensure the reliability of Frameworks built on KUDO, it is important that developers of Frameworks are able to simply author and run tests that validate that their Frameworks are running correctly. Tests can be run in CI to verify changes, by Framework developers in their development cycle, and by cluster admnistrators to verify that Frameworks are fully functional in their Kubernetes clusters, across a variety of configurations.
 
-This document outlines a simple, declarative framework for authoring and running acceptance tests for KUDO frameworks.
+This document outlines a simple, declarative test harness for authoring and running acceptance tests for KUDO Frameworks.
 
 ## Motivation
 
@@ -100,8 +100,8 @@ As an Application Operator, I...
 ## Risks and Mitigations
 
 * Perhaps the most important consideration when building any testing pipeline is ensuring that developer velocity is not impacted. This is especially important for KUDO, since the developer experience for Framework developers is critical to the success of the project. To mitigate this, we need to optimize the runtime of the tests and pull request flow. Framework contributions should only run tests for the Frameworks that are affected by the pull request. Tests should have a fixed upper time limit to prevent any new tests from causing excessive delays. Tests fail early.
-* If the test framework is not designed well, contributions to the project become very difficult or the framework does not get adopted by developers. We provide a minimal, declarative format for authoring tests to encourage adoption and provide simple ways to execute the tests to ensure that it is easy to get started.
-* The test framework is not valuable if no tests are written. This means Framework developers need to write tests! We encourage test authoring by writing good documentation, integrating the test framework into the CI/CD pipeline, and potentially enacting policies around testing for official Frameworks. We can also advocate for testing via blogs and interactions with Framework developers.
+* If the test harness is not designed well, contributions to the project become very difficult or the harness does not get adopted by developers. We provide a minimal, declarative format for authoring tests to encourage adoption and provide simple ways to execute the tests to ensure that it is easy to get started.
+* The test harness is not valuable if no tests are written. This means Framework developers need to write tests! We encourage test authoring by writing good documentation, integrating the test harness into the CI/CD pipeline, and potentially enacting policies around testing for official Frameworks. We can also advocate for testing via blogs and interactions with Framework developers.
 * As we take a declarative approach to testing, it's important to ensure that the abstractions built are not leaky. Leaky abstractions lead to greater complexity and make the test suite hard to use. We decrease this risk by narrowing the scope to focus on the state of Kubernetes objects in the Kubernetes API, refering to prior work (see [Alternatives](#Alternatives)), and building a minimal solution. We also will write tests for existing Frameworks and work with authors of new Frameworks to ensure that the solution is generally useful.
 
 ## Proposal
@@ -114,11 +114,11 @@ Tests will be authored by defining Kubernetes objects to apply and Kubernetes st
 * `Assertion`: the expected state of a test case.
 * `Test`: a complete acceptance test, consisting of multiple test cases. Tests run concurrently to each other.
 * `Framework`: A KUDO Framework.
-* `Runner`: the tool that runs the tests.
+* `Harness`: the tool that runs the tests.
 
 ### Running the tests
 
-Tests will be invoked via a CLI tool that runs the tests against the current Kubernetes context. It will be packaged with the default set of tests from the KUDO frameworks repository using go-bindata, with the ability to provide alternative directories containing tests to use.
+Tests will be invoked via a CLI tool that runs the tests against the current Kubernetes context. It will be packaged with the default set of tests from the KUDO Frameworks repository using go-bindata, with the ability to provide alternative directories containing tests to use.
 
 The tool will enumerate each test (group of test cases) and run them concurrently in batches. Each test will run in its own namespace (care must be taken that cluster-level resources do not collide with other tests [??? TODO: solvable?]) which will be deleted after the test has been completed.
 
@@ -126,14 +126,14 @@ Each test consists of a directory containing test cases and their expected resul
 
 Once all of the test cases in a test have run, a report for the test is generated and all of its resources are deleted.
 
-The test runner can also be run in a unit testing mode, where it spins up a dummy Kubernetes API server and runs any tests marked as unit tests.
+The test harness can also be run in a unit testing mode, where it spins up a dummy Kubernetes API server and runs any tests marked as unit tests.
 
 ### Directory structure
 
 Tests are defined in an easy to understand directory structure:
 
 * `tests/`: a top-level test directory for all of the tests, this will typically sit in the same directory as the Framework.
-* `tests/$test_name/`: each individual test gets its own directory that contains the objects to create and the expected objects. Files in the test directory are evaluated in alphabetical order: the first file is run, the runner waits for the expected result to be true (or fail) and then does the same with the next test case.
+* `tests/$test_name/`: each individual test gets its own directory that contains the objects to create and the expected objects. Files in the test directory are evaluated in alphabetical order: the first file is run, the test harness waits for the expected result to be true (or fail) and then does the same with the next test case.
 * `tests/$test_name/$index-$test_case.yaml`: a test case called `$test_case` with index `$index`, since it is the first index it gets applied first.
 
 ```
@@ -150,7 +150,7 @@ spec:
     - /dev/null
 ```
 
-* `tests/$test_name/$index-assert.yaml`: the file called `$index-assert` defines the state that the framework should wait for before continuing. If the state is not true after the timeout, then the test is considered failed.
+* `tests/$test_name/$index-assert.yaml`: the file called `$index-assert` defines the state that the harness should wait for before continuing. If the state is not true after the timeout, then the test is considered failed.
 
 ```
 apiVersion: v1
@@ -180,7 +180,7 @@ status:
 ```
 
 
-Test cases can also be defined in directories instead of a single file - the test framework will look for both YAML files and directories.
+Test cases can also be defined in directories instead of a single file - the test harness will look for both YAML files and directories.
 
 ### Test case file structure
 
@@ -235,15 +235,15 @@ Successful tests will produce a log of all objects created and their state when 
 
 ### Garbage collection
 
-In order for a test to be considered successful, all resources created by it must delete cleanly. The runner will track all resources that are created by the test and then delete any resources that still exist at the end of the test. If they do not delete in a timely fashion, then the test is failed - this has the effect of preventing resource leaks from running the tests and also ensuring that Frameworks can be uninstalled cleanly.
+In order for a test to be considered successful, all resources created by it must delete cleanly. The test harness will track all resources that are created by the test and then delete any resources that still exist at the end of the test. If they do not delete in a timely fashion, then the test is failed - this has the effect of preventing resource leaks from running the tests and also ensuring that Frameworks can be uninstalled cleanly.
 
 ## Graduation Criteria
 
-* Integration into KUDO frameworks's pull request pipeline.
+* Integration into KUDO Frameworks's pull request pipeline.
 * Integration into KUDO's pull request pipeline.
 * CLI for running tests.
 * Plugin for [Sonobuoy](https://github.com/heptio/sonobuoy/blob/master/docs/plugins.md) available.
-* Adoption by two stable frameworks.
+* Adoption by two stable Frameworks.
 
 ## Implementation History
 
@@ -251,19 +251,19 @@ In order for a test to be considered successful, all resources created by it mus
 
 ## Alternatives
 
-Controllers are typically tested using test libraries in the same lanuage that they are written in. While these libraries and examples can provide good inspiration and insights into how to test frameworks, they depart from the declarative spirit of KUDO making them unsuitable for use as the user-facing interface for writing tests.
+Controllers are typically tested using test libraries in the same lanuage that they are written in. While these libraries and examples can provide good inspiration and insights into how to test Frameworks, they depart from the declarative spirit of KUDO making them unsuitable for use as the user-facing interface for writing tests.
 
 * [Kubernetes e2e test framework](https://godoc.org/k8s.io/kubernetes/test/e2e/framework) provides a methods that interact with Kubernetes resources and wait for certain Kubernetes state. It also supports conditionally running tests and collecting logs and results from pods and nodes.
 * Unit tests can be written using the [Kubernetes fake clientset](https://godoc.org/k8s.io/client-go/kubernetes/fake) without needing a Kubernetes API at all - allowing easy testing of expected state transitions in a controller.
 * The [controller-runtime](https://godoc.org/sigs.k8s.io/controller-runtime/pkg) provides test machinery that makes it easy to integration test controllers without a running Kubernetes cluster. The KUDO project itself uses these extensively.
 * The [Kubernetes command-line integration test suite](https://github.com/kubernetes/kubernetes/tree/master/test/cmd) is a BASH-driven integration test suite that uses kubectl commands to run tests. This could be a suitable option as it is not a specialized programming language, but it is an imperative method of testing which may not be the right UX for KUDO.
-* [Terratest](https://godoc.org/github.com/gruntwork-io/terratest/modules/k8s) is a Go-based testing framework that provides methods for interacting with Kubernetes resources and waiting for them to be ready.
-* [metacontroller](https://github.com/GoogleCloudPlatform/metacontroller/blob/master/examples/daemonjob/test.sh) does not provide a test framework out of the box, but many of their examples use a bash script with kubectl commands to compose simple tests.
+* [Terratest](https://godoc.org/github.com/gruntwork-io/terratest/modules/k8s) is a Go-based testing harness that provides methods for interacting with Kubernetes resources and waiting for them to be ready.
+* [metacontroller](https://github.com/GoogleCloudPlatform/metacontroller/blob/master/examples/daemonjob/test.sh) does not provide a test harness out of the box, but many of their examples use a bash script with kubectl commands to compose simple tests.
 * [Terraform provider acceptance tests](https://www.terraform.io/docs/extend/testing/acceptance-tests/testcase.html) are authored by providing a series of configurations to apply with expected states and provided some inspiration for this design.
 
-[Helm charts](https://github.com/helm/helm/blob/master/docs/chart_tests.md) use a scheme for running tests where tests are defined as Kubernetes Jobs that are run and the result is determined by the Job status. This methodology is compatible with KUDO and can be seen applied in the Zookeeper framework's [validation job](https://github.com/kudobuilder/frameworks/blob/2b1151eca761c0fbe61474ba44b0bdaa4f80a0fb/repo/stable/zookeeper/versions/0/zookeeper-frameworkversion.yaml#L161-L188). This document does not supercede this technique (tests written for KUDO frameworks can easily incorporate these validation stages), the machinery provided here will be able to easily incorporate these tests to improve test quality.
+[Helm charts](https://github.com/helm/helm/blob/master/docs/chart_tests.md) use a scheme for running tests where tests are defined as Kubernetes Jobs that are run and the result is determined by the Job status. This methodology is compatible with KUDO and can be seen applied in the Zookeeper Framework's [validation job](https://github.com/kudobuilder/frameworks/blob/2b1151eca761c0fbe61474ba44b0bdaa4f80a0fb/repo/stable/zookeeper/versions/0/zookeeper-frameworkversion.yaml#L161-L188). This document does not supercede this technique (tests written for KUDO Frameworks can easily incorporate these validation stages), the machinery provided here will be able to easily incorporate these tests to improve test quality.
 
-[OPA's testing framework](https://www.openpolicyagent.org/docs/v0.10.7/how-do-i-test-policies/) takes a similar approach to testing JSON objects, by allowing evaluating OPA policies and then asserting on certain attributes or responses given mock inputs and OPA in general is a good example of testing declarative resources (see [terraform testing](https://www.openpolicyagent.org/docs/latest/terraform/)). If we find the proposed scheme for asserting on resource attributes is not powerful enough, then OPA policies may be a good approach for authoring assertions.
+[OPA's testing harness](https://www.openpolicyagent.org/docs/v0.10.7/how-do-i-test-policies/) takes a similar approach to testing JSON objects, by allowing evaluating OPA policies and then asserting on certain attributes or responses given mock inputs and OPA in general is a good example of testing declarative resources (see [terraform testing](https://www.openpolicyagent.org/docs/latest/terraform/)). If we find the proposed scheme for asserting on resource attributes is not powerful enough, then OPA policies may be a good approach for authoring assertions.
 
 ## Infrastructure Needed
 
