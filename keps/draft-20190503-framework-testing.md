@@ -57,7 +57,7 @@ This document outlines a simple, declarative test harness for authoring and runn
 * Run tests for Frameworks on pull requests for Frameworks.
 * Support running tests via a CLI against any cluster.
 * Integration with Sonobuoy to validate Frameworks in any cluster.
-* Extend KUDO's declarative approach to operators to testing.
+* Ensure that KUDO Framework developers have a consistent development experience - from writing their operators to testing them.
 
 ### Non-Goals
 
