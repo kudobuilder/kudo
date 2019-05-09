@@ -23,11 +23,11 @@ Before you get started:
 - `make run` to run the Operator with local go environment
 
 **Before** `make install` you will need to have:
-  * minikube running
-  * `~/.git-credentials` must exist with git credentials with details below.
+- minikube running
+- `~/.git-credentials` must exist with git credentials with details below.
 
 ### Setting up GitHub Credentials
-In order to setup `~.git-credentials` the file needs to have the format of:
+In order to setup `~/.git-credentials` the file needs to have the format of:
 ```
 https://<username>:<credential>@github.com
 ```
