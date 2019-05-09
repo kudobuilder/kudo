@@ -1,4 +1,6 @@
-# Release Process
+# Development and Release Process
+
+## Development Process
 
 The Kudo Project is released on an as-needed basis. The process is as follows:
 
@@ -8,3 +10,10 @@ The Kudo Project is released on an as-needed basis. The process is as follows:
 4. The corresponding docker image `kudobuilder/controller:$VERSION` is pushed to dockerhub
 5. The release issue is closed
 6. An announcement email is sent to `kudobuilder@googlegroups.com` with the subject `[ANNOUNCE] Kudo $VERSION is released`
+
+## Release Process
+
+The official binaries for Kudo is created using [goreleaser](https://goreleaser.com/) for the release process through the cicleci release job. The [.goreleaser.yml](.goreleaser.yml) defines the binaries which are supported for each release.
+
+It is possible outside of the standard release process to build a "snapshot" release using the following command: `goreleaser release --skip-publish --snapshot --rm-dist`
+This process will create a "dist" folder with all the build artifacts. The changelog is not created unless a full release is executed. If you are looking for get a "similar" changelog, install [github-release-notes](https://github.com/buchanae/github-release-notes) and execute `github-release-notes -org kudobuilder -repo kudo -since-latest-release`.
