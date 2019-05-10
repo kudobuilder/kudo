@@ -1,5 +1,5 @@
 
-kep-number: draft-20190503
+kep-number: 8
 title: Framework Testing
 authors:
   - "@jbarrick-mesosphere"
