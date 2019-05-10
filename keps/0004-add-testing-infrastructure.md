@@ -102,7 +102,7 @@ As a repository owner, I don't want to have to validate the execution of common 
 * Are new tests required for all (code) PRs?  If fixing a bug, it's re-assuring if you can provide a test that demonstrates it not working,
 but the level of effort is significantly increased to push code.  This might be counter productive in trying to encourage
 developers from contributing.
-* Being able to run the "Test Frameworks" on a runninging cluster might provide value (e.g. sonobouy), but requires a maturation
+* Being able to run the "Test Frameworks" on a running cluster might provide value (e.g. sonobouy), but requires a maturation
 of that capability and might not be worth the effort
 
 ### Risks and Mitigations
