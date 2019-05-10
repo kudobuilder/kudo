@@ -55,7 +55,7 @@ This document outlines a simple, declarative test harness for authoring and runn
 * Allow Framework developers to write acceptance and unit tests for Frameworks.
 * Allow Application Operators and Cluster Administrators to write tests that validate their customizations to Frameworks.
 * Run tests for Frameworks on pull requests for Frameworks.
-* Support running tests via a CLI against any cluster.
+* Support running tests via a `kubectl kudo` subcommand against any cluster.
 * Integration with Sonobuoy to validate Frameworks in any cluster.
 * Ensure that KUDO Framework developers have a consistent development experience - from writing their operators to testing them.
 
