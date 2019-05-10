@@ -10,10 +10,15 @@ weight: 1
 
 Before you get started:
 
-- Install Go `1.12` or later
-- Kubernetes Cluster `1.12` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
-- [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) with version `1.12` or later
+- Install Go `1.12.3` or later
+- This project uses [Go Modules](https://github.com/golang/go/wiki/Modules). Set `GO111MODULE=on` in your environment.
+- Kubernetes Cluster `1.13` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
+- [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) with version `1.13` or later
 - [Install Kustomize](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md) with version `2.0.3` or later
+
+## Go Modules
+
+> ⚠️ This project uses Go Modules. Due to the current state of code generation in [controller-tools](https://github.com/kubernetes-sigs/controller-tools) and [code-generator](https://github.com/kubernetes/code-generator), KUDO currently **must** be cloned into its `$GOPATH`-based location.
 
 ## Installation Instructions
 
@@ -22,7 +27,7 @@ Before you get started:
 - `make install-crds` to deploy universal CRDs
 - `make run` to run the Operator with local go environment
 
-**Before** `make install` you will need to have:
+**Before** `make install-crds` you will need to have:
 - minikube running
 - `~/.git-credentials` must exist with git credentials with details below.
 
