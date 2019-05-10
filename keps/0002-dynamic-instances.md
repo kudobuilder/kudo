@@ -1,5 +1,5 @@
 ---
-kep-number: draft-20190214
+kep-number: 2
 title: Dynamic Instances
 authors:
   - "@gerred"
@@ -7,7 +7,7 @@ owners:
   - "@gerred"
 editor: TBD
 creation-date: 2019-02-14
-last-updated: 2019-02-14
+last-updated: 2019-05-10
 status: implementable
 ---
 
