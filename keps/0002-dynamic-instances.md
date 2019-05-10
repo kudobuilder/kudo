@@ -11,11 +11,11 @@ last-updated: 2019-05-10
 status: implementable
 ---
 
-# Framework-specific Dynamic Custom Resource Definitions
+# operator-specific Dynamic Custom Resource Definitions
 
 ## Table of Contents
 
-- [Framework-specific Dynamic Custom Resource Definitions](#framework-specific-dynamic-custom-resource-definitions)
+- [operator-specific Dynamic Custom Resource Definitions](#operator-specific-dynamic-custom-resource-definitions)
   - [Table of Contents](#table-of-contents)
   - [Summary](#summary)
   - [Motivation](#motivation)
@@ -27,22 +27,22 @@ status: implementable
 
 ## Summary
 
-This KEP aims to make the end user experience for operators more specific to the business domain they represent. By implementing dynamic CRDs, operators will be able to represent their components in a declarative way, specific to their framework. Additionally, it enables framework developers to provide day 2 operations tasks as CRDs, complete with their own plans and tasks.
+This KEP aims to make the end user experience for operators more specific to the business domain they represent. By implementing dynamic instances, operators will be able to represent their components in a declarative way, specific to their operator. Additionally, it enables operator developers to provide day 2 operations tasks as CRDs, complete with their own plans and tasks.
 
 ## Motivation
 
-Currently, the interface for using operators in KUDO is very generic. Users create an `Instance` CRD with specs. Operator developers and users expect to be able to use contextual business objects for their operators instead of generic objects. This enables a more focused experience for users of KEP.
+Currently, the interface for using operators in KUDO is generic. Users create an `Instance` CRD with specs. Operator developers and users expect to be able to use contextual business objects for their operators instead of generic objects. This enables a more focused experience for users of KEP.
 
-The goal of this KEP is to improve the end user UX through dynamic CRDs. Other than the ability to specfiy CRDs, and adjusting existing framework development CRDs to accomodate this change, it is not the goal of this KEP to change the framework development UX.
+The goal of this KEP is to improve the end user UX through dynamic instances. Other than the ability to specfiy CRDs, and adjusting existing operator development instances to accomodate this change, it is not the goal of this KEP to change the operator development UX.
 
 ### Goals
 
-- Create a mechanism for framework developers to specify a CRD
-- Enable management for custom resources based on dynamic CRDs. Deploying a framework specific custom resource should deploy a plan as `Instance` was able to before.
+- Create a mechanism for operator developers to specify an instance CRD
+- Enable management for custom resources based on dynamic instances. Deploying a operator specific custom resource should deploy a plan as `Instance` was able to before.
 
 ### Non-Goals
 
-- Change the framework developer UX for templates, parameters, tasks, and plans.
+- Change the operator developer UX for templates, parameters, tasks, and plans.
 
 ## Proposal
 
@@ -57,7 +57,7 @@ type Instance struct{
     metadata metav1.ObjectMeta
     apiVersion string
     spec struct{
-        Framework *string
+        operator *string
         Version string
         Arguments map[string]string
     }    
