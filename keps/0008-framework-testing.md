@@ -8,7 +8,7 @@ owners:
 editor: TBD
 creation-date: 2019-05-03
 last-updated: 2019-05-03
-status: provisional
+status: implementable
 see-also:
   - KEP-0004
 ---
