@@ -19,7 +19,7 @@ spec:
     displayName: "Broker Count"
   - name: BROKER_CPUS
     description: "CPUs allocated to the Kafka Broker pods"
-    default: "200m"
+    default: "1"
   - name: BROKER_MEM
     description: "Memory (limit) allocated to the Kafka Broker pods"
     default: "200m"
