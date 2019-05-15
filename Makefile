@@ -171,3 +171,14 @@ docker-push:
 	docker push ${DOCKER_IMG}:${DOCKER_TAG}
 	docker push ${DOCKER_IMG}:${GIT_VERSION}
 	docker push ${DOCKER_IMG}:latest
+
+
+.PHONY: todo
+# Show to-do items per file.
+todo:
+	@grep \
+		--exclude-dir=hack \
+		--exclude=Makefile \
+		--text \
+		--color \
+		-nRo -E ' TODO:.*|SkipNow' .
