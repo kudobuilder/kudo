@@ -1,4 +1,4 @@
-
+---
 kep-number: 8
 title: Framework Testing
 authors:
@@ -44,7 +44,7 @@ see-also:
 
 ## Summary
 
-In order to ensure the reliability of Frameworks built on KUDO, it is important that developers of Frameworks are able to simply author and run tests that validate that their Frameworks are running correctly. Tests can be run in CI to verify changes, by Framework developers in their development cycle, and by cluster admnistrators to verify that Frameworks are fully functional in their Kubernetes clusters, across a variety of configurations.
+In order to ensure the reliability of Frameworks built on KUDO, it is important that developers of Frameworks are able to simply author and run tests that validate that their Frameworks are running correctly. Tests can be run in CI to verify changes, by Framework developers in their development cycle, and by cluster administrators to verify that Frameworks are fully functional in their Kubernetes clusters, across a variety of configurations.
 
 This document outlines a simple, declarative test harness for authoring and running acceptance tests for KUDO Frameworks.
 
@@ -61,7 +61,7 @@ This document outlines a simple, declarative test harness for authoring and runn
 
 ### Non-Goals
 
-* Outlining testing policies for Frameworks (e.g., minimimum coverage to graduate to "stable").
+* Outlining testing policies for Frameworks (e.g., minimum coverage to graduate to "stable").
 * Provisioning Kubernetes test infrastructure.
 
 ## User Stories
@@ -188,7 +188,7 @@ Each test case has a test case file and an assertion file. By default (even if n
 
 #### TestCase object
 
-When searching a test case file, if a `TestCase` object is found, it includes settings to apply to the case. This object is not required - if it is not specied then defaults are used. No more than one `TestCase` should be defined in a test case.
+When searching a test case file, if a `TestCase` object is found, it includes settings to apply to the case. This object is not required - if it is not specified then defaults are used. No more than one `TestCase` should be defined in a test case.
 
 ```
 type TestCase struct {
@@ -203,7 +203,7 @@ type TestCase struct {
 
 #### TestAssert object
 
-When searching the assertion file for a test case, if a `TestAssert` object is found, it includes settings to apply to the assertions. This object is not required - if it is not specied then defaults are used. No more than one `TestAssert` should be defined in a test assertion.
+When searching the assertion file for a test case, if a `TestAssert` object is found, it includes settings to apply to the assertions. This object is not required - if it is not specified then defaults are used. No more than one `TestAssert` should be defined in a test assertion.
 
 ```
 type TestAssert struct {
@@ -251,7 +251,7 @@ In order for a test to be considered successful, all resources created by it mus
 
 ## Alternatives
 
-Controllers are typically tested using test libraries in the same lanuage that they are written in. While these libraries and examples can provide good inspiration and insights into how to test Frameworks, they depart from the declarative spirit of KUDO making them unsuitable for use as the user-facing interface for writing tests.
+Controllers are typically tested using test libraries in the same language that they are written in. While these libraries and examples can provide good inspiration and insights into how to test Frameworks, they depart from the declarative spirit of KUDO making them unsuitable for use as the user-facing interface for writing tests.
 
 * [Kubernetes e2e test framework](https://godoc.org/k8s.io/kubernetes/test/e2e/framework) provides a methods that interact with Kubernetes resources and wait for certain Kubernetes state. It also supports conditionally running tests and collecting logs and results from pods and nodes.
 * Unit tests can be written using the [Kubernetes fake clientset](https://godoc.org/k8s.io/client-go/kubernetes/fake) without needing a Kubernetes API at all - allowing easy testing of expected state transitions in a controller.
