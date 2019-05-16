@@ -59,7 +59,7 @@ func verifyFrameworks(args []string) error {
 	e := repo.Entry{
 		Name:      vars.RepoName,
 		LocalPath: vars.RepoPath,
-		URL:       "https://" + vars.RepoName + ".storage.googleapis.com",
+		URL:       vars.RepoURL,
 	}
 
 	// Initializing empty repo with given variables

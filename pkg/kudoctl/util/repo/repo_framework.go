@@ -91,7 +91,7 @@ func (r *FrameworkRepository) DownloadBundleFile(bundle string) error {
 	if err != nil {
 		return errors.Wrap(err, "parsing config url")
 	}
-	parsedURL.Path = strings.TrimSuffix(parsedURL.Path, "/") + bundle + ".tgz"
+	parsedURL.Path = parsedURL.Path + "/" + bundle + ".tgz"
 
 	fileURL = parsedURL.String()
 

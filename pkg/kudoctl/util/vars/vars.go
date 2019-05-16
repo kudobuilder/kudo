@@ -13,6 +13,7 @@ var (
 	PackageVersion       string
 	RepoName             string
 	RepoPath             string
+	RepoURL              string
 	StorageBucket        string
 	StoragePrefix        string
 )
