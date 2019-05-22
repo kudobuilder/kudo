@@ -5,7 +5,9 @@ go 1.12
 require (
 	cloud.google.com/go v0.36.0 // indirect
 	github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30 // indirect
+	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
 	github.com/cbroglie/mustache v1.0.1
+	github.com/davecgh/go-spew v1.1.1
 	github.com/emicklei/go-restful v2.9.0+incompatible // indirect
 	github.com/go-logr/logr v0.1.0 // indirect
 	github.com/go-logr/zapr v0.1.0 // indirect
@@ -21,7 +23,7 @@ require (
 	github.com/google/btree v1.0.0 // indirect
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
-	github.com/google/uuid v1.1.0 // indirect
+	github.com/google/uuid v1.1.0
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190212212710-3befbb6ad0cc // indirect
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
@@ -37,14 +39,19 @@ require (
 	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/errors v0.8.1
+	github.com/pmezard/go-difflib v1.0.0
 	github.com/prometheus/client_golang v0.9.2 // indirect
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90 // indirect
 	github.com/prometheus/common v0.2.0 // indirect
 	github.com/prometheus/procfs v0.0.0-20190209105433-f8d8b3f739bd // indirect
+	github.com/r3labs/diff v0.0.0-20190423094808-10f39a916ff7
 	github.com/rogpeppe/go-internal v1.2.2 // indirect
+	github.com/sergi/go-diff v1.0.0
+	github.com/sourcegraph/go-diff v0.5.1
 	github.com/spf13/afero v1.2.1 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3 // indirect
+	github.com/stretchr/testify v1.3.0
 	github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
@@ -55,6 +62,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20190212230446-3e8b2be13635 // indirect
 	golang.org/x/sys v0.0.0-20190213121743-983097b1a8a3 // indirect
 	golang.org/x/tools v0.0.0-20190214195451-78f9822548c1
+	gopkg.in/d4l3k/messagediff.v1 v1.2.1
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v9 v9.27.0
 	gopkg.in/yaml.v2 v2.2.2

@@ -1,0 +1,11 @@
+apiVersion: kudo.k8s.io/v1alpha1
+kind: TestCase
+metadata:
+  name: name-overriden
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test
+spec:
+  restartPolicy: Never

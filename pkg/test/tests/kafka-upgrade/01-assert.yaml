@@ -1,0 +1,7 @@
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  name: kafka
+status:
+  running: success
+  version: 2.12-2.4.0

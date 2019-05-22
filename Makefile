@@ -182,3 +182,11 @@ todo:
 		--text \
 		--color \
 		-nRo -E ' TODO:.*|SkipNow' .
+
+.PHONY: test-harness
+test-harness:
+	go test -c -o bin/test ./cmd/test/
+
+.PHONY: integration-test
+integration-test: test-harness
+	./bin/test -test.v cmd/test/tests/

@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test
+spec:
+  selector:
+    matchLabels:
+      app: test
+  template:
+    metadata:
+      labels:
+        app: test
+    spec:
+      containers:
+      - name: test
+        image: alpine
+        command:
+        - /usr/bin/tail
+        - -f
+        - /dev/null
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test2
+spec:
+  selector:
+    matchLabels:
+      app: test2
+  template:
+    metadata:
+      labels:
+        app: test2
+    spec:
+      containers:
+      - name: test
+        image: alpine
+        command:
+        - /bin/cat
+        - /etc/non/existant

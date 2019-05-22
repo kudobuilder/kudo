@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test2
+spec:
+  replicas: 1
+status:
+  availableReplicas: 1
+  conditions:
+  - type: Available
+    status: "True"
+  - type: Progressing
+    status: "True"

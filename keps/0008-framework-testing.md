@@ -196,10 +196,19 @@ type TestCase struct {
     TypeMeta
     // Override the default metadata. Set labels or override the test case name.
     ObjectMeta
+
     // Objects to delete at the beginning of the test case.
     Delete []corev1.ObjectReference
+
+    // Indicates that this is a unit test - safe to run without a real Kubernetes cluster.
+    UnitTest bool
+
+    // Allowed environment labels
+    // Disallowed environment labels
 }
 ```
+
+Using a `TestCase`, it is possible to skip certain tests if conditions are not met, e.g., only run a test on GKE or on clusters with more than three nodes.
 
 #### TestAssert object
 
@@ -211,21 +220,6 @@ type TestAssert struct {
     TypeMeta
     // Override the default timeout of 300 seconds (in seconds).
     Timeout int
-}
-```
-
-#### Test constraints
-
-It is possible to skip certain tests if conditions are not met, e.g., only run a test on GKE or on clusters with more than three nodes.
-
-```
-type TestConstraint struct {
-    // The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestConstraint.
-    TypeMeta
-    // Indicates that this is a unit test - safe to run without a real Kubernetes cluster.
-    UnitTest bool
-    // Allowed environment labels
-    // Disallowed environment labels
 }
 ```
 
