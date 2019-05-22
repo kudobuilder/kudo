@@ -132,7 +132,7 @@ func TestGithubClient_GetIncubatingFrameworkContentDir(t *testing.T) {
 	}{
 		{"", "no framework provided"}, // 1
 		{"kafka", "incubating framework not found: GET https://api.github.com/repos/kudobuilder/frameworks/contents/repo/incubating/kafka/versions: 404 Not Found []"}, // 2
-		{"flink", ""}, // 3
+		{"redis", ""}, // 3
 	}
 
 	for i, tt := range tests {
