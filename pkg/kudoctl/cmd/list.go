@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/list"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/get"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +13,7 @@ func NewListCmd() *cobra.Command {
 		Long:  `The list command has subcommands to show all available instances.`,
 	}
 
-	newCmd.AddCommand(list.NewListInstancesCmd())
+	newCmd.AddCommand(get.NewGetInstancesCmd())
 
 	return newCmd
 }

@@ -25,8 +25,8 @@ and serves as an API aggregation layer.
 	# View all plan history of a specific package
 	kubectl kudo plan history [flags]
 
-	# List instances
-	kubectl kudo list instances [flags]
+	# Get instances
+	kubectl kudo get instances [flags]
 
 	# View plan status
 	kubectl kudo plan status [flags]

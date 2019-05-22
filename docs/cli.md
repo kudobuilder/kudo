@@ -22,7 +22,7 @@ This document demonstrates how to use the CLI but also shows what happens in `KU
                * [Install just the KUDO Package without Dependencies](#install-just-the-kudo-package-without-dependencies)
             * [Install a KUDO Package with Dependencies](#install-a-kudo-package-with-dependencies)
             * [Install a Package with InstanceName &amp; Parameters](#install-a-package-with-instancename--parameters)
-            * [List Instances](#list-instances)
+            * [Get Instances](#get-instances)
             * [Get the Status of an Instance](#get-the-status-of-an-instance)
             * [Get the History to PlanExecutions](#get-the-history-to-planexecutions)
 
@@ -49,7 +49,7 @@ Install the plugin from your `$GOPATH/src/github.com/kudobuilder/kudo` root fold
 |  Syntax | Description  |
 |---|---|
 | `kubectl kudo install <name> [flags]`  |  Installs a Framework from the official [KUDO repo](https://github.com/kudobuilder/frameworks). |
-| `kubectl kudo list instances [flags]` | Show all available instances. |
+| `kubectl kudo get instances [flags]` | Show all available instances. |
 | `kubectl kudo plan status [flags]` | View all available plans. |
 | `kubectl kudo plan history <name> [flags]` | View all available plans. |
 | `kubectl kudo version` | Print the current KUDO package version. |
@@ -128,17 +128,17 @@ NAME            AGE
 my-kafka-name   6s
 ```
 
-### List Instances
+### Get Instances
 
-In order to inspect instances deployed by `KUDO`, we can get an overview of all instances running by using the `list`
+In order to inspect instances deployed by `KUDO`, we can get an overview of all instances running by using the `get`
 command. This command has subcommands to filter its result:
 
-`kubectl kudo list instances --namespace=<default> --kubeconfig=<$HOME/.kube/config>`
+`kubectl kudo get instances --namespace=<default> --kubeconfig=<$HOME/.kube/config>`
 
 Example:
 
 ```bash
-$ kubectl kudo list instances
+$ kubectl kudo get instances
   List of current instances in namespace "default":
   .
   ├── small

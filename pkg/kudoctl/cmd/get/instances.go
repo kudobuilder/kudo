@@ -1,4 +1,4 @@
-package list
+package get
 
 import (
 	"encoding/json"
@@ -28,24 +28,24 @@ const (
 	defaultConfigPath = ".kube/config"
 )
 
-// NewListInstancesCmd creates a command that lists the instances in the cluster
-func NewListInstancesCmd() *cobra.Command {
-	listCmd := &cobra.Command{
+// NewGetInstancesCmd creates a command that lists the instances in the cluster
+func NewGetInstancesCmd() *cobra.Command {
+	getCmd := &cobra.Command{
 		Use:   "instances",
-		Short: "Lists all available instances.",
+		Short: "Gets all available instances.",
 		Long: `
-	# List all available instances
-	kudoctl list instances`,
-		Run: instancesListCmd,
+	# Get all available instances
+	kudoctl get instances`,
+		Run: instancesGetCmd,
 	}
 
-	listCmd.Flags().StringVar(&kubeConfig, "kubeconfig", "", "The file path to kubernetes configuration file; defaults to $HOME/.kube/config")
-	listCmd.Flags().StringVar(&namespace, "namespace", "default", "The namespace where the operator watches for changes.")
+	getCmd.Flags().StringVar(&kubeConfig, "kubeconfig", "", "The file path to kubernetes configuration file; defaults to $HOME/.kube/config")
+	getCmd.Flags().StringVar(&namespace, "namespace", "default", "The namespace where the operator watches for changes.")
 
-	return listCmd
+	return getCmd
 }
 
-func instancesListCmd(cmd *cobra.Command, args []string) {
+func instancesGetCmd(cmd *cobra.Command, args []string) {
 
 	mustKubeConfig()
 
@@ -54,7 +54,7 @@ func instancesListCmd(cmd *cobra.Command, args []string) {
 		log.Printf("Flag Error: %v", err)
 	}
 
-	p, err := listInstances()
+	p, err := getInstances()
 	if err != nil {
 		log.Printf("Error: %v", err)
 	}
@@ -68,7 +68,7 @@ func instancesListCmd(cmd *cobra.Command, args []string) {
 
 }
 
-func listInstances() ([]string, error) {
+func getInstances() ([]string, error) {
 
 	instanceList := make([]string, 0)
 
