@@ -39,7 +39,7 @@ and serves as an API aggregation layer.
 	}
 
 	cmd.AddCommand(NewInstallCmd())
-	cmd.AddCommand(NewListCmd())
+	cmd.AddCommand(NewGetCmd())
 	cmd.AddCommand(NewPlanCmd())
 	cmd.AddCommand(NewVersionCmd())
 

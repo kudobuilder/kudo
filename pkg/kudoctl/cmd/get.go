@@ -5,12 +5,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewListCmd creates a new command that lists instances
-func NewListCmd() *cobra.Command {
+// NewGetCmd creates a new command that lists instances
+func NewGetCmd() *cobra.Command {
 	newCmd := &cobra.Command{
-		Use:   "list",
+		Use:   "get",
 		Short: "-> Show all available instances.",
-		Long:  `The list command has subcommands to show all available instances.`,
+		Long:  `The get command has subcommands to show all available instances.`,
 	}
 
 	newCmd.AddCommand(get.NewGetInstancesCmd())
