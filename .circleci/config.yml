@@ -72,6 +72,7 @@ workflows:
     jobs:
       - branch-formatting
       - merge-formatting
+      - test
   release:
     jobs:
       - release:
