@@ -205,7 +205,7 @@ A single plan is composed of [Steps](#steps).
 
 ### Steps
 
-Steps are used for fine grained parition within a plan. Steps are represented as a list of objects that define the step name and a list of tasks to be run during that step.
+Steps are used for fine grained partition within a plan. Steps are represented as a list of objects that define the step name and a list of tasks to be run during that step.
 
 All tasks within the same step are applied at the same time. For runnable templates within a task (such as a Deployment, StatefulSet, Pod, etc), parallelism of workloads should be controlled through other Kubernetes primitives such as PodDisruptionBudget, and added to the task where the relevant workload is run.
 
@@ -241,11 +241,11 @@ Once KUDO has assembled a full set of templates for a task, they will be applied
 
 ### Parameters
 
-Parameters are a key-value list of parameter names and their defaults. As described in [Execution State](#execution-state), they are wrapped into the `.Params` object for use all templated objects.
+Parameters are a key-value list of parameter names and their defaults. As described in [Execution State](#execution-state), they are wrapped into the `.Params` object for use by all templated objects.
 
 ### Templates
 
-A template is a standard Kubernetes manifest while, which **MAY** have additional Go Templating. These Go Templates include [Sprig](https://github.com/masterminds/sprig) to provide a standard library of functions familiar to Helm users. Additional values are available and are described in [Execution State](#execution-state).
+A template is a standard Kubernetes manifest which **MAY** have additional Go Templating. These Go Templates include [Sprig](https://github.com/masterminds/sprig) to provide a standard library of functions familiar to Helm users. Additional values are available and are described in [Execution State](#execution-state).
 
 ## Extensions and Bases
 
