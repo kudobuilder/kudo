@@ -56,7 +56,7 @@ to particular versions of KUDO.
 * Ensure validation of API objects is functioning correctly
 * Ensure controllers execute known process flows correctly
 * Validate Framework and FrameworkVersions in kudobuilder/frameworks adhere to the API spec defined by Kudo.  Provide common
-  misconfigurations and validate the testing framework notifies the users/developer of failure
+  misconfigurations and validate that the testing framework notifies the users/developer of failure
 * Reduce review time for code changes by not requiring reviewers to validate functionality of test cases
 * Reduce developer time for code changes by providing tools to validate functionality
 * Provide developers clear tooling for addition additional tests to infrastructure to validate bug fixes and new features

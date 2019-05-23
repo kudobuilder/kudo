@@ -21,6 +21,17 @@ jobs:
           paths:
             - "/go/pkg/mod"
             - "/go/bin"
+  release:
+    docker:
+      - image: kudobuilder/golang:1.12
+    working_directory: /go/src/github.com/kudobuilder/kudo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+      - run: curl -sL https://git.io/goreleaser | bash
+
   branch-formatting:
     docker:
       - image: kudobuilder/golang:1.12
@@ -64,3 +75,11 @@ workflows:
     jobs:
       - branch-formatting
       - merge-formatting
+  release:
+    jobs:
+      - release:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*(-.*)*/
