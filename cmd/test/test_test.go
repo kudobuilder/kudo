@@ -1,8 +1,8 @@
 package tools
 
 import (
-	"github.com/kudobuilder/kudo/pkg/test"
 	"flag"
+	"github.com/kudobuilder/kudo/pkg/test"
 	"testing"
 )
 

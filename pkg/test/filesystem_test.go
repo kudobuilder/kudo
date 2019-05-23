@@ -29,7 +29,7 @@ func TestLoadTestCases(t *testing.T) {
 								"apiVersion": "v1",
 								"kind":       "Pod",
 								"metadata": map[string]interface{}{
-									"name":      "test",
+									"name": "test",
 								},
 								"spec": map[string]interface{}{
 									"restartPolicy": "Never",
@@ -50,7 +50,7 @@ func TestLoadTestCases(t *testing.T) {
 								"apiVersion": "v1",
 								"kind":       "Pod",
 								"metadata": map[string]interface{}{
-									"name":      "test2",
+									"name": "test2",
 								},
 								"spec": map[string]interface{}{
 									"restartPolicy": "Never",
@@ -73,7 +73,7 @@ func TestLoadTestCases(t *testing.T) {
 								"apiVersion": "v1",
 								"kind":       "Pod",
 								"metadata": map[string]interface{}{
-									"name":      "test",
+									"name": "test",
 								},
 								"status": map[string]interface{}{
 									"phase": "Running",
@@ -85,7 +85,7 @@ func TestLoadTestCases(t *testing.T) {
 								"apiVersion": "v1",
 								"kind":       "Pod",
 								"metadata": map[string]interface{}{
-									"name":      "test2",
+									"name": "test2",
 								},
 								"status": map[string]interface{}{
 									"phase": "Failed",
@@ -104,7 +104,7 @@ func TestLoadTestCases(t *testing.T) {
 								"apiVersion": "kudo.k8s.io/v1alpha1",
 								"kind":       "Instance",
 								"metadata": map[string]interface{}{
-									"name":      "kafka",
+									"name": "kafka",
 								},
 								"spec": map[string]interface{}{
 									"frameworkVersion": map[string]interface{}{
@@ -120,7 +120,7 @@ func TestLoadTestCases(t *testing.T) {
 								"apiVersion": "kudo.k8s.io/v1alpha1",
 								"kind":       "Instance",
 								"metadata": map[string]interface{}{
-									"name":      "kafka",
+									"name": "kafka",
 								},
 								"status": map[string]interface{}{
 									"running": "success",
@@ -155,7 +155,7 @@ func TestLoadTestCases(t *testing.T) {
 								"apiVersion": "v1",
 								"kind":       "Pod",
 								"metadata": map[string]interface{}{
-									"name":      "test",
+									"name": "test",
 								},
 								"spec": map[string]interface{}{
 									"restartPolicy": "Never",
@@ -169,7 +169,7 @@ func TestLoadTestCases(t *testing.T) {
 								"apiVersion": "v1",
 								"kind":       "Pod",
 								"metadata": map[string]interface{}{
-									"name":      "test",
+									"name": "test",
 								},
 								"status": map[string]interface{}{
 									"phase": "Running",
@@ -208,7 +208,7 @@ func TestLoadTestCases(t *testing.T) {
 								"apiVersion": "v1",
 								"kind":       "Pod",
 								"metadata": map[string]interface{}{
-									"name":      "test2",
+									"name": "test2",
 								},
 								"spec": map[string]interface{}{
 									"restartPolicy": "Never",
@@ -222,7 +222,7 @@ func TestLoadTestCases(t *testing.T) {
 								"apiVersion": "v1",
 								"kind":       "Pod",
 								"metadata": map[string]interface{}{
-									"name":      "test2",
+									"name": "test2",
 								},
 								"status": map[string]interface{}{
 									"phase": "Running",
@@ -241,7 +241,7 @@ func TestLoadTestCases(t *testing.T) {
 								"apiVersion": "v1",
 								"kind":       "Pod",
 								"metadata": map[string]interface{}{
-									"name":      "test",
+									"name": "test",
 								},
 								"status": map[string]interface{}{
 									"phase": "Running",
@@ -253,7 +253,7 @@ func TestLoadTestCases(t *testing.T) {
 								"apiVersion": "v1",
 								"kind":       "Pod",
 								"metadata": map[string]interface{}{
-									"name":      "test2",
+									"name": "test2",
 								},
 								"status": map[string]interface{}{
 									"phase": "Running",
@@ -267,7 +267,7 @@ func TestLoadTestCases(t *testing.T) {
 								"apiVersion": "v1",
 								"kind":       "Pod",
 								"metadata": map[string]interface{}{
-									"name":      "test",
+									"name": "test",
 								},
 								"status": map[string]interface{}{
 									"phase": "Running",
@@ -275,7 +275,7 @@ func TestLoadTestCases(t *testing.T) {
 							},
 						},
 					},
-					Errors:  []runtime.Object{},
+					Errors: []runtime.Object{},
 				},
 				{
 					Name:  "name-overriden",
@@ -296,7 +296,7 @@ func TestLoadTestCases(t *testing.T) {
 								"apiVersion": "v1",
 								"kind":       "Pod",
 								"metadata": map[string]interface{}{
-									"name":      "test",
+									"name": "test",
 								},
 								"spec": map[string]interface{}{
 									"restartPolicy": "Never",
@@ -308,7 +308,7 @@ func TestLoadTestCases(t *testing.T) {
 								"apiVersion": "v1",
 								"kind":       "Pod",
 								"metadata": map[string]interface{}{
-									"name":      "test2",
+									"name": "test2",
 								},
 								"spec": map[string]interface{}{
 									"restartPolicy": "Never",
@@ -323,7 +323,7 @@ func TestLoadTestCases(t *testing.T) {
 		},
 	} {
 		t.Run(tt.path, func(t *testing.T) {
-			test := &Test{Dir:tt.path}
+			test := &Test{Dir: tt.path}
 
 			err := test.LoadTestCases()
 			assert.Nil(t, err)
@@ -334,7 +334,7 @@ func TestLoadTestCases(t *testing.T) {
 			}
 
 			assert.Equal(t, len(tt.testCases), len(testCasesVal))
-			for index, _ := range tt.testCases {
+			for index := range tt.testCases {
 				assert.Equal(t, tt.testCases[index], testCasesVal[index])
 			}
 		})
@@ -343,17 +343,17 @@ func TestLoadTestCases(t *testing.T) {
 
 func TestCollectTestCaseFiles(t *testing.T) {
 	for _, tt := range []struct {
-		path      string
+		path     string
 		expected map[int64][]string
 	}{
 		{
 			"tests/kafka-upgrade",
 			map[int64][]string{
-				int64(0): []string{
+				int64(0): {
 					"tests/kafka-upgrade/00-assert.yaml",
 					"tests/kafka-upgrade/00-kafka-install.yaml",
 				},
-				int64(1): []string{
+				int64(1): {
 					"tests/kafka-upgrade/01-assert.yaml",
 					"tests/kafka-upgrade/01-kafka-upgrade.yaml",
 				},
@@ -362,20 +362,20 @@ func TestCollectTestCaseFiles(t *testing.T) {
 		{
 			"tests/with-overrides",
 			map[int64][]string{
-				int64(0): []string{
+				int64(0): {
 					"tests/with-overrides/00-assert.yaml",
 					"tests/with-overrides/00-test-case.yaml",
 				},
-				int64(1): []string{
+				int64(1): {
 					"tests/with-overrides/01-assert.yaml",
 					"tests/with-overrides/01-test-assert.yaml",
 				},
-				int64(2): []string{
+				int64(2): {
 					"tests/with-overrides/02-directory/assert.yaml",
 					"tests/with-overrides/02-directory/pod.yaml",
 					"tests/with-overrides/02-directory/pod2.yaml",
 				},
-				int64(3): []string{
+				int64(3): {
 					"tests/with-overrides/03-assert.yaml",
 					"tests/with-overrides/03-pod.yaml",
 					"tests/with-overrides/03-pod2.yaml",
@@ -384,7 +384,7 @@ func TestCollectTestCaseFiles(t *testing.T) {
 		},
 	} {
 		t.Run(tt.path, func(t *testing.T) {
-			test := &Test{Dir:tt.path}
+			test := &Test{Dir: tt.path}
 			testCaseFiles, err := test.CollectTestCaseFiles()
 			assert.Nil(t, err)
 			assert.Equal(t, tt.expected, testCaseFiles)

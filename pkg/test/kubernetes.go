@@ -3,22 +3,22 @@ package test
 // Contains methods helpful for interacting with and manipulating Kubernetes resources from YAML.
 
 import (
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"k8s.io/client-go/discovery"
-	"fmt"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	"github.com/pmezard/go-difflib/difflib"
+	"bufio"
 	"bytes"
+	"fmt"
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/pmezard/go-difflib/difflib"
 	"io"
-	"k8s.io/apimachinery/pkg/runtime/serializer/json"
-	"k8s.io/apimachinery/pkg/types"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"os"
-	"bufio"
+	"k8s.io/apimachinery/pkg/runtime/serializer/json"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/client-go/discovery"
+	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 // Return a human readable identifier indicating the object kind, name, and namespace.
@@ -65,7 +65,7 @@ func Namespaced(obj runtime.Object, namespace string) (string, string, error) {
 				continue
 			}
 
-			if ! resource.Namespaced {
+			if !resource.Namespaced {
 				return m.GetName(), "", nil
 			}
 
@@ -91,11 +91,11 @@ func PrettyDiff(expected runtime.Object, actual runtime.Object) (string, error) 
 	}
 
 	diffed := difflib.UnifiedDiff{
-		A: difflib.SplitLines(expectedBuf.String()),
-		B: difflib.SplitLines(actualBuf.String()),
+		A:        difflib.SplitLines(expectedBuf.String()),
+		B:        difflib.SplitLines(actualBuf.String()),
 		FromFile: ResourceID(expected),
-		ToFile: ResourceID(actual),
-		Context: 3,
+		ToFile:   ResourceID(actual),
+		Context:  3,
 	}
 
 	return difflib.GetUnifiedDiffString(diffed)

@@ -2,12 +2,12 @@ package test
 
 import (
 	"fmt"
-	"sort"
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 )
 
@@ -91,8 +91,8 @@ func LoadTests(dir string) ([]*Test, error) {
 
 		tests = append(tests, &Test{
 			Cases: []*TestCase{},
-			Name: file.Name(),
-			Dir: filepath.Join(dir, file.Name()),
+			Name:  file.Name(),
+			Dir:   filepath.Join(dir, file.Name()),
 		})
 	}
 

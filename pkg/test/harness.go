@@ -1,19 +1,19 @@
 package test
 
 import (
-	"errors"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"github.com/google/uuid"
 	"context"
+	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"testing"
 	"time"
 )
@@ -33,7 +33,6 @@ type TestCase struct {
 
 	Client client.Client
 }
-
 
 // Delete all resources defined in the Apply list.
 func (t *TestCase) Clean(namespace string) error {
@@ -140,9 +139,9 @@ func (t *TestCase) Run(namespace string) []error {
 // Contains all of the test cases and the Kubernetes client and other global configuration
 // for a test.
 type Test struct {
-	Cases []*TestCase
-	Name string
-	Dir string
+	Cases  []*TestCase
+	Name   string
+	Dir    string
 	Client client.Client
 }
 
