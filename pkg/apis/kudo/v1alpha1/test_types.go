@@ -6,6 +6,8 @@ import (
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// TestCase settings to apply to a test case.
 type TestCase struct {
 	// The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestCase.
 	metav1.TypeMeta `json:",inline"`
@@ -24,6 +26,8 @@ type TestCase struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// TestAssert represents the settings needed to verify the result of a test case.
 type TestAssert struct {
 	// The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestAssert.
 	metav1.TypeMeta `json:",inline"`

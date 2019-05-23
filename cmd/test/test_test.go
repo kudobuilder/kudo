@@ -2,8 +2,9 @@ package tools
 
 import (
 	"flag"
-	"github.com/kudobuilder/kudo/pkg/test"
 	"testing"
+
+	"github.com/kudobuilder/kudo/pkg/test"
 )
 
 func TestKudoFrameworks(t *testing.T) {

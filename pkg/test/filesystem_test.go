@@ -1,13 +1,14 @@
 package test
 
 import (
+	"testing"
+
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"testing"
 )
 
 // Verify the test state as loaded from disk.
@@ -15,11 +16,11 @@ import (
 func TestLoadTestCases(t *testing.T) {
 	for _, tt := range []struct {
 		path      string
-		testCases []TestCase
+		testCases []Case
 	}{
 		{
 			"./tests/kafka-upgrade/",
-			[]TestCase{
+			[]Case{
 				{
 					Name:  "kafka-install",
 					Index: 0,
@@ -135,7 +136,7 @@ func TestLoadTestCases(t *testing.T) {
 		},
 		{
 			"./tests/with-overrides/",
-			[]TestCase{
+			[]Case{
 				{
 					Name:  "with-test-case-name-override",
 					Index: 0,
@@ -328,7 +329,7 @@ func TestLoadTestCases(t *testing.T) {
 			err := test.LoadTestCases()
 			assert.Nil(t, err)
 
-			testCasesVal := []TestCase{}
+			testCasesVal := []Case{}
 			for _, testCase := range test.Cases {
 				testCasesVal = append(testCasesVal, *testCase)
 			}

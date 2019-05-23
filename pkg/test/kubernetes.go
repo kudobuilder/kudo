@@ -6,9 +6,11 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
+	"os"
+
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/pmezard/go-difflib/difflib"
-	"io"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -17,11 +19,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/discovery"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
-// Return a human readable identifier indicating the object kind, name, and namespace.
+// ResourceID returns a human readable identifier indicating the object kind, name, and namespace.
 func ResourceID(obj runtime.Object) string {
 	m, err := meta.Accessor(obj)
 	if err != nil {
@@ -33,7 +34,7 @@ func ResourceID(obj runtime.Object) string {
 	return fmt.Sprintf("%s:%s/%s", gvk.Kind, m.GetNamespace(), m.GetName())
 }
 
-// Set the namespace on an object to namespace, if it is a namespace scoped resource.
+// Namespaced sets the namespace on an object to namespace, if it is a namespace scoped resource.
 // If the resource is cluster scoped, then it is ignored and the namespace is not set.
 func Namespaced(obj runtime.Object, namespace string) (string, string, error) {
 	m, err := meta.Accessor(obj)
@@ -74,10 +75,10 @@ func Namespaced(obj runtime.Object, namespace string) (string, string, error) {
 		}
 	}
 
-	return "", "", fmt.Errorf("Resource type not found.")
+	return "", "", fmt.Errorf("resource type not found")
 }
 
-// Create a unified diff highlighting the differences between two Kubernetes resources
+// PrettyDiff creates a unified diff highlighting the differences between two Kubernetes resources
 func PrettyDiff(expected runtime.Object, actual runtime.Object) (string, error) {
 	expectedBuf := &bytes.Buffer{}
 	actualBuf := &bytes.Buffer{}
@@ -101,7 +102,7 @@ func PrettyDiff(expected runtime.Object, actual runtime.Object) (string, error) 
 	return difflib.GetUnifiedDiffString(diffed)
 }
 
-// Convert an unstructured object to the known struct. If the type is not known, then
+// ConvertUnstructured converts an unstructured object to the known struct. If the type is not known, then
 // the unstructured object is returned unmodified.
 func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 	unstruct, err := runtime.DefaultUnstructuredConverter.ToUnstructured(in)
@@ -128,7 +129,7 @@ func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 	return converted, nil
 }
 
-// Marshal a Kubernetes object to a YAML string.
+// MarshalObject marshals a Kubernetes object to a YAML string.
 func MarshalObject(o runtime.Object, w io.Writer) error {
 	encoder := json.NewYAMLSerializer(json.DefaultMetaFactory, nil, nil)
 
@@ -157,7 +158,7 @@ func MarshalObject(o runtime.Object, w io.Writer) error {
 	return encoder.Encode(copied, w)
 }
 
-// Load all objects from a YAML file.
+// LoadYAML loads all objects from a YAML file.
 func LoadYAML(path string) ([]runtime.Object, error) {
 	opened, err := os.Open(path)
 	if err != nil {

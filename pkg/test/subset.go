@@ -5,13 +5,13 @@ import (
 	"reflect"
 )
 
-// Error type used by IsSubset for tracking the path in the struct.
+// SubsetError is an error type used by IsSubset for tracking the path in the struct.
 type SubsetError struct {
 	path    []string
 	message string
 }
 
-// Append key to the existing struct path. For example, in struct member `a.Key1.Key2`, the path would be ["Key1", "Key2"]
+// AppendPath appends key to the existing struct path. For example, in struct member `a.Key1.Key2`, the path would be ["Key1", "Key2"]
 func (e *SubsetError) AppendPath(key string) {
 	if e.path == nil {
 		e.path = []string{}
@@ -20,7 +20,7 @@ func (e *SubsetError) AppendPath(key string) {
 	e.path = append(e.path, key)
 }
 
-// Implement the error interface.
+// Error implements the error interface.
 func (e *SubsetError) Error() string {
 	if e.path == nil || len(e.path) == 0 {
 		return e.message
@@ -34,7 +34,7 @@ func (e *SubsetError) Error() string {
 	return fmt.Sprintf("%s: %s", path, e.message)
 }
 
-// Check to see if `expected` is a subset of `actual`. A "subset" is an object that is equivalent to
+// IsSubset checks to see if `expected` is a subset of `actual`. A "subset" is an object that is equivalent to
 // the other object, but where map keys found in actual that are not defined in expected are ignored.
 func IsSubset(expected, actual interface{}) error {
 	if reflect.TypeOf(expected) != reflect.TypeOf(actual) {

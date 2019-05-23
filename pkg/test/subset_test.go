@@ -1,8 +1,9 @@
 package test
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIsSubset(t *testing.T) {
