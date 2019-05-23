@@ -173,7 +173,7 @@ func LoadYAML(path string) ([]runtime.Object, error) {
 		data, err := yamlReader.Read()
 		if err != nil {
 			if err == io.EOF {
-				return objects, nil
+				break
 			}
 			return nil, err
 		}
