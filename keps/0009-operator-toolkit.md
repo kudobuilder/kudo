@@ -3,7 +3,7 @@ kep-number: 9
 title: KUDO Operator Toolkit
 authors:
   - "@kensipe"
-  - "@gerred" 
+  - "@gerred"
   - "@zen-dog"
   - "@alenkacz"
   - "@runyontr"
@@ -42,6 +42,9 @@ see-also:
     - [Parameters](#parameters)
     - [Templates](#templates)
   - [Extensions and Bases](#extensions-and-bases)
+    - [Tasks](#tasks-1)
+    - [Plans](#plans-1)
+    - [KUDO](#kudo)
     - [Helm](#helm)
   - [Execution State](#execution-state)
   - [Example Framework](#example-framework)
@@ -58,33 +61,32 @@ KUDO provides a way to reduce the amount of code necessary for the creation of a
 
 The toolkit must provide the ability for:
 
-* conditional inclusions
-* defining default values
-* replacement of values
-* removal of keys and values
+- conditional inclusions
+- defining default values
+- replacement of values
+- removal of keys and values
 
 ## Proposal
 
 A KUDO framework is split into several base components, ordered from the outside-in:
 
-* [Plans](#plans)
-* [Steps](#steps)
-* [Tasks](#tasks)
-* [Templates](#templates)
-* [Parameters](#parameters)
-* [Extensions and Bases](#extensions-and-bases)
-* [Execution State](#execution-state)
+- [Plans](#plans)
+- [Steps](#steps)
+- [Tasks](#tasks)
+- [Templates](#templates)
+- [Parameters](#parameters)
+- [Extensions and Bases](#extensions-and-bases)
+- [Execution State](#execution-state)
 
 These combine to form an operator responsible for the deployment, upgrading, and day 2 operations of software deployed on Kubernetes. While KUDO ships with a templating system, it is not intended to advance the state of deploying software on Kubernetes, and provides facilities for integrating with other templating and deployment systems. KUDO's focus is instead on the sequencing and day 2 operations of this software, and is able to take advantage of existing templating to fulfill this need.
 
 ### Definitions
 
-
 ### Operator Organization
 
 An operator bundle is a folder that contains all of the manifests needed to create or extend a KUDO operator. In the most basic form, an operator bundle is structured in the following format:
 
-```
+```shell
 .
 ├── operator.yaml
 ├── params.yaml
@@ -106,9 +108,9 @@ version: "5.7"
 tasks:
   deploy:
     resources:
-    - deployment.yaml
-    - pvc.yaml
-    - service.yaml
+      - deployment.yaml
+      - pvc.yaml
+      - service.yaml
   init:
     resources:
       - init.yaml
@@ -137,13 +139,13 @@ plans:
     steps:
       - name: deploy
         tasks:
-        - deploy
+          - deploy
       - name: init
         tasks:
-        - init
+          - init
       - name: cleanup
         tasks:
-        - init
+          - init
         delete: true
   backup:
     triggers:
@@ -151,30 +153,30 @@ plans:
     steps:
       - name: pv
         tasks:
-        - pv
+          - pv
       - name: backup
         tasks:
-        - backup
+          - backup
       - name: cleanup
         tasks:
-        - backup
+          - backup
         delete: true
   restore:
     steps:
       - name: restore
         tasks:
-        - restore
+          - restore
       - name: cleanup
         tasks:
-        - restore
+          - restore
         delete: true
 ```
 
 While subsequent sections go into deeper detail, the top level keys of the operator are:
 
-* **version**: String defining the version of a given operator
-* **tasks**: A map of tasks that can be run. These are the atomic runnable unit of a KUDO operator, and are made up of a series of YAML manifests. These are defined more in detail in [Tasks](#tasks).
-* **plans**: A map of plans that can be run. These are the core partitioning unit of a KUDO operator. A plan is intended to run a single "operations task" for an operator, such as backup, restore, deployment, or update. This is defined in detail in [Plans](#plans)
+- **version**: String defining the version of a given operator
+- **tasks**: A map of tasks that can be run. These are the atomic runnable unit of a KUDO operator, and are made up of a series of YAML manifests. These are defined more in detail in [Tasks](#tasks).
+- **plans**: A map of plans that can be run. These are the core partitioning unit of a KUDO operator. A plan is intended to run a single "operations task" for an operator, such as backup, restore, deployment, or update. This is defined in detail in [Plans](#plans)
 
 This file undergoes a Go template pass on Instance instantiation before being parsed. This is described more in detail in [Extensions and Bases](#extensions-and-bases)
 
@@ -216,20 +218,21 @@ If a step contains a runnable task that has readiness probes defined, the step w
 Tasks are a map of task name to a list of templates that should be executed in that step. With [Extensions and Bases](#extensions-and-bases), tasks can be represented in multiple forms, as long as the end result is a ready-to-run YAML manifest for a Kubernetes object.
 
 #### Files
+
 If a filename is specified, KUDO will execute a Go Template on the relevant filename, described more in detail in [Templates](#templates).
 
 #### Webhooks
+
 If a webhook is specified, KUDO will POST the listed webhook with a JSON body containing the full KUDO [execution state](#execution-state). The webhook **MUST** respond with the following:
 
-* Status code: 200
-* Content-type: application/json
+- Status code: 200
+- Content-type: application/json
 
 The body of this response **MUST** be a fully-qualified Kubernetes object in JSON form. If multiple objects are required, they **MUST** be wrapped in a Kubernetes List API object. The contents of a list object **CAN** be composed of multiple Kubernetes objects of different types.
 
 Webhooks **CAN** have side effects to control external state or to fetch external parameters for use in their templates, as long as the response is still a Kubernetes object.
 
 Webhook HTTP connections time out after 30 seconds, after which a Timeout event is added to the PlanExecution the task is running on.
-
 
 #### Resources vs. Patches
 
@@ -248,6 +251,34 @@ Parameters are a key-value list of parameter names and their defaults. As descri
 A template is a standard Kubernetes manifest which **MAY** have additional Go Templating. These Go Templates include [Sprig](https://github.com/masterminds/sprig) to provide a standard library of functions familiar to Helm users. Additional values are available and are described in [Execution State](#execution-state).
 
 ## Extensions and Bases
+
+Extensions and bases describe a mechanism for building operators or extensions to operators from a given base. As an example, a base can be an operator, a Helm chart, a CNAB bundle, or any future format that describes the deployment of a set of resources.
+
+In this document an **extension** is any KUDO operator that extends from some base. A **base** is the complete set of manifests, metadata, and other files provided by that base's type. A base should provide the complete information that users of that base tool are expected to have. The base types and what they expose to charts that extend from them are described in their respective sub-sections.
+
+To support extending from a base, `operator.yaml` is extended to support the `extends` keyword:
+
+```yaml
+extends:
+  kudo:
+    operator: "mysql"
+    version: "5.7"
+```
+
+After extending, the base resources are inherited by the extending operator. The behavior of extensions and values available from the base are described in their corresponding sub-section.
+
+When a task is defined in an extended plan, it **replaces** the task from the base. The plans available are dependent on the base type and are described more in detail in their corresponding sub-section. To support extensibility of tasks that have been replaced, a few new keywords are available in `operator.yaml` to support further control over extensions:
+
+### Tasks
+
+`task.from`: The `from` directive inside of a named task copies over all resources and patches from the base task. Resources and patches that overlap with base resource and patch names replace resource and patches already defined by the base.
+`base/`: The `base/` directive in a template reference resolves to the named template within the extended base. For example, `base/deployment.yaml` corresponds to `deployment.yaml` in the base. This enables base templates to be used directly in new plans defined by the extending operator.
+
+### Plans
+
+`plan.from`: The `from` directive inside of a named task copies over
+
+### KUDO
 
 ### Helm
 
