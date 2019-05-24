@@ -4,25 +4,11 @@
 version: 2
 jobs:
   test:
-    docker:
-      # specify the version
-      - image: kudobuilder/golang:1.12
-    working_directory: /go/src/github.com/kudobuilder/kudo
+    machine: true
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - go-mod-v1-{{ checksum "go.sum" }}
-
-      # specify any bash command here prefixed with `run:`
-      - run: echo "https://$GITHUB_USERNAME:@github.com" > "~/.git-credentials"
-      - run: cat ~/.git-credentials
-      - run: make test
-      - save_cache:
-          key: go-mod-v1-{{ checksum "go.sum" }}
-          paths:
-            - "/go/pkg/mod"
-            - "/go/bin"
+      - echo "https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com" > ".git-credentials"
+      - run: docker build -f Dockerfile_test .
   release:
     docker:
       - image: kudobuilder/golang:1.12
