@@ -42,8 +42,8 @@ see-also:
     - [Parameters](#parameters)
     - [Templates](#templates)
   - [Extensions and Bases](#extensions-and-bases)
-    - [Tasks](#tasks-1)
-    - [Plans](#plans-1)
+    - [Task Extensions](#task-extensions)
+    - [Plan Extensions](#plan-extensions)
     - [KUDO](#kudo)
     - [Helm](#helm)
   - [Execution State](#execution-state)
@@ -182,11 +182,15 @@ This file undergoes a Go template pass on Instance instantiation before being pa
 
 #### params.yaml
 
-The `params.yaml` file is a list of keys and values for operator parameters and their defaults. In the MySQL example, this looks like:
+The `params.yaml` file is a struct that defines parameters for operator. This can articulate descriptions, defaults, and triggers etc., In the MySQL example, this looks like:
 
 ```yaml
-backupFile: backup.sql
-password: password
+backupFile:
+  description: "The name of the backup file"
+  default: backup.sql
+password:
+  default: password
+  description: "Password for the mysql instance"
 ```
 
 These values are meant to be overridden by Instance resources when instantiating an operator.
@@ -244,7 +248,9 @@ Once KUDO has assembled a full set of templates for a task, they will be applied
 
 ### Parameters
 
-Parameters are a key-value list of parameter names and their defaults. As described in [Execution State](#execution-state), they are wrapped into the `.Params` object for use by all templated objects.
+Parameters are a map of Parameter structs, with the key being the name of the parameter. A default value can be set inside of a parameter, as well as a description. When no default is specified, the value is required. If an Instance is created without a required parameter, it will have an Error event added to it describing the validation failure. As described in [Execution State](#execution-state), they are wrapped into the `.Params` object for use by all templated objects. All keys, even arbitrary keys unused by KUDO, are wrapped into the `.Params` object for potential use by other templates.
+
+Parameters are intentionally open for extension for adding fields in the future for validation and more.
 
 ### Templates
 
@@ -267,16 +273,19 @@ extends:
 
 After extending, the base resources are inherited by the extending operator. The behavior of extensions and values available from the base are described in their corresponding sub-section.
 
-When a task is defined in an extended plan, it **replaces** the task from the base. The plans available are dependent on the base type and are described more in detail in their corresponding sub-section. To support extensibility of tasks that have been replaced, a few new keywords are available in `operator.yaml` to support further control over extensions:
+When a task is defined in an extended operator, it **replaces** the task from the base. The tasks available are dependent on the base type and are described more in detail in their corresponding sub-section. To support extensibility of tasks that have been replaced, a few new keywords are available in `operator.yaml` to support further control over extensions:
 
-### Tasks
+When a plan is defined in an extended operator, it **replaces** the plan from the base. The plans available are dependent on the base type and are described more in detail in their corresponding sub-section.
 
-`task.from`: The `from` directive inside of a named task copies over all resources and patches from the base task. Resources and patches that overlap with base resource and patch names replace resource and patches already defined by the base.
-`base/`: The `base/` directive in a template reference resolves to the named template within the extended base. For example, `base/deployment.yaml` corresponds to `deployment.yaml` in the base. This enables base templates to be used directly in new plans defined by the extending operator.
+### Task Extensions
 
-### Plans
+- `task.from`: The `from` directive inside of a named task copies over all resources and patches from the base task of the same name. Resources and patches that overlap with base resource and patch names replace resource and patches already defined by the base. If the base task doesn't exist, an error event will be added to the Instance that is attempting to use this FrameworkVersion.
+- `base/`: The `base/` directive in a template reference resolves to the named template within the extended base. For example, `base/deployment.yaml` corresponds to `deployment.yaml` file located within the base referenced by `extends`. This enables base templates to be used directly in new plans defined by the extending operator.
 
-`plan.from`: The `from` directive inside of a named task copies over
+### Plan Extensions
+
+- `plan.from`: The `from` directive inside of a named plan copies over the steps for that plan. Any additional steps defined are **appended** to the base plan.
+- `base/`: The `base/` directive in a task reference resolves to the named task within the extended base. For example, `base/deploy` corresponds to the `deploy` task in the base. This enables fine grained control over replacing steps in a base plan.
 
 ### KUDO
 
