@@ -15,7 +15,8 @@ jobs:
             - go-mod-v1-{{ checksum "go.sum" }}
 
       # specify any bash command here prefixed with `run:`
-      - run: echo "$GITHUB_USERNAME" > ".git-credentials"
+      - run: echo "https://$GITHUB_USERNAME:@github.com" > "~/.git-credentials"
+      - run: cat ~/.git-credentials
       - run: make test
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
