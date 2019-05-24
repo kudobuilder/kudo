@@ -36,7 +36,7 @@ func TestNewGithubClient(t *testing.T) {
 		{"", "", "password", "no credentials or user environment variable provided"},                                                                        // 7
 		{"username:", "", "password", "client test: GET https://api.github.com/user: 401 Bad credentials []"},                                               // 8
 		{"anything", "user", "", "wrong credentials format"},                                                                                                // 9
-		{"", "user", "password", "client test: GET https://api.github.com/user: 403 Maximum number of login attempts exceeded. Please try again later. []"}, // 10
+		{"", "user", "password", "client test: GET https://api.github.com/user: 401 Bad credentials []"}, // 10
 	}
 
 	for i, tt := range tests {
