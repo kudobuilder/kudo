@@ -23,7 +23,7 @@ func CmdErrorProcessor(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("get flag: %+v", err)
 	}
 
-	err = check.KubeConfigPath()
+	err = check.ValidateKubeConfigPath()
 	if err != nil {
 		return errors.WithMessage(err, "could not check kubeconfig path")
 	}
