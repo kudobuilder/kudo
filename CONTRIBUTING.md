@@ -40,6 +40,15 @@ When updating the structs under APIs, or any other code generated item, use `mak
 
 After updating CRD manifests, use `make install-crds` to apply the new CRDs to your cluster.
 
+### Build and run tests using docker
+If you don't want to install kube builder and other dependencies of KUDO locally, you can optionally run build and tests inside docker which is what our CI does.
+
+Right now, the project requires you to set-up `.git-credentials` file which the build expects to be located in the root of this project (that's because for docker build to run, every file that we copy in has to be inside the passed build context).
+
+If you have `.git-credentials` file in the root of this project, you can just run:
+
+`docker build -f Dockerfile_test .`
+
 ## Community, Discussion, and Support
 
 Learn how to engage with the Kubernetes community on the [community page](community page).
