@@ -273,7 +273,7 @@ extends:
 
 After extending, the base resources are inherited by the extending operator. The behavior of extensions and values available from the base are described in their corresponding sub-section.
 
-When a task is defined in an extended operator, it **replaces** the task from the base. The tasks available are dependent on the base type and are described more in detail in their corresponding sub-section. To support extensibility of tasks that have been replaced, a few new keywords are available in `operator.yaml` to support further control over extensions:
+When a task is defined in an extended operator, it **replaces** the task from the base. The tasks available are dependent on the base type and are described more in detail in their corresponding sub-section.
 
 When a plan is defined in an extended operator, it **replaces** the plan from the base. The plans available are dependent on the base type and are described more in detail in their corresponding sub-section.
 
