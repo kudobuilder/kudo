@@ -48,7 +48,7 @@ manager: prebuild
 	# platforms for distribution
 	GOARCH=amd64 GOOS=darwin go build -ldflags "${LDFLAGS}" -o bin/darwin/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
 	GOARCH=amd64 GOOS=linux go build -ldflags "${LDFLAGS}" -o bin/linux/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
-	GOARCH=amd64 GOOS=windows go build -ldflags "${LDFLAGS}"-o bin/windows/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
+	GOARCH=amd64 GOOS=windows go build -ldflags "${LDFLAGS}" -o bin/windows/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
 
 .PHONY: manager-clean
 # Clean manager build
