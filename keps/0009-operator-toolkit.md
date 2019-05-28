@@ -260,7 +260,7 @@ A template is a standard Kubernetes manifest which **MAY** have additional Go Te
 
 Extensions and bases describe a mechanism for building operators or extensions to operators from a given base. As an example, a base can be an operator, a Helm chart, a CNAB bundle, or any future format that describes the deployment of a set of resources.
 
-In this document an **extension** is any KUDO operator that extends from some base. A **base** is the complete set of manifests, metadata, and other files provided by that base's type. A base should provide the complete information that users of that base tool are expected to have. The base types and what they expose to charts that extend from them are described in their respective sub-sections.
+In this document, an **extension** is any KUDO operator that extends from some base. A **base** is the complete set of manifests, metadata, and other files provided by that base's type. A base should provide complete information that users of that base tool are expected to have. The base types and what they expose to charts that extend from them are described in their respective sub-sections.
 
 To support extending from a base, `operator.yaml` is extended to support the `extends` keyword:
 
