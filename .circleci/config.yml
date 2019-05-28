@@ -7,8 +7,7 @@ jobs:
     machine: true
     steps:
       - checkout
-      - run: echo "https://$GITHUB_USERNAME:@github.com" > ".git-credentials"
-      - run: cat .git-credentials
+      - run: echo "https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com" > ".git-credentials"
       - run: docker build -f Dockerfile_test .
   release:
     docker:
