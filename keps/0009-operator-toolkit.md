@@ -207,7 +207,7 @@ Each template undergoes a Go template pass for an Instance when it's correspondi
 
 Plans are the core unit of operation within a KUDO operator. Each KUDO plan represents an individual unit of operations work. This may include backups, restores, deployments, upgrades, compaction, or any other myriad of operations that an application operator may want to perform with KUDO.
 
-A single plan is composed of [Steps](#steps).
+A single plan is composed of [Steps](#steps) and a step is composed of [tasks](#tasks). Individual steps are executed sequentially by default while the tasks within the step are executed in parallel.
 
 ### Steps
 
