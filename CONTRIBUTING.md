@@ -1,5 +1,9 @@
 # Contributing Guidelines
 
+First: if you're unsure or afraid of anything, just ask or submit the issue or pull request anyway. You won't be yelled at for giving your best effort. The worst that can happen is that you'll be politely asked to change something. We appreciate any sort of contributions, and don't want a wall of rules to get in the way of that.
+
+However, for those individuals who want a bit more guidance on the best way to contribute to the project, read on. This document will cover what we're looking for. By addressing all the points we're looking for, it raises the chances we can quickly merge or address your contributions.
+
 ## Sign the CLA
 
 Kubernetes projects require that you sign a Contributor License Agreement (CLA) before we can accept your pull requests.
@@ -20,10 +24,9 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 
 Before you get started:
 
-- Install Go `1.11` or later
-- Latest version of `dep`
+- Install Go `1.12.3` or later
 - [Install Kubebuilder](https://book.kubebuilder.io/getting_started/installation_and_setup.html)
-- Kubernetes Cluster `1.12` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
+- Kubernetes Cluster `1.13` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
 - [Configure kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) 
 
 ### Build Instructions
@@ -32,6 +35,10 @@ Before you get started:
 - `cd $GOPATH/src/github.com/kudobuilder/kudo`
 - `make all` to build project
 - [optionally] `make docker-build` to build docker images and `make docker-push` to push images
+
+When updating the structs under APIs, or any other code generated item, use `make generate` to generate the new DeepCopy structs. Use `make manifests` to generate out new YAML manifests representing these CRDs.
+
+After updating CRD manifests, use `make install-crds` to apply the new CRDs to your cluster.
 
 ## Community, Discussion, and Support
 

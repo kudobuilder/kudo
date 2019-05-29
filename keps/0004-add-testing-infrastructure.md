@@ -53,7 +53,7 @@ to particular versions of KUDO.
 - Ensure validation of API objects is functioning correctly
 - Ensure controllers execute known process flows correctly
 - Validate Framework and FrameworkVersions in kudobuilder/frameworks adhere to the API spec defined by Kudo. Provide common
-  misconfigurations and validate the testing framework notifies the users/developer of failure
+  misconfigurations and validate that the testing framework notifies the users/developer of failure
 - Reduce review time for code changes by not requiring reviewers to validate functionality of test cases
 - Reduce developer time for code changes by providing tools to validate functionality
 - Provide developers clear tooling for addition additional tests to infrastructure to validate bug fixes and new features
@@ -131,7 +131,7 @@ As a repository owner, I don't want to have to validate the execution of common 
 - Are new tests required for all (code) PRs? If fixing a bug, it's re-assuring if you can provide a test that demonstrates it not working,
   but the level of effort is significantly increased to push code. This might be counter productive in trying to encourage
   developers from contributing.
-- Being able to run the "Test Frameworks" on a runninging cluster might provide value (e.g. sonobouy), but requires a maturation
+- Being able to run the "Test Frameworks" on a running cluster might provide value (e.g. sonobouy), but requires a maturation
   of that capability and might not be worth the effort
 
 ### Risks and Mitigations

@@ -30,11 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
-
 // Add creates a new FrameworkVersion Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 // USER ACTION REQUIRED: update cmd/manager/main.go to call this kudo.Add(mgr) to install this Controller
@@ -75,7 +70,6 @@ type ReconcileFrameworkVersion struct {
 
 // Reconcile reads that state of the cluster for a FrameworkVersion object and makes changes based on the state read
 // and what is in the FrameworkVersion.Spec
-
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kudo.k8s.io,resources=frameworkversions,verbs=get;list;watch;create;update;patch;delete
@@ -94,8 +88,6 @@ func (r *ReconcileFrameworkVersion) Reconcile(request reconcile.Request) (reconc
 	}
 
 	log.Printf("FrameworkVersionController: Recieved Reconcile request for a frameworkversion named: %v", request.Name)
-	//When this is changed, we need to Reconcile all instances objects that reference this
-	//object.
 
 	//TODO Validate FrameworkVersion is appropriate
 	return reconcile.Result{}, nil

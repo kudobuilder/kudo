@@ -1,0 +1,85 @@
+# Golang CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-go/ for more details
+version: 2
+jobs:
+  test:
+    docker:
+      # specify the version
+      - image: kudobuilder/golang:1.12
+    working_directory: /go/src/github.com/kudobuilder/kudo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+
+      # specify any bash command here prefixed with `run: `
+      - run: make test
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+            - "/go/bin"
+  release:
+    docker:
+      - image: kudobuilder/golang:1.12
+    working_directory: /go/src/github.com/kudobuilder/kudo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+      - run: curl -sL https://git.io/goreleaser | bash
+
+  branch-formatting:
+    docker:
+      - image: kudobuilder/golang:1.12
+    working_directory: /go/src/github.com/kudobuilder/kudo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+
+      - run: make check-formatting
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+            - "/go/bin"
+
+  merge-formatting:
+    docker:
+      - image: kudobuilder/golang:1.12
+    working_directory: /go/src/github.com/kudobuilder/kudo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+
+      - run: |
+          git config user.name "Circle CI"
+          git config user.email "ci@mesosphere.com"
+          git merge -m "Merge Commit" origin/master
+      - run: make check-formatting
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+            - "/go/bin"
+workflows:
+  version: 2
+  formatting:
+    jobs:
+      - branch-formatting
+      - merge-formatting
+  release:
+    jobs:
+      - release:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*(-.*)*/
