@@ -113,13 +113,27 @@ An framework bundle is a folder that contains all of the manifests needed to cre
 `framework.yaml` is the base definition of an framework. It follows the following format, extracted from the MySQL example:
 
 ```yaml
+name: "my-framework"
+description: A test example framework.
 version: "5.7"
+kudoVersion: ">= 0.2.0"
+kubeVersion: ">= 1.14"
+maintainers:
+  - Bob <bob@example.com>
+  - Alice <alice@example.com>
+url: https://github.com/myframework/myframework
 tasks:
   deploy:
     resources:
       - pvc.yaml
       - deployment.yaml
       - service.yaml
+      - deployment2.yaml
+      - job.yaml
+    patches:
+      - deploy-patch.yaml
+    patchesStrategicMerge:
+      - super-weird-deploy-patch.yaml
   init:
     resources:
       - init.yaml
@@ -163,8 +177,6 @@ plans:
           - init
         delete: true
   backup:
-    triggers:
-      - parameter: backupFile
     steps:
       - name: pv
         tasks:
