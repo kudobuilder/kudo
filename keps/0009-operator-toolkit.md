@@ -31,12 +31,12 @@ see-also:
     - [Operator Organization](#operator-organization)
       - [operator.yaml](#operatoryaml)
       - [params.yaml](#paramsyaml)
+      - [common/](#common)
       - [templates/](#templates)
     - [Plans](#plans)
     - [Steps](#steps)
     - [Tasks](#tasks)
       - [Files](#files)
-      - [Webhooks](#webhooks)
       - [Resources vs. Patches](#resources-vs-patches)
       - [Task Application](#task-application)
     - [Parameters](#parameters)
@@ -44,10 +44,15 @@ see-also:
   - [Extensions and Bases](#extensions-and-bases)
     - [Task Extensions](#task-extensions)
     - [Plan Extensions](#plan-extensions)
+    - [Example Operator Extension](#example-operator-extension)
+      - [operator.yaml](#operatoryaml-1)
+      - [params.yaml](#paramsyaml-1)
     - [KUDO](#kudo)
     - [Helm](#helm)
   - [Execution State](#execution-state)
   - [Example Operator](#example-operator)
+  - [Future Work](#future-work)
+    - [Allow for other templating engines](#allow-for-other-templating-engines)
 
 ## Summary
 
@@ -239,19 +244,6 @@ Tasks are a map of task name to a list of templates that should be executed in t
 #### Files
 
 If a filename is specified, KUDO will execute a Go Template on the relevant filename, described more in detail in [Templates](#templates).
-
-#### Webhooks
-
-If a webhook is specified, KUDO will POST the listed webhook with a JSON body containing the full KUDO [execution state](#execution-state). The webhook **MUST** respond with the following:
-
-- Status code: 200
-- Content-type: application/json
-
-The body of this response **MUST** be a fully-qualified Kubernetes object in JSON form. If multiple objects are required, they **MUST** be wrapped in a Kubernetes List API object. The contents of a list object **CAN** be composed of multiple Kubernetes objects of different types.
-
-Webhooks **CAN** have side effects to control external state or to fetch external parameters for use in their templates, as long as the response is still a Kubernetes object.
-
-Webhook HTTP connections time out after 30 seconds, after which a Timeout event is added to the PlanExecution the task is running on.
 
 #### Resources vs. Patches
 
