@@ -1,5 +1,5 @@
 ---
-kep-number: 7
+kep-number: 11
 title: Diagnostic Template
 authors:
   - "@gerred"
@@ -31,13 +31,27 @@ Engineering teams have many incoming priorities on top of work defined upfront d
 
 ### Goals
 
-* Define criteria for submitting KUDO issues
-* Define tooling, logs, and metrics needed to support, diagnose, and fix issues reported
+- Define criteria for submitting KUDO issues
+- Define tooling, logs, and metrics needed to support, diagnose, and fix issues reported
 
 ### Non-Goals
 
-* Define frameworks for supporting, diagnosing, and fixing frameworks built using KUDO
+- Define frameworks for supporting, diagnosing, and fixing frameworks built using KUDO
 
 ## Proposal
 
-TBD
+Current template requires the following information:
+
+1. What happened
+2. What was expected
+3. Steps to reproduce
+4. Environment
+   a. Kubernetes version (use kubectl version):
+   b. Kudo version (use kubectl kudoctl version):
+   c. Framework:
+   d. Frameworkversion:
+   e. Cloud provider or hardware configuration:
+   f. OS (e.g. from /etc/os-release):
+   g. Kernel (e.g. uname -a):
+   h. Install tools:
+   i. Others:
