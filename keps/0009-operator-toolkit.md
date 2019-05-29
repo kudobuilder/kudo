@@ -1,6 +1,6 @@
 ---
 kep-number: 9
-title: KUDO Operator Toolkit
+title: KUDO Framework Toolkit
 authors:
   - "@kensipe"
   - "@gerred"
@@ -17,19 +17,19 @@ see-also:
   - KEP-0002
 ---
 
-# KUDO Operator Toolkit
+# KUDO Framework Toolkit
 
 ## Table of Contents
 
-- [KUDO Operator Toolkit](#kudo-operator-toolkit)
+- [KUDO Framework Toolkit](#kudo-framework-toolkit)
   - [Table of Contents](#table-of-contents)
   - [Summary](#summary)
   - [Motivation](#motivation)
   - [Goals](#goals)
   - [Proposal](#proposal)
     - [Definitions](#definitions)
-    - [Operator Organization](#operator-organization)
-      - [operator.yaml](#operatoryaml)
+    - [Framework Organization](#framework-organization)
+      - [framework.yaml](#frameworkyaml)
       - [params.yaml](#paramsyaml)
       - [common/](#common)
       - [templates/](#templates)
@@ -44,23 +44,23 @@ see-also:
   - [Extensions and Bases](#extensions-and-bases)
     - [Task Extensions](#task-extensions)
     - [Plan Extensions](#plan-extensions)
-    - [Example Operator Extension](#example-operator-extension)
-      - [operator.yaml](#operatoryaml-1)
+    - [Example Framework Extension](#example-framework-extension)
+      - [framework.yaml](#frameworkyaml-1)
       - [params.yaml](#paramsyaml-1)
     - [KUDO](#kudo)
     - [Helm](#helm)
   - [Execution State](#execution-state)
-  - [Example Operator](#example-operator)
+  - [Example Framework](#example-framework)
   - [Future Work](#future-work)
     - [Allow for other templating engines](#allow-for-other-templating-engines)
 
 ## Summary
 
-Drive KUDO to have a set of tools and specifications for creating operators.
+Drive KUDO to have a set of tools and specifications for creating frameworks.
 
 ## Motivation
 
-KUDO provides a way to reduce the amount of code necessary for the creation of an operator for Kubernetes. The current implementation of KUDO requires a significant amount of YAML to define an operator, located in one file. This YAML relies in nested YAML inlined via multiline strings, is not extensible, and is prone to error. This KEP defines an operator SDK that solves these issues.
+KUDO provides a way to reduce the amount of code necessary for the creation of an framework for Kubernetes. The current implementation of KUDO requires a significant amount of YAML to define an framework, located in one file. This YAML relies in nested YAML inlined via multiline strings, is not extensible, and is prone to error. This KEP defines an framework SDK that solves these issues.
 
 ## Goals
 
@@ -73,7 +73,7 @@ The toolkit must provide the ability for:
 
 ## Proposal
 
-A KUDO operator is split into several base components, ordered from the outside-in:
+A KUDO framework is split into several base components, ordered from the outside-in:
 
 - [Plans](#plans)
 - [Steps](#steps)
@@ -83,17 +83,17 @@ A KUDO operator is split into several base components, ordered from the outside-
 - [Extensions and Bases](#extensions-and-bases)
 - [Execution State](#execution-state)
 
-These combine to form an operator responsible for the deployment, upgrading, and day 2 operations of software deployed on Kubernetes. While KUDO ships with a templating system, it is not intended to advance the state of deploying software on Kubernetes, and provides facilities for integrating with other templating and deployment systems. KUDO's focus is instead on the sequencing and day 2 operations of this software, and is able to take advantage of existing templating to fulfill this need.
+These combine to form an framework responsible for the deployment, upgrading, and day 2 operations of software deployed on Kubernetes. While KUDO ships with a templating system, it is not intended to advance the state of deploying software on Kubernetes, and provides facilities for integrating with other templating and deployment systems. KUDO's focus is instead on the sequencing and day 2 operations of this software, and is able to take advantage of existing templating to fulfill this need.
 
 ### Definitions
 
-### Operator Organization
+### Framework Organization
 
-An operator bundle is a folder that contains all of the manifests needed to create or extend a KUDO operator. In the most basic form, an operator bundle is structured in the following format:
+An framework bundle is a folder that contains all of the manifests needed to create or extend a KUDO framework. In the most basic form, an framework bundle is structured in the following format:
 
 ```shell
 .
-├── operator.yaml
+├── framework.yaml
 ├── params.yaml
 └── common
     └── common.yaml
@@ -108,9 +108,9 @@ An operator bundle is a folder that contains all of the manifests needed to crea
     └── service.yaml
 ```
 
-#### operator.yaml
+#### framework.yaml
 
-`operator.yaml` is the base definition of an operator. It follows the following format, extracted from the MySQL example:
+`framework.yaml` is the base definition of an framework. It follows the following format, extracted from the MySQL example:
 
 ```yaml
 version: "5.7"
@@ -187,17 +187,17 @@ plans:
         delete: true
 ```
 
-While subsequent sections go into deeper detail, the top level keys of the operator are:
+While subsequent sections go into deeper detail, the top level keys of the framework are:
 
-- **version**: String defining the version of a given operator
-- **tasks**: A map of tasks that can be run. These are the atomic runnable unit of a KUDO operator, and are made up of a series of YAML manifests. These are defined more in detail in [Tasks](#tasks).
-- **plans**: A map of plans that can be run. These are the core partitioning unit of a KUDO operator. A plan is intended to run a single "operations task" for an operator, such as backup, restore, deployment, or update. This is defined in detail in [Plans](#plans)
+- **version**: String defining the version of a given framework
+- **tasks**: A map of tasks that can be run. These are the atomic runnable unit of a KUDO framework, and are made up of a series of YAML manifests. These are defined more in detail in [Tasks](#tasks).
+- **plans**: A map of plans that can be run. These are the core partitioning unit of a KUDO framework. A plan is intended to run a single "operations task" for an framework, such as backup, restore, deployment, or update. This is defined in detail in [Plans](#plans)
 
 This file undergoes a Go template pass on Instance instantiation before being parsed. This is described more in detail in [Extensions and Bases](#extensions-and-bases)
 
 #### params.yaml
 
-The `params.yaml` file is a struct that defines parameters for operator. This can articulate descriptions, defaults, and triggers etc., In the MySQL example, this looks like:
+The `params.yaml` file is a struct that defines parameters for framework. This can articulate descriptions, defaults, and triggers etc., In the MySQL example, this looks like:
 
 ```yaml
 backupFile:
@@ -209,23 +209,23 @@ password:
   trigger: deploy
 ```
 
-These values are meant to be overridden by Instance resources when instantiating an operator.
+These values are meant to be overridden by Instance resources when instantiating an framework.
 
 This file undergoes a Go template pass on Instance instantiation before being parsed. This is described more in detail in [Parameters](#parameters).
 
 #### common/
 
-The common directory contains 0-to-many YAML manifests for all instances of the operator to leverage. The requirement/scope of these objects is defined in [KEP 0005](0005-cluster-resources-for-crds.md)
+The common directory contains 0-to-many YAML manifests for all instances of the framework to leverage. The requirement/scope of these objects is defined in [KEP 0005](0005-cluster-resources-for-crds.md)
 
 #### templates/
 
-The templates directory contains 0-to-many YAML manifests for operator tasks to use. These are described in more detail in [Templates](#templates).
+The templates directory contains 0-to-many YAML manifests for framework tasks to use. These are described in more detail in [Templates](#templates).
 
 Each template undergoes a Go template pass for an Instance when it's corresponding Task is run.
 
 ### Plans
 
-Plans are the core unit of operation within a KUDO operator. Each KUDO plan represents an individual unit of operations work. This may include backups, restores, deployments, upgrades, compaction, or any other myriad of operations that an application operator may want to perform with KUDO.
+Plans are the core unit of operation within a KUDO framework. Each KUDO plan represents an individual unit of operations work. This may include backups, restores, deployments, upgrades, compaction, or any other myriad of operations that an application framework may want to perform with KUDO.
 
 A single plan is composed of [Steps](#steps) and a step is composed of [tasks](#tasks). Individual steps are executed sequentially by default while the tasks within the step are executed in parallel.
 
@@ -247,7 +247,7 @@ If a filename is specified, KUDO will execute a Go Template on the relevant file
 
 #### Resources vs. Patches
 
-KUDO additionally supports Kustomize for defining resources and patching for tasks. Kustomize is applied after any Go templating steps. This is useful for defining common bases for objects, or for extending operators as described in [Extensions and Bases](#extensions-and-bases).
+KUDO additionally supports Kustomize for defining resources and patching for tasks. Kustomize is applied after any Go templating steps. This is useful for defining common bases for objects, or for extending frameworks as described in [Extensions and Bases](#extensions-and-bases).
 
 #### Task Application
 
@@ -265,58 +265,58 @@ A template is a standard Kubernetes manifest which **MAY** have additional Go Te
 
 ## Extensions and Bases
 
-Extensions and bases describe a mechanism for building operators or extensions to operators from a given base. As an example, a base can be an operator, a Helm chart, a CNAB bundle, or any future format that describes the deployment of a set of resources.
+Extensions and bases describe a mechanism for building frameworks or extensions to frameworks from a given base. As an example, a base can be an framework, a Helm chart, a CNAB bundle, or any future format that describes the deployment of a set of resources.
 
-In this document, an **extension** is any KUDO operator that extends from some base. A **base** is the complete set of manifests, metadata, and other files provided by that base's type. A base should provide complete information that users of that base tool are expected to have. The base types and what they expose to charts that extend from them are described in their respective sub-sections.
+In this document, an **extension** is any KUDO framework that extends from some base. A **base** is the complete set of manifests, metadata, and other files provided by that base's type. A base should provide complete information that users of that base tool are expected to have. The base types and what they expose to charts that extend from them are described in their respective sub-sections.
 
-To support extending from a base, `operator.yaml` is extended to support the `extends` keyword:
+To support extending from a base, `framework.yaml` is extended to support the `extends` keyword:
 
 ```yaml
 extends:
   kudo:
-    operator: "mysql"
+    framework: "mysql"
     version: "5.7"
 ```
 
-After extending, the base resources are inherited by the extending operator. The behavior of extensions and values available from the base are described in their corresponding sub-section.
+After extending, the base resources are inherited by the extending framework. The behavior of extensions and values available from the base are described in their corresponding sub-section.
 
-When a task is defined in an extended operator, it **replaces** the task from the base. The tasks available are dependent on the base type and are described more in detail in their corresponding sub-section.
+When a task is defined in an extended framework, it **replaces** the task from the base. The tasks available are dependent on the base type and are described more in detail in their corresponding sub-section.
 
-When a plan is defined in an extended operator, it **replaces** the plan from the base. The plans available are dependent on the base type and are described more in detail in their corresponding sub-section.
+When a plan is defined in an extended framework, it **replaces** the plan from the base. The plans available are dependent on the base type and are described more in detail in their corresponding sub-section.
 
 ### Task Extensions
 
 - `task.from`: The `from` directive inside of a named task copies over all resources and patches from the base task of the same name. Resources and patches that overlap with base resource and patch names replace resource and patches already defined by the base. If the base task doesn't exist, an error event will be added to the Instance that is attempting to use this FrameworkVersion.
-- `base/`: The `base/` directive in a template reference resolves to the named template within the extended base. For example, `base/deployment.yaml` corresponds to `deployment.yaml` file located within the base referenced by `extends`. This enables base templates to be used directly in new plans defined by the extending operator.
+- `base/`: The `base/` directive in a template reference resolves to the named template within the extended base. For example, `base/deployment.yaml` corresponds to `deployment.yaml` file located within the base referenced by `extends`. This enables base templates to be used directly in new plans defined by the extending framework.
 
 ### Plan Extensions
 
 - `plan.from`: The `from` directive inside of a named plan copies over the steps for that plan. Any additional steps defined are **appended** to the base plan.
 - `base/`: The `base/` directive in a task reference resolves to the named task within the extended base. For example, `base/deploy` corresponds to the `deploy` task in the base. This enables fine grained control over replacing steps in a base plan.
 
-### Example Operator Extension
+### Example Framework Extension
 
-This operator is built from the MySQL operator defined above, but adds custom plans that allow for the loading and clearing of data that is required for a particular business application
+This framework is built from the MySQL framework defined above, but adds custom plans that allow for the loading and clearing of data that is required for a particular business application
 
 ```shell
 .
-├── operator.yaml
+├── framework.yaml
 ├── params.yaml
 └── templates
     ├── clear-data.yaml
     ├── load-data.yaml
 ```
 
-Since this operator extends `mysql/5.7`, it inherits the plans defined in the base operator, so `backup` and `restore` plans can be run without any configuration in this extension operator.
+Since this framework extends `mysql/5.7`, it inherits the plans defined in the base framework, so `backup` and `restore` plans can be run without any configuration in this extension framework.
 
-#### operator.yaml
+#### framework.yaml
 
-`operator.yaml` is the base definition of an operator. It follows the following format, extracted from the MySQL example:
+`framework.yaml` is the base definition of an framework. It follows the following format, extracted from the MySQL example:
 
 ```yaml
 extends:
   kudo:
-    operator: "mysql"
+    framework: "mysql"
     version: "5.7"
 version: "5.7"
 tasks:
@@ -354,7 +354,7 @@ Tasks `load-data` and `clear-data` essentially look the same, but `load-data` is
 
 #### params.yaml
 
-This operator also provides a new parameter that can be used to specify unique datasources to load
+This framework also provides a new parameter that can be used to specify unique datasources to load
 
 ```yaml
 data-location:
@@ -371,12 +371,12 @@ And can be used in `templates/clear-data.yaml` and `templates/load-data.yaml`
 
 ## Execution State
 
-## Example Operator
+## Example Framework
 
 ## Future Work
 
 ### Allow for other templating engines
 
-It may the be case that an operator developer does not want to, or cannot leverage the current templating system, either because functionality is not present in the language, or the operator may need to query external systems for value injection. We may want to extend our supported templating system to include other rendering laguages (e.g. [cue](https://github.com/cuelang/cue)), or allow an operator to deploy their own rendering engine in the Kubernetes cluster and expose a well defined interface (e.g. defined with Swagger) to KUDO for send rendering requests.
+It may the be case that an framework developer does not want to, or cannot leverage the current templating system, either because functionality is not present in the language, or the framework may need to query external systems for value injection. We may want to extend our supported templating system to include other rendering laguages (e.g. [cue](https://github.com/cuelang/cue)), or allow an framework to deploy their own rendering engine in the Kubernetes cluster and expose a well defined interface (e.g. defined with Swagger) to KUDO for send rendering requests.
 
 The specifications of what this API needs to be is out of scope of this KEP.
