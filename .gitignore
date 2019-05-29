@@ -3,7 +3,7 @@ bin/
 vendor/
 hack/code-gen
 hack/controller-gen
-.git-credentials
+test/.git-credentials
 
 ### mac
 .DS_Store
