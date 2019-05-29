@@ -47,11 +47,11 @@ see-also:
     - [KUDO](#kudo)
     - [Helm](#helm)
   - [Execution State](#execution-state)
-  - [Example Framework](#example-framework)
+  - [Example Operator](#example-operator)
 
 ## Summary
 
-Drive KUDO to have a set of tools, frameworks and specifications for creating operators.
+Drive KUDO to have a set of tools and specifications for creating operators.
 
 ## Motivation
 
@@ -68,7 +68,7 @@ The toolkit must provide the ability for:
 
 ## Proposal
 
-A KUDO framework is split into several base components, ordered from the outside-in:
+A KUDO operator is split into several base components, ordered from the outside-in:
 
 - [Plans](#plans)
 - [Steps](#steps)
@@ -90,10 +90,14 @@ An operator bundle is a folder that contains all of the manifests needed to crea
 .
 ├── operator.yaml
 ├── params.yaml
+└── common
+    └── common.yaml
 └── templates
     ├── backup.yaml
+    ├── clear-data.yaml
     ├── deployment.yaml
     ├── init.yaml
+    ├── load-data.yaml
     ├── pvc.yaml
     ├── restore.yaml
     └── service.yaml
@@ -108,29 +112,35 @@ version: "5.7"
 tasks:
   deploy:
     resources:
-      - deployment.yaml
       - pvc.yaml
+      - deployment.yaml
       - service.yaml
   init:
     resources:
       - init.yaml
   pv:
     resources:
-      - backup-pv.yaml
+      - pvc.yaml
   backup:
     resources:
-      - base-job.yaml
+      - init.yaml
     patches:
       - backup.yaml
   restore:
     resources:
+      - init.yaml
+    patches:
       - restore.yaml
   load-data:
     resources:
-      - job.yaml
+      - init.yaml
+    patches:
+      - load-data.yaml
   clear-data:
     resources:
-      - job.yaml
+      - init.yaml
+    patches:
+      - clear-data.yaml
   query:
     resources:
       - job.yaml
@@ -191,11 +201,16 @@ backupFile:
 password:
   default: password
   description: "Password for the mysql instance"
+  trigger: deploy
 ```
 
 These values are meant to be overridden by Instance resources when instantiating an operator.
 
 This file undergoes a Go template pass on Instance instantiation before being parsed. This is described more in detail in [Parameters](#parameters).
+
+#### common/
+
+The common directory contains 0-to-many YAML manifests for all instances of the operator to leverage. The requirement/scope of these objects is defined in [KEP 0005](0005-cluster-resources-for-crds.md)
 
 #### templates/
 
@@ -240,7 +255,7 @@ Webhook HTTP connections time out after 30 seconds, after which a Timeout event 
 
 #### Resources vs. Patches
 
-KUDO additionally supports Kustomize for defining resources and patching for tasks. Kustomize is applied after any Go templating steps. This is useful for defining common bases for objects, or for extending frameworks as described in [Extensions and Bases](#extensions-and-bases).
+KUDO additionally supports Kustomize for defining resources and patching for tasks. Kustomize is applied after any Go templating steps. This is useful for defining common bases for objects, or for extending operators as described in [Extensions and Bases](#extensions-and-bases).
 
 #### Task Application
 
@@ -287,10 +302,89 @@ When a plan is defined in an extended operator, it **replaces** the plan from th
 - `plan.from`: The `from` directive inside of a named plan copies over the steps for that plan. Any additional steps defined are **appended** to the base plan.
 - `base/`: The `base/` directive in a task reference resolves to the named task within the extended base. For example, `base/deploy` corresponds to the `deploy` task in the base. This enables fine grained control over replacing steps in a base plan.
 
+### Example Operator Extension
+
+This operator is built from the MySQL operator defined above, but adds custom plans that allow for the loading and clearing of data that is required for a particular business application
+
+```shell
+.
+├── operator.yaml
+├── params.yaml
+└── templates
+    ├── clear-data.yaml
+    ├── load-data.yaml
+```
+
+Since this operator extends `mysql/5.7`, it inherits the plans defined in the base operator, so `backup` and `restore` plans can be run without any configuration in this extension operator.
+
+#### operator.yaml
+
+`operator.yaml` is the base definition of an operator. It follows the following format, extracted from the MySQL example:
+
+```yaml
+extends:
+  kudo:
+    operator: "mysql"
+    version: "5.7"
+version: "5.7"
+tasks:
+  load-data:
+    resources:
+      - base/init.yaml
+    patches:
+      - load-data.yaml
+  clear-data:
+    from: base/init
+    patches:
+      - clear-data.yaml
+plans:
+  load:
+    steps:
+      - name: load
+        tasks:
+          - load-data
+      - name: cleanup
+        tasks:
+          - load-data
+        delete: true
+  clear:
+    steps:
+      - name: clear
+        tasks:
+          - clear-data
+      - name: cleanup
+        tasks:
+          - clear-data
+        delete: true
+```
+
+Tasks `load-data` and `clear-data` essentially look the same, but `load-data` is built fresh, and references the base template object, whereas the `clear-data` task extends the `base/init` task with an additional patch.
+
+#### params.yaml
+
+This operator also provides a new parameter that can be used to specify unique datasources to load
+
+```yaml
+data-location:
+  default: https://s3.aws.com/bucket/data.sql
+  description: "Location of data to load into database"
+  trigger: load
+```
+
+And can be used in `templates/clear-data.yaml` and `templates/load-data.yaml`
+
 ### KUDO
 
 ### Helm
 
 ## Execution State
 
-## Example Framework
+## Example Operator
+
+## Future Work
+
+### Allow for other templating engines
+
+It may the be case that an operator developer does not want to, or cannot leverage the current templating system, either because functionality is not present in the language, or the operator may need to query external systems for value injection. We may want to extend our supported templating system to include other rendering laguages (e.g. [cue](https://github.com/cuelang/cue)), or allow an operator to deploy their own rendering engine in the Kubernetes cluster and expose a well defined interface (e.g. defined with Swagger) to KUDO for send rendering requests.
+
+The specifications of what this API needs to be is out of scope of this KEP.
