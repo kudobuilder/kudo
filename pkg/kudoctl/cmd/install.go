@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 	"github.com/spf13/cobra"
@@ -19,13 +20,14 @@ var (
 		kubectl kudo install kafka --package-version=0`
 )
 
-func NewCmdInstall() *cobra.Command {
+// NewInstallCmd creates the install command for the CLI
+func NewInstallCmd() *cobra.Command {
 	installCmd := &cobra.Command{
 		Use:          "install <name>",
 		Short:        "-> Install an official KUDO package.",
 		Long:         `Install a KUDO package from the official GitHub repo.`,
 		Example:      installExample,
-		RunE:         install.InstallCmd,
+		RunE:         install.CmdErrorProcessor,
 		SilenceUsage: true,
 	}
 

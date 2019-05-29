@@ -12,7 +12,7 @@ spec:
     type: FrameworkVersion
   # Add fields here
   dependency:
-    - referenaceName: zookeeper
+    - referenceName: zookeeper
       name: zk
       type: Instance
   parameters:

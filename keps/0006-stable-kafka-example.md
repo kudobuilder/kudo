@@ -32,6 +32,7 @@ status: provisional
         * [Vertical Scaling](#vertical-scaling)
         * [Horizontal Scaling](#horizontal-scaling)
         * [Configuration Changes](#configuration-changes)
+        * [Handle Failures](#handle-failures)
         * [Upgrades](#upgrades)
         * [TLS](#tls)
         * [Kerberos](#kerberos)
@@ -103,6 +104,10 @@ As a Kafka administrator I want to change the number of Kafka brokers in a clust
 #### Configuration Changes
 
 As a Kafka administrator I want to deploy configuration changes to the cluster with minimal disruption to clients so I can make changes without creating a new cluster.
+
+#### Handle Failures
+
+When a Pod corresponding to Kafka Broker is restarted (because of a Kubelet failure, for example), I want a task to run to verify the health of the Broker and to perform a maintenance if needed
 
 #### Upgrades
 

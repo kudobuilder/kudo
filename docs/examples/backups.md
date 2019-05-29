@@ -13,7 +13,7 @@ Watch the explained demo video of the steps beneath [here](https://youtu.be/e_xU
 
 ## MySQL
 
-Create an instance of MySQL using the provided Framework
+Create an instance of MySQL using the provided sample Framework:
 
 ```bash
 $ kubectl apply -f config/samples/mysql.yaml
@@ -22,7 +22,7 @@ frameworkversion.kudo.k8s.io/mysql-57 created
 instance.kudo.k8s.io/mysql created
 ```
 
-Query the database to show
+Query the database to show its schema:
 
 ```bash
 MYSQL_POD=`kubectl get pods -l app=mysql,step=deploy -o jsonpath="{.items[*].metadata.name}"`
@@ -41,10 +41,27 @@ kubectl exec -it $MYSQL_POD -- mysql -ppassword  -e "select * from example;" kud
 
 
 ## Take a backup
+Define and execute a custom plan in order to take a backup:
 
 ```bash
-kubectl kudo start -n mysql -p backup
+cat <<EOF | kubectl apply -f -
+apiVersion: kudo.k8s.io/v1alpha1
+kind: PlanExecution
+metadata:
+  labels:
+    framework-version: mysql-57
+    instance: mysql
+  name: mysql-backup
+  namespace: default
+spec:
+  instance:
+    kind: Instance
+    name: mysql
+    namespace: default
+  planName: backup
+EOF
 ```
+
 
 ## Delete data from the database
 
@@ -54,12 +71,28 @@ kubectl exec -it $MYSQL_POD -- mysql -ppassword  -e "select * from example;" kud
 ```
 
 ## Perform a restore
+Similar to the backup step, define and execute the restore:
 
 ```bash
-kubectl kudo start -n mysql -p restore
+cat <<EOF | kubectl apply -f -
+apiVersion: kudo.k8s.io/v1alpha1
+kind: PlanExecution
+metadata:
+  labels:
+    framework-version: mysql-57
+    instance: mysql
+  name: mysql-restore
+  namespace: default
+spec:
+  instance:
+    kind: Instance
+    name: mysql
+    namespace: default
+  planName: restore
+EOF
 ```
 
- And then query to see the data from before
+And then query to see the data from before:
 
  ```bash
 kubectl exec -it $MYSQL_POD -- mysql -ppassword  -e "select * from example;" kudo

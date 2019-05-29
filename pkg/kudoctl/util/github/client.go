@@ -3,22 +3,24 @@ package github
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/google/go-github/github" // with go modules disabled
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/helpers"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 	"github.com/pkg/errors"
-	"os"
 	"sigs.k8s.io/yaml"
-	"strings"
 )
 
-type GithubClient struct {
+// Client provides access to a Github client
+type Client struct {
 	client *github.Client
 }
 
 // NewGithubClient generates a new Github client and returns an error if it failed.
-func NewGithubClient(cred string) (*GithubClient, error) {
+func NewGithubClient(cred string) (*Client, error) {
 
 	var result []string
 	var gitUser string
@@ -83,19 +85,19 @@ func NewGithubClient(cred string) (*GithubClient, error) {
 		tp.OTP = cred
 	}
 
-	return &GithubClient{client: client}, nil
+	return &Client{client: client}, nil
 }
 
 // GetMostRecentFrameworkContentDir returns the content of the most recent Framework
-func (g *GithubClient) GetMostRecentFrameworkContentDir(framework string) (*github.RepositoryContent, error) {
+func (c *Client) GetMostRecentFrameworkContentDir(framework string) (*github.RepositoryContent, error) {
 	if framework == "" {
 		return nil, errors.Errorf("no framework provided")
 	}
 
 	var directoryContents []*github.RepositoryContent
-	directoryContents, err := g.GetStableFrameworkContentDir(framework)
+	directoryContents, err := c.GetStableFrameworkContentDir(framework)
 	if err != nil {
-		directoryContents, err = g.GetIncubatingFrameworkContentDir(framework)
+		directoryContents, err = c.GetIncubatingFrameworkContentDir(framework)
 		if err != nil {
 			return nil, errors.Wrap(err, "getting framework content")
 		}
@@ -112,15 +114,15 @@ func (g *GithubClient) GetMostRecentFrameworkContentDir(framework string) (*gith
 
 // GetSpecificFrameworkContentDir returns the content of a Framework of specific repo version. If no Framework was found
 // there will an error returned. Requires vars.PackageVersion set otherwise it returns "no matching repo version found"
-func (g *GithubClient) GetSpecificFrameworkContentDir(framework string) (*github.RepositoryContent, error) {
+func (c *Client) GetSpecificFrameworkContentDir(framework string) (*github.RepositoryContent, error) {
 	if framework == "" {
 		return nil, errors.Errorf("no framework provided")
 	}
 
 	var directoryContents []*github.RepositoryContent
-	directoryContents, err := g.GetStableFrameworkContentDir(framework)
+	directoryContents, err := c.GetStableFrameworkContentDir(framework)
 	if err != nil {
-		directoryContents, err = g.GetIncubatingFrameworkContentDir(framework)
+		directoryContents, err = c.GetIncubatingFrameworkContentDir(framework)
 		if err != nil {
 			return nil, errors.Wrap(err, "getting framework content")
 		}
@@ -136,17 +138,17 @@ func (g *GithubClient) GetSpecificFrameworkContentDir(framework string) (*github
 
 // GetStableFrameworkContentDir returns the content of a stable Framework. It returns an error if no Framework was
 // found.
-func (g *GithubClient) GetStableFrameworkContentDir(framework string) ([]*github.RepositoryContent, error) {
+func (c *Client) GetStableFrameworkContentDir(framework string) ([]*github.RepositoryContent, error) {
 	if framework == "" {
 		return nil, errors.Errorf("no framework provided")
 	}
 
-	_, directoryContents, _, err := g.client.Repositories.GetContents(context.Background(), "kudobuilder",
+	_, directoryContents, _, err := c.client.Repositories.GetContents(context.Background(), "kudobuilder",
 		"frameworks", "repo/stable/"+framework+"/versions", &github.RepositoryContentGetOptions{})
 	if err != nil {
-		switch err.(type) {
+		switch errM := err.(type) {
 		case *github.ErrorResponse:
-			errM := err.(*github.ErrorResponse)
+			//errM := err.(*github.ErrorResponse)
 			if errM.Response.StatusCode == 404 {
 				return nil, errors.Wrap(err, "stable framework not found")
 			}
@@ -159,16 +161,15 @@ func (g *GithubClient) GetStableFrameworkContentDir(framework string) ([]*github
 
 // GetIncubatingFrameworkContentDir returns the content of an incubating Framework. It returns an error if no Framework
 // was found.
-func (g *GithubClient) GetIncubatingFrameworkContentDir(framework string) ([]*github.RepositoryContent, error) {
+func (c *Client) GetIncubatingFrameworkContentDir(framework string) ([]*github.RepositoryContent, error) {
 	if framework == "" {
 		return nil, errors.Errorf("no framework provided")
 	}
-	_, directoryContents, _, err := g.client.Repositories.GetContents(context.Background(), "kudobuilder",
+	_, directoryContents, _, err := c.client.Repositories.GetContents(context.Background(), "kudobuilder",
 		"frameworks", "repo/incubating/"+framework+"/versions", &github.RepositoryContentGetOptions{})
 	if err != nil {
-		switch err.(type) {
+		switch errM := err.(type) {
 		case *github.ErrorResponse:
-			errM := err.(*github.ErrorResponse)
 			if errM.Response.StatusCode == 404 {
 				return nil, errors.Wrap(err, "incubating framework not found")
 			}
@@ -180,7 +181,7 @@ func (g *GithubClient) GetIncubatingFrameworkContentDir(framework string) ([]*gi
 }
 
 // GetFrameworkVersion returns the version to a given Framework
-func (g *GithubClient) GetFrameworkVersion(name, path string) (string, error) {
+func (c *Client) GetFrameworkVersion(name, path string) (string, error) {
 	if name == "" {
 		return "", errors.Errorf("no name provided")
 	}
@@ -188,12 +189,11 @@ func (g *GithubClient) GetFrameworkVersion(name, path string) (string, error) {
 		return "", errors.Errorf("no path provided")
 	}
 	filePath := path + "/" + name + "-frameworkversion.yaml"
-	filecontent, _, _, err := g.client.Repositories.GetContents(context.Background(), "kudobuilder",
+	filecontent, _, _, err := c.client.Repositories.GetContents(context.Background(), "kudobuilder",
 		"frameworks", filePath, &github.RepositoryContentGetOptions{})
 	if err != nil {
-		switch err.(type) {
+		switch errM := err.(type) {
 		case *github.ErrorResponse:
-			errM := err.(*github.ErrorResponse)
 			if errM.Response.StatusCode == 404 {
 				return "", errors.Wrap(err, "frameworkversion not found")
 			}
@@ -219,14 +219,13 @@ func (g *GithubClient) GetFrameworkVersion(name, path string) (string, error) {
 }
 
 // GetFrameworkYaml returns a Framework object from a given repo in the official GitHub repo
-func (g *GithubClient) GetFrameworkYaml(name, path string) (*v1alpha1.Framework, error) {
+func (c *Client) GetFrameworkYaml(name, path string) (*v1alpha1.Framework, error) {
 	filePath := path + "/" + name + "-framework.yaml"
-	fileContent, _, _, err := g.client.Repositories.GetContents(context.Background(), "kudobuilder",
+	fileContent, _, _, err := c.client.Repositories.GetContents(context.Background(), "kudobuilder",
 		"frameworks", filePath, &github.RepositoryContentGetOptions{})
 	if err != nil {
-		switch err.(type) {
+		switch errM := err.(type) {
 		case *github.ErrorResponse:
-			errM := err.(*github.ErrorResponse)
 			if errM.Response.StatusCode == 404 {
 				return nil, errors.Wrapf(err, "%s-framework.yaml not found", name)
 			}
@@ -247,14 +246,13 @@ func (g *GithubClient) GetFrameworkYaml(name, path string) (*v1alpha1.Framework,
 }
 
 // GetFrameworkVersionYaml returns a FrameworkVersion object from a given repo in the official GitHub repo
-func (g *GithubClient) GetFrameworkVersionYaml(name, path string) (*v1alpha1.FrameworkVersion, error) {
+func (c *Client) GetFrameworkVersionYaml(name, path string) (*v1alpha1.FrameworkVersion, error) {
 	filePath := path + "/" + name + "-frameworkversion.yaml"
-	fileContent, _, _, err := g.client.Repositories.GetContents(context.Background(), "kudobuilder",
+	fileContent, _, _, err := c.client.Repositories.GetContents(context.Background(), "kudobuilder",
 		"frameworks", filePath, &github.RepositoryContentGetOptions{})
 	if err != nil {
-		switch err.(type) {
+		switch errM := err.(type) {
 		case *github.ErrorResponse:
-			errM := err.(*github.ErrorResponse)
 			if errM.Response.StatusCode == 404 {
 				return nil, errors.Wrapf(err, "%s-frameworkversion.yaml not found", name)
 			}
@@ -275,14 +273,13 @@ func (g *GithubClient) GetFrameworkVersionYaml(name, path string) (*v1alpha1.Fra
 }
 
 // GetInstanceYaml returns a Instance object from a given repo in the official GitHub repo
-func (g *GithubClient) GetInstanceYaml(name, path string) (*v1alpha1.Instance, error) {
+func (c *Client) GetInstanceYaml(name, path string) (*v1alpha1.Instance, error) {
 	filePath := path + "/" + name + "-instance.yaml"
-	fileContent, _, _, err := g.client.Repositories.GetContents(context.Background(), "kudobuilder",
+	fileContent, _, _, err := c.client.Repositories.GetContents(context.Background(), "kudobuilder",
 		"frameworks", filePath, &github.RepositoryContentGetOptions{})
 	if err != nil {
-		switch err.(type) {
+		switch errM := err.(type) {
 		case *github.ErrorResponse:
-			errM := err.(*github.ErrorResponse)
 			if errM.Response.StatusCode == 404 {
 				return nil, errors.Wrapf(err, "%s-instance.yaml not found", name)
 			}
@@ -302,16 +299,15 @@ func (g *GithubClient) GetInstanceYaml(name, path string) (*v1alpha1.Instance, e
 	return &f, nil
 }
 
-// FrameworkVersionDependencyExists returns a slice of strings that contains the names of all dependency Frameworks
+// GetFrameworkVersionDependencies returns a slice of strings that contains the names of all dependency Frameworks
 // from a given repo in the official GitHub repo
-func (g *GithubClient) GetFrameworkVersionDependencies(name, path string) ([]string, error) {
+func (c *Client) GetFrameworkVersionDependencies(name, path string) ([]string, error) {
 	filePath := path + "/" + name + "-frameworkversion.yaml"
-	fileContent, _, _, err := g.client.Repositories.GetContents(context.Background(), "kudobuilder",
+	fileContent, _, _, err := c.client.Repositories.GetContents(context.Background(), "kudobuilder",
 		"frameworks", filePath, &github.RepositoryContentGetOptions{})
 	if err != nil {
-		switch err.(type) {
+		switch errM := err.(type) {
 		case *github.ErrorResponse:
-			errM := err.(*github.ErrorResponse)
 			if errM.Response.StatusCode == 404 {
 				return nil, errors.Wrapf(err, "%s-frameworkversion.yaml not found", name)
 			}

@@ -1,9 +1,10 @@
 package install
 
 import (
+	"testing"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 	"github.com/spf13/cobra"
-	"testing"
 )
 
 func TestInstallCmd(t *testing.T) {
@@ -42,23 +43,18 @@ func TestInstallCmd(t *testing.T) {
 
 	for i, tt := range tests {
 		i := i
-		err := InstallCmd(tt.cmd, tt.args)
+		err := CmdErrorProcessor(tt.cmd, tt.args)
 		if err != nil {
 			receivedErrorList := []string{err.Error()}
 			diff := compareSlice(receivedErrorList, tt.err)
-			if diff != nil {
-				for _, err := range diff {
-					t.Errorf("%d: Found unexpected error: %v", i+1, err)
-				}
+			for _, err := range diff {
+				t.Errorf("%d: Found unexpected error: %v", i+1, err)
 			}
 
 			missing := compareSlice(tt.err, receivedErrorList)
-			if missing != nil {
-				for _, err := range missing {
-					t.Errorf("%d: Missed expected error: %v", i+1, err)
-				}
+			for _, err := range missing {
+				t.Errorf("%d: Missed expected error: %v", i+1, err)
 			}
-
 		}
 	}
 }
@@ -88,23 +84,18 @@ func TestInstallFrameworks(t *testing.T) {
 
 	for i, tt := range tests {
 		i := i
-		err := installFrameworks(tt.args)
+		err := verifyFrameworks(tt.args)
 		if err != nil {
 			receivedErrorList := []string{err.Error()}
 			diff := compareSlice(receivedErrorList, tt.err)
-			if diff != nil {
-				for _, err := range diff {
-					t.Errorf("%d: Found unexpected error: %v", i+1, err)
-				}
+			for _, err := range diff {
+				t.Errorf("%d: Found unexpected error: %v", i+1, err)
 			}
 
 			missing := compareSlice(tt.err, receivedErrorList)
-			if missing != nil {
-				for _, err := range missing {
-					t.Errorf("%d: Missed expected error: %v", i+1, err)
-				}
+			for _, err := range missing {
+				t.Errorf("%d: Missed expected error: %v", i+1, err)
 			}
-
 		}
 	}
 }
@@ -112,7 +103,7 @@ func TestInstallFrameworks(t *testing.T) {
 func compareSlice(real, mock []string) []string {
 	lm := len(mock)
 
-	var diff []string = nil
+	var diff []string
 
 	for _, rv := range real {
 		i := 0

@@ -1,9 +1,10 @@
 package helpers
 
 import (
-	"github.com/google/go-github/github"
 	"reflect"
 	"testing"
+
+	"github.com/google/go-github/github"
 )
 
 func TestSortDirectoryContent(t *testing.T) {
@@ -41,17 +42,13 @@ func TestSortDirectoryContent(t *testing.T) {
 		if err != nil {
 			receivedErrorList := []string{err.Error()}
 			diff := compareSlice(receivedErrorList, tt.err)
-			if diff != nil {
-				for _, err := range diff {
-					t.Errorf("%d: Found unexpected error: %v", i+1, err)
-				}
+			for _, err := range diff {
+				t.Errorf("%d: Found unexpected error: %v", i+1, err)
 			}
 
 			missing := compareSlice(tt.err, receivedErrorList)
-			if missing != nil {
-				for _, err := range missing {
-					t.Errorf("%d: Missed expected error: %v", i+1, err)
-				}
+			for _, err := range missing {
+				t.Errorf("%d: Missed expected error: %v", i+1, err)
 			}
 		}
 
@@ -118,7 +115,7 @@ func TestContainsString(t *testing.T) {
 func compareSlice(real, mock []string) []string {
 	lm := len(mock)
 
-	var diff []string = nil
+	var diff []string
 
 	for _, rv := range real {
 		i := 0

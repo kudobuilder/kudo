@@ -401,16 +401,12 @@ func TestFrameworkType_Validation(t *testing.T) {
 			receivedErrorList := createSlice(vErr)
 
 			diff := compareSlice(receivedErrorList, tt.err)
-			if diff != nil {
-				for _, err := range diff {
-					t.Errorf("Found unexpected error: %v", err)
-				}
+			for _, err := range diff {
+				t.Errorf("Found unexpected error: %v", err)
 			}
 			missing := compareSlice(tt.err, receivedErrorList)
-			if missing != nil {
-				for _, err := range missing {
-					t.Errorf("Missed expected error: %v", err)
-				}
+			for _, err := range missing {
+				t.Errorf("Missed expected error: %v", err)
 			}
 		}
 	}
