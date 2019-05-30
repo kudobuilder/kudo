@@ -27,6 +27,25 @@ spec:
         metadata:
           type: object
         spec:
+          properties:
+            description:
+              type: string
+            kubeVersion:
+              type: string
+            kudoVersion:
+              type: string
+            maintainers:
+              items:
+                type: string
+              type: array
+            url:
+              type: string
+          required:
+          - description
+          - kudoVersion
+          - kubeVersion
+          - maintainers
+          - url
           type: object
         status:
           type: object

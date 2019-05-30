@@ -21,9 +21,15 @@ import (
 
 // FrameworkSpec defines the desired state of Framework
 type FrameworkSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	Description       string       `json:"description"`
+	KudoVersion       string       `json:"kudoVersion"`
+	KubernetesVersion string       `json:"kubeVersion"`
+	Maintainers       []Maintainer `json:"maintainers"`
+	URL               string       `json:"url"`
 }
+
+// Maintainer contains contact info for the maintainer of the Framework
+type Maintainer string
 
 // FrameworkStatus defines the observed state of Framework
 type FrameworkStatus struct {
