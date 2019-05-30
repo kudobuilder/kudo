@@ -10,7 +10,8 @@ GIT_COMMIT_PATH := github.com/kudobuilder/kudo/pkg/version.gitCommit
 GIT_COMMIT := $(shell git rev-parse HEAD)
 SOURCE_DATE_EPOCH := $(shell git show -s --format=format:%ct HEAD)
 BUILD_DATE_PATH := github.com/kudobuilder/kudo/pkg/version.buildDate
-BUILD_DATE := $(shell date -r ${SOURCE_DATE_EPOCH} '+%Y-%m-%dT%H:%M:%SZ')
+DATE_FMT := "%Y-%m-%dT%H:%M:%SZ"
+BUILD_DATE := $(shell date -u -d "@$SOURCE_DATE_EPOCH" "+${DATE_FMT}" 2>/dev/null || date -u -r "${SOURCE_DATE_EPOCH}" "+${DATE_FMT}" 2>/dev/null || date -u "+${DATE_FMT}")
 LDFLAGS := -X ${GIT_VERSION_PATH}=${GIT_VERSION} -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} -X ${BUILD_DATE_PATH}=${BUILD_DATE}
 
 export GO111MODULE=on
@@ -48,7 +49,7 @@ manager: prebuild
 	# platforms for distribution
 	GOARCH=amd64 GOOS=darwin go build -ldflags "${LDFLAGS}" -o bin/darwin/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
 	GOARCH=amd64 GOOS=linux go build -ldflags "${LDFLAGS}" -o bin/linux/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
-	GOARCH=amd64 GOOS=windows go build -ldflags "${LDFLAGS}"-o bin/windows/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
+	GOARCH=amd64 GOOS=windows go build -ldflags "${LDFLAGS}" -o bin/windows/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
 
 .PHONY: manager-clean
 # Clean manager build
@@ -171,3 +172,14 @@ docker-push:
 	docker push ${DOCKER_IMG}:${DOCKER_TAG}
 	docker push ${DOCKER_IMG}:${GIT_VERSION}
 	docker push ${DOCKER_IMG}:latest
+
+
+.PHONY: todo
+# Show to-do items per file.
+todo:
+	@grep \
+		--exclude-dir=hack \
+		--exclude=Makefile \
+		--text \
+		--color \
+		-nRo -E ' TODO:.*|SkipNow' .

@@ -39,7 +39,7 @@ Going to sleep for 15 seconds
 
 # Update the Instance
 
-An upgrade of the instance is run when the Spec of the Instance is changed, but the FrameworkVersion remains the same:
+An update of the instance is run when the Spec of the Instance is changed, but the FrameworkVersion remains the same:
 
 ```
 kubectl patch instance up -p '{"spec":{"parameters":{"SLEEP":"60"}}}' --type=merge
