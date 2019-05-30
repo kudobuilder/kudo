@@ -12,7 +12,7 @@ owners:
 editor: "@gerred"
 creation-date: 2019-05-14
 last-updated: 2019-05-23
-status: provisional
+status: implementable
 see-also:
   - KEP-0002
 ---
