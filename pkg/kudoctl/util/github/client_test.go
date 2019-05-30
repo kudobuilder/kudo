@@ -29,14 +29,14 @@ func TestNewGithubClient(t *testing.T) {
 		{"", "", "", "no credentials or user environment variable provided"}, // 1
 		// {"username:", "", "", "missing github password"}, // Not tested in favor of OTP
 		{"username:", "", "", "client test: GET https://api.github.com/user: 401 Requires authentication []"},
-		{":password", "", "", "missing github user"},                                                                                                        // 3
-		{"anything", "", "", "wrong credentials file format"},                                                                                               // 4
-		{"username:password", "", "", "client test: GET https://api.github.com/user: 401 Bad credentials []"},                                               // 5
-		{"", "username", "", "no credentials or password environment variable provided"},                                                                    // 6
-		{"", "", "password", "no credentials or user environment variable provided"},                                                                        // 7
-		{"username:", "", "password", "client test: GET https://api.github.com/user: 401 Bad credentials []"},                                               // 8
-		{"anything", "user", "", "wrong credentials format"},                                                                                                // 9
-		{"", "user", "password", "client test: GET https://api.github.com/user: 403 Maximum number of login attempts exceeded. Please try again later. []"}, // 10
+		{":password", "", "", "missing github user"},                                                          // 3
+		{"anything", "", "", "wrong credentials file format"},                                                 // 4
+		{"username:password", "", "", "client test: GET https://api.github.com/user: 401 Bad credentials []"}, // 5
+		{"", "username", "", "no credentials or password environment variable provided"},                      // 6
+		{"", "", "password", "no credentials or user environment variable provided"},                          // 7
+		{"username:", "", "password", "client test: GET https://api.github.com/user: 401 Bad credentials []"}, // 8
+		{"anything", "user", "", "wrong credentials format"},                                                  // 9
+		{"", "user", "password", "client test: GET https://api.github.com/user: 401 Bad credentials []"},      // 10
 	}
 
 	for i, tt := range tests {
@@ -132,7 +132,7 @@ func TestGithubClient_GetIncubatingFrameworkContentDir(t *testing.T) {
 	}{
 		{"", "no framework provided"}, // 1
 		{"kafka", "incubating framework not found: GET https://api.github.com/repos/kudobuilder/frameworks/contents/repo/incubating/kafka/versions: 404 Not Found []"}, // 2
-		{"flink", ""}, // 3
+		{"redis", ""}, // 3
 	}
 
 	for i, tt := range tests {
