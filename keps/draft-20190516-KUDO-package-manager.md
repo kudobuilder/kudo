@@ -15,9 +15,6 @@ status: provisional
 
 ## Table of Contents
 
-A table of contents is helpful for quickly jumping to sections of a KEP and for highlighting any additional information provided beyond the standard KEP template.
-[Tools for generating][] a table of contents from markdown are available.
-
 * [Table of Contents](#table-of-contents)
 * [Summary](#summary)
 * [Motivation](#motivation)
@@ -45,7 +42,7 @@ Overall, this KEP should capture how we plan to provide a great user experience 
 
 ## Motivation
 
-There are multiple package managers and ideas out there and we need to decide which concept will work the best for KUDO in its current state. This is not an Install CLI subcategory KEP, but of course we need to think about the repercussions of decisions made in this KEP. There are multiple stakeholders directly being impacted by decisions made here, but this also paths the way to think about new problems we haven't articulated yet (e.g. how to provide KUDO Frameworks in air-gapped clusters, verification of Frameworks and their tarbundles, etc.).
+There are multiple package managers and ideas out there and we need to decide which concept will work the best for KUDO in its current state. This is not an Install CLI subcategory KEP, but of course we need to think about the repercussions of decisions made in this KEP. There are multiple stakeholders directly being impacted by decisions made here, but this also paves the way to think about new problems we haven't articulated yet (e.g. how to provide KUDO Frameworks in air-gapped clusters, verification of Frameworks and their tarbundles, etc.).
 
 ### Goals
 
@@ -84,13 +81,14 @@ As a Cluster Administrator I, ...
 
 ### Implementation Details/Notes/Constraints
 
-We need to make sure that Packages can easily beeing accessed even if the underlying Storage Backend changed. Therefor, adding a middle layer like a registry server that has multiple Storage Backends as a swappable engine underneath seems like a good pattern. This also would enable users to keep track or restrict access to specific Frameworks.
+We need to make sure that Packages can be easily accessed even if the underlying Storage Backend changed. Therefor, adding a middle layer like a registry server that has multiple Storage Backends as a swappable engine underneath seems like a good pattern. This also would enable users to keep track or restrict access to specific Frameworks.
 
 The idea would be a HTTP Server that can be easily accessed, even in air-gapped environments, depending on the user needs. As Storage Backends there could be a multitude such as `Local`, `Google`, `S3`, `Github`, `Minio`, `Docker` and so on.
+Having as an API a simple HTTP Server that just serves essentially a single yaml file that holds all the information also would enable us as a first iteration to use any HTTP server. This should work as it already with Google Cloud Storage or S3, all it requires is having access to the yaml file and something like the KUDO registry that serves like a middle layer inbetween could be easily added later on.
 
 Some caveats to this could for instance be defining a clean interface that won't break things when a user attempts to access Frameworks and hosted repos. Another caveat is deciding on the right proper structure in how a Package and its higher repo structure will look like. Design decisions here could potentialy impact future implementations of Storage Backends we haven't thought of yet. Another caveat would be identifying the right approach in versioning as this dictates a lot also how the structure will look like.
 
-The Repo structure on your local laptop could look as follow:
+The Repo structure on your local laptop could look in the short term as follow:
 
 ```bash
 /index.yaml
@@ -101,31 +99,49 @@ The Repo structure on your local laptop could look as follow:
 /kafka/2.2.0/kafka-instance.yaml
 /kafka/2.2.0/metadata.yaml
 /zookeeper
-.
-.
-.
+...
 ```
 
-* This structure serves as the local repo, cache and soure of truth
+* This structure serves as the local repo, cache and source of truth
 * This also would be the on Github hosted official repo
 
-Then the `/kafka/2.2.0` would be zipped to `kafka-2.2.0.tgz` and made available through the Storage Backend, on Google Cloud Storage e.g.:
+In the long term it would look more like KEP-0009 conform e.g.:
 
 ```bash
 /index.yaml
+/kafka
+/kafka/2.2.0
+/kafka/2.2.0/framework.yaml
+/kafka/2.2.0/params.yaml
+/kafka/2.2.0/common
+/kafka/2.2.0/common/common.yaml
+/kafka/2.2.0/templates
+/kafka/2.2.0/templates/deployment.yaml
+/kafka/2.2.0/templates/...
+/zookeeper
+...
+```
+
+That would have the advantage that for distribution the opinionated structure within the `.tgz` file is not so much of importance and can be subject to change without breaking other assumptions.
+
+The `/kafka/2.2.0` folder (with whatever underlying structure) would be zipped to `kafka-2.2.0.tgz` and made available through any HTTP Server (or later KUDO Registry with any Storage Backend), e.g. like on Google Cloud Storage:
+
+```bash
+/index.yaml
+/kafka-0.1.0.tgz
 /kafka-2.2.0.tgz
 /zooekeper-3.4.10.tgz
-.
-.
-.
+...
 ```
 
 * This structure would solely solve the distribution of Packages
 * It should be Storage Backend agnostic, meaning possible to host this type of structure on most backends
 
-Now, we would have a specific HTTP Server, e.g. a KUDO Registry Server that knows on which Storage Backend the `tgz` files have been stored and provides them as downloads. Users should be able to download the entire repo structure as a `zip` as well (and not just single Frameworks). The logic on keeping those single Frameworks in sync should live in the CLI and not the KUDO Registry itself.
+We would have a specific HTTP Server, e.g. with the out-of-the-box solution that Google Cloud Storage provides already or later a KUDO Registry Server that knows on which Storage Backend the `tgz` files have been stored and provides them as downloads. Later, users should be able to download the entire repo structure as a `zip` as well (and not just single Frameworks). The logic on keeping those single Frameworks in sync should live in the CLI and not the KUDO Registry itself. That also contributes to an abstraction layer that the HTTP server really doesn't need to be aware of all this logic.
 
-This could be one way of implementing this, however we should also think about the safety when distributing our Packages and how we can verify and prevent `Arbitrary software installation`, `Vulnerability to key compromises`, etc..
+Again, this would be one way of implementing such scenario, however the proposed structure that lives behind a webserver seems to be fairly easy and highly customizable.
+
+We should also think about the safety when distributing our Packages and how we can verify and prevent `Arbitrary software installation`, `Vulnerability to key compromises`, etc.. For now using HTTP-within-SSL/TLS is enough for verification.
 
 ### Risks and Mitigations
 
@@ -146,6 +162,7 @@ This includes e.g.:
 ## Implementation History
 
 2019/05/16 - Initial draft.
+2019/05/30 - Updates to structure from KEP-0009
 
 
 ## Infrastructure Needed
