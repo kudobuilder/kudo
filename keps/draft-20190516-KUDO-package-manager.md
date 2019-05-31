@@ -71,6 +71,7 @@ This is where we get down to the nitty gritty of what the proposal actually is. 
 As a Framework Developer I, ...
 
 * would like to be able to host validation/testing plans and resources as part of the package
+* would like to update my package version
 
 #### Cluster Administrator
 
@@ -86,7 +87,7 @@ We need to make sure that Packages can be easily accessed even if the underlying
 The idea would be a HTTP Server that can be easily accessed, even in air-gapped environments, depending on the user needs. As Storage Backends there could be a multitude such as `Local`, `Google`, `S3`, `Github`, `Minio`, `Docker` and so on.
 Having as an API a simple HTTP Server that just serves essentially a single yaml file that holds all the information also would enable us as a first iteration to use any HTTP server. This should work as it already with Google Cloud Storage or S3, all it requires is having access to the yaml file and something like the KUDO registry that serves like a middle layer inbetween could be easily added later on.
 
-Some caveats to this could for instance be defining a clean interface that won't break things when a user attempts to access Frameworks and hosted repos. Another caveat is deciding on the right proper structure in how a Package and its higher repo structure will look like. Design decisions here could potentialy impact future implementations of Storage Backends we haven't thought of yet. Another caveat would be identifying the right approach in versioning as this dictates a lot also how the structure will look like.
+Some caveats to this could for instance be defining a clean interface that won't break things when a user attempts to access Frameworks and hosted repos. Another caveat is deciding on the right proper structure in how a Package and its higher repo structure will look like. Design decisions here could potentialy impact future implementations of Storage Backends we haven't thought of yet. Another caveat would be identifying the right approach in versioning as this dictates a lot also how the structure will look like. Versioning for the `.tgz` files and Frameworks should be in SemVer.
 
 The Repo structure on your local laptop could look in the short term as follow:
 
@@ -124,7 +125,7 @@ In the long term it would look more like KEP-0009 conform e.g.:
 
 That would have the advantage that for distribution the opinionated structure within the `.tgz` file is not so much of importance and can be subject to change without breaking other assumptions.
 
-The `/kafka/2.2.0` folder (with whatever underlying structure) would be zipped to `kafka-2.2.0.tgz` and made available through any HTTP Server (or later KUDO Registry with any Storage Backend), e.g. like on Google Cloud Storage:
+The `/kafka/2.2.0` folder (with whatever underlying structure) would be zipped to `kafka-2.2.0.tgz`, where `2.2.0` is the current SemVer version of the package. This is then made available through any HTTP Server (or later KUDO Registry with any Storage Backend), e.g. like on Google Cloud Storage:
 
 ```bash
 /index.yaml
