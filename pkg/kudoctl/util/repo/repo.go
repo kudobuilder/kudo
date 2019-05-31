@@ -11,7 +11,7 @@ type Entry struct {
 	URL       string `json:"url"`
 }
 
-// 	Metadata for a Framework. This models the structure of a bundle.yaml file.
+// Metadata for a Framework. This models the structure of a bundle.yaml file.
 type Metadata struct {
 	// The name of the framework
 	Name string `json:"name,omitempty"`
@@ -20,7 +20,7 @@ type Metadata struct {
 	// The base version of the application enclosed inside of this framework.
 	BaseVersion string `json:"baseVersion,omitempty"`
 	// The KUDO API Version of this framework.
-	ApiVersion string `json:"apiVersion,omitempty"`
+	APIVersion string `json:"apiVersion,omitempty"`
 	// KubeVersion is a SemVer constraint specifying the version of Kubernetes required.
 	KubeVersion string `json:"kubeVersion,omitempty"`
 	// A SemVer 2 conformant version string of the framework to upgrade from
@@ -48,5 +48,5 @@ type Maintainer struct {
 	// Email is an optional email address to contact the named maintainer
 	Email string `json:"email,omitempty"`
 	// Url is an optional URL to an address for the named maintainer
-	Url string `json:"url,omitempty"`
+	URL string `json:"url,omitempty"`
 }

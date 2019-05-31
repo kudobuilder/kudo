@@ -40,13 +40,13 @@ func (b BundleVersions) Len() int { return len(b) }
 func (b BundleVersions) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
 
 // Less returns true if the version of entry a is less than the version of entry b.
-func (c BundleVersions) Less(a, b int) bool {
+func (b BundleVersions) Less(x, y int) bool {
 	// Failed parse pushes to the back.
-	i, err := semver.NewVersion(c[a].Version)
+	i, err := semver.NewVersion(b[x].Version)
 	if err != nil {
 		return true
 	}
-	j, err := semver.NewVersion(c[b].Version)
+	j, err := semver.NewVersion(b[y].Version)
 	if err != nil {
 		return false
 	}
@@ -144,6 +144,7 @@ func (i IndexFile) Get(name, version string) (*BundleVersion, error) {
 	return nil, fmt.Errorf("No chart version found for %s-%s", name, version)
 }
 
+// Exists returns true if the index.yaml file exists on the local file system
 func (i IndexFile) Exists() bool {
 	_, err := os.Stat(vars.RepoPath + "/index.yaml")
 	if err != nil {

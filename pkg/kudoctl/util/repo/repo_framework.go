@@ -22,7 +22,7 @@ type FrameworkRepository struct {
 	Config         *Entry
 	FrameworkPaths []string
 	IndexFile      *IndexFile
-	Client         RepoClient
+	Client         Client
 }
 
 // BufferedFile represents an archive file buffered for later processing.
@@ -38,7 +38,7 @@ func NewFrameworkRepository(cfg Entry) (*FrameworkRepository, error) {
 		return nil, fmt.Errorf("invalid chart URL format: %s", cfg.URL)
 	}
 
-	client, err := NewHTTPRepoClient(cfg.URL)
+	client, err := NewHTTPClient(cfg.URL)
 	if err != nil {
 		return nil, fmt.Errorf("Could not construct protocol handler for: %s error: %v", u.Scheme, err)
 	}
@@ -85,6 +85,7 @@ func (r *FrameworkRepository) DownloadIndexFile(path string) error {
 	return ioutil.WriteFile(path, index, 0644)
 }
 
+// DownloadBundleFile downloads the tgz file from the given repo
 func (r *FrameworkRepository) DownloadBundleFile(bundle string) error {
 	var fileURL string
 	parsedURL, err := url.Parse(r.Config.URL)
@@ -108,6 +109,7 @@ func (r *FrameworkRepository) DownloadBundleFile(bundle string) error {
 	return nil
 }
 
+// GetFrameworkVersion gets the proper Framework version of a given Framework
 func (r *FrameworkRepository) GetFrameworkVersion(name, path string) (string, error) {
 	frameworkVersionPath := path + "/" + name + "-frameworkversion.yaml"
 	frameworkVersionYamlFile, err := os.Open(frameworkVersionPath)

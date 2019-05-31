@@ -9,25 +9,25 @@ import (
 	"strings"
 )
 
-//RepoClient is the default HTTP(/S) backend handler
-type RepoClient struct {
+//Client is the default HTTP(/S) backend handler
+type Client struct {
 	client   *http.Client
 	username string
 	password string
 }
 
 //SetCredentials sets the credentials for the RepoClient
-func (g *RepoClient) SetCredentials(username, password string) {
-	g.username = username
-	g.password = password
+func (c *Client) SetCredentials(username, password string) {
+	c.username = username
+	c.password = password
 }
 
 //Get performs a Get from repo.Getter and returns the body.
-func (g *RepoClient) Get(href string) (*bytes.Buffer, error) {
-	return g.get(href)
+func (c *Client) Get(href string) (*bytes.Buffer, error) {
+	return c.get(href)
 }
 
-func (g *RepoClient) get(href string) (*bytes.Buffer, error) {
+func (c *Client) get(href string) (*bytes.Buffer, error) {
 	buf := bytes.NewBuffer(nil)
 
 	// Set a KUDO specific user agent so that a repo server and metrics can
@@ -38,11 +38,11 @@ func (g *RepoClient) get(href string) (*bytes.Buffer, error) {
 	}
 	req.Header.Set("User-Agent", "KUDO/"+strings.TrimPrefix(version.Get().GitVersion, "v"))
 
-	if g.username != "" && g.password != "" {
-		req.SetBasicAuth(g.username, g.password)
+	if c.username != "" && c.password != "" {
+		req.SetBasicAuth(c.username, c.password)
 	}
 
-	resp, err := g.client.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return buf, err
 	}
@@ -55,9 +55,9 @@ func (g *RepoClient) get(href string) (*bytes.Buffer, error) {
 	return buf, err
 }
 
-// NewHTTPGetter constructs a valid http/https client as HttpGetter
-func NewHTTPRepoClient(URL string) (*RepoClient, error) {
-	var client RepoClient
+// NewHTTPClient constructs a valid http/https client as HttpClient
+func NewHTTPClient(URL string) (*Client, error) {
+	var client Client
 	tr := &http.Transport{
 		DisableCompression: true,
 		Proxy:              http.ProxyFromEnvironment,
