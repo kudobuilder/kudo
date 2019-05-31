@@ -40,7 +40,7 @@ func NewFrameworkRepository(cfg Entry) (*FrameworkRepository, error) {
 
 	client, err := NewHTTPClient(cfg.URL)
 	if err != nil {
-		return nil, fmt.Errorf("Could not construct protocol handler for: %s error: %v", u.Scheme, err)
+		return nil, fmt.Errorf("could not construct protocol handler for: %s error: %v", u.Scheme, err)
 	}
 
 	return &FrameworkRepository{

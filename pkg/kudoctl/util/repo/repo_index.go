@@ -141,13 +141,12 @@ func (i IndexFile) Get(name, version string) (*BundleVersion, error) {
 			return ver, nil
 		}
 	}
-	return nil, fmt.Errorf("No chart version found for %s-%s", name, version)
+	return nil, fmt.Errorf("no chart version found for %s-%s", name, version)
 }
 
 // Exists returns true if the index.yaml file exists on the local file system
 func (i IndexFile) Exists() bool {
-	_, err := os.Stat(vars.RepoPath + "/index.yaml")
-	if err != nil {
+	if _, err := os.Stat(vars.RepoPath + "/index.yaml"); os.IsNotExist(err) {
 		return false
 	}
 	return true
