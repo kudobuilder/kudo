@@ -4,17 +4,18 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"fmt"
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
-	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
-	"sigs.k8s.io/yaml"
 	"strings"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
+	"github.com/pkg/errors"
+	"sigs.k8s.io/yaml"
 )
 
 // FrameworkRepository represents a framework repository

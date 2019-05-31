@@ -2,12 +2,13 @@ package install
 
 import (
 	"fmt"
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 	"io/ioutil"
 	"os"
-	"sigs.k8s.io/yaml"
 	"strings"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
+	"sigs.k8s.io/yaml"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/helpers"

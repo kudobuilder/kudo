@@ -3,10 +3,11 @@ package repo
 import (
 	"bytes"
 	"fmt"
-	"github.com/kudobuilder/kudo/pkg/version"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/kudobuilder/kudo/pkg/version"
 )
 
 //Client is the default HTTP(/S) backend handler

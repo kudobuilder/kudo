@@ -2,15 +2,16 @@ package repo
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"sort"
+	"time"
+
 	"github.com/Masterminds/semver"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 	"github.com/kudobuilder/kudo/pkg/version"
 	"github.com/pkg/errors"
-	"io/ioutil"
-	"os"
 	"sigs.k8s.io/yaml"
-	"sort"
-	"time"
 )
 
 // IndexFile represents the index file in a framework repository
