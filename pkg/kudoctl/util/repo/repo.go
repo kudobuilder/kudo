@@ -20,9 +20,9 @@ type Metadata struct {
 	// The base version of the application enclosed inside of this framework.
 	BaseVersion string `json:"baseVersion,omitempty"`
 	// The KUDO API Version of this framework.
-	APIVersion string `json:"apiVersion,omitempty"`
-	// KubeVersion is a SemVer constraint specifying the version of Kubernetes required.
-	KubeVersion string `json:"kubeVersion,omitempty"`
+	KudoVersion string `json:"kudoVersion,omitempty"`
+	// KubernetesVersion is a SemVer constraint specifying the version of Kubernetes required.
+	KubernetesVersion string `json:"kubernetesVersion,omitempty"`
 	// A SemVer 2 conformant version string of the framework to upgrade from
 	UpgradeVersion string `json:"upgradeVersion,omitempty"`
 	// Version dependencies to other frameworks

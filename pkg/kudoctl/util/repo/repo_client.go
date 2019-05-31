@@ -32,7 +32,7 @@ func (c *Client) get(href string) (*bytes.Buffer, error) {
 	buf := bytes.NewBuffer(nil)
 
 	// Set a KUDO specific user agent so that a repo server and metrics can
-	// separate helm calls from other tools interacting with repos.
+	// separate KUDO calls from other tools interacting with repos.
 	req, err := http.NewRequest("GET", href, nil)
 	if err != nil {
 		return buf, err

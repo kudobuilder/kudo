@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-github/github"
 )
 
+// TODO: needs to be refactored without GitHub
 func TestSortDirectoryContent(t *testing.T) {
 
 	// For test case #1

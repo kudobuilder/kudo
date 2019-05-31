@@ -22,25 +22,21 @@ import (
 // CmdErrorProcessor returns the errors associated with cmd env
 func CmdErrorProcessor(cmd *cobra.Command, args []string) error {
 
-	_, err := cmd.Flags().GetString("kubeconfig")
 	// This makes --kubeconfig flag optional
-	if err != nil {
+	if _, err := cmd.Flags().GetString("kubeconfig"); err != nil {
 		return fmt.Errorf("get flag: %+v", err)
 	}
 
-	err = check.ValidateKubeConfigPath()
-	if err != nil {
+	if err := check.ValidateKubeConfigPath(); err != nil {
 		return errors.WithMessage(err, "could not check kubeconfig path")
 	}
 
 	// Checking repo path of provided parameter or env variable, if none provided looking up default directory
-	err = check.RepoPath()
-	if err != nil {
+	if err := check.RepoPath(); err != nil {
 		return errors.WithMessage(err, "could not check repo path")
 	}
 
-	err = verifyFrameworks(args)
-	if err != nil {
+	if err := verifyFrameworks(args); err != nil {
 		return errors.WithMessage(err, "could not install framework(s)")
 	}
 
@@ -115,10 +111,8 @@ func verifySingleFramework(name, previous string, r repo.FrameworkRepository, kc
 	// checking if bundle exists locally already
 	bundleName := i.Name + "-" + i.Version
 	bundlePath := vars.RepoPath + "/" + bundleName
-	_, err = os.Stat(bundlePath)
-	if err != nil && os.IsNotExist(err) {
-		err = r.DownloadBundleFile(bundleName)
-		if err != nil {
+	if _, err = os.Stat(bundlePath); err != nil && os.IsNotExist(err) {
+		if err = r.DownloadBundleFile(bundleName); err != nil {
 			return errors.Wrap(err, "failed to download bundle")
 		}
 	}
@@ -127,8 +121,7 @@ func verifySingleFramework(name, previous string, r repo.FrameworkRepository, kc
 
 	// Check if Framework exists
 	if !kc.FrameworkExistsInCluster(name) {
-		err := installSingleFrameworkToCluster(name, bundlePath, kc)
-		if err != nil {
+		if err := installSingleFrameworkToCluster(name, bundlePath, kc); err != nil {
 			return errors.Wrap(err, "installing single Framework")
 		}
 	}
@@ -144,8 +137,7 @@ func verifySingleFramework(name, previous string, r repo.FrameworkRepository, kc
 	// Check if AnyFrameworkVersion for Framework exists
 	if !kc.AnyFrameworkVersionExistsInCluster(name) {
 		// FrameworkVersion CRD for Framework does not exist
-		err := installSingleFrameworkVersionToCluster(name, bundlePath, kc)
-		if err != nil {
+		if err := installSingleFrameworkVersionToCluster(name, bundlePath, kc); err != nil {
 			return errors.Wrap(err, "installing single FrameworkVersion")
 		}
 	}
@@ -158,14 +150,12 @@ func verifySingleFramework(name, previous string, r repo.FrameworkRepository, kc
 			fmt.Printf("No official FrameworkVersion has been found for \"%s\". "+
 				"Do you want to install one? (Yes/no) ", name)
 			if helpers.AskForConfirmation() {
-				err := installSingleFrameworkVersionToCluster(name, bundlePath, kc)
-				if err != nil {
+				if err := installSingleFrameworkVersionToCluster(name, bundlePath, kc); err != nil {
 					return errors.Wrapf(err, "installing single FrameworkVersion %s", name)
 				}
 			}
 		} else {
-			err := installSingleFrameworkVersionToCluster(name, bundlePath, kc)
-			if err != nil {
+			if err := installSingleFrameworkVersionToCluster(name, bundlePath, kc); err != nil {
 				return errors.Wrapf(err, "installing single FrameworkVersion %s", name)
 			}
 		}
@@ -183,8 +173,7 @@ func verifySingleFramework(name, previous string, r repo.FrameworkRepository, kc
 			// Dependencies should not be as big as that they will have an overflow in the function stack frame
 			// verifySingleFramework makes sure that dependency Frameworks are created before the Framework itself
 			// and it allows to inherit dependencies.
-			err := verifySingleFramework(v, name, r, kc)
-			if err != nil {
+			if err := verifySingleFramework(v, name, r, kc); err != nil {
 				return errors.Wrapf(err, "installing dependency Framework %s", v)
 			}
 		}
@@ -207,14 +196,12 @@ func verifySingleFramework(name, previous string, r repo.FrameworkRepository, kc
 			if helpers.AskForConfirmation() {
 				// If Instance is a dependency we need to make sure installSingleInstanceToCluster is aware of it.
 				// By having the previous string set we can make this distinction.
-				err := installSingleInstanceToCluster(name, previous, bundlePath, kc)
-				if err != nil {
+				if err := installSingleInstanceToCluster(name, previous, bundlePath, kc); err != nil {
 					return errors.Wrap(err, "installing single Instance")
 				}
 			}
 		} else {
-			err := installSingleInstanceToCluster(name, previous, bundlePath, kc)
-			if err != nil {
+			if err := installSingleInstanceToCluster(name, previous, bundlePath, kc); err != nil {
 				return errors.Wrap(err, "installing single Instance")
 			}
 		}
@@ -238,13 +225,11 @@ func installSingleFrameworkToCluster(name, path string, kc *kudo.Client) error {
 	}
 
 	var f v1alpha1.Framework
-	err = yaml.Unmarshal(frameworkByteValue, &f)
-	if err != nil {
+	if err = yaml.Unmarshal(frameworkByteValue, &f); err != nil {
 		return errors.Wrapf(err, "unmarshalling %s-framework.yaml content", name)
 	}
 
-	_, err = kc.InstallFrameworkObjToCluster(&f)
-	if err != nil {
+	if _, err = kc.InstallFrameworkObjToCluster(&f); err != nil {
 		return errors.Wrapf(err, "installing %s-framework.yaml", name)
 	}
 	fmt.Printf("framework.%s/%s created\n", f.APIVersion, f.Name)
@@ -266,19 +251,18 @@ func installSingleFrameworkVersionToCluster(name, path string, kc *kudo.Client) 
 	}
 
 	var fv v1alpha1.FrameworkVersion
-	err = yaml.Unmarshal(frameworkVersionByteValue, &fv)
-	if err != nil {
+	if err = yaml.Unmarshal(frameworkVersionByteValue, &fv); err != nil {
 		return errors.Wrapf(err, "unmarshalling %s-frameworkversion.yaml content", name)
 	}
-	_, err = kc.InstallFrameworkVersionObjToCluster(&fv)
-	if err != nil {
+
+	if _, err = kc.InstallFrameworkVersionObjToCluster(&fv); err != nil {
 		return errors.Wrapf(err, "installing %s-frameworkversion.yaml", name)
 	}
 	fmt.Printf("frameworkversion.%s/%s created\n", fv.APIVersion, fv.Name)
 	return nil
 }
 
-// Todo: needs testing
+// Todo: needs more testing
 // installSingleInstanceToCluster installs a given Instance to the cluster
 func installSingleInstanceToCluster(name, previous, path string, kc *kudo.Client) error {
 	frameworkInstancePath := path + "/" + name + "-instance.yaml"
@@ -293,8 +277,7 @@ func installSingleInstanceToCluster(name, previous, path string, kc *kudo.Client
 	}
 
 	var i v1alpha1.Instance
-	err = yaml.Unmarshal(frameworkInstanceByteValue, &i)
-	if err != nil {
+	if err = yaml.Unmarshal(frameworkInstanceByteValue, &i); err != nil {
 		return errors.Wrapf(err, "unmarshalling %s-instance.yaml content", name)
 	}
 	// Customizing Instance
@@ -326,8 +309,7 @@ func installSingleInstanceToCluster(name, previous, path string, kc *kudo.Client
 		}
 		i.Spec.Parameters = p
 	}
-	_, err = kc.InstallInstanceObjToCluster(&i)
-	if err != nil {
+	if _, err = kc.InstallInstanceObjToCluster(&i); err != nil {
 		return errors.Wrapf(err, "installing %s-instance.yaml", name)
 	}
 	fmt.Printf("instance.%s/%s created\n", i.APIVersion, i.Name)

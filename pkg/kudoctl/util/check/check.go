@@ -10,9 +10,8 @@ import (
 )
 
 const (
-	defaultKUDORepoPath         = ".kudo/repo"
-	defaultKubeConfigPath       = ".kube/config"
-	defaultGithubCredentialPath = ".git-credentials"
+	defaultKUDORepoPath   = ".kudo/repo"
+	defaultKubeConfigPath = ".kube/config"
 )
 
 // ValidateKubeConfigPath checks if the kubeconfig file exists.
@@ -60,30 +59,10 @@ func RepoPath() error {
 		vars.RepoPath = repoPathEnv
 	}
 
-	_, err := os.Stat(vars.RepoPath)
-	if err != nil && os.IsNotExist(err) {
-		err = os.MkdirAll(vars.RepoPath, 0755)
-		if err != nil {
+	if _, err := os.Stat(vars.RepoPath); err != nil && os.IsNotExist(err) {
+		if err = os.MkdirAll(vars.RepoPath, 0755); err != nil {
 			return errors.Wrap(err, "failed to create repo path")
 		}
-	}
-	return nil
-}
-
-// GithubCredentials checks if the credential file exists.
-func GithubCredentials() error {
-	// if credentials are not specified, search for the default credential file under the $HOME/.git-credentials.
-	if len(vars.GithubCredentialPath) == 0 {
-		usr, err := user.Current()
-		if err != nil {
-			return errors.Wrap(err, "failed to determine user's home dir")
-		}
-		vars.GithubCredentialPath = filepath.Join(usr.HomeDir, defaultGithubCredentialPath)
-	}
-
-	_, err := os.Stat(vars.GithubCredentialPath)
-	if err != nil && os.IsNotExist(err) {
-		return errors.Wrap(err, "failed to find github credential file")
 	}
 	return nil
 }
