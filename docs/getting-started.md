@@ -24,10 +24,7 @@ Before you get started:
 
 - Get KUDO repo: `go get github.com/kudobuilder/kudo/`
 - `cd $GOPATH/src/github.com/kudobuilder/kudo`
-- `make install-crds` to deploy the universal CRDs
-  - Alternatively, you can use kubectl to install the CRDs :
-    
-    `kubectl apply -f config/crds`
+- `kubectl apply -f config/crds` to deploy the universal CRDs
 - `make run` to run the Operator with local go environment
 
 ### Notes on Minikube
@@ -37,7 +34,7 @@ If you plan on developing and testing KUDO locally via Minikube, you'll need to 
 minikube start --cpus=4 --memory=8192 --disk-size=40g
 ```
 
-**Before** `make install-crds` you will need to have:
+**Before** `kubectl apply -f config/crds` you will need to have:
 
  * minikube running
  * `~/.git-credentials` must exist with git credentials with details below.
