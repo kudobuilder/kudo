@@ -23,7 +23,7 @@ type FrameworkRepository struct {
 	Config         *Entry
 	FrameworkPaths []string
 	IndexFile      *IndexFile
-	Client         Client
+	Client         HTTPClient
 }
 
 // BufferedFile represents an archive file buffered for later processing.

@@ -19,6 +19,13 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+const (
+	bundlePath     = "%s/%s"
+	fwPath         = "%s/%s-framework.yaml"
+	fwVersionPath  = "%s/%s-frameworkversion.yaml"
+	fwInstancePath = "%s/%s-instance.yaml"
+)
+
 // CmdErrorProcessor returns the errors associated with cmd env
 func CmdErrorProcessor(cmd *cobra.Command, args []string) error {
 
@@ -110,7 +117,8 @@ func verifySingleFramework(name, previous string, r repo.FrameworkRepository, kc
 
 	// checking if bundle exists locally already
 	bundleName := i.Name + "-" + i.Version
-	bundlePath := vars.RepoPath + "/" + bundleName
+	bundlePath := fmt.Sprintf(bundlePath, vars.RepoPath, bundleName)
+
 	if _, err = os.Stat(bundlePath); err != nil && os.IsNotExist(err) {
 		if err = r.DownloadBundleFile(bundleName); err != nil {
 			return errors.Wrap(err, "failed to download bundle")
@@ -213,7 +221,7 @@ func verifySingleFramework(name, previous string, r repo.FrameworkRepository, kc
 // Todo: needs testing
 // installSingleFrameworkToCluster installs a given Framework to the cluster
 func installSingleFrameworkToCluster(name, path string, kc *kudo.Client) error {
-	frameworkPath := path + "/" + name + "-framework.yaml"
+	frameworkPath := fmt.Sprintf(fwPath, path, name)
 	frameworkYamlFile, err := os.Open(frameworkPath)
 	if err != nil {
 		return errors.Wrap(err, "failed opening framework file")
@@ -239,7 +247,7 @@ func installSingleFrameworkToCluster(name, path string, kc *kudo.Client) error {
 // Todo: needs testing
 // installSingleFrameworkVersionToCluster installs a given FrameworkVersion to the cluster
 func installSingleFrameworkVersionToCluster(name, path string, kc *kudo.Client) error {
-	frameworkVersionPath := path + "/" + name + "-frameworkversion.yaml"
+	frameworkVersionPath := fmt.Sprintf(fwVersionPath, path, name)
 	frameworkVersionYamlFile, err := os.Open(frameworkVersionPath)
 	if err != nil {
 		return errors.Wrap(err, "failed opening frameworkversion file")
@@ -265,7 +273,7 @@ func installSingleFrameworkVersionToCluster(name, path string, kc *kudo.Client) 
 // Todo: needs more testing
 // installSingleInstanceToCluster installs a given Instance to the cluster
 func installSingleInstanceToCluster(name, previous, path string, kc *kudo.Client) error {
-	frameworkInstancePath := path + "/" + name + "-instance.yaml"
+	frameworkInstancePath := fmt.Sprintf(fwInstancePath, path, name)
 	frameworkInstanceYamlFile, err := os.Open(frameworkInstancePath)
 	if err != nil {
 		return errors.Wrap(err, "failed opening instance file")
