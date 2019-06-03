@@ -1,9 +1,10 @@
 package cmd
 
 import (
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewCmdInstallReturnsCmd(t *testing.T) {
