@@ -28,9 +28,35 @@ func CmdErrorProcessor(cmd *cobra.Command, args []string) error {
 		return errors.WithMessage(err, "could not check kubeconfig path")
 	}
 
+	// Validate install parameters
+	err = validateInstallParameters()
+	if err != nil {
+		return errors.WithMessage(err, "could not parse parameters")
+	}
+
 	err = verifyFrameworks(args)
 	if err != nil {
 		return errors.WithMessage(err, "could not install framework(s)")
+	}
+
+	return nil
+}
+
+func validateInstallParameters() error {
+	if vars.Parameter != nil {
+		for _, a := range vars.Parameter {
+			// Using '=' as the delimiter. Split after the first delimiter to support using '=' in values
+			s := strings.SplitN(a, "=", 2)
+			if len(s) < 2 {
+				return fmt.Errorf("parameter not set: %+v", s)
+			}
+			if s[0] == "" {
+				return fmt.Errorf("parameter name can not be empty: %+v", s)
+			}
+			if s[1] == "" {
+				return fmt.Errorf("parameter value can not be empty: %+v", s)
+			}
+		}
 	}
 
 	return nil
@@ -248,18 +274,7 @@ func installSingleInstanceToCluster(name, previous, path string, gc *github.Clie
 	if vars.Parameter != nil {
 		p := make(map[string]string)
 		for _, a := range vars.Parameter {
-			// Using similar to CSV "," as the delimiter for now
-			// Split just after the first delimiter to support e.g. zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181 as value
-			s := strings.SplitN(a, ",", 2)
-			if len(s) < 2 {
-				return fmt.Errorf("parameter not set: %+v", s)
-			}
-			if s[0] == "" {
-				return fmt.Errorf("parameter can not be empty: %+v", s)
-			}
-			if s[1] == "" {
-				return fmt.Errorf("parameter value can not be empty: %+v", s)
-			}
+			s := strings.SplitN(a, "=", 2)
 			p[s[0]] = s[1]
 		}
 		instanceYaml.Spec.Parameters = p

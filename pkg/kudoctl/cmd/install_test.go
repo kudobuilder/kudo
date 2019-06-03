@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
 )
@@ -22,4 +23,23 @@ func TestNewCmdInstallReturnsCmd(t *testing.T) {
 	if reflect.ValueOf(sub.Flags().GetNormalizeFunc()).Pointer() != reflect.ValueOf(newCmdInstall.Flags().GetNormalizeFunc()).Pointer() {
 		t.Fatal("child and root commands should have the same normalization functions")
 	}
+}
+
+func TestNewCmdInstall_WithParameters(t *testing.T) {
+	newCmdInstall := NewInstallCmd()
+
+	newCmdInstall.Flags().Set("parameter", "foo")
+	err := newCmdInstall.RunE(newCmdInstall, []string{})
+	assert.NotNil(t, err, "a parameter without value worked")
+
+	newCmdInstall = NewInstallCmd()
+	newCmdInstall.Flags().Set("parameter", "bar=")
+	err = newCmdInstall.RunE(newCmdInstall, []string{})
+	assert.NotNil(t, err, "a parameter with empty value worked")
+
+	newCmdInstall = NewInstallCmd()
+	newCmdInstall.Flags().Set("parameter", "foo=bar")
+	newCmdInstall.Flags().Set("parameter", "fiz=")
+	err = newCmdInstall.RunE(newCmdInstall, []string{})
+	assert.NotNil(t, err, "one of many parameters with empty value worked")
 }
