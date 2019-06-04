@@ -12,8 +12,7 @@ import (
 
 func TestHelmImportMeta(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
-	// base := "https://github.com/helm/charts/tree/master/stable/mysql"
-	base := "/Users/tom/go/src/github.com/helm/charts/stable/mysql"
+	base := "test/charts/stable/mysql"
 
 	framework, err := loadMetadata(base)
 	g.Expect(err).NotTo(gomega.HaveOccurred())
@@ -27,26 +26,26 @@ func TestHelmImportMeta(t *testing.T) {
 
 func TestHelmLoadTemplates(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
-	// base := "https://github.com/helm/charts/tree/master/stable/mysql"
-	base := "/Users/tom/go/src/github.com/helm/charts/stable/mysql"
+	base := "test/charts/stable/mysql"
 
 	templates, err := loadTemplates(base)
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 
 	g.Expect(templates["configurationFiles-configmap.yaml"]).NotTo(gomega.BeEmpty())
-	g.Expect(templates["configurationFiles-configmap.yaml"]).NotTo(gomega.BeEmpty())
-	g.Expect(templates["configurationFiles-configmap.yaml"]).NotTo(gomega.BeEmpty())
-	g.Expect(templates["configurationFiles-configmap.yaml"]).NotTo(gomega.BeEmpty())
-	g.Expect(templates["configurationFiles-configmap.yaml"]).NotTo(gomega.BeEmpty())
-	g.Expect(templates["configurationFiles-configmap.yaml"]).NotTo(gomega.BeEmpty())
+	g.Expect(templates["deployment.yaml"]).NotTo(gomega.BeEmpty())
+	g.Expect(templates["initializationFiles-configmap.yaml"]).NotTo(gomega.BeEmpty())
+	g.Expect(templates["pvc.yaml"]).NotTo(gomega.BeEmpty())
+	g.Expect(templates["secrets.yaml"]).NotTo(gomega.BeEmpty())
+	g.Expect(templates["servicemonitor.yaml"]).NotTo(gomega.BeEmpty())
+	g.Expect(templates["svc.yaml"]).NotTo(gomega.BeEmpty())
 	g.Expect(templates["NOTES.txt"]).To(gomega.BeEmpty())
 	g.Expect(templates["_helpers.tpl"]).To(gomega.BeEmpty())
 }
 
 func TestLoadParamaters(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
-	// base := "https://github.com/helm/charts/tree/master/stable/mysql"
-	base := "/Users/tom/go/src/github.com/helm/charts/stable/mysql"
+	// This package is expected to be run from the top level
+	base := "test/charts/stable/mysql"
 
 	params, err := loadParameters(base)
 	g.Expect(err).NotTo(gomega.HaveOccurred())
@@ -57,8 +56,7 @@ func TestLoadParamaters(t *testing.T) {
 
 func TestGetFrameworkFromHelm(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
-	// base := "https://github.com/helm/charts/tree/master/stable/mysql"
-	base := "/Users/tom/go/src/github.com/helm/charts/stable/mysql"
+	base := "test/charts/stable/mysql"
 	f, fv, err := Import(base)
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 	b, _ := json.MarshalIndent(f, "framework", "\t")
