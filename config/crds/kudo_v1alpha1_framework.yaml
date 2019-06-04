@@ -30,7 +30,7 @@ spec:
           properties:
             description:
               type: string
-            kubeVersion:
+            kubernetesVersion:
               type: string
             kudoVersion:
               type: string
@@ -40,12 +40,6 @@ spec:
               type: array
             url:
               type: string
-          required:
-          - description
-          - kudoVersion
-          - kubeVersion
-          - maintainers
-          - url
           type: object
         status:
           type: object
