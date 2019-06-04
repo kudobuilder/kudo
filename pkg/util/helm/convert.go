@@ -73,13 +73,7 @@ func Import(folder string) (kudo.Framework, kudo.FrameworkVersion, error) {
 
 	frameworkVersion.Spec.Framework.Name = framework.Name
 
-	//.Chart.Name
-	//.Chart.Release
-	//.Chart.Service?
-	//.Values.
-
 	return framework, frameworkVersion, nil
-	// frameworkVersion, err = convertFrameworkVersion(folder)
 }
 
 func loadParameters(folder string) ([]kudo.Parameter, error) {

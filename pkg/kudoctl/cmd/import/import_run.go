@@ -4,10 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	// "gopkg.in/yaml.v2"
-
 	"github.com/ghodss/yaml"
-
 	"github.com/spf13/cobra"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
