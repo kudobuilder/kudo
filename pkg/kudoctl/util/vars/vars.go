@@ -11,4 +11,10 @@ var (
 	Namespace            string
 	Parameter            []string
 	PackageVersion       string
+
+	//FrameworkImportPath defines the location of the helm or KUDO framework definition that should be imported
+	FrameworkImportPath string
+
+	//Format specifies json or yaml to be exported
+	Format string
 )

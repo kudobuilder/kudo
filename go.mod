@@ -4,9 +4,12 @@ go 1.12
 
 require (
 	cloud.google.com/go v0.36.0 // indirect
+	github.com/Masterminds/semver v1.4.2 // indirect
 	github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30 // indirect
 	github.com/cbroglie/mustache v1.0.1
+	github.com/cyphar/filepath-securejoin v0.2.2 // indirect
 	github.com/emicklei/go-restful v2.9.0+incompatible // indirect
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-logr/logr v0.1.0 // indirect
 	github.com/go-logr/zapr v0.1.0 // indirect
 	github.com/go-openapi/jsonpointer v0.18.0 // indirect
@@ -16,6 +19,7 @@ require (
 	github.com/go-playground/locales v0.12.1 // indirect
 	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/gobuffalo/envy v1.6.15 // indirect
+	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gogo/protobuf v1.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
 	github.com/google/btree v1.0.0 // indirect
@@ -25,6 +29,7 @@ require (
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190212212710-3befbb6ad0cc // indirect
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
+	github.com/helm/helm v2.14.0+incompatible
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
@@ -65,6 +70,7 @@ require (
 	k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31
 	k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b
 	k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6 // indirect
+	k8s.io/helm v2.14.0+incompatible // indirect
 	k8s.io/klog v0.2.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20190208205540-d7c86cdc46e3 // indirect
 	sigs.k8s.io/controller-runtime v0.1.10
