@@ -17,25 +17,21 @@ import (
 // CmdErrorProcessor returns the errors associated with cmd env
 func CmdErrorProcessor(cmd *cobra.Command, args []string) error {
 
-	_, err := cmd.Flags().GetString("kubeconfig")
 	// This makes --kubeconfig flag optional
-	if err != nil {
+	if _, err := cmd.Flags().GetString("kubeconfig"); err != nil {
 		return fmt.Errorf("get flag: %+v", err)
 	}
 
-	err = check.ValidateKubeConfigPath()
-	if err != nil {
+	if err := check.ValidateKubeConfigPath(); err != nil {
 		return errors.WithMessage(err, "could not check kubeconfig path")
 	}
 
 	// Validate install parameters
-	err = validateInstallParameters()
-	if err != nil {
+	if err := validateInstallParameters(); err != nil {
 		return errors.WithMessage(err, "could not parse parameters")
 	}
 
-	err = verifyFrameworks(args)
-	if err != nil {
+	if err := verifyFrameworks(args); err != nil {
 		return errors.WithMessage(err, "could not install framework(s)")
 	}
 
@@ -43,20 +39,30 @@ func CmdErrorProcessor(cmd *cobra.Command, args []string) error {
 }
 
 func validateInstallParameters() error {
+	var errs []string
+
 	if vars.Parameter != nil {
+
 		for _, a := range vars.Parameter {
 			// Using '=' as the delimiter. Split after the first delimiter to support using '=' in values
 			s := strings.SplitN(a, "=", 2)
 			if len(s) < 2 {
-				return fmt.Errorf("parameter not set: %+v", s)
+				errs = append(errs, fmt.Sprintf("parameter not set: %+v", a))
+				continue
 			}
 			if s[0] == "" {
-				return fmt.Errorf("parameter name can not be empty: %+v", s)
+				errs = append(errs, fmt.Sprintf("parameter name can not be empty: %+v", a))
+				continue
 			}
 			if s[1] == "" {
-				return fmt.Errorf("parameter value can not be empty: %+v", s)
+				errs = append(errs, fmt.Sprintf("parameter value can not be empty: %+v", a))
+				continue
 			}
 		}
+	}
+
+	if errs != nil {
+		return errors.New(strings.Join(errs, ", "))
 	}
 
 	return nil
