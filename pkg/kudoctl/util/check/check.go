@@ -22,7 +22,7 @@ func ValidateKubeConfigPath() error {
 	}
 
 	vars.KubeConfigPath = path
-	if _, err := os.Stat(vars.KubeConfigPath); os.IsNotExist(err) {
+	if stat, err := os.Stat(vars.KubeConfigPath); os.IsNotExist(err) || stat.IsDir() {
 		return errors.Wrap(err, "failed to find kubeconfig file")
 	}
 	return nil
