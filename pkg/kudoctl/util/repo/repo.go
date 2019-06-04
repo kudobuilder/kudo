@@ -4,11 +4,17 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 )
 
-// Entry represents a collection of parameters for framework repository
-type Entry struct {
-	Name      string `json:"name"`
+// RepositoryConfiguration represents a collection of parameters for framework repository
+type RepositoryConfiguration struct {
 	LocalPath string `json:"localPath"`
 	URL       string `json:"url"`
+}
+
+func NewRepositoryConfiguration() *RepositoryConfiguration {
+	return &RepositoryConfiguration{
+		LocalPath: "$HOME/.kudo/repository", // this won't work on windows
+		URL: "https://kudo-test-repo.storage.googleapis.com",
+	}
 }
 
 // Metadata for a Framework. This models the structure of a bundle.yaml file.

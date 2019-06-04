@@ -38,10 +38,6 @@ func NewInstallCmd() *cobra.Command {
 	installCmd.Flags().StringVar(&vars.Namespace, "namespace", "default", "The namespace where the operator watches for changes. (default to \"default\"")
 	installCmd.Flags().StringArrayVarP(&vars.Parameter, "parameter", "p", nil, "The parameter name.")
 	installCmd.Flags().StringVar(&vars.PackageVersion, "package-version", "", "A specific package version on the official GitHub repo. (default to the most recent)")
-	installCmd.Flags().StringVar(&vars.RepoName, "repo-name", "kudo-test-repo", "The storage bucket name of the repo. (default to official \"kudo-registry\")")
-	installCmd.Flags().StringVar(&vars.RepoPath, "repo-path", "", "The path of the repo. (default to \"$HOME/.kudo/repo\")")
-	// the default should be switched to our official kudo repo on GCS
-	installCmd.Flags().StringVar(&vars.RepoURL, "repo-url", "https://kudo-test-repo.storage.googleapis.com", "The url to the repo. (default to \"https://kudo-registry.storage.googleapis.com\")")
 
 	const usageFmt = "Usage:\n  %s\n\nFlags:\n%s"
 	installCmd.SetUsageFunc(func(cmd *cobra.Command) error {

@@ -11,9 +11,7 @@ var (
 	Namespace            string
 	Parameter            []string
 	PackageVersion       string
-	RepoName             string
-	RepoPath             string
-	RepoURL              string
 	StorageBucket        string
 	StoragePrefix        string
+	RepoPath 			 string = "$HOME/.kudo/repository" // this won't work on windows
 )

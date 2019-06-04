@@ -20,9 +20,8 @@ import (
 
 // FrameworkRepository represents a framework repository
 type FrameworkRepository struct {
-	Config         *Entry
+	Config         *RepositoryConfiguration
 	FrameworkPaths []string
-	IndexFile      *IndexFile
 	Client         HTTPClient
 }
 
@@ -33,7 +32,7 @@ type BufferedFile struct {
 }
 
 // NewFrameworkRepository constructs FrameworkRepository
-func NewFrameworkRepository(cfg Entry) (*FrameworkRepository, error) {
+func NewFrameworkRepository(cfg *RepositoryConfiguration) (*FrameworkRepository, error) {
 	u, err := url.Parse(cfg.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid chart URL format: %s", cfg.URL)
@@ -45,8 +44,7 @@ func NewFrameworkRepository(cfg Entry) (*FrameworkRepository, error) {
 	}
 
 	return &FrameworkRepository{
-		Config:    &cfg,
-		IndexFile: NewIndexFile(),
+		Config:    cfg,
 		Client:    *client,
 	}, nil
 }
@@ -55,11 +53,11 @@ func NewFrameworkRepository(cfg Entry) (*FrameworkRepository, error) {
 //
 // cachePath is prepended to any index that does not have an absolute path. This
 // is for pre-2.2.0 repo files.
-func (r *FrameworkRepository) DownloadIndexFile(path string) error {
+func (r *FrameworkRepository) DownloadIndexFile() (*IndexFile, error) {
 	var indexURL string
 	parsedURL, err := url.Parse(r.Config.URL)
 	if err != nil {
-		return errors.Wrap(err, "parsing config url")
+		return nil, errors.Wrap(err, "parsing config url")
 	}
 	parsedURL.Path = strings.TrimSuffix(parsedURL.Path, "/") + "/index.yaml"
 
@@ -67,23 +65,16 @@ func (r *FrameworkRepository) DownloadIndexFile(path string) error {
 
 	resp, err := r.Client.Get(indexURL)
 	if err != nil {
-		return errors.Wrap(err, "getting index url")
+		return nil, errors.Wrap(err, "getting index url")
 	}
 
-	index, err := ioutil.ReadAll(resp)
+	indexBytes, err := ioutil.ReadAll(resp)
 	if err != nil {
-		return errors.Wrap(err, "reading index response")
+		return nil, errors.Wrap(err, "reading index response")
 	}
 
-	if _, err := loadIndex(index); err != nil {
-		return errors.Wrap(err, "loading index file")
-	}
-
-	if filepath.IsAbs(path) {
-		path = filepath.Join(path, "index.yaml")
-	}
-
-	return ioutil.WriteFile(path, index, 0644)
+	indexFile, err := parseIndexFile(indexBytes)
+	return indexFile, err
 }
 
 // DownloadBundleFile downloads the tgz file from the given repo
