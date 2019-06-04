@@ -17,6 +17,9 @@ import (
 	"github.com/helm/helm/pkg/chartutil"
 )
 
+// MinHelmVersion is the minimum KUDO version that supports helm templating
+const MinHelmVersion = "0.2.0"
+
 // Import convers the chart at the provided folder into a Framework and FrameworkVersion
 func Import(folder string) (kudo.Framework, kudo.FrameworkVersion, error) {
 
@@ -150,7 +153,7 @@ func loadMetadata(folder string) (kudo.Framework, error) {
 	framework := kudo.Framework{}
 	framework.Kind = "Framework"
 	framework.APIVersion = kudo.SchemeGroupVersion.String()
-	//http
+	//TODO allow passing in of https:// paths.
 	meta, err := chartutil.LoadChartfile(folder + "/Chart.yaml")
 	if err != nil {
 		meta, err = chartutil.LoadChartfile(folder + "/operator.yaml")
@@ -161,7 +164,7 @@ func loadMetadata(folder string) (kudo.Framework, error) {
 
 	framework.ObjectMeta.Name = meta.Name
 	framework.Spec.Description = meta.Description
-	framework.Spec.KudoVersion = "0.2.0"
+	framework.Spec.KudoVersion = MinHelmVersion
 	framework.Spec.KubernetesVersion = meta.KubeVersion
 	framework.Spec.Maintainers = make([]kudo.Maintainer, 0)
 	for _, m := range meta.Maintainers {
