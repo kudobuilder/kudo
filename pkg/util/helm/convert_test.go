@@ -12,7 +12,7 @@ import (
 
 func TestHelmImportMeta(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
-	base := "test/charts/stable/mysql"
+	base := "../../../test/charts/mysql"
 
 	framework, err := loadMetadata(base)
 	g.Expect(err).NotTo(gomega.HaveOccurred())
@@ -26,7 +26,7 @@ func TestHelmImportMeta(t *testing.T) {
 
 func TestHelmLoadTemplates(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
-	base := "test/charts/stable/mysql"
+	base := "../../../test/charts/mysql"
 
 	templates, err := loadTemplates(base)
 	g.Expect(err).NotTo(gomega.HaveOccurred())
@@ -45,7 +45,7 @@ func TestHelmLoadTemplates(t *testing.T) {
 func TestLoadParamaters(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
 	// This package is expected to be run from the top level
-	base := "test/charts/stable/mysql"
+	base := "../../../test/charts/mysql"
 
 	params, err := loadParameters(base)
 	g.Expect(err).NotTo(gomega.HaveOccurred())
@@ -56,7 +56,8 @@ func TestLoadParamaters(t *testing.T) {
 
 func TestGetFrameworkFromHelm(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
-	base := "test/charts/stable/mysql"
+	base := "../../../test/charts/mysql"
+
 	f, fv, err := Import(base)
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 	b, _ := json.MarshalIndent(f, "framework", "\t")
