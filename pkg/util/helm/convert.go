@@ -71,6 +71,8 @@ func Import(folder string) (kudo.Framework, kudo.FrameworkVersion, error) {
 	}
 	frameworkVersion.Spec.Parameters = params
 
+	frameworkVersion.Spec.Framework.Name = framework.Name
+
 	//.Chart.Name
 	//.Chart.Release
 	//.Chart.Service?
