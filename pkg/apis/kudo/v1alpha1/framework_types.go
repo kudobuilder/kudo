@@ -21,11 +21,11 @@ import (
 
 // FrameworkSpec defines the desired state of Framework
 type FrameworkSpec struct {
-	Description       string       `json:"description"`
-	KudoVersion       string       `json:"kudoVersion"`
-	KubernetesVersion string       `json:"kubeVersion"`
-	Maintainers       []Maintainer `json:"maintainers"`
-	URL               string       `json:"url"`
+	Description       string       `json:"description,omitempty"`
+	KudoVersion       string       `json:"kudoVersion,omitempty"`
+	KubernetesVersion string       `json:"kubernetesVersion,omitempty"`
+	Maintainers       []Maintainer `json:"maintainers,omitempty"`
+	URL               string       `json:"url,omitempty"`
 }
 
 // Maintainer contains contact info for the maintainer of the Framework
