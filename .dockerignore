@@ -1,0 +1,11 @@
+.circleci
+.github
+.git
+bin
+docs
+hack/code-gen
+hack/controller-gen
+dist
+keps
+logo
+site
