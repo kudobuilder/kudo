@@ -64,20 +64,15 @@ manager-clean:
 run:
 	go run -ldflags "${LDFLAGS}" ./cmd/manager/main.go
 
-.PHONY: install-crds
-install-crds:
-	kubectl apply -f config/crds
-
 .PHONY: deploy
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests
-	kubectl apply -f config/crds
-	kustomize build config/default | kubectl apply -f -
+deploy:
+	@kustomize build config
 
 .PHONY: deploy-clean
 deploy-clean:
 	kubectl delete -f config/crds
-	# kustomize build config/default | kubectl delete -f -
+	# kustomize build config | kubectl delete -f -
 
 .PHONY: manifests
 # Generate manifests e.g. CRD, RBAC etc.
@@ -164,7 +159,7 @@ docker-build: generate check-formatting manifests
 	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:${GIT_VERSION}
 	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:latest
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${DOCKER_IMG}:${GIT_VERSION}"'@' ./config/default/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"${DOCKER_IMG}:${GIT_VERSION}"'@' ./config/manager_image_patch.yaml
 
 .PHONY: docker-push
 # Push the docker image
