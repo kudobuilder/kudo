@@ -51,7 +51,7 @@ func TestLoadParamaters(t *testing.T) {
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 
 	b, _ := json.MarshalIndent(params, "", "\t")
-	fmt.Printf(string(b))
+	fmt.Printf("%v",string(b))
 }
 
 func TestGetFrameworkFromHelm(t *testing.T) {
@@ -60,8 +60,8 @@ func TestGetFrameworkFromHelm(t *testing.T) {
 	f, fv, err := Import(base)
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 	b, _ := json.MarshalIndent(f, "framework", "\t")
-	fmt.Printf(string(b))
+	fmt.Printf("%v",string(b))
 	fmt.Printf("\n\n\n\n\n\n")
 	b, _ = json.MarshalIndent(fv, "frameworkversion", "\t")
-	fmt.Printf(string(b))
+	fmt.Printf("%v",string(b))
 }

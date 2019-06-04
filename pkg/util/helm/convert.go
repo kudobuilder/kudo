@@ -17,6 +17,7 @@ import (
 	"github.com/helm/helm/pkg/chartutil"
 )
 
+// Import convers the chart at the provided folder into a Framework and FrameworkVersion
 func Import(folder string) (kudo.Framework, kudo.FrameworkVersion, error) {
 
 	frameworkVersion := kudo.FrameworkVersion{}
@@ -153,6 +154,9 @@ func loadMetadata(folder string) (kudo.Framework, error) {
 	meta, err := chartutil.LoadChartfile(folder + "/Chart.yaml")
 	if err != nil {
 		meta, err = chartutil.LoadChartfile(folder + "/operator.yaml")
+		if err != nil {
+			return framework, err
+		}
 	}
 
 	framework.ObjectMeta.Name = meta.Name

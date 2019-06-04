@@ -30,7 +30,7 @@ func Run(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		output += string(y)
-		output += "\n---\n"
+		output += "---\n"
 		b, e = json.Marshal(fv)
 		if e != nil {
 			return e
@@ -53,8 +53,8 @@ func Run(cmd *cobra.Command, args []string) error {
 		}
 		output += string(b)
 	default:
-		return fmt.Errorf("Invalid output format %v.  Only valid options are \"json\" and \"yaml\"", vars.Format)
+		return fmt.Errorf("invalid output format %v.  Only valid options are \"json\" and \"yaml\"", vars.Format)
 	}
-	fmt.Printf(output)
+	fmt.Println(output)
 	return nil
 }
