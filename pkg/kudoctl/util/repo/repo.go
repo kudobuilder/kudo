@@ -12,8 +12,8 @@ type RepositoryConfiguration struct {
 
 func NewRepositoryConfiguration() *RepositoryConfiguration {
 	return &RepositoryConfiguration{
-		LocalPath: "$HOME/.kudo/repository", // this won't work on windows
-		URL: "https://kudo-test-repo.storage.googleapis.com",
+		LocalPath: ".kudo/repository", // this won't work on windows
+		URL:       "https://kudo-test-repo.storage.googleapis.com",
 	}
 }
 

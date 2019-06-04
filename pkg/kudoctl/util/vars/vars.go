@@ -13,5 +13,5 @@ var (
 	PackageVersion       string
 	StorageBucket        string
 	StoragePrefix        string
-	RepoPath 			 string = "$HOME/.kudo/repository" // this won't work on windows
+	RepoPath             string = ".kudo/repository" // this won't work on windows
 )

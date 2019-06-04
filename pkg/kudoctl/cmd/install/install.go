@@ -40,7 +40,9 @@ func CmdErrorProcessor(cmd *cobra.Command, args []string) error {
 
 	// Checking repo path of provided parameter or env variable, if none provided looking up default directory
 	if err := check.RepoPath(); err != nil {
-		return errors.WithMessage(err, "could not check repo path")
+		if err = helpers.CreateRepoPath(); err != nil {
+			return errors.WithMessage(err, "could not create repo path")
+		}
 	}
 
 	if err := verifyFrameworks(args); err != nil {
@@ -109,7 +111,6 @@ func verifySingleFramework(name, previous string, r repo.FrameworkRepository, i 
 		}
 		bundleVersion = bv
 	}
-
 
 	// checking if bundle exists locally already
 	bundleName := bundleVersion.Name + "-" + bundleVersion.Version

@@ -1,6 +1,7 @@
 package check
 
 import (
+	"fmt"
 	"os/user"
 	"path/filepath"
 	"testing"
@@ -29,5 +30,29 @@ func TestKubeConfigPath(t *testing.T) {
 	}
 	if location != expectedPath {
 		t.Errorf("expected kubeconfig path '%v', kubeconfig path instead resolved as %v", expectedPath, location)
+	}
+}
+
+func TestRepoPath(t *testing.T) {
+	usr, err := user.Current()
+	if err != nil {
+		t.Error("failed to determine user's home dir")
+	}
+	usrDir := filepath.Join(usr.HomeDir, ".kudo/repository")
+
+	tests := []struct {
+		err string
+	}{
+		{fmt.Sprintf("repo path does not exist: stat %s: no such file or directory", usrDir)},
+	}
+
+	for _, tt := range tests {
+		// Just interested in errors
+		err := RepoPath()
+		if err != nil {
+			if err.Error() != tt.err {
+				t.Errorf("non existing test:\nexpected: %v\n     got: %v", tt.err, err.Error())
+			}
+		}
 	}
 }

@@ -2,6 +2,9 @@ package helpers
 
 import (
 	"fmt"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
+	"github.com/pkg/errors"
+	"os"
 	"sort"
 	"strconv"
 
@@ -63,4 +66,11 @@ func posString(slice []string, element string) int {
 // containsString returns true iff slice contains element
 func containsString(slice []string, element string) bool {
 	return !(posString(slice, element) == -1)
+}
+
+func CreateRepoPath() error {
+	if err := os.MkdirAll(vars.RepoPath, 0755); err != nil {
+		return errors.Wrap(err, "failed to create repo path")
+	}
+	return nil
 }
