@@ -95,16 +95,27 @@ func verifyFrameworks(args []string) error {
 // for a cluster and returns an error in case there is a problem
 func verifySingleFramework(name, previous string, r repo.FrameworkRepository, i *repo.IndexFile, kc *kudo.Client) error {
 
-	bundleVersion, err := i.Get(name, vars.PackageVersion)
-	if err != nil {
-		return errors.Wrapf(err, "getting %s in index file", name)
+	var bundleVersion *repo.BundleVersion
+	if vars.PackageVersion == "" {
+		bv, err := i.GetByName(name)
+		if err != nil {
+			return errors.Wrapf(err, "getting %s in index file", name)
+		}
+		bundleVersion = bv
+	} else {
+		bv, err := i.GetByNameAndVersion(name, vars.PackageVersion)
+		if err != nil {
+			return errors.Wrapf(err, "getting %s in index file", name)
+		}
+		bundleVersion = bv
 	}
+
 
 	// checking if bundle exists locally already
 	bundleName := bundleVersion.Name + "-" + bundleVersion.Version
 	bundlePath := fmt.Sprintf(bundlePath, vars.RepoPath, bundleName)
 
-	if _, err = os.Stat(bundlePath); err != nil && os.IsNotExist(err) {
+	if _, err := os.Stat(bundlePath); err != nil && os.IsNotExist(err) {
 		if err = r.DownloadBundleFile(bundleName); err != nil {
 			return errors.Wrap(err, "failed to download bundle")
 		}

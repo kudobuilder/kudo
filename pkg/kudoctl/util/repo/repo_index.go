@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver"
-	"github.com/kudobuilder/kudo/pkg/version"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 )
@@ -51,22 +50,13 @@ func (b BundleVersions) Less(x, y int) bool {
 	return i.LessThan(j)
 }
 
-// NewIndexFile initializes an index.
-func NewIndexFile() *IndexFile {
-	return &IndexFile{
-		APIVersion: version.Get().GitVersion,
-		Generated:  time.Now(),
-		Entries:    map[string]BundleVersions{},
-	}
-}
-
-// SortEntries sorts the entries by version in descending order.
+// sortPackages sorts the entries by version in descending order.
 //
 // In canonical form, the individual version records should be sorted so that
 // the most recent release for every version is in the 0th slot in the
 // Entries.BundleVersions array. That way, tooling can predict the newest
 // version without needing to parse SemVers.
-func (i IndexFile) SortEntries() {
+func (i IndexFile) sortPackages() {
 	for _, versions := range i.Entries {
 		sort.Sort(sort.Reverse(versions))
 	}
@@ -80,43 +70,37 @@ func parseIndexFile(data []byte) (*IndexFile, error) {
 	if err := yaml.Unmarshal(data, i); err != nil {
 		return i, errors.Wrap(err, "unmarshalling index file")
 	}
-	i.SortEntries()
+	i.sortPackages()
 	if i.APIVersion == "" {
 		return i, errors.New("no API version specified")
 	}
 	return i, nil
 }
 
-// Get returns the ChartVersion for the given name.
-//
-// If version is empty, this will return the chart with the highest version.
-func (i IndexFile) Get(name, version string) (*BundleVersion, error) {
+// GetByName returns the framework of given name.
+func (i IndexFile) GetByName(name string) (*BundleVersion, error) {
+	constraint, err := semver.NewConstraint("*")
+	if err != nil {
+		return nil, err
+	}
+
+	return i.getFramework(name, constraint)
+}
+
+// GetByNameAndVersion returns the framework of given name and version.
+func (i IndexFile) GetByNameAndVersion(name, version string) (*BundleVersion, error) {
+	constraint, err := semver.NewConstraint(version)
+	if err != nil {
+		return nil, err
+	}
+
+	return i.getFramework(name, constraint)
+}
+
+func (i IndexFile) getFramework(name string, versionConstraint *semver.Constraints) (*BundleVersion, error) {
 	vs, ok := i.Entries[name]
-	if !ok {
-		return nil, errors.New("no chart name found")
-	}
-	if len(vs) == 0 {
-		return nil, errors.New("no chart version found")
-	}
-
-	var constraint *semver.Constraints
-	if len(version) == 0 {
-		constraint, _ = semver.NewConstraint("*")
-	} else {
-		var err error
-		constraint, err = semver.NewConstraint(version)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// when customer input exact version, check whether have exact match one first
-	if len(version) != 0 {
-		for _, ver := range vs {
-			if version == ver.Version {
-				return ver, nil
-			}
-		}
+	if !ok || len(vs) == 0 {
+		return nil, fmt.Errorf("no framework of given name %s and version %v found", name, versionConstraint)
 	}
 
 	for _, ver := range vs {
@@ -125,9 +109,9 @@ func (i IndexFile) Get(name, version string) (*BundleVersion, error) {
 			continue
 		}
 
-		if constraint.Check(test) {
+		if versionConstraint.Check(test) {
 			return ver, nil
 		}
 	}
-	return nil, fmt.Errorf("no chart version found for %s-%s", name, version)
+	return nil, fmt.Errorf("no framework version found for %s-%v", name, versionConstraint)
 }
