@@ -40,7 +40,7 @@ func Import(folder string) (kudo.Framework, kudo.FrameworkVersion, error) {
 	deployTask := kudo.TaskSpec{
 		Resources: make([]string, 0),
 	}
-	for k, _ := range templates {
+	for k := range templates {
 		deployTask.Resources = append(deployTask.Resources, k)
 	}
 	frameworkVersion.Spec.Tasks = make(map[string]kudo.TaskSpec)
