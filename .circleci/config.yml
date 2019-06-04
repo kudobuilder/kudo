@@ -9,6 +9,11 @@ jobs:
       - checkout
       - run: echo "https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com" > "test/.git-credentials"
       - run: ./test/run_tests.sh
+      - run: |
+          git config user.name "Circle CI"
+          git config user.email "ci@mesosphere.com"
+          git merge -m "Merge Commit" origin/master
+      - run: ./test/run_tests.sh
   release:
     docker:
       - image: kudobuilder/golang:1.12
