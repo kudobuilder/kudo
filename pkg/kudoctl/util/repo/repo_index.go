@@ -2,13 +2,10 @@ package repo
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"sort"
 	"time"
 
 	"github.com/Masterminds/semver"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 	"github.com/kudobuilder/kudo/pkg/version"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
@@ -75,20 +72,10 @@ func (i IndexFile) SortEntries() {
 	}
 }
 
-// LoadIndexFile takes a file at the given path and returns an IndexFile object
-func (i IndexFile) LoadIndexFile(path string) (*IndexFile, error) {
-	b, err := ioutil.ReadFile(path + "/index.yaml")
-	if err != nil {
-		return nil, err
-	}
-
-	return loadIndex(b)
-}
-
-// loadIndex loads an index file and does minimal validity checking.
+// parseIndexFile loads an index file and does minimal validity checking.
 //
 // This will fail if API Version is not set (ErrNoAPIVersion) or if the unmarshal fails.
-func loadIndex(data []byte) (*IndexFile, error) {
+func parseIndexFile(data []byte) (*IndexFile, error) {
 	i := &IndexFile{}
 	if err := yaml.Unmarshal(data, i); err != nil {
 		return i, errors.Wrap(err, "unmarshalling index file")
@@ -143,12 +130,4 @@ func (i IndexFile) Get(name, version string) (*BundleVersion, error) {
 		}
 	}
 	return nil, fmt.Errorf("no chart version found for %s-%s", name, version)
-}
-
-// Exists returns true if the index.yaml file exists on the local file system
-func (i IndexFile) Exists() bool {
-	if _, err := os.Stat(vars.RepoPath + "/index.yaml"); os.IsNotExist(err) {
-		return false
-	}
-	return true
 }

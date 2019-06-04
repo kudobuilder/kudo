@@ -60,11 +60,7 @@ func verifyFrameworks(args []string) error {
 		return fmt.Errorf("--package-version not supported in multi framework install")
 	}
 
-	e := repo.Entry{
-		Name:      vars.RepoName,
-		LocalPath: vars.RepoPath,
-		URL:       vars.RepoURL,
-	}
+	e := repo.NewRepositoryConfiguration()
 
 	// Initializing empty repo with given variables
 	r, err := repo.NewFrameworkRepository(e)
@@ -72,19 +68,8 @@ func verifyFrameworks(args []string) error {
 		return errors.WithMessage(err, "could not build framework repository")
 	}
 
-	// Downloading index.yaml file if not existing in current repo path
-	if !r.IndexFile.Exists() {
-		err := r.DownloadIndexFile(vars.RepoPath)
-		if err != nil {
-			return errors.Wrap(err, "downloading index file")
-		}
-	}
-
-	// Adding index.yaml to initialized repo
-	r.IndexFile, err = r.IndexFile.LoadIndexFile(vars.RepoPath)
-	if err != nil {
-		return errors.WithMessage(err, "could not load index file")
-	}
+	// Downloading index.yaml file
+	indexFile, err := r.DownloadIndexFile()
 
 	_, err = clientcmd.BuildConfigFromFlags("", vars.KubeConfigPath)
 	if err != nil {
@@ -97,7 +82,7 @@ func verifyFrameworks(args []string) error {
 	}
 
 	for _, name := range args {
-		err := verifySingleFramework(name, "", *r, kc)
+		err := verifySingleFramework(name, "", *r, indexFile, kc)
 		if err != nil {
 			return err
 		}
@@ -108,15 +93,15 @@ func verifyFrameworks(args []string) error {
 // Todo: needs testing
 // verifySingleFramework is the umbrella for a single framework installation that gathers the business logic
 // for a cluster and returns an error in case there is a problem
-func verifySingleFramework(name, previous string, r repo.FrameworkRepository, kc *kudo.Client) error {
+func verifySingleFramework(name, previous string, r repo.FrameworkRepository, i *repo.IndexFile, kc *kudo.Client) error {
 
-	i, err := r.IndexFile.Get(name, vars.PackageVersion)
+	bundleVersion, err := i.Get(name, vars.PackageVersion)
 	if err != nil {
 		return errors.Wrapf(err, "getting %s in index file", name)
 	}
 
 	// checking if bundle exists locally already
-	bundleName := i.Name + "-" + i.Version
+	bundleName := bundleVersion.Name + "-" + bundleVersion.Version
 	bundlePath := fmt.Sprintf(bundlePath, vars.RepoPath, bundleName)
 
 	if _, err = os.Stat(bundlePath); err != nil && os.IsNotExist(err) {
@@ -181,7 +166,7 @@ func verifySingleFramework(name, previous string, r repo.FrameworkRepository, kc
 			// Dependencies should not be as big as that they will have an overflow in the function stack frame
 			// verifySingleFramework makes sure that dependency Frameworks are created before the Framework itself
 			// and it allows to inherit dependencies.
-			if err := verifySingleFramework(v, name, r, kc); err != nil {
+			if err := verifySingleFramework(v, name, r, i, kc); err != nil {
 				return errors.Wrapf(err, "installing dependency Framework %s", v)
 			}
 		}
