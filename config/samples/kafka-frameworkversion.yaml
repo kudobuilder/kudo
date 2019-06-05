@@ -172,7 +172,7 @@ spec:
           transaction.state.log.replication.factor=1
           transaction.state.log.min.isr=1
           auto.create.topics.enable={{ .Params.KAFKA_AUTO_CREATE_TOPICS_ENABLE }}
-          auto.leader.rebalance.enable={{ .KAFKA_AUTO_LEADER_REBALANCE_ENABLE }}
+          auto.leader.rebalance.enable={{ .Params.KAFKA_AUTO_LEADER_REBALANCE_ENABLE }}
           delete.topic.enable={{ .Params.KAFKA_DELETE_TOPIC_ENABLE }}
 
           ############################# Log Flush Policy #############################
