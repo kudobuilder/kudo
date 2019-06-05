@@ -11,5 +11,4 @@ var (
 	PackageVersion       string
 	StorageBucket        string
 	StoragePrefix        string
-	RepoPath             string
 )
