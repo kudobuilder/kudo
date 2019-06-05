@@ -367,8 +367,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						if resource, ok := frameworkVersion.Spec.Templates[res]; ok {
 							templatedYaml, err := engine.Render(resource, configs)
 							if err != nil {
-								r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error expanding mustache: %v", err))
-								log.Printf("PlanExecutionController: Error expanding mustache: %v", err)
+								r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error expanding template: %v", err))
+								log.Printf("PlanExecutionController: Error expanding template: %v", err)
 							}
 							fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, res), []byte(templatedYaml))
 							resources = append(resources, res)

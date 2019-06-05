@@ -11,12 +11,11 @@ spec:
     kind: Framework
   # Add fields here
   version: "1.0"
-  connectionString: "{{NAME}}-0.{{NAME}}-hs:2181,{{NAME}}-1.{{NAME}}-hs:2181,{{NAME}}-.{{NAME}}-hs:2181"
   parameters:
-  - name: ZOOKEEPER_MEM
+  - name: memory
     description: Amount of memory to provide to Zookeeper pods
     default: "1Gi"
-  - name: ZOOKEEPER_CPUS
+  - name: cpus
     description: Amount of cpu to provide to Zookeeper pods
     default: "0.25"
   templates:
@@ -25,10 +24,10 @@ spec:
       kind: Service
       metadata:
         name: hs
-        namespace: {{NAMESPACE}}
+        namespace: {{ .Namespace }}
         labels:
           app: zookeeper
-          zookeeper: {{NAME}}
+          zookeeper: {{ .Name }}
       spec:
         ports:
           - port: 2888
@@ -38,50 +37,50 @@ spec:
         clusterIP: None
         selector:
           app: zookeeper
-          zookeeper: {{NAME}}
+          zookeeper: {{ .Name }}
       ---
       apiVersion: v1
       kind: Service
       metadata:
         name: cs
-        namespace: {{NAMESPACE}}
+        namespace: {{ .Namespace }}
         labels:
           app: zookeeper
-          zookeeper: {{NAME}}
+          zookeeper: {{ .Name }}
       spec:
         ports:
           - port: 2181
             name: client
         selector:
           app: zookeeper
-          zookeeper: {{NAME}}
+          zookeeper: {{ .Name }}
     pdb.yaml: |
       apiVersion: policy/v1beta1
       kind: PodDisruptionBudget
       metadata:
-        name: {{NAME}}-pdb
-        namespace: {{NAMESPACE}}
+        name: {{ .Name }}-pdb
+        namespace: {{ .Namespace }}
         labels:
           app: zookeeper
-          zookeeper: {{NAME}}
+          zookeeper: {{ .Name }}
       spec:
         selector:
           matchLabels:
             app: zookeeper
-            zookeeper: {{NAME}}
+            zookeeper: {{ .Name }}
         maxUnavailable: 1
     statefulset.yaml: |
       apiVersion: apps/v1
       kind: StatefulSet
       metadata:
-        name: {{NAME}}
-        namespace: {{NAMESPACE}}
+        name: {{ .Name }}
+        namespace: {{ .Namespace }}
       spec:
         selector:
           matchLabels:
             app: zookeeper
-            zookeeper: {{NAME}}
-        serviceName: {{NAME}}-hs
+            zookeeper: {{ .Name }}
+        serviceName: {{ .Name }}-hs
         replicas: 3
         updateStrategy:
           type: RollingUpdate
@@ -90,7 +89,7 @@ spec:
           metadata:
             labels:
               app: zookeeper
-              zookeeper: {{NAME}}
+              zookeeper: {{ .Name }}
           spec:
             containers:
               - name: kubernetes-zookeeper
@@ -98,8 +97,8 @@ spec:
                 image: "k8s.gcr.io/kubernetes-zookeeper:1.0-3.4.10"
                 resources:
                   requests:
-                    memory: "{{ZOOKEEPER_MEM}}"
-                    cpu: "{{ZOOKEEPER_CPUS}}"
+                    memory: "{{ .Params.memory }}"
+                    cpu: "{{ .Params.cpus }}"
                 ports:
                   - containerPort: 2181
                     name: client
@@ -162,8 +161,8 @@ spec:
                 value: zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181
               resources:
                 requests:
-                  memory: "{{ZOOKEEPER_MEM}}"
-                  cpu: "{{ZOOKEEPER_CPUS}}"
+                  memory: "{{ .Params.memory }}"
+                  cpu: "{{ .Params.cpus }}"
                 command:
                   - sh
                   - -c

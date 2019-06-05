@@ -27,12 +27,12 @@ spec:
       apiVersion: apps/v1beta2
       kind: Deployment
       metadata:
-        name: {{NAME}}
+        name: {{ .Name }}
         labels:
           release: stable
           app:  appinfo
       spec:
-        replicas: {{REPLICAS}}
+        replicas: {{ .Replicas }}
         selector:
           matchLabels:
             app: appinfo
@@ -46,7 +46,7 @@ spec:
           spec:
             containers:
             - name: appinfo-containers
-              image: runyonsolutions/appinfo:{{TAG}}
+              image: runyonsolutions/appinfo:{{ .Params.Tag }}
               imagePullPolicy: Always
               ports:
               - containerPort: 8080
@@ -87,9 +87,6 @@ spec:
     deployment:
       resources:
       - service.yaml
-      - deployment.yaml
-    deployment:
-      resources:
       - deployment.yaml
   parameters:
   - name: TAG
@@ -134,4 +131,4 @@ spec:
     type: FrameworkVersion
   # Add fields here
   parameters:
-    TAG: master
+    Tag: master
