@@ -28,6 +28,9 @@ and serves as an API aggregation layer.
 	# Get instances
 	kubectl kudo get instances [flags]
 
+	# Delete an instance
+	kubectl kudo delete instance <name>
+
 	# View plan status
 	kubectl kudo plan status [flags]
 
@@ -38,8 +41,9 @@ and serves as an API aggregation layer.
 		Version: version.Get().GitVersion,
 	}
 
-	cmd.AddCommand(NewInstallCmd())
+	cmd.AddCommand(NewDeleteCmd())
 	cmd.AddCommand(NewGetCmd())
+	cmd.AddCommand(NewInstallCmd())
 	cmd.AddCommand(NewPlanCmd())
 	cmd.AddCommand(NewVersionCmd())
 

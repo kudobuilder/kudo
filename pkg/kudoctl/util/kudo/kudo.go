@@ -202,3 +202,15 @@ func (c *Client) InstallInstanceObjToCluster(obj *v1alpha1.Instance) (*v1alpha1.
 	}
 	return createdObj, nil
 }
+
+// DeleteInstanceFromCluster expects a valid Instance name to delete
+func (c *Client) DeleteInstanceFromCluster(name string) error {
+	var zero int64
+	policy := v1.DeletePropagationForeground
+	delOptions := &v1.DeleteOptions{
+		GracePeriodSeconds: &zero,
+		PropagationPolicy:  &policy,
+	}
+
+	return c.clientset.KudoV1alpha1().Instances(vars.Namespace).Delete(name, delOptions)
+}

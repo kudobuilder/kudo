@@ -50,6 +50,7 @@ Install the plugin from your `$GOPATH/src/github.com/kudobuilder/kudo` root fold
 |---|---|
 | `kubectl kudo install <name> [flags]`  |  Installs a Framework from the official [KUDO repo](https://github.com/kudobuilder/frameworks). |
 | `kubectl kudo get instances [flags]` | Show all available instances. |
+| `kubectl kudo delete <name>` | Delete an instance. |
 | `kubectl kudo plan status [flags]` | View all available plans. |
 | `kubectl kudo plan history <name> [flags]` | View all available plans. |
 | `kubectl kudo version` | Print the current KUDO package version. |
@@ -357,6 +358,12 @@ Finally, the status information for the `Active-Plan` is nested in this part:
 ```
 
 Apparently, KUDO's tree view makes this information easier to understand and prevents you from putting together the bits and pieces of various commands.
+
+### Delete Instances
+
+An instance can be deleted (uninstalled from the cluster) using the `delete` command, this triggers the removal of all the objects owned by the instance:
+
+`kubectl kudo delete <instanceName>`
 
 ### Get the History to PlanExecutions
 
