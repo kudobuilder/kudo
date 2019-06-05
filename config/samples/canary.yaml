@@ -32,7 +32,7 @@ spec:
           release: stable
           app:  appinfo
       spec:
-        replicas: {{ .Replicas }}
+        replicas: {{ .Params.Replicas }}
         selector:
           matchLabels:
             app: appinfo
