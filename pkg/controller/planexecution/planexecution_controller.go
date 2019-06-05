@@ -18,9 +18,10 @@ package planexecution
 import (
 	"context"
 	"fmt"
-	kudoengine "github.com/kudobuilder/kudo/pkg/engine"
 	"log"
 	"strconv"
+
+	kudoengine "github.com/kudobuilder/kudo/pkg/engine"
 
 	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/tools/record"

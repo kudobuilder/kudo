@@ -3,8 +3,9 @@ package engine
 import (
 	"bytes"
 	"fmt"
-	"github.com/masterminds/sprig"
 	"text/template"
+
+	"github.com/masterminds/sprig"
 )
 
 // Engine is the control struct for parsing and templating Kubernetes resources in an ordered fashion
@@ -36,10 +37,8 @@ func (e *Engine) Render(tpl string, vals map[string]interface{}) (string, error)
 	t := template.New("gotpl")
 	t.Option("missingkey=error")
 
-
 	var buf bytes.Buffer
 	t = t.New("tpl").Funcs(e.FuncMap)
-
 
 	if _, err := t.Parse(tpl); err != nil {
 		return "", fmt.Errorf("error parsing template: %s", err)

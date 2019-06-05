@@ -6,16 +6,16 @@ import (
 )
 
 func TestRender(t *testing.T) {
-	tests := []struct{
-		name string
+	tests := []struct {
+		name     string
 		template string
-		params map[string]interface{}
+		params   map[string]interface{}
 		expected string
 	}{
 		{name: "empty", template: "", expected: ""},
 		{name: "basic template", template: "name: {{ .Params.Name }}", params: map[string]interface{}{"Name": "Some Name"}, expected: "name: Some Name"},
 		{
-			name: "nested template",
+			name:     "nested template",
 			template: "name: {{ .Params.User.Name }}",
 			params: map[string]interface{}{
 				"User": map[string]interface{}{"Name": "Bob User"},
@@ -60,6 +60,5 @@ func TestUnsafeFuncs(t *testing.T) {
 			t.Errorf("expected error for %s, got none", fun)
 		}
 	}
-
 
 }
