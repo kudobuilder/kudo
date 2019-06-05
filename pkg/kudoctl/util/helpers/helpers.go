@@ -2,12 +2,8 @@ package helpers
 
 import (
 	"fmt"
-	"os"
 	"sort"
 	"strconv"
-
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
-	"github.com/pkg/errors"
 
 	"github.com/google/go-github/github" // with go modules disabled
 )
@@ -67,12 +63,4 @@ func posString(slice []string, element string) int {
 // containsString returns true if slice contains element
 func containsString(slice []string, element string) bool {
 	return !(posString(slice, element) == -1)
-}
-
-// CreateRepoPath returns an error if os.MkdirAll fails to create the path
-func CreateRepoPath() error {
-	if err := os.MkdirAll(vars.RepoPath, 0755); err != nil {
-		return errors.Wrap(err, "failed to create repo path")
-	}
-	return nil
 }

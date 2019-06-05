@@ -8,12 +8,9 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
-	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 )
@@ -23,6 +20,18 @@ type FrameworkRepository struct {
 	Config         *RepositoryConfiguration
 	Client         HTTPClient
 }
+
+type FrameworkBundle struct {
+	Framework *v1alpha1.Framework
+	FrameworkVersion *v1alpha1.FrameworkVersion
+	Instance *v1alpha1.Instance
+}
+
+const (
+	frameworkFileName = "-framework.yaml"
+	versionFileName   = "-frameworkversion.yaml"
+	instanceFileName  = "-instance.yaml"
+)
 
 // NewFrameworkRepository constructs FrameworkRepository
 func NewFrameworkRepository(cfg *RepositoryConfiguration) (*FrameworkRepository, error) {
@@ -67,12 +76,12 @@ func (r *FrameworkRepository) DownloadIndexFile() (*IndexFile, error) {
 	return indexFile, err
 }
 
-// DownloadBundleFile downloads the tgz file from the given repo
-func (r *FrameworkRepository) DownloadBundleFile(bundleName string) error {
+// DownloadBundle downloads the tgz file from the given repo
+func (r *FrameworkRepository) DownloadBundle(bundleName string) (*FrameworkBundle, error) {
 	var fileURL string
 	parsedURL, err := url.Parse(r.Config.URL)
 	if err != nil {
-		return errors.Wrap(err, "parsing config url")
+		return nil, errors.Wrap(err, "parsing config url")
 	}
 	parsedURL.Path = parsedURL.Path + "/" + bundleName + ".tgz"
 
@@ -80,15 +89,16 @@ func (r *FrameworkRepository) DownloadBundleFile(bundleName string) error {
 
 	resp, err := r.Client.Get(fileURL)
 	if err != nil {
-		return errors.Wrap(err, "getting file url")
+		return nil, errors.Wrap(err, "getting file url")
 	}
 
-	err = untar(vars.RepoPath+"/"+bundleName, resp)
+	bundle, err := untar(resp)
+
 	if err != nil {
-		return errors.Wrapf(err, "failed unpacking %s", bundleName)
+		return nil, errors.Wrapf(err, "failed unpacking %s", bundleName)
 	}
 
-	return nil
+	return bundle, nil
 }
 
 // GetFrameworkVersion gets the proper Framework version of a given Framework
@@ -113,24 +123,7 @@ func (r *FrameworkRepository) GetFrameworkVersion(name, path string) (*v1alpha1.
 }
 
 // GetFrameworkVersionDependencies returns a slice of strings that contains the names of all dependency Frameworks
-// from a given repo in the official GitHub repo
-func (r *FrameworkRepository) GetFrameworkVersionDependencies(name, path string) ([]string, error) {
-	frameworkVersionPath := path + "/" + name + "-frameworkversion.yaml"
-	frameworkVersionYamlFile, err := os.Open(frameworkVersionPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed opening frameworkversion file")
-	}
-
-	frameworkVersionByteValue, err := ioutil.ReadAll(frameworkVersionYamlFile)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed reading frameworkversion file")
-	}
-
-	var fv v1alpha1.FrameworkVersion
-	err = yaml.Unmarshal(frameworkVersionByteValue, &fv)
-	if err != nil {
-		return nil, errors.Wrapf(err, "unmarshalling %s-frameworkversion.yaml content", name)
-	}
+func (r *FrameworkRepository) GetFrameworkVersionDependencies(name string, fv *v1alpha1.FrameworkVersion) ([]string, error) {
 	var dependencyFrameworks []string
 	if fv.Spec.Dependencies != nil {
 		for _, v := range fv.Spec.Dependencies {
@@ -140,14 +133,11 @@ func (r *FrameworkRepository) GetFrameworkVersionDependencies(name, path string)
 	return dependencyFrameworks, nil
 }
 
-// Untar takes a destination path and a reader; a tar reader loops over the tarfile
-// creating the file structure at 'dst' along the way, and writing any files
-// example creation: tar -zcvf kafka-0.1.0.tgz *
-func untar(dst string, r io.Reader) error {
+func untar(r io.Reader) (*FrameworkBundle, error) {
 
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer func() {
 		err := gzr.Close()
@@ -158,6 +148,7 @@ func untar(dst string, r io.Reader) error {
 
 	tr := tar.NewReader(gzr)
 
+	result := &FrameworkBundle{}
 	for {
 		header, err := tr.Next()
 
@@ -165,63 +156,63 @@ func untar(dst string, r io.Reader) error {
 
 		// if no more files are found return
 		case err == io.EOF:
-			return nil
+			return result, nil
 
 		// return any other error
 		case err != nil:
-			return err
+			return nil, err
 
 		// if the header is nil, just skip it (not sure how this happens)
 		case header == nil:
 			continue
 		}
 
-		// the target location where the dir/file should be created
-		target := filepath.Join(dst, header.Name)
-
-		// the following switch could also be done using fi.Mode(), not sure if there
-		// a benefit of using one vs. the other.
-		// fi := header.FileInfo()
-
 		// check the file type
 		switch header.Typeflag {
 
-		// if its a dir and it doesn't exist create it
 		case tar.TypeDir:
-			if _, err := os.Stat(target); err != nil {
-				if err := os.MkdirAll(target, 0755); err != nil {
-					return err
-				}
-			}
+			// we don't handle folders right now, the structure is flat
 
 		// if it's a file create it
 		case tar.TypeReg:
-
-			err := os.MkdirAll(filepath.Dir(target), 0755)
+			bytes, err := ioutil.ReadAll(tr)
 			if err != nil {
-				return errors.Wrapf(err, "making directory for file %v", target)
+				return nil, errors.Wrapf(err, "while reading file from bundle tarball %s", header.Name)
 			}
 
-			out, err := os.Create(target)
-			if err != nil {
-				return errors.Wrapf(err, "creating new file %v", target)
-			}
-			defer func() {
-				err := out.Close()
-				if err != nil {
-					fmt.Printf("Error when closing file reader %s", err)
+			switch {
+			case isFrameworkFile(header.Name):
+				var f v1alpha1.Framework
+				if err = yaml.Unmarshal(bytes, &f); err != nil {
+					return nil, errors.Wrapf(err, "unmarshalling %s-framework.yaml content", header.Name)
 				}
-			}()
-
-			err = out.Chmod(os.FileMode(header.Mode))
-			if err != nil && runtime.GOOS != "windows" {
-				return errors.Wrapf(err, "changing file %v", target)
-			}
-
-			_, err = io.Copy(out, tr)
-			if err != nil {
-				return errors.Wrapf(err, "writing file %v", target)
+				result.Framework = &f
+			case isVersionFile(header.Name):
+				var fv v1alpha1.FrameworkVersion
+				err = yaml.Unmarshal(bytes, &fv)
+				if err != nil {
+					return nil, errors.Wrapf(err, "unmarshalling %s-frameworkversion.yaml content", header.Name)
+				}
+			case isInstanceFile(header.Name):
+				var i v1alpha1.Instance
+				if err = yaml.Unmarshal(bytes, &i); err != nil {
+					return nil, errors.Wrapf(err, "unmarshalling %s-instance.yaml content", header.Name)
+				}
+			default:
+				return nil, fmt.Errorf("Unexpected file in the tarball structure %s", header.Name)
 			}
 		}
 	}
+}
+
+func isFrameworkFile(name string) bool {
+	return strings.HasSuffix(name, frameworkFileName)
+}
+
+func isVersionFile(name string) bool {
+	return strings.HasSuffix(name, versionFileName)
+}
+
+func isInstanceFile(name string) bool {
+	return strings.HasSuffix(name, instanceFileName)
 }

@@ -27,8 +27,6 @@ func TestInstallCmd(t *testing.T) {
 	cmdWrongDirKubeConfigFlag := &cobra.Command{}
 	cmdWrongDirKubeConfigFlag.Flags().StringVar(&vars.KubeConfigPath, "kubeconfig", "", "Usage")
 	vars.KubeConfigPath = "/tmp"
-	// some workaround for having index.yaml in circleci
-	vars.RepoPath = "/tmp"
 	index := []byte(`apiVersion: v1
 entries:
   kafka:
