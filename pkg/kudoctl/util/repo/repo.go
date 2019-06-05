@@ -2,15 +2,14 @@ package repo
 
 // RepositoryConfiguration represents a collection of parameters for framework repository
 type RepositoryConfiguration struct {
-	LocalPath string `json:"localPath"`
-	URL       string `json:"url"`
+	//LocalPath string `json:"localPath"`
+	URL string `json:"url"`
 }
 
 // NewRepositoryConfiguration returns a given RepositoryConfiguration struct
 func NewRepositoryConfiguration() *RepositoryConfiguration {
 	return &RepositoryConfiguration{
-		LocalPath: ".kudo/repository", // this won't work on windows
-		URL:       "https://kudo-test-repo.storage.googleapis.com",
+		URL: "https://kudo-repository.storage.googleapis.com",
 	}
 }
 

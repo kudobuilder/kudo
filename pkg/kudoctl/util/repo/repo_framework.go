@@ -190,15 +190,16 @@ func untar(r io.Reader) (*FrameworkBundle, error) {
 				result.Framework = &f
 			case isVersionFile(header.Name):
 				var fv v1alpha1.FrameworkVersion
-				err = yaml.Unmarshal(bytes, &fv)
-				if err != nil {
+				if err = yaml.Unmarshal(bytes, &fv); err != nil {
 					return nil, errors.Wrapf(err, "unmarshalling %s-frameworkversion.yaml content", header.Name)
 				}
+				result.FrameworkVersion = &fv
 			case isInstanceFile(header.Name):
 				var i v1alpha1.Instance
 				if err = yaml.Unmarshal(bytes, &i); err != nil {
 					return nil, errors.Wrapf(err, "unmarshalling %s-instance.yaml content", header.Name)
 				}
+				result.Instance = &i
 			default:
 				return nil, fmt.Errorf("unexpected file in the tarball structure %s", header.Name)
 			}
