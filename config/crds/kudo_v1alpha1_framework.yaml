@@ -27,6 +27,19 @@ spec:
         metadata:
           type: object
         spec:
+          properties:
+            description:
+              type: string
+            kubernetesVersion:
+              type: string
+            kudoVersion:
+              type: string
+            maintainers:
+              items:
+                type: string
+              type: array
+            url:
+              type: string
           type: object
         status:
           type: object
