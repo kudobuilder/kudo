@@ -39,7 +39,7 @@ entries:
 	_ = ioutil.WriteFile("/tmp/index.yaml", index, 0644)
 	installCmdArgs := []string{"test", "--kubeconfig=" + vars.KubeConfigPath}
 	expectedEmptyKubeConfigFlagErrors := []string{
-		"could not install framework(s): getting config failed: Error loading config file \"/tmp\": read /tmp: is a directory",
+		"could not check kubeconfig path: getting config failed: /tmp is a directory",
 	}
 
 	tests := []struct {
@@ -53,7 +53,6 @@ entries:
 	}
 
 	for i, tt := range tests {
-		i := i
 		err := CmdErrorProcessor(tt.cmd, tt.args)
 		if err != nil {
 			receivedErrorList := []string{err.Error()}
@@ -94,7 +93,6 @@ func TestInstallFrameworks(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		i := i
 		err := verifyFrameworks(tt.args)
 		if err != nil {
 			receivedErrorList := []string{err.Error()}

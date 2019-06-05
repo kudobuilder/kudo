@@ -1,6 +1,7 @@
 package check
 
 import (
+	"fmt"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -21,8 +22,11 @@ func ValidateKubeConfigPath() error {
 	}
 
 	vars.KubeConfigPath = path
-	if _, err := os.Stat(vars.KubeConfigPath); os.IsNotExist(err) {
+	stat, err := os.Stat(vars.KubeConfigPath)
+	if os.IsNotExist(err) {
 		return errors.Wrap(err, "failed to find kubeconfig file")
+	} else if stat.IsDir() {
+		return errors.Wrap(fmt.Errorf("%v is a directory", vars.KubeConfigPath), "getting config failed")
 	}
 	return nil
 }

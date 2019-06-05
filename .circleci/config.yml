@@ -8,6 +8,11 @@ jobs:
     steps:
       - checkout
       - run: ./test/run_tests.sh
+      - run: |
+          git config user.name "Circle CI"
+          git config user.email "ci@mesosphere.com"
+          git merge -m "Merge Commit" origin/master
+      - run: ./test/run_tests.sh
   release:
     docker:
       - image: kudobuilder/golang:1.12
