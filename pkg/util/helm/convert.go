@@ -90,10 +90,6 @@ func loadParameters(folder string) ([]kudo.Parameter, error) {
 	if err != nil {
 		return params, err
 	}
-	//all the parameters start with a period
-	for i := range params {
-		params[i].Name = ".Values." + params[i].Name
-	}
 	return params, err
 }
 
