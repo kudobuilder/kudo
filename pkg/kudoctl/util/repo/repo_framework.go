@@ -21,6 +21,7 @@ type FrameworkRepository struct {
 	Client         HTTPClient
 }
 
+// FrameworkBundle contains parsed files from the framework bundle
 type FrameworkBundle struct {
 	Framework *v1alpha1.Framework
 	FrameworkVersion *v1alpha1.FrameworkVersion
@@ -199,7 +200,7 @@ func untar(r io.Reader) (*FrameworkBundle, error) {
 					return nil, errors.Wrapf(err, "unmarshalling %s-instance.yaml content", header.Name)
 				}
 			default:
-				return nil, fmt.Errorf("Unexpected file in the tarball structure %s", header.Name)
+				return nil, fmt.Errorf("unexpected file in the tarball structure %s", header.Name)
 			}
 		}
 	}

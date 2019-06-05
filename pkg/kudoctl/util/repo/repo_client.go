@@ -39,6 +39,9 @@ func (c *HTTPClient) get(href string) (*bytes.Buffer, error) {
 	}
 
 	_, err = io.Copy(buf, resp.Body)
+	if err != nil {
+		fmt.Printf("Error when copying response buffer %s", err)
+	}
 	err = resp.Body.Close()
 	if err != nil {
 		fmt.Printf("Error when closing the response body %s", err)
