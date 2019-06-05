@@ -43,7 +43,7 @@ prebuild: generate check-formatting
 .PHONY: manager
 # Build manager binary
 manager: prebuild
-	# developer convince for platform they are running
+	# developer convenience for platform they are running
 	go build -ldflags "${LDFLAGS}" -o bin/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
 
 	# platforms for distribution
