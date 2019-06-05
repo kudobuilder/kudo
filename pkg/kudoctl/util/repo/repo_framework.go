@@ -44,8 +44,8 @@ func NewFrameworkRepository(cfg *RepositoryConfiguration) (*FrameworkRepository,
 	}
 
 	return &FrameworkRepository{
-		Config:    cfg,
-		Client:    *client,
+		Config: cfg,
+		Client: *client,
 	}, nil
 }
 

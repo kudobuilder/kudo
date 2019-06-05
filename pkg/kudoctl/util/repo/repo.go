@@ -10,6 +10,7 @@ type RepositoryConfiguration struct {
 	URL       string `json:"url"`
 }
 
+// NewRepositoryConfiguration returns a given RepositoryConfiguration struct
 func NewRepositoryConfiguration() *RepositoryConfiguration {
 	return &RepositoryConfiguration{
 		LocalPath: ".kudo/repository", // this won't work on windows

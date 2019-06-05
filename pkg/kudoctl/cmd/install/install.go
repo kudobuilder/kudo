@@ -29,6 +29,10 @@ const (
 // CmdErrorProcessor returns the errors associated with cmd env
 func CmdErrorProcessor(cmd *cobra.Command, args []string) error {
 
+	// default repo hardcoded for 0.2.0
+	// this won't work on windows
+	vars.RepoPath = ".kudo/repository"
+
 	// This makes --kubeconfig flag optional
 	if _, err := cmd.Flags().GetString("kubeconfig"); err != nil {
 		return fmt.Errorf("get flag: %+v", err)
@@ -72,6 +76,9 @@ func verifyFrameworks(args []string) error {
 
 	// Downloading index.yaml file
 	indexFile, err := r.DownloadIndexFile()
+	if err != nil {
+		return errors.WithMessage(err, "could not download index file")
+	}
 
 	_, err = clientcmd.BuildConfigFromFlags("", vars.KubeConfigPath)
 	if err != nil {
