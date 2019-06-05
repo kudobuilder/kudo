@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
@@ -20,9 +21,7 @@ import (
 )
 
 const (
-	bundlePath     = "%s/%s"
 	fwPath         = "%s/%s-framework.yaml"
-	fwVersionPath  = "%s/%s-frameworkversion.yaml"
 	fwInstancePath = "%s/%s-instance.yaml"
 )
 
@@ -121,7 +120,7 @@ func verifySingleFramework(name, previous string, r repo.FrameworkRepository, i 
 
 	// checking if bundle exists locally already
 	bundleName := bundleVersion.Name + "-" + bundleVersion.Version
-	bundlePath := fmt.Sprintf(bundlePath, vars.RepoPath, bundleName)
+	bundlePath := path.Join(vars.RepoPath, bundleName)
 
 	if _, err := os.Stat(bundlePath); err != nil && os.IsNotExist(err) {
 		if err = r.DownloadBundleFile(bundleName); err != nil {
