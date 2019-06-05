@@ -24,6 +24,7 @@ This document demonstrates how to use the CLI but also shows what happens in `KU
             * [Install a Package with InstanceName &amp; Parameters](#install-a-package-with-instancename--parameters)
             * [Get Instances](#get-instances)
             * [Get the Status of an Instance](#get-the-status-of-an-instance)
+            * [Delete an Instance](#delete-an-instance)
             * [Get the History to PlanExecutions](#get-the-history-to-planexecutions)
 
 
@@ -48,7 +49,7 @@ Install the plugin from your `$GOPATH/src/github.com/kudobuilder/kudo` root fold
 
 |  Syntax | Description  |
 |---|---|
-| `kubectl kudo install <name> [flags]`  |  Installs a Framework from the official [KUDO repo](https://github.com/kudobuilder/frameworks). |
+| `kubectl kudo install <name> [flags]`  |  Install a Framework from the official [KUDO repo](https://github.com/kudobuilder/frameworks). |
 | `kubectl kudo get instances [flags]` | Show all available instances. |
 | `kubectl kudo plan status [flags]` | View all available plans. |
 | `kubectl kudo plan history <name> [flags]` | View all available plans. |
@@ -118,7 +119,7 @@ frameworkversion.kudo.k8s.io/v1alpha1/zookeeper-1.0 created
 Use `--instance` and `--parameter`/`-p` for setting an Instance name and Parameters, respectively:
 
 ```bash
-$ kubectl kudo install kafka --instance=my-kafka-name --parameter="KAFKA_ZOOKEEPER_URI,zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181" --parameter="KAFKA_ZOOKEEPER_PATH,/small" -p="BROKERS_COUNTER,3"
+$ kubectl kudo install kafka --instance=my-kafka-name --parameter KAFKA_ZOOKEEPER_URI=zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181 --parameter KAFKA_ZOOKEEPER_PATH=/small -p BROKERS_COUNTER=3
 framework.kudo.k8s.io/kafka unchanged
 frameworkversion.kudo.k8s.io/kafka unchanged
 No Instance tied to this "kafka" version has been found. Do you want to create one? (Yes/no)
@@ -130,8 +131,7 @@ my-kafka-name   6s
 
 ### Get Instances
 
-In order to inspect instances deployed by `KUDO`, we can get an overview of all instances running by using the `get`
-command. This command has subcommands to filter its result:
+We can use the `get` command to get a list of all current instances:
 
 `kubectl kudo get instances --namespace=<default> --kubeconfig=<$HOME/.kube/config>`
 
@@ -162,7 +162,7 @@ $ kubectl kudo instances
 
 ### Get the Status of an Instance
 
-Now that we have a list of available instances, we can get the current status of all plans for an particular instance. The command for this is:
+Now that we have a list of available instances, we can get the current status of all plans for one of them:
 
 `kubectl kudo plan status --instance=<instanceName> --kubeconfig=<$HOME/.kube/config>`
 
@@ -357,6 +357,10 @@ Finally, the status information for the `Active-Plan` is nested in this part:
 ```
 
 Apparently, KUDO's tree view makes this information easier to understand and prevents you from putting together the bits and pieces of various commands.
+
+### Delete an Instance
+
+An instance can be deleted (uninstalled from the cluster) using `kubectl delete instances <instanceName>`. The deletion of an instance triggers the removal of all the objects owned by it.
 
 ### Get the History to PlanExecutions
 
