@@ -121,7 +121,7 @@ Use `--instance` and `--parameter`/`-p` for setting an Instance name and Paramet
 $ kubectl kudo install kafka --instance=my-kafka-name --parameter="KAFKA_ZOOKEEPER_URI,zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181" --parameter="KAFKA_ZOOKEEPER_PATH,/small" -p="BROKERS_COUNTER,3"
 framework.kudo.k8s.io/kafka unchanged
 frameworkversion.kudo.k8s.io/kafka unchanged
-No Instance tied to this "kafka" version has been found. Do you want to create one? (Yes/no) 
+No Instance tied to this "kafka" version has been found. Do you want to create one? (Yes/no)
 instance.kudo.k8s.io/v1alpha1/my-kafka-name created
 $ kubectl get instances
 NAME            AGE
@@ -146,7 +146,7 @@ $ kubectl kudo get instances
   └── zk
 ```
 
-This maps to the `kubectl` command: 
+This maps to the `kubectl` command:
 
 `kubectl get instances`
 
@@ -203,7 +203,7 @@ In this tree chart we see all important information in one screen:
     + `par` is a serial phase within the `upgrade` plan that has been `NOT ACTIVE`
     + `par` is a `serial` collection of steps that has been `NOT ACTIVE`.
     + `run-step` is a `serial` step within the `par` step collection that has been `NOT ACTIVE`.
-    
+
 For comparison, the according `kubectl` commands to retrieve the above information are:
 
 * `kubectl get instances` (to get the matching `FrameworkVersion`)
@@ -221,14 +221,14 @@ Annotations:  kubectl.kubernetes.io/last-applied-configuration={"apiVersion":"ku
 API Version:  kudo.k8s.io/v1alpha1
 Kind:         FrameworkVersion
 Metadata:
-  Cluster Name:        
+  Cluster Name:
   Creation Timestamp:  2018-12-14T19:26:44Z
   Generation:          1
   Resource Version:    63769
   Self Link:           /apis/kudo.k8s.io/v1alpha1/namespaces/default/frameworkversions/upgrade-v1
   UID:                 30fe6209-ffd6-11e8-abd5-080027d506c7
 Spec:
-  Connection String:  
+  Connection String:
   Framework:
     Kind:  Framework
     Name:  upgrade
@@ -307,7 +307,7 @@ $ kubectl describe planexecution up-deploy-493146000
   API Version:  kudo.k8s.io/v1alpha1
   Kind:         PlanExecution
   Metadata:
-    Cluster Name:        
+    Cluster Name:
     Creation Timestamp:  2018-12-14T19:26:44Z
     Generation:          1
     Owner References:
