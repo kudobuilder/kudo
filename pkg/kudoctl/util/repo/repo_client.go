@@ -10,13 +10,13 @@ import (
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 
-//HTTPClient is client used to communicate with KUDO repositories
-//it enriches HTTP client with expected headers etc.
+// HTTPClient is client used to communicate with KUDO repositories
+// it enriches HTTP client with expected headers etc.
 type HTTPClient struct {
 	client   *http.Client
 }
 
-//Get performs HTTP get on KUDO repository
+// Get performs HTTP get on KUDO repository
 func (c *HTTPClient) Get(href string) (*bytes.Buffer, error) {
 	return c.get(href)
 }
@@ -46,6 +46,7 @@ func (c *HTTPClient) get(href string) (*bytes.Buffer, error) {
 	return buf, err
 }
 
+// NewHTTPClient creates HTTP client
 func NewHTTPClient() (*HTTPClient, error) {
 	var client HTTPClient
 	tr := &http.Transport{
