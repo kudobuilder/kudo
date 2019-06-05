@@ -36,17 +36,12 @@ import (
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	log.Printf("FrameworkController: Registering framework controller.")
-	reconciler, err := newReconciler(mgr)
-	if err != nil {
-		return err
-	}
-	return add(mgr, reconciler)
+	return add(mgr, newReconciler(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
-
-	return &ReconcileFramework{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("framework-controller")}, nil
+func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+	return &ReconcileFramework{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("framework-controller")}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
