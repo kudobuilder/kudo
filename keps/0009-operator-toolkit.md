@@ -40,17 +40,13 @@ see-also:
       - [Resources vs. Patches](#resources-vs-patches)
       - [Task Application](#task-application)
     - [Parameters](#parameters)
-    - [Templates](#templates)
+    - [Templates](#templates-1)
   - [Extensions and Bases](#extensions-and-bases)
     - [Task Extensions](#task-extensions)
     - [Plan Extensions](#plan-extensions)
     - [Example Framework Extension](#example-framework-extension)
       - [framework.yaml](#frameworkyaml-1)
       - [params.yaml](#paramsyaml-1)
-    - [KUDO](#kudo)
-    - [Helm](#helm)
-  - [Execution State](#execution-state)
-  - [Example Framework](#example-framework)
   - [Future Work](#future-work)
     - [Allow for other templating engines](#allow-for-other-templating-engines)
 
@@ -60,7 +56,7 @@ Drive KUDO to have a set of tools and specifications for creating frameworks.
 
 ## Motivation
 
-KUDO provides a way to reduce the amount of code necessary for the creation of an framework for Kubernetes. The current implementation of KUDO requires a significant amount of YAML to define an framework, located in one file. This YAML relies in nested YAML inlined via multiline strings, is not extensible, and is prone to error. This KEP defines an framework SDK that solves these issues.
+KUDO provides a way to reduce the amount of code necessary for the creation of a framework for Kubernetes. The current implementation of KUDO requires a significant amount of YAML to define a framework, located in one file. This YAML relies in nested YAML inlined via multiline strings, is not extensible, and is prone to error. This KEP defines a framework SDK that solves these issues.
 
 ## Goals
 
@@ -83,13 +79,13 @@ A KUDO framework is split into several base components, ordered from the outside
 - [Extensions and Bases](#extensions-and-bases)
 - [Execution State](#execution-state)
 
-These combine to form an framework responsible for the deployment, upgrading, and day 2 operations of software deployed on Kubernetes. While KUDO ships with a templating system, it is not intended to advance the state of deploying software on Kubernetes, and provides facilities for integrating with other templating and deployment systems. KUDO's focus is instead on the sequencing and day 2 operations of this software, and is able to take advantage of existing templating to fulfill this need.
+These combine to form a framework responsible for the deployment, upgrading, and day 2 operations of software deployed on Kubernetes. While KUDO ships with a templating system, it is not intended to advance the state of deploying software on Kubernetes, and provides facilities for integrating with other templating and deployment systems. KUDO's focus is instead on the sequencing and day 2 operations of this software, and is able to take advantage of existing templating to fulfill this need.
 
 ### Definitions
 
 ### Framework Organization
 
-An framework bundle is a folder that contains all of the manifests needed to create or extend a KUDO framework. In the most basic form, an framework bundle is structured in the following format:
+A framework bundle is a folder that contains all of the manifests needed to create or extend a KUDO framework. In the most basic form, a framework bundle is structured in the following format:
 
 ```shell
 .
@@ -110,7 +106,7 @@ An framework bundle is a folder that contains all of the manifests needed to cre
 
 #### framework.yaml
 
-`framework.yaml` is the base definition of an framework. It follows the following format, extracted from the MySQL example:
+`framework.yaml` is the base definition of a framework. It follows the following format, extracted from the MySQL example:
 
 ```yaml
 name: "my-framework"
@@ -203,13 +199,13 @@ While subsequent sections go into deeper detail, the top level keys of the frame
 
 - **version**: String defining the version of a given framework
 - **tasks**: A map of tasks that can be run. These are the atomic runnable unit of a KUDO framework, and are made up of a series of YAML manifests. These are defined more in detail in [Tasks](#tasks).
-- **plans**: A map of plans that can be run. These are the core partitioning unit of a KUDO framework. A plan is intended to run a single "operations task" for an framework, such as backup, restore, deployment, or update. This is defined in detail in [Plans](#plans)
+- **plans**: A map of plans that can be run. These are the core partitioning unit of a KUDO framework. A plan is intended to run a single "operations task" for a framework, such as backup, restore, deployment, or update. This is defined in detail in [Plans](#plans)
 
 This file undergoes a Go template pass on Instance instantiation before being parsed. This is described more in detail in [Extensions and Bases](#extensions-and-bases)
 
 #### params.yaml
 
-The `params.yaml` file is a struct that defines parameters for framework. This can articulate descriptions, defaults, and triggers etc., In the MySQL example, this looks like:
+The `params.yaml` file is a struct that defines parameters for framework. This can articulate descriptions, defaults, and triggers, etc. In the MySQL example, this looks like:
 
 ```yaml
 backupFile:
@@ -221,17 +217,17 @@ password:
   trigger: deploy
 ```
 
-These values are meant to be overridden by Instance resources when instantiating an framework.
+These values are meant to be overridden by Instance resources when instantiating a framework.
 
 This file undergoes a Go template pass on Instance instantiation before being parsed. This is described more in detail in [Parameters](#parameters).
 
 #### common/
 
-The common directory contains 0-to-many YAML manifests for all instances of the framework to leverage. The requirement/scope of these objects is defined in [KEP 0005](0005-cluster-resources-for-crds.md)
+The common directory contains YAML manifests for all instances of the framework to leverage. The requirement/scope of these objects is defined in [KEP 0005](0005-cluster-resources-for-crds.md)
 
 #### templates/
 
-The templates directory contains 0-to-many YAML manifests for framework tasks to use. These are described in more detail in [Templates](#templates).
+The templates directory contains YAML manifests for framework tasks to use. These are described in more detail in [Templates](#templates-1).
 
 Each template undergoes a Go template pass for an Instance when it's corresponding Task is run.
 
@@ -239,7 +235,7 @@ Each template undergoes a Go template pass for an Instance when it's correspondi
 
 Plans are the core unit of operation within a KUDO framework. Each KUDO plan represents an individual unit of operations work. This may include backups, restores, deployments, upgrades, compaction, or any other myriad of operations that an application operator may want to perform with KUDO.
 
-A single plan is composed of [Steps](#steps) and a step is composed of [tasks](#tasks). Individual steps are executed sequentially by default while the tasks within the step are executed in parallel.
+A single plan is composed of [steps](#steps) and a step is composed of [tasks](#tasks). Individual steps are executed sequentially by default while the tasks within the step are executed in parallel.
 
 ### Steps
 
@@ -255,7 +251,7 @@ Tasks are a map of task name to a list of templates that should be executed in t
 
 #### Files
 
-If a filename is specified, KUDO will execute a Go Template on the relevant filename, described more in detail in [Templates](#templates).
+If a filename is specified, KUDO will execute a Go Template on the relevant filename, described more in detail in [Templates](#templates-1).
 
 #### Resources vs. Patches
 
@@ -277,7 +273,7 @@ A template is a standard Kubernetes manifest which **MAY** have additional Go Te
 
 ## Extensions and Bases
 
-Extensions and bases describe a mechanism for building frameworks or extensions to frameworks from a given base. As an example, a base can be an framework, a Helm chart, a CNAB bundle, or any future format that describes the deployment of a set of resources.
+Extensions and bases describe a mechanism for building frameworks or extensions to frameworks from a given base. As an example, a base can be a framework, a Helm chart, a CNAB bundle, or any future format that describes the deployment of a set of resources.
 
 In this document, an **extension** is any KUDO framework that extends from some base. A **base** is the complete set of manifests, metadata, and other files provided by that base's type. A base should provide complete information that users of that base tool are expected to have. The base types and what they expose to charts that extend from them are described in their respective sub-sections.
 
@@ -323,7 +319,7 @@ Since this framework extends `mysql/5.7`, it inherits the plans defined in the b
 
 #### framework.yaml
 
-`framework.yaml` is the base definition of an framework. It follows the following format, extracted from the MySQL example:
+`framework.yaml` is the base definition of a framework. It follows the following format, extracted from the MySQL example:
 
 ```yaml
 extends:
@@ -377,18 +373,10 @@ data-location:
 
 And can be used in `templates/clear-data.yaml` and `templates/load-data.yaml`
 
-### KUDO
-
-### Helm
-
-## Execution State
-
-## Example Framework
-
 ## Future Work
 
 ### Allow for other templating engines
 
-It may the be case that an framework developer does not want to, or cannot leverage the current templating system, either because functionality is not present in the language, or the framework may need to query external systems for value injection. We may want to extend our supported templating system to include other rendering laguages (e.g. [cue](https://github.com/cuelang/cue)), or allow an framework to deploy their own rendering engine in the Kubernetes cluster and expose a well defined interface (e.g. defined with Swagger) to KUDO for send rendering requests.
+It may the be case that a framework developer does not want to, or cannot leverage the current templating system, either because functionality is not present in the language, or the framework may need to query external systems for value injection. We may want to extend our supported templating system to include other rendering laguages (e.g. [cue](https://github.com/cuelang/cue)), or allow a framework to deploy their own rendering engine in the Kubernetes cluster and expose a well defined interface (e.g. defined with Swagger) to KUDO for send rendering requests.
 
 The specifications of what this API needs to be is out of scope of this KEP.

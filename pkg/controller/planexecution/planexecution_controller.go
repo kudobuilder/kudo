@@ -118,16 +118,16 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	//PlanExecutions should be mostly immutable.  Updates should only
 	p := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			log.Printf("PlanExecutionController: Recieved update event for an instance named: %v", e.MetaNew.GetName())
+			log.Printf("PlanExecutionController: Received update event for an instance named: %v", e.MetaNew.GetName())
 			return e.ObjectOld != e.ObjectNew
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			log.Printf("PlanExecutionController: Recieved create event for an instance named: %v", e.Meta.GetName())
+			log.Printf("PlanExecutionController: Received create event for an instance named: %v", e.Meta.GetName())
 			return true
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			//TODO send event for Instance that plan was deleted
-			log.Printf("PlanExecutionController: Recieved delete event for an instance named: %v", e.Meta.GetName())
+			log.Printf("PlanExecutionController: Received delete event for an instance named: %v", e.Meta.GetName())
 			return true
 		},
 	}
