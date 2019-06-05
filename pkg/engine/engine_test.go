@@ -13,6 +13,13 @@ func TestRenderBasic(t *testing.T) {
 	}{
 		{name: "empty", template: "", expected: ""},
 		{name: "basic template", template: "name: {{ .Params.Name }}", params: map[string]interface{}{"Name": "Some Name"}, expected: "name: Some Name"},
+		{
+			name: "nested template",
+			template: "name: {{ .Params.User.Name }}",
+			params: map[string]interface{}{
+				"User": map[string]interface{}{"Name": "Bob User"},
+			},
+			expected: "name: Bob User"},
 		{name: "function", template: "name: {{ .Params.Name | upper }}", params: map[string]interface{}{"Name": "hello"}, expected: "name: HELLO"},
 	}
 
@@ -31,11 +38,11 @@ func TestRenderBasic(t *testing.T) {
 
 		rendered, err := engine.Render(test.template, vals)
 		if err != nil {
-			t.Errorf("Error rendering template: %s", err)
+			t.Errorf("error rendering template: %s", err)
 		}
 
 		if rendered != test.expected {
-			t.Errorf("Template mismatch, expected: %+v, got: %+v", test.expected, rendered)
+			t.Errorf("template mismatch, expected: %+v, got: %+v", test.expected, rendered)
 		}
 	}
 }
