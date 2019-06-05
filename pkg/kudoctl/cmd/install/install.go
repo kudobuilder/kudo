@@ -17,20 +17,52 @@ import (
 // CmdErrorProcessor returns the errors associated with cmd env
 func CmdErrorProcessor(cmd *cobra.Command, args []string) error {
 
-	_, err := cmd.Flags().GetString("kubeconfig")
 	// This makes --kubeconfig flag optional
-	if err != nil {
+	if _, err := cmd.Flags().GetString("kubeconfig"); err != nil {
 		return fmt.Errorf("get flag: %+v", err)
 	}
 
-	err = check.ValidateKubeConfigPath()
-	if err != nil {
+	if err := check.ValidateKubeConfigPath(); err != nil {
 		return errors.WithMessage(err, "could not check kubeconfig path")
 	}
 
-	err = verifyFrameworks(args)
-	if err != nil {
+	// Validate install parameters
+	if err := validateInstallParameters(); err != nil {
+		return errors.WithMessage(err, "could not parse parameters")
+	}
+
+	if err := verifyFrameworks(args); err != nil {
 		return errors.WithMessage(err, "could not install framework(s)")
+	}
+
+	return nil
+}
+
+func validateInstallParameters() error {
+	var errs []string
+
+	if vars.Parameter != nil {
+
+		for _, a := range vars.Parameter {
+			// Using '=' as the delimiter. Split after the first delimiter to support using '=' in values
+			s := strings.SplitN(a, "=", 2)
+			if len(s) < 2 {
+				errs = append(errs, fmt.Sprintf("parameter not set: %+v", a))
+				continue
+			}
+			if s[0] == "" {
+				errs = append(errs, fmt.Sprintf("parameter name can not be empty: %+v", a))
+				continue
+			}
+			if s[1] == "" {
+				errs = append(errs, fmt.Sprintf("parameter value can not be empty: %+v", a))
+				continue
+			}
+		}
+	}
+
+	if errs != nil {
+		return errors.New(strings.Join(errs, ", "))
 	}
 
 	return nil
@@ -248,18 +280,7 @@ func installSingleInstanceToCluster(name, previous, path string, gc *github.Clie
 	if vars.Parameter != nil {
 		p := make(map[string]string)
 		for _, a := range vars.Parameter {
-			// Using similar to CSV "," as the delimiter for now
-			// Split just after the first delimiter to support e.g. zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181 as value
-			s := strings.SplitN(a, ",", 2)
-			if len(s) < 2 {
-				return fmt.Errorf("parameter not set: %+v", s)
-			}
-			if s[0] == "" {
-				return fmt.Errorf("parameter can not be empty: %+v", s)
-			}
-			if s[1] == "" {
-				return fmt.Errorf("parameter value can not be empty: %+v", s)
-			}
+			s := strings.SplitN(a, "=", 2)
 			p[s[0]] = s[1]
 		}
 		instanceYaml.Spec.Parameters = p
