@@ -31,12 +31,15 @@ type BundleVersion struct {
 }
 
 // Len returns the length.
+// this is needed to allow sorting of packages
 func (b BundleVersions) Len() int { return len(b) }
 
 // Swap swaps the position of two items in the versions slice.
+// this is needed to allow sorting of packages
 func (b BundleVersions) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
 
 // Less returns true if the version of entry a is less than the version of entry b.
+// this is needed to allow sorting of packages
 func (b BundleVersions) Less(x, y int) bool {
 	// Failed parse pushes to the back.
 	i, err := semver.NewVersion(b[x].Version)
@@ -62,9 +65,8 @@ func (i IndexFile) sortPackages() {
 	}
 }
 
-// parseIndexFile loads an index file and does minimal validity checking.
-//
-// This will fail if API Version is not set (ErrNoAPIVersion) or if the unmarshal fails.
+// parseIndexFile loads an index file and sorts packages inside
+// this will fail if APIVersion is not specified
 func parseIndexFile(data []byte) (*IndexFile, error) {
 	i := &IndexFile{}
 	if err := yaml.Unmarshal(data, i); err != nil {
@@ -77,7 +79,7 @@ func parseIndexFile(data []byte) (*IndexFile, error) {
 	return i, nil
 }
 
-// GetByName returns the framework of given name.
+// GetByName returns framework of given name.
 func (i IndexFile) GetByName(name string) (*BundleVersion, error) {
 	constraint, err := semver.NewConstraint("*")
 	if err != nil {

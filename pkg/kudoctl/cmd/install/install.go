@@ -143,32 +143,32 @@ func verifySingleFramework(name, previous string, r repo.FrameworkRepository, i 
 	// Get the string of the version in FrameworkVersion of a selected Framework
 	frameworkVersion, err := r.GetFrameworkVersion(name, bundlePath)
 	if err != nil {
-		return errors.Wrap(err, "getting FrameworkVersion version")
+		return errors.Wrapf(err, "getting FrameworkVersion CRD for framework %s", name)
 	}
 
 	// Check if AnyFrameworkVersion for Framework exists
 	if !kc.AnyFrameworkVersionExistsInCluster(name) {
 		// FrameworkVersion CRD for Framework does not exist
-		if err := installSingleFrameworkVersionToCluster(name, bundlePath, kc); err != nil {
-			return errors.Wrap(err, "installing single FrameworkVersion")
+		if err := installSingleFrameworkVersionToCluster(name, kc, frameworkVersion); err != nil {
+			return errors.Wrapf(err, "installing FrameworkVersion CRD for framework %s", name)
 		}
 	}
 
 	// Check if FrameworkVersion is out of sync with official FrameworkVersion for this Framework
-	if !kc.FrameworkVersionInClusterOutOfSync(name, frameworkVersion) {
+	if !kc.FrameworkVersionInClusterOutOfSync(name, frameworkVersion.Spec.Version) {
 		// This happens when the given FrameworkVersion is not existing. E.g.
 		// when a version has been installed that is not part of the official kudobuilder/frameworks repo.
 		if !vars.AutoApprove {
 			fmt.Printf("No official FrameworkVersion has been found for \"%s\". "+
 				"Do you want to install one? (Yes/no) ", name)
 			if helpers.AskForConfirmation() {
-				if err := installSingleFrameworkVersionToCluster(name, bundlePath, kc); err != nil {
-					return errors.Wrapf(err, "installing single FrameworkVersion %s", name)
+				if err := installSingleFrameworkVersionToCluster(name, kc, frameworkVersion); err != nil {
+					return errors.Wrapf(err, "installing FrameworkVersion CRD for framework %s", name)
 				}
 			}
 		} else {
-			if err := installSingleFrameworkVersionToCluster(name, bundlePath, kc); err != nil {
-				return errors.Wrapf(err, "installing single FrameworkVersion %s", name)
+			if err := installSingleFrameworkVersionToCluster(name, kc, frameworkVersion); err != nil {
+				return errors.Wrapf(err, "installing FrameworkVersion CRD for framework %s", name)
 			}
 		}
 
@@ -199,7 +199,7 @@ func verifySingleFramework(name, previous string, r repo.FrameworkRepository, i 
 
 	// Check if Instance exists in cluster
 	// It won't create the Instance if any in combination with given Framework Name and FrameworkVersion exists
-	if !kc.AnyInstanceExistsInCluster(name, frameworkVersion) {
+	if !kc.AnyInstanceExistsInCluster(name, frameworkVersion.Spec.Version) {
 		// This happens when the given FrameworkVersion is not existing. E.g.
 		// when a version has been installed that is not part of the official kudobuilder/frameworks repo.
 		if !vars.AutoApprove {
@@ -228,12 +228,12 @@ func installSingleFrameworkToCluster(name, path string, kc *kudo.Client) error {
 	frameworkPath := fmt.Sprintf(fwPath, path, name)
 	frameworkYamlFile, err := os.Open(frameworkPath)
 	if err != nil {
-		return errors.Wrap(err, "failed opening framework file")
+		return errors.Wrapf(err, "failed opening framework file %s", frameworkPath)
 	}
 
 	frameworkByteValue, err := ioutil.ReadAll(frameworkYamlFile)
 	if err != nil {
-		return errors.Wrap(err, "failed reading framework file")
+		return errors.Wrapf(err, "failed reading framework file from %s", frameworkPath)
 	}
 
 	var f v1alpha1.Framework
@@ -250,24 +250,8 @@ func installSingleFrameworkToCluster(name, path string, kc *kudo.Client) error {
 
 // Todo: needs testing
 // installSingleFrameworkVersionToCluster installs a given FrameworkVersion to the cluster
-func installSingleFrameworkVersionToCluster(name, path string, kc *kudo.Client) error {
-	frameworkVersionPath := fmt.Sprintf(fwVersionPath, path, name)
-	frameworkVersionYamlFile, err := os.Open(frameworkVersionPath)
-	if err != nil {
-		return errors.Wrap(err, "failed opening frameworkversion file")
-	}
-
-	frameworkVersionByteValue, err := ioutil.ReadAll(frameworkVersionYamlFile)
-	if err != nil {
-		return errors.Wrap(err, "failed reading frameworkversion file")
-	}
-
-	var fv v1alpha1.FrameworkVersion
-	if err = yaml.Unmarshal(frameworkVersionByteValue, &fv); err != nil {
-		return errors.Wrapf(err, "unmarshalling %s-frameworkversion.yaml content", name)
-	}
-
-	if _, err = kc.InstallFrameworkVersionObjToCluster(&fv); err != nil {
+func installSingleFrameworkVersionToCluster(name string, kc *kudo.Client, fv *v1alpha1.FrameworkVersion) error {
+	if _, err := kc.InstallFrameworkVersionObjToCluster(fv); err != nil {
 		return errors.Wrapf(err, "installing %s-frameworkversion.yaml", name)
 	}
 	fmt.Printf("frameworkversion.%s/%s created\n", fv.APIVersion, fv.Name)

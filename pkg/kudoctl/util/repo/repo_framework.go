@@ -21,14 +21,7 @@ import (
 // FrameworkRepository represents a framework repository
 type FrameworkRepository struct {
 	Config         *RepositoryConfiguration
-	FrameworkPaths []string
 	Client         HTTPClient
-}
-
-// BufferedFile represents an archive file buffered for later processing.
-type BufferedFile struct {
-	Name string
-	Data []byte
 }
 
 // NewFrameworkRepository constructs FrameworkRepository
@@ -38,7 +31,7 @@ func NewFrameworkRepository(cfg *RepositoryConfiguration) (*FrameworkRepository,
 		return nil, fmt.Errorf("invalid chart URL format: %s", cfg.URL)
 	}
 
-	client, err := NewHTTPClient(cfg.URL)
+	client, err := NewHTTPClient()
 	if err != nil {
 		return nil, fmt.Errorf("could not construct protocol handler for: %s error: %v", u.Scheme, err)
 	}
@@ -49,10 +42,7 @@ func NewFrameworkRepository(cfg *RepositoryConfiguration) (*FrameworkRepository,
 	}, nil
 }
 
-// DownloadIndexFile fetches the index from a repository.
-//
-// cachePath is prepended to any index that does not have an absolute path. This
-// is for pre-2.2.0 repo files.
+// DownloadIndexFile fetches the index file from a repository.
 func (r *FrameworkRepository) DownloadIndexFile() (*IndexFile, error) {
 	var indexURL string
 	parsedURL, err := url.Parse(r.Config.URL)
@@ -78,13 +68,13 @@ func (r *FrameworkRepository) DownloadIndexFile() (*IndexFile, error) {
 }
 
 // DownloadBundleFile downloads the tgz file from the given repo
-func (r *FrameworkRepository) DownloadBundleFile(bundle string) error {
+func (r *FrameworkRepository) DownloadBundleFile(bundleName string) error {
 	var fileURL string
 	parsedURL, err := url.Parse(r.Config.URL)
 	if err != nil {
 		return errors.Wrap(err, "parsing config url")
 	}
-	parsedURL.Path = parsedURL.Path + "/" + bundle + ".tgz"
+	parsedURL.Path = parsedURL.Path + "/" + bundleName + ".tgz"
 
 	fileURL = parsedURL.String()
 
@@ -93,33 +83,33 @@ func (r *FrameworkRepository) DownloadBundleFile(bundle string) error {
 		return errors.Wrap(err, "getting file url")
 	}
 
-	err = untar(vars.RepoPath+"/"+bundle, resp)
+	err = untar(vars.RepoPath+"/"+bundleName, resp)
 	if err != nil {
-		return errors.Wrapf(err, "failed unpacking %s", bundle)
+		return errors.Wrapf(err, "failed unpacking %s", bundleName)
 	}
 
 	return nil
 }
 
 // GetFrameworkVersion gets the proper Framework version of a given Framework
-func (r *FrameworkRepository) GetFrameworkVersion(name, path string) (string, error) {
+func (r *FrameworkRepository) GetFrameworkVersion(name, path string) (*v1alpha1.FrameworkVersion, error) {
 	frameworkVersionPath := path + "/" + name + "-frameworkversion.yaml"
 	frameworkVersionYamlFile, err := os.Open(frameworkVersionPath)
 	if err != nil {
-		return "", errors.Wrap(err, "failed opening frameworkversion file")
+		return nil, errors.Wrapf(err, "failed opening frameworkversion file %s", frameworkVersionPath)
 	}
 
 	frameworkVersionByteValue, err := ioutil.ReadAll(frameworkVersionYamlFile)
 	if err != nil {
-		return "", errors.Wrap(err, "failed reading frameworkversion file")
+		return nil, errors.Wrapf(err, "failed reading frameworkversion file %s", frameworkVersionPath)
 	}
 
 	var fv v1alpha1.FrameworkVersion
 	err = yaml.Unmarshal(frameworkVersionByteValue, &fv)
 	if err != nil {
-		return "", errors.Wrapf(err, "unmarshalling %s-frameworkversion.yaml content", name)
+		return nil, errors.Wrapf(err, "unmarshalling %s-frameworkversion.yaml content", name)
 	}
-	return fv.Spec.Version, nil
+	return &fv, nil
 }
 
 // GetFrameworkVersionDependencies returns a slice of strings that contains the names of all dependency Frameworks
@@ -159,7 +149,12 @@ func untar(dst string, r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	defer gzr.Close()
+	defer func() {
+		err := gzr.Close()
+		if err != nil {
+			fmt.Printf("Error when closing gzip reader %s", err)
+		}
+	}()
 
 	tr := tar.NewReader(gzr)
 
@@ -211,7 +206,12 @@ func untar(dst string, r io.Reader) error {
 			if err != nil {
 				return errors.Wrapf(err, "creating new file %v", target)
 			}
-			defer out.Close()
+			defer func() {
+				err := out.Close()
+				if err != nil {
+					fmt.Printf("Error when closing file reader %s", err)
+				}
+			}()
 
 			err = out.Chmod(os.FileMode(header.Mode))
 			if err != nil && runtime.GOOS != "windows" {
