@@ -18,6 +18,7 @@ package planexecution
 import (
 	"context"
 	"fmt"
+	kudoengine "github.com/kudobuilder/kudo/pkg/engine"
 	"log"
 	"strconv"
 
@@ -289,18 +290,21 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 	//Load parameters:
 	//Create config map to hold all parameters for instantiation
-	configs := make(map[string]string)
+	configs := make(map[string]interface{})
 	//Default parameters from instance metadata
-	configs["FRAMEWORK_NAME"] = frameworkVersion.Spec.Framework.Name
-	configs["NAME"] = instance.Name
-	configs["NAMESPACE"] = instance.Namespace
+	configs["FrameworkName"] = frameworkVersion.Spec.Framework.Name
+	configs["Name"] = instance.Name
+	configs["Namespace"] = instance.Namespace
+
+	params := make(map[string]interface{})
 	//parameters from instance spec
 	for k, v := range instance.Spec.Parameters {
-		configs[k] = v
+		params[k] = v
 	}
+
 	//merge defaults with customizations
 	for _, param := range frameworkVersion.Spec.Parameters {
-		_, ok := configs[param.Name]
+		_, ok := params[param.Name]
 		if !ok { //not specified in params
 			if param.Required {
 				err = fmt.Errorf("parameter %v was required but not provided by instance %v", param.Name, instance.Name)
@@ -308,9 +312,11 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				r.recorder.Event(planExecution, "Warning", "MissingParameter", fmt.Sprintf("Could not find required parameter (%v)", param.Name))
 				return reconcile.Result{}, err
 			}
-			configs[param.Name] = param.Default
+			params[param.Name] = param.Default
 		}
 	}
+
+	configs["Params"] = params
 
 	//Get Plan from FrameworkVersion:
 	//Right now must match exactly.  In the future have defaults/backups:
@@ -342,12 +348,14 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			// get the task definition from the FV
 			// create the kustomize templates
 			// apply
-			configs["PLAN_NAME"] = planExecution.Spec.PlanName
-			configs["PHASE_NAME"] = phase.Name
-			configs["STEP_NAME"] = step.Name
-			configs["STEP_NUMBER"] = strconv.FormatInt(int64(j), 10)
+			configs["PlanName"] = planExecution.Spec.PlanName
+			configs["PhaseName"] = phase.Name
+			configs["StepName"] = step.Name
+			configs["StepNumber"] = strconv.FormatInt(int64(j), 10)
 
 			var objs []runtime.Object
+
+			engine := kudoengine.New()
 			for _, t := range step.Tasks {
 				// resolve task
 				if taskSpec, ok := frameworkVersion.Spec.Tasks[t]; ok {
@@ -356,12 +364,12 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 					for _, res := range taskSpec.Resources {
 						if resource, ok := frameworkVersion.Spec.Templates[res]; ok {
-							templatedYaml, err := template.ExpandMustache(resource, configs)
+							templatedYaml, err := engine.Render(resource, configs)
 							if err != nil {
 								r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error expanding mustache: %v", err))
 								log.Printf("PlanExecutionController: Error expanding mustache: %v", err)
 							}
-							fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, res), []byte(*templatedYaml))
+							fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, res), []byte(templatedYaml))
 							resources = append(resources, res)
 
 						} else {
