@@ -19,7 +19,7 @@ func New() *Engine {
 	f := sprig.TxtFuncMap()
 
 	// Prevent environment access inside the running KUDO Controller
-	funcs := []string{"env", "expandenv", "base", "dir", "clean", "ext", "isAbs", }
+	funcs := []string{"env", "expandenv", "base", "dir", "clean", "ext", "isAbs"}
 
 	for _, fun := range funcs {
 		delete(f, fun)

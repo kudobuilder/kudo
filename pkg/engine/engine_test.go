@@ -1,10 +1,11 @@
 package engine
 
 import (
+	"fmt"
 	"testing"
 )
 
-func TestRenderBasic(t *testing.T) {
+func TestRender(t *testing.T) {
 	tests := []struct{
 		name string
 		template string
@@ -45,4 +46,20 @@ func TestRenderBasic(t *testing.T) {
 			t.Errorf("template mismatch, expected: %+v, got: %+v", test.expected, rendered)
 		}
 	}
+}
+
+func TestUnsafeFuncs(t *testing.T) {
+	engine := New()
+
+	unsafeFuncs := []string{"env", "expandenv", "base", "dir", "clean", "ext", "isAbs"}
+
+	for _, fun := range unsafeFuncs {
+		_, err := engine.Render(fmt.Sprintf("{{ \"foo\" | %s }}", fun), nil)
+
+		if err == nil {
+			t.Errorf("expected error for %s, got none", fun)
+		}
+	}
+
+
 }
