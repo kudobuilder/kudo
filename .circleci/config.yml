@@ -4,23 +4,16 @@
 version: 2
 jobs:
   test:
-    docker:
-      # specify the version
-      - image: kudobuilder/golang:1.12
-    working_directory: /go/src/github.com/kudobuilder/kudo
+    machine: true
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - go-mod-v1-{{ checksum "go.sum" }}
-
-      # specify any bash command here prefixed with `run: `
-      - run: make test
-      - save_cache:
-          key: go-mod-v1-{{ checksum "go.sum" }}
-          paths:
-            - "/go/pkg/mod"
-            - "/go/bin"
+      - run: echo "https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com" > "test/.git-credentials"
+      - run: ./test/run_tests.sh
+      - run: |
+          git config user.name "Circle CI"
+          git config user.email "ci@mesosphere.com"
+          git merge -m "Merge Commit" origin/master
+      - run: ./test/run_tests.sh
   release:
     docker:
       - image: kudobuilder/golang:1.12
@@ -75,6 +68,7 @@ workflows:
     jobs:
       - branch-formatting
       - merge-formatting
+      - test
   release:
     jobs:
       - release:

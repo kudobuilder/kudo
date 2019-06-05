@@ -10,7 +10,8 @@ GIT_COMMIT_PATH := github.com/kudobuilder/kudo/pkg/version.gitCommit
 GIT_COMMIT := $(shell git rev-parse HEAD)
 SOURCE_DATE_EPOCH := $(shell git show -s --format=format:%ct HEAD)
 BUILD_DATE_PATH := github.com/kudobuilder/kudo/pkg/version.buildDate
-BUILD_DATE := $(shell date -r ${SOURCE_DATE_EPOCH} '+%Y-%m-%dT%H:%M:%SZ')
+DATE_FMT := "%Y-%m-%dT%H:%M:%SZ"
+BUILD_DATE := $(shell date -u -d "@$SOURCE_DATE_EPOCH" "+${DATE_FMT}" 2>/dev/null || date -u -r "${SOURCE_DATE_EPOCH}" "+${DATE_FMT}" 2>/dev/null || date -u "+${DATE_FMT}")
 LDFLAGS := -X ${GIT_VERSION_PATH}=${GIT_VERSION} -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} -X ${BUILD_DATE_PATH}=${BUILD_DATE}
 
 export GO111MODULE=on
@@ -48,7 +49,7 @@ manager: prebuild
 	# platforms for distribution
 	GOARCH=amd64 GOOS=darwin go build -ldflags "${LDFLAGS}" -o bin/darwin/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
 	GOARCH=amd64 GOOS=linux go build -ldflags "${LDFLAGS}" -o bin/linux/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
-	GOARCH=amd64 GOOS=windows go build -ldflags "${LDFLAGS}"-o bin/windows/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
+	GOARCH=amd64 GOOS=windows go build -ldflags "${LDFLAGS}" -o bin/windows/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
 
 .PHONY: manager-clean
 # Clean manager build
@@ -63,20 +64,15 @@ manager-clean:
 run:
 	go run -ldflags "${LDFLAGS}" ./cmd/manager/main.go
 
-.PHONY: install-crds
-install-crds:
-	kubectl apply -f config/crds
-
 .PHONY: deploy
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests
-	kubectl apply -f config/crds
-	kustomize build config/default | kubectl apply -f -
+deploy:
+	@kustomize build config
 
 .PHONY: deploy-clean
 deploy-clean:
 	kubectl delete -f config/crds
-	# kustomize build config/default | kubectl delete -f -
+	# kustomize build config | kubectl delete -f -
 
 .PHONY: manifests
 # Generate manifests e.g. CRD, RBAC etc.
@@ -163,7 +159,7 @@ docker-build: generate check-formatting manifests
 	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:${GIT_VERSION}
 	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:latest
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${DOCKER_IMG}:${GIT_VERSION}"'@' ./config/default/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"${DOCKER_IMG}:${GIT_VERSION}"'@' ./config/manager_image_patch.yaml
 
 .PHONY: docker-push
 # Push the docker image

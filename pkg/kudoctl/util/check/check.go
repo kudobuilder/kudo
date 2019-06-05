@@ -1,6 +1,7 @@
 package check
 
 import (
+	"fmt"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -14,22 +15,33 @@ const (
 	defaultGithubCredentialPath = ".git-credentials"
 )
 
-// KubeConfigPath checks if the kubeconfig file exists.
-func KubeConfigPath() error {
-	// if KubeConfigPath is not specified, search for the default kubeconfig file under the $HOME/.kube/config.
+// ValidateKubeConfigPath checks if the kubeconfig file exists.
+func ValidateKubeConfigPath() error {
+	path, err := getKubeConfigLocation()
+	if err != nil {
+		return err
+	}
+
+	vars.KubeConfigPath = path
+	stat, err := os.Stat(vars.KubeConfigPath)
+	if os.IsNotExist(err) {
+		return errors.Wrap(err, "failed to find kubeconfig file")
+	} else if stat.IsDir() {
+		return errors.Wrap(fmt.Errorf("%v is a directory", vars.KubeConfigPath), "getting config failed")
+	}
+	return nil
+}
+
+func getKubeConfigLocation() (string, error) {
+	// if vars.KubeConfigPath is not specified, search for the default kubeconfig file under the $HOME/.kube/config.
 	if len(vars.KubeConfigPath) == 0 {
 		usr, err := user.Current()
 		if err != nil {
-			return errors.Wrap(err, "failed to determine user's home dir")
+			return "", errors.Wrap(err, "failed to determine user's home dir")
 		}
-		vars.KubeConfigPath = filepath.Join(usr.HomeDir, defaultKubeConfigPath)
+		return filepath.Join(usr.HomeDir, defaultKubeConfigPath), nil
 	}
-
-	_, err := os.Stat(vars.KubeConfigPath)
-	if err != nil && os.IsNotExist(err) {
-		return errors.Wrap(err, "failed to find kubeconfig file")
-	}
-	return nil
+	return vars.KubeConfigPath, nil
 }
 
 // GithubCredentials checks if the credential file exists.

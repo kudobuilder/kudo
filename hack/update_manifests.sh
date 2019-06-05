@@ -19,5 +19,5 @@ else
   (cd "${CONTROLLER_GEN_DIR}" && git reset --hard "${VERSION}" && go mod init)
 fi
 
-go run "$CONTROLLER_GEN_DIR"/cmd/controller-gen/main.go rbac --output-dir=config/default/rbac
+go run "$CONTROLLER_GEN_DIR"/cmd/controller-gen/main.go rbac
 go run "$CONTROLLER_GEN_DIR"/cmd/controller-gen/main.go crd
