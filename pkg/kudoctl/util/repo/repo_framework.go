@@ -17,15 +17,15 @@ import (
 
 // FrameworkRepository represents a framework repository
 type FrameworkRepository struct {
-	Config         *RepositoryConfiguration
-	Client         HTTPClient
+	Config *RepositoryConfiguration
+	Client HTTPClient
 }
 
 // FrameworkBundle contains parsed files from the framework bundle
 type FrameworkBundle struct {
-	Framework *v1alpha1.Framework
+	Framework        *v1alpha1.Framework
 	FrameworkVersion *v1alpha1.FrameworkVersion
-	Instance *v1alpha1.Instance
+	Instance         *v1alpha1.Instance
 }
 
 const (

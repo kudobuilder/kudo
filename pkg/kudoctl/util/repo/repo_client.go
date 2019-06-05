@@ -13,7 +13,7 @@ import (
 // HTTPClient is client used to communicate with KUDO repositories
 // it enriches HTTP client with expected headers etc.
 type HTTPClient struct {
-	client   *http.Client
+	client *http.Client
 }
 
 // Get performs HTTP get on KUDO repository
