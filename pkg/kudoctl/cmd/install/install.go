@@ -15,11 +15,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-const (
-	fwPath         = "%s/%s-framework.yaml"
-	fwInstancePath = "%s/%s-instance.yaml"
-)
-
 // CmdErrorProcessor returns the errors associated with cmd env
 func CmdErrorProcessor(cmd *cobra.Command, args []string) error {
 

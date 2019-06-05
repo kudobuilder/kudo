@@ -13,7 +13,6 @@ import (
 // IndexFile represents the index file in a framework repository
 type IndexFile struct {
 	APIVersion string                    `json:"apiVersion"`
-	Generated  time.Time                 `json:"generated"`
 	Entries    map[string]BundleVersions `json:"entries"`
 }
 
