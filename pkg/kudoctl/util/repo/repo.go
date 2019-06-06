@@ -6,8 +6,8 @@ type RepositoryConfiguration struct {
 	URL string `json:"url"`
 }
 
-// NewRepositoryConfiguration returns a given RepositoryConfiguration struct
-func NewRepositoryConfiguration() *RepositoryConfiguration {
+// Default returns a given RepositoryConfiguration struct
+func Default() *RepositoryConfiguration {
 	return &RepositoryConfiguration{
 		URL: "https://kudo-repository.storage.googleapis.com",
 	}

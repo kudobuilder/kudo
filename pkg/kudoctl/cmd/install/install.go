@@ -79,7 +79,7 @@ func verifyFrameworks(args []string) error {
 		return fmt.Errorf("--package-version not supported in multi framework install")
 	}
 
-	e := repo.NewRepositoryConfiguration()
+	e := repo.Default()
 
 	// Initializing empty repo with given variables
 	r, err := repo.NewFrameworkRepository(e)
