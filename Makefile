@@ -72,7 +72,6 @@ deploy:
 .PHONY: deploy-clean
 deploy-clean:
 	kubectl delete -f config/crds
-	# kustomize build config | kubectl delete -f -
 
 .PHONY: manifests
 # Generate manifests e.g. CRD, RBAC etc.
