@@ -58,7 +58,7 @@ func (r *FrameworkRepository) DownloadIndexFile() (*IndexFile, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "parsing config url")
 	}
-	parsedURL.Path = fmt.Sprintf("%s/index.yaml", strings.TrimSuffix(parsedURL.Path, "/") )
+	parsedURL.Path = fmt.Sprintf("%s/index.yaml", strings.TrimSuffix(parsedURL.Path, "/"))
 
 	indexURL = parsedURL.String()
 

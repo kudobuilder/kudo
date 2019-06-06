@@ -6,7 +6,8 @@ type RepositoryConfiguration struct {
 	URL string `json:"url"`
 }
 
-var Default *RepositoryConfiguration = &RepositoryConfiguration{
+// Default initialized repository
+var Default = &RepositoryConfiguration{
 	URL: "https://kudo-repository.storage.googleapis.com",
 }
 

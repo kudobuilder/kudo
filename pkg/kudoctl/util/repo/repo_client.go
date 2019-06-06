@@ -28,7 +28,7 @@ func (c *HTTPClient) get(href string) (*bytes.Buffer, error) {
 	if err != nil {
 		return buf, err
 	}
-	req.Header.Set("User-Agent", fmt.Sprintf("KUDO/%s",strings.TrimPrefix(version.Get().GitVersion, "v")))
+	req.Header.Set("User-Agent", fmt.Sprintf("KUDO/%s", strings.TrimPrefix(version.Get().GitVersion, "v")))
 
 	resp, err := c.client.Do(req)
 	if err != nil {

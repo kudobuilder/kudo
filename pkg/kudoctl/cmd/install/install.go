@@ -2,8 +2,9 @@ package install
 
 import (
 	"fmt"
-	"github.com/google/martian/log"
 	"strings"
+
+	"github.com/google/martian/log"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
