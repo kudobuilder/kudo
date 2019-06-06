@@ -20,12 +20,12 @@ spec:
     name: mysql
     kind: Framework
   parameters:
-  - name: BACKUP_FILE
+  - name: BackupFile
     description: "Filename to save the backups to"
     default: "backup.sql"
     displayName: "BackupFile"
     trigger: backup
-  - name: PASSWORD
+  - name: Password
     default: "password"
   tasks:
     deploy:
@@ -97,7 +97,7 @@ spec:
               env:
                 # Use secret in real usage
               - name: MYSQL_ROOT_PASSWORD
-                value: {{PASSWORD}}
+                value: {{ .Params.Password }}
               - name: MYSQL_DATABASE
                 value: kudo
               ports:
@@ -108,14 +108,14 @@ spec:
                 mountPath: /var/lib/mysql
               livenessProbe:
                 exec:
-                  command: ["mysqladmin", "-p{{PASSWORD}}", "ping"]
+                  command: ["mysqladmin", "-p{{ .Params.Password }}", "ping"]
                 initialDelaySeconds: 30
                 periodSeconds: 10
                 timeoutSeconds: 5
               readinessProbe:
                 exec:
                   # Check we can execute queries over TCP (skip-networking is off).
-                  command: ["mysql", "-p{{PASSWORD}}", "-h", "127.0.0.1", "-e", "SELECT 1"]
+                  command: ["mysql", "-p{{ .Params.Password }}", "-h", "127.0.0.1", "-e", "SELECT 1"]
                 initialDelaySeconds: 5
                 periodSeconds: 2
                 timeoutSeconds: 1
@@ -139,31 +139,31 @@ spec:
       kind: Job
       metadata:
         namespace: default
-        name: {{PLAN_NAME}}-job
+        name: {{ .PlanName }}-job
       spec:
         template:
           metadata:
-            name: {{PLAN_NAME}}-job
+            name: {{ .PlanName }}-job
           spec:
             restartPolicy: OnFailure
             containers:
-            - name: {{PLAN_NAME}}
+            - name: {{ .PlanName }}
               image: mysql:5.7
               imagePullPolicy: IfNotPresent
               command:
               - /bin/sh
               - -c
-              - "mysql -u root -h {{NAME}}-mysql -p{{PASSWORD}} -e \"CREATE TABLE example ( id smallint unsigned not null auto_increment, name varchar(20) not null, constraint pk_example primary key (id) );\" kudo "
+              - "mysql -u root -h {{ .Name }}-mysql -p{{ .Params.Password }} -e \"CREATE TABLE example ( id smallint unsigned not null auto_increment, name varchar(20) not null, constraint pk_example primary key (id) );\" kudo "
     backup.yaml: |
       apiVersion: batch/v1
       kind: Job
       metadata:
         namespace: default
-        name: {{PLAN_NAME}}-job
+        name: {{ .PlanName }}-job
       spec:
         template:
           metadata:
-            name: {{PLAN_NAME}}-job
+            name: {{ .PlanName }}-job
           spec:
             restartPolicy: OnFailure
             containers:
@@ -173,41 +173,41 @@ spec:
               command:
               - /bin/sh
               - -c
-              - "mysqldump -u root -h {{NAME}}-mysql -p{{PASSWORD}} kudo > /backups/{{BACKUP_FILE}}"
+              - "mysqldump -u root -h {{ .Name }}-mysql -p{{ .Params.Password }} kudo > /backups/{{ .Params.BackupFile }}"
               volumeMounts:
               - name: backup-pv
                 mountPath: /backups
             volumes:
             - name: backup-pv
               persistentVolumeClaim:
-                claimName: {{NAME}}-backup-pv
+                claimName: {{ .Name }}-backup-pv
     restore.yaml: |
       apiVersion: batch/v1
       kind: Job
       metadata:
         namespace: default
-        name: {{PLAN_NAME}}-job
+        name: {{ .PlanName }}-job
       spec:
         template:
           metadata:
-            name: {{PLAN_NAME}}-job
+            name: {{ .PlanName }}-job
           spec:
             restartPolicy: OnFailure
             containers:
-            - name: {{PLAN_NAME}}
+            - name: {{ .PlanName }}
               image: mysql:5.7
               imagePullPolicy: IfNotPresent
               command:
               - /bin/sh
               - -c
-              - "mysql -u root -h {{NAME}}-mysql -p{{PASSWORD}} --database=kudo < /backups/{{BACKUP_FILE}}"
+              - "mysql -u root -h {{ .Name }}-mysql -p{{ .Params.Password }} --database=kudo < /backups/{{ .Params.BackupFile }}"
               volumeMounts:
               - name: backup-pv
                 mountPath: /backups
             volumes:
             - name: backup-pv
               persistentVolumeClaim:
-                claimName: {{NAME}}-backup-pv
+                claimName: {{ .Name }}-backup-pv
   plans:
     deploy:
       strategy: serial
@@ -269,8 +269,8 @@ spec:
     type: FrameworkVersions
   # Add fields here
   parameters:
-    PASSWORD: password
-    BACKUP_FILE: backup.sql
+    Password: password
+    BackupFile: backup.sql
 
 
 

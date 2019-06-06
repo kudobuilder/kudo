@@ -24,11 +24,11 @@ spec:
       kind: Job
       metadata:
         namespace: default
-        name: {{PLAN_NAME}}-job
+        name: {{ .PlanName }}-job
       spec:
         template:
           metadata:
-            name: {{PLAN_NAME}}-job
+            name: {{ .PlanName }}-job
           spec:
             restartPolicy: OnFailure
             containers:
@@ -38,7 +38,7 @@ spec:
               command:
               - /bin/sh
               - -c
-              - "echo {{PLAN_NAME}} for v1 && echo Going to sleep for {{SLEEP}} seconds && sleep {{SLEEP}}"
+              - "echo {{ .PlanName }} for v1 && echo Going to sleep for {{ .Params.Sleep }} seconds && sleep {{ .Params.Sleep }}"
   tasks:
     run:
       resources:
@@ -97,11 +97,11 @@ spec:
       kind: Job
       metadata:
         namespace: default
-        name: {{PLAN_NAME}}-job
+        name: {{ .PlanName }}-job
       spec:
         template:
           metadata:
-            name: {{PLAN_NAME}}-job
+            name: {{ .PlanName }}-job
           spec:
             restartPolicy: OnFailure
             containers:
@@ -111,7 +111,7 @@ spec:
               command:
               - /bin/sh
               - -c
-              - "echo {{PLAN_NAME}} for v2 && echo Going to sleep for {{SLEEP}} seconds && sleep {{SLEEP}}"
+              - "echo {{ .PlanName }} for v2 && echo Going to sleep for {{ .Params.Sleep }} seconds && sleep {{ .Params.Sleep }}"
   tasks:
     run:
       resources:
@@ -165,4 +165,4 @@ spec:
     type: FrameworkVersions
   # Add fields here
   parameters:
-    SLEEP: "15"
+    Sleep: "15"

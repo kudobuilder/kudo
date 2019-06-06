@@ -13,6 +13,7 @@ require (
 	github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30 // indirect
 	github.com/cbroglie/mustache v1.0.1
 	github.com/dustin/go-humanize v1.0.0 // indirect
+	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/emicklei/go-restful v2.9.0+incompatible // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/logr v0.1.0 // indirect
@@ -36,6 +37,8 @@ require (
 	github.com/gregjones/httpcache v0.0.0-20190212212710-3befbb6ad0cc // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.5.0 // indirect
 	github.com/helm/helm v2.13.1+incompatible // indirect
+	github.com/hashicorp/golang-lru v0.5.0 // indirect
+	github.com/huandu/xstrings v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
@@ -43,6 +46,7 @@ require (
 	github.com/leodido/go-urn v1.1.0 // indirect
 	github.com/markbates/inflect v1.0.4 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.1 // indirect
+	github.com/masterminds/sprig v2.18.0+incompatible
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
 	github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86 // indirect

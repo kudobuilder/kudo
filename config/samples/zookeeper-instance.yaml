@@ -13,4 +13,4 @@ spec:
   # Add fields here
   name: "zk"
   parameters:
-    ZOOKEEPER_CPUS: "0.3"
+    cpus: "0.3"

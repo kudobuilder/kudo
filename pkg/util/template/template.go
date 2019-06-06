@@ -3,24 +3,10 @@ package template
 import (
 	"strings"
 
-	"github.com/cbroglie/mustache"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"k8s.io/client-go/kubernetes/scheme"
 )
-
-//ExpandMustache applies the mustache string to the provided configs
-func ExpandMustache(s string, params map[string]string) (*string, error) {
-
-	//allow for customizations to not cover all params
-	mustache.AllowMissingVariables = false
-	data, err := mustache.Render(s, params)
-	if err != nil {
-		return nil, err
-	}
-	return &data, nil
-
-}
 
 //ParseKubernetesObjects parses a list of runtime.Objects from the provided yaml
 func ParseKubernetesObjects(yaml string) (objs []runtime.Object, err error) {
