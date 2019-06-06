@@ -21,11 +21,10 @@ Before you get started:
 
 > ⚠️ This project uses Go Modules. Due to the current state of code generation in [controller-tools](https://github.com/kubernetes-sigs/controller-tools) and [code-generator](https://github.com/kubernetes/code-generator), KUDO currently **must** be cloned into its `$GOPATH`-based location.
 
-## Install KUDO to your cluster
+## Install KUDO into your cluster
 
-- `mkdir -p $GOPATH/src/github.com/kudobuilder/kudo`
-- `cd $GOPATH/src/github.com/kudobuilder/kudo`
 - Get KUDO repo: `git clone git@github.com:kudobuilder/kudo.git`
+- `cd kudo`
 - `make deploy | kubectl apply -f -` to install controller and CRDs to your Kubernetes cluster
 
 ### Notes on Minikube
