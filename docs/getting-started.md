@@ -4,7 +4,7 @@ type: docs
 weight: 1
 ---
 
-# Getting Started
+# Getting Started for Developers
 
 ## Pre-requisites
 
@@ -51,3 +51,34 @@ The username is your GitHub user name and the credential is your password. If yo
 ## Deploy your first Application
 
 Follow the instructions in the [Apache Kafka example](/docs/examples/apache-kafka/) to deploy a Kafka cluster along with its dependency Zookeeper.
+
+# Getting Started for Ops Team Members
+If you are looking to get started but you do NOT have a development environment, this section is for you!  We assume you do NOT have go, make or other development tools.   Required tools include:
+
+ - [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) with version `1.13` or later
+ - [Docker](https://docs.docker.com/v17.12/install/)
+
+ **note:** This example also includes using [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
+
+ In order to get started from an ops perspective, it is necessary to do these steps:
+
+ * Set the context of kubectl to work with the preferred cluster
+ * Apply the KUDO CRDs to that cluster
+ * Run the KUDO manager
+
+## Applying CRDs
+The CRDs can be installed using `kubectl apply -f config/crds` from the project.  If you are lacking git it is possible to pull a zip file of the project and apply for the unzipped folder.  An alternative is to apply from the url such as:
+
+```
+kubectl apply -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/crds/kudo_v1alpha1_framework.yaml
+kubectl apply -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/crds/kudo_v1alpha1_frameworkversion.yaml
+kubectl apply -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/crds/kudo_v1alpha1_instance.yaml
+kubectl apply -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/crds/kudo_v1alpha1_planexecution.yaml
+```
+
+## Running Manager from Docker
+The docker image beyond the ubuntu operating system only contains the manager native built binary.   It requires kubernetes the configurations necessary to connect with Kubernetes in order to run.   For convenience a `minikube-config` file is located under `/config` of the project.   The issue with the regular minikube configuration is that by default the file contains paths which contain usernames.   It is possible to use your own `~/.kube/config`, however you will need to mirror the path structures in the config file in mounted volumes.   The provided sample `minikube-config` simplifies this by expecting `.minikube` to be mounted in the `\root` path.
+
+Assuming you have a local minikube running with the CRDs already applied.  Here is how you would run the dockerized manager against minikube.  This also assumes that you are running the command relative to `config/minikube-config`.
+
+`docker run  -v $PWD/config/minikube-config:/root/.kube/config  -v $HOME/.minikube:/root/.minikube kudobuilder/controller:v0.1.0`
