@@ -185,19 +185,19 @@ func untar(r io.Reader) (*FrameworkBundle, error) {
 			case isFrameworkFile(header.Name):
 				var f v1alpha1.Framework
 				if err = yaml.Unmarshal(bytes, &f); err != nil {
-					return nil, errors.Wrapf(err, "unmarshalling %s-framework.yaml content", header.Name)
+					return nil, errors.Wrapf(err, "unmarshalling %s content", header.Name)
 				}
 				result.Framework = &f
 			case isVersionFile(header.Name):
 				var fv v1alpha1.FrameworkVersion
 				if err = yaml.Unmarshal(bytes, &fv); err != nil {
-					return nil, errors.Wrapf(err, "unmarshalling %s-frameworkversion.yaml content", header.Name)
+					return nil, errors.Wrapf(err, "unmarshalling %s content", header.Name)
 				}
 				result.FrameworkVersion = &fv
 			case isInstanceFile(header.Name):
 				var i v1alpha1.Instance
 				if err = yaml.Unmarshal(bytes, &i); err != nil {
-					return nil, errors.Wrapf(err, "unmarshalling %s-instance.yaml content", header.Name)
+					return nil, errors.Wrapf(err, "unmarshalling %s content", header.Name)
 				}
 				result.Instance = &i
 			default:
