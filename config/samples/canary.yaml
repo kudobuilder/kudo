@@ -89,12 +89,12 @@ spec:
       - service.yaml
       - deployment.yaml
   parameters:
-  - name: TAG
+  - name: Tag
     description: "Docker image tag for runyonsolutions/appinfo"
     default: "master"
     required: false
     displayName: "Image Tag"
-  - name: REPLICAS
+  - name: Replicas
     description: "Replicas for application"
     default: "3"
     required: false
