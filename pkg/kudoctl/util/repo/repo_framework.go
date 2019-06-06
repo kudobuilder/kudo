@@ -135,7 +135,20 @@ func untar(r io.Reader) (*FrameworkBundle, error) {
 
 		// if no more files are found return
 		case err == io.EOF:
-			return result, nil
+			if result.Instance != nil && result.FrameworkVersion != nil && result.Framework != nil {
+				// bundle is complete
+				return result, nil
+			}
+
+			var missing []string
+			if result.Instance == nil {
+				missing = append(missing, "instance.yaml")
+			} else if result.FrameworkVersion != nil {
+				missing = append(missing, "frameworkversion.yaml")
+			} else if result.Framework != nil {
+				missing = append(missing, "framework.yaml")
+			}
+			return nil, fmt.Errorf("incomplete bundle - these files are missing: %v", missing)
 
 		// return any other error
 		case err != nil:

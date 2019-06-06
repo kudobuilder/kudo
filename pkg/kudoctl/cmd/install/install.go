@@ -250,7 +250,7 @@ func installSingleFrameworkVersionToCluster(name string, kc *kudo.Client, fv *v1
 
 // Todo: needs more testing
 // installSingleInstanceToCluster installs a given Instance to the cluster
-func installSingleInstanceToCluster(name, previous string, i *v1alpha1.Instance, kc *kudo.Client) error {
+func installSingleInstanceToCluster(name, previous string, instance *v1alpha1.Instance, kc *kudo.Client) error {
 	// Customizing Instance
 	// TODO: traversing, e.g. check function that looksup if key exists in the current FrameworkVersion
 	// That way just Parameters will be applied if they exist in the matching FrameworkVersion
@@ -259,7 +259,7 @@ func installSingleInstanceToCluster(name, previous string, i *v1alpha1.Instance,
 
 	// This checks if flag --instance was set with a name and it is the not a dependency Instance
 	if vars.Instance != "" && previous == "" {
-		i.ObjectMeta.SetName(vars.Instance)
+		instance.ObjectMeta.SetName(vars.Instance)
 	}
 	if vars.Parameter != nil {
 		p := make(map[string]string)
@@ -267,11 +267,11 @@ func installSingleInstanceToCluster(name, previous string, i *v1alpha1.Instance,
 			s := strings.SplitN(a, "=", 2)
 			p[s[0]] = s[1]
 		}
-		i.Spec.Parameters = p
+		instance.Spec.Parameters = p
 	}
-	if _, err := kc.InstallInstanceObjToCluster(i); err != nil {
+	if _, err := kc.InstallInstanceObjToCluster(instance); err != nil {
 		return errors.Wrapf(err, "installing %s-instance.yaml", name)
 	}
-	log.Infof("instance.%s/%s created\n", i.APIVersion, i.Name)
+	log.Infof("instance.%s/%s created\n", instance.APIVersion, instance.Name)
 	return nil
 }

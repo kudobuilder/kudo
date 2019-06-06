@@ -36,7 +36,7 @@ func NewInstallCmd() *cobra.Command {
 	installCmd.Flags().StringVar(&vars.KubeConfigPath, "kubeconfig", "", "The file path to Kubernetes configuration file. (default \"$HOME/.kube/config\")")
 	installCmd.Flags().StringVar(&vars.Instance, "instance", "", "The instance name. (default to Framework name)")
 	installCmd.Flags().StringVar(&vars.Namespace, "namespace", "default", "The namespace used for the framework installation. (default \"default\"")
-	installCmd.Flags().StringArrayVarP(&vars.Parameter, "parameter", "p", nil, "The parameter name.")
+	installCmd.Flags().StringArrayVarP(&vars.Parameter, "parameter", "p", nil, "The parameter name and value separated by '='")
 	installCmd.Flags().StringVar(&vars.PackageVersion, "package-version", "", "A specific package version on the official GitHub repo. (default to the most recent)")
 
 	const usageFmt = "Usage:\n  %s\n\nFlags:\n%s"
