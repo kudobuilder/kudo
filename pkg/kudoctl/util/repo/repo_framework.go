@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
@@ -59,7 +58,7 @@ func (r *FrameworkRepository) DownloadIndexFile() (*IndexFile, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "parsing config url")
 	}
-	parsedURL.Path = strings.TrimSuffix(parsedURL.Path, "/") + "/index.yaml"
+	parsedURL.Path = fmt.Sprintf("%s/index.yaml", strings.TrimSuffix(parsedURL.Path, "/") )
 
 	indexURL = parsedURL.String()
 
@@ -84,7 +83,7 @@ func (r *FrameworkRepository) DownloadBundle(bundleName string) (*FrameworkBundl
 	if err != nil {
 		return nil, errors.Wrap(err, "parsing config url")
 	}
-	parsedURL.Path = parsedURL.Path + "/" + bundleName + ".tgz"
+	parsedURL.Path = fmt.Sprintf("%s/%s.tgz", parsedURL.Path, bundleName)
 
 	fileURL = parsedURL.String()
 
@@ -100,27 +99,6 @@ func (r *FrameworkRepository) DownloadBundle(bundleName string) (*FrameworkBundl
 	}
 
 	return bundle, nil
-}
-
-// GetFrameworkVersion gets the proper Framework version of a given Framework
-func (r *FrameworkRepository) GetFrameworkVersion(name, path string) (*v1alpha1.FrameworkVersion, error) {
-	frameworkVersionPath := path + "/" + name + "-frameworkversion.yaml"
-	frameworkVersionYamlFile, err := os.Open(frameworkVersionPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed opening frameworkversion file %s", frameworkVersionPath)
-	}
-
-	frameworkVersionByteValue, err := ioutil.ReadAll(frameworkVersionYamlFile)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed reading frameworkversion file %s", frameworkVersionPath)
-	}
-
-	var fv v1alpha1.FrameworkVersion
-	err = yaml.Unmarshal(frameworkVersionByteValue, &fv)
-	if err != nil {
-		return nil, errors.Wrapf(err, "unmarshalling %s-frameworkversion.yaml content", name)
-	}
-	return &fv, nil
 }
 
 // GetFrameworkVersionDependencies returns a slice of strings that contains the names of all dependency Frameworks

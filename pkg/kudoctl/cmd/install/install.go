@@ -2,6 +2,7 @@ package install
 
 import (
 	"fmt"
+	"github.com/google/martian/log"
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
@@ -79,7 +80,7 @@ func verifyFrameworks(args []string) error {
 		return fmt.Errorf("--package-version not supported in multi framework install")
 	}
 
-	e := repo.Default()
+	e := repo.Default
 
 	// Initializing empty repo with given variables
 	r, err := repo.NewFrameworkRepository(e)
@@ -232,7 +233,7 @@ func installSingleFrameworkToCluster(name string, f *v1alpha1.Framework, kc *kud
 	if _, err := kc.InstallFrameworkObjToCluster(f); err != nil {
 		return errors.Wrapf(err, "installing %s-framework.yaml", name)
 	}
-	fmt.Printf("framework.%s/%s created\n", f.APIVersion, f.Name)
+	log.Infof("framework.%s/%s created\n", f.APIVersion, f.Name)
 	return nil
 }
 
@@ -242,7 +243,7 @@ func installSingleFrameworkVersionToCluster(name string, kc *kudo.Client, fv *v1
 	if _, err := kc.InstallFrameworkVersionObjToCluster(fv); err != nil {
 		return errors.Wrapf(err, "installing %s-frameworkversion.yaml", name)
 	}
-	fmt.Printf("frameworkversion.%s/%s created\n", fv.APIVersion, fv.Name)
+	log.Infof("frameworkversion.%s/%s created\n", fv.APIVersion, fv.Name)
 	return nil
 }
 
@@ -270,6 +271,6 @@ func installSingleInstanceToCluster(name, previous string, i *v1alpha1.Instance,
 	if _, err := kc.InstallInstanceObjToCluster(i); err != nil {
 		return errors.Wrapf(err, "installing %s-instance.yaml", name)
 	}
-	fmt.Printf("instance.%s/%s created\n", i.APIVersion, i.Name)
+	log.Infof("instance.%s/%s created\n", i.APIVersion, i.Name)
 	return nil
 }

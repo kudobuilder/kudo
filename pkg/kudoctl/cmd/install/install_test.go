@@ -1,7 +1,6 @@
 package install
 
 import (
-	"io/ioutil"
 	"testing"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
@@ -27,16 +26,6 @@ func TestInstallCmd(t *testing.T) {
 	cmdWrongDirKubeConfigFlag := &cobra.Command{}
 	cmdWrongDirKubeConfigFlag.Flags().StringVar(&vars.KubeConfigPath, "kubeconfig", "", "Usage")
 	vars.KubeConfigPath = "/tmp"
-	index := []byte(`apiVersion: v1
-entries:
-  kafka:
-  - apiVersion: v1
-    appVersion: 2.4.0
-    name: kafka
-    urls:
-    - https://kudo-test-repo.storage.googleapis.com/kafka-0.1.0.tgz
-    version: 0.1.0`)
-	_ = ioutil.WriteFile("/tmp/index.yaml", index, 0644)
 	installCmdArgs := []string{"test", "--kubeconfig=" + vars.KubeConfigPath}
 	expectedEmptyKubeConfigFlagErrors := []string{
 		"could not check kubeconfig path: getting config failed: /tmp is a directory",

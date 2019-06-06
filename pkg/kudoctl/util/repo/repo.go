@@ -6,11 +6,8 @@ type RepositoryConfiguration struct {
 	URL string `json:"url"`
 }
 
-// Default returns a given RepositoryConfiguration struct
-func Default() *RepositoryConfiguration {
-	return &RepositoryConfiguration{
-		URL: "https://kudo-repository.storage.googleapis.com",
-	}
+var Default *RepositoryConfiguration = &RepositoryConfiguration{
+	URL: "https://kudo-repository.storage.googleapis.com",
 }
 
 // Metadata for a Framework. This models the structure of a bundle.yaml file.
