@@ -20,8 +20,8 @@ var (
 		kubectl kudo install kafka --package-version=0`
 )
 
-// NewInstallCmd creates the install command for the CLI
-func NewInstallCmd() *cobra.Command {
+// newInstallCmd creates the install command for the CLI
+func newInstallCmd() *cobra.Command {
 	installCmd := &cobra.Command{
 		Use:          "install <name>",
 		Short:        "-> Install an official KUDO package.",
