@@ -27,7 +27,7 @@ func newInstallCmd() *cobra.Command {
 		Short:        "-> Install an official KUDO package.",
 		Long:         `Install a KUDO package from the official GitHub repo.`,
 		Example:      installExample,
-		RunE:         install.CmdErrorProcessor,
+		RunE:         install.RunInstall,
 		SilenceUsage: true,
 	}
 
