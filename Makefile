@@ -46,18 +46,10 @@ manager: prebuild
 	# developer convenience for platform they are running
 	go build -ldflags "${LDFLAGS}" -o bin/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
 
-	# platforms for distribution
-	GOARCH=amd64 GOOS=darwin go build -ldflags "${LDFLAGS}" -o bin/darwin/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
-	GOARCH=amd64 GOOS=linux go build -ldflags "${LDFLAGS}" -o bin/linux/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
-	GOARCH=amd64 GOOS=windows go build -ldflags "${LDFLAGS}" -o bin/windows/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
-
 .PHONY: manager-clean
 # Clean manager build
 manager-clean:
 	rm -f bin/manager
-	rm -rf bin/darwin/amd64/$(EXECUTABLE)
-	rm -rf bin/linux/amd64/$(EXECUTABLE)
-	rm -rf bin/windows/amd64/$(EXECUTABLE)
 
 .PHONY: run
 # Run against the configured Kubernetes cluster in ~/.kube/config
@@ -125,18 +117,10 @@ cli: prebuild
 	# developer convince for platform they are running
 	go build -ldflags "${LDFLAGS}" -o bin/${CLI} cmd/kubectl-kudo/main.go
 
-	# platforms for distribution
-	GOARCH=amd64 GOOS=darwin go build -ldflags "${LDFLAGS}" -o bin/darwin/amd64/${CLI} cmd/kubectl-kudo/main.go
-	GOARCH=amd64 GOOS=linux go build -ldflags "${LDFLAGS}" -o bin/linux/amd64/${CLI} cmd/kubectl-kudo/main.go
-	GOARCH=amd64 GOOS=windows go build -ldflags "${LDFLAGS}" -o bin/windows/${CLI} cmd/kubectl-kudo/main.go
-
 .PHONY: cli-clean
 # Clean CLI build
 cli-clean:
 	rm -f bin/${CLI}
-	rm -rf bin/darwin/amd64/${CLI}
-	rm -rf bin/linux/amd64/${CLI}
-	rm -rf bin/windows/${CLI}
 
 # Install CLI
 cli-install:
@@ -145,9 +129,6 @@ cli-install:
 .PHONY: clean
 # Clean all
 clean:  cli-clean test-clean manager-clean deploy-clean
-	rm -rf bin/darwin
-	rm -rf bin/linux
-	rm -rf bin/windows
 
 .PHONY: docker-build
 # Build the docker image
