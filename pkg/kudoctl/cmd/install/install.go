@@ -15,8 +15,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// CmdErrorProcessor returns the errors associated with cmd env
-func CmdErrorProcessor(cmd *cobra.Command, args []string) error {
+// RunInstall returns the errors associated with cmd env
+func RunInstall(cmd *cobra.Command, args []string) error {
 
 	// This makes --kubeconfig flag optional
 	if _, err := cmd.Flags().GetString("kubeconfig"); err != nil {
@@ -32,7 +32,15 @@ func CmdErrorProcessor(cmd *cobra.Command, args []string) error {
 		return errors.WithMessage(err, "could not parse parameters")
 	}
 
-	if err := verifyFrameworks(args); err != nil {
+	if len(args) < 1 {
+		return fmt.Errorf("no argument provided, expecting name of package(s)")
+	}
+
+	if len(args) > 1 && vars.PackageVersion != "" {
+		return fmt.Errorf("--package-version not supported in multi framework install")
+	}
+
+	if err := installFrameworks(args); err != nil {
 		return errors.WithMessage(err, "could not install framework(s)")
 	}
 
@@ -69,20 +77,13 @@ func validateInstallParameters() error {
 	return nil
 }
 
-func verifyFrameworks(args []string) error {
+// installFrameworks installs all frameworks specified as arguments into the cluster
+func installFrameworks(args []string) error {
 
-	if len(args) < 1 {
-		return fmt.Errorf("no argument provided")
-	}
-
-	if len(args) > 1 && vars.PackageVersion != "" {
-		return fmt.Errorf("--package-version not supported in multi framework install")
-	}
-
-	e := repo.Default
+	repoConfig := repo.Default
 
 	// Initializing empty repo with given variables
-	r, err := repo.NewFrameworkRepository(e)
+	r, err := repo.NewFrameworkRepository(repoConfig)
 	if err != nil {
 		return errors.WithMessage(err, "could not build framework repository")
 	}
@@ -104,7 +105,7 @@ func verifyFrameworks(args []string) error {
 	}
 
 	for _, name := range args {
-		err := verifySingleFramework(name, "", *r, indexFile, kc)
+		err := installFramework(name, "", *r, indexFile, kc)
 		if err != nil {
 			return err
 		}
@@ -113,9 +114,9 @@ func verifyFrameworks(args []string) error {
 }
 
 // Todo: needs testing
-// verifySingleFramework is the umbrella for a single framework installation that gathers the business logic
+// installFramework is the umbrella for a single framework installation that gathers the business logic
 // for a cluster and returns an error in case there is a problem
-func verifySingleFramework(name, previous string, r repo.FrameworkRepository, i *repo.IndexFile, kc *kudo.Client) error {
+func installFramework(name, previous string, r repo.FrameworkRepository, i *repo.IndexFile, kc *kudo.Client) error {
 
 	var bundleVersion *repo.BundleVersion
 	if vars.PackageVersion == "" {
@@ -187,9 +188,9 @@ func verifySingleFramework(name, previous string, r repo.FrameworkRepository, i 
 		for _, v := range dependencyFrameworks {
 			// recursive function call
 			// Dependencies should not be as big as that they will have an overflow in the function stack frame
-			// verifySingleFramework makes sure that dependency Frameworks are created before the Framework itself
+			// installFramework makes sure that dependency Frameworks are created before the Framework itself
 			// and it allows to inherit dependencies.
-			if err := verifySingleFramework(v, name, r, i, kc); err != nil {
+			if err := installFramework(v, name, r, i, kc); err != nil {
 				return errors.Wrapf(err, "installing dependency Framework %s", v)
 			}
 		}
