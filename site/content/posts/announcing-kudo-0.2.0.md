@@ -48,7 +48,7 @@ This is more consistent with tooling such as Helm.
 A Homebrew tap is now available for the KUDO kubectl Plugin. To use it, simply tap the repo and install:
 
 ```
-$ homebrew tap kudobuilder/tap
+$ brew tap kudobuilder/tap
 $ brew install kudo-cli
 ```
 
