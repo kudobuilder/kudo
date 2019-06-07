@@ -10,7 +10,7 @@ kind: ServiceAccount
 metadata:
   labels:
     app: kudo-manager
-  name: dklb
+  name: kudo-manager
   namespace: kudo-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
