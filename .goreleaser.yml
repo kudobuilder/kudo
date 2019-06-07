@@ -48,7 +48,7 @@ release:
   draft: true
   prerelease: auto
   name_template: "{{.ProjectName}}-v{{.Version}} {{.Env.USER}}"
-  disable: true
+  disable: false
 
 changelog:
   sort: asc
