@@ -19,10 +19,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-var (
-	bundleExample = `
-`
-)
 
 const apiVersion = "kudo.k8s.io/v1alpha1"
 
@@ -37,7 +33,7 @@ func newBundleCmd(out io.Writer) *cobra.Command {
 		Use:     "bundle <path>",
 		Short:   "-> Bundle a package from the Beta Framework format into FrameworkVersion (experimental)",
 		Long:    `Bundle a package from the Beta Framework format into FrameworkVersion (experimental)`,
-		Example: bundleExample,
+		Example: "kubectl kudo bundle . | kubectl apply -f -",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			bundle := &bundleCmd{
 				out: out,
