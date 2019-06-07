@@ -1,0 +1,80 @@
+name: mysql
+description: A sample MySQL framework
+version: "5.7"
+kudoVersion: ">=0.2.0"
+kubernetesVersion: ">=1.14.0"
+maintainers:
+- The KUDO Authors <help@kudo.dev>
+url: https://github.com/kudobuilder/kudo
+parameters:
+  - name: BackupFile
+    description: "Filename to save the backups to"
+    default: "backup.sql"
+    displayName: "BackupFile"
+    trigger: backup
+  - name: Password
+    default: "password"
+tasks:
+  deploy:
+    resources:
+    - deployment.yaml
+    - service.yaml
+    - pvc.yaml
+  init:
+    resources:
+    - init.yaml
+  pv:
+    resources:
+    - backup-pv.yaml
+  backup:
+    resources:
+    - backup.yaml
+  restore:
+    resources:
+    - restore.yaml
+plans:
+  deploy:
+    strategy: serial
+    phases:
+      - name: deploy
+        strategy: serial
+        steps:
+          - name: deploy
+            tasks:
+            - deploy
+          - name: init
+            tasks:
+            - init
+          - name: cleanup
+            tasks:
+            - init
+            delete: true
+  backup:
+    strategy: serial
+    phases:
+      - name: backup
+        strategy: serial
+        steps:
+          - name: pv
+            tasks:
+            - pv
+          - name: backup
+            tasks:
+            - backup
+          - name: cleanup
+            tasks:
+            - backup
+            delete: true
+  restore:
+    strategy: serial
+    phases:
+      - name: restore
+        strategy: serial
+        steps:
+          - name: restore
+            tasks:
+            - restore
+          - name: cleanup
+            tasks:
+            - restore
+            delete: true

@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/kudobuilder/kudo/pkg/version"
 	"github.com/spf13/cobra"
 )
@@ -42,6 +44,7 @@ and serves as an API aggregation layer.
 	cmd.AddCommand(NewGetCmd())
 	cmd.AddCommand(NewPlanCmd())
 	cmd.AddCommand(NewVersionCmd())
+	cmd.AddCommand(newBundleCmd(os.Stdout))
 
 	return cmd
 }

@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: default
+  name: {{ .PlanName }}-job
+spec:
+  template:
+    metadata:
+      name: {{ .PlanName }}-job
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: {{ .PlanName }}
+        image: mysql:5.7
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/sh
+        - -c
+        - "mysql -u root -h {{ .Name }}-mysql -p{{ .Params.Password }} --database=kudo < /backups/{{ .Params.BackupFile }}"
+        volumeMounts:
+        - name: backup-pv
+          mountPath: /backups
+      volumes:
+      - name: backup-pv
+        persistentVolumeClaim:
+          claimName: {{ .Name }}-backup-pv
