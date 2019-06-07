@@ -64,6 +64,7 @@ rules:
   resources:
   - configmaps
   - events
+  - persistentvolumeclaims
   verbs:
   - get
   - list
