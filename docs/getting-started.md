@@ -24,8 +24,9 @@ Before you get started:
 
 - Get KUDO repo: `go get github.com/kudobuilder/kudo/`
 - `cd $GOPATH/src/github.com/kudobuilder/kudo`
-- `kubectl apply -f config/crds` to deploy the universal CRDs
-- `make run` to run the Operator with local go environment or `make deploy | kubectl apply -f -` to install to your kubernetes cluster
+- `kubectl create -f docs/deployment/00-prereqs.yaml`
+- `kubectl create -f docs/deployment/10-crds.yaml`
+- `kubectl create -f docs/deployment/20-deployment.yaml`
 
 ### Notes on Minikube
 If you plan on developing and testing KUDO locally via Minikube, you'll need to launch your cluster with a reasonable amount of memory allocated.  By default, this is only 2GB - we recommend at least 8GB, especially if you're working with applications such as [Kafka](/docs/examples/apache-kafka/).  You can start Minikube with some suitable resource adjustments as follows:
