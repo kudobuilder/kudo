@@ -1,7 +1,6 @@
 package bundle
 
 import (
-	"github.com/Masterminds/semver"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 )
 
@@ -10,8 +9,8 @@ type Framework struct {
 	Name              string                         `json:"name"`
 	Description       string                         `json:"description,omitempty"`
 	Version           string                         `json:"version"`
-	KUDOVersion       semver.Version                 `json:"kudoVersion,omitempty"`
-	KubernetesVersion semver.Version                 `json:"kubernetesVersion,omitempty"`
+	KUDOVersion       string                         `json:"kudoVersion,omitempty"`
+	KubernetesVersion string                         `json:"kubernetesVersion,omitempty"`
 	Maintainers       []v1alpha1.Maintainer          `json:"maintainers,omitempty"`
 	URL               string                         `json:"url,omitempty"`
 	Tasks             map[string]v1alpha1.TaskSpec   `json:"tasks"`

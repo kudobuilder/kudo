@@ -132,8 +132,8 @@ func (b *bundleCmd) run() error {
 		},
 		Spec: v1alpha1.FrameworkSpec{
 			Description:       bf.Description,
-			KudoVersion:       bf.KUDOVersion.String(),
-			KubernetesVersion: bf.KubernetesVersion.String(),
+			KudoVersion:       bf.KUDOVersion,
+			KubernetesVersion: bf.KubernetesVersion,
 			Maintainers:       bf.Maintainers,
 			URL:               bf.URL,
 		},
