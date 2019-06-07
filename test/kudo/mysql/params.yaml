@@ -1,0 +1,132 @@
+busybox.image:
+  default: "busybox"
+  trigger: deploy
+busybox.tag:
+  default: "1.29.3"
+  trigger: deploy
+configurationFilesPath:
+  default: "/etc/mysql/conf.d"
+  trigger: "deploy"
+extraVolumes:
+  default: ""
+  trigger: deploy
+extraVolumeMounts:
+  default: ""
+  trigger: deploy
+extraInitContainers:
+  default: ""
+  trigger: deploy
+image:
+  default: "mysql"
+  trigger: deploy
+imagePullPolicy:
+  default: IfNotPresent
+  trigger: deploy
+imageTag: 
+  default: "5.7.14"
+  trigger: deploy
+initContainer.resources.requests.memory:
+  default: "10Mi"
+  trigger: deploy
+initContainer.resources.requests.cpu:
+  default: "10m"
+  trigger: deploy
+livenessProbe.initialDelaySeconds:
+  default: "30"
+  trigger: deploy
+livenessProbe.periodSeconds:
+  default: "10"
+  trigger: deploy
+livenessProbe.timeoutSeconds:
+  default: "5"
+  trigger: deploy
+livenessProbe.successThreshold:
+  default: "1"
+  trigger: deploy
+livenessProbe.failureThreshold:
+  default: "3"
+  trigger: deploy
+metrics.enabled:
+  default: "false"
+  trigger: deploy
+metrics.image:
+  default: "prom/mysqld-exporter"
+  trigger: deploy
+metrics.imageTag:
+  default: "v0.10.0"
+  trigger: deploy
+metrics.imagePullPolicy:
+  default: "IfNotPresent"
+  trigger: deploy
+metrics.livenessProbe.initialDelaySeconds:
+  default: "15"
+  trigger: deploy
+metrics.livenessProbe.timeoutSeconds:
+  default: "5"
+  trigger: deploy
+metrics.readinessProbe.initialDelaySeconds:
+  default: "15"
+  trigger: deploy
+metrics.readinessProbe.timeoutSeconds:
+  default: "1"
+  trigger: deploy
+metrics.serviceMonitor.enabled:
+  default: "false"
+  trigger: deploy
+persistence.enabled:
+  default: "true"
+  trigger: deploy
+persistence.accessMode:
+  default: "ReadWriteOnce"
+  trigger: deploy
+persistence.size:
+  default: "8Gi"
+  trigger: deploy
+readinessProbe.initialDelaySeconds:
+  default: "5"
+  trigger: deploy
+readinessProbe.periodSeconds:
+  default: "10"
+  trigger: deploy
+readinessProbe.timeoutSeconds:
+  default: "1"
+  trigger: deploy
+readinessProbe.successThreshold:
+  default: "1"
+  trigger: deploy
+readinessProbe.failureThreshold:
+  default: "3"
+  trigger: deploy
+resources.requests.memory:
+  default: "256Mi"
+  trigger: deploy
+resources.requests.cpu:
+  default: "100m"
+  trigger: deploy
+securityContext.enabled:
+  default: "false"
+  trigger: deploy
+securityContext.runAsUser:
+  default: "999"
+  trigger: deploy
+securityContext.fsGroup:
+  default: "999"
+  trigger: deploy
+service.type:
+  default: "ClusterIP"
+  trigger: deploy
+service.port:
+  default: "3306"
+  trigger: deploy
+ssl.secrets:
+  default: "mysql-ssl-certs"
+  trigger: deploy
+ssl.certificates:
+  default: ""
+  trigger: deploy
+testFramework.image:
+  default: "dduportal/bats"
+  trigger: deploy
+testFramework.tag:
+  default: "0.4.0"
+  trigger: deploy
