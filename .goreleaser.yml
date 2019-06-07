@@ -33,9 +33,22 @@ builds:
     - amd64
     - arm
 archives:
-- replacements:
+- id: kubectl-kudo
+  builds:
+    - kubectl-kudo
+  replacements:
     386: i386
     amd64: x86_64
+  format: binary
+
+- id: manager
+  builds:
+    - manager
+  replacements:
+    386: i386
+    amd64: x86_64
+  format: binary
+
 checksum:
   name_template: 'checksums.txt'
 snapshot:
@@ -47,7 +60,7 @@ release:
     name: kudo
   draft: true
   prerelease: auto
-  name_template: "{{.ProjectName}}-v{{.Version}} {{.Env.USER}}"
+  name_template: "{{.ProjectName}}-v{{.Version}}"
   disable: false
 
 changelog:
