@@ -59,4 +59,5 @@ changelog:
 s3:
   -
     bucket: kudo-builder
+    region: us-west-2
     acl: public-read
