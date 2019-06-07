@@ -16,6 +16,7 @@ We are proud to announce the release of KUDO v0.2.0! This release focuses on cor
 KUDO has switched to Go Templating with Sprig for templates. All Mustache templates should be replaced to their corresponding Go templates. The following keywords are available:
 
 - `{{ .Name }}` - Name of the instance
+- `{{ .Namespace }}` - Namespace the instance is located in
 - `{{ .FrameworkName }}` - Name of the framework
 - `{{ .PlanName }}` - Name of the plan being run
 - `{{ .PhaseName }}` - Name of the phase being run
