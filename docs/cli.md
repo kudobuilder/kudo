@@ -38,7 +38,12 @@ This document demonstrates how to use the CLI but also shows what happens in `KU
 
 ### Install
 
-Install the plugin from your `$GOPATH/src/github.com/kudobuilder/kudo` root folder via:
+You can either install the CLI plugin using `brew`:
+
+- `homebrew tap kudobuilder/tap`
+- `brew install kudo-cli`
+
+Or you can use compile and install the plugin from your `$GOPATH/src/github.com/kudobuilder/kudo` root folder via:
 
 - `make cli-install`
 
