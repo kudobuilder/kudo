@@ -9,7 +9,7 @@ import (
 
 func TestNewCmdInstallReturnsCmd(t *testing.T) {
 
-	newCmdInstall := NewInstallCmd()
+	newCmdInstall := newInstallCmd()
 
 	if newCmdInstall.Parent() != nil {
 		t.Fatal("We expect the newCmdInstall command to be returned")
@@ -38,7 +38,7 @@ var parameterTests = []struct {
 
 func TestTableNewInstallCmd_WithParameters(t *testing.T) {
 	for _, test := range parameterTests {
-		newCmdInstall := NewInstallCmd()
+		newCmdInstall := newInstallCmd()
 		for _, flag := range test.flags {
 			newCmdInstall.Flags().Set("parameter", flag)
 		}
