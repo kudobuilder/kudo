@@ -74,6 +74,8 @@ brew:
   description: Interact with KUDO via the kubectl plugin
   dependencies:
     - kubernetes-cli
+  install: |
+    bin.install "kubectl-kudo"
 checksum:
   name_template: 'checksums.txt'
 snapshot:
