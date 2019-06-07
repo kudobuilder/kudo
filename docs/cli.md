@@ -33,9 +33,6 @@ This document demonstrates how to use the CLI but also shows what happens in `KU
 ### Requirements
 
 - `kubectl` version `1.12.0` or newer
-- Configure GitHub authentication to be able to pull from [kudobuilder/frameworks](https://github.com/kudobuilder/frameworks). See instructions for [git-credential-store](https://git-scm.com/docs/git-credential-store) and [creating a personal access token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line). 
-  - GitHub personal access token in `$HOME/.git-credentials` or
-  - GitHub Basic Auth via `GIT_USER` and `GIT_PASSWORD` environment variables exposed
 - KUDO CRDs installed to your cluster and KUDO controller is running. See the [getting started guide](/docs/getting-started/) for instructions
 - `kubectl kudo` is running outside your cluster
 
@@ -64,7 +61,6 @@ Usage:
 Flags:
       --all-dependencies          Installs all dependency packages. (default "false")
       --auto-approve              Skip interactive approval when existing version found. (default "false")
-      --githubcredential string   The file path to GitHub credential file. (default "$HOME/.git-credentials")
   -h, --help                      help for install
       --instance string           The instance name. (default to Framework name)
       --kubeconfig string         The file path to Kubernetes configuration file. (default "$HOME/.kube/config")

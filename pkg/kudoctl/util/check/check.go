@@ -11,8 +11,7 @@ import (
 )
 
 const (
-	defaultKubeConfigPath       = ".kube/config"
-	defaultGithubCredentialPath = ".git-credentials"
+	defaultKubeConfigPath = ".kube/config"
 )
 
 // ValidateKubeConfigPath checks if the kubeconfig file exists.
@@ -42,22 +41,4 @@ func getKubeConfigLocation() (string, error) {
 		return filepath.Join(usr.HomeDir, defaultKubeConfigPath), nil
 	}
 	return vars.KubeConfigPath, nil
-}
-
-// GithubCredentials checks if the credential file exists.
-func GithubCredentials() error {
-	// if credentials are not specified, search for the default credential file under the $HOME/.git-credentials.
-	if len(vars.GithubCredentialPath) == 0 {
-		usr, err := user.Current()
-		if err != nil {
-			return errors.Wrap(err, "failed to determine user's home dir")
-		}
-		vars.GithubCredentialPath = filepath.Join(usr.HomeDir, defaultGithubCredentialPath)
-	}
-
-	_, err := os.Stat(vars.GithubCredentialPath)
-	if err != nil && os.IsNotExist(err) {
-		return errors.Wrap(err, "failed to find github credential file")
-	}
-	return nil
 }

@@ -43,9 +43,7 @@ After updating CRD manifests, use `make deploy` to apply the new CRDs to your cl
 ### Build and run tests using docker
 If you don't want to install kubebuilder and other dependencies of KUDO locally, you can optionally run build and tests inside a docker container which is what our CI does.
 
-Right now, the project requires you to set-up `.git-credentials` file which the build expects to be located in the test directory inside this project (that's because for docker build to run, every file that we copy in has to be inside the passed build context).
-
-If you have `.git-credentials` file set up, you can just run:
+To run tests, you can just execute:
 
 `./test/run_tests.sh`
 
