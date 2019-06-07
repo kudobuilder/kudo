@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/martian/log"
-
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/helpers"
@@ -122,16 +120,28 @@ func verifySingleFramework(name, previous string, r repo.FrameworkRepository, i 
 	var bundleVersion *repo.BundleVersion
 	if vars.PackageVersion == "" {
 		bv, err := i.GetByName(name)
+<<<<<<< HEAD
 		if err != nil {
 			return errors.Wrapf(err, "getting %s in index file", name)
 		}
 		bundleVersion = bv
 	} else {
 		bv, err := i.GetByNameAndVersion(name, vars.PackageVersion)
+=======
+>>>>>>> master
 		if err != nil {
 			return errors.Wrapf(err, "getting %s in index file", name)
 		}
 		bundleVersion = bv
+<<<<<<< HEAD
+=======
+	} else {
+		bv, err := i.GetByNameAndVersion(name, vars.PackageVersion)
+		if err != nil {
+			return errors.Wrapf(err, "getting %s in index file", name)
+		}
+		bundleVersion = bv
+>>>>>>> master
 	}
 
 	bundleName := bundleVersion.Name + "-" + bundleVersion.Version
@@ -234,7 +244,11 @@ func installSingleFrameworkToCluster(name string, f *v1alpha1.Framework, kc *kud
 	if _, err := kc.InstallFrameworkObjToCluster(f); err != nil {
 		return errors.Wrapf(err, "installing %s-framework.yaml", name)
 	}
+<<<<<<< HEAD
 	log.Infof("framework.%s/%s created\n", f.APIVersion, f.Name)
+=======
+	fmt.Printf("framework.%s/%s created\n", f.APIVersion, f.Name)
+>>>>>>> master
 	return nil
 }
 
@@ -244,7 +258,11 @@ func installSingleFrameworkVersionToCluster(name string, kc *kudo.Client, fv *v1
 	if _, err := kc.InstallFrameworkVersionObjToCluster(fv); err != nil {
 		return errors.Wrapf(err, "installing %s-frameworkversion.yaml", name)
 	}
+<<<<<<< HEAD
 	log.Infof("frameworkversion.%s/%s created\n", fv.APIVersion, fv.Name)
+=======
+	fmt.Printf("frameworkversion.%s/%s created\n", fv.APIVersion, fv.Name)
+>>>>>>> master
 	return nil
 }
 
@@ -272,6 +290,10 @@ func installSingleInstanceToCluster(name, previous string, instance *v1alpha1.In
 	if _, err := kc.InstallInstanceObjToCluster(instance); err != nil {
 		return errors.Wrapf(err, "installing %s-instance.yaml", name)
 	}
+<<<<<<< HEAD
 	log.Infof("instance.%s/%s created\n", instance.APIVersion, instance.Name)
+=======
+	fmt.Printf("instance.%s/%s created\n", instance.APIVersion, instance.Name)
+>>>>>>> master
 	return nil
 }
