@@ -49,8 +49,6 @@ type FrameworkVersionSpec struct {
 	UpgradableFrom []FrameworkVersion `json:"upgradableFrom,omitempty"`
 }
 
-type TaskList map[string]TaskSpec
-
 //Ordering specifies how the subitems in this plan/phase should be rolled out
 type Ordering string
 

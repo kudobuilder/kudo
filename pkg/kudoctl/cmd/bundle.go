@@ -19,7 +19,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-
 const apiVersion = "kudo.k8s.io/v1alpha1"
 
 type bundleCmd struct {
@@ -40,7 +39,7 @@ func newBundleCmd(out io.Writer) *cobra.Command {
 			}
 
 			if len(args) != 1 {
-				return errors.Errorf("Bundle requires 1 path argument, got %i", len(args))
+				return errors.Errorf("Bundle requires 1 path argument, got %d", len(args))
 			}
 
 			bp, err := resolveBundlePath(args[0])
@@ -87,7 +86,7 @@ func (b *bundleCmd) run() error {
 
 	tpls := map[string]string{}
 
-	err = filepath.Walk(templatePath, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(templatePath, func(path string, info os.FileInfo, _ error) error {
 		if info.IsDir() {
 			if templatePath == path {
 				return nil
