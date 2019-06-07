@@ -13,6 +13,8 @@ builds:
 -
   binary: manager
   main: cmd/manager/main.go
+  ldflags:
+    - -s -w -X github.com/kudobuilder/kudo/pkg/version.gitVersion={{ .Version }} -X github.com/kudobuilder/kudo/pkg/version.gitCommit={{ .ShortCommit }} -X github.com/kudobuilder/kudo/pkg/version.buildDate={{ .Date }}
   goos:
     - linux
     - darwin
@@ -24,6 +26,8 @@ builds:
 -
   binary: kubectl-kudo
   main: cmd/kubectl-kudo/main.go
+  ldflags:
+    - -s -w -X github.com/kudobuilder/kudo/pkg/version.gitVersion={{ .Version }} -X github.com/kudobuilder/kudo/pkg/version.gitCommit={{ .ShortCommit }} -X github.com/kudobuilder/kudo/pkg/version.buildDate={{ .Date }}
   goos:
     - linux
     - darwin
@@ -32,6 +36,14 @@ builds:
     - 386
     - amd64
     - arm
+dockers:
+  - dockerfile: Dockerfile.goreleaser
+    binaries:
+      - manager
+    image_templates:
+      - "kudobuilder/controller:latest"
+      - "kudobuilder/controller:{{ .Tag }}"
+    skip_push: auto
 archives:
 - id: kubectl-kudo
   builds:
