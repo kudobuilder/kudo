@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/martian/log"
-
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/helpers"
@@ -234,7 +232,7 @@ func installSingleFrameworkToCluster(name string, f *v1alpha1.Framework, kc *kud
 	if _, err := kc.InstallFrameworkObjToCluster(f); err != nil {
 		return errors.Wrapf(err, "installing %s-framework.yaml", name)
 	}
-	log.Infof("framework.%s/%s created\n", f.APIVersion, f.Name)
+	fmt.Printf("framework.%s/%s created\n", f.APIVersion, f.Name)
 	return nil
 }
 
@@ -244,7 +242,7 @@ func installSingleFrameworkVersionToCluster(name string, kc *kudo.Client, fv *v1
 	if _, err := kc.InstallFrameworkVersionObjToCluster(fv); err != nil {
 		return errors.Wrapf(err, "installing %s-frameworkversion.yaml", name)
 	}
-	log.Infof("frameworkversion.%s/%s created\n", fv.APIVersion, fv.Name)
+	fmt.Printf("frameworkversion.%s/%s created\n", fv.APIVersion, fv.Name)
 	return nil
 }
 
@@ -272,6 +270,6 @@ func installSingleInstanceToCluster(name, previous string, instance *v1alpha1.In
 	if _, err := kc.InstallInstanceObjToCluster(instance); err != nil {
 		return errors.Wrapf(err, "installing %s-instance.yaml", name)
 	}
-	log.Infof("instance.%s/%s created\n", instance.APIVersion, instance.Name)
+	fmt.Printf("instance.%s/%s created\n", instance.APIVersion, instance.Name)
 	return nil
 }
