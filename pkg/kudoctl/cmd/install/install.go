@@ -32,14 +32,6 @@ func RunInstall(cmd *cobra.Command, args []string) error {
 		return errors.WithMessage(err, "could not parse parameters")
 	}
 
-	if len(args) < 1 {
-		return fmt.Errorf("no argument provided, expecting name of package(s)")
-	}
-
-	if len(args) > 1 && vars.PackageVersion != "" {
-		return fmt.Errorf("--package-version not supported in multi framework install")
-	}
-
 	if err := installFrameworks(args); err != nil {
 		return errors.WithMessage(err, "could not install framework(s)")
 	}
@@ -80,6 +72,13 @@ func validateInstallParameters() error {
 // installFrameworks installs all frameworks specified as arguments into the cluster
 func installFrameworks(args []string) error {
 
+	if len(args) < 1 {
+		return fmt.Errorf("no argument provided")
+	}
+
+	if len(args) > 1 && vars.PackageVersion != "" {
+		return fmt.Errorf("--package-version not supported in multi framework install")
+	}
 	repoConfig := repo.Default
 
 	// Initializing empty repo with given variables
@@ -116,17 +115,17 @@ func installFrameworks(args []string) error {
 // Todo: needs testing
 // installFramework is the umbrella for a single framework installation that gathers the business logic
 // for a cluster and returns an error in case there is a problem
-func installFramework(name, previous string, r repo.FrameworkRepository, i *repo.IndexFile, kc *kudo.Client) error {
+func installFramework(name, previous string, repository repo.FrameworkRepository, indexFile *repo.IndexFile, kc *kudo.Client) error {
 
 	var bundleVersion *repo.BundleVersion
 	if vars.PackageVersion == "" {
-		bv, err := i.GetByName(name)
+		bv, err := indexFile.GetByName(name)
 		if err != nil {
 			return errors.Wrapf(err, "getting %s in index file", name)
 		}
 		bundleVersion = bv
 	} else {
-		bv, err := i.GetByNameAndVersion(name, vars.PackageVersion)
+		bv, err := indexFile.GetByNameAndVersion(name, vars.PackageVersion)
 		if err != nil {
 			return errors.Wrapf(err, "getting %s in index file", name)
 		}
@@ -135,7 +134,7 @@ func installFramework(name, previous string, r repo.FrameworkRepository, i *repo
 
 	bundleName := bundleVersion.Name + "-" + bundleVersion.Version
 
-	bundle, err := r.DownloadBundle(bundleName)
+	bundle, err := repository.DownloadBundle(bundleName)
 	if err != nil {
 		return errors.Wrap(err, "failed to download bundle")
 	}
@@ -181,7 +180,7 @@ func installFramework(name, previous string, r repo.FrameworkRepository, i *repo
 
 	// Dependencies of the particular FrameworkVersion
 	if vars.AllDependencies {
-		dependencyFrameworks, err := r.GetFrameworkVersionDependencies(name, bundle.FrameworkVersion)
+		dependencyFrameworks, err := repository.GetFrameworkVersionDependencies(name, bundle.FrameworkVersion)
 		if err != nil {
 			return errors.Wrap(err, "getting Framework dependencies")
 		}
@@ -190,7 +189,7 @@ func installFramework(name, previous string, r repo.FrameworkRepository, i *repo
 			// Dependencies should not be as big as that they will have an overflow in the function stack frame
 			// installFramework makes sure that dependency Frameworks are created before the Framework itself
 			// and it allows to inherit dependencies.
-			if err := installFramework(v, name, r, i, kc); err != nil {
+			if err := installFramework(v, name, repository, indexFile, kc); err != nil {
 				return errors.Wrapf(err, "installing dependency Framework %s", v)
 			}
 		}
