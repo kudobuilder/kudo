@@ -32,14 +32,6 @@ func RunInstall(cmd *cobra.Command, args []string) error {
 		return errors.WithMessage(err, "could not parse parameters")
 	}
 
-	if len(args) < 1 {
-		return fmt.Errorf("no argument provided, expecting name of package(s)")
-	}
-
-	if len(args) > 1 && vars.PackageVersion != "" {
-		return fmt.Errorf("--package-version not supported in multi framework install")
-	}
-
 	if err := installFrameworks(args); err != nil {
 		return errors.WithMessage(err, "could not install framework(s)")
 	}
@@ -80,6 +72,13 @@ func validateInstallParameters() error {
 // installFrameworks installs all frameworks specified as arguments into the cluster
 func installFrameworks(args []string) error {
 
+	if len(args) < 1 {
+		return fmt.Errorf("no argument provided")
+	}
+
+	if len(args) > 1 && vars.PackageVersion != "" {
+		return fmt.Errorf("--package-version not supported in multi framework install")
+	}
 	repoConfig := repo.Default
 
 	// Initializing empty repo with given variables
