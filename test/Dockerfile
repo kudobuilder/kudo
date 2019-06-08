@@ -8,6 +8,4 @@ COPY config/ config/
 COPY pkg/ pkg/
 COPY cmd/ cmd/
 
-RUN cp .git-credentials ~/.git-credentials
-
 ENTRYPOINT make test
