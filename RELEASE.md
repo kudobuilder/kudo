@@ -16,7 +16,7 @@ The Kudo Project is released on an as-needed basis. The process is as follows:
 The official binaries for Kudo are created using [goreleaser](https://goreleaser.com/) for the release process through the circleci release job. The [.goreleaser.yml](.goreleaser.yml) defines the binaries which are supported for each release.  The circle-ci release process has not been provided with credentials for Github and Docker hub yet.  The current process to initiate a release is:
 
 1. Ensure you have credential `GITHUB_TOKEN` set.
-2. Ensure you are logged into Docker hub and have rights to push to kubebuilder.
+2. Ensure you are logged into Docker hub and have rights to push to kudobuilder.
 3. Tag repo with expected release `git tag -a v0.2.0 -m "v0.2.0"`  && push tag `git push --tags`.
 4. Invoke goreleaser `goreleaser --rm-dist`.
 5. Update the GH release with Release highlevels.
