@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+// Options defines configuration options for the install command
 type Options struct {
 	AllDependencies bool
 	AutoApprove     bool
@@ -24,12 +25,10 @@ type Options struct {
 	KubeConfigPath  string
 }
 
+// NewOptions initializes the install command options to its defaults
 func NewOptions() *Options {
 	return &Options{
-		AllDependencies: false,
-		AutoApprove:     false,
-		InstanceName:    "",
-		Namespace:       "default",
+		Namespace: "default",
 	}
 }
 
@@ -65,23 +64,20 @@ func RunInstall(cmd *cobra.Command, args []string, options *Options) error {
 func validateInstallParameters(parameters []string) error {
 	var errs []string
 
-	if parameters != nil {
-
-		for _, a := range parameters {
-			// Using '=' as the delimiter. Split after the first delimiter to support using '=' in values
-			s := strings.SplitN(a, "=", 2)
-			if len(s) < 2 {
-				errs = append(errs, fmt.Sprintf("parameter not set: %+v", a))
-				continue
-			}
-			if s[0] == "" {
-				errs = append(errs, fmt.Sprintf("parameter name can not be empty: %+v", a))
-				continue
-			}
-			if s[1] == "" {
-				errs = append(errs, fmt.Sprintf("parameter value can not be empty: %+v", a))
-				continue
-			}
+	for _, a := range parameters {
+		// Using '=' as the delimiter. Split after the first delimiter to support using '=' in values
+		s := strings.SplitN(a, "=", 2)
+		if len(s) < 2 {
+			errs = append(errs, fmt.Sprintf("parameter not set: %+v", a))
+			continue
+		}
+		if s[0] == "" {
+			errs = append(errs, fmt.Sprintf("parameter name can not be empty: %+v", a))
+			continue
+		}
+		if s[1] == "" {
+			errs = append(errs, fmt.Sprintf("parameter value can not be empty: %+v", a))
+			continue
 		}
 	}
 

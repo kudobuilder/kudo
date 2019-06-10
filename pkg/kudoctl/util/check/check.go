@@ -24,6 +24,7 @@ func ValidateKubeConfigPath(path string) error {
 	return nil
 }
 
+// KubeConfigLocationOrDefault returns provided kubeconfig location or default if empty
 func KubeConfigLocationOrDefault(location string) (string, error) {
 	// if location is not specified, set the default kubeconfig file to $HOME/.kube/config.
 	if len(location) == 0 {
