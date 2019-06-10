@@ -316,7 +316,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	log.Printf("InstanceController: Recieved Reconcile request for \"%+v\"", request.Name)
+	log.Printf("InstanceController: Received Reconcile request for \"%+v\"", request.Name)
 
 	//Make sure the FrameworkVersion is present
 	fv := &kudov1alpha1.FrameworkVersion{}

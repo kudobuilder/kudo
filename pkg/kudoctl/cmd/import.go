@@ -9,8 +9,8 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 )
 
-// NewImportCmd creates the import command for the CLI
-func NewImportCmd() *cobra.Command {
+// newImportCmd creates the import command for the CLI
+func newImportCmd() *cobra.Command {
 	importCmd := &cobra.Command{
 		Use:   "import",
 		Short: "Import folder as Framework and FrameworkVersion",

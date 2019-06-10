@@ -9,8 +9,8 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 )
 
-// NewConvertCmd creates a new command that shows the plans available for an instance
-func NewConvertCmd() *cobra.Command {
+// newConvertCmd creates a new command that shows the plans available for an instance
+func newConvertCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "convert",
 		Short: "Converts helm chart into KUDO repo structure",

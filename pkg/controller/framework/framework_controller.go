@@ -94,7 +94,7 @@ func (r *ReconcileFramework) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	log.Printf("FrameworkController: Recieved Reconcile request for a framework named: %v", request.Name)
+	log.Printf("FrameworkController: Received Reconcile request for a framework named: %v", request.Name)
 
 	return reconcile.Result{}, nil
 }
