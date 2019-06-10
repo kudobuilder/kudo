@@ -21,7 +21,7 @@ var (
 
 // newInstallCmd creates the install command for the CLI
 func newInstallCmd() *cobra.Command {
-	options := install.NewOptions()
+	options := install.DefaultOptions
 	installCmd := &cobra.Command{
 		Use:     "install <name>",
 		Short:   "-> Install an official KUDO package.",

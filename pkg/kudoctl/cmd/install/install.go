@@ -26,10 +26,8 @@ type Options struct {
 }
 
 // NewOptions initializes the install command options to its defaults
-func NewOptions() *Options {
-	return &Options{
-		Namespace: "default",
-	}
+var DefaultOptions = &Options{
+	Namespace: "default",
 }
 
 // RunInstall returns the errors associated with cmd env

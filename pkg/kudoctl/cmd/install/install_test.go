@@ -12,7 +12,7 @@ func TestInstallFrameworks(t *testing.T) {
 	}
 
 	// For test case #2
-	options := NewOptions()
+	options := DefaultOptions
 	options.PackageVersion = "0.0"
 	installCmdPackageVersionArgs := []string{"one", "two"}
 	expectedPackageVersionFlagErrors := []string{
