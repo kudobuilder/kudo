@@ -42,7 +42,7 @@ func TestInstallCmd(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		err := CmdErrorProcessor(tt.cmd, tt.args)
+		err := RunInstall(tt.cmd, tt.args)
 		if err != nil {
 			receivedErrorList := []string{err.Error()}
 			diff := compareSlice(receivedErrorList, tt.err)
@@ -82,7 +82,7 @@ func TestInstallFrameworks(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		err := verifyFrameworks(tt.args)
+		err := installFrameworks(tt.args)
 		if err != nil {
 			receivedErrorList := []string{err.Error()}
 			diff := compareSlice(receivedErrorList, tt.err)

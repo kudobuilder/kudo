@@ -25,7 +25,9 @@ Before you get started:
 
 - Get KUDO repo: `git clone git@github.com:kudobuilder/kudo.git`
 - `cd kudo`
-- `make deploy | kubectl apply -f -` to install controller and CRDs to your Kubernetes cluster
+- `kubectl create -f docs/deployment/00-prereqs.yaml`
+- `kubectl create -f docs/deployment/10-crds.yaml`
+- `kubectl create -f docs/deployment/20-deployment.yaml`
 
 ### Notes on Minikube
 If you plan on developing and testing KUDO locally via Minikube, you'll need to launch your cluster with a reasonable amount of memory allocated.  By default, this is only 2GB - we recommend at least 8GB, especially if you're working with applications such as [Kafka](/docs/examples/apache-kafka/).  You can start Minikube with some suitable resource adjustments as follows:
@@ -37,16 +39,6 @@ minikube start --cpus=4 --memory=8192 --disk-size=40g
 **Before** `kubectl apply -f config/crds` you will need to have:
 
  * minikube running
- * `~/.git-credentials` must exist with git credentials with details below.
-
-### Setting up GitHub Credentials
-In order to setup `~/.git-credentials` the file needs to have the format of:
-```
-https://<username>:<credential>@github.com
-```
-
-The username is your GitHub user name and the credential is your password. If you are using 2-factor authentication, the credentials will need to be an application [personal access token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line).
-
 
 ## Deploy your first Application
 
