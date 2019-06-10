@@ -10,6 +10,7 @@ weight: 1
 
 Before you get started:
 
+- Install Git
 - Install Go `1.12.3` or later
 - This project uses [Go Modules](https://github.com/golang/go/wiki/Modules). Set `GO111MODULE=on` in your environment.
 - Kubernetes Cluster `1.13` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
@@ -20,10 +21,10 @@ Before you get started:
 
 > ⚠️ This project uses Go Modules. Due to the current state of code generation in [controller-tools](https://github.com/kubernetes-sigs/controller-tools) and [code-generator](https://github.com/kubernetes/code-generator), KUDO currently **must** be cloned into its `$GOPATH`-based location.
 
-## Installation Instructions
+## Install KUDO into your cluster
 
-- Get KUDO repo: `go get github.com/kudobuilder/kudo/`
-- `cd $GOPATH/src/github.com/kudobuilder/kudo`
+- Get KUDO repo: `git clone git@github.com:kudobuilder/kudo.git`
+- `cd kudo`
 - `kubectl create -f docs/deployment/00-prereqs.yaml`
 - `kubectl create -f docs/deployment/10-crds.yaml`
 - `kubectl create -f docs/deployment/20-deployment.yaml`
