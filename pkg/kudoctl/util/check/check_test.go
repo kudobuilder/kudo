@@ -4,26 +4,24 @@ import (
 	"os/user"
 	"path/filepath"
 	"testing"
-
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 )
 
 func TestKubeConfigPath(t *testing.T) {
 	// first we test that the vars.KubeConfigPath is propagated correctly when resolving the path
-	vars.KubeConfigPath = "/tmp/;"
-	location, err := getKubeConfigLocation()
+	kubeConfigPath := "/tmp/;"
+	location, err := KubeConfigLocationOrDefault(kubeConfigPath)
 	if err != nil {
-		t.Errorf("expected kubeconfig path '%v' to be propagated from vars, got error instead %v", vars.KubeConfigPath, err)
+		t.Errorf("expected kubeconfig path '%v' to be propagated from vars, got error instead %v", kubeConfigPath, err)
 	}
-	if location != vars.KubeConfigPath {
-		t.Errorf("expected kubeconfig path '%v' to be propagated from vars, kubeconfig path instead resolved as %v", vars.KubeConfigPath, location)
+	if location != kubeConfigPath {
+		t.Errorf("expected kubeconfig path '%v' to be propagated from vars, kubeconfig path instead resolved as %v", kubeConfigPath, location)
 	}
 
 	// then we test that default is used when no path is provided in vars
-	vars.KubeConfigPath = ""
+	kubeConfigPath = ""
 	usr, _ := user.Current()
 	expectedPath := filepath.Join(usr.HomeDir, defaultKubeConfigPath)
-	location, err = getKubeConfigLocation()
+	location, err = KubeConfigLocationOrDefault(kubeConfigPath)
 	if err != nil {
 		t.Errorf("expected kubeconfig path '%v', got error instead %v", expectedPath, err)
 	}
