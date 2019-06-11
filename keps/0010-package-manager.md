@@ -182,9 +182,9 @@ This includes e.g.:
 
 ## Implementation History
 
-2019/05/16 - Initial draft.
-2019/05/30 - Updates to structure from KEP-0009
-2019/06/06 - Initial Re-Factoring to new Repo Structure ( https://github.com/kudobuilder/frameworks/pull/19 )
+- 2019/05/16 - Initial draft.
+- 2019/05/30 - Updates to structure from KEP-0009
+- 2019/06/06 - Initial Re-Factoring to new Repo Structure ( https://github.com/kudobuilder/frameworks/pull/19 )
 
 ## Infrastructure Needed
 
