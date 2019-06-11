@@ -36,7 +36,7 @@ func NewGetInstancesCmd() *cobra.Command {
 		Long: `
 	# Get all available instances
 	kudoctl get instances`,
-		Run: instancesGetCmd,
+		Run: run,
 	}
 
 	getCmd.Flags().StringVar(&kubeConfig, "kubeconfig", "", "The file path to kubernetes configuration file; defaults to $HOME/.kube/config")
@@ -45,7 +45,7 @@ func NewGetInstancesCmd() *cobra.Command {
 	return getCmd
 }
 
-func instancesGetCmd(cmd *cobra.Command, args []string) {
+func run(cmd *cobra.Command, args []string) {
 
 	mustKubeConfig()
 

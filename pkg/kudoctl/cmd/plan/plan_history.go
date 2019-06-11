@@ -3,7 +3,8 @@ package plan
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
+	"github.com/pkg/errors"
 	"time"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
@@ -24,7 +25,7 @@ func NewPlanHistoryCmd() *cobra.Command {
 		Long: `
 	# View plan status
 	kudoctl plan history <frameworkVersion> --instance=<instanceName>`,
-		Run: planHistoryCmd,
+		RunE: runHistory,
 	}
 
 	listCmd.Flags().StringVar(&instance, "instance", "", "The instance name.")
@@ -34,25 +35,33 @@ func NewPlanHistoryCmd() *cobra.Command {
 	return listCmd
 }
 
-func planHistoryCmd(cmd *cobra.Command, args []string) {
+func runHistory(cmd *cobra.Command, args []string) error {
 
 	instanceFlag, err := cmd.Flags().GetString("instance")
 	if err != nil || instanceFlag == "" {
-		log.Fatal("Flag Error: Please set instance flag, e.g. \"--instance=<instanceName>\"")
+		return fmt.Errorf("Flag Error: Please set instance flag, e.g. \"--instance=<instanceName>\"")
 	}
 
-	mustKubeConfig()
+	configPath, err := check.KubeConfigLocationOrDefault(kubeConfig)
+	if err != nil {
+		return fmt.Errorf("error when getting default kubeconfig path: %+v", err)
+	}
+	kubeConfig = configPath
+	if err := check.ValidateKubeConfigPath(kubeConfig); err != nil {
+		return errors.WithMessage(err, "could not check kubeconfig path")
+	}
 
 	_, err = cmd.Flags().GetString("kubeconfig")
 	// Todo: wrong flag
 	if err != nil || instanceFlag == "" {
-		log.Fatalf("Flag Error: %v", err)
+		return fmt.Errorf("flag Error: %v", err)
 	}
 
 	err = planHistory(args)
 	if err != nil {
-		log.Fatalf("Client Error: %v", err)
+		return fmt.Errorf("client Error: %v", err)
 	}
+	return nil
 }
 
 func planHistory(args []string) error {

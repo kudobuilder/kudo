@@ -3,9 +3,9 @@ package plan
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/xlab/treeprint"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,7 +22,7 @@ func NewPlanStatusCmd() *cobra.Command {
 		Long: `
 	# View plan status
 	kudoctl plan status --instance=<instanceName> --kubeconfig=<$HOME/.kube/config>`,
-		Run: planStatusCmd,
+		RunE: runStatus,
 	}
 
 	statusCmd.Flags().StringVar(&instance, "instance", "", "The instance name available from 'kubectl get instances'")
@@ -32,24 +32,32 @@ func NewPlanStatusCmd() *cobra.Command {
 	return statusCmd
 }
 
-func planStatusCmd(cmd *cobra.Command, args []string) {
+func runStatus(cmd *cobra.Command, args []string) error {
 
 	instanceFlag, err := cmd.Flags().GetString("instance")
 	if err != nil || instanceFlag == "" {
-		log.Fatal("Flag Error: Please set instance flag, e.g. \"--instance=<instanceName>\"")
+		return fmt.Errorf("flag Error: Please set instance flag, e.g. \"--instance=<instanceName>\"")
 	}
 
-	mustKubeConfig()
+	configPath, err := check.KubeConfigLocationOrDefault(kubeConfig)
+	if err != nil {
+		return fmt.Errorf("error when getting default kubeconfig path: %+v", err)
+	}
+	kubeConfig = configPath
+	if err := check.ValidateKubeConfigPath(kubeConfig); err != nil {
+		return errors.WithMessage(err, "could not check kubeconfig path")
+	}
 
 	_, err = cmd.Flags().GetString("kubeconfig")
 	if err != nil || instanceFlag == "" {
-		log.Fatal("Flag Error: Please set kubeconfig flag, e.g. \"--kubeconfig=<$HOME/.kube/config>\"")
+		return fmt.Errorf("flag Error: Please set kubeconfig flag, e.g. \"--kubeconfig=<$HOME/.kube/config>\"")
 	}
 
 	err = planStatus()
 	if err != nil {
-		log.Fatalf("Client Error: %v", err)
+		return fmt.Errorf("client Error: %v", err)
 	}
+	return nil
 }
 
 func planStatus() error {

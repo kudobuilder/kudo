@@ -28,7 +28,7 @@ func newInstallCmd() *cobra.Command {
 		Long:    `Install a KUDO package from the official GitHub repo.`,
 		Example: installExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return install.RunInstall(cmd, args, options)
+			return install.Run(cmd, args, options)
 		},
 		SilenceUsage: true,
 	}
