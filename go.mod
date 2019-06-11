@@ -7,8 +7,9 @@ require (
 	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/Masterminds/semver v1.4.2
 	github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30 // indirect
+	github.com/cyphar/filepath-securejoin v0.2.2 // indirect
 	github.com/emicklei/go-restful v2.9.0+incompatible // indirect
-	github.com/ghodss/yaml v1.0.0 // indirect
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-logr/logr v0.1.0 // indirect
 	github.com/go-logr/zapr v0.1.0 // indirect
 	github.com/go-openapi/jsonpointer v0.18.0 // indirect
@@ -29,8 +30,8 @@ require (
 	github.com/google/uuid v1.1.0 // indirect
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190212212710-3befbb6ad0cc // indirect
-	github.com/helm/helm v2.14.0+incompatible
 	github.com/hashicorp/golang-lru v0.5.1 // indirect
+	github.com/helm/helm v2.14.0+incompatible
 	github.com/huandu/xstrings v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect

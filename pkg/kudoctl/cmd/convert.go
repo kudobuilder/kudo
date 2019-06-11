@@ -19,7 +19,9 @@ func newConvertCmd() *cobra.Command {
 	}
 
 	newCmd.Flags().StringVarP(&vars.FrameworkImportPath, "folder", "f", "", "Folder directory to import")
-	newCmd.Flags().StringVarP(&vars.Format, "out", "o", "", "Folder Directory to output REPO.  Should NOT exist")
+	newCmd.Flags().StringVarP(&vars.BundleOutputPath, "out", "o", "", "Folder Directory to output REPO.  Should NOT exist")
+	// newCmd.Flags().StringVarp()
+
 	const usageFmt = "Usage:\n  %s\n\nFlags:\n%s"
 	newCmd.SetUsageFunc(func(cmd *cobra.Command) error {
 		fmt.Fprintf(newCmd.OutOrStderr(), usageFmt, newCmd.UseLine(), newCmd.Flags().FlagUsages())

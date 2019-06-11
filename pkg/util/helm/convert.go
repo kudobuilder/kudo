@@ -20,66 +20,6 @@ import (
 // MinHelmVersion is the minimum KUDO version that supports helm templating
 const MinHelmVersion = "0.2.0"
 
-// Import convers the chart at the provided folder into a Framework and FrameworkVersion
-func Import(folder string) (kudo.Framework, kudo.FrameworkVersion, error) {
-
-	frameworkVersion := kudo.FrameworkVersion{}
-	frameworkVersion.Kind = "FrameworkVersion"
-	frameworkVersion.APIVersion = kudo.SchemeGroupVersion.String()
-
-	framework, err := loadMetadata(folder)
-	if err != nil {
-		return framework, frameworkVersion, err
-	}
-
-	templates, err := loadTemplates(folder)
-	if err != nil {
-		return framework, frameworkVersion, err
-	}
-	//need to get Version from chart.yaml
-	frameworkVersion.Name = framework.Name + "-stable"
-	frameworkVersion.Spec.Templates = templates
-
-	//Create the single task
-	deployTask := kudo.TaskSpec{
-		Resources: make([]string, 0),
-	}
-	for k := range templates {
-		deployTask.Resources = append(deployTask.Resources, k)
-	}
-	frameworkVersion.Spec.Tasks = make(map[string]kudo.TaskSpec)
-	frameworkVersion.Spec.Tasks["deploy"] = deployTask
-
-	//create the single plan
-	deployPlan := kudo.Plan{
-		Strategy: kudo.Serial,
-		Phases: []kudo.Phase{kudo.Phase{
-			Name:     "deploy",
-			Strategy: kudo.Serial,
-			Steps: []kudo.Step{
-				kudo.Step{
-					Name:   "deploy",
-					Tasks:  []string{"deploy"},
-					Delete: false,
-				},
-			},
-		}},
-	}
-	frameworkVersion.Spec.Plans = make(map[string]kudo.Plan)
-	frameworkVersion.Spec.Plans["deploy"] = deployPlan
-
-	//parameters
-	params, err := loadParameters(folder)
-	if err != nil {
-		return framework, frameworkVersion, err
-	}
-	frameworkVersion.Spec.Parameters = params
-
-	frameworkVersion.Spec.Framework.Name = framework.Name
-
-	return framework, frameworkVersion, nil
-}
-
 func loadParameters(folder string) ([]kudo.Parameter, error) {
 	params := make([]kudo.Parameter, 0)
 	values, err := chartutil.ReadValuesFile(folder + "/values.yaml")
@@ -143,31 +83,6 @@ func getParametersFromValues(value chartutil.Values) ([]kudo.Parameter, error) {
 		}
 	}
 	return params, nil
-}
-
-func loadMetadata(folder string) (kudo.Framework, error) {
-	framework := kudo.Framework{}
-	framework.Kind = "Framework"
-	framework.APIVersion = kudo.SchemeGroupVersion.String()
-	//TODO allow passing in of https:// paths.
-	meta, err := chartutil.LoadChartfile(folder + "/Chart.yaml")
-	if err != nil {
-		meta, err = chartutil.LoadChartfile(folder + "/operator.yaml")
-		if err != nil {
-			return framework, err
-		}
-	}
-
-	framework.ObjectMeta.Name = meta.Name
-	framework.Spec.Description = meta.Description
-	framework.Spec.KudoVersion = MinHelmVersion
-	framework.Spec.KubernetesVersion = meta.KubeVersion
-	framework.Spec.Maintainers = make([]kudo.Maintainer, 0)
-	for _, m := range meta.Maintainers {
-		framework.Spec.Maintainers = append(framework.Spec.Maintainers, kudo.Maintainer(fmt.Sprintf("%v <%v>", m.Name, m.Email)))
-	}
-
-	return framework, nil
 }
 
 func loadTemplates(folder string) (map[string]string, error) {

@@ -1,0 +1,39 @@
+description: Fast, reliable, scalable, and easy to use open-source relational database
+  system.
+kudoVersion: 0.2.0
+maintainers:
+- olemarkus <o.with@sportradar.com>
+- viglesiasce <viglesias@google.com>
+name: mysql
+plans:
+  deploy:
+    phases:
+    - name: deploy
+      steps:
+      - name: deploy
+        tasks:
+        - servicemonitor.yaml
+        - test.yaml
+        - configurationFiles-configmap.yaml
+        - deployment.yaml
+        - secrets.yaml
+        - svc.yaml
+        - test-configmap.yaml
+        - initializationFiles-configmap.yaml
+        - pvc.yaml
+      strategy: parallel
+    strategy: parallel
+tasks:
+  deploy:
+    resources:
+    - servicemonitor.yaml
+    - test.yaml
+    - configurationFiles-configmap.yaml
+    - deployment.yaml
+    - secrets.yaml
+    - svc.yaml
+    - test-configmap.yaml
+    - initializationFiles-configmap.yaml
+    - pvc.yaml
+url: https://www.mysql.com/
+version: 1.1.1

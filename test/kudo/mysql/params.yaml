@@ -1,132 +1,89 @@
 busybox.image:
-  default: "busybox"
-  trigger: deploy
+  default: busybox
+  description: Auto import from helm chart
 busybox.tag:
-  default: "1.29.3"
-  trigger: deploy
+  default: 1.29.3
+  description: Auto import from helm chart
 configurationFilesPath:
-  default: "/etc/mysql/conf.d"
-  trigger: "deploy"
-extraVolumes:
-  default: ""
-  trigger: deploy
-extraVolumeMounts:
-  default: ""
-  trigger: deploy
+  default: /etc/mysql/conf.d/
+  description: Auto import from helm chart
 extraInitContainers:
-  default: ""
-  trigger: deploy
+  default: |
+    # - name: do-something
+    #   image: busybox
+    #   command: ['do', 'something']
+  description: Auto import from helm chart
+extraVolumeMounts:
+  default: |
+    # - name: extras
+    #   mountPath: /usr/share/extras
+    #   readOnly: true
+  description: Auto import from helm chart
+extraVolumes:
+  default: |
+    # - name: extras
+    #   emptyDir: {}
+  description: Auto import from helm chart
 image:
-  default: "mysql"
-  trigger: deploy
+  default: mysql
+  description: Auto import from helm chart
 imagePullPolicy:
   default: IfNotPresent
-  trigger: deploy
-imageTag: 
-  default: "5.7.14"
-  trigger: deploy
-initContainer.resources.requests.memory:
-  default: "10Mi"
-  trigger: deploy
+  description: Auto import from helm chart
+imageTag:
+  default: 5.7.14
+  description: Auto import from helm chart
 initContainer.resources.requests.cpu:
-  default: "10m"
-  trigger: deploy
-livenessProbe.initialDelaySeconds:
-  default: "30"
-  trigger: deploy
-livenessProbe.periodSeconds:
-  default: "10"
-  trigger: deploy
-livenessProbe.timeoutSeconds:
-  default: "5"
-  trigger: deploy
-livenessProbe.successThreshold:
-  default: "1"
-  trigger: deploy
-livenessProbe.failureThreshold:
-  default: "3"
-  trigger: deploy
+  default: 10m
+  description: Auto import from helm chart
+initContainer.resources.requests.memory:
+  default: 10Mi
+  description: Auto import from helm chart
 metrics.enabled:
   default: "false"
-  trigger: deploy
+  description: Auto import from helm chart
 metrics.image:
-  default: "prom/mysqld-exporter"
-  trigger: deploy
-metrics.imageTag:
-  default: "v0.10.0"
-  trigger: deploy
+  default: prom/mysqld-exporter
+  description: Auto import from helm chart
 metrics.imagePullPolicy:
-  default: "IfNotPresent"
-  trigger: deploy
-metrics.livenessProbe.initialDelaySeconds:
-  default: "15"
-  trigger: deploy
-metrics.livenessProbe.timeoutSeconds:
-  default: "5"
-  trigger: deploy
-metrics.readinessProbe.initialDelaySeconds:
-  default: "15"
-  trigger: deploy
-metrics.readinessProbe.timeoutSeconds:
-  default: "1"
-  trigger: deploy
+  default: IfNotPresent
+  description: Auto import from helm chart
+metrics.imageTag:
+  default: v0.10.0
+  description: Auto import from helm chart
 metrics.serviceMonitor.enabled:
   default: "false"
-  trigger: deploy
+  description: Auto import from helm chart
+persistence.accessMode:
+  default: ReadWriteOnce
+  description: Auto import from helm chart
 persistence.enabled:
   default: "true"
-  trigger: deploy
-persistence.accessMode:
-  default: "ReadWriteOnce"
-  trigger: deploy
+  description: Auto import from helm chart
 persistence.size:
-  default: "8Gi"
-  trigger: deploy
-readinessProbe.initialDelaySeconds:
-  default: "5"
-  trigger: deploy
-readinessProbe.periodSeconds:
-  default: "10"
-  trigger: deploy
-readinessProbe.timeoutSeconds:
-  default: "1"
-  trigger: deploy
-readinessProbe.successThreshold:
-  default: "1"
-  trigger: deploy
-readinessProbe.failureThreshold:
-  default: "3"
-  trigger: deploy
-resources.requests.memory:
-  default: "256Mi"
-  trigger: deploy
+  default: 8Gi
+  description: Auto import from helm chart
 resources.requests.cpu:
-  default: "100m"
-  trigger: deploy
+  default: 100m
+  description: Auto import from helm chart
+resources.requests.memory:
+  default: 256Mi
+  description: Auto import from helm chart
 securityContext.enabled:
   default: "false"
-  trigger: deploy
-securityContext.runAsUser:
-  default: "999"
-  trigger: deploy
-securityContext.fsGroup:
-  default: "999"
-  trigger: deploy
+  description: Auto import from helm chart
 service.type:
-  default: "ClusterIP"
-  trigger: deploy
-service.port:
-  default: "3306"
-  trigger: deploy
-ssl.secrets:
-  default: "mysql-ssl-certs"
-  trigger: deploy
-ssl.certificates:
-  default: ""
-  trigger: deploy
+  default: ClusterIP
+  description: Auto import from helm chart
+ssl.enabled:
+  default: "false"
+  description: Auto import from helm chart
+ssl.secret:
+  default: mysql-ssl-certs
+  description: Auto import from helm chart
 testFramework.image:
-  default: "dduportal/bats"
-  trigger: deploy
+  default: dduportal/bats
+  description: Auto import from helm chart
 testFramework.tag:
-  default: "0.4.0"
-  trigger: deploy
+  default: 0.4.0
+  description: Auto import from helm chart
