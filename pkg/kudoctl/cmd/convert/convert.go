@@ -15,11 +15,13 @@ import (
 	"github.com/kudobuilder/kudo/pkg/util/helm"
 )
 
+// Options are configuration options for this command
 type Options struct {
 	ChartImportPath string
-	OutputPath string
+	OutputPath      string
 }
 
+// DefaultOptions are options with the defaults applied
 var DefaultOptions = &Options{}
 
 // Run runs the convert command

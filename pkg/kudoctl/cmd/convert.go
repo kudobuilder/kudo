@@ -2,12 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/convert"
 	"github.com/spf13/cobra"
-
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 )
 
 // newConvertCmd creates a new command that shows the plans available for an instance
@@ -17,7 +14,7 @@ func newConvertCmd() *cobra.Command {
 		Use:   "convert",
 		Short: "Converts helm chart into KUDO repo structure",
 		Long:  `Converts the provided helm repo into KUDO structure by modifying `,
-		RunE:  func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			return convert.Run(cmd, args, options)
 		},
 	}

@@ -25,7 +25,7 @@ type Options struct {
 	KubeConfigPath  string
 }
 
-// NewOptions initializes the install command options to its defaults
+// DefaultOptions initializes the install command options to its defaults
 var DefaultOptions = &Options{
 	Namespace: "default",
 }
