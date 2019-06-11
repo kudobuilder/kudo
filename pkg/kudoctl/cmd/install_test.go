@@ -27,19 +27,22 @@ func TestNewCmdInstallReturnsCmd(t *testing.T) {
 }
 
 var parameterTests = []struct {
-	flags        []string
+	flags        map[string]string
+	parameters   []string
 	errorMessage string
 }{
-	{[]string{"foo"}, "a parameter without value worked"},                           // 1
-	{[]string{"bar="}, "a parameter with empty value worked"},                       // 2
-	{[]string{"foo=bar", "fiz="}, "one of many parameters with empty value worked"}, // 3
-	{[]string{"foo", "bar"}, "multiple empty parameters worked"},                    // 4
+	{map[string]string{}, []string{"foo"}, "a parameter without value worked"},                                                           // 1
+	{map[string]string{}, []string{"bar="}, "a parameter with empty value worked"},                                                       // 2
+	{map[string]string{}, []string{"foo=bar", "fiz="}, "one of many parameters with empty value worked"},                                 // 3
+	{map[string]string{}, []string{"foo", "bar"}, "multiple empty parameters worked"},                                                    // 4
+	{map[string]string{}, []string{}, "get flag: flag accessed but not defined: kubeconfig"},                                             // 5
+	{map[string]string{"kubeconfig": "/tmp"}, []string{}, "could not check kubeconfig path: getting config failed: /tmp is a directory"}, // 6
 }
 
 func TestTableNewInstallCmd_WithParameters(t *testing.T) {
 	for _, test := range parameterTests {
 		newCmdInstall := newInstallCmd()
-		for _, flag := range test.flags {
+		for _, flag := range test.parameters {
 			newCmdInstall.Flags().Set("parameter", flag)
 		}
 		err := newCmdInstall.RunE(newCmdInstall, []string{})

@@ -12,20 +12,26 @@ import (
 	"sigs.k8s.io/yaml"
 
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 	"github.com/kudobuilder/kudo/pkg/util/helm"
 )
 
+type Options struct {
+	ChartImportPath string
+	OutputPath string
+}
+
+var DefaultOptions = &Options{}
+
 // Run runs the convert command
-func Run(cmd *cobra.Command, args []string) error {
-	bundle, e := helm.ToBundle(vars.FrameworkImportPath)
+func Run(cmd *cobra.Command, args []string, options *Options) error {
+	bundle, e := helm.ToBundle(options.ChartImportPath)
 	if e != nil {
 		return e
 	}
-	if b := exists(vars.BundleOutputPath); b {
-		return fmt.Errorf("bundle output dir %v shouldn't exist", vars.BundleOutputPath)
+	if b := exists(options.OutputPath); b {
+		return fmt.Errorf("bundle output dir %v shouldn't exist", options.OutputPath)
 	}
-	e = os.Mkdir(vars.BundleOutputPath, 0755)
+	e = os.Mkdir(options.OutputPath, 0755)
 	if e != nil {
 		return e
 	}
@@ -36,7 +42,7 @@ func Run(cmd *cobra.Command, args []string) error {
 	if e != nil {
 		return e
 	}
-	e = ioutil.WriteFile(fmt.Sprintf("%v/operator.yaml", vars.BundleOutputPath), b, os.ModePerm)
+	e = ioutil.WriteFile(fmt.Sprintf("%v/operator.yaml", options.OutputPath), b, os.ModePerm)
 	if e != nil {
 		return e
 	}
@@ -57,17 +63,17 @@ func Run(cmd *cobra.Command, args []string) error {
 	if e != nil {
 		return e
 	}
-	e = ioutil.WriteFile(fmt.Sprintf("%v/params.yaml", vars.BundleOutputPath), b, os.ModePerm)
+	e = ioutil.WriteFile(fmt.Sprintf("%v/params.yaml", options.OutputPath), b, os.ModePerm)
 	if e != nil {
 		return e
 	}
 
-	e = os.Mkdir(vars.BundleOutputPath+"/templates", 0755)
+	e = os.Mkdir(options.OutputPath+"/templates", 0755)
 	if e != nil {
 		return e
 	}
 
-	e = copyDirectory(fmt.Sprintf("%v/templates", vars.FrameworkImportPath), fmt.Sprintf("%v/templates", vars.BundleOutputPath))
+	e = copyDirectory(fmt.Sprintf("%v/templates", options.ChartImportPath), fmt.Sprintf("%v/templates", options.OutputPath))
 
 	return e
 }
