@@ -13,6 +13,8 @@ builds:
 -
   binary: manager
   main: cmd/manager/main.go
+  ldflags:
+    - -s -w -X github.com/kudobuilder/kudo/pkg/version.gitVersion={{ .Version }} -X github.com/kudobuilder/kudo/pkg/version.gitCommit={{ .ShortCommit }} -X github.com/kudobuilder/kudo/pkg/version.buildDate={{ .Date }}
   goos:
     - linux
     - darwin
@@ -24,6 +26,8 @@ builds:
 -
   binary: kubectl-kudo
   main: cmd/kubectl-kudo/main.go
+  ldflags:
+    - -s -w -X github.com/kudobuilder/kudo/pkg/version.gitVersion={{ .Version }} -X github.com/kudobuilder/kudo/pkg/version.gitCommit={{ .ShortCommit }} -X github.com/kudobuilder/kudo/pkg/version.buildDate={{ .Date }}
   goos:
     - linux
     - darwin
@@ -32,10 +36,46 @@ builds:
     - 386
     - amd64
     - arm
+dockers:
+  - dockerfile: Dockerfile.goreleaser
+    binaries:
+      - manager
+    image_templates:
+      - "kudobuilder/controller:latest"
+      - "kudobuilder/controller:{{ .Tag }}"
+    skip_push: auto
+
 archives:
-- replacements:
+- id: kubectl-kudo-tarball
+  builds:
+    - kubectl-kudo
+  replacements:
     386: i386
     amd64: x86_64
+  format: tar.gz
+- id: binaries
+  builds:
+    - manager
+    - kubectl-kudo
+  replacements:
+    386: i386
+    amd64: x86_64
+  format: binary
+brew:
+  name: kudo-cli
+  github:
+    owner: kudobuilder
+    name: homebrew-tap
+  commit_author:
+    name: kudoreleasebot
+    email: release@kudo.dev
+  folder: Formula
+  homepage: https://kudo.dev
+  description: Interact with KUDO via the kubectl plugin
+  dependencies:
+    - kubernetes-cli
+  install: |
+    bin.install "kubectl-kudo"
 checksum:
   name_template: 'checksums.txt'
 snapshot:
@@ -45,10 +85,10 @@ release:
   github:
     owner: kudobuilder
     name: kudo
-  draft: true
+  draft: false
   prerelease: auto
-  name_template: "{{.ProjectName}}-v{{.Version}} {{.Env.USER}}"
-  disable: true
+  name_template: "{{.ProjectName}}-v{{.Version}}"
+  disable: false
 
 changelog:
   sort: asc
@@ -56,7 +96,3 @@ changelog:
     exclude:
     - '^docs:'
     - '^test:'
-s3:
-  -
-    bucket: kudo-builder
-    acl: public-read

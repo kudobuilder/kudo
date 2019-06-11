@@ -87,7 +87,7 @@ func (r *ReconcileFrameworkVersion) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 
-	log.Printf("FrameworkVersionController: Recieved Reconcile request for a frameworkversion named: %v", request.Name)
+	log.Printf("FrameworkVersionController: Received Reconcile request for a frameworkversion named: %v", request.Name)
 
 	//TODO Validate FrameworkVersion is appropriate
 	return reconcile.Result{}, nil

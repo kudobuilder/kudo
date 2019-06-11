@@ -2,62 +2,7 @@ package install
 
 import (
 	"testing"
-
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
-	"github.com/spf13/cobra"
 )
-
-func TestInstallCmd(t *testing.T) {
-
-	// Default for test case #1
-	cmdDefault := &cobra.Command{}
-
-	expectedDefaultErrors := []string{
-		"get flag: flag accessed but not defined: kubeconfig",
-	}
-
-	// For test case #2
-	cmdNoKubeconfigFlagDefined := &cobra.Command{}
-	expectedNoKubeconfigFlagDefinedErrors := []string{
-		"get flag: flag accessed but not defined: kubeconfig",
-	}
-
-	// For test case #3
-	cmdWrongDirKubeConfigFlag := &cobra.Command{}
-	cmdWrongDirKubeConfigFlag.Flags().StringVar(&vars.KubeConfigPath, "kubeconfig", "", "Usage")
-	vars.KubeConfigPath = "/tmp"
-	installCmdArgs := []string{"test", "--kubeconfig=" + vars.KubeConfigPath}
-	expectedEmptyKubeConfigFlagErrors := []string{
-		"could not install framework(s): getting config failed: Error loading config file \"/tmp\": read /tmp: is a directory",
-	}
-
-	tests := []struct {
-		cmd  *cobra.Command
-		args []string
-		err  []string
-	}{
-		{cmdDefault, nil, expectedDefaultErrors},                                       // 1
-		{cmdNoKubeconfigFlagDefined, nil, expectedNoKubeconfigFlagDefinedErrors},       // 2
-		{cmdWrongDirKubeConfigFlag, installCmdArgs, expectedEmptyKubeConfigFlagErrors}, // 3
-	}
-
-	for i, tt := range tests {
-		i := i
-		err := CmdErrorProcessor(tt.cmd, tt.args)
-		if err != nil {
-			receivedErrorList := []string{err.Error()}
-			diff := compareSlice(receivedErrorList, tt.err)
-			for _, err := range diff {
-				t.Errorf("%d: Found unexpected error: %v", i+1, err)
-			}
-
-			missing := compareSlice(tt.err, receivedErrorList)
-			for _, err := range missing {
-				t.Errorf("%d: Missed expected error: %v", i+1, err)
-			}
-		}
-	}
-}
 
 func TestInstallFrameworks(t *testing.T) {
 
@@ -67,8 +12,8 @@ func TestInstallFrameworks(t *testing.T) {
 	}
 
 	// For test case #2
-	vars.KubeConfigPath = ""
-	vars.PackageVersion = "0.0"
+	options := DefaultOptions
+	options.PackageVersion = "0.0"
 	installCmdPackageVersionArgs := []string{"one", "two"}
 	expectedPackageVersionFlagErrors := []string{
 		"--package-version not supported in multi framework install",
@@ -83,8 +28,7 @@ func TestInstallFrameworks(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		i := i
-		err := verifyFrameworks(tt.args)
+		err := installFrameworks(tt.args, options)
 		if err != nil {
 			receivedErrorList := []string{err.Error()}
 			diff := compareSlice(receivedErrorList, tt.err)
