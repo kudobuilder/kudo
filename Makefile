@@ -43,41 +43,27 @@ prebuild: generate check-formatting
 .PHONY: manager
 # Build manager binary
 manager: prebuild
-	# developer convince for platform they are running
+	# developer convenience for platform they are running
 	go build -ldflags "${LDFLAGS}" -o bin/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
-
-	# platforms for distribution
-	GOARCH=amd64 GOOS=darwin go build -ldflags "${LDFLAGS}" -o bin/darwin/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
-	GOARCH=amd64 GOOS=linux go build -ldflags "${LDFLAGS}" -o bin/linux/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
-	GOARCH=amd64 GOOS=windows go build -ldflags "${LDFLAGS}" -o bin/windows/amd64/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
 
 .PHONY: manager-clean
 # Clean manager build
 manager-clean:
 	rm -f bin/manager
-	rm -rf bin/darwin/amd64/$(EXECUTABLE)
-	rm -rf bin/linux/amd64/$(EXECUTABLE)
-	rm -rf bin/windows/amd64/$(EXECUTABLE)
 
 .PHONY: run
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run:
 	go run -ldflags "${LDFLAGS}" ./cmd/manager/main.go
 
-.PHONY: install-crds
-install-crds:
-	kubectl apply -f config/crds
-
 .PHONY: deploy
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests
-	kubectl apply -f config/crds
-	kustomize build config/default | kubectl apply -f -
+deploy:
+	@kustomize build config
 
 .PHONY: deploy-clean
 deploy-clean:
 	kubectl delete -f config/crds
-	# kustomize build config/default | kubectl delete -f -
 
 .PHONY: manifests
 # Generate manifests e.g. CRD, RBAC etc.
@@ -131,18 +117,10 @@ cli: prebuild
 	# developer convince for platform they are running
 	go build -ldflags "${LDFLAGS}" -o bin/${CLI} cmd/kubectl-kudo/main.go
 
-	# platforms for distribution
-	GOARCH=amd64 GOOS=darwin go build -ldflags "${LDFLAGS}" -o bin/darwin/amd64/${CLI} cmd/kubectl-kudo/main.go
-	GOARCH=amd64 GOOS=linux go build -ldflags "${LDFLAGS}" -o bin/linux/amd64/${CLI} cmd/kubectl-kudo/main.go
-	GOARCH=amd64 GOOS=windows go build -ldflags "${LDFLAGS}" -o bin/windows/${CLI} cmd/kubectl-kudo/main.go
-
 .PHONY: cli-clean
 # Clean CLI build
 cli-clean:
 	rm -f bin/${CLI}
-	rm -rf bin/darwin/amd64/${CLI}
-	rm -rf bin/linux/amd64/${CLI}
-	rm -rf bin/windows/${CLI}
 
 # Install CLI
 cli-install:
@@ -151,9 +129,6 @@ cli-install:
 .PHONY: clean
 # Clean all
 clean:  cli-clean test-clean manager-clean deploy-clean
-	rm -rf bin/darwin
-	rm -rf bin/linux
-	rm -rf bin/windows
 
 .PHONY: docker-build
 # Build the docker image
@@ -164,7 +139,7 @@ docker-build: generate check-formatting manifests
 	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:${GIT_VERSION}
 	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:latest
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${DOCKER_IMG}:${GIT_VERSION}"'@' ./config/default/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"${DOCKER_IMG}:${GIT_VERSION}"'@' ./config/manager_image_patch.yaml
 
 .PHONY: docker-push
 # Push the docker image

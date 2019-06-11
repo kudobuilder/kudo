@@ -24,11 +24,11 @@ spec:
       kind: Job
       metadata:
         namespace: default
-        name: serial-{{STEP_NAME}}
+        name: serial-{{ .StepName }}
       spec:
         template:
           metadata:
-            name: "{{STEP_NAME}}-serial-{{STEP_NUMBER}}"
+            name: "{{ .StepName }}-serial-{{ .StepNumber }}"
           spec:
             restartPolicy: OnFailure
             containers:
@@ -38,16 +38,16 @@ spec:
               command:
               - /bin/sh
               - -c
-              - "sleep {{SLEEP}}"
+              - "sleep {{ .Params.Sleep }}"
     par.yaml: |
       apiVersion: batch/v1
       kind: Job
       metadata:
-        name: {{STEP_NAME}}-parallel-{{STEP_NUMBER}}
+        name: {{ .StepName }}-parallel-{{ .StepNumber }}
       spec:
         template:
           metadata:
-            name: "{{STEP_NAME}}-parallel-{{STEP_NUMBER}}"
+            name: "{{ .StepName }}-parallel-{{ .StepNumber }}"
           spec:
             restartPolicy: Never
             containers:
@@ -57,7 +57,7 @@ spec:
               command:
               - /bin/sh
               - -c
-              - "sleep {{SLEEP}}"
+              - "sleep {{ .Params.Sleep }}"
   tasks:
     par:
       resources:
@@ -114,4 +114,4 @@ spec:
     type: FrameworkVersions
   # Add fields here
   parameters:
-    SLEEP: "30"
+    Sleep: "30"

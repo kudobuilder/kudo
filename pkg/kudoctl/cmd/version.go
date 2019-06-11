@@ -14,8 +14,8 @@ var (
 		kubectl kudo version`
 )
 
-// NewVersionCmd returns a new initialized instance of the version sub command
-func NewVersionCmd() *cobra.Command {
+// newVersionCmd returns a new initialized instance of the version sub command
+func newVersionCmd() *cobra.Command {
 	versionCmd := &cobra.Command{
 		Use:          "version",
 		Short:        "-> Print the current KUDO package version.",
