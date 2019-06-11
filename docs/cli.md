@@ -69,7 +69,7 @@ Flags:
   -h, --help                      help for install
       --instance string           The instance name. (default to Framework name)
       --kubeconfig string         The file path to Kubernetes configuration file. (default "$HOME/.kube/config")
-      --namespace string          The namespace used for the framework installation. (default "default" (default "default")
+      --namespace string          The namespace used for the framework installation. (default "default")
       --package-version string    A specific package version on the official GitHub repo. (default to the most recent)
   -p, --parameter stringArray     The parameter name and value separated by '='
 ```
