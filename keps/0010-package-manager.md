@@ -113,9 +113,8 @@ The Repo structure on the local laptop looks in the short term as follow:
 ```
 
 * This structure serves as the local repo, cache and source of truth
-* This reflects the on Github hosted official repo structure
 
-In the long term it will look KEP-0009 conform e.g.:
+In the long term it will conform with KEP-0009 and have the following structure:
 
 ```bash
 /index.yaml
@@ -142,7 +141,9 @@ In the long term it will look KEP-0009 conform e.g.:
 
 The advantage of having a flat structure withing the hosted repo environment is, that for distribution the opinionated structure within the `.tgz` file is not much of importance and can be subject to change without breaking other assumptions.
 
-For example, the `/kafka/2.2.0` folder (with whatever underlying structure) is zipped to `kafka-2.2.0.tgz`, where `2.2.0` is the current SemVer version of the package. Versioning of packages ( e.g. `kafka-0.1.0` or `kafka-0.2.0` ) is not matching the current version of KUDO itself but follows its own SemVer timeline. The zipped Framework, then called Package, is made available through any HTTP Server.
+For example, the `/kafka/2.2.0` folder (with whatever underlying structure) is zipped to `kafka-2.2.0.tgz`, where `2.2.0` is the current SemVer version of the package. 
+
+The versioni of a Package ( e.g. `kafka-0.1.0` or `kafka-0.2.0` ) is not matching the current version of KUDO itself but follows its own SemVer timeline. The zipped Framework, then called Package, is made available through any HTTP Server.
  
 Our official repository is hosted on Google Cloud Storage and following a flat structure:
 
@@ -158,8 +159,7 @@ Our official repository is hosted on Google Cloud Storage and following a flat s
 ...
 ```
 
-* This structure solely solves the distribution of Packages
-* It is Storage Backend agnostic, meaning it is possible to host this type of structure on most backends
+* This structure solely solves the distribution of Packages and is Storage-Backend agnostic, meaning it is possible to host this type of structure using other backends.
 
 We rely just on a HTTP Server, e.g. the out-of-the-box solution that Google Cloud Storage provides, that simply hosts the `tgz` files and provides them as downloads. The logic on keeping those single Frameworks in sync should live in the CLI and not this KEP itself. That also contributes to an abstraction layer that the HTTP server really doesn't need to be aware of all the business logic. 
 
@@ -175,11 +175,10 @@ Other risks are in the way we distribute and install Packages without any valida
 
 ## Graduation Criteria
 
-Having an hosted implementation and being able to install Frameworks and getting metrics from it.
+Having a hosted implementation and being able to install Frameworks and getting metrics from it.
 This includes e.g.:
 * Solving the folder structure for Packages
 * Solving the folder structure for the entire repository
-
 
 ## Implementation History
 
@@ -187,13 +186,12 @@ This includes e.g.:
 2019/05/30 - Updates to structure from KEP-0009
 2019/06/06 - Initial Re-Factoring to new Repo Structure ( https://github.com/kudobuilder/frameworks/pull/19 )
 
-
 ## Infrastructure Needed
 
-This KEP require us to have infrastructure which generates or updates our official Package`tgz` files and makes them available on our default Storage Backend. There is an interesting idea of having it entirely hosted e.g. on `Docker` or `Github` but this KEP should provide the proper conditions to be able to seemingly easy accomplish this.
+This KEP requires us to have infrastructure which generates or updates our official Package`tgz` files and makes them available on our default Storage Backend. There is an interesting idea of having it entirely hosted e.g. on `Docker` or `Github` but this KEP should provide the proper conditions to be able to seemingly easy accomplish this.
 
 Infrastructure that will be affected is:
 
-* `kubebuilder/frameworks`
+* https://github.com/kudobuilder/frameworks
 * Our CICD Pipeline for publishing Frameworks
-* CLI needs to adapt the standards developed here
+* CLI needs to adopt the standards developed here
