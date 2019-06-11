@@ -9,6 +9,7 @@ import (
 	"github.com/helm/helm/pkg/chartutil"
 )
 
+// ToBundle converts the helm chart on disk into a Kudo Bundle
 func ToBundle(folder string) (bundle.Framework, error) {
 	b := bundle.Framework{}
 

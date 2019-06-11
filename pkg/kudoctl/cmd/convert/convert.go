@@ -125,16 +125,16 @@ func copyDirectory(scrDir, dest string) error {
 
 func copy(srcFile, dstFile string) error {
 	out, err := os.Create(dstFile)
-	defer out.Close()
 	if err != nil {
 		return err
 	}
+	defer out.Close()
 
 	in, err := os.Open(srcFile)
-	defer in.Close()
 	if err != nil {
 		return err
 	}
+	defer in.Close()
 
 	_, err = io.Copy(out, in)
 	if err != nil {
