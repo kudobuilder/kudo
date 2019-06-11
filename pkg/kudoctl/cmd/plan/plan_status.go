@@ -3,6 +3,7 @@ package plan
 import (
 	"encoding/json"
 	"fmt"
+
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
 	"github.com/pkg/errors"
@@ -14,37 +15,48 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+type statusOptions struct {
+	instance       string
+	kubeConfigPath string
+	namespace      string
+}
+
+var defaultStatusOptions = &statusOptions{}
+
 //NewPlanStatusCmd creates a new command that shows the status of an instance by looking at its current plan
 func NewPlanStatusCmd() *cobra.Command {
+	options := defaultStatusOptions
 	statusCmd := &cobra.Command{
 		Use:   "status",
 		Short: "Shows the status of all plans to an particular instance.",
 		Long: `
 	# View plan status
 	kudoctl plan status --instance=<instanceName> --kubeconfig=<$HOME/.kube/config>`,
-		RunE: runStatus,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runStatus(cmd, args, options)
+		},
 	}
 
-	statusCmd.Flags().StringVar(&instance, "instance", "", "The instance name available from 'kubectl get instances'")
-	statusCmd.Flags().StringVar(&kubeConfig, "kubeconfig", "", "The file path to kubernetes configuration file; defaults to $HOME/.kube/config")
-	statusCmd.Flags().StringVar(&namespace, "namespace", "default", "The namespace where the instance is running.")
+	statusCmd.Flags().StringVar(&options.instance, "instance", "", "The instance name available from 'kubectl get instances'")
+	statusCmd.Flags().StringVar(&options.kubeConfigPath, "kubeconfig", "", "The file path to kubernetes configuration file; defaults to $HOME/.kube/config")
+	statusCmd.Flags().StringVar(&options.namespace, "namespace", "default", "The namespace where the instance is running.")
 
 	return statusCmd
 }
 
-func runStatus(cmd *cobra.Command, args []string) error {
+func runStatus(cmd *cobra.Command, args []string, options *statusOptions) error {
 
 	instanceFlag, err := cmd.Flags().GetString("instance")
 	if err != nil || instanceFlag == "" {
 		return fmt.Errorf("flag Error: Please set instance flag, e.g. \"--instance=<instanceName>\"")
 	}
 
-	configPath, err := check.KubeConfigLocationOrDefault(kubeConfig)
+	configPath, err := check.KubeConfigLocationOrDefault(options.kubeConfigPath)
 	if err != nil {
 		return fmt.Errorf("error when getting default kubeconfig path: %+v", err)
 	}
-	kubeConfig = configPath
-	if err := check.ValidateKubeConfigPath(kubeConfig); err != nil {
+	options.kubeConfigPath = configPath
+	if err := check.ValidateKubeConfigPath(options.kubeConfigPath); err != nil {
 		return errors.WithMessage(err, "could not check kubeconfig path")
 	}
 
@@ -53,18 +65,18 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("flag Error: Please set kubeconfig flag, e.g. \"--kubeconfig=<$HOME/.kube/config>\"")
 	}
 
-	err = planStatus()
+	err = planStatus(options)
 	if err != nil {
 		return fmt.Errorf("client Error: %v", err)
 	}
 	return nil
 }
 
-func planStatus() error {
+func planStatus(options *statusOptions) error {
 
 	tree := treeprint.New()
 
-	config, err := clientcmd.BuildConfigFromFlags("", kubeConfig)
+	config, err := clientcmd.BuildConfigFromFlags("", options.kubeConfigPath)
 	if err != nil {
 		return err
 	}
@@ -81,7 +93,7 @@ func planStatus() error {
 		Resource: "instances",
 	}
 
-	instObj, err := dynamicClient.Resource(instancesGVR).Namespace(namespace).Get(instance, metav1.GetOptions{})
+	instObj, err := dynamicClient.Resource(instancesGVR).Namespace(options.namespace).Get(options.instance, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -107,7 +119,7 @@ func planStatus() error {
 	}
 
 	//  List all of the Virtual Services.
-	frameworkObj, err := dynamicClient.Resource(frameworkGVR).Namespace(namespace).Get(frameworkVersionNameOfInstance, metav1.GetOptions{})
+	frameworkObj, err := dynamicClient.Resource(frameworkGVR).Namespace(options.namespace).Get(frameworkVersionNameOfInstance, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -130,7 +142,7 @@ func planStatus() error {
 		Resource: "planexecutions",
 	}
 
-	activePlanObj, err := dynamicClient.Resource(planExecutionsGVR).Namespace(namespace).Get(instance.Status.ActivePlan.Name, metav1.GetOptions{})
+	activePlanObj, err := dynamicClient.Resource(planExecutionsGVR).Namespace(options.namespace).Get(instance.Status.ActivePlan.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -180,7 +192,7 @@ func planStatus() error {
 		}
 	}
 
-	fmt.Printf("Plan(s) for \"%s\" in namespace \"%s\":\n", instance.Name, namespace)
+	fmt.Printf("Plan(s) for \"%s\" in namespace \"%s\":\n", instance.Name, options.namespace)
 	fmt.Println(tree.String())
 
 	return nil
