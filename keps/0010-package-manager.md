@@ -146,7 +146,7 @@ The advantage of having a flat structure withing the hosted repo environment is,
 
 For example, the `/kafka/2.2.0` folder (with whatever underlying structure) is zipped to `kafka-2.2.0.tgz`, where `2.2.0` is the current SemVer version of the Package. 
 
-The versioni of a Package ( e.g. `kafka-0.1.0` or `kafka-0.2.0` ) is not matching the current version of KUDO itself but follows its own SemVer timeline. The zipped Framework, then called Package, is made available through any HTTP Server.
+The version of a Package (e.g., `kafka-0.1.0` or `kafka-0.2.0`) does not have to match the current version of KUDO itself but it follows its own SemVer timeline. The zipped Framework, called Package, is made available through any HTTP Server.
  
 Our official repository is hosted on Google Cloud Storage and following a flat structure:
 
