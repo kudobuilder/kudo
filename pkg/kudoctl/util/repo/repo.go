@@ -12,7 +12,7 @@ var Default = &RepositoryConfiguration{
 
 // Metadata for a Framework. This models the structure of a bundle.yaml file.
 type Metadata struct {
-	// Name is the name of the framework
+	// Name is the name of the framework.
 	Name string `json:"name,omitempty"`
 
 	// Version is a A SemVer 2 conformant version string of the framework.

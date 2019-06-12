@@ -46,7 +46,7 @@ import (
 
 // Add creates a new Instance Controller and adds it to the Manager with default RBAC.
 //
-// The Manager will set fields on the Controller and Start it when the Manager is Started.
+// The Manager will set fields on the Controller and start it when the Manager is started.
 func Add(mgr manager.Manager) error {
 	log.Printf("InstanceController: Registering instance controller.")
 	return add(mgr, newReconciler(mgr))

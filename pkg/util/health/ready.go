@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// IsHealthy returns whether an object is healthy.  Must be implemented for each type.
+// IsHealthy returns whether an object is healthy. Must be implemented for each type.
 func IsHealthy(c client.Client, obj runtime.Object) error {
 
 	switch obj := obj.(type) {

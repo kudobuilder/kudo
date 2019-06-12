@@ -60,7 +60,7 @@ const Parallel Ordering = "parallel"
 // Plan specifies a series of Phases that need to be completed.
 type Plan struct {
 	Strategy Ordering `json:"strategy" validate:"required"` // makes field mandatory and checks if set and non empty
-	// Phases maps a phase name to a Phase object
+	// Phases maps a phase name to a Phase object.
 	Phases []Phase `json:"phases" validate:"required,gt=0,dive"` // makes field mandatory and checks if its gt 0
 }
 
@@ -89,13 +89,13 @@ type Parameter struct {
 	// Default is `update` if present, or `deploy` if not present
 	Trigger string `json:"trigger,omitempty"`
 
-	// TODO Add generated parameters (e.g. passwords)
+	// TODO: Add generated parameters (e.g. passwords).
 	// These values should be saved off in a secret instead of updating the spec
-	// with values so viewing the instance doesn't give crednetials
+	// with values that viewing the instance does not return credentials.
 
 }
 
-// TaskSpec is a struct containing lists of Kustomize resources
+// TaskSpec is a struct containing lists of Kustomize resources.
 type TaskSpec struct {
 	Resources []string `json:"resources"`
 }
@@ -153,12 +153,12 @@ func init() {
 
 // FrameworkDependency references a defined framework.
 type FrameworkDependency struct {
-	// Name specifies the name of the dependency.  Referenced via this in defaults.config
+	// Name specifies the name of the dependency. Referenced via defaults.config.
 	ReferenceName string `json:"referenceName"`
 	corev1.ObjectReference
 
 	// Version captures the requirements for what versions of the above object
-	// are allowed
+	// are allowed.
 	//
 	// Example: ^3.1.4
 	Version string `json:"version"`
@@ -248,7 +248,7 @@ type Task struct {
 	TransportEncryption     []*TransportEncryption `json:"transport-encryption" yaml:"transport-encryption" validate:"omitempty,gt=0,dive"`           // makes field optional and checks if object is non empty
 }
 
-// Config represents a config template which is rendered before the pods is launched.
+// Config represents a config template which is rendered before the pods are launched.
 type Config struct {
 	Template *string `json:"template" yaml:"template" validate:"required,gt=0"` // makes field mandatory and checks if non empty
 	Dest     *string `json:"dest" yaml:"dest" validate:"required,gt=0"`         // makes field mandatory and checks if non empty

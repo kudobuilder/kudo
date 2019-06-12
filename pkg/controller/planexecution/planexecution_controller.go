@@ -484,7 +484,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 				arg := obj.DeepCopyObject()
 				result, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, arg, func(newObj runtime.Object) error {
-					// TODO Clean this up. I don't like having to do a switch here.
+					// TODO: Clean this up. I don't like having to do a switch here.
 					switch t := newObj.(type) {
 					case *appsv1.StatefulSet:
 						log.Printf("PlanExecutionController: CreateOrUpdate: StatefulSet %+v", t.Name)
