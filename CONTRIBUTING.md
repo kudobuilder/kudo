@@ -22,26 +22,25 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 
 ### Pre-requisites
 
-Before you get started:
-
-- Install Go `1.12.3` or later
-- [Install Kubebuilder](https://book.kubebuilder.io/getting_started/installation_and_setup.html)
-- Kubernetes Cluster `1.13` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
-- [Configure kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) 
+- Git
+- Go `1.12.3` or later
+- [Kubebuilder](https://book.kubebuilder.io/getting_started/installation_and_setup.html)
+- A Kubernetes Cluster running version `1.13` or later (e.g., [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
+- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
 ### Build Instructions
 
-- Get KUDO repo: `go get github.com/kudobuilder/kudo/`
+- Get the KUDO repo: `go get github.com/kudobuilder/kudo/` (**Note:** KUDO uses Go Modules. Due to the current state of code generation in [controller-tools](https://github.com/kubernetes-sigs/controller-tools) and [code-generator](https://github.com/kubernetes/code-generator), KUDO currently **must** be cloned into its `$GOPATH`-based location)
 - `cd $GOPATH/src/github.com/kudobuilder/kudo`
 - `make all` to build project
-- [optionally] `make docker-build` to build docker images and `make docker-push` to push images
+- [optionally] `make docker-build` to build Docker images and `make docker-push` to push images
 
-When updating the structs under APIs, or any other code generated item, use `make generate` to generate the new DeepCopy structs. Use `make manifests` to generate out new YAML manifests representing these CRDs.
+When updating the structs under [APIs](https://github.com/kudobuilder/kudo/blob/master/pkg/apis/), or any other code generated item, use `make generate` to generate the new DeepCopy structs. Use `make manifests` to generate out new YAML manifests representing these CRDs.
 
 After updating CRD manifests, use `make deploy` to apply the new CRDs to your cluster.
 
-### Build and run tests using docker
-If you don't want to install kubebuilder and other dependencies of KUDO locally, you can optionally run build and tests inside a docker container which is what our CI does.
+### Build and run tests using Docker
+If you don't want to install kubebuilder and other dependencies of KUDO locally, you can optionally do as our CI and build KUDO and run the tests inside a Docker container.
 
 To run tests, you can just execute:
 
@@ -70,6 +69,7 @@ An enhancement is anything that:
 - users will notice and come to rely on
 
 It is unlikely an enhancement if it is:
+
 - fixing a flaky test
 - refactoring code
 - performance improvements, which are only visible to users as faster API operations, or faster control loops
@@ -80,6 +80,7 @@ If you are not sure, ask someone in the [#kudo](https://kubernetes.slack.com/mes
 ### When to Create a New Enhancement Issue
 
 Create an issue in this repo once you:
+
 - have circulated your idea to see if there is interest
    - through Community Meetings, KUDO meetings, KUDO mailing lists, or an issue in github.com/kudobuilder/kudo
 - (optionally) have done a prototype in your own fork
