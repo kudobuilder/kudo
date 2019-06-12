@@ -17,8 +17,8 @@ type Client struct {
 	clientset versioned.Interface
 }
 
-// NewKudoClient creates new KUDO Client
-func NewKudoClient(namespace, kubeConfigPath string) (*Client, error) {
+// NewClient creates new KUDO Client
+func NewClient(namespace, kubeConfigPath string) (*Client, error) {
 
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)

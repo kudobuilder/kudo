@@ -30,8 +30,8 @@ var DefaultOptions = &Options{
 	Namespace: "default",
 }
 
-// RunInstall returns the errors associated with cmd env
-func RunInstall(cmd *cobra.Command, args []string, options *Options) error {
+// Run returns the errors associated with cmd env
+func Run(cmd *cobra.Command, args []string, options *Options) error {
 
 	// This makes --kubeconfig flag optional
 	if _, err := cmd.Flags().GetString("kubeconfig"); err != nil {
@@ -115,7 +115,7 @@ func installFrameworks(args []string, options *Options) error {
 		return errors.Wrap(err, "getting config failed")
 	}
 
-	kc, err := kudo.NewKudoClient(options.Namespace, options.KubeConfigPath)
+	kc, err := kudo.NewClient(options.Namespace, options.KubeConfigPath)
 	if err != nil {
 		return errors.Wrap(err, "creating kudo client")
 	}
