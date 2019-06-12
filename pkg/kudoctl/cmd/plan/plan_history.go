@@ -25,11 +25,10 @@ type historyOptions struct {
 
 var defaultHistoryOptions = &historyOptions{}
 
-// NewPlanHistoryCmd creates a command that shows the plan instory for an instance
+// NewPlanHistoryCmd creates a command that shows the plan history of an instance.
 func NewPlanHistoryCmd() *cobra.Command {
 	options := defaultHistoryOptions
 	listCmd := &cobra.Command{
-		//Args: cobra.ExactArgs(1),
 		Use:   "history",
 		Short: "Lists history to a specific framework-version of an instance.",
 		Long: `
@@ -64,7 +63,7 @@ func runHistory(cmd *cobra.Command, args []string, options *historyOptions) erro
 	}
 
 	_, err = cmd.Flags().GetString("kubeconfig")
-	// Todo: wrong flag
+	// TODO: wrong flag
 	if err != nil || instanceFlag == "" {
 		return fmt.Errorf("flag Error: %v", err)
 	}
@@ -83,7 +82,7 @@ func planHistory(args []string, options *historyOptions) error {
 		return err
 	}
 
-	//  Create a Dynamic Client to interface with CRDs.
+	// Create a Dynamic Client to interface with CRDs.
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return err

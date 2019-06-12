@@ -136,7 +136,7 @@ func (c *Client) AnyInstanceExistsInCluster(name, namespace, version string) boo
 		return false
 	}
 
-	// Todo: check function that actual checks for the FrameworkVersion named e.g. "test-1.0" to exist
+	// TODO: check function that actual checks for the FrameworkVersion named e.g. "test-1.0" to exist
 	var i int
 	for _, v := range instances.Items {
 		if v.Spec.FrameworkVersion.Name == name+"-"+version {

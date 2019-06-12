@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-//IsHealthy returns whether an object is healthy.  Must be implemented for each type
+// IsHealthy returns whether an object is healthy.  Must be implemented for each type.
 func IsHealthy(c client.Client, obj runtime.Object) error {
 
 	switch obj := obj.(type) {
@@ -36,14 +36,13 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 	case *batchv1.Job:
 
 		if obj.Status.Succeeded == int32(1) {
-			//done!
-
+			// Done!
 			log.Printf("HealthUtil: Job \"%v\" is marked healthy", obj.Name)
 			return nil
 		}
 		return fmt.Errorf("job \"%v\" still running or failed", obj.Name)
 	case *kudov1alpha1.Instance:
-		//Instances are healthy when their Active Plan has succeeded
+		// Instances are healthy when their Active Plan has succeeded
 		plan := &kudov1alpha1.PlanExecution{}
 		err := c.Get(context.TODO(), client.ObjectKey{
 			Name:      obj.Status.ActivePlan.Name,
@@ -60,14 +59,14 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 		}
 		return fmt.Errorf("instance's active plan is in state %v", plan.Status.State)
 
-	//unless we build logic for what a healthy object is, assume its healthy when created
+	// unless we build logic for what a healthy object is, assume it's healthy when created.
 	default:
 		log.Printf("HealthUtil: Unknown type is marked healthy by default")
 		return nil
 	}
 }
 
-//IsStepHealthy returns whether each object in the given step is healthy
+// IsStepHealthy returns whether each object in the given step is healthy.
 func IsStepHealthy(c client.Client, step kudov1alpha1.StepStatus) bool {
 	for _, obj := range step.Objects {
 		if e := IsHealthy(c, obj); e != nil {
@@ -78,7 +77,7 @@ func IsStepHealthy(c client.Client, step kudov1alpha1.StepStatus) bool {
 	return true
 }
 
-//IsPhaseHealthy returns whether each step in the phase is healthy.  See IsStepHealthy for step health
+// IsPhaseHealthy returns whether each step in the phase is healthy. See IsStepHealthy for step health.
 func IsPhaseHealthy(phase kudov1alpha1.PhaseStatus) bool {
 	for _, step := range phase.Steps {
 		if step.State != kudov1alpha1.PhaseStateComplete {
@@ -90,7 +89,7 @@ func IsPhaseHealthy(phase kudov1alpha1.PhaseStatus) bool {
 	return true
 }
 
-//IsPlanHealthy returns whether each Phase in the plan is healthy.  See IsPhaseHealthy for phase health
+// IsPlanHealthy returns whether each Phase in the plan is healthy. See IsPhaseHealthy for phase health.
 func IsPlanHealthy(plan kudov1alpha1.PlanExecutionStatus) bool {
 	for _, phase := range plan.Phases {
 		if !IsPhaseHealthy(phase) {
