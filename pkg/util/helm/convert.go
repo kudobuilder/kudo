@@ -11,14 +11,16 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"k8s.io/helm/pkg/proto/hapi/chart"
 
 	"github.com/helm/helm/pkg/chartutil"
 )
 
-// MinHelmVersion is the minimum KUDO version that supports helm templating
-const MinHelmVersion = "0.2.0"
+// MinKUDOVersionToSupportHelm is the minimum KUDO version that supports helm templating
+const MinKUDOVersionToSupportHelm = "0.2.0"
 
 func loadParameters(folder string) ([]kudo.Parameter, error) {
 	params := make([]kudo.Parameter, 0)
@@ -33,9 +35,34 @@ func loadParameters(folder string) ([]kudo.Parameter, error) {
 	return params, err
 }
 
+func loadParametersFromChart(chart *chart.Chart) ([]kudo.Parameter, error) {
+	params := make([]kudo.Parameter, 0)
+
+	if settings.Debug {
+		fmt.Printf("Raw: %v\n", chart.GetValues().GetRaw())
+
+		fmt.Printf("Values:\n")
+	}
+	cparams := chart.GetValues().GetValues()
+
+	for k, v := range cparams {
+		if settings.Debug {
+			fmt.Printf("%v -> %v\n", k, v.GetValue())
+		}
+		params = append(params,
+			kudo.Parameter{
+				Name:        k, // ???
+				Default:     v.GetValue(),
+				Description: "Auto import from helm chart", //Maybe look at comments above the line?
+			})
+	}
+	return params, nil
+}
+
 func getParametersFromValues(value chartutil.Values) ([]kudo.Parameter, error) {
 	params := make([]kudo.Parameter, 0)
 	for k, v := range value {
+
 		s, ok := v.(string)
 		if ok {
 			params = append(params,
@@ -83,6 +110,21 @@ func getParametersFromValues(value chartutil.Values) ([]kudo.Parameter, error) {
 		}
 	}
 	return params, nil
+}
+
+func loadTemplateFromChart(chart *chart.Chart) (map[string]string, error) {
+	templates := chart.GetTemplates()
+	out := make(map[string]string)
+	for _, template := range templates {
+		name := template.GetName()
+		name = strings.Replace(name, "templates/", "", -1)
+		if strings.HasPrefix(name, "tests/") {
+			//part of testing
+			continue
+		}
+		out[name] = string(template.GetData())
+	}
+	return out, nil
 }
 
 func loadTemplates(folder string) (map[string]string, error) {

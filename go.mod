@@ -79,7 +79,7 @@ require (
 	k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31
 	k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b
 	k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6 // indirect
-	k8s.io/helm v2.14.0+incompatible // indirect
+	k8s.io/helm v2.14.0+incompatible
 	k8s.io/klog v0.2.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20190208205540-d7c86cdc46e3 // indirect
 	sigs.k8s.io/controller-runtime v0.1.10

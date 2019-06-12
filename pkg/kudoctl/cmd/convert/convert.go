@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/spf13/cobra"
@@ -26,7 +27,11 @@ var DefaultOptions = &Options{}
 
 // Run runs the convert command
 func Run(cmd *cobra.Command, args []string, options *Options) error {
-	bundle, e := helm.ToBundle(options.ChartImportPath)
+	chart, e := helm.LoadChart(options.ChartImportPath)
+	if e != nil {
+		return e
+	}
+	bundle, e := helm.ToBundle(chart)
 	if e != nil {
 		return e
 	}
@@ -74,8 +79,18 @@ func Run(cmd *cobra.Command, args []string, options *Options) error {
 	if e != nil {
 		return e
 	}
+	for _, template := range chart.GetTemplates() {
+		//ignore test files
+		if strings.HasPrefix(template.GetName(), "templates/tests") {
+			continue
+		}
+		e = ioutil.WriteFile(fmt.Sprintf("%v/%v", options.OutputPath, template.GetName()), template.GetData(), os.ModePerm)
+		if e != nil {
+			return e
+		}
+	}
 
-	e = copyDirectory(fmt.Sprintf("%v/templates", options.ChartImportPath), fmt.Sprintf("%v/templates", options.OutputPath))
+	// e = copyDirectory(fmt.Sprintf("%v/templates", options.ChartImportPath), fmt.Sprintf("%v/templates", options.OutputPath))
 
 	return e
 }

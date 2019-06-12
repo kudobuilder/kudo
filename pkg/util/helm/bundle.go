@@ -2,25 +2,46 @@ package helm
 
 import (
 	"fmt"
+	"os"
 
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/bundle"
+	"k8s.io/helm/pkg/proto/hapi/chart"
 
 	"github.com/helm/helm/pkg/chartutil"
 )
 
+func LoadChart(path string) (*chart.Chart, error) {
+	var chart *chart.Chart
+	//check if this is a folder or a file
+	if fi, err := os.Stat(path); err == nil {
+		if fi.IsDir() {
+			return chartutil.Load(path)
+
+		} else {
+			//folder
+			return chartutil.LoadDir(path)
+		}
+	} else {
+		//not a folder, or a file, maybe a chart on a repo?
+		chartPath, e := locateChartPath("", path, "")
+		if e != nil {
+			return chart, e
+		}
+		return chartutil.Load(chartPath)
+	}
+}
+
 // ToBundle converts the helm chart on disk into a Kudo Bundle
-func ToBundle(folder string) (bundle.Framework, error) {
+func ToBundle(chart *chart.Chart) (bundle.Framework, error) {
 	b := bundle.Framework{}
 
-	meta, err := chartutil.LoadChartfile(folder + "/Chart.yaml")
-	if err != nil {
-		return b, err
-	}
+	meta := chart.Metadata
+
 	b.Name = meta.GetName()
 	b.Description = meta.GetDescription()
 	b.Version = meta.GetVersion()
-	b.KUDOVersion = MinHelmVersion
+	b.KUDOVersion = MinKUDOVersionToSupportHelm
 	b.KubernetesVersion = meta.GetKubeVersion()
 	b.Maintainers = make([]kudo.Maintainer, 0)
 	for _, m := range meta.Maintainers {
@@ -33,7 +54,7 @@ func ToBundle(folder string) (bundle.Framework, error) {
 	b.Parameters = make([]kudo.Parameter, 0)
 
 	//tasks
-	tasks, err := loadTemplates(folder)
+	tasks, err := loadTemplateFromChart(chart)
 	if err != nil {
 		return b, err
 	}
@@ -55,7 +76,7 @@ func ToBundle(folder string) (bundle.Framework, error) {
 				Steps: []kudo.Step{
 					kudo.Step{
 						Name:  "deploy",
-						Tasks: resources,
+						Tasks: []string{"deploy"},
 					},
 				},
 			},
@@ -63,7 +84,7 @@ func ToBundle(folder string) (bundle.Framework, error) {
 	}
 
 	//parameters
-	params, err := loadParameters(folder)
+	params, err := loadParametersFromChart(chart)
 	if err != nil {
 		return b, err
 	}
