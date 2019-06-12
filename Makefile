@@ -88,7 +88,7 @@ vet:
 # Run go lint against code
 lint:
 	go install golang.org/x/lint/golint
-	golint ./pkg/... ./cmd/...
+	golint -set_exit_status ./pkg/... ./cmd/...
 
 .PHONY: staticcheck
 # Runs static check
