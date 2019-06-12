@@ -1,6 +1,13 @@
 package bundle
 
-import "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+import (
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+)
+
+type Bundle struct {
+	*Framework
+	templates map[string]string
+}
 
 // Framework is a representation of the KEP-9 Framework YAML
 type Framework struct {
@@ -13,6 +20,12 @@ type Framework struct {
 	URL               string                         `json:"url,omitempty"`
 	Tasks             map[string]v1alpha1.TaskSpec   `json:"tasks"`
 	Plans             map[string]v1alpha1.Plan       `json:"plans"`
-	Parameters        []v1alpha1.Parameter           `json:"parameters,omitempty"`
+	Parameters        map[string]Parameter           `json:"parameters,omitempty"`
 	Dependencies      []v1alpha1.FrameworkDependency `json:"dependencies,omitempty"`
+}
+
+type Parameter struct {
+	Default     string `json:"default,omitempty"`
+	Description string `json:"description,omitempty"`
+	Trigger     string `json:"trigger,omitempty"`
 }

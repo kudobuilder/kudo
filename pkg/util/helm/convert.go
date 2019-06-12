@@ -8,8 +8,10 @@ package helm
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
@@ -20,13 +22,33 @@ import (
 // MinHelmVersion is the minimum KUDO version that supports helm templating
 const MinHelmVersion = "0.2.0"
 
-func loadParameters(folder string) ([]kudo.Parameter, error) {
+func LoadChart(chartFolder string) (*HelmChart, error) {
+	chartFile, err := ioutil.ReadFile(path.Join(chartFolder, "Chart.yaml"))
+	if err != nil {
+		return nil, errors.Wrap(err, "while getting Chart.yml file from the chart folder")
+	}
+	valuesFile, err := ioutil.ReadFile(path.Join(chartFolder, "values.yaml"))
+	if err != nil {
+		return nil, errors.Wrap(err, "while getting values.yml file from the chart folder")
+	}
+	templates, err := loadTemplates(chartFolder)
+	if err != nil {
+		return nil, errors.Wrap(err, "while parsing templates")
+	}
+	return &HelmChart{
+		ChartFile: chartFile,
+		Values: valuesFile,
+		Templates: templates,
+	}, nil
+}
+
+func loadParameters(values []byte) ([]kudo.Parameter, error) {
 	params := make([]kudo.Parameter, 0)
-	values, err := chartutil.ReadValuesFile(folder + "/values.yaml")
+	parsedValues, err := chartutil.ReadValues(values)
 	if err != nil {
 		return params, err
 	}
-	params, err = getParametersFromValues(values)
+	params, err = getParametersFromValues(parsedValues)
 	if err != nil {
 		return params, err
 	}

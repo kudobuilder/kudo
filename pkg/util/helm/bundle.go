@@ -9,11 +9,17 @@ import (
 	"github.com/helm/helm/pkg/chartutil"
 )
 
+type HelmChart struct {
+	ChartFile []byte
+	Templates map[string]string
+	Values []byte
+}
+
 // ToBundle converts the helm chart on disk into a Kudo Bundle
-func ToBundle(folder string) (bundle.Framework, error) {
+func ToBundle(helmChart *HelmChart) (bundle.Framework, error) {
 	b := bundle.Framework{}
 
-	meta, err := chartutil.LoadChartfile(folder + "/Chart.yaml")
+	meta, err := chartutil.UnmarshalChartfile(helmChart.ChartFile)
 	if err != nil {
 		return b, err
 	}
@@ -30,16 +36,11 @@ func ToBundle(folder string) (bundle.Framework, error) {
 
 	b.Tasks = make(map[string]kudo.TaskSpec)
 	b.Plans = make(map[string]kudo.Plan)
-	b.Parameters = make([]kudo.Parameter, 0)
+	b.Parameters = make(map[string]bundle.Parameter)
 
 	//tasks
-	tasks, err := loadTemplates(folder)
-	if err != nil {
-		return b, err
-	}
-
 	resources := make([]string, 0)
-	for k := range tasks {
+	for k := range helmChart.Templates {
 		resources = append(resources, k)
 	}
 	b.Tasks["deploy"] = kudo.TaskSpec{
@@ -63,11 +64,19 @@ func ToBundle(folder string) (bundle.Framework, error) {
 	}
 
 	//parameters
-	params, err := loadParameters(folder)
+	params, err := loadParameters(helmChart.Values)
 	if err != nil {
 		return b, err
 	}
-	b.Parameters = params
+	mapParams := make(map[string]bundle.Parameter)
+	for _, param := range params {
+		mapParams[param.Name] = bundle.Parameter{
+			Default:     param.Default,
+			Description: param.Description,
+			Trigger:     param.Trigger,
+		}
+	}
+	b.Parameters = mapParams
 
 	//dependencies
 	//TODO(@runyontr)

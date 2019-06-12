@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/util/helm"
 )
 
@@ -26,20 +25,22 @@ var DefaultOptions = &Options{}
 
 // Run runs the convert command
 func Run(cmd *cobra.Command, args []string, options *Options) error {
-	bundle, e := helm.ToBundle(options.ChartImportPath)
-	if e != nil {
-		return e
+	chart, err := helm.LoadChart(options.ChartImportPath)
+	if err != nil {
+		return err
+	}
+	bundle, err := helm.ToBundle(chart)
+	if err != nil {
+		return err
 	}
 	if b := exists(options.OutputPath); b {
 		return fmt.Errorf("bundle output dir %v shouldn't exist", options.OutputPath)
 	}
-	e = os.Mkdir(options.OutputPath, 0755)
-	if e != nil {
-		return e
+	err = os.Mkdir(options.OutputPath, 0755)
+	if err != nil {
+		return err
 	}
 
-	bundleParams := bundle.Parameters
-	bundle.Parameters = make([]kudo.Parameter, 0)
 	b, e := yaml.Marshal(bundle)
 	if e != nil {
 		return e
@@ -48,20 +49,7 @@ func Run(cmd *cobra.Command, args []string, options *Options) error {
 	if e != nil {
 		return e
 	}
-	type P struct {
-		Default     string `json:"default,omitempty"`
-		Description string `json:"description,omitempty"`
-		Trigger     string `json:"trigger,omitempty"`
-	}
-	mapParams := make(map[string]P)
-	for _, param := range bundleParams {
-		mapParams[param.Name] = P{
-			Default:     param.Default,
-			Description: param.Description,
-			Trigger:     param.Trigger,
-		}
-	}
-	b, e = yaml.Marshal(mapParams)
+	b, e = yaml.Marshal(bundle.Parameters)
 	if e != nil {
 		return e
 	}
