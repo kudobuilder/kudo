@@ -8,11 +8,12 @@ package helm
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/pkg/errors"
 
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 
@@ -37,7 +38,7 @@ func LoadChart(chartFolder string) (*HelmChart, error) {
 	}
 	return &HelmChart{
 		ChartFile: chartFile,
-		Values: valuesFile,
+		Values:    valuesFile,
 		Templates: templates,
 	}, nil
 }

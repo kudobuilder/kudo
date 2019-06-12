@@ -4,9 +4,10 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 )
 
+// Bundle represents the package format supported by KUDO
 type Bundle struct {
 	*Framework
-	templates map[string]string
+	// 	templates map[string]string temporary removed until we introduce the template normalization
 }
 
 // Framework is a representation of the KEP-9 Framework YAML
@@ -24,6 +25,7 @@ type Framework struct {
 	Dependencies      []v1alpha1.FrameworkDependency `json:"dependencies,omitempty"`
 }
 
+// Parameter is a struct defining a parameter in the current KUDO package format
 type Parameter struct {
 	Default     string `json:"default,omitempty"`
 	Description string `json:"description,omitempty"`

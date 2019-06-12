@@ -12,7 +12,7 @@ import (
 type HelmChart struct {
 	ChartFile []byte
 	Templates map[string]string
-	Values []byte
+	Values    []byte
 }
 
 // ToBundle converts the helm chart on disk into a Kudo Bundle
