@@ -2,7 +2,6 @@ package install
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
@@ -20,7 +19,7 @@ type Options struct {
 	AutoApprove     bool
 	InstanceName    string
 	Namespace       string
-	Parameters      []string
+	Parameters      map[string]string
 	PackageVersion  string
 	KubeConfigPath  string
 }
@@ -47,40 +46,8 @@ func Run(cmd *cobra.Command, args []string, options *Options) error {
 		return errors.WithMessage(err, "could not check kubeconfig path")
 	}
 
-	// Validate install parameters
-	if err := validateInstallParameters(options.Parameters); err != nil {
-		return errors.WithMessage(err, "could not parse parameters")
-	}
-
 	if err := installFrameworks(args, options); err != nil {
 		return errors.WithMessage(err, "could not install framework(s)")
-	}
-
-	return nil
-}
-
-func validateInstallParameters(parameters []string) error {
-	var errs []string
-
-	for _, a := range parameters {
-		// Using '=' as the delimiter. Split after the first delimiter to support using '=' in values
-		s := strings.SplitN(a, "=", 2)
-		if len(s) < 2 {
-			errs = append(errs, fmt.Sprintf("parameter not set: %+v", a))
-			continue
-		}
-		if s[0] == "" {
-			errs = append(errs, fmt.Sprintf("parameter name can not be empty: %+v", a))
-			continue
-		}
-		if s[1] == "" {
-			errs = append(errs, fmt.Sprintf("parameter value can not be empty: %+v", a))
-			continue
-		}
-	}
-
-	if errs != nil {
-		return errors.New(strings.Join(errs, ", "))
 	}
 
 	return nil
@@ -277,12 +244,7 @@ func installSingleInstanceToCluster(name, previous string, instance *v1alpha1.In
 		instance.ObjectMeta.SetName(options.InstanceName)
 	}
 	if options.Parameters != nil {
-		p := make(map[string]string)
-		for _, a := range options.Parameters {
-			s := strings.SplitN(a, "=", 2)
-			p[s[0]] = s[1]
-		}
-		instance.Spec.Parameters = p
+		instance.Spec.Parameters = options.Parameters
 	}
 	if _, err := kc.InstallInstanceObjToCluster(instance, options.Namespace); err != nil {
 		return errors.Wrapf(err, "installing %s-instance.yaml", name)
