@@ -90,15 +90,15 @@ Go coverage reports will be used to ensure that changes do not reduce test cover
 
 #### Integration tests
 
-Integration tests test the KUDO controller in its entirety. These tests can be run against either a real Kubernetes cluster or a local control plane. Initially, all integration tests will be run against every pull request. If this begins to degrade velocity, integration tests can be run on master or nightly builds. Integration tests can be written either in Go or using the test harness designed in KEP-0008.
+Integration tests test the KUDO controller in its entirety. These tests can be run against either a real Kubernetes cluster or a local control plane. Integration tests will be manually run after review, but prior to merging using the [Circle CI manual approval feature](https://circleci.com/docs/2.0/triggers/#manual-approval). Integration tests can be written either in Go or using the test harness designed in KEP-0008.
 
-The integration tests will consist of a set of representative Frameworks and FrameworkVersions that utilize real world KUDO features.
+The integration tests will consist of a set of representative Frameworks and FrameworkVersions that utilize real world KUDO features. Integration tests should be added for new KUDO capabilities at the discretion of the capability author or reviewers.
 
 Integration tests will be hidden behind a Go build tag and will only run when the `integration` tag is specified. Because build tags are used to separate integration from unit tests, integration tests written in Go must not be in the same file as unit tests.
 
 #### Framework tests
 
-Framework tests test that a framework works correctly. These require a full Kubernetes cluster to run and will be run in CI. Instead of running every test on every pull request, we will only run the tests that test the framework changed in any given pull request. Framework tests will also be run against master and release builds of KUDO to verify that KUDO changes do not break frameworks. Frameworks are tested using the KUDO test harness from KEP-0008.
+Framework tests test that a framework works correctly. These require a full Kubernetes cluster to run and will be run in CI for the Frameworks repository using the latest released version of KUDO. Instead of running every test on every pull request, we will only run the tests that test the framework changed in any given pull request. Framework tests will also be run against master and release builds of KUDO to verify that KUDO changes do not break frameworks. Frameworks are tested using the KUDO test harness from KEP-0008.
 
 Framework tests live in the `kudobuilder/frameworks` repository, with the file structure defined in KEP-0010.
 
@@ -127,7 +127,7 @@ All Pull Requests into master need to have the following checks pass. These shou
 
 0. Check author has signed CLA
 1. `go fmt` does not change anything
-1. `go lint` and `go vet` both pass
+1. `make check-formatting passes.
 1. All unit tests pass (with `-race` flag)
 1. Dockerfile builds (this requires all dependencies in the vendor folder)
 1. All integration tests pass.
