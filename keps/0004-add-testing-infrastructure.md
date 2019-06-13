@@ -19,22 +19,30 @@ superseded-by:
 
 ## Table of Contents
 
-- [Table of Contents](#table-of-contents)
-- [Summary](#summary)
-- [Motivation](#motivation)
-  - [Goals](#goals)
-  - [Non-Goals](#non-goals)
-- [Proposal](#proposal)
-  - [User Stories](#user-stories)
-    - [Story 1](#story-1)
-    - [Story 2](#story-2)
-  - [Implementation Details/Notes/Constraints [optional]](#implementation-detailsnotesconstraints-optional)
-  - [Risks and Mitigations](#risks-and-mitigations)
-- [Graduation Criteria](#graduation-criteria)
-- [Implementation History](#implementation-history)
-- [Infrastructure Needed [optional]](#infrastructure-needed-optional)
-
-[tools for generating]: https://github.com/ekalinin/github-markdown-toc
+* [Summary](#summary)
+* [Motivation](#motivation)
+   * [Goals](#goals)
+   * [Non-Goals](#non-goals)
+* [Proposal](#proposal)
+   * [Tests](#tests)
+      * [Unit tests](#unit-tests)
+      * [Integration tests](#integration-tests)
+      * [Framework tests](#framework-tests)
+   * [CICD](#cicd)
+      * [Pull Requests](#pull-requests)
+      * [Master Branch](#master-branch)
+         * [Tests](#tests-1)
+         * [Pushes](#pushes)
+         * [Schedule](#schedule)
+         * [Base Image Change](#base-image-change)
+      * [Tags/Release](#tagsrelease)
+   * [User Stories](#user-stories)
+      * [Story 1](#story-1)
+      * [Story 2](#story-2)
+   * [Risks and Mitigations](#risks-and-mitigations)
+* [Graduation Criteria](#graduation-criteria)
+* [Implementation History](#implementation-history)
+* [Infrastructure Needed [optional]](#infrastructure-needed-optional)
 
 ## Summary
 
@@ -45,6 +53,10 @@ request, or even deployment of KUDO on a cluster.
 
 These testing packages should also assure conformance for the `kudobuilder/frameworks` repository
 to particular versions of KUDO.
+
+[KEP-0008](https://github.com/kudobuilder/kudo/blob/master/keps/0008-framework-testing.md) outlines the
+design of a testing harness for validating KUDO and frameworks. This document outlines testing procedures
+and policies - e.g., what, where, when and how we will test.
 
 ## Motivation
 
@@ -68,21 +80,48 @@ This is a two phase proposal.
 
 ### Tests
 
-Add testing packages to:
+KUDO will be tested by several different test suites that validate individual components, KUDO, and frameworks.
+
+#### Unit tests
+
+Unit tests test a single component and require no network connectivity. These should be fast, run on every pull request,
+and test that individual KUDO components behave correctly. Unit tests are written as standard Go tests.
+
+All packages should incorporate unit tests that validate their behavior. Some examples of tests that should be included are:
 
 - pkg/apis - Conformance of objects, serialization, validation
 - pkg/controller - Controllers implement the correct process flows for changes in Instance objects, and creation of PlanExecutions
 - pkg/util - Util functions behave as expected
 
-Integration tests
+Go coverage reports will be used to ensure that changes do not reduce test coverage.
 
-- Identify and build a common set of Frameworks and FrameworkVersions that can demonstrate/validate that functionality of the controller
-  exists in real world situations.
+#### Integration tests
+
+Integration tests test the KUDO controller in its entirety. These tests can be run against either a real Kubernetes cluster
+or a local control plane. Initially, all integration tests will be run against every pull request. If this begins to degrade
+velocity, integration tests can be run on master or nightly builds. Integration tests can be written either in Go or using
+the test harness designed in KEP-0008.
+
+The integration tests will consist of a set of representative Frameworks and FrameworkVersions that utilize real world
+KUDO features.
+
+Integration tests will be hidden behind a Go build tag and will only run when the `integration` tag is specified. Because
+build tags are used to separate integration from unit tests, integration tests written in Go must not be in the same file
+as unit tests.
+
+#### Framework tests
+
+Framework tests test that a framework works correctly. These require a full Kubernetes cluster to run and will be run in CI.
+Instead of running every test on every pull request, we will only run the tests that test the framework changed in any given
+pull request. Framework tests will also be run against master and release builds of KUDO to verify that KUDO changes do not
+break frameworks. Frameworks are tested using the KUDO test harness from KEP-0008.
+
+Framework tests live in the `kudobuilder/frameworks` repository, with the file structure defined in KEP-0010.
 
 ### CICD
 
 Use [CircleCI](https://circleci.com/docs/) and the [GitHub Plugin](https://github.com/marketplace/circleci/plan/MDIyOk1hcmtldHBsYWNlTGlzdGluZ1BsYW45MA==#pricing-and-setup).
-For OpenSource projects we will recieve 1,000 monthly build minutes. With the test suite below, that should suffice as a baseline.
+For OpenSource projects we will receive 1,000 monthly build minutes. With the test suite below, that should suffice as a baseline.
 
 #### Pull Requests
 
@@ -93,10 +132,15 @@ All Pull Requests into master need to have the following checks pass. These shou
 1. `go lint` and `go vet` both pass
 1. All unit tests pass (with `-race` flag)
 1. Dockerfile builds (this requires all dependencies in the vendor folder)
+1. All integration tests pass.
 
 Perform the same set of tests after merging master into the branch.
 
 #### Master Branch
+
+##### Tests
+
+The master branch will run all the same tests that pull requests do as well as the complete set of framework tests.
 
 ##### Pushes
 
@@ -112,6 +156,7 @@ Since we don't have any tests that validate the image works (no integration test
 
 #### Tags/Release
 
+- All unit, integration, and framework tests are run.
 - Build process occurs to deploy the image at `kudobuilder/controller:latest`.
 - Create the YAML to deploy Kudo, and package up to store in GitHub Release
 
@@ -125,14 +170,6 @@ of Kudo.
 #### Story 2
 
 As a repository owner, I don't want to have to validate the execution of common plans/functionality as part of the review process.
-
-### Implementation Details/Notes/Constraints [optional]
-
-- Are new tests required for all (code) PRs? If fixing a bug, it's re-assuring if you can provide a test that demonstrates it not working,
-  but the level of effort is significantly increased to push code. This might be counter productive in trying to encourage
-  developers from contributing.
-- Being able to run the "Test Frameworks" on a running cluster might provide value (e.g. sonobouy), but requires a maturation
-  of that capability and might not be worth the effort
 
 ### Risks and Mitigations
 
