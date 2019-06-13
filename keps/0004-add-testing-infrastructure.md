@@ -90,11 +90,11 @@ Go coverage reports will be used to ensure that changes do not reduce test cover
 
 #### Integration tests
 
-Integration tests test the KUDO controller in its entirety. These tests can be run against either a real Kubernetes cluster or a local control plane. Integration tests will be manually run after review, but prior to merging using the [Circle CI manual approval feature](https://circleci.com/docs/2.0/triggers/#manual-approval). Integration tests can be written either in Go or using the test harness designed in KEP-0008.
+Integration tests test the KUDO controller in its entirety. These tests can be run against either a real Kubernetes cluster or a local control plane. Integration tests will be manually run after review, but prior to merging using the [Circle CI manual approval feature](https://circleci.com/docs/2.0/triggers/#manual-approval). Integration tests can be written using the test harness designed in KEP-0008.
 
 The integration tests will consist of a set of representative Frameworks and FrameworkVersions that utilize real world KUDO features. Integration tests should be added for new KUDO capabilities at the discretion of the capability author or reviewers.
 
-Integration tests will be hidden behind a Go build tag and will only run when the `integration` tag is specified. Because build tags are used to separate integration from unit tests, integration tests written in Go must not be in the same file as unit tests.
+Integration tests will be hidden behind a Go build tag and will only run when the `integration` tag is specified.
 
 #### Framework tests
 
