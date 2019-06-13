@@ -47,17 +47,11 @@ superseded-by:
 
 ## Summary
 
-As the complexity and scope of KUDO grows, it becomes impossible to manually validate
-exisiting frameworks and capabilities still function as expected. As part of a robust
-CICD pipeline, a testing suite needs to be developed that can validate each commit, pull
-request, or even deployment of KUDO on a cluster.
+As the complexity and scope of KUDO grows, it becomes impossible to manually validate exisiting frameworks and capabilities still function as expected. As part of a robust CICD pipeline, a testing suite needs to be developed that can validate each commit, pull request, or even deployment of KUDO on a cluster.
 
-These testing packages should also assure conformance for the `kudobuilder/frameworks` repository
-to particular versions of KUDO.
+These testing packages should also assure conformance for the `kudobuilder/frameworks` repository to particular versions of KUDO.
 
-[KEP-0008](https://github.com/kudobuilder/kudo/blob/master/keps/0008-framework-testing.md) outlines the
-design of a testing harness for validating KUDO and frameworks. This document outlines testing procedures
-and policies - e.g., what, where, when and how we will test.
+[KEP-0008](https://github.com/kudobuilder/kudo/blob/master/keps/0008-framework-testing.md) outlines the design of a testing harness for validating KUDO and frameworks. This document outlines testing procedures and policies - e.g., what, where, when and how we will test.
 
 ## Motivation
 
@@ -65,8 +59,7 @@ and policies - e.g., what, where, when and how we will test.
 
 - Ensure validation of API objects is functioning correctly
 - Ensure controllers execute known process flows correctly
-- Validate Framework and FrameworkVersions in kudobuilder/frameworks adhere to the API spec defined by Kudo. Provide common
-  misconfigurations and validate that the testing framework notifies the users/developer of failure
+- Validate Framework and FrameworkVersions in kudobuilder/frameworks adhere to the API spec defined by Kudo. Provide common misconfigurations and validate that the testing framework notifies the users/developer of failure
 - Reduce review time for code changes by not requiring reviewers to validate functionality of test cases
 - Reduce developer time for code changes by providing tools to validate functionality
 - Provide developers clear tooling for addition additional tests to infrastructure to validate bug fixes and new features
@@ -85,8 +78,7 @@ KUDO will be tested by several different test suites that validate individual co
 
 #### Unit tests
 
-Unit tests test a single component and require no network connectivity. These should be fast, run on every pull request,
-and test that individual KUDO components behave correctly. Unit tests are written as standard Go tests.
+Unit tests test a single component and do not require an Internet connection or the Kubernetes API. These should be fast, run on every pull request, and test that individual KUDO components behave correctly. Unit tests are written as standard Go tests.
 
 All packages should incorporate unit tests that validate their behavior. Some examples of tests that should be included are:
 
@@ -98,31 +90,21 @@ Go coverage reports will be used to ensure that changes do not reduce test cover
 
 #### Integration tests
 
-Integration tests test the KUDO controller in its entirety. These tests can be run against either a real Kubernetes cluster
-or a local control plane. Initially, all integration tests will be run against every pull request. If this begins to degrade
-velocity, integration tests can be run on master or nightly builds. Integration tests can be written either in Go or using
-the test harness designed in KEP-0008.
+Integration tests test the KUDO controller in its entirety. These tests can be run against either a real Kubernetes cluster or a local control plane. Initially, all integration tests will be run against every pull request. If this begins to degrade velocity, integration tests can be run on master or nightly builds. Integration tests can be written either in Go or using the test harness designed in KEP-0008.
 
-The integration tests will consist of a set of representative Frameworks and FrameworkVersions that utilize real world
-KUDO features.
+The integration tests will consist of a set of representative Frameworks and FrameworkVersions that utilize real world KUDO features.
 
-Integration tests will be hidden behind a Go build tag and will only run when the `integration` tag is specified. Because
-build tags are used to separate integration from unit tests, integration tests written in Go must not be in the same file
-as unit tests.
+Integration tests will be hidden behind a Go build tag and will only run when the `integration` tag is specified. Because build tags are used to separate integration from unit tests, integration tests written in Go must not be in the same file as unit tests.
 
 #### Framework tests
 
-Framework tests test that a framework works correctly. These require a full Kubernetes cluster to run and will be run in CI.
-Instead of running every test on every pull request, we will only run the tests that test the framework changed in any given
-pull request. Framework tests will also be run against master and release builds of KUDO to verify that KUDO changes do not
-break frameworks. Frameworks are tested using the KUDO test harness from KEP-0008.
+Framework tests test that a framework works correctly. These require a full Kubernetes cluster to run and will be run in CI. Instead of running every test on every pull request, we will only run the tests that test the framework changed in any given pull request. Framework tests will also be run against master and release builds of KUDO to verify that KUDO changes do not break frameworks. Frameworks are tested using the KUDO test harness from KEP-0008.
 
 Framework tests live in the `kudobuilder/frameworks` repository, with the file structure defined in KEP-0010.
 
 ### Kubernetes clusters
 
-It is important that tests are run against many different configurations of Kubernetes to ensure that KUDO and frameworks are
-compatible with common Kubernetes configurations and distributions.
+It is important that tests are run against many different configurations of Kubernetes to ensure that KUDO and frameworks are compatible with common Kubernetes configurations and distributions.
 
 Framework tests will be run against several different Kubernetes clusters:
 
@@ -136,11 +118,12 @@ These clusters can be started either as a part of CI jobs or maintained long ter
 ### CICD
 
 Use [CircleCI](https://circleci.com/docs/) and the [GitHub Plugin](https://github.com/marketplace/circleci/plan/MDIyOk1hcmtldHBsYWNlTGlzdGluZ1BsYW45MA==#pricing-and-setup).
+
 For OpenSource projects we will receive 1,000 monthly build minutes. With the test suite below, that should suffice as a baseline.
 
 #### Pull Requests
 
-All Pull Requests into master need to have the following checks pass. These should be ordered in fastest to slowest to reduce the time spent when/if failures occur
+All Pull Requests into master need to have the following checks pass. These should be ordered in fastest to slowest to reduce the time spent when/if failures occur.
 
 0. Check author has signed CLA
 1. `go fmt` does not change anything
@@ -179,8 +162,7 @@ Since we don't have any tests that validate the image works (no integration test
 
 #### Story 1
 
-As a developer, I want to ensure my changes don't break existing functionality, even if I don't understand all the capabilities
-of Kudo.
+As a developer, I want to ensure my changes don't break existing functionality, even if I don't understand all the capabilities of Kudo.
 
 #### Story 2
 
@@ -197,8 +179,7 @@ How will we know that this has succeeded?
 
 - When repository owners can feel confident that code changes are not breaking functionality.
 - Tests pass for the API objects
-- Leverage testing scaffolding provided by (and subsequently removed by us) Kubebuilder for
-  controller logic.
+- Leverage testing scaffolding provided by (and subsequently removed by us) Kubebuilder for controller logic.
 
 ## Implementation History
 
