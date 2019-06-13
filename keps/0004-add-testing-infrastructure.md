@@ -28,6 +28,7 @@ superseded-by:
       * [Unit tests](#unit-tests)
       * [Integration tests](#integration-tests)
       * [Framework tests](#framework-tests)
+   * [Kubernetes clusters](keps/0004-add-testing-infrastructure.md#kubernetes-clusters)
    * [CICD](#cicd)
       * [Pull Requests](#pull-requests)
       * [Master Branch](#master-branch)
@@ -117,6 +118,20 @@ pull request. Framework tests will also be run against master and release builds
 break frameworks. Frameworks are tested using the KUDO test harness from KEP-0008.
 
 Framework tests live in the `kudobuilder/frameworks` repository, with the file structure defined in KEP-0010.
+
+### Kubernetes clusters
+
+It is important that tests are run against many different configurations of Kubernetes to ensure that KUDO and frameworks are
+compatible with common Kubernetes configurations and distributions.
+
+Framework tests will be run against several different Kubernetes clusters:
+
+- A local cluster using [kind](https://github.com/kubernetes-sigs/kind) or [k3s](https://github.com/rancher/k3s).
+- A [GKE cluster](https://cloud.google.com/kubernetes-engine/).
+- An [EKS cluster](https://aws.amazon.com/eks/).
+- An [AKS cluster](https://docs.microsoft.com/en-us/azure/aks/).
+
+These clusters can be started either as a part of CI jobs or maintained long term to be used across many CI jobs.
 
 ### CICD
 
