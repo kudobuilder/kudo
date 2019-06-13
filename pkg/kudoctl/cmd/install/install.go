@@ -129,9 +129,9 @@ func installFrameworks(args []string, options *Options) error {
 	return nil
 }
 
-// Todo: needs testing
 // installFramework is the umbrella for a single framework installation that gathers the business logic
 // for a cluster and returns an error in case there is a problem
+// TODO: needs testing
 func installFramework(name, previous string, repository repo.FrameworkRepository, indexFile *repo.IndexFile, kc *kudo.Client, options *Options) error {
 
 	var bundleVersion *repo.BundleVersion
@@ -243,8 +243,8 @@ func installFramework(name, previous string, repository repo.FrameworkRepository
 	return nil
 }
 
-// Todo: needs testing
 // installSingleFrameworkToCluster installs a given Framework to the cluster
+// TODO: needs testing
 func installSingleFrameworkToCluster(name, namespace string, f *v1alpha1.Framework, kc *kudo.Client) error {
 	if _, err := kc.InstallFrameworkObjToCluster(f, namespace); err != nil {
 		return errors.Wrapf(err, "installing %s-framework.yaml", name)
@@ -253,8 +253,8 @@ func installSingleFrameworkToCluster(name, namespace string, f *v1alpha1.Framewo
 	return nil
 }
 
-// Todo: needs testing
 // installSingleFrameworkVersionToCluster installs a given FrameworkVersion to the cluster
+// TODO: needs testing
 func installSingleFrameworkVersionToCluster(name, namespace string, kc *kudo.Client, fv *v1alpha1.FrameworkVersion) error {
 	if _, err := kc.InstallFrameworkVersionObjToCluster(fv, namespace); err != nil {
 		return errors.Wrapf(err, "installing %s-frameworkversion.yaml", name)
@@ -263,8 +263,8 @@ func installSingleFrameworkVersionToCluster(name, namespace string, kc *kudo.Cli
 	return nil
 }
 
-// Todo: needs more testing
 // installSingleInstanceToCluster installs a given Instance to the cluster
+// TODO: needs more testing
 func installSingleInstanceToCluster(name, previous string, instance *v1alpha1.Instance, kc *kudo.Client, options *Options) error {
 	// Customizing Instance
 	// TODO: traversing, e.g. check function that looksup if key exists in the current FrameworkVersion

@@ -202,7 +202,6 @@ func TestFrameworkType_Validation(t *testing.T) {
 		"NIL":          nil,
 	}
 
-	//taskConfigTemplate := "krb5.conf"
 	taskConfig := map[string]*Config{
 		"": nil,
 		"krb5-conf": {
@@ -214,8 +213,7 @@ func TestFrameworkType_Validation(t *testing.T) {
 	taskHealthCheckCmd := ""
 
 	taskHealthCheck := HealthCheck{
-		Cmd: &taskHealthCheckCmd,
-		//Interval: -1,
+		Cmd:                    &taskHealthCheckCmd,
 		GracePeriodSecs:        -1,
 		MaxConsecutiveFailures: -1,
 		DelaySecs:              -1,

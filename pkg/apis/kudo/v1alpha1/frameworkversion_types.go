@@ -21,107 +21,105 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// FrameworkVersionSpec defines the desired state of FrameworkVersion
+// FrameworkVersionSpec defines the desired state of FrameworkVersion.
 type FrameworkVersionSpec struct {
 	// +optional
 	Framework corev1.ObjectReference `json:"framework,omitempty"`
 	Version   string                 `json:"version,omitempty"`
 
-	//Yaml captures a mustached yaml list of elements that define the application framework instance
+	// Yaml captures a templated yaml list of elements that define the application framework instance.
 	Templates map[string]string   `json:"templates,omitempty"`
 	Tasks     map[string]TaskSpec `json:"tasks,omitempty"`
 
 	Parameters []Parameter `json:"parameters,omitempty"`
 
-	//Plans specify a map a plans that specify how to
+	// Plans maps a plan name to a plan.
 	Plans map[string]Plan `json:"plans,omitempty"`
 
-	//ConnectionString defines a mustached string that can be used
-	// to connect to an instance of the Framework
+	// ConnectionString defines a templated string that can be used to connect to an instance of the Framework.
 	// +optional
 	ConnectionString string `json:"connectionString,omitempty"`
 
-	//Dependencies a list of
-
+	// Dependencies a list of all dependencies of the framework.
 	Dependencies []FrameworkDependency `json:"dependencies,omitempty"`
 
-	//UpgradableFrom lists all FrameworkVersions that can upgrade to this FrameworkVersion
+	// UpgradableFrom lists all FrameworkVersions that can upgrade to this FrameworkVersion.
 	UpgradableFrom []FrameworkVersion `json:"upgradableFrom,omitempty"`
 }
 
-//Ordering specifies how the subitems in this plan/phase should be rolled out
+// Ordering specifies how the subitems in this plan/phase should be rolled out.
 type Ordering string
 
-//Serial specifies that the plans or objects should be created in order.  The first should be healthy before
-// continuing on
+// Serial specifies that the plans or objects should be created in order. The first should be healthy before
+// continuing on.
 const Serial Ordering = "serial"
 
-//Parallel specifies that the plan or objects in the phase can all be lauched at the same time
+// Parallel specifies that the plan or objects in the phase can all be launched at the same time.
 const Parallel Ordering = "parallel"
 
-//Plan specifies a series of Phases that need to be completed.
+// Plan specifies a series of Phases that need to be completed.
 type Plan struct {
 	Strategy Ordering `json:"strategy" validate:"required"` // makes field mandatory and checks if set and non empty
-	//Phases maps a phase name to a Phase object
+	// Phases maps a phase name to a Phase object.
 	Phases []Phase `json:"phases" validate:"required,gt=0,dive"` // makes field mandatory and checks if its gt 0
 }
 
-//Parameter captures the variability of a FrameworkVersion being instantiated in an instance.  Describes
-//
+// Parameter captures the variability of a FrameworkVersion being instantiated in an instance.
 type Parameter struct {
-	//DisplayName can be used by UI's looking to
+	// DisplayName can be used by UI's.
 	DisplayName string `json:"displayName,omitempty"`
-	//Name is the string that should be used in the mustached file
-	// for example, if `name: COUNT`
-	// then using the variable in a spec like:
+
+	// Name is the string that should be used in the templated file for example,
+	// if `name: COUNT` then using the variable in a spec like:
 	//
 	// spec:
 	//   replicas:  {{COUNT}}
 	Name string `json:"name,omitempty"`
 
-	//Description captures a longer description of how the variable will be used
+	// Description captures a longer description of how the parameter will be used.
 	Description string `json:"description,omitempty"`
 
-	//Required specifies if the parameter is required to be provided by all instances, or whether a default can suffice
+	// Required specifies if the parameter is required to be provided by all instances, or whether a default can suffice.
 	Required bool `json:"required,omitempty"`
 
-	//Default is a default value if no paramter is provided by the instance
+	// Default is a default value if no parameter is provided by the instance.
 	Default string `json:"default,omitempty"`
 
-	//Trigger identifies the plan that gets executed when this parameter changes in the Instance object.
-	//Default is `update` if present, or `deploy` if not present
+	// Trigger identifies the plan that gets executed when this parameter changes in the Instance object.
+	// Default is `update` if present, or `deploy` if not present
 	Trigger string `json:"trigger,omitempty"`
 
-	//TODO Add generated parameters (e.g. passwords)
-	//These values should be saved off in a secret instead of updating the spec
-	// with values so viewing the instance doesn't give crednetials
+	// TODO: Add generated parameters (e.g. passwords).
+	// These values should be saved off in a secret instead of updating the spec
+	// with values that viewing the instance does not return credentials.
 
 }
 
-// TaskSpec is a struct containing lists of of Kustomize resources
+// TaskSpec is a struct containing lists of Kustomize resources.
 type TaskSpec struct {
 	Resources []string `json:"resources"`
 }
 
-//Phase specifies a list of steps that contain Kubernetes objects.
+// Phase specifies a list of steps that contain Kubernetes objects.
 type Phase struct {
 	Name     string   `json:"name" validate:"required"`     // makes field mandatory and checks if set and non empty
 	Strategy Ordering `json:"strategy" validate:"required"` // makes field mandatory and checks if set and non empty
-	//Steps maps a step name to a list of mustached kubernetes objects stored as a string
+
+	// Steps maps a step name to a list of templated Kubernetes objects stored as a string.
 	Steps []Step `json:"steps" validate:"required,gt=0,dive"` // makes field mandatory and checks if its gt 0
 }
 
-// Step defines a specific set of operations that occur
+// Step defines a specific set of operations that occur.
 type Step struct {
 	Name   string   `json:"name" validate:"required"`                     // makes field mandatory and checks if set and non empty
 	Tasks  []string `json:"tasks" validate:"required,gt=0,dive,required"` // makes field mandatory and checks if non empty
 	Delete bool     `json:"delete,omitempty"`                             // no checks needed
-	//Objects will be serialized for each instance as the params and defaults
-	// are provided
+
+	// Objects will be serialized for each instance as the params and defaults are provided.
 	Objects []runtime.Object `json:"-"` // no checks needed
 }
 
-// FrameworkVersionStatus defines the observed state of FrameworkVersion
+// FrameworkVersionStatus defines the observed state of FrameworkVersion.
 type FrameworkVersionStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
@@ -130,7 +128,7 @@ type FrameworkVersionStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// FrameworkVersion is the Schema for the frameworkversions API
+// FrameworkVersion is the Schema for the frameworkversions API.
 // +k8s:openapi-gen=true
 type FrameworkVersion struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -142,7 +140,7 @@ type FrameworkVersion struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// FrameworkVersionList contains a list of FrameworkVersion
+// FrameworkVersionList contains a list of FrameworkVersion.
 type FrameworkVersionList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -153,19 +151,21 @@ func init() {
 	SchemeBuilder.Register(&FrameworkVersion{}, &FrameworkVersionList{})
 }
 
-//FrameworkDependency references a defined framework
+// FrameworkDependency references a defined framework.
 type FrameworkDependency struct {
-	//Name specifies the name of the dependency.  Referenced via this in defaults.config
+	// Name specifies the name of the dependency. Referenced via defaults.config.
 	ReferenceName string `json:"referenceName"`
 	corev1.ObjectReference
-	//Version captures the requirements for what versions
-	// of the above object are allowed
+
+	// Version captures the requirements for what versions of the above object
+	// are allowed.
+	//
 	// Example: ^3.1.4
 	Version string `json:"version"`
 }
 
 // Type representations for srvc.yml as defined http://mesosphere.github.io/dcos-commons/yaml-reference/
-// They are a 1-to-1 mapping of the Java SDK port definition and hence the value ranges are choosen to match the Java
+// They are a 1-to-1 mapping of the Java SDK port definition and hence the value ranges are chosen to match the Java
 // counterparts.
 
 // ServiceSpec represents the overall service definition.
@@ -221,7 +221,7 @@ type Network struct {
 	Labels         string  `json:"labels" yaml:"labels"`                                                                 // no checks needed (TODO: not sure if needed at all, e.g. would it map to a service in k8s)
 }
 
-// RLimit represents a rlimit setting to be applied to the pod.
+// RLimit represents an rlimit setting to be applied to the pod.
 type RLimit struct {
 	Soft int64 `json:"soft" yaml:"soft" validate:"gte=1"` // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set | does this apply in k8s land?)
 	Hard int64 `json:"hard" yaml:"hard" validate:"gte=1"` // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set | does this apply in k8s land?)
@@ -248,7 +248,7 @@ type Task struct {
 	TransportEncryption     []*TransportEncryption `json:"transport-encryption" yaml:"transport-encryption" validate:"omitempty,gt=0,dive"`           // makes field optional and checks if object is non empty
 }
 
-// Config represents a config templates which is rendered before the pods is launched.
+// Config represents a config template which is rendered before the pods are launched.
 type Config struct {
 	Template *string `json:"template" yaml:"template" validate:"required,gt=0"` // makes field mandatory and checks if non empty
 	Dest     *string `json:"dest" yaml:"dest" validate:"required,gt=0"`         // makes field mandatory and checks if non empty
@@ -256,12 +256,11 @@ type Config struct {
 
 // HealthCheck represents a validation that a pod is healthy.
 type HealthCheck struct {
-	Cmd *string `json:"cmd" yaml:"cmd" validate:"omitempty,gt=0"` // makes field optional and checks if non empty
-	//Interval               int32   `json:"interval" yaml:"interval" validate:"gte=1"`                                 // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)
-	GracePeriodSecs        int32 `json:"grace-period" yaml:"grace-period" validate:"gte=1"`                                   // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)
-	MaxConsecutiveFailures int32 `json:"max-consecutive-failures" yaml:"max-consecutive-failures" validate:"omitempty,gte=1"` // makes field optional and checks if its gte 1 (TODO: we should make this a pointer to check if set | can it be zero?)
-	DelaySecs              int32 `json:"delay" yaml:"delay" validate:"omitempty,gte=1"`                                       // makes field optional and checks if its gte 1 (TODO: we should make this a pointer to check if set)
-	TimeoutSecs            int32 `json:"timeout" yaml:"timeout" validate:"gte=1"`                                             // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)
+	Cmd                    *string `json:"cmd" yaml:"cmd" validate:"omitempty,gt=0"`                                            // makes field optional and checks if non empty
+	GracePeriodSecs        int32   `json:"grace-period" yaml:"grace-period" validate:"gte=1"`                                   // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)
+	MaxConsecutiveFailures int32   `json:"max-consecutive-failures" yaml:"max-consecutive-failures" validate:"omitempty,gte=1"` // makes field optional and checks if its gte 1 (TODO: we should make this a pointer to check if set | can it be zero?)
+	DelaySecs              int32   `json:"delay" yaml:"delay" validate:"omitempty,gte=1"`                                       // makes field optional and checks if its gte 1 (TODO: we should make this a pointer to check if set)
+	TimeoutSecs            int32   `json:"timeout" yaml:"timeout" validate:"gte=1"`                                             // makes field mandatory and checks if its gte 1 (TODO: we should make this a pointer to check if set)
 }
 
 // ReadinessCheck represents an additional HealthCheck which is used when a task is first started.
