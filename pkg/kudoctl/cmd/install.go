@@ -22,8 +22,9 @@ var (
 )
 
 // parseParameters parse raw parameter strings into a map of keys and values
-func parseParameters(raw []string, parameters map[string]string) error {
+func parseParameters(raw []string) (map[string]string, error) {
 	var errs []string
+	parameters := make(map[string]string)
 
 	for _, a := range raw {
 		// Using '=' as the delimiter. Split after the first delimiter to support using '=' in values
@@ -44,10 +45,10 @@ func parseParameters(raw []string, parameters map[string]string) error {
 	}
 
 	if errs != nil {
-		return errors.New(strings.Join(errs, ", "))
+		return nil, errors.New(strings.Join(errs, ", "))
 	}
 
-	return nil
+	return parameters, nil
 }
 
 // newInstallCmd creates the install command for the CLI
@@ -61,8 +62,9 @@ func newInstallCmd() *cobra.Command {
 		Example: installExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Prior to command execution we parse and validate passed parameters
-			options.Parameters = make(map[string]string)
-			if err := parseParameters(parameters, options.Parameters); err != nil {
+			var err error
+			options.Parameters, err = parseParameters(parameters)
+			if err != nil {
 				return errors.WithMessage(err, "could not parse parameters")
 			}
 
