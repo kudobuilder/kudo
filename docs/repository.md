@@ -5,7 +5,7 @@ weight: 4
 ---
 # Framework repository
 
-KUDO CLI comes with built-in official repository of verified frameworks. Every time you use `kudo install ...` command, it always pulls package from this repository. 
+KUDO CLI comes with built-in official repository of verified frameworks. Every time you use `kudo install ...` command, it pulls the package from this repository. 
 
 ## Repository implementation
 

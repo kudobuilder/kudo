@@ -6,6 +6,7 @@ then
    docker run kudo-test
 else
     echo "Error when building test docker image, cannot run tests."
+    exit 1
 fi
 
 DOCKER_EXIT_CODE=$?

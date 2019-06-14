@@ -38,7 +38,12 @@ This document demonstrates how to use the CLI but also shows what happens in `KU
 
 ### Install
 
-Install the plugin from your `$GOPATH/src/github.com/kudobuilder/kudo` root folder via:
+You can either install the CLI plugin using `brew`:
+
+- `brew tap kudobuilder/tap`
+- `brew install kudo-cli`
+
+Or you can use compile and install the plugin from your `$GOPATH/src/github.com/kudobuilder/kudo` root folder via:
 
 - `make cli-install`
 
@@ -64,19 +69,10 @@ Flags:
   -h, --help                      help for install
       --instance string           The instance name. (default to Framework name)
       --kubeconfig string         The file path to Kubernetes configuration file. (default "$HOME/.kube/config")
-      --namespace string          The namespace where the operator watches for changes. (default to (default "default")
+      --namespace string          The namespace used for the framework installation. (default "default")
       --package-version string    A specific package version on the official GitHub repo. (default to the most recent)
-  -p, --parameter stringArray     The parameter name.
+  -p, --parameter stringArray     The parameter name and value separated by '='
 ```
-
-## Environment Variables
-
-Environment Variables override flags and are intended to give the user more customizable CLI options.
-
-|  Environment Variable | Description  |
-|---|---|
-| `GIT_USER`  |  Set a GitHub user to connect via the GitHub API with |
-| `GIT_PASSWORD` | Set a GitHub password to connect via the GitHub API with |
 
 ## Examples
 

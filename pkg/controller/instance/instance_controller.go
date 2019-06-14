@@ -44,9 +44,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// Add creates a new Instance Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
-// USER ACTION REQUIRED: update cmd/manager/main.go to call this kudo.Add(mgr) to install this Controller
+// Add creates a new Instance Controller and adds it to the Manager with default RBAC.
+//
+// The Manager will set fields on the Controller and start it when the Manager is started.
 func Add(mgr manager.Manager) error {
 	log.Printf("InstanceController: Registering instance controller.")
 	return add(mgr, newReconciler(mgr))
@@ -57,7 +57,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileInstance{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("instance-controller")}
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
+// add adds a new Controller to mgr with r as the reconcile.Reconciler.
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
 	c, err := controller.New("instance-controller", mgr, controller.Options{Reconciler: r})
@@ -71,7 +71,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			old := e.ObjectOld.(*kudov1alpha1.Instance)
 			new := e.ObjectNew.(*kudov1alpha1.Instance)
 
-			//Haven't done anything yet
+			// Haven't done anything yet
 			if new.Status.ActivePlan.Name == "" {
 				err = createPlan(mgr, "deploy", new)
 				if err != nil {
@@ -80,7 +80,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				return true
 			}
 
-			//get the new FrameworkVersion object
+			// Get the new FrameworkVersion object
 			fv := &kudov1alpha1.FrameworkVersion{}
 			err = mgr.GetClient().Get(context.TODO(),
 				types.NamespacedName{
@@ -93,16 +93,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					new.Spec.FrameworkVersion.Name,
 					new.Name,
 					err)
-				//TODO
-				//We probably want to handle this differently and mark this instance as unhealthy
-				//since its linking to a bad FV
+				// TODO: We probably want to handle this differently and mark this instance as unhealthy
+				// since its linking to a bad FV.
 				return false
 			}
-			//Identify plan to be executed by this change
+			// Identify plan to be executed by this change
 			var planName string
 			var ok bool
 			if old.Spec.FrameworkVersion != new.Spec.FrameworkVersion {
-				//Its an Upgrade!
+				// Its an Upgrade!
 				_, ok = fv.Spec.Plans["upgrade"]
 				if !ok {
 					_, ok = fv.Spec.Plans["update"]
@@ -112,7 +111,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 							log.Println("InstanceController: Could not find any plan to use for upgrade")
 							return false
 						}
-						ok = true // Do we need this here?
+						ok = true // TODO: Do we need this here?
 						planName = "deploy"
 					} else {
 						planName = "update"
@@ -123,7 +122,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			} else if !reflect.DeepEqual(old.Spec, new.Spec) {
 				for k, v := range new.Spec.Parameters {
 					if old.Spec.Parameters[k] != v {
-						//Find the right parameter in the FV
+						// Find the right parameter in the FV
 						for _, param := range fv.Spec.Parameters {
 							if param.Name == k {
 								planName = param.Trigger
@@ -148,17 +147,17 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 						}
 					}
 				}
-				//Not currently doing anything for Dependency changes
+				// Not currently doing anything for Dependency changes.
 			} else {
 				log.Println("InstanceController: Old and new spec matched...")
 				planName = "deploy"
 			}
 			log.Printf("InstanceController: Going to call plan \"%v\"", planName)
 
-			//we found something
+			// we found something
 			if ok {
 
-				//mark the current plan as Suspend,
+				// Mark the current plan as Suspend
 				current := &kudov1alpha1.PlanExecution{}
 				err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{Name: new.Status.ActivePlan.Name, Namespace: new.Status.ActivePlan.Namespace}, current)
 				if err != nil {
@@ -189,19 +188,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				}
 			}
 
-			//status change?  Sent it along
-
-			//See if there's a current plan being run.
-			//if so "cancel" the plan run
-			//create a new plan
+			// See if there's a current plan being run, if so "cancel" the plan run
 			return e.ObjectOld != e.ObjectNew
 		},
-		//New Instances should have Deploy called
+		// New Instances should have Deploy called
 		CreateFunc: func(e event.CreateEvent) bool {
 			log.Printf("InstanceController: Received create event for an instance named: %v", e.Meta.GetName())
 			instance := e.Object.(*kudov1alpha1.Instance)
 
-			//get the instance FrameworkVersion object
+			// Get the instance FrameworkVersion object
 			fv := &kudov1alpha1.FrameworkVersion{}
 			err = mgr.GetClient().Get(context.TODO(),
 				types.NamespacedName{
@@ -214,9 +209,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					instance.Spec.FrameworkVersion.Name,
 					instance.Name,
 					err)
-				//TODO
-				//We probably want to handle this differently and mark this instance as unhealthy
-				//since its linking to a bad FV
+				// TODO: We probably want to handle this differently and mark this instance as unhealthy
+				// since its linking to a bad FV.
 				return false
 			}
 			planName := "deploy"
@@ -251,7 +245,6 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 	recorder := mgr.GetRecorder("instance-controller")
 	recorder.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" plan execution", planName))
 
-	// Create a new ref
 	ref := corev1.ObjectReference{
 		Kind:      gvk.Kind,
 		Name:      instance.Name,
@@ -262,7 +255,7 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%v-%v-%v", instance.Name, planName, time.Now().Nanosecond()),
 			Namespace: instance.GetNamespace(),
-			//Should also add one for Framework in here as well.
+			// TODO: Should also add one for Framework in here as well.
 			Labels: map[string]string{
 				"framework-version": instance.Spec.FrameworkVersion.Name,
 				"instance":          instance.Name,
@@ -273,12 +266,13 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 			PlanName: planName,
 		},
 	}
-	//Make this instance the owner of the PlanExecution
+
+	// Make this instance the owner of the PlanExecution
 	if err := controllerutil.SetControllerReference(instance, &planExecution, mgr.GetScheme()); err != nil {
 		log.Printf("InstanceController: Error setting ControllerReference")
 		return err
 	}
-	//new!
+
 	if err := mgr.GetClient().Create(context.TODO(), &planExecution); err != nil {
 		log.Printf("InstanceController: Error creating planexecution \"%v\": %v", planExecution.Name, err)
 		recorder.Event(instance, "Warning", "CreatePlanExecution", fmt.Sprintf("Error creating planexecution \"%v\": %v", planExecution.Name, err))
@@ -290,7 +284,7 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 
 var _ reconcile.Reconciler = &ReconcileInstance{}
 
-// ReconcileInstance reconciles a Instance object
+// ReconcileInstance reconciles an Instance object.
 type ReconcileInstance struct {
 	client.Client
 	scheme   *runtime.Scheme
@@ -298,7 +292,8 @@ type ReconcileInstance struct {
 }
 
 // Reconcile reads that state of the cluster for a Instance object and makes changes based on the state read
-// and what is in the Instance.Spec
+// and what is in the Instance.Spec.
+//
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kudo.k8s.io,resources=instances,verbs=get;list;watch;create;update;patch;delete
@@ -318,7 +313,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	log.Printf("InstanceController: Received Reconcile request for \"%+v\"", request.Name)
 
-	//Make sure the FrameworkVersion is present
+	// Make sure the FrameworkVersion is present
 	fv := &kudov1alpha1.FrameworkVersion{}
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
@@ -335,7 +330,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	//make sure all the required parameters in the frameworkversion are present
+	// Make sure all the required parameters in the frameworkversion are present
 	for _, param := range fv.Spec.Parameters {
 		if param.Required {
 			if _, ok := instance.Spec.Parameters[param.Name]; !ok {
@@ -344,6 +339,6 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 	}
 
-	//defer call from above should apply the status changes to the object
+	// Defer call from above should apply the status changes to the object
 	return reconcile.Result{}, nil
 }

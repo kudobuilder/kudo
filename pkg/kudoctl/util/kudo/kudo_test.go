@@ -5,7 +5,6 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -17,10 +16,6 @@ func newTestSimpleK2o() *Client {
 }
 
 func TestNewK2oClient(t *testing.T) {
-
-	// For test case #1
-	vars.KubeConfigPath = ""
-
 	tests := []struct {
 		err string
 	}{
@@ -29,7 +24,7 @@ func TestNewK2oClient(t *testing.T) {
 
 	for _, tt := range tests {
 		// Just interested in errors
-		_, err := NewKudoClient()
+		_, err := NewClient("default", "")
 		if err.Error() != tt.err {
 			t.Errorf("non existing test:\nexpected: %v\n     got: %v", tt.err, err.Error())
 		}
@@ -38,7 +33,7 @@ func TestNewK2oClient(t *testing.T) {
 
 func TestK2oClient_CRDsInstalled(t *testing.T) {
 	k2o := newTestSimpleK2o()
-	err := k2o.CRDsInstalled()
+	err := k2o.CRDsInstalled("default")
 	if err != nil {
 		t.Errorf("\nexpected: <nil>\n     got: %v", err)
 	}
@@ -86,8 +81,7 @@ func TestK2oClient_FrameworkExistsInCluster(t *testing.T) {
 		}
 
 		// test if Framework exists in namespace
-		vars.Namespace = tt.getns
-		exist := k2o.FrameworkExistsInCluster("test")
+		exist := k2o.FrameworkExistsInCluster("test", tt.getns)
 
 		if tt.bool != exist {
 			t.Errorf("%d:\nexpected: %v\n     got: %v", i+1, tt.bool, exist)
@@ -131,8 +125,7 @@ func TestK2oClient_AnyFrameworkVersionExistsInCluster(t *testing.T) {
 		k2o.clientset.KudoV1alpha1().FrameworkVersions(tt.createns).Create(tt.obj)
 
 		// test if FrameworkVersion exists in namespace
-		vars.Namespace = tt.getns
-		exist := k2o.AnyFrameworkVersionExistsInCluster("test")
+		exist := k2o.AnyFrameworkVersionExistsInCluster("test", tt.getns)
 		if tt.bool != exist {
 			t.Errorf("%d:\nexpected: %v\n     got: %v", i+1, tt.bool, exist)
 		}
@@ -202,8 +195,7 @@ func TestK2oClient_AnyInstanceExistsInCluster(t *testing.T) {
 		k2o.clientset.KudoV1alpha1().Instances(tt.createns).Create(tt.obj)
 
 		// test if FrameworkVersion exists in namespace
-		vars.Namespace = tt.getns
-		exist := k2o.AnyInstanceExistsInCluster("test", "1.0")
+		exist := k2o.AnyInstanceExistsInCluster("test", tt.getns, "1.0")
 		if tt.bool != exist {
 			t.Errorf("%d:\nexpected: %v\n     got: %v", i+1, tt.bool, exist)
 		}
@@ -267,8 +259,7 @@ func TestK2oClient_FrameworkVersionInClusterOutOfSync(t *testing.T) {
 		k2o.clientset.KudoV1alpha1().FrameworkVersions(tt.createns).Create(tt.obj)
 
 		// test if FrameworkVersion exists in namespace
-		vars.Namespace = tt.getns
-		exist := k2o.FrameworkVersionInClusterOutOfSync("test", "1.0")
+		exist := k2o.FrameworkVersionInClusterOutOfSync("test", "1.0", tt.getns)
 		if tt.bool != exist {
 			t.Errorf("%d:\nexpected: %v\n     got: %v", i+1, tt.bool, exist)
 		}
@@ -310,8 +301,7 @@ func TestK2oClient_InstallFrameworkObjToCluster(t *testing.T) {
 		k2o.clientset.KudoV1alpha1().Frameworks(tt.createns).Create(tt.obj)
 
 		// test if Framework exists in namespace
-		vars.Namespace = tt.createns
-		k2o.InstallFrameworkObjToCluster(tt.obj)
+		k2o.InstallFrameworkObjToCluster(tt.obj, tt.createns)
 
 		_, err := k2o.clientset.KudoV1alpha1().Frameworks(tt.createns).Get(tt.name, metav1.GetOptions{})
 		if err != nil {
@@ -358,8 +348,7 @@ func TestK2oClient_InstallFrameworkVersionObjToCluster(t *testing.T) {
 		k2o.clientset.KudoV1alpha1().FrameworkVersions(tt.createns).Create(tt.obj)
 
 		// test if Framework exists in namespace
-		vars.Namespace = tt.createns
-		k2o.InstallFrameworkVersionObjToCluster(tt.obj)
+		k2o.InstallFrameworkVersionObjToCluster(tt.obj, tt.createns)
 
 		_, err := k2o.clientset.KudoV1alpha1().FrameworkVersions(tt.createns).Get(tt.name, metav1.GetOptions{})
 		if err != nil {
@@ -406,8 +395,7 @@ func TestK2oClient_InstallInstanceObjToCluster(t *testing.T) {
 		k2o.clientset.KudoV1alpha1().Instances(tt.createns).Create(tt.obj)
 
 		// test if Framework exists in namespace
-		vars.Namespace = tt.createns
-		k2o.InstallInstanceObjToCluster(tt.obj)
+		k2o.InstallInstanceObjToCluster(tt.obj, tt.createns)
 
 		_, err := k2o.clientset.KudoV1alpha1().Instances(tt.createns).Get(tt.name, metav1.GetOptions{})
 		if err != nil {

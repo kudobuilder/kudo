@@ -40,10 +40,10 @@ and serves as an API aggregation layer.
 		Version: version.Get().GitVersion,
 	}
 
-	cmd.AddCommand(NewInstallCmd())
-	cmd.AddCommand(NewGetCmd())
-	cmd.AddCommand(NewPlanCmd())
-	cmd.AddCommand(NewVersionCmd())
+	cmd.AddCommand(newInstallCmd())
+	cmd.AddCommand(newGetCmd())
+	cmd.AddCommand(newPlanCmd())
+	cmd.AddCommand(newVersionCmd())
 	cmd.AddCommand(newBundleCmd(os.Stdout))
 
 	return cmd

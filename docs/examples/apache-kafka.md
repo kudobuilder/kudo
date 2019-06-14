@@ -7,7 +7,7 @@ type: docs
 
 ## Dependencies
 
-Kafka depends on Zookeeper so we need to run it first. Follow the [Zookeeper example](/docs/examples/apache-zookeeper/) to run a basic cluster. 
+Kafka depends on Zookeeper so we need to run it first. Follow the [Zookeeper example](/docs/examples/apache-zookeeper.md) to run a basic cluster. 
 
 ## Run Kafka
 
