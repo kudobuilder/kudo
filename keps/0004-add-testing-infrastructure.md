@@ -59,7 +59,6 @@ These testing packages should also assure conformance for the `kudobuilder/frame
 
 - Ensure validation of API objects is functioning correctly
 - Ensure controllers execute known process flows correctly
-- Validate Framework and FrameworkVersions in kudobuilder/frameworks adhere to the API spec defined by Kudo. Provide common misconfigurations and validate that the testing framework notifies the users/developer of failure
 - Reduce review time for code changes by not requiring reviewers to validate functionality of test cases
 - Reduce developer time for code changes by providing tools to validate functionality
 - Provide developers clear tooling for addition additional tests to infrastructure to validate bug fixes and new features
@@ -179,7 +178,9 @@ How will we know that this has succeeded?
 
 - When repository owners can feel confident that code changes are not breaking functionality.
 - Tests pass for the API objects
-- Leverage testing scaffolding provided by (and subsequently removed by us) Kubebuilder for controller logic.
+- Integration tests are run on PRs to KUDO.
+- Framework tests are run on KUDO releases.
+- Framework tests are run on PRs to Frameworks.
 
 ## Implementation History
 
