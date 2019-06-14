@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
@@ -57,4 +59,41 @@ func TestCreateOrUpdate(t *testing.T) {
 
 		quit <- true
 	}
+}
+
+func TestWaitForCRDs(t *testing.T) {
+	env := &envtest.Environment{}
+
+	config, err := env.Start()
+	assert.Nil(t, err)
+
+	defer env.Stop()
+
+	cl, err := client.New(config, client.Options{
+		Scheme: Scheme(),
+	})
+	assert.Nil(t, err)
+	dClient, err := discovery.NewDiscoveryClientForConfig(config)
+	assert.Nil(t, err)
+
+	instance := NewResource("kudo.k8s.io/v1alpha1", "Instance", "zk", "ns")
+
+	// Verify that we cannot create the instance, because the test environment is empty.
+	assert.IsType(t, &meta.NoKindMatchError{}, cl.Create(context.TODO(), instance))
+
+	// Install all of the CRDs.
+	crds, err := InstallManifests(context.TODO(), cl, dClient, "../../../config/crds/")
+	assert.Nil(t, err)
+
+	// WaitForCRDs to be created.
+	assert.Nil(t, WaitForCRDs(dClient, crds))
+
+	// Kubernetes client caches the types, se we need to re-initialize it.
+	cl, err = client.New(config, client.Options{
+		Scheme: Scheme(),
+	})
+	assert.Nil(t, err)
+
+	// make sure that we can create an object of this type now
+	assert.Nil(t, cl.Create(context.TODO(), instance))
 }

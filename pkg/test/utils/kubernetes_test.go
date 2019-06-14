@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 func TestNamespaced(t *testing.T) {
@@ -45,4 +46,22 @@ func TestNamespaced(t *testing.T) {
 			assert.Equal(t, namespace, m.GetNamespace())
 		})
 	}
+}
+
+func TestGETAPIResource(t *testing.T) {
+	fake := FakeDiscoveryClient()
+
+	apiResource, err := GetAPIResource(fake, schema.GroupVersionKind{
+		Kind:    "Pod",
+		Version: "v1",
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, apiResource.Kind, "Pod")
+
+	apiResource, err = GetAPIResource(fake, schema.GroupVersionKind{
+		Kind:    "NonExistentResourceType",
+		Version: "v1",
+	})
+	assert.NotNil(t, err)
+	assert.Equal(t, err.Error(), "resource type not found")
 }

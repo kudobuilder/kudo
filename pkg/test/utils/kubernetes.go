@@ -10,23 +10,37 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
+	"github.com/kudobuilder/kudo/pkg/apis"
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/pmezard/go-difflib/difflib"
 	corev1 "k8s.io/api/core/v1"
+	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/discovery"
 	fakediscovery "k8s.io/client-go/discovery/fake"
+	"k8s.io/client-go/kubernetes/scheme"
 	coretesting "k8s.io/client-go/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// Scheme returns an initialized Kubernetes Scheme.
+func Scheme() *runtime.Scheme {
+	apis.AddToScheme(scheme.Scheme)
+	apiextensions.AddToScheme(scheme.Scheme)
+	return scheme.Scheme
+}
 
 // ResourceID returns a human readable identifier indicating the object kind, name, and namespace.
 func ResourceID(obj runtime.Object) string {
@@ -48,35 +62,17 @@ func Namespaced(dClient discovery.DiscoveryInterface, obj runtime.Object, namesp
 		return "", "", err
 	}
 
-	gvk := obj.GetObjectKind().GroupVersionKind()
-
-	resourceTypes, err := dClient.ServerResources()
+	resource, err := GetAPIResource(dClient, obj.GetObjectKind().GroupVersionKind())
 	if err != nil {
 		return "", "", err
 	}
 
-	for _, resourceType := range resourceTypes {
-		for _, resource := range resourceType.APIResources {
-			gv := ""
-			if gvk.Group != "" {
-				gv = gvk.Group + "/"
-			}
-			gv += gvk.Version
-
-			if resource.Kind != gvk.Kind || resourceType.GroupVersion != gv {
-				continue
-			}
-
-			if !resource.Namespaced {
-				return m.GetName(), "", nil
-			}
-
-			m.SetNamespace(namespace)
-			return m.GetName(), namespace, nil
-		}
+	if !resource.Namespaced {
+		return m.GetName(), "", nil
 	}
 
-	return "", "", fmt.Errorf("resource type not found")
+	m.SetNamespace(namespace)
+	return m.GetName(), namespace, nil
 }
 
 // PrettyDiff creates a unified diff highlighting the differences between two Kubernetes resources
@@ -120,6 +116,8 @@ func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 		converted = &kudo.TestAssert{}
 	case "TestSuite":
 		converted = &kudo.TestSuite{}
+	case "CustomResourceDefinition":
+		converted = &apiextensions.CustomResourceDefinition{}
 	default:
 		return in, nil
 	}
@@ -218,12 +216,14 @@ func LoadYAML(path string) ([]runtime.Object, error) {
 }
 
 // InstallManifests recurses over ManifestsDir to install all resources defined in YAML manifests.
-func InstallManifests(ctx context.Context, client client.Client, dClient discovery.DiscoveryInterface, manifestsDir string) error {
+func InstallManifests(ctx context.Context, client client.Client, dClient discovery.DiscoveryInterface, manifestsDir string) ([]runtime.Object, error) {
+	objects := []runtime.Object{}
+
 	if manifestsDir == "" {
-		return nil
+		return objects, nil
 	}
 
-	return filepath.Walk(manifestsDir, func(path string, info os.FileInfo, err error) error {
+	return objects, filepath.Walk(manifestsDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -254,9 +254,11 @@ func InstallManifests(ctx context.Context, client client.Client, dClient discove
 				}
 			}
 
-			if err := client.Create(ctx, obj); err != nil {
+			if err := CreateOrUpdate(ctx, client, obj, true); err != nil {
 				return err
 			}
+
+			objects = append(objects, obj)
 		}
 
 		return nil
@@ -385,4 +387,51 @@ func SetAnnotation(obj runtime.Object, key, value string) runtime.Object {
 	meta.SetAnnotations(annotations)
 
 	return obj
+}
+
+// GetAPIResource returns the APIResource object for a specific GroupVersionKind.
+func GetAPIResource(dClient discovery.DiscoveryInterface, gvk schema.GroupVersionKind) (metav1.APIResource, error) {
+	resourceTypes, err := dClient.ServerResourcesForGroupVersion(gvk.GroupVersion().String())
+	if err != nil {
+		return metav1.APIResource{}, err
+	}
+
+	for _, resource := range resourceTypes.APIResources {
+		if !strings.EqualFold(resource.Kind, gvk.Kind) {
+			continue
+		}
+
+		return resource, nil
+	}
+
+	return metav1.APIResource{}, fmt.Errorf("resource type not found")
+}
+
+// WaitForCRDs waits for the provided CRD types to be available in the Kubernetes API.
+func WaitForCRDs(dClient discovery.DiscoveryInterface, crds []runtime.Object) error {
+	waitingFor := []schema.GroupVersionKind{}
+
+	for _, crdObj := range crds {
+		crd, ok := crdObj.(*apiextensions.CustomResourceDefinition)
+		if !ok {
+			continue
+		}
+
+		waitingFor = append(waitingFor, schema.GroupVersionKind{
+			Group:   crd.Spec.Group,
+			Version: crd.Spec.Version,
+			Kind:    crd.Spec.Names.Singular,
+		})
+	}
+
+	return wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (done bool, err error) {
+		for _, resource := range waitingFor {
+			_, err := GetAPIResource(dClient, resource)
+			if err != nil {
+				return false, nil
+			}
+		}
+
+		return true, nil
+	})
 }

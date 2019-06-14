@@ -74,7 +74,7 @@ require (
 	gopkg.in/yaml.v2 v2.2.2
 	honnef.co/go/tools v0.0.0-20190106161140-3f1c8253044a
 	k8s.io/api v0.0.0-20181213150558-05914d821849
-	k8s.io/apiextensions-apiserver v0.0.0-20181213153335-0fe22c71c476 // indirect
+	k8s.io/apiextensions-apiserver v0.0.0-20181213153335-0fe22c71c476
 	k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93
 	k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31
 	k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b
