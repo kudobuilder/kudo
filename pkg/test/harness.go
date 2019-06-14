@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/kudobuilder/kudo/pkg/apis"
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/controller"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/kudobuilder/kudo/pkg/webhook"
@@ -22,12 +23,8 @@ import (
 
 // Harness loads and runs tests based on the configuration provided.
 type Harness struct {
-	T                 *testing.T
-	CRDDir            string
-	ManifestsDir      string
-	TestDirs          []string
-	StartControlPlane bool
-	StartKUDO         bool
+	TestSuite kudo.TestSuite
+	T         *testing.T
 
 	managerStopCh chan struct{}
 	config        *rest.Config
@@ -87,7 +84,7 @@ func (h *Harness) Config() (*rest.Config, error) {
 
 	var err error
 
-	if h.StartControlPlane {
+	if h.TestSuite.StartControlPlane {
 		h.config, err = h.RunTestEnv()
 	} else {
 		h.config, err = config.GetConfig()
@@ -103,9 +100,9 @@ func (h *Harness) RunKUDO(crdPath string) error {
 		return err
 	}
 
-	if h.CRDDir != "" {
+	if h.TestSuite.CRDDir != "" {
 		crds, err := envtest.InstallCRDs(config, envtest.CRDInstallOptions{
-			Paths:              []string{h.CRDDir},
+			Paths:              []string{h.TestSuite.CRDDir},
 			ErrorIfPathMissing: true,
 		})
 		if err != nil {
@@ -113,7 +110,7 @@ func (h *Harness) RunKUDO(crdPath string) error {
 		}
 
 		err = envtest.WaitForCRDs(config, crds, envtest.CRDInstallOptions{
-			Paths:              []string{h.CRDDir},
+			Paths:              []string{h.TestSuite.CRDDir},
 			ErrorIfPathMissing: true,
 		})
 		if err != nil {
@@ -189,7 +186,7 @@ func (h *Harness) RunTests() {
 
 	tests := []*Case{}
 
-	for _, testDir := range h.TestDirs {
+	for _, testDir := range h.TestSuite.TestDirs {
 		tempTests, err := h.LoadTests(testDir)
 		if err != nil {
 			h.T.Fatal(err)
@@ -218,7 +215,7 @@ func (h *Harness) Run() {
 
 	defer h.Stop()
 
-	if h.StartKUDO || h.StartControlPlane {
+	if h.TestSuite.StartKUDO || h.TestSuite.StartControlPlane {
 		if err := h.RunKUDO("../../config/crds/"); err != nil {
 			h.T.Fatal(err)
 		}
@@ -234,7 +231,7 @@ func (h *Harness) Run() {
 		h.T.Fatal(err)
 	}
 
-	if err := testutils.InstallManifests(context.TODO(), cl, dClient, h.ManifestsDir); err != nil {
+	if err := testutils.InstallManifests(context.TODO(), cl, dClient, h.TestSuite.ManifestsDir); err != nil {
 		h.T.Fatal(err)
 	}
 

@@ -7,6 +7,27 @@ import (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+// TestSuite configures which tests should be loaded.
+type TestSuite struct {
+	// The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestSuite.
+	metav1.TypeMeta `json:",inline"`
+	// Set labels or the test suite name.
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// Path to CRDs to install before running tests.
+	CRDDir string `json:"crdDir"`
+	// Path to manifests to install before running tests.
+	ManifestsDir string `json:"manifestsDir"`
+	// Directories containing test cases to run.
+	TestDirs []string `json:"testDirs"`
+	// Whether or not to start a local etcd and kubernetes API server for the tests.
+	StartControlPlane bool `json:"startControlPlane"`
+	// Whether or not to start the KUDO controller for the tests.
+	StartKUDO bool `json:"startKUDO"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // TestStep settings to apply to a test step.
 type TestStep struct {
 	// The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestStep.
