@@ -30,10 +30,10 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 
 ### Build Instructions
 
-- Get the KUDO repo: `go get github.com/kudobuilder/kudo/` (**Note:** KUDO uses Go Modules. Due to the current state of code generation in [controller-tools](https://github.com/kubernetes-sigs/controller-tools) and [code-generator](https://github.com/kubernetes/code-generator), KUDO currently **must** be cloned into its `$GOPATH`-based location)
-- `cd $GOPATH/src/github.com/kudobuilder/kudo`
+- Get the KUDO repo: `git clone https://github.com/kudobuilder/kudo.git`
+- `cd kudo`
 - `make all` to build project
-- [optionally] `make docker-build` to build Docker images and `make docker-push` to push images
+- [optionally] `make docker-build` to build the Docker images
 
 When updating the structs under [APIs](https://github.com/kudobuilder/kudo/blob/master/pkg/apis/), or any other code generated item, use `make generate` to generate the new DeepCopy structs. Use `make manifests` to generate out new YAML manifests representing these CRDs.
 
