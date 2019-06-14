@@ -252,7 +252,7 @@ func InstallManifests(ctx context.Context, client client.Client, dClient discove
 				}
 			}
 
-			if err := client.Create(ctx, obj); err != nil {
+			if err := CreateOrUpdate(ctx, client, obj, true); err != nil {
 				return err
 			}
 		}

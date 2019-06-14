@@ -97,28 +97,10 @@ func (h *Harness) Config() (*rest.Config, error) {
 }
 
 // RunKUDO starts the KUDO controllers and installs the required CRDs.
-func (h *Harness) RunKUDO(crdPath string) error {
+func (h *Harness) RunKUDO() error {
 	config, err := h.Config()
 	if err != nil {
 		return err
-	}
-
-	if h.CRDDir != "" {
-		crds, err := envtest.InstallCRDs(config, envtest.CRDInstallOptions{
-			Paths:              []string{h.CRDDir},
-			ErrorIfPathMissing: true,
-		})
-		if err != nil {
-			return err
-		}
-
-		err = envtest.WaitForCRDs(config, crds, envtest.CRDInstallOptions{
-			Paths:              []string{h.CRDDir},
-			ErrorIfPathMissing: true,
-		})
-		if err != nil {
-			return err
-		}
 	}
 
 	mgr, err := manager.New(config, manager.Options{})
@@ -218,23 +200,21 @@ func (h *Harness) Run() {
 
 	defer h.Stop()
 
+	if h.CRDDir != "" {
+		if err := h.installManifests(h.CRDDir); err != nil {
+			h.T.Fatal(err)
+		}
+
+		h.client = nil
+	}
+
 	if h.StartKUDO || h.StartControlPlane {
-		if err := h.RunKUDO("../../config/crds/"); err != nil {
+		if err := h.RunKUDO(); err != nil {
 			h.T.Fatal(err)
 		}
 	}
 
-	cl, err := h.Client()
-	if err != nil {
-		h.T.Fatal(err)
-	}
-
-	dClient, err := h.DiscoveryClient()
-	if err != nil {
-		h.T.Fatal(err)
-	}
-
-	if err := testutils.InstallManifests(context.TODO(), cl, dClient, h.ManifestsDir); err != nil {
+	if err := h.installManifests(h.ManifestsDir); err != nil {
 		h.T.Fatal(err)
 	}
 
@@ -252,4 +232,19 @@ func (h *Harness) Stop() {
 		close(h.managerStopCh)
 		h.managerStopCh = nil
 	}
+}
+
+// installManifests recurses the path provided to install all configured resources into Kubernetes.
+func (h *Harness) installManifests(path string) error {
+	cl, err := h.Client()
+	if err != nil {
+		return err
+	}
+
+	dClient, err := h.DiscoveryClient()
+	if err != nil {
+		return err
+	}
+
+	return testutils.InstallManifests(context.TODO(), cl, dClient, path)
 }
