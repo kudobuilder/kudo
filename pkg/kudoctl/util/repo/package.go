@@ -5,11 +5,15 @@ import (
 	"compress/gzip"
 	"fmt"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/bundle"
 	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
+	v1 "k8s.io/api/core/v1"
+	"regexp"
 	"sigs.k8s.io/yaml"
 	"strings"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -18,14 +22,20 @@ const (
 	instanceV0FileName  = "-instance.yaml"
 
 	frameworkV1FileName = "framework.yaml"
-	templateV1FileName = "templates/"
+	templateV1FileNameRegex = "templates/.*.yaml"
+	paramsV1FileName = "params.yaml"
 )
 
+const apiVersion = "kudo.k8s.io/v1alpha1"
+
+type InstallCRDs struct {
+	Framework        *v1alpha1.Framework
+	FrameworkVersion *v1alpha1.FrameworkVersion
+	Instance         *v1alpha1.Instance
+}
+
 type FrameworkPackage interface {
-	GetFrameworkCRD() (*v1alpha1.Framework, error)
-	GetFrameworkVersionCRD() (*v1alpha1.FrameworkVersion, error)
-	GetInstanceCRD() (*v1alpha1.Instance, error)
-	ValidationError() error
+	GetInstallCRDs() (*InstallCRDs, error)
 }
 
 type V0Package struct {
@@ -34,10 +44,18 @@ type V0Package struct {
 	Instance         *v1alpha1.Instance
 }
 
-func (p *V0Package) GetFrameworkCRD() (*v1alpha1.Framework, error) { return p.Framework, nil }
-func (p *V0Package) GetFrameworkVersionCRD() (*v1alpha1.FrameworkVersion, error) { return p.FrameworkVersion, nil }
-func (p *V0Package) GetInstanceCRD() (*v1alpha1.Instance, error) { return p.Instance, nil }
-func (p *V0Package) ValidationError() error {
+func (p *V0Package) GetInstallCRDs() (*InstallCRDs, error) {
+	validationError := p.validate()
+	if validationError == nil {
+		return &InstallCRDs{
+			Framework: p.Framework,
+			FrameworkVersion: p.FrameworkVersion,
+			Instance: p.Instance,
+		}, nil
+	}
+	return nil, validationError
+}
+func (p *V0Package) validate() error {
 	if p.Instance != nil && p.FrameworkVersion != nil && p.Framework != nil {
 		return nil
 	}
@@ -52,7 +70,7 @@ func (p *V0Package) ValidationError() error {
 	return fmt.Errorf("incomplete package - these files are missing: %v", missing)
 }
 
-func UntarV0Package(r io.Reader) (*V0Package, error) {
+func UntarV0Package(r io.Reader) (*InstallCRDs, error) {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
 		return nil, err
@@ -74,13 +92,7 @@ func UntarV0Package(r io.Reader) (*V0Package, error) {
 
 		// if no more files are found return
 		case err == io.EOF:
-			validationError := result.ValidationError()
-			if validationError == nil {
-				// bundle is complete
-				return result, nil
-			}
-
-			return nil, validationError
+			return result.GetInstallCRDs()
 
 		// return any other error
 		case err != nil:
@@ -142,7 +154,7 @@ func isInstanceV0File(name string) bool {
 	return strings.HasSuffix(name, instanceV0FileName)
 }
 
-func UntarV1Package(r io.Reader) (*V1Package, error) {
+func UntarV1Package(r io.Reader) (*InstallCRDs, error) {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
 		return nil, err
@@ -164,13 +176,7 @@ func UntarV1Package(r io.Reader) (*V1Package, error) {
 
 		// if no more files are found return
 		case err == io.EOF:
-			validationError := result.ValidationError()
-			if validationError == nil {
-				// bundle is complete
-				return result, nil
-			}
-
-			return nil, validationError
+			return result.GetInstallCRDs()
 
 		// return any other error
 		case err != nil:
@@ -196,9 +202,19 @@ func UntarV1Package(r io.Reader) (*V1Package, error) {
 
 			switch {
 			case isFrameworkV1File(header.Name):
-				// TODO
+				var bf bundle.Framework
+
+				if err = yaml.Unmarshal(bytes, &bf); err != nil {
+					return nil, errors.Wrap(err, "cannot unmarshal framework")
+				}
+				result.Framework = &bf
 			case isTemplateV1File(header.Name):
-				// TODO
+				name := strings.TrimPrefix("templates/", header.Name)
+				result.Templates[name] = string(bytes)
+			case isParametersV1File(header.Name):
+				if err = yaml.Unmarshal(bytes, &result.Params); err != nil {
+					return nil, errors.Wrapf(err, "unmarshalling %s content", header.Name)
+				}
 			default:
 				return nil, fmt.Errorf("unexpected file in the tarball structure %s", header.Name)
 			}
@@ -211,16 +227,100 @@ func isFrameworkV1File(name string) bool {
 }
 
 func isTemplateV1File(name string) bool {
-	return strings.HasSuffix(name, templateV1FileName)
+	matched, _ := regexp.Match(templateV1FileNameRegex, []byte(name))
+	return matched
+}
+
+func isParametersV1File(name string) bool {
+	return strings.HasSuffix(name, paramsV1FileName)
 }
 
 type V1Package struct {
-	// TODO
-	// templates ?
-	// frameworkFile ?
+	Templates map[string]string
+	Framework *bundle.Framework
+	Params map[string]map[string]string
 }
 
-func (p *V1Package) GetFrameworkCRD() (*v1alpha1.Framework, error) { return nil, nil }
-func (p *V1Package) GetFrameworkVersionCRD() (*v1alpha1.FrameworkVersion, error) { return nil, nil }
-func (p *V1Package) GetInstanceCRD() (*v1alpha1.Instance, error) { return nil, nil }
-func (p *V1Package) ValidationError() error { return errors.New("not implemented") }
+func (p *V1Package) GetInstallCRDs() (*InstallCRDs, error) {
+	var errs []string
+	for k, v := range p.Framework.Tasks {
+		for _, res := range v.Resources {
+			if _, ok := p.Templates[res]; !ok {
+				errs = append(errs, fmt.Sprintf("task %s missing template: %s", k, res))
+			}
+		}
+	}
+
+	if len(errs) != 0 {
+		return nil, errors.New(strings.Join(errs, ", "))
+	}
+
+	framework := &v1alpha1.Framework{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Framework",
+			APIVersion: apiVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: p.Framework.Name,
+		},
+		Spec: v1alpha1.FrameworkSpec{
+			Description:       p.Framework.Description,
+			KudoVersion:       p.Framework.KUDOVersion,
+			KubernetesVersion: p.Framework.KubernetesVersion,
+			Maintainers:       p.Framework.Maintainers,
+			URL:               p.Framework.URL,
+		},
+		Status: v1alpha1.FrameworkStatus{},
+	}
+
+	fv := &v1alpha1.FrameworkVersion{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "FrameworkVersion",
+			APIVersion: apiVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("%s-%s", p.Framework.Name, p.Framework.Version),
+		},
+		Spec: v1alpha1.FrameworkVersionSpec{
+			Version:        p.Framework.Version,
+			Templates:      p.Templates,
+			Tasks:          p.Framework.Tasks,
+			Parameters:     p.Framework.Parameters,
+			Plans:          p.Framework.Plans,
+			Dependencies:   p.Framework.Dependencies,
+			UpgradableFrom: nil,
+		},
+		Status: v1alpha1.FrameworkVersionStatus{},
+	}
+
+	var paramDefaults map[string]string
+	for paramName, param := range p.Params {
+		if val, ok := param["default"]; ok {
+			paramDefaults[paramName] = val
+		}
+	}
+
+	instance := &v1alpha1.Instance{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Instance",
+			APIVersion: apiVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("%s-%s", p.Framework.Name, p.Framework.Version),
+		},
+		Spec: v1alpha1.InstanceSpec{
+			FrameworkVersion: v1.ObjectReference{
+				Name: fmt.Sprintf("%s-%s", p.Framework.Name, p.Framework.Version),
+				Namespace: "default",
+			},
+			Parameters: paramDefaults,
+		},
+		Status: v1alpha1.InstanceStatus{},
+	}
+
+	return &InstallCRDs{
+		Framework: framework,
+		FrameworkVersion: fv,
+		Instance: instance,
+	}, nil
+}
