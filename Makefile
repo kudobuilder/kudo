@@ -22,7 +22,7 @@ all: test manager
 .PHONY: test
 # Run tests
 test:
-	go test ./pkg/... ./cmd/... -mod=readonly -coverprofile cover.out
+	go test ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover.out
 
 .PHONY: test-clean
 # Clean test reports
