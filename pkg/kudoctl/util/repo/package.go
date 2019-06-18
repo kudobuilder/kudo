@@ -10,10 +10,12 @@ import (
 	"io"
 	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sigs.k8s.io/yaml"
 	"strings"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -22,6 +24,7 @@ const (
 	instanceV0FileName  = "-instance.yaml"
 
 	frameworkV1FileName = "framework.yaml"
+	templatesV1Folder = "templates"
 	templateV1FileNameRegex = "templates/.*.yaml"
 	paramsV1FileName = "params.yaml"
 )
@@ -70,7 +73,7 @@ func (p *V0Package) validate() error {
 	return fmt.Errorf("incomplete package - these files are missing: %v", missing)
 }
 
-func UntarV0Package(r io.Reader) (*InstallCRDs, error) {
+func ConvertV0Package(r io.Reader) (*InstallCRDs, error) {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
 		return nil, err
@@ -154,7 +157,61 @@ func isInstanceV0File(name string) bool {
 	return strings.HasSuffix(name, instanceV0FileName)
 }
 
-func UntarV1Package(r io.Reader) (*InstallCRDs, error) {
+func PackageFromTarball(r io.Reader) (*InstallCRDs, error) {
+	p, err := untarV1Package(r)
+	if err != nil {
+		return nil, errors.Wrap(err, "while untarring package")
+	}
+	return p.GetInstallCRDs()
+}
+
+func PackageFromFileSystem(path string) (*InstallCRDs, error) {
+	p, err := fromFilesystem(path)
+	if err != nil {
+		return nil, errors.Wrap(err, "while reading package from filesystem")
+	}
+	return p.GetInstallCRDs()
+}
+
+func fromFilesystem(packagePath string) (*V1Package, error) {
+	result := NewV1Package()
+	err := filepath.Walk(packagePath, func(path string, info os.FileInfo, err error) error {
+		relativePath := strings.TrimPrefix(path, packagePath)
+			if path == packagePath {
+				// skip the root folder, as Walk always starts there
+				return nil
+			}
+			bytes, err := ioutil.ReadFile(path)
+			switch {
+			case isFrameworkV1File(info.Name()):
+			var bf bundle.Framework
+
+			if err = yaml.Unmarshal(bytes, &bf); err != nil {
+				return errors.Wrap(err, "cannot unmarshal framework")
+			}
+			result.Framework = &bf
+		case info.Name() == templatesV1Folder && info.IsDir():
+			// skip the folder itself, wait until we recursively start going into the template files
+			return nil
+		case isTemplateV1File(relativePath):
+			name := strings.TrimPrefix(relativePath, "/templates/")
+			result.Templates[name] = string(bytes)
+		case isParametersV1File(info.Name()):
+			if err = yaml.Unmarshal(bytes, &result.Params); err != nil {
+				return errors.Wrapf(err, "unmarshalling %s content", info.Name())
+			}
+		default:
+			return fmt.Errorf("unexpected file in the fileststem structure %s", info.Name())
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func untarV1Package(r io.Reader) (*V1Package, error) {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
 		return nil, err
@@ -168,7 +225,7 @@ func UntarV1Package(r io.Reader) (*InstallCRDs, error) {
 
 	tr := tar.NewReader(gzr)
 
-	result := &V1Package{}
+	result := NewV1Package()
 	for {
 		header, err := tr.Next()
 
@@ -176,7 +233,7 @@ func UntarV1Package(r io.Reader) (*InstallCRDs, error) {
 
 		// if no more files are found return
 		case err == io.EOF:
-			return result.GetInstallCRDs()
+			return &result, nil
 
 		// return any other error
 		case err != nil:
@@ -209,7 +266,7 @@ func UntarV1Package(r io.Reader) (*InstallCRDs, error) {
 				}
 				result.Framework = &bf
 			case isTemplateV1File(header.Name):
-				name := strings.TrimPrefix("templates/", header.Name)
+				name := strings.TrimPrefix(header.Name, "templates/")
 				result.Templates[name] = string(bytes)
 			case isParametersV1File(header.Name):
 				if err = yaml.Unmarshal(bytes, &result.Params); err != nil {
@@ -241,7 +298,19 @@ type V1Package struct {
 	Params map[string]map[string]string
 }
 
+func NewV1Package() V1Package {
+	return V1Package{
+		Templates: make(map[string]string),
+	}
+}
+
 func (p *V1Package) GetInstallCRDs() (*InstallCRDs, error) {
+	if p.Framework == nil {
+		return nil, errors.New("framework.yaml file is missing")
+	}
+	if p.Params == nil {
+		return nil, errors.New("params.yaml file is missing")
+	}
 	var errs []string
 	for k, v := range p.Framework.Tasks {
 		for _, res := range v.Resources {
@@ -252,7 +321,7 @@ func (p *V1Package) GetInstallCRDs() (*InstallCRDs, error) {
 	}
 
 	if len(errs) != 0 {
-		return nil, errors.New(strings.Join(errs, ", "))
+		return nil, errors.New(strings.Join(errs, "\n"))
 	}
 
 	framework := &v1alpha1.Framework{
@@ -262,6 +331,7 @@ func (p *V1Package) GetInstallCRDs() (*InstallCRDs, error) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: p.Framework.Name,
+			Labels: map[string]string{ "controller-tools.k8s.io": "1.0" },
 		},
 		Spec: v1alpha1.FrameworkSpec{
 			Description:       p.Framework.Description,
@@ -273,6 +343,16 @@ func (p *V1Package) GetInstallCRDs() (*InstallCRDs, error) {
 		Status: v1alpha1.FrameworkStatus{},
 	}
 
+	params := make([]v1alpha1.Parameter, 0)
+	for paramName, param := range p.Params {
+		result := v1alpha1.Parameter{
+			Name: paramName,
+			Description: param["description"],
+			Default: param["default"],
+		}
+		params = append(params, result)
+	}
+
 	fv := &v1alpha1.FrameworkVersion{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "FrameworkVersion",
@@ -280,24 +360,23 @@ func (p *V1Package) GetInstallCRDs() (*InstallCRDs, error) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("%s-%s", p.Framework.Name, p.Framework.Version),
+			Namespace: "default",
+			Labels: map[string]string{ "controller-tools.k8s.io": "1.0" },
 		},
 		Spec: v1alpha1.FrameworkVersionSpec{
+			Framework: v1.ObjectReference{
+				Name: p.Framework.Name,
+				Kind: "Framework",
+			},
 			Version:        p.Framework.Version,
 			Templates:      p.Templates,
 			Tasks:          p.Framework.Tasks,
-			Parameters:     p.Framework.Parameters,
+			Parameters:     params,
 			Plans:          p.Framework.Plans,
 			Dependencies:   p.Framework.Dependencies,
 			UpgradableFrom: nil,
 		},
 		Status: v1alpha1.FrameworkVersionStatus{},
-	}
-
-	var paramDefaults map[string]string
-	for paramName, param := range p.Params {
-		if val, ok := param["default"]; ok {
-			paramDefaults[paramName] = val
-		}
 	}
 
 	instance := &v1alpha1.Instance{
@@ -307,13 +386,13 @@ func (p *V1Package) GetInstallCRDs() (*InstallCRDs, error) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("%s-%s", p.Framework.Name, p.Framework.Version),
+			Labels: map[string]string{ "controller-tools.k8s.io": "1.0", "framework": "zookeeper" },
 		},
 		Spec: v1alpha1.InstanceSpec{
 			FrameworkVersion: v1.ObjectReference{
 				Name: fmt.Sprintf("%s-%s", p.Framework.Name, p.Framework.Version),
 				Namespace: "default",
 			},
-			Parameters: paramDefaults,
 		},
 		Status: v1alpha1.InstanceStatus{},
 	}
