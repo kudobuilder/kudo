@@ -34,7 +34,7 @@ status: provisional
 
 ## Summary
 
-Business organizations sometimes require additional requirements not captured by an available FrameworkVersion. Rather than having to fork and maintain a patched copy of Framework, Extending a framework will allow for additions and customizations to be made to frameworks to meet additional business needs.
+Generic implementations of frameworks don't capture all customizations that are required for all end users. Rather than having to fork and maintain a patched version of a Framework, Extending a framework will allow for additions and customizations to be made to frameworks to meet additional business needs.
 
 ## Motivation
 
@@ -293,7 +293,22 @@ frameworks, however there are some relationships that need to be considered when
 
 - How are references done? Where do I look for the base framework? Installed in the cluster? Referenced by the CLI from somewhere? Contained in the dependency folder?
 - Can the framework name change? Or does it have to stay the same? For example does a MySQL extension have to be of type MySQL to allow upgrades from existing MySQL Frameworks to it, or is it a completely different Framework?
--
+- should initial implementation here have the `kudo` inside of the `extends` spec:
+
+```yaml
+extends:
+  kudo:
+    framework: "mysql"
+    version: "5.7"
+```
+
+vs
+
+```yaml
+extends:
+  framework: "mysql"
+  version: "5.7"
+```
 
 ## Graduation Criteria
 
