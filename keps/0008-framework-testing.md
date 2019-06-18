@@ -31,8 +31,8 @@ see-also:
      * [Definitions](#definitions)
      * [Running the tests](#running-the-tests)
      * [Directory structure](#directory-structure)
-     * [Test case file structure](#test-case-file-structure)
-        * [TestCase object](#testcase-object)
+     * [Test step file structure](#test-step-file-structure)
+        * [TestStep object](#teststep-object)
         * [TestAssert object](#testassert-object)
         * [Test constraints](#test-constraints)
      * [Results collection](#results-collection)
@@ -46,16 +46,16 @@ see-also:
 
 In order to ensure the reliability of Frameworks built on KUDO, it is important that developers of Frameworks are able to simply author and run tests that validate that their Frameworks are running correctly. Tests can be run in CI to verify changes, by Framework developers in their development cycle, and by cluster administrators to verify that Frameworks are fully functional in their Kubernetes clusters, across a variety of configurations.
 
-This document outlines a simple, declarative test harness for authoring and running acceptance tests for KUDO Frameworks.
+This document outlines a simple, declarative test harness for authoring and running acceptance test suites for KUDO Frameworks.
 
 ## Motivation
 
 ### Goals
 
-* Allow Framework developers to write acceptance and unit tests for Frameworks.
-* Allow Application Operators and Cluster Administrators to write tests that validate their customizations to Frameworks.
-* Run tests for Frameworks on pull requests for Frameworks.
-* Support running tests via a `kubectl kudo` subcommand against any cluster.
+* Allow Framework developers to write acceptance and unit test cases for Frameworks.
+* Allow Application Operators and Cluster Administrators to write test cases that validate their customizations to Frameworks.
+* Run test suites for Frameworks on pull requests for Frameworks.
+* Support running test suites via a `kubectl kudo` subcommand against any cluster.
 * Integration with Sonobuoy to validate Frameworks in any cluster.
 * Ensure that KUDO Framework developers have a consistent development experience - from writing their operators to testing them.
 
@@ -79,7 +79,7 @@ As the KUDO development team, I...
 As a Framework Developer, I...
 
 * *Must* be able to validate that my changes do not break my Frameworks and that my features work correctly.
-* *Must* be able to write tests for many different valid (and invalid) configurations.
+* *Must* be able to write test cases for many different valid (and invalid) configurations.
 * *Want to* be able to author tests in a declarative language, without resorting to writing code in a normal programming language.
 * *Must* be able to easily understand test results and failures.
 * *Must* be able to incorporate KUDO Framework plans into my tests.
@@ -89,7 +89,7 @@ As a Framework Developer, I...
 As a Cluster Administrator, I...
 
 * *Must* be able to easily validate that Frameworks work well in my cluster.
-* *Want to* be able to author my own tests for known failure modes or critical features.
+* *Want to* be able to author my own test cases for known failure modes or critical features.
 
 #### Application Operator
 
@@ -99,42 +99,44 @@ As an Application Operator, I...
 
 ## Risks and Mitigations
 
-* Perhaps the most important consideration when building any testing pipeline is ensuring that developer velocity is not impacted. This is especially important for KUDO, since the developer experience for Framework developers is critical to the success of the project. To mitigate this, we need to optimize the runtime of the tests and pull request flow. Framework contributions should only run tests for the Frameworks that are affected by the pull request. Tests should have a fixed upper time limit to prevent any new tests from causing excessive delays. Tests fail early.
+* Perhaps the most important consideration when building any testing pipeline is ensuring that developer velocity is not impacted. This is especially important for KUDO, since the developer experience for Framework developers is critical to the success of the project. To mitigate this, we need to optimize the runtime of the test suites and pull request flow. Framework contributions should only run tests for the Frameworks that are affected by the pull request. Tests should have a fixed upper time limit to prevent any new tests from causing excessive delays. Tests fail early.
 * If the test harness is not designed well, contributions to the project become very difficult or the harness does not get adopted by developers. We provide a minimal, declarative format for authoring tests to encourage adoption and provide simple ways to execute the tests to ensure that it is easy to get started.
-* The test harness is not valuable if no tests are written. This means Framework developers need to write tests! We encourage test authoring by writing good documentation, integrating the test harness into the CI/CD pipeline, and potentially enacting policies around testing for official Frameworks. We can also advocate for testing via blogs and interactions with Framework developers.
+* The test harness is not valuable if no test cases are written. This means Framework developers need to write test cases! We encourage test case authoring by writing good documentation, integrating the test harness into the CI/CD pipeline, and potentially enacting policies around testing for official Frameworks. We can also advocate for testing via blogs and interactions with Framework developers.
 * As we take a declarative approach to testing, it's important to ensure that the abstractions built are not leaky. Leaky abstractions lead to greater complexity and make the test suite hard to use. We decrease this risk by narrowing the scope to focus on the state of Kubernetes objects in the Kubernetes API, refering to prior work (see [Alternatives](#Alternatives)), and building a minimal solution. We also will write tests for existing Frameworks and work with authors of new Frameworks to ensure that the solution is generally useful.
 
 ## Proposal
 
-Tests will be authored by defining Kubernetes objects to apply and Kubernetes state to wait for. Each test will run in its own namespace (tests can run concurrently), within each test, test cases run sequentially. This allows test authors to model state transitions of Frameworks as different configurations are applied.
+Test cases will be authored by defining Kubernetes objects to apply and Kubernetes state to wait for. Each test case will run in its own namespace (test cases can run concurrently), within each test case, test steps run sequentially. This allows test authors to model state transitions of Frameworks as different configurations are applied.
 
 ### Definitions
 
-* `Test case`: a set of manifests to apply and the expected state. Test cases run sequentially within a Test.
-* `Assertion`: the expected state of a test case.
-* `Test`: a complete acceptance test, consisting of multiple test cases. Tests run concurrently to each other.
+
 * `Framework`: A KUDO Framework.
-* `Harness`: the tool that runs the tests.
+* `Test Harness`: the tool that runs a test suite.
+* `Test Suite`: a collection of test cases.
+* `Test Case`: a single, self contained test - can be run in parallel to other test cases.
+* `Test Step`: a portion of a test case indicating a state to apply and expect, dependent on all previous test steps in the test case being successful.
+* `Assertion`: the expected state of a test step.
 
 ### Running the tests
 
-Tests will be invoked via a CLI tool that runs the tests against the current Kubernetes context. It will be packaged with the default set of tests from the KUDO Frameworks repository using go-bindata, with the ability to provide alternative directories containing tests to use.
+Tests will be invoked via a CLI tool that runs the test suite against the current Kubernetes context. It will be packaged with the default set of test suites from the KUDO Frameworks repository using go-bindata, with the ability to provide alternative directories containing tests to use.
 
-The tool will enumerate each test (group of test cases) and run them concurrently in batches. Each test will run in its own namespace (care must be taken that cluster-level resources do not collide with other tests [??? TODO: solvable?]) which will be deleted after the test has been completed.
+The tool will enumerate each test case (group of test steps) and run them concurrently in batches. Each test case will run in its own namespace (care must be taken that cluster-level resources do not collide with other test cases [??? TODO: solvable?]) which will be deleted after the test case has been completed.
 
-Each test consists of a directory containing test cases and their expected results ("assertions"). The test cases within a test are run sequentially, waiting for the assertions to be true, a timeout to pass, or a failure condition to be met.
+Each test case consists of a directory containing test steps and their expected results ("assertions"). The test steps within a test case are run sequentially, waiting for the assertions to be true, a timeout to pass, or a failure condition to be met.
 
-Once all of the test cases in a test have run, a report for the test is generated and all of its resources are deleted.
+Once all of the test steps in a test case have run, a report for the test case is generated and all of its resources are deleted.
 
-The test harness can also be run in a unit testing mode, where it spins up a dummy Kubernetes API server and runs any tests marked as unit tests.
+The test harness can also be run in a unit testing mode, where it spins up a dummy Kubernetes API server and runs any test cases marked as unit tests.
 
-### Directory structure
+### Test suite directory structure
 
-Tests are defined in an easy to understand directory structure:
+Test suites are defined in an easy to understand directory structure:
 
-* `tests/`: a top-level test directory for all of the tests, this will typically sit in the same directory as the Framework.
-* `tests/$test_name/`: each individual test gets its own directory that contains the objects to create and the expected objects. Files in the test directory are evaluated in alphabetical order: the first file is run, the test harness waits for the expected result to be true (or fail) and then does the same with the next test case.
-* `tests/$test_name/$index-$test_case.yaml`: a test case called `$test_case` with index `$index`, since it is the first index it gets applied first.
+* `tests/`: a top-level directory for all of the test cases, this will typically sit in the same directory as the Framework.
+* `tests/$test_case_name/`: each individual test case gets its own directory that contains the test steps. Files in the test case directory are evaluated in alphabetical order: the first file is run, the test harness waits for the expected result to be true (or fail) and then does the same with the next test step.
+* `tests/$test_case_name/$index-$test_step.yaml`: a test step called `$test_step` with index `$index`, since it is the first index it gets applied first.
 
 ```
 apiVersion: v1
@@ -150,7 +152,7 @@ spec:
     - /dev/null
 ```
 
-* `tests/$test_name/$index-assert.yaml`: the file called `$index-assert` defines the state that the harness should wait for before continuing. If the state is not true after the timeout, then the test is considered failed.
+* `tests/$test_case_name/$index-assert.yaml`: the file called `$index-assert` defines the state that the harness should wait for before continuing. If the state is not true after the timeout, then the entire test case is considered failed.
 
 ```
 apiVersion: v1
@@ -161,7 +163,7 @@ status:
   phase: Running
 ```
 
-* `tests/$test_name/$index-errors.yaml`: the file called `$index-errors` defines invalid states that immediately mark a test failed.
+* `tests/$test_case_name/$index-errors.yaml`: the file called `$index-errors` defines invalid states that immediately mark a test step failed (and therefore the entire test case).
 
 ```
 apiVersion: v1
@@ -180,30 +182,39 @@ status:
 ```
 
 
-Test cases can also be defined in directories instead of a single file - the test harness will look for both YAML files and directories.
+Test steps can also be defined in directories instead of a single file - the test harness will look for both YAML files and directories.
 
-### Test case file structure
+### Test step file structure
 
-Each test case has a test case file and an assertion file. By default (even if no assertion file is provided), all resources defined in the test case file are expected to come to a ready state, unless there is a matching object in the assertion file that defines a different expected state.
+Each test step has a test step file and an assertion file. By default (even if no assertion file is provided), all resources defined in the test step file are expected to come to a ready state, unless there is a matching object in the assertion file that defines a different expected state.
 
-#### TestCase object
+#### TestStep object
 
-When searching a test case file, if a `TestCase` object is found, it includes settings to apply to the case. This object is not required - if it is not specified then defaults are used. No more than one `TestCase` should be defined in a test case.
+When searching a test step file, if a `TestStep` object is found, it includes settings to apply to the step. This object is not required - if it is not specified then defaults are used. No more than one `TestStep` object should be defined in a given test step.
 
 ```
-type TestCase struct {
-    // The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestCase.
+type TestStep struct {
+    // The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestStep.
     TypeMeta
-    // Override the default metadata. Set labels or override the test case name.
+    // Override the default metadata. Set labels or override the test step name.
     ObjectMeta
-    // Objects to delete at the beginning of the test case.
+
+    // Objects to delete at the beginning of the test step.
     Delete []corev1.ObjectReference
+
+    // Indicates that this is a unit test - safe to run without a real Kubernetes cluster.
+    UnitTest bool
+
+    // Allowed environment labels
+    // Disallowed environment labels
 }
 ```
 
+Using a `TestStep`, it is possible to skip certain test steps if conditions are not met, e.g., only run a test step on GKE or on clusters with more than three nodes.
+
 #### TestAssert object
 
-When searching the assertion file for a test case, if a `TestAssert` object is found, it includes settings to apply to the assertions. This object is not required - if it is not specified then defaults are used. No more than one `TestAssert` should be defined in a test assertion.
+When searching the assertion file for a test step, if a `TestAssert` object is found, it includes settings to apply to the assertions. This object is not required - if it is not specified then defaults are used. No more than one `TestAssert` should be defined in a test assertion.
 
 ```
 type TestAssert struct {
@@ -214,28 +225,13 @@ type TestAssert struct {
 }
 ```
 
-#### Test constraints
-
-It is possible to skip certain tests if conditions are not met, e.g., only run a test on GKE or on clusters with more than three nodes.
-
-```
-type TestConstraint struct {
-    // The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestConstraint.
-    TypeMeta
-    // Indicates that this is a unit test - safe to run without a real Kubernetes cluster.
-    UnitTest bool
-    // Allowed environment labels
-    // Disallowed environment labels
-}
-```
-
 ### Results collection
 
-Successful tests will produce a log of all objects created and their state when the test case was finalized. Failed tests will highlight the difference in expected state in an easy to read manner. Logs will also be collected from pods in failed tests.
+Successful test cases will produce a log of all objects created and their state when the test step was finalized. Failed test cases will highlight the difference in expected state in an easy to read manner. Logs will also be collected from pods in failed test cases.
 
 ### Garbage collection
 
-In order for a test to be considered successful, all resources created by it must delete cleanly. The test harness will track all resources that are created by the test and then delete any resources that still exist at the end of the test. If they do not delete in a timely fashion, then the test is failed - this has the effect of preventing resource leaks from running the tests and also ensuring that Frameworks can be uninstalled cleanly.
+In order for a test case to be considered successful, all resources created by it must delete cleanly. The test harness will track all resources that are created by the test case and then delete any resources that still exist at the end of the test case. If they do not delete in a timely fashion, then the test case is failed - this has the effect of preventing resource leaks from running the test suite and also ensuring that Frameworks can be uninstalled cleanly.
 
 ## Graduation Criteria
 
@@ -267,4 +263,4 @@ Controllers are typically tested using test libraries in the same language that 
 
 ## Infrastructure Needed
 
-A CI system and cloud infrastructure for running the tests are required (see [0004-add-testing-infrastructure](https://github.com/kudobuilder/kudo/blob/master/keps/0004-add-testing-infrastructure.md)).
+A CI system and cloud infrastructure for running the test suite are required (see [0004-add-testing-infrastructure](https://github.com/kudobuilder/kudo/blob/master/keps/0004-add-testing-infrastructure.md)).
