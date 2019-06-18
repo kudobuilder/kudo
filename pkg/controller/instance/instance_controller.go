@@ -231,10 +231,53 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to Instance
-	err = c.Watch(&source.Kind{Type: &kudov1alpha1.Instance{}}, &handler.EnqueueRequestForObject{}, p)
-	if err != nil {
+	if err = c.Watch(&source.Kind{Type: &kudov1alpha1.Instance{}}, &handler.EnqueueRequestForObject{}, p); err != nil {
 		return err
 	}
+
+	// Watch for changes to FrameworkVersion. Since changes to FrameworkVersion and Instance are often happening
+	// concurrently  there is an inherent race between both update events so that we might see a new Instance first
+	// without the corresponding FrameworkVersion. We additionally watch FrameworkVersions and trigger
+	// reconciliation for the corresponding instances
+	//
+	// Define a mapping from the object in the event (FrameworkVersion) to one or more objects to
+	// Reconcile (Instances). Specifically this calls for a reconciliation of any owned  objects.
+	mapFn := handler.ToRequestsFunc(
+		func(a handler.MapObject) []reconcile.Request {
+			owners := a.Meta.GetOwnerReferences()
+			requests := make([]reconcile.Request, 0)
+			for _, owner := range owners {
+				// If owner Kind is an FrameworkVersion, we also want to query and queue up its Instances
+				if owner.Kind == "FrameworkVersion" {
+					instances := &kudov1alpha1.InstanceList{}
+					err := mgr.GetClient().List(
+						context.TODO(),
+						client.InNamespace(a.Meta.GetNamespace()).MatchingField(".spec.frameworkVersion.name", owner.Name),
+						instances)
+
+					if err != nil {
+						log.Printf("InstanceController: Error fetching instances list for framework %v: %v", owner.Name, err)
+						return nil
+					}
+
+					for _, instance := range instances.Items {
+						log.Printf("InstanceController: Queing instance %v for reconciliation", instance)
+						requests = append(requests, reconcile.Request{
+							NamespacedName: types.NamespacedName{
+								Name:      instance.Status.ActivePlan.Name,
+								Namespace: instance.Status.ActivePlan.Namespace,
+							},
+						})
+					}
+				}
+			}
+			return requests
+		})
+
+	if err = c.Watch(&source.Kind{Type: &kudov1alpha1.FrameworkVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: mapFn}, p); err != nil {
+		return err
+	}
+
 	return nil
 }
 
