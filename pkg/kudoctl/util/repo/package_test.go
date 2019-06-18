@@ -4,24 +4,25 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"fmt"
-	"github.com/go-test/deep"
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/pkg/errors"
-	"github.com/spf13/afero"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sigs.k8s.io/yaml"
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/go-test/deep"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/pkg/errors"
+	"github.com/spf13/afero"
+	"sigs.k8s.io/yaml"
 )
 
 func TestReadFileSystemPackage(t *testing.T) {
 	tests := []struct {
-		name string
-		v1PackageFolder string
+		name               string
+		v1PackageFolder    string
 		outputGoldenFolder string
 	}{
 		{"zookeeper", "testdata/zk", "testdata/zk-crd-golden"},
@@ -62,7 +63,10 @@ func TestReadFileSystemPackage(t *testing.T) {
 			if err != nil {
 				t.Fatalf("cannot create tarball: %+v", err)
 			}
-
+			file, err = appFS.Open("testtarball.tar.gz")
+			if err != nil {
+				t.Fatalf("could not re-open tarball: %+v", err)
+			}
 			actual, err := ReadTarballPackage(file)
 			if err != nil {
 				t.Fatalf("Found unexpected error: %v", err)
