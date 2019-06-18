@@ -76,6 +76,10 @@ func fromFilesystem(packagePath string) (*v1Package, error) {
 		if err != nil {
 			return err
 		}
+		if info.IsDir() {
+			// skip directories
+			return nil
+		}
 		relativePath := strings.TrimPrefix(path, packagePath)
 		if path == packagePath {
 			// skip the root folder, as Walk always starts there
