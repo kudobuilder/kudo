@@ -98,16 +98,6 @@ func createTarball(tarballFile io.Writer, source string) error {
 	tarWriter := tar.NewWriter(gzipWriter)
 	defer tarWriter.Close()
 
-	info, err := os.Stat(source)
-	if err != nil {
-		return err
-	}
-
-	var baseDir string
-	if info.IsDir() {
-		baseDir = filepath.Base(source)
-	}
-
 	return filepath.Walk(source,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -118,9 +108,7 @@ func createTarball(tarballFile io.Writer, source string) error {
 				return err
 			}
 
-			if baseDir != "" {
-				header.Name = filepath.Join(baseDir, strings.TrimPrefix(path, source))
-			}
+			header.Name = strings.TrimPrefix(path, source)
 
 			if err := tarWriter.WriteHeader(header); err != nil {
 				return err
@@ -136,7 +124,6 @@ func createTarball(tarballFile io.Writer, source string) error {
 			}
 			defer file.Close()
 			_, err = io.Copy(tarWriter, file)
-			fmt.Printf("Copying file %s\n", info.Name())
 			return err
 		})
 }

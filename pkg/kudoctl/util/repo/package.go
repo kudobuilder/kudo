@@ -266,7 +266,7 @@ func untarV1Package(r io.Reader) (*V1Package, error) {
 				}
 				result.Framework = &bf
 			case isTemplateV1File(header.Name):
-				name := strings.TrimPrefix(header.Name, "templates/")
+				name := strings.TrimPrefix(header.Name, "/templates/")
 				result.Templates[name] = string(bytes)
 			case isParametersV1File(header.Name):
 				if err = yaml.Unmarshal(bytes, &result.Params); err != nil {
