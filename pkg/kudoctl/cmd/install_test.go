@@ -26,7 +26,7 @@ func TestNewCmdInstallReturnsCmd(t *testing.T) {
 	}
 }
 
-var parameterTests = []struct {
+var cmdParameterTests = []struct {
 	flags        map[string]string
 	parameters   []string
 	errorMessage string
@@ -40,12 +40,35 @@ var parameterTests = []struct {
 }
 
 func TestTableNewInstallCmd_WithParameters(t *testing.T) {
-	for _, test := range parameterTests {
+	for _, test := range cmdParameterTests {
 		newCmdInstall := newInstallCmd()
 		for _, flag := range test.parameters {
 			newCmdInstall.Flags().Set("parameter", flag)
 		}
 		err := newCmdInstall.RunE(newCmdInstall, []string{})
 		assert.NotNil(t, err, test.errorMessage)
+	}
+}
+
+var parameterParsingTests = []struct {
+	paramStr string
+	key      string
+	value    string
+	err      string
+}{
+	{"foo", "", "", "parameter not set: foo"},
+	{"foo=", "", "", "parameter value can not be empty: foo="},
+	{"=bar", "", "", "parameter name can not be empty: =bar"},
+	{"foo=bar", "foo", "bar", ""},
+}
+
+func TestTableParameterParsing(t *testing.T) {
+	for _, test := range parameterParsingTests {
+		key, value, err := parseParameter(test.paramStr)
+		assert.Equal(t, key, test.key)
+		assert.Equal(t, value, test.value)
+		if err != nil {
+			assert.Equal(t, *err, test.err)
+		}
 	}
 }
