@@ -86,7 +86,7 @@ type Parameter struct {
 	Default string `json:"default,omitempty"`
 
 	// Trigger identifies the plan that gets executed when this parameter changes in the Instance object.
-	// Default is `update` if present, or `deploy` if not present
+	// Default is `update` if plan with that name exists, otherwise it's `deploy`
 	Trigger string `json:"trigger,omitempty"`
 
 	// TODO: Add generated parameters (e.g. passwords).
