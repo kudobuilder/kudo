@@ -52,17 +52,17 @@ func TestTableNewInstallCmd_WithParameters(t *testing.T) {
 
 var parameterParsingTests = []struct {
 	paramStr string
-	key string
-	value string
-	err string
+	key      string
+	value    string
+	err      string
 }{
-	{"foo", "","", "parameter not set: foo"},
-	{"foo=", "","", "parameter value can not be empty: foo="},
-	{"=bar", "","", "parameter name can not be empty: =bar"},
-	{"foo=bar", "foo","bar", ""},
+	{"foo", "", "", "parameter not set: foo"},
+	{"foo=", "", "", "parameter value can not be empty: foo="},
+	{"=bar", "", "", "parameter name can not be empty: =bar"},
+	{"foo=bar", "foo", "bar", ""},
 }
 
-func TestTableParameterParsing(t *testing.T){
+func TestTableParameterParsing(t *testing.T) {
 	for _, test := range parameterParsingTests {
 		key, value, err := parseParameter(test.paramStr)
 		assert.Equal(t, key, test.key)
