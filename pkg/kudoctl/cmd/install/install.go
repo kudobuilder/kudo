@@ -151,7 +151,7 @@ func installFramework(name, previous string, repository repo.FrameworkRepository
 
 	bundleName := bundleVersion.Name + "-" + bundleVersion.Version
 
-	installCRDs, err := repository.DownloadBundle(bundleName)
+	crds, err := repository.DownloadBundle(bundleName)
 	if err != nil {
 		return errors.Wrap(err, "failed to download bundle")
 	}
