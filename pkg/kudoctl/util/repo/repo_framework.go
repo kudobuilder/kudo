@@ -87,7 +87,7 @@ func (r *FrameworkRepository) DownloadBundle(bundleName string) (*InstallCRDs, e
 
 	if err != nil {
 		// try to parse package as V1 package
-		fvPackageV1, errV1 := PackageFromTarball(resp)
+		fvPackageV1, errV1 := ReadTarballPackage(resp)
 		if errV1 != nil {
 			return nil, fmt.Errorf("unable to parse the package as V0 or V1 package. Errors are: V0 %v, V1 %v", err, errV1)
 		}

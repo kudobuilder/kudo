@@ -157,7 +157,7 @@ func isInstanceV0File(name string) bool {
 	return strings.HasSuffix(name, instanceV0FileName)
 }
 
-func PackageFromTarball(r io.Reader) (*InstallCRDs, error) {
+func ReadTarballPackage(r io.Reader) (*InstallCRDs, error) {
 	p, err := untarV1Package(r)
 	if err != nil {
 		return nil, errors.Wrap(err, "while untarring package")
@@ -165,7 +165,7 @@ func PackageFromTarball(r io.Reader) (*InstallCRDs, error) {
 	return p.GetInstallCRDs()
 }
 
-func PackageFromFileSystem(path string) (*InstallCRDs, error) {
+func ReadFileSystemPackage(path string) (*InstallCRDs, error) {
 	p, err := fromFilesystem(path)
 	if err != nil {
 		return nil, errors.Wrap(err, "while reading package from filesystem")

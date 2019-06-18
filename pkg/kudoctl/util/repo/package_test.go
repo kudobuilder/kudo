@@ -1,19 +1,24 @@
 package repo
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"fmt"
 	"github.com/go-test/deep"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/pkg/errors"
+	"github.com/spf13/afero"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sigs.k8s.io/yaml"
 	"sort"
+	"strings"
 	"testing"
 )
 
-func TestConvertV1Package(t *testing.T) {
+func TestReadFileSystemPackage(t *testing.T) {
 	tests := []struct {
 		name string
 		v1PackageFolder string
@@ -23,8 +28,42 @@ func TestConvertV1Package(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			actual, err := PackageFromFileSystem(tt.v1PackageFolder)
+		t.Run(fmt.Sprintf("%s-from-filesystem", tt.name), func(t *testing.T) {
+			actual, err := ReadFileSystemPackage(tt.v1PackageFolder)
+			if err != nil {
+				t.Fatalf("Found unexpected error: %v", err)
+			}
+			golden, err := loadCrdsFromPath(tt.outputGoldenFolder)
+			if err != nil {
+				t.Fatalf("Found unexpected error when loading golden files: %v", err)
+			}
+			// we need to sort here because current yaml parsing is not preserving the order of fields
+			// at the same time, the deep library we use for equality does not support ignoring order
+			sort.Slice(actual.FrameworkVersion.Spec.Parameters, func(i, j int) bool {
+				return actual.FrameworkVersion.Spec.Parameters[i].Name < actual.FrameworkVersion.Spec.Parameters[j].Name
+			})
+			sort.Slice(golden.FrameworkVersion.Spec.Parameters, func(i, j int) bool {
+				return golden.FrameworkVersion.Spec.Parameters[i].Name < golden.FrameworkVersion.Spec.Parameters[j].Name
+			})
+
+			if diff := deep.Equal(golden, actual); diff != nil {
+				t.Error(diff)
+			}
+		})
+
+		t.Run(fmt.Sprintf("%s-from-tarball", tt.name), func(t *testing.T) {
+			appFS := afero.NewMemMapFs()
+			file, err := appFS.Create("testtarball.tar.gz")
+			defer file.Close()
+			if err != nil {
+				t.Fatalf("cannot create file for tarball serialization: %+v", err)
+			}
+			err = createTarball(file, tt.v1PackageFolder)
+			if err != nil {
+				t.Fatalf("cannot create tarball: %+v", err)
+			}
+
+			actual, err := ReadTarballPackage(file)
 			if err != nil {
 				t.Fatalf("Found unexpected error: %v", err)
 			}
@@ -46,6 +85,56 @@ func TestConvertV1Package(t *testing.T) {
 			}
 		})
 	}
+}
+
+func createTarball(tarballFile io.Writer, source string) error {
+	gzipWriter := gzip.NewWriter(tarballFile)
+	defer gzipWriter.Close()
+
+	tarWriter := tar.NewWriter(gzipWriter)
+	defer tarWriter.Close()
+
+	info, err := os.Stat(source)
+	if err != nil {
+		return err
+	}
+
+	var baseDir string
+	if info.IsDir() {
+		baseDir = filepath.Base(source)
+	}
+
+	return filepath.Walk(source,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			header, err := tar.FileInfoHeader(info, info.Name())
+			if err != nil {
+				return err
+			}
+
+			if baseDir != "" {
+				header.Name = filepath.Join(baseDir, strings.TrimPrefix(path, source))
+			}
+
+			if err := tarWriter.WriteHeader(header); err != nil {
+				return err
+			}
+
+			if info.IsDir() {
+				return nil
+			}
+
+			file, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+			_, err = io.Copy(tarWriter, file)
+			fmt.Printf("Copying file %s\n", info.Name())
+			return err
+		})
 }
 
 func loadCrdsFromPath(goldenPath string) (*InstallCRDs, error) {
