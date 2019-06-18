@@ -83,15 +83,10 @@ func (r *FrameworkRepository) DownloadBundle(bundleName string) (*InstallCRDs, e
 	}
 
 	// first try old package format
-	fvPackage, err := ConvertV0Package(resp)
+	fvPackage, err := ReadTarballPackage(resp)
 
 	if err != nil {
-		// try to parse package as V1 package
-		fvPackageV1, errV1 := ReadTarballPackage(resp)
-		if errV1 != nil {
-			return nil, fmt.Errorf("unable to parse the package as V0 or V1 package. Errors are: V0 %v, V1 %v", err, errV1)
-		}
-		return fvPackageV1, nil
+		return nil, fmt.Errorf("unable to parse the package. Errors are: %+v", err)
 	}
 
 	return fvPackage, nil
@@ -107,4 +102,3 @@ func (r *FrameworkRepository) GetFrameworkVersionDependencies(name string, fv *v
 	}
 	return dependencyFrameworks, nil
 }
-

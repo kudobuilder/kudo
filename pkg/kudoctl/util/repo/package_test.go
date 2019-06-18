@@ -55,10 +55,10 @@ func TestReadFileSystemPackage(t *testing.T) {
 		t.Run(fmt.Sprintf("%s-from-tarball", tt.name), func(t *testing.T) {
 			appFS := afero.NewMemMapFs()
 			file, err := appFS.Create("testtarball.tar.gz")
-			defer file.Close()
 			if err != nil {
 				t.Fatalf("cannot create file for tarball serialization: %+v", err)
 			}
+			defer file.Close()
 			err = createTarball(file, tt.v1PackageFolder)
 			if err != nil {
 				t.Fatalf("cannot create tarball: %+v", err)
@@ -131,11 +131,17 @@ func createTarball(tarballFile io.Writer, source string) error {
 func loadCrdsFromPath(goldenPath string) (*InstallCRDs, error) {
 	result := &InstallCRDs{}
 	err := filepath.Walk(goldenPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 		if path == goldenPath {
 			// skip the root folder, as Walk always starts there
 			return nil
 		}
 		bytes, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
 		switch {
 		case isFrameworkV0File(info.Name()):
 			var f v1alpha1.Framework

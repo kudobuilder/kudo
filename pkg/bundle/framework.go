@@ -15,9 +15,3 @@ type Framework struct {
 	Plans             map[string]v1alpha1.Plan       `json:"plans"`
 	Dependencies      []v1alpha1.FrameworkDependency `json:"dependencies,omitempty"`
 }
-
-type Parameter struct {
-	Name        string
-	Default     string
-	Description string
-}
