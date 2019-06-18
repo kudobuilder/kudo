@@ -160,7 +160,7 @@ func installFramework(name, previous string, repository repo.FrameworkRepository
 
 	// Check if Framework exists
 	if !kc.FrameworkExistsInCluster(name, options.Namespace) {
-		if err := installSingleFrameworkToCluster(name, options.Namespace, installCRDs.Framework, kc); err != nil {
+		if err := installSingleFrameworkToCluster(name, options.Namespace, crds.Framework, kc); err != nil {
 			return errors.Wrap(err, "installing single Framework")
 		}
 	}
@@ -170,25 +170,25 @@ func installFramework(name, previous string, repository repo.FrameworkRepository
 	// Check if AnyFrameworkVersion for Framework exists
 	if !kc.AnyFrameworkVersionExistsInCluster(name, options.Namespace) {
 		// FrameworkVersion CRD for Framework does not exist
-		if err := installSingleFrameworkVersionToCluster(name, options.Namespace, kc, installCRDs.FrameworkVersion); err != nil {
+		if err := installSingleFrameworkVersionToCluster(name, options.Namespace, kc, crds.FrameworkVersion); err != nil {
 			return errors.Wrapf(err, "installing FrameworkVersion CRD for framework %s", name)
 		}
 	}
 
 	// Check if FrameworkVersion is out of sync with official FrameworkVersion for this Framework
-	if !kc.FrameworkVersionInClusterOutOfSync(name, installCRDs.FrameworkVersion.Spec.Version, options.Namespace) {
+	if !kc.FrameworkVersionInClusterOutOfSync(name, crds.FrameworkVersion.Spec.Version, options.Namespace) {
 		// This happens when the given FrameworkVersion is not existing. E.g.
 		// when a version has been installed that is not part of the official kudobuilder/frameworks repo.
 		if !options.AutoApprove {
 			fmt.Printf("No official FrameworkVersion has been found for \"%s\". "+
 				"Do you want to install one? (Yes/no) ", name)
 			if helpers.AskForConfirmation() {
-				if err := installSingleFrameworkVersionToCluster(name, options.Namespace, kc, installCRDs.FrameworkVersion); err != nil {
+				if err := installSingleFrameworkVersionToCluster(name, options.Namespace, kc, crds.FrameworkVersion); err != nil {
 					return errors.Wrapf(err, "installing FrameworkVersion CRD for framework %s", name)
 				}
 			}
 		} else {
-			if err := installSingleFrameworkVersionToCluster(name, options.Namespace, kc, installCRDs.FrameworkVersion); err != nil {
+			if err := installSingleFrameworkVersionToCluster(name, options.Namespace, kc, crds.FrameworkVersion); err != nil {
 				return errors.Wrapf(err, "installing FrameworkVersion CRD for framework %s", name)
 			}
 		}
@@ -197,7 +197,7 @@ func installFramework(name, previous string, repository repo.FrameworkRepository
 
 	// Dependencies of the particular FrameworkVersion
 	if options.AllDependencies {
-		dependencyFrameworks, err := repository.GetFrameworkVersionDependencies(name, installCRDs.FrameworkVersion)
+		dependencyFrameworks, err := repository.GetFrameworkVersionDependencies(name, crds.FrameworkVersion)
 		if err != nil {
 			return errors.Wrap(err, "getting Framework dependencies")
 		}
@@ -220,7 +220,7 @@ func installFramework(name, previous string, repository repo.FrameworkRepository
 
 	// Check if Instance exists in cluster
 	// It won't create the Instance if any in combination with given Framework Name and FrameworkVersion exists
-	if !kc.AnyInstanceExistsInCluster(name, options.Namespace, installCRDs.FrameworkVersion.Spec.Version) {
+	if !kc.AnyInstanceExistsInCluster(name, options.Namespace, crds.FrameworkVersion.Spec.Version) {
 		// This happens when the given FrameworkVersion is not existing. E.g.
 		// when a version has been installed that is not part of the official kudobuilder/frameworks repo.
 		if !options.AutoApprove {
@@ -229,12 +229,12 @@ func installFramework(name, previous string, repository repo.FrameworkRepository
 			if helpers.AskForConfirmation() {
 				// If Instance is a dependency we need to make sure installSingleInstanceToCluster is aware of it.
 				// By having the previous string set we can make this distinction.
-				if err := installSingleInstanceToCluster(name, previous, installCRDs.Instance, kc, options); err != nil {
+				if err := installSingleInstanceToCluster(name, previous, crds.Instance, kc, options); err != nil {
 					return errors.Wrap(err, "installing single Instance")
 				}
 			}
 		} else {
-			if err := installSingleInstanceToCluster(name, previous, installCRDs.Instance, kc, options); err != nil {
+			if err := installSingleInstanceToCluster(name, previous, crds.Instance, kc, options); err != nil {
 				return errors.Wrap(err, "installing single Instance")
 			}
 		}
