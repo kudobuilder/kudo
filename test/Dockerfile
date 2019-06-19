@@ -8,4 +8,4 @@ COPY config/ config/
 COPY pkg/ pkg/
 COPY cmd/ cmd/
 
-ENTRYPOINT make test
+ENTRYPOINT make integration-test

@@ -39,6 +39,22 @@ When updating the structs under [APIs](https://github.com/kudobuilder/kudo/blob/
 
 After updating CRD manifests, use `make deploy` to apply the new CRDs to your cluster.
 
+#### Testing
+
+You can run the unit tests:
+
+```
+make test
+```
+
+Or the integration tests:
+
+```
+make integration-test
+```
+
+See [the testing documentation](https://kudo.dev/docs/testing) for more details.
+
 ### Build and run tests using Docker
 If you don't want to install kubebuilder and other dependencies of KUDO locally, you can build KUDO and run the tests inside a Docker container.
 
