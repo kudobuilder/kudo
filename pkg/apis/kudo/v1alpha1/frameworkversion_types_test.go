@@ -23,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-
 func TestFrameworkType_Validation(t *testing.T) {
 
 	emptyString := ""
