@@ -673,11 +673,3 @@ func RunPhases(executedPlan *kudov1alpha1.Plan, planExecution *kudov1alpha1.Plan
 	}
 	return nil
 }
-
-type FIPP struct {
-	FrameworkVersion *kudov1alpha1.FrameworkVersion
-	Instance         *kudov1alpha1.Instance
-	PlanExecution    *kudov1alpha1.PlanExecution
-	Plan             *kudov1alpha1.Plan
-}
-

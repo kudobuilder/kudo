@@ -9,7 +9,8 @@ const (
 
 // Error types
 
-const (
-	Warning string = "Warning"
-)
+type Severity string
 
+const (
+	Warning Severity = "Warning"
+)

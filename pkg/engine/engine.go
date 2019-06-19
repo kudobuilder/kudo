@@ -77,7 +77,7 @@ func ParseConfig(instance *kudov1alpha1.Instance, frameworkVersion *kudov1alpha1
 		if !ok { //not specified in params
 			if param.Required {
 				err := fmt.Errorf("parameter %v was required but not provided by instance %v", param.Name, instance.Name)
-				recorder(controller.Warning,"MissingParameter",	err.Error())
+				recorder(controller.Warning, "MissingParameter", err.Error())
 				return nil, err
 			}
 			params[param.Name] = param.Default
