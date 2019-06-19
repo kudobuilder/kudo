@@ -74,9 +74,9 @@ type ReconcileFrameworkVersion struct {
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kudo.k8s.io,resources=frameworkversions,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileFrameworkVersion) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	// Fetch the FrameworkVersion instance
-	instance := &kudov1alpha1.FrameworkVersion{}
-	err := r.Get(context.TODO(), request.NamespacedName, instance)
+	// Fetch the framework version
+	frameworkVersion := &kudov1alpha1.FrameworkVersion{}
+	err := r.Get(context.TODO(), request.NamespacedName, frameworkVersion)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
@@ -87,7 +87,7 @@ func (r *ReconcileFrameworkVersion) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 
-	log.Printf("FrameworkVersionController: Received Reconcile request for a frameworkversion named: %v", request.Name)
+	log.Printf("FrameworkVersionController: Received Reconcile request for a frameworkVersion named: %v", request.Name)
 
 	// TODO: Validate FrameworkVersion is appropriate.
 	return reconcile.Result{}, nil

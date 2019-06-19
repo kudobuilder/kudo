@@ -187,31 +187,29 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 					planName = "upgrade"
 				}
 			} else if !reflect.DeepEqual(old.Spec, new.Spec) {
-				for k, v := range new.Spec.Parameters {
-					if old.Spec.Parameters[k] != v {
-						// Find the right parameter in the FV
-						for _, param := range fv.Spec.Parameters {
-							if param.Name == k {
-								planName = param.Trigger
-								ok = true
-							}
+				for k := range parameterDifference(old.Spec.Parameters, new.Spec.Parameters) {
+					// Find the right parameter in the FV
+					for _, param := range fv.Spec.Parameters {
+						if param.Name == k {
+							planName = param.Trigger
+							ok = true
 						}
+					}
+					if !ok {
+						log.Printf("InstanceController: Instance %v updated parameter %v, but parameter not found in FrameworkVersion %v\n", new.Name, k, fv.Name)
+					} else if planName == "" {
+						_, ok = fv.Spec.Plans["update"]
 						if !ok {
-							log.Printf("InstanceEventPredicate: Instance %v updated parameter %v, but parameter not found in FrameworkVersion %v\n", new.Name, k, fv.Name)
-						} else if planName == "" {
-							_, ok = fv.Spec.Plans["update"]
+							_, ok = fv.Spec.Plans["deploy"]
 							if !ok {
-								_, ok = fv.Spec.Plans["deploy"]
-								if !ok {
-									log.Println("InstanceEventPredicate: Could not find any plan to use for update")
-								} else {
-									planName = "deploy"
-								}
+								log.Println("InstanceController: Could not find any plan to use for update")
 							} else {
-								planName = "update"
+								planName = "deploy"
 							}
-							log.Printf("InstanceEventPredicate: Instance %v updated parameter %v, but no specified trigger.  Using default plan %v\n", new.Name, k, planName)
+						} else {
+							planName = "update"
 						}
+						log.Printf("InstanceController: Instance %v updated parameter %v, but no specified trigger.  Using default plan %v\n", new.Name, k, planName)
 					}
 				}
 				// Not currently doing anything for Dependency changes.
@@ -340,4 +338,24 @@ func CreatePlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 	}
 	recorder.Event(instance, "Normal", "PlanCreated", fmt.Sprintf("PlanExecution \"%v\" created", planExecution.Name))
 	return nil
+}
+
+func parameterDifference(old, new map[string]string) map[string]string {
+	diff := make(map[string]string)
+
+	for key, val := range old {
+		// If a parameter was removed in the new spec
+		if _, ok := new[key]; !ok {
+			diff[key] = val
+		}
+	}
+
+	for key, val := range new {
+		// If new spec parameter was added or changed
+		if v, ok := old[key]; !ok || v != val {
+			diff[key] = val
+		}
+	}
+
+	return diff
 }

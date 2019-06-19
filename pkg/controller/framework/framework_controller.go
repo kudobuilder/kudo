@@ -76,9 +76,9 @@ type ReconcileFramework struct {
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kudo.k8s.io,resources=frameworks,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileFramework) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	// Fetch the Framework instance
-	instance := &kudov1alpha1.Framework{}
-	err := r.Get(context.TODO(), request.NamespacedName, instance)
+	// Fetch the framework
+	framework := &kudov1alpha1.Framework{}
+	err := r.Get(context.TODO(), request.NamespacedName, framework)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
