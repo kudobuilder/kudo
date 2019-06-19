@@ -171,9 +171,20 @@ func untarV1Package(r io.Reader) (*v1Package, error) {
 				name := strings.TrimPrefix(header.Name, "/templates/")
 				result.Templates[name] = string(bytes)
 			case isParametersV1File(header.Name):
-				if err = yaml.Unmarshal(bytes, &result.Params); err != nil {
+				var params map[string]map[string]string
+				if err = yaml.Unmarshal(bytes, &params); err != nil {
 					return nil, errors.Wrapf(err, "unmarshalling %s content", header.Name)
 				}
+				paramsStruct := make([]v1alpha1.Parameter, 0)
+				for paramName, param := range params {
+					r := v1alpha1.Parameter{
+						Name:        paramName,
+						Description: param["description"],
+						Default:     param["default"],
+					}
+					paramsStruct = append(paramsStruct, r)
+				}
+				result.Params = paramsStruct
 			default:
 				return nil, fmt.Errorf("unexpected file in the tarball structure %s", header.Name)
 			}
