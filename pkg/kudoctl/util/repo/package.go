@@ -20,10 +20,6 @@ import (
 )
 
 const (
-	frameworkV0FileName = "-framework.yaml"
-	versionV0FileName   = "-frameworkversion.yaml"
-	instanceV0FileName  = "-instance.yaml"
-
 	frameworkV1FileName     = "framework.yaml"
 	templatesV1Folder       = "templates"
 	templateV1FileNameRegex = "templates/.*.yaml"
@@ -38,18 +34,6 @@ type InstallCRDs struct {
 	Framework        *v1alpha1.Framework
 	FrameworkVersion *v1alpha1.FrameworkVersion
 	Instance         *v1alpha1.Instance
-}
-
-func isFrameworkV0File(name string) bool {
-	return strings.HasSuffix(name, frameworkV0FileName)
-}
-
-func isVersionV0File(name string) bool {
-	return strings.HasSuffix(name, versionV0FileName)
-}
-
-func isInstanceV0File(name string) bool {
-	return strings.HasSuffix(name, instanceV0FileName)
 }
 
 // ReadTarballPackage reads package from tarball and converts it to the CRD format
@@ -72,11 +56,11 @@ func ReadFileSystemPackage(path string) (*InstallCRDs, error) {
 
 func fromFilesystem(packagePath string) (*v1Package, error) {
 	result := newV1Package()
-	err := filepath.Walk(packagePath, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(packagePath, func(path string, file os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if info.IsDir() {
+		if file.IsDir() {
 			// skip directories
 			return nil
 		}
@@ -90,25 +74,36 @@ func fromFilesystem(packagePath string) (*v1Package, error) {
 			return err
 		}
 		switch {
-		case isFrameworkV1File(info.Name()):
+		case isFrameworkV1File(file.Name()):
 			var bf bundle.Framework
 
 			if err = yaml.Unmarshal(bytes, &bf); err != nil {
 				return errors.Wrap(err, "cannot unmarshal framework")
 			}
 			result.Framework = &bf
-		case info.Name() == templatesV1Folder && info.IsDir():
+		case file.Name() == templatesV1Folder && file.IsDir():
 			// skip the folder itself, wait until we recursively start going into the template files
 			return nil
 		case isTemplateV1File(relativePath):
 			name := strings.TrimPrefix(relativePath, "/templates/")
 			result.Templates[name] = string(bytes)
-		case isParametersV1File(info.Name()):
-			if err = yaml.Unmarshal(bytes, &result.Params); err != nil {
-				return errors.Wrapf(err, "unmarshalling %s content", info.Name())
+		case isParametersV1File(file.Name()):
+			var params map[string]map[string]string
+			if err = yaml.Unmarshal(bytes, &params); err != nil {
+				return errors.Wrapf(err, "unmarshalling %s content", file.Name())
 			}
+			paramsStruct := make([]v1alpha1.Parameter, 0)
+			for paramName, param := range params {
+				r := v1alpha1.Parameter{
+					Name:        paramName,
+					Description: param["description"],
+					Default:     param["default"],
+				}
+				paramsStruct = append(paramsStruct, r)
+			}
+			result.Params = paramsStruct
 		default:
-			return fmt.Errorf("unexpected file in the fileststem structure %s", info.Name())
+			return fmt.Errorf("unexpected file when reading package from filesystem %s", file.Name())
 		}
 		return nil
 	})
@@ -202,7 +197,7 @@ func isParametersV1File(name string) bool {
 type v1Package struct {
 	Templates map[string]string
 	Framework *bundle.Framework
-	Params    map[string]map[string]string
+	Params    []v1alpha1.Parameter
 }
 
 func newV1Package() v1Package {
@@ -250,16 +245,6 @@ func (p *v1Package) getInstallCRDs() (*InstallCRDs, error) {
 		Status: v1alpha1.FrameworkStatus{},
 	}
 
-	params := make([]v1alpha1.Parameter, 0)
-	for paramName, param := range p.Params {
-		result := v1alpha1.Parameter{
-			Name:        paramName,
-			Description: param["description"],
-			Default:     param["default"],
-		}
-		params = append(params, result)
-	}
-
 	fv := &v1alpha1.FrameworkVersion{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "FrameworkVersion",
@@ -278,7 +263,7 @@ func (p *v1Package) getInstallCRDs() (*InstallCRDs, error) {
 			Version:        p.Framework.Version,
 			Templates:      p.Templates,
 			Tasks:          p.Framework.Tasks,
-			Parameters:     params,
+			Parameters:     p.Params,
 			Plans:          p.Framework.Plans,
 			Dependencies:   p.Framework.Dependencies,
 			UpgradableFrom: nil,

@@ -19,6 +19,12 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const (
+	frameworkV0FileName = "-framework.yaml"
+	versionV0FileName   = "-frameworkversion.yaml"
+	instanceV0FileName  = "-instance.yaml"
+)
+
 func TestReadFileSystemPackage(t *testing.T) {
 	tests := []struct {
 		name               string
@@ -146,19 +152,19 @@ func loadCrdsFromPath(goldenPath string) (*InstallCRDs, error) {
 		case isFrameworkV0File(info.Name()):
 			var f v1alpha1.Framework
 			if err = yaml.Unmarshal(bytes, &f); err != nil {
-				return errors.Wrapf(err, "unmarshalling %s content", info.Name())
+				return errors.Wrapf(err, "cannot unmarshal %s content", info.Name())
 			}
 			result.Framework = &f
 		case isVersionV0File(info.Name()):
 			var fv v1alpha1.FrameworkVersion
 			if err = yaml.Unmarshal(bytes, &fv); err != nil {
-				return errors.Wrapf(err, "unmarshalling %s content", info.Name())
+				return errors.Wrapf(err, "cannot unmarshal %s content", info.Name())
 			}
 			result.FrameworkVersion = &fv
 		case isInstanceV0File(info.Name()):
 			var i v1alpha1.Instance
 			if err = yaml.Unmarshal(bytes, &i); err != nil {
-				return errors.Wrapf(err, "unmarshalling %s content", info.Name())
+				return errors.Wrapf(err, "cannot unmarshal %s content", info.Name())
 			}
 			result.Instance = &i
 		default:
@@ -170,4 +176,16 @@ func loadCrdsFromPath(goldenPath string) (*InstallCRDs, error) {
 		return nil, err
 	}
 	return result, nil
+}
+
+func isFrameworkV0File(name string) bool {
+	return strings.HasSuffix(name, frameworkV0FileName)
+}
+
+func isVersionV0File(name string) bool {
+	return strings.HasSuffix(name, versionV0FileName)
+}
+
+func isInstanceV0File(name string) bool {
+	return strings.HasSuffix(name, instanceV0FileName)
 }
