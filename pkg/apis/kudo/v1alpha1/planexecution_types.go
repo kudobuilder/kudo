@@ -21,10 +21,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// PlanExecutionSpec defines the desired state of PlanExecution
+// PlanExecutionSpec defines the desired state of PlanExecution.
 type PlanExecutionSpec struct {
-
-	// This is copied from the CronJob Spec
 	// This flag tells the controller to suspend subsequent executions, it does
 	// not apply to already started executions.  Defaults to false.
 	// +optional
@@ -36,38 +34,39 @@ type PlanExecutionSpec struct {
 
 // PlanExecutionStatus defines the observed state of PlanExecution
 type PlanExecutionStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 	Name     string     `json:"name,omitempty"`
 	Strategy Ordering   `json:"strategy,omitempty"`
 	State    PhaseState `json:"state,omitempty"`
-	//Phases maps a phase name to a Phase object
+
+	// Phases maps a phase name to a Phase object
 	Phases []PhaseStatus `json:"phases,omitempty"`
 }
 
-//PhaseStatus specifies the status of list of steps that contain Kubernetes objects.
+// PhaseStatus specifies the status of list of steps that contain Kubernetes objects.
 type PhaseStatus struct {
 	Name     string     `json:"name,omitempty"`
 	Strategy Ordering   `json:"strategy,omitempty"`
 	State    PhaseState `json:"state,omitempty"`
-	//Steps maps a step name to a list of mustached kubernetes objects stored as a string
+
+	// Steps maps a step name to a list of templated Kubernetes objects stored as a string.
 	Steps []StepStatus `json:"steps"`
 }
 
-//StepStatus shows the status of the Step
+// StepStatus shows the status of the Step.
 type StepStatus struct {
 	Name   string     `json:"name,omitempty"`
 	State  PhaseState `json:"state,omitempty"`
 	Delete bool       `json:"delete,omitempty"`
-	//Objects will be serialized for each instance as the params and defaults
-	// are provided, but not serialized in the payload
+
+	// Objects will be serialized for each instance as the params and defaults
+	// are provided, but not serialized in the payload.
 	Objects []runtime.Object `json:"-"`
 }
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// PlanExecution is the Schema for the planexecutions API
+// PlanExecution is the Schema for the planexecutions API.
 // +k8s:openapi-gen=true
 type PlanExecution struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -79,7 +78,7 @@ type PlanExecution struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// PlanExecutionList contains a list of PlanExecution
+// PlanExecutionList contains a list of PlanExecution.
 type PlanExecutionList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

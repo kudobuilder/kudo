@@ -22,7 +22,7 @@ all: test manager
 .PHONY: test
 # Run tests
 test:
-	go test ./pkg/... ./cmd/... -mod=readonly -coverprofile cover.out
+	go test ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover.out
 
 .PHONY: test-clean
 # Clean test reports
@@ -88,7 +88,7 @@ vet:
 # Run go lint against code
 lint:
 	go install golang.org/x/lint/golint
-	golint ./pkg/... ./cmd/...
+	golint -set_exit_status ./pkg/... ./cmd/...
 
 .PHONY: staticcheck
 # Runs static check

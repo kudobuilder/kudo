@@ -1,0 +1,226 @@
+package test
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"path/filepath"
+	"regexp"
+	"time"
+
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+var fileNameRegex = regexp.MustCompile(`^(\d+-)?([^.]+)(.yaml)?$`)
+
+// A Step contains the name of the test step, its index in the test,
+// and all of the test step's settings (including objects to apply and assert on).
+type Step struct {
+	Name  string
+	Index int
+
+	Step   *kudo.TestStep
+	Assert *kudo.TestAssert
+
+	Asserts []runtime.Object
+	Apply   []runtime.Object
+	Errors  []runtime.Object
+
+	DiscoveryClient discovery.DiscoveryInterface
+	Client          client.Client
+	Logger          testutils.Logger
+}
+
+// Clean deletes all resources defined in the Apply list.
+func (s *Step) Clean(namespace string) error {
+	for _, obj := range s.Apply {
+		_, _, err := testutils.Namespaced(s.DiscoveryClient, obj, namespace)
+		if err != nil {
+			return err
+		}
+
+		if err := s.Client.Delete(context.TODO(), obj); err != nil && !k8serrors.IsNotFound(err) {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Create applies all resources defined in the Apply list.
+func (s *Step) Create(namespace string) []error {
+	errors := []error{}
+
+	for _, obj := range s.Apply {
+		_, _, err := testutils.Namespaced(s.DiscoveryClient, obj, namespace)
+		if err != nil {
+			errors = append(errors, err)
+			continue
+		}
+
+		if err = testutils.CreateOrUpdate(context.TODO(), s.Client, obj, true); err != nil {
+			errors = append(errors, err)
+		}
+	}
+
+	return errors
+}
+
+// GetTimeout gets the timeout defined for the test step.
+func (s *Step) GetTimeout() int {
+	timeout := 10
+	if s.Assert != nil && s.Assert.Timeout != 0 {
+		timeout = s.Assert.Timeout
+	}
+	return timeout
+}
+
+// CheckResource checks if the expected resource's state in Kubernetes is correct.
+func (s *Step) CheckResource(expected runtime.Object, namespace string) []error {
+	testErrors := []error{}
+
+	name, namespace, err := testutils.Namespaced(s.DiscoveryClient, expected, namespace)
+	if err != nil {
+		return append(testErrors, err)
+	}
+
+	gvk := expected.GetObjectKind().GroupVersionKind()
+
+	actual := &unstructured.Unstructured{}
+	actual.SetGroupVersionKind(gvk)
+
+	err = s.Client.Get(context.TODO(), client.ObjectKey{
+		Namespace: namespace,
+		Name:      name,
+	}, actual)
+	if err != nil {
+		return append(testErrors, err)
+	}
+
+	expectedObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(expected)
+	if err != nil {
+		return append(testErrors, err)
+	}
+
+	if err := testutils.IsSubset(expectedObj, actual.UnstructuredContent()); err != nil {
+		diff, diffErr := testutils.PrettyDiff(expected, actual)
+		if diffErr == nil {
+			testErrors = append(testErrors, errors.New(diff))
+		} else {
+			testErrors = append(testErrors, diffErr)
+		}
+
+		testErrors = append(testErrors, fmt.Errorf("resource %s: %s", testutils.ResourceID(expected), err))
+	}
+
+	return testErrors
+}
+
+// Check checks if the resources defined in Asserts are in the correct state.
+func (s *Step) Check(namespace string) []error {
+	testErrors := []error{}
+
+	for _, expected := range s.Asserts {
+		testErrors = append(testErrors, s.CheckResource(expected, namespace)...)
+	}
+
+	return testErrors
+}
+
+// Run runs a KUDO test step:
+// 1. Apply all desired objects to Kubernetes.
+// 2. Wait for all of the states defined in the test step's asserts to be true.'
+func (s *Step) Run(namespace string) []error {
+	s.Logger.Log("starting test step", s.String())
+
+	testErrors := s.Create(namespace)
+
+	if len(testErrors) != 0 {
+		return testErrors
+	}
+
+	for i := 0; i < s.GetTimeout(); i++ {
+		testErrors = s.Check(namespace)
+
+		if len(testErrors) == 0 {
+			break
+		}
+
+		time.Sleep(time.Second)
+	}
+
+	if len(testErrors) == 0 {
+		s.Logger.Log("test step completed", s.String())
+	} else {
+		s.Logger.Log("test step failed", s.String())
+	}
+
+	return testErrors
+}
+
+// String implements the string interface, returning the name of the test step.
+func (s *Step) String() string {
+	return fmt.Sprintf("%d-%s", s.Index, s.Name)
+}
+
+// LoadYAML loads the resources from a YAML file for a test step:
+// * If the YAML file is called "assert", then it contains objects to
+//   add to the test step's list of assertions.
+// * If the YAML file is called "errors", then it contains objects that,
+//   if seen, mark a test immediately failed.
+// * All other YAML files are considered resources to create.
+func (s *Step) LoadYAML(file string) error {
+	objects, err := testutils.LoadYAML(file)
+	if err != nil {
+		return fmt.Errorf("loading %s: %s", file, err)
+	}
+
+	matches := fileNameRegex.FindStringSubmatch(filepath.Base(file))
+	fname := matches[2]
+
+	switch fname {
+	case "assert":
+		s.Asserts = append(s.Asserts, objects...)
+	case "errors":
+		s.Errors = append(s.Errors, objects...)
+	default:
+		if s.Name == "" {
+			s.Name = fname
+		}
+		s.Apply = append(s.Apply, objects...)
+	}
+
+	asserts := []runtime.Object{}
+
+	for _, obj := range s.Asserts {
+		if obj.GetObjectKind().GroupVersionKind().Kind == "TestAssert" {
+			s.Assert = obj.(*kudo.TestAssert)
+		} else {
+			asserts = append(asserts, obj)
+		}
+	}
+
+	apply := []runtime.Object{}
+
+	for _, obj := range s.Apply {
+		if obj.GetObjectKind().GroupVersionKind().Kind == "TestStep" {
+			s.Step = obj.(*kudo.TestStep)
+			s.Step.Index = s.Index
+			if s.Step.Name != "" {
+				s.Name = s.Step.Name
+			}
+		} else {
+			apply = append(apply, obj)
+		}
+	}
+
+	s.Apply = apply
+	s.Asserts = asserts
+	return nil
+}

@@ -59,8 +59,8 @@ import (
 
 const basePath = "/kustomize"
 
-// Add creates a new PlanExecution Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
+// Add creates a new PlanExecution Controller and adds it to the Manager with default RBAC.
+// The Manager will set fields on the Controller and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	log.Printf("PlanExecutionController: Registering planexecution controller.")
 	return add(mgr, newReconciler(mgr))
@@ -115,7 +115,7 @@ type ReconcilePlanExecution struct {
 
 // Reconcile reads that state of the cluster for a PlanExecution object and makes changes based on the state read
 // and what is in the PlanExecution.Spec
-// a Deployment as an example
+//
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kudo.k8s.io,resources=planexecutions;instances,verbs=get;list;watch;create;update;patch;delete
@@ -162,17 +162,17 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, nil
 	}
 
-	//Before returning from this function, update the status
+	// Before returning from this function, update the status
 	defer r.Update(context.Background(), planExecution)
 
-	//Check for Suspend set.
+	// Check for Suspend set.
 	if planExecution.Spec.Suspend != nil && *planExecution.Spec.Suspend {
 		planExecution.Status.State = kudov1alpha1.PhaseStateSuspend
 		r.recorder.Event(instance, "Normal", "PlanSuspend", fmt.Sprintf("PlanExecution %v suspended", planExecution.Name))
 		return reconcile.Result{}, err
 	}
 
-	//need to add ownerReference as the Instance
+	// need to add ownerReference as the Instance
 	instance.Status.ActivePlan = corev1.ObjectReference{
 		Name:       planExecution.Name,
 		Kind:       planExecution.Kind,
@@ -186,7 +186,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		log.Printf("PlanExecutionController: Update of Instance with ActivePlan errored: %v", err)
 	}
 
-	//Get associated FrameworkVersion
+	// Get associated FrameworkVersion
 	frameworkVersion := &kudov1alpha1.FrameworkVersion{}
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
@@ -195,7 +195,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		},
 		frameworkVersion)
 	if err != nil {
-		//Can't find the FrameworkVersion. Update status
+		// Can't find the FrameworkVersion. Update status
 		planExecution.Status.State = kudov1alpha1.PhaseStateError
 		r.recorder.Event(planExecution, "Warning", "InvalidFrameworkVersion", fmt.Sprintf("Could not find FrameworkVersion %v", instance.Spec.FrameworkVersion.Name))
 		log.Printf("PlanExecutionController: Error getting FrameworkVersion %v in %v: %v",
@@ -257,31 +257,31 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	return reconcile.Result{}, nil
 }
 
-//Cleanup modifies objects on the cluster to allow for the provided obj to get CreateOrApply.  Currently
-//only needs to clean up Jobs that get run from multiple PlanExecutions
+// Cleanup modifies objects on the cluster to allow for the provided obj to get CreateOrApply.  Currently
+// only needs to clean up Jobs that get run from multiple PlanExecutions
 func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
 
 	switch obj := obj.(type) {
 	case *batchv1.Job:
-		//We need to see if there's a current job on the system that matches this exactly (with labels)
+		// We need to see if there's a current job on the system that matches this exactly (with labels)
 		log.Printf("PlanExecutionController.Cleanup: *batchv1.Job %v", obj.Name)
 
 		present := &batchv1.Job{}
 		key, _ := client.ObjectKeyFromObject(obj)
 		err := r.Get(context.TODO(), key, present)
 		if errors.IsNotFound(err) {
-			//this is fine, its good to go
+			// this is fine, its good to go
 			log.Printf("PlanExecutionController: Could not find job \"%v\" in cluster. Good to make a new one.", key)
 			return nil
 		}
 		if err != nil {
-			//Something else happened
+			// Something else happened
 			return err
 		}
-		//see if the job in the cluster has the same labels as the one we're looking to add.
+		// see if the job in the cluster has the same labels as the one we're looking to add.
 		for k, v := range obj.Labels {
 			if v != present.Labels[k] {
-				//need to delete the present job since its got labels that aren't the same
+				// need to delete the present job since its got labels that aren't the same
 				log.Printf("PlanExecutionController: Different values for job key \"%v\": \"%v\" and \"%v\"", k, v, present.Labels[k])
 				err = r.Delete(context.TODO(), present)
 				return err
@@ -289,7 +289,7 @@ func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
 		}
 		for k, v := range present.Labels {
 			if v != obj.Labels[k] {
-				//need to delete the present job since its got labels that aren't the same
+				// need to delete the present job since its got labels that aren't the same
 				log.Printf("PlanExecutionController: Different values for job key \"%v\": \"%v\" and \"%v\"", k, v, obj.Labels[k])
 				err = r.Delete(context.TODO(), present)
 				return err
@@ -360,16 +360,18 @@ func PopulatePlanExecutionPhases(basePath string, executedPlan *kudov1alpha1.Pla
 	planExecution.Status.Phases = make([]kudov1alpha1.PhaseStatus, len(executedPlan.Phases))
 	var err error
 	for i, phase := range executedPlan.Phases {
+		// Populate the Status elements in instance.
 		planExecution.Status.Phases[i].Name = phase.Name
 		planExecution.Status.Phases[i].Strategy = phase.Strategy
 		planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStatePending
 		planExecution.Status.Phases[i].Steps = make([]kudov1alpha1.StepStatus, len(phase.Steps))
 		for j, step := range phase.Steps {
-			// fetch FrameworkVersion
-			// get the task name from the step
-			// get the task definition from the FV
-			// create the kustomize templates
-			// apply
+			// Fetch FrameworkVersion:
+			//
+			//   - Get the task name from the step
+			//   - Get the task definition from the FV
+			//   - Create the kustomize templates
+			//   - Apply
 			configs["PlanName"] = planExecution.Spec.PlanName
 			configs["PhaseName"] = phase.Name
 			configs["StepName"] = step.Name
@@ -475,7 +477,7 @@ func PopulatePlanExecutionPhases(basePath string, executedPlan *kudov1alpha1.Pla
 
 func MutateFn(oldObj runtime.Object) controllerutil.MutateFn {
 	return func(newObj runtime.Object) error {
-		//TODO Clean this up.  I don't like having to do a switch here
+		// TODO Clean this up.  I don't like having to do a switch here
 		switch t := newObj.(type) {
 		case *appsv1.StatefulSet:
 			log.Printf("PlanExecutionController: CreateOrUpdate: StatefulSet %+v", t.Name)
@@ -515,7 +517,7 @@ func MutateFn(oldObj runtime.Object) controllerutil.MutateFn {
 		case *kudov1alpha1.Instance:
 			// i := oldObj.(*kudov1alpha1.Instance)
 
-		//unless we build logic for what a healthy object is, assume its healthy when created
+		// unless we build logic for what a healthy object is, assume its healthy when created
 		default:
 			log.Print("PlanExecutionController: CreateOrUpdate: Type is not implemented yet")
 			return nil
@@ -529,25 +531,25 @@ func MutateFn(oldObj runtime.Object) controllerutil.MutateFn {
 func Cleanup(c client.Client, obj runtime.Object) error {
 	switch obj := obj.(type) {
 	case *batchv1.Job:
-		//We need to see if there's a current job on the system that matches this exactly (with labels)
+		// We need to see if there's a current job on the system that matches this exactly (with labels)
 		log.Printf("PlanExecutionController.Cleanup: *batchv1.Job %v", obj.Name)
 
 		present := &batchv1.Job{}
 		key, _ := client.ObjectKeyFromObject(obj)
 		err := c.Get(context.TODO(), key, present)
 		if errors.IsNotFound(err) {
-			//this is fine, its good to go
+			// this is fine, its good to go
 			log.Printf("PlanExecutionController: Could not find job \"%v\" in cluster. Good to make a new one.", key)
 			return nil
 		}
 		if err != nil {
-			//Something else happened
+			// Something else happened
 			return err
 		}
-		//see if the job in the cluster has the same labels as the one we're looking to add.
+		// see if the job in the cluster has the same labels as the one we're looking to add.
 		for k, v := range obj.Labels {
 			if v != present.Labels[k] {
-				//need to delete the present job since its got labels that aren't the same
+				// need to delete the present job since its got labels that aren't the same
 				log.Printf("PlanExecutionController: Different values for job key \"%v\": \"%v\" and \"%v\"", k, v, present.Labels[k])
 				err = c.Delete(context.TODO(), present)
 				return err
@@ -555,7 +557,7 @@ func Cleanup(c client.Client, obj runtime.Object) error {
 		}
 		for k, v := range present.Labels {
 			if v != obj.Labels[k] {
-				//need to delete the present job since its got labels that aren't the same
+				// need to delete the present job since its got labels that aren't the same
 				log.Printf("PlanExecutionController: Different values for job key \"%v\": \"%v\" and \"%v\"", k, v, obj.Labels[k])
 				err = c.Delete(context.TODO(), present)
 				return err
@@ -570,8 +572,7 @@ func Cleanup(c client.Client, obj runtime.Object) error {
 func RunPhases(executedPlan *kudov1alpha1.Plan, planExecution *kudov1alpha1.PlanExecution, instance *kudov1alpha1.Instance, c client.Client, scheme *runtime.Scheme) error {
 	var err error
 	for i, phase := range planExecution.Status.Phases {
-		//If we still want to execute phases in this plan
-		//check if phase is healthy
+		// If we still want to execute phases in this plan check if phase is healthy
 		for j, s := range phase.Steps {
 			planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateComplete
 
@@ -580,7 +581,7 @@ func RunPhases(executedPlan *kudov1alpha1.Plan, planExecution *kudov1alpha1.Plan
 					log.Printf("PlanExecutionController: Step \"%v\" was marked to delete object %+v", s.Name, obj)
 					err = c.Delete(context.TODO(), obj, client.PropagationPolicy(metav1.DeletePropagationForeground))
 					if errors.IsNotFound(err) || err == nil {
-						//This is okay
+						// This is okay
 						log.Printf("PlanExecutionController: Object was already deleted or did not exist in step \"%v\"", s.Name)
 					}
 					if err != nil {
@@ -598,7 +599,7 @@ func RunPhases(executedPlan *kudov1alpha1.Plan, planExecution *kudov1alpha1.Plan
 					return err
 				}
 
-				//Some objects don't update well.  We capture the logic here to see if we need to cleanup the current object
+				// Some objects don't update well.  We capture the logic here to see if we need to cleanup the current object
 				err = Cleanup(c, obj)
 				if err != nil {
 					log.Printf("PlanExecutionController: Cleanup failed: %v", err)
@@ -642,11 +643,11 @@ func RunPhases(executedPlan *kudov1alpha1.Plan, planExecution *kudov1alpha1.Plan
 			}
 			log.Printf("PlanExecutionController: Phase \"%v\" has strategy %v", phase.Name, phase.Strategy)
 			if phase.Strategy == kudov1alpha1.Serial {
-				//we need to skip the rest of the steps if this step is unhealthy
+				// We need to skip the rest of the steps if this step is unhealthy
 				log.Printf("PlanExecutionController: Phase \"%v\" marked as serial", phase.Name)
 				if planExecution.Status.Phases[i].Steps[j].State != kudov1alpha1.PhaseStateComplete {
 					log.Printf("PlanExecutionController: Step \"%v\" isn't complete, skipping rest of steps in phase until it is", planExecution.Status.Phases[i].Steps[j].Name)
-					break //break step loop
+					break
 				} else {
 					log.Printf("PlanExecutionController: Step \"%v\" is healthy, so I can continue on", planExecution.Status.Phases[i].Steps[j].Name)
 				}
@@ -660,10 +661,10 @@ func RunPhases(executedPlan *kudov1alpha1.Plan, planExecution *kudov1alpha1.Plan
 			continue
 		}
 
-		//This phase isn't quite ready yet.  Lets see what needs to be done
+		// This phase isn't quite ready yet. Let's see what needs to be done
 		planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateInProgress
 
-		//Don't keep going to other plans if we're flagged to perform the phases in serial
+		// Don't keep going to other plans if we're flagged to perform the phases in serial
 		if executedPlan.Strategy == kudov1alpha1.Serial {
 			log.Printf("PlanExecutionController: Phase \"%v\" not healthy, and plan marked as serial, so breaking.", phase.Name)
 			break
