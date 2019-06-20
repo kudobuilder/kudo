@@ -2,12 +2,16 @@
 
 {{ $style := resources.Get "css/styles.css" | postCSS (dict "config" "./assets/css/dev/postcss.config.js") | fingerprint }}
 
-<link rel="stylesheet" href="{{ $style.Permalink }}" data />
+<link rel="stylesheet" href="{{ $style.RelPermalink }}" data />
 
 {{ else }}
 
 {{ $style := resources.Get "css/styles.css" | postCSS (dict "config" "./assets/css/postcss.config.js")  | minify | fingerprint }}
 
-<link rel="stylesheet" href="{{ $style.Permalink }}" integrity="{{ $style.Data.Integrity }}" />
+<link
+  rel="stylesheet"
+  href="{{ $style.RelPermalink }}"
+  integrity="{{ $style.Data.Integrity }}"
+/>
 
 {{ end }}
