@@ -1,7 +1,7 @@
 ---
 title: Community
 type: docs
-weight: 6
+weight: 5
 ---
 
 # Community
