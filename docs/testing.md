@@ -10,32 +10,28 @@ KUDO uses a declarative integration testing harness for testing itself and Frame
 
 ## Table of Contents
 
-* [Table of Contents](#table-of-contents)
 * [Test harness usage](#test-harness-usage)
-   * [Framework test suite](#framework-test-suite)
-      * [Start a Kubernetes cluster with kind (optional)](#start-a-kubernetes-cluster-with-kind-optional)
-      * [Run the Framework tests](#run-the-framework-tests)
-   * [Integration test suite](#integration-test-suite)
+   * [Start a Kubernetes cluster with kind (optional)](#start-a-kubernetes-cluster-with-kind-optional)
+   * [Run the Framework tests](#run-the-framework-tests)
 * [Writing test cases](#writing-test-cases)
    * [Test case directory structure](#test-case-directory-structure)
    * [Test steps](#test-steps)
-      * [Test assertions](#test-assertions)
-         * [Advanced test assertions](#advanced-test-assertions)
+     * [Test assertions](#test-assertions)
+       * [Advanced test assertions](#advanced-test-assertions)
 * [Further Reading](#further-reading)
 
 ## Test harness usage
 
-There are two official KUDO test suites:
-
-* The [Framework test suite](#framework-test-suite) which tests Frameworks built on KUDO. These tests live in the Frameworks repository.
-* The [integration test suite](#integration-test-suite) which tests the KUDO controller itself.
-
-Both are run using the KUDO test harness as a part of our CI processes.
-
-### Framework test suite
-
 The Framework test suite is written and run by Framework developers and CI to test that Frameworks work correctly.
 
+First, clone the [Frameworks repository](https://github.com/kudobuilder/frameworks):
+
+```
+git clone https://github.com/kudobuilder/frameworks.git
+cd frameworks
+```
+
+Make sure that you have Go version 1.12 or greater and have Go modules enabled.
 
 #### Start a Kubernetes cluster with kind (optional)
 
@@ -68,20 +64,6 @@ Framework test suites are stored in the `tests` subdirectory of each [Framework]
 ```
 
 Every `Framework` and `FrameworkVersion` is installed into the cluster by `make test` prior to running the test suite.
-
-### Integration test suite
-
-The [integration test suite](https://github.com/kudobuilder/kudo/tree/master/pkg/test/test_data) lives in `pkg/test/test_data` and is intended for testing KUDO functionality (rather than any end-user Frameworks).
-
-No Kubernetes cluster is required, as the integration tests use the [controller-runtime's envtest](https://godoc.org/sigs.k8s.io/controller-runtime/pkg/envtest).
-
-To run the KUDO integration test suite, run the following in your [local KUDO checkout](https://github.com/kudobuilder/kudo):
-
-```
-make test
-```
-
-The resources under `config/samples/test-framework/` are installed prior to running the tests.
 
 ## Writing test cases
 
