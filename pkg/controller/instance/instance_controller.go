@@ -140,7 +140,7 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 
 			// Haven't done anything yet
 			if new.Status.ActivePlan.Name == "" {
-				err := CreatePlan(mgr, "deploy", new)
+				err := createPlan(mgr, "deploy", new)
 				if err != nil {
 					log.Printf("InstanceEventPredicate: Error creating \"%v\" object for \"%v\": %v", "deploy", new.Name, err)
 				}
@@ -247,7 +247,7 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 					}
 				}
 
-				err = CreatePlan(mgr, planName, new)
+				err = createPlan(mgr, planName, new)
 				if err != nil {
 					log.Printf("InstanceEventPredicate: Error creating \"%v\" object for \"%v\": %v", planName, new.Name, err)
 				}
@@ -285,7 +285,7 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 				return false
 			}
 
-			err = CreatePlan(mgr, planName, instance)
+			err = createPlan(mgr, planName, instance)
 			if err != nil {
 				log.Printf("InstanceEventPredicate: Error creating \"%v\" object for \"%v\": %v", planName, instance.Name, err)
 			}
@@ -298,7 +298,7 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 	}
 }
 
-func CreatePlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Instance) error {
+func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Instance) error {
 	gvk, _ := apiutil.GVKForObject(instance, mgr.GetScheme())
 	recorder := mgr.GetRecorder("instance-controller")
 	recorder.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" plan execution", planName))

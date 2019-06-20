@@ -6,7 +6,6 @@ import (
 	"text/template"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/controller"
 	"github.com/masterminds/sprig"
 )
 
@@ -53,15 +52,17 @@ func (e *Engine) Render(tpl string, vals map[string]interface{}) (string, error)
 	return buf.String(), nil
 }
 
+// ParseConfig generates the config by parsing instance and frameworkversion objects. also accepts a
+// callback function that can be invoked multiple times.
 func ParseConfig(instance *kudov1alpha1.Instance, frameworkVersion *kudov1alpha1.FrameworkVersion, recorder func(eventtype, reason, message string)) (map[string]interface{}, error) {
 
 	//Load parameters:
 	//Create config map to hold all parameters for instantiation
 	configs := make(map[string]interface{})
 	//Default parameters from instance metadata
-	configs[controller.FrameworkName] = frameworkVersion.Spec.Framework.Name
-	configs[controller.Name] = instance.Name
-	configs[controller.Namespace] = instance.Namespace
+	configs["FrameworkName"] = frameworkVersion.Spec.Framework.Name
+	configs["Name"] = instance.Name
+	configs["Namespace"] = instance.Namespace
 
 	params := make(map[string]interface{})
 	//parameters from instance spec
@@ -77,12 +78,12 @@ func ParseConfig(instance *kudov1alpha1.Instance, frameworkVersion *kudov1alpha1
 		if !ok { //not specified in params
 			if param.Required {
 				err := fmt.Errorf("parameter %v was required but not provided by instance %v", param.Name, instance.Name)
-				recorder(controller.Warning, "MissingParameter", err.Error())
+				recorder("Warning", "MissingParameter", err.Error())
 				return nil, err
 			}
 			params[param.Name] = param.Default
 		}
 	}
-	configs[controller.Params] = params
+	configs["Params"] = params
 	return configs, nil
 }

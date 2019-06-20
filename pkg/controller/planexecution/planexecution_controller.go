@@ -230,12 +230,12 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	planExecution.Status.Name = planExecution.Spec.PlanName
 	planExecution.Status.Strategy = executedPlan.Strategy
 
-	err = PopulatePlanExecutionPhases(basePath, &executedPlan, planExecution, instance, frameworkVersion, configs, r.recorder)
+	err = populatePlanExecutionPhases(basePath, &executedPlan, planExecution, instance, frameworkVersion, configs, r.recorder)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	err = RunPhases(&executedPlan, planExecution, instance, r.Client, r.scheme)
+	err = runPhases(&executedPlan, planExecution, instance, r.Client, r.scheme)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -255,50 +255,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	}
 
 	return reconcile.Result{}, nil
-}
-
-// Cleanup modifies objects on the cluster to allow for the provided obj to get CreateOrApply.  Currently
-// only needs to clean up Jobs that get run from multiple PlanExecutions
-func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
-
-	switch obj := obj.(type) {
-	case *batchv1.Job:
-		// We need to see if there's a current job on the system that matches this exactly (with labels)
-		log.Printf("PlanExecutionController.Cleanup: *batchv1.Job %v", obj.Name)
-
-		present := &batchv1.Job{}
-		key, _ := client.ObjectKeyFromObject(obj)
-		err := r.Get(context.TODO(), key, present)
-		if errors.IsNotFound(err) {
-			// this is fine, its good to go
-			log.Printf("PlanExecutionController: Could not find job \"%v\" in cluster. Good to make a new one.", key)
-			return nil
-		}
-		if err != nil {
-			// Something else happened
-			return err
-		}
-		// see if the job in the cluster has the same labels as the one we're looking to add.
-		for k, v := range obj.Labels {
-			if v != present.Labels[k] {
-				// need to delete the present job since its got labels that aren't the same
-				log.Printf("PlanExecutionController: Different values for job key \"%v\": \"%v\" and \"%v\"", k, v, present.Labels[k])
-				err = r.Delete(context.TODO(), present)
-				return err
-			}
-		}
-		for k, v := range present.Labels {
-			if v != obj.Labels[k] {
-				// need to delete the present job since its got labels that aren't the same
-				log.Printf("PlanExecutionController: Different values for job key \"%v\": \"%v\" and \"%v\"", k, v, obj.Labels[k])
-				err = r.Delete(context.TODO(), present)
-				return err
-			}
-		}
-		return nil
-	}
-
-	return nil
 }
 
 // Watch for Deployments, Jobs and StatefulSets
@@ -356,7 +312,7 @@ func planEventPredicateFunc() predicate.Funcs {
 	}
 }
 
-func PopulatePlanExecutionPhases(basePath string, executedPlan *kudov1alpha1.Plan, planExecution *kudov1alpha1.PlanExecution, instance *kudov1alpha1.Instance, frameworkVersion *kudov1alpha1.FrameworkVersion, configs map[string]interface{}, recorder record.EventRecorder) error {
+func populatePlanExecutionPhases(basePath string, executedPlan *kudov1alpha1.Plan, planExecution *kudov1alpha1.PlanExecution, instance *kudov1alpha1.Instance, frameworkVersion *kudov1alpha1.FrameworkVersion, configs map[string]interface{}, recorder record.EventRecorder) error {
 	planExecution.Status.Phases = make([]kudov1alpha1.PhaseStatus, len(executedPlan.Phases))
 	var err error
 	for i, phase := range executedPlan.Phases {
@@ -475,7 +431,7 @@ func PopulatePlanExecutionPhases(basePath string, executedPlan *kudov1alpha1.Pla
 	return nil
 }
 
-func MutateFn(oldObj runtime.Object) controllerutil.MutateFn {
+func mutateFn(oldObj runtime.Object) controllerutil.MutateFn {
 	return func(newObj runtime.Object) error {
 		// TODO Clean this up.  I don't like having to do a switch here
 		switch t := newObj.(type) {
@@ -528,11 +484,13 @@ func MutateFn(oldObj runtime.Object) controllerutil.MutateFn {
 	}
 }
 
-func Cleanup(c client.Client, obj runtime.Object) error {
+// cleanup modifies objects on the cluster to allow for the provided obj to get CreateOrApply.
+// Currently only needs to clean up Jobs that get run from multiple PlanExecutions
+func cleanup(c client.Client, obj runtime.Object) error {
 	switch obj := obj.(type) {
 	case *batchv1.Job:
 		// We need to see if there's a current job on the system that matches this exactly (with labels)
-		log.Printf("PlanExecutionController.Cleanup: *batchv1.Job %v", obj.Name)
+		log.Printf("PlanExecutionController.cleanup: *batchv1.Job %v", obj.Name)
 
 		present := &batchv1.Job{}
 		key, _ := client.ObjectKeyFromObject(obj)
@@ -569,7 +527,7 @@ func Cleanup(c client.Client, obj runtime.Object) error {
 	return nil
 }
 
-func RunPhases(executedPlan *kudov1alpha1.Plan, planExecution *kudov1alpha1.PlanExecution, instance *kudov1alpha1.Instance, c client.Client, scheme *runtime.Scheme) error {
+func runPhases(executedPlan *kudov1alpha1.Plan, planExecution *kudov1alpha1.PlanExecution, instance *kudov1alpha1.Instance, c client.Client, scheme *runtime.Scheme) error {
 	var err error
 	for i, phase := range planExecution.Status.Phases {
 		// If we still want to execute phases in this plan check if phase is healthy
@@ -600,13 +558,13 @@ func RunPhases(executedPlan *kudov1alpha1.Plan, planExecution *kudov1alpha1.Plan
 				}
 
 				// Some objects don't update well.  We capture the logic here to see if we need to cleanup the current object
-				err = Cleanup(c, obj)
+				err = cleanup(c, obj)
 				if err != nil {
-					log.Printf("PlanExecutionController: Cleanup failed: %v", err)
+					log.Printf("PlanExecutionController: cleanup failed: %v", err)
 				}
 
 				arg := obj.DeepCopyObject()
-				result, err := controllerutil.CreateOrUpdate(context.TODO(), c, arg, MutateFn(obj))
+				result, err := controllerutil.CreateOrUpdate(context.TODO(), c, arg, mutateFn(obj))
 
 				if err != nil {
 					log.Printf("PlanExecutionController: Error CreateOrUpdate Object in step \"%v\": %v", s.Name, err)
