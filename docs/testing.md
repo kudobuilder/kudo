@@ -94,7 +94,7 @@ In order for a test case to be successful, all steps must also complete successf
 
 ### Test steps
 
-The test step files can contain any number of Kubernetes resources that should be applied as a part of the test step. Typically, this would be a KUDO `Instance` or a `Deployment` or other resources required for the test, such as `Secrets` or test `Pods`.
+The test step files can contain any number of Kubernetes resources that should be applied as a part of the test step. Typically, this would be a KUDO `Instance` (see: [KUDO concepts](https://kudo.dev/docs/concepts/) or a `Deployment` or other resources required for the test, such as `Secrets` or test `Pods`.
 
 Continuing with the upgrade-test example, create `00-instance.yaml`:
 
