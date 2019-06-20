@@ -28,30 +28,30 @@ const (
 
 const apiVersion = "kudo.k8s.io/v1alpha1"
 
-// InstallCRDs is collection of CRDs that are used when installing framework
+// PackageCRDs is collection of CRDs that are used when installing framework
 // during installation, package format is converted to this structure
-type InstallCRDs struct {
+type PackageCRDs struct {
 	Framework        *v1alpha1.Framework
 	FrameworkVersion *v1alpha1.FrameworkVersion
 	Instance         *v1alpha1.Instance
 }
 
 // ReadTarballPackage reads package from tarball and converts it to the CRD format
-func ReadTarballPackage(r io.Reader) (*InstallCRDs, error) {
+func ReadTarballPackage(r io.Reader) (*PackageCRDs, error) {
 	p, err := untarV1Package(r)
 	if err != nil {
 		return nil, errors.Wrap(err, "while untarring package")
 	}
-	return p.getInstallCRDs()
+	return p.getCRDs()
 }
 
 // ReadFileSystemPackage reads package from filesystem and converts it to the CRD format
-func ReadFileSystemPackage(path string) (*InstallCRDs, error) {
+func ReadFileSystemPackage(path string) (*PackageCRDs, error) {
 	p, err := fromFilesystem(path)
 	if err != nil {
 		return nil, errors.Wrap(err, "while reading package from filesystem")
 	}
-	return p.getInstallCRDs()
+	return p.getCRDs()
 }
 
 func fromFilesystem(packagePath string) (*v1Package, error) {
@@ -217,7 +217,7 @@ func newV1Package() v1Package {
 	}
 }
 
-func (p *v1Package) getInstallCRDs() (*InstallCRDs, error) {
+func (p *v1Package) getCRDs() (*PackageCRDs, error) {
 	if p.Framework == nil {
 		return nil, errors.New("framework.yaml file is missing")
 	}
@@ -300,7 +300,7 @@ func (p *v1Package) getInstallCRDs() (*InstallCRDs, error) {
 		Status: v1alpha1.InstanceStatus{},
 	}
 
-	return &InstallCRDs{
+	return &PackageCRDs{
 		Framework:        framework,
 		FrameworkVersion: fv,
 		Instance:         instance,

@@ -134,8 +134,8 @@ func createTarball(tarballFile io.Writer, source string) error {
 		})
 }
 
-func loadCrdsFromPath(goldenPath string) (*InstallCRDs, error) {
-	result := &InstallCRDs{}
+func loadCrdsFromPath(goldenPath string) (*PackageCRDs, error) {
+	result := &PackageCRDs{}
 	err := filepath.Walk(goldenPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
