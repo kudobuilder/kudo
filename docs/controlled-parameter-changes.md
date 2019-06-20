@@ -1,6 +1,7 @@
 ---
 title: Controlled Parameter Changes
 type: docs
+menu: docs
 ---
 
 # Controlled Parameter Changes

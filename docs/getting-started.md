@@ -2,6 +2,8 @@
 title: Getting Started
 type: docs
 weight: 1
+menu: "docs"
+aliases: ["/docs/"]
 ---
 
 # Getting Started
@@ -22,9 +24,10 @@ Before you get started:
 If you want to use the KUDO kubectl plugin, you can now follow the [CLI plugin installation instructions](https://kudo.dev/docs/cli/).
 
 ### Notes on Minikube
-If you plan on developing and testing KUDO locally via Minikube, you'll need to launch your cluster with a reasonable amount of memory allocated.  By default, this is only 2GB - we recommend at least 8GB, especially if you're working with applications such as [Kafka](/docs/examples/apache-kafka/).  You can start Minikube with some suitable resource adjustments as follows:
 
-``` shell
+If you plan on developing and testing KUDO locally via Minikube, you'll need to launch your cluster with a reasonable amount of memory allocated. By default, this is only 2GB - we recommend at least 8GB, especially if you're working with applications such as [Kafka](/docs/examples/apache-kafka/). You can start Minikube with some suitable resource adjustments as follows:
+
+```shell
 minikube start --cpus=4 --memory=8192 --disk-size=40g
 ```
 

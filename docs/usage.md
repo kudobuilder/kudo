@@ -1,7 +1,7 @@
 ---
 title: Usage
 type: docs
-weight: 3
+menu: docs
 ---
 
 # Workflow

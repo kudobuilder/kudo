@@ -1,26 +1,29 @@
 ---
 title: FAQ
 type: docs
-weight: 7
+menu: docs
 ---
 
 # Frequently Asked Questions
 
 ## Table of Contents
 
-* [What is KUDO?](#what-is-kudo)
-* [When would you use KUDO?](#when-would-you-use-kudo)
-* [What is a Framework](#what-is-a-framework)
-* [What is a FrameworkVersion?](#what-is-a-frameworkversion)
-* [What is an Instance?](#what-is-an-instance)
-* [What is a Plan?](#what-is-a-plan)
-* [What is a PlanExecution?](#what-is-a-planexecution)
-* [What is a Parameter?](#what-is-a-parameter)
-* [What is a Deployment Strategy?](#what-is-a-deployment-strategy)
-* [What is a Trigger?](#what-is-a-trigger)
-* [When I create a Framework, will it automatically create new CRDs?](#when-i-create-a-framework-will-it-automatically-create-new-crds)
-   * [How does it work from a RBAC perspective?](#how-does-it-work-from-a-rbac-perspective)
-* [Is the dependency model an individual controller per workload?](#is-the-dependency-model-an-individual-controller-per-workload)
+- [Frequently Asked Questions](#Frequently-Asked-Questions)
+  - [Table of Contents](#Table-of-Contents)
+  - [What is KUDO?](#What-is-KUDO)
+  - [When would you use KUDO?](#When-would-you-use-KUDO)
+  - [What is a Framework?](#What-is-a-Framework)
+  - [What is a deployable service?](#What-is-a-deployable-service)
+  - [What is a FrameworkVersion?](#What-is-a-FrameworkVersion)
+  - [What is an Instance?](#What-is-an-Instance)
+  - [What is a Plan?](#What-is-a-Plan)
+  - [What is a PlanExecution?](#What-is-a-PlanExecution)
+  - [What is a Parameter?](#What-is-a-Parameter)
+  - [What is a Deployment Strategy?](#What-is-a-Deployment-Strategy)
+  - [What is a Trigger?](#What-is-a-Trigger)
+  - [When I create a Framework, will it automatically create new CRDs?](#When-I-create-a-Framework-will-it-automatically-create-new-CRDs)
+  - [How does it work from a RBAC perspective?](#How-does-it-work-from-a-RBAC-perspective)
+  - [Is the dependency model an individual controller per workload?](#Is-the-dependency-model-an-individual-controller-per-workload)
 
 ## What is KUDO?
 
