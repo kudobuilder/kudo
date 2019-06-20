@@ -54,7 +54,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileInstance{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("instance-controller")}
+	return &ReconcileInstance{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor("instance-controller")}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler.
@@ -167,9 +167,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 						log.Println("InstanceController: Setting PlanExecution to Suspend")
 						t := true
 						current.Spec.Suspend = &t
-						did, err := controllerutil.CreateOrUpdate(context.TODO(), mgr.GetClient(), current, func(o runtime.Object) error {
+						did, err := controllerutil.CreateOrUpdate(context.TODO(), mgr.GetClient(), current, func() error {
 							t := true
-							o.(*kudov1alpha1.PlanExecution).Spec.Suspend = &t
+							current.Spec.Suspend = &t
 							return nil
 						})
 						if err != nil {
@@ -240,7 +240,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Instance) error {
 	gvk, _ := apiutil.GVKForObject(instance, mgr.GetScheme())
-	recorder := mgr.GetRecorder("instance-controller")
+	recorder := mgr.GetEventRecorderFor("instance-controller")
 	recorder.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" plan execution", planName))
 
 	ref := corev1.ObjectReference{
