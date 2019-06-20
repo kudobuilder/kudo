@@ -34,12 +34,12 @@ func TestReconcile_InstancesOnFrameworkVersionEvent(t *testing.T) {
 	c = mgr.GetClient()
 
 	// Given an existing Instance object
-	log.Printf("Given an existing instance \"foo\"")
+	log.Printf("Given an existing instance \"foo-instance\"")
 	instance := &v1alpha1.Instance{
-		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default", Labels: map[string]string{"framework": "foo"}},
+		ObjectMeta: metav1.ObjectMeta{Name: "foo-instance", Namespace: "default", Labels: map[string]string{"framework": "foo-framework"}},
 		Spec: v1alpha1.InstanceSpec{
 			FrameworkVersion: v1.ObjectReference{
-				Name:      "foo",
+				Name:      "foo-framework",
 				Namespace: "default",
 			},
 		},
@@ -69,7 +69,7 @@ func TestReconcile_InstancesOnFrameworkVersionEvent(t *testing.T) {
 	// Create a FrameworkVersion object with an empty "deploy" plan first
 	log.Printf("When a frameworkVersion is created")
 	frameworkVersion := &v1alpha1.FrameworkVersion{
-		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
+		ObjectMeta: metav1.ObjectMeta{Name: "foo-framework", Namespace: "default"},
 		Spec: v1alpha1.FrameworkVersionSpec{
 			Plans: map[string]v1alpha1.Plan{"deploy": {}},
 		},
