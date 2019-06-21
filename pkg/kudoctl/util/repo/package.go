@@ -21,7 +21,6 @@ import (
 
 const (
 	frameworkV1FileName     = "framework.yaml"
-	templatesV1Folder       = "templates"
 	templateV1FileNameRegex = "templates/.*.yaml"
 	paramsV1FileName        = "params.yaml"
 )
@@ -64,7 +63,6 @@ func fromFilesystem(packagePath string) (*v1Package, error) {
 			// skip directories
 			return nil
 		}
-		relativePath := strings.TrimPrefix(path, packagePath)
 		if path == packagePath {
 			// skip the root folder, as Walk always starts there
 			return nil
@@ -73,41 +71,44 @@ func fromFilesystem(packagePath string) (*v1Package, error) {
 		if err != nil {
 			return err
 		}
-		switch {
-		case isFrameworkV1File(file.Name()):
-			if err = yaml.Unmarshal(bytes, &result.Framework); err != nil {
-				return errors.Wrap(err, "failed to unmarshal framework")
-			}
-		case file.Name() == templatesV1Folder && file.IsDir():
-			// skip the folder itself, wait until we recursively start going into the template files
-			return nil
-		case isTemplateV1File(relativePath):
-			name := strings.TrimPrefix(relativePath, "/templates/")
-			result.Templates[name] = string(bytes)
-		case isParametersV1File(file.Name()):
-			var params map[string]map[string]string
-			if err = yaml.Unmarshal(bytes, &params); err != nil {
-				return errors.Wrapf(err, "failed to unmarshal parameters file %s", file.Name())
-			}
-			paramsStruct := make([]v1alpha1.Parameter, 0)
-			for paramName, param := range params {
-				r := v1alpha1.Parameter{
-					Name:        paramName,
-					Description: param["description"],
-					Default:     param["default"],
-				}
-				paramsStruct = append(paramsStruct, r)
-			}
-			result.Params = paramsStruct
-		default:
-			return fmt.Errorf("unexpected file when reading package from filesystem %s", file.Name())
-		}
-		return nil
+
+		return readPackageFile(path, bytes, &result)
 	})
 	if err != nil {
 		return nil, err
 	}
 	return &result, nil
+}
+
+func readPackageFile(filePath string, fileBytes []byte, currentPackage *v1Package) error {
+	switch {
+	case isFrameworkV1File(filePath):
+		if err := yaml.Unmarshal(fileBytes, &currentPackage.Framework); err != nil {
+			return errors.Wrap(err, "failed to unmarshal framework")
+		}
+	case isTemplateV1File(filePath):
+		pathParts := strings.Split(filePath, "templates/")
+		name := pathParts[len(pathParts)-1]
+		currentPackage.Templates[name] = string(fileBytes)
+	case isParametersV1File(filePath):
+		var params map[string]map[string]string
+		if err := yaml.Unmarshal(fileBytes, &params); err != nil {
+			return errors.Wrapf(err, "failed to unmarshal parameters file %s", filePath)
+		}
+		paramsStruct := make([]v1alpha1.Parameter, 0)
+		for paramName, param := range params {
+			r := v1alpha1.Parameter{
+				Name:        paramName,
+				Description: param["description"],
+				Default:     param["default"],
+			}
+			paramsStruct = append(paramsStruct, r)
+		}
+		currentPackage.Params = paramsStruct
+	default:
+		return fmt.Errorf("unexpected file when reading package from filesystem %s", filePath)
+	}
+	return nil
 }
 
 func untarV1Package(r io.Reader) (*v1Package, error) {
@@ -156,34 +157,9 @@ func untarV1Package(r io.Reader) (*v1Package, error) {
 				return nil, errors.Wrapf(err, "while reading file from bundle tarball %s", header.Name)
 			}
 
-			switch {
-			case isFrameworkV1File(header.Name):
-				var bf bundle.Framework
-
-				if err = yaml.Unmarshal(bytes, &bf); err != nil {
-					return nil, errors.Wrap(err, "cannot unmarshal framework")
-				}
-				result.Framework = &bf
-			case isTemplateV1File(header.Name):
-				name := strings.TrimPrefix(header.Name, "/templates/")
-				result.Templates[name] = string(bytes)
-			case isParametersV1File(header.Name):
-				var params map[string]map[string]string
-				if err = yaml.Unmarshal(bytes, &params); err != nil {
-					return nil, errors.Wrapf(err, "unmarshalling %s content", header.Name)
-				}
-				paramsStruct := make([]v1alpha1.Parameter, 0)
-				for paramName, param := range params {
-					r := v1alpha1.Parameter{
-						Name:        paramName,
-						Description: param["description"],
-						Default:     param["default"],
-					}
-					paramsStruct = append(paramsStruct, r)
-				}
-				result.Params = paramsStruct
-			default:
-				return nil, fmt.Errorf("unexpected file in the tarball structure %s", header.Name)
+			err = readPackageFile(header.Name, bytes, &result)
+			if err != nil {
+				return nil, err
 			}
 		}
 	}
