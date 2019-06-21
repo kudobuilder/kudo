@@ -28,6 +28,7 @@ test:
 # Run integration tests
 integration-test:
 	go test -tags integration ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover-integration.out
+	go run ./cmd/kubectl-kudo test
 
 .PHONY: test-clean
 # Clean test reports

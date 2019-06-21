@@ -118,6 +118,8 @@ func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 		converted = &kudo.TestStep{}
 	case "TestAssert":
 		converted = &kudo.TestAssert{}
+	case "TestSuite":
+		converted = &kudo.TestSuite{}
 	default:
 		return in, nil
 	}
