@@ -106,9 +106,16 @@ type ClusterClass struct {
 }
 
 type ClusterClassSpec struct {
+	// The minimum number of unallocated clusters that should be available at any time.
 	MinimumAvailable             int
+	// The maximum number of clusters that should exist at any given time.
 	Maximum                      int
+	// The git repository to fetch the Terraform module from.
 	TerraformModuleGitRepository string
+	// The git branch to fetch the Terraform module from.
+	TerraformModuleGitBranch     string
+	// A list of Kubernetes secrets containing Terraform variables to use with the Terraform module.
+	TerraformVariablesSecrets    []string
 }
 
 type ClusterClassStatus struct {
@@ -121,6 +128,8 @@ The `ClusterController` watches for `ClusterClasses` to exist and then ensures t
 
 * If there are `maximum` `States` already existing, it does nothing - even if there are not `minimumAvailable` `States` unassigned.
 * If there are less than `minimumAvailable` `States` unassigned, then it creates a new `State`.
+
+The `ClusterClass` should have labels set in the metadata indicating details about the cluster, e.g., provider, region, size. These labels are used by `ClusterClaims` to select cluster classes.
 
 #### Claiming a test environment
 
@@ -135,8 +144,9 @@ type ClusterClaim struct {
 }
 
 type ClusterClaimSpec struct {
-	Secret       string
-	ClusterClass metav1.ObjectReference
+	Secret            string
+	// A label selector for filtering ClusterClasses.
+	ClusterLabels     metav1.LabelSelector
 }
 
 type ClusterClaimStatus struct {
@@ -144,7 +154,7 @@ type ClusterClaimStatus struct {
 }
 ```
 
-The ClusterController then checks if there is an unassigned `State` object available. If there is not one, then it waits for one to exist.
+The ClusterController then checks if there is an unassigned `State` object available for a `ClusterClass` matching the `ClusterClaim`'s label selector. If there is not one, then it waits for one to exist.
 
 Once a `State` exists, then the ClusterController updates the `ClusterClaim` with a reference to the `State` and creates a Kubernetes `Secret` object containing all of the output variables of a Terraform deployment. These `Secrets` are mounted into test pods where they can be consumed by tests.
 
