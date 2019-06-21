@@ -222,15 +222,15 @@ func (h *Harness) Run() {
 		h.T.Fatal(err)
 	}
 
+	// Install required manifests.
+	if _, err := testutils.InstallManifests(context.TODO(), cl, dClient, h.TestSuite.ManifestsDir); err != nil {
+		h.T.Fatal(err)
+	}
+
 	if h.TestSuite.StartKUDO || h.TestSuite.StartControlPlane {
 		if err := h.RunKUDO(); err != nil {
 			h.T.Fatal(err)
 		}
-	}
-
-	// Install required manifests.
-	if _, err := testutils.InstallManifests(context.TODO(), cl, dClient, h.TestSuite.ManifestsDir); err != nil {
-		h.T.Fatal(err)
 	}
 
 	h.RunTests()
