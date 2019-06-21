@@ -30,4 +30,4 @@ minikube start --cpus=4 --memory=8192 --disk-size=40g
 
 ## Deploy your first Application
 
-Follow the instructions in the [Apache Kafka example](/docs/examples/apache-kafka/) to deploy a Kafka cluster along with its dependency Zookeeper.
+Follow the instructions in the [Apache Kafka example](/docs/examples/apache-kafka.md) to deploy a Kafka cluster along with its dependency Zookeeper.
