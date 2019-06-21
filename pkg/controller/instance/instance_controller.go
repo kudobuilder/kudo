@@ -65,7 +65,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	p := predicate.Funcs{
+	inPredicate := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 
 			old := e.ObjectOld.(*kudov1alpha1.Instance)
@@ -191,7 +191,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		},
 		// New Instances should have Deploy called
 		CreateFunc: func(e event.CreateEvent) bool {
-			log.Printf("InstanceController: Received create event for an instance named: %v", e.Meta.GetName())
+			log.Printf("InstanceController: Received create event for instance \"%v\"", e.Meta.GetName())
 			instance := e.Object.(*kudov1alpha1.Instance)
 
 			// Get the instance FrameworkVersion object
@@ -214,7 +214,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			planName := "deploy"
 
 			if _, ok := fv.Spec.Plans[planName]; !ok {
-				log.Println("InstanceController: Could not find deploy plan")
+				log.Printf("InstanceController: Could not find deploy plan \"%v\" for instance \"%v\"", planName, instance.Name)
 				return false
 			}
 
@@ -225,16 +225,80 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			return err == nil
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			log.Printf("InstanceController: Received delete event for an instance named: %v", e.Meta.GetName())
+			log.Printf("InstanceController: Received delete event for instance \"%v\"", e.Meta.GetName())
 			return true
 		},
 	}
 
 	// Watch for changes to Instance
-	err = c.Watch(&source.Kind{Type: &kudov1alpha1.Instance{}}, &handler.EnqueueRequestForObject{}, p)
-	if err != nil {
+	if err = c.Watch(&source.Kind{Type: &kudov1alpha1.Instance{}}, &handler.EnqueueRequestForObject{}, inPredicate); err != nil {
 		return err
 	}
+
+	// Watch for changes to FrameworkVersion. Since changes to FrameworkVersion and Instance are often happening
+	// concurrently there is an inherent race between both update events so that we might see a new Instance first
+	// without the corresponding FrameworkVersion. We additionally watch FrameworkVersions and trigger
+	// reconciliation for the corresponding instances.
+	//
+	// Define a mapping from the object in the event (FrameworkVersion) to one or more objects to
+	// reconcile (Instances). Specifically this calls for a reconciliation of any owned objects.
+	fvMapFn := handler.ToRequestsFunc(
+		func(a handler.MapObject) []reconcile.Request {
+			requests := make([]reconcile.Request, 0)
+			// We want to query and queue up frameworks Instances
+			instances := &kudov1alpha1.InstanceList{}
+			err := mgr.GetClient().List(
+				context.TODO(),
+				client.MatchingLabels(map[string]string{"framework": a.Meta.GetName()}),
+				instances)
+
+			if err != nil {
+				log.Printf("InstanceController: Error fetching instances list for framework %v: %v", a.Meta.GetName(), err)
+				return nil
+			}
+
+			for _, instance := range instances.Items {
+				// Sanity check - lets make sure that this instance references the frameworkVersion
+				if instance.Spec.FrameworkVersion.Name == a.Meta.GetName() &&
+					instance.Spec.FrameworkVersion.Namespace == a.Meta.GetNamespace() &&
+					instance.Status.ActivePlan.Name == "" {
+
+					log.Printf("InstanceController: Creating a deploy execution plan for the instance %v", instance.Name)
+					err = createPlan(mgr, "deploy", &instance)
+					if err != nil {
+						log.Printf("InstanceController: Error creating \"%v\" object for \"deploy\": %v", instance.Name, err)
+					}
+
+					log.Printf("InstanceController: Queing instance %v for reconciliation", instance.Name)
+					requests = append(requests, reconcile.Request{
+						NamespacedName: types.NamespacedName{
+							Name:      instance.Name,
+							Namespace: instance.Namespace,
+						},
+					})
+				}
+			}
+			log.Printf("Found %v instances to reconcile", len(requests))
+			return requests
+		})
+
+	// This map function makes sure that we *ONLY* handle created frameworkVersion
+	fvPredicate := predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return true
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return false
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return false
+		},
+	}
+
+	if err = c.Watch(&source.Kind{Type: &kudov1alpha1.FrameworkVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: fvMapFn}, fvPredicate); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -309,7 +373,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	log.Printf("InstanceController: Received Reconcile request for \"%+v\"", request.Name)
+	log.Printf("InstanceController: Received Reconcile request for instance \"%+v\"", request.Name)
 
 	// Make sure the FrameworkVersion is present
 	fv := &kudov1alpha1.FrameworkVersion{}
@@ -328,7 +392,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	// Make sure all the required parameters in the frameworkversion are present
+	// Make sure all the required parameters in the frameworkVersion are present
 	for _, param := range fv.Spec.Parameters {
 		if param.Required {
 			if _, ok := instance.Spec.Parameters[param.Name]; !ok {
