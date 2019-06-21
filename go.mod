@@ -18,6 +18,7 @@ require (
 	github.com/go-openapi/swag v0.18.0 // indirect
 	github.com/go-playground/locales v0.12.1 // indirect
 	github.com/go-playground/universal-translator v0.16.0 // indirect
+	github.com/go-test/deep v1.0.1
 	github.com/gobuffalo/envy v1.6.15 // indirect
 	github.com/gogo/protobuf v1.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
@@ -50,7 +51,7 @@ require (
 	github.com/prometheus/common v0.2.0 // indirect
 	github.com/prometheus/procfs v0.0.0-20190209105433-f8d8b3f739bd // indirect
 	github.com/rogpeppe/go-internal v1.2.2 // indirect
-	github.com/spf13/afero v1.2.1 // indirect
+	github.com/spf13/afero v1.2.1
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/stretchr/testify v1.3.0

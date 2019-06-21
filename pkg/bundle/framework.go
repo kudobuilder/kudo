@@ -13,6 +13,5 @@ type Framework struct {
 	URL               string                         `json:"url,omitempty"`
 	Tasks             map[string]v1alpha1.TaskSpec   `json:"tasks"`
 	Plans             map[string]v1alpha1.Plan       `json:"plans"`
-	Parameters        []v1alpha1.Parameter           `json:"parameters,omitempty"`
 	Dependencies      []v1alpha1.FrameworkDependency `json:"dependencies,omitempty"`
 }
