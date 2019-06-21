@@ -25,7 +25,7 @@ and serves as an API aggregation layer.
 	# View all plan history of a specific package
 	kubectl kudo plan history [flags]
 
-	# Run a test suite
+	# Run integration tests against a Kubernetes cluster or mocked control plane.
 	kubectl kudo test
 
 	# Get instances
