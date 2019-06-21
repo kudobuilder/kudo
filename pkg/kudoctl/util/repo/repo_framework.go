@@ -66,8 +66,8 @@ func (r *FrameworkRepository) DownloadIndexFile() (*IndexFile, error) {
 	return indexFile, err
 }
 
-// DownloadBundle downloads the tgz file from the given repo
-func (r *FrameworkRepository) DownloadBundle(bundleName string) (*PackageCRDs, error) {
+// GetPackage downloads the tgz file from the given repo
+func (r *FrameworkRepository) GetPackage(bundleName string) (*PackageCRDs, error) {
 	var fileURL string
 	parsedURL, err := url.Parse(r.Config.URL)
 	if err != nil {

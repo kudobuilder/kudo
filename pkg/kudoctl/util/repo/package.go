@@ -75,12 +75,9 @@ func fromFilesystem(packagePath string) (*v1Package, error) {
 		}
 		switch {
 		case isFrameworkV1File(file.Name()):
-			var bf bundle.Framework
-
-			if err = yaml.Unmarshal(bytes, &bf); err != nil {
-				return errors.Wrap(err, "cannot unmarshal framework")
+			if err = yaml.Unmarshal(bytes, &result.Framework); err != nil {
+				return errors.Wrap(err, "failed to unmarshal framework")
 			}
-			result.Framework = &bf
 		case file.Name() == templatesV1Folder && file.IsDir():
 			// skip the folder itself, wait until we recursively start going into the template files
 			return nil
@@ -90,7 +87,7 @@ func fromFilesystem(packagePath string) (*v1Package, error) {
 		case isParametersV1File(file.Name()):
 			var params map[string]map[string]string
 			if err = yaml.Unmarshal(bytes, &params); err != nil {
-				return errors.Wrapf(err, "unmarshalling %s content", file.Name())
+				return errors.Wrapf(err, "failed to unmarshal parameters file %s", file.Name())
 			}
 			paramsStruct := make([]v1alpha1.Parameter, 0)
 			for paramName, param := range params {

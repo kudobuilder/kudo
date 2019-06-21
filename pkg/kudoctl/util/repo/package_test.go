@@ -20,9 +20,9 @@ import (
 )
 
 const (
-	frameworkV0FileName = "-framework.yaml"
-	versionV0FileName   = "-frameworkversion.yaml"
-	instanceV0FileName  = "-instance.yaml"
+	frameworkGolden = "framework.golden"
+	versionGolden   = "frameworkversion.golden"
+	instanceGolden  = "instance.golden"
 )
 
 func TestReadFileSystemPackage(t *testing.T) {
@@ -179,13 +179,13 @@ func loadCrdsFromPath(goldenPath string) (*PackageCRDs, error) {
 }
 
 func isFrameworkV0File(name string) bool {
-	return strings.HasSuffix(name, frameworkV0FileName)
+	return strings.HasSuffix(name, frameworkGolden)
 }
 
 func isVersionV0File(name string) bool {
-	return strings.HasSuffix(name, versionV0FileName)
+	return strings.HasSuffix(name, versionGolden)
 }
 
 func isInstanceV0File(name string) bool {
-	return strings.HasSuffix(name, instanceV0FileName)
+	return strings.HasSuffix(name, instanceGolden)
 }

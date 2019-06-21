@@ -149,9 +149,9 @@ func installFramework(name, previous string, repository repo.FrameworkRepository
 		bundleVersion = bv
 	}
 
-	bundleName := bundleVersion.Name + "-" + bundleVersion.Version
+	packageName := bundleVersion.Name + "-" + bundleVersion.Version
 
-	crds, err := repository.DownloadBundle(bundleName)
+	crds, err := repository.GetPackage(packageName)
 	if err != nil {
 		return errors.Wrap(err, "failed to download bundle")
 	}
@@ -285,7 +285,7 @@ func installSingleInstanceToCluster(name, previous string, instance *v1alpha1.In
 		instance.Spec.Parameters = p
 	}
 	if _, err := kc.InstallInstanceObjToCluster(instance, options.Namespace); err != nil {
-		return errors.Wrapf(err, "installing %s-instance.yaml", name)
+		return errors.Wrapf(err, "installing instance %s", name)
 	}
 	fmt.Printf("instance.%s/%s created\n", instance.APIVersion, instance.Name)
 	return nil
