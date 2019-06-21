@@ -43,7 +43,7 @@ This document describes how test environments will be provisioned in CI for use 
 
 A KUDO Framework will be built that can manage idle pools of Terraform-provisioned Kubernetes clusters - ensuring that CI jobs always have Kubernetes available to use for tests without waiting to provision them.
 
-![architecture overview](./keps/diagram/draft/overview.png)
+![architecture overview](./diagrams/draft/overview.png)
 
 ## Motivation
 
@@ -88,7 +88,7 @@ These controllers will live in the same cluster as Prow, making it very easy to 
 
 #### Deploying Terraform test environments
 
-![diagram of deploying clusters with terraform](./keps/diagram/draft/provisioning.png)
+![diagram of deploying clusters with terraform](./diagrams/draft/provisioning.png)
 
 The TerraformController watches for `TerraformState` objects to be created that describe a Terraform module to load and its parameters:
 
@@ -171,7 +171,7 @@ The `ClusterClass` should have labels set in the metadata indicating details abo
 
 #### Claiming a test environment
 
-![diagram of claiming test environment](./keps/diagram/draft/claiming.png)
+![diagram of claiming test environment](./diagrams/draft/claiming.png)
 
 A test environment (`TerraformState`) can be claimed by creating a `ClusterClaim` object describing the desired cluster:
 
@@ -202,7 +202,7 @@ Because Kubernetes waits for a referenced `Secret` to exist prior to starting a 
 
 #### Deleting a test environment
 
-![diagram of cluster release process](./keps/diagram/draft/releasing.png)
+![diagram of cluster release process](./diagrams/draft/releasing.png)
 
 Once a test environment is no longer needed, the `ClusterClaim` object can be deleted. Once it is, the ClusterController deletes the `TerraformState` which causes the test environment to be deleted.
 
