@@ -225,7 +225,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			return err == nil
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			log.Printf("InstanceController: Received delete event for an instance \"%v\"", e.Meta.GetName())
+			log.Printf("InstanceController: Received delete event for instance \"%v\"", e.Meta.GetName())
 			return true
 		},
 	}
@@ -236,12 +236,12 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to FrameworkVersion. Since changes to FrameworkVersion and Instance are often happening
-	// concurrently  there is an inherent race between both update events so that we might see a new Instance first
+	// concurrently there is an inherent race between both update events so that we might see a new Instance first
 	// without the corresponding FrameworkVersion. We additionally watch FrameworkVersions and trigger
-	// reconciliation for the corresponding instances
+	// reconciliation for the corresponding instances.
 	//
 	// Define a mapping from the object in the event (FrameworkVersion) to one or more objects to
-	// Reconcile (Instances). Specifically this calls for a reconciliation of any owned  objects.
+	// reconcile (Instances). Specifically this calls for a reconciliation of any owned objects.
 	mapFn := handler.ToRequestsFunc(
 		func(a handler.MapObject) []reconcile.Request {
 			requests := make([]reconcile.Request, 0)

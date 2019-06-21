@@ -27,7 +27,7 @@ const timeout = time.Second * 5
 func TestReconcile_InstancesOnFrameworkVersionEvent(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
 
-	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
+	// Setup the Manager and Controller. Wrap the Controller Reconcile function so it writes each request to a
 	// channel when it is finished.
 	mgr, err := manager.New(cfg, manager.Options{})
 	g.Expect(err).NotTo(gomega.HaveOccurred())
