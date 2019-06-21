@@ -69,11 +69,11 @@ By ensuring that a pool of idle, ephemeral Kubernetes clusters are always availa
 
 [Terraform](http://terraform.io/) will be used to provision Kubernetes clusters and other infrastructure for use in test jobs. With Terraform, we can provision Kubernetes clusters in every major provider, as well as on-premise. As Terraform is a general purpose infrastructure as code tool, we are also not limited to provisioning Kubernetes clusters.
 
-We will use the [Rancher terraform-controller](https://github.com/rancher/terraform-controller) to manage Terraform state directly in Kubernetes. With it, we can create new Terraform deployments, delete Terraform deployments, and fetch their outputs natively in Kubernetes.
+We create a Terraform Kubernetes controller ("TerraformController") to manage Terraform state directly in Kubernetes. With it, we can create new Terraform deployments, delete Terraform deployments, and fetch their outputs natively in Kubernetes.
 
-The terraform-controller consumes Terraform modules from Git, which allows maintaining Terraform modules for each test environment in a Git repository.
+The TerraformController consumes Terraform modules from Git, which allows maintaining Terraform modules for each test environment in a Git repository.
 
-To ensure that a minimum number of test environments are always ready to use, a new Framework (called "ClusterController") will be created using KUDO to assign test environments to CI jobs and create new ones when necessary.
+To ensure that a minimum number of test environments are always ready to use, a Kubernetes controller (called "ClusterController") will be created to assign test environments to CI jobs and create new ones when necessary.
 
 These controllers will live in the same cluster as Prow, making it very easy to integrate with new jobs.
 
@@ -86,15 +86,49 @@ These controllers will live in the same cluster as Prow, making it very easy to 
 
 #### Deploying Terraform test environments
 
-The [Rancher terraform-controller](https://github.com/rancher/terraform-controller) watches for `State` objects to be created that describe a Terraform module to load and its parameters. Once a `State` object is created, the terraform-controller creates a Kubernetes `Pod` that runs `terraform apply` to deploy the module. When the Terraform module has completed running, the terraform-controller updates the `State` object with the Terraform output variables.
+The TerraformController watches for `TerraformState` objects to be created that describe a Terraform module to load and its parameters:
+
+```
+type TerraformState struct {
+	TypeMeta
+	ObjectMeta
+	Spec       TerraformStateSpec
+}
+
+type TerraformStateSpec struct {
+	// The git repository to fetch the Terraform module from.
+	TerraformModuleGitRepository string
+	// The git branch to fetch the Terraform module from.
+	TerraformModuleGitBranch     string
+	// A list of Kubernetes secrets containing Terraform variables to use with the Terraform module.
+	TerraformVariablesSecrets    []string
+}
+
+type TerraformStateStatus struct {
+	Status  TerraformStatus
+	Errors  []string
+	Outputs map[string]string
+}
+
+type TerraformStatus string
+
+const (
+	APPLYING   TerraformStatus = "APPLYING"
+	COMPLETED  TerraformStatus = "COMPLETED"
+	FAILED     TerraformStatus = "FAILED"
+	DESTROYING TerraformStatus = "DESTROYING"
+)
+```
+
+Once a `TerraformState` object is created, the TerraformController creates a Kubernetes `Pod` that runs `terraform apply` to deploy the module. When the Terraform module has completed running, the TerraformController updates the `TerraformState` object with the Terraform output variables.
 
 The Terraform module should output the required details necessary to connect to the cluster as output variables, e.g., the kubernetes configuration file.
 
-Once the `State` object is deleted, the terraform-controller creates a Kubernetes `Pod` that runs `terraform destroy` to clean up the deployed infrastructure.
+Once the `TerraformState` object is deleted, the TerraformController creates a Kubernetes `Pod` that runs `terraform destroy` to clean up the deployed infrastructure.
 
 #### Maintaining an idle pool of environments
 
-Since test environments can be created simply by creating a `State` object, to maintain an idle pool of test environments, a controller needs to be created that can assign test environments to jobs and create new `State` objects when there are not enough unassigned jobs.
+Since test environments can be created simply by creating a `TerraformState` object, to maintain an idle pool of test environments, a controller needs to be created that can assign test environments to jobs and create new `TerraformState` objects when there are not enough unassigned jobs.
 
 To create an idle pool of environments, the CI job maintainer creates a `ClusterClass` object describing the test environment.
 
@@ -124,16 +158,16 @@ type ClusterClassStatus struct {
 }
 ```
 
-The `ClusterController` watches for `ClusterClasses` to exist and then ensures that the proper number of `State` objects always exist:
+The `ClusterController` watches for `ClusterClasses` to exist and then ensures that the proper number of `TerraformState` objects always exist:
 
-* If there are `maximum` `States` already existing, it does nothing - even if there are not `minimumAvailable` `States` unassigned.
-* If there are less than `minimumAvailable` `States` unassigned, then it creates a new `State`.
+* If there are `maximum` `TerraformStates` already existing, it does nothing - even if there are not `minimumAvailable` `TerraformStates` unassigned.
+* If there are less than `minimumAvailable` `TerraformStates` unassigned, then it creates a new `TerraformState`.
 
 The `ClusterClass` should have labels set in the metadata indicating details about the cluster, e.g., provider, region, size. These labels are used by `ClusterClaims` to select cluster classes.
 
 #### Claiming a test environment
 
-A test environment (`State`) can be claimed by creating a `ClusterClaim` object describing the desired cluster:
+A test environment (`TerraformState`) can be claimed by creating a `ClusterClaim` object describing the desired cluster:
 
 ```
 type ClusterClaim struct {
@@ -150,19 +184,19 @@ type ClusterClaimSpec struct {
 }
 
 type ClusterClaimStatus struct {
-	State metav1.ObjectReference
+	TerraformState metav1.ObjectReference
 }
 ```
 
-The ClusterController then checks if there is an unassigned `State` object available for a `ClusterClass` matching the `ClusterClaim`'s label selector. If there is not one, then it waits for one to exist.
+The ClusterController then checks if there is an unassigned `TerraformState` object available for a `ClusterClass` matching the `ClusterClaim`'s label selector. If there is not one, then it waits for one to exist.
 
-Once a `State` exists, then the ClusterController updates the `ClusterClaim` with a reference to the `State` and creates a Kubernetes `Secret` object containing all of the output variables of a Terraform deployment. These `Secrets` are mounted into test pods where they can be consumed by tests.
+Once a `TerraformState` exists, then the ClusterController updates the `ClusterClaim` with a reference to the `TerraformState` and creates a Kubernetes `Secret` object containing all of the output variables of a Terraform deployment. These `Secrets` are mounted into test pods where they can be consumed by tests.
 
 Because Kubernetes waits for a referenced `Secret` to exist prior to starting a pod and the `ClusterClaim` provides the name of the `Secret` to create, the CI job can create the `ClusterClaim` and test `Pod` simultaneously and Kubernetes will start the `Pod` as soon as the `Secret` is created by the `ClusterController`.
 
 #### Deleting a test environment
 
-Once a test environment is no longer needed, the `ClusterClaim` object can be deleted. Once it is, the ClusterController deletes the `State` which causes the test environment to be deleted.
+Once a test environment is no longer needed, the `ClusterClaim` object can be deleted. Once it is, the ClusterController deletes the `TerraformState` which causes the test environment to be deleted.
 
 ### Risks and Mitigations
 
