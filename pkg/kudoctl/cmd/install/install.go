@@ -3,7 +3,6 @@ package install
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
@@ -68,7 +67,7 @@ func installFrameworks(args []string, options *Options) error {
 	repoConfig := repo.Default
 
 	// Initializing empty repo with given variables
-	repo, err := repo.NewFrameworkRepository(repoConfig)
+	r, err := repo.NewFrameworkRepository(repoConfig)
 	if err != nil {
 		return errors.WithMessage(err, "could not build framework repository")
 	}
@@ -84,7 +83,7 @@ func installFrameworks(args []string, options *Options) error {
 	}
 
 	for _, name := range args {
-		err := installFramework(name, "", *repo, kc, options)
+		err := installFramework(name, "", *r, kc, options)
 		if err != nil {
 			return err
 		}
@@ -92,24 +91,36 @@ func installFrameworks(args []string, options *Options) error {
 	return nil
 }
 
-func getFrameworkCRDsFromRepo(frameworkName string, packageVersion string, repository repo.FrameworkRepository) (*repo.PackageCRDs, error) {
-	var bundleVersion *repo.BundleVersion
-
-	// Downloading index.yaml file
-	if err := repository.DownloadIndexFile(); err != nil {
-		return nil, errors.WithMessage(err, "could not download index file")
+// getPackageCRDs tries to look for package files resolving the framework name to:
+// - a local tar.gz file
+// - a local directory
+// - a framework name in the remote repository (default)
+// in that order. Should there exist a local folder e.g. `cassandra` it will take precedence
+// over the remote repository package with the same name.
+func getPackageCRDs(name string, options *Options, repository repo.FrameworkRepository) (*repo.PackageCRDs, error) {
+	// Local files/folder have priority
+	if _, err := os.Stat(name); err == nil {
+		return repo.ReadFileSystemPackage(name)
 	}
 
-	if packageVersion == "" {
-		bv, err := repository.IndexFile.GetByName(frameworkName)
+	// Construct the package name and downloan the package from the remote repo
+	indexFile, err := repository.DownloadIndexFile()
+	if err != nil {
+		return nil, errors.WithMessage(err, "could not download repository index file: %v")
+	}
+
+	var bundleVersion *repo.BundleVersion
+
+	if options.PackageVersion == "" {
+		bv, err := indexFile.GetByName(name)
 		if err != nil {
-			return nil, errors.Wrapf(err, "getting %s in index file", frameworkName)
+			return nil, errors.Wrapf(err, "getting %s in index file", name)
 		}
 		bundleVersion = bv
 	} else {
-		bv, err := repository.IndexFile.GetByNameAndVersion(frameworkName, packageVersion)
+		bv, err := indexFile.GetByNameAndVersion(name, options.PackageVersion)
 		if err != nil {
-			return nil, errors.Wrapf(err, "getting %s in index file", frameworkName)
+			return nil, errors.Wrapf(err, "getting %s in index file", name)
 		}
 		bundleVersion = bv
 	}
@@ -119,54 +130,12 @@ func getFrameworkCRDsFromRepo(frameworkName string, packageVersion string, repos
 	return repository.GetPackage(packageName)
 }
 
-func getFrameworkCRDsFromTarGz(path string) (*repo.PackageCRDs, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return repo.ReadTarGzPackage(f)
-	}
-	return nil, err
-}
-
-func getFrameworkCRDsFromFolder(path string) (*repo.PackageCRDs, error) {
-	return repo.ReadFileSystemPackage(path)
-}
-
-// getFrameworkCRDs tries to look for framework files resolving the name to:
-// - a local tar.gz file
-// - a local directory
-// - a framework name in the remote repository (default)
-// in that order.
-func getFrameworkCRDs(frameworkName string, options *Options, repository repo.FrameworkRepository) (*repo.PackageCRDs, error) {
-	isTarGz := func() bool {
-		if fi, err := os.Stat(frameworkName); err == nil {
-			return fi.Mode().IsRegular() && strings.HasSuffix(frameworkName, ".tar.gz")
-		}
-		return false
-	}
-
-	isFolder := func() bool {
-		if fi, err := os.Stat(frameworkName); err == nil {
-			return fi.IsDir()
-		}
-		return false
-	}
-
-	switch {
-	case isTarGz():
-		return getFrameworkCRDsFromTarGz(frameworkName)
-	case isFolder():
-		return getFrameworkCRDsFromFolder(frameworkName)
-	default:
-		return getFrameworkCRDsFromRepo(frameworkName, options.PackageVersion, repository)
-	}
-}
-
 // installFramework is the umbrella for a single framework installation that gathers the business logic
 // for a cluster and returns an error in case there is a problem
 // TODO: needs testing
 func installFramework(name, previous string, repository repo.FrameworkRepository, kc *kudo.Client, options *Options) error {
 
-	crds, err := getFrameworkCRDs(name, options, repository)
+	crds, err := getPackageCRDs(name, options, repository)
 	if err != nil {
 		return errors.Wrap(err, "failed to download bundle")
 	}

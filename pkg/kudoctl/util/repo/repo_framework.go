@@ -12,43 +12,34 @@ import (
 
 // FrameworkRepository represents a framework repository
 type FrameworkRepository struct {
-	Config    *RepositoryConfiguration
-	Client    HTTPClient
-	IndexFile *IndexFile
-}
-
-// FrameworkBundle contains parsed files from the framework bundle
-type FrameworkBundle struct {
-	Framework        *v1alpha1.Framework
-	FrameworkVersion *v1alpha1.FrameworkVersion
-	Instance         *v1alpha1.Instance
+	Config *RepositoryConfiguration
+	Client HTTPClient
 }
 
 // NewFrameworkRepository constructs FrameworkRepository
-func NewFrameworkRepository(cfg *RepositoryConfiguration) (*FrameworkRepository, error) {
-	u, err := url.Parse(cfg.URL)
+func NewFrameworkRepository(conf *RepositoryConfiguration) (*FrameworkRepository, error) {
+	_, err := url.Parse(conf.URL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid chart URL format: %s", cfg.URL)
+		return nil, fmt.Errorf("invalid repository URL: %s", conf.URL)
 	}
 
 	client, err := NewHTTPClient()
 	if err != nil {
-		return nil, fmt.Errorf("could not construct protocol handler for: %s error: %v", u.Scheme, err)
+		return nil, fmt.Errorf("could not construct http client: %v", err)
 	}
 
 	return &FrameworkRepository{
-		Config: cfg,
+		Config: conf,
 		Client: *client,
 	}, nil
 }
 
-// DownloadIndexFile fetches the index file from a repository. It has to be called manually to be able to defer its
-// initialisation  based on whether framework installation is done from local tar.gz/folder or from a remote repo.
-func (r *FrameworkRepository) DownloadIndexFile() error {
+// DownloadIndexFile fetches the index file from a repository.
+func (r *FrameworkRepository) DownloadIndexFile() (*IndexFile, error) {
 	var indexURL string
 	parsedURL, err := url.Parse(r.Config.URL)
 	if err != nil {
-		return errors.Wrap(err, "parsing config url")
+		return nil, errors.Wrap(err, "parsing config url")
 	}
 	parsedURL.Path = fmt.Sprintf("%s/index.yaml", strings.TrimSuffix(parsedURL.Path, "/"))
 
@@ -56,26 +47,26 @@ func (r *FrameworkRepository) DownloadIndexFile() error {
 
 	resp, err := r.Client.Get(indexURL)
 	if err != nil {
-		return errors.Wrap(err, "getting index url")
+		return nil, errors.Wrap(err, "getting index url")
 	}
 
 	indexBytes, err := ioutil.ReadAll(resp)
 	if err != nil {
-		return errors.Wrap(err, "reading index response")
+		return nil, errors.Wrap(err, "reading index response")
 	}
 
-	r.IndexFile, err = parseIndexFile(indexBytes)
-	return err
+	indexFile, err := parseIndexFile(indexBytes)
+	return indexFile, err
 }
 
 // GetPackage downloads the tgz file from the given repo
-func (r *FrameworkRepository) GetPackage(bundleName string) (*PackageCRDs, error) {
+func (r *FrameworkRepository) GetPackage(packageName string) (*PackageCRDs, error) {
 	var fileURL string
 	parsedURL, err := url.Parse(r.Config.URL)
 	if err != nil {
 		return nil, errors.Wrap(err, "parsing config url")
 	}
-	parsedURL.Path = fmt.Sprintf("%s/%s.tgz", parsedURL.Path, bundleName)
+	parsedURL.Path = fmt.Sprintf("%s/%s.tgz", parsedURL.Path, packageName)
 
 	fileURL = parsedURL.String()
 

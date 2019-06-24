@@ -20,9 +20,9 @@ import (
 )
 
 const (
-	frameworkV1FileName     = "framework.yaml"
-	templateV1FileNameRegex = "templates/.*.yaml"
-	paramsV1FileName        = "params.yaml"
+	v1FrameworkFileName     = "framework.yaml"
+	v1TemplateFileNameRegex = "templates/.*.yaml"
+	v1ParamsFileName        = "params.yaml"
 )
 
 const apiVersion = "kudo.k8s.io/v1alpha1"
@@ -39,21 +39,46 @@ type PackageCRDs struct {
 func ReadTarGzPackage(r io.Reader) (*PackageCRDs, error) {
 	p, err := extractV1Package(r)
 	if err != nil {
-		return nil, errors.Wrap(err, "while untarring package")
+		return nil, errors.Wrap(err, "while extracting package files")
 	}
 	return p.getCRDs()
 }
 
 // ReadFileSystemPackage reads package from filesystem and converts it to the CRD format
 func ReadFileSystemPackage(path string) (*PackageCRDs, error) {
-	p, err := fromFilesystem(path)
-	if err != nil {
-		return nil, errors.Wrap(err, "while reading package from filesystem")
+	isTarGz := func() bool {
+		if fi, err := os.Stat(path); err == nil {
+			return fi.Mode().IsRegular() && strings.HasSuffix(path, ".tar.gz")
+		}
+		return false
 	}
-	return p.getCRDs()
+
+	isFolder := func() bool {
+		if fi, err := os.Stat(path); err == nil {
+			return fi.IsDir()
+		}
+		return false
+	}
+
+	switch {
+	case isTarGz():
+		f, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		return ReadTarGzPackage(f)
+	case isFolder():
+		p, err := fromFolder(path)
+		if err != nil {
+			return nil, errors.Wrap(err, "while reading package from the file system")
+		}
+		return p.getCRDs()
+	default:
+		return nil, fmt.Errorf("unsupported file system format %v. Expect either a tar.gz file or a folder", path)
+	}
 }
 
-func fromFilesystem(packagePath string) (*v1Package, error) {
+func fromFolder(packagePath string) (*v1Package, error) {
 	result := newV1Package()
 	err := filepath.Walk(packagePath, func(path string, file os.FileInfo, err error) error {
 		if err != nil {
@@ -72,7 +97,7 @@ func fromFilesystem(packagePath string) (*v1Package, error) {
 			return err
 		}
 
-		return readPackageFile(path, bytes, &result)
+		return readV1PackageFile(path, bytes, &result)
 	})
 	if err != nil {
 		return nil, err
@@ -80,17 +105,30 @@ func fromFilesystem(packagePath string) (*v1Package, error) {
 	return &result, nil
 }
 
-func readPackageFile(filePath string, fileBytes []byte, currentPackage *v1Package) error {
+func readV1PackageFile(filePath string, fileBytes []byte, currentPackage *v1Package) error {
+	isV1FrameworkFile := func(name string) bool {
+		return strings.HasSuffix(name, v1FrameworkFileName)
+	}
+
+	isV1TemplateFile := func(name string) bool {
+		matched, _ := regexp.Match(v1TemplateFileNameRegex, []byte(name))
+		return matched
+	}
+
+	isV1ParametersFile := func(name string) bool {
+		return strings.HasSuffix(name, v1ParamsFileName)
+	}
+
 	switch {
-	case isFrameworkV1File(filePath):
+	case isV1FrameworkFile(filePath):
 		if err := yaml.Unmarshal(fileBytes, &currentPackage.Framework); err != nil {
 			return errors.Wrap(err, "failed to unmarshal framework")
 		}
-	case isTemplateV1File(filePath):
+	case isV1TemplateFile(filePath):
 		pathParts := strings.Split(filePath, "templates/")
 		name := pathParts[len(pathParts)-1]
 		currentPackage.Templates[name] = string(fileBytes)
-	case isParametersV1File(filePath):
+	case isV1ParametersFile(filePath):
 		var params map[string]map[string]string
 		if err := yaml.Unmarshal(fileBytes, &params); err != nil {
 			return errors.Wrapf(err, "failed to unmarshal parameters file %s", filePath)
@@ -157,25 +195,12 @@ func extractV1Package(r io.Reader) (*v1Package, error) {
 				return nil, errors.Wrapf(err, "while reading file from bundle tarball %s", header.Name)
 			}
 
-			err = readPackageFile(header.Name, bytes, &result)
+			err = readV1PackageFile(header.Name, bytes, &result)
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
-}
-
-func isFrameworkV1File(name string) bool {
-	return strings.HasSuffix(name, frameworkV1FileName)
-}
-
-func isTemplateV1File(name string) bool {
-	matched, _ := regexp.Match(templateV1FileNameRegex, []byte(name))
-	return matched
-}
-
-func isParametersV1File(name string) bool {
-	return strings.HasSuffix(name, paramsV1FileName)
 }
 
 type v1Package struct {
