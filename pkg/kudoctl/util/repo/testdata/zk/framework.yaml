@@ -1,0 +1,39 @@
+name: "zookeeper"
+version: "0.1.0"
+kudoVersion: 0.2.0
+kubernetesVersion: 1.5.1
+maintainers:
+- Alena Varkockova<avarkockova@mesosphere.com>
+- Tom Runyon<runyontr@gmail.com>
+url: https://zookeeper.apache.org/
+tasks:
+  infra:
+    resources:
+      - services.yaml
+      - pdb.yaml
+  app:
+    resources:
+      - statefulset.yaml
+  validation:
+    resources:
+      - validation.yaml
+plans:
+  deploy:
+    strategy: serial
+    phases:
+      - name: zookeeper
+        strategy: parallel
+        steps:
+          - name: everything
+            tasks:
+              - infra
+              - app
+  validation:
+    strategy: serial
+    phases:
+      - name: connection
+        strategy: parallel
+        steps:
+          - name: connection
+            tasks:
+              - validation

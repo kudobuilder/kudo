@@ -130,6 +130,33 @@ Once all of the test steps in a test case have run, a report for the test case i
 
 The test harness can also be run in a unit testing mode, where it spins up a dummy Kubernetes API server and runs any test cases marked as unit tests.
 
+### Test suite configuration
+
+The test suite is configured either using command line arguments to `kubectl kudo test` or a provided configuration file.
+
+The configuration format is a YAML file containing the following struct:
+
+```
+type TestSuite struct {
+	TypeMeta
+	ObjectMeta
+
+	// Path to CRDs to install before running tests.
+	CRDDir            string
+	// Path to manifests to install before running tests.
+	ManifestsDir      string
+	// Directories containing test cases to run.
+	TestDirs          []string
+	// Whether or not to start a local etcd and kubernetes API server for the tests.
+	StartControlPlane bool
+	// Whether or not to start the KUDO controller for the tests.
+	StartKUDO         bool
+}
+
+```
+
+A configuration file can be provided to `kubectl kudo test` using the `--config` argument.
+
 ### Test suite directory structure
 
 Test suites are defined in an easy to understand directory structure:

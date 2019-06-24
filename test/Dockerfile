@@ -7,5 +7,6 @@ RUN make download
 COPY config/ config/
 COPY pkg/ pkg/
 COPY cmd/ cmd/
+COPY kudo-test.yaml kudo-test.yaml
 
-ENTRYPOINT make test
+ENTRYPOINT make integration-test

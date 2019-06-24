@@ -24,10 +24,16 @@ all: test manager
 test:
 	go test ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover.out
 
+.PHONY: integration-test
+# Run integration tests
+integration-test:
+	go test -tags integration ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover-integration.out
+	go run ./cmd/kubectl-kudo test
+
 .PHONY: test-clean
 # Clean test reports
 test-clean:
-	rm -f cover.out
+	rm -f cover.out cover-integration.out
 
 .PHONY: check-formatting
 check-formatting: vet lint staticcheck

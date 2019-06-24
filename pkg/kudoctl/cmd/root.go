@@ -25,6 +25,9 @@ and serves as an API aggregation layer.
 	# View all plan history of a specific package
 	kubectl kudo plan history [flags]
 
+	# Run integration tests against a Kubernetes cluster or mocked control plane.
+	kubectl kudo test
+
 	# Get instances
 	kubectl kudo get instances [flags]
 
@@ -41,6 +44,7 @@ and serves as an API aggregation layer.
 	cmd.AddCommand(newInstallCmd())
 	cmd.AddCommand(newGetCmd())
 	cmd.AddCommand(newPlanCmd())
+	cmd.AddCommand(newTestCmd())
 	cmd.AddCommand(newVersionCmd())
 
 	return cmd
