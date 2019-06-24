@@ -381,13 +381,14 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						NamePrefix: instance.Name + "-",
 						Namespace:  instance.Namespace,
 						CommonLabels: map[string]string{
-							"heritage": "kudo",
-							"app":      frameworkVersion.Spec.Framework.Name,
-							"version":  frameworkVersion.Spec.Version,
-							"instance": instance.Name,
-							"plan":     planExecution.Spec.PlanName,
-							"phase":    phase.Name,
-							"step":     step.Name,
+							"heritage":       "kudo",
+							"app":            frameworkVersion.Spec.Framework.Name,
+							"version":        frameworkVersion.Spec.Version,
+							"instance":       instance.Name,
+							"planexecution:": planExecution.Name,
+							"plan":           planExecution.Spec.PlanName,
+							"phase":          phase.Name,
+							"step":           step.Name,
 						},
 						GeneratorOptions: &ktypes.GeneratorOptions{
 							DisableNameSuffixHash: true,
@@ -491,9 +492,13 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					p := client.MergeFrom(truth)
 					mergePatch, err := p.Data(obj)
 					specPatch := gjson.Get(string(mergePatch), "spec")
-					patchString := fmt.Sprintf("{\"spec\": %v}", specPatch.String())
-					// p = client.MergeFrom(obj)
-					// mergePatch, err = p.Data(truth)
+					labelPatch := gjson.Get(string(mergePatch), "metadata.labels")
+					annotationPatch := gjson.Get(string(mergePatch), "metadata.annotations")
+					patchString := fmt.Sprintf("{\"metadata\":{\"labels\": %v,\"annotations\": %v},\"spec\": %v}",
+						labelPatch,
+						annotationPatch,
+						specPatch.String(),
+					)
 					log.Printf("Going to apply patch\n%+v\n\n to object\n%+v\n", patchString, truth)
 					if err != nil {
 						log.Printf("Error getting patch between truth and obj: %v\n", err)
