@@ -35,9 +35,9 @@ type PackageCRDs struct {
 	Instance         *v1alpha1.Instance
 }
 
-// ReadTarballPackage reads package from tarball and converts it to the CRD format
-func ReadTarballPackage(r io.Reader) (*PackageCRDs, error) {
-	p, err := untarV1Package(r)
+// ReadTarGzPackage reads package from tarball and converts it to the CRD format
+func ReadTarGzPackage(r io.Reader) (*PackageCRDs, error) {
+	p, err := extractV1Package(r)
 	if err != nil {
 		return nil, errors.Wrap(err, "while untarring package")
 	}
@@ -111,7 +111,7 @@ func readPackageFile(filePath string, fileBytes []byte, currentPackage *v1Packag
 	return nil
 }
 
-func untarV1Package(r io.Reader) (*v1Package, error) {
+func extractV1Package(r io.Reader) (*v1Package, error) {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
 		return nil, err

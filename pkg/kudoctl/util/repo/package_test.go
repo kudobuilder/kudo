@@ -73,7 +73,7 @@ func TestReadFileSystemPackage(t *testing.T) {
 			if err != nil {
 				t.Fatalf("could not re-open tarball: %+v", err)
 			}
-			actual, err := ReadTarballPackage(file)
+			actual, err := ReadTarGzPackage(file)
 			if err != nil {
 				t.Fatalf("Found unexpected error: %v", err)
 			}
