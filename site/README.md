@@ -11,7 +11,7 @@ The KUDO website is built with [Hugo](https://gohugo.io).
 
 ### Run the development server
 
-Prior to running hugo, it is necessary to install all the dependencies in the tool chain.  The dependencies are defined in [package.json](site/package.json).   They are install by executing:
+Prior to running Hugo, it is necessary to install all the dependencies in the tool chain. The dependencies are defined in [package.json](site/package.json). They are installed by executing:
 `npm install` from the the `site` folder.
 
 Run `hugo server` from the `site` folder.
