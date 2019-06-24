@@ -684,6 +684,10 @@ video {
   margin-bottom: 1rem;
 }
 
+.docs a {
+  color: #4394f7;
+}
+
 .appearance-none {
   -webkit-appearance: none;
      -moz-appearance: none;
