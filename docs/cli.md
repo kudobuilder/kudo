@@ -1,7 +1,7 @@
 ---
 title: CLI Usage
 type: docs
-weight: 4
+menu: docs
 ---
 # CLI Usage
 
@@ -49,13 +49,13 @@ Or you can use compile and install the plugin from your `$GOPATH/src/github.com/
 
 ## Commands
 
-|  Syntax | Description  |
-|---|---|
-| `kubectl kudo install <name> [flags]`  |  Install a Framework from the official [KUDO repo](https://github.com/kudobuilder/frameworks). |
-| `kubectl kudo get instances [flags]` | Show all available instances. |
-| `kubectl kudo plan status [flags]` | View all available plans. |
-| `kubectl kudo plan history <name> [flags]` | View all available plans. |
-| `kubectl kudo version` | Print the current KUDO package version. |
+| Syntax                                     | Description                                                                                   |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `kubectl kudo install <name> [flags]`      | Install a Framework from the official [KUDO repo](https://github.com/kudobuilder/frameworks). |
+| `kubectl kudo get instances [flags]`       | Show all available instances.                                                                 |
+| `kubectl kudo plan status [flags]`         | View all available plans.                                                                     |
+| `kubectl kudo plan history <name> [flags]` | View all available plans.                                                                     |
+| `kubectl kudo version`                     | Print the current KUDO package version.                                                       |
 
 ## Flags
 

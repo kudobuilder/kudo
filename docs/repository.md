@@ -1,7 +1,7 @@
 ---
 title: Framework repository
 type: docs
-weight: 4
+menu: docs
 ---
 # Framework repository
 

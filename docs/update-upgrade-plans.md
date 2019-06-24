@@ -1,6 +1,7 @@
 ---
 title: Update and Upgrade Plans
 type: docs
+menu: docs
 ---
 
 # Update and Upgrade Plans
