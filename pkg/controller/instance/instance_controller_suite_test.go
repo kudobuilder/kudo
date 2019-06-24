@@ -23,7 +23,6 @@ import (
 	"testing"
 
 	"github.com/onsi/gomega"
-<<<<<<< HEAD
 
 	"github.com/kudobuilder/kudo/pkg/apis"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -75,10 +74,6 @@ func StartTestManager(mgr manager.Manager, g *gomega.GomegaWithT) (chan struct{}
 	return stop, wg
 }
 
-=======
-)
-
->>>>>>> fixing staticcheck issues
 func TestSpecParameterDifference(t *testing.T) {
 
 	var testParams = []struct {
