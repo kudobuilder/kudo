@@ -1,7 +1,7 @@
 ---
 title: Concepts
 type: docs
-weight: 2
+menu: docs
 ---
 
 # Concepts
