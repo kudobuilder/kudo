@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/apis"
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/controller"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/kudobuilder/kudo/pkg/webhook"
@@ -22,12 +22,8 @@ import (
 
 // Harness loads and runs tests based on the configuration provided.
 type Harness struct {
-	T                 *testing.T
-	CRDDir            string
-	ManifestsDir      string
-	TestDirs          []string
-	StartControlPlane bool
-	StartKUDO         bool
+	TestSuite kudo.TestSuite
+	T         *testing.T
 
 	managerStopCh chan struct{}
 	config        *rest.Config
@@ -87,7 +83,7 @@ func (h *Harness) Config() (*rest.Config, error) {
 
 	var err error
 
-	if h.StartControlPlane {
+	if h.TestSuite.StartControlPlane {
 		h.config, err = h.RunTestEnv()
 	} else {
 		h.config, err = config.GetConfig()
@@ -97,36 +93,16 @@ func (h *Harness) Config() (*rest.Config, error) {
 }
 
 // RunKUDO starts the KUDO controllers and installs the required CRDs.
-func (h *Harness) RunKUDO(crdPath string) error {
+func (h *Harness) RunKUDO() error {
 	config, err := h.Config()
 	if err != nil {
 		return err
 	}
 
-	if h.CRDDir != "" {
-		crds, err := envtest.InstallCRDs(config, envtest.CRDInstallOptions{
-			Paths:              []string{h.CRDDir},
-			ErrorIfPathMissing: true,
-		})
-		if err != nil {
-			return err
-		}
-
-		err = envtest.WaitForCRDs(config, crds, envtest.CRDInstallOptions{
-			Paths:              []string{h.CRDDir},
-			ErrorIfPathMissing: true,
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	mgr, err := manager.New(config, manager.Options{})
+	mgr, err := manager.New(config, manager.Options{
+		Scheme: testutils.Scheme(),
+	})
 	if err != nil {
-		return err
-	}
-
-	if err = apis.AddToScheme(mgr.GetScheme()); err != nil {
 		return err
 	}
 
@@ -145,8 +121,8 @@ func (h *Harness) RunKUDO(crdPath string) error {
 }
 
 // Client returns the current Kubernetes client for the test harness.
-func (h *Harness) Client() (client.Client, error) {
-	if h.client != nil {
+func (h *Harness) Client(forceNew bool) (client.Client, error) {
+	if h.client != nil && !forceNew {
 		return h.client, nil
 	}
 
@@ -155,7 +131,9 @@ func (h *Harness) Client() (client.Client, error) {
 		return nil, err
 	}
 
-	h.client, err = client.New(config, client.Options{})
+	h.client, err = client.New(config, client.Options{
+		Scheme: testutils.Scheme(),
+	})
 	return h.client, err
 }
 
@@ -177,19 +155,19 @@ func (h *Harness) DiscoveryClient() (discovery.DiscoveryInterface, error) {
 // RunTests should be called from within a Go test (t) and launches all of the KUDO integration
 // tests at dir.
 func (h *Harness) RunTests() {
-	cl, err := h.Client()
+	cl, err := h.Client(false)
 	if err != nil {
 		h.T.Fatal(err)
 	}
 
-	dClient, err := h.DiscoveryClient()
+	dclient, err := h.DiscoveryClient()
 	if err != nil {
 		h.T.Fatal(err)
 	}
 
 	tests := []*Case{}
 
-	for _, testDir := range h.TestDirs {
+	for _, testDir := range h.TestSuite.TestDirs {
 		tempTests, err := h.LoadTests(testDir)
 		if err != nil {
 			h.T.Fatal(err)
@@ -200,7 +178,7 @@ func (h *Harness) RunTests() {
 	h.T.Run("harness", func(t *testing.T) {
 		for _, test := range tests {
 			test.Client = cl
-			test.DiscoveryClient = dClient
+			test.DiscoveryClient = dclient
 
 			if err := test.LoadTestSteps(); err != nil {
 				t.Fatal(err)
@@ -218,13 +196,7 @@ func (h *Harness) Run() {
 
 	defer h.Stop()
 
-	if h.StartKUDO || h.StartControlPlane {
-		if err := h.RunKUDO("../../config/crds/"); err != nil {
-			h.T.Fatal(err)
-		}
-	}
-
-	cl, err := h.Client()
+	cl, err := h.Client(false)
 	if err != nil {
 		h.T.Fatal(err)
 	}
@@ -234,8 +206,31 @@ func (h *Harness) Run() {
 		h.T.Fatal(err)
 	}
 
-	if err := testutils.InstallManifests(context.TODO(), cl, dClient, h.ManifestsDir); err != nil {
+	// Install CRDs
+	crds, err := testutils.InstallManifests(context.TODO(), cl, dClient, h.TestSuite.CRDDir)
+	if err != nil {
 		h.T.Fatal(err)
+	}
+
+	if err := testutils.WaitForCRDs(dClient, crds); err != nil {
+		h.T.Fatal(err)
+	}
+
+	// Create a new client to bust the client's CRD cache.
+	cl, err = h.Client(true)
+	if err != nil {
+		h.T.Fatal(err)
+	}
+
+	// Install required manifests.
+	if _, err := testutils.InstallManifests(context.TODO(), cl, dClient, h.TestSuite.ManifestsDir); err != nil {
+		h.T.Fatal(err)
+	}
+
+	if h.TestSuite.StartKUDO || h.TestSuite.StartControlPlane {
+		if err := h.RunKUDO(); err != nil {
+			h.T.Fatal(err)
+		}
 	}
 
 	h.RunTests()
