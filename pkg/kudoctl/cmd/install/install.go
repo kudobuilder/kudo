@@ -94,15 +94,20 @@ func installFrameworks(args []string, options *Options) error {
 // getPackageCRDs tries to look for package files resolving the framework name to:
 // - a local tar.gz file
 // - a local directory
-// - a framework name in the remote repository
+// - a framework name in the remote repository (default)
 // in that order. Should there exist a local folder e.g. `cassandra` it will take precedence
 // over the remote repository package with the same name.
 func getPackageCRDs(name string, options *Options, repository repo.FrameworkRepository) (*repo.PackageCRDs, error) {
 	// Local files/folder have priority
 	if _, err := os.Stat(name); err == nil {
-		return repo.ReadFileSystemPackage(name)
+		b, err := repo.NewBundle(name)
+		if err != nil {
+			return nil, err
+		}
+		return b.GetCRDs()
 	}
 
+	// TODO: Below is repository functionality.   All we want is a bundle!
 	// Construct the package name and download the package from the remote repo
 	indexFile, err := repository.DownloadIndexFile()
 	if err != nil {
@@ -127,7 +132,11 @@ func getPackageCRDs(name string, options *Options, repository repo.FrameworkRepo
 
 	packageName := bundleVersion.Name + "-" + bundleVersion.Version
 
-	return repository.GetPackage(packageName)
+	reader, err := repository.GetPackage(packageName)
+	if err != nil {
+		return nil, err
+	}
+	return repo.NewBundleFromReader(reader).GetCRDs()
 }
 
 // installFramework is the umbrella for a single framework installation that gathers the business logic
@@ -177,6 +186,7 @@ func installFramework(name, previous string, repository repo.FrameworkRepository
 		}
 
 	}
+
 
 	// Dependencies of the particular FrameworkVersion
 	if options.AllDependencies {
@@ -268,3 +278,4 @@ func installSingleInstanceToCluster(name, previous string, instance *v1alpha1.In
 	fmt.Printf("instance.%s/%s created\n", instance.APIVersion, instance.Name)
 	return nil
 }
+

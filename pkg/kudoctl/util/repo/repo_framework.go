@@ -2,6 +2,7 @@ package repo
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/url"
 	"strings"
@@ -60,7 +61,7 @@ func (r *FrameworkRepository) DownloadIndexFile() (*IndexFile, error) {
 }
 
 // GetPackage downloads the tgz file from the remote repository and unmarshals it to the package CRDs
-func (r *FrameworkRepository) GetPackage(packageName string) (*PackageCRDs, error) {
+func (r *FrameworkRepository) GetPackage(packageName string) (io.Reader, error) {
 	var fileURL string
 	parsedURL, err := url.Parse(r.Config.URL)
 	if err != nil {
@@ -75,8 +76,7 @@ func (r *FrameworkRepository) GetPackage(packageName string) (*PackageCRDs, erro
 		return nil, errors.Wrap(err, "getting file url")
 	}
 
-	fvPackage, err := ReadTarGzPackage(resp)
-	return fvPackage, err
+	return resp, nil
 }
 
 // GetFrameworkVersionDependencies helper method returns a slice of strings that contains the names of all
