@@ -138,7 +138,7 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 	case isParametersFile(filePath):
 		var params map[string]map[string]string
 		if err := yaml.Unmarshal(fileBytes, &params); err != nil {
-			return errors.Wrapf(err, "failed to unmarshal parameters file %s", filePath)
+			return errors.Wrapf(err, "failed to unmarshal parameters file: %s", filePath)
 		}
 		paramsStruct := make([]v1alpha1.Parameter, 0)
 		for paramName, param := range params {
@@ -151,7 +151,7 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 		}
 		currentPackage.Params = paramsStruct
 	default:
-		return fmt.Errorf("unexpected file when reading package from filesystem %s", filePath)
+		return fmt.Errorf("unexpected file when reading package from filesystem: %s", filePath)
 	}
 	return nil
 }
@@ -164,7 +164,7 @@ func parsePackage(r io.Reader) (*PackageFiles, error) {
 	defer func() {
 		err := gzr.Close()
 		if err != nil {
-			fmt.Printf("Error when closing gzip reader %s", err)
+			fmt.Printf("Error when closing gzip reader: %s", err)
 		}
 	}()
 

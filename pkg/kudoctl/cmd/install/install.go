@@ -136,7 +136,7 @@ func getPackageCRDs(name string, options *Options, repository repo.FrameworkRepo
 func installFramework(name, previous string, repository repo.FrameworkRepository, kc *kudo.Client, options *Options) error {
 	crds, err := getPackageCRDs(name, options, repository)
 	if err != nil {
-		return errors.Wrap(err, "failed to download bundle")
+		return errors.Wrapf(err, "failed to install package: %s", name)
 	}
 
 	// Framework part
@@ -154,7 +154,7 @@ func installFramework(name, previous string, repository repo.FrameworkRepository
 	if !kc.AnyFrameworkVersionExistsInCluster(name, options.Namespace) {
 		// FrameworkVersion CRD for Framework does not exist
 		if err := installSingleFrameworkVersionToCluster(name, options.Namespace, kc, crds.FrameworkVersion); err != nil {
-			return errors.Wrapf(err, "installing FrameworkVersion CRD for framework %s", name)
+			return errors.Wrapf(err, "installing FrameworkVersion CRD for framework: %s", name)
 		}
 	}
 
