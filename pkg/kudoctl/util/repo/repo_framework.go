@@ -16,27 +16,20 @@ type FrameworkRepository struct {
 	Client HTTPClient
 }
 
-// FrameworkBundle contains parsed files from the framework bundle
-type FrameworkBundle struct {
-	Framework        *v1alpha1.Framework
-	FrameworkVersion *v1alpha1.FrameworkVersion
-	Instance         *v1alpha1.Instance
-}
-
 // NewFrameworkRepository constructs FrameworkRepository
-func NewFrameworkRepository(cfg *RepositoryConfiguration) (*FrameworkRepository, error) {
-	u, err := url.Parse(cfg.URL)
+func NewFrameworkRepository(conf *RepositoryConfiguration) (*FrameworkRepository, error) {
+	_, err := url.Parse(conf.URL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid chart URL format: %s", cfg.URL)
+		return nil, fmt.Errorf("invalid repository URL: %s", conf.URL)
 	}
 
 	client, err := NewHTTPClient()
 	if err != nil {
-		return nil, fmt.Errorf("could not construct protocol handler for: %s error: %v", u.Scheme, err)
+		return nil, fmt.Errorf("could not construct http client: %v", err)
 	}
 
 	return &FrameworkRepository{
-		Config: cfg,
+		Config: conf,
 		Client: *client,
 	}, nil
 }
@@ -66,14 +59,14 @@ func (r *FrameworkRepository) DownloadIndexFile() (*IndexFile, error) {
 	return indexFile, err
 }
 
-// GetPackage downloads the tgz file from the given repo
-func (r *FrameworkRepository) GetPackage(bundleName string) (*PackageCRDs, error) {
+// GetPackage downloads the tgz file from the remote repository and unmarshals it to the package CRDs
+func (r *FrameworkRepository) GetPackage(packageName string) (*PackageCRDs, error) {
 	var fileURL string
 	parsedURL, err := url.Parse(r.Config.URL)
 	if err != nil {
 		return nil, errors.Wrap(err, "parsing config url")
 	}
-	parsedURL.Path = fmt.Sprintf("%s/%s.tgz", parsedURL.Path, bundleName)
+	parsedURL.Path = fmt.Sprintf("%s/%s.tgz", parsedURL.Path, packageName)
 
 	fileURL = parsedURL.String()
 
@@ -82,18 +75,13 @@ func (r *FrameworkRepository) GetPackage(bundleName string) (*PackageCRDs, error
 		return nil, errors.Wrap(err, "getting file url")
 	}
 
-	// first try old package format
-	fvPackage, err := ReadTarballPackage(resp)
-
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse the package. Errors are: %+v", err)
-	}
-
-	return fvPackage, nil
+	fvPackage, err := ReadTarGzPackage(resp)
+	return fvPackage, err
 }
 
-// GetFrameworkVersionDependencies returns a slice of strings that contains the names of all dependency Frameworks
-func (r *FrameworkRepository) GetFrameworkVersionDependencies(name string, fv *v1alpha1.FrameworkVersion) ([]string, error) {
+// GetFrameworkVersionDependencies helper method returns a slice of strings that contains the names of all
+// dependency Frameworks
+func GetFrameworkVersionDependencies(fv *v1alpha1.FrameworkVersion) ([]string, error) {
 	var dependencyFrameworks []string
 	if fv.Spec.Dependencies != nil {
 		for _, v := range fv.Spec.Dependencies {

@@ -20,9 +20,9 @@ import (
 )
 
 const (
-	frameworkV1FileName     = "framework.yaml"
-	templateV1FileNameRegex = "templates/.*.yaml"
-	paramsV1FileName        = "params.yaml"
+	frameworkFileName     = "framework.yaml"
+	templateFileNameRegex = "templates/.*.yaml"
+	paramsFileName        = "params.yaml"
 )
 
 const apiVersion = "kudo.k8s.io/v1alpha1"
@@ -35,26 +35,58 @@ type PackageCRDs struct {
 	Instance         *v1alpha1.Instance
 }
 
-// ReadTarballPackage reads package from tarball and converts it to the CRD format
-func ReadTarballPackage(r io.Reader) (*PackageCRDs, error) {
-	p, err := untarV1Package(r)
+// PackageFiles represents the raw framework package format the way it is found in the tgz package bundles
+type PackageFiles struct {
+	Templates map[string]string
+	Framework *bundle.Framework
+	Params    []v1alpha1.Parameter
+}
+
+// ReadTarGzPackage reads package from tarball and converts it to the CRD format
+func ReadTarGzPackage(r io.Reader) (*PackageCRDs, error) {
+	p, err := parsePackage(r)
 	if err != nil {
-		return nil, errors.Wrap(err, "while untarring package")
+		return nil, errors.Wrap(err, "while extracting package files")
 	}
 	return p.getCRDs()
 }
 
 // ReadFileSystemPackage reads package from filesystem and converts it to the CRD format
 func ReadFileSystemPackage(path string) (*PackageCRDs, error) {
-	p, err := fromFilesystem(path)
-	if err != nil {
-		return nil, errors.Wrap(err, "while reading package from filesystem")
+	isTarGz := func() bool {
+		if fi, err := os.Stat(path); err == nil {
+			return fi.Mode().IsRegular() && strings.HasSuffix(path, ".tar.gz")
+		}
+		return false
 	}
-	return p.getCRDs()
+
+	isFolder := func() bool {
+		if fi, err := os.Stat(path); err == nil {
+			return fi.IsDir()
+		}
+		return false
+	}
+
+	switch {
+	case isTarGz():
+		f, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		return ReadTarGzPackage(f)
+	case isFolder():
+		p, err := fromFolder(path)
+		if err != nil {
+			return nil, errors.Wrap(err, "while reading package from the file system")
+		}
+		return p.getCRDs()
+	default:
+		return nil, fmt.Errorf("unsupported file system format %v. Expect either a tar.gz file or a folder", path)
+	}
 }
 
-func fromFilesystem(packagePath string) (*v1Package, error) {
-	result := newV1Package()
+func fromFolder(packagePath string) (*PackageFiles, error) {
+	result := newPackageFiles()
 	err := filepath.Walk(packagePath, func(path string, file os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -72,7 +104,7 @@ func fromFilesystem(packagePath string) (*v1Package, error) {
 			return err
 		}
 
-		return readPackageFile(path, bytes, &result)
+		return parsePackageFile(path, bytes, &result)
 	})
 	if err != nil {
 		return nil, err
@@ -80,20 +112,33 @@ func fromFilesystem(packagePath string) (*v1Package, error) {
 	return &result, nil
 }
 
-func readPackageFile(filePath string, fileBytes []byte, currentPackage *v1Package) error {
+func parsePackageFile(filePath string, fileBytes []byte, currentPackage *PackageFiles) error {
+	isFrameworkFile := func(name string) bool {
+		return strings.HasSuffix(name, frameworkFileName)
+	}
+
+	isTemplateFile := func(name string) bool {
+		matched, _ := regexp.Match(templateFileNameRegex, []byte(name))
+		return matched
+	}
+
+	isParametersFile := func(name string) bool {
+		return strings.HasSuffix(name, paramsFileName)
+	}
+
 	switch {
-	case isFrameworkV1File(filePath):
+	case isFrameworkFile(filePath):
 		if err := yaml.Unmarshal(fileBytes, &currentPackage.Framework); err != nil {
 			return errors.Wrap(err, "failed to unmarshal framework")
 		}
-	case isTemplateV1File(filePath):
+	case isTemplateFile(filePath):
 		pathParts := strings.Split(filePath, "templates/")
 		name := pathParts[len(pathParts)-1]
 		currentPackage.Templates[name] = string(fileBytes)
-	case isParametersV1File(filePath):
+	case isParametersFile(filePath):
 		var params map[string]map[string]string
 		if err := yaml.Unmarshal(fileBytes, &params); err != nil {
-			return errors.Wrapf(err, "failed to unmarshal parameters file %s", filePath)
+			return errors.Wrapf(err, "failed to unmarshal parameters file: %s", filePath)
 		}
 		paramsStruct := make([]v1alpha1.Parameter, 0)
 		for paramName, param := range params {
@@ -106,12 +151,12 @@ func readPackageFile(filePath string, fileBytes []byte, currentPackage *v1Packag
 		}
 		currentPackage.Params = paramsStruct
 	default:
-		return fmt.Errorf("unexpected file when reading package from filesystem %s", filePath)
+		return fmt.Errorf("unexpected file when reading package from filesystem: %s", filePath)
 	}
 	return nil
 }
 
-func untarV1Package(r io.Reader) (*v1Package, error) {
+func parsePackage(r io.Reader) (*PackageFiles, error) {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
 		return nil, err
@@ -119,13 +164,13 @@ func untarV1Package(r io.Reader) (*v1Package, error) {
 	defer func() {
 		err := gzr.Close()
 		if err != nil {
-			fmt.Printf("Error when closing gzip reader %s", err)
+			fmt.Printf("Error when closing gzip reader: %s", err)
 		}
 	}()
 
 	tr := tar.NewReader(gzr)
 
-	result := newV1Package()
+	result := newPackageFiles()
 	for {
 		header, err := tr.Next()
 
@@ -157,7 +202,7 @@ func untarV1Package(r io.Reader) (*v1Package, error) {
 				return nil, errors.Wrapf(err, "while reading file from bundle tarball %s", header.Name)
 			}
 
-			err = readPackageFile(header.Name, bytes, &result)
+			err = parsePackageFile(header.Name, bytes, &result)
 			if err != nil {
 				return nil, err
 			}
@@ -165,32 +210,13 @@ func untarV1Package(r io.Reader) (*v1Package, error) {
 	}
 }
 
-func isFrameworkV1File(name string) bool {
-	return strings.HasSuffix(name, frameworkV1FileName)
-}
-
-func isTemplateV1File(name string) bool {
-	matched, _ := regexp.Match(templateV1FileNameRegex, []byte(name))
-	return matched
-}
-
-func isParametersV1File(name string) bool {
-	return strings.HasSuffix(name, paramsV1FileName)
-}
-
-type v1Package struct {
-	Templates map[string]string
-	Framework *bundle.Framework
-	Params    []v1alpha1.Parameter
-}
-
-func newV1Package() v1Package {
-	return v1Package{
+func newPackageFiles() PackageFiles {
+	return PackageFiles{
 		Templates: make(map[string]string),
 	}
 }
 
-func (p *v1Package) getCRDs() (*PackageCRDs, error) {
+func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 	if p.Framework == nil {
 		return nil, errors.New("framework.yaml file is missing")
 	}

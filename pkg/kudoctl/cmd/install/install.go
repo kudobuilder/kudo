@@ -2,6 +2,7 @@ package install
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
@@ -71,12 +72,6 @@ func installFrameworks(args []string, options *Options) error {
 		return errors.WithMessage(err, "could not build framework repository")
 	}
 
-	// Downloading index.yaml file
-	indexFile, err := r.DownloadIndexFile()
-	if err != nil {
-		return errors.WithMessage(err, "could not download index file")
-	}
-
 	_, err = clientcmd.BuildConfigFromFlags("", options.KubeConfigPath)
 	if err != nil {
 		return errors.Wrap(err, "getting config failed")
@@ -88,7 +83,7 @@ func installFrameworks(args []string, options *Options) error {
 	}
 
 	for _, name := range args {
-		err := installFramework(name, "", *r, indexFile, kc, options)
+		err := installFramework(name, "", *r, kc, options)
 		if err != nil {
 			return err
 		}
@@ -96,31 +91,52 @@ func installFrameworks(args []string, options *Options) error {
 	return nil
 }
 
-// installFramework is the umbrella for a single framework installation that gathers the business logic
-// for a cluster and returns an error in case there is a problem
-// TODO: needs testing
-func installFramework(name, previous string, repository repo.FrameworkRepository, indexFile *repo.IndexFile, kc *kudo.Client, options *Options) error {
+// getPackageCRDs tries to look for package files resolving the framework name to:
+// - a local tar.gz file
+// - a local directory
+// - a framework name in the remote repository
+// in that order. Should there exist a local folder e.g. `cassandra` it will take precedence
+// over the remote repository package with the same name.
+func getPackageCRDs(name string, options *Options, repository repo.FrameworkRepository) (*repo.PackageCRDs, error) {
+	// Local files/folder have priority
+	if _, err := os.Stat(name); err == nil {
+		return repo.ReadFileSystemPackage(name)
+	}
+
+	// Construct the package name and download the package from the remote repo
+	indexFile, err := repository.DownloadIndexFile()
+	if err != nil {
+		return nil, errors.WithMessage(err, "could not download repository index file: %v")
+	}
 
 	var bundleVersion *repo.BundleVersion
+
 	if options.PackageVersion == "" {
 		bv, err := indexFile.GetByName(name)
 		if err != nil {
-			return errors.Wrapf(err, "getting %s in index file", name)
+			return nil, errors.Wrapf(err, "getting %s in index file", name)
 		}
 		bundleVersion = bv
 	} else {
 		bv, err := indexFile.GetByNameAndVersion(name, options.PackageVersion)
 		if err != nil {
-			return errors.Wrapf(err, "getting %s in index file", name)
+			return nil, errors.Wrapf(err, "getting %s in index file", name)
 		}
 		bundleVersion = bv
 	}
 
 	packageName := bundleVersion.Name + "-" + bundleVersion.Version
 
-	crds, err := repository.GetPackage(packageName)
+	return repository.GetPackage(packageName)
+}
+
+// installFramework is the umbrella for a single framework installation that gathers the business logic
+// for a cluster and returns an error in case there is a problem
+// TODO: needs testing
+func installFramework(name, previous string, repository repo.FrameworkRepository, kc *kudo.Client, options *Options) error {
+	crds, err := getPackageCRDs(name, options, repository)
 	if err != nil {
-		return errors.Wrap(err, "failed to download bundle")
+		return errors.Wrapf(err, "failed to install package: %s", name)
 	}
 
 	// Framework part
@@ -138,7 +154,7 @@ func installFramework(name, previous string, repository repo.FrameworkRepository
 	if !kc.AnyFrameworkVersionExistsInCluster(name, options.Namespace) {
 		// FrameworkVersion CRD for Framework does not exist
 		if err := installSingleFrameworkVersionToCluster(name, options.Namespace, kc, crds.FrameworkVersion); err != nil {
-			return errors.Wrapf(err, "installing FrameworkVersion CRD for framework %s", name)
+			return errors.Wrapf(err, "installing FrameworkVersion CRD for framework: %s", name)
 		}
 	}
 
@@ -164,7 +180,7 @@ func installFramework(name, previous string, repository repo.FrameworkRepository
 
 	// Dependencies of the particular FrameworkVersion
 	if options.AllDependencies {
-		dependencyFrameworks, err := repository.GetFrameworkVersionDependencies(name, crds.FrameworkVersion)
+		dependencyFrameworks, err := repo.GetFrameworkVersionDependencies(crds.FrameworkVersion)
 		if err != nil {
 			return errors.Wrap(err, "getting Framework dependencies")
 		}
@@ -173,7 +189,7 @@ func installFramework(name, previous string, repository repo.FrameworkRepository
 			// Dependencies should not be as big as that they will have an overflow in the function stack frame
 			// installFramework makes sure that dependency Frameworks are created before the Framework itself
 			// and it allows to inherit dependencies.
-			if err := installFramework(v, name, repository, indexFile, kc, options); err != nil {
+			if err := installFramework(v, name, repository, kc, options); err != nil {
 				return errors.Wrapf(err, "installing dependency Framework %s", v)
 			}
 		}
