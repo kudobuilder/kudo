@@ -187,7 +187,6 @@ func installFramework(name, previous string, repository repo.FrameworkRepository
 
 	}
 
-
 	// Dependencies of the particular FrameworkVersion
 	if options.AllDependencies {
 		dependencyFrameworks, err := repo.GetFrameworkVersionDependencies(crds.FrameworkVersion)
@@ -278,4 +277,3 @@ func installSingleInstanceToCluster(name, previous string, instance *v1alpha1.In
 	fmt.Printf("instance.%s/%s created\n", instance.APIVersion, instance.Name)
 	return nil
 }
-

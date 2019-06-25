@@ -36,7 +36,6 @@ type PackageFiles struct {
 	Params    []v1alpha1.Parameter
 }
 
-
 func parsePackageFile(filePath string, fileBytes []byte, currentPackage *PackageFiles) error {
 	isFrameworkFile := func(name string) bool {
 		return strings.HasSuffix(name, frameworkFileName)

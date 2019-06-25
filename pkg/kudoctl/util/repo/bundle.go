@@ -4,12 +4,13 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"fmt"
-	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // This is an abstraction which abstracts the underlying bundle, which is likely file system or compressed file.
