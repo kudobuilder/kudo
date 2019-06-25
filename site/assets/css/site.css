@@ -11,16 +11,16 @@
 }
 
 .color-kudo-teal {
-  color: #60d3be; 
+  color: #60d3be;
 }
 
 .bg-kudo-teal {
-  background-color: #60d3be; 
+  background-color: #60d3be;
 }
 
 
 .bg-kudo-blue {
-  background-color: #4394f7; 
+  background-color: #4394f7;
 }
 
 
@@ -63,4 +63,8 @@
 .docs h3 {
   @apply text-lg;
   @apply my-4;
+}
+
+.docs a {
+  color: #4394f7;
 }
