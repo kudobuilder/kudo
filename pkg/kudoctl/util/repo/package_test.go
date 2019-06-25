@@ -52,6 +52,18 @@ func TestReadFileSystemPackage(t *testing.T) {
 }
 
 func loadCRDsFromPath(goldenPath string) (*PackageCRDs, error) {
+	isFrameworkFile := func(name string) bool {
+		return strings.HasSuffix(name, "framework.golden")
+	}
+
+	isVersionFile := func(name string) bool {
+		return strings.HasSuffix(name, "frameworkversion.golden")
+	}
+
+	isInstanceFile := func(name string) bool {
+		return strings.HasSuffix(name, "instance.golden")
+	}
+
 	result := &PackageCRDs{}
 	err := filepath.Walk(goldenPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -93,16 +105,4 @@ func loadCRDsFromPath(goldenPath string) (*PackageCRDs, error) {
 		return nil, err
 	}
 	return result, nil
-}
-
-func isFrameworkFile(name string) bool {
-	return strings.HasSuffix(name, "framework.golden")
-}
-
-func isVersionFile(name string) bool {
-	return strings.HasSuffix(name, "frameworkversion.golden")
-}
-
-func isInstanceFile(name string) bool {
-	return strings.HasSuffix(name, "instance.golden")
 }
