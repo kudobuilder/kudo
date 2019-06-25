@@ -506,9 +506,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						err = r.Client.Patch(context.TODO(), truth, client.ConstantPatch(types.MergePatchType, []byte(patchString)))
 						log.Printf("PlanExecutionController: CreateOrUpdate Patch: %v", err)
 					}
-					//See if patch is required
-					// if reflect.DeepEquals()
-					// applyJSON, _ := json.Marshal(obj)
 				} else {
 					//create
 					log.Printf("PlanExecutionController: CreateOrUpdate Object not present")
