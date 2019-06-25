@@ -94,7 +94,7 @@ func installFrameworks(args []string, options *Options) error {
 // getPackageCRDs tries to look for package files resolving the framework name to:
 // - a local tar.gz file
 // - a local directory
-// - a framework name in the remote repository (default)
+// - a framework name in the remote repository
 // in that order. Should there exist a local folder e.g. `cassandra` it will take precedence
 // over the remote repository package with the same name.
 func getPackageCRDs(name string, options *Options, repository repo.FrameworkRepository) (*repo.PackageCRDs, error) {
