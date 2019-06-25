@@ -67,18 +67,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	inPredicate := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-
 			old := e.ObjectOld.(*kudov1alpha1.Instance)
 			new := e.ObjectNew.(*kudov1alpha1.Instance)
-
-			// Haven't done anything yet
-			if new.Status.ActivePlan.Name == "" {
-				err = createPlan(mgr, "deploy", new)
-				if err != nil {
-					log.Printf("InstanceController: Error creating \"%v\" object for \"%v\": %v", "deploy", new.Name, err)
-				}
-				return true
-			}
 
 			// Get the new FrameworkVersion object
 			fv := &kudov1alpha1.FrameworkVersion{}
@@ -121,9 +111,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				}
 			} else if !reflect.DeepEqual(old.Spec, new.Spec) {
 				for k := range parameterDifference(old.Spec.Parameters, new.Spec.Parameters) {
+					log.Printf("Found a parameter update for instance %v: %v\n", old.Name, k)
 					// Find the right parameter in the FV
 					for _, param := range fv.Spec.Parameters {
 						if param.Name == k {
+							log.Printf("Setting Plan Name to %v for param %v\n", param.Trigger, param.Name)
 							planName = param.Trigger
 							ok = true
 						}
@@ -147,14 +139,16 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				}
 				// Not currently doing anything for Dependency changes.
 			} else {
-				log.Println("InstanceController: Old and new spec matched...")
-				planName = "deploy"
+				if new.Status.ActivePlan.Name == "" {
+					log.Printf("InstanceController: Old and new spec matched...\n %+v ?= %+v\n", old.Spec, new.Spec)
+					planName = "deploy"
+					ok = true
+				}
 			}
-			log.Printf("InstanceController: Going to call plan \"%v\"", planName)
 
 			// we found something
 			if ok {
-
+				log.Printf("InstanceController: Going to call plan \"%v\"", planName)
 				// Mark the current plan as Suspend
 				current := &kudov1alpha1.PlanExecution{}
 				err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{Name: new.Status.ActivePlan.Name, Namespace: new.Status.ActivePlan.Namespace}, current)

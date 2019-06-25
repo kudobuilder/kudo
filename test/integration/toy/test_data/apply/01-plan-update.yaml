@@ -1,0 +1,16 @@
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+    framework: toy
+  name: toy1
+spec:
+  frameworkVersion:
+    name: toy-v1
+    namespace: default
+    type: FrameworkVersions
+  # Add fields here
+  parameters:
+    Param: "30"
+    Replicas: "3"

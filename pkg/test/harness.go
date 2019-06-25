@@ -3,11 +3,13 @@ package test
 import (
 	"context"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/kudobuilder/kudo/pkg/apis"
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/controller"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
@@ -96,21 +98,28 @@ func (h *Harness) Config() (*rest.Config, error) {
 func (h *Harness) RunKUDO() error {
 	config, err := h.Config()
 	if err != nil {
+		log.Printf("Error getting harness config: %v\n", err)
 		return err
 	}
 
-	mgr, err := manager.New(config, manager.Options{
-		Scheme: testutils.Scheme(),
-	})
+	mgr, err := manager.New(config, manager.Options{})
 	if err != nil {
+		log.Printf("Error creating manager: %v\n", err)
+		return err
+	}
+
+	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Printf("Error adding scheme to manager: %v\n", err)
 		return err
 	}
 
 	if err = controller.AddToManager(mgr); err != nil {
+		log.Printf("Error adding manager to controller: %v\n", err)
 		return err
 	}
 
 	if err = webhook.AddToManager(mgr); err != nil {
+		log.Printf("Error getting harness config: %v\n", err)
 		return err
 	}
 
@@ -128,12 +137,16 @@ func (h *Harness) Client(forceNew bool) (client.Client, error) {
 
 	config, err := h.Config()
 	if err != nil {
+		log.Printf("Error getting harness config: %v\n", err)
 		return nil, err
 	}
 
 	h.client, err = client.New(config, client.Options{
 		Scheme: testutils.Scheme(),
 	})
+	if err != nil {
+		log.Printf("Error getting new client: %v\n", err)
+	}
 	return h.client, err
 }
 
