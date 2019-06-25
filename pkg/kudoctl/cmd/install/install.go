@@ -103,7 +103,7 @@ func getPackageCRDs(name string, options *Options, repository repo.FrameworkRepo
 		return repo.ReadFileSystemPackage(name)
 	}
 
-	// Construct the package name and downloan the package from the remote repo
+	// Construct the package name and download the package from the remote repo
 	indexFile, err := repository.DownloadIndexFile()
 	if err != nil {
 		return nil, errors.WithMessage(err, "could not download repository index file: %v")
