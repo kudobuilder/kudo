@@ -20,9 +20,9 @@ import (
 )
 
 const (
-	v1FrameworkFileName     = "framework.yaml"
-	v1TemplateFileNameRegex = "templates/.*.yaml"
-	v1ParamsFileName        = "params.yaml"
+	frameworkFileName     = "framework.yaml"
+	templateFileNameRegex = "templates/.*.yaml"
+	paramsFileName        = "params.yaml"
 )
 
 const apiVersion = "kudo.k8s.io/v1alpha1"
@@ -35,9 +35,16 @@ type PackageCRDs struct {
 	Instance         *v1alpha1.Instance
 }
 
+// PackageFiles represents the raw framework package format the way it is found in the tgz package bundles
+type PackageFiles struct {
+	Templates map[string]string
+	Framework *bundle.Framework
+	Params    []v1alpha1.Parameter
+}
+
 // ReadTarGzPackage reads package from tarball and converts it to the CRD format
 func ReadTarGzPackage(r io.Reader) (*PackageCRDs, error) {
-	p, err := extractV1Package(r)
+	p, err := parsePackage(r)
 	if err != nil {
 		return nil, errors.Wrap(err, "while extracting package files")
 	}
@@ -78,8 +85,8 @@ func ReadFileSystemPackage(path string) (*PackageCRDs, error) {
 	}
 }
 
-func fromFolder(packagePath string) (*v1Package, error) {
-	result := newV1Package()
+func fromFolder(packagePath string) (*PackageFiles, error) {
+	result := newPackageFiles()
 	err := filepath.Walk(packagePath, func(path string, file os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -97,7 +104,7 @@ func fromFolder(packagePath string) (*v1Package, error) {
 			return err
 		}
 
-		return readV1PackageFile(path, bytes, &result)
+		return parsePackageFile(path, bytes, &result)
 	})
 	if err != nil {
 		return nil, err
@@ -105,30 +112,30 @@ func fromFolder(packagePath string) (*v1Package, error) {
 	return &result, nil
 }
 
-func readV1PackageFile(filePath string, fileBytes []byte, currentPackage *v1Package) error {
-	isV1FrameworkFile := func(name string) bool {
-		return strings.HasSuffix(name, v1FrameworkFileName)
+func parsePackageFile(filePath string, fileBytes []byte, currentPackage *PackageFiles) error {
+	isFrameworkFile := func(name string) bool {
+		return strings.HasSuffix(name, frameworkFileName)
 	}
 
-	isV1TemplateFile := func(name string) bool {
-		matched, _ := regexp.Match(v1TemplateFileNameRegex, []byte(name))
+	isTemplateFile := func(name string) bool {
+		matched, _ := regexp.Match(templateFileNameRegex, []byte(name))
 		return matched
 	}
 
-	isV1ParametersFile := func(name string) bool {
-		return strings.HasSuffix(name, v1ParamsFileName)
+	isParametersFile := func(name string) bool {
+		return strings.HasSuffix(name, paramsFileName)
 	}
 
 	switch {
-	case isV1FrameworkFile(filePath):
+	case isFrameworkFile(filePath):
 		if err := yaml.Unmarshal(fileBytes, &currentPackage.Framework); err != nil {
 			return errors.Wrap(err, "failed to unmarshal framework")
 		}
-	case isV1TemplateFile(filePath):
+	case isTemplateFile(filePath):
 		pathParts := strings.Split(filePath, "templates/")
 		name := pathParts[len(pathParts)-1]
 		currentPackage.Templates[name] = string(fileBytes)
-	case isV1ParametersFile(filePath):
+	case isParametersFile(filePath):
 		var params map[string]map[string]string
 		if err := yaml.Unmarshal(fileBytes, &params); err != nil {
 			return errors.Wrapf(err, "failed to unmarshal parameters file %s", filePath)
@@ -149,7 +156,7 @@ func readV1PackageFile(filePath string, fileBytes []byte, currentPackage *v1Pack
 	return nil
 }
 
-func extractV1Package(r io.Reader) (*v1Package, error) {
+func parsePackage(r io.Reader) (*PackageFiles, error) {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
 		return nil, err
@@ -163,7 +170,7 @@ func extractV1Package(r io.Reader) (*v1Package, error) {
 
 	tr := tar.NewReader(gzr)
 
-	result := newV1Package()
+	result := newPackageFiles()
 	for {
 		header, err := tr.Next()
 
@@ -195,7 +202,7 @@ func extractV1Package(r io.Reader) (*v1Package, error) {
 				return nil, errors.Wrapf(err, "while reading file from bundle tarball %s", header.Name)
 			}
 
-			err = readV1PackageFile(header.Name, bytes, &result)
+			err = parsePackageFile(header.Name, bytes, &result)
 			if err != nil {
 				return nil, err
 			}
@@ -203,19 +210,13 @@ func extractV1Package(r io.Reader) (*v1Package, error) {
 	}
 }
 
-type v1Package struct {
-	Templates map[string]string
-	Framework *bundle.Framework
-	Params    []v1alpha1.Parameter
-}
-
-func newV1Package() v1Package {
-	return v1Package{
+func newPackageFiles() PackageFiles {
+	return PackageFiles{
 		Templates: make(map[string]string),
 	}
 }
 
-func (p *v1Package) getCRDs() (*PackageCRDs, error) {
+func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 	if p.Framework == nil {
 		return nil, errors.New("framework.yaml file is missing")
 	}

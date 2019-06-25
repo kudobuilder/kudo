@@ -59,7 +59,7 @@ func (r *FrameworkRepository) DownloadIndexFile() (*IndexFile, error) {
 	return indexFile, err
 }
 
-// GetPackage downloads the tgz file from the given repo
+// GetPackage downloads the tgz file from the remote repository and unmarshals it to the package CRDs
 func (r *FrameworkRepository) GetPackage(packageName string) (*PackageCRDs, error) {
 	var fileURL string
 	parsedURL, err := url.Parse(r.Config.URL)
@@ -75,14 +75,8 @@ func (r *FrameworkRepository) GetPackage(packageName string) (*PackageCRDs, erro
 		return nil, errors.Wrap(err, "getting file url")
 	}
 
-	// first try old package format
 	fvPackage, err := ReadTarGzPackage(resp)
-
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse the package. Errors are: %+v", err)
-	}
-
-	return fvPackage, nil
+	return fvPackage, err
 }
 
 // GetFrameworkVersionDependencies helper method returns a slice of strings that contains the names of all

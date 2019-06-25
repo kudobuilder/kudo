@@ -134,7 +134,6 @@ func getPackageCRDs(name string, options *Options, repository repo.FrameworkRepo
 // for a cluster and returns an error in case there is a problem
 // TODO: needs testing
 func installFramework(name, previous string, repository repo.FrameworkRepository, kc *kudo.Client, options *Options) error {
-
 	crds, err := getPackageCRDs(name, options, repository)
 	if err != nil {
 		return errors.Wrap(err, "failed to download bundle")
