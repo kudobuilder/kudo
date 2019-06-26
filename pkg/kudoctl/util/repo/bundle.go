@@ -16,11 +16,17 @@ import (
 // This is an abstraction which abstracts the underlying bundle, which is likely file system or compressed file.
 // There should be a complete separation between retrieving a bundle if not local and working with a bundle.
 
-// todo: Does it belong in this package?   I think it should be separate from the repo... more thoughts   I think bundle and package are tightly coupled and repo is not.
-
 // Bundle is an abstraction of the collection of files that makes up a package.  It is anything we can retrieve the PackageCRDs from.
 type Bundle interface {
 	GetCRDs() (*PackageCRDs, error)
+}
+
+type tarBundle struct {
+	reader io.Reader
+}
+
+type fileBundle struct {
+	path string
 }
 
 // NewBundle creates the implementation of the bundle based on the path.   The expectation is the bundle
@@ -60,10 +66,6 @@ func NewBundleFromReader(r io.Reader) Bundle {
 	return tarBundle{r}
 }
 
-type tarBundle struct {
-	reader io.Reader
-}
-
 func (b tarBundle) GetCRDs() (*PackageCRDs, error) {
 
 	p, err := parseTarPackage(b.reader)
@@ -71,10 +73,6 @@ func (b tarBundle) GetCRDs() (*PackageCRDs, error) {
 		return nil, errors.Wrap(err, "while extracting package files")
 	}
 	return p.getCRDs()
-}
-
-type fileBundle struct {
-	path string
 }
 
 func (b fileBundle) GetCRDs() (*PackageCRDs, error) {
