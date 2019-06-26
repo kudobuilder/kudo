@@ -11,6 +11,12 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Repository is a abstraction for a service that can retrieve package bundles
+type Repository interface {
+	GetPackageReader(name string, version string) (io.Reader, error)
+	GetPackageBundle(name string, version string) (Bundle, error)
+}
+
 // FrameworkRepository represents a framework repository
 type FrameworkRepository struct {
 	Config *RepositoryConfiguration
@@ -35,8 +41,8 @@ func NewFrameworkRepository(conf *RepositoryConfiguration) (*FrameworkRepository
 	}, nil
 }
 
-// DownloadIndexFile fetches the index file from a repository.
-func (r *FrameworkRepository) DownloadIndexFile() (*IndexFile, error) {
+// downloadIndexFile fetches the index file from a repository.
+func (r *FrameworkRepository) downloadIndexFile() (*IndexFile, error) {
 	var indexURL string
 	parsedURL, err := url.Parse(r.Config.URL)
 	if err != nil {
@@ -60,14 +66,14 @@ func (r *FrameworkRepository) DownloadIndexFile() (*IndexFile, error) {
 	return indexFile, err
 }
 
-// GetPackage downloads the tgz file from the remote repository and unmarshals it to the package CRDs
-func (r *FrameworkRepository) GetPackage(packageName string) (io.Reader, error) {
+// getPackageReaderByFullPackageName downloads the tgz file from the remote repository and unmarshals it to the package CRDs
+func (r *FrameworkRepository) getPackageReaderByFullPackageName(fullPackageName string) (io.Reader, error) {
 	var fileURL string
 	parsedURL, err := url.Parse(r.Config.URL)
 	if err != nil {
 		return nil, errors.Wrap(err, "parsing config url")
 	}
-	parsedURL.Path = fmt.Sprintf("%s/%s.tgz", parsedURL.Path, packageName)
+	parsedURL.Path = fmt.Sprintf("%s/%s.tgz", parsedURL.Path, fullPackageName)
 
 	fileURL = parsedURL.String()
 
@@ -77,6 +83,45 @@ func (r *FrameworkRepository) GetPackage(packageName string) (io.Reader, error) 
 	}
 
 	return resp, nil
+}
+
+// GetPackageReader provides an io.Reader for a provided package name and optional version
+func (r *FrameworkRepository) GetPackageReader(name string, version string) (io.Reader, error) {
+
+	// Construct the package name and download the index file from the remote repo
+	indexFile, err := r.downloadIndexFile()
+	if err != nil {
+		return nil, errors.WithMessage(err, "could not download repository index file")
+	}
+
+	var bundleVersion *BundleVersion
+
+	if version == "" {
+		bv, err := indexFile.GetByName(name)
+		if err != nil {
+			return nil, errors.Wrapf(err, "getting %s in index file", name)
+		}
+		bundleVersion = bv
+	} else {
+		bv, err := indexFile.GetByNameAndVersion(name, version)
+		if err != nil {
+			return nil, errors.Wrapf(err, "getting %s in index file", name)
+		}
+		bundleVersion = bv
+	}
+
+	packageName := bundleVersion.Name + "-" + bundleVersion.Version
+
+	return r.getPackageReaderByFullPackageName(packageName)
+}
+
+// GetPackageBundle provides an Bundle for a provided package name and optional version
+func (r *FrameworkRepository) GetPackageBundle(name string, version string) (Bundle, error) {
+	reader, err := r.GetPackageReader(name, version)
+	if err != nil {
+		return nil, err
+	}
+	return NewBundleFromReader(reader), nil
 }
 
 // GetFrameworkVersionDependencies helper method returns a slice of strings that contains the names of all
