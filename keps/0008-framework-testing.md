@@ -33,7 +33,10 @@ see-also:
      * [Directory structure](#directory-structure)
      * [Test step file structure](#test-step-file-structure)
         * [TestStep object](#teststep-object)
-        * [TestAssert object](#testassert-object)
+        * [Assertion files](#assertion-files)
+          * [Resources that have non-deterministic names](#resources-that-have-non-deterministic-names)
+          * [Regular expressions in asserts](#regular-expressions-in-asserts)
+          * [TestAssert object](#testassert-object)
         * [Test constraints](#test-constraints)
      * [Results collection](#results-collection)
      * [Garbage collection](#garbage-collection)
@@ -239,7 +242,60 @@ type TestStep struct {
 
 Using a `TestStep`, it is possible to skip certain test steps if conditions are not met, e.g., only run a test step on GKE or on clusters with more than three nodes.
 
-#### TestAssert object
+#### Assertion files
+
+The assertion file contains one or more Kubernetes resources to watch the Kubernetes API for. For each object, it checks the API for an object with the same kind, name, and metadata and waits for it to have a state matching what is defined in the assertion files.
+
+For example, given an assertion file containing:
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test
+status:
+  phase: Completed
+```
+
+The test harness will wait for the `Pod` with name `test` in the namespace generated for the test case to have `status.phase` equal to `Completed` - or return an error if the timeout expires before the resource has the correct state.
+
+##### Resources that have non-deterministic names
+
+Because some resource types have non-deterministic names (for example, the `Pods` created for a `Deployment`), if a resource has no name and only labels then the harness will list the resources of that type and wait for a resource of that type to match the state defined.
+
+For example, given an assertion file containing:
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: kafka
+status:
+  phase: Completed
+```
+
+The test harness will wait for all `Pods` with label `app=kafka` in the namespace generated for the test case to have `status.phase` equal to `Completed` - or return an error if the timeout expires before the resource has the correct state.
+
+##### Regular expressions in asserts
+
+The test harness treats all string values found in asserts as a regular expression and attempts to match the regular expression with the state in Kubernetes. The match must be a full match, i.e. the regex `test` will only match the string `test` but not `testing`.
+
+For example, given an assertion file containing:
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test
+spec:
+  containers:
+  - image: alpine:.*
+```
+
+The test harness will wait for the `Pod` with name `test` in the namespace generated for the test case to have a container that begins with `alpine:` - it would match `alpine:latest`, `alpine:1.12.1`, etc.
+
+##### TestAssert object
 
 When searching the assertion file for a test step, if a `TestAssert` object is found, it includes settings to apply to the assertions. This object is not required - if it is not specified then defaults are used. No more than one `TestAssert` should be defined in a test assertion.
 
