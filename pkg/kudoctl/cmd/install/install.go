@@ -108,7 +108,7 @@ func getPackageCRDs(name string, options *Options, repository repo.FrameworkRepo
 	}
 
 	// TODO: Below is repository functionality. All we want is a bundle!
-	// Construct the package name and download the package from the remote repo
+	// Construct the package name and download the index file from the remote repo
 	indexFile, err := repository.DownloadIndexFile()
 	if err != nil {
 		return nil, errors.WithMessage(err, "could not download repository index file: %v")
