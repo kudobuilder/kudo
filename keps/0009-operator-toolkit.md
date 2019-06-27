@@ -1,6 +1,6 @@
 ---
 kep-number: 9
-title: KUDO Framework Toolkit
+title: New KUDO package format
 authors:
   - "@kensipe"
   - "@gerred"
@@ -11,17 +11,17 @@ owners:
   - "@gerred"
 editor: "@gerred"
 creation-date: 2019-05-14
-last-updated: 2019-05-23
-status: implementable
+last-updated: 2019-06-27
+status: implemented
 see-also:
   - KEP-0002
 ---
 
-# KUDO Framework Toolkit
+# New KUDO package format
 
 ## Table of Contents
 
-- [KUDO Framework Toolkit](#kudo-framework-toolkit)
+- [New KUDO package format](#new-kudo-package-format)
   - [Table of Contents](#table-of-contents)
   - [Summary](#summary)
   - [Motivation](#motivation)
