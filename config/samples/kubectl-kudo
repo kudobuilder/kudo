@@ -29,8 +29,8 @@ function operatorInstall {
             exit 0
         fi
         echo "Installing $1 operator..."
-        kubectl apply -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-framework.yaml
-        kubectl apply -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-frameworkversion.yaml
+        kubectl apply -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-operator.yaml
+        kubectl apply -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-operatorversion.yaml
         if [[ "$?" == "1" ]]
         then
             echo "Failed to install operator $1"
@@ -58,8 +58,8 @@ function operatorUninstall {
             exit 0
         fi
         echo "Uninstalling $1 operator..."
-        kubectl delete -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-framework.yaml
-        kubectl delete -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-frameworkversion.yaml
+        kubectl delete -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-operator.yaml
+        kubectl delete -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-operatorversion.yaml
         if [[ "$?" == "1" ]]
         then
             echo "Failed to uninstall operator $1"
@@ -216,9 +216,9 @@ then
         sampleRegistry=$(curl -s https://api.github.com/repos/kudobuilder/kudo/contents/config/samples | jq -r ".[] | .name ")
         echo ""
         for t in ${sampleRegistry[@]}; do
-            if [[ $t == *"framework.yaml" ]]; then
+            if [[ $t == *"operator.yaml" ]]; then
                 #echo -e "\t$t"
-                echo -e "\t${t%-framework.yaml*}"
+                echo -e "\t${t%-operator.yaml*}"
             fi
         done
 
