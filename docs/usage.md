@@ -10,30 +10,30 @@ This outlines an ideal workflow for both sys admins and application operators.
 
 ## SysAdmins
 
-The definition for a particular version of a framework will be captured in the Spec of a Framework CRD object.
+The definition for a particular version of a operator will be captured in the Spec of a Operator CRD object.
 
 ```bash
-$  kubectl get frameworks
+$  kubectl get operators
 NAME          AGE
 kafka         37m
 hdfs          37m
 zookeeper     37m
 ```
 
-For each framework there will be a corresponding CustomResourceDefinition:
+For each operator there will be a corresponding CustomResourceDefinition:
 
 ```bash
-$ kubectl get crds -l type=framework
+$ kubectl get crds -l type=operator
 NAME                                AGE
 kafkas.packages.kudo.k8s.io      37m
 hdfs.packages.kudo.k8s.io        37m
 zookeeper.packages.kudo.k8s.io   37m
 ```
 
-And each framework will have different versions available (not actual kubectl call):
+And each operator will have different versions available (not actual kubectl call):
 
 ```bash
- $ kubectl get framework versions kafka
+ $ kubectl get operator versions kafka
 NAME            AGE
 2.11-2.1.0      37m
 2.10-2.1.0      37m
@@ -43,17 +43,17 @@ NAME            AGE
 
 ### Plans
 
-The Plans for each application will be captured in the spec for each framework.
+The Plans for each application will be captured in the spec for each operator.
 
 #### Deploy
 
-The controller interprets the Spec provided for each framework as a list of Kubernetes objects. The default deploy plan creates all of the
+The controller interprets the Spec provided for each operator as a list of Kubernetes objects. The default deploy plan creates all of the
 Kubernetes objects and waits for them to become healthy. Multistep deploy plans break the set of kubernetes objects into groups and
 waits to create the second group until the first group is created and healthy.
 
 #### Upgrade
 
-The controller interprets the Spec provided for each version of the framework into Kubernetes objects. For objects present in both versions,
+The controller interprets the Spec provided for each version of the operator into Kubernetes objects. For objects present in both versions,
 the controller doesn't modify the objects if they're the same. The controller will create new objects in new versions and remove objects in previous
 versions. Custom upgrade plans can adjust the order of deletion and creation.
 
@@ -65,10 +65,10 @@ kubectl patch kafka instance-name -p '{"spec": {"version":"2.11-2.1.0"}}'
 
 ### Parameters
 
-Each instance of the framework will allow for customizations provided by parameters.
+Each instance of the operator will allow for customizations provided by parameters.
 
 ```bash
-$ kubectl get framework parameters zookeeper
+$ kubectl get operator parameters zookeeper
 NAME                   Description
 zookeeper.count        Number of Zookeeper nodes to be spun up
 data.dir.size          Size of persistent volume used to store Zookeeper data
@@ -81,7 +81,7 @@ This gives an easy overview for Application Operators to understand how to confi
 
 ### Application Creation
 
-To create an instance of a framework, a simple yaml file will be provided. This instance overrides the default
+To create an instance of a operator, a simple yaml file will be provided. This instance overrides the default
 values by having 3 instances of Zookeeper in the `StatefulSet` and uses a larger than standard data directory.
 
 ```bash
@@ -100,7 +100,7 @@ EOF
 
 ### Dependencies
 
-When deploying an instance of a framework, values defined on a dependency will be applied automatically.
+When deploying an instance of a operator, values defined on a dependency will be applied automatically.
 
 Create a Kafka instance that declares the above as a dependency:
 

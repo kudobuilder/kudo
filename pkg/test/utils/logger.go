@@ -6,14 +6,14 @@ import (
 	"time"
 )
 
-// Logger is an interface used by the KUDO test framework to provide logging of tests.
+// Logger is an interface used by the KUDO test operator to provide logging of tests.
 type Logger interface {
 	Log(args ...interface{})
 	Logf(format string, args ...interface{})
 	WithPrefix(string) Logger
 }
 
-// TestLogger implements the Logger interface to be compatible with the go test framework's
+// TestLogger implements the Logger interface to be compatible with the go test operator's
 // output buffering (without this, the use of Parallel tests combined with subtests causes test
 // output to be mixed).
 type TestLogger struct {

@@ -52,16 +52,16 @@ In order to get KUDO ready for production it's useful to pick a specific workloa
 
 ## Motivation
 
-A team-sponsored production ready framework using KUDO helps with prioritizing features needed to achieve this goal.
+A team-sponsored production ready operator using KUDO helps with prioritizing features needed to achieve this goal.
 
 ## Proposal
 
 ### Goals
 
-* Define criteria for what is considered a stable KUDO framework
-* Identify features required for a stable Kafka and ZooKeeper framework, create KEPs for them
-* Create a stable Kafka framework
-* Create a stable ZooKeeper framework
+* Define criteria for what is considered a stable KUDO operator
+* Identify features required for a stable Kafka and ZooKeeper operator, create KEPs for them
+* Create a stable Kafka operator
+* Create a stable ZooKeeper operator
 
 ### Non-Goals
 
