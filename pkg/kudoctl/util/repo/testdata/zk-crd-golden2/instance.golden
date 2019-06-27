@@ -4,7 +4,7 @@ metadata:
   labels:
     controller-tools.k8s.io: "1.0"
     framework: zookeeper
-  name: zookeeper-0.1.0
+  name: zookeeper-txhzt
 spec:
   frameworkVersion:
     name: zookeeper-0.1.0

@@ -3,6 +3,7 @@ package repo
 import (
 	"fmt"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"os"
 	"path/filepath"
 	"sort"
@@ -16,13 +17,17 @@ import (
 )
 
 func TestReadFileSystemPackage(t *testing.T) {
+	// Set Kubernetes random seed for deterministic test results on the name
+	rand.Seed(1)
+
 	tests := []struct {
 		name        string
+		instanceName string
 		path        string
 		goldenFiles string
 	}{
-		{"zookeeper", "testdata/zk", "testdata/zk-crd-golden"},
-		{"zookeeper", "testdata/zk.tar.gz", "testdata/zk-crd-golden"},
+		{"zookeeper", "zookeeper-xn8fg", "testdata/zk", "testdata/zk-crd-golden1"},
+		{"zookeeper", "zookeeper-txhzt", "testdata/zk.tar.gz", "testdata/zk-crd-golden2"},
 	}
 
 	for _, tt := range tests {
@@ -35,10 +40,12 @@ func TestReadFileSystemPackage(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Found unexpected error: %v", err)
 			}
+			actual.Instance.ObjectMeta.Name = tt.instanceName
 			golden, err := loadCRDsFromPath(tt.goldenFiles)
 			if err != nil {
 				t.Fatalf("Found unexpected error when loading golden files: %v", err)
 			}
+
 			// we need to sort here because current yaml parsing is not preserving the order of fields
 			// at the same time, the deep library we use for equality does not support ignoring order
 			sort.Slice(actual.FrameworkVersion.Spec.Parameters, func(i, j int) bool {
