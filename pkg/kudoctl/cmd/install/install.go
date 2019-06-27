@@ -27,7 +27,8 @@ type Options struct {
 
 // DefaultOptions initializes the install command options to its defaults
 var DefaultOptions = &Options{
-	Namespace: "default",
+	Namespace:       "default",
+	AllDependencies: false,
 }
 
 // Run returns the errors associated with cmd env
@@ -164,6 +165,7 @@ func installFramework(frameworkArgument string, isDependencyInstall bool, reposi
 	}
 
 	// Dependencies of the particular FrameworkVersion
+	// TODO (@gerred): Remove dead code branch
 	if options.AllDependencies {
 		dependencyFrameworks, err := repo.GetFrameworkVersionDependencies(crds.FrameworkVersion)
 		if err != nil {
