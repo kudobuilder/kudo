@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/util/rand"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/bundle"
 	"github.com/pkg/errors"
@@ -157,7 +159,7 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 			APIVersion: apiVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   fmt.Sprintf("%s-%s", p.Framework.Name, p.Framework.Version),
+			Name:   fmt.Sprintf("%s-%s", p.Framework.Name, rand.String(5)),
 			Labels: map[string]string{"controller-tools.k8s.io": "1.0", "framework": "zookeeper"},
 		},
 		Spec: v1alpha1.InstanceSpec{
