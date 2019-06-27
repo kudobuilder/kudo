@@ -79,7 +79,7 @@ type ReconcileFramework struct {
 // and what is in the Operator.Spec
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=kudo.k8s.io,resources=frameworks,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kudo.k8s.io,resources=operators,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileFramework) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the operator
 	framework := &kudov1alpha1.Operator{}
