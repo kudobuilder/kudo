@@ -89,6 +89,13 @@ type Instance struct {
 	Status InstanceStatus `json:"status,omitempty"`
 }
 
+func (i *Instance) GetFrameworkVersionNamespace() string {
+	if i.Spec.FrameworkVersion.Namespace == "" {
+		return i.ObjectMeta.Namespace
+	}
+	return i.Spec.FrameworkVersion.Namespace
+}
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // InstanceList contains a list of Instance.
