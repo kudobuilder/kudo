@@ -73,11 +73,10 @@ func TestRetry(t *testing.T) {
 	index := 0
 
 	assert.Nil(t, Retry(context.TODO(), func(context.Context) error {
-		if index == 0 {
-			index += 1
+		index++
+		if index == 1 {
 			return errors.New("ignore this error")
 		}
-		index += 1
 		return nil
 	}, func(err error) bool { return false }, func(err error) bool {
 		return err.Error() == "ignore this error"
@@ -90,11 +89,10 @@ func TestRetryWithUnexpectedError(t *testing.T) {
 	index := 0
 
 	assert.Equal(t, errors.New("bad error"), Retry(context.TODO(), func(context.Context) error {
-		if index == 0 {
-			index += 1
+		index++
+		if index == 1 {
 			return errors.New("bad error")
 		}
-		index += 1
 		return nil
 	}, func(err error) bool { return false }, func(err error) bool {
 		return err.Error() == "ignore this error"

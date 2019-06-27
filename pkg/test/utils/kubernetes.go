@@ -52,7 +52,8 @@ func ValidateErrors(err error, errValidationFuncs ...func(error) bool) error {
 func Retry(ctx context.Context, fn func(context.Context) error, errValidationFuncs ...func(error) bool) error {
 	var err error
 
-	for {
+	// do { } while (err != nil): https://stackoverflow.com/a/32844744/10892393
+	for ok := true; ok; ok = err != nil {
 		done := make(chan bool)
 
 		// run the function in a goroutine and close it once it is finished so that
@@ -67,7 +68,7 @@ func Retry(ctx context.Context, fn func(context.Context) error, errValidationFun
 		// the callback finished
 		case <-done:
 			if err == nil {
-				return nil
+				break
 			}
 
 			// check if we tolerate the error, return it if not.
@@ -79,15 +80,14 @@ func Retry(ctx context.Context, fn func(context.Context) error, errValidationFun
 			if err == nil {
 				// there's no previous error, so just return the timeout error
 				return ctx.Err()
-			} else {
-				// return the most recent error
-				return err
 			}
+
+			// return the most recent error
+			return err
 		}
 	}
 
-	// we won't get here
-	return nil
+	return err
 }
 
 // Scheme returns an initialized Kubernetes Scheme.
