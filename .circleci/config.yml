@@ -7,7 +7,6 @@ jobs:
     machine: true
     steps:
       - checkout
-      - run: ./test/run_tests.sh
       - run: |
           git config user.name "Circle CI"
           git config user.email "ci@mesosphere.com"

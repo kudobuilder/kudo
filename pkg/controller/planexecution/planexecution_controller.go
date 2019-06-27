@@ -38,10 +38,10 @@ import (
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/util/health"
 	"github.com/kudobuilder/kudo/pkg/util/template"
+	"github.com/tidwall/gjson"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -69,7 +69,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcilePlanExecution{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("planexecution-controller")}
+	return &ReconcilePlanExecution{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor("planexecution-controller")}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -268,7 +268,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      instance.Spec.FrameworkVersion.Name,
-			Namespace: instance.Spec.FrameworkVersion.Namespace,
+			Namespace: instance.GetFrameworkVersionNamespace(),
 		},
 		frameworkVersion)
 	if err != nil {
@@ -277,7 +277,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		r.recorder.Event(planExecution, "Warning", "InvalidFrameworkVersion", fmt.Sprintf("Could not find FrameworkVersion %v", instance.Spec.FrameworkVersion.Name))
 		log.Printf("PlanExecutionController: Error getting FrameworkVersion %v in %v: %v",
 			instance.Spec.FrameworkVersion.Name,
-			instance.Spec.FrameworkVersion.Namespace,
+			instance.GetFrameworkVersionNamespace(),
 			err)
 		return reconcile.Result{}, err
 	}
@@ -381,10 +381,12 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						NamePrefix: instance.Name + "-",
 						Namespace:  instance.Namespace,
 						CommonLabels: map[string]string{
-							"heritage":      "kudo",
-							"app":           frameworkVersion.Spec.Framework.Name,
-							"version":       frameworkVersion.Spec.Version,
-							"instance":      instance.Name,
+							"heritage": "kudo",
+							"app":      frameworkVersion.Spec.Framework.Name,
+							"version":  frameworkVersion.Spec.Version,
+							"instance": instance.Name,
+						},
+						CommonAnnotations: map[string]string{
 							"planexecution": planExecution.Name,
 							"plan":          planExecution.Spec.PlanName,
 							"phase":         phase.Name,
@@ -482,59 +484,34 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					log.Printf("PlanExecutionController: Cleanup failed: %v", err)
 				}
 
-				arg := obj.DeepCopyObject()
-				result, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, arg, func(newObj runtime.Object) error {
-					// TODO: Clean this up. I don't like having to do a switch here.
-					switch t := newObj.(type) {
-					case *appsv1.StatefulSet:
-						log.Printf("PlanExecutionController: CreateOrUpdate: StatefulSet %+v", t.Name)
-
-						newSs := newObj.(*appsv1.StatefulSet)
-						ss, ok := obj.(*appsv1.StatefulSet)
-						if !ok {
-							return fmt.Errorf("object passed in doesn't match expected StatefulSet type")
-						}
-
-						// We need some specialized logic in there.
-						//
-						// We can't just copy the Spec since there are other values like
-						// spec.updateState, spec.volumeClaimTemplates, etc. that are all generated
-						// from the object by the k8s controller.
-						//
-						// We just want to update things we can change.
-						newSs.Spec.Replicas = ss.Spec.Replicas
-
-						return nil
-					case *appsv1.Deployment:
-						newD := newObj.(*appsv1.Deployment)
-						d, ok := obj.(*appsv1.Deployment)
-						if !ok {
-							return fmt.Errorf("object passed in doesn't match expected deployment type")
-						}
-						newD.Spec.Replicas = d.Spec.Replicas
-						return nil
-					case *v1beta1.Deployment:
-						newD := newObj.(*v1beta1.Deployment)
-						d, ok := obj.(*v1beta1.Deployment)
-						if !ok {
-							return fmt.Errorf("object passed in doesn't match expected deployment type")
-						}
-						newD.Spec.Replicas = d.Spec.Replicas
-						return nil
-
-					case *batchv1.Job:
-					case *kudov1alpha1.Instance:
-					// Unless we build logic for what a healthy object is, assume its healthy when created.
-					default:
-						log.Print("PlanExecutionController: CreateOrUpdate: Type is not implemented yet")
-						return nil
+				//See if its present
+				key, _ := client.ObjectKeyFromObject(obj)
+				truth := obj.DeepCopyObject()
+				err := r.Client.Get(context.TODO(), key, truth)
+				if err == nil {
+					log.Printf("PlanExecutionController: CreateOrUpdate Object present")
+					//update
+					p := client.MergeFrom(truth)
+					mergePatch, err := p.Data(obj)
+					specPatch := gjson.Get(string(mergePatch), "spec")
+					annotationPatch := gjson.Get(string(mergePatch), "metadata.annotations")
+					patchString := fmt.Sprintf("{\"metadata\": {\"annotations\": %v}, \"spec\": %v}",
+						annotationPatch.String(),
+						specPatch.String(),
+					)
+					log.Printf("Going to apply patch\n%+v\n\n to object\n%+v\n", patchString, truth)
+					if err != nil {
+						log.Printf("Error getting patch between truth and obj: %v\n", err)
+					} else {
+						err = r.Client.Patch(context.TODO(), truth, client.ConstantPatch(types.MergePatchType, []byte(patchString)))
+						log.Printf("PlanExecutionController: CreateOrUpdate Patch: %v", err)
 					}
-
-					return nil
-
-				})
-
-				log.Printf("PlanExecutionController: CreateOrUpdate resulted in: %v", result)
+				} else {
+					//create
+					log.Printf("PlanExecutionController: CreateOrUpdate Object not present")
+					err = r.Client.Create(context.TODO(), obj)
+					log.Printf("PlanExecutionController: CreateOrUpdate Create: %v", err)
+				}
 
 				if err != nil {
 					log.Printf("PlanExecutionController: Error CreateOrUpdate Object in step \"%v\": %v", s.Name, err)
@@ -542,16 +519,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateError
 
 					return reconcile.Result{}, err
-				}
-				log.Printf("PlanExecutionController: CreateOrUpdate resulted in: %v", result)
-
-				// get the existing object meta
-				metaObj := obj.(metav1.Object)
-
-				// retrieve the existing object
-				key := client.ObjectKey{
-					Name:      metaObj.GetName(),
-					Namespace: metaObj.GetNamespace(),
 				}
 
 				err = r.Client.Get(context.TODO(), key, obj)

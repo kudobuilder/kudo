@@ -1,0 +1,60 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: testsuites.kudo.k8s.io
+spec:
+  group: kudo.k8s.io
+  names:
+    kind: TestSuite
+    plural: testsuites
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        crdDir:
+          description: Path to CRDs to install before running tests.
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        manifestsDir:
+          description: Path to manifests to install before running tests.
+          type: string
+        metadata:
+          description: Set labels or the test suite name.
+          type: object
+        startControlPlane:
+          description: Whether or not to start a local etcd and kubernetes API server
+            for the tests.
+          type: boolean
+        startKUDO:
+          description: Whether or not to start the KUDO controller for the tests.
+          type: boolean
+        testDirs:
+          description: Directories containing test cases to run.
+          items:
+            type: string
+          type: array
+      required:
+      - crdDir
+      - manifestsDir
+      - testDirs
+      - startControlPlane
+      - startKUDO
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

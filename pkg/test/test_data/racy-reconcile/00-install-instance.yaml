@@ -1,0 +1,10 @@
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  name: my-instance
+  labels:
+    framework: foo-framework
+spec:
+  frameworkVersion:
+    name: foo-framework
+    kind: FrameworkVersion

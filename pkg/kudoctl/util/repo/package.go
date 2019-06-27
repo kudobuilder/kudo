@@ -1,13 +1,7 @@
 package repo
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -40,76 +34,6 @@ type PackageFiles struct {
 	Templates map[string]string
 	Framework *bundle.Framework
 	Params    []v1alpha1.Parameter
-}
-
-// ReadTarGzPackage reads package from tarball and converts it to the CRD format
-func ReadTarGzPackage(r io.Reader) (*PackageCRDs, error) {
-	p, err := parsePackage(r)
-	if err != nil {
-		return nil, errors.Wrap(err, "while extracting package files")
-	}
-	return p.getCRDs()
-}
-
-// ReadFileSystemPackage reads package from filesystem and converts it to the CRD format
-func ReadFileSystemPackage(path string) (*PackageCRDs, error) {
-	isTarGz := func() bool {
-		if fi, err := os.Stat(path); err == nil {
-			return fi.Mode().IsRegular() && strings.HasSuffix(path, ".tar.gz")
-		}
-		return false
-	}
-
-	isFolder := func() bool {
-		if fi, err := os.Stat(path); err == nil {
-			return fi.IsDir()
-		}
-		return false
-	}
-
-	switch {
-	case isTarGz():
-		f, err := os.Open(path)
-		if err != nil {
-			return nil, err
-		}
-		return ReadTarGzPackage(f)
-	case isFolder():
-		p, err := fromFolder(path)
-		if err != nil {
-			return nil, errors.Wrap(err, "while reading package from the file system")
-		}
-		return p.getCRDs()
-	default:
-		return nil, fmt.Errorf("unsupported file system format %v. Expect either a tar.gz file or a folder", path)
-	}
-}
-
-func fromFolder(packagePath string) (*PackageFiles, error) {
-	result := newPackageFiles()
-	err := filepath.Walk(packagePath, func(path string, file os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if file.IsDir() {
-			// skip directories
-			return nil
-		}
-		if path == packagePath {
-			// skip the root folder, as Walk always starts there
-			return nil
-		}
-		bytes, err := ioutil.ReadFile(path)
-		if err != nil {
-			return err
-		}
-
-		return parsePackageFile(path, bytes, &result)
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &result, nil
 }
 
 func parsePackageFile(filePath string, fileBytes []byte, currentPackage *PackageFiles) error {
@@ -154,60 +78,6 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 		return fmt.Errorf("unexpected file when reading package from filesystem: %s", filePath)
 	}
 	return nil
-}
-
-func parsePackage(r io.Reader) (*PackageFiles, error) {
-	gzr, err := gzip.NewReader(r)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		err := gzr.Close()
-		if err != nil {
-			fmt.Printf("Error when closing gzip reader: %s", err)
-		}
-	}()
-
-	tr := tar.NewReader(gzr)
-
-	result := newPackageFiles()
-	for {
-		header, err := tr.Next()
-
-		switch {
-
-		// if no more files are found return
-		case err == io.EOF:
-			return &result, nil
-
-		// return any other error
-		case err != nil:
-			return nil, err
-
-		// if the header is nil, just skip it (not sure how this happens)
-		case header == nil:
-			continue
-		}
-
-		// check the file type
-		switch header.Typeflag {
-
-		case tar.TypeDir:
-			// we don't need to handle folders, files have folder name in their names and that should be enough
-
-		// if it's a file create it
-		case tar.TypeReg:
-			bytes, err := ioutil.ReadAll(tr)
-			if err != nil {
-				return nil, errors.Wrapf(err, "while reading file from bundle tarball %s", header.Name)
-			}
-
-			err = parsePackageFile(header.Name, bytes, &result)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
 }
 
 func newPackageFiles() PackageFiles {
