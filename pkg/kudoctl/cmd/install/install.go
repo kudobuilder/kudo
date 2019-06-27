@@ -82,8 +82,8 @@ func installFrameworks(args []string, options *Options) error {
 		return errors.Wrap(err, "creating kudo client")
 	}
 
-	for _, name := range args {
-		err := installFramework(name, "", r, kc, options)
+	for _, frameworkName := range args {
+		err := installFramework(frameworkName, false, r, kc, options)
 		if err != nil {
 			return err
 		}
@@ -117,17 +117,17 @@ func getPackageCRDs(name string, options *Options, repository repo.Repository) (
 // installFramework is the umbrella for a single framework installation that gathers the business logic
 // for a cluster and returns an error in case there is a problem
 // TODO: needs testing
-func installFramework(name, previous string, repository repo.Repository, kc *kudo.Client, options *Options) error {
-	crds, err := getPackageCRDs(name, options, repository)
+func installFramework(frameworkName string, isDependencyInstall bool, repository repo.Repository, kc *kudo.Client, options *Options) error {
+	crds, err := getPackageCRDs(frameworkName, options, repository)
 	if err != nil {
-		return errors.Wrapf(err, "failed to install package: %s", name)
+		return errors.Wrapf(err, "failed to install package: %s", frameworkName)
 	}
 
 	// Framework part
 
 	// Check if Framework exists
-	if !kc.FrameworkExistsInCluster(name, options.Namespace) {
-		if err := installSingleFrameworkToCluster(name, options.Namespace, crds.Framework, kc); err != nil {
+	if !kc.FrameworkExistsInCluster(frameworkName, options.Namespace) {
+		if err := installSingleFrameworkToCluster(frameworkName, options.Namespace, crds.Framework, kc); err != nil {
 			return errors.Wrap(err, "installing single Framework")
 		}
 	}
@@ -135,28 +135,28 @@ func installFramework(name, previous string, repository repo.Repository, kc *kud
 	// FrameworkVersion part
 
 	// Check if AnyFrameworkVersion for Framework exists
-	if !kc.AnyFrameworkVersionExistsInCluster(name, options.Namespace) {
+	if !kc.AnyFrameworkVersionExistsInCluster(frameworkName, options.Namespace) {
 		// FrameworkVersion CRD for Framework does not exist
-		if err := installSingleFrameworkVersionToCluster(name, options.Namespace, kc, crds.FrameworkVersion); err != nil {
-			return errors.Wrapf(err, "installing FrameworkVersion CRD for framework: %s", name)
+		if err := installSingleFrameworkVersionToCluster(frameworkName, options.Namespace, kc, crds.FrameworkVersion); err != nil {
+			return errors.Wrapf(err, "installing FrameworkVersion CRD for framework: %s", frameworkName)
 		}
 	}
 
 	// Check if FrameworkVersion is out of sync with official FrameworkVersion for this Framework
-	if !kc.FrameworkVersionInClusterOutOfSync(name, crds.FrameworkVersion.Spec.Version, options.Namespace) {
+	if !kc.FrameworkVersionInClusterOutOfSync(frameworkName, crds.FrameworkVersion.Spec.Version, options.Namespace) {
 		// This happens when the given FrameworkVersion is not existing. E.g.
 		// when a version has been installed that is not part of the official kudobuilder/frameworks repo.
 		if !options.AutoApprove {
 			fmt.Printf("No official FrameworkVersion has been found for \"%s\". "+
-				"Do you want to install one? (Yes/no) ", name)
+				"Do you want to install one? (Yes/no) ", frameworkName)
 			if helpers.AskForConfirmation() {
-				if err := installSingleFrameworkVersionToCluster(name, options.Namespace, kc, crds.FrameworkVersion); err != nil {
-					return errors.Wrapf(err, "installing FrameworkVersion CRD for framework %s", name)
+				if err := installSingleFrameworkVersionToCluster(frameworkName, options.Namespace, kc, crds.FrameworkVersion); err != nil {
+					return errors.Wrapf(err, "installing FrameworkVersion CRD for framework %s", frameworkName)
 				}
 			}
 		} else {
-			if err := installSingleFrameworkVersionToCluster(name, options.Namespace, kc, crds.FrameworkVersion); err != nil {
-				return errors.Wrapf(err, "installing FrameworkVersion CRD for framework %s", name)
+			if err := installSingleFrameworkVersionToCluster(frameworkName, options.Namespace, kc, crds.FrameworkVersion); err != nil {
+				return errors.Wrapf(err, "installing FrameworkVersion CRD for framework %s", frameworkName)
 			}
 		}
 
@@ -173,7 +173,7 @@ func installFramework(name, previous string, repository repo.Repository, kc *kud
 			// Dependencies should not be as big as that they will have an overflow in the function stack frame
 			// installFramework makes sure that dependency Frameworks are created before the Framework itself
 			// and it allows to inherit dependencies.
-			if err := installFramework(v, name, repository, kc, options); err != nil {
+			if err := installFramework(v, true, repository, kc, options); err != nil {
 				return errors.Wrapf(err, "installing dependency Framework %s", v)
 			}
 		}
@@ -185,27 +185,37 @@ func installFramework(name, previous string, repository repo.Repository, kc *kud
 	// This is also the part you end up when no dependencies are found or installed and all Framework and
 	// FrameworkVersions are already installed.
 
+	// First make sure that our instance object is up to date with overrides from commandline
+	applyInstanceOverrides(crds.Instance, options, isDependencyInstall)
+
 	// Check if Instance exists in cluster
-	// It won't create the Instance if any in combination with given Framework Name and FrameworkVersion exists
-	if !kc.AnyInstanceExistsInCluster(name, options.Namespace, crds.FrameworkVersion.Spec.Version) {
+	// It won't create the Instance if any in combination with given Framework Name, FrameworkVersion and Instance frameworkName exists
+	instanceExists, err := kc.InstanceExistsInCluster(frameworkName, options.Namespace, crds.FrameworkVersion.Spec.Version, crds.Instance.ObjectMeta.Name)
+	if err != nil {
+		return errors.Wrapf(err, "verifying the instance does not already exist")
+	}
+
+	if !instanceExists {
 		// This happens when the given FrameworkVersion is not existing. E.g.
 		// when a version has been installed that is not part of the official kudobuilder/frameworks repo.
 		if !options.AutoApprove {
 			fmt.Printf("No Instance tied to this \"%s\" version has been found. "+
-				"Do you want to create one? (Yes/no) ", name)
+				"Do you want to create one? (Yes/no) ", frameworkName)
 			if helpers.AskForConfirmation() {
 				// If Instance is a dependency we need to make sure installSingleInstanceToCluster is aware of it.
 				// By having the previous string set we can make this distinction.
-				if err := installSingleInstanceToCluster(name, previous, crds.Instance, kc, options); err != nil {
+				if err := installSingleInstanceToCluster(frameworkName, crds.Instance, kc, options); err != nil {
 					return errors.Wrap(err, "installing single Instance")
 				}
 			}
 		} else {
-			if err := installSingleInstanceToCluster(name, previous, crds.Instance, kc, options); err != nil {
+			if err := installSingleInstanceToCluster(frameworkName, crds.Instance, kc, options); err != nil {
 				return errors.Wrap(err, "installing single Instance")
 			}
 		}
 
+	} else {
+		fmt.Printf("Cannot install Instance ")
 	}
 	return nil
 }
@@ -232,23 +242,26 @@ func installSingleFrameworkVersionToCluster(name, namespace string, kc *kudo.Cli
 
 // installSingleInstanceToCluster installs a given Instance to the cluster
 // TODO: needs more testing
-func installSingleInstanceToCluster(name, previous string, instance *v1alpha1.Instance, kc *kudo.Client, options *Options) error {
+func installSingleInstanceToCluster(name string, instance *v1alpha1.Instance, kc *kudo.Client, options *Options) error {
 	// Customizing Instance
 	// TODO: traversing, e.g. check function that looksup if key exists in the current FrameworkVersion
 	// That way just Parameters will be applied if they exist in the matching FrameworkVersion
-	// More checking required
-	// E.g. when installing with flag --all-dependencies to prevent overwriting dependency Instance name
 
-	// This checks if flag --instance was set with a name and it is the not a dependency Instance
-	if options.InstanceName != "" && previous == "" {
-		instance.ObjectMeta.SetName(options.InstanceName)
-	}
-	if options.Parameters != nil {
-		instance.Spec.Parameters = options.Parameters
-	}
 	if _, err := kc.InstallInstanceObjToCluster(instance, options.Namespace); err != nil {
 		return errors.Wrapf(err, "installing instance %s", name)
 	}
 	fmt.Printf("instance.%s/%s created\n", instance.APIVersion, instance.Name)
 	return nil
+}
+
+func applyInstanceOverrides(instance *v1alpha1.Instance, options *Options, isDependencyInstall bool) {
+	// More checking required
+	// E.g. when installing with flag --all-dependencies to prevent overwriting dependency Instance name
+	// This checks if flag --instance was set with a name and it is the not a dependency Instance
+	if options.InstanceName != "" && !isDependencyInstall {
+		instance.ObjectMeta.SetName(options.InstanceName)
+	}
+	if options.Parameters != nil {
+		instance.Spec.Parameters = options.Parameters
+	}
 }
