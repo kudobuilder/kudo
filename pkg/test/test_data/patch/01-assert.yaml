@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: toy1-nginx-deployment
+  labels:
+    app: "toy"
+    version: "1.0.0"
+    instance: "toy1"
+  annotations:
+    plan: "scale"
+    step: "scale"
+    phase: "scale"
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.7.9
+        env:
+        - name: ENVIRONMENT_VARIABLE
+          value: "30"
