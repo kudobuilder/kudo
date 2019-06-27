@@ -190,7 +190,8 @@ func installFramework(frameworkName string, isDependencyInstall bool, repository
 
 	// Check if Instance exists in cluster
 	// It won't create the Instance if any in combination with given Framework Name, FrameworkVersion and Instance frameworkName exists
-	instanceExists, err := kc.InstanceExistsInCluster(frameworkName, options.Namespace, crds.FrameworkVersion.Spec.Version, crds.Instance.ObjectMeta.Name)
+	instanceName := crds.Instance.ObjectMeta.Name
+	instanceExists, err := kc.InstanceExistsInCluster(frameworkName, options.Namespace, crds.FrameworkVersion.Spec.Version, instanceName)
 	if err != nil {
 		return errors.Wrapf(err, "verifying the instance does not already exist")
 	}
@@ -215,7 +216,7 @@ func installFramework(frameworkName string, isDependencyInstall bool, repository
 		}
 
 	} else {
-		fmt.Printf("Cannot install Instance ")
+		return fmt.Errorf("Cannot install Instance %s of framework %s-%s because instance of that name already exists in namespace %s", instanceName, frameworkName, crds.FrameworkVersion.Spec.Version, options.Namespace)
 	}
 	return nil
 }
