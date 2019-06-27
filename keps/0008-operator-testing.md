@@ -260,7 +260,7 @@ The test harness will wait for the `Pod` with name `test` in the namespace gener
 
 ##### Resources that have non-deterministic names
 
-Because some resource types have non-deterministic names (for example, the `Pods` created for a `Deployment`), if a resource has no name and only labels then the harness will list the resources of that type and wait for a resource of that type to match the state defined.
+Because some resource types have non-deterministic names (for example, the `Pods` created for a `Deployment`), if a resource has no name then the harness will list the resources of that type and wait for a resource of that type to match the state defined.
 
 For example, given an assertion file containing:
 
