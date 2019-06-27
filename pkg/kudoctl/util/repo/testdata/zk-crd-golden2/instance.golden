@@ -4,7 +4,7 @@ metadata:
   labels:
     controller-tools.k8s.io: "1.0"
     operator: zookeeper
-  name: zookeeper-0.1.0
+  name: zookeeper-txhzt
 spec:
   operatorVersion:
     name: zookeeper-0.1.0
