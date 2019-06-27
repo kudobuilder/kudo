@@ -46,7 +46,7 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 
-	return &ReconcileFramework{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("framework-controller")}, nil
+	return &ReconcileFramework{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor("framework-controller")}, nil
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler

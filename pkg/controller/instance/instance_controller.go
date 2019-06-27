@@ -54,7 +54,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileInstance{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("instance-controller")}
+	return &ReconcileInstance{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor("instance-controller")}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler.
@@ -67,18 +67,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	inPredicate := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-
 			old := e.ObjectOld.(*kudov1alpha1.Instance)
 			new := e.ObjectNew.(*kudov1alpha1.Instance)
-
-			// Haven't done anything yet
-			if new.Status.ActivePlan.Name == "" {
-				err = createPlan(mgr, "deploy", new)
-				if err != nil {
-					log.Printf("InstanceController: Error creating \"%v\" object for \"%v\": %v", "deploy", new.Name, err)
-				}
-				return true
-			}
 
 			// Get the new FrameworkVersion object
 			fv := &kudov1alpha1.FrameworkVersion{}
@@ -121,9 +111,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				}
 			} else if !reflect.DeepEqual(old.Spec, new.Spec) {
 				for k := range parameterDifference(old.Spec.Parameters, new.Spec.Parameters) {
+					log.Printf("Found a parameter update for instance %v: %v\n", old.Name, k)
 					// Find the right parameter in the FV
 					for _, param := range fv.Spec.Parameters {
 						if param.Name == k {
+							log.Printf("Setting Plan Name to %v for param %v\n", param.Trigger, param.Name)
 							planName = param.Trigger
 							ok = true
 						}
@@ -147,14 +139,16 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				}
 				// Not currently doing anything for Dependency changes.
 			} else {
-				log.Println("InstanceController: Old and new spec matched...")
-				planName = "deploy"
+				if new.Status.ActivePlan.Name == "" {
+					log.Printf("InstanceController: Old and new spec matched...\n %+v ?= %+v\n", old.Spec, new.Spec)
+					planName = "deploy"
+					ok = true
+				}
 			}
-			log.Printf("InstanceController: Going to call plan \"%v\"", planName)
 
 			// we found something
 			if ok {
-
+				log.Printf("InstanceController: Going to call plan \"%v\"", planName)
 				// Mark the current plan as Suspend
 				current := &kudov1alpha1.PlanExecution{}
 				err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{Name: new.Status.ActivePlan.Name, Namespace: new.Status.ActivePlan.Namespace}, current)
@@ -167,9 +161,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 						log.Println("InstanceController: Setting PlanExecution to Suspend")
 						t := true
 						current.Spec.Suspend = &t
-						did, err := controllerutil.CreateOrUpdate(context.TODO(), mgr.GetClient(), current, func(o runtime.Object) error {
+						did, err := controllerutil.CreateOrUpdate(context.TODO(), mgr.GetClient(), current, func() error {
 							t := true
-							o.(*kudov1alpha1.PlanExecution).Spec.Suspend = &t
+							current.Spec.Suspend = &t
 							return nil
 						})
 						if err != nil {
@@ -249,8 +243,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			instances := &kudov1alpha1.InstanceList{}
 			err := mgr.GetClient().List(
 				context.TODO(),
+				instances,
 				client.MatchingLabels(map[string]string{"framework": a.Meta.GetName()}),
-				instances)
+			)
 
 			if err != nil {
 				log.Printf("InstanceController: Error fetching instances list for framework %v: %v", a.Meta.GetName(), err)
@@ -304,7 +299,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Instance) error {
 	gvk, _ := apiutil.GVKForObject(instance, mgr.GetScheme())
-	recorder := mgr.GetRecorder("instance-controller")
+	recorder := mgr.GetEventRecorderFor("instance-controller")
 	recorder.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" plan execution", planName))
 
 	ref := corev1.ObjectReference{

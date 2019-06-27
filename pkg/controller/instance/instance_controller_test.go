@@ -82,11 +82,11 @@ func TestReconcile_InstancesOnFrameworkVersionEvent(t *testing.T) {
 	peList := &v1alpha1.PlanExecutionList{}
 	err = c.List(
 		context.TODO(),
+		peList,
 		client.MatchingLabels(map[string]string{
 			"framework-version": fv.Name,
 			"instance":          in.Name,
-		}),
-		peList)
+		}))
 	assert.NoError(t, err)
 	assert.True(t, strings.Contains(peList.Items[0].Name, "foo-instance-deploy"))
 }
