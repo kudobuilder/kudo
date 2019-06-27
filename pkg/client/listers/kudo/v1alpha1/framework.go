@@ -26,7 +26,7 @@ import (
 // FrameworkLister helps list Frameworks.
 type FrameworkLister interface {
 	// List lists all Frameworks in the indexer.
-	List(selector labels.Selector) (ret []*v1alpha1.Framework, err error)
+	List(selector labels.Selector) (ret []*v1alpha1.Operator, err error)
 	// Frameworks returns an object that can list and get Frameworks.
 	Frameworks(namespace string) FrameworkNamespaceLister
 	FrameworkListerExpansion
@@ -43,9 +43,9 @@ func NewFrameworkLister(indexer cache.Indexer) FrameworkLister {
 }
 
 // List lists all Frameworks in the indexer.
-func (s *frameworkLister) List(selector labels.Selector) (ret []*v1alpha1.Framework, err error) {
+func (s *frameworkLister) List(selector labels.Selector) (ret []*v1alpha1.Operator, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.Framework))
+		ret = append(ret, m.(*v1alpha1.Operator))
 	})
 	return ret, err
 }
@@ -58,9 +58,9 @@ func (s *frameworkLister) Frameworks(namespace string) FrameworkNamespaceLister 
 // FrameworkNamespaceLister helps list and get Frameworks.
 type FrameworkNamespaceLister interface {
 	// List lists all Frameworks in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*v1alpha1.Framework, err error)
-	// Get retrieves the Framework from the indexer for a given namespace and name.
-	Get(name string) (*v1alpha1.Framework, error)
+	List(selector labels.Selector) (ret []*v1alpha1.Operator, err error)
+	// Get retrieves the Operator from the indexer for a given namespace and name.
+	Get(name string) (*v1alpha1.Operator, error)
 	FrameworkNamespaceListerExpansion
 }
 
@@ -72,15 +72,15 @@ type frameworkNamespaceLister struct {
 }
 
 // List lists all Frameworks in the indexer for a given namespace.
-func (s frameworkNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.Framework, err error) {
+func (s frameworkNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.Operator, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.Framework))
+		ret = append(ret, m.(*v1alpha1.Operator))
 	})
 	return ret, err
 }
 
-// Get retrieves the Framework from the indexer for a given namespace and name.
-func (s frameworkNamespaceLister) Get(name string) (*v1alpha1.Framework, error) {
+// Get retrieves the Operator from the indexer for a given namespace and name.
+func (s frameworkNamespaceLister) Get(name string) (*v1alpha1.Operator, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
@@ -88,5 +88,5 @@ func (s frameworkNamespaceLister) Get(name string) (*v1alpha1.Framework, error) 
 	if !exists {
 		return nil, errors.NewNotFound(v1alpha1.Resource("framework"), name)
 	}
-	return obj.(*v1alpha1.Framework), nil
+	return obj.(*v1alpha1.Operator), nil
 }

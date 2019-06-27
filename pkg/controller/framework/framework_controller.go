@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// Add creates a new Framework Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
+// Add creates a new Operator Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	log.Printf("FrameworkController: Registering framework controller.")
@@ -57,8 +57,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes to Framework
-	err = c.Watch(&source.Kind{Type: &kudov1alpha1.Framework{}}, &handler.EnqueueRequestForObject{})
+	// Watch for changes to Operator
+	err = c.Watch(&source.Kind{Type: &kudov1alpha1.Operator{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -68,21 +68,21 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 var _ reconcile.Reconciler = &ReconcileFramework{}
 
-// ReconcileFramework reconciles a Framework object
+// ReconcileFramework reconciles a Operator object
 type ReconcileFramework struct {
 	client.Client
 	scheme   *runtime.Scheme
 	recorder record.EventRecorder
 }
 
-// Reconcile reads that state of the cluster for a Framework object and makes changes based on the state read
-// and what is in the Framework.Spec
+// Reconcile reads that state of the cluster for a Operator object and makes changes based on the state read
+// and what is in the Operator.Spec
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kudo.k8s.io,resources=frameworks,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileFramework) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the framework
-	framework := &kudov1alpha1.Framework{}
+	framework := &kudov1alpha1.Operator{}
 	err := r.Get(context.TODO(), request.NamespacedName, framework)
 	if err != nil {
 		if errors.IsNotFound(err) {

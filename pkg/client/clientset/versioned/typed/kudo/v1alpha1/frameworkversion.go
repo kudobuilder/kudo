@@ -33,17 +33,17 @@ type FrameworkVersionsGetter interface {
 	FrameworkVersions(namespace string) FrameworkVersionInterface
 }
 
-// FrameworkVersionInterface has methods to work with FrameworkVersion resources.
+// FrameworkVersionInterface has methods to work with OperatorVersion resources.
 type FrameworkVersionInterface interface {
-	Create(*v1alpha1.FrameworkVersion) (*v1alpha1.FrameworkVersion, error)
-	Update(*v1alpha1.FrameworkVersion) (*v1alpha1.FrameworkVersion, error)
-	UpdateStatus(*v1alpha1.FrameworkVersion) (*v1alpha1.FrameworkVersion, error)
+	Create(*v1alpha1.OperatorVersion) (*v1alpha1.OperatorVersion, error)
+	Update(*v1alpha1.OperatorVersion) (*v1alpha1.OperatorVersion, error)
+	UpdateStatus(*v1alpha1.OperatorVersion) (*v1alpha1.OperatorVersion, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha1.FrameworkVersion, error)
-	List(opts v1.ListOptions) (*v1alpha1.FrameworkVersionList, error)
+	Get(name string, options v1.GetOptions) (*v1alpha1.OperatorVersion, error)
+	List(opts v1.ListOptions) (*v1alpha1.OperatorVersionList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.FrameworkVersion, err error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.OperatorVersion, err error)
 	FrameworkVersionExpansion
 }
 
@@ -62,8 +62,8 @@ func newFrameworkVersions(c *KudoV1alpha1Client, namespace string) *frameworkVer
 }
 
 // Get takes name of the frameworkVersion, and returns the corresponding frameworkVersion object, and an error if there is any.
-func (c *frameworkVersions) Get(name string, options v1.GetOptions) (result *v1alpha1.FrameworkVersion, err error) {
-	result = &v1alpha1.FrameworkVersion{}
+func (c *frameworkVersions) Get(name string, options v1.GetOptions) (result *v1alpha1.OperatorVersion, err error) {
+	result = &v1alpha1.OperatorVersion{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("frameworkversions").
@@ -75,12 +75,12 @@ func (c *frameworkVersions) Get(name string, options v1.GetOptions) (result *v1a
 }
 
 // List takes label and field selectors, and returns the list of FrameworkVersions that match those selectors.
-func (c *frameworkVersions) List(opts v1.ListOptions) (result *v1alpha1.FrameworkVersionList, err error) {
+func (c *frameworkVersions) List(opts v1.ListOptions) (result *v1alpha1.OperatorVersionList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
 	}
-	result = &v1alpha1.FrameworkVersionList{}
+	result = &v1alpha1.OperatorVersionList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("frameworkversions").
@@ -107,8 +107,8 @@ func (c *frameworkVersions) Watch(opts v1.ListOptions) (watch.Interface, error) 
 }
 
 // Create takes the representation of a frameworkVersion and creates it.  Returns the server's representation of the frameworkVersion, and an error, if there is any.
-func (c *frameworkVersions) Create(frameworkVersion *v1alpha1.FrameworkVersion) (result *v1alpha1.FrameworkVersion, err error) {
-	result = &v1alpha1.FrameworkVersion{}
+func (c *frameworkVersions) Create(frameworkVersion *v1alpha1.OperatorVersion) (result *v1alpha1.OperatorVersion, err error) {
+	result = &v1alpha1.OperatorVersion{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("frameworkversions").
@@ -119,8 +119,8 @@ func (c *frameworkVersions) Create(frameworkVersion *v1alpha1.FrameworkVersion) 
 }
 
 // Update takes the representation of a frameworkVersion and updates it. Returns the server's representation of the frameworkVersion, and an error, if there is any.
-func (c *frameworkVersions) Update(frameworkVersion *v1alpha1.FrameworkVersion) (result *v1alpha1.FrameworkVersion, err error) {
-	result = &v1alpha1.FrameworkVersion{}
+func (c *frameworkVersions) Update(frameworkVersion *v1alpha1.OperatorVersion) (result *v1alpha1.OperatorVersion, err error) {
+	result = &v1alpha1.OperatorVersion{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("frameworkversions").
@@ -134,8 +134,8 @@ func (c *frameworkVersions) Update(frameworkVersion *v1alpha1.FrameworkVersion) 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
-func (c *frameworkVersions) UpdateStatus(frameworkVersion *v1alpha1.FrameworkVersion) (result *v1alpha1.FrameworkVersion, err error) {
-	result = &v1alpha1.FrameworkVersion{}
+func (c *frameworkVersions) UpdateStatus(frameworkVersion *v1alpha1.OperatorVersion) (result *v1alpha1.OperatorVersion, err error) {
+	result = &v1alpha1.OperatorVersion{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("frameworkversions").
@@ -175,8 +175,8 @@ func (c *frameworkVersions) DeleteCollection(options *v1.DeleteOptions, listOpti
 }
 
 // Patch applies the patch and returns the patched frameworkVersion.
-func (c *frameworkVersions) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.FrameworkVersion, err error) {
-	result = &v1alpha1.FrameworkVersion{}
+func (c *frameworkVersions) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.OperatorVersion, err error) {
+	result = &v1alpha1.OperatorVersion{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("frameworkversions").

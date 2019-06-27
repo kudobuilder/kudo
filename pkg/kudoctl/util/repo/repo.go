@@ -10,7 +10,7 @@ var Default = &RepositoryConfiguration{
 	URL: "https://kudo-repository.storage.googleapis.com",
 }
 
-// Metadata for a Framework. This models the structure of a bundle.yaml file.
+// Metadata for a Operator. This models the structure of a bundle.yaml file.
 type Metadata struct {
 	// Name is the name of the framework.
 	Name string `json:"name,omitempty"`
@@ -34,7 +34,7 @@ type Metadata struct {
 	Deprecated bool `json:"deprecated,omitempty"`
 }
 
-// Maintainer describes a Framework maintainer.
+// Maintainer describes a Operator maintainer.
 type Maintainer struct {
 	// Name is a user name or organization name.
 	Name string `json:"name,omitempty"`

@@ -21,13 +21,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// FrameworkVersionSpec defines the desired state of FrameworkVersion.
-type FrameworkVersionSpec struct {
+// OperatorVersionSpec defines the desired state of OperatorVersion.
+type OperatorVersionSpec struct {
 	// +optional
-	Framework corev1.ObjectReference `json:"framework,omitempty"`
-	Version   string                 `json:"version,omitempty"`
+	Operator corev1.ObjectReference `json:"operator,omitempty"`
+	Version  string                 `json:"version,omitempty"`
 
-	// Yaml captures a templated yaml list of elements that define the application framework instance.
+	// Yaml captures a templated yaml list of elements that define the application operator instance.
 	Templates map[string]string   `json:"templates,omitempty"`
 	Tasks     map[string]TaskSpec `json:"tasks,omitempty"`
 
@@ -36,15 +36,15 @@ type FrameworkVersionSpec struct {
 	// Plans maps a plan name to a plan.
 	Plans map[string]Plan `json:"plans,omitempty"`
 
-	// ConnectionString defines a templated string that can be used to connect to an instance of the Framework.
+	// ConnectionString defines a templated string that can be used to connect to an instance of the Operator.
 	// +optional
 	ConnectionString string `json:"connectionString,omitempty"`
 
-	// Dependencies a list of all dependencies of the framework.
-	Dependencies []FrameworkDependency `json:"dependencies,omitempty"`
+	// Dependencies a list of all dependencies of the operator.
+	Dependencies []OperatorDependency `json:"dependencies,omitempty"`
 
-	// UpgradableFrom lists all FrameworkVersions that can upgrade to this FrameworkVersion.
-	UpgradableFrom []FrameworkVersion `json:"upgradableFrom,omitempty"`
+	// UpgradableFrom lists all OperatorVersions that can upgrade to this OperatorVersion.
+	UpgradableFrom []OperatorVersion `json:"upgradableFrom,omitempty"`
 }
 
 // Ordering specifies how the subitems in this plan/phase should be rolled out.
@@ -64,7 +64,7 @@ type Plan struct {
 	Phases []Phase `json:"phases" validate:"required,gt=0,dive"` // makes field mandatory and checks if its gt 0
 }
 
-// Parameter captures the variability of a FrameworkVersion being instantiated in an instance.
+// Parameter captures the variability of a OperatorVersion being instantiated in an instance.
 type Parameter struct {
 	// DisplayName can be used by UI's.
 	DisplayName string `json:"displayName,omitempty"`
@@ -119,8 +119,8 @@ type Step struct {
 	Objects []runtime.Object `json:"-"` // no checks needed
 }
 
-// FrameworkVersionStatus defines the observed state of FrameworkVersion.
-type FrameworkVersionStatus struct {
+// OperatorVersionStatus defines the observed state of OperatorVersion.
+type OperatorVersionStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
@@ -128,31 +128,31 @@ type FrameworkVersionStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// FrameworkVersion is the Schema for the frameworkversions API.
+// OperatorVersion is the Schema for the operatorversions API.
 // +k8s:openapi-gen=true
-type FrameworkVersion struct {
+type OperatorVersion struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   FrameworkVersionSpec   `json:"spec,omitempty"`
-	Status FrameworkVersionStatus `json:"status,omitempty"`
+	Spec   OperatorVersionSpec   `json:"spec,omitempty"`
+	Status OperatorVersionStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// FrameworkVersionList contains a list of FrameworkVersion.
-type FrameworkVersionList struct {
+// OperatorVersionList contains a list of OperatorVersion.
+type OperatorVersionList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []FrameworkVersion `json:"items"`
+	Items           []OperatorVersion `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&FrameworkVersion{}, &FrameworkVersionList{})
+	SchemeBuilder.Register(&OperatorVersion{}, &OperatorVersionList{})
 }
 
-// FrameworkDependency references a defined framework.
-type FrameworkDependency struct {
+// OperatorDependency references a defined operator.
+type OperatorDependency struct {
 	// Name specifies the name of the dependency. Referenced via defaults.config.
 	ReferenceName string `json:"referenceName"`
 	corev1.ObjectReference

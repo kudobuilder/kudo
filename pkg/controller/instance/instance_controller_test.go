@@ -36,9 +36,9 @@ func TestReconcile_InstancesOnFrameworkVersionEvent(t *testing.T) {
 	// Given an existing Instance object
 	log.Printf("Given an existing instance \"foo-instance\"")
 	in := &v1alpha1.Instance{
-		ObjectMeta: metav1.ObjectMeta{Name: "foo-instance", Namespace: "default", Labels: map[string]string{"framework": "foo-framework"}},
+		ObjectMeta: metav1.ObjectMeta{Name: "foo-instance", Namespace: "default", Labels: map[string]string{"operator": "foo-framework"}},
 		Spec: v1alpha1.InstanceSpec{
-			FrameworkVersion: v1.ObjectReference{
+			OperatorVersion: v1.ObjectReference{
 				Name:      "foo-framework",
 				Namespace: "default",
 			},
@@ -60,12 +60,12 @@ func TestReconcile_InstancesOnFrameworkVersionEvent(t *testing.T) {
 		mgrStopped.Wait()
 	}()
 
-	// Create a FrameworkVersion object with an empty "deploy" plan first
+	// Create a OperatorVersion object with an empty "deploy" plan first
 	log.Printf("When a frameworkVersion is created")
-	fv := &v1alpha1.FrameworkVersion{
+	fv := &v1alpha1.OperatorVersion{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-framework", Namespace: "default"},
-		TypeMeta:   metav1.TypeMeta{Kind: "FrameworkVersion", APIVersion: "kudo.k8s.io/v1alpha1"},
-		Spec: v1alpha1.FrameworkVersionSpec{
+		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.k8s.io/v1alpha1"},
+		Spec: v1alpha1.OperatorVersionSpec{
 			Plans: map[string]v1alpha1.Plan{"deploy": {}},
 		},
 	}

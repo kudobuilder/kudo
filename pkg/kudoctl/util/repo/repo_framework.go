@@ -126,7 +126,7 @@ func (r *FrameworkRepository) GetPackageBundle(name string, version string) (Bun
 
 // GetFrameworkVersionDependencies helper method returns a slice of strings that contains the names of all
 // dependency Frameworks
-func GetFrameworkVersionDependencies(fv *v1alpha1.FrameworkVersion) ([]string, error) {
+func GetFrameworkVersionDependencies(fv *v1alpha1.OperatorVersion) ([]string, error) {
 	var dependencyFrameworks []string
 	if fv.Spec.Dependencies != nil {
 		for _, v := range fv.Spec.Dependencies {

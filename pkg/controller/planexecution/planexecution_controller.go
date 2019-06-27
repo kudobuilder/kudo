@@ -263,21 +263,21 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		log.Printf("PlanExecutionController: Upate of instance with ActivePlan errored: %v", err)
 	}
 
-	// Get associated FrameworkVersion
-	frameworkVersion := &kudov1alpha1.FrameworkVersion{}
+	// Get associated OperatorVersion
+	frameworkVersion := &kudov1alpha1.OperatorVersion{}
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
-			Name:      instance.Spec.FrameworkVersion.Name,
-			Namespace: instance.Spec.FrameworkVersion.Namespace,
+			Name:      instance.Spec.OperatorVersion.Name,
+			Namespace: instance.Spec.OperatorVersion.Namespace,
 		},
 		frameworkVersion)
 	if err != nil {
-		// Can't find the FrameworkVersion.
+		// Can't find the OperatorVersion.
 		planExecution.Status.State = kudov1alpha1.PhaseStateError
-		r.recorder.Event(planExecution, "Warning", "InvalidFrameworkVersion", fmt.Sprintf("Could not find FrameworkVersion %v", instance.Spec.FrameworkVersion.Name))
-		log.Printf("PlanExecutionController: Error getting FrameworkVersion %v in %v: %v",
-			instance.Spec.FrameworkVersion.Name,
-			instance.Spec.FrameworkVersion.Namespace,
+		r.recorder.Event(planExecution, "Warning", "InvalidFrameworkVersion", fmt.Sprintf("Could not find OperatorVersion %v", instance.Spec.OperatorVersion.Name))
+		log.Printf("PlanExecutionController: Error getting OperatorVersion %v in %v: %v",
+			instance.Spec.OperatorVersion.Name,
+			instance.Spec.OperatorVersion.Namespace,
 			err)
 		return reconcile.Result{}, err
 	}
@@ -288,7 +288,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	configs := make(map[string]interface{})
 
 	// Default parameters from instance metadata
-	configs["FrameworkName"] = frameworkVersion.Spec.Framework.Name
+	configs["FrameworkName"] = frameworkVersion.Spec.Operator.Name
 	configs["Name"] = instance.Name
 	configs["Namespace"] = instance.Namespace
 
@@ -314,7 +314,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 	configs["Params"] = params
 
-	// Get Plan from FrameworkVersion.
+	// Get Plan from OperatorVersion.
 	//
 	// Right now must match exactly. In the future have defaults/backups: e.g., if no
 	// "upgrade", call "update"; if no "update", call "deploy"
@@ -340,7 +340,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStatePending
 		planExecution.Status.Phases[i].Steps = make([]kudov1alpha1.StepStatus, len(phase.Steps))
 		for j, step := range phase.Steps {
-			// Fetch FrameworkVersion:
+			// Fetch OperatorVersion:
 			//
 			//   - Get the task name from the step
 			//   - Get the task definition from the FV
@@ -382,7 +382,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						Namespace:  instance.Namespace,
 						CommonLabels: map[string]string{
 							"heritage": "kudo",
-							"app":      frameworkVersion.Spec.Framework.Name,
+							"app":      frameworkVersion.Spec.Operator.Name,
 							"version":  frameworkVersion.Spec.Version,
 							"instance": instance.Name,
 						},

@@ -26,7 +26,7 @@ import (
 // FrameworkVersionLister helps list FrameworkVersions.
 type FrameworkVersionLister interface {
 	// List lists all FrameworkVersions in the indexer.
-	List(selector labels.Selector) (ret []*v1alpha1.FrameworkVersion, err error)
+	List(selector labels.Selector) (ret []*v1alpha1.OperatorVersion, err error)
 	// FrameworkVersions returns an object that can list and get FrameworkVersions.
 	FrameworkVersions(namespace string) FrameworkVersionNamespaceLister
 	FrameworkVersionListerExpansion
@@ -43,9 +43,9 @@ func NewFrameworkVersionLister(indexer cache.Indexer) FrameworkVersionLister {
 }
 
 // List lists all FrameworkVersions in the indexer.
-func (s *frameworkVersionLister) List(selector labels.Selector) (ret []*v1alpha1.FrameworkVersion, err error) {
+func (s *frameworkVersionLister) List(selector labels.Selector) (ret []*v1alpha1.OperatorVersion, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.FrameworkVersion))
+		ret = append(ret, m.(*v1alpha1.OperatorVersion))
 	})
 	return ret, err
 }
@@ -58,9 +58,9 @@ func (s *frameworkVersionLister) FrameworkVersions(namespace string) FrameworkVe
 // FrameworkVersionNamespaceLister helps list and get FrameworkVersions.
 type FrameworkVersionNamespaceLister interface {
 	// List lists all FrameworkVersions in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*v1alpha1.FrameworkVersion, err error)
-	// Get retrieves the FrameworkVersion from the indexer for a given namespace and name.
-	Get(name string) (*v1alpha1.FrameworkVersion, error)
+	List(selector labels.Selector) (ret []*v1alpha1.OperatorVersion, err error)
+	// Get retrieves the OperatorVersion from the indexer for a given namespace and name.
+	Get(name string) (*v1alpha1.OperatorVersion, error)
 	FrameworkVersionNamespaceListerExpansion
 }
 
@@ -72,15 +72,15 @@ type frameworkVersionNamespaceLister struct {
 }
 
 // List lists all FrameworkVersions in the indexer for a given namespace.
-func (s frameworkVersionNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.FrameworkVersion, err error) {
+func (s frameworkVersionNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.OperatorVersion, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.FrameworkVersion))
+		ret = append(ret, m.(*v1alpha1.OperatorVersion))
 	})
 	return ret, err
 }
 
-// Get retrieves the FrameworkVersion from the indexer for a given namespace and name.
-func (s frameworkVersionNamespaceLister) Get(name string) (*v1alpha1.FrameworkVersion, error) {
+// Get retrieves the OperatorVersion from the indexer for a given namespace and name.
+func (s frameworkVersionNamespaceLister) Get(name string) (*v1alpha1.OperatorVersion, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
@@ -88,5 +88,5 @@ func (s frameworkVersionNamespaceLister) Get(name string) (*v1alpha1.FrameworkVe
 	if !exists {
 		return nil, errors.NewNotFound(v1alpha1.Resource("frameworkversion"), name)
 	}
-	return obj.(*v1alpha1.FrameworkVersion), nil
+	return obj.(*v1alpha1.OperatorVersion), nil
 }

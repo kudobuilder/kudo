@@ -34,23 +34,23 @@ type FakeFrameworkVersions struct {
 
 var frameworkversionsResource = schema.GroupVersionResource{Group: "kudo.k8s.io", Version: "v1alpha1", Resource: "frameworkversions"}
 
-var frameworkversionsKind = schema.GroupVersionKind{Group: "kudo.k8s.io", Version: "v1alpha1", Kind: "FrameworkVersion"}
+var frameworkversionsKind = schema.GroupVersionKind{Group: "kudo.k8s.io", Version: "v1alpha1", Kind: "OperatorVersion"}
 
 // Get takes name of the frameworkVersion, and returns the corresponding frameworkVersion object, and an error if there is any.
-func (c *FakeFrameworkVersions) Get(name string, options v1.GetOptions) (result *v1alpha1.FrameworkVersion, err error) {
+func (c *FakeFrameworkVersions) Get(name string, options v1.GetOptions) (result *v1alpha1.OperatorVersion, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(frameworkversionsResource, c.ns, name), &v1alpha1.FrameworkVersion{})
+		Invokes(testing.NewGetAction(frameworkversionsResource, c.ns, name), &v1alpha1.OperatorVersion{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.FrameworkVersion), err
+	return obj.(*v1alpha1.OperatorVersion), err
 }
 
 // List takes label and field selectors, and returns the list of FrameworkVersions that match those selectors.
-func (c *FakeFrameworkVersions) List(opts v1.ListOptions) (result *v1alpha1.FrameworkVersionList, err error) {
+func (c *FakeFrameworkVersions) List(opts v1.ListOptions) (result *v1alpha1.OperatorVersionList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(frameworkversionsResource, frameworkversionsKind, c.ns, opts), &v1alpha1.FrameworkVersionList{})
+		Invokes(testing.NewListAction(frameworkversionsResource, frameworkversionsKind, c.ns, opts), &v1alpha1.OperatorVersionList{})
 
 	if obj == nil {
 		return nil, err
@@ -60,8 +60,8 @@ func (c *FakeFrameworkVersions) List(opts v1.ListOptions) (result *v1alpha1.Fram
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.FrameworkVersionList{ListMeta: obj.(*v1alpha1.FrameworkVersionList).ListMeta}
-	for _, item := range obj.(*v1alpha1.FrameworkVersionList).Items {
+	list := &v1alpha1.OperatorVersionList{ListMeta: obj.(*v1alpha1.OperatorVersionList).ListMeta}
+	for _, item := range obj.(*v1alpha1.OperatorVersionList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -77,43 +77,43 @@ func (c *FakeFrameworkVersions) Watch(opts v1.ListOptions) (watch.Interface, err
 }
 
 // Create takes the representation of a frameworkVersion and creates it.  Returns the server's representation of the frameworkVersion, and an error, if there is any.
-func (c *FakeFrameworkVersions) Create(frameworkVersion *v1alpha1.FrameworkVersion) (result *v1alpha1.FrameworkVersion, err error) {
+func (c *FakeFrameworkVersions) Create(frameworkVersion *v1alpha1.OperatorVersion) (result *v1alpha1.OperatorVersion, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(frameworkversionsResource, c.ns, frameworkVersion), &v1alpha1.FrameworkVersion{})
+		Invokes(testing.NewCreateAction(frameworkversionsResource, c.ns, frameworkVersion), &v1alpha1.OperatorVersion{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.FrameworkVersion), err
+	return obj.(*v1alpha1.OperatorVersion), err
 }
 
 // Update takes the representation of a frameworkVersion and updates it. Returns the server's representation of the frameworkVersion, and an error, if there is any.
-func (c *FakeFrameworkVersions) Update(frameworkVersion *v1alpha1.FrameworkVersion) (result *v1alpha1.FrameworkVersion, err error) {
+func (c *FakeFrameworkVersions) Update(frameworkVersion *v1alpha1.OperatorVersion) (result *v1alpha1.OperatorVersion, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(frameworkversionsResource, c.ns, frameworkVersion), &v1alpha1.FrameworkVersion{})
+		Invokes(testing.NewUpdateAction(frameworkversionsResource, c.ns, frameworkVersion), &v1alpha1.OperatorVersion{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.FrameworkVersion), err
+	return obj.(*v1alpha1.OperatorVersion), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeFrameworkVersions) UpdateStatus(frameworkVersion *v1alpha1.FrameworkVersion) (*v1alpha1.FrameworkVersion, error) {
+func (c *FakeFrameworkVersions) UpdateStatus(frameworkVersion *v1alpha1.OperatorVersion) (*v1alpha1.OperatorVersion, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(frameworkversionsResource, "status", c.ns, frameworkVersion), &v1alpha1.FrameworkVersion{})
+		Invokes(testing.NewUpdateSubresourceAction(frameworkversionsResource, "status", c.ns, frameworkVersion), &v1alpha1.OperatorVersion{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.FrameworkVersion), err
+	return obj.(*v1alpha1.OperatorVersion), err
 }
 
 // Delete takes name of the frameworkVersion and deletes it. Returns an error if one occurs.
 func (c *FakeFrameworkVersions) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(frameworkversionsResource, c.ns, name), &v1alpha1.FrameworkVersion{})
+		Invokes(testing.NewDeleteAction(frameworkversionsResource, c.ns, name), &v1alpha1.OperatorVersion{})
 
 	return err
 }
@@ -122,17 +122,17 @@ func (c *FakeFrameworkVersions) Delete(name string, options *v1.DeleteOptions) e
 func (c *FakeFrameworkVersions) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(frameworkversionsResource, c.ns, listOptions)
 
-	_, err := c.Fake.Invokes(action, &v1alpha1.FrameworkVersionList{})
+	_, err := c.Fake.Invokes(action, &v1alpha1.OperatorVersionList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched frameworkVersion.
-func (c *FakeFrameworkVersions) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.FrameworkVersion, err error) {
+func (c *FakeFrameworkVersions) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.OperatorVersion, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(frameworkversionsResource, c.ns, name, pt, data, subresources...), &v1alpha1.FrameworkVersion{})
+		Invokes(testing.NewPatchSubresourceAction(frameworkversionsResource, c.ns, name, pt, data, subresources...), &v1alpha1.OperatorVersion{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.FrameworkVersion), err
+	return obj.(*v1alpha1.OperatorVersion), err
 }

@@ -19,8 +19,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// FrameworkSpec defines the desired state of Framework
-type FrameworkSpec struct {
+// OperatorSpec defines the desired state of Operator
+type OperatorSpec struct {
 	Description       string       `json:"description,omitempty"`
 	KudoVersion       string       `json:"kudoVersion,omitempty"`
 	KubernetesVersion string       `json:"kubernetesVersion,omitempty"`
@@ -28,11 +28,11 @@ type FrameworkSpec struct {
 	URL               string       `json:"url,omitempty"`
 }
 
-// Maintainer contains contact info for the maintainer of the Framework
+// Maintainer contains contact info for the maintainer of the Operator
 type Maintainer string
 
-// FrameworkStatus defines the observed state of Framework
-type FrameworkStatus struct {
+// OperatorStatus defines the observed state of Operator
+type OperatorStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
@@ -40,25 +40,25 @@ type FrameworkStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Framework is the Schema for the frameworks API
+// Operator is the Schema for the operator API
 // +k8s:openapi-gen=true
-type Framework struct {
+type Operator struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   FrameworkSpec   `json:"spec,omitempty"`
-	Status FrameworkStatus `json:"status,omitempty"`
+	Spec   OperatorSpec   `json:"spec,omitempty"`
+	Status OperatorStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// FrameworkList contains a list of Framework
-type FrameworkList struct {
+// OperatorList contains a list of Operator
+type OperatorList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Framework `json:"items"`
+	Items           []Operator `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Framework{}, &FrameworkList{})
+	SchemeBuilder.Register(&Operator{}, &OperatorList{})
 }

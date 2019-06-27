@@ -1,5 +1,5 @@
 apiVersion: kudo.k8s.io/v1alpha1
-kind: Framework
+kind: Operator
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"

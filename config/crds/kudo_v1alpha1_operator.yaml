@@ -4,12 +4,12 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: instances.kudo.k8s.io
+  name: operators.kudo.k8s.io
 spec:
   group: kudo.k8s.io
   names:
-    kind: Instance
-    plural: instances
+    kind: Operator
+    plural: operators
   scope: Namespaced
   validation:
     openAPIV3Schema:
@@ -28,35 +28,20 @@ spec:
           type: object
         spec:
           properties:
-            dependencies:
+            description:
+              type: string
+            kubernetesVersion:
+              type: string
+            kudoVersion:
+              type: string
+            maintainers:
               items:
-                properties:
-                  referenceName:
-                    description: Name specifies the name of the dependency. Referenced
-                      via defaults.config.
-                    type: string
-                  version:
-                    description: 'Version captures the requirements for what versions
-                      of the above object are allowed.  Example: ^3.1.4'
-                    type: string
-                required:
-                - referenceName
-                - version
-                type: object
+                type: string
               type: array
-            operatorVersion:
-              description: Operator specifies a reference to a specific Operator object.
-              type: object
-            parameters:
-              type: object
+            url:
+              type: string
           type: object
         status:
-          properties:
-            activePlan:
-              description: TODO turn into struct
-              type: object
-            status:
-              type: string
           type: object
   version: v1alpha1
 status:

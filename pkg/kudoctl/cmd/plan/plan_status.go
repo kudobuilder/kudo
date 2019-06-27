@@ -110,7 +110,7 @@ func planStatus(options *statusOptions) error {
 		return err
 	}
 
-	frameworkVersionNameOfInstance := instance.Spec.FrameworkVersion.Name
+	frameworkVersionNameOfInstance := instance.Spec.OperatorVersion.Name
 
 	frameworkGVR := schema.GroupVersionResource{
 		Group:    "kudo.k8s.io",
@@ -129,7 +129,7 @@ func planStatus(options *statusOptions) error {
 		return err
 	}
 
-	framework := kudov1alpha1.FrameworkVersion{}
+	framework := kudov1alpha1.OperatorVersion{}
 
 	err = json.Unmarshal(mFrameworkObj, &framework)
 	if err != nil {
@@ -159,7 +159,7 @@ func planStatus(options *statusOptions) error {
 		return err
 	}
 
-	rootDisplay := fmt.Sprintf("%s (Framework-Version: \"%s\" Active-Plan: \"%s\")", instance.Name, instance.Spec.FrameworkVersion.Name, instance.Status.ActivePlan.Name)
+	rootDisplay := fmt.Sprintf("%s (Operator-Version: \"%s\" Active-Plan: \"%s\")", instance.Name, instance.Spec.OperatorVersion.Name, instance.Status.ActivePlan.Name)
 	rootBranchName := tree.AddBranch(rootDisplay)
 
 	for name, plan := range framework.Spec.Plans {

@@ -42,14 +42,14 @@ type frameworkInformer struct {
 	namespace        string
 }
 
-// NewFrameworkInformer constructs a new informer for Framework type.
+// NewFrameworkInformer constructs a new informer for Operator type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewFrameworkInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewFilteredFrameworkInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredFrameworkInformer constructs a new informer for Framework type.
+// NewFilteredFrameworkInformer constructs a new informer for Operator type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewFilteredFrameworkInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
@@ -68,7 +68,7 @@ func NewFilteredFrameworkInformer(client versioned.Interface, namespace string, 
 				return client.KudoV1alpha1().Frameworks(namespace).Watch(options)
 			},
 		},
-		&kudov1alpha1.Framework{},
+		&kudov1alpha1.Operator{},
 		resyncPeriod,
 		indexers,
 	)
@@ -79,7 +79,7 @@ func (f *frameworkInformer) defaultInformer(client versioned.Interface, resyncPe
 }
 
 func (f *frameworkInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&kudov1alpha1.Framework{}, f.defaultInformer)
+	return f.factory.InformerFor(&kudov1alpha1.Operator{}, f.defaultInformer)
 }
 
 func (f *frameworkInformer) Lister() v1alpha1.FrameworkLister {

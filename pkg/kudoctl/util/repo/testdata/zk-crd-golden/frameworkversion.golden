@@ -1,14 +1,14 @@
 apiVersion: kudo.k8s.io/v1alpha1
-kind: FrameworkVersion
+kind: OperatorVersion
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: zookeeper-0.1.0
   namespace: default
 spec:
-  framework:
+  operator:
     name: zookeeper
-    kind: Framework
+    kind: Operator
   # Add fields here
   version: "0.1.0"
   parameters:
