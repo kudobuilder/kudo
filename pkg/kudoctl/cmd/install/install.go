@@ -117,16 +117,17 @@ func getPackageCRDs(name string, options *Options, repository repo.Repository) (
 // installFramework is the umbrella for a single framework installation that gathers the business logic
 // for a cluster and returns an error in case there is a problem
 // TODO: needs testing
-func installFramework(frameworkName string, isDependencyInstall bool, repository repo.Repository, kc *kudo.Client, options *Options) error {
-	crds, err := getPackageCRDs(frameworkName, options, repository)
+func installFramework(frameworkArgument string, isDependencyInstall bool, repository repo.Repository, kc *kudo.Client, options *Options) error {
+	crds, err := getPackageCRDs(frameworkArgument, options, repository)
 	if err != nil {
-		return errors.Wrapf(err, "failed to install package: %s", frameworkName)
+		return errors.Wrapf(err, "failed to resolve package CRDs for framework: %s", frameworkArgument)
 	}
 
 	// Framework part
 
 	// Check if Framework exists
-	if !kc.FrameworkExistsInCluster(frameworkName, options.Namespace) {
+	frameworkName := crds.Framework.ObjectMeta.Name
+	if !kc.FrameworkExistsInCluster(crds.Framework.ObjectMeta.Name, options.Namespace) {
 		if err := installSingleFrameworkToCluster(frameworkName, options.Namespace, crds.Framework, kc); err != nil {
 			return errors.Wrap(err, "installing single Framework")
 		}
@@ -135,7 +136,7 @@ func installFramework(frameworkName string, isDependencyInstall bool, repository
 	// FrameworkVersion part
 
 	// Check if AnyFrameworkVersion for Framework exists
-	if !kc.AnyFrameworkVersionExistsInCluster(frameworkName, options.Namespace) {
+	if !kc.AnyFrameworkVersionExistsInCluster(crds.Framework.ObjectMeta.Name, options.Namespace) {
 		// FrameworkVersion CRD for Framework does not exist
 		if err := installSingleFrameworkVersionToCluster(frameworkName, options.Namespace, kc, crds.FrameworkVersion); err != nil {
 			return errors.Wrapf(err, "installing FrameworkVersion CRD for framework: %s", frameworkName)
