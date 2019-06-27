@@ -268,7 +268,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      instance.Spec.OperatorVersion.Name,
-			Namespace: instance.Spec.OperatorVersion.Namespace,
+			Namespace: instance.GetOperatorVersionNamespace(),
 		},
 		operatorVersion)
 	if err != nil {
@@ -277,7 +277,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		r.recorder.Event(planExecution, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Could not find OperatorVersion %v", instance.Spec.OperatorVersion.Name))
 		log.Printf("PlanExecutionController: Error getting OperatorVersion %v in %v: %v",
 			instance.Spec.OperatorVersion.Name,
-			instance.Spec.OperatorVersion.Namespace,
+			instance.GetOperatorVersionNamespace(),
 			err)
 		return reconcile.Result{}, err
 	}

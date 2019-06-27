@@ -82,8 +82,8 @@ func installOperators(args []string, options *Options) error {
 		return errors.Wrap(err, "creating kudo client")
 	}
 
-	for _, name := range args {
-		err := installOperator(name, "", r, kc, options)
+	for _, operatorName := range args {
+		err := installOperator(operatorName, false, r, kc, options)
 		if err != nil {
 			return err
 		}
@@ -117,17 +117,18 @@ func getPackageCRDs(name string, options *Options, repository repo.Repository) (
 // installOperator is the umbrella for a single operator installation that gathers the business logic
 // for a cluster and returns an error in case there is a problem
 // TODO: needs testing
-func installOperator(name, previous string, repository repo.Repository, kc *kudo.Client, options *Options) error {
-	crds, err := getPackageCRDs(name, options, repository)
+func installOperator(operatorArgument string, isDependencyInstall bool, repository repo.Repository, kc *kudo.Client, options *Options) error {
+	crds, err := getPackageCRDs(operatorArgument, options, repository)
 	if err != nil {
-		return errors.Wrapf(err, "failed to install package: %s", name)
+		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", operatorArgument)
 	}
 
 	// Operator part
 
 	// Check if Operator exists
-	if !kc.OperatorExistsInCluster(name, options.Namespace) {
-		if err := installSingleOperatorToCluster(name, options.Namespace, crds.Operator, kc); err != nil {
+	OperatorName := crds.Operator.ObjectMeta.Name
+	if !kc.OperatorExistsInCluster(crds.Operator.ObjectMeta.Name, options.Namespace) {
+		if err := installSingleOperatorToCluster(OperatorName, options.Namespace, crds.Operator, kc); err != nil {
 			return errors.Wrap(err, "installing single Operator")
 		}
 	}
@@ -135,28 +136,28 @@ func installOperator(name, previous string, repository repo.Repository, kc *kudo
 	// OperatorVersion part
 
 	// Check if AnyOperatorVersion for Operator exists
-	if !kc.AnyOperatorVersionExistsInCluster(name, options.Namespace) {
+	if !kc.AnyOperatorVersionExistsInCluster(crds.Operator.ObjectMeta.Name, options.Namespace) {
 		// OperatorVersion CRD for Operator does not exist
-		if err := installSingleOperatorVersionToCluster(name, options.Namespace, kc, crds.OperatorVersion); err != nil {
-			return errors.Wrapf(err, "installing OperatorVersion CRD for operator: %s", name)
+		if err := installSingleOperatorVersionToCluster(OperatorName, options.Namespace, kc, crds.OperatorVersion); err != nil {
+			return errors.Wrapf(err, "installing OperatorVersion CRD for operator: %s", OperatorName)
 		}
 	}
 
 	// Check if OperatorVersion is out of sync with official OperatorVersion for this Operator
-	if !kc.OperatorVersionInClusterOutOfSync(name, crds.OperatorVersion.Spec.Version, options.Namespace) {
+	if !kc.OperatorVersionInClusterOutOfSync(OperatorName, crds.OperatorVersion.Spec.Version, options.Namespace) {
 		// This happens when the given OperatorVersion is not existing. E.g.
 		// when a version has been installed that is not part of the official kudobuilder/operators repo.
 		if !options.AutoApprove {
 			fmt.Printf("No official OperatorVersion has been found for \"%s\". "+
-				"Do you want to install one? (Yes/no) ", name)
+				"Do you want to install one? (Yes/no) ", OperatorName)
 			if helpers.AskForConfirmation() {
-				if err := installSingleOperatorVersionToCluster(name, options.Namespace, kc, crds.OperatorVersion); err != nil {
-					return errors.Wrapf(err, "installing OperatorVersion CRD for operator %s", name)
+				if err := installSingleOperatorVersionToCluster(OperatorName, options.Namespace, kc, crds.OperatorVersion); err != nil {
+					return errors.Wrapf(err, "installing OperatorVersion CRD for operator %s", OperatorName)
 				}
 			}
 		} else {
-			if err := installSingleOperatorVersionToCluster(name, options.Namespace, kc, crds.OperatorVersion); err != nil {
-				return errors.Wrapf(err, "installing OperatorVersion CRD for operator %s", name)
+			if err := installSingleOperatorVersionToCluster(OperatorName, options.Namespace, kc, crds.OperatorVersion); err != nil {
+				return errors.Wrapf(err, "installing OperatorVersion CRD for operator %s", OperatorName)
 			}
 		}
 
@@ -170,10 +171,10 @@ func installOperator(name, previous string, repository repo.Repository, kc *kudo
 		}
 		for _, v := range dependencyOperators {
 			// recursive function call
-			// Dependencies should not be as big as that they will have an overflow in the function stack operator
+			// Dependencies should not be as big as that they will have an overflow in the function stack frame
 			// installOperator makes sure that dependency Operators are created before the Operator itself
 			// and it allows to inherit dependencies.
-			if err := installOperator(v, name, repository, kc, options); err != nil {
+			if err := installOperator(v, true, repository, kc, options); err != nil {
 				return errors.Wrapf(err, "installing dependency Operator %s", v)
 			}
 		}
@@ -185,27 +186,39 @@ func installOperator(name, previous string, repository repo.Repository, kc *kudo
 	// This is also the part you end up when no dependencies are found or installed and all Operator and
 	// OperatorVersions are already installed.
 
+	// First make sure that our instance object is up to date with overrides from commandline
+	applyInstanceOverrides(crds.Instance, options, isDependencyInstall)
+
 	// Check if Instance exists in cluster
-	// It won't create the Instance if any in combination with given Operator Name and OperatorVersion exists
-	if !kc.AnyInstanceExistsInCluster(name, options.Namespace, crds.OperatorVersion.Spec.Version) {
+	// It won't create the Instance if any in combination with given Operator Name, OperatorVersion and Instance OperatorName exists
+	instanceName := crds.Instance.ObjectMeta.Name
+	instanceExists, err := kc.InstanceExistsInCluster(OperatorName, options.Namespace, crds.OperatorVersion.Spec.Version, instanceName)
+	if err != nil {
+		return errors.Wrapf(err, "verifying the instance does not already exist")
+	}
+
+	if !instanceExists {
 		// This happens when the given OperatorVersion is not existing. E.g.
 		// when a version has been installed that is not part of the official kudobuilder/operators repo.
 		if !options.AutoApprove {
 			fmt.Printf("No Instance tied to this \"%s\" version has been found. "+
-				"Do you want to create one? (Yes/no) ", name)
+				"Do you want to create one? (Yes/no) ", OperatorName)
 			if helpers.AskForConfirmation() {
 				// If Instance is a dependency we need to make sure installSingleInstanceToCluster is aware of it.
 				// By having the previous string set we can make this distinction.
-				if err := installSingleInstanceToCluster(name, previous, crds.Instance, kc, options); err != nil {
+				if err := installSingleInstanceToCluster(OperatorName, crds.Instance, kc, options); err != nil {
 					return errors.Wrap(err, "installing single Instance")
 				}
 			}
 		} else {
-			if err := installSingleInstanceToCluster(name, previous, crds.Instance, kc, options); err != nil {
+			if err := installSingleInstanceToCluster(OperatorName, crds.Instance, kc, options); err != nil {
 				return errors.Wrap(err, "installing single Instance")
 			}
 		}
 
+	} else {
+		return fmt.Errorf("can not install Instance %s of operator %s-%s because instance of that name already exists in namespace %s",
+			instanceName, OperatorName, crds.OperatorVersion.Spec.Version, options.Namespace)
 	}
 	return nil
 }
@@ -232,23 +245,26 @@ func installSingleOperatorVersionToCluster(name, namespace string, kc *kudo.Clie
 
 // installSingleInstanceToCluster installs a given Instance to the cluster
 // TODO: needs more testing
-func installSingleInstanceToCluster(name, previous string, instance *v1alpha1.Instance, kc *kudo.Client, options *Options) error {
+func installSingleInstanceToCluster(name string, instance *v1alpha1.Instance, kc *kudo.Client, options *Options) error {
 	// Customizing Instance
 	// TODO: traversing, e.g. check function that looksup if key exists in the current OperatorVersion
 	// That way just Parameters will be applied if they exist in the matching OperatorVersion
-	// More checking required
-	// E.g. when installing with flag --all-dependencies to prevent overwriting dependency Instance name
 
-	// This checks if flag --instance was set with a name and it is the not a dependency Instance
-	if options.InstanceName != "" && previous == "" {
-		instance.ObjectMeta.SetName(options.InstanceName)
-	}
-	if options.Parameters != nil {
-		instance.Spec.Parameters = options.Parameters
-	}
 	if _, err := kc.InstallInstanceObjToCluster(instance, options.Namespace); err != nil {
 		return errors.Wrapf(err, "installing instance %s", name)
 	}
 	fmt.Printf("instance.%s/%s created\n", instance.APIVersion, instance.Name)
 	return nil
+}
+
+func applyInstanceOverrides(instance *v1alpha1.Instance, options *Options, isDependencyInstall bool) {
+	// More checking required
+	// E.g. when installing with flag --all-dependencies to prevent overwriting dependency Instance name
+	// This checks if flag --instance was set with a name and it is the not a dependency Instance
+	if options.InstanceName != "" && !isDependencyInstall {
+		instance.ObjectMeta.SetName(options.InstanceName)
+	}
+	if options.Parameters != nil {
+		instance.Spec.Parameters = options.Parameters
+	}
 }

@@ -75,7 +75,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			err = mgr.GetClient().Get(context.TODO(),
 				types.NamespacedName{
 					Name:      new.Spec.OperatorVersion.Name,
-					Namespace: new.Spec.OperatorVersion.Namespace,
+					Namespace: new.GetOperatorVersionNamespace(),
 				},
 				fv)
 			if err != nil {
@@ -193,7 +193,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			err = mgr.GetClient().Get(context.TODO(),
 				types.NamespacedName{
 					Name:      instance.Spec.OperatorVersion.Name,
-					Namespace: instance.Spec.OperatorVersion.Namespace,
+					Namespace: instance.GetOperatorVersionNamespace(),
 				},
 				fv)
 			if err != nil {
@@ -255,7 +255,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			for _, instance := range instances.Items {
 				// Sanity check - lets make sure that this instance references the operatorVersion
 				if instance.Spec.OperatorVersion.Name == a.Meta.GetName() &&
-					instance.Spec.OperatorVersion.Namespace == a.Meta.GetNamespace() &&
+					instance.GetOperatorVersionNamespace() == a.Meta.GetNamespace() &&
 					instance.Status.ActivePlan.Name == "" {
 
 					log.Printf("InstanceController: Creating a deploy execution plan for the instance %v", instance.Name)
@@ -375,7 +375,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      instance.Spec.OperatorVersion.Name,
-			Namespace: instance.Spec.OperatorVersion.Namespace,
+			Namespace: instance.GetOperatorVersionNamespace(),
 		},
 		fv)
 	if err != nil {

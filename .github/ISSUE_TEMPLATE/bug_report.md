@@ -23,7 +23,7 @@ If the matter is security sensitive, please disclose it privately to a security 
 **Environment**:
 - Kubernetes version (use `kubectl version`):
 - Kudo version (use `kubectl kudo version`): 
-- Framework:
+- Operator:
 - operatorVersion:
 - Cloud provider or hardware configuration:
 - OS (e.g. from /etc/os-release):

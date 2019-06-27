@@ -112,7 +112,7 @@ func (c *Client) AnyOperatorVersionExistsInCluster(operator string, namespace st
 	return true
 }
 
-// AnyInstanceExistsInCluster checks if any OperatorVersion object matches to the given Operator name
+// InstanceExistsInCluster checks if any OperatorVersion object matches to the given Operator name
 // in the cluster.
 // An Instance has two identifiers:
 // 		1) Spec.OperatorVersion.Name
@@ -127,29 +127,28 @@ func (c *Client) AnyOperatorVersionExistsInCluster(operator string, namespace st
 //      		controller-tools.k8s.io: "1.0"
 //      		operator: kafka
 // This function also just returns true if the Instance matches a specific OperatorVersion of a Operator
-func (c *Client) AnyInstanceExistsInCluster(name, namespace, version string) bool {
+func (c *Client) InstanceExistsInCluster(name, namespace, version, instanceName string) (bool, error) {
 	instances, err := c.clientset.KudoV1alpha1().Instances(namespace).List(v1.ListOptions{LabelSelector: "operator=" + name})
 	if err != nil {
-		return false
+		return false, err
 	}
 	if len(instances.Items) < 1 {
-		return false
+		return false, nil
 	}
 
 	// TODO: check function that actual checks for the OperatorVersion named e.g. "test-1.0" to exist
 	var i int
 	for _, v := range instances.Items {
-		if v.Spec.OperatorVersion.Name == name+"-"+version {
+		if v.Spec.OperatorVersion.Name == name+"-"+version && v.ObjectMeta.Name == instanceName {
 			i++
 		}
 	}
 
-	// This is when we don't find the version we are looking for
-	if i < 1 {
-		return false
+	// No instance exist with this name and FV exists
+	if i == 0 {
+		return false, nil
 	}
-	fmt.Printf("instance.kudo.k8s.io/%s unchanged\n", name)
-	return true
+	return true, nil
 }
 
 // OperatorVersionInClusterOutOfSync checks if any OperatorVersion object matches a given Operator name and

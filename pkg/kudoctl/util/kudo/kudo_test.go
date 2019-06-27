@@ -132,7 +132,7 @@ func TestK2oClient_AnyOperatorVersionExistsInCluster(t *testing.T) {
 	}
 }
 
-func TestK2oClient_AnyInstanceExistsInCluster(t *testing.T) {
+func TestK2oClient_InstanceExistsInCluster(t *testing.T) {
 	obj := v1alpha1.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.k8s.io/v1alpha1",
@@ -171,33 +171,37 @@ func TestK2oClient_AnyInstanceExistsInCluster(t *testing.T) {
 		},
 	}
 
+	instanceNamespace := "testnamespace"
+
 	tests := []struct {
-		bool     bool
-		err      string
-		createns string
-		getns    string
-		obj      *v1alpha1.Instance
+		name           string
+		instanceExists bool
+		namespace      string
+		instanceName   string
+		obj            *v1alpha1.Instance
 	}{
-		{false, "", "", "", nil},               // 1
-		{false, "", "default", "default", nil}, // 2
-		{true, "", "", "", &obj},               // 3
-		{true, "", "", "", &obj},               // 4
-		{false, "", "", "qa", &obj},            // 5
-		{true, "", "qa", "qa", &obj},           // 6
-		{false, "", "kudo", "", &wrongObj},     // 7
+		{"no existing instance in cluster", false, "", "", nil},                                                     // 1
+		{"same namespace and instance name", true, instanceNamespace, obj.ObjectMeta.Name, &obj},                    // 3
+		{"instance with new name", false, instanceNamespace, "nonexisting-instance-name", &obj},                     // 5
+		{"same instance name in different namespace", false, "different-namespace", obj.ObjectMeta.Name, &wrongObj}, // 7
 	}
 
-	for i, tt := range tests {
-		i := i
+	for _, tt := range tests {
 		k2o := newTestSimpleK2o()
 
 		// create Instance
-		k2o.clientset.KudoV1alpha1().Instances(tt.createns).Create(tt.obj)
+		if tt.obj != nil {
+			_, err := k2o.clientset.KudoV1alpha1().Instances(instanceNamespace).Create(tt.obj)
+			if err != nil {
+				t.Fatalf("%s: Error during test setup, cannot create test instance %v", tt.name, err)
+			}
+
+		}
 
 		// test if OperatorVersion exists in namespace
-		exist := k2o.AnyInstanceExistsInCluster("test", tt.getns, "1.0")
-		if tt.bool != exist {
-			t.Errorf("%d:\nexpected: %v\n     got: %v", i+1, tt.bool, exist)
+		exist, _ := k2o.InstanceExistsInCluster("test", tt.namespace, "1.0", tt.instanceName)
+		if tt.instanceExists != exist {
+			t.Errorf("%s:\nexpected: %v\n     got: %v", tt.name, tt.instanceExists, exist)
 		}
 	}
 }
