@@ -189,7 +189,7 @@ func (h *Harness) RunTests() {
 	})
 }
 
-// Run the test harness - start KUDO and the control plane and install the frameworks, if necessary
+// Run the test harness - start KUDO and the control plane and install the operators, if necessary
 // and then run the tests.
 func (h *Harness) Run() {
 	rand.Seed(time.Now().UTC().UnixNano())

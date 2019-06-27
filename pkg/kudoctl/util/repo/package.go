@@ -14,31 +14,31 @@ import (
 )
 
 const (
-	frameworkFileName     = "framework.yaml"
+	operatorFileName      = "operator.yaml"
 	templateFileNameRegex = "templates/.*.yaml"
 	paramsFileName        = "params.yaml"
 )
 
 const apiVersion = "kudo.k8s.io/v1alpha1"
 
-// PackageCRDs is collection of CRDs that are used when installing framework
+// PackageCRDs is collection of CRDs that are used when installing operator
 // during installation, package format is converted to this structure
 type PackageCRDs struct {
-	Framework        *v1alpha1.Framework
-	FrameworkVersion *v1alpha1.FrameworkVersion
-	Instance         *v1alpha1.Instance
+	Operator        *v1alpha1.Operator
+	OperatorVersion *v1alpha1.OperatorVersion
+	Instance        *v1alpha1.Instance
 }
 
-// PackageFiles represents the raw framework package format the way it is found in the tgz package bundles
+// PackageFiles represents the raw operator package format the way it is found in the tgz package bundles
 type PackageFiles struct {
 	Templates map[string]string
-	Framework *bundle.Framework
+	Operator  *bundle.Operator
 	Params    []v1alpha1.Parameter
 }
 
 func parsePackageFile(filePath string, fileBytes []byte, currentPackage *PackageFiles) error {
-	isFrameworkFile := func(name string) bool {
-		return strings.HasSuffix(name, frameworkFileName)
+	isOperatorFile := func(name string) bool {
+		return strings.HasSuffix(name, operatorFileName)
 	}
 
 	isTemplateFile := func(name string) bool {
@@ -51,9 +51,9 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 	}
 
 	switch {
-	case isFrameworkFile(filePath):
-		if err := yaml.Unmarshal(fileBytes, &currentPackage.Framework); err != nil {
-			return errors.Wrap(err, "failed to unmarshal framework")
+	case isOperatorFile(filePath):
+		if err := yaml.Unmarshal(fileBytes, &currentPackage.Operator); err != nil {
+			return errors.Wrap(err, "failed to unmarshal operator file")
 		}
 	case isTemplateFile(filePath):
 		pathParts := strings.Split(filePath, "templates/")
@@ -87,14 +87,14 @@ func newPackageFiles() PackageFiles {
 }
 
 func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
-	if p.Framework == nil {
-		return nil, errors.New("framework.yaml file is missing")
+	if p.Operator == nil {
+		return nil, errors.New("operator.yaml file is missing")
 	}
 	if p.Params == nil {
 		return nil, errors.New("params.yaml file is missing")
 	}
 	var errs []string
-	for k, v := range p.Framework.Tasks {
+	for k, v := range p.Operator.Tasks {
 		for _, res := range v.Resources {
 			if _, ok := p.Templates[res]; !ok {
 				errs = append(errs, fmt.Sprintf("task %s missing template: %s", k, res))
@@ -106,49 +106,49 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 		return nil, errors.New(strings.Join(errs, "\n"))
 	}
 
-	framework := &v1alpha1.Framework{
+	operator := &v1alpha1.Operator{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "Framework",
+			Kind:       "Operator",
 			APIVersion: apiVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   p.Framework.Name,
+			Name:   p.Operator.Name,
 			Labels: map[string]string{"controller-tools.k8s.io": "1.0"},
 		},
-		Spec: v1alpha1.FrameworkSpec{
-			Description:       p.Framework.Description,
-			KudoVersion:       p.Framework.KUDOVersion,
-			KubernetesVersion: p.Framework.KubernetesVersion,
-			Maintainers:       p.Framework.Maintainers,
-			URL:               p.Framework.URL,
+		Spec: v1alpha1.OperatorSpec{
+			Description:       p.Operator.Description,
+			KudoVersion:       p.Operator.KUDOVersion,
+			KubernetesVersion: p.Operator.KubernetesVersion,
+			Maintainers:       p.Operator.Maintainers,
+			URL:               p.Operator.URL,
 		},
-		Status: v1alpha1.FrameworkStatus{},
+		Status: v1alpha1.OperatorStatus{},
 	}
 
-	fv := &v1alpha1.FrameworkVersion{
+	fv := &v1alpha1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "FrameworkVersion",
+			Kind:       "OperatorVersion",
 			APIVersion: apiVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-%s", p.Framework.Name, p.Framework.Version),
+			Name:      fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.Version),
 			Namespace: "default",
 			Labels:    map[string]string{"controller-tools.k8s.io": "1.0"},
 		},
-		Spec: v1alpha1.FrameworkVersionSpec{
-			Framework: v1.ObjectReference{
-				Name: p.Framework.Name,
-				Kind: "Framework",
+		Spec: v1alpha1.OperatorVersionSpec{
+			Operator: v1.ObjectReference{
+				Name: p.Operator.Name,
+				Kind: "Operator",
 			},
-			Version:        p.Framework.Version,
+			Version:        p.Operator.Version,
 			Templates:      p.Templates,
-			Tasks:          p.Framework.Tasks,
+			Tasks:          p.Operator.Tasks,
 			Parameters:     p.Params,
-			Plans:          p.Framework.Plans,
-			Dependencies:   p.Framework.Dependencies,
+			Plans:          p.Operator.Plans,
+			Dependencies:   p.Operator.Dependencies,
 			UpgradableFrom: nil,
 		},
-		Status: v1alpha1.FrameworkVersionStatus{},
+		Status: v1alpha1.OperatorVersionStatus{},
 	}
 
 	instance := &v1alpha1.Instance{
@@ -157,12 +157,12 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 			APIVersion: apiVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   fmt.Sprintf("%s-%s", p.Framework.Name, p.Framework.Version),
-			Labels: map[string]string{"controller-tools.k8s.io": "1.0", "framework": "zookeeper"},
+			Name:   fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.Version),
+			Labels: map[string]string{"controller-tools.k8s.io": "1.0", "operator": "zookeeper"},
 		},
 		Spec: v1alpha1.InstanceSpec{
-			FrameworkVersion: v1.ObjectReference{
-				Name:      fmt.Sprintf("%s-%s", p.Framework.Name, p.Framework.Version),
+			OperatorVersion: v1.ObjectReference{
+				Name:      fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.Version),
 				Namespace: "default",
 			},
 		},
@@ -170,8 +170,8 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 	}
 
 	return &PackageCRDs{
-		Framework:        framework,
-		FrameworkVersion: fv,
-		Instance:         instance,
+		Operator:        operator,
+		OperatorVersion: fv,
+		Instance:        instance,
 	}, nil
 }

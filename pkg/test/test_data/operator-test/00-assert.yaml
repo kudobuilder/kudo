@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-instance-nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: test-operator
+  template:
+    metadata:
+      labels:
+        app: test-operator
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.7.9
+        ports:
+        - containerPort: 80

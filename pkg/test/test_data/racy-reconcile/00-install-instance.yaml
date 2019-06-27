@@ -3,8 +3,8 @@ kind: Instance
 metadata:
   name: my-instance
   labels:
-    framework: foo-framework
+    operator: foo-operator
 spec:
-  frameworkVersion:
-    name: foo-framework
-    kind: FrameworkVersion
+  operatorVersion:
+    name: foo-operator
+    kind: OperatorVersion

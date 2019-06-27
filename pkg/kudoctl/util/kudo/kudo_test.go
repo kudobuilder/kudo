@@ -39,12 +39,12 @@ func TestK2oClient_CRDsInstalled(t *testing.T) {
 	}
 }
 
-func TestK2oClient_FrameworkExistsInCluster(t *testing.T) {
+func TestK2oClient_OperatorExistsInCluster(t *testing.T) {
 
-	obj := v1alpha1.Framework{
+	obj := v1alpha1.Operator{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.k8s.io/v1alpha1",
-			Kind:       "Framework",
+			Kind:       "Operator",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
@@ -59,7 +59,7 @@ func TestK2oClient_FrameworkExistsInCluster(t *testing.T) {
 		err      string
 		createns string
 		getns    string
-		obj      *v1alpha1.Framework
+		obj      *v1alpha1.Operator
 	}{
 		{false, "", "", "", nil},               // 1
 		{false, "", "default", "default", nil}, // 2
@@ -72,16 +72,16 @@ func TestK2oClient_FrameworkExistsInCluster(t *testing.T) {
 		i := i
 		k2o := newTestSimpleK2o()
 
-		// create Framework
-		_, err := k2o.clientset.KudoV1alpha1().Frameworks(tt.createns).Create(tt.obj)
+		// create Operator
+		_, err := k2o.clientset.KudoV1alpha1().Operators(tt.createns).Create(tt.obj)
 		if err != nil {
 			if err.Error() != "object does not implement the Object interfaces" {
 				t.Errorf("unexpected error: %+v", err)
 			}
 		}
 
-		// test if Framework exists in namespace
-		exist := k2o.FrameworkExistsInCluster("test", tt.getns)
+		// test if Operator exists in namespace
+		exist := k2o.OperatorExistsInCluster("test", tt.getns)
 
 		if tt.bool != exist {
 			t.Errorf("%d:\nexpected: %v\n     got: %v", i+1, tt.bool, exist)
@@ -89,11 +89,11 @@ func TestK2oClient_FrameworkExistsInCluster(t *testing.T) {
 	}
 }
 
-func TestK2oClient_AnyFrameworkVersionExistsInCluster(t *testing.T) {
-	obj := v1alpha1.FrameworkVersion{
+func TestK2oClient_AnyOperatorVersionExistsInCluster(t *testing.T) {
+	obj := v1alpha1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.k8s.io/v1alpha1",
-			Kind:       "FrameworkVersion",
+			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
@@ -108,7 +108,7 @@ func TestK2oClient_AnyFrameworkVersionExistsInCluster(t *testing.T) {
 		err      string
 		createns string
 		getns    string
-		obj      *v1alpha1.FrameworkVersion
+		obj      *v1alpha1.OperatorVersion
 	}{
 		{false, "", "", "", nil},               // 1
 		{false, "", "default", "default", nil}, // 2
@@ -121,11 +121,11 @@ func TestK2oClient_AnyFrameworkVersionExistsInCluster(t *testing.T) {
 		i := i
 		k2o := newTestSimpleK2o()
 
-		// create FrameworkVersion
-		k2o.clientset.KudoV1alpha1().FrameworkVersions(tt.createns).Create(tt.obj)
+		// create OperatorVersion
+		k2o.clientset.KudoV1alpha1().OperatorVersions(tt.createns).Create(tt.obj)
 
-		// test if FrameworkVersion exists in namespace
-		exist := k2o.AnyFrameworkVersionExistsInCluster("test", tt.getns)
+		// test if OperatorVersion exists in namespace
+		exist := k2o.AnyOperatorVersionExistsInCluster("test", tt.getns)
 		if tt.bool != exist {
 			t.Errorf("%d:\nexpected: %v\n     got: %v", i+1, tt.bool, exist)
 		}
@@ -141,12 +141,12 @@ func TestK2oClient_InstanceExistsInCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
-				"framework":               "test",
+				"operator":                "test",
 			},
 			Name: "test",
 		},
 		Spec: v1alpha1.InstanceSpec{
-			FrameworkVersion: v1.ObjectReference{
+			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
 		},
@@ -160,12 +160,12 @@ func TestK2oClient_InstanceExistsInCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
-				"framework":               "test",
+				"operator":                "test",
 			},
 			Name: "test",
 		},
 		Spec: v1alpha1.InstanceSpec{
-			FrameworkVersion: v1.ObjectReference{
+			OperatorVersion: v1.ObjectReference{
 				Name: "test-0.9",
 			},
 		},
@@ -198,7 +198,7 @@ func TestK2oClient_InstanceExistsInCluster(t *testing.T) {
 
 		}
 
-		// test if FrameworkVersion exists in namespace
+		// test if OperatorVersion exists in namespace
 		exist, _ := k2o.InstanceExistsInCluster("test", tt.namespace, "1.0", tt.instanceName)
 		if tt.instanceExists != exist {
 			t.Errorf("%s:\nexpected: %v\n     got: %v", tt.name, tt.instanceExists, exist)
@@ -206,11 +206,11 @@ func TestK2oClient_InstanceExistsInCluster(t *testing.T) {
 	}
 }
 
-func TestK2oClient_FrameworkVersionInClusterOutOfSync(t *testing.T) {
-	obj := v1alpha1.FrameworkVersion{
+func TestK2oClient_OperatorVersionInClusterOutOfSync(t *testing.T) {
+	obj := v1alpha1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.k8s.io/v1alpha1",
-			Kind:       "FrameworkVersion",
+			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
@@ -218,15 +218,15 @@ func TestK2oClient_FrameworkVersionInClusterOutOfSync(t *testing.T) {
 			},
 			Name: "test-1.0",
 		},
-		Spec: v1alpha1.FrameworkVersionSpec{
+		Spec: v1alpha1.OperatorVersionSpec{
 			Version: "1.0",
 		},
 	}
 
-	outdatedObj := v1alpha1.FrameworkVersion{
+	outdatedObj := v1alpha1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.k8s.io/v1alpha1",
-			Kind:       "FrameworkVersion",
+			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
@@ -234,7 +234,7 @@ func TestK2oClient_FrameworkVersionInClusterOutOfSync(t *testing.T) {
 			},
 			Name: "test-0.9",
 		},
-		Spec: v1alpha1.FrameworkVersionSpec{
+		Spec: v1alpha1.OperatorVersionSpec{
 			Version: "0.9",
 		},
 	}
@@ -244,7 +244,7 @@ func TestK2oClient_FrameworkVersionInClusterOutOfSync(t *testing.T) {
 		err      string
 		createns string
 		getns    string
-		obj      *v1alpha1.FrameworkVersion
+		obj      *v1alpha1.OperatorVersion
 	}{
 		{false, "", "", "", nil},                  // 1
 		{false, "", "default", "default", nil},    // 2
@@ -260,21 +260,21 @@ func TestK2oClient_FrameworkVersionInClusterOutOfSync(t *testing.T) {
 		k2o := newTestSimpleK2o()
 
 		// create Instance
-		k2o.clientset.KudoV1alpha1().FrameworkVersions(tt.createns).Create(tt.obj)
+		k2o.clientset.KudoV1alpha1().OperatorVersions(tt.createns).Create(tt.obj)
 
-		// test if FrameworkVersion exists in namespace
-		exist := k2o.FrameworkVersionInClusterOutOfSync("test", "1.0", tt.getns)
+		// test if OperatorVersion exists in namespace
+		exist := k2o.OperatorVersionInClusterOutOfSync("test", "1.0", tt.getns)
 		if tt.bool != exist {
 			t.Errorf("%d:\nexpected: %v\n     got: %v", i+1, tt.bool, exist)
 		}
 	}
 }
 
-func TestK2oClient_InstallFrameworkObjToCluster(t *testing.T) {
-	obj := v1alpha1.Framework{
+func TestK2oClient_InstallOperatorObjToCluster(t *testing.T) {
+	obj := v1alpha1.Operator{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.k8s.io/v1alpha1",
-			Kind:       "Framework",
+			Kind:       "Operator",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
@@ -288,26 +288,26 @@ func TestK2oClient_InstallFrameworkObjToCluster(t *testing.T) {
 		name     string
 		err      string
 		createns string
-		obj      *v1alpha1.Framework
+		obj      *v1alpha1.Operator
 	}{
-		{"", "frameworks.kudo.k8s.io \"\" not found", "", nil},                // 1
-		{"", "frameworks.kudo.k8s.io \"\" not found", "default", nil},         // 2
-		{"", "frameworks.kudo.k8s.io \"\" not found", "kudo", nil},            // 3
-		{"test2", "frameworks.kudo.k8s.io \"test2\" not found", "kudo", &obj}, // 4
-		{"test", "", "kudo", &obj},                                            // 5
+		{"", "operators.kudo.k8s.io \"\" not found", "", nil},                // 1
+		{"", "operators.kudo.k8s.io \"\" not found", "default", nil},         // 2
+		{"", "operators.kudo.k8s.io \"\" not found", "kudo", nil},            // 3
+		{"test2", "operators.kudo.k8s.io \"test2\" not found", "kudo", &obj}, // 4
+		{"test", "", "kudo", &obj},                                           // 5
 	}
 
 	for i, tt := range tests {
 		i := i
 		k2o := newTestSimpleK2o()
 
-		// create Framework
-		k2o.clientset.KudoV1alpha1().Frameworks(tt.createns).Create(tt.obj)
+		// create Operator
+		k2o.clientset.KudoV1alpha1().Operators(tt.createns).Create(tt.obj)
 
-		// test if Framework exists in namespace
-		k2o.InstallFrameworkObjToCluster(tt.obj, tt.createns)
+		// test if Operator exists in namespace
+		k2o.InstallOperatorObjToCluster(tt.obj, tt.createns)
 
-		_, err := k2o.clientset.KudoV1alpha1().Frameworks(tt.createns).Get(tt.name, metav1.GetOptions{})
+		_, err := k2o.clientset.KudoV1alpha1().Operators(tt.createns).Get(tt.name, metav1.GetOptions{})
 		if err != nil {
 			if err.Error() != tt.err {
 				t.Errorf("%d:\nexpected error: %v\n     got error: %v", i+1, tt.err, err)
@@ -316,11 +316,11 @@ func TestK2oClient_InstallFrameworkObjToCluster(t *testing.T) {
 	}
 }
 
-func TestK2oClient_InstallFrameworkVersionObjToCluster(t *testing.T) {
-	obj := v1alpha1.FrameworkVersion{
+func TestK2oClient_InstallOperatorVersionObjToCluster(t *testing.T) {
+	obj := v1alpha1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.k8s.io/v1alpha1",
-			Kind:       "FrameworkVersion",
+			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
@@ -334,27 +334,26 @@ func TestK2oClient_InstallFrameworkVersionObjToCluster(t *testing.T) {
 		name     string
 		err      string
 		createns string
-		obj      *v1alpha1.FrameworkVersion
+		obj      *v1alpha1.OperatorVersion
 	}{
-		{"", "frameworkversions.kudo.k8s.io \"\" not found", "", nil},                // 1
-		{"", "frameworkversions.kudo.k8s.io \"\" not found", "default", nil},         // 2
-		{"", "frameworkversions.kudo.k8s.io \"\" not found", "kudo", nil},            // 3
-		{"test2", "frameworkversions.kudo.k8s.io \"test2\" not found", "kudo", &obj}, // 4
+		{"", "operatorversions.kudo.k8s.io \"\" not found", "", nil},                // 1
+		{"", "operatorversions.kudo.k8s.io \"\" not found", "default", nil},         // 2
+		{"", "operatorversions.kudo.k8s.io \"\" not found", "kudo", nil},            // 3
+		{"test2", "operatorversions.kudo.k8s.io \"test2\" not found", "kudo", &obj}, // 4
 		{"test", "", "kudo", &obj}, // 5
-
 	}
 
 	for i, tt := range tests {
 		i := i
 		k2o := newTestSimpleK2o()
 
-		// create Framework
-		k2o.clientset.KudoV1alpha1().FrameworkVersions(tt.createns).Create(tt.obj)
+		// create Operator
+		k2o.clientset.KudoV1alpha1().OperatorVersions(tt.createns).Create(tt.obj)
 
-		// test if Framework exists in namespace
-		k2o.InstallFrameworkVersionObjToCluster(tt.obj, tt.createns)
+		// test if Operator exists in namespace
+		k2o.InstallOperatorVersionObjToCluster(tt.obj, tt.createns)
 
-		_, err := k2o.clientset.KudoV1alpha1().FrameworkVersions(tt.createns).Get(tt.name, metav1.GetOptions{})
+		_, err := k2o.clientset.KudoV1alpha1().OperatorVersions(tt.createns).Get(tt.name, metav1.GetOptions{})
 		if err != nil {
 			if err.Error() != tt.err {
 				t.Errorf("%d:\nexpected error: %v\n     got error: %v", i+1, tt.err, err)
@@ -367,7 +366,7 @@ func TestK2oClient_InstallInstanceObjToCluster(t *testing.T) {
 	obj := v1alpha1.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.k8s.io/v1alpha1",
-			Kind:       "FrameworkVersion",
+			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
@@ -388,17 +387,16 @@ func TestK2oClient_InstallInstanceObjToCluster(t *testing.T) {
 		{"", "instances.kudo.k8s.io \"\" not found", "kudo", nil},            // 3
 		{"test2", "instances.kudo.k8s.io \"test2\" not found", "kudo", &obj}, // 4
 		{"test", "", "kudo", &obj},                                           // 5
-
 	}
 
 	for i, tt := range tests {
 		i := i
 		k2o := newTestSimpleK2o()
 
-		// create Framework
+		// create Operator
 		k2o.clientset.KudoV1alpha1().Instances(tt.createns).Create(tt.obj)
 
-		// test if Framework exists in namespace
+		// test if Operator exists in namespace
 		k2o.InstallInstanceObjToCluster(tt.obj, tt.createns)
 
 		_, err := k2o.clientset.KudoV1alpha1().Instances(tt.createns).Get(tt.name, metav1.GetOptions{})
