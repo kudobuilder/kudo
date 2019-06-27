@@ -391,6 +391,16 @@ func WithKeyValue(obj runtime.Object, key string, value map[string]interface{}) 
 	return obj.DeepCopyObject()
 }
 
+// WithLabels sets the labels on an object.
+func WithLabels(obj runtime.Object, labels map[string]string) runtime.Object {
+	obj = obj.DeepCopyObject()
+
+	m, _ := meta.Accessor(obj)
+	m.SetLabels(labels)
+
+	return obj
+}
+
 // FakeDiscoveryClient returns a fake discovery client that is populated with some types for use in
 // unit tests.
 func FakeDiscoveryClient() discovery.DiscoveryInterface {

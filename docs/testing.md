@@ -17,6 +17,7 @@ KUDO uses a declarative integration testing harness for testing itself and Opera
    * [Test case directory structure](#test-case-directory-structure)
    * [Test steps](#test-steps)
      * [Test assertions](#test-assertions)
+       * [Listing objects](#listing-objects)
        * [Advanced test assertions](#advanced-test-assertions)
 * [Further Reading](#further-reading)
 
@@ -147,6 +148,22 @@ status:
 ```
 
 This watches an `Instance` called `zk` to have its status set to `COMPLETE` and it expects a `StatefulSet` to also be created called `zk-zk` and it waits for all `Pods` in the `StatefulSet` to be ready.
+
+##### Listing objects
+
+If the object `name` is omitted from the object metadata, it is possible to list objects and verify that one of them matches the desired state. This can be useful, for example, to check the `Pods` created by a `Deployment`.
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: nginx
+status:
+  phase: Running
+```
+
+This would verify that a pod with the `app=nginx` label is running.
 
 ##### Advanced test assertions
 
