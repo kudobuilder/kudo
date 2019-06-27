@@ -216,7 +216,8 @@ func installFramework(frameworkName string, isDependencyInstall bool, repository
 		}
 
 	} else {
-		return fmt.Errorf("Cannot install Instance %s of framework %s-%s because instance of that name already exists in namespace %s", instanceName, frameworkName, crds.FrameworkVersion.Spec.Version, options.Namespace)
+		return fmt.Errorf("can not install Instance %s of framework %s-%s because instance of that name already exists in namespace %s",
+			instanceName, frameworkName, crds.FrameworkVersion.Spec.Version, options.Namespace)
 	}
 	return nil
 }
