@@ -50,44 +50,46 @@ func ValidateErrors(err error, errValidationFuncs ...func(error) bool) error {
 
 // Retry retries a method until the context expires or the method returns an unvalidated error.
 func Retry(ctx context.Context, fn func(context.Context) error, errValidationFuncs ...func(error) bool) error {
-	var err error
+	var lastErr error
+	errCh := make(chan error)
+	doneCh := make(chan struct{})
 
 	// do { } while (err != nil): https://stackoverflow.com/a/32844744/10892393
-	for ok := true; ok; ok = err != nil {
-		done := make(chan struct{})
-
+	for ok := true; ok; ok = lastErr != nil {
 		// run the function in a goroutine and close it once it is finished so that
 		// we can use select to wait for both the function return and the context deadline.
 
 		go func() {
-			err = fn(ctx)
-			close(done)
+			if err := fn(ctx); err != nil {
+				errCh <- err
+			} else {
+				doneCh <- struct{}{}
+			}
 		}()
 
 		select {
 		// the callback finished
-		case <-done:
-			if err == nil {
-				break
-			}
-
+		case <-doneCh:
+			lastErr = nil
+		case err := <-errCh:
 			// check if we tolerate the error, return it if not.
 			if e := ValidateErrors(err, errValidationFuncs...); e != nil {
 				return e
 			}
+			lastErr = err
 		// timeout exceeded
 		case <-ctx.Done():
-			if err == nil {
+			if lastErr == nil {
 				// there's no previous error, so just return the timeout error
 				return ctx.Err()
 			}
 
 			// return the most recent error
-			return err
+			return lastErr
 		}
 	}
 
-	return err
+	return lastErr
 }
 
 // Scheme returns an initialized Kubernetes Scheme.
