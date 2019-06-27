@@ -13,11 +13,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package frameworkversion
+package framework
 
 import (
 	"context"
 	"log"
+
+	"k8s.io/client-go/tools/record"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -30,28 +32,33 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// Add creates a new OperatorVersion Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
+// Add creates a new Operator Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	log.Printf("FrameworkVersionController: Registering frameworkversion controller.")
-	return add(mgr, newReconciler(mgr))
+	log.Printf("OperatorController: Registering framework controller.")
+	reconciler, err := newReconciler(mgr)
+	if err != nil {
+		return err
+	}
+	return add(mgr, reconciler)
 }
 
-// newReconciler returns a new reconcile.Reconciler.
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileFrameworkVersion{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
+// newReconciler returns a new reconcile.Reconciler
+func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
+
+	return &ReconcileFramework{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor("framework-controller")}, nil
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler.
+// add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("frameworkversion-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("framework-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to OperatorVersion
-	err = c.Watch(&source.Kind{Type: &kudov1alpha1.OperatorVersion{}}, &handler.EnqueueRequestForObject{})
+	// Watch for changes to Operator
+	err = c.Watch(&source.Kind{Type: &kudov1alpha1.Operator{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -59,24 +66,24 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-var _ reconcile.Reconciler = &ReconcileFrameworkVersion{}
+var _ reconcile.Reconciler = &ReconcileFramework{}
 
-// ReconcileFrameworkVersion reconciles a OperatorVersion object
-type ReconcileFrameworkVersion struct {
+// ReconcileFramework reconciles a Operator object
+type ReconcileFramework struct {
 	client.Client
-	scheme *runtime.Scheme
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
-// Reconcile reads that state of the cluster for a OperatorVersion object and makes changes based on the state read
-// and what is in the OperatorVersion.Spec.
-//
+// Reconcile reads that state of the cluster for a Operator object and makes changes based on the state read
+// and what is in the Operator.Spec
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=kudo.k8s.io,resources=frameworkversions,verbs=get;list;watch;create;update;patch;delete
-func (r *ReconcileFrameworkVersion) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	// Fetch the framework version
-	frameworkVersion := &kudov1alpha1.OperatorVersion{}
-	err := r.Get(context.TODO(), request.NamespacedName, frameworkVersion)
+// +kubebuilder:rbac:groups=kudo.k8s.io,resources=frameworks,verbs=get;list;watch;create;update;patch;delete
+func (r *ReconcileFramework) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	// Fetch the framework
+	framework := &kudov1alpha1.Operator{}
+	err := r.Get(context.TODO(), request.NamespacedName, framework)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
@@ -87,8 +94,7 @@ func (r *ReconcileFrameworkVersion) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 
-	log.Printf("FrameworkVersionController: Received Reconcile request for a frameworkVersion named: %v", request.Name)
+	log.Printf("FrameworkController: Received Reconcile request for a framework named: %v", request.Name)
 
-	// TODO: Validate OperatorVersion is appropriate.
 	return reconcile.Result{}, nil
 }

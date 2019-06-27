@@ -79,7 +79,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				},
 				fv)
 			if err != nil {
-				log.Printf("InstanceController: Error getting frameworkversion \"%v\" for instance \"%v\": %v",
+				log.Printf("InstanceController: Error getting operatorversion \"%v\" for instance \"%v\": %v",
 					new.Spec.OperatorVersion.Name,
 					new.Name,
 					err)
@@ -197,7 +197,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				},
 				fv)
 			if err != nil {
-				log.Printf("InstanceController: Error getting frameworkversion \"%v\" for instance \"%v\": %v",
+				log.Printf("InstanceController: Error getting operatorversion \"%v\" for instance \"%v\": %v",
 					instance.Spec.OperatorVersion.Name,
 					instance.Name,
 					err)
@@ -231,7 +231,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// Watch for changes to OperatorVersion. Since changes to OperatorVersion and Instance are often happening
 	// concurrently there is an inherent race between both update events so that we might see a new Instance first
-	// without the corresponding OperatorVersion. We additionally watch FrameworkVersions and trigger
+	// without the corresponding OperatorVersion. We additionally watch OperatorVersions and trigger
 	// reconciliation for the corresponding instances.
 	//
 	// Define a mapping from the object in the event (OperatorVersion) to one or more objects to
@@ -239,21 +239,21 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	fvMapFn := handler.ToRequestsFunc(
 		func(a handler.MapObject) []reconcile.Request {
 			requests := make([]reconcile.Request, 0)
-			// We want to query and queue up frameworks Instances
+			// We want to query and queue up operators Instances
 			instances := &kudov1alpha1.InstanceList{}
 			err := mgr.GetClient().List(
 				context.TODO(),
 				instances,
-				client.MatchingLabels(map[string]string{"framework": a.Meta.GetName()}),
+				client.MatchingLabels(map[string]string{"operator": a.Meta.GetName()}),
 			)
 
 			if err != nil {
-				log.Printf("InstanceController: Error fetching instances list for framework %v: %v", a.Meta.GetName(), err)
+				log.Printf("InstanceController: Error fetching instances list for operator %v: %v", a.Meta.GetName(), err)
 				return nil
 			}
 
 			for _, instance := range instances.Items {
-				// Sanity check - lets make sure that this instance references the frameworkVersion
+				// Sanity check - lets make sure that this instance references the operatorVersion
 				if instance.Spec.OperatorVersion.Name == a.Meta.GetName() &&
 					instance.Spec.OperatorVersion.Namespace == a.Meta.GetNamespace() &&
 					instance.Status.ActivePlan.Name == "" {
@@ -277,7 +277,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			return requests
 		})
 
-	// This map function makes sure that we *ONLY* handle created frameworkVersion
+	// This map function makes sure that we *ONLY* handle created operatorVersion
 	fvPredicate := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
 			return true
@@ -314,7 +314,7 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 			Namespace: instance.GetNamespace(),
 			// TODO: Should also add one for Operator in here as well.
 			Labels: map[string]string{
-				"framework-version": instance.Spec.OperatorVersion.Name,
+				"operator-version": instance.Spec.OperatorVersion.Name,
 				"instance":          instance.Name,
 			},
 		},
@@ -379,19 +379,19 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 		},
 		fv)
 	if err != nil {
-		log.Printf("InstanceController: Error getting frameworkversion \"%v\" for instance \"%v\": %v",
+		log.Printf("InstanceController: Error getting operatorversion \"%v\" for instance \"%v\": %v",
 			instance.Spec.OperatorVersion.Name,
 			instance.Name,
 			err)
-		r.recorder.Event(instance, "Warning", "InvalidFrameworkVersion", fmt.Sprintf("Error getting frameworkversion \"%v\": %v", fv.Name, err))
+		r.recorder.Event(instance, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Error getting operatorversion \"%v\": %v", fv.Name, err))
 		return reconcile.Result{}, err
 	}
 
-	// Make sure all the required parameters in the frameworkVersion are present
+	// Make sure all the required parameters in the operatorVersion are present
 	for _, param := range fv.Spec.Parameters {
 		if param.Required {
 			if _, ok := instance.Spec.Parameters[param.Name]; !ok {
-				r.recorder.Event(instance, "Warning", "MissingParameter", fmt.Sprintf("Missing parameter \"%v\" required by frameworkversion \"%v\"", param.Name, fv.Name))
+				r.recorder.Event(instance, "Warning", "MissingParameter", fmt.Sprintf("Missing parameter \"%v\" required by operatorversion \"%v\"", param.Name, fv.Name))
 			}
 		}
 	}

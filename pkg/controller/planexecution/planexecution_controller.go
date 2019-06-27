@@ -264,17 +264,17 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	}
 
 	// Get associated OperatorVersion
-	frameworkVersion := &kudov1alpha1.OperatorVersion{}
+	operatorVersion := &kudov1alpha1.OperatorVersion{}
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      instance.Spec.OperatorVersion.Name,
 			Namespace: instance.Spec.OperatorVersion.Namespace,
 		},
-		frameworkVersion)
+		operatorVersion)
 	if err != nil {
 		// Can't find the OperatorVersion.
 		planExecution.Status.State = kudov1alpha1.PhaseStateError
-		r.recorder.Event(planExecution, "Warning", "InvalidFrameworkVersion", fmt.Sprintf("Could not find OperatorVersion %v", instance.Spec.OperatorVersion.Name))
+		r.recorder.Event(planExecution, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Could not find OperatorVersion %v", instance.Spec.OperatorVersion.Name))
 		log.Printf("PlanExecutionController: Error getting OperatorVersion %v in %v: %v",
 			instance.Spec.OperatorVersion.Name,
 			instance.Spec.OperatorVersion.Namespace,
@@ -288,7 +288,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	configs := make(map[string]interface{})
 
 	// Default parameters from instance metadata
-	configs["FrameworkName"] = frameworkVersion.Spec.Operator.Name
+	configs["OperatorName"] = operatorVersion.Spec.Operator.Name
 	configs["Name"] = instance.Name
 	configs["Namespace"] = instance.Namespace
 
@@ -298,7 +298,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	}
 
 	// Merge defaults with customizations
-	for _, param := range frameworkVersion.Spec.Parameters {
+	for _, param := range operatorVersion.Spec.Parameters {
 		_, ok := params[param.Name]
 		if !ok {
 			// Not specified in params
@@ -321,7 +321,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	//
 	// When we have this we'll have to keep the active plan in the status since that might
 	// not match the "requested" plan.
-	executedPlan, ok := frameworkVersion.Spec.Plans[planExecution.Spec.PlanName]
+	executedPlan, ok := operatorVersion.Spec.Plans[planExecution.Spec.PlanName]
 	if !ok {
 		r.recorder.Event(planExecution, "Warning", "InvalidPlan", fmt.Sprintf("Could not find required plan (%v)", planExecution.Spec.PlanName))
 		err = fmt.Errorf("could not find required plan (%v)", planExecution.Spec.PlanName)
@@ -356,12 +356,12 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			engine := kudoengine.New()
 			for _, t := range step.Tasks {
 				// resolve task
-				if taskSpec, ok := frameworkVersion.Spec.Tasks[t]; ok {
+				if taskSpec, ok := operatorVersion.Spec.Tasks[t]; ok {
 					var resources []string
 					fsys := fs.MakeFakeFS()
 
 					for _, res := range taskSpec.Resources {
-						if resource, ok := frameworkVersion.Spec.Templates[res]; ok {
+						if resource, ok := operatorVersion.Spec.Templates[res]; ok {
 							templatedYaml, err := engine.Render(resource, configs)
 							if err != nil {
 								r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error expanding template: %v", err))
@@ -371,8 +371,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 							resources = append(resources, res)
 
 						} else {
-							r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding resource named %v for framework version %v", res, frameworkVersion.Name))
-							log.Printf("PlanExecutionController: Error finding resource named %v for framework version %v", res, frameworkVersion.Name)
+							r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding resource named %v for operator version %v", res, operatorVersion.Name))
+							log.Printf("PlanExecutionController: Error finding resource named %v for operator version %v", res, operatorVersion.Name)
 							return reconcile.Result{}, err
 						}
 					}
@@ -382,8 +382,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						Namespace:  instance.Namespace,
 						CommonLabels: map[string]string{
 							"heritage": "kudo",
-							"app":      frameworkVersion.Spec.Operator.Name,
-							"version":  frameworkVersion.Spec.Version,
+							"app":      operatorVersion.Spec.Operator.Name,
+							"version":  operatorVersion.Spec.Version,
 							"instance": instance.Name,
 						},
 						CommonAnnotations: map[string]string{
@@ -436,8 +436,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					}
 					objs = append(objs, objsToAdd...)
 				} else {
-					r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding task named %s for framework version %s", taskSpec, frameworkVersion.Name))
-					log.Printf("PlanExecutionController: Error finding task named %s for framework version %s", taskSpec, frameworkVersion.Name)
+					r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding task named %s for operator version %s", taskSpec, operatorVersion.Name))
+					log.Printf("PlanExecutionController: Error finding task named %s for operator version %s", taskSpec, operatorVersion.Name)
 					return reconcile.Result{}, err
 				}
 			}

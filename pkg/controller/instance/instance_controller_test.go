@@ -24,7 +24,7 @@ import (
 
 const timeout = time.Second * 5
 
-func TestReconcile_InstancesOnFrameworkVersionEvent(t *testing.T) {
+func TestReconcile_InstancesOnOperatorVersionEvent(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
 
 	// Setup the Manager and Controller. Wrap the Controller Reconcile function so it writes each request to a
@@ -36,10 +36,10 @@ func TestReconcile_InstancesOnFrameworkVersionEvent(t *testing.T) {
 	// Given an existing Instance object
 	log.Printf("Given an existing instance \"foo-instance\"")
 	in := &v1alpha1.Instance{
-		ObjectMeta: metav1.ObjectMeta{Name: "foo-instance", Namespace: "default", Labels: map[string]string{"operator": "foo-framework"}},
+		ObjectMeta: metav1.ObjectMeta{Name: "foo-instance", Namespace: "default", Labels: map[string]string{"operator": "foo-operator"}},
 		Spec: v1alpha1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
-				Name:      "foo-framework",
+				Name:      "foo-operator",
 				Namespace: "default",
 			},
 		},
@@ -61,9 +61,9 @@ func TestReconcile_InstancesOnFrameworkVersionEvent(t *testing.T) {
 	}()
 
 	// Create a OperatorVersion object with an empty "deploy" plan first
-	log.Printf("When a frameworkVersion is created")
+	log.Printf("When a operatorVersion is created")
 	fv := &v1alpha1.OperatorVersion{
-		ObjectMeta: metav1.ObjectMeta{Name: "foo-framework", Namespace: "default"},
+		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
 		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.k8s.io/v1alpha1"},
 		Spec: v1alpha1.OperatorVersionSpec{
 			Plans: map[string]v1alpha1.Plan{"deploy": {}},
@@ -84,7 +84,7 @@ func TestReconcile_InstancesOnFrameworkVersionEvent(t *testing.T) {
 		context.TODO(),
 		peList,
 		client.MatchingLabels(map[string]string{
-			"framework-version": fv.Name,
+			"operator-version": fv.Name,
 			"instance":          in.Name,
 		}))
 	assert.NoError(t, err)
