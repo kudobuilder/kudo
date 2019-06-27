@@ -33,7 +33,7 @@ func NewPlanHistoryCmd() *cobra.Command {
 		Short: "Lists history to a specific operator-version of an instance.",
 		Long: `
 	# View plan status
-	kudoctl plan history <frameworkVersion> --instance=<instanceName>`,
+	kudoctl plan history <operatorVersion> --instance=<instanceName>`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runHistory(cmd, args, options)
 		},

@@ -85,7 +85,7 @@ func (i IndexFile) GetByName(name string) (*BundleVersion, error) {
 		return nil, err
 	}
 
-	return i.getFramework(name, constraint)
+	return i.getOperator(name, constraint)
 }
 
 // GetByNameAndVersion returns the operator of given name and version.
@@ -95,10 +95,10 @@ func (i IndexFile) GetByNameAndVersion(name, version string) (*BundleVersion, er
 		return nil, err
 	}
 
-	return i.getFramework(name, constraint)
+	return i.getOperator(name, constraint)
 }
 
-func (i IndexFile) getFramework(name string, versionConstraint *semver.Constraints) (*BundleVersion, error) {
+func (i IndexFile) getOperator(name string, versionConstraint *semver.Constraints) (*BundleVersion, error) {
 	vs, ok := i.Entries[name]
 	if !ok || len(vs) == 0 {
 		return nil, fmt.Errorf("no operator of given name %s and version %v found", name, versionConstraint)

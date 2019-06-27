@@ -46,7 +46,7 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 
-	return &ReconcileFramework{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor("operator-controller")}, nil
+	return &ReconcileOperator{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor("operator-controller")}, nil
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -66,10 +66,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-var _ reconcile.Reconciler = &ReconcileFramework{}
+var _ reconcile.Reconciler = &ReconcileOperator{}
 
-// ReconcileFramework reconciles a Operator object
-type ReconcileFramework struct {
+// ReconcileOperator reconciles a Operator object
+type ReconcileOperator struct {
 	client.Client
 	scheme   *runtime.Scheme
 	recorder record.EventRecorder
@@ -80,10 +80,10 @@ type ReconcileFramework struct {
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kudo.k8s.io,resources=operators,verbs=get;list;watch;create;update;patch;delete
-func (r *ReconcileFramework) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileOperator) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the operator
-	framework := &kudov1alpha1.Operator{}
-	err := r.Get(context.TODO(), request.NamespacedName, framework)
+	operator := &kudov1alpha1.Operator{}
+	err := r.Get(context.TODO(), request.NamespacedName, operator)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
@@ -94,7 +94,7 @@ func (r *ReconcileFramework) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	log.Printf("FrameworkController: Received Reconcile request for a operator named: %v", request.Name)
+	log.Printf("OperatorController: Received Reconcile request for a operator named: %v", request.Name)
 
 	return reconcile.Result{}, nil
 }

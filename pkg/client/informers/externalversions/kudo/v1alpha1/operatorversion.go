@@ -42,17 +42,17 @@ type operatorVersionInformer struct {
 	namespace        string
 }
 
-// NewFrameworkVersionInformer constructs a new informer for OperatorVersion type.
+// NewOperatorVersionInformer constructs a new informer for OperatorVersion type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFrameworkVersionInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredFrameworkVersionInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewOperatorVersionInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredOperatorVersionInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredFrameworkVersionInformer constructs a new informer for OperatorVersion type.
+// NewFilteredOperatorVersionInformer constructs a new informer for OperatorVersion type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredFrameworkVersionInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredOperatorVersionInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
@@ -75,7 +75,7 @@ func NewFilteredFrameworkVersionInformer(client versioned.Interface, namespace s
 }
 
 func (f *operatorVersionInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredFrameworkVersionInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+	return NewFilteredOperatorVersionInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *operatorVersionInformer) Informer() cache.SharedIndexInformer {

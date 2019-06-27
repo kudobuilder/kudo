@@ -17,14 +17,14 @@ type Repository interface {
 	GetPackageBundle(name string, version string) (Bundle, error)
 }
 
-// FrameworkRepository represents a operator repository
-type FrameworkRepository struct {
+// OperatorRepository represents a operator repository
+type OperatorRepository struct {
 	Config *RepositoryConfiguration
 	Client HTTPClient
 }
 
-// NewFrameworkRepository constructs FrameworkRepository
-func NewFrameworkRepository(conf *RepositoryConfiguration) (*FrameworkRepository, error) {
+// NewOperatorRepository constructs OperatorRepository
+func NewOperatorRepository(conf *RepositoryConfiguration) (*OperatorRepository, error) {
 	_, err := url.Parse(conf.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid repository URL: %s", conf.URL)
@@ -35,14 +35,14 @@ func NewFrameworkRepository(conf *RepositoryConfiguration) (*FrameworkRepository
 		return nil, fmt.Errorf("could not construct http client: %v", err)
 	}
 
-	return &FrameworkRepository{
+	return &OperatorRepository{
 		Config: conf,
 		Client: *client,
 	}, nil
 }
 
 // downloadIndexFile fetches the index file from a repository.
-func (r *FrameworkRepository) downloadIndexFile() (*IndexFile, error) {
+func (r *OperatorRepository) downloadIndexFile() (*IndexFile, error) {
 	var indexURL string
 	parsedURL, err := url.Parse(r.Config.URL)
 	if err != nil {
@@ -67,7 +67,7 @@ func (r *FrameworkRepository) downloadIndexFile() (*IndexFile, error) {
 }
 
 // getPackageReaderByFullPackageName downloads the tgz file from the remote repository and unmarshals it to the package CRDs
-func (r *FrameworkRepository) getPackageReaderByFullPackageName(fullPackageName string) (io.Reader, error) {
+func (r *OperatorRepository) getPackageReaderByFullPackageName(fullPackageName string) (io.Reader, error) {
 	var fileURL string
 	parsedURL, err := url.Parse(r.Config.URL)
 	if err != nil {
@@ -86,7 +86,7 @@ func (r *FrameworkRepository) getPackageReaderByFullPackageName(fullPackageName 
 }
 
 // GetPackageReader provides an io.Reader for a provided package name and optional version
-func (r *FrameworkRepository) GetPackageReader(name string, version string) (io.Reader, error) {
+func (r *OperatorRepository) GetPackageReader(name string, version string) (io.Reader, error) {
 
 	// Construct the package name and download the index file from the remote repo
 	indexFile, err := r.downloadIndexFile()
@@ -116,7 +116,7 @@ func (r *FrameworkRepository) GetPackageReader(name string, version string) (io.
 }
 
 // GetPackageBundle provides an Bundle for a provided package name and optional version
-func (r *FrameworkRepository) GetPackageBundle(name string, version string) (Bundle, error) {
+func (r *OperatorRepository) GetPackageBundle(name string, version string) (Bundle, error) {
 	reader, err := r.GetPackageReader(name, version)
 	if err != nil {
 		return nil, err
@@ -124,14 +124,14 @@ func (r *FrameworkRepository) GetPackageBundle(name string, version string) (Bun
 	return NewBundleFromReader(reader), nil
 }
 
-// GetFrameworkVersionDependencies helper method returns a slice of strings that contains the names of all
+// GetOperatorVersionDependencies helper method returns a slice of strings that contains the names of all
 // dependency Operators
-func GetFrameworkVersionDependencies(fv *v1alpha1.OperatorVersion) ([]string, error) {
-	var dependencyFrameworks []string
+func GetOperatorVersionDependencies(fv *v1alpha1.OperatorVersion) ([]string, error) {
+	var dependencyOperators []string
 	if fv.Spec.Dependencies != nil {
 		for _, v := range fv.Spec.Dependencies {
-			dependencyFrameworks = append(dependencyFrameworks, v.Name)
+			dependencyOperators = append(dependencyOperators, v.Name)
 		}
 	}
-	return dependencyFrameworks, nil
+	return dependencyOperators, nil
 }

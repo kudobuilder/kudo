@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestInstallFrameworks(t *testing.T) {
+func TestInstallOperators(t *testing.T) {
 
 	// For test case #1
 	expectedNoArgumentErrors := []string{
@@ -28,7 +28,7 @@ func TestInstallFrameworks(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		err := installFrameworks(tt.args, options)
+		err := installOperators(tt.args, options)
 		if err != nil {
 			receivedErrorList := []string{err.Error()}
 			diff := compareSlice(receivedErrorList, tt.err)
