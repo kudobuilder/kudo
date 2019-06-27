@@ -18,8 +18,8 @@ namePrefix: kudo-
 # YAML string, with resources separated by document
 # markers ("---").
 resources:
-- ./crds/kudo_v1alpha1_framework.yaml
-- ./crds/kudo_v1alpha1_frameworkversion.yaml
+- ./crds/kudo_v1alpha1_operator.yaml
+- ./crds/kudo_v1alpha1_operatorversion.yaml
 - ./crds/kudo_v1alpha1_instance.yaml
 - ./crds/kudo_v1alpha1_planexecution.yaml
 - ./rbac/rbac_role.yaml

@@ -1,0 +1,56 @@
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Operator
+metadata:
+  name: test-operator
+  namespace: default
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: OperatorVersion
+metadata:
+  name: test-operator-1.0
+  namespace: default
+spec:
+  operator:
+    name: test-operator
+    kind: Operator
+  version: "1.0"
+  parameters:
+  - name: REPLICAS
+    description: "Number of nginx replicas"
+    default: "3"
+    displayName: "Replica count"
+  templates:
+    deploy.yaml: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: nginx
+      spec:
+        replicas: {{ .Params.REPLICAS }}
+        selector:
+          matchLabels:
+            app: nginx
+        template:
+          metadata:
+            labels:
+              app: nginx
+          spec:
+            containers:
+            - name: nginx
+              image: nginx:1.7.9
+              ports:
+              - containerPort: 80
+  tasks:
+    deploy:
+      resources:
+      - deploy.yaml
+  plans:
+    deploy:
+      strategy: serial
+      phases:
+      - name: deploy
+        strategy: parallel
+        steps:
+        - name: deploy
+          tasks:
+          - deploy

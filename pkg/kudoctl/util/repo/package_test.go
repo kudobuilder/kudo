@@ -49,27 +49,27 @@ func TestReadFileSystemPackage(t *testing.T) {
 
 			// we need to sort here because current yaml parsing is not preserving the order of fields
 			// at the same time, the deep library we use for equality does not support ignoring order
-			sort.Slice(actual.FrameworkVersion.Spec.Parameters, func(i, j int) bool {
-				return actual.FrameworkVersion.Spec.Parameters[i].Name < actual.FrameworkVersion.Spec.Parameters[j].Name
+			sort.Slice(actual.OperatorVersion.Spec.Parameters, func(i, j int) bool {
+				return actual.OperatorVersion.Spec.Parameters[i].Name < actual.OperatorVersion.Spec.Parameters[j].Name
 			})
-			sort.Slice(golden.FrameworkVersion.Spec.Parameters, func(i, j int) bool {
-				return golden.FrameworkVersion.Spec.Parameters[i].Name < golden.FrameworkVersion.Spec.Parameters[j].Name
+			sort.Slice(golden.OperatorVersion.Spec.Parameters, func(i, j int) bool {
+				return golden.OperatorVersion.Spec.Parameters[i].Name < golden.OperatorVersion.Spec.Parameters[j].Name
 			})
 
 			if diff := deep.Equal(golden, actual); diff != nil {
-				t.Error(diff)
+				t.Errorf("%+v\n", diff)
 			}
 		})
 	}
 }
 
 func loadCRDsFromPath(goldenPath string) (*PackageCRDs, error) {
-	isFrameworkFile := func(name string) bool {
-		return strings.HasSuffix(name, "framework.golden")
+	isOperatorFile := func(name string) bool {
+		return strings.HasSuffix(name, "operator.golden")
 	}
 
 	isVersionFile := func(name string) bool {
-		return strings.HasSuffix(name, "frameworkversion.golden")
+		return strings.HasSuffix(name, "operatorversion.golden")
 	}
 
 	isInstanceFile := func(name string) bool {
@@ -90,18 +90,18 @@ func loadCRDsFromPath(goldenPath string) (*PackageCRDs, error) {
 			return err
 		}
 		switch {
-		case isFrameworkFile(info.Name()):
-			var f v1alpha1.Framework
+		case isOperatorFile(info.Name()):
+			var f v1alpha1.Operator
 			if err = yaml.Unmarshal(bytes, &f); err != nil {
 				return errors.Wrapf(err, "cannot unmarshal %s content", info.Name())
 			}
-			result.Framework = &f
+			result.Operator = &f
 		case isVersionFile(info.Name()):
-			var fv v1alpha1.FrameworkVersion
+			var fv v1alpha1.OperatorVersion
 			if err = yaml.Unmarshal(bytes, &fv); err != nil {
 				return errors.Wrapf(err, "cannot unmarshal %s content", info.Name())
 			}
-			result.FrameworkVersion = &fv
+			result.OperatorVersion = &fv
 		case isInstanceFile(info.Name()):
 			var i v1alpha1.Instance
 			if err = yaml.Unmarshal(bytes, &i); err != nil {

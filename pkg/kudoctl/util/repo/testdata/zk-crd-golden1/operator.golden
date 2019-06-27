@@ -1,0 +1,13 @@
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Operator
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: zookeeper
+spec:
+  url: https://zookeeper.apache.org/
+  maintainers:
+  - Alena Varkockova <avarkockova@mesosphere.com>
+  - Tom Runyon <runyontr@gmail.com>
+  kudoVersion: 0.2.0
+  kubernetesVersion: 1.5.1

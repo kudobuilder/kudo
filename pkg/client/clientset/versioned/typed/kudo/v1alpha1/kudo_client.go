@@ -25,8 +25,8 @@ import (
 
 type KudoV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	FrameworksGetter
-	FrameworkVersionsGetter
+	OperatorsGetter
+	OperatorVersionsGetter
 	InstancesGetter
 	PlanExecutionsGetter
 }
@@ -36,12 +36,12 @@ type KudoV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *KudoV1alpha1Client) Frameworks(namespace string) FrameworkInterface {
-	return newFrameworks(c, namespace)
+func (c *KudoV1alpha1Client) Operators(namespace string) OperatorInterface {
+	return newOperators(c, namespace)
 }
 
-func (c *KudoV1alpha1Client) FrameworkVersions(namespace string) FrameworkVersionInterface {
-	return newFrameworkVersions(c, namespace)
+func (c *KudoV1alpha1Client) OperatorVersions(namespace string) OperatorVersionInterface {
+	return newOperatorVersions(c, namespace)
 }
 
 func (c *KudoV1alpha1Client) Instances(namespace string) InstanceInterface {

@@ -1,12 +1,12 @@
 apiVersion: kudo.k8s.io/v1alpha1
-kind: Framework
+kind: Operator
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: toy
 ---
 apiVersion: kudo.k8s.io/v1alpha1
-kind: FrameworkVersion
+kind: OperatorVersion
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
@@ -15,9 +15,9 @@ metadata:
 spec:
   version: "1.0.0"
   connectionString: ""
-  framework:
+  operator:
     name: Toy
-    kind: Framework
+    kind: Operator
   templates:
     serial.yaml: |
       apiVersion: batch/v1
@@ -105,13 +105,13 @@ kind: Instance
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-    framework: toy
+    operator: toy
   name: toy1
 spec:
-  frameworkVersion:
+  operatorVersion:
     name: toy-v1
     namespace: default
-    type: FrameworkVersions
+    type: OperatorVersions
   # Add fields here
   parameters:
     Sleep: "30"

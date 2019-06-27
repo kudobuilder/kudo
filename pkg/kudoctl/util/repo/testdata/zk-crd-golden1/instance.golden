@@ -3,11 +3,11 @@ kind: Instance
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-    framework: zookeeper
+    operator: zookeeper
   name: zookeeper-xn8fg
 spec:
-  frameworkVersion:
+  operatorVersion:
     name: zookeeper-0.1.0
     namespace: default
-    type: FrameworkVersions
+    type: OperatorVersions
   name: "zookeeper-0.1.0"
