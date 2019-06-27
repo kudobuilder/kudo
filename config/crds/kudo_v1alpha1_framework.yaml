@@ -4,7 +4,7 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: frameworks.kudo.k8s.io
+  name: operators.kudo.k8s.io
 spec:
   group: kudo.k8s.io
   names:

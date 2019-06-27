@@ -1,18 +1,18 @@
 apiVersion: kudo.k8s.io/v1alpha1
-kind: Framework
+kind: Operator
 metadata:
-  name: test-framework
+  name: test-operator
   namespace: default
 ---
 apiVersion: kudo.k8s.io/v1alpha1
-kind: FrameworkVersion
+kind: OperatorVersion
 metadata:
-  name: test-framework-1.0
+  name: test-operator-1.0
   namespace: default
 spec:
-  framework:
-    name: test-framework
-    kind: Framework
+  operator:
+    name: test-operator
+    kind: Operator
   version: "1.0"
   parameters:
   - name: REPLICAS

@@ -43,14 +43,14 @@ KUDO should be used any time you would use an Operator. It can provide an advanc
 Kafka Framework Example
 ```
 apiVersion: kudo.k8s.io/v1alpha1
-kind: Framework
+kind: Operator
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: kafka
 ```
 
-More examples can be found in the [https://github.com/kudobuilder/frameworks](https://github.com/kudobuilder/frameworks) project and include: [flink](https://flink.apache.org/), [kafka](https://kafka.apache.org/), and [zookeeper](https://zookeeper.apache.org/).
+More examples can be found in the [https://github.com/kudobuilder/operators](https://github.com/kudobuilder/frameworks) project and include: [flink](https://flink.apache.org/), [kafka](https://kafka.apache.org/), and [zookeeper](https://zookeeper.apache.org/).
 
 
 ## What is a deployable service?
@@ -70,7 +70,7 @@ An example for a `FrameworkVersion` is the [kafka-frameworkversion.yaml](https:/
 
 ```
 apiVersion: kudo.k8s.io/v1alpha1
-kind: FrameworkVersion
+kind: OperatorVersion
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
@@ -80,9 +80,9 @@ spec:
   serviceSpec:
   version: "2.11-2.4.0"
   connectionString: ""
-  framework:
+  operator:
     name: kafka
-    kind: Framework
+    kind: Operator
   parameters:
     - name: BROKER_COUNT
       description: "Number of brokers spun up for Kafka"
@@ -101,7 +101,7 @@ plans:
                - deploy      
 ```
 
-The purpose of the FrameworkVersion is to provide the details necessary for KUDO to become an operator for a specific capability (such as Kafka) for a version of the framework. As the operator it will execute a `Plan` to establish all the instances of Kakfa components in the cluster as defined in the Framework yaml. In the example provided, it would make sure there are 3 brokers deployed.
+The purpose of the FrameworkVersion is to provide the details necessary for KUDO to become an operator for a specific capability (such as Kafka) for a version of the operator. As the operator it will execute a `Plan` to establish all the instances of Kakfa components in the cluster as defined in the Framework yaml. In the example provided, it would make sure there are 3 brokers deployed.
 
 ## What is an Instance?
 
@@ -139,7 +139,7 @@ Parameters provide configuration for the Instance.
 A deployments strategy indicates the way in which a Plan or Step must be executed. If a Step requires another Step to complete first, it is necessary to declare them as `serial`. The following strategies are available by default and can be used in a `FrameworkVersion` YAML definition:
 
 - `serial`
-  An example for a `serial` Plan is [kafka-frameworkversion.yaml](https://github.com/kudobuilder/frameworks/blob/master/repo/stable/kafka/versions/0/kafka-frameworkversion.yaml).
+  An example for a `serial` Plan is [kafka-operatorversion.yaml](https://github.com/kudobuilder/frameworks/blob/master/repo/stable/kafka/versions/0/kafka-frameworkversion.yaml).
 - `parallel`
   An example for a `parallel` Plan is [zookeeper-frameworkversion.yaml](https://github.com/kudobuilder/frameworks/blob/master/repo/stable/kafka/versions/0/zookeeper-frameworkversion.yaml)`
 

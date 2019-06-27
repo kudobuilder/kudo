@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package frameworkversion
+package operatorversion
 
 import (
 	"context"
@@ -33,19 +33,19 @@ import (
 // Add creates a new OperatorVersion Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	log.Printf("OperatorVersionController: Registering frameworkversion controller.")
+	log.Printf("OperatorVersionController: Registering operatorversion controller.")
 	return add(mgr, newReconciler(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileFrameworkVersion{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileOperatorVersion{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler.
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("frameworkversion-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("operatorversion-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
@@ -59,10 +59,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-var _ reconcile.Reconciler = &ReconcileFrameworkVersion{}
+var _ reconcile.Reconciler = &ReconcileOperatorVersion{}
 
-// ReconcileFrameworkVersion reconciles a OperatorVersion object
-type ReconcileFrameworkVersion struct {
+// ReconcileOperatorVersion reconciles a OperatorVersion object
+type ReconcileOperatorVersion struct {
 	client.Client
 	scheme *runtime.Scheme
 }
@@ -72,11 +72,11 @@ type ReconcileFrameworkVersion struct {
 //
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=kudo.k8s.io,resources=frameworkversions,verbs=get;list;watch;create;update;patch;delete
-func (r *ReconcileFrameworkVersion) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	// Fetch the framework version
-	frameworkVersion := &kudov1alpha1.OperatorVersion{}
-	err := r.Get(context.TODO(), request.NamespacedName, frameworkVersion)
+// +kubebuilder:rbac:groups=kudo.k8s.io,resources=operatorversions,verbs=get;list;watch;create;update;patch;delete
+func (r *ReconcileOperatorVersion) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	// Fetch the operator version
+	operatorVersion := &kudov1alpha1.OperatorVersion{}
+	err := r.Get(context.TODO(), request.NamespacedName, operatorVersion)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.

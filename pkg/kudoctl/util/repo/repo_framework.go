@@ -17,7 +17,7 @@ type Repository interface {
 	GetPackageBundle(name string, version string) (Bundle, error)
 }
 
-// FrameworkRepository represents a framework repository
+// FrameworkRepository represents a operator repository
 type FrameworkRepository struct {
 	Config *RepositoryConfiguration
 	Client HTTPClient
@@ -125,7 +125,7 @@ func (r *FrameworkRepository) GetPackageBundle(name string, version string) (Bun
 }
 
 // GetFrameworkVersionDependencies helper method returns a slice of strings that contains the names of all
-// dependency Frameworks
+// dependency Operators
 func GetFrameworkVersionDependencies(fv *v1alpha1.OperatorVersion) ([]string, error) {
 	var dependencyFrameworks []string
 	if fv.Spec.Dependencies != nil {

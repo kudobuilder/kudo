@@ -27,7 +27,7 @@ superseded-by:
    * [Tests](#tests)
       * [Unit tests](#unit-tests)
       * [Integration tests](#integration-tests)
-      * [Framework tests](#framework-tests)
+      * [Operator tests](#operator-tests)
    * [Kubernetes clusters](keps/0004-add-testing-infrastructure.md#kubernetes-clusters)
    * [CICD](#cicd)
       * [Pull Requests](#pull-requests)

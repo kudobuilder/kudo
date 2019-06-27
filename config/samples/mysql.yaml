@@ -1,12 +1,12 @@
 apiVersion: kudo.k8s.io/v1alpha1
-kind: Framework
+kind: Operator
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: mysql
 ---
 apiVersion: kudo.k8s.io/v1alpha1
-kind: FrameworkVersion
+kind: OperatorVersion
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
@@ -16,9 +16,9 @@ spec:
   serviceSpec:
   version: "5.7"
   connectionString: ""
-  framework:
+  operator:
     name: mysql
-    kind: Framework
+    kind: Operator
   parameters:
   - name: BackupFile
     description: "Filename to save the backups to"
@@ -260,17 +260,14 @@ kind: Instance
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-    framework: mysql
+    operator: mysql
   name: mysql
 spec:
-  frameworkVersion:
+  operatorVersion:
     name: mysql-57
     namespace: default
-    type: FrameworkVersions
+    type: OperatorVersions
   # Add fields here
   parameters:
     Password: password
     BackupFile: backup.sql
-
-
-

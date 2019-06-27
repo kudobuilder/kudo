@@ -16,13 +16,13 @@ limitations under the License.
 
 package v1alpha1
 
-// FrameworkListerExpansion allows custom methods to be added to
-// FrameworkLister.
-type FrameworkListerExpansion interface{}
+// OperatorListerExpansion allows custom methods to be added to
+// OperatorLister.
+type OperatorListerExpansion interface{}
 
-// FrameworkNamespaceListerExpansion allows custom methods to be added to
-// FrameworkNamespaceLister.
-type FrameworkNamespaceListerExpansion interface{}
+// OperatorNamespaceListerExpansion allows custom methods to be added to
+// OperatorNamespaceLister.
+type OperatorNamespaceListerExpansion interface{}
 
 // FrameworkVersionListerExpansion allows custom methods to be added to
 // FrameworkVersionLister.

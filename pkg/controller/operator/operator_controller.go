@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package framework
+package operator
 
 import (
 	"context"
@@ -35,7 +35,7 @@ import (
 // Add creates a new Operator Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	log.Printf("OperatorController: Registering framework controller.")
+	log.Printf("OperatorController: Registering operator controller.")
 	reconciler, err := newReconciler(mgr)
 	if err != nil {
 		return err
@@ -46,13 +46,13 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 
-	return &ReconcileFramework{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor("framework-controller")}, nil
+	return &ReconcileFramework{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor("operator-controller")}, nil
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("framework-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("operator-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ type ReconcileFramework struct {
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kudo.k8s.io,resources=frameworks,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileFramework) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	// Fetch the framework
+	// Fetch the operator
 	framework := &kudov1alpha1.Operator{}
 	err := r.Get(context.TODO(), request.NamespacedName, framework)
 	if err != nil {
@@ -94,7 +94,7 @@ func (r *ReconcileFramework) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	log.Printf("FrameworkController: Received Reconcile request for a framework named: %v", request.Name)
+	log.Printf("FrameworkController: Received Reconcile request for a operator named: %v", request.Name)
 
 	return reconcile.Result{}, nil
 }

@@ -29,43 +29,43 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// FrameworkInformer provides access to a shared informer and lister for
-// Frameworks.
-type FrameworkInformer interface {
+// OperatorInformer provides access to a shared informer and lister for
+// Operators.
+type OperatorInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.FrameworkLister
+	Lister() v1alpha1.OperatorLister
 }
 
-type frameworkInformer struct {
+type operatorInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewFrameworkInformer constructs a new informer for Operator type.
+// NewOperatorInformer constructs a new informer for Operator type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFrameworkInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredFrameworkInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewOperatorInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredOperatorInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredFrameworkInformer constructs a new informer for Operator type.
+// NewFilteredOperatorInformer constructs a new informer for Operator type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredFrameworkInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredOperatorInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.KudoV1alpha1().Frameworks(namespace).List(options)
+				return client.KudoV1alpha1().Operators(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.KudoV1alpha1().Frameworks(namespace).Watch(options)
+				return client.KudoV1alpha1().Operators(namespace).Watch(options)
 			},
 		},
 		&kudov1alpha1.Operator{},
@@ -74,14 +74,14 @@ func NewFilteredFrameworkInformer(client versioned.Interface, namespace string, 
 	)
 }
 
-func (f *frameworkInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredFrameworkInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *operatorInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredOperatorInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *frameworkInformer) Informer() cache.SharedIndexInformer {
+func (f *operatorInformer) Informer() cache.SharedIndexInformer {
 	return f.factory.InformerFor(&kudov1alpha1.Operator{}, f.defaultInformer)
 }
 
-func (f *frameworkInformer) Lister() v1alpha1.FrameworkLister {
-	return v1alpha1.NewFrameworkLister(f.Informer().GetIndexer())
+func (f *operatorInformer) Lister() v1alpha1.OperatorLister {
+	return v1alpha1.NewOperatorLister(f.Informer().GetIndexer())
 }

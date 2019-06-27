@@ -6,10 +6,10 @@ metadata:
     framework: toy
   name: toy1
 spec:
-  frameworkVersion:
+  operatorVersion:
     name: toy-v1
     namespace: default
-    type: FrameworkVersions
+    type: OperatorVersions
   # Add fields here
   parameters:
     Param: "30"

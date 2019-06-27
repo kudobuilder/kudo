@@ -27,14 +27,14 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
-// FrameworksGetter has a method to return a FrameworkInterface.
+// OperatorsGetter has a method to return a OperatorInterface.
 // A group's client should implement this interface.
-type FrameworksGetter interface {
-	Frameworks(namespace string) FrameworkInterface
+type OperatorsGetter interface {
+	Operators(namespace string) OperatorInterface
 }
 
-// FrameworkInterface has methods to work with Operator resources.
-type FrameworkInterface interface {
+// OperatorInterface has methods to work with Operator resources.
+type OperatorInterface interface {
 	Create(*v1alpha1.Operator) (*v1alpha1.Operator, error)
 	Update(*v1alpha1.Operator) (*v1alpha1.Operator, error)
 	UpdateStatus(*v1alpha1.Operator) (*v1alpha1.Operator, error)
@@ -44,29 +44,29 @@ type FrameworkInterface interface {
 	List(opts v1.ListOptions) (*v1alpha1.OperatorList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Operator, err error)
-	FrameworkExpansion
+	OperatorExpansion
 }
 
-// frameworks implements FrameworkInterface
-type frameworks struct {
+// operators implements OperatorInterface
+type operators struct {
 	client rest.Interface
 	ns     string
 }
 
-// newFrameworks returns a Frameworks
-func newFrameworks(c *KudoV1alpha1Client, namespace string) *frameworks {
-	return &frameworks{
+// newOperators returns a Operators
+func newOperators(c *KudoV1alpha1Client, namespace string) *operators {
+	return &operators{
 		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
 
-// Get takes name of the framework, and returns the corresponding framework object, and an error if there is any.
-func (c *frameworks) Get(name string, options v1.GetOptions) (result *v1alpha1.Operator, err error) {
+// Get takes name of the operator, and returns the corresponding operator object, and an error if there is any.
+func (c *operators) Get(name string, options v1.GetOptions) (result *v1alpha1.Operator, err error) {
 	result = &v1alpha1.Operator{}
 	err = c.client.Get().
 		Namespace(c.ns).
-		Resource("frameworks").
+		Resource("operators").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
@@ -74,8 +74,8 @@ func (c *frameworks) Get(name string, options v1.GetOptions) (result *v1alpha1.O
 	return
 }
 
-// List takes label and field selectors, and returns the list of Frameworks that match those selectors.
-func (c *frameworks) List(opts v1.ListOptions) (result *v1alpha1.OperatorList, err error) {
+// List takes label and field selectors, and returns the list of Operators that match those selectors.
+func (c *operators) List(opts v1.ListOptions) (result *v1alpha1.OperatorList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -83,7 +83,7 @@ func (c *frameworks) List(opts v1.ListOptions) (result *v1alpha1.OperatorList, e
 	result = &v1alpha1.OperatorList{}
 	err = c.client.Get().
 		Namespace(c.ns).
-		Resource("frameworks").
+		Resource("operators").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
 		Do().
@@ -91,8 +91,8 @@ func (c *frameworks) List(opts v1.ListOptions) (result *v1alpha1.OperatorList, e
 	return
 }
 
-// Watch returns a watch.Interface that watches the requested frameworks.
-func (c *frameworks) Watch(opts v1.ListOptions) (watch.Interface, error) {
+// Watch returns a watch.Interface that watches the requested operators.
+func (c *operators) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -100,32 +100,32 @@ func (c *frameworks) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
-		Resource("frameworks").
+		Resource("operators").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
 		Watch()
 }
 
-// Create takes the representation of a framework and creates it.  Returns the server's representation of the framework, and an error, if there is any.
-func (c *frameworks) Create(framework *v1alpha1.Operator) (result *v1alpha1.Operator, err error) {
+// Create takes the representation of a operator and creates it.  Returns the server's representation of the operator, and an error, if there is any.
+func (c *operators) Create(operator *v1alpha1.Operator) (result *v1alpha1.Operator, err error) {
 	result = &v1alpha1.Operator{}
 	err = c.client.Post().
 		Namespace(c.ns).
-		Resource("frameworks").
-		Body(framework).
+		Resource("operators").
+		Body(operator).
 		Do().
 		Into(result)
 	return
 }
 
-// Update takes the representation of a framework and updates it. Returns the server's representation of the framework, and an error, if there is any.
-func (c *frameworks) Update(framework *v1alpha1.Operator) (result *v1alpha1.Operator, err error) {
+// Update takes the representation of a operator and updates it. Returns the server's representation of the operator, and an error, if there is any.
+func (c *operators) Update(operator *v1alpha1.Operator) (result *v1alpha1.Operator, err error) {
 	result = &v1alpha1.Operator{}
 	err = c.client.Put().
 		Namespace(c.ns).
-		Resource("frameworks").
-		Name(framework.Name).
-		Body(framework).
+		Resource("operators").
+		Name(operator.Name).
+		Body(operator).
 		Do().
 		Into(result)
 	return
@@ -134,24 +134,24 @@ func (c *frameworks) Update(framework *v1alpha1.Operator) (result *v1alpha1.Oper
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
-func (c *frameworks) UpdateStatus(framework *v1alpha1.Operator) (result *v1alpha1.Operator, err error) {
+func (c *operators) UpdateStatus(operator *v1alpha1.Operator) (result *v1alpha1.Operator, err error) {
 	result = &v1alpha1.Operator{}
 	err = c.client.Put().
 		Namespace(c.ns).
-		Resource("frameworks").
-		Name(framework.Name).
+		Resource("operators").
+		Name(operator.Name).
 		SubResource("status").
-		Body(framework).
+		Body(operator).
 		Do().
 		Into(result)
 	return
 }
 
-// Delete takes name of the framework and deletes it. Returns an error if one occurs.
-func (c *frameworks) Delete(name string, options *v1.DeleteOptions) error {
+// Delete takes name of the operator and deletes it. Returns an error if one occurs.
+func (c *operators) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
-		Resource("frameworks").
+		Resource("operators").
 		Name(name).
 		Body(options).
 		Do().
@@ -159,14 +159,14 @@ func (c *frameworks) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *frameworks) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *operators) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	var timeout time.Duration
 	if listOptions.TimeoutSeconds != nil {
 		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
-		Resource("frameworks").
+		Resource("operators").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Timeout(timeout).
 		Body(options).
@@ -174,12 +174,12 @@ func (c *frameworks) DeleteCollection(options *v1.DeleteOptions, listOptions v1.
 		Error()
 }
 
-// Patch applies the patch and returns the patched framework.
-func (c *frameworks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Operator, err error) {
+// Patch applies the patch and returns the patched operator.
+func (c *operators) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Operator, err error) {
 	result = &v1alpha1.Operator{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
-		Resource("frameworks").
+		Resource("operators").
 		SubResource(subresources...).
 		Name(name).
 		Body(data).

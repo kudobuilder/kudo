@@ -16,10 +16,10 @@ limitations under the License.
 package controller
 
 import (
-	"github.com/kudobuilder/kudo/pkg/controller/framework"
+	"github.com/kudobuilder/kudo/pkg/controller/operator"
 )
 
 func init() {
 	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
-	AddToManagerFuncs = append(AddToManagerFuncs, framework.Add)
+	AddToManagerFuncs = append(AddToManagerFuncs, operator.Add)
 }

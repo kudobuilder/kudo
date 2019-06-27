@@ -27,14 +27,14 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
-// FrameworkVersionsGetter has a method to return a FrameworkVersionInterface.
+// OperatorVersionsGetter has a method to return a OperatorVersionInterface.
 // A group's client should implement this interface.
-type FrameworkVersionsGetter interface {
-	FrameworkVersions(namespace string) FrameworkVersionInterface
+type OperatorVersionsGetter interface {
+	OperatorVersions(namespace string) OperatorVersionInterface
 }
 
-// FrameworkVersionInterface has methods to work with OperatorVersion resources.
-type FrameworkVersionInterface interface {
+// OperatorVersionInterface has methods to work with OperatorVersion resources.
+type OperatorVersionInterface interface {
 	Create(*v1alpha1.OperatorVersion) (*v1alpha1.OperatorVersion, error)
 	Update(*v1alpha1.OperatorVersion) (*v1alpha1.OperatorVersion, error)
 	UpdateStatus(*v1alpha1.OperatorVersion) (*v1alpha1.OperatorVersion, error)
@@ -44,29 +44,29 @@ type FrameworkVersionInterface interface {
 	List(opts v1.ListOptions) (*v1alpha1.OperatorVersionList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.OperatorVersion, err error)
-	FrameworkVersionExpansion
+	OperatorVersionExpansion
 }
 
-// frameworkVersions implements FrameworkVersionInterface
-type frameworkVersions struct {
+// operatorVersions implements OperatorVersionInterface
+type operatorVersions struct {
 	client rest.Interface
 	ns     string
 }
 
-// newFrameworkVersions returns a FrameworkVersions
-func newFrameworkVersions(c *KudoV1alpha1Client, namespace string) *frameworkVersions {
-	return &frameworkVersions{
+// newOperatorVersions returns a OperatorVersions
+func newOperatorVersions(c *KudoV1alpha1Client, namespace string) *operatorVersions {
+	return &operatorVersions{
 		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
 
-// Get takes name of the frameworkVersion, and returns the corresponding frameworkVersion object, and an error if there is any.
-func (c *frameworkVersions) Get(name string, options v1.GetOptions) (result *v1alpha1.OperatorVersion, err error) {
+// Get takes name of the operatorVersion, and returns the corresponding operatorVersion object, and an error if there is any.
+func (c *operatorVersions) Get(name string, options v1.GetOptions) (result *v1alpha1.OperatorVersion, err error) {
 	result = &v1alpha1.OperatorVersion{}
 	err = c.client.Get().
 		Namespace(c.ns).
-		Resource("frameworkversions").
+		Resource("operatorversions").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
@@ -74,8 +74,8 @@ func (c *frameworkVersions) Get(name string, options v1.GetOptions) (result *v1a
 	return
 }
 
-// List takes label and field selectors, and returns the list of FrameworkVersions that match those selectors.
-func (c *frameworkVersions) List(opts v1.ListOptions) (result *v1alpha1.OperatorVersionList, err error) {
+// List takes label and field selectors, and returns the list of OperatorVersions that match those selectors.
+func (c *operatorVersions) List(opts v1.ListOptions) (result *v1alpha1.OperatorVersionList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -83,7 +83,7 @@ func (c *frameworkVersions) List(opts v1.ListOptions) (result *v1alpha1.Operator
 	result = &v1alpha1.OperatorVersionList{}
 	err = c.client.Get().
 		Namespace(c.ns).
-		Resource("frameworkversions").
+		Resource("operatorversions").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
 		Do().
@@ -91,8 +91,8 @@ func (c *frameworkVersions) List(opts v1.ListOptions) (result *v1alpha1.Operator
 	return
 }
 
-// Watch returns a watch.Interface that watches the requested frameworkVersions.
-func (c *frameworkVersions) Watch(opts v1.ListOptions) (watch.Interface, error) {
+// Watch returns a watch.Interface that watches the requested operatorVersions.
+func (c *operatorVersions) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -100,32 +100,32 @@ func (c *frameworkVersions) Watch(opts v1.ListOptions) (watch.Interface, error) 
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
-		Resource("frameworkversions").
+		Resource("operatorversions").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
 		Watch()
 }
 
-// Create takes the representation of a frameworkVersion and creates it.  Returns the server's representation of the frameworkVersion, and an error, if there is any.
-func (c *frameworkVersions) Create(frameworkVersion *v1alpha1.OperatorVersion) (result *v1alpha1.OperatorVersion, err error) {
+// Create takes the representation of a operatorVersion and creates it.  Returns the server's representation of the operatorVersion, and an error, if there is any.
+func (c *operatorVersions) Create(operatorVersion *v1alpha1.OperatorVersion) (result *v1alpha1.OperatorVersion, err error) {
 	result = &v1alpha1.OperatorVersion{}
 	err = c.client.Post().
 		Namespace(c.ns).
-		Resource("frameworkversions").
-		Body(frameworkVersion).
+		Resource("operatorversions").
+		Body(operatorVersion).
 		Do().
 		Into(result)
 	return
 }
 
-// Update takes the representation of a frameworkVersion and updates it. Returns the server's representation of the frameworkVersion, and an error, if there is any.
-func (c *frameworkVersions) Update(frameworkVersion *v1alpha1.OperatorVersion) (result *v1alpha1.OperatorVersion, err error) {
+// Update takes the representation of a operatorVersion and updates it. Returns the server's representation of the operatorVersion, and an error, if there is any.
+func (c *operatorVersions) Update(operatorVersion *v1alpha1.OperatorVersion) (result *v1alpha1.OperatorVersion, err error) {
 	result = &v1alpha1.OperatorVersion{}
 	err = c.client.Put().
 		Namespace(c.ns).
-		Resource("frameworkversions").
-		Name(frameworkVersion.Name).
-		Body(frameworkVersion).
+		Resource("operatorversions").
+		Name(operatorVersion.Name).
+		Body(operatorVersion).
 		Do().
 		Into(result)
 	return
@@ -134,24 +134,24 @@ func (c *frameworkVersions) Update(frameworkVersion *v1alpha1.OperatorVersion) (
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
-func (c *frameworkVersions) UpdateStatus(frameworkVersion *v1alpha1.OperatorVersion) (result *v1alpha1.OperatorVersion, err error) {
+func (c *operatorVersions) UpdateStatus(operatorVersion *v1alpha1.OperatorVersion) (result *v1alpha1.OperatorVersion, err error) {
 	result = &v1alpha1.OperatorVersion{}
 	err = c.client.Put().
 		Namespace(c.ns).
-		Resource("frameworkversions").
-		Name(frameworkVersion.Name).
+		Resource("operatorversions").
+		Name(operatorVersion.Name).
 		SubResource("status").
-		Body(frameworkVersion).
+		Body(operatorVersion).
 		Do().
 		Into(result)
 	return
 }
 
-// Delete takes name of the frameworkVersion and deletes it. Returns an error if one occurs.
-func (c *frameworkVersions) Delete(name string, options *v1.DeleteOptions) error {
+// Delete takes name of the operatorVersion and deletes it. Returns an error if one occurs.
+func (c *operatorVersions) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
-		Resource("frameworkversions").
+		Resource("operatorversions").
 		Name(name).
 		Body(options).
 		Do().
@@ -159,14 +159,14 @@ func (c *frameworkVersions) Delete(name string, options *v1.DeleteOptions) error
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *frameworkVersions) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *operatorVersions) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	var timeout time.Duration
 	if listOptions.TimeoutSeconds != nil {
 		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
-		Resource("frameworkversions").
+		Resource("operatorversions").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Timeout(timeout).
 		Body(options).
@@ -174,12 +174,12 @@ func (c *frameworkVersions) DeleteCollection(options *v1.DeleteOptions, listOpti
 		Error()
 }
 
-// Patch applies the patch and returns the patched frameworkVersion.
-func (c *frameworkVersions) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.OperatorVersion, err error) {
+// Patch applies the patch and returns the patched operatorVersion.
+func (c *operatorVersions) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.OperatorVersion, err error) {
 	result = &v1alpha1.OperatorVersion{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
-		Resource("frameworkversions").
+		Resource("operatorversions").
 		SubResource(subresources...).
 		Name(name).
 		Body(data).

@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	operatorFileName      = "framework.yaml"
+	operatorFileName      = "operator.yaml"
 	templateFileNameRegex = "templates/.*.yaml"
 	paramsFileName        = "params.yaml"
 )

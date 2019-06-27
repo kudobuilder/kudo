@@ -1,12 +1,12 @@
 apiVersion: kudo.k8s.io/v1alpha1
-kind: Framework
+kind: Operator
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: upgrade
 ---
 apiVersion: kudo.k8s.io/v1alpha1
-kind: FrameworkVersion
+kind: OperatorVersion
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
@@ -15,9 +15,9 @@ metadata:
 spec:
   version: "1.0.0"
   connectionString: ""
-  framework:
+  operator:
     name: upgrade
-    kind: Framework
+    kind: Operator
   templates:
     job.yaml: |
       apiVersion: batch/v1
@@ -76,10 +76,10 @@ spec:
           steps:
           - name: run-step
             tasks:
-            - run       
+            - run
 ---
 apiVersion: kudo.k8s.io/v1alpha1
-kind: FrameworkVersion
+kind: OperatorVersion
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
@@ -88,9 +88,9 @@ metadata:
 spec:
   version: "1.0.1"
   connectionString: ""
-  framework:
+  operator:
     name: upgrade
-    kind: Framework
+    kind: Operator
   templates:
     job.yaml: |
       apiVersion: batch/v1
@@ -149,20 +149,20 @@ spec:
           steps:
           - name: run-step
             tasks:
-            - run             
+            - run
 ---
 apiVersion: kudo.k8s.io/v1alpha1
 kind: Instance
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-    framework: upgrade
+    operator: upgrade
   name: up
 spec:
-  frameworkVersion:
+  operatorVersion:
     name: upgrade-v1
     namespace: default
-    type: FrameworkVersions
+    type: OperatorVersions
   # Add fields here
   parameters:
     Sleep: "15"

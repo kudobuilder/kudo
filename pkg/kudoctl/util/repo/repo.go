@@ -1,6 +1,6 @@
 package repo
 
-// RepositoryConfiguration represents a collection of parameters for framework repository.
+// RepositoryConfiguration represents a collection of parameters for operator repository.
 type RepositoryConfiguration struct {
 	URL string `json:"url"`
 }
@@ -12,25 +12,25 @@ var Default = &RepositoryConfiguration{
 
 // Metadata for a Operator. This models the structure of a bundle.yaml file.
 type Metadata struct {
-	// Name is the name of the framework.
+	// Name is the name of the operator.
 	Name string `json:"name,omitempty"`
 
-	// Version is a A SemVer 2 conformant version string of the framework.
+	// Version is a A SemVer 2 conformant version string of the operator.
 	Version string `protobuf:"bytes,4,opt,name=version" json:"version,omitempty"`
 
 	// The URL to a relevant project page, git repo, or contact person.
 	Home string `json:"home,omitempty"`
 
-	// Source is the URL to the source code of this framework.
+	// Source is the URL to the source code of this operator.
 	Sources []string `json:"sources,omitempty"`
 
-	// Description is a one-sentence description of the framework.
+	// Description is a one-sentence description of the operator.
 	Description string `json:"description,omitempty"`
 
 	// Maintainers is a list of name and URL/email addresses of the maintainer(s).
 	Maintainers []*Maintainer `json:"maintainers,omitempty"`
 
-	// Deprecated reflects whether this framework is deprecated.
+	// Deprecated reflects whether this operator is deprecated.
 	Deprecated bool `json:"deprecated,omitempty"`
 }
 

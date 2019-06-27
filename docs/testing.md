@@ -104,10 +104,10 @@ kind: Instance
 metadata:
   name: zk
 spec:
-  frameworkVersion:
+  operatorVersion:
     name: zookeeper-0.1.0
     namespace: default
-    type: FrameworkVersions
+    type: OperatorVersions
   name: "zk"
   parameters:
     cpus: "0.3"

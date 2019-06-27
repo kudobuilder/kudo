@@ -6,7 +6,7 @@ metadata:
     framework: kafka
   name: kafka
 spec:
-  frameworkVersion:
+  operatorVersion:
     name: kafka-2.11-2.4.0
     namespace: default
     type: FrameworkVersion

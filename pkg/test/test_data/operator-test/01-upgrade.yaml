@@ -3,7 +3,9 @@ kind: Instance
 metadata:
   name: my-instance
 spec:
-  frameworkVersion:
-    name: test-framework-1.0
-    kind: FrameworkVersion
+  operatorVersion:
+    name: test-operator-1.0
+    kind: OperatorVersion
     namespace: default
+  parameters:
+    REPLICAS: "4"

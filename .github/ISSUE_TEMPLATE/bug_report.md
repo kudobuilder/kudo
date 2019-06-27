@@ -24,7 +24,7 @@ If the matter is security sensitive, please disclose it privately to a security 
 - Kubernetes version (use `kubectl version`):
 - Kudo version (use `kubectl kudo version`): 
 - Framework:
-- Frameworkversion:
+- operatorVersion:
 - Cloud provider or hardware configuration:
 - OS (e.g. from /etc/os-release):
 - Kernel (e.g. `uname -a`):

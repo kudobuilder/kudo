@@ -29,14 +29,14 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// FrameworkVersionInformer provides access to a shared informer and lister for
-// FrameworkVersions.
-type FrameworkVersionInformer interface {
+// OperatorVersionInformer provides access to a shared informer and lister for
+// OperatorVersions.
+type OperatorVersionInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() v1alpha1.FrameworkVersionLister
 }
 
-type frameworkVersionInformer struct {
+type operatorVersionInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
@@ -59,13 +59,13 @@ func NewFilteredFrameworkVersionInformer(client versioned.Interface, namespace s
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.KudoV1alpha1().FrameworkVersions(namespace).List(options)
+				return client.KudoV1alpha1().OperatorVersions(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.KudoV1alpha1().FrameworkVersions(namespace).Watch(options)
+				return client.KudoV1alpha1().OperatorVersions(namespace).Watch(options)
 			},
 		},
 		&kudov1alpha1.OperatorVersion{},
@@ -74,14 +74,14 @@ func NewFilteredFrameworkVersionInformer(client versioned.Interface, namespace s
 	)
 }
 
-func (f *frameworkVersionInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+func (f *operatorVersionInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
 	return NewFilteredFrameworkVersionInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *frameworkVersionInformer) Informer() cache.SharedIndexInformer {
+func (f *operatorVersionInformer) Informer() cache.SharedIndexInformer {
 	return f.factory.InformerFor(&kudov1alpha1.OperatorVersion{}, f.defaultInformer)
 }
 
-func (f *frameworkVersionInformer) Lister() v1alpha1.FrameworkVersionLister {
+func (f *operatorVersionInformer) Lister() v1alpha1.FrameworkVersionLister {
 	return v1alpha1.NewFrameworkVersionLister(f.Informer().GetIndexer())
 }

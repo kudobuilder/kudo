@@ -1,5 +1,5 @@
 apiVersion: kudo.k8s.io/v1alpha1
-kind: FrameworkVersion
+kind: OperatorVersion
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
@@ -9,9 +9,9 @@ spec:
   serviceSpec:
   version: "2.11-2.4.0"
   connectionString: ""
-  framework:
+  operator:
     name: kafka
-    kind: Framework
+    kind: Operator
   parameters:
   - name: BROKER_COUNT
     description: "Number of brokers spun up for Kafka"

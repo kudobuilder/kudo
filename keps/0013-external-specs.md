@@ -38,16 +38,16 @@ Organizations and companies already spend time building, updating and debugging 
 
 ## Motivation
 
-While being able to package our own application definition via [KEP0009](keps/0009-operator-toolkit.md), being able to leverage other application package formats for customization and extension would provide access to a trove of KUDO Frameworks without any additional work required by FrameworkVendors. There are
+While being able to package our own application definition via [KEP0009](keps/0009-operator-toolkit.md), being able to leverage other application package formats for customization and extension would provide access to a trove of KUDO Operators without any additional work required by OperatorVendors. There are
 
-- Frameworks
+- Operators
 - Helm
 - CNAB
 - OperatorHub
 
 ### Goals
 
-- Run non-KUDO defined applications as Frameworks
+- Run non-KUDO defined applications as Operators
 
 ### Non-Goals
 
@@ -64,8 +64,8 @@ The core functionality required by KUDO is the ability to turn
 
 ```go
 type StepArgument struct{
-  // The FrameworkVersion object to be used by the Engine
-  FrameworkVersion FrameworkVersion
+  // The OperatorVersion object to be used by the Engine
+  OperatorVersion OperatorVersion
   // The Plan being executed
   Plan Plan
   // The Phase being executed
@@ -87,17 +87,17 @@ type Engine interface{
 }
 ```
 
-The `PlanExecution` controller would select the proper engine based on the `engine` keyword added to the `FrameworkVersion` spec.
+The `PlanExecution` controller would select the proper engine based on the `engine` keyword added to the `OperatorVersion` spec.
 
-### Engine Spec in FrameworkVersion
+### Engine Spec in OperatorVersion
 
-The Framework Version Spec would have a new field `Engine` that would specify the engine that should be used to Render steps into Kubernetes objects. Initial implementation will focus on adding one additional engine to support the execution of `Helm` charts.
+The Operator Version Spec would have a new field `Engine` that would specify the engine that should be used to Render steps into Kubernetes objects. Initial implementation will focus on adding one additional engine to support the execution of `Helm` charts.
 
 ```go
-// FrameworkVersionSpec defines the desired state of FrameworkVersion.
-type FrameworkVersionSpec struct {
+// OperatorVersionSpec defines the desired state of OperatorVersion.
+type OperatorVersionSpec struct {
 	// +optional
-	Framework corev1.ObjectReference `json:"framework,omitempty"`
+	Operator corev1.ObjectReference operator
 
   ...
 
@@ -110,7 +110,7 @@ type EngineType string
 const (
   // Use default kudo engine for rendering
   EngineTypeKUDO EngineType = "kudo"
-  // Use helm engine for rendering framework
+  operator
   EngineTypeHelm EngineType = "helm"
 )
 
@@ -118,38 +118,38 @@ const (
 
 #### KUDO Engine
 
-The functionality and rendering of KUDO frameworks will not change as a result of this KEP.
+The functionality and rendering of KUDO operators will not change as a result of this KEP.
 
 #### Helm Engine
 
-When a FrameworkVersion is created from a Helm Chart, we will refer to this FrameworkVersion as a **Helm FrameworkVersion** to differentiate it from the underlying **Helm Chart** and a FrameworkVersion that uses the KUDO Engine.
+When a OperatorVersion is created from a Helm Chart, we will refer to this OperatorVersion as a **Helm OperatorVersion** to differentiate it from the underlying **Helm Chart** and a OperatorVersion that uses the KUDO Engine.
 
-##### Installation of Helm FrameworkVersions
+##### Installation of Helm OperatorVersions
 
-Helm charts have a similar structure to KUDO Frameworks and the converstion, at installation time, of a Helm Chart into a Helm FrameworkVersion should be straightfoward.
+Helm charts have a similar structure to KUDO Operators and the converstion, at installation time, of a Helm Chart into a Helm OperatorVersion should be straightfoward.
 
 - The `Chart.yaml` will be converted:
-  - Framework.name = name
-  - FrameworkVersion.name = name-version
-  - Framework.spec.maintainers = maintainers
-  - Framework.spec.url = url
-  - FrameworkVersion.kubernetesVersion = kubeVersion
-  - FrameworkVersion.kudoVersion = 0.3.0
-- Files in the `templates` folder will be inserted into the `templates` field in the FrameworkVersion, exactly how is done in KUDO FrameworkVersions.
-- There will be no parameters defined explicitly in the FrameworkVersion.
+  - Operator.name = name
+  - OperatorVersion.name = name-version
+  - Operator.spec.maintainers = maintainers
+  - Operator.spec.url = url
+  - OperatorVersion.kubernetesVersion = kubeVersion
+  - OperatorVersion.kudoVersion = 0.3.0
+- Files in the `templates` folder will be inserted into the `templates` field in the OperatorVersion, exactly how is done in KUDO OperatorVersions.
+- There will be no parameters defined explicitly in the OperatorVersion.
 
 By default there will be a `deploy` plan with one `deploy` phase and one `deploy` step that will render all objects in the chart.
 
 ### User Stories
 
-- Allow running of a Helm Chart as a KUDO Framework
-- Allow running of a CNAB bundle as a KUDO Framework
-- Allow the running of an Operator as a KUDO Framework
+- Allow running of a Helm Chart as a KUDO Operator
+- Allow running of a CNAB bundle as a KUDO Operator
+- Allow the running of an Operator as a KUDO Operator
 
 ### Risks and Mitigations
 
 - It's not clear all functionality present in other application definition formats will be present in KUDO. Only support what KUDO supports currently.
-- Once [KEP-0012](keps/0012-framework-extensions.md) gets merged, we may need to adjust the interface to get rendered by the TASK, not the step so that tasks from different engines can be rendered in the same step.
+- Once [KEP-0012](keps/0012-operator-extensions.md) gets merged, we may need to adjust the interface to get rendered by the TASK, not the step so that tasks from different engines can be rendered in the same step.
 
 ## Graduation Criteria
 

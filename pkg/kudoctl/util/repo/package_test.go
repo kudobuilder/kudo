@@ -57,11 +57,11 @@ func TestReadFileSystemPackage(t *testing.T) {
 
 func loadCRDsFromPath(goldenPath string) (*PackageCRDs, error) {
 	isOperatorFile := func(name string) bool {
-		return strings.HasSuffix(name, "framework.golden")
+		return strings.HasSuffix(name, "operator.golden")
 	}
 
 	isVersionFile := func(name string) bool {
-		return strings.HasSuffix(name, "frameworkversion.golden")
+		return strings.HasSuffix(name, "operatorversion.golden")
 	}
 
 	isInstanceFile := func(name string) bool {

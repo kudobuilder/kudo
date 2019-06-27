@@ -1,21 +1,21 @@
 apiVersion: kudo.k8s.io/v1alpha1
-kind: Framework
+kind: Operator
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: flink-financial-demo
 ---
 apiVersion: kudo.k8s.io/v1alpha1
-kind: FrameworkVersion
+kind: OperatorVersion
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: flink-financial-demo
   namespace: default
 spec:
-  framework:
+  operator:
     name: flink-financial-demo
-    kind: Framework
+    kind: Operator
   # Add fields here
   parameters:
   - name: DOWNLOAD_URL
@@ -28,13 +28,13 @@ spec:
       metadata:
         labels:
           controller-tools.k8s.io: "1.0"
-          framework: zookeeper
+          operator: zookeeper
         name: zk
       spec:
-        frameworkVersion:
+        operatorVersion:
           name: zookeeper-1.0
           namespace: default
-          type: FrameworkVersions
+          type: OperatorVersions
         # Add fields here
         name: "zk"
         parameters:
@@ -45,10 +45,10 @@ spec:
       metadata:
         labels:
           controller-tools.k8s.io: "1.0"
-          framework: kafka 
+          operator: kafka
         name: kafka
       spec:
-        frameworkVersion:
+        operatorVersion:
           name: kafka-2.11-2.4.0
           namespace: default
           type: FrameworkVersion
@@ -63,10 +63,10 @@ spec:
       metadata:
         labels:
           controller-tools.k8s.io: "1.0"
-          framework: flink 
+          operator: flink
         name: flink
       spec:
-        frameworkVersion:
+        operatorVersion:
           name: flink
           namespace: default
           type: FrameworkVersion
@@ -215,10 +215,10 @@ kind: Instance
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-    framework: flink-financial-demo
+    operator: flink-financial-demo
   name: demo
 spec:
-  frameworkVersion:
+  operatorVersion:
     name: flink-financial-demo
     namespace: default
     type: FrameworkVersion

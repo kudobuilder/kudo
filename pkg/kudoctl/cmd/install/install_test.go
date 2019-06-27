@@ -16,7 +16,7 @@ func TestInstallFrameworks(t *testing.T) {
 	options.PackageVersion = "0.0"
 	installCmdPackageVersionArgs := []string{"one", "two"}
 	expectedPackageVersionFlagErrors := []string{
-		"--package-version not supported in multi framework install",
+		"--package-version not supported in multi operator install",
 	}
 
 	tests := []struct {

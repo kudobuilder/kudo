@@ -26,20 +26,20 @@ import (
 	testing "k8s.io/client-go/testing"
 )
 
-// FakeFrameworks implements FrameworkInterface
-type FakeFrameworks struct {
+// FakeOperators implements OperatorInterface
+type FakeOperators struct {
 	Fake *FakeKudoV1alpha1
 	ns   string
 }
 
-var frameworksResource = schema.GroupVersionResource{Group: "kudo.k8s.io", Version: "v1alpha1", Resource: "frameworks"}
+var operatorsResource = schema.GroupVersionResource{Group: "kudo.k8s.io", Version: "v1alpha1", Resource: "operators"}
 
-var frameworksKind = schema.GroupVersionKind{Group: "kudo.k8s.io", Version: "v1alpha1", Kind: "Operator"}
+var operatorsKind = schema.GroupVersionKind{Group: "kudo.k8s.io", Version: "v1alpha1", Kind: "Operator"}
 
-// Get takes name of the framework, and returns the corresponding framework object, and an error if there is any.
-func (c *FakeFrameworks) Get(name string, options v1.GetOptions) (result *v1alpha1.Operator, err error) {
+// Get takes name of the operator, and returns the corresponding operator object, and an error if there is any.
+func (c *FakeOperators) Get(name string, options v1.GetOptions) (result *v1alpha1.Operator, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(frameworksResource, c.ns, name), &v1alpha1.Operator{})
+		Invokes(testing.NewGetAction(operatorsResource, c.ns, name), &v1alpha1.Operator{})
 
 	if obj == nil {
 		return nil, err
@@ -47,10 +47,10 @@ func (c *FakeFrameworks) Get(name string, options v1.GetOptions) (result *v1alph
 	return obj.(*v1alpha1.Operator), err
 }
 
-// List takes label and field selectors, and returns the list of Frameworks that match those selectors.
-func (c *FakeFrameworks) List(opts v1.ListOptions) (result *v1alpha1.OperatorList, err error) {
+// List takes label and field selectors, and returns the list of Operators that match those selectors.
+func (c *FakeOperators) List(opts v1.ListOptions) (result *v1alpha1.OperatorList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(frameworksResource, frameworksKind, c.ns, opts), &v1alpha1.OperatorList{})
+		Invokes(testing.NewListAction(operatorsResource, operatorsKind, c.ns, opts), &v1alpha1.OperatorList{})
 
 	if obj == nil {
 		return nil, err
@@ -69,17 +69,17 @@ func (c *FakeFrameworks) List(opts v1.ListOptions) (result *v1alpha1.OperatorLis
 	return list, err
 }
 
-// Watch returns a watch.Interface that watches the requested frameworks.
-func (c *FakeFrameworks) Watch(opts v1.ListOptions) (watch.Interface, error) {
+// Watch returns a watch.Interface that watches the requested operators.
+func (c *FakeOperators) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewWatchAction(frameworksResource, c.ns, opts))
+		InvokesWatch(testing.NewWatchAction(operatorsResource, c.ns, opts))
 
 }
 
-// Create takes the representation of a framework and creates it.  Returns the server's representation of the framework, and an error, if there is any.
-func (c *FakeFrameworks) Create(framework *v1alpha1.Operator) (result *v1alpha1.Operator, err error) {
+// Create takes the representation of a operator and creates it.  Returns the server's representation of the operator, and an error, if there is any.
+func (c *FakeOperators) Create(operator *v1alpha1.Operator) (result *v1alpha1.Operator, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(frameworksResource, c.ns, framework), &v1alpha1.Operator{})
+		Invokes(testing.NewCreateAction(operatorsResource, c.ns, operator), &v1alpha1.Operator{})
 
 	if obj == nil {
 		return nil, err
@@ -87,10 +87,10 @@ func (c *FakeFrameworks) Create(framework *v1alpha1.Operator) (result *v1alpha1.
 	return obj.(*v1alpha1.Operator), err
 }
 
-// Update takes the representation of a framework and updates it. Returns the server's representation of the framework, and an error, if there is any.
-func (c *FakeFrameworks) Update(framework *v1alpha1.Operator) (result *v1alpha1.Operator, err error) {
+// Update takes the representation of a operator and updates it. Returns the server's representation of the operator, and an error, if there is any.
+func (c *FakeOperators) Update(operator *v1alpha1.Operator) (result *v1alpha1.Operator, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(frameworksResource, c.ns, framework), &v1alpha1.Operator{})
+		Invokes(testing.NewUpdateAction(operatorsResource, c.ns, operator), &v1alpha1.Operator{})
 
 	if obj == nil {
 		return nil, err
@@ -100,9 +100,9 @@ func (c *FakeFrameworks) Update(framework *v1alpha1.Operator) (result *v1alpha1.
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeFrameworks) UpdateStatus(framework *v1alpha1.Operator) (*v1alpha1.Operator, error) {
+func (c *FakeOperators) UpdateStatus(operator *v1alpha1.Operator) (*v1alpha1.Operator, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(frameworksResource, "status", c.ns, framework), &v1alpha1.Operator{})
+		Invokes(testing.NewUpdateSubresourceAction(operatorsResource, "status", c.ns, operator), &v1alpha1.Operator{})
 
 	if obj == nil {
 		return nil, err
@@ -110,26 +110,26 @@ func (c *FakeFrameworks) UpdateStatus(framework *v1alpha1.Operator) (*v1alpha1.O
 	return obj.(*v1alpha1.Operator), err
 }
 
-// Delete takes name of the framework and deletes it. Returns an error if one occurs.
-func (c *FakeFrameworks) Delete(name string, options *v1.DeleteOptions) error {
+// Delete takes name of the operator and deletes it. Returns an error if one occurs.
+func (c *FakeOperators) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(frameworksResource, c.ns, name), &v1alpha1.Operator{})
+		Invokes(testing.NewDeleteAction(operatorsResource, c.ns, name), &v1alpha1.Operator{})
 
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeFrameworks) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(frameworksResource, c.ns, listOptions)
+func (c *FakeOperators) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(operatorsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.OperatorList{})
 	return err
 }
 
-// Patch applies the patch and returns the patched framework.
-func (c *FakeFrameworks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Operator, err error) {
+// Patch applies the patch and returns the patched operator.
+func (c *FakeOperators) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Operator, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(frameworksResource, c.ns, name, pt, data, subresources...), &v1alpha1.Operator{})
+		Invokes(testing.NewPatchSubresourceAction(operatorsResource, c.ns, name, pt, data, subresources...), &v1alpha1.Operator{})
 
 	if obj == nil {
 		return nil, err
