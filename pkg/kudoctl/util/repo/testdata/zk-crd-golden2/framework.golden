@@ -8,6 +8,6 @@ spec:
   url: https://zookeeper.apache.org/
   maintainers:
   - Alena Varkockova<avarkockova@mesosphere.com>
-  - Tom Runyon<runyontr@gmail.com>
+  - Tom Runyon <runyontr@gmail.com>
   kudoVersion: 0.2.0
   kubernetesVersion: 1.5.1
