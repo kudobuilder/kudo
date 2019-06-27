@@ -54,7 +54,7 @@ func Retry(ctx context.Context, fn func(context.Context) error, errValidationFun
 
 	// do { } while (err != nil): https://stackoverflow.com/a/32844744/10892393
 	for ok := true; ok; ok = err != nil {
-		done := make(chan bool)
+		done := make(chan struct{})
 
 		// run the function in a goroutine and close it once it is finished so that
 		// we can use select to wait for both the function return and the context deadline.
