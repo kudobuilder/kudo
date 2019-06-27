@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	frameworkFileName     = "framework.yaml"
+	operatorFileName      = "operator.yaml"
 	templateFileNameRegex = "templates/.*.yaml"
 	paramsFileName        = "params.yaml"
 )
@@ -38,7 +38,7 @@ type PackageFiles struct {
 
 func parsePackageFile(filePath string, fileBytes []byte, currentPackage *PackageFiles) error {
 	isFrameworkFile := func(name string) bool {
-		return strings.HasSuffix(name, frameworkFileName)
+		return strings.HasSuffix(name, operatorFileName)
 	}
 
 	isTemplateFile := func(name string) bool {
@@ -88,7 +88,7 @@ func newPackageFiles() PackageFiles {
 
 func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 	if p.Framework == nil {
-		return nil, errors.New("framework.yaml file is missing")
+		return nil, errors.New("operator.yaml file is missing")
 	}
 	if p.Params == nil {
 		return nil, errors.New("params.yaml file is missing")
