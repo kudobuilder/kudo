@@ -89,6 +89,7 @@ type Instance struct {
 	Status InstanceStatus `json:"status,omitempty"`
 }
 
+// GetFrameworkVersionNamespace returns the namespace of the FrameworkVersion that the Instance references.
 func (i *Instance) GetFrameworkVersionNamespace() string {
 	if i.Spec.FrameworkVersion.Namespace == "" {
 		return i.ObjectMeta.Namespace
