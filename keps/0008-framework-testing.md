@@ -277,24 +277,6 @@ status:
 
 The test harness will wait for all `Pods` with label `app=kafka` in the namespace generated for the test case to have `status.phase` equal to `Completed` - or return an error if the timeout expires before the resource has the correct state.
 
-##### Regular expressions in asserts
-
-The test harness treats all string values found in asserts as a regular expression and attempts to match the regular expression with the state in Kubernetes. The match must be a full match, i.e. the regex `test` will only match the string `test` but not `testing`.
-
-For example, given an assertion file containing:
-
-```
-apiVersion: v1
-kind: Pod
-metadata:
-  name: test
-spec:
-  containers:
-  - image: alpine:.*
-```
-
-The test harness will wait for the `Pod` with name `test` in the namespace generated for the test case to have a container that begins with `alpine:` - it would match `alpine:latest`, `alpine:1.12.1`, etc.
-
 ##### TestAssert object
 
 When searching the assertion file for a test step, if a `TestAssert` object is found, it includes settings to apply to the assertions. This object is not required - if it is not specified then defaults are used. No more than one `TestAssert` should be defined in a test assertion.
