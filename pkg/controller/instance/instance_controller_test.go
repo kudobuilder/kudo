@@ -85,7 +85,7 @@ func TestReconcile_InstancesOnOperatorVersionEvent(t *testing.T) {
 		peList,
 		client.MatchingLabels(map[string]string{
 			"operator-version": fv.Name,
-			"instance":          in.Name,
+			"instance":         in.Name,
 		}))
 	assert.NoError(t, err)
 	assert.True(t, strings.Contains(peList.Items[0].Name, "foo-instance-deploy"))

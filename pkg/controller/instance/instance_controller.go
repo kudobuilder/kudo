@@ -315,7 +315,7 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 			// TODO: Should also add one for Operator in here as well.
 			Labels: map[string]string{
 				"operator-version": instance.Spec.OperatorVersion.Name,
-				"instance":          instance.Name,
+				"instance":         instance.Name,
 			},
 		},
 		Spec: kudov1alpha1.PlanExecutionSpec{
