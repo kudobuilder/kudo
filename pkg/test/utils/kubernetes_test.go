@@ -1,7 +1,10 @@
 package utils
 
 import (
+	"context"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -64,4 +67,44 @@ func TestGETAPIResource(t *testing.T) {
 	})
 	assert.NotNil(t, err)
 	assert.Equal(t, err.Error(), "resource type not found")
+}
+
+func TestRetry(t *testing.T) {
+	index := 0
+
+	assert.Nil(t, Retry(context.TODO(), func(context.Context) error {
+		index++
+		if index == 1 {
+			return errors.New("ignore this error")
+		}
+		return nil
+	}, func(err error) bool { return false }, func(err error) bool {
+		return err.Error() == "ignore this error"
+	}))
+
+	assert.Equal(t, 2, index)
+}
+
+func TestRetryWithUnexpectedError(t *testing.T) {
+	index := 0
+
+	assert.Equal(t, errors.New("bad error"), Retry(context.TODO(), func(context.Context) error {
+		index++
+		if index == 1 {
+			return errors.New("bad error")
+		}
+		return nil
+	}, func(err error) bool { return false }, func(err error) bool {
+		return err.Error() == "ignore this error"
+	}))
+	assert.Equal(t, 1, index)
+}
+
+func TestRetryWithTimeout(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	assert.Equal(t, errors.New("error"), Retry(ctx, func(context.Context) error {
+		return errors.New("error")
+	}, func(err error) bool { return true }))
 }
