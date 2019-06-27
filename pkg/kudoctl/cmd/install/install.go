@@ -83,7 +83,7 @@ func installFrameworks(args []string, options *Options) error {
 	}
 
 	for _, name := range args {
-		err := installFramework(name, "", *r, kc, options)
+		err := installFramework(name, "", r, kc, options)
 		if err != nil {
 			return err
 		}
@@ -97,43 +97,27 @@ func installFrameworks(args []string, options *Options) error {
 // - a framework name in the remote repository
 // in that order. Should there exist a local folder e.g. `cassandra` it will take precedence
 // over the remote repository package with the same name.
-func getPackageCRDs(name string, options *Options, repository repo.FrameworkRepository) (*repo.PackageCRDs, error) {
+func getPackageCRDs(name string, options *Options, repository repo.Repository) (*repo.PackageCRDs, error) {
 	// Local files/folder have priority
 	if _, err := os.Stat(name); err == nil {
-		return repo.ReadFileSystemPackage(name)
+		b, err := repo.NewBundle(name)
+		if err != nil {
+			return nil, err
+		}
+		return b.GetCRDs()
 	}
 
-	// Construct the package name and download the package from the remote repo
-	indexFile, err := repository.DownloadIndexFile()
+	bundle, err := repository.GetPackageBundle(name, options.PackageVersion)
 	if err != nil {
-		return nil, errors.WithMessage(err, "could not download repository index file: %v")
+		return nil, err
 	}
-
-	var bundleVersion *repo.BundleVersion
-
-	if options.PackageVersion == "" {
-		bv, err := indexFile.GetByName(name)
-		if err != nil {
-			return nil, errors.Wrapf(err, "getting %s in index file", name)
-		}
-		bundleVersion = bv
-	} else {
-		bv, err := indexFile.GetByNameAndVersion(name, options.PackageVersion)
-		if err != nil {
-			return nil, errors.Wrapf(err, "getting %s in index file", name)
-		}
-		bundleVersion = bv
-	}
-
-	packageName := bundleVersion.Name + "-" + bundleVersion.Version
-
-	return repository.GetPackage(packageName)
+	return bundle.GetCRDs()
 }
 
 // installFramework is the umbrella for a single framework installation that gathers the business logic
 // for a cluster and returns an error in case there is a problem
 // TODO: needs testing
-func installFramework(name, previous string, repository repo.FrameworkRepository, kc *kudo.Client, options *Options) error {
+func installFramework(name, previous string, repository repo.Repository, kc *kudo.Client, options *Options) error {
 	crds, err := getPackageCRDs(name, options, repository)
 	if err != nil {
 		return errors.Wrapf(err, "failed to install package: %s", name)

@@ -27,7 +27,11 @@ func TestReadFileSystemPackage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s-from-%s", tt.name, tt.path), func(t *testing.T) {
-			actual, err := ReadFileSystemPackage(tt.path)
+			bundle, err := NewBundle(tt.path)
+			if err != nil {
+				t.Fatalf("Found unexpected error: %v", err)
+			}
+			actual, err := bundle.GetCRDs()
 			if err != nil {
 				t.Fatalf("Found unexpected error: %v", err)
 			}
