@@ -35,7 +35,6 @@ see-also:
         * [TestStep object](#teststep-object)
         * [Assertion files](#assertion-files)
           * [Resources that have non-deterministic names](#resources-that-have-non-deterministic-names)
-          * [Regular expressions in asserts](#regular-expressions-in-asserts)
           * [TestAssert object](#testassert-object)
         * [Test constraints](#test-constraints)
      * [Results collection](#results-collection)
