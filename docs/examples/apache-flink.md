@@ -23,8 +23,8 @@ We should modify the demo image to have everything run on K8s
 Install the Kafka Operator and OperatorVersion
 
 ```bash
-kubectl apply -f config/samples/kafka-framework.yaml
-kubectl apply -f config/samples/kafka-frameworkversion.yaml
+kubectl apply -f config/samples/kafka-operator.yaml
+kubectl apply -f config/samples/kafka-operatorversion.yaml
 ```
 
 Install the Flink Operator and OperatorVersion

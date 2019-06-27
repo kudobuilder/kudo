@@ -7,7 +7,7 @@ menu: docs
 # Update and Upgrade Plans
 
 
-This demo uses a different toy framework described in the `../config/samples/upgrade.yaml` file.  There are two `Framework` versions defined for this `Framework`, and each `OperatorVersion` has three plans: `deploy`, `update` and `upgrade`.
+This demo uses a different toy operator described in the `../config/samples/upgrade.yaml` file.  There are two `Operator` versions defined for this `Operator`, and each `OperatorVersion` has three plans: `deploy`, `update` and `upgrade`.
 
 
 # Deploy Plan
@@ -16,9 +16,9 @@ The deploy plan is automatically run for new instances:
 
 ```bash
 $ kubectl apply -f config/samples/upgrade.yaml
-framework.kudo.k8s.io/upgrade created
-frameworkversion.kudo.k8s.io/upgrade-v1 created
-frameworkversion.kudo.k8s.io/upgrade-v2 created
+operator.kudo.k8s.io/upgrade created
+operatorversion.kudo.k8s.io/upgrade-v1 created
+operatorversion.kudo.k8s.io/upgrade-v2 created
 instance.kudo.k8s.io/up created
 ```
 

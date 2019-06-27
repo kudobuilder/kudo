@@ -47,11 +47,11 @@ superseded-by:
 
 ## Summary
 
-As the complexity and scope of KUDO grows, it becomes impossible to manually validate exisiting frameworks and capabilities still function as expected. As part of a robust CICD pipeline, a testing suite needs to be developed that can validate each commit, pull request, or even deployment of KUDO on a cluster.
+As the complexity and scope of KUDO grows, it becomes impossible to manually validate exisiting operators and capabilities still function as expected. As part of a robust CICD pipeline, a testing suite needs to be developed that can validate each commit, pull request, or even deployment of KUDO on a cluster.
 
-These testing packages should also assure conformance for the `kudobuilder/frameworks` repository to particular versions of KUDO.
+These testing packages should also assure conformance for the `kudobuilder/operators` repository to particular versions of KUDO.
 
-[KEP-0008](https://github.com/kudobuilder/kudo/blob/master/keps/0008-framework-testing.md) outlines the design of a testing harness for validating KUDO and frameworks. This document outlines testing procedures and policies - e.g., what, where, when and how we will test.
+[KEP-0008](https://github.com/kudobuilder/kudo/blob/master/keps/0008-operator-testing.md) outlines the design of a testing harness for validating KUDO and operators. This document outlines testing procedures and policies - e.g., what, where, when and how we will test.
 
 ## Motivation
 
@@ -73,7 +73,7 @@ This is a two phase proposal.
 
 ### Tests
 
-KUDO will be tested by several different test suites that validate individual components, KUDO, and frameworks.
+KUDO will be tested by several different test suites that validate individual components, KUDO, and operators.
 
 #### Unit tests
 
@@ -91,21 +91,21 @@ Go coverage reports will be used to ensure that changes do not reduce test cover
 
 Integration tests test the KUDO controller in its entirety. These tests can be run against either a real Kubernetes cluster or a local control plane. Integration tests will be manually run after review, but prior to merging using the [Circle CI manual approval feature](https://circleci.com/docs/2.0/triggers/#manual-approval). Integration tests can be written using the test harness designed in KEP-0008.
 
-The integration tests will consist of a set of representative Frameworks and OperatorVersions that utilize real world KUDO features. Integration tests should be added for new KUDO capabilities at the discretion of the capability author or reviewers.
+The integration tests will consist of a set of representative Operators and OperatorVersions that utilize real world KUDO features. Integration tests should be added for new KUDO capabilities at the discretion of the capability author or reviewers.
 
 Integration tests will be hidden behind a Go build tag and will only run when the `integration` tag is specified.
 
-#### Framework tests
+#### Operator tests
 
-Framework tests test that a framework works correctly. These require a full Kubernetes cluster to run and will be run in CI for the Frameworks repository using the latest released version of KUDO. Instead of running every test on every pull request, we will only run the tests that test the framework changed in any given pull request. Framework tests will also be run against master and release builds of KUDO to verify that KUDO changes do not break frameworks. Frameworks are tested using the KUDO test harness from KEP-0008.
+Operator tests test that a operator works correctly. These require a full Kubernetes cluster to run and will be run in CI for the Operators repository using the latest released version of KUDO. Instead of running every test on every pull request, we will only run the tests that test the operator changed in any given pull request. Operator tests will also be run against master and release builds of KUDO to verify that KUDO changes do not break operators. Operators are tested using the KUDO test harness from KEP-0008.
 
-Framework tests live in the `kudobuilder/frameworks` repository, with the file structure defined in KEP-0010.
+Operator tests live in the `kudobuilder/operators` repository, with the file structure defined in KEP-0010.
 
 ### Kubernetes clusters
 
-It is important that tests are run against many different configurations of Kubernetes to ensure that KUDO and frameworks are compatible with common Kubernetes configurations and distributions.
+It is important that tests are run against many different configurations of Kubernetes to ensure that KUDO and operators are compatible with common Kubernetes configurations and distributions.
 
-Framework tests will be run against several different Kubernetes clusters:
+Operator tests will be run against several different Kubernetes clusters:
 
 - A local cluster using [kind](https://github.com/kubernetes-sigs/kind) or [k3s](https://github.com/rancher/k3s).
 - A [GKE cluster](https://cloud.google.com/kubernetes-engine/).
@@ -137,7 +137,7 @@ Perform the same set of tests after merging master into the branch.
 
 ##### Tests
 
-The master branch will run all the same tests that pull requests do as well as the complete set of framework tests.
+The master branch will run all the same tests that pull requests do as well as the complete set of operator tests.
 
 ##### Pushes
 
@@ -153,7 +153,7 @@ Since we don't have any tests that validate the image works (no integration test
 
 #### Tags/Release
 
-- All unit, integration, and framework tests are run.
+- All unit, integration, and operator tests are run.
 - Build process occurs to deploy the image at `kudobuilder/controller:latest`.
 - Create the YAML to deploy Kudo, and package up to store in GitHub Release
 
@@ -179,8 +179,8 @@ How will we know that this has succeeded?
 - When repository owners can feel confident that code changes are not breaking functionality.
 - Tests pass for the API objects
 - Integration tests are run on PRs to KUDO.
-- Framework tests are run on KUDO releases.
-- Framework tests are run on PRs to Frameworks.
+- Operator tests are run on KUDO releases.
+- Operator tests are run on PRs to Operators.
 
 ## Implementation History
 

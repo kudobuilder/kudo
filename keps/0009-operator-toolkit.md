@@ -29,7 +29,7 @@ see-also:
   - [Proposal](#proposal)
     - [Definitions](#definitions)
     - [Operator Organization](#operator-organization)
-      - [framework.yaml](#frameworkyaml)
+      - [operator.yaml](#operatoryaml)
       - [params.yaml](#paramsyaml)
       - [common/](#common)
       - [templates/](#templates)
@@ -45,7 +45,7 @@ see-also:
     - [Task Extensions](#task-extensions)
     - [Plan Extensions](#plan-extensions)
     - [Example Operator Extension](#example-operator-extension)
-      - [framework.yaml](#frameworkyaml-1)
+      - [operator.yaml](#operatoryaml-1)
       - [params.yaml](#paramsyaml-1)
   - [Future Work](#future-work)
     - [Allow for other templating engines](#allow-for-other-templating-engines)
@@ -89,7 +89,7 @@ A operator bundle is a folder that contains all of the manifests needed to creat
 
 ```shell
 .
-├── framework.yaml
+├── operator.yaml
 ├── params.yaml
 └── common
     └── common.yaml
@@ -104,9 +104,9 @@ A operator bundle is a folder that contains all of the manifests needed to creat
     └── service.yaml
 ```
 
-#### framework.yaml
+#### operator.yaml
 
-`framework.yaml` is the base definition of a operator. It follows the following format, extracted from the MySQL example:
+`operator.yaml` is the base definition of a operator. It follows the following format, extracted from the MySQL example:
 
 ```yaml
 name: operator

@@ -15,7 +15,7 @@ status: provisional
 
 In order to enable the creation use of certain CRDs, some cluster scoped objects may need to be created.  This should not be
 part of the creation of a particular CRD instantiation since the deletion of that instance would remove the
-dependency from all objects.  Allowing a Framework or OperatorVersion to define a set of Cluster objects that are present
+dependency from all objects.  Allowing a Operator or OperatorVersion to define a set of Cluster objects that are present
 to support the creation and management of CRDs would circumvent the CRD from having to create and manage the object.
 
 
@@ -45,7 +45,7 @@ to support the creation and management of CRDs would circumvent the CRD from hav
 
 In order to enable the creation use of certain CRDs, some cluster scoped objects, or common objects, may need to be created.  This should not be
 part of the creation of a particular CRD instantiation since the deletion of that instance would remove the
-dependency from all objects.  Allowing a Framework or OperatorVersion to define a set of Cluster objects that are present
+dependency from all objects.  Allowing a Operator or OperatorVersion to define a set of Cluster objects that are present
 to support the creation and management of CRDs would circumvent the CRD from having to create and manage the object.
 
 ## Motivation
@@ -65,14 +65,14 @@ to support the creation and management of CRDs would circumvent the CRD from hav
 
 #### Story 1
 
-A database Framework may want a Restic server deployed as part of the Framework to provide a central location for storing backups.
-The capability here would define a namespace, service and deployment that provides Restic to the instance of the Framework to use
+A database Operator may want a Restic server deployed as part of the Operator to provide a central location for storing backups.
+The capability here would define a namespace, service and deployment that provides Restic to the instance of the Operator to use
 by default.
 
 
 #### Story 2
 
-A Framework could leverage a MutatingWebHook for modifying pods deployments based on Node metadata (e.g. use a different image for nodes configured with GPU, PMEM, etc)
+A Operator could leverage a MutatingWebHook for modifying pods deployments based on Node metadata (e.g. use a different image for nodes configured with GPU, PMEM, etc)
 
 
 #### Story 3
@@ -94,7 +94,7 @@ OperatorVersions require the existance of CRDs that are not controlled by Kudo (
 
 ## Graduation Criteria
 
-The MySQL Framework could be modified to deploy a central repo for backups and leverage those in each instance of MySQL
+The MySQL Operator could be modified to deploy a central repo for backups and leverage those in each instance of MySQL
 
 ## Implementation History
 
@@ -105,4 +105,4 @@ The MySQL Framework could be modified to deploy a central repo for backups and l
 * More complicated Operator/OperatorVersion specs
 * Implications of OperatorVersion installation making MORE cluster level changes than just a CRD.
 * Security around leveraging the common component.  If deploying minio for backups, how do we ensure Instances don't restore someone else's data, or overwrite someone else's backup?
-* Shared Components: What happens when two different Frameworks require the same common object?
+* Shared Components: What happens when two different Operators require the same common object?

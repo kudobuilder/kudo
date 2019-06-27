@@ -38,7 +38,7 @@ KUDO should be used any time you would use an Operator. It can provide an advanc
 
 ## What is a Operator?
 
-`Operator` is the high-level description of a deployable service which is represented as an CRD object. An example `Operator` is the [kafka-framework.yaml](https://github.com/kudobuilder/frameworks/blob/master/repo/stable/kafka/versions/0/kafka-framework.yaml) that you find in the [kudobuilder/frameworks](https://github.com/kudobuilder/frameworks) repository.
+`Operator` is the high-level description of a deployable service which is represented as an CRD object. An example `Operator` is the [kafka-operator.yaml](https://github.com/kudobuilder/operators/blob/master/repo/stable/kafka/versions/0/kafka-operator.yaml) that you find in the [kudobuilder/operators](https://github.com/kudobuilder/operators) repository.
 
 Kafka Operator Example
 ```
@@ -50,7 +50,7 @@ metadata:
   name: kafka
 ```
 
-More examples can be found in the [https://github.com/kudobuilder/operators](https://github.com/kudobuilder/frameworks) project and include: [flink](https://flink.apache.org/), [kafka](https://kafka.apache.org/), and [zookeeper](https://zookeeper.apache.org/).
+More examples can be found in the [https://github.com/kudobuilder/operators](https://github.com/kudobuilder/operators) project and include: [flink](https://flink.apache.org/), [kafka](https://kafka.apache.org/), and [zookeeper](https://zookeeper.apache.org/).
 
 
 ## What is a deployable service?
@@ -66,7 +66,7 @@ A `OperatorVersion` is the particular implementation of a `Operator` containing:
 - [Plans](#what-is-a-plan)
 - [Kubernetes Objects](https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/)
 
-An example for a `OperatorVersion` is the [kafka-frameworkversion.yaml](https://github.com/kudobuilder/frameworks/blob/master/repo/stable/kafka/versions/0/kafka-frameworkversion.yaml) that you find in the [kudobuilder/frameworks](https://github.com/kudobuilder/frameworks) repository.
+An example for a `OperatorVersion` is the [kafka-operatorversion.yaml](https://github.com/kudobuilder/operators/blob/master/repo/stable/kafka/versions/0/kafka-operatorversion.yaml) that you find in the [kudobuilder/operators](https://github.com/kudobuilder/operators) repository.
 
 ```
 apiVersion: kudo.k8s.io/v1alpha1
@@ -109,7 +109,7 @@ An `Instance` is a CRD object used as *linker* which ties an application instant
 
 ## What is a Plan?
 
-Plans are how KUDO frameworks convey progress through service management operations, such as repairing failed tasks and/or rolling out changes to the service’s configuration. Each Plan is a tree with a fixed three-level hierarchy of the Plan itself, its Phases, and Steps within those Phases. These are all collectively referred to as “Elements”. The fixed tree hierarchy was chosen in order to simplify building user interfaces that display plan content. This three-level hierarchy can look as follows:
+Plans are how KUDO operators convey progress through service management operations, such as repairing failed tasks and/or rolling out changes to the service’s configuration. Each Plan is a tree with a fixed three-level hierarchy of the Plan itself, its Phases, and Steps within those Phases. These are all collectively referred to as “Elements”. The fixed tree hierarchy was chosen in order to simplify building user interfaces that display plan content. This three-level hierarchy can look as follows:
 
 ```bash
 Plan foo
@@ -139,9 +139,9 @@ Parameters provide configuration for the Instance.
 A deployments strategy indicates the way in which a Plan or Step must be executed. If a Step requires another Step to complete first, it is necessary to declare them as `serial`. The following strategies are available by default and can be used in a `OperatorVersion` YAML definition:
 
 - `serial`
-  An example for a `serial` Plan is [kafka-operatorversion.yaml](https://github.com/kudobuilder/frameworks/blob/master/repo/stable/kafka/versions/0/kafka-frameworkversion.yaml).
+  An example for a `serial` Plan is [kafka-operatorversion.yaml](https://github.com/kudobuilder/operators/blob/master/repo/stable/kafka/versions/0/kafka-operatorversion.yaml).
 - `parallel`
-  An example for a `parallel` Plan is [zookeeper-frameworkversion.yaml](https://github.com/kudobuilder/frameworks/blob/master/repo/stable/kafka/versions/0/zookeeper-frameworkversion.yaml)`
+  An example for a `parallel` Plan is [zookeeper-operatorversion.yaml](https://github.com/kudobuilder/operators/blob/master/repo/stable/kafka/versions/0/zookeeper-operatorversion.yaml)`
 
 ## What is a Trigger?
 

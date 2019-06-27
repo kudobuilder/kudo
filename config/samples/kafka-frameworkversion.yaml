@@ -57,7 +57,7 @@ spec:
     default: "60000"
   dependencies:
   - referenceName: zookeeper
-    type: Framework
+    type: Operator
     name: zookeeper
     version: "^3.1.4"
   tasks:
@@ -242,23 +242,23 @@ spec:
       apiVersion: apps/v1
       kind: StatefulSet
       metadata:
-        name: {{ .FrameworkName }}
+        name: {{ .OperatorName }}
         namespace: {{ .Namespace }}
         labels:
-          kafka: {{ .FrameworkName }}
+          kafka: {{ .OperatorName }}
           app: kafka
       spec:
         selector:
           matchLabels:
             app: kafka
-            kafka: {{ .FrameworkName }}
+            kafka: {{ .OperatorName }}
         serviceName: {{ .Name }}-svc
         replicas: {{ .Params.BROKER_COUNT }}
         template:
           metadata:
             labels:
               app: kafka
-              kafka: {{ .FrameworkName }}
+              kafka: {{ .OperatorName }}
           spec:
             terminationGracePeriodSeconds: 300
             containers:

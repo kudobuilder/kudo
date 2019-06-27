@@ -1,6 +1,6 @@
 ---
 kep-number: 0012
-title: framework-extensions
+title: operator-extensions
 authors:
   - "@runyontr"
 owners:
@@ -12,7 +12,7 @@ last-updated: 2019-06-18
 status: provisional
 ---
 
-# Framework Extensions
+# Operator Extensions
 
 ## Table of Contents
 
@@ -34,15 +34,15 @@ status: provisional
 
 ## Summary
 
-Generic implementations of frameworks don't capture all customizations that are required for all end users. Rather than having to fork and maintain a patched version of a Framework, Extending a framework will allow for additions and customizations to be made to frameworks to meet additional business needs.
+Generic implementations of operators don't capture all customizations that are required for all end users. Rather than having to fork and maintain a patched version of a Operator, Extending a operator will allow for additions and customizations to be made to operators to meet additional business needs.
 
 ## Motivation
 
-Extensions and bases describe a mechanism for building frameworks or extensions to frameworks from a given base. In this document, an **extension** is any KUDO framework that extends from some base. A **base** is the complete set of manifests, metadata, and other files provided by that base's type. A base should provide complete information that users of that base tool are expected to have. The base types and what they expose to frameworks that extend from them are described in their respective sub-sections.
+Extensions and bases describe a mechanism for building operators or extensions to operators from a given base. In this document, an **extension** is any KUDO operator that extends from some base. A **base** is the complete set of manifests, metadata, and other files provided by that base's type. A base should provide complete information that users of that base tool are expected to have. The base types and what they expose to operators that extend from them are described in their respective sub-sections.
 
 ### Goals
 
-- Be able to extend an existing Framework
+- Be able to extend an existing Operator
 
 ### Non-Goals
 
@@ -56,41 +56,41 @@ Extensions and bases describe a mechanism for building frameworks or extensions 
 - As an Application Operator, I want to be able to add a custom Plan to an existing OperatorVersion.
 - As an Application Operator, I want to be able to patch existing templates in an existing OperatorVersion.
 - As an Application Operator, I want to be able to add or update parameters to an existing OperatorVersion.
-- As an Application Operator, I want to be able to update my base framework easily.
+- As an Application Operator, I want to be able to update my base operator easily.
 
 ### Extension Spec
 
-To support extending from a base, `framework.yaml` is extended to support the `extends` keyword:
+To support extending from a base, `operator.yaml` is extended to support the `extends` keyword:
 
 ```yaml
 extends:
   kudo:
-    framework: "mysql"
+    operator: "mysql"
     version: "5.7"
 ```
 
-What gets inherited? Everything. A framework defined as:
+What gets inherited? Everything. A operator defined as:
 
 ```yaml
-framework: bar
+operator: bar
 extends:
   kudo:
-    framework: "foo"
+    operator: "foo"
     version: "1.0
 ```
 
-will have the EXACT same functionality (plans, parameters, tasks, templates, etc) as the base `foo` framework.
+will have the EXACT same functionality (plans, parameters, tasks, templates, etc) as the base `foo` operator.
 
 #### Refrencing an object from the base
 
 #### Adding a Task
 
-Tasks can be added via the same `tasks` spec in the `Framework` definition. Templates used to define the task can come from the base framework by pre-fixing `base/` to the template name, or from local templates as defined in [KEP-0009](keps/0009-operator-toolkit.md). The follow example shows a new task called `load-data` defined for the extension framework that uses both a template from the base, with a patch object that is defined in the extention framework.
+Tasks can be added via the same `tasks` spec in the `Operator` definition. Templates used to define the task can come from the base operator by pre-fixing `base/` to the template name, or from local templates as defined in [KEP-0009](keps/0009-operator-toolkit.md). The follow example shows a new task called `load-data` defined for the extension operator that uses both a template from the base, with a patch object that is defined in the extention operator.
 
 ```yaml
 extends:
   kudo:
-    framework: "mysql"
+    operator: "mysql"
     version: "5.7"
 version: "5.7"
 tasks:
@@ -103,7 +103,7 @@ tasks:
 
 #### Adding a Plan
 
-Plans can be added to the extension framework and can reference tasks defined in either the base or the exension framework:
+Plans can be added to the extension operator and can reference tasks defined in either the base or the exension operator:
 
 ```yaml
 plans:
@@ -120,11 +120,11 @@ plans:
 
 #### Modifying a Task
 
-When a task is defined in an extended framework, it **replaces** the task from the base. The tasks available are dependent on the base type and are described more in detail in their corresponding sub-section.
+When a task is defined in an extended operator, it **replaces** the task from the base. The tasks available are dependent on the base type and are described more in detail in their corresponding sub-section.
 
 In order to better extend and adjust tasks from the base, the `from` keyword will be supported. The `from` directive inside of a named task copies over all resources and patches from the base task of the same name. Resources and patches that overlap with base resource and patch names replace resource and patches already defined by the base.
 
-Presuming there was a task in the base framework defined as:
+Presuming there was a task in the base operator defined as:
 
 ```yaml
 tasks:
@@ -133,7 +133,7 @@ tasks:
       - init.yaml
 ```
 
-An extension framework, that was trying to update the `init` task with a patch captured in `templates/init-patch.yaml` could update the task in different, but equivalent ways:
+An extension operator, that was trying to update the `init` task with a patch captured in `templates/init-patch.yaml` could update the task in different, but equivalent ways:
 
 ```yaml
 tasks:
@@ -154,13 +154,13 @@ tasks:
 
 #### Modifying Plan
 
-When a plan is defined in an extended framework, it **replaces** the plan from the base. All plans defined in the base are available in the extension plan.
+When a plan is defined in an extended operator, it **replaces** the plan from the base. All plans defined in the base are available in the extension plan.
 
 #### Add and Updating Parameters
 
-Parameters can be updated in the extension framework by providing new default values or descriptions. The follow example shows how parameters can be overridden and added from the base framework.
+Parameters can be updated in the extension operator by providing new default values or descriptions. The follow example shows how parameters can be overridden and added from the base operator.
 
-Consider the following parameter file defined in the base framework
+Consider the following parameter file defined in the base operator
 
 ```yaml
 backup:
@@ -171,7 +171,7 @@ password:
   description: Some words
 ```
 
-And this file defined in the extension framework:
+And this file defined in the extension operator:
 
 ```yaml
 backup:
@@ -183,7 +183,7 @@ data:
   description: Storage location of sample data to load
 ```
 
-Would combine in the extension framework as though the following parameters file was used:
+Would combine in the extension operator as though the following parameters file was used:
 
 ```yaml
 backup:
@@ -197,13 +197,13 @@ data:
   description: Storage location of sample data to load
 ```
 
-#### Example Framework Extension
+#### Example Operator Extension
 
-This framework is built from the MySQL framework defined above, but adds custom plans that allow for the loading and clearing of data that is required for a particular business application, as well as a new parameter that allows for sizing the PVC that backups are stored on.
+This operator is built from the MySQL operator defined above, but adds custom plans that allow for the loading and clearing of data that is required for a particular business application, as well as a new parameter that allows for sizing the PVC that backups are stored on.
 
 ```shell
 .
-├── framework.yaml
+├── operator.yaml
 ├── params.yaml
 └── templates
     ├── clear-data.yaml
@@ -213,14 +213,14 @@ This framework is built from the MySQL framework defined above, but adds custom 
 
 In order to implement these changes, we need to add the plans for `load-data` and `clear-data` and update the jobs that backup and restore the data.
 
-##### framework.yaml
+##### operator.yaml
 
-`framework.yaml` is the base definition of a framework. It follows the following format, extracted from the MySQL example:
+`operator.yaml` is the base definition of a operator. It follows the following format, extracted from the MySQL example:
 
 ```yaml
 extends:
   kudo:
-    framework: "mysql"
+    operator: "mysql"
     version: "5.7"
 version: "5.7"
 tasks:
@@ -267,11 +267,11 @@ plans:
         delete: true
 ```
 
-Tasks `load-data` and `clear-data` were created with the two different specifications for how to define a task. The `backup` and `restore` tasks were updated with the new patch this framework provides
+Tasks `load-data` and `clear-data` were created with the two different specifications for how to define a task. The `backup` and `restore` tasks were updated with the new patch this operator provides
 
 ##### params.yaml
 
-This framework also provides a new parameter that can be used to specify unique datasources to load, and the size of the PVC that's used for backups.
+This operator also provides a new parameter that can be used to specify unique datasources to load, and the size of the PVC that's used for backups.
 
 ```yaml
 data-location:
@@ -287,18 +287,18 @@ backup-pvc-size:
 ### Implementation Details/Notes/Constraints
 
 The implementation of extensions is independent of the ability to run non-KUDO defined
-frameworks, however there are some relationships that need to be considered when extending a framework that has a different implementation engine. See forthcoming [KEP 0013](keps/0013-external-specs.md)
+operators, however there are some relationships that need to be considered when extending a operator that has a different implementation engine. See forthcoming [KEP 0013](keps/0013-external-specs.md)
 
 ### Outstanding Questions
 
-- How are references done? Where do I look for the base framework? Installed in the cluster? Referenced by the CLI from somewhere? Contained in the dependency folder?
-- Can the framework name change? Or does it have to stay the same? For example does a MySQL extension have to be of type MySQL to allow upgrades from existing MySQL Frameworks to it, or is it a completely different Framework?
+- How are references done? Where do I look for the base operator? Installed in the cluster? Referenced by the CLI from somewhere? Contained in the dependency folder?
+- Can the operator name change? Or does it have to stay the same? For example does a MySQL extension have to be of type MySQL to allow upgrades from existing MySQL Operators to it, or is it a completely different Operator?
 - should initial implementation here have the `kudo` inside of the `extends` spec:
 
 ```yaml
 extends:
   kudo:
-    framework: "mysql"
+    operator: "mysql"
     version: "5.7"
 ```
 
@@ -306,14 +306,14 @@ vs
 
 ```yaml
 extends:
-  framework: "mysql"
+  operator: "mysql"
   version: "5.7"
 ```
 
 ## Graduation Criteria
 
-Being able to implement the sample framework defined above.
+Being able to implement the sample operator defined above.
 
 ## Alternatives
 
-Instead of having an extension, we could require a forking and patching of any framework to allow for customization
+Instead of having an extension, we could require a forking and patching of any operator to allow for customization

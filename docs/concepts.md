@@ -8,11 +8,11 @@ menu: docs
 
 ## Operator
 
-High-level description of a deployable application. Contains metadata about the application (e.g., [Apache Kafka](https://github.com/kudobuilder/kudo/blob/master/config/samples/kafka-framework.yaml)).
+High-level description of a deployable application. Contains metadata about the application (e.g., [Apache Kafka](https://github.com/kudobuilder/kudo/blob/master/config/samples/kafka-operator.yaml)).
 
 ## OperatorVersion
 
-Specific version of a deployable application, including configuration and lifecycle hooks for deployments, upgrades, and rollbacks (e.g., [Kafka version 2.4.0](https://github.com/kudobuilder/kudo/blob/master/config/samples/kafka-frameworkversion.yaml)).
+Specific version of a deployable application, including configuration and lifecycle hooks for deployments, upgrades, and rollbacks (e.g., [Kafka version 2.4.0](https://github.com/kudobuilder/kudo/blob/master/config/samples/kafka-operatorversion.yaml)).
 
 ## Instance
 
