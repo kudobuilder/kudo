@@ -4,3 +4,17 @@ metadata:
   name: my-instance
 status:
   status: COMPLETE
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: PlanExecution
+metadata:
+  labels:
+    operator-version: foo-operator
+    instance: my-instance
+  ownerReferences:
+  - apiVersion: kudo.k8s.io/v1alpha1
+    kind: Instance
+    name: my-instance
+status:
+  name: deploy
+  state: COMPLETE
