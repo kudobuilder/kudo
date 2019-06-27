@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	ejson "encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -34,6 +35,62 @@ import (
 	coretesting "k8s.io/client-go/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// ValidateErrors accepts an error as its first argument and passes it to each function in the errValidationFuncs slice,
+// if any of the methods returns true, the method returns nil, otherwise it returns the original error.
+func ValidateErrors(err error, errValidationFuncs ...func(error) bool) error {
+	for _, errFunc := range errValidationFuncs {
+		if errFunc(err) {
+			return nil
+		}
+	}
+
+	return err
+}
+
+// Retry retries a method until the context expires or the method returns an unvalidated error.
+func Retry(ctx context.Context, fn func(context.Context) error, errValidationFuncs ...func(error) bool) error {
+	var lastErr error
+	errCh := make(chan error)
+	doneCh := make(chan struct{})
+
+	// do { } while (err != nil): https://stackoverflow.com/a/32844744/10892393
+	for ok := true; ok; ok = lastErr != nil {
+		// run the function in a goroutine and close it once it is finished so that
+		// we can use select to wait for both the function return and the context deadline.
+
+		go func() {
+			if err := fn(ctx); err != nil {
+				errCh <- err
+			} else {
+				doneCh <- struct{}{}
+			}
+		}()
+
+		select {
+		// the callback finished
+		case <-doneCh:
+			lastErr = nil
+		case err := <-errCh:
+			// check if we tolerate the error, return it if not.
+			if e := ValidateErrors(err, errValidationFuncs...); e != nil {
+				return e
+			}
+			lastErr = err
+		// timeout exceeded
+		case <-ctx.Done():
+			if lastErr == nil {
+				// there's no previous error, so just return the timeout error
+				return ctx.Err()
+			}
+
+			// return the most recent error
+			return lastErr
+		}
+	}
+
+	return lastErr
+}
 
 // Scheme returns an initialized Kubernetes Scheme.
 func Scheme() *runtime.Scheme {
@@ -353,24 +410,33 @@ func FakeDiscoveryClient() discovery.DiscoveryInterface {
 }
 
 // CreateOrUpdate will create obj if it does not exist and update if it it does.
-func CreateOrUpdate(ctx context.Context, client client.Client, obj runtime.Object, retryOnConflict bool) error {
+func CreateOrUpdate(ctx context.Context, client client.Client, obj runtime.Object, retryOnError bool) error {
 	orig := obj.DeepCopyObject()
-	actual := obj.DeepCopyObject()
 
-	err := client.Get(ctx, ObjectKey(actual), actual)
-	if err == nil {
-		if err = PatchObject(actual, obj); err != nil {
-			return err
-		}
-		err = client.Update(ctx, obj)
-		if err != nil && k8serrors.IsConflict(err) && retryOnConflict {
-			return CreateOrUpdate(ctx, client, orig, retryOnConflict)
-		}
-	} else if err != nil && k8serrors.IsNotFound(err) {
-		err = client.Create(ctx, obj)
+	validators := []func(err error) bool{}
+
+	if retryOnError {
+		validators = append(validators, k8serrors.IsConflict, func(err error) bool {
+			_, ok := err.(*ejson.SyntaxError)
+			return ok
+		})
 	}
 
-	return err
+	return Retry(ctx, func(ctx context.Context) error {
+		expected := orig.DeepCopyObject()
+		actual := orig.DeepCopyObject()
+
+		err := client.Get(ctx, ObjectKey(actual), actual)
+		if err == nil {
+			if err = PatchObject(actual, expected); err != nil {
+				return err
+			}
+			err = client.Update(ctx, expected)
+		} else if err != nil && k8serrors.IsNotFound(err) {
+			err = client.Create(ctx, obj)
+		}
+		return err
+	}, validators...)
 }
 
 // SetAnnotation sets the given key and value in the object's annotations, returning a copy.

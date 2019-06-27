@@ -268,7 +268,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      instance.Spec.FrameworkVersion.Name,
-			Namespace: instance.Spec.FrameworkVersion.Namespace,
+			Namespace: instance.GetFrameworkVersionNamespace(),
 		},
 		frameworkVersion)
 	if err != nil {
@@ -277,7 +277,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		r.recorder.Event(planExecution, "Warning", "InvalidFrameworkVersion", fmt.Sprintf("Could not find FrameworkVersion %v", instance.Spec.FrameworkVersion.Name))
 		log.Printf("PlanExecutionController: Error getting FrameworkVersion %v in %v: %v",
 			instance.Spec.FrameworkVersion.Name,
-			instance.Spec.FrameworkVersion.Namespace,
+			instance.GetFrameworkVersionNamespace(),
 			err)
 		return reconcile.Result{}, err
 	}

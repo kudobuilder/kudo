@@ -75,7 +75,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			err = mgr.GetClient().Get(context.TODO(),
 				types.NamespacedName{
 					Name:      new.Spec.FrameworkVersion.Name,
-					Namespace: new.Spec.FrameworkVersion.Namespace,
+					Namespace: new.GetFrameworkVersionNamespace(),
 				},
 				fv)
 			if err != nil {
@@ -193,7 +193,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			err = mgr.GetClient().Get(context.TODO(),
 				types.NamespacedName{
 					Name:      instance.Spec.FrameworkVersion.Name,
-					Namespace: instance.Spec.FrameworkVersion.Namespace,
+					Namespace: instance.GetFrameworkVersionNamespace(),
 				},
 				fv)
 			if err != nil {
@@ -255,7 +255,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			for _, instance := range instances.Items {
 				// Sanity check - lets make sure that this instance references the frameworkVersion
 				if instance.Spec.FrameworkVersion.Name == a.Meta.GetName() &&
-					instance.Spec.FrameworkVersion.Namespace == a.Meta.GetNamespace() &&
+					instance.GetFrameworkVersionNamespace() == a.Meta.GetNamespace() &&
 					instance.Status.ActivePlan.Name == "" {
 
 					log.Printf("InstanceController: Creating a deploy execution plan for the instance %v", instance.Name)
@@ -375,7 +375,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      instance.Spec.FrameworkVersion.Name,
-			Namespace: instance.Spec.FrameworkVersion.Namespace,
+			Namespace: instance.GetFrameworkVersionNamespace(),
 		},
 		fv)
 	if err != nil {
