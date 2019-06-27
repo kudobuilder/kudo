@@ -198,20 +198,20 @@ In this tree chart we see all important information in one screen:
 
 For comparison, the according `kubectl` commands to retrieve the above information are:
 
-* `kubectl get instances` (to get the matching `FrameworkVersion`)
+* `kubectl get instances` (to get the matching `OperatorVersion`)
 * `kubectl describe frameworkversion upgrade-v1` (to get the current `PlanExecution`)
 * `kubectl describe planexecution up-deploy-493146000` (to get the status of the `Active-Plan`)
 
-Here, the overview of all available plans can be found in `Spec.Plans` of the matching `FrameworkVersion`:
+Here, the overview of all available plans can be found in `Spec.Plans` of the matching `OperatorVersion`:
 
 ```bash
 $ kubectl describe frameworkversion upgrade-v1
 Name:         upgrade-v1
 Namespace:    default
 Labels:       controller-tools.k8s.io=1.0
-Annotations:  kubectl.kubernetes.io/last-applied-configuration={"apiVersion":"kudo.k8s.io/v1alpha1","kind":"FrameworkVersion","metadata":{"annotations":{},"labels":{"controller-tools.k8s.io":"1.0"},"name":"upgra...
+Annotations:  kubectl.kubernetes.io/last-applied-configuration={"apiVersion":"kudo.k8s.io/v1alpha1","kind":"OperatorVersion","metadata":{"annotations":{},"labels":{"controller-tools.k8s.io":"1.0"},"name":"upgra...
 API Version:  kudo.k8s.io/v1alpha1
-Kind:         FrameworkVersion
+Kind:         OperatorVersion
 Metadata:
   Cluster Name:
   Creation Timestamp:  2018-12-14T19:26:44Z
@@ -356,8 +356,8 @@ An instance can be deleted (uninstalled from the cluster) using `kubectl delete 
 
 ### Get the History to PlanExecutions
 
-This is helpful if you want to find out which plan ran on your instance to a particular `FrameworkVersion`.
-Run this command to retrieve all plans that ran for the instance `up` and its FrameworkVersion `upgrade-v1`:
+This is helpful if you want to find out which plan ran on your instance to a particular `OperatorVersion`.
+Run this command to retrieve all plans that ran for the instance `up` and its OperatorVersion `upgrade-v1`:
 
 ```bash
 $ kubectl kudo plan history upgrade-v1 --instance=up
@@ -375,4 +375,4 @@ $ kubectl kudo plan history --instance=up
   └── up-deploy-493146000 (created 4h52m34s ago)
 ```
 
-This includes the previous history but also all FrameworkVersions that have been applied to the selected instance.
+This includes the previous history but also all OperatorVersions that have been applied to the selected instance.

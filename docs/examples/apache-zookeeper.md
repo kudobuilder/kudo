@@ -5,19 +5,19 @@ type: docs
 
 # Apache Zookeeper
 
-Create a `Framework` object for Zookeeper
+Create a `Operator` object for Zookeeper
 ```bash
-$ kubectl apply -f config/samples/zookeeper-framework.yaml
+$ kubectl apply -f config/samples/zookeeper-operator.yaml
 framework.kudo.k8s.io "zookeeper" created
 ```
 
-Create a `FrameworkVersion` for the Zookeeper  `Framework`
+Create a `OperatorVersion` for the Zookeeper  `Operator`
 
 ```bash
-$ kubectl apply -f config/samples/zookeeper-frameworkversion.yaml
+$ kubectl apply -f config/samples/zookeeper-operatorversion.yaml
 frameworkversion.kudo.k8s.io "zookeeper-1.0" created
 ```
- 
+
 
 Create an Instance of Zookeeper
 ```
@@ -33,7 +33,7 @@ NAME                  AGE
 zk-deploy-392770000   11s
 ```
 
-The statefulset defined in the `FrameworkVersion` comes up with 3 pods:
+The statefulset defined in the `OperatorVersion` comes up with 3 pods:
 
 ```bash
 $ kubectl get statefulset zk-zk

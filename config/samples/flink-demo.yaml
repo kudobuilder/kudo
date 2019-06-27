@@ -51,7 +51,7 @@ spec:
         operatorVersion:
           name: kafka-2.11-2.4.0
           namespace: default
-          type: FrameworkVersion
+          type: OperatorVersion
         parameters:
           KAFKA_ZOOKEEPER_URI: "{{ .Name }}-zk-{{ .Name }}-zk-0.{{ .Name }}-zk-hs:2181,{{ .Name }}-zk-{{ .Name }}-zk-1.{{ .Name }}-zk-hs:2181,{{ .Name }}-zk-{{ .Name }}-zk-2.{{ .Name }}-zk-hs:2181"
           KAFKA_ZOOKEEPER_PATH: "/kafka"
@@ -69,7 +69,7 @@ spec:
         operatorVersion:
           name: flink
           namespace: default
-          type: FrameworkVersion
+          type: OperatorVersion
     generator.yaml: |
       apiVersion: apps/v1beta1
       kind: Deployment
@@ -221,6 +221,6 @@ spec:
   operatorVersion:
     name: flink-financial-demo
     namespace: default
-    type: FrameworkVersion
+    type: OperatorVersion
   parameters:
     NONE: "true"

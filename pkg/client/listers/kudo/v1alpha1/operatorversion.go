@@ -23,27 +23,27 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// FrameworkVersionLister helps list OperatorVersions.
-type FrameworkVersionLister interface {
+// OperatorVersionLister helps list OperatorVersions.
+type OperatorVersionLister interface {
 	// List lists all OperatorVersions in the indexer.
 	List(selector labels.Selector) (ret []*v1alpha1.OperatorVersion, err error)
 	// OperatorVersions returns an object that can list and get OperatorVersions.
-	FrameworkVersions(namespace string) FrameworkVersionNamespaceLister
-	FrameworkVersionListerExpansion
+	OperatorVersions(namespace string) OperatorVersionNamespaceLister
+	OperatorVersionListerExpansion
 }
 
-// frameworkVersionLister implements the FrameworkVersionLister interface.
-type frameworkVersionLister struct {
+// operatorVersionLister implements the OperatorVersionLister interface.
+type operatorVersionLister struct {
 	indexer cache.Indexer
 }
 
-// NewFrameworkVersionLister returns a new FrameworkVersionLister.
-func NewFrameworkVersionLister(indexer cache.Indexer) FrameworkVersionLister {
-	return &frameworkVersionLister{indexer: indexer}
+// NewOperatorVersionLister returns a new OperatorVersionLister.
+func NewOperatorVersionLister(indexer cache.Indexer) OperatorVersionLister {
+	return &operatorVersionLister{indexer: indexer}
 }
 
 // List lists all OperatorVersions in the indexer.
-func (s *frameworkVersionLister) List(selector labels.Selector) (ret []*v1alpha1.OperatorVersion, err error) {
+func (s *operatorVersionLister) List(selector labels.Selector) (ret []*v1alpha1.OperatorVersion, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
 		ret = append(ret, m.(*v1alpha1.OperatorVersion))
 	})
@@ -51,28 +51,28 @@ func (s *frameworkVersionLister) List(selector labels.Selector) (ret []*v1alpha1
 }
 
 // OperatorVersions returns an object that can list and get OperatorVersions.
-func (s *frameworkVersionLister) FrameworkVersions(namespace string) FrameworkVersionNamespaceLister {
-	return frameworkVersionNamespaceLister{indexer: s.indexer, namespace: namespace}
+func (s *operatorVersionLister) OperatorVersions(namespace string) OperatorVersionNamespaceLister {
+	return operatorVersionNamespaceLister{indexer: s.indexer, namespace: namespace}
 }
 
-// FrameworkVersionNamespaceLister helps list and get OperatorVersions.
-type FrameworkVersionNamespaceLister interface {
+// OperatorVersionNamespaceLister helps list and get OperatorVersions.
+type OperatorVersionNamespaceLister interface {
 	// List lists all OperatorVersions in the indexer for a given namespace.
 	List(selector labels.Selector) (ret []*v1alpha1.OperatorVersion, err error)
 	// Get retrieves the OperatorVersion from the indexer for a given namespace and name.
 	Get(name string) (*v1alpha1.OperatorVersion, error)
-	FrameworkVersionNamespaceListerExpansion
+	OperatorVersionNamespaceListerExpansion
 }
 
-// frameworkVersionNamespaceLister implements the FrameworkVersionNamespaceLister
+// operatorVersionNamespaceLister implements the OperatorVersionNamespaceLister
 // interface.
-type frameworkVersionNamespaceLister struct {
+type operatorVersionNamespaceLister struct {
 	indexer   cache.Indexer
 	namespace string
 }
 
 // List lists all OperatorVersions in the indexer for a given namespace.
-func (s frameworkVersionNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.OperatorVersion, err error) {
+func (s operatorVersionNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.OperatorVersion, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
 		ret = append(ret, m.(*v1alpha1.OperatorVersion))
 	})
@@ -80,7 +80,7 @@ func (s frameworkVersionNamespaceLister) List(selector labels.Selector) (ret []*
 }
 
 // Get retrieves the OperatorVersion from the indexer for a given namespace and name.
-func (s frameworkVersionNamespaceLister) Get(name string) (*v1alpha1.OperatorVersion, error) {
+func (s operatorVersionNamespaceLister) Get(name string) (*v1alpha1.OperatorVersion, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err

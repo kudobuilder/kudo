@@ -33,7 +33,7 @@ import (
 // OperatorVersions.
 type OperatorVersionInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.FrameworkVersionLister
+	Lister() v1alpha1.OperatorVersionLister
 }
 
 type operatorVersionInformer struct {
@@ -82,6 +82,6 @@ func (f *operatorVersionInformer) Informer() cache.SharedIndexInformer {
 	return f.factory.InformerFor(&kudov1alpha1.OperatorVersion{}, f.defaultInformer)
 }
 
-func (f *operatorVersionInformer) Lister() v1alpha1.FrameworkVersionLister {
-	return v1alpha1.NewFrameworkVersionLister(f.Informer().GetIndexer())
+func (f *operatorVersionInformer) Lister() v1alpha1.OperatorVersionLister {
+	return v1alpha1.NewOperatorVersionLister(f.Informer().GetIndexer())
 }

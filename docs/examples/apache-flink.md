@@ -20,14 +20,14 @@ We should modify the demo image to have everything run on K8s
 
 ## Prerequisites
 
-Install the Kafka Framework and FrameworkVersion
+Install the Kafka Operator and OperatorVersion
 
 ```bash
 kubectl apply -f config/samples/kafka-framework.yaml
 kubectl apply -f config/samples/kafka-frameworkversion.yaml
 ```
 
-Install the Flink Framework and FrameworkVersion
+Install the Flink Operator and OperatorVersion
 ```bash
 kubectl apply -f config/samples/flink.yaml
 ```
@@ -43,7 +43,7 @@ The first phase is to create and deploy a Kafka instance:
 
 #### Create Topic Step
 
-The second Step in the phase runs a `Job` that creates a topic 
+The second Step in the phase runs a `Job` that creates a topic
 
 ### Flink Phase
 

@@ -24,13 +24,13 @@ type OperatorListerExpansion interface{}
 // OperatorNamespaceLister.
 type OperatorNamespaceListerExpansion interface{}
 
-// FrameworkVersionListerExpansion allows custom methods to be added to
-// FrameworkVersionLister.
-type FrameworkVersionListerExpansion interface{}
+// OperatorVersionListerExpansion allows custom methods to be added to
+// OperatorVersionLister.
+type OperatorVersionListerExpansion interface{}
 
-// FrameworkVersionNamespaceListerExpansion allows custom methods to be added to
-// FrameworkVersionNamespaceLister.
-type FrameworkVersionNamespaceListerExpansion interface{}
+// OperatorVersionNamespaceListerExpansion allows custom methods to be added to
+// OperatorVersionNamespaceLister.
+type OperatorVersionNamespaceListerExpansion interface{}
 
 // InstanceListerExpansion allows custom methods to be added to
 // InstanceLister.

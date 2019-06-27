@@ -7,23 +7,23 @@ type: docs
 
 ## Dependencies
 
-Kafka depends on Zookeeper so we need to run it first. Follow the [Zookeeper example](/docs/examples/apache-zookeeper.md) to run a basic cluster. 
+Kafka depends on Zookeeper so we need to run it first. Follow the [Zookeeper example](/docs/examples/apache-zookeeper.md) to run a basic cluster.
 
 ## Run Kafka
 
-Create a `Framework` object for Kafka
+Create a `Operator` object for Kafka
 ```bash
 $ kubectl apply -f config/samples/kafka-framework.yaml
 framework.kudo.k8s.io "kafka" created
 ```
 
-Create a `FrameworkVersion` for the Kafka  `Framework`
+Create a `OperatorVersion` for the Kafka  `Operator`
 
 ```bash
 $ kubectl apply -f config/samples/kafka-frameworkversion.yaml
 frameworkversion.kudo.k8s.io "kafka-2.11-2.4.0" created
 ```
- 
+
 
 Create an Instance of Kafka
 ```
@@ -40,7 +40,7 @@ kafka-deploy-91712000   13s
 zk-deploy-392770000     3m
 ```
 
-The statefulset defined in the `FrameworkVersion` comes up with 1 pod:
+The statefulset defined in the `OperatorVersion` comes up with 1 pod:
 
 ```bash
 $ kubectl get statefulset kafka-kafka

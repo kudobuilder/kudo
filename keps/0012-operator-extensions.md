@@ -53,9 +53,9 @@ Extensions and bases describe a mechanism for building frameworks or extensions 
 
 ### User Stories
 
-- As an Application Operator, I want to be able to add a custom Plan to an existing FrameworkVersion.
-- As an Application Operator, I want to be able to patch existing templates in an existing FrameworkVersion.
-- As an Application Operator, I want to be able to add or update parameters to an existing FrameworkVersion.
+- As an Application Operator, I want to be able to add a custom Plan to an existing OperatorVersion.
+- As an Application Operator, I want to be able to patch existing templates in an existing OperatorVersion.
+- As an Application Operator, I want to be able to add or update parameters to an existing OperatorVersion.
 - As an Application Operator, I want to be able to update my base framework easily.
 
 ### Extension Spec

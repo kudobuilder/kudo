@@ -1,15 +1,15 @@
-apiVersion: kudo.k8s.io/v1alpha1
+operatorapiVersion: kudo.k8s.io/v1alpha1
 kind: Instance
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-    framework: kafka
+    operator: kafka
   name: kafka
 spec:
   operatorVersion:
     name: kafka-2.11-2.4.0
     namespace: default
-    type: FrameworkVersion
+    type: OperatorVersion
   # Add fields here
   dependency:
     - referenceName: zookeeper

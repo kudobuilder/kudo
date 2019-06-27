@@ -63,7 +63,7 @@ Framework test suites are stored in the `tests` subdirectory of each [Framework]
 ./repository/mysql/tests/
 ```
 
-Every `Framework` and `FrameworkVersion` is installed into the cluster by `make test` prior to running the test suite.
+Every `Operator` and `OperatorVersion` is installed into the cluster by `make test` prior to running the test suite.
 
 ## Writing test cases
 
