@@ -3,12 +3,13 @@ package repo
 import (
 	"fmt"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/util/rand"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/util/rand"
 
 	"github.com/go-test/deep"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
@@ -21,10 +22,10 @@ func TestReadFileSystemPackage(t *testing.T) {
 	rand.Seed(1)
 
 	tests := []struct {
-		name        string
+		name         string
 		instanceName string
-		path        string
-		goldenFiles string
+		path         string
+		goldenFiles  string
 	}{
 		{"zookeeper", "zookeeper-xn8fg", "testdata/zk", "testdata/zk-crd-golden1"},
 		{"zookeeper", "zookeeper-txhzt", "testdata/zk.tar.gz", "testdata/zk-crd-golden2"},
