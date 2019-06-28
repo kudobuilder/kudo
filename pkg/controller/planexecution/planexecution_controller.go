@@ -491,14 +491,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				if err == nil {
 					log.Printf("PlanExecutionController: CreateOrUpdate Object present")
 					//update
-					p := client.MergeFrom(truth)
-					mergePatch, err := p.Data(obj)
-					specPatch := gjson.Get(string(mergePatch), "spec")
-					annotationPatch := gjson.Get(string(mergePatch), "metadata.annotations")
-					patchString := fmt.Sprintf("{\"metadata\": {\"annotations\": %v}, \"spec\": %v}",
-						annotationPatch.String(),
-						specPatch.String(),
-					)
+					patchString, err := patchObject(obj, truth)
 					log.Printf("Going to apply patch\n%+v\n\n to object\n%+v\n", patchString, truth)
 					if err != nil {
 						log.Printf("Error getting patch between truth and obj: %v\n", err)
@@ -626,4 +619,31 @@ func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
 	}
 
 	return nil
+}
+
+func patchObject(expected runtime.Object, actual runtime.Object) (string, error) {
+	p := client.MergeFrom(actual)
+
+	mergePatch, err := p.Data(expected)
+	if err != nil {
+		return "", err
+	}
+
+	specPatch := gjson.Get(string(mergePatch), "spec")
+	annotationPatch := gjson.Get(string(mergePatch), "metadata.annotations")
+
+	annotationPatchStr := annotationPatch.String()
+	if annotationPatchStr == "" {
+		annotationPatchStr = "{}"
+	}
+
+	specPatchStr := specPatch.String()
+	if specPatchStr == "" {
+		specPatchStr = "{}"
+	}
+
+	return fmt.Sprintf("{\"metadata\": {\"annotations\": %v}, \"spec\": %v}",
+		annotationPatchStr,
+		specPatchStr,
+	), nil
 }
