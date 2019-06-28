@@ -20,6 +20,7 @@ KUDO content from around the web.
 
 - [KUDO tutorial by Michael Beisiegel](https://github.com/realmbgl/kudo-tutorial)
 - [OSDC 2019: Introducing KUDO – Kubernetes Operators the easy way by Matt Javis](https://youtu.be/qAUmRfbd300)
+- [Slides](https://docs.google.com/presentation/d/1CFE0Vr1AmkKLhpG-KtDVSZRokKNy81OGjQ4I2tpqtss/) from the [CNCF June Warsaw Meetup](https://www.meetup.com/Cloud-Native-Kubernetes-Warsaw/events/260639500/) by Jörg Schad
 
 
 ## Discussion, Contribution, and Support
