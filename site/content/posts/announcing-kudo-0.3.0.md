@@ -22,7 +22,7 @@ This will result in some overloading of the term operator, but aligns better wit
 
 [KEP-10](https://github.com/kudobuilder/kudo/blob/v0.3.0/keps/0010-package-manager.md) for the package manager is underway, with release providing 2 features; package repository and a package format.
 
-The general format allows for a number of files, but starts with an `operator.yaml`.  A common layout might be:
+The general format allows for a number of files, but starts with an `operator.yaml`. A common layout might be:
 
 ```
 operator.yaml
@@ -30,7 +30,7 @@ params.yaml
 templates/
      <additional files>.yaml
 ```
-The `operator.yaml` defines the operator and its plans.  `params.yaml` defines the params to be used through all templated files.  While the templated files are defined under the templates folder. The templated files are referenced in the `operator.yaml` file.  The zookeeper operator provides a [good example](https://github.com/kudobuilder/operators/tree/a1f4cf/repository/zookeeper/0.1.0).
+The `operator.yaml` defines the operator and its plans. `params.yaml` defines the params to be used through all templated files. While the templated files are defined under the templates folder. The templated files are referenced in the `operator.yaml` file. The zookeeper operator provides a [good example](https://github.com/kudobuilder/operators/tree/a1f4cf/repository/zookeeper/0.1.0).
 
 
 These package files are group together in a folder or subfolder or can be tarred together in a `tgz` file providing a couple of ways to install an operator.
@@ -44,17 +44,17 @@ Introduced with this release are 2 ways to install an operator to KUDO. The firs
 This release also introduces a repository which allows for automatic discovery of operators to be installed.
 `kubectl kudo install kakfa`
 
-**Note:**  The order of operation when installing an operator is to check the local filesystem first, then to query the repository.   
+**Note:** The order of operation when installing an operator is to check the local filesystem first, then to query the repository.
 
 ### Skip Instance
 
 kudoctl install now supports `-skip-instance` flag which skips installing an Instance when installing Operator and OperatorVersions. This is useful in a testing scenario - we install all of the Operators and OperatorVersions but don't want to install the Instances until later.
 
 ### Test Harness
-The test harness outlined in [KEP-8](https://github.com/kudobuilder/kudo/blob/v0.3.0/keps/0008-operator-testing.md) has been implemented.  The [harness](https://kudo.dev/docs/testing) provides a mechanism for operator developers to declaratively create end to end integration tests for their operators using only Kubernetes YAML.  [Example tests](https://github.com/kudobuilder/operators/tree/v0.3.0/repository/zookeeper/tests/zookeeper-upgrade-test) are provided for the zookeeper operator.
+The test harness outlined in [KEP-8](https://github.com/kudobuilder/kudo/blob/v0.3.0/keps/0008-operator-testing.md) has been implemented. The [test harness](https://kudo.dev/docs/testing) provides a mechanism for operator developers to declaratively create end to end integration testing for their frameworks using only Kubernetes YAML. [Example tests](https://github.com/kudobuilder/operators/tree/v0.3.0/repository/zookeeper/tests/zookeeper-upgrade-test) are provided for the zookeeper operator.
 
 ### Operator Dependency Management Removed (For Now)
-The proper handling of operator dependencies is more complex than first imagined / implemented.  This fact was called out in [Issue 438](https://github.com/kudobuilder/kudo/issues/438).  For this reason we have removed the `all-dependencies` flag from `kudoctl`.  This feature needs to be designed through the KEP process and will be implemented properly in the future.
+The proper handling of operator dependencies is more complex than first imagined / implemented. This fact was called out in [Issue 438](https://github.com/kudobuilder/kudo/issues/438). For this reason we have removed the `all-dependencies` flag from `kudoctl`. This feature needs to be designed through the KEP process and will be implemented properly in the future.
 
 ## Changelog
 
