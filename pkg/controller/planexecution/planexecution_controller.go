@@ -21,6 +21,8 @@ import (
 	"log"
 	"strconv"
 
+	"k8s.io/apimachinery/pkg/util/json"
+
 	kudoengine "github.com/kudobuilder/kudo/pkg/engine"
 
 	"gopkg.in/yaml.v2"
@@ -38,7 +40,6 @@ import (
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/util/health"
 	"github.com/kudobuilder/kudo/pkg/util/template"
-	"github.com/tidwall/gjson"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -488,15 +489,15 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				key, _ := client.ObjectKeyFromObject(obj)
 				truth := obj.DeepCopyObject()
 				err := r.Client.Get(context.TODO(), key, truth)
+				rawObj, _ := json.Marshal(obj)
 				if err == nil {
 					log.Printf("PlanExecutionController: CreateOrUpdate Object present")
 					//update
-					patchString, err := patchObject(obj, truth)
-					log.Printf("Going to apply patch\n%+v\n\n to object\n%+v\n", patchString, truth)
+					log.Printf("Going to apply patch\n%+v\n\n to object\n%+v\n", string(rawObj), truth)
 					if err != nil {
 						log.Printf("Error getting patch between truth and obj: %v\n", err)
 					} else {
-						err = r.Client.Patch(context.TODO(), truth, client.ConstantPatch(types.MergePatchType, []byte(patchString)))
+						err = r.Client.Patch(context.TODO(), truth, client.ConstantPatch(types.StrategicMergePatchType, rawObj))
 						log.Printf("PlanExecutionController: CreateOrUpdate Patch: %v", err)
 					}
 				} else {
@@ -619,31 +620,4 @@ func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
 	}
 
 	return nil
-}
-
-func patchObject(expected runtime.Object, actual runtime.Object) (string, error) {
-	p := client.MergeFrom(actual)
-
-	mergePatch, err := p.Data(expected)
-	if err != nil {
-		return "", err
-	}
-
-	specPatch := gjson.Get(string(mergePatch), "spec")
-	annotationPatch := gjson.Get(string(mergePatch), "metadata.annotations")
-
-	annotationPatchStr := annotationPatch.String()
-	if annotationPatchStr == "" {
-		annotationPatchStr = "{}"
-	}
-
-	specPatchStr := specPatch.String()
-	if specPatchStr == "" {
-		specPatchStr = "{}"
-	}
-
-	return fmt.Sprintf("{\"metadata\": {\"annotations\": %v}, \"spec\": %v}",
-		annotationPatchStr,
-		specPatchStr,
-	), nil
 }
