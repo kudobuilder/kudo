@@ -1,7 +1,7 @@
 ---
 title: Community
 type: docs
-weight: 5
+menu: docs
 ---
 
 # Community
@@ -13,6 +13,14 @@ We use Zoom and every meeting is recorded for those unable to join live.
 
 - [Zoom link](https://mesosphere.zoom.us/j/443128842)
 - [agenda and past recordings in this Google doc](https://docs.google.com/document/d/1UqgtCMUHSsOohZYF8K7zX8WcErttuMSx7NbvksIbZgg/edit).
+
+## Community Content
+
+KUDO content from around the web.
+
+- [KUDO tutorial by Michael Beisiegel](https://github.com/realmbgl/kudo-tutorial)
+- [OSDC 2019: Introducing KUDO – Kubernetes Operators the easy way by Matt Javis](https://youtu.be/qAUmRfbd300)
+
 
 ## Discussion, Contribution, and Support
 

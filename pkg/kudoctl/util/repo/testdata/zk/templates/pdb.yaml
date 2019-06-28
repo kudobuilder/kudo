@@ -1,0 +1,14 @@
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Name }}-pdb
+  namespace: {{ .Namespace }}
+  labels:
+    app: zookeeper
+    zookeeper: {{ .Name }}
+spec:
+  selector:
+    matchLabels:
+      app: zookeeper
+      zookeeper: {{ .Name }}
+  maxUnavailable: 1

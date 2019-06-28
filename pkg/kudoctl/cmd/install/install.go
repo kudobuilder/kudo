@@ -2,77 +2,89 @@ package install
 
 import (
 	"fmt"
-	"strings"
+	"os"
 
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/github"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/helpers"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// CmdErrorProcessor returns the errors associated with cmd env
-func CmdErrorProcessor(cmd *cobra.Command, args []string) error {
+// Options defines configuration options for the install command
+type Options struct {
+	AllDependencies bool
+	AutoApprove     bool
+	InstanceName    string
+	Namespace       string
+	Parameters      map[string]string
+	PackageVersion  string
+	KubeConfigPath  string
+	SkipInstance    bool
+}
 
-	_, err := cmd.Flags().GetString("kubeconfig")
+// DefaultOptions initializes the install command options to its defaults
+var DefaultOptions = &Options{
+	Namespace: "default",
+}
+
+// Run returns the errors associated with cmd env
+func Run(cmd *cobra.Command, args []string, options *Options) error {
+
 	// This makes --kubeconfig flag optional
-	if err != nil {
+	if _, err := cmd.Flags().GetString("kubeconfig"); err != nil {
 		return fmt.Errorf("get flag: %+v", err)
 	}
 
-	err = check.ValidateKubeConfigPath()
+	configPath, err := check.KubeConfigLocationOrDefault(options.KubeConfigPath)
 	if err != nil {
+		return fmt.Errorf("error when getting default kubeconfig path: %+v", err)
+	}
+	options.KubeConfigPath = configPath
+	if err := check.ValidateKubeConfigPath(options.KubeConfigPath); err != nil {
 		return errors.WithMessage(err, "could not check kubeconfig path")
 	}
 
-	err = verifyFrameworks(args)
-	if err != nil {
-		return errors.WithMessage(err, "could not install framework(s)")
+	if err := installOperators(args, options); err != nil {
+		return errors.WithMessage(err, "could not install operator(s)")
 	}
 
 	return nil
 }
 
-func verifyFrameworks(args []string) error {
+// installOperators installs all operators specified as arguments into the cluster
+func installOperators(args []string, options *Options) error {
 
 	if len(args) < 1 {
 		return fmt.Errorf("no argument provided")
 	}
 
-	if len(args) > 1 && vars.PackageVersion != "" {
-		return fmt.Errorf("--package-version not supported in multi framework install")
+	if len(args) > 1 && options.PackageVersion != "" {
+		return fmt.Errorf("--package-version not supported in multi operator install")
 	}
+	repoConfig := repo.Default
 
-	err := check.GithubCredentials()
+	// Initializing empty repo with given variables
+	r, err := repo.NewOperatorRepository(repoConfig)
 	if err != nil {
-		return errors.WithMessage(err, "could not check github credential path")
+		return errors.WithMessage(err, "could not build operator repository")
 	}
 
-	cred, err := github.GetGithubCredentials()
-	if err != nil {
-		return errors.WithMessage(err, "could not get github credential")
-	}
-
-	gc, err := github.NewGithubClient(cred)
-	if err != nil {
-		return errors.Wrap(err, "creating github client")
-	}
-
-	_, err = clientcmd.BuildConfigFromFlags("", vars.KubeConfigPath)
+	_, err = clientcmd.BuildConfigFromFlags("", options.KubeConfigPath)
 	if err != nil {
 		return errors.Wrap(err, "getting config failed")
 	}
 
-	kudoclient, err := kudo.NewKudoClient()
+	kc, err := kudo.NewClient(options.Namespace, options.KubeConfigPath)
 	if err != nil {
 		return errors.Wrap(err, "creating kudo client")
 	}
 
-	for _, name := range args {
-		err := verifySingleFramework(name, "", gc, kudoclient)
+	for _, operatorName := range args {
+		err := installOperator(operatorName, false, r, kc, options)
 		if err != nil {
 			return err
 		}
@@ -80,194 +92,185 @@ func verifyFrameworks(args []string) error {
 	return nil
 }
 
-// Todo: needs testing
-// verifySingleFramework is the umbrella for a single framework installation that gathers the business logic
+// getPackageCRDs tries to look for package files resolving the operator name to:
+// - a local tar.gz file
+// - a local directory
+// - a operator name in the remote repository
+// in that order. Should there exist a local folder e.g. `cassandra` it will take precedence
+// over the remote repository package with the same name.
+func getPackageCRDs(name string, options *Options, repository repo.Repository) (*repo.PackageCRDs, error) {
+	// Local files/folder have priority
+	if _, err := os.Stat(name); err == nil {
+		b, err := repo.NewBundle(name)
+		if err != nil {
+			return nil, err
+		}
+		return b.GetCRDs()
+	}
+
+	bundle, err := repository.GetPackageBundle(name, options.PackageVersion)
+	if err != nil {
+		return nil, err
+	}
+	return bundle.GetCRDs()
+}
+
+// installOperator is the umbrella for a single operator installation that gathers the business logic
 // for a cluster and returns an error in case there is a problem
-func verifySingleFramework(name, previous string, gc *github.Client, k2c *kudo.Client) error {
-	// Get most recent ContentDir for selected Framework
-	content, err := gc.GetMostRecentFrameworkContentDir(name)
+// TODO: needs testing
+func installOperator(operatorArgument string, isDependencyInstall bool, repository repo.Repository, kc *kudo.Client, options *Options) error {
+	crds, err := getPackageCRDs(operatorArgument, options, repository)
 	if err != nil {
-		return errors.Wrap(err, "sorting most recent content dir")
+		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", operatorArgument)
 	}
 
-	if vars.PackageVersion != "" {
-		content, err = gc.GetSpecificFrameworkContentDir(name)
-		if err != nil {
-			return errors.Wrap(err, "getting specific content dir")
+	// Operator part
+
+	// Check if Operator exists
+	OperatorName := crds.Operator.ObjectMeta.Name
+	if !kc.OperatorExistsInCluster(crds.Operator.ObjectMeta.Name, options.Namespace) {
+		if err := installSingleOperatorToCluster(OperatorName, options.Namespace, crds.Operator, kc); err != nil {
+			return errors.Wrap(err, "installing single Operator")
 		}
 	}
 
-	// Framework part
+	// OperatorVersion part
 
-	// Check if Framework exists
-	if !k2c.FrameworkExistsInCluster(name) {
-		err := installSingleFrameworkToCluster(name, *content.Path, gc, k2c)
-		if err != nil {
-			return errors.Wrap(err, "installing single Framework")
+	// Check if AnyOperatorVersion for Operator exists
+	if !kc.AnyOperatorVersionExistsInCluster(crds.Operator.ObjectMeta.Name, options.Namespace) {
+		// OperatorVersion CRD for Operator does not exist
+		if err := installSingleOperatorVersionToCluster(OperatorName, options.Namespace, kc, crds.OperatorVersion); err != nil {
+			return errors.Wrapf(err, "installing OperatorVersion CRD for operator: %s", OperatorName)
 		}
 	}
 
-	// FrameworkVersion part
-
-	// Get the string of the version in FrameworkVersion of a selected Framework
-	frameworkVersion, err := gc.GetFrameworkVersion(name, *content.Path)
-	if err != nil {
-		return errors.Wrap(err, "getting most recent FrameworkVersion version")
-	}
-
-	// Check if AnyFrameworkVersion for Framework exists
-	if !k2c.AnyFrameworkVersionExistsInCluster(name) {
-		// FrameworkVersion CRD for Framework does not exist
-		err := installSingleFrameworkVersionToCluster(name, *content.Path, gc, k2c)
-		if err != nil {
-			return errors.Wrap(err, "installing single FrameworkVersion")
-		}
-	}
-
-	// Check if FrameworkVersion is out of sync with official FrameworkVersion for this Framework
-	if !k2c.FrameworkVersionInClusterOutOfSync(name, frameworkVersion) {
-		// This happens when the given FrameworkVersion is not existing. E.g.
-		// when a version has been installed that is not part of the official kudobuilder/frameworks repo.
-		if !vars.AutoApprove {
-			fmt.Printf("No official FrameworkVersion has been found for \"%s\". "+
-				"Do you want to install one? (Yes/no) ", name)
+	// Check if OperatorVersion is out of sync with official OperatorVersion for this Operator
+	if !kc.OperatorVersionInClusterOutOfSync(OperatorName, crds.OperatorVersion.Spec.Version, options.Namespace) {
+		// This happens when the given OperatorVersion is not existing. E.g.
+		// when a version has been installed that is not part of the official kudobuilder/operators repo.
+		if !options.AutoApprove {
+			fmt.Printf("No official OperatorVersion has been found for \"%s\". "+
+				"Do you want to install one? (Yes/no) ", OperatorName)
 			if helpers.AskForConfirmation() {
-				err := installSingleFrameworkVersionToCluster(name, *content.Path, gc, k2c)
-				if err != nil {
-					return errors.Wrap(err, "installing single FrameworkVersion")
+				if err := installSingleOperatorVersionToCluster(OperatorName, options.Namespace, kc, crds.OperatorVersion); err != nil {
+					return errors.Wrapf(err, "installing OperatorVersion CRD for operator %s", OperatorName)
 				}
 			}
 		} else {
-			err := installSingleFrameworkVersionToCluster(name, *content.Path, gc, k2c)
-			if err != nil {
-				return errors.Wrap(err, "installing single FrameworkVersion")
+			if err := installSingleOperatorVersionToCluster(OperatorName, options.Namespace, kc, crds.OperatorVersion); err != nil {
+				return errors.Wrapf(err, "installing OperatorVersion CRD for operator %s", OperatorName)
 			}
 		}
 
 	}
 
-	// Dependencies of the particular FrameworkVersion
-	if vars.AllDependencies {
-		dependencyFrameworks, err := gc.GetFrameworkVersionDependencies(name, *content.Path)
+	// Dependencies of the particular OperatorVersion
+	if options.AllDependencies {
+		dependencyOperators, err := repo.GetOperatorVersionDependencies(crds.OperatorVersion)
 		if err != nil {
-			return errors.Wrap(err, "getting Framework dependencies")
+			return errors.Wrap(err, "getting Operator dependencies")
 		}
-		for _, v := range dependencyFrameworks {
+		for _, v := range dependencyOperators {
 			// recursive function call
 			// Dependencies should not be as big as that they will have an overflow in the function stack frame
-			// verifySingleFramework makes sure that dependency Frameworks are created before the Framework itself
+			// installOperator makes sure that dependency Operators are created before the Operator itself
 			// and it allows to inherit dependencies.
-			err := verifySingleFramework(v, name, gc, k2c)
-			if err != nil {
-				return errors.Wrapf(err, "installing dependency Framework %s", v)
+			if err := installOperator(v, true, repository, kc, options); err != nil {
+				return errors.Wrapf(err, "installing dependency Operator %s", v)
 			}
 		}
 	}
 
 	// Instances part
-	// For a Framework without dependencies this means it creates the Instances object just after Framework and
-	// FrameworkVersion objects are created to ensure Instances can be created.
-	// This is also the part you end up when no dependencies are found or installed and all Framework and
-	// FrameworkVersions are already installed.
+	// For a Operator without dependencies this means it creates the Instances object just after Operator and
+	// OperatorVersion objects are created to ensure Instances can be created.
+	// This is also the part you end up when no dependencies are found or installed and all Operator and
+	// OperatorVersions are already installed.
+
+	// First make sure that our instance object is up to date with overrides from commandline
+	applyInstanceOverrides(crds.Instance, options, isDependencyInstall)
+
+	// The user opted not to install the instance.
+	if options.SkipInstance {
+		return nil
+	}
 
 	// Check if Instance exists in cluster
-	// It won't create the Instance if any in combination with given Framework Name and FrameworkVersion exists
-	if !k2c.AnyInstanceExistsInCluster(name, frameworkVersion) {
-		// This happens when the given FrameworkVersion is not existing. E.g.
-		// when a version has been installed that is not part of the official kudobuilder/frameworks repo.
-		if !vars.AutoApprove {
+	// It won't create the Instance if any in combination with given Operator Name, OperatorVersion and Instance OperatorName exists
+	instanceName := crds.Instance.ObjectMeta.Name
+	instanceExists, err := kc.InstanceExistsInCluster(OperatorName, options.Namespace, crds.OperatorVersion.Spec.Version, instanceName)
+	if err != nil {
+		return errors.Wrapf(err, "verifying the instance does not already exist")
+	}
+
+	if !instanceExists {
+		// This happens when the given OperatorVersion is not existing. E.g.
+		// when a version has been installed that is not part of the official kudobuilder/operators repo.
+		if !options.AutoApprove {
 			fmt.Printf("No Instance tied to this \"%s\" version has been found. "+
-				"Do you want to create one? (Yes/no) ", name)
+				"Do you want to create one? (Yes/no) ", OperatorName)
 			if helpers.AskForConfirmation() {
 				// If Instance is a dependency we need to make sure installSingleInstanceToCluster is aware of it.
 				// By having the previous string set we can make this distinction.
-				err := installSingleInstanceToCluster(name, previous, *content.Path, gc, k2c)
-				if err != nil {
+				if err := installSingleInstanceToCluster(OperatorName, crds.Instance, kc, options); err != nil {
 					return errors.Wrap(err, "installing single Instance")
 				}
 			}
 		} else {
-			err := installSingleInstanceToCluster(name, previous, *content.Path, gc, k2c)
-			if err != nil {
+			if err := installSingleInstanceToCluster(OperatorName, crds.Instance, kc, options); err != nil {
 				return errors.Wrap(err, "installing single Instance")
 			}
 		}
 
+	} else {
+		return fmt.Errorf("can not install Instance %s of operator %s-%s because instance of that name already exists in namespace %s",
+			instanceName, OperatorName, crds.OperatorVersion.Spec.Version, options.Namespace)
 	}
-
 	return nil
 }
 
-// Todo: needs testing
-// installSingleFrameworkToCluster installs a given Framework to the cluster
-func installSingleFrameworkToCluster(name, path string, gc *github.Client, k2c *kudo.Client) error {
-	frameworkYaml, err := gc.GetFrameworkYaml(name, path)
-	if err != nil {
-		return errors.Wrapf(err, "getting %s-framework.yaml", name)
+// installSingleOperatorToCluster installs a given Operator to the cluster
+// TODO: needs testing
+func installSingleOperatorToCluster(name, namespace string, f *v1alpha1.Operator, kc *kudo.Client) error {
+	if _, err := kc.InstallOperatorObjToCluster(f, namespace); err != nil {
+		return errors.Wrapf(err, "installing %s-operator.yaml", name)
 	}
-	_, err = k2c.InstallFrameworkObjToCluster(frameworkYaml)
-	if err != nil {
-		return errors.Wrapf(err, "installing %s-framework.yaml", name)
-	}
-	fmt.Printf("framework.%s/%s created\n", frameworkYaml.APIVersion, frameworkYaml.Name)
+	fmt.Printf("operator.%s/%s created\n", f.APIVersion, f.Name)
 	return nil
 }
 
-// Todo: needs testing
-// installSingleFrameworkVersionToCluster installs a given FrameworkVersion to the cluster
-func installSingleFrameworkVersionToCluster(name, path string, gc *github.Client, k2c *kudo.Client) error {
-	frameworkVersionYaml, err := gc.GetFrameworkVersionYaml(name, path)
-	if err != nil {
-		return errors.Wrapf(err, "getting %s-framework.yaml", name)
+// installSingleOperatorVersionToCluster installs a given OperatorVersion to the cluster
+// TODO: needs testing
+func installSingleOperatorVersionToCluster(name, namespace string, kc *kudo.Client, fv *v1alpha1.OperatorVersion) error {
+	if _, err := kc.InstallOperatorVersionObjToCluster(fv, namespace); err != nil {
+		return errors.Wrapf(err, "installing %s-operatorversion.yaml", name)
 	}
-	_, err = k2c.InstallFrameworkVersionObjToCluster(frameworkVersionYaml)
-	if err != nil {
-		return errors.Wrapf(err, "installing %s-framework.yaml", name)
-	}
-	fmt.Printf("frameworkversion.%s/%s created\n", frameworkVersionYaml.APIVersion, frameworkVersionYaml.Name)
+	fmt.Printf("operatorversion.%s/%s created\n", fv.APIVersion, fv.Name)
 	return nil
 }
 
-// Todo: needs testing
 // installSingleInstanceToCluster installs a given Instance to the cluster
-func installSingleInstanceToCluster(name, previous, path string, gc *github.Client, k2c *kudo.Client) error {
-	instanceYaml, err := gc.GetInstanceYaml(name, path)
-	if err != nil {
-		return errors.Wrapf(err, "getting %s-instance.yaml", name)
-	}
+// TODO: needs more testing
+func installSingleInstanceToCluster(name string, instance *v1alpha1.Instance, kc *kudo.Client, options *Options) error {
 	// Customizing Instance
-	// TODO: traversing, e.g. check function that looksup if key exists in the current FrameworkVersion
-	// That way just Parameters will be applied if they exist in the matching FrameworkVersion
+	// TODO: traversing, e.g. check function that looksup if key exists in the current OperatorVersion
+	// That way just Parameters will be applied if they exist in the matching OperatorVersion
+
+	if _, err := kc.InstallInstanceObjToCluster(instance, options.Namespace); err != nil {
+		return errors.Wrapf(err, "installing instance %s", name)
+	}
+	fmt.Printf("instance.%s/%s created\n", instance.APIVersion, instance.Name)
+	return nil
+}
+
+func applyInstanceOverrides(instance *v1alpha1.Instance, options *Options, isDependencyInstall bool) {
 	// More checking required
 	// E.g. when installing with flag --all-dependencies to prevent overwriting dependency Instance name
-
 	// This checks if flag --instance was set with a name and it is the not a dependency Instance
-	if vars.Instance != "" && previous == "" {
-		instanceYaml.ObjectMeta.SetName(vars.Instance)
+	if options.InstanceName != "" && !isDependencyInstall {
+		instance.ObjectMeta.SetName(options.InstanceName)
 	}
-	if vars.Parameter != nil {
-		p := make(map[string]string)
-		for _, a := range vars.Parameter {
-			// Using similar to CSV "," as the delimiter for now
-			// Split just after the first delimiter to support e.g. zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181 as value
-			s := strings.SplitN(a, ",", 2)
-			if len(s) < 2 {
-				return fmt.Errorf("parameter not set: %+v", s)
-			}
-			if s[0] == "" {
-				return fmt.Errorf("parameter can not be empty: %+v", s)
-			}
-			if s[1] == "" {
-				return fmt.Errorf("parameter value can not be empty: %+v", s)
-			}
-			p[s[0]] = s[1]
-		}
-		instanceYaml.Spec.Parameters = p
+	if options.Parameters != nil {
+		instance.Spec.Parameters = options.Parameters
 	}
-	_, err = k2c.InstallInstanceObjToCluster(instanceYaml)
-	if err != nil {
-		return errors.Wrapf(err, "installing %s-instance.yaml", name)
-	}
-	fmt.Printf("instance.%s/%s created\n", instanceYaml.APIVersion, instanceYaml.Name)
-	return nil
 }

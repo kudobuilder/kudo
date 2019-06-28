@@ -13,7 +13,8 @@
 /pkg/apis/ @gerred @runyontr @kensipe
 /pkg/client/ @fabianbaier @kensipe
 /pkg/controller/ @gerred @runyontr @kensipe
-/pkg/kudoctl/ @fabianbaier @kensipe
+/pkg/kudoctl/ @fabianbaier @kensipe @alenkacz
+/pkg/test/ @jbarrick-mesosphere
 /pkg/util/ @gerred @runyontr @kensipe
 /pkg/webhook/ @gerred @runyontr @kensipe
-/site/ @guenter
+/site/ @guenter @gerred

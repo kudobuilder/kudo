@@ -1,21 +1,21 @@
 apiVersion: kudo.k8s.io/v1alpha1
-kind: Framework
+kind: Operator
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: flink
 ---
 apiVersion: kudo.k8s.io/v1alpha1
-kind: FrameworkVersion
+kind: OperatorVersion
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: flink
   namespace: default
 spec:
-  framework:
+  operator:
     name: flink
-    kind: Framework
+    kind: Operator
   # Add fields here
   version: "1.0"
   parameters:
@@ -50,7 +50,7 @@ spec:
       metadata:
         name: taskmanager
       spec:
-        replicas: {{FLINK_TASKMANAGER_REPLICAS}}
+        replicas: {{ .Params.FLINK_TASKMANAGER_REPLICAS}}
         template:
           metadata:
             labels:
@@ -71,14 +71,14 @@ spec:
                 name: query
               env:
               - name: JOB_MANAGER_RPC_ADDRESS
-                value: {{NAME}}-jobmanager 
+                value: {{ .Name }}-jobmanager
     jobmanager-deployment.yaml: |
       apiVersion: extensions/v1beta1
       kind: Deployment
       metadata:
         name: jobmanager
       spec:
-        replicas: {{FLINK_JOBMANAGER_REPLICAS}}
+        replicas: {{ .Params.FLINK_JOBMANAGER_REPLICAS }}
         template:
           metadata:
             labels:
@@ -101,7 +101,7 @@ spec:
                 name: ui
               env:
               - name: JOB_MANAGER_RPC_ADDRESS
-                value: {{NAME}}-jobmanager
+                value: {{ .Name }}-jobmanager
   tasks:
     jobmanager:
       resources:

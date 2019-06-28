@@ -1,0 +1,8 @@
+apiVersion: kudo.k8s.io/v1alpha1
+kind: TestSuite
+crdDir: ./config/crds/
+manifestsDir: ./config/samples/test-operator/
+testDirs:
+- ./pkg/test/test_data/
+startKUDO: true
+startControlPlane: true

@@ -23,9 +23,9 @@ Created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc)
 
 ## Summary
 
-In order to develop a new framework using KUDO, you always need to create several `Plans` (`deploy`, `update`, `upgrade`, ...) and for each plan to create several `Phases`, `Steps` and `Tasks`.
+In order to develop a new operator using KUDO, you always need to create several `Plans` (`deploy`, `update`, `upgrade`, ...) and for each plan to create several `Phases`, `Steps` and `Tasks`.
 
-Also, any Framework will have a `Task` in the `deploy` plan to create similar Kubernetes objects (`StatefulSets`, `Services`, ...).
+Also, any Operator will have a `Task` in the `deploy` plan to create similar Kubernetes objects (`StatefulSets`, `Services`, ...).
 
 A Skeleton generator could create `yaml` templates with the common `Plans`, `Phases`, `Steps` and `Tasks`.
 
@@ -35,6 +35,6 @@ With the new proposed approach based on dynamic CRDs, these elements will be def
 
 ## Motivation
 
-Having a Skeleton generator would help people getting started faster when they want to develop a new KUDO framework.
+Having a Skeleton generator would help people getting started faster when they want to develop a new KUDO operator.
 
-It would also make the framework created using this generator more readable as they would follow a naming convention for the different objects (`StatefulSets`, `Services`, ...).
+It would also make the operator created using this generator more readable as they would follow a naming convention for the different objects (`StatefulSets`, `Services`, ...).

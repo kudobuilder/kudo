@@ -29,25 +29,23 @@ spec:
         spec:
           properties:
             dependencies:
-              description: Dependency references specific
               items:
                 properties:
                   referenceName:
-                    description: Name specifies the name of the dependency.  Referenced
-                      via this in defaults.config
+                    description: Name specifies the name of the dependency. Referenced
+                      via defaults.config.
                     type: string
                   version:
                     description: 'Version captures the requirements for what versions
-                      of the above object are allowed Example: ^3.1.4'
+                      of the above object are allowed.  Example: ^3.1.4'
                     type: string
                 required:
                 - referenceName
                 - version
                 type: object
               type: array
-            frameworkVersion:
-              description: Framework specifies a reference to a specific Framework
-                object
+            operatorVersion:
+              description: Operator specifies a reference to a specific Operator object.
               type: object
             parameters:
               type: object

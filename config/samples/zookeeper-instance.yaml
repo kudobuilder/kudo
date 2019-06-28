@@ -3,14 +3,14 @@ kind: Instance
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-    framework: zookeeper
+    operator: zookeeper
   name: zk
 spec:
-  frameworkVersion:
+  operatorVersion:
     name: zookeeper-1.0
     namespace: default
-    type: FrameworkVersions
+    type: OperatorVersions
   # Add fields here
   name: "zk"
   parameters:
-    ZOOKEEPER_CPUS: "0.3"
+    cpus: "0.3"

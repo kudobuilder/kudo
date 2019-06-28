@@ -7,7 +7,6 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/vars"
 	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -18,11 +17,11 @@ type Client struct {
 	clientset versioned.Interface
 }
 
-// NewKudoClient creates new KUDO Client
-func NewKudoClient() (*Client, error) {
+// NewClient creates new KUDO Client
+func NewClient(namespace, kubeConfigPath string) (*Client, error) {
 
 	// use the current context in kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", vars.KubeConfigPath)
+	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -36,19 +35,19 @@ func NewKudoClient() (*Client, error) {
 		return nil, err
 	}
 
-	_, err = kudoClientset.KudoV1alpha1().Frameworks(vars.Namespace).List(v1.ListOptions{})
+	_, err = kudoClientset.KudoV1alpha1().Operators(namespace).List(v1.ListOptions{})
 	if err != nil {
-		return nil, errors.WithMessage(err, "frameworks")
+		return nil, errors.WithMessage(err, "operators")
 	}
-	_, err = kudoClientset.KudoV1alpha1().FrameworkVersions(vars.Namespace).List(v1.ListOptions{})
+	_, err = kudoClientset.KudoV1alpha1().OperatorVersions(namespace).List(v1.ListOptions{})
 	if err != nil {
-		return nil, errors.WithMessage(err, "frameworkversions")
+		return nil, errors.WithMessage(err, "operatorversions")
 	}
-	_, err = kudoClientset.KudoV1alpha1().Instances(vars.Namespace).List(v1.ListOptions{})
+	_, err = kudoClientset.KudoV1alpha1().Instances(namespace).List(v1.ListOptions{})
 	if err != nil {
 		return nil, errors.WithMessage(err, "instances")
 	}
-	_, err = kudoClientset.KudoV1alpha1().PlanExecutions(vars.Namespace).List(v1.ListOptions{})
+	_, err = kudoClientset.KudoV1alpha1().PlanExecutions(namespace).List(v1.ListOptions{})
 	if err != nil {
 		return nil, errors.WithMessage(err, "planexecutions")
 	}
@@ -59,40 +58,40 @@ func NewKudoClient() (*Client, error) {
 }
 
 // CRDsInstalled checks for essential CRDs of KUDO to be installed
-func (c *Client) CRDsInstalled() error {
-	_, err := c.clientset.KudoV1alpha1().Frameworks(vars.Namespace).List(v1.ListOptions{})
+func (c *Client) CRDsInstalled(namespace string) error {
+	_, err := c.clientset.KudoV1alpha1().Operators(namespace).List(v1.ListOptions{})
 	if err != nil {
-		return errors.WithMessage(err, "frameworks")
+		return errors.WithMessage(err, "operators")
 	}
-	_, err = c.clientset.KudoV1alpha1().FrameworkVersions(vars.Namespace).List(v1.ListOptions{})
+	_, err = c.clientset.KudoV1alpha1().OperatorVersions(namespace).List(v1.ListOptions{})
 	if err != nil {
-		return errors.WithMessage(err, "frameworkversions")
+		return errors.WithMessage(err, "operatorversions")
 	}
-	_, err = c.clientset.KudoV1alpha1().Instances(vars.Namespace).List(v1.ListOptions{})
+	_, err = c.clientset.KudoV1alpha1().Instances(namespace).List(v1.ListOptions{})
 	if err != nil {
 		return errors.WithMessage(err, "instances")
 	}
-	_, err = c.clientset.KudoV1alpha1().PlanExecutions(vars.Namespace).List(v1.ListOptions{})
+	_, err = c.clientset.KudoV1alpha1().PlanExecutions(namespace).List(v1.ListOptions{})
 	if err != nil {
 		return errors.WithMessage(err, "planexecutions")
 	}
 	return nil
 }
 
-// FrameworkExistsInCluster checks if a given Framework object is installed on the current k8s cluster
-func (c *Client) FrameworkExistsInCluster(name string) bool {
-	framework, err := c.clientset.KudoV1alpha1().Frameworks(vars.Namespace).Get(name, v1.GetOptions{})
+// OperatorExistsInCluster checks if a given Operator object is installed on the current k8s cluster
+func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
+	operator, err := c.clientset.KudoV1alpha1().Operators(namespace).Get(name, v1.GetOptions{})
 	if err != nil {
 		return false
 	}
-	fmt.Printf("framework.kudo.k8s.io/%s unchanged\n", framework.Name)
+	fmt.Printf("operator.kudo.k8s.io/%s unchanged\n", operator.Name)
 	return true
 }
 
-// AnyFrameworkVersionExistsInCluster checks if any FrameworkVersion object matches to the given Framework name
+// AnyOperatorVersionExistsInCluster checks if any OperatorVersion object matches to the given Operator name
 // in the cluster
-func (c *Client) AnyFrameworkVersionExistsInCluster(framework string) bool {
-	fv, err := c.clientset.KudoV1alpha1().FrameworkVersions(vars.Namespace).List(v1.ListOptions{})
+func (c *Client) AnyOperatorVersionExistsInCluster(operator string, namespace string) bool {
+	fv, err := c.clientset.KudoV1alpha1().OperatorVersions(namespace).List(v1.ListOptions{})
 	if err != nil {
 		return false
 	}
@@ -102,23 +101,23 @@ func (c *Client) AnyFrameworkVersionExistsInCluster(framework string) bool {
 
 	var i int
 	for _, v := range fv.Items {
-		if strings.HasPrefix(v.Name, framework) {
+		if strings.HasPrefix(v.Name, operator) {
 			i++
 		}
 	}
 	if i < 1 {
 		return false
 	}
-	fmt.Printf("frameworkversion.kudo.k8s.io/%s unchanged\n", framework)
+	fmt.Printf("operatorversion.kudo.k8s.io/%s unchanged\n", operator)
 	return true
 }
 
-// AnyInstanceExistsInCluster checks if any FrameworkVersion object matches to the given Framework name
+// InstanceExistsInCluster checks if any OperatorVersion object matches to the given Operator name
 // in the cluster.
 // An Instance has two identifiers:
-// 		1) Spec.FrameworkVersion.Name
+// 		1) Spec.OperatorVersion.Name
 // 		spec:
-//    		frameworkVersion:
+//    		operatorVersion:
 //      		name: kafka-2.11-2.4.0
 // 		2) LabelSelector
 // 		metadata:
@@ -126,38 +125,37 @@ func (c *Client) AnyFrameworkVersionExistsInCluster(framework string) bool {
 //    		generation: 1
 //    		labels:
 //      		controller-tools.k8s.io: "1.0"
-//      		framework: kafka
-// This function also just returns true if the Instance matches a specific FrameworkVersion of a Framework
-func (c *Client) AnyInstanceExistsInCluster(name, version string) bool {
-	instances, err := c.clientset.KudoV1alpha1().Instances(vars.Namespace).List(v1.ListOptions{LabelSelector: "framework=" + name})
+//      		operator: kafka
+// This function also just returns true if the Instance matches a specific OperatorVersion of a Operator
+func (c *Client) InstanceExistsInCluster(name, namespace, version, instanceName string) (bool, error) {
+	instances, err := c.clientset.KudoV1alpha1().Instances(namespace).List(v1.ListOptions{LabelSelector: "operator=" + name})
 	if err != nil {
-		return false
+		return false, err
 	}
 	if len(instances.Items) < 1 {
-		return false
+		return false, nil
 	}
 
-	// Todo: check function that actual checks for the FrameworkVersion named e.g. "test-1.0" to exist
+	// TODO: check function that actual checks for the OperatorVersion named e.g. "test-1.0" to exist
 	var i int
 	for _, v := range instances.Items {
-		if v.Spec.FrameworkVersion.Name == name+"-"+version {
+		if v.Spec.OperatorVersion.Name == name+"-"+version && v.ObjectMeta.Name == instanceName {
 			i++
 		}
 	}
 
-	// This is when we don't find the version we are looking for
-	if i < 1 {
-		return false
+	// No instance exist with this name and FV exists
+	if i == 0 {
+		return false, nil
 	}
-	fmt.Printf("instance.kudo.k8s.io/%s unchanged\n", name)
-	return true
+	return true, nil
 }
 
-// FrameworkVersionInClusterOutOfSync checks if any FrameworkVersion object matches a given Framework name and
-// if not it returns false. False means that for the given Framework the most recent official FrameworkVersion
+// OperatorVersionInClusterOutOfSync checks if any OperatorVersion object matches a given Operator name and
+// if not it returns false. False means that for the given Operator the most recent official OperatorVersion
 // is not installed in the cluster or an error occurred.
-func (c *Client) FrameworkVersionInClusterOutOfSync(framework, mostRecentVersion string) bool {
-	fv, err := c.clientset.KudoV1alpha1().FrameworkVersions(vars.Namespace).List(v1.ListOptions{})
+func (c *Client) OperatorVersionInClusterOutOfSync(operator, mostRecentVersion, namespace string) bool {
+	fv, err := c.clientset.KudoV1alpha1().OperatorVersions(namespace).List(v1.ListOptions{})
 	if err != nil {
 		return false
 	}
@@ -167,7 +165,7 @@ func (c *Client) FrameworkVersionInClusterOutOfSync(framework, mostRecentVersion
 
 	var i int
 	for _, v := range fv.Items {
-		if strings.HasPrefix(v.Name, framework) {
+		if strings.HasPrefix(v.Name, operator) {
 			if v.Spec.Version == mostRecentVersion {
 				i++
 			}
@@ -176,27 +174,27 @@ func (c *Client) FrameworkVersionInClusterOutOfSync(framework, mostRecentVersion
 	return !(i < 1)
 }
 
-// InstallFrameworkObjToCluster expects a valid Framework obj to install
-func (c *Client) InstallFrameworkObjToCluster(obj *v1alpha1.Framework) (*v1alpha1.Framework, error) {
-	createdObj, err := c.clientset.KudoV1alpha1().Frameworks(vars.Namespace).Create(obj)
+// InstallOperatorObjToCluster expects a valid Operator obj to install
+func (c *Client) InstallOperatorObjToCluster(obj *v1alpha1.Operator, namespace string) (*v1alpha1.Operator, error) {
+	createdObj, err := c.clientset.KudoV1alpha1().Operators(namespace).Create(obj)
 	if err != nil {
-		return nil, errors.WithMessage(err, "installing Framework")
+		return nil, errors.WithMessage(err, "installing Operator")
 	}
 	return createdObj, nil
 }
 
-// InstallFrameworkVersionObjToCluster expects a valid Framework obj to install
-func (c *Client) InstallFrameworkVersionObjToCluster(obj *v1alpha1.FrameworkVersion) (*v1alpha1.FrameworkVersion, error) {
-	createdObj, err := c.clientset.KudoV1alpha1().FrameworkVersions(vars.Namespace).Create(obj)
+// InstallOperatorVersionObjToCluster expects a valid Operator obj to install
+func (c *Client) InstallOperatorVersionObjToCluster(obj *v1alpha1.OperatorVersion, namespace string) (*v1alpha1.OperatorVersion, error) {
+	createdObj, err := c.clientset.KudoV1alpha1().OperatorVersions(namespace).Create(obj)
 	if err != nil {
-		return nil, errors.WithMessage(err, "installing FrameworkVersion")
+		return nil, errors.WithMessage(err, "installing OperatorVersion")
 	}
 	return createdObj, nil
 }
 
 // InstallInstanceObjToCluster expects a valid Instance obj to install
-func (c *Client) InstallInstanceObjToCluster(obj *v1alpha1.Instance) (*v1alpha1.Instance, error) {
-	createdObj, err := c.clientset.KudoV1alpha1().Instances(vars.Namespace).Create(obj)
+func (c *Client) InstallInstanceObjToCluster(obj *v1alpha1.Instance, namespace string) (*v1alpha1.Instance, error) {
+	createdObj, err := c.clientset.KudoV1alpha1().Instances(namespace).Create(obj)
 	if err != nil {
 		return nil, errors.WithMessage(err, "installing Instance")
 	}

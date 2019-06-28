@@ -20,24 +20,20 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// InstanceSpec defines the desired state of Instance
+// InstanceSpec defines the desired state of Instance.
 type InstanceSpec struct {
-	//Framework specifies a reference to a specific Framework object
-	FrameworkVersion corev1.ObjectReference `json:"frameworkVersion,omitempty"`
-	//Dependency references specific
-	Dependencies []FrameworkDependency `json:"dependencies,omitempty"`
-	Parameters   map[string]string     `json:"parameters,omitempty"`
+	// Operator specifies a reference to a specific Operator object.
+	OperatorVersion corev1.ObjectReference `json:"operatorVersion,omitempty"`
+
+	Dependencies []OperatorDependency `json:"dependencies,omitempty"`
+	Parameters   map[string]string    `json:"parameters,omitempty"`
 }
 
 // InstanceStatus defines the observed state of Instance
 type InstanceStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	//TODO turn into struct
+	// TODO turn into struct
 	ActivePlan corev1.ObjectReference `json:"activePlan,omitempty"`
 	Status     PhaseState             `json:"status,omitempty"`
-	// PlanExecutionStatus PlanExecutionStatus `json:"status,omitempty"`
 }
 
 /*
@@ -62,29 +58,28 @@ deploy (serial strategy) (IN_PROGRESS)
 └─ public-node (dependency strategy) (COMPLETE)
 */
 
-//PhaseState captures the state of the rollout
+// PhaseState captures the state of the rollout.
 type PhaseState string
 
-//PhaseStateInProgress actively deploying, but not yet healthy
+// PhaseStateInProgress actively deploying, but not yet healthy.
 const PhaseStateInProgress PhaseState = "IN_PROGRESS"
 
-//PhaseStatePending Not ready to deploy because dependent phases/steps not
-// healthy
+// PhaseStatePending Not ready to deploy because dependent phases/steps not healthy.
 const PhaseStatePending PhaseState = "PENDING"
 
-//PhaseStateComplete deployed and healthy
+// PhaseStateComplete deployed and healthy.
 const PhaseStateComplete PhaseState = "COMPLETE"
 
-//PhaseStateError there was an error deploying the application
+// PhaseStateError there was an error deploying the application.
 const PhaseStateError PhaseState = "ERROR"
 
-//PhaseStateSuspend Spec was triggered to stop this plan execution
+// PhaseStateSuspend Spec was triggered to stop this plan execution.
 const PhaseStateSuspend PhaseState = "SUSPEND"
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Instance is the Schema for the instances API
+// Instance is the Schema for the instances API.
 // +k8s:openapi-gen=true
 type Instance struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -94,9 +89,17 @@ type Instance struct {
 	Status InstanceStatus `json:"status,omitempty"`
 }
 
+// GetOperatorVersionNamespace returns the namespace of the OperatorVersion that the Instance references.
+func (i *Instance) GetOperatorVersionNamespace() string {
+	if i.Spec.OperatorVersion.Namespace == "" {
+		return i.ObjectMeta.Namespace
+	}
+	return i.Spec.OperatorVersion.Namespace
+}
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// InstanceList contains a list of Instance
+// InstanceList contains a list of Instance.
 type InstanceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

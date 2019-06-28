@@ -1,13 +1,13 @@
 apiVersion: kudo.k8s.io/v1alpha1
 apiVersion: kudo.k8s.io/v1alpha1
-kind: Framework
+kind: Operator
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: canary-app
 ---
 apiVersion: kudo.k8s.io/v1alpha1
-kind: FrameworkVersion
+kind: OperatorVersion
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
@@ -16,9 +16,9 @@ metadata:
 spec:
   version: "1.0.0"
   connectionString: ""
-  framework:
+  operator:
     name: canary-app
-    kind: Framework
+    kind: Operator
   templates:
       #change deployment name.
       # change image tag to canary
@@ -27,12 +27,12 @@ spec:
       apiVersion: apps/v1beta2
       kind: Deployment
       metadata:
-        name: {{NAME}}
+        name: {{ .Name }}
         labels:
           release: stable
           app:  appinfo
       spec:
-        replicas: {{REPLICAS}}
+        replicas: {{ .Params.Replicas }}
         selector:
           matchLabels:
             app: appinfo
@@ -46,7 +46,7 @@ spec:
           spec:
             containers:
             - name: appinfo-containers
-              image: runyonsolutions/appinfo:{{TAG}}
+              image: runyonsolutions/appinfo:{{ .Params.Tag }}
               imagePullPolicy: Always
               ports:
               - containerPort: 8080
@@ -88,16 +88,13 @@ spec:
       resources:
       - service.yaml
       - deployment.yaml
-    deployment:
-      resources:
-      - deployment.yaml
   parameters:
-  - name: TAG
+  - name: Tag
     description: "Docker image tag for runyonsolutions/appinfo"
     default: "master"
     required: false
     displayName: "Image Tag"
-  - name: REPLICAS
+  - name: Replicas
     description: "Replicas for application"
     default: "3"
     required: false
@@ -125,13 +122,13 @@ kind: Instance
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-    framework: canary
+    operator: canary
   name: bird
 spec:
-  frameworkVersion:
+  operatorVersion:
     name: canary-v1
     namespace: default
-    type: FrameworkVersion
+    type: OperatorVersion
   # Add fields here
   parameters:
-    TAG: master
+    Tag: master
