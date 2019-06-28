@@ -16,6 +16,8 @@ var (
 
 		# Install the most recent Flink package to your cluster.
 		kubectl kudo install flink
+		
+		*Note*: should you have a local  "flink" folder in the current directory it will take precedence over the remote repository.
 
 		# Install framework from a local filesystem
 		kubectl kudo install pkg/kudoctl/util/repo/testdata/zk
