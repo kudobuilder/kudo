@@ -28,7 +28,8 @@ type Options struct {
 
 // DefaultOptions initializes the install command options to its defaults
 var DefaultOptions = &Options{
-	Namespace: "default",
+	Namespace:       "default",
+	AllDependencies: false,
 }
 
 // Run returns the errors associated with cmd env
@@ -165,6 +166,7 @@ func installOperator(operatorArgument string, isDependencyInstall bool, reposito
 	}
 
 	// Dependencies of the particular OperatorVersion
+	// TODO (@gerred): Remove dead code branch
 	if options.AllDependencies {
 		dependencyOperators, err := repo.GetOperatorVersionDependencies(crds.OperatorVersion)
 		if err != nil {
