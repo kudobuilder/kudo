@@ -28,7 +28,8 @@ type Options struct {
 
 // DefaultOptions initializes the install command options to its defaults
 var DefaultOptions = &Options{
-	Namespace: "default",
+	Namespace:       "default",
+	AllDependencies: false,
 }
 
 // Run returns the errors associated with cmd env
@@ -127,9 +128,9 @@ func installOperator(operatorArgument string, isDependencyInstall bool, reposito
 	// Operator part
 
 	// Check if Operator exists
-	OperatorName := crds.Operator.ObjectMeta.Name
+	operatorName := crds.Operator.ObjectMeta.Name
 	if !kc.OperatorExistsInCluster(crds.Operator.ObjectMeta.Name, options.Namespace) {
-		if err := installSingleOperatorToCluster(OperatorName, options.Namespace, crds.Operator, kc); err != nil {
+		if err := installSingleOperatorToCluster(operatorName, options.Namespace, crds.Operator, kc); err != nil {
 			return errors.Wrap(err, "installing single Operator")
 		}
 	}
@@ -139,32 +140,33 @@ func installOperator(operatorArgument string, isDependencyInstall bool, reposito
 	// Check if AnyOperatorVersion for Operator exists
 	if !kc.AnyOperatorVersionExistsInCluster(crds.Operator.ObjectMeta.Name, options.Namespace) {
 		// OperatorVersion CRD for Operator does not exist
-		if err := installSingleOperatorVersionToCluster(OperatorName, options.Namespace, kc, crds.OperatorVersion); err != nil {
-			return errors.Wrapf(err, "installing OperatorVersion CRD for operator: %s", OperatorName)
+		if err := installSingleOperatorVersionToCluster(operatorName, options.Namespace, kc, crds.OperatorVersion); err != nil {
+			return errors.Wrapf(err, "installing OperatorVersion CRD for operator: %s", operatorName)
 		}
 	}
 
 	// Check if OperatorVersion is out of sync with official OperatorVersion for this Operator
-	if !kc.OperatorVersionInClusterOutOfSync(OperatorName, crds.OperatorVersion.Spec.Version, options.Namespace) {
+	if !kc.OperatorVersionInClusterOutOfSync(operatorName, crds.OperatorVersion.Spec.Version, options.Namespace) {
 		// This happens when the given OperatorVersion is not existing. E.g.
 		// when a version has been installed that is not part of the official kudobuilder/operators repo.
 		if !options.AutoApprove {
 			fmt.Printf("No official OperatorVersion has been found for \"%s\". "+
-				"Do you want to install one? (Yes/no) ", OperatorName)
+				"Do you want to install one? (Yes/no) ", operatorName)
 			if helpers.AskForConfirmation() {
-				if err := installSingleOperatorVersionToCluster(OperatorName, options.Namespace, kc, crds.OperatorVersion); err != nil {
-					return errors.Wrapf(err, "installing OperatorVersion CRD for operator %s", OperatorName)
+				if err := installSingleOperatorVersionToCluster(operatorName, options.Namespace, kc, crds.OperatorVersion); err != nil {
+					return errors.Wrapf(err, "installing OperatorVersion CRD for operator %s", operatorName)
 				}
 			}
 		} else {
-			if err := installSingleOperatorVersionToCluster(OperatorName, options.Namespace, kc, crds.OperatorVersion); err != nil {
-				return errors.Wrapf(err, "installing OperatorVersion CRD for operator %s", OperatorName)
+			if err := installSingleOperatorVersionToCluster(operatorName, options.Namespace, kc, crds.OperatorVersion); err != nil {
+				return errors.Wrapf(err, "installing OperatorVersion CRD for operator %s", operatorName)
 			}
 		}
 
 	}
 
 	// Dependencies of the particular OperatorVersion
+	// TODO (@gerred): Remove dead code branch
 	if options.AllDependencies {
 		dependencyOperators, err := repo.GetOperatorVersionDependencies(crds.OperatorVersion)
 		if err != nil {
@@ -198,7 +200,7 @@ func installOperator(operatorArgument string, isDependencyInstall bool, reposito
 	// Check if Instance exists in cluster
 	// It won't create the Instance if any in combination with given Operator Name, OperatorVersion and Instance OperatorName exists
 	instanceName := crds.Instance.ObjectMeta.Name
-	instanceExists, err := kc.InstanceExistsInCluster(OperatorName, options.Namespace, crds.OperatorVersion.Spec.Version, instanceName)
+	instanceExists, err := kc.InstanceExistsInCluster(operatorName, options.Namespace, crds.OperatorVersion.Spec.Version, instanceName)
 	if err != nil {
 		return errors.Wrapf(err, "verifying the instance does not already exist")
 	}
@@ -207,24 +209,25 @@ func installOperator(operatorArgument string, isDependencyInstall bool, reposito
 		// This happens when the given OperatorVersion is not existing. E.g.
 		// when a version has been installed that is not part of the official kudobuilder/operators repo.
 		if !options.AutoApprove {
-			fmt.Printf("No Instance tied to this \"%s\" version has been found. "+
-				"Do you want to create one? (Yes/no) ", OperatorName)
+			fmt.Printf("No instance named '%s' tied to this '%s' version has been found. "+
+				"Do you want to create one? (Yes/no) ", instanceName, operatorName)
 			if helpers.AskForConfirmation() {
 				// If Instance is a dependency we need to make sure installSingleInstanceToCluster is aware of it.
 				// By having the previous string set we can make this distinction.
-				if err := installSingleInstanceToCluster(OperatorName, crds.Instance, kc, options); err != nil {
-					return errors.Wrap(err, "installing single Instance")
+				if err := installSingleInstanceToCluster(operatorName, crds.Instance, kc, options); err != nil {
+					return errors.Wrap(err, "installing single instance")
 				}
 			}
 		} else {
-			if err := installSingleInstanceToCluster(OperatorName, crds.Instance, kc, options); err != nil {
-				return errors.Wrap(err, "installing single Instance")
+			if err := installSingleInstanceToCluster(operatorName, crds.Instance, kc, options); err != nil {
+				return errors.Wrap(err, "installing single instance")
+
 			}
 		}
 
 	} else {
-		return fmt.Errorf("can not install Instance %s of operator %s-%s because instance of that name already exists in namespace %s",
-			instanceName, OperatorName, crds.OperatorVersion.Spec.Version, options.Namespace)
+		return fmt.Errorf("can not install instance '%s' of operator '%s-%s' because instance of that name already exists in namespace %s",
+			instanceName, operatorName, crds.OperatorVersion.Spec.Version, options.Namespace)
 	}
 	return nil
 }

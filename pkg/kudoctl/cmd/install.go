@@ -11,8 +11,19 @@ import (
 
 var (
 	installExample = `
+		The install argument must be a name of the package in the repository, a path to package in *.tar.gz format,
+		or a path to an unpacked package directory.
+
 		# Install the most recent Flink package to your cluster.
 		kubectl kudo install flink
+		
+		*Note*: should you have a local  "flink" folder in the current directory it will take precedence over the remote repository.
+
+		# Install framework from a local filesystem
+		kubectl kudo install pkg/kudoctl/util/repo/testdata/zk
+
+		# Install framework from tarball on a local filesystem
+		kubectl kudo install pkg/kudoctl/util/repo/testdata/zk.tar.gz
 
 		# Install the Kafka package with all of its dependencies to your cluster.
 		kubectl kudo install kafka --all-dependencies
@@ -69,7 +80,7 @@ func newInstallCmd() *cobra.Command {
 	installCmd := &cobra.Command{
 		Use:     "install <name>",
 		Short:   "-> Install an official KUDO package.",
-		Long:    `Install a KUDO package from the official GitHub repo.`,
+		Long:    `Install a KUDO package from local filesystem or the official repo.`,
 		Example: installExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Prior to command execution we parse and validate passed parameters
@@ -84,7 +95,6 @@ func newInstallCmd() *cobra.Command {
 		SilenceUsage: true,
 	}
 
-	installCmd.Flags().BoolVar(&options.AllDependencies, "all-dependencies", false, "Installs all dependency packages. (default \"false\")")
 	installCmd.Flags().BoolVar(&options.AutoApprove, "auto-approve", false, "Skip interactive approval when existing version found. (default \"false\")")
 	installCmd.Flags().StringVar(&options.KubeConfigPath, "kubeconfig", "", "The file path to Kubernetes configuration file. (default \"$HOME/.kube/config\")")
 	installCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name. (default to Operator name)")
