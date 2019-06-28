@@ -139,7 +139,7 @@ $ kubectl kudo get instances
   zk        4d
 ```
 
-### Get the Status of an instance
+### Get the Status of an Instance
 
 Now that we have a list of available instances, we can get the current status of all plans for one of them:
 
