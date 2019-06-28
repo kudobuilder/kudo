@@ -37,7 +37,7 @@ These package files are group together in a folder or subfolder or can be tarred
 
 ### Package Installation Options
 
-Introduced with this released are 2 ways to install an operator to KUDO. The first is designed for operator developers which is to install from the local filesystem. This can be either a folder with the operator package files or a tarball of those files.
+Introduced with this release are 2 ways to install an operator to KUDO. The first is designed for operator developers which is to install from the local filesystem. This can be either a folder with the operator package files or a tarball of those files.
 
 `kubectl kudo install ./kafka` or `kubectl kudo install kafka.tgz`
 
