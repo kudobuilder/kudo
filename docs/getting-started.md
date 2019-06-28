@@ -31,6 +31,6 @@ If you plan on developing and testing KUDO locally via Minikube, you'll need to 
 minikube start --cpus=4 --memory=8192 --disk-size=40g
 ```
 
-## Deploy your first Application
+## Deploy your first Operator
 
 Follow the instructions in the [Apache Kafka example](/docs/examples/apache-kafka/) to deploy a Kafka cluster along with its dependency Zookeeper.
