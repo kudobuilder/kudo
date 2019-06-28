@@ -64,7 +64,6 @@ Usage:
   kubectl-kudo install <name> [flags]
 
 Flags:
-      --all-dependencies          Installs all dependency packages. (default "false")
       --auto-approve              Skip interactive approval when existing version found. (default "false")
   -h, --help                      help for install
       --instance string           The instance name. (default to Operator name)
@@ -78,35 +77,22 @@ Flags:
 
 ### Install a Package
 
-There are two options when installing a package. When developing, you are encouraged to use `kubectl apply -f *.yaml`
-in case you have `operator.yaml`, `operatorversion.yaml` and `instance.yaml` locally present. For normal operations,
-it is recommended to use the official packages provided through the [kudobuilder/operators](https://github.com/kudobuilder/operators) repository.
-The `KUDO` plugin for `kubectl` offers a convenient way of installing those files via command line.
-
-#### Install just the KUDO Package without Dependencies
-
-This is the default behavior and only installs the given package.
+There are two options how to install a package. For development you want to install packages from your local filesystem.
 
 ```bash
-$ kubectl kudo install kafka
-operator.kudo.k8s.io/v1alpha1/kafka created
-operatorversion.kudo.k8s.io/v1alpha1/kafka-2.11-2.4.0 created
+kubectl kudo install pkg/kudoctl/util/repo/testdata/zk
 ```
 
-#### Install a KUDO Package with Dependencies
-
-Sometimes you want to automatically install all dependencies a package comes with. This behavior is enabled via
-the flag `--all-dependencies`, which will instruct KUDO to install all dependencies of a package as well.
+For normal operations it is recommended to use the official packages provided through the [kudobuilder/operators](https://github.com/kudobuilder/operators) repository.
+To install official kafka package you have to do the following:
 
 ```bash
-$ kubectl kudo install kafka --all-dependencies
-operator.kudo.k8s.io/v1alpha1/kafka created
-operatorversion.kudo.k8s.io/v1alpha1/kafka-2.11-2.4.0 created
-operator.kudo.k8s.io/v1alpha1/zookeeper created
-operatorversion.kudo.k8s.io/v1alpha1/zookeeper-1.0 created
+kubectl kudo install kafka
 ```
 
-#### Install a Package with InstanceName & Parameters
+Both of these options will install new instance of that operator into your cluster. By default the instance name is generated.
+
+#### Install a package overriding instance name and parameters
 
 Use `--instance` and `--parameter`/`-p` for setting an Instance name and Parameters, respectively:
 
@@ -114,12 +100,13 @@ Use `--instance` and `--parameter`/`-p` for setting an Instance name and Paramet
 $ kubectl kudo install kafka --instance=my-kafka-name --parameter KAFKA_ZOOKEEPER_URI=zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181 --parameter KAFKA_ZOOKEEPER_PATH=/small -p BROKERS_COUNTER=3
 operator.kudo.k8s.io/kafka unchanged
 operatorversion.kudo.k8s.io/kafka unchanged
-No Instance tied to this "kafka" version has been found. Do you want to create one? (Yes/no)
+No instance named 'my-kafka-name' tied to this "kafka" version has been found. Do you want to create one? (Yes/no)
 instance.kudo.k8s.io/v1alpha1/my-kafka-name created
 $ kubectl get instances
 NAME            AGE
 my-kafka-name   6s
 ```
+
 
 ### Get Instances
 
@@ -145,14 +132,14 @@ This maps to the `kubectl` command:
 Example:
 
 ```bash
-$ kubectl kudo instances
+$ kubectl kudo get instances
   NAME      CREATED AT
   small     4d
   up        3d
   zk        4d
 ```
 
-### Get the Status of an Instance
+### Get the Status of an instance
 
 Now that we have a list of available instances, we can get the current status of all plans for one of them:
 
