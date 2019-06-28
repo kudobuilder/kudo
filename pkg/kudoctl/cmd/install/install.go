@@ -207,23 +207,23 @@ func installOperator(operatorArgument string, isDependencyInstall bool, reposito
 		// This happens when the given OperatorVersion is not existing. E.g.
 		// when a version has been installed that is not part of the official kudobuilder/operators repo.
 		if !options.AutoApprove {
-			fmt.Printf("No Instance tied to this \"%s\" version has been found. "+
-				"Do you want to create one? (Yes/no) ", OperatorName)
+			fmt.Printf("No instance named '%s' tied to this '%s' version has been found. "+
+				"Do you want to create one? (Yes/no) ", instanceName, OperatorName)
 			if helpers.AskForConfirmation() {
 				// If Instance is a dependency we need to make sure installSingleInstanceToCluster is aware of it.
 				// By having the previous string set we can make this distinction.
 				if err := installSingleInstanceToCluster(OperatorName, crds.Instance, kc, options); err != nil {
-					return errors.Wrap(err, "installing single Instance")
+					return errors.Wrap(err, "installing single instance")
 				}
 			}
 		} else {
 			if err := installSingleInstanceToCluster(OperatorName, crds.Instance, kc, options); err != nil {
-				return errors.Wrap(err, "installing single Instance")
+				return errors.Wrap(err, "installing single instance")
 			}
 		}
 
 	} else {
-		return fmt.Errorf("can not install Instance %s of operator %s-%s because instance of that name already exists in namespace %s",
+		return fmt.Errorf("can not install instance '%s' of operator '%s-%s' because instance of that name already exists in namespace %s",
 			instanceName, OperatorName, crds.OperatorVersion.Spec.Version, options.Namespace)
 	}
 	return nil
