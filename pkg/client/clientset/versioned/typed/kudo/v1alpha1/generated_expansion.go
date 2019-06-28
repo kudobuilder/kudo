@@ -16,10 +16,10 @@ limitations under the License.
 
 package v1alpha1
 
+type InstanceExpansion interface{}
+
 type OperatorExpansion interface{}
 
 type OperatorVersionExpansion interface{}
-
-type InstanceExpansion interface{}
 
 type PlanExecutionExpansion interface{}
