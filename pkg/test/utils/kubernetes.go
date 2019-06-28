@@ -401,6 +401,16 @@ func WithLabels(obj runtime.Object, labels map[string]string) runtime.Object {
 	return obj
 }
 
+// WithAnnotations sets the annotations on an object.
+func WithAnnotations(obj runtime.Object, annotations map[string]string) runtime.Object {
+	obj = obj.DeepCopyObject()
+
+	m, _ := meta.Accessor(obj)
+	m.SetAnnotations(annotations)
+
+	return obj
+}
+
 // FakeDiscoveryClient returns a fake discovery client that is populated with some types for use in
 // unit tests.
 func FakeDiscoveryClient() discovery.DiscoveryInterface {

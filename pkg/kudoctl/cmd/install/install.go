@@ -23,6 +23,7 @@ type Options struct {
 	Parameters      map[string]string
 	PackageVersion  string
 	KubeConfigPath  string
+	SkipInstance    bool
 }
 
 // DefaultOptions initializes the install command options to its defaults
@@ -190,6 +191,11 @@ func installOperator(operatorArgument string, isDependencyInstall bool, reposito
 
 	// First make sure that our instance object is up to date with overrides from commandline
 	applyInstanceOverrides(crds.Instance, options, isDependencyInstall)
+
+	// The user opted not to install the instance.
+	if options.SkipInstance {
+		return nil
+	}
 
 	// Check if Instance exists in cluster
 	// It won't create the Instance if any in combination with given Operator Name, OperatorVersion and Instance OperatorName exists
