@@ -26,16 +26,16 @@ type FakeKudoV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeKudoV1alpha1) Frameworks(namespace string) v1alpha1.FrameworkInterface {
-	return &FakeFrameworks{c, namespace}
-}
-
-func (c *FakeKudoV1alpha1) FrameworkVersions(namespace string) v1alpha1.FrameworkVersionInterface {
-	return &FakeFrameworkVersions{c, namespace}
-}
-
 func (c *FakeKudoV1alpha1) Instances(namespace string) v1alpha1.InstanceInterface {
 	return &FakeInstances{c, namespace}
+}
+
+func (c *FakeKudoV1alpha1) Operators(namespace string) v1alpha1.OperatorInterface {
+	return &FakeOperators{c, namespace}
+}
+
+func (c *FakeKudoV1alpha1) OperatorVersions(namespace string) v1alpha1.OperatorVersionInterface {
+	return &FakeOperatorVersions{c, namespace}
 }
 
 func (c *FakeKudoV1alpha1) PlanExecutions(namespace string) v1alpha1.PlanExecutionInterface {

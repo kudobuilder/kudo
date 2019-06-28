@@ -3,7 +3,7 @@ title: Announcing KUDO 0.2.0
 date: 2019-06-07
 ---
 
-We are proud to announce the release of KUDO v0.2.0! This release focuses on core infrastructure inside of KUDO as the format for developing frameworks and running operators stabilizes.
+We are proud to announce the release of KUDO v0.2.0! This release focuses on core infrastructure inside of KUDO as the format for developing operators and running operators stabilizes.
 
 ## What is KUDO?
 
@@ -17,7 +17,7 @@ KUDO has switched to Go Templating with Sprig for templates. All Mustache templa
 
 - `{{ .Name }}` - Name of the instance
 - `{{ .Namespace }}` - Namespace the instance is located in
-- `{{ .FrameworkName }}` - Name of the framework
+- `{{ .OperatorName }}` - Name of the operator
 - `{{ .PlanName }}` - Name of the plan being run
 - `{{ .PhaseName }}` - Name of the phase being run
 - `{{ .StepName }}` - Name of the step being run
@@ -25,7 +25,7 @@ KUDO has switched to Go Templating with Sprig for templates. All Mustache templa
 
 Additionally, all parameters are now nested under `{{ .Params }}` in templates. For example, the Username parameter would be available as `{{ .Params.Username }}`.
 
-KUDO has made the [Sprig](https://github.com/Masterminds/sprig) function library available in templates. This gives a wide range of functions available to framework developers. For safety, KUDO disables functions related to the environment and filesystem inside the manager container. In this release, this includes: `env`, `expandenv`, `base`, `dir`, `clean`, `ext`, `isAbs`.
+KUDO has made the [Sprig](https://github.com/Masterminds/sprig) function library available in templates. This gives a wide range of functions available to operator developers. For safety, KUDO disables functions related to the environment and filesystem inside the manager container. In this release, this includes: `env`, `expandenv`, `base`, `dir`, `clean`, `ext`, `isAbs`.
 
 Continued work will be done on this to move toward the format described in [KEP-9: Operator Toolkit](https://github.com/kudobuilder/kudo/blob/master/keps/0009-operator-toolkit.md).
 
@@ -64,6 +64,6 @@ To see the full changelog and the list of contributors who contribued to this re
 
 ## What's Next?
 
-Now that KUDO v0.2.0 has shipped, the team will begin planning and executing on v0.3.0. The focus of v0.3.0 is to stabilize the packaging format for framework developers, as well as framework extensions to provide KUDO's sequencing logic to formats including Helm Charts and [CNAB](https://cnab.io) bundles.
+Now that KUDO v0.2.0 has shipped, the team will begin planning and executing on v0.3.0. The focus of v0.3.0 is to stabilize the packaging format for operator developers, as well as operator extensions to provide KUDO's sequencing logic to formats including Helm Charts and [CNAB](https://cnab.io) bundles.
 
 [Get started](/docs/getting-started) with KUDO today. Our [community](/docs/community) is ready for feedback to make KUDO even better!

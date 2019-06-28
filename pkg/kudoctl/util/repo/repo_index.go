@@ -10,7 +10,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// IndexFile represents the index file in a framework repository
+// IndexFile represents the index file in a operator repository
 type IndexFile struct {
 	APIVersion string                    `json:"apiVersion"`
 	Entries    map[string]BundleVersions `json:"entries"`
@@ -20,7 +20,7 @@ type IndexFile struct {
 // Implements a sorter on Version.
 type BundleVersions []*BundleVersion
 
-// BundleVersion represents a framework entry in the IndexFile
+// BundleVersion represents a operator entry in the IndexFile
 type BundleVersion struct {
 	*Metadata
 	URLs    []string  `json:"urls"`
@@ -78,30 +78,30 @@ func parseIndexFile(data []byte) (*IndexFile, error) {
 	return i, nil
 }
 
-// GetByName returns framework of given name.
+// GetByName returns operator of given name.
 func (i IndexFile) GetByName(name string) (*BundleVersion, error) {
 	constraint, err := semver.NewConstraint("*")
 	if err != nil {
 		return nil, err
 	}
 
-	return i.getFramework(name, constraint)
+	return i.getOperator(name, constraint)
 }
 
-// GetByNameAndVersion returns the framework of given name and version.
+// GetByNameAndVersion returns the operator of given name and version.
 func (i IndexFile) GetByNameAndVersion(name, version string) (*BundleVersion, error) {
 	constraint, err := semver.NewConstraint(version)
 	if err != nil {
 		return nil, err
 	}
 
-	return i.getFramework(name, constraint)
+	return i.getOperator(name, constraint)
 }
 
-func (i IndexFile) getFramework(name string, versionConstraint *semver.Constraints) (*BundleVersion, error) {
+func (i IndexFile) getOperator(name string, versionConstraint *semver.Constraints) (*BundleVersion, error) {
 	vs, ok := i.Entries[name]
 	if !ok || len(vs) == 0 {
-		return nil, fmt.Errorf("no framework of given name %s and version %v found", name, versionConstraint)
+		return nil, fmt.Errorf("no operator of given name %s and version %v found", name, versionConstraint)
 	}
 
 	for _, ver := range vs {
@@ -114,5 +114,5 @@ func (i IndexFile) getFramework(name string, versionConstraint *semver.Constrain
 			return ver, nil
 		}
 	}
-	return nil, fmt.Errorf("no framework version found for %s-%v", name, versionConstraint)
+	return nil, fmt.Errorf("no operator version found for %s-%v", name, versionConstraint)
 }

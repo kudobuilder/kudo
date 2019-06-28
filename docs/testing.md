@@ -6,40 +6,41 @@ menu: docs
 
 # Testing
 
-KUDO uses a declarative integration testing harness for testing itself and Frameworks built on it. Test cases are written as plain Kubernetes resources and can be run against any Kubernetes cluster - allowing testing of Frameworks, KUDO, and any other Kubernetes resources or controllers.
+KUDO uses a declarative integration testing harness for testing itself and Operators built on it. Test cases are written as plain Kubernetes resources and can be run against any Kubernetes cluster - allowing testing of Operators, KUDO, and any other Kubernetes resources or controllers.
 
 ## Table of Contents
 
 * [Test harness usage](#test-harness-usage)
    * [Start a Kubernetes cluster with kind (optional)](#start-a-kubernetes-cluster-with-kind-optional)
-   * [Run the Framework tests](#run-the-framework-tests)
+   * [Run the Operator tests](#run-the-operator-tests)
 * [Writing test cases](#writing-test-cases)
    * [Test case directory structure](#test-case-directory-structure)
    * [Test steps](#test-steps)
      * [Test assertions](#test-assertions)
+       * [Listing objects](#listing-objects)
        * [Advanced test assertions](#advanced-test-assertions)
 * [Further Reading](#further-reading)
 
 ## Test harness usage
 
-The Framework test suite is written and run by Framework developers and CI to test that Frameworks work correctly.
+The Operator test suite is written and run by Operator developers and CI to test that Operators work correctly.
 
-First, clone the [Frameworks repository](https://github.com/kudobuilder/frameworks):
+First, clone the [Operators repository](https://github.com/kudobuilder/operators):
 
 ```
-git clone https://github.com/kudobuilder/frameworks.git
-cd frameworks
+git clone https://github.com/kudobuilder/operators.git
+cd operators
 ```
 
 Make sure that you have Go version 1.12 or greater and have Go modules enabled.
 
 #### Start a Kubernetes cluster with kind (optional)
 
-The Framework tests rely on a functioning Kubernetes cluster. As the test harness can run KUDO, it is not necessary to install KUDO prior to running the tests.
+The Operator tests rely on a functioning Kubernetes cluster. As the test harness can run KUDO, it is not necessary to install KUDO prior to running the tests.
 
 If you do not have a Kubernetes cluster to use for the tests, you can start one with [kind](https://github.com/kubernetes-sigs/kind):
 
-There is a Make target in the [Frameworks repository](https://github.com/kudobuilder/frameworks) that you can use to start it:
+There is a Make target in the [Operators repository](https://github.com/kudobuilder/operators) that you can use to start it:
 
 ```
 make create-cluster
@@ -48,28 +49,28 @@ export KUBECONFIG=$(bin/kind get kubeconfig-path)
 
 Now that the cluster is running, you can use it as a testing environment.
 
-#### Run the Framework tests
+#### Run the Operator tests
 
-To run the Framework test suite, run the following in the [Frameworks repository](https://github.com/kudobuilder/frameworks):
+To run the Operator test suite, run the following in the [Operators repository](https://github.com/kudobuilder/operators):
 
 ```
 make test
 ```
 
-Framework test suites are stored in the `tests` subdirectory of each [Framework](https://github.com/kudobuilder/frameworks/tree/master/repository), e.g.:
+Operator test suites are stored in the `tests` subdirectory of each [Operator](https://github.com/kudobuilder/operators/tree/master/repository), e.g.:
 
 ```
 ./repository/zookeeper/tests/
 ./repository/mysql/tests/
 ```
 
-Every `Framework` and `FrameworkVersion` is installed into the cluster by `make test` prior to running the test suite.
+Every `Operator` and `OperatorVersion` is installed into the cluster by `make test` prior to running the test suite.
 
 ## Writing test cases
 
 To write a test case:
 
-1. Create a directory for the test case. The directory should be created inside of the suite that the test case is a part of. For example, a Zookeeper Framework test case called `upgrade-test` would be created as `./repository/zookeeper/tests/upgrade-test/`.
+1. Create a directory for the test case. The directory should be created inside of the suite that the test case is a part of. For example, a Zookeeper Operator test case called `upgrade-test` would be created as `./repository/zookeeper/tests/upgrade-test/`.
 2. Define the Kubernetes resources to apply and states to assert on in sequential test steps.
 
 ### Test case directory structure
@@ -104,10 +105,10 @@ kind: Instance
 metadata:
   name: zk
 spec:
-  frameworkVersion:
+  operatorVersion:
     name: zookeeper-0.1.0
     namespace: default
-    type: FrameworkVersions
+    type: OperatorVersions
   name: "zk"
   parameters:
     cpus: "0.3"
@@ -148,6 +149,22 @@ status:
 
 This watches an `Instance` called `zk` to have its status set to `COMPLETE` and it expects a `StatefulSet` to also be created called `zk-zk` and it waits for all `Pods` in the `StatefulSet` to be ready.
 
+##### Listing objects
+
+If the object `name` is omitted from the object metadata, it is possible to list objects and verify that one of them matches the desired state. This can be useful, for example, to check the `Pods` created by a `Deployment`.
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: nginx
+status:
+  phase: Running
+```
+
+This would verify that a pod with the `app=nginx` label is running.
+
 ##### Advanced test assertions
 
 The test harness recognizes special `TestAssert` objects defined in the assert file. If present, they override default settings of the test assert.
@@ -164,6 +181,6 @@ Options:
 
 ## Further Reading
 
-* [Zookeeper Framework tests](https://github.com/kudobuilder/frameworks/tree/master/repository/zookeeper/tests)
-* Design documentation for test harness: [KEP-0008 - Framework Testing](https://github.com/kudobuilder/kudo/blob/master/keps/0008-framework-testing.md)
+* [Zookeeper Operator tests](https://github.com/kudobuilder/operators/tree/master/repository/zookeeper/tests)
+* Design documentation for test harness: [KEP-0008 - Operator Testing](https://github.com/kudobuilder/kudo/blob/master/keps/0008-operator-testing.md)
 * KUDO testing infrastructure and policies document: [KEP-0004 - Add Testing Infrastructure](https://github.com/kudobuilder/kudo/blob/master/keps/0004-add-testing-infrastructure.md)

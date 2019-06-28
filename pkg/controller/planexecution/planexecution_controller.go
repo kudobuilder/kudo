@@ -21,6 +21,8 @@ import (
 	"log"
 	"strconv"
 
+	"k8s.io/apimachinery/pkg/util/json"
+
 	kudoengine "github.com/kudobuilder/kudo/pkg/engine"
 
 	"gopkg.in/yaml.v2"
@@ -38,7 +40,6 @@ import (
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/util/health"
 	"github.com/kudobuilder/kudo/pkg/util/template"
-	"github.com/tidwall/gjson"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -263,21 +264,21 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		log.Printf("PlanExecutionController: Upate of instance with ActivePlan errored: %v", err)
 	}
 
-	// Get associated FrameworkVersion
-	frameworkVersion := &kudov1alpha1.FrameworkVersion{}
+	// Get associated OperatorVersion
+	operatorVersion := &kudov1alpha1.OperatorVersion{}
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
-			Name:      instance.Spec.FrameworkVersion.Name,
-			Namespace: instance.Spec.FrameworkVersion.Namespace,
+			Name:      instance.Spec.OperatorVersion.Name,
+			Namespace: instance.GetOperatorVersionNamespace(),
 		},
-		frameworkVersion)
+		operatorVersion)
 	if err != nil {
-		// Can't find the FrameworkVersion.
+		// Can't find the OperatorVersion.
 		planExecution.Status.State = kudov1alpha1.PhaseStateError
-		r.recorder.Event(planExecution, "Warning", "InvalidFrameworkVersion", fmt.Sprintf("Could not find FrameworkVersion %v", instance.Spec.FrameworkVersion.Name))
-		log.Printf("PlanExecutionController: Error getting FrameworkVersion %v in %v: %v",
-			instance.Spec.FrameworkVersion.Name,
-			instance.Spec.FrameworkVersion.Namespace,
+		r.recorder.Event(planExecution, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Could not find OperatorVersion %v", instance.Spec.OperatorVersion.Name))
+		log.Printf("PlanExecutionController: Error getting OperatorVersion %v in %v: %v",
+			instance.Spec.OperatorVersion.Name,
+			instance.GetOperatorVersionNamespace(),
 			err)
 		return reconcile.Result{}, err
 	}
@@ -288,7 +289,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	configs := make(map[string]interface{})
 
 	// Default parameters from instance metadata
-	configs["FrameworkName"] = frameworkVersion.Spec.Framework.Name
+	configs["OperatorName"] = operatorVersion.Spec.Operator.Name
 	configs["Name"] = instance.Name
 	configs["Namespace"] = instance.Namespace
 
@@ -298,7 +299,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	}
 
 	// Merge defaults with customizations
-	for _, param := range frameworkVersion.Spec.Parameters {
+	for _, param := range operatorVersion.Spec.Parameters {
 		_, ok := params[param.Name]
 		if !ok {
 			// Not specified in params
@@ -314,14 +315,14 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 	configs["Params"] = params
 
-	// Get Plan from FrameworkVersion.
+	// Get Plan from OperatorVersion.
 	//
 	// Right now must match exactly. In the future have defaults/backups: e.g., if no
 	// "upgrade", call "update"; if no "update", call "deploy"
 	//
 	// When we have this we'll have to keep the active plan in the status since that might
 	// not match the "requested" plan.
-	executedPlan, ok := frameworkVersion.Spec.Plans[planExecution.Spec.PlanName]
+	executedPlan, ok := operatorVersion.Spec.Plans[planExecution.Spec.PlanName]
 	if !ok {
 		r.recorder.Event(planExecution, "Warning", "InvalidPlan", fmt.Sprintf("Could not find required plan (%v)", planExecution.Spec.PlanName))
 		err = fmt.Errorf("could not find required plan (%v)", planExecution.Spec.PlanName)
@@ -340,7 +341,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStatePending
 		planExecution.Status.Phases[i].Steps = make([]kudov1alpha1.StepStatus, len(phase.Steps))
 		for j, step := range phase.Steps {
-			// Fetch FrameworkVersion:
+			// Fetch OperatorVersion:
 			//
 			//   - Get the task name from the step
 			//   - Get the task definition from the FV
@@ -356,12 +357,12 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			engine := kudoengine.New()
 			for _, t := range step.Tasks {
 				// resolve task
-				if taskSpec, ok := frameworkVersion.Spec.Tasks[t]; ok {
+				if taskSpec, ok := operatorVersion.Spec.Tasks[t]; ok {
 					var resources []string
 					fsys := fs.MakeFakeFS()
 
 					for _, res := range taskSpec.Resources {
-						if resource, ok := frameworkVersion.Spec.Templates[res]; ok {
+						if resource, ok := operatorVersion.Spec.Templates[res]; ok {
 							templatedYaml, err := engine.Render(resource, configs)
 							if err != nil {
 								r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error expanding template: %v", err))
@@ -371,8 +372,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 							resources = append(resources, res)
 
 						} else {
-							r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding resource named %v for framework version %v", res, frameworkVersion.Name))
-							log.Printf("PlanExecutionController: Error finding resource named %v for framework version %v", res, frameworkVersion.Name)
+							r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding resource named %v for operator version %v", res, operatorVersion.Name))
+							log.Printf("PlanExecutionController: Error finding resource named %v for operator version %v", res, operatorVersion.Name)
 							return reconcile.Result{}, err
 						}
 					}
@@ -382,8 +383,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						Namespace:  instance.Namespace,
 						CommonLabels: map[string]string{
 							"heritage": "kudo",
-							"app":      frameworkVersion.Spec.Framework.Name,
-							"version":  frameworkVersion.Spec.Version,
+							"app":      operatorVersion.Spec.Operator.Name,
+							"version":  operatorVersion.Spec.Version,
 							"instance": instance.Name,
 						},
 						CommonAnnotations: map[string]string{
@@ -436,8 +437,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					}
 					objs = append(objs, objsToAdd...)
 				} else {
-					r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding task named %s for framework version %s", taskSpec, frameworkVersion.Name))
-					log.Printf("PlanExecutionController: Error finding task named %s for framework version %s", taskSpec, frameworkVersion.Name)
+					r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding task named %s for operator version %s", taskSpec, operatorVersion.Name))
+					log.Printf("PlanExecutionController: Error finding task named %s for operator version %s", taskSpec, operatorVersion.Name)
 					return reconcile.Result{}, err
 				}
 			}
@@ -488,22 +489,15 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				key, _ := client.ObjectKeyFromObject(obj)
 				truth := obj.DeepCopyObject()
 				err := r.Client.Get(context.TODO(), key, truth)
+				rawObj, _ := json.Marshal(obj)
 				if err == nil {
 					log.Printf("PlanExecutionController: CreateOrUpdate Object present")
 					//update
-					p := client.MergeFrom(truth)
-					mergePatch, err := p.Data(obj)
-					specPatch := gjson.Get(string(mergePatch), "spec")
-					annotationPatch := gjson.Get(string(mergePatch), "metadata.annotations")
-					patchString := fmt.Sprintf("{\"metadata\": {\"annotations\": %v}, \"spec\": %v}",
-						annotationPatch.String(),
-						specPatch.String(),
-					)
-					log.Printf("Going to apply patch\n%+v\n\n to object\n%+v\n", patchString, truth)
+					log.Printf("Going to apply patch\n%+v\n\n to object\n%+v\n", string(rawObj), truth)
 					if err != nil {
 						log.Printf("Error getting patch between truth and obj: %v\n", err)
 					} else {
-						err = r.Client.Patch(context.TODO(), truth, client.ConstantPatch(types.MergePatchType, []byte(patchString)))
+						err = r.Client.Patch(context.TODO(), truth, client.ConstantPatch(types.StrategicMergePatchType, rawObj))
 						log.Printf("PlanExecutionController: CreateOrUpdate Patch: %v", err)
 					}
 				} else {

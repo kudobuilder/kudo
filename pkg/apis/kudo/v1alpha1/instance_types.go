@@ -22,11 +22,11 @@ import (
 
 // InstanceSpec defines the desired state of Instance.
 type InstanceSpec struct {
-	// Framework specifies a reference to a specific Framework object.
-	FrameworkVersion corev1.ObjectReference `json:"frameworkVersion,omitempty"`
+	// Operator specifies a reference to a specific Operator object.
+	OperatorVersion corev1.ObjectReference `json:"operatorVersion,omitempty"`
 
-	Dependencies []FrameworkDependency `json:"dependencies,omitempty"`
-	Parameters   map[string]string     `json:"parameters,omitempty"`
+	Dependencies []OperatorDependency `json:"dependencies,omitempty"`
+	Parameters   map[string]string    `json:"parameters,omitempty"`
 }
 
 // InstanceStatus defines the observed state of Instance
@@ -87,6 +87,14 @@ type Instance struct {
 
 	Spec   InstanceSpec   `json:"spec,omitempty"`
 	Status InstanceStatus `json:"status,omitempty"`
+}
+
+// GetOperatorVersionNamespace returns the namespace of the OperatorVersion that the Instance references.
+func (i *Instance) GetOperatorVersionNamespace() string {
+	if i.Spec.OperatorVersion.Namespace == "" {
+		return i.ObjectMeta.Namespace
+	}
+	return i.Spec.OperatorVersion.Namespace
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

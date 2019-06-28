@@ -87,10 +87,11 @@ func newInstallCmd() *cobra.Command {
 	installCmd.Flags().BoolVar(&options.AllDependencies, "all-dependencies", false, "Installs all dependency packages. (default \"false\")")
 	installCmd.Flags().BoolVar(&options.AutoApprove, "auto-approve", false, "Skip interactive approval when existing version found. (default \"false\")")
 	installCmd.Flags().StringVar(&options.KubeConfigPath, "kubeconfig", "", "The file path to Kubernetes configuration file. (default \"$HOME/.kube/config\")")
-	installCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name. (default to Framework name)")
+	installCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name. (default to Operator name)")
 	installCmd.Flags().StringVar(&options.Namespace, "namespace", "default", "The namespace used for the package installation. (default \"default\"")
 	installCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")
 	installCmd.Flags().StringVar(&options.PackageVersion, "package-version", "", "A specific package version on the official GitHub repo. (default to the most recent)")
+	installCmd.Flags().BoolVar(&options.SkipInstance, "skip-instance", false, "If set, install will install the Operator and OperatorVersion, but not an instance. (default \"false\")")
 
 	const usageFmt = "Usage:\n  %s\n\nFlags:\n%s"
 	installCmd.SetUsageFunc(func(cmd *cobra.Command) error {

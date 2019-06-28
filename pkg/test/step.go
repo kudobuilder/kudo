@@ -92,13 +92,34 @@ func (s *Step) CheckResource(expected runtime.Object, namespace string) []error 
 
 	gvk := expected.GetObjectKind().GroupVersionKind()
 
-	actual := &unstructured.Unstructured{}
-	actual.SetGroupVersionKind(gvk)
+	actuals := []*unstructured.Unstructured{}
 
-	err = s.Client.Get(context.TODO(), client.ObjectKey{
-		Namespace: namespace,
-		Name:      name,
-	}, actual)
+	if name != "" {
+		actual := &unstructured.Unstructured{}
+		actual.SetGroupVersionKind(gvk)
+
+		err = s.Client.Get(context.TODO(), client.ObjectKey{
+			Namespace: namespace,
+			Name:      name,
+		}, actual)
+
+		actuals = append(actuals, actual)
+	} else {
+		actual := &unstructured.UnstructuredList{}
+		actual.SetGroupVersionKind(gvk)
+
+		listOptions := []client.ListOptionFunc{}
+
+		if namespace != "" {
+			listOptions = append(listOptions, client.InNamespace(namespace))
+		}
+
+		err = s.Client.List(context.TODO(), actual, listOptions...)
+
+		for _, item := range actual.Items {
+			actuals = append(actuals, &item)
+		}
+	}
 	if err != nil {
 		return append(testErrors, err)
 	}
@@ -108,15 +129,25 @@ func (s *Step) CheckResource(expected runtime.Object, namespace string) []error 
 		return append(testErrors, err)
 	}
 
-	if err := testutils.IsSubset(expectedObj, actual.UnstructuredContent()); err != nil {
-		diff, diffErr := testutils.PrettyDiff(expected, actual)
-		if diffErr == nil {
-			testErrors = append(testErrors, errors.New(diff))
-		} else {
-			testErrors = append(testErrors, diffErr)
+	for _, actual := range actuals {
+		tmpTestErrors := []error{}
+
+		if err := testutils.IsSubset(expectedObj, actual.UnstructuredContent()); err != nil {
+			diff, diffErr := testutils.PrettyDiff(expected, actual)
+			if diffErr == nil {
+				tmpTestErrors = append(tmpTestErrors, errors.New(diff))
+			} else {
+				tmpTestErrors = append(tmpTestErrors, diffErr)
+			}
+
+			tmpTestErrors = append(tmpTestErrors, fmt.Errorf("resource %s: %s", testutils.ResourceID(expected), err))
 		}
 
-		testErrors = append(testErrors, fmt.Errorf("resource %s: %s", testutils.ResourceID(expected), err))
+		if len(tmpTestErrors) == 0 {
+			return tmpTestErrors
+		}
+
+		testErrors = append(testErrors, tmpTestErrors...)
 	}
 
 	return testErrors

@@ -26,10 +26,10 @@ var (
             kubectl kudo test ./pkg/test/test_data/
 
       Run tests against an existing Kubernetes cluster, and install KUDO, manifests, and CRDs for the tests:
-            kubectl kudo test --crd-dir ./config/crds/ --manifests-dir ./config/samples/test-framework/ ./pkg/test/test_data/
+            kubectl kudo test --crd-dir ./config/crds/ --manifests-dir ./config/samples/test-operator/ ./pkg/test/test_data/
 
       Run a Kubernetes control plane and KUDO and install manifests and CRDs for the running tests:
-            kubectl kudo test --start-control-plane --start-kudo --crd-dir ./config/crds/ --manifests-dir ./config/samples/test-framework/ ./pkg/test/test_data/
+            kubectl kudo test --start-control-plane --start-kudo --crd-dir ./config/crds/ --manifests-dir ./config/samples/test-operator/ ./pkg/test/test_data/
 `
 )
 
@@ -43,10 +43,10 @@ func newTestCmd() *cobra.Command {
 
 	testCmd := &cobra.Command{
 		Use:   "test [flags]... [test directories]...",
-		Short: "-> Test KUDO and Frameworks.",
+		Short: "-> Test KUDO and Operators.",
 		Long: `Runs integration tests against a Kubernetes cluster.
 
-The test framework supports connecting to an existing Kubernetes cluster or it can start a Kubernetes API server during the test run.
+The test operator supports connecting to an existing Kubernetes cluster or it can start a Kubernetes API server during the test run.
 
 It can also start up KUDO and apply manifests before running the tests.
 
