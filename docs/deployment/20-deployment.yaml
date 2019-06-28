@@ -44,7 +44,7 @@ spec:
               fieldPath: metadata.namespace
         - name: SECRET_NAME
           value: kudo-webhook-server-secret
-        image: kudobuilder/controller:v0.2.0
+        image: kudobuilder/controller:v0.3.0
         imagePullPolicy: Always
         name: manager
         ports:
