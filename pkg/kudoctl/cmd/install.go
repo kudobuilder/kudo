@@ -93,7 +93,6 @@ func newInstallCmd() *cobra.Command {
 		SilenceUsage: true,
 	}
 
-	installCmd.Flags().BoolVar(&options.AllDependencies, "all-dependencies", false, "Installs all dependency packages. (default \"false\")")
 	installCmd.Flags().BoolVar(&options.AutoApprove, "auto-approve", false, "Skip interactive approval when existing version found. (default \"false\")")
 	installCmd.Flags().StringVar(&options.KubeConfigPath, "kubeconfig", "", "The file path to Kubernetes configuration file. (default \"$HOME/.kube/config\")")
 	installCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name. (default to Operator name)")
