@@ -165,7 +165,7 @@ func installOperator(operatorArgument string, isDependencyInstall bool, reposito
 
 	}
 
-	// Dependencies of the particular FrameworkVersion
+	// Dependencies of the particular OperatorVersion
 	// TODO (@gerred): Remove dead code branch
 	if options.AllDependencies {
 		dependencyOperators, err := repo.GetOperatorVersionDependencies(crds.OperatorVersion)
