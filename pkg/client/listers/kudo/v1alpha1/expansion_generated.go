@@ -16,6 +16,14 @@ limitations under the License.
 
 package v1alpha1
 
+// InstanceListerExpansion allows custom methods to be added to
+// InstanceLister.
+type InstanceListerExpansion interface{}
+
+// InstanceNamespaceListerExpansion allows custom methods to be added to
+// InstanceNamespaceLister.
+type InstanceNamespaceListerExpansion interface{}
+
 // OperatorListerExpansion allows custom methods to be added to
 // OperatorLister.
 type OperatorListerExpansion interface{}
@@ -31,14 +39,6 @@ type OperatorVersionListerExpansion interface{}
 // OperatorVersionNamespaceListerExpansion allows custom methods to be added to
 // OperatorVersionNamespaceLister.
 type OperatorVersionNamespaceListerExpansion interface{}
-
-// InstanceListerExpansion allows custom methods to be added to
-// InstanceLister.
-type InstanceListerExpansion interface{}
-
-// InstanceNamespaceListerExpansion allows custom methods to be added to
-// InstanceNamespaceLister.
-type InstanceNamespaceListerExpansion interface{}
 
 // PlanExecutionListerExpansion allows custom methods to be added to
 // PlanExecutionLister.
