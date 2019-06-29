@@ -20,3 +20,14 @@ spec:
         env:
         - name: ENVIRONMENT_VARIABLE
           value: "30"
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  name: toy1
+status:
+  status: COMPLETE
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: TestAssert
+timeout: 120
