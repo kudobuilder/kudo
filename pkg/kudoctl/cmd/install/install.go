@@ -19,10 +19,10 @@ type Options struct {
 	AllDependencies bool
 	AutoApprove     bool
 	InstanceName    string
+	KubeConfigPath  string
 	Namespace       string
 	Parameters      map[string]string
 	PackageVersion  string
-	KubeConfigPath  string
 	SkipInstance    bool
 }
 
@@ -38,6 +38,11 @@ func Run(cmd *cobra.Command, args []string, options *Options) error {
 	// This makes --kubeconfig flag optional
 	if _, err := cmd.Flags().GetString("kubeconfig"); err != nil {
 		return fmt.Errorf("get flag: %+v", err)
+	}
+
+	// If the $KUBECONFIG environment variable is set, use that
+	if len(os.Getenv("KUBECONFIG")) > 0 {
+		options.KubeConfigPath = os.Getenv("KUBECONFIG")
 	}
 
 	configPath, err := check.KubeConfigLocationOrDefault(options.KubeConfigPath)
