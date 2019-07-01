@@ -36,6 +36,8 @@ var (
 // newTestCmd creates the test command for the CLI
 func newTestCmd() *cobra.Command {
 	configPath := ""
+	testToRun := ""
+
 	options := kudo.TestSuite{}
 	defaults := kudo.TestSuite{
 		TestDirs: []string{},
@@ -93,7 +95,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			testutils.RunTests("kudo", func(t *testing.T) {
+			testutils.RunTests("kudo", testToRun, func(t *testing.T) {
 				harness := test.Harness{
 					TestSuite: options,
 					T:         t,
@@ -107,6 +109,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 	testCmd.Flags().StringVar(&configPath, "config", "", "Path to file to load test settings from (must not be set with any other arguments).")
 	testCmd.Flags().StringVar(&options.CRDDir, "crd-dir", "", "Directory to load CustomResourceDefinitions from prior to running the tests.")
 	testCmd.Flags().StringVar(&options.ManifestsDir, "manifests-dir", "", "A directory containing manifests to apply before running the tests.")
+	testCmd.Flags().StringVar(&testToRun, "test", "", "If set, the specific test case to run.")
 	testCmd.Flags().BoolVar(&options.StartControlPlane, "start-control-plane", false, "Start a local Kubernetes control plane for the tests (requires etcd and kube-apiserver binaries, implies --start-kudo).")
 	testCmd.Flags().BoolVar(&options.StartKUDO, "start-kudo", false, "Start KUDO during the test run.")
 
