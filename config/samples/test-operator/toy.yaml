@@ -11,7 +11,6 @@ metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: toy-v1
-  namespace: default
 spec:
   version: "1.0.0"
   connectionString: ""
@@ -20,28 +19,18 @@ spec:
     kind: Operator
   templates:
     deployment.yaml: |
-      apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
-      kind: Deployment
+      apiVersion: v1
+      kind: Service
       metadata:
-        name: nginx-deployment
+        name: my-service
       spec:
+        type: ClusterIP
+        ports:
+        - port: 80
+          name: http
         selector:
-          matchLabels:
-            app: nginx
-        replicas: {{ .Params.Replicas }} # tells deployment to run 2 pods matching the template
-        template:
-          metadata:
-            labels:
-              app: nginx
-          spec:
-            containers:
-            - name: nginx
-              image: nginx:1.7.9
-              env:
-              - name: ENVIRONMENT_VARIABLE
-                value: "{{ .Params.Param }}"
-              ports:
-              - containerPort: 80
+          replicas: "{{ .Params.Replicas }}"
+          param: "{{ .Params.Param }}"
   tasks:
     deploy:
       resources:
