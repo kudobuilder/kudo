@@ -25,9 +25,6 @@ var (
 		# Install framework from tarball on a local filesystem
 		kubectl kudo install pkg/kudoctl/util/repo/testdata/zk.tar.gz
 
-		# Install the Kafka package with all of its dependencies to your cluster.
-		kubectl kudo install kafka --all-dependencies
-
 		# Specify a package version of Kafka to install to your cluster.
 		kubectl kudo install kafka --package-version=0`
 )

@@ -17,11 +17,12 @@ package planexecution
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
 
-	"k8s.io/apimachinery/pkg/util/json"
+	apijson "k8s.io/apimachinery/pkg/util/json"
 
 	kudoengine "github.com/kudobuilder/kudo/pkg/engine"
 
@@ -489,11 +490,11 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				key, _ := client.ObjectKeyFromObject(obj)
 				truth := obj.DeepCopyObject()
 				err := r.Client.Get(context.TODO(), key, truth)
-				rawObj, _ := json.Marshal(obj)
+				rawObj, _ := apijson.Marshal(obj)
 				if err == nil {
 					log.Printf("PlanExecutionController: CreateOrUpdate Object present")
 					//update
-					log.Printf("Going to apply patch\n%+v\n\n to object\n%+v\n", string(rawObj), truth)
+					log.Printf("Going to apply patch\n%+v\n\n to object\n%s\n", string(rawObj), prettyPrint(truth))
 					if err != nil {
 						log.Printf("Error getting patch between truth and obj: %v\n", err)
 					} else {
@@ -525,7 +526,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				}
 				err = health.IsHealthy(r.Client, obj)
 				if err != nil {
-					log.Printf("PlanExecutionController: Obj is NOT healthy: %+v", obj)
+					log.Printf("PlanExecutionController: Obj is NOT healthy: %s", prettyPrint(obj))
 					planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateInProgress
 					planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateInProgress
 				}
@@ -620,4 +621,9 @@ func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
 	}
 
 	return nil
+}
+
+func prettyPrint(i interface{}) string {
+	s, _ := json.MarshalIndent(i, "", "  ")
+	return string(s)
 }
