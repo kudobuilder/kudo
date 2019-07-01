@@ -3,6 +3,7 @@ package plan
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
@@ -142,6 +143,10 @@ func planStatus(options *statusOptions) error {
 		Resource: "planexecutions",
 	}
 
+	if instance.Status.ActivePlan.Name == "" {
+		log.Printf("No active plan exists for instance %s", instance.Name)
+		return nil
+	}
 	activePlanObj, err := dynamicClient.Resource(planExecutionsGVR).Namespace(options.namespace).Get(instance.Status.ActivePlan.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
