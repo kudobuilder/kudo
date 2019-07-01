@@ -506,7 +506,7 @@ func WaitForCRDs(dClient discovery.DiscoveryInterface, crds []runtime.Object) er
 		waitingFor = append(waitingFor, schema.GroupVersionKind{
 			Group:   crd.Spec.Group,
 			Version: crd.Spec.Version,
-			Kind:    crd.Spec.Names.Singular,
+			Kind:    crd.Spec.Names.Kind,
 		})
 	}
 
