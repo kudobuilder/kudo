@@ -238,13 +238,13 @@ func (h *Harness) Run() {
 
 // Stop the test environment and KUDO, clean up the harness.
 func (h *Harness) Stop() {
-	if h.env != nil {
-		h.env.Stop()
-		h.env = nil
-	}
-
 	if h.managerStopCh != nil {
 		close(h.managerStopCh)
 		h.managerStopCh = nil
+	}
+
+	if h.env != nil {
+		h.env.Stop()
+		h.env = nil
 	}
 }
