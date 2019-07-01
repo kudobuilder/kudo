@@ -137,7 +137,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 						log.Printf("InstanceController: Instance %v updated parameter %v, but no specified trigger.  Using default plan %v\n", new.Name, k, planName)
 					}
 				}
-				// Not currently doing anything for Dependency changes.
 			} else {
 				if new.Status.ActivePlan.Name == "" {
 					log.Printf("InstanceController: Old and new spec matched...\n %+v ?= %+v\n", old.Spec, new.Spec)
