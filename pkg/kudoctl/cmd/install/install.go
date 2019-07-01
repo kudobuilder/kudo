@@ -33,7 +33,7 @@ var DefaultOptions = &Options{
 // Run returns the errors associated with cmd env
 func Run(cmd *cobra.Command, args []string, options *Options) error {
 
-	err := validate(cmd, args, options)
+	err := validate(args, options)
 	if err != nil {
 		return err
 	}
@@ -42,10 +42,9 @@ func Run(cmd *cobra.Command, args []string, options *Options) error {
 	return err
 }
 
-func validate(cmd *cobra.Command, args []string, options *Options) error {
-	// This makes --kubeconfig flag optional
-	if _, err := cmd.Flags().GetString("kubeconfig"); err != nil {
-		return fmt.Errorf("get flag: %+v", err)
+func validate(args []string, options *Options) error {
+	if len(args) != 1 {
+		return fmt.Errorf("no argument provided, need name of the package or path to install")
 	}
 
 	// If the $KUBECONFIG environment variable is set, use that
@@ -64,10 +63,6 @@ func validate(cmd *cobra.Command, args []string, options *Options) error {
 	_, err = clientcmd.BuildConfigFromFlags("", options.KubeConfigPath)
 	if err != nil {
 		return errors.Wrap(err, "getting config failed")
-	}
-
-	if len(args) != 1 {
-		return fmt.Errorf("no argument provided, need name of the package or path to install")
 	}
 
 	return nil
