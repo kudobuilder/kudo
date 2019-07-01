@@ -16,18 +16,18 @@ import (
 
 // Options defines configuration options for the install command
 type Options struct {
-	AutoApprove     bool
-	InstanceName    string
-	KubeConfigPath  string
-	Namespace       string
-	Parameters      map[string]string
-	PackageVersion  string
-	SkipInstance    bool
+	AutoApprove    bool
+	InstanceName   string
+	KubeConfigPath string
+	Namespace      string
+	Parameters     map[string]string
+	PackageVersion string
+	SkipInstance   bool
 }
 
 // DefaultOptions initializes the install command options to its defaults
 var DefaultOptions = &Options{
-	Namespace:       "default",
+	Namespace: "default",
 }
 
 // Run returns the errors associated with cmd env
