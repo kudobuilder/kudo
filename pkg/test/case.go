@@ -24,9 +24,10 @@ var testStepRegex = regexp.MustCompile(`^(\d+)-([^.]+)(.yaml)?$`)
 // Case contains all of the test steps and the Kubernetes client and other global configuration
 // for a test.
 type Case struct {
-	Steps []*Step
-	Name  string
-	Dir   string
+	Steps      []*Step
+	Name       string
+	Dir        string
+	SkipDelete bool
 
 	Client          client.Client
 	DiscoveryClient discovery.DiscoveryInterface
@@ -72,14 +73,18 @@ func (t *Case) TestCaseFactory() func(*testing.T) {
 			test.Fatal(err)
 		}
 
-		defer t.DeleteNamespace(ns)
+		if !t.SkipDelete {
+			defer t.DeleteNamespace(ns)
+		}
 
 		for _, testStep := range t.Steps {
 			testStep.Client = t.Client
 			testStep.DiscoveryClient = t.DiscoveryClient
 			testStep.Logger = t.Logger.WithPrefix(testStep.String())
 
-			defer testStep.Clean(ns)
+			if !t.SkipDelete {
+				defer testStep.Clean(ns)
+			}
 
 			if errs := testStep.Run(ns); len(errs) > 0 {
 				for _, err := range errs {

@@ -52,9 +52,10 @@ func (h *Harness) LoadTests(dir string) ([]*Case, error) {
 		}
 
 		tests = append(tests, &Case{
-			Steps: []*Step{},
-			Name:  file.Name(),
-			Dir:   filepath.Join(dir, file.Name()),
+			Steps:      []*Step{},
+			Name:       file.Name(),
+			Dir:        filepath.Join(dir, file.Name()),
+			SkipDelete: h.TestSuite.SkipDelete,
 		})
 	}
 
