@@ -66,10 +66,14 @@ func (h *Harness) LoadTests(dir string) ([]*Case, error) {
 func (h *Harness) RunTestEnv() (*rest.Config, error) {
 	h.env = &envtest.Environment{}
 
+	started := time.Now()
+
 	config, err := h.env.Start()
 	if err != nil {
 		return nil, err
 	}
+
+	h.T.Log("started test environment (kube-apiserver and etcd) in", time.Since(started))
 
 	return config, nil
 }
