@@ -9,6 +9,7 @@ import (
 	ejson "encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -311,9 +312,17 @@ func InstallManifests(ctx context.Context, client client.Client, dClient discove
 				}
 			}
 
-			if err := CreateOrUpdate(ctx, client, obj, true); err != nil {
+			updated, err := CreateOrUpdate(ctx, client, obj, true)
+			if err != nil {
 				return err
 			}
+
+			action := "created"
+			if updated {
+				action = "updated"
+			}
+			// TODO: use test logger instead of Go logger
+			log.Println(ResourceID(obj), action)
 
 			objects = append(objects, obj)
 		}
@@ -430,7 +439,8 @@ func FakeDiscoveryClient() discovery.DiscoveryInterface {
 }
 
 // CreateOrUpdate will create obj if it does not exist and update if it it does.
-func CreateOrUpdate(ctx context.Context, client client.Client, obj runtime.Object, retryOnError bool) error {
+// Returns true if the object was updated and false if it was created.
+func CreateOrUpdate(ctx context.Context, client client.Client, obj runtime.Object, retryOnError bool) (updated bool, err error) {
 	orig := obj.DeepCopyObject()
 
 	validators := []func(err error) bool{}
@@ -442,7 +452,7 @@ func CreateOrUpdate(ctx context.Context, client client.Client, obj runtime.Objec
 		})
 	}
 
-	return Retry(ctx, func(ctx context.Context) error {
+	return updated, Retry(ctx, func(ctx context.Context) error {
 		expected := orig.DeepCopyObject()
 		actual := orig.DeepCopyObject()
 
@@ -452,8 +462,10 @@ func CreateOrUpdate(ctx context.Context, client client.Client, obj runtime.Objec
 				return err
 			}
 			err = client.Update(ctx, expected)
+			updated = true
 		} else if err != nil && k8serrors.IsNotFound(err) {
 			err = client.Create(ctx, obj)
+			updated = false
 		}
 		return err
 	}, validators...)
