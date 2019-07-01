@@ -25,7 +25,7 @@ type InstanceSpec struct {
 	// Operator specifies a reference to a specific Operator object.
 	OperatorVersion corev1.ObjectReference `json:"operatorVersion,omitempty"`
 
-	Dependencies []OperatorDependency `json:"dependencies,omitempty"`
+	Dependencies []OperatorDependency `json:"dependencies,omitempty"` // TODO: this is deprecated and should not be used
 	Parameters   map[string]string    `json:"parameters,omitempty"`
 }
 

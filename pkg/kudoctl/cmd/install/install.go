@@ -16,7 +16,6 @@ import (
 
 // Options defines configuration options for the install command
 type Options struct {
-	AllDependencies bool
 	AutoApprove     bool
 	InstanceName    string
 	KubeConfigPath  string
@@ -29,7 +28,6 @@ type Options struct {
 // DefaultOptions initializes the install command options to its defaults
 var DefaultOptions = &Options{
 	Namespace:       "default",
-	AllDependencies: false,
 }
 
 // Run returns the errors associated with cmd env
@@ -90,7 +88,7 @@ func installOperators(args []string, options *Options) error {
 	}
 
 	for _, operatorName := range args {
-		err := installOperator(operatorName, false, r, kc, options)
+		err := installOperator(operatorName, r, kc, options)
 		if err != nil {
 			return err
 		}
@@ -124,7 +122,7 @@ func getPackageCRDs(name string, options *Options, repository repo.Repository) (
 // installOperator is the umbrella for a single operator installation that gathers the business logic
 // for a cluster and returns an error in case there is a problem
 // TODO: needs testing
-func installOperator(operatorArgument string, isDependencyInstall bool, repository repo.Repository, kc *kudo.Client, options *Options) error {
+func installOperator(operatorArgument string, repository repo.Repository, kc *kudo.Client, options *Options) error {
 	crds, err := getPackageCRDs(operatorArgument, options, repository)
 	if err != nil {
 		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", operatorArgument)
@@ -170,32 +168,12 @@ func installOperator(operatorArgument string, isDependencyInstall bool, reposito
 
 	}
 
-	// Dependencies of the particular OperatorVersion
-	// TODO (@gerred): Remove dead code branch
-	if options.AllDependencies {
-		dependencyOperators, err := repo.GetOperatorVersionDependencies(crds.OperatorVersion)
-		if err != nil {
-			return errors.Wrap(err, "getting Operator dependencies")
-		}
-		for _, v := range dependencyOperators {
-			// recursive function call
-			// Dependencies should not be as big as that they will have an overflow in the function stack frame
-			// installOperator makes sure that dependency Operators are created before the Operator itself
-			// and it allows to inherit dependencies.
-			if err := installOperator(v, true, repository, kc, options); err != nil {
-				return errors.Wrapf(err, "installing dependency Operator %s", v)
-			}
-		}
-	}
-
 	// Instances part
-	// For a Operator without dependencies this means it creates the Instances object just after Operator and
+	// it creates the Instances object just after Operator and
 	// OperatorVersion objects are created to ensure Instances can be created.
-	// This is also the part you end up when no dependencies are found or installed and all Operator and
-	// OperatorVersions are already installed.
 
 	// First make sure that our instance object is up to date with overrides from commandline
-	applyInstanceOverrides(crds.Instance, options, isDependencyInstall)
+	applyInstanceOverrides(crds.Instance, options)
 
 	// The user opted not to install the instance.
 	if options.SkipInstance {
@@ -217,8 +195,6 @@ func installOperator(operatorArgument string, isDependencyInstall bool, reposito
 			fmt.Printf("No instance named '%s' tied to this '%s' version has been found. "+
 				"Do you want to create one? (Yes/no) ", instanceName, operatorName)
 			if helpers.AskForConfirmation() {
-				// If Instance is a dependency we need to make sure installSingleInstanceToCluster is aware of it.
-				// By having the previous string set we can make this distinction.
 				if err := installSingleInstanceToCluster(operatorName, crds.Instance, kc, options); err != nil {
 					return errors.Wrap(err, "installing single instance")
 				}
@@ -271,11 +247,8 @@ func installSingleInstanceToCluster(name string, instance *v1alpha1.Instance, kc
 	return nil
 }
 
-func applyInstanceOverrides(instance *v1alpha1.Instance, options *Options, isDependencyInstall bool) {
-	// More checking required
-	// E.g. when installing with flag --all-dependencies to prevent overwriting dependency Instance name
-	// This checks if flag --instance was set with a name and it is the not a dependency Instance
-	if options.InstanceName != "" && !isDependencyInstall {
+func applyInstanceOverrides(instance *v1alpha1.Instance, options *Options) {
+	if options.InstanceName != "" {
 		instance.ObjectMeta.SetName(options.InstanceName)
 	}
 	if options.Parameters != nil {
