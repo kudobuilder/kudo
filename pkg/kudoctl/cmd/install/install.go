@@ -33,6 +33,16 @@ var DefaultOptions = &Options{
 // Run returns the errors associated with cmd env
 func Run(cmd *cobra.Command, args []string, options *Options) error {
 
+	err := validate(cmd, args, options)
+	if err != nil {
+		return err
+	}
+
+	err = installOperator(args[0], options)
+	return err
+}
+
+func validate(cmd *cobra.Command, args []string, options *Options) error {
 	// This makes --kubeconfig flag optional
 	if _, err := cmd.Flags().GetString("kubeconfig"); err != nil {
 		return fmt.Errorf("get flag: %+v", err)
@@ -51,48 +61,15 @@ func Run(cmd *cobra.Command, args []string, options *Options) error {
 	if err := check.ValidateKubeConfigPath(options.KubeConfigPath); err != nil {
 		return errors.WithMessage(err, "could not check kubeconfig path")
 	}
-
-	if err := installOperators(args, options); err != nil {
-		return errors.WithMessage(err, "could not install operator(s)")
-	}
-
-	return nil
-}
-
-// installOperators installs all operators specified as arguments into the cluster
-func installOperators(args []string, options *Options) error {
-
-	if len(args) < 1 {
-		return fmt.Errorf("no argument provided")
-	}
-
-	if len(args) > 1 && options.PackageVersion != "" {
-		return fmt.Errorf("--package-version not supported in multi operator install")
-	}
-	repoConfig := repo.Default
-
-	// Initializing empty repo with given variables
-	r, err := repo.NewOperatorRepository(repoConfig)
-	if err != nil {
-		return errors.WithMessage(err, "could not build operator repository")
-	}
-
 	_, err = clientcmd.BuildConfigFromFlags("", options.KubeConfigPath)
 	if err != nil {
 		return errors.Wrap(err, "getting config failed")
 	}
 
-	kc, err := kudo.NewClient(options.Namespace, options.KubeConfigPath)
-	if err != nil {
-		return errors.Wrap(err, "creating kudo client")
+	if len(args) != 1 {
+		return fmt.Errorf("no argument provided, need name of the package or path to install")
 	}
 
-	for _, operatorName := range args {
-		err := installOperator(operatorName, r, kc, options)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -122,7 +99,22 @@ func getPackageCRDs(name string, options *Options, repository repo.Repository) (
 // installOperator is the umbrella for a single operator installation that gathers the business logic
 // for a cluster and returns an error in case there is a problem
 // TODO: needs testing
-func installOperator(operatorArgument string, repository repo.Repository, kc *kudo.Client, options *Options) error {
+func installOperator(operatorArgument string, options *Options) error {
+	repository, err := repo.NewOperatorRepository(repo.Default)
+	if err != nil {
+		return errors.WithMessage(err, "could not build operator repository")
+	}
+
+	_, err = clientcmd.BuildConfigFromFlags("", options.KubeConfigPath)
+	if err != nil {
+		return errors.Wrap(err, "getting config failed")
+	}
+
+	kc, err := kudo.NewClient(options.Namespace, options.KubeConfigPath)
+	if err != nil {
+		return errors.Wrap(err, "creating kudo client")
+	}
+
 	crds, err := getPackageCRDs(operatorArgument, options, repository)
 	if err != nil {
 		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", operatorArgument)

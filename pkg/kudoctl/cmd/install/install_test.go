@@ -28,7 +28,7 @@ func TestInstallOperators(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		err := installOperators(tt.args, options)
+		err := installOperator(tt.args[0], options)
 		if err != nil {
 			receivedErrorList := []string{err.Error()}
 			diff := compareSlice(receivedErrorList, tt.err)
