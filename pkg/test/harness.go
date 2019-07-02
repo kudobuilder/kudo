@@ -66,10 +66,14 @@ func (h *Harness) LoadTests(dir string) ([]*Case, error) {
 func (h *Harness) RunTestEnv() (*rest.Config, error) {
 	h.env = &envtest.Environment{}
 
+	started := time.Now()
+
 	config, err := h.env.Start()
 	if err != nil {
 		return nil, err
 	}
+
+	h.T.Log("started test environment (kube-apiserver and etcd) in", time.Since(started))
 
 	return config, nil
 }
@@ -238,13 +242,13 @@ func (h *Harness) Run() {
 
 // Stop the test environment and KUDO, clean up the harness.
 func (h *Harness) Stop() {
-	if h.env != nil {
-		h.env.Stop()
-		h.env = nil
-	}
-
 	if h.managerStopCh != nil {
 		close(h.managerStopCh)
 		h.managerStopCh = nil
+	}
+
+	if h.env != nil {
+		h.env.Stop()
+		h.env = nil
 	}
 }

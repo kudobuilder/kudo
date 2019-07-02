@@ -64,8 +64,14 @@ func (s *Step) Create(namespace string) []error {
 			continue
 		}
 
-		if err = testutils.CreateOrUpdate(context.TODO(), s.Client, obj, true); err != nil {
+		if updated, err := testutils.CreateOrUpdate(context.TODO(), s.Client, obj, true); err != nil {
 			errors = append(errors, err)
+		} else {
+			action := "created"
+			if updated {
+				action = "updated"
+			}
+			s.Logger.Log(testutils.ResourceID(obj), action)
 		}
 	}
 
