@@ -20,7 +20,7 @@ func TestLoadTestSteps(t *testing.T) {
 		testSteps []Step
 	}{
 		{
-			"test_data/with-overrides/",
+			"../../test/integration/with-overrides/",
 			[]Step{
 				{
 					Name:  "with-test-step-name-override",
@@ -165,7 +165,7 @@ func TestLoadTestSteps(t *testing.T) {
 			},
 		},
 		{
-			"test_data/list-pods",
+			"../../test/integration/list-pods",
 			[]Step{
 				{
 					Name:  "deployment",
@@ -249,34 +249,34 @@ func TestCollectTestStepFiles(t *testing.T) {
 		expected map[int64][]string
 	}{
 		{
-			"test_data/with-overrides",
+			"../../test/integration/with-overrides",
 			map[int64][]string{
 				int64(0): {
-					"test_data/with-overrides/00-assert.yaml",
-					"test_data/with-overrides/00-test-step.yaml",
+					"../../test/integration/with-overrides/00-assert.yaml",
+					"../../test/integration/with-overrides/00-test-step.yaml",
 				},
 				int64(1): {
-					"test_data/with-overrides/01-assert.yaml",
-					"test_data/with-overrides/01-test-assert.yaml",
+					"../../test/integration/with-overrides/01-assert.yaml",
+					"../../test/integration/with-overrides/01-test-assert.yaml",
 				},
 				int64(2): {
-					"test_data/with-overrides/02-directory/assert.yaml",
-					"test_data/with-overrides/02-directory/pod.yaml",
-					"test_data/with-overrides/02-directory/pod2.yaml",
+					"../../test/integration/with-overrides/02-directory/assert.yaml",
+					"../../test/integration/with-overrides/02-directory/pod.yaml",
+					"../../test/integration/with-overrides/02-directory/pod2.yaml",
 				},
 				int64(3): {
-					"test_data/with-overrides/03-assert.yaml",
-					"test_data/with-overrides/03-pod.yaml",
-					"test_data/with-overrides/03-pod2.yaml",
+					"../../test/integration/with-overrides/03-assert.yaml",
+					"../../test/integration/with-overrides/03-pod.yaml",
+					"../../test/integration/with-overrides/03-pod2.yaml",
 				},
 			},
 		},
 		{
-			"test_data/list-pods",
+			"../../test/integration/list-pods",
 			map[int64][]string{
 				int64(0): {
-					"test_data/list-pods/00-assert.yaml",
-					"test_data/list-pods/00-deployment.yaml",
+					"../../test/integration/list-pods/00-assert.yaml",
+					"../../test/integration/list-pods/00-deployment.yaml",
 				},
 			},
 		},

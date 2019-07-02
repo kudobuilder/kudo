@@ -23,13 +23,13 @@ var (
             kubectl kudo test --config test.yaml
 
       Run tests against an existing Kubernetes cluster:
-            kubectl kudo test ./pkg/test/test_data/
+            kubectl kudo test ./test/integration/
 
       Run tests against an existing Kubernetes cluster, and install KUDO, manifests, and CRDs for the tests:
-            kubectl kudo test --crd-dir ./config/crds/ --manifests-dir ./config/samples/test-operator/ ./pkg/test/test_data/
+            kubectl kudo test --crd-dir ./config/crds/ --manifests-dir ./test/manifests/ ./test/integration/
 
       Run a Kubernetes control plane and KUDO and install manifests and CRDs for the running tests:
-            kubectl kudo test --start-control-plane --start-kudo --crd-dir ./config/crds/ --manifests-dir ./config/samples/test-operator/ ./pkg/test/test_data/
+            kubectl kudo test --start-control-plane --start-kudo --crd-dir ./config/crds/ --manifests-dir ./test/manifests/ ./test/integration/
 `
 )
 
