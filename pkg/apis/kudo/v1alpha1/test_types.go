@@ -24,6 +24,8 @@ type TestSuite struct {
 	StartControlPlane bool `json:"startControlPlane"`
 	// Whether or not to start the KUDO controller for the tests.
 	StartKUDO bool `json:"startKUDO"`
+	// If set, do not delete the resources after running the tests.
+	SkipDelete bool `json:"skipDelete"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
