@@ -76,8 +76,7 @@ func TestStepCreate(t *testing.T) {
 	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(actual), actual))
 }
 
-// Verify the test state as loaded from disk.
-// Each test provides a path to a set of test steps and their rendered result.
+// Verify that the DeleteExisting method properly cleans up resources during a test step.
 func TestStepDeleteExisting(t *testing.T) {
 	namespace := "world"
 
