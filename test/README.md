@@ -56,15 +56,19 @@ Run all integration tests:
 go run ./cmd/kubectl-kudo test
 ```
 
-Run tests against a live cluster:
+Run a specific integration test (e.g., the `patch` test from `test/integration/patch`):
 
+```
+go run ./cmd/kubectl-kudo test --test patch
+```
+
+Run tests against a live cluster:
 
 ```
 go run ./cmd/kubectl-kudo test --start-control-plane=false
 ```
 
 Run tests against a live cluster and do not delete resources after running:
-
 
 ```
 go run ./cmd/kubectl-kudo test --start-control-plane=false --skip-delete
