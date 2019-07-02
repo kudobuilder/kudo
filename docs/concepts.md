@@ -35,5 +35,5 @@ Every OperatorVersion must contain a `deploy` plan which is the default plan to 
 
 ## PlanExecution
 
-Every time a plan is executed, PlanExecution CRD is stored with inputs and status of the plan (e.g., when you upgrade kafka from version 2.4.0 -> 2.4.1).
+Every time a plan is executed, the corresponding PlanExecution CRD is stored with inputs and status of the plan (e.g., when you upgrade Kafka from version 2.4.0 -> 2.4.1).
 You can query the status of any plan via the CLI.
