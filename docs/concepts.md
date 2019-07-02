@@ -22,7 +22,7 @@ This is already complete definition of application to be installed (except overr
 
 ## Instance
 
-When you create an instance, you provide missing parameters for installed OperatorVersion. Creating an instance typically causes bunch of services, pods or statefulsets to start running in your cluster.
+When you create an instance, you provide missing parameters for the installed OperatorVersion. Creating an instance typically causes rendering of those parameters in your templates, such as services, pods or statefulsets. Once rendered these objects will then be applied with the given parameters to your cluster.
 Instances have the same name throughout its entire lifecycle. (e.g., [Kafka 2.4.0 cluster with 1 broker](https://github.com/kudobuilder/kudo/blob/master/config/samples/kafka-instance.yaml)).
 
 You can create multiple instance of an OperatorVersion in your cluster (e.g. different Kafka instances for different teams).
