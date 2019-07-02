@@ -13,6 +13,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -51,6 +52,56 @@ func (s *Step) Clean(namespace string) error {
 	}
 
 	return nil
+}
+
+// DeleteExisting deletes any resources in the TestStep.Delete list prior to running the tests.
+func (s *Step) DeleteExisting(namespace string) error {
+	toDelete := []runtime.Object{}
+
+	if s.Step == nil {
+		return nil
+	}
+
+	for _, ref := range s.Step.Delete {
+		gvk := ref.GroupVersionKind()
+
+		obj := testutils.NewResource(gvk.GroupVersion().String(), gvk.Kind, ref.Name, "")
+
+		objNs := namespace
+		if ref.Namespace != "" {
+			objNs = ref.Namespace
+		}
+
+		_, _, err := testutils.Namespaced(s.DiscoveryClient, obj, objNs)
+		if err != nil {
+			return err
+		}
+
+		toDelete = append(toDelete, obj.DeepCopyObject())
+
+		err = testutils.Retry(context.TODO(), func(ctx context.Context) error {
+			err := s.Client.Delete(context.TODO(), obj.DeepCopyObject())
+			if err != nil && k8serrors.IsNotFound(err) {
+				return nil
+			}
+			return err
+		}, testutils.IsJSONSyntaxError)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Wait for resources to be deleted.
+	return wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (done bool, err error) {
+		for _, obj := range toDelete {
+			err = s.Client.Get(context.TODO(), testutils.ObjectKey(obj), obj.DeepCopyObject())
+			if err == nil || !k8serrors.IsNotFound(err) {
+				return false, err
+			}
+		}
+
+		return true, nil
+	})
 }
 
 // Create applies all resources defined in the Apply list.
@@ -175,6 +226,10 @@ func (s *Step) Check(namespace string) []error {
 // 2. Wait for all of the states defined in the test step's asserts to be true.'
 func (s *Step) Run(namespace string) []error {
 	s.Logger.Log("starting test step", s.String())
+
+	if err := s.DeleteExisting(namespace); err != nil {
+		return []error{err}
+	}
 
 	testErrors := s.Create(namespace)
 

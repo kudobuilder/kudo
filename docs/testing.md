@@ -116,6 +116,21 @@ spec:
 
 This test step will create a Zookeeper `Instance`. The namespace should not be specified in the resources as a namespace is created for the test case to run in.
 
+#### Deleting resources
+
+It is possible to delete existing resources at the beginning of a test step. Create a `TestStep` object in your step to configure it:
+
+```
+apiVersion: kudo.k8s.io/v1alpha1
+kind: TestStep
+delete:
+- name: my-pod
+  kind: Pod
+  version: v1
+```
+
+The test harness will delete for each resource referenced in the delete list and wait for them to disappear from the API. If the object fails to delete, the test step will fail.
+
 #### Test assertions
 
 Test assert files contain any number of Kubernetes resources that are expected to be created. Each resource must specify the `apiVersion`, `kind`, and `metadata`. The test harness watches each defined resource and waits for the state defined to match the state in Kubernetes. Once all resources have the correct state simultaneously, the test is considered successful.
