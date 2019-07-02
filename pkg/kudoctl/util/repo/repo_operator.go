@@ -76,10 +76,13 @@ func (r *OperatorRepository) getPackageReaderByFullPackageName(fullPackageName s
 	parsedURL.Path = fmt.Sprintf("%s/%s.tgz", parsedURL.Path, fullPackageName)
 
 	fileURL = parsedURL.String()
+	return r.getPackageReaderByURL(fileURL)
+}
 
-	resp, err := r.Client.Get(fileURL)
+func (r *OperatorRepository) getPackageReaderByURL(packageURL string) (io.Reader, error) {
+	resp, err := r.Client.Get(packageURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting file url")
+		return nil, errors.Wrap(err, "getting package url")
 	}
 
 	return resp, nil
@@ -117,11 +120,24 @@ func (r *OperatorRepository) GetPackageReader(name string, version string) (io.R
 
 // GetPackageBundle provides an Bundle for a provided package name and optional version
 func (r *OperatorRepository) GetPackageBundle(name string, version string) (Bundle, error) {
+	// check to see if name is url
+	if isValidURL(name) {
+		reader, err := r.getPackageReaderByURL(name)
+		if err != nil {
+			return nil, err
+		}
+		return NewBundleFromReader(reader), nil
+	}
 	reader, err := r.GetPackageReader(name, version)
 	if err != nil {
 		return nil, err
 	}
 	return NewBundleFromReader(reader), nil
+}
+
+func isValidURL(name string) bool {
+	_, err := url.ParseRequestURI(name)
+	return err == nil
 }
 
 // GetOperatorVersionDependencies helper method returns a slice of strings that contains the names of all

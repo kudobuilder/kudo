@@ -69,6 +69,7 @@ func validate(args []string, options *Options) error {
 // getPackageCRDs tries to look for package files resolving the operator name to:
 // - a local tar.gz file
 // - a local directory
+// - a url to a tar.gz
 // - a operator name in the remote repository
 // in that order. Should there exist a local folder e.g. `cassandra` it will take precedence
 // over the remote repository package with the same name.
