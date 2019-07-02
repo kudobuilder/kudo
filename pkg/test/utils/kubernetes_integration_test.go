@@ -37,7 +37,8 @@ func TestCreateOrUpdate(t *testing.T) {
 			},
 		})
 
-		assert.Nil(t, CreateOrUpdate(context.TODO(), client, SetAnnotation(depToUpdate, "test", "hi"), true))
+		_, err = CreateOrUpdate(context.TODO(), client, SetAnnotation(depToUpdate, "test", "hi"), true)
+		assert.Nil(t, err)
 
 		quit := make(chan bool)
 
@@ -55,7 +56,8 @@ func TestCreateOrUpdate(t *testing.T) {
 
 		time.Sleep(time.Millisecond * 50)
 
-		assert.Nil(t, CreateOrUpdate(context.TODO(), client, SetAnnotation(depToUpdate, "test", "hello"), true))
+		_, err = CreateOrUpdate(context.TODO(), client, SetAnnotation(depToUpdate, "test", "hello"), true)
+		assert.Nil(t, err)
 
 		quit <- true
 	}

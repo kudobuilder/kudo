@@ -8,9 +8,9 @@ metadata:
 spec:
   operatorVersion:
     name: toy-v1
+    kind: OperatorVersion
     namespace: default
-    type: OperatorVersions
-  # Add fields here
+# Add fields here
   parameters:
     Param: "30"
     Replicas: "3"

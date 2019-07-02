@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
@@ -50,6 +51,11 @@ func runStatus(cmd *cobra.Command, args []string, options *statusOptions) error 
 	instanceFlag, err := cmd.Flags().GetString("instance")
 	if err != nil || instanceFlag == "" {
 		return fmt.Errorf("flag Error: Please set instance flag, e.g. \"--instance=<instanceName>\"")
+	}
+
+	// If the $KUBECONFIG environment variable is set, use that
+	if len(os.Getenv("KUBECONFIG")) > 0 {
+		options.kubeConfigPath = os.Getenv("KUBECONFIG")
 	}
 
 	configPath, err := check.KubeConfigLocationOrDefault(options.kubeConfigPath)
