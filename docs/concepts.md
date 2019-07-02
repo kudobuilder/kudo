@@ -13,7 +13,7 @@ Any kind of piece of software that you would want to run in your Kubernetes clus
 ## Operator
 
 High-level description of a deployable application to be run in k8s cluster. Contains metadata about the application (e.g., [Apache Kafka](https://github.com/kudobuilder/kudo/blob/master/config/samples/kafka-operator.yaml)).
-You can have multiple versions of kafka ready to be installed in your cluster, all will belong to the same Operator.
+You can have multiple versions of Kafka ready to be installed in your cluster, all will belong to the same Operator.
 
 ## OperatorVersion
 
