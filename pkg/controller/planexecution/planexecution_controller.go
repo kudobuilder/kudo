@@ -499,7 +499,12 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						log.Printf("Error getting patch between truth and obj: %v\n", err)
 					} else {
 						err = r.Client.Patch(context.TODO(), truth, client.ConstantPatch(types.StrategicMergePatchType, rawObj))
-						log.Printf("PlanExecutionController: CreateOrUpdate Patch: %v", err)
+						if err != nil {
+							err = r.Client.Patch(context.TODO(), truth, client.ConstantPatch(types.MergePatchType, rawObj))
+							if err != nil {
+								log.Printf("PlanExecutionController: CreateOrUpdate Patch: %v", err)
+							}
+						}
 					}
 				} else {
 					//create
