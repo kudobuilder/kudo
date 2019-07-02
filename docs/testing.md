@@ -16,6 +16,7 @@ KUDO uses a declarative integration testing harness for testing itself and Opera
 * [Writing test cases](#writing-test-cases)
    * [Test case directory structure](#test-case-directory-structure)
    * [Test steps](#test-steps)
+     * [Deleting resources](#deleting-resources)
      * [Test assertions](#test-assertions)
        * [Listing objects](#listing-objects)
        * [Advanced test assertions](#advanced-test-assertions)
