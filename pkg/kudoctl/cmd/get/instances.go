@@ -5,27 +5,22 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/user"
 
 	"github.com/spf13/cobra"
 	"github.com/xlab/treeprint"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"path/filepath"
-
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
 )
 
 var (
 	kubeConfig string
 	namespace  string
-)
-
-const (
-	defaultConfigPath = ".kube/config"
 )
 
 // NewGetInstancesCmd creates a command that lists the instances in the cluster
@@ -47,11 +42,20 @@ func NewGetInstancesCmd() *cobra.Command {
 
 func run(cmd *cobra.Command, args []string) {
 
-	mustKubeConfig()
-
 	_, err := cmd.Flags().GetString("kubeconfig")
 	if err != nil {
 		log.Printf("Flag Error: %v", err)
+	}
+
+	// If the $KUBECONFIG environment variable is set, use that
+	if len(os.Getenv("KUBECONFIG")) > 0 {
+		kubeConfig = os.Getenv("KUBECONFIG")
+	}
+
+	check.KubeConfigLocationOrDefault(kubeConfig)
+
+	if err := check.ValidateKubeConfigPath(kubeConfig); err != nil {
+		log.Printf("Could not check kubeconfig path: %v", err)
 	}
 
 	p, err := getInstances()
@@ -109,21 +113,4 @@ func getInstances() ([]string, error) {
 	}
 
 	return instanceList, nil
-}
-
-// mustKubeConfig checks if the kubeconfig file exists.
-func mustKubeConfig() {
-	// if kubeConfig is not specified, search for the default kubeconfig file under the $HOME/.kube/config.
-	if len(kubeConfig) == 0 {
-		usr, err := user.Current()
-		if err != nil {
-			fmt.Printf("Error: failed to determine user's home dir: %v", err)
-		}
-		kubeConfig = filepath.Join(usr.HomeDir, defaultConfigPath)
-	}
-
-	_, err := os.Stat(kubeConfig)
-	if err != nil && os.IsNotExist(err) {
-		fmt.Printf("Error: failed to find the kubeconfig file (%v): %v", kubeConfig, err)
-	}
 }
