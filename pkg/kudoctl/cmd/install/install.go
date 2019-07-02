@@ -44,7 +44,7 @@ func Run(cmd *cobra.Command, args []string, options *Options) error {
 
 func validate(args []string, options *Options) error {
 	if len(args) != 1 {
-		return fmt.Errorf("no argument provided, need name of the package or path to install")
+		return fmt.Errorf("expecting exactly one argument - name of the package or path to install")
 	}
 
 	// If the $KUBECONFIG environment variable is set, use that
