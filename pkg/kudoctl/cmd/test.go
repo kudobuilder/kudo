@@ -63,6 +63,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 
 			options.TestDirs = args
 
+			// If a config is not set and kudo-test.yaml exists, set configPath to kudo-test.yaml.
 			if configPath == "" {
 				if _, err := os.Stat("kudo-test.yaml"); err == nil {
 					configPath = "kudo-test.yaml"
@@ -71,6 +72,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 				}
 			}
 
+			// Load the configuration YAML into options.
 			if configPath != "" {
 				objects, err := testutils.LoadYAML(configPath)
 				if err != nil {
@@ -87,6 +89,8 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 					}
 				}
 			}
+
+			// Override configuration file options with any command line flags if they are set.
 
 			if isSet(flags, "crd-dir") {
 				options.CRDDir = crdDir
