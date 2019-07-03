@@ -88,7 +88,7 @@ func (s *Step) DeleteExisting(namespace string) error {
 					listOptions = append(listOptions, client.InNamespace(objNs))
 				}
 
-				err := s.Client.List(context.Background(), u, listOptions...)
+				err := s.Client.List(ctx, u, listOptions...)
 				if err != nil {
 					return errors.Wrap(err, "listing matching resources")
 				}
