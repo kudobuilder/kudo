@@ -9,6 +9,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/pkg/errors"
 )
 
@@ -21,7 +22,7 @@ type Repository interface {
 // OperatorRepository represents a operator repository
 type OperatorRepository struct {
 	Config *RepositoryConfiguration
-	Client HTTPClient
+	Client http.Client
 }
 
 // NewOperatorRepository constructs OperatorRepository
@@ -31,7 +32,7 @@ func NewOperatorRepository(conf *RepositoryConfiguration) (*OperatorRepository, 
 		return nil, fmt.Errorf("invalid repository URL: %s", conf.URL)
 	}
 
-	client, err := NewHTTPClient()
+	client, err := http.NewClient()
 	if err != nil {
 		return nil, fmt.Errorf("could not construct http client: %v", err)
 	}
