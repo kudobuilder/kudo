@@ -229,7 +229,7 @@ type TestStep struct {
     ObjectMeta
 
     // Objects to delete at the beginning of the test step.
-    Delete []corev1.ObjectReference
+    Delete []ObjectReference
 
     // Indicates that this is a unit test - safe to run without a real Kubernetes cluster.
     UnitTest bool
@@ -237,9 +237,20 @@ type TestStep struct {
     // Allowed environment labels
     // Disallowed environment labels
 }
+
+// ObjectReference is a Kubernetes object reference with added labels to allow referencing
+// objects by label.
+type ObjectReference struct {
+	corev1.ObjectReference `json:",inline"`
+	// Labels to match on.
+	Labels map[string]string
+}
 ```
 
 Using a `TestStep`, it is possible to skip certain test steps if conditions are not met, e.g., only run a test step on GKE or on clusters with more than three nodes.
+
+The `Delete` list can be used to specify objects to delete prior to running the tests. If `Labels` are set in an ObjectReference,
+all resources matching the labels and specified kind will be deleted.
 
 #### Assertion files
 

@@ -39,7 +39,7 @@ type TestStep struct {
 
 	Index int `json:"index,omitempty"`
 	// Objects to delete at the beginning of the test step.
-	Delete []corev1.ObjectReference `json:"delete,omitempty"`
+	Delete []ObjectReference `json:"delete,omitempty"`
 
 	// Indicates that this is a unit test - safe to run without a real Kubernetes cluster.
 	UnitTest bool `json:"unitTest"`
@@ -56,4 +56,12 @@ type TestAssert struct {
 	metav1.TypeMeta `json:",inline"`
 	// Override the default timeout of 300 seconds (in seconds).
 	Timeout int `json:"timeout"`
+}
+
+// ObjectReference is a Kubernetes object reference with added labels to allow referencing
+// objects by label.
+type ObjectReference struct {
+	corev1.ObjectReference `json:",inline"`
+	// Labels to match on.
+	Labels map[string]string
 }

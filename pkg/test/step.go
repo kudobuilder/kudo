@@ -2,7 +2,6 @@ package test
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -10,6 +9,7 @@ import (
 
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
+	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -72,21 +72,49 @@ func (s *Step) DeleteExisting(namespace string) error {
 			objNs = ref.Namespace
 		}
 
-		_, _, err := testutils.Namespaced(s.DiscoveryClient, obj, objNs)
+		_, objNs, err := testutils.Namespaced(s.DiscoveryClient, obj, objNs)
 		if err != nil {
 			return err
 		}
 
-		toDelete = append(toDelete, obj.DeepCopyObject())
+		if ref.Labels != nil && len(ref.Labels) != 0 {
+			// If the reference has a label selector, List all objects that match
+			if err := testutils.Retry(context.TODO(), func(ctx context.Context) error {
+				u := &unstructured.UnstructuredList{}
+				u.SetGroupVersionKind(gvk)
 
-		err = testutils.Retry(context.TODO(), func(ctx context.Context) error {
+				listOptions := []client.ListOptionFunc{client.MatchingLabels(ref.Labels)}
+				if objNs != "" {
+					listOptions = append(listOptions, client.InNamespace(objNs))
+				}
+
+				err := s.Client.List(context.Background(), u, listOptions...)
+				if err != nil {
+					return errors.Wrap(err, "listing matching resources")
+				}
+
+				for index := range u.Items {
+					toDelete = append(toDelete, &u.Items[index])
+				}
+
+				return nil
+			}, testutils.IsJSONSyntaxError); err != nil {
+				return err
+			}
+		} else {
+			// Otherwise just append the object specified.
+			toDelete = append(toDelete, obj.DeepCopyObject())
+		}
+	}
+
+	for _, obj := range toDelete {
+		if err := testutils.Retry(context.TODO(), func(ctx context.Context) error {
 			err := s.Client.Delete(context.TODO(), obj.DeepCopyObject())
 			if err != nil && k8serrors.IsNotFound(err) {
 				return nil
 			}
 			return err
-		}, testutils.IsJSONSyntaxError)
-		if err != nil {
+		}, testutils.IsJSONSyntaxError); err != nil {
 			return err
 		}
 	}

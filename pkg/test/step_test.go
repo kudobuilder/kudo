@@ -87,17 +87,21 @@ func TestStepDeleteExisting(t *testing.T) {
 	step := Step{
 		Logger: testutils.NewTestLogger(t, ""),
 		Step: &kudo.TestStep{
-			Delete: []corev1.ObjectReference{
+			Delete: []kudo.ObjectReference{
 				{
-					Kind:       "Pod",
-					APIVersion: "v1",
-					Name:       "delete-me",
+					ObjectReference: corev1.ObjectReference{
+						Kind:       "Pod",
+						APIVersion: "v1",
+						Name:       "delete-me",
+					},
 				},
 				{
-					Kind:       "Pod",
-					APIVersion: "v1",
-					Name:       "also-delete-me",
-					Namespace:  "default",
+					ObjectReference: corev1.ObjectReference{
+						Kind:       "Pod",
+						APIVersion: "v1",
+						Name:       "also-delete-me",
+						Namespace:  "default",
+					},
 				},
 			},
 		},
