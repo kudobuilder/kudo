@@ -9,8 +9,11 @@ import (
 
 	petname "github.com/dustinkirkland/golang-petname"
 
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
@@ -225,4 +228,77 @@ func TestCheckResourceIntegration(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Verify that the DeleteExisting method properly cleans up resources that are matched on labels during a test step.
+func TestStepDeleteExistingLabelMatch(t *testing.T) {
+	env := &envtest.Environment{}
+
+	config, err := env.Start()
+	assert.Nil(t, err)
+
+	defer env.Stop()
+
+	cl, err := client.New(config, client.Options{
+		Scheme: testutils.Scheme(),
+	})
+	assert.Nil(t, err)
+	dClient, err := discovery.NewDiscoveryClientForConfig(config)
+	assert.Nil(t, err)
+
+	namespace := "world"
+
+	podSpec := map[string]interface{}{
+		"containers": []interface{}{
+			map[string]interface{}{
+				"image": "otherimage:latest",
+				"name":  "nginx",
+			},
+		},
+	}
+
+	podToDelete := testutils.WithSpec(testutils.WithLabels(testutils.NewPod("aa-delete-me", "world"), map[string]string{
+		"hello": "world",
+	}), podSpec)
+
+	podToKeep := testutils.WithSpec(testutils.WithLabels(testutils.NewPod("bb-dont-delete-me", "world"), map[string]string{
+		"bye": "moon",
+	}), podSpec)
+
+	podToDelete2 := testutils.WithSpec(testutils.WithLabels(testutils.NewPod("cc-delete-me", "world"), map[string]string{
+		"hello": "world",
+	}), podSpec)
+
+	step := Step{
+		Logger: testutils.NewTestLogger(t, ""),
+		Step: &kudo.TestStep{
+			Delete: []kudo.ObjectReference{
+				{
+					ObjectReference: corev1.ObjectReference{
+						Kind:       "Pod",
+						APIVersion: "v1",
+					},
+					Labels: map[string]string{
+						"hello": "world",
+					},
+				},
+			},
+		},
+		Client:          cl,
+		DiscoveryClient: dClient,
+	}
+
+	assert.Nil(t, step.Client.Create(context.TODO(), podToKeep))
+	assert.Nil(t, step.Client.Create(context.TODO(), podToDelete))
+	assert.Nil(t, step.Client.Create(context.TODO(), podToDelete2))
+
+	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(podToKeep), podToKeep))
+	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(podToDelete), podToDelete))
+	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(podToDelete2), podToDelete2))
+
+	assert.Nil(t, step.DeleteExisting(namespace))
+
+	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(podToKeep), podToKeep))
+	assert.True(t, k8serrors.IsNotFound(step.Client.Get(context.TODO(), testutils.ObjectKey(podToDelete), podToDelete)))
+	assert.True(t, k8serrors.IsNotFound(step.Client.Get(context.TODO(), testutils.ObjectKey(podToDelete2), podToDelete2)))
 }

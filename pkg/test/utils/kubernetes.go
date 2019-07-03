@@ -37,6 +37,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// IsJSONSyntaxError returns true if the error is a JSON syntax error.
+func IsJSONSyntaxError(err error) bool {
+	_, ok := err.(*ejson.SyntaxError)
+	return ok
+}
+
 // ValidateErrors accepts an error as its first argument and passes it to each function in the errValidationFuncs slice,
 // if any of the methods returns true, the method returns nil, otherwise it returns the original error.
 func ValidateErrors(err error, errValidationFuncs ...func(error) bool) error {
@@ -446,10 +452,7 @@ func CreateOrUpdate(ctx context.Context, client client.Client, obj runtime.Objec
 	validators := []func(err error) bool{}
 
 	if retryOnError {
-		validators = append(validators, k8serrors.IsConflict, func(err error) bool {
-			_, ok := err.(*ejson.SyntaxError)
-			return ok
-		})
+		validators = append(validators, k8serrors.IsConflict, IsJSONSyntaxError)
 	}
 
 	return updated, Retry(ctx, func(ctx context.Context) error {

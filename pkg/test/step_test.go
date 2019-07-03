@@ -8,6 +8,7 @@ import (
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -73,6 +74,50 @@ func TestStepCreate(t *testing.T) {
 	assert.True(t, k8serrors.IsNotFound(step.Client.Get(context.TODO(), testutils.ObjectKey(podWithNamespace), podWithNamespace)))
 	actual := testutils.NewPod("hello2", namespace)
 	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(actual), actual))
+}
+
+// Verify that the DeleteExisting method properly cleans up resources during a test step.
+func TestStepDeleteExisting(t *testing.T) {
+	namespace := "world"
+
+	podToDelete := testutils.NewPod("delete-me", "world")
+	podToDeleteDefaultNS := testutils.NewPod("also-delete-me", "default")
+	podToKeep := testutils.NewPod("keep-me", "world")
+
+	step := Step{
+		Logger: testutils.NewTestLogger(t, ""),
+		Step: &kudo.TestStep{
+			Delete: []kudo.ObjectReference{
+				{
+					ObjectReference: corev1.ObjectReference{
+						Kind:       "Pod",
+						APIVersion: "v1",
+						Name:       "delete-me",
+					},
+				},
+				{
+					ObjectReference: corev1.ObjectReference{
+						Kind:       "Pod",
+						APIVersion: "v1",
+						Name:       "also-delete-me",
+						Namespace:  "default",
+					},
+				},
+			},
+		},
+		Client:          fake.NewFakeClient(podToDelete, podToKeep, podToDeleteDefaultNS),
+		DiscoveryClient: testutils.FakeDiscoveryClient(),
+	}
+
+	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(podToKeep), podToKeep))
+	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(podToDelete), podToDelete))
+	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(podToDeleteDefaultNS), podToDeleteDefaultNS))
+
+	assert.Nil(t, step.DeleteExisting(namespace))
+
+	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(podToKeep), podToKeep))
+	assert.True(t, k8serrors.IsNotFound(step.Client.Get(context.TODO(), testutils.ObjectKey(podToDelete), podToDelete)))
+	assert.True(t, k8serrors.IsNotFound(step.Client.Get(context.TODO(), testutils.ObjectKey(podToDeleteDefaultNS), podToDeleteDefaultNS)))
 }
 
 func TestCheckResource(t *testing.T) {
