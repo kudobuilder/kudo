@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
@@ -73,10 +74,10 @@ func validate(args []string, options *Options) error {
 // - a operator name in the remote repository
 // in that order. Should there exist a local folder e.g. `cassandra` it will take precedence
 // over the remote repository package with the same name.
-func getPackageCRDs(name string, options *Options, repository repo.Repository) (*repo.PackageCRDs, error) {
+func getPackageCRDs(name string, options *Options, repository repo.Repository) (*bundle.PackageCRDs, error) {
 	// Local files/folder have priority
 	if _, err := os.Stat(name); err == nil {
-		b, err := repo.NewBundle(name)
+		b, err := bundle.NewBundle(name)
 		if err != nil {
 			return nil, err
 		}

@@ -8,13 +8,14 @@ import (
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
 	"github.com/pkg/errors"
 )
 
 // Repository is a abstraction for a service that can retrieve package bundles
 type Repository interface {
 	GetPackageReader(name string, version string) (io.Reader, error)
-	GetPackageBundle(name string, version string) (Bundle, error)
+	GetPackageBundle(name string, version string) (bundle.Bundle, error)
 }
 
 // OperatorRepository represents a operator repository
@@ -119,20 +120,20 @@ func (r *OperatorRepository) GetPackageReader(name string, version string) (io.R
 }
 
 // GetPackageBundle provides an Bundle for a provided package name and optional version
-func (r *OperatorRepository) GetPackageBundle(name string, version string) (Bundle, error) {
+func (r *OperatorRepository) GetPackageBundle(name string, version string) (bundle.Bundle, error) {
 	// check to see if name is url
 	if isValidURL(name) {
 		reader, err := r.getPackageReaderByURL(name)
 		if err != nil {
 			return nil, err
 		}
-		return NewBundleFromReader(reader), nil
+		return bundle.NewBundleFromReader(reader), nil
 	}
 	reader, err := r.GetPackageReader(name, version)
 	if err != nil {
 		return nil, err
 	}
-	return NewBundleFromReader(reader), nil
+	return bundle.NewBundleFromReader(reader), nil
 }
 
 func isValidURL(name string) bool {
