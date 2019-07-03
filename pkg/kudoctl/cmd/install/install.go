@@ -6,7 +6,6 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/helpers"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 	"github.com/pkg/errors"
@@ -16,7 +15,6 @@ import (
 
 // Options defines configuration options for the install command
 type Options struct {
-	AutoApprove    bool
 	InstanceName   string
 	KubeConfigPath string
 	Namespace      string
@@ -115,10 +113,12 @@ func installOperator(operatorArgument string, options *Options) error {
 		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", operatorArgument)
 	}
 
+	operatorName := crds.Operator.ObjectMeta.Name
+	operatorVersion := crds.OperatorVersion.Spec.Version
+
 	// Operator part
 
 	// Check if Operator exists
-	operatorName := crds.Operator.ObjectMeta.Name
 	if !kc.OperatorExistsInCluster(crds.Operator.ObjectMeta.Name, options.Namespace) {
 		if err := installSingleOperatorToCluster(operatorName, options.Namespace, crds.Operator, kc); err != nil {
 			return errors.Wrap(err, "installing single Operator")
@@ -127,32 +127,15 @@ func installOperator(operatorArgument string, options *Options) error {
 
 	// OperatorVersion part
 
-	// Check if AnyOperatorVersion for Operator exists
-	if !kc.AnyOperatorVersionExistsInCluster(crds.Operator.ObjectMeta.Name, options.Namespace) {
-		// OperatorVersion CRD for Operator does not exist
+	versionsInstalled, err := kc.OperatorVersionsInstalled(operatorName, options.Namespace)
+	if err != nil {
+		return errors.Wrap(err, "retrieving existing operator versions")
+	}
+	if !versionExists(versionsInstalled, operatorVersion) {
+		// this version does not exist in the cluster
 		if err := installSingleOperatorVersionToCluster(operatorName, options.Namespace, kc, crds.OperatorVersion); err != nil {
 			return errors.Wrapf(err, "installing OperatorVersion CRD for operator: %s", operatorName)
 		}
-	}
-
-	// Check if OperatorVersion is out of sync with official OperatorVersion for this Operator
-	if !kc.OperatorVersionInClusterOutOfSync(operatorName, crds.OperatorVersion.Spec.Version, options.Namespace) {
-		// This happens when the given OperatorVersion is not existing. E.g.
-		// when a version has been installed that is not part of the official kudobuilder/operators repo.
-		if !options.AutoApprove {
-			fmt.Printf("No official OperatorVersion has been found for \"%s\". "+
-				"Do you want to install one? (Yes/no) ", operatorName)
-			if helpers.AskForConfirmation() {
-				if err := installSingleOperatorVersionToCluster(operatorName, options.Namespace, kc, crds.OperatorVersion); err != nil {
-					return errors.Wrapf(err, "installing OperatorVersion CRD for operator %s", operatorName)
-				}
-			}
-		} else {
-			if err := installSingleOperatorVersionToCluster(operatorName, options.Namespace, kc, crds.OperatorVersion); err != nil {
-				return errors.Wrapf(err, "installing OperatorVersion CRD for operator %s", operatorName)
-			}
-		}
-
 	}
 
 	// Instances part
@@ -176,21 +159,9 @@ func installOperator(operatorArgument string, options *Options) error {
 	}
 
 	if !instanceExists {
-		// This happens when the given OperatorVersion is not existing. E.g.
-		// when a version has been installed that is not part of the official kudobuilder/operators repo.
-		if !options.AutoApprove {
-			fmt.Printf("No instance named '%s' tied to this '%s' version has been found. "+
-				"Do you want to create one? (Yes/no) ", instanceName, operatorName)
-			if helpers.AskForConfirmation() {
-				if err := installSingleInstanceToCluster(operatorName, crds.Instance, kc, options); err != nil {
-					return errors.Wrap(err, "installing single instance")
-				}
-			}
-		} else {
-			if err := installSingleInstanceToCluster(operatorName, crds.Instance, kc, options); err != nil {
-				return errors.Wrap(err, "installing single instance")
+		if err := installSingleInstanceToCluster(operatorName, crds.Instance, kc, options); err != nil {
+			return errors.Wrap(err, "installing single instance")
 
-			}
 		}
 
 	} else {
@@ -198,6 +169,15 @@ func installOperator(operatorArgument string, options *Options) error {
 			instanceName, operatorName, crds.OperatorVersion.Spec.Version, options.Namespace)
 	}
 	return nil
+}
+
+func versionExists(versions []string, currentVersion string) bool {
+	for _, v := range versions {
+		if v == currentVersion {
+			return true
+		}
+	}
+	return false
 }
 
 // installSingleOperatorToCluster installs a given Operator to the cluster
