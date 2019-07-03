@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"reflect"
 	"testing"
 
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
@@ -12,6 +11,7 @@ import (
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -23,23 +23,27 @@ var (
             kubectl kudo test --config test.yaml
 
       Run tests against an existing Kubernetes cluster:
-            kubectl kudo test ./pkg/test/test_data/
+            kubectl kudo test ./test/integration/
 
       Run tests against an existing Kubernetes cluster, and install KUDO, manifests, and CRDs for the tests:
-            kubectl kudo test --crd-dir ./config/crds/ --manifests-dir ./config/samples/test-operator/ ./pkg/test/test_data/
+            kubectl kudo test --crd-dir ./config/crds/ --manifests-dir ./test/manifests/ ./test/integration/
 
       Run a Kubernetes control plane and KUDO and install manifests and CRDs for the running tests:
-            kubectl kudo test --start-control-plane --start-kudo --crd-dir ./config/crds/ --manifests-dir ./config/samples/test-operator/ ./pkg/test/test_data/
+            kubectl kudo test --start-control-plane --start-kudo --crd-dir ./config/crds/ --manifests-dir ./test/manifests/ ./test/integration/
 `
 )
 
 // newTestCmd creates the test command for the CLI
 func newTestCmd() *cobra.Command {
 	configPath := ""
+	crdDir := ""
+	manifestsDir := ""
+	testToRun := ""
+	startControlPlane := false
+	startKUDO := false
+	skipDelete := false
+
 	options := kudo.TestSuite{}
-	defaults := kudo.TestSuite{
-		TestDirs: []string{},
-	}
 
 	testCmd := &cobra.Command{
 		Use:   "test [flags]... [test directories]...",
@@ -55,9 +59,12 @@ If no arguments are provided, the test harness will attempt to load the test con
 For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 		Example: testExample,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
+			flags := cmd.Flags()
+
 			options.TestDirs = args
 
-			if configPath == "" && reflect.DeepEqual(options, defaults) {
+			// If a config is not set and kudo-test.yaml exists, set configPath to kudo-test.yaml.
+			if configPath == "" {
 				if _, err := os.Stat("kudo-test.yaml"); err == nil {
 					configPath = "kudo-test.yaml"
 				} else {
@@ -65,10 +72,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 				}
 			}
 
-			if configPath != "" && !reflect.DeepEqual(options, defaults) {
-				return fmt.Errorf("provide either --config or other arguments, but not both")
-			}
-
+			// Load the configuration YAML into options.
 			if configPath != "" {
 				objects, err := testutils.LoadYAML(configPath)
 				if err != nil {
@@ -86,6 +90,32 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 				}
 			}
 
+			// Override configuration file options with any command line flags if they are set.
+
+			if isSet(flags, "crd-dir") {
+				options.CRDDir = crdDir
+			}
+
+			if isSet(flags, "manifests-dir") {
+				options.ManifestsDir = manifestsDir
+			}
+
+			if isSet(flags, "start-control-plane") {
+				options.StartControlPlane = startControlPlane
+			}
+
+			if isSet(flags, "start-kudo") {
+				options.StartKUDO = startKUDO
+			}
+
+			if isSet(flags, "skip-delete") {
+				options.SkipDelete = skipDelete
+			}
+
+			if len(args) != 0 {
+				options.TestDirs = args
+			}
+
 			if len(options.TestDirs) == 0 {
 				return fmt.Errorf("no test directories provided, please provide either --config or test directories on the command line")
 			}
@@ -93,7 +123,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			testutils.RunTests("kudo", func(t *testing.T) {
+			testutils.RunTests("kudo", testToRun, func(t *testing.T) {
 				harness := test.Harness{
 					TestSuite: options,
 					T:         t,
@@ -105,10 +135,25 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 	}
 
 	testCmd.Flags().StringVar(&configPath, "config", "", "Path to file to load test settings from (must not be set with any other arguments).")
-	testCmd.Flags().StringVar(&options.CRDDir, "crd-dir", "", "Directory to load CustomResourceDefinitions from prior to running the tests.")
-	testCmd.Flags().StringVar(&options.ManifestsDir, "manifests-dir", "", "A directory containing manifests to apply before running the tests.")
-	testCmd.Flags().BoolVar(&options.StartControlPlane, "start-control-plane", false, "Start a local Kubernetes control plane for the tests (requires etcd and kube-apiserver binaries, implies --start-kudo).")
-	testCmd.Flags().BoolVar(&options.StartKUDO, "start-kudo", false, "Start KUDO during the test run.")
+	testCmd.Flags().StringVar(&crdDir, "crd-dir", "", "Directory to load CustomResourceDefinitions from prior to running the tests.")
+	testCmd.Flags().StringVar(&manifestsDir, "manifests-dir", "", "A directory containing manifests to apply before running the tests.")
+	testCmd.Flags().StringVar(&testToRun, "test", "", "If set, the specific test case to run.")
+	testCmd.Flags().BoolVar(&startControlPlane, "start-control-plane", false, "Start a local Kubernetes control plane for the tests (requires etcd and kube-apiserver binaries, implies --start-kudo).")
+	testCmd.Flags().BoolVar(&startKUDO, "start-kudo", false, "Start KUDO during the test run.")
+	testCmd.Flags().BoolVar(&skipDelete, "skip-delete", false, "If set, do not delete resources created during tests (helpful for debugging test failures).")
 
 	return testCmd
+}
+
+// isSet returns true if a flag is set on the command line.
+func isSet(flagSet *pflag.FlagSet, name string) bool {
+	found := false
+
+	flagSet.Visit(func(flag *pflag.Flag) {
+		if flag.Name == name {
+			found = true
+		}
+	})
+
+	return found
 }

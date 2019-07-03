@@ -41,26 +41,7 @@ After updating CRD manifests, use `make deploy` to apply the new CRDs to your cl
 
 #### Testing
 
-You can run the unit tests:
-
-```
-make test
-```
-
-Or the integration tests:
-
-```
-make integration-test
-```
-
-See [the testing documentation](https://kudo.dev/docs/testing) for more details.
-
-### Build and run tests using Docker
-If you don't want to install kubebuilder and other dependencies of KUDO locally, you can build KUDO and run the tests inside a Docker container.
-
-To run tests inside a Docker container, you can just execute:
-
-`./test/run_tests.sh`
+See the [contributor's testing guide](https://github.com/kudobuilder/kudo/blob/master/test/README.md).
 
 ## Community, Discussion, and Support
 
