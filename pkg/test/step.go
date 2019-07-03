@@ -201,8 +201,8 @@ func (s *Step) CheckResource(expected runtime.Object, namespace string) []error 
 
 		err = s.Client.List(context.TODO(), actual, listOptions...)
 
-		for _, item := range actual.Items {
-			actuals = append(actuals, &item)
+		for index := range actual.Items {
+			actuals = append(actuals, &actual.Items[index])
 		}
 	}
 	if err != nil {

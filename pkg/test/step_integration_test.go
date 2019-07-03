@@ -43,9 +43,19 @@ func TestCheckResourceIntegration(t *testing.T) {
 		shouldError bool
 	}{
 		{
-			testName: "match object by labels",
+			testName: "match object by labels, first in list matches",
 			actual: []runtime.Object{
-				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("hello", ""), map[string]string{
+				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("aa", ""), map[string]string{
+					"app": "nginx",
+				}), map[string]interface{}{
+					"containers": []interface{}{
+						map[string]interface{}{
+							"image": "nginx:1.7.9",
+							"name":  "nginx",
+						},
+					},
+				}),
+				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("bb", ""), map[string]string{
 					"app": "not-match",
 				}), map[string]interface{}{
 					"containers": []interface{}{
@@ -55,7 +65,41 @@ func TestCheckResourceIntegration(t *testing.T) {
 						},
 					},
 				}),
-				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("hello1", ""), map[string]string{
+			},
+			expected: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "Pod",
+					"metadata": map[string]interface{}{
+						"labels": map[string]interface{}{
+							"app": "nginx",
+						},
+					},
+					"spec": map[string]interface{}{
+						"containers": []interface{}{
+							map[string]interface{}{
+								"image": "nginx:1.7.9",
+								"name":  "nginx",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "match object by labels, last in list matches",
+			actual: []runtime.Object{
+				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("aa", ""), map[string]string{
+					"app": "not-match",
+				}), map[string]interface{}{
+					"containers": []interface{}{
+						map[string]interface{}{
+							"image": "nginx:1.7.9",
+							"name":  "nginx",
+						},
+					},
+				}),
+				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("bb", ""), map[string]string{
 					"app": "nginx",
 				}), map[string]interface{}{
 					"containers": []interface{}{
