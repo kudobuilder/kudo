@@ -8,7 +8,7 @@ menu: docs
 
 ## Application
 
-Any kind of piece of software that you would want to run in your Kubernetes cluster. It can be as simple as cleanup job or as complex as distributed system like Kafka.
+Any kind of software that you would want to run in your Kubernetes cluster. It can be as simple as cleanup job or as complex as distributed system like Kafka.
 
 ## Operator
 
