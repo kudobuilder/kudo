@@ -90,12 +90,14 @@ func TestParameterValidation_InstallCrds(t *testing.T) {
 		name              string
 		parameters        []v1alpha1.Parameter
 		installParameters map[string]string
+		skipInstance      bool
 		err               string
 	}{
-		{"all parameters with defaults", []v1alpha1.Parameter{{Name: "param", Required: true, Default: "aaa"}}, map[string]string{}, ""},
-		{"missing parameter provided", []v1alpha1.Parameter{{Name: "param", Required: true}}, map[string]string{"param": "value"}, ""},
-		{"missing parameter", []v1alpha1.Parameter{{Name: "param", Required: true}}, map[string]string{}, "missing required parameters during installation: param"},
-		{"multiple missing parameter", []v1alpha1.Parameter{{Name: "param", Required: true}, {Name: "param2", Required: true}}, map[string]string{}, "missing required parameters during installation: param,param2"},
+		{"all parameters with defaults", []v1alpha1.Parameter{{Name: "param", Required: true, Default: "aaa"}}, map[string]string{}, false, ""},
+		{"missing parameter provided", []v1alpha1.Parameter{{Name: "param", Required: true}}, map[string]string{"param": "value"}, false, ""},
+		{"missing parameter", []v1alpha1.Parameter{{Name: "param", Required: true}}, map[string]string{}, false, "missing required parameters during installation: param"},
+		{"multiple missing parameter", []v1alpha1.Parameter{{Name: "param", Required: true}, {Name: "param2", Required: true}}, map[string]string{}, false, "missing required parameters during installation: param,param2"},
+		{"skip instance ignores missing parameter", []v1alpha1.Parameter{{Name: "param", Required: true}}, map[string]string{}, true, ""},
 	}
 
 	for _, tt := range tests {
@@ -105,6 +107,7 @@ func TestParameterValidation_InstallCrds(t *testing.T) {
 		testCrds.OperatorVersion.Spec.Parameters = tt.parameters
 		options := &Options{}
 		options.Parameters = tt.installParameters
+		options.SkipInstance = tt.skipInstance
 
 		err := installCrds(&testCrds, kc, options)
 		if err != nil && err.Error() != tt.err {
