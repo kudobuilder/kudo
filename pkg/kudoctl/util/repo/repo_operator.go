@@ -122,24 +122,11 @@ func (r *OperatorRepository) GetPackageReader(name string, version string) (io.R
 
 // GetPackageBundle provides an Bundle for a provided package name and optional version
 func (r *OperatorRepository) GetPackageBundle(name string, version string) (bundle.Bundle, error) {
-	// check to see if name is url
-	if isValidURL(name) {
-		reader, err := r.getPackageReaderByURL(name)
-		if err != nil {
-			return nil, err
-		}
-		return bundle.NewBundleFromReader(reader), nil
-	}
 	reader, err := r.GetPackageReader(name, version)
 	if err != nil {
 		return nil, err
 	}
 	return bundle.NewBundleFromReader(reader), nil
-}
-
-func isValidURL(name string) bool {
-	_, err := url.ParseRequestURI(name)
-	return err == nil
 }
 
 // GetOperatorVersionDependencies helper method returns a slice of strings that contains the names of all

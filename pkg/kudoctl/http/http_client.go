@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/version"
@@ -59,4 +60,10 @@ func NewClient() (*Client, error) {
 
 	client.client = &http.Client{Transport: tr}
 	return &client, nil
+}
+
+// IsValidURL returns true if the url is a Parsable URL
+func IsValidURL(uri string) bool {
+	_, err := url.ParseRequestURI(uri)
+	return err == nil
 }

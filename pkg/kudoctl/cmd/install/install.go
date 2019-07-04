@@ -6,6 +6,8 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle/finder"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
@@ -84,11 +86,23 @@ func getPackageCRDs(name string, options *Options, repository repo.Repository) (
 		return b.GetCRDs()
 	}
 
-	bundle, err := repository.GetPackageBundle(name, options.PackageVersion)
+	if http.IsValidURL(name) {
+		f, err := finder.NewURL()
+		if err != nil {
+			return nil, err
+		}
+		b, err := f.GetBundle(name)
+		if err != nil {
+			return nil, err
+		}
+		return b.GetCRDs()
+	}
+
+	b, err := repository.GetPackageBundle(name, options.PackageVersion)
 	if err != nil {
 		return nil, err
 	}
-	return bundle.GetCRDs()
+	return b.GetCRDs()
 }
 
 // installOperator is the umbrella for a single operator installation that gathers the business logic
