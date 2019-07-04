@@ -1,0 +1,47 @@
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  name: icto-upgrade
+status:
+  status: COMPLETE
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: PlanExecution
+metadata:
+  labels:
+    instance: icto-upgrade
+    operator-version: icto-upgrade
+spec:
+  planName: deploy
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  name: icto-upgrade-fallback-to-update
+status:
+  status: COMPLETE
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: PlanExecution
+metadata:
+  labels:
+    instance: icto-upgrade-fallback-to-update
+    operator-version: icto-upgrade
+spec:
+  planName: deploy
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  name: icto-upgrade-fallback-to-deploy
+status:
+  status: COMPLETE
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: PlanExecution
+metadata:
+  labels:
+    instance: icto-upgrade-fallback-to-deploy
+    operator-version: icto-upgrade
+spec:
+  planName: deploy
