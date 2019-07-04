@@ -77,13 +77,14 @@ func validate(args []string, options *Options) error {
 // in that order. Should there exist a local folder e.g. `cassandra` it will take precedence
 // over the remote repository package with the same name.
 func getPackageCRDs(name string, options *Options, repository repo.Repository) (*bundle.PackageCRDs, error) {
+
 	// Local files/folder have priority
 	if _, err := os.Stat(name); err == nil {
 		f, err := finder.NewLocal()
 		if err != nil {
 			return nil, err
 		}
-		b, err := f.GetBundle(name)
+		b, err := f.GetBundle(name, options.PackageVersion)
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +96,7 @@ func getPackageCRDs(name string, options *Options, repository repo.Repository) (
 		if err != nil {
 			return nil, err
 		}
-		b, err := f.GetBundle(name)
+		b, err := f.GetBundle(name, options.PackageVersion)
 		if err != nil {
 			return nil, err
 		}
