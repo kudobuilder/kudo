@@ -57,27 +57,6 @@ func NewClient(namespace, kubeConfigPath string) (*Client, error) {
 	}, nil
 }
 
-// CRDsInstalled checks for essential CRDs of KUDO to be installed
-func (c *Client) CRDsInstalled(namespace string) error {
-	_, err := c.clientset.KudoV1alpha1().Operators(namespace).List(v1.ListOptions{})
-	if err != nil {
-		return errors.WithMessage(err, "operators")
-	}
-	_, err = c.clientset.KudoV1alpha1().OperatorVersions(namespace).List(v1.ListOptions{})
-	if err != nil {
-		return errors.WithMessage(err, "operatorversions")
-	}
-	_, err = c.clientset.KudoV1alpha1().Instances(namespace).List(v1.ListOptions{})
-	if err != nil {
-		return errors.WithMessage(err, "instances")
-	}
-	_, err = c.clientset.KudoV1alpha1().PlanExecutions(namespace).List(v1.ListOptions{})
-	if err != nil {
-		return errors.WithMessage(err, "planexecutions")
-	}
-	return nil
-}
-
 // OperatorExistsInCluster checks if a given Operator object is installed on the current k8s cluster
 func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 	operator, err := c.clientset.KudoV1alpha1().Operators(namespace).Get(name, v1.GetOptions{})
@@ -85,30 +64,6 @@ func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 		return false
 	}
 	fmt.Printf("operator.kudo.k8s.io/%s unchanged\n", operator.Name)
-	return true
-}
-
-// AnyOperatorVersionExistsInCluster checks if any OperatorVersion object matches to the given Operator name
-// in the cluster
-func (c *Client) AnyOperatorVersionExistsInCluster(operator string, namespace string) bool {
-	fv, err := c.clientset.KudoV1alpha1().OperatorVersions(namespace).List(v1.ListOptions{})
-	if err != nil {
-		return false
-	}
-	if len(fv.Items) < 1 {
-		return false
-	}
-
-	var i int
-	for _, v := range fv.Items {
-		if strings.HasPrefix(v.Name, operator) {
-			i++
-		}
-	}
-	if i < 1 {
-		return false
-	}
-	fmt.Printf("operatorversion.kudo.k8s.io/%s unchanged\n", operator)
 	return true
 }
 
@@ -151,27 +106,20 @@ func (c *Client) InstanceExistsInCluster(name, namespace, version, instanceName 
 	return true, nil
 }
 
-// OperatorVersionInClusterOutOfSync checks if any OperatorVersion object matches a given Operator name and
-// if not it returns false. False means that for the given Operator the most recent official OperatorVersion
-// is not installed in the cluster or an error occurred.
-func (c *Client) OperatorVersionInClusterOutOfSync(operator, mostRecentVersion, namespace string) bool {
+// OperatorVersionsInstalled lists all the versions of given operator installed in the cluster in given ns
+func (c *Client) OperatorVersionsInstalled(operatorName, namespace string) ([]string, error) {
 	fv, err := c.clientset.KudoV1alpha1().OperatorVersions(namespace).List(v1.ListOptions{})
 	if err != nil {
-		return false
+		return nil, err
 	}
-	if len(fv.Items) < 1 {
-		return false
-	}
+	existingVersions := []string{}
 
-	var i int
 	for _, v := range fv.Items {
-		if strings.HasPrefix(v.Name, operator) {
-			if v.Spec.Version == mostRecentVersion {
-				i++
-			}
+		if strings.HasPrefix(v.Name, operatorName) {
+			existingVersions = append(existingVersions, v.Spec.Version)
 		}
 	}
-	return !(i < 1)
+	return existingVersions, nil
 }
 
 // InstallOperatorObjToCluster expects a valid Operator obj to install

@@ -16,6 +16,7 @@ KUDO uses a declarative integration testing harness for testing itself and Opera
 * [Writing test cases](#writing-test-cases)
    * [Test case directory structure](#test-case-directory-structure)
    * [Test steps](#test-steps)
+     * [Deleting resources](#deleting-resources)
      * [Test assertions](#test-assertions)
        * [Listing objects](#listing-objects)
        * [Advanced test assertions](#advanced-test-assertions)
@@ -115,6 +116,27 @@ spec:
 ```
 
 This test step will create a Zookeeper `Instance`. The namespace should not be specified in the resources as a namespace is created for the test case to run in.
+
+#### Deleting resources
+
+It is possible to delete existing resources at the beginning of a test step. Create a `TestStep` object in your step to configure it:
+
+```
+apiVersion: kudo.k8s.io/v1alpha1
+kind: TestStep
+delete:
+- name: my-pod
+  kind: Pod
+  version: v1
+- kind: Pod
+  version: v1
+  labels:
+    app: nginx
+```
+
+The test harness will delete for each resource referenced in the delete list and wait for them to disappear from the API. If the object fails to delete, the test step will fail.
+
+In the first delete example, the `Pod` called `my-pod` will be deleted. In the second, all `Pods` matching the `app=nginx` label will be deleted.
 
 #### Test assertions
 

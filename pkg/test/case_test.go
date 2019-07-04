@@ -62,10 +62,12 @@ func TestLoadTestSteps(t *testing.T) {
 							APIVersion: "kudo.k8s.io/v1alpha1",
 						},
 						Index: 1,
-						Delete: []corev1.ObjectReference{
+						Delete: []kudo.ObjectReference{
 							{
-								Kind: "Pod",
-								Name: "test",
+								ObjectReference: corev1.ObjectReference{
+									Kind: "Pod",
+									Name: "test",
+								},
 							},
 						},
 					},
