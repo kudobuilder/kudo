@@ -57,6 +57,7 @@ func NewClient(namespace, kubeConfigPath string) (*Client, error) {
 	}, nil
 }
 
+// NewClientFromClient creates KUDO client from kubernetes client interface
 func NewClientFromClient(client versioned.Interface) *Client {
 	result := Client{}
 	result.clientset = client

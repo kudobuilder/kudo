@@ -2,13 +2,14 @@ package install
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 )
 
 func TestValidate(t *testing.T) {
@@ -86,15 +87,15 @@ func TestParameterValidation_InstallCrds(t *testing.T) {
 	}
 
 	tests := []struct {
-		name string
-		parameters []v1alpha1.Parameter
+		name              string
+		parameters        []v1alpha1.Parameter
 		installParameters map[string]string
-		err string
+		err               string
 	}{
-		{ "all parameters with defaults", []v1alpha1.Parameter{ { Name: "param", Required: true, Default: "aaa" } }, map[string]string {}, "" },
-		{ "missing parameter provided", []v1alpha1.Parameter{ { Name: "param", Required: true } }, map[string]string { "param": "value" }, "" },
-		{ "missing parameter", []v1alpha1.Parameter{ { Name: "param", Required: true } }, map[string]string {}, "missing required parameters during installation: param" },
-		{ "multiple missing parameter", []v1alpha1.Parameter{ { Name: "param", Required: true }, { Name: "param2", Required: true } }, map[string]string {}, "missing required parameters during installation: param,param2" },
+		{"all parameters with defaults", []v1alpha1.Parameter{{Name: "param", Required: true, Default: "aaa"}}, map[string]string{}, ""},
+		{"missing parameter provided", []v1alpha1.Parameter{{Name: "param", Required: true}}, map[string]string{"param": "value"}, ""},
+		{"missing parameter", []v1alpha1.Parameter{{Name: "param", Required: true}}, map[string]string{}, "missing required parameters during installation: param"},
+		{"multiple missing parameter", []v1alpha1.Parameter{{Name: "param", Required: true}, {Name: "param2", Required: true}}, map[string]string{}, "missing required parameters during installation: param,param2"},
 	}
 
 	for _, tt := range tests {
