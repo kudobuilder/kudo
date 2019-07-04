@@ -79,7 +79,11 @@ func validate(args []string, options *Options) error {
 func getPackageCRDs(name string, options *Options, repository repo.Repository) (*bundle.PackageCRDs, error) {
 	// Local files/folder have priority
 	if _, err := os.Stat(name); err == nil {
-		b, err := bundle.NewBundle(name)
+		f, err := finder.NewLocal()
+		if err != nil {
+			return nil, err
+		}
+		b, err := f.GetBundle(name)
 		if err != nil {
 			return nil, err
 		}
@@ -98,7 +102,7 @@ func getPackageCRDs(name string, options *Options, repository repo.Repository) (
 		return b.GetCRDs()
 	}
 
-	b, err := repository.GetPackageBundle(name, options.PackageVersion)
+	b, err := repository.GetBundle(name, options.PackageVersion)
 	if err != nil {
 		return nil, err
 	}

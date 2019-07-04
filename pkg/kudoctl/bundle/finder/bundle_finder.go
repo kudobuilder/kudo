@@ -3,6 +3,7 @@ package finder
 import (
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
@@ -44,10 +45,23 @@ func (f *URLFinder) getBundleByURL(url string) (io.Reader, error) {
 	return resp, nil
 }
 
-//
-//func NewLocal() (finder *Finder, err error){
-//
-//}
+// GetBundle provides a bundle for the local folder or tarball provided
+func (f *LocalFinder) GetBundle(name string) (bundle.Bundle, error) {
+	//	make sure file exists
+	_, err := os.Stat(name)
+	if err != nil {
+		return nil, fmt.Errorf("unsupported file system format %v. Expect either a tar.gz file or a folder", name)
+	}
+	// order of discovery
+	// 1. tarball
+	// 2. file based
+	return bundle.NewBundle(name)
+}
+
+// NewLocal creates a finder for local operator bundles
+func NewLocal() (finder *LocalFinder, err error) {
+	return &LocalFinder{}, nil
+}
 
 // NewURL creates an instance of a URLFinder
 func NewURL() (finder *URLFinder, err error) {

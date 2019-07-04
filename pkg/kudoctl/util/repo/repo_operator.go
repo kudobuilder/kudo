@@ -15,8 +15,7 @@ import (
 
 // Repository is a abstraction for a service that can retrieve package bundles
 type Repository interface {
-	GetPackageReader(name string, version string) (io.Reader, error)
-	GetPackageBundle(name string, version string) (bundle.Bundle, error)
+	GetBundle(name string, version string) (bundle.Bundle, error)
 }
 
 // OperatorRepository represents a operator repository
@@ -120,8 +119,8 @@ func (r *OperatorRepository) GetPackageReader(name string, version string) (io.R
 	return r.getPackageReaderByFullPackageName(packageName)
 }
 
-// GetPackageBundle provides an Bundle for a provided package name and optional version
-func (r *OperatorRepository) GetPackageBundle(name string, version string) (bundle.Bundle, error) {
+// GetBundle provides an Bundle for a provided package name and optional version
+func (r *OperatorRepository) GetBundle(name string, version string) (bundle.Bundle, error) {
 	reader, err := r.GetPackageReader(name, version)
 	if err != nil {
 		return nil, err
