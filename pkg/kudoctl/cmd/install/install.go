@@ -3,13 +3,13 @@ package install
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -29,7 +29,7 @@ var DefaultOptions = &Options{
 }
 
 // Run returns the errors associated with cmd env
-func Run(cmd *cobra.Command, args []string, options *Options) error {
+func Run(args []string, options *Options) error {
 
 	err := validate(args, options)
 	if err != nil {
@@ -89,9 +89,7 @@ func getPackageCRDs(name string, options *Options, repository repo.Repository) (
 	return bundle.GetCRDs()
 }
 
-// installOperator is the umbrella for a single operator installation that gathers the business logic
-// for a cluster and returns an error in case there is a problem
-// TODO: needs testing
+// installOperator is installing single operator into cluster and returns error in case of error
 func installOperator(operatorArgument string, options *Options) error {
 	repository, err := repo.NewOperatorRepository(repo.Default)
 	if err != nil {
@@ -113,8 +111,20 @@ func installOperator(operatorArgument string, options *Options) error {
 		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", operatorArgument)
 	}
 
+	return installCrds(crds, kc, options)
+}
+
+func installCrds(crds *repo.PackageCRDs, kc *kudo.Client, options *Options) error {
+	// PRE-INSTALLATION SETUP
 	operatorName := crds.Operator.ObjectMeta.Name
 	operatorVersion := crds.OperatorVersion.Spec.Version
+	// make sure that our instance object is up to date with overrides from commandline
+	applyInstanceOverrides(crds.Instance, options)
+	// this validation cannot be done earlier because we need to do it after applying things from commandline
+	err := validateCrds(crds, options.SkipInstance)
+	if err != nil {
+		return err
+	}
 
 	// Operator part
 
@@ -142,9 +152,6 @@ func installOperator(operatorArgument string, options *Options) error {
 	// it creates the Instances object just after Operator and
 	// OperatorVersion objects are created to ensure Instances can be created.
 
-	// First make sure that our instance object is up to date with overrides from commandline
-	applyInstanceOverrides(crds.Instance, options)
-
 	// The user opted not to install the instance.
 	if options.SkipInstance {
 		return nil
@@ -167,6 +174,28 @@ func installOperator(operatorArgument string, options *Options) error {
 	} else {
 		return fmt.Errorf("can not install instance '%s' of operator '%s-%s' because instance of that name already exists in namespace %s",
 			instanceName, operatorName, crds.OperatorVersion.Spec.Version, options.Namespace)
+	}
+	return nil
+}
+
+func validateCrds(crds *repo.PackageCRDs, skipInstance bool) error {
+	if skipInstance {
+		// right now we are just validating parameters on instance, if we're not creating instance right now, there is nothing to validate
+		return nil
+	}
+	parameters := crds.OperatorVersion.Spec.Parameters
+	missingParameters := []string{}
+	for _, p := range parameters {
+		if p.Required && p.Default == "" {
+			_, ok := crds.Instance.Spec.Parameters[p.Name]
+			if !ok {
+				missingParameters = append(missingParameters, p.Name)
+			}
+		}
+	}
+
+	if len(missingParameters) > 0 {
+		return fmt.Errorf("missing required parameters during installation: %s", strings.Join(missingParameters, ","))
 	}
 	return nil
 }
@@ -203,10 +232,6 @@ func installSingleOperatorVersionToCluster(name, namespace string, kc *kudo.Clie
 // installSingleInstanceToCluster installs a given Instance to the cluster
 // TODO: needs more testing
 func installSingleInstanceToCluster(name string, instance *v1alpha1.Instance, kc *kudo.Client, options *Options) error {
-	// Customizing Instance
-	// TODO: traversing, e.g. check function that looksup if key exists in the current OperatorVersion
-	// That way just Parameters will be applied if they exist in the matching OperatorVersion
-
 	if _, err := kc.InstallInstanceObjToCluster(instance, options.Namespace); err != nil {
 		return errors.Wrapf(err, "installing instance %s", name)
 	}

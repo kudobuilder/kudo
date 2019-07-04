@@ -87,7 +87,7 @@ func newInstallCmd() *cobra.Command {
 				return errors.WithMessage(err, "could not parse parameters")
 			}
 
-			return install.Run(cmd, args, options)
+			return install.Run(args, options)
 		},
 		SilenceUsage: true,
 	}

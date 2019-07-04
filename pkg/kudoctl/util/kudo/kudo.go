@@ -57,6 +57,12 @@ func NewClient(namespace, kubeConfigPath string) (*Client, error) {
 	}, nil
 }
 
+func NewClientFromClient(client versioned.Interface) *Client {
+	result := Client{}
+	result.clientset = client
+	return &result
+}
+
 // OperatorExistsInCluster checks if a given Operator object is installed on the current k8s cluster
 func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 	operator, err := c.clientset.KudoV1alpha1().Operators(namespace).Get(name, v1.GetOptions{})
