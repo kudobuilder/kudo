@@ -95,7 +95,7 @@ Both of these options will install new instance of that operator into your clust
 Use `--instance` and `--parameter`/`-p` for setting an Instance name and Parameters, respectively:
 
 ```bash
-$ kubectl kudo install kafka --instance=my-kafka-name --parameter KAFKA_ZOOKEEPER_URI=zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181 --parameter KAFKA_ZOOKEEPER_PATH=/small -p BROKERS_COUNTER=3
+$ kubectl kudo install kafka --instance=my-kafka-name --parameter ZOOKEEPER_URI=zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181 --parameter ZOOKEEPER_PATH=/small -p BROKERS_COUNTER=3
 operator.kudo.k8s.io/kafka unchanged
 operatorversion.kudo.k8s.io/kafka unchanged
 No instance named 'my-kafka-name' tied to this "kafka" version has been found. Do you want to create one? (Yes/no)
