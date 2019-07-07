@@ -19,10 +19,6 @@ type Client struct {
 
 // Get performs HTTP get on KUDO repository
 func (c *Client) Get(href string) (*bytes.Buffer, error) {
-	return c.get(href)
-}
-
-func (c *Client) get(href string) (*bytes.Buffer, error) {
 	buf := bytes.NewBuffer(nil)
 
 	req, err := http.NewRequest("GET", href, nil)
@@ -51,7 +47,7 @@ func (c *Client) get(href string) (*bytes.Buffer, error) {
 }
 
 // NewClient creates HTTP client
-func NewClient() (*Client, error) {
+func NewClient() *Client {
 	var client Client
 	tr := &http.Transport{
 		DisableCompression: true,
@@ -59,7 +55,7 @@ func NewClient() (*Client, error) {
 	}
 
 	client.client = &http.Client{Transport: tr}
-	return &client, nil
+	return &client
 }
 
 // IsValidURL returns true if the url is a Parsable URL

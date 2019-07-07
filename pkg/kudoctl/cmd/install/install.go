@@ -80,10 +80,7 @@ func getPackageCRDs(name string, options *Options, repository repo.Repository) (
 
 	// Local files/folder have priority
 	if _, err := os.Stat(name); err == nil {
-		f, err := finder.NewLocal()
-		if err != nil {
-			return nil, err
-		}
+		f := finder.NewLocal()
 		b, err := f.GetBundle(name, options.PackageVersion)
 		if err != nil {
 			return nil, err
@@ -92,10 +89,7 @@ func getPackageCRDs(name string, options *Options, repository repo.Repository) (
 	}
 
 	if http.IsValidURL(name) {
-		f, err := finder.NewURL()
-		if err != nil {
-			return nil, err
-		}
+		f := finder.NewURL()
 		b, err := f.GetBundle(name, options.PackageVersion)
 		if err != nil {
 			return nil, err

@@ -31,19 +31,13 @@ type Manager struct {
 }
 
 // New creates a operator bundle finder for non-repository bundles
-func New() (*Manager, error) {
-	lf, err := NewLocal()
-	if err != nil {
-		return nil, err
-	}
-	uf, err := NewURL()
-	if err != nil {
-		return nil, err
-	}
+func New() *Manager {
+	lf := NewLocal()
+	uf := NewURL()
 	return &Manager{
 		local: lf,
 		uri:   uf,
-	}, nil
+	}
 }
 
 // GetBundle provides a one stop to acquire any non-repo bundle.  We should refactor repo to be in the finder package and have manager manage it.
@@ -106,18 +100,15 @@ func (f *LocalFinder) GetBundle(name string, version string) (bundle.Bundle, err
 }
 
 // NewLocal creates a finder for local operator bundles
-func NewLocal() (finder *LocalFinder, err error) {
-	return &LocalFinder{}, nil
+func NewLocal() *LocalFinder {
+	return &LocalFinder{}
 }
 
 // NewURL creates an instance of a URLFinder
-func NewURL() (finder *URLFinder, err error) {
-	client, err := http.NewClient()
-	if err != nil {
-		return nil, fmt.Errorf("could not construct http client: %v", err)
-	}
+func NewURL() *URLFinder {
+	client := http.NewClient()
 
 	return &URLFinder{
 		client: *client,
-	}, nil
+	}
 }

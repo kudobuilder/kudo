@@ -31,10 +31,7 @@ func NewOperatorRepository(conf *RepositoryConfiguration) (*OperatorRepository, 
 		return nil, fmt.Errorf("invalid repository URL: %s", conf.URL)
 	}
 
-	client, err := http.NewClient()
-	if err != nil {
-		return nil, fmt.Errorf("could not construct http client: %v", err)
-	}
+	client := http.NewClient()
 
 	return &OperatorRepository{
 		Config: conf,
