@@ -75,10 +75,17 @@ Flags:
 
 ### Install a Package
 
-There are two options how to install a package. For development you want to install packages from your local filesystem.
+There are four options how to install a package. For development you are able to install packages from your local filesystem or local tgz file.
+For testing or working without a repository it is possible to install via a url location. The last option is installation from the package repository. 
 
+Installation during development can use a relative or absolute path to the package folder.
 ```bash
 kubectl kudo install pkg/kudoctl/util/repo/testdata/zk
+```
+
+To support the installation of operators not yet in the repository, it is possible to install directly from a url.
+```bash
+kubectl kudo install http://kudo.dev/zk.tgz
 ```
 
 For normal operations it is recommended to use the official packages provided through the [kudobuilder/operators](https://github.com/kudobuilder/operators) repository.
