@@ -3,7 +3,7 @@
 docker build -f test/Dockerfile -t kudo-test .
 if [ $? -eq 0 ]
 then
-   docker run kudo-test
+   docker run -it -m 4g --rm kudo-test
 else
     echo "Error when building test docker image, cannot run tests."
     exit 1
