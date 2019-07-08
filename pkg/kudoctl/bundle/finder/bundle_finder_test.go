@@ -7,11 +7,11 @@ import (
 )
 
 func TestManager_GetBundle(t *testing.T) {
-	f := &Manager{
+	m := &Manager{
 		local: NewLocal(),
 		uri:   nil,
 	}
-	b, err := f.GetBundle("../testdata/zk", "")
+	b, err := m.GetBundle("../testdata/zk", "")
 	if err != nil {
 		t.Errorf("Manager.GetBundle() error = %v", err)
 		return
