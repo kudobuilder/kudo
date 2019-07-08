@@ -1,0 +1,17 @@
+apiVersion: kudo.k8s.io/v1alpha1
+kind: PlanExecution
+metadata:
+  labels:
+    instance: invalid1
+    operator-version: invalid-v1
+  ownerReferences:
+    - apiVersion: kudo.k8s.io/v1alpha1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Instance
+      name: toy1
+status:
+  name: deploy
+  phases:
+    - name: deploy
+      state: FAILED

@@ -1,0 +1,75 @@
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Operator
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: invalid
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: OperatorVersion
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: invalid-v1
+  namespace: default
+spec:
+  version: "1.0.0"
+  connectionString: ""
+  operator:
+    name: Toy
+    kind: Operator
+  templates:
+    serial.yaml: |
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        namespace: default
+        name: serial-{{ .StepName }}
+      spec:
+        template:
+          metadata:
+            name: "{{ .StepName }}-serial-{{ .StepNumber }}"
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - name: bb
+              image: busybox:latest
+              imagePullPolicy: IfNotPresent
+              command:
+              - /bin/sh
+              - -c
+              - "sleep {{ .Params.Sleep }}"
+  tasks:
+    serial:
+      resources:
+        - serial.yaml
+  parameters:
+    - name: SLEEP
+      description: "how long to have the container sleep for before returning"
+      required: true
+      displayName: "Sleep Time"
+  plans:
+    deploy:
+      strategy: serial
+      phases:
+        - name: serial
+          strategy: serial
+          steps:
+            - name: serial-one
+              tasks:
+                - serial
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+    operator: invalid
+  name: invalid1
+spec:
+  operatorVersion:
+    name: invalid-v1
+    namespace: default
+    type: OperatorVersions
+  # Add fields here
+  parameters:
