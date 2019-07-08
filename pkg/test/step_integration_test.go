@@ -202,7 +202,7 @@ func TestCheckResourceIntegration(t *testing.T) {
 		},
 		{
 			testName: "step should fail if there are no objects of the same type in the namespace",
-			actual: []runtime.Object{},
+			actual:   []runtime.Object{},
 			expected: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"apiVersion": "v1",
