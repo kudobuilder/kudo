@@ -8,19 +8,20 @@ import (
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/pkg/errors"
 )
 
 // Repository is a abstraction for a service that can retrieve package bundles
 type Repository interface {
-	GetPackageReader(name string, version string) (io.Reader, error)
-	GetPackageBundle(name string, version string) (Bundle, error)
+	GetBundle(name string, version string) (bundle.Bundle, error)
 }
 
 // OperatorRepository represents a operator repository
 type OperatorRepository struct {
 	Config *RepositoryConfiguration
-	Client HTTPClient
+	Client http.Client
 }
 
 // NewOperatorRepository constructs OperatorRepository
@@ -30,10 +31,7 @@ func NewOperatorRepository(conf *RepositoryConfiguration) (*OperatorRepository, 
 		return nil, fmt.Errorf("invalid repository URL: %s", conf.URL)
 	}
 
-	client, err := NewHTTPClient()
-	if err != nil {
-		return nil, fmt.Errorf("could not construct http client: %v", err)
-	}
+	client := http.NewClient()
 
 	return &OperatorRepository{
 		Config: conf,
@@ -76,10 +74,13 @@ func (r *OperatorRepository) getPackageReaderByFullPackageName(fullPackageName s
 	parsedURL.Path = fmt.Sprintf("%s/%s.tgz", parsedURL.Path, fullPackageName)
 
 	fileURL = parsedURL.String()
+	return r.getPackageReaderByURL(fileURL)
+}
 
-	resp, err := r.Client.Get(fileURL)
+func (r *OperatorRepository) getPackageReaderByURL(packageURL string) (io.Reader, error) {
+	resp, err := r.Client.Get(packageURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting file url")
+		return nil, errors.Wrap(err, "getting package url")
 	}
 
 	return resp, nil
@@ -115,13 +116,13 @@ func (r *OperatorRepository) GetPackageReader(name string, version string) (io.R
 	return r.getPackageReaderByFullPackageName(packageName)
 }
 
-// GetPackageBundle provides an Bundle for a provided package name and optional version
-func (r *OperatorRepository) GetPackageBundle(name string, version string) (Bundle, error) {
+// GetBundle provides an Bundle for a provided package name and optional version
+func (r *OperatorRepository) GetBundle(name string, version string) (bundle.Bundle, error) {
 	reader, err := r.GetPackageReader(name, version)
 	if err != nil {
 		return nil, err
 	}
-	return NewBundleFromReader(reader), nil
+	return bundle.NewBundleFromReader(reader), nil
 }
 
 // GetOperatorVersionDependencies helper method returns a slice of strings that contains the names of all

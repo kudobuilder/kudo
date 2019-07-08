@@ -5,6 +5,9 @@ import (
 	"os"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle/finder"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
@@ -69,24 +72,36 @@ func validate(args []string, options *Options) error {
 // getPackageCRDs tries to look for package files resolving the operator name to:
 // - a local tar.gz file
 // - a local directory
+// - a url to a tar.gz
 // - a operator name in the remote repository
 // in that order. Should there exist a local folder e.g. `cassandra` it will take precedence
 // over the remote repository package with the same name.
-func getPackageCRDs(name string, options *Options, repository repo.Repository) (*repo.PackageCRDs, error) {
+func getPackageCRDs(name string, options *Options, repository repo.Repository) (*bundle.PackageCRDs, error) {
+
 	// Local files/folder have priority
 	if _, err := os.Stat(name); err == nil {
-		b, err := repo.NewBundle(name)
+		f := finder.NewLocal()
+		b, err := f.GetBundle(name, options.PackageVersion)
 		if err != nil {
 			return nil, err
 		}
 		return b.GetCRDs()
 	}
 
-	bundle, err := repository.GetPackageBundle(name, options.PackageVersion)
+	if http.IsValidURL(name) {
+		f := finder.NewURL()
+		b, err := f.GetBundle(name, options.PackageVersion)
+		if err != nil {
+			return nil, err
+		}
+		return b.GetCRDs()
+	}
+
+	b, err := repository.GetBundle(name, options.PackageVersion)
 	if err != nil {
 		return nil, err
 	}
-	return bundle.GetCRDs()
+	return b.GetCRDs()
 }
 
 // installOperator is the umbrella for a single operator installation that gathers the business logic
