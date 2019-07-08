@@ -134,9 +134,8 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 			APIVersion: apiVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.Version),
-			Namespace: "default",
-			Labels:    map[string]string{"controller-tools.k8s.io": "1.0"},
+			Name:   fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.Version),
+			Labels: map[string]string{"controller-tools.k8s.io": "1.0"},
 		},
 		Spec: v1alpha1.OperatorVersionSpec{
 			Operator: v1.ObjectReference{
@@ -165,8 +164,7 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 		},
 		Spec: v1alpha1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
-				Name:      fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.Version),
-				Namespace: "default",
+				Name: fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.Version),
 			},
 		},
 		Status: v1alpha1.InstanceStatus{},
