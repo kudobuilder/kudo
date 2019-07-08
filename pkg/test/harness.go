@@ -65,18 +65,17 @@ func (h *Harness) LoadTests(dir string) ([]*Case, error) {
 // RunTestEnv starts a Kubernetes API server and etcd server for use in the
 // tests and returns the Kubernetes configuration.
 func (h *Harness) RunTestEnv() (*rest.Config, error) {
-	h.env = &envtest.Environment{}
-
 	started := time.Now()
 
-	config, err := h.env.Start()
+	testenv, err := testutils.StartTestEnvironment()
 	if err != nil {
 		return nil, err
 	}
 
 	h.T.Log("started test environment (kube-apiserver and etcd) in", time.Since(started))
+	h.env = testenv.Environment
 
-	return config, nil
+	return testenv.Config, nil
 }
 
 // Config returns the current Kubernetes configuration - either from the environment
