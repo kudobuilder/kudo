@@ -78,7 +78,7 @@ Flags:
 There are two options how to install a package. For development you want to install packages from your local filesystem.
 
 ```bash
-kubectl kudo install pkg/kudoctl/util/repo/testdata/zk
+kubectl kudo install pkg/kudoctl/bundle/testdata/zk
 ```
 
 For normal operations it is recommended to use the official packages provided through the [kudobuilder/operators](https://github.com/kudobuilder/operators) repository.
