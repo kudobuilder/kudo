@@ -101,7 +101,7 @@ func (i IndexFile) GetByNameAndVersion(name, version string) (*BundleVersion, er
 func (i IndexFile) getOperator(name string, versionConstraint *semver.Constraints) (*BundleVersion, error) {
 	vs, ok := i.Entries[name]
 	if !ok || len(vs) == 0 {
-		return nil, fmt.Errorf("no operator of given name %s and version %v found", name, versionConstraint)
+		return nil, fmt.Errorf("no operator of given name %s found", name)
 	}
 
 	for _, ver := range vs {
