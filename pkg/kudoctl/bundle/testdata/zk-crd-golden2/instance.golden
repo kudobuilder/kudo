@@ -8,6 +8,5 @@ metadata:
 spec:
   operatorVersion:
     name: zookeeper-0.1.0
-    namespace: default
     type: OperatorVersions
   name: "zookeeper-0.1.0"
