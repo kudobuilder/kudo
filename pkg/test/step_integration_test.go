@@ -200,6 +200,30 @@ func TestCheckResourceIntegration(t *testing.T) {
 			},
 			shouldError: true,
 		},
+		{
+			testName: "step should fail if there are no objects of the same type in the namespace",
+			actual: []runtime.Object{},
+			expected: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "Pod",
+					"metadata": map[string]interface{}{
+						"labels": map[string]interface{}{
+							"app": "nginx",
+						},
+					},
+					"spec": map[string]interface{}{
+						"containers": []interface{}{
+							map[string]interface{}{
+								"image": "nginx:1.7.9",
+								"name":  "nginx",
+							},
+						},
+					},
+				},
+			},
+			shouldError: true,
+		},
 	} {
 		t.Run(test.testName, func(t *testing.T) {
 			namespace := fmt.Sprintf("kudo-test-%s", petname.Generate(2, "-"))
