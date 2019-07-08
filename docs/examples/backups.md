@@ -13,12 +13,12 @@ Watch the explained demo video of the steps beneath [here](https://youtu.be/e_xU
 
 ## MySQL
 
-Create an instance of MySQL using the provided sample Framework:
+Create an instance of MySQL using the provided sample Operator:
 
 ```bash
 $ kubectl apply -f config/samples/mysql.yaml
-framework.kudo.k8s.io/mysql created
-frameworkversion.kudo.k8s.io/mysql-57 created
+operator.kudo.k8s.io/mysql created
+operatorversion.kudo.k8s.io/mysql-57 created
 instance.kudo.k8s.io/mysql created
 ```
 
@@ -49,7 +49,7 @@ apiVersion: kudo.k8s.io/v1alpha1
 kind: PlanExecution
 metadata:
   labels:
-    framework-version: mysql-57
+    operator-version: mysql-57
     instance: mysql
   name: mysql-backup
   namespace: default
@@ -79,7 +79,7 @@ apiVersion: kudo.k8s.io/v1alpha1
 kind: PlanExecution
 metadata:
   labels:
-    framework-version: mysql-57
+    operator-version: mysql-57
     instance: mysql
   name: mysql-restore
   namespace: default

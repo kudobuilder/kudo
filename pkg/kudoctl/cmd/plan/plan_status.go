@@ -3,6 +3,8 @@ package plan
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
@@ -49,6 +51,11 @@ func runStatus(cmd *cobra.Command, args []string, options *statusOptions) error 
 	instanceFlag, err := cmd.Flags().GetString("instance")
 	if err != nil || instanceFlag == "" {
 		return fmt.Errorf("flag Error: Please set instance flag, e.g. \"--instance=<instanceName>\"")
+	}
+
+	// If the $KUBECONFIG environment variable is set, use that
+	if len(os.Getenv("KUBECONFIG")) > 0 {
+		options.kubeConfigPath = os.Getenv("KUBECONFIG")
 	}
 
 	configPath, err := check.KubeConfigLocationOrDefault(options.kubeConfigPath)
@@ -110,28 +117,28 @@ func planStatus(options *statusOptions) error {
 		return err
 	}
 
-	frameworkVersionNameOfInstance := instance.Spec.FrameworkVersion.Name
+	operatorVersionNameOfInstance := instance.Spec.OperatorVersion.Name
 
-	frameworkGVR := schema.GroupVersionResource{
+	operatorGVR := schema.GroupVersionResource{
 		Group:    "kudo.k8s.io",
 		Version:  "v1alpha1",
-		Resource: "frameworkversions",
+		Resource: "operatorversions",
 	}
 
 	//  List all of the Virtual Services.
-	frameworkObj, err := dynamicClient.Resource(frameworkGVR).Namespace(options.namespace).Get(frameworkVersionNameOfInstance, metav1.GetOptions{})
+	operatorObj, err := dynamicClient.Resource(operatorGVR).Namespace(options.namespace).Get(operatorVersionNameOfInstance, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
-	mFrameworkObj, err := frameworkObj.MarshalJSON()
+	mOperatorObj, err := operatorObj.MarshalJSON()
 	if err != nil {
 		return err
 	}
 
-	framework := kudov1alpha1.FrameworkVersion{}
+	operator := kudov1alpha1.OperatorVersion{}
 
-	err = json.Unmarshal(mFrameworkObj, &framework)
+	err = json.Unmarshal(mOperatorObj, &operator)
 	if err != nil {
 		return err
 	}
@@ -142,6 +149,10 @@ func planStatus(options *statusOptions) error {
 		Resource: "planexecutions",
 	}
 
+	if instance.Status.ActivePlan.Name == "" {
+		log.Printf("No active plan exists for instance %s", instance.Name)
+		return nil
+	}
 	activePlanObj, err := dynamicClient.Resource(planExecutionsGVR).Namespace(options.namespace).Get(instance.Status.ActivePlan.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -159,10 +170,10 @@ func planStatus(options *statusOptions) error {
 		return err
 	}
 
-	rootDisplay := fmt.Sprintf("%s (Framework-Version: \"%s\" Active-Plan: \"%s\")", instance.Name, instance.Spec.FrameworkVersion.Name, instance.Status.ActivePlan.Name)
+	rootDisplay := fmt.Sprintf("%s (Operator-Version: \"%s\" Active-Plan: \"%s\")", instance.Name, instance.Spec.OperatorVersion.Name, instance.Status.ActivePlan.Name)
 	rootBranchName := tree.AddBranch(rootDisplay)
 
-	for name, plan := range framework.Spec.Plans {
+	for name, plan := range operator.Spec.Plans {
 		if name == activePlanType.Spec.PlanName {
 			planDisplay := fmt.Sprintf("Plan %s (%s strategy) [%s]", name, plan.Strategy, activePlanType.Status.State)
 			planBranchName := rootBranchName.AddBranch(planDisplay)

@@ -4,12 +4,12 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: frameworks.kudo.k8s.io
+  name: operators.kudo.k8s.io
 spec:
   group: kudo.k8s.io
   names:
-    kind: Framework
-    plural: frameworks
+    kind: Operator
+    plural: operators
   scope: Namespaced
   validation:
     openAPIV3Schema:
@@ -57,12 +57,12 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: frameworkversions.kudo.k8s.io
+  name: operatorversions.kudo.k8s.io
 spec:
   group: kudo.k8s.io
   names:
-    kind: FrameworkVersion
-    plural: frameworkversions
+    kind: OperatorVersion
+    plural: operatorversions
   scope: Namespaced
   validation:
     openAPIV3Schema:
@@ -83,7 +83,7 @@ spec:
           properties:
             connectionString:
               description: ConnectionString defines a mustached string that can be
-                used to connect to an instance of the Framework
+                used to connect to an instance of the Operator
               type: string
             dependencies:
               items:
@@ -101,7 +101,7 @@ spec:
                 - version
                 type: object
               type: array
-            framework:
+            operator:
               type: object
             parameters:
               items:
@@ -140,11 +140,11 @@ spec:
               type: object
             templates:
               description: Yaml captures a mustached yaml list of elements that define
-                the application framework instance
+                the application operator instance
               type: object
             upgradableFrom:
-              description: UpgradableFrom lists all FrameworkVersions that can upgrade
-                to this FrameworkVersion
+              description: UpgradableFrom lists all OperatorVersions that can upgrade
+                to this OperatorVersion
               items:
                 type: object
               type: array
@@ -208,8 +208,8 @@ spec:
                 - version
                 type: object
               type: array
-            frameworkVersion:
-              description: Framework specifies a reference to a specific Framework
+            OperatorVersion:
+              description: Operator specifies a reference to a specific Operator
                 object
               type: object
             parameters:

@@ -17,9 +17,12 @@ package planexecution
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
+
+	apijson "k8s.io/apimachinery/pkg/util/json"
 
 	kudoengine "github.com/kudobuilder/kudo/pkg/engine"
 
@@ -41,7 +44,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -69,7 +71,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcilePlanExecution{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder("planexecution-controller")}
+	return &ReconcilePlanExecution{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor("planexecution-controller")}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -263,21 +265,21 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		log.Printf("PlanExecutionController: Upate of instance with ActivePlan errored: %v", err)
 	}
 
-	// Get associated FrameworkVersion
-	frameworkVersion := &kudov1alpha1.FrameworkVersion{}
+	// Get associated OperatorVersion
+	operatorVersion := &kudov1alpha1.OperatorVersion{}
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
-			Name:      instance.Spec.FrameworkVersion.Name,
-			Namespace: instance.Spec.FrameworkVersion.Namespace,
+			Name:      instance.Spec.OperatorVersion.Name,
+			Namespace: instance.GetOperatorVersionNamespace(),
 		},
-		frameworkVersion)
+		operatorVersion)
 	if err != nil {
-		// Can't find the FrameworkVersion.
+		// Can't find the OperatorVersion.
 		planExecution.Status.State = kudov1alpha1.PhaseStateError
-		r.recorder.Event(planExecution, "Warning", "InvalidFrameworkVersion", fmt.Sprintf("Could not find FrameworkVersion %v", instance.Spec.FrameworkVersion.Name))
-		log.Printf("PlanExecutionController: Error getting FrameworkVersion %v in %v: %v",
-			instance.Spec.FrameworkVersion.Name,
-			instance.Spec.FrameworkVersion.Namespace,
+		r.recorder.Event(planExecution, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Could not find OperatorVersion %v", instance.Spec.OperatorVersion.Name))
+		log.Printf("PlanExecutionController: Error getting OperatorVersion %v in %v: %v",
+			instance.Spec.OperatorVersion.Name,
+			instance.GetOperatorVersionNamespace(),
 			err)
 		return reconcile.Result{}, err
 	}
@@ -288,7 +290,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	configs := make(map[string]interface{})
 
 	// Default parameters from instance metadata
-	configs["FrameworkName"] = frameworkVersion.Spec.Framework.Name
+	configs["OperatorName"] = operatorVersion.Spec.Operator.Name
 	configs["Name"] = instance.Name
 	configs["Namespace"] = instance.Namespace
 
@@ -298,7 +300,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	}
 
 	// Merge defaults with customizations
-	for _, param := range frameworkVersion.Spec.Parameters {
+	for _, param := range operatorVersion.Spec.Parameters {
 		_, ok := params[param.Name]
 		if !ok {
 			// Not specified in params
@@ -314,14 +316,14 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 	configs["Params"] = params
 
-	// Get Plan from FrameworkVersion.
+	// Get Plan from OperatorVersion.
 	//
 	// Right now must match exactly. In the future have defaults/backups: e.g., if no
 	// "upgrade", call "update"; if no "update", call "deploy"
 	//
 	// When we have this we'll have to keep the active plan in the status since that might
 	// not match the "requested" plan.
-	executedPlan, ok := frameworkVersion.Spec.Plans[planExecution.Spec.PlanName]
+	executedPlan, ok := operatorVersion.Spec.Plans[planExecution.Spec.PlanName]
 	if !ok {
 		r.recorder.Event(planExecution, "Warning", "InvalidPlan", fmt.Sprintf("Could not find required plan (%v)", planExecution.Spec.PlanName))
 		err = fmt.Errorf("could not find required plan (%v)", planExecution.Spec.PlanName)
@@ -340,7 +342,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStatePending
 		planExecution.Status.Phases[i].Steps = make([]kudov1alpha1.StepStatus, len(phase.Steps))
 		for j, step := range phase.Steps {
-			// Fetch FrameworkVersion:
+			// Fetch OperatorVersion:
 			//
 			//   - Get the task name from the step
 			//   - Get the task definition from the FV
@@ -356,12 +358,12 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			engine := kudoengine.New()
 			for _, t := range step.Tasks {
 				// resolve task
-				if taskSpec, ok := frameworkVersion.Spec.Tasks[t]; ok {
+				if taskSpec, ok := operatorVersion.Spec.Tasks[t]; ok {
 					var resources []string
 					fsys := fs.MakeFakeFS()
 
 					for _, res := range taskSpec.Resources {
-						if resource, ok := frameworkVersion.Spec.Templates[res]; ok {
+						if resource, ok := operatorVersion.Spec.Templates[res]; ok {
 							templatedYaml, err := engine.Render(resource, configs)
 							if err != nil {
 								r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error expanding template: %v", err))
@@ -371,8 +373,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 							resources = append(resources, res)
 
 						} else {
-							r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding resource named %v for framework version %v", res, frameworkVersion.Name))
-							log.Printf("PlanExecutionController: Error finding resource named %v for framework version %v", res, frameworkVersion.Name)
+							r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding resource named %v for operator version %v", res, operatorVersion.Name))
+							log.Printf("PlanExecutionController: Error finding resource named %v for operator version %v", res, operatorVersion.Name)
 							return reconcile.Result{}, err
 						}
 					}
@@ -381,10 +383,12 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						NamePrefix: instance.Name + "-",
 						Namespace:  instance.Namespace,
 						CommonLabels: map[string]string{
-							"heritage":      "kudo",
-							"app":           frameworkVersion.Spec.Framework.Name,
-							"version":       frameworkVersion.Spec.Version,
-							"instance":      instance.Name,
+							"heritage": "kudo",
+							"app":      operatorVersion.Spec.Operator.Name,
+							"version":  operatorVersion.Spec.Version,
+							"instance": instance.Name,
+						},
+						CommonAnnotations: map[string]string{
 							"planexecution": planExecution.Name,
 							"plan":          planExecution.Spec.PlanName,
 							"phase":         phase.Name,
@@ -434,8 +438,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					}
 					objs = append(objs, objsToAdd...)
 				} else {
-					r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding task named %s for framework version %s", taskSpec, frameworkVersion.Name))
-					log.Printf("PlanExecutionController: Error finding task named %s for framework version %s", taskSpec, frameworkVersion.Name)
+					r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding task named %s for operator version %s", taskSpec, operatorVersion.Name))
+					log.Printf("PlanExecutionController: Error finding task named %s for operator version %s", taskSpec, operatorVersion.Name)
 					return reconcile.Result{}, err
 				}
 			}
@@ -482,59 +486,27 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					log.Printf("PlanExecutionController: Cleanup failed: %v", err)
 				}
 
-				arg := obj.DeepCopyObject()
-				result, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, arg, func(newObj runtime.Object) error {
-					// TODO: Clean this up. I don't like having to do a switch here.
-					switch t := newObj.(type) {
-					case *appsv1.StatefulSet:
-						log.Printf("PlanExecutionController: CreateOrUpdate: StatefulSet %+v", t.Name)
-
-						newSs := newObj.(*appsv1.StatefulSet)
-						ss, ok := obj.(*appsv1.StatefulSet)
-						if !ok {
-							return fmt.Errorf("object passed in doesn't match expected StatefulSet type")
-						}
-
-						// We need some specialized logic in there.
-						//
-						// We can't just copy the Spec since there are other values like
-						// spec.updateState, spec.volumeClaimTemplates, etc. that are all generated
-						// from the object by the k8s controller.
-						//
-						// We just want to update things we can change.
-						newSs.Spec.Replicas = ss.Spec.Replicas
-
-						return nil
-					case *appsv1.Deployment:
-						newD := newObj.(*appsv1.Deployment)
-						d, ok := obj.(*appsv1.Deployment)
-						if !ok {
-							return fmt.Errorf("object passed in doesn't match expected deployment type")
-						}
-						newD.Spec.Replicas = d.Spec.Replicas
-						return nil
-					case *v1beta1.Deployment:
-						newD := newObj.(*v1beta1.Deployment)
-						d, ok := obj.(*v1beta1.Deployment)
-						if !ok {
-							return fmt.Errorf("object passed in doesn't match expected deployment type")
-						}
-						newD.Spec.Replicas = d.Spec.Replicas
-						return nil
-
-					case *batchv1.Job:
-					case *kudov1alpha1.Instance:
-					// Unless we build logic for what a healthy object is, assume its healthy when created.
-					default:
-						log.Print("PlanExecutionController: CreateOrUpdate: Type is not implemented yet")
-						return nil
+				//See if its present
+				key, _ := client.ObjectKeyFromObject(obj)
+				truth := obj.DeepCopyObject()
+				err := r.Client.Get(context.TODO(), key, truth)
+				rawObj, _ := apijson.Marshal(obj)
+				if err == nil {
+					log.Printf("PlanExecutionController: CreateOrUpdate Object present")
+					//update
+					log.Printf("Going to apply patch\n%+v\n\n to object\n%s\n", string(rawObj), prettyPrint(truth))
+					if err != nil {
+						log.Printf("Error getting patch between truth and obj: %v\n", err)
+					} else {
+						err = r.Client.Patch(context.TODO(), truth, client.ConstantPatch(types.StrategicMergePatchType, rawObj))
+						log.Printf("PlanExecutionController: CreateOrUpdate Patch: %v", err)
 					}
-
-					return nil
-
-				})
-
-				log.Printf("PlanExecutionController: CreateOrUpdate resulted in: %v", result)
+				} else {
+					//create
+					log.Printf("PlanExecutionController: CreateOrUpdate Object not present")
+					err = r.Client.Create(context.TODO(), obj)
+					log.Printf("PlanExecutionController: CreateOrUpdate Create: %v", err)
+				}
 
 				if err != nil {
 					log.Printf("PlanExecutionController: Error CreateOrUpdate Object in step \"%v\": %v", s.Name, err)
@@ -542,16 +514,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateError
 
 					return reconcile.Result{}, err
-				}
-				log.Printf("PlanExecutionController: CreateOrUpdate resulted in: %v", result)
-
-				// get the existing object meta
-				metaObj := obj.(metav1.Object)
-
-				// retrieve the existing object
-				key := client.ObjectKey{
-					Name:      metaObj.GetName(),
-					Namespace: metaObj.GetNamespace(),
 				}
 
 				err = r.Client.Get(context.TODO(), key, obj)
@@ -564,7 +526,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				}
 				err = health.IsHealthy(r.Client, obj)
 				if err != nil {
-					log.Printf("PlanExecutionController: Obj is NOT healthy: %+v", obj)
+					log.Printf("PlanExecutionController: Obj is NOT healthy: %s", prettyPrint(obj))
 					planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateInProgress
 					planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateInProgress
 				}
@@ -659,4 +621,9 @@ func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
 	}
 
 	return nil
+}
+
+func prettyPrint(i interface{}) string {
+	s, _ := json.MarshalIndent(i, "", "  ")
+	return string(s)
 }

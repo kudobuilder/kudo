@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -61,10 +62,12 @@ func TestLoadTestSteps(t *testing.T) {
 							APIVersion: "kudo.k8s.io/v1alpha1",
 						},
 						Index: 1,
-						Delete: []corev1.ObjectReference{
+						Delete: []kudo.ObjectReference{
 							{
-								Kind: "Pod",
-								Name: "test",
+								ObjectReference: corev1.ObjectReference{
+									Kind: "Pod",
+									Name: "test",
+								},
 							},
 						},
 					},
@@ -163,6 +166,61 @@ func TestLoadTestSteps(t *testing.T) {
 				},
 			},
 		},
+		{
+			"test_data/list-pods",
+			[]Step{
+				{
+					Name:  "deployment",
+					Index: 0,
+					Apply: []runtime.Object{
+						testutils.WithSpec(testutils.NewResource("apps/v1", "Deployment", "nginx-deployment", ""), map[string]interface{}{
+							"selector": map[string]interface{}{
+								"matchLabels": map[string]interface{}{
+									"app": "nginx",
+								},
+							},
+							"template": map[string]interface{}{
+								"metadata": map[string]interface{}{
+									"labels": map[string]interface{}{
+										"app": "nginx",
+									},
+								},
+								"spec": map[string]interface{}{
+									"containers": []map[string]interface{}{
+										{
+											"name":  "nginx",
+											"image": "nginx:1.7.9",
+										},
+									},
+								},
+							},
+						}),
+					},
+					Asserts: []runtime.Object{
+						&unstructured.Unstructured{
+							Object: map[string]interface{}{
+								"apiVersion": "v1",
+								"kind":       "Pod",
+								"metadata": map[string]interface{}{
+									"labels": map[string]interface{}{
+										"app": "nginx",
+									},
+								},
+								"spec": map[string]interface{}{
+									"containers": []interface{}{
+										map[string]interface{}{
+											"image": "nginx:1.7.9",
+											"name":  "nginx",
+										},
+									},
+								},
+							},
+						},
+					},
+					Errors: []runtime.Object{},
+				},
+			},
+		},
 	} {
 		t.Run(tt.path, func(t *testing.T) {
 			test := &Case{Dir: tt.path}
@@ -177,6 +235,10 @@ func TestLoadTestSteps(t *testing.T) {
 
 			assert.Equal(t, len(tt.testSteps), len(testStepsVal))
 			for index := range tt.testSteps {
+				assert.Equal(t, tt.testSteps[index].Apply, testStepsVal[index].Apply)
+				assert.Equal(t, tt.testSteps[index].Asserts, testStepsVal[index].Asserts)
+				assert.Equal(t, tt.testSteps[index].Errors, testStepsVal[index].Errors)
+				assert.Equal(t, tt.testSteps[index].Step, testStepsVal[index].Step)
 				assert.Equal(t, tt.testSteps[index], testStepsVal[index])
 			}
 		})
@@ -208,6 +270,15 @@ func TestCollectTestStepFiles(t *testing.T) {
 					"test_data/with-overrides/03-assert.yaml",
 					"test_data/with-overrides/03-pod.yaml",
 					"test_data/with-overrides/03-pod2.yaml",
+				},
+			},
+		},
+		{
+			"test_data/list-pods",
+			map[int64][]string{
+				int64(0): {
+					"test_data/list-pods/00-assert.yaml",
+					"test_data/list-pods/00-deployment.yaml",
 				},
 			},
 		},

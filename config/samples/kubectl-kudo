@@ -10,59 +10,59 @@ then
     exit 0
 fi
 
-function frameworkInstall {
+function operatorInstall {
     if [[ "$1" == "" ]]
     then
-        echo "Cannot install empty framework."
+        echo "Cannot install empty operator."
         exit 1
     else
         if [[ "$1" == "flink" ]]
         then
-            echo "Installing $1 framework..."
+            echo "Installing $1 operator..."
             kubectl apply -f https://raw.githubusercontent.com/kudobuilder/kudo/bf665a30809fa5c18ecee6396203472e252fa15d/config/samples/flink.yaml
             if [[ "$?" == "1" ]]
             then
-                echo "Failed to install framework flink."
+                echo "Failed to install operator flink."
                 exit 1
             fi
-            echo "Flink framework successfully installed."
+            echo "Flink operator successfully installed."
             exit 0
         fi
-        echo "Installing $1 framework..."
-        kubectl apply -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-framework.yaml
-        kubectl apply -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-frameworkversion.yaml
+        echo "Installing $1 operator..."
+        kubectl apply -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-operator.yaml
+        kubectl apply -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-operatorversion.yaml
         if [[ "$?" == "1" ]]
         then
-            echo "Failed to install framework $1"
+            echo "Failed to install operator $1"
             exit 1
         fi
     fi
 }
 
-function frameworkUninstall {
+function operatorUninstall {
     if [[ "$1" == "" ]]
     then
-        echo "Cannot uninstall empty framework."
+        echo "Cannot uninstall empty operator."
         exit 1
     else
         if [[ "$1" == "flink" ]]
         then
-            echo "Uninstalling $1 framework..."
+            echo "Uninstalling $1 operator..."
             kubectl delete -f https://raw.githubusercontent.com/kudobuilder/kudo/bf665a30809fa5c18ecee6396203472e252fa15d/config/samples/flink.yaml
             if [[ "$?" == "1" ]]
             then
-                echo "Failed to uninstall framework flink."
+                echo "Failed to uninstall operator flink."
                 exit 1
             fi
-            echo "Flink framework successfully uninstalled."
+            echo "Flink operator successfully uninstalled."
             exit 0
         fi
-        echo "Uninstalling $1 framework..."
-        kubectl delete -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-framework.yaml
-        kubectl delete -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-frameworkversion.yaml
+        echo "Uninstalling $1 operator..."
+        kubectl delete -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-operator.yaml
+        kubectl delete -f https://raw.githubusercontent.com/kudobuilder/kudo/master/config/samples/$1-operatorversion.yaml
         if [[ "$?" == "1" ]]
         then
-            echo "Failed to uninstall framework $1"
+            echo "Failed to uninstall operator $1"
             exit 1
         fi
     fi
@@ -80,19 +80,19 @@ function deleteDependencies {
     else
         jsonpath=".items[*].metadata.name"
     fi
-    FRAMEWORKS_INSTALLED=$(kubectl get framework ${dependency_list[@]} -o jsonpath="{$jsonpath}")
-    if [ -z "$FRAMEWORKS_INSTALLED" ]
+    OPERATORS_INSTALLED=$(kubectl get operator ${dependency_list[@]} -o jsonpath="{$jsonpath}")
+    if [ -z "$OPERATORS_INSTALLED" ]
     then
-        echo "Dependency frameworks are uninstalled."
-        frameworkUninstall $1
+        echo "Dependency operators are uninstalled."
+        operatorUninstall $1
     else
-        echo -e "Found installed dependency framework(s):\n\t${FRAMEWORKS_INSTALLED[@]}"
+        echo -e "Found installed dependency operator(s):\n\t${OPERATORS_INSTALLED[@]}"
         for i in "${dependency_list[@]}"
         do
-        frameworkUninstall $i
+        operatorUninstall $i
         done
-        echo "All dependency frameworks are uninstalled now."
-        frameworkUninstall $1
+        echo "All dependency operators are uninstalled now."
+        operatorUninstall $1
     fi
 }
 
@@ -111,13 +111,13 @@ then
     fi
     if [[ "$2" == "flink" ]]
     then
-        # checking to see if Flink framework is already installed
-        FLINK_INSTALLED=$(kubectl get framework flink -o jsonpath="{.metadata.name}")
+        # checking to see if Flink operator is already installed
+        FLINK_INSTALLED=$(kubectl get operator flink -o jsonpath="{.metadata.name}")
         if [ -z "$FLINK_INSTALLED" ]
         then
-            echo "Flink framework has not been installed yet."
+            echo "Flink operator has not been installed yet."
         else
-            echo "Flink framework already installed."
+            echo "Flink operator already installed."
             exit 1
             #todo: installFlinkInstance
         fi
@@ -125,100 +125,100 @@ then
         # checking dependencies
         echo "Checking for Flink dependencies..."
 
-        FRAMEWORKS_INSTALLED=$(kubectl get framework ${flink_dependency_list[@]} -o jsonpath="{.items[*].metadata.name}")
-        if [ -z "$FRAMEWORKS_INSTALLED" ]
+        OPERATORS_INSTALLED=$(kubectl get operator ${flink_dependency_list[@]} -o jsonpath="{.items[*].metadata.name}")
+        if [ -z "$OPERATORS_INSTALLED" ]
         then
-            echo "No dependency frameworks are installed."
+            echo "No dependency operators are installed."
             ## now loop through the dependencies to install
             for d in "${flink_dependency_list[@]}"
             do
-            frameworkInstall $d
+            operatorInstall $d
             done
-            frameworkInstall flink
+            operatorInstall flink
             exit 0
         else
-            #TO_INSTALL_FRAMEWORKS=$(${FRAMEWORKS_INSTALLED[@]} ${flink_dependency_list[@]} | tr ' ' '\n' | sort | uniq -u)7
-            #TO_INSTALL_FRAMEWORKS=${flink_dependency_list[@]} ${FRAMEWORKS_INSTALLED[@]} ${FRAMEWORKS_INSTALLED[@]} | tr ' ' '\n' | sort | uniq -u
-            #echo $TO_INSTALL_FRAMEWORKS
-            TO_INSTALL_FRAMEWORKS=($(compareArray flink_dependency_list[@] FRAMEWORKS_INSTALLED[@]))
-            if [ -z "$TO_INSTALL_FRAMEWORKS" ]
+            #TO_INSTALL_OPERATORS=$(${OPERATORS_INSTALLED[@]} ${flink_dependency_list[@]} | tr ' ' '\n' | sort | uniq -u)7
+            #TO_INSTALL_OPERATORS=${flink_dependency_list[@]} ${OPERATORS_INSTALLED[@]} ${OPERATORS_INSTALLED[@]} | tr ' ' '\n' | sort | uniq -u
+            #echo $TO_INSTALL_OPERATORS
+            TO_INSTALL_OPERATORS=($(compareArray flink_dependency_list[@] OPERATORS_INSTALLED[@]))
+            if [ -z "$TO_INSTALL_OPERATORS" ]
             then
-                echo "All dependency frameworks are installed."
-                frameworkInstall flink
+                echo "All dependency operators are installed."
+                operatorInstall flink
             else
-                echo -e "Found missing framework(s):\n\t${TO_INSTALL_FRAMEWORKS[@]}"
-                for d in "${TO_INSTALL_FRAMEWORKS[@]}"
+                echo -e "Found missing operator(s):\n\t${TO_INSTALL_OPERATORS[@]}"
+                for d in "${TO_INSTALL_OPERATORS[@]}"
                 do
-                frameworkInstall $d
+                operatorInstall $d
                 done
-                echo "All dependency frameworks are installed now."
-                frameworkInstall flink
+                echo "All dependency operators are installed now."
+                operatorInstall flink
             fi
         fi
     elif [[ "$2" == "kafka" ]]
     then
-        # checking to see if Kafka framework is already installed
-        KAFKA_INSTALLED=$(kubectl get framework kafka -o jsonpath="{.metadata.name}")
+        # checking to see if Kafka operator is already installed
+        KAFKA_INSTALLED=$(kubectl get operator kafka -o jsonpath="{.metadata.name}")
         if [ -z "$KAFKA_INSTALLED" ]
         then
-            echo "Kafka framework has not been installed yet."
+            echo "Kafka operator has not been installed yet."
         else
-            echo "Kafka framework already installed."
+            echo "Kafka operator already installed."
             exit 1
         fi
 
         # checking dependencies
         echo "Checking for Kafka dependencies..."
 
-        FRAMEWORKS_INSTALLED=$(kubectl get framework ${kafka_dependency_list[@]} -o jsonpath="{.items[*].metadata.name}")
-        if [ -z "$FRAMEWORKS_INSTALLED" ]
+        OPERATORS_INSTALLED=$(kubectl get operator ${kafka_dependency_list[@]} -o jsonpath="{.items[*].metadata.name}")
+        if [ -z "$OPERATORS_INSTALLED" ]
         then
-            echo "No dependency frameworks are installed."
+            echo "No dependency operators are installed."
             ## now loop through the dependencies to install
             for d in "${kafka_dependency_list[@]}"
             do
-            frameworkInstall $d
+            operatorInstall $d
             done
-            frameworkInstall kafka
+            operatorInstall kafka
             exit 0
         else
-            TO_INSTALL_FRAMEWORKS=($(compareArray kafka_dependency_list[@] FRAMEWORKS_INSTALLED[@]))
-            if [ -z "$TO_INSTALL_FRAMEWORKS" ]
+            TO_INSTALL_OPERATORS=($(compareArray kafka_dependency_list[@] OPERATORS_INSTALLED[@]))
+            if [ -z "$TO_INSTALL_OPERATORS" ]
             then
-                echo "All dependency frameworks are installed."
-                frameworkInstall kafka
+                echo "All dependency operators are installed."
+                operatorInstall kafka
             else
-                echo -e "Found missing framework(s):\n\t${TO_INSTALL_FRAMEWORKS[@]}"
-                for d in "${TO_INSTALL_FRAMEWORKS[@]}"
+                echo -e "Found missing operator(s):\n\t${TO_INSTALL_OPERATORS[@]}"
+                for d in "${TO_INSTALL_OPERATORS[@]}"
                 do
-                frameworkInstall $d
+                operatorInstall $d
                 done
-                echo "All dependency frameworks are installed now."
-                frameworkInstall kafka
+                echo "All dependency operators are installed now."
+                operatorInstall kafka
             fi
         fi
     elif [[ "$2" == "zookeeper" ]]
     then
-        # checking to see if Zookeeper framework is already installed
-        ZOOKEEPER_INSTALLED=$(kubectl get framework zookeeper -o jsonpath="{.metadata.name}")
+        # checking to see if Zookeeper operator is already installed
+        ZOOKEEPER_INSTALLED=$(kubectl get operator zookeeper -o jsonpath="{.metadata.name}")
         if [ -z "$ZOOKEEPER_INSTALLED" ]
         then
-            echo "Zookeeper framework has not been installed yet."
-            frameworkInstall zookeeper
+            echo "Zookeeper operator has not been installed yet."
+            operatorInstall zookeeper
             exit 0
         else
-            echo "Zookeeper framework already installed."
+            echo "Zookeeper operator already installed."
             exit 1
         fi
     else
-        echo -e "$2 is not a known framework.\n"
-        echo "Please select the framework to install:"
+        echo -e "$2 is not a known operator.\n"
+        echo "Please select the operator to install:"
         sampleRegistry=$(curl -s https://api.github.com/repos/kudobuilder/kudo/contents/config/samples | jq -r ".[] | .name ")
         echo ""
         for t in ${sampleRegistry[@]}; do
-            if [[ $t == *"framework.yaml" ]]; then
+            if [[ $t == *"operator.yaml" ]]; then
                 #echo -e "\t$t"
-                echo -e "\t${t%-framework.yaml*}"
+                echo -e "\t${t%-operator.yaml*}"
             fi
         done
 
@@ -226,7 +226,7 @@ then
         echo -e "\tflink"
         echo ""
         echo "Syntax:"
-        echo -e "\tkubectl kudo install <frameworkName>"
+        echo -e "\tkubectl kudo install <operatorName>"
         echo ""
         echo "Example:"
         echo -e "\tkubectl kudo install flink"
@@ -243,15 +243,15 @@ then
     fi
     if [[ "$2" == "flink" ]]
     then
-        # checking to see if Flink framework is already uninstalled
-        FLINK_INSTALLED=$(kubectl get framework flink -o jsonpath="{.metadata.name}")
+        # checking to see if Flink operator is already uninstalled
+        FLINK_INSTALLED=$(kubectl get operator flink -o jsonpath="{.metadata.name}")
         if [ -z "$FLINK_INSTALLED" ]
         then
-            echo "Flink framework is already uninstalled."
+            echo "Flink operator is already uninstalled."
             exit 1
 
         else
-            echo "Flink framework is installed."
+            echo "Flink operator is installed."
         fi
 
         while [ ! $# -eq 0 ]
@@ -265,19 +265,19 @@ then
             shift
         done
         echo "Uninstalling Flink..."
-        frameworkUninstall flink
+        operatorUninstall flink
         exit 0
     elif [[ "$2" == "kafka" ]]
     then
-        # checking to see if Kafka framework is already uninstalled
-        KAFKA_INSTALLED=$(kubectl get framework kafka -o jsonpath="{.metadata.name}")
+        # checking to see if Kafka operator is already uninstalled
+        KAFKA_INSTALLED=$(kubectl get operator kafka -o jsonpath="{.metadata.name}")
         if [ -z "$KAFKA_INSTALLED" ]
         then
-            echo "Kafka framework is already uninstalled."
+            echo "Kafka operator is already uninstalled."
             exit 1
 
         else
-            echo "Kafka framework is installed."
+            echo "Kafka operator is installed."
         fi
 
         while [ ! $# -eq 0 ]
@@ -291,33 +291,33 @@ then
             shift
         done
         echo "Uninstalling Kafka..."
-        frameworkUninstall kafka
+        operatorUninstall kafka
         exit 0
     elif [[ "$2" == "zookeeper" ]]
     then
-        # checking to see if Kafka framework is already uninstalled
-        ZOOKEEPER_INSTALLED=$(kubectl get framework zookeeper -o jsonpath="{.metadata.name}")
+        # checking to see if Kafka operator is already uninstalled
+        ZOOKEEPER_INSTALLED=$(kubectl get operator zookeeper -o jsonpath="{.metadata.name}")
         if [ -z "$ZOOKEEPER_INSTALLED" ]
         then
-            echo "Zookeeper framework is already uninstalled."
+            echo "Zookeeper operator is already uninstalled."
             exit 1
 
         else
-            echo "Zookeeper framework is installed."
-            frameworkUninstall zookeeper
+            echo "Zookeeper operator is installed."
+            operatorUninstall zookeeper
             exit 0
         fi
     else
-        echo -e "$2 is not a known framework.\n"
-        echo "Please choose from the list of frameworks to uninstall:"
-        FRAMEWORKS_INSTALLED=$(kubectl get frameworks -o jsonpath="{.items[*].metadata.name}")
+        echo -e "$2 is not a known operator.\n"
+        echo "Please choose from the list of operators to uninstall:"
+        OPERATORS_INSTALLED=$(kubectl get operators -o jsonpath="{.items[*].metadata.name}")
         echo ""
-        for t in ${FRAMEWORKS_INSTALLED[@]}; do
+        for t in ${OPERATORS_INSTALLED[@]}; do
             echo -e "\t$t"
         done
         echo ""
         echo "Syntax:"
-        echo -e "\tkubectl kudo uninstall <frameworkName>"
+        echo -e "\tkubectl kudo uninstall <operatorName>"
         echo ""
         echo "Example:"
         echo -e "\tkubectl kudo uninstall kafka"
@@ -344,10 +344,10 @@ then
             exit 0
         fi
     fi
-    echo "Please verify the framework to get a shell:"
-    kubectl get frameworks
+    echo "Please verify the operator to get a shell:"
+    kubectl get operators
     echo ""
-    echo "Syntax: kubectl kudo shell <frameworkName>"
+    echo "Syntax: kubectl kudo shell <operatorName>"
     echo ""
     echo "Example: kubectl kudo shell flink"
     exit 1
@@ -369,10 +369,10 @@ then
             exit 0
         fi
     fi
-    echo "Please verify the framework to exec command:"
-    kubectl get frameworks
+    echo "Please verify the operator to exec command:"
+    kubectl get operators
     echo ""
-    echo "Syntax: kubectl kudo exec <frameworkName>"
+    echo "Syntax: kubectl kudo exec <operatorName>"
     echo ""
     echo "Example: kubectl kudo exec flink"
     exit 1
@@ -394,11 +394,11 @@ then
 fi
 
 function createFunction {
-    framework=$2
+    operator=$2
     shift 2
     while getopts ":n:v:p:" opt ; do
         case "$opt" in
-                p)   
+                p)
                 c+=("$OPTARG")
                 ;;
                 n)
@@ -407,8 +407,8 @@ function createFunction {
                 ;;
                 v)
                 echo "version is: $OPTARG"
-                frameworkversion=$OPTARG
-                ;;                
+                operatorversion=$OPTARG
+                ;;
                 \?)
                 echo "Invalid option: -$OPTARG" >&2
                 exit 1
@@ -434,13 +434,13 @@ kind: Instance
 metadata:
     labels:
         controller-tools.k8s.io: "1.0"
-        framework: $framework
+        operator: $operator
     name: $name
 spec:
-    frameworkVersion:
-        name: $framework-$frameworkversion
+    operatorVersion:
+        name: $operator-$operatorversion
         namespace: default
-        type: FrameworkVersion
+        type: OperatorVersion
     parameters:
 EOF
     cat /tmp/kudo_instance /tmp/kudo_instance_parameter > /tmp/kudo_instance_joined
@@ -454,7 +454,7 @@ then
     if [[ "$?" == "1" ]]
     then
         echo ""
-        echo "Failed to create instance for framework $2."
+        echo "Failed to create instance for operator $2."
         echo ""
         echo "Invalid create command."
         echo ""
@@ -486,6 +486,6 @@ fi
 echo "Kubectl kudo Plugin v0.0.1"
 echo ""
 echo "# Available commands"
-echo "kubectl kudo shell <Frameworkname>"
-echo "kubectl kudo exec <Frameworkname>"
+echo "kubectl kudo shell <Operatorname>"
+echo "kubectl kudo exec <Operatorname>"
 echo "kubectl kudo flink <CLI Command>"

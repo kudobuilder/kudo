@@ -1,7 +1,7 @@
 ---
 title: CLI Usage
 type: docs
-weight: 4
+menu: docs
 ---
 # CLI Usage
 
@@ -19,9 +19,7 @@ This document demonstrates how to use the CLI but also shows what happens in `KU
          * [Environment Variables](#environment-variables)
          * [Examples](#examples)
             * [Install a Package](#install-a-package)
-               * [Install just the KUDO Package without Dependencies](#install-just-the-kudo-package-without-dependencies)
-            * [Install a KUDO Package with Dependencies](#install-a-kudo-package-with-dependencies)
-            * [Install a Package with InstanceName &amp; Parameters](#install-a-package-with-instancename--parameters)
+            * [Install a package overriding instance name and parameters](#install-a-package-overriding-instance-name-and-parameters)
             * [Get Instances](#get-instances)
             * [Get the Status of an Instance](#get-the-status-of-an-instance)
             * [Delete an Instance](#delete-an-instance)
@@ -49,13 +47,13 @@ Or you can use compile and install the plugin from your `$GOPATH/src/github.com/
 
 ## Commands
 
-|  Syntax | Description  |
-|---|---|
-| `kubectl kudo install <name> [flags]`  |  Install a Framework from the official [KUDO repo](https://github.com/kudobuilder/frameworks). |
-| `kubectl kudo get instances [flags]` | Show all available instances. |
-| `kubectl kudo plan status [flags]` | View all available plans. |
-| `kubectl kudo plan history <name> [flags]` | View all available plans. |
-| `kubectl kudo version` | Print the current KUDO package version. |
+| Syntax                                     | Description                                                                                   |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `kubectl kudo install <name> [flags]`      | Install a Operator from the official [KUDO repo](https://github.com/kudobuilder/operators). |
+| `kubectl kudo get instances [flags]`       | Show all available instances.                                                                 |
+| `kubectl kudo plan status [flags]`         | View all available plans.                                                                     |
+| `kubectl kudo plan history <name> [flags]` | View all available plans.                                                                     |
+| `kubectl kudo version`                     | Print the current KUDO package version.                                                       |
 
 ## Flags
 
@@ -64,12 +62,11 @@ Usage:
   kubectl-kudo install <name> [flags]
 
 Flags:
-      --all-dependencies          Installs all dependency packages. (default "false")
       --auto-approve              Skip interactive approval when existing version found. (default "false")
   -h, --help                      help for install
-      --instance string           The instance name. (default to Framework name)
+      --instance string           The instance name. (default to Operator name)
       --kubeconfig string         The file path to Kubernetes configuration file. (default "$HOME/.kube/config")
-      --namespace string          The namespace used for the framework installation. (default "default")
+      --namespace string          The namespace used for the operator installation. (default "default")
       --package-version string    A specific package version on the official GitHub repo. (default to the most recent)
   -p, --parameter stringArray     The parameter name and value separated by '='
 ```
@@ -78,48 +75,36 @@ Flags:
 
 ### Install a Package
 
-There are two options when installing a package. When developing, you are encouraged to use `kubectl apply -f *.yaml`
-in case you have `framework.yaml`, `frameworkversion.yaml` and `instance.yaml` locally present. For normal operations,
-it is recommended to use the official packages provided through the [kudobuilder/frameworks](https://github.com/kudobuilder/frameworks) repository.
-The `KUDO` plugin for `kubectl` offers a convenient way of installing those files via command line.
-
-#### Install just the KUDO Package without Dependencies
-
-This is the default behavior and only installs the given package.
+There are two options how to install a package. For development you want to install packages from your local filesystem.
 
 ```bash
-$ kubectl kudo install kafka
-framework.kudo.k8s.io/v1alpha1/kafka created
-frameworkversion.kudo.k8s.io/v1alpha1/kafka-2.11-2.4.0 created
+kubectl kudo install pkg/kudoctl/util/repo/testdata/zk
 ```
 
-#### Install a KUDO Package with Dependencies
-
-Sometimes you want to automatically install all dependencies a package comes with. This behavior is enabled via
-the flag `--all-dependencies`, which will instruct KUDO to install all dependencies of a package as well.
+For normal operations it is recommended to use the official packages provided through the [kudobuilder/operators](https://github.com/kudobuilder/operators) repository.
+To install official kafka package you have to do the following:
 
 ```bash
-$ kubectl kudo install kafka --all-dependencies
-framework.kudo.k8s.io/v1alpha1/kafka created
-frameworkversion.kudo.k8s.io/v1alpha1/kafka-2.11-2.4.0 created
-framework.kudo.k8s.io/v1alpha1/zookeeper created
-frameworkversion.kudo.k8s.io/v1alpha1/zookeeper-1.0 created
+kubectl kudo install kafka
 ```
 
-#### Install a Package with InstanceName & Parameters
+Both of these options will install new instance of that operator into your cluster. By default the instance name is generated.
+
+#### Install a package overriding instance name and parameters
 
 Use `--instance` and `--parameter`/`-p` for setting an Instance name and Parameters, respectively:
 
 ```bash
-$ kubectl kudo install kafka --instance=my-kafka-name --parameter KAFKA_ZOOKEEPER_URI=zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181 --parameter KAFKA_ZOOKEEPER_PATH=/small -p BROKERS_COUNTER=3
-framework.kudo.k8s.io/kafka unchanged
-frameworkversion.kudo.k8s.io/kafka unchanged
-No Instance tied to this "kafka" version has been found. Do you want to create one? (Yes/no)
+$ kubectl kudo install kafka --instance=my-kafka-name --parameter ZOOKEEPER_URI=zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181 --parameter ZOOKEEPER_PATH=/small -p BROKERS_COUNTER=3
+operator.kudo.k8s.io/kafka unchanged
+operatorversion.kudo.k8s.io/kafka unchanged
+No instance named 'my-kafka-name' tied to this "kafka" version has been found. Do you want to create one? (Yes/no)
 instance.kudo.k8s.io/v1alpha1/my-kafka-name created
 $ kubectl get instances
 NAME            AGE
 my-kafka-name   6s
 ```
+
 
 ### Get Instances
 
@@ -145,7 +130,7 @@ This maps to the `kubectl` command:
 Example:
 
 ```bash
-$ kubectl kudo instances
+$ kubectl kudo get instances
   NAME      CREATED AT
   small     4d
   up        3d
@@ -164,7 +149,7 @@ Now that we have a list of available instances, we can get the current status of
 $ kubectl kudo plan status --instance=up
   Plan(s) for "up" in namespace "default":
   .
-  └── up (Framework-Version: "upgrade-v1" Active-Plan: "up-deploy-493146000")
+  └── up (Operator-Version: "upgrade-v1" Active-Plan: "up-deploy-493146000")
       ├── Plan deploy (serial strategy) [COMPLETE]
       │   └── Phase par (serial strategy) [COMPLETE]
       │       └── Step run-step (COMPLETE)
@@ -182,7 +167,7 @@ In this tree chart we see all important information in one screen:
 
 * `up` is the instance we specified.
 * `default` is the namespace we are in.
-* `upgrade-v1` is the instance's **Framework-Version**.
+* `upgrade-v1` is the instance's **Operator-Version**.
 * `up-deploy-493146000` is the current **Active-Plan**.
     + `par` is a serial phase within the `deploy` plan that has been `COMPLETE`
     + `deploy` is a `serial` plan that has been `COMPLETE`.
@@ -198,31 +183,31 @@ In this tree chart we see all important information in one screen:
 
 For comparison, the according `kubectl` commands to retrieve the above information are:
 
-* `kubectl get instances` (to get the matching `FrameworkVersion`)
-* `kubectl describe frameworkversion upgrade-v1` (to get the current `PlanExecution`)
+* `kubectl get instances` (to get the matching `OperatorVersion`)
+* `kubectl describe operatorversion upgrade-v1` (to get the current `PlanExecution`)
 * `kubectl describe planexecution up-deploy-493146000` (to get the status of the `Active-Plan`)
 
-Here, the overview of all available plans can be found in `Spec.Plans` of the matching `FrameworkVersion`:
+Here, the overview of all available plans can be found in `Spec.Plans` of the matching `OperatorVersion`:
 
 ```bash
-$ kubectl describe frameworkversion upgrade-v1
+$ kubectl describe operatorversion upgrade-v1
 Name:         upgrade-v1
 Namespace:    default
 Labels:       controller-tools.k8s.io=1.0
-Annotations:  kubectl.kubernetes.io/last-applied-configuration={"apiVersion":"kudo.k8s.io/v1alpha1","kind":"FrameworkVersion","metadata":{"annotations":{},"labels":{"controller-tools.k8s.io":"1.0"},"name":"upgra...
+Annotations:  kubectl.kubernetes.io/last-applied-configuration={"apiVersion":"kudo.k8s.io/v1alpha1","kind":"OperatorVersion","metadata":{"annotations":{},"labels":{"controller-tools.k8s.io":"1.0"},"name":"upgra...
 API Version:  kudo.k8s.io/v1alpha1
-Kind:         FrameworkVersion
+Kind:         OperatorVersion
 Metadata:
   Cluster Name:
   Creation Timestamp:  2018-12-14T19:26:44Z
   Generation:          1
   Resource Version:    63769
-  Self Link:           /apis/kudo.k8s.io/v1alpha1/namespaces/default/frameworkversions/upgrade-v1
+  Self Link:           /apis/kudo.k8s.io/v1alpha1/namespaces/default/operatorversions/upgrade-v1
   UID:                 30fe6209-ffd6-11e8-abd5-080027d506c7
 Spec:
   Connection String:
-  Framework:
-    Kind:  Framework
+  Operator:
+    Kind:  Operator
     Name:  upgrade
   Parameters:
     Default:       15
@@ -293,7 +278,7 @@ The status of the currently applied plan can then be found when looking at the p
 $ kubectl describe planexecution up-deploy-493146000
   Name:         up-deploy-493146000
   Namespace:    default
-  Labels:       framework-version=upgrade-v1
+  Labels:       operator-version=upgrade-v1
                 instance=up
   Annotations:  <none>
   API Version:  kudo.k8s.io/v1alpha1
@@ -356,12 +341,12 @@ An instance can be deleted (uninstalled from the cluster) using `kubectl delete 
 
 ### Get the History to PlanExecutions
 
-This is helpful if you want to find out which plan ran on your instance to a particular `FrameworkVersion`.
-Run this command to retrieve all plans that ran for the instance `up` and its FrameworkVersion `upgrade-v1`:
+This is helpful if you want to find out which plan ran on your instance to a particular `OperatorVersion`.
+Run this command to retrieve all plans that ran for the instance `up` and its OperatorVersion `upgrade-v1`:
 
 ```bash
 $ kubectl kudo plan history upgrade-v1 --instance=up
-  History of plan-executions for "up" in namespace "default" to framework-version "upgrade-v1":
+  History of plan-executions for "up" in namespace "default" to operator-version "upgrade-v1":
   .
   └── up-deploy-493146000 (created 4h56m12s ago)
 ```
@@ -375,4 +360,4 @@ $ kubectl kudo plan history --instance=up
   └── up-deploy-493146000 (created 4h52m34s ago)
 ```
 
-This includes the previous history but also all FrameworkVersions that have been applied to the selected instance.
+This includes the previous history but also all OperatorVersions that have been applied to the selected instance.

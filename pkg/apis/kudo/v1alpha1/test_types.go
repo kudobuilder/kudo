@@ -24,6 +24,8 @@ type TestSuite struct {
 	StartControlPlane bool `json:"startControlPlane"`
 	// Whether or not to start the KUDO controller for the tests.
 	StartKUDO bool `json:"startKUDO"`
+	// If set, do not delete the resources after running the tests.
+	SkipDelete bool `json:"skipDelete"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -37,7 +39,7 @@ type TestStep struct {
 
 	Index int `json:"index,omitempty"`
 	// Objects to delete at the beginning of the test step.
-	Delete []corev1.ObjectReference `json:"delete,omitempty"`
+	Delete []ObjectReference `json:"delete,omitempty"`
 
 	// Indicates that this is a unit test - safe to run without a real Kubernetes cluster.
 	UnitTest bool `json:"unitTest"`
@@ -54,4 +56,12 @@ type TestAssert struct {
 	metav1.TypeMeta `json:",inline"`
 	// Override the default timeout of 300 seconds (in seconds).
 	Timeout int `json:"timeout"`
+}
+
+// ObjectReference is a Kubernetes object reference with added labels to allow referencing
+// objects by label.
+type ObjectReference struct {
+	corev1.ObjectReference `json:",inline"`
+	// Labels to match on.
+	Labels map[string]string
 }

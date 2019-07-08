@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"flag"
+	"fmt"
 	"io"
 	"os"
 	"regexp"
@@ -10,7 +12,17 @@ import (
 
 // RunTests runs a Go test method without requiring the Go compiler.
 // This does not currently support test caching.
-func RunTests(testName string, testFunc func(*testing.T)) {
+// If testToRun is set to a non-empty string, it is passed as a `-run` argument to the go test harness.
+func RunTests(testName string, testToRun string, testFunc func(*testing.T)) {
+	// Set the verbose test flag to true since we are not using the regular go test CLI.
+	flag.Set("test.v", "true")
+
+	// Set the -run flag on the Go test harness.
+	// See the go test documentation: https://golang.org/pkg/cmd/go/internal/test/
+	if testToRun != "" {
+		flag.Set("test.run", fmt.Sprintf("//%s", testToRun))
+	}
+
 	os.Exit(testing.MainStart(&testDeps{}, []testing.InternalTest{
 		{
 			Name: testName,

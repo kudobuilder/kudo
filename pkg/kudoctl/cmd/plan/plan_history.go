@@ -3,6 +3,7 @@ package plan
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
@@ -30,10 +31,10 @@ func NewPlanHistoryCmd() *cobra.Command {
 	options := defaultHistoryOptions
 	listCmd := &cobra.Command{
 		Use:   "history",
-		Short: "Lists history to a specific framework-version of an instance.",
+		Short: "Lists history to a specific operator-version of an instance.",
 		Long: `
 	# View plan status
-	kudoctl plan history <frameworkVersion> --instance=<instanceName>`,
+	kudoctl plan history <operatorVersion> --instance=<instanceName>`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runHistory(cmd, args, options)
 		},
@@ -51,6 +52,11 @@ func runHistory(cmd *cobra.Command, args []string, options *historyOptions) erro
 	instanceFlag, err := cmd.Flags().GetString("instance")
 	if err != nil || instanceFlag == "" {
 		return fmt.Errorf("flag Error: Please set instance flag, e.g. \"--instance=<instanceName>\"")
+	}
+
+	// If the $KUBECONFIG environment variable is set, use that
+	if len(os.Getenv("KUBECONFIG")) > 0 {
+		options.kubeConfigPath = os.Getenv("KUBECONFIG")
 	}
 
 	configPath, err := check.KubeConfigLocationOrDefault(options.kubeConfigPath)
@@ -99,8 +105,8 @@ func planHistory(args []string, options *historyOptions) error {
 		fmt.Printf("History of all plan-executions for instance \"%s\" in namespace \"%s\":\n", options.instance, options.namespace)
 		labelSelector = "instance=" + options.instance
 	} else {
-		fmt.Printf("History of plan-executions for instance \"%s\" in namespace \"%s\" to framework-version \"%s\":\n", options.instance, options.namespace, args[0])
-		labelSelector = "framework-version=" + args[0] + ", instance=" + options.instance
+		fmt.Printf("History of plan-executions for instance \"%s\" in namespace \"%s\" to operator-version \"%s\":\n", options.instance, options.namespace, args[0])
+		labelSelector = "operator-version=" + args[0] + ", instance=" + options.instance
 	}
 
 	instObj, err := dynamicClient.Resource(planExecutionsGVR).Namespace(options.namespace).List(metav1.ListOptions{

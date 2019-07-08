@@ -1,3 +1,7 @@
+---
+title: Comparison
+menu: docs
+---
 # Comparison to other App Def templates
 
 
@@ -34,7 +38,7 @@ Redefining the (almost) same components for several lifecycle phases can lead to
 
 ## Custom Application lifecycles
 
-Application Operators often want to perform maintenance on an application instance that is unique to the Framework.  The ability to define custom operations on the framework as part of its definition makes common actions less error prone.  For example the mechanism for backing up an ElasticSearch index can be provided as part of the application Definition and used by application Operators without change.
+Application Operators often want to perform maintenance on an application instance that is unique to the Operator.  The ability to define custom operations on the operator as part of its definition makes common actions less error prone.  For example the mechanism for backing up an ElasticSearch index can be provided as part of the application Definition and used by application Operators without change.
 
 
 ## Custom Process Flows
@@ -49,7 +53,7 @@ The use of CRDs allow for many benefits:
 
 ### RBAC
 
-What are the control mechanisms?  CRDs allow for RBAC control at a namespace level.  Expose Frameworks/Versions/Instances on a namepsace by namespace basis.  Allow creating of applications on a namespace basis.
+What are the control mechanisms?  CRDs allow for RBAC control at a namespace level.  Expose Operators/Versions/Instances on a namepsace by namespace basis.  Allow creating of applications on a namespace basis.
 
 ### Finalizers
 
@@ -60,17 +64,17 @@ What are the control mechanisms?  CRDs allow for RBAC control at a namespace lev
 
 ## Discoverable Repo for Applications
 
-It should be easy to convert a Helm chart into a FrameworkVersion since we can just "render" the chart.  Additionally we plan to build the Universe Shim to accept any DC/OS framework.  Thus we should be able to pull from either of these public repos of apps (and any internally hosted app site)
+It should be easy to convert a Helm chart into a OperatorVersion since we can just "render" the chart.  Additionally we plan to build the Universe Shim to accept any DC/OS operator.  Thus we should be able to pull from either of these public repos of apps (and any internally hosted app site)
 
 
 ## Comparison Table
 
-| Project | Definition Language | Uses CRDs | Dependencies | Multi Step | Parameters | Custom Lifecycles | Install Component | App Repo |
-|--------:|:-------------------:|---------:|--------------:|-----------:|:-----------:|-------------------:|:----------------:|--------:|
-| **Raw Yaml** | YAML | No | No | No | No | No | No | No |
-| **Helm 3** | Lua | No | Yes | No | Yes | Yes | CLI | Yes |
-| **Helm 2** | Also Lua? | No | ?? | No | Yes | No | CLI + Tiller | Yes |
-| **ksonnet** | jsonnet/libsonnet | No | ?? | No | Yes | ?? | CLI | No |
-| **OpenShift Templates** | yaml | No | No | No | Yes | No | Openshift | No |
-| **Kustomize** | YAML | No | No | Yes | No | No| CLI | No |
-| **KUDO** | YAML + Kustomize | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+|                 Project | Definition Language | Uses CRDs | Dependencies | Multi Step | Parameters | Custom Lifecycles | Install Component | App Repo |
+| ----------------------: | :-----------------: | --------: | -----------: | ---------: | :--------: | ----------------: | :---------------: | -------: |
+|            **Raw Yaml** |        YAML         |        No |           No |         No |     No     |                No |        No         |       No |
+|              **Helm 3** |         Lua         |        No |          Yes |         No |    Yes     |               Yes |        CLI        |      Yes |
+|              **Helm 2** |      Also Lua?      |        No |           ?? |         No |    Yes     |                No |   CLI + Tiller    |      Yes |
+|             **ksonnet** |  jsonnet/libsonnet  |        No |           ?? |         No |    Yes     |                ?? |        CLI        |       No |
+| **OpenShift Templates** |        yaml         |        No |           No |         No |    Yes     |                No |     Openshift     |       No |
+|           **Kustomize** |        YAML         |        No |           No |        Yes |     No     |                No |        CLI        |       No |
+|                **KUDO** |  YAML + Kustomize   |       Yes |          Yes |        Yes |    Yes     |               Yes |        Yes        |      Yes |

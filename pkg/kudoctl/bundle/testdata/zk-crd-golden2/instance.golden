@@ -1,0 +1,12 @@
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+    operator: zookeeper
+  name: zookeeper-txhzt
+spec:
+  operatorVersion:
+    name: zookeeper-0.1.0
+    type: OperatorVersions
+  name: "zookeeper-0.1.0"

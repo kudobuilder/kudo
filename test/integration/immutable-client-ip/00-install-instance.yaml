@@ -1,0 +1,48 @@
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  name: my-instance
+  labels:
+    operator: service-operator
+spec:
+  operatorVersion:
+    name: service-operator
+    kind: OperatorVersion
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: OperatorVersion
+metadata:
+  name: service-operator
+spec:
+  version: "1.0"
+  tasks:
+    deploy:
+      resources:
+      - service.yaml
+  parameters:
+  - name: LABEL
+    default: "test"
+  plans:
+    deploy:
+      strategy: serial
+      phases:
+      - name: deploy
+        stategy: parallel
+        steps:
+        - name: deploy
+          tasks:
+          - deploy
+  templates:
+    service.yaml: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: svc
+      spec:
+        type: ClusterIP
+        ports:
+        - port: 80
+          name: gossip
+        selector:
+          instance: {{ .Name }}
+          label: {{ .Params.LABEL }}

@@ -1,12 +1,13 @@
 ---
 title: Update and Upgrade Plans
 type: docs
+menu: docs
 ---
 
 # Update and Upgrade Plans
 
 
-This demo uses a different toy framework described in the `../config/samples/upgrade.yaml` file.  There are two `Framework` versions defined for this `Framework`, and each `FrameworkVersion` has three plans: `deploy`, `update` and `upgrade`.
+This demo uses a different toy operator described in the `../config/samples/upgrade.yaml` file.  There are two `Operator` versions defined for this `Operator`, and each `OperatorVersion` has three plans: `deploy`, `update` and `upgrade`.
 
 
 # Deploy Plan
@@ -15,9 +16,9 @@ The deploy plan is automatically run for new instances:
 
 ```bash
 $ kubectl apply -f config/samples/upgrade.yaml
-framework.kudo.k8s.io/upgrade created
-frameworkversion.kudo.k8s.io/upgrade-v1 created
-frameworkversion.kudo.k8s.io/upgrade-v2 created
+operator.kudo.k8s.io/upgrade created
+operatorversion.kudo.k8s.io/upgrade-v1 created
+operatorversion.kudo.k8s.io/upgrade-v2 created
 instance.kudo.k8s.io/up created
 ```
 
@@ -39,7 +40,7 @@ Going to sleep for 15 seconds
 
 # Update the Instance
 
-An update of the instance is run when the Spec of the Instance is changed, but the FrameworkVersion remains the same:
+An update of the instance is run when the Spec of the Instance is changed, but the OperatorVersion remains the same:
 
 ```
 kubectl patch instance up -p '{"spec":{"parameters":{"SLEEP":"60"}}}' --type=merge
@@ -61,11 +62,11 @@ Going to sleep for 60 seconds
 
 # Upgrade
 
-Upgrades occur when the `FrameworkVersion` is changed.  The Upgrade from the NEW `FrameworkVersion` is executed:
+Upgrades occur when the `OperatorVersion` is changed.  The Upgrade from the NEW `OperatorVersion` is executed:
 
 
 ```bash
-$  kubectl patch instance up -p '{"spec":{"frameworkVersion":{"name":"upgrade-v2"}}}' --type=merge
+$  kubectl patch instance up -p '{"spec":{"operatorVersion":{"name":"upgrade-v2"}}}' --type=merge
 instance.kudo.k8s.io/up patched
 $ kubectl get planexecutions -l instance=up
 NAME                   AGE
