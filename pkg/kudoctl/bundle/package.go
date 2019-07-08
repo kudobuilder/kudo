@@ -165,7 +165,6 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 		Spec: v1alpha1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name:      fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.Version),
-				Namespace: "default",
 			},
 		},
 		Status: v1alpha1.InstanceStatus{},
