@@ -9,7 +9,7 @@ metadata:
       blockOwnerDeletion: true
       controller: true
       kind: Instance
-      name: toy1
+      name: invalid1
 status:
   name: deploy
   phases:
