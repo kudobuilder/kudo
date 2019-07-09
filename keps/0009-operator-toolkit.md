@@ -214,6 +214,7 @@ backupFile:
 password:
   default: password
   description: "Password for the mysql instance"
+  displayName: "Password"
   trigger: deploy
 notrequiredparam:
   description: "This parameter is not required"

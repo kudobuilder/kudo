@@ -86,6 +86,7 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 				Default:     param["default"],
 				Trigger:     param["trigger"],
 				Required:    required,
+				DisplayName: param["displayName"],
 			}
 			paramsStruct = append(paramsStruct, r)
 		}
