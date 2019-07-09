@@ -550,7 +550,9 @@ type TestEnvironment struct {
 // StartTestEnvironment is a wrapper for controller-runtime's envtest that creates a Kubernetes API server and etcd
 // suitable for use in tests.
 func StartTestEnvironment() (env TestEnvironment, err error) {
-	env.Environment = &envtest.Environment{}
+	env.Environment = &envtest.Environment{
+		KubeAPIServerFlags: append(envtest.DefaultKubeAPIServerFlags, "--advertise-address={{ if .URL }}{{ .URL.Hostname }}{{ end }}"),
+	}
 
 	// Retry up to three times for the test environment to start up in case there is a port collision (#510).
 	for i := 0; i < 3; i++ {
