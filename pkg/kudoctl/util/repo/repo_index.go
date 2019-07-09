@@ -83,7 +83,7 @@ func parseIndexFile(data []byte) (*IndexFile, error) {
 func (i IndexFile) GetByNameAndVersion(name, version string) (*BundleVersion, error) {
 	vs, ok := i.Entries[name]
 	if !ok || len(vs) == 0 {
-		return nil, fmt.Errorf("no operator of given name %s", name)
+		return nil, fmt.Errorf("no operator of given name %s found", name)
 	}
 
 	for _, ver := range vs {
