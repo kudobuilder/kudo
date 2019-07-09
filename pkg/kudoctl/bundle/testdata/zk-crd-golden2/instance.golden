@@ -4,10 +4,9 @@ metadata:
   labels:
     controller-tools.k8s.io: "1.0"
     operator: zookeeper
-  name: zookeeper-xn8fg
+  name: zookeeper-txhzt
 spec:
   operatorVersion:
     name: zookeeper-0.1.0
-    namespace: default
     type: OperatorVersions
   name: "zookeeper-0.1.0"

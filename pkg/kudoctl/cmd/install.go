@@ -19,11 +19,14 @@ var (
 		
 		*Note*: should you have a local  "flink" folder in the current directory it will take precedence over the remote repository.
 
-		# Install framework from a local filesystem
+		# Install operator from a local filesystem
 		kubectl kudo install pkg/kudoctl/util/repo/testdata/zk
 
-		# Install framework from tarball on a local filesystem
+		# Install operator from tarball on a local filesystem
 		kubectl kudo install pkg/kudoctl/util/repo/testdata/zk.tar.gz
+
+		# Install operator from tarball at URL
+		kubectl kudo install http://kudo.dev/zk.tar.gz
 
 		# Specify a package version of Kafka to install to your cluster.
 		kubectl kudo install kafka --package-version=0`

@@ -10,9 +10,9 @@
     <div class="flex-none w-full max-w-xs">
       <ul class="list-reset">
         {{ $currentPage := . }}
-        {{ range .Site.Menus.docs }}
+        {{ range .Site.Menus.community }}
         <li>
-          <a class="{{ if $currentPage.IsMenuCurrent "docs" .}}color-kudo-blue{{else}}text-gray-600{{end}} hover:color-kudo-blue"
+          <a class="{{ if $currentPage.IsMenuCurrent "community" .}}color-kudo-blue{{else}}text-gray-600{{end}} hover:color-kudo-blue"
             href="{{ .URL }}">{{ .Pre }}<span>{{ .Name }}</span></a>
         </li>
         {{ end }}
