@@ -12,7 +12,7 @@ import (
 )
 
 func newTestSimpleK2o() *Client {
-	return NewClientFromClient(fake.NewSimpleClientset())
+	return NewClientFromK8s(fake.NewSimpleClientset())
 }
 
 func TestNewK2oClient(t *testing.T) {

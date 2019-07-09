@@ -129,7 +129,7 @@ func installOperator(operatorArgument string, options *Options) error {
 	return installCrds(crds, kc, options)
 }
 
-func installCrds(crds *repo.PackageCRDs, kc *kudo.Client, options *Options) error {
+func installCrds(crds *bundle.PackageCRDs, kc *kudo.Client, options *Options) error {
 	// PRE-INSTALLATION SETUP
 	operatorName := crds.Operator.ObjectMeta.Name
 	operatorVersion := crds.OperatorVersion.Spec.Version
@@ -193,7 +193,7 @@ func installCrds(crds *repo.PackageCRDs, kc *kudo.Client, options *Options) erro
 	return nil
 }
 
-func validateCrds(crds *repo.PackageCRDs, skipInstance bool) error {
+func validateCrds(crds *bundle.PackageCRDs, skipInstance bool) error {
 	if skipInstance {
 		// right now we are just validating parameters on instance, if we're not creating instance right now, there is nothing to validate
 		return nil
