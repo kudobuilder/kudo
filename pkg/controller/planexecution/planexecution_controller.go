@@ -513,22 +513,19 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 							//			application/json-patch+json, application/merge-patch+json
 							//
 							// 		Reason: "UnsupportedMediaType" Code: 415
-							switch e := err.(type) {
-							case *errors.StatusError:
-								if e.Status().Reason == "UnsupportedMediaType" {
-									err = r.Client.Patch(context.TODO(), truth, client.ConstantPatch(types.MergePatchType, rawObj))
-									if err != nil {
-										log.Printf("PlanExecutionController: CreateOrUpdate MergePatch: %v", err)
-									}
+							if errors.IsUnsupportedMediaType(err) {
+								err = r.Client.Patch(context.TODO(), truth, client.ConstantPatch(types.MergePatchType, rawObj))
+								if err != nil {
+									log.Printf("PlanExecutionController: CreateOrUpdate MergePatch: %v", err)
 								}
-							default:
+							} else {
 								log.Printf("PlanExecutionController: CreateOrUpdate StrategicMergePatch: Unknown Error:", err)
 							}
 						}
 					}
 				} else {
 					//create
-					log.Printf("PlanExecutionController: CreateOrUpdate Object not present")
+					log.Println("PlanExecutionController: CreateOrUpdate Object not present")
 					err = r.Client.Create(context.TODO(), obj)
 					log.Printf("PlanExecutionController: CreateOrUpdate Create: %v", err)
 				}
