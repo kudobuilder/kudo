@@ -115,12 +115,12 @@ spec:
                       the variable will be used
                     type: string
                   displayName:
-                    description: DisplayName can be used by UI's looking to
+                    description: Human friendly version of the parameter name
                     type: string
                   name:
-                    description: 'Name is the string that should be used in the mustached
+                    description: 'Name is the string that should be used in the template
                       file for example, if `name: COUNT` then using the variable in
-                      a spec like:  spec:   replicas:  {{COUNT}}'
+                      a spec like:  spec:   replicas:  {{ .Params.COUNT }}'
                     type: string
                   required:
                     description: Required specifies if the parameter is required to
@@ -139,7 +139,7 @@ spec:
             tasks:
               type: object
             templates:
-              description: Yaml captures a mustached yaml list of elements that define
+              description: List of go templates YAML files that define
                 the application operator instance
               type: object
             upgradableFrom:
@@ -290,7 +290,7 @@ spec:
                   state:
                     type: string
                   steps:
-                    description: Steps maps a step name to a list of mustached kubernetes
+                    description: Steps maps a step name to a list of templates
                       objects stored as a string
                     items:
                       properties:
