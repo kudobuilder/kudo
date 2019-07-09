@@ -14,9 +14,11 @@ spec:
     - name: cpus
       description: Amount of cpu to provide to Zookeeper pods
       default: "0.25"
+      required: true
     - name: memory
       description: Amount of memory to provide to Zookeeper pods
       default: "1Gi"
+      required: true
   templates:
     services.yaml: |
       apiVersion: v1
