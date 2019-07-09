@@ -38,7 +38,7 @@ spec:
               - -c
               - "sleep {{ .Params.NonExisting }}"
   tasks:
-    serial:
+    invalid-task:
       resources:
         - serial.yaml
   parameters:
@@ -50,12 +50,12 @@ spec:
     deploy:
       strategy: serial
       phases:
-        - name: serial
+        - name: invalid-phase
           strategy: serial
           steps:
-            - name: serial-one
+            - name: invaid-step
               tasks:
-                - serial
+                - invalid-task
 ---
 apiVersion: kudo.k8s.io/v1alpha1
 kind: Instance
