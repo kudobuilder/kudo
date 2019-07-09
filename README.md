@@ -14,4 +14,4 @@ Please refer to the [getting started guide](https://kudo.dev/docs/getting-starte
 
 ## Community, Discussion, Contribution, and Support
 
-Learn how to engage with the KUDO community on the [community page](https://kudo.dev/docs/community/).
+Learn how to engage with the KUDO community on the [community page](https://kudo.dev/community/).
