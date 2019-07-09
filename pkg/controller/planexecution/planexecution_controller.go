@@ -519,7 +519,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 									log.Printf("PlanExecutionController: CreateOrUpdate MergePatch: %v", err)
 								}
 							} else {
-								log.Printf("PlanExecutionController: CreateOrUpdate StrategicMergePatch: Unknown Error:", err)
+								log.Printf("PlanExecutionController: CreateOrUpdate StrategicMergePatch: Unknown Error: %v", err)
 							}
 						}
 					}
