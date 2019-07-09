@@ -216,6 +216,9 @@ password:
   description: "Password for the mysql instance"
   displayName: "Password"
   trigger: deploy
+notrequiredparam:
+  description: "This parameter is not required"
+  required: false
 ```
 
 These values are meant to be overridden by Instance resources when instantiating a operator.
