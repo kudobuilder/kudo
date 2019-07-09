@@ -33,7 +33,7 @@ type Step struct {
 	Apply   []runtime.Object
 	Errors  []runtime.Object
 
-	Timeout  int
+	Timeout         int
 	DiscoveryClient discovery.DiscoveryInterface
 	Client          client.Client
 	Logger          testutils.Logger
