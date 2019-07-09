@@ -447,7 +447,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			planExecution.Status.Phases[i].Steps[j].Name = step.Name
 			planExecution.Status.Phases[i].Steps[j].Objects = objs
 			planExecution.Status.Phases[i].Steps[j].Delete = step.Delete
-			log.Printf("PlanExecutionController: Phase \"%v\" Step \"%v\" has %v object(s)", phase.Name, step.Name, len(objs))
+			log.Printf("PlanExecutionController: Phase \"%v\" Step \"%v\" of instance '%v' has %v object(s)", phase.Name, step.Name, instance.Name, len(objs))
 		}
 	}
 

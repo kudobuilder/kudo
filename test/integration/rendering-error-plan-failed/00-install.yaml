@@ -42,7 +42,7 @@ spec:
       resources:
         - serial.yaml
   parameters:
-    - name: SLEEP
+    - name: Sleep
       description: "how long to have the container sleep for before returning"
       required: true
       displayName: "Sleep Time"
