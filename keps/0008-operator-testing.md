@@ -153,6 +153,8 @@ type TestSuite struct {
 	StartControlPlane bool
 	// Whether or not to start the KUDO controller for the tests.
 	StartKUDO         bool
+	// Override the default assertion timeout of 30 seconds (in seconds).
+	Timeout int
 }
 
 ```
@@ -295,7 +297,7 @@ When searching the assertion file for a test step, if a `TestAssert` object is f
 type TestAssert struct {
     // The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestAssert.
     TypeMeta
-    // Override the default timeout of 300 seconds (in seconds).
+    // Override the default timeout of 30 seconds (in seconds).
     Timeout int
 }
 ```

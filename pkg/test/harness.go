@@ -52,6 +52,7 @@ func (h *Harness) LoadTests(dir string) ([]*Case, error) {
 		}
 
 		tests = append(tests, &Case{
+			Timeout:    h.GetTimeout(),
 			Steps:      []*Step{},
 			Name:       file.Name(),
 			Dir:        filepath.Join(dir, file.Name()),
@@ -60,6 +61,15 @@ func (h *Harness) LoadTests(dir string) ([]*Case, error) {
 	}
 
 	return tests, nil
+}
+
+// GetTimeout returns the configured timeout for the test suite.
+func (h *Harness) GetTimeout() int {
+	timeout := 30
+	if h.TestSuite.Timeout != 0 {
+		timeout = 30
+	}
+	return timeout
 }
 
 // RunTestEnv starts a Kubernetes API server and etcd server for use in the
