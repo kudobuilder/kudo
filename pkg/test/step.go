@@ -204,6 +204,10 @@ func (s *Step) CheckResource(expected runtime.Object, namespace string) []error 
 		for index := range actual.Items {
 			actuals = append(actuals, &actual.Items[index])
 		}
+
+		if len(actual.Items) == 0 {
+			testErrors = append(testErrors, fmt.Errorf("no resources matched of kind: %s", gvk.String()))
+		}
 	}
 	if err != nil {
 		return append(testErrors, err)

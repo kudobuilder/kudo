@@ -68,3 +68,16 @@
 .docs a {
   color: #4394f7;
 }
+
+.docs table {
+  margin-left : 0px;
+  margin-right: auto;
+  border-top: 1px solid #666;
+  border-bottom: 1px solid #666;
+}
+.docs table, thead, th, td {
+    border: 1px solid #ddd;
+    border-collapse: collapse; 
+}
+.docs th, td { padding: 10px; }
+.docs tr:nth-child(even) { background: #eee }
