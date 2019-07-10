@@ -499,11 +499,33 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						log.Printf("Error getting patch between truth and obj: %v\n", err)
 					} else {
 						err = r.Client.Patch(context.TODO(), truth, client.ConstantPatch(types.StrategicMergePatchType, rawObj))
-						log.Printf("PlanExecutionController: CreateOrUpdate Patch: %v", err)
+						if err != nil {
+							// Right now applying a Strategic Merge Patch to custom resources does not work. There is
+							// certain metadata needed, which when missing, leads to an invalid Content-Type Header and
+							// causes the request to fail.
+							// ( see https://github.com/kubernetes-sigs/kustomize/issues/742#issuecomment-458650435 )
+							//
+							// We temporarily solve this by checking for the specific error when a SMP is applied to
+							// custom resources and handle it by defaulting to a Merge Patch.
+							//
+							// The error message for which we check is:
+							// 		the body of the request was in an unknown format - accepted media types include:
+							//			application/json-patch+json, application/merge-patch+json
+							//
+							// 		Reason: "UnsupportedMediaType" Code: 415
+							if errors.IsUnsupportedMediaType(err) {
+								err = r.Client.Patch(context.TODO(), truth, client.ConstantPatch(types.MergePatchType, rawObj))
+								if err != nil {
+									log.Printf("PlanExecutionController: CreateOrUpdate MergePatch: %v", err)
+								}
+							} else {
+								log.Printf("PlanExecutionController: CreateOrUpdate StrategicMergePatch: Unknown Error: %v", err)
+							}
+						}
 					}
 				} else {
 					//create
-					log.Printf("PlanExecutionController: CreateOrUpdate Object not present")
+					log.Println("PlanExecutionController: CreateOrUpdate Object not present")
 					err = r.Client.Create(context.TODO(), obj)
 					log.Printf("PlanExecutionController: CreateOrUpdate Create: %v", err)
 				}
