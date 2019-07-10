@@ -70,7 +70,7 @@ func TestCreateOrUpdate(t *testing.T) {
 
 func TestWaitForCRDs(t *testing.T) {
 	// Kubernetes client caches the types, se we need to re-initialize it.
-	testClient, err := client.New(testenv.Config, client.Options{
+	testClient, err := NewRetryClient(testenv.Config, client.Options{
 		Scheme: Scheme(),
 	})
 	assert.Nil(t, err)
@@ -88,7 +88,7 @@ func TestWaitForCRDs(t *testing.T) {
 	assert.Nil(t, WaitForCRDs(testenv.DiscoveryClient, crds))
 
 	// Kubernetes client caches the types, se we need to re-initialize it.
-	testClient, err = client.New(testenv.Config, client.Options{
+	testClient, err = NewRetryClient(testenv.Config, client.Options{
 		Scheme: Scheme(),
 	})
 	assert.Nil(t, err)
