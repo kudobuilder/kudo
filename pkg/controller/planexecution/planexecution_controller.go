@@ -328,7 +328,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		r.recorder.Event(planExecution, "Warning", "InvalidPlan", fmt.Sprintf("Could not find required plan (%v)", planExecution.Spec.PlanName))
 		err = fmt.Errorf("could not find required plan (%v)", planExecution.Spec.PlanName)
 		planExecution.Status.State = kudov1alpha1.PhaseStateError
-		return reconcile.Result{}, err
+		return reconcile.Result{}, nil
 	}
 
 	planExecution.Status.Name = planExecution.Spec.PlanName
