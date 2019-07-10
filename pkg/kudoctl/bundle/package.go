@@ -2,10 +2,11 @@ package bundle
 
 import (
 	"fmt"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	"k8s.io/apimachinery/pkg/util/rand"
 
