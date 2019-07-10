@@ -52,6 +52,7 @@ func (h *Harness) LoadTests(dir string) ([]*Case, error) {
 		}
 
 		tests = append(tests, &Case{
+			Timeout:    h.GetTimeout(),
 			Steps:      []*Step{},
 			Name:       file.Name(),
 			Dir:        filepath.Join(dir, file.Name()),
@@ -62,21 +63,29 @@ func (h *Harness) LoadTests(dir string) ([]*Case, error) {
 	return tests, nil
 }
 
+// GetTimeout returns the configured timeout for the test suite.
+func (h *Harness) GetTimeout() int {
+	timeout := 30
+	if h.TestSuite.Timeout != 0 {
+		timeout = 30
+	}
+	return timeout
+}
+
 // RunTestEnv starts a Kubernetes API server and etcd server for use in the
 // tests and returns the Kubernetes configuration.
 func (h *Harness) RunTestEnv() (*rest.Config, error) {
-	h.env = &envtest.Environment{}
-
 	started := time.Now()
 
-	config, err := h.env.Start()
+	testenv, err := testutils.StartTestEnvironment()
 	if err != nil {
 		return nil, err
 	}
 
 	h.T.Log("started test environment (kube-apiserver and etcd) in", time.Since(started))
+	h.env = testenv.Environment
 
-	return config, nil
+	return testenv.Config, nil
 }
 
 // Config returns the current Kubernetes configuration - either from the environment

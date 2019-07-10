@@ -33,6 +33,7 @@ type Step struct {
 	Apply   []runtime.Object
 	Errors  []runtime.Object
 
+	Timeout         int
 	DiscoveryClient discovery.DiscoveryInterface
 	Client          client.Client
 	Logger          testutils.Logger
@@ -159,7 +160,7 @@ func (s *Step) Create(namespace string) []error {
 
 // GetTimeout gets the timeout defined for the test step.
 func (s *Step) GetTimeout() int {
-	timeout := 10
+	timeout := s.Timeout
 	if s.Assert != nil && s.Assert.Timeout != 0 {
 		timeout = s.Assert.Timeout
 	}

@@ -33,8 +33,10 @@ import (
 	"k8s.io/client-go/discovery"
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	coretesting "k8s.io/client-go/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
 // IsJSONSyntaxError returns true if the error is a JSON syntax error.
@@ -535,4 +537,40 @@ func WaitForCRDs(dClient discovery.DiscoveryInterface, crds []runtime.Object) er
 
 		return true, nil
 	})
+}
+
+// TestEnvironment is a struct containing the envtest environment, Kubernetes config and clients.
+type TestEnvironment struct {
+	Environment     *envtest.Environment
+	Config          *rest.Config
+	Client          client.Client
+	DiscoveryClient discovery.DiscoveryInterface
+}
+
+// StartTestEnvironment is a wrapper for controller-runtime's envtest that creates a Kubernetes API server and etcd
+// suitable for use in tests.
+func StartTestEnvironment() (env TestEnvironment, err error) {
+	env.Environment = &envtest.Environment{
+		KubeAPIServerFlags: append(envtest.DefaultKubeAPIServerFlags, "--advertise-address={{ if .URL }}{{ .URL.Hostname }}{{ end }}"),
+	}
+
+	// Retry up to three times for the test environment to start up in case there is a port collision (#510).
+	for i := 0; i < 3; i++ {
+		env.Config, err = env.Environment.Start()
+		if err == nil {
+			break
+		}
+	}
+
+	if err != nil {
+		return
+	}
+
+	env.Client, err = client.New(env.Config, client.Options{})
+	if err != nil {
+		return
+	}
+
+	env.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(env.Config)
+	return
 }
