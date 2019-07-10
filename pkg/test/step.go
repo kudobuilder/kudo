@@ -79,28 +79,21 @@ func (s *Step) DeleteExisting(namespace string) error {
 		}
 
 		if ref.Labels != nil && len(ref.Labels) != 0 {
-			// If the reference has a label selector, List all objects that match
-			if err := testutils.Retry(context.TODO(), func(ctx context.Context) error {
-				u := &unstructured.UnstructuredList{}
-				u.SetGroupVersionKind(gvk)
+			u := &unstructured.UnstructuredList{}
+			u.SetGroupVersionKind(gvk)
 
-				listOptions := []client.ListOptionFunc{client.MatchingLabels(ref.Labels)}
-				if objNs != "" {
-					listOptions = append(listOptions, client.InNamespace(objNs))
-				}
+			listOptions := []client.ListOptionFunc{client.MatchingLabels(ref.Labels)}
+			if objNs != "" {
+				listOptions = append(listOptions, client.InNamespace(objNs))
+			}
 
-				err := s.Client.List(ctx, u, listOptions...)
-				if err != nil {
-					return errors.Wrap(err, "listing matching resources")
-				}
+			err := s.Client.List(context.TODO(), u, listOptions...)
+			if err != nil {
+				return errors.Wrap(err, "listing matching resources")
+			}
 
-				for index := range u.Items {
-					toDelete = append(toDelete, &u.Items[index])
-				}
-
-				return nil
-			}, testutils.IsJSONSyntaxError); err != nil {
-				return err
+			for index := range u.Items {
+				toDelete = append(toDelete, &u.Items[index])
 			}
 		} else {
 			// Otherwise just append the object specified.
@@ -109,13 +102,8 @@ func (s *Step) DeleteExisting(namespace string) error {
 	}
 
 	for _, obj := range toDelete {
-		if err := testutils.Retry(context.TODO(), func(ctx context.Context) error {
-			err := s.Client.Delete(context.TODO(), obj.DeepCopyObject())
-			if err != nil && k8serrors.IsNotFound(err) {
-				return nil
-			}
-			return err
-		}, testutils.IsJSONSyntaxError); err != nil {
+		err := s.Client.Delete(context.TODO(), obj.DeepCopyObject())
+		if err != nil && !k8serrors.IsNotFound(err) {
 			return err
 		}
 	}
