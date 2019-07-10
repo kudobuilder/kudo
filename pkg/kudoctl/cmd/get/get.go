@@ -3,10 +3,10 @@ package get
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	"log"
 	"os"
 
-	"github.com/spf13/cobra"
 	"github.com/xlab/treeprint"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/clientcmd"
@@ -23,39 +23,26 @@ var (
 	namespace  string
 )
 
-// NewGetInstancesCmd creates a command that lists the instances in the cluster
-func NewGetInstancesCmd() *cobra.Command {
-	getCmd := &cobra.Command{
-		Use:   "instances",
-		Short: "Gets all available instances.",
-		Long: `
-	# Get all available instances
-	kudoctl get instances`,
-		Run: run,
-	}
-
-	getCmd.Flags().StringVar(&kubeConfig, "kubeconfig", "", "The file path to kubernetes configuration file; defaults to $HOME/.kube/config")
-	getCmd.Flags().StringVar(&namespace, "namespace", "default", "The namespace where the operator watches for changes.")
-
-	return getCmd
+// Options defines configuration options for the install command
+type Options struct {
+	InstanceName   string
+	KubeConfigPath string
+	Namespace      string
+	Parameters     map[string]string
+	PackageVersion string
+	SkipInstance   bool
 }
 
-func run(cmd *cobra.Command, args []string) {
+// DefaultOptions initializes the install command options to its defaults
+var DefaultOptions = &Options{
+	Namespace: "default",
+}
 
-	_, err := cmd.Flags().GetString("kubeconfig")
+func Run(args []string, options *Options) error {
+
+	err := validate(args, options)
 	if err != nil {
-		log.Printf("Flag Error: %v", err)
-	}
-
-	// If the $KUBECONFIG environment variable is set, use that
-	if len(os.Getenv("KUBECONFIG")) > 0 {
-		kubeConfig = os.Getenv("KUBECONFIG")
-	}
-
-	check.KubeConfigLocationOrDefault(kubeConfig)
-
-	if err := check.ValidateKubeConfigPath(kubeConfig); err != nil {
-		log.Printf("Could not check kubeconfig path: %v", err)
+		return err
 	}
 
 	p, err := getInstances()
@@ -69,6 +56,33 @@ func run(cmd *cobra.Command, args []string) {
 	}
 	fmt.Printf("List of current instances in namespace \"%s\":\n", namespace)
 	fmt.Println(tree.String())
+	return err
+}
+
+func validate(args []string, options *Options) error {
+	if len(args) != 1 {
+		return fmt.Errorf("expecting exactly one argument - name of the package or path to install")
+	}
+
+	// If the $KUBECONFIG environment variable is set, use that
+	if len(os.Getenv("KUBECONFIG")) > 0 {
+		options.KubeConfigPath = os.Getenv("KUBECONFIG")
+	}
+
+	configPath, err := check.KubeConfigLocationOrDefault(options.KubeConfigPath)
+	if err != nil {
+		return fmt.Errorf("error when getting default kubeconfig path: %+v", err)
+	}
+	options.KubeConfigPath = configPath
+	if err := check.ValidateKubeConfigPath(options.KubeConfigPath); err != nil {
+		return errors.WithMessage(err, "could not check kubeconfig path")
+	}
+	_, err = clientcmd.BuildConfigFromFlags("", options.KubeConfigPath)
+	if err != nil {
+		return errors.Wrap(err, "getting config failed")
+	}
+
+	return nil
 
 }
 
