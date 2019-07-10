@@ -2,6 +2,7 @@ package bundle
 
 import (
 	"fmt"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"regexp"
 	"strconv"
 	"strings"
@@ -79,11 +80,15 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 
 				required = parsed
 			}
+			var defaultValue *string
+			if val, ok := param["default"]; ok {
+				defaultValue = kudo.String(val)
+			}
 
 			r := v1alpha1.Parameter{
 				Name:        paramName,
 				Description: param["description"],
-				Default:     param["default"],
+				Default:     defaultValue,
 				Trigger:     param["trigger"],
 				Required:    required,
 				DisplayName: param["displayName"],
