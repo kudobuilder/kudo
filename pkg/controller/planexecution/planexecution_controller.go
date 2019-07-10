@@ -305,10 +305,11 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		if !ok {
 			// Not specified in params
 			if param.Required {
+				planExecution.Status.State = kudov1alpha1.PhaseStateError
 				err = fmt.Errorf("parameter %v was required but not provided by instance %v", param.Name, instance.Name)
 				log.Printf("PlanExecutionController: %v", err)
 				r.recorder.Event(planExecution, "Warning", "MissingParameter", fmt.Sprintf("Could not find required parameter (%v)", param.Name))
-				return reconcile.Result{}, err
+				return reconcile.Result{}, nil
 			}
 			params[param.Name] = param.Default
 		}
