@@ -88,27 +88,15 @@ func (r *OperatorRepository) getPackageReaderByURL(packageURL string) (io.Reader
 
 // GetPackageReader provides an io.Reader for a provided package name and optional version
 func (r *OperatorRepository) GetPackageReader(name string, version string) (io.Reader, error) {
-
 	// Construct the package name and download the index file from the remote repo
 	indexFile, err := r.downloadIndexFile()
 	if err != nil {
 		return nil, errors.WithMessage(err, "could not download repository index file")
 	}
 
-	var bundleVersion *BundleVersion
-
-	if version == "" {
-		bv, err := indexFile.GetByNameAndVersion(name, "")
-		if err != nil {
-			return nil, errors.Wrapf(err, "getting %s in index file", name)
-		}
-		bundleVersion = bv
-	} else {
-		bv, err := indexFile.GetByNameAndVersion(name, version)
-		if err != nil {
-			return nil, errors.Wrapf(err, "getting %s in index file", name)
-		}
-		bundleVersion = bv
+	bundleVersion, err := indexFile.GetByNameAndVersion(name, version)
+	if err != nil {
+		return nil, errors.Wrapf(err, "getting %s in index file", name)
 	}
 
 	packageName := bundleVersion.Name + "-" + bundleVersion.Version
