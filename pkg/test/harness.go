@@ -145,7 +145,7 @@ func (h *Harness) Client(forceNew bool) (client.Client, error) {
 		return nil, err
 	}
 
-	h.client, err = client.New(config, client.Options{
+	h.client, err = testutils.NewRetryClient(config, client.Options{
 		Scheme: testutils.Scheme(),
 	})
 	return h.client, err
