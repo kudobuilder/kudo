@@ -231,14 +231,14 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			planExecution.Spec.Instance.Name,
 			planExecution.Spec.Instance.Namespace,
 			err)
-		return reconcile.Result{}, err
+		return reconcile.Result{}, nil
 	}
 
 	// Check for Suspend set.
 	if planExecution.Spec.Suspend != nil && *planExecution.Spec.Suspend {
 		planExecution.Status.State = kudov1alpha1.PhaseStateSuspend
 		err = r.Update(context.TODO(), planExecution)
-		r.recorder.Event(instance, "Normal", "PlanSuspend", fmt.Sprintf("PlanExecution %v suspended", planExecution.Name))
+		r.recorder.Event(instance, "Normal", "PlanSuspend", fmt.Sprintf("PlanExecution %v on instance %v suspended", planExecution.Name, planExecution.Spec.Instance.Name))
 		return reconcile.Result{}, err
 	}
 
@@ -281,7 +281,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			instance.Spec.OperatorVersion.Name,
 			instance.GetOperatorVersionNamespace(),
 			err)
-		return reconcile.Result{}, err
+		return reconcile.Result{}, nil
 	}
 
 	// Load parameters:
