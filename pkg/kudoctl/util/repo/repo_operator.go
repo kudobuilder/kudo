@@ -98,7 +98,7 @@ func (r *OperatorRepository) GetPackageReader(name string, version string) (io.R
 	var bundleVersion *BundleVersion
 
 	if version == "" {
-		bv, err := indexFile.GetByName(name)
+		bv, err := indexFile.GetByNameAndVersion(name, "")
 		if err != nil {
 			return nil, errors.Wrapf(err, "getting %s in index file", name)
 		}
