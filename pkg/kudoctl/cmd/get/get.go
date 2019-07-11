@@ -14,17 +14,13 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
 )
 
-// Options defines configuration options for the install command
+// Options defines configuration options for the get command
 type Options struct {
-	InstanceName   string
 	KubeConfigPath string
 	Namespace      string
-	Parameters     map[string]string
-	PackageVersion string
-	SkipInstance   bool
 }
 
-// DefaultOptions initializes the install command options to its defaults
+// DefaultOptions initializes the get command options to its defaults
 var DefaultOptions = &Options{
 	Namespace: "default",
 }
