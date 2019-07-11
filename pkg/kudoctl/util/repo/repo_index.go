@@ -79,11 +79,12 @@ func parseIndexFile(data []byte) (*IndexFile, error) {
 }
 
 // GetByNameAndVersion returns the operator of given name and version.
-// When no specific version required, submit version as empty string - ""
+// If no specific version is required, pass an empty string as version and the
+// the latest version will be returned.
 func (i IndexFile) GetByNameAndVersion(name, version string) (*BundleVersion, error) {
 	vs, ok := i.Entries[name]
 	if !ok || len(vs) == 0 {
-		return nil, fmt.Errorf("no operator of given name %s found", name)
+		return nil, fmt.Errorf("no operator found for: %s", name)
 	}
 
 	for _, ver := range vs {
@@ -91,5 +92,10 @@ func (i IndexFile) GetByNameAndVersion(name, version string) (*BundleVersion, er
 			return ver, nil
 		}
 	}
+
+	if version == "" {
+		return nil, fmt.Errorf("no operator version found for %s", name)
+	}
+
 	return nil, fmt.Errorf("no operator version found for %s-%v", name, version)
 }
