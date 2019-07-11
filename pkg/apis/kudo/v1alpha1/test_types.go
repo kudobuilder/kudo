@@ -22,10 +22,18 @@ type TestSuite struct {
 	TestDirs []string `json:"testDirs"`
 	// Whether or not to start a local etcd and kubernetes API server for the tests.
 	StartControlPlane bool `json:"startControlPlane"`
+	// Whether or not to start a local kind cluster for the tests.
+	StartKIND bool `json:"startKIND"`
+	// Path to the KIND configuration file to use.
+	KINDConfig string `json:"kindConfig"`
+	// KIND context to use.
+	KINDContext string `json:"kindContext"`
 	// Whether or not to start the KUDO controller for the tests.
 	StartKUDO bool `json:"startKUDO"`
-	// If set, do not delete the resources after running the tests.
+	// If set, do not delete the resources after running the tests (implies SkipClusterDelete).
 	SkipDelete bool `json:"skipDelete"`
+	// If set, do not delete the mocked control plane or kind cluster.
+	SkipClusterDelete bool `json:"skipClusterDelete"`
 	// Override the default timeout of 30 seconds (in seconds).
 	Timeout int `json:"timeout"`
 }

@@ -122,13 +122,13 @@ Test cases will be authored by defining Kubernetes objects to apply and Kubernet
 
 ### Running the tests
 
-Tests will be invoked via a CLI tool that runs the test suite against the current Kubernetes context. It will be packaged with the default set of test suites from the KUDO Operators repository using go-bindata, with the ability to provide alternative directories containing tests to use.
+Tests will be invoked via a CLI tool that runs the test suite against the current Kubernetes context by default, or optionally against a mocked control plane or kind (kubernetes-in-docker) cluster. It will be packaged with the default set of test suites from the KUDO Operators repository using go-bindata, with the ability to provide alternative directories containing tests to use.
 
 The tool will enumerate each test case (group of test steps) and run them concurrently in batches. Each test case will run in its own namespace (care must be taken that cluster-level resources do not collide with other test cases [??? TODO: solvable?]) which will be deleted after the test case has been completed.
 
 Each test case consists of a directory containing test steps and their expected results ("assertions"). The test steps within a test case are run sequentially, waiting for the assertions to be true, a timeout to pass, or a failure condition to be met.
 
-Once all of the test steps in a test case have run, a report for the test case is generated and all of its resources are deleted.
+Once all of the test steps in a test case have run, a report for the test case is generated and all of its resources are deleted unless the harness is configured not to clean up resources.
 
 The test harness can also be run in a unit testing mode, where it spins up a dummy Kubernetes API server and runs any test cases marked as unit tests.
 
@@ -149,14 +149,23 @@ type TestSuite struct {
 	ManifestsDir      string
 	// Directories containing test cases to run.
 	TestDirs          []string
-	// Whether or not to start a local etcd and kubernetes API server for the tests.
+	// Whether or not to start a local etcd and kubernetes API server for the tests (cannot be set with StartKIND
 	StartControlPlane bool
+	// Whether or not to start a local kind cluster for the tests (cannot be set with StartControlPlane).
+	StartKIND bool `json:"startKIND"`
+	// Path to the KIND configuration file to use (implies StartKiIND).
+	KINDConfig string `json:"kindConfig"`
+	// KIND context to use.
+	KINDContext string `json:"kindContext"`
 	// Whether or not to start the KUDO controller for the tests.
 	StartKUDO         bool
+	// If set, do not delete the resources after running the tests (implies SkipClusterDelete).
+	SkipDelete bool `json:"skipDelete"`
+	// If set, do not delete the mocked control plane or kind cluster.
+	SkipClusterDelete bool `json:"skipClusterDelete"`
 	// Override the default assertion timeout of 30 seconds (in seconds).
 	Timeout int
 }
-
 ```
 
 A configuration file can be provided to `kubectl kudo test` using the `--config` argument.

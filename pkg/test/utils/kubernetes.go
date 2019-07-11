@@ -37,6 +37,7 @@ import (
 	coretesting "k8s.io/client-go/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	kindConfig "sigs.k8s.io/kind/pkg/cluster/config"
 )
 
 // IsJSONSyntaxError returns true if the error is a JSON syntax error.
@@ -262,16 +263,20 @@ func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 
 	var converted runtime.Object
 
-	switch in.GetObjectKind().GroupVersionKind().Kind {
-	case "TestStep":
+	kind := in.GetObjectKind().GroupVersionKind().Kind
+	group := in.GetObjectKind().GroupVersionKind().Group
+
+	if group == "kudo.k8s.io" && kind == "TestStep" {
 		converted = &kudo.TestStep{}
-	case "TestAssert":
+	} else if group == "kudo.k8s.io" && kind == "TestAssert" {
 		converted = &kudo.TestAssert{}
-	case "TestSuite":
+	} else if group == "kudo.k8s.io" && kind == "TestSuite" {
 		converted = &kudo.TestSuite{}
-	case "CustomResourceDefinition":
+	} else if group == "apiextensions.k8s.io" && kind == "CustomResourceDefinition" {
 		converted = &apiextensions.CustomResourceDefinition{}
-	default:
+	} else if group == "kind.sigs.k8s.io" && kind == "Cluster" {
+		converted = &kindConfig.Cluster{}
+	} else {
 		return in, nil
 	}
 

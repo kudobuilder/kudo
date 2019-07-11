@@ -417,7 +417,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					defer ldr.Cleanup()
 
 					rf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()))
-					kt, err := target.NewKustTarget(ldr, fsys, rf, transformer.NewFactoryImpl())
+					kt, err := target.NewKustTarget(ldr, rf, transformer.NewFactoryImpl())
 					if err != nil {
 						return reconcile.Result{}, err
 					}
