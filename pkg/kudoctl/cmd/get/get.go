@@ -29,6 +29,7 @@ var DefaultOptions = &Options{
 	Namespace: "default",
 }
 
+// Run returns the errors associated with cmd env
 func Run(args []string, options *Options) error {
 
 	err := validate(args, options)

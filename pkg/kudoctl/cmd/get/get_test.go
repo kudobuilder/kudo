@@ -1,12 +1,13 @@
 package get
 
 import (
+	"testing"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 )
 
 func TestValidate(t *testing.T) {
