@@ -227,7 +227,7 @@ func versionExists(versions []string, currentVersion string) bool {
 // installSingleOperatorToCluster installs a given Operator to the cluster
 // TODO: needs testing
 func installSingleOperatorToCluster(name, namespace string, o *v1alpha1.Operator, kc *kudo.Client) error {
-	if _, err := kc.InstallOperatorObjToCluster(f, namespace); err != nil {
+	if _, err := kc.InstallOperatorObjToCluster(o, namespace); err != nil {
 		return errors.Wrapf(err, "installing %s-operator.yaml", name)
 	}
 	fmt.Printf("operator.%s/%s created\n", o.APIVersion, o.Name)
