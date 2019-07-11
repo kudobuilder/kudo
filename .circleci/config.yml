@@ -9,7 +9,7 @@ jobs:
       - checkout
       - run: |
           git config user.name "Circle CI"
-          git config user.email "ci@mesosphere.com"
+          git config user.email "kudobuilder@gmail.com"
           git merge -m "Merge Commit" origin/master
       - run: ./test/run_tests.sh
   release:
@@ -35,7 +35,7 @@ jobs:
 
       - run: |
           git config user.name "Circle CI"
-          git config user.email "ci@mesosphere.com"
+          git config user.email "kudobuilder@gmail.com"
           git merge -m "Merge Commit" origin/master
       - run: make check-formatting
       - save_cache:
