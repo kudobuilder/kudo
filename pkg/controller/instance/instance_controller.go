@@ -65,180 +65,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	inPredicate := predicate.Funcs{
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			old := e.ObjectOld.(*kudov1alpha1.Instance)
-			new := e.ObjectNew.(*kudov1alpha1.Instance)
-
-			// Get the OperatorVersion that corresponds to the new instance.
-			ov := &kudov1alpha1.OperatorVersion{}
-			err = mgr.GetClient().Get(context.TODO(),
-				types.NamespacedName{
-					Name:      new.Spec.OperatorVersion.Name,
-					Namespace: new.GetOperatorVersionNamespace(),
-				},
-				ov)
-			if err != nil {
-				log.Printf("InstanceController: Error getting operatorversion \"%v\" for instance \"%v\": %v",
-					new.Spec.OperatorVersion.Name,
-					new.Name,
-					err)
-				// TODO: We probably want to handle this differently and mark this instance as unhealthy
-				// since it's linking to a bad OV.
-				return false
-			}
-
-			// Identify plan to be executed by this change.
-			var planName string
-			var planFound bool
-
-			if old.Spec.OperatorVersion != new.Spec.OperatorVersion {
-				// It's an upgrade!
-				names := []string{"upgrade", "update", "deploy"}
-				for _, n := range names {
-					if _, planFound = ov.Spec.Plans[n]; planFound {
-						planName = n
-						break
-					}
-				}
-
-				if !planFound {
-					log.Printf("InstanceController: Could not find any plan to use to upgrade instance %v", new.Name)
-					return false
-				}
-			} else if !reflect.DeepEqual(old.Spec, new.Spec) {
-				for k := range parameterDifference(old.Spec.Parameters, new.Spec.Parameters) {
-					// Find the spec of the updated parameter.
-					paramFound := false
-					for _, param := range ov.Spec.Parameters {
-						if param.Name == k {
-							paramFound = true
-
-							if param.Trigger != "" {
-								planName = param.Trigger
-								planFound = true
-							}
-
-							break
-						}
-					}
-
-					if paramFound {
-						if !planFound {
-							// The parameter doesn't have a trigger, try to find the corresponding default plan.
-							names := []string{"update", "deploy"}
-							for _, n := range names {
-								if _, planFound = ov.Spec.Plans[n]; planFound {
-									planName = n
-									planFound = true
-									break
-								}
-							}
-
-							if planFound {
-								log.Printf("InstanceController: Instance %v updated parameter %v, but it is not associated to a trigger. Using default plan %v\n", new.Name, k, planName)
-							}
-						}
-
-						if !planFound {
-							log.Printf("InstanceController: Could not find any plan to use to update instance %v", new.Name)
-						}
-					} else {
-						log.Printf("InstanceController: Instance %v updated parameter %v, but parameter not found in operatorversion %v\n", new.Name, k, ov.Name)
-					}
-				}
-			} else {
-				// FIXME: reading the status here feels very wrong, and so does the fact
-				// that this predicate funcion has side effects. We could probably move
-				// all this logic to the reconciler if we stored the parameters in the
-				// `PlanExecution`.
-				// See https://github.com/kudobuilder/kudo/issues/422
-				if new.Status.ActivePlan.Name == "" {
-					log.Printf("InstanceController: Old and new spec matched...\n %+v ?= %+v\n", old.Spec, new.Spec)
-					planName = "deploy"
-					planFound = true
-				}
-			}
-
-			if planFound {
-				log.Printf("InstanceController: Going to run plan \"%v\" for instance %v", planName, new.Name)
-				// Suspend the the current plan.
-				current := &kudov1alpha1.PlanExecution{}
-				err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{Name: new.Status.ActivePlan.Name, Namespace: new.Status.ActivePlan.Namespace}, current)
-				if err != nil {
-					log.Printf("InstanceController: Ignoring error when getting plan for new instance: %v", err)
-				} else {
-					if current.Status.State == kudov1alpha1.PhaseStateComplete {
-						log.Printf("InstanceController: Current plan for instance %v is already done, won't change the Suspend flag.", new.Name)
-					} else {
-						log.Printf("InstanceController: Suspending the PlanExecution for instance %v", new.Name)
-						t := true
-						current.Spec.Suspend = &t
-						did, err := controllerutil.CreateOrUpdate(context.TODO(), mgr.GetClient(), current, func() error {
-							t := true
-							current.Spec.Suspend = &t
-							return nil
-						})
-						if err != nil {
-							log.Printf("InstanceController: Error suspending PlanExecution for instance %v: %v", new.Name, err)
-						} else {
-							log.Printf("InstanceController: Successfully suspended PlanExecution for instance %v. Returned: %v", new.Name, did)
-						}
-					}
-				}
-
-				if err = createPlan(mgr, planName, new); err != nil {
-					log.Printf("InstanceController: Error creating PlanExecution \"%v\" for instance \"%v\": %v", planName, new.Name, err)
-				}
-			}
-
-			// See if there's a current plan being run, if so "cancel" the plan run.
-			return e.ObjectOld != e.ObjectNew
-		},
-		// New Instances should have Deploy called
-		CreateFunc: func(e event.CreateEvent) bool {
-			log.Printf("InstanceController: Received create event for instance \"%v\"", e.Meta.GetName())
-			instance := e.Object.(*kudov1alpha1.Instance)
-
-			// Get the instance OperatorVersion object
-			ov := &kudov1alpha1.OperatorVersion{}
-			err = mgr.GetClient().Get(context.TODO(),
-				types.NamespacedName{
-					Name:      instance.Spec.OperatorVersion.Name,
-					Namespace: instance.GetOperatorVersionNamespace(),
-				},
-				ov)
-			if err != nil {
-				log.Printf("InstanceController: Error getting operatorversion \"%v\" for instance \"%v\": %v",
-					instance.Spec.OperatorVersion.Name,
-					instance.Name,
-					err)
-				// TODO: We probably want to handle this differently and mark this instance as unhealthy
-				// since its linking to a bad OV.
-				return false
-			}
-
-			planName := "deploy"
-
-			if _, ok := ov.Spec.Plans[planName]; !ok {
-				log.Printf("InstanceController: Could not find deploy plan \"%v\" for instance \"%v\"", planName, instance.Name)
-				return false
-			}
-
-			err = createPlan(mgr, planName, instance)
-			if err != nil {
-				log.Printf("InstanceController: Error creating PlanExecution \"%v\" for instance \"%v\": %v", planName, instance.Name, err)
-			}
-			return err == nil
-		},
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			log.Printf("InstanceController: Received delete event for instance \"%v\"", e.Meta.GetName())
-			return true
-		},
-	}
-
 	// Watch for changes to Instance
-	if err = c.Watch(&source.Kind{Type: &kudov1alpha1.Instance{}}, &handler.EnqueueRequestForObject{}, inPredicate); err != nil {
+	if err = c.Watch(&source.Kind{Type: &kudov1alpha1.Instance{}}, &handler.EnqueueRequestForObject{}, instanceEventPredicateFunc(mgr)); err != nil {
 		return err
 	}
 
@@ -308,6 +136,180 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	return nil
+}
+
+func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			old := e.ObjectOld.(*kudov1alpha1.Instance)
+			new := e.ObjectNew.(*kudov1alpha1.Instance)
+
+			// Get the OperatorVersion that corresponds to the new instance.
+			ov := &kudov1alpha1.OperatorVersion{}
+			err := mgr.GetClient().Get(context.TODO(),
+				types.NamespacedName{
+					Name:      new.Spec.OperatorVersion.Name,
+					Namespace: new.GetOperatorVersionNamespace(),
+				},
+				ov)
+			if err != nil {
+				log.Printf("InstanceEventPredicate: Error getting operatorversion \"%v\" for instance \"%v\": %v",
+					new.Spec.OperatorVersion.Name,
+					new.Name,
+					err)
+				// TODO: We probably want to handle this differently and mark this instance as unhealthy
+				// since it's linking to a bad OV.
+				return false
+			}
+
+			// Identify plan to be executed by this change.
+			var planName string
+			var planFound bool
+
+			if old.Spec.OperatorVersion != new.Spec.OperatorVersion {
+				// It's an upgrade!
+				names := []string{"upgrade", "update", "deploy"}
+				for _, n := range names {
+					if _, planFound = ov.Spec.Plans[n]; planFound {
+						planName = n
+						break
+					}
+				}
+
+				if !planFound {
+					log.Printf("InstanceEventPredicate: Could not find any plan to use to upgrade instance %v", new.Name)
+					return false
+				}
+			} else if !reflect.DeepEqual(old.Spec, new.Spec) {
+				for k := range parameterDifference(old.Spec.Parameters, new.Spec.Parameters) {
+					// Find the spec of the updated parameter.
+					paramFound := false
+					for _, param := range ov.Spec.Parameters {
+						if param.Name == k {
+							paramFound = true
+
+							if param.Trigger != "" {
+								planName = param.Trigger
+								planFound = true
+							}
+
+							break
+						}
+					}
+
+					if paramFound {
+						if !planFound {
+							// The parameter doesn't have a trigger, try to find the corresponding default plan.
+							names := []string{"update", "deploy"}
+							for _, n := range names {
+								if _, planFound = ov.Spec.Plans[n]; planFound {
+									planName = n
+									planFound = true
+									break
+								}
+							}
+
+							if planFound {
+								log.Printf("InstanceEventPredicate: Instance %v updated parameter %v, but it is not associated to a trigger. Using default plan %v\n", new.Name, k, planName)
+							}
+						}
+
+						if !planFound {
+							log.Printf("InstanceEventPredicate: Could not find any plan to use to update instance %v", new.Name)
+						}
+					} else {
+						log.Printf("InstanceEventPredicate: Instance %v updated parameter %v, but parameter not found in operatorversion %v\n", new.Name, k, ov.Name)
+					}
+				}
+			} else {
+				// FIXME: reading the status here feels very wrong, and so does the fact
+				// that this predicate funcion has side effects. We could probably move
+				// all this logic to the reconciler if we stored the parameters in the
+				// `PlanExecution`.
+				// See https://github.com/kudobuilder/kudo/issues/422
+				if new.Status.ActivePlan.Name == "" {
+					log.Printf("InstanceEventPredicate: Old and new spec matched...\n %+v ?= %+v\n", old.Spec, new.Spec)
+					planName = "deploy"
+					planFound = true
+				}
+			}
+
+			if planFound {
+				log.Printf("InstanceEventPredicate: Going to run plan \"%v\" for instance %v", planName, new.Name)
+				// Suspend the the current plan.
+				current := &kudov1alpha1.PlanExecution{}
+				err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{Name: new.Status.ActivePlan.Name, Namespace: new.Status.ActivePlan.Namespace}, current)
+				if err != nil {
+					log.Printf("InstanceEventPredicate: Ignoring error when getting plan for new instance: %v", err)
+				} else {
+					if current.Status.State == kudov1alpha1.PhaseStateComplete {
+						log.Printf("InstanceEventPredicate: Current plan for instance %v is already done, won't change the Suspend flag.", new.Name)
+					} else {
+						log.Printf("InstanceEventPredicate: Suspending the PlanExecution for instance %v", new.Name)
+						t := true
+						current.Spec.Suspend = &t
+						did, err := controllerutil.CreateOrUpdate(context.TODO(), mgr.GetClient(), current, func() error {
+							t := true
+							current.Spec.Suspend = &t
+							return nil
+						})
+						if err != nil {
+							log.Printf("InstanceEventPredicate: Error suspending PlanExecution for instance %v: %v", new.Name, err)
+						} else {
+							log.Printf("InstanceEventPredicate: Successfully suspended PlanExecution for instance %v. Returned: %v", new.Name, did)
+						}
+					}
+				}
+
+				if err = createPlan(mgr, planName, new); err != nil {
+					log.Printf("InstanceEventPredicate: Error creating PlanExecution \"%v\" for instance \"%v\": %v", planName, new.Name, err)
+				}
+			}
+
+			// See if there's a current plan being run, if so "cancel" the plan run.
+			return e.ObjectOld != e.ObjectNew
+		},
+		// New Instances should have Deploy called
+		CreateFunc: func(e event.CreateEvent) bool {
+			log.Printf("InstanceEventPredicate: Received create event for instance \"%v\"", e.Meta.GetName())
+			instance := e.Object.(*kudov1alpha1.Instance)
+
+			// Get the instance OperatorVersion object
+			ov := &kudov1alpha1.OperatorVersion{}
+			err := mgr.GetClient().Get(context.TODO(),
+				types.NamespacedName{
+					Name:      instance.Spec.OperatorVersion.Name,
+					Namespace: instance.GetOperatorVersionNamespace(),
+				},
+				ov)
+			if err != nil {
+				log.Printf("InstanceEventPredicate: Error getting operatorversion \"%v\" for instance \"%v\": %v",
+					instance.Spec.OperatorVersion.Name,
+					instance.Name,
+					err)
+				// TODO: We probably want to handle this differently and mark this instance as unhealthy
+				// since its linking to a bad OV.
+				return false
+			}
+
+			planName := "deploy"
+
+			if _, ok := ov.Spec.Plans[planName]; !ok {
+				log.Printf("InstanceEventPredicate: Could not find deploy plan \"%v\" for instance \"%v\"", planName, instance.Name)
+				return false
+			}
+
+			err = createPlan(mgr, planName, instance)
+			if err != nil {
+				log.Printf("InstanceEventPredicate: Error creating PlanExecution \"%v\" for instance \"%v\": %v", planName, instance.Name, err)
+			}
+			return err == nil
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			log.Printf("InstanceEventPredicate: Received delete event for instance \"%v\"", e.Meta.GetName())
+			return true
+		},
+	}
 }
 
 func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Instance) error {
