@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"testing"
 
-	"gopkg.in/go-playground/validator.v9"
+	validator "gopkg.in/go-playground/validator.v9"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 

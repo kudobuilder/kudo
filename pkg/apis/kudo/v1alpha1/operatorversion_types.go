@@ -83,7 +83,7 @@ type Parameter struct {
 	Required bool `json:"required,omitempty"`
 
 	// Default is a default value if no parameter is provided by the instance.
-	Default string `json:"default,omitempty"`
+	Default *string `json:"default,omitempty"`
 
 	// Trigger identifies the plan that gets executed when this parameter changes in the Instance object.
 	// Default is `update` if a plan with that name exists, otherwise it's `deploy`
