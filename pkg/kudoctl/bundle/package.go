@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+
 	"k8s.io/apimachinery/pkg/util/rand"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
@@ -79,11 +81,15 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 
 				required = parsed
 			}
+			var defaultValue *string
+			if val, ok := param["default"]; ok {
+				defaultValue = kudo.String(val)
+			}
 
 			r := v1alpha1.Parameter{
 				Name:        paramName,
 				Description: param["description"],
-				Default:     param["default"],
+				Default:     defaultValue,
 				Trigger:     param["trigger"],
 				Required:    required,
 				DisplayName: param["displayName"],

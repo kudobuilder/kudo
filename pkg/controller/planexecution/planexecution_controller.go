@@ -22,6 +22,8 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+
 	apijson "k8s.io/apimachinery/pkg/util/json"
 
 	kudoengine "github.com/kudobuilder/kudo/pkg/engine"
@@ -310,7 +312,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				r.recorder.Event(planExecution, "Warning", "MissingParameter", fmt.Sprintf("Could not find required parameter (%v)", param.Name))
 				return reconcile.Result{}, err
 			}
-			params[param.Name] = param.Default
+			params[param.Name] = kudo.StringValue(param.Default)
 		}
 	}
 
