@@ -112,6 +112,27 @@ func (c *Client) AnyOperatorVersionExistsInCluster(operator string, namespace st
 	return true
 }
 
+// ListInstances lists all instances of given operator installed in the cluster in a given ns
+func (c *Client) ListInstances(namespace string) ([]string, error) {
+	instances, err := c.clientset.KudoV1alpha1().Instances(namespace).List(v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	existingInstances := []string{}
+
+	for _, v := range instances.Items {
+		existingInstances = append(existingInstances, v.Name)
+	}
+	return existingInstances, nil
+}
+
+// NewClientFromK8s creates KUDO client from kubernetes client interface
+func NewClientFromK8s(client versioned.Interface) *Client {
+	result := Client{}
+	result.clientset = client
+	return &result
+}
+
 // InstanceExistsInCluster checks if any OperatorVersion object matches to the given Operator name
 // in the cluster.
 // An Instance has two identifiers:
