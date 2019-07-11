@@ -53,7 +53,7 @@ spec:
         - name: invalid-phase
           strategy: serial
           steps:
-            - name: invaid-step
+            - name: invalid-step
               tasks:
                 - invalid-task
 ---
