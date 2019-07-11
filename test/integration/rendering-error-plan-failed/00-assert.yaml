@@ -13,3 +13,6 @@ metadata:
 status:
   name: deploy
   state: ERROR
+  phases:
+  - name: invalid-phase
+    state: ERROR

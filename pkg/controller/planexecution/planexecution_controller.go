@@ -369,6 +369,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 								r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error expanding template: %v", err))
 								log.Printf("PlanExecutionController: Error expanding template: %v", err)
 								planExecution.Status.State = kudov1alpha1.PhaseStateError
+								planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateError
 								// returning error = nil so that we don't retry since this is non-recoverable
 								return reconcile.Result{}, nil
 							}
