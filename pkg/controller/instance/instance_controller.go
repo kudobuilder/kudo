@@ -70,94 +70,108 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			old := e.ObjectOld.(*kudov1alpha1.Instance)
 			new := e.ObjectNew.(*kudov1alpha1.Instance)
 
-			// Get the new OperatorVersion object
-			fv := &kudov1alpha1.OperatorVersion{}
+			// Get the OperatorVersion that corresponds to the new instance.
+			ov := &kudov1alpha1.OperatorVersion{}
 			err = mgr.GetClient().Get(context.TODO(),
 				types.NamespacedName{
 					Name:      new.Spec.OperatorVersion.Name,
 					Namespace: new.GetOperatorVersionNamespace(),
 				},
-				fv)
+				ov)
 			if err != nil {
 				log.Printf("InstanceController: Error getting operatorversion \"%v\" for instance \"%v\": %v",
 					new.Spec.OperatorVersion.Name,
 					new.Name,
 					err)
 				// TODO: We probably want to handle this differently and mark this instance as unhealthy
-				// since its linking to a bad FV.
+				// since it's linking to a bad OV.
 				return false
 			}
-			// Identify plan to be executed by this change
+
+			// Identify plan to be executed by this change.
 			var planName string
-			var ok bool
+			var planFound bool
+
 			if old.Spec.OperatorVersion != new.Spec.OperatorVersion {
-				// Its an Upgrade!
-				_, ok = fv.Spec.Plans["upgrade"]
-				if !ok {
-					_, ok = fv.Spec.Plans["update"]
-					if !ok {
-						_, ok = fv.Spec.Plans["deploy"]
-						if !ok {
-							log.Println("InstanceController: Could not find any plan to use for upgrade")
-							return false
-						}
-						ok = true // TODO: Do we need this here?
-						planName = "deploy"
-					} else {
-						planName = "update"
+				// It's an upgrade!
+				names := []string{"upgrade", "update", "deploy"}
+				for _, n := range names {
+					if _, planFound = ov.Spec.Plans[n]; planFound {
+						planName = n
+						break
 					}
-				} else {
-					planName = "upgrade"
+				}
+
+				if !planFound {
+					log.Printf("InstanceController: Could not find any plan to use to upgrade instance %v", new.Name)
+					return false
 				}
 			} else if !reflect.DeepEqual(old.Spec, new.Spec) {
 				for k := range parameterDifference(old.Spec.Parameters, new.Spec.Parameters) {
-					log.Printf("Found a parameter update for instance %v: %v\n", old.Name, k)
-					// Find the right parameter in the FV
-					for _, param := range fv.Spec.Parameters {
+					// Find the spec of the updated parameter.
+					paramFound := false
+					for _, param := range ov.Spec.Parameters {
 						if param.Name == k {
-							log.Printf("Setting Plan Name to %v for param %v\n", param.Trigger, param.Name)
-							planName = param.Trigger
-							ok = true
+							paramFound = true
+
+							if param.Trigger != "" {
+								planName = param.Trigger
+								planFound = true
+							}
+
+							break
 						}
 					}
-					if !ok {
-						log.Printf("InstanceController: Instance %v updated parameter %v, but parameter not found in OperatorVersion %v\n", new.Name, k, fv.Name)
-					} else if planName == "" {
-						_, ok = fv.Spec.Plans["update"]
-						if !ok {
-							_, ok = fv.Spec.Plans["deploy"]
-							if !ok {
-								log.Println("InstanceController: Could not find any plan to use for update")
-							} else {
-								planName = "deploy"
+
+					if paramFound {
+						if !planFound {
+							// The parameter doesn't have a trigger, try to find the corresponding default plan.
+							names := []string{"update", "deploy"}
+							for _, n := range names {
+								if _, planFound = ov.Spec.Plans[n]; planFound {
+									planName = n
+									planFound = true
+									break
+								}
 							}
-						} else {
-							planName = "update"
+
+							if planFound {
+								log.Printf("InstanceController: Instance %v updated parameter %v, but it is not associated to a trigger. Using default plan %v\n", new.Name, k, planName)
+							}
 						}
-						log.Printf("InstanceController: Instance %v updated parameter %v, but no specified trigger.  Using default plan %v\n", new.Name, k, planName)
+
+						if !planFound {
+							log.Printf("InstanceController: Could not find any plan to use to update instance %v", new.Name)
+						}
+					} else {
+						log.Printf("InstanceController: Instance %v updated parameter %v, but parameter not found in operatorversion %v\n", new.Name, k, ov.Name)
 					}
 				}
 			} else {
+				// FIXME: reading the status here feels very wrong, and so does the fact
+				// that this predicate funcion has side effects. We could probably move
+				// all this logic to the reconciler if we stored the parameters in the
+				// `PlanExecution`.
+				// See https://github.com/kudobuilder/kudo/issues/422
 				if new.Status.ActivePlan.Name == "" {
 					log.Printf("InstanceController: Old and new spec matched...\n %+v ?= %+v\n", old.Spec, new.Spec)
 					planName = "deploy"
-					ok = true
+					planFound = true
 				}
 			}
 
-			// we found something
-			if ok {
-				log.Printf("InstanceController: Going to call plan \"%v\"", planName)
-				// Mark the current plan as Suspend
+			if planFound {
+				log.Printf("InstanceController: Going to run plan \"%v\" for instance %v", planName, new.Name)
+				// Suspend the the current plan.
 				current := &kudov1alpha1.PlanExecution{}
 				err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{Name: new.Status.ActivePlan.Name, Namespace: new.Status.ActivePlan.Namespace}, current)
 				if err != nil {
 					log.Printf("InstanceController: Ignoring error when getting plan for new instance: %v", err)
 				} else {
 					if current.Status.State == kudov1alpha1.PhaseStateComplete {
-						log.Println("InstanceController: Current Plan for Instance is already done, won't change the Suspend flag.")
+						log.Printf("InstanceController: Current plan for instance %v is already done, won't change the Suspend flag.", new.Name)
 					} else {
-						log.Println("InstanceController: Setting PlanExecution to Suspend")
+						log.Printf("InstanceController: Suspending the PlanExecution for instance %v", new.Name)
 						t := true
 						current.Spec.Suspend = &t
 						did, err := controllerutil.CreateOrUpdate(context.TODO(), mgr.GetClient(), current, func() error {
@@ -166,20 +180,19 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 							return nil
 						})
 						if err != nil {
-							log.Printf("InstanceController: Error changing the current PlanExecution to Suspend: %v", err)
+							log.Printf("InstanceController: Error suspending PlanExecution for instance %v: %v", new.Name, err)
 						} else {
-							log.Printf("InstanceController: No error in setting PlanExecution.Suspend to true. Returned %v", did)
+							log.Printf("InstanceController: Successfully suspended PlanExecution for instance %v. Returned: %v", new.Name, did)
 						}
 					}
 				}
 
-				err = createPlan(mgr, planName, new)
-				if err != nil {
-					log.Printf("InstanceController: Error creating \"%v\" object for \"%v\": %v", planName, new.Name, err)
+				if err = createPlan(mgr, planName, new); err != nil {
+					log.Printf("InstanceController: Error creating PlanExecution \"%v\" for instance \"%v\": %v", planName, new.Name, err)
 				}
 			}
 
-			// See if there's a current plan being run, if so "cancel" the plan run
+			// See if there's a current plan being run, if so "cancel" the plan run.
 			return e.ObjectOld != e.ObjectNew
 		},
 		// New Instances should have Deploy called
@@ -188,32 +201,33 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			instance := e.Object.(*kudov1alpha1.Instance)
 
 			// Get the instance OperatorVersion object
-			fv := &kudov1alpha1.OperatorVersion{}
+			ov := &kudov1alpha1.OperatorVersion{}
 			err = mgr.GetClient().Get(context.TODO(),
 				types.NamespacedName{
 					Name:      instance.Spec.OperatorVersion.Name,
 					Namespace: instance.GetOperatorVersionNamespace(),
 				},
-				fv)
+				ov)
 			if err != nil {
 				log.Printf("InstanceController: Error getting operatorversion \"%v\" for instance \"%v\": %v",
 					instance.Spec.OperatorVersion.Name,
 					instance.Name,
 					err)
 				// TODO: We probably want to handle this differently and mark this instance as unhealthy
-				// since its linking to a bad FV.
+				// since its linking to a bad OV.
 				return false
 			}
+
 			planName := "deploy"
 
-			if _, ok := fv.Spec.Plans[planName]; !ok {
+			if _, ok := ov.Spec.Plans[planName]; !ok {
 				log.Printf("InstanceController: Could not find deploy plan \"%v\" for instance \"%v\"", planName, instance.Name)
 				return false
 			}
 
 			err = createPlan(mgr, planName, instance)
 			if err != nil {
-				log.Printf("InstanceController: Error creating \"%v\" object for \"%v\": %v", planName, instance.Name, err)
+				log.Printf("InstanceController: Error creating PlanExecution \"%v\" for instance \"%v\": %v", planName, instance.Name, err)
 			}
 			return err == nil
 		},
@@ -235,7 +249,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	//
 	// Define a mapping from the object in the event (OperatorVersion) to one or more objects to
 	// reconcile (Instances). Specifically this calls for a reconciliation of any owned objects.
-	fvMapFn := handler.ToRequestsFunc(
+	ovMapFn := handler.ToRequestsFunc(
 		func(a handler.MapObject) []reconcile.Request {
 			requests := make([]reconcile.Request, 0)
 			// We want to query and queue up operators Instances
@@ -277,7 +291,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		})
 
 	// This map function makes sure that we *ONLY* handle created operatorVersion
-	fvPredicate := predicate.Funcs{
+	ovPredicate := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
 			return true
 		},
@@ -289,7 +303,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		},
 	}
 
-	if err = c.Watch(&source.Kind{Type: &kudov1alpha1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: fvMapFn}, fvPredicate); err != nil {
+	if err = c.Watch(&source.Kind{Type: &kudov1alpha1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: ovMapFn}, ovPredicate); err != nil {
 		return err
 	}
 
@@ -370,27 +384,27 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 	log.Printf("InstanceController: Received Reconcile request for instance \"%+v\"", request.Name)
 
 	// Make sure the OperatorVersion is present
-	fv := &kudov1alpha1.OperatorVersion{}
+	ov := &kudov1alpha1.OperatorVersion{}
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      instance.Spec.OperatorVersion.Name,
 			Namespace: instance.GetOperatorVersionNamespace(),
 		},
-		fv)
+		ov)
 	if err != nil {
 		log.Printf("InstanceController: Error getting operatorversion \"%v\" for instance \"%v\": %v",
 			instance.Spec.OperatorVersion.Name,
 			instance.Name,
 			err)
-		r.recorder.Event(instance, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Error getting operatorversion \"%v\": %v", fv.Name, err))
+		r.recorder.Event(instance, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Error getting operatorversion \"%v\": %v", ov.Name, err))
 		return reconcile.Result{}, err
 	}
 
 	// Make sure all the required parameters in the operatorVersion are present
-	for _, param := range fv.Spec.Parameters {
+	for _, param := range ov.Spec.Parameters {
 		if param.Required {
 			if _, ok := instance.Spec.Parameters[param.Name]; !ok {
-				r.recorder.Event(instance, "Warning", "MissingParameter", fmt.Sprintf("Missing parameter \"%v\" required by operatorversion \"%v\"", param.Name, fv.Name))
+				r.recorder.Event(instance, "Warning", "MissingParameter", fmt.Sprintf("Missing parameter \"%v\" required by operatorversion \"%v\"", param.Name, ov.Name))
 			}
 		}
 	}
