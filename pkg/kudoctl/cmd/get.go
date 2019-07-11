@@ -11,7 +11,7 @@ func newGetCmd() *cobra.Command {
 	options := get.DefaultOptions
 	var parameters []string
 	getCmd := &cobra.Command{
-		Use:   "get <instance>",
+		Use:   "get instances",
 		Short: "Gets all available instances.",
 		Long: `
 	# Get all available instances

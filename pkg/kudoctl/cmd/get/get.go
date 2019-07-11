@@ -1,26 +1,17 @@
 package get
 
 import (
-	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 	"log"
 	"os"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
+	"github.com/pkg/errors"
+
 	"github.com/xlab/treeprint"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/clientcmd"
 
-	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/dynamic"
-
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
-)
-
-var (
-	kubeConfig string
-	namespace  string
 )
 
 // Options defines configuration options for the install command
@@ -45,7 +36,12 @@ func Run(args []string, options *Options) error {
 		return err
 	}
 
-	p, err := getInstances()
+	kc, err := kudo.NewClient(options.Namespace, options.KubeConfigPath)
+	if err != nil {
+		return errors.Wrap(err, "creating kudo client")
+	}
+
+	p, err := getInstances(kc, options)
 	if err != nil {
 		log.Printf("Error: %v", err)
 	}
@@ -54,14 +50,18 @@ func Run(args []string, options *Options) error {
 	for _, plan := range p {
 		tree.AddBranch(plan)
 	}
-	fmt.Printf("List of current instances in namespace \"%s\":\n", namespace)
+	fmt.Printf("List of current installed instances in namespace \"%s\":\n", options.Namespace)
 	fmt.Println(tree.String())
 	return err
 }
 
 func validate(args []string, options *Options) error {
 	if len(args) != 1 {
-		return fmt.Errorf("expecting exactly one argument - name of the package or path to install")
+		return fmt.Errorf("expecting exactly one argument - \"instances\"")
+	}
+
+	if args[0] != "instances" {
+		return fmt.Errorf("expecting \"instances\" and not \"%s\"", args[0])
 	}
 
 	// If the $KUBECONFIG environment variable is set, use that
@@ -86,44 +86,11 @@ func validate(args []string, options *Options) error {
 
 }
 
-func getInstances() ([]string, error) {
+func getInstances(kc *kudo.Client, options *Options) ([]string, error) {
 
-	instanceList := make([]string, 0)
-
-	config, err := clientcmd.BuildConfigFromFlags("", kubeConfig)
+	instanceList, err := kc.ListInstances(options.Namespace)
 	if err != nil {
-		return nil, err
-	}
-
-	//  Create a Dynamic Client to interface with CRDs.
-	dynamicClient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	instancesGVR := schema.GroupVersionResource{
-		Group:    "kudo.k8s.io",
-		Version:  "v1alpha1",
-		Resource: "instances",
-	}
-
-	instObj, err := dynamicClient.Resource(instancesGVR).Namespace(namespace).List(metav1.ListOptions{})
-	if err != nil {
-		log.Printf("Error: %v", err)
-		return nil, err
-	}
-
-	mInstObj, _ := instObj.MarshalJSON()
-
-	instance := kudov1alpha1.InstanceList{}
-
-	err = json.Unmarshal(mInstObj, &instance)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, i := range instance.Items {
-		instanceList = append(instanceList, i.Name)
+		return nil, errors.Wrap(err, "getting instances")
 	}
 
 	return instanceList, nil

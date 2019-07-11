@@ -113,6 +113,20 @@ func (c *Client) InstanceExistsInCluster(name, namespace, version, instanceName 
 	return true, nil
 }
 
+// ListInstances lists all instances of given operator installed in the cluster in a given ns
+func (c *Client) ListInstances(namespace string) ([]string, error) {
+	instances, err := c.clientset.KudoV1alpha1().Instances(namespace).List(v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	existingInstances := []string{}
+
+	for _, v := range instances.Items {
+		existingInstances = append(existingInstances, v.Name)
+	}
+	return existingInstances, nil
+}
+
 // OperatorVersionsInstalled lists all the versions of given operator installed in the cluster in given ns
 func (c *Client) OperatorVersionsInstalled(operatorName, namespace string) ([]string, error) {
 	fv, err := c.clientset.KudoV1alpha1().OperatorVersions(namespace).List(v1.ListOptions{})
