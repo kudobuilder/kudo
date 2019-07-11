@@ -465,8 +465,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					if errors.IsNotFound(err) || err == nil {
 						// This is okay
 						log.Printf("PlanExecutionController: Object was already deleted or did not exist in step \"%v\"", s.Name)
-					}
-					if err != nil {
+					} else {
 						log.Printf("PlanExecutionController: Error deleting object in step \"%v\": %v", s.Name, err)
 						planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateError
 						planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateError
