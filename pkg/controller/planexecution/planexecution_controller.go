@@ -231,7 +231,12 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			planExecution.Spec.Instance.Name,
 			planExecution.Spec.Instance.Namespace,
 			err)
-		return reconcile.Result{}, nil
+		if errors.IsNotFound(err) {
+			// do not retry when instance is not found, it's not probable that we can recover from that
+			return reconcile.Result{}, nil
+		} else {
+			return reconcile.Result{}, err
+		}
 	}
 
 	// Check for Suspend set.
@@ -281,7 +286,13 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			instance.Spec.OperatorVersion.Name,
 			instance.GetOperatorVersionNamespace(),
 			err)
-		return reconcile.Result{}, nil
+
+		if errors.IsNotFound(err) {
+			// do not retry when operatorversion is not found, it's not probable that we can recover from that
+			return reconcile.Result{}, nil
+		} else {
+			return reconcile.Result{}, err
+		}
 	}
 
 	// Load parameters:
@@ -309,6 +320,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				err = fmt.Errorf("parameter %v was required but not provided by instance %v", param.Name, instance.Name)
 				log.Printf("PlanExecutionController: %v", err)
 				r.recorder.Event(planExecution, "Warning", "MissingParameter", fmt.Sprintf("Could not find required parameter (%v)", param.Name))
+				// we are not returning err so that the reconcile loop is not retried, we cannot recover from this
 				return reconcile.Result{}, nil
 			}
 			params[param.Name] = param.Default
