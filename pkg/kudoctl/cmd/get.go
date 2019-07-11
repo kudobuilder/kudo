@@ -15,7 +15,6 @@ func newGetCmd() *cobra.Command {
 	# Get all available instances
 	kudoctl get instances`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Prior to command execution we parse and validate passed parameters
 			return get.Run(args, options)
 		},
 	}
