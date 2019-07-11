@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"path/filepath"
@@ -14,10 +15,13 @@ import (
 	"github.com/kudobuilder/kudo/pkg/webhook"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	kind "sigs.k8s.io/kind/pkg/cluster"
+	kindConfig "sigs.k8s.io/kind/pkg/cluster/config"
 )
 
 // Harness loads and runs tests based on the configuration provided.
@@ -30,6 +34,7 @@ type Harness struct {
 	client        client.Client
 	dclient       discovery.DiscoveryInterface
 	env           *envtest.Environment
+	kind          *kind.Context
 }
 
 // LoadTests loads all of the tests in a given directory.
@@ -72,6 +77,49 @@ func (h *Harness) GetTimeout() int {
 	return timeout
 }
 
+// RunKIND starts a KIND cluster.
+func (h *Harness) RunKIND() (*rest.Config, error) {
+	contexts, err := kind.List()
+	if err != nil {
+		return nil, err
+	}
+
+	for index := range contexts {
+		if contexts[index].Name() != h.TestSuite.KINDContext {
+			continue
+		}
+
+		h.kind = &contexts[index]
+		break
+	}
+
+	if h.kind == nil {
+		h.kind = kind.NewContext(h.TestSuite.KINDContext)
+
+		kindCfg := &kindConfig.Cluster{}
+
+		if h.TestSuite.KINDConfig != "" {
+			objs, err := testutils.LoadYAML(h.TestSuite.KINDConfig)
+			if err != nil {
+				return nil, err
+			}
+
+			var ok bool
+			kindCfg, ok = objs[0].(*kindConfig.Cluster)
+			if !ok {
+				return nil, fmt.Errorf("kind configuration contains invalid kind config file")
+			}
+		}
+
+		err := h.kind.Create(kindCfg)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return clientcmd.BuildConfigFromFlags("", h.kind.KubeConfigPath())
+}
+
 // RunTestEnv starts a Kubernetes API server and etcd server for use in the
 // tests and returns the Kubernetes configuration.
 func (h *Harness) RunTestEnv() (*rest.Config, error) {
@@ -98,8 +146,13 @@ func (h *Harness) Config() (*rest.Config, error) {
 	var err error
 
 	if h.TestSuite.StartControlPlane {
+		h.T.Log("Running tests with a mocked control plane (kube-apiserver and etcd).")
 		h.config, err = h.RunTestEnv()
+	} else if h.TestSuite.StartKIND {
+		h.T.Log("Running tests with KIND.")
+		h.config, err = h.RunKIND()
 	} else {
+		h.T.Log("Running tests using configured kubeconfig.")
 		h.config, err = config.GetConfig()
 	}
 
@@ -257,8 +310,26 @@ func (h *Harness) Stop() {
 		h.managerStopCh = nil
 	}
 
+	if h.TestSuite.SkipClusterDelete || h.TestSuite.SkipDelete {
+		// TODO: figure out how to write the Kubernetes client configuration to disk.
+		return
+	}
+
 	if h.env != nil {
-		h.env.Stop()
+		h.T.Log("tearing down mock control plane")
+		if err := h.env.Stop(); err != nil {
+			h.T.Log("error tearing down mock control plane", err)
+		}
+
 		h.env = nil
+	}
+
+	if h.kind != nil {
+		h.T.Log("tearing down kind cluster")
+		if err := h.kind.Delete(); err != nil {
+			h.T.Log("error tearing down kind cluster", err)
+		}
+
+		h.kind = nil
 	}
 }

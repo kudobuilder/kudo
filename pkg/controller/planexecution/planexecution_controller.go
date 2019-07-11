@@ -347,7 +347,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			// Fetch OperatorVersion:
 			//
 			//   - Get the task name from the step
-			//   - Get the task definition from the FV
+			//   - Get the task definition from the OV
 			//   - Create the kustomize templates
 			//   - Apply
 			configs["PlanName"] = planExecution.Spec.PlanName
@@ -421,7 +421,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					defer ldr.Cleanup()
 
 					rf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()))
-					kt, err := target.NewKustTarget(ldr, fsys, rf, transformer.NewFactoryImpl())
+					kt, err := target.NewKustTarget(ldr, rf, transformer.NewFactoryImpl())
 					if err != nil {
 						return reconcile.Result{}, err
 					}
