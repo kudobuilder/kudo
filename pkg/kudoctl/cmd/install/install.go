@@ -226,21 +226,21 @@ func versionExists(versions []string, currentVersion string) bool {
 
 // installSingleOperatorToCluster installs a given Operator to the cluster
 // TODO: needs testing
-func installSingleOperatorToCluster(name, namespace string, f *v1alpha1.Operator, kc *kudo.Client) error {
-	if _, err := kc.InstallOperatorObjToCluster(f, namespace); err != nil {
+func installSingleOperatorToCluster(name, namespace string, o *v1alpha1.Operator, kc *kudo.Client) error {
+	if _, err := kc.InstallOperatorObjToCluster(o, namespace); err != nil {
 		return errors.Wrapf(err, "installing %s-operator.yaml", name)
 	}
-	fmt.Printf("operator.%s/%s created\n", f.APIVersion, f.Name)
+	fmt.Printf("operator.%s/%s created\n", o.APIVersion, o.Name)
 	return nil
 }
 
 // installSingleOperatorVersionToCluster installs a given OperatorVersion to the cluster
 // TODO: needs testing
-func installSingleOperatorVersionToCluster(name, namespace string, kc *kudo.Client, fv *v1alpha1.OperatorVersion) error {
-	if _, err := kc.InstallOperatorVersionObjToCluster(fv, namespace); err != nil {
+func installSingleOperatorVersionToCluster(name, namespace string, kc *kudo.Client, ov *v1alpha1.OperatorVersion) error {
+	if _, err := kc.InstallOperatorVersionObjToCluster(ov, namespace); err != nil {
 		return errors.Wrapf(err, "installing %s-operatorversion.yaml", name)
 	}
-	fmt.Printf("operatorversion.%s/%s created\n", fv.APIVersion, fv.Name)
+	fmt.Printf("operatorversion.%s/%s created\n", ov.APIVersion, ov.Name)
 	return nil
 }
 
