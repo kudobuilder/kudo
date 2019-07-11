@@ -1,17 +1,11 @@
 apiVersion: kudo.k8s.io/v1alpha1
 kind: Instance
 metadata:
-  name: dream1-operator
+  name: dream1
 status:
   status: COMPLETE
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: dream1-operator-nginx
-spec:
-  replicas: 0
 ---
 apiVersion: kudo.k8s.io/v1alpha1
 kind: TestAssert
 timeout: 30
+  
