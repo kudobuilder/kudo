@@ -101,6 +101,93 @@ func Retry(ctx context.Context, fn func(context.Context) error, errValidationFun
 	return lastErr
 }
 
+// RetryClient implements the Client interface, with retries built in.
+type RetryClient struct {
+	Client client.Client
+}
+
+// RetryStatusWriter implements the StatusWriter interface, with retries built in.
+type RetryStatusWriter struct {
+	StatusWriter client.StatusWriter
+}
+
+// NewRetryClient initializes a new Kubernetes client that automatically retries on network-related errors.
+func NewRetryClient(cfg *rest.Config, opts client.Options) (*RetryClient, error) {
+	client, err := client.New(cfg, opts)
+	return &RetryClient{Client: client}, err
+}
+
+// Create saves the object obj in the Kubernetes cluster.
+func (r *RetryClient) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOptionFunc) error {
+	return Retry(ctx, func(ctx context.Context) error {
+		return r.Client.Create(ctx, obj, opts...)
+	}, IsJSONSyntaxError)
+}
+
+// Delete deletes the given obj from Kubernetes cluster.
+func (r *RetryClient) Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOptionFunc) error {
+	return Retry(ctx, func(ctx context.Context) error {
+		return r.Client.Delete(ctx, obj, opts...)
+	}, IsJSONSyntaxError)
+}
+
+// Update updates the given obj in the Kubernetes cluster. obj must be a
+// struct pointer so that obj can be updated with the content returned by the Server.
+func (r *RetryClient) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOptionFunc) error {
+	return Retry(ctx, func(ctx context.Context) error {
+		return r.Client.Update(ctx, obj, opts...)
+	}, IsJSONSyntaxError)
+}
+
+// Patch patches the given obj in the Kubernetes cluster. obj must be a
+// struct pointer so that obj can be updated with the content returned by the Server.
+func (r *RetryClient) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOptionFunc) error {
+	return Retry(ctx, func(ctx context.Context) error {
+		return r.Client.Patch(ctx, obj, patch, opts...)
+	}, IsJSONSyntaxError)
+}
+
+// Get retrieves an obj for the given object key from the Kubernetes Cluster.
+// obj must be a struct pointer so that obj can be updated with the response
+// returned by the Server.
+func (r *RetryClient) Get(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+	return Retry(ctx, func(ctx context.Context) error {
+		return r.Client.Get(ctx, key, obj)
+	}, IsJSONSyntaxError)
+}
+
+// List retrieves list of objects for a given namespace and list options. On a
+// successful call, Items field in the list will be populated with the
+// result returned from the server.
+func (r *RetryClient) List(ctx context.Context, list runtime.Object, opts ...client.ListOptionFunc) error {
+	return Retry(ctx, func(ctx context.Context) error {
+		return r.Client.List(ctx, list, opts...)
+	}, IsJSONSyntaxError)
+}
+
+// Status returns a client which can update status subresource for kubernetes objects.
+func (r *RetryClient) Status() client.StatusWriter {
+	return &RetryStatusWriter{
+		StatusWriter: r.Client.Status(),
+	}
+}
+
+// Update updates the given obj in the Kubernetes cluster. obj must be a
+// struct pointer so that obj can be updated with the content returned by the Server.
+func (r *RetryStatusWriter) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOptionFunc) error {
+	return Retry(ctx, func(ctx context.Context) error {
+		return r.StatusWriter.Update(ctx, obj, opts...)
+	}, IsJSONSyntaxError)
+}
+
+// Patch patches the given obj in the Kubernetes cluster. obj must be a
+// struct pointer so that obj can be updated with the content returned by the Server.
+func (r *RetryStatusWriter) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOptionFunc) error {
+	return Retry(ctx, func(ctx context.Context) error {
+		return r.StatusWriter.Patch(ctx, obj, patch, opts...)
+	}, IsJSONSyntaxError)
+}
+
 // Scheme returns an initialized Kubernetes Scheme.
 func Scheme() *runtime.Scheme {
 	apis.AddToScheme(scheme.Scheme)
@@ -454,7 +541,7 @@ func CreateOrUpdate(ctx context.Context, client client.Client, obj runtime.Objec
 	validators := []func(err error) bool{}
 
 	if retryOnError {
-		validators = append(validators, k8serrors.IsConflict, IsJSONSyntaxError)
+		validators = append(validators, k8serrors.IsConflict)
 	}
 
 	return updated, Retry(ctx, func(ctx context.Context) error {
@@ -566,7 +653,7 @@ func StartTestEnvironment() (env TestEnvironment, err error) {
 		return
 	}
 
-	env.Client, err = client.New(env.Config, client.Options{})
+	env.Client, err = NewRetryClient(env.Config, client.Options{})
 	if err != nil {
 		return
 	}
