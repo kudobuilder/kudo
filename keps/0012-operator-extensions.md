@@ -9,7 +9,7 @@ owners:
 editor: TBD
 creation-date: 2019-06-18
 last-updated: 2019-06-18
-status: provisional
+status: implementable
 ---
 
 # Operator Extensions

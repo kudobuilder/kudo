@@ -26,6 +26,8 @@ type TestSuite struct {
 	StartKUDO bool `json:"startKUDO"`
 	// If set, do not delete the resources after running the tests.
 	SkipDelete bool `json:"skipDelete"`
+	// Override the default timeout of 30 seconds (in seconds).
+	Timeout int `json:"timeout"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -54,7 +56,7 @@ type TestStep struct {
 type TestAssert struct {
 	// The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestAssert.
 	metav1.TypeMeta `json:",inline"`
-	// Override the default timeout of 300 seconds (in seconds).
+	// Override the default timeout of 30 seconds (in seconds).
 	Timeout int `json:"timeout"`
 }
 

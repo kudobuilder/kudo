@@ -90,7 +90,7 @@ func newInstallCmd() *cobra.Command {
 				return errors.WithMessage(err, "could not parse parameters")
 			}
 
-			return install.Run(cmd, args, options)
+			return install.Run(args, options)
 		},
 		SilenceUsage: true,
 	}
@@ -99,7 +99,7 @@ func newInstallCmd() *cobra.Command {
 	installCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name. (default to Operator name)")
 	installCmd.Flags().StringVar(&options.Namespace, "namespace", "default", "The namespace used for the package installation. (default \"default\"")
 	installCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")
-	installCmd.Flags().StringVar(&options.PackageVersion, "package-version", "", "A specific package version on the official GitHub repo. (default to the most recent)")
+	installCmd.Flags().StringVarP(&options.PackageVersion, "version", "v", "", "A specific package version on the official GitHub repo. (default to the most recent)")
 	installCmd.Flags().BoolVar(&options.SkipInstance, "skip-instance", false, "If set, install will install the Operator and OperatorVersion, but not an instance. (default \"false\")")
 
 	const usageFmt = "Usage:\n  %s\n\nFlags:\n%s"

@@ -19,6 +19,9 @@ spec:
     description: "Number of nginx replicas"
     default: "3"
     displayName: "Replica count"
+  - name: PARAM
+    description: "Sample parameter"
+    default: "before"
   templates:
     deploy.yaml: |
       apiVersion: apps/v1
@@ -40,6 +43,9 @@ spec:
               image: nginx:1.7.9
               ports:
               - containerPort: 80
+              env:
+              - name: PARAM_ENV
+                value: {{ .Params.PARAM }}
   tasks:
     deploy:
       resources:
