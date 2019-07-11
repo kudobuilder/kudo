@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
+	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
@@ -94,9 +95,9 @@ func TestParameterValidation_InstallCrds(t *testing.T) {
 		skipInstance      bool
 		err               string
 	}{
-		{"all parameters with defaults", []v1alpha1.Parameter{{Name: "param", Required: true, Default: "aaa"}}, map[string]string{}, false, ""},
+		{"all parameters with defaults", []v1alpha1.Parameter{{Name: "param", Required: true, Default: util.String("aaa")}}, map[string]string{}, false, ""},
 		{"missing parameter provided", []v1alpha1.Parameter{{Name: "param", Required: true}}, map[string]string{"param": "value"}, false, ""},
-		{"missing parameter", []v1alpha1.Parameter{{Name: "param", Required: true}}, map[string]string{}, false, "missing required parameters during installation: param"},
+		{"missing parameter", []v1alpha1.Parameter{{Name: "param", Required: true, Default: nil}}, map[string]string{}, false, "missing required parameters during installation: param"},
 		{"multiple missing parameter", []v1alpha1.Parameter{{Name: "param", Required: true}, {Name: "param2", Required: true}}, map[string]string{}, false, "missing required parameters during installation: param,param2"},
 		{"skip instance ignores missing parameter", []v1alpha1.Parameter{{Name: "param", Required: true}}, map[string]string{}, true, ""},
 	}
