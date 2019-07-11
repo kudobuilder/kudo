@@ -201,7 +201,7 @@ func validateCrds(crds *bundle.PackageCRDs, skipInstance bool) error {
 	parameters := crds.OperatorVersion.Spec.Parameters
 	missingParameters := []string{}
 	for _, p := range parameters {
-		if p.Required && p.Default == "" {
+		if p.Required && p.Default == nil {
 			_, ok := crds.Instance.Spec.Parameters[p.Name]
 			if !ok {
 				missingParameters = append(missingParameters, p.Name)
