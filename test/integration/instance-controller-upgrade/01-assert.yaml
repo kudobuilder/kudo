@@ -6,21 +6,3 @@ metadata:
     operator-version: icto-upgrade-v2
 spec:
   planName: upgrade
----
-apiVersion: kudo.k8s.io/v1alpha1
-kind: PlanExecution
-metadata:
-  labels:
-    instance: icto-upgrade-fallback-to-update
-    operator-version: icto-upgrade-fallback-to-update
-spec:
-  planName: update
----
-apiVersion: kudo.k8s.io/v1alpha1
-kind: PlanExecution
-metadata:
-  labels:
-    instance: icto-upgrade-fallback-to-deploy
-    operator-version: icto-upgrade-fallback-to-deploy
-spec:
-  planName: deploy

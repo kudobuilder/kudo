@@ -1,7 +1,7 @@
 apiVersion: kudo.k8s.io/v1alpha1
 kind: Instance
 metadata:
-  name: icto-upgrade
+  name: icto-custom-trigger
 status:
   status: COMPLETE
 ---
@@ -9,7 +9,7 @@ apiVersion: kudo.k8s.io/v1alpha1
 kind: PlanExecution
 metadata:
   labels:
-    instance: icto-upgrade
-    operator-version: icto-upgrade
+    instance: icto-custom-trigger
+    operator-version: icto-custom-trigger
 spec:
   planName: deploy
