@@ -28,6 +28,7 @@ type Case struct {
 	Name       string
 	Dir        string
 	SkipDelete bool
+	Timeout    int
 
 	Client          client.Client
 	DiscoveryClient discovery.DiscoveryInterface
@@ -152,6 +153,7 @@ func (t *Case) LoadTestSteps() error {
 
 	for index, files := range testStepFiles {
 		testStep := &Step{
+			Timeout: t.Timeout,
 			Index:   int(index),
 			Asserts: []runtime.Object{},
 			Apply:   []runtime.Object{},

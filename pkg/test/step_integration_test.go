@@ -5,6 +5,8 @@ package test
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
 	"testing"
 
 	petname "github.com/dustinkirkland/golang-petname"
@@ -16,26 +18,24 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/discovery"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
+var testenv testutils.TestEnvironment
+
+func TestMain(m *testing.M) {
+	var err error
+
+	testenv, err = testutils.StartTestEnvironment()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	exitCode := m.Run()
+	testenv.Environment.Stop()
+	os.Exit(exitCode)
+}
+
 func TestCheckResourceIntegration(t *testing.T) {
-	env := &envtest.Environment{}
-
-	config, err := env.Start()
-	assert.Nil(t, err)
-
-	defer env.Stop()
-
-	cl, err := client.New(config, client.Options{
-		Scheme: testutils.Scheme(),
-	})
-	assert.Nil(t, err)
-	dClient, err := discovery.NewDiscoveryClientForConfig(config)
-	assert.Nil(t, err)
-
 	for _, test := range []struct {
 		testName    string
 		actual      []runtime.Object
@@ -200,23 +200,47 @@ func TestCheckResourceIntegration(t *testing.T) {
 			},
 			shouldError: true,
 		},
+		{
+			testName: "step should fail if there are no objects of the same type in the namespace",
+			actual:   []runtime.Object{},
+			expected: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "Pod",
+					"metadata": map[string]interface{}{
+						"labels": map[string]interface{}{
+							"app": "nginx",
+						},
+					},
+					"spec": map[string]interface{}{
+						"containers": []interface{}{
+							map[string]interface{}{
+								"image": "nginx:1.7.9",
+								"name":  "nginx",
+							},
+						},
+					},
+				},
+			},
+			shouldError: true,
+		},
 	} {
 		t.Run(test.testName, func(t *testing.T) {
 			namespace := fmt.Sprintf("kudo-test-%s", petname.Generate(2, "-"))
 
-			assert.Nil(t, cl.Create(context.TODO(), testutils.NewResource("v1", "Namespace", namespace, "")))
+			assert.Nil(t, testenv.Client.Create(context.TODO(), testutils.NewResource("v1", "Namespace", namespace, "")))
 
 			for _, actual := range test.actual {
-				_, _, err := testutils.Namespaced(dClient, actual, namespace)
+				_, _, err := testutils.Namespaced(testenv.DiscoveryClient, actual, namespace)
 				assert.Nil(t, err)
 
-				assert.Nil(t, cl.Create(context.TODO(), actual))
+				assert.Nil(t, testenv.Client.Create(context.TODO(), actual))
 			}
 
 			step := Step{
 				Logger:          testutils.NewTestLogger(t, ""),
-				Client:          cl,
-				DiscoveryClient: dClient,
+				Client:          testenv.Client,
+				DiscoveryClient: testenv.DiscoveryClient,
 			}
 
 			errors := step.CheckResource(test.expected, namespace)
@@ -232,20 +256,6 @@ func TestCheckResourceIntegration(t *testing.T) {
 
 // Verify that the DeleteExisting method properly cleans up resources that are matched on labels during a test step.
 func TestStepDeleteExistingLabelMatch(t *testing.T) {
-	env := &envtest.Environment{}
-
-	config, err := env.Start()
-	assert.Nil(t, err)
-
-	defer env.Stop()
-
-	cl, err := client.New(config, client.Options{
-		Scheme: testutils.Scheme(),
-	})
-	assert.Nil(t, err)
-	dClient, err := discovery.NewDiscoveryClientForConfig(config)
-	assert.Nil(t, err)
-
 	namespace := "world"
 
 	podSpec := map[string]interface{}{
@@ -284,8 +294,8 @@ func TestStepDeleteExistingLabelMatch(t *testing.T) {
 				},
 			},
 		},
-		Client:          cl,
-		DiscoveryClient: dClient,
+		Client:          testenv.Client,
+		DiscoveryClient: testenv.DiscoveryClient,
 	}
 
 	assert.Nil(t, step.Client.Create(context.TODO(), podToKeep))

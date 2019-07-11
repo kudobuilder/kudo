@@ -3,6 +3,7 @@ package bundle
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -68,11 +69,24 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 		}
 		paramsStruct := make([]v1alpha1.Parameter, 0)
 		for paramName, param := range params {
+			required := true // defaults to true
+			if _, ok := param["required"]; ok {
+				parsed, err := strconv.ParseBool(param["required"])
+				if err != nil {
+					// ideally this should never happen and be already caught by some kind of linter
+					return errors.Wrapf(err, "failed parsing required field from parameter %s. cannot convert %s to bool", paramName, param["required"])
+				}
+
+				required = parsed
+			}
+
 			r := v1alpha1.Parameter{
 				Name:        paramName,
 				Description: param["description"],
 				Default:     param["default"],
 				Trigger:     param["trigger"],
+				Required:    required,
+				DisplayName: param["displayName"],
 			}
 			paramsStruct = append(paramsStruct, r)
 		}
