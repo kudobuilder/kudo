@@ -115,10 +115,10 @@ func (r *OperatorRepository) GetBundle(name string, version string) (bundle.Bund
 
 // GetOperatorVersionDependencies helper method returns a slice of strings that contains the names of all
 // dependency Operators
-func GetOperatorVersionDependencies(fv *v1alpha1.OperatorVersion) ([]string, error) {
+func GetOperatorVersionDependencies(ov *v1alpha1.OperatorVersion) ([]string, error) {
 	var dependencyOperators []string
-	if fv.Spec.Dependencies != nil {
-		for _, v := range fv.Spec.Dependencies {
+	if ov.Spec.Dependencies != nil {
+		for _, v := range ov.Spec.Dependencies {
 			dependencyOperators = append(dependencyOperators, v.Name)
 		}
 	}

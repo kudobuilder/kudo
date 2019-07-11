@@ -347,7 +347,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			// Fetch OperatorVersion:
 			//
 			//   - Get the task name from the step
-			//   - Get the task definition from the FV
+			//   - Get the task definition from the OV
 			//   - Create the kustomize templates
 			//   - Apply
 			configs["PlanName"] = planExecution.Spec.PlanName
