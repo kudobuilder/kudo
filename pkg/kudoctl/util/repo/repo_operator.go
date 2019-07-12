@@ -88,27 +88,15 @@ func (r *OperatorRepository) getPackageReaderByURL(packageURL string) (io.Reader
 
 // GetPackageReader provides an io.Reader for a provided package name and optional version
 func (r *OperatorRepository) GetPackageReader(name string, version string) (io.Reader, error) {
-
 	// Construct the package name and download the index file from the remote repo
 	indexFile, err := r.downloadIndexFile()
 	if err != nil {
 		return nil, errors.WithMessage(err, "could not download repository index file")
 	}
 
-	var bundleVersion *BundleVersion
-
-	if version == "" {
-		bv, err := indexFile.GetByNameAndVersion(name, "")
-		if err != nil {
-			return nil, errors.Wrapf(err, "getting %s in index file", name)
-		}
-		bundleVersion = bv
-	} else {
-		bv, err := indexFile.GetByNameAndVersion(name, version)
-		if err != nil {
-			return nil, errors.Wrapf(err, "getting %s in index file", name)
-		}
-		bundleVersion = bv
+	bundleVersion, err := indexFile.GetByNameAndVersion(name, version)
+	if err != nil {
+		return nil, errors.Wrapf(err, "getting %s in index file", name)
 	}
 
 	packageName := bundleVersion.Name + "-" + bundleVersion.Version
@@ -127,10 +115,10 @@ func (r *OperatorRepository) GetBundle(name string, version string) (bundle.Bund
 
 // GetOperatorVersionDependencies helper method returns a slice of strings that contains the names of all
 // dependency Operators
-func GetOperatorVersionDependencies(fv *v1alpha1.OperatorVersion) ([]string, error) {
+func GetOperatorVersionDependencies(ov *v1alpha1.OperatorVersion) ([]string, error) {
 	var dependencyOperators []string
-	if fv.Spec.Dependencies != nil {
-		for _, v := range fv.Spec.Dependencies {
+	if ov.Spec.Dependencies != nil {
+		for _, v := range ov.Spec.Dependencies {
 			dependencyOperators = append(dependencyOperators, v.Name)
 		}
 	}

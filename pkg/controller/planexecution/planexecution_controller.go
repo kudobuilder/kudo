@@ -22,6 +22,8 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+
 	apijson "k8s.io/apimachinery/pkg/util/json"
 
 	kudoengine "github.com/kudobuilder/kudo/pkg/engine"
@@ -310,7 +312,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				r.recorder.Event(planExecution, "Warning", "MissingParameter", fmt.Sprintf("Could not find required parameter (%v)", param.Name))
 				return reconcile.Result{}, err
 			}
-			params[param.Name] = param.Default
+			params[param.Name] = kudo.StringValue(param.Default)
 		}
 	}
 
@@ -345,7 +347,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			// Fetch OperatorVersion:
 			//
 			//   - Get the task name from the step
-			//   - Get the task definition from the FV
+			//   - Get the task definition from the OV
 			//   - Create the kustomize templates
 			//   - Apply
 			configs["PlanName"] = planExecution.Spec.PlanName
@@ -368,6 +370,10 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 							if err != nil {
 								r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error expanding template: %v", err))
 								log.Printf("PlanExecutionController: Error expanding template: %v", err)
+								planExecution.Status.State = kudov1alpha1.PhaseStateError
+								planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateError
+								// returning error = nil so that we don't retry since this is non-recoverable
+								return reconcile.Result{}, nil
 							}
 							fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, res), []byte(templatedYaml))
 							resources = append(resources, res)
@@ -415,7 +421,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					defer ldr.Cleanup()
 
 					rf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()))
-					kt, err := target.NewKustTarget(ldr, fsys, rf, transformer.NewFactoryImpl())
+					kt, err := target.NewKustTarget(ldr, rf, transformer.NewFactoryImpl())
 					if err != nil {
 						return reconcile.Result{}, err
 					}
@@ -447,7 +453,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			planExecution.Status.Phases[i].Steps[j].Name = step.Name
 			planExecution.Status.Phases[i].Steps[j].Objects = objs
 			planExecution.Status.Phases[i].Steps[j].Delete = step.Delete
-			log.Printf("PlanExecutionController: Phase \"%v\" Step \"%v\" has %v object(s)", phase.Name, step.Name, len(objs))
+			log.Printf("PlanExecutionController: Phase \"%v\" Step \"%v\" of instance '%v' has %v object(s)", phase.Name, step.Name, instance.Name, len(objs))
 		}
 	}
 
@@ -463,8 +469,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					if errors.IsNotFound(err) || err == nil {
 						// This is okay
 						log.Printf("PlanExecutionController: Object was already deleted or did not exist in step \"%v\"", s.Name)
-					}
-					if err != nil {
+					} else {
 						log.Printf("PlanExecutionController: Error deleting object in step \"%v\": %v", s.Name, err)
 						planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateError
 						planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateError

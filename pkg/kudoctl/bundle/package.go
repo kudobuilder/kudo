@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+
 	"k8s.io/apimachinery/pkg/util/rand"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
@@ -79,11 +81,15 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 
 				required = parsed
 			}
+			var defaultValue *string
+			if val, ok := param["default"]; ok {
+				defaultValue = kudo.String(val)
+			}
 
 			r := v1alpha1.Parameter{
 				Name:        paramName,
 				Description: param["description"],
-				Default:     param["default"],
+				Default:     defaultValue,
 				Trigger:     param["trigger"],
 				Required:    required,
 				DisplayName: param["displayName"],
@@ -174,7 +180,7 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   fmt.Sprintf("%s-%s", p.Operator.Name, rand.String(6)),
-			Labels: map[string]string{"controller-tools.k8s.io": "1.0", "operator": "zookeeper"},
+			Labels: map[string]string{"controller-tools.k8s.io": "1.0", "operator": p.Operator.Name},
 		},
 		Spec: v1alpha1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{

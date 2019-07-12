@@ -1,0 +1,11 @@
+# Set the hello label on the instance Job so that we verify that it was deleted (it is immutable).
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  name: my-instance
+spec:
+  operatorVersion:
+    name: job-operator
+    kind: OperatorVersion
+  parameters:
+    LABEL: "hello"

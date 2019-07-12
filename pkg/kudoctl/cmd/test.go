@@ -40,8 +40,12 @@ func newTestCmd() *cobra.Command {
 	manifestsDir := ""
 	testToRun := ""
 	startControlPlane := false
+	startKIND := false
+	kindConfig := ""
+	kindContext := ""
 	startKUDO := false
 	skipDelete := false
+	skipClusterDelete := false
 
 	options := kudo.TestSuite{}
 
@@ -104,12 +108,37 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 				options.StartControlPlane = startControlPlane
 			}
 
+			if isSet(flags, "start-kind") {
+				options.StartKIND = startKIND
+			}
+
+			if isSet(flags, "kind-config") {
+				options.StartKIND = true
+				options.KINDConfig = kindConfig
+			}
+
+			if isSet(flags, "kind-context") {
+				options.KINDContext = kindContext
+			}
+
+			if options.KINDContext == "" {
+				options.KINDContext = "default"
+			}
+
+			if options.StartControlPlane && options.StartKIND {
+				return fmt.Errorf("only one of --start-control-plane and --start-kind can be set")
+			}
+
 			if isSet(flags, "start-kudo") {
 				options.StartKUDO = startKUDO
 			}
 
 			if isSet(flags, "skip-delete") {
 				options.SkipDelete = skipDelete
+			}
+
+			if isSet(flags, "skip-cluster-delete") {
+				options.SkipClusterDelete = skipClusterDelete
 			}
 
 			if len(args) != 0 {
@@ -138,9 +167,13 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 	testCmd.Flags().StringVar(&crdDir, "crd-dir", "", "Directory to load CustomResourceDefinitions from prior to running the tests.")
 	testCmd.Flags().StringVar(&manifestsDir, "manifests-dir", "", "A directory containing manifests to apply before running the tests.")
 	testCmd.Flags().StringVar(&testToRun, "test", "", "If set, the specific test case to run.")
-	testCmd.Flags().BoolVar(&startControlPlane, "start-control-plane", false, "Start a local Kubernetes control plane for the tests (requires etcd and kube-apiserver binaries, implies --start-kudo).")
+	testCmd.Flags().BoolVar(&startControlPlane, "start-control-plane", false, "Start a local Kubernetes control plane for the tests (requires etcd and kube-apiserver binaries, cannot be used with --start-kind, implies --start-kudo).")
+	testCmd.Flags().BoolVar(&startKIND, "start-kind", false, "Start a KIND cluster for the tests (cannot be used with --start-control-plane, implies --start-kudo).")
+	testCmd.Flags().StringVar(&kindConfig, "kind-config", "", "Specify the KIND configuration file path (implies --start-kind, cannot be used with --start-control-plane, implies --start-kudo).")
+	testCmd.Flags().StringVar(&kindContext, "kind-context", "", "Specify the KIND context name to use.")
 	testCmd.Flags().BoolVar(&startKUDO, "start-kudo", false, "Start KUDO during the test run.")
-	testCmd.Flags().BoolVar(&skipDelete, "skip-delete", false, "If set, do not delete resources created during tests (helpful for debugging test failures).")
+	testCmd.Flags().BoolVar(&skipDelete, "skip-delete", false, "If set, do not delete resources created during tests (helpful for debugging test failures, implies --skip-cluster-delete).")
+	testCmd.Flags().BoolVar(&skipClusterDelete, "skip-cluster-delete", false, "If set, do not delete the mocked control plane or kind cluster.")
 
 	return testCmd
 }
