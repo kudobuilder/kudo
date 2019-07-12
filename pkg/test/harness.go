@@ -72,7 +72,7 @@ func (h *Harness) LoadTests(dir string) ([]*Case, error) {
 func (h *Harness) GetTimeout() int {
 	timeout := 30
 	if h.TestSuite.Timeout != 0 {
-		timeout = 30
+		timeout = h.TestSuite.Timeout
 	}
 	return timeout
 }
