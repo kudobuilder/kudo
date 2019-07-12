@@ -36,7 +36,7 @@ jobs:
       - run: |
           git config user.name "Circle CI"
           git config user.email "ci@mesosphere.com"
-          git merge -m "Merge Commit" origin/master
+          git merge -m "Merge Commit" origin/releases/0.3
       - run: make check-formatting
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
