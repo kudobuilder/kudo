@@ -370,6 +370,10 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 							if err != nil {
 								r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error expanding template: %v", err))
 								log.Printf("PlanExecutionController: Error expanding template: %v", err)
+								planExecution.Status.State = kudov1alpha1.PhaseStateError
+								planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateError
+								// returning error = nil so that we don't retry since this is non-recoverable
+								return reconcile.Result{}, nil
 							}
 							fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, res), []byte(templatedYaml))
 							resources = append(resources, res)
@@ -449,7 +453,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			planExecution.Status.Phases[i].Steps[j].Name = step.Name
 			planExecution.Status.Phases[i].Steps[j].Objects = objs
 			planExecution.Status.Phases[i].Steps[j].Delete = step.Delete
-			log.Printf("PlanExecutionController: Phase \"%v\" Step \"%v\" has %v object(s)", phase.Name, step.Name, len(objs))
+			log.Printf("PlanExecutionController: Phase \"%v\" Step \"%v\" of instance '%v' has %v object(s)", phase.Name, step.Name, instance.Name, len(objs))
 		}
 	}
 
