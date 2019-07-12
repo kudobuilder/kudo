@@ -153,7 +153,7 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 				},
 				ov)
 			if err != nil {
-				log.Printf("InstanceEventPredicate: Error getting operatorversion \"%v\" for instance \"%v\": %v",
+				log.Printf("InstanceController: Error getting operatorversion \"%v\" for instance \"%v\": %v",
 					new.Spec.OperatorVersion.Name,
 					new.Name,
 					err)
@@ -177,7 +177,7 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 				}
 
 				if !planFound {
-					log.Printf("InstanceEventPredicate: Could not find any plan to use to upgrade instance %v", new.Name)
+					log.Printf("InstanceController: Could not find any plan to use to upgrade instance %v", new.Name)
 					return false
 				}
 			} else if !reflect.DeepEqual(old.Spec, new.Spec) {
@@ -210,15 +210,15 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 							}
 
 							if planFound {
-								log.Printf("InstanceEventPredicate: Instance %v updated parameter %v, but it is not associated to a trigger. Using default plan %v\n", new.Name, k, planName)
+								log.Printf("InstanceController: Instance %v updated parameter %v, but it is not associated to a trigger. Using default plan %v\n", new.Name, k, planName)
 							}
 						}
 
 						if !planFound {
-							log.Printf("InstanceEventPredicate: Could not find any plan to use to update instance %v", new.Name)
+							log.Printf("InstanceController: Could not find any plan to use to update instance %v", new.Name)
 						}
 					} else {
-						log.Printf("InstanceEventPredicate: Instance %v updated parameter %v, but parameter not found in operatorversion %v\n", new.Name, k, ov.Name)
+						log.Printf("InstanceController: Instance %v updated parameter %v, but parameter not found in operatorversion %v\n", new.Name, k, ov.Name)
 					}
 				}
 			} else {
@@ -228,24 +228,24 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 				// `PlanExecution`.
 				// See https://github.com/kudobuilder/kudo/issues/422
 				if new.Status.ActivePlan.Name == "" {
-					log.Printf("InstanceEventPredicate: Old and new spec matched...\n %+v ?= %+v\n", old.Spec, new.Spec)
+					log.Printf("InstanceController: Old and new spec matched...\n %+v ?= %+v\n", old.Spec, new.Spec)
 					planName = "deploy"
 					planFound = true
 				}
 			}
 
 			if planFound {
-				log.Printf("InstanceEventPredicate: Going to run plan \"%v\" for instance %v", planName, new.Name)
+				log.Printf("InstanceController: Going to run plan \"%v\" for instance %v", planName, new.Name)
 				// Suspend the the current plan.
 				current := &kudov1alpha1.PlanExecution{}
 				err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{Name: new.Status.ActivePlan.Name, Namespace: new.Status.ActivePlan.Namespace}, current)
 				if err != nil {
-					log.Printf("InstanceEventPredicate: Ignoring error when getting plan for new instance: %v", err)
+					log.Printf("InstanceController: Ignoring error when getting plan for new instance: %v", err)
 				} else {
 					if current.Status.State == kudov1alpha1.PhaseStateComplete {
-						log.Printf("InstanceEventPredicate: Current plan for instance %v is already done, won't change the Suspend flag.", new.Name)
+						log.Printf("InstanceController: Current plan for instance %v is already done, won't change the Suspend flag.", new.Name)
 					} else {
-						log.Printf("InstanceEventPredicate: Suspending the PlanExecution for instance %v", new.Name)
+						log.Printf("InstanceController: Suspending the PlanExecution for instance %v", new.Name)
 						t := true
 						current.Spec.Suspend = &t
 						did, err := controllerutil.CreateOrUpdate(context.TODO(), mgr.GetClient(), current, func() error {
@@ -254,15 +254,15 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 							return nil
 						})
 						if err != nil {
-							log.Printf("InstanceEventPredicate: Error suspending PlanExecution for instance %v: %v", new.Name, err)
+							log.Printf("InstanceController: Error suspending PlanExecution for instance %v: %v", new.Name, err)
 						} else {
-							log.Printf("InstanceEventPredicate: Successfully suspended PlanExecution for instance %v. Returned: %v", new.Name, did)
+							log.Printf("InstanceController: Successfully suspended PlanExecution for instance %v. Returned: %v", new.Name, did)
 						}
 					}
 				}
 
 				if err = createPlan(mgr, planName, new); err != nil {
-					log.Printf("InstanceEventPredicate: Error creating PlanExecution \"%v\" for instance \"%v\": %v", planName, new.Name, err)
+					log.Printf("InstanceController: Error creating PlanExecution \"%v\" for instance \"%v\": %v", planName, new.Name, err)
 				}
 			}
 
@@ -271,7 +271,7 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 		},
 		// New Instances should have Deploy called
 		CreateFunc: func(e event.CreateEvent) bool {
-			log.Printf("InstanceEventPredicate: Received create event for instance \"%v\"", e.Meta.GetName())
+			log.Printf("InstanceController: Received create event for instance \"%v\"", e.Meta.GetName())
 			instance := e.Object.(*kudov1alpha1.Instance)
 
 			// Get the instance OperatorVersion object
@@ -283,7 +283,7 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 				},
 				ov)
 			if err != nil {
-				log.Printf("InstanceEventPredicate: Error getting operatorversion \"%v\" for instance \"%v\": %v",
+				log.Printf("InstanceController: Error getting operatorversion \"%v\" for instance \"%v\": %v",
 					instance.Spec.OperatorVersion.Name,
 					instance.Name,
 					err)
@@ -295,18 +295,18 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 			planName := "deploy"
 
 			if _, ok := ov.Spec.Plans[planName]; !ok {
-				log.Printf("InstanceEventPredicate: Could not find deploy plan \"%v\" for instance \"%v\"", planName, instance.Name)
+				log.Printf("InstanceController: Could not find deploy plan \"%v\" for instance \"%v\"", planName, instance.Name)
 				return false
 			}
 
 			err = createPlan(mgr, planName, instance)
 			if err != nil {
-				log.Printf("InstanceEventPredicate: Error creating PlanExecution \"%v\" for instance \"%v\": %v", planName, instance.Name, err)
+				log.Printf("InstanceController: Error creating PlanExecution \"%v\" for instance \"%v\": %v", planName, instance.Name, err)
 			}
 			return err == nil
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			log.Printf("InstanceEventPredicate: Received delete event for instance \"%v\"", e.Meta.GetName())
+			log.Printf("InstanceController: Received delete event for instance \"%v\"", e.Meta.GetName())
 			return true
 		},
 	}
