@@ -65,14 +65,88 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	inPredicate := predicate.Funcs{
+	// Watch for changes to Instance
+	if err = c.Watch(&source.Kind{Type: &kudov1alpha1.Instance{}}, &handler.EnqueueRequestForObject{}, instanceEventPredicateFunc(mgr)); err != nil {
+		return err
+	}
+
+	// Watch for changes to OperatorVersion. Since changes to OperatorVersion and Instance are often happening
+	// concurrently there is an inherent race between both update events so that we might see a new Instance first
+	// without the corresponding OperatorVersion. We additionally watch OperatorVersions and trigger
+	// reconciliation for the corresponding instances.
+	//
+	// Define a mapping from the object in the event (OperatorVersion) to one or more objects to
+	// reconcile (Instances). Specifically this calls for a reconciliation of any owned objects.
+	ovMapFn := handler.ToRequestsFunc(
+		func(a handler.MapObject) []reconcile.Request {
+			requests := make([]reconcile.Request, 0)
+			// We want to query and queue up operators Instances
+			instances := &kudov1alpha1.InstanceList{}
+			err := mgr.GetClient().List(
+				context.TODO(),
+				instances,
+				client.MatchingLabels(map[string]string{"operator": a.Meta.GetName()}),
+			)
+
+			if err != nil {
+				log.Printf("InstanceController: Error fetching instances list for operator %v: %v", a.Meta.GetName(), err)
+				return nil
+			}
+
+			for _, instance := range instances.Items {
+				// Sanity check - lets make sure that this instance references the operatorVersion
+				if instance.Spec.OperatorVersion.Name == a.Meta.GetName() &&
+					instance.GetOperatorVersionNamespace() == a.Meta.GetNamespace() &&
+					instance.Status.ActivePlan.Name == "" {
+
+					log.Printf("InstanceController: Creating a deploy execution plan for the instance %v", instance.Name)
+					err = createPlan(mgr, "deploy", &instance)
+					if err != nil {
+						log.Printf("InstanceController: Error creating \"%v\" object for \"deploy\": %v", instance.Name, err)
+					}
+
+					log.Printf("InstanceController: Queing instance %v for reconciliation", instance.Name)
+					requests = append(requests, reconcile.Request{
+						NamespacedName: types.NamespacedName{
+							Name:      instance.Name,
+							Namespace: instance.Namespace,
+						},
+					})
+				}
+			}
+			log.Printf("Found %v instances to reconcile", len(requests))
+			return requests
+		})
+
+	// This map function makes sure that we *ONLY* handle created operatorVersion
+	ovPredicate := predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return true
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return false
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return false
+		},
+	}
+
+	if err = c.Watch(&source.Kind{Type: &kudov1alpha1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: ovMapFn}, ovPredicate); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
+	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			old := e.ObjectOld.(*kudov1alpha1.Instance)
 			new := e.ObjectNew.(*kudov1alpha1.Instance)
 
 			// Get the OperatorVersion that corresponds to the new instance.
 			ov := &kudov1alpha1.OperatorVersion{}
-			err = mgr.GetClient().Get(context.TODO(),
+			err := mgr.GetClient().Get(context.TODO(),
 				types.NamespacedName{
 					Name:      new.Spec.OperatorVersion.Name,
 					Namespace: new.GetOperatorVersionNamespace(),
@@ -202,7 +276,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 			// Get the instance OperatorVersion object
 			ov := &kudov1alpha1.OperatorVersion{}
-			err = mgr.GetClient().Get(context.TODO(),
+			err := mgr.GetClient().Get(context.TODO(),
 				types.NamespacedName{
 					Name:      instance.Spec.OperatorVersion.Name,
 					Namespace: instance.GetOperatorVersionNamespace(),
@@ -236,78 +310,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			return true
 		},
 	}
-
-	// Watch for changes to Instance
-	if err = c.Watch(&source.Kind{Type: &kudov1alpha1.Instance{}}, &handler.EnqueueRequestForObject{}, inPredicate); err != nil {
-		return err
-	}
-
-	// Watch for changes to OperatorVersion. Since changes to OperatorVersion and Instance are often happening
-	// concurrently there is an inherent race between both update events so that we might see a new Instance first
-	// without the corresponding OperatorVersion. We additionally watch OperatorVersions and trigger
-	// reconciliation for the corresponding instances.
-	//
-	// Define a mapping from the object in the event (OperatorVersion) to one or more objects to
-	// reconcile (Instances). Specifically this calls for a reconciliation of any owned objects.
-	ovMapFn := handler.ToRequestsFunc(
-		func(a handler.MapObject) []reconcile.Request {
-			requests := make([]reconcile.Request, 0)
-			// We want to query and queue up operators Instances
-			instances := &kudov1alpha1.InstanceList{}
-			err := mgr.GetClient().List(
-				context.TODO(),
-				instances,
-				client.MatchingLabels(map[string]string{"operator": a.Meta.GetName()}),
-			)
-
-			if err != nil {
-				log.Printf("InstanceController: Error fetching instances list for operator %v: %v", a.Meta.GetName(), err)
-				return nil
-			}
-
-			for _, instance := range instances.Items {
-				// Sanity check - lets make sure that this instance references the operatorVersion
-				if instance.Spec.OperatorVersion.Name == a.Meta.GetName() &&
-					instance.GetOperatorVersionNamespace() == a.Meta.GetNamespace() &&
-					instance.Status.ActivePlan.Name == "" {
-
-					log.Printf("InstanceController: Creating a deploy execution plan for the instance %v", instance.Name)
-					err = createPlan(mgr, "deploy", &instance)
-					if err != nil {
-						log.Printf("InstanceController: Error creating \"%v\" object for \"deploy\": %v", instance.Name, err)
-					}
-
-					log.Printf("InstanceController: Queing instance %v for reconciliation", instance.Name)
-					requests = append(requests, reconcile.Request{
-						NamespacedName: types.NamespacedName{
-							Name:      instance.Name,
-							Namespace: instance.Namespace,
-						},
-					})
-				}
-			}
-			log.Printf("Found %v instances to reconcile", len(requests))
-			return requests
-		})
-
-	// This map function makes sure that we *ONLY* handle created operatorVersion
-	ovPredicate := predicate.Funcs{
-		CreateFunc: func(e event.CreateEvent) bool {
-			return true
-		},
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			return false
-		},
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			return false
-		},
-	}
-
-	if err = c.Watch(&source.Kind{Type: &kudov1alpha1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: ovMapFn}, ovPredicate); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Instance) error {
