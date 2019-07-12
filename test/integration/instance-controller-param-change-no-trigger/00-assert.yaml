@@ -1,0 +1,15 @@
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  name: icto-no-trigger
+status:
+  status: COMPLETE
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: PlanExecution
+metadata:
+  labels:
+    instance: icto-no-trigger
+    operator-version: icto-no-trigger
+spec:
+  planName: deploy
