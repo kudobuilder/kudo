@@ -1,0 +1,42 @@
+# This test verifies that when an instance is upgraded, the InstanceController
+# triggers an execution of the "deploy" plan when the new version includes
+# neither an "upgrade" nor an "update" plan.
+#
+# In order to do so, it creates a simple operator, its corresponding operator
+# version (with only a "deploy" plan), and an instance.
+#
+# The next step will:
+#
+#   1. Remove the "deploy" plan execution created for the original version of
+#      the instance.
+#   2. Create a new operator version with just a "deploy" plan.
+#   3. Trigger an upgrading by updating the operator version used by the instance.
+#   4. Verify that KUDO creates a new "deploy" plan execution.
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Operator
+metadata:
+  name: icto-upgrade
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: OperatorVersion
+metadata:
+  name: icto-upgrade
+spec:
+  operator:
+    name: icto-upgrade
+    kind: Operator
+  version: "1.0"
+  plans:
+    deploy:
+    upgrade:
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  name: icto-upgrade-fallback-to-deploy
+  labels:
+    operator: icto-upgrade
+spec:
+  operatorVersion:
+    name: icto-upgrade
+    kind: OperatorVersion

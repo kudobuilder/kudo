@@ -1,0 +1,29 @@
+# Create an OperatorVersion with a parameter without a trigger and without an
+# `update` plan.
+#
+# The next step will update the parameter and verify that it triggers the creation
+# of a `PlanExecution` for the `deploy` plan.
+apiVersion: kudo.k8s.io/v1alpha1
+kind: OperatorVersion
+metadata:
+  name: icto-fallback-to-deploy
+spec:
+  operator:
+    name: icto-fallback-to-deploy
+    kind: Operator
+  version: "1.0"
+  parameters:
+  - name: foo
+  plans:
+    deploy:
+---
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  name: icto-fallback-to-deploy
+  labels:
+    operator: icto-fallback-to-deploy
+spec:
+  operatorVersion:
+    name: icto-fallback-to-deploy
+    kind: OperatorVersion
