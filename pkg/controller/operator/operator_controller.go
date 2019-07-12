@@ -36,17 +36,13 @@ import (
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	log.Printf("OperatorController: Registering operator controller.")
-	reconciler, err := newReconciler(mgr)
-	if err != nil {
-		return err
-	}
-	return add(mgr, reconciler)
+	return add(mgr, newReconciler(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
+func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 
-	return &ReconcileOperator{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor("operator-controller")}, nil
+	return &ReconcileOperator{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor("operator-controller")}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
