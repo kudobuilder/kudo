@@ -81,7 +81,7 @@ func TestWaitForCRDs(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds, err := InstallManifests(context.TODO(), testClient, testenv.DiscoveryClient, "../../../config/crds/")
+	crds, err := InstallManifests(context.TODO(), testClient, testenv.DiscoveryClient, "../../../config/crds/", NewResource("apiextensions.k8s.io/v1beta1", "CustomResourceDefinition", "", ""))
 	assert.Nil(t, err)
 
 	// WaitForCRDs to be created.
