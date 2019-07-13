@@ -210,10 +210,15 @@ func ResourceID(obj runtime.Object) string {
 
 // Namespaced sets the namespace on an object to namespace, if it is a namespace scoped resource.
 // If the resource is cluster scoped, then it is ignored and the namespace is not set.
+// If it is a namespaced resource and a namespace is already set, then the namespace is unchanged.
 func Namespaced(dClient discovery.DiscoveryInterface, obj runtime.Object, namespace string) (string, string, error) {
 	m, err := meta.Accessor(obj)
 	if err != nil {
 		return "", "", err
+	}
+
+	if m.GetNamespace() != "" {
+		return m.GetName(), m.GetNamespace(), nil
 	}
 
 	resource, err := GetAPIResource(dClient, obj.GetObjectKind().GroupVersionKind())
