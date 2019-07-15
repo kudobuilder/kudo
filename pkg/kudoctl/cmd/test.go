@@ -46,6 +46,7 @@ func newTestCmd() *cobra.Command {
 	startKUDO := false
 	skipDelete := false
 	skipClusterDelete := false
+	parallel := 0
 
 	options := kudo.TestSuite{}
 
@@ -141,6 +142,10 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 				options.SkipClusterDelete = skipClusterDelete
 			}
 
+			if isSet(flags, "parallel") {
+				options.Parallel = parallel
+			}
+
 			if len(args) != 0 {
 				options.TestDirs = args
 			}
@@ -152,7 +157,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			testutils.RunTests("kudo", testToRun, func(t *testing.T) {
+			testutils.RunTests("kudo", testToRun, options.Parallel, func(t *testing.T) {
 				harness := test.Harness{
 					TestSuite: options,
 					T:         t,
@@ -174,6 +179,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 	testCmd.Flags().BoolVar(&startKUDO, "start-kudo", false, "Start KUDO during the test run.")
 	testCmd.Flags().BoolVar(&skipDelete, "skip-delete", false, "If set, do not delete resources created during tests (helpful for debugging test failures, implies --skip-cluster-delete).")
 	testCmd.Flags().BoolVar(&skipClusterDelete, "skip-cluster-delete", false, "If set, do not delete the mocked control plane or kind cluster.")
+	testCmd.Flags().IntVar(&parallel, "parallel", 8, "The maximum number of tests to run at once.")
 
 	return testCmd
 }

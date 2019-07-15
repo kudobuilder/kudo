@@ -36,6 +36,8 @@ type TestSuite struct {
 	SkipClusterDelete bool `json:"skipClusterDelete"`
 	// Override the default timeout of 30 seconds (in seconds).
 	Timeout int `json:"timeout"`
+	// The maximum number of tests to run at once (default: 8).
+	Parallel int `json:"parallel"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
