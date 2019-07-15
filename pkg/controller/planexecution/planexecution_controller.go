@@ -306,7 +306,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		_, ok := params[param.Name]
 		if !ok {
 			// Not specified in params
-			if param.Required {
+			if param.Required && param.Default == nil {
 				err = fmt.Errorf("parameter %v was required but not provided by instance %v", param.Name, instance.Name)
 				log.Printf("PlanExecutionController: %v", err)
 				r.recorder.Event(planExecution, "Warning", "MissingParameter", fmt.Sprintf("Could not find required parameter (%v)", param.Name))
