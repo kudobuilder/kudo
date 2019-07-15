@@ -5,9 +5,9 @@ DOCKER_IMG ?= kudobuilder/controller
 EXECUTABLE := manager
 CLI := kubectl-kudo
 GIT_VERSION_PATH := github.com/kudobuilder/kudo/pkg/version.gitVersion
-GIT_VERSION := $(shell git describe --abbrev=0 --tags)
+GIT_VERSION := $(shell git describe --abbrev=0 --tags | cut -b 2-)
 GIT_COMMIT_PATH := github.com/kudobuilder/kudo/pkg/version.gitCommit
-GIT_COMMIT := $(shell git rev-parse HEAD)
+GIT_COMMIT := $(shell git rev-parse HEAD | cut -b -8)
 SOURCE_DATE_EPOCH := $(shell git show -s --format=format:%ct HEAD)
 BUILD_DATE_PATH := github.com/kudobuilder/kudo/pkg/version.buildDate
 DATE_FMT := "%Y-%m-%dT%H:%M:%SZ"
