@@ -26,10 +26,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/apimachinery/pkg/types"
+	apijson "k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/apimachinery/pkg/watch"
@@ -271,6 +273,7 @@ func Namespaced(dClient discovery.DiscoveryInterface, obj runtime.Object, namesp
 
 	resource, err := GetAPIResource(dClient, obj.GetObjectKind().GroupVersionKind())
 	if err != nil {
+
 		return "", "", err
 	}
 
@@ -626,7 +629,7 @@ func FakeDiscoveryClient() discovery.DiscoveryInterface {
 
 // CreateOrUpdate will create obj if it does not exist and update if it it does.
 // Returns true if the object was updated and false if it was created.
-func CreateOrUpdate(ctx context.Context, client client.Client, obj runtime.Object, retryOnError bool) (updated bool, err error) {
+func CreateOrUpdate(ctx context.Context, cl client.Client, obj runtime.Object, retryOnError bool) (updated bool, err error) {
 	orig := obj.DeepCopyObject()
 
 	validators := []func(err error) bool{}
@@ -639,15 +642,23 @@ func CreateOrUpdate(ctx context.Context, client client.Client, obj runtime.Objec
 		expected := orig.DeepCopyObject()
 		actual := orig.DeepCopyObject()
 
-		err := client.Get(ctx, ObjectKey(actual), actual)
+		err := cl.Get(ctx, ObjectKey(actual), actual)
 		if err == nil {
 			if err = PatchObject(actual, expected); err != nil {
 				return err
 			}
-			err = client.Update(ctx, expected)
+
+			expectedBytes, err := apijson.Marshal(expected)
+			if err != nil {
+				return err
+			}
+
+			fmt.Println(string(expectedBytes))
+
+			err = cl.Patch(ctx, actual, client.ConstantPatch(types.MergePatchType, expectedBytes))
 			updated = true
 		} else if err != nil && k8serrors.IsNotFound(err) {
-			err = client.Create(ctx, obj)
+			err = cl.Create(ctx, obj)
 			updated = false
 		}
 		return err

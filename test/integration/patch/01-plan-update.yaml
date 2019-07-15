@@ -5,11 +5,6 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: toy1
 spec:
-  operatorVersion:
-    name: toy-v1
-    kind: OperatorVersion
-    namespace: default
-# Add fields here
+  # Add fields here
   parameters:
-    Param: "30"
     Replicas: "3"
