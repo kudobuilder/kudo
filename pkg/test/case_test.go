@@ -65,8 +65,9 @@ func TestLoadTestSteps(t *testing.T) {
 						Delete: []kudo.ObjectReference{
 							{
 								ObjectReference: corev1.ObjectReference{
-									Kind: "Pod",
-									Name: "test",
+									APIVersion: "v1",
+									Kind:       "Pod",
+									Name:       "test",
 								},
 							},
 						},

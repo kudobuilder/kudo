@@ -1,0 +1,13 @@
+# Wait for CRD to be ready.
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: prowjobs.prow.k8s.io
+status:
+  acceptedNames:
+    kind: ProwJob
+    listKind: ProwJobList
+    plural: prowjobs
+    singular: prowjob
+  storedVersions:
+  - v1
