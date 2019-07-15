@@ -9,17 +9,15 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle/finder"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 	"github.com/pkg/errors"
-	"k8s.io/client-go/tools/clientcmd"
+	"github.com/spf13/viper"
 )
 
 // Options defines configuration options for the install command
 type Options struct {
 	InstanceName   string
-	KubeConfigPath string
 	Namespace      string
 	Parameters     map[string]string
 	PackageVersion string
@@ -46,24 +44,6 @@ func Run(args []string, options *Options) error {
 func validate(args []string, options *Options) error {
 	if len(args) != 1 {
 		return fmt.Errorf("expecting exactly one argument - name of the package or path to install")
-	}
-
-	// If the $KUBECONFIG environment variable is set, use that
-	if len(os.Getenv("KUBECONFIG")) > 0 {
-		options.KubeConfigPath = os.Getenv("KUBECONFIG")
-	}
-
-	configPath, err := check.KubeConfigLocationOrDefault(options.KubeConfigPath)
-	if err != nil {
-		return fmt.Errorf("error when getting default kubeconfig path: %+v", err)
-	}
-	options.KubeConfigPath = configPath
-	if err := check.ValidateKubeConfigPath(options.KubeConfigPath); err != nil {
-		return errors.WithMessage(err, "could not check kubeconfig path")
-	}
-	_, err = clientcmd.BuildConfigFromFlags("", options.KubeConfigPath)
-	if err != nil {
-		return errors.Wrap(err, "getting config failed")
 	}
 
 	return nil
@@ -111,12 +91,7 @@ func installOperator(operatorArgument string, options *Options) error {
 		return errors.WithMessage(err, "could not build operator repository")
 	}
 
-	_, err = clientcmd.BuildConfigFromFlags("", options.KubeConfigPath)
-	if err != nil {
-		return errors.Wrap(err, "getting config failed")
-	}
-
-	kc, err := kudo.NewClient(options.Namespace, options.KubeConfigPath)
+	kc, err := kudo.NewClient(options.Namespace, viper.GetString("kubeconfig"))
 	if err != nil {
 		return errors.Wrap(err, "creating kudo client")
 	}

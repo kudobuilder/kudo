@@ -3,21 +3,17 @@ package get
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 
 	"github.com/xlab/treeprint"
-	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
 )
 
 // Options defines configuration options for the get command
 type Options struct {
-	KubeConfigPath string
-	Namespace      string
+	Namespace string
 }
 
 // DefaultOptions initializes the get command options to its defaults
@@ -33,7 +29,7 @@ func Run(args []string, options *Options) error {
 		return err
 	}
 
-	kc, err := kudo.NewClient(options.Namespace, options.KubeConfigPath)
+	kc, err := kudo.NewClient(options.Namespace, viper.GetString("kubeconfig"))
 	if err != nil {
 		return errors.Wrap(err, "creating kudo client")
 	}
@@ -59,24 +55,6 @@ func validate(args []string, options *Options) error {
 
 	if args[0] != "instances" {
 		return fmt.Errorf("expecting \"instances\" and not \"%s\"", args[0])
-	}
-
-	// If the $KUBECONFIG environment variable is set, use that
-	if len(os.Getenv("KUBECONFIG")) > 0 {
-		options.KubeConfigPath = os.Getenv("KUBECONFIG")
-	}
-
-	configPath, err := check.KubeConfigLocationOrDefault(options.KubeConfigPath)
-	if err != nil {
-		return fmt.Errorf("error when getting default kubeconfig path: %+v", err)
-	}
-	options.KubeConfigPath = configPath
-	if err := check.ValidateKubeConfigPath(options.KubeConfigPath); err != nil {
-		return errors.WithMessage(err, "could not check kubeconfig path")
-	}
-	_, err = clientcmd.BuildConfigFromFlags("", options.KubeConfigPath)
-	if err != nil {
-		return errors.Wrap(err, "getting config failed")
 	}
 
 	return nil
