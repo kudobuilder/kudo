@@ -83,6 +83,20 @@ Supported commands:
 
 Once two contributors have marked `/approve` (or `/lgtm`, which implies `/approve`) and one types `/lgtm` and all tests pass, a pull request will be automatically merged.
 
+Contributors are defined in `OWNERS` files in the repository. The `OWNERS` file is a YAML file containing valid approvers and reviewers:
+
+```
+approvers:
+- user1
+
+reviewers:
+- user2
+```
+
+Users listed in `approvers` are allowed to approve a pull request. Users listed in `reviewers` are eligible for being automatically requested as reviewers by Prow on new pull requests (Prow will select two users from the list at random).
+
+Prow will look for `OWNERS` files covering the directories being changed, e.g., the root `OWNERS` file applies to all changes, but `./tests/OWNERS` only applies to changes that in `./tests/`.
+
 ### Test environment
 
 Tests and builds run in Prow which runs jobs as pods in Kubernetes. The pods are created with privileged mode enabled, so are able to use docker-in-docker to build, push, and run Docker images, and will have necessary credentials mounted in to support creating Kubernetes clusters in GCP and AWS.
