@@ -3,14 +3,11 @@ package plan
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
-
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
-	"github.com/pkg/errors"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/xlab/treeprint"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -19,12 +16,13 @@ import (
 )
 
 type historyOptions struct {
-	instance       string
-	kubeConfigPath string
-	namespace      string
+	instance  string
+	namespace string
 }
 
-var defaultHistoryOptions = &historyOptions{}
+var (
+	defaultHistoryOptions = &historyOptions{}
+)
 
 // NewPlanHistoryCmd creates a command that shows the plan history of an instance.
 func NewPlanHistoryCmd() *cobra.Command {
@@ -41,7 +39,6 @@ func NewPlanHistoryCmd() *cobra.Command {
 	}
 
 	listCmd.Flags().StringVar(&options.instance, "instance", "", "The instance name.")
-	listCmd.Flags().StringVar(&options.kubeConfigPath, "kubeconfig", "", "The file path to kubernetes configuration file; defaults to $HOME/.kube/config")
 	listCmd.Flags().StringVar(&options.namespace, "namespace", "default", "The namespace where the operator watches for changes.")
 
 	return listCmd
@@ -54,26 +51,6 @@ func runHistory(cmd *cobra.Command, args []string, options *historyOptions) erro
 		return fmt.Errorf("flag Error: Please set instance flag, e.g. \"--instance=<instanceName>\"")
 	}
 
-	// If the $KUBECONFIG environment variable is set, use that
-	if len(os.Getenv("KUBECONFIG")) > 0 {
-		options.kubeConfigPath = os.Getenv("KUBECONFIG")
-	}
-
-	configPath, err := check.KubeConfigLocationOrDefault(options.kubeConfigPath)
-	if err != nil {
-		return fmt.Errorf("error when getting default kubeconfig path: %+v", err)
-	}
-	options.kubeConfigPath = configPath
-	if err := check.ValidateKubeConfigPath(options.kubeConfigPath); err != nil {
-		return errors.WithMessage(err, "could not check kubeconfig path")
-	}
-
-	_, err = cmd.Flags().GetString("kubeconfig")
-	// TODO: wrong flag
-	if err != nil || instanceFlag == "" {
-		return fmt.Errorf("flag Error: %v", err)
-	}
-
 	err = planHistory(args, options)
 	if err != nil {
 		return fmt.Errorf("client Error: %v", err)
@@ -83,7 +60,7 @@ func runHistory(cmd *cobra.Command, args []string, options *historyOptions) erro
 
 func planHistory(args []string, options *historyOptions) error {
 
-	config, err := clientcmd.BuildConfigFromFlags("", options.kubeConfigPath)
+	config, err := clientcmd.BuildConfigFromFlags("", viper.GetString("kubeconfig"))
 	if err != nil {
 		return err
 	}
