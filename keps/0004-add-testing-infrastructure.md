@@ -89,7 +89,7 @@ Go coverage reports will be used to ensure that changes do not reduce test cover
 
 #### Integration tests
 
-Integration tests test the KUDO controller in its entirety. These tests can be run against either a real Kubernetes cluster or a local control plane. Integration tests will be manually run after review, but prior to merging using `/test` command supported by Prow. Integration tests can be written using the test harness designed in KEP-0008.
+Integration tests test the KUDO controller in its entirety. These tests can be run against either a real Kubernetes cluster or a local control plane. Integration tests can be written using the test harness designed in KEP-0008.
 
 The integration tests will consist of a set of representative Operators and OperatorVersions that utilize real world KUDO features. Integration tests should be added for new KUDO capabilities at the discretion of the capability author or reviewers.
 
@@ -98,6 +98,8 @@ Integration tests will be hidden behind a Go build tag and will only run when th
 #### Operator tests
 
 Operator tests test that a operator works correctly. These require a full Kubernetes cluster to run and will be run in CI for the Operators repository using the latest released version of KUDO. Instead of running every test on every pull request, we will only run the tests that test the operator changed in any given pull request. Operator tests will also be run against master and release builds of KUDO to verify that KUDO changes do not break operators. Operators are tested using the KUDO test harness from KEP-0008.
+
+Operator tests will also be run in CI for the KUDO repository manually after review, but prior to merging using `/test` command supported by Prow.
 
 Operator tests live in the `kudobuilder/operators` repository, with the file structure defined in KEP-0010.
 
