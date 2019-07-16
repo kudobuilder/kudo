@@ -404,7 +404,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	// Make sure all the required parameters in the operatorVersion are present
 	for _, param := range ov.Spec.Parameters {
-		if param.Required {
+		if param.Required && param.Default == nil {
 			if _, ok := instance.Spec.Parameters[param.Name]; !ok {
 				r.recorder.Event(instance, "Warning", "MissingParameter", fmt.Sprintf("Missing parameter \"%v\" required by operatorversion \"%v\"", param.Name, ov.Name))
 			}
