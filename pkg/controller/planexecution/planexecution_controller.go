@@ -398,6 +398,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 							"plan":          planExecution.Spec.PlanName,
 							"phase":         phase.Name,
 							"step":          step.Name,
+							"version":       operatorVersion.Spec.Version,
 						},
 						GeneratorOptions: &ktypes.GeneratorOptions{
 							DisableNameSuffixHash: true,
