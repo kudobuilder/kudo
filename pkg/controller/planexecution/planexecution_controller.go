@@ -534,15 +534,11 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					err = r.Client.Create(context.TODO(), obj)
 					if err != nil {
 						log.Printf("PlanExecutionController: Error when creating object %v: %v", key, err)
+						planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateError
+						planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateError
+
+						return reconcile.Result{}, err
 					}
-				}
-
-				if err != nil {
-					log.Printf("PlanExecutionController: Error CreateOrUpdate Object in step \"%v\": %v", s.Name, err)
-					planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateError
-					planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateError
-
-					return reconcile.Result{}, err
 				}
 
 				err = r.Client.Get(context.TODO(), key, obj)
