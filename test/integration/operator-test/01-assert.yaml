@@ -1,6 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: my-instance-nginx
+  name: operator-test-instance-nginx
 spec:
   replicas: 4
