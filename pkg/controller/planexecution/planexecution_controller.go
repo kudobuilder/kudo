@@ -497,7 +497,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				err := r.Client.Get(context.TODO(), key, truth)
 				rawObj, _ := apijson.Marshal(obj)
 				if err == nil {
-					log.Printf("PlanExecutionController: CreateOrUpdate Object present")
+					log.Printf("PlanExecutionController: Object %v already exists for instance %v, going to apply patch", key, instance.Name)
 					//update
 					log.Printf("Going to apply patch\n%+v\n\n to object\n%s\n", string(rawObj), prettyPrint(truth))
 					if err != nil {
@@ -521,18 +521,20 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 							if errors.IsUnsupportedMediaType(err) {
 								err = r.Client.Patch(context.TODO(), truth, client.ConstantPatch(types.MergePatchType, rawObj))
 								if err != nil {
-									log.Printf("PlanExecutionController: CreateOrUpdate MergePatch: %v", err)
+									log.Printf("PlanExecutionController: Error when applying merge patch to object %v for instance %v: %v", key, instance.Name, err)
 								}
 							} else {
-								log.Printf("PlanExecutionController: CreateOrUpdate StrategicMergePatch: Unknown Error: %v", err)
+								log.Printf("PlanExecutionController: Error when applying StrategicMergePatch to object %v for instance %v: %v", key, instance.Name, err)
 							}
 						}
 					}
 				} else {
 					//create
-					log.Println("PlanExecutionController: CreateOrUpdate Object not present")
+					log.Printf("PlanExecutionController: Object %v does not exist, going to create new object for instance %v", key, instance.Name)
 					err = r.Client.Create(context.TODO(), obj)
-					log.Printf("PlanExecutionController: CreateOrUpdate Create: %v", err)
+					if err != nil {
+						log.Printf("PlanExecutionController: Error when creating object %v: %v", key, err)
+					}
 				}
 
 				if err != nil {
