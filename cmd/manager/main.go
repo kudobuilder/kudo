@@ -63,7 +63,6 @@ func main() {
 			return c, nil
 		},
 	}
-	// c, err := client.New(config, options)
 	mgr, err := manager.New(cfg, opt)
 	if err != nil {
 		log.Error(err, "unable to set up overall controller manager")
