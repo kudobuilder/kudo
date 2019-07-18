@@ -2,6 +2,7 @@ package planexecution
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 
 	"github.com/kudobuilder/kudo/pkg/util/template"
 	"gopkg.in/yaml.v2"
@@ -42,7 +43,7 @@ func applyConventionsToTemplates(templates map[string]string, metadata metadata)
 		templateNames = append(templateNames, k)
 		err := fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, k), []byte(v))
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "error when writing templates to filesystem before applying kustomize")
 		}
 	}
 
@@ -70,12 +71,12 @@ func applyConventionsToTemplates(templates map[string]string, metadata metadata)
 
 	yamlBytes, err := yaml.Marshal(kustomization)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error marshalling kustomize yaml")
 	}
 
 	err = fsys.WriteFile(fmt.Sprintf("%s/kustomization.yaml", basePath), yamlBytes)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error writing kustomization.yaml file")
 	}
 
 	ldr, err := loader.NewLoader(basePath, fsys)
@@ -87,22 +88,22 @@ func applyConventionsToTemplates(templates map[string]string, metadata metadata)
 	rf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()))
 	kt, err := target.NewKustTarget(ldr, rf, transformer.NewFactoryImpl())
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error creating kustomize target")
 	}
 
 	allResources, err := kt.MakeCustomizedResMap()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error creating customized resource map for kustomize")
 	}
 
 	res, err := allResources.EncodeAsYaml()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error encoding kustomized files into yaml")
 	}
 
 	objsToAdd, err := template.ParseKubernetesObjects(string(res))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error parsing kubernetes objects after applying kustomize")
 	}
 
 	return objsToAdd, nil
