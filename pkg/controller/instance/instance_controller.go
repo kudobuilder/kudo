@@ -22,6 +22,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 
@@ -85,7 +87,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			err := mgr.GetClient().List(
 				context.TODO(),
 				instances,
-				client.MatchingLabels(map[string]string{"operator": a.Meta.GetName()}),
+				client.MatchingLabels(map[string]string{kudo.OperatorLabel: a.Meta.GetName()}),
 			)
 
 			if err != nil {
@@ -329,8 +331,8 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 			Namespace: instance.GetNamespace(),
 			// TODO: Should also add one for Operator in here as well.
 			Labels: map[string]string{
-				"operator-version": instance.Spec.OperatorVersion.Name,
-				"instance":         instance.Name,
+				kudo.OperatorVersionLabel: instance.Spec.OperatorVersion.Name,
+				kudo.InstanceLabel:        instance.Name,
 			},
 		},
 		Spec: kudov1alpha1.PlanExecutionSpec{
