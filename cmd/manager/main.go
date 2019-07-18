@@ -17,7 +17,10 @@ package main
 
 import (
 	"fmt"
+	"k8s.io/client-go/rest"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/version"
 
@@ -48,7 +51,19 @@ func main() {
 
 	// Create a new Cmd to provide shared dependencies and start components
 	log.Info("setting up manager")
-	mgr, err := manager.New(cfg, manager.Options{})
+	// by default manager sets up DelegatingClient which reads from cache and not directly from API server
+	// that creates races because we can not longer have read-after-write consistency
+	opt := manager.Options{
+		NewClient: func(cache cache.Cache, config *rest.Config, options client.Options) (client.Client, error) {
+			c, err := client.New(config, options)
+			if err != nil {
+				return nil, err
+			}
+			return c, nil
+		},
+	}
+	// c, err := client.New(config, options)
+	mgr, err := manager.New(cfg, opt)
 	if err != nil {
 		log.Error(err, "unable to set up overall controller manager")
 		os.Exit(1)
