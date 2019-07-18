@@ -28,21 +28,8 @@ import (
 
 	kudoengine "github.com/kudobuilder/kudo/pkg/engine"
 
-	"gopkg.in/yaml.v2"
-	"k8s.io/client-go/tools/record"
-	"sigs.k8s.io/kustomize/k8sdeps/kunstruct"
-	"sigs.k8s.io/kustomize/k8sdeps/transformer"
-	"sigs.k8s.io/kustomize/pkg/fs"
-	"sigs.k8s.io/kustomize/pkg/loader"
-	"sigs.k8s.io/kustomize/pkg/patch"
-	"sigs.k8s.io/kustomize/pkg/resmap"
-	"sigs.k8s.io/kustomize/pkg/resource"
-	"sigs.k8s.io/kustomize/pkg/target"
-	ktypes "sigs.k8s.io/kustomize/pkg/types"
-
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/util/health"
-	"github.com/kudobuilder/kudo/pkg/util/template"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -50,6 +37,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -60,8 +48,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
-
-const basePath = "/kustomize"
 
 // Add creates a new PlanExecution Controller and adds it to the Manager with default RBAC.
 // The Manager will set fields on the Controller and Start it when the Manager is Started.
@@ -361,8 +347,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			for _, t := range step.Tasks {
 				// resolve task
 				if taskSpec, ok := operatorVersion.Spec.Tasks[t]; ok {
-					var resources []string
-					fsys := fs.MakeFakeFS()
+					resources := make(map[string]string)
 
 					for _, res := range taskSpec.Resources {
 						if resource, ok := operatorVersion.Spec.Templates[res]; ok {
@@ -375,8 +360,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 								// returning error = nil so that we don't retry since this is non-recoverable
 								return reconcile.Result{}, nil
 							}
-							fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, res), []byte(templatedYaml))
-							resources = append(resources, res)
+							resources[res] = templatedYaml
 
 						} else {
 							r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding resource named %v for operator version %v", res, operatorVersion.Name))
@@ -385,58 +369,17 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						}
 					}
 
-					kustomization := &ktypes.Kustomization{
-						NamePrefix: instance.Name + "-",
-						Namespace:  instance.Namespace,
-						CommonLabels: map[string]string{
-							"heritage": "kudo",
-							"app":      operatorVersion.Spec.Operator.Name,
-							"version":  operatorVersion.Spec.Version,
-							"instance": instance.Name,
-						},
-						CommonAnnotations: map[string]string{
-							"planexecution": planExecution.Name,
-							"plan":          planExecution.Spec.PlanName,
-							"phase":         phase.Name,
-							"step":          step.Name,
-						},
-						GeneratorOptions: &ktypes.GeneratorOptions{
-							DisableNameSuffixHash: true,
-						},
-						Resources:             resources,
-						PatchesStrategicMerge: []patch.StrategicMerge{},
-					}
+					objsToAdd, err := ApplyConventionsToTemplates(resources, PlanExecutionMetadata{
+						InstanceName:    instance.Name,
+						Namespace:       instance.Namespace,
+						OperatorName:    operatorVersion.Spec.Operator.Name,
+						OperatorVersion: operatorVersion.Spec.Version,
+						PlanExecution:   planExecution.Name,
+						PlanName:        planExecution.Spec.PlanName,
+						PhaseName:       phase.Name,
+						StepName:        step.Name,
+					})
 
-					yamlBytes, err := yaml.Marshal(kustomization)
-					if err != nil {
-						return reconcile.Result{}, err
-					}
-
-					fsys.WriteFile(fmt.Sprintf("%s/kustomization.yaml", basePath), yamlBytes)
-
-					ldr, err := loader.NewLoader(basePath, fsys)
-					if err != nil {
-						return reconcile.Result{}, err
-					}
-					defer ldr.Cleanup()
-
-					rf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()))
-					kt, err := target.NewKustTarget(ldr, rf, transformer.NewFactoryImpl())
-					if err != nil {
-						return reconcile.Result{}, err
-					}
-
-					allResources, err := kt.MakeCustomizedResMap()
-					if err != nil {
-						return reconcile.Result{}, err
-					}
-
-					res, err := allResources.EncodeAsYaml()
-					if err != nil {
-						return reconcile.Result{}, err
-					}
-
-					objsToAdd, err := template.ParseKubernetesObjects(string(res))
 					if err != nil {
 						r.recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planExecution.Name, err))
 						log.Printf("PlanExecutionController: Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planExecution.Name, err)
