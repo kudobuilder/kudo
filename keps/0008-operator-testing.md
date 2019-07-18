@@ -145,10 +145,8 @@ type TestSuite struct {
 
 	// Path to CRDs to install before running tests.
 	CRDDir            string
-	// Path to manifests to install before running tests.
-	ManifestsDir      string
-	// Paths to manifests to install before running tests.
-	ManifestsDirs     []string `json:"manifestsDirs"`
+	// Paths to directories containing manifests to install before running tests.
+	ManifestDirs      []string
 	// Directories containing test cases to run.
 	TestDirs          []string
 	// Whether or not to start a local etcd and kubernetes API server for the tests (cannot be set with StartKIND
