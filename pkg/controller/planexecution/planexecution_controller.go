@@ -389,10 +389,10 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						NamePrefix: instance.Name + "-",
 						Namespace:  instance.Namespace,
 						CommonLabels: map[string]string{
-							kudo.HeritageLabel: "kudo",
-							kudo.OperatorLabel: operatorVersion.Spec.Operator.Name,
-							kudo.VersionLabel:  operatorVersion.Spec.Version,
-							kudo.InstanceLabel: instance.Name,
+							kudo.HeritageLabel:        "kudo",
+							kudo.OperatorLabel:        operatorVersion.Spec.Operator.Name,
+							kudo.OperatorVersionLabel: operatorVersion.Spec.Version,
+							kudo.InstanceLabel:        instance.Name,
 						},
 						CommonAnnotations: map[string]string{
 							kudo.PlanExecutionAnnotation: planExecution.Name,
