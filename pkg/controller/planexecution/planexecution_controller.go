@@ -303,7 +303,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateComplete
 
 			for _, obj := range s.Objects {
-				if s.Delete {
+				if s.Delete && obj.GetObjectKind().GroupVersionKind().Kind != "Job" {
 					log.Printf("PlanExecutionController: Step \"%v\" was marked to delete object %+v", s.Name, obj)
 					err = r.Client.Delete(context.TODO(), obj, client.PropagationPolicy(metav1.DeletePropagationForeground))
 					if errors.IsNotFound(err) || err == nil {
@@ -317,7 +317,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					}
 					continue
 				}
-
 				// Make sure this object is applied to the cluster. Get back the instance from the
 				// cluster so we can see if it's healthy or not
 				if err = controllerutil.SetControllerReference(instance, obj.(metav1.Object), r.scheme); err != nil {
@@ -337,11 +336,37 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				err := r.Client.Get(context.TODO(), key, obj)
 				if err == nil {
 					log.Printf("PlanExecutionController: Object %v already exists for instance %v, going to apply patch", key, instance.Name)
-					//update
-					log.Printf("Going to apply patch\n%+v\n\n to object\n%s\n", string(rawObj), prettyPrint(obj))
-					if err != nil {
-						log.Printf("Error getting patch between truth and obj: %v\n", err)
+					// We don't patch an immutable field in a job object, instead we create a new job.
+					if obj.GetObjectKind().GroupVersionKind().Kind == "Job" {
+						log.Println("PlanExecutionController: Detected job object")
+						if err := health.IsHealthy(r.Client, obj); err == nil {
+							if s.Delete {
+								log.Println("PlanExecutionController: Detected Job is complete and marked as " +
+									"delete, attempting to delete")
+								err = r.Client.Delete(context.TODO(), obj, client.PropagationPolicy(metav1.DeletePropagationForeground))
+								if errors.IsNotFound(err) {
+									// This is okay
+									log.Printf("PlanExecutionController: Object did not exist in step \"%v\"", s.Name)
+								} else if err == nil {
+									log.Printf("PlanExecutionController: Object deleted in step \"%v\"", s.Name)
+									r.recorder.Event(instance, "Normal", "JobDeletionSuccess", fmt.Sprintf("PlanExecution %v deleted job in step %s", planExecution.Name, s.Name))
+								} else {
+									log.Printf("PlanExecutionController: Error deleting object in step \"%v\": %v", s.Name, err)
+									planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateError
+									planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateError
+									r.recorder.Event(instance, "Normal", "JobDeletionFailed", fmt.Sprintf("PlanExecution %v failed deleting job in step %s", planExecution.Name, s.Name))
+									return reconcile.Result{}, err
+								}
+							} else {
+								log.Println("PlanExecutionController: Detected Job is complete and not marked" +
+									" to delete")
+							}
+						} else {
+							log.Printf("PlanExecutionController: Detected Job reports error: %+v\n", err)
+							return reconcile.Result{}, err
+						}
 					} else {
+						//log.Printf("Going to apply patch\n%+v\n\n to object\n%s\n", string(rawObj), prettyPrint(truth))
 						err = r.Client.Patch(context.TODO(), obj, client.ConstantPatch(types.StrategicMergePatchType, rawObj))
 						if err != nil {
 							// Right now applying a Strategic Merge Patch to custom resources does not work. There is
@@ -360,10 +385,10 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 							if errors.IsUnsupportedMediaType(err) {
 								err = r.Client.Patch(context.TODO(), obj, client.ConstantPatch(types.MergePatchType, rawObj))
 								if err != nil {
-									log.Printf("PlanExecutionController: Error when applying merge patch to object %v for instance %v: %v", key, instance.Name, err)
+									log.Printf("PlanExecutionController: CreateOrUpdate MergePatch: %v", err)
 								}
 							} else {
-								log.Printf("PlanExecutionController: Error when applying StrategicMergePatch to object %v for instance %v: %v", key, instance.Name, err)
+								log.Printf("PlanExecutionController: CreateOrUpdate StrategicMergePatch: Unknown Error: %v", err)
 							}
 						}
 					}

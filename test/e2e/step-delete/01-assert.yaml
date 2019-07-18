@@ -1,0 +1,60 @@
+# Very important with this test is that when we delete the job we cannot check at the assertion time the new parameters.
+# So therefor we can just rely on the emitted events, as long as we don't emit an event that shows new parameters
+# were applied successfully we cannot entirely test the re-deployment of a job with new parameters. This seems okay
+# because what we want to test here is just the deletion part.
+apiVersion: kudo.k8s.io/v1alpha1
+kind: TestAssert
+timeout: 30
+---
+# We only check the Instance to be completed
+apiVersion: kudo.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  name: my-instance
+status:
+  status: COMPLETE
+---
+# We check if a job successfully is created
+apiVersion: v1
+kind: Event
+reason: SuccessfulCreate
+involvedObject:
+  apiVersion: batch/v1
+  kind: Job
+  name: my-instance-job
+---
+# We check if we can create the plan for the instance
+apiVersion: v1
+kind: Event
+reason: PlanCreated
+involvedObject:
+  apiVersion: kudo.k8s.io/v1alpha1
+  kind: Instance
+  name: my-instance
+---
+# we check if we created the plan execution for the instance
+apiVersion: v1
+kind: Event
+reason: CreatePlanExecution
+involvedObject:
+  apiVersion: kudo.k8s.io/v1alpha1
+  kind: Instance
+  name: my-instance
+---
+# this is the important test: we check if the planexecution controller is able to delete the job after it completed
+apiVersion: v1
+kind: Event
+reason: JobDeletionSuccess
+involvedObject:
+  apiVersion: kudo.k8s.io/v1alpha1
+  kind: Instance
+  name: my-instance
+---
+# We check if the entire plan completed successfully
+apiVersion: v1
+kind: Event
+reason: PlanComplete
+involvedObject:
+  apiVersion: kudo.k8s.io/v1alpha1
+  kind: Instance
+  name: my-instance

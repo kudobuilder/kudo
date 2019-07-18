@@ -39,6 +39,7 @@ spec:
             containers:
             - name: test
               image: alpine
+            restartPolicy: "OnFailure"
 ---
 apiVersion: kudo.dev/v1alpha1
 kind: Instance
