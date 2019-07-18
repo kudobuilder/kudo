@@ -4,7 +4,6 @@ metadata:
   name: toy1-my-service
   labels:
     app: "toy"
-    version: "1.0.0"
     instance: "toy1"
   annotations:
     plan: "deploy"
