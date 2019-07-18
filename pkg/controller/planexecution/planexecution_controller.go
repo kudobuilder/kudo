@@ -369,7 +369,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						}
 					}
 
-					objsToAdd, err := ApplyConventionsToTemplates(resources, PlanExecutionMetadata{
+					objsToAdd, err := applyConventionsToTemplates(resources, metadata{
 						InstanceName:    instance.Name,
 						Namespace:       instance.Namespace,
 						OperatorName:    operatorVersion.Spec.Operator.Name,

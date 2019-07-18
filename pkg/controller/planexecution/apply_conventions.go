@@ -19,7 +19,8 @@ import (
 
 const basePath = "/kustomize"
 
-type PlanExecutionMetadata struct {
+// metadata contains metadata associated with current PlanExecution
+type metadata struct {
 	InstanceName    string
 	Namespace       string
 	OperatorName    string
@@ -30,8 +31,9 @@ type PlanExecutionMetadata struct {
 	StepName        string
 }
 
-// ApplyConventions ...
-func ApplyConventionsToTemplates(templates map[string]string, metadata PlanExecutionMetadata) ([]runtime.Object, error) {
+// ApplyConventions accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
+// These include the way we name our objects and what labels we apply to them
+func applyConventionsToTemplates(templates map[string]string, metadata metadata) ([]runtime.Object, error) {
 	fsys := fs.MakeFakeFS()
 
 	templateNames := make([]string, 0, len(templates))
