@@ -31,8 +31,6 @@ apiVersion: kudo.k8s.io/v1alpha1
 kind: Instance
 metadata:
   name: icto-upgrade-fallback-to-update
-  labels:
-    operator: icto-upgrade
 spec:
   operatorVersion:
     name: icto-upgrade

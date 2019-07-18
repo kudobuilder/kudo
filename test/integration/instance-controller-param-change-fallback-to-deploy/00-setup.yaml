@@ -21,8 +21,6 @@ apiVersion: kudo.k8s.io/v1alpha1
 kind: Instance
 metadata:
   name: icto-fallback-to-deploy
-  labels:
-    operator: icto-fallback-to-deploy
 spec:
   operatorVersion:
     name: icto-fallback-to-deploy
