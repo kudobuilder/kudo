@@ -385,7 +385,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 						CommonLabels: map[string]string{
 							"heritage": "kudo",
 							"app":      operatorVersion.Spec.Operator.Name,
-							"version":  operatorVersion.Spec.Version,
 							"instance": instance.Name,
 						},
 						CommonAnnotations: map[string]string{
@@ -393,6 +392,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 							"plan":          planExecution.Spec.PlanName,
 							"phase":         phase.Name,
 							"step":          step.Name,
+							"version":       operatorVersion.Spec.Version,
 						},
 						GeneratorOptions: &ktypes.GeneratorOptions{
 							DisableNameSuffixHash: true,
