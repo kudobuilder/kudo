@@ -16,11 +16,9 @@ limitations under the License.
 package planexecution
 
 import (
-	instance "cloud.google.com/go/spanner/admin/instance/apiv1"
 	"context"
 	"encoding/json"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/validation"
 	"log"
 	"strconv"
 	"strings"
@@ -289,9 +287,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		if fatalError {
 			// do not retry
 			return reconcile.Result{}, nil
-		} else {
-			return reconcile.Result{}, err
 		}
+		return reconcile.Result{}, err
 	}
 
 	// now we're actually starting with the execution of plan/phase/step
@@ -449,6 +446,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 type fatalError struct {
 	err error
 }
+
 func (e fatalError) Error() string {
 	return fmt.Sprintf("Fatal error: %v", e.err)
 }
@@ -579,7 +577,7 @@ func getParameters(instance *kudov1alpha1.Instance, operatorVersion *kudov1alpha
 	}
 
 	if len(missingRequiredParameters) != 0 {
-		return nil, fmt.Errorf("Parameters are missing when evaluating template: %s", strings.Join(missingRequiredParameters, ","))
+		return nil, fmt.Errorf("parameters are missing when evaluating template: %s", strings.Join(missingRequiredParameters, ","))
 	}
 
 	return params, nil
