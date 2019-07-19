@@ -294,7 +294,7 @@ func (h *Harness) Run() {
 		h.T.Fatal(err)
 	}
 
-	if h.TestSuite.StartKUDO || h.TestSuite.StartControlPlane {
+	if h.TestSuite.StartKUDO {
 		if err := h.RunKUDO(); err != nil {
 			h.T.Fatal(err)
 		}
