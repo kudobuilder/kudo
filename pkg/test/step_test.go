@@ -40,8 +40,8 @@ func TestStepClean(t *testing.T) {
 	assert.Nil(t, step.Clean(namespace))
 
 	assert.True(t, k8serrors.IsNotFound(cl.Get(context.TODO(), testutils.ObjectKey(podWithNamespace), podWithNamespace)))
-	assert.True(t, k8serrors.IsNotFound(cl.Get(context.TODO(), testutils.ObjectKey(pod2WithNamespace), pod2WithNamespace)))
-	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(pod2WithDiffNamespace), pod2WithDiffNamespace))
+	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(pod2WithNamespace), pod2WithNamespace))
+	assert.True(t, k8serrors.IsNotFound(cl.Get(context.TODO(), testutils.ObjectKey(pod2WithDiffNamespace), pod2WithDiffNamespace)))
 }
 
 // Verify the test state as loaded from disk.
@@ -76,9 +76,9 @@ func TestStepCreate(t *testing.T) {
 	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podToUpdate), podToUpdate))
 	assert.Equal(t, updateToApply, podToUpdate)
 
-	assert.True(t, k8serrors.IsNotFound(cl.Get(context.TODO(), testutils.ObjectKey(podWithNamespace), podWithNamespace)))
+	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podWithNamespace), podWithNamespace))
 	actual := testutils.NewPod("hello2", namespace)
-	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(actual), actual))
+	assert.True(t, k8serrors.IsNotFound(cl.Get(context.TODO(), testutils.ObjectKey(actual), actual)))
 }
 
 // Verify that the DeleteExisting method properly cleans up resources during a test step.
