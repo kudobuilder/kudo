@@ -38,6 +38,8 @@ type TestSuite struct {
 	Timeout int `json:"timeout"`
 	// The maximum number of tests to run at once (default: 8).
 	Parallel int `json:"parallel"`
+	// The directory to output artifacts to (current working directory if not specified).
+	ArtifactsDir string `json:"artifactsDir"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

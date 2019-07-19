@@ -47,6 +47,7 @@ func newTestCmd() *cobra.Command {
 	skipDelete := false
 	skipClusterDelete := false
 	parallel := 0
+	artifactsDir := ""
 
 	options := kudo.TestSuite{}
 
@@ -146,6 +147,10 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 				options.Parallel = parallel
 			}
 
+			if isSet(flags, "artifacts-dir") {
+				options.ArtifactsDir = artifactsDir
+			}
+
 			if len(args) != 0 {
 				options.TestDirs = args
 			}
@@ -176,6 +181,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 	testCmd.Flags().BoolVar(&startKIND, "start-kind", false, "Start a KIND cluster for the tests (cannot be used with --start-control-plane).")
 	testCmd.Flags().StringVar(&kindConfig, "kind-config", "", "Specify the KIND configuration file path (implies --start-kind, cannot be used with --start-control-plane).")
 	testCmd.Flags().StringVar(&kindContext, "kind-context", "", "Specify the KIND context name to use.")
+	testCmd.Flags().StringVar(&artifactsDir, "artifacts-dir", "", "Directory to output kind logs to (if not specified, the current working directory).")
 	testCmd.Flags().BoolVar(&startKUDO, "start-kudo", false, "Start KUDO during the test run.")
 	testCmd.Flags().BoolVar(&skipDelete, "skip-delete", false, "If set, do not delete resources created during tests (helpful for debugging test failures, implies --skip-cluster-delete).")
 	testCmd.Flags().BoolVar(&skipClusterDelete, "skip-cluster-delete", false, "If set, do not delete the mocked control plane or kind cluster.")

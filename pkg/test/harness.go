@@ -310,6 +310,16 @@ func (h *Harness) Stop() {
 		h.managerStopCh = nil
 	}
 
+	if h.kind != nil {
+		logDir := filepath.Join(h.TestSuite.ArtifactsDir, fmt.Sprintf("kind-logs-%d", time.Now().Unix()))
+
+		h.T.Log("collecting cluster logs to", logDir)
+
+		if err := h.kind.CollectLogs(logDir); err != nil {
+			h.T.Log("error collecting kind cluster logs", err)
+		}
+	}
+
 	if h.TestSuite.SkipClusterDelete || h.TestSuite.SkipDelete {
 		// TODO: figure out how to write the Kubernetes client configuration to disk.
 		return
