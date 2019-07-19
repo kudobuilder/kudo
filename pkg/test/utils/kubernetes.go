@@ -648,12 +648,11 @@ func CreateOrUpdate(ctx context.Context, cl client.Client, obj runtime.Object, r
 				return err
 			}
 
-			expectedBytes, err := apijson.Marshal(expected)
+			var expectedBytes []byte
+			expectedBytes, err = apijson.Marshal(expected)
 			if err != nil {
 				return err
 			}
-
-			fmt.Println(string(expectedBytes))
 
 			err = cl.Patch(ctx, actual, client.ConstantPatch(types.MergePatchType, expectedBytes))
 			updated = true
