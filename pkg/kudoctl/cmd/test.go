@@ -179,6 +179,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 	testCmd.Flags().BoolVar(&startKUDO, "start-kudo", false, "Start KUDO during the test run.")
 	testCmd.Flags().BoolVar(&skipDelete, "skip-delete", false, "If set, do not delete resources created during tests (helpful for debugging test failures, implies --skip-cluster-delete).")
 	testCmd.Flags().BoolVar(&skipClusterDelete, "skip-cluster-delete", false, "If set, do not delete the mocked control plane or kind cluster.")
+	// The default value here is only used for the help message. The default is actually enforced in RunTests.
 	testCmd.Flags().IntVar(&parallel, "parallel", 8, "The maximum number of tests to run at once.")
 
 	return testCmd
