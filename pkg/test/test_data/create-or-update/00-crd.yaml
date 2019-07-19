@@ -13,18 +13,18 @@ spec:
   validation:
     openAPIV3Schema:
       properties:
-#        spec:
-#          properties:
-#            max_concurrency:
-#              type: integer
-#              minimum: 0.0
-#            type:
-#              type: string
-#              enum:
-#              - "presubmit"
-#              - "postsubmit"
-#              - "periodic"
-#              - "batch"
+        spec:
+          properties:
+            max_concurrency:
+              type: integer
+              minimum: 0
+            type:
+              type: string
+              enum:
+              - "presubmit"
+              - "postsubmit"
+              - "periodic"
+              - "batch"
         status:
           properties:
             state:
