@@ -6,7 +6,6 @@ require (
 	cloud.google.com/go v0.38.0 // indirect
 	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/Masterminds/semver v1.4.2
-	github.com/dustinkirkland/golang-petname v0.0.0-20170921220637-d3c2ba80e75e
 	github.com/emicklei/go-restful v2.9.0+incompatible // indirect
 	github.com/go-openapi/jsonpointer v0.18.0 // indirect
 	github.com/go-openapi/jsonreference v0.18.0 // indirect
@@ -15,14 +14,11 @@ require (
 	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/go-test/deep v1.0.1
 	github.com/gobuffalo/envy v1.6.15 // indirect
-	github.com/gogo/protobuf v1.2.1
-	github.com/golang/lint v0.0.0-20180702182130-06c8688daad7 // indirect
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.1 // indirect
 	github.com/huandu/xstrings v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
-	github.com/jteeuwen/go-bindata v0.0.0-20180305030458-6025e8de665b // indirect
 	github.com/leodido/go-urn v1.1.0 // indirect
 	github.com/markbates/inflect v1.0.4 // indirect
 	github.com/masterminds/sprig v2.18.0+incompatible
@@ -44,8 +40,6 @@ require (
 	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/tools v0.0.0-20190312170243-e65039ee4138
 	google.golang.org/appengine v1.5.0 // indirect
-	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
-	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v9 v9.27.0
 	gopkg.in/yaml.v2 v2.2.2
@@ -55,8 +49,6 @@ require (
 	k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b
-	k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6
-	k8s.io/klog v0.3.0
 	sigs.k8s.io/controller-runtime v0.2.0-beta.1.0.20190619203651-3bc157084f53
 	sigs.k8s.io/controller-tools v0.1.11
 	sigs.k8s.io/kind v0.4.0

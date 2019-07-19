@@ -9,8 +9,6 @@ import (
 	"os"
 	"testing"
 
-	petname "github.com/dustinkirkland/golang-petname"
-
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/stretchr/testify/assert"
@@ -18,6 +16,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/rand"
 )
 
 var testenv testutils.TestEnvironment
@@ -226,7 +225,7 @@ func TestCheckResourceIntegration(t *testing.T) {
 		},
 	} {
 		t.Run(test.testName, func(t *testing.T) {
-			namespace := fmt.Sprintf("kudo-test-%s", petname.Generate(2, "-"))
+			namespace := fmt.Sprintf("kudo-test-%s", rand.String(6))
 
 			assert.Nil(t, testenv.Client.Create(context.TODO(), testutils.NewResource("v1", "Namespace", namespace, "")))
 

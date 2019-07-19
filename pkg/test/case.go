@@ -10,11 +10,11 @@ import (
 	"strconv"
 	"testing"
 
-	petname "github.com/dustinkirkland/golang-petname"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -68,7 +68,7 @@ func (t *Case) TestCaseFactory() func(*testing.T) {
 
 		test.Parallel()
 
-		ns := fmt.Sprintf("kudo-test-%s", petname.Generate(2, "-"))
+		ns := fmt.Sprintf("kudo-test-%s", rand.String(6))
 
 		if err := t.CreateNamespace(ns); err != nil {
 			test.Fatal(err)
