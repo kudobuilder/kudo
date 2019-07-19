@@ -2,7 +2,7 @@ apiVersion: kudo.k8s.io/v1alpha1
 kind: PlanExecution
 metadata:
   labels:
-    kudo.dev/instance: icto-upgrade-fallback-to-deploy
-    kudo.dev/operator-version: icto-upgrade-fallback-to-deploy
+    instance: icto-upgrade-fallback-to-deploy
+    operator-version: icto-upgrade-fallback-to-deploy
 spec:
   planName: deploy

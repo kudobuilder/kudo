@@ -2,6 +2,7 @@ apiVersion: kudo.k8s.io/v1alpha1
 kind: PlanExecution
 metadata:
   labels:
-    kudo.dev/instance: icto-no-trigger
+    instance: icto-no-trigger
+    operator-version: icto-no-trigger
 spec:
   planName: update

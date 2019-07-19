@@ -20,6 +20,8 @@ apiVersion: kudo.k8s.io/v1alpha1
 kind: Instance
 metadata:
   name: icto-custom-trigger
+  labels:
+    operator: icto-custom-trigger
 spec:
   operatorVersion:
     name: icto-custom-trigger
