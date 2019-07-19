@@ -2,8 +2,7 @@ apiVersion: kudo.k8s.io/v1alpha1
 kind: PlanExecution
 metadata:
   labels:
-    instance: invalid1
-    operator-version: invalid-v1
+    kudo.dev/instance: invalid1
   ownerReferences:
     - apiVersion: kudo.k8s.io/v1alpha1
       blockOwnerDeletion: true
