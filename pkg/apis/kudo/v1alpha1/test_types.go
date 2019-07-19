@@ -38,6 +38,10 @@ type TestSuite struct {
 	SkipClusterDelete bool `json:"skipClusterDelete"`
 	// Override the default timeout of 30 seconds (in seconds).
 	Timeout int `json:"timeout"`
+	// The maximum number of tests to run at once (default: 8).
+	Parallel int `json:"parallel"`
+	// The directory to output artifacts to (current working directory if not specified).
+	ArtifactsDir string `json:"artifactsDir"`
 }
 
 // GetManifestsDirs returns the proper list of manifest directories to install prior to the tests.

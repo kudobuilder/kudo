@@ -19,7 +19,6 @@ func newGetCmd() *cobra.Command {
 		},
 	}
 
-	getCmd.Flags().StringVar(&options.KubeConfigPath, "kubeconfig", "", "The file path to kubernetes configuration file; defaults to $HOME/.kube/config")
 	getCmd.Flags().StringVar(&options.Namespace, "namespace", "default", "The namespace where the operator watches for changes.")
 
 	return getCmd

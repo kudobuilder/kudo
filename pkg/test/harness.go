@@ -296,7 +296,7 @@ func (h *Harness) Run() {
 		}
 	}
 
-	if h.TestSuite.StartKUDO || h.TestSuite.StartControlPlane {
+	if h.TestSuite.StartKUDO {
 		if err := h.RunKUDO(); err != nil {
 			h.T.Fatal(err)
 		}
@@ -310,6 +310,16 @@ func (h *Harness) Stop() {
 	if h.managerStopCh != nil {
 		close(h.managerStopCh)
 		h.managerStopCh = nil
+	}
+
+	if h.kind != nil {
+		logDir := filepath.Join(h.TestSuite.ArtifactsDir, fmt.Sprintf("kind-logs-%d", time.Now().Unix()))
+
+		h.T.Log("collecting cluster logs to", logDir)
+
+		if err := h.kind.CollectLogs(logDir); err != nil {
+			h.T.Log("error collecting kind cluster logs", err)
+		}
 	}
 
 	if h.TestSuite.SkipClusterDelete || h.TestSuite.SkipDelete {
