@@ -3,8 +3,8 @@ package kudo
 const (
 	// OperatorLabel is k8s label key for identifying operator
 	OperatorLabel = "kudo.dev/operator"
-	// OperatorVersionLabel is k8s label key for operator version
-	OperatorVersionLabel = "kudo.dev/operator-version"
+	// OperatorVersionAnnotation is k8s label key for operator version
+	OperatorVersionAnnotation = "kudo.dev/operator-version"
 	// InstanceLabel is k8s label key for KUDO instance name
 	InstanceLabel = "kudo.dev/instance"
 	// HeritageLabel is k8s label key for heritage

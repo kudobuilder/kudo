@@ -331,8 +331,8 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 			Namespace: instance.GetNamespace(),
 			// TODO: Should also add one for Operator in here as well.
 			Labels: map[string]string{
-				kudo.OperatorVersionLabel: instance.Spec.OperatorVersion.Name,
-				kudo.InstanceLabel:        instance.Name,
+				kudo.OperatorVersionAnnotation: instance.Spec.OperatorVersion.Name,
+				kudo.InstanceLabel:             instance.Name,
 			},
 		},
 		Spec: kudov1alpha1.PlanExecutionSpec{
