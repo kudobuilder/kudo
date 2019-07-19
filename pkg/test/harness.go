@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"path/filepath"
-	"sync"
 	"testing"
 	"time"
 
@@ -36,8 +35,6 @@ type Harness struct {
 	dclient       discovery.DiscoveryInterface
 	env           *envtest.Environment
 	kind          *kind.Context
-	clientLock    sync.Mutex
-	configLock    sync.Mutex
 }
 
 // LoadTests loads all of the tests in a given directory.
@@ -142,9 +139,6 @@ func (h *Harness) RunTestEnv() (*rest.Config, error) {
 // Config returns the current Kubernetes configuration - either from the environment
 // or from the created temporary control plane.
 func (h *Harness) Config() (*rest.Config, error) {
-	h.configLock.Lock()
-	defer h.configLock.Unlock()
-
 	if h.config != nil {
 		return h.config, nil
 	}
@@ -195,9 +189,6 @@ func (h *Harness) RunKUDO() error {
 
 // Client returns the current Kubernetes client for the test harness.
 func (h *Harness) Client(forceNew bool) (client.Client, error) {
-	h.clientLock.Lock()
-	defer h.clientLock.Unlock()
-
 	if h.client != nil && !forceNew {
 		return h.client, nil
 	}
@@ -215,9 +206,6 @@ func (h *Harness) Client(forceNew bool) (client.Client, error) {
 
 // DiscoveryClient returns the current Kubernetes discovery client for the test harness.
 func (h *Harness) DiscoveryClient() (discovery.DiscoveryInterface, error) {
-	h.clientLock.Lock()
-	defer h.clientLock.Unlock()
-
 	if h.dclient != nil {
 		return h.dclient, nil
 	}
@@ -234,6 +222,16 @@ func (h *Harness) DiscoveryClient() (discovery.DiscoveryInterface, error) {
 // RunTests should be called from within a Go test (t) and launches all of the KUDO integration
 // tests at dir.
 func (h *Harness) RunTests() {
+	cl, err := h.Client(false)
+	if err != nil {
+		h.T.Fatal(err)
+	}
+
+	dclient, err := h.DiscoveryClient()
+	if err != nil {
+		h.T.Fatal(err)
+	}
+
 	tests := []*Case{}
 
 	for _, testDir := range h.TestSuite.TestDirs {
@@ -246,8 +244,8 @@ func (h *Harness) RunTests() {
 
 	h.T.Run("harness", func(t *testing.T) {
 		for _, test := range tests {
-			test.Client = h.Client
-			test.DiscoveryClient = h.DiscoveryClient
+			test.Client = cl
+			test.DiscoveryClient = dclient
 
 			if err := test.LoadTestSteps(); err != nil {
 				t.Fatal(err)

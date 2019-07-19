@@ -278,6 +278,8 @@ func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 		converted = &kudo.TestAssert{}
 	} else if group == "kudo.k8s.io" && kind == "TestSuite" {
 		converted = &kudo.TestSuite{}
+	} else if group == "apiextensions.k8s.io" && kind == "CustomResourceDefinition" {
+		converted = &apiextensions.CustomResourceDefinition{}
 	} else if group == "kind.sigs.k8s.io" && kind == "Cluster" {
 		converted = &kindConfig.Cluster{}
 	} else {
@@ -309,13 +311,15 @@ func PatchObject(actual, expected runtime.Object) error {
 	return nil
 }
 
-// CleanObjectForMarshalling removes unnecessary object metadata that should not be included in serialization and diffs.
-func CleanObjectForMarshalling(o runtime.Object) (runtime.Object, error) {
+// MarshalObject marshals a Kubernetes object to a YAML string.
+func MarshalObject(o runtime.Object, w io.Writer) error {
+	encoder := json.NewYAMLSerializer(json.DefaultMetaFactory, nil, nil)
+
 	copied := o.DeepCopyObject()
 
 	meta, err := meta.Accessor(copied)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	meta.SetResourceVersion("")
@@ -333,27 +337,7 @@ func CleanObjectForMarshalling(o runtime.Object) (runtime.Object, error) {
 		meta.SetAnnotations(nil)
 	}
 
-	return copied, nil
-}
-
-// MarshalObject marshals a Kubernetes object to a YAML string.
-func MarshalObject(o runtime.Object, w io.Writer) error {
-	copied, err := CleanObjectForMarshalling(o)
-	if err != nil {
-		return err
-	}
-
-	return json.NewYAMLSerializer(json.DefaultMetaFactory, nil, nil).Encode(copied, w)
-}
-
-// MarshalObjectJSON marshals a Kubernetes object to a JSON string.
-func MarshalObjectJSON(o runtime.Object, w io.Writer) error {
-	copied, err := CleanObjectForMarshalling(o)
-	if err != nil {
-		return err
-	}
-
-	return json.NewSerializer(json.DefaultMetaFactory, nil, nil, false).Encode(copied, w)
+	return encoder.Encode(copied, w)
 }
 
 // LoadYAML loads all objects from a YAML file.
@@ -393,19 +377,6 @@ func LoadYAML(path string) ([]runtime.Object, error) {
 	}
 
 	return objects, nil
-}
-
-// MatchesKind returns true if the Kubernetes kind of obj matches any of kinds.
-func MatchesKind(obj runtime.Object, kinds ...runtime.Object) bool {
-	gvk := obj.GetObjectKind().GroupVersionKind()
-
-	for _, kind := range kinds {
-		if kind.GetObjectKind().GroupVersionKind() == gvk {
-			return true
-		}
-	}
-
-	return false
 }
 
 // InstallManifests recurses over ManifestsDir to install all resources defined in YAML manifests.
@@ -644,13 +615,8 @@ func GetAPIResource(dClient discovery.DiscoveryInterface, gvk schema.GroupVersio
 // WaitForCRDs waits for the provided CRD types to be available in the Kubernetes API.
 func WaitForCRDs(dClient discovery.DiscoveryInterface, crds []runtime.Object) error {
 	waitingFor := []schema.GroupVersionKind{}
-	crdKind := NewResource("apiextensions.k8s.io/v1beta1", "CustomResourceDefinition", "", "")
 
 	for _, crdObj := range crds {
-		if !MatchesKind(crdObj, crdKind) {
-			continue
-		}
-
 		crd, ok := crdObj.(*apiextensions.CustomResourceDefinition)
 		if !ok {
 			continue
