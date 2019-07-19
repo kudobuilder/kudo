@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -35,6 +36,8 @@ type Harness struct {
 	dclient       discovery.DiscoveryInterface
 	env           *envtest.Environment
 	kind          *kind.Context
+	clientLock    sync.Mutex
+	configLock    sync.Mutex
 }
 
 // LoadTests loads all of the tests in a given directory.
@@ -139,6 +142,9 @@ func (h *Harness) RunTestEnv() (*rest.Config, error) {
 // Config returns the current Kubernetes configuration - either from the environment
 // or from the created temporary control plane.
 func (h *Harness) Config() (*rest.Config, error) {
+	h.configLock.Lock()
+	defer h.configLock.Unlock()
+
 	if h.config != nil {
 		return h.config, nil
 	}
@@ -189,6 +195,9 @@ func (h *Harness) RunKUDO() error {
 
 // Client returns the current Kubernetes client for the test harness.
 func (h *Harness) Client(forceNew bool) (client.Client, error) {
+	h.clientLock.Lock()
+	defer h.clientLock.Unlock()
+
 	if h.client != nil && !forceNew {
 		return h.client, nil
 	}
@@ -206,6 +215,9 @@ func (h *Harness) Client(forceNew bool) (client.Client, error) {
 
 // DiscoveryClient returns the current Kubernetes discovery client for the test harness.
 func (h *Harness) DiscoveryClient() (discovery.DiscoveryInterface, error) {
+	h.clientLock.Lock()
+	defer h.clientLock.Unlock()
+
 	if h.dclient != nil {
 		return h.dclient, nil
 	}
@@ -222,16 +234,6 @@ func (h *Harness) DiscoveryClient() (discovery.DiscoveryInterface, error) {
 // RunTests should be called from within a Go test (t) and launches all of the KUDO integration
 // tests at dir.
 func (h *Harness) RunTests() {
-	cl, err := h.Client(false)
-	if err != nil {
-		h.T.Fatal(err)
-	}
-
-	dclient, err := h.DiscoveryClient()
-	if err != nil {
-		h.T.Fatal(err)
-	}
-
 	tests := []*Case{}
 
 	for _, testDir := range h.TestSuite.TestDirs {
@@ -244,8 +246,8 @@ func (h *Harness) RunTests() {
 
 	h.T.Run("harness", func(t *testing.T) {
 		for _, test := range tests {
-			test.Client = cl
-			test.DiscoveryClient = dclient
+			test.Client = h.Client
+			test.DiscoveryClient = h.DiscoveryClient
 
 			if err := test.LoadTestSteps(); err != nil {
 				t.Fatal(err)
@@ -294,7 +296,7 @@ func (h *Harness) Run() {
 		h.T.Fatal(err)
 	}
 
-	if h.TestSuite.StartKUDO || h.TestSuite.StartControlPlane {
+	if h.TestSuite.StartKUDO {
 		if err := h.RunKUDO(); err != nil {
 			h.T.Fatal(err)
 		}
@@ -308,6 +310,16 @@ func (h *Harness) Stop() {
 	if h.managerStopCh != nil {
 		close(h.managerStopCh)
 		h.managerStopCh = nil
+	}
+
+	if h.kind != nil {
+		logDir := filepath.Join(h.TestSuite.ArtifactsDir, fmt.Sprintf("kind-logs-%d", time.Now().Unix()))
+
+		h.T.Log("collecting cluster logs to", logDir)
+
+		if err := h.kind.CollectLogs(logDir); err != nil {
+			h.T.Log("error collecting kind cluster logs", err)
+		}
 	}
 
 	if h.TestSuite.SkipClusterDelete || h.TestSuite.SkipDelete {

@@ -20,7 +20,7 @@ kind: Instance
 metadata:
   name: icto-no-trigger
   labels:
-    operator: icto-no-trigger
+    kudo.dev/operator: icto-no-trigger
 spec:
   operatorVersion:
     name: icto-no-trigger

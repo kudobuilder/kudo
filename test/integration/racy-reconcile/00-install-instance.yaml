@@ -3,7 +3,7 @@ kind: Instance
 metadata:
   name: racy-instance
   labels:
-    operator: racy-operator
+    kudo.dev/operator: racy-operator
 spec:
   operatorVersion:
     name: racy-operator
