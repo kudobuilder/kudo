@@ -62,7 +62,6 @@ kind: Instance
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-    operator: invalid
   name: invalid1
 spec:
   operatorVersion:
