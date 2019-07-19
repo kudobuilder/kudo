@@ -14,6 +14,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/controller"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/kudobuilder/kudo/pkg/webhook"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -36,6 +37,7 @@ type Harness struct {
 	dclient       discovery.DiscoveryInterface
 	env           *envtest.Environment
 	kind          *kind.Context
+	scheme        *runtime.Scheme
 	clientLock    sync.Mutex
 	configLock    sync.Mutex
 }
@@ -173,7 +175,7 @@ func (h *Harness) RunKUDO() error {
 	}
 
 	mgr, err := manager.New(config, manager.Options{
-		Scheme: testutils.Scheme(),
+		Scheme: h.Scheme(),
 	})
 	if err != nil {
 		return err
@@ -193,6 +195,19 @@ func (h *Harness) RunKUDO() error {
 	return nil
 }
 
+// Scheme returns the current Kubernetes scheme to use when initializing Kubernetes clients.
+// Note: we cache the scheme as it should not be modified once it is in use.
+func (h *Harness) Scheme() *runtime.Scheme {
+	h.configLock.Lock()
+	defer h.configLock.Unlock()
+
+	if h.scheme == nil {
+		h.scheme = testutils.Scheme()
+	}
+
+	return h.scheme
+}
+
 // Client returns the current Kubernetes client for the test harness.
 func (h *Harness) Client(forceNew bool) (client.Client, error) {
 	h.clientLock.Lock()
@@ -208,7 +223,7 @@ func (h *Harness) Client(forceNew bool) (client.Client, error) {
 	}
 
 	h.client, err = testutils.NewRetryClient(config, client.Options{
-		Scheme: testutils.Scheme(),
+		Scheme: h.Scheme(),
 	})
 	return h.client, err
 }
