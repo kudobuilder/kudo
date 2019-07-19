@@ -368,7 +368,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 							return reconcile.Result{}, err
 						}
 					}
-
+					
 					objsToAdd, err := applyConventionsToTemplates(resources, metadata{
 						InstanceName:    instance.Name,
 						Namespace:       instance.Namespace,

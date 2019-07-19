@@ -3,7 +3,6 @@ kind: Instance
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-    operator: toy
   name: toy1
 spec:
   operatorVersion:
