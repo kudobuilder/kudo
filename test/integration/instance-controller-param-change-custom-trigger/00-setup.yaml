@@ -21,7 +21,7 @@ kind: Instance
 metadata:
   name: icto-custom-trigger
   labels:
-    operator: icto-custom-trigger
+    kudo.dev/operator: icto-custom-trigger
 spec:
   operatorVersion:
     name: icto-custom-trigger

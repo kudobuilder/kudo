@@ -13,7 +13,8 @@ import (
 // RunTests runs a Go test method without requiring the Go compiler.
 // This does not currently support test caching.
 // If testToRun is set to a non-empty string, it is passed as a `-run` argument to the go test harness.
-func RunTests(testName string, testToRun string, testFunc func(*testing.T)) {
+// If paralellism is set, it limits the number of concurrently running tests.
+func RunTests(testName string, testToRun string, parallelism int, testFunc func(*testing.T)) {
 	// Set the verbose test flag to true since we are not using the regular go test CLI.
 	flag.Set("test.v", "true")
 
@@ -22,6 +23,12 @@ func RunTests(testName string, testToRun string, testFunc func(*testing.T)) {
 	if testToRun != "" {
 		flag.Set("test.run", fmt.Sprintf("//%s", testToRun))
 	}
+
+	parallelismStr := "8"
+	if parallelism != 0 {
+		parallelismStr = fmt.Sprintf("%d", parallelism)
+	}
+	flag.Set("test.parallel", parallelismStr)
 
 	os.Exit(testing.MainStart(&testDeps{}, []testing.InternalTest{
 		{

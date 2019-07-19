@@ -15,5 +15,4 @@ spec:
   - port: 80
     name: gossip
   selector:
-    instance: immutable-client-ip-instance
     label: test

@@ -4,13 +4,7 @@ metadata:
   name: operator-test-instance-nginx
 spec:
   replicas: 3
-  selector:
-    matchLabels:
-      app: test-operator
   template:
-    metadata:
-      labels:
-        app: test-operator
     spec:
       containers:
       - name: nginx
