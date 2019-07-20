@@ -26,7 +26,7 @@ test:
 
 .PHONY: integration-test
 # Run integration tests
-integration-test:
+integration-test: cli-test
 	go test -tags integration ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover-integration.out
 	go run ./cmd/kubectl-kudo test
 
@@ -116,6 +116,11 @@ generate:
 .PHONY: generate-clean
 generate-clean:
 	rm -rf hack/code-gen
+
+.PHONY: cli-test
+# Build CLI for tests
+cli-test:
+	go build -o bin/${CLI} cmd/kubectl-kudo/main.go
 
 .PHONY: cli
 # Build CLI

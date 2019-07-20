@@ -125,6 +125,10 @@ func (t *Case) CollectTestStepFiles() (map[int64][]string, error) {
 	for _, file := range files {
 		matches := testStepRegex.FindStringSubmatch(file.Name())
 
+		if len(matches) < 2 {
+			continue
+		}
+
 		index, err := strconv.ParseInt(matches[1], 10, 32)
 		if err != nil {
 			return nil, err
@@ -168,6 +172,7 @@ func (t *Case) LoadTestSteps() error {
 		testStep := &Step{
 			Timeout: t.Timeout,
 			Index:   int(index),
+			Dir:     t.Dir,
 			Asserts: []runtime.Object{},
 			Apply:   []runtime.Object{},
 			Errors:  []runtime.Object{},

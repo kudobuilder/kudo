@@ -18,6 +18,7 @@ require (
 	github.com/gobuffalo/envy v1.6.15 // indirect
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-querystring v1.0.0 // indirect
+	github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf
 	github.com/gophercloud/gophercloud v0.2.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.1 // indirect
 	github.com/huandu/xstrings v1.2.0 // indirect

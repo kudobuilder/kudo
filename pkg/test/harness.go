@@ -1,10 +1,12 @@
 package test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -14,6 +16,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/controller"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/kudobuilder/kudo/pkg/webhook"
+	"github.com/pkg/errors"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -162,7 +165,18 @@ func (h *Harness) Config() (*rest.Config, error) {
 		h.config, err = config.GetConfig()
 	}
 
-	return h.config, err
+	if err != nil {
+		return h.config, err
+	}
+
+	f, err := os.Create("kubeconfig")
+	if err != nil {
+		return h.config, err
+	}
+
+	defer f.Close()
+
+	return h.config, testutils.Kubeconfig(h.config, f)
 }
 
 // RunKUDO starts the KUDO controllers and installs the required CRDs.
@@ -229,6 +243,28 @@ func (h *Harness) DiscoveryClient() (discovery.DiscoveryInterface, error) {
 
 	h.dclient, err = discovery.NewDiscoveryClientForConfig(config)
 	return h.dclient, err
+}
+
+// DoKubectl runs all kubectl commands defined for the test suite.
+func (h *Harness) DoKubectl() error {
+	if h.TestSuite.Kubectl == nil {
+		return nil
+	}
+
+	for _, cmd := range h.TestSuite.Kubectl {
+		stdout := &bytes.Buffer{}
+		stderr := &bytes.Buffer{}
+
+		h.T.Log("Running kubectl:", cmd)
+
+		if err := testutils.Kubectl(context.TODO(), "default", cmd, "", stdout, stderr); err != nil {
+			return errors.Wrap(err, stderr.String())
+		}
+
+		h.T.Log(stdout.String())
+	}
+
+	return nil
 }
 
 // RunTests should be called from within a Go test (t) and launches all of the KUDO integration
@@ -299,6 +335,10 @@ func (h *Harness) Run() {
 		}
 	}
 
+	if err := h.DoKubectl(); err != nil {
+		h.T.Fatal(err)
+	}
+
 	if h.TestSuite.StartKUDO {
 		if err := h.RunKUDO(); err != nil {
 			h.T.Fatal(err)
@@ -326,7 +366,12 @@ func (h *Harness) Stop() {
 	}
 
 	if h.TestSuite.SkipClusterDelete || h.TestSuite.SkipDelete {
-		// TODO: figure out how to write the Kubernetes client configuration to disk.
+		cwd, _ := os.Getwd()
+		kubeconfig := filepath.Join(cwd, "kubeconfig")
+
+		h.T.Log("skipping cluster tear down")
+		h.T.Log(fmt.Sprintf("to connect to the cluster, run: export KUBECONFIG=\"%s\"", kubeconfig))
+
 		return
 	}
 

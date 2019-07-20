@@ -1,0 +1,20 @@
+apiVersion: kudo.dev/v1alpha1
+kind: Instance
+metadata:
+  labels:
+    kudo.dev/operator: cli-install-operator
+spec:
+  operatorVersion:
+    name: cli-install-operator-0.1.0
+status:
+  status: COMPLETE
+  activePlan:
+    apiVersion: kudo.dev/v1alpha1
+    kind: PlanExecution
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    memory: "1Gi"
+    cpu: "0.25"

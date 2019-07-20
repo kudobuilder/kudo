@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cli-test-pod
+spec:
+  containers:
+  - name: cli-test
+    image: alpine
+  restartPolicy: Never

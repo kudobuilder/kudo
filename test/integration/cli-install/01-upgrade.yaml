@@ -1,0 +1,11 @@
+apiVersion: kudo.dev/v1alpha1
+kind: Instance
+metadata:
+  name: cli-install
+  labels:
+    kudo.dev/operator: cli-install-operator
+spec:
+  operatorVersion:
+    name: cli-install-operator-0.1.0
+  parameters:
+    memory: "2Gi"
