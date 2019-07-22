@@ -9,5 +9,15 @@ status:
     listKind: MyCRDList
     plural: mycrds
     singular: mycrd
+  # InitialNamesAccepted will change from False -> True once the CRD is ready.
+  conditions:
+  - message: no conflicts found
+    reason: NoConflicts
+    status: "True"
+    type: NamesAccepted
+  - message: the initial names have been accepted
+    reason: InitialNamesAccepted
+    status: "True"
+    type: Established
   storedVersions:
   - v1alpha1
