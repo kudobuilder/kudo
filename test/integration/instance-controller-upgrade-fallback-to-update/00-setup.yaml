@@ -32,7 +32,7 @@ kind: Instance
 metadata:
   name: icto-upgrade-fallback-to-update
   labels:
-    operator: icto-upgrade
+    kudo.dev/operator: icto-upgrade
 spec:
   operatorVersion:
     name: icto-upgrade

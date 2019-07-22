@@ -124,7 +124,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 			}
 
 			if options.KINDContext == "" {
-				options.KINDContext = "default"
+				options.KINDContext = "kind"
 			}
 
 			if options.StartControlPlane && options.StartKIND {
@@ -180,7 +180,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 	testCmd.Flags().BoolVar(&startControlPlane, "start-control-plane", false, "Start a local Kubernetes control plane for the tests (requires etcd and kube-apiserver binaries, cannot be used with --start-kind).")
 	testCmd.Flags().BoolVar(&startKIND, "start-kind", false, "Start a KIND cluster for the tests (cannot be used with --start-control-plane).")
 	testCmd.Flags().StringVar(&kindConfig, "kind-config", "", "Specify the KIND configuration file path (implies --start-kind, cannot be used with --start-control-plane).")
-	testCmd.Flags().StringVar(&kindContext, "kind-context", "", "Specify the KIND context name to use.")
+	testCmd.Flags().StringVar(&kindContext, "kind-context", "", "Specify the KIND context name to use (default: kind).")
 	testCmd.Flags().StringVar(&artifactsDir, "artifacts-dir", "", "Directory to output kind logs to (if not specified, the current working directory).")
 	testCmd.Flags().BoolVar(&startKUDO, "start-kudo", false, "Start KUDO during the test run.")
 	testCmd.Flags().BoolVar(&skipDelete, "skip-delete", false, "If set, do not delete resources created during tests (helpful for debugging test failures, implies --skip-cluster-delete).")
