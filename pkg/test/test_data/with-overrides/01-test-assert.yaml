@@ -11,6 +11,5 @@ spec:
 apiVersion: kudo.k8s.io/v1alpha1
 kind: TestStep
 delete:
-- apiVersion: v1
-  kind: Pod
+- kind: Pod
   name: test
