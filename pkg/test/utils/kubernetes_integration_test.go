@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/watch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -95,4 +96,44 @@ func TestWaitForCRDs(t *testing.T) {
 
 	// make sure that we can create an object of this type now
 	assert.Nil(t, testClient.Create(context.TODO(), instance))
+}
+
+func TestClientWatch(t *testing.T) {
+	pod := WithSpec(NewPod("my-pod", "default"), map[string]interface{}{
+		"containers": []map[string]interface{}{
+			{
+				"image": "nginx",
+				"name":  "nginx",
+			},
+		},
+	})
+	gvk := pod.GetObjectKind().GroupVersionKind()
+
+	events, err := testenv.Client.Watch(context.TODO(), pod)
+	assert.Nil(t, err)
+
+	go func() {
+		assert.Nil(t, testenv.Client.Create(context.TODO(), pod))
+		assert.Nil(t, testenv.Client.Update(context.TODO(), pod))
+		assert.Nil(t, testenv.Client.Delete(context.TODO(), pod))
+	}()
+
+	eventCh := events.ResultChan()
+
+	event := <-eventCh
+	assert.Equal(t, watch.EventType("ADDED"), event.Type)
+	assert.Equal(t, gvk, event.Object.GetObjectKind().GroupVersionKind())
+	assert.Equal(t, client.ObjectKey{"default", "my-pod"}, ObjectKey(event.Object))
+
+	event = <-eventCh
+	assert.Equal(t, watch.EventType("MODIFIED"), event.Type)
+	assert.Equal(t, gvk, event.Object.GetObjectKind().GroupVersionKind())
+	assert.Equal(t, client.ObjectKey{"default", "my-pod"}, ObjectKey(event.Object))
+
+	event = <-eventCh
+	assert.Equal(t, watch.EventType("DELETED"), event.Type)
+	assert.Equal(t, gvk, event.Object.GetObjectKind().GroupVersionKind())
+	assert.Equal(t, client.ObjectKey{"default", "my-pod"}, ObjectKey(event.Object))
+
+	events.Stop()
 }
