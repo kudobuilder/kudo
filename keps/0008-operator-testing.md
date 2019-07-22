@@ -151,7 +151,9 @@ type TestSuite struct {
 	ManifestsDirs     []string `json:"manifestsDirs"`
 	// Directories containing test cases to run.
 	TestDirs          []string
-	// Whether or not to start a local etcd and kubernetes API server for the tests (cannot be set with StartKIND
+	// Kubectl specifies a list of kubectl commands to run prior to running the tests.
+	Kubectl []string `json:"kubectl"`
+	// Whether or not to start a local etcd and kubernetes API server for the tests (cannot be set with StartKIND)
 	StartControlPlane bool
 	// Whether or not to start a local kind cluster for the tests (cannot be set with StartControlPlane).
 	StartKIND bool `json:"startKIND"`
@@ -244,6 +246,9 @@ type TestStep struct {
     // Objects to delete at the beginning of the test step.
     Delete []ObjectReference
 
+    // Kubectl specifies a list of kubectl commands to run at the beginning of the test step.
+    Kubectl []string `json:"kubectl"`
+
     // Indicates that this is a unit test - safe to run without a real Kubernetes cluster.
     UnitTest bool
 
@@ -262,8 +267,18 @@ type ObjectReference struct {
 
 Using a `TestStep`, it is possible to skip certain test steps if conditions are not met, e.g., only run a test step on GKE or on clusters with more than three nodes.
 
-The `Delete` list can be used to specify objects to delete prior to running the tests. If `Labels` are set in an ObjectReference,
-all resources matching the labels and specified kind will be deleted.
+The `Delete` list can be used to specify objects to delete prior to running the tests. If `Labels` are set in an ObjectReference, all resources matching the labels and specified kind will be deleted.
+
+A `TestStep` is also able to invoke kubectl commands or plugins by specifying a list of commands in the `kubectl` setting, e.g.:
+
+```
+apiVersion: kudo.dev/v1alpha1
+kind: TestStep
+kubectl:
+- apply -f ./testdata/pod.yaml
+```
+
+Any resources created or updated in a kubectl step can be asserted on just like any other resource created in a test step. The commands will be executed in order and the test step will be considered failed if kubectl does not exit with status `0`.
 
 #### Assertion files
 
