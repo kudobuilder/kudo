@@ -3,7 +3,7 @@ kind: Instance
 metadata:
   name: my-instance
   labels:
-    operator: service-operator
+    kudo.dev/operator: service-operator
 spec:
   operatorVersion:
     name: service-operator

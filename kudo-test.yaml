@@ -6,3 +6,4 @@ testDirs:
 - ./test/integration
 startKUDO: true
 startControlPlane: true
+parallel: 4

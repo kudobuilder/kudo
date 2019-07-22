@@ -30,10 +30,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
 	fakediscovery "k8s.io/client-go/discovery/fake"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	coretesting "k8s.io/client-go/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -104,7 +107,9 @@ func Retry(ctx context.Context, fn func(context.Context) error, errValidationFun
 
 // RetryClient implements the Client interface, with retries built in.
 type RetryClient struct {
-	Client client.Client
+	Client    client.Client
+	dynamic   dynamic.Interface
+	discovery discovery.DiscoveryInterface
 }
 
 // RetryStatusWriter implements the StatusWriter interface, with retries built in.
@@ -114,8 +119,18 @@ type RetryStatusWriter struct {
 
 // NewRetryClient initializes a new Kubernetes client that automatically retries on network-related errors.
 func NewRetryClient(cfg *rest.Config, opts client.Options) (*RetryClient, error) {
+	dynamicClient, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	discovery, err := discovery.NewDiscoveryClientForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	client, err := client.New(cfg, opts)
-	return &RetryClient{Client: client}, err
+	return &RetryClient{Client: client, dynamic: dynamicClient, discovery: discovery}, err
 }
 
 // Create saves the object obj in the Kubernetes cluster.
@@ -166,6 +181,31 @@ func (r *RetryClient) List(ctx context.Context, list runtime.Object, opts ...cli
 	}, IsJSONSyntaxError)
 }
 
+// Watch watches a specific object and returns all events for it.
+func (r *RetryClient) Watch(ctx context.Context, obj runtime.Object) (watch.Interface, error) {
+	meta, err := meta.Accessor(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	gvk := obj.GetObjectKind().GroupVersionKind()
+
+	groupResources, err := restmapper.GetAPIGroupResources(r.discovery)
+	if err != nil {
+		return nil, err
+	}
+
+	mapping, err := restmapper.NewDiscoveryRESTMapper(groupResources).RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.dynamic.Resource(mapping.Resource).Watch(metav1.SingleObject(metav1.ObjectMeta{
+		Name:      meta.GetName(),
+		Namespace: meta.GetNamespace(),
+	}))
+}
+
 // Status returns a client which can update status subresource for kubernetes objects.
 func (r *RetryClient) Status() client.StatusWriter {
 	return &RetryStatusWriter{
@@ -210,10 +250,15 @@ func ResourceID(obj runtime.Object) string {
 
 // Namespaced sets the namespace on an object to namespace, if it is a namespace scoped resource.
 // If the resource is cluster scoped, then it is ignored and the namespace is not set.
+// If it is a namespaced resource and a namespace is already set, then the namespace is unchanged.
 func Namespaced(dClient discovery.DiscoveryInterface, obj runtime.Object, namespace string) (string, string, error) {
 	m, err := meta.Accessor(obj)
 	if err != nil {
 		return "", "", err
+	}
+
+	if m.GetNamespace() != "" {
+		return m.GetName(), m.GetNamespace(), nil
 	}
 
 	resource, err := GetAPIResource(dClient, obj.GetObjectKind().GroupVersionKind())
@@ -631,11 +676,18 @@ func WaitForCRDs(dClient discovery.DiscoveryInterface, crds []runtime.Object) er
 	})
 }
 
+// Client is the controller-runtime Client interface with an added Watch method.
+type Client interface {
+	client.Client
+	// Watch watches a specific object and returns all events for it.
+	Watch(ctx context.Context, obj runtime.Object) (watch.Interface, error)
+}
+
 // TestEnvironment is a struct containing the envtest environment, Kubernetes config and clients.
 type TestEnvironment struct {
 	Environment     *envtest.Environment
 	Config          *rest.Config
-	Client          client.Client
+	Client          Client
 	DiscoveryClient discovery.DiscoveryInterface
 }
 

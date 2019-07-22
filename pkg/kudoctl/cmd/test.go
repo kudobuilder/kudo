@@ -37,7 +37,7 @@ var (
 func newTestCmd() *cobra.Command {
 	configPath := ""
 	crdDir := ""
-	manifestsDir := ""
+	manifestsDir := []string{}
 	testToRun := ""
 	startControlPlane := false
 	startKIND := false
@@ -46,6 +46,8 @@ func newTestCmd() *cobra.Command {
 	startKUDO := false
 	skipDelete := false
 	skipClusterDelete := false
+	parallel := 0
+	artifactsDir := ""
 
 	options := kudo.TestSuite{}
 
@@ -101,7 +103,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 			}
 
 			if isSet(flags, "manifests-dir") {
-				options.ManifestsDir = manifestsDir
+				options.ManifestsDirs = manifestsDir
 			}
 
 			if isSet(flags, "start-control-plane") {
@@ -122,7 +124,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 			}
 
 			if options.KINDContext == "" {
-				options.KINDContext = "default"
+				options.KINDContext = "kind"
 			}
 
 			if options.StartControlPlane && options.StartKIND {
@@ -141,6 +143,14 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 				options.SkipClusterDelete = skipClusterDelete
 			}
 
+			if isSet(flags, "parallel") {
+				options.Parallel = parallel
+			}
+
+			if isSet(flags, "artifacts-dir") {
+				options.ArtifactsDir = artifactsDir
+			}
+
 			if len(args) != 0 {
 				options.TestDirs = args
 			}
@@ -152,7 +162,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			testutils.RunTests("kudo", testToRun, func(t *testing.T) {
+			testutils.RunTests("kudo", testToRun, options.Parallel, func(t *testing.T) {
 				harness := test.Harness{
 					TestSuite: options,
 					T:         t,
@@ -165,15 +175,18 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 
 	testCmd.Flags().StringVar(&configPath, "config", "", "Path to file to load test settings from (must not be set with any other arguments).")
 	testCmd.Flags().StringVar(&crdDir, "crd-dir", "", "Directory to load CustomResourceDefinitions from prior to running the tests.")
-	testCmd.Flags().StringVar(&manifestsDir, "manifests-dir", "", "A directory containing manifests to apply before running the tests.")
+	testCmd.Flags().StringSliceVar(&manifestsDir, "manifests-dir", []string{}, "A directory containing manifests to apply before running the tests.")
 	testCmd.Flags().StringVar(&testToRun, "test", "", "If set, the specific test case to run.")
-	testCmd.Flags().BoolVar(&startControlPlane, "start-control-plane", false, "Start a local Kubernetes control plane for the tests (requires etcd and kube-apiserver binaries, cannot be used with --start-kind, implies --start-kudo).")
-	testCmd.Flags().BoolVar(&startKIND, "start-kind", false, "Start a KIND cluster for the tests (cannot be used with --start-control-plane, implies --start-kudo).")
-	testCmd.Flags().StringVar(&kindConfig, "kind-config", "", "Specify the KIND configuration file path (implies --start-kind, cannot be used with --start-control-plane, implies --start-kudo).")
-	testCmd.Flags().StringVar(&kindContext, "kind-context", "", "Specify the KIND context name to use.")
+	testCmd.Flags().BoolVar(&startControlPlane, "start-control-plane", false, "Start a local Kubernetes control plane for the tests (requires etcd and kube-apiserver binaries, cannot be used with --start-kind).")
+	testCmd.Flags().BoolVar(&startKIND, "start-kind", false, "Start a KIND cluster for the tests (cannot be used with --start-control-plane).")
+	testCmd.Flags().StringVar(&kindConfig, "kind-config", "", "Specify the KIND configuration file path (implies --start-kind, cannot be used with --start-control-plane).")
+	testCmd.Flags().StringVar(&kindContext, "kind-context", "", "Specify the KIND context name to use (default: kind).")
+	testCmd.Flags().StringVar(&artifactsDir, "artifacts-dir", "", "Directory to output kind logs to (if not specified, the current working directory).")
 	testCmd.Flags().BoolVar(&startKUDO, "start-kudo", false, "Start KUDO during the test run.")
 	testCmd.Flags().BoolVar(&skipDelete, "skip-delete", false, "If set, do not delete resources created during tests (helpful for debugging test failures, implies --skip-cluster-delete).")
 	testCmd.Flags().BoolVar(&skipClusterDelete, "skip-cluster-delete", false, "If set, do not delete the mocked control plane or kind cluster.")
+	// The default value here is only used for the help message. The default is actually enforced in RunTests.
+	testCmd.Flags().IntVar(&parallel, "parallel", 8, "The maximum number of tests to run at once.")
 
 	return testCmd
 }

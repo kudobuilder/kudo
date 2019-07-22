@@ -124,7 +124,7 @@ Test cases will be authored by defining Kubernetes objects to apply and Kubernet
 
 Tests will be invoked via a CLI tool that runs the test suite against the current Kubernetes context by default, or optionally against a mocked control plane or kind (kubernetes-in-docker) cluster. It will be packaged with the default set of test suites from the KUDO Operators repository using go-bindata, with the ability to provide alternative directories containing tests to use.
 
-The tool will enumerate each test case (group of test steps) and run them concurrently in batches. Each test case will run in its own namespace (care must be taken that cluster-level resources do not collide with other test cases [??? TODO: solvable?]) which will be deleted after the test case has been completed.
+The tool will enumerate each test case (group of test steps) and run them concurrently in batches. Each test case will run in its own namespace (care must be taken that cluster-level resources do not collide with other test cases [??? TODO: solvable?]) which will be deleted after the test case has been completed. Resources in test steps that are namespace-level will have their namespace set to the test case namespace if it is not present.
 
 Each test case consists of a directory containing test steps and their expected results ("assertions"). The test steps within a test case are run sequentially, waiting for the assertions to be true, a timeout to pass, or a failure condition to be met.
 
@@ -147,6 +147,8 @@ type TestSuite struct {
 	CRDDir            string
 	// Path to manifests to install before running tests.
 	ManifestsDir      string
+	// Paths to manifests to install before running tests.
+	ManifestsDirs     []string `json:"manifestsDirs"`
 	// Directories containing test cases to run.
 	TestDirs          []string
 	// Whether or not to start a local etcd and kubernetes API server for the tests (cannot be set with StartKIND
