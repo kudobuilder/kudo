@@ -429,7 +429,7 @@ function createFunction {
 EOF
     done
     cat <<EOF > "/tmp/kudo_instance"
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
     labels:

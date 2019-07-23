@@ -24,7 +24,7 @@ const (
 	paramsFileName        = "params.yaml"
 )
 
-const apiVersion = "kudo.k8s.io/v1alpha1"
+const apiVersion = "kudo.dev/v1alpha1"
 
 // PackageCRDs is collection of CRDs that are used when installing operator
 // during installation, package format is converted to this structure

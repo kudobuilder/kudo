@@ -1,10 +1,10 @@
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: PlanExecution
 metadata:
   labels:
     kudo.dev/instance: invalid1
   ownerReferences:
-    - apiVersion: kudo.k8s.io/v1alpha1
+    - apiVersion: kudo.dev/v1alpha1
       blockOwnerDeletion: true
       controller: true
       kind: Instance
