@@ -18,6 +18,8 @@ type TestSuite struct {
 	CRDDir string `json:"crdDir"`
 	// Path to manifests to install before running tests.
 	ManifestsDir string `json:"manifestsDir"`
+	// Paths to manifests to install before running tests.
+	ManifestsDirs []string `json:"manifestsDirs"`
 	// Directories containing test cases to run.
 	TestDirs []string `json:"testDirs"`
 	// Whether or not to start a local etcd and kubernetes API server for the tests.
@@ -40,6 +42,21 @@ type TestSuite struct {
 	Parallel int `json:"parallel"`
 	// The directory to output artifacts to (current working directory if not specified).
 	ArtifactsDir string `json:"artifactsDir"`
+}
+
+// GetManifestsDirs returns the proper list of manifest directories to install prior to the tests.
+func (t TestSuite) GetManifestsDirs() []string {
+	manifestsDirs := []string{}
+
+	if t.ManifestsDirs != nil {
+		manifestsDirs = t.ManifestsDirs
+	}
+
+	if t.ManifestsDir != "" {
+		manifestsDirs = append(manifestsDirs, t.ManifestsDir)
+	}
+
+	return manifestsDirs
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
