@@ -65,6 +65,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
+	ctx := context.TODO()
 	// Create a new controller
 	c, err := controller.New("planexecution-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
@@ -84,7 +85,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				// if owner is an instance, we also want to queue up the PlanExecution
 				// in the Status section
 				inst := &kudov1alpha1.Instance{}
-				err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{
+				err = mgr.GetClient().Get(ctx, client.ObjectKey{
 					Name:      owner.Name,
 					Namespace: a.Meta.GetNamespace(),
 				}, inst)
@@ -191,9 +192,10 @@ type ReconcilePlanExecution struct {
 // +kubebuilder:rbac:groups="",resources=events;configmaps,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets;poddisruptionbudgets.policy,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	ctx :=context.TODO()
 	// Fetch the PlanExecution instance
 	planExecution := &kudov1alpha1.PlanExecution{}
-	err := r.Get(context.TODO(), request.NamespacedName, planExecution)
+	err := r.Get(ctx, request.NamespacedName, planExecution)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			log.Printf("PlanExecutionController: Error finding planexecution \"%v\": %v", request.Name, err)
@@ -206,7 +208,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	}
 
 	instance := &kudov1alpha1.Instance{}
-	err = r.Get(context.TODO(),
+	err = r.Get(ctx,
 		types.NamespacedName{
 			Name:      planExecution.Spec.Instance.Name,
 			Namespace: planExecution.Spec.Instance.Namespace,
@@ -226,7 +228,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	// Check for Suspend set.
 	if planExecution.Spec.Suspend != nil && *planExecution.Spec.Suspend {
 		planExecution.Status.State = kudov1alpha1.PhaseStateSuspend
-		err = r.Update(context.TODO(), planExecution)
+		err = r.Update(ctx, planExecution)
 		r.recorder.Event(instance, "Normal", "PlanSuspend", fmt.Sprintf("PlanExecution %v suspended", planExecution.Name))
 		return reconcile.Result{}, err
 	}
@@ -238,17 +240,29 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	}
 
 	// Before returning from this function, update the status
-	defer r.Update(context.Background(), planExecution)
+	defer r.Update(ctx, planExecution)
 
 	// Need to add ownerReference as the Instance.
-	instance.Status.ActivePlan = corev1.ObjectReference{
-		Name:       planExecution.Name,
-		Kind:       planExecution.Kind,
-		Namespace:  planExecution.Namespace,
-		APIVersion: planExecution.APIVersion,
-		UID:        planExecution.UID,
+	if instance.Status.ActivePlan.Name == "" {
+		log.Printf("PlanExecutionController: Creating active plan for %v", planExecution.Name)
+		instance.Status.ActivePlan = corev1.ObjectReference{
+			Name:       planExecution.Name,
+			Kind:       planExecution.Kind,
+			Namespace:  planExecution.Namespace,
+			APIVersion: planExecution.APIVersion,
+			UID:        planExecution.UID,
+		}
+	} else {
+		active := instance.Status.ActivePlan
+		log.Printf("PlanExecutionController: Updating active plan of %v", active)
+		active.Name = planExecution.Name
+		active.Kind = planExecution.Kind
+		active.Namespace = planExecution.Namespace
+		active.APIVersion = planExecution.APIVersion
+		active.UID = planExecution.UID
+		log.Printf("PlanExecutionController: Updating active plan to %v", active)
 	}
-	err = r.Update(context.TODO(), instance)
+	err = r.Update(ctx, instance)
 	if err != nil {
 		r.recorder.Event(planExecution, "Warning", "UpdateError", fmt.Sprintf("Could not update the ActivePlan for (%v): %v", planExecution.Spec.Instance.Name, err))
 		log.Printf("PlanExecutionController: Upate of instance with ActivePlan errored: %v", err)
@@ -256,7 +270,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 	// Get associated OperatorVersion
 	operatorVersion := &kudov1alpha1.OperatorVersion{}
-	err = r.Get(context.TODO(),
+	err = r.Get(ctx,
 		types.NamespacedName{
 			Name:      instance.Spec.OperatorVersion.Name,
 			Namespace: instance.GetOperatorVersionNamespace(),
@@ -300,7 +314,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			for _, obj := range s.Objects {
 				if s.Delete {
 					log.Printf("PlanExecutionController: Step \"%v\" was marked to delete object %+v", s.Name, obj)
-					err = r.Client.Delete(context.TODO(), obj, client.PropagationPolicy(metav1.DeletePropagationForeground))
+					err = r.Client.Delete(ctx, obj, client.PropagationPolicy(metav1.DeletePropagationForeground))
 					if errors.IsNotFound(err) || err == nil {
 						// This is okay
 						log.Printf("PlanExecutionController: Object was already deleted or did not exist in step \"%v\"", s.Name)
@@ -329,7 +343,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				//See if its present
 				rawObj, _ := apijson.Marshal(obj)
 				key, _ := client.ObjectKeyFromObject(obj)
-				err := r.Client.Get(context.TODO(), key, obj)
+				err := r.Client.Get(ctx, key, obj)
 				if err == nil {
 					log.Printf("PlanExecutionController: Object %v already exists for instance %v, going to apply patch", key, instance.Name)
 					//update
@@ -337,7 +351,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					if err != nil {
 						log.Printf("Error getting patch between truth and obj: %v\n", err)
 					} else {
-						err = r.Client.Patch(context.TODO(), obj, client.ConstantPatch(types.StrategicMergePatchType, rawObj))
+						err = r.Client.Patch(ctx, obj, client.ConstantPatch(types.StrategicMergePatchType, rawObj))
 						if err != nil {
 							// Right now applying a Strategic Merge Patch to custom resources does not work. There is
 							// certain metadata needed, which when missing, leads to an invalid Content-Type Header and
@@ -353,7 +367,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 							//
 							// 		Reason: "UnsupportedMediaType" Code: 415
 							if errors.IsUnsupportedMediaType(err) {
-								err = r.Client.Patch(context.TODO(), obj, client.ConstantPatch(types.MergePatchType, rawObj))
+								err = r.Client.Patch(ctx, obj, client.ConstantPatch(types.MergePatchType, rawObj))
 								if err != nil {
 									log.Printf("PlanExecutionController: Error when applying merge patch to object %v for instance %v: %v", key, instance.Name, err)
 								}
@@ -365,7 +379,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				} else {
 					//create
 					log.Printf("PlanExecutionController: Object %v does not exist, going to create new object for instance %v", key, instance.Name)
-					err = r.Client.Create(context.TODO(), obj)
+					err = r.Client.Create(ctx, obj)
 					if err != nil {
 						log.Printf("PlanExecutionController: Error when creating object %v: %v", s.Name, err)
 						planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateError
@@ -422,7 +436,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	}
 
 	instance.Status.Status = planExecution.Status.State
-	err = r.Client.Update(context.TODO(), instance)
+	err = r.Client.Update(ctx, instance)
 	if err != nil {
 		log.Printf("Error updating instance status to %v: %v\n", instance.Status.Status, err)
 	}
@@ -575,7 +589,7 @@ func getParameters(instance *kudov1alpha1.Instance, operatorVersion *kudov1alpha
 // Cleanup modifies objects on the cluster to allow for the provided obj to get CreateOrApply.
 // Currently only needs to clean up Jobs that get run from multiplePlanExecutions
 func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
-
+	ctx := context.TODO()
 	switch obj := obj.(type) {
 	case *batchv1.Job:
 		// We need to see if there's a current job on the system that matches this exactly (with labels)
@@ -583,7 +597,7 @@ func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
 
 		present := &batchv1.Job{}
 		key, _ := client.ObjectKeyFromObject(obj)
-		err := r.Get(context.TODO(), key, present)
+		err := r.Get(ctx, key, present)
 		if errors.IsNotFound(err) {
 			// This is fine, its good to go
 			log.Printf("PlanExecutionController: Could not find job \"%v\" in cluster. Good to make a new one.", key)
@@ -598,7 +612,7 @@ func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
 			if v != present.Labels[k] {
 				// Need to delete the present job since its got labels that aren't the same
 				log.Printf("PlanExecutionController: Different values for job key \"%v\": \"%v\" and \"%v\"", k, v, present.Labels[k])
-				err = r.Delete(context.TODO(), present)
+				err = r.Delete(ctx, present)
 				return err
 			}
 		}
@@ -606,7 +620,7 @@ func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
 			if v != obj.Labels[k] {
 				// Need to delete the present job since its got labels that aren't the same
 				log.Printf("PlanExecutionController: Different values for job key \"%v\": \"%v\" and \"%v\"", k, v, obj.Labels[k])
-				err = r.Delete(context.TODO(), present)
+				err = r.Delete(ctx, present)
 				return err
 			}
 		}

@@ -61,6 +61,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler.
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
+	ctx := context.TODO()
 	// Create a new controller
 	c, err := controller.New("instance-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
@@ -85,7 +86,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			// We want to query and queue up operators Instances
 			instances := &kudov1alpha1.InstanceList{}
 			err := mgr.GetClient().List(
-				context.TODO(),
+				ctx,
 				instances,
 				client.MatchingLabels(map[string]string{kudo.OperatorLabel: a.Meta.GetName()}),
 			)
@@ -144,6 +145,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
+	ctx := context.TODO()
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			old := e.ObjectOld.(*kudov1alpha1.Instance)
@@ -151,7 +153,7 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 
 			// Get the OperatorVersion that corresponds to the new instance.
 			ov := &kudov1alpha1.OperatorVersion{}
-			err := mgr.GetClient().Get(context.TODO(),
+			err := mgr.GetClient().Get(ctx,
 				types.NamespacedName{
 					Name:      new.Spec.OperatorVersion.Name,
 					Namespace: new.GetOperatorVersionNamespace(),
@@ -243,7 +245,7 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 				log.Printf("InstanceController: Going to run plan \"%v\" for instance %v", planName, new.Name)
 				// Suspend the the current plan.
 				current := &kudov1alpha1.PlanExecution{}
-				err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{Name: new.Status.ActivePlan.Name, Namespace: new.Status.ActivePlan.Namespace}, current)
+				err = mgr.GetClient().Get(ctx, client.ObjectKey{Name: new.Status.ActivePlan.Name, Namespace: new.Status.ActivePlan.Namespace}, current)
 				if err != nil {
 					log.Printf("InstanceController: Ignoring error when getting plan for new instance: %v", err)
 				} else {
@@ -253,7 +255,7 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 						log.Printf("InstanceController: Suspending the PlanExecution for instance %v", new.Name)
 						t := true
 						current.Spec.Suspend = &t
-						did, err := controllerutil.CreateOrUpdate(context.TODO(), mgr.GetClient(), current, func() error {
+						did, err := controllerutil.CreateOrUpdate(ctx, mgr.GetClient(), current, func() error {
 							t := true
 							current.Spec.Suspend = &t
 							return nil
@@ -281,7 +283,7 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 
 			// Get the instance OperatorVersion object
 			ov := &kudov1alpha1.OperatorVersion{}
-			err := mgr.GetClient().Get(context.TODO(),
+			err := mgr.GetClient().Get(ctx,
 				types.NamespacedName{
 					Name:      instance.Spec.OperatorVersion.Name,
 					Namespace: instance.GetOperatorVersionNamespace(),
@@ -318,6 +320,7 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 }
 
 func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Instance) error {
+	ctx := context.TODO()
 	gvk, _ := apiutil.GVKForObject(instance, mgr.GetScheme())
 	recorder := mgr.GetEventRecorderFor("instance-controller")
 	recorder.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" plan execution", planName))
@@ -350,7 +353,7 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 		return err
 	}
 
-	if err := mgr.GetClient().Create(context.TODO(), &planExecution); err != nil {
+	if err := mgr.GetClient().Create(ctx, &planExecution); err != nil {
 		log.Printf("InstanceController: Error creating planexecution \"%v\": %v", planExecution.Name, err)
 		recorder.Event(instance, "Warning", "CreatePlanExecution", fmt.Sprintf("Error creating planexecution \"%v\": %v", planExecution.Name, err))
 		return err
@@ -375,9 +378,10 @@ type ReconcileInstance struct {
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kudo.k8s.io,resources=instances,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	ctx := context.TODO()
 	// Fetch the Instance instance
 	instance := &kudov1alpha1.Instance{}
-	err := r.Get(context.TODO(), request.NamespacedName, instance)
+	err := r.Get(ctx, request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
@@ -392,7 +396,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	// Make sure the OperatorVersion is present
 	ov := &kudov1alpha1.OperatorVersion{}
-	err = r.Get(context.TODO(),
+	err = r.Get(ctx,
 		types.NamespacedName{
 			Name:      instance.Spec.OperatorVersion.Name,
 			Namespace: instance.GetOperatorVersionNamespace(),
