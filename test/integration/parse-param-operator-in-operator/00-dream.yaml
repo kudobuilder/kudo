@@ -24,6 +24,8 @@ spec:
       kind: Instance
       metadata:
         name: operator
+        labels:
+          kudo.dev/operator: test-operator
       spec:
         operatorVersion:
           kind: OperatorVersion
