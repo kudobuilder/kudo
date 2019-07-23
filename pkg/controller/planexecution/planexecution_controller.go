@@ -281,7 +281,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	err = populatePlanExecutionFromActivePlanDefinition(executedPlan, planExecution, instance, operatorVersion, r.recorder)
+	err = populatePlanExecution(executedPlan, planExecution, instance, operatorVersion, r.recorder)
 	if err != nil {
 		_, fatalError := err.(*fatalError)
 		if fatalError {
@@ -444,8 +444,8 @@ func (e fatalError) Error() string {
 	return fmt.Sprintf("Fatal error: %v", e.err)
 }
 
-// populatePlanExecutionFromActivePlanDefinition reads content of the Plan defined in operator version and populates PlanExecution with data from rendered templates
-func populatePlanExecutionFromActivePlanDefinition(activePlan kudov1alpha1.Plan, planExecution *kudov1alpha1.PlanExecution, instance *kudov1alpha1.Instance, operatorVersion *kudov1alpha1.OperatorVersion, recorder record.EventRecorder) error {
+// populatePlanExecution reads content of the Plan defined in operator version and populates PlanExecution with data from rendered templates
+func populatePlanExecution(activePlan kudov1alpha1.Plan, planExecution *kudov1alpha1.PlanExecution, instance *kudov1alpha1.Instance, operatorVersion *kudov1alpha1.OperatorVersion, recorder record.EventRecorder) error {
 	// Load parameters:
 
 	// Create config map to hold all parameters for instantiation
