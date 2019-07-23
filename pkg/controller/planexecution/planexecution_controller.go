@@ -435,18 +435,17 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 				}
 
 				//See if its present
-				key, _ := client.ObjectKeyFromObject(obj)
-				truth := obj.DeepCopyObject()
-				err := r.Client.Get(context.TODO(), key, truth)
 				rawObj, _ := apijson.Marshal(obj)
+				key, _ := client.ObjectKeyFromObject(obj)
+				err := r.Client.Get(context.TODO(), key, obj)
 				if err == nil {
 					log.Printf("PlanExecutionController: Object %v already exists for instance %v, going to apply patch", key, instance.Name)
 					//update
-					log.Printf("Going to apply patch\n%+v\n\n to object\n%s\n", string(rawObj), prettyPrint(truth))
+					log.Printf("Going to apply patch\n%+v\n\n to object\n%s\n", string(rawObj), prettyPrint(obj))
 					if err != nil {
 						log.Printf("Error getting patch between truth and obj: %v\n", err)
 					} else {
-						err = r.Client.Patch(context.TODO(), truth, client.ConstantPatch(types.StrategicMergePatchType, rawObj))
+						err = r.Client.Patch(context.TODO(), obj, client.ConstantPatch(types.StrategicMergePatchType, rawObj))
 						if err != nil {
 							// Right now applying a Strategic Merge Patch to custom resources does not work. There is
 							// certain metadata needed, which when missing, leads to an invalid Content-Type Header and
@@ -462,7 +461,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 							//
 							// 		Reason: "UnsupportedMediaType" Code: 415
 							if errors.IsUnsupportedMediaType(err) {
-								err = r.Client.Patch(context.TODO(), truth, client.ConstantPatch(types.MergePatchType, rawObj))
+								err = r.Client.Patch(context.TODO(), obj, client.ConstantPatch(types.MergePatchType, rawObj))
 								if err != nil {
 									log.Printf("PlanExecutionController: Error when applying merge patch to object %v for instance %v: %v", key, instance.Name, err)
 								}
@@ -488,14 +487,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					return reconcile.Result{}, err
 				}
 
-				err = r.Client.Get(context.TODO(), key, obj)
-
-				if err != nil {
-					log.Printf("PlanExecutionController: Error getting new object in step \"%v\": %v", s.Name, err)
-					planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateError
-					planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateError
-					return reconcile.Result{}, err
-				}
 				err = health.IsHealthy(r.Client, obj)
 				if err != nil {
 					log.Printf("PlanExecutionController: Obj is NOT healthy: %s", prettyPrint(obj))
