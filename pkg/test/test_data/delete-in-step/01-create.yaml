@@ -1,0 +1,25 @@
+# Delete all pods and then make sure that we can make pods with the same name but different specs (this would fail if they were
+# not deleted).
+apiVersion: kudo.k8s.io/v1alpha1
+kind: TestStep
+delete:
+- apiVersion: v1
+  kind: Pod
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello
+spec:
+  containers:
+  - image: alpine2
+    name: test
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello2
+spec:
+  containers:
+  - image: alpine2
+    name: test
