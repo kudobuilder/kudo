@@ -192,7 +192,7 @@ type ReconcilePlanExecution struct {
 // +kubebuilder:rbac:groups="",resources=events;configmaps,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets;poddisruptionbudgets.policy,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	ctx :=context.TODO()
+	ctx := context.TODO()
 	// Fetch the PlanExecution instance
 	planExecution := &kudov1alpha1.PlanExecution{}
 	err := r.Get(ctx, request.NamespacedName, planExecution)
