@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/kudobuilder/kudo/pkg/apis"
@@ -42,6 +43,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	kindConfig "sigs.k8s.io/kind/pkg/cluster/config"
 )
+
+// ensure that we only add to the scheme once.
+var schemeLock sync.Once
 
 // IsJSONSyntaxError returns true if the error is a JSON syntax error.
 func IsJSONSyntaxError(err error) bool {
@@ -230,10 +234,12 @@ func (r *RetryStatusWriter) Patch(ctx context.Context, obj runtime.Object, patch
 }
 
 // Scheme returns an initialized Kubernetes Scheme.
-// Note: it is important to cache the scheme as it should not be modified once it is in use.
 func Scheme() *runtime.Scheme {
-	apis.AddToScheme(scheme.Scheme)
-	apiextensions.AddToScheme(scheme.Scheme)
+	schemeLock.Do(func() {
+		apis.AddToScheme(scheme.Scheme)
+		apiextensions.AddToScheme(scheme.Scheme)
+	})
+
 	return scheme.Scheme
 }
 
