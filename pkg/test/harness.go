@@ -276,7 +276,8 @@ func (h *Harness) Run() {
 	}
 
 	// Install CRDs
-	crds, err := testutils.InstallManifests(context.TODO(), cl, dClient, h.TestSuite.CRDDir)
+	crdKind := testutils.NewResource("apiextensions.k8s.io/v1beta1", "CustomResourceDefinition", "", "")
+	crds, err := testutils.InstallManifests(context.TODO(), cl, dClient, h.TestSuite.CRDDir, crdKind)
 	if err != nil {
 		h.T.Fatal(err)
 	}

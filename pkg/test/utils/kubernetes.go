@@ -18,6 +18,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis"
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/pkg/errors"
 	"github.com/pmezard/go-difflib/difflib"
 	corev1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -310,7 +311,7 @@ func PrettyDiff(expected runtime.Object, actual runtime.Object) (string, error) 
 func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 	unstruct, err := runtime.DefaultUnstructuredConverter.ToUnstructured(in)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, fmt.Sprintf("erroring converting %s to unstructured", ResourceID(in)))
 	}
 
 	var converted runtime.Object
@@ -332,7 +333,7 @@ func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 
 	err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstruct, converted)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, fmt.Sprintf("erroring converting %s from unstructured", ResourceID(in)))
 	}
 
 	return converted, nil
@@ -420,19 +421,19 @@ func LoadYAML(path string) ([]runtime.Object, error) {
 			if err == io.EOF {
 				break
 			}
-			return nil, err
+			return nil, errors.Wrap(err, fmt.Sprintf("error reading yaml %s", path))
 		}
 
 		unstructuredObj := &unstructured.Unstructured{}
 		decoder := yaml.NewYAMLOrJSONDecoder(bytes.NewBuffer(data), len(data))
 
 		if err = decoder.Decode(unstructuredObj); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, fmt.Sprintf("error decoding yaml %s", path))
 		}
 
 		obj, err := ConvertUnstructured(unstructuredObj)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, fmt.Sprintf("error converting unstructured object %s (%s)", ResourceID(unstructuredObj), path))
 		}
 
 		objects = append(objects, obj)
@@ -455,7 +456,7 @@ func MatchesKind(obj runtime.Object, kinds ...runtime.Object) bool {
 }
 
 // InstallManifests recurses over ManifestsDir to install all resources defined in YAML manifests.
-func InstallManifests(ctx context.Context, client client.Client, dClient discovery.DiscoveryInterface, manifestsDir string) ([]runtime.Object, error) {
+func InstallManifests(ctx context.Context, client client.Client, dClient discovery.DiscoveryInterface, manifestsDir string, kinds ...runtime.Object) ([]runtime.Object, error) {
 	objects := []runtime.Object{}
 
 	if manifestsDir == "" {
@@ -486,6 +487,10 @@ func InstallManifests(ctx context.Context, client client.Client, dClient discove
 		}
 
 		for _, obj := range objs {
+			if len(kinds) > 0 && !MatchesKind(obj, kinds...) {
+				continue
+			}
+
 			objectKey := ObjectKey(obj)
 			if objectKey.Namespace == "" {
 				if _, _, err := Namespaced(dClient, obj, "default"); err != nil {
@@ -495,7 +500,7 @@ func InstallManifests(ctx context.Context, client client.Client, dClient discove
 
 			updated, err := CreateOrUpdate(ctx, client, obj, true)
 			if err != nil {
-				return err
+				return errors.Wrap(err, fmt.Sprintf("error creating resource %s", ResourceID(obj)))
 			}
 
 			action := "created"
