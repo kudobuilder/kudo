@@ -414,7 +414,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	// Before returning from this function, update the status
 	err = r.Update(ctx, planExecution)
 	if err != nil {
-		log.Printf("Error updating planexecution: %v: err:%v", planExecution, err)
+		log.Printf("PlanExecutionController: Error updating planexecution: %v: err:%v", planExecution, err)
 	}
 
 	return reconcile.Result{}, nil
