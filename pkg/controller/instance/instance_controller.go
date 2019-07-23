@@ -320,7 +320,6 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 }
 
 func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Instance) error {
-
 	ctx := context.TODO()
 	gvk, _ := apiutil.GVKForObject(instance, mgr.GetScheme())
 	recorder := mgr.GetEventRecorderFor("instance-controller")
