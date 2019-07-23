@@ -74,7 +74,7 @@ spec:
 
 This looks like pretty normal kubernetes yaml defining deployment and you’re right. But you can already see the KUDO templating language in action on the line referencing `{{ .Params.Replicas }}`. This will get substituted during installation by merging what is in `params.yaml` and overrides defined before install. So let’s define the last missing piece, `params.yaml`.
 
-```shell
+```yaml
 replicas:
   description: Number of replicas that should be run as part of the deployment
   default: 2
