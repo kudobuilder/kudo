@@ -65,8 +65,9 @@ func TestLoadTestSteps(t *testing.T) {
 						Delete: []kudo.ObjectReference{
 							{
 								ObjectReference: corev1.ObjectReference{
-									Kind: "Pod",
-									Name: "test",
+									APIVersion: "v1",
+									Kind:       "Pod",
+									Name:       "test",
 								},
 							},
 						},
@@ -170,31 +171,29 @@ func TestLoadTestSteps(t *testing.T) {
 			"test_data/list-pods",
 			[]Step{
 				{
-					Name:  "deployment",
+					Name:  "pod",
 					Index: 0,
 					Apply: []runtime.Object{
-						testutils.WithSpec(testutils.NewResource("apps/v1", "Deployment", "nginx-deployment", ""), map[string]interface{}{
-							"selector": map[string]interface{}{
-								"matchLabels": map[string]interface{}{
-									"app": "nginx",
-								},
-							},
-							"template": map[string]interface{}{
+						&unstructured.Unstructured{
+							Object: map[string]interface{}{
+								"apiVersion": "v1",
+								"kind":       "Pod",
 								"metadata": map[string]interface{}{
+									"name": "pod-1",
 									"labels": map[string]interface{}{
 										"app": "nginx",
 									},
 								},
 								"spec": map[string]interface{}{
-									"containers": []map[string]interface{}{
-										{
-											"name":  "nginx",
+									"containers": []interface{}{
+										map[string]interface{}{
 											"image": "nginx:1.7.9",
+											"name":  "nginx",
 										},
 									},
 								},
 							},
-						}),
+						},
 					},
 					Asserts: []runtime.Object{
 						&unstructured.Unstructured{
@@ -278,7 +277,7 @@ func TestCollectTestStepFiles(t *testing.T) {
 			map[int64][]string{
 				int64(0): {
 					"test_data/list-pods/00-assert.yaml",
-					"test_data/list-pods/00-deployment.yaml",
+					"test_data/list-pods/00-pod.yaml",
 				},
 			},
 		},

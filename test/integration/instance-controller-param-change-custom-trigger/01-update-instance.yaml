@@ -3,8 +3,5 @@ kind: Instance
 metadata:
   name: icto-custom-trigger
 spec:
-  operatorVersion:
-    name: icto-custom-trigger
-    kind: OperatorVersion
   parameters:
     foo: "new value"

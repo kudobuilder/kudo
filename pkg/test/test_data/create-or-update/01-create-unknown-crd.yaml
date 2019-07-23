@@ -1,0 +1,13 @@
+apiVersion: prow.k8s.io/v1
+kind: ProwJob
+metadata:
+  name: my-job
+spec:
+  agent: kubernetes
+  cluster: default
+  pod_spec:
+    containers:
+    - command:
+      - test
+      image: alpine
+      imagePullPolicy: Always
