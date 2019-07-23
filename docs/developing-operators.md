@@ -24,7 +24,7 @@ The `operator.yaml` is the main yaml file defining both operator metadata as the
 ### Your first KUDO operator
 First let’s create `operator.yaml` and place it in a `first-operator` folder.
 
-```shell
+```yaml
 name: "first-operator"
 version: "0.1.0"
 maintainers:
