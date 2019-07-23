@@ -333,7 +333,7 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 
 	// first lets check if there is an active plan
 	if instance.Status.ActivePlan.Namespace != "" {
-		//so you're saying there's a chance
+		// So you're saying there's a chance...
 		pe := &kudov1alpha1.PlanExecution{}
 		err := mgr.GetClient().Get(ctx, client.ObjectKey{
 			Name:      instance.Status.ActivePlan.Name,
