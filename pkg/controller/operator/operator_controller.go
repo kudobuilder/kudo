@@ -81,6 +81,7 @@ func (r *ReconcileOperator) Reconcile(request reconcile.Request) (reconcile.Resu
 	operator := &kudov1alpha1.Operator{}
 	err := r.Get(context.TODO(), request.NamespacedName, operator)
 	if err != nil {
+		log.Printf("Operator Controller: Error getting operator %v", request.NamespacedName)
 		if errors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.

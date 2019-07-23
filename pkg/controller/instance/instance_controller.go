@@ -320,6 +320,7 @@ func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
 }
 
 func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Instance) error {
+
 	ctx := context.TODO()
 	gvk, _ := apiutil.GVKForObject(instance, mgr.GetScheme())
 	recorder := mgr.GetEventRecorderFor("instance-controller")
@@ -359,6 +360,21 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 		return err
 	}
 	recorder.Event(instance, "Normal", "PlanCreated", fmt.Sprintf("PlanExecution \"%v\" created", planExecution.Name))
+
+	//update the instance with plan
+	active := &instance.Status.ActivePlan
+	log.Printf("PlanExecutionController: Updating active plan of %v", active)
+	active.Name = planExecution.Name
+	active.Kind = planExecution.Kind
+	active.Namespace = planExecution.Namespace
+	active.APIVersion = planExecution.APIVersion
+	active.UID = planExecution.UID
+	log.Printf("PlanExecutionController: Updating active plan to %v", instance.Status.ActivePlan)
+	if err := mgr.GetClient().Update(ctx, instance); err != nil {
+		log.Printf("InstanceController: Error updating Instance \"%v\": %v", instance.Name, err)
+		return err
+	}
+
 	return nil
 }
 

@@ -33,7 +33,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/util/health"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -93,7 +92,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				if err != nil {
 					log.Printf("PlanExecutionController: Error getting instance object: %v", err)
 				} else {
-					log.Printf("PlanExecutionController: Adding \"%v\" to reconcile", inst.Status.ActivePlan.Name)
+					log.Printf("PlanExecutionController: Adding \"%v\" to reconcile", inst.Status.ActivePlan)
 					requests = append(requests, reconcile.Request{
 						NamespacedName: types.NamespacedName{
 							Name:      inst.Status.ActivePlan.Name,
@@ -237,35 +236,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	if planExecution.Status.State == kudov1alpha1.PhaseStateComplete {
 		log.Printf("PlanExecutionController: PlanExecution \"%v\" has already run to completion, not processing.", planExecution.Name)
 		return reconcile.Result{}, nil
-	}
-
-	// Before returning from this function, update the status
-	defer r.Update(ctx, planExecution)
-
-	// Need to add ownerReference as the Instance.
-	if instance.Status.ActivePlan.Name == "" {
-		log.Printf("PlanExecutionController: Creating active plan for %v", planExecution.Name)
-		instance.Status.ActivePlan = corev1.ObjectReference{
-			Name:       planExecution.Name,
-			Kind:       planExecution.Kind,
-			Namespace:  planExecution.Namespace,
-			APIVersion: planExecution.APIVersion,
-			UID:        planExecution.UID,
-		}
-	} else {
-		active := instance.Status.ActivePlan
-		log.Printf("PlanExecutionController: Updating active plan of %v", active)
-		active.Name = planExecution.Name
-		active.Kind = planExecution.Kind
-		active.Namespace = planExecution.Namespace
-		active.APIVersion = planExecution.APIVersion
-		active.UID = planExecution.UID
-		log.Printf("PlanExecutionController: Updating active plan to %v", active)
-	}
-	err = r.Update(ctx, instance)
-	if err != nil {
-		r.recorder.Event(planExecution, "Warning", "UpdateError", fmt.Sprintf("Could not update the ActivePlan for (%v): %v", planExecution.Spec.Instance.Name, err))
-		log.Printf("PlanExecutionController: Upate of instance with ActivePlan errored: %v", err)
 	}
 
 	// Get associated OperatorVersion
@@ -439,6 +409,12 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	err = r.Client.Update(ctx, instance)
 	if err != nil {
 		log.Printf("Error updating instance status to %v: %v\n", instance.Status.Status, err)
+	}
+
+	// Before returning from this function, update the status
+	err = r.Update(ctx, planExecution)
+	if err != nil {
+		log.Printf("Error updating planexecution: %v: err:%v", planExecution, err)
 	}
 
 	return reconcile.Result{}, nil
