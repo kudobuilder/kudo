@@ -193,3 +193,44 @@ spec:
 		},
 	}, objs[1])
 }
+
+func TestMatchesKind(t *testing.T) {
+	tmpfile, err := ioutil.TempFile("", "test.yaml")
+	assert.Nil(t, err)
+	defer tmpfile.Close()
+
+	ioutil.WriteFile(tmpfile.Name(), []byte(`
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.7.9
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: hello
+`), 0644)
+
+	objs, err := LoadYAML(tmpfile.Name())
+	assert.Nil(t, err)
+
+	crd := NewResource("apiextensions.k8s.io/v1beta1", "CustomResourceDefinition", "", "")
+	pod := NewResource("v1", "Pod", "", "")
+	svc := NewResource("v1", "Service", "", "")
+
+	assert.False(t, MatchesKind(objs[0], crd))
+	assert.True(t, MatchesKind(objs[0], pod))
+	assert.True(t, MatchesKind(objs[0], pod, crd))
+	assert.True(t, MatchesKind(objs[0], crd, pod))
+	assert.False(t, MatchesKind(objs[0], crd, svc))
+
+	assert.True(t, MatchesKind(objs[1], crd))
+	assert.False(t, MatchesKind(objs[1], pod))
+	assert.True(t, MatchesKind(objs[1], pod, crd))
+	assert.True(t, MatchesKind(objs[1], crd, pod))
+	assert.False(t, MatchesKind(objs[1], svc, pod))
+}
