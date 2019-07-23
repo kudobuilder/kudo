@@ -78,7 +78,7 @@ func (r *ReconcileOperatorVersion) Reconcile(request reconcile.Request) (reconci
 	operatorVersion := &kudov1alpha1.OperatorVersion{}
 	err := r.Get(context.TODO(), request.NamespacedName, operatorVersion)
 	if err != nil {
-		log.Printf("OperatorVersion Controller: Error getting operator %v", request.NamespacedName)
+		log.Printf("OperatorVersionController: Error getting operator %v", request.NamespacedName)
 		if errors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
