@@ -47,7 +47,7 @@ In order to ensure that contributors to the KUDO project have a good experience,
 
 ## Proposal
 
-A Prow cluster will be deployed in Kubernetes for running CI and PR/issue automation. This cluster lives at https://prow.toolsinfra.mesosphe.re/ and will take action on Github as the `ci-mergebot` user. KEP-0004 outlines the infrastructure required.
+A Prow cluster will be deployed in Kubernetes for running CI and PR/issue automation. This cluster lives at https://prow.kudo.dev/ and will take action on Github as the `ci-mergebot` user. KEP-0004 outlines the infrastructure required.
 
 ### Issues and pull requests
 
