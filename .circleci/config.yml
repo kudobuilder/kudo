@@ -7,10 +7,6 @@ jobs:
     machine: true
     steps:
       - checkout
-      - run: |
-          git config user.name "Circle CI"
-          git config user.email "kudobuilder@gmail.com"
-          git merge -m "Merge Commit" origin/master
       - run: ./test/run_tests.sh
   release:
     docker:
@@ -33,10 +29,6 @@ jobs:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
 
-      - run: |
-          git config user.name "Circle CI"
-          git config user.email "kudobuilder@gmail.com"
-          git merge -m "Merge Commit" origin/master
       - run: make check-formatting
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
@@ -45,7 +37,7 @@ jobs:
             - "/go/bin"
 workflows:
   version: 2
-  formatting:
+  test:
     jobs:
       - code-formatting
       - test

@@ -37,7 +37,7 @@ var (
 func newTestCmd() *cobra.Command {
 	configPath := ""
 	crdDir := ""
-	manifestsDir := ""
+	manifestsDir := []string{}
 	testToRun := ""
 	startControlPlane := false
 	startKIND := false
@@ -103,7 +103,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 			}
 
 			if isSet(flags, "manifests-dir") {
-				options.ManifestsDir = manifestsDir
+				options.ManifestsDirs = manifestsDir
 			}
 
 			if isSet(flags, "start-control-plane") {
@@ -175,7 +175,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 
 	testCmd.Flags().StringVar(&configPath, "config", "", "Path to file to load test settings from (must not be set with any other arguments).")
 	testCmd.Flags().StringVar(&crdDir, "crd-dir", "", "Directory to load CustomResourceDefinitions from prior to running the tests.")
-	testCmd.Flags().StringVar(&manifestsDir, "manifests-dir", "", "A directory containing manifests to apply before running the tests.")
+	testCmd.Flags().StringSliceVar(&manifestsDir, "manifests-dir", []string{}, "A directory containing manifests to apply before running the tests.")
 	testCmd.Flags().StringVar(&testToRun, "test", "", "If set, the specific test case to run.")
 	testCmd.Flags().BoolVar(&startControlPlane, "start-control-plane", false, "Start a local Kubernetes control plane for the tests (requires etcd and kube-apiserver binaries, cannot be used with --start-kind).")
 	testCmd.Flags().BoolVar(&startKIND, "start-kind", false, "Start a KIND cluster for the tests (cannot be used with --start-control-plane).")

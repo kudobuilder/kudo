@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/kudobuilder/kudo/pkg/apis"
@@ -31,15 +32,21 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
 	fakediscovery "k8s.io/client-go/discovery/fake"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	coretesting "k8s.io/client-go/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	kindConfig "sigs.k8s.io/kind/pkg/cluster/config"
 )
+
+// ensure that we only add to the scheme once.
+var schemeLock sync.Once
 
 // IsJSONSyntaxError returns true if the error is a JSON syntax error.
 func IsJSONSyntaxError(err error) bool {
@@ -105,7 +112,9 @@ func Retry(ctx context.Context, fn func(context.Context) error, errValidationFun
 
 // RetryClient implements the Client interface, with retries built in.
 type RetryClient struct {
-	Client client.Client
+	Client    client.Client
+	dynamic   dynamic.Interface
+	discovery discovery.DiscoveryInterface
 }
 
 // RetryStatusWriter implements the StatusWriter interface, with retries built in.
@@ -115,8 +124,18 @@ type RetryStatusWriter struct {
 
 // NewRetryClient initializes a new Kubernetes client that automatically retries on network-related errors.
 func NewRetryClient(cfg *rest.Config, opts client.Options) (*RetryClient, error) {
+	dynamicClient, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	discovery, err := discovery.NewDiscoveryClientForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	client, err := client.New(cfg, opts)
-	return &RetryClient{Client: client}, err
+	return &RetryClient{Client: client, dynamic: dynamicClient, discovery: discovery}, err
 }
 
 // Create saves the object obj in the Kubernetes cluster.
@@ -167,6 +186,31 @@ func (r *RetryClient) List(ctx context.Context, list runtime.Object, opts ...cli
 	}, IsJSONSyntaxError)
 }
 
+// Watch watches a specific object and returns all events for it.
+func (r *RetryClient) Watch(ctx context.Context, obj runtime.Object) (watch.Interface, error) {
+	meta, err := meta.Accessor(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	gvk := obj.GetObjectKind().GroupVersionKind()
+
+	groupResources, err := restmapper.GetAPIGroupResources(r.discovery)
+	if err != nil {
+		return nil, err
+	}
+
+	mapping, err := restmapper.NewDiscoveryRESTMapper(groupResources).RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.dynamic.Resource(mapping.Resource).Watch(metav1.SingleObject(metav1.ObjectMeta{
+		Name:      meta.GetName(),
+		Namespace: meta.GetNamespace(),
+	}))
+}
+
 // Status returns a client which can update status subresource for kubernetes objects.
 func (r *RetryClient) Status() client.StatusWriter {
 	return &RetryStatusWriter{
@@ -192,8 +236,11 @@ func (r *RetryStatusWriter) Patch(ctx context.Context, obj runtime.Object, patch
 
 // Scheme returns an initialized Kubernetes Scheme.
 func Scheme() *runtime.Scheme {
-	apis.AddToScheme(scheme.Scheme)
-	apiextensions.AddToScheme(scheme.Scheme)
+	schemeLock.Do(func() {
+		apis.AddToScheme(scheme.Scheme)
+		apiextensions.AddToScheme(scheme.Scheme)
+	})
+
 	return scheme.Scheme
 }
 
@@ -278,8 +325,6 @@ func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 		converted = &kudo.TestAssert{}
 	} else if group == "kudo.k8s.io" && kind == "TestSuite" {
 		converted = &kudo.TestSuite{}
-	} else if group == "apiextensions.k8s.io" && kind == "CustomResourceDefinition" {
-		converted = &apiextensions.CustomResourceDefinition{}
 	} else if group == "kind.sigs.k8s.io" && kind == "Cluster" {
 		converted = &kindConfig.Cluster{}
 	} else {
@@ -311,15 +356,13 @@ func PatchObject(actual, expected runtime.Object) error {
 	return nil
 }
 
-// MarshalObject marshals a Kubernetes object to a YAML string.
-func MarshalObject(o runtime.Object, w io.Writer) error {
-	encoder := json.NewYAMLSerializer(json.DefaultMetaFactory, nil, nil)
-
+// CleanObjectForMarshalling removes unnecessary object metadata that should not be included in serialization and diffs.
+func CleanObjectForMarshalling(o runtime.Object) (runtime.Object, error) {
 	copied := o.DeepCopyObject()
 
 	meta, err := meta.Accessor(copied)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	meta.SetResourceVersion("")
@@ -337,7 +380,27 @@ func MarshalObject(o runtime.Object, w io.Writer) error {
 		meta.SetAnnotations(nil)
 	}
 
-	return encoder.Encode(copied, w)
+	return copied, nil
+}
+
+// MarshalObject marshals a Kubernetes object to a YAML string.
+func MarshalObject(o runtime.Object, w io.Writer) error {
+	copied, err := CleanObjectForMarshalling(o)
+	if err != nil {
+		return err
+	}
+
+	return json.NewYAMLSerializer(json.DefaultMetaFactory, nil, nil).Encode(copied, w)
+}
+
+// MarshalObjectJSON marshals a Kubernetes object to a JSON string.
+func MarshalObjectJSON(o runtime.Object, w io.Writer) error {
+	copied, err := CleanObjectForMarshalling(o)
+	if err != nil {
+		return err
+	}
+
+	return json.NewSerializer(json.DefaultMetaFactory, nil, nil, false).Encode(copied, w)
 }
 
 // LoadYAML loads all objects from a YAML file.
@@ -377,6 +440,19 @@ func LoadYAML(path string) ([]runtime.Object, error) {
 	}
 
 	return objects, nil
+}
+
+// MatchesKind returns true if the Kubernetes kind of obj matches any of kinds.
+func MatchesKind(obj runtime.Object, kinds ...runtime.Object) bool {
+	gvk := obj.GetObjectKind().GroupVersionKind()
+
+	for _, kind := range kinds {
+		if kind.GetObjectKind().GroupVersionKind() == gvk {
+			return true
+		}
+	}
+
+	return false
 }
 
 // InstallManifests recurses over ManifestsDir to install all resources defined in YAML manifests.
@@ -615,8 +691,13 @@ func GetAPIResource(dClient discovery.DiscoveryInterface, gvk schema.GroupVersio
 // WaitForCRDs waits for the provided CRD types to be available in the Kubernetes API.
 func WaitForCRDs(dClient discovery.DiscoveryInterface, crds []runtime.Object) error {
 	waitingFor := []schema.GroupVersionKind{}
+	crdKind := NewResource("apiextensions.k8s.io/v1beta1", "CustomResourceDefinition", "", "")
 
 	for _, crdObj := range crds {
+		if !MatchesKind(crdObj, crdKind) {
+			continue
+		}
+
 		crd, ok := crdObj.(*apiextensions.CustomResourceDefinition)
 		if !ok {
 			continue
@@ -641,11 +722,18 @@ func WaitForCRDs(dClient discovery.DiscoveryInterface, crds []runtime.Object) er
 	})
 }
 
+// Client is the controller-runtime Client interface with an added Watch method.
+type Client interface {
+	client.Client
+	// Watch watches a specific object and returns all events for it.
+	Watch(ctx context.Context, obj runtime.Object) (watch.Interface, error)
+}
+
 // TestEnvironment is a struct containing the envtest environment, Kubernetes config and clients.
 type TestEnvironment struct {
 	Environment     *envtest.Environment
 	Config          *rest.Config
-	Client          client.Client
+	Client          Client
 	DiscoveryClient discovery.DiscoveryInterface
 }
 

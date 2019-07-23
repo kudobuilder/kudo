@@ -116,19 +116,22 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					})
 				}
 			}
-			log.Printf("Found %v instances to reconcile", len(requests))
+			log.Printf("InstanceController: Found %v instances to reconcile for operator %v", len(requests), a.Meta.GetName())
 			return requests
 		})
 
 	// This map function makes sure that we *ONLY* handle created operatorVersion
 	ovPredicate := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
+			log.Printf("InstanceController: Received create event for: %v", e.Meta.GetName())
 			return true
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
+			log.Printf("InstanceController: Received update event for: %v", e.MetaNew.GetName())
 			return false
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
+			log.Printf("InstanceController: Received delete event for: %v", e.Meta.GetName())
 			return false
 		},
 	}
