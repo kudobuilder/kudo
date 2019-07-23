@@ -17,9 +17,9 @@ Before you get started:
 
 ## Install KUDO into your cluster
 
-- `kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/master/docs/deployment/00-prereqs.yaml`
-- `kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/master/docs/deployment/10-crds.yaml`
-- `kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/master/docs/deployment/20-deployment.yaml`
+- `kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.3.3/docs/deployment/00-prereqs.yaml`
+- `kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.3.3/docs/deployment/10-crds.yaml`
+- `kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.3.3/docs/deployment/20-deployment.yaml`
 
 If you want to use the KUDO kubectl plugin, you can now follow the [CLI plugin installation instructions](https://kudo.dev/docs/cli/).
 
