@@ -475,11 +475,11 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					log.Printf("PlanExecutionController: Object %v does not exist, going to create new object for instance %v", key, instance.Name)
 					err = r.Client.Create(context.TODO(), obj)
 					if err != nil {
-            log.Printf("PlanExecutionController: Error when creating object %v: %v", s.Name, err)
+						log.Printf("PlanExecutionController: Error when creating object %v: %v", s.Name, err)
 						planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateError
 						planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateError
-            
-            return reconcile.Result{}, err
+
+						return reconcile.Result{}, err
 					}
 				}
 
