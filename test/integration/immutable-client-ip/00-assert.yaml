@@ -1,14 +1,14 @@
 apiVersion: kudo.k8s.io/v1alpha1
 kind: Instance
 metadata:
-  name: my-instance
+  name: immutable-client-ip-instance
 status:
   status: COMPLETE
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: my-instance-svc
+  name: immutable-client-ip-instance-svc
 spec:
   type: ClusterIP
   ports:
