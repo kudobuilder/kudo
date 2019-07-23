@@ -80,6 +80,6 @@ replicas:
   default: 2
 ```
 
-Now your first operator is ready and you can install it to cluster. You can do it by invoking `kubectl kudo install ./first-operator` where `./first-operator` is relative path to the folder containing your operator. To do this you need CLI installed - follow instructions here.
+Now your first operator is ready and you can install it to cluster. You can do it by invoking `kubectl kudo install ./first-operator` where `./first-operator` is relative path to the folder containing your operator. To do this you need KUDO CLI installed - [follow the instructions here](https://kudo.dev/docs/cli/).
 
 For simplicity if you want to install what we created here without actually replicating it on your filesystem your can just clone KUDO repository and then run `kubectl kudo install ./config/samples/first-operator`.
