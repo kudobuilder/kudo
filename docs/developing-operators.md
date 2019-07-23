@@ -50,7 +50,7 @@ As you can see we have operator with just one plan - deploy, with one phase and 
 
 You can see that the step `nginx` references `deployment.yaml`. KUDO automatically expects this file to exist inside `templates` folder. So let’s create `templates/deployment.yaml`.
 
-```shell
+```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
