@@ -5,8 +5,5 @@ metadata:
   labels:
     operator: service-operator
 spec:
-  operatorVersion:
-    name: service-operator
-    kind: OperatorVersion
   parameters:
     LABEL: "hello"
