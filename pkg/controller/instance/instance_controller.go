@@ -134,7 +134,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		},
 	}
 
-	if err = c.Watch(&source.Kind{Type: &kudov1alpha1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: operatorVersionEventHandler}, operatorVersionEventFilter); err != nil {
+	if err = c.Watch(&source.Kind{Type: &kudov1alpha1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: ovEventHandler}, ovEventFilter); err != nil {
 		return err
 	}
 
