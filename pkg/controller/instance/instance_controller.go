@@ -79,7 +79,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	//
 	// Define a mapping from the object in the event (OperatorVersion) to one or more objects to
 	// reconcile (Instances). Specifically this calls for a reconciliation of any owned objects.
-	operatorVersionEventHandler := handler.ToRequestsFunc(
+	ovEventHandler := handler.ToRequestsFunc(
 		func(a handler.MapObject) []reconcile.Request {
 			requests := make([]reconcile.Request, 0)
 			// We want to query and queue up operators Instances
