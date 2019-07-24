@@ -331,7 +331,7 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 		Namespace: instance.Namespace,
 	}
 
-	// first lets check if there is an active plan
+	// First lets check if there is an active plan
 	if instance.Status.ActivePlan.Namespace != "" {
 		// So you're saying there's a chance...
 		pe := &kudov1alpha1.PlanExecution{}
@@ -387,7 +387,7 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 		log.Printf("InstanceController: Error updating Instance \"%v\": %v", instance.Name, err)
 		return err
 	}
-
+recorder.Event(instance, "Normal", "PlanUpdated", fmt.Sprintf("Updating active plan %s to %s", active, instance.Status.ActivePlan))
 	return nil
 }
 

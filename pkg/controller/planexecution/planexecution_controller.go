@@ -408,7 +408,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	instance.Status.Status = planExecution.Status.State
 	err = r.Client.Update(ctx, instance)
 	if err != nil {
-		log.Printf("Error updating instance status to %v: %v\n", instance.Status.Status, err)
+		log.Printf("PlanExecutionController: Error updating instance status to %v: %v\n", instance.Status.Status, err)
 	}
 
 	// Before returning from this function, update the status
