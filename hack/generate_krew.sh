@@ -53,3 +53,5 @@ generate_platform darwin amd64 >> kudo.yaml
 generate_platform darwin 386 >> kudo.yaml
 generate_platform windows amd64 >> kudo.yaml
 generate_platform windows 386 >> kudo.yaml
+
+echo "To publish to the krew index, create a pull request to https://github.com/kubernetes-sigs/krew-index/tree/master/plugins to update kudo.yaml with the newly generated kudo.yaml."
