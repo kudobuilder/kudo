@@ -332,14 +332,15 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 	}
 
 	// First lets check if there is an active plan
-	if instance.Status.ActivePlan.Namespace != "" {
+	// A Valid (non-empty) ActivePlan always has a Name.  If there is a name, then fetch the PlanExecution
+	if instance.Status.ActivePlan.Name != "" {
 		// So you're saying there's a chance...
 		pe := &kudov1alpha1.PlanExecution{}
 		err := mgr.GetClient().Get(ctx, client.ObjectKey{
 			Name:      instance.Status.ActivePlan.Name,
 			Namespace: instance.Status.ActivePlan.Namespace,
 		}, pe)
-		if err == nil && pe != nil {
+		if err == nil { // we found one, `Get` returns err on not found
 			log.Printf("InstanceController: Skipping createPlan as the plan was found.")
 			return nil
 		}
@@ -375,19 +376,19 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 	recorder.Event(instance, "Normal", "PlanCreated", fmt.Sprintf("PlanExecution \"%v\" created", planExecution.Name))
 
 	//update the instance with plan
+	oldPlan := instance.Status.ActivePlan
 	active := &instance.Status.ActivePlan
-	log.Printf("PlanExecutionController: Updating active plan of %v", active)
 	active.Name = planExecution.Name
 	active.Kind = planExecution.Kind
 	active.Namespace = planExecution.Namespace
 	active.APIVersion = planExecution.APIVersion
 	active.UID = planExecution.UID
-	log.Printf("PlanExecutionController: Updating active plan to %v", instance.Status.ActivePlan)
+	log.Printf("PlanExecutionController: Updating active plan from %v to %v", oldPlan, instance.Status.ActivePlan)
 	if err := mgr.GetClient().Update(ctx, instance); err != nil {
 		log.Printf("InstanceController: Error updating Instance \"%v\": %v", instance.Name, err)
 		return err
 	}
-recorder.Event(instance, "Normal", "PlanUpdated", fmt.Sprintf("Updating active plan %s to %s", active, instance.Status.ActivePlan))
+	recorder.Event(instance, "Normal", "PlanUpdated", fmt.Sprintf("Updating active plan %s to %s", oldPlan, instance.Status.ActivePlan))
 	return nil
 }
 
