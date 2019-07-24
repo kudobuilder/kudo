@@ -40,9 +40,9 @@ spec:
   shortDescription: KUDO CLI
   homepage: https://kudo.dev/
   description: |
-    This plugin shows all environment variables that get injected when
-    launching a program as a plugin. You can use this field for longer
-    description and example usages.
+    The Kubernetes Universal Declarative Operator (KUDO) is a highly productive toolkit for writing operators for Kubernetes.
+    Using KUDO, you can deploy your applications, give your users the tools they need to operate it, and understand how it's
+    behaving in their environments — all without a PhD in Kubernetes. 
 
   platforms:
 EOF
