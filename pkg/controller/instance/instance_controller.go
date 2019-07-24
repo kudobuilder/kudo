@@ -69,7 +69,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to Instance
-	if err = c.Watch(&source.Kind{Type: &kudov1alpha1.Instance{}}, &handler.EnqueueRequestForObject{}, instanceEventPredicateFunc(mgr)); err != nil {
+	if err = c.Watch(&source.Kind{Type: &kudov1alpha1.Instance{}}, &handler.EnqueueRequestForObject{}, instanceEventFilter(mgr)); err != nil {
 		return err
 	}
 
@@ -80,7 +80,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	//
 	// Define a mapping from the object in the event (OperatorVersion) to one or more objects to
 	// reconcile (Instances). Specifically this calls for a reconciliation of any owned objects.
-	ovMapFn := handler.ToRequestsFunc(
+	ovEventHandler := handler.ToRequestsFunc(
 		func(a handler.MapObject) []reconcile.Request {
 			requests := make([]reconcile.Request, 0)
 			// We want to query and queue up operators Instances
@@ -122,29 +122,27 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		})
 
 	// This map function makes sure that we *ONLY* handle created operatorVersion
-	ovPredicate := predicate.Funcs{
+	ovEventFilter := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
 			log.Printf("InstanceController: Received create event for: %v", e.Meta.GetName())
 			return true
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			log.Printf("InstanceController: Received update event for: %v", e.MetaNew.GetName())
 			return false
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			log.Printf("InstanceController: Received delete event for: %v", e.Meta.GetName())
 			return false
 		},
 	}
 
-	if err = c.Watch(&source.Kind{Type: &kudov1alpha1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: ovMapFn}, ovPredicate); err != nil {
+	if err = c.Watch(&source.Kind{Type: &kudov1alpha1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: ovEventHandler}, ovEventFilter); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func instanceEventPredicateFunc(mgr manager.Manager) predicate.Funcs {
+func instanceEventFilter(mgr manager.Manager) predicate.Funcs {
 	ctx := context.TODO()
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
