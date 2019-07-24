@@ -1,0 +1,14 @@
+# Verify that the pods were created.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello
+status:
+  phase: Pending
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello2
+status:
+  phase: Pending

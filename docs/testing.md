@@ -117,16 +117,18 @@ kind: TestStep
 delete:
 - name: my-pod
   kind: Pod
-  version: v1
+  apiVersion: v1
 - kind: Pod
-  version: v1
+  apiVersion: v1
   labels:
     app: nginx
+- kind: Pod
+  apiVersion: v1
 ```
 
 The test harness will delete for each resource referenced in the delete list and wait for them to disappear from the API. If the object fails to delete, the test step will fail.
 
-In the first delete example, the `Pod` called `my-pod` will be deleted. In the second, all `Pods` matching the `app=nginx` label will be deleted.
+In the first delete example, the `Pod` called `my-pod` will be deleted. In the second, all `Pods` matching the `app=nginx` label will be deleted. In the third example, all pods in the namespace would be deleted.
 
 #### Test assertions
 
