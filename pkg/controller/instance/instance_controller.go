@@ -84,10 +84,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			requests := make([]reconcile.Request, 0)
 			// We want to query and queue up operators Instances
 			instances := &kudov1alpha1.InstanceList{}
+			// we are listing all instances here, which could come with some performance penalty
+			// a possible optimization is to introduce filtering based on operatorversion (or operator)
 			err := mgr.GetClient().List(
 				context.TODO(),
 				instances,
-				client.MatchingLabels(map[string]string{kudo.OperatorLabel: a.Meta.GetName()}),
 			)
 
 			if err != nil {
