@@ -121,7 +121,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		})
 
 	// This map function makes sure that we *ONLY* handle created operatorVersion
-	operatorVersionEventFilter := predicate.Funcs{
+	ovEventFilter := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
 			log.Printf("InstanceController: Received create event for: %v", e.Meta.GetName())
 			return true
