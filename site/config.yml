@@ -3,4 +3,5 @@
 baseURL: https://kudo.dev/
 title: "The Kubernetes Universal Declarative Operator"
 disableKinds: ["taxonomy", "taxonomyTerm"]
+
 # themesDir: ../..
