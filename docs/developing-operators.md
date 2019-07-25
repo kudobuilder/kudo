@@ -84,6 +84,75 @@ Now your first operator is ready and you can install it to cluster. You can do i
 
 For simplicity if you want to install what we created here without actually replicating it on your filesystem your can just clone KUDO repository and then run `kubectl kudo install ./config/samples/first-operator`.
 
+## Operator.yaml file
+
+This is the main piece of every operator. It consists of two main parts. First one defines metadata about your operator.
+
+```yaml
+name: operator
+description: my first super awesome operator
+version: "5.7"
+kudoVersion: ">= 0.2.0"
+kubeVersion: ">= 1.14"
+maintainers:
+  - Bob <bob@example.com>
+  - Alice <alice@example.com>
+url: https://github.com/myoperator/myoperator
+```
+
+Most of these are provided as a form of documentation. `kudoVersion` and `kubeVersion` use semver constraints to define minimal or maximal version of kubernetes or kudo that this operator supports. Under the hood, we use [this library](https://github.com/Masterminds/semver) to evaluate the constraints.
+
+### Tasks section
+
+Another part of `operator.yaml` is tasks section. Tasks are the smallest pieces of work that get executed together. You usually group kubernetes manifests that should be applied at once into one task. An example can be a deploy task that will result in config.yaml and pod.yaml being applied to your cluster.
+
+```yaml
+tasks:
+  deploy-task:
+    resources:
+      - config.yaml
+      - pod.yaml
+```
+
+### Plans section
+
+Plans orchestrate tasks through `phases` and `steps`.
+
+Each Plan is a tree with a fixed three-level hierarchy of the plan itself, its phases, and then steps within those phases. The choice of three levels was arbitrarily chosen as “enough levels for anybody”. This three-level hierarchy can look as follows:
+
+```text
+Plan foo
+├─ Phase bar
+│  ├─ Step qux
+│  └─ Step quux
+└─ Phase baz
+   ├─ Step quuz
+   ├─ Step corge
+   └─ Step grault
+```
+
+
+Plans consists of one or more `phases`. `Phases` consists of one or more `steps`. `Steps` contain one or more `tasks` (those are defined in the section we talked about in the last paragraph). Both phases and also steps can be configured with an execution `strategy`, either `serial` or `parallel`.
+
+The sample has a `deploy` plan with a `deploy-phase` and a `deploy-step`. From the `deploy-step` the `deploy-task` is referenced. This task gets executed when an instance is created using the operator.
+
+At the same time, `deploy` plan is the most important plan within your operator because that is the default plan that every operator has to have and also plan that gets executed when you install instance of your operator into the cluster. Another important plans that you might consider having is `update` (run when instance metadata is updated) or `upgrade` (run when instance is upgraded from one version of oprator to another). If you don't provide `update` and/or `upgrade` plans for your operator, the fallback is always deploy.
+ 
+```yaml
+plans:
+  deploy:
+    strategy: serial
+    phases:
+      - name: deploy-phase
+        strategy: parallel
+        steps:
+          - name: deploy-step
+            tasks:
+              - deploy-task
+```
+
+Plans allow operators to see what the operator is currently doing, and to visualize the broader operation such as for a config rollout. The fixed structure of that information meanwhile makes it straightforward to build UIs and tooling on top.
+
 ## Params file
 
 `params.yaml` defines all parameters that can customize your operator installation. You have to define name of the parameter and optionally a default value. If not specified otherwise, all parameters in this list are treated as required parameters and a parameter not having a default value must have value provided during installation otherwise the installation will fail.
@@ -147,3 +216,6 @@ spec:
     instance: {{ .Name }}
 ```
 
+## Testing your operator
+
+You should aim for your operators being tested for day 1. To help you with testing your operator, we have developed a tool called test harness (it's also what we use to test KUDO itself). For more information please go to [test harness documentation](docs/testing.md).

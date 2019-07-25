@@ -34,3 +34,7 @@ minikube start --cpus=4 --memory=8192 --disk-size=40g
 ## Deploy your first Operator
 
 Follow the instructions in the [Apache Kafka example](/docs/examples/apache-kafka/) to deploy a Kafka cluster along with its dependency Zookeeper.
+
+## Create your first operator
+
+To see the powers of KUDO unleashed in full, you should try [creating your own operator](/docs/developing-operators.md). 
