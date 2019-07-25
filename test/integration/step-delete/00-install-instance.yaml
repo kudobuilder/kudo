@@ -44,6 +44,8 @@ apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
   name: step-delete-instance
+  labels:
+    kudo.dev/operator: job-operator
 spec:
   operatorVersion:
     name: job-operator
