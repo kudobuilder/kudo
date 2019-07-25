@@ -1,18 +1,18 @@
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
   name: racy-instance
 status:
   status: COMPLETE
 ---
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: PlanExecution
 metadata:
   labels:
     kudo.dev/operator-version: racy-operator
     kudo.dev/instance: racy-instance
   ownerReferences:
-  - apiVersion: kudo.k8s.io/v1alpha1
+  - apiVersion: kudo.dev/v1alpha1
     kind: Instance
     name: racy-instance
 status:

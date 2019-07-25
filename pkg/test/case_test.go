@@ -31,7 +31,7 @@ func TestLoadTestSteps(t *testing.T) {
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "TestStep",
-							APIVersion: "kudo.k8s.io/v1alpha1",
+							APIVersion: "kudo.dev/v1alpha1",
 						},
 						Index: 0,
 					},
@@ -59,7 +59,7 @@ func TestLoadTestSteps(t *testing.T) {
 					Step: &kudo.TestStep{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "TestStep",
-							APIVersion: "kudo.k8s.io/v1alpha1",
+							APIVersion: "kudo.dev/v1alpha1",
 						},
 						Index: 1,
 						Delete: []kudo.ObjectReference{
@@ -75,7 +75,7 @@ func TestLoadTestSteps(t *testing.T) {
 					Assert: &kudo.TestAssert{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "TestAssert",
-							APIVersion: "kudo.k8s.io/v1alpha1",
+							APIVersion: "kudo.dev/v1alpha1",
 						},
 						Timeout: 20,
 					},
@@ -134,7 +134,7 @@ func TestLoadTestSteps(t *testing.T) {
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "TestStep",
-							APIVersion: "kudo.k8s.io/v1alpha1",
+							APIVersion: "kudo.dev/v1alpha1",
 						},
 						Index: 3,
 					},

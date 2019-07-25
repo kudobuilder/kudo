@@ -17,7 +17,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - kudo.k8s.io
+  - kudo.dev
   resources:
   - instances
   verbs:
@@ -41,7 +41,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - kudo.k8s.io
+  - kudo.dev
   resources:
   - operators
   verbs:
@@ -65,7 +65,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - kudo.k8s.io
+  - kudo.dev
   resources:
   - operatorversions
   verbs:
@@ -90,7 +90,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - kudo.k8s.io
+  - kudo.dev
   resources:
   - planexecutions
   - instances

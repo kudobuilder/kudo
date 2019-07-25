@@ -322,11 +322,11 @@ func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 	kind := in.GetObjectKind().GroupVersionKind().Kind
 	group := in.GetObjectKind().GroupVersionKind().Group
 
-	if group == "kudo.k8s.io" && kind == "TestStep" {
+	if group == "kudo.dev" && kind == "TestStep" {
 		converted = &kudo.TestStep{}
-	} else if group == "kudo.k8s.io" && kind == "TestAssert" {
+	} else if group == "kudo.dev" && kind == "TestAssert" {
 		converted = &kudo.TestAssert{}
-	} else if group == "kudo.k8s.io" && kind == "TestSuite" {
+	} else if group == "kudo.dev" && kind == "TestSuite" {
 		converted = &kudo.TestSuite{}
 	} else if group == "kind.sigs.k8s.io" && kind == "Cluster" {
 		converted = &kindConfig.Cluster{}

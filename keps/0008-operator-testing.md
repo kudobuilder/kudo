@@ -145,10 +145,8 @@ type TestSuite struct {
 
 	// Path to CRDs to install before running tests.
 	CRDDir            string
-	// Path to manifests to install before running tests.
-	ManifestsDir      string
-	// Paths to manifests to install before running tests.
-	ManifestsDirs     []string `json:"manifestsDirs"`
+	// Paths to directories containing manifests to install before running tests.
+	ManifestDirs      []string
 	// Directories containing test cases to run.
 	TestDirs          []string
 	// Whether or not to start a local etcd and kubernetes API server for the tests (cannot be set with StartKIND
@@ -236,7 +234,7 @@ When searching a test step file, if a `TestStep` object is found, it includes se
 
 ```
 type TestStep struct {
-    // The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestStep.
+    // The type meta object, should always be a GVK of kudo.dev/v1alpha1/TestStep.
     TypeMeta
     // Override the default metadata. Set labels or override the test step name.
     ObjectMeta
@@ -306,7 +304,7 @@ When searching the assertion file for a test step, if a `TestAssert` object is f
 
 ```
 type TestAssert struct {
-    // The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestAssert.
+    // The type meta object, should always be a GVK of kudo.dev/v1alpha1/TestAssert.
     TypeMeta
     // Override the default timeout of 30 seconds (in seconds).
     Timeout int

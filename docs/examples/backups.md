@@ -17,9 +17,9 @@ Create an instance of MySQL using the provided sample Operator:
 
 ```bash
 $ kubectl apply -f config/samples/mysql.yaml
-operator.kudo.k8s.io/mysql created
-operatorversion.kudo.k8s.io/mysql-57 created
-instance.kudo.k8s.io/mysql created
+operator.kudo.dev/mysql created
+operatorversion.kudo.dev/mysql-57 created
+instance.kudo.dev/mysql created
 ```
 
 Query the database to show its schema:
@@ -45,7 +45,7 @@ Define and execute a custom plan in order to take a backup:
 
 ```bash
 cat <<EOF | kubectl apply -f -
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: PlanExecution
 metadata:
   labels:
@@ -75,7 +75,7 @@ Similar to the backup step, define and execute the restore:
 
 ```bash
 cat <<EOF | kubectl apply -f -
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: PlanExecution
 metadata:
   labels:
