@@ -2,7 +2,7 @@
 
 # This script generates a Krew-compatible plugin manifest. It should be run after goreleaser.
 
-VERSION=$(git describe --tags |sed 's/^v//g')
+VERSION=${VERSION:-$(git describe --tags |sed 's/^v//g')}
 
 # Generate the manifest for a single platform.
 function generate_platform {
@@ -19,7 +19,7 @@ function generate_platform {
         os: "${1}"
         arch: "${2}"
     uri: https://github.com/kudobuilder/kudo/releases/download/v${VERSION}/kudo_${VERSION}_${1}_${ARCH}.tar.gz
-    sha256: "$(sha256sum dist/kudo_${VERSION}_${1}_${ARCH}.tar.gz |awk '{print $1}')"
+    sha256: "$(curl -L https://github.com/kudobuilder/kudo/releases/download/v${VERSION}/kudo_${VERSION}_${1}_${ARCH}.tar.gz |sha256sum - |awk '{print $1}')"
     bin: "./kubectl-kudo"
     files:
     - from: "*"
