@@ -1,5 +1,5 @@
 ---
-kep-number: draft-14
+kep-number: draft-15
 title: repo
 authors:
   - "@kensipe"
@@ -15,7 +15,21 @@ status: draft
 
 ## Table of Contents
 
-# TODO(kgs)
+* [Repository Management](#repository-management)
+      * [Table of Contents](#table-of-contents)
+      * [Summary](#summary)
+      * [Motivation](#motivation)
+         * [Goals](#goals)
+         * [Non-Goals](#non-goals)
+      * [Proposal](#proposal)
+         * [Create Operator Tarball](#create-operator-tarball)
+         * [Create Repository Index](#create-repository-index)
+         * [Create Local Respository](#create-local-respository)
+         * [Update a Repository](#update-a-repository)
+         * [CLI Repository Help](#cli-repository-help)
+         * [User Stories](#user-stories)
+         * [Risks and Mitigations](#risks-and-mitigations)
+      * [Graduation Criteria](#graduation-criteria)
 
 ## Summary
 
@@ -45,10 +59,7 @@ We need a way for the operator author to update a repository with his/her operat
 
 ### Non-Goals
 
-- (currently) Manage repos of non-KUDO applications (e.g. Helm Charts)
-- Convert non-KUDO applications into KUDO format
-- Create a plugin system to upload new templating engines. Must be present in core KUDO codebase (for now)
-- Adjusting the capabilities of Parameters to support non-string values
+- Manage repos of non-KUDO applications (e.g. Helm Charts)
 - External formats defined by [KEP0013](keps/0013-external-specs.md)
 - Repository cacheing
 
@@ -88,11 +99,10 @@ Inspired by Helm, KUDO needs a way to take a repository index and merge it with 
 - Allow running of a CNAB bundle as a KUDO Operator
 - Allow the running of an Operator as a KUDO Operator
 
-### Promotion Rules
-
-We need to define the rules for promoting incubator operators to the graduated repository.
 
 ### Risks and Mitigations
 
 
 ## Graduation Criteria
+
+We need to define the rules for promoting incubator operators to the graduated repository.
