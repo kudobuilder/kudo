@@ -44,6 +44,9 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 	case *kudov1alpha1.Instance:
 		// Instances are healthy when their Active Plan has succeeded
 		plan := &kudov1alpha1.PlanExecution{}
+		if obj.Status.ActivePlan.Name == "" {
+			return fmt.Errorf("checking health of instance %s: not healthy because does not have any active plan assigned yet", obj.Name)
+		}
 		err := c.Get(context.TODO(), client.ObjectKey{
 			Name:      obj.Status.ActivePlan.Name,
 			Namespace: obj.Status.ActivePlan.Namespace,

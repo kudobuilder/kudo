@@ -50,7 +50,7 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=kudo.k8s.io, Version=v1alpha1
+	// Group=kudo.dev, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("instances"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Kudo().V1alpha1().Instances().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("operators"):

@@ -1,11 +1,11 @@
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Operator
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: flink-financial-demo
 ---
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: OperatorVersion
 metadata:
   labels:
@@ -23,7 +23,7 @@ spec:
     default: "https://downloads.mesosphere.com/dcos-demo/flink/flink-job-1.0.jar"
   templates:
     zookeeper.yaml: |
-      apiVersion: kudo.k8s.io/v1alpha1
+      apiVersion: kudo.dev/v1alpha1
       kind: Instance
       metadata:
         labels:
@@ -40,7 +40,7 @@ spec:
         parameters:
           ZOOKEEPER_CPUS: "0.3"
     kafka.yaml: |
-      apiVersion: kudo.k8s.io/v1alpha1
+      apiVersion: kudo.dev/v1alpha1
       kind: Instance
       metadata:
         labels:
@@ -58,7 +58,7 @@ spec:
           BROKER_COUNT: "3"
           KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     flink.yaml: |
-      apiVersion: kudo.k8s.io/v1alpha1
+      apiVersion: kudo.dev/v1alpha1
       kind: Instance
       metadata:
         labels:
@@ -210,7 +210,7 @@ spec:
               tasks:
               - upload
 ---
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
   labels:

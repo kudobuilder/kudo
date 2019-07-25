@@ -1,0 +1,18 @@
+# Create some pods. Pod specs are immutable, so we can use these to verify that the resources were deleted.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello
+spec:
+  containers:
+  - image: alpine
+    name: test
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello2
+spec:
+  containers:
+  - image: alpine
+    name: test

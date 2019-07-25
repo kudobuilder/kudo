@@ -72,7 +72,7 @@ func planHistory(args []string, options *historyOptions) error {
 	}
 
 	planExecutionsGVR := schema.GroupVersionResource{
-		Group:    "kudo.k8s.io",
+		Group:    "kudo.dev",
 		Version:  "v1alpha1",
 		Resource: "planexecutions",
 	}

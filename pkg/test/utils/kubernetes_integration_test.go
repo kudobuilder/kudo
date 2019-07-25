@@ -76,7 +76,7 @@ func TestWaitForCRDs(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	instance := NewResource("kudo.k8s.io/v1alpha1", "Instance", "zk", "ns")
+	instance := NewResource("kudo.dev/v1alpha1", "Instance", "zk", "ns")
 
 	// Verify that we cannot create the instance, because the test environment is empty.
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))

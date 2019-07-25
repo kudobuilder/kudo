@@ -293,8 +293,8 @@ func (h *Harness) Run() {
 	}
 
 	// Install required manifests.
-	for _, manifestsDir := range h.TestSuite.GetManifestsDirs() {
-		if _, err := testutils.InstallManifests(context.TODO(), cl, dClient, manifestsDir); err != nil {
+	for _, manifestDir := range h.TestSuite.ManifestDirs {
+		if _, err := testutils.InstallManifests(context.TODO(), cl, dClient, manifestDir); err != nil {
 			h.T.Fatal(err)
 		}
 	}

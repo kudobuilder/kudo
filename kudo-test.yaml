@@ -1,7 +1,8 @@
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: TestSuite
 crdDir: ./config/crds/
-manifestsDir: ./test/manifests/
+manifestDirs:
+- ./test/manifests/
 testDirs:
 - ./test/integration
 startKUDO: true
