@@ -329,21 +329,6 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 		Namespace: instance.Namespace,
 	}
 
-	// First lets check if there is an active plan
-	// A Valid (non-empty) ActivePlan always has a Name.  If there is a name, then fetch the PlanExecution
-	if instance.Status.ActivePlan.Name != "" {
-		// So you're saying there's a chance...
-		pe := &kudov1alpha1.PlanExecution{}
-		err := mgr.GetClient().Get(ctx, client.ObjectKey{
-			Name:      instance.Status.ActivePlan.Name,
-			Namespace: instance.Status.ActivePlan.Namespace,
-		}, pe)
-		if err == nil { // we found one, `Get` returns err on not found
-			log.Printf("InstanceController: Skipping createPlan as the plan was found.")
-			return nil
-		}
-	}
-
 	planExecution := kudov1alpha1.PlanExecution{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%v-%v-%v", instance.Name, planName, time.Now().Nanosecond()),
