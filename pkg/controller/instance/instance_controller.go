@@ -318,6 +318,7 @@ func instanceEventFilter(mgr manager.Manager) predicate.Funcs {
 func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Instance) error {
 	gvk, _ := apiutil.GVKForObject(instance, mgr.GetScheme())
 	recorder := mgr.GetEventRecorderFor("instance-controller")
+	log.Printf("Going to create PlanExecution of plan %s for instance %s", planName, instance.Name)
 	recorder.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" plan execution", planName))
 
 	ref := corev1.ObjectReference{
@@ -353,6 +354,7 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 		recorder.Event(instance, "Warning", "CreatePlanExecution", fmt.Sprintf("Error creating planexecution \"%v\": %v", planExecution.Name, err))
 		return err
 	}
+	log.Printf("Created PlanExecution of plan %s for instance %s", planName, instance.Name)
 	recorder.Event(instance, "Normal", "PlanCreated", fmt.Sprintf("PlanExecution \"%v\" created", planExecution.Name))
 	return nil
 }

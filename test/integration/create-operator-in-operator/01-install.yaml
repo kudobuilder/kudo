@@ -3,9 +3,9 @@ kind: Instance
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-    operator: dream
-  name: dream1
+    operator: operator-in-operator
+  name: operator-in-operator-instance
 spec:
   operatorVersion:
-    name: dream-v1
+    name: operator-in-operator-v1
     kind: OperatorVersion
