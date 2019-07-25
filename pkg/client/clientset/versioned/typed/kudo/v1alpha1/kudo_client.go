@@ -31,7 +31,7 @@ type KudoV1alpha1Interface interface {
 	PlanExecutionsGetter
 }
 
-// KudoV1alpha1Client is used to interact with features provided by the kudo.k8s.io group.
+// KudoV1alpha1Client is used to interact with features provided by the kudo.dev group.
 type KudoV1alpha1Client struct {
 	restClient rest.Interface
 }

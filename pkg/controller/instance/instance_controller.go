@@ -372,7 +372,7 @@ type ReconcileInstance struct {
 //
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=kudo.k8s.io,resources=instances,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kudo.dev,resources=instances,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the Instance instance
 	instance := &kudov1alpha1.Instance{}
