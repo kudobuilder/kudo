@@ -1,15 +1,10 @@
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: toy1
 spec:
-  operatorVersion:
-    name: toy-v1
-    kind: OperatorVersion
-    namespace: default
-# Add fields here
+  # Add fields here
   parameters:
-    Param: "30"
     Replicas: "3"

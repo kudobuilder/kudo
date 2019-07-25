@@ -91,7 +91,7 @@ The test step files can contain any number of Kubernetes resources that should b
 Continuing with the upgrade-test example, create `00-instance.yaml`:
 
 ```
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
   name: zk
@@ -112,21 +112,23 @@ This test step will create a Zookeeper `Instance`. The namespace should not be s
 It is possible to delete existing resources at the beginning of a test step. Create a `TestStep` object in your step to configure it:
 
 ```
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: TestStep
 delete:
 - name: my-pod
   kind: Pod
-  version: v1
+  apiVersion: v1
 - kind: Pod
-  version: v1
+  apiVersion: v1
   labels:
     app: nginx
+- kind: Pod
+  apiVersion: v1
 ```
 
 The test harness will delete for each resource referenced in the delete list and wait for them to disappear from the API. If the object fails to delete, the test step will fail.
 
-In the first delete example, the `Pod` called `my-pod` will be deleted. In the second, all `Pods` matching the `app=nginx` label will be deleted.
+In the first delete example, the `Pod` called `my-pod` will be deleted. In the second, all `Pods` matching the `app=nginx` label will be deleted. In the third example, all pods in the namespace would be deleted.
 
 #### Test assertions
 
@@ -135,7 +137,7 @@ Test assert files contain any number of Kubernetes resources that are expected t
 Continuing with the `upgrade-test` example, create `00-instance.yaml`:
 
 ```
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
   name: zk
@@ -182,7 +184,7 @@ This would verify that a pod with the `app=nginx` label is running.
 The test harness recognizes special `TestAssert` objects defined in the assert file. If present, they override default settings of the test assert.
 
 ```
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: TestAssert
 timeout: 120
 ```

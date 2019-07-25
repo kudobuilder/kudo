@@ -1,11 +1,7 @@
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
   name: operator-test-instance
 spec:
-  operatorVersion:
-    name: test-operator-1.0
-    kind: OperatorVersion
-    namespace: default
   parameters:
     REPLICAS: "4"

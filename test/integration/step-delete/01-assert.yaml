@@ -1,5 +1,5 @@
 # We only check the Instance here as the Job is deleted at the end of the step, so we cannot check for its existence.
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
   name: step-delete-instance

@@ -1,12 +1,9 @@
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
   name: immutable-client-ip-instance
   labels:
     operator: service-operator
 spec:
-  operatorVersion:
-    name: service-operator
-    kind: OperatorVersion
   parameters:
     LABEL: "hello"
