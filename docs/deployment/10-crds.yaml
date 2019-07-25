@@ -4,9 +4,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: operators.kudo.k8s.io
+  name: operators.kudo.dev
 spec:
-  group: kudo.k8s.io
+  group: kudo.dev
   names:
     kind: Operator
     plural: operators
@@ -57,9 +57,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: operatorversions.kudo.k8s.io
+  name: operatorversions.kudo.dev
 spec:
-  group: kudo.k8s.io
+  group: kudo.dev
   names:
     kind: OperatorVersion
     plural: operatorversions
@@ -167,9 +167,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: instances.kudo.k8s.io
+  name: instances.kudo.dev
 spec:
-  group: kudo.k8s.io
+  group: kudo.dev
   names:
     kind: Instance
     plural: instances
@@ -237,9 +237,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: planexecutions.kudo.k8s.io
+  name: planexecutions.kudo.dev
 spec:
-  group: kudo.k8s.io
+  group: kudo.dev
   names:
     kind: PlanExecution
     plural: planexecutions

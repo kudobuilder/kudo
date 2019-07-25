@@ -29,7 +29,7 @@ var (
 		kubectl kudo install http://kudo.dev/zk.tar.gz
 
 		# Specify a package version of Kafka to install to your cluster.
-		kubectl kudo install kafka --package-version=0`
+		kubectl kudo install kafka --version=1.1.1`
 )
 
 // getParameterMap takes a slice of parameter strings, parses parameters into a map of keys and values
