@@ -52,12 +52,9 @@ spec:
           name: webhook-server
           protocol: TCP
         resources:
-          limits:
-            cpu: 100m
-            memory: 300Mi
           requests:
             cpu: 100m
-            memory: 200Mi
+            memory: 50Mi
         volumeMounts:
         - mountPath: /tmp/cert
           name: cert
