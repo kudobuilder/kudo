@@ -18,5 +18,5 @@ limitations under the License.
 // +k8s:deepcopy-gen=package,register
 // +k8s:conversion-gen=github.com/kudobuilder/kudo/pkg/apis/kudo
 // +k8s:defaulter-gen=TypeMeta
-// +groupName=kudo.k8s.io
+// +groupName=kudo.dev
 package v1alpha1

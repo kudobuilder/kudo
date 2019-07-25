@@ -186,7 +186,7 @@ type ReconcilePlanExecution struct {
 //
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=kudo.k8s.io,resources=planexecutions;instances,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kudo.dev,resources=planexecutions;instances,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=events;configmaps,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets;poddisruptionbudgets.policy,verbs=get;list;watch;create;update;patch;delete

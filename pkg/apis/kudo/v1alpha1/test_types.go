@@ -9,17 +9,15 @@ import (
 
 // TestSuite configures which tests should be loaded.
 type TestSuite struct {
-	// The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestSuite.
+	// The type meta object, should always be a GVK of kudo.dev/v1alpha1/TestSuite.
 	metav1.TypeMeta `json:",inline"`
 	// Set labels or the test suite name.
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Path to CRDs to install before running tests.
 	CRDDir string `json:"crdDir"`
-	// Path to manifests to install before running tests.
-	ManifestsDir string `json:"manifestsDir"`
-	// Paths to manifests to install before running tests.
-	ManifestsDirs []string `json:"manifestsDirs"`
+	// Paths to directories containing manifests to install before running tests.
+	ManifestDirs []string `json:"manifestDirs"`
 	// Directories containing test cases to run.
 	TestDirs []string `json:"testDirs"`
 	// Whether or not to start a local etcd and kubernetes API server for the tests.
@@ -44,26 +42,11 @@ type TestSuite struct {
 	ArtifactsDir string `json:"artifactsDir"`
 }
 
-// GetManifestsDirs returns the proper list of manifest directories to install prior to the tests.
-func (t TestSuite) GetManifestsDirs() []string {
-	manifestsDirs := []string{}
-
-	if t.ManifestsDirs != nil {
-		manifestsDirs = t.ManifestsDirs
-	}
-
-	if t.ManifestsDir != "" {
-		manifestsDirs = append(manifestsDirs, t.ManifestsDir)
-	}
-
-	return manifestsDirs
-}
-
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // TestStep settings to apply to a test step.
 type TestStep struct {
-	// The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestStep.
+	// The type meta object, should always be a GVK of kudo.dev/v1alpha1/TestStep.
 	metav1.TypeMeta `json:",inline"`
 	// Override the default metadata. Set labels or override the test step name.
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -83,7 +66,7 @@ type TestStep struct {
 
 // TestAssert represents the settings needed to verify the result of a test step.
 type TestAssert struct {
-	// The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestAssert.
+	// The type meta object, should always be a GVK of kudo.dev/v1alpha1/TestAssert.
 	metav1.TypeMeta `json:",inline"`
 	// Override the default timeout of 30 seconds (in seconds).
 	Timeout int `json:"timeout"`

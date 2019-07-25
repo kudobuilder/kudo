@@ -43,7 +43,7 @@ func TestParameterValidation_InstallCrds(t *testing.T) {
 	crds := bundle.PackageCRDs{
 		Operator: &v1alpha1.Operator{
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: "kudo.k8s.io/v1alpha1",
+				APIVersion: "kudo.dev/v1alpha1",
 				Kind:       "Operator",
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -55,7 +55,7 @@ func TestParameterValidation_InstallCrds(t *testing.T) {
 		},
 		Instance: &v1alpha1.Instance{
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: "kudo.k8s.io/v1alpha1",
+				APIVersion: "kudo.dev/v1alpha1",
 				Kind:       "Instance",
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -73,7 +73,7 @@ func TestParameterValidation_InstallCrds(t *testing.T) {
 		},
 		OperatorVersion: &v1alpha1.OperatorVersion{
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: "kudo.k8s.io/v1alpha1",
+				APIVersion: "kudo.dev/v1alpha1",
 				Kind:       "OperatorVersion",
 			},
 			ObjectMeta: metav1.ObjectMeta{

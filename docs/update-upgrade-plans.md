@@ -16,10 +16,10 @@ The deploy plan is automatically run for new instances:
 
 ```bash
 $ kubectl apply -f config/samples/upgrade.yaml
-operator.kudo.k8s.io/upgrade created
-operatorversion.kudo.k8s.io/upgrade-v1 created
-operatorversion.kudo.k8s.io/upgrade-v2 created
-instance.kudo.k8s.io/up created
+operator.kudo.dev/upgrade created
+operatorversion.kudo.dev/upgrade-v1 created
+operatorversion.kudo.dev/upgrade-v2 created
+instance.kudo.dev/up created
 ```
 
 The PlanExecution object that gets created gets suffixed with a timestamp for uniqueness.
@@ -44,7 +44,7 @@ An update of the instance is run when the Spec of the Instance is changed, but t
 
 ```
 kubectl patch instance up -p '{"spec":{"parameters":{"SLEEP":"60"}}}' --type=merge
-instance.kudo.k8s.io/up patched
+instance.kudo.dev/up patched
 ```
 
 ```bash
@@ -67,7 +67,7 @@ Upgrades occur when the `OperatorVersion` is changed.  The Upgrade from the NEW 
 
 ```bash
 $  kubectl patch instance up -p '{"spec":{"operatorVersion":{"name":"upgrade-v2"}}}' --type=merge
-instance.kudo.k8s.io/up patched
+instance.kudo.dev/up patched
 $ kubectl get planexecutions -l instance=up
 NAME                   AGE
 up-deploy-539794000    3m
