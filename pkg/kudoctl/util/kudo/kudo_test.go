@@ -90,7 +90,7 @@ func TestK2oClient_InstanceExistsInCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
-				"operator":                "test",
+				"kudo.dev/operator":       "test",
 			},
 			Name: "test",
 		},
@@ -109,7 +109,7 @@ func TestK2oClient_InstanceExistsInCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
-				"operator":                "test",
+				"kudo.dev/operator":       "test",
 			},
 			Name: "test",
 		},
