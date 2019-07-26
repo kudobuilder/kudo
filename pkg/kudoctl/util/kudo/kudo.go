@@ -2,6 +2,7 @@ package kudo
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
 	"strings"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // Client is a KUDO Client providing access to a clientset
@@ -111,6 +113,32 @@ func (c *Client) InstanceExistsInCluster(name, namespace, version, instanceName 
 		return false, nil
 	}
 	return true, nil
+}
+
+// GetInstance queries kubernetes api for instance of given name in given namespace
+// returns error for all other errors that not found, not found is treated as result being 'nil, nil'
+func (c *Client) GetInstance(name, namespace string) (*v1alpha1.Instance, error) {
+	instance, err := c.clientset.KudoV1alpha1().Instances(namespace).Get(name, v1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil, nil
+	}
+	return instance, err
+}
+
+// GetOperatorVersion queries kubernetes api for operatorversion of given name in given namespace
+// returns error for all other errors that not found, not found is treated as result being 'nil, nil'
+func (c *Client) GetOperatorVersion(name, namespace string) (*v1alpha1.OperatorVersion, error) {
+	ov, err := c.clientset.KudoV1alpha1().OperatorVersions(namespace).Get(name, v1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil, nil
+	}
+	return ov, err
+}
+
+// UpdateOperatorVersion updates operatorversion on instance
+func (c *Client) UpdateOperatorVersion(instanceName, namespace, operatorVersionName string) error {
+	_, err := c.clientset.KudoV1alpha1().Instances(namespace).Patch(instanceName, types.MergePatchType, []byte(fmt.Sprintf(`{"spec":{"operatorVersion":{"name":"%s"}}}`, operatorVersionName)))
+	return err
 }
 
 // ListInstances lists all instances of given operator installed in the cluster in a given ns
