@@ -3,11 +3,11 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/Masterminds/semver"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 	"github.com/pkg/errors"
-	"github.com/rogpeppe/go-internal/semver"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -63,16 +63,19 @@ func newUpgradeCmd() *cobra.Command {
 	return upgradeCmd
 }
 
-func validate(args []string) error {
+func validate(args []string, options *options) error {
 	if len(args) != 1 {
 		return fmt.Errorf("expecting exactly one argument - name of the package or path to upgrade")
+	}
+	if options.InstanceName == "" {
+		return fmt.Errorf("please use --instance and specify instance name. It cannot be empty")
 	}
 
 	return nil
 }
 
 func runUpgrade(args []string, options *options) error {
-	err := validate(args)
+	err := validate(args, options)
 	if err != nil {
 		return err
 	}
@@ -101,28 +104,32 @@ func runUpgrade(args []string, options *options) error {
 		return errors.Wrapf(err, "verifying the instance does not already exist")
 	}
 	if instance == nil {
-		return fmt.Errorf("instance %s in namespace %s you want to upgrade does not exist in the cluster", options.InstanceName, options.Namespace)
+		return fmt.Errorf("instance %s in namespace %s does not exist in the cluster", options.InstanceName, options.Namespace)
 	}
 
 	// Check OperatorVersion and if upgraded version is higher than current version
-	ov, err := kc.GetOperatorVersion(instance.Spec.OperatorVersion.Name, instance.Spec.OperatorVersion.Namespace)
+	ov, err := kc.GetOperatorVersion(instance.Spec.OperatorVersion.Name, options.Namespace)
 	if err != nil {
 		return errors.Wrap(err, "retrieving existing operator version")
 	}
 	if ov == nil {
 		return fmt.Errorf("no operator version for this operator installed yet for %s in namespace %s. Please use install command if you want to install new operator into cluster", operatorName, options.Namespace)
 	}
-	compareVersions := semver.Compare(ov.Spec.Version, nextOperatorVersion)
-	if compareVersions == 0 {
-		return fmt.Errorf("upgraded version %s is the same as current version %s -> not upgrading", ov.Spec.Version, nextOperatorVersion)
-	}
-	if compareVersions > 0 {
-		return fmt.Errorf("you're trying to upgrade from version %s to version %s which is not upgrade but downgrade -> not upgrading", ov.Spec.Version, nextOperatorVersion)
+	oldVersion, _ := semver.NewVersion(ov.Spec.Version)
+	newVersion, _ := semver.NewVersion(nextOperatorVersion)
+	if !oldVersion.LessThan(newVersion) {
+		return fmt.Errorf("upgraded version %s is the same or smaller as current version %s -> not upgrading", nextOperatorVersion, ov.Spec.Version)
 	}
 
 	// install OV
-	if _, err := kc.InstallOperatorVersionObjToCluster(crds.OperatorVersion, options.Namespace); err != nil {
-		return errors.Wrapf(err, "failed installing OperatorVersion for operator: %s", operatorName)
+	versionsInstalled, err := kc.OperatorVersionsInstalled(operatorName, options.Namespace)
+	if err != nil {
+		return errors.Wrap(err, "retrieving existing operator versions")
+	}
+	if !install.VersionExists(versionsInstalled, nextOperatorVersion) {
+		if _, err := kc.InstallOperatorVersionObjToCluster(crds.OperatorVersion, options.Namespace); err != nil {
+			return errors.Wrapf(err, "failed installing OperatorVersion for operator: %s", operatorName)
+		}
 	}
 
 	// Change instance to point to the new OV

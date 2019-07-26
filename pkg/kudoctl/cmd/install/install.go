@@ -131,7 +131,7 @@ func installCrds(crds *bundle.PackageCRDs, kc *kudo.Client, options *Options) er
 	if err != nil {
 		return errors.Wrap(err, "retrieving existing operator versions")
 	}
-	if !versionExists(versionsInstalled, operatorVersion) {
+	if !VersionExists(versionsInstalled, operatorVersion) {
 		// this version does not exist in the cluster
 		if err := installSingleOperatorVersionToCluster(operatorName, options.Namespace, kc, crds.OperatorVersion); err != nil {
 			return errors.Wrapf(err, "installing OperatorVersion CRD for operator: %s", operatorName)
@@ -190,7 +190,8 @@ func validateCrds(crds *bundle.PackageCRDs, skipInstance bool) error {
 	return nil
 }
 
-func versionExists(versions []string, currentVersion string) bool {
+// VersionExists looks for string version inside collection of versions
+func VersionExists(versions []string, currentVersion string) bool {
 	for _, v := range versions {
 		if v == currentVersion {
 			return true
