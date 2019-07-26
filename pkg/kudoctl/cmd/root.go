@@ -45,6 +45,7 @@ and serves as an API aggregation layer.
 	}
 
 	cmd.AddCommand(newInstallCmd())
+	cmd.AddCommand(newUpgradeCmd())
 	cmd.AddCommand(newGetCmd())
 	cmd.AddCommand(newPlanCmd())
 	cmd.AddCommand(newTestCmd())

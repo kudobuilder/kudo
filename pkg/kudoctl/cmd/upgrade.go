@@ -44,7 +44,7 @@ func newUpgradeCmd() *cobra.Command {
 		Use:     "upgrade <name>",
 		Short:   "-> Upgrade KUDO package.",
 		Long:    `Upgrade KUDO package from current version to new version.`,
-		Example: installExample,
+		Example: upgradeExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runUpgrade(args, options)
 		},
