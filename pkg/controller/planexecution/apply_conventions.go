@@ -3,6 +3,8 @@ package planexecution
 import (
 	"fmt"
 
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+
 	"github.com/pkg/errors"
 
 	"github.com/kudobuilder/kudo/pkg/util/template"
@@ -52,16 +54,16 @@ func applyConventionsToTemplates(templates map[string]string, metadata metadata)
 		NamePrefix: metadata.InstanceName + "-",
 		Namespace:  metadata.Namespace,
 		CommonLabels: map[string]string{
-			"heritage": "kudo",
-			"app":      metadata.OperatorName,
-			"version":  metadata.OperatorVersion,
-			"instance": metadata.InstanceName,
+			kudo.HeritageLabel: "kudo",
+			kudo.OperatorLabel: metadata.OperatorName,
+			kudo.InstanceLabel: metadata.InstanceName,
 		},
 		CommonAnnotations: map[string]string{
-			"planexecution": metadata.PlanExecution,
-			"plan":          metadata.PlanName,
-			"phase":         metadata.PhaseName,
-			"step":          metadata.StepName,
+			kudo.PlanExecutionAnnotation:   metadata.PlanExecution,
+			kudo.PlanAnnotation:            metadata.PlanName,
+			kudo.PhaseAnnotation:           metadata.PhaseName,
+			kudo.StepAnnotation:            metadata.StepName,
+			kudo.OperatorVersionAnnotation: metadata.OperatorVersion,
 		},
 		GeneratorOptions: &ktypes.GeneratorOptions{
 			DisableNameSuffixHash: true,
