@@ -89,7 +89,7 @@ Go coverage reports will be used to ensure that changes do not reduce test cover
 
 #### Integration tests
 
-Integration tests test the KUDO controller in its entirety. These tests can be run against either a real Kubernetes cluster or a local control plane. Integration tests will be manually run after review, but prior to merging using the [Circle CI manual approval feature](https://circleci.com/docs/2.0/triggers/#manual-approval). Integration tests can be written using the test harness designed in KEP-0008.
+Integration tests test the KUDO controller in its entirety. These tests can be run against either a real Kubernetes cluster or a local control plane. Integration tests can be written using the test harness designed in KEP-0008.
 
 The integration tests will consist of a set of representative Operators and OperatorVersions that utilize real world KUDO features. Integration tests should be added for new KUDO capabilities at the discretion of the capability author or reviewers.
 
@@ -104,6 +104,8 @@ End-to-end tests will be triggered on merge to master, for release pull requests
 #### Operator tests
 
 Operator tests test that a operator works correctly. These require a full Kubernetes cluster to run and will be run in CI for the Operators repository using the latest released version of KUDO. Instead of running every test on every pull request, we will only run the tests that test the operator changed in any given pull request. Operator tests will also be run against master and release builds of KUDO to verify that KUDO changes do not break operators. Operators are tested using the KUDO test harness from KEP-0008.
+
+Operator tests will also be run in CI for the KUDO repository manually after review, but prior to merging using `/test` command supported by Prow.
 
 Operator tests live in the `kudobuilder/operators` repository, with the file structure defined in KEP-0010.
 
@@ -122,15 +124,14 @@ These clusters can be started either as a part of CI jobs or maintained long ter
 
 ### CICD
 
-Use [CircleCI](https://circleci.com/docs/) and the [GitHub Plugin](https://github.com/marketplace/circleci/plan/MDIyOk1hcmtldHBsYWNlTGlzdGluZ1BsYW45MA==#pricing-and-setup).
-
-For OpenSource projects we will receive 1,000 monthly build minutes. With the test suite below, that should suffice as a baseline.
+We will use a [Prow](https://github.com/kubernetes/test-infra/tree/master/prow) cluster to run jobs for pull requests and merges. The Prow cluster configuration will live in the `kudobuilder/test-infra` repository, it will be hosted on GKE, and it will be reachable at https://prow.kudo.dev/.
 
 #### Pull Requests
 
 All Pull Requests into master need to have the following checks pass. These should be ordered in fastest to slowest to reduce the time spent when/if failures occur.
 
 0. Check author has signed CLA
+1. If the user is not a contributor, a contributor must write `/ok-to-test` on the pull request before it will be triggered.
 1. `go fmt` does not change anything
 1. `make check-formatting passes.
 1. All unit tests pass (with `-race` flag)
@@ -200,7 +201,3 @@ Prow
 
 - Kubernetes Cluster
 - Manhours for Running Prow
-
-CircleCI/TravisCI/GoogleCloudBuild
-
-- Free baseline. Paid if we get more usage.
