@@ -2,16 +2,17 @@ package kudo
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/types"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
 	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // Client is a KUDO Client providing access to a clientset
