@@ -220,7 +220,12 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			planExecution.Spec.Instance.Name,
 			planExecution.Spec.Instance.Namespace,
 			err)
-		return reconcile.Result{}, nil
+
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+
+		return reconcile.Result{}, err
 	}
 
 	// Check for Suspend set.
