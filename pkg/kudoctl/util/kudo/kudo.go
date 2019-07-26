@@ -73,7 +73,7 @@ func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 	if err != nil {
 		return false
 	}
-	fmt.Printf("operator.kudo.k8s.io/%s unchanged\n", operator.Name)
+	fmt.Printf("operator.kudo.dev/%s unchanged\n", operator.Name)
 	return true
 }
 

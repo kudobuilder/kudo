@@ -1,12 +1,12 @@
 ## Dream is the umbrella operator that tests the creation of instances within an operator
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Operator
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: dream
 ---
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: OperatorVersion
 metadata:
   labels:
@@ -20,10 +20,12 @@ spec:
     kind: Operator
   templates:
     operator.yaml: |
-      apiVersion: kudo.k8s.io/v1alpha1
+      apiVersion: kudo.dev/v1alpha1
       kind: Instance
       metadata:
         name: operator
+        labels:
+          kudo.dev/operator: test-operator
       spec:
         operatorVersion:
           kind: OperatorVersion

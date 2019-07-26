@@ -95,6 +95,12 @@ The integration tests will consist of a set of representative Operators and Oper
 
 Integration tests will be hidden behind a Go build tag and will only run when the `integration` tag is specified.
 
+#### End-to-end tests
+
+End to end tests test the KUDO controller on a real Kubernetes cluster (either kubernetes-in-docker or any other Kubernetes cluster). These should exercise KUDO's features and workflows including installing operators from the repository. End-to-end tests can also exercise the CLI to test CLI-based workflows.
+
+End-to-end tests will be triggered on merge to master, for release pull requests, and manually for pull requests containing risky or major changes.
+
 #### Operator tests
 
 Operator tests test that a operator works correctly. These require a full Kubernetes cluster to run and will be run in CI for the Operators repository using the latest released version of KUDO. Instead of running every test on every pull request, we will only run the tests that test the operator changed in any given pull request. Operator tests will also be run against master and release builds of KUDO to verify that KUDO changes do not break operators. Operators are tested using the KUDO test harness from KEP-0008.

@@ -96,10 +96,10 @@ Use `--instance` and `--parameter`/`-p` for setting an Instance name and Paramet
 
 ```bash
 $ kubectl kudo install kafka --instance=my-kafka-name --parameter ZOOKEEPER_URI=zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181 --parameter ZOOKEEPER_PATH=/small -p BROKERS_COUNTER=3
-operator.kudo.k8s.io/kafka unchanged
-operatorversion.kudo.k8s.io/kafka unchanged
+operator.kudo.dev/kafka unchanged
+operatorversion.kudo.dev/kafka unchanged
 No instance named 'my-kafka-name' tied to this "kafka" version has been found. Do you want to create one? (Yes/no)
-instance.kudo.k8s.io/v1alpha1/my-kafka-name created
+instance.kudo.dev/v1alpha1/my-kafka-name created
 $ kubectl get instances
 NAME            AGE
 my-kafka-name   6s
@@ -194,15 +194,15 @@ $ kubectl describe operatorversion upgrade-v1
 Name:         upgrade-v1
 Namespace:    default
 Labels:       controller-tools.k8s.io=1.0
-Annotations:  kubectl.kubernetes.io/last-applied-configuration={"apiVersion":"kudo.k8s.io/v1alpha1","kind":"OperatorVersion","metadata":{"annotations":{},"labels":{"controller-tools.k8s.io":"1.0"},"name":"upgra...
-API Version:  kudo.k8s.io/v1alpha1
+Annotations:  kubectl.kubernetes.io/last-applied-configuration={"apiVersion":"kudo.dev/v1alpha1","kind":"OperatorVersion","metadata":{"annotations":{},"labels":{"controller-tools.k8s.io":"1.0"},"name":"upgra...
+API Version:  kudo.dev/v1alpha1
 Kind:         OperatorVersion
 Metadata:
   Cluster Name:
   Creation Timestamp:  2018-12-14T19:26:44Z
   Generation:          1
   Resource Version:    63769
-  Self Link:           /apis/kudo.k8s.io/v1alpha1/namespaces/default/operatorversions/upgrade-v1
+  Self Link:           /apis/kudo.dev/v1alpha1/namespaces/default/operatorversions/upgrade-v1
   UID:                 30fe6209-ffd6-11e8-abd5-080027d506c7
 Spec:
   Connection String:
@@ -281,21 +281,21 @@ $ kubectl describe planexecution up-deploy-493146000
   Labels:       operator-version=upgrade-v1
                 instance=up
   Annotations:  <none>
-  API Version:  kudo.k8s.io/v1alpha1
+  API Version:  kudo.dev/v1alpha1
   Kind:         PlanExecution
   Metadata:
     Cluster Name:
     Creation Timestamp:  2018-12-14T19:26:44Z
     Generation:          1
     Owner References:
-      API Version:           kudo.k8s.io/v1alpha1
+      API Version:           kudo.dev/v1alpha1
       Block Owner Deletion:  true
       Controller:            true
       Kind:                  Instance
       Name:                  up
       UID:                   3101bbe5-ffd6-11e8-abd5-080027d506c7
     Resource Version:        63815
-    Self Link:               /apis/kudo.k8s.io/v1alpha1/namespaces/default/planexecutions/up-deploy-493146000
+    Self Link:               /apis/kudo.dev/v1alpha1/namespaces/default/planexecutions/up-deploy-493146000
     UID:                     31037dd0-ffd6-11e8-abd5-080027d506c7
   Spec:
     Instance:

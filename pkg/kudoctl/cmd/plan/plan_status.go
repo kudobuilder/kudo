@@ -72,7 +72,7 @@ func planStatus(options *statusOptions) error {
 	}
 
 	instancesGVR := schema.GroupVersionResource{
-		Group:    "kudo.k8s.io",
+		Group:    "kudo.dev",
 		Version:  "v1alpha1",
 		Resource: "instances",
 	}
@@ -97,7 +97,7 @@ func planStatus(options *statusOptions) error {
 	operatorVersionNameOfInstance := instance.Spec.OperatorVersion.Name
 
 	operatorGVR := schema.GroupVersionResource{
-		Group:    "kudo.k8s.io",
+		Group:    "kudo.dev",
 		Version:  "v1alpha1",
 		Resource: "operatorversions",
 	}
@@ -121,7 +121,7 @@ func planStatus(options *statusOptions) error {
 	}
 
 	planExecutionsGVR := schema.GroupVersionResource{
-		Group:    "kudo.k8s.io",
+		Group:    "kudo.dev",
 		Version:  "v1alpha1",
 		Resource: "planexecutions",
 	}

@@ -1,20 +1,20 @@
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
-  name: dream1
+  name: oio-instance
 status:
   status: COMPLETE
 ---
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
-  name: dream1-operator
+  name: oio-instance-inner-instance
 status:
   status: COMPLETE
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dream1-operator-nginx
+  name: oio-instance-inner-instance-nginx
 spec:
   replicas: 0

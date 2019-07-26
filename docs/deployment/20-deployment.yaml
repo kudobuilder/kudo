@@ -44,7 +44,7 @@ spec:
               fieldPath: metadata.namespace
         - name: SECRET_NAME
           value: kudo-webhook-server-secret
-        image: kudobuilder/controller:v0.3.0
+        image: kudobuilder/controller:v0.3.3
         imagePullPolicy: Always
         name: manager
         ports:
@@ -52,12 +52,9 @@ spec:
           name: webhook-server
           protocol: TCP
         resources:
-          limits:
-            cpu: 100m
-            memory: 30Mi
           requests:
             cpu: 100m
-            memory: 20Mi
+            memory: 50Mi
         volumeMounts:
         - mountPath: /tmp/cert
           name: cert

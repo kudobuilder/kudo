@@ -14,21 +14,21 @@ Kafka depends on Zookeeper so we need to run it first. Follow the [Zookeeper exa
 Create a `Operator` object for Kafka
 ```bash
 $ kubectl apply -f config/samples/kafka-operator.yaml
-operator.kudo.k8s.io "kafka" created
+operator.kudo.dev "kafka" created
 ```
 
 Create a `OperatorVersion` for the Kafka  `Operator`
 
 ```bash
 $ kubectl apply -f config/samples/kafka-operatorversion.yaml
-operatorversion.kudo.k8s.io "kafka-2.11-2.4.0" created
+operatorversion.kudo.dev "kafka-2.11-2.4.0" created
 ```
 
 
 Create an Instance of Kafka
 ```
 $ kubectl apply -f config/samples/kafka-instance.yaml
-instance.kudo.k8s.io "kafka" created
+instance.kudo.dev "kafka" created
 ```
 
 When an instance is created, the default `deploy` plan is executed

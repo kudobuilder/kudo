@@ -8,21 +8,21 @@ type: docs
 Create a `Operator` object for Zookeeper
 ```bash
 $ kubectl apply -f config/samples/zookeeper-operator.yaml
-operator.kudo.k8s.io "zookeeper" created
+operator.kudo.dev "zookeeper" created
 ```
 
 Create a `OperatorVersion` for the Zookeeper  `Operator`
 
 ```bash
 $ kubectl apply -f config/samples/zookeeper-operatorversion.yaml
-operatorversion.kudo.k8s.io "zookeeper-1.0" created
+operatorversion.kudo.dev "zookeeper-1.0" created
 ```
 
 
 Create an Instance of Zookeeper
 ```
 $ kubectl apply -f config/samples/zookeeper-instance.yaml
-instance.kudo.k8s.io "zk" created
+instance.kudo.dev "zk" created
 ```
 
 When an instance is created, the default `deploy` plan is executed
