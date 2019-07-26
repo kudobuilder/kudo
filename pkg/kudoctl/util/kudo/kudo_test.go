@@ -2,6 +2,7 @@ package kudo
 
 import (
 	"fmt"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"reflect"
 	"testing"
 
@@ -90,7 +91,7 @@ func TestK2oClient_InstanceExistsInCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
-				"kudo.dev/operator":       "test",
+				kudo.OperatorLabel:       "test",
 			},
 			Name: "test",
 		},
@@ -109,7 +110,7 @@ func TestK2oClient_InstanceExistsInCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
-				"kudo.dev/operator":       "test",
+				kudo.OperatorLabel:       "test",
 			},
 			Name: "test",
 		},
@@ -164,7 +165,7 @@ func TestK2oClient_ListInstances(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
-				"operator":                "test",
+				kudo.OperatorLabel:                "test",
 			},
 			Name: "test",
 		},

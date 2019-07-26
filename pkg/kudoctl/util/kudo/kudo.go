@@ -2,10 +2,9 @@ package kudo
 
 import (
 	"fmt"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"strings"
 	"time"
-
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
@@ -92,7 +91,7 @@ func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 //      		kudo.dev/operator: kafka
 // This function also just returns true if the Instance matches a specific OperatorVersion of a Operator
 func (c *Client) InstanceExistsInCluster(operatorName, namespace, version, instanceName string) (bool, error) {
-	instances, err := c.clientset.KudoV1alpha1().Instances(namespace).List(v1.ListOptions{LabelSelector: kudo.OperatorLabel + operatorName})
+	instances, err := c.clientset.KudoV1alpha1().Instances(namespace).List(v1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", kudo.OperatorLabel, operatorName)})
 	if err != nil {
 		return false, err
 	}
