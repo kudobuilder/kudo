@@ -24,7 +24,7 @@ const (
 	paramsFileName        = "params.yaml"
 )
 
-const apiVersion = "kudo.k8s.io/v1alpha1"
+const apiVersion = "kudo.dev/v1alpha1"
 
 // PackageCRDs is collection of CRDs that are used when installing operator
 // during installation, package format is converted to this structure
@@ -180,7 +180,7 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   fmt.Sprintf("%s-%s", p.Operator.Name, rand.String(6)),
-			Labels: map[string]string{"controller-tools.k8s.io": "1.0", "operator": p.Operator.Name},
+			Labels: map[string]string{"controller-tools.k8s.io": "1.0", kudo.OperatorLabel: p.Operator.Name},
 		},
 		Spec: v1alpha1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{

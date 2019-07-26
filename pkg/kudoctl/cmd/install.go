@@ -29,7 +29,7 @@ var (
 		kubectl kudo install http://kudo.dev/zk.tar.gz
 
 		# Specify a package version of Kafka to install to your cluster.
-		kubectl kudo install kafka --package-version=0`
+		kubectl kudo install kafka --version=1.1.1`
 )
 
 // getParameterMap takes a slice of parameter strings, parses parameters into a map of keys and values
@@ -95,7 +95,6 @@ func newInstallCmd() *cobra.Command {
 		SilenceUsage: true,
 	}
 
-	installCmd.Flags().StringVar(&options.KubeConfigPath, "kubeconfig", "", "The file path to Kubernetes configuration file. (default \"$HOME/.kube/config\")")
 	installCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name. (default to Operator name)")
 	installCmd.Flags().StringVar(&options.Namespace, "namespace", "default", "The namespace used for the package installation. (default \"default\"")
 	installCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")

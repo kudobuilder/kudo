@@ -3,7 +3,7 @@
 #
 # The next step will update the parameter and verify that it triggers the creation
 # of a `PlanExecution` for the `update` plan.
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: OperatorVersion
 metadata:
   name: icto-no-trigger
@@ -15,12 +15,12 @@ spec:
     deploy:
     update:
 ---
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
   name: icto-no-trigger
   labels:
-    operator: icto-no-trigger
+    kudo.dev/operator: icto-no-trigger
 spec:
   operatorVersion:
     name: icto-no-trigger

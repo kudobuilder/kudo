@@ -1,29 +1,31 @@
-## Dream is the umbrella operator that tests the creation of instances within an operator
-apiVersion: kudo.k8s.io/v1alpha1
+## operator-in-operator is the umbrella operator that tests the creation of instances within an operator
+apiVersion: kudo.dev/v1alpha1
 kind: Operator
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-  name: dream
+  name: operator-in-operator
 ---
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: OperatorVersion
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-  name: dream-v1
+  name: operator-in-operator-v1
 spec:
   version: "1.0.0"
   connectionString: ""
   operator:
-    name: dream
+    name: operator-in-operator
     kind: Operator
   templates:
     operator.yaml: |
-      apiVersion: kudo.k8s.io/v1alpha1
+      apiVersion: kudo.dev/v1alpha1
       kind: Instance
       metadata:
-        name: operator
+        name: inner-instance
+        labels:
+          kudo.dev/operator: test-operator
       spec:
         operatorVersion:
           kind: OperatorVersion

@@ -1,4 +1,4 @@
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: OperatorVersion
 metadata:
   name: icto-upgrade-fallback-to-update
@@ -11,12 +11,10 @@ spec:
     deploy:
     update:
 ---
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
   name: icto-upgrade-fallback-to-update
-  labels:
-    operator: icto-upgrade
 spec:
   operatorVersion:
     name: icto-upgrade-fallback-to-update

@@ -1,15 +1,14 @@
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
   name: icto-fallback-to-deploy
 status:
   status: COMPLETE
 ---
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: PlanExecution
 metadata:
   labels:
-    instance: icto-fallback-to-deploy
-    operator-version: icto-fallback-to-deploy
+    kudo.dev/instance: icto-fallback-to-deploy
 spec:
   planName: deploy

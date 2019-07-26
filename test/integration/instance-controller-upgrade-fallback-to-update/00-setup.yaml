@@ -8,12 +8,12 @@
 # The next step will then create new OperatorVersion which will include
 # "update" and "deploy" plans, update the instance, and finally verify that the
 # right PlanExecution was created.
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Operator
 metadata:
   name: icto-upgrade
 ---
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: OperatorVersion
 metadata:
   name: icto-upgrade
@@ -27,12 +27,12 @@ spec:
     upgrade:
     update:
 ---
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
   name: icto-upgrade-fallback-to-update
   labels:
-    operator: icto-upgrade
+    kudo.dev/operator: icto-upgrade
 spec:
   operatorVersion:
     name: icto-upgrade

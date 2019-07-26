@@ -1,0 +1,11 @@
+apiVersion: prow.k8s.io/v1
+kind: ProwJob
+metadata:
+  name: my-job
+spec:
+  pod_spec:
+    containers:
+    - image: alpine:1234
+      command:
+      - test
+      imagePullPolicy: Always
