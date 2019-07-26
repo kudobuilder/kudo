@@ -76,14 +76,113 @@ func (b tarBundle) GetCRDs() (*PackageCRDs, error) {
 }
 
 func (b fileBundle) GetCRDs() (*PackageCRDs, error) {
-	p, err := fromFolder(b.path)
+	p, err := FromFolder(b.path)
 	if err != nil {
 		return nil, errors.Wrap(err, "while reading package from the file system")
 	}
 	return p.getCRDs()
 }
 
-func fromFolder(packagePath string) (*PackageFiles, error) {
+// ToTarBundle takes a path to operator files and creates a tgz of those files with the destination and name provided
+func ToTarBundle(path string, destination string, name string, overwrite bool) error {
+	target, e := getTarget(destination, name, overwrite)
+	if e != nil {
+		return e
+	}
+
+	//validate it is an operator
+	if _, err := os.Stat(path); err != nil {
+		return fmt.Errorf("unable to bundle files - %v", err.Error())
+	}
+	file, err := os.Create(target)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	gw := gzip.NewWriter(file)
+	defer gw.Close()
+	tw := tar.NewWriter(gw)
+	defer tw.Close()
+
+	err = filepath.Walk(path, func(file string, fi os.FileInfo, err error) error {
+
+		// return on any error
+		if err != nil {
+			return err
+		}
+
+		// return on non-regular files.  We don't add directories without files and symlinks
+		if !fi.Mode().IsRegular() {
+			return nil
+		}
+
+		// create a new dir/file header
+		header, err := tar.FileInfoHeader(fi, fi.Name())
+		if err != nil {
+			fmt.Printf("Error creating tar header for: %v", fi.Name())
+			return err
+		}
+
+		// update the name to correctly reflect the desired destination when untaring
+		header.Name = strings.TrimPrefix(strings.Replace(file, path, "", -1), string(filepath.Separator))
+
+		// write the header
+		if err := tw.WriteHeader(header); err != nil {
+			return err
+		}
+
+		// open files for taring
+		f, err := os.Open(file)
+		if err != nil {
+			return err
+		}
+
+		// copy file data into tar writer
+		if _, err := io.Copy(tw, f); err != nil {
+			return err
+		}
+
+		// manually close here after each file operation; deferring would cause each file close
+		// to wait until all operations have completed.
+		f.Close()
+
+		return nil
+	})
+
+	if err == nil {
+		fmt.Printf("Bundle created: %v\n", target)
+	}
+	return err
+}
+
+func getTarget(destination string, name string, overwrite bool) (string, error) {
+	if destination == "." {
+		destination = ""
+	}
+	if destination != "" {
+		fi, err := os.Stat(destination)
+		if err != nil || !fi.Mode().IsDir() {
+			return "", fmt.Errorf("destination is not a proper directory")
+		}
+		name = fmt.Sprintf("%v/%v", destination, name)
+	}
+	target := filepath.Clean(fmt.Sprintf("%v.tgz", name))
+	if _, err := os.Stat(target); !os.IsNotExist(err) {
+		if !overwrite {
+			return "", fmt.Errorf("target file exists. Remove or --overwrite. File:%v", target)
+		}
+	}
+	return target, nil
+}
+
+// PackageVersionedName provides the version name of a package provided a set of PackageFiles.  Ex. "zookeeper-0.1.0"
+func PackageVersionedName(pkg *PackageFiles) string {
+	return fmt.Sprintf("%v-%v", pkg.Operator.Name, pkg.Operator.Version)
+}
+
+// FromFolder walks the path provided and returns CRD package files or an error
+func FromFolder(packagePath string) (*PackageFiles, error) {
 	result := newPackageFiles()
 	err := filepath.Walk(packagePath, func(path string, file os.FileInfo, err error) error {
 		if err != nil {
@@ -106,6 +205,10 @@ func fromFolder(packagePath string) (*PackageFiles, error) {
 	})
 	if err != nil {
 		return nil, err
+	}
+	// final check
+	if result.Operator == nil || result.Params == nil {
+		return nil, fmt.Errorf("Incomplete operator bundle")
 	}
 	return &result, nil
 }
