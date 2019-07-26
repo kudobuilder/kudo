@@ -2,9 +2,10 @@ package kudo
 
 import (
 	"fmt"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"strings"
 	"time"
+
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
