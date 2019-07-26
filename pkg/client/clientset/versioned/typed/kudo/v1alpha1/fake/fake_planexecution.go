@@ -32,9 +32,9 @@ type FakePlanExecutions struct {
 	ns   string
 }
 
-var planexecutionsResource = schema.GroupVersionResource{Group: "kudo.k8s.io", Version: "v1alpha1", Resource: "planexecutions"}
+var planexecutionsResource = schema.GroupVersionResource{Group: "kudo.dev", Version: "v1alpha1", Resource: "planexecutions"}
 
-var planexecutionsKind = schema.GroupVersionKind{Group: "kudo.k8s.io", Version: "v1alpha1", Kind: "PlanExecution"}
+var planexecutionsKind = schema.GroupVersionKind{Group: "kudo.dev", Version: "v1alpha1", Kind: "PlanExecution"}
 
 // Get takes name of the planExecution, and returns the corresponding planExecution object, and an error if there is any.
 func (c *FakePlanExecutions) Get(name string, options v1.GetOptions) (result *v1alpha1.PlanExecution, err error) {

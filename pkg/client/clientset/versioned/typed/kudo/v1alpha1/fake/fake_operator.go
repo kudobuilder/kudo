@@ -32,9 +32,9 @@ type FakeOperators struct {
 	ns   string
 }
 
-var operatorsResource = schema.GroupVersionResource{Group: "kudo.k8s.io", Version: "v1alpha1", Resource: "operators"}
+var operatorsResource = schema.GroupVersionResource{Group: "kudo.dev", Version: "v1alpha1", Resource: "operators"}
 
-var operatorsKind = schema.GroupVersionKind{Group: "kudo.k8s.io", Version: "v1alpha1", Kind: "Operator"}
+var operatorsKind = schema.GroupVersionKind{Group: "kudo.dev", Version: "v1alpha1", Kind: "Operator"}
 
 // Get takes name of the operator, and returns the corresponding operator object, and an error if there is any.
 func (c *FakeOperators) Get(name string, options v1.GetOptions) (result *v1alpha1.Operator, err error) {

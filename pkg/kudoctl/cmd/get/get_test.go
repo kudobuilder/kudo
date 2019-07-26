@@ -39,7 +39,7 @@ func newTestClient() *kudo.Client {
 func TestGetInstances(t *testing.T) {
 	testInstance := &v1alpha1.Instance{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.k8s.io/v1alpha1",
+			APIVersion: "kudo.dev/v1alpha1",
 			Kind:       "Instance",
 		},
 		ObjectMeta: metav1.ObjectMeta{

@@ -100,11 +100,16 @@ func (s *Step) DeleteExisting(namespace string) error {
 			return err
 		}
 
-		if ref.Labels != nil && len(ref.Labels) != 0 {
+		if ref.Name == "" {
 			u := &unstructured.UnstructuredList{}
 			u.SetGroupVersionKind(gvk)
 
-			listOptions := []client.ListOptionFunc{client.MatchingLabels(ref.Labels)}
+			listOptions := []client.ListOptionFunc{}
+
+			if ref.Labels != nil {
+				listOptions = append(listOptions, client.MatchingLabels(ref.Labels))
+			}
+
 			if objNs != "" {
 				listOptions = append(listOptions, client.InNamespace(objNs))
 			}
