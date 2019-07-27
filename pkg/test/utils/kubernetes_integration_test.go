@@ -86,7 +86,7 @@ func TestWaitForCRDs(t *testing.T) {
 	assert.Nil(t, err)
 
 	// WaitForCRDs to be created.
-	assert.Nil(t, WaitForCRDs(testenv.DiscoveryClient, crds))
+	assert.Nil(t, WaitForCRDs(testenv.Client, testenv.DiscoveryClient, crds))
 
 	// Kubernetes client caches the types, se we need to re-initialize it.
 	testClient, err = NewRetryClient(testenv.Config, client.Options{

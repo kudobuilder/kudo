@@ -282,7 +282,7 @@ func (h *Harness) Run() {
 		h.T.Fatal(err)
 	}
 
-	if err := testutils.WaitForCRDs(dClient, crds); err != nil {
+	if err := testutils.WaitForCRDs(cl, dClient, crds); err != nil {
 		h.T.Fatal(err)
 	}
 

@@ -699,8 +699,8 @@ func GetAPIResource(dClient discovery.DiscoveryInterface, gvk schema.GroupVersio
 }
 
 // WaitForCRDs waits for the provided CRD types to be available in the Kubernetes API.
-func WaitForCRDs(dClient discovery.DiscoveryInterface, crds []runtime.Object) error {
-	waitingFor := []schema.GroupVersionKind{}
+func WaitForCRDs(client client.Client, dClient discovery.DiscoveryInterface, crds []runtime.Object) error {
+	waitingFor := []*apiextensions.CustomResourceDefinition{}
 	crdKind := NewResource("apiextensions.k8s.io/v1beta1", "CustomResourceDefinition", "", "")
 
 	for _, crdObj := range crds {
@@ -713,17 +713,42 @@ func WaitForCRDs(dClient discovery.DiscoveryInterface, crds []runtime.Object) er
 			continue
 		}
 
-		waitingFor = append(waitingFor, schema.GroupVersionKind{
-			Group:   crd.Spec.Group,
-			Version: crd.Spec.Version,
-			Kind:    crd.Spec.Names.Kind,
-		})
+		waitingFor = append(waitingFor, crd)
 	}
 
 	return wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (done bool, err error) {
 		for _, resource := range waitingFor {
-			_, err := GetAPIResource(dClient, resource)
+			_, err := GetAPIResource(dClient, schema.GroupVersionKind{
+				Group:   resource.Spec.Group,
+				Version: resource.Spec.Version,
+				Kind:    resource.Spec.Names.Kind,
+			})
 			if err != nil {
+				return false, nil
+			}
+
+			crd := resource.DeepCopyObject()
+
+			err = client.Get(context.TODO(), types.NamespacedName{
+				Name: resource.ObjectMeta.Name,
+			}, crd)
+			if err != nil {
+				return false, nil
+			}
+
+			crdCast, ok := crd.(*apiextensions.CustomResourceDefinition)
+			if !ok {
+				continue
+			}
+
+			found := false
+			for _, condition := range crdCast.Status.Conditions {
+				if condition.Type == apiextensions.Established && condition.Reason == "InitialNamesAccepted" {
+					found = true
+				}
+			}
+
+			if !found {
 				return false, nil
 			}
 		}
