@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
+	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
@@ -785,22 +786,45 @@ func StartTestEnvironment() (env TestEnvironment, err error) {
 	return
 }
 
+// GetKubectlArgs parses a kubectl command line string into its arguments and appends a namespace if it is not already set.
+func GetKubectlArgs(args string, namespace string) ([]string, error) {
+	argSlice := []string{}
+
+	argSplit, err := shlex.Split(args)
+	if err != nil {
+		return nil, err
+	}
+
+	fs := pflag.NewFlagSet("", pflag.ContinueOnError)
+	fs.ParseErrorsWhitelist.UnknownFlags = true
+
+	namespaceParsed := fs.StringP("namespace", "n", "", "")
+	if err := fs.Parse(argSplit); err != nil {
+		return nil, err
+	}
+
+	if argSplit[0] != "kubectl" {
+		argSlice = append(argSlice, "kubectl")
+	}
+
+	argSlice = append(argSlice, argSplit...)
+
+	if *namespaceParsed == "" {
+		argSlice = append(argSlice, "--namespace", namespace)
+	}
+
+	return argSlice, nil
+}
+
 // Kubectl runs a kubectl command (or plugin) with args.
 // args gets split on spaces (respecting quoted strings).
 func Kubectl(ctx context.Context, namespace string, args string, cwd string, stdout io.Writer, stderr io.Writer) error {
-	argSlice := []string{
-		"kubectl",
-	}
-
-	argSplit, err := shlex.Split(args)
+	actualDir, err := os.Getwd()
 	if err != nil {
 		return err
 	}
 
-	argSlice = append(argSlice, argSplit...)
-	argSlice = append(argSlice, "--namespace", namespace)
-
-	actualDir, err := os.Getwd()
+	argSlice, err := GetKubectlArgs(args, namespace)
 	if err != nil {
 		return err
 	}

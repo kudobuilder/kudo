@@ -234,3 +234,171 @@ metadata:
 	assert.True(t, MatchesKind(objs[1], crd, pod))
 	assert.False(t, MatchesKind(objs[1], svc, pod))
 }
+
+func TestGetKubectlArgs(t *testing.T) {
+	for _, test := range []struct {
+		testName  string
+		namespace string
+		args      string
+		expected  []string
+	}{
+		{
+			testName:  "namespace long, combined already set at end is not modified",
+			namespace: "default",
+			args:      "kudo test --namespace=test-canary",
+			expected: []string{
+				"kubectl", "kudo", "test", "--namespace=test-canary",
+			},
+		},
+		{
+			testName:  "namespace long already set at end is not modified",
+			namespace: "default",
+			args:      "kudo test --namespace test-canary",
+			expected: []string{
+				"kubectl", "kudo", "test", "--namespace", "test-canary",
+			},
+		},
+		{
+			testName:  "namespace short, combined already set at end is not modified",
+			namespace: "default",
+			args:      "kudo test -n=test-canary",
+			expected: []string{
+				"kubectl", "kudo", "test", "-n=test-canary",
+			},
+		},
+		{
+			testName:  "namespace short already set at end is not modified",
+			namespace: "default",
+			args:      "kudo test -n test-canary",
+			expected: []string{
+				"kubectl", "kudo", "test", "-n", "test-canary",
+			},
+		},
+		{
+			testName:  "namespace long, combined already set at beginning is not modified",
+			namespace: "default",
+			args:      "--namespace=test-canary kudo test",
+			expected: []string{
+				"kubectl", "--namespace=test-canary", "kudo", "test",
+			},
+		},
+		{
+			testName:  "namespace long already set at beginning is not modified",
+			namespace: "default",
+			args:      "--namespace test-canary kudo test",
+			expected: []string{
+				"kubectl", "--namespace", "test-canary", "kudo", "test",
+			},
+		},
+		{
+			testName:  "namespace short, combined already set at beginning is not modified",
+			namespace: "default",
+			args:      "-n=test-canary kudo test",
+			expected: []string{
+				"kubectl", "-n=test-canary", "kudo", "test",
+			},
+		},
+		{
+			testName:  "namespace short already set at beginning is not modified",
+			namespace: "default",
+			args:      "-n test-canary kudo test",
+			expected: []string{
+				"kubectl", "-n", "test-canary", "kudo", "test",
+			},
+		},
+		{
+			testName:  "namespace long, combined already set in middle is not modified",
+			namespace: "default",
+			args:      "kudo --namespace=test-canary test",
+			expected: []string{
+				"kubectl", "kudo", "--namespace=test-canary", "test",
+			},
+		},
+		{
+			testName:  "namespace long already set in middle is not modified",
+			namespace: "default",
+			args:      "kudo --namespace test-canary test",
+			expected: []string{
+				"kubectl", "kudo", "--namespace", "test-canary", "test",
+			},
+		},
+		{
+			testName:  "namespace short, combined already set in middle is not modified",
+			namespace: "default",
+			args:      "kudo -n=test-canary test",
+			expected: []string{
+				"kubectl", "kudo", "-n=test-canary", "test",
+			},
+		},
+		{
+			testName:  "namespace short already set in middle is not modified",
+			namespace: "default",
+			args:      "kudo -n test-canary test",
+			expected: []string{
+				"kubectl", "kudo", "-n", "test-canary", "test",
+			},
+		},
+		{
+			testName:  "namespace not set is appended",
+			namespace: "default",
+			args:      "kudo test",
+			expected: []string{
+				"kubectl", "kudo", "test", "--namespace", "default",
+			},
+		},
+		{
+			testName:  "unknown arguments do not break parsing with namespace is not set",
+			namespace: "default",
+			args:      "kudo test --config kudo-test.yaml",
+			expected: []string{
+				"kubectl", "kudo", "test", "--config", "kudo-test.yaml", "--namespace", "default",
+			},
+		},
+		{
+			testName:  "unknown arguments do not break parsing if namespace is set at beginning",
+			namespace: "default",
+			args:      "--namespace=test-canary kudo test --config kudo-test.yaml",
+			expected: []string{
+				"kubectl", "--namespace=test-canary", "kudo", "test", "--config", "kudo-test.yaml",
+			},
+		},
+		{
+			testName:  "unknown arguments do not break parsing if namespace is set at middle",
+			namespace: "default",
+			args:      "kudo --namespace=test-canary test --config kudo-test.yaml",
+			expected: []string{
+				"kubectl", "kudo", "--namespace=test-canary", "test", "--config", "kudo-test.yaml",
+			},
+		},
+		{
+			testName:  "unknown arguments do not break parsing if namespace is set at end",
+			namespace: "default",
+			args:      "kudo test --config kudo-test.yaml --namespace=test-canary",
+			expected: []string{
+				"kubectl", "kudo", "test", "--config", "kudo-test.yaml", "--namespace=test-canary",
+			},
+		},
+		{
+			testName:  "quotes are respected when parsing",
+			namespace: "default",
+			args:      "kudo \"test quoted\"",
+			expected: []string{
+				"kubectl", "kudo", "test quoted", "--namespace", "default",
+			},
+		},
+		{
+			testName:  "kubectl is not pre-pended if it is already present",
+			namespace: "default",
+			args:      "kubectl kudo test",
+			expected: []string{
+				"kubectl", "kudo", "test", "--namespace", "default",
+			},
+		},
+	} {
+		t.Run(test.testName, func(t *testing.T) {
+			args, err := GetKubectlArgs(test.args, test.namespace)
+			assert.Nil(t, err)
+			assert.Equal(t, test.expected, args)
+		})
+	}
+}
