@@ -36,17 +36,13 @@ import (
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	log.Printf("OperatorController: Registering operator controller.")
-	reconciler, err := newReconciler(mgr)
-	if err != nil {
-		return err
-	}
-	return add(mgr, reconciler)
+	return add(mgr, newReconciler(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
+func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 
-	return &ReconcileOperator{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor("operator-controller")}, nil
+	return &ReconcileOperator{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor("operator-controller")}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -79,7 +75,7 @@ type ReconcileOperator struct {
 // and what is in the Operator.Spec
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=kudo.k8s.io,resources=operators,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kudo.dev,resources=operators,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileOperator) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the operator
 	operator := &kudov1alpha1.Operator{}

@@ -1,10 +1,9 @@
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: OperatorVersion
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: zookeeper-0.1.0
-  namespace: default
 spec:
   operator:
     name: zookeeper
@@ -15,9 +14,11 @@ spec:
     - name: cpus
       description: Amount of cpu to provide to Zookeeper pods
       default: "0.25"
+      required: true
     - name: memory
       description: Amount of memory to provide to Zookeeper pods
       default: "1Gi"
+      required: true
   templates:
     services.yaml: |
       apiVersion: v1

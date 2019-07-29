@@ -5,15 +5,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// newGetCmd creates a new command that lists instances
+// newGetCmd creates a command that lists the instances in the cluster
 func newGetCmd() *cobra.Command {
-	newCmd := &cobra.Command{
-		Use:   "get",
-		Short: "-> Show all available instances.",
-		Long:  `The get command has subcommands to show all available instances.`,
+	options := get.DefaultOptions
+	getCmd := &cobra.Command{
+		Use:   "get instances",
+		Short: "Gets all available instances.",
+		Long: `
+	# Get all available instances
+	kudoctl get instances`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return get.Run(args, options)
+		},
 	}
 
-	newCmd.AddCommand(get.NewGetInstancesCmd())
+	getCmd.Flags().StringVar(&options.Namespace, "namespace", "default", "The namespace where the operator watches for changes.")
 
-	return newCmd
+	return getCmd
 }

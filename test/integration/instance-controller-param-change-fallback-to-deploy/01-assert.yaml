@@ -1,0 +1,7 @@
+apiVersion: kudo.dev/v1alpha1
+kind: PlanExecution
+metadata:
+  labels:
+    kudo.dev/instance: icto-fallback-to-deploy
+spec:
+  planName: deploy

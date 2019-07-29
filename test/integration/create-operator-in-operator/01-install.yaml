@@ -1,0 +1,11 @@
+apiVersion: kudo.dev/v1alpha1
+kind: Instance
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+    kudo.dev/operator: operator-in-operator
+  name: oio-instance
+spec:
+  operatorVersion:
+    name: operator-in-operator-v1
+    kind: OperatorVersion
