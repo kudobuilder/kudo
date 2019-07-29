@@ -1,7 +1,6 @@
 package test
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"path/filepath"
@@ -186,32 +185,6 @@ func (s *Step) Create(namespace string) []error {
 	return errors
 }
 
-// DoKubectl runs all kubectl commands defined for the test step.
-func (s *Step) DoKubectl(namespace string) []error {
-	errs := []error{}
-
-	if s.Step == nil || s.Step.Kubectl == nil {
-		return errs
-	}
-
-	for _, cmd := range s.Step.Kubectl {
-		stdout := &bytes.Buffer{}
-		stderr := &bytes.Buffer{}
-
-		s.Logger.Log("Running kubectl:", cmd)
-
-		err := testutils.Kubectl(context.TODO(), namespace, cmd, s.Dir, stdout, stderr)
-		if err != nil {
-			errs = append(errs, errors.New(stderr.String()))
-			errs = append(errs, err)
-		}
-
-		s.Logger.Log(stdout.String())
-	}
-
-	return errs
-}
-
 // GetTimeout gets the timeout defined for the test step.
 func (s *Step) GetTimeout() int {
 	timeout := s.Timeout
@@ -328,7 +301,14 @@ func (s *Step) Run(namespace string) []error {
 		return []error{err}
 	}
 
-	testErrors := s.DoKubectl(namespace)
+	testErrors := []error{}
+
+	if s.Step != nil {
+		if errors := testutils.RunKubectlCommands(s.Logger, namespace, s.Step.Kubectl, s.Dir); errors != nil {
+			testErrors = append(testErrors, errors...)
+		}
+	}
+
 	testErrors = append(testErrors, s.Create(namespace)...)
 
 	if len(testErrors) != 0 {

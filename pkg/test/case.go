@@ -74,7 +74,7 @@ func (t *Case) CreateNamespace(namespace string) error {
 	})
 }
 
-// TestCaseFactory creates a new Go test that runs a set of test steps.
+// Run runs a test case including all of its steps.
 func (t *Case) Run(test *testing.T) {
 	test.Parallel()
 

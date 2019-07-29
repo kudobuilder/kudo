@@ -818,6 +818,36 @@ func Kubectl(ctx context.Context, namespace string, args string, cwd string, std
 	return cmd.Run()
 }
 
+// RunKubectlCommands runs a set of kubectl commands, returning any errors.
+func RunKubectlCommands(logger Logger, namespace string, commands []string, workdir string) []error {
+	errs := []error{}
+
+	if commands == nil {
+		return nil
+	}
+
+	for _, cmd := range commands {
+		stdout := &bytes.Buffer{}
+		stderr := &bytes.Buffer{}
+
+		logger.Log("Running kubectl:", cmd)
+
+		err := Kubectl(context.TODO(), namespace, cmd, workdir, stdout, stderr)
+		if err != nil {
+			errs = append(errs, errors.New(stderr.String()))
+			errs = append(errs, err)
+		}
+
+		logger.Log(stdout.String())
+	}
+
+	if len(errs) == 0 {
+		return nil
+	}
+
+	return errs
+}
+
 // Kubeconfig converts a rest.Config into a YAML kubeconfig and writes it to w
 func Kubeconfig(cfg *rest.Config, w io.Writer) error {
 	var authProvider *api.AuthProviderConfig

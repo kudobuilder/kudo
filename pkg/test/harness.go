@@ -1,7 +1,6 @@
 package test
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -16,7 +15,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/controller"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/kudobuilder/kudo/pkg/webhook"
-	"github.com/pkg/errors"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -33,6 +31,7 @@ type Harness struct {
 	TestSuite kudo.TestSuite
 	T         *testing.T
 
+	logger        testutils.Logger
 	managerStopCh chan struct{}
 	config        *rest.Config
 	client        client.Client
@@ -72,6 +71,15 @@ func (h *Harness) LoadTests(dir string) ([]*Case, error) {
 	}
 
 	return tests, nil
+}
+
+// GetLogger returns an initialized test logger.
+func (h *Harness) GetLogger() testutils.Logger {
+	if h.logger == nil {
+		h.logger = testutils.NewTestLogger(h.T, "")
+	}
+
+	return h.logger
 }
 
 // GetTimeout returns the configured timeout for the test suite.
@@ -245,28 +253,6 @@ func (h *Harness) DiscoveryClient() (discovery.DiscoveryInterface, error) {
 	return h.dclient, err
 }
 
-// DoKubectl runs all kubectl commands defined for the test suite.
-func (h *Harness) DoKubectl() error {
-	if h.TestSuite.Kubectl == nil {
-		return nil
-	}
-
-	for _, cmd := range h.TestSuite.Kubectl {
-		stdout := &bytes.Buffer{}
-		stderr := &bytes.Buffer{}
-
-		h.T.Log("Running kubectl:", cmd)
-
-		if err := testutils.Kubectl(context.TODO(), "default", cmd, "", stdout, stderr); err != nil {
-			return errors.Wrap(err, stderr.String())
-		}
-
-		h.T.Log(stdout.String())
-	}
-
-	return nil
-}
-
 // RunTests should be called from within a Go test (t) and launches all of the KUDO integration
 // tests at dir.
 func (h *Harness) RunTests() {
@@ -338,7 +324,7 @@ func (h *Harness) Run() {
 		}
 	}
 
-	if err := h.DoKubectl(); err != nil {
+	if err := testutils.RunKubectlCommands(h.GetLogger(), "default", h.TestSuite.Kubectl, ""); err != nil {
 		h.T.Fatal(err)
 	}
 
