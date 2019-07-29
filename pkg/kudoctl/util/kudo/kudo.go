@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/types"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
