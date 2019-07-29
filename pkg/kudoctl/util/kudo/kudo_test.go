@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	v1 "k8s.io/api/core/v1"
@@ -90,7 +92,7 @@ func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
-				"kudo.dev/operator":       "test",
+				kudo.OperatorLabel:        "test",
 			},
 			Name: "test",
 		},
@@ -109,7 +111,7 @@ func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
-				"kudo.dev/operator":       "test",
+				kudo.OperatorLabel:        "test",
 			},
 			Name: "test",
 		},
@@ -164,7 +166,7 @@ func TestKudoClient_ListInstances(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
-				"kudo.dev/operator":       "test",
+				kudo.OperatorLabel:        "test",
 			},
 			Name: "test",
 		},
@@ -401,7 +403,7 @@ func TestKudoClient_GetInstance(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
-				"kudo.dev/operator":       "test",
+				kudo.OperatorLabel:        "test",
 			},
 			Name: "test",
 		},
@@ -501,7 +503,7 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
-				"kudo.dev/operator":       "test",
+				kudo.OperatorLabel:        "test",
 			},
 			Name: "test",
 		},
