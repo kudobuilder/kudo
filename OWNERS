@@ -1,13 +1,19 @@
 # See the OWNERS docs: https://git.k8s.io/community/contributors/guide/owners.md
 
 approvers:
-  - gerred
-  - runyontr
+  - alenkacz
   - fabianbaier
+  - gerred
+  - kensipe
+  - jbarrick-mesosphere
+  - runyontr
+
 reviewers:
-  - gerred
-  - runyontr
+  - alenkacz
   - fabianbaier
+  - gerred
+  - guenter
+  - jbarrick-mesosphere
   - joerg84
   - kensipe
-  - guenter
+  - runyontr
