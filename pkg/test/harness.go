@@ -284,12 +284,15 @@ func (h *Harness) RunTests() {
 		for _, test := range tests {
 			test.Client = h.Client
 			test.DiscoveryClient = h.DiscoveryClient
+			test.Logger = testutils.NewTestLogger(t, test.Name)
 
-			if err := test.LoadTestSteps(); err != nil {
-				t.Fatal(err)
-			}
+			t.Run(test.Name, func(t *testing.T) {
+				if err := test.LoadTestSteps(); err != nil {
+					t.Fatal(err)
+				}
 
-			t.Run(test.Name, test.TestCaseFactory())
+				test.Run(t)
+			})
 		}
 	})
 }

@@ -222,7 +222,7 @@ func TestLoadTestSteps(t *testing.T) {
 		},
 	} {
 		t.Run(tt.path, func(t *testing.T) {
-			test := &Case{Dir: tt.path}
+			test := &Case{Dir: tt.path, Logger: testutils.NewTestLogger(t, tt.path)}
 
 			err := test.LoadTestSteps()
 			assert.Nil(t, err)
@@ -285,7 +285,7 @@ func TestCollectTestStepFiles(t *testing.T) {
 		},
 	} {
 		t.Run(tt.path, func(t *testing.T) {
-			test := &Case{Dir: tt.path}
+			test := &Case{Dir: tt.path, Logger: testutils.NewTestLogger(t, tt.path)}
 			testStepFiles, err := test.CollectTestStepFiles()
 			assert.Nil(t, err)
 			assert.Equal(t, tt.expected, testStepFiles)
