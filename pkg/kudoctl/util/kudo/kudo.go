@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
 	"github.com/pkg/errors"
@@ -57,13 +59,20 @@ func NewClient(namespace, kubeConfigPath string) (*Client, error) {
 	}, nil
 }
 
+// NewClientFromK8s creates KUDO client from kubernetes client interface
+func NewClientFromK8s(client versioned.Interface) *Client {
+	result := Client{}
+	result.clientset = client
+	return &result
+}
+
 // OperatorExistsInCluster checks if a given Operator object is installed on the current k8s cluster
 func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 	operator, err := c.clientset.KudoV1alpha1().Operators(namespace).Get(name, v1.GetOptions{})
 	if err != nil {
 		return false
 	}
-	fmt.Printf("operator.kudo.k8s.io/%s unchanged\n", operator.Name)
+	fmt.Printf("operator.kudo.dev/%s unchanged\n", operator.Name)
 	return true
 }
 
@@ -80,10 +89,10 @@ func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 //    		generation: 1
 //    		labels:
 //      		controller-tools.k8s.io: "1.0"
-//      		operator: kafka
+//      		kudo.dev/operator: kafka
 // This function also just returns true if the Instance matches a specific OperatorVersion of a Operator
-func (c *Client) InstanceExistsInCluster(name, namespace, version, instanceName string) (bool, error) {
-	instances, err := c.clientset.KudoV1alpha1().Instances(namespace).List(v1.ListOptions{LabelSelector: "operator=" + name})
+func (c *Client) InstanceExistsInCluster(operatorName, namespace, version, instanceName string) (bool, error) {
+	instances, err := c.clientset.KudoV1alpha1().Instances(namespace).List(v1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", kudo.OperatorLabel, operatorName)})
 	if err != nil {
 		return false, err
 	}
@@ -94,27 +103,41 @@ func (c *Client) InstanceExistsInCluster(name, namespace, version, instanceName 
 	// TODO: check function that actual checks for the OperatorVersion named e.g. "test-1.0" to exist
 	var i int
 	for _, v := range instances.Items {
-		if v.Spec.OperatorVersion.Name == name+"-"+version && v.ObjectMeta.Name == instanceName {
+		if v.Spec.OperatorVersion.Name == operatorName+"-"+version && v.ObjectMeta.Name == instanceName {
 			i++
 		}
 	}
 
-	// No instance exist with this name and FV exists
+	// No instance exist with this operatorName and OV exists
 	if i == 0 {
 		return false, nil
 	}
 	return true, nil
 }
 
+// ListInstances lists all instances of given operator installed in the cluster in a given ns
+func (c *Client) ListInstances(namespace string) ([]string, error) {
+	instances, err := c.clientset.KudoV1alpha1().Instances(namespace).List(v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	existingInstances := []string{}
+
+	for _, v := range instances.Items {
+		existingInstances = append(existingInstances, v.Name)
+	}
+	return existingInstances, nil
+}
+
 // OperatorVersionsInstalled lists all the versions of given operator installed in the cluster in given ns
 func (c *Client) OperatorVersionsInstalled(operatorName, namespace string) ([]string, error) {
-	fv, err := c.clientset.KudoV1alpha1().OperatorVersions(namespace).List(v1.ListOptions{})
+	ov, err := c.clientset.KudoV1alpha1().OperatorVersions(namespace).List(v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 	existingVersions := []string{}
 
-	for _, v := range fv.Items {
+	for _, v := range ov.Items {
 		if strings.HasPrefix(v.Name, operatorName) {
 			existingVersions = append(existingVersions, v.Spec.Version)
 		}

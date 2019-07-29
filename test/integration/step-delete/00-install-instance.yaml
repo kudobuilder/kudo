@@ -1,0 +1,52 @@
+# This test validates that the plan execution controller properly deletes resources when a step has delete=true.
+# We validate this by setting a label in the Job's Pod spec via a parameter - Job Pod specs are immutable, so the second
+# step cannot pass if the Job was not deleted by KUDO.
+apiVersion: kudo.dev/v1alpha1
+kind: OperatorVersion
+metadata:
+  name: job-operator
+spec:
+  version: "1.0"
+  tasks:
+    validate:
+      resources:
+      - job.yaml
+  parameters:
+  - name: LABEL
+    default: "test"
+  plans:
+    deploy:
+      strategy: serial
+      phases:
+      - name: validate
+        stategy: parallel
+        steps:
+        - name: validate
+          tasks:
+          - validate
+          delete: true
+  templates:
+    job.yaml: |
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: job
+        labels:
+          label: "{{ .Params.LABEL }}"
+      spec:
+        template:
+          spec:
+            containers:
+            - name: test
+              image: alpine
+---
+apiVersion: kudo.dev/v1alpha1
+kind: Instance
+metadata:
+  name: step-delete-instance
+  labels:
+    kudo.dev/operator: job-operator
+spec:
+  operatorVersion:
+    name: job-operator
+    kind: OperatorVersion

@@ -1,0 +1,21 @@
+apiVersion: kudo.dev/v1alpha1
+kind: OperatorVersion
+metadata:
+  name: icto-upgrade-fallback-to-update
+spec:
+  operator:
+    name: icto-upgrade
+    kind: Operator
+  version: "2.0"
+  plans:
+    deploy:
+    update:
+---
+apiVersion: kudo.dev/v1alpha1
+kind: Instance
+metadata:
+  name: icto-upgrade-fallback-to-update
+spec:
+  operatorVersion:
+    name: icto-upgrade-fallback-to-update
+    kind: OperatorVersion

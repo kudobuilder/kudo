@@ -1,0 +1,22 @@
+# Verify that the pods are created.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello
+spec:
+  containers:
+  - image: alpine2
+    name: test
+status:
+  phase: Pending
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello2
+spec:
+  containers:
+  - image: alpine2
+    name: test
+status:
+  phase: Pending

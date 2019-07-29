@@ -33,20 +33,33 @@ type Step struct {
 	Apply   []runtime.Object
 	Errors  []runtime.Object
 
-	DiscoveryClient discovery.DiscoveryInterface
-	Client          client.Client
-	Logger          testutils.Logger
+	Timeout int
+
+	Client          func(forceNew bool) (client.Client, error)
+	DiscoveryClient func() (discovery.DiscoveryInterface, error)
+
+	Logger testutils.Logger
 }
 
 // Clean deletes all resources defined in the Apply list.
 func (s *Step) Clean(namespace string) error {
+	cl, err := s.Client(false)
+	if err != nil {
+		return err
+	}
+
+	dClient, err := s.DiscoveryClient()
+	if err != nil {
+		return err
+	}
+
 	for _, obj := range s.Apply {
-		_, _, err := testutils.Namespaced(s.DiscoveryClient, obj, namespace)
+		_, _, err := testutils.Namespaced(dClient, obj, namespace)
 		if err != nil {
 			return err
 		}
 
-		if err := s.Client.Delete(context.TODO(), obj); err != nil && !k8serrors.IsNotFound(err) {
+		if err := cl.Delete(context.TODO(), obj); err != nil && !k8serrors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -56,6 +69,16 @@ func (s *Step) Clean(namespace string) error {
 
 // DeleteExisting deletes any resources in the TestStep.Delete list prior to running the tests.
 func (s *Step) DeleteExisting(namespace string) error {
+	cl, err := s.Client(false)
+	if err != nil {
+		return err
+	}
+
+	dClient, err := s.DiscoveryClient()
+	if err != nil {
+		return err
+	}
+
 	toDelete := []runtime.Object{}
 
 	if s.Step == nil {
@@ -72,34 +95,32 @@ func (s *Step) DeleteExisting(namespace string) error {
 			objNs = ref.Namespace
 		}
 
-		_, objNs, err := testutils.Namespaced(s.DiscoveryClient, obj, objNs)
+		_, objNs, err := testutils.Namespaced(dClient, obj, objNs)
 		if err != nil {
 			return err
 		}
 
-		if ref.Labels != nil && len(ref.Labels) != 0 {
-			// If the reference has a label selector, List all objects that match
-			if err := testutils.Retry(context.TODO(), func(ctx context.Context) error {
-				u := &unstructured.UnstructuredList{}
-				u.SetGroupVersionKind(gvk)
+		if ref.Name == "" {
+			u := &unstructured.UnstructuredList{}
+			u.SetGroupVersionKind(gvk)
 
-				listOptions := []client.ListOptionFunc{client.MatchingLabels(ref.Labels)}
-				if objNs != "" {
-					listOptions = append(listOptions, client.InNamespace(objNs))
-				}
+			listOptions := []client.ListOptionFunc{}
 
-				err := s.Client.List(ctx, u, listOptions...)
-				if err != nil {
-					return errors.Wrap(err, "listing matching resources")
-				}
+			if ref.Labels != nil {
+				listOptions = append(listOptions, client.MatchingLabels(ref.Labels))
+			}
 
-				for index := range u.Items {
-					toDelete = append(toDelete, &u.Items[index])
-				}
+			if objNs != "" {
+				listOptions = append(listOptions, client.InNamespace(objNs))
+			}
 
-				return nil
-			}, testutils.IsJSONSyntaxError); err != nil {
-				return err
+			err := cl.List(context.TODO(), u, listOptions...)
+			if err != nil {
+				return errors.Wrap(err, "listing matching resources")
+			}
+
+			for index := range u.Items {
+				toDelete = append(toDelete, &u.Items[index])
 			}
 		} else {
 			// Otherwise just append the object specified.
@@ -108,13 +129,8 @@ func (s *Step) DeleteExisting(namespace string) error {
 	}
 
 	for _, obj := range toDelete {
-		if err := testutils.Retry(context.TODO(), func(ctx context.Context) error {
-			err := s.Client.Delete(context.TODO(), obj.DeepCopyObject())
-			if err != nil && k8serrors.IsNotFound(err) {
-				return nil
-			}
-			return err
-		}, testutils.IsJSONSyntaxError); err != nil {
+		err := cl.Delete(context.TODO(), obj.DeepCopyObject())
+		if err != nil && !k8serrors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -122,7 +138,7 @@ func (s *Step) DeleteExisting(namespace string) error {
 	// Wait for resources to be deleted.
 	return wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (done bool, err error) {
 		for _, obj := range toDelete {
-			err = s.Client.Get(context.TODO(), testutils.ObjectKey(obj), obj.DeepCopyObject())
+			err = cl.Get(context.TODO(), testutils.ObjectKey(obj), obj.DeepCopyObject())
 			if err == nil || !k8serrors.IsNotFound(err) {
 				return false, err
 			}
@@ -134,16 +150,26 @@ func (s *Step) DeleteExisting(namespace string) error {
 
 // Create applies all resources defined in the Apply list.
 func (s *Step) Create(namespace string) []error {
+	cl, err := s.Client(true)
+	if err != nil {
+		return []error{err}
+	}
+
+	dClient, err := s.DiscoveryClient()
+	if err != nil {
+		return []error{err}
+	}
+
 	errors := []error{}
 
 	for _, obj := range s.Apply {
-		_, _, err := testutils.Namespaced(s.DiscoveryClient, obj, namespace)
+		_, _, err := testutils.Namespaced(dClient, obj, namespace)
 		if err != nil {
 			errors = append(errors, err)
 			continue
 		}
 
-		if updated, err := testutils.CreateOrUpdate(context.TODO(), s.Client, obj, true); err != nil {
+		if updated, err := testutils.CreateOrUpdate(context.TODO(), cl, obj, true); err != nil {
 			errors = append(errors, err)
 		} else {
 			action := "created"
@@ -159,7 +185,7 @@ func (s *Step) Create(namespace string) []error {
 
 // GetTimeout gets the timeout defined for the test step.
 func (s *Step) GetTimeout() int {
-	timeout := 10
+	timeout := s.Timeout
 	if s.Assert != nil && s.Assert.Timeout != 0 {
 		timeout = s.Assert.Timeout
 	}
@@ -168,9 +194,19 @@ func (s *Step) GetTimeout() int {
 
 // CheckResource checks if the expected resource's state in Kubernetes is correct.
 func (s *Step) CheckResource(expected runtime.Object, namespace string) []error {
+	cl, err := s.Client(false)
+	if err != nil {
+		return []error{err}
+	}
+
+	dClient, err := s.DiscoveryClient()
+	if err != nil {
+		return []error{err}
+	}
+
 	testErrors := []error{}
 
-	name, namespace, err := testutils.Namespaced(s.DiscoveryClient, expected, namespace)
+	name, namespace, err := testutils.Namespaced(dClient, expected, namespace)
 	if err != nil {
 		return append(testErrors, err)
 	}
@@ -183,7 +219,7 @@ func (s *Step) CheckResource(expected runtime.Object, namespace string) []error 
 		actual := &unstructured.Unstructured{}
 		actual.SetGroupVersionKind(gvk)
 
-		err = s.Client.Get(context.TODO(), client.ObjectKey{
+		err = cl.Get(context.TODO(), client.ObjectKey{
 			Namespace: namespace,
 			Name:      name,
 		}, actual)
@@ -199,7 +235,7 @@ func (s *Step) CheckResource(expected runtime.Object, namespace string) []error 
 			listOptions = append(listOptions, client.InNamespace(namespace))
 		}
 
-		err = s.Client.List(context.TODO(), actual, listOptions...)
+		err = cl.List(context.TODO(), actual, listOptions...)
 
 		for index := range actual.Items {
 			actuals = append(actuals, &actual.Items[index])

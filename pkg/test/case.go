@@ -28,16 +28,24 @@ type Case struct {
 	Name       string
 	Dir        string
 	SkipDelete bool
+	Timeout    int
 
-	Client          client.Client
-	DiscoveryClient discovery.DiscoveryInterface
-	Logger          testutils.Logger
+	Client          func(forceNew bool) (client.Client, error)
+	DiscoveryClient func() (discovery.DiscoveryInterface, error)
+
+	Logger testutils.Logger
 }
 
 // DeleteNamespace deletes a namespace in Kubernetes after we are done using it.
 func (t *Case) DeleteNamespace(namespace string) error {
 	t.Logger.Log("Deleting namespace:", namespace)
-	return t.Client.Delete(context.TODO(), &corev1.Namespace{
+
+	cl, err := t.Client(false)
+	if err != nil {
+		return err
+	}
+
+	return cl.Delete(context.TODO(), &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
 		},
@@ -50,7 +58,13 @@ func (t *Case) DeleteNamespace(namespace string) error {
 // CreateNamespace creates a namespace in Kubernetes to use for a test.
 func (t *Case) CreateNamespace(namespace string) error {
 	t.Logger.Log("Creating namespace:", namespace)
-	return t.Client.Create(context.TODO(), &corev1.Namespace{
+
+	cl, err := t.Client(false)
+	if err != nil {
+		return err
+	}
+
+	return cl.Create(context.TODO(), &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
 		},
@@ -152,6 +166,7 @@ func (t *Case) LoadTestSteps() error {
 
 	for index, files := range testStepFiles {
 		testStep := &Step{
+			Timeout: t.Timeout,
 			Index:   int(index),
 			Asserts: []runtime.Object{},
 			Apply:   []runtime.Object{},

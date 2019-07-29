@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -26,19 +27,21 @@ func TestStepClean(t *testing.T) {
 	pod2WithNamespace := testutils.NewPod("hello2", namespace)
 	pod2WithDiffNamespace := testutils.NewPod("hello2", "different-namespace")
 
+	cl := fake.NewFakeClient(pod, pod2WithNamespace, pod2WithDiffNamespace)
+
 	step := Step{
 		Apply: []runtime.Object{
 			pod.DeepCopyObject(), pod2WithDiffNamespace.DeepCopyObject(), testutils.NewPod("does-not-exist", ""),
 		},
-		Client:          fake.NewFakeClient(pod, pod2WithNamespace, pod2WithDiffNamespace),
-		DiscoveryClient: testutils.FakeDiscoveryClient(),
+		Client:          func(bool) (client.Client, error) { return cl, nil },
+		DiscoveryClient: func() (discovery.DiscoveryInterface, error) { return testutils.FakeDiscoveryClient(), nil },
 	}
 
 	assert.Nil(t, step.Clean(namespace))
 
-	assert.True(t, k8serrors.IsNotFound(step.Client.Get(context.TODO(), testutils.ObjectKey(podWithNamespace), podWithNamespace)))
-	assert.True(t, k8serrors.IsNotFound(step.Client.Get(context.TODO(), testutils.ObjectKey(pod2WithNamespace), pod2WithNamespace)))
-	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(pod2WithDiffNamespace), pod2WithDiffNamespace))
+	assert.True(t, k8serrors.IsNotFound(cl.Get(context.TODO(), testutils.ObjectKey(podWithNamespace), podWithNamespace)))
+	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(pod2WithNamespace), pod2WithNamespace))
+	assert.True(t, k8serrors.IsNotFound(cl.Get(context.TODO(), testutils.ObjectKey(pod2WithDiffNamespace), pod2WithDiffNamespace)))
 }
 
 // Verify the test state as loaded from disk.
@@ -54,26 +57,28 @@ func TestStepCreate(t *testing.T) {
 		"replicas": 2,
 	})
 
+	cl := fake.NewFakeClient(testutils.WithNamespace(podToUpdate, "world"))
+
 	step := Step{
 		Logger: testutils.NewTestLogger(t, ""),
 		Apply: []runtime.Object{
 			pod.DeepCopyObject(), podWithNamespace.DeepCopyObject(), clusterScopedResource, updateToApply,
 		},
-		Client:          fake.NewFakeClient(testutils.WithNamespace(podToUpdate, "world")),
-		DiscoveryClient: testutils.FakeDiscoveryClient(),
+		Client:          func(bool) (client.Client, error) { return cl, nil },
+		DiscoveryClient: func() (discovery.DiscoveryInterface, error) { return testutils.FakeDiscoveryClient(), nil },
 	}
 
 	assert.Equal(t, []error{}, step.Create(namespace))
 
-	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(pod), pod))
-	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(clusterScopedResource), clusterScopedResource))
+	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(pod), pod))
+	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(clusterScopedResource), clusterScopedResource))
 
-	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(podToUpdate), podToUpdate))
+	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podToUpdate), podToUpdate))
 	assert.Equal(t, updateToApply, podToUpdate)
 
-	assert.True(t, k8serrors.IsNotFound(step.Client.Get(context.TODO(), testutils.ObjectKey(podWithNamespace), podWithNamespace)))
+	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podWithNamespace), podWithNamespace))
 	actual := testutils.NewPod("hello2", namespace)
-	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(actual), actual))
+	assert.True(t, k8serrors.IsNotFound(cl.Get(context.TODO(), testutils.ObjectKey(actual), actual)))
 }
 
 // Verify that the DeleteExisting method properly cleans up resources during a test step.
@@ -83,6 +88,8 @@ func TestStepDeleteExisting(t *testing.T) {
 	podToDelete := testutils.NewPod("delete-me", "world")
 	podToDeleteDefaultNS := testutils.NewPod("also-delete-me", "default")
 	podToKeep := testutils.NewPod("keep-me", "world")
+
+	cl := fake.NewFakeClient(podToDelete, podToKeep, podToDeleteDefaultNS)
 
 	step := Step{
 		Logger: testutils.NewTestLogger(t, ""),
@@ -105,19 +112,19 @@ func TestStepDeleteExisting(t *testing.T) {
 				},
 			},
 		},
-		Client:          fake.NewFakeClient(podToDelete, podToKeep, podToDeleteDefaultNS),
-		DiscoveryClient: testutils.FakeDiscoveryClient(),
+		Client:          func(bool) (client.Client, error) { return cl, nil },
+		DiscoveryClient: func() (discovery.DiscoveryInterface, error) { return testutils.FakeDiscoveryClient(), nil },
 	}
 
-	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(podToKeep), podToKeep))
-	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(podToDelete), podToDelete))
-	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(podToDeleteDefaultNS), podToDeleteDefaultNS))
+	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podToKeep), podToKeep))
+	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podToDelete), podToDelete))
+	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podToDeleteDefaultNS), podToDeleteDefaultNS))
 
 	assert.Nil(t, step.DeleteExisting(namespace))
 
-	assert.Nil(t, step.Client.Get(context.TODO(), testutils.ObjectKey(podToKeep), podToKeep))
-	assert.True(t, k8serrors.IsNotFound(step.Client.Get(context.TODO(), testutils.ObjectKey(podToDelete), podToDelete)))
-	assert.True(t, k8serrors.IsNotFound(step.Client.Get(context.TODO(), testutils.ObjectKey(podToDeleteDefaultNS), podToDeleteDefaultNS)))
+	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podToKeep), podToKeep))
+	assert.True(t, k8serrors.IsNotFound(cl.Get(context.TODO(), testutils.ObjectKey(podToDelete), podToDelete)))
+	assert.True(t, k8serrors.IsNotFound(cl.Get(context.TODO(), testutils.ObjectKey(podToDeleteDefaultNS), podToDeleteDefaultNS)))
 }
 
 func TestCheckResource(t *testing.T) {
@@ -164,8 +171,8 @@ func TestCheckResource(t *testing.T) {
 
 			step := Step{
 				Logger:          testutils.NewTestLogger(t, ""),
-				Client:          fake.NewFakeClient(test.actual),
-				DiscoveryClient: fakeDiscovery,
+				Client:          func(bool) (client.Client, error) { return fake.NewFakeClient(test.actual), nil },
+				DiscoveryClient: func() (discovery.DiscoveryInterface, error) { return fakeDiscovery, nil },
 			}
 
 			errors := step.CheckResource(test.expected, namespace)
@@ -231,8 +238,10 @@ func TestRun(t *testing.T) {
 				Timeout: 1,
 			}
 
-			test.Step.Client = fake.NewFakeClient()
-			test.Step.DiscoveryClient = testutils.FakeDiscoveryClient()
+			cl := fake.NewFakeClient()
+
+			test.Step.Client = func(bool) (client.Client, error) { return cl, nil }
+			test.Step.DiscoveryClient = func() (discovery.DiscoveryInterface, error) { return testutils.FakeDiscoveryClient(), nil }
 			test.Step.Logger = testutils.NewTestLogger(t, "")
 
 			if test.updateMethod != nil {
@@ -240,7 +249,7 @@ func TestRun(t *testing.T) {
 
 				go func() {
 					time.Sleep(time.Second * 2)
-					test.updateMethod(t, test.Step.Client)
+					test.updateMethod(t, cl)
 				}()
 			}
 

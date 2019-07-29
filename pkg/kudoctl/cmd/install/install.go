@@ -3,23 +3,21 @@ package install
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle/finder"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/check"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
-	"k8s.io/client-go/tools/clientcmd"
+	"github.com/spf13/viper"
 )
 
 // Options defines configuration options for the install command
 type Options struct {
 	InstanceName   string
-	KubeConfigPath string
 	Namespace      string
 	Parameters     map[string]string
 	PackageVersion string
@@ -32,7 +30,7 @@ var DefaultOptions = &Options{
 }
 
 // Run returns the errors associated with cmd env
-func Run(cmd *cobra.Command, args []string, options *Options) error {
+func Run(args []string, options *Options) error {
 
 	err := validate(args, options)
 	if err != nil {
@@ -46,24 +44,6 @@ func Run(cmd *cobra.Command, args []string, options *Options) error {
 func validate(args []string, options *Options) error {
 	if len(args) != 1 {
 		return fmt.Errorf("expecting exactly one argument - name of the package or path to install")
-	}
-
-	// If the $KUBECONFIG environment variable is set, use that
-	if len(os.Getenv("KUBECONFIG")) > 0 {
-		options.KubeConfigPath = os.Getenv("KUBECONFIG")
-	}
-
-	configPath, err := check.KubeConfigLocationOrDefault(options.KubeConfigPath)
-	if err != nil {
-		return fmt.Errorf("error when getting default kubeconfig path: %+v", err)
-	}
-	options.KubeConfigPath = configPath
-	if err := check.ValidateKubeConfigPath(options.KubeConfigPath); err != nil {
-		return errors.WithMessage(err, "could not check kubeconfig path")
-	}
-	_, err = clientcmd.BuildConfigFromFlags("", options.KubeConfigPath)
-	if err != nil {
-		return errors.Wrap(err, "getting config failed")
 	}
 
 	return nil
@@ -104,21 +84,14 @@ func getPackageCRDs(name string, options *Options, repository repo.Repository) (
 	return b.GetCRDs()
 }
 
-// installOperator is the umbrella for a single operator installation that gathers the business logic
-// for a cluster and returns an error in case there is a problem
-// TODO: needs testing
+// installOperator is installing single operator into cluster and returns error in case of error
 func installOperator(operatorArgument string, options *Options) error {
 	repository, err := repo.NewOperatorRepository(repo.Default)
 	if err != nil {
 		return errors.WithMessage(err, "could not build operator repository")
 	}
 
-	_, err = clientcmd.BuildConfigFromFlags("", options.KubeConfigPath)
-	if err != nil {
-		return errors.Wrap(err, "getting config failed")
-	}
-
-	kc, err := kudo.NewClient(options.Namespace, options.KubeConfigPath)
+	kc, err := kudo.NewClient(options.Namespace, viper.GetString("kubeconfig"))
 	if err != nil {
 		return errors.Wrap(err, "creating kudo client")
 	}
@@ -128,8 +101,20 @@ func installOperator(operatorArgument string, options *Options) error {
 		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", operatorArgument)
 	}
 
+	return installCrds(crds, kc, options)
+}
+
+func installCrds(crds *bundle.PackageCRDs, kc *kudo.Client, options *Options) error {
+	// PRE-INSTALLATION SETUP
 	operatorName := crds.Operator.ObjectMeta.Name
 	operatorVersion := crds.OperatorVersion.Spec.Version
+	// make sure that our instance object is up to date with overrides from commandline
+	applyInstanceOverrides(crds.Instance, options)
+	// this validation cannot be done earlier because we need to do it after applying things from commandline
+	err := validateCrds(crds, options.SkipInstance)
+	if err != nil {
+		return err
+	}
 
 	// Operator part
 
@@ -157,9 +142,6 @@ func installOperator(operatorArgument string, options *Options) error {
 	// it creates the Instances object just after Operator and
 	// OperatorVersion objects are created to ensure Instances can be created.
 
-	// First make sure that our instance object is up to date with overrides from commandline
-	applyInstanceOverrides(crds.Instance, options)
-
 	// The user opted not to install the instance.
 	if options.SkipInstance {
 		return nil
@@ -186,6 +168,28 @@ func installOperator(operatorArgument string, options *Options) error {
 	return nil
 }
 
+func validateCrds(crds *bundle.PackageCRDs, skipInstance bool) error {
+	if skipInstance {
+		// right now we are just validating parameters on instance, if we're not creating instance right now, there is nothing to validate
+		return nil
+	}
+	parameters := crds.OperatorVersion.Spec.Parameters
+	missingParameters := []string{}
+	for _, p := range parameters {
+		if p.Required && p.Default == nil {
+			_, ok := crds.Instance.Spec.Parameters[p.Name]
+			if !ok {
+				missingParameters = append(missingParameters, p.Name)
+			}
+		}
+	}
+
+	if len(missingParameters) > 0 {
+		return fmt.Errorf("missing required parameters during installation: %s", strings.Join(missingParameters, ","))
+	}
+	return nil
+}
+
 func versionExists(versions []string, currentVersion string) bool {
 	for _, v := range versions {
 		if v == currentVersion {
@@ -197,31 +201,27 @@ func versionExists(versions []string, currentVersion string) bool {
 
 // installSingleOperatorToCluster installs a given Operator to the cluster
 // TODO: needs testing
-func installSingleOperatorToCluster(name, namespace string, f *v1alpha1.Operator, kc *kudo.Client) error {
-	if _, err := kc.InstallOperatorObjToCluster(f, namespace); err != nil {
+func installSingleOperatorToCluster(name, namespace string, o *v1alpha1.Operator, kc *kudo.Client) error {
+	if _, err := kc.InstallOperatorObjToCluster(o, namespace); err != nil {
 		return errors.Wrapf(err, "installing %s-operator.yaml", name)
 	}
-	fmt.Printf("operator.%s/%s created\n", f.APIVersion, f.Name)
+	fmt.Printf("operator.%s/%s created\n", o.APIVersion, o.Name)
 	return nil
 }
 
 // installSingleOperatorVersionToCluster installs a given OperatorVersion to the cluster
 // TODO: needs testing
-func installSingleOperatorVersionToCluster(name, namespace string, kc *kudo.Client, fv *v1alpha1.OperatorVersion) error {
-	if _, err := kc.InstallOperatorVersionObjToCluster(fv, namespace); err != nil {
+func installSingleOperatorVersionToCluster(name, namespace string, kc *kudo.Client, ov *v1alpha1.OperatorVersion) error {
+	if _, err := kc.InstallOperatorVersionObjToCluster(ov, namespace); err != nil {
 		return errors.Wrapf(err, "installing %s-operatorversion.yaml", name)
 	}
-	fmt.Printf("operatorversion.%s/%s created\n", fv.APIVersion, fv.Name)
+	fmt.Printf("operatorversion.%s/%s created\n", ov.APIVersion, ov.Name)
 	return nil
 }
 
 // installSingleInstanceToCluster installs a given Instance to the cluster
 // TODO: needs more testing
 func installSingleInstanceToCluster(name string, instance *v1alpha1.Instance, kc *kudo.Client, options *Options) error {
-	// Customizing Instance
-	// TODO: traversing, e.g. check function that looksup if key exists in the current OperatorVersion
-	// That way just Parameters will be applied if they exist in the matching OperatorVersion
-
 	if _, err := kc.InstallInstanceObjToCluster(instance, options.Namespace); err != nil {
 		return errors.Wrapf(err, "installing instance %s", name)
 	}

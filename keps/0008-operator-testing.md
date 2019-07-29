@@ -122,13 +122,13 @@ Test cases will be authored by defining Kubernetes objects to apply and Kubernet
 
 ### Running the tests
 
-Tests will be invoked via a CLI tool that runs the test suite against the current Kubernetes context. It will be packaged with the default set of test suites from the KUDO Operators repository using go-bindata, with the ability to provide alternative directories containing tests to use.
+Tests will be invoked via a CLI tool that runs the test suite against the current Kubernetes context by default, or optionally against a mocked control plane or kind (kubernetes-in-docker) cluster. It will be packaged with the default set of test suites from the KUDO Operators repository using go-bindata, with the ability to provide alternative directories containing tests to use.
 
-The tool will enumerate each test case (group of test steps) and run them concurrently in batches. Each test case will run in its own namespace (care must be taken that cluster-level resources do not collide with other test cases [??? TODO: solvable?]) which will be deleted after the test case has been completed.
+The tool will enumerate each test case (group of test steps) and run them concurrently in batches. Each test case will run in its own namespace (care must be taken that cluster-level resources do not collide with other test cases [??? TODO: solvable?]) which will be deleted after the test case has been completed. Resources in test steps that are namespace-level will have their namespace set to the test case namespace if it is not present.
 
 Each test case consists of a directory containing test steps and their expected results ("assertions"). The test steps within a test case are run sequentially, waiting for the assertions to be true, a timeout to pass, or a failure condition to be met.
 
-Once all of the test steps in a test case have run, a report for the test case is generated and all of its resources are deleted.
+Once all of the test steps in a test case have run, a report for the test case is generated and all of its resources are deleted unless the harness is configured not to clean up resources.
 
 The test harness can also be run in a unit testing mode, where it spins up a dummy Kubernetes API server and runs any test cases marked as unit tests.
 
@@ -145,16 +145,29 @@ type TestSuite struct {
 
 	// Path to CRDs to install before running tests.
 	CRDDir            string
-	// Path to manifests to install before running tests.
-	ManifestsDir      string
+	// Paths to directories containing manifests to install before running tests.
+	ManifestDirs      []string
 	// Directories containing test cases to run.
 	TestDirs          []string
-	// Whether or not to start a local etcd and kubernetes API server for the tests.
+	// Kubectl specifies a list of kubectl commands to run prior to running the tests.
+	Kubectl []string `json:"kubectl"`
+	// Whether or not to start a local etcd and kubernetes API server for the tests (cannot be set with StartKIND)
 	StartControlPlane bool
+	// Whether or not to start a local kind cluster for the tests (cannot be set with StartControlPlane).
+	StartKIND bool `json:"startKIND"`
+	// Path to the KIND configuration file to use (implies StartKiIND).
+	KINDConfig string `json:"kindConfig"`
+	// KIND context to use.
+	KINDContext string `json:"kindContext"`
 	// Whether or not to start the KUDO controller for the tests.
 	StartKUDO         bool
+	// If set, do not delete the resources after running the tests (implies SkipClusterDelete).
+	SkipDelete bool `json:"skipDelete"`
+	// If set, do not delete the mocked control plane or kind cluster.
+	SkipClusterDelete bool `json:"skipClusterDelete"`
+	// Override the default assertion timeout of 30 seconds (in seconds).
+	Timeout int
 }
-
 ```
 
 A configuration file can be provided to `kubectl kudo test` using the `--config` argument.
@@ -223,13 +236,16 @@ When searching a test step file, if a `TestStep` object is found, it includes se
 
 ```
 type TestStep struct {
-    // The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestStep.
+    // The type meta object, should always be a GVK of kudo.dev/v1alpha1/TestStep.
     TypeMeta
     // Override the default metadata. Set labels or override the test step name.
     ObjectMeta
 
     // Objects to delete at the beginning of the test step.
     Delete []ObjectReference
+
+    // Kubectl specifies a list of kubectl commands to run at the beginning of the test step.
+    Kubectl []string `json:"kubectl"`
 
     // Indicates that this is a unit test - safe to run without a real Kubernetes cluster.
     UnitTest bool
@@ -249,8 +265,18 @@ type ObjectReference struct {
 
 Using a `TestStep`, it is possible to skip certain test steps if conditions are not met, e.g., only run a test step on GKE or on clusters with more than three nodes.
 
-The `Delete` list can be used to specify objects to delete prior to running the tests. If `Labels` are set in an ObjectReference,
-all resources matching the labels and specified kind will be deleted.
+The `Delete` list can be used to specify objects to delete prior to running the tests. If `Labels` are set in an ObjectReference, all resources matching the labels and specified kind will be deleted.
+
+A `TestStep` is also able to invoke kubectl commands or plugins by specifying a list of commands in the `kubectl` setting, e.g.:
+
+```
+apiVersion: kudo.dev/v1alpha1
+kind: TestStep
+kubectl:
+- apply -f ./testdata/pod.yaml
+```
+
+Any resources created or updated in a kubectl step can be asserted on just like any other resource created in a test step. The commands will be executed in order and the test step will be considered failed if kubectl does not exit with status `0`.
 
 #### Assertion files
 
@@ -293,9 +319,9 @@ When searching the assertion file for a test step, if a `TestAssert` object is f
 
 ```
 type TestAssert struct {
-    // The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestAssert.
+    // The type meta object, should always be a GVK of kudo.dev/v1alpha1/TestAssert.
     TypeMeta
-    // Override the default timeout of 300 seconds (in seconds).
+    // Override the default timeout of 30 seconds (in seconds).
     Timeout int
 }
 ```

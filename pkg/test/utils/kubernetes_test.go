@@ -18,22 +18,36 @@ func TestNamespaced(t *testing.T) {
 	fake := FakeDiscoveryClient()
 
 	for _, test := range []struct {
-		testName             string
-		resource             runtime.Object
-		namespaceShouldBeSet bool
-		shouldError          bool
+		testName    string
+		resource    runtime.Object
+		namespace   string
+		shouldError bool
 	}{
-		{"namespaced resource", NewPod("hello", ""), true, false},
-		{"namespace already set", NewPod("hello", "other"), true, false},
-		{"not-namespaced resource", NewResource("v1", "Namespace", "hello", ""), false, false},
-		{"non-existent resource", NewResource("v1", "Blah", "hello", ""), false, true},
+		{
+			testName:  "namespaced resource",
+			resource:  NewPod("hello", ""),
+			namespace: "set-the-namespace",
+		},
+		{
+			testName:  "namespace already set",
+			resource:  NewPod("hello", "other"),
+			namespace: "other",
+		},
+		{
+			testName:  "not-namespaced resource",
+			resource:  NewResource("v1", "Namespace", "hello", ""),
+			namespace: "",
+		},
+		{
+			testName:    "non-existent resource",
+			resource:    NewResource("v1", "Blah", "hello", ""),
+			shouldError: true,
+		},
 	} {
 		t.Run(test.testName, func(t *testing.T) {
-			namespace := "world"
-
 			m, _ := meta.Accessor(test.resource)
 
-			actualName, actualNamespace, err := Namespaced(fake, test.resource, namespace)
+			actualName, actualNamespace, err := Namespaced(fake, test.resource, "set-the-namespace")
 
 			if test.shouldError {
 				assert.NotNil(t, err)
@@ -43,12 +57,8 @@ func TestNamespaced(t *testing.T) {
 				assert.Equal(t, m.GetName(), actualName)
 			}
 
-			if !test.namespaceShouldBeSet {
-				namespace = ""
-			}
-
-			assert.Equal(t, namespace, actualNamespace)
-			assert.Equal(t, namespace, m.GetNamespace())
+			assert.Equal(t, test.namespace, actualNamespace)
+			assert.Equal(t, test.namespace, m.GetNamespace())
 		})
 	}
 }
@@ -182,4 +192,45 @@ spec:
 			},
 		},
 	}, objs[1])
+}
+
+func TestMatchesKind(t *testing.T) {
+	tmpfile, err := ioutil.TempFile("", "test.yaml")
+	assert.Nil(t, err)
+	defer tmpfile.Close()
+
+	ioutil.WriteFile(tmpfile.Name(), []byte(`
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.7.9
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: hello
+`), 0644)
+
+	objs, err := LoadYAML(tmpfile.Name())
+	assert.Nil(t, err)
+
+	crd := NewResource("apiextensions.k8s.io/v1beta1", "CustomResourceDefinition", "", "")
+	pod := NewResource("v1", "Pod", "", "")
+	svc := NewResource("v1", "Service", "", "")
+
+	assert.False(t, MatchesKind(objs[0], crd))
+	assert.True(t, MatchesKind(objs[0], pod))
+	assert.True(t, MatchesKind(objs[0], pod, crd))
+	assert.True(t, MatchesKind(objs[0], crd, pod))
+	assert.False(t, MatchesKind(objs[0], crd, svc))
+
+	assert.True(t, MatchesKind(objs[1], crd))
+	assert.False(t, MatchesKind(objs[1], pod))
+	assert.True(t, MatchesKind(objs[1], pod, crd))
+	assert.True(t, MatchesKind(objs[1], crd, pod))
+	assert.False(t, MatchesKind(objs[1], svc, pod))
 }

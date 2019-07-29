@@ -1,0 +1,17 @@
+apiVersion: kudo.dev/v1alpha1
+kind: PlanExecution
+metadata:
+  labels:
+    kudo.dev/instance: invalid1
+  ownerReferences:
+    - apiVersion: kudo.dev/v1alpha1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Instance
+      name: invalid1
+status:
+  name: deploy
+  state: ERROR
+  phases:
+  - name: invalid-phase
+    state: ERROR

@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/kudobuilder/kudo/pkg/version"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // NewKudoctlCmd creates a new root command for kudoctl
@@ -46,6 +49,9 @@ and serves as an API aggregation layer.
 	cmd.AddCommand(newPlanCmd())
 	cmd.AddCommand(newTestCmd())
 	cmd.AddCommand(newVersionCmd())
+	cmd.PersistentFlags().String("kubeconfig", os.Getenv("HOME")+"/.kube/config", "Path to your Kubernetes configuration file")
+	viper.BindEnv("kubeconfig")
+	viper.BindPFlag("kubeconfig", cmd.PersistentFlags().Lookup("kubeconfig"))
 
 	return cmd
 }

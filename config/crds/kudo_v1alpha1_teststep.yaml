@@ -4,9 +4,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: teststeps.kudo.k8s.io
+  name: teststeps.kudo.dev
 spec:
-  group: kudo.k8s.io
+  group: kudo.dev
   names:
     kind: TestStep
     plural: teststeps

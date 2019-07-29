@@ -72,7 +72,7 @@ type ReconcileOperatorVersion struct {
 //
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=kudo.k8s.io,resources=operatorversions,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kudo.dev,resources=operatorversions,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileOperatorVersion) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the operator version
 	operatorVersion := &kudov1alpha1.OperatorVersion{}

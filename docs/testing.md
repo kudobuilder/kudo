@@ -11,7 +11,6 @@ KUDO uses a declarative integration testing harness for testing itself and Opera
 ## Table of Contents
 
 * [Test harness usage](#test-harness-usage)
-   * [Start a Kubernetes cluster with kind (optional)](#start-a-kubernetes-cluster-with-kind-optional)
    * [Run the Operator tests](#run-the-operator-tests)
 * [Writing test cases](#writing-test-cases)
    * [Test case directory structure](#test-case-directory-structure)
@@ -33,29 +32,20 @@ git clone https://github.com/kudobuilder/operators.git
 cd operators
 ```
 
-Make sure that you have Go version 1.12 or greater and have Go modules enabled.
-
-#### Start a Kubernetes cluster with kind (optional)
-
-The Operator tests rely on a functioning Kubernetes cluster. As the test harness can run KUDO, it is not necessary to install KUDO prior to running the tests.
-
-If you do not have a Kubernetes cluster to use for the tests, you can start one with [kind](https://github.com/kubernetes-sigs/kind):
-
-There is a Make target in the [Operators repository](https://github.com/kudobuilder/operators) that you can use to start it:
-
-```
-make create-cluster
-export KUBECONFIG=$(bin/kind get kubeconfig-path)
-```
-
-Now that the cluster is running, you can use it as a testing environment.
+Make sure that you have the latest version of kudoctl installed.
 
 #### Run the Operator tests
 
 To run the Operator test suite, run the following in the [Operators repository](https://github.com/kudobuilder/operators):
 
 ```
-make test
+kubectl kudo test
+```
+
+To run against a production Kubernetes cluster, run:
+
+```
+kubectl kudo test --start-kind=false
 ```
 
 Operator test suites are stored in the `tests` subdirectory of each [Operator](https://github.com/kudobuilder/operators/tree/master/repository), e.g.:
@@ -101,7 +91,7 @@ The test step files can contain any number of Kubernetes resources that should b
 Continuing with the upgrade-test example, create `00-instance.yaml`:
 
 ```
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
   name: zk
@@ -122,21 +112,23 @@ This test step will create a Zookeeper `Instance`. The namespace should not be s
 It is possible to delete existing resources at the beginning of a test step. Create a `TestStep` object in your step to configure it:
 
 ```
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: TestStep
 delete:
 - name: my-pod
   kind: Pod
-  version: v1
+  apiVersion: v1
 - kind: Pod
-  version: v1
+  apiVersion: v1
   labels:
     app: nginx
+- kind: Pod
+  apiVersion: v1
 ```
 
 The test harness will delete for each resource referenced in the delete list and wait for them to disappear from the API. If the object fails to delete, the test step will fail.
 
-In the first delete example, the `Pod` called `my-pod` will be deleted. In the second, all `Pods` matching the `app=nginx` label will be deleted.
+In the first delete example, the `Pod` called `my-pod` will be deleted. In the second, all `Pods` matching the `app=nginx` label will be deleted. In the third example, all pods in the namespace would be deleted.
 
 #### Test assertions
 
@@ -145,7 +137,7 @@ Test assert files contain any number of Kubernetes resources that are expected t
 Continuing with the `upgrade-test` example, create `00-instance.yaml`:
 
 ```
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
   name: zk
@@ -192,7 +184,7 @@ This would verify that a pod with the `app=nginx` label is running.
 The test harness recognizes special `TestAssert` objects defined in the assert file. If present, they override default settings of the test assert.
 
 ```
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: TestAssert
 timeout: 120
 ```
