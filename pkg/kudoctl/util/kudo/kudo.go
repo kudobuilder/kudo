@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
 	"github.com/pkg/errors"
@@ -87,10 +89,10 @@ func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 //    		generation: 1
 //    		labels:
 //      		controller-tools.k8s.io: "1.0"
-//      		operator: kafka
+//      		kudo.dev/operator: kafka
 // This function also just returns true if the Instance matches a specific OperatorVersion of a Operator
-func (c *Client) InstanceExistsInCluster(name, namespace, version, instanceName string) (bool, error) {
-	instances, err := c.clientset.KudoV1alpha1().Instances(namespace).List(v1.ListOptions{LabelSelector: "operator=" + name})
+func (c *Client) InstanceExistsInCluster(operatorName, namespace, version, instanceName string) (bool, error) {
+	instances, err := c.clientset.KudoV1alpha1().Instances(namespace).List(v1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", kudo.OperatorLabel, operatorName)})
 	if err != nil {
 		return false, err
 	}
@@ -101,12 +103,12 @@ func (c *Client) InstanceExistsInCluster(name, namespace, version, instanceName 
 	// TODO: check function that actual checks for the OperatorVersion named e.g. "test-1.0" to exist
 	var i int
 	for _, v := range instances.Items {
-		if v.Spec.OperatorVersion.Name == name+"-"+version && v.ObjectMeta.Name == instanceName {
+		if v.Spec.OperatorVersion.Name == operatorName+"-"+version && v.ObjectMeta.Name == instanceName {
 			i++
 		}
 	}
 
-	// No instance exist with this name and OV exists
+	// No instance exist with this operatorName and OV exists
 	if i == 0 {
 		return false, nil
 	}
