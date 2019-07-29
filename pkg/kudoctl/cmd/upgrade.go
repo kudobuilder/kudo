@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
-
 	"github.com/Masterminds/semver"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
@@ -95,8 +95,13 @@ func runUpgrade(args []string, options *options) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", packageToUpgrade)
 	}
-	operatorName := crds.Operator.ObjectMeta.Name
-	nextOperatorVersion := crds.OperatorVersion.Spec.Version
+
+	return upgrade(crds.OperatorVersion, kc, options)
+}
+
+func upgrade(newOv *v1alpha1.OperatorVersion, kc *kudo.Client, options *options) error {
+	operatorName := newOv.Spec.Operator.Name
+	nextOperatorVersion := newOv.Spec.Version
 
 	// Make sure the instance you want to upgrade exists
 	instance, err := kc.GetInstance(options.InstanceName, options.Namespace)
@@ -127,15 +132,15 @@ func runUpgrade(args []string, options *options) error {
 		return errors.Wrap(err, "retrieving existing operator versions")
 	}
 	if !install.VersionExists(versionsInstalled, nextOperatorVersion) {
-		if _, err := kc.InstallOperatorVersionObjToCluster(crds.OperatorVersion, options.Namespace); err != nil {
+		if _, err := kc.InstallOperatorVersionObjToCluster(newOv, options.Namespace); err != nil {
 			return errors.Wrapf(err, "failed installing OperatorVersion for operator: %s", operatorName)
 		}
 	}
 
 	// Change instance to point to the new OV
-	err = kc.UpdateOperatorVersion(options.InstanceName, options.Namespace, crds.OperatorVersion.Name)
+	err = kc.UpdateOperatorVersion(options.InstanceName, options.Namespace, newOv.Name)
 	if err != nil {
-		return errors.Wrapf(err, "updating instance to point to new operatorversion %s", crds.OperatorVersion.Name)
+		return errors.Wrapf(err, "updating instance to point to new operatorversion %s", newOv.Name)
 	}
 	return nil
 }
