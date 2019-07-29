@@ -858,10 +858,10 @@ func RunKubectlCommands(logger Logger, namespace string, commands []string, work
 
 		err := Kubectl(context.TODO(), namespace, cmd, workdir, stdout, stderr)
 		if err != nil {
-			errs = append(errs, errors.New(stderr.String()))
 			errs = append(errs, err)
 		}
 
+		logger.Log(stderr.String())
 		logger.Log(stdout.String())
 	}
 
