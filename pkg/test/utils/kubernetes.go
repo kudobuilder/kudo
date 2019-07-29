@@ -136,6 +136,13 @@ func NewRetryClient(cfg *rest.Config, opts client.Options) (*RetryClient, error)
 		return nil, err
 	}
 
+	if opts.Mapper == nil {
+		opts.Mapper, err = NewDynamicRESTMapper(cfg)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	client, err := client.New(cfg, opts)
 	return &RetryClient{Client: client, dynamic: dynamicClient, discovery: discovery}, err
 }
