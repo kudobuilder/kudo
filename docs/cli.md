@@ -80,7 +80,7 @@ For testing or working without a repository it is possible to install via a url 
 
 Installation during development can use a relative or absolute path to the package folder.
 ```bash
-kubectl kudo install pkg/kudoctl/util/repo/testdata/zk
+kubectl kudo install pkg/kudoctl/bundle/testdata/zk
 ```
 
 To support the installation of operators not yet in the repository, it is possible to install directly from a url.
