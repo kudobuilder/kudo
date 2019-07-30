@@ -1,6 +1,7 @@
 package kudo
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -137,9 +138,36 @@ func (c *Client) GetOperatorVersion(name, namespace string) (*v1alpha1.OperatorV
 	return ov, err
 }
 
-// UpdateOperatorVersion updates operatorversion on instance
-func (c *Client) UpdateOperatorVersion(instanceName, namespace, operatorVersionName string) error {
-	_, err := c.clientset.KudoV1alpha1().Instances(namespace).Patch(instanceName, types.MergePatchType, []byte(fmt.Sprintf(`{"spec":{"operatorVersion":{"name":"%s"}}}`, operatorVersionName)))
+//  patchStringValue specifies a patch operation for a string.
+type patchStringValue struct {
+	Op    string `json:"op"`
+	Path  string `json:"path"`
+	Value string `json:"value"`
+}
+
+// UpdateInstance updates operatorversion on instance
+func (c *Client) UpdateInstance(instanceName, namespace, operatorVersionName string, parameters map[string]string) error {
+	instancePatch := []patchStringValue{
+		{
+			Op: "replace",
+			Path: "/spec/operatorVersion/name",
+			Value: operatorVersionName,
+		},
+	}
+	if parameters != nil {
+		for n, v := range parameters {
+			instancePatch = append(instancePatch, patchStringValue{
+				Op: "replace",
+				Path: fmt.Sprintf("/spec/parameters/%s", n),
+				Value: v,
+			})
+		}
+	}
+	serializedPatch, err := json.Marshal(instancePatch)
+	if err != nil {
+		return err
+	}
+	_, err = c.clientset.KudoV1alpha1().Instances(namespace).Patch(instanceName, types.JSONPatchType, serializedPatch)
 	return err
 }
 

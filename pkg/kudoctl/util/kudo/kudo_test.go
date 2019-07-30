@@ -511,6 +511,7 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
+			Parameters: map[string]string{},
 		},
 	}
 
@@ -518,9 +519,11 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 	tests := []struct {
 		name           string
 		patchToVersion string
+		parametersToPatch map[string]string
 		namespace      string
 	}{
-		{"patch to version", "1.1.1", installNamespace},
+		{"patch to version", "1.1.1", nil, installNamespace},
+		{"patch adding new parameter", "1.1.1", map[string]string{"param":"value"}, installNamespace},
 	}
 
 	for _, tt := range tests {
@@ -532,11 +535,18 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 			t.Errorf("Error creating operator version in tests setup for %s", tt.name)
 		}
 
-		err = k2o.UpdateOperatorVersion(testInstance.Name, installNamespace, "test-1.1.1")
+		err = k2o.UpdateInstance(testInstance.Name, installNamespace, "test-1.1.1", tt.parametersToPatch)
 		instance, _ := k2o.GetInstance(testInstance.Name, installNamespace)
 		expectedVersion := fmt.Sprintf("test-%s", tt.patchToVersion)
 		if err != nil || instance.Spec.OperatorVersion.Name != expectedVersion {
 			t.Errorf("%s:\nexpected version: %v\n     got: %v, err: %v", tt.name, expectedVersion, instance.Spec.OperatorVersion.Name, err)
+		}
+
+		for n,v := range tt.parametersToPatch {
+			found, ok := instance.Spec.Parameters[n]
+			if !ok || found != v {
+				t.Errorf("%s: Value of parameter %s should have been updated to %s but is %s", tt.name, n, v, found)
+			}
 		}
 	}
 }
