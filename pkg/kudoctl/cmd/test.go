@@ -53,7 +53,7 @@ func newTestCmd() *cobra.Command {
 
 	testCmd := &cobra.Command{
 		Use:   "test [flags]... [test directories]...",
-		Short: "-> Test KUDO and Operators.",
+		Short: "Test KUDO and Operators.",
 		Long: `Runs integration tests against a Kubernetes cluster.
 
 The test operator supports connecting to an existing Kubernetes cluster or it can start a Kubernetes API server during the test run.

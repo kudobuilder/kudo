@@ -79,7 +79,7 @@ func newInstallCmd() *cobra.Command {
 	var parameters []string
 	installCmd := &cobra.Command{
 		Use:     "install <name>",
-		Short:   "-> Install an official KUDO package.",
+		Short:   "Install an official KUDO package.",
 		Long:    `Install a KUDO package from local filesystem or the official repo.`,
 		Example: installExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
