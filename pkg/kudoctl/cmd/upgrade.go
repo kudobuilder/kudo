@@ -43,7 +43,7 @@ func newUpgradeCmd() *cobra.Command {
 	options := defaultOptions
 	upgradeCmd := &cobra.Command{
 		Use:     "upgrade <name>",
-		Short:   "-> Upgrade KUDO package.",
+		Short:   "Upgrade KUDO package.",
 		Long:    `Upgrade KUDO package from current version to new version.`,
 		Example: upgradeExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -52,9 +52,9 @@ func newUpgradeCmd() *cobra.Command {
 		SilenceUsage: true,
 	}
 
-	upgradeCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name. (default to Operator name)")
-	upgradeCmd.Flags().StringVar(&options.Namespace, "namespace", "default", "The where the instance you want to upgrade is installed in. (default \"default\"")
-	upgradeCmd.Flags().StringVarP(&options.PackageVersion, "version", "v", "", "A specific package version on the official GitHub repo. (default to the most recent)")
+	upgradeCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name.")
+	upgradeCmd.Flags().StringVar(&options.Namespace, "namespace", "default", "The namespace where the instance you want to upgrade is installed in. (default \"default\"")
+	upgradeCmd.Flags().StringVarP(&options.PackageVersion, "version", "v", "", "A specific package version on the official repository. When installing from other sources than official repository, version from inside operator.yaml will be used. (default to the most recent)")
 
 	const usageFmt = "Usage:\n  %s\n\nFlags:\n%s"
 	upgradeCmd.SetUsageFunc(func(cmd *cobra.Command) error {
@@ -121,8 +121,14 @@ func upgrade(newOv *v1alpha1.OperatorVersion, kc *kudo.Client, options *options)
 	if ov == nil {
 		return fmt.Errorf("no operator version for this operator installed yet for %s in namespace %s. Please use install command if you want to install new operator into cluster", operatorName, options.Namespace)
 	}
-	oldVersion, _ := semver.NewVersion(ov.Spec.Version)
-	newVersion, _ := semver.NewVersion(nextOperatorVersion)
+	oldVersion, err := semver.NewVersion(ov.Spec.Version)
+	if err != nil {
+		return errors.Wrapf(err, "when parsing %s as semver", ov.Spec.Version)
+	}
+	newVersion, err := semver.NewVersion(nextOperatorVersion)
+	if err != nil {
+		return errors.Wrapf(err, "when parsing %s as semver", nextOperatorVersion)
+	}
 	if !oldVersion.LessThan(newVersion) {
 		return fmt.Errorf("upgraded version %s is the same or smaller as current version %s -> not upgrading", nextOperatorVersion, ov.Spec.Version)
 	}

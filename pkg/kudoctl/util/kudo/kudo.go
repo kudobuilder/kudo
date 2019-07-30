@@ -118,7 +118,7 @@ func (c *Client) InstanceExistsInCluster(operatorName, namespace, version, insta
 }
 
 // GetInstance queries kubernetes api for instance of given name in given namespace
-// returns error for all other errors that not found, not found is treated as result being 'nil, nil'
+// returns error for error conditions. Instance not found is not considered an error and will result in 'nil, nil'
 func (c *Client) GetInstance(name, namespace string) (*v1alpha1.Instance, error) {
 	instance, err := c.clientset.KudoV1alpha1().Instances(namespace).Get(name, v1.GetOptions{})
 	if apierrors.IsNotFound(err) {
