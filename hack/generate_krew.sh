@@ -37,7 +37,7 @@ metadata:
 spec:
   version: "${VERSION}"
 
-  shortDescription: KUDO CLI
+  shortDescription: Declaratively build, install, and run operators using KUDO.
   homepage: https://kudo.dev/
   description: |
     The Kubernetes Universal Declarative Operator (KUDO) is a highly productive toolkit for writing operators for Kubernetes.
