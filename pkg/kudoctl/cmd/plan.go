@@ -9,7 +9,7 @@ import (
 func newPlanCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "plan",
-		Short: "-> View all available plans.",
+		Short: "View all available plans.",
 		Long:  `The plan command has subcommands to view all available plans.`,
 	}
 

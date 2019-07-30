@@ -18,7 +18,7 @@ var (
 func newVersionCmd() *cobra.Command {
 	versionCmd := &cobra.Command{
 		Use:          "version",
-		Short:        "-> Print the current KUDO package version.",
+		Short:        "Print the current KUDO package version.",
 		Long:         `Print the current installed KUDO package version.`,
 		Example:      versionExample,
 		RunE:         VersionCmd,
