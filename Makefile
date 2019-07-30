@@ -26,7 +26,7 @@ test:
 
 .PHONY: integration-test
 # Run integration tests
-integration-test: cli-test
+integration-test: cli-fast
 	go test -tags integration ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover-integration.out
 	go run ./cmd/kubectl-kudo test
 
