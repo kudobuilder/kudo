@@ -117,16 +117,14 @@ generate:
 generate-clean:
 	rm -rf hack/code-gen
 
-.PHONY: cli-test
-# Build CLI for tests
-cli-test:
-	go build -o bin/${CLI} cmd/kubectl-kudo/main.go
+.PHONY: cli-fast
+# Build CLI but don't lint or run code generation first.
+cli-fast:
+	go build -ldflags "${LDFLAGS}" -o bin/${CLI} cmd/kubectl-kudo/main.go
 
 .PHONY: cli
 # Build CLI
-cli: prebuild
-	# developer convince for platform they are running
-	go build -ldflags "${LDFLAGS}" -o bin/${CLI} cmd/kubectl-kudo/main.go
+cli: prebuild cli-fast
 
 .PHONY: cli-clean
 # Clean CLI build
