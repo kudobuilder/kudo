@@ -516,15 +516,15 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 
 	installNamespace := "default"
 	tests := []struct {
-		name           string
-		patchToVersion string
+		name               string
+		patchToVersion     string
 		existingParameters map[string]string
-		parametersToPatch map[string]string
-		namespace      string
+		parametersToPatch  map[string]string
+		namespace          string
 	}{
 		{"patch to version", "1.1.1", nil, nil, installNamespace},
-		{"patch adding new parameter", "1.1.1", nil, map[string]string{"param":"value"}, installNamespace},
-		{"patch updating parameter", "1.1.1", map[string]string{"param":"value"},map[string]string{"param":"value2"}, installNamespace},
+		{"patch adding new parameter", "1.1.1", nil, map[string]string{"param": "value"}, installNamespace},
+		{"patch updating parameter", "1.1.1", map[string]string{"param": "value"}, map[string]string{"param": "value2"}, installNamespace},
 	}
 
 	for _, tt := range tests {
@@ -545,7 +545,7 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 			t.Errorf("%s:\nexpected version: %v\n     got: %v, err: %v", tt.name, expectedVersion, instance.Spec.OperatorVersion.Name, err)
 		}
 
-		for n,v := range tt.parametersToPatch {
+		for n, v := range tt.parametersToPatch {
 			found, ok := instance.Spec.Parameters[n]
 			if !ok || found != v {
 				t.Errorf("%s: Value of parameter %s should have been updated to %s but is %s", tt.name, n, v, found)

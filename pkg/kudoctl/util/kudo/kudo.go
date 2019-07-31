@@ -139,8 +139,8 @@ func (c *Client) GetOperatorVersion(name, namespace string) (*v1alpha1.OperatorV
 }
 
 type patchValue struct {
-	Op    string `json:"op"`
-	Path  string `json:"path"`
+	Op    string      `json:"op"`
+	Path  string      `json:"path"`
 	Value interface{} `json:"value"`
 }
 
@@ -148,15 +148,15 @@ type patchValue struct {
 func (c *Client) UpdateInstance(instanceName, namespace, operatorVersionName string, parameters map[string]string) error {
 	instancePatch := []patchValue{
 		patchValue{
-			Op: "replace",
-			Path: "/spec/operatorVersion/name",
+			Op:    "replace",
+			Path:  "/spec/operatorVersion/name",
 			Value: operatorVersionName,
 		},
 	}
 	if parameters != nil {
 		instancePatch = append(instancePatch, patchValue{
-			Op: "add",
-			Path: "/spec/parameters",
+			Op:    "add",
+			Path:  "/spec/parameters",
 			Value: parameters,
 		})
 	}
