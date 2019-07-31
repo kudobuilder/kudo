@@ -35,7 +35,7 @@ kind: Plugin
 metadata:
   name: kudo
 spec:
-  version: "${VERSION}"
+  version: "v${VERSION}"
 
   shortDescription: Declaratively build, install, and run operators using KUDO.
   homepage: https://kudo.dev/
