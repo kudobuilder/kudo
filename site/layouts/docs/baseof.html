@@ -14,6 +14,17 @@
         <li>
           <a class="{{ if $currentPage.IsMenuCurrent "docs" .}}color-kudo-blue{{else}}text-gray-600{{end}} hover:color-kudo-blue"
             href="{{ .URL }}">{{ .Pre }}<span>{{ .Name }}</span></a>
+
+          {{ if .HasChildren }}
+          <ul class="list-reset">
+          {{ range .Children }}
+             <li>
+               <a class="{{ if $currentPage.IsMenuCurrent "docs" .}}color-kudo-blue{{else}}text-gray-600{{end}} hover:color-kudo-blue"
+                 href="{{ .URL }}">{{ .Pre }}<span>{{ .Name }}</span></a>
+             </li>
+          {{ end }}
+          </ul>
+          {{ end }}
         </li>
         {{ end }}
         <li></li>

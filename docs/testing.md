@@ -1,200 +1,171 @@
 ---
 title: Testing
-types: docs
+type: docs
 menu: docs
 ---
 
-# Testing
+# KUDO Test Harness
 
-KUDO uses a declarative integration testing harness for testing itself and Operators built on it. Test cases are written as plain Kubernetes resources and can be run against any Kubernetes cluster - allowing testing of Operators, KUDO, and any other Kubernetes resources or controllers.
+KUDO includes a declarative integration testing harness for testing Operators, KUDO, and any other Kubernetes applications or controllers. Test cases are written as plain Kubernetes resources and can be run against a mocked control plane, locally in KIND, or any other Kubernetes cluster.
 
-## Table of Contents
+Whether you are developing an application, controller, operator, or deploying Kubernetes clusters the KUDO test harness helps you easily write portable end-to-end, integration, and conformance tests for Kubernetes without needing to write any code.
 
-* [Test harness usage](#test-harness-usage)
-   * [Run the Operator tests](#run-the-operator-tests)
-* [Writing test cases](#writing-test-cases)
-   * [Test case directory structure](#test-case-directory-structure)
-   * [Test steps](#test-steps)
-     * [Deleting resources](#deleting-resources)
-     * [Test assertions](#test-assertions)
-       * [Listing objects](#listing-objects)
-       * [Advanced test assertions](#advanced-test-assertions)
-* [Further Reading](#further-reading)
+* [Installation](#installation)
+* [Writing your first test](#writing-your-first-test)
+   * [Create a test case](#create-a-test-case)
+   * [Run the tests](#run-the-tests)
+   * [Write a second test step](#write-a-second-test-step)
+   * [Test suite configuration](#test-suite-configuration)
 
-## Test harness usage
+# Installation
 
-The Operator test suite is written and run by Operator developers and CI to test that Operators work correctly.
-
-First, clone the [Operators repository](https://github.com/kudobuilder/operators):
+The test harness CLI is included in the KUDO CLI, to install we can install the CLI using [krew](https://github.com/kubernetes-sigs/krew):
 
 ```
-git clone https://github.com/kudobuilder/operators.git
-cd operators
+krew install kudo
 ```
 
-Make sure that you have the latest version of kudoctl installed.
-
-#### Run the Operator tests
-
-To run the Operator test suite, run the following in the [Operators repository](https://github.com/kudobuilder/operators):
+You can now invoke the kudo test CLI:
 
 ```
-kubectl kudo test
+kubectl kudo test --help
 ```
 
-To run against a production Kubernetes cluster, run:
+See the [KUDO installation guide](/docs/cli#install) for alternative installation methods.
+
+# Writing your first test
+
+Now that the kudo CLI is installed, we can write a test. The KUDO test CLI organizes tests into suites:
+
+* A "test step" defines a set of Kubernetes manifests to apply and a state to assert on (wait for or expect).
+* A "test case" is a collection of test steps that are run serially - if any test step fails then the entire test case is considered failed.
+* A "test suite" is comprised of many test cases that are run in parallel.
+* The "test harness" is the tool that runs test suites (the KUDO CLI).
+
+## Create a test case
+
+First, let's create a directory for our test suite, let's call it `tests/e2e`:
+
+```
+mkdir -p tests/e2e
+```
+
+Next, we'll create a directory for our test case, the test case will be called `example-test`:
+
+```
+mkdir tests/e2e/example-test
+```
+
+Inside of `tests/e2e/example-test/` create our first test step, `00-install.yaml`, which will create a deployment called `example-deployment`:
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+```
+
+Note that in this example, the Deployment does not have a `namespace` set. The test harness will create a namespace for each test case and run all of the test steps inside of it. However, if a resource already has a namespace set (or is not a namespaced resource), then the harness will respect the namespace that is set.
+
+Each filename in the test case directory should start with an index (in this example `00`) that indicates which test step the file is a part of. Files that do not start with a step index are ignored and can be used for documentation or other test data. Test steps are run in order and each must be successful for the test case to be considered successful.
+
+Now that we have a test step, we need to create a test assert. The assert's filename should be the test step index followed by `-assert.yaml`. Create `tests/e2e/example-test/00-assert.yaml`:
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-deployment
+status:
+  readyReplicas: 3
+```
+
+This test step will be considered completed once the pod matches the state that we have defined. If the state is not reached by the time the assert's timeout has expired (30 seconds, by default), then the test step and case will be considered failed.
+
+## Run the tests
+
+Let's run this test suite:
+
+```
+kubectl kudo test --start-kind=true ./tests/e2e/
+```
+
+Running this command will:
+
+* Start a [kind (kubernetes-in-docker) cluster](https://github.com/kubernetes-sigs/kind), if there is not already one running.
+* Create a new namespace for the test case.
+* Create the resources defined in `tests/e2e/example-test/00-install.yaml`.
+* Wait for the state defined in `tests/e2e/example-test/00-assert.yaml` to be reached.
+* Collect the kind cluster's logs.
+* Tear down the kind cluster (or you can run kudo test with `--skip-cluster-delete` to keep the cluster around after the tests run).
+
+## Write a second test step
+
+Now that we have successfully written a test case, let's add another step to it. In this step, let's increase the number of replicas on the deployment we created in the first step from 3 to 4.
+
+Create `tests/e2e/example-test/01-scale.yaml`:
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-deployment
+spec:
+  replicas: 4
+```
+
+Now create an assert for it in `tests/e2e/example-test/01-assert.yaml`:
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-deployment
+status:
+  readyReplicas: 4
+```
+
+Run the test suite again and the test will pass:
+
+```
+kubectl kudo test --start-kind=true ./tests/e2e/
+```
+
+## Test suite configuration
+
+To add this test suite to your project, create a `kudo-test.yaml` file:
+
+```
+apiVersion: kudo.dev/v1alpha1
+kind: TestSuite
+testDirs:
+- ./tests/e2e/
+startKIND: true
+```
+
+Now we can run the tests just by running `kubectl kudo test` with no arguments.
+
+Any arguments provided on the command line will override the settings in the `kudo-test.yaml` file, e.g. to skip using kind and run the tests against a live Kubernetes cluster, run:
 
 ```
 kubectl kudo test --start-kind=false
 ```
 
-Operator test suites are stored in the `tests` subdirectory of each [Operator](https://github.com/kudobuilder/operators/tree/master/repository), e.g.:
-
-```
-./repository/zookeeper/tests/
-./repository/mysql/tests/
-```
-
-Every `Operator` and `OperatorVersion` is installed into the cluster by `make test` prior to running the test suite.
-
-## Writing test cases
-
-To write a test case:
-
-1. Create a directory for the test case. The directory should be created inside of the suite that the test case is a part of. For example, a Zookeeper Operator test case called `upgrade-test` would be created as `./repository/zookeeper/tests/upgrade-test/`.
-2. Define the Kubernetes resources to apply and states to assert on in sequential test steps.
-
-### Test case directory structure
-
-Given the above Zookeeper test case called `upgrade-test`, an example test case directory structure with two test steps might look like:
-
-```
-./repository/zookeeper/tests/upgrade-test/00-instance.yaml
-./repository/zookeeper/tests/upgrade-test/00-configmap.yaml
-./repository/zookeeper/tests/upgrade-test/00-assert.yaml
-./repository/zookeeper/tests/upgrade-test/01-upgrade.yaml
-./repository/zookeeper/tests/upgrade-test/01-assert.yaml
-```
-
-Each file in the test case directory should start with a number indicating the index of the step. All files with the same index are a part of the same test step and applied simultaneously. Steps are applied serially in numerical order.
-
-A file called `$index-assert.yaml` (where `$index` is the index of the test case) must also exist indicating the state that the test harness should wait for before continuing to the next step.
-
-By default, the test harness will wait for up to 10 seconds for the assertion defined in the assertion file to be true before considering the test step failed.
-
-In order for a test case to be successful, all steps must also complete successfully.
-
-### Test steps
-
-The test step files can contain any number of Kubernetes resources that should be applied as a part of the test step. Typically, this would be a KUDO `Instance` (see: [KUDO concepts](https://kudo.dev/docs/concepts/) or a `Deployment` or other resources required for the test, such as `Secrets` or test `Pods`.
-
-Continuing with the upgrade-test example, create `00-instance.yaml`:
-
-```
-apiVersion: kudo.dev/v1alpha1
-kind: Instance
-metadata:
-  name: zk
-spec:
-  operatorVersion:
-    name: zookeeper-0.1.0
-    namespace: default
-    type: OperatorVersions
-  name: "zk"
-  parameters:
-    cpus: "0.3"
-```
-
-This test step will create a Zookeeper `Instance`. The namespace should not be specified in the resources as a namespace is created for the test case to run in.
-
-#### Deleting resources
-
-It is possible to delete existing resources at the beginning of a test step. Create a `TestStep` object in your step to configure it:
-
-```
-apiVersion: kudo.dev/v1alpha1
-kind: TestStep
-delete:
-- name: my-pod
-  kind: Pod
-  apiVersion: v1
-- kind: Pod
-  apiVersion: v1
-  labels:
-    app: nginx
-- kind: Pod
-  apiVersion: v1
-```
-
-The test harness will delete for each resource referenced in the delete list and wait for them to disappear from the API. If the object fails to delete, the test step will fail.
-
-In the first delete example, the `Pod` called `my-pod` will be deleted. In the second, all `Pods` matching the `app=nginx` label will be deleted. In the third example, all pods in the namespace would be deleted.
-
-#### Test assertions
-
-Test assert files contain any number of Kubernetes resources that are expected to be created. Each resource must specify the `apiVersion`, `kind`, and `metadata`. The test harness watches each defined resource and waits for the state defined to match the state in Kubernetes. Once all resources have the correct state simultaneously, the test is considered successful.
-
-Continuing with the `upgrade-test` example, create `00-instance.yaml`:
-
-```
-apiVersion: kudo.dev/v1alpha1
-kind: Instance
-metadata:
-  name: zk
-status:
-  status: COMPLETE
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: zk-zk
-spec:
-  template:
-    spec:
-     containers:
-     - name: kubernetes-zookeeper
-       resources:
-         requests:
-           memory: "1Gi"
-           cpu: "300m"
-status:
-  readyReplicas: 3
-```
-
-This watches an `Instance` called `zk` to have its status set to `COMPLETE` and it expects a `StatefulSet` to also be created called `zk-zk` and it waits for all `Pods` in the `StatefulSet` to be ready.
-
-##### Listing objects
-
-If the object `name` is omitted from the object metadata, it is possible to list objects and verify that one of them matches the desired state. This can be useful, for example, to check the `Pods` created by a `Deployment`.
-
-```
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    app: nginx
-status:
-  phase: Running
-```
-
-This would verify that a pod with the `app=nginx` label is running.
-
-##### Advanced test assertions
-
-The test harness recognizes special `TestAssert` objects defined in the assert file. If present, they override default settings of the test assert.
-
-```
-apiVersion: kudo.dev/v1alpha1
-kind: TestAssert
-timeout: 120
-```
-
-Options:
-
-* `timeout`: the number of seconds to wait for the assertion to be true (default: `10`, type: `int`).
-
-## Further Reading
-
-* [Zookeeper Operator tests](https://github.com/kudobuilder/operators/tree/master/repository/zookeeper/tests)
-* Design documentation for test harness: [KEP-0008 - Operator Testing](https://github.com/kudobuilder/kudo/blob/master/keps/0008-operator-testing.md)
-* KUDO testing infrastructure and policies document: [KEP-0004 - Add Testing Infrastructure](https://github.com/kudobuilder/kudo/blob/master/keps/0004-add-testing-infrastructure.md)
+Now that your first test suite is configured, see [test environments](/docs/testing/test-environments) for documentation on customizing your test environment or the [test step documentation](/docs/testing/steps) to write more advanced tests.
