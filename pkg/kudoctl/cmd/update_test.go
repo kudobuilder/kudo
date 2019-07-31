@@ -1,23 +1,24 @@
 package cmd
 
 import (
+	"strings"
+	"testing"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
-	"testing"
 )
 
 func TestUpdateCommand_Validation(t *testing.T) {
 	tests := []struct {
-		name         string
-		args         []string
+		name       string
+		args       []string
 		parameters map[string]string
-		err          string
+		err        string
 	}{
-		{"no argument", []string{}, map[string]string{"param":"value"}, "expecting exactly one argument - name of the instance installed in your cluster"},
-		{"too many arguments", []string{"aaa", "bbb"}, map[string]string{"param":"value"}, "expecting exactly one argument - name of the instance installed in your cluster"},
+		{"no argument", []string{}, map[string]string{"param": "value"}, "expecting exactly one argument - name of the instance installed in your cluster"},
+		{"too many arguments", []string{"aaa", "bbb"}, map[string]string{"param": "value"}, "expecting exactly one argument - name of the instance installed in your cluster"},
 		{"no instance name", []string{"arg"}, map[string]string{}, "Need to specify at least one parameter to override via -p otherwise there is nothing to update"},
 	}
 
@@ -34,7 +35,7 @@ func TestUpdateCommand_Validation(t *testing.T) {
 	}
 }
 
-func Testupdate(t *testing.T) {
+func TestUpdate(t *testing.T) {
 	testInstance := v1alpha1.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1alpha1",
@@ -58,11 +59,11 @@ func Testupdate(t *testing.T) {
 	tests := []struct {
 		name               string
 		instanceExists     bool
-		parameters map[string]string
+		parameters         map[string]string
 		errMessageContains string
 	}{
-		{"instance does not exist", false, map[string]string{"param":"value"}, "instance test in namespace default does not exist in the cluster"},
-		{"update parameters", true, map[string]string{"param":"value"}, ""},
+		{"instance does not exist", false, map[string]string{"param": "value"}, "instance test in namespace default does not exist in the cluster"},
+		{"update parameters", true, map[string]string{"param": "value"}, ""},
 	}
 
 	for _, tt := range tests {
@@ -72,7 +73,7 @@ func Testupdate(t *testing.T) {
 		}
 
 		err := update(testInstance.Name, c, &updateOptions{
-			Namespace:    installNamespace,
+			Namespace:  installNamespace,
 			Parameters: tt.parameters,
 		})
 		if err != nil {
