@@ -104,7 +104,7 @@ Most of these are provided as a form of documentation. `kudoVersion` and `kubeVe
 
 ### Tasks section
 
-Another part of `operator.yaml` is tasks section. Tasks are the smallest pieces of work that get executed together. You usually group kubernetes manifests that should be applied at once into one task. An example can be a deploy task that will result in config.yaml and pod.yaml being applied to your cluster.
+Another part of `operator.yaml` is the tasks section. Tasks are the smallest pieces of work that get executed together. You usually group Kubernetes manifests that should be applied at once into one task. An example can be a deploy task that will result in `config.yaml` and `pod.yaml` being applied to your cluster.
 
 ```yaml
 tasks:
