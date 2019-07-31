@@ -104,7 +104,7 @@ Most of these are provided as a form of documentation. `kudoVersion` and `kubern
 
 ### Tasks section
 
-Another part of `operator.yaml` is tasks section. Tasks are the smallest pieces of work that get executed together. You usually group kubernetes manifests that should be applied at once into one task. An example can be a deploy task that will result in config.yaml and pod.yaml being applied to your cluster.
+Another part of `operator.yaml` is the tasks section. Tasks are the smallest pieces of work that get executed together. You usually group Kubernetes manifests that should be applied at once into one task. An example can be a deploy task that will result in `config.yaml` and `pod.yaml` being applied to your cluster.
 
 ```yaml
 tasks:
@@ -136,7 +136,7 @@ Plans consists of one or more `phases`. `Phases` consists of one or more `steps`
 
 The sample has a `deploy` plan with a `deploy-phase` and a `deploy-step`. From the `deploy-step` the `deploy-task` is referenced. This task gets executed when an instance is created using the operator.
 
-At the same time, `deploy` plan is the most important plan within your operator because that is the default plan that every operator has to have and also plan that gets executed when you install instance of your operator into the cluster. Another important plans that you might consider having is `update` (run when instance metadata is updated) or `upgrade` (run when instance is upgraded from one version of oprator to another). If you don't provide `update` and/or `upgrade` plans for your operator, the fallback is always deploy.
+At the same time, `deploy` plan is the most important plan within your operator because that is the default plan that every operator has to have and also the plan that gets executed when you install an instance of your operator into the cluster. Another important plan that you might consider having is `update` (run when instance metadata is updated) or `upgrade` (run when instance is upgraded from one version of the operator to another). If you don't provide `update` and/or `upgrade` plans for your operator, the fallback is always `deploy`.
  
 ```yaml
 plans:
