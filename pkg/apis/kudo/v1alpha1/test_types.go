@@ -40,6 +40,8 @@ type TestSuite struct {
 	Parallel int `json:"parallel"`
 	// The directory to output artifacts to (current working directory if not specified).
 	ArtifactsDir string `json:"artifactsDir"`
+	// Kubectl commands to run before running any tests.
+	Kubectl []string `json:"kubectl"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -57,6 +59,9 @@ type TestStep struct {
 
 	// Indicates that this is a unit test - safe to run without a real Kubernetes cluster.
 	UnitTest bool `json:"unitTest"`
+
+	// Kubectl commands to run at the start of the test
+	Kubectl []string `json:"kubectl"`
 
 	// Allowed environment labels
 	// Disallowed environment labels

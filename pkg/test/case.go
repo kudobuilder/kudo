@@ -74,40 +74,36 @@ func (t *Case) CreateNamespace(namespace string) error {
 	})
 }
 
-// TestCaseFactory creates a new Go test that runs a set of test steps.
-func (t *Case) TestCaseFactory() func(*testing.T) {
-	return func(test *testing.T) {
-		t.Logger = testutils.NewTestLogger(test, t.Name)
+// Run runs a test case including all of its steps.
+func (t *Case) Run(test *testing.T) {
+	test.Parallel()
 
-		test.Parallel()
+	ns := fmt.Sprintf("kudo-test-%s", petname.Generate(2, "-"))
 
-		ns := fmt.Sprintf("kudo-test-%s", petname.Generate(2, "-"))
+	if err := t.CreateNamespace(ns); err != nil {
+		test.Fatal(err)
+	}
 
-		if err := t.CreateNamespace(ns); err != nil {
-			test.Fatal(err)
-		}
+	if !t.SkipDelete {
+		defer t.DeleteNamespace(ns)
+	}
+
+	for _, testStep := range t.Steps {
+		testStep.Client = t.Client
+		testStep.DiscoveryClient = t.DiscoveryClient
+		testStep.Logger = t.Logger.WithPrefix(testStep.String())
 
 		if !t.SkipDelete {
-			defer t.DeleteNamespace(ns)
+			defer testStep.Clean(ns)
 		}
 
-		for _, testStep := range t.Steps {
-			testStep.Client = t.Client
-			testStep.DiscoveryClient = t.DiscoveryClient
-			testStep.Logger = t.Logger.WithPrefix(testStep.String())
-
-			if !t.SkipDelete {
-				defer testStep.Clean(ns)
+		if errs := testStep.Run(ns); len(errs) > 0 {
+			for _, err := range errs {
+				test.Error(err)
 			}
 
-			if errs := testStep.Run(ns); len(errs) > 0 {
-				for _, err := range errs {
-					test.Error(err)
-				}
-
-				test.Error(fmt.Errorf("failed in step %s", testStep.String()))
-				break
-			}
+			test.Error(fmt.Errorf("failed in step %s", testStep.String()))
+			break
 		}
 	}
 }
@@ -124,6 +120,11 @@ func (t *Case) CollectTestStepFiles() (map[int64][]string, error) {
 
 	for _, file := range files {
 		matches := testStepRegex.FindStringSubmatch(file.Name())
+
+		if len(matches) < 2 {
+			t.Logger.Log("Ignoring", file.Name(), "as it does not match file name regexp:", testStepRegex.String())
+			continue
+		}
 
 		index, err := strconv.ParseInt(matches[1], 10, 32)
 		if err != nil {
@@ -168,6 +169,7 @@ func (t *Case) LoadTestSteps() error {
 		testStep := &Step{
 			Timeout: t.Timeout,
 			Index:   int(index),
+			Dir:     t.Dir,
 			Asserts: []runtime.Object{},
 			Apply:   []runtime.Object{},
 			Errors:  []runtime.Object{},

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .OperatorName }}
+  namespace: {{ .Namespace }}
+  labels:
+    memory: "{{ .Params.memory }}"
+    cpu: "{{ .Params.cpus }}"
+spec:
+  ports:
+  - port: 8080
+    name: {{ .Name }}

@@ -1347,6 +1347,11 @@ func (in *TestStep) DeepCopyInto(out *TestStep) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.Kubectl != nil {
+		in, out := &in.Kubectl, &out.Kubectl
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
@@ -1373,8 +1378,18 @@ func (in *TestSuite) DeepCopyInto(out *TestSuite) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	if in.ManifestDirs != nil {
+		in, out := &in.ManifestDirs, &out.ManifestDirs
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.TestDirs != nil {
 		in, out := &in.TestDirs, &out.TestDirs
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.Kubectl != nil {
+		in, out := &in.Kubectl, &out.Kubectl
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}

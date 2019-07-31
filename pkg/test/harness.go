@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -30,6 +31,7 @@ type Harness struct {
 	TestSuite kudo.TestSuite
 	T         *testing.T
 
+	logger        testutils.Logger
 	managerStopCh chan struct{}
 	config        *rest.Config
 	client        client.Client
@@ -69,6 +71,15 @@ func (h *Harness) LoadTests(dir string) ([]*Case, error) {
 	}
 
 	return tests, nil
+}
+
+// GetLogger returns an initialized test logger.
+func (h *Harness) GetLogger() testutils.Logger {
+	if h.logger == nil {
+		h.logger = testutils.NewTestLogger(h.T, "")
+	}
+
+	return h.logger
 }
 
 // GetTimeout returns the configured timeout for the test suite.
@@ -162,7 +173,18 @@ func (h *Harness) Config() (*rest.Config, error) {
 		h.config, err = config.GetConfig()
 	}
 
-	return h.config, err
+	if err != nil {
+		return h.config, err
+	}
+
+	f, err := os.Create("kubeconfig")
+	if err != nil {
+		return h.config, err
+	}
+
+	defer f.Close()
+
+	return h.config, testutils.Kubeconfig(h.config, f)
 }
 
 // RunKUDO starts the KUDO controllers and installs the required CRDs.
@@ -249,11 +271,15 @@ func (h *Harness) RunTests() {
 			test.Client = h.Client
 			test.DiscoveryClient = h.DiscoveryClient
 
-			if err := test.LoadTestSteps(); err != nil {
-				t.Fatal(err)
-			}
+			t.Run(test.Name, func(t *testing.T) {
+				test.Logger = testutils.NewTestLogger(t, test.Name)
 
-			t.Run(test.Name, test.TestCaseFactory())
+				if err := test.LoadTestSteps(); err != nil {
+					t.Fatal(err)
+				}
+
+				test.Run(t)
+			})
 		}
 	})
 }
@@ -299,6 +325,10 @@ func (h *Harness) Run() {
 		}
 	}
 
+	if err := testutils.RunKubectlCommands(h.GetLogger(), "default", h.TestSuite.Kubectl, ""); err != nil {
+		h.T.Fatal(err)
+	}
+
 	if h.TestSuite.StartKUDO {
 		if err := h.RunKUDO(); err != nil {
 			h.T.Fatal(err)
@@ -326,7 +356,12 @@ func (h *Harness) Stop() {
 	}
 
 	if h.TestSuite.SkipClusterDelete || h.TestSuite.SkipDelete {
-		// TODO: figure out how to write the Kubernetes client configuration to disk.
+		cwd, _ := os.Getwd()
+		kubeconfig := filepath.Join(cwd, "kubeconfig")
+
+		h.T.Log("skipping cluster tear down")
+		h.T.Log(fmt.Sprintf("to connect to the cluster, run: export KUBECONFIG=\"%s\"", kubeconfig))
+
 		return
 	}
 

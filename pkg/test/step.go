@@ -26,6 +26,8 @@ type Step struct {
 	Name  string
 	Index int
 
+	Dir string
+
 	Step   *kudo.TestStep
 	Assert *kudo.TestAssert
 
@@ -299,7 +301,15 @@ func (s *Step) Run(namespace string) []error {
 		return []error{err}
 	}
 
-	testErrors := s.Create(namespace)
+	testErrors := []error{}
+
+	if s.Step != nil {
+		if errors := testutils.RunKubectlCommands(s.Logger, namespace, s.Step.Kubectl, s.Dir); errors != nil {
+			testErrors = append(testErrors, errors...)
+		}
+	}
+
+	testErrors = append(testErrors, s.Create(namespace)...)
 
 	if len(testErrors) != 0 {
 		return testErrors

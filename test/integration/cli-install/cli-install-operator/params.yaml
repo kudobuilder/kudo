@@ -1,0 +1,6 @@
+memory:
+  description: Amount of memory to provide to Zookeeper pods
+  default: "1Gi"
+cpus:
+  description: Amount of cpu to provide to Zookeeper pods
+  default: "0.25"

@@ -11,11 +11,13 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/google/shlex"
 	"github.com/kudobuilder/kudo/pkg/apis"
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/pkg/errors"
@@ -27,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
+	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
@@ -42,6 +45,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	coretesting "k8s.io/client-go/testing"
+	api "k8s.io/client-go/tools/clientcmd/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	kindConfig "sigs.k8s.io/kind/pkg/cluster/config"
@@ -780,4 +784,159 @@ func StartTestEnvironment() (env TestEnvironment, err error) {
 
 	env.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(env.Config)
 	return
+}
+
+// GetKubectlArgs parses a kubectl command line string into its arguments and appends a namespace if it is not already set.
+func GetKubectlArgs(args string, namespace string) ([]string, error) {
+	argSlice := []string{}
+
+	argSplit, err := shlex.Split(args)
+	if err != nil {
+		return nil, err
+	}
+
+	fs := pflag.NewFlagSet("", pflag.ContinueOnError)
+	fs.ParseErrorsWhitelist.UnknownFlags = true
+
+	namespaceParsed := fs.StringP("namespace", "n", "", "")
+	if err := fs.Parse(argSplit); err != nil {
+		return nil, err
+	}
+
+	if argSplit[0] != "kubectl" {
+		argSlice = append(argSlice, "kubectl")
+	}
+
+	argSlice = append(argSlice, argSplit...)
+
+	if *namespaceParsed == "" {
+		argSlice = append(argSlice, "--namespace", namespace)
+	}
+
+	return argSlice, nil
+}
+
+// Kubectl runs a kubectl command (or plugin) with args.
+// args gets split on spaces (respecting quoted strings).
+func Kubectl(ctx context.Context, namespace string, args string, cwd string, stdout io.Writer, stderr io.Writer) error {
+	actualDir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	argSlice, err := GetKubectlArgs(args, namespace)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command("kubectl")
+	cmd.Args = argSlice
+	cmd.Dir = cwd
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	cmd.Env = []string{
+		fmt.Sprintf("KUBECONFIG=%s/kubeconfig", actualDir),
+		fmt.Sprintf("PATH=%s/bin/:%s", actualDir, os.Getenv("PATH")),
+	}
+
+	return cmd.Run()
+}
+
+// RunKubectlCommands runs a set of kubectl commands, returning any errors.
+func RunKubectlCommands(logger Logger, namespace string, commands []string, workdir string) []error {
+	errs := []error{}
+
+	if commands == nil {
+		return nil
+	}
+
+	for _, cmd := range commands {
+		stdout := &bytes.Buffer{}
+		stderr := &bytes.Buffer{}
+
+		logger.Log("Running kubectl:", cmd)
+
+		err := Kubectl(context.TODO(), namespace, cmd, workdir, stdout, stderr)
+		if err != nil {
+			errs = append(errs, err)
+		}
+
+		logger.Log(stderr.String())
+		logger.Log(stdout.String())
+	}
+
+	if len(errs) == 0 {
+		return nil
+	}
+
+	return errs
+}
+
+// Kubeconfig converts a rest.Config into a YAML kubeconfig and writes it to w
+func Kubeconfig(cfg *rest.Config, w io.Writer) error {
+	var authProvider *api.AuthProviderConfig
+	var execConfig *api.ExecConfig
+
+	if cfg.AuthProvider != nil {
+		authProvider = &api.AuthProviderConfig{
+			Name:   cfg.AuthProvider.Name,
+			Config: cfg.AuthProvider.Config,
+		}
+	}
+
+	if cfg.ExecProvider != nil {
+		execConfig = &api.ExecConfig{
+			Command:    cfg.ExecProvider.Command,
+			Args:       cfg.ExecProvider.Args,
+			APIVersion: cfg.ExecProvider.APIVersion,
+			Env:        []api.ExecEnvVar{},
+		}
+
+		for _, envVar := range cfg.ExecProvider.Env {
+			execConfig.Env = append(execConfig.Env, api.ExecEnvVar{
+				Name:  envVar.Name,
+				Value: envVar.Value,
+			})
+		}
+	}
+
+	return json.NewYAMLSerializer(json.DefaultMetaFactory, nil, nil).Encode(&api.Config{
+		CurrentContext: "cluster",
+		Clusters: []api.NamedCluster{
+			{
+				Name: "cluster",
+				Cluster: api.Cluster{
+					Server:                   cfg.Host,
+					CertificateAuthorityData: cfg.TLSClientConfig.CAData,
+					InsecureSkipTLSVerify:    cfg.TLSClientConfig.Insecure,
+				},
+			},
+		},
+		Contexts: []api.NamedContext{
+			{
+				Name: "cluster",
+				Context: api.Context{
+					Cluster:  "cluster",
+					AuthInfo: "user",
+				},
+			},
+		},
+		AuthInfos: []api.NamedAuthInfo{
+			{
+				Name: "user",
+				AuthInfo: api.AuthInfo{
+					ClientCertificateData: cfg.TLSClientConfig.CertData,
+					ClientKeyData:         cfg.TLSClientConfig.KeyData,
+					Token:                 cfg.BearerToken,
+					Username:              cfg.Username,
+					Password:              cfg.Password,
+					Impersonate:           cfg.Impersonate.UserName,
+					ImpersonateGroups:     cfg.Impersonate.Groups,
+					ImpersonateUserExtra:  cfg.Impersonate.Extra,
+					AuthProvider:          authProvider,
+					Exec:                  execConfig,
+				},
+			},
+		},
+	}, w)
 }
