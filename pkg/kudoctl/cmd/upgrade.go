@@ -65,7 +65,7 @@ func newUpgradeCmd() *cobra.Command {
 
 	upgradeCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name.")
 	upgradeCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")
-	upgradeCmd.Flags().StringVar(&options.Namespace, "namespace", "default", "The namespace where the instance you want to upgrade is installed in. (default \"default\"")
+	upgradeCmd.Flags().StringVar(&options.Namespace, "namespace", defaultOptions.Namespace, "The namespace where the instance you want to upgrade is installed in.")
 	upgradeCmd.Flags().StringVarP(&options.PackageVersion, "version", "v", "", "A specific package version on the official repository. When installing from other sources than official repository, version from inside operator.yaml will be used. (default to the most recent)")
 
 	const usageFmt = "Usage:\n  %s\n\nFlags:\n%s"
@@ -76,7 +76,7 @@ func newUpgradeCmd() *cobra.Command {
 	return upgradeCmd
 }
 
-func validate(args []string, options *options) error {
+func validateCmd(args []string, options *options) error {
 	if len(args) != 1 {
 		return fmt.Errorf("expecting exactly one argument - name of the package or path to upgrade")
 	}
@@ -88,7 +88,7 @@ func validate(args []string, options *options) error {
 }
 
 func runUpgrade(args []string, options *options) error {
-	err := validate(args, options)
+	err := validateCmd(args, options)
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func upgrade(newOv *v1alpha1.OperatorVersion, kc *kudo.Client, options *options)
 	}
 	if !install.VersionExists(versionsInstalled, nextOperatorVersion) {
 		if _, err := kc.InstallOperatorVersionObjToCluster(newOv, options.Namespace); err != nil {
-			return errors.Wrapf(err, "failed installing OperatorVersion for operator: %s", operatorName)
+			return errors.Wrapf(err, "failed installing OperatorVersion %s for operator: %s", nextOperatorVersion, operatorName)
 		}
 	}
 
