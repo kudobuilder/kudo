@@ -28,13 +28,12 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/controller/planexecution"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -312,32 +311,8 @@ func createPlan(r *ReconcileInstance, planName string, instance *kudov1alpha1.In
 	ctx := context.TODO()
 	gvk, _ := apiutil.GVKForObject(instance, r.scheme)
 
-	planExecution := getPlanExecution(gvk, instance, planName)
+	planExecution := planexecution.New(gvk.Kind, instance, planName)
 	return createPlanExecution(ctx, instance, planExecution, r, planName)
-}
-
-func getPlanExecution(gvk schema.GroupVersionKind, instance *kudov1alpha1.Instance, planName string) kudov1alpha1.PlanExecution {
-	ref := corev1.ObjectReference{
-		Kind:      gvk.Kind,
-		Name:      instance.Name,
-		Namespace: instance.Namespace,
-	}
-	planExecution := kudov1alpha1.PlanExecution{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%v-%v-%v", instance.Name, planName, time.Now().Nanosecond()),
-			Namespace: instance.GetNamespace(),
-			// TODO: Should also add one for Operator in here as well.
-			Labels: map[string]string{
-				kudo.OperatorVersionAnnotation: instance.Spec.OperatorVersion.Name,
-				kudo.InstanceLabel:             instance.Name,
-			},
-		},
-		Spec: kudov1alpha1.PlanExecutionSpec{
-			Instance: ref,
-			PlanName: planName,
-		},
-	}
-	return planExecution
 }
 
 // createPlanExecution takes all the k8s objects needed to create the actual plan
