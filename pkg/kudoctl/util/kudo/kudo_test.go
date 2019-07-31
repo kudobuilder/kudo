@@ -511,7 +511,6 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
-			Parameters: map[string]string{},
 		},
 	}
 
@@ -519,18 +518,22 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 	tests := []struct {
 		name           string
 		patchToVersion string
+		existingParameters map[string]string
 		parametersToPatch map[string]string
 		namespace      string
 	}{
-		{"patch to version", "1.1.1", nil, installNamespace},
-		{"patch adding new parameter", "1.1.1", map[string]string{"param":"value"}, installNamespace},
+		{"patch to version", "1.1.1", nil, nil, installNamespace},
+		{"patch adding new parameter", "1.1.1", nil, map[string]string{"param":"value"}, installNamespace},
+		{"patch updating parameter", "1.1.1", map[string]string{"param":"value"},map[string]string{"param":"value2"}, installNamespace},
 	}
 
 	for _, tt := range tests {
 		k2o := newTestSimpleK2o()
 
 		// create Instance
-		_, err := k2o.clientset.KudoV1alpha1().Instances(installNamespace).Create(&testInstance)
+		instanceToCreate := testInstance
+		instanceToCreate.Spec.Parameters = tt.existingParameters
+		_, err := k2o.clientset.KudoV1alpha1().Instances(installNamespace).Create(&instanceToCreate)
 		if err != nil {
 			t.Errorf("Error creating operator version in tests setup for %s", tt.name)
 		}
