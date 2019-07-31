@@ -33,7 +33,7 @@ func TestNewK2oClient(t *testing.T) {
 	}
 }
 
-func TestK2oClient_OperatorExistsInCluster(t *testing.T) {
+func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 
 	obj := v1alpha1.Operator{
 		TypeMeta: metav1.TypeMeta{
@@ -83,7 +83,7 @@ func TestK2oClient_OperatorExistsInCluster(t *testing.T) {
 	}
 }
 
-func TestK2oClient_InstanceExistsInCluster(t *testing.T) {
+func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
 	obj := v1alpha1.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1alpha1",
@@ -157,7 +157,7 @@ func TestK2oClient_InstanceExistsInCluster(t *testing.T) {
 	}
 }
 
-func TestK2oClient_ListInstances(t *testing.T) {
+func TestKudoClient_ListInstances(t *testing.T) {
 	obj := v1alpha1.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1alpha1",
@@ -207,7 +207,7 @@ func TestK2oClient_ListInstances(t *testing.T) {
 	}
 }
 
-func TestK2oClient_OperatorVersionsInstalled(t *testing.T) {
+func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 	operatorName := "test"
 	obj := v1alpha1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
@@ -256,7 +256,7 @@ func TestK2oClient_OperatorVersionsInstalled(t *testing.T) {
 	}
 }
 
-func TestK2oClient_InstallOperatorObjToCluster(t *testing.T) {
+func TestKudoClient_InstallOperatorObjToCluster(t *testing.T) {
 	obj := v1alpha1.Operator{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1alpha1",
@@ -302,7 +302,7 @@ func TestK2oClient_InstallOperatorObjToCluster(t *testing.T) {
 	}
 }
 
-func TestK2oClient_InstallOperatorVersionObjToCluster(t *testing.T) {
+func TestKudoClient_InstallOperatorVersionObjToCluster(t *testing.T) {
 	obj := v1alpha1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1alpha1",
@@ -348,7 +348,7 @@ func TestK2oClient_InstallOperatorVersionObjToCluster(t *testing.T) {
 	}
 }
 
-func TestK2oClient_InstallInstanceObjToCluster(t *testing.T) {
+func TestKudoClient_InstallInstanceObjToCluster(t *testing.T) {
 	obj := v1alpha1.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1alpha1",
@@ -389,6 +389,166 @@ func TestK2oClient_InstallInstanceObjToCluster(t *testing.T) {
 		if err != nil {
 			if err.Error() != tt.err {
 				t.Errorf("%d:\nexpected error: %v\n     got error: %v", i+1, tt.err, err)
+			}
+		}
+	}
+}
+
+func TestKudoClient_GetInstance(t *testing.T) {
+	testInstance := v1alpha1.Instance{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kudo.dev/v1alpha1",
+			Kind:       "Instance",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				"controller-tools.k8s.io": "1.0",
+				kudo.OperatorLabel:        "test",
+			},
+			Name: "test",
+		},
+		Spec: v1alpha1.InstanceSpec{
+			OperatorVersion: v1.ObjectReference{
+				Name: "test-1.0",
+			},
+		},
+	}
+
+	installNamespace := "default"
+	tests := []struct {
+		name             string
+		found            bool
+		namespaceToQuery string
+		storedInstance   *v1alpha1.Instance
+	}{
+		{"no instance exists", false, installNamespace, nil},                        // 1
+		{"instance exists", true, installNamespace, &testInstance},                  // 2
+		{"instance exists in different namespace", false, "otherns", &testInstance}, // 3
+	}
+
+	for i, tt := range tests {
+		k2o := newTestSimpleK2o()
+
+		// create Instance
+		if tt.storedInstance != nil {
+			_, err := k2o.clientset.KudoV1alpha1().Instances(installNamespace).Create(tt.storedInstance)
+			if err != nil {
+				t.Errorf("%d: Error creating instance in tests setup", i+1)
+			}
+		}
+
+		// test if Instance exists in namespace
+		actual, _ := k2o.GetInstance(testInstance.Name, tt.namespaceToQuery)
+		if (actual != nil) != tt.found {
+			t.Errorf("%s:\nexpected to be found: %v\n     got: %v", tt.name, tt.found, actual)
+		}
+	}
+}
+
+func TestKudoClient_GetOperatorVersion(t *testing.T) {
+	operatorName := "test"
+	testOv := v1alpha1.OperatorVersion{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kudo.dev/v1alpha1",
+			Kind:       "OperatorVersion",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				"controller-tools.k8s.io": "1.0",
+			},
+			Name: fmt.Sprintf("%s-1.0", operatorName),
+		},
+		Spec: v1alpha1.OperatorVersionSpec{
+			Version: "1.0",
+		},
+	}
+
+	installNamespace := "default"
+	tests := []struct {
+		name      string
+		found     bool
+		namespace string
+		storedOv  *v1alpha1.OperatorVersion
+	}{
+		{"no operator version defined", false, installNamespace, nil},
+		{"operator version exists in the same namespace", true, installNamespace, &testOv},
+		{"operator version exists in different namespace", false, "otherns", &testOv},
+	}
+
+	for _, tt := range tests {
+		k2o := newTestSimpleK2o()
+
+		// create Instance
+		if tt.storedOv != nil {
+			_, err := k2o.clientset.KudoV1alpha1().OperatorVersions(installNamespace).Create(tt.storedOv)
+			if err != nil {
+				t.Errorf("Error creating operator version in tests setup for %s", tt.name)
+			}
+		}
+
+		// get OV by name and namespace
+		actual, _ := k2o.GetOperatorVersion(testOv.Name, tt.namespace)
+		if actual != nil != tt.found {
+			t.Errorf("%s:\nexpected to be found: %v\n     got: %v", tt.name, tt.found, actual)
+		}
+	}
+}
+
+func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
+	testInstance := v1alpha1.Instance{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kudo.dev/v1alpha1",
+			Kind:       "Instance",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				"controller-tools.k8s.io": "1.0",
+				kudo.OperatorLabel:        "test",
+			},
+			Name: "test",
+		},
+		Spec: v1alpha1.InstanceSpec{
+			OperatorVersion: v1.ObjectReference{
+				Name: "test-1.0",
+			},
+		},
+	}
+
+	installNamespace := "default"
+	tests := []struct {
+		name               string
+		patchToVersion     string
+		existingParameters map[string]string
+		parametersToPatch  map[string]string
+		namespace          string
+	}{
+		{"patch to version", "1.1.1", nil, nil, installNamespace},
+		{"patch adding new parameter", "1.1.1", nil, map[string]string{"param": "value"}, installNamespace},
+		{"patch updating parameter", "1.1.1", map[string]string{"param": "value"}, map[string]string{"param": "value2"}, installNamespace},
+	}
+
+	for _, tt := range tests {
+		k2o := newTestSimpleK2o()
+
+		// create Instance
+		instanceToCreate := testInstance
+		instanceToCreate.Spec.Parameters = tt.existingParameters
+		_, err := k2o.clientset.KudoV1alpha1().Instances(installNamespace).Create(&instanceToCreate)
+		if err != nil {
+			t.Errorf("Error creating operator version in tests setup for %s", tt.name)
+		}
+
+		err = k2o.UpdateInstance(testInstance.Name, installNamespace, "test-1.1.1", tt.parametersToPatch)
+		instance, _ := k2o.GetInstance(testInstance.Name, installNamespace)
+		expectedVersion := fmt.Sprintf("test-%s", tt.patchToVersion)
+		if err != nil || instance.Spec.OperatorVersion.Name != expectedVersion {
+			t.Errorf("%s:\nexpected version: %v\n     got: %v, err: %v", tt.name, expectedVersion, instance.Spec.OperatorVersion.Name, err)
+		}
+
+		for n, v := range tt.parametersToPatch {
+			found, ok := instance.Spec.Parameters[n]
+			if !ok || found != v {
+				t.Errorf("%s: Value of parameter %s should have been updated to %s but is %s", tt.name, n, v, found)
 			}
 		}
 	}

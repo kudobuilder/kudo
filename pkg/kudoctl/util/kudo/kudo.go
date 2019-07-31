@@ -1,15 +1,18 @@
 package kudo
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
 	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	// Import Kubernetes authentication providers to support GKE, etc.
@@ -116,6 +119,56 @@ func (c *Client) InstanceExistsInCluster(operatorName, namespace, version, insta
 		return false, nil
 	}
 	return true, nil
+}
+
+// GetInstance queries kubernetes api for instance of given name in given namespace
+// returns error for error conditions. Instance not found is not considered an error and will result in 'nil, nil'
+func (c *Client) GetInstance(name, namespace string) (*v1alpha1.Instance, error) {
+	instance, err := c.clientset.KudoV1alpha1().Instances(namespace).Get(name, v1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil, nil
+	}
+	return instance, err
+}
+
+// GetOperatorVersion queries kubernetes api for operatorversion of given name in given namespace
+// returns error for all other errors that not found, not found is treated as result being 'nil, nil'
+func (c *Client) GetOperatorVersion(name, namespace string) (*v1alpha1.OperatorVersion, error) {
+	ov, err := c.clientset.KudoV1alpha1().OperatorVersions(namespace).Get(name, v1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil, nil
+	}
+	return ov, err
+}
+
+type patchValue struct {
+	Op    string      `json:"op"`
+	Path  string      `json:"path"`
+	Value interface{} `json:"value"`
+}
+
+// UpdateInstance updates operatorversion on instance
+func (c *Client) UpdateInstance(instanceName, namespace, operatorVersionName string, parameters map[string]string) error {
+	instancePatch := []patchValue{
+		patchValue{
+			Op:    "replace",
+			Path:  "/spec/operatorVersion/name",
+			Value: operatorVersionName,
+		},
+	}
+	if parameters != nil {
+		instancePatch = append(instancePatch, patchValue{
+			Op:    "add",
+			Path:  "/spec/parameters",
+			Value: parameters,
+		})
+	}
+	serializedPatch, err := json.Marshal(instancePatch)
+	if err != nil {
+		return err
+	}
+	_, err = c.clientset.KudoV1alpha1().Instances(namespace).Patch(instanceName, types.JSONPatchType, serializedPatch)
+	return err
 }
 
 // ListInstances lists all instances of given operator installed in the cluster in a given ns

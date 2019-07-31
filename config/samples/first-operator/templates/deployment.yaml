@@ -6,7 +6,7 @@ spec:
   selector:
     matchLabels:
       app: nginx
-  replicas: {{ .Params.Replicas }} # tells deployment to run 2 pods matching the template
+  replicas: {{ .Params.replicas }} # tells deployment to run 2 pods matching the template
   template:
     metadata:
       labels:

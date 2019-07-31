@@ -49,19 +49,19 @@ func validate(args []string, options *Options) error {
 	return nil
 }
 
-// getPackageCRDs tries to look for package files resolving the operator name to:
+// GetPackageCRDs tries to look for package files resolving the operator name to:
 // - a local tar.gz file
 // - a local directory
 // - a url to a tar.gz
 // - a operator name in the remote repository
 // in that order. Should there exist a local folder e.g. `cassandra` it will take precedence
 // over the remote repository package with the same name.
-func getPackageCRDs(name string, options *Options, repository repo.Repository) (*bundle.PackageCRDs, error) {
+func GetPackageCRDs(name string, version string, repository repo.Repository) (*bundle.PackageCRDs, error) {
 
 	// Local files/folder have priority
 	if _, err := os.Stat(name); err == nil {
 		f := finder.NewLocal()
-		b, err := f.GetBundle(name, options.PackageVersion)
+		b, err := f.GetBundle(name, version)
 		if err != nil {
 			return nil, err
 		}
@@ -70,14 +70,14 @@ func getPackageCRDs(name string, options *Options, repository repo.Repository) (
 
 	if http.IsValidURL(name) {
 		f := finder.NewURL()
-		b, err := f.GetBundle(name, options.PackageVersion)
+		b, err := f.GetBundle(name, version)
 		if err != nil {
 			return nil, err
 		}
 		return b.GetCRDs()
 	}
 
-	b, err := repository.GetBundle(name, options.PackageVersion)
+	b, err := repository.GetBundle(name, version)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func installOperator(operatorArgument string, options *Options) error {
 		return errors.Wrap(err, "creating kudo client")
 	}
 
-	crds, err := getPackageCRDs(operatorArgument, options, repository)
+	crds, err := GetPackageCRDs(operatorArgument, options.PackageVersion, repository)
 	if err != nil {
 		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", operatorArgument)
 	}
@@ -131,7 +131,7 @@ func installCrds(crds *bundle.PackageCRDs, kc *kudo.Client, options *Options) er
 	if err != nil {
 		return errors.Wrap(err, "retrieving existing operator versions")
 	}
-	if !versionExists(versionsInstalled, operatorVersion) {
+	if !VersionExists(versionsInstalled, operatorVersion) {
 		// this version does not exist in the cluster
 		if err := installSingleOperatorVersionToCluster(operatorName, options.Namespace, kc, crds.OperatorVersion); err != nil {
 			return errors.Wrapf(err, "installing OperatorVersion CRD for operator: %s", operatorName)
@@ -190,7 +190,8 @@ func validateCrds(crds *bundle.PackageCRDs, skipInstance bool) error {
 	return nil
 }
 
-func versionExists(versions []string, currentVersion string) bool {
+// VersionExists looks for string version inside collection of versions
+func VersionExists(versions []string, currentVersion string) bool {
 	for _, v := range versions {
 		if v == currentVersion {
 			return true
