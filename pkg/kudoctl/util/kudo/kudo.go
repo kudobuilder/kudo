@@ -148,7 +148,7 @@ type patchValue struct {
 }
 
 // UpdateInstance updates operatorversion on instance
-func (c *Client) UpdateInstance(instanceName, namespace, operatorVersionName string, parameters map[string]string) error {
+func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersionName *string, parameters map[string]string) error {
 	instancePatch := []patchValue{
 		patchValue{
 			Op:    "replace",

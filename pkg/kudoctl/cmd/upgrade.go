@@ -8,6 +8,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
+	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -157,7 +158,7 @@ func upgrade(newOv *v1alpha1.OperatorVersion, kc *kudo.Client, options *options)
 	}
 
 	// Change instance to point to the new OV and optionally update parameters
-	err = kc.UpdateInstance(options.InstanceName, options.Namespace, newOv.Name, options.Parameters)
+	err = kc.UpdateInstance(options.InstanceName, options.Namespace, util.String(ov.Name), options.Parameters)
 	if err != nil {
 		return errors.Wrapf(err, "updating instance to point to new operatorversion %s", newOv.Name)
 	}
