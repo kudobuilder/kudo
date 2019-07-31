@@ -93,14 +93,14 @@ name: operator
 description: my first super awesome operator
 version: "5.7"
 kudoVersion: ">= 0.2.0"
-kubeVersion: ">= 1.14"
+kubernetesVersion: ">= 1.14"
 maintainers:
   - Bob <bob@example.com>
   - Alice <alice@example.com>
 url: https://github.com/myoperator/myoperator
 ```
 
-Most of these are provided as a form of documentation. `kudoVersion` and `kubeVersion` use semver constraints to define minimal or maximal version of kubernetes or kudo that this operator supports. Under the hood, we use [this library](https://github.com/Masterminds/semver) to evaluate the constraints.
+Most of these are provided as a form of documentation. `kudoVersion` and `kubernetesVersion` use semver constraints to define minimal or maximal version of kubernetes or kudo that this operator supports. Under the hood, we use [this library](https://github.com/Masterminds/semver) to evaluate the constraints.
 
 ### Tasks section
 
@@ -118,7 +118,7 @@ tasks:
 
 Plans orchestrate tasks through `phases` and `steps`.
 
-Each Plan is a tree with a fixed three-level hierarchy of the plan itself, its phases, and then steps within those phases. The choice of three levels was arbitrarily chosen as “enough levels for anybody”. This three-level hierarchy can look as follows:
+Each Plan is a tree with a fixed three-level hierarchy of the plan itself, its phases (named collection of steps), and then steps within those phases. This three-level hierarchy can look as follows:
 
 ```text
 Plan foo
