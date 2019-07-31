@@ -42,7 +42,7 @@ KUDO should be used any time you would use an Operator. It can provide an advanc
 
 Kafka Operator Example
 ```
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: Operator
 metadata:
   labels:
@@ -69,7 +69,7 @@ A `OperatorVersion` is the particular implementation of a `Operator` containing:
 An example for a `OperatorVersion` is the [kafka-operatorversion.yaml](https://github.com/kudobuilder/operators/blob/master/repo/stable/kafka/versions/0/kafka-operatorversion.yaml) that you find in the [kudobuilder/operators](https://github.com/kudobuilder/operators) repository.
 
 ```
-apiVersion: kudo.k8s.io/v1alpha1
+apiVersion: kudo.dev/v1alpha1
 kind: OperatorVersion
 metadata:
   labels:

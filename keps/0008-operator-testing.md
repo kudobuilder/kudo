@@ -145,13 +145,13 @@ type TestSuite struct {
 
 	// Path to CRDs to install before running tests.
 	CRDDir            string
-	// Path to manifests to install before running tests.
-	ManifestsDir      string
-	// Paths to manifests to install before running tests.
-	ManifestsDirs     []string `json:"manifestsDirs"`
+	// Paths to directories containing manifests to install before running tests.
+	ManifestDirs      []string
 	// Directories containing test cases to run.
 	TestDirs          []string
-	// Whether or not to start a local etcd and kubernetes API server for the tests (cannot be set with StartKIND
+	// Kubectl specifies a list of kubectl commands to run prior to running the tests.
+	Kubectl []string `json:"kubectl"`
+	// Whether or not to start a local etcd and kubernetes API server for the tests (cannot be set with StartKIND)
 	StartControlPlane bool
 	// Whether or not to start a local kind cluster for the tests (cannot be set with StartControlPlane).
 	StartKIND bool `json:"startKIND"`
@@ -236,13 +236,16 @@ When searching a test step file, if a `TestStep` object is found, it includes se
 
 ```
 type TestStep struct {
-    // The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestStep.
+    // The type meta object, should always be a GVK of kudo.dev/v1alpha1/TestStep.
     TypeMeta
     // Override the default metadata. Set labels or override the test step name.
     ObjectMeta
 
     // Objects to delete at the beginning of the test step.
     Delete []ObjectReference
+
+    // Kubectl specifies a list of kubectl commands to run at the beginning of the test step.
+    Kubectl []string `json:"kubectl"`
 
     // Indicates that this is a unit test - safe to run without a real Kubernetes cluster.
     UnitTest bool
@@ -262,8 +265,18 @@ type ObjectReference struct {
 
 Using a `TestStep`, it is possible to skip certain test steps if conditions are not met, e.g., only run a test step on GKE or on clusters with more than three nodes.
 
-The `Delete` list can be used to specify objects to delete prior to running the tests. If `Labels` are set in an ObjectReference,
-all resources matching the labels and specified kind will be deleted.
+The `Delete` list can be used to specify objects to delete prior to running the tests. If `Labels` are set in an ObjectReference, all resources matching the labels and specified kind will be deleted.
+
+A `TestStep` is also able to invoke kubectl commands or plugins by specifying a list of commands in the `kubectl` setting, e.g.:
+
+```
+apiVersion: kudo.dev/v1alpha1
+kind: TestStep
+kubectl:
+- apply -f ./testdata/pod.yaml
+```
+
+Any resources created or updated in a kubectl step can be asserted on just like any other resource created in a test step. The commands will be executed in order and the test step will be considered failed if kubectl does not exit with status `0`.
 
 #### Assertion files
 
@@ -306,7 +319,7 @@ When searching the assertion file for a test step, if a `TestAssert` object is f
 
 ```
 type TestAssert struct {
-    // The type meta object, should always be a GVK of kudo.k8s.io/v1alpha1/TestAssert.
+    // The type meta object, should always be a GVK of kudo.dev/v1alpha1/TestAssert.
     TypeMeta
     // Override the default timeout of 30 seconds (in seconds).
     Timeout int

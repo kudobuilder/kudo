@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	v1 "k8s.io/api/core/v1"
@@ -35,7 +37,7 @@ func TestK2oClient_OperatorExistsInCluster(t *testing.T) {
 
 	obj := v1alpha1.Operator{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.k8s.io/v1alpha1",
+			APIVersion: "kudo.dev/v1alpha1",
 			Kind:       "Operator",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -84,13 +86,13 @@ func TestK2oClient_OperatorExistsInCluster(t *testing.T) {
 func TestK2oClient_InstanceExistsInCluster(t *testing.T) {
 	obj := v1alpha1.Instance{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.k8s.io/v1alpha1",
+			APIVersion: "kudo.dev/v1alpha1",
 			Kind:       "Instance",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
-				"operator":                "test",
+				kudo.OperatorLabel:        "test",
 			},
 			Name: "test",
 		},
@@ -103,13 +105,13 @@ func TestK2oClient_InstanceExistsInCluster(t *testing.T) {
 
 	wrongObj := v1alpha1.Instance{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.k8s.io/v1alpha1",
+			APIVersion: "kudo.dev/v1alpha1",
 			Kind:       "Instance",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
-				"operator":                "test",
+				kudo.OperatorLabel:        "test",
 			},
 			Name: "test",
 		},
@@ -158,13 +160,13 @@ func TestK2oClient_InstanceExistsInCluster(t *testing.T) {
 func TestK2oClient_ListInstances(t *testing.T) {
 	obj := v1alpha1.Instance{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.k8s.io/v1alpha1",
+			APIVersion: "kudo.dev/v1alpha1",
 			Kind:       "Instance",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
-				"operator":                "test",
+				kudo.OperatorLabel:        "test",
 			},
 			Name: "test",
 		},
@@ -209,7 +211,7 @@ func TestK2oClient_OperatorVersionsInstalled(t *testing.T) {
 	operatorName := "test"
 	obj := v1alpha1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.k8s.io/v1alpha1",
+			APIVersion: "kudo.dev/v1alpha1",
 			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -257,7 +259,7 @@ func TestK2oClient_OperatorVersionsInstalled(t *testing.T) {
 func TestK2oClient_InstallOperatorObjToCluster(t *testing.T) {
 	obj := v1alpha1.Operator{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.k8s.io/v1alpha1",
+			APIVersion: "kudo.dev/v1alpha1",
 			Kind:       "Operator",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -274,11 +276,11 @@ func TestK2oClient_InstallOperatorObjToCluster(t *testing.T) {
 		createns string
 		obj      *v1alpha1.Operator
 	}{
-		{"", "operators.kudo.k8s.io \"\" not found", "", nil},                // 1
-		{"", "operators.kudo.k8s.io \"\" not found", "default", nil},         // 2
-		{"", "operators.kudo.k8s.io \"\" not found", "kudo", nil},            // 3
-		{"test2", "operators.kudo.k8s.io \"test2\" not found", "kudo", &obj}, // 4
-		{"test", "", "kudo", &obj},                                           // 5
+		{"", "operators.kudo.dev \"\" not found", "", nil},                // 1
+		{"", "operators.kudo.dev \"\" not found", "default", nil},         // 2
+		{"", "operators.kudo.dev \"\" not found", "kudo", nil},            // 3
+		{"test2", "operators.kudo.dev \"test2\" not found", "kudo", &obj}, // 4
+		{"test", "", "kudo", &obj},                                        // 5
 	}
 
 	for i, tt := range tests {
@@ -303,7 +305,7 @@ func TestK2oClient_InstallOperatorObjToCluster(t *testing.T) {
 func TestK2oClient_InstallOperatorVersionObjToCluster(t *testing.T) {
 	obj := v1alpha1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.k8s.io/v1alpha1",
+			APIVersion: "kudo.dev/v1alpha1",
 			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -320,11 +322,11 @@ func TestK2oClient_InstallOperatorVersionObjToCluster(t *testing.T) {
 		createns string
 		obj      *v1alpha1.OperatorVersion
 	}{
-		{"", "operatorversions.kudo.k8s.io \"\" not found", "", nil},                // 1
-		{"", "operatorversions.kudo.k8s.io \"\" not found", "default", nil},         // 2
-		{"", "operatorversions.kudo.k8s.io \"\" not found", "kudo", nil},            // 3
-		{"test2", "operatorversions.kudo.k8s.io \"test2\" not found", "kudo", &obj}, // 4
-		{"test", "", "kudo", &obj}, // 5
+		{"", "operatorversions.kudo.dev \"\" not found", "", nil},                // 1
+		{"", "operatorversions.kudo.dev \"\" not found", "default", nil},         // 2
+		{"", "operatorversions.kudo.dev \"\" not found", "kudo", nil},            // 3
+		{"test2", "operatorversions.kudo.dev \"test2\" not found", "kudo", &obj}, // 4
+		{"test", "", "kudo", &obj},                                               // 5
 	}
 
 	for i, tt := range tests {
@@ -349,7 +351,7 @@ func TestK2oClient_InstallOperatorVersionObjToCluster(t *testing.T) {
 func TestK2oClient_InstallInstanceObjToCluster(t *testing.T) {
 	obj := v1alpha1.Instance{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.k8s.io/v1alpha1",
+			APIVersion: "kudo.dev/v1alpha1",
 			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -366,11 +368,11 @@ func TestK2oClient_InstallInstanceObjToCluster(t *testing.T) {
 		createns string
 		obj      *v1alpha1.Instance
 	}{
-		{"", "instances.kudo.k8s.io \"\" not found", "", nil},                // 1
-		{"", "instances.kudo.k8s.io \"\" not found", "default", nil},         // 2
-		{"", "instances.kudo.k8s.io \"\" not found", "kudo", nil},            // 3
-		{"test2", "instances.kudo.k8s.io \"test2\" not found", "kudo", &obj}, // 4
-		{"test", "", "kudo", &obj},                                           // 5
+		{"", "instances.kudo.dev \"\" not found", "", nil},                // 1
+		{"", "instances.kudo.dev \"\" not found", "default", nil},         // 2
+		{"", "instances.kudo.dev \"\" not found", "kudo", nil},            // 3
+		{"test2", "instances.kudo.dev \"test2\" not found", "kudo", &obj}, // 4
+		{"test", "", "kudo", &obj},                                        // 5
 	}
 
 	for i, tt := range tests {

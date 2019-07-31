@@ -84,10 +84,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			requests := make([]reconcile.Request, 0)
 			// We want to query and queue up operators Instances
 			instances := &kudov1alpha1.InstanceList{}
+			// we are listing all instances here, which could come with some performance penalty
+			// a possible optimization is to introduce filtering based on operatorversion (or operator)
 			err := mgr.GetClient().List(
 				context.TODO(),
 				instances,
-				client.MatchingLabels(map[string]string{kudo.OperatorLabel: a.Meta.GetName()}),
 			)
 
 			if err != nil {
@@ -318,6 +319,7 @@ func instanceEventFilter(mgr manager.Manager) predicate.Funcs {
 func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Instance) error {
 	gvk, _ := apiutil.GVKForObject(instance, mgr.GetScheme())
 	recorder := mgr.GetEventRecorderFor("instance-controller")
+	log.Printf("Creating PlanExecution of plan %s for instance %s", planName, instance.Name)
 	recorder.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" plan execution", planName))
 
 	ref := corev1.ObjectReference{
@@ -353,6 +355,7 @@ func createPlan(mgr manager.Manager, planName string, instance *kudov1alpha1.Ins
 		recorder.Event(instance, "Warning", "CreatePlanExecution", fmt.Sprintf("Error creating planexecution \"%v\": %v", planExecution.Name, err))
 		return err
 	}
+	log.Printf("Created PlanExecution of plan %s for instance %s", planName, instance.Name)
 	recorder.Event(instance, "Normal", "PlanCreated", fmt.Sprintf("PlanExecution \"%v\" created", planExecution.Name))
 	return nil
 }
@@ -371,7 +374,7 @@ type ReconcileInstance struct {
 //
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=kudo.k8s.io,resources=instances,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kudo.dev,resources=instances,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the Instance instance
 	instance := &kudov1alpha1.Instance{}
