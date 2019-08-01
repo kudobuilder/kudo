@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	v1core "k8s.io/api/core/v1"
+
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -141,33 +143,21 @@ func (c *Client) GetOperatorVersion(name, namespace string) (*v1alpha1.OperatorV
 	return ov, err
 }
 
-type patchValue struct {
-	Op    string      `json:"op"`
-	Path  string      `json:"path"`
-	Value interface{} `json:"value"`
-}
-
 // UpdateInstance updates operatorversion on instance
 func (c *Client) UpdateInstance(instanceName, namespace, operatorVersionName string, parameters map[string]string) error {
-	instancePatch := []patchValue{
-		patchValue{
-			Op:    "replace",
-			Path:  "/spec/operatorVersion/name",
-			Value: operatorVersionName,
+	instanceSpec := v1alpha1.InstanceSpec{
+		OperatorVersion: v1core.ObjectReference{
+			Name: operatorVersionName,
 		},
 	}
 	if parameters != nil {
-		instancePatch = append(instancePatch, patchValue{
-			Op:    "add",
-			Path:  "/spec/parameters",
-			Value: parameters,
-		})
+		instanceSpec.Parameters = parameters
 	}
-	serializedPatch, err := json.Marshal(instancePatch)
+	serializedPatch, err := json.Marshal(instanceSpec)
 	if err != nil {
 		return err
 	}
-	_, err = c.clientset.KudoV1alpha1().Instances(namespace).Patch(instanceName, types.JSONPatchType, serializedPatch)
+	_, err = c.clientset.KudoV1alpha1().Instances(namespace).Patch(instanceName, types.MergePatchType, serializedPatch)
 	return err
 }
 
