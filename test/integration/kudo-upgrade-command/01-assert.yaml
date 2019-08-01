@@ -6,6 +6,6 @@ spec:
   operatorVersion:
     name: upgrade-operator-0.2.0
   parameters:
-    replicas: 4
+    replicas: "4"
 status:
   activePlan: {}
