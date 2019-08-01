@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
@@ -30,15 +31,37 @@ var bundleCmdArgs = []struct {
 	arg          []string
 	errorMessage string
 }{
-	{[]string{""}, "Error: expecting exactly one argument - directory of the operator to bundle"}, // 1
-	{[]string{"foo"}, "Error: invalid operator"},                                                  // 2
-	{[]string{"config/samples/first-operator"}, ""},                                               // 2
+	{[]string{}, "expecting exactly one argument - directory of the operator to bundle"}, // 1
+	{[]string{""}, "invalid operator in path: "},                                         // 2
+	{[]string{"foo"}, "invalid operator in path: foo"},                                   // 3
+	{[]string{"../../../config/samples/first-operator"}, ""},                             // 4
 }
 
-func TestTableNewBundlemCmd(t *testing.T) {
+func TestTableNewBundleCmd(t *testing.T) {
+	rmOperator()
+	defer rmOperator()
 	for _, test := range bundleCmdArgs {
 		newCmdBundle := newBundleCmd(os.Stdout)
 		err := newCmdBundle.RunE(newCmdBundle, test.arg)
-		assert.NotNil(t, err, test.errorMessage)
+		if err != nil {
+			assert.Equal(t, test.errorMessage, err.Error())
+		}
+	}
+
+}
+
+func rmOperator() {
+	fmt.Println("Cleaning up")
+	dir, err := os.Getwd()
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(dir)
+	o := "first-operator-0.1.0.tgz"
+	if _, err := os.Stat(o); !os.IsNotExist(err) {
+		err := os.Remove(o)
+		if err != nil {
+			fmt.Println(fmt.Sprintf("WARNING: unable to delete operator: %v", o))
+		}
 	}
 }
