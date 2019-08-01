@@ -15,8 +15,8 @@ const (
 		# Bundle zookeeper (where zookeeper is a folder in the current directory)
 		kubectl kudo bundle zookeeper
 
-		# Specify an destination folder other than current working directory
-		kubectl kudo bundle ../operators/repository/zookeeper/operator/ --destination=<target_folder>`
+		# Specify a destination folder other than current working directory
+		kubectl kudo bundle ../operators/repository/zookeeper/operator/ --destination=out-folder`
 )
 
 type bundleCmd struct {
