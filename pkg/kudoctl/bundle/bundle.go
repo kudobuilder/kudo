@@ -208,7 +208,7 @@ func FromFolder(packagePath string) (*PackageFiles, error) {
 	}
 	// final check
 	if result.Operator == nil || result.Params == nil {
-		return nil, fmt.Errorf("Incomplete operator bundle")
+		return nil, fmt.Errorf("incomplete operator bundle")
 	}
 	return &result, nil
 }
