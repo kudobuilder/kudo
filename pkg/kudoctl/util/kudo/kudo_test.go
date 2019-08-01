@@ -527,6 +527,7 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 		{"patch adding new parameter", util.String("test-1.1.1"), nil, map[string]string{"param": "value"}, installNamespace},
 		{"patch updating parameter", util.String("test-1.1.1"), map[string]string{"param": "value"}, map[string]string{"param": "value2"}, installNamespace},
 		{"do not patch the version", nil, map[string]string{"param": "value"}, map[string]string{"param": "value2"}, installNamespace},
+		{"patch with existing parameter should not override", util.String("1.1.1"), map[string]string{"param": "value"}, map[string]string{"other": "value2"}, installNamespace},
 	}
 
 	for _, tt := range tests {
@@ -552,10 +553,23 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 			}
 		}
 
+		// verify that parameters were updated
 		for n, v := range tt.parametersToPatch {
 			found, ok := instance.Spec.Parameters[n]
 			if !ok || found != v {
 				t.Errorf("%s: Value of parameter %s should have been updated to %s but is %s", tt.name, n, v, found)
+			}
+		}
+
+		// make sure that we did not change parameters that should not have been updated
+		for n, v := range tt.existingParameters {
+			if _, ok := tt.parametersToPatch[n]; ok {
+				continue
+			}
+			found, ok := instance.Spec.Parameters[n]
+			fmt.Println(n)
+			if !ok || found != v {
+				t.Errorf("%s: Value of parameter %s should have not been updated from value %s but is %s", tt.name, n, v, found)
 			}
 		}
 	}
