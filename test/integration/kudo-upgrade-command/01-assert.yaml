@@ -1,6 +1,7 @@
+apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
-  name: first-operator-tv2756
+  name: upgrade-instance
 spec:
   operatorVersion:
     name: upgrade-operator-0.2.0
