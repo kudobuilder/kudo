@@ -55,7 +55,7 @@ To see the full changelog and the list of contributors who contribued to this re
 
 ## What's Next?
 
-Now that KUDO v0.4.0 has shipped, v0.5.0 will focus on implementing extensions as described in [KEP-12](https://github.com/kudobuilder/kudo/blob/master/keps/0012-operator-extensions.md) as well as improvements for observability and debugging.
+Now that KUDO v0.4.0 has shipped, we will shortly after follow with v0.5.0 containing features like kudo upgrade or test harness enhanced with ability to execute kubectl commands. After that, in 0.6.0, we will focus on implementing extensions as described in [KEP-12](https://github.com/kudobuilder/kudo/blob/master/keps/0012-operator-extensions.md) as well as improvements for observability and debugging.
 See the [KUDO Roadmap](https://github.com/orgs/kudobuilder/projects/2) for details.
 
 [Get started](/docs/getting-started) with KUDO today. Our [community](/docs/community) is ready for feedback to make KUDO even better!
