@@ -164,11 +164,15 @@ func getFullPathToTarget(destination string, name string, overwrite bool) (strin
 		destination = ""
 	}
 	if destination != "" {
+		if strings.Contains(destination, "~") {
+			userHome, _ := os.UserHomeDir()
+			destination = strings.Replace(destination, "~", userHome, 1)
+		}
 		fi, err := os.Stat(destination)
 		if err != nil || !fi.Mode().IsDir() {
 			return "", fmt.Errorf("destination \"%v\" is not a proper directory", destination)
 		}
-		name = fmt.Sprintf("%v/%v", destination, name)
+		name = filepath.Join(destination, name)
 	}
 	target := filepath.Clean(fmt.Sprintf("%v.tgz", name))
 	if _, err := os.Stat(target); !os.IsNotExist(err) {
