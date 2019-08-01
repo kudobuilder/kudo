@@ -46,9 +46,9 @@ plans:
               - nginx
 ```
 
-As you can see we have operator with just one plan - deploy, with one phase and one step which is the minimal setup. Deploy plan is automatically triggered when you install instance of this operator into cluster.
+This is an operator with just one plan `deploy`, which has one phase and one step and represents the minimal setup. The `deploy` plan is automatically triggered when you install instance of this operator into cluster.
 
-You can see that the task `nginx` references the resource `deployment.yaml`. KUDO automatically expects this file to exist inside `templates` folder. So let’s create `templates/deployment.yaml`.
+You can see that the task `nginx` references the resource `deployment.yaml`. KUDO expects this file to exist inside the `templates` folder. As the next step, create `templates/deployment.yaml`:
 
 ```yaml
 apiVersion: apps/v1
@@ -72,7 +72,7 @@ spec:
             - containerPort: 80
 ```
 
-This looks like pretty normal kubernetes yaml defining deployment and you’re right. But you can already see the KUDO templating language in action on the line referencing `{{ .Params.Replicas }}`. This will get substituted during installation by merging what is in `params.yaml` and overrides defined before install. So let’s define the last missing piece, `params.yaml`.
+This is a pretty normal kubernetes yaml file defining a deployment. However, you can already see the KUDO templating language in action on the line referencing `{{ .Params.Replicas }}`. This will get substituted during installation by merging what is in `params.yaml` and overrides defined before install. So let’s define the last missing piece, `params.yaml`.
 
 ```yaml
 replicas:
@@ -80,9 +80,15 @@ replicas:
   default: 2
 ```
 
-Now your first operator is ready and you can install it to cluster. You can do it by invoking `kubectl kudo install ./first-operator` where `./first-operator` is relative path to the folder containing your operator. To do this you need KUDO CLI installed - [follow the instructions here](https://kudo.dev/docs/cli/).
+Now your first operator is ready and you can install it to your cluster. You can do this by invoking `kubectl kudo install ./first-operator` where `./first-operator` is a relative path to the folder containing your operator. To do this, you need to have the KUDO CLI installed - [follow the instructions here](https://kudo.dev/docs/cli/), if you haven't already.
 
-For simplicity if you want to install what we created here without actually replicating it on your filesystem your can just clone KUDO repository and then run `kubectl kudo install ./config/samples/first-operator`.
+**Note:** If you want to install the result of the following steps with doing them manually, you can clone the KUDO repository and run the example from there:
+
+```bash
+git clone https://github.com/kudobuilder/kudo.git
+cd kudo
+kubectl kudo install ./config/samples/first-operator
+```
 
 ## Operator.yaml file
 
@@ -155,41 +161,47 @@ Plans allow operators to see what the operator is currently doing, and to visual
 
 ## Params file
 
-`params.yaml` defines all parameters that can customize your operator installation. You have to define name of the parameter and optionally a default value. If not specified otherwise, all parameters in this list are treated as required parameters and a parameter not having a default value must have value provided during installation otherwise the installation will fail.
+`params.yaml` defines all parameters that can be used to customize your operator installation. You have to define the name of the parameter and optionally a default value. If not specified otherwise, all parameters in this list are treated as required parameters. For parameters that don't specify default values, you must provide a value during installation, otherwise the installation will fail.
 
-More detailed example of `params.yaml` may look as following:
+A more detailed example of `params.yaml` may look as following:
 
 ```yaml
 backupFile:
   description: "The name of the backup file"
   default: backup.sql
+optionalParam:
+  description: "This parameter is not required"
+  required: false
+requiredParam:
+  description: "This parameter is required but does not have default provided"
 password:
   default: password
   description: "Password for the mysql instance"
   trigger: deploy
-notrequiredparam:
-  description: "This parameter is not required"
-  required: false
-nodefaultparam:
-  description: "This parameter is required but does not have default provided"
 ``` 
 
-`backupFile` parameters provides a default value so if user does not need to override it, no special action is required. A little bit different case is `notrequiredparam` which explicitly states as not being required so even though without default value, not providing value for this parameter won't fail installation. Third case is `nodefaultparam` that is required but does not provide a default value. For such parameters, user is expected to provide value for that parameter via `kubectl kudo install youroperator -p nodefaultparam=value`.
+Let's look at these parameters:
+* the `backupFile` parameter provides a default value, so a user does not need to specify anything unless they want to change that value.
+* The `optionalParam` is explicitly not required, so even though it doesn't come with a default value, not providing a value for this parameter won't fail the installation.
+* The `requiredParam` is required but does not provide a default value. For such parameters, users are expected to provide a value for `kubectl kudo install youroperator -p requiredParam=value`.
+* The `password` parameter exposes one more feature of `params.yaml`: you can `trigger` specific plans when changing a parameter.
 
-`password` parameter documents one more feature of `params.yaml` and that is trigger. Trigger is an optional field and it has to refer to an existing plan name in `operator.yaml`. When you update this parameter after instance is installed, this is the plan that gets triggered as a result of that (the plan that is going to apply changes in the parameter to your kubernetes objects). If no trigger is specified, `update` plan will be run. If no update plan exists for this operator, `deploy` plan is run.
+### Triggers
+
+`trigger` is an optional field which points to an existing plan in `operator.yaml`. When you update a parameter after an instance has been installed, the plan specified gets triggered as a result of your change. In other words, this plan will apply the parameter change to your kubernetes objects. If no trigger is specified, the `update` plan will be triggered by default. If no `update plan exists for this operator, the `deploy` plan is run.
 
 ## Templates
 
-Everything that is placed into the templates folder is treated as template and passed on to the KUDO controller for rendering. KUDO uses [Sprig template library](https://godoc.org/github.com/Masterminds/sprig) to render your templates on server side during installation. Thanks to Sprig you can use tens of different functions inside your templates. Some of them are inherited from [go templates](https://godoc.org/text/template), some of them are defined by [Sprig](https://godoc.org/github.com/Masterminds/sprig) itself. See their documentation for full reference.
+Everything that is placed into the templates folder is treated as a template and passed on to the KUDO controller for rendering. KUDO uses the [Sprig template library](https://godoc.org/github.com/Masterminds/sprig) for server side templates rendering during installation. Thanks to Sprig you can use tens of different functions inside your templates. Some of them are inherited from [go templates](https://godoc.org/text/template), some of them are defined by [Sprig](https://godoc.org/github.com/Masterminds/sprig) itself. See their documentation for reference.
 
 ### Variables provided by KUDO
 
 - `{{ .OperatorName }}` - name of the operator the template belongs to
-- `{{ .Name }}` - name of the instance that kubernetes object created from this template will belong to
-- `{{ .Namespace }}` - namespace in which the instance lives
-- `{{ .Params }}` - object containing list of parameters you defined in `params.yaml` with overrides provided during installation
+- `{{ .Name }}` - name of the instance to which kubernetes objects created from this template will belong to
+- `{{ .Namespace }}` - namespace in which instances are created
+- `{{ .Params }}` - an object containing the list of parameters you defined in `params.yaml` with values you specified, or provided via overrides during installation
 
-An more complex example using some of the built in variables could look as the following `templates/service.yaml`
+A more complex example using some of the built-in variables could look like the following `templates/service.yaml`
 
 ```yaml
 apiVersion: v1
