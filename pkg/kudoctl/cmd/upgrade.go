@@ -158,7 +158,7 @@ func upgrade(newOv *v1alpha1.OperatorVersion, kc *kudo.Client, options *options)
 	}
 
 	// Change instance to point to the new OV and optionally update parameters
-	err = kc.UpdateInstance(options.InstanceName, options.Namespace, util.String(ov.Name), options.Parameters)
+	err = kc.UpdateInstance(options.InstanceName, options.Namespace, util.String(newOv.Name), options.Parameters)
 	if err != nil {
 		return errors.Wrapf(err, "updating instance to point to new operatorversion %s", newOv.Name)
 	}

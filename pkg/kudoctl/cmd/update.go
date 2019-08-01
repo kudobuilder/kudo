@@ -15,10 +15,10 @@ var (
 		The update argument must be a name of the instance.
 
 		# Update dev-flink instance with setting parameter param with value value
-		kubectl kudo upgrade dev-flink -p param=value
+		kubectl kudo update dev-flink -p param=value
 
 		# Update dev-flink instance in namespace services with setting parameter param with value value
-		kubectl kudo upgrade dev-flink -n services -p param=value`
+		kubectl kudo update dev-flink -n services -p param=value`
 )
 
 type updateOptions struct {
@@ -31,11 +31,11 @@ var defaultUpdateOptions = &updateOptions{
 	Namespace: "default",
 }
 
-// newUpgradeCmd creates the install command for the CLI
+// newUpdateCmd creates the install command for the CLI
 func newUpdateCmd() *cobra.Command {
 	options := defaultUpdateOptions
 	var parameters []string
-	upgradeCmd := &cobra.Command{
+	updateCmd := &cobra.Command{
 		Use:     "update <instance-name>",
 		Short:   "Update installed KUDO operator.",
 		Long:    `Update installed KUDO operator with new parameters.`,
@@ -52,15 +52,15 @@ func newUpdateCmd() *cobra.Command {
 		SilenceUsage: true,
 	}
 
-	upgradeCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")
-	upgradeCmd.Flags().StringVar(&options.Namespace, "namespace", defaultOptions.Namespace, "The namespace where the instance you want to upgrade is installed in.")
+	updateCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")
+	updateCmd.Flags().StringVar(&options.Namespace, "namespace", defaultOptions.Namespace, "The namespace where the instance you want to upgrade is installed in.")
 
 	const usageFmt = "Usage:\n  %s\n\nFlags:\n%s"
-	upgradeCmd.SetUsageFunc(func(cmd *cobra.Command) error {
-		fmt.Fprintf(upgradeCmd.OutOrStderr(), usageFmt, upgradeCmd.UseLine(), upgradeCmd.Flags().FlagUsages())
+	updateCmd.SetUsageFunc(func(cmd *cobra.Command) error {
+		fmt.Fprintf(updateCmd.OutOrStderr(), usageFmt, updateCmd.UseLine(), updateCmd.Flags().FlagUsages())
 		return nil
 	})
-	return upgradeCmd
+	return updateCmd
 }
 
 func validateUpdateCmd(args []string, options *updateOptions) error {
@@ -99,11 +99,11 @@ func update(instanceToUpdate string, kc *kudo.Client, options *updateOptions) er
 		return fmt.Errorf("instance %s in namespace %s does not exist in the cluster", instanceToUpdate, options.Namespace)
 	}
 
-	// Change instance to point to the new OV and optionally update parameters
+	// Update parameters
 	err = kc.UpdateInstance(instanceToUpdate, options.Namespace, nil, options.Parameters)
 	if err != nil {
 		return errors.Wrapf(err, "updating instance %s", instanceToUpdate)
 	}
-	fmt.Printf("Instance %s was updated ヽ(•‿•)ノ")
+	fmt.Printf("Instance %s was updated ヽ(•‿•)ノ", instanceToUpdate)
 	return nil
 }
