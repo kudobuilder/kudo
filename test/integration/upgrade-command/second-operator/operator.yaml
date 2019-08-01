@@ -1,0 +1,19 @@
+name: "upgrade-operator"
+version: "0.2.0"
+maintainers:
+  - Your name <your@email.com>
+url: https://kudo.dev
+tasks:
+  app:
+    resources:
+      - deployment.yaml
+plans:
+  deploy:
+    strategy: serial
+    phases:
+      - name: main
+        strategy: parallel
+        steps:
+          - name: everything
+            tasks:
+              - app

@@ -1,0 +1,11 @@
+apiVersion: kudo.dev/v1alpha1
+kind: Instance
+metadata:
+  name: upgrade-instance
+spec:
+  operatorVersion:
+    name: upgrade-operator-0.2.0
+  parameters:
+    replicas: "4"
+status:
+  activePlan: {}
