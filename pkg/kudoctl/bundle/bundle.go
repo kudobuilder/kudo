@@ -157,6 +157,7 @@ func ToTarBundle(path string, destination string, overwrite bool) (string, error
 	})
 	return target, err
 }
+
 // getFullPathToTarget takes destination path and file name and provides a clean full path while ensure the file does not exist.
 func getFullPathToTarget(destination string, name string, overwrite bool) (string, error) {
 	if destination == "." {
