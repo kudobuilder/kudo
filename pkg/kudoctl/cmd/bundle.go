@@ -63,12 +63,9 @@ func validate(args []string) error {
 
 // run returns the errors associated with cmd env
 func (b *bundleCmd) run() error {
-	pkg, err := bundle.FromFolder(b.path)
-	if err != nil {
-		return fmt.Errorf("invalid operator")
+	tarfile, err := bundle.ToTarBundle(b.path, b.destination, b.overwrite)
+	if err == nil {
+		fmt.Fprintf(b.out, "Bundle created: %v\n", tarfile)
 	}
-
-	name := bundle.PackageVersionedName(pkg)
-	err = bundle.ToTarBundle(b.path, b.destination, name, b.overwrite)
 	return err
 }

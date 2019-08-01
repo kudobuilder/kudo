@@ -76,7 +76,7 @@ func (b tarBundle) GetCRDs() (*PackageCRDs, error) {
 }
 
 func (b fileBundle) GetCRDs() (*PackageCRDs, error) {
-	p, err := FromFolder(b.path)
+	p, err := fromFolder(b.path)
 	if err != nil {
 		return nil, errors.Wrap(err, "while reading package from the file system")
 	}
@@ -84,19 +84,25 @@ func (b fileBundle) GetCRDs() (*PackageCRDs, error) {
 }
 
 // ToTarBundle takes a path to operator files and creates a tgz of those files with the destination and name provided
-func ToTarBundle(path string, destination string, name string, overwrite bool) error {
-	target, e := getTarget(destination, name, overwrite)
+func ToTarBundle(path string, destination string, overwrite bool) (string, error) {
+	pkg, err := fromFolder(path)
+	if err != nil {
+		return "", fmt.Errorf("invalid operator in path: %v", path)
+	}
+
+	name := packageVersionedName(pkg)
+	target, e := getFullPathToTarget(destination, name, overwrite)
 	if e != nil {
-		return e
+		return "", e
 	}
 
 	//validate it is an operator
 	if _, err := os.Stat(path); err != nil {
-		return fmt.Errorf("unable to bundle files - %v", err.Error())
+		return "", fmt.Errorf("unable to bundle files - %v", err.Error())
 	}
 	file, err := os.Create(target)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer file.Close()
 
@@ -149,21 +155,17 @@ func ToTarBundle(path string, destination string, name string, overwrite bool) e
 
 		return nil
 	})
-
-	if err == nil {
-		fmt.Printf("Bundle created: %v\n", target)
-	}
-	return err
+	return target, err
 }
-
-func getTarget(destination string, name string, overwrite bool) (string, error) {
+// getFullPathToTarget takes destination path and file name and provides a clean full path while ensure the file does not exist.
+func getFullPathToTarget(destination string, name string, overwrite bool) (string, error) {
 	if destination == "." {
 		destination = ""
 	}
 	if destination != "" {
 		fi, err := os.Stat(destination)
 		if err != nil || !fi.Mode().IsDir() {
-			return "", fmt.Errorf("destination is not a proper directory")
+			return "", fmt.Errorf("destination \"%v\" is not a proper directory", destination)
 		}
 		name = fmt.Sprintf("%v/%v", destination, name)
 	}
@@ -176,13 +178,13 @@ func getTarget(destination string, name string, overwrite bool) (string, error) 
 	return target, nil
 }
 
-// PackageVersionedName provides the version name of a package provided a set of PackageFiles.  Ex. "zookeeper-0.1.0"
-func PackageVersionedName(pkg *PackageFiles) string {
+// packageVersionedName provides the version name of a package provided a set of PackageFiles.  Ex. "zookeeper-0.1.0"
+func packageVersionedName(pkg *PackageFiles) string {
 	return fmt.Sprintf("%v-%v", pkg.Operator.Name, pkg.Operator.Version)
 }
 
-// FromFolder walks the path provided and returns CRD package files or an error
-func FromFolder(packagePath string) (*PackageFiles, error) {
+// fromFolder walks the path provided and returns CRD package files or an error
+func fromFolder(packagePath string) (*PackageFiles, error) {
 	result := newPackageFiles()
 	err := filepath.Walk(packagePath, func(path string, file os.FileInfo, err error) error {
 		if err != nil {
@@ -208,7 +210,7 @@ func FromFolder(packagePath string) (*PackageFiles, error) {
 	}
 	// final check
 	if result.Operator == nil || result.Params == nil {
-		return nil, fmt.Errorf("incomplete operator bundle")
+		return nil, fmt.Errorf("incomplete operator bundle in path: %v", packagePath)
 	}
 	return &result, nil
 }
