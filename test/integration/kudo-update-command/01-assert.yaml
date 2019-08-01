@@ -1,0 +1,7 @@
+apiVersion: kudo.dev/v1alpha1
+kind: Instance
+metadata:
+  name: update-command-instance
+spec:
+  parameters:
+    param: value

@@ -1,0 +1,10 @@
+apiVersion: kudo.dev/v1alpha1
+kind: Instance
+metadata:
+  name: update-command-instance
+  labels:
+    kudo.dev/operator: update-command-operator
+spec:
+  operatorVersion:
+    name: update-command-operator-1.0
+    kind: OperatorVersion
