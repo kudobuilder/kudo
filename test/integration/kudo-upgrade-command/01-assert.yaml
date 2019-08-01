@@ -1,0 +1,10 @@
+kind: Instance
+metadata:
+  name: first-operator-tv2756
+spec:
+  operatorVersion:
+    name: upgrade-operator-0.2.0
+  parameters:
+    replicas: 4
+status:
+  activePlan: {}
