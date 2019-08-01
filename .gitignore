@@ -57,3 +57,5 @@ Session.vim
 tags
 # Persistent undo
 [._]*.un~
+kubeconfig
+.kube
