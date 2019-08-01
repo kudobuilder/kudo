@@ -104,5 +104,6 @@ func update(instanceToUpdate string, kc *kudo.Client, options *updateOptions) er
 	if err != nil {
 		return errors.Wrapf(err, "updating instance %s", instanceToUpdate)
 	}
+	fmt.Printf("Instance %s was updated ヽ(•‿•)ノ")
 	return nil
 }
