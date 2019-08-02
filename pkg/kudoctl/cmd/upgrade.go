@@ -150,7 +150,7 @@ func upgrade(newOv *v1alpha1.OperatorVersion, kc *kudo.Client, options *options)
 		if _, err := kc.InstallOperatorVersionObjToCluster(newOv, options.Namespace); err != nil {
 			return errors.Wrapf(err, "failed installing OperatorVersion %s for operator: %s", nextOperatorVersion, operatorName)
 		}
-		fmt.Printf("operatorversion.%s/%s created\n", newOv.APIVersion, newOv.Name)
+		fmt.Printf("operatorversion.%s/%s successfully created\n", newOv.APIVersion, newOv.Name)
 	}
 
 	// Change instance to point to the new OV and optionally update parameters
