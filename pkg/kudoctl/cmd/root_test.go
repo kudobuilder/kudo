@@ -3,10 +3,16 @@ package cmd
 import (
 	"reflect"
 	"testing"
+
+	"github.com/spf13/afero"
+)
+
+var (
+	fs = afero.NewOsFs()
 )
 
 func TestNormalizationFuncGlobalExistence(t *testing.T) {
-	root := NewKudoctlCmd()
+	root := NewKudoctlCmd(fs)
 
 	if root.Parent() != nil {
 		t.Fatal("We expect the root command to be returned")

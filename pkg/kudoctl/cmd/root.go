@@ -4,12 +4,13 @@ import (
 	"os"
 
 	"github.com/kudobuilder/kudo/pkg/version"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 // NewKudoctlCmd creates a new root command for kudoctl
-func NewKudoctlCmd() *cobra.Command {
+func NewKudoctlCmd(fs afero.Fs) *cobra.Command {
 	cmd := &cobra.Command{
 		// Workaround or Compromise as "kubectl kudo" would result in Usage print out "kubectl install <name> [flags]"
 		Use:   "kubectl-kudo",
@@ -47,7 +48,7 @@ and serves as an API aggregation layer.
 	cmd.AddCommand(newInstallCmd())
 	cmd.AddCommand(newUpgradeCmd())
 	cmd.AddCommand(newUpdateCmd())
-	cmd.AddCommand(newPackageCmd(cmd.OutOrStdout()))
+	cmd.AddCommand(newPackageCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newGetCmd())
 	cmd.AddCommand(newPlanCmd())
 	cmd.AddCommand(newTestCmd())
