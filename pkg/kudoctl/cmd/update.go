@@ -49,7 +49,6 @@ func newUpdateCmd() *cobra.Command {
 			}
 			return runUpdate(args, options)
 		},
-		SilenceUsage: true,
 	}
 
 	updateCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")

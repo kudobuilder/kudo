@@ -61,7 +61,6 @@ func newUpgradeCmd() *cobra.Command {
 			}
 			return runUpgrade(args, options)
 		},
-		SilenceUsage: true,
 	}
 
 	upgradeCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name.")
