@@ -40,9 +40,22 @@ spec:
   shortDescription: Declaratively build, install, and run operators using KUDO.
   homepage: https://kudo.dev/
   description: |
-    The Kubernetes Universal Declarative Operator (KUDO) is a highly productive toolkit for writing operators for Kubernetes.
-    Using KUDO, you can deploy your applications, give your users the tools they need to operate it, and understand how it's
-    behaving in their environments — all without a PhD in Kubernetes. 
+    The Kubernetes Universal Declarative Operator (KUDO) is a highly productive
+    toolkit for writing operators for Kubernetes. Using KUDO, you can deploy
+    your applications, give your users the tools they need to operate it, and
+    understand how it's behaving in their environments — all without a PhD in
+    Kubernetes.
+  caveats: |
+    Requires the KUDO controller to be installed:
+      kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.4.0/docs/deployment/00-prereqs.yaml
+      kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.4.0/docs/deployment/10-crds.yaml
+      kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.4.0/docs/deployment/20-deployment.yaml
+    Example usage:
+      Install kafka:
+        kubectl kudo install kafka
+      List installed operator instances:
+        kubectl kudo get instances
+    See the documentation for more information: https://kudo.dev/docs/
 
   platforms:
 EOF
