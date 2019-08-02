@@ -10,13 +10,13 @@ import (
 
 const (
 	example = `
-		The bundle argument must be a  directory which contains the operator definition files.  The bundle command will create are tgz file containing the operator.
+		The package argument must be a directory which contains the operator definition files.  The package command will create a tgz file containing the operator.
 
-		# Bundle zookeeper (where zookeeper is a folder in the current directory)
-		kubectl kudo bundle zookeeper
+		# package zookeeper (where zookeeper is a folder in the current directory)
+		kubectl kudo package zookeeper
 
 		# Specify a destination folder other than current working directory
-		kubectl kudo bundle ../operators/repository/zookeeper/operator/ --destination=out-folder`
+		kubectl kudo package ../operators/repository/zookeeper/operator/ --destination=out-folder`
 )
 
 type bundleCmd struct {
@@ -31,9 +31,9 @@ func newBundleCmd(out io.Writer) *cobra.Command {
 
 	b := &bundleCmd{out: out}
 	cmd := &cobra.Command{
-		Use:     "bundle <operator_dir>",
-		Short:   "Bundle an official KUDO operator.",
-		Long:    `Bundle a KUDO operator from local filesystem.`,
+		Use:     "package <operator_dir>",
+		Short:   "Package an official KUDO operator.",
+		Long:    `Package a KUDO operator from local filesystem.`,
 		Example: example,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validate(args); err != nil {
@@ -49,14 +49,14 @@ func newBundleCmd(out io.Writer) *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVarP(&b.destination, "destination", "d", ".", "Location to write the bundle.")
-	f.BoolVarP(&b.overwrite, "overwrite", "o", false, "Overwrite existing bundle.")
+	f.StringVarP(&b.destination, "destination", "d", ".", "Location to write the package.")
+	f.BoolVarP(&b.overwrite, "overwrite", "o", false, "Overwrite existing package.")
 	return cmd
 }
 
 func validate(args []string) error {
 	if len(args) != 1 {
-		return fmt.Errorf("expecting exactly one argument - directory of the operator to bundle")
+		return fmt.Errorf("expecting exactly one argument - directory of the operator to package")
 	}
 	return nil
 }

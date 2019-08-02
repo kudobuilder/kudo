@@ -98,7 +98,7 @@ func ToTarBundle(path string, destination string, overwrite bool) (string, error
 
 	//validate it is an operator
 	if _, err := os.Stat(path); err != nil {
-		return "", fmt.Errorf("unable to bundle files - %v", err.Error())
+		return "", fmt.Errorf("unable to package files - %v", err.Error())
 	}
 	file, err := os.Create(target)
 	if err != nil {
@@ -215,7 +215,7 @@ func fromFolder(packagePath string) (*PackageFiles, error) {
 	}
 	// final check
 	if result.Operator == nil || result.Params == nil {
-		return nil, fmt.Errorf("incomplete operator bundle in path: %v", packagePath)
+		return nil, fmt.Errorf("incomplete operator package in path: %v", packagePath)
 	}
 	return &result, nil
 }
@@ -263,7 +263,7 @@ func parseTarPackage(r io.Reader) (*PackageFiles, error) {
 		case tar.TypeReg:
 			bytes, err := ioutil.ReadAll(tr)
 			if err != nil {
-				return nil, errors.Wrapf(err, "while reading file from bundle tarball %s", header.Name)
+				return nil, errors.Wrapf(err, "while reading file from package tarball %s", header.Name)
 			}
 
 			err = parsePackageFile(header.Name, bytes, &result)
