@@ -48,7 +48,6 @@ func newInstallCmd() *cobra.Command {
 
 			return install.Run(args, options)
 		},
-		SilenceUsage: true,
 	}
 
 	installCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name. (default to Operator name)")
