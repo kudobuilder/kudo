@@ -19,17 +19,17 @@ const (
 		kubectl kudo package ../operators/repository/zookeeper/operator/ --destination=out-folder`
 )
 
-type bundleCmd struct {
+type packageCmd struct {
 	path        string
 	destination string
 	overwrite   bool
 	out         io.Writer
 }
 
-// newBundleCmd creates an operator bundle
-func newBundleCmd(out io.Writer) *cobra.Command {
+// newPackageCmd creates an operator bundle
+func newPackageCmd(out io.Writer) *cobra.Command {
 
-	b := &bundleCmd{out: out}
+	b := &packageCmd{out: out}
 	cmd := &cobra.Command{
 		Use:     "package <operator_dir>",
 		Short:   "Package an official KUDO operator.",
@@ -62,10 +62,10 @@ func validate(args []string) error {
 }
 
 // run returns the errors associated with cmd env
-func (b *bundleCmd) run() error {
+func (b *packageCmd) run() error {
 	tarfile, err := bundle.ToTarBundle(b.path, b.destination, b.overwrite)
 	if err == nil {
-		fmt.Fprintf(b.out, "Bundle created: %v\n", tarfile)
+		fmt.Fprintf(b.out, "Package created: %v\n", tarfile)
 	}
 	return err
 }

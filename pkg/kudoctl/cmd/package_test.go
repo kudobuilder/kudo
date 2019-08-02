@@ -11,7 +11,7 @@ import (
 
 func TestNewCmdBundleReturnsCmd(t *testing.T) {
 
-	newCmdBundle := newBundleCmd(os.Stdout)
+	newCmdBundle := newPackageCmd(os.Stdout)
 
 	if newCmdBundle.Parent() != nil {
 		t.Fatal("We expect the newBundleInstall command to be returned")
@@ -31,17 +31,17 @@ var bundleCmdArgs = []struct {
 	arg          []string
 	errorMessage string
 }{
-	{[]string{}, "expecting exactly one argument - directory of the operator to bundle"}, // 1
-	{[]string{""}, "invalid operator in path: "},                                         // 2
-	{[]string{"foo"}, "invalid operator in path: foo"},                                   // 3
-	{[]string{"../../../config/samples/first-operator"}, ""},                             // 4
+	{[]string{}, "expecting exactly one argument - directory of the operator to package"}, // 1
+	{[]string{""}, "invalid operator in path: "},                                          // 2
+	{[]string{"foo"}, "invalid operator in path: foo"},                                    // 3
+	{[]string{"../../../config/samples/first-operator"}, ""},                              // 4
 }
 
 func TestTableNewBundleCmd(t *testing.T) {
 	rmOperator()
 	defer rmOperator()
 	for _, test := range bundleCmdArgs {
-		newCmdBundle := newBundleCmd(os.Stdout)
+		newCmdBundle := newPackageCmd(os.Stdout)
 		err := newCmdBundle.RunE(newCmdBundle, test.arg)
 		if err != nil {
 			assert.Equal(t, test.errorMessage, err.Error())
