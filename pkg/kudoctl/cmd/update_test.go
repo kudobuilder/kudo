@@ -12,11 +12,11 @@ import (
 
 func TestUpdateCommand_Validation(t *testing.T) {
 	tests := []struct {
-		name       string
-		args       []string
+		name         string
+		args         []string
 		instanceName string
-		parameters map[string]string
-		err        string
+		parameters   map[string]string
+		err          string
 	}{
 		{"too many arguments", []string{"aaa"}, "instance", map[string]string{"param": "value"}, "expecting no arguments provided"},
 		{"no instance name", []string{}, "", map[string]string{}, "--instance flag has to be provided"},

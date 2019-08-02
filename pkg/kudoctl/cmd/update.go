@@ -22,9 +22,9 @@ var (
 )
 
 type updateOptions struct {
-	InstanceName   string
-	Namespace  string
-	Parameters map[string]string
+	InstanceName string
+	Namespace    string
+	Parameters   map[string]string
 }
 
 // defaultOptions initializes the install command options to its defaults
