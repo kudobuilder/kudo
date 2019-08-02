@@ -20,6 +20,5 @@ func newGetCmd() *cobra.Command {
 	}
 
 	getCmd.Flags().StringVar(&options.Namespace, "namespace", "default", "The namespace where the operator watches for changes.")
-
 	return getCmd
 }

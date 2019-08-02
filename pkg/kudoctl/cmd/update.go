@@ -54,12 +54,6 @@ func newUpdateCmd() *cobra.Command {
 
 	updateCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")
 	updateCmd.Flags().StringVar(&options.Namespace, "namespace", defaultOptions.Namespace, "The namespace where the instance you want to upgrade is installed in.")
-
-	const usageFmt = "Usage:\n  %s\n\nFlags:\n%s"
-	updateCmd.SetUsageFunc(func(cmd *cobra.Command) error {
-		fmt.Fprintf(updateCmd.OutOrStderr(), usageFmt, updateCmd.UseLine(), updateCmd.Flags().FlagUsages())
-		return nil
-	})
 	return updateCmd
 }
 

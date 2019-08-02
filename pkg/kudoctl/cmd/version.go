@@ -25,11 +25,6 @@ func newVersionCmd() *cobra.Command {
 		SilenceUsage: true,
 	}
 
-	const usageFmt = "Usage:\n  %s"
-	versionCmd.SetUsageFunc(func(cmd *cobra.Command) error {
-		fmt.Fprintf(versionCmd.OutOrStderr(), usageFmt, versionCmd.UseLine())
-		return nil
-	})
 	return versionCmd
 }
 

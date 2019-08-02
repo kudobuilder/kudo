@@ -69,11 +69,6 @@ func newUpgradeCmd() *cobra.Command {
 	upgradeCmd.Flags().StringVar(&options.Namespace, "namespace", defaultOptions.Namespace, "The namespace where the instance you want to upgrade is installed in.")
 	upgradeCmd.Flags().StringVarP(&options.PackageVersion, "version", "v", "", "A specific package version on the official repository. When installing from other sources than official repository, version from inside operator.yaml will be used. (default to the most recent)")
 
-	const usageFmt = "Usage:\n  %s\n\nFlags:\n%s"
-	upgradeCmd.SetUsageFunc(func(cmd *cobra.Command) error {
-		fmt.Fprintf(upgradeCmd.OutOrStderr(), usageFmt, upgradeCmd.UseLine(), upgradeCmd.Flags().FlagUsages())
-		return nil
-	})
 	return upgradeCmd
 }
 
