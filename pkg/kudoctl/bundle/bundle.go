@@ -93,7 +93,7 @@ func ToTarBundle(fs afero.Fs, path string, destination string, overwrite bool) (
 	}
 
 	name := packageVersionedName(pkg)
-	target, e := getFullPathToTarget(destination, name, overwrite)
+	target, e := getFullPathToTarget(fs, destination, name, overwrite)
 	if e != nil {
 		return "", e
 	}
@@ -161,7 +161,7 @@ func ToTarBundle(fs afero.Fs, path string, destination string, overwrite bool) (
 }
 
 // getFullPathToTarget takes destination path and file name and provides a clean full path while ensure the file does not exist.
-func getFullPathToTarget(destination string, name string, overwrite bool) (string, error) {
+func getFullPathToTarget(fs afero.Fs, destination string, name string, overwrite bool) (string, error) {
 	if destination == "." {
 		destination = ""
 	}
@@ -170,14 +170,14 @@ func getFullPathToTarget(destination string, name string, overwrite bool) (strin
 			userHome, _ := os.UserHomeDir()
 			destination = strings.Replace(destination, "~", userHome, 1)
 		}
-		fi, err := os.Stat(destination)
+		fi, err := fs.Stat(destination)
 		if err != nil || !fi.Mode().IsDir() {
 			return "", fmt.Errorf("destination \"%v\" is not a proper directory", destination)
 		}
 		name = filepath.Join(destination, name)
 	}
 	target := filepath.Clean(fmt.Sprintf("%v.tgz", name))
-	if _, err := os.Stat(target); !os.IsNotExist(err) {
+	if exists, _ := afero.Exists(fs, target); exists {
 		if !overwrite {
 			return "", fmt.Errorf("target file exists. Remove or --overwrite. File:%v", target)
 		}
