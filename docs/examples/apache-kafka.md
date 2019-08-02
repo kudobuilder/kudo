@@ -11,26 +11,15 @@ Kafka depends on Zookeeper so we need to run it first. Follow the [Zookeeper exa
 
 ## Run Kafka
 
-Create a `Operator` object for Kafka
+Create a Kafka cluster
 ```bash
-$ kubectl apply -f config/samples/kafka-operator.yaml
-operator.kudo.dev "kafka" created
+$ kubectl kudo install kafka --instance=kafka
+operator.kudo.dev/kafka unchanged
+operatorversion.kudo.dev/v1alpha1/kafka-0.2.0 created
+instance.kudo.dev/v1alpha1/kafka created
 ```
 
-Create a `OperatorVersion` for the Kafka  `Operator`
-
-```bash
-$ kubectl apply -f config/samples/kafka-operatorversion.yaml
-operatorversion.kudo.dev "kafka-2.11-2.4.0" created
-```
-
-
-Create an Instance of Kafka
-```
-$ kubectl apply -f config/samples/kafka-instance.yaml
-instance.kudo.dev "kafka" created
-```
-
+`kudo install kafka` creates the `Operator`, `OperatorVersion` and `Instance` of the Kafka package.
 When an instance is created, the default `deploy` plan is executed
 
 ```
@@ -40,19 +29,23 @@ kafka-deploy-91712000   13s
 zk-deploy-392770000     3m
 ```
 
-The statefulset defined in the `OperatorVersion` comes up with 1 pod:
+The statefulset defined in the `OperatorVersion` comes up with 3 pods:
 
 ```bash
 $ kubectl get statefulset kafka-kafka
-NAME          DESIRED   CURRENT   AGE
-kafka-kafka   1         1         56s
+NAME          READY   AGE
+kafka-kafka   3/3     56s
 ```
 
 ```bash
 $ kubectl get pods
-NAME            READY     STATUS             RESTARTS   AGE
-kafka-kafka-0   1/1       Running            0          1m
-zk-zk-0         1/1       Running            0          4m
-zk-zk-1         1/1       Running            0          4m
-zk-zk-2         1/1       Running            0          4m
+NAME             READY   STATUS    RESTARTS   AGE
+kafka-kafka-0    1/1     Running   0          83s
+kafka-kafka-1    1/1     Running   0          61s
+kafka-kafka-2    1/1     Running   0          34s
+zk-zookeeper-0   1/1     Running   0          6m56s
+zk-zookeeper-1   1/1     Running   0          6m56s
+zk-zookeeper-2   1/1     Running   0          6m56s
 ```
+
+You can find more details around configuring Kafka Cluster in [KUDO Kafka documentation](https://github.com/kudobuilder/operators/tree/master/repository/kafka)
