@@ -12,14 +12,15 @@ import (
 
 func TestUpdateCommand_Validation(t *testing.T) {
 	tests := []struct {
-		name       string
-		args       []string
-		parameters map[string]string
-		err        string
+		name         string
+		args         []string
+		instanceName string
+		parameters   map[string]string
+		err          string
 	}{
-		{"no argument", []string{}, map[string]string{"param": "value"}, "expecting exactly one argument - name of the instance installed in your cluster"},
-		{"too many arguments", []string{"aaa", "bbb"}, map[string]string{"param": "value"}, "expecting exactly one argument - name of the instance installed in your cluster"},
-		{"no instance name", []string{"arg"}, map[string]string{}, "Need to specify at least one parameter to override via -p otherwise there is nothing to update"},
+		{"too many arguments", []string{"aaa"}, "instance", map[string]string{"param": "value"}, "expecting no arguments provided"},
+		{"no instance name", []string{}, "", map[string]string{}, "--instance flag has to be provided"},
+		{"no parameter", []string{}, "instance", map[string]string{}, "need to specify at least one parameter to override "},
 	}
 
 	for _, tt := range tests {
@@ -28,8 +29,11 @@ func TestUpdateCommand_Validation(t *testing.T) {
 		for _, v := range tt.parameters {
 			cmd.Flags().Set("p", v)
 		}
+		if tt.instanceName != "" {
+			cmd.Flags().Set("instance", tt.instanceName)
+		}
 		_, err := cmd.ExecuteC()
-		if err.Error() != tt.err {
+		if !strings.Contains(err.Error(), tt.err) {
 			t.Errorf("%s: expecting error %s got %v", tt.name, tt.err, err)
 		}
 	}

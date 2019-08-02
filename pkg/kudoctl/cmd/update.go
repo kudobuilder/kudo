@@ -12,18 +12,19 @@ import (
 
 var (
 	updateExample = `
-		The update argument must be a name of the instance.
+		The update does not accept any arguments.
 
 		# Update dev-flink instance with setting parameter param with value value
-		kubectl kudo update dev-flink -p param=value
+		kubectl kudo update --instance dev-flink -p param=value
 
 		# Update dev-flink instance in namespace services with setting parameter param with value value
-		kubectl kudo update dev-flink -n services -p param=value`
+		kubectl kudo update --instance dev-flink -n services -p param=value`
 )
 
 type updateOptions struct {
-	Namespace  string
-	Parameters map[string]string
+	InstanceName string
+	Namespace    string
+	Parameters   map[string]string
 }
 
 // defaultOptions initializes the install command options to its defaults
@@ -36,7 +37,7 @@ func newUpdateCmd() *cobra.Command {
 	options := defaultUpdateOptions
 	var parameters []string
 	updateCmd := &cobra.Command{
-		Use:     "update <instance-name>",
+		Use:     "update",
 		Short:   "Update installed KUDO operator.",
 		Long:    `Update installed KUDO operator with new parameters.`,
 		Example: updateExample,
@@ -51,17 +52,21 @@ func newUpdateCmd() *cobra.Command {
 		},
 	}
 
+	updateCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name.")
 	updateCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")
 	updateCmd.Flags().StringVar(&options.Namespace, "namespace", defaultOptions.Namespace, "The namespace where the instance you want to upgrade is installed in.")
 	return updateCmd
 }
 
 func validateUpdateCmd(args []string, options *updateOptions) error {
-	if len(args) != 1 {
-		return errors.New("expecting exactly one argument - name of the instance installed in your cluster")
+	if len(args) != 0 {
+		return errors.New("expecting no arguments provided for update. Only named flags are accepted")
+	}
+	if options.InstanceName == "" {
+		return errors.New("--instance flag has to be provided to indicate which instance you want to update")
 	}
 	if len(options.Parameters) == 0 {
-		return errors.New("Need to specify at least one parameter to override via -p otherwise there is nothing to update")
+		return errors.New("need to specify at least one parameter to override via -p otherwise there is nothing to update")
 	}
 
 	return nil
@@ -72,7 +77,7 @@ func runUpdate(args []string, options *updateOptions) error {
 	if err != nil {
 		return err
 	}
-	instanceToUpdate := args[0]
+	instanceToUpdate := options.InstanceName
 
 	kc, err := kudo.NewClient(options.Namespace, viper.GetString("kubeconfig"))
 	if err != nil {
