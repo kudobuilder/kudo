@@ -77,7 +77,7 @@ func runUpdate(args []string, options *updateOptions) error {
 	if err != nil {
 		return err
 	}
-	instanceToUpdate := args[0]
+	instanceToUpdate := options.InstanceName
 
 	kc, err := kudo.NewClient(options.Namespace, viper.GetString("kubeconfig"))
 	if err != nil {
