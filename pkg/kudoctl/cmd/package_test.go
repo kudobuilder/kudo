@@ -1,17 +1,21 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewCmdBundleReturnsCmd(t *testing.T) {
 
-	newCmdBundle := newPackageCmd(os.Stdout)
+	newCmdBundle := newPackageCmd(fs, os.Stdout)
 
 	if newCmdBundle.Parent() != nil {
 		t.Fatal("We expect the newBundleInstall command to be returned")
@@ -34,34 +38,60 @@ var bundleCmdArgs = []struct {
 	{[]string{}, "expecting exactly one argument - directory of the operator to package"}, // 1
 	{[]string{""}, "invalid operator in path: "},                                          // 2
 	{[]string{"foo"}, "invalid operator in path: foo"},                                    // 3
-	{[]string{"../../../config/samples/first-operator"}, ""},                              // 4
+	{[]string{"/opt/first-operator"}, ""},                                                 // 4
 }
 
 func TestTableNewBundleCmd(t *testing.T) {
-	rmOperator()
-	defer rmOperator()
+	fs := afero.NewMemMapFs()
+	copyOperatorToFs(fs, "../../../config/samples/first-operator")
 	for _, test := range bundleCmdArgs {
-		newCmdBundle := newPackageCmd(os.Stdout)
+		newCmdBundle := newPackageCmd(fs, os.Stdout)
 		err := newCmdBundle.RunE(newCmdBundle, test.arg)
 		if err != nil {
 			assert.Equal(t, test.errorMessage, err.Error())
 		}
 	}
-
 }
 
-func rmOperator() {
-	fmt.Println("Cleaning up")
-	dir, err := os.Getwd()
+// copy from local file system into in mem
+func copyOperatorToFs(fs afero.Fs, opath string) {
+
+	dir := "/opt"
+	failed := false
+	err := fs.MkdirAll(dir, 0755)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("FAILED: ", err)
+		failed = true
 	}
-	fmt.Println(dir)
-	o := "first-operator-0.1.0.tgz"
-	if _, err := os.Stat(o); !os.IsNotExist(err) {
-		err := os.Remove(o)
+	filepath.Walk(opath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			fmt.Println(fmt.Sprintf("WARNING: unable to delete operator: %v", o))
+			return err
 		}
-	}
+
+		// directory copy
+		if info.IsDir() {
+			if dir != info.Name() {
+				dir = filepath.Join(dir, info.Name())
+				err := fs.MkdirAll(dir, 0755)
+				if err != nil {
+					fmt.Println("FAILED: ", err)
+					failed = true
+				}
+			}
+			return nil
+		}
+
+		if failed {
+			return errors.New("unable to write file, as mkdir failed")
+		}
+
+		fn := filepath.Join(dir, info.Name())
+		fmt.Println(fn)
+		w, _ := fs.Create(fn)
+		r, _ := os.Open(path)
+		io.Copy(w, r)
+
+		return nil
+	})
+
 }

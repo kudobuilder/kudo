@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/afero"
 )
 
 // This is an abstraction which abstracts the underlying bundle, which is likely file system or compressed file.
@@ -27,13 +28,14 @@ type tarBundle struct {
 
 type fileBundle struct {
 	path string
+	fs   afero.Fs
 }
 
 // NewBundle creates the implementation of the bundle based on the path.   The expectation is the bundle
 // is always local .  The path can be relative or absolute location of the bundle.
-func NewBundle(path string) (Bundle, error) {
+func NewBundle(fs afero.Fs, path string) (Bundle, error) {
 	//	make sure file exists
-	fi, err := os.Stat(path)
+	fi, err := fs.Stat(path)
 	if err != nil {
 		return nil, fmt.Errorf("unsupported file system format %v. Expect either a tar.gz file or a folder", path)
 	}
@@ -41,20 +43,20 @@ func NewBundle(path string) (Bundle, error) {
 	// 1. tarball
 	// 2. file based
 	if fi.Mode().IsRegular() && strings.HasSuffix(path, ".tar.gz") {
-		r, err := getFileReader(path)
+		r, err := getFileReader(fs, path)
 		if err != nil {
 			return nil, err
 		}
 		return tarBundle{r}, nil
 	} else if fi.IsDir() {
-		return fileBundle{path}, nil
+		return fileBundle{path, fs}, nil
 	} else {
 		return nil, fmt.Errorf("unsupported file system format %v. Expect either a tar.gz file or a folder", path)
 	}
 }
 
-func getFileReader(path string) (io.Reader, error) {
-	f, err := os.Open(path)
+func getFileReader(fs afero.Fs, path string) (io.Reader, error) {
+	f, err := fs.Open(path)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +78,7 @@ func (b tarBundle) GetCRDs() (*PackageCRDs, error) {
 }
 
 func (b fileBundle) GetCRDs() (*PackageCRDs, error) {
-	p, err := fromFolder(b.path)
+	p, err := fromFolder(b.fs, b.path)
 	if err != nil {
 		return nil, errors.Wrap(err, "while reading package from the file system")
 	}
@@ -84,23 +86,23 @@ func (b fileBundle) GetCRDs() (*PackageCRDs, error) {
 }
 
 // ToTarBundle takes a path to operator files and creates a tgz of those files with the destination and name provided
-func ToTarBundle(path string, destination string, overwrite bool) (string, error) {
-	pkg, err := fromFolder(path)
+func ToTarBundle(fs afero.Fs, path string, destination string, overwrite bool) (string, error) {
+	pkg, err := fromFolder(fs, path)
 	if err != nil {
 		return "", fmt.Errorf("invalid operator in path: %v", path)
 	}
 
 	name := packageVersionedName(pkg)
-	target, e := getFullPathToTarget(destination, name, overwrite)
+	target, e := getFullPathToTarget(fs, destination, name, overwrite)
 	if e != nil {
 		return "", e
 	}
 
 	//validate it is an operator
-	if _, err := os.Stat(path); err != nil {
+	if _, err := fs.Stat(path); err != nil {
 		return "", fmt.Errorf("unable to package files - %v", err.Error())
 	}
-	file, err := os.Create(target)
+	file, err := fs.Create(target)
 	if err != nil {
 		return "", err
 	}
@@ -111,7 +113,7 @@ func ToTarBundle(path string, destination string, overwrite bool) (string, error
 	tw := tar.NewWriter(gw)
 	defer tw.Close()
 
-	err = filepath.Walk(path, func(file string, fi os.FileInfo, err error) error {
+	err = afero.Walk(fs, path, func(file string, fi os.FileInfo, err error) error {
 
 		// return on any error
 		if err != nil {
@@ -139,7 +141,7 @@ func ToTarBundle(path string, destination string, overwrite bool) (string, error
 		}
 
 		// open files for taring
-		f, err := os.Open(file)
+		f, err := fs.Open(file)
 		if err != nil {
 			return err
 		}
@@ -159,7 +161,7 @@ func ToTarBundle(path string, destination string, overwrite bool) (string, error
 }
 
 // getFullPathToTarget takes destination path and file name and provides a clean full path while ensure the file does not exist.
-func getFullPathToTarget(destination string, name string, overwrite bool) (string, error) {
+func getFullPathToTarget(fs afero.Fs, destination string, name string, overwrite bool) (string, error) {
 	if destination == "." {
 		destination = ""
 	}
@@ -168,14 +170,14 @@ func getFullPathToTarget(destination string, name string, overwrite bool) (strin
 			userHome, _ := os.UserHomeDir()
 			destination = strings.Replace(destination, "~", userHome, 1)
 		}
-		fi, err := os.Stat(destination)
+		fi, err := fs.Stat(destination)
 		if err != nil || !fi.Mode().IsDir() {
 			return "", fmt.Errorf("destination \"%v\" is not a proper directory", destination)
 		}
 		name = filepath.Join(destination, name)
 	}
 	target := filepath.Clean(fmt.Sprintf("%v.tgz", name))
-	if _, err := os.Stat(target); !os.IsNotExist(err) {
+	if exists, _ := afero.Exists(fs, target); exists {
 		if !overwrite {
 			return "", fmt.Errorf("target file exists. Remove or --overwrite. File:%v", target)
 		}
@@ -189,9 +191,10 @@ func packageVersionedName(pkg *PackageFiles) string {
 }
 
 // fromFolder walks the path provided and returns CRD package files or an error
-func fromFolder(packagePath string) (*PackageFiles, error) {
+func fromFolder(fs afero.Fs, packagePath string) (*PackageFiles, error) {
 	result := newPackageFiles()
-	err := filepath.Walk(packagePath, func(path string, file os.FileInfo, err error) error {
+
+	err := afero.Walk(fs, packagePath, func(path string, file os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -203,7 +206,7 @@ func fromFolder(packagePath string) (*PackageFiles, error) {
 			// skip the root folder, as Walk always starts there
 			return nil
 		}
-		bytes, err := ioutil.ReadFile(path)
+		bytes, err := afero.ReadFile(fs, path)
 		if err != nil {
 			return err
 		}
