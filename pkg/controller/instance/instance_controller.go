@@ -391,7 +391,7 @@ type ReconcileInstance struct {
 	recorder record.EventRecorder
 }
 
-// Reconcile reads that state of the cluster for a Instance object and makes changes based on the state read
+// Reconcile reads that state of the cluster for an Instance object and makes changes based on the state read
 // and what is in the Instance.Spec.
 //
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments

@@ -76,7 +76,7 @@ func (c *FakeInstances) Watch(opts v1.ListOptions) (watch.Interface, error) {
 
 }
 
-// Create takes the representation of a instance and creates it.  Returns the server's representation of the instance, and an error, if there is any.
+// Create takes the representation of an instance and creates it.  Returns the server's representation of the instance, and an error, if there is any.
 func (c *FakeInstances) Create(instance *v1alpha1.Instance) (result *v1alpha1.Instance, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(instancesResource, c.ns, instance), &v1alpha1.Instance{})
@@ -87,7 +87,7 @@ func (c *FakeInstances) Create(instance *v1alpha1.Instance) (result *v1alpha1.In
 	return obj.(*v1alpha1.Instance), err
 }
 
-// Update takes the representation of a instance and updates it. Returns the server's representation of the instance, and an error, if there is any.
+// Update takes the representation of an instance and updates it. Returns the server's representation of the instance, and an error, if there is any.
 func (c *FakeInstances) Update(instance *v1alpha1.Instance) (result *v1alpha1.Instance, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(instancesResource, c.ns, instance), &v1alpha1.Instance{})

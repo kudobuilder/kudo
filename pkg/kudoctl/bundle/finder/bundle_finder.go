@@ -31,7 +31,7 @@ type Manager struct {
 	uri   *URLFinder
 }
 
-// New creates a operator bundle finder for non-repository bundles
+// New creates an operator bundle finder for non-repository bundles
 func New() *Manager {
 	lf := NewLocal()
 	uf := NewURL()

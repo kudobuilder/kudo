@@ -103,7 +103,7 @@ End-to-end tests will be triggered on merge to master, for release pull requests
 
 #### Operator tests
 
-Operator tests test that a operator works correctly. These require a full Kubernetes cluster to run and will be run in CI for the Operators repository using the latest released version of KUDO. Instead of running every test on every pull request, we will only run the tests that test the operator changed in any given pull request. Operator tests will also be run against master and release builds of KUDO to verify that KUDO changes do not break operators. Operators are tested using the KUDO test harness from KEP-0008.
+Operator tests test that an operator works correctly. These require a full Kubernetes cluster to run and will be run in CI for the Operators repository using the latest released version of KUDO. Instead of running every test on every pull request, we will only run the tests that test the operator changed in any given pull request. Operator tests will also be run against master and release builds of KUDO to verify that KUDO changes do not break operators. Operators are tested using the KUDO test harness from KEP-0008.
 
 Operator tests will also be run in CI for the KUDO repository manually after review, but prior to merging using `/test` command supported by Prow.
 

@@ -27,7 +27,7 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
-// OperatorsGetter has a method to return a OperatorInterface.
+// OperatorsGetter has a method to return an OperatorInterface.
 // A group's client should implement this interface.
 type OperatorsGetter interface {
 	Operators(namespace string) OperatorInterface
@@ -53,7 +53,7 @@ type operators struct {
 	ns     string
 }
 
-// newOperators returns a Operators
+// newOperators returns a list of Operators
 func newOperators(c *KudoV1alpha1Client, namespace string) *operators {
 	return &operators{
 		client: c.RESTClient(),
@@ -106,7 +106,7 @@ func (c *operators) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Watch()
 }
 
-// Create takes the representation of a operator and creates it.  Returns the server's representation of the operator, and an error, if there is any.
+// Create takes the representation of an operator and creates it.  Returns the server's representation of the operator, and an error, if there is any.
 func (c *operators) Create(operator *v1alpha1.Operator) (result *v1alpha1.Operator, err error) {
 	result = &v1alpha1.Operator{}
 	err = c.client.Post().
@@ -118,7 +118,7 @@ func (c *operators) Create(operator *v1alpha1.Operator) (result *v1alpha1.Operat
 	return
 }
 
-// Update takes the representation of a operator and updates it. Returns the server's representation of the operator, and an error, if there is any.
+// Update takes the representation of an operator and updates it. Returns the server's representation of the operator, and an error, if there is any.
 func (c *operators) Update(operator *v1alpha1.Operator) (result *v1alpha1.Operator, err error) {
 	result = &v1alpha1.Operator{}
 	err = c.client.Put().

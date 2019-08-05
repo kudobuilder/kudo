@@ -37,7 +37,7 @@ status: implementable
 
 As more and more developers seed our `kubebuilder/operators` repository with incredibly important Operators, we need to define how these operators will be made available.
 
-This KEP aims to define a operator repository structure. This structure indirectly impacts other KEPs, e.g., [KEP-0003 CLI](https://github.com/kudobuilder/kudo/blob/master/keps/0003-kep-cli.md), [KEP-0007 CLI Generation](https://github.com/kudobuilder/kudo/blob/master/keps/0007-cli-generation.md) or [KEP-0008 Operator Testing](https://github.com/kudobuilder/kudo/blob/master/keps/0008-operator-testing.md).
+This KEP aims to define an operator repository structure. This structure indirectly impacts other KEPs, e.g., [KEP-0003 CLI](https://github.com/kudobuilder/kudo/blob/master/keps/0003-kep-cli.md), [KEP-0007 CLI Generation](https://github.com/kudobuilder/kudo/blob/master/keps/0007-cli-generation.md) or [KEP-0008 Operator Testing](https://github.com/kudobuilder/kudo/blob/master/keps/0008-operator-testing.md).
 
 Overall, this KEP captures how we plan to provide a great user experience for installing Operators with KUDO. It focuses on:
 
@@ -69,7 +69,7 @@ The folder structure and what could be interpreted as our v0 of the repository w
 
 #### Operator Developer
 
-As a Operator Developer I, ...
+As an Operator Developer I, ...
 
 * would like to be able to host validation/testing plans and resources as part of the Package
 * would like to update my Package version
@@ -87,7 +87,7 @@ The main interface to access Packages is a simple HTTP Server that can be easily
 
 A repository will be served by a vanilla HTTP(S) server and consists of an index file in YAML and the `tgz` files for each operator. All this arquitecture requires is the ability to serve files using an HTTP server, which is very easy to implement using Google Cloud Storage or S3.
 
-Some caveats of this architecture could for instance be defining a clean interface that won't break when a user attempts to use an older version of our tools to download a Operators hosted on a repo using a newer format. As we are still building out this interface with our beta releases this kind of breaking changes are to be expected, but as we get closer to our first stable versions we will have to minimize this kind of changes.
+Some caveats of this architecture could for instance be defining a clean interface that won't break when a user attempts to use an older version of our tools to download an Operator hosted on a repo using a newer format. As we are still building out this interface with our beta releases this kind of breaking changes are to be expected, but as we get closer to our first stable versions we will have to minimize this kind of changes.
 
 Deciding the right structure  of a Package and what the high level structure of the repository will look like. Design decisions here could potentially impact future implementations of Storage Backends we haven't thought of yet.
 

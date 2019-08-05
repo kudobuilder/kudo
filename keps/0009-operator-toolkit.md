@@ -56,7 +56,7 @@ Drive KUDO to have a set of tools and specifications for creating operators.
 
 ## Motivation
 
-KUDO provides a way to reduce the amount of code necessary for the creation of a operator for Kubernetes. The current implementation of KUDO requires a significant amount of YAML to define a operator, located in one file. This YAML relies in nested YAML inlined via multiline strings, is not extensible, and is prone to error. This KEP defines a operator SDK that solves these issues.
+KUDO provides a way to reduce the amount of code necessary for the creation of an operator for Kubernetes. The current implementation of KUDO requires a significant amount of YAML to define an operator, located in one file. This YAML relies in nested YAML inlined via multiline strings, is not extensible, and is prone to error. This KEP defines an operator SDK that solves these issues.
 
 ## Goals
 
@@ -79,13 +79,13 @@ A KUDO operator is split into several base components, ordered from the outside-
 - [Extensions and Bases](#extensions-and-bases)
 - [Execution State](#execution-state)
 
-These combine to form a operator responsible for the deployment, upgrading, and day 2 operations of software deployed on Kubernetes. While KUDO ships with a templating system, it is not intended to advance the state of deploying software on Kubernetes, and provides facilities for integrating with other templating and deployment systems. KUDO's focus is instead on the sequencing and day 2 operations of this software, and is able to take advantage of existing templating to fulfill this need.
+These combine to form an operator responsible for the deployment, upgrading, and day 2 operations of software deployed on Kubernetes. While KUDO ships with a templating system, it is not intended to advance the state of deploying software on Kubernetes, and provides facilities for integrating with other templating and deployment systems. KUDO's focus is instead on the sequencing and day 2 operations of this software, and is able to take advantage of existing templating to fulfill this need.
 
 ### Definitions
 
 ### Operator Organization
 
-A operator bundle is a folder that contains all of the manifests needed to create or extend a KUDO operator. In the most basic form, a operator bundle is structured in the following format:
+An operator bundle is a folder that contains all of the manifests needed to create or extend a KUDO operator. In the most basic form, an operator bundle is structured in the following format:
 
 ```bash
 .
@@ -106,7 +106,7 @@ A operator bundle is a folder that contains all of the manifests needed to creat
 
 #### operator.yaml
 
-`operator.yaml` is the base definition of a operator. It follows the following format, extracted from the MySQL example:
+`operator.yaml` is the base definition of an operator. It follows the following format, extracted from the MySQL example:
 
 ```yaml
 name: operator
@@ -199,7 +199,7 @@ While subsequent sections go into deeper detail, the top level keys of the opera
 
 - **version**: String defining the version of a given operator
 - **tasks**: A map of tasks that can be run. These are the atomic runnable unit of a KUDO operator, and are made up of a series of YAML manifests. These are defined more in detail in [Tasks](#tasks).
-- **plans**: A map of plans that can be run. These are the core partitioning unit of a KUDO operator. A plan is intended to run a single "operations task" for a operator, such as backup, restore, deployment, or update. This is defined in detail in [Plans](#plans)
+- **plans**: A map of plans that can be run. These are the core partitioning unit of a KUDO operator. A plan is intended to run a single "operations task" for an operator, such as backup, restore, deployment, or update. This is defined in detail in [Plans](#plans)
 
 This file undergoes a Go template pass on Instance instantiation before being parsed. This is described more in detail in [Extensions and Bases](#extensions-and-bases)
 
@@ -221,7 +221,7 @@ notrequiredparam:
   required: false
 ```
 
-These values are meant to be overridden by Instance resources when instantiating a operator.
+These values are meant to be overridden by Instance resources when instantiating an operator.
 
 This file undergoes a Go template pass on Instance instantiation before being parsed. This is described more in detail in [Parameters](#parameters).
 
@@ -279,6 +279,6 @@ A template is a standard Kubernetes manifest which **MAY** have additional Go Te
 
 ### Allow for other templating engines
 
-It may the be case that a operator developer does not want to, or cannot leverage the current templating system, either because functionality is not present in the language, or the operator may need to query external systems for value injection. We may want to extend our supported templating system to include other rendering laguages (e.g. [cue](https://github.com/cuelang/cue)), or allow a operator to deploy their own rendering engine in the Kubernetes cluster and expose a well defined interface (e.g. defined with Swagger) to KUDO for send rendering requests.
+It may the be case that an operator developer does not want to, or cannot leverage the current templating system, either because functionality is not present in the language, or the operator may need to query external systems for value injection. We may want to extend our supported templating system to include other rendering laguages (e.g. [cue](https://github.com/cuelang/cue)), or allow an operator to deploy their own rendering engine in the Kubernetes cluster and expose a well defined interface (e.g. defined with Swagger) to KUDO for send rendering requests.
 
 The specifications of what this API needs to be is out of scope of this KEP.

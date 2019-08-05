@@ -76,7 +76,7 @@ func (c *FakeOperators) Watch(opts v1.ListOptions) (watch.Interface, error) {
 
 }
 
-// Create takes the representation of a operator and creates it.  Returns the server's representation of the operator, and an error, if there is any.
+// Create takes the representation of an operator and creates it.  Returns the server's representation of the operator, and an error, if there is any.
 func (c *FakeOperators) Create(operator *v1alpha1.Operator) (result *v1alpha1.Operator, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(operatorsResource, c.ns, operator), &v1alpha1.Operator{})
@@ -87,7 +87,7 @@ func (c *FakeOperators) Create(operator *v1alpha1.Operator) (result *v1alpha1.Op
 	return obj.(*v1alpha1.Operator), err
 }
 
-// Update takes the representation of a operator and updates it. Returns the server's representation of the operator, and an error, if there is any.
+// Update takes the representation of an operator and updates it. Returns the server's representation of the operator, and an error, if there is any.
 func (c *FakeOperators) Update(operator *v1alpha1.Operator) (result *v1alpha1.Operator, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(operatorsResource, c.ns, operator), &v1alpha1.Operator{})
