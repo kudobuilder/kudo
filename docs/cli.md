@@ -5,7 +5,7 @@ menu: docs
 ---
 # CLI Usage
 
-This document demonstrates how to use the CLI but also shows what happens in `KUDO` under the hood, which can be helpful when troubleshooting.
+This document demonstrates how to use the CLI but also shows what happens in KUDO under the hood, which can be helpful when troubleshooting.
 
 ## Table of Contents
 
@@ -39,8 +39,10 @@ This document demonstrates how to use the CLI but also shows what happens in `KU
 
 You can either install the CLI plugin using `brew`:
 
-- `brew tap kudobuilder/tap`
-- `brew install kudo-cli`
+```bash
+brew tap kudobuilder/tap
+brew install kudo-cli
+```
 
 or you can compile and install the plugin from your `$GOPATH/src/github.com/kudobuilder/kudo` root folder via:
 

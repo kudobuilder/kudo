@@ -10,20 +10,10 @@ aliases: ["/docs/"]
 
 ## Pre-requisites
 
-Before you get started:
+Before you get started using KUDO, you need to have a running Kubernetes cluster setup. You can use Minikube for testing purposes.
 
-- Kubernetes Cluster `1.13` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
-- [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) with version `1.13` or later
-
-## Install KUDO into your cluster
-
-```bash
-kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.5.0/docs/deployment/00-prereqs.yaml
-kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.5.0/docs/deployment/10-crds.yaml
-kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.5.0/docs/deployment/20-deployment.yaml
-```
-
-If you want to use the KUDO kubectl plugin, please follow the [CLI plugin installation instructions](https://kudo.dev/docs/cli/).
+- Setup a Kubernetes Cluster in version `1.13` or later (e.g. [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
+- Install [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) in version `1.13` or later.
 
 ### Notes on Minikube
 
@@ -32,6 +22,18 @@ If you plan on developing and testing KUDO locally via Minikube, you'll need to 
 ```bash
 minikube start --cpus=4 --memory=10240 --disk-size=40g
 ```
+
+## Install KUDO into your cluster
+
+Once you have a running cluster with `kubectl` installed, you can install KUDO like so:
+
+```bash
+kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.5.0/docs/deployment/00-prereqs.yaml
+kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.5.0/docs/deployment/10-crds.yaml
+kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.5.0/docs/deployment/20-deployment.yaml
+```
+
+You can optionally install the `kubectl kudo` plugin, which provides a convenient set of commands that make using KUDO even easier. To do so, please follow the [CLI plugin installation instructions](https://kudo.dev/docs/cli/).
 
 ## Deploy your first Operator
 
