@@ -37,4 +37,4 @@ Follow the instructions in the [Apache Kafka example](/docs/examples/apache-kafk
 
 ## Create your first operator
 
-To see the powers of KUDO unleashed in full, you should try [creating your own operator](/docs/developing-operators.md). 
+To see the powers of KUDO unleashed in full, you should try [creating your own operator](/docs/developing-operators). 
