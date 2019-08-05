@@ -87,7 +87,7 @@ These combine to form a operator responsible for the deployment, upgrading, and 
 
 A operator bundle is a folder that contains all of the manifests needed to create or extend a KUDO operator. In the most basic form, a operator bundle is structured in the following format:
 
-```shell
+```bash
 .
 ├── operator.yaml
 ├── params.yaml

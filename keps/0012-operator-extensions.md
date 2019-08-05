@@ -201,7 +201,7 @@ data:
 
 This operator is built from the MySQL operator defined above, but adds custom plans that allow for the loading and clearing of data that is required for a particular business application, as well as a new parameter that allows for sizing the PVC that backups are stored on.
 
-```shell
+```bash
 .
 ├── operator.yaml
 ├── params.yaml

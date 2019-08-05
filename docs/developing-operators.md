@@ -10,7 +10,7 @@ This guide will provide introduction to creating KUDO operators, you will learn 
 In this section we’ll start by developing your first operator and we’ll follow up with in-depth explanation of the underlying concepts.
 
 The overall structure of a package looks following:
-```shell
+```bash
 .
 ├── operator.yaml
 ├── params.yaml
