@@ -14,19 +14,23 @@ func TestRegularFileTarball(t *testing.T) {
 
 	f, _ := fs.Create("/opt/zk.tar.gz")
 
-	// sum of zk.tar.gz (host)
-	o, _ := os.Open("testdata/zk.tar.gz")
+	o, _ := os.Open("/opt/zk/operator.yaml")
 	expected, _ := files.Sha256Sum(o)
 
 	// path is that copied into in-mem fs
 	_ = tarballWriter(fs, "/opt/zk", f)
 	f.Close()
 
+	//open for reading in an untar
 	f, _ = fs.Open("/opt/zk.tar.gz")
-	defer  f.Close()
-	
-	actual, _ := files.Sha256Sum(f)
+	defer f.Close()
+
+	Untar(fs, "/opt/untar", f)
+
+	u, _ := os.Open("/opt/untar/operator.yaml")
+	actual, _ := files.Sha256Sum(u)
+
 	if expected != actual {
-		t.Errorf("Expecting the tarball to have same hash as testdata/zk.tar.gz but they differ: %v, %v", expected, actual)
+		t.Errorf("Expecting the tarball and untar of operator.yaml to have same hash but they differ: %v, %v", expected, actual)
 	}
 }
