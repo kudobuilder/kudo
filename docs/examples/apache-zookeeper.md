@@ -13,7 +13,7 @@ operatorversion.kudo.dev/v1alpha1/zookeeper-0.1.0 created
 instance.kudo.dev/v1alpha1/zk created
 ```
 
-`kudo install zookeeper` creates the `Operator`, `OperatorVersion` and `Instance` of the Zookeeper package.
+`kudo install zookeeper` creates the `Operator`, `OperatorVersion` and `Instance` CRDs of the Zookeeper package.
 When an instance is created, the default `deploy` plan is executed
 
 ```

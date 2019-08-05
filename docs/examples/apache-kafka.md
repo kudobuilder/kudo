@@ -19,7 +19,7 @@ operatorversion.kudo.dev/v1alpha1/kafka-0.2.0 created
 instance.kudo.dev/v1alpha1/kafka created
 ```
 
-`kudo install kafka` creates the `Operator`, `OperatorVersion` and `Instance` of the Kafka package.
+`kudo install kafka` creates the `Operator`, `OperatorVersion` and `Instance` CRDs of the Kafka package.
 When an instance is created, the default `deploy` plan is executed
 
 ```
