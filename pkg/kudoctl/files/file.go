@@ -3,11 +3,12 @@ package files
 import (
 	"crypto/sha256"
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/spf13/afero"
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/pkg/errors"
+	"github.com/spf13/afero"
 )
 
 // CopyOperatorToFs used with afero usually for tests to copy files into a filesystem.
@@ -56,7 +57,7 @@ func CopyOperatorToFs(fs afero.Fs, opath string, base string) {
 // Sha256Sum calculates and returns the sha256 checksum
 func Sha256Sum(r io.Reader) (string, error) {
 	h := sha256.New()
-	if _, err :=io.Copy(h, r); err != nil {
+	if _, err := io.Copy(h, r); err != nil {
 		return "", err
 	}
 	return fmt.Sprintf("%x", h.Sum(nil)), nil

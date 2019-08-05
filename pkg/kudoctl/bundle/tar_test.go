@@ -1,21 +1,22 @@
 package bundle
 
 import (
-	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
-	"github.com/spf13/afero"
 	"os"
 	"testing"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
+	"github.com/spf13/afero"
 )
 
 func TestRegularFileTarball(t *testing.T) {
-	var fs= afero.NewOsFs()
+	var fs = afero.NewOsFs()
 	//files.CopyOperatorToFs(fs, "testdata/zk", "/opt")
 
 	f, _ := fs.Create("/opt/zk.tar.gz")
 
 	// sum of zk.tar.gz (host)
 	o, _ := os.Open("testdata/zk.tar.gz")
-	expected, _ :=  files.Sha256Sum(o)
+	expected, _ := files.Sha256Sum(o)
 
 	// path is that copied into in-mem fs
 	_ = tarballWriter(fs, "testdata/zk", f)

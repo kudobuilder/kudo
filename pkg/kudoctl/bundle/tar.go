@@ -4,11 +4,12 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"fmt"
-	"github.com/spf13/afero"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/spf13/afero"
 )
 
 // tarballWriter creates a tarball *.tgz file for the file system tree at the provided path.
@@ -64,4 +65,3 @@ func tarballWriter(fs afero.Fs, path string, w io.Writer) error {
 	})
 	return err
 }
-

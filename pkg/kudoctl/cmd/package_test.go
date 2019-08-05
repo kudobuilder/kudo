@@ -1,12 +1,11 @@
 package cmd
 
 import (
-	"github.com/kudobuilder/kudo/pkg/kudoctl/file"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"os"
 	"reflect"
 	"testing"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 )
@@ -50,4 +49,3 @@ func TestTableNewBundleCmd(t *testing.T) {
 		}
 	}
 }
-
