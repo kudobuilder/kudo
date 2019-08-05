@@ -1,11 +1,9 @@
 package cmd
 
 import (
-	"errors"
-	"fmt"
-	"io"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/file"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"os"
-	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -43,7 +41,7 @@ var bundleCmdArgs = []struct {
 
 func TestTableNewBundleCmd(t *testing.T) {
 	fs := afero.NewMemMapFs()
-	copyOperatorToFs(fs, "../../../config/samples/first-operator")
+	files.CopyOperatorToFs(fs, "../../../config/samples/first-operator", "/opt")
 	for _, test := range bundleCmdArgs {
 		newCmdBundle := newPackageCmd(fs, os.Stdout)
 		err := newCmdBundle.RunE(newCmdBundle, test.arg)
@@ -53,45 +51,3 @@ func TestTableNewBundleCmd(t *testing.T) {
 	}
 }
 
-// copy from local file system into in mem
-func copyOperatorToFs(fs afero.Fs, opath string) {
-
-	dir := "/opt"
-	failed := false
-	err := fs.MkdirAll(dir, 0755)
-	if err != nil {
-		fmt.Println("FAILED: ", err)
-		failed = true
-	}
-	filepath.Walk(opath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		// directory copy
-		if info.IsDir() {
-			if dir != info.Name() {
-				dir = filepath.Join(dir, info.Name())
-				err := fs.MkdirAll(dir, 0755)
-				if err != nil {
-					fmt.Println("FAILED: ", err)
-					failed = true
-				}
-			}
-			return nil
-		}
-
-		if failed {
-			return errors.New("unable to write file, as mkdir failed")
-		}
-
-		fn := filepath.Join(dir, info.Name())
-		fmt.Println(fn)
-		w, _ := fs.Create(fn)
-		r, _ := os.Open(path)
-		io.Copy(w, r)
-
-		return nil
-	})
-
-}
