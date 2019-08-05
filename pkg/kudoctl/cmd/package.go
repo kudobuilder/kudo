@@ -63,7 +63,7 @@ func validate(args []string) error {
 
 // run returns the errors associated with cmd env
 func (b *packageCmd) run() error {
-	tarfile, err := bundle.ToTarBundle(b.path, b.destination, b.overwrite)
+	tarfile, err := bundle.ToTarBundle(b.path, b.destination, b.overwrite, bundle.RegularFileTarball)
 	if err == nil {
 		fmt.Fprintf(b.out, "Package created: %v\n", tarfile)
 	}
