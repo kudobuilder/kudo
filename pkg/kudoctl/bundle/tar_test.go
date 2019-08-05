@@ -9,8 +9,8 @@ import (
 )
 
 func TestRegularFileTarball(t *testing.T) {
-	var fs = afero.NewOsFs()
-	//files.CopyOperatorToFs(fs, "testdata/zk", "/opt")
+	var fs = afero.NewMemMapFs()
+	files.CopyOperatorToFs(fs, "testdata/zk", "/opt")
 
 	f, _ := fs.Create("/opt/zk.tar.gz")
 
@@ -19,10 +19,12 @@ func TestRegularFileTarball(t *testing.T) {
 	expected, _ := files.Sha256Sum(o)
 
 	// path is that copied into in-mem fs
-	_ = tarballWriter(fs, "testdata/zk", f)
+	_ = tarballWriter(fs, "/opt/zk", f)
 	f.Close()
 
 	f, _ = fs.Open("/opt/zk.tar.gz")
+	defer  f.Close()
+	
 	actual, _ := files.Sha256Sum(f)
 	if expected != actual {
 		t.Errorf("Expecting the tarball to have same hash as testdata/zk.tar.gz but they differ: %v, %v", expected, actual)
