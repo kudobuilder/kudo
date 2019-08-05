@@ -11,7 +11,7 @@ import (
 
 func TestNewCmdBundleReturnsCmd(t *testing.T) {
 
-	newCmdBundle := newPackageCmd(fs, os.Stdout)
+	newCmdBundle := newPackageCmd(os.Stdout)
 
 	if newCmdBundle.Parent() != nil {
 		t.Fatal("We expect the newBundleInstall command to be returned")
@@ -40,9 +40,8 @@ var bundleCmdArgs = []struct {
 func TestTableNewBundleCmd(t *testing.T) {
 	rmOperator()
 	defer rmOperator()
-
 	for _, test := range bundleCmdArgs {
-		newCmdBundle := newPackageCmd(fs, os.Stdout)
+		newCmdBundle := newPackageCmd(os.Stdout)
 		err := newCmdBundle.RunE(newCmdBundle, test.arg)
 		if err != nil {
 			assert.Equal(t, test.errorMessage, err.Error())

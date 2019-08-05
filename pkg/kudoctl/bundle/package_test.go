@@ -14,7 +14,6 @@ import (
 	"github.com/go-test/deep"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/pkg/errors"
-	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
 )
 
@@ -31,11 +30,10 @@ func TestReadFileSystemPackage(t *testing.T) {
 		{"zookeeper", "zookeeper-xn8fg", "testdata/zk", "testdata/zk-crd-golden1"},
 		{"zookeeper", "zookeeper-txhzt", "testdata/zk.tar.gz", "testdata/zk-crd-golden2"},
 	}
-	var fs = afero.NewOsFs()
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s-from-%s", tt.name, tt.path), func(t *testing.T) {
-			bundle, err := NewBundle(fs, tt.path)
+			bundle, err := NewBundle(tt.path)
 			if err != nil {
 				t.Fatalf("Found unexpected error: %v", err)
 			}

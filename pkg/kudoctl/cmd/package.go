@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
-	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
 
@@ -25,13 +24,12 @@ type packageCmd struct {
 	destination string
 	overwrite   bool
 	out         io.Writer
-	fs          afero.Fs
 }
 
-// newPackageCmd creates an operator bundle.  fs is the file system, out is stdout for CLI
-func newPackageCmd(fs afero.Fs, out io.Writer) *cobra.Command {
+// newPackageCmd creates an operator bundle
+func newPackageCmd(out io.Writer) *cobra.Command {
 
-	b := &packageCmd{out: out, fs: fs}
+	b := &packageCmd{out: out}
 	cmd := &cobra.Command{
 		Use:     "package <operator_dir>",
 		Short:   "Package an official KUDO operator.",
@@ -65,7 +63,7 @@ func validate(args []string) error {
 
 // run returns the errors associated with cmd env
 func (b *packageCmd) run() error {
-	tarfile, err := bundle.ToTarBundle(b.fs, b.path, b.destination, b.overwrite)
+	tarfile, err := bundle.ToTarBundle(b.path, b.destination, b.overwrite)
 	if err == nil {
 		fmt.Fprintf(b.out, "Package created: %v\n", tarfile)
 	}
