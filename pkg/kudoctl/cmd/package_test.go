@@ -43,6 +43,7 @@ var bundleCmdArgs = []struct {
 
 func TestTableNewBundleCmd(t *testing.T) {
 	fs := afero.NewMemMapFs()
+	//fs := afero.NewOsFs()
 	copyOperatorToFs(fs, "../../../config/samples/first-operator")
 	for _, test := range bundleCmdArgs {
 		newCmdBundle := newPackageCmd(fs, os.Stdout)
