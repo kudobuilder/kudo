@@ -35,12 +35,12 @@ var bundleCmdArgs = []struct {
 	{[]string{}, "expecting exactly one argument - directory of the operator to package"}, // 1
 	{[]string{""}, "invalid operator in path: "},                                          // 2
 	{[]string{"foo"}, "invalid operator in path: foo"},                                    // 3
-	{[]string{"/opt/first-operator"}, ""},                                                 // 4
+	{[]string{"/opt/zk"}, ""},                                                 // 4
 }
 
 func TestTableNewBundleCmd(t *testing.T) {
 	fs := afero.NewMemMapFs()
-	files.CopyOperatorToFs(fs, "../../../config/samples/first-operator", "/opt")
+	files.CopyOperatorToFs(fs, "../bundle/testdata/zk", "/opt")
 	for _, test := range bundleCmdArgs {
 		newCmdBundle := newPackageCmd(fs, os.Stdout)
 		err := newCmdBundle.RunE(newCmdBundle, test.arg)
