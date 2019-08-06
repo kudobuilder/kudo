@@ -9,8 +9,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	// initialization of filesystem for all commands
+	fs = afero.NewOsFs()
+)
+
 // NewKudoctlCmd creates a new root command for kudoctl
-func NewKudoctlCmd(fs afero.Fs) *cobra.Command {
+func NewKudoctlCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		// Workaround or Compromise as "kubectl kudo" would result in Usage print out "kubectl install <name> [flags]"
 		Use:   "kubectl-kudo",

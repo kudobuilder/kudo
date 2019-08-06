@@ -18,12 +18,10 @@ import (
 	"os"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd"
-	"github.com/spf13/afero"
 )
 
 func main() {
-	fs := afero.NewOsFs()
-	if err := cmd.NewKudoctlCmd(fs).Execute(); err != nil {
+	if err := cmd.NewKudoctlCmd().Execute(); err != nil {
 		os.Exit(-1)
 	}
 }
