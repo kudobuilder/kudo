@@ -53,7 +53,7 @@ func newRepoIndexCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVar(&index.url, "url", "", "URL of the chart repository")
-	f.BoolVarP(&index.merge, "merge", "", false, "Merge the generated index into the given index")
+	//f.BoolVarP(&index.merge, "merge", "", false, "Merge the generated index into the given index")
 	f.BoolVarP(&index.overwrite, "overwrite", "o", false, "Overwrite existing package.")
 
 	return cmd
@@ -68,11 +68,11 @@ func validateRepoIndex(args []string) error {
 
 // run returns the errors associated with cmd env
 func (b *repoIndexCmd) run() error {
-/*	tarfile, err := bundle.ToTarBundle(b.fs, b.path, b.destination, b.overwrite)
-	if err == nil {
-		fmt.Fprintf(b.out, "Package created: %v\n", tarfile)
-	}
-	return err
-*/
+	// 1. detect index.yaml... if exists and not override exit
+	// 1. walk folder get a list of tgz files indexDirectory
+	// 2. create index objects
+	// 3. sort
+	// 3. write
+
 	return nil
 }

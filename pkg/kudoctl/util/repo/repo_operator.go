@@ -22,6 +22,7 @@ type Repository interface {
 type OperatorRepository struct {
 	Config *RepositoryConfiguration
 	Client http.Client
+
 }
 
 // NewOperatorRepository constructs OperatorRepository
