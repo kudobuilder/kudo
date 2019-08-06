@@ -22,8 +22,8 @@ import (
 )
 
 func main() {
-	AppFs := afero.NewOsFs()
-	if err := cmd.NewKudoctlCmd(AppFs).Execute(); err != nil {
+	fs := afero.NewOsFs()
+	if err := cmd.NewKudoctlCmd(fs).Execute(); err != nil {
 		os.Exit(-1)
 	}
 }
