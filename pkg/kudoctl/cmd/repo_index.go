@@ -1,0 +1,78 @@
+package cmd
+
+import (
+	"fmt"
+	"io"
+
+	"github.com/spf13/afero"
+	"github.com/spf13/cobra"
+)
+
+const repoIndexDesc = `
+Read the provided directory and generate an index file based on the packages found.
+
+This tool is used for creating an 'index.yaml' file for a kudo package repository. To
+set an absolute URL to the charts, use '--url' flag.
+
+To merge the generated index with an existing index file, use the '--merge'
+flag. In this case, the charts found in the working directory will be merged
+into the existing index, with local packages taking priority over existing packages.
+
+# create an index file for all kudo packages in the repo-dir
+	$ kubectl kudo repo index repo-dir`
+
+type repoIndexCmd struct {
+	path        string
+	url			string
+	overwrite   bool
+	merge		bool
+	out         io.Writer
+	fs          afero.Fs
+}
+
+// newRepoIndexCmd for repo commands such as building a repo index
+func newRepoIndexCmd(fs afero.Fs, out io.Writer) *cobra.Command {
+
+	index := &repoIndexCmd{out: out, fs: fs}
+	cmd := &cobra.Command{
+		Use:     "index [flags] [DIR]",
+		Short:   "Generate an index file given a directory containing kudo packages",
+		Long:    repoIndexDesc,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := validate(args); err != nil {
+				return err
+			}
+			index.path = args[0]
+			if err := index.run(); err != nil {
+				return err
+			}
+			return nil
+		},
+		SilenceUsage: true,
+	}
+
+	f := cmd.Flags()
+	f.StringVar(&index.url, "url", "", "URL of the chart repository")
+	f.BoolVarP(&index.merge, "merge", "", false, "Merge the generated index into the given index")
+	f.BoolVarP(&index.overwrite, "overwrite", "o", false, "Overwrite existing package.")
+
+	return cmd
+}
+
+func validateRepoIndex(args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("expecting exactly one argument - directory of the operator to package")
+	}
+	return nil
+}
+
+// run returns the errors associated with cmd env
+func (b *repoIndexCmd) run() error {
+/*	tarfile, err := bundle.ToTarBundle(b.fs, b.path, b.destination, b.overwrite)
+	if err == nil {
+		fmt.Fprintf(b.out, "Package created: %v\n", tarfile)
+	}
+	return err
+*/
+	return nil
+}

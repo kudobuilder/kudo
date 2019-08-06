@@ -56,6 +56,7 @@ and serves as an API aggregation layer.
 	cmd.AddCommand(newPackageCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newGetCmd())
 	cmd.AddCommand(newPlanCmd())
+	cmd.AddCommand(newRepoCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newTestCmd())
 	cmd.AddCommand(newVersionCmd())
 	cmd.PersistentFlags().String("kubeconfig", os.Getenv("HOME")+"/.kube/config", "Path to your Kubernetes configuration file")
