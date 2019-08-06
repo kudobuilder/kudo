@@ -54,6 +54,8 @@ Or you can use compile and install the plugin from your `$GOPATH/src/github.com/
 | `kubectl kudo plan status [flags]`         | View all available plans.                                                                     |
 | `kubectl kudo plan history <name> [flags]` | View all available plans.                                                                     |
 | `kubectl kudo version`                     | Print the current KUDO package version.                                                       |
+| `kubectl kudo update`                      | Update installed operator parameters. 
+| `kubectl kudo upgrade`                     | Upgrade installed operator from one version to another. 
 
 ## Flags
 
@@ -368,3 +370,21 @@ $ kubectl kudo plan history --instance=up
 ```
 
 This includes the previous history but also all OperatorVersions that have been applied to the selected instance.
+
+### Update parameters on running operator
+
+Every operator can define overridable parameters in `params.yaml`. When installing operator, you can use the defined defaults, or override them with `-p` parameters for `kudo install`.
+
+`kudo update` allows you to change this parameters even on already installed operator. If you have an operator instance in your cluster named dev-flink (you can figure out what you have installed with `kubectl get instances`) and that instance exposes parameter `param` you can change its value with the following command:
+
+`kubectl kudo update dev-flink -p param=value`
+
+### Upgrade running operator from one version to another
+
+Following the same example from previous section, having a `dev-flink` instance installed, we can upgrade it to newer version of flink operator with the following command.
+
+`kubectl kudo upgrade flink --instance dev-flink -p param=xxx`
+
+New version of that operator is installed to the cluster and `upgrade` (or `deploy`) plan is started to roll out new flink pods updated to the newer version.
+
+At the same time we're overriding value of parameter `param`. That is optional, you can always do it in separate step via `kudo update`.
