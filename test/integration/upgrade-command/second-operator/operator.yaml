@@ -19,10 +19,10 @@ plans:
               - app
   upgrade:
     strategy: serial
-      phases:
-          - name: upgrade
-            strategy: parallel
-            steps:
-              - name: everything
-                tasks:
-                  - app
+    phases:
+      - name: upgrade
+        strategy: parallel
+        steps:
+          - name: everything
+            tasks:
+              - app
