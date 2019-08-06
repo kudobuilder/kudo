@@ -47,7 +47,7 @@ By providing a repository (or set of repositories), KUDO will provide a mechanis
 
 ## Motivation
 
-We need a way for the operator author to update a repository with his/her operator.  We also need a way for the operator to promote an operator as being production ready. Finally we need a KUDO user to point to different repositories.  
+We need a way for the operator author to update a repository with their operator.  We also need a way for the operator to promote an operator as being production ready. Finally we need a KUDO user to point to different repositories.  
 
 ### Goals
 
