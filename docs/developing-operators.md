@@ -48,7 +48,7 @@ plans:
 
 As you can see we have operator with just one plan - deploy, with one phase and one step which is the minimal setup. Deploy plan is automatically triggered when you install instance of this operator into cluster.
 
-You can see that the step `nginx` references `deployment.yaml`. KUDO automatically expects this file to exist inside `templates` folder. So let’s create `templates/deployment.yaml`.
+You can see that the task `nginx` references the resource `deployment.yaml`. KUDO automatically expects this file to exist inside `templates` folder. So let’s create `templates/deployment.yaml`.
 
 ```yaml
 apiVersion: apps/v1
