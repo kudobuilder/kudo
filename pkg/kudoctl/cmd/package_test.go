@@ -35,7 +35,7 @@ var bundleCmdArgs = []struct {
 	{[]string{}, "expecting exactly one argument - directory of the operator to package"}, // 1
 	{[]string{""}, "invalid operator in path: "},                                          // 2
 	{[]string{"foo"}, "invalid operator in path: foo"},                                    // 3
-	{[]string{"/opt/zk"}, ""},                                                 // 4
+	{[]string{"/opt/zk"}, ""},                                                             // 4
 }
 
 func TestTableNewBundleCmd(t *testing.T) {
