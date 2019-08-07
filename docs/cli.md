@@ -385,6 +385,6 @@ Following the same example from the previous section, having a `dev-flink` insta
 
 `kubectl kudo upgrade flink --instance dev-flink -p param=xxx`
 
-New version of that operator is installed to the cluster and `upgrade` (or `deploy`) plan is started to roll out new flink pods updated to the newer version.
+A new version of that operator is installed to the cluster and `upgrade` (or `deploy`) plan is started to roll out new flink pods.
 
 At the same time we're overriding value of parameter `param`. That is optional, you can always do it in separate step via `kudo update`.
