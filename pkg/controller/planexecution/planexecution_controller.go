@@ -19,10 +19,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"log"
 	"strconv"
 	"strings"
+
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	apijson "k8s.io/apimachinery/pkg/util/json"
 

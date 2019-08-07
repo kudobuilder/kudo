@@ -30,7 +30,7 @@ type PlanExecutionSpec struct {
 
 	PlanName string                 `json:"planName"`
 	Instance corev1.ObjectReference `json:"instance"`
-	Template InstanceSpec `json:"template"`
+	Template InstanceSpec           `json:"template"`
 }
 
 // PlanExecutionStatus defines the observed state of PlanExecution
