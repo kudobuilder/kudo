@@ -381,7 +381,7 @@ Every operator can define overridable parameters in `params.yaml`. When installi
 
 ### Upgrade running operator from one version to another
 
-Following the same example from previous section, having a `dev-flink` instance installed, we can upgrade it to newer version of flink operator with the following command.
+Following the same example from the previous section, having a `dev-flink` instance installed, we can upgrade it to a newer version with the following command:
 
 `kubectl kudo upgrade flink --instance dev-flink -p param=xxx`
 
