@@ -12,7 +12,7 @@ import (
 
 func TestNewCmdBundleReturnsCmd(t *testing.T) {
 
-	newCmdBundle := newPackageCmd(fs, os.Stdout)
+	packageCmd := newPackageCmd(fs, os.Stdout)
 
 	if newCmdBundle.Parent() != nil {
 		t.Fatal("We expect the newBundleInstall command to be returned")
