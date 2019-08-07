@@ -646,7 +646,7 @@ func CreateOrUpdate(ctx context.Context, cl client.Client, obj runtime.Object, r
 	validators := []func(err error) bool{}
 
 	if retryOnError {
-		validators = append(validators, k8serrors.IsConflict)
+		validators = append(validators, k8serrors.IsConflict, k8serrors.IsAlreadyExists)
 	}
 
 	return updated, Retry(ctx, func(ctx context.Context) error {
