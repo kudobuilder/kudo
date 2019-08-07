@@ -28,21 +28,21 @@ type packageCmd struct {
 	fs          afero.Fs
 }
 
-// newPackageCmd creates an operator bundle.  fs is the file system, out is stdout for CLI
+// newPackageCmd creates an operator tarball. fs is the file system, out is stdout for CLI
 func newPackageCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
-	b := &packageCmd{out: out, fs: fs}
+	pkg := &packageCmd{out: out, fs: fs}
 	cmd := &cobra.Command{
 		Use:     "package <operator_dir>",
 		Short:   "Package a local KUDO operator into a tarball.",
-		Long:    `Package a KUDO operator from local filesystem.`,
+		Long:    `Package a KUDO operator from local filesystem into a package tarball.`,
 		Example: example,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validate(args); err != nil {
 				return err
 			}
-			b.path = args[0]
-			if err := b.run(); err != nil {
+			pkg.path = args[0]
+			if err := pkg.run(); err != nil {
 				return err
 			}
 			return nil
@@ -51,8 +51,8 @@ func newPackageCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVarP(&b.destination, "destination", "d", ".", "Location to write the package.")
-	f.BoolVarP(&b.overwrite, "overwrite", "o", false, "Overwrite existing package.")
+	f.StringVarP(&pkg.destination, "destination", "d", ".", "Location to write the package.")
+	f.BoolVarP(&pkg.overwrite, "overwrite", "o", false, "Overwrite existing package.")
 	return cmd
 }
 
@@ -64,10 +64,10 @@ func validate(args []string) error {
 }
 
 // run returns the errors associated with cmd env
-func (b *packageCmd) run() error {
-	tarfile, err := bundle.ToTarBundle(b.fs, b.path, b.destination, b.overwrite)
+func (pkg *packageCmd) run() error {
+	tarfile, err := bundle.ToTarBundle(pkg.fs, pkg.path, pkg.destination, pkg.overwrite)
 	if err == nil {
-		fmt.Fprintf(b.out, "Package created: %v\n", tarfile)
+		fmt.Fprintf(pkg.out, "Package created: %v\n", tarfile)
 	}
 	return err
 }
