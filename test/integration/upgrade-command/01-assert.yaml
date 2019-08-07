@@ -1,8 +1,6 @@
 apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
-  labels:
-    kudo.dev/operator-version: upgrade-operator-0.2.0
   name: upgrade-instance
 spec:
   operatorVersion:
@@ -15,6 +13,8 @@ status:
 apiVersion: kudo.dev/v1alpha1
 kind: PlanExecution
 metadata:
+  labels:
+    kudo.dev/operator-version: upgrade-operator-0.2.0
   ownerReferences:
     - kind: Instance
       name: upgrade-instance
