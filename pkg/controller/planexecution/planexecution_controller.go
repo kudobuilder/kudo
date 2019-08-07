@@ -19,12 +19,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"log"
 	"strconv"
 	"strings"
-	"time"
-
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	apijson "k8s.io/apimachinery/pkg/util/json"
 
@@ -625,29 +623,4 @@ func (r *ReconcilePlanExecution) Cleanup(obj runtime.Object) error {
 func prettyPrint(i interface{}) string {
 	s, _ := json.MarshalIndent(i, "", "  ")
 	return string(s)
-}
-
-// New creates a PlanExecution based on the kind and instance for a given planName
-func New(kind string, instance *kudov1alpha1.Instance, planName string) kudov1alpha1.PlanExecution {
-	ref := corev1.ObjectReference{
-		Kind:      kind,
-		Name:      instance.Name,
-		Namespace: instance.Namespace,
-	}
-	planExecution := kudov1alpha1.PlanExecution{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%v-%v-%v", instance.Name, planName, time.Now().Nanosecond()),
-			Namespace: instance.GetNamespace(),
-			// TODO: Should also add one for Operator in here as well.
-			Labels: map[string]string{
-				kudo.OperatorVersionAnnotation: instance.Spec.OperatorVersion.Name,
-				kudo.InstanceLabel:             instance.Name,
-			},
-		},
-		Spec: kudov1alpha1.PlanExecutionSpec{
-			Instance: ref,
-			PlanName: planName,
-		},
-	}
-	return planExecution
 }

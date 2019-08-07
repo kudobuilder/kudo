@@ -36,9 +36,36 @@ spec:
               description: This flag tells the controller to suspend subsequent executions,
                 it does not apply to already started executions.  Defaults to false.
               type: boolean
+            template:
+              properties:
+                dependencies:
+                  items:
+                    properties:
+                      referenceName:
+                        description: Name specifies the name of the dependency. Referenced
+                          via defaults.config.
+                        type: string
+                      version:
+                        description: 'Version captures the requirements for what versions
+                          of the above object are allowed.  Example: ^3.1.4'
+                        type: string
+                    required:
+                    - referenceName
+                    - version
+                    type: object
+                  type: array
+                operatorVersion:
+                  description: Operator specifies a reference to a specific Operator
+                    object.
+                  type: object
+                parameters:
+                  description: 'TODO: this is deprecated and should not be used'
+                  type: object
+              type: object
           required:
           - planName
           - instance
+          - template
           type: object
         status:
           properties:
