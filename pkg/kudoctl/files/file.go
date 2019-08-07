@@ -6,10 +6,13 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
+
+// A collection of utility functions for working with files and Afero
 
 // CopyOperatorToFs used with afero usually for tests to copy files into a filesystem.
 // copy from local file system into in mem
@@ -52,6 +55,31 @@ func CopyOperatorToFs(fs afero.Fs, opath string, base string) {
 
 		return nil
 	})
+}
+
+// FullPathToTarget takes destination path and file name and provides a clean full path while ensure the file does not exist.
+func FullPathToTarget(fs afero.Fs, destination string, name string, overwrite bool) (string, error) {
+	if destination == "." {
+		destination = ""
+	}
+	if destination != "" {
+		if strings.Contains(destination, "~") {
+			userHome, _ := os.UserHomeDir()
+			destination = strings.Replace(destination, "~", userHome, 1)
+		}
+		fi, err := fs.Stat(destination)
+		if err != nil || !fi.Mode().IsDir() {
+			return "", fmt.Errorf("destination \"%v\" is not a proper directory", destination)
+		}
+		name = filepath.Join(destination, name)
+	}
+	target := filepath.Clean(name)
+	if exists, _ := afero.Exists(fs, target); exists {
+		if !overwrite {
+			return "", fmt.Errorf("target file \"%v\" exists. Remove or --overwrite", target)
+		}
+	}
+	return target, nil
 }
 
 // Sha256Sum calculates and returns the sha256 checksum

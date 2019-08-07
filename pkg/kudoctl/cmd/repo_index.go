@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"io"
-
+	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+	"io"
 )
 
 const repoIndexDesc = `
@@ -67,8 +67,13 @@ func validateRepoIndex(args []string) error {
 }
 
 // run returns the errors associated with cmd env
-func (b *repoIndexCmd) run() error {
-	// 1. detect index.yaml... if exists and not override exit
+func (ri *repoIndexCmd) run() error {
+	target, err := files.FullPathToTarget(ri.fs, ri.path, "index.yaml", ri.overwrite)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("working with %v", target)
 	// 1. walk folder get a list of tgz files indexDirectory
 	// 2. create index objects
 	// 3. sort
