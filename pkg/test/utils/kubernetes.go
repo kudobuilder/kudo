@@ -644,7 +644,7 @@ func FakeDiscoveryClient() discovery.DiscoveryInterface {
 func CreateOrUpdate(ctx context.Context, cl client.Client, obj runtime.Object, retryOnError bool) (updated bool, err error) {
 	orig := obj.DeepCopyObject()
 
-	validators := []func(err error) bool{ k8serrors.IsAlreadyExists }
+	validators := []func(err error) bool{k8serrors.IsAlreadyExists}
 
 	if retryOnError {
 		validators = append(validators, k8serrors.IsConflict)
