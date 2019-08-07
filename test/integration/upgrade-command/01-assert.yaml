@@ -16,7 +16,7 @@ apiVersion: kudo.dev/v1alpha1
 kind: PlanExecution
 metadata:
   ownerReferences:
-      kind: Instance
+    - kind: Instance
       name: upgrade-instance
 status:
   name: upgrade
