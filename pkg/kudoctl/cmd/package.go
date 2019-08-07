@@ -47,7 +47,6 @@ func newPackageCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			}
 			return nil
 		},
-		SilenceUsage: true,
 	}
 
 	f := cmd.Flags()

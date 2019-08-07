@@ -98,7 +98,6 @@ func ToTarBundle(fs afero.Fs, path string, destination string, overwrite bool) (
 		return "", e
 	}
 
-	//validate it is an operator
 	if _, err := fs.Stat(path); err != nil {
 		return "", fmt.Errorf("unable to package files - %v", err.Error())
 	}

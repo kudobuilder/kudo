@@ -69,7 +69,7 @@ func tarballWriter(fs afero.Fs, path string, w io.Writer) error {
 // Untar takes a destination path and a reader; a tar reader loops over the tarfile
 // creating the file structure at 'path' along the way, and writing any files
 func Untar(fs afero.Fs, path string, r io.Reader) error {
-
+	//todo: refactor to combine with parseTarPackage
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
 		return err
