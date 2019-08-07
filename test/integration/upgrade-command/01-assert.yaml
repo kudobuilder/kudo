@@ -1,6 +1,8 @@
 apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
+  labels:
+    kudo.dev/operator-version: upgrade-operator-0.2.0
   name: upgrade-instance
 spec:
   operatorVersion:
@@ -18,4 +20,3 @@ metadata:
       name: upgrade-instance
 status:
   name: upgrade
-  state: COMPLETE
