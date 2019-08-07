@@ -375,7 +375,7 @@ This includes the previous history but also all OperatorVersions that have been 
 
 Every operator can define overridable parameters in `params.yaml`. When installing an operator, you can use the defined defaults or override them with `-p` parameters for `kudo install`.
 
-`kudo update` allows you to change this parameters even on already installed operator. If you have an operator instance in your cluster named dev-flink (you can figure out what you have installed with `kubectl get instances`) and that instance exposes parameter `param` you can change its value with the following command:
+`kudo update` command allows you to change these parameters even on an already installed operator. If you have an operator instance in your cluster named `dev-flink` (you can figure out what you have installed with `kubectl get instances`) and that instance exposes a parameter with the name `param` you can change its value with the following command:
 
 `kubectl kudo update dev-flink -p param=value`
 
