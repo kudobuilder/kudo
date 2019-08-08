@@ -56,6 +56,8 @@ Or you can use compile and install the plugin from your `$GOPATH/src/github.com/
 | `kubectl kudo plan status [flags]`         | View all available plans.                                                                     |
 | `kubectl kudo plan history <name> [flags]` | View all available plans.                                                                     |
 | `kubectl kudo version`                     | Print the current KUDO package version.                                                       |
+| `kubectl kudo update`                      | Update installed operator parameters.
+| `kubectl kudo upgrade`                     | Upgrade installed operator from one version to another.
 
 ## Flags
 
@@ -78,7 +80,7 @@ Flags:
 ### Install a Package
 
 There are four options how to install a package. For development you are able to install packages from your local filesystem or local tgz file.
-For testing or working without a repository it is possible to install via a url location. The last option is installation from the package repository. 
+For testing or working without a repository it is possible to install via a url location. The last option is installation from the package repository.
 
 Installation during development can use a relative or absolute path to the package folder.
 ```bash
@@ -383,3 +385,21 @@ Example:
 $ kubectl kudo package ../operators/repository/zookeeper/operator/ --destination=~
   Package created: /Users/kensipe/zookeeper-0.1.0.tgz
 ```
+
+### Update parameters on running operator
+
+Every operator can define overridable parameters in `params.yaml`. When installing an operator, you can use the defined defaults or override them with `-p` parameters for `kudo install`.
+
+`kudo update` command allows you to change these parameters even on an already installed operator. If you have an operator instance in your cluster named `dev-flink` (you can figure out what you have installed with `kubectl get instances`) and that instance exposes a parameter with the name `param` you can change its value with the following command:
+
+`kubectl kudo update dev-flink -p param=value`
+
+### Upgrade running operator from one version to another
+
+Following the same example from the previous section, having a `dev-flink` instance installed, we can upgrade it to a newer version with the following command:
+
+`kubectl kudo upgrade flink --instance dev-flink -p param=xxx`
+
+A new version of that operator is installed to the cluster and `upgrade` (or `deploy`) plan is started to roll out new flink pods.
+
+At the same time, we're overriding value of parameter `param`. That is optional and you can always do it in separate step via `kudo update`.

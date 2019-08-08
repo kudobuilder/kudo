@@ -639,11 +639,12 @@ func FakeDiscoveryClient() discovery.DiscoveryInterface {
 }
 
 // CreateOrUpdate will create obj if it does not exist and update if it it does.
+// retryonerror indicates whether we retry in case of conflict
 // Returns true if the object was updated and false if it was created.
 func CreateOrUpdate(ctx context.Context, cl client.Client, obj runtime.Object, retryOnError bool) (updated bool, err error) {
 	orig := obj.DeepCopyObject()
 
-	validators := []func(err error) bool{}
+	validators := []func(err error) bool{k8serrors.IsAlreadyExists}
 
 	if retryOnError {
 		validators = append(validators, k8serrors.IsConflict)
