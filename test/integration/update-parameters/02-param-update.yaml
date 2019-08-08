@@ -1,0 +1,10 @@
+apiVersion: kudo.dev/v1alpha1
+kind: Instance
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: toy1
+spec:
+  # Add fields here
+  parameters:
+    Param: "after"
