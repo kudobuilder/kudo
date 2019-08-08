@@ -24,6 +24,7 @@ This document demonstrates how to use the CLI but also shows what happens in `KU
             * [Get the Status of an Instance](#get-the-status-of-an-instance)
             * [Delete an Instance](#delete-an-instance)
             * [Get the History to PlanExecutions](#get-the-history-to-planexecutions)
+            * [Package an Operator](#package-an-operator)
 
 
 ## Setup the KUDO Kubectl Plugin
@@ -51,11 +52,12 @@ Or you can use compile and install the plugin from your `$GOPATH/src/github.com/
 | ------------------------------------------ | --------------------------------------------------------------------------------------------- |
 | `kubectl kudo install <name> [flags]`      | Install a Operator from the official [KUDO repo](https://github.com/kudobuilder/operators). |
 | `kubectl kudo get instances [flags]`       | Show all available instances.                                                                 |
+| `kubectl kudo package <operator_folder> [flags]` | Packages an operator in a folder into a tgz file                                        |
 | `kubectl kudo plan status [flags]`         | View all available plans.                                                                     |
 | `kubectl kudo plan history <name> [flags]` | View all available plans.                                                                     |
 | `kubectl kudo version`                     | Print the current KUDO package version.                                                       |
-| `kubectl kudo update`                      | Update installed operator parameters. 
-| `kubectl kudo upgrade`                     | Upgrade installed operator from one version to another. 
+| `kubectl kudo update`                      | Update installed operator parameters.
+| `kubectl kudo upgrade`                     | Upgrade installed operator from one version to another.
 
 ## Flags
 
@@ -78,7 +80,7 @@ Flags:
 ### Install a Package
 
 There are four options how to install a package. For development you are able to install packages from your local filesystem or local tgz file.
-For testing or working without a repository it is possible to install via a url location. The last option is installation from the package repository. 
+For testing or working without a repository it is possible to install via a url location. The last option is installation from the package repository.
 
 Installation during development can use a relative or absolute path to the package folder.
 ```bash
@@ -370,6 +372,19 @@ $ kubectl kudo plan history --instance=up
 ```
 
 This includes the previous history but also all OperatorVersions that have been applied to the selected instance.
+
+### Package an Operator
+
+We can use the `package` command to package an operator into a tarball. The package name will be determined by the operator metadata in the package files.  The folder of the operator is passed as an argument. It is possible to pass a `--destination` location to build the tgz file into.
+
+`kubectl kudo package zookeeper --destination=target`
+
+Example:
+
+```bash
+$ kubectl kudo package ../operators/repository/zookeeper/operator/ --destination=~
+  Package created: /Users/kensipe/zookeeper-0.1.0.tgz
+```
 
 ### Update parameters on running operator
 

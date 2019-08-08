@@ -3,10 +3,10 @@ package finder
 import (
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
+	"github.com/spf13/afero"
 )
 
 // Finder is a bundle finder and is any implementation which can find/discover a bundle.
@@ -17,6 +17,7 @@ type Finder interface {
 
 // LocalFinder will find local operator bundle: folders or tgz
 type LocalFinder struct {
+	fs afero.Fs
 }
 
 // URLFinder will find an operator bundle from a url
@@ -44,7 +45,7 @@ func New() *Manager {
 func (f *Manager) GetBundle(name string, version string) (bundle.Bundle, error) {
 
 	// if local folder return the bundle
-	if _, err := os.Stat(name); err == nil {
+	if _, err := f.local.fs.Stat(name); err == nil {
 		b, err := f.local.GetBundle(name, version)
 		if err != nil {
 			return nil, err
@@ -89,19 +90,19 @@ func (f *URLFinder) getBundleByURL(url string) (io.Reader, error) {
 // GetBundle provides a bundle for the local folder or tarball provided
 func (f *LocalFinder) GetBundle(name string, version string) (bundle.Bundle, error) {
 	//	make sure file exists
-	_, err := os.Stat(name)
+	_, err := f.fs.Stat(name)
 	if err != nil {
 		return nil, fmt.Errorf("unsupported file system format %v. Expect either a tar.gz file or a folder", name)
 	}
 	// order of discovery
 	// 1. tarball
 	// 2. file based
-	return bundle.NewBundle(name)
+	return bundle.NewBundle(f.fs, name)
 }
 
 // NewLocal creates a finder for local operator bundles
 func NewLocal() *LocalFinder {
-	return &LocalFinder{}
+	return &LocalFinder{fs: afero.NewOsFs()}
 }
 
 // NewURL creates an instance of a URLFinder

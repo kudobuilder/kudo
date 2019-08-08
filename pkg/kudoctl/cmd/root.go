@@ -4,8 +4,14 @@ import (
 	"os"
 
 	"github.com/kudobuilder/kudo/pkg/version"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+)
+
+var (
+	// initialization of filesystem for all commands
+	fs = afero.NewOsFs()
 )
 
 // NewKudoctlCmd creates a new root command for kudoctl
@@ -47,6 +53,7 @@ and serves as an API aggregation layer.
 	cmd.AddCommand(newInstallCmd())
 	cmd.AddCommand(newUpgradeCmd())
 	cmd.AddCommand(newUpdateCmd())
+	cmd.AddCommand(newPackageCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newGetCmd())
 	cmd.AddCommand(newPlanCmd())
 	cmd.AddCommand(newTestCmd())
