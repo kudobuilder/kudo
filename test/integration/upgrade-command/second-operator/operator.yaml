@@ -17,3 +17,12 @@ plans:
           - name: everything
             tasks:
               - app
+  upgrade:
+    strategy: serial
+    phases:
+      - name: upgrade
+        strategy: parallel
+        steps:
+          - name: everything
+            tasks:
+              - app
