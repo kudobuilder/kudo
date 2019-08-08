@@ -21,4 +21,4 @@ If you're using test harness to write your tests (and you should!) you can now e
 Next minor planned release will be 0.6.0. We will focus on implementing extensions as described in [KEP-12](https://github.com/kudobuilder/kudo/blob/master/keps/0012-operator-extensions.md) as well as improvements for observability and debugging.
 See the [KUDO Roadmap](https://github.com/orgs/kudobuilder/projects/2) for details.
 
-[Get started](/docs/getting-started) with KUDO today. Our [community](/docs/community) is ready for feedback to make KUDO even better!
+[Get started](/docs/getting-started) with KUDO today. Our [community](/community) is ready for feedback to make KUDO even better!
