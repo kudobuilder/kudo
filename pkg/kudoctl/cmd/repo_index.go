@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
+
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"io"
 )
 
 const repoIndexDesc = `
@@ -22,12 +24,11 @@ into the existing index, with local packages taking priority over existing packa
 	$ kubectl kudo repo index repo-dir`
 
 type repoIndexCmd struct {
-	path        string
-	url			string
-	overwrite   bool
-	merge		bool
-	out         io.Writer
-	fs          afero.Fs
+	path      string
+	url       string
+	overwrite bool
+	out       io.Writer
+	fs        afero.Fs
 }
 
 // newRepoIndexCmd for repo commands such as building a repo index
@@ -35,11 +36,11 @@ func newRepoIndexCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 	index := &repoIndexCmd{out: out, fs: fs}
 	cmd := &cobra.Command{
-		Use:     "index [flags] [DIR]",
-		Short:   "Generate an index file given a directory containing kudo packages",
-		Long:    repoIndexDesc,
+		Use:   "index [flags] [DIR]",
+		Short: "Generate an index file given a directory containing kudo packages",
+		Long:  repoIndexDesc,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := validate(args); err != nil {
+			if err := validateRepoIndex(args); err != nil {
 				return err
 			}
 			index.path = args[0]

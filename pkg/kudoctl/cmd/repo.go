@@ -14,7 +14,6 @@ const repoDesc = `
 	Example usage:
 		$ kubectl kudo repo add [NAME] [REPO_URL]`
 
-
 // newRepoCmd for repo commands such as building a repo index
 func newRepoCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 

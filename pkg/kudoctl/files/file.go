@@ -6,20 +6,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-<<<<<<< HEAD
 	"strings"
-=======
->>>>>>> master
 
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
 
-<<<<<<< HEAD
 // A collection of utility functions for working with files and Afero
 
-=======
->>>>>>> master
 // CopyOperatorToFs used with afero usually for tests to copy files into a filesystem.
 // copy from local file system into in mem
 func CopyOperatorToFs(fs afero.Fs, opath string, base string) {
@@ -63,7 +57,6 @@ func CopyOperatorToFs(fs afero.Fs, opath string, base string) {
 	})
 }
 
-<<<<<<< HEAD
 // FullPathToTarget takes destination path and file name and provides a clean full path while ensure the file does not exist.
 func FullPathToTarget(fs afero.Fs, destination string, name string, overwrite bool) (string, error) {
 	if destination == "." {
@@ -89,8 +82,6 @@ func FullPathToTarget(fs afero.Fs, destination string, name string, overwrite bo
 	return target, nil
 }
 
-=======
->>>>>>> master
 // Sha256Sum calculates and returns the sha256 checksum
 func Sha256Sum(r io.Reader) (string, error) {
 	h := sha256.New()

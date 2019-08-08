@@ -4,11 +4,12 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"fmt"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"io"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
@@ -109,31 +110,6 @@ func ToTarBundle(fs afero.Fs, path string, destination string, overwrite bool) (
 
 	err = tarballWriter(fs, path, file)
 	return target, err
-}
-
-// getFullPathToTarget takes destination path and file name and provides a clean full path while ensure the file does not exist.
-func getFullPathToTarget(fs afero.Fs, destination string, name string, overwrite bool) (string, error) {
-	if destination == "." {
-		destination = ""
-	}
-	if destination != "" {
-		if strings.Contains(destination, "~") {
-			userHome, _ := os.UserHomeDir()
-			destination = strings.Replace(destination, "~", userHome, 1)
-		}
-		fi, err := fs.Stat(destination)
-		if err != nil || !fi.Mode().IsDir() {
-			return "", fmt.Errorf("destination \"%v\" is not a proper directory", destination)
-		}
-		name = filepath.Join(destination, name)
-	}
-	target := filepath.Clean(fmt.Sprintf("%v.tgz", name))
-	if exists, _ := afero.Exists(fs, target); exists {
-		if !overwrite {
-			return "", fmt.Errorf("target file exists. Remove or --overwrite. File:%v", target)
-		}
-	}
-	return target, nil
 }
 
 // packageVersionedName provides the version name of a package provided a set of PackageFiles.  Ex. "zookeeper-0.1.0"
