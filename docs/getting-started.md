@@ -28,7 +28,7 @@ If you want to use the KUDO kubectl plugin, you can now follow the [CLI plugin i
 If you plan on developing and testing KUDO locally via Minikube, you'll need to launch your cluster with a reasonable amount of memory allocated. By default, this is only 2GB - we recommend at least 8GB, especially if you're working with applications such as [Kafka](/docs/examples/apache-kafka/). You can start Minikube with some suitable resource adjustments as follows:
 
 ```shell
-minikube start --cpus=4 --memory=8192 --disk-size=40g
+minikube start --cpus=4 --memory=10240 --disk-size=40g
 ```
 
 ## Deploy your first Operator
