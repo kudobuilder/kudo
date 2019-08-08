@@ -22,7 +22,7 @@ https://github.com/kudobuilder/kudo/blob/master/RELEASE.md
 > /kind enhancement
 > /kind infrastructure
 > /kind kep
-> /kind/test
+> /kind test
 
 **What this PR does / why we need it**:
 
