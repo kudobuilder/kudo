@@ -2,6 +2,7 @@ package repo
 
 import (
 	"fmt"
+	"io"
 	"sort"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 type IndexFile struct {
 	APIVersion string                    `json:"apiVersion"`
 	Entries    map[string]BundleVersions `json:"entries"`
+	Generated  *time.Time                `json:"generated"`
 }
 
 // BundleVersions is a list of versioned bundle references.
@@ -23,10 +25,12 @@ type BundleVersions []*BundleVersion
 // BundleVersion represents a operator entry in the IndexFile
 type BundleVersion struct {
 	*Metadata
-	URLs    []string  `json:"urls"`
-	Created time.Time `json:"created,omitempty"`
-	Removed bool      `json:"removed,omitempty"`
-	Digest  string    `json:"digest,omitempty"`
+	URLs       []string   `json:"urls"`
+	APIVersion string     `json:"apiVersion"`
+	AppVersion string     `json:"appVersion"`
+	Created    *time.Time `json:"created,omitempty"`
+	Removed    bool       `json:"removed,omitempty"`
+	Digest     string     `json:"digest,omitempty"`
 }
 
 // Len returns the length.
@@ -69,13 +73,22 @@ func (i IndexFile) sortPackages() {
 func parseIndexFile(data []byte) (*IndexFile, error) {
 	i := &IndexFile{}
 	if err := yaml.Unmarshal(data, i); err != nil {
-		return i, errors.Wrap(err, "unmarshalling index file")
+		return nil, errors.Wrap(err, "unmarshalling index file")
+	}
+	if i.APIVersion == "" {
+		return nil, errors.New("no API version specified")
 	}
 	i.sortPackages()
-	if i.APIVersion == "" {
-		return i, errors.New("no API version specified")
-	}
 	return i, nil
+}
+
+func writeIndexFile(i *IndexFile, w io.Writer) error {
+	b, err := yaml.Marshal(i)
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(b)
+	return err
 }
 
 // GetByNameAndVersion returns the operator of given name and version.
@@ -99,3 +112,47 @@ func (i IndexFile) GetByNameAndVersion(name, version string) (*BundleVersion, er
 
 	return nil, fmt.Errorf("no operator version found for %s-%v", name, version)
 }
+
+func (i IndexFile) addBundleVersion(b *BundleVersion) error {
+	name := b.Name
+	version := b.Version
+	if version == "" {
+		return errors.Errorf("operator '%v' is missing version", name)
+	}
+	if i.Entries == nil {
+		i.Entries = make(map[string]BundleVersions)
+	}
+	vs, ok := i.Entries[name]
+	// no entry for operator
+	if !ok || len(vs) == 0 {
+		i.Entries[name] = BundleVersions{b}
+		return nil
+	}
+
+	// loop thru all... don't allow dups
+	for _, ver := range vs {
+		if ver.Version == version {
+			return errors.Errorf("operator '%v' version: %v already exists", name, version)
+		}
+	}
+
+	vs = append(vs, b)
+	i.Entries[name] = vs
+	return nil
+}
+
+// MapPackageToBundleVersion
+//func MapPackageToBundleVersion(fs afero.Fs, name string) (*BundleVersion, error) {
+//	f, err := fs.Open(name)
+//	if err != nil {
+//		return nil, err
+//	}
+//	defer f.Close()
+//
+//	return mapPackageToBundleVersion(fs, f)
+//}
+//
+//func mapPackageToBundleVersion(fs afero.Fs, r io.Reader) (*BundleVersion, error) {
+//	//	todo: get operator.yaml from
+//	return nil, nil
+//}

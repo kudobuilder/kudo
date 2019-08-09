@@ -5,12 +5,15 @@ import (
 	"io"
 	"io/ioutil"
 	"net/url"
+	"path/filepath"
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
+
 	"github.com/pkg/errors"
+	"github.com/spf13/afero"
 )
 
 // Repository is a abstraction for a service that can retrieve package bundles
@@ -123,4 +126,15 @@ func GetOperatorVersionDependencies(ov *v1alpha1.OperatorVersion) ([]string, err
 		}
 	}
 	return dependencyOperators, nil
+}
+
+// IndexDirectory creates an index file for the operators in the path
+func (r *OperatorRepository) IndexDirectory(fs afero.Fs, path string, target string) ([]string, error) {
+	archives, err := afero.Glob(fs, filepath.Join(path, "*.tgz"))
+	if err != nil {
+		return nil, err
+	}
+
+	// from []string to
+	return archives, nil
 }

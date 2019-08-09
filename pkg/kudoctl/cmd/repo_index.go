@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -74,7 +75,20 @@ func (ri *repoIndexCmd) run() error {
 		return err
 	}
 
+	//todo: move ^^ into index dir
+	repository, err := repo.NewOperatorRepository(repo.Default)
+	if err != nil {
+		return err
+	}
+	i, err := repository.IndexDirectory(ri.fs, ri.path, target)
+	if err != nil {
+		return err
+	}
+
 	fmt.Printf("working with %v", target)
+
+	fmt.Printf("archives: %v", i)
+
 	// 1. walk folder get a list of tgz files indexDirectory
 	// 2. create index objects
 	// 3. sort

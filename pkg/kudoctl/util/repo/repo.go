@@ -10,7 +10,7 @@ var Default = &RepositoryConfiguration{
 	URL: "https://kudo-repository.storage.googleapis.com",
 }
 
-// Metadata for a Operator. This models the structure of a bundle.yaml file.
+// Metadata for a Operator. This models the structure of a operator.yaml file.
 type Metadata struct {
 	// Name is the name of the operator.
 	Name string `json:"name,omitempty"`
