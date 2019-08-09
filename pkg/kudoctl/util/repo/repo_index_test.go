@@ -81,8 +81,8 @@ func getTestIndexFile() IndexFile {
 	date, _ := time.Parse(time.RFC822, "09 Aug 19 15:04 UTC")
 
 	bv := getTestBundleVersion("flink", "0.3.0")
-	bvs := BundleVersions{&bv}
-	entries := make(map[string]BundleVersions)
+	bvs := PackageVersions{&bv}
+	entries := make(map[string]PackageVersions)
 	entries["flink"] = bvs
 	index := IndexFile{
 		APIVersion: "v1",
@@ -92,9 +92,9 @@ func getTestIndexFile() IndexFile {
 	return index
 }
 
-func getTestBundleVersion(name string, version string) BundleVersion {
+func getTestBundleVersion(name string, version string) PackageVersion {
 	urls := []string{fmt.Sprintf("http://kudo.dev/%v", name)}
-	bv := BundleVersion{
+	bv := PackageVersion{
 		Metadata: &Metadata{
 			Name:    name,
 			Version: version,
@@ -115,7 +115,7 @@ func TestAddBundleVersionErrorConditions(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		bundle *BundleVersion
+		bundle *PackageVersion
 		err    string
 	}{
 		{"duplicate version", dup, "operator 'flink' version: 0.3.0 already exists"},
