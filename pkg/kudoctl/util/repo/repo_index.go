@@ -6,6 +6,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
+
 	"github.com/Masterminds/semver"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
@@ -141,7 +143,25 @@ func (i IndexFile) addBundleVersion(b *PackageVersion) error {
 	return nil
 }
 
-// MapPackageToBundleVersion
+// mapPackageFileToPackageVersion provided the packageFiles will create a PackageVersion (used for index)
+func mapPackageFileToPackageVersion(pf bundle.PackageFiles, url string, creation *time.Time) (*PackageVersion, error) {
+	o := pf.Operator
+	pv := PackageVersion{
+		Metadata: &Metadata{
+			Name:        o.Name,
+			Version:     o.Version,
+			Description: o.Description,
+			Maintainers: o.Maintainers,
+		},
+		URLs:       []string{url},
+		APIVersion: "",
+		AppVersion: "",
+		Created:    creation,
+		//Digest:     "",   // todo: add digest
+	}
+	return &pv, nil
+}
+
 //func MapPackageToBundleVersion(fs afero.Fs, name string) (*PackageVersion, error) {
 //	f, err := fs.Open(name)
 //	if err != nil {

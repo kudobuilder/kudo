@@ -1,5 +1,7 @@
 package repo
 
+import "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+
 // RepositoryConfiguration represents a collection of parameters for operator repository.
 type RepositoryConfiguration struct {
 	URL string `json:"url"`
@@ -28,20 +30,8 @@ type Metadata struct {
 	Description string `json:"description,omitempty"`
 
 	// Maintainers is a list of name and URL/email addresses of the maintainer(s).
-	Maintainers []*Maintainer `json:"maintainers,omitempty"`
+	Maintainers []v1alpha1.Maintainer `json:"maintainers,omitempty"`
 
 	// Deprecated reflects whether this operator is deprecated.
 	Deprecated bool `json:"deprecated,omitempty"`
-}
-
-// Maintainer describes a Operator maintainer.
-type Maintainer struct {
-	// Name is a user name or organization name.
-	Name string `json:"name,omitempty"`
-
-	// Email is an optional email address to contact the named maintainer.
-	Email string `json:"email,omitempty"`
-
-	// URL is an optional URL to an address for the named maintainer.
-	URL string `json:"url,omitempty"`
 }

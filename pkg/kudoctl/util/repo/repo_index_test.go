@@ -10,6 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	pkgbundle "github.com/kudobuilder/kudo/pkg/bundle"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
+
 	"github.com/magiconair/properties/assert"
 )
 
@@ -130,4 +134,26 @@ func TestAddBundleVersionErrorConditions(t *testing.T) {
 			t.Errorf("%s: expecting error %s got %v", tt.name, tt.err, err)
 		}
 	}
+}
+
+func TestMapPackageFileToPackageVersion(t *testing.T) {
+	o := pkgbundle.Operator{
+		Name:              "kafka",
+		Description:       "",
+		Version:           "1.0.0",
+		KUDOVersion:       "0.5.0",
+		KubernetesVersion: "1.15",
+		Maintainers:       []v1alpha1.Maintainer{"kensipe@gmail.com"},
+		URL:               "http://kudo.dev/kafka",
+	}
+	pf := bundle.PackageFiles{
+		Operator: &o,
+	}
+	now := time.Now()
+	pv, _ := mapPackageFileToPackageVersion(pf, "http://localhost", &now)
+
+	assert.Equal(t, pv.Name, o.Name)
+	assert.Equal(t, pv.Version, o.Version)
+	assert.Equal(t, pv.URLs[0], "http://localhost")
+	assert.Equal(t, pv.Created, &now)
 }
