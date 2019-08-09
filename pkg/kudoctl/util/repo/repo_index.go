@@ -115,7 +115,7 @@ func (i IndexFile) GetByNameAndVersion(name, version string) (*PackageVersion, e
 	return nil, fmt.Errorf("no operator version found for %s-%v", name, version)
 }
 
-func (i IndexFile) addBundleVersion(b *PackageVersion) error {
+func (i *IndexFile) addBundleVersion(b *PackageVersion) error {
 	name := b.Name
 	version := b.Version
 	if version == "" {
@@ -127,7 +127,8 @@ func (i IndexFile) addBundleVersion(b *PackageVersion) error {
 	vs, ok := i.Entries[name]
 	// no entry for operator
 	if !ok || len(vs) == 0 {
-		i.Entries[name] = PackageVersions{b}
+		pvs := PackageVersions{b}
+		i.Entries[name] = pvs
 		return nil
 	}
 
@@ -160,6 +161,14 @@ func mapPackageFileToPackageVersion(pf bundle.PackageFiles, url string, creation
 		//Digest:     "",   // todo: add digest
 	}
 	return &pv, nil
+}
+
+func newIndexFile(t time.Time) *IndexFile {
+	i := IndexFile{
+		APIVersion: "v1",
+		Generated:  &t,
+	}
+	return &i
 }
 
 //func MapPackageToBundleVersion(fs afero.Fs, name string) (*PackageVersion, error) {

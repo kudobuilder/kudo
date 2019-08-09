@@ -60,7 +60,7 @@ func TestWriteIndexFile(t *testing.T) {
 	// Setup buffer to marshal yaml to
 	var buf bytes.Buffer
 	w := bufio.NewWriter(&buf)
-	writeIndexFile(&index, w)
+	writeIndexFile(index, w)
 	w.Flush()
 
 	gp := filepath.Join("testdata", file+".golden")
@@ -81,18 +81,11 @@ func TestWriteIndexFile(t *testing.T) {
 	}
 }
 
-func getTestIndexFile() IndexFile {
+func getTestIndexFile() *IndexFile {
 	date, _ := time.Parse(time.RFC822, "09 Aug 19 15:04 UTC")
-
+	index := newIndexFile(date)
 	bv := getTestBundleVersion("flink", "0.3.0")
-	bvs := PackageVersions{&bv}
-	entries := make(map[string]PackageVersions)
-	entries["flink"] = bvs
-	index := IndexFile{
-		APIVersion: "v1",
-		Entries:    entries,
-		Generated:  &date,
-	}
+	index.addBundleVersion(&bv)
 	return index
 }
 
