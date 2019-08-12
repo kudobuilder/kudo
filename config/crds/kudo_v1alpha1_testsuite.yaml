@@ -19,6 +19,10 @@ spec:
             of an object. Servers should convert recognized schemas to the latest
             internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
+        artifactsDir:
+          description: The directory to output artifacts to (current working directory
+            if not specified).
+          type: string
         crdDir:
           description: Path to CRDs to install before running tests.
           type: string
@@ -27,15 +31,43 @@ spec:
             object represents. Servers may infer this from the endpoint the client
             submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
-        manifestsDir:
-          description: Path to manifests to install before running tests.
+        kindConfig:
+          description: Path to the KIND configuration file to use.
           type: string
+        kindContext:
+          description: KIND context to use.
+          type: string
+        kubectl:
+          description: Kubectl commands to run before running any tests.
+          items:
+            type: string
+          type: array
+        manifestDirs:
+          description: Paths to directories containing manifests to install before
+            running tests.
+          items:
+            type: string
+          type: array
         metadata:
           description: Set labels or the test suite name.
           type: object
+        parallel:
+          description: 'The maximum number of tests to run at once (default: 8).'
+          format: int64
+          type: integer
+        skipClusterDelete:
+          description: If set, do not delete the mocked control plane or kind cluster.
+          type: boolean
+        skipDelete:
+          description: If set, do not delete the resources after running the tests
+            (implies SkipClusterDelete).
+          type: boolean
         startControlPlane:
           description: Whether or not to start a local etcd and kubernetes API server
             for the tests.
+          type: boolean
+        startKIND:
+          description: Whether or not to start a local kind cluster for the tests.
           type: boolean
         startKUDO:
           description: Whether or not to start the KUDO controller for the tests.
@@ -45,12 +77,25 @@ spec:
           items:
             type: string
           type: array
+        timeout:
+          description: Override the default timeout of 30 seconds (in seconds).
+          format: int64
+          type: integer
       required:
       - crdDir
-      - manifestsDir
+      - manifestDirs
       - testDirs
       - startControlPlane
+      - startKIND
+      - kindConfig
+      - kindContext
       - startKUDO
+      - skipDelete
+      - skipClusterDelete
+      - timeout
+      - parallel
+      - artifactsDir
+      - kubectl
   version: v1alpha1
 status:
   acceptedNames:
