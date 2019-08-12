@@ -144,6 +144,12 @@ func (i *IndexFile) addBundleVersion(b *PackageVersion) error {
 	return nil
 }
 
+// Map transforms a slice of paths into a slice of PackageVersion
+//func MapPaths(paths []string, f func(string) PackageVersion) PackageVersions {
+//	pvs := make(PackageVersions, len(paths))
+//
+//}
+
 // mapPackageFileToPackageVersion provided the packageFiles will create a PackageVersion (used for index)
 func mapPackageFileToPackageVersion(pf bundle.PackageFiles, url string, creation *time.Time) (*PackageVersion, error) {
 	o := pf.Operator
@@ -160,7 +166,7 @@ func mapPackageFileToPackageVersion(pf bundle.PackageFiles, url string, creation
 		},
 		URLs:       []string{url},
 		APIVersion: "",
-		AppVersion: "",
+		AppVersion: o.AppVersion,
 		Created:    creation,
 		//Digest:     "",   // todo: add digest
 	}

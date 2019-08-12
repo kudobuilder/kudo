@@ -134,6 +134,7 @@ func TestMapPackageFileToPackageVersion(t *testing.T) {
 		Name:              "kafka",
 		Description:       "",
 		Version:           "1.0.0",
+		AppVersion:        "2.2.2",
 		KUDOVersion:       "0.5.0",
 		KubernetesVersion: "1.15",
 		Maintainers:       []v1alpha1.Maintainer{"kensipe@gmail.com"},
