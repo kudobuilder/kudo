@@ -687,6 +687,7 @@ func (in *PlanExecutionSpec) DeepCopyInto(out *PlanExecutionSpec) {
 		**out = **in
 	}
 	out.Instance = in.Instance
+	in.Template.DeepCopyInto(&out.Template)
 	return
 }
 

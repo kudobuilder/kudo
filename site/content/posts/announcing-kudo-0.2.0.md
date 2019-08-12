@@ -66,4 +66,4 @@ To see the full changelog and the list of contributors who contribued to this re
 
 Now that KUDO v0.2.0 has shipped, the team will begin planning and executing on v0.3.0. The focus of v0.3.0 is to stabilize the packaging format for operator developers, as well as operator extensions to provide KUDO's sequencing logic to formats including Helm Charts and [CNAB](https://cnab.io) bundles.
 
-[Get started](/docs/getting-started) with KUDO today. Our [community](/docs/community) is ready for feedback to make KUDO even better!
+[Get started](/docs/getting-started) with KUDO today. Our [community](/community) is ready for feedback to make KUDO even better!
