@@ -2,19 +2,20 @@ package bundle
 
 import (
 	"fmt"
+	"io"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
-
-	"k8s.io/apimachinery/pkg/util/rand"
-
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/bundle"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+
 	"github.com/pkg/errors"
+	"github.com/spf13/afero"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/yaml"
 )
 
@@ -195,4 +196,42 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 		OperatorVersion: fv,
 		Instance:        instance,
 	}, nil
+}
+
+// MapPaths maps []string of paths to the [] Operators
+func MapPaths(fs afero.Fs, paths []string) []*v1alpha1.Operator {
+	return mapPaths(fs, paths, pathToOperator)
+}
+
+// work of map path, swallows errors to return only packages that are valid
+func mapPaths(fs afero.Fs, paths []string, f func(afero.Fs, string) (*v1alpha1.Operator, error)) []*v1alpha1.Operator {
+	ops := make([]*v1alpha1.Operator, len(paths))
+	for i, path := range paths {
+		op, err := f(fs, path)
+		if err != nil {
+			//	//todo: log and continue
+			continue
+		}
+		ops[i] = op
+	}
+
+	return ops
+}
+
+// pathToOperator takes a single path and returns an operator or error
+func pathToOperator(fs afero.Fs, path string) (*v1alpha1.Operator, error) {
+	reader, err := fs.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	return readerToOperator(reader)
+}
+
+func readerToOperator(r io.Reader) (*v1alpha1.Operator, error) {
+	b := NewBundleFromReader(r)
+	crd, err := b.GetCRDs()
+	if err != nil {
+		return nil, err
+	}
+	return crd.Operator, nil
 }
