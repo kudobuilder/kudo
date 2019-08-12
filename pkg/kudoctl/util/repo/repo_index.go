@@ -147,6 +147,10 @@ func (i *IndexFile) addBundleVersion(b *PackageVersion) error {
 // mapPackageFileToPackageVersion provided the packageFiles will create a PackageVersion (used for index)
 func mapPackageFileToPackageVersion(pf bundle.PackageFiles, url string, creation *time.Time) (*PackageVersion, error) {
 	o := pf.Operator
+	if url[len(url)-1:] != "/" {
+		url = url + "/"
+	}
+	url = fmt.Sprintf("%s%s-%v.tgz", url, o.Name, o.Version)
 	pv := PackageVersion{
 		Metadata: &Metadata{
 			Name:        o.Name,
