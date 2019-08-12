@@ -19,7 +19,7 @@ Before you get started:
 
 - `kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.5.0/docs/deployment/00-prereqs.yaml`
 - `kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.5.0/docs/deployment/10-crds.yaml`
-- `kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.5.0/docs/deployment/20-deployment.yaml`
+- `kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/842c7f19a0a361751f0dab330faf3be147c9c4b3/docs/deployment/20-deployment.yaml`
 
 If you want to use the KUDO kubectl plugin, you can now follow the [CLI plugin installation instructions](https://kudo.dev/docs/cli/).
 
