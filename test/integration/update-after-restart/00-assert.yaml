@@ -1,0 +1,20 @@
+apiVersion: kudo.dev/v1alpha1
+kind: Instance
+metadata:
+  name: update-restart
+status:
+  status: COMPLETE
+  activePlan:
+    apiVersion: kudo.dev/v1alpha1
+    kind: PlanExecution
+---
+apiVersion: kudo.dev/v1alpha1
+kind: PlanExecution
+metadata:
+  labels:
+    kudo.dev/instance: update-restart
+status:
+  name: deploy
+  phases:
+  - name: deploy
+    state: COMPLETE

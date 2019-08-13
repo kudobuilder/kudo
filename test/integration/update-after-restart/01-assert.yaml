@@ -1,0 +1,7 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kudo-controller-manager
+  namespace: kudo-system
+status:
+  replicas: 0

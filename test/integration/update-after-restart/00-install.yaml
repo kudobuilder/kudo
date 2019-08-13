@@ -1,0 +1,16 @@
+apiVersion: kudo.dev/v1alpha1
+kind: Instance
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+    kudo.dev/operator: toy
+  name: update-restart
+spec:
+  operatorVersion:
+    name: toy-v1
+    kind: OperatorVersion
+    namespace: default
+  # Add fields here
+  parameters:
+    Param: "30"
+    Replicas: "1"
