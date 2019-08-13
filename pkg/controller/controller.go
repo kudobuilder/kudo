@@ -16,15 +16,24 @@ limitations under the License.
 package controller
 
 import (
+	"github.com/kudobuilder/kudo/pkg/controller/instance"
+	"github.com/kudobuilder/kudo/pkg/controller/operator"
+	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
+	"github.com/kudobuilder/kudo/pkg/controller/planexecution"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-// AddToManagerFuncs is a list of functions to add all Controllers to the Manager
-var AddToManagerFuncs []func(manager.Manager) error
+// AddControllerToManagerFuncs is a list of functions to add all Controllers to the Manager
+var AddControllerToManagerFuncs = []func(manager.Manager) error{
+	planexecution.Add,
+	instance.Add,
+	operator.Add,
+	operatorversion.Add,
+}
 
-// AddToManager adds all Controllers to the Manager
-func AddToManager(m manager.Manager) error {
-	for _, f := range AddToManagerFuncs {
+// AddControllersToManager adds all Controllers to the Manager
+func AddControllersToManager(m manager.Manager) error {
+	for _, f := range AddControllerToManagerFuncs {
 		if err := f(m); err != nil {
 			return err
 		}
