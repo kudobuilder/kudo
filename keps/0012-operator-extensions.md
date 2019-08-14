@@ -34,7 +34,7 @@ status: implementable
 
 ## Summary
 
-Generic implementations of operators don't capture all customizations that are required for all end users. Rather than having to fork and maintain a patched version of a Operator, Extending a operator will allow for additions and customizations to be made to operators to meet additional business needs.
+Generic implementations of operators don't capture all customizations that are required for all end users. Rather than having to fork and maintain a patched version of an Operator, Extending an operator will allow for additions and customizations to be made to operators to meet additional business needs.
 
 ## Motivation
 
@@ -69,7 +69,7 @@ extends:
     version: "5.7"
 ```
 
-What gets inherited? Everything. A operator defined as:
+What gets inherited? Everything. An operator defined as:
 
 ```yaml
 operator: bar
@@ -201,7 +201,7 @@ data:
 
 This operator is built from the MySQL operator defined above, but adds custom plans that allow for the loading and clearing of data that is required for a particular business application, as well as a new parameter that allows for sizing the PVC that backups are stored on.
 
-```shell
+```bash
 .
 ├── operator.yaml
 ├── params.yaml
@@ -215,7 +215,7 @@ In order to implement these changes, we need to add the plans for `load-data` an
 
 ##### operator.yaml
 
-`operator.yaml` is the base definition of a operator. It follows the following format, extracted from the MySQL example:
+`operator.yaml` is the base definition of an operator. It follows the following format, extracted from the MySQL example:
 
 ```yaml
 extends:
@@ -287,7 +287,7 @@ backup-pvc-size:
 ### Implementation Details/Notes/Constraints
 
 The implementation of extensions is independent of the ability to run non-KUDO defined
-operators, however there are some relationships that need to be considered when extending a operator that has a different implementation engine. See forthcoming [KEP 0013](keps/0013-external-specs.md)
+operators, however there are some relationships that need to be considered when extending an operator that has a different implementation engine. See forthcoming [KEP 0013](keps/0013-external-specs.md)
 
 ### Outstanding Questions
 

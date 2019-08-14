@@ -64,14 +64,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 var _ reconcile.Reconciler = &ReconcileOperator{}
 
-// ReconcileOperator reconciles a Operator object
+// ReconcileOperator reconciles an Operator object
 type ReconcileOperator struct {
 	client.Client
 	scheme   *runtime.Scheme
 	recorder record.EventRecorder
 }
 
-// Reconcile reads that state of the cluster for a Operator object and makes changes based on the state read
+// Reconcile reads that state of the cluster for an Operator object and makes changes based on the state read
 // and what is in the Operator.Spec
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
@@ -90,7 +90,7 @@ func (r *ReconcileOperator) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	log.Printf("OperatorController: Received Reconcile request for a operator named: %v", request.Name)
+	log.Printf("OperatorController: Received Reconcile request for an operator named: %v", request.Name)
 
 	return reconcile.Result{}, nil
 }

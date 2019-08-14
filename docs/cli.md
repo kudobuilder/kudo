@@ -5,7 +5,7 @@ menu: docs
 ---
 # CLI Usage
 
-This document demonstrates how to use the CLI but also shows what happens in `KUDO` under the hood, which can be helpful when troubleshooting.
+This document demonstrates how to use the CLI but also shows what happens in KUDO under the hood, which can be helpful when troubleshooting.
 
 ## Table of Contents
 
@@ -31,7 +31,7 @@ This document demonstrates how to use the CLI but also shows what happens in `KU
 
 ### Requirements
 
-- `kubectl` version `1.12.0` or newer
+- `kubectl` version `1.13.0` or newer
 - KUDO CRDs installed to your cluster and KUDO controller is running. See the [getting started guide](/docs/getting-started/) for instructions
 - `kubectl kudo` is running outside your cluster
 
@@ -39,18 +39,22 @@ This document demonstrates how to use the CLI but also shows what happens in `KU
 
 You can either install the CLI plugin using `brew`:
 
-- `brew tap kudobuilder/tap`
-- `brew install kudo-cli`
+```bash
+brew tap kudobuilder/tap
+brew install kudo-cli
+```
 
-Or you can use compile and install the plugin from your `$GOPATH/src/github.com/kudobuilder/kudo` root folder via:
+or you can compile and install the plugin from your `$GOPATH/src/github.com/kudobuilder/kudo` root folder via:
 
-- `make cli-install`
+```bash
+make cli-install
+```
 
 ## Commands
 
 | Syntax                                     | Description                                                                                   |
 | ------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| `kubectl kudo install <name> [flags]`      | Install a Operator from the official [KUDO repo](https://github.com/kudobuilder/operators). |
+| `kubectl kudo install <name> [flags]`      | Install an Operator from the official [KUDO repo](https://github.com/kudobuilder/operators). |
 | `kubectl kudo get instances [flags]`       | Show all available instances.                                                                 |
 | `kubectl kudo package <operator_folder> [flags]` | Packages an operator in a folder into a tgz file                                        |
 | `kubectl kudo plan status [flags]`         | View all available plans.                                                                     |
@@ -79,7 +83,7 @@ Flags:
 
 ### Install a Package
 
-There are four options how to install a package. For development you are able to install packages from your local filesystem or local tgz file.
+There are four options how to install a package. For development you can install packages from your local filesystem or local tgz file.
 For testing or working without a repository it is possible to install via a url location. The last option is installation from the package repository.
 
 Installation during development can use a relative or absolute path to the package folder.
@@ -99,7 +103,7 @@ To install official kafka package you have to do the following:
 kubectl kudo install kafka
 ```
 
-Both of these options will install new instance of that operator into your cluster. By default the instance name is generated.
+Both of these options will install new instance of that operator into your cluster. By default the instance name will be generated.
 
 #### Install a package overriding instance name and parameters
 
@@ -119,9 +123,11 @@ my-kafka-name   6s
 
 ### Get Instances
 
-We can use the `get` command to get a list of all current instances:
+You can use the `get` command to get a list of all current instances:
 
-`kubectl kudo get instances --namespace=<default> --kubeconfig=<$HOME/.kube/config>`
+```bash
+kubectl kudo get instances --namespace=<default> --kubeconfig=<$HOME/.kube/config>`
+```
 
 Example:
 
@@ -150,11 +156,11 @@ $ kubectl kudo get instances
 
 ### Get the Status of an Instance
 
-Now that we have a list of available instances, we can get the current status of all plans for one of them:
+Now that you have a list of available instances, you can get the current status of all plans for one of them:
 
 `kubectl kudo plan status --instance=<instanceName> --kubeconfig=<$HOME/.kube/config>`
 
-*Note: The `--instance` flag is **mandatory**.*
+**Note**: The `--instance` flag is mandatory.
 
 ```bash
 $ kubectl kudo plan status --instance=up
@@ -174,23 +180,23 @@ $ kubectl kudo plan status --instance=up
                   └── run-step [NOT ACTIVE]
 ```
 
-In this tree chart we see all important information in one screen:
+In this tree chart you see all important information in one screen:
 
-* `up` is the instance we specified.
-* `default` is the namespace we are in.
+* `up` is the instance you specified.
+* `default` is the namespace you are in.
 * `upgrade-v1` is the instance's **Operator-Version**.
 * `up-deploy-493146000` is the current **Active-Plan**.
-    + `par` is a serial phase within the `deploy` plan that has been `COMPLETE`
-    + `deploy` is a `serial` plan that has been `COMPLETE`.
-    + `run-step` is a `serial` step that has been `COMPLETE`.
+    + `par` is a serial phase within the `deploy` plan which is `COMPLETE`.
+    + `deploy` is a `serial` plan which is `COMPLETE`.
+    + `run-step` is a `serial` step which is `COMPLETE`.
 * `update` is another `serial` plan that is currently `NOT ACTIVE`.
-    + `par` is a serial phase within the `update` plan that has been `NOT ACTIVE`
-    + `par` is a `serial` collection of steps that has been `NOT ACTIVE`.
-    + `run-step` is a `serial` step within the `par` step collection that has been `NOT ACTIVE`.
-* `upgrade` is another `serial` plan that is currently `NOT ACTIVE`.
-    + `par` is a serial phase within the `upgrade` plan that has been `NOT ACTIVE`
-    + `par` is a `serial` collection of steps that has been `NOT ACTIVE`.
-    + `run-step` is a `serial` step within the `par` step collection that has been `NOT ACTIVE`.
+    + `par` is a serial phase within the `update` plan which is `NOT ACTIVE`.
+    + `par` is a `serial` collection of steps which is `NOT ACTIVE`.
+    + `run-step` is a `serial` step within the `par` step collection which is `NOT ACTIVE`.
+* `upgrade` is another `serial` plan which is currently `NOT ACTIVE`.
+    + `par` is a serial phase within the `upgrade` plan which is `NOT ACTIVE`
+    + `par` is a `serial` collection of steps which is `NOT ACTIVE`.
+    + `run-step` is a `serial` step within the `par` step collection which is `NOT ACTIVE`.
 
 For comparison, the according `kubectl` commands to retrieve the above information are:
 
@@ -198,7 +204,7 @@ For comparison, the according `kubectl` commands to retrieve the above informati
 * `kubectl describe operatorversion upgrade-v1` (to get the current `PlanExecution`)
 * `kubectl describe planexecution up-deploy-493146000` (to get the status of the `Active-Plan`)
 
-Here, the overview of all available plans can be found in `Spec.Plans` of the matching `OperatorVersion`:
+Here, you can find the overview of all available plans in `Spec.Plans` of the matching `OperatorVersion`:
 
 ```bash
 $ kubectl describe operatorversion upgrade-v1
@@ -283,7 +289,7 @@ spec:
 Events:     <none>
 ```
 
-The status of the currently applied plan can then be found when looking at the particular `PlanExecution`:
+You can then find the status of the currently applied plan when looking at the particular `PlanExecution`:
 
 ```bash
 $ kubectl describe planexecution up-deploy-493146000
@@ -348,7 +354,7 @@ Apparently, KUDO's tree view makes this information easier to understand and pre
 
 ### Delete an Instance
 
-An instance can be deleted (uninstalled from the cluster) using `kubectl delete instances <instanceName>`. The deletion of an instance triggers the removal of all the objects owned by it.
+You can delete an instance (i.e. uninstall it from the cluster) using `kubectl delete instances <instanceName>`. The deletion of an instance triggers the removal of all the objects owned by it.
 
 ### Get the History to PlanExecutions
 
@@ -375,7 +381,7 @@ This includes the previous history but also all OperatorVersions that have been 
 
 ### Package an Operator
 
-We can use the `package` command to package an operator into a tarball. The package name will be determined by the operator metadata in the package files.  The folder of the operator is passed as an argument. It is possible to pass a `--destination` location to build the tgz file into.
+You can use the `package` command to package an operator into a tarball. The package name will be determined by the operator metadata in the package files.  The folder of the operator is passed as an argument. It is possible to pass a `--destination` location to build the tgz file into.
 
 `kubectl kudo package zookeeper --destination=target`
 
@@ -390,7 +396,7 @@ $ kubectl kudo package ../operators/repository/zookeeper/operator/ --destination
 
 Every operator can define overridable parameters in `params.yaml`. When installing an operator, you can use the defined defaults or override them with `-p` parameters for `kudo install`.
 
-`kudo update` command allows you to change these parameters even on an already installed operator. If you have an operator instance in your cluster named `dev-flink` (you can figure out what you have installed with `kubectl get instances`) and that instance exposes a parameter with the name `param` you can change its value with the following command:
+The `kudo update` command allows you to change these parameters even on an already installed operator. If you have an operator instance in your cluster named `dev-flink` (you can figure out what you have installed with `kubectl get instances`) and that instance exposes a parameter with the name `param` you can change its value with the following command:
 
 `kubectl kudo update dev-flink -p param=value`
 
@@ -402,4 +408,4 @@ Following the same example from the previous section, having a `dev-flink` insta
 
 A new version of that operator is installed to the cluster and `upgrade` (or `deploy`) plan is started to roll out new flink pods.
 
-At the same time, we're overriding value of parameter `param`. That is optional and you can always do it in separate step via `kudo update`.
+At the same time, we're overriding the value of the parameter `param`. That is optional and you can always do it in a separate step via `kudo update`.

@@ -24,16 +24,16 @@ status: implementable
      * [Non-Goals](#non-goals)
   * [Proposal](#proposal)
      * [User Stories](#user-stories)
-        * [Installing a Operator](#installing-a-operator)
-        * [Uninstalling a Operator](#uninstalling-a-operator)
+        * [Installing an Operator](#installing-an-operator)
+        * [Uninstalling an Operator](#uninstalling-an-operator)
         * [Listing running Instances](#listing-running-instances)
         * [Getting the status of an Instance](#getting-the-status-of-an-instance)
         * [Start specific plans](#start-specific-plans)
         * [Get the history of Planexecutions](#get-the-history-of-planexecutions)
         * [Executing into a particular Instance](#executing-into-a-particular-instance)
         * [Run Operator specific commands](#run-operator-specific-commands)
-        * [Shell into containers of a Operator](#shell-into-containers-of-a-operator)
-        * [Read all combined logs of a Operator](#read-all-combined-logs-of-a-operator)
+        * [Shell into containers of an Operator](#shell-into-containers-of-an-operator)
+        * [Read all combined logs of an Operator](#read-all-combined-logs-of-an-operator)
      * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
      * [Risks and Mitigations](#risks-and-mitigations)
   * [Graduation Criteria](#graduation-criteria)
@@ -73,13 +73,13 @@ This is where we get down to the nitty gritty of what the proposal actually is.
 
 ### User Stories
 
-#### Installing a Operator
+#### Installing an Operator
 
-As a user I want to be able to install a operator to my cluster.
+As a user I want to be able to install an operator to my cluster.
 
-#### Uninstalling a Operator
+#### Uninstalling an Operator
 
-As a user I want to be able to uninstall a operator from my cluster.
+As a user I want to be able to uninstall an operator from my cluster.
 
 #### Listing running Instances
 
@@ -105,11 +105,11 @@ As a user I want to be able to execute into my Instance environment.
 
 As an application operator, I want to be able to run CLI tooling, built for the Operator against an Instance.
 
-#### Shell into containers of a Operator
+#### Shell into containers of an Operator
 
 As a user I want to be able to get a shell to a specific operator.
 
-#### Read all combined logs of a Operator
+#### Read all combined logs of an Operator
 
 As a user I want to be able to read logs to a specific operator and its components.
 
