@@ -39,7 +39,7 @@ func TestRestartController(t *testing.T) {
 				Name:      "foo-operator",
 				Namespace: "default",
 			},
-			Parameters: map[string]string{ "param": "value" },
+			Parameters: map[string]string{"param": "value"},
 		},
 	}
 	assert.NoError(t, c.Create(context.TODO(), in))
@@ -52,7 +52,7 @@ func TestRestartController(t *testing.T) {
 			Plans: map[string]v1alpha1.Plan{"deploy": {}, "update": {}},
 			Parameters: []v1alpha1.Parameter{
 				{
-					Name: "param",
+					Name:    "param",
 					Default: kudo.String("default"),
 				},
 			},
