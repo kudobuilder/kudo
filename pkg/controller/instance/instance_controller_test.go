@@ -82,7 +82,7 @@ func TestRestartController(t *testing.T) {
 				kudo.OperatorLabel: ov.Name,
 				kudo.InstanceLabel: in.Name,
 			}))
-		return strings.Contains(peList.Items[0].Name, "foo-instance-deploy")
+		return len(peList.Items) > 0 && strings.Contains(peList.Items[0].Name, "foo-instance-deploy")
 	}, timeout).Should(gomega.BeTrue())
 
 	/*log.Print("When we stop the manager")
