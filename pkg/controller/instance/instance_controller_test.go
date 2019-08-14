@@ -2,6 +2,7 @@ package instance
 
 import (
 	"context"
+	"github.com/onsi/ginkgo"
 	"log"
 	"strings"
 	"sync"
@@ -24,6 +25,7 @@ const timeout = time.Second * 5
 
 func TestRestartController(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
+	gomega.RegisterFailHandler(ginkgo.Fail)
 
 	// Setup the Manager and Controller. Wrap the Controller Reconcile function so it writes each request to a
 	// channel when it is finished.
