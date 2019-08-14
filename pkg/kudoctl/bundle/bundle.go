@@ -20,7 +20,10 @@ import (
 
 // Bundle is an abstraction of the collection of files that makes up a package.  It is anything we can retrieve the PackageCRDs from.
 type Bundle interface {
+	// transformed server view
 	GetCRDs() (*PackageCRDs, error)
+	// working with local package files
+	GetPkgFiles() (*PackageFiles, error)
 }
 
 type tarBundle struct {
@@ -69,9 +72,15 @@ func NewBundleFromReader(r io.Reader) Bundle {
 	return tarBundle{r}
 }
 
+// GetPkgFiles returns the command side package files
+func (b tarBundle) GetPkgFiles() (*PackageFiles, error) {
+	return parseTarPackage(b.reader)
+}
+
+// GetCRDs returns the server side CRDs
 func (b tarBundle) GetCRDs() (*PackageCRDs, error) {
 
-	p, err := parseTarPackage(b.reader)
+	p, err := b.GetPkgFiles()
 	if err != nil {
 		return nil, errors.Wrap(err, "while extracting package files")
 	}
@@ -79,11 +88,15 @@ func (b tarBundle) GetCRDs() (*PackageCRDs, error) {
 }
 
 func (b fileBundle) GetCRDs() (*PackageCRDs, error) {
-	p, err := fromFolder(b.fs, b.path)
+	p, err := b.GetPkgFiles()
 	if err != nil {
 		return nil, errors.Wrap(err, "while reading package from the file system")
 	}
 	return p.getCRDs()
+}
+
+func (b fileBundle) GetPkgFiles() (*PackageFiles, error) {
+	return fromFolder(b.fs, b.path)
 }
 
 // ToTarBundle takes a path to operator files and creates a tgz of those files with the destination and name provided

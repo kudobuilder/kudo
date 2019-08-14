@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
@@ -129,12 +130,27 @@ func GetOperatorVersionDependencies(ov *v1alpha1.OperatorVersion) ([]string, err
 }
 
 // IndexDirectory creates an index file for the operators in the path
-func (r *OperatorRepository) IndexDirectory(fs afero.Fs, path string, target string) ([]string, error) {
+func (r *OperatorRepository) IndexDirectory(fs afero.Fs, path string, target string, url string, now *time.Time) ([]string, error) {
 	archives, err := afero.Glob(fs, filepath.Join(path, "*.tgz"))
 	if err != nil {
 		return nil, err
 	}
+	if len(archives) == 0 {
+		return nil, errors.New("no packages discovered")
+	}
+	index := newIndexFile(now)
+	ops := bundle.MapPaths(fs, archives)
+	pvs := Map(ops, url, now)
+	for _, pv := range pvs {
+		index.addBundleVersion(pv)
+	}
+	f, _ := fs.Create(target)
 
+	//fmt.Print(index.Generated)
+	//fmt.Print(index.APIVersion)
+	//fmt.Print(index.Entries)
+	//fmt.Print(index.Entries["zookeeper"])
+	writeIndexFile(index, f)
 	// from []string to
 	return archives, nil
 }

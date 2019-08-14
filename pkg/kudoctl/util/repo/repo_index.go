@@ -13,6 +13,8 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const defaultURL = "http://localhost/"
+
 // IndexFile represents the index file in a operator repository
 type IndexFile struct {
 	APIVersion string                     `json:"apiVersion"`
@@ -89,7 +91,11 @@ func writeIndexFile(i *IndexFile, w io.Writer) error {
 	if err != nil {
 		return err
 	}
+	fmt.Printf("index: %v", string(b))
 	_, err = w.Write(b)
+	if err != nil {
+		fmt.Printf("err: %v", err)
+	}
 	return err
 }
 
@@ -149,10 +155,24 @@ func (i *IndexFile) addBundleVersion(b *PackageVersion) error {
 //	pvs := make(PackageVersions, len(paths))
 //
 //}
+func Map(pkgs []*bundle.PackageFiles, url string, creation *time.Time) PackageVersions {
+	return mapPackages(pkgs, url, creation, ToPackageVersion)
+}
 
-// mapPackageFileToPackageVersion provided the packageFiles will create a PackageVersion (used for index)
-func mapPackageFileToPackageVersion(pf bundle.PackageFiles, url string, creation *time.Time) (*PackageVersion, error) {
+func mapPackages(packages []*bundle.PackageFiles, url string, creation *time.Time, f func(*bundle.PackageFiles, string, *time.Time) *PackageVersion) PackageVersions {
+	pvs := make(PackageVersions, len(packages))
+	for i, pkg := range packages {
+		pvs[i] = f(pkg, url, creation)
+	}
+	return pvs
+}
+
+// ToPackageVersion provided the packageFiles will create a PackageVersion (used for index)
+func ToPackageVersion(pf *bundle.PackageFiles, url string, creation *time.Time) *PackageVersion {
 	o := pf.Operator
+	if url == "" {
+		url = defaultURL
+	}
 	if url[len(url)-1:] != "/" {
 		url = url + "/"
 	}
@@ -170,13 +190,13 @@ func mapPackageFileToPackageVersion(pf bundle.PackageFiles, url string, creation
 		Created:    creation,
 		//Digest:     "",   // todo: add digest
 	}
-	return &pv, nil
+	return &pv
 }
 
-func newIndexFile(t time.Time) *IndexFile {
+func newIndexFile(t *time.Time) *IndexFile {
 	i := IndexFile{
 		APIVersion: "v1",
-		Generated:  &t,
+		Generated:  t,
 	}
 	return &i
 }

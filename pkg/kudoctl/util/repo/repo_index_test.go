@@ -83,7 +83,7 @@ func TestWriteIndexFile(t *testing.T) {
 
 func getTestIndexFile() *IndexFile {
 	date, _ := time.Parse(time.RFC822, "09 Aug 19 15:04 UTC")
-	index := newIndexFile(date)
+	index := newIndexFile(&date)
 	bv := getTestBundleVersion("flink", "0.3.0")
 	index.addBundleVersion(&bv)
 	return index
@@ -130,6 +130,7 @@ func TestAddBundleVersionErrorConditions(t *testing.T) {
 }
 
 func TestMapPackageFileToPackageVersion(t *testing.T) {
+
 	o := pkgbundle.Operator{
 		Name:              "kafka",
 		Description:       "",
@@ -144,7 +145,7 @@ func TestMapPackageFileToPackageVersion(t *testing.T) {
 		Operator: &o,
 	}
 	now := time.Now()
-	pv, _ := mapPackageFileToPackageVersion(pf, "http://localhost", &now)
+	pv := ToPackageVersion(&pf, "http://localhost", &now)
 
 	assert.Equal(t, pv.Name, o.Name)
 	assert.Equal(t, pv.Version, o.Version)

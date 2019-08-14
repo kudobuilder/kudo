@@ -199,13 +199,13 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 }
 
 // MapPaths maps []string of paths to the [] Operators
-func MapPaths(fs afero.Fs, paths []string) []*v1alpha1.Operator {
+func MapPaths(fs afero.Fs, paths []string) []*PackageFiles {
 	return mapPaths(fs, paths, pathToOperator)
 }
 
 // work of map path, swallows errors to return only packages that are valid
-func mapPaths(fs afero.Fs, paths []string, f func(afero.Fs, string) (*v1alpha1.Operator, error)) []*v1alpha1.Operator {
-	ops := make([]*v1alpha1.Operator, len(paths))
+func mapPaths(fs afero.Fs, paths []string, f func(afero.Fs, string) (*PackageFiles, error)) []*PackageFiles {
+	ops := make([]*PackageFiles, len(paths))
 	for i, path := range paths {
 		op, err := f(fs, path)
 		if err != nil {
@@ -219,7 +219,7 @@ func mapPaths(fs afero.Fs, paths []string, f func(afero.Fs, string) (*v1alpha1.O
 }
 
 // pathToOperator takes a single path and returns an operator or error
-func pathToOperator(fs afero.Fs, path string) (*v1alpha1.Operator, error) {
+func pathToOperator(fs afero.Fs, path string) (*PackageFiles, error) {
 	reader, err := fs.Open(path)
 	if err != nil {
 		return nil, err
@@ -227,11 +227,11 @@ func pathToOperator(fs afero.Fs, path string) (*v1alpha1.Operator, error) {
 	return readerToOperator(reader)
 }
 
-func readerToOperator(r io.Reader) (*v1alpha1.Operator, error) {
+func readerToOperator(r io.Reader) (*PackageFiles, error) {
 	b := NewBundleFromReader(r)
-	crd, err := b.GetCRDs()
+	pkg, err := b.GetPkgFiles()
 	if err != nil {
 		return nil, err
 	}
-	return crd.Operator, nil
+	return pkg, nil
 }

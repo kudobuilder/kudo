@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
@@ -80,14 +81,16 @@ func (ri *repoIndexCmd) run() error {
 	if err != nil {
 		return err
 	}
-	i, err := repository.IndexDirectory(ri.fs, ri.path, target)
+	t := time.Now()
+	//todo: need to pass url and need a default for url
+	i, err := repository.IndexDirectory(ri.fs, ri.path, target, "", &t)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("working with %v", target)
+	fmt.Printf("working with %v\n", target)
 
-	fmt.Printf("archives: %v", i)
+	fmt.Printf("archives: %v\n", i)
 
 	// 1. walk folder get a list of tgz files indexDirectory
 	// 2. create index objects
