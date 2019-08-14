@@ -201,7 +201,7 @@ func (h *Harness) RunKUDO() error {
 		return err
 	}
 
-	if err = controller.AddToManager(mgr); err != nil {
+	if err = controller.AddControllersToManager(mgr); err != nil {
 		return err
 	}
 
