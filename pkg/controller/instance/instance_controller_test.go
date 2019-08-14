@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
@@ -18,6 +19,8 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
+
+const timeout = time.Second * 5
 
 func TestRestartController(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
@@ -69,16 +72,18 @@ func TestRestartController(t *testing.T) {
 	}()
 
 	log.Print("And a deploy plan that was already run")
-	peList := &v1alpha1.PlanExecutionList{}
-	err = c.List(
-		context.TODO(),
-		peList,
-		client.MatchingLabels(map[string]string{
-			kudo.OperatorLabel: ov.Name,
-			kudo.InstanceLabel: in.Name,
-		}))
 	assert.NoError(t, err)
-	assert.True(t, strings.Contains(peList.Items[0].Name, "foo-instance-deploy"))
+	gomega.Eventually(func() bool {
+		peList := &v1alpha1.PlanExecutionList{}
+		err = c.List(
+			context.TODO(),
+			peList,
+			client.MatchingLabels(map[string]string{
+				kudo.OperatorLabel: ov.Name,
+				kudo.InstanceLabel: in.Name,
+			}))
+		return strings.Contains(peList.Items[0].Name, "foo-instance-deploy")
+	}).Should(gomega.BeTrue())
 
 	/*log.Print("When we stop the manager")
 	close(stopMgr)
