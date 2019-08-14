@@ -2,12 +2,13 @@ package instance
 
 import (
 	"context"
-	"github.com/onsi/ginkgo"
 	"log"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/onsi/ginkgo"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
