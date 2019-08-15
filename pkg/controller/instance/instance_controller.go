@@ -101,7 +101,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					instance.Status.ActivePlan.Name == "" {
 
 					log.Printf("InstanceController: Creating a deploy execution plan for the instance %v", instance.Name)
-					err = createPlanOld(mgr, "deploy", &instance)
+					err = createPlan(mgr.GetClient(), mgr.GetEventRecorderFor("instance-controller"), mgr.GetScheme(), "deploy", &instance)
 					if err != nil {
 						log.Printf("InstanceController: Error creating \"%v\" object for \"deploy\": %v", instance.Name, err)
 					}
@@ -264,7 +264,7 @@ func instanceEventFilter(mgr manager.Manager) predicate.Funcs {
 					}
 				}
 
-				if err = createPlanOld(mgr, planName, new); err != nil {
+				if err = createPlan(mgr.GetClient(), mgr.GetEventRecorderFor("instance-controller"), mgr.GetScheme(), planName, new); err != nil {
 					log.Printf("InstanceController: Error creating PlanExecution \"%v\" for instance \"%v\": %v", planName, new.Name, err)
 				}
 			}
@@ -305,16 +305,27 @@ func instanceEventFilter(mgr manager.Manager) predicate.Funcs {
 	}
 }
 
-func createPlan(r *ReconcileInstance, planName string, instance *kudov1alpha1.Instance) error {
+func createPlan(c client.Client, r record.EventRecorder, scheme *runtime.Scheme, planName string, instance *kudov1alpha1.Instance) error {
 	ctx := context.TODO()
 
-	planExecution := newPlanExecution(instance, planName, r.scheme)
-	_ = addActivePlanReference(r.Client, r.recorder, planExecution, instance)
-	err := createPlanExecution(ctx, instance, planExecution, r, planName)
-	if err != nil {
+	planExecution := newPlanExecution(instance, planName, scheme)
+	log.Printf("Creating PlanExecution of planExecution %s for instance %s", planName, instance.Name)
+	r.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" planExecution execution", planName))
+
+	// Make this instance the owner of the PlanExecution
+	if err := controllerutil.SetControllerReference(instance, planExecution, scheme); err != nil {
+		log.Printf("InstanceController: Error setting ControllerReference")
 		return err
 	}
-	return nil
+	if err := c.Create(ctx, planExecution); err != nil {
+		log.Printf("InstanceController: Error creating planexecution \"%v\": %v", planExecution.Name, err)
+		r.Event(instance, "Warning", "CreatePlanExecution", fmt.Sprintf("Error creating planexecution \"%v\": %v", planExecution.Name, err))
+		return err
+	}
+	log.Printf("Created PlanExecution of planExecution %s for instance %s", planName, instance.Name)
+	r.Event(instance, "Normal", "PlanCreated", fmt.Sprintf("PlanExecution \"%v\" created", planExecution.Name))
+
+	return addActivePlanReference(c, r, planExecution, instance)
 }
 
 func addActivePlanReference(c client.Client, r record.EventRecorder, planExecution *kudov1alpha1.PlanExecution, instance *kudov1alpha1.Instance) error {
@@ -330,53 +341,6 @@ func addActivePlanReference(c client.Client, r record.EventRecorder, planExecuti
 		r.Event(instance, "Warning", "UpdateError", fmt.Sprintf("Could not update the ActivePlan for (%v): %v", planExecution.Spec.Instance.Name, err))
 	}
 	return err
-}
-
-// createPlanExecution takes all the k8s objects needed to create the actual plan
-func createPlanExecution(ctx context.Context, instance *kudov1alpha1.Instance, planExecution *kudov1alpha1.PlanExecution, r *ReconcileInstance, planName string) error {
-	log.Printf("Creating PlanExecution of planExecution %s for instance %s", planName, instance.Name)
-	r.recorder.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" planExecution execution", planName))
-
-	// Make this instance the owner of the PlanExecution
-	if err := controllerutil.SetControllerReference(instance, planExecution, r.scheme); err != nil {
-		log.Printf("InstanceController: Error setting ControllerReference")
-		return err
-	}
-	if err := r.Create(ctx, planExecution); err != nil {
-		log.Printf("InstanceController: Error creating planexecution \"%v\": %v", planExecution.Name, err)
-		r.recorder.Event(instance, "Warning", "CreatePlanExecution", fmt.Sprintf("Error creating planexecution \"%v\": %v", planExecution.Name, err))
-		return err
-	}
-	log.Printf("Created PlanExecution of planExecution %s for instance %s", planName, instance.Name)
-	r.recorder.Event(instance, "Normal", "PlanCreated", fmt.Sprintf("PlanExecution \"%v\" created", planExecution.Name))
-	return nil
-}
-
-//todo: REMOVE this... we do not want to create a plan outside of reconcile
-// most likely... any use of this function is wrong... all plans should be created in reconcile
-func createPlanOld(mgr manager.Manager, planName string, instance *kudov1alpha1.Instance) error {
-	ctx := context.TODO()
-	recorder := mgr.GetEventRecorderFor("instance-controller")
-	log.Printf("Creating PlanExecution of plan %s for instance %s", planName, instance.Name)
-	recorder.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" plan execution", planName))
-
-	planExecution := newPlanExecution(instance, planName, mgr.GetScheme())
-
-	// Make this instance the owner of the PlanExecution
-	if err := controllerutil.SetControllerReference(instance, planExecution, mgr.GetScheme()); err != nil {
-		log.Printf("InstanceController: Error setting ControllerReference")
-		return err
-	}
-
-	if err := mgr.GetClient().Create(ctx, planExecution); err != nil {
-		log.Printf("InstanceController: Error creating planexecution \"%v\": %v", planExecution.Name, err)
-		recorder.Event(instance, "Warning", "CreatePlanExecution", fmt.Sprintf("Error creating planexecution \"%v\": %v", planExecution.Name, err))
-		return err
-	}
-
-	log.Printf("Created PlanExecution of plan %s for instance %s", planName, instance.Name)
-	recorder.Event(instance, "Normal", "PlanCreated", fmt.Sprintf("PlanExecution \"%v\" created", planExecution.Name))
-	return addActivePlanReference(mgr.GetClient(), recorder, planExecution, instance)
 }
 
 var _ reconcile.Reconciler = &ReconcileInstance{}
@@ -413,7 +377,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	// if this is new create and create and assign a planexecution and return
 	if isNewInstance(instance) {
-		err = createPlan(r, "deploy", instance)
+		err = createPlan(r.Client, r.recorder, r.scheme, "deploy", instance)
 		// err or not we return.  If err == nil the controller is done, else requeue
 		return reconcile.Result{}, err
 	}
