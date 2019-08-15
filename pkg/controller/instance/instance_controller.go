@@ -324,7 +324,7 @@ func addActivePlanReference(c client.Client, r record.EventRecorder, planExecuti
 		APIVersion: planExecution.APIVersion,
 		UID:        planExecution.UID,
 	}
-	fmt.Printf("Updating reference: %v", instance.Status.ActivePlan)
+	fmt.Printf("Updating reference: %s %s", instance.Status.ActivePlan.APIVersion, instance.Status.ActivePlan.Kind)
 	err := c.Update(context.TODO(), instance)
 	if err != nil {
 		r.Event(instance, "Warning", "UpdateError", fmt.Sprintf("Could not update the ActivePlan for (%v): %v", planExecution.Spec.Instance.Name, err))
@@ -524,8 +524,6 @@ func newPlanExecution(instance *kudov1alpha1.Instance, planName string, scheme *
 			Template: instance.Spec,
 		},
 	}
-
-	println("APIV: %s", planExecution.APIVersion)
 
 	return &planExecution
 }
