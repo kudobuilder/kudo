@@ -415,6 +415,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	err = r.Client.Update(context.TODO(), instance)
 	if err != nil {
 		log.Printf("Error updating instance status to %v: %v\n", instance.Status.Status, err)
+		return reconcile.Result{}, err
 	}
 
 	return reconcile.Result{}, nil
