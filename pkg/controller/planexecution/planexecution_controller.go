@@ -227,6 +227,11 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
+	if instance.Status.ActivePlan.Name != planExecution.Name || instance.Status.ActivePlan.Namespace != planExecution.Namespace {
+		// this can happen for newly created PlanExecution where ActivePlan was not yet set to point to this instance
+		return reconcile.Result{}, fmt.Errorf("Instance %s does not have ActivePlan pointing to PlanExecution %s, %s. Instead %s, %s. Retrying", instance.Name, planExecution.Name, planExecution.Namespace, instance.Status.ActivePlan.Name, instance.Status.ActivePlan.Namespace)
+	}
+
 	// Check for Suspend set.
 	if planExecution.Spec.Suspend != nil && *planExecution.Spec.Suspend {
 		planExecution.Status.State = kudov1alpha1.PhaseStateSuspend
