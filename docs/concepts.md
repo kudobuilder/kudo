@@ -8,7 +8,7 @@ menu: docs
 
 ## Application
 
-Any kind of software that you would want to run in your Kubernetes cluster. It can be as simple as cleanup job or as complex as distributed system like Kafka.
+Any kind of software that you would want to run in your Kubernetes cluster. It can be as simple as a cleanup job or as complex as a distributed system like Kafka.
 
 ## Operator
 
@@ -29,7 +29,7 @@ You can create multiple instance of an OperatorVersion in your cluster (e.g. dif
 
 ## Plan
 
-Operator typically define several plans. Plans capture the individual steps of operational tasks. Think of them as runbooks written in a structured way that can be executed by software. Plans are made up of phases, and phases have one or more steps.
+Operators typically define several plans. Plans capture the individual steps of operational tasks. Think of them as runbooks written in a structured way that can be executed by software. Plans are made up of phases, and phases have one or more steps.
 
 Every OperatorVersion must contain a `deploy` plan which is the default plan to deploy an application to the cluster. For more complex systems, you would want to define a plan for backup and restore or upgrade.
 

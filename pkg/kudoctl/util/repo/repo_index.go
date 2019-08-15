@@ -15,7 +15,7 @@ import (
 
 const defaultURL = "http://localhost/"
 
-// IndexFile represents the index file in a operator repository
+// IndexFile represents the index file in an operator repository
 type IndexFile struct {
 	APIVersion string                     `json:"apiVersion"`
 	Entries    map[string]PackageVersions `json:"entries"`
@@ -26,7 +26,7 @@ type IndexFile struct {
 // Implements a sorter on Version.
 type PackageVersions []*PackageVersion
 
-// PackageVersion represents a operator entry in the IndexFile
+// PackageVersion represents an operator entry in the IndexFile
 type PackageVersion struct {
 	*Metadata
 	URLs       []string   `json:"urls"`

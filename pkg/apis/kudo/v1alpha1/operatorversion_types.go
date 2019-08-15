@@ -64,7 +64,7 @@ type Plan struct {
 	Phases []Phase `json:"phases" validate:"required,gt=0,dive"` // makes field mandatory and checks if its gt 0
 }
 
-// Parameter captures the variability of a OperatorVersion being instantiated in an instance.
+// Parameter captures the variability of an OperatorVersion being instantiated in an instance.
 type Parameter struct {
 	// DisplayName can be used by UI's.
 	DisplayName string `json:"displayName,omitempty"`

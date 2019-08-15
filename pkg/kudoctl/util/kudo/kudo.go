@@ -98,7 +98,7 @@ func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 //    		labels:
 //      		controller-tools.k8s.io: "1.0"
 //      		kudo.dev/operator: kafka
-// This function also just returns true if the Instance matches a specific OperatorVersion of a Operator
+// This function also just returns true if the Instance matches a specific OperatorVersion of an Operator
 func (c *Client) InstanceExistsInCluster(operatorName, namespace, version, instanceName string) (bool, error) {
 	instances, err := c.clientset.KudoV1alpha1().Instances(namespace).List(v1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", kudo.OperatorLabel, operatorName)})
 	if err != nil {

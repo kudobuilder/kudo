@@ -61,13 +61,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 var _ reconcile.Reconciler = &ReconcileOperatorVersion{}
 
-// ReconcileOperatorVersion reconciles a OperatorVersion object
+// ReconcileOperatorVersion reconciles an OperatorVersion object
 type ReconcileOperatorVersion struct {
 	client.Client
 	scheme *runtime.Scheme
 }
 
-// Reconcile reads that state of the cluster for a OperatorVersion object and makes changes based on the state read
+// Reconcile reads that state of the cluster for an OperatorVersion object and makes changes based on the state read
 // and what is in the OperatorVersion.Spec.
 //
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
@@ -87,7 +87,7 @@ func (r *ReconcileOperatorVersion) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	log.Printf("OperatorVersionController: Received Reconcile request for a operatorVersion named: %v", request.Name)
+	log.Printf("OperatorVersionController: Received Reconcile request for an operatorVersion named: %v", request.Name)
 
 	// TODO: Validate OperatorVersion is appropriate.
 	return reconcile.Result{}, nil

@@ -27,7 +27,7 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
-// InstancesGetter has a method to return a InstanceInterface.
+// InstancesGetter has a method to return an InstanceInterface.
 // A group's client should implement this interface.
 type InstancesGetter interface {
 	Instances(namespace string) InstanceInterface
@@ -53,7 +53,7 @@ type instances struct {
 	ns     string
 }
 
-// newInstances returns a Instances
+// newInstances returns an Instances
 func newInstances(c *KudoV1alpha1Client, namespace string) *instances {
 	return &instances{
 		client: c.RESTClient(),
@@ -106,7 +106,7 @@ func (c *instances) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Watch()
 }
 
-// Create takes the representation of a instance and creates it.  Returns the server's representation of the instance, and an error, if there is any.
+// Create takes the representation of an instance and creates it.  Returns the server's representation of the instance, and an error, if there is any.
 func (c *instances) Create(instance *v1alpha1.Instance) (result *v1alpha1.Instance, err error) {
 	result = &v1alpha1.Instance{}
 	err = c.client.Post().
@@ -118,7 +118,7 @@ func (c *instances) Create(instance *v1alpha1.Instance) (result *v1alpha1.Instan
 	return
 }
 
-// Update takes the representation of a instance and updates it. Returns the server's representation of the instance, and an error, if there is any.
+// Update takes the representation of an instance and updates it. Returns the server's representation of the instance, and an error, if there is any.
 func (c *instances) Update(instance *v1alpha1.Instance) (result *v1alpha1.Instance, err error) {
 	result = &v1alpha1.Instance{}
 	err = c.client.Put().

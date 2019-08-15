@@ -12,7 +12,7 @@ var Default = &RepositoryConfiguration{
 	URL: "https://kudo-repository.storage.googleapis.com",
 }
 
-// Metadata for a Operator. This models the structure of a operator.yaml file.
+// Metadata for an Operator. This models the structure of a operator.yaml file.
 type Metadata struct {
 	// Name is the name of the operator.
 	Name string `json:"name,omitempty"`
@@ -34,4 +34,16 @@ type Metadata struct {
 
 	// Deprecated reflects whether this operator is deprecated.
 	Deprecated bool `json:"deprecated,omitempty"`
+}
+
+// Maintainer describes an Operator maintainer.
+type Maintainer struct {
+	// Name is a user name or organization name.
+	Name string `json:"name,omitempty"`
+
+	// Email is an optional email address to contact the named maintainer.
+	Email string `json:"email,omitempty"`
+
+	// URL is an optional URL to an address for the named maintainer.
+	URL string `json:"url,omitempty"`
 }

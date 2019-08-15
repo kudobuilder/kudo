@@ -64,7 +64,7 @@ What are the control mechanisms?  CRDs allow for RBAC control at a namespace lev
 
 ## Discoverable Repo for Applications
 
-It should be easy to convert a Helm chart into a OperatorVersion since we can just "render" the chart.  Additionally we plan to build the Universe Shim to accept any DC/OS operator.  Thus we should be able to pull from either of these public repos of apps (and any internally hosted app site)
+It should be easy to convert a Helm chart into an OperatorVersion since we can just "render" the chart.  Additionally we plan to build the Universe Shim to accept any DC/OS operator.  Thus we should be able to pull from either of these public repos of apps (and any internally hosted app site)
 
 
 ## Comparison Table
