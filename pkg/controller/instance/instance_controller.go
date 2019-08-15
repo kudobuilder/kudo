@@ -504,6 +504,10 @@ func newPlanExecution(instance *kudov1alpha1.Instance, planName string, scheme *
 		Namespace: instance.Namespace,
 	}
 	planExecution := kudov1alpha1.PlanExecution{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "PlanExecution",
+			APIVersion: "kudo.dev/v1alpha1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%v-%v-%v", instance.Name, planName, time.Now().Nanosecond()),
 			Namespace: instance.GetNamespace(),
@@ -519,10 +523,6 @@ func newPlanExecution(instance *kudov1alpha1.Instance, planName string, scheme *
 			Template: instance.Spec,
 		},
 	}
-
-	gvk, _ = apiutil.GVKForObject(&planExecution, scheme)
-	planExecution.Kind = gvk.Kind
-	planExecution.APIVersion = gvk.Version
 
 	return planExecution
 }
