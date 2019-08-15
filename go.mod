@@ -26,7 +26,7 @@ require (
 	github.com/leodido/go-urn v1.1.0 // indirect
 	github.com/markbates/inflect v1.0.4 // indirect
 	github.com/masterminds/sprig v2.18.0+incompatible
-	github.com/onsi/ginkgo v1.7.0 // indirect
+	github.com/onsi/ginkgo v1.7.0
 	github.com/onsi/gomega v1.4.3
 	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709 // indirect
 	github.com/pkg/errors v0.8.1
