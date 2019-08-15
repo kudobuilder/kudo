@@ -157,4 +157,4 @@ Similar to the `Drawbacks` section the `Alternatives` section is used to highlig
 
 Use this section if you need things from the project/owner.
 Examples include a new subproject, repos requested, github details.
-Listing these here allows a owner to get the process for these resources started right away.
+Listing these here allows an owner to get the process for these resources started right away.

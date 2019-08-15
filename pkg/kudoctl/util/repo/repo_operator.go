@@ -13,12 +13,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Repository is a abstraction for a service that can retrieve package bundles
+// Repository is an abstraction for a service that can retrieve package bundles
 type Repository interface {
 	GetBundle(name string, version string) (bundle.Bundle, error)
 }
 
-// OperatorRepository represents a operator repository
+// OperatorRepository represents an operator repository
 type OperatorRepository struct {
 	Config *RepositoryConfiguration
 	Client http.Client

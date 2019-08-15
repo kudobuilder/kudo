@@ -10,7 +10,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// IndexFile represents the index file in a operator repository
+// IndexFile represents the index file in an operator repository
 type IndexFile struct {
 	APIVersion string                    `json:"apiVersion"`
 	Entries    map[string]BundleVersions `json:"entries"`
@@ -20,7 +20,7 @@ type IndexFile struct {
 // Implements a sorter on Version.
 type BundleVersions []*BundleVersion
 
-// BundleVersion represents a operator entry in the IndexFile
+// BundleVersion represents an operator entry in the IndexFile
 type BundleVersion struct {
 	*Metadata
 	URLs    []string  `json:"urls"`

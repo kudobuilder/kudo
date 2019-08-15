@@ -48,6 +48,7 @@ spec:
               description: Operator specifies a reference to a specific Operator object.
               type: object
             parameters:
+              description: 'TODO: this is deprecated and should not be used'
               type: object
           type: object
         status:

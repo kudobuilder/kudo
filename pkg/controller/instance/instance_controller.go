@@ -28,8 +28,6 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/controller/planexecution"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -309,9 +307,8 @@ func instanceEventFilter(mgr manager.Manager) predicate.Funcs {
 
 func createPlan(r *ReconcileInstance, planName string, instance *kudov1alpha1.Instance) error {
 	ctx := context.TODO()
-	gvk, _ := apiutil.GVKForObject(instance, r.scheme)
 
-	planExecution := planexecution.New(gvk.Kind, instance, planName)
+	planExecution := newPlanExecution(instance, planName, r.scheme)
 	return createPlanExecution(ctx, instance, planExecution, r, planName)
 }
 
@@ -339,32 +336,11 @@ func createPlanExecution(ctx context.Context, instance *kudov1alpha1.Instance, p
 // most likely... any use of this function is wrong... all plans should be created in reconcile
 func createPlanOld(mgr manager.Manager, planName string, instance *kudov1alpha1.Instance) error {
 	ctx := context.TODO()
-	gvk, _ := apiutil.GVKForObject(instance, mgr.GetScheme())
 	recorder := mgr.GetEventRecorderFor("instance-controller")
 	log.Printf("Creating PlanExecution of plan %s for instance %s", planName, instance.Name)
 	recorder.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" plan execution", planName))
 
-	ref := corev1.ObjectReference{
-		Kind:      gvk.Kind,
-		Name:      instance.Name,
-		Namespace: instance.Namespace,
-	}
-
-	planExecution := kudov1alpha1.PlanExecution{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%v-%v-%v", instance.Name, planName, time.Now().Nanosecond()),
-			Namespace: instance.GetNamespace(),
-			// TODO: Should also add one for Operator in here as well.
-			Labels: map[string]string{
-				kudo.OperatorVersionAnnotation: instance.Spec.OperatorVersion.Name,
-				kudo.InstanceLabel:             instance.Name,
-			},
-		},
-		Spec: kudov1alpha1.PlanExecutionSpec{
-			Instance: ref,
-			PlanName: planName,
-		},
-	}
+	planExecution := newPlanExecution(instance, planName, mgr.GetScheme())
 
 	// Make this instance the owner of the PlanExecution
 	if err := controllerutil.SetControllerReference(instance, &planExecution, mgr.GetScheme()); err != nil {
@@ -391,7 +367,7 @@ type ReconcileInstance struct {
 	recorder record.EventRecorder
 }
 
-// Reconcile reads that state of the cluster for a Instance object and makes changes based on the state read
+// Reconcile reads that state of the cluster for an Instance object and makes changes based on the state read
 // and what is in the Instance.Spec.
 //
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
@@ -498,4 +474,31 @@ func parameterDifference(old, new map[string]string) map[string]string {
 	}
 
 	return diff
+}
+
+// newPlanExecution creates a PlanExecution based on the kind and instance for a given planName
+func newPlanExecution(instance *kudov1alpha1.Instance, planName string, scheme *runtime.Scheme) kudov1alpha1.PlanExecution {
+	gvk, _ := apiutil.GVKForObject(instance, scheme)
+	ref := corev1.ObjectReference{
+		Kind:      gvk.Kind,
+		Name:      instance.Name,
+		Namespace: instance.Namespace,
+	}
+	planExecution := kudov1alpha1.PlanExecution{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%v-%v-%v", instance.Name, planName, time.Now().Nanosecond()),
+			Namespace: instance.GetNamespace(),
+			// TODO: Should also add one for Operator in here as well.
+			Labels: map[string]string{
+				kudo.OperatorVersionAnnotation: instance.Spec.OperatorVersion.Name,
+				kudo.InstanceLabel:             instance.Name,
+			},
+		},
+		Spec: kudov1alpha1.PlanExecutionSpec{
+			Instance: ref,
+			PlanName: planName,
+			Template: instance.Spec,
+		},
+	}
+	return planExecution
 }

@@ -20,4 +20,4 @@ else
 fi
 
 go run "$CONTROLLER_GEN_DIR"/cmd/controller-gen/main.go rbac
-go run "$CONTROLLER_GEN_DIR"/cmd/controller-gen/main.go crd
+go run "$CONTROLLER_GEN_DIR"/cmd/controller-gen/main.go crd --domain dev
