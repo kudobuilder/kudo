@@ -525,5 +525,7 @@ func newPlanExecution(instance *kudov1alpha1.Instance, planName string, scheme *
 		},
 	}
 
+	println("APIV: %s", planExecution.APIVersion)
+
 	return &planExecution
 }
