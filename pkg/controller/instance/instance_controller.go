@@ -519,5 +519,10 @@ func newPlanExecution(instance *kudov1alpha1.Instance, planName string, scheme *
 			Template: instance.Spec,
 		},
 	}
+
+	gvk, _ = apiutil.GVKForObject(&planExecution, scheme)
+	planExecution.Kind = gvk.Kind
+	planExecution.APIVersion = gvk.Version
+	
 	return planExecution
 }
