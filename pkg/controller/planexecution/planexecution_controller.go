@@ -33,7 +33,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/util/health"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -244,20 +243,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 	// Before returning from this function, update the status
 	defer r.Update(context.Background(), planExecution)
-
-	// Need to add ownerReference as the Instance.
-	instance.Status.ActivePlan = corev1.ObjectReference{
-		Name:       planExecution.Name,
-		Kind:       planExecution.Kind,
-		Namespace:  planExecution.Namespace,
-		APIVersion: planExecution.APIVersion,
-		UID:        planExecution.UID,
-	}
-	err = r.Update(context.TODO(), instance)
-	if err != nil {
-		r.recorder.Event(planExecution, "Warning", "UpdateError", fmt.Sprintf("Could not update the ActivePlan for (%v): %v", planExecution.Spec.Instance.Name, err))
-		log.Printf("PlanExecutionController: Upate of instance with ActivePlan errored: %v", err)
-	}
 
 	// Get associated OperatorVersion
 	operatorVersion := &kudov1alpha1.OperatorVersion{}

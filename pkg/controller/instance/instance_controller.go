@@ -309,26 +309,45 @@ func createPlan(r *ReconcileInstance, planName string, instance *kudov1alpha1.In
 	ctx := context.TODO()
 
 	planExecution := newPlanExecution(instance, planName, r.scheme)
-	return createPlanExecution(ctx, instance, planExecution, r, planName)
+	err := createPlanExecution(ctx, instance, &planExecution, r, planName)
+	if err != nil {
+		return err
+	}
+	err = addOwnerReference(r, &planExecution, instance)
+	if err != nil {
+		r.recorder.Event(instance, "Warning", "UpdateError", fmt.Sprintf("Could not update the ActivePlan for (%v): %v", planExecution.Spec.Instance.Name, err))
+	}
+	return err
+}
+
+func addOwnerReference(r *ReconcileInstance, planExecution *kudov1alpha1.PlanExecution, instance *kudov1alpha1.Instance) error {
+	instance.Status.ActivePlan = corev1.ObjectReference{
+		Name:       planExecution.Name,
+		Kind:       planExecution.Kind,
+		Namespace:  planExecution.Namespace,
+		APIVersion: planExecution.APIVersion,
+		UID:        planExecution.UID,
+	}
+	return r.Update(context.TODO(), instance)
 }
 
 // createPlanExecution takes all the k8s objects needed to create the actual plan
-func createPlanExecution(ctx context.Context, instance *kudov1alpha1.Instance, plan kudov1alpha1.PlanExecution, r *ReconcileInstance, planName string) error {
-	log.Printf("Creating PlanExecution of plan %s for instance %s", planName, instance.Name)
-	r.recorder.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" plan execution", planName))
+func createPlanExecution(ctx context.Context, instance *kudov1alpha1.Instance, planExecution *kudov1alpha1.PlanExecution, r *ReconcileInstance, planName string) error {
+	log.Printf("Creating PlanExecution of planExecution %s for instance %s", planName, instance.Name)
+	r.recorder.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" planExecution execution", planName))
 
 	// Make this instance the owner of the PlanExecution
-	if err := controllerutil.SetControllerReference(instance, &plan, r.scheme); err != nil {
+	if err := controllerutil.SetControllerReference(instance, planExecution, r.scheme); err != nil {
 		log.Printf("InstanceController: Error setting ControllerReference")
 		return err
 	}
-	if err := r.Create(ctx, &plan); err != nil {
-		log.Printf("InstanceController: Error creating planexecution \"%v\": %v", plan.Name, err)
-		r.recorder.Event(instance, "Warning", "CreatePlanExecution", fmt.Sprintf("Error creating planexecution \"%v\": %v", plan.Name, err))
+	if err := r.Create(ctx, planExecution); err != nil {
+		log.Printf("InstanceController: Error creating planexecution \"%v\": %v", planExecution.Name, err)
+		r.recorder.Event(instance, "Warning", "CreatePlanExecution", fmt.Sprintf("Error creating planexecution \"%v\": %v", planExecution.Name, err))
 		return err
 	}
-	log.Printf("Created PlanExecution of plan %s for instance %s", planName, instance.Name)
-	r.recorder.Event(instance, "Normal", "PlanCreated", fmt.Sprintf("PlanExecution \"%v\" created", plan.Name))
+	log.Printf("Created PlanExecution of planExecution %s for instance %s", planName, instance.Name)
+	r.recorder.Event(instance, "Normal", "PlanCreated", fmt.Sprintf("PlanExecution \"%v\" created", planExecution.Name))
 	return nil
 }
 
