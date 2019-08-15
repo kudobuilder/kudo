@@ -309,11 +309,12 @@ func createPlan(r *ReconcileInstance, planName string, instance *kudov1alpha1.In
 	ctx := context.TODO()
 
 	planExecution := newPlanExecution(instance, planName, r.scheme)
+	_ = addActivePlanReference(r.Client, r.recorder, planExecution, instance)
 	err := createPlanExecution(ctx, instance, planExecution, r, planName)
 	if err != nil {
 		return err
 	}
-	return addActivePlanReference(r.Client, r.recorder, planExecution, instance)
+	return nil
 }
 
 func addActivePlanReference(c client.Client, r record.EventRecorder, planExecution *kudov1alpha1.PlanExecution, instance *kudov1alpha1.Instance) error {
@@ -361,6 +362,7 @@ func createPlanOld(mgr manager.Manager, planName string, instance *kudov1alpha1.
 	recorder.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" plan execution", planName))
 
 	planExecution := newPlanExecution(instance, planName, mgr.GetScheme())
+	_ = addActivePlanReference(mgr.GetClient(), recorder, planExecution, instance)
 
 	// Make this instance the owner of the PlanExecution
 	if err := controllerutil.SetControllerReference(instance, planExecution, mgr.GetScheme()); err != nil {
@@ -375,7 +377,7 @@ func createPlanOld(mgr manager.Manager, planName string, instance *kudov1alpha1.
 	}
 	log.Printf("Created PlanExecution of plan %s for instance %s", planName, instance.Name)
 	recorder.Event(instance, "Normal", "PlanCreated", fmt.Sprintf("PlanExecution \"%v\" created", planExecution.Name))
-	return addActivePlanReference(mgr.GetClient(), recorder, planExecution, instance)
+	return nil
 }
 
 var _ reconcile.Reconciler = &ReconcileInstance{}
