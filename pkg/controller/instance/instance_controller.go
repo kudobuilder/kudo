@@ -309,14 +309,14 @@ func createPlan(r *ReconcileInstance, planName string, instance *kudov1alpha1.In
 	ctx := context.TODO()
 
 	planExecution := newPlanExecution(instance, planName, r.scheme)
-	err := createPlanExecution(ctx, instance, &planExecution, r, planName)
+	err := createPlanExecution(ctx, instance, planExecution, r, planName)
 	if err != nil {
 		return err
 	}
-	return addOwnerReference(r.Client, r.recorder, &planExecution, instance)
+	return addActivePlanReference(r.Client, r.recorder, planExecution, instance)
 }
 
-func addOwnerReference(c client.Client, r record.EventRecorder, planExecution *kudov1alpha1.PlanExecution, instance *kudov1alpha1.Instance) error {
+func addActivePlanReference(c client.Client, r record.EventRecorder, planExecution *kudov1alpha1.PlanExecution, instance *kudov1alpha1.Instance) error {
 	instance.Status.ActivePlan = corev1.ObjectReference{
 		Name:       planExecution.Name,
 		Kind:       planExecution.Kind,
@@ -324,6 +324,7 @@ func addOwnerReference(c client.Client, r record.EventRecorder, planExecution *k
 		APIVersion: planExecution.APIVersion,
 		UID:        planExecution.UID,
 	}
+	fmt.Printf("Updating reference: %v", instance.Status.ActivePlan)
 	err := c.Update(context.TODO(), instance)
 	if err != nil {
 		r.Event(instance, "Warning", "UpdateError", fmt.Sprintf("Could not update the ActivePlan for (%v): %v", planExecution.Spec.Instance.Name, err))
@@ -362,19 +363,19 @@ func createPlanOld(mgr manager.Manager, planName string, instance *kudov1alpha1.
 	planExecution := newPlanExecution(instance, planName, mgr.GetScheme())
 
 	// Make this instance the owner of the PlanExecution
-	if err := controllerutil.SetControllerReference(instance, &planExecution, mgr.GetScheme()); err != nil {
+	if err := controllerutil.SetControllerReference(instance, planExecution, mgr.GetScheme()); err != nil {
 		log.Printf("InstanceController: Error setting ControllerReference")
 		return err
 	}
 
-	if err := mgr.GetClient().Create(ctx, &planExecution); err != nil {
+	if err := mgr.GetClient().Create(ctx, planExecution); err != nil {
 		log.Printf("InstanceController: Error creating planexecution \"%v\": %v", planExecution.Name, err)
 		recorder.Event(instance, "Warning", "CreatePlanExecution", fmt.Sprintf("Error creating planexecution \"%v\": %v", planExecution.Name, err))
 		return err
 	}
 	log.Printf("Created PlanExecution of plan %s for instance %s", planName, instance.Name)
 	recorder.Event(instance, "Normal", "PlanCreated", fmt.Sprintf("PlanExecution \"%v\" created", planExecution.Name))
-	return addOwnerReference(mgr.GetClient(), recorder, &planExecution, instance)
+	return addActivePlanReference(mgr.GetClient(), recorder, planExecution, instance)
 }
 
 var _ reconcile.Reconciler = &ReconcileInstance{}
@@ -496,7 +497,7 @@ func parameterDifference(old, new map[string]string) map[string]string {
 }
 
 // newPlanExecution creates a PlanExecution based on the kind and instance for a given planName
-func newPlanExecution(instance *kudov1alpha1.Instance, planName string, scheme *runtime.Scheme) kudov1alpha1.PlanExecution {
+func newPlanExecution(instance *kudov1alpha1.Instance, planName string, scheme *runtime.Scheme) *kudov1alpha1.PlanExecution {
 	gvk, _ := apiutil.GVKForObject(instance, scheme)
 	ref := corev1.ObjectReference{
 		Kind:      gvk.Kind,
@@ -524,5 +525,5 @@ func newPlanExecution(instance *kudov1alpha1.Instance, planName string, scheme *
 		},
 	}
 
-	return planExecution
+	return &planExecution
 }
