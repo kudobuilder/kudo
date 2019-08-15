@@ -364,17 +364,23 @@ func createPlanOld(mgr manager.Manager, planName string, instance *kudov1alpha1.
 	planExecution := newPlanExecution(instance, planName, mgr.GetScheme())
 	_ = addActivePlanReference(mgr.GetClient(), recorder, planExecution, instance)
 
+	fmt.Printf("1: %s \n", planExecution.Kind)
+
 	// Make this instance the owner of the PlanExecution
 	if err := controllerutil.SetControllerReference(instance, planExecution, mgr.GetScheme()); err != nil {
 		log.Printf("InstanceController: Error setting ControllerReference")
 		return err
 	}
 
+	fmt.Printf("2: %s \n", planExecution.Kind)
+
 	if err := mgr.GetClient().Create(ctx, planExecution); err != nil {
 		log.Printf("InstanceController: Error creating planexecution \"%v\": %v", planExecution.Name, err)
 		recorder.Event(instance, "Warning", "CreatePlanExecution", fmt.Sprintf("Error creating planexecution \"%v\": %v", planExecution.Name, err))
 		return err
 	}
+
+	fmt.Printf("3: %s \n", planExecution.Kind)
 	log.Printf("Created PlanExecution of plan %s for instance %s", planName, instance.Name)
 	recorder.Event(instance, "Normal", "PlanCreated", fmt.Sprintf("PlanExecution \"%v\" created", planExecution.Name))
 	return nil
