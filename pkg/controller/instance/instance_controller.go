@@ -313,14 +313,10 @@ func createPlan(r *ReconcileInstance, planName string, instance *kudov1alpha1.In
 	if err != nil {
 		return err
 	}
-	err = addOwnerReference(r, &planExecution, instance)
-	if err != nil {
-		r.recorder.Event(instance, "Warning", "UpdateError", fmt.Sprintf("Could not update the ActivePlan for (%v): %v", planExecution.Spec.Instance.Name, err))
-	}
-	return err
+	return addOwnerReference(r.Client, r.recorder, &planExecution, instance)
 }
 
-func addOwnerReference(r *ReconcileInstance, planExecution *kudov1alpha1.PlanExecution, instance *kudov1alpha1.Instance) error {
+func addOwnerReference(c client.Client, r record.EventRecorder, planExecution *kudov1alpha1.PlanExecution, instance *kudov1alpha1.Instance) error {
 	instance.Status.ActivePlan = corev1.ObjectReference{
 		Name:       planExecution.Name,
 		Kind:       planExecution.Kind,
@@ -328,7 +324,11 @@ func addOwnerReference(r *ReconcileInstance, planExecution *kudov1alpha1.PlanExe
 		APIVersion: planExecution.APIVersion,
 		UID:        planExecution.UID,
 	}
-	return r.Update(context.TODO(), instance)
+	err := c.Update(context.TODO(), instance)
+	if err != nil {
+		r.Event(instance, "Warning", "UpdateError", fmt.Sprintf("Could not update the ActivePlan for (%v): %v", planExecution.Spec.Instance.Name, err))
+	}
+	return err
 }
 
 // createPlanExecution takes all the k8s objects needed to create the actual plan
@@ -374,7 +374,7 @@ func createPlanOld(mgr manager.Manager, planName string, instance *kudov1alpha1.
 	}
 	log.Printf("Created PlanExecution of plan %s for instance %s", planName, instance.Name)
 	recorder.Event(instance, "Normal", "PlanCreated", fmt.Sprintf("PlanExecution \"%v\" created", planExecution.Name))
-	return nil
+	return addOwnerReference(mgr.GetClient(), recorder, &planExecution, instance)
 }
 
 var _ reconcile.Reconciler = &ReconcileInstance{}
