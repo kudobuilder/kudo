@@ -239,6 +239,12 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	// See if this has already been processed
 	if planExecution.Status.State == kudov1alpha1.PhaseStateComplete {
 		log.Printf("PlanExecutionController: PlanExecution \"%v\" has already run to completion, not processing.", planExecution.Name)
+		if instance.Status.ActivePlan.Name == planExecution.Name && instance.Status.ActivePlan.Namespace == planExecution.Namespace && instance.Status.Status != planExecution.Status.State {
+			// there was probably error because instance state is not in sync with PE state
+			instance.Status.Status = planExecution.Status.State
+			err = updateInstanceStatus(instance, planExecution.Status.State, r.Client)
+			return reconcile.Result{}, err
+		}
 		return reconcile.Result{}, nil
 	}
 
@@ -426,13 +432,18 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		planExecution.Status.State = kudov1alpha1.PhaseStateInProgress
 	}
 
-	instance.Status.Status = planExecution.Status.State
-	err = r.Client.Update(context.TODO(), instance)
+	err = updateInstanceStatus(instance, planExecution.Status.State, r.Client)
+
+	return reconcile.Result{}, err
+}
+
+func updateInstanceStatus(instance *kudov1alpha1.Instance, state kudov1alpha1.PhaseState, client client.Client) error {
+	instance.Status.Status = state
+	err := client.Update(context.TODO(), instance)
 	if err != nil {
 		log.Printf("Error updating instance status to %v: %v\n", instance.Status.Status, err)
 	}
-
-	return reconcile.Result{}, nil
+	return err
 }
 
 // fatalError is representing type of error that is non-recoverable (like bug in the template preventing rendering)
