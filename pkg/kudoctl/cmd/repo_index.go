@@ -71,6 +71,7 @@ func validateRepoIndex(args []string) error {
 
 // run returns the errors associated with cmd env
 func (ri *repoIndexCmd) run() error {
+
 	target, err := files.FullPathToTarget(ri.fs, ri.path, "index.yaml", ri.overwrite)
 	if err != nil {
 		return err
@@ -82,20 +83,13 @@ func (ri *repoIndexCmd) run() error {
 		return err
 	}
 	t := time.Now()
-	//todo: need to pass url and need a default for url
 	i, err := repository.IndexDirectory(ri.fs, ri.path, target, ri.url, &t)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("working with %v\n", target)
-
-	fmt.Printf("archives: %v\n", i)
-
-	// 1. walk folder get a list of tgz files indexDirectory
-	// 2. create index objects
-	// 3. sort
-	// 3. write
+	i.WriteFile(fs, target)
+	fmt.Printf("index %v created.\n", target)
 
 	return nil
 }

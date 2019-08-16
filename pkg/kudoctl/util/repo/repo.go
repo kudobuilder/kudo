@@ -21,7 +21,7 @@ type Metadata struct {
 	Version string `protobuf:"bytes,4,opt,name=version" json:"version,omitempty"`
 
 	// AppVersion is the underlying service version (the format is not in our control)
-	AppVersion string     `json:"appVersion,omitempty"`
+	AppVersion string `json:"appVersion,omitempty"`
 
 	// The URL to a relevant project page, git repo, or contact person.
 	Home string `json:"home,omitempty"`

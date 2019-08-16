@@ -60,7 +60,8 @@ func TestWriteIndexFile(t *testing.T) {
 	// Setup buffer to marshal yaml to
 	var buf bytes.Buffer
 	w := bufio.NewWriter(&buf)
-	writeIndexFile(index, w)
+
+	index.writeFile(w)
 	w.Flush()
 
 	gp := filepath.Join("testdata", file+".golden")
@@ -93,11 +94,11 @@ func getTestBundleVersion(name string, version string) PackageVersion {
 	urls := []string{fmt.Sprintf("http://kudo.dev/%v", name)}
 	bv := PackageVersion{
 		Metadata: &Metadata{
-			Name:    name,
-			Version: version,
+			Name:       name,
+			Version:    version,
 			AppVersion: "0.7.0",
 		},
-		URLs:       urls,
+		URLs: urls,
 	}
 	return bv
 }
@@ -143,10 +144,11 @@ func TestMapPackageFileToPackageVersion(t *testing.T) {
 	pf := bundle.PackageFiles{
 		Operator: &o,
 	}
-	now := time.Now()
-	pv := ToPackageVersion(&pf, "http://localhost", &now)
+
+	pv := ToPackageVersion(&pf, "1234", "http://localhost")
 
 	assert.Equal(t, pv.Name, o.Name)
 	assert.Equal(t, pv.Version, o.Version)
 	assert.Equal(t, pv.URLs[0], "http://localhost/kafka-1.0.0.tgz")
+	assert.Equal(t, pv.Digest, "1234")
 }

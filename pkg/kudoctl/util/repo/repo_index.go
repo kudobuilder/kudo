@@ -10,6 +10,7 @@ import (
 
 	"github.com/Masterminds/semver"
 	"github.com/pkg/errors"
+	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
 )
 
@@ -29,9 +30,9 @@ type PackageVersions []*PackageVersion
 // PackageVersion represents an operator entry in the IndexFile
 type PackageVersion struct {
 	*Metadata
-	URLs       []string   `json:"urls"`
-	Removed    bool       `json:"removed,omitempty"`
-	Digest     string     `json:"digest,omitempty"`
+	URLs    []string `json:"urls"`
+	Removed bool     `json:"removed,omitempty"`
+	Digest  string   `json:"digest,omitempty"`
 }
 
 // Len returns the length.
@@ -83,7 +84,7 @@ func parseIndexFile(data []byte) (*IndexFile, error) {
 	return i, nil
 }
 
-func writeIndexFile(i *IndexFile, w io.Writer) error {
+func (i IndexFile) writeFile(w io.Writer) error {
 	b, err := yaml.Marshal(i)
 	if err != nil {
 		return err
@@ -147,25 +148,34 @@ func (i *IndexFile) addBundleVersion(b *PackageVersion) error {
 	return nil
 }
 
+// WriteFile is used to write the index file
+func (i IndexFile) WriteFile(fs afero.Fs, file string) error {
+	f, err := fs.Create(file)
+	if err != nil {
+		return err
+	}
+	return i.writeFile(f)
+}
+
 // Map transforms a slice of paths into a slice of PackageVersion
 //func MapPaths(paths []string, f func(string) PackageVersion) PackageVersions {
 //	pvs := make(PackageVersions, len(paths))
 //
 //}
-func Map(pkgs []*bundle.PackageFiles, url string, creation *time.Time) PackageVersions {
-	return mapPackages(pkgs, url, creation, ToPackageVersion)
+func Map(pkgs []*bundle.PackageFilesDigest, url string) PackageVersions {
+	return mapPackages(pkgs, url, ToPackageVersion)
 }
 
-func mapPackages(packages []*bundle.PackageFiles, url string, creation *time.Time, f func(*bundle.PackageFiles, string, *time.Time) *PackageVersion) PackageVersions {
+func mapPackages(packages []*bundle.PackageFilesDigest, url string, f func(*bundle.PackageFiles, string, string) *PackageVersion) PackageVersions {
 	pvs := make(PackageVersions, len(packages))
 	for i, pkg := range packages {
-		pvs[i] = f(pkg, url, creation)
+		pvs[i] = f(pkg.PkgFiles, pkg.Digest, url)
 	}
 	return pvs
 }
 
 // ToPackageVersion provided the packageFiles will create a PackageVersion (used for index)
-func ToPackageVersion(pf *bundle.PackageFiles, url string, creation *time.Time) *PackageVersion {
+func ToPackageVersion(pf *bundle.PackageFiles, digest string, url string) *PackageVersion {
 	o := pf.Operator
 	if url == "" {
 		url = defaultURL
@@ -180,10 +190,10 @@ func ToPackageVersion(pf *bundle.PackageFiles, url string, creation *time.Time) 
 			Version:     o.Version,
 			Description: o.Description,
 			Maintainers: o.Maintainers,
-			AppVersion: o.AppVersion,
+			AppVersion:  o.AppVersion,
 		},
-		URLs:       []string{url},
-		//Digest:     "",   // todo: add digest
+		URLs:   []string{url},
+		Digest: digest,
 	}
 	return &pv
 }

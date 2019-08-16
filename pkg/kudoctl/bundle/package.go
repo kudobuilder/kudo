@@ -9,6 +9,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/bundle"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	"github.com/pkg/errors"
@@ -40,6 +41,12 @@ type PackageFiles struct {
 	Templates map[string]string
 	Operator  *bundle.Operator
 	Params    []v1alpha1.Parameter
+}
+
+// PackageFilesDigest is a tuple of data used to return the package files AND the digest of tarball
+type PackageFilesDigest struct {
+	PkgFiles *PackageFiles
+	Digest   string
 }
 
 func parsePackageFile(filePath string, fileBytes []byte, currentPackage *PackageFiles) error {
@@ -199,13 +206,13 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 }
 
 // MapPaths maps []string of paths to the [] Operators
-func MapPaths(fs afero.Fs, paths []string) []*PackageFiles {
+func MapPaths(fs afero.Fs, paths []string) []*PackageFilesDigest {
 	return mapPaths(fs, paths, pathToOperator)
 }
 
 // work of map path, swallows errors to return only packages that are valid
-func mapPaths(fs afero.Fs, paths []string, f func(afero.Fs, string) (*PackageFiles, error)) []*PackageFiles {
-	ops := make([]*PackageFiles, len(paths))
+func mapPaths(fs afero.Fs, paths []string, f func(afero.Fs, string) (*PackageFilesDigest, error)) []*PackageFilesDigest {
+	ops := make([]*PackageFilesDigest, len(paths))
 	for i, path := range paths {
 		op, err := f(fs, path)
 		if err != nil {
@@ -219,12 +226,24 @@ func mapPaths(fs afero.Fs, paths []string, f func(afero.Fs, string) (*PackageFil
 }
 
 // pathToOperator takes a single path and returns an operator or error
-func pathToOperator(fs afero.Fs, path string) (*PackageFiles, error) {
+func pathToOperator(fs afero.Fs, path string) (*PackageFilesDigest, error) {
 	reader, err := fs.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	return readerToOperator(reader)
+	digest, err := files.Sha256Sum(reader)
+	if err != nil {
+		return nil, err
+	}
+	// restart reading of file after getting digest
+	reader.Seek(0, io.SeekStart)
+
+	pkg, err := readerToOperator(reader)
+	pfd := &PackageFilesDigest{
+		pkg,
+		digest,
+	}
+	return pfd, err
 }
 
 func readerToOperator(r io.Reader) (*PackageFiles, error) {

@@ -130,7 +130,7 @@ func GetOperatorVersionDependencies(ov *v1alpha1.OperatorVersion) ([]string, err
 }
 
 // IndexDirectory creates an index file for the operators in the path
-func (r *OperatorRepository) IndexDirectory(fs afero.Fs, path string, target string, url string, now *time.Time) ([]string, error) {
+func (r *OperatorRepository) IndexDirectory(fs afero.Fs, path string, target string, url string, now *time.Time) (*IndexFile, error) {
 	archives, err := afero.Glob(fs, filepath.Join(path, "*.tgz"))
 	if err != nil {
 		return nil, err
@@ -140,17 +140,10 @@ func (r *OperatorRepository) IndexDirectory(fs afero.Fs, path string, target str
 	}
 	index := newIndexFile(now)
 	ops := bundle.MapPaths(fs, archives)
-	pvs := Map(ops, url, now)
+	pvs := Map(ops, url)
 	for _, pv := range pvs {
 		index.addBundleVersion(pv)
 	}
-	f, _ := fs.Create(target)
-
-	//fmt.Print(index.Generated)
-	//fmt.Print(index.APIVersion)
-	//fmt.Print(index.Entries)
-	//fmt.Print(index.Entries["zookeeper"])
-	writeIndexFile(index, f)
-	// from []string to
-	return archives, nil
+	index.sortPackages()
+	return index, nil
 }
