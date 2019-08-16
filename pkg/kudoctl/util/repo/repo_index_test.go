@@ -95,10 +95,9 @@ func getTestBundleVersion(name string, version string) PackageVersion {
 		Metadata: &Metadata{
 			Name:    name,
 			Version: version,
+			AppVersion: "0.7.0",
 		},
 		URLs:       urls,
-		APIVersion: "v1aplha1",
-		AppVersion: "0.7.0",
 	}
 	return bv
 }

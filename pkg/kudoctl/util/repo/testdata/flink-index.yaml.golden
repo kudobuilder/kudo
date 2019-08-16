@@ -1,8 +1,7 @@
 apiVersion: v1
 entries:
   flink:
-  - apiVersion: v1aplha1
-    appVersion: 0.7.0
+  - appVersion: 0.7.0
     name: flink
     urls:
     - http://kudo.dev/flink

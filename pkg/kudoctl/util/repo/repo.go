@@ -20,6 +20,9 @@ type Metadata struct {
 	// Version is a A SemVer 2 conformant version string of the operator.
 	Version string `protobuf:"bytes,4,opt,name=version" json:"version,omitempty"`
 
+	// AppVersion is the underlying service version (the format is not in our control)
+	AppVersion string     `json:"appVersion"`
+
 	// The URL to a relevant project page, git repo, or contact person.
 	Home string `json:"home,omitempty"`
 

@@ -30,8 +30,6 @@ type PackageVersions []*PackageVersion
 type PackageVersion struct {
 	*Metadata
 	URLs       []string   `json:"urls"`
-	APIVersion string     `json:"apiVersion"`
-	AppVersion string     `json:"appVersion"`
 	Created    *time.Time `json:"created,omitempty"`
 	Removed    bool       `json:"removed,omitempty"`
 	Digest     string     `json:"digest,omitempty"`
@@ -183,10 +181,9 @@ func ToPackageVersion(pf *bundle.PackageFiles, url string, creation *time.Time) 
 			Version:     o.Version,
 			Description: o.Description,
 			Maintainers: o.Maintainers,
+			AppVersion: o.AppVersion,
 		},
 		URLs:       []string{url},
-		APIVersion: "",
-		AppVersion: o.AppVersion,
 		Created:    creation,
 		//Digest:     "",   // todo: add digest
 	}
