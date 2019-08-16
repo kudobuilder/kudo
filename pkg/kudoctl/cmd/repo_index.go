@@ -83,7 +83,7 @@ func (ri *repoIndexCmd) run() error {
 	}
 	t := time.Now()
 	//todo: need to pass url and need a default for url
-	i, err := repository.IndexDirectory(ri.fs, ri.path, target, "", &t)
+	i, err := repository.IndexDirectory(ri.fs, ri.path, target, ri.url, &t)
 	if err != nil {
 		return err
 	}

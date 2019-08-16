@@ -149,5 +149,4 @@ func TestMapPackageFileToPackageVersion(t *testing.T) {
 	assert.Equal(t, pv.Name, o.Name)
 	assert.Equal(t, pv.Version, o.Version)
 	assert.Equal(t, pv.URLs[0], "http://localhost/kafka-1.0.0.tgz")
-	assert.Equal(t, pv.Created, &now)
 }
