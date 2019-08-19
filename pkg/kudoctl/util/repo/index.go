@@ -3,6 +3,7 @@ package repo
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"sort"
 	"time"
 
@@ -199,4 +200,27 @@ func newIndexFile(t *time.Time) *IndexFile {
 		Generated:  t,
 	}
 	return &i
+}
+
+// IndexDirectory creates an index file for the operators in the path
+func IndexDirectory(fs afero.Fs, path string, url string, now *time.Time) (*IndexFile, error) {
+	archives, err := afero.Glob(fs, filepath.Join(path, "*.tgz"))
+	if err != nil {
+		return nil, err
+	}
+	if len(archives) == 0 {
+		return nil, errors.New("no packages discovered")
+	}
+	index := newIndexFile(now)
+	ops := bundle.MapPaths(fs, archives)
+	pvs := Map(ops, url)
+	for _, pv := range pvs {
+		err = index.addBundleVersion(pv)
+		// on error we report and continue
+		if err != nil {
+			fmt.Print(err.Error())
+		}
+	}
+	index.sortPackages()
+	return index, nil
 }

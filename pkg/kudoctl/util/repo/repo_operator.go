@@ -2,19 +2,15 @@ package repo
 
 import (
 	"fmt"
-	"io"
-	"io/ioutil"
-	"net/url"
-	"path/filepath"
-	"strings"
-	"time"
-
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
+	"io"
+	"io/ioutil"
+	"net/url"
+	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/afero"
 )
 
 // Repository is an abstraction for a service that can retrieve package bundles
@@ -127,27 +123,4 @@ func GetOperatorVersionDependencies(ov *v1alpha1.OperatorVersion) ([]string, err
 		}
 	}
 	return dependencyOperators, nil
-}
-
-// IndexDirectory creates an index file for the operators in the path
-func (r *OperatorRepository) IndexDirectory(fs afero.Fs, path string, target string, url string, now *time.Time) (*IndexFile, error) {
-	archives, err := afero.Glob(fs, filepath.Join(path, "*.tgz"))
-	if err != nil {
-		return nil, err
-	}
-	if len(archives) == 0 {
-		return nil, errors.New("no packages discovered")
-	}
-	index := newIndexFile(now)
-	ops := bundle.MapPaths(fs, archives)
-	pvs := Map(ops, url)
-	for _, pv := range pvs {
-		err = index.addBundleVersion(pv)
-		// on error we report and continue
-		if err != nil {
-			fmt.Print(err.Error())
-		}
-	}
-	index.sortPackages()
-	return index, nil
 }

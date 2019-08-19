@@ -72,12 +72,8 @@ func (ri *repoIndexCmd) run() error {
 		return err
 	}
 
-	repository, err := repo.NewOperatorRepository(repo.Default)
-	if err != nil {
-		return err
-	}
 	t := time.Now()
-	i, err := repository.IndexDirectory(ri.fs, ri.path, target, ri.url, &t)
+	i, err := repo.IndexDirectory(ri.fs, ri.path, ri.url, &t)
 	if err != nil {
 		return err
 	}
