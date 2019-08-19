@@ -156,11 +156,7 @@ func (i IndexFile) WriteFile(fs afero.Fs, file string) error {
 	return i.writeFile(f)
 }
 
-// Map transforms a slice of paths into a slice of PackageVersion
-//func MapPaths(paths []string, f func(string) PackageVersion) PackageVersions {
-//	pvs := make(PackageVersions, len(paths))
-//
-//}
+// Map transforms a slice of packagefiles with file digests into a slice of PackageVersions
 func Map(pkgs []*bundle.PackageFilesDigest, url string) PackageVersions {
 	return mapPackages(pkgs, url, ToPackageVersion)
 }
@@ -204,18 +200,3 @@ func newIndexFile(t *time.Time) *IndexFile {
 	}
 	return &i
 }
-
-//func MapPackageToBundleVersion(fs afero.Fs, name string) (*PackageVersion, error) {
-//	f, err := fs.Open(name)
-//	if err != nil {
-//		return nil, err
-//	}
-//	defer f.Close()
-//
-//	return mapPackageToBundleVersion(fs, f)
-//}
-//
-//func mapPackageToBundleVersion(fs afero.Fs, r io.Reader) (*PackageVersion, error) {
-//	//	todo: get operator.yaml from
-//	return nil, nil
-//}

@@ -83,7 +83,6 @@ func (ri *repoIndexCmd) run() error {
 	}
 
 	i.WriteFile(fs, target)
-	fmt.Printf("index %v created.\n", target)
-
+	ri.out.Write([]byte(fmt.Sprintf("index %v created.\n", target)))
 	return nil
 }

@@ -142,7 +142,11 @@ func (r *OperatorRepository) IndexDirectory(fs afero.Fs, path string, target str
 	ops := bundle.MapPaths(fs, archives)
 	pvs := Map(ops, url)
 	for _, pv := range pvs {
-		index.addBundleVersion(pv)
+		err = index.addBundleVersion(pv)
+		// on error we report and continue
+		if err != nil {
+			fmt.Print(err.Error())
+		}
 	}
 	index.sortPackages()
 	return index, nil
