@@ -392,13 +392,13 @@ $ kubectl kudo package ../operators/repository/zookeeper/operator/ --destination
   Package created: /Users/kensipe/zookeeper-0.1.0.tgz
 ```
 
-### Update parameters on running operator
+### Update parameters on running operator instance
 
-Every operator can define overridable parameters in `params.yaml`. When installing an operator, you can use the defined defaults or override them with `-p` parameters for `kudo install`.
+Every operator can define overridable parameters in `params.yaml`. When installing an operator and deploying an instance, you can use the defaults or override them with `-p` parameters to `kudo install`.
 
-The `kudo update` command allows you to change these parameters even on an already installed operator. If you have an operator instance in your cluster named `dev-flink` (you can figure out what you have installed with `kubectl get instances`) and that instance exposes a parameter with the name `param` you can change its value with the following command:
+The `kudo update` command allows you to change these parameters even on an already running operator instance. For example, if you have an instance in your cluster named `dev-flink` (you can figure out what you have installed with `kubectl get instances`) and that operator exposes a parameter with the name `param`, you can change its value with the following command:
 
-`kubectl kudo update dev-flink -p param=value`
+`kubectl kudo update --instance dev-flink -p param=value`
 
 ### Upgrade running operator from one version to another
 
