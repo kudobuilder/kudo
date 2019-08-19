@@ -16,11 +16,7 @@ const repoIndexDesc = `
 Read the provided directory and generate an index file based on the packages found.
 
 This tool is used for creating an 'index.yaml' file for a kudo package repository. To
-set an absolute URL to the charts, use '--url' flag.
-
-To merge the generated index with an existing index file, use the '--merge'
-flag. In this case, the charts found in the working directory will be merged
-into the existing index, with local packages taking priority over existing packages.
+set an absolute URL to the operators, use '--url' flag.
 
 # create an index file for all kudo packages in the repo-dir
 	$ kubectl kudo repo index repo-dir`
@@ -56,7 +52,6 @@ func newRepoIndexCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVar(&index.url, "url", "", "URL of the chart repository")
-	//f.BoolVarP(&index.merge, "merge", "", false, "Merge the generated index into the given index")
 	f.BoolVarP(&index.overwrite, "overwrite", "o", false, "Overwrite existing package.")
 
 	return cmd
@@ -77,7 +72,6 @@ func (ri *repoIndexCmd) run() error {
 		return err
 	}
 
-	//todo: move ^^ into index dir
 	repository, err := repo.NewOperatorRepository(repo.Default)
 	if err != nil {
 		return err

@@ -89,7 +89,6 @@ func (i IndexFile) writeFile(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("index: %v", string(b))
 	_, err = w.Write(b)
 	if err != nil {
 		fmt.Printf("err: %v", err)

@@ -216,7 +216,7 @@ func mapPaths(fs afero.Fs, paths []string, f func(afero.Fs, string) (*PackageFil
 	for i, path := range paths {
 		op, err := f(fs, path)
 		if err != nil {
-			//	//todo: log and continue
+			fmt.Printf("WARNING: operator: %v is invalid", path)
 			continue
 		}
 		ops[i] = op
