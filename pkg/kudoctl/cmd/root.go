@@ -58,6 +58,7 @@ and serves as an API aggregation layer.
 	cmd.AddCommand(newUpdateCmd())
 	cmd.AddCommand(newPackageCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newGetCmd())
+	cmd.AddCommand(newInitCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newPlanCmd())
 	cmd.AddCommand(newRepoCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newTestCmd())

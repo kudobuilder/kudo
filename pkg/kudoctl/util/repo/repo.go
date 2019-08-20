@@ -4,7 +4,14 @@ import "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 
 // RepositoryConfiguration represents a collection of parameters for operator repository.
 type RepositoryConfiguration struct {
-	URL string `json:"url"`
+	URL  string `json:"url"`
+	Name string `json:"name"`
+}
+
+// Repositories represents the repositories.yaml file usually in the $KUDO_HOME
+type Repositories struct {
+	Default      string                     `json:"default"`
+	Repositories []*RepositoryConfiguration `json:"repositories"`
 }
 
 // Default initialized repository.

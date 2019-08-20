@@ -21,6 +21,8 @@ type Settings struct {
 	Home kudohome.Home
 	// Debug indicates whether or not Kudo is running in Debug mode.
 	Debug bool
+	// Repo is the name of the repo to use if not default
+	Repo string
 }
 
 // envMap maps flag names to envvars
@@ -28,6 +30,7 @@ var envMap = map[string]string{
 	"debug":      "KUDO_DEBUG",
 	"home":       "KUDO_HOME",
 	"kubeconfig": "KUBECONFIG",
+	"repo":       "KUDO_REPO",
 }
 
 // AddFlags binds flags to the given flagset.
@@ -35,6 +38,7 @@ func (s *Settings) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar((*string)(&s.Home), "home", DefaultKudoHome, "location of your KUDO config.")
 	fs.BoolVar(&s.Debug, "debug", false, "enable verbose output")
 	fs.StringVar(&s.KubeConfig, "kubeconfig", os.Getenv("HOME")+"/.kube/config", "Path to your Kubernetes configuration file")
+	fs.StringVar(&s.Repo, "repo", "testing", "Name of repo to use")
 }
 
 // Init sets values from the environment.
