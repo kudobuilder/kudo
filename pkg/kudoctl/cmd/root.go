@@ -1,18 +1,20 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/env"
 	"github.com/kudobuilder/kudo/pkg/version"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
 	// initialization of filesystem for all commands
-	fs       = afero.NewOsFs()
-	settings env.Settings
+	fs = afero.NewOsFs()
+	// Settings defines global flags and settings
+	Settings env.Settings
 )
 
 // NewKudoctlCmd creates a new root command for kudoctl
@@ -68,8 +70,8 @@ and serves as an API aggregation layer.
 
 func initGlobalFlags(cmd *cobra.Command) {
 	flags := cmd.PersistentFlags()
-	settings.AddFlags(flags)
-	pflag.Parse()
+	Settings.AddFlags(flags)
+	cmd.ParseFlags(os.Args[1:])
 	// set ENV if flags are not used.
-	settings.Init(flags)
+	Settings.Init(flags)
 }
