@@ -15,10 +15,10 @@ import (
 const repoIndexDesc = `
 Read the provided directory and generate an index file based on the packages found.
 
-This tool is used for creating an 'index.yaml' file for a kudo package repository. To
+This tool is used for creating an 'index.yaml' file for a KUDO package repository. To
 set an absolute URL to the operators, use '--url' flag.
 
-# create an index file for all kudo packages in the repo-dir
+# Create an index file for all KUDO packages in the repo-dir.
 	$ kubectl kudo repo index repo-dir`
 
 type repoIndexCmd struct {
@@ -29,13 +29,12 @@ type repoIndexCmd struct {
 	fs        afero.Fs
 }
 
-// newRepoIndexCmd for repo commands such as building a repo index
+// newRepoIndexCmd for repo commands such as building a repo index file.
 func newRepoIndexCmd(fs afero.Fs, out io.Writer) *cobra.Command {
-
 	index := &repoIndexCmd{out: out, fs: fs}
 	cmd := &cobra.Command{
-		Use:   "index [flags] [DIR]",
-		Short: "Generate an index file given a directory containing kudo packages",
+		Use:   "index [flags] <DIR>",
+		Short: "Generate an index file given a directory containing KUDO packages",
 		Long:  repoIndexDesc,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validateRepoIndex(args); err != nil {
@@ -51,22 +50,21 @@ func newRepoIndexCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&index.url, "url", "", "URL of the chart repository")
-	f.BoolVarP(&index.overwrite, "overwrite", "o", false, "Overwrite existing package.")
+	f.StringVar(&index.url, "url", "", "URL of the operator repository")
+	f.BoolVarP(&index.overwrite, "overwrite", "o", false, "Overwrite existing package")
 
 	return cmd
 }
 
 func validateRepoIndex(args []string) error {
 	if len(args) != 1 {
-		return fmt.Errorf("expecting exactly one argument - directory of the operator to package")
+		return fmt.Errorf("expecting exactly one argument - directory containing the operators to package")
 	}
 	return nil
 }
 
 // run returns the errors associated with cmd env
 func (ri *repoIndexCmd) run() error {
-
 	target, err := files.FullPathToTarget(ri.fs, ri.path, "index.yaml", ri.overwrite)
 	if err != nil {
 		return err

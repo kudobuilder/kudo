@@ -17,7 +17,7 @@ import (
 
 const defaultURL = "http://localhost/"
 
-// IndexFile represents the index file in an operator repository
+// IndexFile represents the index file in an operator repository.
 type IndexFile struct {
 	APIVersion string                     `json:"apiVersion"`
 	Entries    map[string]PackageVersions `json:"entries"`
@@ -28,7 +28,7 @@ type IndexFile struct {
 // Implements a sorter on Version.
 type PackageVersions []*PackageVersion
 
-// PackageVersion represents an operator entry in the IndexFile
+// PackageVersion represents an operator entry in the IndexFile.
 type PackageVersion struct {
 	*Metadata
 	URLs    []string `json:"urls"`
@@ -37,15 +37,15 @@ type PackageVersion struct {
 }
 
 // Len returns the length.
-// this is needed to allow sorting of packages
+// This is needed to allow sorting of packages.
 func (b PackageVersions) Len() int { return len(b) }
 
 // Swap swaps the position of two items in the versions slice.
-// this is needed to allow sorting of packages
+// This is needed to allow sorting of packages.
 func (b PackageVersions) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
 
 // Less returns true if the version of entry a is less than the version of entry b.
-// this is needed to allow sorting of packages
+// This is needed to allow sorting of packages.
 func (b PackageVersions) Less(x, y int) bool {
 	// Failed parse pushes to the back.
 	i, err := semver.NewVersion(b[x].Version)
@@ -71,8 +71,8 @@ func (i IndexFile) sortPackages() {
 	}
 }
 
-// parseIndexFile loads an index file and sorts packages inside
-// this will fail if APIVersion is not specified
+// parseIndexFile loads an index file and sorts the included packages by version.
+// The function will fail if `APIVersion` is not specified.
 func parseIndexFile(data []byte) (*IndexFile, error) {
 	i := &IndexFile{}
 	if err := yaml.Unmarshal(data, i); err != nil {

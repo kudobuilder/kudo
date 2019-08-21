@@ -79,7 +79,6 @@ func (b tarBundle) GetPkgFiles() (*PackageFiles, error) {
 
 // GetCRDs returns the server side CRDs
 func (b tarBundle) GetCRDs() (*PackageCRDs, error) {
-
 	p, err := b.GetPkgFiles()
 	if err != nil {
 		return nil, errors.Wrap(err, "while extracting package files")

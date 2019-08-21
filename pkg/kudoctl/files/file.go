@@ -57,7 +57,7 @@ func CopyOperatorToFs(fs afero.Fs, opath string, base string) {
 	})
 }
 
-// FullPathToTarget takes destination path and file name and provides a clean full path while ensure the file does not exist.
+// FullPathToTarget takes destination path and file name and provides a clean full path while optionally ensuring the file does not already exist
 func FullPathToTarget(fs afero.Fs, destination string, name string, overwrite bool) (string, error) {
 	if destination == "." {
 		destination = ""
@@ -76,7 +76,7 @@ func FullPathToTarget(fs afero.Fs, destination string, name string, overwrite bo
 	target := filepath.Clean(name)
 	if exists, _ := afero.Exists(fs, target); exists {
 		if !overwrite {
-			return "", fmt.Errorf("target file \"%v\" exists. Remove or --overwrite", target)
+			return "", fmt.Errorf("target file \"%v\" already exists.", target)
 		}
 	}
 	return target, nil

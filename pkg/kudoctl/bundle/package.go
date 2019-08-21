@@ -43,7 +43,7 @@ type PackageFiles struct {
 	Params    []v1alpha1.Parameter
 }
 
-// PackageFilesDigest is a tuple of data used to return the package files AND the digest of tarball
+// PackageFilesDigest is a tuple of data used to return the package files AND the digest of a tarball
 type PackageFilesDigest struct {
 	PkgFiles *PackageFiles
 	Digest   string

@@ -130,7 +130,6 @@ func TestAddBundleVersionErrorConditions(t *testing.T) {
 }
 
 func TestMapPackageFileToPackageVersion(t *testing.T) {
-
 	o := pkgbundle.Operator{
 		Name:              "kafka",
 		Description:       "",
