@@ -212,7 +212,7 @@ func IndexDirectory(fs afero.Fs, path string, url string, now *time.Time) (*Inde
 		return nil, errors.New("no packages discovered")
 	}
 	index := newIndexFile(now)
-	ops := bundle.MapPaths(fs, archives)
+	ops := bundle.GetFilesDigest(fs, archives)
 	pvs := Map(ops, url)
 	for _, pv := range pvs {
 		err = index.addBundleVersion(pv)

@@ -205,21 +205,21 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 	}, nil
 }
 
-// MapPaths maps []string of paths to the [] Operators
-func MapPaths(fs afero.Fs, paths []string) []*PackageFilesDigest {
+// GetFilesDigest maps []string of paths to the [] Operators
+func GetFilesDigest(fs afero.Fs, paths []string) []*PackageFilesDigest {
 	return mapPaths(fs, paths, pathToOperator)
 }
 
 // work of map path, swallows errors to return only packages that are valid
 func mapPaths(fs afero.Fs, paths []string, f func(afero.Fs, string) (*PackageFilesDigest, error)) []*PackageFilesDigest {
-	ops := make([]*PackageFilesDigest, len(paths))
-	for i, path := range paths {
+	ops := make([]*PackageFilesDigest, 0)
+	for _, path := range paths {
 		op, err := f(fs, path)
 		if err != nil {
 			fmt.Printf("WARNING: operator: %v is invalid", path)
 			continue
 		}
-		ops[i] = op
+		ops = append(ops, op)
 	}
 
 	return ops
