@@ -36,7 +36,7 @@ type PackageVersion struct {
 	Digest  string   `json:"digest,omitempty"`
 }
 
-// Len returns the length.
+// Len returns the number of package versions.
 // This is needed to allow sorting of packages.
 func (b PackageVersions) Len() int { return len(b) }
 
