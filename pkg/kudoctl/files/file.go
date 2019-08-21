@@ -2,13 +2,13 @@ package files
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
 
@@ -59,24 +59,22 @@ func CopyOperatorToFs(fs afero.Fs, opath string, base string) {
 
 // FullPathToTarget takes destination path and file name and provides a clean full path while optionally ensuring the file does not already exist
 func FullPathToTarget(fs afero.Fs, destination string, name string, overwrite bool) (string, error) {
-	if destination == "." {
-		destination = ""
+	if strings.Contains(destination, "~") {
+		userHome, _ := os.UserHomeDir()
+		destination = strings.Replace(destination, "~", userHome, 1)
 	}
-	if destination != "" {
-		if strings.Contains(destination, "~") {
-			userHome, _ := os.UserHomeDir()
-			destination = strings.Replace(destination, "~", userHome, 1)
-		}
-		fi, err := fs.Stat(destination)
-		if err != nil || !fi.Mode().IsDir() {
-			return "", fmt.Errorf("destination \"%v\" is not a proper directory", destination)
-		}
-		name = filepath.Join(destination, name)
+	destination, err := filepath.Abs(destination)
+	if err != nil {
+		return "", err
 	}
-	target := filepath.Clean(name)
+	fi, err := fs.Stat(destination)
+	if err != nil || !fi.Mode().IsDir() {
+		return "", fmt.Errorf("destination \"%v\" is not a proper directory", destination)
+	}
+	target := filepath.Join(destination, name)
 	if exists, _ := afero.Exists(fs, target); exists {
 		if !overwrite {
-			return "", fmt.Errorf("target file \"%v\" already exists.", target)
+			return "", fmt.Errorf("target file \"%v\" already exists", target)
 		}
 	}
 	return target, nil

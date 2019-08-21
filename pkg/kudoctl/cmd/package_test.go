@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
@@ -22,6 +23,8 @@ var packageCmdArgs = []struct {
 
 func TestTableNewBundleCmd(t *testing.T) {
 	fs := afero.NewMemMapFs()
+	testdir, _ := filepath.Abs("")
+	fs.Mkdir(testdir, 0777)
 	files.CopyOperatorToFs(fs, "../bundle/testdata/zk", "/opt")
 	for _, test := range packageCmdArgs {
 		newCmdBundle := newPackageCmd(fs, os.Stdout)
