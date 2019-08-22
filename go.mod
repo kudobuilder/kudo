@@ -24,6 +24,7 @@ require (
 	github.com/huandu/xstrings v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/leodido/go-urn v1.1.0 // indirect
+	github.com/magiconair/properties v1.8.0
 	github.com/markbates/inflect v1.0.4 // indirect
 	github.com/masterminds/sprig v2.18.0+incompatible
 	github.com/onsi/ginkgo v1.7.0 // indirect
