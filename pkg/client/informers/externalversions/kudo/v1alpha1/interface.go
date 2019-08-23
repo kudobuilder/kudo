@@ -22,11 +22,11 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// Instances returns an InstanceInformer.
+	// Instances returns a InstanceInformer.
 	Instances() InstanceInformer
-	// Operators returns an OperatorInformer.
+	// Operators returns a OperatorInformer.
 	Operators() OperatorInformer
-	// OperatorVersions returns an OperatorVersionInformer.
+	// OperatorVersions returns a OperatorVersionInformer.
 	OperatorVersions() OperatorVersionInformer
 	// PlanExecutions returns a PlanExecutionInformer.
 	PlanExecutions() PlanExecutionInformer
@@ -43,17 +43,17 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// Instances returns an InstanceInformer.
+// Instances returns a InstanceInformer.
 func (v *version) Instances() InstanceInformer {
 	return &instanceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// Operators returns an OperatorInformer.
+// Operators returns a OperatorInformer.
 func (v *version) Operators() OperatorInformer {
 	return &operatorInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// OperatorVersions returns an OperatorVersionInformer.
+// OperatorVersions returns a OperatorVersionInformer.
 func (v *version) OperatorVersions() OperatorVersionInformer {
 	return &operatorVersionInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
