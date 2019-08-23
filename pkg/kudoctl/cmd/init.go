@@ -126,6 +126,10 @@ func (i *initCmd) run() error {
 			}
 		}
 
+		if i.wait {
+			manInit.WatchKUDOUntilReady(client, opts, 300)
+		}
+
 	} else {
 		fmt.Fprintln(i.out, "Not installing KUDO manager due to 'client-only' flag having been set")
 	}

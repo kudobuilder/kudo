@@ -11,6 +11,7 @@ import (
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
@@ -131,7 +132,7 @@ func ManagerService(opts Options) *v1.Service {
 
 func generateDeployment(opts Options) *v1beta2.StatefulSet {
 
-	labels := generateLabels(map[string]string{"control-plane": "controller-manager", "controller-tools.k8s.io": "1.0"})
+	labels := managerLabels()
 
 	secretDefaultMode := int32(420)
 	image := opts.Image
@@ -184,6 +185,11 @@ func generateDeployment(opts Options) *v1beta2.StatefulSet {
 	}
 
 	return d
+}
+
+func managerLabels() labels.Set {
+	labels := generateLabels(map[string]string{"control-plane": "controller-manager", "controller-tools.k8s.io": "1.0"})
+	return labels
 }
 
 func generateService(opts Options) *v1.Service {
