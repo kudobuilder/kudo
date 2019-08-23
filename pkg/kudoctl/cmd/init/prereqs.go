@@ -3,60 +3,55 @@ package init
 import (
 	"github.com/ghodss/yaml"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	extensionsclient "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 )
 
-// Install uses Kubernetes client to install KUDO manager.
-func Install(client kubernetes.Interface, opts Options) error {
-	if err := createDeployment(client.ExtensionsV1beta1(), opts); err != nil {
+//Defines the Prerequisites that need to be in place to run the KUDO manager.  This includes setting up the kudo-system namespace and service account
+
+// Install uses Kubernetes client to install KUDO manager prereqs.
+func installPrereqs(client kubernetes.Interface, opts Options) error {
+	if err := installNamespace(client.CoreV1(), opts); err != nil {
 		return err
 	}
 
-	if err := createService(client.CoreV1(), opts.Namespace); err != nil {
+	if err := installServiceAccount(client.CoreV1(), opts); err != nil {
 		return err
 	}
-	if err := createSecret(client.CoreV1(), opts); err != nil {
+	if err := installRoleBindings(client, opts); err != nil {
+		return err
+	}
+	if err := installSecret(client.CoreV1(), opts); err != nil {
 		return err
 	}
 	return nil
 }
 
-func createService(client corev1.ServicesGetter, namespace string) error {
-	obj := generateManagerService(namespace)
-	_, err := client.Services(obj.Namespace).Create(obj)
-	return err
-
-}
-
-// createDeployment creates the KUDO manager Deployment resource.
-func createDeployment(client extensionsclient.DeploymentsGetter, opts Options) error {
-	obj, err := generateManagerDeployment(opts)
-	if err != nil {
-		return err
-	}
-	_, err = client.Deployments(obj.Namespace).Create(obj)
+func installSecret(client corev1.SecretsGetter, opts Options) error {
+	secret := generateWebHookSecret(opts)
+	_, err := client.Secrets(opts.Namespace).Create(secret)
 	return err
 }
 
-// createSecret creates the KUDO secret resource.
-func createSecret(client corev1.SecretsGetter, opts Options) error {
-	o := generateWebHookSecret(opts)
-	_, err := client.Secrets(o.Namespace).Create(o)
+func installRoleBindings(client kubernetes.Interface, opts Options) error {
+	rbac := generateRoleBinding(opts)
+	_, err := client.RbacV1().ClusterRoleBindings().Create(rbac)
 	return err
 }
 
-func generateManagerService(namespace string) *v1.Service {
-	return nil
+func installNamespace(client corev1.NamespacesGetter, opts Options) error {
+	ns := generateSysNamespace(opts.Namespace)
+	_, err := client.Namespaces().Create(ns)
+	return err
 }
 
-func generateManagerDeployment(opts Options) (*v1beta1.Deployment, error) {
-	return nil, nil
+func installServiceAccount(client corev1.ServiceAccountsGetter, opts Options) error {
+	sa := generateServiceAccount(opts)
+	_, err := client.ServiceAccounts(opts.Namespace).Create(sa)
+	return err
 }
 
 // generateSysNamespace builds the system namespace

@@ -6,13 +6,19 @@ import (
 	"github.com/kudobuilder/kudo/pkg/version"
 
 	"github.com/ghodss/yaml"
-	"k8s.io/api/apps/v1beta1"
+	"k8s.io/api/apps/v1beta2"
 	v1 "k8s.io/api/core/v1"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/kubernetes"
+	clientv1beta2 "k8s.io/client-go/kubernetes/typed/apps/v1beta2"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
+
+//Defines the deployment of the KUDO manager and it's service definition.
 
 const (
 	group              = "kudo.dev"
@@ -44,6 +50,45 @@ func NewOptions() Options {
 	}
 }
 
+// Install uses Kubernetes client to install KUDO manager.
+func Install(client kubernetes.Interface, extClient *apiextensionsclient.Clientset, opts Options) error {
+	if err := installPrereqs(client, opts); err != nil {
+		return err
+	}
+	if err := installCrds(extClient); err != nil {
+		return err
+	}
+	if err := installManager(client, opts); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Install uses Kubernetes client to install KUDO manager.
+func installManager(client kubernetes.Interface, opts Options) error {
+
+	if err := installStatefulSet(client.AppsV1beta2(), opts); err != nil {
+		return err
+	}
+
+	if err := installService(client.CoreV1(), opts); err != nil {
+		return err
+	}
+	return nil
+}
+
+func installStatefulSet(client clientv1beta2.StatefulSetsGetter, opts Options) error {
+	ss := generateDeployment(opts)
+	_, err := client.StatefulSets(opts.Namespace).Create(ss)
+	return err
+}
+
+func installService(client corev1.ServicesGetter, opts Options) error {
+	s := generateService(opts)
+	_, err := client.Services(opts.Namespace).Create(s)
+	return err
+}
+
 // DeploymentManifests provides a slice of strings for the deployment and service manifest
 func DeploymentManifests(opts Options) ([]string, error) {
 	s := ManagerService(opts)
@@ -64,7 +109,7 @@ func DeploymentManifests(opts Options) ([]string, error) {
 }
 
 // ManagerDeployment provides the KUDO manager deployment manifest for printing
-func ManagerDeployment(opts Options) *v1beta1.StatefulSet {
+func ManagerDeployment(opts Options) *v1beta2.StatefulSet {
 	dep := generateDeployment(opts)
 
 	dep.TypeMeta = metav1.TypeMeta{
@@ -84,19 +129,19 @@ func ManagerService(opts Options) *v1.Service {
 	return svc
 }
 
-func generateDeployment(opts Options) *v1beta1.StatefulSet {
+func generateDeployment(opts Options) *v1beta2.StatefulSet {
 
 	labels := generateLabels(map[string]string{"control-plane": "controller-manager", "controller-tools.k8s.io": "1.0"})
 
 	secretDefaultMode := int32(420)
 	image := opts.Image
-	d := &v1beta1.StatefulSet{
+	d := &v1beta2.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: opts.Namespace,
 			Name:      "kudo-controller-manager",
 			Labels:    labels,
 		},
-		Spec: v1beta1.StatefulSetSpec{
+		Spec: v1beta2.StatefulSetSpec{
 			Selector:    &metav1.LabelSelector{MatchLabels: labels},
 			ServiceName: "kudo-controller-manager-service",
 			Template: v1.PodTemplateSpec{

@@ -12,8 +12,8 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 const initDesc = `
@@ -108,14 +108,25 @@ func (i *initCmd) run() error {
 
 	// initialize server
 	if !i.clientOnly {
-		_, err := getKubeClient(Settings.KubeConfig)
+		client, err := kube.GetKubeClient(Settings.KubeConfig)
 		if err != nil {
 			return fmt.Errorf("could not get kubernetes client: %s", err)
 		}
-		fmt.Fprintln(i.out, "server initialization not implemented yet!")
+		extClient, err := kube.GetKubeAPIExtClient(Settings.KubeConfig)
+		if err != nil {
+			return fmt.Errorf("could not get kubernetes extension client: %s", err)
+		}
+
+		if err := manInit.Install(client, extClient, opts); err != nil {
+			if apierrors.IsAlreadyExists(err) {
+				fmt.Fprintln(i.out, "Warning: KUDO manager is already installed in the cluster.\n"+
+					"(Use --client-only to suppress this message)")
+			} else {
+				return fmt.Errorf("error installing: %s", err)
+			}
+		}
+
 	} else {
-		//TODO (kensipe): implement the client init
-		//this will be on a separate PR
 		fmt.Fprintln(i.out, "Not installing KUDO manager due to 'client-only' flag having been set")
 	}
 
@@ -139,26 +150,7 @@ func (i *initCmd) YAMLWriter(w io.Writer, manifests []string) error {
 }
 
 func initialize(home kudohome.Home, w io.Writer, settings env.Settings) error {
-	//todo: ensure the home dir is created using settings
+	//TODO (kensipe): implement the client init
+	// on another pr
 	return nil
-}
-
-func getKubeClient(kubeconfig string) (kubernetes.Interface, error) {
-	config, err := configForContext(kubeconfig)
-	if err != nil {
-		return nil, err
-	}
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("could not get Kubernetes client: %s", err)
-	}
-	return client, nil
-}
-
-func configForContext(kubeconfig string) (*rest.Config, error) {
-	config, err := kube.GetConfig(kubeconfig).ClientConfig()
-	if err != nil {
-		return nil, fmt.Errorf("could not get Kubernetes config using configuration %q: %s", kubeconfig, err)
-	}
-	return config, nil
 }

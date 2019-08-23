@@ -5,10 +5,55 @@ import (
 
 	"github.com/ghodss/yaml"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
+
+//Defines the CRDs that the KUDO manager implements and watches.
+
+// Install uses Kubernetes client to install KUDO Crds.
+func installCrds(client *apiextensionsclient.Clientset) error {
+	if err := installOperator(client.ApiextensionsV1beta1()); err != nil {
+		return err
+	}
+	if err := installOperatorVersion(client.ApiextensionsV1beta1()); err != nil {
+		return err
+	}
+	if err := installInstance(client.ApiextensionsV1beta1()); err != nil {
+		return err
+	}
+	if err := installPlanExecution(client.ApiextensionsV1beta1()); err != nil {
+		return err
+	}
+	return nil
+}
+
+func installOperator(client v1beta1.CustomResourceDefinitionsGetter) error {
+	o := generateOperator()
+	_, err := client.CustomResourceDefinitions().Create(o)
+	return err
+}
+
+func installOperatorVersion(client v1beta1.CustomResourceDefinitionsGetter) error {
+	ov := generateOperatorVersion()
+	_, err := client.CustomResourceDefinitions().Create(ov)
+	return err
+}
+
+func installInstance(client v1beta1.CustomResourceDefinitionsGetter) error {
+	instance := generateInstance()
+	_, err := client.CustomResourceDefinitions().Create(instance)
+	return err
+}
+
+func installPlanExecution(client v1beta1.CustomResourceDefinitionsGetter) error {
+	pe := generatePlanExecution()
+	_, err := client.CustomResourceDefinitions().Create(pe)
+	return err
+}
 
 // OperatorCrd provides the Operator CRD manifest for printing
 func OperatorCrd() *apiextv1beta1.CustomResourceDefinition {
