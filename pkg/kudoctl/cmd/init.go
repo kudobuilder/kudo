@@ -60,7 +60,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVarP(&i.image, "kudo-image", "i", "", "Override KUDO manager image")
+	f.StringVarP(&i.image, "kudo-image", "i", "", "Override KUDO manager image and/or version")
 	f.BoolVarP(&i.clientOnly, "client-only", "c", false, "If set does not install KUDO manager")
 	f.BoolVar(&i.dryRun, "dry-run", false, "Do not install local or remote")
 	f.BoolVar(&i.wait, "wait", false, "Block until KUDO manager is running and ready to receive requests")
@@ -70,16 +70,13 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (i *initCmd) run() error {
+	opts := manInit.NewOptions()
+	// if image provide swtich to it.
+	if i.image != "" {
+		opts.Image = i.image
+	}
 
-	//TODO (kensipe): 1. versioning image
-	//TODO (kensipe): 2. how to print crds
-	//TODO (kensipe): 3. debug print crd on deploy
-
-	//todo: write manifest file
-	//todo: install manifest file
-	//todo: use specified image
-	if i.dryRun {
-		opts := manInit.NewOptions()
+	if Settings.Debug {
 		mans, err := manInit.PrereqManifests(opts)
 		if err != nil {
 			return err
@@ -98,6 +95,8 @@ func (i *initCmd) run() error {
 		mans = append(mans, crd...)
 		mans = append(mans, deploy...)
 		i.YAMLWriter(i.out, mans)
+	}
+	if i.dryRun {
 		return nil
 	}
 
@@ -115,6 +114,8 @@ func (i *initCmd) run() error {
 		}
 		fmt.Fprintln(i.out, "server initialization not implemented yet!")
 	} else {
+		//TODO (kensipe): implement the client init
+		//this will be on a separate PR
 		fmt.Fprintln(i.out, "Not installing KUDO manager due to 'client-only' flag having been set")
 	}
 

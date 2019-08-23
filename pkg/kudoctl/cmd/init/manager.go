@@ -25,10 +25,12 @@ const (
 type Options struct {
 	// Version is the version of the manager `0.5.0` for example (must NOT include the `v` in `v0.5.0`)
 	Version string
-	//Namespace to init into (default is kudo-system)
+	// Namespace to init into (default is kudo-system)
 	Namespace string
-
+	// TerminationGracePeriodSeconds defines the termination grace period for a pod
 	TerminationGracePeriodSeconds int64
+	// Image defines the image to be used
+	Image string
 }
 
 // NewOptions provides an option struct with defaults
@@ -38,6 +40,7 @@ func NewOptions() Options {
 		Version:                       version.Get().GitVersion,
 		Namespace:                     defaultns,
 		TerminationGracePeriodSeconds: defaultGracePeriod,
+		Image:                         fmt.Sprintf("kudobuilder/controller:v%v", version.Get().GitVersion),
 	}
 }
 
@@ -86,7 +89,7 @@ func generateDeployment(opts Options) *v1beta1.StatefulSet {
 	labels := generateLabels(map[string]string{"control-plane": "controller-manager", "controller-tools.k8s.io": "1.0"})
 
 	secretDefaultMode := int32(420)
-	image := fmt.Sprintf("kudobuilder/controller:v%v", opts.Version)
+	image := opts.Image
 	d := &v1beta1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: opts.Namespace,
