@@ -1,7 +1,0 @@
-# hugo server --themesDir ... --baseURL=http://0.0.0.0:1313/example
-
-baseURL: https://kudo.dev/
-title: "The Kubernetes Universal Declarative Operator"
-disableKinds: ["taxonomy", "taxonomyTerm"]
-
-# themesDir: ../..
