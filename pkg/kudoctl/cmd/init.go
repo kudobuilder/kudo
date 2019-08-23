@@ -7,6 +7,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/env/kudohome"
+	manInit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 
 	"github.com/spf13/afero"
@@ -70,10 +71,33 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (i *initCmd) run() error {
 
+	//TODO (kensipe): 1. versioning image
+	//TODO (kensipe): 2. how to print crds
+	//TODO (kensipe): 3. debug print crd on deploy
+
 	//todo: write manifest file
 	//todo: install manifest file
 	//todo: use specified image
 	if i.dryRun {
+
+		mans, err := manInit.PrereqManifests()
+		if err != nil {
+			return err
+		}
+
+		crd, err := manInit.CrdManifests()
+		if err != nil {
+			return err
+		}
+
+		deploy, err := manInit.DeploymentManifests()
+		if err != nil {
+			return err
+		}
+
+		mans = append(mans, crd...)
+		mans = append(mans, deploy...)
+		i.YAMLWriter(i.out, mans)
 		return nil
 	}
 
@@ -95,6 +119,22 @@ func (i *initCmd) run() error {
 	}
 
 	return nil
+}
+
+func (i *initCmd) YAMLWriter(w io.Writer, manifests []string) error {
+	for _, manifest := range manifests {
+		if _, err := fmt.Fprintln(w, "---"); err != nil {
+			return err
+		}
+
+		if _, err := fmt.Fprintln(w, manifest); err != nil {
+			return err
+		}
+	}
+
+	// YAML ending document boundary marker
+	_, err := fmt.Fprintln(w, "...")
+	return err
 }
 
 func initialize(home kudohome.Home, w io.Writer, settings env.Settings) error {
