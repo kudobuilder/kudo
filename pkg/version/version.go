@@ -2,7 +2,9 @@ package version
 
 import (
 	"fmt"
+	"os"
 	"runtime"
+	"strings"
 )
 
 // Info contains versioning information.
@@ -25,6 +27,19 @@ func (info Info) String() string {
 func Get() Info {
 	// These variables typically come from -ldflags settings and in
 	// their absence fallback to the settings in pkg/version/base.go
+	// developer fallback for version
+
+	// this only happens when running from a build.  Release runs ARE correct.
+	if strings.Contains(gitVersion, "$Format") {
+		// on dev box, lets use a env var for version
+		gitVersion = os.Getenv("KUDO_DEV_VERSION")
+		if gitVersion == "" {
+			gitVersion = "dev"
+		}
+		gitCommit = "dev"
+		//TODO (kensipe): add debug message!
+	}
+
 	return Info{
 		GitVersion: gitVersion,
 		GitCommit:  gitCommit,

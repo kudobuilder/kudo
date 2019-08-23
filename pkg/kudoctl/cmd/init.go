@@ -79,8 +79,8 @@ func (i *initCmd) run() error {
 	//todo: install manifest file
 	//todo: use specified image
 	if i.dryRun {
-
-		mans, err := manInit.PrereqManifests()
+		opts := manInit.NewOptions()
+		mans, err := manInit.PrereqManifests(opts)
 		if err != nil {
 			return err
 		}
@@ -90,7 +90,7 @@ func (i *initCmd) run() error {
 			return err
 		}
 
-		deploy, err := manInit.DeploymentManifests()
+		deploy, err := manInit.DeploymentManifests(opts)
 		if err != nil {
 			return err
 		}

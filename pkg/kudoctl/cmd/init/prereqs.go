@@ -12,18 +12,16 @@ import (
 	extensionsclient "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 )
 
-const namespace = "kudo-system"
-
 // Install uses Kubernetes client to install KUDO manager.
-func Install(client kubernetes.Interface) error {
-	if err := createDeployment(client.ExtensionsV1beta1()); err != nil {
+func Install(client kubernetes.Interface, opts Options) error {
+	if err := createDeployment(client.ExtensionsV1beta1(), opts); err != nil {
 		return err
 	}
 
-	if err := createService(client.CoreV1(), ""); err != nil {
+	if err := createService(client.CoreV1(), opts.Namespace); err != nil {
 		return err
 	}
-	if err := createSecret(client.CoreV1()); err != nil {
+	if err := createSecret(client.CoreV1(), opts); err != nil {
 		return err
 	}
 	return nil
@@ -37,8 +35,8 @@ func createService(client corev1.ServicesGetter, namespace string) error {
 }
 
 // createDeployment creates the KUDO manager Deployment resource.
-func createDeployment(client extensionsclient.DeploymentsGetter) error {
-	obj, err := generateManagerDeployment()
+func createDeployment(client extensionsclient.DeploymentsGetter, opts Options) error {
+	obj, err := generateManagerDeployment(opts)
 	if err != nil {
 		return err
 	}
@@ -47,8 +45,8 @@ func createDeployment(client extensionsclient.DeploymentsGetter) error {
 }
 
 // createSecret creates the KUDO secret resource.
-func createSecret(client corev1.SecretsGetter) error {
-	o := generateWebHookSecret()
+func createSecret(client corev1.SecretsGetter, opts Options) error {
+	o := generateWebHookSecret(opts)
 	_, err := client.Secrets(o.Namespace).Create(o)
 	return err
 }
@@ -57,12 +55,12 @@ func generateManagerService(namespace string) *v1.Service {
 	return nil
 }
 
-func generateManagerDeployment() (*v1beta1.Deployment, error) {
+func generateManagerDeployment(opts Options) (*v1beta1.Deployment, error) {
 	return nil, nil
 }
 
 // generateSysNamespace builds the system namespace
-func generateSysNamespace() *v1.Namespace {
+func generateSysNamespace(namespace string) *v1.Namespace {
 	labels := generateLabels(map[string]string{"controller-tools.k8s.io": "1.0"})
 	ns := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -75,13 +73,13 @@ func generateSysNamespace() *v1.Namespace {
 }
 
 // generateServiceAccount builds the system account
-func generateServiceAccount() *v1.ServiceAccount {
+func generateServiceAccount(opts Options) *v1.ServiceAccount {
 	labels := generateLabels(map[string]string{})
 	sa := &v1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels:    labels,
 			Name:      "kudo-manager",
-			Namespace: namespace,
+			Namespace: opts.Namespace,
 		},
 	}
 
@@ -89,7 +87,7 @@ func generateServiceAccount() *v1.ServiceAccount {
 }
 
 // generateRoleBinding builds the cluster role binding
-func generateRoleBinding() *rbacv1.ClusterRoleBinding {
+func generateRoleBinding(opts Options) *rbacv1.ClusterRoleBinding {
 	sa := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "kudo-manager-rolebinding",
@@ -102,19 +100,19 @@ func generateRoleBinding() *rbacv1.ClusterRoleBinding {
 		Subjects: []rbacv1.Subject{rbacv1.Subject{
 			Kind:      "ServiceAccount",
 			Name:      "kudo-manager",
-			Namespace: namespace,
+			Namespace: opts.Namespace,
 		}},
 	}
 	return sa
 }
 
 // generateWebHookSecret builds the secret object used for webhooks
-func generateWebHookSecret() *v1.Secret {
+func generateWebHookSecret(opts Options) *v1.Secret {
 	secret := &v1.Secret{
 		Data: make(map[string][]byte),
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kudo-webhook-server-secret",
-			Namespace: namespace,
+			Namespace: opts.Namespace,
 		},
 	}
 
@@ -127,11 +125,11 @@ func generateLabels(labels map[string]string) map[string]string {
 }
 
 // PrereqManifests provides a slice of strings for each pre requisite manifest
-func PrereqManifests() ([]string, error) {
-	ns := Namespace()
-	svc := ServiceAccount()
-	rbac := RoleBinding()
-	secret := WebhookSecret()
+func PrereqManifests(opts Options) ([]string, error) {
+	ns := Namespace(opts.Namespace)
+	svc := ServiceAccount(opts)
+	rbac := RoleBinding(opts)
+	secret := WebhookSecret(opts)
 
 	objs := []runtime.Object{ns, svc, rbac, secret}
 
@@ -148,8 +146,8 @@ func PrereqManifests() ([]string, error) {
 }
 
 // RoleBinding provides the RoleBinding rbac manifest for printing
-func RoleBinding() *rbacv1.ClusterRoleBinding {
-	rbac := generateRoleBinding()
+func RoleBinding(opts Options) *rbacv1.ClusterRoleBinding {
+	rbac := generateRoleBinding(opts)
 	rbac.TypeMeta = metav1.TypeMeta{
 		Kind:       "ClusterRoleBinding",
 		APIVersion: "rbac.authorization.k8s.io/v1",
@@ -158,8 +156,8 @@ func RoleBinding() *rbacv1.ClusterRoleBinding {
 }
 
 // WebhookSecret provides the webhook secret manifest for printing
-func WebhookSecret() *v1.Secret {
-	secret := generateWebHookSecret()
+func WebhookSecret(opts Options) *v1.Secret {
+	secret := generateWebHookSecret(opts)
 	secret.TypeMeta = metav1.TypeMeta{
 		Kind:       "Secret",
 		APIVersion: "v1",
@@ -168,8 +166,8 @@ func WebhookSecret() *v1.Secret {
 }
 
 // ServiceAccount provides the service account manifest for printing
-func ServiceAccount() *v1.ServiceAccount {
-	sa := generateServiceAccount()
+func ServiceAccount(opts Options) *v1.ServiceAccount {
+	sa := generateServiceAccount(opts)
 	sa.TypeMeta = metav1.TypeMeta{
 		Kind:       "ServiceAccount",
 		APIVersion: "v1",
@@ -178,8 +176,8 @@ func ServiceAccount() *v1.ServiceAccount {
 }
 
 // Namespace provides the namespace manifest for printing
-func Namespace() *v1.Namespace {
-	ns := generateSysNamespace()
+func Namespace(namespace string) *v1.Namespace {
+	ns := generateSysNamespace(namespace)
 	ns.TypeMeta = metav1.TypeMeta{
 		Kind:       "Namespace",
 		APIVersion: "v1",

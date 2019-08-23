@@ -10,11 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-const (
-	group   = "kudo.dev"
-	version = "v1alpha1"
-)
-
 // OperatorCrd provides the Operator CRD manifest for printing
 func OperatorCrd() *apiextv1beta1.CustomResourceDefinition {
 	crd := generateOperator()
@@ -68,12 +63,12 @@ func generateOperatorVersion() *apiextv1beta1.CustomResourceDefinition {
 	crd := generateCrd("OperatorVersion", "operatorversions")
 	dependProps := map[string]apiextv1beta1.JSONSchemaProps{
 		"referenceName": apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Name specifies the name of the dependency.  Referenced via this in defaults.config"},
-		"version":       apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Version captures the requirements for what versions of the above object are allowed Example: ^3.1.4"},
+		"crdVersion":    apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Version captures the requirements for what versions of the above object are allowed Example: ^3.1.4"},
 	}
 	paramProps := map[string]apiextv1beta1.JSONSchemaProps{
 		"default":     apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Default is a default value if no paramter is provided by the instance"},
 		"description": apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Description captures a longer description of how the variable will be used"},
-		"displayName": apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Human friendly version of the parameter name"},
+		"displayName": apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Human friendly crdVersion of the parameter name"},
 		"name":        apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Name is the string that should be used in the template file for example, if `name: COUNT` then using the variable in a spec like:  spec:   replicas:  {{ .Params.COUNT }}"},
 		"required":    apiextv1beta1.JSONSchemaProps{Type: "boolean", Description: "Required specifies if the parameter is required to be provided by all instances, or whether a default can suffice"},
 		"trigger":     apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Trigger identifies the plan that gets executed when this parameter changes in the Instance object. Default is `update` if present, or `deploy` if not present"},
@@ -84,7 +79,7 @@ func generateOperatorVersion() *apiextv1beta1.CustomResourceDefinition {
 			Type: "array",
 			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{
 				Type:       "object",
-				Required:   []string{"referenceName", "version"},
+				Required:   []string{"referenceName", "crdVersion"},
 				Properties: dependProps,
 			}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
 		},
@@ -104,7 +99,7 @@ func generateOperatorVersion() *apiextv1beta1.CustomResourceDefinition {
 			Description: "UpgradableFrom lists all OperatorVersions that can upgrade to this OperatorVersion",
 			Items:       &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{Type: "object"}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
 		},
-		"version": apiextv1beta1.JSONSchemaProps{Type: "string"},
+		"crdVersion": apiextv1beta1.JSONSchemaProps{Type: "string"},
 	}
 
 	validationProps := map[string]apiextv1beta1.JSONSchemaProps{
@@ -137,7 +132,7 @@ func generateInstance() *apiextv1beta1.CustomResourceDefinition {
 	crd := generateCrd("Instance", "instances")
 	dependProps := map[string]apiextv1beta1.JSONSchemaProps{
 		"referenceName": apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Name specifies the name of the dependency.  Referenced via this in defaults.config"},
-		"version":       apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Version captures the requirements for what versions of the above object are allowed Example: ^3.1.4"},
+		"crdVersion":    apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Version captures the requirements for what versions of the above object are allowed Example: ^3.1.4"},
 	}
 	specProps := map[string]apiextv1beta1.JSONSchemaProps{
 		"dependencies": apiextv1beta1.JSONSchemaProps{
@@ -145,7 +140,7 @@ func generateInstance() *apiextv1beta1.CustomResourceDefinition {
 			Description: "Dependency references specific",
 			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{
 				Type:       "object",
-				Required:   []string{"referenceName", "version"},
+				Required:   []string{"referenceName", "crdVersion"},
 				Properties: dependProps,
 			}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
 		},
@@ -265,7 +260,7 @@ func generateCrd(kind string, plural string) *apiextv1beta1.CustomResourceDefini
 		},
 		Spec: apiextv1beta1.CustomResourceDefinitionSpec{
 			Group:   group,
-			Version: version,
+			Version: crdVersion,
 			Names: apiextv1beta1.CustomResourceDefinitionNames{
 				Plural:     plural,
 				Singular:   strings.ToLower(kind),
