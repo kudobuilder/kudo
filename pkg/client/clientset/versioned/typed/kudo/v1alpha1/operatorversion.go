@@ -27,7 +27,7 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
-// OperatorVersionsGetter has a method to return an OperatorVersionInterface.
+// OperatorVersionsGetter has a method to return a OperatorVersionInterface.
 // A group's client should implement this interface.
 type OperatorVersionsGetter interface {
 	OperatorVersions(namespace string) OperatorVersionInterface
@@ -53,7 +53,7 @@ type operatorVersions struct {
 	ns     string
 }
 
-// newOperatorVersions returns an OperatorVersions
+// newOperatorVersions returns a OperatorVersions
 func newOperatorVersions(c *KudoV1alpha1Client, namespace string) *operatorVersions {
 	return &operatorVersions{
 		client: c.RESTClient(),
@@ -106,7 +106,7 @@ func (c *operatorVersions) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Watch()
 }
 
-// Create takes the representation of an operatorVersion and creates it.  Returns the server's representation of the operatorVersion, and an error, if there is any.
+// Create takes the representation of a operatorVersion and creates it.  Returns the server's representation of the operatorVersion, and an error, if there is any.
 func (c *operatorVersions) Create(operatorVersion *v1alpha1.OperatorVersion) (result *v1alpha1.OperatorVersion, err error) {
 	result = &v1alpha1.OperatorVersion{}
 	err = c.client.Post().
@@ -118,7 +118,7 @@ func (c *operatorVersions) Create(operatorVersion *v1alpha1.OperatorVersion) (re
 	return
 }
 
-// Update takes the representation of an operatorVersion and updates it. Returns the server's representation of the operatorVersion, and an error, if there is any.
+// Update takes the representation of a operatorVersion and updates it. Returns the server's representation of the operatorVersion, and an error, if there is any.
 func (c *operatorVersions) Update(operatorVersion *v1alpha1.OperatorVersion) (result *v1alpha1.OperatorVersion, err error) {
 	result = &v1alpha1.OperatorVersion{}
 	err = c.client.Put().

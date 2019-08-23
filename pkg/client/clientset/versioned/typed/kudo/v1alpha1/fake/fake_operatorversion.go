@@ -76,7 +76,7 @@ func (c *FakeOperatorVersions) Watch(opts v1.ListOptions) (watch.Interface, erro
 
 }
 
-// Create takes the representation of an operatorVersion and creates it.  Returns the server's representation of the operatorVersion, and an error, if there is any.
+// Create takes the representation of a operatorVersion and creates it.  Returns the server's representation of the operatorVersion, and an error, if there is any.
 func (c *FakeOperatorVersions) Create(operatorVersion *v1alpha1.OperatorVersion) (result *v1alpha1.OperatorVersion, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(operatorversionsResource, c.ns, operatorVersion), &v1alpha1.OperatorVersion{})
@@ -87,7 +87,7 @@ func (c *FakeOperatorVersions) Create(operatorVersion *v1alpha1.OperatorVersion)
 	return obj.(*v1alpha1.OperatorVersion), err
 }
 
-// Update takes the representation of an operatorVersion and updates it. Returns the server's representation of the operatorVersion, and an error, if there is any.
+// Update takes the representation of a operatorVersion and updates it. Returns the server's representation of the operatorVersion, and an error, if there is any.
 func (c *FakeOperatorVersions) Update(operatorVersion *v1alpha1.OperatorVersion) (result *v1alpha1.OperatorVersion, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(operatorversionsResource, c.ns, operatorVersion), &v1alpha1.OperatorVersion{})
