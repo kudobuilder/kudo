@@ -137,6 +137,9 @@ func (i *initCmd) run() error {
 	return nil
 }
 
+// YAMLWriter writes yaml to writer.   Looked into using https://godoc.org/gopkg.in/yaml.v2#NewEncoder which
+// looks like a better way, however the omitted JSON elements are encoded which results in a very verbose output.
+//TODO: Write a Encoder util which uses the "sigs.k8s.io/yaml" library for marshalling
 func (i *initCmd) YAMLWriter(w io.Writer, manifests []string) error {
 	for _, manifest := range manifests {
 		if _, err := fmt.Fprintln(w, "---"); err != nil {
