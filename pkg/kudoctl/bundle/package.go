@@ -2,19 +2,21 @@ package bundle
 
 import (
 	"fmt"
+	"io"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
-
-	"k8s.io/apimachinery/pkg/util/rand"
-
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/bundle"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+
 	"github.com/pkg/errors"
+	"github.com/spf13/afero"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/yaml"
 )
 
@@ -39,6 +41,12 @@ type PackageFiles struct {
 	Templates map[string]string
 	Operator  *bundle.Operator
 	Params    []v1alpha1.Parameter
+}
+
+// PackageFilesDigest is a tuple of data used to return the package files AND the digest of a tarball
+type PackageFilesDigest struct {
+	PkgFiles *PackageFiles
+	Digest   string
 }
 
 func parsePackageFile(filePath string, fileBytes []byte, currentPackage *PackageFiles) error {
@@ -195,4 +203,54 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 		OperatorVersion: fv,
 		Instance:        instance,
 	}, nil
+}
+
+// GetFilesDigest maps []string of paths to the [] Operators
+func GetFilesDigest(fs afero.Fs, paths []string) []*PackageFilesDigest {
+	return mapPaths(fs, paths, pathToOperator)
+}
+
+// work of map path, swallows errors to return only packages that are valid
+func mapPaths(fs afero.Fs, paths []string, f func(afero.Fs, string) (*PackageFilesDigest, error)) []*PackageFilesDigest {
+	ops := make([]*PackageFilesDigest, 0)
+	for _, path := range paths {
+		op, err := f(fs, path)
+		if err != nil {
+			fmt.Printf("WARNING: operator: %v is invalid", path)
+			continue
+		}
+		ops = append(ops, op)
+	}
+
+	return ops
+}
+
+// pathToOperator takes a single path and returns an operator or error
+func pathToOperator(fs afero.Fs, path string) (*PackageFilesDigest, error) {
+	reader, err := fs.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	digest, err := files.Sha256Sum(reader)
+	if err != nil {
+		return nil, err
+	}
+	// restart reading of file after getting digest
+	reader.Seek(0, io.SeekStart)
+
+	pkg, err := readerToOperator(reader)
+	pfd := &PackageFilesDigest{
+		pkg,
+		digest,
+	}
+	return pfd, err
+}
+
+func readerToOperator(r io.Reader) (*PackageFiles, error) {
+	b := NewBundleFromReader(r)
+	pkg, err := b.GetPkgFiles()
+	if err != nil {
+		return nil, err
+	}
+	return pkg, nil
 }

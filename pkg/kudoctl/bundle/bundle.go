@@ -7,8 +7,9 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strings"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
@@ -19,7 +20,10 @@ import (
 
 // Bundle is an abstraction of the collection of files that makes up a package.  It is anything we can retrieve the PackageCRDs from.
 type Bundle interface {
+	// transformed server view
 	GetCRDs() (*PackageCRDs, error)
+	// working with local package files
+	GetPkgFiles() (*PackageFiles, error)
 }
 
 type tarBundle struct {
@@ -68,9 +72,14 @@ func NewBundleFromReader(r io.Reader) Bundle {
 	return tarBundle{r}
 }
 
-func (b tarBundle) GetCRDs() (*PackageCRDs, error) {
+// GetPkgFiles returns the command side package files
+func (b tarBundle) GetPkgFiles() (*PackageFiles, error) {
+	return parseTarPackage(b.reader)
+}
 
-	p, err := parseTarPackage(b.reader)
+// GetCRDs returns the server side CRDs
+func (b tarBundle) GetCRDs() (*PackageCRDs, error) {
+	p, err := b.GetPkgFiles()
 	if err != nil {
 		return nil, errors.Wrap(err, "while extracting package files")
 	}
@@ -78,11 +87,15 @@ func (b tarBundle) GetCRDs() (*PackageCRDs, error) {
 }
 
 func (b fileBundle) GetCRDs() (*PackageCRDs, error) {
-	p, err := fromFolder(b.fs, b.path)
+	p, err := b.GetPkgFiles()
 	if err != nil {
 		return nil, errors.Wrap(err, "while reading package from the file system")
 	}
 	return p.getCRDs()
+}
+
+func (b fileBundle) GetPkgFiles() (*PackageFiles, error) {
+	return fromFolder(b.fs, b.path)
 }
 
 // ToTarBundle takes a path to operator files and creates a tgz of those files with the destination and name provided
@@ -93,7 +106,7 @@ func ToTarBundle(fs afero.Fs, path string, destination string, overwrite bool) (
 	}
 
 	name := packageVersionedName(pkg)
-	target, e := getFullPathToTarget(fs, destination, name, overwrite)
+	target, e := files.FullPathToTarget(fs, destination, fmt.Sprintf("%v.tgz", name), overwrite)
 	if e != nil {
 		return "", e
 	}
@@ -109,31 +122,6 @@ func ToTarBundle(fs afero.Fs, path string, destination string, overwrite bool) (
 
 	err = tarballWriter(fs, path, file)
 	return target, err
-}
-
-// getFullPathToTarget takes destination path and file name and provides a clean full path while ensure the file does not exist.
-func getFullPathToTarget(fs afero.Fs, destination string, name string, overwrite bool) (string, error) {
-	if destination == "." {
-		destination = ""
-	}
-	if destination != "" {
-		if strings.Contains(destination, "~") {
-			userHome, _ := os.UserHomeDir()
-			destination = strings.Replace(destination, "~", userHome, 1)
-		}
-		fi, err := fs.Stat(destination)
-		if err != nil || !fi.Mode().IsDir() {
-			return "", fmt.Errorf("destination \"%v\" is not a proper directory", destination)
-		}
-		name = filepath.Join(destination, name)
-	}
-	target := filepath.Clean(fmt.Sprintf("%v.tgz", name))
-	if exists, _ := afero.Exists(fs, target); exists {
-		if !overwrite {
-			return "", fmt.Errorf("target file exists. Remove or --overwrite. File:%v", target)
-		}
-	}
-	return target, nil
 }
 
 // packageVersionedName provides the version name of a package provided a set of PackageFiles.  Ex. "zookeeper-0.1.0"

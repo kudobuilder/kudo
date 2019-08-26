@@ -7,6 +7,7 @@ type Operator struct {
 	Name              string                        `json:"name"`
 	Description       string                        `json:"description,omitempty"`
 	Version           string                        `json:"version"`
+	AppVersion        string                        `json:"appVersion,omitempty"`
 	KUDOVersion       string                        `json:"kudoVersion,omitempty"`
 	KubernetesVersion string                        `json:"kubernetesVersion,omitempty"`
 	Maintainers       []v1alpha1.Maintainer         `json:"maintainers,omitempty"`

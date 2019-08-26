@@ -38,8 +38,8 @@ func newUpdateCmd() *cobra.Command {
 	var parameters []string
 	updateCmd := &cobra.Command{
 		Use:     "update",
-		Short:   "Update installed KUDO operator.",
-		Long:    `Update installed KUDO operator with new parameters.`,
+		Short:   "Update KUDO operator instance.",
+		Long:    `Update KUDO operator instance with new parameters.`,
 		Example: updateExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Prior to command execution we parse and validate passed parameters
@@ -102,6 +102,6 @@ func update(instanceToUpdate string, kc *kudo.Client, options *updateOptions) er
 	if err != nil {
 		return errors.Wrapf(err, "updating instance %s", instanceToUpdate)
 	}
-	fmt.Printf("Instance %s was updated ヽ(•‿•)ノ", instanceToUpdate)
+	fmt.Printf("Instance %s was updated.", instanceToUpdate)
 	return nil
 }
