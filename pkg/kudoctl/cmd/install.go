@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -46,7 +47,7 @@ func newInstallCmd() *cobra.Command {
 				return errors.WithMessage(err, "could not parse parameters")
 			}
 
-			return install.Run(args, options, &Settings)
+			return install.Run(args, options)
 		},
 	}
 

@@ -3,18 +3,15 @@ package cmd
 import (
 	"os"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/env"
 	"github.com/kudobuilder/kudo/pkg/version"
-
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
 	// initialization of filesystem for all commands
 	fs = afero.NewOsFs()
-	// Settings defines global flags and settings
-	Settings env.Settings
 )
 
 // NewKudoctlCmd creates a new root command for kudoctl
@@ -54,25 +51,18 @@ and serves as an API aggregation layer.
 	}
 
 	cmd.AddCommand(newInstallCmd())
+	cmd.AddCommand(newInitCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newUpgradeCmd())
 	cmd.AddCommand(newUpdateCmd())
 	cmd.AddCommand(newPackageCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newGetCmd())
-	cmd.AddCommand(newInitCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newPlanCmd())
 	cmd.AddCommand(newRepoCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newTestCmd())
 	cmd.AddCommand(newVersionCmd())
-
-	initGlobalFlags(cmd)
+	cmd.PersistentFlags().String("kubeconfig", os.Getenv("HOME")+"/.kube/config", "Path to your Kubernetes configuration file")
+	viper.BindEnv("kubeconfig")
+	viper.BindPFlag("kubeconfig", cmd.PersistentFlags().Lookup("kubeconfig"))
 
 	return cmd
-}
-
-func initGlobalFlags(cmd *cobra.Command) {
-	flags := cmd.PersistentFlags()
-	Settings.AddFlags(flags)
-	cmd.ParseFlags(os.Args[1:])
-	// set ENV if flags are not used.
-	Settings.Init(flags)
 }

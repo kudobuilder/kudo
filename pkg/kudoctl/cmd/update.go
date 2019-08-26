@@ -3,12 +3,12 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -49,7 +49,7 @@ func newUpdateCmd() *cobra.Command {
 			if err != nil {
 				return errors.WithMessage(err, "could not parse parameters")
 			}
-			return runUpdate(args, options, &Settings)
+			return runUpdate(args, options)
 		},
 	}
 
@@ -73,14 +73,14 @@ func validateUpdateCmd(args []string, options *updateOptions) error {
 	return nil
 }
 
-func runUpdate(args []string, options *updateOptions, settings *env.Settings) error {
+func runUpdate(args []string, options *updateOptions) error {
 	err := validateUpdateCmd(args, options)
 	if err != nil {
 		return err
 	}
 	instanceToUpdate := options.InstanceName
 
-	kc, err := kudo.NewClient(options.Namespace, settings.KubeConfig)
+	kc, err := kudo.NewClient(options.Namespace, viper.GetString("kubeconfig"))
 	if err != nil {
 		return errors.Wrap(err, "creating kudo client")
 	}

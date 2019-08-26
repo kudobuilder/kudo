@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 	"github.com/xlab/treeprint"
 )
 
@@ -21,14 +21,14 @@ var DefaultOptions = &Options{
 }
 
 // Run returns the errors associated with cmd env
-func Run(args []string, options *Options, settings *env.Settings) error {
+func Run(args []string, options *Options) error {
 
 	err := validate(args, options)
 	if err != nil {
 		return err
 	}
 
-	kc, err := kudo.NewClient(options.Namespace, settings.KubeConfig)
+	kc, err := kudo.NewClient(options.Namespace, viper.GetString("kubeconfig"))
 	if err != nil {
 		return errors.Wrap(err, "creating kudo client")
 	}

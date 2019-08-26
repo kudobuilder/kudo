@@ -6,9 +6,9 @@ import (
 	"time"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/env"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/xlab/treeprint"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -28,23 +28,23 @@ var (
 )
 
 // RunHistory runs plan history
-func RunHistory(cmd *cobra.Command, args []string, options *HistoryOptions, settings *env.Settings) error {
+func RunHistory(cmd *cobra.Command, args []string, options *HistoryOptions) error {
 
 	instanceFlag, err := cmd.Flags().GetString("instance")
 	if err != nil || instanceFlag == "" {
 		return fmt.Errorf("flag Error: Please set instance flag, e.g. \"--instance=<instanceName>\"")
 	}
 
-	err = planHistory(args, options, settings)
+	err = planHistory(args, options)
 	if err != nil {
 		return fmt.Errorf("client Error: %v", err)
 	}
 	return nil
 }
 
-func planHistory(args []string, options *HistoryOptions, settings *env.Settings) error {
+func planHistory(args []string, options *HistoryOptions) error {
 
-	config, err := clientcmd.BuildConfigFromFlags("", settings.KubeConfig)
+	config, err := clientcmd.BuildConfigFromFlags("", viper.GetString("kubeconfig"))
 	if err != nil {
 		return err
 	}

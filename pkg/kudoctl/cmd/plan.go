@@ -29,7 +29,7 @@ func NewPlanHistoryCmd() *cobra.Command {
 	# View plan status
 	kudoctl plan history <operatorVersion> --instance=<instanceName>`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return plan.RunHistory(cmd, args, options, &Settings)
+			return plan.RunHistory(cmd, args, options)
 		},
 	}
 
@@ -49,7 +49,7 @@ func NewPlanStatusCmd() *cobra.Command {
 	# View plan status
 	kudoctl plan status --instance=<instanceName>`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return plan.RunStatus(cmd, args, options, &Settings)
+			return plan.RunStatus(cmd, args, options)
 		},
 	}
 
