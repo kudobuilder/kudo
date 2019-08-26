@@ -72,7 +72,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (i *initCmd) run() error {
-	opts := manInit.NewOptions()
+	opts := manInit.NewOptions(i.version)
 	// if image provide swtich to it.
 	if i.image != "" {
 		opts.Image = i.image
