@@ -1,13 +1,13 @@
 package init
 
 import (
-	"github.com/ghodss/yaml"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"sigs.k8s.io/yaml"
 )
 
 //Defines the Prerequisites that need to be in place to run the KUDO manager.  This includes setting up the kudo-system namespace and service account

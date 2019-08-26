@@ -5,7 +5,6 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/version"
 
-	"github.com/ghodss/yaml"
 	"k8s.io/api/apps/v1beta2"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -17,6 +16,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientv1beta2 "k8s.io/client-go/kubernetes/typed/apps/v1beta2"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"sigs.k8s.io/yaml"
 )
 
 //Defines the deployment of the KUDO manager and it's service definition.
