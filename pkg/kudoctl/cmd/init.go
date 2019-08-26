@@ -12,8 +12,8 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/kubernetes"
 )
 
 const initDesc = `
@@ -33,14 +33,15 @@ To dump a manifest containing the KUDO deployment YAML, combine the
 `
 
 type initCmd struct {
-	out     io.Writer
-	fs      afero.Fs
-	image   string
-	dryRun  bool
-	output  string
-	version string
-	wait    bool
-	timeout int64
+	out        io.Writer
+	fs         afero.Fs
+	image      string
+	dryRun     bool
+	output     string
+	version    string
+	wait       bool
+	timeout    int64
+	kubeClient kubernetes.Interface
 }
 
 func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
@@ -106,16 +107,19 @@ func (i *initCmd) run() error {
 	}
 
 	// initialize server
-	client, err := kube.GetKubeClient(viper.GetString("kubeconfig"))
-	if err != nil {
-		return fmt.Errorf("could not get kubernetes client: %s", err)
+	if i.kubeClient == nil {
+		client, err := kube.GetKubeClient(viper.GetString("kubeconfig"))
+		if err != nil {
+			return fmt.Errorf("could not get kubernetes client: %s", err)
+		}
+		i.kubeClient = client
 	}
 	extClient, err := kube.GetKubeAPIExtClient(viper.GetString("kubeconfig"))
 	if err != nil {
 		return fmt.Errorf("could not get kubernetes extension client: %s", err)
 	}
 
-	if err := manInit.Install(client, extClient, opts); err != nil {
+	if err := manInit.Install(i.kubeClient, extClient, opts); err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			fmt.Fprintln(i.out, "Warning: KUDO manager is already installed in the cluster.\n"+
 				"(Use --client-only to suppress this message)")
@@ -125,7 +129,7 @@ func (i *initCmd) run() error {
 	}
 
 	if i.wait {
-		manInit.WatchKUDOUntilReady(client, opts, i.timeout)
+		manInit.WatchKUDOUntilReady(i.kubeClient, opts, i.timeout)
 	}
 
 	return nil
