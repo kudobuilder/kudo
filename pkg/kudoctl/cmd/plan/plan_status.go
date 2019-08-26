@@ -6,7 +6,6 @@ import (
 	"log"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/xlab/treeprint"
@@ -16,17 +15,34 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// StatusOptions defines configuration options for the plan status command
-type StatusOptions struct {
-	Instance  string
-	Namespace string
+type statusOptions struct {
+	instance  string
+	namespace string
 }
 
-// DefaultStatusOptions defines default options for plan status
-var DefaultStatusOptions = &StatusOptions{}
+var defaultStatusOptions = &statusOptions{}
 
-// RunStatus runs the plan status command
-func RunStatus(cmd *cobra.Command, args []string, options *StatusOptions) error {
+//NewPlanStatusCmd creates a new command that shows the status of an instance by looking at its current plan
+func NewPlanStatusCmd() *cobra.Command {
+	options := defaultStatusOptions
+	statusCmd := &cobra.Command{
+		Use:   "status",
+		Short: "Shows the status of all plans to an particular instance.",
+		Long: `
+	# View plan status
+	kudoctl plan status --instance=<instanceName>`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runStatus(cmd, args, options)
+		},
+	}
+
+	statusCmd.Flags().StringVar(&options.instance, "instance", "", "The instance name available from 'kubectl get instances'")
+	statusCmd.Flags().StringVar(&options.namespace, "namespace", "default", "The namespace where the instance is running.")
+
+	return statusCmd
+}
+
+func runStatus(cmd *cobra.Command, args []string, options *statusOptions) error {
 
 	instanceFlag, err := cmd.Flags().GetString("instance")
 	if err != nil || instanceFlag == "" {
@@ -40,7 +56,7 @@ func RunStatus(cmd *cobra.Command, args []string, options *StatusOptions) error 
 	return nil
 }
 
-func planStatus(options *StatusOptions) error {
+func planStatus(options *statusOptions) error {
 
 	tree := treeprint.New()
 
@@ -61,7 +77,7 @@ func planStatus(options *StatusOptions) error {
 		Resource: "instances",
 	}
 
-	instObj, err := dynamicClient.Resource(instancesGVR).Namespace(options.Namespace).Get(options.Instance, metav1.GetOptions{})
+	instObj, err := dynamicClient.Resource(instancesGVR).Namespace(options.namespace).Get(options.instance, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -87,7 +103,7 @@ func planStatus(options *StatusOptions) error {
 	}
 
 	//  List all of the Virtual Services.
-	operatorObj, err := dynamicClient.Resource(operatorGVR).Namespace(options.Namespace).Get(operatorVersionNameOfInstance, metav1.GetOptions{})
+	operatorObj, err := dynamicClient.Resource(operatorGVR).Namespace(options.namespace).Get(operatorVersionNameOfInstance, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -114,7 +130,7 @@ func planStatus(options *StatusOptions) error {
 		log.Printf("No active plan exists for instance %s", instance.Name)
 		return nil
 	}
-	activePlanObj, err := dynamicClient.Resource(planExecutionsGVR).Namespace(options.Namespace).Get(instance.Status.ActivePlan.Name, metav1.GetOptions{})
+	activePlanObj, err := dynamicClient.Resource(planExecutionsGVR).Namespace(options.namespace).Get(instance.Status.ActivePlan.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -164,7 +180,7 @@ func planStatus(options *StatusOptions) error {
 		}
 	}
 
-	fmt.Printf("Plan(s) for \"%s\" in namespace \"%s\":\n", instance.Name, options.Namespace)
+	fmt.Printf("Plan(s) for \"%s\" in namespace \"%s\":\n", instance.Name, options.namespace)
 	fmt.Println(tree.String())
 
 	return nil

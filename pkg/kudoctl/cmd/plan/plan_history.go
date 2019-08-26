@@ -6,7 +6,6 @@ import (
 	"time"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/xlab/treeprint"
@@ -16,19 +15,36 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// HistoryOptions defines configuration options for the plan history command
-type HistoryOptions struct {
-	Instance  string
-	Namespace string
+type historyOptions struct {
+	instance  string
+	namespace string
 }
 
 var (
-	// DefaultHistoryOptions defines default options for plan history
-	DefaultHistoryOptions = &HistoryOptions{}
+	defaultHistoryOptions = &historyOptions{}
 )
 
-// RunHistory runs plan history
-func RunHistory(cmd *cobra.Command, args []string, options *HistoryOptions) error {
+// NewPlanHistoryCmd creates a command that shows the plan history of an instance.
+func NewPlanHistoryCmd() *cobra.Command {
+	options := defaultHistoryOptions
+	listCmd := &cobra.Command{
+		Use:   "history",
+		Short: "Lists history to a specific operator-version of an instance.",
+		Long: `
+	# View plan status
+	kudoctl plan history <operatorVersion> --instance=<instanceName>`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runHistory(cmd, args, options)
+		},
+	}
+
+	listCmd.Flags().StringVar(&options.instance, "instance", "", "The instance name.")
+	listCmd.Flags().StringVar(&options.namespace, "namespace", "default", "The namespace where the operator watches for changes.")
+
+	return listCmd
+}
+
+func runHistory(cmd *cobra.Command, args []string, options *historyOptions) error {
 
 	instanceFlag, err := cmd.Flags().GetString("instance")
 	if err != nil || instanceFlag == "" {
@@ -42,7 +58,7 @@ func RunHistory(cmd *cobra.Command, args []string, options *HistoryOptions) erro
 	return nil
 }
 
-func planHistory(args []string, options *HistoryOptions) error {
+func planHistory(args []string, options *historyOptions) error {
 
 	config, err := clientcmd.BuildConfigFromFlags("", viper.GetString("kubeconfig"))
 	if err != nil {
@@ -63,14 +79,14 @@ func planHistory(args []string, options *HistoryOptions) error {
 
 	var labelSelector string
 	if len(args) == 0 {
-		fmt.Printf("History of all plan-executions for instance \"%s\" in namespace \"%s\":\n", options.Instance, options.Namespace)
-		labelSelector = "instance=" + options.Instance
+		fmt.Printf("History of all plan-executions for instance \"%s\" in namespace \"%s\":\n", options.instance, options.namespace)
+		labelSelector = "instance=" + options.instance
 	} else {
-		fmt.Printf("History of plan-executions for instance \"%s\" in namespace \"%s\" to operator-version \"%s\":\n", options.Instance, options.Namespace, args[0])
-		labelSelector = "operator-version=" + args[0] + ", instance=" + options.Instance
+		fmt.Printf("History of plan-executions for instance \"%s\" in namespace \"%s\" to operator-version \"%s\":\n", options.instance, options.namespace, args[0])
+		labelSelector = "operator-version=" + args[0] + ", instance=" + options.instance
 	}
 
-	instObj, err := dynamicClient.Resource(planExecutionsGVR).Namespace(options.Namespace).List(metav1.ListOptions{
+	instObj, err := dynamicClient.Resource(planExecutionsGVR).Namespace(options.namespace).List(metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -92,7 +108,7 @@ func planHistory(args []string, options *HistoryOptions) error {
 	tree := treeprint.New()
 
 	if len(planExecutionList.Items) == 0 {
-		fmt.Printf("No history found for \"%s\" in namespace \"%s\".\n", options.Instance, options.Namespace)
+		fmt.Printf("No history found for \"%s\" in namespace \"%s\".\n", options.instance, options.namespace)
 	} else {
 		for _, i := range planExecutionList.Items {
 			duration := time.Since(i.CreationTimestamp.Time)
