@@ -64,7 +64,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.StringVarP(&i.version, "version", "", "", "Override KUDO manager version of the kudo image")
 	f.StringVarP(&i.output, "output", "o", "", "Output format")
 	f.BoolVar(&i.dryRun, "dry-run", false, "Do not install local or remote")
-	f.BoolVar(&i.wait, "wait", false, "Block until KUDO manager is running and ready to receive requests")
+	f.BoolVarP(&i.wait, "wait", "w", false, "Block until KUDO manager is running and ready to receive requests")
 	f.Int64Var(&i.timeout, "wait-timeout", 300, "Wait timeout to be used")
 
 	return cmd
@@ -80,7 +80,7 @@ func (i *initCmd) run() error {
 
 	//TODO: implement output=yaml|json (define a type for output to constrain)
 	//define an Encoder to replace YAMLWriter
-	if strings.ToLower(i.output) != "yaml" {
+	if strings.ToLower(i.output) == "yaml" {
 		mans, err := manInit.PrereqManifests(opts)
 		if err != nil {
 			return err
