@@ -42,7 +42,7 @@ type Options struct {
 
 // NewOptions provides an option struct with defaults
 func NewOptions(v string) Options {
-	
+
 	if v == "" {
 		v = version.Get().GitVersion
 	}
