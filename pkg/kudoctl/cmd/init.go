@@ -17,19 +17,15 @@ import (
 )
 
 const initDesc = `
-This command installs KUDO Manager onto your Kubernetes Cluster and sets up local configuration in $KUDO_HOME (default ~/.kudo/).
+This command installs KUDO onto your Kubernetes Cluster and sets up local configuration in $KUDO_HOME (default ~/.kudo/).
 
 As with the rest of the KUDO commands, 'kudo init' discovers Kubernetes clusters
 by reading $KUBECONFIG (default '~/.kube/config') and using the default context.
 
-To set up just a local environment, use '--client-only'. That will configure
-$KUDO_HOME, but not attempt to connect to a Kubernetes cluster and install the KUDO Manager.
+When installing KUDO, 'kudo init' will attempt to install the latest released
+version. You can specify an alternative image with '--kudo-image' which is the fully qualified image name replacement or '--version' which will replace the version designation on the standard image.
 
-When installing KUDO manager, 'kudo init' will attempt to install the latest released
-version. You can specify an alternative image with '--kudo-image'.
-
-To dump a manifest containing the KUDO deployment YAML, combine the
-'--dry-run' and '--debug' flags.
+To dump a manifest containing the KUDO deployment YAML, combine the '--dry-run' and '--output=yaml' flags.
 `
 
 type initCmd struct {
@@ -49,7 +45,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Initialize KUDO on both client and server",
+		Short: "Initialize KUDO on the server",
 		Long:  initDesc,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) != 0 {
@@ -92,7 +88,7 @@ func (i *initCmd) run() error {
 			return err
 		}
 
-		deploy, err := manInit.DeploymentManifests(opts)
+		deploy, err := manInit.ManagerManifests(opts)
 		if err != nil {
 			return err
 		}

@@ -93,7 +93,7 @@ func generateRoleBinding(opts Options) *rbacv1.ClusterRoleBinding {
 			Name:     "cluster-admin",
 		},
 		Subjects: []rbacv1.Subject{rbacv1.Subject{
-			Kind:      "ServiceAccount",
+			Kind:      "serviceAccount",
 			Name:      "kudo-manager",
 			Namespace: opts.Namespace,
 		}},
@@ -121,10 +121,10 @@ func generateLabels(labels map[string]string) map[string]string {
 
 // PrereqManifests provides a slice of strings for each pre requisite manifest
 func PrereqManifests(opts Options) ([]string, error) {
-	ns := Namespace(opts.Namespace)
-	svc := ServiceAccount(opts)
-	rbac := RoleBinding(opts)
-	secret := WebhookSecret(opts)
+	ns := namespace(opts.Namespace)
+	svc := serviceAccount(opts)
+	rbac := roleBinding(opts)
+	secret := webhookSecret(opts)
 
 	objs := []runtime.Object{ns, svc, rbac, secret}
 
@@ -140,8 +140,8 @@ func PrereqManifests(opts Options) ([]string, error) {
 	return manifests, nil
 }
 
-// RoleBinding provides the RoleBinding rbac manifest for printing
-func RoleBinding(opts Options) *rbacv1.ClusterRoleBinding {
+// roleBinding provides the roleBinding rbac manifest for printing
+func roleBinding(opts Options) *rbacv1.ClusterRoleBinding {
 	rbac := generateRoleBinding(opts)
 	rbac.TypeMeta = metav1.TypeMeta{
 		Kind:       "ClusterRoleBinding",
@@ -150,8 +150,8 @@ func RoleBinding(opts Options) *rbacv1.ClusterRoleBinding {
 	return rbac
 }
 
-// WebhookSecret provides the webhook secret manifest for printing
-func WebhookSecret(opts Options) *v1.Secret {
+// webhookSecret provides the webhook secret manifest for printing
+func webhookSecret(opts Options) *v1.Secret {
 	secret := generateWebHookSecret(opts)
 	secret.TypeMeta = metav1.TypeMeta{
 		Kind:       "Secret",
@@ -160,21 +160,21 @@ func WebhookSecret(opts Options) *v1.Secret {
 	return secret
 }
 
-// ServiceAccount provides the service account manifest for printing
-func ServiceAccount(opts Options) *v1.ServiceAccount {
+// serviceAccount provides the service account manifest for printing
+func serviceAccount(opts Options) *v1.ServiceAccount {
 	sa := generateServiceAccount(opts)
 	sa.TypeMeta = metav1.TypeMeta{
-		Kind:       "ServiceAccount",
+		Kind:       "serviceAccount",
 		APIVersion: "v1",
 	}
 	return sa
 }
 
-// Namespace provides the namespace manifest for printing
-func Namespace(namespace string) *v1.Namespace {
+// namespace provides the namespace manifest for printing
+func namespace(namespace string) *v1.Namespace {
 	ns := generateSysNamespace(namespace)
 	ns.TypeMeta = metav1.TypeMeta{
-		Kind:       "Namespace",
+		Kind:       "namespace",
 		APIVersion: "v1",
 	}
 	return ns

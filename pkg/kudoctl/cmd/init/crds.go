@@ -55,8 +55,8 @@ func installPlanExecution(client v1beta1.CustomResourceDefinitionsGetter) error 
 	return err
 }
 
-// OperatorCrd provides the Operator CRD manifest for printing
-func OperatorCrd() *apiextv1beta1.CustomResourceDefinition {
+// operatorCrd provides the Operator CRD manifest for printing
+func operatorCrd() *apiextv1beta1.CustomResourceDefinition {
 	crd := generateOperator()
 	crd.TypeMeta = metav1.TypeMeta{
 		Kind:       "CustomResourceDefinition",
@@ -94,8 +94,8 @@ func generateOperator() *apiextv1beta1.CustomResourceDefinition {
 	return crd
 }
 
-// OperatorVersionCrd provides the OperatorVersion CRD manifest for printing
-func OperatorVersionCrd() *apiextv1beta1.CustomResourceDefinition {
+// operatorVersionCrd provides the OperatorVersion CRD manifest for printing
+func operatorVersionCrd() *apiextv1beta1.CustomResourceDefinition {
 	crd := generateOperatorVersion()
 	crd.TypeMeta = metav1.TypeMeta{
 		Kind:       "CustomResourceDefinition",
@@ -163,8 +163,8 @@ func generateOperatorVersion() *apiextv1beta1.CustomResourceDefinition {
 	return crd
 }
 
-// InstanceCrd provides the Instance CRD manifest for printing
-func InstanceCrd() *apiextv1beta1.CustomResourceDefinition {
+// instanceCrd provides the Instance CRD manifest for printing
+func instanceCrd() *apiextv1beta1.CustomResourceDefinition {
 	crd := generateInstance()
 	crd.TypeMeta = metav1.TypeMeta{
 		Kind:       "CustomResourceDefinition",
@@ -216,8 +216,8 @@ func generateInstance() *apiextv1beta1.CustomResourceDefinition {
 	return crd
 }
 
-// PlanExecutionCrd provides the PlanExecution CRD manifest for printing
-func PlanExecutionCrd() *apiextv1beta1.CustomResourceDefinition {
+// planExecutionCrd provides the PlanExecution CRD manifest for printing
+func planExecutionCrd() *apiextv1beta1.CustomResourceDefinition {
 	crd := generatePlanExecution()
 	crd.TypeMeta = metav1.TypeMeta{
 		Kind:       "CustomResourceDefinition",
@@ -324,10 +324,10 @@ func generateCrd(kind string, plural string) *apiextv1beta1.CustomResourceDefini
 
 // CrdManifests provides a slice of strings for each CRD manifest
 func CrdManifests() ([]string, error) {
-	o := OperatorCrd()
-	ov := OperatorVersionCrd()
-	i := InstanceCrd()
-	pe := PlanExecutionCrd()
+	o := operatorCrd()
+	ov := operatorVersionCrd()
+	i := instanceCrd()
+	pe := planExecutionCrd()
 
 	objs := []runtime.Object{o, ov, i, pe}
 

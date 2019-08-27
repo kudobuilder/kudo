@@ -32,7 +32,7 @@ const (
 type Options struct {
 	// Version is the version of the manager `0.5.0` for example (must NOT include the `v` in `v0.5.0`)
 	Version string
-	// Namespace to init into (default is kudo-system)
+	// namespace to init into (default is kudo-system)
 	Namespace string
 	// TerminationGracePeriodSeconds defines the termination grace period for a pod
 	TerminationGracePeriodSeconds int64
@@ -94,10 +94,10 @@ func installService(client corev1.ServicesGetter, opts Options) error {
 	return err
 }
 
-// DeploymentManifests provides a slice of strings for the deployment and service manifest
-func DeploymentManifests(opts Options) ([]string, error) {
-	s := ManagerService(opts)
-	d := ManagerDeployment(opts)
+// ManagerManifests provides a slice of strings for the deployment and service manifest
+func ManagerManifests(opts Options) ([]string, error) {
+	s := managerService(opts)
+	d := managerDeployment(opts)
 
 	objs := []runtime.Object{s, d}
 
@@ -113,8 +113,8 @@ func DeploymentManifests(opts Options) ([]string, error) {
 	return manifests, nil
 }
 
-// ManagerDeployment provides the KUDO manager deployment manifest for printing
-func ManagerDeployment(opts Options) *v1beta2.StatefulSet {
+// managerDeployment provides the KUDO manager deployment manifest for printing
+func managerDeployment(opts Options) *v1beta2.StatefulSet {
 	dep := generateDeployment(opts)
 
 	dep.TypeMeta = metav1.TypeMeta{
@@ -124,8 +124,8 @@ func ManagerDeployment(opts Options) *v1beta2.StatefulSet {
 	return dep
 }
 
-// ManagerService provides the KUDO manager service manifest for printing
-func ManagerService(opts Options) *v1.Service {
+// managerService provides the KUDO manager service manifest for printing
+func managerService(opts Options) *v1.Service {
 	svc := generateService(opts)
 	svc.TypeMeta = metav1.TypeMeta{
 		Kind:       "Service",
