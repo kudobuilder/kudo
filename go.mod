@@ -3,7 +3,7 @@ module github.com/kudobuilder/kudo
 go 1.12
 
 require (
-	cloud.google.com/go v0.38.0
+	cloud.google.com/go v0.38.0 // indirect
 	github.com/Azure/go-autorest/autorest v0.5.0 // indirect
 	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/Masterminds/semver v1.4.2
@@ -27,12 +27,11 @@ require (
 	github.com/magiconair/properties v1.8.0
 	github.com/markbates/inflect v1.0.4 // indirect
 	github.com/masterminds/sprig v2.18.0+incompatible
-	github.com/onsi/ginkgo v1.7.0 // indirect
 	github.com/onsi/gomega v1.4.3
 	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/pmezard/go-difflib v1.0.0
-	github.com/rogpeppe/go-internal v1.2.2
+	github.com/rogpeppe/go-internal v1.2.2 // indirect
 	github.com/spf13/afero v1.2.2
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3

@@ -1,6 +1,5 @@
 ### Project specific
 bin/
-vendor/
 hack/code-gen
 hack/controller-gen
 test/.git-credentials
