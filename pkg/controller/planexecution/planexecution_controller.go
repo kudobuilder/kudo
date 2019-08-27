@@ -75,7 +75,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Define a mapping from the object in the event to one or more objects to
 	// Reconcile. Specifically this calls for a reconciliation of any owned
 	// objects.
-	mapFn := handler.ToRequestsFunc(
+	mapToOwningInstanceActivePlan := handler.ToRequestsFunc(
 		func(a handler.MapObject) []reconcile.Request {
 			owners := a.Meta.GetOwnerReferences()
 			requests := make([]reconcile.Request, 0)
@@ -133,7 +133,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	err = c.Watch(
 		&source.Kind{Type: &appsv1.StatefulSet{}},
 		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFn,
+			ToRequests: mapToOwningInstanceActivePlan,
 		},
 		p)
 	if err != nil {
@@ -142,7 +142,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	err = c.Watch(
 		&source.Kind{Type: &appsv1.Deployment{}},
 		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFn,
+			ToRequests: mapToOwningInstanceActivePlan,
 		},
 		p)
 	if err != nil {
@@ -151,17 +151,42 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	err = c.Watch(
 		&source.Kind{Type: &batchv1.Job{}},
 		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFn,
+			ToRequests: mapToOwningInstanceActivePlan,
 		},
 		p)
 	if err != nil {
 		return err
 	}
 
+	// for instances we're interested in updates of instances owned by some planexecution (instance was created as part of PE)
+	// but also root instances of an operator that might have been updated with new activeplan
 	err = c.Watch(
 		&source.Kind{Type: &kudov1alpha1.Instance{}},
 		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFn,
+			ToRequests: handler.ToRequestsFunc(
+				func(a handler.MapObject) []reconcile.Request {
+					requests := mapToOwningInstanceActivePlan(a)
+					if len(requests) == 0 {
+						inst := &kudov1alpha1.Instance{}
+						err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{
+							Name:      a.Meta.GetName(),
+							Namespace: a.Meta.GetNamespace(),
+						}, inst)
+
+						if err != nil {
+							// for every updated/added instance also trigger reconcile for its active plan
+							requests = append(requests, reconcile.Request{
+								NamespacedName: types.NamespacedName{
+									Name:      inst.Status.ActivePlan.Name,
+									Namespace: inst.Status.ActivePlan.Namespace,
+								},
+							})
+						} else {
+							log.Printf("PlanExecutionController: received event from Instance %s/%s but instance of that name does not exist", a.Meta.GetNamespace(), a.Meta.GetName())
+						}
+					}
+					return requests
+				}),
 		},
 		p)
 	if err != nil {
