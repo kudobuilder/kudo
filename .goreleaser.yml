@@ -24,6 +24,7 @@ builds:
     - 386
     - amd64
     - arm
+    - arm64
 -
   id: "kubectl-kudo"
   binary: kubectl-kudo
