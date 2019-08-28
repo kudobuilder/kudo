@@ -33,7 +33,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/util/health"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -76,7 +75,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Define a mapping from the object in the event to one or more objects to
 	// Reconcile. Specifically this calls for a reconciliation of any owned
 	// objects.
-	mapFn := handler.ToRequestsFunc(
+	mapToOwningInstanceActivePlan := handler.ToRequestsFunc(
 		func(a handler.MapObject) []reconcile.Request {
 			owners := a.Meta.GetOwnerReferences()
 			requests := make([]reconcile.Request, 0)
@@ -134,7 +133,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	err = c.Watch(
 		&source.Kind{Type: &appsv1.StatefulSet{}},
 		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFn,
+			ToRequests: mapToOwningInstanceActivePlan,
 		},
 		p)
 	if err != nil {
@@ -143,7 +142,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	err = c.Watch(
 		&source.Kind{Type: &appsv1.Deployment{}},
 		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFn,
+			ToRequests: mapToOwningInstanceActivePlan,
 		},
 		p)
 	if err != nil {
@@ -152,17 +151,42 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	err = c.Watch(
 		&source.Kind{Type: &batchv1.Job{}},
 		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFn,
+			ToRequests: mapToOwningInstanceActivePlan,
 		},
 		p)
 	if err != nil {
 		return err
 	}
 
+	// for instances we're interested in updates of instances owned by some planexecution (instance was created as part of PE)
+	// but also root instances of an operator that might have been updated with new activeplan
 	err = c.Watch(
 		&source.Kind{Type: &kudov1alpha1.Instance{}},
 		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFn,
+			ToRequests: handler.ToRequestsFunc(
+				func(a handler.MapObject) []reconcile.Request {
+					requests := mapToOwningInstanceActivePlan(a)
+					if len(requests) == 0 {
+						inst := &kudov1alpha1.Instance{}
+						err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{
+							Name:      a.Meta.GetName(),
+							Namespace: a.Meta.GetNamespace(),
+						}, inst)
+
+						if err == nil {
+							// for every updated/added instance also trigger reconcile for its active plan
+							requests = append(requests, reconcile.Request{
+								NamespacedName: types.NamespacedName{
+									Name:      inst.Status.ActivePlan.Name,
+									Namespace: inst.Status.ActivePlan.Namespace,
+								},
+							})
+						} else {
+							log.Printf("PlanExecutionController: received event from Instance %s/%s but instance of that name does not exist", a.Meta.GetNamespace(), a.Meta.GetName())
+						}
+					}
+					return requests
+				}),
 		},
 		p)
 	if err != nil {
@@ -228,6 +252,13 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
+	if instance.Status.ActivePlan.Name != planExecution.Name || instance.Status.ActivePlan.Namespace != planExecution.Namespace {
+		// this can happen for newly created PlanExecution where ActivePlan was not yet set to point to this instance
+		// this will get retried thanks to a watch set up for instance updates
+		log.Printf("instance %s does not have ActivePlan pointing to PlanExecution %s, %s. Instead %s, %s", instance.Name, planExecution.Name, planExecution.Namespace, instance.Status.ActivePlan.Name, instance.Status.ActivePlan.Namespace)
+		return reconcile.Result{}, nil
+	}
+
 	// Check for Suspend set.
 	if planExecution.Spec.Suspend != nil && *planExecution.Spec.Suspend {
 		planExecution.Status.State = kudov1alpha1.PhaseStateSuspend
@@ -244,20 +275,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 	// Before returning from this function, update the status
 	defer r.Update(context.Background(), planExecution)
-
-	// Need to add ownerReference as the Instance.
-	instance.Status.ActivePlan = corev1.ObjectReference{
-		Name:       planExecution.Name,
-		Kind:       planExecution.Kind,
-		Namespace:  planExecution.Namespace,
-		APIVersion: planExecution.APIVersion,
-		UID:        planExecution.UID,
-	}
-	err = r.Update(context.TODO(), instance)
-	if err != nil {
-		r.recorder.Event(planExecution, "Warning", "UpdateError", fmt.Sprintf("Could not update the ActivePlan for (%v): %v", planExecution.Spec.Instance.Name, err))
-		log.Printf("PlanExecutionController: Upate of instance with ActivePlan errored: %v", err)
-	}
 
 	// Get associated OperatorVersion
 	operatorVersion := &kudov1alpha1.OperatorVersion{}
@@ -430,6 +447,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	err = r.Client.Update(context.TODO(), instance)
 	if err != nil {
 		log.Printf("Error updating instance status to %v: %v\n", instance.Status.Status, err)
+		return reconcile.Result{}, err
 	}
 
 	return reconcile.Result{}, nil
