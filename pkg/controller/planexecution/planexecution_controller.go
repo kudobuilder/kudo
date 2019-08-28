@@ -167,6 +167,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				func(a handler.MapObject) []reconcile.Request {
 					requests := mapToOwningInstanceActivePlan(a)
 					if len(requests) == 0 {
+						log.Printf("Found root instance %s", a.Meta.GetName())
 						inst := &kudov1alpha1.Instance{}
 						err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{
 							Name:      a.Meta.GetName(),
