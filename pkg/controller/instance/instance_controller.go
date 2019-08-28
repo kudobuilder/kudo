@@ -101,7 +101,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					instance.Status.ActivePlan.Name == "" {
 
 					log.Printf("InstanceController: Creating a deploy execution plan for the instance %v", instance.Name)
-					err = createPlan(mgr.GetClient(), mgr.GetEventRecorderFor("instance-controller"), mgr.GetScheme(), "deploy", &instance)
+					err = createPlanAndUpdateReference(mgr.GetClient(), mgr.GetEventRecorderFor("instance-controller"), mgr.GetScheme(), "deploy", &instance)
 					if err != nil {
 						log.Printf("InstanceController: Error creating \"%v\" object for \"deploy\": %v", instance.Name, err)
 					}
@@ -264,7 +264,7 @@ func instanceEventFilter(mgr manager.Manager) predicate.Funcs {
 					}
 				}
 
-				if err = createPlan(mgr.GetClient(), mgr.GetEventRecorderFor("instance-controller"), mgr.GetScheme(), planName, new); err != nil {
+				if err = createPlanAndUpdateReference(mgr.GetClient(), mgr.GetEventRecorderFor("instance-controller"), mgr.GetScheme(), planName, new); err != nil {
 					log.Printf("InstanceController: Error creating PlanExecution \"%v\" for instance \"%v\": %v", planName, new.Name, err)
 				}
 			}
@@ -305,7 +305,7 @@ func instanceEventFilter(mgr manager.Manager) predicate.Funcs {
 	}
 }
 
-func createPlan(c client.Client, r record.EventRecorder, scheme *runtime.Scheme, planName string, instance *kudov1alpha1.Instance) error {
+func createPlanAndUpdateReference(c client.Client, r record.EventRecorder, scheme *runtime.Scheme, planName string, instance *kudov1alpha1.Instance) error {
 	ctx := context.TODO()
 
 	planExecution := newPlanExecution(instance, planName, scheme)
@@ -377,7 +377,7 @@ func (r *ReconcileInstance) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	// if this is new create and create and assign a planexecution and return
 	if isNewInstance(instance) {
-		err = createPlan(r.Client, r.recorder, r.scheme, "deploy", instance)
+		err = createPlanAndUpdateReference(r.Client, r.recorder, r.scheme, "deploy", instance)
 		// err or not we return.  If err == nil the controller is done, else requeue
 		return reconcile.Result{}, err
 	}

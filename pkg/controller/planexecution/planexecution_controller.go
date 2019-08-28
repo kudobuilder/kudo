@@ -254,7 +254,9 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 	if instance.Status.ActivePlan.Name != planExecution.Name || instance.Status.ActivePlan.Namespace != planExecution.Namespace {
 		// this can happen for newly created PlanExecution where ActivePlan was not yet set to point to this instance
-		return reconcile.Result{}, fmt.Errorf("instance %s does not have ActivePlan pointing to PlanExecution %s, %s. Instead %s, %s. Retrying", instance.Name, planExecution.Name, planExecution.Namespace, instance.Status.ActivePlan.Name, instance.Status.ActivePlan.Namespace)
+		// this will get retried thanks to a watch set up for instance updates
+		log.Printf("instance %s does not have ActivePlan pointing to PlanExecution %s, %s. Instead %s, %s", instance.Name, planExecution.Name, planExecution.Namespace, instance.Status.ActivePlan.Name, instance.Status.ActivePlan.Namespace)
+		return reconcile.Result{}, nil
 	}
 
 	// Check for Suspend set.
