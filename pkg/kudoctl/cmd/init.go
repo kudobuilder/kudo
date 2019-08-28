@@ -83,7 +83,7 @@ func (i *initCmd) run() error {
 			return err
 		}
 
-		crd, err := manInit.CrdManifests()
+		crd, err := manInit.CRDManifests()
 		if err != nil {
 			return err
 		}

@@ -322,8 +322,8 @@ func generateCrd(kind string, plural string) *apiextv1beta1.CustomResourceDefini
 	return crd
 }
 
-// CrdManifests provides a slice of strings for each CRD manifest
-func CrdManifests() ([]string, error) {
+// CRDManifests provides a slice of strings for each CRD manifest
+func CRDManifests() ([]string, error) {
 	o := operatorCrd()
 	ov := operatorVersionCrd()
 	i := instanceCrd()
