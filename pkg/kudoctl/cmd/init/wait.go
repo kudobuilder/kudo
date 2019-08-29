@@ -13,7 +13,7 @@ import (
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
-// WatchKUDOUntilReady waits for the kudo pod to become available.
+// WatchKUDOUntilReady waits for the KUDO pod to become available.
 //
 // Returns true if it exists. If the timeout was reached and it could not find the pod, it returns false.
 func WatchKUDOUntilReady(client kubernetes.Interface, opts Options, timeout int64) bool {

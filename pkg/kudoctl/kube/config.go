@@ -9,6 +9,12 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+// Client provides access different K8S clients
+type Client struct {
+	KubeClient kubernetes.Interface
+	ExtClient  *apiextensionsclient.Clientset
+}
+
 // GetConfig returns a Kubernetes client config for a given kubeconfig.
 func GetConfig(kubeconfig string) clientcmd.ClientConfig {
 	rules := clientcmd.NewDefaultClientConfigLoadingRules()
@@ -32,7 +38,7 @@ func getRestConfig(kubeconfig string) (*rest.Config, error) {
 }
 
 // GetKubeClient provides k8s client for kubeconfig
-func GetKubeClient(kubeconfig string) (kubernetes.Interface, error) {
+func GetKubeClient(kubeconfig string) (*Client, error) {
 	config, err := getRestConfig(kubeconfig)
 	if err != nil {
 		return nil, err
@@ -41,19 +47,10 @@ func GetKubeClient(kubeconfig string) (kubernetes.Interface, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not get Kubernetes client: %s", err)
 	}
-	return client, nil
-}
-
-// GetKubeAPIExtClient provides a k8s api extension client (required for CRDs)
-func GetKubeAPIExtClient(kubeconfig string) (*apiextensionsclient.Clientset, error) {
-	config, err := getRestConfig(kubeconfig)
-	if err != nil {
-		return nil, err
-	}
-	client, err := apiextensionsclient.NewForConfig(config)
+	extClient, err := apiextensionsclient.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("could not get Kubernetes client: %s", err)
 	}
 
-	return client, nil
+	return &Client{client, extClient}, nil
 }

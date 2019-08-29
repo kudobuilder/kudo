@@ -710,6 +710,21 @@ func GetAPIResource(dClient discovery.DiscoveryInterface, gvk schema.GroupVersio
 	return metav1.APIResource{}, fmt.Errorf("resource type not found")
 }
 
+// WaitForDelete waits for the provide runtime objects to be deleted from cluster
+func WaitForDelete(c *RetryClient, objs []runtime.Object) error {
+	// Wait for resources to be deleted.
+	return wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (done bool, err error) {
+		for _, obj := range objs {
+			err = c.Get(context.TODO(), ObjectKey(obj), obj.DeepCopyObject())
+			if err == nil || !k8serrors.IsNotFound(err) {
+				return false, err
+			}
+		}
+
+		return true, nil
+	})
+}
+
 // WaitForCRDs waits for the provided CRD types to be available in the Kubernetes API.
 func WaitForCRDs(dClient discovery.DiscoveryInterface, crds []runtime.Object) error {
 	waitingFor := []schema.GroupVersionKind{}

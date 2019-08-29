@@ -5,6 +5,7 @@ import (
 
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -163,8 +164,8 @@ func generateOperatorVersion() *apiextv1beta1.CustomResourceDefinition {
 	return crd
 }
 
-// instanceCrd provides the Instance CRD manifest for printing
-func instanceCrd() *apiextv1beta1.CustomResourceDefinition {
+// InstanceCrd provides the Instance CRD manifest for printing
+func InstanceCrd() *apiextv1beta1.CustomResourceDefinition {
 	crd := generateInstance()
 	crd.TypeMeta = metav1.TypeMeta{
 		Kind:       "CustomResourceDefinition",
@@ -324,13 +325,7 @@ func generateCrd(kind string, plural string) *apiextv1beta1.CustomResourceDefini
 
 // CRDManifests provides a slice of strings for each CRD manifest
 func CRDManifests() ([]string, error) {
-	o := operatorCrd()
-	ov := operatorVersionCrd()
-	i := instanceCrd()
-	pe := planExecutionCrd()
-
-	objs := []runtime.Object{o, ov, i, pe}
-
+	objs := CRDs()
 	manifests := make([]string, len(objs))
 	for i, obj := range objs {
 		o, err := yaml.Marshal(obj)
@@ -341,4 +336,14 @@ func CRDManifests() ([]string, error) {
 	}
 
 	return manifests, nil
+}
+
+// CRDs returns the slice of crd objects for KUDO
+func CRDs() []runtime.Object {
+	o := operatorCrd()
+	ov := operatorVersionCrd()
+	i := InstanceCrd()
+	pe := planExecutionCrd()
+
+	return []runtime.Object{o, ov, i, pe}
 }

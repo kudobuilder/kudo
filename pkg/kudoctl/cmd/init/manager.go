@@ -3,11 +3,11 @@ package init
 import (
 	"fmt"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/version"
 
 	"k8s.io/api/apps/v1beta2"
 	v1 "k8s.io/api/core/v1"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -56,14 +56,14 @@ func NewOptions(v string) Options {
 }
 
 // Install uses Kubernetes client to install KUDO manager.
-func Install(client kubernetes.Interface, extClient *apiextensionsclient.Clientset, opts Options) error {
-	if err := installPrereqs(client, opts); err != nil {
+func Install(client *kube.Client, opts Options) error {
+	if err := installPrereqs(client.KubeClient, opts); err != nil {
 		return err
 	}
-	if err := installCrds(extClient); err != nil {
+	if err := installCrds(client.ExtClient); err != nil {
 		return err
 	}
-	if err := installManager(client, opts); err != nil {
+	if err := installManager(client.KubeClient, opts); err != nil {
 		return err
 	}
 	return nil
