@@ -1,14 +1,14 @@
 ---
-kep-number: draft-15
-title: repo
+kep-number: 15
+title: Repository Management
 authors:
   - "@kensipe"
 owners:
   - "@kensipe"
   - "@fabianbaier"
 creation-date: 2019-07-24
-last-updated: 2019-07-24
-status: draft
+last-updated: 2019-08-29
+status: provisional
 ---
 
 # Repository Management
@@ -87,7 +87,7 @@ For convenience it should be possible to have KUDO start a repository service wi
 
 ### Update a Repository
 
-Inspired by Helm, KUDO needs a way to take a repository index and merge it with another index for the purposes of adding operators to a repository.  Example: `kubectl kudo  repo --merge`.
+Inspired by Helm, KUDO needs a way to take a repository index and merge it with another index for the purposes of adding operators to a repository.  Example: `kubectl kudo repo index --merge https://kudo-repo.storage.googleapis.com`. This will create a new index file locally based on operators present and merge the index file from the repo location provided.
 
 ### CLI Repository Help
 
