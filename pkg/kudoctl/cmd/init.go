@@ -50,7 +50,9 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			if len(args) != 0 {
 				return errors.New("this command does not accept arguments")
 			}
-
+			if err := i.validate(); err != nil {
+				return err
+			}
 			return i.run()
 		},
 	}
@@ -64,6 +66,14 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.Int64Var(&i.timeout, "wait-timeout", 300, "Wait timeout to be used")
 
 	return cmd
+}
+
+func (i *initCmd) validate() error {
+	// we do not allow the setting of image and version!
+	if i.image != "" && i.version != "" {
+		return errors.New("specify either 'kudo-image' or 'version', not both")
+	}
+	return nil
 }
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
