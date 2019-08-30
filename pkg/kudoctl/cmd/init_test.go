@@ -58,10 +58,13 @@ func TestInitCmd_exists(t *testing.T) {
 		fs:     afero.NewMemMapFs(),
 		client: &kube.Client{KubeClient: fc},
 	}
+	Settings.Home = "/opt"
+
 	if err := cmd.run(); err == nil {
 		t.Errorf("expected error: %v", err)
 	}
-	expected := "Warning: KUDO is already installed in the cluster."
+	expected := "$KUDO_HOME has been configured at /opt.\n" + "Warning: KUDO is already installed in the cluster.\n" +
+		"(Use --client-only to suppress this message)"
 
 	if !strings.Contains(buf.String(), expected) {
 		t.Errorf("expected %q, got %q", expected, buf.String())
