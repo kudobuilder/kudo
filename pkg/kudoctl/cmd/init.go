@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	manInit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
+	cmdInit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 
 	"github.com/spf13/afero"
@@ -56,8 +56,8 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVarP(&i.image, "kudo-image", "i", "", "Override KUDO manager image and/or version")
-	f.StringVarP(&i.version, "version", "", "", "Override KUDO manager version of the kudo image")
+	f.StringVarP(&i.image, "kudo-image", "i", "", "Override KUDO controller image and/or version")
+	f.StringVarP(&i.version, "version", "", "", "Override KUDO controller version of the KUDO image")
 	f.StringVarP(&i.output, "output", "o", "", "Output format")
 	f.BoolVar(&i.dryRun, "dry-run", false, "Do not install local or remote")
 	f.BoolVarP(&i.wait, "wait", "w", false, "Block until KUDO manager is running and ready to receive requests")
@@ -68,8 +68,8 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (i *initCmd) run() error {
-	opts := manInit.NewOptions(i.version)
-	// if image provide switch to it.
+	opts := cmdInit.NewOptions(i.version)
+	// if image provided switch to it.
 	if i.image != "" {
 		opts.Image = i.image
 	}
@@ -77,17 +77,17 @@ func (i *initCmd) run() error {
 	//TODO: implement output=yaml|json (define a type for output to constrain)
 	//define an Encoder to replace YAMLWriter
 	if strings.ToLower(i.output) == "yaml" {
-		mans, err := manInit.PrereqManifests(opts)
+		mans, err := cmdInit.PrereqManifests(opts)
 		if err != nil {
 			return err
 		}
 
-		crd, err := manInit.CRDManifests()
+		crd, err := cmdInit.CRDManifests()
 		if err != nil {
 			return err
 		}
 
-		deploy, err := manInit.ManagerManifests(opts)
+		deploy, err := cmdInit.ManagerManifests(opts)
 		if err != nil {
 			return err
 		}
@@ -110,17 +110,15 @@ func (i *initCmd) run() error {
 		i.client = client
 	}
 
-	if err := manInit.Install(i.client, opts); err != nil {
+	if err := cmdInit.Install(i.client, opts); err != nil {
 		if apierrors.IsAlreadyExists(err) {
-			fmt.Fprintln(i.out, "Warning: KUDO manager is already installed in the cluster.\n"+
-				"(Use --client-only to suppress this message)")
-		} else {
+			fmt.Fprintln(i.out, "Warning: KUDO is already installed in the cluster.")
 			return fmt.Errorf("error installing: %s", err)
 		}
 	}
 
 	if i.wait {
-		finished := manInit.WatchKUDOUntilReady(i.client.KubeClient, opts, i.timeout)
+		finished := cmdInit.WatchKUDOUntilReady(i.client.KubeClient, opts, i.timeout)
 		if !finished {
 			return errors.New("watch timed out, readiness uncertain")
 		}

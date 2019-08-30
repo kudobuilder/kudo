@@ -121,13 +121,7 @@ func generateLabels(labels map[string]string) map[string]string {
 
 // PrereqManifests provides a slice of strings for each pre requisite manifest
 func PrereqManifests(opts Options) ([]string, error) {
-	ns := namespace(opts.Namespace)
-	svc := serviceAccount(opts)
-	rbac := roleBinding(opts)
-	secret := webhookSecret(opts)
-
-	objs := []runtime.Object{ns, svc, rbac, secret}
-
+	objs := Prereq(opts)
 	manifests := make([]string, len(objs))
 	for i, obj := range objs {
 		o, err := yaml.Marshal(obj)
@@ -138,6 +132,16 @@ func PrereqManifests(opts Options) ([]string, error) {
 	}
 
 	return manifests, nil
+}
+
+// Prereq returns the slice of prerequisite objects for KUDO
+func Prereq(opts Options) []runtime.Object {
+	ns := namespace(opts.Namespace)
+	svc := serviceAccount(opts)
+	rbac := roleBinding(opts)
+	secret := webhookSecret(opts)
+
+	return []runtime.Object{ns, svc, rbac, secret}
 }
 
 // roleBinding provides the roleBinding rbac manifest for printing

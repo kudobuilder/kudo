@@ -55,7 +55,7 @@ func NewOptions(v string) Options {
 	}
 }
 
-// Install uses Kubernetes client to install KUDO manager.
+// Install uses Kubernetes client to install KUDO.
 func Install(client *kube.Client, opts Options) error {
 	if err := installPrereqs(client.KubeClient, opts); err != nil {
 		return err
@@ -69,9 +69,8 @@ func Install(client *kube.Client, opts Options) error {
 	return nil
 }
 
-// Install uses Kubernetes client to install KUDO manager.
+// Install uses Kubernetes client to install KUDO.
 func installManager(client kubernetes.Interface, opts Options) error {
-
 	if err := installStatefulSet(client.AppsV1beta2(), opts); err != nil {
 		return err
 	}

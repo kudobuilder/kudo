@@ -7,7 +7,6 @@ import (
 	"context"
 	"log"
 	"os"
-	"strings"
 	"testing"
 
 	cmdinit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
@@ -52,7 +51,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 
 	// Install all of the CRDs.
 	crds := cmdinit.CRDs()
-	defer deleteCRDs(crds, testClient)
+	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
 	cmd := &initCmd{
@@ -76,41 +75,26 @@ func TestIntegInitForCRDs(t *testing.T) {
 	assert.Nil(t, testClient.Create(context.TODO(), instance))
 }
 
-func deleteCRDs(crds []runtime.Object, testClient *testutils.RetryClient) {
-	for _, crd := range crds {
-		testClient.Delete(context.TODO(), crd)
-	}
-	testutils.WaitForDelete(testClient, crds)
+func deleteInitObjects(client *testutils.RetryClient) {
+	crds := cmdinit.CRDs()
+	prereqs := cmdinit.Prereq(cmdinit.NewOptions(""))
+	deleteCRDs(crds, client)
+	deletePrereq(prereqs, client)
 }
 
-func TestIntegInitWithTimeoutsForCRDs(t *testing.T) {
-	// Kubernetes client caches the types, se we need to re-initialize it.
-	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
-		Scheme: testutils.Scheme(),
-	})
-	assert.Nil(t, err)
+func deleteCRDs(crds []runtime.Object, client *testutils.RetryClient) {
 
-	kclient := getKubeClient(t)
-
-	instance := testutils.NewResource("kudo.dev/v1alpha1", "Instance", "zk", "ns")
-	// Verify that we cannot create the instance, because the test environment is empty.
-	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
-
-	var buf bytes.Buffer
-	cmd := &initCmd{
-		out:     &buf,
-		fs:      afero.NewMemMapFs(),
-		timeout: 1,
-		wait:    true,
-		client:  kclient,
+	for _, crd := range crds {
+		client.Delete(context.TODO(), crd)
 	}
-	err = cmd.run()
-	assert.NotNil(t, err)
+	testutils.WaitForDelete(client, crds)
+}
 
-	expected := "watch timed out, readiness uncertain"
-	if !strings.Contains(err.Error(), expected) {
-		t.Errorf("expected %q, got %q", expected, err.Error())
+func deletePrereq(prereqs []runtime.Object, client *testutils.RetryClient) {
+	for _, prereq := range prereqs {
+		client.Delete(context.TODO(), prereq)
 	}
+	testutils.WaitForDelete(client, prereqs)
 }
 
 func getKubeClient(t *testing.T) *kube.Client {
