@@ -51,6 +51,7 @@ and serves as an API aggregation layer.
 	}
 
 	cmd.AddCommand(newInstallCmd())
+	cmd.AddCommand(newInitCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newUpgradeCmd())
 	cmd.AddCommand(newUpdateCmd())
 	cmd.AddCommand(newPackageCmd(fs, cmd.OutOrStdout()))
