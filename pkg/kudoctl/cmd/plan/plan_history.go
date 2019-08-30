@@ -6,8 +6,8 @@ import (
 	"time"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/env"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/xlab/treeprint"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -15,52 +15,35 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-type historyOptions struct {
-	instance  string
-	namespace string
+// Options are the configurable options for plans
+type Options struct {
+	Instance  string
+	Namespace string
 }
 
 var (
-	defaultHistoryOptions = &historyOptions{}
+	// DefaultHistoryOptions provides the default options for plan history
+	DefaultHistoryOptions = &Options{}
 )
 
-// NewPlanHistoryCmd creates a command that shows the plan history of an instance.
-func NewPlanHistoryCmd() *cobra.Command {
-	options := defaultHistoryOptions
-	listCmd := &cobra.Command{
-		Use:   "history",
-		Short: "Lists history to a specific operator-version of an instance.",
-		Long: `
-	# View plan status
-	kudoctl plan history <operatorVersion> --instance=<instanceName>`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runHistory(cmd, args, options)
-		},
-	}
-
-	listCmd.Flags().StringVar(&options.instance, "instance", "", "The instance name.")
-	listCmd.Flags().StringVar(&options.namespace, "namespace", "default", "The namespace where the operator watches for changes.")
-
-	return listCmd
-}
-
-func runHistory(cmd *cobra.Command, args []string, options *historyOptions) error {
+// RunHistory runs the plan history command
+func RunHistory(cmd *cobra.Command, args []string, options *Options, settings *env.Settings) error {
 
 	instanceFlag, err := cmd.Flags().GetString("instance")
 	if err != nil || instanceFlag == "" {
 		return fmt.Errorf("flag Error: Please set instance flag, e.g. \"--instance=<instanceName>\"")
 	}
 
-	err = planHistory(args, options)
+	err = planHistory(args, options, settings)
 	if err != nil {
 		return fmt.Errorf("client Error: %v", err)
 	}
 	return nil
 }
 
-func planHistory(args []string, options *historyOptions) error {
+func planHistory(args []string, options *Options, settings *env.Settings) error {
 
-	config, err := clientcmd.BuildConfigFromFlags("", viper.GetString("kubeconfig"))
+	config, err := clientcmd.BuildConfigFromFlags("", settings.KubeConfig)
 	if err != nil {
 		return err
 	}
@@ -79,14 +62,14 @@ func planHistory(args []string, options *historyOptions) error {
 
 	var labelSelector string
 	if len(args) == 0 {
-		fmt.Printf("History of all plan-executions for instance \"%s\" in namespace \"%s\":\n", options.instance, options.namespace)
-		labelSelector = "instance=" + options.instance
+		fmt.Printf("History of all plan-executions for instance \"%s\" in namespace \"%s\":\n", options.Instance, options.Namespace)
+		labelSelector = "instance=" + options.Instance
 	} else {
-		fmt.Printf("History of plan-executions for instance \"%s\" in namespace \"%s\" to operator-version \"%s\":\n", options.instance, options.namespace, args[0])
-		labelSelector = "operator-version=" + args[0] + ", instance=" + options.instance
+		fmt.Printf("History of plan-executions for instance \"%s\" in namespace \"%s\" to operator-version \"%s\":\n", options.Instance, options.Namespace, args[0])
+		labelSelector = "operator-version=" + args[0] + ", instance=" + options.Instance
 	}
 
-	instObj, err := dynamicClient.Resource(planExecutionsGVR).Namespace(options.namespace).List(metav1.ListOptions{
+	instObj, err := dynamicClient.Resource(planExecutionsGVR).Namespace(options.Namespace).List(metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -108,7 +91,7 @@ func planHistory(args []string, options *historyOptions) error {
 	tree := treeprint.New()
 
 	if len(planExecutionList.Items) == 0 {
-		fmt.Printf("No history found for \"%s\" in namespace \"%s\".\n", options.instance, options.namespace)
+		fmt.Printf("No history found for \"%s\" in namespace \"%s\".\n", options.Instance, options.Namespace)
 	} else {
 		for _, i := range planExecutionList.Items {
 			duration := time.Since(i.CreationTimestamp.Time)

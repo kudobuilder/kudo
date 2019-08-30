@@ -6,12 +6,13 @@ import (
 	"io"
 	"strings"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/env"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/env/kudohome"
 	cmdInit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -28,15 +29,17 @@ To dump a manifest containing the KUDO deployment YAML, combine the '--dry-run' 
 `
 
 type initCmd struct {
-	out     io.Writer
-	fs      afero.Fs
-	image   string
-	dryRun  bool
-	output  string
-	version string
-	wait    bool
-	timeout int64
-	client  *kube.Client
+	out        io.Writer
+	fs         afero.Fs
+	image      string
+	dryRun     bool
+	output     string
+	version    string
+	wait       bool
+	timeout    int64
+	clientOnly bool
+	home       kudohome.Home
+	client     *kube.Client
 }
 
 func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
@@ -53,11 +56,13 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			if err := i.validate(); err != nil {
 				return err
 			}
+			i.home = Settings.Home
 			return i.run()
 		},
 	}
 
 	f := cmd.Flags()
+	f.BoolVarP(&i.clientOnly, "client-only", "c", false, "If set does not install KUDO")
 	f.StringVarP(&i.image, "kudo-image", "i", "", "Override KUDO controller image and/or version")
 	f.StringVarP(&i.version, "version", "", "", "Override KUDO controller version of the KUDO image")
 	f.StringVarP(&i.output, "output", "o", "", "Output format")
@@ -111,26 +116,34 @@ func (i *initCmd) run() error {
 		return nil
 	}
 
+	// initialize client
+	if err := initialize(i.home, i.out, Settings); err != nil {
+		return fmt.Errorf("error initializing: %s", err)
+	}
+	fmt.Fprintf(i.out, "$KUDO_HOME has been configured at %s.\n", Settings.Home)
+
 	// initialize server
-	if i.client == nil {
-		client, err := kube.GetKubeClient(viper.GetString("kubeconfig"))
-		if err != nil {
-			return fmt.Errorf("could not get kubernetes client: %s", err)
+	if !i.clientOnly {
+		if i.client == nil {
+			client, err := kube.GetKubeClient(Settings.KubeConfig)
+			if err != nil {
+				return fmt.Errorf("could not get kubernetes client: %s", err)
+			}
+			i.client = client
 		}
-		i.client = client
-	}
 
-	if err := cmdInit.Install(i.client, opts); err != nil {
-		if apierrors.IsAlreadyExists(err) {
-			fmt.Fprintln(i.out, "Warning: KUDO is already installed in the cluster.")
-			return fmt.Errorf("error installing: %s", err)
+		if err := cmdInit.Install(i.client, opts); err != nil {
+			if apierrors.IsAlreadyExists(err) {
+				fmt.Fprintln(i.out, "Warning: KUDO is already installed in the cluster.")
+				return fmt.Errorf("error installing: %s", err)
+			}
 		}
-	}
 
-	if i.wait {
-		finished := cmdInit.WatchKUDOUntilReady(i.client.KubeClient, opts, i.timeout)
-		if !finished {
-			return errors.New("watch timed out, readiness uncertain")
+		if i.wait {
+			finished := cmdInit.WatchKUDOUntilReady(i.client.KubeClient, opts, i.timeout)
+			if !finished {
+				return errors.New("watch timed out, readiness uncertain")
+			}
 		}
 	}
 
@@ -154,4 +167,10 @@ func (i *initCmd) YAMLWriter(w io.Writer, manifests []string) error {
 	// YAML ending document boundary marker
 	_, err := fmt.Fprintln(w, "...")
 	return err
+}
+
+func initialize(home kudohome.Home, w io.Writer, settings env.Settings) error {
+	//TODO (kensipe): implement the client init
+	// on another pr
+	return nil
 }
