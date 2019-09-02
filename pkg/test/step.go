@@ -106,7 +106,7 @@ func (s *Step) DeleteExisting(namespace string) error {
 			u := &unstructured.UnstructuredList{}
 			u.SetGroupVersionKind(gvk)
 
-			listOptions := []client.ListOptionFunc{}
+			listOptions := []client.ListOption{}
 
 			if ref.Labels != nil {
 				listOptions = append(listOptions, client.MatchingLabels(ref.Labels))
@@ -231,7 +231,7 @@ func (s *Step) CheckResource(expected runtime.Object, namespace string) []error 
 		actual := &unstructured.UnstructuredList{}
 		actual.SetGroupVersionKind(gvk)
 
-		listOptions := []client.ListOptionFunc{}
+		listOptions := []client.ListOption{}
 
 		if namespace != "" {
 			listOptions = append(listOptions, client.InNamespace(namespace))
