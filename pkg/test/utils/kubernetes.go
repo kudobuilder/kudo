@@ -152,22 +152,29 @@ func NewRetryClient(cfg *rest.Config, opts client.Options) (*RetryClient, error)
 }
 
 // Create saves the object obj in the Kubernetes cluster.
-func (r *RetryClient) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOptionFunc) error {
+func (r *RetryClient) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
 	return Retry(ctx, func(ctx context.Context) error {
 		return r.Client.Create(ctx, obj, opts...)
 	}, IsJSONSyntaxError)
 }
 
 // Delete deletes the given obj from Kubernetes cluster.
-func (r *RetryClient) Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOptionFunc) error {
+func (r *RetryClient) Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOption) error {
 	return Retry(ctx, func(ctx context.Context) error {
 		return r.Client.Delete(ctx, obj, opts...)
 	}, IsJSONSyntaxError)
 }
 
+// DeleteAllOf deletes the given obj from Kubernetes cluster.
+func (r *RetryClient) DeleteAllOf(ctx context.Context, obj runtime.Object, opts ...client.DeleteAllOfOption) error {
+	return Retry(ctx, func(ctx context.Context) error {
+		return r.Client.DeleteAllOf(ctx, obj, opts...)
+	}, IsJSONSyntaxError)
+}
+
 // Update updates the given obj in the Kubernetes cluster. obj must be a
 // struct pointer so that obj can be updated with the content returned by the Server.
-func (r *RetryClient) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOptionFunc) error {
+func (r *RetryClient) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
 	return Retry(ctx, func(ctx context.Context) error {
 		return r.Client.Update(ctx, obj, opts...)
 	}, IsJSONSyntaxError)
@@ -175,7 +182,7 @@ func (r *RetryClient) Update(ctx context.Context, obj runtime.Object, opts ...cl
 
 // Patch patches the given obj in the Kubernetes cluster. obj must be a
 // struct pointer so that obj can be updated with the content returned by the Server.
-func (r *RetryClient) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOptionFunc) error {
+func (r *RetryClient) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOption) error {
 	return Retry(ctx, func(ctx context.Context) error {
 		return r.Client.Patch(ctx, obj, patch, opts...)
 	}, IsJSONSyntaxError)
@@ -193,7 +200,7 @@ func (r *RetryClient) Get(ctx context.Context, key client.ObjectKey, obj runtime
 // List retrieves list of objects for a given namespace and list options. On a
 // successful call, Items field in the list will be populated with the
 // result returned from the server.
-func (r *RetryClient) List(ctx context.Context, list runtime.Object, opts ...client.ListOptionFunc) error {
+func (r *RetryClient) List(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
 	return Retry(ctx, func(ctx context.Context) error {
 		return r.Client.List(ctx, list, opts...)
 	}, IsJSONSyntaxError)
@@ -233,7 +240,7 @@ func (r *RetryClient) Status() client.StatusWriter {
 
 // Update updates the given obj in the Kubernetes cluster. obj must be a
 // struct pointer so that obj can be updated with the content returned by the Server.
-func (r *RetryStatusWriter) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOptionFunc) error {
+func (r *RetryStatusWriter) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
 	return Retry(ctx, func(ctx context.Context) error {
 		return r.StatusWriter.Update(ctx, obj, opts...)
 	}, IsJSONSyntaxError)
@@ -241,7 +248,7 @@ func (r *RetryStatusWriter) Update(ctx context.Context, obj runtime.Object, opts
 
 // Patch patches the given obj in the Kubernetes cluster. obj must be a
 // struct pointer so that obj can be updated with the content returned by the Server.
-func (r *RetryStatusWriter) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOptionFunc) error {
+func (r *RetryStatusWriter) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOption) error {
 	return Retry(ctx, func(ctx context.Context) error {
 		return r.StatusWriter.Patch(ctx, obj, patch, opts...)
 	}, IsJSONSyntaxError)
