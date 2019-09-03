@@ -2,7 +2,16 @@ apiVersion: v1
 entries:
   flink:
   - appVersion: 0.7.0
+    description: fancy description is here
+    digest: 0787a078e64c73064287751b833d63ca3d1d284b4f494ebf670443683d5b96dd
+    home: kudo.dev
+    maintainers:
+    - name: Fabian Baier <fabian@mesosphere.io>
+    - name: Tom Runyon <runyontr@gmail.com>
+    - name: Ken Sipe <kensipe@gmail.com>
     name: flink
+    sources:
+    - https://github.com/kudobuilder/kudo
     urls:
     - http://kudo.dev/flink
     version: 0.3.0
