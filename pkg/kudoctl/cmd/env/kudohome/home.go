@@ -20,6 +20,11 @@ func (h Home) Path(elem ...string) string {
 	return filepath.Join(p...)
 }
 
+// Repository returns the path to the local repository.
+func (h Home) Repository() string {
+	return h.Path("repository")
+}
+
 // RepositoryFile returns the path to the repositories.yaml file.
 func (h Home) RepositoryFile() string {
 	return h.Path("repository", "repositories.yaml")

@@ -88,3 +88,9 @@ func Sha256Sum(r io.Reader) (string, error) {
 	}
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
+
+// Exists returns true if the path exists
+func Exists(fs afero.Fs, path string) bool {
+	exists, _ := afero.Exists(fs, path)
+	return exists
+}

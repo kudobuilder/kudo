@@ -6,10 +6,11 @@ import (
 	"io"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/env/kudohome"
 	cmdInit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -121,7 +122,7 @@ func (i *initCmd) run() error {
 	}
 
 	// initialize client
-	if err := initialize(i.home, i.out, Settings); err != nil {
+	if err := i.initialize(); err != nil {
 		return fmt.Errorf("error initializing: %s", err)
 	}
 	fmt.Fprintf(i.out, "$KUDO_HOME has been configured at %s.\n", Settings.Home)
@@ -174,8 +175,39 @@ func (i *initCmd) YAMLWriter(w io.Writer, manifests []string) error {
 	return err
 }
 
-func initialize(home kudohome.Home, w io.Writer, settings env.Settings) error {
-	//TODO (kensipe): implement the client init
-	// on another pr
+//func initialize(fs afero.Fs, settings env.Settings, out io.Writer) error {
+func (i *initCmd) initialize() error {
+
+	if err := ensureDirectories(i.fs, i.home, i.out); err != nil {
+		return err
+	}
+
+	return ensureRepositoryFile(i.fs, i.home, i.out)
+}
+
+func ensureRepositoryFile(fs afero.Fs, home kudohome.Home, out io.Writer) error {
+	if !files.Exists(fs, home.RepositoryFile()) {
+		fmt.Fprintf(out, "Creating %s \n", home.RepositoryFile())
+		r := repo.NewRepoFile()
+		if err := r.WriteFile(fs, home.RepositoryFile(), 0644); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func ensureDirectories(fs afero.Fs, home kudohome.Home, out io.Writer) error {
+	dirs := []string{
+		home.String(),
+		home.Repository(),
+	}
+	for _, dir := range dirs {
+		if !files.Exists(fs, dir) {
+			fmt.Fprintf(out, "Creating %s \n", dir)
+			if err := fs.MkdirAll(dir, 0755); err != nil {
+				return fmt.Errorf("could not create %s: %s", dir, err)
+			}
+		}
+	}
 	return nil
 }
