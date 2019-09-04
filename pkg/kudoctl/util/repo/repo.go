@@ -42,21 +42,6 @@ func NewRepoFile() *Repositories {
 	}
 }
 
-// Add appends a slice of repo configs to repositories file
-func (r Repositories) Add(repo ...*RepositoryConfiguration) {
-	r.Repositories = append(r.Repositories, repo...)
-}
-
-// SetContext switches the context to another repo config in the repositories file.  errors if no repo found.
-func (r Repositories) SetContext(context string) error {
-	repo := r.GetRepo(context)
-	if repo == nil {
-		return fmt.Errorf("no repo found with name: %s", context)
-	}
-	r.Context = context
-	return nil
-}
-
 // GetRepo returns a RepoName Config for a name or nil
 func (r Repositories) GetRepo(name string) *RepositoryConfiguration {
 	for _, repo := range r.Repositories {
@@ -70,21 +55,6 @@ func (r Repositories) GetRepo(name string) *RepositoryConfiguration {
 // CurrentRepo provides the repo config for the current context
 func (r Repositories) CurrentRepo() *RepositoryConfiguration {
 	return r.GetRepo(r.Context)
-}
-
-// Remove removes the repo config with the provided name
-func (r Repositories) Remove(name string) bool {
-	repos := []*RepositoryConfiguration{}
-	found := false
-	for _, repo := range r.Repositories {
-		if repo.Name == name {
-			found = true
-			continue
-		}
-		repos = append(repos, repo)
-	}
-	r.Repositories = repos
-	return found
 }
 
 // LoadRepositories reads the Repositories file
