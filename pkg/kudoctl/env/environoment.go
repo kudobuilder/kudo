@@ -38,9 +38,9 @@ func (s *Settings) AddFlags(fs *pflag.FlagSet) {
 }
 
 // Init sets values from the environment.
-func (s *Settings) Init(fs *pflag.FlagSet) {
+func (s *Settings) Init(f *pflag.FlagSet) {
 	for name, envar := range envMap {
-		setFlagFromEnv(name, envar, fs)
+		setFlagFromEnv(name, envar, f)
 	}
 }
 

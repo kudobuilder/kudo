@@ -54,7 +54,7 @@ and serves as an API aggregation layer.
 		Version: version.Get().GitVersion,
 	}
 
-	cmd.AddCommand(newInstallCmd())
+	cmd.AddCommand(newInstallCmd(fs))
 	cmd.AddCommand(newInitCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newUpgradeCmd())
 	cmd.AddCommand(newUpdateCmd())
