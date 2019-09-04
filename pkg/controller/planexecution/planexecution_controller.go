@@ -23,11 +23,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/kudobuilder/kudo/pkg/engine/builtin"
+
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	apijson "k8s.io/apimachinery/pkg/util/json"
-
-	kudoengine "github.com/kudobuilder/kudo/pkg/engine"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/util/health"
@@ -508,7 +508,7 @@ func populatePlanExecution(activePlan kudov1alpha1.Plan, planExecution *kudov1al
 
 			var objs []runtime.Object
 
-			engine := kudoengine.New()
+			engine := builtin.New()
 			for _, t := range step.Tasks {
 				// resolve task
 				if taskSpec, ok := operatorVersion.Spec.Tasks[t]; ok {
