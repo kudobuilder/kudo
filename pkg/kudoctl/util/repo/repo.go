@@ -57,7 +57,7 @@ func (r Repositories) SetContext(context string) error {
 	return nil
 }
 
-// GetRepo returns a Repo Config for a name or nil
+// GetRepo returns a RepoName Config for a name or nil
 func (r Repositories) GetRepo(name string) *RepositoryConfiguration {
 	for _, repo := range r.Repositories {
 		if repo.Name == name {

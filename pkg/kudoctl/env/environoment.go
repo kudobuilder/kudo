@@ -19,22 +19,22 @@ type Settings struct {
 	KubeConfig string
 	// Home is the local path to kudo home directory
 	Home kudohome.Home
-	// Repo is the name of the repo to use if not default
-	Repo string
+	// RepoName is the name of the repo to use if not default
+	RepoName string
 }
 
 // envMap maps flag names to envvars
 var envMap = map[string]string{
 	"home":       "KUDO_HOME",
 	"kubeconfig": "KUBECONFIG",
-	"repo":       "KUDO_REPO",
+	"repo-name":  "KUDO_REPO_NAME",
 }
 
 // AddFlags binds flags to the given flagset.
 func (s *Settings) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar((*string)(&s.Home), "home", DefaultKudoHome, "location of your KUDO config.")
 	fs.StringVar(&s.KubeConfig, "kubeconfig", os.Getenv("HOME")+"/.kube/config", "Path to your Kubernetes configuration file")
-	fs.StringVar(&s.Repo, "repo", "testing", "Name of repo to use")
+	fs.StringVar(&s.RepoName, "repo-name", "testing", "Name of repo to use")
 }
 
 // Init sets values from the environment.

@@ -14,7 +14,7 @@ func (h Home) String() string {
 }
 
 // Path returns Home with elements appended.
-func (h Home) Path(elem ...string) string {
+func (h Home) path(elem ...string) string {
 	p := []string{h.String()}
 	p = append(p, elem...)
 	return filepath.Join(p...)
@@ -22,10 +22,10 @@ func (h Home) Path(elem ...string) string {
 
 // Repository returns the path to the local repository.
 func (h Home) Repository() string {
-	return h.Path("repository")
+	return h.path("repository")
 }
 
 // RepositoryFile returns the path to the repositories.yaml file.
 func (h Home) RepositoryFile() string {
-	return h.Path("repository", "repositories.yaml")
+	return h.path("repository", "repositories.yaml")
 }
