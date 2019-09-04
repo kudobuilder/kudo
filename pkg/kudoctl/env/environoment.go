@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/env/kudohome"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/util/homedir"

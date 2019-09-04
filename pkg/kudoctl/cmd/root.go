@@ -3,7 +3,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/env"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/version"
 
 	"github.com/spf13/afero"

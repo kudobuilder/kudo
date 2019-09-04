@@ -6,10 +6,10 @@ import (
 	"io"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/env/kudohome"
 	cmdInit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 
 	"github.com/spf13/afero"
