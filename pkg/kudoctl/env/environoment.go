@@ -34,7 +34,7 @@ var envMap = map[string]string{
 func (s *Settings) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar((*string)(&s.Home), "home", DefaultKudoHome, "location of your KUDO config.")
 	fs.StringVar(&s.KubeConfig, "kubeconfig", os.Getenv("HOME")+"/.kube/config", "Path to your Kubernetes configuration file")
-	fs.StringVar(&s.RepoName, "repo-name", "testing", "Name of repo to use")
+	fs.StringVar(&s.RepoName, "repo-name", "community", "Name of repo to use")
 }
 
 // Init sets values from the environment.
