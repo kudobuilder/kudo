@@ -52,6 +52,23 @@ entries:
 	assert.Equal(t, index.Entries["flink"][0].AppVersion, "1.7.2", "flink app version")
 }
 
+// TestParsingGoldenIndex and parses the index file catching marshalling issues.
+func TestParsingGoldenIndex(t *testing.T) {
+
+	file := "flink-index.yaml"
+
+	gp := filepath.Join("testdata", file+".golden")
+
+	g, err := ioutil.ReadFile(gp)
+	if err != nil {
+		t.Fatalf("failed reading .golden: %s", err)
+	}
+	_, err = parseIndexFile(g)
+	if err != nil {
+		t.Fatalf("Unable to parse Index file %s", err)
+	}
+}
+
 func TestWriteIndexFile(t *testing.T) {
 	file := "flink-index.yaml"
 	// Given Index with an operator
@@ -94,11 +111,21 @@ func getTestBundleVersion(name string, version string) PackageVersion {
 	urls := []string{fmt.Sprintf("http://kudo.dev/%v", name)}
 	bv := PackageVersion{
 		Metadata: &Metadata{
-			Name:       name,
-			Version:    version,
-			AppVersion: "0.7.0",
+			Name:        name,
+			Version:     version,
+			AppVersion:  "0.7.0",
+			Home:        "kudo.dev",
+			Sources:     []string{"https://github.com/kudobuilder/kudo"},
+			Description: "fancy description is here",
+			Deprecated:  false,
+			Maintainers: []*Maintainer{
+				&Maintainer{Name: "Fabian Baier", Email: "<fabian@mesosphere.io>"},
+				&Maintainer{Name: "Tom Runyon", Email: "<runyontr@gmail.com>"},
+				&Maintainer{Name: "Ken Sipe", Email: "<kensipe@gmail.com>"}},
 		},
-		URLs: urls,
+		URLs:    urls,
+		Removed: false,
+		Digest:  "0787a078e64c73064287751b833d63ca3d1d284b4f494ebf670443683d5b96dd",
 	}
 	return bv
 }
