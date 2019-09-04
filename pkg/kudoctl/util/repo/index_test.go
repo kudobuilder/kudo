@@ -119,9 +119,9 @@ func getTestBundleVersion(name string, version string) PackageVersion {
 			Description: "fancy description is here",
 			Deprecated:  false,
 			Maintainers: []*Maintainer{
-				&Maintainer{Name: "Fabian Baier <fabian@mesosphere.io>"},
-				&Maintainer{Name: "Tom Runyon <runyontr@gmail.com>"},
-				&Maintainer{Name: "Ken Sipe <kensipe@gmail.com>"}},
+				&Maintainer{Name: "Fabian Baier", Email: "<fabian@mesosphere.io>"},
+				&Maintainer{Name: "Tom Runyon", Email: "<runyontr@gmail.com>"},
+				&Maintainer{Name: "Ken Sipe", Email: "<kensipe@gmail.com>"}},
 		},
 		URLs:    urls,
 		Removed: false,

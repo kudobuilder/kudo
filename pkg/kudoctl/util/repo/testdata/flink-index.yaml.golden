@@ -6,9 +6,12 @@ entries:
     digest: 0787a078e64c73064287751b833d63ca3d1d284b4f494ebf670443683d5b96dd
     home: kudo.dev
     maintainers:
-    - name: Fabian Baier <fabian@mesosphere.io>
-    - name: Tom Runyon <runyontr@gmail.com>
-    - name: Ken Sipe <kensipe@gmail.com>
+    - email: <fabian@mesosphere.io>
+      name: Fabian Baier
+    - email: <runyontr@gmail.com>
+      name: Tom Runyon
+    - email: <kensipe@gmail.com>
+      name: Ken Sipe
     name: flink
     sources:
     - https://github.com/kudobuilder/kudo
