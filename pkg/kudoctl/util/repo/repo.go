@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
 )
@@ -141,7 +140,7 @@ type Metadata struct {
 	Description string `json:"description,omitempty"`
 
 	// Maintainers is a list of name and URL/email addresses of the maintainer(s).
-	Maintainers []v1alpha1.Maintainer `json:"maintainers,omitempty"`
+	Maintainers []*Maintainer `json:"maintainers,omitempty"`
 
 	// Deprecated reflects whether this operator is deprecated.
 	Deprecated bool `json:"deprecated,omitempty"`
