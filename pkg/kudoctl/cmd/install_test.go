@@ -4,12 +4,13 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewCmdInstallReturnsCmd(t *testing.T) {
 
-	newCmdInstall := newInstallCmd()
+	newCmdInstall := newInstallCmd(afero.NewOsFs())
 
 	if newCmdInstall.Parent() != nil {
 		t.Fatal("We expect the newCmdInstall command to be returned")
@@ -41,7 +42,7 @@ var cmdParameterTests = []struct {
 
 func TestTableNewInstallCmd_WithParameters(t *testing.T) {
 	for _, test := range cmdParameterTests {
-		newCmdInstall := newInstallCmd()
+		newCmdInstall := newInstallCmd(afero.NewOsFs())
 		for _, flag := range test.parameters {
 			newCmdInstall.Flags().Set("parameter", flag)
 		}
