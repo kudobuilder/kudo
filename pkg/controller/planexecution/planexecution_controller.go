@@ -20,27 +20,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 
-	apijson "k8s.io/apimachinery/pkg/util/json"
-
-	kudoengine "github.com/kudobuilder/kudo/pkg/engine"
-
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/util/health"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -295,6 +287,13 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
+	params, err := getParameters(instance, operatorVersion)
+	if err != nil {
+		log.Printf("PlanExecutionController: %v", err)
+		r.recorder.Event(planExecution, "Warning", "MissingParameter", err.Error())
+		return reconcile.Result{}, nil // do not retry this error
+	}
+
 	executedPlan, ok := operatorVersion.Spec.Plans[planExecution.Spec.PlanName]
 	if !ok {
 		r.recorder.Event(planExecution, "Warning", "InvalidPlan", fmt.Sprintf("Could not find required plan (%v)", planExecution.Spec.PlanName))
@@ -303,154 +302,75 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	err = populatePlanExecution(executedPlan, planExecution, instance, operatorVersion, r.recorder)
+	currentPlanState := getPlanState(planExecution)
+
+	newState, commands, err := ExecutePlan(&ActivePlan{
+		Name: planExecution.Spec.PlanName,
+		Plan: &executedPlan,
+	}, planExecution.Name, currentPlanState, instance, params, operatorVersion, r.Client, r.scheme)
+
 	if err != nil {
-		_, fatalError := err.(*fatalError)
-		if fatalError {
-			// do not retry
-			return reconcile.Result{}, nil
-		}
+		// TODO handle fatal errors
 		return reconcile.Result{}, err
 	}
 
-	// now we're actually starting with the execution of plan/phase/step
-	for i, phase := range planExecution.Status.Phases {
-		// If we still want to execute phases in this plan check if phase is healthy
-		for j, s := range phase.Steps {
-			planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateComplete
+	// apply commands
+	for _, c := range commands {
+		if c.Type == Create {
+			err = r.Client.Create(context.TODO(), c.Obj)
+			if err != nil {
+				log.Printf("PlanExecutionController: Error when creating object %v: %v", c.Obj, err)
 
-			for _, obj := range s.Objects {
-				if s.Delete {
-					log.Printf("PlanExecutionController: Step \"%v\" was marked to delete object %+v", s.Name, obj)
-					err = r.Client.Delete(context.TODO(), obj, client.PropagationPolicy(metav1.DeletePropagationForeground))
-					if errors.IsNotFound(err) || err == nil {
-						// This is okay
-						log.Printf("PlanExecutionController: Object was already deleted or did not exist in step \"%v\"", s.Name)
-					} else {
-						log.Printf("PlanExecutionController: Error deleting object in step \"%v\": %v", s.Name, err)
-						planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateError
-						planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateError
-						return reconcile.Result{}, err
-					}
-					continue
-				}
-
-				// Make sure this object is applied to the cluster. Get back the instance from the
-				// cluster so we can see if it's healthy or not
-				if err = controllerutil.SetControllerReference(instance, obj.(metav1.Object), r.scheme); err != nil {
-					return reconcile.Result{}, err
-				}
-
-				// Some objects don't update well. We capture the logic here to see if we need to
-				// cleanup the current object
-				err = r.Cleanup(obj)
-				if err != nil {
-					log.Printf("PlanExecutionController: Cleanup failed: %v", err)
-				}
-
-				//See if its present
-				rawObj, _ := apijson.Marshal(obj)
-				key, _ := client.ObjectKeyFromObject(obj)
-				err := r.Client.Get(context.TODO(), key, obj)
-				if err == nil {
-					log.Printf("PlanExecutionController: Object %v already exists for instance %v, going to apply patch", key, instance.Name)
-					//update
-					log.Printf("Going to apply patch\n%+v\n\n to object\n%s\n", string(rawObj), prettyPrint(obj))
-					if err != nil {
-						log.Printf("Error getting patch between truth and obj: %v\n", err)
-					} else {
-						err = r.Client.Patch(context.TODO(), obj, client.ConstantPatch(types.StrategicMergePatchType, rawObj))
-						if err != nil {
-							// Right now applying a Strategic Merge Patch to custom resources does not work. There is
-							// certain metadata needed, which when missing, leads to an invalid Content-Type Header and
-							// causes the request to fail.
-							// ( see https://github.com/kubernetes-sigs/kustomize/issues/742#issuecomment-458650435 )
-							//
-							// We temporarily solve this by checking for the specific error when a SMP is applied to
-							// custom resources and handle it by defaulting to a Merge Patch.
-							//
-							// The error message for which we check is:
-							// 		the body of the request was in an unknown format - accepted media types include:
-							//			application/json-patch+json, application/merge-patch+json
-							//
-							// 		Reason: "UnsupportedMediaType" Code: 415
-							if errors.IsUnsupportedMediaType(err) {
-								err = r.Client.Patch(context.TODO(), obj, client.ConstantPatch(types.MergePatchType, rawObj))
-								if err != nil {
-									log.Printf("PlanExecutionController: Error when applying merge patch to object %v for instance %v: %v", key, instance.Name, err)
-								}
-							} else {
-								log.Printf("PlanExecutionController: Error when applying StrategicMergePatch to object %v for instance %v: %v", key, instance.Name, err)
-							}
-						}
-					}
-				} else {
-					//create
-					log.Printf("PlanExecutionController: Object %v does not exist, going to create new object for instance %v", key, instance.Name)
-					err = r.Client.Create(context.TODO(), obj)
-					if err != nil {
-						log.Printf("PlanExecutionController: Error when creating object %v: %v", s.Name, err)
-						planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateError
-						planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateError
-
-						return reconcile.Result{}, err
-					}
-				}
-
-				err = health.IsHealthy(r.Client, obj)
-				if err != nil {
-					log.Printf("PlanExecutionController: Obj is NOT healthy: %s", prettyPrint(obj))
-					planExecution.Status.Phases[i].Steps[j].State = kudov1alpha1.PhaseStateInProgress
-					planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateInProgress
-				}
+				return reconcile.Result{}, err
 			}
-			log.Printf("PlanExecutionController: Phase \"%v\" has strategy %v", phase.Name, phase.Strategy)
-			if phase.Strategy == kudov1alpha1.Serial {
-				// We need to skip the rest of the steps if this step is unhealthy
-				log.Printf("PlanExecutionController: Phase \"%v\" marked as serial", phase.Name)
-				if planExecution.Status.Phases[i].Steps[j].State != kudov1alpha1.PhaseStateComplete {
-					log.Printf("PlanExecutionController: Step \"%v\" isn't complete, skipping rest of steps in phase until it is", planExecution.Status.Phases[i].Steps[j].Name)
-					break
-				} else {
-					log.Printf("PlanExecutionController: Step \"%v\" is healthy, so I can continue on", planExecution.Status.Phases[i].Steps[j].Name)
-				}
-			}
-
-			log.Printf("PlanExecutionController: Looked at step \"%v\"", s.Name)
 		}
-		if health.IsPhaseHealthy(planExecution.Status.Phases[i]) {
-			log.Printf("PlanExecutionController: Phase \"%v\" marked as healthy", phase.Name)
-			planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateComplete
-			continue
-		}
-
-		// This phase isn't quite ready yet. Let's see what needs to be done
-		planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateInProgress
-
-		// Don't keep going to other plans if we're flagged to perform the phases in serial
-		if executedPlan.Strategy == kudov1alpha1.Serial {
-			log.Printf("PlanExecutionController: Phase \"%v\" not healthy, and plan marked as serial, so breaking.", phase.Name)
-			break
-		}
-		log.Printf("PlanExecutionController: Looked at phase \"%v\"", phase.Name)
 	}
-
-	if health.IsPlanHealthy(planExecution.Status) {
-		r.recorder.Event(planExecution, "Normal", "PhaseStateComplete", fmt.Sprintf("Instances healthy, phase marked as COMPLETE"))
-		r.recorder.Event(instance, "Normal", "PlanComplete", fmt.Sprintf("PlanExecution %v completed", planExecution.Name))
-		planExecution.Status.State = kudov1alpha1.PhaseStateComplete
-	} else {
-		planExecution.Status.State = kudov1alpha1.PhaseStateInProgress
-	}
-
-	instance.Status.Status = planExecution.Status.State
-	err = r.Client.Update(context.TODO(), instance)
+	// update new state
+	updatePlanState(newState, planExecution)
+	err = r.Client.Update(context.TODO(), planExecution)
 	if err != nil {
-		log.Printf("Error updating instance status to %v: %v\n", instance.Status.Status, err)
+		log.Printf("PlanExecutionController: Error when updating planExecution state. %v", err)
 		return reconcile.Result{}, err
 	}
 
 	return reconcile.Result{}, nil
+}
+
+func updatePlanState(newState *PlanState, execution *kudov1alpha1.PlanExecution) {
+	execution.Status.State = newState.State
+	for _, p := range execution.Status.Phases {
+		newPhaseState := newState.PhasesState[p.Name]
+		p.State = newPhaseState.State
+
+		for _, s := range p.Steps {
+			s.State = newPhaseState.StepsState[s.Name].State
+		}
+	}
+}
+
+func getPlanState(execution *kudov1alpha1.PlanExecution) *PlanState {
+	planState := &PlanState{
+		Name:        execution.Status.Name,
+		State:       execution.Status.State,
+		PhasesState: make(map[string]*PhaseState),
+	}
+
+	for _, p := range execution.Status.Phases {
+		planState.PhasesState[p.Name] = &PhaseState{
+			Name:       p.Name,
+			State:      p.State,
+			StepsState: make(map[string]*StepState),
+		}
+
+		for _, s := range p.Steps {
+			planState.PhasesState[p.Name].StepsState[s.Name] = &StepState{
+				Name:  s.Name,
+				State: s.State,
+			}
+		}
+	}
+
+	return planState
 }
 
 // fatalError is representing type of error that is non-recoverable (like bug in the template preventing rendering)
@@ -461,111 +381,6 @@ type fatalError struct {
 
 func (e fatalError) Error() string {
 	return fmt.Sprintf("Fatal error: %v", e.err)
-}
-
-// populatePlanExecution reads content of the Plan defined in operator version and populates PlanExecution with data from rendered templates
-func populatePlanExecution(activePlan kudov1alpha1.Plan, planExecution *kudov1alpha1.PlanExecution, instance *kudov1alpha1.Instance, operatorVersion *kudov1alpha1.OperatorVersion, recorder record.EventRecorder) error {
-	// Load parameters:
-
-	// Create config map to hold all parameters for instantiation
-	configs := make(map[string]interface{})
-
-	// Default parameters from instance metadata
-	configs["OperatorName"] = operatorVersion.Spec.Operator.Name
-	configs["Name"] = instance.Name
-	configs["Namespace"] = instance.Namespace
-
-	params, err := getParameters(instance, operatorVersion)
-	if err != nil {
-		log.Printf("PlanExecutionController: %v", err)
-		recorder.Event(planExecution, "Warning", "MissingParameter", err.Error())
-		return err
-	}
-
-	configs["Params"] = params
-
-	planExecution.Status.Name = planExecution.Spec.PlanName
-	planExecution.Status.Strategy = activePlan.Strategy
-
-	planExecution.Status.Phases = make([]kudov1alpha1.PhaseStatus, len(activePlan.Phases))
-	for i, phase := range activePlan.Phases {
-		// Populate the Status elements in instance.
-		planExecution.Status.Phases[i].Name = phase.Name
-		planExecution.Status.Phases[i].Strategy = phase.Strategy
-		planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStatePending
-		planExecution.Status.Phases[i].Steps = make([]kudov1alpha1.StepStatus, len(phase.Steps))
-		for j, step := range phase.Steps {
-			// Fetch OperatorVersion:
-			//
-			//   - Get the task name from the step
-			//   - Get the task definition from the OV
-			//   - Create the kustomize templates
-			//   - Apply
-			configs["PlanName"] = planExecution.Spec.PlanName
-			configs["PhaseName"] = phase.Name
-			configs["StepName"] = step.Name
-			configs["StepNumber"] = strconv.FormatInt(int64(j), 10)
-
-			var objs []runtime.Object
-
-			engine := kudoengine.New()
-			for _, t := range step.Tasks {
-				// resolve task
-				if taskSpec, ok := operatorVersion.Spec.Tasks[t]; ok {
-					resources := make(map[string]string)
-
-					for _, res := range taskSpec.Resources {
-						if resource, ok := operatorVersion.Spec.Templates[res]; ok {
-							templatedYaml, err := engine.Render(resource, configs)
-							if err != nil {
-								recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error expanding template: %v", err))
-								log.Printf("PlanExecutionController: Error expanding template: %v", err)
-								planExecution.Status.State = kudov1alpha1.PhaseStateError
-								planExecution.Status.Phases[i].State = kudov1alpha1.PhaseStateError
-								// returning error = nil so that we don't retry since this is non-recoverable
-								return fatalError{err: err}
-							}
-							resources[res] = templatedYaml
-
-						} else {
-							recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding resource named %v for operator version %v", res, operatorVersion.Name))
-							log.Printf("PlanExecutionController: Error finding resource named %v for operator version %v", res, operatorVersion.Name)
-							return fatalError{err: fmt.Errorf("PlanExecutionController: Error finding resource named %v for operator version %v", res, operatorVersion.Name)}
-						}
-					}
-
-					objsToAdd, err := applyConventionsToTemplates(resources, metadata{
-						InstanceName:    instance.Name,
-						Namespace:       instance.Namespace,
-						OperatorName:    operatorVersion.Spec.Operator.Name,
-						OperatorVersion: operatorVersion.Spec.Version,
-						PlanExecution:   planExecution.Name,
-						PlanName:        planExecution.Spec.PlanName,
-						PhaseName:       phase.Name,
-						StepName:        step.Name,
-					})
-
-					if err != nil {
-						recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planExecution.Name, err))
-						log.Printf("PlanExecutionController: Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planExecution.Name, err)
-						return err
-					}
-					objs = append(objs, objsToAdd...)
-				} else {
-					recorder.Event(planExecution, "Warning", "InvalidPlanExecution", fmt.Sprintf("Error finding task named %s for operator version %s", taskSpec, operatorVersion.Name))
-					log.Printf("PlanExecutionController: Error finding task named %s for operator version %s", taskSpec, operatorVersion.Name)
-					return fatalError{err: err}
-				}
-			}
-
-			planExecution.Status.Phases[i].Steps[j].Name = step.Name
-			planExecution.Status.Phases[i].Steps[j].Objects = objs
-			planExecution.Status.Phases[i].Steps[j].Delete = step.Delete
-			log.Printf("PlanExecutionController: Phase \"%v\" Step \"%v\" of instance '%v' has %v object(s)", phase.Name, step.Name, instance.Name, len(objs))
-		}
-	}
-
-	return nil
 }
 
 func getParameters(instance *kudov1alpha1.Instance, operatorVersion *kudov1alpha1.OperatorVersion) (map[string]string, error) {
