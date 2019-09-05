@@ -27,6 +27,7 @@ func newRepoCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	cmd.AddCommand(newRepoListCmd(fs, out))
 	cmd.AddCommand(newRepoAddCmd(fs, out))
 	cmd.AddCommand(newRepoRemoveCmd(fs, out))
+	cmd.AddCommand(newRepoContextCmd(fs))
 
 	return cmd
 }
