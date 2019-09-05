@@ -13,17 +13,17 @@ import (
 )
 
 type repoAddCmd struct {
-	name  string
-	url   string
-	home  kudohome.Home
-	force bool
+	name      string
+	url       string
+	home      kudohome.Home
+	skipCheck bool
 
 	out io.Writer
 	fs  afero.Fs
 }
 
 func (addCmd repoAddCmd) run() error {
-	if err := addRepository(addCmd.fs, addCmd.name, addCmd.url, addCmd.home, addCmd.force); err != nil {
+	if err := addRepository(addCmd.fs, addCmd.name, addCmd.url, addCmd.home, addCmd.skipCheck); err != nil {
 		return err
 	}
 	fmt.Fprintf(addCmd.out, "%q has been added to your repositories\n", addCmd.name)
@@ -80,7 +80,7 @@ func newRepoAddCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 		},
 	}
 	f := cmd.Flags()
-	f.BoolVarP(&add.force, "force", "f", false, "Force add even if index file doesn't exist at url yet.")
+	f.BoolVarP(&add.skipCheck, "skip-check", "f", false, "Skip URL and index file validation.")
 
 	return cmd
 }

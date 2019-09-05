@@ -55,8 +55,8 @@ func TestAddBadURLRepo(t *testing.T) {
 	assert.True(t, strings.HasPrefix(err.Error(), `looks like "badurl" is not a valid operator repository or cannot be reached:`))
 }
 
-func TestForceAdd(t *testing.T) {
-	file := "force-add-list"
+func TestAddSkipCheck(t *testing.T) {
+	file := "skip-check-add-list"
 	//	setup
 	fs := afero.NewMemMapFs()
 	out := &bytes.Buffer{}
@@ -71,8 +71,8 @@ func TestForceAdd(t *testing.T) {
 		t.Error(err)
 	}
 
-	// force add under test
-	cmd := &repoAddCmd{fs: fs, out: out, home: home, name: "foo", url: "badurl", force: true}
+	// skipCheck add under test
+	cmd := &repoAddCmd{fs: fs, out: out, home: home, name: "foo", url: "badurl", skipCheck: true}
 	err = cmd.run()
 	assert.Nil(t, err)
 
