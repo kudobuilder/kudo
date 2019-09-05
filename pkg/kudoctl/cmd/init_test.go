@@ -207,5 +207,5 @@ func TestClientInitialize(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	assert.Equal(t, r.CurrentRepo().URL, RepositoryURL)
+	assert.Equal(t, r.CurrentConfiguration().URL, RepositoryURL)
 }

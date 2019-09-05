@@ -28,7 +28,7 @@ func TestLoadRepositories(t *testing.T) {
 
 	if *update {
 		t.Log("update golden file")
-		r := NewRepoFile()
+		r := NewRepositories()
 
 		if err := r.WriteFile(fs, gp, 0644); err != nil {
 			t.Fatalf("failed to update golden file: %s", err)
@@ -39,6 +39,6 @@ func TestLoadRepositories(t *testing.T) {
 		t.Fatalf("failed reading .golden: %s", err)
 	}
 
-	assert.Equal(t, r.CurrentRepo().Name, Default.Name)
-	assert.Equal(t, r.CurrentRepo().URL, Default.URL)
+	assert.Equal(t, r.CurrentConfiguration().Name, Default.Name)
+	assert.Equal(t, r.CurrentConfiguration().URL, Default.URL)
 }

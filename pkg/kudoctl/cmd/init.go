@@ -191,7 +191,7 @@ func ensureRepositoryFile(fs afero.Fs, home kudohome.Home, out io.Writer) error 
 	}
 	if !exists {
 		fmt.Fprintf(out, "Creating %s \n", home.RepositoryFile())
-		r := repo.NewRepoFile()
+		r := repo.NewRepositories()
 		if err := r.WriteFile(fs, home.RepositoryFile(), 0644); err != nil {
 			return err
 		}

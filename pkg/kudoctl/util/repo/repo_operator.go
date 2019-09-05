@@ -10,8 +10,10 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/afero"
 )
 
 // Repository is an abstraction for a service that can retrieve package bundles
@@ -19,14 +21,24 @@ type Repository interface {
 	GetBundle(name string, version string) (bundle.Bundle, error)
 }
 
-// OperatorRepository represents an operator repository
-type OperatorRepository struct {
-	Config *RepositoryConfiguration
+// Client represents an operator repository
+type Client struct {
+	Config *Configuration
 	Client http.Client
 }
 
-// NewOperatorRepository constructs OperatorRepository
-func NewOperatorRepository(conf *RepositoryConfiguration) (*OperatorRepository, error) {
+// ClientFromSettings retrieves the operator repo for the configured repo in settings
+func ClientFromSettings(fs afero.Fs, home kudohome.Home, repoName string) (*Client, error) {
+	rc, err := ConfigurationFromSettings(fs, home, repoName)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewClient(rc)
+}
+
+// NewClient constructs repository client
+func NewClient(conf *Configuration) (*Client, error) {
 	_, err := url.Parse(conf.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid repository URL: %s", conf.URL)
@@ -34,14 +46,14 @@ func NewOperatorRepository(conf *RepositoryConfiguration) (*OperatorRepository, 
 
 	client := http.NewClient()
 
-	return &OperatorRepository{
+	return &Client{
 		Config: conf,
 		Client: *client,
 	}, nil
 }
 
 // downloadIndexFile fetches the index file from a repository.
-func (r *OperatorRepository) downloadIndexFile() (*IndexFile, error) {
+func (r *Client) downloadIndexFile() (*IndexFile, error) {
 	var indexURL string
 	parsedURL, err := url.Parse(r.Config.URL)
 	if err != nil {
@@ -66,7 +78,7 @@ func (r *OperatorRepository) downloadIndexFile() (*IndexFile, error) {
 }
 
 // getPackageReaderByFullPackageName downloads the tgz file from the remote repository and unmarshals it to the package CRDs
-func (r *OperatorRepository) getPackageReaderByFullPackageName(fullPackageName string) (io.Reader, error) {
+func (r *Client) getPackageReaderByFullPackageName(fullPackageName string) (io.Reader, error) {
 	var fileURL string
 	parsedURL, err := url.Parse(r.Config.URL)
 	if err != nil {
@@ -78,7 +90,7 @@ func (r *OperatorRepository) getPackageReaderByFullPackageName(fullPackageName s
 	return r.getPackageReaderByURL(fileURL)
 }
 
-func (r *OperatorRepository) getPackageReaderByURL(packageURL string) (io.Reader, error) {
+func (r *Client) getPackageReaderByURL(packageURL string) (io.Reader, error) {
 	resp, err := r.Client.Get(packageURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "getting package url")
@@ -88,7 +100,7 @@ func (r *OperatorRepository) getPackageReaderByURL(packageURL string) (io.Reader
 }
 
 // GetPackageReader provides an io.Reader for a provided package name and optional version
-func (r *OperatorRepository) GetPackageReader(name string, version string) (io.Reader, error) {
+func (r *Client) GetPackageReader(name string, version string) (io.Reader, error) {
 	// Construct the package name and download the index file from the remote repo
 	indexFile, err := r.downloadIndexFile()
 	if err != nil {
@@ -106,7 +118,7 @@ func (r *OperatorRepository) GetPackageReader(name string, version string) (io.R
 }
 
 // GetBundle provides an Bundle for a provided package name and optional version
-func (r *OperatorRepository) GetBundle(name string, version string) (bundle.Bundle, error) {
+func (r *Client) GetBundle(name string, version string) (bundle.Bundle, error) {
 	reader, err := r.GetPackageReader(name, version)
 	if err != nil {
 		return nil, err
