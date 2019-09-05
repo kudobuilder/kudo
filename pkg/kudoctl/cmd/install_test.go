@@ -34,8 +34,8 @@ var cmdParameterTests = []struct {
 }{
 	{map[string]string{}, []string{"foo"}, "a parameter without value worked"},                                                           // 1
 	{map[string]string{}, []string{"bar="}, "a parameter with empty value worked"},                                                       // 2
-	{map[string]string{}, []string{"foo=bar", "fiz="}, "one of many parameters with empty value worked"},                                 // 3
-	{map[string]string{}, []string{"foo", "bar"}, "multiple empty parameters worked"},                                                    // 4
+	{map[string]string{}, []string{"foo=bar", "fiz="}, "one of many argments with empty value worked"},                                   // 3
+	{map[string]string{}, []string{"foo", "bar"}, "multiple empty argments worked"},                                                      // 4
 	{map[string]string{}, []string{}, "get flag: flag accessed but not defined: kubeconfig"},                                             // 5
 	{map[string]string{"kubeconfig": "/tmp"}, []string{}, "could not check kubeconfig path: getting config failed: /tmp is a directory"}, // 6
 }

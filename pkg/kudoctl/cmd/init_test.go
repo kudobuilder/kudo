@@ -113,7 +113,7 @@ func TestInitCmd_output(t *testing.T) {
 	}
 }
 
-func Test_initCmd_YAMLWriter(t *testing.T) {
+func TestInitCmd_YAMLWriter(t *testing.T) {
 	file := "deploy-kudo.yaml"
 	fs := afero.NewMemMapFs()
 	out := &bytes.Buffer{}
@@ -143,7 +143,7 @@ func Test_initCmd_YAMLWriter(t *testing.T) {
 	}
 }
 
-func Test_newInitCmd(t *testing.T) {
+func TestNewInitCmd(t *testing.T) {
 	fs := afero.NewMemMapFs()
 	var tests = []struct {
 		name         string
@@ -159,11 +159,11 @@ func Test_newInitCmd(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
 			initCmd := newInitCmd(fs, out)
-			for _, flag := range tt.parameters {
-				initCmd.Flags().Set("parameter", flag)
+			for key, value := range tt.flags {
+				initCmd.Flags().Set(key, value)
 			}
-			initCmd.RunE(initCmd, []string{})
-			assert.NotNil(t, out.String(), tt.errorMessage)
+			err := initCmd.RunE(initCmd, tt.parameters)
+			assert.EqualError(t, err, tt.errorMessage)
 		})
 	}
 }

@@ -109,3 +109,23 @@ func TestAddWithoutInit(t *testing.T) {
 	err := cmd.run()
 	assert.EqualError(t, err, "could not load repositories file (kudo_home/repository/repositories.yaml).\nYou might need to run `kudo init` (or `kudo init --client-only` if kudo is already installed)")
 }
+
+func TestAddArgValidation(t *testing.T) {
+	fs := afero.NewMemMapFs()
+	out := &bytes.Buffer{}
+
+	var tests = []struct {
+		name         string
+		args         []string
+		errorMessage string
+	}{
+		{name: "no valid arguments", args: []string{}, errorMessage: "this command needs 2. name and url of the operator repository"},
+		{name: "missing 1 argument", args: []string{"arg1"}, errorMessage: "this command needs 2. name and url of the operator repository"},
+	}
+
+	for _, test := range tests {
+		cmd := newRepoAddCmd(fs, out)
+		err := cmd.RunE(cmd, test.args)
+		assert.EqualError(t, err, test.errorMessage)
+	}
+}

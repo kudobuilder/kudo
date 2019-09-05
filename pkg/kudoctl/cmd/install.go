@@ -41,11 +41,11 @@ func newInstallCmd(fs afero.Fs) *cobra.Command {
 		Long:    `Install a KUDO package from local filesystem or the official repo.`,
 		Example: installExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Prior to command execution we parse and validate passed parameters
+			// Prior to command execution we parse and validate passed argments
 			var err error
 			options.Parameters, err = install.GetParameterMap(parameters)
 			if err != nil {
-				return errors.WithMessage(err, "could not parse parameters")
+				return errors.WithMessage(err, "could not parse argments")
 			}
 
 			return install.Run(args, options, fs, &Settings)

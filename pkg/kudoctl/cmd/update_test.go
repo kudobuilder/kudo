@@ -67,7 +67,7 @@ func TestUpdate(t *testing.T) {
 		errMessageContains string
 	}{
 		{"instance does not exist", false, map[string]string{"param": "value"}, "instance test in namespace default does not exist in the cluster"},
-		{"update parameters", true, map[string]string{"param": "value"}, ""},
+		{"update argments", true, map[string]string{"param": "value"}, ""},
 	}
 
 	for _, tt := range tests {
