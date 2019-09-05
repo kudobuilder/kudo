@@ -9,8 +9,8 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
@@ -28,8 +28,8 @@ type Client struct {
 }
 
 // ClientFromSettings retrieves the operator repo for the configured repo in settings
-func ClientFromSettings(fs afero.Fs, settings *env.Settings) (*Client, error) {
-	rc, err := ConfigurationFromSettings(fs, settings)
+func ClientFromSettings(fs afero.Fs, home kudohome.Home, repoName string) (*Client, error) {
+	rc, err := ConfigurationFromSettings(fs, home, repoName)
 	if err != nil {
 		return nil, err
 	}

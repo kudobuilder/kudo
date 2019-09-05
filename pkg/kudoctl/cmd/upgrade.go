@@ -97,7 +97,7 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 	}
 
 	// Resolve the package to upgrade to
-	repository, err := repo.ClientFromSettings(fs, settings)
+	repository, err := repo.ClientFromSettings(fs, settings.Home, settings.RepoName)
 	if err != nil {
 		return errors.WithMessage(err, "could not build operator repository")
 	}

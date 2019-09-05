@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
@@ -65,15 +65,15 @@ func (r Repositories) CurrentConfiguration() *Configuration {
 }
 
 // ConfigurationFromSettings gets the repo configuration from settings
-func ConfigurationFromSettings(fs afero.Fs, settings *env.Settings) (*Configuration, error) {
-	r, err := LoadRepositories(fs, settings.Home.RepositoryFile())
+func ConfigurationFromSettings(fs afero.Fs, home kudohome.Home, repoName string) (*Configuration, error) {
+	r, err := LoadRepositories(fs, home.RepositoryFile())
 	if err != nil {
 		// this allows for no client init... perhaps we should return the error requesting kudo init
 		r = NewRepositories()
 	}
-	repo := r.GetConfiguration(settings.RepoName)
+	repo := r.GetConfiguration(repoName)
 	if repo == nil {
-		return nil, fmt.Errorf("unable to find respository for %s", settings.RepoName)
+		return nil, fmt.Errorf("unable to find respository for %s", repoName)
 	}
 	return repo, nil
 }
