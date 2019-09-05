@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"bytes"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 	"os"
 	"testing"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
