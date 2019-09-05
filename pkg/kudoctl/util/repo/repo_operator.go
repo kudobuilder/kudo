@@ -52,8 +52,8 @@ func NewOperatorRepository(conf *RepositoryConfiguration) (*OperatorRepository, 
 	}, nil
 }
 
-// downloadIndexFile fetches the index file from a repository.
-func (r *OperatorRepository) downloadIndexFile() (*IndexFile, error) {
+// DownloadIndexFile fetches the index file from a repository.
+func (r *OperatorRepository) DownloadIndexFile() (*IndexFile, error) {
 	var indexURL string
 	parsedURL, err := url.Parse(r.Config.URL)
 	if err != nil {
@@ -102,7 +102,7 @@ func (r *OperatorRepository) getPackageReaderByURL(packageURL string) (io.Reader
 // GetPackageReader provides an io.Reader for a provided package name and optional version
 func (r *OperatorRepository) GetPackageReader(name string, version string) (io.Reader, error) {
 	// Construct the package name and download the index file from the remote repo
-	indexFile, err := r.downloadIndexFile()
+	indexFile, err := r.DownloadIndexFile()
 	if err != nil {
 		return nil, errors.WithMessage(err, "could not download repository index file")
 	}

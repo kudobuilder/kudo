@@ -45,7 +45,7 @@ func NewRepoFile() *Repositories {
 }
 
 // GetRepo returns a RepoName Config for a name or nil
-func (r Repositories) GetRepo(name string) *RepositoryConfiguration {
+func (r *Repositories) GetRepo(name string) *RepositoryConfiguration {
 	for _, repo := range r.Repositories {
 		if repo.Name == name {
 			return repo
@@ -55,7 +55,7 @@ func (r Repositories) GetRepo(name string) *RepositoryConfiguration {
 }
 
 // CurrentRepo provides the repo config for the current context
-func (r Repositories) CurrentRepo() *RepositoryConfiguration {
+func (r *Repositories) CurrentRepo() *RepositoryConfiguration {
 	return r.GetRepo(r.Context)
 }
 
@@ -106,12 +106,12 @@ func (r *Repositories) WriteFile(fs afero.Fs, path string, perm os.FileMode) err
 }
 
 // Add appends a slice of repo configs to repositories file
-func (r Repositories) Add(repo ...*RepositoryConfiguration) {
+func (r *Repositories) Add(repo ...*RepositoryConfiguration) {
 	r.Repositories = append(r.Repositories, repo...)
 }
 
 // SetContext switches the context to another repo config in the repositories file.  errors if no repo found.
-func (r Repositories) SetContext(context string) error {
+func (r *Repositories) SetContext(context string) error {
 	repo := r.GetRepo(context)
 	if repo == nil {
 		return fmt.Errorf("no repo found with name: %s", context)
@@ -121,7 +121,7 @@ func (r Repositories) SetContext(context string) error {
 }
 
 // Remove removes the repo config with the provided name
-func (r Repositories) Remove(name string) bool {
+func (r *Repositories) Remove(name string) bool {
 	repos := []*RepositoryConfiguration{}
 	found := false
 	for _, repo := range r.Repositories {
