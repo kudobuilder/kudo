@@ -14,6 +14,8 @@ import (
 type repoContextCmd struct {
 	name string
 	home kudohome.Home
+
+	fs afero.Fs
 }
 
 func newRepoContextCmd(fs afero.Fs) *cobra.Command {
@@ -29,15 +31,16 @@ func newRepoContextCmd(fs afero.Fs) *cobra.Command {
 
 			ctxCmd.name = args[0]
 			ctxCmd.home = Settings.Home
-			return ctxCmd.run(fs)
+			ctxCmd.fs = fs
+			return ctxCmd.run()
 		},
 	}
 
 	return cmd
 }
 
-func (c *repoContextCmd) run(fs afero.Fs) error {
-	repos, err := repo.LoadRepositories(fs, c.home.RepositoryFile())
+func (c *repoContextCmd) run() error {
+	repos, err := repo.LoadRepositories(c.fs, c.home.RepositoryFile())
 	if err != nil {
 		return err
 	}
@@ -45,7 +48,7 @@ func (c *repoContextCmd) run(fs afero.Fs) error {
 		return errors.New("no repositories to set")
 	}
 	if repos.GetConfiguration(c.name) == nil {
-		return fmt.Errorf("repository name (%s) does not exist, please specify a different name", c.name)
+		return fmt.Errorf("no repo named %q found", c.name)
 	}
 	repos.Context = c.name
 	return repos.WriteFile(fs, c.home.RepositoryFile(), 0644)
