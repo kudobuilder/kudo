@@ -13,16 +13,17 @@ import (
 )
 
 type repoAddCmd struct {
-	name string
-	url  string
-	home kudohome.Home
+	name  string
+	url   string
+	home  kudohome.Home
+	force bool
 
 	out io.Writer
 	fs  afero.Fs
 }
 
 func (addCmd repoAddCmd) run() error {
-	if err := addRepository(addCmd.fs, addCmd.name, addCmd.url, addCmd.home); err != nil {
+	if err := addRepository(addCmd.fs, addCmd.name, addCmd.url, addCmd.home, addCmd.force); err != nil {
 		return err
 	}
 	fmt.Fprintf(addCmd.out, "%q has been added to your repositories\n", addCmd.name)
@@ -30,7 +31,7 @@ func (addCmd repoAddCmd) run() error {
 
 }
 
-func addRepository(fs afero.Fs, name string, url string, home kudohome.Home) error {
+func addRepository(fs afero.Fs, name string, url string, home kudohome.Home, force bool) error {
 	repos, err := repo.LoadRepositories(fs, home.RepositoryFile())
 	if err != nil {
 		return err
@@ -46,10 +47,13 @@ func addRepository(fs afero.Fs, name string, url string, home kudohome.Home) err
 	if err != nil {
 		return err
 	}
-	// valid the url and that we can pull and index is valid
-	_, err = client.DownloadIndexFile()
-	if err != nil {
-		return fmt.Errorf("looks like %q is not a valid operator repository or cannot be reached: %s", url, err.Error())
+
+	if !force {
+		// valid the url and that we can pull and index is valid
+		_, err = client.DownloadIndexFile()
+		if err != nil {
+			return fmt.Errorf("looks like %q is not a valid operator repository or cannot be reached: %s", url, err.Error())
+		}
 	}
 	repos.Add(config)
 
@@ -75,5 +79,8 @@ func newRepoAddCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			return add.run()
 		},
 	}
+	f := cmd.Flags()
+	f.BoolVarP(&add.force, "force", "f", false, "Force add even if index file doesn't exist at url yet.")
+
 	return cmd
 }
