@@ -15,66 +15,66 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type PlanState struct {
+type planState struct {
 	Name        string
 	State       v1alpha1.PhaseState
-	PhasesState map[string]*PhaseState
+	PhasesState map[string]*phaseState
 }
 
-type PhaseState struct {
+type phaseState struct {
 	Name       string
 	State      v1alpha1.PhaseState
-	StepsState map[string]*StepState
+	StepsState map[string]*stepState
 }
 
-type StepState struct {
+type stepState struct {
 	Name  string
 	State v1alpha1.PhaseState
 }
 
-type CommandType int
+type commandType int
 
 const (
-	Delete CommandType = 0
-	Update CommandType = 1
-	Create CommandType = 2
+	// delete commandType = 0
+	update commandType = 1
+	create commandType = 2
 )
 
-type KubernetesCommand struct {
-	Type   CommandType
+type kubernetesCommand struct {
+	Type   commandType
 	Obj    runtime.Object
 	OldObj runtime.Object
 }
 
-type ActivePlan struct {
+type activePlan struct {
 	Name string
 	Plan *v1alpha1.Plan
 }
 
-type PlanResources struct {
-	PhaseResources map[string]PhaseResources
+type planResources struct {
+	PhaseResources map[string]phaseResources
 }
 
-type PhaseResources struct {
+type phaseResources struct {
 	StepResources map[string][]runtime.Object
 }
 
-// ExecutePlan ...
+// executePlan ...
 // TODO: remove planExecutionId when PE CRD is removed
-func ExecutePlan(plan *ActivePlan, planExecutionId string, currentState *PlanState, instance *v1alpha1.Instance, params map[string]string, operatorVersion *v1alpha1.OperatorVersion, c client.Client, scheme *runtime.Scheme) (*PlanState, []*KubernetesCommand, error) {
+func executePlan(plan *activePlan, planExecutionID string, currentState *planState, instance *v1alpha1.Instance, params map[string]string, operatorVersion *v1alpha1.OperatorVersion, c client.Client, scheme *runtime.Scheme) (*planState, []*kubernetesCommand, error) {
 	if currentState.State == v1alpha1.PhaseStateComplete {
 		// nothing to do, plan is already finished
-		return currentState, []*KubernetesCommand{}, nil
+		return currentState, []*kubernetesCommand{}, nil
 	}
 
 	// render kubernetes resources needed to execute this plan
-	planResources, err := prepareKubeResources(plan, planExecutionId, instance, params, operatorVersion, scheme)
+	planResources, err := prepareKubeResources(plan, planExecutionID, instance, params, operatorVersion, scheme)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	newState := currentState // TODO deep copy
-	outputCommands := make([]*KubernetesCommand, 0)
+	outputCommands := make([]*kubernetesCommand, 0)
 	// do a next step in the current plan execution
 	for _, ph := range plan.Plan.Phases {
 		currentPhaseState := newState.PhasesState[ph.Name]
@@ -118,15 +118,15 @@ func ExecutePlan(plan *ActivePlan, planExecutionId string, currentState *PlanSta
 						key, _ := client.ObjectKeyFromObject(r)
 						err := c.Get(context.TODO(), key, oldObj)
 						if apierrors.IsNotFound(err) {
-							outputCommands = append(outputCommands, &KubernetesCommand{
-								Type: Create,
+							outputCommands = append(outputCommands, &kubernetesCommand{
+								Type: create,
 								Obj:  r,
 							})
 						} else if err != nil { // other that not found error
 							return nil, nil, err
 						} else {
-							outputCommands = append(outputCommands, &KubernetesCommand{
-								Type:   Update,
+							outputCommands = append(outputCommands, &kubernetesCommand{
+								Type:   update,
 								Obj:    r,
 								OldObj: oldObj,
 							})
@@ -150,20 +150,20 @@ func ExecutePlan(plan *ActivePlan, planExecutionId string, currentState *PlanSta
 
 // prepareKubeResources takes all resources in all tasks for a plan and renders them with the right parameters
 // it also takes care of applying KUDO specific conventions to the resources like commond labels
-func prepareKubeResources(activePlan *ActivePlan, planExecutionId string, instance *v1alpha1.Instance, params map[string]string, operatorVersion *v1alpha1.OperatorVersion, scheme *runtime.Scheme) (*PlanResources, error) {
+func prepareKubeResources(activePlan *activePlan, planExecutionID string, instance *v1alpha1.Instance, params map[string]string, operatorVersion *v1alpha1.OperatorVersion, scheme *runtime.Scheme) (*planResources, error) {
 	configs := make(map[string]interface{})
 	configs["OperatorName"] = operatorVersion.Spec.Operator.Name
 	configs["Name"] = instance.Name
 	configs["Namespace"] = instance.Namespace
 	configs["Params"] = params
 
-	result := &PlanResources{
-		PhaseResources: make(map[string]PhaseResources, 0),
+	result := &planResources{
+		PhaseResources: make(map[string]phaseResources),
 	}
 
 	for _, phase := range activePlan.Plan.Phases {
 		perStepResources := make(map[string][]runtime.Object)
-		result.PhaseResources[phase.Name] = PhaseResources{
+		result.PhaseResources[phase.Name] = phaseResources{
 			StepResources: perStepResources,
 		}
 		for j, step := range phase.Steps {
@@ -199,14 +199,14 @@ func prepareKubeResources(activePlan *ActivePlan, planExecutionId string, instan
 						Namespace:       instance.Namespace,
 						OperatorName:    operatorVersion.Spec.Operator.Name,
 						OperatorVersion: operatorVersion.Spec.Version,
-						PlanExecution:   planExecutionId,
+						PlanExecution:   planExecutionID,
 						PlanName:        activePlan.Name,
 						PhaseName:       phase.Name,
 						StepName:        step.Name,
 					}, instance, scheme)
 
 					if err != nil {
-						log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planExecutionId, err)
+						log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, planExecutionID, err)
 						return nil, err
 					}
 					resources = append(resources, resourcesWithConventions...)

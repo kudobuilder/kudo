@@ -304,7 +304,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 	currentPlanState := getPlanState(planExecution)
 
-	newState, commands, err := ExecutePlan(&ActivePlan{
+	newState, commands, err := executePlan(&activePlan{
 		Name: planExecution.Spec.PlanName,
 		Plan: &executedPlan,
 	}, planExecution.Name, currentPlanState, instance, params, operatorVersion, r.Client, r.scheme)
@@ -316,7 +316,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 	// apply commands
 	for _, c := range commands {
-		if c.Type == Create {
+		if c.Type == create {
 			err = r.Client.Create(context.TODO(), c.Obj)
 			if err != nil {
 				log.Printf("PlanExecutionController: Error when creating object %v: %v", c.Obj, err)
@@ -336,7 +336,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	return reconcile.Result{}, nil
 }
 
-func updatePlanState(newState *PlanState, execution *kudov1alpha1.PlanExecution) {
+func updatePlanState(newState *planState, execution *kudov1alpha1.PlanExecution) {
 	execution.Status.State = newState.State
 	for _, p := range execution.Status.Phases {
 		newPhaseState := newState.PhasesState[p.Name]
@@ -348,22 +348,22 @@ func updatePlanState(newState *PlanState, execution *kudov1alpha1.PlanExecution)
 	}
 }
 
-func getPlanState(execution *kudov1alpha1.PlanExecution) *PlanState {
-	planState := &PlanState{
+func getPlanState(execution *kudov1alpha1.PlanExecution) *planState {
+	planState := &planState{
 		Name:        execution.Status.Name,
 		State:       execution.Status.State,
-		PhasesState: make(map[string]*PhaseState),
+		PhasesState: make(map[string]*phaseState),
 	}
 
 	for _, p := range execution.Status.Phases {
-		planState.PhasesState[p.Name] = &PhaseState{
+		planState.PhasesState[p.Name] = &phaseState{
 			Name:       p.Name,
 			State:      p.State,
-			StepsState: make(map[string]*StepState),
+			StepsState: make(map[string]*stepState),
 		}
 
 		for _, s := range p.Steps {
-			planState.PhasesState[p.Name].StepsState[s.Name] = &StepState{
+			planState.PhasesState[p.Name].StepsState[s.Name] = &stepState{
 				Name:  s.Name,
 				State: s.State,
 			}
