@@ -4,9 +4,16 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
+
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
 )
+
+// A repository is a http backed service which holds operators and an index file for those operators.
+// To interact with a repository the client is repo.Client.   To construct the Client
+// it is necessary to have a Configuration.   Several Configurations can be stored locally on a
+// client in a repositories.yaml file which represented by the Repositories struct.
 
 const (
 	// Version is the repo / packaging version
@@ -14,36 +21,36 @@ const (
 	defaultRepoName = "community"
 )
 
-// RepositoryConfiguration represents a collection of parameters for operator repository.
-type RepositoryConfiguration struct {
+// Configuration represents a collection of parameters for operator repository.
+type Configuration struct {
 	URL  string `json:"url"`
 	Name string `json:"name"`
 }
 
 // Repositories represents the repositories.yaml file usually in the $KUDO_HOME
 type Repositories struct {
-	RepoVersion  string                     `json:"repoVersion"`
-	Context      string                     `json:"context"`
-	Repositories []*RepositoryConfiguration `json:"repositories"`
+	RepoVersion  string           `json:"repoVersion"`
+	Context      string           `json:"context"`
+	Repositories []*Configuration `json:"repositories"`
 }
 
 // Default initialized repository.
-var Default = &RepositoryConfiguration{
+var Default = &Configuration{
 	Name: defaultRepoName,
 	URL:  "https://kudo-repository.storage.googleapis.com",
 }
 
-// NewRepoFile creates a new repo with only defaults populated
-func NewRepoFile() *Repositories {
+// NewRepositories creates a new repo with only defaults populated
+func NewRepositories() *Repositories {
 	return &Repositories{
 		RepoVersion:  Version,
 		Context:      defaultRepoName,
-		Repositories: []*RepositoryConfiguration{Default},
+		Repositories: []*Configuration{Default},
 	}
 }
 
-// GetRepo returns a RepoName Config for a name or nil
-func (r Repositories) GetRepo(name string) *RepositoryConfiguration {
+// GetConfiguration returns a RepoName Config for a name or nil
+func (r Repositories) GetConfiguration(name string) *Configuration {
 	for _, repo := range r.Repositories {
 		if repo.Name == name {
 			return repo
@@ -52,9 +59,23 @@ func (r Repositories) GetRepo(name string) *RepositoryConfiguration {
 	return nil
 }
 
-// CurrentRepo provides the repo config for the current context
-func (r Repositories) CurrentRepo() *RepositoryConfiguration {
-	return r.GetRepo(r.Context)
+// CurrentConfiguration provides the repo config for the current context
+func (r Repositories) CurrentConfiguration() *Configuration {
+	return r.GetConfiguration(r.Context)
+}
+
+// ConfigurationFromSettings gets the repo configuration from settings
+func ConfigurationFromSettings(fs afero.Fs, home kudohome.Home, repoName string) (*Configuration, error) {
+	r, err := LoadRepositories(fs, home.RepositoryFile())
+	if err != nil {
+		// this allows for no client init... perhaps we should return the error requesting kudo init
+		r = NewRepositories()
+	}
+	repo := r.GetConfiguration(repoName)
+	if repo == nil {
+		return nil, fmt.Errorf("unable to find respository for %s", repoName)
+	}
+	return repo, nil
 }
 
 // LoadRepositories reads the Repositories file

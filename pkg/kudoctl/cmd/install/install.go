@@ -14,6 +14,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/afero"
 )
 
 // Options defines configuration options for the install command
@@ -31,14 +32,14 @@ var DefaultOptions = &Options{
 }
 
 // Run returns the errors associated with cmd env
-func Run(args []string, options *Options, settings *env.Settings) error {
+func Run(args []string, options *Options, fs afero.Fs, settings *env.Settings) error {
 
 	err := validate(args, options)
 	if err != nil {
 		return err
 	}
 
-	err = installOperator(args[0], options, settings)
+	err = installOperator(args[0], options, fs, settings)
 	return err
 }
 
@@ -86,8 +87,9 @@ func GetPackageCRDs(name string, version string, repository repo.Repository) (*b
 }
 
 // installOperator is installing single operator into cluster and returns error in case of error
-func installOperator(operatorArgument string, options *Options, settings *env.Settings) error {
-	repository, err := repo.NewOperatorRepository(repo.Default)
+func installOperator(operatorArgument string, options *Options, fs afero.Fs, settings *env.Settings) error {
+
+	repository, err := repo.ClientFromSettings(fs, settings.Home, settings.RepoName)
 	if err != nil {
 		return errors.WithMessage(err, "could not build operator repository")
 	}
