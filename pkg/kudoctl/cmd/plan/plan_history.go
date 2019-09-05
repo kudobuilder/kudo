@@ -63,10 +63,10 @@ func planHistory(args []string, options *Options, settings *env.Settings) error 
 	var labelSelector string
 	if len(args) == 0 {
 		fmt.Printf("History of all plan-executions for instance \"%s\" in namespace \"%s\":\n", options.Instance, options.Namespace)
-		labelSelector = "instance=" + options.Instance
+		labelSelector = fmt.Sprintf("instance=%s", options.Instance)
 	} else {
 		fmt.Printf("History of plan-executions for instance \"%s\" in namespace \"%s\" to operator-version \"%s\":\n", options.Instance, options.Namespace, args[0])
-		labelSelector = "operator-version=" + args[0] + ", instance=" + options.Instance
+		labelSelector = fmt.Sprintf("operator-version=%s, instance=%s", args[0], options.Instance)
 	}
 
 	instObj, err := dynamicClient.Resource(planExecutionsGVR).Namespace(options.Namespace).List(metav1.ListOptions{

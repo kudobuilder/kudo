@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	cmdInit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
@@ -78,25 +77,25 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	return cmd
 }
 
-func (i *initCmd) validate() error {
+func (initCmd *initCmd) validate() error {
 	// we do not allow the setting of image and version!
-	if i.image != "" && i.version != "" {
+	if initCmd.image != "" && initCmd.version != "" {
 		return errors.New("specify either 'kudo-image' or 'version', not both")
 	}
 	return nil
 }
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
-func (i *initCmd) run() error {
-	opts := cmdInit.NewOptions(i.version)
+func (initCmd *initCmd) run() error {
+	opts := cmdInit.NewOptions(initCmd.version)
 	// if image provided switch to it.
-	if i.image != "" {
-		opts.Image = i.image
+	if initCmd.image != "" {
+		opts.Image = initCmd.image
 	}
 
 	//TODO: implement output=yaml|json (define a type for output to constrain)
 	//define an Encoder to replace YAMLWriter
-	if strings.ToLower(i.output) == "yaml" {
+	if strings.ToLower(initCmd.output) == "yaml" {
 		mans, err := cmdInit.PrereqManifests(opts)
 		if err != nil {
 			return err
@@ -114,39 +113,39 @@ func (i *initCmd) run() error {
 
 		mans = append(mans, crd...)
 		mans = append(mans, deploy...)
-		i.YAMLWriter(i.out, mans)
+		initCmd.YAMLWriter(initCmd.out, mans)
 	}
 
-	if i.dryRun {
+	if initCmd.dryRun {
 		return nil
 	}
 
 	// initialize client
-	if err := i.initialize(); err != nil {
+	if err := initCmd.initialize(); err != nil {
 		return fmt.Errorf("error initializing: %s", err)
 	}
-	fmt.Fprintf(i.out, "$KUDO_HOME has been configured at %s.\n", Settings.Home)
+	fmt.Fprintf(initCmd.out, "$KUDO_HOME has been configured at %s.\n", Settings.Home)
 
 	// initialize server
-	if !i.clientOnly {
-		if i.client == nil {
+	if !initCmd.clientOnly {
+		if initCmd.client == nil {
 			client, err := kube.GetKubeClient(Settings.KubeConfig)
 			if err != nil {
 				return fmt.Errorf("could not get kubernetes client: %s", err)
 			}
-			i.client = client
+			initCmd.client = client
 		}
 
-		if err := cmdInit.Install(i.client, opts); err != nil {
+		if err := cmdInit.Install(initCmd.client, opts); err != nil {
 			if apierrors.IsAlreadyExists(err) {
-				fmt.Fprintln(i.out, "Warning: KUDO is already installed in the cluster.\n"+
+				fmt.Fprintln(initCmd.out, "Warning: KUDO is already installed in the cluster.\n"+
 					"(Use --client-only to suppress this message)")
 				return fmt.Errorf("error installing: %s", err)
 			}
 		}
 
-		if i.wait {
-			finished := cmdInit.WatchKUDOUntilReady(i.client.KubeClient, opts, i.timeout)
+		if initCmd.wait {
+			finished := cmdInit.WatchKUDOUntilReady(initCmd.client.KubeClient, opts, initCmd.timeout)
 			if !finished {
 				return errors.New("watch timed out, readiness uncertain")
 			}
@@ -159,7 +158,7 @@ func (i *initCmd) run() error {
 // YAMLWriter writes yaml to writer.   Looked into using https://godoc.org/gopkg.in/yaml.v2#NewEncoder which
 // looks like a better way, however the omitted JSON elements are encoded which results in a very verbose output.
 //TODO: Write a Encoder util which uses the "sigs.k8s.io/yaml" library for marshalling
-func (i *initCmd) YAMLWriter(w io.Writer, manifests []string) error {
+func (initCmd *initCmd) YAMLWriter(w io.Writer, manifests []string) error {
 	for _, manifest := range manifests {
 		if _, err := fmt.Fprintln(w, "---"); err != nil {
 			return err
@@ -176,23 +175,28 @@ func (i *initCmd) YAMLWriter(w io.Writer, manifests []string) error {
 }
 
 //func initialize(fs afero.Fs, settings env.Settings, out io.Writer) error {
-func (i *initCmd) initialize() error {
+func (initCmd *initCmd) initialize() error {
 
-	if err := ensureDirectories(i.fs, i.home, i.out); err != nil {
+	if err := ensureDirectories(initCmd.fs, initCmd.home, initCmd.out); err != nil {
 		return err
 	}
 
-	return ensureRepositoryFile(i.fs, i.home, i.out)
+	return ensureRepositoryFile(initCmd.fs, initCmd.home, initCmd.out)
 }
 
 func ensureRepositoryFile(fs afero.Fs, home kudohome.Home, out io.Writer) error {
-	if !files.Exists(fs, home.RepositoryFile()) {
+	exists, err := afero.Exists(fs, home.RepositoryFile())
+	if err != nil {
+		return err
+	}
+	if !exists {
 		fmt.Fprintf(out, "Creating %s \n", home.RepositoryFile())
 		r := repo.NewRepoFile()
 		if err := r.WriteFile(fs, home.RepositoryFile(), 0644); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -202,7 +206,11 @@ func ensureDirectories(fs afero.Fs, home kudohome.Home, out io.Writer) error {
 		home.Repository(),
 	}
 	for _, dir := range dirs {
-		if !files.Exists(fs, dir) {
+		exists, err := afero.Exists(fs, dir)
+		if err != nil {
+			return err
+		}
+		if !exists {
 			fmt.Fprintf(out, "Creating %s \n", dir)
 			if err := fs.MkdirAll(dir, 0755); err != nil {
 				return fmt.Errorf("could not create %s: %s", dir, err)

@@ -59,15 +59,20 @@ func (r Repositories) CurrentRepo() *RepositoryConfiguration {
 
 // LoadRepositories reads the Repositories file
 func LoadRepositories(fs afero.Fs, path string) (*Repositories, error) {
+	exists, err := afero.Exists(fs, path)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, fmt.Errorf(
+			"could not load repositories file (%s).\n"+
+				"You might need to run `kudo init` (or "+
+				"`kudo init --client-only` if kudo is "+
+				"already installed)", path)
+	}
+
 	b, err := afero.ReadFile(fs, path)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, fmt.Errorf(
-				"could not load repositories file (%s).\n"+
-					"You might need to run `kudo init` (or "+
-					"`kudo init --client-only` if kudo is "+
-					"already installed)", path)
-		}
 		return nil, err
 	}
 
