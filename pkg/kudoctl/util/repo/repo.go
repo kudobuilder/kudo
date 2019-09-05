@@ -59,8 +59,8 @@ func (r Repositories) CurrentRepo() *RepositoryConfiguration {
 	return r.GetRepo(r.Context)
 }
 
-// RepositoryFromSettings gets the repo configuration from settings
-func RepositoryFromSettings(fs afero.Fs, settings *env.Settings) (*RepositoryConfiguration, error) {
+// RepositoryConfig gets the repo configuration from settings
+func RepositoryConfig(fs afero.Fs, settings *env.Settings) (*RepositoryConfiguration, error) {
 	r, err := LoadRepositories(fs, settings.Home.RepositoryFile())
 	if err != nil {
 		// this allow for no client init... perhaps we should return the error requesting kudo init

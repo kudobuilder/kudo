@@ -88,12 +88,8 @@ func GetPackageCRDs(name string, version string, repository repo.Repository) (*b
 
 // installOperator is installing single operator into cluster and returns error in case of error
 func installOperator(operatorArgument string, options *Options, fs afero.Fs, settings *env.Settings) error {
-	rc, err := repo.RepositoryFromSettings(fs, settings)
-	if err != nil {
-		return err
-	}
 
-	repository, err := repo.NewOperatorRepository(rc)
+	repository, err := repo.GetOperatorRepository(fs, settings)
 	if err != nil {
 		return errors.WithMessage(err, "could not build operator repository")
 	}

@@ -12,6 +12,7 @@ import (
 
 	"github.com/Masterminds/semver"
 	"github.com/pkg/errors"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
 
@@ -45,7 +46,7 @@ var defaultOptions = &options{
 }
 
 // newUpgradeCmd creates the install command for the CLI
-func newUpgradeCmd() *cobra.Command {
+func newUpgradeCmd(fs afero.Fs) *cobra.Command {
 	options := defaultOptions
 	var parameters []string
 	upgradeCmd := &cobra.Command{
@@ -60,7 +61,7 @@ func newUpgradeCmd() *cobra.Command {
 			if err != nil {
 				return errors.WithMessage(err, "could not parse parameters")
 			}
-			return runUpgrade(args, options, &Settings)
+			return runUpgrade(args, options, fs, &Settings)
 		},
 	}
 
@@ -83,7 +84,7 @@ func validateCmd(args []string, options *options) error {
 	return nil
 }
 
-func runUpgrade(args []string, options *options, settings *env.Settings) error {
+func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Settings) error {
 	err := validateCmd(args, options)
 	if err != nil {
 		return err
@@ -96,7 +97,7 @@ func runUpgrade(args []string, options *options, settings *env.Settings) error {
 	}
 
 	// Resolve the package to upgrade to
-	repository, err := repo.NewOperatorRepository(repo.Default)
+	repository, err := repo.GetOperatorRepository(fs, settings)
 	if err != nil {
 		return errors.WithMessage(err, "could not build operator repository")
 	}
