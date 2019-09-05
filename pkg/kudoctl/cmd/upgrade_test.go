@@ -8,10 +8,11 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
+	util "github.com/kudobuilder/kudo/pkg/util/kudo"
+
+	"github.com/spf13/afero"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 func TestUpgradeCommand_Validation(t *testing.T) {
@@ -27,7 +28,7 @@ func TestUpgradeCommand_Validation(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		cmd := newUpgradeCmd()
+		cmd := newUpgradeCmd(afero.NewOsFs())
 		cmd.SetArgs(tt.args)
 		if tt.instanceName != "" {
 			cmd.Flags().Set("instance", tt.instanceName)

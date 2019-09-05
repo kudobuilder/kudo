@@ -9,9 +9,11 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/afero"
 )
 
 // Repository is an abstraction for a service that can retrieve package bundles
@@ -23,6 +25,16 @@ type Repository interface {
 type OperatorRepository struct {
 	Config *RepositoryConfiguration
 	Client http.Client
+}
+
+// GetOperatorRepository retrieves the operator repo for the configured repo in settings
+func GetOperatorRepository(fs afero.Fs, settings *env.Settings) (*OperatorRepository, error) {
+	rc, err := RepositoryConfig(fs, settings)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewOperatorRepository(rc)
 }
 
 // NewOperatorRepository constructs OperatorRepository
