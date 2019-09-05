@@ -105,6 +105,36 @@ func (r *Repositories) WriteFile(fs afero.Fs, path string, perm os.FileMode) err
 	return afero.WriteFile(fs, path, data, perm)
 }
 
+// Add appends a slice of repo configs to repositories file
+func (r Repositories) Add(repo ...*RepositoryConfiguration) {
+	r.Repositories = append(r.Repositories, repo...)
+}
+
+// SetContext switches the context to another repo config in the repositories file.  errors if no repo found.
+func (r Repositories) SetContext(context string) error {
+	repo := r.GetRepo(context)
+	if repo == nil {
+		return fmt.Errorf("no repo found with name: %s", context)
+	}
+	r.Context = context
+	return nil
+}
+
+// Remove removes the repo config with the provided name
+func (r Repositories) Remove(name string) bool {
+	repos := []*RepositoryConfiguration{}
+	found := false
+	for _, repo := range r.Repositories {
+		if repo.Name == name {
+			found = true
+			continue
+		}
+		repos = append(repos, repo)
+	}
+	r.Repositories = repos
+	return found
+}
+
 // Metadata for an Operator. This models the structure of an operator.yaml file.
 type Metadata struct {
 	// Name is the name of the operator.
