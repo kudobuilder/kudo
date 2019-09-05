@@ -3,16 +3,16 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/Masterminds/semver"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 
+	"github.com/Masterminds/semver"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -60,7 +60,7 @@ func newUpgradeCmd() *cobra.Command {
 			if err != nil {
 				return errors.WithMessage(err, "could not parse parameters")
 			}
-			return runUpgrade(args, options)
+			return runUpgrade(args, options, &Settings)
 		},
 	}
 
@@ -83,14 +83,14 @@ func validateCmd(args []string, options *options) error {
 	return nil
 }
 
-func runUpgrade(args []string, options *options) error {
+func runUpgrade(args []string, options *options, settings *env.Settings) error {
 	err := validateCmd(args, options)
 	if err != nil {
 		return err
 	}
 	packageToUpgrade := args[0]
 
-	kc, err := kudo.NewClient(options.Namespace, viper.GetString("kubeconfig"))
+	kc, err := kudo.NewClient(options.Namespace, settings.KubeConfig)
 	if err != nil {
 		return errors.Wrap(err, "creating kudo client")
 	}

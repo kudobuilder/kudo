@@ -1,13 +1,97 @@
 package repo
 
+import (
+	"fmt"
+	"os"
+
+	"github.com/spf13/afero"
+	"sigs.k8s.io/yaml"
+)
+
+const (
+	// Version is the repo / packaging version
+	Version         = "v1"
+	defaultRepoName = "community"
+)
+
 // RepositoryConfiguration represents a collection of parameters for operator repository.
 type RepositoryConfiguration struct {
-	URL string `json:"url"`
+	URL  string `json:"url"`
+	Name string `json:"name"`
+}
+
+// Repositories represents the repositories.yaml file usually in the $KUDO_HOME
+type Repositories struct {
+	RepoVersion  string                     `json:"repoVersion"`
+	Context      string                     `json:"context"`
+	Repositories []*RepositoryConfiguration `json:"repositories"`
 }
 
 // Default initialized repository.
 var Default = &RepositoryConfiguration{
-	URL: "https://kudo-repository.storage.googleapis.com",
+	Name: defaultRepoName,
+	URL:  "https://kudo-repository.storage.googleapis.com",
+}
+
+// NewRepoFile creates a new repo with only defaults populated
+func NewRepoFile() *Repositories {
+	return &Repositories{
+		RepoVersion:  Version,
+		Context:      defaultRepoName,
+		Repositories: []*RepositoryConfiguration{Default},
+	}
+}
+
+// GetRepo returns a RepoName Config for a name or nil
+func (r Repositories) GetRepo(name string) *RepositoryConfiguration {
+	for _, repo := range r.Repositories {
+		if repo.Name == name {
+			return repo
+		}
+	}
+	return nil
+}
+
+// CurrentRepo provides the repo config for the current context
+func (r Repositories) CurrentRepo() *RepositoryConfiguration {
+	return r.GetRepo(r.Context)
+}
+
+// LoadRepositories reads the Repositories file
+func LoadRepositories(fs afero.Fs, path string) (*Repositories, error) {
+	exists, err := afero.Exists(fs, path)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, fmt.Errorf(
+			"could not load repositories file (%s).\n"+
+				"You might need to run `kudo init` (or "+
+				"`kudo init --client-only` if kudo is "+
+				"already installed)", path)
+	}
+
+	b, err := afero.ReadFile(fs, path)
+	if err != nil {
+		return nil, err
+	}
+
+	r := &Repositories{}
+	err = yaml.Unmarshal(b, r)
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+// WriteFile writes a repositories file to the given path.
+func (r *Repositories) WriteFile(fs afero.Fs, path string, perm os.FileMode) error {
+	data, err := yaml.Marshal(r)
+	if err != nil {
+		return err
+	}
+	return afero.WriteFile(fs, path, data, perm)
 }
 
 // Metadata for an Operator. This models the structure of an operator.yaml file.

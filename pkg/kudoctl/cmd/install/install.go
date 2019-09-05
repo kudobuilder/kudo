@@ -8,12 +8,12 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle/finder"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/viper"
 )
 
 // Options defines configuration options for the install command
@@ -31,14 +31,14 @@ var DefaultOptions = &Options{
 }
 
 // Run returns the errors associated with cmd env
-func Run(args []string, options *Options) error {
+func Run(args []string, options *Options, settings *env.Settings) error {
 
 	err := validate(args, options)
 	if err != nil {
 		return err
 	}
 
-	err = installOperator(args[0], options)
+	err = installOperator(args[0], options, settings)
 	return err
 }
 
@@ -86,13 +86,13 @@ func GetPackageCRDs(name string, version string, repository repo.Repository) (*b
 }
 
 // installOperator is installing single operator into cluster and returns error in case of error
-func installOperator(operatorArgument string, options *Options) error {
+func installOperator(operatorArgument string, options *Options, settings *env.Settings) error {
 	repository, err := repo.NewOperatorRepository(repo.Default)
 	if err != nil {
 		return errors.WithMessage(err, "could not build operator repository")
 	}
 
-	kc, err := kudo.NewClient(options.Namespace, viper.GetString("kubeconfig"))
+	kc, err := kudo.NewClient(options.Namespace, settings.KubeConfig)
 	if err != nil {
 		return errors.Wrap(err, "creating kudo client")
 	}
