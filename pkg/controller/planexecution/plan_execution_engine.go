@@ -32,8 +32,8 @@ type phaseState struct {
 }
 
 type stepState struct {
-	Name     string
-	State    v1alpha1.PhaseState
+	Name  string
+	State v1alpha1.PhaseState
 }
 
 type activePlan struct {

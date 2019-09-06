@@ -352,7 +352,7 @@ func updatePlanExecutionState(newState *planState, execution *kudov1alpha1.PlanE
 	execution.Status.Phases = make([]kudov1alpha1.PhaseStatus, 0)
 	for _, ph := range newState.PhasesState {
 		newStatus := kudov1alpha1.PhaseStatus{
-			Name: ph.Name,
+			Name:  ph.Name,
 			State: ph.State,
 			Steps: make([]kudov1alpha1.StepStatus, 0),
 		}
@@ -360,7 +360,7 @@ func updatePlanExecutionState(newState *planState, execution *kudov1alpha1.PlanE
 
 		for _, s := range ph.StepsState {
 			newStepStatus := kudov1alpha1.StepStatus{
-				Name: s.Name,
+				Name:  s.Name,
 				State: s.State,
 			}
 			newStatus.Steps = append(newStatus.Steps, newStepStatus)
@@ -386,7 +386,7 @@ func getPlanState(execution *kudov1alpha1.PlanExecution, plan *activePlan) *plan
 			&phaseState{
 				Name:       p.Name,
 				State:      kudov1alpha1.PhaseStatePending,
-				Strategy: p.Strategy,
+				Strategy:   p.Strategy,
 				StepsState: make(map[string]*stepState),
 			}
 		for _, s := range p.Steps {
