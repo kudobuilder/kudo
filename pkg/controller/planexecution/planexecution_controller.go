@@ -354,6 +354,7 @@ func updatePlanExecutionState(newState *planState, execution *kudov1alpha1.PlanE
 		newStatus := kudov1alpha1.PhaseStatus{
 			Name:  ph.Name,
 			State: ph.State,
+			Strategy: ph.Strategy,
 			Steps: make([]kudov1alpha1.StepStatus, 0),
 		}
 		execution.Status.Phases = append(execution.Status.Phases, newStatus)
