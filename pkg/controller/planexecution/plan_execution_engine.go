@@ -13,6 +13,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/util/health"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apijson "k8s.io/apimachinery/pkg/util/json"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -128,29 +129,39 @@ func executeStep(step v1alpha1.Step, state *stepState, resources []runtime.Objec
 		// check if step is already healthy
 		allHealthy := true
 		for _, r := range resources {
-			existingResource := r.DeepCopyObject()
-			key, _ := client.ObjectKeyFromObject(r)
-			err := c.Get(context.TODO(), key, existingResource)
-			if apierrors.IsNotFound(err) {
-				err = c.Create(context.TODO(), r)
-				if err != nil {
-					log.Printf("PlanExecution: error when creating resource in step %v: %v", step.Name, err)
+			if step.Delete {
+				// delete
+				log.Printf("PlanExecution: Step %s will delete object %v", step.Name, r)
+				err := c.Delete(context.TODO(), r, client.PropagationPolicy(metav1.DeletePropagationForeground))
+				if !apierrors.IsNotFound(err) && err != nil {
 					return err
 				}
-			} else if err != nil { // other than not found error - raise it
-				return err
 			} else {
-				// try to update the resource
-				err := patchExistingObject(r, existingResource, c)
-				if err != nil {
+				// create or update
+				existingResource := r.DeepCopyObject()
+				key, _ := client.ObjectKeyFromObject(r)
+				err := c.Get(context.TODO(), key, existingResource)
+				if apierrors.IsNotFound(err) {
+					err = c.Create(context.TODO(), r)
+					if err != nil {
+						log.Printf("PlanExecution: error when creating resource in step %v: %v", step.Name, err)
+						return err
+					}
+				} else if err != nil { // other than not found error - raise it
 					return err
+				} else {
+					// try to update the resource
+					err := patchExistingObject(r, existingResource, c)
+					if err != nil {
+						return err
+					}
 				}
-			}
 
-			err = health.IsHealthy(c, r)
-			if err != nil {
-				allHealthy = false
-				log.Printf("PlanExecution: Obj is NOT healthy: %s", prettyPrint(key))
+				err = health.IsHealthy(c, r)
+				if err != nil {
+					allHealthy = false
+					log.Printf("PlanExecution: Obj is NOT healthy: %s", prettyPrint(key))
+				}
 			}
 		}
 
