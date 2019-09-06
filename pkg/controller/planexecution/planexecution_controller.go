@@ -299,14 +299,26 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	currentPlanState := getPlanState(planExecution, &executedPlan)
-
-	newState, err := executePlan(&activePlan{
+	activePlan := &activePlan{
 		Name: planExecution.Spec.PlanName,
 		Plan: &executedPlan,
-	}, planExecution.Name, currentPlanState, instance, params, operatorVersion, r.Client, r.scheme)
+	}
+	currentPlanState := getPlanState(planExecution, activePlan)
+	planExecution = planExecution.DeepCopy()
+
+	log.Printf("PlanExecutionController: Going to execute plan %s for instance %s", planExecution.Name, instance.Name)
+	newState, err := executePlan(activePlan, planExecution.Name, currentPlanState, instance, params, operatorVersion, r.Client, r.scheme)
 
 	if err != nil {
+		log.Printf("PlanExecutionController: error when executing plan for instance %s: %v", instance.Name, err)
+
+		updatePlanExecutionState(newState, planExecution)
+		err = r.Client.Update(context.TODO(), planExecution)
+		if err != nil {
+			log.Printf("PlanExecutionController: Error when updating planExecution state. %v", err)
+			return reconcile.Result{}, err
+		}
+
 		if _, ok := err.(*fatalError); ok {
 			// do not retry
 			return reconcile.Result{}, nil
@@ -315,7 +327,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	}
 
 	// update new state
-	updatePlanState(newState, planExecution)
+	updatePlanExecutionState(newState, planExecution)
 	err = r.Client.Update(context.TODO(), planExecution)
 	if err != nil {
 		log.Printf("PlanExecutionController: Error when updating planExecution state. %v", err)
@@ -334,56 +346,62 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	return reconcile.Result{}, nil
 }
 
-func updatePlanState(newState *planState, execution *kudov1alpha1.PlanExecution) {
+func updatePlanExecutionState(newState *planState, execution *kudov1alpha1.PlanExecution) {
 	execution.Status.State = newState.State
-	for _, p := range execution.Status.Phases {
-		newPhaseState := newState.PhasesState[p.Name]
-		p.State = newPhaseState.State
+	execution.Status.Name = newState.Name
+	execution.Status.Phases = make([]kudov1alpha1.PhaseStatus, 0)
+	for _, ph := range newState.PhasesState {
+		newStatus := kudov1alpha1.PhaseStatus{
+			Name: ph.Name,
+			State: ph.State,
+			Steps: make([]kudov1alpha1.StepStatus, 0),
+		}
+		execution.Status.Phases = append(execution.Status.Phases, newStatus)
 
-		for _, s := range p.Steps {
-			s.State = newPhaseState.StepsState[s.Name].State
+		for _, s := range ph.StepsState {
+			newStepStatus := kudov1alpha1.StepStatus{
+				Name: s.Name,
+				State: s.State,
+			}
+			newStatus.Steps = append(newStatus.Steps, newStepStatus)
 		}
 	}
 }
 
 // getPlanState constructs the current plan execution summary by consulting current state of PE CRD and selected plan from OV
-func getPlanState(execution *kudov1alpha1.PlanExecution, plan *kudov1alpha1.Plan) *planState {
+func getPlanState(execution *kudov1alpha1.PlanExecution, plan *activePlan) *planState {
 	planState := &planState{
-		Name:        execution.Status.Name,
+		Name:        plan.Name,
 		State:       execution.Status.State,
 		PhasesState: make(map[string]*phaseState),
 	}
 
-	for _, p := range execution.Status.Phases {
-		planState.PhasesState[p.Name] = &phaseState{
-			Name:       p.Name,
-			State:      p.State,
-			StepsState: make(map[string]*stepState),
-		}
+	if planState.State == "" {
+		planState.State = kudov1alpha1.PhaseStateInProgress
+	}
 
+	// plan execution might not yet be initialized, make sure we have all phases and steps covered
+	for _, p := range plan.Plan.Phases {
+		planState.PhasesState[p.Name] =
+			&phaseState{
+				Name:       p.Name,
+				State:      kudov1alpha1.PhaseStatePending,
+				Strategy: p.Strategy,
+				StepsState: make(map[string]*stepState),
+			}
 		for _, s := range p.Steps {
 			planState.PhasesState[p.Name].StepsState[s.Name] = &stepState{
 				Name:  s.Name,
-				State: s.State,
+				State: kudov1alpha1.PhaseStatePending,
 			}
 		}
 	}
 
-	// plan execution might not yet be initialized, make sure we have all phases and steps covered
-	for _, p := range plan.Phases {
-		if _, ok := planState.PhasesState[p.Name]; !ok {
-			planState.PhasesState[p.Name] =
-				&phaseState{
-					Name:       p.Name,
-					State:      kudov1alpha1.PhaseStatePending,
-					StepsState: make(map[string]*stepState),
-				}
-			for _, s := range p.Steps {
-				planState.PhasesState[p.Name].StepsState[s.Name] = &stepState{
-					Name:  s.Name,
-					State: kudov1alpha1.PhaseStatePending,
-				}
-			}
+	for _, p := range execution.Status.Phases {
+		planState.PhasesState[p.Name].State = p.State
+
+		for _, s := range p.Steps {
+			planState.PhasesState[p.Name].StepsState[s.Name].State = s.State
 		}
 	}
 
