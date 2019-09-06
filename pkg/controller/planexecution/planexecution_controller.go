@@ -265,9 +265,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, nil
 	}
 
-	// Before returning from this function, update the status
-	defer r.Update(context.Background(), planExecution)
-
 	// Get associated OperatorVersion
 	operatorVersion := &kudov1alpha1.OperatorVersion{}
 	err = r.Get(context.TODO(),
@@ -302,7 +299,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	currentPlanState := getPlanState(planExecution)
+	currentPlanState := getPlanState(planExecution, &executedPlan)
 
 	newState, err := executePlan(&activePlan{
 		Name: planExecution.Spec.PlanName,
@@ -310,7 +307,10 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	}, planExecution.Name, currentPlanState, instance, params, operatorVersion, r.Client, r.scheme)
 
 	if err != nil {
-		// TODO handle fatal errors
+		if _, ok := err.(*fatalError); ok {
+			// do not retry
+			return reconcile.Result{}, nil
+		}
 		return reconcile.Result{}, err
 	}
 
@@ -319,6 +319,15 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	err = r.Client.Update(context.TODO(), planExecution)
 	if err != nil {
 		log.Printf("PlanExecutionController: Error when updating planExecution state. %v", err)
+		return reconcile.Result{}, err
+	}
+
+	// update instance state
+	// TODO this should not be done in this controller, we should address it in another iteration of refactoring
+	instance.Status.Status = planExecution.Status.State
+	err = r.Client.Update(context.TODO(), instance)
+	if err != nil {
+		log.Printf("Error updating instance status to %v: %v\n", instance.Status.Status, err)
 		return reconcile.Result{}, err
 	}
 
@@ -337,7 +346,8 @@ func updatePlanState(newState *planState, execution *kudov1alpha1.PlanExecution)
 	}
 }
 
-func getPlanState(execution *kudov1alpha1.PlanExecution) *planState {
+// getPlanState constructs the current plan execution summary by consulting current state of PE CRD and selected plan from OV
+func getPlanState(execution *kudov1alpha1.PlanExecution, plan *kudov1alpha1.Plan) *planState {
 	planState := &planState{
 		Name:        execution.Status.Name,
 		State:       execution.Status.State,
@@ -355,6 +365,24 @@ func getPlanState(execution *kudov1alpha1.PlanExecution) *planState {
 			planState.PhasesState[p.Name].StepsState[s.Name] = &stepState{
 				Name:  s.Name,
 				State: s.State,
+			}
+		}
+	}
+
+	// plan execution might not yet be initialized, make sure we have all phases and steps covered
+	for _, p := range plan.Phases {
+		if _, ok := planState.PhasesState[p.Name]; !ok {
+			planState.PhasesState[p.Name] =
+				&phaseState{
+					Name:       p.Name,
+					State:      kudov1alpha1.PhaseStatePending,
+					StepsState: make(map[string]*stepState),
+				}
+			for _, s := range p.Steps {
+				planState.PhasesState[p.Name].StepsState[s.Name] = &stepState{
+					Name:  s.Name,
+					State: kudov1alpha1.PhaseStatePending,
+				}
 			}
 		}
 	}

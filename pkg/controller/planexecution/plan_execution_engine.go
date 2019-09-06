@@ -64,6 +64,7 @@ func executePlan(plan *activePlan, planExecutionID string, currentState *planSta
 
 	newState := currentState // TODO deep copy
 	// do a next step in the current plan execution
+	allPhasesCompleted := true
 	for _, ph := range plan.Plan.Phases {
 		currentPhaseState := newState.PhasesState[ph.Name]
 		if currentPhaseState.State == v1alpha1.PhaseStateComplete || currentPhaseState.State == v1alpha1.PhaseStateError {
@@ -91,8 +92,13 @@ func executePlan(plan *activePlan, planExecutionID string, currentState *planSta
 
 			if currentPhaseState.State != v1alpha1.PhaseStateComplete {
 				// we cannot proceed to the next phase
+				allPhasesCompleted = false
 				break
 			}
+		}
+
+		if allPhasesCompleted {
+			currentState.State = v1alpha1.PhaseStateComplete
 		}
 	}
 
