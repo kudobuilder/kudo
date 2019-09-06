@@ -304,7 +304,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 	currentPlanState := getPlanState(planExecution)
 
-	newState, commands, err := executePlan(&activePlan{
+	newState, err := executePlan(&activePlan{
 		Name: planExecution.Spec.PlanName,
 		Plan: &executedPlan,
 	}, planExecution.Name, currentPlanState, instance, params, operatorVersion, r.Client, r.scheme)
@@ -314,17 +314,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	// apply commands
-	for _, c := range commands {
-		if c.Type == create {
-			err = r.Client.Create(context.TODO(), c.Obj)
-			if err != nil {
-				log.Printf("PlanExecutionController: Error when creating object %v: %v", c.Obj, err)
-
-				return reconcile.Result{}, err
-			}
-		}
-	}
 	// update new state
 	updatePlanState(newState, planExecution)
 	err = r.Client.Update(context.TODO(), planExecution)
