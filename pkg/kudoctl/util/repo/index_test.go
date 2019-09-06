@@ -118,10 +118,10 @@ func getTestBundleVersion(name string, version string) PackageVersion {
 			Sources:     []string{"https://github.com/kudobuilder/kudo"},
 			Description: "fancy description is here",
 			Deprecated:  false,
-			Maintainers: []*Maintainer{
-				&Maintainer{Name: "Fabian Baier", Email: "<fabian@mesosphere.io>"},
-				&Maintainer{Name: "Tom Runyon", Email: "<runyontr@gmail.com>"},
-				&Maintainer{Name: "Ken Sipe", Email: "<kensipe@gmail.com>"}},
+			Maintainers: []*v1alpha1.Maintainer{
+				&v1alpha1.Maintainer{Name: "Fabian Baier", Email: "<fabian@mesosphere.io>"},
+				&v1alpha1.Maintainer{Name: "Tom Runyon", Email: "<runyontr@gmail.com>"},
+				&v1alpha1.Maintainer{Name: "Ken Sipe", Email: "<kensipe@gmail.com>"}},
 		},
 		URLs:    urls,
 		Removed: false,
@@ -164,7 +164,7 @@ func TestMapPackageFileToPackageVersion(t *testing.T) {
 		AppVersion:        "2.2.2",
 		KUDOVersion:       "0.5.0",
 		KubernetesVersion: "1.15",
-		Maintainers:       []v1alpha1.Maintainer{"kensipe@gmail.com"},
+		Maintainers:       []*v1alpha1.Maintainer{&v1alpha1.Maintainer{Name: "Ken Sipe"}},
 		URL:               "http://kudo.dev/kafka",
 	}
 	pf := bundle.PackageFiles{

@@ -180,18 +180,12 @@ func ToPackageVersion(pf *bundle.PackageFiles, digest string, url string) *Packa
 		url = url + "/"
 	}
 	url = fmt.Sprintf("%s%s-%v.tgz", url, o.Name, o.Version)
-	m := make([]*Maintainer, len(o.Maintainers))
-	for i, maintainer := range o.Maintainers {
-		m[i] = &Maintainer{
-			Name: string(maintainer),
-		}
-	}
 	pv := PackageVersion{
 		Metadata: &Metadata{
 			Name:        o.Name,
 			Version:     o.Version,
 			Description: o.Description,
-			Maintainers: m,
+			Maintainers: o.Maintainers,
 			AppVersion:  o.AppVersion,
 		},
 		URLs:   []string{url},
