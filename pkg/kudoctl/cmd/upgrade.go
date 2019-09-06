@@ -29,7 +29,7 @@ var (
 		# Upgrade flink to the version 1.1.1
 		kubectl kudo upgrade flink --instance dev-flink --version 1.1.1
 
-		# By default parameters are all reused from the previous installation, if you need to modify, use -p
+		# By default arguments are all reused from the previous installation, if you need to modify, use -p
 		kubectl kudo upgrade flink --instance dev-flink -p param=xxx`
 )
 
@@ -55,11 +55,11 @@ func newUpgradeCmd(fs afero.Fs) *cobra.Command {
 		Long:    `Upgrade KUDO package from current version to new version.`,
 		Example: upgradeExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Prior to command execution we parse and validate passed parameters
+			// Prior to command execution we parse and validate passed arguments
 			var err error
 			options.Parameters, err = install.GetParameterMap(parameters)
 			if err != nil {
-				return errors.WithMessage(err, "could not parse parameters")
+				return errors.WithMessage(err, "could not parse arguments")
 			}
 			return runUpgrade(args, options, fs, &Settings)
 		},
@@ -154,7 +154,7 @@ func upgrade(newOv *v1alpha1.OperatorVersion, kc *kudo.Client, options *options)
 		fmt.Printf("operatorversion.%s/%s successfully created\n", newOv.APIVersion, newOv.Name)
 	}
 
-	// Change instance to point to the new OV and optionally update parameters
+	// Change instance to point to the new OV and optionally update arguments
 	err = kc.UpdateInstance(options.InstanceName, options.Namespace, util.String(newOv.Name), options.Parameters)
 	if err != nil {
 		return errors.Wrapf(err, "updating instance to point to new operatorversion %s", newOv.Name)

@@ -52,8 +52,8 @@ func NewClient(conf *Configuration) (*Client, error) {
 	}, nil
 }
 
-// downloadIndexFile fetches the index file from a repository.
-func (r *Client) downloadIndexFile() (*IndexFile, error) {
+// DownloadIndexFile fetches the index file from a repository.
+func (r *Client) DownloadIndexFile() (*IndexFile, error) {
 	var indexURL string
 	parsedURL, err := url.Parse(r.Config.URL)
 	if err != nil {
@@ -102,7 +102,7 @@ func (r *Client) getPackageReaderByURL(packageURL string) (io.Reader, error) {
 // GetPackageReader provides an io.Reader for a provided package name and optional version
 func (r *Client) GetPackageReader(name string, version string) (io.Reader, error) {
 	// Construct the package name and download the index file from the remote repo
-	indexFile, err := r.downloadIndexFile()
+	indexFile, err := r.DownloadIndexFile()
 	if err != nil {
 		return nil, errors.WithMessage(err, "could not download repository index file")
 	}

@@ -106,6 +106,36 @@ func LoadRepositories(fs afero.Fs, path string) (*Repositories, error) {
 	return r, nil
 }
 
+// Add appends a slice of repo configs to repositories file
+func (r *Repositories) Add(repo ...*Configuration) {
+	r.Repositories = append(r.Repositories, repo...)
+}
+
+// Remove removes the repo config with the provided name
+func (r *Repositories) Remove(name string) bool {
+	repos := []*Configuration{}
+	found := false
+	for _, repo := range r.Repositories {
+		if repo.Name == name {
+			found = true
+			continue
+		}
+		repos = append(repos, repo)
+	}
+	r.Repositories = repos
+	return found
+}
+
+// SetContext switches the context to another repo config in the repositories file.  errors if no repo found.
+func (r *Repositories) SetContext(context string) error {
+	config := r.GetConfiguration(context)
+	if config == nil {
+		return fmt.Errorf("no config found with name: %s", context)
+	}
+	r.Context = context
+	return nil
+}
+
 // WriteFile writes a repositories file to the given path.
 func (r *Repositories) WriteFile(fs afero.Fs, path string, perm os.FileMode) error {
 	data, err := yaml.Marshal(r)

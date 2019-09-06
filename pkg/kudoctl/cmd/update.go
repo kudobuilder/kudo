@@ -40,14 +40,14 @@ func newUpdateCmd() *cobra.Command {
 	updateCmd := &cobra.Command{
 		Use:     "update",
 		Short:   "Update KUDO operator instance.",
-		Long:    `Update KUDO operator instance with new parameters.`,
+		Long:    `Update KUDO operator instance with new arguments.`,
 		Example: updateExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Prior to command execution we parse and validate passed parameters
+			// Prior to command execution we parse and validate passed arguments
 			var err error
 			options.Parameters, err = install.GetParameterMap(parameters)
 			if err != nil {
-				return errors.WithMessage(err, "could not parse parameters")
+				return errors.WithMessage(err, "could not parse arguments")
 			}
 			return runUpdate(args, options, &Settings)
 		},
@@ -98,7 +98,7 @@ func update(instanceToUpdate string, kc *kudo.Client, options *updateOptions) er
 		return fmt.Errorf("instance %s in namespace %s does not exist in the cluster", instanceToUpdate, options.Namespace)
 	}
 
-	// Update parameters
+	// Update arguments
 	err = kc.UpdateInstance(instanceToUpdate, options.Namespace, nil, options.Parameters)
 	if err != nil {
 		return errors.Wrapf(err, "updating instance %s", instanceToUpdate)
