@@ -2,15 +2,18 @@ package cmd
 
 import (
 	"bytes"
+	"flag"
 	"io"
-	"reflect"
+	"io/ioutil"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 
 	"github.com/spf13/afero"
-	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
@@ -18,10 +21,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	yamlutil "k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	testcore "k8s.io/client-go/testing"
 )
+
+var updateGolden = flag.Bool("update", false, "update .golden files")
 
 func TestInitCmd_dry(t *testing.T) {
 
@@ -58,10 +62,13 @@ func TestInitCmd_exists(t *testing.T) {
 		fs:     afero.NewMemMapFs(),
 		client: &kube.Client{KubeClient: fc},
 	}
+	Settings.Home = "/opt"
+
 	if err := cmd.run(); err == nil {
 		t.Errorf("expected error: %v", err)
 	}
-	expected := "Warning: KUDO is already installed in the cluster."
+	expected := "$KUDO_HOME has been configured at /opt.\n" + "Warning: KUDO is already installed in the cluster.\n" +
+		"(Use --client-only to suppress this message)"
 
 	if !strings.Contains(buf.String(), expected) {
 		t.Errorf("expected %q, got %q", expected, buf.String())
@@ -106,117 +113,99 @@ func TestInitCmd_output(t *testing.T) {
 	}
 }
 
-func Test_initCmd_YAMLWriter(t *testing.T) {
-	type fields struct {
-		out        io.Writer
-		fs         afero.Fs
-		image      string
-		dryRun     bool
-		output     string
-		version    string
-		wait       bool
-		timeout    int64
-		kubeClient kubernetes.Interface
+func TestInitCmd_YAMLWriter(t *testing.T) {
+	file := "deploy-kudo.yaml"
+	fs := afero.NewMemMapFs()
+	out := &bytes.Buffer{}
+	initCmd := newInitCmd(fs, out)
+	flags := map[string]string{"dry-run": "true", "output": "yaml"}
+
+	for flag, value := range flags {
+		initCmd.Flags().Set(flag, value)
 	}
-	type args struct {
-		manifests []string
+	initCmd.RunE(initCmd, []string{})
+
+	gp := filepath.Join("testdata", file+".golden")
+
+	if *updateGolden {
+		t.Log("update golden file")
+		if err := ioutil.WriteFile(gp, out.Bytes(), 0644); err != nil {
+			t.Fatalf("failed to update golden file: %s", err)
+		}
 	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantW   string
-		wantErr bool
-	}{
-		// TODO: Add test cases.
+	g, err := ioutil.ReadFile(gp)
+	if err != nil {
+		t.Fatalf("failed reading .golden: %s", err)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			i := &initCmd{
-				out:     tt.fields.out,
-				fs:      tt.fields.fs,
-				image:   tt.fields.image,
-				dryRun:  tt.fields.dryRun,
-				output:  tt.fields.output,
-				version: tt.fields.version,
-				wait:    tt.fields.wait,
-				timeout: tt.fields.timeout,
-				client:  &kube.Client{KubeClient: tt.fields.kubeClient},
-			}
-			w := &bytes.Buffer{}
-			err := i.YAMLWriter(w, tt.args.manifests)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("YAMLWriter() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if gotW := w.String(); gotW != tt.wantW {
-				t.Errorf("YAMLWriter() gotW = %v, want %v", gotW, tt.wantW)
-			}
-		})
+
+	if !bytes.Equal(out.Bytes(), g) {
+		t.Errorf("json does not match .golden file")
 	}
 }
 
-func Test_initCmd_run(t *testing.T) {
-	type fields struct {
-		out        io.Writer
-		fs         afero.Fs
-		image      string
-		dryRun     bool
-		output     string
-		version    string
-		wait       bool
-		timeout    int64
-		kubeClient kubernetes.Interface
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		wantErr bool
+func TestNewInitCmd(t *testing.T) {
+	fs := afero.NewMemMapFs()
+	var tests = []struct {
+		name         string
+		flags        map[string]string
+		parameters   []string
+		errorMessage string
 	}{
-		// TODO: Add test cases.
+		{name: "arguments invalid", parameters: []string{"foo"}, errorMessage: "this command does not accept arguments"},
+		{name: "name and version together invalid", flags: map[string]string{"kudo-image": "foo", "version": "bar"}, errorMessage: "specify either 'kudo-image' or 'version', not both"},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			i := &initCmd{
-				out:     tt.fields.out,
-				fs:      tt.fields.fs,
-				image:   tt.fields.image,
-				dryRun:  tt.fields.dryRun,
-				output:  tt.fields.output,
-				version: tt.fields.version,
-				wait:    tt.fields.wait,
-				timeout: tt.fields.timeout,
-				client:  &kube.Client{KubeClient: tt.fields.kubeClient},
-			}
-			if err := i.run(); (err != nil) != tt.wantErr {
-				t.Errorf("run() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
 
-func Test_newInitCmd(t *testing.T) {
-	type args struct {
-		fs afero.Fs
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantOut string
-		want    *cobra.Command
-	}{
-		// TODO: Add test cases.
-	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
-			got := newInitCmd(tt.args.fs, out)
-			if gotOut := out.String(); gotOut != tt.wantOut {
-				t.Errorf("newInitCmd() gotOut = %v, want %v", gotOut, tt.wantOut)
+			initCmd := newInitCmd(fs, out)
+			for key, value := range tt.flags {
+				initCmd.Flags().Set(key, value)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("newInitCmd() = %v, want %v", got, tt.want)
-			}
+			err := initCmd.RunE(initCmd, tt.parameters)
+			assert.EqualError(t, err, tt.errorMessage)
 		})
 	}
+}
+
+func TestClientInitialize(t *testing.T) {
+
+	fs := afero.NewMemMapFs()
+	home := "kudo_home"
+	err := fs.Mkdir(home, 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	b := bytes.NewBuffer(nil)
+	hh := kudohome.Home(home)
+
+	i := &initCmd{fs: fs, out: b, home: hh}
+	if err := i.initialize(); err != nil {
+		t.Error(err)
+	}
+
+	expectedDirs := []string{hh.String(), hh.Repository()}
+	for _, dir := range expectedDirs {
+		if fi, err := fs.Stat(dir); err != nil {
+			t.Errorf("%s", err)
+		} else if !fi.IsDir() {
+			t.Errorf("%s is not a directory", fi)
+		}
+	}
+
+	if fi, err := fs.Stat(hh.RepositoryFile()); err != nil {
+		t.Error(err)
+	} else if fi.IsDir() {
+		t.Errorf("%s should not be a directory", fi)
+	}
+
+	// verifies we can unmarshal file that was created
+	// verifies that the default URL is populated
+	RepositoryURL := repo.Default.URL
+	r, err := repo.LoadRepositories(fs, hh.RepositoryFile())
+	if err != nil {
+		t.Error(err)
+	}
+	assert.Equal(t, r.CurrentConfiguration().URL, RepositoryURL)
 }

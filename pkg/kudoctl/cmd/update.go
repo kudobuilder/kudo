@@ -4,11 +4,11 @@ import (
 	"fmt"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -40,16 +40,16 @@ func newUpdateCmd() *cobra.Command {
 	updateCmd := &cobra.Command{
 		Use:     "update",
 		Short:   "Update KUDO operator instance.",
-		Long:    `Update KUDO operator instance with new parameters.`,
+		Long:    `Update KUDO operator instance with new arguments.`,
 		Example: updateExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Prior to command execution we parse and validate passed parameters
+			// Prior to command execution we parse and validate passed arguments
 			var err error
 			options.Parameters, err = install.GetParameterMap(parameters)
 			if err != nil {
-				return errors.WithMessage(err, "could not parse parameters")
+				return errors.WithMessage(err, "could not parse arguments")
 			}
-			return runUpdate(args, options)
+			return runUpdate(args, options, &Settings)
 		},
 	}
 
@@ -73,14 +73,14 @@ func validateUpdateCmd(args []string, options *updateOptions) error {
 	return nil
 }
 
-func runUpdate(args []string, options *updateOptions) error {
+func runUpdate(args []string, options *updateOptions, settings *env.Settings) error {
 	err := validateUpdateCmd(args, options)
 	if err != nil {
 		return err
 	}
 	instanceToUpdate := options.InstanceName
 
-	kc, err := kudo.NewClient(options.Namespace, viper.GetString("kubeconfig"))
+	kc, err := kudo.NewClient(options.Namespace, settings.KubeConfig)
 	if err != nil {
 		return errors.Wrap(err, "creating kudo client")
 	}
@@ -98,7 +98,7 @@ func update(instanceToUpdate string, kc *kudo.Client, options *updateOptions) er
 		return fmt.Errorf("instance %s in namespace %s does not exist in the cluster", instanceToUpdate, options.Namespace)
 	}
 
-	// Update parameters
+	// Update arguments
 	err = kc.UpdateInstance(instanceToUpdate, options.Namespace, nil, options.Parameters)
 	if err != nil {
 		return errors.Wrapf(err, "updating instance %s", instanceToUpdate)

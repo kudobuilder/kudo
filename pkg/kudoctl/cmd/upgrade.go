@@ -3,16 +3,17 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/Masterminds/semver"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 
+	"github.com/Masterminds/semver"
 	"github.com/pkg/errors"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -28,7 +29,7 @@ var (
 		# Upgrade flink to the version 1.1.1
 		kubectl kudo upgrade flink --instance dev-flink --version 1.1.1
 
-		# By default parameters are all reused from the previous installation, if you need to modify, use -p
+		# By default arguments are all reused from the previous installation, if you need to modify, use -p
 		kubectl kudo upgrade flink --instance dev-flink -p param=xxx`
 )
 
@@ -45,7 +46,7 @@ var defaultOptions = &options{
 }
 
 // newUpgradeCmd creates the install command for the CLI
-func newUpgradeCmd() *cobra.Command {
+func newUpgradeCmd(fs afero.Fs) *cobra.Command {
 	options := defaultOptions
 	var parameters []string
 	upgradeCmd := &cobra.Command{
@@ -54,13 +55,13 @@ func newUpgradeCmd() *cobra.Command {
 		Long:    `Upgrade KUDO package from current version to new version.`,
 		Example: upgradeExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Prior to command execution we parse and validate passed parameters
+			// Prior to command execution we parse and validate passed arguments
 			var err error
 			options.Parameters, err = install.GetParameterMap(parameters)
 			if err != nil {
-				return errors.WithMessage(err, "could not parse parameters")
+				return errors.WithMessage(err, "could not parse arguments")
 			}
-			return runUpgrade(args, options)
+			return runUpgrade(args, options, fs, &Settings)
 		},
 	}
 
@@ -83,20 +84,20 @@ func validateCmd(args []string, options *options) error {
 	return nil
 }
 
-func runUpgrade(args []string, options *options) error {
+func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Settings) error {
 	err := validateCmd(args, options)
 	if err != nil {
 		return err
 	}
 	packageToUpgrade := args[0]
 
-	kc, err := kudo.NewClient(options.Namespace, viper.GetString("kubeconfig"))
+	kc, err := kudo.NewClient(options.Namespace, settings.KubeConfig)
 	if err != nil {
 		return errors.Wrap(err, "creating kudo client")
 	}
 
 	// Resolve the package to upgrade to
-	repository, err := repo.NewOperatorRepository(repo.Default)
+	repository, err := repo.ClientFromSettings(fs, settings.Home, settings.RepoName)
 	if err != nil {
 		return errors.WithMessage(err, "could not build operator repository")
 	}
@@ -153,7 +154,7 @@ func upgrade(newOv *v1alpha1.OperatorVersion, kc *kudo.Client, options *options)
 		fmt.Printf("operatorversion.%s/%s successfully created\n", newOv.APIVersion, newOv.Name)
 	}
 
-	// Change instance to point to the new OV and optionally update parameters
+	// Change instance to point to the new OV and optionally update arguments
 	err = kc.UpdateInstance(options.InstanceName, options.Namespace, util.String(newOv.Name), options.Parameters)
 	if err != nil {
 		return errors.Wrapf(err, "updating instance to point to new operatorversion %s", newOv.Name)

@@ -2,6 +2,8 @@ package bundle
 
 import "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 
+//TODO (kensipe): Switch Maintainers to RepoName Maintainer: https://github.com/kudobuilder/kudo/blob/master/pkg/kudoctl/util/repo/repo.go#L43
+
 // Operator is a representation of the KEP-9 Operator YAML
 type Operator struct {
 	Name              string                        `json:"name"`
