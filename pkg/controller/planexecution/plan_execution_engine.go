@@ -22,6 +22,7 @@ import (
 type planState struct {
 	Name        string
 	State       v1alpha1.PhaseState
+	Strategy    v1alpha1.Ordering
 	PhasesState map[string]*phaseState
 }
 
@@ -104,6 +105,7 @@ func executePlan(plan *activePlan, planExecutionID string, currentState *planSta
 			}
 
 			if allStepsHealthy {
+				log.Printf("PlanExecution: All steps on phase %s plan %s and instance %s are healthy", ph.Name, plan.Name, instance.Name)
 				currentPhaseState.State = v1alpha1.PhaseStateComplete
 			}
 		}
@@ -116,6 +118,7 @@ func executePlan(plan *activePlan, planExecutionID string, currentState *planSta
 	}
 
 	if allPhasesCompleted {
+		log.Printf("PlanExecution: All phases on plan %s and instance %s are healthy", plan.Name, instance.Name)
 		currentState.State = v1alpha1.PhaseStateComplete
 	}
 

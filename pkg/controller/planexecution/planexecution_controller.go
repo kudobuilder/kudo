@@ -349,15 +349,15 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 func updatePlanExecutionState(newState *planState, execution *kudov1alpha1.PlanExecution) {
 	execution.Status.State = newState.State
 	execution.Status.Name = newState.Name
+	execution.Status.Strategy = newState.Strategy
 	execution.Status.Phases = make([]kudov1alpha1.PhaseStatus, 0)
 	for _, ph := range newState.PhasesState {
 		newStatus := kudov1alpha1.PhaseStatus{
-			Name:  ph.Name,
-			State: ph.State,
+			Name:     ph.Name,
+			State:    ph.State,
 			Strategy: ph.Strategy,
-			Steps: make([]kudov1alpha1.StepStatus, 0),
+			Steps:    make([]kudov1alpha1.StepStatus, 0),
 		}
-		execution.Status.Phases = append(execution.Status.Phases, newStatus)
 
 		for _, s := range ph.StepsState {
 			newStepStatus := kudov1alpha1.StepStatus{
@@ -366,6 +366,8 @@ func updatePlanExecutionState(newState *planState, execution *kudov1alpha1.PlanE
 			}
 			newStatus.Steps = append(newStatus.Steps, newStepStatus)
 		}
+
+		execution.Status.Phases = append(execution.Status.Phases, newStatus)
 	}
 }
 
@@ -374,6 +376,7 @@ func getPlanState(execution *kudov1alpha1.PlanExecution, plan *activePlan) *plan
 	planState := &planState{
 		Name:        plan.Name,
 		State:       execution.Status.State,
+		Strategy:    plan.Plan.Strategy,
 		PhasesState: make(map[string]*phaseState),
 	}
 
@@ -405,6 +408,8 @@ func getPlanState(execution *kudov1alpha1.PlanExecution, plan *activePlan) *plan
 			planState.PhasesState[p.Name].StepsState[s.Name].State = s.State
 		}
 	}
+
+	log.Printf("Updating internal state to %s from %s", prettyPrint(planState), prettyPrint(plan))
 
 	return planState
 }
