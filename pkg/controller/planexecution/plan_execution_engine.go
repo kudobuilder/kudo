@@ -21,7 +21,8 @@ import (
 
 type activePlan struct {
 	Name string
-	Plan *v1alpha1.Plan
+	State *v1alpha1.PlanExecutionStatus
+	Spec *v1alpha1.Plan
 }
 
 type planResources struct {
@@ -34,25 +35,25 @@ type phaseResources struct {
 
 // executePlan ...
 // TODO: remove planExecutionId when PE CRD is removed
-func executePlan(plan *activePlan, planExecutionID string, currentState *v1alpha1.PlanExecutionStatus, instance *v1alpha1.Instance, params map[string]string, operatorVersion *v1alpha1.OperatorVersion, c client.Client, scheme *runtime.Scheme) (*v1alpha1.PlanExecutionStatus, error) {
-	if isFinished(currentState.State) {
+func executePlan(plan *activePlan, planExecutionID string, instance *v1alpha1.Instance, params map[string]string, operatorVersion *v1alpha1.OperatorVersion, c client.Client, scheme *runtime.Scheme) (*v1alpha1.PlanExecutionStatus, error) {
+	if isFinished(plan.State.State) {
 		log.Printf("PlanExecution: Plan %s for instance %s is completed, nothing to do", plan.Name, instance.Name)
-		return currentState, nil
+		return plan.State, nil
 	}
 
 	// newState := currentState // TODO deep copy
 
 	// render kubernetes resources needed to execute this plan
-	planResources, err := prepareKubeResources(plan, currentState, planExecutionID, instance, params, operatorVersion, scheme)
+	planResources, err := prepareKubeResources(plan, planExecutionID, instance, params, operatorVersion, scheme)
 	if err != nil {
-		currentState.State = v1alpha1.PhaseStateError
-		return currentState, err
+		plan.State.State = v1alpha1.PhaseStateError
+		return plan.State, err
 	}
 
 	// do a next step in the current plan execution
 	allPhasesCompleted := true
-	for _, ph := range plan.Plan.Phases {
-		currentPhaseState, _ := getPhaseFromStatus(ph.Name, currentState)
+	for _, ph := range plan.Spec.Phases {
+		currentPhaseState, _ := getPhaseFromStatus(ph.Name, plan.State)
 		if isFinished(currentPhaseState.State) {
 			// nothing to do
 			log.Printf("PlanExecution: Phase %s on plan %s and instance %s is in state %s, nothing to do", ph.Name, plan.Name, instance.Name, currentPhaseState.State)
@@ -72,7 +73,7 @@ func executePlan(plan *activePlan, planExecutionID string, currentState *v1alpha
 				if err != nil {
 					currentPhaseState.State = v1alpha1.PhaseStateError
 					currentStepState.State = v1alpha1.PhaseStateError
-					return currentState, err
+					return plan.State, err
 				}
 
 				if !isFinished(currentStepState.State) {
@@ -99,10 +100,10 @@ func executePlan(plan *activePlan, planExecutionID string, currentState *v1alpha
 
 	if allPhasesCompleted {
 		log.Printf("PlanExecution: All phases on plan %s and instance %s are healthy", plan.Name, instance.Name)
-		currentState.State = v1alpha1.PhaseStateComplete
+		plan.State.State = v1alpha1.PhaseStateComplete
 	}
 
-	return currentState, nil
+	return plan.State, nil
 }
 
 func executeStep(step v1alpha1.Step, state *v1alpha1.StepStatus, resources []runtime.Object, c client.Client) error {
@@ -195,7 +196,7 @@ func patchExistingObject(newResource runtime.Object, existingResource runtime.Ob
 
 // prepareKubeResources takes all resources in all tasks for a plan and renders them with the right parameters
 // it also takes care of applying KUDO specific conventions to the resources like commond labels
-func prepareKubeResources(activePlan *activePlan, currentState *v1alpha1.PlanExecutionStatus, planExecutionID string, instance *v1alpha1.Instance, params map[string]string, operatorVersion *v1alpha1.OperatorVersion, scheme *runtime.Scheme) (*planResources, error) {
+func prepareKubeResources(plan *activePlan, planExecutionID string, instance *v1alpha1.Instance, params map[string]string, operatorVersion *v1alpha1.OperatorVersion, scheme *runtime.Scheme) (*planResources, error) {
 	configs := make(map[string]interface{})
 	configs["OperatorName"] = operatorVersion.Spec.Operator.Name
 	configs["Name"] = instance.Name
@@ -206,14 +207,14 @@ func prepareKubeResources(activePlan *activePlan, currentState *v1alpha1.PlanExe
 		PhaseResources: make(map[string]phaseResources),
 	}
 
-	for _, phase := range activePlan.Plan.Phases {
-		phaseState, _ := getPhaseFromStatus(phase.Name, currentState)
+	for _, phase := range plan.Spec.Phases {
+		phaseState, _ := getPhaseFromStatus(phase.Name, plan.State)
 		perStepResources := make(map[string][]runtime.Object)
 		result.PhaseResources[phase.Name] = phaseResources{
 			StepResources: perStepResources,
 		}
 		for j, step := range phase.Steps {
-			configs["PlanName"] = activePlan.Name
+			configs["PlanName"] = plan.Name
 			configs["PhaseName"] = phase.Name
 			configs["StepName"] = step.Name
 			configs["StepNumber"] = strconv.FormatInt(int64(j), 10)
@@ -253,7 +254,7 @@ func prepareKubeResources(activePlan *activePlan, currentState *v1alpha1.PlanExe
 						OperatorName:    operatorVersion.Spec.Operator.Name,
 						OperatorVersion: operatorVersion.Spec.Version,
 						PlanExecution:   planExecutionID,
-						PlanName:        activePlan.Name,
+						PlanName:        plan.Name,
 						PhaseName:       phase.Name,
 						StepName:        step.Name,
 					}, instance, scheme)

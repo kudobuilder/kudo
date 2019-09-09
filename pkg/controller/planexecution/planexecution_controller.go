@@ -299,15 +299,16 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
+	planExecution = planExecution.DeepCopy()
 	activePlan := &activePlan{
 		Name: planExecution.Spec.PlanName,
-		Plan: &executedPlan,
+		Spec: &executedPlan,
+		State: &planExecution.Status,
 	}
-	planExecution = planExecution.DeepCopy()
 	initializePlanStatus(&planExecution.Status, activePlan)
 
 	log.Printf("PlanExecutionController: Going to execute plan %s for instance %s", planExecution.Name, instance.Name)
-	newState, err := executePlan(activePlan, planExecution.Name, &planExecution.Status, instance, params, operatorVersion, r.Client, r.scheme)
+	newState, err := executePlan(activePlan, planExecution.Name, instance, params, operatorVersion, r.Client, r.scheme)
 	if newState != nil {
 		planExecution.Status = *newState
 	}
@@ -357,11 +358,11 @@ func initializePlanStatus(status *kudov1alpha1.PlanExecutionStatus, plan *active
 
 	status.State = kudov1alpha1.PhaseStateInProgress
 	status.Name = plan.Name
-	status.Strategy = plan.Plan.Strategy
+	status.Strategy = plan.Spec.Strategy
 	status.Phases = make([]kudov1alpha1.PhaseStatus, 0)
 
 	// plan execution might not yet be initialized, make sure we have all phases and steps covered
-	for _, p := range plan.Plan.Phases {
+	for _, p := range plan.Spec.Phases {
 		phaseState := &kudov1alpha1.PhaseStatus{
 			Name:     p.Name,
 			State:    kudov1alpha1.PhaseStatePending,
