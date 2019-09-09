@@ -310,7 +310,16 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	initializePlanStatus(&planExecution.Status, activePlan)
 
 	log.Printf("PlanExecutionController: Going to execute plan %s for instance %s", planExecution.Name, instance.Name)
-	newState, err := executePlan(activePlan, planExecution.Name, instance, params, operatorVersion, r.Client, r.scheme)
+	newState, err := executePlan(activePlan, &executionMetadata{
+		operatorVersionName: operatorVersion.Name,
+		operatorVersion: operatorVersion.Spec.Version,
+		resourcesOwner: instance,
+		operatorName: operatorVersion.Spec.Operator.Name,
+		instanceNamespace: instance.Namespace,
+		instanceName: instance.Name,
+		params: params,
+		planExecutionID: planExecution.Name,
+	}, r.Client, r.scheme)
 	if newState != nil {
 		planExecution.Status = *newState
 	}
