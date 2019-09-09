@@ -304,6 +304,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		Name: planExecution.Spec.PlanName,
 		Spec: &executedPlan,
 		State: &planExecution.Status,
+		Tasks: operatorVersion.Spec.Tasks,
+		Templates: operatorVersion.Spec.Templates,
 	}
 	initializePlanStatus(&planExecution.Status, activePlan)
 

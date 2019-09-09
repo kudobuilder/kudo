@@ -23,6 +23,8 @@ type activePlan struct {
 	Name string
 	State *v1alpha1.PlanExecutionStatus
 	Spec *v1alpha1.Plan
+	Tasks map[string]v1alpha1.TaskSpec
+	Templates map[string]string
 }
 
 type planResources struct {
@@ -223,11 +225,11 @@ func prepareKubeResources(plan *activePlan, planExecutionID string, instance *v1
 
 			engine := kudoengine.New()
 			for _, t := range step.Tasks {
-				if taskSpec, ok := operatorVersion.Spec.Tasks[t]; ok {
+				if taskSpec, ok := plan.Tasks[t]; ok {
 					resourcesAsString := make(map[string]string)
 
 					for _, res := range taskSpec.Resources {
-						if resource, ok := operatorVersion.Spec.Templates[res]; ok {
+						if resource, ok := plan.Templates[res]; ok {
 							templatedYaml, err := engine.Render(resource, configs)
 							if err != nil {
 								phaseState.State = v1alpha1.PhaseStateError
