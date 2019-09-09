@@ -19,25 +19,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type planState struct {
-	Name        string
-	State       v1alpha1.PhaseState
-	Strategy    v1alpha1.Ordering
-	PhasesState map[string]*phaseState
-}
-
-type phaseState struct {
-	Name       string
-	State      v1alpha1.PhaseState
-	Strategy   v1alpha1.Ordering
-	StepsState map[string]*stepState
-}
-
-type stepState struct {
-	Name  string
-	State v1alpha1.PhaseState
-}
-
 type activePlan struct {
 	Name string
 	Plan *v1alpha1.Plan
@@ -53,12 +34,13 @@ type phaseResources struct {
 
 // executePlan ...
 // TODO: remove planExecutionId when PE CRD is removed
-func executePlan(plan *activePlan, planExecutionID string, currentState *planState, instance *v1alpha1.Instance, params map[string]string, operatorVersion *v1alpha1.OperatorVersion, c client.Client, scheme *runtime.Scheme) (*planState, error) {
-	if currentState.State == v1alpha1.PhaseStateComplete {
-		// nothing to do, plan is already finished
+func executePlan(plan *activePlan, planExecutionID string, currentState *v1alpha1.PlanExecutionStatus, instance *v1alpha1.Instance, params map[string]string, operatorVersion *v1alpha1.OperatorVersion, c client.Client, scheme *runtime.Scheme) (*v1alpha1.PlanExecutionStatus, error) {
+	if isFinished(currentState.State) {
 		log.Printf("PlanExecution: Plan %s for instance %s is completed, nothing to do", plan.Name, instance.Name)
 		return currentState, nil
 	}
+
+	// newState := currentState // TODO deep copy
 
 	// render kubernetes resources needed to execute this plan
 	planResources, err := prepareKubeResources(plan, currentState, planExecutionID, instance, params, operatorVersion, scheme)
@@ -67,24 +49,22 @@ func executePlan(plan *activePlan, planExecutionID string, currentState *planSta
 		return currentState, err
 	}
 
-	newState := currentState // TODO deep copy
 	// do a next step in the current plan execution
 	allPhasesCompleted := true
 	for _, ph := range plan.Plan.Phases {
-		currentPhaseState := newState.PhasesState[ph.Name]
-		if currentPhaseState.State == v1alpha1.PhaseStateComplete || currentPhaseState.State == v1alpha1.PhaseStateError {
+		currentPhaseState, _ := getPhaseFromStatus(ph.Name, currentState)
+		if isFinished(currentPhaseState.State) {
 			// nothing to do
 			log.Printf("PlanExecution: Phase %s on plan %s and instance %s is in state %s, nothing to do", ph.Name, plan.Name, instance.Name, currentPhaseState.State)
 			continue
-		}
-		if currentPhaseState.State == v1alpha1.PhaseStateInProgress || currentPhaseState.State == v1alpha1.PhaseStatePending {
+		} else if isInProgress(currentPhaseState.State) {
 			currentPhaseState.State = v1alpha1.PhaseStateInProgress
 			log.Printf("PlanExecution: Executing phase %s on plan %s and instance %s - it's in progress", ph.Name, plan.Name, instance.Name)
 
 			// we're currently executing this phase
 			allStepsHealthy := true
 			for _, s := range ph.Steps {
-				currentStepState := currentPhaseState.StepsState[s.Name]
+				currentStepState, _ := getStepFromStatus(s.Name, currentPhaseState)
 				resources := planResources.PhaseResources[ph.Name].StepResources[s.Name]
 
 				log.Printf("PlanExecution: Executing step %s on plan %s and instance %s - it's in %s state", s.Name, plan.Name, instance.Name, currentStepState.State)
@@ -92,10 +72,10 @@ func executePlan(plan *activePlan, planExecutionID string, currentState *planSta
 				if err != nil {
 					currentPhaseState.State = v1alpha1.PhaseStateError
 					currentStepState.State = v1alpha1.PhaseStateError
-					return newState, err
+					return currentState, err
 				}
 
-				if currentStepState.State != v1alpha1.PhaseStateComplete {
+				if !isFinished(currentStepState.State) {
 					allStepsHealthy = false
 					if ph.Strategy == v1alpha1.Serial {
 						// we cannot proceed to the next step
@@ -110,7 +90,7 @@ func executePlan(plan *activePlan, planExecutionID string, currentState *planSta
 			}
 		}
 
-		if currentPhaseState.State != v1alpha1.PhaseStateComplete {
+		if !isFinished(currentPhaseState.State) {
 			// we cannot proceed to the next phase
 			allPhasesCompleted = false
 			break
@@ -122,11 +102,11 @@ func executePlan(plan *activePlan, planExecutionID string, currentState *planSta
 		currentState.State = v1alpha1.PhaseStateComplete
 	}
 
-	return newState, nil
+	return currentState, nil
 }
 
-func executeStep(step v1alpha1.Step, state *stepState, resources []runtime.Object, c client.Client) error {
-	if state.State == v1alpha1.PhaseStateInProgress || state.State == v1alpha1.PhaseStatePending {
+func executeStep(step v1alpha1.Step, state *v1alpha1.StepStatus, resources []runtime.Object, c client.Client) error {
+	if isInProgress(state.State) {
 		state.State = v1alpha1.PhaseStateInProgress
 
 		// check if step is already healthy
@@ -215,7 +195,7 @@ func patchExistingObject(newResource runtime.Object, existingResource runtime.Ob
 
 // prepareKubeResources takes all resources in all tasks for a plan and renders them with the right parameters
 // it also takes care of applying KUDO specific conventions to the resources like commond labels
-func prepareKubeResources(activePlan *activePlan, currentState *planState, planExecutionID string, instance *v1alpha1.Instance, params map[string]string, operatorVersion *v1alpha1.OperatorVersion, scheme *runtime.Scheme) (*planResources, error) {
+func prepareKubeResources(activePlan *activePlan, currentState *v1alpha1.PlanExecutionStatus, planExecutionID string, instance *v1alpha1.Instance, params map[string]string, operatorVersion *v1alpha1.OperatorVersion, scheme *runtime.Scheme) (*planResources, error) {
 	configs := make(map[string]interface{})
 	configs["OperatorName"] = operatorVersion.Spec.Operator.Name
 	configs["Name"] = instance.Name
@@ -227,7 +207,7 @@ func prepareKubeResources(activePlan *activePlan, currentState *planState, planE
 	}
 
 	for _, phase := range activePlan.Plan.Phases {
-		phaseState := currentState.PhasesState[phase.Name]
+		phaseState, _ := getPhaseFromStatus(phase.Name, currentState)
 		perStepResources := make(map[string][]runtime.Object)
 		result.PhaseResources[phase.Name] = phaseResources{
 			StepResources: perStepResources,
@@ -238,7 +218,7 @@ func prepareKubeResources(activePlan *activePlan, currentState *planState, planE
 			configs["StepName"] = step.Name
 			configs["StepNumber"] = strconv.FormatInt(int64(j), 10)
 			var resources []runtime.Object
-			stepState := phaseState.StepsState[step.Name]
+			stepState, _ := getStepFromStatus(step.Name, phaseState)
 
 			engine := kudoengine.New()
 			for _, t := range step.Tasks {
@@ -301,4 +281,30 @@ func prepareKubeResources(activePlan *activePlan, currentState *planState, planE
 	}
 
 	return result, nil
+}
+
+func getStepFromStatus(stepName string, status *v1alpha1.PhaseStatus) (*v1alpha1.StepStatus, error) {
+	for i, p := range status.Steps {
+		if p.Name == stepName {
+			return &status.Steps[i], nil
+		}
+	}
+	return nil, fmt.Errorf("PlanExecution: Cannot find step %s in plan", stepName)
+}
+
+func getPhaseFromStatus(phaseName string, status *v1alpha1.PlanExecutionStatus) (*v1alpha1.PhaseStatus, error) {
+	for i, p := range status.Phases {
+		if p.Name == phaseName {
+			return &status.Phases[i], nil
+		}
+	}
+	return nil, fmt.Errorf("PlanExecution: Cannot find phase %s in plan", phaseName)
+}
+
+func isFinished(state v1alpha1.PhaseState) bool {
+	return state == v1alpha1.PhaseStateComplete || state == v1alpha1.PhaseStateError
+}
+
+func isInProgress(state v1alpha1.PhaseState) bool {
+	return state == v1alpha1.PhaseStateInProgress || state == v1alpha1.PhaseStatePending
 }
