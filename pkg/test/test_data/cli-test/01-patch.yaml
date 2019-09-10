@@ -3,3 +3,5 @@ kind: TestStep
 commands:
 - command: kubectl label pod cli-test-pod test=true
   namespaced: true
+- command: kubectl command is bad
+  ignoreFailure: true

@@ -864,7 +864,14 @@ func RunCommand(ctx context.Context, namespace string, command string, cmd kudo.
 		fmt.Sprintf("PATH=%s/bin/:%s", actualDir, os.Getenv("PATH")),
 	}
 
-	return builtCmd.Run()
+	err = builtCmd.Run()
+	if err != nil {
+		if _, ok := err.(*exec.ExitError); ok && cmd.IgnoreFailure {
+			return nil
+		}
+	}
+
+	return err
 }
 
 // RunCommands runs a set of commands, returning any errors.

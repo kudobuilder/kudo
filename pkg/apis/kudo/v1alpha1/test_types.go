@@ -96,4 +96,6 @@ type Command struct {
 	Command string `json:"command"`
 	// If set, the `--namespace` flag will be appended to the command with the namespace to use.
 	Namespaced bool `json:"namespaced"`
+	// If set, failures will be ignored.
+	IgnoreFailure bool `json:"ignoreFailure"`
 }
