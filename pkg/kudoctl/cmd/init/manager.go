@@ -57,15 +57,12 @@ func NewOptions(v string) Options {
 
 // Install uses Kubernetes client to install KUDO.
 func Install(client *kube.Client, opts Options) error {
-	if err := installPrereqs(client.KubeClient, opts); err != nil {
-		return err
-	}
-	if err := installCrds(client.ExtClient); err != nil {
-		return err
-	}
-	if err := installManager(client.KubeClient, opts); err != nil {
-		return err
-	}
+
+	//todo: log with verbosity when cli -V is added
+	installPrereqs(client.KubeClient, opts)
+	installCrds(client.ExtClient)
+	installManager(client.KubeClient, opts)
+
 	return nil
 }
 

@@ -5,6 +5,7 @@ import (
 	"flag"
 	"io"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -15,14 +16,8 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	yamlutil "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes/fake"
-	testcore "k8s.io/client-go/testing"
 )
 
 var updateGolden = flag.Bool("update", false, "update .golden files")
@@ -40,36 +35,6 @@ func TestInitCmd_dry(t *testing.T) {
 		t.Errorf("expected error: %v", err)
 	}
 	expected := ""
-	if !strings.Contains(buf.String(), expected) {
-		t.Errorf("expected %q, got %q", expected, buf.String())
-	}
-}
-
-func TestInitCmd_exists(t *testing.T) {
-
-	var buf bytes.Buffer
-	fc := fake.NewSimpleClientset(&v1beta1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "kudo-system",
-			Name:      "kudo-manager-deploy",
-		},
-	})
-	fc.PrependReactor("*", "*", func(action testcore.Action) (bool, runtime.Object, error) {
-		return true, nil, apierrors.NewAlreadyExists(v1.Resource("deployments"), "1")
-	})
-	cmd := &initCmd{
-		out:    &buf,
-		fs:     afero.NewMemMapFs(),
-		client: &kube.Client{KubeClient: fc},
-	}
-	Settings.Home = "/opt"
-
-	if err := cmd.run(); err == nil {
-		t.Errorf("expected error: %v", err)
-	}
-	expected := "$KUDO_HOME has been configured at /opt\n" + "Warning: KUDO is already installed in the cluster.\n" +
-		"(Use --client-only to suppress this message)"
-
 	if !strings.Contains(buf.String(), expected) {
 		t.Errorf("expected %q, got %q", expected, buf.String())
 	}
@@ -114,6 +79,15 @@ func TestInitCmd_output(t *testing.T) {
 }
 
 func TestInitCmd_YAMLWriter(t *testing.T) {
+
+	// check for dev env, if there remove until after test
+	vKey := "KUDO_DEV_VERSION"
+	version := os.Getenv(vKey)
+	if version != "" {
+		os.Unsetenv(vKey)
+
+		defer os.Setenv(vKey, version)
+	}
 	file := "deploy-kudo.yaml"
 	fs := afero.NewMemMapFs()
 	out := &bytes.Buffer{}

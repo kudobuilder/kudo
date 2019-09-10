@@ -1,6 +1,7 @@
 package init
 
 import (
+	"k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -17,6 +18,7 @@ import (
 
 // Install uses Kubernetes client to install KUDO Crds.
 func installCrds(client *apiextensionsclient.Clientset) error {
+
 	if err := installOperator(client.ApiextensionsV1beta1()); err != nil {
 		return err
 	}
@@ -35,24 +37,38 @@ func installCrds(client *apiextensionsclient.Clientset) error {
 func installOperator(client v1beta1.CustomResourceDefinitionsGetter) error {
 	o := generateOperator()
 	_, err := client.CustomResourceDefinitions().Create(o)
+	// swallow already exists
+	if errors.IsAlreadyExists(err) {
+		//	//TODO (kensipe): replace prints with verbosity message which are off by default
+		return nil
+	}
 	return err
 }
 
 func installOperatorVersion(client v1beta1.CustomResourceDefinitionsGetter) error {
 	ov := generateOperatorVersion()
 	_, err := client.CustomResourceDefinitions().Create(ov)
+	if errors.IsAlreadyExists(err) {
+		return nil
+	}
 	return err
 }
 
 func installInstance(client v1beta1.CustomResourceDefinitionsGetter) error {
 	instance := generateInstance()
 	_, err := client.CustomResourceDefinitions().Create(instance)
+	if errors.IsAlreadyExists(err) {
+		return nil
+	}
 	return err
 }
 
 func installPlanExecution(client v1beta1.CustomResourceDefinitionsGetter) error {
 	pe := generatePlanExecution()
 	_, err := client.CustomResourceDefinitions().Create(pe)
+	if errors.IsAlreadyExists(err) {
+		return nil
+	}
 	return err
 }
 
