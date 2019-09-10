@@ -124,14 +124,14 @@ func (initCmd *initCmd) run() error {
 	if err := initCmd.initialize(); err != nil {
 		return fmt.Errorf("error initializing: %s", err)
 	}
-	fmt.Fprintf(initCmd.out, "$KUDO_HOME has been configured at %s.\n", Settings.Home)
+	fmt.Fprintf(initCmd.out, "$KUDO_HOME has been configured at %s\n", Settings.Home)
 
 	// initialize server
 	if !initCmd.clientOnly {
 		if initCmd.client == nil {
 			client, err := kube.GetKubeClient(Settings.KubeConfig)
 			if err != nil {
-				return fmt.Errorf("could not get kubernetes client: %s", err)
+				return fmt.Errorf("could not get Kubernetes client: %s", err)
 			}
 			initCmd.client = client
 		}
