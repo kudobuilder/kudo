@@ -843,7 +843,7 @@ func GetArgs(ctx context.Context, command string, cmd kudo.Command, namespace st
 	return builtCmd, nil
 }
 
-// Kubectl runs a kubectl command (or plugin) with args.
+// RunCommand runs a command with args.
 // args gets split on spaces (respecting quoted strings).
 func RunCommand(ctx context.Context, namespace string, command string, cmd kudo.Command, cwd string, stdout io.Writer, stderr io.Writer) error {
 	actualDir, err := os.Getwd()
