@@ -9,7 +9,7 @@ import (
 
 const repoDesc = `
 	This command consists of multiple sub-commands to interact with KUDO repositories.
-	
+
 	It can be used to add, remove, list, and index kudo repositories.
 	Example usage:
 		$ kubectl kudo repo add [NAME] [REPO_URL]`
@@ -18,7 +18,7 @@ const repoDesc = `
 func newRepoCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "repo [FLAGS] add|remove|list|index| update [ARGS]",
-		Short:   "Package an official KUDO operator.",
+		Short:   "Add, list, remove, update, and index kudo repositories.",
 		Long:    `Add, list, remove, update, and index kudo repositories`,
 		Example: repoDesc,
 	}
