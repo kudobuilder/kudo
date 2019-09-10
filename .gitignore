@@ -4,6 +4,7 @@ vendor/
 hack/code-gen
 hack/controller-gen
 test/.git-credentials
+reports/
 
 ### mac
 .DS_Store
