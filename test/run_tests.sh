@@ -19,7 +19,7 @@ fi
 docker build -f test/Dockerfile -t kudo-test .
 if [ $? -eq 0 ]
 then
-   docker run -it -m 4g --rm kudo-test
+   docker run -it -m 4g -v $(pwd)/reports:/go/src/github.com/kudobuilder/kudo/reports --rm kudo-test
 else
     echo "Error when building test docker image, cannot run tests."
     exit 1

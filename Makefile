@@ -27,8 +27,9 @@ test:
 .PHONY: integration-test
 # Run integration tests
 integration-test: cli-fast
-	go test -tags integration ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover-integration.out
-	go run ./cmd/kubectl-kudo test
+	go get github.com/jstemmer/go-junit-report
+	go test -tags integration ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover-integration.out 2>&1 | go-junit-report -set-exit-code > reports/integration_report.xml
+	go run ./cmd/kubectl-kudo test 2>&1 | go-junit-report -set-exit-code > reports/kudo_test_report.xml
 
 .PHONY: test-clean
 # Clean test reports
