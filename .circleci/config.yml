@@ -8,6 +8,8 @@ jobs:
     steps:
       - checkout
       - run: ./test/run_tests.sh
+      - store_test_results:
+          path: reports/
   release:
     docker:
       - image: kudobuilder/golang:1.12
