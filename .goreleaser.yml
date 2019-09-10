@@ -63,21 +63,21 @@ archives:
     386: i386
     amd64: x86_64
   format: binary
-brew:
-  name: kudo-cli
-  github:
-    owner: kudobuilder
-    name: homebrew-tap
-  commit_author:
-    name: kudoreleasebot
-    email: release@kudo.dev
-  folder: Formula
-  homepage: https://kudo.dev
-  description: Interact with KUDO via the kubectl plugin
-  dependencies:
-    - kubernetes-cli
-  install: |
-    bin.install "kubectl-kudo"
+brews:
+  - name: kudo-cli
+    github:
+      owner: kudobuilder
+      name: homebrew-tap
+    commit_author:
+      name: kudoreleasebot
+      email: release@kudo.dev
+    folder: Formula
+    homepage: https://kudo.dev
+    description: Interact with KUDO via the kubectl plugin
+    dependencies:
+      - kubernetes-cli
+    install: |
+      bin.install "kubectl-kudo"
 checksum:
   name_template: 'checksums.txt'
 snapshot:
