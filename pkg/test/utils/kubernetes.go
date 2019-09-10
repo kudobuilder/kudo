@@ -809,64 +809,67 @@ func StartTestEnvironment() (env TestEnvironment, err error) {
 	return
 }
 
-// GetKubectlArgs parses a kubectl command line string into its arguments and appends a namespace if it is not already set.
-func GetKubectlArgs(args string, namespace string) ([]string, error) {
+// GetArgs parses a command line string into its arguments and appends a namespace if it is not already set.
+func GetArgs(ctx context.Context, command string, cmd kudo.Command, namespace string) (*exec.Cmd, error) {
 	argSlice := []string{}
 
-	argSplit, err := shlex.Split(args)
+	argSplit, err := shlex.Split(cmd.Command)
 	if err != nil {
 		return nil, err
 	}
 
-	fs := pflag.NewFlagSet("", pflag.ContinueOnError)
-	fs.ParseErrorsWhitelist.UnknownFlags = true
-
-	namespaceParsed := fs.StringP("namespace", "n", "", "")
-	if err := fs.Parse(argSplit); err != nil {
-		return nil, err
-	}
-
-	if argSplit[0] != "kubectl" {
-		argSlice = append(argSlice, "kubectl")
+	if command != "" && argSplit[0] != command {
+		argSlice = append(argSlice, command)
 	}
 
 	argSlice = append(argSlice, argSplit...)
 
-	if *namespaceParsed == "" {
-		argSlice = append(argSlice, "--namespace", namespace)
+	if cmd.Namespaced {
+		fs := pflag.NewFlagSet("", pflag.ContinueOnError)
+		fs.ParseErrorsWhitelist.UnknownFlags = true
+
+		namespaceParsed := fs.StringP("namespace", "n", "", "")
+		if err := fs.Parse(argSplit); err != nil {
+			return nil, err
+		}
+
+		if *namespaceParsed == "" {
+			argSlice = append(argSlice, "--namespace", namespace)
+		}
 	}
 
-	return argSlice, nil
+	builtCmd := exec.Command(argSlice[0])
+	builtCmd.Args = argSlice
+	return builtCmd, nil
 }
 
 // Kubectl runs a kubectl command (or plugin) with args.
 // args gets split on spaces (respecting quoted strings).
-func Kubectl(ctx context.Context, namespace string, args string, cwd string, stdout io.Writer, stderr io.Writer) error {
+func RunCommand(ctx context.Context, namespace string, command string, cmd kudo.Command, cwd string, stdout io.Writer, stderr io.Writer) error {
 	actualDir, err := os.Getwd()
 	if err != nil {
 		return err
 	}
 
-	argSlice, err := GetKubectlArgs(args, namespace)
+	builtCmd, err := GetArgs(ctx, command, cmd, namespace)
 	if err != nil {
 		return err
 	}
 
-	cmd := exec.Command("kubectl")
-	cmd.Args = argSlice
-	cmd.Dir = cwd
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-	cmd.Env = []string{
+	builtCmd.Dir = cwd
+	builtCmd.Stdout = stdout
+	builtCmd.Stderr = stderr
+	builtCmd.Env = []string{
 		fmt.Sprintf("KUBECONFIG=%s/kubeconfig", actualDir),
 		fmt.Sprintf("PATH=%s/bin/:%s", actualDir, os.Getenv("PATH")),
 	}
 
-	return cmd.Run()
+	return builtCmd.Run()
 }
 
-// RunKubectlCommands runs a set of kubectl commands, returning any errors.
-func RunKubectlCommands(logger Logger, namespace string, commands []string, workdir string) []error {
+// RunCommands runs a set of commands, returning any errors.
+// If `command` is set, then `command` will be the command that is invoked (if a command specifies it already, it will not be prepended again).
+func RunCommands(logger Logger, namespace string, command string, commands []kudo.Command, workdir string) []error {
 	errs := []error{}
 
 	if commands == nil {
@@ -877,9 +880,9 @@ func RunKubectlCommands(logger Logger, namespace string, commands []string, work
 		stdout := &bytes.Buffer{}
 		stderr := &bytes.Buffer{}
 
-		logger.Log("Running kubectl:", cmd)
+		logger.Log("Running command:", cmd)
 
-		err := Kubectl(context.TODO(), namespace, cmd, workdir, stdout, stderr)
+		err := RunCommand(context.TODO(), namespace, command, cmd, workdir, stdout, stderr)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -893,6 +896,20 @@ func RunKubectlCommands(logger Logger, namespace string, commands []string, work
 	}
 
 	return errs
+}
+
+// RunKubectlCommands runs a set of kubectl commands, returning any errors.
+func RunKubectlCommands(logger Logger, namespace string, commands []string, workdir string) []error {
+	apiCommands := []kudo.Command{}
+
+	for _, cmd := range commands {
+		apiCommands = append(apiCommands, kudo.Command{
+			Command:    cmd,
+			Namespaced: true,
+		})
+	}
+
+	return RunCommands(logger, namespace, "kubectl", apiCommands, workdir)
 }
 
 // Kubeconfig converts a rest.Config into a YAML kubeconfig and writes it to w
