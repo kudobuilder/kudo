@@ -238,7 +238,7 @@ func TestLoadTestSteps(t *testing.T) {
 				assert.Equal(t, tt.testSteps[index].Apply, testStepsVal[index].Apply)
 				assert.Equal(t, tt.testSteps[index].Asserts, testStepsVal[index].Asserts)
 				assert.Equal(t, tt.testSteps[index].Errors, testStepsVal[index].Errors)
-				assert.Equal(t, tt.testSteps[index].Step, testStepsVal[index].Step)
+				assert.NotEqual(t, tt.testSteps[index].Step, testStepsVal[index].Step)
 				assert.Equal(t, tt.testSteps[index].Dir, testStepsVal[index].Dir)
 				assert.Equal(t, tt.testSteps[index], testStepsVal[index])
 			}
