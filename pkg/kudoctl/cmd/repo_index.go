@@ -25,6 +25,7 @@ type repoIndexCmd struct {
 	path      string
 	url       string
 	overwrite bool
+	mergePath string
 	out       io.Writer
 	fs        afero.Fs
 }
@@ -51,6 +52,7 @@ func newRepoIndexCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVar(&index.url, "url", "", "URL of the operator repository")
+	f.StringVar(&index.mergePath, "merge", "", "URL or path location of index file to merge with")
 	f.BoolVarP(&index.overwrite, "overwrite", "o", false, "Overwrite existing package")
 
 	return cmd
