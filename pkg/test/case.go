@@ -13,6 +13,7 @@ import (
 	petname "github.com/dustinkirkland/golang-petname"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	corev1 "k8s.io/api/core/v1"
+	eventsbeta1 "k8s.io/api/events/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
@@ -74,6 +75,49 @@ func (t *Case) CreateNamespace(namespace string) error {
 	})
 }
 
+// byFirstTimestamp sorts a slice of events by first timestamp, using their involvedObject's name as a tie breaker.
+type byFirstTimestamp []eventsbeta1.Event
+
+func (o byFirstTimestamp) Len() int      { return len(o) }
+func (o byFirstTimestamp) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
+
+func (o byFirstTimestamp) Less(i, j int) bool {
+	if o[i].ObjectMeta.CreationTimestamp.Equal(&o[j].ObjectMeta.CreationTimestamp) {
+		return o[i].Name < o[j].Name
+	}
+	return o[i].ObjectMeta.CreationTimestamp.Before(&o[j].ObjectMeta.CreationTimestamp)
+}
+
+// CollectEvents gathers all events from namespace and prints it out to log
+func (t *Case) CollectEvents(namespace string) {
+	cl, err := t.Client(false)
+	if err != nil {
+		t.Logger.Log("Failed to collect events for %s in ns %s: %v", t.Name, namespace, err)
+		return
+	}
+
+	eventsList := &eventsbeta1.EventList{}
+
+	err = cl.List(context.TODO(), eventsList, client.InNamespace(namespace))
+	if err != nil {
+		t.Logger.Logf("Failed to collect events for %s in ns %s: %v", t.Name, namespace, err)
+		return
+	}
+
+	events := eventsList.Items
+	sort.Sort(byFirstTimestamp(events))
+
+	t.Logger.Logf("%s events from ns %s:", t.Name, namespace)
+	printEvents(events, t.Logger)
+}
+
+func printEvents(events []eventsbeta1.Event, logger testutils.Logger) {
+	for _, e := range events {
+		// time type reason kind message
+		logger.Logf("%s\t%s\t%s\t%s", e.ObjectMeta.CreationTimestamp, e.Type, e.Reason, e.Note)
+	}
+}
+
 // Run runs a test case including all of its steps.
 func (t *Case) Run(test *testing.T) {
 	test.Parallel()
@@ -106,6 +150,8 @@ func (t *Case) Run(test *testing.T) {
 			break
 		}
 	}
+
+	t.CollectEvents(ns)
 }
 
 // CollectTestStepFiles collects a map of test steps and their associated files
