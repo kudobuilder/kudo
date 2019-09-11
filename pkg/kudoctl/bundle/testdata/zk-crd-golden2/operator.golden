@@ -7,8 +7,11 @@ metadata:
 spec:
   url: https://zookeeper.apache.org/
   maintainers:
-  - Alena Varkockova <avarkockova@mesosphere.com>
-  - Tom Runyon <runyontr@gmail.com>
-  - Ken Sipe <kensipe@gmail.com>
+  - name: Alena Varkockova
+    email: avarkockova@mesosphere.com
+  - name: Tom Runyon
+    email: runyontr@gmail.com
+  - name: Ken Sipe
+    email: kensipe@gmail.com
   kudoVersion: 0.2.0
   kubernetesVersion: 1.15.0
