@@ -13,6 +13,7 @@ import (
 	petname "github.com/dustinkirkland/golang-petname"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	corev1 "k8s.io/api/core/v1"
+	eventsbeta1 "k8s.io/api/events/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
@@ -74,6 +75,33 @@ func (t *Case) CreateNamespace(namespace string) error {
 	})
 }
 
+func (t *Case) CollectEvents(namespace string) {
+	cl, err := t.Client(false)
+	if err != nil {
+		t.Logger.Log("Failed to collect events for %s in ns %s: %v", t.Name, namespace, err)
+		return
+	}
+
+	events := &eventsbeta1.EventList{}
+
+	err = cl.List(context.TODO(), events, client.InNamespace(namespace))
+	if err != nil {
+		t.Logger.Logf("Failed to collect events for %s in ns %s: %v", t.Name, namespace, err)
+		return
+	}
+
+	t.Logger.Logf("%s events from ns %s:", t.Name, namespace)
+	printEvents(events, t.Logger)
+}
+
+func printEvents(events *eventsbeta1.EventList, logger testutils.Logger) {
+	for _, e := range events.Items {
+		// time type reason kind message
+		logger.Logf("%s\t%s\t%s\t%s", e.ObjectMeta.CreationTimestamp, e.Type, e.Reason, e.Note)
+	}
+	return
+}
+
 // Run runs a test case including all of its steps.
 func (t *Case) Run(test *testing.T) {
 	test.Parallel()
@@ -106,6 +134,8 @@ func (t *Case) Run(test *testing.T) {
 			break
 		}
 	}
+
+	t.CollectEvents(ns)
 }
 
 // CollectTestStepFiles collects a map of test steps and their associated files
