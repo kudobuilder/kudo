@@ -103,7 +103,8 @@ func ToTarBundle(fs afero.Fs, path string, destination string, overwrite bool) (
 	pkg, err := fromFolder(fs, path)
 	if err != nil {
 		//TODO (kensipe): use wrapped err at high verbosity
-		return "", fmt.Errorf("invalid operator in path: %v error: %v", path, err)
+		//return "", fmt.Errorf("invalid operator in path: %v error: %v", path, err)
+		return "", fmt.Errorf("invalid operator in path: %v", path)
 	}
 
 	name := packageVersionedName(pkg)
