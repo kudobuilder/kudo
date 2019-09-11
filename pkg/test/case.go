@@ -116,7 +116,6 @@ func printEvents(events []eventsbeta1.Event, logger testutils.Logger) {
 		// time type reason kind message
 		logger.Logf("%s\t%s\t%s\t%s", e.ObjectMeta.CreationTimestamp, e.Type, e.Reason, e.Note)
 	}
-	return
 }
 
 // Run runs a test case including all of its steps.
