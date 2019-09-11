@@ -41,6 +41,11 @@ test-clean:
 check-formatting: vet lint staticcheck
 	./hack/check_formatting.sh
 
+.PHONY: golint
+golint:
+	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+	golangci-lint run
+
 .PHONY: download
 download:
 	go mod download
