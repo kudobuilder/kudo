@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -25,6 +26,7 @@ type repoIndexCmd struct {
 	path      string
 	url       string
 	overwrite bool
+	repoName  string
 	mergePath string
 	out       io.Writer
 	fs        afero.Fs
@@ -38,7 +40,7 @@ func newRepoIndexCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 		Short: "Generate an index file given a directory containing KUDO packages",
 		Long:  repoIndexDesc,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := validateRepoIndex(args); err != nil {
+			if err := index.validate(args); err != nil {
 				return err
 			}
 			index.path = args[0]
@@ -53,20 +55,26 @@ func newRepoIndexCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f := cmd.Flags()
 	f.StringVar(&index.url, "url", "", "URL of the operator repository")
 	f.StringVar(&index.mergePath, "merge", "", "URL or path location of index file to merge with")
+	f.StringVar(&index.repoName, "merge-repo", "", "Name of the repo to use a merge URL")
 	f.BoolVarP(&index.overwrite, "overwrite", "o", false, "Overwrite existing package")
 
 	return cmd
 }
 
-func validateRepoIndex(args []string) error {
+func (ri *repoIndexCmd) validate(args []string) error {
 	if len(args) != 1 {
 		return fmt.Errorf("expecting exactly one argument - directory containing the operators to package")
+	}
+	// we do not allow the setting of merge and merge-repo
+	if ri.repoName != "" && ri.mergePath != "" {
+		return errors.New("specify either 'merge' or 'repo-merge', not both")
 	}
 	return nil
 }
 
 // run returns the errors associated with cmd env
 func (ri *repoIndexCmd) run() error {
+
 	target, err := files.FullPathToTarget(ri.fs, ri.path, "index.yaml", ri.overwrite)
 	if err != nil {
 		return err
@@ -78,10 +86,11 @@ func (ri *repoIndexCmd) run() error {
 		return err
 	}
 	// if we have a merge path... lets get it
-	if ri.mergePath != "" {
-		config := &repo.Configuration{
-			URL:  ri.mergePath,
-			Name: "temp-merge-path",
+	if ri.mergePath != "" || ri.repoName != "" {
+
+		config, err := ri.mergeRepoConfiguration()
+		if err != nil {
+			return err
 		}
 		client, err := repo.NewClient(config)
 		if err != nil {
@@ -108,4 +117,19 @@ func (ri *repoIndexCmd) run() error {
 	index.WriteFile(fs, target)
 	fmt.Fprintf(ri.out, "index %v created.\n", target)
 	return nil
+}
+
+func (ri *repoIndexCmd) mergeRepoConfiguration() (*repo.Configuration, error) {
+	if ri.repoName != "" {
+		repos, err := repo.LoadRepositories(ri.fs, Settings.Home.RepositoryFile())
+		if err != nil {
+			return nil, err
+		}
+		return repos.GetConfiguration(ri.repoName), nil
+	}
+
+	return &repo.Configuration{
+		URL:  ri.mergePath,
+		Name: "temp-merge-path",
+	}, nil
 }
