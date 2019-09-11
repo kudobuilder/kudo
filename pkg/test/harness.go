@@ -61,8 +61,11 @@ func (h *Harness) LoadTests(dir string) ([]*Case, error) {
 			continue
 		}
 
+		timeout := h.GetTimeout()
+		h.T.Log("Going to run test suite with timeout of %d seconds for each step", timeout)
+
 		tests = append(tests, &Case{
-			Timeout:    h.GetTimeout(),
+			Timeout:    timeout,
 			Steps:      []*Step{},
 			Name:       file.Name(),
 			Dir:        filepath.Join(dir, file.Name()),
