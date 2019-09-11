@@ -102,12 +102,12 @@ func TestWriteIndexFile(t *testing.T) {
 func getTestIndexFile() *IndexFile {
 	date, _ := time.Parse(time.RFC822, "09 Aug 19 15:04 UTC")
 	index := newIndexFile(&date)
-	bv := getTestBundleVersion("flink", "0.3.0")
-	index.addBundleVersion(&bv)
+	pv := getTestPackageVersion("flink", "0.3.0")
+	index.AddPackageVersion(&pv)
 	return index
 }
 
-func getTestBundleVersion(name string, version string) PackageVersion {
+func getTestPackageVersion(name string, version string) PackageVersion {
 	urls := []string{fmt.Sprintf("http://kudo.dev/%v", name)}
 	bv := PackageVersion{
 		Metadata: &Metadata{
@@ -133,14 +133,14 @@ func getTestBundleVersion(name string, version string) PackageVersion {
 func TestAddBundleVersionErrorConditions(t *testing.T) {
 	index := getTestIndexFile()
 	dup := index.Entries["flink"][0]
-	missing := getTestBundleVersion("flink", "")
-	good := getTestBundleVersion("flink", "1.0.0")
-	g2 := getTestBundleVersion("kafka", "1.0.0")
+	missing := getTestPackageVersion("flink", "")
+	good := getTestPackageVersion("flink", "1.0.0")
+	g2 := getTestPackageVersion("kafka", "1.0.0")
 
 	tests := []struct {
-		name   string
-		bundle *PackageVersion
-		err    string
+		name string
+		pv   *PackageVersion
+		err  string
 	}{
 		{"duplicate version", dup, "operator 'flink' version: 0.3.0 already exists"},
 		{"no version", &missing, "operator 'flink' is missing version"},
@@ -149,7 +149,7 @@ func TestAddBundleVersionErrorConditions(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := index.addBundleVersion(tt.bundle)
+		err := index.AddPackageVersion(tt.pv)
 		if err != nil && err.Error() != tt.err {
 			t.Errorf("%s: expecting error %s got %v", tt.name, tt.err, err)
 		}

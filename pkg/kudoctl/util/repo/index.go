@@ -119,9 +119,10 @@ func (i IndexFile) GetByNameAndVersion(name, version string) (*PackageVersion, e
 	return nil, fmt.Errorf("no operator version found for %s-%v", name, version)
 }
 
-func (i *IndexFile) addBundleVersion(b *PackageVersion) error {
-	name := b.Name
-	version := b.Version
+// AddPackageVersion adds an entry to the IndexFile (does not allow dups)
+func (i *IndexFile) AddPackageVersion(pv *PackageVersion) error {
+	name := pv.Name
+	version := pv.Version
 	if version == "" {
 		return errors.Errorf("operator '%v' is missing version", name)
 	}
@@ -131,7 +132,7 @@ func (i *IndexFile) addBundleVersion(b *PackageVersion) error {
 	vs, ok := i.Entries[name]
 	// no entry for operator
 	if !ok || len(vs) == 0 {
-		pvs := PackageVersions{b}
+		pvs := PackageVersions{pv}
 		i.Entries[name] = pvs
 		return nil
 	}
@@ -143,13 +144,14 @@ func (i *IndexFile) addBundleVersion(b *PackageVersion) error {
 		}
 	}
 
-	vs = append(vs, b)
+	vs = append(vs, pv)
 	i.Entries[name] = vs
 	return nil
 }
 
 // WriteFile is used to write the index file
 func (i IndexFile) WriteFile(fs afero.Fs, file string) error {
+	i.sortPackages()
 	f, err := fs.Create(file)
 	if err != nil {
 		return err
@@ -215,7 +217,7 @@ func IndexDirectory(fs afero.Fs, path string, url string, now *time.Time) (*Inde
 	ops := bundle.GetFilesDigest(fs, archives)
 	pvs := Map(ops, url)
 	for _, pv := range pvs {
-		err = index.addBundleVersion(pv)
+		err = index.AddPackageVersion(pv)
 		// on error we report and continue
 		if err != nil {
 			fmt.Print(err.Error())

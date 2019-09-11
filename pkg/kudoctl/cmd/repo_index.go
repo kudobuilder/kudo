@@ -73,12 +73,39 @@ func (ri *repoIndexCmd) run() error {
 	}
 
 	t := time.Now()
-	i, err := repo.IndexDirectory(ri.fs, ri.path, ri.url, &t)
+	index, err := repo.IndexDirectory(ri.fs, ri.path, ri.url, &t)
 	if err != nil {
 		return err
 	}
+	// if we have a merge path... lets get it
+	if ri.mergePath != "" {
+		config := &repo.Configuration{
+			URL:  ri.mergePath,
+			Name: "temp-merge-path",
+		}
+		client, err := repo.NewClient(config)
+		if err != nil {
+			return err
+		}
+		// valid the url and that we can pull and index is valid
+		mergeIndex, err := client.DownloadIndexFile()
+		if err != nil {
+			return err
+		}
 
-	i.WriteFile(fs, target)
+		// index is the master, any dups in the merged in index will have what is local replace those entries
+		for _, pvs := range mergeIndex.Entries {
+			for _, pv := range pvs {
+				err := index.AddPackageVersion(pv)
+				if err != nil {
+					// todo: add verbose logging here
+					continue
+				}
+			}
+		}
+	}
+
+	index.WriteFile(fs, target)
 	fmt.Fprintf(ri.out, "index %v created.\n", target)
 	return nil
 }
