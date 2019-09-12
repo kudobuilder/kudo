@@ -19,7 +19,6 @@ import (
 // There should be a complete separation between retrieving a bundle if not local and working with a bundle.
 
 // Bundle is an abstraction of the collection of files that makes up a package.  It is anything we can retrieve the PackageCRDs from.
-// FIXME: Implement 'io.Closer' and make sure that it is called. 'tarBundle' will leak a file descriptor otherwise.
 type Bundle interface {
 	// transformed server view
 	GetCRDs() (*PackageCRDs, error)
