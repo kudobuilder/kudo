@@ -12,7 +12,7 @@ func TestRegularFileTarball(t *testing.T) {
 	var fs = afero.NewMemMapFs()
 	files.CopyOperatorToFs(fs, "testdata/zk", "/opt")
 
-	f, _ := fs.Create("/opt/zk.tar.gz")
+	f, _ := fs.Create("/opt/zk.tgz")
 
 	o, _ := os.Open("/opt/zk/operator.yaml")
 	expected, _ := files.Sha256Sum(o)
@@ -22,7 +22,7 @@ func TestRegularFileTarball(t *testing.T) {
 	f.Close()
 
 	//open for reading in an untar
-	f, _ = fs.Open("/opt/zk.tar.gz")
+	f, _ = fs.Open("/opt/zk.tgz")
 	defer f.Close()
 
 	Untar(fs, "/opt/untar", f)

@@ -150,7 +150,7 @@ func (i *IndexFile) AddPackageVersion(pv *PackageVersion) error {
 }
 
 // WriteFile is used to write the index file
-func (i IndexFile) WriteFile(fs afero.Fs, file string) error {
+func (i *IndexFile) WriteFile(fs afero.Fs, file string) error {
 	i.sortPackages()
 	f, err := fs.Create(file)
 	if err != nil {

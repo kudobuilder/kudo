@@ -10,7 +10,7 @@ import (
 
 var (
 	installExample = `
-		The install argument must be a name of the package in the repository, a path to package in *.tar.gz format,
+		The install argument must be a name of the package in the repository, a path to package in *.tgz format,
 		or a path to an unpacked package directory.
 
 		# Install the most recent Flink package to your cluster.
@@ -22,10 +22,10 @@ var (
 		kubectl kudo install pkg/kudoctl/util/repo/testdata/zk
 
 		# Install operator from tarball on a local filesystem
-		kubectl kudo install pkg/kudoctl/util/repo/testdata/zk.tar.gz
+		kubectl kudo install pkg/kudoctl/util/repo/testdata/zk.tgz
 
 		# Install operator from tarball at URL
-		kubectl kudo install http://kudo.dev/zk.tar.gz
+		kubectl kudo install http://kudo.dev/zk.tgz
 
 		# Specify a package version of Kafka to install to your cluster.
 		kubectl kudo install kafka --version=1.1.1`
