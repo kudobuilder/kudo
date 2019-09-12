@@ -24,6 +24,11 @@ all: test manager
 test:
 	go test ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover.out
 
+# Run e2e tests
+.PHONY: e2e-test
+e2e-test: cli-fast
+	./hack/run-e2e-tests.sh
+
 .PHONY: integration-test
 # Run integration tests
 integration-test: cli-fast

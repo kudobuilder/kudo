@@ -8,9 +8,11 @@ jobs:
     steps:
       - checkout
       - run: echo 'export INTEGRATION_OUTPUT_JUNIT="true"' >> $BASH_ENV
-      - run: ./test/run_tests.sh
+      - run: ./test/run_tests.sh integration-test
+      - run: ./test/run_tests.sh e2e-test
       - store_test_results:
           path: reports/
+
   release:
     docker:
       - image: kudobuilder/golang:1.13
