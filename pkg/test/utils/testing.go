@@ -15,6 +15,9 @@ import (
 // If testToRun is set to a non-empty string, it is passed as a `-run` argument to the go test harness.
 // If paralellism is set, it limits the number of concurrently running tests.
 func RunTests(testName string, testToRun string, parallelism int, testFunc func(*testing.T)) {
+	flag.Parse()
+	testing.Init()
+
 	// Set the verbose test flag to true since we are not using the regular go test CLI.
 	flag.Set("test.v", "true")
 
