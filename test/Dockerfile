@@ -19,5 +19,3 @@ COPY pkg/ pkg/
 COPY cmd/ cmd/
 COPY test/ test/
 COPY kudo-test.yaml kudo-test.yaml
-
-CMD make integration-test
