@@ -306,6 +306,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		State: &planExecution.Status,
 		Tasks: operatorVersion.Spec.Tasks,
 		Templates: operatorVersion.Spec.Templates,
+		params: params,
 	}
 	initializePlanStatus(&planExecution.Status, activePlan)
 
@@ -317,9 +318,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		operatorName: operatorVersion.Spec.Operator.Name,
 		instanceNamespace: instance.Namespace,
 		instanceName: instance.Name,
-		params: params,
 		planExecutionID: planExecution.Name,
-	}, r.Client, r.scheme)
+	}, r.Client, &KustomizeRenderer{r.scheme})
 	if newState != nil {
 		planExecution.Status = *newState
 	}

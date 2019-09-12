@@ -37,9 +37,17 @@ type metadata struct {
 	StepName        string
 }
 
+type KubernetesRenderer interface {
+	applyConventionsToTemplates(templates map[string]string, metadata metadata, owner v1.Object) ([]runtime.Object, error)
+}
+
+type KustomizeRenderer struct {
+	scheme *runtime.Scheme
+}
+
 // ApplyConventions accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
-func applyConventionsToTemplates(templates map[string]string, metadata metadata, owner v1.Object, scheme *runtime.Scheme) ([]runtime.Object, error) {
+func (k *KustomizeRenderer) applyConventionsToTemplates(templates map[string]string, metadata metadata, owner v1.Object) ([]runtime.Object, error) {
 	fsys := fs.MakeFakeFS()
 
 	templateNames := make([]string, 0, len(templates))
@@ -112,7 +120,7 @@ func applyConventionsToTemplates(templates map[string]string, metadata metadata,
 	}
 
 	for _, o := range objsToAdd {
-		err = setControllerReference(owner, o, scheme)
+		err = setControllerReference(owner, o, k.scheme)
 		if err != nil {
 			return nil, errors.Wrapf(err, "setting controller reference on parsed object")
 		}

@@ -25,6 +25,7 @@ type activePlan struct {
 	Spec *v1alpha1.Plan
 	Tasks map[string]v1alpha1.TaskSpec
 	Templates map[string]string
+	params map[string]string
 }
 
 type planResources struct {
@@ -44,14 +45,12 @@ type executionMetadata struct {
 
 	planExecutionID string // TODO will be removed when PE CRD is removed
 
-	params map[string]string
-
 	// the object that will own all the resources created by this execution
 	resourcesOwner metav1.Object
 }
 
 // executePlan ...
-func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client, scheme *runtime.Scheme) (*v1alpha1.PlanExecutionStatus, error) {
+func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client, renderer KubernetesRenderer) (*v1alpha1.PlanExecutionStatus, error) {
 	if isFinished(plan.State.State) {
 		log.Printf("PlanExecution: Plan %s for instance %s is completed, nothing to do", plan.Name, metadata.instanceName)
 		return plan.State, nil
@@ -60,7 +59,7 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 	// newState := currentState // TODO deep copy
 
 	// render kubernetes resources needed to execute this plan
-	planResources, err := prepareKubeResources(plan, metadata, scheme)
+	planResources, err := prepareKubeResources(plan, metadata, renderer)
 	if err != nil {
 		plan.State.State = v1alpha1.PhaseStateError
 		return plan.State, err
@@ -83,6 +82,7 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 			for _, s := range ph.Steps {
 				currentStepState, _ := getStepFromStatus(s.Name, currentPhaseState)
 				resources := planResources.PhaseResources[ph.Name].StepResources[s.Name]
+				log.Printf("Resources count: %d", len(resources))
 
 				log.Printf("PlanExecution: Executing step %s on plan %s and instance %s - it's in %s state", s.Name, plan.Name, metadata.instanceName, currentStepState.State)
 				err := executeStep(s, currentStepState, resources, c)
@@ -138,6 +138,7 @@ func executeStep(step v1alpha1.Step, state *v1alpha1.StepStatus, resources []run
 				}
 			} else {
 				// create or update
+				log.Printf("Going to create/update %v", r)
 				existingResource := r.DeepCopyObject()
 				key, _ := client.ObjectKeyFromObject(r)
 				err := c.Get(context.TODO(), key, existingResource)
@@ -212,12 +213,12 @@ func patchExistingObject(newResource runtime.Object, existingResource runtime.Ob
 
 // prepareKubeResources takes all resources in all tasks for a plan and renders them with the right parameters
 // it also takes care of applying KUDO specific conventions to the resources like commond labels
-func prepareKubeResources(plan *activePlan, meta *executionMetadata, scheme *runtime.Scheme) (*planResources, error) {
+func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer KubernetesRenderer) (*planResources, error) {
 	configs := make(map[string]interface{})
 	configs["OperatorName"] = meta.operatorName
 	configs["Name"] = meta.instanceName
 	configs["Namespace"] = meta.instanceNamespace
-	configs["Params"] = meta.params
+	configs["Params"] = plan.params
 
 	result := &planResources{
 		PhaseResources: make(map[string]phaseResources),
@@ -264,7 +265,7 @@ func prepareKubeResources(plan *activePlan, meta *executionMetadata, scheme *run
 						}
 					}
 
-					resourcesWithConventions, err := applyConventionsToTemplates(resourcesAsString, metadata{
+					resourcesWithConventions, err := renderer.applyConventionsToTemplates(resourcesAsString, metadata{
 						InstanceName:    meta.instanceName,
 						Namespace:       meta.instanceNamespace,
 						OperatorName:    meta.operatorName,
@@ -273,7 +274,7 @@ func prepareKubeResources(plan *activePlan, meta *executionMetadata, scheme *run
 						PlanName:        plan.Name,
 						PhaseName:       phase.Name,
 						StepName:        step.Name,
-					}, meta.resourcesOwner, scheme)
+					}, meta.resourcesOwner)
 
 					if err != nil {
 						phaseState.State = v1alpha1.PhaseStateError
