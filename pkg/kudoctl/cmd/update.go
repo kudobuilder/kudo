@@ -24,14 +24,11 @@ var (
 
 type updateOptions struct {
 	InstanceName string
-	Namespace    string
 	Parameters   map[string]string
 }
 
 // defaultOptions initializes the install command options to its defaults
-var defaultUpdateOptions = &updateOptions{
-	Namespace: "default",
-}
+var defaultUpdateOptions = &updateOptions{}
 
 // newUpdateCmd creates the install command for the CLI
 func newUpdateCmd() *cobra.Command {
@@ -55,7 +52,7 @@ func newUpdateCmd() *cobra.Command {
 
 	updateCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name.")
 	updateCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")
-	updateCmd.Flags().StringVar(&options.Namespace, "namespace", defaultOptions.Namespace, "The namespace where the instance you want to upgrade is installed in.")
+
 	return updateCmd
 }
 
@@ -80,26 +77,26 @@ func runUpdate(args []string, options *updateOptions, settings *env.Settings) er
 	}
 	instanceToUpdate := options.InstanceName
 
-	kc, err := kudo.NewClient(options.Namespace, settings.KubeConfig)
+	kc, err := kudo.NewClient(settings.Namespace, settings.KubeConfig)
 	if err != nil {
 		return errors.Wrap(err, "creating kudo client")
 	}
 
-	return update(instanceToUpdate, kc, options)
+	return update(instanceToUpdate, kc, options, settings)
 }
 
-func update(instanceToUpdate string, kc *kudo.Client, options *updateOptions) error {
+func update(instanceToUpdate string, kc *kudo.Client, options *updateOptions, settings *env.Settings) error {
 	// Make sure the instance you want to upgrade exists
-	instance, err := kc.GetInstance(instanceToUpdate, options.Namespace)
+	instance, err := kc.GetInstance(instanceToUpdate, settings.Namespace)
 	if err != nil {
 		return errors.Wrapf(err, "verifying the instance does not already exist")
 	}
 	if instance == nil {
-		return fmt.Errorf("instance %s in namespace %s does not exist in the cluster", instanceToUpdate, options.Namespace)
+		return fmt.Errorf("instance %s in namespace %s does not exist in the cluster", instanceToUpdate, settings.Namespace)
 	}
 
 	// Update arguments
-	err = kc.UpdateInstance(instanceToUpdate, options.Namespace, nil, options.Parameters)
+	err = kc.UpdateInstance(instanceToUpdate, settings.Namespace, nil, options.Parameters)
 	if err != nil {
 		return errors.Wrapf(err, "updating instance %s", instanceToUpdate)
 	}

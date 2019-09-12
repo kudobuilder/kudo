@@ -165,26 +165,28 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: handler.ToRequestsFunc(
 				func(a handler.MapObject) []reconcile.Request {
+					// instance in instance -> reconcile plan for outer instance
 					requests := mapToOwningInstanceActivePlan(a)
-					if len(requests) == 0 {
-						inst := &kudov1alpha1.Instance{}
-						err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{
-							Name:      a.Meta.GetName(),
-							Namespace: a.Meta.GetNamespace(),
-						}, inst)
 
-						if err == nil {
-							// for every updated/added instance also trigger reconcile for its active plan
-							requests = append(requests, reconcile.Request{
-								NamespacedName: types.NamespacedName{
-									Name:      inst.Status.ActivePlan.Name,
-									Namespace: inst.Status.ActivePlan.Namespace,
-								},
-							})
-						} else {
-							log.Printf("PlanExecutionController: received event from Instance %s/%s but instance of that name does not exist", a.Meta.GetNamespace(), a.Meta.GetName())
-						}
+					// instance in instance -> reconcile plan for inner instance
+					inst := &kudov1alpha1.Instance{}
+					err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{
+						Name:      a.Meta.GetName(),
+						Namespace: a.Meta.GetNamespace(),
+					}, inst)
+
+					if err == nil {
+						// for every updated/added instance also trigger reconcile for its active plan
+						requests = append(requests, reconcile.Request{
+							NamespacedName: types.NamespacedName{
+								Name:      inst.Status.ActivePlan.Name,
+								Namespace: inst.Status.ActivePlan.Namespace,
+							},
+						})
+					} else {
+						log.Printf("PlanExecutionController: received event from Instance %s/%s but instance of that name does not exist", a.Meta.GetNamespace(), a.Meta.GetName())
 					}
+
 					return requests
 				}),
 		},
@@ -313,6 +315,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
+	log.Printf("Going to execute plan %s on instance %s", planExecution.Name, instance.Name)
+
 	// now we're actually starting with the execution of plan/phase/step
 	for i, phase := range planExecution.Status.Phases {
 		// If we still want to execute phases in this plan check if phase is healthy
@@ -356,32 +360,28 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 					log.Printf("PlanExecutionController: Object %v already exists for instance %v, going to apply patch", key, instance.Name)
 					//update
 					log.Printf("Going to apply patch\n%+v\n\n to object\n%s\n", string(rawObj), prettyPrint(obj))
+					err = r.Client.Patch(context.TODO(), obj, client.ConstantPatch(types.StrategicMergePatchType, rawObj))
 					if err != nil {
-						log.Printf("Error getting patch between truth and obj: %v\n", err)
-					} else {
-						err = r.Client.Patch(context.TODO(), obj, client.ConstantPatch(types.StrategicMergePatchType, rawObj))
-						if err != nil {
-							// Right now applying a Strategic Merge Patch to custom resources does not work. There is
-							// certain metadata needed, which when missing, leads to an invalid Content-Type Header and
-							// causes the request to fail.
-							// ( see https://github.com/kubernetes-sigs/kustomize/issues/742#issuecomment-458650435 )
-							//
-							// We temporarily solve this by checking for the specific error when a SMP is applied to
-							// custom resources and handle it by defaulting to a Merge Patch.
-							//
-							// The error message for which we check is:
-							// 		the body of the request was in an unknown format - accepted media types include:
-							//			application/json-patch+json, application/merge-patch+json
-							//
-							// 		Reason: "UnsupportedMediaType" Code: 415
-							if errors.IsUnsupportedMediaType(err) {
-								err = r.Client.Patch(context.TODO(), obj, client.ConstantPatch(types.MergePatchType, rawObj))
-								if err != nil {
-									log.Printf("PlanExecutionController: Error when applying merge patch to object %v for instance %v: %v", key, instance.Name, err)
-								}
-							} else {
-								log.Printf("PlanExecutionController: Error when applying StrategicMergePatch to object %v for instance %v: %v", key, instance.Name, err)
+						// Right now applying a Strategic Merge Patch to custom resources does not work. There is
+						// certain metadata needed, which when missing, leads to an invalid Content-Type Header and
+						// causes the request to fail.
+						// ( see https://github.com/kubernetes-sigs/kustomize/issues/742#issuecomment-458650435 )
+						//
+						// We temporarily solve this by checking for the specific error when a SMP is applied to
+						// custom resources and handle it by defaulting to a Merge Patch.
+						//
+						// The error message for which we check is:
+						// 		the body of the request was in an unknown format - accepted media types include:
+						//			application/json-patch+json, application/merge-patch+json
+						//
+						// 		Reason: "UnsupportedMediaType" Code: 415
+						if errors.IsUnsupportedMediaType(err) {
+							err = r.Client.Patch(context.TODO(), obj, client.ConstantPatch(types.MergePatchType, rawObj))
+							if err != nil {
+								log.Printf("PlanExecutionController: Error when applying merge patch to object %v for instance %v: %v", key, instance.Name, err)
 							}
+						} else {
+							log.Printf("PlanExecutionController: Error when applying StrategicMergePatch to object %v for instance %v: %v", key, instance.Name, err)
 						}
 					}
 				} else {
