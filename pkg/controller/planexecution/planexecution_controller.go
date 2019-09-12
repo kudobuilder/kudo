@@ -157,26 +157,28 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: handler.ToRequestsFunc(
 				func(a handler.MapObject) []reconcile.Request {
+					// instance in instance -> reconcile plan for outer instance
 					requests := mapToOwningInstanceActivePlan(a)
-					if len(requests) == 0 {
-						inst := &kudov1alpha1.Instance{}
-						err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{
-							Name:      a.Meta.GetName(),
-							Namespace: a.Meta.GetNamespace(),
-						}, inst)
 
-						if err == nil {
-							// for every updated/added instance also trigger reconcile for its active plan
-							requests = append(requests, reconcile.Request{
-								NamespacedName: types.NamespacedName{
-									Name:      inst.Status.ActivePlan.Name,
-									Namespace: inst.Status.ActivePlan.Namespace,
-								},
-							})
-						} else {
-							log.Printf("PlanExecutionController: received event from Instance %s/%s but instance of that name does not exist", a.Meta.GetNamespace(), a.Meta.GetName())
-						}
+					// instance in instance -> reconcile plan for inner instance
+					inst := &kudov1alpha1.Instance{}
+					err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{
+						Name:      a.Meta.GetName(),
+						Namespace: a.Meta.GetNamespace(),
+					}, inst)
+
+					if err == nil {
+						// for every updated/added instance also trigger reconcile for its active plan
+						requests = append(requests, reconcile.Request{
+							NamespacedName: types.NamespacedName{
+								Name:      inst.Status.ActivePlan.Name,
+								Namespace: inst.Status.ActivePlan.Namespace,
+							},
+						})
+					} else {
+						log.Printf("PlanExecutionController: received event from Instance %s/%s but instance of that name does not exist", a.Meta.GetNamespace(), a.Meta.GetName())
 					}
+
 					return requests
 				}),
 		},
@@ -323,8 +325,6 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	if newState != nil {
 		planExecution.Status = *newState
 	}
-
-	log.Printf("PlanExecutionStatus for %s: %s", instance.Name, prettyPrint(planExecution.Status))
 
 	if err != nil {
 		log.Printf("PlanExecutionController: error when executing plan for instance %s: %v", instance.Name, err)

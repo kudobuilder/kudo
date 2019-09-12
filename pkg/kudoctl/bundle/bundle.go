@@ -102,6 +102,8 @@ func (b fileBundle) GetPkgFiles() (*PackageFiles, error) {
 func ToTarBundle(fs afero.Fs, path string, destination string, overwrite bool) (string, error) {
 	pkg, err := fromFolder(fs, path)
 	if err != nil {
+		//TODO (kensipe): use wrapped err at high verbosity
+		//return "", fmt.Errorf("invalid operator in path: %v error: %v", path, err)
 		return "", fmt.Errorf("invalid operator in path: %v", path)
 	}
 

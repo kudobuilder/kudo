@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
@@ -111,7 +112,7 @@ func TestParameterValidation_InstallCrds(t *testing.T) {
 		options.Parameters = tt.installParameters
 		options.SkipInstance = tt.skipInstance
 
-		err := installCrds(&testCrds, kc, options)
+		err := installCrds(&testCrds, kc, options, env.DefaultSettings)
 		if err != nil && err.Error() != tt.err {
 			t.Errorf("%s: Expected error '%s', got '%s'", tt.name, tt.err, err.Error())
 		}

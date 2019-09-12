@@ -1,7 +1,8 @@
 name: "upgrade-operator"
 version: "0.1.0"
 maintainers:
-  - Your name <your@email.com>
+  - name: Your name
+    email: <your@email.com>
 url: https://kudo.dev
 tasks:
   app:

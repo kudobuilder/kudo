@@ -78,8 +78,12 @@ spec:
               type: string
             maintainers:
               items:
-                type: string
-              type: array
+                properties:
+                  email:
+                    type: string
+                  name:
+                    type: string
+                type: object
             url:
               type: string
           type: object

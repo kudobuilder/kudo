@@ -67,14 +67,22 @@ func operatorCrd() *apiextv1beta1.CustomResourceDefinition {
 }
 
 func generateOperator() *apiextv1beta1.CustomResourceDefinition {
+
+	maintainers := map[string]apiextv1beta1.JSONSchemaProps{
+		"name":  apiextv1beta1.JSONSchemaProps{Type: "string"},
+		"email": apiextv1beta1.JSONSchemaProps{Type: "string"},
+	}
+
 	crd := generateCrd("Operator", "operators")
 	specProps := map[string]apiextv1beta1.JSONSchemaProps{
 		"description":       apiextv1beta1.JSONSchemaProps{Type: "string"},
 		"kubernetesVersion": apiextv1beta1.JSONSchemaProps{Type: "string"},
 		"kudoVersion":       apiextv1beta1.JSONSchemaProps{Type: "string"},
 		"maintainers": apiextv1beta1.JSONSchemaProps{
-			Type:  "array",
-			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{Type: "string"}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
+			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{
+				Type:       "object",
+				Properties: maintainers,
+			}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
 		},
 		"url": apiextv1beta1.JSONSchemaProps{Type: "string"},
 	}

@@ -17,19 +17,22 @@ import (
 	"github.com/spf13/afero"
 )
 
+// RepositoryOptions defines the options necessary for any cmd working with repository
+type RepositoryOptions struct {
+	RepoName string
+}
+
 // Options defines configuration options for the install command
 type Options struct {
+	RepositoryOptions
 	InstanceName   string
-	Namespace      string
 	Parameters     map[string]string
 	PackageVersion string
 	SkipInstance   bool
 }
 
 // DefaultOptions initializes the install command options to its defaults
-var DefaultOptions = &Options{
-	Namespace: "default",
-}
+var DefaultOptions = &Options{}
 
 // Run returns the errors associated with cmd env
 func Run(args []string, options *Options, fs afero.Fs, settings *env.Settings) error {
@@ -89,12 +92,12 @@ func GetPackageCRDs(name string, version string, repository repo.Repository) (*b
 // installOperator is installing single operator into cluster and returns error in case of error
 func installOperator(operatorArgument string, options *Options, fs afero.Fs, settings *env.Settings) error {
 
-	repository, err := repo.ClientFromSettings(fs, settings.Home, settings.RepoName)
+	repository, err := repo.ClientFromSettings(fs, settings.Home, options.RepoName)
 	if err != nil {
 		return errors.WithMessage(err, "could not build operator repository")
 	}
 
-	kc, err := kudo.NewClient(options.Namespace, settings.KubeConfig)
+	kc, err := kudo.NewClient(settings.Namespace, settings.KubeConfig)
 	if err != nil {
 		return errors.Wrap(err, "creating kudo client")
 	}
@@ -104,10 +107,10 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", operatorArgument)
 	}
 
-	return installCrds(crds, kc, options)
+	return installCrds(crds, kc, options, settings)
 }
 
-func installCrds(crds *bundle.PackageCRDs, kc *kudo.Client, options *Options) error {
+func installCrds(crds *bundle.PackageCRDs, kc *kudo.Client, options *Options, settings *env.Settings) error {
 	// PRE-INSTALLATION SETUP
 	operatorName := crds.Operator.ObjectMeta.Name
 	operatorVersion := crds.OperatorVersion.Spec.Version
@@ -122,21 +125,21 @@ func installCrds(crds *bundle.PackageCRDs, kc *kudo.Client, options *Options) er
 	// Operator part
 
 	// Check if Operator exists
-	if !kc.OperatorExistsInCluster(crds.Operator.ObjectMeta.Name, options.Namespace) {
-		if err := installSingleOperatorToCluster(operatorName, options.Namespace, crds.Operator, kc); err != nil {
+	if !kc.OperatorExistsInCluster(crds.Operator.ObjectMeta.Name, settings.Namespace) {
+		if err := installSingleOperatorToCluster(operatorName, settings.Namespace, crds.Operator, kc); err != nil {
 			return errors.Wrap(err, "installing single Operator")
 		}
 	}
 
 	// OperatorVersion part
 
-	versionsInstalled, err := kc.OperatorVersionsInstalled(operatorName, options.Namespace)
+	versionsInstalled, err := kc.OperatorVersionsInstalled(operatorName, settings.Namespace)
 	if err != nil {
 		return errors.Wrap(err, "retrieving existing operator versions")
 	}
 	if !VersionExists(versionsInstalled, operatorVersion) {
 		// this version does not exist in the cluster
-		if err := installSingleOperatorVersionToCluster(operatorName, options.Namespace, kc, crds.OperatorVersion); err != nil {
+		if err := installSingleOperatorVersionToCluster(operatorName, settings.Namespace, kc, crds.OperatorVersion); err != nil {
 			return errors.Wrapf(err, "installing OperatorVersion CRD for operator: %s", operatorName)
 		}
 	}
@@ -153,20 +156,20 @@ func installCrds(crds *bundle.PackageCRDs, kc *kudo.Client, options *Options) er
 	// Check if Instance exists in cluster
 	// It won't create the Instance if any in combination with given Operator Name, OperatorVersion and Instance OperatorName exists
 	instanceName := crds.Instance.ObjectMeta.Name
-	instanceExists, err := kc.InstanceExistsInCluster(operatorName, options.Namespace, crds.OperatorVersion.Spec.Version, instanceName)
+	instanceExists, err := kc.InstanceExistsInCluster(operatorName, settings.Namespace, crds.OperatorVersion.Spec.Version, instanceName)
 	if err != nil {
 		return errors.Wrapf(err, "verifying the instance does not already exist")
 	}
 
 	if !instanceExists {
-		if err := installSingleInstanceToCluster(operatorName, crds.Instance, kc, options); err != nil {
+		if err := installSingleInstanceToCluster(operatorName, crds.Instance, kc, options, settings); err != nil {
 			return errors.Wrap(err, "installing single instance")
 
 		}
 
 	} else {
 		return fmt.Errorf("can not install instance '%s' of operator '%s-%s' because instance of that name already exists in namespace %s",
-			instanceName, operatorName, crds.OperatorVersion.Spec.Version, options.Namespace)
+			instanceName, operatorName, crds.OperatorVersion.Spec.Version, settings.Namespace)
 	}
 	return nil
 }
@@ -225,8 +228,8 @@ func installSingleOperatorVersionToCluster(name, namespace string, kc *kudo.Clie
 
 // installSingleInstanceToCluster installs a given Instance to the cluster
 // TODO: needs more testing
-func installSingleInstanceToCluster(name string, instance *v1alpha1.Instance, kc *kudo.Client, options *Options) error {
-	if _, err := kc.InstallInstanceObjToCluster(instance, options.Namespace); err != nil {
+func installSingleInstanceToCluster(name string, instance *v1alpha1.Instance, kc *kudo.Client, options *Options, settings *env.Settings) error {
+	if _, err := kc.InstallInstanceObjToCluster(instance, settings.Namespace); err != nil {
 		return errors.Wrapf(err, "installing instance %s", name)
 	}
 	fmt.Printf("instance.%s/%s created\n", instance.APIVersion, instance.Name)

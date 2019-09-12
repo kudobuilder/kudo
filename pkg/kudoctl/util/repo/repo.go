@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 
 	"github.com/spf13/afero"
@@ -37,7 +38,7 @@ type Repositories struct {
 // Default initialized repository.
 var Default = &Configuration{
 	Name: defaultRepoName,
-	URL:  "https://kudo-repository.storage.googleapis.com",
+	URL:  "https://kudo-repository.storage.googleapis.com/0.7.0",
 }
 
 // NewRepositories creates a new repo with only defaults populated
@@ -71,11 +72,16 @@ func ConfigurationFromSettings(fs afero.Fs, home kudohome.Home, repoName string)
 		// this allows for no client init... perhaps we should return the error requesting kudo init
 		r = NewRepositories()
 	}
-	repo := r.GetConfiguration(repoName)
-	if repo == nil {
+	var config *Configuration
+	if repoName == "" {
+		config = r.CurrentConfiguration()
+	} else {
+		config = r.GetConfiguration(repoName)
+	}
+	if config == nil {
 		return nil, fmt.Errorf("unable to find respository for %s", repoName)
 	}
-	return repo, nil
+	return config, nil
 }
 
 // LoadRepositories reads the Repositories file
@@ -166,20 +172,8 @@ type Metadata struct {
 	Description string `json:"description,omitempty"`
 
 	// Maintainers is a list of name and URL/email addresses of the maintainer(s).
-	Maintainers []*Maintainer `json:"maintainers,omitempty"`
+	Maintainers []*v1alpha1.Maintainer `json:"maintainers,omitempty"`
 
 	// Deprecated reflects whether this operator is deprecated.
 	Deprecated bool `json:"deprecated,omitempty"`
-}
-
-// Maintainer describes an Operator maintainer.
-type Maintainer struct {
-	// Name is a user name or organization name.
-	Name string `json:"name,omitempty"`
-
-	// Email is an optional email address to contact the named maintainer.
-	Email string `json:"email,omitempty"`
-
-	// URL is an optional URL to an address for the named maintainer.
-	URL string `json:"url,omitempty"`
 }

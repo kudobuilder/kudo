@@ -1,4 +1,4 @@
-
+SHELL=/bin/bash -o pipefail
 # Image URL to use all building/pushing image targets
 DOCKER_TAG ?= $(shell git rev-parse HEAD)
 DOCKER_IMG ?= kudobuilder/controller
@@ -40,6 +40,11 @@ test-clean:
 .PHONY: check-formatting
 check-formatting: vet lint staticcheck
 	./hack/check_formatting.sh
+
+.PHONY: golint
+golint:
+	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+	golangci-lint run
 
 .PHONY: download
 download:

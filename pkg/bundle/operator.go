@@ -12,7 +12,7 @@ type Operator struct {
 	AppVersion        string                        `json:"appVersion,omitempty"`
 	KUDOVersion       string                        `json:"kudoVersion,omitempty"`
 	KubernetesVersion string                        `json:"kubernetesVersion,omitempty"`
-	Maintainers       []v1alpha1.Maintainer         `json:"maintainers,omitempty"`
+	Maintainers       []*v1alpha1.Maintainer        `json:"maintainers,omitempty"`
 	URL               string                        `json:"url,omitempty"`
 	Tasks             map[string]v1alpha1.TaskSpec  `json:"tasks"`
 	Plans             map[string]v1alpha1.Plan      `json:"plans"`
