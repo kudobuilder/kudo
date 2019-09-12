@@ -7,6 +7,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 
@@ -109,10 +110,7 @@ func TestUpgrade(t *testing.T) {
 		newOv := testOv
 		newOv.Spec.Version = tt.newVersion
 
-		err := upgrade(&newOv, c, &options{
-			InstanceName: "test",
-			Namespace:    installNamespace,
-		})
+		err := upgrade(&newOv, c, &options{InstanceName: "test"}, env.DefaultSettings)
 		if err != nil {
 			if !strings.Contains(err.Error(), tt.errMessageContains) {
 				t.Errorf("%s: expected error '%s' but got '%v'", tt.name, tt.errMessageContains, err)
