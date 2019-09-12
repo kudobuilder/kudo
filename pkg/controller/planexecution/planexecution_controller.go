@@ -301,25 +301,25 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 	planExecution = planExecution.DeepCopy()
 	activePlan := &activePlan{
-		Name: planExecution.Spec.PlanName,
-		Spec: &executedPlan,
-		State: &planExecution.Status,
-		Tasks: operatorVersion.Spec.Tasks,
+		Name:      planExecution.Spec.PlanName,
+		Spec:      &executedPlan,
+		State:     &planExecution.Status,
+		Tasks:     operatorVersion.Spec.Tasks,
 		Templates: operatorVersion.Spec.Templates,
-		params: params,
+		params:    params,
 	}
 	initializePlanStatus(&planExecution.Status, activePlan)
 
 	log.Printf("PlanExecutionController: Going to execute plan %s for instance %s", planExecution.Name, instance.Name)
 	newState, err := executePlan(activePlan, &executionMetadata{
 		operatorVersionName: operatorVersion.Name,
-		operatorVersion: operatorVersion.Spec.Version,
-		resourcesOwner: instance,
-		operatorName: operatorVersion.Spec.Operator.Name,
-		instanceNamespace: instance.Namespace,
-		instanceName: instance.Name,
-		planExecutionID: planExecution.Name,
-	}, r.Client, &KustomizeRenderer{r.scheme})
+		operatorVersion:     operatorVersion.Spec.Version,
+		resourcesOwner:      instance,
+		operatorName:        operatorVersion.Spec.Operator.Name,
+		instanceNamespace:   instance.Namespace,
+		instanceName:        instance.Name,
+		planExecutionID:     planExecution.Name,
+	}, r.Client, &kustomizeRenderer{r.scheme})
 	if newState != nil {
 		planExecution.Status = *newState
 	}

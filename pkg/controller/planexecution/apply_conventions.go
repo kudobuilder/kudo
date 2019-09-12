@@ -37,17 +37,17 @@ type metadata struct {
 	StepName        string
 }
 
-type KubernetesRenderer interface {
+type kubernetesRenderer interface {
 	applyConventionsToTemplates(templates map[string]string, metadata metadata, owner v1.Object) ([]runtime.Object, error)
 }
 
-type KustomizeRenderer struct {
+type kustomizeRenderer struct {
 	scheme *runtime.Scheme
 }
 
 // ApplyConventions accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
-func (k *KustomizeRenderer) applyConventionsToTemplates(templates map[string]string, metadata metadata, owner v1.Object) ([]runtime.Object, error) {
+func (k *kustomizeRenderer) applyConventionsToTemplates(templates map[string]string, metadata metadata, owner v1.Object) ([]runtime.Object, error) {
 	fsys := fs.MakeFakeFS()
 
 	templateNames := make([]string, 0, len(templates))

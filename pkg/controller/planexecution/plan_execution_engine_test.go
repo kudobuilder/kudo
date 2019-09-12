@@ -1,10 +1,11 @@
 package planexecution
 
 import (
-	"github.com/kudobuilder/kudo/pkg/util/template"
-	"github.com/pkg/errors"
 	"reflect"
 	"testing"
+
+	"github.com/kudobuilder/kudo/pkg/util/template"
+	"github.com/pkg/errors"
 
 	"github.com/ghodss/yaml"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
@@ -28,9 +29,9 @@ func TestExecutePlan(t *testing.T) {
 		operatorVersionName: "ovname",
 	}
 	tests := []struct {
-		name         string
-		activePlan *activePlan
-		metadata         *executionMetadata
+		name           string
+		activePlan     *activePlan
+		metadata       *executionMetadata
 		expectedStatus *v1alpha1.PlanExecutionStatus
 	}{
 		{"plan already finished", &activePlan{
@@ -44,49 +45,47 @@ func TestExecutePlan(t *testing.T) {
 		{"plan with one step to be executed, still in progress", &activePlan{
 			Name: "test",
 			State: &v1alpha1.PlanExecutionStatus{
-				State: v1alpha1.PhaseStatePending,
-				Name:"test",
+				State:    v1alpha1.PhaseStatePending,
+				Name:     "test",
 				Strategy: "serial",
-				Phases: []v1alpha1.PhaseStatus{ { Strategy: "serial", Name: "phase", State: v1alpha1.PhaseStatePending, Steps: []v1alpha1.StepStatus{ { State: v1alpha1.PhaseStatePending, Name: "step" } } } },
+				Phases:   []v1alpha1.PhaseStatus{{Strategy: "serial", Name: "phase", State: v1alpha1.PhaseStatePending, Steps: []v1alpha1.StepStatus{{State: v1alpha1.PhaseStatePending, Name: "step"}}}},
 			},
 			Spec: &v1alpha1.Plan{
 				Strategy: "serial",
 				Phases: []v1alpha1.Phase{
-					{ Name: "phase",  Strategy: "serial", Steps: []v1alpha1.Step{ { Name: "step", Tasks: []string{ "task" }} }},
+					{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			Tasks: map[string]v1alpha1.TaskSpec{ "task": { Resources: []string{ "job", }} },
-			Templates: map[string]string{ "job": getResourceAsString(getJob("job1", "default")) },
-
+			Tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"job"}}},
+			Templates: map[string]string{"job": getResourceAsString(getJob("job1", "default"))},
 		}, defaultMetadata, &v1alpha1.PlanExecutionStatus{
-			State: v1alpha1.PhaseStatePending,
-			Name:"test",
+			State:    v1alpha1.PhaseStatePending,
+			Name:     "test",
 			Strategy: "serial",
-			Phases: []v1alpha1.PhaseStatus{ { Strategy: "serial", Name: "phase", State: v1alpha1.PhaseStateInProgress, Steps: []v1alpha1.StepStatus{ { State: v1alpha1.PhaseStateInProgress, Name: "step" } } } },
+			Phases:   []v1alpha1.PhaseStatus{{Strategy: "serial", Name: "phase", State: v1alpha1.PhaseStateInProgress, Steps: []v1alpha1.StepStatus{{State: v1alpha1.PhaseStateInProgress, Name: "step"}}}},
 		}},
 		// this plan deploys pod, that is marked as healthy immediately because we cannot evaluate health
 		{"plan with one step, immediately healthy -> completed", &activePlan{
 			Name: "test",
 			State: &v1alpha1.PlanExecutionStatus{
-				State: v1alpha1.PhaseStatePending,
-				Name:"test",
+				State:    v1alpha1.PhaseStatePending,
+				Name:     "test",
 				Strategy: "serial",
-				Phases: []v1alpha1.PhaseStatus{ { Strategy: "serial", Name: "phase", State: v1alpha1.PhaseStatePending, Steps: []v1alpha1.StepStatus{ { State: v1alpha1.PhaseStatePending, Name: "step" } } } },
+				Phases:   []v1alpha1.PhaseStatus{{Strategy: "serial", Name: "phase", State: v1alpha1.PhaseStatePending, Steps: []v1alpha1.StepStatus{{State: v1alpha1.PhaseStatePending, Name: "step"}}}},
 			},
 			Spec: &v1alpha1.Plan{
 				Strategy: "serial",
 				Phases: []v1alpha1.Phase{
-					{ Name: "phase",  Strategy: "serial", Steps: []v1alpha1.Step{ { Name: "step", Tasks: []string{ "task" }} }},
+					{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			Tasks: map[string]v1alpha1.TaskSpec{ "task": { Resources: []string{ "pod", }} },
-			Templates: map[string]string{ "pod": getResourceAsString(getPod("pod1", "default")) },
-
+			Tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"pod"}}},
+			Templates: map[string]string{"pod": getResourceAsString(getPod("pod1", "default"))},
 		}, defaultMetadata, &v1alpha1.PlanExecutionStatus{
-			State: v1alpha1.PhaseStateComplete,
-			Name:"test",
+			State:    v1alpha1.PhaseStateComplete,
+			Name:     "test",
 			Strategy: "serial",
-			Phases: []v1alpha1.PhaseStatus{ { Strategy: "serial", Name: "phase", State: v1alpha1.PhaseStateComplete, Steps: []v1alpha1.StepStatus{ { State: v1alpha1.PhaseStateComplete, Name: "step" } } } },
+			Phases:   []v1alpha1.PhaseStatus{{Strategy: "serial", Name: "phase", State: v1alpha1.PhaseStateComplete, Steps: []v1alpha1.StepStatus{{State: v1alpha1.PhaseStateComplete, Name: "step"}}}},
 		}},
 	}
 

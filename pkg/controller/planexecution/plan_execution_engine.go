@@ -20,12 +20,12 @@ import (
 )
 
 type activePlan struct {
-	Name string
-	State *v1alpha1.PlanExecutionStatus
-	Spec *v1alpha1.Plan
-	Tasks map[string]v1alpha1.TaskSpec
+	Name      string
+	State     *v1alpha1.PlanExecutionStatus
+	Spec      *v1alpha1.Plan
+	Tasks     map[string]v1alpha1.TaskSpec
 	Templates map[string]string
-	params map[string]string
+	params    map[string]string
 }
 
 type planResources struct {
@@ -37,11 +37,11 @@ type phaseResources struct {
 }
 
 type executionMetadata struct {
-	instanceName string
-	instanceNamespace string
-	operatorName string
+	instanceName        string
+	instanceNamespace   string
+	operatorName        string
 	operatorVersionName string
-	operatorVersion string
+	operatorVersion     string
 
 	planExecutionID string // TODO will be removed when PE CRD is removed
 
@@ -50,7 +50,7 @@ type executionMetadata struct {
 }
 
 // executePlan ...
-func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client, renderer KubernetesRenderer) (*v1alpha1.PlanExecutionStatus, error) {
+func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client, renderer kubernetesRenderer) (*v1alpha1.PlanExecutionStatus, error) {
 	if isFinished(plan.State.State) {
 		log.Printf("PlanExecution: Plan %s for instance %s is completed, nothing to do", plan.Name, metadata.instanceName)
 		return plan.State, nil
@@ -213,7 +213,7 @@ func patchExistingObject(newResource runtime.Object, existingResource runtime.Ob
 
 // prepareKubeResources takes all resources in all tasks for a plan and renders them with the right parameters
 // it also takes care of applying KUDO specific conventions to the resources like commond labels
-func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer KubernetesRenderer) (*planResources, error) {
+func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer kubernetesRenderer) (*planResources, error) {
 	configs := make(map[string]interface{})
 	configs["OperatorName"] = meta.operatorName
 	configs["Name"] = meta.instanceName
