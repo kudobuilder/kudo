@@ -22,8 +22,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	kindConfig "sigs.k8s.io/kind/pkg/apis/config/v1alpha3"
 	kind "sigs.k8s.io/kind/pkg/cluster"
-	kindConfig "sigs.k8s.io/kind/pkg/cluster/config"
+	kindCreate "sigs.k8s.io/kind/pkg/cluster/create"
 )
 
 // Harness loads and runs tests based on the configuration provided.
@@ -125,7 +126,7 @@ func (h *Harness) RunKIND() (*rest.Config, error) {
 			}
 		}
 
-		err := h.kind.Create(kindCfg)
+		err := h.kind.Create(kindCreate.WithV1Alpha3(kindCfg))
 		if err != nil {
 			return nil, err
 		}
