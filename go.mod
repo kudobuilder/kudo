@@ -8,10 +8,6 @@ require (
 	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/Masterminds/semver v1.4.2
 	github.com/dustinkirkland/golang-petname v0.0.0-20170921220637-d3c2ba80e75e
-	github.com/emicklei/go-restful v2.9.0+incompatible // indirect
-	github.com/go-openapi/jsonpointer v0.18.0 // indirect
-	github.com/go-openapi/jsonreference v0.18.0 // indirect
-	github.com/go-openapi/swag v0.18.0 // indirect
 	github.com/go-playground/locales v0.12.1 // indirect
 	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/go-test/deep v1.0.1
@@ -41,13 +37,10 @@ require (
 	github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/zap v1.10.0 // indirect
-	golang.org/x/crypto v0.0.0-20190424203555-c05e17bb3b2d // indirect
 	golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3
-	golang.org/x/net v0.0.0-20190522155817-f3200d17e092 // indirect
 	golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a // indirect
-	golang.org/x/sys v0.0.0-20190502175342-a43fa875dd82 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
-	golang.org/x/tools v0.0.0-20190501045030-23463209683d
+	golang.org/x/tools v0.0.0-20190614205625-5aca471b1d59
 	google.golang.org/appengine v1.5.0 // indirect
 	google.golang.org/grpc v1.21.0 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
@@ -61,7 +54,7 @@ require (
 	k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b
 	sigs.k8s.io/controller-runtime v0.2.0
 	sigs.k8s.io/controller-tools v0.2.0
-	sigs.k8s.io/kind v0.4.0
+	sigs.k8s.io/kind v0.5.1
 	sigs.k8s.io/kustomize v2.0.3+incompatible
 	sigs.k8s.io/yaml v1.1.0
 )
