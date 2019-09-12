@@ -8,9 +8,7 @@ Kubernetes Universal Declarative Operator (KUDO) provides a declarative approach
 
 ## Getting Started
 
-Please refer to the [getting started guide](https://kudo.dev/docs/getting-started/) on the website.
-
-![Quick Start](docs/images/quickstart-0.1.0.gif)
+Please refer to the [getting started guide](https://kudo.dev/docs/) on the website.
 
 ## Community, Discussion, Contribution, and Support
 

@@ -67,7 +67,7 @@ func TestInitCmd_exists(t *testing.T) {
 	if err := cmd.run(); err == nil {
 		t.Errorf("expected error: %v", err)
 	}
-	expected := "$KUDO_HOME has been configured at /opt.\n" + "Warning: KUDO is already installed in the cluster.\n" +
+	expected := "$KUDO_HOME has been configured at /opt\n" + "Warning: KUDO is already installed in the cluster.\n" +
 		"(Use --client-only to suppress this message)"
 
 	if !strings.Contains(buf.String(), expected) {

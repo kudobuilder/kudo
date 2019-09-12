@@ -11,12 +11,11 @@ export GO111MODULE=on
 VERSION=$(go list -m all | grep k8s.io/code-generator | rev | cut -d"-" -f1 | cut -d" " -f1 | rev)
 CODE_GEN_DIR="hack/code-gen/$VERSION"
 
-if [ -d $CODE_GEN_DIR ]   # for file "if [-f /home/rama/file]"
-then
+if [ -d "$CODE_GEN_DIR" ]; then
     echo "Using cached code generator version: $VERSION"
 else
-  git clone https://github.com/kubernetes/code-generator.git "${CODE_GEN_DIR}"
-  (cd "${CODE_GEN_DIR}" && git reset --hard "${VERSION}" && go mod init)
+    git clone https://github.com/kubernetes/code-generator.git "${CODE_GEN_DIR}"
+    cd "${CODE_GEN_DIR}" && git reset --hard "${VERSION}" && go mod init
 fi
 
 "${CODE_GEN_DIR}"/generate-groups.sh \

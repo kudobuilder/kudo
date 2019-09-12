@@ -325,6 +325,10 @@ func (h *Harness) Run() {
 		}
 	}
 
+	if err := testutils.RunCommands(h.GetLogger(), "default", "", h.TestSuite.Commands, ""); err != nil {
+		h.T.Fatal(err)
+	}
+
 	if err := testutils.RunKubectlCommands(h.GetLogger(), "default", h.TestSuite.Kubectl, ""); err != nil {
 		h.T.Fatal(err)
 	}

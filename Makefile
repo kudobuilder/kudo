@@ -27,8 +27,10 @@ test:
 .PHONY: integration-test
 # Run integration tests
 integration-test: cli-fast
-	go test -tags integration ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover-integration.out
-	go run ./cmd/kubectl-kudo test
+	mkdir -p reports/
+	go get github.com/jstemmer/go-junit-report
+	go test -tags integration ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover-integration.out 2>&1 |tee /dev/fd/2 |go-junit-report -set-exit-code > reports/integration_report.xml
+	go run ./cmd/kubectl-kudo test 2>&1 |tee /dev/fd/2 |go-junit-report -set-exit-code > reports/kudo_test_report.xml
 
 .PHONY: test-clean
 # Clean test reports
@@ -70,15 +72,6 @@ deploy:
 .PHONY: deploy-clean
 deploy-clean:
 	kubectl delete -f config/crds
-
-.PHONY: manifests
-# Generate manifests e.g. CRD, RBAC etc.
-manifests:
-	./hack/update_manifests.sh
-
-.PHONY: manifests-clean
-manifests-clean:
-	rm -rf hack/controller-gen
 
 .PHONY: fmt
 # Run go fmt against code
@@ -141,14 +134,14 @@ clean:  cli-clean test-clean manager-clean deploy-clean
 
 .PHONY: docker-build
 # Build the docker image
-docker-build: generate check-formatting manifests
-	docker build --build-arg git_version_arg=${GIT_VERSION_PATH}=${GIT_VERSION} \
+docker-build: generate check-formatting
+	docker build --build-arg git_version_arg=${GIT_VERSION_PATH}=v${GIT_VERSION} \
 	--build-arg git_commit_arg=${GIT_COMMIT_PATH}=${GIT_COMMIT} \
 	--build-arg build_date_arg=${BUILD_DATE_PATH}=${BUILD_DATE} . -t ${DOCKER_IMG}:${DOCKER_TAG}
-	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:${GIT_VERSION}
+	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:v${GIT_VERSION}
 	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:latest
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${DOCKER_IMG}:${GIT_VERSION}"'@' ./config/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"${DOCKER_IMG}:v${GIT_VERSION}"'@' ./config/manager_image_patch.yaml
 
 .PHONY: docker-push
 # Push the docker image

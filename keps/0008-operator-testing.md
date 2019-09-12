@@ -151,6 +151,8 @@ type TestSuite struct {
 	TestDirs          []string
 	// Kubectl specifies a list of kubectl commands to run prior to running the tests.
 	Kubectl []string `json:"kubectl"`
+	// Commands to run prior to running the tests. 
+	Commands []Command `json:"commands"`
 	// Whether or not to start a local etcd and kubernetes API server for the tests (cannot be set with StartKIND)
 	StartControlPlane bool
 	// Whether or not to start a local kind cluster for the tests (cannot be set with StartControlPlane).
@@ -167,6 +169,15 @@ type TestSuite struct {
 	SkipClusterDelete bool `json:"skipClusterDelete"`
 	// Override the default assertion timeout of 30 seconds (in seconds).
 	Timeout int
+}
+
+type Command struct {
+	// The command and argument to run as a string.
+	Command string `json:"command"`
+	// If set, the `--namespace` flag will be appended to the command with the namespace to use.
+	Namespaced bool `json:"namespaced"`
+	// If set, failures will be ignored.
+	IgnoreFailure bool `json:"ignoreFailure"`
 }
 ```
 
@@ -247,6 +258,9 @@ type TestStep struct {
     // Kubectl specifies a list of kubectl commands to run at the beginning of the test step.
     Kubectl []string `json:"kubectl"`
 
+    // Commands to run prior at the beginning of the test step.
+    Commands []Command `json:"commands"`
+
     // Indicates that this is a unit test - safe to run without a real Kubernetes cluster.
     UnitTest bool
 
@@ -325,6 +339,12 @@ type TestAssert struct {
     Timeout int
 }
 ```
+
+#### Commands
+
+If commands are set in the test suite or step they will be run at the beginning of the test suite or step, respectively. Commands are run in order and are typed so that functionality can be extended.
+
+The command is split on spaces (while respecting quoted strings, e.g., using [shlex](https://godoc.org/github.com/google/shlex)). If the command has the `Namespaced` setting set, then the `--namespace` flag will be added with the test case namespace (or "default" for the the test suite).
 
 ### Results collection
 

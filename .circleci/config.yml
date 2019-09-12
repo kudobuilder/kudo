@@ -8,9 +8,11 @@ jobs:
     steps:
       - checkout
       - run: ./test/run_tests.sh
+      - store_test_results:
+          path: reports/
   release:
     docker:
-      - image: kudobuilder/golang:1.12
+      - image: kudobuilder/golang:1.13
     working_directory: /go/src/github.com/kudobuilder/kudo
     steps:
       - checkout
@@ -21,7 +23,7 @@ jobs:
 
   code-formatting:
     docker:
-      - image: kudobuilder/golang:1.12
+      - image: kudobuilder/golang:1.13
     working_directory: /go/src/github.com/kudobuilder/kudo
     steps:
       - checkout

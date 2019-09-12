@@ -42,6 +42,8 @@ type TestSuite struct {
 	ArtifactsDir string `json:"artifactsDir"`
 	// Kubectl commands to run before running any tests.
 	Kubectl []string `json:"kubectl"`
+	// Commands to run prior to running the tests.
+	Commands []Command `json:"commands"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -63,6 +65,9 @@ type TestStep struct {
 	// Kubectl commands to run at the start of the test
 	Kubectl []string `json:"kubectl"`
 
+	// Commands to run prior at the beginning of the test step.
+	Commands []Command `json:"commands"`
+
 	// Allowed environment labels
 	// Disallowed environment labels
 }
@@ -83,4 +88,14 @@ type ObjectReference struct {
 	corev1.ObjectReference `json:",inline"`
 	// Labels to match on.
 	Labels map[string]string
+}
+
+// Command describes a command to run as a part of a test step or suite.
+type Command struct {
+	// The command and argument to run as a string.
+	Command string `json:"command"`
+	// If set, the `--namespace` flag will be appended to the command with the namespace to use.
+	Namespaced bool `json:"namespaced"`
+	// If set, failures will be ignored.
+	IgnoreFailure bool `json:"ignoreFailure"`
 }
