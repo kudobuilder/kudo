@@ -8,8 +8,10 @@ jobs:
     steps:
       - checkout
       - run: ./test/run_tests.sh
+      - run: ./test/run_tests.sh make e2e-test
       - store_test_results:
           path: reports/
+
   release:
     docker:
       - image: kudobuilder/golang:1.13

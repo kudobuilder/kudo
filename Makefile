@@ -24,6 +24,16 @@ all: test manager
 test:
 	go test ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover.out
 
+# Run e2e tests
+.PHONY: e2e-test
+e2e-test: cli-fast
+	go get github.com/jstemmer/go-junit-report
+	rm -rf operators
+	git clone https://github.com/kudobuilder/operators
+	mkdir operators/bin/
+	cp ./bin/kubectl-kudo operators/bin/
+	cd operators && go run ../cmd/kubectl-kudo test 2>&1 |tee /dev/fd/2 |go-junit-report -set-exit-code > ../reports/kudo_e2e_test_report.xml
+
 .PHONY: integration-test
 # Run integration tests
 integration-test: cli-fast
