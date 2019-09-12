@@ -1,4 +1,4 @@
-
+SHELL=/bin/bash -o pipefail
 # Image URL to use all building/pushing image targets
 DOCKER_TAG ?= $(shell git rev-parse HEAD)
 DOCKER_IMG ?= kudobuilder/controller
