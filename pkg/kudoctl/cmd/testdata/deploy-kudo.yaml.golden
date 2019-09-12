@@ -164,8 +164,7 @@ spec:
                     type: string
                   name:
                     description: 'Name is the string that should be used in the template
-                      file for example, if `name: COUNT` then using the variable in
-                      a spec like:  spec:   replicas:  {{ .Params.COUNT }}'
+                      file for example, if `name: COUNT` then using the variable `.Params.COUNT`'
                     type: string
                   required:
                     description: Required specifies if the parameter is required to
