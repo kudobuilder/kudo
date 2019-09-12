@@ -72,11 +72,16 @@ func ConfigurationFromSettings(fs afero.Fs, home kudohome.Home, repoName string)
 		// this allows for no client init... perhaps we should return the error requesting kudo init
 		r = NewRepositories()
 	}
-	repo := r.GetConfiguration(repoName)
-	if repo == nil {
+	var config *Configuration
+	if repoName == "" {
+		config = r.CurrentConfiguration()
+	} else {
+		config = r.GetConfiguration(repoName)
+	}
+	if config == nil {
 		return nil, fmt.Errorf("unable to find respository for %s", repoName)
 	}
-	return repo, nil
+	return config, nil
 }
 
 // LoadRepositories reads the Repositories file

@@ -677,7 +677,7 @@ func CreateOrUpdate(ctx context.Context, cl client.Client, obj runtime.Object, r
 
 			err = cl.Patch(ctx, actual, client.ConstantPatch(types.MergePatchType, expectedBytes))
 			updated = true
-		} else if err != nil && k8serrors.IsNotFound(err) {
+		} else if k8serrors.IsNotFound(err) {
 			err = cl.Create(ctx, obj)
 			updated = false
 		}
