@@ -165,26 +165,28 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: handler.ToRequestsFunc(
 				func(a handler.MapObject) []reconcile.Request {
+					// instance in instance -> reconcile plan for outer instance
 					requests := mapToOwningInstanceActivePlan(a)
-					if len(requests) == 0 {
-						inst := &kudov1alpha1.Instance{}
-						err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{
-							Name:      a.Meta.GetName(),
-							Namespace: a.Meta.GetNamespace(),
-						}, inst)
 
-						if err == nil {
-							// for every updated/added instance also trigger reconcile for its active plan
-							requests = append(requests, reconcile.Request{
-								NamespacedName: types.NamespacedName{
-									Name:      inst.Status.ActivePlan.Name,
-									Namespace: inst.Status.ActivePlan.Namespace,
-								},
-							})
-						} else {
-							log.Printf("PlanExecutionController: received event from Instance %s/%s but instance of that name does not exist", a.Meta.GetNamespace(), a.Meta.GetName())
-						}
+					// instance in instance -> reconcile plan for inner instance
+					inst := &kudov1alpha1.Instance{}
+					err = mgr.GetClient().Get(context.TODO(), client.ObjectKey{
+						Name:      a.Meta.GetName(),
+						Namespace: a.Meta.GetNamespace(),
+					}, inst)
+
+					if err == nil {
+						// for every updated/added instance also trigger reconcile for its active plan
+						requests = append(requests, reconcile.Request{
+							NamespacedName: types.NamespacedName{
+								Name:      inst.Status.ActivePlan.Name,
+								Namespace: inst.Status.ActivePlan.Namespace,
+							},
+						})
+					} else {
+						log.Printf("PlanExecutionController: received event from Instance %s/%s but instance of that name does not exist", a.Meta.GetNamespace(), a.Meta.GetName())
 					}
+
 					return requests
 				}),
 		},
@@ -312,6 +314,8 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		}
 		return reconcile.Result{}, err
 	}
+
+	log.Printf("Going to execute plan %s on instance %s", planExecution.Name, instance.Name)
 
 	// now we're actually starting with the execution of plan/phase/step
 	for i, phase := range planExecution.Status.Phases {
