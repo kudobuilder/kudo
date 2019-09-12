@@ -310,7 +310,7 @@ func createPlanAndUpdateReference(c client.Client, r record.EventRecorder, schem
 
 	planExecution := newPlanExecution(instance, planName, scheme)
 	log.Printf("Creating PlanExecution of planExecution %s for instance %s", planName, instance.Name)
-	r.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" planExecution execution", planName))
+	r.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" planExecution on %s", planName, instance.Name))
 
 	// Make this instance the owner of the PlanExecution
 	if err := controllerutil.SetControllerReference(instance, planExecution, scheme); err != nil {
