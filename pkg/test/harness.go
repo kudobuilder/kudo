@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	volumetypes "github.com/docker/docker/api/types/volume"
+	docker "github.com/docker/docker/client"
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/controller"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
@@ -25,6 +27,7 @@ import (
 	kindConfig "sigs.k8s.io/kind/pkg/apis/config/v1alpha3"
 	kind "sigs.k8s.io/kind/pkg/cluster"
 	kindCreate "sigs.k8s.io/kind/pkg/cluster/create"
+	"sigs.k8s.io/kind/pkg/container/cri"
 )
 
 // Harness loads and runs tests based on the configuration provided.
@@ -35,6 +38,7 @@ type Harness struct {
 	logger        testutils.Logger
 	managerStopCh chan struct{}
 	config        *rest.Config
+	docker        testutils.DockerClient
 	client        client.Client
 	dclient       discovery.DiscoveryInterface
 	env           *envtest.Environment
@@ -126,6 +130,8 @@ func (h *Harness) RunKIND() (*rest.Config, error) {
 			}
 		}
 
+		h.addNodeCaches(kindCfg)
+
 		err := h.kind.Create(kindCreate.WithV1Alpha3(kindCfg))
 		if err != nil {
 			return nil, err
@@ -133,6 +139,45 @@ func (h *Harness) RunKIND() (*rest.Config, error) {
 	}
 
 	return clientcmd.BuildConfigFromFlags("", h.kind.KubeConfigPath())
+}
+
+func (h *Harness) addNodeCaches(kindCfg *kindConfig.Cluster) error {
+	if !h.TestSuite.KINDNodeCache {
+		return nil
+	}
+
+	dockerClient, err := h.DockerClient()
+	if err != nil {
+		return err
+	}
+
+	// add a default node if there are none specified.
+	if len(kindCfg.Nodes) == 0 {
+		kindCfg.Nodes = append(kindCfg.Nodes, kindConfig.Node{})
+	}
+
+	if h.TestSuite.KINDContext == "" {
+		h.TestSuite.KINDContext = kudo.DefaultKINDContext
+	}
+
+	for index := range kindCfg.Nodes {
+		volume, err := dockerClient.VolumeCreate(context.TODO(), volumetypes.VolumesCreateBody{
+			Driver: "local",
+			Name:   fmt.Sprintf("%s-%d", h.TestSuite.KINDContext, index),
+		})
+		if err != nil {
+			h.T.Log("error creating volume for node", err)
+			continue
+		}
+
+		h.T.Log("node mount point", volume.Mountpoint)
+		kindCfg.Nodes[index].ExtraMounts = append(kindCfg.Nodes[index].ExtraMounts, cri.Mount{
+			ContainerPath: "/var/lib/containerd",
+			HostPath:      volume.Mountpoint,
+		})
+	}
+
+	return nil
 }
 
 // RunTestEnv starts a Kubernetes API server and etcd server for use in the
@@ -252,6 +297,17 @@ func (h *Harness) DiscoveryClient() (discovery.DiscoveryInterface, error) {
 
 	h.dclient, err = discovery.NewDiscoveryClientForConfig(config)
 	return h.dclient, err
+}
+
+// DockerClient returns the Docker client to use for the test harness.
+func (h *Harness) DockerClient() (testutils.DockerClient, error) {
+	if h.docker != nil {
+		return h.docker, nil
+	}
+
+	var err error
+	h.docker, err = docker.NewEnvClient()
+	return h.docker, err
 }
 
 // RunTests should be called from within a Go test (t) and launches all of the KUDO integration
