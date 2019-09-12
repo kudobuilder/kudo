@@ -113,7 +113,9 @@ func (initCmd *initCmd) run() error {
 
 		mans = append(mans, crd...)
 		mans = append(mans, deploy...)
-		initCmd.YAMLWriter(initCmd.out, mans)
+		if err := initCmd.YAMLWriter(initCmd.out, mans); err != nil {
+			return err
+		}
 	}
 
 	if initCmd.dryRun {

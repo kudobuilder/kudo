@@ -49,9 +49,12 @@ func CopyOperatorToFs(fs afero.Fs, opath string, base string) {
 
 		fn := filepath.Join(dir, info.Name())
 		fmt.Println(fn)
+
+		// FIXME: add error handling
 		w, _ := fs.Create(fn)
 		r, _ := os.Open(path)
 		io.Copy(w, r)
+		w.Close()
 
 		return nil
 	})

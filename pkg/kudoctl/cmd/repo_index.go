@@ -76,7 +76,9 @@ func (ri *repoIndexCmd) run() error {
 		return err
 	}
 
-	i.WriteFile(fs, target)
+	if err := i.WriteFile(ri.fs, target); err != nil {
+		return err
+	}
 	fmt.Fprintf(ri.out, "index %v created.\n", target)
 	return nil
 }

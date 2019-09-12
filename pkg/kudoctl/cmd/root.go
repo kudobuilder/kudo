@@ -73,6 +73,7 @@ and serves as an API aggregation layer.
 func initGlobalFlags(cmd *cobra.Command) {
 	flags := cmd.PersistentFlags()
 	Settings.AddFlags(flags)
+	// FIXME: add error handling
 	cmd.ParseFlags(os.Args[1:])
 	// set ENV if flags are not used.
 	Settings.Init(flags)

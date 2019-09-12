@@ -52,6 +52,9 @@ func setFlagFromEnv(name, envar string, fs *pflag.FlagSet) {
 		return
 	}
 	if v, ok := os.LookupEnv(envar); ok {
-		fs.Set(name, v)
+		if err := fs.Set(name, v); err != nil {
+			// As all flags are taken from 'envMap', errors aren't expected here.
+			panic(err)
+		}
 	}
 }

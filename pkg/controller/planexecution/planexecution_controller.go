@@ -216,10 +216,10 @@ type ReconcilePlanExecution struct {
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=events;configmaps,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets;poddisruptionbudgets.policy,verbs=get;list;watch;create;update;patch;delete
-func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (result reconcile.Result, err error) {
 	// Fetch the PlanExecution instance
 	planExecution := &kudov1alpha1.PlanExecution{}
-	err := r.Get(context.TODO(), request.NamespacedName, planExecution)
+	err = r.Get(context.TODO(), request.NamespacedName, planExecution)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			log.Printf("PlanExecutionController: Error finding planexecution \"%v\": %v", request.Name, err)
@@ -276,7 +276,11 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	}
 
 	// Before returning from this function, update the status
-	defer r.Update(context.Background(), planExecution)
+	defer func() {
+		if ferr := r.Update(context.Background(), planExecution); ferr != nil {
+			err = ferr
+		}
+	}()
 
 	// Get associated OperatorVersion
 	operatorVersion := &kudov1alpha1.OperatorVersion{}
