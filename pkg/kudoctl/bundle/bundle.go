@@ -41,12 +41,12 @@ func NewBundle(fs afero.Fs, path string) (Bundle, error) {
 	//	make sure file exists
 	fi, err := fs.Stat(path)
 	if err != nil {
-		return nil, fmt.Errorf("unsupported file system format %v. Expect either a tar.gz file or a folder", path)
+		return nil, err
 	}
 	// order of discovery
 	// 1. tarball
 	// 2. file based
-	if fi.Mode().IsRegular() && strings.HasSuffix(path, ".tar.gz") {
+	if fi.Mode().IsRegular() && strings.HasSuffix(path, ".tgz") {
 		r, err := getFileReader(fs, path)
 		if err != nil {
 			return nil, err
@@ -55,7 +55,7 @@ func NewBundle(fs afero.Fs, path string) (Bundle, error) {
 	} else if fi.IsDir() {
 		return fileBundle{path, fs}, nil
 	} else {
-		return nil, fmt.Errorf("unsupported file system format %v. Expect either a tar.gz file or a folder", path)
+		return nil, fmt.Errorf("unsupported file system format %v. Expect either a *.tgz file or a folder", path)
 	}
 }
 

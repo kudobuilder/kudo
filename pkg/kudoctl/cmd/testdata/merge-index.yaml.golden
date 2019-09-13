@@ -1,0 +1,57 @@
+apiVersion: v1
+entries:
+  elastic:
+  - digest: 98beef6e771a64e42275b34059cde0bcf5244493a6511d1229bf3dd8f44c4791
+    maintainers:
+    - email: michael.beisiegel@gmail.com
+      name: Michael Beisiegel
+    name: elastic
+    urls:
+    - https://kudo-repository.storage.googleapis.com/0.7.0/elastic-0.1.0.tgz
+    version: 0.1.0
+  mysql:
+  - appVersion: "5.7"
+    digest: aafe419e62065c5a3dc2f5d1458f1b5977137918236c3812ba90b5c7f6b8fb20
+    maintainers:
+    - email: nick@dischord.org
+      name: Ken Sipe
+    name: mysql
+    urls:
+    - https://kudo-repository.storage.googleapis.com/0.7.0/mysql-0.1.0.tgz
+    version: 0.1.0
+  redis:
+  - appVersion: 5.0.1
+    digest: 24012b833b8c864f24c03f5d792c986143b031c6783dd410538040d672813cd1
+    maintainers:
+    - email: djannot@mesosphere.io
+      name: Denis Jannot
+    - email: fabian@mesosphere.io
+      name: Fabian Baier
+    name: redis
+    urls:
+    - https://kudo-repository.storage.googleapis.com/0.7.0/redis-0.1.0.tgz
+    version: 0.1.0
+  zookeeper:
+  - appVersion: 3.4.10
+    digest: 9d46ad80dd8869253e646276fb737b6d5ce0881ea05bf60c5ccdbf3a90b24a61
+    maintainers:
+    - email: avarkockova@mesosphere.com
+      name: Alena Varkockova
+    - email: runyontr@gmail.com
+      name: Tom Runyon
+    name: zookeeper
+    urls:
+    - https://kudo-repository.storage.googleapis.com/0.7.0/zookeeper-0.2.0.tgz
+    version: 0.2.0
+  - appVersion: 3.4.10
+    digest: 048f2fca158af7c6d7b5c0cba3577047f1bc960feabb4b4ecb5d8f9625e58f9f
+    maintainers:
+    - email: avarkockova@mesosphere.com
+      name: Ken Sipe
+    - email: runyontr@gmail.com
+      name: Tom Runyon
+    name: zookeeper
+    urls:
+    - https://kudo-repository.storage.googleapis.com/0.7.0/zookeeper-0.1.0.tgz
+    version: 0.1.0
+generated: "2019-09-12T15:04:34.675941-05:00"

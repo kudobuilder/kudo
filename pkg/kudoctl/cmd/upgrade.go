@@ -18,7 +18,7 @@ import (
 
 var (
 	upgradeExample = `
-		The upgrade argument must be a name of the package in the repository, a path to package in *.tar.gz format,
+		The upgrade argument must be a name of the package in the repository, a path to package in *.tgz format,
 		or a path to an unpacked package directory.
 
 		# Upgrade flink instance dev-flink to the latest version
