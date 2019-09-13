@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
@@ -73,4 +74,39 @@ func TestRepoIndexCmd_IndexCreation(t *testing.T) {
 	if !bytes.Equal(indexOut, g) {
 		t.Errorf("yaml does not match .golden file")
 	}
+}
+
+func TestRepoIndexCmd_MergeIndex(t *testing.T) {
+	file := "merge-index.yaml"
+
+	indexBytes, _ := ioutil.ReadFile("testdata/index.yaml")
+	indexFile, _ := repo.ParseIndexFile(indexBytes)
+
+	mergeBytes, _ := ioutil.ReadFile("testdata/merge.yaml")
+	mergeFile, _ := repo.ParseIndexFile(mergeBytes)
+
+	resultBuf := &bytes.Buffer{}
+	merge(indexFile, mergeFile)
+	indexFile.Write(resultBuf)
+
+	gp := filepath.Join("testdata", file+".golden")
+
+	if *updateGolden {
+		t.Log("update golden file")
+		if err := ioutil.WriteFile(gp, resultBuf.Bytes(), 0644); err != nil {
+			t.Fatalf("failed to update golden file: %s", err)
+		}
+	}
+	g, err := ioutil.ReadFile(gp)
+	if err != nil {
+		t.Fatalf("failed reading .golden: %s", err)
+	}
+
+	if !bytes.Equal(resultBuf.Bytes(), g) {
+		t.Errorf("yaml does not match .golden file")
+	}
+
+	// local operator takes precedence
+	o, _ := indexFile.GetByNameAndVersion("mysql", "0.1.0")
+	assert.Equal(t, o.Maintainers[0].Name, "Ken Sipe")
 }

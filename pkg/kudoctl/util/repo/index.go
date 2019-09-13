@@ -71,9 +71,9 @@ func (i IndexFile) sortPackages() {
 	}
 }
 
-// parseIndexFile loads an index file and sorts the included packages by version.
+// ParseIndexFile loads an index file and sorts the included packages by version.
 // The function will fail if `APIVersion` is not specified.
-func parseIndexFile(data []byte) (*IndexFile, error) {
+func ParseIndexFile(data []byte) (*IndexFile, error) {
 	i := &IndexFile{}
 	if err := yaml.Unmarshal(data, i); err != nil {
 		return nil, errors.Wrap(err, "unmarshalling index file")
@@ -85,7 +85,7 @@ func parseIndexFile(data []byte) (*IndexFile, error) {
 	return i, nil
 }
 
-func (i IndexFile) writeFile(w io.Writer) error {
+func (i IndexFile) Write(w io.Writer) error {
 	b, err := yaml.Marshal(i)
 	if err != nil {
 		return err
@@ -156,7 +156,7 @@ func (i *IndexFile) WriteFile(fs afero.Fs, file string) error {
 	if err != nil {
 		return err
 	}
-	return i.writeFile(f)
+	return i.Write(f)
 }
 
 // Map transforms a slice of packagefiles with file digests into a slice of PackageVersions

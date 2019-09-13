@@ -45,7 +45,7 @@ entries:
     version: 0.2.0
 `
 	b := []byte(indexString)
-	index, _ := parseIndexFile(b)
+	index, _ := ParseIndexFile(b)
 
 	assert.Equal(t, len(index.Entries), 2, "number of operator entries is 2")
 	assert.Equal(t, len(index.Entries["kafka"]), 2, "number of kafka operators is 2")
@@ -63,7 +63,7 @@ func TestParsingGoldenIndex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed reading .golden: %s", err)
 	}
-	_, err = parseIndexFile(g)
+	_, err = ParseIndexFile(g)
 	if err != nil {
 		t.Fatalf("Unable to parse Index file %s", err)
 	}
@@ -78,7 +78,7 @@ func TestWriteIndexFile(t *testing.T) {
 	var buf bytes.Buffer
 	w := bufio.NewWriter(&buf)
 
-	index.writeFile(w)
+	index.Write(w)
 	w.Flush()
 
 	gp := filepath.Join("testdata", file+".golden")
