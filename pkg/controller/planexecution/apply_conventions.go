@@ -37,17 +37,21 @@ type metadata struct {
 	StepName        string
 }
 
-type kubernetesRenderer interface {
+// kubernetesObjectEnhancer takes your kubernetes template and kudo related metadata and applies them to all resources in form of labels
+// and annotations
+// it also takes care of setting an owner of all the resources to the provided object
+type kubernetesObjectEnhancer interface {
 	applyConventionsToTemplates(templates map[string]string, metadata metadata, owner v1.Object) ([]runtime.Object, error)
 }
 
-type kustomizeRenderer struct {
+// kustomizeEnhancer is implementation of kubernetesObjectEnhancer that uses kustomize to apply the defined conventions
+type kustomizeEnhancer struct {
 	scheme *runtime.Scheme
 }
 
 // ApplyConventions accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
-func (k *kustomizeRenderer) applyConventionsToTemplates(templates map[string]string, metadata metadata, owner v1.Object) ([]runtime.Object, error) {
+func (k *kustomizeEnhancer) applyConventionsToTemplates(templates map[string]string, metadata metadata, owner v1.Object) ([]runtime.Object, error) {
 	fsys := fs.MakeFakeFS()
 
 	templateNames := make([]string, 0, len(templates))

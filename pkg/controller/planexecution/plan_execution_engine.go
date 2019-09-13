@@ -51,10 +51,10 @@ type executionMetadata struct {
 
 // executePlan takes a currently active plan and metadata from the underlying operator and executes next "step" in that execution
 // the next step could consist of actually executing multiple steps of the plan or just one depending on the execution strategy of the phase (serial/parallel)
-// this step in execution results in a new state of the execution that is returned to the caller
+// result of running this function is new state of the execution that is returned to the caller (it can either be completed, or still in progress or errored)
 // in case of error, error is returned along with the state as well (so that it's possible to report which step caused the error)
 // in case of error, method returns both error or fatalError which should indicate unrecoverable error meaning there is no point in retrying that execution
-func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client, renderer kubernetesRenderer) (*v1alpha1.PlanExecutionStatus, error) {
+func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client, renderer kubernetesObjectEnhancer) (*v1alpha1.PlanExecutionStatus, error) {
 	if isFinished(plan.State.State) {
 		log.Printf("PlanExecution: Plan %s for instance %s is completed, nothing to do", plan.Name, metadata.instanceName)
 		return plan.State, nil
@@ -134,30 +134,31 @@ func executeStep(step v1alpha1.Step, state *v1alpha1.StepStatus, resources []run
 		// check if step is already healthy
 		allHealthy := true
 		for _, r := range resources {
-			switch step.Delete {
-			case true:
+			if step.Delete {
 				// delete
 				log.Printf("PlanExecution: Step %s will delete object %v", step.Name, r)
 				err := c.Delete(context.TODO(), r, client.PropagationPolicy(metav1.DeletePropagationForeground))
 				if !apierrors.IsNotFound(err) && err != nil {
 					return err
 				}
-			case false:
+			} else {
 				// create or update
 				log.Printf("Going to create/update %v", r)
 				existingResource := r.DeepCopyObject()
 				key, _ := client.ObjectKeyFromObject(r)
 				err := c.Get(context.TODO(), key, existingResource)
 				if apierrors.IsNotFound(err) {
+					// create
 					err = c.Create(context.TODO(), r)
 					if err != nil {
 						log.Printf("PlanExecution: error when creating resource in step %v: %v", step.Name, err)
 						return err
 					}
-				} else if err != nil { // other than not found error - raise it
+				} else if err != nil {
+					// other than not found error - raise it
 					return err
 				} else {
-					// try to update the resource
+					// update
 					err := patchExistingObject(r, existingResource, c)
 					if err != nil {
 						return err
@@ -219,7 +220,7 @@ func patchExistingObject(newResource runtime.Object, existingResource runtime.Ob
 
 // prepareKubeResources takes all resources in all tasks for a plan and renders them with the right parameters
 // it also takes care of applying KUDO specific conventions to the resources like commond labels
-func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer kubernetesRenderer) (*planResources, error) {
+func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer kubernetesObjectEnhancer) (*planResources, error) {
 	configs := make(map[string]interface{})
 	configs["OperatorName"] = meta.operatorName
 	configs["Name"] = meta.instanceName

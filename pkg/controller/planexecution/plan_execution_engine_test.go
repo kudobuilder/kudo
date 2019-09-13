@@ -87,11 +87,33 @@ func TestExecutePlan(t *testing.T) {
 			Strategy: "serial",
 			Phases:   []v1alpha1.PhaseStatus{{Strategy: "serial", Name: "phase", State: v1alpha1.PhaseStateComplete, Steps: []v1alpha1.StepStatus{{State: v1alpha1.PhaseStateComplete, Name: "step"}}}},
 		}},
+		{"plan in errored state will be retried and completed when no error happens", &activePlan{
+			Name: "test",
+			State: &v1alpha1.PlanExecutionStatus{
+				State:    v1alpha1.PhaseStateError,
+				Name:     "test",
+				Strategy: "serial",
+				Phases:   []v1alpha1.PhaseStatus{{Strategy: "serial", Name: "phase", State: v1alpha1.PhaseStateError, Steps: []v1alpha1.StepStatus{{State: v1alpha1.PhaseStateError, Name: "step"}}}},
+			},
+			Spec: &v1alpha1.Plan{
+				Strategy: "serial",
+				Phases: []v1alpha1.Phase{
+					{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
+				},
+			},
+			Tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"pod"}}},
+			Templates: map[string]string{"pod": getResourceAsString(getPod("pod1", "default"))},
+		}, defaultMetadata, &v1alpha1.PlanExecutionStatus{
+			State:    v1alpha1.PhaseStateComplete,
+			Name:     "test",
+			Strategy: "serial",
+			Phases:   []v1alpha1.PhaseStatus{{Strategy: "serial", Name: "phase", State: v1alpha1.PhaseStateComplete, Steps: []v1alpha1.StepStatus{{State: v1alpha1.PhaseStateComplete, Name: "step"}}}},
+		}},
 	}
 
 	for _, tt := range tests {
 		testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
-		newStatus, err := executePlan(tt.activePlan, tt.metadata, testClient, &NoChangeKustomizeRenderer{})
+		newStatus, err := executePlan(tt.activePlan, tt.metadata, testClient, &testKubernetesObjectEnhancer{})
 
 		if err != nil {
 			t.Errorf("%s: Expecting no error but got error %v", tt.name, err)
@@ -138,9 +160,9 @@ func getResourceAsString(resource v1.Object) string {
 	return string(bytes)
 }
 
-type NoChangeKustomizeRenderer struct{}
+type testKubernetesObjectEnhancer struct{}
 
-func (k *NoChangeKustomizeRenderer) applyConventionsToTemplates(templates map[string]string, metadata metadata, owner v1.Object) ([]runtime.Object, error) {
+func (k *testKubernetesObjectEnhancer) applyConventionsToTemplates(templates map[string]string, metadata metadata, owner v1.Object) ([]runtime.Object, error) {
 	result := make([]runtime.Object, 0)
 	for _, t := range templates {
 		objsToAdd, err := template.ParseKubernetesObjects(t)

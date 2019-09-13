@@ -321,7 +321,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 		instanceNamespace:   instance.Namespace,
 		instanceName:        instance.Name,
 		planExecutionID:     planExecution.Name,
-	}, r.Client, &kustomizeRenderer{r.scheme})
+	}, r.Client, &kustomizeEnhancer{r.scheme})
 	if newState != nil {
 		planExecution.Status = *newState
 	}
