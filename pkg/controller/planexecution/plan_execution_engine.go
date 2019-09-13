@@ -60,19 +60,20 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 		return plan.State, nil
 	}
 
-	// newState := currentState // TODO deep copy
+	// we don't want to modify the original state, and State does not contain any pointer, so shallow copy is enough
+	newState := &(*plan.State)
 
 	// render kubernetes resources needed to execute this plan
 	planResources, err := prepareKubeResources(plan, metadata, renderer)
 	if err != nil {
-		plan.State.State = v1alpha1.PhaseStateError
-		return plan.State, err
+		newState.State = v1alpha1.PhaseStateError
+		return newState, err
 	}
 
 	// do a next step in the current plan execution
 	allPhasesCompleted := true
 	for _, ph := range plan.Spec.Phases {
-		currentPhaseState, _ := getPhaseFromStatus(ph.Name, plan.State)
+		currentPhaseState, _ := getPhaseFromStatus(ph.Name, newState)
 		if isFinished(currentPhaseState.State) {
 			// nothing to do
 			log.Printf("PlanExecution: Phase %s on plan %s and instance %s is in state %s, nothing to do", ph.Name, plan.Name, metadata.instanceName, currentPhaseState.State)
@@ -93,7 +94,7 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 				if err != nil {
 					currentPhaseState.State = v1alpha1.PhaseStateError
 					currentStepState.State = v1alpha1.PhaseStateError
-					return plan.State, err
+					return newState, err
 				}
 
 				if !isFinished(currentStepState.State) {
@@ -120,10 +121,10 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 
 	if allPhasesCompleted {
 		log.Printf("PlanExecution: All phases on plan %s and instance %s are healthy", plan.Name, metadata.instanceName)
-		plan.State.State = v1alpha1.PhaseStateComplete
+		newState.State = v1alpha1.PhaseStateComplete
 	}
 
-	return plan.State, nil
+	return newState, nil
 }
 
 func executeStep(step v1alpha1.Step, state *v1alpha1.StepStatus, resources []runtime.Object, c client.Client) error {

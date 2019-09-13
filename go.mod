@@ -12,11 +12,7 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dustinkirkland/golang-petname v0.0.0-20170921220637-d3c2ba80e75e
-	github.com/emicklei/go-restful v2.9.0+incompatible // indirect
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-openapi/jsonpointer v0.18.0 // indirect
-	github.com/go-openapi/jsonreference v0.18.0 // indirect
-	github.com/go-openapi/swag v0.18.0 // indirect
 	github.com/go-playground/locales v0.12.1 // indirect
 	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/go-test/deep v1.0.1
