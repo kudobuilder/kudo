@@ -60,7 +60,7 @@ func newRepoIndexCmd(fs afero.Fs, out io.Writer, time *time.Time) *cobra.Command
 	index := &repoIndexCmd{out: out, fs: fs, time: time}
 	cmd := &cobra.Command{
 		Use:     "index [flags] <DIR>",
-		Short:   "Generate an index file given a directory containing KUDO packages",
+		Short:   "Generate an index file given a directory containing KUDO operator packages",
 		Long:    repoIndexDesc,
 		Example: repoIndexExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -77,11 +77,11 @@ func newRepoIndexCmd(fs afero.Fs, out io.Writer, time *time.Time) *cobra.Command
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&index.url, "url", "", "URL of the operator repository")
-	f.StringVar(&index.urlRepoName, "url-repo", "", "Name of the repo to use URL for index entry urls")
+	f.StringVar(&index.url, "url", "", "URL of the operators to reference in the index file")
+	f.StringVar(&index.urlRepoName, "url-repo", "", "Name of the repo to use URL for operator urls")
 	f.StringVar(&index.mergePath, "merge", "", "URL or path location of index file to merge with")
-	f.StringVar(&index.mergeRepoName, "merge-repo", "", "Name of the repo to use a merge URL")
-	f.BoolVarP(&index.overwrite, "overwrite", "o", false, "Overwrite existing package")
+	f.StringVar(&index.mergeRepoName, "merge-repo", "", "Name of the repo to use as merge URL")
+	f.BoolVarP(&index.overwrite, "overwrite", "w", false, "Overwrite existing package")
 
 	return cmd
 }
