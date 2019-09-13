@@ -48,7 +48,7 @@ import (
 	api "k8s.io/client-go/tools/clientcmd/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	kindConfig "sigs.k8s.io/kind/pkg/cluster/config"
+	kindConfig "sigs.k8s.io/kind/pkg/apis/config/v1alpha3"
 )
 
 // ensure that we only add to the scheme once.

@@ -124,7 +124,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 			}
 
 			if options.KINDContext == "" {
-				options.KINDContext = "kind"
+				options.KINDContext = kudo.DefaultKINDContext
 			}
 
 			if options.StartControlPlane && options.StartKIND {
