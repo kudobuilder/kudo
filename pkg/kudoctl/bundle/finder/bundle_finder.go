@@ -92,7 +92,7 @@ func (f *LocalFinder) GetBundle(name string, version string) (bundle.Bundle, err
 	//	make sure file exists
 	_, err := f.fs.Stat(name)
 	if err != nil {
-		return nil, fmt.Errorf("unsupported file system format %v. Expect either a tar.gz file or a folder", name)
+		return nil, err
 	}
 	// order of discovery
 	// 1. tarball

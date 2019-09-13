@@ -73,7 +73,7 @@ func (r *Client) DownloadIndexFile() (*IndexFile, error) {
 		return nil, errors.Wrap(err, "reading index response")
 	}
 
-	indexFile, err := parseIndexFile(indexBytes)
+	indexFile, err := ParseIndexFile(indexBytes)
 	return indexFile, err
 }
 
