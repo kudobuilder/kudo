@@ -51,11 +51,6 @@ func TestRepoIndexCmd_IndexCreation(t *testing.T) {
 	time, _ := time.Parse(time.RFC3339, "2019-10-25T00:00:00Z")
 	out := &bytes.Buffer{}
 	riCmd := newRepoIndexCmd(fs, out, &time)
-	flags := map[string]string{}
-
-	for flag, value := range flags {
-		riCmd.Flags().Set(flag, value)
-	}
 	riCmd.RunE(riCmd, []string{"/opt"})
 
 	indexOut, err := afero.ReadFile(fs, "/opt/index.yaml")

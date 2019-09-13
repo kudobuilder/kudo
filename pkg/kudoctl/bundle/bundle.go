@@ -41,7 +41,7 @@ func NewBundle(fs afero.Fs, path string) (Bundle, error) {
 	//	make sure file exists
 	fi, err := fs.Stat(path)
 	if err != nil {
-		return nil, fmt.Errorf("unsupported file system format %v. Expect either a *.tgz file or a folder", path)
+		return nil, err
 	}
 	// order of discovery
 	// 1. tarball

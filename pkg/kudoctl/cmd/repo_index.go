@@ -13,14 +13,35 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const repoIndexDesc = `
+const (
+	repoIndexDesc = `
 Read the provided directory and generate an index file based on the packages found.
 
 This tool is used for creating an 'index.yaml' file for a KUDO package repository. To
-set an absolute URL to the operators, use '--url' flag.
+set an absolute URL to the operators, use '--url' or '--url-repo' flag. The '--url-repo'
+will look up the the url of the named repo and will provide the absolute URL by repo name.
+
+To merge the generated index with an existing index file, use the '--merge' flag. In this 
+case, the operator packages found in the current directory will be merged into the existing
+index, with local operators taking priority over existing operators. No content of the existing
+index file is modified. The use of '--url' or 'url-repo' will only apply to local operator
+definitions in the index file. When using '--merge' it is necessary to specify the URL of the
+index file to merge. The '--merge-repo' is the same as merge where the url is looked up by
+repo name out of the local repositories list.
 
 # Create an index file for all KUDO packages in the repo-dir.
 	$ kubectl kudo repo index repo-dir`
+
+	repoIndexExample = `
+ #simple index of operators in /opt/repo
+ kubectl kudo repo index /opt/repo
+ kubectl kudo repo index /opt/repo --url https://kudo-repository.storage.googleapis.com
+	
+ # merge with community repo
+ kubectl kudo repo index /opt/repo --merge https://kudo-repository.storage.googleapis.com
+ kubectl kudo repo index /opt/repo --merge-repo community	
+`
+)
 
 type repoIndexCmd struct {
 	path          string
@@ -38,9 +59,10 @@ type repoIndexCmd struct {
 func newRepoIndexCmd(fs afero.Fs, out io.Writer, time *time.Time) *cobra.Command {
 	index := &repoIndexCmd{out: out, fs: fs, time: time}
 	cmd := &cobra.Command{
-		Use:   "index [flags] <DIR>",
-		Short: "Generate an index file given a directory containing KUDO packages",
-		Long:  repoIndexDesc,
+		Use:     "index [flags] <DIR>",
+		Short:   "Generate an index file given a directory containing KUDO packages",
+		Long:    repoIndexDesc,
+		Example: repoIndexExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := index.validate(args); err != nil {
 				return err
