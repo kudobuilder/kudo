@@ -1,17 +1,17 @@
 module github.com/kudobuilder/kudo
 
-go 1.12
+go 1.13
 
 require (
 	cloud.google.com/go v0.38.0 // indirect
 	github.com/Azure/go-autorest/autorest v0.5.0 // indirect
 	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/Masterminds/semver v1.4.2
+	github.com/docker/distribution v2.7.1+incompatible // indirect
+	github.com/docker/docker v1.13.1
+	github.com/docker/go-connections v0.4.0 // indirect
+	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dustinkirkland/golang-petname v0.0.0-20170921220637-d3c2ba80e75e
-	github.com/emicklei/go-restful v2.9.0+incompatible // indirect
-	github.com/go-openapi/jsonpointer v0.18.0 // indirect
-	github.com/go-openapi/jsonreference v0.18.0 // indirect
-	github.com/go-openapi/swag v0.18.0 // indirect
 	github.com/go-playground/locales v0.12.1 // indirect
 	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/go-test/deep v1.0.1
@@ -37,6 +37,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/nbutton23/zxcvbn-go v0.0.0-20180912185939-ae427f1e4c1d // indirect
 	github.com/onsi/gomega v1.5.0
+	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709 // indirect
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/pkg/errors v0.8.1
@@ -50,11 +51,10 @@ require (
 	github.com/stretchr/testify v1.3.0
 	github.com/ultraware/funlen v0.0.2 // indirect
 	github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca
-	golang.org/x/crypto v0.0.0-20190424203555-c05e17bb3b2d // indirect
 	golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3
 	golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a // indirect
 	golang.org/x/sys v0.0.0-20190911201528-7ad0cfa0b7b5 // indirect
-	golang.org/x/tools v0.0.0-20190911200332-7dd31af5a648
+	golang.org/x/tools v0.0.0-20190909030654-5b82db07426d
 	google.golang.org/appengine v1.5.0 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v9 v9.27.0
@@ -68,7 +68,7 @@ require (
 	mvdan.cc/unparam v0.0.0-20190720180237-d51796306d8f // indirect
 	sigs.k8s.io/controller-runtime v0.2.0
 	sigs.k8s.io/controller-tools v0.2.0
-	sigs.k8s.io/kind v0.4.0
+	sigs.k8s.io/kind v0.5.1
 	sigs.k8s.io/kustomize v2.0.3+incompatible
 	sigs.k8s.io/yaml v1.1.0
 	sourcegraph.com/sqs/pbtypes v1.0.0 // indirect
