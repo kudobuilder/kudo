@@ -3,7 +3,7 @@ module github.com/kudobuilder/kudo
 go 1.13
 
 require (
-	cloud.google.com/go v0.38.0 // indirect
+	cloud.google.com/go v0.38.0
 	github.com/Azure/go-autorest/autorest v0.5.0 // indirect
 	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/Masterminds/semver v1.4.2
@@ -12,6 +12,7 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dustinkirkland/golang-petname v0.0.0-20170921220637-d3c2ba80e75e
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-playground/locales v0.12.1 // indirect
 	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/go-test/deep v1.0.1

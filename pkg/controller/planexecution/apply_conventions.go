@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/pkg/errors"
 
@@ -35,9 +37,21 @@ type metadata struct {
 	StepName        string
 }
 
+// kubernetesObjectEnhancer takes your kubernetes template and kudo related metadata and applies them to all resources in form of labels
+// and annotations
+// it also takes care of setting an owner of all the resources to the provided object
+type kubernetesObjectEnhancer interface {
+	applyConventionsToTemplates(templates map[string]string, metadata metadata, owner v1.Object) ([]runtime.Object, error)
+}
+
+// kustomizeEnhancer is implementation of kubernetesObjectEnhancer that uses kustomize to apply the defined conventions
+type kustomizeEnhancer struct {
+	scheme *runtime.Scheme
+}
+
 // ApplyConventions accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
-func applyConventionsToTemplates(templates map[string]string, metadata metadata) ([]runtime.Object, error) {
+func (k *kustomizeEnhancer) applyConventionsToTemplates(templates map[string]string, metadata metadata, owner v1.Object) ([]runtime.Object, error) {
 	fsys := fs.MakeFakeFS()
 
 	templateNames := make([]string, 0, len(templates))
@@ -109,5 +123,19 @@ func applyConventionsToTemplates(templates map[string]string, metadata metadata)
 		return nil, errors.Wrapf(err, "error parsing kubernetes objects after applying kustomize")
 	}
 
+	for _, o := range objsToAdd {
+		err = setControllerReference(owner, o, k.scheme)
+		if err != nil {
+			return nil, errors.Wrapf(err, "setting controller reference on parsed object")
+		}
+	}
+
 	return objsToAdd, nil
+}
+
+func setControllerReference(owner v1.Object, obj runtime.Object, scheme *runtime.Scheme) error {
+	if err := controllerutil.SetControllerReference(owner, obj.(v1.Object), scheme); err != nil {
+		return err
+	}
+	return nil
 }
