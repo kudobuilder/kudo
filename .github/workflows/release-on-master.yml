@@ -35,7 +35,7 @@ jobs:
         with:
           args: |
             tag docker.pkg.github.com/$REPOSITORY:$GITHUB_SHA docker.pkg.github.com/$REPOSITORY:master
-      - name: Push image with SHA repo
+      - name: Push image with commit SHA
         uses: actions/docker/cli@master
         env:
           REPOSITORY: ${{ secrets.REPOSITORY }}
