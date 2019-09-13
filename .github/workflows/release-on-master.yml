@@ -1,0 +1,31 @@
+name: Release Master Snapshot
+on:
+  push:
+    branches:
+      - master
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get current time
+        uses: ./.github/actions/current-time
+      - uses: actions/checkout@v1
+      - uses: actions/docker/login@master
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_GITHUB_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_GITHUB_KEY }}
+          DOCKER_REGISTRY_URL: "docker.pkg.github.com"
+      - uses: actions/docker/cli@master
+        env:
+          REPOSITORY: ${{ secrets.REPOSITORY }}
+          BUILD_DATE: ${{ steps.current-time.outputs.time }}
+        with:
+          args: |
+            docker build --build-arg git_version_arg=github.com/kudobuilder/kudo/pkg/version.gitVersion=v$GITHUB_SHA \
+            --build-arg git_commit_arg=github.com/kudobuilder/kudo/pkg/version.gitCommit=$GITHUB_SHA \
+            --build-arg build_date_arg=github.com/kudobuilder/kudo/pkg/version.buildDate=$BUILD_DATE . -t docker.pkg.github.com/$REPOSITORY:$GITHUB_SHA
+      - uses: actions/docker/cli@master
+        env:
+          REPOSITORY: ${{ secrets.REPOSITORY }}
+        with:
+          args: "push docker.pkg.github.com/$REPOSITORY:$GITHUB_SHA"

@@ -1,0 +1,8 @@
+name: "Current Time"
+description: "Get the current time"
+outputs:
+  time:
+    description: "The time this action was run"
+runs:
+  using: "node12"
+  main: "index.js"

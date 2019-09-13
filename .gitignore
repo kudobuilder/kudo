@@ -6,6 +6,7 @@ hack/controller-gen
 test/.git-credentials
 reports/
 config/manager_image_patch.yaml-e
+node_modules/
 
 ### mac
 .DS_Store
