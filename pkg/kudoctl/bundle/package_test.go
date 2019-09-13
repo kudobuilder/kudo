@@ -29,7 +29,7 @@ func TestReadFileSystemPackage(t *testing.T) {
 		goldenFiles  string
 	}{
 		{"zookeeper", "zookeeper-xn8fg", "testdata/zk", "testdata/zk-crd-golden1"},
-		{"zookeeper", "zookeeper-txhzt", "testdata/zk.tar.gz", "testdata/zk-crd-golden2"},
+		{"zookeeper", "zookeeper-txhzt", "testdata/zk.tgz", "testdata/zk-crd-golden2"},
 	}
 	var fs = afero.NewOsFs()
 

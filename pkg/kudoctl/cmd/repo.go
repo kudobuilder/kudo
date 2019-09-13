@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"io"
+	"time"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -27,8 +28,8 @@ func newRepoCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 		Long:    repoDesc,
 		Example: examples,
 	}
-
-	cmd.AddCommand(newRepoIndexCmd(fs, out))
+	t := time.Now()
+	cmd.AddCommand(newRepoIndexCmd(fs, out, &t))
 	cmd.AddCommand(newRepoListCmd(fs, out))
 	cmd.AddCommand(newRepoAddCmd(fs, out))
 	cmd.AddCommand(newRepoRemoveCmd(fs, out))

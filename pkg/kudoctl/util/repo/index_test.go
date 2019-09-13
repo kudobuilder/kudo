@@ -45,7 +45,7 @@ entries:
     version: 0.2.0
 `
 	b := []byte(indexString)
-	index, _ := parseIndexFile(b)
+	index, _ := ParseIndexFile(b)
 
 	assert.Equal(t, len(index.Entries), 2, "number of operator entries is 2")
 	assert.Equal(t, len(index.Entries["kafka"]), 2, "number of kafka operators is 2")
@@ -63,7 +63,7 @@ func TestParsingGoldenIndex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed reading .golden: %s", err)
 	}
-	_, err = parseIndexFile(g)
+	_, err = ParseIndexFile(g)
 	if err != nil {
 		t.Fatalf("Unable to parse Index file %s", err)
 	}
@@ -78,7 +78,7 @@ func TestWriteIndexFile(t *testing.T) {
 	var buf bytes.Buffer
 	w := bufio.NewWriter(&buf)
 
-	index.writeFile(w)
+	index.Write(w)
 	w.Flush()
 
 	gp := filepath.Join("testdata", file+".golden")
@@ -102,12 +102,12 @@ func TestWriteIndexFile(t *testing.T) {
 func getTestIndexFile() *IndexFile {
 	date, _ := time.Parse(time.RFC822, "09 Aug 19 15:04 UTC")
 	index := newIndexFile(&date)
-	bv := getTestBundleVersion("flink", "0.3.0")
-	index.addBundleVersion(&bv)
+	pv := getTestPackageVersion("flink", "0.3.0")
+	index.AddPackageVersion(&pv)
 	return index
 }
 
-func getTestBundleVersion(name string, version string) PackageVersion {
+func getTestPackageVersion(name string, version string) PackageVersion {
 	urls := []string{fmt.Sprintf("http://kudo.dev/%v", name)}
 	bv := PackageVersion{
 		Metadata: &Metadata{
@@ -133,14 +133,14 @@ func getTestBundleVersion(name string, version string) PackageVersion {
 func TestAddBundleVersionErrorConditions(t *testing.T) {
 	index := getTestIndexFile()
 	dup := index.Entries["flink"][0]
-	missing := getTestBundleVersion("flink", "")
-	good := getTestBundleVersion("flink", "1.0.0")
-	g2 := getTestBundleVersion("kafka", "1.0.0")
+	missing := getTestPackageVersion("flink", "")
+	good := getTestPackageVersion("flink", "1.0.0")
+	g2 := getTestPackageVersion("kafka", "1.0.0")
 
 	tests := []struct {
-		name   string
-		bundle *PackageVersion
-		err    string
+		name string
+		pv   *PackageVersion
+		err  string
 	}{
 		{"duplicate version", dup, "operator 'flink' version: 0.3.0 already exists"},
 		{"no version", &missing, "operator 'flink' is missing version"},
@@ -149,7 +149,7 @@ func TestAddBundleVersionErrorConditions(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := index.addBundleVersion(tt.bundle)
+		err := index.AddPackageVersion(tt.pv)
 		if err != nil && err.Error() != tt.err {
 			t.Errorf("%s: expecting error %s got %v", tt.name, tt.err, err)
 		}
