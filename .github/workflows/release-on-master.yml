@@ -7,10 +7,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v1
       - name: Get current time
         uses: gerred/current-time@v1.0.0
+      - name: Checkout Code
+        uses: actions/checkout@v1
         id: current-time
       - name: Login to Github Package Registry
         uses: actions/docker/login@master
