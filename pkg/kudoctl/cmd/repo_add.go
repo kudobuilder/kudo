@@ -12,6 +12,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	repoAddExample = `  kubectl kudo repo add local http://localhost
+  # to skip url and index.yaml validation
+  kubectl kudo repo add local http://localhost --skip-check
+`
+)
+
 type repoAddCmd struct {
 	name      string
 	url       string
@@ -64,8 +71,9 @@ func newRepoAddCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	add := &repoAddCmd{out: out}
 
 	cmd := &cobra.Command{
-		Use:   "add [flags] [NAME] [URL]",
-		Short: "Add an operator repository",
+		Use:     "add [flags] [NAME] [URL]",
+		Short:   "Add an operator repository",
+		Example: repoAddExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 2 {
 				return errors.New("this command needs 2. name and url of the operator repository")

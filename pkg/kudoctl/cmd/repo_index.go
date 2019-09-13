@@ -32,14 +32,13 @@ repo name out of the local repositories list.
 # Create an index file for all KUDO packages in the repo-dir.
 	$ kubectl kudo repo index repo-dir`
 
-	repoIndexExample = `
- #simple index of operators in /opt/repo
- kubectl kudo repo index /opt/repo
- kubectl kudo repo index /opt/repo --url https://kudo-repository.storage.googleapis.com
+	repoIndexExample = `  #simple index of operators in /opt/repo
+  kubectl kudo repo index /opt/repo
+  kubectl kudo repo index /opt/repo --url https://kudo-repository.storage.googleapis.com
 	
- # merge with community repo
- kubectl kudo repo index /opt/repo --merge https://kudo-repository.storage.googleapis.com
- kubectl kudo repo index /opt/repo --merge-repo community	
+  # merge with community repo
+  kubectl kudo repo index /opt/repo --merge https://kudo-repository.storage.googleapis.com
+  kubectl kudo repo index /opt/repo --merge-repo community	
 `
 )
 

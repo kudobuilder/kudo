@@ -12,14 +12,13 @@ import (
 )
 
 var (
-	updateExample = `
-		The update does not accept any arguments.
+	updateDesc = `Update KUDO operator instance with new arguments. The update does not accept any arguments.
+`
+	updateExample = `  # Update dev-flink instance with setting parameter param with value value
+  kubectl kudo update --instance dev-flink -p param=value
 
-		# Update dev-flink instance with setting parameter param with value value
-		kubectl kudo update --instance dev-flink -p param=value
-
-		# Update dev-flink instance in namespace services with setting parameter param with value value
-		kubectl kudo update --instance dev-flink -n services -p param=value`
+  # Update dev-flink instance in namespace services with setting parameter param with value value
+  kubectl kudo update --instance dev-flink -n services -p param=value`
 )
 
 type updateOptions struct {
@@ -37,7 +36,7 @@ func newUpdateCmd() *cobra.Command {
 	updateCmd := &cobra.Command{
 		Use:     "update",
 		Short:   "Update KUDO operator instance.",
-		Long:    `Update KUDO operator instance with new arguments.`,
+		Long:    updateDesc,
 		Example: updateExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Prior to command execution we parse and validate passed arguments
