@@ -10,7 +10,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v1
       - name: Get current time
-        uses: gerred/actions/current-time@master
+        uses: gerred/current-time@v1.0.0
         id: current-time
       - name: Login to Github Package Registry
         uses: actions/docker/login@master
