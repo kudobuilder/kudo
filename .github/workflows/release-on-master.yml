@@ -25,10 +25,13 @@ jobs:
             build --build-arg git_version_arg=github.com/kudobuilder/kudo/pkg/version.gitVersion=v$GITHUB_SHA \
             --build-arg git_commit_arg=github.com/kudobuilder/kudo/pkg/version.gitCommit=$GITHUB_SHA \
             --build-arg build_date_arg=github.com/kudobuilder/kudo/pkg/version.buildDate=$BUILD_DATE . -t docker.pkg.github.com/$REPOSITORY:$GITHUB_SHA
-      - uses: actions/docker/cli-multi@master
+      - uses: actions/docker/cli@master
         env:
           REPOSITORY: ${{ secrets.REPOSITORY }}
         with:
-          args:
-            - "push docker.pkg.github.com/$REPOSITORY:$GITHUB_SHA"
-            - "push docker.pkg.github.com/$REPOSITORY:master"
+          args: "push docker.pkg.github.com/$REPOSITORY:$GITHUB_SHA"
+      - uses: actions/docker/cli@master
+        env:
+          REPOSITORY: ${{ secrets.REPOSITORY }}
+        with:
+          args: "push docker.pkg.github.com/$REPOSITORY:master"
