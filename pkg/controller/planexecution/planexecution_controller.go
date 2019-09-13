@@ -360,7 +360,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	return reconcile.Result{}, nil
 }
 
-// getPlanState constructs the current plan execution summary by consulting current state of PE CRD and selected plan from OV
+// initializePlanStatus constructs the current plan execution summary by consulting current state of PE CRD and selected plan from OV
 func initializePlanStatus(status *kudov1alpha1.PlanExecutionStatus, plan *activePlan) {
 	if plan.Name == status.Name && status.State != kudov1alpha1.PhaseStateComplete {
 		// nothing to do, plan is already in progress and was populated in previous iteration

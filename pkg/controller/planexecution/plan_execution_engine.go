@@ -49,7 +49,11 @@ type executionMetadata struct {
 	resourcesOwner metav1.Object
 }
 
-// executePlan ...
+// executePlan takes a currently active plan and metadata from the underlying operator and executes next "step" in that execution
+// the next step could consist of actually executing multiple steps of the plan or just one depending on the execution strategy of the phase (serial/parallel)
+// this step in execution results in a new state of the execution that is returned to the caller
+// in case of error, error is returned along with the state as well (so that it's possible to report which step caused the error)
+// in case of error, method returns both error or fatalError which should indicate unrecoverable error meaning there is no point in retrying that execution
 func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client, renderer kubernetesRenderer) (*v1alpha1.PlanExecutionStatus, error) {
 	if isFinished(plan.State.State) {
 		log.Printf("PlanExecution: Plan %s for instance %s is completed, nothing to do", plan.Name, metadata.instanceName)
@@ -79,13 +83,13 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 
 			// we're currently executing this phase
 			allStepsHealthy := true
-			for _, s := range ph.Steps {
-				currentStepState, _ := getStepFromStatus(s.Name, currentPhaseState)
-				resources := planResources.PhaseResources[ph.Name].StepResources[s.Name]
+			for _, st := range ph.Steps {
+				currentStepState, _ := getStepFromStatus(st.Name, currentPhaseState)
+				resources := planResources.PhaseResources[ph.Name].StepResources[st.Name]
 				log.Printf("Resources count: %d", len(resources))
 
-				log.Printf("PlanExecution: Executing step %s on plan %s and instance %s - it's in %s state", s.Name, plan.Name, metadata.instanceName, currentStepState.State)
-				err := executeStep(s, currentStepState, resources, c)
+				log.Printf("PlanExecution: Executing step %s on plan %s and instance %s - it's in %s state", st.Name, plan.Name, metadata.instanceName, currentStepState.State)
+				err := executeStep(st, currentStepState, resources, c)
 				if err != nil {
 					currentPhaseState.State = v1alpha1.PhaseStateError
 					currentStepState.State = v1alpha1.PhaseStateError
@@ -129,14 +133,15 @@ func executeStep(step v1alpha1.Step, state *v1alpha1.StepStatus, resources []run
 		// check if step is already healthy
 		allHealthy := true
 		for _, r := range resources {
-			if step.Delete {
+			switch step.Delete {
+			case true:
 				// delete
 				log.Printf("PlanExecution: Step %s will delete object %v", step.Name, r)
 				err := c.Delete(context.TODO(), r, client.PropagationPolicy(metav1.DeletePropagationForeground))
 				if !apierrors.IsNotFound(err) && err != nil {
 					return err
 				}
-			} else {
+			case false:
 				// create or update
 				log.Printf("Going to create/update %v", r)
 				existingResource := r.DeepCopyObject()
@@ -320,9 +325,9 @@ func getPhaseFromStatus(phaseName string, status *v1alpha1.PlanExecutionStatus) 
 }
 
 func isFinished(state v1alpha1.PhaseState) bool {
-	return state == v1alpha1.PhaseStateComplete || state == v1alpha1.PhaseStateError
+	return state == v1alpha1.PhaseStateComplete
 }
 
 func isInProgress(state v1alpha1.PhaseState) bool {
-	return state == v1alpha1.PhaseStateInProgress || state == v1alpha1.PhaseStatePending
+	return state == v1alpha1.PhaseStateInProgress || state == v1alpha1.PhaseStatePending || state == v1alpha1.PhaseStateError
 }
