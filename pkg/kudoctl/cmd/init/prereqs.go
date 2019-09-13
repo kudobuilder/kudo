@@ -168,7 +168,7 @@ func webhookSecret(opts Options) *v1.Secret {
 func serviceAccount(opts Options) *v1.ServiceAccount {
 	sa := generateServiceAccount(opts)
 	sa.TypeMeta = metav1.TypeMeta{
-		Kind:       "serviceAccount",
+		Kind:       "ServiceAccount",
 		APIVersion: "v1",
 	}
 	return sa
@@ -178,7 +178,7 @@ func serviceAccount(opts Options) *v1.ServiceAccount {
 func namespace(namespace string) *v1.Namespace {
 	ns := generateSysNamespace(namespace)
 	ns.TypeMeta = metav1.TypeMeta{
-		Kind:       "namespace",
+		Kind:       "Namespace",
 		APIVersion: "v1",
 	}
 	return ns
