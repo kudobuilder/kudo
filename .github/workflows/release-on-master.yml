@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Get current time
-        uses: ./.github/actions/current-time
+        uses: gerred/actions/checkout@master
         id: current-time
       - uses: actions/docker/login@master
         env:
