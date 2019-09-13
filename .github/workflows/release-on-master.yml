@@ -7,16 +7,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - name: Checkout Code
+        uses: actions/checkout@v1
       - name: Get current time
         uses: gerred/actions/current-time@master
         id: current-time
-      - uses: actions/docker/login@master
+      - name: Login to Github Package Registry
+        uses: actions/docker/login@master
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_GITHUB_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_GITHUB_KEY }}
           DOCKER_REGISTRY_URL: "docker.pkg.github.com"
-      - uses: actions/docker/cli@master
+      - name: Build and tag with SHA
+        uses: actions/docker/cli@master
         env:
           REPOSITORY: ${{ secrets.REPOSITORY }}
           BUILD_DATE: ${{ steps.current-time.outputs.time }}
@@ -25,12 +28,21 @@ jobs:
             build --build-arg git_version_arg=github.com/kudobuilder/kudo/pkg/version.gitVersion=v$GITHUB_SHA \
             --build-arg git_commit_arg=github.com/kudobuilder/kudo/pkg/version.gitCommit=$GITHUB_SHA \
             --build-arg build_date_arg=github.com/kudobuilder/kudo/pkg/version.buildDate=$BUILD_DATE . -t docker.pkg.github.com/$REPOSITORY:$GITHUB_SHA
-      - uses: actions/docker/cli@master
+      - name: Tag with `master`
+        uses: actions/docker/cli@master
+        env:
+          REPOSITORY: ${{ secrets.REPOSITORY }}
+        with:
+          args: |
+            tag docker.pkg.github.com/$REPOSITORY:$GITHUB_SHA docker.pkg.github.com/$REPOSITORY:master
+      - name: Push image with SHA repo
+        uses: actions/docker/cli@master
         env:
           REPOSITORY: ${{ secrets.REPOSITORY }}
         with:
           args: "push docker.pkg.github.com/$REPOSITORY:$GITHUB_SHA"
-      - uses: actions/docker/cli@master
+      - name: Push master tag
+        uses: actions/docker/cli@master
         env:
           REPOSITORY: ${{ secrets.REPOSITORY }}
         with:
