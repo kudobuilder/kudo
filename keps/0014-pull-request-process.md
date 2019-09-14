@@ -9,7 +9,7 @@ owners:
 editor: TBD
 creation-date: 2019-07-16
 last-updated: 2019-07-16
-status: provisional
+status: rejected
 see-also:
   - KEP-0004
   - KEP-0008
