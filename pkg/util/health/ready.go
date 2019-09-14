@@ -68,36 +68,3 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 		return nil
 	}
 }
-
-// IsStepHealthy returns whether each object in the given step is healthy.
-func IsStepHealthy(c client.Client, step kudov1alpha1.StepStatus) bool {
-	for _, obj := range step.Objects {
-		if e := IsHealthy(c, obj); e != nil {
-			log.Printf("HealthUtil: Step %v is not healthy", step.Name)
-			return false
-		}
-	}
-	return true
-}
-
-// IsPhaseHealthy returns whether each step in the phase is healthy. See IsStepHealthy for step health.
-func IsPhaseHealthy(phase kudov1alpha1.PhaseStatus) bool {
-	for _, step := range phase.Steps {
-		if step.State != kudov1alpha1.PhaseStateComplete {
-			log.Printf("HealthUtil: Phase %v is not healthy b/c step %v is not healthy", phase.Name, step.Name)
-			return false
-		}
-	}
-	log.Printf("HealthUtil: Phase %v is healthy", phase.Name)
-	return true
-}
-
-// IsPlanHealthy returns whether each Phase in the plan is healthy. See IsPhaseHealthy for phase health.
-func IsPlanHealthy(plan kudov1alpha1.PlanExecutionStatus) bool {
-	for _, phase := range plan.Phases {
-		if !IsPhaseHealthy(phase) {
-			return false
-		}
-	}
-	return true
-}
