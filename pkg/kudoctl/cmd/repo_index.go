@@ -144,7 +144,9 @@ func (ri *repoIndexCmd) run() error {
 		merge(index, mergeIndex)
 	}
 
-	index.WriteFile(ri.fs, target)
+	if err := index.WriteFile(ri.fs, target); err != nil {
+		return err
+	}
 	fmt.Fprintf(ri.out, "index %v created.\n", target)
 	return nil
 }

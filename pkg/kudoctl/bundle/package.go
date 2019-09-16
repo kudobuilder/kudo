@@ -55,7 +55,10 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 	}
 
 	isTemplateFile := func(name string) bool {
-		matched, _ := regexp.Match(templateFileNameRegex, []byte(name))
+		matched, err := regexp.Match(templateFileNameRegex, []byte(name))
+		if err != nil {
+			panic(err)
+		}
 		return matched
 	}
 
@@ -226,20 +229,29 @@ func mapPaths(fs afero.Fs, paths []string, f func(afero.Fs, string) (*PackageFil
 }
 
 // pathToOperator takes a single path and returns an operator or error
-func pathToOperator(fs afero.Fs, path string) (*PackageFilesDigest, error) {
+func pathToOperator(fs afero.Fs, path string) (pfd *PackageFilesDigest, err error) {
 	reader, err := fs.Open(path)
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if ferr := reader.Close(); ferr != nil {
+			err = ferr
+		}
+	}()
+
 	digest, err := files.Sha256Sum(reader)
 	if err != nil {
 		return nil, err
 	}
 	// restart reading of file after getting digest
-	reader.Seek(0, io.SeekStart)
+	_, err = reader.Seek(0, io.SeekStart)
+	if err != nil {
+		return nil, err
+	}
 
 	pkg, err := readerToOperator(reader)
-	pfd := &PackageFilesDigest{
+	pfd = &PackageFilesDigest{
 		pkg,
 		digest,
 	}
