@@ -308,7 +308,12 @@ func instanceEventFilter(mgr manager.Manager) predicate.Funcs {
 func createPlanAndUpdateReference(c client.Client, r record.EventRecorder, scheme *runtime.Scheme, planName string, instance *kudov1alpha1.Instance) error {
 	ctx := context.TODO()
 
-	planExecution := newPlanExecution(instance, planName, scheme)
+	planExecution, err := newPlanExecution(instance, planName, scheme)
+	if err != nil {
+		log.Printf("InstanceController: Error creating PlanExecution")
+		return err
+	}
+
 	log.Printf("Creating PlanExecution of planExecution %s for instance %s", planName, instance.Name)
 	r.Event(instance, "Normal", "CreatePlanExecution", fmt.Sprintf("Creating \"%v\" planExecution on %s", planName, instance.Name))
 
@@ -462,8 +467,12 @@ func parameterDifference(old, new map[string]string) map[string]string {
 }
 
 // newPlanExecution creates a PlanExecution based on the kind and instance for a given planName
-func newPlanExecution(instance *kudov1alpha1.Instance, planName string, scheme *runtime.Scheme) *kudov1alpha1.PlanExecution {
-	gvk, _ := apiutil.GVKForObject(instance, scheme)
+func newPlanExecution(instance *kudov1alpha1.Instance, planName string, scheme *runtime.Scheme) (*kudov1alpha1.PlanExecution, error) {
+	gvk, err := apiutil.GVKForObject(instance, scheme)
+	if err != nil {
+		return nil, err
+	}
+
 	ref := corev1.ObjectReference{
 		Kind:      gvk.Kind,
 		Name:      instance.Name,
@@ -490,5 +499,5 @@ func newPlanExecution(instance *kudov1alpha1.Instance, planName string, scheme *
 		},
 	}
 
-	return &planExecution
+	return &planExecution, nil
 }

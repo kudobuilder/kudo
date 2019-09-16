@@ -51,7 +51,7 @@ type kustomizeEnhancer struct {
 
 // ApplyConventions accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
-func (k *kustomizeEnhancer) applyConventionsToTemplates(templates map[string]string, metadata metadata, owner v1.Object) ([]runtime.Object, error) {
+func (k *kustomizeEnhancer) applyConventionsToTemplates(templates map[string]string, metadata metadata, owner v1.Object) (objsToAdd []runtime.Object, err error) {
 	fsys := fs.MakeFakeFS()
 
 	templateNames := make([]string, 0, len(templates))
@@ -100,7 +100,11 @@ func (k *kustomizeEnhancer) applyConventionsToTemplates(templates map[string]str
 	if err != nil {
 		return nil, err
 	}
-	defer ldr.Cleanup()
+	defer func() {
+		if ferr := ldr.Cleanup(); ferr != nil {
+			err = ferr
+		}
+	}()
 
 	rf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()))
 	kt, err := target.NewKustTarget(ldr, rf, transformer.NewFactoryImpl())
@@ -118,7 +122,7 @@ func (k *kustomizeEnhancer) applyConventionsToTemplates(templates map[string]str
 		return nil, errors.Wrapf(err, "error encoding kustomized files into yaml")
 	}
 
-	objsToAdd, err := template.ParseKubernetesObjects(string(res))
+	objsToAdd, err = template.ParseKubernetesObjects(string(res))
 	if err != nil {
 		return nil, errors.Wrapf(err, "error parsing kubernetes objects after applying kustomize")
 	}

@@ -130,10 +130,11 @@ func (h *Harness) RunKIND() (*rest.Config, error) {
 			}
 		}
 
-		h.addNodeCaches(kindCfg)
+		if err := h.addNodeCaches(kindCfg); err != nil {
+			return nil, err
+		}
 
-		err := h.kind.Create(kindCreate.WithV1Alpha3(kindCfg))
-		if err != nil {
+		if err := h.kind.Create(kindCreate.WithV1Alpha3(kindCfg)); err != nil {
 			return nil, err
 		}
 	}

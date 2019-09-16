@@ -13,13 +13,13 @@ import (
 )
 
 // tarballWriter creates a tarball *.tgz file for the file system tree at the provided path.
-func tarballWriter(fs afero.Fs, path string, w io.Writer) error {
+func tarballWriter(fs afero.Fs, path string, w io.Writer) (err error) {
 	gw := gzip.NewWriter(w)
 	defer gw.Close()
 	tw := tar.NewWriter(gw)
 	defer tw.Close()
 
-	err := afero.Walk(fs, path, func(file string, fi os.FileInfo, err error) error {
+	err = afero.Walk(fs, path, func(file string, fi os.FileInfo, err error) error {
 
 		// return on any error
 		if err != nil {
@@ -52,14 +52,16 @@ func tarballWriter(fs afero.Fs, path string, w io.Writer) error {
 			return err
 		}
 
+		defer func() {
+			if ferr := f.Close(); ferr != nil {
+				err = ferr
+			}
+		}()
+
 		// copy file data into tar writer
 		if _, err := io.Copy(tw, f); err != nil {
 			return err
 		}
-
-		// manually close here after each file operation; deferring would cause each file close
-		// to wait until all operations have completed.
-		f.Close()
 
 		return nil
 	})
@@ -68,13 +70,17 @@ func tarballWriter(fs afero.Fs, path string, w io.Writer) error {
 
 // Untar takes a destination path and a reader; a tar reader loops over the tarfile
 // creating the file structure at 'path' along the way, and writing any files
-func Untar(fs afero.Fs, path string, r io.Reader) error {
+func Untar(fs afero.Fs, path string, r io.Reader) (err error) {
 	//todo: refactor to combine with parseTarPackage
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
 		return err
 	}
-	defer gzr.Close()
+	defer func() {
+		if ferr := gzr.Close(); ferr != nil {
+			err = ferr
+		}
+	}()
 
 	tr := tar.NewReader(gzr)
 
