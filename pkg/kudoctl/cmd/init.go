@@ -16,7 +16,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-const initDesc = `
+const (
+	initDesc = `
 This command installs KUDO onto your Kubernetes Cluster and sets up local configuration in $KUDO_HOME (default ~/.kudo/).
 
 As with the rest of the KUDO commands, 'kudo init' discovers Kubernetes clusters by reading 
@@ -31,6 +32,16 @@ or '--version' which will replace the version designation on the standard image.
 
 To dump a manifest containing the KUDO deployment YAML, combine the '--dry-run' and '--output=yaml' flags.
 `
+	initExample = `  # yaml outout
+  kubectl kudo init --dry-run --output yaml
+  # waiting for KUDO to be init complete at the server
+  kubectl kudo init --wait
+  # init client
+  kubectl kudo init --client-only
+  # init client for non-default home
+  kubectl kudo init --client-only --home /opt/home2
+`
+)
 
 type initCmd struct {
 	out        io.Writer
@@ -50,9 +61,10 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	i := &initCmd{fs: fs, out: out}
 
 	cmd := &cobra.Command{
-		Use:   "init",
-		Short: "Initialize KUDO on both the client and server",
-		Long:  initDesc,
+		Use:     "init",
+		Short:   "Initialize KUDO on both the client and server",
+		Long:    initDesc,
+		Example: initExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) != 0 {
 				return errors.New("this command does not accept arguments")

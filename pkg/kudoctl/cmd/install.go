@@ -9,26 +9,24 @@ import (
 )
 
 var (
-	installExample = `
-		The install argument must be a name of the package in the repository, a path to package in *.tgz format,
-		or a path to an unpacked package directory.
+	installExample = `  The install argument must be a name of the package in the repository, a path to package in *.tgz format,
+  or a path to an unpacked package directory.
 
-		# Install the most recent Flink package to your cluster.
-		kubectl kudo install flink
-		
-		*Note*: should you have a local  "flink" folder in the current directory it will take precedence over the remote repository.
+  # Install the most recent Flink package to your cluster.
+  kubectl kudo install flink
+  #*Note*: should you have a local  "flink" folder in the current directory it will take precedence over the remote repository.
 
-		# Install operator from a local filesystem
-		kubectl kudo install pkg/kudoctl/util/repo/testdata/zk
+  # Install operator from a local filesystem
+  kubectl kudo install pkg/kudoctl/util/repo/testdata/zk
 
-		# Install operator from tarball on a local filesystem
-		kubectl kudo install pkg/kudoctl/util/repo/testdata/zk.tgz
+  # Install operator from tarball on a local filesystem
+  kubectl kudo install pkg/kudoctl/util/repo/testdata/zk.tgz
 
-		# Install operator from tarball at URL
-		kubectl kudo install http://kudo.dev/zk.tgz
+  # Install operator from tarball at URL
+  kubectl kudo install http://kudo.dev/zk.tgz
 
-		# Specify a package version of Kafka to install to your cluster.
-		kubectl kudo install kafka --version=1.1.1`
+  # Specify a package version of Kafka to install to your cluster
+  kubectl kudo install kafka --version=1.1.1`
 )
 
 // newInstallCmd creates the install command for the CLI

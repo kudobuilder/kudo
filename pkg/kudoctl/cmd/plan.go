@@ -5,6 +5,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	planHistExample = `  # View plan status
+  kubectl kudo plan history <operatorVersion> --instance=<instanceName>
+`
+	planStatuExample = `  # View plan status
+  kubectl kudo plan status --instance=<instanceName>
+`
+)
+
 // newPlanCmd creates a new command that shows the plans available for an instance
 func newPlanCmd() *cobra.Command {
 	newCmd := &cobra.Command{
@@ -23,11 +32,9 @@ func newPlanCmd() *cobra.Command {
 func NewPlanHistoryCmd() *cobra.Command {
 	options := plan.DefaultHistoryOptions
 	listCmd := &cobra.Command{
-		Use:   "history",
-		Short: "Lists history to a specific operator-version of an instance.",
-		Long: `
-	# View plan status
-	kudoctl plan history <operatorVersion> --instance=<instanceName>`,
+		Use:     "history",
+		Short:   "Lists history to a specific operator-version of an instance.",
+		Example: planHistExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return plan.RunHistory(cmd, args, options, &Settings)
 		},
@@ -43,11 +50,9 @@ func NewPlanHistoryCmd() *cobra.Command {
 func NewPlanStatusCmd() *cobra.Command {
 	options := plan.DefaultStatusOptions
 	statusCmd := &cobra.Command{
-		Use:   "status",
-		Short: "Shows the status of all plans to an particular instance.",
-		Long: `
-	# View plan status
-	kudoctl plan status --instance=<instanceName>`,
+		Use:     "status",
+		Short:   "Shows the status of all plans to an particular instance.",
+		Example: planStatuExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return plan.RunStatus(cmd, args, options, &Settings)
 		},
