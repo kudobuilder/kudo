@@ -84,7 +84,7 @@ spec:
           mountPath: /usr/share/
 ```
 
-Any subsequent task resource might reference previously generated file by its key `{{.Pipes.Certificate}}` e.g.:
+Any subsequent step resource (if the phase strategy is `serial`) might reference previously generated file by its key `{{.Pipes.Certificate}}` e.g.:
 ```yaml
 spec:
   containers:
