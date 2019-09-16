@@ -1,0 +1,118 @@
+---
+kep-number: 18
+title: Controller redesign
+authors:
+  - "@alenkacz"
+owners:
+  - "@alenkacz"
+creation-date: 2019-09-16
+last-updated: 2019-09-16
+status: provisional
+---
+
+# Controller redesign
+
+## Table of Contents
+
+* [Controller redesign](#controller-redesign)
+      * [Table of Contents](#table-of-contents)
+      * [Summary](#summary)
+      * [Motivation](#motivation)
+         * [Goals](#goals)
+         * [Non-Goals](#non-goals)
+      * [Proposal](#proposal)
+         * [Instance CRD changes](#instance-crd-changes)
+         * [Admission webhook](#admission-webhook)
+         * [Implementation details](#implementation-detailsnotesconstraints)
+         * [Risks and mitigations](#risks-and-mitigations)
+      * [Graduation Criteria](#graduation-criteria)
+
+## Summary
+
+The way KUDO controllers are implemented currently has several flaws:
+1. when KUDO manager is down (or restarted) we might miss an update on a CRD meaning we won’t execute the plan that was supposed to run at or we execute incorrect one ([issue](https://github.com/kudobuilder/kudo/issues/422))
+2. multiple plan can be seemingly in progress leading to misleading status communicated ([issue](https://github.com/kudobuilder/kudo/issues/628))
+3. no way to ensure atomicity on plan execution (given the current CRD design where information is spread across several CRDs)
+4. very low test coverage and overall confidence in the code
+
+To address all of the above points we’re proposing new design of our CRDs. We’re going to get rid of PlanExecution CRD altogether and merge the execution status into the Instance’s status subresource. At the same time we’re going to keep last known state of instance inside status subresource as well, which will allow us to properly identify plans that are supposed to be run after user submits a change to the Instance spec.
+
+## Motivation
+
+### Goals
+
+- better understandable and tested controller code
+- ensuring correct plan is executed in case KUDO controller is not running for some time
+- atomicity on plan execution level - do not allow to run plan when other plan is in progress
+- be able to see current plan execution status
+
+### Non-Goals
+
+- providing longer history of plan executions that just the last one run
+- have manual plan execution feature (there are several approaches to how to do this, I think it deserves a separate KEP)
+
+## Proposal
+
+The proposed design that will solve all the current known problems with controllers and CRDs is to get rid of PlanExecution CRD altogether. Plan status will basically become instance status (it’s the case right now as well anyway, we just need to replicate those values across two places). 
+
+### Instance CRD changes
+
+The instance CRD for instance with running deploy plan might then look as following.
+
+```yaml
+ Instance
+  spec:
+    operatorVersion: operator-123
+    parameters:
+      - REPLICAS: 4
+  status:
+    planStatus: # (for every plan defined in OV, there will be one field)
+      - deploy:
+          status: IN_PROGRESS
+          executionName: deploy-1478631057
+          lastFinishedRun: 1568642057
+          overview:
+            strategy: serial
+            phases:
+              - name: deploy
+                strategy: serial
+                state: IN_PROGRESS
+                steps:
+                  - name: everything
+                    state: IN_PROGRESS
+                    delete: false
+      - upgrade: null # (never run)
+    state: IN_PROGRESS
+    activePlan: deploy-1478631057 # (will be null if no plan is run right now)
+    lastAppliedInstanceSpec:
+      version: 123 # probably some version from metadata?
+      spec:
+        operatorVersion: operator-123
+        parameters:
+          - REPLICAS: 3
+```
+`planStatus` is a property that basically replaces the current PlanExecution CRD - it reports on the status of the plans that are run right now or last runs of all the plans available for that operator version. This is also what `kudo plan history` and `kudo plan status` will query to get overview of the plans.
+
+`lastAppliedInstanceSpec` is persisting the state of the instance from the previous successful deploy/upgrade/update plan finished. We need this to be able to solve flaw n.1 described in the summary. This gets updated after a plan succeeds.
+
+`status.state` is just a simple way how to query the overall state of the instance (if any plan is running on it or not). Could be used by user as well as e.g. admission webhook to figure out if any changes to the CRD are allowed.
+
+### Admission webhook
+
+Part of the solution (addressing problem n.3 from the summary) is an admission webhook. This one will guard the Instance CRD and will disallow any changes in a spec if plan is running.
+
+### Implementation Details/Notes/Constraints
+
+- don't use predicates to process any kind of business logic (these don't run in worker pool and should be just simple functions returning bool)
+- implementation of this will be a breaking change meaning that KUDO on existing clusters will have to be reinstalled to work (CRDs dropped and recreated)
+- temporarily we won't be able to execute manual jobs until we agree on a design there (none of the current operators use it anyway so should be fine for one release)
+
+### Risks and mitigations
+
+This is a pretty big refactoring that will likely end with a big diff. The goal to limit that was done by doing some ground work in [PR #759](https://github.com/kudobuilder/kudo/pull/759). With code-walkthrough done for team members as well as with our current integration test code coverage I feel pretty confident when landing this, we won't end up in a worse situation as we are right now (although some of the integration tests have to be changed as well - especially those working with PlanExecution object).
+
+To make the probability of landing something broken even smaller, try to move in small steps and involve other team members as soon as possible.
+
+## Graduation Criteria
+
+When current integration tests passes and the new tests passes as well (e.g. I introduced this test [PR #718](https://github.com/kudobuilder/kudo/pull/718) but it's failing on master, that should not be the case when we land this feature).
