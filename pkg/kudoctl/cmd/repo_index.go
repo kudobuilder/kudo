@@ -110,6 +110,10 @@ func (ri *repoIndexCmd) run() error {
 		if err != nil {
 			return err
 		}
+		if config == nil {
+			return fmt.Errorf("configuration for repositories does not contain %s", ri.urlRepoName)
+		}
+		fmt.Printf("url: %v", config.URL)
 		ri.url = config.URL
 	}
 
@@ -176,5 +180,5 @@ func (ri *repoIndexCmd) repoConfig() (*repo.Configuration, error) {
 	if err != nil {
 		return nil, err
 	}
-	return repos.GetConfiguration(ri.mergeRepoName), nil
+	return repos.GetConfiguration(ri.urlRepoName), nil
 }
