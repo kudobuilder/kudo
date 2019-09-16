@@ -109,7 +109,7 @@ spec:
 There are several ways to implement pipe tasks, each one having its challenges and complexities. The approach below allows us not to worry about Pod container life-cycle as well as keep the storing logic in the KUDO controller:
 - Provided ContainerSpec is injected into a Pod as an [InitContainer](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/). This is the simplest way to wait for container completion. This is also the reason why pipe task resource definition is a ContainerSpec and not a complete Pod specification.
 - The main container is a `busybox` image, running the `sleep infinity` command, which purpose is to wait for KUDO to extract and store the files.
-- KUDO controller would copy out referenced files from the Pod using `kubectl cp` and store them as specified.
+- Pod status `READY: 1/1, STATUS: Running` means that the init container has run successfully. As this point KUDO can copy out referenced files using `kubectl cp` and store them as specified.
 - Once files are stored, KUDO can delete the Pod and proceed to the next task.
 
 Here is a minimal example demonstrating the proposed implementation:
