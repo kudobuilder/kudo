@@ -109,8 +109,48 @@ spec:
 There are several ways to implement pipe tasks, each one having its challenges and complexities. The approach below allows us not to worry about Pod container life-cycle as well as keep the storing logic in the KUDO controller:
 - Provided ContainerSpec is injected into a Pod as an [InitContainer](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/). This is the simplest way to wait for container completion. This is also the reason why pipe task resource definition is a ContainerSpec and not a complete Pod specification.
 - The main container is a `busybox` image, running the `sleep infinity` command, which purpose is to wait for KUDO to extract and store the files.
-- KUDO controller would copy referenced files from the Pod using `kubectl cp` and store them as specified.
+- KUDO controller would copy out referenced files from the Pod using `kubectl cp` and store them as specified.
 - Once files are stored, KUDO can delete the Pod and proceed to the next task.
+
+Here is a minimal example demonstrating the proposed implementation:
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pipe-task
+spec:
+  volumes:
+  - name: shared-data
+    emptyDir: {}
+
+  # Inject provided ContainerSpec generating /tmp/foo.txt
+  initContainers:
+    - name: init
+      image: busybox
+      command: [ "/bin/sh", "-c" ]
+      args:
+        - echo "foo-bar-bazz" > /tmp/foo.txt
+      volumeMounts:
+        - name: shared-data
+          mountPath: /tmp
+
+  # Wait for KUDO controller to copy out the file
+  containers:
+    - name: sleep
+      image: busybox
+      command: [ "/bin/sh", "-c" ]
+      args: [ "sleep infinity" ]
+      volumeMounts:
+        - name: shared-data
+          mountPath: /tmp
+  restartPolicy: OnFailure
+```
+
+The generated file can be copied out of the Pod with:
+```bash
+$ kubectl cp default/pipe-task:/tmp/foo.txt /dev/stdout
+foo-bar-bazz
+```
 
 ## Alternatives
 
