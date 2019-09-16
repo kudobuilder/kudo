@@ -22,8 +22,9 @@ func newRepoListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	list := &repoListCmd{out: out}
 
 	cmd := &cobra.Command{
-		Use:   "list [flags]",
-		Short: "List operator repositories",
+		Use:     "list [flags]",
+		Short:   "List operator repositories",
+		Example: "  kubectl kudo repo list",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			list.home = Settings.Home
 			return list.run(fs)

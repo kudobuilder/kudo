@@ -257,6 +257,7 @@ func (r *RetryStatusWriter) Patch(ctx context.Context, obj runtime.Object, patch
 // Scheme returns an initialized Kubernetes Scheme.
 func Scheme() *runtime.Scheme {
 	schemeLock.Do(func() {
+		// FIXME: add error handling
 		apis.AddToScheme(scheme.Scheme)
 		apiextensions.AddToScheme(scheme.Scheme)
 	})
@@ -603,6 +604,7 @@ func WithKeyValue(obj runtime.Object, key string, value map[string]interface{}) 
 
 	content[key] = value
 
+	// FIXME: add error handling
 	runtime.DefaultUnstructuredConverter.FromUnstructured(content, obj)
 	return obj.DeepCopyObject()
 }

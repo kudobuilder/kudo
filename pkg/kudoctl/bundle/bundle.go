@@ -26,6 +26,7 @@ type Bundle interface {
 	GetPkgFiles() (*PackageFiles, error)
 }
 
+// FIXME: Implement 'io.Closer' and make sure that it is called. 'tarBundle' will leak a file descriptor otherwise.
 type tarBundle struct {
 	reader io.Reader
 }
@@ -51,6 +52,7 @@ func NewBundle(fs afero.Fs, path string) (Bundle, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		return tarBundle{r}, nil
 	} else if fi.IsDir() {
 		return fileBundle{path, fs}, nil
@@ -99,7 +101,7 @@ func (b fileBundle) GetPkgFiles() (*PackageFiles, error) {
 }
 
 // ToTarBundle takes a path to operator files and creates a tgz of those files with the destination and name provided
-func ToTarBundle(fs afero.Fs, path string, destination string, overwrite bool) (string, error) {
+func ToTarBundle(fs afero.Fs, path string, destination string, overwrite bool) (target string, err error) {
 	pkg, err := fromFolder(fs, path)
 	if err != nil {
 		//TODO (kensipe): use wrapped err at high verbosity
@@ -108,9 +110,9 @@ func ToTarBundle(fs afero.Fs, path string, destination string, overwrite bool) (
 	}
 
 	name := packageVersionedName(pkg)
-	target, e := files.FullPathToTarget(fs, destination, fmt.Sprintf("%v.tgz", name), overwrite)
-	if e != nil {
-		return "", e
+	target, err = files.FullPathToTarget(fs, destination, fmt.Sprintf("%v.tgz", name), overwrite)
+	if err != nil {
+		return "", err
 	}
 
 	if _, err := fs.Stat(path); err != nil {
@@ -120,7 +122,11 @@ func ToTarBundle(fs afero.Fs, path string, destination string, overwrite bool) (
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	defer func() {
+		if ferr := file.Close(); ferr != nil {
+			err = ferr
+		}
+	}()
 
 	err = tarballWriter(fs, path, file)
 	return target, err

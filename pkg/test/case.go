@@ -129,7 +129,11 @@ func (t *Case) Run(test *testing.T) {
 	}
 
 	if !t.SkipDelete {
-		defer t.DeleteNamespace(ns)
+		defer func() {
+			if err := t.DeleteNamespace(ns); err != nil {
+				test.Error(err)
+			}
+		}()
 	}
 
 	for _, testStep := range t.Steps {
@@ -138,7 +142,11 @@ func (t *Case) Run(test *testing.T) {
 		testStep.Logger = t.Logger.WithPrefix(testStep.String())
 
 		if !t.SkipDelete {
-			defer testStep.Clean(ns)
+			defer func() {
+				if err := testStep.Clean(ns); err != nil {
+					test.Error(err)
+				}
+			}()
 		}
 
 		if errs := testStep.Run(ns); len(errs) > 0 {

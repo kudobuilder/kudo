@@ -17,20 +17,17 @@ import (
 )
 
 var (
-	upgradeExample = `
-		The upgrade argument must be a name of the package in the repository, a path to package in *.tgz format,
-		or a path to an unpacked package directory.
+	upgradeDesc = `Upgrade KUDO package from current version to new version. The upgrade argument must be a name of the 
+package in the repository, a path to package in *.tgz format, or a path to an unpacked package directory.`
+	upgradeExample = `  # Upgrade flink instance dev-flink to the latest version
+  kubectl kudo upgrade flink --instance dev-flink
+  *Note*: should you have a local "flink" folder in the current directory it will take precedence over the remote repository.
 
-		# Upgrade flink instance dev-flink to the latest version
-		kubectl kudo upgrade flink --instance dev-flink
-		
-		*Note*: should you have a local "flink" folder in the current directory it will take precedence over the remote repository.
+  # Upgrade flink to the version 1.1.1
+  kubectl kudo upgrade flink --instance dev-flink --version 1.1.1
 
-		# Upgrade flink to the version 1.1.1
-		kubectl kudo upgrade flink --instance dev-flink --version 1.1.1
-
-		# By default arguments are all reused from the previous installation, if you need to modify, use -p
-		kubectl kudo upgrade flink --instance dev-flink -p param=xxx`
+  # By default arguments are all reused from the previous installation, if you need to modify, use -p
+  kubectl kudo upgrade flink --instance dev-flink -p param=xxx`
 )
 
 type options struct {
@@ -50,7 +47,7 @@ func newUpgradeCmd(fs afero.Fs) *cobra.Command {
 	upgradeCmd := &cobra.Command{
 		Use:     "upgrade <name>",
 		Short:   "Upgrade KUDO package.",
-		Long:    `Upgrade KUDO package from current version to new version.`,
+		Long:    upgradeDesc,
 		Example: upgradeExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Prior to command execution we parse and validate passed arguments
