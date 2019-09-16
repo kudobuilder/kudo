@@ -15,7 +15,7 @@ It can be used to add, remove, list, and index kudo repositories.
 `
 
 const examples = `  kubectl kudo repo add [NAME] [REPO_URL]
-  kubectl kudo repo remmove
+  kubectl kudo repo remove
   kubectl kudo repo list
   kubectl kudo repo context [NAME]
 `

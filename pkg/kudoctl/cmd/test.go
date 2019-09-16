@@ -15,21 +15,20 @@ import (
 )
 
 var (
-	testExample = `
-      Run tests configured by kudo-test.yaml:
-            kubectl kudo test
+	testExample = `  Run tests configured by kudo-test.yaml:
+    kubectl kudo test
 
-      Load a specific test configuration:
-            kubectl kudo test --config test.yaml
+  Load a specific test configuration:
+    kubectl kudo test --config test.yaml
 
-      Run tests against an existing Kubernetes cluster:
-            kubectl kudo test ./test/integration/
+  Run tests against an existing Kubernetes cluster:
+    kubectl kudo test ./test/integration/
 
-      Run tests against an existing Kubernetes cluster, and install KUDO, manifests, and CRDs for the tests:
-            kubectl kudo test --crd-dir ./config/crds/ --manifests-dir ./test/manifests/ ./test/integration/
+  Run tests against an existing Kubernetes cluster, and install KUDO, manifests, and CRDs for the tests:
+    kubectl kudo test --crd-dir ./config/crds/ --manifests-dir ./test/manifests/ ./test/integration/
 
-      Run a Kubernetes control plane and KUDO and install manifests and CRDs for the running tests:
-            kubectl kudo test --start-control-plane --start-kudo --crd-dir ./config/crds/ --manifests-dir ./test/manifests/ ./test/integration/
+  Run a Kubernetes control plane and KUDO and install manifests and CRDs for the running tests:
+    kubectl kudo test --start-control-plane --start-kudo --crd-dir ./config/crds/ --manifests-dir ./test/manifests/ ./test/integration/
 `
 )
 
@@ -57,10 +56,8 @@ func newTestCmd() *cobra.Command {
 		Long: `Runs integration tests against a Kubernetes cluster.
 
 The test operator supports connecting to an existing Kubernetes cluster or it can start a Kubernetes API server during the test run.
-
-It can also start up KUDO and apply manifests before running the tests.
-
-If no arguments are provided, the test harness will attempt to load the test configuration from kudo-test.yaml.
+It can also start up KUDO and apply manifests before running the tests. If no arguments are provided, the test harness will attempt to 
+load the test configuration from kudo-test.yaml.
 
 For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 		Example: testExample,

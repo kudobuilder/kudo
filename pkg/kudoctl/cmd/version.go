@@ -9,9 +9,8 @@ import (
 )
 
 var (
-	versionExample = `
-		# Print the current installed KUDO package version
-		kubectl kudo version`
+	versionExample = `  # Print the current installed KUDO package version
+  kubectl kudo version`
 )
 
 // newVersionCmd returns a new initialized instance of the version sub command
