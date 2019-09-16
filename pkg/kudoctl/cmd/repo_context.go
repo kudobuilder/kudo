@@ -11,6 +11,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	repoContextDesc = `When using an KUDO operation that requires access to a repository, KUDO needs to know which repository.
+This is defined by the "context". 'kubectl kudo repo list' will provide the list of repositories.  The "*" next to one of the
+names is the current context. 'kubectl kudo repo context local' will change the context to respository named local if it exists.
+`
+)
+
 type repoContextCmd struct {
 	name string
 	home kudohome.Home
@@ -22,8 +29,10 @@ func newRepoContextCmd(fs afero.Fs) *cobra.Command {
 	ctxCmd := &repoContextCmd{}
 
 	cmd := &cobra.Command{
-		Use:   "context [flags] [NAME]",
-		Short: "Set default for operator repository context",
+		Use:     "context [flags] [NAME]",
+		Short:   "Set default for operator repository context",
+		Long:    repoContextDesc,
+		Example: "  kubectl kudo repo context local",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return fmt.Errorf("need at least one argument, name of operator repository")

@@ -11,6 +11,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	repoRemoveExample = `  kubectl kudo repo remove local
+  kubectl kudo repo rm local`
+)
+
 type repoRemoveCmd struct {
 	out  io.Writer
 	name string
@@ -25,6 +30,7 @@ func newRepoRemoveCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 		Use:     "remove [flags] [NAME]",
 		Aliases: []string{"rm"},
 		Short:   "Remove an operator repository",
+		Example: repoRemoveExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return fmt.Errorf("need at least one argument, name of operator repository")
