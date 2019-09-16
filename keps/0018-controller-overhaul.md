@@ -30,10 +30,10 @@ status: provisional
 ## Summary
 
 The way KUDO controllers are implemented currently has several flaws:
-1. when KUDO manager is down (or restarted) we might miss an update on a CRD meaning we won’t execute the plan that was supposed to run at or we execute incorrect one ([issue](https://github.com/kudobuilder/kudo/issues/422))
-2. multiple plan can be seemingly in progress leading to misleading status communicated ([issue](https://github.com/kudobuilder/kudo/issues/628))
-3. no way to ensure atomicity on plan execution (given the current CRD design where information is spread across several CRDs)
-4. very low test coverage and overall confidence in the code
+1. When KUDO manager is down (or restarted) we might miss an update on a CRD meaning we won’t execute the plan that was supposed to run at or we execute incorrect one ([issue](https://github.com/kudobuilder/kudo/issues/422))
+2. Multiple plan can be seemingly in progress leading to misleading status communicated ([issue](https://github.com/kudobuilder/kudo/issues/628))
+3. No way to ensure atomicity on plan execution (given the current CRD design where information is spread across several CRDs)
+4. Very low test coverage and overall confidence in the code
 
 To address all of the above points we’re proposing new design of our CRDs. We’re going to get rid of PlanExecution CRD altogether and merge the execution status into the Instance’s status subresource. At the same time we’re going to keep last known state of instance inside status subresource as well, which will allow us to properly identify plans that are supposed to be run after user submits a change to the Instance spec.
 
@@ -104,14 +104,17 @@ Part of the solution (addressing problem n.3 from the summary) is an admission w
 ### Implementation Details/Notes/Constraints
 
 - don't use predicates to process any kind of business logic (these don't run in worker pool and should be just simple functions returning bool)
+- overall try to aim to use as much best practices in using controller-runtime as possible
 - implementation of this will be a breaking change meaning that KUDO on existing clusters will have to be reinstalled to work (CRDs dropped and recreated)
 - temporarily we won't be able to execute manual jobs until we agree on a design there (none of the current operators use it anyway so should be fine for one release)
 
 ### Risks and mitigations
 
-This is a pretty big refactoring that will likely end with a big diff. The goal to limit that was done by doing some ground work in [PR #759](https://github.com/kudobuilder/kudo/pull/759). With code-walkthrough done for team members as well as with our current integration test code coverage I feel pretty confident when landing this, we won't end up in a worse situation as we are right now (although some of the integration tests have to be changed as well - especially those working with PlanExecution object).
+This is a pretty big refactoring (touching controllers, CLI, tests) that will likely end with a big diff. The goal to limit that was done by doing some ground work in [PR #759](https://github.com/kudobuilder/kudo/pull/759). With code-walkthrough done for team members as well as with our current integration test code coverage I feel pretty confident when landing this, we won't end up in a worse situation as we are right now (although some of the integration tests have to be changed as well - especially those working with PlanExecution object).
 
 To make the probability of landing something broken even smaller, try to move in small steps and involve other team members as soon as possible.
+
+Admission webhook is an easily separate part of the implementation that should land separately and can even be worked on in parallel.
 
 ## Graduation Criteria
 
