@@ -3,6 +3,7 @@ package init
 import (
 	"fmt"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/version"
 
@@ -57,12 +58,15 @@ func NewOptions(v string) Options {
 
 // Install uses Kubernetes client to install KUDO.
 func Install(client *kube.Client, opts Options) error {
+	clog.V(4).Printf("installing prereqs")
 	if err := installPrereqs(client.KubeClient, opts); err != nil {
 		return err
 	}
+	clog.V(4).Printf("installing crds")
 	if err := installCrds(client.ExtClient); err != nil {
 		return err
 	}
+	clog.V(4).Printf("installing kudo controller")
 	if err := installManager(client.KubeClient, opts); err != nil {
 		return err
 	}

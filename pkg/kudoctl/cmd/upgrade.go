@@ -63,7 +63,7 @@ func newUpgradeCmd(fs afero.Fs) *cobra.Command {
 	upgradeCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name.")
 	upgradeCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")
 	upgradeCmd.Flags().StringVar(&options.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
-	upgradeCmd.Flags().StringVarP(&options.PackageVersion, "version", "v", "", "A specific package version on the official repository. When installing from other sources than official repository, version from inside operator.yaml will be used. (default to the most recent)")
+	upgradeCmd.Flags().StringVar(&options.PackageVersion, "version", "", "A specific package version on the official repository. When installing from other sources than official repository, version from inside operator.yaml will be used. (default to the most recent)")
 
 	return upgradeCmd
 }

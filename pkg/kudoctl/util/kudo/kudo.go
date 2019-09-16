@@ -3,17 +3,18 @@ package kudo
 import (
 	"encoding/json"
 	"fmt"
+
 	"strings"
 	"time"
 
-	v1core "k8s.io/api/core/v1"
-
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
 	"github.com/pkg/errors"
+	v1core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -78,9 +79,10 @@ func NewClientFromK8s(client versioned.Interface) *Client {
 func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 	operator, err := c.clientset.KudoV1alpha1().Operators(namespace).Get(name, v1.GetOptions{})
 	if err != nil {
+		clog.V(2).Printf("operator.kudo.dev/%s does not exist\n", name)
 		return false
 	}
-	fmt.Printf("operator.kudo.dev/%s unchanged\n", operator.Name)
+	clog.V(2).Printf("operator.kudo.dev/%s unchanged", operator.Name)
 	return true
 }
 
@@ -220,5 +222,6 @@ func (c *Client) InstallInstanceObjToCluster(obj *v1alpha1.Instance, namespace s
 	if err != nil {
 		return nil, errors.WithMessage(err, "installing Instance")
 	}
+	clog.V(2).Printf("instance %v created in namespace %v", createdObj.Name, namespace)
 	return createdObj, nil
 }

@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"io"
 	"os"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/version"
 
@@ -62,14 +64,15 @@ and serves as an API aggregation layer.
 	cmd.AddCommand(newTestCmd())
 	cmd.AddCommand(newVersionCmd())
 
-	initGlobalFlags(cmd)
+	initGlobalFlags(cmd, cmd.OutOrStdout())
 
 	return cmd
 }
 
-func initGlobalFlags(cmd *cobra.Command) {
+func initGlobalFlags(cmd *cobra.Command, out io.Writer) {
 	flags := cmd.PersistentFlags()
 	Settings.AddFlags(flags)
+	clog.Init(flags, out)
 	// FIXME: add error handling
 	cmd.ParseFlags(os.Args[1:])
 	// set ENV if flags are not used.
