@@ -140,7 +140,7 @@ func (initCmd *initCmd) run() error {
 	if err := initCmd.initialize(); err != nil {
 		return clog.Errorf("error initializing: %s", err)
 	}
-	clog.Printf("$KUDO_HOME has been configured at %s\n", Settings.Home)
+	clog.Printf("$KUDO_HOME has been configured at %s", Settings.Home)
 
 	// initialize server
 	if !initCmd.clientOnly {
