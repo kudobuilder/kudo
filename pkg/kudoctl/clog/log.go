@@ -34,10 +34,13 @@ func (l *Level) set(val Level) {
 	*l = val
 }
 
-// Get is part of the flag.Value interface.
+// Get is required for https://godoc.org/flag#Getter
+// the return of interface{} is forced by Getter interface
 func (l *Level) Get() interface{} {
 	return *l
 }
+
+//// Required for pflag.Value defined: https://godoc.org/github.com/spf13/pflag#Value
 
 // String is part of the flag.Value interface.
 func (l *Level) String() string {
@@ -58,6 +61,8 @@ func (l *Level) Set(value string) error {
 func (l *Level) Type() string {
 	return string(*l)
 }
+
+//// pflag.Value interface ends
 
 type loggingT struct {
 	verbosity Level // V logging level, the value of the -v flag/
