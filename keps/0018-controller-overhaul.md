@@ -42,7 +42,7 @@ To address all of the above points we’re proposing a new design of our CRDs. W
 ### Goals
 
 - better understandable and tested controller code
-- ensuring correct plan is executed in case KUDO controller is not running for some time
+- ensuring the correct plan is executed in case the KUDO controller is not running for some time
 - atomicity on plan execution level - do not allow to run plan when other plan is in progress
 - be able to see current plan execution status
 
