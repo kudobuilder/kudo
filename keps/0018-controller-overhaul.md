@@ -53,7 +53,7 @@ To address all of the above points we’re proposing a new design of our CRDs. W
 
 ## Proposal
 
-The proposed design that will solve all the current known problems with controllers and CRDs is to get rid of PlanExecution CRD altogether. Plan status will basically become instance status (it’s the case right now as well anyway, we just need to replicate those values across two places). 
+The proposed design that will solve the above-defined issues with controllers and CRDs is to get rid of PlanExecution CRD altogether. Plan status will basically become instance status (it’s the case right now as well anyway, we just need to replicate those values across two places). 
 
 ### Instance CRD changes
 
