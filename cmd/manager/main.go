@@ -17,8 +17,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
 	"os"
+
+	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
 
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
 
