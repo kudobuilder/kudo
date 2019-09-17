@@ -165,7 +165,7 @@ func (h *Harness) addNodeCaches(kindCfg *kindConfig.Cluster) error {
 	}
 
 	for index := range kindCfg.Nodes {
-		volume, err := dockerClient.VolumeCreate(context.TODO(), volumetypes.VolumesCreateBody{
+		volume, err := dockerClient.VolumeCreate(context.TODO(), volumetypes.VolumeCreateBody{
 			Driver: "local",
 			Name:   fmt.Sprintf("%s-%d", h.TestSuite.KINDContext, index),
 		})
@@ -310,7 +310,7 @@ func (h *Harness) DockerClient() (testutils.DockerClient, error) {
 	}
 
 	var err error
-	h.docker, err = docker.NewEnvClient()
+	h.docker, err = docker.NewClientWithOpts(docker.FromEnv)
 	return h.docker, err
 }
 
