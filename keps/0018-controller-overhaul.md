@@ -76,14 +76,15 @@ The instance CRD for instance with running deploy plan might then look as follow
             phases:
               - name: deploy
                 strategy: serial
-                state: IN_PROGRESS
+                status: IN_PROGRESS
                 steps:
                   - name: everything
-                    state: IN_PROGRESS
+                    status: IN_PROGRESS
                     delete: false
       - upgrade: null # (never run)
-    state: IN_PROGRESS
-    activePlan: deploy-1478631057 # (will be null if no plan is run right now)
+    aggregatedStatus:
+      - status: IN_PROGRESS
+        activePlan: deploy-1478631057 # (will be null if no plan is run right now)
     lastAppliedInstanceSpec:
       version: 123 # probably some version from metadata?
       spec:
@@ -95,11 +96,13 @@ The instance CRD for instance with running deploy plan might then look as follow
 
 `lastAppliedInstanceSpec` is persisting the state of the instance from the previous successful deploy/upgrade/update plan finished. We need this to be able to solve flaw n.1 described in the summary. This gets updated after a plan succeeds.
 
-`status.state` is just a simple way how to query the overall state of the instance (if any plan is running on it or not). Could be used by user as well as e.g. admission webhook to figure out if any changes to the CRD are allowed.
+`status.aggregatedStatus.status` is just a simple way how to query the overall state of the instance (if any plan is running on it or not). Could be used by user as well as e.g. admission webhook to figure out if any changes to the CRD are allowed.
 
 ### Admission webhook
 
-Part of the solution (addressing problem n.3 from the summary) is an admission webhook. This one will guard the Instance CRD and will disallow any changes in a spec if plan is running.
+Part of the solution (addressing problem n.3 from the summary - ensuring atomicity) is an admission webhook. This one will guard the Instance CRD and will disallow any changes in a spec if plan is running. Admission webhook in kubernetes world is the only way how to prevent resource from being updated. All following filters (like controller predicates) are called AFTER the change was applied so it's too late to validate.
+
+Although admission webook addresses one of the problems outlined in this KEP it's considered a stretch goal and can be delivered in a following release (should NOT be part of the initial refactoring).
 
 ### Implementation Details/Notes/Constraints
 
