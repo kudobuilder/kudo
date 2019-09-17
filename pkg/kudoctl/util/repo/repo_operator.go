@@ -79,21 +79,43 @@ func (r *Client) DownloadIndexFile() (*IndexFile, error) {
 }
 
 // getPackageReaderByFullPackageName downloads the tgz file from the remote repository and unmarshals it to the package CRDs
-func (r *Client) getPackageReaderByFullPackageName(fullPackageName string) (io.Reader, error) {
-	var fileURL string
-	parsedURL, err := url.Parse(r.Config.URL)
+// this will cycle through urls for the
+func (r *Client) getPackageReaderByFullPackageName(pkg *PackageVersion) (io.Reader, error) {
+
+	pkgURL, err := repositoryBackedPkgURL(r.Config.URL, pkg)
 	if err != nil {
-		return nil, errors.Wrap(err, "parsing config url")
+		return nil, err
 	}
-	parsedURL.Path = fmt.Sprintf("%s/%s.tgz", parsedURL.Path, fullPackageName)
+	urls := append(pkg.URLs, pkgURL)
 
-	fileURL = parsedURL.String()
-	clog.V(4).Printf("using url: %v", fileURL)
+	var pkgErr error
+	for _, url := range urls {
+		r, err := r.getPackageReaderByURL(url)
+		if err == nil {
+			return r, nil
+		}
+		pkgErr = fmt.Errorf("unable to read package %w", err)
+		clog.Errorf("failure against url: %v  %v", url, pkgErr)
+	}
+	clog.Printf("Giving up with err %v", pkgErr)
+	return nil, pkgErr
+}
 
-	return r.getPackageReaderByURL(fileURL)
+func repositoryBackedPkgURL(repoURL string, pkg *PackageVersion) (string, error) {
+	packageName := pkg.Name + "-" + pkg.Version
+	clog.V(4).Printf("bundle version returned  %v", packageName)
+
+	parsedURL, err := url.Parse(repoURL)
+	if err != nil {
+		return "", errors.Wrap(err, "parsing config url")
+	}
+	parsedURL.Path = fmt.Sprintf("%s/%s.tgz", parsedURL.Path, packageName)
+	pkgURL := parsedURL.String()
+	return pkgURL, nil
 }
 
 func (r *Client) getPackageReaderByURL(packageURL string) (io.Reader, error) {
+	clog.V(4).Printf("attempt to retrieve package from url: %v", packageURL)
 	resp, err := r.Client.Get(packageURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "getting package url")
@@ -117,10 +139,7 @@ func (r *Client) GetPackageReader(name string, version string) (io.Reader, error
 		return nil, errors.Wrapf(err, "getting %s in index file", name)
 	}
 
-	packageName := bundleVersion.Name + "-" + bundleVersion.Version
-	clog.V(4).Printf("bundle version returned  %v", packageName)
-
-	return r.getPackageReaderByFullPackageName(packageName)
+	return r.getPackageReaderByFullPackageName(bundleVersion)
 }
 
 // GetBundle provides an Bundle for a provided package name and optional version
