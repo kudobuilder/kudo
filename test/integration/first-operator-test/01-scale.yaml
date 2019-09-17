@@ -1,6 +1,7 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: kudo.dev/v1alpha1
+kind: Instance
 metadata:
-  name: first-operator-nginx-deployment
+  name: first-operator
 spec:
-  replicas: 4
+  parameters:
+    replicas: "4"
