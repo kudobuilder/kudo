@@ -16,6 +16,9 @@ limitations under the License.
 package instance
 
 import (
+	"context"
+	"log"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
@@ -49,10 +52,14 @@ func (r *Reconciler) SetupWithManager(
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kudo.dev,resources=instances,verbs=get;list;watch;create;update;patch;delete
-func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	// ---------- 1. Query the current state ----------
 
-	// query instance
+	log.Printf("InstanceController: Received Reconcile request for instance \"%+v\"", request.Name)
+	instance, err := r.getInstance(request)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
 	// query OV
 
 	// ---------- 2. If we're currently running plan, continue with the execution ----------
@@ -60,4 +67,21 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 	// ---------- 3. Update status of instance after the execution proceeded ----------
 
 	return reconcile.Result{}, nil
+}
+
+// getInstance retrieves the instance by namespaced name
+// returns nil, nil when instance is not found (not found is not considered an error)
+func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1alpha1.Instance, err error) {
+	instance = &kudov1alpha1.Instance{}
+	err = r.Get(context.TODO(), request.NamespacedName, instance)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Object not found, return.  Created objects are automatically garbage collected.
+			// For additional cleanup logic use finalizers.
+			return nil, nil
+		}
+		// Error reading the object - requeue the request.
+		return nil, err
+	}
+	return instance, nil
 }
