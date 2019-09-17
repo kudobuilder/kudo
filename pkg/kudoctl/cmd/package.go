@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
@@ -64,7 +64,7 @@ func validate(args []string) error {
 
 // run returns the errors associated with cmd env
 func (pkg *packageCmd) run() error {
-	tarfile, err := bundle.ToTarBundle(pkg.fs, pkg.path, pkg.destination, pkg.overwrite)
+	tarfile, err := packages.CreateTarball(pkg.fs, pkg.path, pkg.destination, pkg.overwrite)
 	if err == nil {
 		fmt.Fprintf(pkg.out, "Package created: %v\n", tarfile)
 	}

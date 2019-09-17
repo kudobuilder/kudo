@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle/finder"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/finder"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
@@ -61,13 +61,13 @@ func validate(args []string, options *Options) error {
 // - an operator name in the remote repository
 // in that order. Should there exist a local folder e.g. `cassandra` it will take precedence
 // over the remote repository package with the same name.
-func GetPackageCRDs(name string, version string, repository repo.Repository) (*bundle.PackageCRDs, error) {
+func GetPackageCRDs(name string, version string, repository repo.Repository) (*packages.PackageCRDs, error) {
 
 	// Local files/folder have priority
 	if _, err := os.Stat(name); err == nil {
 		clog.V(2).Printf("local operator discovered: %v", name)
 		f := finder.NewLocal()
-		b, err := f.GetBundle(name, version)
+		b, err := f.GetPackage(name, version)
 		if err != nil {
 			return nil, err
 		}
@@ -78,7 +78,7 @@ func GetPackageCRDs(name string, version string, repository repo.Repository) (*b
 	if http.IsValidURL(name) {
 		clog.V(3).Printf("operator using http protocol for %v", name)
 		f := finder.NewURL()
-		b, err := f.GetBundle(name, version)
+		b, err := f.GetPackage(name, version)
 		if err != nil {
 			return nil, err
 		}
@@ -86,7 +86,7 @@ func GetPackageCRDs(name string, version string, repository repo.Repository) (*b
 	}
 
 	clog.V(3).Printf("no http discovered, looking for repository")
-	b, err := repository.GetBundle(name, version)
+	b, err := repository.GetPackage(name, version)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 	return installCrds(crds, kc, options, settings)
 }
 
-func installCrds(crds *bundle.PackageCRDs, kc *kudo.Client, options *Options, settings *env.Settings) error {
+func installCrds(crds *packages.PackageCRDs, kc *kudo.Client, options *Options, settings *env.Settings) error {
 	// PRE-INSTALLATION SETUP
 	operatorName := crds.Operator.ObjectMeta.Name
 	clog.V(3).Printf("operator name: %v", operatorName)
@@ -183,7 +183,7 @@ func installCrds(crds *bundle.PackageCRDs, kc *kudo.Client, options *Options, se
 	return nil
 }
 
-func validateCrds(crds *bundle.PackageCRDs, skipInstance bool) error {
+func validateCrds(crds *packages.PackageCRDs, skipInstance bool) error {
 	if skipInstance {
 		// right now we are just validating parameters on instance, if we're not creating instance right now, there is nothing to validate
 		clog.V(3).Printf("skipping instance...")

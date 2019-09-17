@@ -1,4 +1,4 @@
-package bundle
+package packages
 
 import (
 	"fmt"
@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/bundle"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 
@@ -36,11 +35,26 @@ type PackageCRDs struct {
 	Instance        *v1alpha1.Instance
 }
 
-// PackageFiles represents the raw operator package format the way it is found in the tgz package bundles
+// PackageFiles represents the raw operator package format the way it is found in the tgz packages
 type PackageFiles struct {
 	Templates map[string]string
-	Operator  *bundle.Operator
+	Operator  *Operator
 	Params    []v1alpha1.Parameter
+}
+
+// Operator is a representation of the KEP-9 Operator YAML
+type Operator struct {
+	Name              string                        `json:"name"`
+	Description       string                        `json:"description,omitempty"`
+	Version           string                        `json:"version"`
+	AppVersion        string                        `json:"appVersion,omitempty"`
+	KUDOVersion       string                        `json:"kudoVersion,omitempty"`
+	KubernetesVersion string                        `json:"kubernetesVersion,omitempty"`
+	Maintainers       []*v1alpha1.Maintainer        `json:"maintainers,omitempty"`
+	URL               string                        `json:"url,omitempty"`
+	Tasks             map[string]v1alpha1.TaskSpec  `json:"tasks"`
+	Plans             map[string]v1alpha1.Plan      `json:"plans"`
+	Dependencies      []v1alpha1.OperatorDependency `json:"dependencies,omitempty"`
 }
 
 // PackageFilesDigest is a tuple of data used to return the package files AND the digest of a tarball
@@ -259,7 +273,7 @@ func pathToOperator(fs afero.Fs, path string) (pfd *PackageFilesDigest, err erro
 }
 
 func readerToOperator(r io.Reader) (*PackageFiles, error) {
-	b := NewBundleFromReader(r)
+	b := NewPackageFromReader(r)
 	pkg, err := b.GetPkgFiles()
 	if err != nil {
 		return nil, err

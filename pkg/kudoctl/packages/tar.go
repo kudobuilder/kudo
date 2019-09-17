@@ -1,4 +1,4 @@
-package bundle
+package packages
 
 import (
 	"archive/tar"

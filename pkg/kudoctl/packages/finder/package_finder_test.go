@@ -6,41 +6,41 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestManager_GetBundle(t *testing.T) {
+func TestManager_GetPackage(t *testing.T) {
 	m := &Manager{
 		local: NewLocal(),
 		uri:   nil,
 	}
-	b, err := m.GetBundle("../testdata/zk", "")
+	b, err := m.GetPackage("../testdata/zk", "")
 	if err != nil {
-		t.Errorf("Manager.GetBundle() error = %v", err)
+		t.Errorf("Manager.GetPackage() error = %v", err)
 		return
 	}
 
 	crd, err := b.GetCRDs()
 	if err != nil {
-		t.Errorf("bundle.GetCRDs error = %v", err)
+		t.Errorf("packages.GetCRDs error = %v", err)
 	}
 	assert.EqualValues(t, "zookeeper", crd.Operator.Name)
 }
 
-func TestLocalFinder_GetBundle(t *testing.T) {
+func TestLocalFinder_GetPackage(t *testing.T) {
 	f := NewLocal()
-	b, err := f.GetBundle("../testdata/zk", "")
+	b, err := f.GetPackage("../testdata/zk", "")
 	if err != nil {
-		t.Errorf("Manager.GetBundle() error = %v", err)
+		t.Errorf("Manager.GetPackage() error = %v", err)
 		return
 	}
 
 	crd, err := b.GetCRDs()
 	if err != nil {
-		t.Errorf("bundle.GetCRDs error = %v", err)
+		t.Errorf("packages.GetCRDs error = %v", err)
 	}
 	assert.EqualValues(t, "zookeeper", crd.Operator.Name)
 }
 
 func TestLocalFinder_Failure(t *testing.T) {
 	f := NewLocal()
-	_, err := f.GetBundle("../testdata/zk-bad", "")
+	_, err := f.GetPackage("../testdata/zk-bad", "")
 	assert.Errorf(t, err, "should have errored on bad folder name")
 }
