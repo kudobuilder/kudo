@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
