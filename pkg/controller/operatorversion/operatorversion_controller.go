@@ -26,8 +26,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var _ reconcile.Reconciler = &Reconciler{}
-
 // Reconciler reconciles an OperatorVersion object
 type Reconciler struct {
 	client.Client
