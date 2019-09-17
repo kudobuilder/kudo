@@ -62,7 +62,7 @@ func (h *Harness) LoadTests(dir string) ([]*Case, error) {
 		}
 
 		timeout := h.GetTimeout()
-		h.T.Log("Going to run test suite with timeout of %d seconds for each step", timeout)
+		h.T.Logf("Going to run test suite with timeout of %d seconds for each step", timeout)
 
 		tests = append(tests, &Case{
 			Timeout:    timeout,
