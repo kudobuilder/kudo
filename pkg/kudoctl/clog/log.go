@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"strconv"
-	"sync/atomic"
 
 	"github.com/spf13/pflag"
 )
@@ -23,7 +22,7 @@ import (
 //  9-10 as trace-level (http details)
 
 // Level specifies a level of verbosity for V logs.
-type Level int32
+type Level int8
 
 // get returns the value of the Level.
 func (l *Level) get() Level {
@@ -32,7 +31,7 @@ func (l *Level) get() Level {
 
 // set sets the value of the Level.
 func (l *Level) set(val Level) {
-	atomic.StoreInt32((*int32)(l), int32(val))
+	*l = val
 }
 
 // Get is part of the flag.Value interface.
