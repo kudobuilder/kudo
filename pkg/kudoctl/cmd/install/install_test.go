@@ -13,6 +13,8 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/version"
+	fakediscovery "k8s.io/client-go/discovery/fake"
 )
 
 func TestValidate(t *testing.T) {
@@ -36,10 +38,6 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-func newTestClient() *kudo.Client {
-	return kudo.NewClientFromK8s(fake.NewSimpleClientset())
-}
-
 func TestParameterValidation_InstallCrds(t *testing.T) {
 	crds := bundle.PackageCRDs{
 		Operator: &v1alpha1.Operator{
@@ -52,6 +50,9 @@ func TestParameterValidation_InstallCrds(t *testing.T) {
 					"controller-tools.k8s.io": "1.0",
 				},
 				Name: "test",
+			},
+			Spec: v1alpha1.OperatorSpec{
+				KubernetesVersion: "1.15",
 			},
 		},
 		Instance: &v1alpha1.Instance{
@@ -104,7 +105,16 @@ func TestParameterValidation_InstallCrds(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		kc := newTestClient()
+		client := fake.NewSimpleClientset()
+		kc := kudo.NewClientFromK8s(client)
+
+		fakeDiscovery, ok := client.Discovery().(*fakediscovery.FakeDiscovery)
+		if !ok {
+			t.Fatalf("couldn't convert Discovery() to *FakeDiscovery")
+		}
+		fakeDiscovery.FakedServerVersion = &version.Info{
+			GitVersion: "v1.16.0",
+		}
 
 		testCrds := crds
 		testCrds.OperatorVersion.Spec.Parameters = tt.parameters

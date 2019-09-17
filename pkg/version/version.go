@@ -5,6 +5,8 @@ import (
 	"os"
 	"runtime"
 	"strings"
+
+	"github.com/Masterminds/semver"
 )
 
 // Info contains versioning information.
@@ -48,4 +50,37 @@ func Get() Info {
 		Compiler:   runtime.Compiler,
 		Platform:   fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	}
+}
+
+// Error is an error for versions in case it is desired to check an error for this type
+type Error struct {
+	Component       string
+	ExpectedVersion string
+	Version         string
+}
+
+// Error is a required function for type Error
+func (e Error) Error() string {
+	return fmt.Sprintf("expected version: %s, found vresion: %s", e.ExpectedVersion, e.Version)
+}
+
+//Valid returns nil if expected version is meet by actual using solely Major.Minor
+func Valid(component string, actual *semver.Version, expected *semver.Version) error {
+	if actual.Major() < expected.Major() || actual.Minor() < expected.Minor() {
+		return Error{
+			Component:       component,
+			ExpectedVersion: expected.String(),
+			Version:         actual.String(),
+		}
+	}
+
+	return nil
+}
+
+// Clean returns version without a prefixed v if it exists
+func Clean(ver string) string {
+	if strings.HasPrefix(ver, "v") {
+		return ver[1:]
+	}
+	return ver
 }
