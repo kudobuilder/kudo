@@ -29,7 +29,7 @@ status: provisional
 
 ## Summary
 
-The way KUDO controllers are implemented currently has several flaws:
+The way KUDO controllers are currently implemented has several flaws:
 1. When KUDO manager is down (or restarted) we might miss an update on a CRD meaning we won’t execute the plan that was supposed to run at or we execute incorrect one ([issue](https://github.com/kudobuilder/kudo/issues/422))
 2. Multiple plan can be seemingly in progress leading to misleading status communicated ([issue](https://github.com/kudobuilder/kudo/issues/628))
 3. No way to ensure atomicity on plan execution (given the current CRD design where information is spread across several CRDs)
