@@ -35,7 +35,7 @@ The way KUDO controllers are currently implemented has several flaws:
 3. No way to ensure atomicity on plan execution (given the current CRD design where information is spread across several CRDs)
 4. Very low test coverage and overall confidence in the code
 
-To address all of the above points we’re proposing new design of our CRDs. We’re going to get rid of PlanExecution CRD altogether and merge the execution status into the Instance’s status subresource. At the same time we’re going to keep last known state of instance inside status subresource as well, which will allow us to properly identify plans that are supposed to be run after user submits a change to the Instance spec.
+To address all of the above points we’re proposing a new design of our CRDs. We’re going to get rid of PlanExecution CRD altogether and merge the execution status into the Instance’s status subresource. At the same time, we’re going to keep last known state of instance inside status subresource as well, which will allow us to properly identify plans that are supposed to run after the user submits a change to the Instance spec.
 
 ## Motivation
 
