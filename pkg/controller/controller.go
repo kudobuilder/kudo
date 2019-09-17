@@ -17,8 +17,6 @@ package controller
 
 import (
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
-	"github.com/kudobuilder/kudo/pkg/controller/operator"
-	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
 	"github.com/kudobuilder/kudo/pkg/controller/planexecution"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -27,8 +25,6 @@ import (
 var AddControllerToManagerFuncs = []func(manager.Manager) error{
 	planexecution.Add,
 	instance.Add,
-	operator.Add,
-	operatorversion.Add,
 }
 
 // AddControllersToManager adds all Controllers to the Manager
