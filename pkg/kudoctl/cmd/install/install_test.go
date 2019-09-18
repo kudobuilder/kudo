@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
@@ -41,7 +41,7 @@ func newTestClient() *kudo.Client {
 }
 
 func TestParameterValidation_InstallCrds(t *testing.T) {
-	crds := bundle.PackageCRDs{
+	crds := packages.PackageCRDs{
 		Operator: &v1alpha1.Operator{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "kudo.dev/v1alpha1",

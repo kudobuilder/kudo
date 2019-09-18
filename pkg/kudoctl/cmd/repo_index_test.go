@@ -47,7 +47,7 @@ func TestRepoIndexCmd_IndexCreation(t *testing.T) {
 	fs := afero.NewMemMapFs()
 	testdir, _ := filepath.Abs("")
 	fs.Mkdir(testdir, 0777)
-	files.CopyOperatorToFs(fs, "../bundle/testdata/zk.tgz", "/opt")
+	files.CopyOperatorToFs(fs, "../packages/testdata/zk.tgz", "/opt")
 
 	time, _ := time.Parse(time.RFC3339, "2019-10-25T00:00:00Z")
 	out := &bytes.Buffer{}

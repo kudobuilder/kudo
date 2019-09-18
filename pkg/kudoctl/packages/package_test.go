@@ -1,4 +1,4 @@
-package bundle
+package packages
 
 import (
 	"fmt"
@@ -35,11 +35,11 @@ func TestReadFileSystemPackage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s-from-%s", tt.name, tt.path), func(t *testing.T) {
-			bundle, err := NewBundle(fs, tt.path)
+			pkg, err := ReadPackage(fs, tt.path)
 			if err != nil {
 				t.Fatalf("Found unexpected error: %v", err)
 			}
-			actual, err := bundle.GetCRDs()
+			actual, err := pkg.GetCRDs()
 			if err != nil {
 				t.Fatalf("Found unexpected error: %v", err)
 			}

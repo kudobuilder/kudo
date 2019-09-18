@@ -8,18 +8,18 @@ import (
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
 
-// Repository is an abstraction for a service that can retrieve package bundles
+// Repository is an abstraction for a service that can retrieve packages
 type Repository interface {
-	GetBundle(name string, version string) (bundle.Bundle, error)
+	GetPackage(name string, version string) (packages.Package, error)
 }
 
 // Client represents an operator repository
@@ -112,24 +112,24 @@ func (r *Client) GetPackageReader(name string, version string) (io.Reader, error
 		return nil, errors.WithMessage(err, "could not download repository index file")
 	}
 
-	bundleVersion, err := indexFile.GetByNameAndVersion(name, version)
+	pkgVersion, err := indexFile.GetByNameAndVersion(name, version)
 	if err != nil {
 		return nil, errors.Wrapf(err, "getting %s in index file", name)
 	}
 
-	packageName := bundleVersion.Name + "-" + bundleVersion.Version
-	clog.V(4).Printf("bundle version returned  %v", packageName)
+	packageName := pkgVersion.Name + "-" + pkgVersion.Version
+	clog.V(4).Printf("package version returned  %v", packageName)
 
 	return r.getPackageReaderByFullPackageName(packageName)
 }
 
-// GetBundle provides an Bundle for a provided package name and optional version
-func (r *Client) GetBundle(name string, version string) (bundle.Bundle, error) {
+// GetPackage provides an Package for a provided package name and optional version
+func (r *Client) GetPackage(name string, version string) (packages.Package, error) {
 	reader, err := r.GetPackageReader(name, version)
 	if err != nil {
 		return nil, err
 	}
-	return bundle.NewBundleFromReader(reader), nil
+	return packages.NewPackageFromReader(reader), nil
 }
 
 // GetOperatorVersionDependencies helper method returns a slice of strings that contains the names of all
