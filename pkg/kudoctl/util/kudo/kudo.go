@@ -12,7 +12,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/version"
 
-	"github.com/Masterminds/semver"
 	"github.com/pkg/errors"
 	v1core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -231,7 +230,7 @@ func (c *Client) InstallInstanceObjToCluster(obj *v1alpha1.Instance, namespace s
 // ValidateServerForOperator validates that the k8s server version and kudo version are valid for operator
 // error message will provide detail of failure, otherwise nil
 func (c *Client) ValidateServerForOperator(operator *v1alpha1.Operator) error {
-	expectedKubver, err := semver.NewVersion(operator.Spec.KubernetesVersion)
+	expectedKubver, err := version.New(operator.Spec.KubernetesVersion)
 	if err != nil {
 		return fmt.Errorf("unable to parse operators kubernetes version: %w", err)
 	}
@@ -246,12 +245,15 @@ func (c *Client) ValidateServerForOperator(operator *v1alpha1.Operator) error {
 		return err
 	}
 
-	kSemVer, err := semver.NewVersion(kVer)
+	kSemVer, err := version.FromGithubVersion(kVer)
 	if err != nil {
 		return err
 	}
+	if expectedKubver.CompareMajorMinor(kSemVer) > 0 {
+		return fmt.Errorf("expected kubernetes version of %v is not supported with version: %v", expectedKubver, kSemVer)
+	}
 
-	return version.Valid("kubernetes", kSemVer, expectedKubver)
+	return nil
 }
 
 // getKubeVersion returns stringified version of k8s server
@@ -260,5 +262,5 @@ func getKubeVersion(client discovery.DiscoveryInterface) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return version.Clean(v.String()), nil
+	return v.String(), nil
 }

@@ -52,29 +52,59 @@ func Get() Info {
 	}
 }
 
-// Error is an error for versions in case it is desired to check an error for this type
-type Error struct {
-	Component       string
-	ExpectedVersion string
-	Version         string
+// Version is an extension of semver.Version
+type Version struct {
+	*semver.Version
 }
 
-// Error is a required function for type Error
-func (e Error) Error() string {
-	return fmt.Sprintf("expected version: %s, found vresion: %s", e.ExpectedVersion, e.Version)
+// CompareMajorMinor provides Compare results -1, 0, 1 for only the major and minor element
+// of the semver, ignoring the patch or prerelease elements.   This is useful if you are looking
+// for minVersion for example 1.15.6 is version 1.15 or higher.
+func (v *Version) CompareMajorMinor(o *Version) int {
+	if d := compareSegment(v.Major(), o.Major()); d != 0 {
+		return d
+	}
+	if d := compareSegment(v.Minor(), o.Minor()); d != 0 {
+		return d
+	}
+	return 0
 }
 
-//Valid returns nil if expected version is meet by actual using solely Major.Minor
-func Valid(component string, actual *semver.Version, expected *semver.Version) error {
-	if actual.Major() < expected.Major() || actual.Minor() < expected.Minor() {
-		return Error{
-			Component:       component,
-			ExpectedVersion: expected.String(),
-			Version:         actual.String(),
-		}
+// compares v1 against v2 resulting in -1, 0, 1 for less than, equal, greater than
+func compareSegment(v1, v2 int64) int {
+	if v1 < v2 {
+		return -1
+	}
+	if v1 > v2 {
+		return 1
 	}
 
-	return nil
+	return 0
+}
+
+// New provides an instance of Version from a semver string
+func New(v string) (*Version, error) {
+	ver, err := semver.NewVersion(v)
+	if err != nil {
+		return nil, err
+	}
+	return FromSemVer(ver), nil
+}
+
+// FromGithubVersion provides a version parsed from github semver which starts with "v".
+// v1.5.2 provides a sem version of 1.5.2
+func FromGithubVersion(v string) (*Version, error) {
+	return New(Clean(v))
+}
+
+// FromSemVer converts a semver.Version to our Version
+func FromSemVer(v *semver.Version) *Version {
+	return &Version{v}
+}
+
+// MustParse parses a given version and panics on error.
+func MustParse(v string) *Version {
+	return FromSemVer(semver.MustParse(v))
 }
 
 // Clean returns version without a prefixed v if it exists

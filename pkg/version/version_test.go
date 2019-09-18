@@ -3,7 +3,6 @@ package version
 import (
 	"testing"
 
-	"github.com/Masterminds/semver"
 	"github.com/magiconair/properties/assert"
 )
 
@@ -11,20 +10,19 @@ func Test_validVersion(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		actual   *semver.Version
-		expected *semver.Version
-		wantErr  bool
+		actual   *Version
+		expected *Version
+		val      int
 	}{
-		{"expect early version", semver.MustParse("1.5"), semver.MustParse("1.4"), false},
-		{"expect same version", semver.MustParse("1.5"), semver.MustParse("1.5"), false},
-		{"expect newer version", semver.MustParse("1.5"), semver.MustParse("1.6"), true},
-		{"full semver is not a factor", semver.MustParse("1.5.8"), semver.MustParse("1.5.0"), false},
+		{"expect early version", MustParse("1.5"), MustParse("1.4"), -1},
+		{"expect same version", MustParse("1.5"), MustParse("1.5"), 0},
+		{"expect newer version", MustParse("1.5"), MustParse("1.6"), 1},
+		{"full semver is not a factor", MustParse("1.5.8"), MustParse("1.5.0"), 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := Valid("test", tt.actual, tt.expected); (err != nil) != tt.wantErr {
-				t.Errorf("validVersionExpectations() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			val := tt.expected.CompareMajorMinor(tt.actual)
+			assert.Equal(t, tt.val, val)
 		})
 	}
 }
