@@ -72,15 +72,12 @@ The instance CRD for instance with running deploy plan might then look as follow
           executionName: deploy-1478631057
           lastFinishedRun: 1568642057
           overview:
-            strategy: serial
             phases:
               - name: deploy
-                strategy: serial
                 status: IN_PROGRESS
                 steps:
                   - name: everything
                     status: IN_PROGRESS
-                    delete: false
       - upgrade: null # (never run)
     aggregatedStatus:
       - status: IN_PROGRESS
