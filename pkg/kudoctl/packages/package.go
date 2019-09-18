@@ -1,8 +1,10 @@
 package packages
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"regexp"
 	"strconv"
 	"strings"
@@ -263,8 +265,12 @@ func pathToOperator(fs afero.Fs, path string) (pfd *PackageFilesDigest, err erro
 	if err != nil {
 		return nil, err
 	}
+	b, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
 
-	pkg, err := readerToOperator(reader)
+	pkg, err := readerToOperator(bytes.NewBuffer(b))
 	pfd = &PackageFilesDigest{
 		pkg,
 		digest,
@@ -272,8 +278,8 @@ func pathToOperator(fs afero.Fs, path string) (pfd *PackageFilesDigest, err erro
 	return pfd, err
 }
 
-func readerToOperator(r io.Reader) (*PackageFiles, error) {
-	b := NewPackageFromReader(r)
+func readerToOperator(buf *bytes.Buffer) (*PackageFiles, error) {
+	b := NewPackageFromBytes(buf)
 	pkg, err := b.GetPkgFiles()
 	if err != nil {
 		return nil, err

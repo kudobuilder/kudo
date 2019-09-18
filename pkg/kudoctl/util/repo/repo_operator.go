@@ -1,8 +1,8 @@
 package repo
 
 import (
+	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/url"
 	"strings"
@@ -82,8 +82,7 @@ func (r *Client) DownloadIndexFile() (*IndexFile, error) {
 // The PackageVersion is a package configuration from the index file which has a list of urls where
 // the package can be pulled from.  This will cycle through the list of urls and will return the reader
 // from the first successful url.  If all urls fail, the last error will be returned.
-func (r *Client) getPackageReaderByAPackageURL(pkg *PackageVersion) (io.Reader, error) {
-
+func (r *Client) getPackageReaderByAPackageURL(pkg *PackageVersion) (*bytes.Buffer, error) {
 	var pkgErr error
 	for _, u := range pkg.URLs {
 		r, err := r.getPackageReaderByURL(u)
@@ -97,7 +96,7 @@ func (r *Client) getPackageReaderByAPackageURL(pkg *PackageVersion) (io.Reader, 
 	return nil, pkgErr
 }
 
-func (r *Client) getPackageReaderByURL(packageURL string) (io.Reader, error) {
+func (r *Client) getPackageReaderByURL(packageURL string) (*bytes.Buffer, error) {
 	clog.V(4).Printf("attempt to retrieve package from url: %v", packageURL)
 	resp, err := r.Client.Get(packageURL)
 	if err != nil {
@@ -108,7 +107,7 @@ func (r *Client) getPackageReaderByURL(packageURL string) (io.Reader, error) {
 }
 
 // GetPackageReader provides an io.Reader for a provided package name and optional version
-func (r *Client) GetPackageReader(name string, version string) (io.Reader, error) {
+func (r *Client) GetPackageReader(name string, version string) (*bytes.Buffer, error) {
 	clog.V(4).Printf("getting package reader for %v, %v", name, version)
 	clog.V(5).Printf("repository using: %v", r.Config)
 	// Construct the package name and download the index file from the remote repo
@@ -131,7 +130,7 @@ func (r *Client) GetPackage(name string, version string) (packages.Package, erro
 	if err != nil {
 		return nil, err
 	}
-	return packages.NewPackageFromReader(reader), nil
+	return packages.NewPackageFromBytes(reader), nil
 }
 
 // GetOperatorVersionDependencies helper method returns a slice of strings that contains the names of all

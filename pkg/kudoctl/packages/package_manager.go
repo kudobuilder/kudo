@@ -2,6 +2,7 @@ package packages
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 
 	"github.com/pkg/errors"
@@ -26,9 +28,8 @@ type Package interface {
 	GetPkgFiles() (*PackageFiles, error)
 }
 
-// FIXME: Implement 'io.Closer' and make sure that it is called. 'tarPackage' will leak a file descriptor otherwise.
 type tarPackage struct {
-	reader io.Reader
+	buf *bytes.Buffer
 }
 
 type filePackage struct {
@@ -44,69 +45,62 @@ func ReadPackage(fs afero.Fs, path string) (Package, error) {
 	if err != nil {
 		return nil, err
 	}
+	clog.V(4).Printf("determining package type of %v", path)
 	// order of discovery
 	// 1. tarball
 	// 2. file based
 	if fi.Mode().IsRegular() && strings.HasSuffix(path, ".tgz") {
-		r, err := getFileReader(fs, path)
+		b, err := afero.ReadFile(fs, path)
 		if err != nil {
 			return nil, err
 		}
-
-		return tarPackage{r}, nil
+		buf := bytes.NewBuffer(b)
+		clog.V(4).Printf("%v is a tar package", path)
+		return tarPackage{buf}, nil
 	} else if fi.IsDir() {
+		clog.V(4).Printf("%v is a file package", path)
 		return filePackage{path, fs}, nil
 	} else {
 		return nil, fmt.Errorf("unsupported file system format %v. Expect either a *.tgz file or a folder", path)
 	}
 }
 
-func getFileReader(fs afero.Fs, path string) (io.Reader, error) {
-	f, err := fs.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	return f, nil
-}
-
-// NewPackageFromReader is a package from a reader.  This should only be used when a file cache isn't used.
-func NewPackageFromReader(r io.Reader) Package {
-	return tarPackage{r}
+// NewPackageFromBytes is a package from a reader.  This should only be used when a file cache isn't used.
+func NewPackageFromBytes(buf *bytes.Buffer) Package {
+	return tarPackage{buf}
 }
 
 // GetPkgFiles returns the command side package files
-func (b tarPackage) GetPkgFiles() (*PackageFiles, error) {
-	return parseTarPackage(b.reader)
+func (p tarPackage) GetPkgFiles() (*PackageFiles, error) {
+	return parseTarPackage(p.buf)
 }
 
 // GetCRDs returns the server side CRDs
-func (b tarPackage) GetCRDs() (*PackageCRDs, error) {
-	p, err := b.GetPkgFiles()
+func (p tarPackage) GetCRDs() (*PackageCRDs, error) {
+	pf, err := p.GetPkgFiles()
 	if err != nil {
 		return nil, errors.Wrap(err, "while extracting package files")
 	}
-	return p.getCRDs()
+	return pf.getCRDs()
 }
 
-func (b filePackage) GetCRDs() (*PackageCRDs, error) {
-	p, err := b.GetPkgFiles()
+func (p filePackage) GetCRDs() (*PackageCRDs, error) {
+	pf, err := p.GetPkgFiles()
 	if err != nil {
 		return nil, errors.Wrap(err, "while reading package from the file system")
 	}
-	return p.getCRDs()
+	return pf.getCRDs()
 }
 
-func (b filePackage) GetPkgFiles() (*PackageFiles, error) {
-	return fromFolder(b.fs, b.path)
+func (p filePackage) GetPkgFiles() (*PackageFiles, error) {
+	return fromFolder(p.fs, p.path)
 }
 
 // CreateTarball takes a path to operator files and creates a tgz of those files with the destination and name provided
 func CreateTarball(fs afero.Fs, path string, destination string, overwrite bool) (target string, err error) {
 	pkg, err := fromFolder(fs, path)
 	if err != nil {
-		//TODO (kensipe): use wrapped err at high verbosity
-		//return "", fmt.Errorf("invalid operator in path: %v error: %v", path, err)
-		return "", fmt.Errorf("invalid operator in path: %v", path)
+		return "", fmt.Errorf("invalid operator in path: %v error: %w", path, err)
 	}
 
 	name := packageVersionedName(pkg)
@@ -139,6 +133,9 @@ func packageVersionedName(pkg *PackageFiles) string {
 
 // fromFolder walks the path provided and returns CRD package files or an error
 func fromFolder(fs afero.Fs, packagePath string) (*PackageFiles, error) {
+	if packagePath == "" {
+		return nil, clog.Errorf("path must be specified")
+	}
 	result := newPackageFiles()
 
 	err := afero.Walk(fs, packagePath, func(path string, file os.FileInfo, err error) error {
@@ -147,25 +144,29 @@ func fromFolder(fs afero.Fs, packagePath string) (*PackageFiles, error) {
 		}
 		if file.IsDir() {
 			// skip directories
+			clog.V(6).Printf("folder walking skipping directory %v", file)
 			return nil
 		}
 		if path == packagePath {
 			// skip the root folder, as Walk always starts there
 			return nil
 		}
-		bytes, err := afero.ReadFile(fs, path)
+		buf, err := afero.ReadFile(fs, path)
 		if err != nil {
 			return err
 		}
 
-		return parsePackageFile(path, bytes, &result)
+		return parsePackageFile(path, buf, &result)
 	})
 	if err != nil {
 		return nil, err
 	}
 	// final check
-	if result.Operator == nil || result.Params == nil {
-		return nil, fmt.Errorf("incomplete operator package in path: %v", packagePath)
+	if result.Operator == nil {
+		return nil, clog.Errorf("operator package missing operator.yaml")
+	}
+	if result.Params == nil {
+		return nil, clog.Errorf("operator package missing params.yaml")
 	}
 	return &result, nil
 }
@@ -209,14 +210,13 @@ func parseTarPackage(r io.Reader) (*PackageFiles, error) {
 		case tar.TypeDir:
 			// we don't need to handle folders, files have folder name in their names and that should be enough
 
-		// if it's a file create it
 		case tar.TypeReg:
-			bytes, err := ioutil.ReadAll(tr)
+			buf, err := ioutil.ReadAll(tr)
 			if err != nil {
 				return nil, errors.Wrapf(err, "while reading file from package tarball %s", header.Name)
 			}
 
-			err = parsePackageFile(header.Name, bytes, &result)
+			err = parsePackageFile(header.Name, buf, &result)
 			if err != nil {
 				return nil, err
 			}

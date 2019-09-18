@@ -1,11 +1,12 @@
 package finder
 
 import (
+	"bytes"
 	"fmt"
-	"io"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+
 	"github.com/spf13/afero"
 )
 
@@ -71,14 +72,14 @@ func (f *URLFinder) GetPackage(name string, version string) (packages.Package, e
 	if !http.IsValidURL(name) {
 		return nil, fmt.Errorf("finder: url %v invalid", name)
 	}
-	reader, err := f.getPackageByURL(name)
+	buf, err := f.getPackageByURL(name)
 	if err != nil {
 		return nil, err
 	}
-	return packages.NewPackageFromReader(reader), nil
+	return packages.NewPackageFromBytes(buf), nil
 }
 
-func (f *URLFinder) getPackageByURL(url string) (io.Reader, error) {
+func (f *URLFinder) getPackageByURL(url string) (*bytes.Buffer, error) {
 	resp, err := f.client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("finder: unable to get get reader from url %v", url)
