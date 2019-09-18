@@ -132,8 +132,11 @@ func installCrds(crds *packages.PackageCRDs, kc *kudo.Client, options *Options, 
 		return err
 	}
 
-	// Operator part
+	if err := kc.ValidateServerForOperator(crds.Operator); err != nil {
+		return err
+	}
 
+	// Operator part
 	// Check if Operator exists
 	if !kc.OperatorExistsInCluster(crds.Operator.ObjectMeta.Name, settings.Namespace) {
 		if err := installSingleOperatorToCluster(operatorName, settings.Namespace, crds.Operator, kc); err != nil {

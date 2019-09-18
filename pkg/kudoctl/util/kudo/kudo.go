@@ -3,7 +3,6 @@ package kudo
 import (
 	"encoding/json"
 	"fmt"
-
 	"strings"
 	"time"
 
@@ -11,12 +10,14 @@ import (
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
-	"k8s.io/apimachinery/pkg/types"
+	"github.com/kudobuilder/kudo/pkg/version"
 
 	"github.com/pkg/errors"
 	v1core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
 
 	// Import Kubernetes authentication providers to support GKE, etc.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -224,4 +225,42 @@ func (c *Client) InstallInstanceObjToCluster(obj *v1alpha1.Instance, namespace s
 	}
 	clog.V(2).Printf("instance %v created in namespace %v", createdObj.Name, namespace)
 	return createdObj, nil
+}
+
+// ValidateServerForOperator validates that the k8s server version and kudo version are valid for operator
+// error message will provide detail of failure, otherwise nil
+func (c *Client) ValidateServerForOperator(operator *v1alpha1.Operator) error {
+	expectedKubver, err := version.New(operator.Spec.KubernetesVersion)
+	if err != nil {
+		return fmt.Errorf("unable to parse operators kubernetes version: %w", err)
+	}
+	//TODO : to be added in when we support kudo server providing server version
+	//expectedKudoVer, err := semver.NewVersion(operator.Spec.KudoVersion)
+	//if err != nil {
+	//	return fmt.Errorf("Unable to parse operators kudo version: %w", err)
+	//}
+	// semvar compares patch, for which we do not want to... compare maj, min only
+	kVer, err := getKubeVersion(c.clientset.Discovery())
+	if err != nil {
+		return err
+	}
+
+	kSemVer, err := version.FromGithubVersion(kVer)
+	if err != nil {
+		return err
+	}
+	if expectedKubver.CompareMajorMinor(kSemVer) > 0 {
+		return fmt.Errorf("expected kubernetes version of %v is not supported with version: %v", expectedKubver, kSemVer)
+	}
+
+	return nil
+}
+
+// getKubeVersion returns stringified version of k8s server
+func getKubeVersion(client discovery.DiscoveryInterface) (string, error) {
+	v, err := client.ServerVersion()
+	if err != nil {
+		return "", err
+	}
+	return v.String(), nil
 }
