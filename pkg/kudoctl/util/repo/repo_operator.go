@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
@@ -85,7 +84,7 @@ func (r *Client) DownloadIndexFile() (*IndexFile, error) {
 func (r *Client) getPackageReaderByAPackageURL(pkg *PackageVersion) (*bytes.Buffer, error) {
 	var pkgErr error
 	for _, u := range pkg.URLs {
-		r, err := r.getPackageReaderByURL(u)
+		r, err := r.getPackageBytesByURL(u)
 		if err == nil {
 			return r, nil
 		}
@@ -96,7 +95,7 @@ func (r *Client) getPackageReaderByAPackageURL(pkg *PackageVersion) (*bytes.Buff
 	return nil, pkgErr
 }
 
-func (r *Client) getPackageReaderByURL(packageURL string) (*bytes.Buffer, error) {
+func (r *Client) getPackageBytesByURL(packageURL string) (*bytes.Buffer, error) {
 	clog.V(4).Printf("attempt to retrieve package from url: %v", packageURL)
 	resp, err := r.Client.Get(packageURL)
 	if err != nil {
@@ -106,8 +105,8 @@ func (r *Client) getPackageReaderByURL(packageURL string) (*bytes.Buffer, error)
 	return resp, nil
 }
 
-// GetPackageReader provides an io.Reader for a provided package name and optional version
-func (r *Client) GetPackageReader(name string, version string) (*bytes.Buffer, error) {
+// GetPackageBytes provides an io.Reader for a provided package name and optional version
+func (r *Client) GetPackageBytes(name string, version string) (*bytes.Buffer, error) {
 	clog.V(4).Printf("getting package reader for %v, %v", name, version)
 	clog.V(5).Printf("repository using: %v", r.Config)
 	// Construct the package name and download the index file from the remote repo
@@ -126,21 +125,9 @@ func (r *Client) GetPackageReader(name string, version string) (*bytes.Buffer, e
 
 // GetPackage provides an Package for a provided package name and optional version
 func (r *Client) GetPackage(name string, version string) (packages.Package, error) {
-	reader, err := r.GetPackageReader(name, version)
+	reader, err := r.GetPackageBytes(name, version)
 	if err != nil {
 		return nil, err
 	}
 	return packages.NewPackageFromBytes(reader), nil
-}
-
-// GetOperatorVersionDependencies helper method returns a slice of strings that contains the names of all
-// dependency Operators
-func GetOperatorVersionDependencies(ov *v1alpha1.OperatorVersion) ([]string, error) {
-	var dependencyOperators []string
-	if ov.Spec.Dependencies != nil {
-		for _, v := range ov.Spec.Dependencies {
-			dependencyOperators = append(dependencyOperators, v.Name)
-		}
-	}
-	return dependencyOperators, nil
 }

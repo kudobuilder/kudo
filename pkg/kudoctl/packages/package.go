@@ -270,7 +270,7 @@ func pathToOperator(fs afero.Fs, path string) (pfd *PackageFilesDigest, err erro
 		return nil, err
 	}
 
-	pkg, err := readerToOperator(bytes.NewBuffer(b))
+	pkg, err := bufferToPackageFiles(bytes.NewBuffer(b))
 	pfd = &PackageFilesDigest{
 		pkg,
 		digest,
@@ -278,7 +278,7 @@ func pathToOperator(fs afero.Fs, path string) (pfd *PackageFilesDigest, err erro
 	return pfd, err
 }
 
-func readerToOperator(buf *bytes.Buffer) (*PackageFiles, error) {
+func bufferToPackageFiles(buf *bytes.Buffer) (*PackageFiles, error) {
 	b := NewPackageFromBytes(buf)
 	pkg, err := b.GetPkgFiles()
 	if err != nil {
