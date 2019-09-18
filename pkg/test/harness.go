@@ -65,8 +65,11 @@ func (h *Harness) LoadTests(dir string) ([]*Case, error) {
 			continue
 		}
 
+		timeout := h.GetTimeout()
+		h.T.Logf("Going to run test suite with timeout of %d seconds for each step", timeout)
+
 		tests = append(tests, &Case{
-			Timeout:    h.GetTimeout(),
+			Timeout:    timeout,
 			Steps:      []*Step{},
 			Name:       file.Name(),
 			Dir:        filepath.Join(dir, file.Name()),
@@ -161,7 +164,7 @@ func (h *Harness) addNodeCaches(kindCfg *kindConfig.Cluster) error {
 	}
 
 	for index := range kindCfg.Nodes {
-		volume, err := dockerClient.VolumeCreate(context.TODO(), volumetypes.VolumesCreateBody{
+		volume, err := dockerClient.VolumeCreate(context.TODO(), volumetypes.VolumeCreateBody{
 			Driver: "local",
 			Name:   fmt.Sprintf("%s-%d", h.TestSuite.KINDContext, index),
 		})
@@ -302,7 +305,7 @@ func (h *Harness) DockerClient() (testutils.DockerClient, error) {
 	}
 
 	var err error
-	h.docker, err = docker.NewEnvClient()
+	h.docker, err = docker.NewClientWithOpts(docker.FromEnv)
 	return h.docker, err
 }
 
