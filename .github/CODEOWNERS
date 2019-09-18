@@ -16,5 +16,4 @@
 /pkg/kudoctl/ @fabianbaier @kensipe @alenkacz
 /pkg/test/ @jbarrick-mesosphere
 /pkg/util/ @gerred @runyontr @kensipe
-/pkg/webhook/ @gerred @runyontr @kensipe
 /site/ @guenter @gerred

@@ -16,7 +16,6 @@ import (
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/controller"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
-	"github.com/kudobuilder/kudo/pkg/webhook"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -252,10 +251,6 @@ func (h *Harness) RunKUDO() error {
 	}
 
 	if err = controller.AddControllersToManager(mgr); err != nil {
-		return err
-	}
-
-	if err = webhook.AddToManager(mgr); err != nil {
 		return err
 	}
 
