@@ -19,17 +19,34 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
+
+	"github.com/kudobuilder/kudo/pkg/controller/operator"
+
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/kudobuilder/kudo/pkg/version"
 
-	"github.com/kudobuilder/kudo/pkg/apis"
+	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/controller"
-	"github.com/kudobuilder/kudo/pkg/webhook"
+	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
+	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 )
+
+var (
+	scheme = runtime.NewScheme()
+)
+
+func init() {
+	appsv1.AddToScheme(scheme)
+	batchv1.AddToScheme(scheme)
+	corev1.AddToScheme(scheme)
+	kudov1alpha1.AddToScheme(scheme)
+}
 
 func main() {
 	logf.SetLogger(logf.ZapLogger(false))
@@ -38,47 +55,48 @@ func main() {
 	// Get version of KUDO
 	log.Info(fmt.Sprintf("KUDO Version: %s", fmt.Sprintf("%#v", version.Get())))
 
-	// Get a config to talk to the apiserver
-	log.Info("setting up client for manager")
-	cfg, err := config.GetConfig()
-	if err != nil {
-		log.Error(err, "unable to set up client config")
-		os.Exit(1)
-	}
-
-	// Create a new Cmd to provide shared dependencies and start components
+	// create new controller-runtime manager
 	log.Info("setting up manager")
-	mgr, err := manager.New(cfg, manager.Options{})
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		Scheme: scheme,
+	})
 	if err != nil {
-		log.Error(err, "unable to set up overall controller manager")
+		log.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
 	log.Info("Registering Components.")
 
-	// Setup Scheme for all resources
-	log.Info("setting up scheme")
-	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
-		log.Error(err, "unable add APIs to scheme")
+	// Setup all Controllers
+
+	log.Info("Setting up operator controller")
+	err = (&operator.Reconciler{
+		Client: mgr.GetClient(),
+	}).SetupWithManager(mgr)
+	if err != nil {
+		log.Error(err, "unable to register operator controller to the manager")
 		os.Exit(1)
 	}
 
-	// Setup all Controllers
-	log.Info("Setting up controller")
+	log.Info("Setting up operator version controller")
+	err = (&operatorversion.Reconciler{
+		Client: mgr.GetClient(),
+	}).SetupWithManager(mgr)
+	if err != nil {
+		log.Error(err, "unable to register operator controller to the manager")
+		os.Exit(1)
+	}
+
+	log.Info("Setting up controllers")
+	// TODO this still registers instance and PE controller, this will be refactored in the next phase
 	if err := controller.AddControllersToManager(mgr); err != nil {
 		log.Error(err, "unable to register controllers to the manager")
 		os.Exit(1)
 	}
 
-	log.Info("setting up webhooks")
-	if err := webhook.AddToManager(mgr); err != nil {
-		log.Error(err, "unable to register webhooks to the manager")
-		os.Exit(1)
-	}
-
 	// Start the Cmd
 	log.Info("Starting the Cmd.")
-	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		log.Error(err, "unable to run the manager")
 		os.Exit(1)
 	}

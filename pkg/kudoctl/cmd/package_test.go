@@ -21,14 +21,14 @@ var packageCmdArgs = []struct {
 	{"valid operator", []string{"/opt/zk"}, ""},                                                                          // 4
 }
 
-func TestTableNewBundleCmd(t *testing.T) {
+func TestTableNewPackageCmd(t *testing.T) {
 	fs := afero.NewMemMapFs()
 	testdir, _ := filepath.Abs("")
 	fs.Mkdir(testdir, 0777)
-	files.CopyOperatorToFs(fs, "../bundle/testdata/zk", "/opt")
+	files.CopyOperatorToFs(fs, "../packages/testdata/zk", "/opt")
 	for _, test := range packageCmdArgs {
-		newCmdBundle := newPackageCmd(fs, os.Stdout)
-		err := newCmdBundle.RunE(newCmdBundle, test.arg)
+		newCmd := newPackageCmd(fs, os.Stdout)
+		err := newCmd.RunE(newCmd, test.arg)
 		if err != nil {
 			assert.Equal(t, test.errorMessage, err.Error(), test.name)
 		}

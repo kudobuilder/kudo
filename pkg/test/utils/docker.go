@@ -9,5 +9,5 @@ import (
 
 // DockerClient is a wrapper interface for the Docker library to support unit testing.
 type DockerClient interface {
-	VolumeCreate(context.Context, volumetypes.VolumesCreateBody) (dockertypes.Volume, error)
+	VolumeCreate(context.Context, volumetypes.VolumeCreateBody) (dockertypes.Volume, error)
 }

@@ -16,7 +16,6 @@ import (
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/controller"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
-	"github.com/kudobuilder/kudo/pkg/webhook"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -66,8 +65,11 @@ func (h *Harness) LoadTests(dir string) ([]*Case, error) {
 			continue
 		}
 
+		timeout := h.GetTimeout()
+		h.T.Logf("Going to run test suite with timeout of %d seconds for each step", timeout)
+
 		tests = append(tests, &Case{
-			Timeout:    h.GetTimeout(),
+			Timeout:    timeout,
 			Steps:      []*Step{},
 			Name:       file.Name(),
 			Dir:        filepath.Join(dir, file.Name()),
@@ -162,7 +164,7 @@ func (h *Harness) addNodeCaches(kindCfg *kindConfig.Cluster) error {
 	}
 
 	for index := range kindCfg.Nodes {
-		volume, err := dockerClient.VolumeCreate(context.TODO(), volumetypes.VolumesCreateBody{
+		volume, err := dockerClient.VolumeCreate(context.TODO(), volumetypes.VolumeCreateBody{
 			Driver: "local",
 			Name:   fmt.Sprintf("%s-%d", h.TestSuite.KINDContext, index),
 		})
@@ -252,10 +254,6 @@ func (h *Harness) RunKUDO() error {
 		return err
 	}
 
-	if err = webhook.AddToManager(mgr); err != nil {
-		return err
-	}
-
 	h.managerStopCh = make(chan struct{})
 	go mgr.Start(h.managerStopCh)
 
@@ -307,7 +305,7 @@ func (h *Harness) DockerClient() (testutils.DockerClient, error) {
 	}
 
 	var err error
-	h.docker, err = docker.NewEnvClient()
+	h.docker, err = docker.NewClientWithOpts(docker.FromEnv)
 	return h.docker, err
 }
 

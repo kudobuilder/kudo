@@ -21,50 +21,22 @@ import (
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// Add creates a new OperatorVersion Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	log.Printf("OperatorVersionController: Registering operatorversion controller.")
-	return add(mgr, newReconciler(mgr))
-}
-
-// newReconciler returns a new reconcile.Reconciler.
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileOperatorVersion{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
-}
-
-// add adds a new Controller to mgr with r as the reconcile.Reconciler.
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	// Create a new controller
-	c, err := controller.New("operatorversion-controller", mgr, controller.Options{Reconciler: r})
-	if err != nil {
-		return err
-	}
-
-	// Watch for changes to OperatorVersion
-	err = c.Watch(&source.Kind{Type: &kudov1alpha1.OperatorVersion{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-var _ reconcile.Reconciler = &ReconcileOperatorVersion{}
-
-// ReconcileOperatorVersion reconciles an OperatorVersion object
-type ReconcileOperatorVersion struct {
+// Reconciler reconciles an OperatorVersion object
+type Reconciler struct {
 	client.Client
-	scheme *runtime.Scheme
+}
+
+// SetupWithManager registers this reconciler with the controller manager
+func (r *Reconciler) SetupWithManager(
+	mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&kudov1alpha1.OperatorVersion{}).
+		Complete(r)
 }
 
 // Reconcile reads that state of the cluster for an OperatorVersion object and makes changes based on the state read
@@ -73,7 +45,7 @@ type ReconcileOperatorVersion struct {
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kudo.dev,resources=operatorversions,verbs=get;list;watch;create;update;patch;delete
-func (r *ReconcileOperatorVersion) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	// Fetch the operator version
 	operatorVersion := &kudov1alpha1.OperatorVersion{}
 	err := r.Get(context.TODO(), request.NamespacedName, operatorVersion)

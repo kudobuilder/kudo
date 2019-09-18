@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
@@ -62,13 +63,14 @@ func TestInitCmd_exists(t *testing.T) {
 		fs:     afero.NewMemMapFs(),
 		client: &kube.Client{KubeClient: fc},
 	}
+	clog.Init(nil, &buf)
 	Settings.Home = "/opt"
 
 	if err := cmd.run(); err == nil {
 		t.Errorf("expected error: %v", err)
 	}
 	expected := "$KUDO_HOME has been configured at /opt\n" + "Warning: KUDO is already installed in the cluster.\n" +
-		"(Use --client-only to suppress this message)"
+		"(Use --client-only to suppress this message)\n"
 
 	if !strings.Contains(buf.String(), expected) {
 		t.Errorf("expected %q, got %q", expected, buf.String())
