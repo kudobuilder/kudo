@@ -78,22 +78,27 @@ func (r *Client) DownloadIndexFile() (*IndexFile, error) {
 	return indexFile, err
 }
 
-// getPackageReaderByFullPackageName downloads the tgz file from the remote repository and unmarshals it to the package CRDs
-func (r *Client) getPackageReaderByFullPackageName(fullPackageName string) (io.Reader, error) {
-	var fileURL string
-	parsedURL, err := url.Parse(r.Config.URL)
-	if err != nil {
-		return nil, errors.Wrap(err, "parsing config url")
+// getPackageReaderByAPackageURL downloads the tgz file from the remote repository and returns a reader
+// The PackageVersion is a package configuration from the index file which has a list of urls where
+// the package can be pulled from.  This will cycle through the list of urls and will return the reader
+// from the first successful url.  If all urls fail, the last error will be returned.
+func (r *Client) getPackageReaderByAPackageURL(pkg *PackageVersion) (io.Reader, error) {
+
+	var pkgErr error
+	for _, u := range pkg.URLs {
+		r, err := r.getPackageReaderByURL(u)
+		if err == nil {
+			return r, nil
+		}
+		pkgErr = fmt.Errorf("unable to read package %w", err)
+		clog.Errorf("failure against url: %v  %v", u, pkgErr)
 	}
-	parsedURL.Path = fmt.Sprintf("%s/%s.tgz", parsedURL.Path, fullPackageName)
-
-	fileURL = parsedURL.String()
-	clog.V(4).Printf("using url: %v", fileURL)
-
-	return r.getPackageReaderByURL(fileURL)
+	clog.Printf("Giving up with err %v", pkgErr)
+	return nil, pkgErr
 }
 
 func (r *Client) getPackageReaderByURL(packageURL string) (io.Reader, error) {
+	clog.V(4).Printf("attempt to retrieve package from url: %v", packageURL)
 	resp, err := r.Client.Get(packageURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "getting package url")
@@ -117,10 +122,7 @@ func (r *Client) GetPackageReader(name string, version string) (io.Reader, error
 		return nil, errors.Wrapf(err, "getting %s in index file", name)
 	}
 
-	packageName := pkgVersion.Name + "-" + pkgVersion.Version
-	clog.V(4).Printf("package version returned  %v", packageName)
-
-	return r.getPackageReaderByFullPackageName(packageName)
+	return r.getPackageReaderByAPackageURL(pkgVersion)
 }
 
 // GetPackage provides an Package for a provided package name and optional version
