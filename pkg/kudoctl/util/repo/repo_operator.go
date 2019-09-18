@@ -78,40 +78,23 @@ func (r *Client) DownloadIndexFile() (*IndexFile, error) {
 	return indexFile, err
 }
 
-// getPackageReaderByFullPackageName downloads the tgz file from the remote repository and unmarshals it to the package CRDs
-// this will cycle through urls for the
-func (r *Client) getPackageReaderByFullPackageName(pkg *PackageVersion) (io.Reader, error) {
-
-	pkgURL, err := repositoryBackedPkgURL(r.Config.URL, pkg)
-	if err != nil {
-		return nil, err
-	}
-	urls := append(pkg.URLs, pkgURL)
+// getPackageReaderByAPackageURL downloads the tgz file from the remote repository and returns a reader
+// The PackageVersion is a package configuration from the index file which has a list of urls where
+// the package can be pulled from.  This will cycle through the list of urls and will return the reader
+// from the first successful url.  If all urls fail, the last error will be returned.
+func (r *Client) getPackageReaderByAPackageURL(pkg *PackageVersion) (io.Reader, error) {
 
 	var pkgErr error
-	for _, url := range urls {
-		r, err := r.getPackageReaderByURL(url)
+	for _, u := range pkg.URLs {
+		r, err := r.getPackageReaderByURL(u)
 		if err == nil {
 			return r, nil
 		}
 		pkgErr = fmt.Errorf("unable to read package %w", err)
-		clog.Errorf("failure against url: %v  %v", url, pkgErr)
+		clog.Errorf("failure against url: %v  %v", u, pkgErr)
 	}
 	clog.Printf("Giving up with err %v", pkgErr)
 	return nil, pkgErr
-}
-
-func repositoryBackedPkgURL(repoURL string, pkg *PackageVersion) (string, error) {
-	packageName := pkg.Name + "-" + pkg.Version
-	clog.V(4).Printf("bundle version returned  %v", packageName)
-
-	parsedURL, err := url.Parse(repoURL)
-	if err != nil {
-		return "", errors.Wrap(err, "parsing config url")
-	}
-	parsedURL.Path = fmt.Sprintf("%s/%s.tgz", parsedURL.Path, packageName)
-	pkgURL := parsedURL.String()
-	return pkgURL, nil
 }
 
 func (r *Client) getPackageReaderByURL(packageURL string) (io.Reader, error) {
@@ -139,7 +122,7 @@ func (r *Client) GetPackageReader(name string, version string) (io.Reader, error
 		return nil, errors.Wrapf(err, "getting %s in index file", name)
 	}
 
-	return r.getPackageReaderByFullPackageName(bundleVersion)
+	return r.getPackageReaderByAPackageURL(bundleVersion)
 }
 
 // GetBundle provides an Bundle for a provided package name and optional version
