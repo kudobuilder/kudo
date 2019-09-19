@@ -331,6 +331,11 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 
 		err = r.Client.Update(context.TODO(), planExecution)
 		if err != nil {
+			if _, ok := err.(*fatalError); ok {
+				// do not retry
+				return reconcile.Result{}, nil
+			}
+
 			log.Printf("PlanExecutionController: Error when updating planExecution state. %v", err)
 			return reconcile.Result{}, err
 		}
