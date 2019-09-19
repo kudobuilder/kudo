@@ -61,6 +61,9 @@ The instance CRD for instance with running deploy plan might then look as follow
 
 ```yaml
  Instance
+  metadata:
+    annotations:
+      "kudo.dev/last-applied-instance-state": "{ ... }" # InstanceSpec type serialized as json into string
   spec:
     operatorVersion: operator-123
     parameters:
@@ -82,16 +85,10 @@ The instance CRD for instance with running deploy plan might then look as follow
     aggregatedStatus:
       - status: IN_PROGRESS
         activePlan: deploy-1478631057 # (will be null if no plan is run right now)
-    lastAppliedInstanceSpec:
-      version: 123 # probably some version from metadata?
-      spec:
-        operatorVersion: operator-123
-        parameters:
-          - REPLICAS: 3
 ```
 `planStatus` is a property that basically replaces the current PlanExecution CRD - it reports on the status of the plans that are run right now or last runs of all the plans available for that operator version. This is also what `kudo plan history` and `kudo plan status` will query to get overview of the plans.
 
-`lastAppliedInstanceSpec` is persisting the state of the instance from the previous successful deploy/upgrade/update plan finished. We need this to be able to solve flaw n.1 described in the summary. This gets updated after a plan succeeds.
+`kudo.dev/last-applied-instance-state` annotation is persisting the state of the instance from the previous successful deploy/upgrade/update plan finished. We need this to be able to solve flaw n.1 described in the summary. This gets updated after a plan succeeds.
 
 `status.aggregatedStatus.status` is just a simple way how to query the overall state of the instance (if any plan is running on it or not). Could be used by user as well as e.g. admission webhook to figure out if any changes to the CRD are allowed.
 
