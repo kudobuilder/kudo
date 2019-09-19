@@ -12,7 +12,7 @@
 # subdirectories.
 /pkg/apis/ @gerred @runyontr @kensipe
 /pkg/client/ @fabianbaier @kensipe
-/pkg/controller/ @gerred @runyontr @kensipe
+/pkg/controller/ @gerred @runyontr @kensipe @alenkacz
 /pkg/kudoctl/ @fabianbaier @kensipe @alenkacz
 /pkg/test/ @jbarrick-mesosphere
 /pkg/util/ @gerred @runyontr @kensipe
