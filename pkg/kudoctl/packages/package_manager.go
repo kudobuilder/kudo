@@ -134,7 +134,7 @@ func packageVersionedName(pkg *PackageFiles) string {
 // fromFolder walks the path provided and returns CRD package files or an error
 func fromFolder(fs afero.Fs, packagePath string) (*PackageFiles, error) {
 	if packagePath == "" {
-		return nil, clog.Errorf("path must be specified")
+		return nil, errors.New("path must be specified")
 	}
 	result := newPackageFiles()
 
@@ -163,10 +163,10 @@ func fromFolder(fs afero.Fs, packagePath string) (*PackageFiles, error) {
 	}
 	// final check
 	if result.Operator == nil {
-		return nil, clog.Errorf("operator package missing operator.yaml")
+		return nil, errors.New("operator package missing operator.yaml")
 	}
 	if result.Params == nil {
-		return nil, clog.Errorf("operator package missing params.yaml")
+		return nil, errors.New("operator package missing params.yaml")
 	}
 	return &result, nil
 }
