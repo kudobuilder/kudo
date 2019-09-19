@@ -189,7 +189,7 @@ This file undergoes a Go template pass on Instance instantiation before being pa
 The `params.yaml` file is a struct that defines parameters for operator. This can articulate descriptions, defaults, and triggers, etc. In the MySQL example, this looks like:
 
 ```yaml
-array(str)
+map[str]Parameter
 str(desc='param name'):
   name: str(max=253, desc="name to be used in template files")
   displayName: str(max=253, desc="display name of parameter")
