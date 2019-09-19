@@ -335,11 +335,7 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 			return reconcile.Result{}, err
 		}
 
-		if _, ok := err.(*fatalError); ok {
-			// do not retry
-			return reconcile.Result{}, nil
-		}
-		return reconcile.Result{}, err
+		return reconcile.Result{}, nil
 	}
 
 	err = r.Client.Update(context.TODO(), planExecution)
