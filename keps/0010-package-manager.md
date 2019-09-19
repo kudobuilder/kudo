@@ -4,11 +4,11 @@ title: Package Manager
 authors:
   - "@alenkacz"
   - "@fabianbaier"
-  - "@gkleiman"
+  - "@kensipe"
 owners:
   - "@alenkacz"
   - "@fabianbaier"
-  - "@gkleiman"
+  - "@kensipe"
 editor: TBD
 creation-date: 2019-05-16
 status: implementable
@@ -19,19 +19,20 @@ status: implementable
 ## Table of Contents
 
 * [Table of Contents](#table-of-contents)
-* [Summary](#summary)
-* [Motivation](#motivation)
- * [Goals](#goals)
- * [Non-Goals](#non-goals)
-* [Proposal](#proposal)
- * [User Stories](#user-stories)
-    * [Operator Developer](#operator-developer)
-    * [Cluster Administrator](#cluster-administrator)
- * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
- * [Risks and Mitigations](#risks-and-mitigations)
-* [Graduation Criteria](#graduation-criteria)
-* [Implementation History](#implementation-history)
-* [Infrastructure Needed](#infrastructure-needed)
+  * [Summary](#summary)
+  * [Motivation](#motivation)
+     * [Goals](#goals)
+     * [Non-Goals](#non-goals)
+  * [Proposal](#proposal)
+     * [User Stories](#user-stories)
+        * [Operator Developer](#operator-developer)
+        * [Cluster Administrator](#cluster-administrator)
+     * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+     * [Index File Specification](#index-file-specification)
+     * [Risks and Mitigations](#risks-and-mitigations)
+  * [Graduation Criteria](#graduation-criteria)
+  * [Implementation History](#implementation-history)
+  * [Infrastructure Needed](#infrastructure-needed)
 
 ## Summary
 
@@ -144,10 +145,10 @@ In the long term it will conform with KEP-0009 and have the following structure:
 
 The advantage of having a flat structure withing the hosted repo environment is, that for distribution the opinionated structure within the `.tgz` file is not much of importance and can be subject to change without breaking other assumptions.
 
-For example, the `/kafka/2.2.0` folder (with whatever underlying structure) is zipped to `kafka-2.2.0.tgz`, where `2.2.0` is the current SemVer version of the Package. 
+For example, the `/kafka/2.2.0` folder (with whatever underlying structure) is zipped to `kafka-2.2.0.tgz`, where `2.2.0` is the current SemVer version of the Package.
 
 The version of a Package (e.g., `kafka-0.1.0` or `kafka-0.2.0`) does not have to match the current version of KUDO itself but it follows its own SemVer timeline. The zipped Operator, called Package, is made available through any HTTP Server.
- 
+
 Our official repository is hosted on Google Cloud Storage and following a flat structure:
 
 ```bash
@@ -166,11 +167,81 @@ Our official repository is hosted on Google Cloud Storage and following a flat s
 
 We rely on just an HTTP Server, e.g. the out-of-the-box solution that Google Cloud Storage provides, that serves operator `tgz` files and makes them available to users.
 
-The logic for keeping the operators in sync should live in the CLI and is not defined on this KEP . That way the HTTP server only has to serve the index and the Package `tgz` files, without having to implement any business logic. 
+The logic for keeping the operators in sync should live in the CLI and is not defined on this KEP . That way the HTTP server only has to serve the index and the Package `tgz` files, without having to implement any business logic.
 
 The proposed structure is fairly easy to replicate and highly customizable.
 
 Safety when distributing our Packages is another concern. As we continue working on this KEP we will add more details on how we can verify and prevent `Arbitrary software installation`, `Vulnerability to key compromises`, etc. For now using HTTPS to fetch the index and Packages is considered sufficient.
+
+### Index File Specification
+
+`index.yaml` is the base definition of a repository.  It follows the following reference format.
+
+```yaml
+apiVersion: str(desc='version of repository')
+entries: map[string]PackageVersions
+  str(desc='name of operator'):
+  - name:  str(max=253)
+    version: semver()
+    appVersion: str(desc='component controlled version', required=False)
+    home: url(desc='home page, git repo', required=False)
+    sources: array(str, required=False)
+    - str(desc='source code for this operator')
+    description: str(required=False)
+    maintainers: array(Maintainer, required=False)
+    - name: str()
+      email: email()
+    deprecated: bool(desc='reflects if operator is deprecated')    
+    urls: array(url)
+    - url(desc='full url to operator tarball')
+    removed: bool(desc='', required=False)
+    digest: sha256(required=False)
+generated: timestamp()    
+```
+
+An example looks like:
+```yaml
+apiVersion: v1
+entries:
+  elastic:
+  - digest: 98beef6e771a64e42275b34059cde0bcf5244493a6511d1229bf3dd8f44c4791
+    maintainers:
+    - email: michael.beisiegel@gmail.com
+      name: Michael Beisiegel
+    name: elastic
+    urls:
+    - https://kudo-repository.storage.googleapis.com/0.7.0/elastic-0.1.0.tgz
+    version: 0.1.0
+  kafka:
+  - appVersion: 2.3.0
+    digest: e80c7b783d327190d489159e89e0a005a6a8b00610bdb7e8b1bea73c49bf485a
+    maintainers:
+    - email: zmalikshxil@gmail.com
+      name: Zain Malik
+    name: kafka
+    urls:
+    - https://kudo-repository.storage.googleapis.com/0.7.0/kafka-0.2.0.tgz
+    version: 0.2.0
+  - appVersion: 2.2.1
+    digest: 3d0996ac19b9ff25c8d41f0b60ad686be8b1f73dd4d3d0139c6cdd1b1c4ae3e7
+    maintainers:
+    - email: zmalikshxil@gmail.com
+      name: Zain Malik
+    name: kafka
+    urls:
+    - https://kudo-repository.storage.googleapis.com/0.7.0/kafka-0.1.2.tgz
+    version: 0.1.2
+  - appVersion: 2.2.1
+    digest: f576f92b0bd931a7792a0a0266865e8f20509c9b32b7f4d7d7b8856bf3bd1275
+    maintainers:
+    - email: zmalikshxil@gmail.com
+      name: Zain Malik
+    name: kafka
+    urls:
+    - https://kudo-repository.storage.googleapis.com/0.7.0/kafka-0.1.0.tgz
+    version: 0.1.0
+generated: "2019-09-16T10:26:23.331123-05:00"
+```
 
 ### Risks and Mitigations
 

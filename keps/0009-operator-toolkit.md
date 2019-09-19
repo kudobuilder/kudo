@@ -21,34 +21,28 @@ see-also:
 
 ## Table of Contents
 
-- [New KUDO package format](#new-kudo-package-format)
-  - [Table of Contents](#table-of-contents)
-  - [Summary](#summary)
-  - [Motivation](#motivation)
-  - [Goals](#goals)
-  - [Proposal](#proposal)
-    - [Definitions](#definitions)
-    - [Operator Organization](#operator-organization)
-      - [operator.yaml](#operatoryaml)
-      - [params.yaml](#paramsyaml)
-      - [common/](#common)
-      - [templates/](#templates)
-    - [Plans](#plans)
-    - [Steps](#steps)
-    - [Tasks](#tasks)
-      - [Files](#files)
-      - [Resources vs. Patches](#resources-vs-patches)
-      - [Task Application](#task-application)
-    - [Parameters](#parameters)
-    - [Templates](#templates-1)
-  - [Extensions and Bases](#extensions-and-bases)
-    - [Task Extensions](#task-extensions)
-    - [Plan Extensions](#plan-extensions)
-    - [Example Operator Extension](#example-operator-extension)
-      - [operator.yaml](#operatoryaml-1)
-      - [params.yaml](#paramsyaml-1)
-  - [Future Work](#future-work)
-    - [Allow for other templating engines](#allow-for-other-templating-engines)
+* [New KUDO package format](#new-kudo-package-format)
+   * [Table of Contents](#table-of-contents)
+   * [Summary](#summary)
+   * [Motivation](#motivation)
+   * [Goals](#goals)
+   * [Proposal](#proposal)
+      * [Definitions](#definitions)
+      * [Operator Organization](#operator-organization)
+         * [operator.yaml](#operatoryaml)
+         * [params.yaml](#paramsyaml)
+         * [common/](#common)
+         * [templates/](#templates)
+      * [Plans](#plans)
+      * [Steps](#steps)
+      * [Tasks](#tasks)
+         * [Files](#files)
+         * [Resources vs. Patches](#resources-vs-patches)
+         * [Task Application](#task-application)
+      * [Parameters](#parameters)
+      * [Templates](#templates-1)
+   * [Future Work](#future-work)
+      * [Allow for other templating engines](#allow-for-other-templating-engines)
 
 ## Summary
 
@@ -106,93 +100,80 @@ An operator package is a folder that contains all of the manifests needed to cre
 
 #### operator.yaml
 
-`operator.yaml` is the base definition of an operator. It follows the following format, extracted from the MySQL example:
+`operator.yaml` is the base definition of an operator.  It follows the following reference format.
 
 ```yaml
-name: operator
-description: operator
-version: "5.7"
-kudoVersion: ">= 0.2.0"
-kubeVersion: ">= 1.14"
+name: str(max=253, lowercase alphanumeric characters, -, and .)
+description: str(required=False)
+version: semver(desc='version of operator')
+appVersion: str(desc='component controlled version', required=False)
+kudoVersion: semver(desc='minVersion of KUDO')
+kubernetesVersion: semver(desc='minVersion of Kubernetes')
+maintainers: array(required=False, object=Maintainer)
+  - name: str()
+    email: email()
+  - name: str()
+    email: email()
+url: url(required=False)
+tasks: map[string]TaskSpec
+  str(max 253, desc='name of task'):
+    resources: array(str)
+      - str(desc='name of resource')
+plans: map[string]Plan
+  str(max 253, desc='name of plan'):
+    strategy: ordering(*serial|parallel, desc='determines how to order phases', required=False)
+    phases: array(Phase)
+      - name: str(max=253, desc="name of phase")
+        strategy: ordering(serial|parallel, desc='determines how to order steps in a phase')
+        steps: array(Step)
+         - name: str(max=253, desc="name of step")
+           tasks: array(str)
+             - str(desc='must be a name of a task in tasks map')
+           delete: bool(desc='delete pod when finished', required=False)
+```
+
+An example looks like:
+
+```
+name: "zookeeper"
+version: 0.2.0
+kudoVersion: 0.5.0
+appVersion: 3.4.14
+kubernetesVersion: 1.15.0
 maintainers:
-  - Bob <bob@example.com>
-  - Alice <alice@example.com>
-url: https://github.com/myoperator/myoperator
+  - name: Tom Runyon
+    email: runyontr@gmail.com
+url: https://zookeeper.apache.org/
 tasks:
-  deploy:
+  infra:
     resources:
-      - pvc.yaml
-      - deployment.yaml
-      - service.yaml
-      - deployment2.yaml
-      - job.yaml
-    patches:
-      - deploy-patch.yaml
-    patchesStrategicMerge:
-      - super-weird-deploy-patch.yaml
-  init:
+      - bootstrap.sh.yaml
+      - services.yaml
+      - pdb.yaml
+  app:
     resources:
-      - init.yaml
-  pv:
+      - statefulset.yaml
+  validation:
     resources:
-      - pvc.yaml
-  backup:
-    resources:
-      - init.yaml
-    patches:
-      - backup.yaml
-  restore:
-    resources:
-      - init.yaml
-    patches:
-      - restore.yaml
-  load-data:
-    resources:
-      - init.yaml
-    patches:
-      - load-data.yaml
-  clear-data:
-    resources:
-      - init.yaml
-    patches:
-      - clear-data.yaml
-  query:
-    resources:
-      - job.yaml
+      - validation.yaml
 plans:
   deploy:
-    steps:
-      - name: deploy
-        tasks:
-          - deploy
-      - name: init
-        tasks:
-          - init
-      - name: cleanup
-        tasks:
-          - init
-        delete: true
-  backup:
-    steps:
-      - name: pv
-        tasks:
-          - pv
-      - name: backup
-        tasks:
-          - backup
-      - name: cleanup
-        tasks:
-          - backup
-        delete: true
-  restore:
-    steps:
-      - name: restore
-        tasks:
-          - restore
-      - name: cleanup
-        tasks:
-          - restore
-        delete: true
+    strategy: serial
+    phases:
+      - name: zookeeper
+        strategy: parallel
+        steps:
+          - name: deploy
+            tasks:
+              - infra
+              - app
+      - name: validation
+        strategy: parallel
+        steps:
+          - name: validation
+            tasks:
+              - validation
+            delete: true
 ```
 
 While subsequent sections go into deeper detail, the top level keys of the operator are:
@@ -208,16 +189,34 @@ This file undergoes a Go template pass on Instance instantiation before being pa
 The `params.yaml` file is a struct that defines parameters for operator. This can articulate descriptions, defaults, and triggers, etc. In the MySQL example, this looks like:
 
 ```yaml
-backupFile:
-  description: "The name of the backup file"
-  default: backup.sql
-password:
-  default: password
-  description: "Password for the mysql instance"
-  displayName: "Password"
-  trigger: deploy
-notrequiredparam:
-  description: "This parameter is not required"
+array(str)
+str(desc='param name'):
+  name: str(max=253, desc="name to be used in template files")
+  displayName: str(max=253, desc="display name of parameter")
+  description: str(desc='details regarding the param and how it will affect the operator')
+  required: bool(required=False, desc='expresses that a non default value most be provided')
+  default: str()
+  trigger: str(desc='identifies plan that gets executed when this parameter changes in an instance object')
+```
+
+An example looks like:
+
+```yaml
+NODE_COUNT:
+  description: "Number of nodes spun up for Zookeeper"
+  default: 3
+  displayName: "Node Count"
+
+MEMORY:
+  description: Amount of memory to provide to Zookeeper pods
+  default: "1Gi"
+
+CPUS:
+  description: Amount of cpu to provide to Zookeeper pods
+  default: "0.25"
+
+STORAGE_CLASS:
+  description: "The storage class to be used in volumeClaimTemplates. By default its not required and the default storage class is used."
   required: false
 ```
 
