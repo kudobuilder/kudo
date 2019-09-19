@@ -329,16 +329,18 @@ func (r *ReconcilePlanExecution) Reconcile(request reconcile.Request) (reconcile
 	if err != nil {
 		log.Printf("PlanExecutionController: error when executing plan for instance %s: %v", instance.Name, err)
 
-		err = r.Client.Update(context.TODO(), planExecution)
-		if err != nil {
-			log.Printf("PlanExecutionController: Error when updating planExecution state. %v", err)
-			return reconcile.Result{}, err
+		clientErr := r.Client.Update(context.TODO(), planExecution) // even for fatal errors, we still want to update state of execution
+		if clientErr != nil {
+			log.Printf("PlanExecutionController: Error when updating planExecution state. %v", clientErr)
+			return reconcile.Result{}, clientErr
 		}
 
 		if _, ok := err.(*fatalError); ok {
-			// do not retry
+			// do not retry reconciliation for fatal errors - these are used e.g. for bugs in templates
+			// retrying them would cause an infinite loop in the controller
 			return reconcile.Result{}, nil
 		}
+
 		return reconcile.Result{}, err
 	}
 
