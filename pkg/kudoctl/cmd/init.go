@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	cmdInit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
@@ -73,6 +74,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 				return err
 			}
 			i.home = Settings.Home
+			clog.V(8).Printf("init cmd %v", i)
 			return i.run()
 		},
 	}
@@ -136,29 +138,31 @@ func (initCmd *initCmd) run() error {
 
 	// initialize client
 	if err := initCmd.initialize(); err != nil {
-		return fmt.Errorf("error initializing: %s", err)
+		return clog.Errorf("error initializing: %s", err)
 	}
-	fmt.Fprintf(initCmd.out, "$KUDO_HOME has been configured at %s\n", Settings.Home)
+	clog.Printf("$KUDO_HOME has been configured at %s", Settings.Home)
 
 	// initialize server
 	if !initCmd.clientOnly {
+		clog.V(4).Printf("initializing server")
 		if initCmd.client == nil {
 			client, err := kube.GetKubeClient(Settings.KubeConfig)
 			if err != nil {
-				return fmt.Errorf("could not get Kubernetes client: %s", err)
+				return clog.Errorf("could not get Kubernetes client: %s", err)
 			}
 			initCmd.client = client
 		}
 
 		if err := cmdInit.Install(initCmd.client, opts); err != nil {
 			if apierrors.IsAlreadyExists(err) {
-				fmt.Fprintln(initCmd.out, "Warning: KUDO is already installed in the cluster.\n"+
+				clog.Printf("Warning: KUDO is already installed in the cluster.\n" +
 					"(Use --client-only to suppress this message)")
-				return fmt.Errorf("error installing: %s", err)
+				return clog.Errorf("error installing: %s", err)
 			}
 		}
 
 		if initCmd.wait {
+			clog.V(4).Printf("waiting for kudo at server init")
 			finished := cmdInit.WatchKUDOUntilReady(initCmd.client.KubeClient, opts, initCmd.timeout)
 			if !finished {
 				return errors.New("watch timed out, readiness uncertain")
@@ -204,11 +208,13 @@ func ensureRepositoryFile(fs afero.Fs, home kudohome.Home, out io.Writer) error 
 		return err
 	}
 	if !exists {
-		fmt.Fprintf(out, "Creating %s \n", home.RepositoryFile())
+		clog.V(1).Printf("Creating %s \n", home.RepositoryFile())
 		r := repo.NewRepositories()
 		if err := r.WriteFile(fs, home.RepositoryFile(), 0644); err != nil {
 			return err
 		}
+	} else {
+		clog.V(1).Printf("%v exists", home.RepositoryFile())
 	}
 
 	return nil
@@ -225,10 +231,12 @@ func ensureDirectories(fs afero.Fs, home kudohome.Home, out io.Writer) error {
 			return err
 		}
 		if !exists {
-			fmt.Fprintf(out, "Creating %s \n", dir)
+			clog.V(1).Printf("creating %s \n", dir)
 			if err := fs.MkdirAll(dir, 0755); err != nil {
 				return fmt.Errorf("could not create %s: %s", dir, err)
 			}
+		} else {
+			clog.V(1).Printf("%v exists", dir)
 		}
 	}
 	return nil

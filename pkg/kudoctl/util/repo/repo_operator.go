@@ -8,17 +8,18 @@ import (
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
 
-// Repository is an abstraction for a service that can retrieve package bundles
+// Repository is an abstraction for a service that can retrieve packages
 type Repository interface {
-	GetBundle(name string, version string) (bundle.Bundle, error)
+	GetPackage(name string, version string) (packages.Package, error)
 }
 
 // Client represents an operator repository
@@ -77,20 +78,27 @@ func (r *Client) DownloadIndexFile() (*IndexFile, error) {
 	return indexFile, err
 }
 
-// getPackageReaderByFullPackageName downloads the tgz file from the remote repository and unmarshals it to the package CRDs
-func (r *Client) getPackageReaderByFullPackageName(fullPackageName string) (io.Reader, error) {
-	var fileURL string
-	parsedURL, err := url.Parse(r.Config.URL)
-	if err != nil {
-		return nil, errors.Wrap(err, "parsing config url")
-	}
-	parsedURL.Path = fmt.Sprintf("%s/%s.tgz", parsedURL.Path, fullPackageName)
+// getPackageReaderByAPackageURL downloads the tgz file from the remote repository and returns a reader
+// The PackageVersion is a package configuration from the index file which has a list of urls where
+// the package can be pulled from.  This will cycle through the list of urls and will return the reader
+// from the first successful url.  If all urls fail, the last error will be returned.
+func (r *Client) getPackageReaderByAPackageURL(pkg *PackageVersion) (io.Reader, error) {
 
-	fileURL = parsedURL.String()
-	return r.getPackageReaderByURL(fileURL)
+	var pkgErr error
+	for _, u := range pkg.URLs {
+		r, err := r.getPackageReaderByURL(u)
+		if err == nil {
+			return r, nil
+		}
+		pkgErr = fmt.Errorf("unable to read package %w", err)
+		clog.Errorf("failure against url: %v  %v", u, pkgErr)
+	}
+	clog.Printf("Giving up with err %v", pkgErr)
+	return nil, pkgErr
 }
 
 func (r *Client) getPackageReaderByURL(packageURL string) (io.Reader, error) {
+	clog.V(4).Printf("attempt to retrieve package from url: %v", packageURL)
 	resp, err := r.Client.Get(packageURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "getting package url")
@@ -101,29 +109,29 @@ func (r *Client) getPackageReaderByURL(packageURL string) (io.Reader, error) {
 
 // GetPackageReader provides an io.Reader for a provided package name and optional version
 func (r *Client) GetPackageReader(name string, version string) (io.Reader, error) {
+	clog.V(4).Printf("getting package reader for %v, %v", name, version)
+	clog.V(5).Printf("repository using: %v", r.Config)
 	// Construct the package name and download the index file from the remote repo
 	indexFile, err := r.DownloadIndexFile()
 	if err != nil {
 		return nil, errors.WithMessage(err, "could not download repository index file")
 	}
 
-	bundleVersion, err := indexFile.GetByNameAndVersion(name, version)
+	pkgVersion, err := indexFile.GetByNameAndVersion(name, version)
 	if err != nil {
 		return nil, errors.Wrapf(err, "getting %s in index file", name)
 	}
 
-	packageName := bundleVersion.Name + "-" + bundleVersion.Version
-
-	return r.getPackageReaderByFullPackageName(packageName)
+	return r.getPackageReaderByAPackageURL(pkgVersion)
 }
 
-// GetBundle provides an Bundle for a provided package name and optional version
-func (r *Client) GetBundle(name string, version string) (bundle.Bundle, error) {
+// GetPackage provides an Package for a provided package name and optional version
+func (r *Client) GetPackage(name string, version string) (packages.Package, error) {
 	reader, err := r.GetPackageReader(name, version)
 	if err != nil {
 		return nil, err
 	}
-	return bundle.NewBundleFromReader(reader), nil
+	return packages.NewPackageFromReader(reader), nil
 }
 
 // GetOperatorVersionDependencies helper method returns a slice of strings that contains the names of all

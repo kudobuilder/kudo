@@ -11,8 +11,7 @@ import (
 	"time"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	pkgbundle "github.com/kudobuilder/kudo/pkg/bundle"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 
 	"github.com/magiconair/properties/assert"
 )
@@ -130,7 +129,7 @@ func getTestPackageVersion(name string, version string) PackageVersion {
 	return bv
 }
 
-func TestAddBundleVersionErrorConditions(t *testing.T) {
+func TestAddPackageVersionErrorConditions(t *testing.T) {
 	index := getTestIndexFile()
 	dup := index.Entries["flink"][0]
 	missing := getTestPackageVersion("flink", "")
@@ -157,7 +156,7 @@ func TestAddBundleVersionErrorConditions(t *testing.T) {
 }
 
 func TestMapPackageFileToPackageVersion(t *testing.T) {
-	o := pkgbundle.Operator{
+	o := packages.Operator{
 		Name:              "kafka",
 		Description:       "",
 		Version:           "1.0.0",
@@ -167,7 +166,7 @@ func TestMapPackageFileToPackageVersion(t *testing.T) {
 		Maintainers:       []*v1alpha1.Maintainer{&v1alpha1.Maintainer{Name: "Ken Sipe"}},
 		URL:               "http://kudo.dev/kafka",
 	}
-	pf := bundle.PackageFiles{
+	pf := packages.PackageFiles{
 		Operator: &o,
 	}
 

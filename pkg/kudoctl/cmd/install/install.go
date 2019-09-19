@@ -1,15 +1,15 @@
 package install
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle/finder"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/finder"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 
@@ -48,7 +48,7 @@ func Run(args []string, options *Options, fs afero.Fs, settings *env.Settings) e
 
 func validate(args []string, options *Options) error {
 	if len(args) != 1 {
-		return fmt.Errorf("expecting exactly one argument - name of the package or path to install")
+		return clog.Errorf("expecting exactly one argument - name of the package or path to install")
 	}
 
 	return nil
@@ -61,28 +61,32 @@ func validate(args []string, options *Options) error {
 // - an operator name in the remote repository
 // in that order. Should there exist a local folder e.g. `cassandra` it will take precedence
 // over the remote repository package with the same name.
-func GetPackageCRDs(name string, version string, repository repo.Repository) (*bundle.PackageCRDs, error) {
+func GetPackageCRDs(name string, version string, repository repo.Repository) (*packages.PackageCRDs, error) {
 
 	// Local files/folder have priority
 	if _, err := os.Stat(name); err == nil {
+		clog.V(2).Printf("local operator discovered: %v", name)
 		f := finder.NewLocal()
-		b, err := f.GetBundle(name, version)
+		b, err := f.GetPackage(name, version)
 		if err != nil {
 			return nil, err
 		}
 		return b.GetCRDs()
 	}
 
+	clog.V(3).Printf("no local operator discovered, looking for http")
 	if http.IsValidURL(name) {
+		clog.V(3).Printf("operator using http protocol for %v", name)
 		f := finder.NewURL()
-		b, err := f.GetBundle(name, version)
+		b, err := f.GetPackage(name, version)
 		if err != nil {
 			return nil, err
 		}
 		return b.GetCRDs()
 	}
 
-	b, err := repository.GetBundle(name, version)
+	clog.V(3).Printf("no http discovered, looking for repository")
+	b, err := repository.GetPackage(name, version)
 	if err != nil {
 		return nil, err
 	}
@@ -96,12 +100,16 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 	if err != nil {
 		return errors.WithMessage(err, "could not build operator repository")
 	}
+	clog.V(4).Printf("repository used %v", repository)
 
 	kc, err := kudo.NewClient(settings.Namespace, settings.KubeConfig)
+	clog.V(3).Printf("acquiring kudo client")
 	if err != nil {
+		clog.V(3).Printf("failed to acquire client")
 		return errors.Wrap(err, "creating kudo client")
 	}
 
+	clog.V(3).Printf("getting package crds")
 	crds, err := GetPackageCRDs(operatorArgument, options.PackageVersion, repository)
 	if err != nil {
 		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", operatorArgument)
@@ -110,10 +118,12 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 	return installCrds(crds, kc, options, settings)
 }
 
-func installCrds(crds *bundle.PackageCRDs, kc *kudo.Client, options *Options, settings *env.Settings) error {
+func installCrds(crds *packages.PackageCRDs, kc *kudo.Client, options *Options, settings *env.Settings) error {
 	// PRE-INSTALLATION SETUP
 	operatorName := crds.Operator.ObjectMeta.Name
+	clog.V(3).Printf("operator name: %v", operatorName)
 	operatorVersion := crds.OperatorVersion.Spec.Version
+	clog.V(3).Printf("operator version: %v", operatorVersion)
 	// make sure that our instance object is up to date with overrides from commandline
 	applyInstanceOverrides(crds.Instance, options)
 	// this validation cannot be done earlier because we need to do it after applying things from commandline
@@ -122,8 +132,11 @@ func installCrds(crds *bundle.PackageCRDs, kc *kudo.Client, options *Options, se
 		return err
 	}
 
-	// Operator part
+	if err := kc.ValidateServerForOperator(crds.Operator); err != nil {
+		return err
+	}
 
+	// Operator part
 	// Check if Operator exists
 	if !kc.OperatorExistsInCluster(crds.Operator.ObjectMeta.Name, settings.Namespace) {
 		if err := installSingleOperatorToCluster(operatorName, settings.Namespace, crds.Operator, kc); err != nil {
@@ -132,7 +145,6 @@ func installCrds(crds *bundle.PackageCRDs, kc *kudo.Client, options *Options, se
 	}
 
 	// OperatorVersion part
-
 	versionsInstalled, err := kc.OperatorVersionsInstalled(operatorName, settings.Namespace)
 	if err != nil {
 		return errors.Wrap(err, "retrieving existing operator versions")
@@ -168,15 +180,16 @@ func installCrds(crds *bundle.PackageCRDs, kc *kudo.Client, options *Options, se
 		}
 
 	} else {
-		return fmt.Errorf("can not install instance '%s' of operator '%s-%s' because instance of that name already exists in namespace %s",
+		return clog.Errorf("can not install instance '%s' of operator '%s-%s' because instance of that name already exists in namespace %s",
 			instanceName, operatorName, crds.OperatorVersion.Spec.Version, settings.Namespace)
 	}
 	return nil
 }
 
-func validateCrds(crds *bundle.PackageCRDs, skipInstance bool) error {
+func validateCrds(crds *packages.PackageCRDs, skipInstance bool) error {
 	if skipInstance {
 		// right now we are just validating parameters on instance, if we're not creating instance right now, there is nothing to validate
+		clog.V(3).Printf("skipping instance...")
 		return nil
 	}
 	parameters := crds.OperatorVersion.Spec.Parameters
@@ -191,7 +204,7 @@ func validateCrds(crds *bundle.PackageCRDs, skipInstance bool) error {
 	}
 
 	if len(missingParameters) > 0 {
-		return fmt.Errorf("missing required parameters during installation: %s", strings.Join(missingParameters, ","))
+		return clog.Errorf("missing required parameters during installation: %s", strings.Join(missingParameters, ","))
 	}
 	return nil
 }
@@ -212,7 +225,7 @@ func installSingleOperatorToCluster(name, namespace string, o *v1alpha1.Operator
 	if _, err := kc.InstallOperatorObjToCluster(o, namespace); err != nil {
 		return errors.Wrapf(err, "installing %s-operator.yaml", name)
 	}
-	fmt.Printf("operator.%s/%s created\n", o.APIVersion, o.Name)
+	clog.V(2).Printf("operator.%s/%s created\n", o.APIVersion, o.Name)
 	return nil
 }
 
@@ -222,7 +235,7 @@ func installSingleOperatorVersionToCluster(name, namespace string, kc *kudo.Clie
 	if _, err := kc.InstallOperatorVersionObjToCluster(ov, namespace); err != nil {
 		return errors.Wrapf(err, "installing %s-operatorversion.yaml", name)
 	}
-	fmt.Printf("operatorversion.%s/%s created\n", ov.APIVersion, ov.Name)
+	clog.V(2).Printf("operatorversion.%s/%s created\n", ov.APIVersion, ov.Name)
 	return nil
 }
 
@@ -232,15 +245,17 @@ func installSingleInstanceToCluster(name string, instance *v1alpha1.Instance, kc
 	if _, err := kc.InstallInstanceObjToCluster(instance, settings.Namespace); err != nil {
 		return errors.Wrapf(err, "installing instance %s", name)
 	}
-	fmt.Printf("instance.%s/%s created\n", instance.APIVersion, instance.Name)
+	clog.Printf("instance.%s/%s created\n", instance.APIVersion, instance.Name)
 	return nil
 }
 
 func applyInstanceOverrides(instance *v1alpha1.Instance, options *Options) {
 	if options.InstanceName != "" {
 		instance.ObjectMeta.SetName(options.InstanceName)
+		clog.V(3).Printf("instance name: %v", options.InstanceName)
 	}
 	if options.Parameters != nil {
 		instance.Spec.Parameters = options.Parameters
+		clog.V(3).Printf("parameters in use: %v", options.Parameters)
 	}
 }

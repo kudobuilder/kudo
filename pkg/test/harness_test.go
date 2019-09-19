@@ -22,7 +22,7 @@ func TestGetTimeout(t *testing.T) {
 
 type dockerMock struct{}
 
-func (d *dockerMock) VolumeCreate(ctx context.Context, body volumetypes.VolumesCreateBody) (dockertypes.Volume, error) {
+func (d *dockerMock) VolumeCreate(ctx context.Context, body volumetypes.VolumeCreateBody) (dockertypes.Volume, error) {
 	return dockertypes.Volume{
 		Mountpoint: fmt.Sprintf("/var/lib/docker/data/%s", body.Name),
 	}, nil
