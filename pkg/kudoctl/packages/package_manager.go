@@ -65,8 +65,8 @@ func ReadPackage(fs afero.Fs, path string) (Package, error) {
 	}
 }
 
-// NewPackageFromBytes is a package from a reader.  This should only be used when a file cache isn't used.
-func NewPackageFromBytes(buf *bytes.Buffer) Package {
+// NewFromBytes creates a package from a byte Buffer
+func NewFromBytes(buf *bytes.Buffer) Package {
 	return tarPackage{buf}
 }
 

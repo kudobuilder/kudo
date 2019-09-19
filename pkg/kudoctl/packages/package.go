@@ -279,7 +279,7 @@ func pathToOperator(fs afero.Fs, path string) (pfd *PackageFilesDigest, err erro
 }
 
 func bufferToPackageFiles(buf *bytes.Buffer) (*PackageFiles, error) {
-	b := NewPackageFromBytes(buf)
+	b := NewFromBytes(buf)
 	pkg, err := b.GetPkgFiles()
 	if err != nil {
 		return nil, err

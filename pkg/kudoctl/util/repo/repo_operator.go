@@ -129,5 +129,5 @@ func (r *Client) GetPackage(name string, version string) (packages.Package, erro
 	if err != nil {
 		return nil, err
 	}
-	return packages.NewPackageFromBytes(reader), nil
+	return packages.NewFromBytes(reader), nil
 }

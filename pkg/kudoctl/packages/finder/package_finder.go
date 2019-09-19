@@ -76,7 +76,7 @@ func (f *URLFinder) GetPackage(name string, version string) (packages.Package, e
 	if err != nil {
 		return nil, err
 	}
-	return packages.NewPackageFromBytes(buf), nil
+	return packages.NewFromBytes(buf), nil
 }
 
 func (f *URLFinder) getPackageByURL(url string) (*bytes.Buffer, error) {
