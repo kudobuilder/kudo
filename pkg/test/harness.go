@@ -3,6 +3,9 @@ package test
 import (
 	"context"
 	"fmt"
+	"github.com/kudobuilder/kudo/pkg/controller/instance"
+	"github.com/kudobuilder/kudo/pkg/controller/operator"
+	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -14,7 +17,6 @@ import (
 	volumetypes "github.com/docker/docker/api/types/volume"
 	docker "github.com/docker/docker/client"
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/controller"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
@@ -253,8 +255,35 @@ func (h *Harness) RunKUDO() error {
 		return err
 	}
 
-	if err = controller.AddControllersToManager(mgr); err != nil {
-		return err
+	// Setup all Controllers
+
+	h.logger.Log("Setting up operator controller")
+	err = (&operator.Reconciler{
+		Client: mgr.GetClient(),
+	}).SetupWithManager(mgr)
+	if err != nil {
+		h.logger.Log(err, "unable to register operator controller to the manager")
+		os.Exit(1)
+	}
+
+	h.logger.Log("Setting up operator version controller")
+	err = (&operatorversion.Reconciler{
+		Client: mgr.GetClient(),
+	}).SetupWithManager(mgr)
+	if err != nil {
+		h.logger.Log(err, "unable to register operator controller to the manager")
+		os.Exit(1)
+	}
+
+	h.logger.Log("Setting up instance controller")
+	err = (&instance.Reconciler{
+		Client: mgr.GetClient(),
+		Recorder: mgr.GetEventRecorderFor("instance-controller"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr)
+	if err != nil {
+		h.logger.Log(err, "unable to register instance controller to the manager")
+		os.Exit(1)
 	}
 
 	h.managerStopCh = make(chan struct{})

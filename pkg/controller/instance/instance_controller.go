@@ -39,8 +39,8 @@ import (
 // Reconciler reconciles an Instance object.
 type Reconciler struct {
 	client.Client
-	recorder record.EventRecorder
-	scheme   *runtime.Scheme
+	Recorder record.EventRecorder
+	Scheme   *runtime.Scheme
 }
 
 // SetupWithManager registers this reconciler with the controller manager
@@ -93,7 +93,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		err = r.handleError(err, instance)
 		return reconcile.Result{}, err
 	}
-	newStatus, err := executePlan(activePlan, metadata, r.Client, &kustomizeEnhancer{r.scheme})
+	newStatus, err := executePlan(activePlan, metadata, r.Client, &kustomizeEnhancer{r.Scheme})
 
 	// ---------- 4. Update status of instance after the execution proceeded ----------
 
@@ -150,7 +150,7 @@ func (r *Reconciler) handleError(err error, instance *kudov1alpha1.Instance) err
 	log.Printf("InstanceController: %v", err)
 	if exErr, ok := err.(*executionError); ok {
 		if exErr.eventName != nil {
-			r.recorder.Event(instance, "Warning", kudo.StringValue(exErr.eventName), err.Error())
+			r.Recorder.Event(instance, "Warning", kudo.StringValue(exErr.eventName), err.Error())
 		}
 
 		if exErr.fatal {
@@ -170,7 +170,7 @@ func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1alpha1.I
 		log.Printf("InstanceController: Error getting instance \"%v\": %v",
 			instance.Name,
 			err)
-		r.recorder.Event(instance, "Warning", "InvalidInstance", fmt.Sprintf("Error getting instance \"%v\": %v", instance.Name, err))
+		r.Recorder.Event(instance, "Warning", "InvalidInstance", fmt.Sprintf("Error getting instance \"%v\": %v", instance.Name, err))
 		return nil, err
 	}
 	return instance, nil
@@ -191,7 +191,7 @@ func (r *Reconciler) getOperatorVersion(instance *kudov1alpha1.Instance) (ov *ku
 			instance.Spec.OperatorVersion.Name,
 			instance.Name,
 			err)
-		r.recorder.Event(instance, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Error getting operatorversion \"%v\": %v", ov.Name, err))
+		r.Recorder.Event(instance, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Error getting operatorversion \"%v\": %v", ov.Name, err))
 		return nil, err
 	}
 	return ov, nil
