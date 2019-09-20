@@ -84,7 +84,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	// ---------- 3. If we're currently running plan, continue with the execution ----------
 
 	activePlanStatus := instance.GetPlanInProgress()
-	if activePlanStatus == nil { // we have plan in progress
+	if activePlanStatus == nil { // we have no plan in progress
 		return reconcile.Result{}, nil
 	}
 
