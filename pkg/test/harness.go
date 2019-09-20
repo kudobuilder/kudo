@@ -154,6 +154,9 @@ func (h *Harness) addNodeCaches(kindCfg *kindConfig.Cluster) error {
 		return err
 	}
 
+	// Determine the correct API version to use with the user's Docker client.
+	dockerClient.NegotiateAPIVersion(context.TODO())
+
 	// add a default node if there are none specified.
 	if len(kindCfg.Nodes) == 0 {
 		kindCfg.Nodes = append(kindCfg.Nodes, kindConfig.Node{})

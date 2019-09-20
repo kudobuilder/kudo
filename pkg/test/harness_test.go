@@ -28,6 +28,8 @@ func (d *dockerMock) VolumeCreate(ctx context.Context, body volumetypes.VolumeCr
 	}, nil
 }
 
+func (d *dockerMock) NegotiateAPIVersion(ctx context.Context) {}
+
 func TestAddNodeCaches(t *testing.T) {
 	h := Harness{
 		T:      t,
