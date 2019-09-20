@@ -46,16 +46,16 @@ type PackageFiles struct {
 
 // Operator is a representation of the KEP-9 Operator YAML
 type Operator struct {
-	Name              string                        `json:"name"`
+	Name              string                        `json:"name" jsonschema:"required,minLength=1,maxLength=253,description=The name of the operator which must be less than 254 chars and be lower case alphanumeric and/or . and -"`
 	Description       string                        `json:"description,omitempty"`
-	Version           string                        `json:"version"`
-	AppVersion        string                        `json:"appVersion,omitempty"`
-	KUDOVersion       string                        `json:"kudoVersion,omitempty"`
-	KubernetesVersion string                        `json:"kubernetesVersion,omitempty"`
-	Maintainers       []*v1alpha1.Maintainer        `json:"maintainers,omitempty"`
-	URL               string                        `json:"url,omitempty"`
-	Tasks             map[string]v1alpha1.TaskSpec  `json:"tasks"`
-	Plans             map[string]v1alpha1.Plan      `json:"plans"`
+	Version           string                        `json:"version" jsonschema:"required,description=version of the operator must be semver x.y.z,example=0.1.1"`
+	AppVersion        string                        `json:"appVersion,omitempty" jsonschema:"description=string version of the underlying component,example=0.1.1-alpha"`
+	KUDOVersion       string                        `json:"kudoVersion,omitempty" jsonschema:"required,description=min version of KUDO required for this operator which must be semver,example=0.7.0"`
+	KubernetesVersion string                        `json:"kubernetesVersion,omitempty" jsonschema:"required,description=min version of Kubernetes required for this operator which must be semver x.y.z,example=0.1.1"`
+	Maintainers       []*v1alpha1.Maintainer        `json:"maintainers,omitempty" jsonschema:"description=list of maintainers"`
+	URL               string                        `json:"url,omitempty" jsonschema:"description=project URL for the operator,example=http://kudo.dev"`
+	Tasks             map[string]v1alpha1.TaskSpec  `json:"tasks" jsonschema:"required,description=a collection of Tasks to be used in the Steps of Plans mapped by a name"`
+	Plans             map[string]v1alpha1.Plan      `json:"plans" jsonschema:"required,description=a collection of Plans by name"`
 	Dependencies      []v1alpha1.OperatorDependency `json:"dependencies,omitempty"`
 }
 

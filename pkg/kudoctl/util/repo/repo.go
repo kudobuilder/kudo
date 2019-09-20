@@ -154,26 +154,26 @@ func (r *Repositories) WriteFile(fs afero.Fs, path string, perm os.FileMode) err
 // Metadata for an Operator. This models the structure of an operator.yaml file.
 type Metadata struct {
 	// Name is the name of the operator.
-	Name string `json:"name,omitempty"`
+	Name string `json:"name,omitempty" jsonschema:"required,description=name of operator"`
 
 	// Version is a A SemVer 2 conformant version string of the operator.
-	Version string `protobuf:"bytes,4,opt,name=version" json:"version,omitempty"`
+	Version string `protobuf:"bytes,4,opt,name=version" json:"version,omitempty" jsonschema:"required,description=version of operator in semver format,example=0.3.0"`
 
 	// AppVersion is the underlying service version (the format is not in our control)
-	AppVersion string `json:"appVersion,omitempty"`
+	AppVersion string `json:"appVersion,omitempty" jsonschema:"description=version of the underlying app or component,example=v3.10.4"`
 
 	// The URL to a relevant project page, git repo, or contact person.
-	Home string `json:"home,omitempty"`
+	Home string `json:"home,omitempty" jsonschema:"description=URL of the project home of this operator,example=http://kudo.dev"`
 
 	// Source is the URL to the source code of this operator.
-	Sources []string `json:"sources,omitempty"`
+	Sources []string `json:"sources,omitempty" jsonschema:"description=list of source urls for this operator and associated components,example=http://kudo.dev"`
 
 	// Description is a one-sentence description of the operator.
-	Description string `json:"description,omitempty"`
+	Description string `json:"description,omitempty" jsonschema:"description=description for this operator"`
 
 	// Maintainers is a list of name and URL/email addresses of the maintainer(s).
 	Maintainers []*v1alpha1.Maintainer `json:"maintainers,omitempty"`
 
 	// Deprecated reflects whether this operator is deprecated.
-	Deprecated bool `json:"deprecated,omitempty"`
+	Deprecated bool `json:"deprecated,omitempty" jsonschema:"description=indicates that this operator has been deprecated"`
 }

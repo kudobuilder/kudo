@@ -1,0 +1,128 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "required": [
+    "apiVersion",
+    "entries",
+    "generated"
+  ],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "description": "version of the repository API",
+      "examples": [
+        "v1"
+      ]
+    },
+    "entries": {
+      "patternProperties": {
+        ".*": {
+          "items": {
+            "$schema": "http://json-schema.org/draft-04/schema#",
+            "$ref": "#/definitions/PackageVersion"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "description": "A map of of a list of package version by operator package name"
+    },
+    "generated": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "definitions": {
+    "Maintainer": {
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "email for maintainer",
+          "examples": [
+            "billy@kudo.dev"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "description": "name of maintainer",
+          "examples": [
+            "Billy Bob"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "PackageVersion": {
+      "required": [
+        "urls"
+      ],
+      "properties": {
+        "appVersion": {
+          "type": "string",
+          "description": "version of the underlying app or component",
+          "examples": [
+            "v3.10.4"
+          ]
+        },
+        "deprecated": {
+          "type": "boolean",
+          "description": "indicates that this operator has been deprecated"
+        },
+        "description": {
+          "type": "string",
+          "description": "description for this operator"
+        },
+        "digest": {
+          "type": "string",
+          "description": "sha256 of the operator package"
+        },
+        "home": {
+          "type": "string",
+          "description": "URL of the project home of this operator",
+          "examples": [
+            "http://kudo.dev"
+          ]
+        },
+        "maintainers": {
+          "items": {
+            "$schema": "http://json-schema.org/draft-04/schema#",
+            "$ref": "#/definitions/Maintainer"
+          },
+          "type": "array"
+        },
+        "name": {
+          "type": "string",
+          "description": "name of operator"
+        },
+        "removed": {
+          "type": "boolean"
+        },
+        "sources": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "list of source urls for this operator and associated components"
+        },
+        "urls": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "full URL where this operator package can be retrieved from"
+        },
+        "version": {
+          "type": "string",
+          "description": "version of operator in semver format",
+          "examples": [
+            "0.3.0"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}

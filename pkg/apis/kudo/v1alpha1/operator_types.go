@@ -31,10 +31,10 @@ type OperatorSpec struct {
 // Maintainer describes an Operator maintainer.
 type Maintainer struct {
 	// Name is a user name or organization name.
-	Name string `json:"name,omitempty"`
+	Name string `json:"name,omitempty" jsonschema:"required,description=name of maintainer,example=Billy Bob"`
 
 	// Email is an optional email address to contact the named maintainer.
-	Email string `json:"email,omitempty"`
+	Email string `json:"email,omitempty" jsonschema:"required,description=email for maintainer,example=billy@kudo.dev"`
 }
 
 // OperatorStatus defines the observed state of Operator

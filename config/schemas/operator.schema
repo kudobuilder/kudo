@@ -1,0 +1,219 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "required": [
+    "name",
+    "version",
+    "tasks",
+    "plans"
+  ],
+  "properties": {
+    "appVersion": {
+      "type": "string",
+      "description": "string version of the underlying component",
+      "examples": [
+        "0.1.1-alpha"
+      ]
+    },
+    "dependencies": {
+      "items": {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "$ref": "#/definitions/OperatorDependency"
+      },
+      "type": "array"
+    },
+    "description": {
+      "type": "string"
+    },
+    "kubernetesVersion": {
+      "type": "string",
+      "description": "min version of Kubernetes required for this operator which must be semver x.y.z",
+      "examples": [
+        "0.1.1"
+      ]
+    },
+    "kudoVersion": {
+      "type": "string",
+      "description": "min version of KUDO required for this operator which must be semver",
+      "examples": [
+        "0.7.0"
+      ]
+    },
+    "maintainers": {
+      "items": {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "$ref": "#/definitions/Maintainer"
+      },
+      "type": "array",
+      "description": "list of maintainers"
+    },
+    "name": {
+      "maxLength": 253,
+      "minLength": 1,
+      "type": "string",
+      "description": "The name of the operator which must be less than 254 chars and be lower case alphanumeric and/or . and -"
+    },
+    "plans": {
+      "patternProperties": {
+        ".*": {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "$ref": "#/definitions/Plan"
+        }
+      },
+      "type": "object",
+      "description": "a collection of Plans by name"
+    },
+    "tasks": {
+      "patternProperties": {
+        ".*": {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "$ref": "#/definitions/TaskSpec"
+        }
+      },
+      "type": "object",
+      "description": "a collection of Tasks to be used in the Steps of Plans mapped by a name"
+    },
+    "url": {
+      "type": "string",
+      "description": "project URL for the operator",
+      "examples": [
+        "http://kudo.dev"
+      ]
+    },
+    "version": {
+      "type": "string",
+      "description": "version of the operator must be semver x.y.z",
+      "examples": [
+        "0.1.1"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "definitions": {
+    "Maintainer": {
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "email for maintainer",
+          "examples": [
+            "billy@kudo.dev"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "description": "name of maintainer",
+          "examples": [
+            "Billy Bob"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "OperatorDependency": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "Phase": {
+      "required": [
+        "name",
+        "strategy",
+        "steps"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "name of the phase",
+          "examples": [
+            "deploy-zookeeper"
+          ]
+        },
+        "steps": {
+          "items": {
+            "$schema": "http://json-schema.org/draft-04/schema#",
+            "$ref": "#/definitions/Step"
+          },
+          "type": "array",
+          "description": "list of steps for this phase"
+        },
+        "strategy": {
+          "type": "string",
+          "description": "ordering strategy for steps in this phase",
+          "examples": [
+            "serial",
+            "parallel"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Plan": {
+      "required": [
+        "strategy",
+        "phases"
+      ],
+      "properties": {
+        "phases": {
+          "items": {
+            "$schema": "http://json-schema.org/draft-04/schema#",
+            "$ref": "#/definitions/Phase"
+          },
+          "type": "array",
+          "description": "list of phases for this plan"
+        },
+        "strategy": {
+          "type": "string",
+          "description": "ordering strategy for phases in this plan",
+          "examples": [
+            "serial",
+            "parallel"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Step": {
+      "required": [
+        "name",
+        "tasks"
+      ],
+      "properties": {
+        "delete": {
+          "type": "boolean",
+          "description": "step requires a kubernetes delete instead of apply"
+        },
+        "name": {
+          "type": "string",
+          "description": "name of the step"
+        },
+        "tasks": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "list of tasks to apply for this step"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "TaskSpec": {
+      "required": [
+        "resources"
+      ],
+      "properties": {
+        "resources": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "list of file names under the template folder to be used for the name of this resource"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}

@@ -19,8 +19,8 @@ const defaultURL = "http://localhost/"
 
 // IndexFile represents the index file in an operator repository.
 type IndexFile struct {
-	APIVersion string                     `json:"apiVersion"`
-	Entries    map[string]PackageVersions `json:"entries"`
+	APIVersion string                     `json:"apiVersion" jsonschema:"required,description=version of the repository API,example=v1"`
+	Entries    map[string]PackageVersions `json:"entries" jsonschema:"required,description=A map of of a list of package version by operator package name"`
 	Generated  *time.Time                 `json:"generated"`
 }
 
@@ -31,9 +31,9 @@ type PackageVersions []*PackageVersion
 // PackageVersion represents an operator entry in the IndexFile.
 type PackageVersion struct {
 	*Metadata
-	URLs    []string `json:"urls"`
+	URLs    []string `json:"urls" jsonschema:"required,description=full URL where this operator package can be retrieved from,example=https://kudo-repository.storage.googleapis.com/0.7.0/redis-0.1.0.tgz"`
 	Removed bool     `json:"removed,omitempty"`
-	Digest  string   `json:"digest,omitempty"`
+	Digest  string   `json:"digest,omitempty" jsonschema:"description=sha256 of the operator package"`
 }
 
 // Len returns the number of package versions.

@@ -59,9 +59,9 @@ const Parallel Ordering = "parallel"
 
 // Plan specifies a series of Phases that need to be completed.
 type Plan struct {
-	Strategy Ordering `json:"strategy" validate:"required"` // makes field mandatory and checks if set and non empty
+	Strategy Ordering `json:"strategy" validate:"required" jsonschema:"required,description=ordering strategy for phases in this plan,example=serial,example=parallel"` // makes field mandatory and checks if set and non empty
 	// Phases maps a phase name to a Phase object.
-	Phases []Phase `json:"phases" validate:"required,gt=0,dive"` // makes field mandatory and checks if its gt 0
+	Phases []Phase `json:"phases" validate:"required,gt=0,dive" jsonschema:"required,description=list of phases for this plan"` // makes field mandatory and checks if its gt 0
 }
 
 // Parameter captures the variability of an OperatorVersion being instantiated in an instance.
@@ -74,7 +74,7 @@ type Parameter struct {
 	//
 	// spec:
 	//   replicas:  {{COUNT}}
-	Name string `json:"name,omitempty"`
+	Name string `json:"name,omitempty" jsonschema:"required,description=name to be used in template files to be replaced with a value,example=COUNT"`
 
 	// Description captures a longer description of how the parameter will be used.
 	Description string `json:"description,omitempty"`
@@ -83,11 +83,11 @@ type Parameter struct {
 	Required bool `json:"required,omitempty"`
 
 	// Default is a default value if no parameter is provided by the instance.
-	Default *string `json:"default,omitempty"`
+	Default *string `json:"default,omitempty" jsonschema:"description=value to use if no parameter is provided for the instance"`
 
 	// Trigger identifies the plan that gets executed when this parameter changes in the Instance object.
 	// Default is `update` if a plan with that name exists, otherwise it's `deploy`
-	Trigger string `json:"trigger,omitempty"`
+	Trigger string `json:"trigger,omitempty" jsonschema:"description=identifies the plan that will be executed when this parameter changes"`
 
 	// TODO: Add generated parameters (e.g. passwords).
 	// These values should be saved off in a secret instead of updating the spec
@@ -97,23 +97,23 @@ type Parameter struct {
 
 // TaskSpec is a struct containing lists of Kustomize resources.
 type TaskSpec struct {
-	Resources []string `json:"resources"`
+	Resources []string `json:"resources" jsonschema:"required,description=list of file names under the template folder to be used for the name of this resource,example=statefulset.yaml"`
 }
 
 // Phase specifies a list of steps that contain Kubernetes objects.
 type Phase struct {
-	Name     string   `json:"name" validate:"required"`     // makes field mandatory and checks if set and non empty
-	Strategy Ordering `json:"strategy" validate:"required"` // makes field mandatory and checks if set and non empty
+	Name     string   `json:"name" validate:"required" jsonschema:"required,description=name of the phase,example=deploy-zookeeper"`                                    // makes field mandatory and checks if set and non empty
+	Strategy Ordering `json:"strategy" validate:"required" jsonschema:"required,description=ordering strategy for steps in this phase,example=serial,example=parallel"` // makes field mandatory and checks if set and non empty
 
 	// Steps maps a step name to a list of templated Kubernetes objects stored as a string.
-	Steps []Step `json:"steps" validate:"required,gt=0,dive"` // makes field mandatory and checks if its gt 0
+	Steps []Step `json:"steps" validate:"required,gt=0,dive" jsonschema:"required,description=list of steps for this phase"` // makes field mandatory and checks if its gt 0
 }
 
 // Step defines a specific set of operations that occur.
 type Step struct {
-	Name   string   `json:"name" validate:"required"`                     // makes field mandatory and checks if set and non empty
-	Tasks  []string `json:"tasks" validate:"required,gt=0,dive,required"` // makes field mandatory and checks if non empty
-	Delete bool     `json:"delete,omitempty"`                             // no checks needed
+	Name   string   `json:"name" validate:"required" jsonschema:"required,description=name of the step"`                                                                   // makes field mandatory and checks if set and non empty
+	Tasks  []string `json:"tasks" validate:"required,gt=0,dive,required" jsonschema:"required,description=list of tasks to apply for this step, these are names of tasks"` // makes field mandatory and checks if non empty
+	Delete bool     `json:"delete,omitempty" jsonschema:"description=step requires a kubernetes delete instead of apply"`                                                  // no checks needed
 
 	// Objects will be serialized for each instance as the params and defaults are provided.
 	Objects []runtime.Object `json:"-"` // no checks needed

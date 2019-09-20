@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "required": [
+    "params"
+  ],
+  "properties": {
+    "params": {
+      "patternProperties": {
+        ".*": {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "$ref": "#/definitions/Parameter"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "definitions": {
+    "Parameter": {
+      "properties": {
+        "default": {
+          "type": "string",
+          "description": "value to use if no parameter is provided for the instance"
+        },
+        "description": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "name to be used in template files to be replaced with a value",
+          "examples": [
+            "COUNT"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "trigger": {
+          "type": "string",
+          "description": "identifies the plan that will be executed when this parameter changes"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}
