@@ -113,7 +113,7 @@ type Phase struct {
 type Step struct {
 	Name   string   `json:"name" validate:"required" jsonschema:"required,description=name of the step"`                                                                   // makes field mandatory and checks if set and non empty
 	Tasks  []string `json:"tasks" validate:"required,gt=0,dive,required" jsonschema:"required,description=list of tasks to apply for this step, these are names of tasks"` // makes field mandatory and checks if non empty
-	Delete bool     `json:"delete,omitempty" jsonschema:"description=step requires a kubernetes delete instead of apply"`                                                  // no checks needed
+	Delete bool     `json:"delete,omitempty" jsonschema:"description=when true this step will perform a kubernetes delete operation on the tasks instead of an apply"`     // no checks needed
 
 	// Objects will be serialized for each instance as the params and defaults are provided.
 	Objects []runtime.Object `json:"-"` // no checks needed

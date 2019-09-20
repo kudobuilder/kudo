@@ -182,7 +182,7 @@
       "properties": {
         "delete": {
           "type": "boolean",
-          "description": "step requires a kubernetes delete instead of apply"
+          "description": "when true this step will perform a kubernetes delete operation on the tasks instead of an apply"
         },
         "name": {
           "type": "string",
