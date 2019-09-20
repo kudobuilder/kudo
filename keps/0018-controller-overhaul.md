@@ -7,7 +7,7 @@ owners:
   - "@alenkacz"
 creation-date: 2019-09-16
 last-updated: 2019-09-16
-status: provisional
+status: implementable
 ---
 
 # Controller redesign
