@@ -21,5 +21,3 @@ type InstanceExpansion interface{}
 type OperatorExpansion interface{}
 
 type OperatorVersionExpansion interface{}
-
-type PlanExecutionExpansion interface{}

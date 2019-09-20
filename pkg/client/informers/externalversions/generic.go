@@ -57,8 +57,6 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Kudo().V1alpha1().Operators().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("operatorversions"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Kudo().V1alpha1().OperatorVersions().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("planexecutions"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Kudo().V1alpha1().PlanExecutions().Informer()}, nil
 
 	}
 

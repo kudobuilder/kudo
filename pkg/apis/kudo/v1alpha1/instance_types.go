@@ -22,59 +22,79 @@ import (
 
 // InstanceSpec defines the desired state of Instance.
 type InstanceSpec struct {
-	// Operator specifies a reference to a specific Operator object.
+	// OperatorVersion specifies a reference to a specific Operator object.
 	OperatorVersion corev1.ObjectReference `json:"operatorVersion,omitempty"`
 
-	Dependencies []OperatorDependency `json:"dependencies,omitempty"` // TODO: this is deprecated and should not be used
-	Parameters   map[string]string    `json:"parameters,omitempty"`
+	Parameters map[string]string `json:"parameters,omitempty"`
 }
 
 // InstanceStatus defines the observed state of Instance
 type InstanceStatus struct {
-	// TODO turn into struct
-	ActivePlan corev1.ObjectReference `json:"activePlan,omitempty"`
-	Status     PhaseState             `json:"status,omitempty"`
+	PlanStatus       map[string]PlanStatus `json:"planStatus,omitempty"`
+	AggregatedStatus AggregatedStatus      `json:"aggregatedStatus,omitempty"`
 }
 
-/*
-Using Kubernetes cluster: kubernetes-cluster1
-deploy (serial strategy) (IN_PROGRESS)
-├─ etcd (serial strategy) (STARTED)
-│  ├─ etcd-0:[peer] (STARTED)
-│  ├─ etcd-1:[peer] (PENDING)
-│  └─ etcd-2:[peer] (PENDING)
-├─ control-plane (dependency strategy) (PENDING)
-│  ├─ kube-control-plane-0:[instance] (PENDING)
-│  ├─ kube-control-plane-1:[instance] (PENDING)
-│  └─ kube-control-plane-2:[instance] (PENDING)
-├─ mandatory-addons (serial strategy) (PENDING)
-│  └─ mandatory-addons-0:[instance] (PENDING)
-├─ node (dependency strategy) (PENDING)
-│  ├─ kube-node-0:[kubelet] (PENDING)
-│  ├─ kube-node-1:[kubelet] (PENDING)
-│  ├─ kube-node-2:[kubelet] (PENDING)
-│  ├─ kube-node-3:[kubelet] (PENDING)
-│  └─ kube-node-4:[kubelet] (PENDING)
-└─ public-node (dependency strategy) (COMPLETE)
-*/
+// AggregatedStatus is overview of an instance status derived from the plan status
+type AggregatedStatus struct {
+	Status         ExecutionStatus `json:"status,omitempty"`
+	ActivePlanName string          `json:"activePlanName,omitempty"`
+}
 
-// PhaseState captures the state of the rollout.
-type PhaseState string
+// PlanStatus is representing status of a plan
+type PlanStatus struct {
+	Name            string          `json:"name,omitempty"`
+	Status          ExecutionStatus `json:"status,omitempty"`
+	LastFinishedRun metav1.Time     `json:"lastFinishedRun,omitempty"`
+	Phases          []PhaseStatus   `json:"phases,omitempty"`
+}
 
-// PhaseStateInProgress actively deploying, but not yet healthy.
-const PhaseStateInProgress PhaseState = "IN_PROGRESS"
+// PhaseStatus is representing status of a phase
+type PhaseStatus struct {
+	Name   string          `json:"name,omitempty"`
+	Status ExecutionStatus `json:"state,omitempty"`
+	Steps  []StepStatus    `json:"steps,omitempty"`
+}
 
-// PhaseStatePending Not ready to deploy because dependent phases/steps not healthy.
-const PhaseStatePending PhaseState = "PENDING"
+// StepStatus is representing status of a step
+type StepStatus struct {
+	Name   string          `json:"name,omitempty"`
+	Status ExecutionStatus `json:"state,omitempty"`
+}
 
-// PhaseStateComplete deployed and healthy.
-const PhaseStateComplete PhaseState = "COMPLETE"
+// ExecutionStatus captures the state of the rollout.
+type ExecutionStatus string
 
-// PhaseStateError there was an error deploying the application.
-const PhaseStateError PhaseState = "ERROR"
+// ExecutionInProgress actively deploying, but not yet healthy.
+const ExecutionInProgress ExecutionStatus = "IN_PROGRESS"
 
-// PhaseStateSuspend Spec was triggered to stop this plan execution.
-const PhaseStateSuspend PhaseState = "SUSPEND"
+// ExecutionPending Not ready to deploy because dependent phases/steps not healthy.
+const ExecutionPending ExecutionStatus = "PENDING"
+
+// ExecutionComplete deployed and healthy.
+const ExecutionComplete ExecutionStatus = "COMPLETE"
+
+// ExecutionError there was an error deploying the application.
+const ExecutionError ExecutionStatus = "ERROR"
+
+// ExecutionError there was an error deploying the application.
+const ExecutionFatalError ExecutionStatus = "FATAL_ERROR"
+
+func (s ExecutionStatus) IsTerminal() bool {
+	return s == ExecutionComplete || s == ExecutionFatalError
+}
+
+func (s ExecutionStatus) IsRunning() bool {
+	return s == ExecutionInProgress || s == ExecutionPending || s == ExecutionError
+}
+
+func (i *Instance) GetPlanInProgress() *PlanStatus {
+	for _, p := range i.Status.PlanStatus {
+		if p.Status.IsRunning() {
+			return &p
+		}
+	}
+	return nil
+}
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

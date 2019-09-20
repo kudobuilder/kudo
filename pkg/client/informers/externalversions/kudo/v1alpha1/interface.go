@@ -28,8 +28,6 @@ type Interface interface {
 	Operators() OperatorInformer
 	// OperatorVersions returns a OperatorVersionInformer.
 	OperatorVersions() OperatorVersionInformer
-	// PlanExecutions returns a PlanExecutionInformer.
-	PlanExecutions() PlanExecutionInformer
 }
 
 type version struct {
@@ -56,9 +54,4 @@ func (v *version) Operators() OperatorInformer {
 // OperatorVersions returns a OperatorVersionInformer.
 func (v *version) OperatorVersions() OperatorVersionInformer {
 	return &operatorVersionInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// PlanExecutions returns a PlanExecutionInformer.
-func (v *version) PlanExecutions() PlanExecutionInformer {
-	return &planExecutionInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
