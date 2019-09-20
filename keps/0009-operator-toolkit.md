@@ -103,12 +103,12 @@ An operator package is a folder that contains all of the manifests needed to cre
 `operator.yaml` is the base definition of an operator.  It follows the following reference format.
 
 ```yaml
-name: str(max=253, lowercase alphanumeric characters, -, and .)
+name: str(max=253, constraints="lowercase alphanumeric characters, -, and .")
 description: str(required=False)
-version: semver(desc='version of operator')
-appVersion: str(desc='component controlled version', required=False)
-kudoVersion: semver(desc='minVersion of KUDO')
-kubernetesVersion: semver(desc='minVersion of Kubernetes')
+version: semver(desc='version of operator', example="0.3.0")
+appVersion: str(desc='version of underlying service if applicable', required=False, example="v1.0-rc2")
+kudoVersion: semver(desc='minimal required version of KUDO required for this operator')
+kubernetesVersion: semver(desc='minimal required version of Kubernetes required for this operator')
 maintainers: array(required=False, object=Maintainer)
   - name: str()
     email: email()
@@ -118,10 +118,10 @@ url: url(required=False)
 tasks: map[string]TaskSpec
   str(max 253, desc='name of task'):
     resources: array(str)
-      - str(desc='name of resource')
+      - str(desc='name of resource file')
 plans: map[string]Plan
   str(max 253, desc='name of plan'):
-    strategy: ordering(*serial|parallel, desc='determines how to order phases', required=False)
+    strategy: ordering(serial|parallel, desc='determines how to order phases', default="serial" required=False)
     phases: array(Phase)
       - name: str(max=253, desc="name of phase")
         strategy: ordering(serial|parallel, desc='determines how to order steps in a phase')
