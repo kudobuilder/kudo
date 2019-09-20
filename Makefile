@@ -155,6 +155,9 @@ docker-push:
 	docker push ${DOCKER_IMG}:${GIT_VERSION}
 	docker push ${DOCKER_IMG}:latest
 
+.PHONY: schema-gen
+schema-gen:
+	./hack/update_schemas.sh
 
 .PHONY: todo
 # Show to-do items per file.
