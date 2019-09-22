@@ -3,9 +3,6 @@ package test
 import (
 	"context"
 	"fmt"
-	"github.com/kudobuilder/kudo/pkg/controller/instance"
-	"github.com/kudobuilder/kudo/pkg/controller/operator"
-	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -13,6 +10,10 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/kudobuilder/kudo/pkg/controller/instance"
+	"github.com/kudobuilder/kudo/pkg/controller/operator"
+	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
 
 	volumetypes "github.com/docker/docker/api/types/volume"
 	docker "github.com/docker/docker/client"
@@ -277,9 +278,9 @@ func (h *Harness) RunKUDO() error {
 
 	h.logger.Log("Setting up instance controller")
 	err = (&instance.Reconciler{
-		Client: mgr.GetClient(),
+		Client:   mgr.GetClient(),
 		Recorder: mgr.GetEventRecorderFor("instance-controller"),
-		Scheme: mgr.GetScheme(),
+		Scheme:   mgr.GetScheme(),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		h.logger.Log(err, "unable to register instance controller to the manager")

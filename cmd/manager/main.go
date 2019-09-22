@@ -17,8 +17,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"os"
+
+	"github.com/kudobuilder/kudo/pkg/controller/instance"
 
 	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
 
@@ -89,9 +90,9 @@ func main() {
 
 	log.Info("Setting up instance controller")
 	err = (&instance.Reconciler{
-		Client: mgr.GetClient(),
+		Client:   mgr.GetClient(),
 		Recorder: mgr.GetEventRecorderFor("instance-controller"),
-		Scheme: mgr.GetScheme(),
+		Scheme:   mgr.GetScheme(),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		log.Error(err, "unable to register instance controller to the manager")

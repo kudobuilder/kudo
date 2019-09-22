@@ -122,7 +122,7 @@ func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.Oper
 
 	planSpec, ok := ov.Spec.Plans[activePlanStatus.Name]
 	if !ok {
-		return nil, nil, executionError{fmt.Errorf("Could not find required plan (%v)", activePlanStatus.Name), false, kudo.String("InvalidPlan")}
+		return nil, nil, executionError{fmt.Errorf("could not find required plan (%v)", activePlanStatus.Name), false, kudo.String("InvalidPlan")}
 	}
 
 	return &activePlan{
@@ -253,7 +253,6 @@ type executionError struct {
 func (e executionError) Error() string {
 	if e.fatal {
 		return fmt.Sprintf("Fatal error: %v", e.err)
-	} else {
-		return fmt.Sprintf("Error during execution: %v", e.err)
 	}
+	return fmt.Sprintf("Error during execution: %v", e.err)
 }

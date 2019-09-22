@@ -76,17 +76,20 @@ const ExecutionComplete ExecutionStatus = "COMPLETE"
 // ExecutionError there was an error deploying the application.
 const ExecutionError ExecutionStatus = "ERROR"
 
-// ExecutionError there was an error deploying the application.
+// ExecutionFatalError there was an error deploying the application.
 const ExecutionFatalError ExecutionStatus = "FATAL_ERROR"
 
+// IsTerminal returns true if the status is terminal (either complete, or in a nonrecoverable error)
 func (s ExecutionStatus) IsTerminal() bool {
 	return s == ExecutionComplete || s == ExecutionFatalError
 }
 
+// IsRunning returns true if the plan is currently being executed
 func (s ExecutionStatus) IsRunning() bool {
 	return s == ExecutionInProgress || s == ExecutionPending || s == ExecutionError
 }
 
+// GetPlanInProgress returns plan status of currently active plan or nil if no plan is running
 func (i *Instance) GetPlanInProgress() *PlanStatus {
 	for _, p := range i.Status.PlanStatus {
 		if p.Status.IsRunning() {

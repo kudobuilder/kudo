@@ -3,7 +3,6 @@ package plan
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
@@ -62,10 +61,10 @@ func planHistory(args []string, options *Options, settings *env.Settings) error 
 
 	var labelSelector string
 	if len(args) == 0 {
-		fmt.Printf("History of all plan-executions for instance \"%s\" in namespace \"%s\":\n", options.Instance, options.Namespace)
+		fmt.Printf("History of all plan executions for instance \"%s\" in namespace \"%s\":\n", options.Instance, options.Namespace)
 		labelSelector = fmt.Sprintf("instance=%s", options.Instance)
 	} else {
-		fmt.Printf("History of plan-executions for instance \"%s\" in namespace \"%s\" to operator-version \"%s\":\n", options.Instance, options.Namespace, args[0])
+		fmt.Printf("History of plan-executions for instance \"%s\" in namespace \"%s\" for operator-version \"%s\":\n", options.Instance, options.Namespace, args[0])
 		labelSelector = fmt.Sprintf("operator-version=%s, instance=%s", args[0], options.Instance)
 	}
 
@@ -81,26 +80,29 @@ func planHistory(args []string, options *Options, settings *env.Settings) error 
 		return err
 	}
 
-	planExecutionList := kudov1alpha1.PlanExecutionList{}
+	instance := kudov1alpha1.Instance{}
 
-	err = json.Unmarshal(mInstObj, &planExecutionList)
+	err = json.Unmarshal(mInstObj, &instance)
 	if err != nil {
 		return err
 	}
 
 	tree := treeprint.New()
+	timeLayout := "2006-01-02"
 
-	if len(planExecutionList.Items) == 0 {
-		fmt.Printf("No history found for \"%s\" in namespace \"%s\".\n", options.Instance, options.Namespace)
-	} else {
-		for _, i := range planExecutionList.Items {
-			duration := time.Since(i.CreationTimestamp.Time)
-			historyDisplay := fmt.Sprintf("%s (created %v ago)", i.Name, duration.Round(time.Second))
-			tree.AddBranch(historyDisplay)
+	for n, p := range instance.Status.PlanStatus {
+		msg := "never run"
+		if p.Status != "" && !p.LastFinishedRun.IsZero() { // plan already finished
+			t := p.LastFinishedRun.Format(timeLayout)
+			msg = fmt.Sprintf("last run at %s", t)
+		} else if p.Status.IsRunning() {
+			msg = "is running"
 		}
-
-		fmt.Println(tree.String())
+		historyDisplay := fmt.Sprintf("%s (%s)", n, msg)
+		tree.AddBranch(historyDisplay)
 	}
+
+	fmt.Println(tree.String())
 
 	return nil
 }

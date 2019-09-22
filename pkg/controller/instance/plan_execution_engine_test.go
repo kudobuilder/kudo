@@ -45,9 +45,9 @@ func TestExecutePlan(t *testing.T) {
 		{"plan with one step to be executed, still in progress", &activePlan{
 			Name: "test",
 			PlanStatus: &v1alpha1.PlanStatus{
-				Status:    v1alpha1.ExecutionPending,
-				Name:     "test",
-				Phases:   []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionPending, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionPending, Name: "step"}}}},
+				Status: v1alpha1.ExecutionPending,
+				Name:   "test",
+				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionPending, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionPending, Name: "step"}}}},
 			},
 			Spec: &v1alpha1.Plan{
 				Strategy: "serial",
@@ -58,17 +58,17 @@ func TestExecutePlan(t *testing.T) {
 			Tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"job"}}},
 			Templates: map[string]string{"job": getResourceAsString(getJob("job1", "default"))},
 		}, defaultMetadata, &v1alpha1.PlanStatus{
-			Status:    v1alpha1.ExecutionPending,
-			Name:     "test",
-			Phases:   []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionInProgress, Name: "step"}}}},
+			Status: v1alpha1.ExecutionPending,
+			Name:   "test",
+			Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionInProgress, Name: "step"}}}},
 		}},
 		// this plan deploys pod, that is marked as healthy immediately because we cannot evaluate health
 		{"plan with one step, immediately healthy -> completed", &activePlan{
 			Name: "test",
 			PlanStatus: &v1alpha1.PlanStatus{
-				Status:    v1alpha1.ExecutionPending,
-				Name:     "test",
-				Phases:   []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionPending, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionPending, Name: "step"}}}},
+				Status: v1alpha1.ExecutionPending,
+				Name:   "test",
+				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionPending, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionPending, Name: "step"}}}},
 			},
 			Spec: &v1alpha1.Plan{
 				Strategy: "serial",
@@ -79,16 +79,16 @@ func TestExecutePlan(t *testing.T) {
 			Tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"pod"}}},
 			Templates: map[string]string{"pod": getResourceAsString(getPod("pod1", "default"))},
 		}, defaultMetadata, &v1alpha1.PlanStatus{
-			Status:    v1alpha1.ExecutionComplete,
-			Name:     "test",
-			Phases:   []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
+			Status: v1alpha1.ExecutionComplete,
+			Name:   "test",
+			Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
 		}},
 		{"plan in errored state will be retried and completed when no error happens", &activePlan{
 			Name: "test",
 			PlanStatus: &v1alpha1.PlanStatus{
-				Status:    v1alpha1.ExecutionError,
-				Name:     "test",
-				Phases:   []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionError, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionError, Name: "step"}}}},
+				Status: v1alpha1.ExecutionError,
+				Name:   "test",
+				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionError, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionError, Name: "step"}}}},
 			},
 			Spec: &v1alpha1.Plan{
 				Strategy: "serial",
@@ -99,9 +99,9 @@ func TestExecutePlan(t *testing.T) {
 			Tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"pod"}}},
 			Templates: map[string]string{"pod": getResourceAsString(getPod("pod1", "default"))},
 		}, defaultMetadata, &v1alpha1.PlanStatus{
-			Status:    v1alpha1.ExecutionComplete,
-			Name:     "test",
-			Phases:   []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
+			Status: v1alpha1.ExecutionComplete,
+			Name:   "test",
+			Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
 		}},
 	}
 
