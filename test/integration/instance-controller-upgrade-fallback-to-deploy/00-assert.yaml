@@ -3,13 +3,8 @@ kind: Instance
 metadata:
   name: icto-upgrade-fallback-to-deploy
 status:
-  status: COMPLETE
----
-apiVersion: kudo.dev/v1alpha1
-kind: PlanExecution
-metadata:
-  labels:
-    kudo.dev/instance: icto-upgrade-fallback-to-deploy
-    kudo.dev/operator-version: icto-upgrade
-spec:
-  planName: deploy
+  aggregatedStatus:
+    status: COMPLETE
+  planStatus:
+    - name: deploy
+      status: COMPLETE

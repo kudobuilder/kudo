@@ -9,10 +9,12 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 
+	"errors"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	kudoengine "github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/util/health"
-	"github.com/pkg/errors"
+	errwrap "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -54,7 +56,7 @@ type executionMetadata struct {
 // the next step could consist of actually executing multiple steps of the plan or just one depending on the execution strategy of the phase (serial/parallel)
 // result of running this function is new state of the execution that is returned to the caller (it can either be completed, or still in progress or errored)
 // in case of error, error is returned along with the state as well (so that it's possible to report which step caused the error)
-// in case of error, method returns both error or fatalError which should indicate unrecoverable error meaning there is no point in retrying that execution
+// in case of error, method returns executionError which has property to indicate unrecoverable error meaning if there is no point in retrying that execution
 func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client, renderer kubernetesObjectEnhancer) (*v1alpha1.PlanStatus, error) {
 	if plan.Status.IsTerminal() {
 		log.Printf("PlanExecution: Plan %s for instance %s is terminal, nothing to do", plan.Name, metadata.instanceName)
@@ -67,7 +69,12 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 	// render kubernetes resources needed to execute this plan
 	planResources, err := prepareKubeResources(plan, metadata, renderer)
 	if err != nil {
-		newState.Status = v1alpha1.ExecutionError
+		var exErr *executionError
+		if errors.As(err, &exErr) {
+			newState.Status = v1alpha1.ExecutionFatalError
+		} else {
+			newState.Status = v1alpha1.ExecutionError
+		}
 		return newState, err
 	}
 
@@ -260,21 +267,21 @@ func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer ku
 						if resource, ok := plan.Templates[res]; ok {
 							templatedYaml, err := engine.Render(resource, configs)
 							if err != nil {
-								phaseState.Status = v1alpha1.ExecutionError
-								stepState.Status = v1alpha1.ExecutionError
+								phaseState.Status = v1alpha1.ExecutionFatalError
+								stepState.Status = v1alpha1.ExecutionFatalError
 
-								err := errors.Wrapf(err, "error expanding template")
+								err := errwrap.Wrapf(err, "error expanding template")
 								log.Print(err)
-								return nil, executionError{err, true, nil}
+								return nil, &executionError{err, true, nil}
 							}
 							resourcesAsString[res] = templatedYaml
 						} else {
-							phaseState.Status = v1alpha1.ExecutionError
-							stepState.Status = v1alpha1.ExecutionError
+							phaseState.Status = v1alpha1.ExecutionFatalError
+							stepState.Status = v1alpha1.ExecutionFatalError
 
 							err := fmt.Errorf("PlanExecution: Error finding resource named %v for operator version %v", res, meta.operatorVersionName)
 							log.Print(err)
-							return nil, executionError{err, true, nil}
+							return nil, &executionError{err, true, nil}
 						}
 					}
 
@@ -294,7 +301,7 @@ func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer ku
 						stepState.Status = v1alpha1.ExecutionError
 
 						log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, meta.planExecutionID, err)
-						return nil, err
+						return nil, &executionError{err, false, nil}
 					}
 					resources = append(resources, resourcesWithConventions...)
 				} else {
@@ -303,7 +310,7 @@ func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer ku
 
 					err := fmt.Errorf("Error finding task named %s for operator version %s", taskSpec, meta.operatorVersionName)
 					log.Print(err)
-					return nil, executionError{err, false, nil}
+					return nil, &executionError{err, false, nil}
 				}
 			}
 

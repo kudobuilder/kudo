@@ -12,30 +12,14 @@ kind: Instance
 metadata:
   name: toy1
 status:
-  status: COMPLETE
-  activePlan:
-    apiVersion: kudo.dev/v1alpha1
-    kind: PlanExecution
----
-apiVersion: kudo.dev/v1alpha1
-kind: PlanExecution
-metadata:
-  labels:
-    kudo.dev/instance: toy1
-    kudo.dev/operator-version: toy-v1
-  ownerReferences:
-  - apiVersion: kudo.dev/v1alpha1
-    blockOwnerDeletion: true
-    controller: true
-    kind: Instance
-    name: toy1
-status:
-  name: scale
-  phases:
-  - name: scale
-    state: COMPLETE
-    steps:
+  aggregatedStatus:
+    status: COMPLETE
+  planStatus:
     - name: scale
-      state: COMPLETE
-  state: COMPLETE
-  strategy: serial
+      status: COMPLETE
+      phases:
+        - name: scale
+          status: COMPLETE
+          steps:
+            - name: scale
+              status: COMPLETE

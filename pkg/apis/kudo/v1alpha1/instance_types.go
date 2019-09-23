@@ -16,6 +16,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -30,8 +32,8 @@ type InstanceSpec struct {
 
 // InstanceStatus defines the observed state of Instance
 type InstanceStatus struct {
-	PlanStatus       map[string]PlanStatus `json:"planStatus,omitempty"`
-	AggregatedStatus AggregatedStatus      `json:"aggregatedStatus,omitempty"`
+	PlanStatus       []PlanStatus     `json:"planStatus,omitempty"`
+	AggregatedStatus AggregatedStatus `json:"aggregatedStatus,omitempty"`
 }
 
 // AggregatedStatus is overview of an instance status derived from the plan status
@@ -51,14 +53,14 @@ type PlanStatus struct {
 // PhaseStatus is representing status of a phase
 type PhaseStatus struct {
 	Name   string          `json:"name,omitempty"`
-	Status ExecutionStatus `json:"state,omitempty"`
+	Status ExecutionStatus `json:"status,omitempty"`
 	Steps  []StepStatus    `json:"steps,omitempty"`
 }
 
 // StepStatus is representing status of a step
 type StepStatus struct {
 	Name   string          `json:"name,omitempty"`
-	Status ExecutionStatus `json:"state,omitempty"`
+	Status ExecutionStatus `json:"status,omitempty"`
 }
 
 // ExecutionStatus captures the state of the rollout.
@@ -79,6 +81,9 @@ const ExecutionError ExecutionStatus = "ERROR"
 // ExecutionFatalError there was an error deploying the application.
 const ExecutionFatalError ExecutionStatus = "FATAL_ERROR"
 
+// ExecutionNeverRun is used when this plan/phase/step was never run so far
+const ExecutionNeverRun ExecutionStatus = "NEVER_RUN"
+
 // IsTerminal returns true if the status is terminal (either complete, or in a nonrecoverable error)
 func (s ExecutionStatus) IsTerminal() bool {
 	return s == ExecutionComplete || s == ExecutionFatalError
@@ -97,6 +102,92 @@ func (i *Instance) GetPlanInProgress() *PlanStatus {
 		}
 	}
 	return nil
+}
+
+// NoPlanEverExecuted returns true is this is new instance for which we never executed any plan
+func (i *Instance) NoPlanEverExecuted() bool {
+	for _, p := range i.Status.PlanStatus {
+		if p.Status != ExecutionNeverRun {
+			return false
+		}
+	}
+	return true
+}
+
+// EnsurePlanStatusInitialized initializes plan status for all plans this instance supports
+// it does not trigger run of any plan
+func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
+	i.Status.PlanStatus = make([]PlanStatus, 0)
+
+	for planName, plan := range ov.Spec.Plans {
+		planStatus := &PlanStatus{
+			Name:   planName,
+			Status: ExecutionNeverRun,
+			Phases: make([]PhaseStatus, 0),
+		}
+		for _, phase := range plan.Phases {
+			phaseStatus := &PhaseStatus{
+				Name:   phase.Name,
+				Status: ExecutionNeverRun,
+				Steps:  make([]StepStatus, 0),
+			}
+			for _, step := range phase.Steps {
+				phaseStatus.Steps = append(phaseStatus.Steps, StepStatus{
+					Name:   step.Name,
+					Status: ExecutionNeverRun,
+				})
+			}
+			planStatus.Phases = append(planStatus.Phases, *phaseStatus)
+		}
+		i.Status.PlanStatus = append(i.Status.PlanStatus, *planStatus)
+	}
+}
+
+// StartPlanExecution mark plan as to be executed
+func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) error {
+	if i.NoPlanEverExecuted() {
+		i.EnsurePlanStatusInitialized(ov)
+	}
+	// TODO: save snapshot of instance
+	// update status of the instance to reflect the newly startin plan
+	notFound := true
+	for i1, v := range i.Status.PlanStatus {
+		if v.Name == planName {
+			// update plan status
+			notFound = false
+			i.Status.PlanStatus[i1].Status = ExecutionPending
+			for i2, p := range v.Phases {
+				i.Status.PlanStatus[i1].Phases[i2].Status = ExecutionPending
+				for i3, _ := range p.Steps {
+					i.Status.PlanStatus[i1].Phases[i2].Steps[i3].Status = ExecutionPending
+				}
+			}
+
+			// update activePlan and instance status
+			i.Status.AggregatedStatus.Status = ExecutionPending
+			i.Status.AggregatedStatus.ActivePlanName = planName
+
+			break
+		}
+	}
+
+	if notFound {
+		return fmt.Errorf("asked to execute a plan %s but no such plan found in instance %s/%s", planName, i.Namespace, i.Name)
+	}
+	return nil
+}
+
+// UpdateInstanceStatus updates `Status.PlanStatus` and `Status.AggregatedStatus` property based on the given plan
+func (i *Instance) UpdateInstanceStatus(planStatus *PlanStatus) {
+	for k, v := range i.Status.PlanStatus {
+		if v.Name == planStatus.Name {
+			i.Status.PlanStatus[k] = *planStatus
+			i.Status.AggregatedStatus.Status = planStatus.Status
+			if planStatus.Status.IsTerminal() {
+				i.Status.AggregatedStatus.ActivePlanName = ""
+			}
+		}
+	}
 }
 
 // +genclient

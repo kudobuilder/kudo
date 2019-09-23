@@ -1,7 +1,10 @@
 apiVersion: kudo.dev/v1alpha1
-kind: PlanExecution
+kind: Instance
 metadata:
-  labels:
-    kudo.dev/instance: icto-no-trigger
-spec:
-  planName: update
+  name: icto-no-trigger
+status:
+  aggregatedStatus:
+    status: COMPLETE
+  planStatus:
+    - name: update
+      status: COMPLETE

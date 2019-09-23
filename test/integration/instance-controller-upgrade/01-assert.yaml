@@ -1,8 +1,10 @@
 apiVersion: kudo.dev/v1alpha1
-kind: PlanExecution
+kind: Instance
 metadata:
-  labels:
-    kudo.dev/instance: icto-upgrade
-    kudo.dev/operator-version: icto-upgrade-v2
-spec:
-  planName: upgrade
+  name: icto-upgrade
+status:
+  aggregatedStatus:
+    status: COMPLETE
+  planStatus:
+    - name: upgrade
+      status: COMPLETE

@@ -3,12 +3,8 @@ kind: Instance
 metadata:
   name: icto-custom-trigger
 status:
-  status: COMPLETE
----
-apiVersion: kudo.dev/v1alpha1
-kind: PlanExecution
-metadata:
-  labels:
-    kudo.dev/instance: icto-custom-trigger
-spec:
-  planName: deploy
+  aggregatedStatus:
+    status: COMPLETE
+  planStatus:
+    - status: COMPLETE
+      name: deploy

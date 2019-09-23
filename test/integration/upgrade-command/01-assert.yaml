@@ -8,15 +8,8 @@ spec:
   parameters:
     replicas: "4"
 status:
-  activePlan: {}
----
-apiVersion: kudo.dev/v1alpha1
-kind: PlanExecution
-metadata:
-  labels:
-    kudo.dev/operator-version: upgrade-operator-0.2.0
-  ownerReferences:
-    - kind: Instance
-      name: upgrade-instance
-status:
-  name: upgrade
+  aggregatedStatus:
+    status: COMPLETE
+    planStatus:
+      - name: upgrade
+        status: COMPLETE

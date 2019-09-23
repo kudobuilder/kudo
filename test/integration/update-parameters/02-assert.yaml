@@ -7,13 +7,15 @@ spec:
     param: "after"
 ---
 apiVersion: kudo.dev/v1alpha1
-kind: PlanExecution
+kind: Instance
 metadata:
-  labels:
-    kudo.dev/instance: toy1
-    kudo.dev/operator-version: toy-v1
+  name: toy1
 status:
-  name: update
-  phases:
-  - name: update
-    state: COMPLETE
+  aggregatedStatus:
+    status: COMPLETE
+  planStatus:
+    - name: update
+      status: COMPLETE
+      phases:
+        - name: update
+          status: COMPLETE

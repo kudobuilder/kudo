@@ -77,28 +77,38 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err // OV not found has to be retried because it can really have been created after I
 	}
 
-	// ---------- 2. First check if we should not start execution of new plan because of update ----------
+	// ---------- 2. First check if we should start execution of new plan ----------
 
-	// TODO
+	// If this is newly created instance, we need to trigger deploy plan
+	if instance.NoPlanEverExecuted() {
+		log.Printf("InstanceController: No plan ever executed for instance %s/%s, going to execute deploy plan", instance.Namespace, instance.Name)
+		err = instance.StartPlanExecution("deploy", ov)
+		if err != nil {
+			return reconcile.Result{}, r.handleError(err, instance)
+		}
+	}
 
-	// ---------- 3. If we're currently running plan, continue with the execution ----------
+	// ---------- 3. If there's currently active plan, continue with the execution ----------
 
 	activePlanStatus := instance.GetPlanInProgress()
 	if activePlanStatus == nil { // we have no plan in progress
+		log.Printf("InstanceController: Nothing to do, no plan in progress for instance %s/%s", instance.Namespace, instance.Name)
 		return reconcile.Result{}, nil
 	}
 
 	activePlan, metadata, err := preparePlanExecution(instance, ov, activePlanStatus)
 	if err != nil {
+		fmt.Printf("Pre-error instance %v", instance)
 		err = r.handleError(err, instance)
 		return reconcile.Result{}, err
 	}
+	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
 	newStatus, err := executePlan(activePlan, metadata, r.Client, &kustomizeEnhancer{r.Scheme})
 
 	// ---------- 4. Update status of instance after the execution proceeded ----------
 
 	if newStatus != nil {
-		instance.Status.PlanStatus[activePlan.Name] = *newStatus
+		instance.UpdateInstanceStatus(newStatus)
 	}
 	if err != nil {
 		err = r.handleError(err, instance)
@@ -122,7 +132,7 @@ func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.Oper
 
 	planSpec, ok := ov.Spec.Plans[activePlanStatus.Name]
 	if !ok {
-		return nil, nil, executionError{fmt.Errorf("could not find required plan (%v)", activePlanStatus.Name), false, kudo.String("InvalidPlan")}
+		return nil, nil, &executionError{fmt.Errorf("could not find required plan (%v)", activePlanStatus.Name), false, kudo.String("InvalidPlan")}
 	}
 
 	return &activePlan{
@@ -146,8 +156,16 @@ func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.Oper
 // specify eventReason as nil if you don't wish to publish a warning event
 // returns err if this err should be retried, nil otherwise
 func (r *Reconciler) handleError(err error, instance *kudov1alpha1.Instance) error {
-	// TODO update the execution state
 	log.Printf("InstanceController: %v", err)
+
+	// first update instance as we want to propagate errors also to the `Instance.Status.PlanStatus`
+	clientErr := r.Client.Update(context.TODO(), instance)
+	if clientErr != nil {
+		log.Printf("InstanceController: Error when updating instance state. %v", clientErr)
+		return clientErr
+	}
+
+	// determine if retry is necessary based on the error type
 	if exErr, ok := err.(*executionError); ok {
 		if exErr.eventName != nil {
 			r.Recorder.Event(instance, "Warning", kudo.StringValue(exErr.eventName), err.Error())
@@ -168,9 +186,8 @@ func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1alpha1.I
 	if err != nil {
 		// Error reading the object - requeue the request.
 		log.Printf("InstanceController: Error getting instance \"%v\": %v",
-			instance.Name,
+			request.NamespacedName,
 			err)
-		r.Recorder.Event(instance, "Warning", "InvalidInstance", fmt.Sprintf("Error getting instance \"%v\": %v", instance.Name, err))
 		return nil, err
 	}
 	return instance, nil
@@ -191,7 +208,7 @@ func (r *Reconciler) getOperatorVersion(instance *kudov1alpha1.Instance) (ov *ku
 			instance.Spec.OperatorVersion.Name,
 			instance.Name,
 			err)
-		r.Recorder.Event(instance, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Error getting operatorversion \"%v\": %v", ov.Name, err))
+		r.Recorder.Event(instance, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Error getting operatorversion \"%v\": %v", instance.Spec.OperatorVersion.Name, err))
 		return nil, err
 	}
 	return ov, nil
@@ -218,7 +235,7 @@ func getParameters(instance *kudov1alpha1.Instance, operatorVersion *kudov1alpha
 	}
 
 	if len(missingRequiredParameters) != 0 {
-		return nil, executionError{err: fmt.Errorf("parameters are missing when evaluating template: %s", strings.Join(missingRequiredParameters, ",")), fatal: true, eventName: kudo.String("Missing parameter")}
+		return nil, &executionError{err: fmt.Errorf("parameters are missing when evaluating template: %s", strings.Join(missingRequiredParameters, ",")), fatal: true, eventName: kudo.String("Missing parameter")}
 	}
 
 	return params, nil

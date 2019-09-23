@@ -3,18 +3,8 @@ kind: Instance
 metadata:
   name: racy-instance
 status:
-  status: COMPLETE
----
-apiVersion: kudo.dev/v1alpha1
-kind: PlanExecution
-metadata:
-  labels:
-    kudo.dev/operator-version: racy-operator
-    kudo.dev/instance: racy-instance
-  ownerReferences:
-  - apiVersion: kudo.dev/v1alpha1
-    kind: Instance
-    name: racy-instance
-status:
-  name: deploy
-  state: COMPLETE
+  aggregatedStatus:
+    status: COMPLETE
+  planStatus:
+    - name: deploy
+      status: COMPLETE

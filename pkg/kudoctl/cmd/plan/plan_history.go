@@ -90,7 +90,7 @@ func planHistory(args []string, options *Options, settings *env.Settings) error 
 	tree := treeprint.New()
 	timeLayout := "2006-01-02"
 
-	for n, p := range instance.Status.PlanStatus {
+	for _, p := range instance.Status.PlanStatus {
 		msg := "never run"
 		if p.Status != "" && !p.LastFinishedRun.IsZero() { // plan already finished
 			t := p.LastFinishedRun.Format(timeLayout)
@@ -98,7 +98,7 @@ func planHistory(args []string, options *Options, settings *env.Settings) error 
 		} else if p.Status.IsRunning() {
 			msg = "is running"
 		}
-		historyDisplay := fmt.Sprintf("%s (%s)", n, msg)
+		historyDisplay := fmt.Sprintf("%s (%s)", p.Name, msg)
 		tree.AddBranch(historyDisplay)
 	}
 

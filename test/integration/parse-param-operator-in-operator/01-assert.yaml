@@ -3,14 +3,16 @@ kind: Instance
 metadata:
   name: dream1
 status:
-  status: IN_PROGRESS
+  aggregatedStatus:
+    status: IN_PROGRESS
 ---
 apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
   name: dream1-operator
 status:
-  status: IN_PROGRESS
+  aggregatedStatus:
+    status: IN_PROGRESS
 ---
 apiVersion: apps/v1
 kind: Deployment
