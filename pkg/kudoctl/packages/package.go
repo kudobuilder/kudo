@@ -146,7 +146,7 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 	var errs []string
 	for k, v := range p.Operator.Tasks {
 		for _, res := range v.Resources {
-			if _, ok := p.Templates[res]; !ok {
+			if _, ok := p.Templates[res.Name]; !ok {
 				errs = append(errs, fmt.Sprintf("task %s missing template: %s", k, res))
 			}
 		}

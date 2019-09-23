@@ -56,7 +56,7 @@ func TestExecutePlan(t *testing.T) {
 					{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			Tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"job"}}},
+			Tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []v1alpha1.ResourceSpec{{Name: "job"}}}},
 			Templates: map[string]string{"job": getResourceAsString(getJob("job1", "default"))},
 		}, defaultMetadata, &v1alpha1.PlanExecutionStatus{
 			State:    v1alpha1.PhaseStatePending,
@@ -79,7 +79,7 @@ func TestExecutePlan(t *testing.T) {
 					{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			Tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"pod"}}},
+			Tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []v1alpha1.ResourceSpec{{Name: "pod"}}}},
 			Templates: map[string]string{"pod": getResourceAsString(getPod("pod1", "default"))},
 		}, defaultMetadata, &v1alpha1.PlanExecutionStatus{
 			State:    v1alpha1.PhaseStateComplete,
@@ -101,7 +101,7 @@ func TestExecutePlan(t *testing.T) {
 					{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			Tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"pod"}}},
+			Tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []v1alpha1.ResourceSpec{{Name: "pod"}}}},
 			Templates: map[string]string{"pod": getResourceAsString(getPod("pod1", "default"))},
 		}, defaultMetadata, &v1alpha1.PlanExecutionStatus{
 			State:    v1alpha1.PhaseStateComplete,

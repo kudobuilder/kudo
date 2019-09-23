@@ -14,14 +14,14 @@ url: https://zookeeper.apache.org/
 tasks:
   infra:
     resources:
-      - services.yaml
-      - pdb.yaml
+      - name: services.yaml
+      - name: pdb.yaml
   app:
     resources:
-      - statefulset.yaml
+      - name: statefulset.yaml
   validation:
     resources:
-      - validation.yaml
+      - name: validation.yaml
 plans:
   deploy:
     strategy: serial
