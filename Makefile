@@ -76,7 +76,7 @@ deploy:
 
 .PHONY: deploy-clean
 deploy-clean:
-	kubectl delete -f config/crds
+	go run ./cmd/kubectl-kudo  init --crd-only --dry-run --output yaml | kubectl delete -f -
 
 .PHONY: fmt
 # Run go fmt against code
