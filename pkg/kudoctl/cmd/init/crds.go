@@ -16,7 +16,7 @@ import (
 //Defines the CRDs that the KUDO manager implements and watches.
 
 // Install uses Kubernetes client to install KUDO Crds.
-func installCrds(client *apiextensionsclient.Clientset) error {
+func installCrds(client apiextensionsclient.Interface) error {
 	if err := installOperator(client.ApiextensionsV1beta1()); err != nil {
 		return err
 	}

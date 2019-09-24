@@ -12,7 +12,7 @@ import (
 // Client provides access different K8S clients
 type Client struct {
 	KubeClient kubernetes.Interface
-	ExtClient  *apiextensionsclient.Clientset
+	ExtClient  apiextensionsclient.Interface
 }
 
 // GetConfig returns a Kubernetes client config for a given kubeconfig.
