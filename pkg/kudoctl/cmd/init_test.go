@@ -155,6 +155,7 @@ func TestNewInitCmd(t *testing.T) {
 	}{
 		{name: "arguments invalid", parameters: []string{"foo"}, errorMessage: "this command does not accept arguments"},
 		{name: "name and version together invalid", flags: map[string]string{"kudo-image": "foo", "version": "bar"}, errorMessage: "specify either 'kudo-image' or 'version', not both"},
+		{name: "crd-only and wait together invalid", flags: map[string]string{"crd-only": "true", "wait": "true"}, errorMessage: "wait is not allowed with crd-only"},
 	}
 
 	for _, tt := range tests {
