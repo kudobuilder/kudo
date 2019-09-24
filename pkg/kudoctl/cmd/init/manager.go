@@ -93,12 +93,23 @@ func installManager(client kubernetes.Interface, opts Options) error {
 func installStatefulSet(client clientv1beta2.StatefulSetsGetter, opts Options) error {
 	ss := generateDeployment(opts)
 	_, err := client.StatefulSets(opts.Namespace).Create(ss)
-	return err
+	if !isAlreadyExistsError(err) {
+		return err
+	}
+
+	clog.V(4).Printf("statefulset %v already exists", ss.Name)
+	return nil
 }
 
 func installService(client corev1.ServicesGetter, opts Options) error {
 	s := generateService(opts)
 	_, err := client.Services(opts.Namespace).Create(s)
+	if !isAlreadyExistsError(err) {
+		return err
+	}
+
+	clog.V(4).Printf("service %v already exists", s.Name)
+	// this service considered different.  If it exists and there is an init we will return the error
 	return err
 }
 

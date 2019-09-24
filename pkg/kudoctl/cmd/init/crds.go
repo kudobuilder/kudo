@@ -3,10 +3,12 @@ package init
 import (
 	"strings"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -17,6 +19,7 @@ import (
 
 // Install uses Kubernetes client to install KUDO Crds.
 func installCrds(client apiextensionsclient.Interface) error {
+
 	if err := installOperator(client.ApiextensionsV1beta1()); err != nil {
 		return err
 	}
@@ -35,25 +38,52 @@ func installCrds(client apiextensionsclient.Interface) error {
 func installOperator(client v1beta1.CustomResourceDefinitionsGetter) error {
 	o := generateOperator()
 	_, err := client.CustomResourceDefinitions().Create(o)
-	return err
+	if !isAlreadyExistsError(err) {
+		return err
+	}
+
+	clog.V(4).Printf("crd %v already exists", o.Name)
+	return nil
+}
+
+func isAlreadyExistsError(err error) bool {
+	// new go 1.13 approach of errors.As fails with "errors: *target must be interface or implement error" apparently StatusError doesn't fully implement error
+	// var statusError kerrors.StatusError
+	// if errors.As(err, &statusError) {  // panics :(
+	if statusError, isStatus := err.(*kerrors.StatusError); isStatus {
+		return statusError.ErrStatus.Reason == "AlreadyExists"
+	}
+	return false
 }
 
 func installOperatorVersion(client v1beta1.CustomResourceDefinitionsGetter) error {
 	ov := generateOperatorVersion()
 	_, err := client.CustomResourceDefinitions().Create(ov)
-	return err
+	if !isAlreadyExistsError(err) {
+		return err
+	}
+	clog.V(4).Printf("crd %v already exists", ov.Name)
+	return nil
 }
 
 func installInstance(client v1beta1.CustomResourceDefinitionsGetter) error {
 	instance := generateInstance()
 	_, err := client.CustomResourceDefinitions().Create(instance)
-	return err
+	if !isAlreadyExistsError(err) {
+		return err
+	}
+	clog.V(4).Printf("crd %v already exists", instance.Name)
+	return nil
 }
 
 func installPlanExecution(client v1beta1.CustomResourceDefinitionsGetter) error {
 	pe := generatePlanExecution()
 	_, err := client.CustomResourceDefinitions().Create(pe)
-	return err
+	if !isAlreadyExistsError(err) {
+		return err
+	}
+	clog.V(4).Printf("crd %v already exists", pe.Name)
+	return nil
 }
 
 // operatorCrd provides the Operator CRD manifest for printing

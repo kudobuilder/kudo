@@ -1,6 +1,8 @@
 package init
 
 import (
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,25 +35,45 @@ func installPrereqs(client kubernetes.Interface, opts Options) error {
 func installSecret(client corev1.SecretsGetter, opts Options) error {
 	secret := generateWebHookSecret(opts)
 	_, err := client.Secrets(opts.Namespace).Create(secret)
-	return err
+	if !isAlreadyExistsError(err) {
+		return err
+	}
+
+	clog.V(4).Printf("secret %v already exists", secret.Name)
+	return nil
 }
 
 func installRoleBindings(client kubernetes.Interface, opts Options) error {
 	rbac := generateRoleBinding(opts)
 	_, err := client.RbacV1().ClusterRoleBindings().Create(rbac)
-	return err
+	if !isAlreadyExistsError(err) {
+		return err
+	}
+
+	clog.V(4).Printf("role binding %v already exists", rbac.Name)
+	return nil
 }
 
 func installNamespace(client corev1.NamespacesGetter, opts Options) error {
 	ns := generateSysNamespace(opts.Namespace)
 	_, err := client.Namespaces().Create(ns)
-	return err
+	if !isAlreadyExistsError(err) {
+		return err
+	}
+
+	clog.V(4).Printf("namespace %v already exists", ns.Name)
+	return nil
 }
 
 func installServiceAccount(client corev1.ServiceAccountsGetter, opts Options) error {
 	sa := generateServiceAccount(opts)
 	_, err := client.ServiceAccounts(opts.Namespace).Create(sa)
-	return err
+	if !isAlreadyExistsError(err) {
+		return err
+	}
+
+	clog.V(4).Printf("service account %v already exists", sa.Name)
+	return nil
 }
 
 // generateSysNamespace builds the system namespace
