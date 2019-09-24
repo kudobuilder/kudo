@@ -189,14 +189,14 @@ spec:
   tasks:
     infra:
       resources:
-        - name: services.yaml
-        - name: pdb.yaml
+        - services.yaml
+        - pdb.yaml
     app:
       resources:
-        - name: statefulset.yaml
+        - statefulset.yaml
     validation:
       resources:
-        - name: validation.yaml
+        - validation.yaml
   plans:
     deploy:
       strategy: serial

@@ -251,7 +251,7 @@ func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer ku
 					resourcesAsString := make(map[string]string)
 
 					for _, res := range taskSpec.Resources {
-						if resource, ok := plan.Templates[res.Name]; ok {
+						if resource, ok := plan.Templates[res]; ok {
 							templatedYaml, err := engine.Render(resource, configs)
 							if err != nil {
 								phaseState.State = v1alpha1.PhaseStateError
@@ -261,7 +261,7 @@ func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer ku
 								log.Print(err)
 								return nil, fatalError{err: err}
 							}
-							resourcesAsString[res.Name] = templatedYaml
+							resourcesAsString[res] = templatedYaml
 						} else {
 							phaseState.State = v1alpha1.PhaseStateError
 							stepState.State = v1alpha1.PhaseStateError

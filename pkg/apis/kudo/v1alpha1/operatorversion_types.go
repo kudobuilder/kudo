@@ -95,14 +95,9 @@ type Parameter struct {
 
 }
 
-// TaskSpec is a struct containing lists of ResourceSpec resources.
+// TaskSpec is a struct containing lists of Kustomize resources.
 type TaskSpec struct {
-	Resources []ResourceSpec `json:"resources"`
-}
-
-// ResourceSpec defines a Kustomize resource
-type ResourceSpec struct {
-	Name string `json:"name" validate:"required"` // makes field mandatory and checks if set and non empty
+	Resources []string `json:"resources"`
 }
 
 // Phase specifies a list of steps that contain Kubernetes objects.
