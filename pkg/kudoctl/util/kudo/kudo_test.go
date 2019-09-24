@@ -574,3 +574,157 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 		}
 	}
 }
+
+func TestKudoClient_DeleteInstance(t *testing.T) {
+	testInstance := v1alpha1.Instance{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kudo.dev/v1alpha1",
+			Kind:       "Instance",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				"controller-tools.k8s.io": "1.0",
+			},
+			Name: "test",
+		},
+		Spec: v1alpha1.InstanceSpec{
+			OperatorVersion: v1.ObjectReference{
+				Name: "test-1.0",
+			},
+		},
+	}
+
+	installNamespace := "default"
+
+	k2o := newTestSimpleK2o()
+
+	_, err := k2o.clientset.KudoV1alpha1().Instances(installNamespace).Create(&testInstance)
+	if err != nil {
+		t.Fatalf("error creating instance in tests setup for")
+	}
+
+	err = k2o.DeleteInstance("nonexisting-instance-name", installNamespace)
+	if err == nil {
+		t.Errorf("expected deletion of a non-existing instance to fail")
+	}
+
+	err = k2o.DeleteInstance(testInstance.Name, "otherns")
+	if err == nil {
+		t.Errorf("expected deletion of instance in different namespace to fail")
+	}
+
+	err = k2o.DeleteInstance(testInstance.Name, installNamespace)
+	if err != nil {
+		t.Errorf("deletion of instance did not succeed: %w", err)
+	}
+
+	instance, err := k2o.GetInstance(testInstance.Name, installNamespace)
+	if err != nil {
+		t.Errorf("failed to get instance: %w", err)
+	}
+
+	if instance != nil {
+		t.Errorf("instance is still retrieved after being deleted")
+	}
+}
+
+func TestKudoClient_DeleteOperatorVersion(t *testing.T) {
+	testOperatorVersion := v1alpha1.OperatorVersion{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kudo.dev/v1alpha1",
+			Kind:       "OperatorVersion",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				"controller-tools.k8s.io": "1.0",
+			},
+			Name: "test-1.0",
+		},
+		Spec: v1alpha1.OperatorVersionSpec{
+			Operator: v1.ObjectReference{
+				Name: "test",
+			},
+		},
+	}
+
+	installNamespace := "default"
+
+	k2o := newTestSimpleK2o()
+
+	_, err := k2o.clientset.KudoV1alpha1().OperatorVersions(installNamespace).Create(&testOperatorVersion)
+	if err != nil {
+		t.Fatalf("error creating operatorversion in test setup: %v", err)
+	}
+
+	err = k2o.DeleteOperatorVersion("nonexisting-operatorversion-name", installNamespace)
+	if err == nil {
+		t.Errorf("expected deletion of a non-existing operatorversion to fail")
+	}
+
+	err = k2o.DeleteOperatorVersion(testOperatorVersion.Name, "otherns")
+	if err == nil {
+		t.Errorf("expected deletion of operatorversion in different namespace to fail")
+	}
+
+	err = k2o.DeleteOperatorVersion(testOperatorVersion.Name, installNamespace)
+	if err != nil {
+		t.Errorf("deletion of operatorversion did not succeed: %v", err)
+	}
+
+	operatorversion, err := k2o.GetOperatorVersion(testOperatorVersion.Name, installNamespace)
+	if err != nil {
+		t.Errorf("failed to get operatorversion: %v", err)
+	}
+
+	if operatorversion != nil {
+		t.Errorf("operatorversion is still existing after being deleted")
+	}
+}
+
+func TestKudoClient_DeleteOperator(t *testing.T) {
+	testOperator := v1alpha1.Operator{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kudo.dev/v1alpha1",
+			Kind:       "Operator",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				"controller-tools.k8s.io": "1.0",
+			},
+			Name: "test",
+		},
+	}
+
+	installNamespace := "default"
+
+	k2o := newTestSimpleK2o()
+
+	_, err := k2o.clientset.KudoV1alpha1().Operators(installNamespace).Create(&testOperator)
+	if err != nil {
+		t.Fatalf("error creating operator in test setup: %v", err)
+	}
+
+	err = k2o.DeleteOperator("nonexisting-operator-name", installNamespace)
+	if err == nil {
+		t.Errorf("expected deletion of a non-existing operator to fail")
+	}
+
+	err = k2o.DeleteOperator(testOperator.Name, "otherns")
+	if err == nil {
+		t.Errorf("expected deletion of operator in different namespace to fail")
+	}
+
+	err = k2o.DeleteOperator(testOperator.Name, installNamespace)
+	if err != nil {
+		t.Errorf("deletion of operator did not succeed: %v", err)
+	}
+
+	operator, err := k2o.GetOperator(testOperator.Name, installNamespace)
+	if err != nil {
+		t.Errorf("failed to get operator: %v", err)
+	}
+
+	if operator != nil {
+		t.Errorf("operator is still existing after being deleted")
+	}
+}
