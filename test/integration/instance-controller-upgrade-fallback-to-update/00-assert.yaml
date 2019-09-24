@@ -8,3 +8,5 @@ status:
   planStatus:
     - name: deploy
       status: COMPLETE
+    - name: upgrade
+    - name: update

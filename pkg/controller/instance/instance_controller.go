@@ -79,10 +79,12 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	// ---------- 2. First check if we should start execution of new plan ----------
 
-	// If this is newly created instance, we need to trigger deploy plan
-	if instance.NoPlanEverExecuted() {
-		log.Printf("InstanceController: No plan ever executed for instance %s/%s, going to execute deploy plan", instance.Namespace, instance.Name)
-		err = instance.StartPlanExecution("deploy", ov)
+	planToBeExecuted, err := instance.GetPlanToBeExecuted(ov)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if planToBeExecuted != nil {
+		err = instance.StartPlanExecution(kudo.StringValue(planToBeExecuted), ov)
 		if err != nil {
 			return reconcile.Result{}, r.handleError(err, instance)
 		}

@@ -58,7 +58,7 @@ func TestExecutePlan(t *testing.T) {
 			Tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"job"}}},
 			Templates: map[string]string{"job": getResourceAsString(getJob("job1", "default"))},
 		}, defaultMetadata, &v1alpha1.PlanStatus{
-			Status: v1alpha1.ExecutionPending,
+			Status: v1alpha1.ExecutionInProgress,
 			Name:   "test",
 			Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionInProgress, Name: "step"}}}},
 		}},

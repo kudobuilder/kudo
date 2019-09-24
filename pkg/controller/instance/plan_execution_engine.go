@@ -87,6 +87,7 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 			log.Printf("PlanExecution: Phase %s on plan %s and instance %s is in state %s, nothing to do", ph.Name, plan.Name, metadata.instanceName, currentPhaseState.Status)
 			continue
 		} else if isInProgress(currentPhaseState.Status) {
+			newState.Status = v1alpha1.ExecutionInProgress
 			currentPhaseState.Status = v1alpha1.ExecutionInProgress
 			log.Printf("PlanExecution: Executing phase %s on plan %s and instance %s - it's in progress", ph.Name, plan.Name, metadata.instanceName)
 
@@ -95,7 +96,6 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 			for _, st := range ph.Steps {
 				currentStepState, _ := getStepFromStatus(st.Name, currentPhaseState)
 				resources := planResources.PhaseResources[ph.Name].StepResources[st.Name]
-				log.Printf("Resources count: %d", len(resources))
 
 				log.Printf("PlanExecution: Executing step %s on plan %s and instance %s - it's in %s state", st.Name, plan.Name, metadata.instanceName, currentStepState.Status)
 				err := executeStep(st, currentStepState, resources, c)

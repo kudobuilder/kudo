@@ -8,3 +8,4 @@ status:
   planStatus:
     - name: upgrade
       status: COMPLETE
+    - name: upgrade

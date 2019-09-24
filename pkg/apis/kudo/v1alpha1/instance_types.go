@@ -16,7 +16,10 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -148,8 +151,8 @@ func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) erro
 	if i.NoPlanEverExecuted() {
 		i.EnsurePlanStatusInitialized(ov)
 	}
-	// TODO: save snapshot of instance
-	// update status of the instance to reflect the newly startin plan
+
+	// update status of the instance to reflect the newly starting plan
 	notFound := true
 	for i1, v := range i.Status.PlanStatus {
 		if v.Name == planName {
@@ -158,7 +161,7 @@ func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) erro
 			i.Status.PlanStatus[i1].Status = ExecutionPending
 			for i2, p := range v.Phases {
 				i.Status.PlanStatus[i1].Phases[i2].Status = ExecutionPending
-				for i3, _ := range p.Steps {
+				for i3 := range p.Steps {
 					i.Status.PlanStatus[i1].Phases[i2].Steps[i3].Status = ExecutionPending
 				}
 			}
@@ -170,10 +173,18 @@ func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) erro
 			break
 		}
 	}
-
 	if notFound {
 		return fmt.Errorf("asked to execute a plan %s but no such plan found in instance %s/%s", planName, i.Namespace, i.Name)
 	}
+
+	// save snapshot prior to execution for plans requiring snapshot
+	if planName == "deploy" || planName == "update" || planName == "upgrade" {
+		err := i.SaveSnapshot()
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -188,6 +199,77 @@ func (i *Instance) UpdateInstanceStatus(planStatus *PlanStatus) {
 			}
 		}
 	}
+}
+
+const snapshotAnnotation = "kudo.dev/last-applied-instance-state"
+
+// SaveSnapshot stores the current spec of Instance into the snapshot annotation
+// this information is used when executing update/upgrade plans, this overrides any snapshot that existed before
+func (i *Instance) SaveSnapshot() error {
+	jsonBytes, err := json.Marshal(i.Spec)
+	if err != nil {
+		return err
+	}
+	if i.Annotations == nil {
+		i.Annotations = make(map[string]string)
+	}
+	i.Annotations[snapshotAnnotation] = string(jsonBytes)
+	return nil
+}
+
+func (i *Instance) getSnapshotedSpec() (*InstanceSpec, error) {
+	if i.Annotations != nil {
+		snapshot, ok := i.Annotations[snapshotAnnotation]
+		if ok {
+			var spec *InstanceSpec = nil
+			err := json.Unmarshal([]byte(snapshot), &spec)
+			if err != nil {
+				return nil, err
+			}
+			return spec, nil
+		}
+	}
+	return nil, nil
+}
+
+func selectPlan(possiblePlans []string, ov *OperatorVersion) *string {
+	for _, n := range possiblePlans {
+		if _, ok := ov.Spec.Plans[n]; ok {
+			return kudo.String(n)
+		}
+	}
+	return nil
+}
+
+// GetPlanToBeExecuted returns name of the plan that should be executed
+func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
+	if i.GetPlanInProgress() != nil { // we're already running some plan
+		return nil, nil
+	}
+
+	// new instance, need to run deploy plan
+	if i.NoPlanEverExecuted() {
+		return kudo.String("deploy"), nil
+	}
+
+	// did the instance change so that we need to run deploy/upgrade/update plan?
+	instanceSnapshot, err := i.getSnapshotedSpec()
+	if err != nil {
+		return nil, err
+	}
+	if instanceSnapshot.OperatorVersion.Name != i.Spec.OperatorVersion.Name || instanceSnapshot.OperatorVersion.Namespace != i.Spec.OperatorVersion.Namespace {
+		// this instance was upgraded
+		plan := selectPlan([]string{"upgrade", "update", "deploy"}, ov)
+		if plan == nil {
+			return nil, fmt.Errorf("supposed to execute plan because instance %s/%s was upgraded but none of the deploy, upgrade, update plans found in linked operatorVersion", i.Namespace, i.Name)
+		}
+		return plan, nil
+	}
+	if reflect.DeepEqual(instanceSnapshot.Parameters, i.Spec.Parameters) {
+		// instance updated
+	}
+	// make sure that plan exists in OV
+	return nil, nil
 }
 
 // +genclient
