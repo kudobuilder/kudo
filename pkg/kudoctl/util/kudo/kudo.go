@@ -238,7 +238,7 @@ func (c *Client) InstallInstanceObjToCluster(obj *v1alpha1.Instance, namespace s
 	return createdObj, nil
 }
 
-// DeleteInstace deletes an instance.
+// DeleteInstance deletes an instance.
 func (c *Client) DeleteInstance(instanceName, namespace string) error {
 	propagationPolicy := v1.DeletePropagationForeground
 	options := &v1.DeleteOptions{
