@@ -55,9 +55,7 @@ spec:
     Kubernetes.
   caveats: |
     Requires the KUDO controller to be installed:
-      kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.4.0/docs/deployment/00-prereqs.yaml
-      kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.4.0/docs/deployment/10-crds.yaml
-      kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.4.0/docs/deployment/20-deployment.yaml
+      kubectl init
     Example usage:
       Install kafka:
         kubectl kudo install kafka
