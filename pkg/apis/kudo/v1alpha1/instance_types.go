@@ -18,8 +18,9 @@ package v1alpha1
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"reflect"
+
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -221,7 +222,7 @@ func (i *Instance) getSnapshotedSpec() (*InstanceSpec, error) {
 	if i.Annotations != nil {
 		snapshot, ok := i.Annotations[snapshotAnnotation]
 		if ok {
-			var spec *InstanceSpec = nil
+			var spec *InstanceSpec
 			err := json.Unmarshal([]byte(snapshot), &spec)
 			if err != nil {
 				return nil, err
@@ -232,6 +233,7 @@ func (i *Instance) getSnapshotedSpec() (*InstanceSpec, error) {
 	return nil, nil
 }
 
+// selectPlan returns nil if none of the plan exists, otherwise the first one in list that exists
 func selectPlan(possiblePlans []string, ov *OperatorVersion) *string {
 	for _, n := range possiblePlans {
 		if _, ok := ov.Spec.Plans[n]; ok {
@@ -258,7 +260,7 @@ func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
 		return nil, err
 	}
 	if instanceSnapshot.OperatorVersion.Name != i.Spec.OperatorVersion.Name || instanceSnapshot.OperatorVersion.Namespace != i.Spec.OperatorVersion.Namespace {
-		// this instance was upgraded
+		// this instance was upgraded to newer version
 		plan := selectPlan([]string{"upgrade", "update", "deploy"}, ov)
 		if plan == nil {
 			return nil, fmt.Errorf("supposed to execute plan because instance %s/%s was upgraded but none of the deploy, upgrade, update plans found in linked operatorVersion", i.Namespace, i.Name)
@@ -267,9 +269,60 @@ func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
 	}
 	if reflect.DeepEqual(instanceSnapshot.Parameters, i.Spec.Parameters) {
 		// instance updated
+		paramDiff := parameterDifference(instanceSnapshot.Parameters, i.Spec.Parameters)
+		paramDefinitions := getParamDefinitions(paramDiff, ov)
+		plan := planNameFromParameters(paramDefinitions, ov)
+		if plan == nil {
+			return nil, fmt.Errorf("supposed to execute plan because instance %s/%s was updatet but none of the deploy, update plans found in linked operatorVersion", i.Namespace, i.Name)
+		}
+		return plan, nil
 	}
-	// make sure that plan exists in OV
 	return nil, nil
+}
+
+// planNameFromParameters determines what plan to run based on params that changed and the related trigger plans
+func planNameFromParameters(params []Parameter, ov *OperatorVersion) *string {
+	for _, p := range params {
+		// TODO: if the params have different trigger plans, we always select first here which might not be ideal
+		if p.Trigger != "" && selectPlan([]string{p.Trigger}, ov) != nil {
+			return kudo.String(p.Trigger)
+		}
+	}
+	return selectPlan([]string{"update", "deploy"}, ov)
+}
+
+// getParamDefinitions retrieves parameter metadata from OperatorVersion CRD
+func getParamDefinitions(params map[string]string, ov *OperatorVersion) []Parameter {
+	defs := make([]Parameter, 0)
+	for p1 := range params {
+		for _, p2 := range ov.Spec.Parameters {
+			if p2.Name == p1 {
+				defs = append(defs, p2)
+			}
+		}
+	}
+	return defs
+}
+
+// parameterDifference returns map containing all parameters that were removed or changed between old and new
+func parameterDifference(old, new map[string]string) map[string]string {
+	diff := make(map[string]string)
+
+	for key, val := range old {
+		// If a parameter was removed in the new spec
+		if _, ok := new[key]; !ok {
+			diff[key] = val
+		}
+	}
+
+	for key, val := range new {
+		// If new spec parameter was added or changed
+		if v, ok := old[key]; !ok || v != val {
+			diff[key] = val
+		}
+	}
+
+	return diff
 }
 
 // +genclient
