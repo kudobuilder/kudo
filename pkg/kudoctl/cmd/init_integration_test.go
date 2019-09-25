@@ -7,8 +7,10 @@ import (
 	"context"
 	"log"
 	"os"
+	"strings"
 	"testing"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	cmdinit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 
@@ -73,6 +75,51 @@ func TestIntegInitForCRDs(t *testing.T) {
 
 	// make sure that we can create an object of this type now
 	assert.Nil(t, testClient.Create(context.TODO(), instance))
+}
+
+func TestNoErrorOnReInit(t *testing.T) {
+	//	 if the CRD exists and we init again there should be no error
+	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
+		Scheme: testutils.Scheme(),
+	})
+	assert.Nil(t, err)
+	kclient := getKubeClient(t)
+
+	instance := testutils.NewResource("kudo.dev/v1alpha1", "Instance", "zk", "ns")
+	// Verify that we cannot create the instance, because the test environment is empty.
+	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
+
+	// Install all of the CRDs.
+	crds := cmdinit.CRDs()
+	defer deleteInitObjects(testClient)
+
+	var buf bytes.Buffer
+	clog.InitNoFlag(&buf, clog.Level(4))
+	defer func() { clog.InitNoFlag(&buf, clog.Level(0)) }()
+
+	cmd := &initCmd{
+		out:     &buf,
+		fs:      afero.NewMemMapFs(),
+		client:  kclient,
+		crdOnly: true,
+	}
+	err = cmd.run()
+	assert.Nil(t, err)
+
+	// WaitForCRDs to be created... the init cmd did NOT wait
+	assert.Nil(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+
+	//	 if the CRD exists and we init again there should be no error
+	testClient, err = testutils.NewRetryClient(testenv.Config, client.Options{
+		Scheme: testutils.Scheme(),
+	})
+	assert.Nil(t, err)
+	kclient = getKubeClient(t)
+
+	// second run will have an output that it already exists
+	err = cmd.run()
+	assert.Nil(t, err)
+	assert.True(t, strings.Contains(buf.String(), "crd operators.kudo.dev already exists"))
 }
 
 func deleteInitObjects(client *testutils.RetryClient) {

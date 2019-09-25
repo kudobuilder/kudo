@@ -117,6 +117,13 @@ func Init(f *pflag.FlagSet, out io.Writer) {
 	logging.out = out
 }
 
+// InitNoFlag initializes without CLI flag which means the level must be initialized
+// useful for tests
+func InitNoFlag(out io.Writer, level Level) {
+	logging.verbosity.set(level)
+	logging.out = out
+}
+
 // Printf provides default level printing for things that will always print
 func Printf(format string, args ...interface{}) {
 	V(0).Printf(format, args...)

@@ -1,12 +1,15 @@
 package init
 
 import (
+	"errors"
 	"strings"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,24 +38,49 @@ func installCrds(client apiextensionsclient.Interface) error {
 func installOperator(client v1beta1.CustomResourceDefinitionsGetter) error {
 	o := generateOperator()
 	_, err := client.CustomResourceDefinitions().Create(o)
+	if isAlreadyExistsError(err) {
+		clog.V(4).Printf("crd %v already exists", o.Name)
+		return nil
+	}
 	return err
+
+}
+
+func isAlreadyExistsError(err error) bool {
+	var statusError *kerrors.StatusError
+	if errors.As(err, &statusError) {
+		return statusError.ErrStatus.Reason == "AlreadyExists"
+	}
+	return false
 }
 
 func installOperatorVersion(client v1beta1.CustomResourceDefinitionsGetter) error {
 	ov := generateOperatorVersion()
 	_, err := client.CustomResourceDefinitions().Create(ov)
+	if isAlreadyExistsError(err) {
+		clog.V(4).Printf("crd %v already exists", ov.Name)
+		return nil
+	}
 	return err
 }
 
 func installInstance(client v1beta1.CustomResourceDefinitionsGetter) error {
 	instance := generateInstance()
 	_, err := client.CustomResourceDefinitions().Create(instance)
+	if isAlreadyExistsError(err) {
+		clog.V(4).Printf("crd %v already exists", instance.Name)
+		return nil
+	}
 	return err
 }
 
 func installPlanExecution(client v1beta1.CustomResourceDefinitionsGetter) error {
 	pe := generatePlanExecution()
 	_, err := client.CustomResourceDefinitions().Create(pe)
+	if isAlreadyExistsError(err) {
+		clog.V(4).Printf("crd %v already exists", pe.Name)
+		return nil
+	}
 	return err
 }
 
