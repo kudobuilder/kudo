@@ -1,6 +1,7 @@
 package init
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
@@ -46,10 +47,8 @@ func installOperator(client v1beta1.CustomResourceDefinitionsGetter) error {
 }
 
 func isAlreadyExistsError(err error) bool {
-	// new go 1.13 approach of errors.As fails with "errors: *target must be interface or implement error" apparently StatusError doesn't fully implement error
-	// var statusError kerrors.StatusError
-	// if errors.As(err, &statusError) {  // panics :(
-	if statusError, isStatus := err.(*kerrors.StatusError); isStatus {
+	var statusError *kerrors.StatusError
+	if errors.As(err, &statusError) {
 		return statusError.ErrStatus.Reason == "AlreadyExists"
 	}
 	return false
