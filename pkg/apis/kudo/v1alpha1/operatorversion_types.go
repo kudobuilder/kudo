@@ -16,6 +16,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"github.com/kudobuilder/kudo/pkg/engine"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -28,8 +29,8 @@ type OperatorVersionSpec struct {
 	Version  string                 `json:"version,omitempty"`
 
 	// Yaml captures a templated yaml list of elements that define the application operator instance.
-	Templates map[string]string   `json:"templates,omitempty"`
-	Tasks     map[string]TaskSpec `json:"tasks,omitempty"`
+	Templates map[string]string      `json:"templates,omitempty"`
+	Tasks     map[string]engine.Task `json:"tasks,omitempty"`
 
 	Parameters []Parameter `json:"parameters,omitempty"`
 
@@ -95,11 +96,6 @@ type Parameter struct {
 
 }
 
-// TaskSpec is a struct containing lists of Kustomize resources.
-type TaskSpec struct {
-	Resources []string `json:"resources"`
-}
-
 // Phase specifies a list of steps that contain Kubernetes objects.
 type Phase struct {
 	Name     string   `json:"name" validate:"required"`     // makes field mandatory and checks if set and non empty
@@ -139,7 +135,6 @@ type OperatorVersion struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // OperatorVersionList contains a list of OperatorVersion.
 type OperatorVersionList struct {
 	metav1.TypeMeta `json:",inline"`

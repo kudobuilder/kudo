@@ -26,7 +26,7 @@ type activePlan struct {
 	Name string
 	*v1alpha1.PlanStatus
 	Spec      *v1alpha1.Plan
-	Tasks     map[string]v1alpha1.TaskSpec
+	Tasks     map[string]kudoengine.Task
 	Templates map[string]string
 	params    map[string]string
 }
