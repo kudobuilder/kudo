@@ -121,7 +121,9 @@ func newUninstallCmd() *cobra.Command {
 	}
 
 	uninstallCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name.")
-	uninstallCmd.MarkFlagRequired("instance")
+	if err := uninstallCmd.MarkFlagRequired("instance"); err != nil {
+		panic(err)
+	}
 	uninstallCmd.Flags().BoolVar(&options.Purge, "purge", false, "If set, the Operator and OperatorVersion of the instance will be removed as well. (default \"false\")")
 
 	return uninstallCmd
