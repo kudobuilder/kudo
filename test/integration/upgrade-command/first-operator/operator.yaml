@@ -8,7 +8,7 @@ url: https://kudo.dev
 tasks:
   app:
     resources:
-      - deployment.yaml
+      - pod.yaml
 plans:
   deploy:
     strategy: serial

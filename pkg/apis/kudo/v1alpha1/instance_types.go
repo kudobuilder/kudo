@@ -18,10 +18,9 @@ package v1alpha1
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"log"
 	"reflect"
-
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -122,8 +121,11 @@ func (i *Instance) NoPlanEverExecuted() bool {
 
 // EnsurePlanStatusInitialized initializes plan status for all plans this instance supports
 // it does not trigger run of any plan
+// it either initializes everything for a fresh instance without any status or tries to adjust status after OV was updated
 func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
-	i.Status.PlanStatus = make(map[string]PlanStatus)
+	if i.Status.PlanStatus == nil {
+		i.Status.PlanStatus = make(map[string]PlanStatus)
+	}
 
 	for planName, plan := range ov.Spec.Plans {
 		planStatus := &PlanStatus{
@@ -131,17 +133,40 @@ func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
 			Status: ExecutionNeverRun,
 			Phases: make([]PhaseStatus, 0),
 		}
+
+		existingPlanStatus, planExists := i.Status.PlanStatus[planName]
+		if planExists {
+			planStatus.Status = existingPlanStatus.Status
+		}
 		for _, phase := range plan.Phases {
 			phaseStatus := &PhaseStatus{
 				Name:   phase.Name,
 				Status: ExecutionNeverRun,
 				Steps:  make([]StepStatus, 0),
 			}
+			existingPhaseStatus, phaseExists := PhaseStatus{}, false
+			if planExists {
+				for _, oldPhase := range existingPlanStatus.Phases {
+					if phase.Name == oldPhase.Name {
+						existingPhaseStatus = oldPhase
+						phaseExists = true
+						phaseStatus.Status = existingPhaseStatus.Status
+					}
+				}
+			}
 			for _, step := range phase.Steps {
-				phaseStatus.Steps = append(phaseStatus.Steps, StepStatus{
+				stepStatus := StepStatus{
 					Name:   step.Name,
 					Status: ExecutionNeverRun,
-				})
+				}
+				if phaseExists {
+					for _, oldStep := range existingPhaseStatus.Steps {
+						if step.Name == oldStep.Name {
+							stepStatus.Status = oldStep.Status
+						}
+					}
+				}
+				phaseStatus.Steps = append(phaseStatus.Steps, stepStatus)
 			}
 			planStatus.Phases = append(planStatus.Phases, *phaseStatus)
 		}
@@ -151,7 +176,7 @@ func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
 
 // StartPlanExecution mark plan as to be executed
 func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) error {
-	if i.NoPlanEverExecuted() {
+	if i.NoPlanEverExecuted() || isUpgradePlan(planName) {
 		i.EnsurePlanStatusInitialized(ov)
 	}
 
@@ -190,6 +215,11 @@ func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) erro
 	}
 
 	return nil
+}
+
+// isUpgradePlan returns true if this could be an upgrade plan - this is just an approximation because deploy plan can be used for both
+func isUpgradePlan(planName string) bool {
+	return planName == "deploy" || planName == "upgrade"
 }
 
 // UpdateInstanceStatus updates `Status.PlanStatus` and `Status.AggregatedStatus` property based on the given plan

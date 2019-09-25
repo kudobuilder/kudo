@@ -6,10 +6,10 @@ spec:
   operatorVersion:
     name: upgrade-operator-0.2.0
   parameters:
-    replicas: "4"
+    version: 1.7.10
 status:
   aggregatedStatus:
     status: COMPLETE
-    planStatus:
-      upgrade:
-        status: COMPLETE
+  planStatus:
+    upgrade:
+      status: COMPLETE
