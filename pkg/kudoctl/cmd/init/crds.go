@@ -38,12 +38,12 @@ func installCrds(client apiextensionsclient.Interface) error {
 func installOperator(client v1beta1.CustomResourceDefinitionsGetter) error {
 	o := generateOperator()
 	_, err := client.CustomResourceDefinitions().Create(o)
-	if !isAlreadyExistsError(err) {
-		return err
+	if isAlreadyExistsError(err) {
+		clog.V(4).Printf("crd %v already exists", o.Name)
+		return nil
 	}
+	return err
 
-	clog.V(4).Printf("crd %v already exists", o.Name)
-	return nil
 }
 
 func isAlreadyExistsError(err error) bool {
@@ -57,31 +57,31 @@ func isAlreadyExistsError(err error) bool {
 func installOperatorVersion(client v1beta1.CustomResourceDefinitionsGetter) error {
 	ov := generateOperatorVersion()
 	_, err := client.CustomResourceDefinitions().Create(ov)
-	if !isAlreadyExistsError(err) {
-		return err
+	if isAlreadyExistsError(err) {
+		clog.V(4).Printf("crd %v already exists", ov.Name)
+		return nil
 	}
-	clog.V(4).Printf("crd %v already exists", ov.Name)
-	return nil
+	return err
 }
 
 func installInstance(client v1beta1.CustomResourceDefinitionsGetter) error {
 	instance := generateInstance()
 	_, err := client.CustomResourceDefinitions().Create(instance)
-	if !isAlreadyExistsError(err) {
-		return err
+	if isAlreadyExistsError(err) {
+		clog.V(4).Printf("crd %v already exists", instance.Name)
+		return nil
 	}
-	clog.V(4).Printf("crd %v already exists", instance.Name)
-	return nil
+	return err
 }
 
 func installPlanExecution(client v1beta1.CustomResourceDefinitionsGetter) error {
 	pe := generatePlanExecution()
 	_, err := client.CustomResourceDefinitions().Create(pe)
-	if !isAlreadyExistsError(err) {
-		return err
+	if isAlreadyExistsError(err) {
+		clog.V(4).Printf("crd %v already exists", pe.Name)
+		return nil
 	}
-	clog.V(4).Printf("crd %v already exists", pe.Name)
-	return nil
+	return err
 }
 
 // operatorCrd provides the Operator CRD manifest for printing

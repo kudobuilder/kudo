@@ -35,45 +35,41 @@ func installPrereqs(client kubernetes.Interface, opts Options) error {
 func installSecret(client corev1.SecretsGetter, opts Options) error {
 	secret := generateWebHookSecret(opts)
 	_, err := client.Secrets(opts.Namespace).Create(secret)
-	if !isAlreadyExistsError(err) {
-		return err
+	if isAlreadyExistsError(err) {
+		clog.V(4).Printf("secret %v already exists", secret.Name)
+		return nil
 	}
-
-	clog.V(4).Printf("secret %v already exists", secret.Name)
-	return nil
+	return err
 }
 
 func installRoleBindings(client kubernetes.Interface, opts Options) error {
 	rbac := generateRoleBinding(opts)
 	_, err := client.RbacV1().ClusterRoleBindings().Create(rbac)
-	if !isAlreadyExistsError(err) {
-		return err
+	if isAlreadyExistsError(err) {
+		clog.V(4).Printf("role binding %v already exists", rbac.Name)
+		return nil
 	}
-
-	clog.V(4).Printf("role binding %v already exists", rbac.Name)
-	return nil
+	return err
 }
 
 func installNamespace(client corev1.NamespacesGetter, opts Options) error {
 	ns := generateSysNamespace(opts.Namespace)
 	_, err := client.Namespaces().Create(ns)
-	if !isAlreadyExistsError(err) {
-		return err
+	if isAlreadyExistsError(err) {
+		clog.V(4).Printf("namespace %v already exists", ns.Name)
+		return nil
 	}
-
-	clog.V(4).Printf("namespace %v already exists", ns.Name)
-	return nil
+	return err
 }
 
 func installServiceAccount(client corev1.ServiceAccountsGetter, opts Options) error {
 	sa := generateServiceAccount(opts)
 	_, err := client.ServiceAccounts(opts.Namespace).Create(sa)
-	if !isAlreadyExistsError(err) {
-		return err
+	if isAlreadyExistsError(err) {
+		clog.V(4).Printf("service account %v already exists", sa.Name)
+		return nil
 	}
-
-	clog.V(4).Printf("service account %v already exists", sa.Name)
-	return nil
+	return err
 }
 
 // generateSysNamespace builds the system namespace
