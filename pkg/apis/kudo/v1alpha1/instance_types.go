@@ -183,12 +183,10 @@ func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) erro
 		return fmt.Errorf("asked to execute a plan %s but no such plan found in instance %s/%s", planName, i.Namespace, i.Name)
 	}
 
-	// save snapshot prior to execution for plans requiring snapshot
-	if planName == "deploy" || planName == "update" || planName == "upgrade" {
-		err := i.SaveSnapshot()
-		if err != nil {
-			return err
-		}
+	// TODO in the future when we again support manual plan execution, snapshot should be saved only non non-manually executed plans
+	err := i.SaveSnapshot()
+	if err != nil {
+		return err
 	}
 
 	return nil

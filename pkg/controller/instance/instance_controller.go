@@ -34,6 +34,7 @@ import (
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -49,7 +50,7 @@ type Reconciler struct {
 // SetupWithManager registers this reconciler with the controller manager
 func (r *Reconciler) SetupWithManager(
 	mgr ctrl.Manager) error {
-	ovEventHandler := handler.ToRequestsFunc(
+	addOvRelatedInstancesToReconcile := handler.ToRequestsFunc(
 		func(a handler.MapObject) []reconcile.Request {
 			requests := make([]reconcile.Request, 0)
 			instances := &kudov1alpha1.InstanceList{}
@@ -82,9 +83,11 @@ func (r *Reconciler) SetupWithManager(
 		For(&kudov1alpha1.Instance{}).
 		Owns(&kudov1alpha1.Instance{}).
 		Owns(&appsv1.Deployment{}).
+		Owns(&corev1.Service{}).
 		Owns(&batchv1.Job{}).
 		Owns(&appsv1.StatefulSet{}).
-		Watches(&source.Kind{Type: &kudov1alpha1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: ovEventHandler}).Complete(r)
+		Watches(&source.Kind{Type: &kudov1alpha1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: addOvRelatedInstancesToReconcile}).
+		Complete(r)
 }
 
 // Reconcile ...
