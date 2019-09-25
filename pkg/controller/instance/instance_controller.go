@@ -19,6 +19,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -46,13 +48,42 @@ type Reconciler struct {
 // SetupWithManager registers this reconciler with the controller manager
 func (r *Reconciler) SetupWithManager(
 	mgr ctrl.Manager) error {
+	ovEventHandler := handler.ToRequestsFunc(
+		func(a handler.MapObject) []reconcile.Request {
+			requests := make([]reconcile.Request, 0)
+			instances := &kudov1alpha1.InstanceList{}
+			// we are listing all instances here, which could come with some performance penalty
+			// a possible optimization is to introduce filtering based on operatorversion (or operator)
+			err := mgr.GetClient().List(
+				context.TODO(),
+				instances,
+			)
+			if err != nil {
+				log.Printf("InstanceController: Error fetching instances list for operator %v: %v", a.Meta.GetName(), err)
+				return nil
+			}
+			for _, instance := range instances.Items {
+				// Sanity check - lets make sure that this instance references the operatorVersion
+				if instance.Spec.OperatorVersion.Name == a.Meta.GetName() &&
+					instance.GetOperatorVersionNamespace() == a.Meta.GetNamespace() {
+					requests = append(requests, reconcile.Request{
+						NamespacedName: types.NamespacedName{
+							Name:      instance.Name,
+							Namespace: instance.Namespace,
+						},
+					})
+				}
+			}
+			return requests
+		})
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kudov1alpha1.Instance{}).
 		Owns(&kudov1alpha1.Instance{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&batchv1.Job{}).
 		Owns(&appsv1.StatefulSet{}).
-		Complete(r)
+		Watches(&source.Kind{Type: &kudov1alpha1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: ovEventHandler}).Complete(r)
 }
 
 // Reconcile ...
@@ -84,6 +115,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 	if planToBeExecuted != nil {
+		log.Printf("InstanceController: Going to start execution of plan %s on instance %s/%s", kudo.StringValue(planToBeExecuted), instance.Namespace, instance.Name)
 		err = instance.StartPlanExecution(kudo.StringValue(planToBeExecuted), ov)
 		if err != nil {
 			return reconcile.Result{}, r.handleError(err, instance)

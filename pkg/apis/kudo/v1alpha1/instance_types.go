@@ -18,6 +18,7 @@ package v1alpha1
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"reflect"
 
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
@@ -261,14 +262,16 @@ func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
 	}
 	if instanceSnapshot.OperatorVersion.Name != i.Spec.OperatorVersion.Name || instanceSnapshot.OperatorVersion.Namespace != i.Spec.OperatorVersion.Namespace {
 		// this instance was upgraded to newer version
+		log.Printf("Instance: instance %s/%s was upgraded from %s to %s operatorversion", i.Namespace, i.Name, instanceSnapshot.OperatorVersion.Name, i.Spec.OperatorVersion.Name)
 		plan := selectPlan([]string{"upgrade", "update", "deploy"}, ov)
 		if plan == nil {
 			return nil, fmt.Errorf("supposed to execute plan because instance %s/%s was upgraded but none of the deploy, upgrade, update plans found in linked operatorVersion", i.Namespace, i.Name)
 		}
 		return plan, nil
 	}
-	if reflect.DeepEqual(instanceSnapshot.Parameters, i.Spec.Parameters) {
+	if !reflect.DeepEqual(instanceSnapshot.Parameters, i.Spec.Parameters) {
 		// instance updated
+		log.Printf("Instance: instance %s/%s has updated parameters from %v to %v", i.Namespace, i.Name, instanceSnapshot.Parameters, i.Spec.Parameters)
 		paramDiff := parameterDifference(instanceSnapshot.Parameters, i.Spec.Parameters)
 		paramDefinitions := getParamDefinitions(paramDiff, ov)
 		plan := planNameFromParameters(paramDefinitions, ov)

@@ -6,6 +6,6 @@ status:
   aggregatedStatus:
     status: COMPLETE
   planStatus:
+    - name: deploy
     - name: upgrade
       status: COMPLETE
-    - name: upgrade
