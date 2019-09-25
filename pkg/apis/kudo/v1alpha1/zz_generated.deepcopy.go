@@ -243,9 +243,9 @@ func (in *InstanceStatus) DeepCopyInto(out *InstanceStatus) {
 	*out = *in
 	if in.PlanStatus != nil {
 		in, out := &in.PlanStatus, &out.PlanStatus
-		*out = make([]PlanStatus, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
+		*out = make(map[string]PlanStatus, len(*in))
+		for key, val := range *in {
+			(*out)[key] = *val.DeepCopy()
 		}
 	}
 	out.AggregatedStatus = in.AggregatedStatus

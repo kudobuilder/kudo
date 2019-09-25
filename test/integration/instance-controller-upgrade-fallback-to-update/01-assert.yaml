@@ -6,5 +6,5 @@ status:
   aggregatedStatus:
     status: COMPLETE
   planStatus:
-    - name: update
+    update:
       status: COMPLETE

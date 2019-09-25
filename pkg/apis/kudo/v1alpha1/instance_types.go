@@ -37,8 +37,9 @@ type InstanceSpec struct {
 
 // InstanceStatus defines the observed state of Instance
 type InstanceStatus struct {
-	PlanStatus       []PlanStatus     `json:"planStatus,omitempty"`
-	AggregatedStatus AggregatedStatus `json:"aggregatedStatus,omitempty"`
+	// slice would be enough here but we cannot use slice because order of sequence in yaml is considered significant while here it's not
+	PlanStatus       map[string]PlanStatus `json:"planStatus,omitempty"`
+	AggregatedStatus AggregatedStatus      `json:"aggregatedStatus,omitempty"`
 }
 
 // AggregatedStatus is overview of an instance status derived from the plan status
@@ -122,7 +123,7 @@ func (i *Instance) NoPlanEverExecuted() bool {
 // EnsurePlanStatusInitialized initializes plan status for all plans this instance supports
 // it does not trigger run of any plan
 func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
-	i.Status.PlanStatus = make([]PlanStatus, 0)
+	i.Status.PlanStatus = make(map[string]PlanStatus)
 
 	for planName, plan := range ov.Spec.Plans {
 		planStatus := &PlanStatus{
@@ -144,7 +145,7 @@ func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
 			}
 			planStatus.Phases = append(planStatus.Phases, *phaseStatus)
 		}
-		i.Status.PlanStatus = append(i.Status.PlanStatus, *planStatus)
+		i.Status.PlanStatus[planName] = *planStatus
 	}
 }
 
@@ -156,17 +157,20 @@ func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) erro
 
 	// update status of the instance to reflect the newly starting plan
 	notFound := true
-	for i1, v := range i.Status.PlanStatus {
+	for n1, v := range i.Status.PlanStatus {
 		if v.Name == planName {
 			// update plan status
 			notFound = false
-			i.Status.PlanStatus[i1].Status = ExecutionPending
+			planStatus := i.Status.PlanStatus[n1]
+			planStatus.Status = ExecutionPending
 			for i2, p := range v.Phases {
-				i.Status.PlanStatus[i1].Phases[i2].Status = ExecutionPending
+				planStatus.Phases[i2].Status = ExecutionPending
 				for i3 := range p.Steps {
-					i.Status.PlanStatus[i1].Phases[i2].Steps[i3].Status = ExecutionPending
+					i.Status.PlanStatus[n1].Phases[i2].Steps[i3].Status = ExecutionPending
 				}
 			}
+
+			i.Status.PlanStatus[n1] = planStatus // we cannot modify item in map, we need to reassign here
 
 			// update activePlan and instance status
 			i.Status.AggregatedStatus.Status = ExecutionPending

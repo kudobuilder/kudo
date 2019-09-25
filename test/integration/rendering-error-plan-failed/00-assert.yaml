@@ -6,7 +6,7 @@ status:
   aggregatedStatus:
     status: FATAL_ERROR
   planStatus:
-    - name: deploy
+    deploy:
       status: FATAL_ERROR
       phases:
         - name: invalid-phase

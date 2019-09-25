@@ -14,9 +14,7 @@ status:
   aggregatedStatus:
     status: COMPLETE
   planStatus:
-    - name: scale
-    - name: deploy
-    - name: update
+    update:
       status: COMPLETE
       phases:
         - name: update

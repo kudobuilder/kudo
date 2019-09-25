@@ -19,9 +19,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
+
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 

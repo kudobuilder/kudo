@@ -6,7 +6,5 @@ status:
   aggregatedStatus:
     status: COMPLETE
   planStatus:
-    - status: COMPLETE
-      name: deploy
-    - name: update
-    - name: foo-changed
+    deploy:
+      status: COMPLETE
