@@ -51,12 +51,14 @@ type OperatorVersionSpec struct {
 // Ordering specifies how the subitems in this plan/phase should be rolled out.
 type Ordering string
 
-// Serial specifies that the plans or objects should be created in order. The first should be healthy before
-// continuing on.
-const Serial Ordering = "serial"
+const (
+	// Serial specifies that the plans or objects should be created in order. The first should be healthy before
+	// continuing on.
+	Serial Ordering = "serial"
 
-// Parallel specifies that the plan or objects in the phase can all be launched at the same time.
-const Parallel Ordering = "parallel"
+	// Parallel specifies that the plan or objects in the phase can all be launched at the same time.
+	Parallel Ordering = "parallel"
+)
 
 // Plan specifies a series of Phases that need to be completed.
 type Plan struct {

@@ -4,8 +4,8 @@ import (
 	"testing"
 )
 
-func TestNullTask_Run(t *testing.T) {
-	task := &NullTask{}
+func TestNilTask_Run(t *testing.T) {
+	task := &NilTask{}
 
 	if err := task.Run(); err != nil {
 		t.Error(err)

@@ -16,7 +16,7 @@ package engine
 //	}
 //	for _, tt := range tests {
 //		t.Run(tt.name, func(t *testing.T) {
-//			c := &CreateTask{
+//			c := &ApplyTask{
 //				Resources: tt.fields.Resources,
 //				Client:    tt.fields.Client,
 //			}

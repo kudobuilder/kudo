@@ -1,15 +1,15 @@
 package engine
 
 import (
-	"encoding/json"
 	"errors"
 
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-var (
-	KCreateTask = "create"
-	KNullTask   = "null"
+const (
+	ApplyTaskKind  = "Apply"
+	DeleteTaskKind = "Delete"
+	NilTaskKind    = "Nil"
 )
 
 var (
@@ -28,58 +28,34 @@ type Renderer interface {
 // Task is a global, polymorphic implementation of all publicly available tasks
 // +k8s:deepcopy-gen=true
 type Task struct {
-	Name string `json:"name"`
-	Kind string `json:"kind"`
-	NullTask
-	CreateTask
+	Name string   `json:"name"`
+	Kind string   `json:"kind"`
+	Spec TaskSpec `json:"spec"`
 }
 
-// UnmarshalJSON is a custom JSON unmarshaler that determines the type of task
-func (t *Task) UnmarshalJSON(b []byte) error {
-	var objMap map[string]*json.RawMessage
-	if err := json.Unmarshal(b, &objMap); err != nil {
-		return err
-	}
-
-	var name string
-	if err := json.Unmarshal(*objMap["name"], &name); err != nil {
-		return err
-	}
-	t.Name = name
-
-	var kind string
-	if err := json.Unmarshal(*objMap["kind"], &kind); err != nil {
-		return err
-	}
-	t.Kind = kind
-
-	var spec map[string]interface{}
-	if err := json.Unmarshal(*objMap["spec"], &spec); err != nil {
-		return err
-	}
-
-	switch t.Kind {
-	case KCreateTask:
-		t.CreateTask = CreateTask{}
-	default:
-		return ErrNoValidTaskNames
-	}
-
-	return nil
+// +k8s:deepcopy-gen=true
+type TaskSpec struct {
+	NilTask
+	ApplyTask
+	DeleteTask
 }
 
 // Run is the entrypoint function to run a task, polymorphically determining which task to run and run it
 func (t *Task) Run() error {
 	var task Tasker
 	switch t.Kind {
-	case KCreateTask:
-		task = &CreateTask{
+	case ApplyTaskKind:
+		task = &ApplyTask{
 			Resources: []runtime.Object{},
 		}
 		break
-	case KNullTask:
-		task = &t.NullTask
+	case NilTaskKind:
+		task = &NilTask{}
 		break
+	case DeleteTaskKind:
+		task = &DeleteTask{
+			Resources: []runtime.Object{},
+		}
 	default:
 		return ErrNoValidTaskNames
 	}

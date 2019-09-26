@@ -8,10 +8,9 @@ import (
 
 func TestTask_Run(t1 *testing.T) {
 	type fields struct {
-		Name       string
-		Kind       string
-		NullTask   NullTask
-		CreateTask CreateTask
+		Name string
+		Kind string
+		Spec TaskSpec
 	}
 	tests := []struct {
 		name    string
@@ -19,12 +18,24 @@ func TestTask_Run(t1 *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Run Create Task",
+			name: "Run Apply Task",
 			fields: fields{
-				Name: "createSomeShit",
-				Kind: "create",
-				CreateTask: CreateTask{
-					Resources: []runtime.Object{},
+				Name: "Install",
+				Kind: "Apply",
+				Spec: TaskSpec{
+					ApplyTask: ApplyTask{
+						Resources: []runtime.Object{},
+					},
+				},
+			},
+		},
+		{
+			name: "Run Nil Task",
+			fields: fields{
+				Name: "Do Nothing",
+				Kind: "Nil",
+				Spec: TaskSpec{
+					NilTask: NilTask{},
 				},
 			},
 		},
@@ -32,10 +43,9 @@ func TestTask_Run(t1 *testing.T) {
 	for _, tt := range tests {
 		t1.Run(tt.name, func(t1 *testing.T) {
 			t := &Task{
-				Name:       tt.fields.Name,
-				Kind:       tt.fields.Kind,
-				NullTask:   tt.fields.NullTask,
-				CreateTask: tt.fields.CreateTask,
+				Name: tt.fields.Name,
+				Kind: tt.fields.Kind,
+				Spec: tt.fields.Spec,
 			}
 			if err := t.Run(); (err != nil) != tt.wantErr {
 				t1.Errorf("Run() error = %v, wantErr %v", err, tt.wantErr)
