@@ -1,5 +1,7 @@
 package engine
 
+import "fmt"
+
 type MultiTask struct {
 	InitialInput interface{}
 	Tasks        []TaskBuilder
@@ -10,7 +12,7 @@ func (m *MultiTask) Run(ctx Context) error {
 	var input interface{}
 	input = m.InitialInput
 
-	for _, t := range m.Tasks {
+	for i, t := range m.Tasks {
 		task, err := t(input)
 		if err != nil {
 			return err
@@ -21,8 +23,14 @@ func (m *MultiTask) Run(ctx Context) error {
 			return err
 		}
 
-		if op, ok := task.(Outputter); ok {
+		op, ok := task.(Outputter)
+		if ok {
 			input = op.Output()
+		}
+
+		fmt.Println(i, len(m.Tasks))
+		if i+1 == len(m.Tasks) && ok {
+			m.lastOutput = input
 		}
 	}
 

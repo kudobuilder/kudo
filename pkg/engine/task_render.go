@@ -16,7 +16,7 @@ type RenderTask struct {
 }
 
 func RenderTaskBuilder(input interface{}) (Tasker, error) {
-	if coerced, ok := input.(templates); ok {
+	if coerced, ok := input.([]string); ok {
 		return &RenderTask{Templates: coerced}, nil
 	}
 	return nil, errors.New("RenderTaskBuilder: could not coerce input to templates (type []string)")

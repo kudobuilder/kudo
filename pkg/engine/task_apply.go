@@ -31,13 +31,20 @@ func (c *ApplyTask) Run(ctx Context) error {
 		},
 	}
 
-	pipeline.Run(ctx)
+	err := pipeline.Run(ctx)
+	fmt.Println(err)
 
-	kubernetesTask := &KubernetesTask{
-		Op: "apply",
-	}
+	fmt.Println(pipeline.Output())
 
-	return kubernetesTask.Run(ctx)
+	return nil
+
+	//pipeline.Run(ctx)
+	//
+	//kubernetesTask := &KubernetesTask{
+	//	Op: "apply",
+	//}
+	//
+	//return kubernetesTask.Run(ctx)
 
 	// run Renderable task (resolves and templates a bunch resources)
 	// run Kubernetes task (actually performs the Kubernetes op)

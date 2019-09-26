@@ -38,6 +38,7 @@ func TestTask_Run(t1 *testing.T) {
 			},
 		},
 	}
+	ctx := Context{}
 	for _, tt := range tests {
 		t1.Run(tt.name, func(t1 *testing.T) {
 			t := &Task{
@@ -45,7 +46,7 @@ func TestTask_Run(t1 *testing.T) {
 				Kind: tt.fields.Kind,
 				Spec: tt.fields.Spec,
 			}
-			if err := t.Run(); (err != nil) != tt.wantErr {
+			if err := t.Run(ctx); (err != nil) != tt.wantErr {
 				t1.Errorf("Run() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

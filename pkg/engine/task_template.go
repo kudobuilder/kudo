@@ -9,7 +9,7 @@ type TemplateTask struct {
 }
 
 func TemplateTaskBuilder(input interface{}) (Tasker, error) {
-	if coerced, ok := input.(templates); ok {
+	if coerced, ok := input.([]string); ok {
 		return &TemplateTask{Templates: coerced}, nil
 	}
 	return nil, errors.New("TemplateTaskBuilder: could not coerce input to templates (type []string)")
