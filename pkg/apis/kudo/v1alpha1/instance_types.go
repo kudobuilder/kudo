@@ -417,6 +417,7 @@ func init() {
 	SchemeBuilder.Register(&Instance{}, &InstanceList{})
 }
 
+// InstanceError indicates error on that can also emit a kubernetes warn event
 type InstanceError struct {
 	err       error
 	EventName *string // nil if no warn event should be created
