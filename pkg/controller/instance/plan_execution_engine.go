@@ -56,7 +56,7 @@ type executionMetadata struct {
 // the next step could consist of actually executing multiple steps of the plan or just one depending on the execution strategy of the phase (serial/parallel)
 // result of running this function is new state of the execution that is returned to the caller (it can either be completed, or still in progress or errored)
 // in case of error, error is returned along with the state as well (so that it's possible to report which step caused the error)
-// in case of error, method returns executionError which has property to indicate unrecoverable error meaning if there is no point in retrying that execution
+// in case of error, method returns ErrorStatus which has property to indicate unrecoverable error meaning if there is no point in retrying that execution
 func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client, renderer kubernetesObjectEnhancer) (*v1alpha1.PlanStatus, error) {
 	if plan.Status.IsTerminal() {
 		log.Printf("PlanExecution: Plan %s for instance %s is terminal, nothing to do", plan.Name, metadata.instanceName)
@@ -73,7 +73,7 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 		if errors.As(err, &exErr) {
 			newState.Status = v1alpha1.ExecutionFatalError
 		} else {
-			newState.Status = v1alpha1.ExecutionError
+			newState.Status = v1alpha1.ErrorStatus
 		}
 		return newState, err
 	}
@@ -100,8 +100,8 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 				log.Printf("PlanExecution: Executing step %s on plan %s and instance %s - it's in %s state", st.Name, plan.Name, metadata.instanceName, currentStepState.Status)
 				err := executeStep(st, currentStepState, resources, c)
 				if err != nil {
-					currentPhaseState.Status = v1alpha1.ExecutionError
-					currentStepState.Status = v1alpha1.ExecutionError
+					currentPhaseState.Status = v1alpha1.ErrorStatus
+					currentStepState.Status = v1alpha1.ErrorStatus
 					return newState, err
 				}
 
@@ -297,16 +297,16 @@ func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer ku
 					}, meta.resourcesOwner)
 
 					if err != nil {
-						phaseState.Status = v1alpha1.ExecutionError
-						stepState.Status = v1alpha1.ExecutionError
+						phaseState.Status = v1alpha1.ErrorStatus
+						stepState.Status = v1alpha1.ErrorStatus
 
 						log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, meta.planExecutionID, err)
 						return nil, &executionError{err, false, nil}
 					}
 					resources = append(resources, resourcesWithConventions...)
 				} else {
-					phaseState.Status = v1alpha1.ExecutionError
-					stepState.Status = v1alpha1.ExecutionError
+					phaseState.Status = v1alpha1.ErrorStatus
+					stepState.Status = v1alpha1.ErrorStatus
 
 					err := fmt.Errorf("Error finding task named %s for operator version %s", taskSpec, meta.operatorVersionName)
 					log.Print(err)
@@ -344,5 +344,5 @@ func isFinished(state v1alpha1.ExecutionStatus) bool {
 }
 
 func isInProgress(state v1alpha1.ExecutionStatus) bool {
-	return state == v1alpha1.ExecutionInProgress || state == v1alpha1.ExecutionPending || state == v1alpha1.ExecutionError
+	return state == v1alpha1.ExecutionInProgress || state == v1alpha1.ExecutionPending || state == v1alpha1.ErrorStatus
 }

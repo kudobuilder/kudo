@@ -90,7 +90,30 @@ func (r *Reconciler) SetupWithManager(
 		Complete(r)
 }
 
-// Reconcile ...
+// Reconcile is the main controller method that gets called every time something about the instance changes
+//
+//   +-------------------------------+
+//   | Query state of Instance       |
+//   | and OperatorVersion           |
+//   +-------------------------------+
+//                  |
+//                  v
+//   +-------------------------------+
+//   | Start new plan if required    |
+//   | and none is running           |
+//   +-------------------------------+
+//                  |
+//                  v
+//   +-------------------------------+
+//   | If there is plan in progress, |
+//   | proceed with the execution    |
+//   +-------------------------------+
+//                  |
+//                  v
+//   +-------------------------------+
+//   | Update instance with new      |
+//   | state of the execution        |
+//   +-------------------------------+
 //
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
@@ -124,6 +147,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		if err != nil {
 			return reconcile.Result{}, r.handleError(err, instance)
 		}
+		r.Recorder.Event(instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", kudo.StringValue(planToBeExecuted)))
 	}
 
 	// ---------- 3. If there's currently active plan, continue with the execution ----------
@@ -157,6 +181,10 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	if err != nil {
 		log.Printf("InstanceController: Error when updating instance state. %v", err)
 		return reconcile.Result{}, err
+	}
+
+	if instance.Status.AggregatedStatus.Status.IsTerminal() {
+		r.Recorder.Event(instance, "Normal", "PlanFinished", fmt.Sprintf("Execution of plan %s finished with status %s", activePlanStatus.Name, instance.Status.AggregatedStatus.Status))
 	}
 
 	return reconcile.Result{}, nil
@@ -211,6 +239,13 @@ func (r *Reconciler) handleError(err error, instance *kudov1alpha1.Instance) err
 
 		if exErr.fatal {
 			return nil // not retrying fatal error
+		}
+	}
+
+	// for code being processed on instance, we need to handle these errors as well
+	if iError, ok := err.(*kudov1alpha1.InstanceError); ok {
+		if iError.EventName != nil {
+			r.Recorder.Event(instance, "Warning", kudo.StringValue(iError.EventName), err.Error())
 		}
 	}
 	return err
@@ -305,7 +340,7 @@ type executionError struct {
 	eventName *string // nil if no warn even should be created
 }
 
-func (e executionError) Error() string {
+func (e *executionError) Error() string {
 	if e.fatal {
 		return fmt.Sprintf("Fatal error: %v", e.err)
 	}
