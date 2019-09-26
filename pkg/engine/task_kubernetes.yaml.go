@@ -1,11 +1,19 @@
 package engine
 
+import (
+	"k8s.io/apimachinery/pkg/runtime"
+)
+
+var (
+	OpApply string = "apply"
+)
+
 type KubernetesTask struct {
-	Op     string
-	Params map[string]interface{}
+	Op        string
+	Resources []runtime.Object
 }
 
-func Run() error {
+func (k *KubernetesTask) Run(ctx Context) error {
 	return nil
 	// setup Kubernetes client
 }

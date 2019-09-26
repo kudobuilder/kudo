@@ -2,8 +2,6 @@ package engine
 
 import (
 	"testing"
-
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func TestTask_Run(t1 *testing.T) {
@@ -24,7 +22,7 @@ func TestTask_Run(t1 *testing.T) {
 				Kind: "Apply",
 				Spec: TaskSpec{
 					ApplyTask: ApplyTask{
-						Resources: []runtime.Object{},
+						Resources: []string{},
 					},
 				},
 			},

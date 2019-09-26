@@ -2,8 +2,6 @@ package engine
 
 import (
 	"errors"
-
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -18,12 +16,14 @@ var (
 
 // Tasker is an interface that represents any runnable task for an operator
 type Tasker interface {
-	Run() error
+	Run(ctx Context) error
 }
 
-type Renderer interface {
-	Render() interface{}
+type Outputter interface {
+	Output() interface{}
 }
+
+type TaskBuilder func(input interface{}) (Tasker, error)
 
 // Task is a global, polymorphic implementation of all publicly available tasks
 // +k8s:deepcopy-gen=true
@@ -41,24 +41,24 @@ type TaskSpec struct {
 }
 
 // Run is the entrypoint function to run a task, polymorphically determining which task to run and run it
-func (t *Task) Run() error {
+func (t *Task) Run(ctx Context) error {
 	var task Tasker
 	switch t.Kind {
 	case ApplyTaskKind:
 		task = &ApplyTask{
-			Resources: []runtime.Object{},
+			Resources: []string{},
 		}
 		break
 	case NilTaskKind:
 		task = &NilTask{}
 		break
-	case DeleteTaskKind:
-		task = &DeleteTask{
-			Resources: []runtime.Object{},
-		}
+	//case DeleteTaskKind:
+	//	task = &DeleteTask{
+	//		Resources: []runtime.Object{},
+	//	}
 	default:
 		return ErrNoValidTaskNames
 	}
 
-	return task.Run()
+	return task.Run(ctx)
 }

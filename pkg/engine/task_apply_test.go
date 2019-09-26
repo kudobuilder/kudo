@@ -1,5 +1,18 @@
 package engine
 
+import "testing"
+
+func TestApplyTask_Run(t *testing.T) {
+	at := &ApplyTask{
+		Resources: []string{"resource.yaml"},
+		Templates: map[string]string{
+			"resource.yaml": "foo: bar",
+		},
+	}
+
+	at.Run(Context{})
+}
+
 //func TestCreateTask_Run(t *testing.T) {
 //	//k8sClient := fake.NewSimpleClientset()
 //	//k8sClient.
