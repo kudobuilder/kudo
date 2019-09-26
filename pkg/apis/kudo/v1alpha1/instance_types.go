@@ -145,7 +145,6 @@ func (i *Instance) NoPlanEverExecuted() bool {
 // EnsurePlanStatusInitialized initializes plan status for all plans this instance supports
 // it does not trigger run of any plan
 // it either initializes everything for a fresh instance without any status or tries to adjust status after OV was updated
-// TODO rev: test me
 func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
 	if i.Status.PlanStatus == nil {
 		i.Status.PlanStatus = make(map[string]PlanStatus)
