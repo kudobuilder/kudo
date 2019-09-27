@@ -351,7 +351,7 @@ func planNameFromParameters(params []Parameter, ov *OperatorVersion) *string {
 
 // getParamDefinitions retrieves parameter metadata from OperatorVersion CRD
 func getParamDefinitions(params map[string]string, ov *OperatorVersion) []Parameter {
-	defs := make([]Parameter, 0)
+	defs := []Parameter{}
 	for p1 := range params {
 		for _, p2 := range ov.Spec.Parameters {
 			if p2.Name == p1 {
