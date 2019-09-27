@@ -270,7 +270,7 @@ func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer ku
 								phaseState.Status = v1alpha1.ExecutionFatalError
 								stepState.Status = v1alpha1.ExecutionFatalError
 
-								err := errwrap.Wrapf(err, "error expanding template")
+								err := errwrap.Wrap(err, "error expanding template")
 								log.Print(err)
 								return nil, &executionError{err, true, nil}
 							}

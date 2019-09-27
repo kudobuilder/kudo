@@ -205,20 +205,20 @@ func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) erro
 
 	// update status of the instance to reflect the newly starting plan
 	notFound := true
-	for n1, v := range i.Status.PlanStatus {
+	for planIndex, v := range i.Status.PlanStatus {
 		if v.Name == planName {
 			// update plan status
 			notFound = false
-			planStatus := i.Status.PlanStatus[n1]
+			planStatus := i.Status.PlanStatus[planIndex]
 			planStatus.Status = ExecutionPending
 			for j, p := range v.Phases {
 				planStatus.Phases[j].Status = ExecutionPending
 				for k := range p.Steps {
-					i.Status.PlanStatus[n1].Phases[j].Steps[k].Status = ExecutionPending
+					i.Status.PlanStatus[planIndex].Phases[j].Steps[k].Status = ExecutionPending
 				}
 			}
 
-			i.Status.PlanStatus[n1] = planStatus // we cannot modify item in map, we need to reassign here
+			i.Status.PlanStatus[planIndex] = planStatus // we cannot modify item in map, we need to reassign here
 
 			// update activePlan and instance status
 			i.Status.AggregatedStatus.Status = ExecutionPending
@@ -274,7 +274,7 @@ func (i *Instance) SaveSnapshot() error {
 	return nil
 }
 
-func (i *Instance) getSnapshotedSpec() (*InstanceSpec, error) {
+func (i *Instance) snapshotSpec() (*InstanceSpec, error) {
 	if i.Annotations != nil {
 		snapshot, ok := i.Annotations[snapshotAnnotation]
 		if ok {
@@ -311,7 +311,7 @@ func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
 	}
 
 	// did the instance change so that we need to run deploy/upgrade/update plan?
-	instanceSnapshot, err := i.getSnapshotedSpec()
+	instanceSnapshot, err := i.snapshotSpec()
 	if err != nil {
 		return nil, err
 	}

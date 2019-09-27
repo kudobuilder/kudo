@@ -17,6 +17,7 @@ package instance
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -65,7 +66,7 @@ func (r *Reconciler) SetupWithManager(
 				return nil
 			}
 			for _, instance := range instances.Items {
-				// Sanity check - lets make sure that this instance references the operatorVersion
+				// we need to pick only those instances, that belong to the OperatorVersion we're reconciling
 				if instance.Spec.OperatorVersion.Name == obj.Meta.GetName() &&
 					instance.OperatorVersionNamespace() == obj.Meta.GetNamespace() {
 					requests = append(requests, reconcile.Request{
@@ -244,7 +245,8 @@ func (r *Reconciler) handleError(err error, instance *kudov1alpha1.Instance) err
 	}
 
 	// for code being processed on instance, we need to handle these errors as well
-	if iError, ok := err.(*kudov1alpha1.InstanceError); ok {
+	var iError *kudov1alpha1.InstanceError
+	if errors.As(err, &iError) {
 		if iError.EventName != nil {
 			r.Recorder.Event(instance, "Warning", kudo.StringValue(iError.EventName), err.Error())
 		}
