@@ -418,6 +418,7 @@ func init() {
 }
 
 // InstanceError indicates error on that can also emit a kubernetes warn event
+// +k8s:deepcopy-gen=false
 type InstanceError struct {
 	err       error
 	EventName *string // nil if no warn event should be created
