@@ -57,15 +57,20 @@ func NewOptions(v string) Options {
 }
 
 // Install uses Kubernetes client to install KUDO.
-func Install(client *kube.Client, opts Options) error {
-	clog.V(4).Printf("installing prereqs")
-	if err := installPrereqs(client.KubeClient, opts); err != nil {
-		return err
-	}
+func Install(client *kube.Client, opts Options, crdOnly bool) error {
+
 	clog.V(4).Printf("installing crds")
 	if err := installCrds(client.ExtClient); err != nil {
 		return err
 	}
+	if crdOnly {
+		return nil
+	}
+	clog.V(4).Printf("installing prereqs")
+	if err := installPrereqs(client.KubeClient, opts); err != nil {
+		return err
+	}
+
 	clog.V(4).Printf("installing kudo controller")
 	if err := installManager(client.KubeClient, opts); err != nil {
 		return err
@@ -88,12 +93,21 @@ func installManager(client kubernetes.Interface, opts Options) error {
 func installStatefulSet(client clientv1beta2.StatefulSetsGetter, opts Options) error {
 	ss := generateDeployment(opts)
 	_, err := client.StatefulSets(opts.Namespace).Create(ss)
+	if isAlreadyExistsError(err) {
+		clog.V(4).Printf("statefulset %v already exists", ss.Name)
+		return nil
+	}
 	return err
 }
 
 func installService(client corev1.ServicesGetter, opts Options) error {
 	s := generateService(opts)
 	_, err := client.Services(opts.Namespace).Create(s)
+	if isAlreadyExistsError(err) {
+		clog.V(4).Printf("service %v already exists", s.Name)
+		// this service considered different.  If it exists and there is an init we will return the error
+	}
+
 	return err
 }
 

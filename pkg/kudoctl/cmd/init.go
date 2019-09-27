@@ -33,14 +33,18 @@ or '--version' which will replace the version designation on the standard image.
 
 To dump a manifest containing the KUDO deployment YAML, combine the '--dry-run' and '--output=yaml' flags.
 `
-	initExample = `  # yaml outout
+	initExample = `  # yaml output
   kubectl kudo init --dry-run --output yaml
-  # waiting for KUDO to be init complete at the server
+  # waiting for KUDO to be installed to the cluster
   kubectl kudo init --wait
-  # init client
+  # set up KUDO in your local environment only ($KUDO_HOME)
   kubectl kudo init --client-only
-  # init client for non-default home
+  # set up KUDO in your local environment only (non default $KUDO_HOME)
   kubectl kudo init --client-only --home /opt/home2
+  # install kudo crds only
+  kubectl kudo init --crd-only
+  # delete crds
+  kubectl kudo init --crd-only --dry-run --output yaml | kubectl delete -f -
 `
 )
 
@@ -54,6 +58,7 @@ type initCmd struct {
 	wait       bool
 	timeout    int64
 	clientOnly bool
+	crdOnly    bool
 	home       kudohome.Home
 	client     *kube.Client
 }
@@ -85,6 +90,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.StringVarP(&i.version, "version", "", "", "Override KUDO controller version of the KUDO image")
 	f.StringVarP(&i.output, "output", "o", "", "Output format")
 	f.BoolVar(&i.dryRun, "dry-run", false, "Do not install local or remote")
+	f.BoolVar(&i.crdOnly, "crd-only", false, "Add only KUDO CRDs to your cluster")
 	f.BoolVarP(&i.wait, "wait", "w", false, "Block until KUDO manager is running and ready to receive requests")
 	f.Int64Var(&i.timeout, "wait-timeout", 300, "Wait timeout to be used")
 
@@ -95,6 +101,9 @@ func (initCmd *initCmd) validate() error {
 	// we do not allow the setting of image and version!
 	if initCmd.image != "" && initCmd.version != "" {
 		return errors.New("specify either 'kudo-image' or 'version', not both")
+	}
+	if initCmd.crdOnly && initCmd.wait {
+		return errors.New("wait is not allowed with crd-only")
 	}
 	return nil
 }
@@ -110,23 +119,28 @@ func (initCmd *initCmd) run() error {
 	//TODO: implement output=yaml|json (define a type for output to constrain)
 	//define an Encoder to replace YAMLWriter
 	if strings.ToLower(initCmd.output) == "yaml" {
-		mans, err := cmdInit.PrereqManifests(opts)
-		if err != nil {
-			return err
-		}
+
+		var mans []string
 
 		crd, err := cmdInit.CRDManifests()
 		if err != nil {
 			return err
 		}
-
-		deploy, err := cmdInit.ManagerManifests(opts)
-		if err != nil {
-			return err
-		}
-
 		mans = append(mans, crd...)
-		mans = append(mans, deploy...)
+
+		if !initCmd.crdOnly {
+			prereq, err := cmdInit.PrereqManifests(opts)
+			if err != nil {
+				return err
+			}
+			mans = prereq
+
+			deploy, err := cmdInit.ManagerManifests(opts)
+			if err != nil {
+				return err
+			}
+			mans = append(mans, deploy...)
+		}
 		if err := initCmd.YAMLWriter(initCmd.out, mans); err != nil {
 			return err
 		}
@@ -153,7 +167,7 @@ func (initCmd *initCmd) run() error {
 			initCmd.client = client
 		}
 
-		if err := cmdInit.Install(initCmd.client, opts); err != nil {
+		if err := cmdInit.Install(initCmd.client, opts, initCmd.crdOnly); err != nil {
 			if apierrors.IsAlreadyExists(err) {
 				clog.Printf("Warning: KUDO is already installed in the cluster.\n" +
 					"(Use --client-only to suppress this message)")
