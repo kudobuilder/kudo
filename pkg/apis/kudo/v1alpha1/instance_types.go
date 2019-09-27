@@ -211,10 +211,10 @@ func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) erro
 			notFound = false
 			planStatus := i.Status.PlanStatus[n1]
 			planStatus.Status = ExecutionPending
-			for i2, p := range v.Phases {
-				planStatus.Phases[i2].Status = ExecutionPending
-				for i3 := range p.Steps {
-					i.Status.PlanStatus[n1].Phases[i2].Steps[i3].Status = ExecutionPending
+			for j, p := range v.Phases {
+				planStatus.Phases[j].Status = ExecutionPending
+				for k := range p.Steps {
+					i.Status.PlanStatus[n1].Phases[j].Steps[k].Status = ExecutionPending
 				}
 			}
 
@@ -396,8 +396,8 @@ type Instance struct {
 	Status InstanceStatus `json:"status,omitempty"`
 }
 
-// GetOperatorVersionNamespace returns the namespace of the OperatorVersion that the Instance references.
-func (i *Instance) GetOperatorVersionNamespace() string {
+// OperatorVersionNamespace returns the namespace of the OperatorVersion that the Instance references.
+func (i *Instance) OperatorVersionNamespace() string {
 	if i.Spec.OperatorVersion.Namespace == "" {
 		return i.ObjectMeta.Namespace
 	}

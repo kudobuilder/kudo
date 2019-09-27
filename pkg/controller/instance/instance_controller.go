@@ -51,23 +51,23 @@ type Reconciler struct {
 func (r *Reconciler) SetupWithManager(
 	mgr ctrl.Manager) error {
 	addOvRelatedInstancesToReconcile := handler.ToRequestsFunc(
-		func(a handler.MapObject) []reconcile.Request {
+		func(obj handler.MapObject) []reconcile.Request {
 			requests := make([]reconcile.Request, 0)
 			instances := &kudov1alpha1.InstanceList{}
 			// we are listing all instances here, which could come with some performance penalty
-			// a possible optimization is to introduce filtering based on operatorversion (or operator)
+			// obj possible optimization is to introduce filtering based on operatorversion (or operator)
 			err := mgr.GetClient().List(
 				context.TODO(),
 				instances,
 			)
 			if err != nil {
-				log.Printf("InstanceController: Error fetching instances list for operator %v: %v", a.Meta.GetName(), err)
+				log.Printf("InstanceController: Error fetching instances list for operator %v: %v", obj.Meta.GetName(), err)
 				return nil
 			}
 			for _, instance := range instances.Items {
 				// Sanity check - lets make sure that this instance references the operatorVersion
-				if instance.Spec.OperatorVersion.Name == a.Meta.GetName() &&
-					instance.GetOperatorVersionNamespace() == a.Meta.GetNamespace() {
+				if instance.Spec.OperatorVersion.Name == obj.Meta.GetName() &&
+					instance.OperatorVersionNamespace() == obj.Meta.GetNamespace() {
 					requests = append(requests, reconcile.Request{
 						NamespacedName: types.NamespacedName{
 							Name:      instance.Name,
@@ -125,6 +125,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	instance, err := r.getInstance(request)
 	if err != nil {
 		if apierrors.IsNotFound(err) { // not retrying if instance not found, probably someone manually removed it?
+			log.Printf("Instance %s/%s not found, not retrying reconcile since this error is usually not recoverable (without manual intervention).", instance.Namespace, instance.Name)
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
@@ -132,7 +133,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	ov, err := r.getOperatorVersion(instance)
 	if err != nil {
-		return reconcile.Result{}, err // OV not found has to be retried because it can really have been created after I
+		return reconcile.Result{}, err // OV not found has to be retried because it can really have been created after Instance
 	}
 
 	// ---------- 2. First check if we should start execution of new plan ----------
@@ -273,7 +274,7 @@ func (r *Reconciler) getOperatorVersion(instance *kudov1alpha1.Instance) (ov *ku
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      instance.Spec.OperatorVersion.Name,
-			Namespace: instance.GetOperatorVersionNamespace(),
+			Namespace: instance.OperatorVersionNamespace(),
 		},
 		ov)
 	if err != nil {
