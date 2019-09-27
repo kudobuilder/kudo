@@ -4,7 +4,6 @@ entries:
   - appVersion: 0.7.0
     description: fancy description is here
     digest: 0787a078e64c73064287751b833d63ca3d1d284b4f494ebf670443683d5b96dd
-    home: kudo.dev
     maintainers:
     - email: <fabian@mesosphere.io>
       name: Fabian Baier
@@ -13,8 +12,6 @@ entries:
     - email: <kensipe@gmail.com>
       name: Ken Sipe
     name: flink
-    sources:
-    - https://github.com/kudobuilder/kudo
     urls:
     - http://kudo.dev/flink
     version: 0.3.0

@@ -113,10 +113,7 @@ func getTestPackageVersion(name string, version string) PackageVersion {
 			Name:        name,
 			Version:     version,
 			AppVersion:  "0.7.0",
-			Home:        "kudo.dev",
-			Sources:     []string{"https://github.com/kudobuilder/kudo"},
 			Description: "fancy description is here",
-			Deprecated:  false,
 			Maintainers: []*v1alpha1.Maintainer{
 				&v1alpha1.Maintainer{Name: "Fabian Baier", Email: "<fabian@mesosphere.io>"},
 				&v1alpha1.Maintainer{Name: "Tom Runyon", Email: "<runyontr@gmail.com>"},
