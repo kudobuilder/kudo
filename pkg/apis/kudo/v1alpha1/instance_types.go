@@ -231,7 +231,7 @@ func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) erro
 		return &InstanceError{fmt.Errorf("asked to execute a plan %s but no such plan found in instance %s/%s", planName, i.Namespace, i.Name), kudo.String("PlanNotFound")}
 	}
 
-	// TODO in the future when we again support manual plan execution, snapshot should be saved only non non-manually executed plans
+	// TODO in the future when we again support manual plan execution, snapshot should be saved only manually executed plans
 	err := i.SaveSnapshot()
 	if err != nil {
 		return err
@@ -324,6 +324,7 @@ func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
 		}
 		return plan, nil
 	}
+	// did instance parameters change, so that the corresponding plan has to be triggered?
 	if !reflect.DeepEqual(instanceSnapshot.Parameters, i.Spec.Parameters) {
 		// instance updated
 		log.Printf("Instance: instance %s/%s has updated parameters from %v to %v", i.Namespace, i.Name, instanceSnapshot.Parameters, i.Spec.Parameters)
@@ -351,7 +352,7 @@ func planNameFromParameters(params []Parameter, ov *OperatorVersion) *string {
 
 // getParamDefinitions retrieves parameter metadata from OperatorVersion CRD
 func getParamDefinitions(params map[string]string, ov *OperatorVersion) []Parameter {
-	defs := make([]Parameter, 0)
+	defs := []Parameter{}
 	for p1 := range params {
 		for _, p2 := range ov.Spec.Parameters {
 			if p2.Name == p1 {
