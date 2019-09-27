@@ -33,13 +33,13 @@ or '--version' which will replace the version designation on the standard image.
 
 To dump a manifest containing the KUDO deployment YAML, combine the '--dry-run' and '--output=yaml' flags.
 `
-	initExample = `  # yaml outout
+	initExample = `  # yaml output
   kubectl kudo init --dry-run --output yaml
-  # waiting for KUDO to be init complete at the server
+  # waiting for KUDO to be installed to the cluster
   kubectl kudo init --wait
-  # init client
+  # set up KUDO in your local environment only ($KUDO_HOME)
   kubectl kudo init --client-only
-  # init client for non-default home
+  # set up KUDO in your local environment only (non default $KUDO_HOME)
   kubectl kudo init --client-only --home /opt/home2
   # install kudo crds only
   kubectl kudo init --crd-only
