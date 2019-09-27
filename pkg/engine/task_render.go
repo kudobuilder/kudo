@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/kudobuilder/kudo/pkg/util/template"
-	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 type templates []string

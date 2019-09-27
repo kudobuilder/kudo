@@ -27,7 +27,7 @@ func (c *ApplyTask) Run(ctx Context) error {
 		InitialInput: tt,
 		Tasks: []TaskBuilder{
 			TemplateTaskBuilder,
-			RenderTaskBuilder,
+			//RenderTaskBuilder,
 		},
 	}
 
