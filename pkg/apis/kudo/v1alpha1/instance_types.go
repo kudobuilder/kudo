@@ -324,6 +324,7 @@ func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
 		}
 		return plan, nil
 	}
+	// did instance parameters change, so that the corresponding plan has to be triggered?
 	if !reflect.DeepEqual(instanceSnapshot.Parameters, i.Spec.Parameters) {
 		// instance updated
 		log.Printf("Instance: instance %s/%s has updated parameters from %v to %v", i.Namespace, i.Name, instanceSnapshot.Parameters, i.Spec.Parameters)
