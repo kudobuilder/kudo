@@ -46,17 +46,16 @@ type PackageFiles struct {
 
 // Operator is a representation of the KEP-9 Operator YAML
 type Operator struct {
-	Name              string                        `json:"name"`
-	Description       string                        `json:"description,omitempty"`
-	Version           string                        `json:"version"`
-	AppVersion        string                        `json:"appVersion,omitempty"`
-	KUDOVersion       string                        `json:"kudoVersion,omitempty"`
-	KubernetesVersion string                        `json:"kubernetesVersion,omitempty"`
-	Maintainers       []*v1alpha1.Maintainer        `json:"maintainers,omitempty"`
-	URL               string                        `json:"url,omitempty"`
-	Tasks             map[string]v1alpha1.TaskSpec  `json:"tasks"`
-	Plans             map[string]v1alpha1.Plan      `json:"plans"`
-	Dependencies      []v1alpha1.OperatorDependency `json:"dependencies,omitempty"`
+	Name              string                       `json:"name"`
+	Description       string                       `json:"description,omitempty"`
+	Version           string                       `json:"version"`
+	AppVersion        string                       `json:"appVersion,omitempty"`
+	KUDOVersion       string                       `json:"kudoVersion,omitempty"`
+	KubernetesVersion string                       `json:"kubernetesVersion,omitempty"`
+	Maintainers       []*v1alpha1.Maintainer       `json:"maintainers,omitempty"`
+	URL               string                       `json:"url,omitempty"`
+	Tasks             map[string]v1alpha1.TaskSpec `json:"tasks"`
+	Plans             map[string]v1alpha1.Plan     `json:"plans"`
 }
 
 // PackageFilesDigest is a tuple of data used to return the package files AND the digest of a tarball
@@ -194,7 +193,6 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 			Tasks:          p.Operator.Tasks,
 			Parameters:     p.Params,
 			Plans:          p.Operator.Plans,
-			Dependencies:   p.Operator.Dependencies,
 			UpgradableFrom: nil,
 		},
 		Status: v1alpha1.OperatorVersionStatus{},

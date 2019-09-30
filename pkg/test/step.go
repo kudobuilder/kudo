@@ -13,6 +13,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -194,6 +195,22 @@ func (s *Step) GetTimeout() int {
 	return timeout
 }
 
+func list(cl client.Client, gvk schema.GroupVersionKind, namespace string) ([]unstructured.Unstructured, error) {
+	list := unstructured.UnstructuredList{}
+	list.SetGroupVersionKind(gvk)
+
+	listOptions := []client.ListOption{}
+	if namespace != "" {
+		listOptions = append(listOptions, client.InNamespace(namespace))
+	}
+
+	if err := cl.List(context.TODO(), &list, listOptions...); err != nil {
+		return []unstructured.Unstructured{}, err
+	}
+
+	return list.Items, nil
+}
+
 // CheckResource checks if the expected resource's state in Kubernetes is correct.
 func (s *Step) CheckResource(expected runtime.Object, namespace string) []error {
 	cl, err := s.Client(false)
@@ -215,35 +232,21 @@ func (s *Step) CheckResource(expected runtime.Object, namespace string) []error 
 
 	gvk := expected.GetObjectKind().GroupVersionKind()
 
-	actuals := []*unstructured.Unstructured{}
+	actuals := []unstructured.Unstructured{}
 
 	if name != "" {
-		actual := &unstructured.Unstructured{}
+		actual := unstructured.Unstructured{}
 		actual.SetGroupVersionKind(gvk)
 
 		err = cl.Get(context.TODO(), client.ObjectKey{
 			Namespace: namespace,
 			Name:      name,
-		}, actual)
+		}, &actual)
 
 		actuals = append(actuals, actual)
 	} else {
-		actual := &unstructured.UnstructuredList{}
-		actual.SetGroupVersionKind(gvk)
-
-		listOptions := []client.ListOption{}
-
-		if namespace != "" {
-			listOptions = append(listOptions, client.InNamespace(namespace))
-		}
-
-		err = cl.List(context.TODO(), actual, listOptions...)
-
-		for index := range actual.Items {
-			actuals = append(actuals, &actual.Items[index])
-		}
-
-		if len(actual.Items) == 0 {
+		actuals, err = list(cl, gvk, namespace)
+		if len(actuals) == 0 {
 			testErrors = append(testErrors, fmt.Errorf("no resources matched of kind: %s", gvk.String()))
 		}
 	}
@@ -260,7 +263,7 @@ func (s *Step) CheckResource(expected runtime.Object, namespace string) []error 
 		tmpTestErrors := []error{}
 
 		if err := testutils.IsSubset(expectedObj, actual.UnstructuredContent()); err != nil {
-			diff, diffErr := testutils.PrettyDiff(expected, actual)
+			diff, diffErr := testutils.PrettyDiff(expected, &actual)
 			if diffErr == nil {
 				tmpTestErrors = append(tmpTestErrors, errors.New(diff))
 			} else {
@@ -280,12 +283,76 @@ func (s *Step) CheckResource(expected runtime.Object, namespace string) []error 
 	return testErrors
 }
 
-// Check checks if the resources defined in Asserts are in the correct state.
+// CheckResourceAbsent checks if the expected resource's state is absent in Kubernetes.
+func (s *Step) CheckResourceAbsent(expected runtime.Object, namespace string) error {
+	cl, err := s.Client(false)
+	if err != nil {
+		return err
+	}
+
+	dClient, err := s.DiscoveryClient()
+	if err != nil {
+		return err
+	}
+
+	name, namespace, err := testutils.Namespaced(dClient, expected, namespace)
+	if err != nil {
+		return err
+	}
+
+	gvk := expected.GetObjectKind().GroupVersionKind()
+
+	var actuals []unstructured.Unstructured
+
+	if name != "" {
+		actual := unstructured.Unstructured{}
+		actual.SetGroupVersionKind(gvk)
+
+		if err := cl.Get(context.TODO(), client.ObjectKey{
+			Namespace: namespace,
+			Name:      name,
+		}, &actual); err != nil {
+			if k8serrors.IsNotFound(err) {
+				return nil
+			}
+
+			return err
+		}
+
+		actuals = []unstructured.Unstructured{actual}
+	} else {
+		actuals, err = list(cl, gvk, namespace)
+		if err != nil {
+			return err
+		}
+	}
+
+	expectedObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(expected)
+	if err != nil {
+		return err
+	}
+
+	for _, actual := range actuals {
+		if err := testutils.IsSubset(expectedObj, actual.UnstructuredContent()); err == nil {
+			return fmt.Errorf("resource matched of kind: %s", gvk.String())
+		}
+	}
+
+	return nil
+}
+
+// Check checks if the resources defined in Asserts and Errors are in the correct state.
 func (s *Step) Check(namespace string) []error {
 	testErrors := []error{}
 
 	for _, expected := range s.Asserts {
 		testErrors = append(testErrors, s.CheckResource(expected, namespace)...)
+	}
+
+	for _, expected := range s.Errors {
+		if testError := s.CheckResourceAbsent(expected, namespace); testError != nil {
+			testErrors = append(testErrors, testError)
+		}
 	}
 
 	return testErrors
