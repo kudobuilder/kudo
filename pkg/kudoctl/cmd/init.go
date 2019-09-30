@@ -171,8 +171,8 @@ func (initCmd *initCmd) run() error {
 			if apierrors.IsAlreadyExists(err) {
 				clog.Printf("Warning: KUDO is already installed in the cluster.\n" +
 					"(Use --client-only to suppress this message)")
-				return clog.Errorf("error installing: %s", err)
 			}
+			return clog.Errorf("error installing: %s", err)
 		}
 
 		if initCmd.wait {
