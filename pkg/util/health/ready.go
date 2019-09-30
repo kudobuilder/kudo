@@ -43,7 +43,7 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 	case *kudov1alpha1.Instance:
 		log.Printf("HealthUtil: Instance %v is in state %v", obj.Name, obj.Status.AggregatedStatus.Status)
 
-		if obj.Status.AggregatedStatus.Status == kudov1alpha1.ExecutionComplete {
+		if obj.Status.AggregatedStatus.Status.IsFinished() {
 			return nil
 		}
 		return fmt.Errorf("instance's active plan is in state %v", obj.Status.AggregatedStatus.Status)

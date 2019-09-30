@@ -162,7 +162,6 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	activePlan, metadata, err := preparePlanExecution(instance, ov, activePlanStatus)
 	if err != nil {
-		fmt.Printf("Pre-error instance %v", instance)
 		err = r.handleError(err, instance)
 		return reconcile.Result{}, err
 	}

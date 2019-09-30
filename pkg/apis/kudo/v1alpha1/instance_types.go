@@ -94,27 +94,38 @@ type StepStatus struct {
 // ExecutionStatus captures the state of the rollout.
 type ExecutionStatus string
 
-// ExecutionInProgress actively deploying, but not yet healthy.
-const ExecutionInProgress ExecutionStatus = "IN_PROGRESS"
+const (
+	// ExecutionInProgress actively deploying, but not yet healthy.
+	ExecutionInProgress ExecutionStatus = "IN_PROGRESS"
 
-// ExecutionPending Not ready to deploy because dependent phases/steps not healthy.
-const ExecutionPending ExecutionStatus = "PENDING"
+	// ExecutionPending Not ready to deploy because dependent phases/steps not healthy.
+	ExecutionPending ExecutionStatus = "PENDING"
 
-// ExecutionComplete deployed and healthy.
-const ExecutionComplete ExecutionStatus = "COMPLETE"
+	// ExecutionComplete deployed and healthy.
+	ExecutionComplete ExecutionStatus = "COMPLETE"
 
-// ErrorStatus there was an error deploying the application.
-const ErrorStatus ExecutionStatus = "ERROR"
+	// ErrorStatus there was an error deploying the application.
+	ErrorStatus ExecutionStatus = "ERROR"
 
-// ExecutionFatalError there was an error deploying the application.
-const ExecutionFatalError ExecutionStatus = "FATAL_ERROR"
+	// ExecutionFatalError there was an error deploying the application.
+	ExecutionFatalError ExecutionStatus = "FATAL_ERROR"
 
-// ExecutionNeverRun is used when this plan/phase/step was never run so far
-const ExecutionNeverRun ExecutionStatus = "NEVER_RUN"
+	// ExecutionNeverRun is used when this plan/phase/step was never run so far
+	ExecutionNeverRun ExecutionStatus = "NEVER_RUN"
+
+	DeployPlanName = "deploy"
+	UpgradePlanName = "upgrade"
+	UpdatePlanName = "update"
+)
 
 // IsTerminal returns true if the status is terminal (either complete, or in a nonrecoverable error)
 func (s ExecutionStatus) IsTerminal() bool {
 	return s == ExecutionComplete || s == ExecutionFatalError
+}
+
+// IsTerminal returns true if the status is terminal (either complete, or in a nonrecoverable error)
+func (s ExecutionStatus) IsFinished() bool {
+	return s == ExecutionComplete
 }
 
 // IsRunning returns true if the plan is currently being executed
@@ -231,7 +242,6 @@ func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) erro
 		return &InstanceError{fmt.Errorf("asked to execute a plan %s but no such plan found in instance %s/%s", planName, i.Namespace, i.Name), kudo.String("PlanNotFound")}
 	}
 
-	// TODO in the future when we again support manual plan execution, snapshot should be saved only manually executed plans
 	err := i.SaveSnapshot()
 	if err != nil {
 		return err
@@ -242,7 +252,7 @@ func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) erro
 
 // isUpgradePlan returns true if this could be an upgrade plan - this is just an approximation because deploy plan can be used for both
 func isUpgradePlan(planName string) bool {
-	return planName == "deploy" || planName == "upgrade"
+	return planName == DeployPlanName || planName == UpgradePlanName
 }
 
 // UpdateInstanceStatus updates `Status.PlanStatus` and `Status.AggregatedStatus` property based on the given plan
@@ -307,7 +317,7 @@ func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
 
 	// new instance, need to run deploy plan
 	if i.NoPlanEverExecuted() {
-		return kudo.String("deploy"), nil
+		return kudo.String(DeployPlanName), nil
 	}
 
 	// did the instance change so that we need to run deploy/upgrade/update plan?
@@ -315,10 +325,14 @@ func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
 	if err != nil {
 		return nil, err
 	}
+	if instanceSnapshot == nil {
+		// we don't have snapshot -> we never run deploy, also we cannot run update/upgrade. This should never happen
+		return nil, &InstanceError{fmt.Errorf("unexpected state: no plan is running, no snapshot present - this should never happen :) for instance %s/%s", i.Namespace, i.Name), kudo.String("UnexpectedState")}
+	}
 	if instanceSnapshot.OperatorVersion.Name != i.Spec.OperatorVersion.Name {
 		// this instance was upgraded to newer version
 		log.Printf("Instance: instance %s/%s was upgraded from %s to %s operatorversion", i.Namespace, i.Name, instanceSnapshot.OperatorVersion.Name, i.Spec.OperatorVersion.Name)
-		plan := selectPlan([]string{"upgrade", "update", "deploy"}, ov)
+		plan := selectPlan([]string{UpgradePlanName, UpdatePlanName, DeployPlanName}, ov)
 		if plan == nil {
 			return nil, &InstanceError{fmt.Errorf("supposed to execute plan because instance %s/%s was upgraded but none of the deploy, upgrade, update plans found in linked operatorVersion", i.Namespace, i.Name), kudo.String("PlanNotFound")}
 		}
@@ -347,7 +361,7 @@ func planNameFromParameters(params []Parameter, ov *OperatorVersion) *string {
 			return kudo.String(p.Trigger)
 		}
 	}
-	return selectPlan([]string{"update", "deploy"}, ov)
+	return selectPlan([]string{UpdatePlanName, DeployPlanName}, ov)
 }
 
 // getParamDefinitions retrieves parameter metadata from OperatorVersion CRD
