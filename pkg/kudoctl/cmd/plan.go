@@ -41,7 +41,6 @@ func NewPlanHistoryCmd() *cobra.Command {
 	}
 
 	listCmd.Flags().StringVar(&options.Instance, "instance", "", "The instance name.")
-	listCmd.Flags().StringVar(&options.Namespace, "namespace", "default", "The namespace where the instance is running.")
 
 	return listCmd
 }
@@ -59,7 +58,6 @@ func NewPlanStatusCmd() *cobra.Command {
 	}
 
 	statusCmd.Flags().StringVar(&options.Instance, "instance", "", "The instance name available from 'kubectl get instances'")
-	statusCmd.Flags().StringVar(&options.Namespace, "namespace", "default", "The namespace where the instance is running.")
 
 	return statusCmd
 }
