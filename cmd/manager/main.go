@@ -19,15 +19,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
-
+	"github.com/kudobuilder/kudo/pkg/apis"
+	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
-
+	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
 	"github.com/kudobuilder/kudo/pkg/version"
 
-	"github.com/kudobuilder/kudo/pkg/apis"
-
-	"github.com/kudobuilder/kudo/pkg/controller"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -75,10 +72,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Info("Setting up controllers")
-	// TODO this still registers instance and PE controller, this will be refactored in the next phase
-	if err := controller.AddControllersToManager(mgr); err != nil {
-		log.Error(err, "unable to register controllers to the manager")
+	log.Info("Setting up instance controller")
+	err = (&instance.Reconciler{
+		Client:   mgr.GetClient(),
+		Recorder: mgr.GetEventRecorderFor("instance-controller"),
+		Scheme:   mgr.GetScheme(),
+	}).SetupWithManager(mgr)
+	if err != nil {
+		log.Error(err, "unable to register instance controller to the manager")
 		os.Exit(1)
 	}
 

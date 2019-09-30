@@ -97,45 +97,25 @@ func planStatus(options *Options, settings *env.Settings) error {
 		return err
 	}
 
-	planExecutionsGVR := schema.GroupVersionResource{
-		Group:    "kudo.dev",
-		Version:  "v1alpha1",
-		Resource: "planexecutions",
-	}
+	activePlanStatus := instance.GetPlanInProgress()
 
-	if instance.Status.ActivePlan.Name == "" {
+	if activePlanStatus == nil {
 		log.Printf("No active plan exists for instance %s", instance.Name)
 		return nil
 	}
-	activePlanObj, err := dynamicClient.Resource(planExecutionsGVR).Namespace(options.Namespace).Get(instance.Status.ActivePlan.Name, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
 
-	mPlanObj, err := activePlanObj.MarshalJSON()
-	if err != nil {
-		return err
-	}
-
-	activePlanType := kudov1alpha1.PlanExecution{}
-
-	err = json.Unmarshal(mPlanObj, &activePlanType)
-	if err != nil {
-		return err
-	}
-
-	rootDisplay := fmt.Sprintf("%s (Operator-Version: \"%s\" Active-Plan: \"%s\")", instance.Name, instance.Spec.OperatorVersion.Name, instance.Status.ActivePlan.Name)
+	rootDisplay := fmt.Sprintf("%s (Operator-Version: \"%s\" Active-Plan: \"%s\")", instance.Name, instance.Spec.OperatorVersion.Name, activePlanStatus.Name)
 	rootBranchName := tree.AddBranch(rootDisplay)
 
 	for name, plan := range operator.Spec.Plans {
-		if name == activePlanType.Spec.PlanName {
-			planDisplay := fmt.Sprintf("Plan %s (%s strategy) [%s]", name, plan.Strategy, activePlanType.Status.State)
+		if name == activePlanStatus.Name {
+			planDisplay := fmt.Sprintf("Plan %s (%s strategy) [%s]", name, plan.Strategy, activePlanStatus.Status)
 			planBranchName := rootBranchName.AddBranch(planDisplay)
-			for _, phase := range activePlanType.Status.Phases {
-				phaseDisplay := fmt.Sprintf("Phase %s (%s strategy) [%s]", phase.Name, phase.Strategy, phase.State)
+			for _, phase := range activePlanStatus.Phases {
+				phaseDisplay := fmt.Sprintf("Phase %s [%s]", phase.Name, phase.Status)
 				phaseBranchName := planBranchName.AddBranch(phaseDisplay)
 				for _, steps := range phase.Steps {
-					stepsDisplay := fmt.Sprintf("Step %s (%s)", steps.Name, steps.State)
+					stepsDisplay := fmt.Sprintf("Step %s (%s)", steps.Name, steps.Status)
 					phaseBranchName.AddBranch(stepsDisplay)
 				}
 			}

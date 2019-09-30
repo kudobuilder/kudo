@@ -29,9 +29,6 @@ func installCrds(client apiextensionsclient.Interface) error {
 	if err := installInstance(client.ApiextensionsV1beta1()); err != nil {
 		return err
 	}
-	if err := installPlanExecution(client.ApiextensionsV1beta1()); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -69,16 +66,6 @@ func installInstance(client v1beta1.CustomResourceDefinitionsGetter) error {
 	_, err := client.CustomResourceDefinitions().Create(instance)
 	if isAlreadyExistsError(err) {
 		clog.V(4).Printf("crd %v already exists", instance.Name)
-		return nil
-	}
-	return err
-}
-
-func installPlanExecution(client v1beta1.CustomResourceDefinitionsGetter) error {
-	pe := generatePlanExecution()
-	_, err := client.CustomResourceDefinitions().Create(pe)
-	if isAlreadyExistsError(err) {
-		clog.V(4).Printf("crd %v already exists", pe.Name)
 		return nil
 	}
 	return err
@@ -230,8 +217,8 @@ func generateInstance() *apiextv1beta1.CustomResourceDefinition {
 		"parameters":      apiextv1beta1.JSONSchemaProps{Type: "object"},
 	}
 	statusProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"activePlan": apiextv1beta1.JSONSchemaProps{Type: "object"},
-		"status":     apiextv1beta1.JSONSchemaProps{Type: "string"},
+		"planStatus":       apiextv1beta1.JSONSchemaProps{Type: "object"},
+		"aggregatedStatus": apiextv1beta1.JSONSchemaProps{Type: "object"},
 	}
 
 	validationProps := map[string]apiextv1beta1.JSONSchemaProps{
@@ -239,82 +226,6 @@ func generateInstance() *apiextv1beta1.CustomResourceDefinition {
 		"kind":       apiextv1beta1.JSONSchemaProps{Type: "string"},
 		"meta":       apiextv1beta1.JSONSchemaProps{Type: "object"},
 		"spec":       apiextv1beta1.JSONSchemaProps{Properties: specProps, Type: "object"},
-		"status": apiextv1beta1.JSONSchemaProps{
-			Type:       "object",
-			Properties: statusProps,
-		},
-	}
-
-	crd.Spec.Validation = &apiextv1beta1.CustomResourceValidation{
-		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
-			Properties: validationProps,
-		},
-	}
-	return crd
-}
-
-// planExecutionCrd provides the PlanExecution CRD manifest for printing
-func planExecutionCrd() *apiextv1beta1.CustomResourceDefinition {
-	crd := generatePlanExecution()
-	crd.TypeMeta = metav1.TypeMeta{
-		Kind:       "CustomResourceDefinition",
-		APIVersion: "apiextensions.k8s.io/v1beta1",
-	}
-	return crd
-}
-
-func generatePlanExecution() *apiextv1beta1.CustomResourceDefinition {
-	crd := generateCrd("PlanExecution", "planexecutions")
-	specProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"instance": apiextv1beta1.JSONSchemaProps{Type: "object"},
-		"planName": apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"suspend":  apiextv1beta1.JSONSchemaProps{Type: "boolean", Description: "This is copied from the CronJob Spec This flag tells the controller to suspend subsequent executions, it does not apply to already started executions.  Defaults to false."},
-	}
-
-	stepProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"delete": apiextv1beta1.JSONSchemaProps{Type: "boolean"},
-		"name":   apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"state":  apiextv1beta1.JSONSchemaProps{Type: "string"},
-	}
-
-	phaseProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"name":  apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"state": apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"steps": apiextv1beta1.JSONSchemaProps{
-			Type:        "array",
-			Description: "Steps maps a step name to a list of templates objects stored as a string",
-			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{
-				Type:       "object",
-				Properties: stepProps,
-			}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
-		},
-		"strategy": apiextv1beta1.JSONSchemaProps{Type: "string"},
-	}
-
-	statusProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"name": apiextv1beta1.JSONSchemaProps{Type: "string", Description: "INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run 'make' to regenerate code after modifying this file"},
-		"phases": apiextv1beta1.JSONSchemaProps{
-			Type:        "array",
-			Description: "Phases maps a phase name to a Phase object",
-			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{
-				Type:       "object",
-				Required:   []string{"steps"},
-				Properties: phaseProps,
-			}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
-		},
-		"state":    apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"strategy": apiextv1beta1.JSONSchemaProps{Type: "string"},
-	}
-
-	validationProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"apiVersion": apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"kind":       apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"meta":       apiextv1beta1.JSONSchemaProps{Type: "object"},
-		"spec": apiextv1beta1.JSONSchemaProps{
-			Properties: specProps,
-			Type:       "object",
-			Required:   []string{"planName", "instance"},
-		},
 		"status": apiextv1beta1.JSONSchemaProps{
 			Type:       "object",
 			Properties: statusProps,
@@ -379,7 +290,6 @@ func CRDs() []runtime.Object {
 	o := operatorCrd()
 	ov := operatorVersionCrd()
 	i := InstanceCrd()
-	pe := planExecutionCrd()
 
-	return []runtime.Object{o, ov, i, pe}
+	return []runtime.Object{o, ov, i}
 }

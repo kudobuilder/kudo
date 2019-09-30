@@ -36,12 +36,12 @@ func NewPlanHistoryCmd() *cobra.Command {
 		Short:   "Lists history to a specific operator-version of an instance.",
 		Example: planHistExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return plan.RunHistory(cmd, args, options, &Settings)
+			return plan.RunHistory(cmd, options, &Settings)
 		},
 	}
 
 	listCmd.Flags().StringVar(&options.Instance, "instance", "", "The instance name.")
-	listCmd.Flags().StringVar(&options.Namespace, "namespace", "default", "The namespace where the operator watches for changes.")
+	listCmd.Flags().StringVar(&options.Namespace, "namespace", "default", "The namespace where the instance is running.")
 
 	return listCmd
 }
