@@ -38,7 +38,7 @@ type Repositories struct {
 // Default initialized repository.
 var Default = &Configuration{
 	Name: defaultRepoName,
-	URL:  "https://kudo-repository.storage.googleapis.com/0.7.0",
+	URL:  "https://kudo-repository.storage.googleapis.com",
 }
 
 // NewRepositories creates a new repo with only defaults populated
