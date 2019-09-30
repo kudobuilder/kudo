@@ -173,7 +173,7 @@ func executeStep(step v1alpha1.Step, state *v1alpha1.StepStatus, resources []run
 					}
 				}
 
-				err = health.IsHealthy(c, r)
+				err = health.IsHealthy(c, existingResource)
 				if err != nil {
 					allHealthy = false
 					log.Printf("PlanExecution: Obj is NOT healthy: %s", prettyPrint(key))
