@@ -113,8 +113,13 @@ const (
 	// ExecutionNeverRun is used when this plan/phase/step was never run so far
 	ExecutionNeverRun ExecutionStatus = "NEVER_RUN"
 
+	// DeployPlanName is the name of the deployment plan
 	DeployPlanName = "deploy"
+
+	// UpgradePlanName is the name of the upgrade plan
 	UpgradePlanName = "upgrade"
+
+	// UpdatePlanName is the name of the update plan
 	UpdatePlanName = "update"
 )
 
@@ -123,7 +128,7 @@ func (s ExecutionStatus) IsTerminal() bool {
 	return s == ExecutionComplete || s == ExecutionFatalError
 }
 
-// IsTerminal returns true if the status is terminal (either complete, or in a nonrecoverable error)
+// IsFinished returns true if the status is complete regardless of errors
 func (s ExecutionStatus) IsFinished() bool {
 	return s == ExecutionComplete
 }
