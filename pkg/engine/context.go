@@ -3,10 +3,10 @@ package engine
 import (
 	"context"
 
-	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type Context struct {
 	context.Context
-	KubernetesClient kubernetes.Interface
+	KubernetesClient client.Client
 }
