@@ -3,6 +3,8 @@ package kube
 import (
 	"fmt"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -12,7 +14,7 @@ import (
 // Client provides access different K8S clients
 type Client struct {
 	KubeClient kubernetes.Interface
-	ExtClient  *apiextensionsclient.Clientset
+	ExtClient  apiextensionsclient.Interface
 }
 
 // GetConfig returns a Kubernetes client config for a given kubeconfig.
@@ -34,6 +36,7 @@ func getRestConfig(kubeconfig string) (*rest.Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not get Kubernetes config using configuration %q: %s", kubeconfig, err)
 	}
+	clog.V(4).Printf("configuration from %q finds host %v", kubeconfig, config.Host)
 	return config, nil
 }
 

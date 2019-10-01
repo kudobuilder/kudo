@@ -1,17 +1,20 @@
-package planexecution
+package instance
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
 
 	"k8s.io/apimachinery/pkg/types"
 
+	"errors"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	kudoengine "github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/util/health"
-	"github.com/pkg/errors"
+	errwrap "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -20,8 +23,8 @@ import (
 )
 
 type activePlan struct {
-	Name      string
-	State     *v1alpha1.PlanExecutionStatus
+	Name string
+	*v1alpha1.PlanStatus
 	Spec      *v1alpha1.Plan
 	Tasks     map[string]v1alpha1.TaskSpec
 	Templates map[string]string
@@ -53,20 +56,25 @@ type executionMetadata struct {
 // the next step could consist of actually executing multiple steps of the plan or just one depending on the execution strategy of the phase (serial/parallel)
 // result of running this function is new state of the execution that is returned to the caller (it can either be completed, or still in progress or errored)
 // in case of error, error is returned along with the state as well (so that it's possible to report which step caused the error)
-// in case of error, method returns both error or fatalError which should indicate unrecoverable error meaning there is no point in retrying that execution
-func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client, renderer kubernetesObjectEnhancer) (*v1alpha1.PlanExecutionStatus, error) {
-	if isFinished(plan.State.State) {
-		log.Printf("PlanExecution: Plan %s for instance %s is completed, nothing to do", plan.Name, metadata.instanceName)
-		return plan.State, nil
+// in case of error, method returns ErrorStatus which has property to indicate unrecoverable error meaning if there is no point in retrying that execution
+func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client, renderer kubernetesObjectEnhancer) (*v1alpha1.PlanStatus, error) {
+	if plan.Status.IsTerminal() {
+		log.Printf("PlanExecution: Plan %s for instance %s is terminal, nothing to do", plan.Name, metadata.instanceName)
+		return plan.PlanStatus, nil
 	}
 
 	// we don't want to modify the original state, and State does not contain any pointer, so shallow copy is enough
-	newState := &(*plan.State)
+	newState := &(*plan.PlanStatus)
 
 	// render kubernetes resources needed to execute this plan
 	planResources, err := prepareKubeResources(plan, metadata, renderer)
 	if err != nil {
-		newState.State = v1alpha1.PhaseStateError
+		var exErr *executionError
+		if errors.As(err, &exErr) {
+			newState.Status = v1alpha1.ExecutionFatalError
+		} else {
+			newState.Status = v1alpha1.ErrorStatus
+		}
 		return newState, err
 	}
 
@@ -74,12 +82,13 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 	allPhasesCompleted := true
 	for _, ph := range plan.Spec.Phases {
 		currentPhaseState, _ := getPhaseFromStatus(ph.Name, newState)
-		if isFinished(currentPhaseState.State) {
+		if isFinished(currentPhaseState.Status) {
 			// nothing to do
-			log.Printf("PlanExecution: Phase %s on plan %s and instance %s is in state %s, nothing to do", ph.Name, plan.Name, metadata.instanceName, currentPhaseState.State)
+			log.Printf("PlanExecution: Phase %s on plan %s and instance %s is in state %s, nothing to do", ph.Name, plan.Name, metadata.instanceName, currentPhaseState.Status)
 			continue
-		} else if isInProgress(currentPhaseState.State) {
-			currentPhaseState.State = v1alpha1.PhaseStateInProgress
+		} else if isInProgress(currentPhaseState.Status) {
+			newState.Status = v1alpha1.ExecutionInProgress
+			currentPhaseState.Status = v1alpha1.ExecutionInProgress
 			log.Printf("PlanExecution: Executing phase %s on plan %s and instance %s - it's in progress", ph.Name, plan.Name, metadata.instanceName)
 
 			// we're currently executing this phase
@@ -87,17 +96,16 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 			for _, st := range ph.Steps {
 				currentStepState, _ := getStepFromStatus(st.Name, currentPhaseState)
 				resources := planResources.PhaseResources[ph.Name].StepResources[st.Name]
-				log.Printf("Resources count: %d", len(resources))
 
-				log.Printf("PlanExecution: Executing step %s on plan %s and instance %s - it's in %s state", st.Name, plan.Name, metadata.instanceName, currentStepState.State)
+				log.Printf("PlanExecution: Executing step %s on plan %s and instance %s - it's in %s state", st.Name, plan.Name, metadata.instanceName, currentStepState.Status)
 				err := executeStep(st, currentStepState, resources, c)
 				if err != nil {
-					currentPhaseState.State = v1alpha1.PhaseStateError
-					currentStepState.State = v1alpha1.PhaseStateError
+					currentPhaseState.Status = v1alpha1.ErrorStatus
+					currentStepState.Status = v1alpha1.ErrorStatus
 					return newState, err
 				}
 
-				if !isFinished(currentStepState.State) {
+				if !isFinished(currentStepState.Status) {
 					allStepsHealthy = false
 					if ph.Strategy == v1alpha1.Serial {
 						// we cannot proceed to the next step
@@ -108,11 +116,11 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 
 			if allStepsHealthy {
 				log.Printf("PlanExecution: All steps on phase %s plan %s and instance %s are healthy", ph.Name, plan.Name, metadata.instanceName)
-				currentPhaseState.State = v1alpha1.PhaseStateComplete
+				currentPhaseState.Status = v1alpha1.ExecutionComplete
 			}
 		}
 
-		if !isFinished(currentPhaseState.State) {
+		if !isFinished(currentPhaseState.Status) {
 			// we cannot proceed to the next phase
 			allPhasesCompleted = false
 			break
@@ -121,15 +129,15 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 
 	if allPhasesCompleted {
 		log.Printf("PlanExecution: All phases on plan %s and instance %s are healthy", plan.Name, metadata.instanceName)
-		newState.State = v1alpha1.PhaseStateComplete
+		newState.Status = v1alpha1.ExecutionComplete
 	}
 
 	return newState, nil
 }
 
 func executeStep(step v1alpha1.Step, state *v1alpha1.StepStatus, resources []runtime.Object, c client.Client) error {
-	if isInProgress(state.State) {
-		state.State = v1alpha1.PhaseStateInProgress
+	if isInProgress(state.Status) {
+		state.Status = v1alpha1.ExecutionInProgress
 
 		// check if step is already healthy
 		allHealthy := true
@@ -165,7 +173,7 @@ func executeStep(step v1alpha1.Step, state *v1alpha1.StepStatus, resources []run
 					}
 				}
 
-				err = health.IsHealthy(c, r)
+				err = health.IsHealthy(c, existingResource)
 				if err != nil {
 					allHealthy = false
 					log.Printf("PlanExecution: Obj is NOT healthy: %s", prettyPrint(key))
@@ -174,10 +182,15 @@ func executeStep(step v1alpha1.Step, state *v1alpha1.StepStatus, resources []run
 		}
 
 		if allHealthy {
-			state.State = v1alpha1.PhaseStateComplete
+			state.Status = v1alpha1.ExecutionComplete
 		}
 	}
 	return nil
+}
+
+func prettyPrint(i interface{}) string {
+	s, _ := json.MarshalIndent(i, "", "  ")
+	return string(s)
 }
 
 // patchExistingObject calls update method on kubernetes client to make sure the current resource reflects what is on server
@@ -232,7 +245,7 @@ func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer ku
 	}
 
 	for _, phase := range plan.Spec.Phases {
-		phaseState, _ := getPhaseFromStatus(phase.Name, plan.State)
+		phaseState, _ := getPhaseFromStatus(phase.Name, plan.PlanStatus)
 		perStepResources := make(map[string][]runtime.Object)
 		result.PhaseResources[phase.Name] = phaseResources{
 			StepResources: perStepResources,
@@ -254,21 +267,21 @@ func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer ku
 						if resource, ok := plan.Templates[res]; ok {
 							templatedYaml, err := engine.Render(resource, configs)
 							if err != nil {
-								phaseState.State = v1alpha1.PhaseStateError
-								stepState.State = v1alpha1.PhaseStateError
+								phaseState.Status = v1alpha1.ExecutionFatalError
+								stepState.Status = v1alpha1.ExecutionFatalError
 
-								err := errors.Wrapf(err, "error expanding template")
+								err := errwrap.Wrap(err, "error expanding template")
 								log.Print(err)
-								return nil, fatalError{err: err}
+								return nil, &executionError{err, true, nil}
 							}
 							resourcesAsString[res] = templatedYaml
 						} else {
-							phaseState.State = v1alpha1.PhaseStateError
-							stepState.State = v1alpha1.PhaseStateError
+							phaseState.Status = v1alpha1.ExecutionFatalError
+							stepState.Status = v1alpha1.ExecutionFatalError
 
 							err := fmt.Errorf("PlanExecution: Error finding resource named %v for operator version %v", res, meta.operatorVersionName)
 							log.Print(err)
-							return nil, fatalError{err: err}
+							return nil, &executionError{err, true, nil}
 						}
 					}
 
@@ -284,20 +297,20 @@ func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer ku
 					}, meta.resourcesOwner)
 
 					if err != nil {
-						phaseState.State = v1alpha1.PhaseStateError
-						stepState.State = v1alpha1.PhaseStateError
+						phaseState.Status = v1alpha1.ErrorStatus
+						stepState.Status = v1alpha1.ErrorStatus
 
 						log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, meta.planExecutionID, err)
-						return nil, err
+						return nil, &executionError{err, false, nil}
 					}
 					resources = append(resources, resourcesWithConventions...)
 				} else {
-					phaseState.State = v1alpha1.PhaseStateError
-					stepState.State = v1alpha1.PhaseStateError
+					phaseState.Status = v1alpha1.ErrorStatus
+					stepState.Status = v1alpha1.ErrorStatus
 
 					err := fmt.Errorf("Error finding task named %s for operator version %s", taskSpec, meta.operatorVersionName)
 					log.Print(err)
-					return nil, fatalError{err: err}
+					return nil, &executionError{err, false, nil}
 				}
 			}
 
@@ -317,7 +330,7 @@ func getStepFromStatus(stepName string, status *v1alpha1.PhaseStatus) (*v1alpha1
 	return nil, fmt.Errorf("PlanExecution: Cannot find step %s in plan", stepName)
 }
 
-func getPhaseFromStatus(phaseName string, status *v1alpha1.PlanExecutionStatus) (*v1alpha1.PhaseStatus, error) {
+func getPhaseFromStatus(phaseName string, status *v1alpha1.PlanStatus) (*v1alpha1.PhaseStatus, error) {
 	for i, p := range status.Phases {
 		if p.Name == phaseName {
 			return &status.Phases[i], nil
@@ -326,10 +339,10 @@ func getPhaseFromStatus(phaseName string, status *v1alpha1.PlanExecutionStatus) 
 	return nil, fmt.Errorf("PlanExecution: Cannot find phase %s in plan", phaseName)
 }
 
-func isFinished(state v1alpha1.PhaseState) bool {
-	return state == v1alpha1.PhaseStateComplete
+func isFinished(state v1alpha1.ExecutionStatus) bool {
+	return state == v1alpha1.ExecutionComplete
 }
 
-func isInProgress(state v1alpha1.PhaseState) bool {
-	return state == v1alpha1.PhaseStateInProgress || state == v1alpha1.PhaseStatePending || state == v1alpha1.PhaseStateError
+func isInProgress(state v1alpha1.ExecutionStatus) bool {
+	return state == v1alpha1.ExecutionInProgress || state == v1alpha1.ExecutionPending || state == v1alpha1.ErrorStatus
 }

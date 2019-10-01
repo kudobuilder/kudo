@@ -3,7 +3,8 @@ kind: Instance
 metadata:
   name: immutable-client-ip-instance
 status:
-  status: COMPLETE
+  aggregatedStatus:
+    status: COMPLETE
 ---
 apiVersion: v1
 kind: Service

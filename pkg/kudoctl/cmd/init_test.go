@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
+	apiextfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -55,13 +56,15 @@ func TestInitCmd_exists(t *testing.T) {
 			Name:      "kudo-manager-deploy",
 		},
 	})
+	fc2 := apiextfake.NewSimpleClientset()
+
 	fc.PrependReactor("*", "*", func(action testcore.Action) (bool, runtime.Object, error) {
 		return true, nil, apierrors.NewAlreadyExists(v1.Resource("deployments"), "1")
 	})
 	cmd := &initCmd{
 		out:    &buf,
 		fs:     afero.NewMemMapFs(),
-		client: &kube.Client{KubeClient: fc},
+		client: &kube.Client{KubeClient: fc, ExtClient: fc2},
 	}
 	clog.Init(nil, &buf)
 	Settings.Home = "/opt"
@@ -155,6 +158,7 @@ func TestNewInitCmd(t *testing.T) {
 	}{
 		{name: "arguments invalid", parameters: []string{"foo"}, errorMessage: "this command does not accept arguments"},
 		{name: "name and version together invalid", flags: map[string]string{"kudo-image": "foo", "version": "bar"}, errorMessage: "specify either 'kudo-image' or 'version', not both"},
+		{name: "crd-only and wait together invalid", flags: map[string]string{"crd-only": "true", "wait": "true"}, errorMessage: "wait is not allowed with crd-only"},
 	}
 
 	for _, tt := range tests {

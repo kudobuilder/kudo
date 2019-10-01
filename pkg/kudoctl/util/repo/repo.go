@@ -38,7 +38,7 @@ type Repositories struct {
 // Default initialized repository.
 var Default = &Configuration{
 	Name: defaultRepoName,
-	URL:  "https://kudo-repository.storage.googleapis.com/0.7.0",
+	URL:  "https://kudo-repository.storage.googleapis.com",
 }
 
 // NewRepositories creates a new repo with only defaults populated
@@ -162,18 +162,9 @@ type Metadata struct {
 	// AppVersion is the underlying service version (the format is not in our control)
 	AppVersion string `json:"appVersion,omitempty"`
 
-	// The URL to a relevant project page, git repo, or contact person.
-	Home string `json:"home,omitempty"`
-
-	// Source is the URL to the source code of this operator.
-	Sources []string `json:"sources,omitempty"`
-
 	// Description is a one-sentence description of the operator.
 	Description string `json:"description,omitempty"`
 
 	// Maintainers is a list of name and URL/email addresses of the maintainer(s).
 	Maintainers []*v1alpha1.Maintainer `json:"maintainers,omitempty"`
-
-	// Deprecated reflects whether this operator is deprecated.
-	Deprecated bool `json:"deprecated,omitempty"`
 }

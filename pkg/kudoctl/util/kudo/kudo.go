@@ -59,10 +59,6 @@ func NewClient(namespace, kubeConfigPath string) (*Client, error) {
 	if err != nil {
 		return nil, errors.WithMessage(err, "instances")
 	}
-	_, err = kudoClientset.KudoV1alpha1().PlanExecutions(namespace).List(v1.ListOptions{})
-	if err != nil {
-		return nil, errors.WithMessage(err, "planexecutions")
-	}
 
 	return &Client{
 		clientset: kudoClientset,

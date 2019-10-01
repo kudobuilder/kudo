@@ -186,6 +186,54 @@ func TestCheckResource(t *testing.T) {
 	}
 }
 
+func TestCheckResourceAbsent(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		actual      runtime.Object
+		expected    runtime.Object
+		shouldError bool
+	}{
+		{
+			name:        "resource matches",
+			actual:      testutils.NewPod("hello", ""),
+			expected:    testutils.NewPod("hello", ""),
+			shouldError: true,
+		},
+		{
+			name:     "resource mis-match",
+			actual:   testutils.NewPod("hello", ""),
+			expected: testutils.WithSpec(testutils.NewPod("hello", ""), map[string]interface{}{"invalid": "key"}),
+		},
+		{
+			name:     "resource does not exist",
+			actual:   testutils.NewPod("other", ""),
+			expected: testutils.NewPod("hello", ""),
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			fakeDiscovery := testutils.FakeDiscoveryClient()
+			namespace := "world"
+
+			_, _, err := testutils.Namespaced(fakeDiscovery, test.actual, namespace)
+			assert.Nil(t, err)
+
+			step := Step{
+				Logger:          testutils.NewTestLogger(t, ""),
+				Client:          func(bool) (client.Client, error) { return fake.NewFakeClient(test.actual), nil },
+				DiscoveryClient: func() (discovery.DiscoveryInterface, error) { return fakeDiscovery, nil },
+			}
+
+			error := step.CheckResourceAbsent(test.expected, namespace)
+
+			if test.shouldError {
+				assert.NotNil(t, error)
+			} else {
+				assert.Nil(t, error)
+			}
+		})
+	}
+}
+
 func TestRun(t *testing.T) {
 	for _, test := range []struct {
 		testName     string

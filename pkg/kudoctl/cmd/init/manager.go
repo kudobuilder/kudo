@@ -7,7 +7,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/version"
 
-	"k8s.io/api/apps/v1beta2"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,7 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
-	clientv1beta2 "k8s.io/client-go/kubernetes/typed/apps/v1beta2"
+	appsv1client "k8s.io/client-go/kubernetes/typed/apps/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -57,15 +57,20 @@ func NewOptions(v string) Options {
 }
 
 // Install uses Kubernetes client to install KUDO.
-func Install(client *kube.Client, opts Options) error {
-	clog.V(4).Printf("installing prereqs")
-	if err := installPrereqs(client.KubeClient, opts); err != nil {
-		return err
-	}
+func Install(client *kube.Client, opts Options, crdOnly bool) error {
+
 	clog.V(4).Printf("installing crds")
 	if err := installCrds(client.ExtClient); err != nil {
 		return err
 	}
+	if crdOnly {
+		return nil
+	}
+	clog.V(4).Printf("installing prereqs")
+	if err := installPrereqs(client.KubeClient, opts); err != nil {
+		return err
+	}
+
 	clog.V(4).Printf("installing kudo controller")
 	if err := installManager(client.KubeClient, opts); err != nil {
 		return err
@@ -75,7 +80,7 @@ func Install(client *kube.Client, opts Options) error {
 
 // Install uses Kubernetes client to install KUDO.
 func installManager(client kubernetes.Interface, opts Options) error {
-	if err := installStatefulSet(client.AppsV1beta2(), opts); err != nil {
+	if err := installStatefulSet(client.AppsV1(), opts); err != nil {
 		return err
 	}
 
@@ -85,15 +90,24 @@ func installManager(client kubernetes.Interface, opts Options) error {
 	return nil
 }
 
-func installStatefulSet(client clientv1beta2.StatefulSetsGetter, opts Options) error {
+func installStatefulSet(client appsv1client.StatefulSetsGetter, opts Options) error {
 	ss := generateDeployment(opts)
 	_, err := client.StatefulSets(opts.Namespace).Create(ss)
+	if isAlreadyExistsError(err) {
+		clog.V(4).Printf("statefulset %v already exists", ss.Name)
+		return nil
+	}
 	return err
 }
 
 func installService(client corev1.ServicesGetter, opts Options) error {
 	s := generateService(opts)
 	_, err := client.Services(opts.Namespace).Create(s)
+	if isAlreadyExistsError(err) {
+		clog.V(4).Printf("service %v already exists", s.Name)
+		// this service considered different.  If it exists and there is an init we will return the error
+	}
+
 	return err
 }
 
@@ -117,7 +131,7 @@ func ManagerManifests(opts Options) ([]string, error) {
 }
 
 // managerDeployment provides the KUDO manager deployment manifest for printing
-func managerDeployment(opts Options) *v1beta2.StatefulSet {
+func managerDeployment(opts Options) *appsv1.StatefulSet {
 	dep := generateDeployment(opts)
 
 	dep.TypeMeta = metav1.TypeMeta{
@@ -137,19 +151,19 @@ func managerService(opts Options) *v1.Service {
 	return svc
 }
 
-func generateDeployment(opts Options) *v1beta2.StatefulSet {
+func generateDeployment(opts Options) *appsv1.StatefulSet {
 
 	labels := managerLabels()
 
 	secretDefaultMode := int32(420)
 	image := opts.Image
-	d := &v1beta2.StatefulSet{
+	d := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: opts.Namespace,
 			Name:      "kudo-controller-manager",
 			Labels:    labels,
 		},
-		Spec: v1beta2.StatefulSetSpec{
+		Spec: appsv1.StatefulSetSpec{
 			Selector:    &metav1.LabelSelector{MatchLabels: labels},
 			ServiceName: "kudo-controller-manager-service",
 			Template: v1.PodTemplateSpec{

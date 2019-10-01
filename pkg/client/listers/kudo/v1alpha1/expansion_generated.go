@@ -39,11 +39,3 @@ type OperatorVersionListerExpansion interface{}
 // OperatorVersionNamespaceListerExpansion allows custom methods to be added to
 // OperatorVersionNamespaceLister.
 type OperatorVersionNamespaceListerExpansion interface{}
-
-// PlanExecutionListerExpansion allows custom methods to be added to
-// PlanExecutionLister.
-type PlanExecutionListerExpansion interface{}
-
-// PlanExecutionNamespaceListerExpansion allows custom methods to be added to
-// PlanExecutionNamespaceLister.
-type PlanExecutionNamespaceListerExpansion interface{}

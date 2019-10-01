@@ -19,34 +19,16 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
-
+	"github.com/kudobuilder/kudo/pkg/apis"
+	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
-
-	"k8s.io/apimachinery/pkg/runtime"
-
+	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
 	"github.com/kudobuilder/kudo/pkg/version"
 
-	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/controller"
-	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
-
-var (
-	scheme = runtime.NewScheme()
-)
-
-func init() {
-	appsv1.AddToScheme(scheme)
-	batchv1.AddToScheme(scheme)
-	corev1.AddToScheme(scheme)
-	kudov1alpha1.AddToScheme(scheme)
-}
 
 func main() {
 	logf.SetLogger(logf.ZapLogger(false))
@@ -57,15 +39,18 @@ func main() {
 
 	// create new controller-runtime manager
 	log.Info("setting up manager")
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme: scheme,
-	})
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{})
 	if err != nil {
 		log.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
 	log.Info("Registering Components.")
+
+	log.Info("setting up scheme")
+	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Error(err, "unable add APIs to scheme")
+	}
 
 	// Setup all Controllers
 
@@ -87,10 +72,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Info("Setting up controllers")
-	// TODO this still registers instance and PE controller, this will be refactored in the next phase
-	if err := controller.AddControllersToManager(mgr); err != nil {
-		log.Error(err, "unable to register controllers to the manager")
+	log.Info("Setting up instance controller")
+	err = (&instance.Reconciler{
+		Client:   mgr.GetClient(),
+		Recorder: mgr.GetEventRecorderFor("instance-controller"),
+		Scheme:   mgr.GetScheme(),
+	}).SetupWithManager(mgr)
+	if err != nil {
+		log.Error(err, "unable to register instance controller to the manager")
 		os.Exit(1)
 	}
 
