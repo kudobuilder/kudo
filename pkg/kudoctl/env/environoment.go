@@ -37,8 +37,8 @@ var envMap = map[string]string{
 // AddFlags binds flags to the given flagset.
 func (s *Settings) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar((*string)(&s.Home), "home", DefaultKudoHome, "location of your KUDO config.")
-	fs.StringVar(&s.KubeConfig, "kubeconfig", os.Getenv("HOME")+"/.kube/config", "Path to your Kubernetes configuration file")
-	fs.StringVar(&s.Namespace, "namespace", "default", "The namespace used for the package installation. (default \"default\"")
+	fs.StringVar(&s.KubeConfig, "kubeconfig", os.Getenv("HOME")+"/.kube/config", "Path to your Kubernetes configuration file.")
+	fs.StringVarP(&s.Namespace, "namespace", "n", "default", "Target namespace for the object.")
 }
 
 // Init sets values from the environment.

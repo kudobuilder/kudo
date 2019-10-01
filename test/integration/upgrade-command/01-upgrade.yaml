@@ -1,4 +1,4 @@
 apiVersion: kudo.dev/v1alpha1
 kind: TestStep
 kubectl:
-  - kudo upgrade --instance upgrade-instance ./second-operator -p replicas=4
+  - kudo upgrade --instance upgrade-instance ./second-operator -p version=1.7.10

@@ -49,6 +49,28 @@ type AggregatedStatus struct {
 }
 
 // PlanStatus is representing status of a plan
+//
+// These are valid states and trainsitions
+//
+//                       +----------------+
+//                       | Never executed |
+//                       +-------+--------+
+//                               |
+//                               v
+//+-------------+        +-------+--------+
+//|    Error    |<------>|    Pending     |
+//+------+------+        +-------+--------+
+//       ^                       |
+//       |                       v
+//       |               +-------+--------+
+//       +-------------->|  In progress   |
+//       |               +-------+--------+
+//       |                       |
+//       v                       v
+//+------+------+        +-------+--------+
+//| Fatal error |        |    Complete    |
+//+-------------+        +----------------+
+//
 type PlanStatus struct {
 	Name            string          `json:"name,omitempty"`
 	Status          ExecutionStatus `json:"status,omitempty"`
@@ -72,32 +94,48 @@ type StepStatus struct {
 // ExecutionStatus captures the state of the rollout.
 type ExecutionStatus string
 
-// ExecutionInProgress actively deploying, but not yet healthy.
-const ExecutionInProgress ExecutionStatus = "IN_PROGRESS"
+const (
+	// ExecutionInProgress actively deploying, but not yet healthy.
+	ExecutionInProgress ExecutionStatus = "IN_PROGRESS"
 
-// ExecutionPending Not ready to deploy because dependent phases/steps not healthy.
-const ExecutionPending ExecutionStatus = "PENDING"
+	// ExecutionPending Not ready to deploy because dependent phases/steps not healthy.
+	ExecutionPending ExecutionStatus = "PENDING"
 
-// ExecutionComplete deployed and healthy.
-const ExecutionComplete ExecutionStatus = "COMPLETE"
+	// ExecutionComplete deployed and healthy.
+	ExecutionComplete ExecutionStatus = "COMPLETE"
 
-// ExecutionError there was an error deploying the application.
-const ExecutionError ExecutionStatus = "ERROR"
+	// ErrorStatus there was an error deploying the application.
+	ErrorStatus ExecutionStatus = "ERROR"
 
-// ExecutionFatalError there was an error deploying the application.
-const ExecutionFatalError ExecutionStatus = "FATAL_ERROR"
+	// ExecutionFatalError there was an error deploying the application.
+	ExecutionFatalError ExecutionStatus = "FATAL_ERROR"
 
-// ExecutionNeverRun is used when this plan/phase/step was never run so far
-const ExecutionNeverRun ExecutionStatus = "NEVER_RUN"
+	// ExecutionNeverRun is used when this plan/phase/step was never run so far
+	ExecutionNeverRun ExecutionStatus = "NEVER_RUN"
+
+	// DeployPlanName is the name of the deployment plan
+	DeployPlanName = "deploy"
+
+	// UpgradePlanName is the name of the upgrade plan
+	UpgradePlanName = "upgrade"
+
+	// UpdatePlanName is the name of the update plan
+	UpdatePlanName = "update"
+)
 
 // IsTerminal returns true if the status is terminal (either complete, or in a nonrecoverable error)
 func (s ExecutionStatus) IsTerminal() bool {
 	return s == ExecutionComplete || s == ExecutionFatalError
 }
 
+// IsFinished returns true if the status is complete regardless of errors
+func (s ExecutionStatus) IsFinished() bool {
+	return s == ExecutionComplete
+}
+
 // IsRunning returns true if the plan is currently being executed
 func (s ExecutionStatus) IsRunning() bool {
-	return s == ExecutionInProgress || s == ExecutionPending || s == ExecutionError
+	return s == ExecutionInProgress || s == ExecutionPending || s == ErrorStatus
 }
 
 // GetPlanInProgress returns plan status of currently active plan or nil if no plan is running
@@ -122,8 +160,11 @@ func (i *Instance) NoPlanEverExecuted() bool {
 
 // EnsurePlanStatusInitialized initializes plan status for all plans this instance supports
 // it does not trigger run of any plan
+// it either initializes everything for a fresh instance without any status or tries to adjust status after OV was updated
 func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
-	i.Status.PlanStatus = make(map[string]PlanStatus)
+	if i.Status.PlanStatus == nil {
+		i.Status.PlanStatus = make(map[string]PlanStatus)
+	}
 
 	for planName, plan := range ov.Spec.Plans {
 		planStatus := &PlanStatus{
@@ -131,17 +172,40 @@ func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
 			Status: ExecutionNeverRun,
 			Phases: make([]PhaseStatus, 0),
 		}
+
+		existingPlanStatus, planExists := i.Status.PlanStatus[planName]
+		if planExists {
+			planStatus.Status = existingPlanStatus.Status
+		}
 		for _, phase := range plan.Phases {
 			phaseStatus := &PhaseStatus{
 				Name:   phase.Name,
 				Status: ExecutionNeverRun,
 				Steps:  make([]StepStatus, 0),
 			}
+			existingPhaseStatus, phaseExists := PhaseStatus{}, false
+			if planExists {
+				for _, oldPhase := range existingPlanStatus.Phases {
+					if phase.Name == oldPhase.Name {
+						existingPhaseStatus = oldPhase
+						phaseExists = true
+						phaseStatus.Status = existingPhaseStatus.Status
+					}
+				}
+			}
 			for _, step := range phase.Steps {
-				phaseStatus.Steps = append(phaseStatus.Steps, StepStatus{
+				stepStatus := StepStatus{
 					Name:   step.Name,
 					Status: ExecutionNeverRun,
-				})
+				}
+				if phaseExists {
+					for _, oldStep := range existingPhaseStatus.Steps {
+						if step.Name == oldStep.Name {
+							stepStatus.Status = oldStep.Status
+						}
+					}
+				}
+				phaseStatus.Steps = append(phaseStatus.Steps, stepStatus)
 			}
 			planStatus.Phases = append(planStatus.Phases, *phaseStatus)
 		}
@@ -151,26 +215,26 @@ func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
 
 // StartPlanExecution mark plan as to be executed
 func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) error {
-	if i.NoPlanEverExecuted() {
+	if i.NoPlanEverExecuted() || isUpgradePlan(planName) {
 		i.EnsurePlanStatusInitialized(ov)
 	}
 
 	// update status of the instance to reflect the newly starting plan
 	notFound := true
-	for n1, v := range i.Status.PlanStatus {
+	for planIndex, v := range i.Status.PlanStatus {
 		if v.Name == planName {
 			// update plan status
 			notFound = false
-			planStatus := i.Status.PlanStatus[n1]
+			planStatus := i.Status.PlanStatus[planIndex]
 			planStatus.Status = ExecutionPending
-			for i2, p := range v.Phases {
-				planStatus.Phases[i2].Status = ExecutionPending
-				for i3 := range p.Steps {
-					i.Status.PlanStatus[n1].Phases[i2].Steps[i3].Status = ExecutionPending
+			for j, p := range v.Phases {
+				planStatus.Phases[j].Status = ExecutionPending
+				for k := range p.Steps {
+					i.Status.PlanStatus[planIndex].Phases[j].Steps[k].Status = ExecutionPending
 				}
 			}
 
-			i.Status.PlanStatus[n1] = planStatus // we cannot modify item in map, we need to reassign here
+			i.Status.PlanStatus[planIndex] = planStatus // we cannot modify item in map, we need to reassign here
 
 			// update activePlan and instance status
 			i.Status.AggregatedStatus.Status = ExecutionPending
@@ -180,16 +244,20 @@ func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) erro
 		}
 	}
 	if notFound {
-		return fmt.Errorf("asked to execute a plan %s but no such plan found in instance %s/%s", planName, i.Namespace, i.Name)
+		return &InstanceError{fmt.Errorf("asked to execute a plan %s but no such plan found in instance %s/%s", planName, i.Namespace, i.Name), kudo.String("PlanNotFound")}
 	}
 
-	// TODO in the future when we again support manual plan execution, snapshot should be saved only non non-manually executed plans
 	err := i.SaveSnapshot()
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// isUpgradePlan returns true if this could be an upgrade plan - this is just an approximation because deploy plan can be used for both
+func isUpgradePlan(planName string) bool {
+	return planName == DeployPlanName || planName == UpgradePlanName
 }
 
 // UpdateInstanceStatus updates `Status.PlanStatus` and `Status.AggregatedStatus` property based on the given plan
@@ -221,7 +289,7 @@ func (i *Instance) SaveSnapshot() error {
 	return nil
 }
 
-func (i *Instance) getSnapshotedSpec() (*InstanceSpec, error) {
+func (i *Instance) snapshotSpec() (*InstanceSpec, error) {
 	if i.Annotations != nil {
 		snapshot, ok := i.Annotations[snapshotAnnotation]
 		if ok {
@@ -254,23 +322,28 @@ func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
 
 	// new instance, need to run deploy plan
 	if i.NoPlanEverExecuted() {
-		return kudo.String("deploy"), nil
+		return kudo.String(DeployPlanName), nil
 	}
 
 	// did the instance change so that we need to run deploy/upgrade/update plan?
-	instanceSnapshot, err := i.getSnapshotedSpec()
+	instanceSnapshot, err := i.snapshotSpec()
 	if err != nil {
 		return nil, err
 	}
-	if instanceSnapshot.OperatorVersion.Name != i.Spec.OperatorVersion.Name || instanceSnapshot.OperatorVersion.Namespace != i.Spec.OperatorVersion.Namespace {
+	if instanceSnapshot == nil {
+		// we don't have snapshot -> we never run deploy, also we cannot run update/upgrade. This should never happen
+		return nil, &InstanceError{fmt.Errorf("unexpected state: no plan is running, no snapshot present - this should never happen :) for instance %s/%s", i.Namespace, i.Name), kudo.String("UnexpectedState")}
+	}
+	if instanceSnapshot.OperatorVersion.Name != i.Spec.OperatorVersion.Name {
 		// this instance was upgraded to newer version
 		log.Printf("Instance: instance %s/%s was upgraded from %s to %s operatorversion", i.Namespace, i.Name, instanceSnapshot.OperatorVersion.Name, i.Spec.OperatorVersion.Name)
-		plan := selectPlan([]string{"upgrade", "update", "deploy"}, ov)
+		plan := selectPlan([]string{UpgradePlanName, UpdatePlanName, DeployPlanName}, ov)
 		if plan == nil {
-			return nil, fmt.Errorf("supposed to execute plan because instance %s/%s was upgraded but none of the deploy, upgrade, update plans found in linked operatorVersion", i.Namespace, i.Name)
+			return nil, &InstanceError{fmt.Errorf("supposed to execute plan because instance %s/%s was upgraded but none of the deploy, upgrade, update plans found in linked operatorVersion", i.Namespace, i.Name), kudo.String("PlanNotFound")}
 		}
 		return plan, nil
 	}
+	// did instance parameters change, so that the corresponding plan has to be triggered?
 	if !reflect.DeepEqual(instanceSnapshot.Parameters, i.Spec.Parameters) {
 		// instance updated
 		log.Printf("Instance: instance %s/%s has updated parameters from %v to %v", i.Namespace, i.Name, instanceSnapshot.Parameters, i.Spec.Parameters)
@@ -278,7 +351,7 @@ func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
 		paramDefinitions := getParamDefinitions(paramDiff, ov)
 		plan := planNameFromParameters(paramDefinitions, ov)
 		if plan == nil {
-			return nil, fmt.Errorf("supposed to execute plan because instance %s/%s was updatet but none of the deploy, update plans found in linked operatorVersion", i.Namespace, i.Name)
+			return nil, &InstanceError{fmt.Errorf("supposed to execute plan because instance %s/%s was updatet but none of the deploy, update plans found in linked operatorVersion", i.Namespace, i.Name), kudo.String("PlanNotFound")}
 		}
 		return plan, nil
 	}
@@ -293,12 +366,12 @@ func planNameFromParameters(params []Parameter, ov *OperatorVersion) *string {
 			return kudo.String(p.Trigger)
 		}
 	}
-	return selectPlan([]string{"update", "deploy"}, ov)
+	return selectPlan([]string{UpdatePlanName, DeployPlanName}, ov)
 }
 
 // getParamDefinitions retrieves parameter metadata from OperatorVersion CRD
 func getParamDefinitions(params map[string]string, ov *OperatorVersion) []Parameter {
-	defs := make([]Parameter, 0)
+	defs := []Parameter{}
 	for p1 := range params {
 		for _, p2 := range ov.Spec.Parameters {
 			if p2.Name == p1 {
@@ -343,8 +416,8 @@ type Instance struct {
 	Status InstanceStatus `json:"status,omitempty"`
 }
 
-// GetOperatorVersionNamespace returns the namespace of the OperatorVersion that the Instance references.
-func (i *Instance) GetOperatorVersionNamespace() string {
+// OperatorVersionNamespace returns the namespace of the OperatorVersion that the Instance references.
+func (i *Instance) OperatorVersionNamespace() string {
 	if i.Spec.OperatorVersion.Namespace == "" {
 		return i.ObjectMeta.Namespace
 	}
@@ -362,4 +435,15 @@ type InstanceList struct {
 
 func init() {
 	SchemeBuilder.Register(&Instance{}, &InstanceList{})
+}
+
+// InstanceError indicates error on that can also emit a kubernetes warn event
+// +k8s:deepcopy-gen=false
+type InstanceError struct {
+	err       error
+	EventName *string // nil if no warn event should be created
+}
+
+func (e *InstanceError) Error() string {
+	return fmt.Sprintf("Error during execution: %v", e.err)
 }

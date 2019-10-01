@@ -17,6 +17,7 @@ package instance
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -51,23 +52,23 @@ type Reconciler struct {
 func (r *Reconciler) SetupWithManager(
 	mgr ctrl.Manager) error {
 	addOvRelatedInstancesToReconcile := handler.ToRequestsFunc(
-		func(a handler.MapObject) []reconcile.Request {
+		func(obj handler.MapObject) []reconcile.Request {
 			requests := make([]reconcile.Request, 0)
 			instances := &kudov1alpha1.InstanceList{}
 			// we are listing all instances here, which could come with some performance penalty
-			// a possible optimization is to introduce filtering based on operatorversion (or operator)
+			// obj possible optimization is to introduce filtering based on operatorversion (or operator)
 			err := mgr.GetClient().List(
 				context.TODO(),
 				instances,
 			)
 			if err != nil {
-				log.Printf("InstanceController: Error fetching instances list for operator %v: %v", a.Meta.GetName(), err)
+				log.Printf("InstanceController: Error fetching instances list for operator %v: %v", obj.Meta.GetName(), err)
 				return nil
 			}
 			for _, instance := range instances.Items {
-				// Sanity check - lets make sure that this instance references the operatorVersion
-				if instance.Spec.OperatorVersion.Name == a.Meta.GetName() &&
-					instance.GetOperatorVersionNamespace() == a.Meta.GetNamespace() {
+				// we need to pick only those instances, that belong to the OperatorVersion we're reconciling
+				if instance.Spec.OperatorVersion.Name == obj.Meta.GetName() &&
+					instance.OperatorVersionNamespace() == obj.Meta.GetNamespace() {
 					requests = append(requests, reconcile.Request{
 						NamespacedName: types.NamespacedName{
 							Name:      instance.Name,
@@ -90,7 +91,30 @@ func (r *Reconciler) SetupWithManager(
 		Complete(r)
 }
 
-// Reconcile ...
+// Reconcile is the main controller method that gets called every time something about the instance changes
+//
+//   +-------------------------------+
+//   | Query state of Instance       |
+//   | and OperatorVersion           |
+//   +-------------------------------+
+//                  |
+//                  v
+//   +-------------------------------+
+//   | Start new plan if required    |
+//   | and none is running           |
+//   +-------------------------------+
+//                  |
+//                  v
+//   +-------------------------------+
+//   | If there is plan in progress, |
+//   | proceed with the execution    |
+//   +-------------------------------+
+//                  |
+//                  v
+//   +-------------------------------+
+//   | Update instance with new      |
+//   | state of the execution        |
+//   +-------------------------------+
 //
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
@@ -102,6 +126,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	instance, err := r.getInstance(request)
 	if err != nil {
 		if apierrors.IsNotFound(err) { // not retrying if instance not found, probably someone manually removed it?
+			log.Printf("Instances in namespace %s not found, not retrying reconcile since this error is usually not recoverable (without manual intervention).", request.NamespacedName)
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
@@ -109,7 +134,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	ov, err := r.getOperatorVersion(instance)
 	if err != nil {
-		return reconcile.Result{}, err // OV not found has to be retried because it can really have been created after I
+		return reconcile.Result{}, err // OV not found has to be retried because it can really have been created after Instance
 	}
 
 	// ---------- 2. First check if we should start execution of new plan ----------
@@ -124,6 +149,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		if err != nil {
 			return reconcile.Result{}, r.handleError(err, instance)
 		}
+		r.Recorder.Event(instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", kudo.StringValue(planToBeExecuted)))
 	}
 
 	// ---------- 3. If there's currently active plan, continue with the execution ----------
@@ -136,7 +162,6 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	activePlan, metadata, err := preparePlanExecution(instance, ov, activePlanStatus)
 	if err != nil {
-		fmt.Printf("Pre-error instance %v", instance)
 		err = r.handleError(err, instance)
 		return reconcile.Result{}, err
 	}
@@ -157,6 +182,10 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	if err != nil {
 		log.Printf("InstanceController: Error when updating instance state. %v", err)
 		return reconcile.Result{}, err
+	}
+
+	if instance.Status.AggregatedStatus.Status.IsTerminal() {
+		r.Recorder.Event(instance, "Normal", "PlanFinished", fmt.Sprintf("Execution of plan %s finished with status %s", activePlanStatus.Name, instance.Status.AggregatedStatus.Status))
 	}
 
 	return reconcile.Result{}, nil
@@ -213,6 +242,14 @@ func (r *Reconciler) handleError(err error, instance *kudov1alpha1.Instance) err
 			return nil // not retrying fatal error
 		}
 	}
+
+	// for code being processed on instance, we need to handle these errors as well
+	var iError *kudov1alpha1.InstanceError
+	if errors.As(err, &iError) {
+		if iError.EventName != nil {
+			r.Recorder.Event(instance, "Warning", kudo.StringValue(iError.EventName), err.Error())
+		}
+	}
 	return err
 }
 
@@ -238,7 +275,7 @@ func (r *Reconciler) getOperatorVersion(instance *kudov1alpha1.Instance) (ov *ku
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      instance.Spec.OperatorVersion.Name,
-			Namespace: instance.GetOperatorVersionNamespace(),
+			Namespace: instance.OperatorVersionNamespace(),
 		},
 		ov)
 	if err != nil {
@@ -305,7 +342,7 @@ type executionError struct {
 	eventName *string // nil if no warn even should be created
 }
 
-func (e executionError) Error() string {
+func (e *executionError) Error() string {
 	if e.fatal {
 		return fmt.Sprintf("Fatal error: %v", e.err)
 	}

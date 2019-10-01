@@ -86,9 +86,9 @@ func TestExecutePlan(t *testing.T) {
 		{"plan in errored state will be retried and completed when no error happens", &activePlan{
 			Name: "test",
 			PlanStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionError,
+				Status: v1alpha1.ErrorStatus,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionError, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionError, Name: "step"}}}},
+				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ErrorStatus, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ErrorStatus, Name: "step"}}}},
 			},
 			Spec: &v1alpha1.Plan{
 				Strategy: "serial",

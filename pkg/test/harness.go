@@ -63,13 +63,13 @@ func (h *Harness) LoadTests(dir string) ([]*Case, error) {
 
 	tests := []*Case{}
 
+	timeout := h.GetTimeout()
+	h.T.Logf("Going to run test suite with timeout of %d seconds for each step", timeout)
+
 	for _, file := range files {
 		if !file.IsDir() {
 			continue
 		}
-
-		timeout := h.GetTimeout()
-		h.T.Logf("Going to run test suite with timeout of %d seconds for each step", timeout)
 
 		tests = append(tests, &Case{
 			Timeout:    timeout,
