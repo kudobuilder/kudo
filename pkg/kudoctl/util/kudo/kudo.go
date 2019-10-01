@@ -142,17 +142,6 @@ func (c *Client) GetOperatorVersion(name, namespace string) (*v1alpha1.OperatorV
 	return ov, err
 }
 
-// GetOperator queries the Kubernetes API for an operator of given name in given namespace.
-// If an operator is not found, 'nil, nil' is returned.
-func (c *Client) GetOperator(name, namespace string) (*v1alpha1.Operator, error) {
-	o, err := c.clientset.KudoV1alpha1().Operators(namespace).Get(name, v1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		return nil, nil
-	}
-
-	return o, err
-}
-
 // UpdateInstance updates operatorversion on instance
 func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersionName *string, parameters map[string]string) error {
 	instanceSpec := v1alpha1.InstanceSpec{}
@@ -242,26 +231,6 @@ func (c *Client) DeleteInstance(instanceName, namespace string) error {
 	}
 
 	return c.clientset.KudoV1alpha1().Instances(namespace).Delete(instanceName, options)
-}
-
-// DeleteOperatorVersion deletes an operatorversion.
-func (c *Client) DeleteOperatorVersion(operatorVersionName, namespace string) error {
-	propagationPolicy := v1.DeletePropagationForeground
-	options := &v1.DeleteOptions{
-		PropagationPolicy: &propagationPolicy,
-	}
-
-	return c.clientset.KudoV1alpha1().OperatorVersions(namespace).Delete(operatorVersionName, options)
-}
-
-// DeleteOperator deletes an operator.
-func (c *Client) DeleteOperator(operatorName, namespace string) error {
-	propagationPolicy := v1.DeletePropagationForeground
-	options := &v1.DeleteOptions{
-		PropagationPolicy: &propagationPolicy,
-	}
-
-	return c.clientset.KudoV1alpha1().Operators(namespace).Delete(operatorName, options)
 }
 
 // ValidateServerForOperator validates that the k8s server version and kudo version are valid for operator
