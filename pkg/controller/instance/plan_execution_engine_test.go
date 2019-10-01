@@ -21,7 +21,6 @@ import (
 func TestExecutePlan(t *testing.T) {
 	defaultMetadata := &executionMetadata{
 		instanceName:        "Instance",
-		planExecutionID:     "pid",
 		instanceNamespace:   "default",
 		operatorVersion:     "ov-1.0",
 		operatorName:        "operator",
