@@ -69,11 +69,10 @@ func TestInitCmd_exists(t *testing.T) {
 	clog.Init(nil, &buf)
 	Settings.Home = "/opt"
 
-	if err := cmd.run(); err == nil {
-		t.Errorf("expected error: %v", err)
+	if err := cmd.run(); err != nil {
+		t.Errorf("did not expect error: %v", err)
 	}
-	expected := "$KUDO_HOME has been configured at /opt\n" + "Warning: KUDO is already installed in the cluster.\n" +
-		"(Use --client-only to suppress this message)\n"
+	expected := "$KUDO_HOME has been configured at /opt\n"
 
 	if !strings.Contains(buf.String(), expected) {
 		t.Errorf("expected %q, got %q", expected, buf.String())

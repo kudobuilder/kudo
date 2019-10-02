@@ -105,7 +105,7 @@ func installService(client corev1.ServicesGetter, opts Options) error {
 	_, err := client.Services(opts.Namespace).Create(s)
 	if isAlreadyExistsError(err) {
 		clog.V(4).Printf("service %v already exists", s.Name)
-		// this service considered different.  If it exists and there is an init we will return the error
+		return nil
 	}
 
 	return err
