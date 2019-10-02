@@ -73,6 +73,7 @@ As an Operator Developer I, ...
 
 * would like to be able to host validation/testing plans and resources as part of the Package
 * would like to update my Package version
+* would like to be able to provide operator package versions based on multiple base technology versions, with the same operator version
 
 #### Cluster Administrator
 
