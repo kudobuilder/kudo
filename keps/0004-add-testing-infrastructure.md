@@ -124,7 +124,7 @@ These clusters can be started either as a part of CI jobs or maintained long ter
 
 ### CICD
 
-We will use a [Prow](https://github.com/kubernetes/test-infra/tree/master/prow) cluster to run jobs for pull requests and merges. The Prow cluster configuration will live in the `kudobuilder/test-infra` repository, it will be hosted on GKE, and it will be reachable at https://prow.kudo.dev/.
+CICD is accomplished by a combination of CircleCI and Github Actions enabled for the KUDO repo.
 
 #### Pull Requests
 
