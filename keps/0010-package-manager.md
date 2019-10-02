@@ -145,10 +145,10 @@ In the long term it will conform with KEP-0009 and have the following structure:
 
 The advantage of having a flat structure withing the hosted repo environment is, that for distribution the opinionated structure within the `.tgz` file is not much of importance and can be subject to change without breaking other assumptions.
 
-For example, the `/kafka/2.2.0` folder (with whatever underlying structure) is zipped to `kafka-2.2.0.tgz`, where `2.2.0` is the current SemVer version of the Package. 
+For example, the `/kafka/2.2.0` folder (with whatever underlying structure) is zipped to `kafka-2.2.0.tgz`, where `2.2.0` is the current SemVer version of the Package.
 
 The version of a Package (e.g., `kafka-0.1.0` or `kafka-0.2.0`) does not have to match the current version of KUDO itself but it follows its own SemVer timeline. The zipped Operator, called Package, is made available through any HTTP Server.
- 
+
 Our official repository is hosted on Google Cloud Storage and following a flat structure:
 
 ```bash
@@ -167,7 +167,7 @@ Our official repository is hosted on Google Cloud Storage and following a flat s
 
 We rely on just an HTTP Server, e.g. the out-of-the-box solution that Google Cloud Storage provides, that serves operator `tgz` files and makes them available to users.
 
-The logic for keeping the operators in sync should live in the CLI and is not defined on this KEP . That way the HTTP server only has to serve the index and the Package `tgz` files, without having to implement any business logic. 
+The logic for keeping the operators in sync should live in the CLI and is not defined on this KEP . That way the HTTP server only has to serve the index and the Package `tgz` files, without having to implement any business logic.
 
 The proposed structure is fairly easy to replicate and highly customizable.
 
