@@ -1,0 +1,4 @@
+apiVersion: kudo.dev/v1alpha1
+kind: TestStep
+kubectl:
+- kudo uninstall --instance cli-install
