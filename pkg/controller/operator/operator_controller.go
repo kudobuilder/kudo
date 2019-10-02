@@ -42,8 +42,6 @@ func (r *Reconciler) SetupWithManager(
 // Reconcile reads that state of the cluster for an Operator object and makes changes based on the state read
 // and what is in the Operator.Spec
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=kudo.dev,resources=operators,verbs=get;list;watch;create;update;patch;delete
 func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	// Fetch the operator
 	operator := &kudov1alpha1.Operator{}
