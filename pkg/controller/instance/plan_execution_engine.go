@@ -46,8 +46,6 @@ type executionMetadata struct {
 	operatorVersionName string
 	operatorVersion     string
 
-	planExecutionID string // TODO will be removed when PE CRD is removed
-
 	// the object that will own all the resources created by this execution
 	resourcesOwner metav1.Object
 }
@@ -290,7 +288,6 @@ func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer ku
 						Namespace:       meta.instanceNamespace,
 						OperatorName:    meta.operatorName,
 						OperatorVersion: meta.operatorVersion,
-						PlanExecution:   meta.planExecutionID,
 						PlanName:        plan.Name,
 						PhaseName:       phase.Name,
 						StepName:        step.Name,
@@ -300,7 +297,7 @@ func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer ku
 						phaseState.Status = v1alpha1.ErrorStatus
 						stepState.Status = v1alpha1.ErrorStatus
 
-						log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v: %v", step.Name, phase.Name, meta.planExecutionID, err)
+						log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v and instance %s/%s: %v", step.Name, phase.Name, plan.Name, meta.instanceNamespace, meta.instanceName, err)
 						return nil, &executionError{err, false, nil}
 					}
 					resources = append(resources, resourcesWithConventions...)
