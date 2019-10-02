@@ -6,7 +6,7 @@
 #
 # The next step will then create new OperatorVersion which will include an
 # "upgrade" plan, update the instance, and finally verify that the right
-# PlanExecution was created.
+# plan executed.
 apiVersion: kudo.dev/v1alpha1
 kind: Operator
 metadata:

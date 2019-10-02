@@ -31,7 +31,6 @@ type metadata struct {
 	Namespace       string
 	OperatorName    string
 	OperatorVersion string
-	PlanExecution   string
 	PlanName        string
 	PhaseName       string
 	StepName        string
@@ -73,7 +72,6 @@ func (k *kustomizeEnhancer) applyConventionsToTemplates(templates map[string]str
 			kudo.InstanceLabel: metadata.InstanceName,
 		},
 		CommonAnnotations: map[string]string{
-			kudo.PlanExecutionAnnotation:   metadata.PlanExecution,
 			kudo.PlanAnnotation:            metadata.PlanName,
 			kudo.PhaseAnnotation:           metadata.PhaseName,
 			kudo.StepAnnotation:            metadata.StepName,
