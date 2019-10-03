@@ -191,7 +191,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	return reconcile.Result{}, nil
 }
 
-func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.OperatorVersion, activePlanStatus *kudov1alpha1.PlanStatus) (*activePlan, *executionMetadata, error) {
+func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.OperatorVersion, activePlanStatus *kudov1alpha1.PlanStatus) (*activePlan, *ExecutionMetadata, error) {
 	params, err := getParameters(instance, ov)
 	if err != nil {
 		return nil, nil, err
@@ -209,13 +209,13 @@ func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.Oper
 			Tasks:      ov.Spec.Tasks,
 			Templates:  ov.Spec.Templates,
 			params:     params,
-		}, &executionMetadata{
-			operatorVersionName: ov.Name,
-			operatorVersion:     ov.Spec.Version,
-			resourcesOwner:      instance,
-			operatorName:        ov.Spec.Operator.Name,
-			instanceNamespace:   instance.Namespace,
-			instanceName:        instance.Name,
+		}, &ExecutionMetadata{
+			OperatorVersionName: ov.Name,
+			OperatorVersion:     ov.Spec.Version,
+			ResourcesOwner:      instance,
+			OperatorName:        ov.Spec.Operator.Name,
+			InstanceNamespace:   instance.Namespace,
+			InstanceName:        instance.Name,
 		}, nil
 }
 

@@ -39,27 +39,27 @@ type phaseResources struct {
 	StepResources map[string][]runtime.Object
 }
 
-type executionMetadata struct {
-	instanceName        string
-	instanceNamespace   string
-	operatorName        string
-	operatorVersionName string
-	operatorVersion     string
+type ExecutionMetadata struct {
+	InstanceName        string
+	InstanceNamespace   string
+	OperatorName        string
+	OperatorVersionName string
+	OperatorVersion     string
 
 	planExecutionID string // TODO will be removed when PE CRD is removed
 
 	// the object that will own all the resources created by this execution
-	resourcesOwner metav1.Object
+	ResourcesOwner metav1.Object
 }
 
-// executePlan takes a currently active plan and metadata from the underlying operator and executes next "step" in that execution
+// executePlan takes a currently active plan and Metadata from the underlying operator and executes next "step" in that execution
 // the next step could consist of actually executing multiple steps of the plan or just one depending on the execution strategy of the phase (serial/parallel)
 // result of running this function is new state of the execution that is returned to the caller (it can either be completed, or still in progress or errored)
 // in case of error, error is returned along with the state as well (so that it's possible to report which step caused the error)
 // in case of error, method returns ErrorStatus which has property to indicate unrecoverable error meaning if there is no point in retrying that execution
-func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client, renderer kubernetesObjectEnhancer) (*v1alpha1.PlanStatus, error) {
+func executePlan(plan *activePlan, metadata *ExecutionMetadata, c client.Client, renderer KubernetesObjectEnhancer) (*v1alpha1.PlanStatus, error) {
 	if plan.Status.IsTerminal() {
-		log.Printf("PlanExecution: Plan %s for instance %s is terminal, nothing to do", plan.Name, metadata.instanceName)
+		log.Printf("PlanExecution: Plan %s for instance %s is terminal, nothing to do", plan.Name, metadata.InstanceName)
 		return plan.PlanStatus, nil
 	}
 
@@ -84,12 +84,12 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 		currentPhaseState, _ := getPhaseFromStatus(ph.Name, newState)
 		if isFinished(currentPhaseState.Status) {
 			// nothing to do
-			log.Printf("PlanExecution: Phase %s on plan %s and instance %s is in state %s, nothing to do", ph.Name, plan.Name, metadata.instanceName, currentPhaseState.Status)
+			log.Printf("PlanExecution: Phase %s on plan %s and instance %s is in state %s, nothing to do", ph.Name, plan.Name, metadata.InstanceName, currentPhaseState.Status)
 			continue
 		} else if isInProgress(currentPhaseState.Status) {
 			newState.Status = v1alpha1.ExecutionInProgress
 			currentPhaseState.Status = v1alpha1.ExecutionInProgress
-			log.Printf("PlanExecution: Executing phase %s on plan %s and instance %s - it's in progress", ph.Name, plan.Name, metadata.instanceName)
+			log.Printf("PlanExecution: Executing phase %s on plan %s and instance %s - it's in progress", ph.Name, plan.Name, metadata.InstanceName)
 
 			// we're currently executing this phase
 			allStepsHealthy := true
@@ -97,7 +97,7 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 				currentStepState, _ := getStepFromStatus(st.Name, currentPhaseState)
 				resources := planResources.PhaseResources[ph.Name].StepResources[st.Name]
 
-				log.Printf("PlanExecution: Executing step %s on plan %s and instance %s - it's in %s state", st.Name, plan.Name, metadata.instanceName, currentStepState.Status)
+				log.Printf("PlanExecution: Executing step %s on plan %s and instance %s - it's in %s state", st.Name, plan.Name, metadata.InstanceName, currentStepState.Status)
 				err := executeStep(st, currentStepState, resources, c)
 				if err != nil {
 					currentPhaseState.Status = v1alpha1.ErrorStatus
@@ -115,7 +115,7 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 			}
 
 			if allStepsHealthy {
-				log.Printf("PlanExecution: All steps on phase %s plan %s and instance %s are healthy", ph.Name, plan.Name, metadata.instanceName)
+				log.Printf("PlanExecution: All steps on phase %s plan %s and instance %s are healthy", ph.Name, plan.Name, metadata.InstanceName)
 				currentPhaseState.Status = v1alpha1.ExecutionComplete
 			}
 		}
@@ -128,7 +128,7 @@ func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client,
 	}
 
 	if allPhasesCompleted {
-		log.Printf("PlanExecution: All phases on plan %s and instance %s are healthy", plan.Name, metadata.instanceName)
+		log.Printf("PlanExecution: All phases on plan %s and instance %s are healthy", plan.Name, metadata.InstanceName)
 		newState.Status = v1alpha1.ExecutionComplete
 	}
 
@@ -205,7 +205,7 @@ func patchExistingObject(newResource runtime.Object, existingResource runtime.Ob
 	err := c.Patch(context.TODO(), existingResource, client.ConstantPatch(types.StrategicMergePatchType, newResourceJSON))
 	if err != nil {
 		// Right now applying a Strategic Merge Patch to custom resources does not work. There is
-		// certain metadata needed, which when missing, leads to an invalid Content-Type Header and
+		// certain Metadata needed, which when missing, leads to an invalid Content-Type Header and
 		// causes the request to fail.
 		// ( see https://github.com/kubernetes-sigs/kustomize/issues/742#issuecomment-458650435 )
 		//
@@ -232,12 +232,12 @@ func patchExistingObject(newResource runtime.Object, existingResource runtime.Ob
 }
 
 // prepareKubeResources takes all resources in all tasks for a plan and renders them with the right parameters
-// it also takes care of applying KUDO specific conventions to the resources like commond labels
-func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer kubernetesObjectEnhancer) (*planResources, error) {
+// it also takes care of applying KUDO specific conventions to the resources like common labels
+func prepareKubeResources(plan *activePlan, meta *ExecutionMetadata, enhancer KubernetesObjectEnhancer) (*planResources, error) {
 	configs := make(map[string]interface{})
-	configs["OperatorName"] = meta.operatorName
-	configs["Name"] = meta.instanceName
-	configs["Namespace"] = meta.instanceNamespace
+	configs["OperatorName"] = meta.OperatorName
+	configs["Name"] = meta.InstanceName
+	configs["Namespace"] = meta.InstanceNamespace
 	configs["Params"] = plan.params
 
 	result := &planResources{
@@ -279,22 +279,22 @@ func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer ku
 							phaseState.Status = v1alpha1.ExecutionFatalError
 							stepState.Status = v1alpha1.ExecutionFatalError
 
-							err := fmt.Errorf("PlanExecution: Error finding resource named %v for operator version %v", res, meta.operatorVersionName)
+							err := fmt.Errorf("PlanExecution: Error finding resource named %v for operator version %v", res, meta.OperatorVersionName)
 							log.Print(err)
 							return nil, &executionError{err, true, nil}
 						}
 					}
 
-					resourcesWithConventions, err := renderer.applyConventionsToTemplates(resourcesAsString, metadata{
-						InstanceName:    meta.instanceName,
-						Namespace:       meta.instanceNamespace,
-						OperatorName:    meta.operatorName,
-						OperatorVersion: meta.operatorVersion,
+					resourcesWithConventions, err := enhancer.ApplyConventionsToTemplates(resourcesAsString, Metadata{
+						InstanceName:    meta.InstanceName,
+						Namespace:       meta.InstanceNamespace,
+						OperatorName:    meta.OperatorName,
+						OperatorVersion: meta.OperatorVersion,
 						PlanExecution:   meta.planExecutionID,
 						PlanName:        plan.Name,
 						PhaseName:       phase.Name,
 						StepName:        step.Name,
-					}, meta.resourcesOwner)
+					}, meta.ResourcesOwner)
 
 					if err != nil {
 						phaseState.Status = v1alpha1.ErrorStatus
@@ -308,7 +308,7 @@ func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer ku
 					phaseState.Status = v1alpha1.ErrorStatus
 					stepState.Status = v1alpha1.ErrorStatus
 
-					err := fmt.Errorf("Error finding task named %s for operator version %s", taskSpec, meta.operatorVersionName)
+					err := fmt.Errorf("Error finding task named %s for operator version %s", taskSpec, meta.OperatorVersionName)
 					log.Print(err)
 					return nil, &executionError{err, false, nil}
 				}

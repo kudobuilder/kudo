@@ -25,8 +25,8 @@ import (
 
 const basePath = "/kustomize"
 
-// metadata contains metadata associated with current PlanExecution
-type metadata struct {
+// Metadata contains Metadata associated with current PlanExecution
+type Metadata struct {
 	InstanceName    string
 	Namespace       string
 	OperatorName    string
@@ -37,21 +37,21 @@ type metadata struct {
 	StepName        string
 }
 
-// kubernetesObjectEnhancer takes your kubernetes template and kudo related metadata and applies them to all resources in form of labels
+// KubernetesObjectEnhancer takes your kubernetes template and kudo related Metadata and applies them to all resources in form of labels
 // and annotations
 // it also takes care of setting an owner of all the resources to the provided object
-type kubernetesObjectEnhancer interface {
-	applyConventionsToTemplates(templates map[string]string, metadata metadata, owner v1.Object) ([]runtime.Object, error)
+type KubernetesObjectEnhancer interface {
+	ApplyConventionsToTemplates(templates map[string]string, metadata Metadata, owner v1.Object) ([]runtime.Object, error)
 }
 
-// kustomizeEnhancer is implementation of kubernetesObjectEnhancer that uses kustomize to apply the defined conventions
+// kustomizeEnhancer is implementation of KubernetesObjectEnhancer that uses kustomize to apply the defined conventions
 type kustomizeEnhancer struct {
 	scheme *runtime.Scheme
 }
 
 // ApplyConventions accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
-func (k *kustomizeEnhancer) applyConventionsToTemplates(templates map[string]string, metadata metadata, owner v1.Object) (objsToAdd []runtime.Object, err error) {
+func (k *kustomizeEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata Metadata, owner v1.Object) (objsToAdd []runtime.Object, err error) {
 	fsys := fs.MakeFakeFS()
 
 	templateNames := make([]string, 0, len(templates))
