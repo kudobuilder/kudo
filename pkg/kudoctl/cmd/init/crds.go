@@ -109,8 +109,6 @@ func generateOperator() *apiextv1beta1.CustomResourceDefinition {
 		"spec":       apiextv1beta1.JSONSchemaProps{Properties: specProps, Type: "object"},
 		"status":     apiextv1beta1.JSONSchemaProps{Type: "object"},
 	}
-	// preserveFields := false
-	// crd.Spec.PreserveUnknownFields = &preserveFields
 	crd.Spec.Validation = &apiextv1beta1.CustomResourceValidation{
 		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{Type: "object",
 			Properties: validationProps,
@@ -268,6 +266,8 @@ func generateCrd(kind string, plural string) *apiextv1beta1.CustomResourceDefini
 			StoredVersions: []string{},
 		},
 	}
+	preserveFields := false
+	crd.Spec.PreserveUnknownFields = &preserveFields
 	return crd
 }
 
