@@ -163,7 +163,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		err = r.handleError(err, instance)
 		return reconcile.Result{}, err
 	}
-	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
+	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.name, instance.Namespace, instance.Name)
 	newStatus, err := executePlan(activePlan, metadata, r.Client, &kustomizeEnhancer{r.Scheme})
 
 	// ---------- 4. Update status of instance after the execution proceeded ----------
@@ -201,11 +201,11 @@ func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.Oper
 	}
 
 	return &activePlan{
-			Name:       activePlanStatus.Name,
-			Spec:       &planSpec,
+			name:       activePlanStatus.Name,
+			spec:       &planSpec,
 			PlanStatus: activePlanStatus,
-			Tasks:      ov.Spec.Tasks,
-			Templates:  ov.Spec.Templates,
+			tasks:      ov.Spec.Tasks,
+			templates:  ov.Spec.Templates,
 			params:     params,
 		}, &executionMetadata{
 			operatorVersionName: ov.Name,
