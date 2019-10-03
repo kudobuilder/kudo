@@ -39,7 +39,7 @@ type phaseResources struct {
 	StepResources map[string][]runtime.Object
 }
 
-type executionMetadata struct {
+type engineMetadata struct {
 	instanceName        string
 	instanceNamespace   string
 	operatorName        string
@@ -50,12 +50,12 @@ type executionMetadata struct {
 	resourcesOwner metav1.Object
 }
 
-// executePlan takes a currently active plan and metadata from the underlying operator and executes next "step" in that execution
+// executePlan takes a currently active plan and ExecutionMetadata from the underlying operator and executes next "step" in that execution
 // the next step could consist of actually executing multiple steps of the plan or just one depending on the execution strategy of the phase (serial/parallel)
 // result of running this function is new state of the execution that is returned to the caller (it can either be completed, or still in progress or errored)
 // in case of error, error is returned along with the state as well (so that it's possible to report which step caused the error)
 // in case of error, method returns ErrorStatus which has property to indicate unrecoverable error meaning if there is no point in retrying that execution
-func executePlan(plan *activePlan, metadata *executionMetadata, c client.Client, enhancer kubernetesObjectEnhancer) (*v1alpha1.PlanStatus, error) {
+func executePlan(plan *activePlan, metadata *engineMetadata, c client.Client, enhancer kubernetesObjectEnhancer) (*v1alpha1.PlanStatus, error) {
 	if plan.Status.IsTerminal() {
 		log.Printf("PlanExecution: Plan %s for instance %s is terminal, nothing to do", plan.name, metadata.instanceName)
 		return plan.PlanStatus, nil
@@ -231,7 +231,7 @@ func patchExistingObject(newResource runtime.Object, existingResource runtime.Ob
 
 // prepareKubeResources takes all resources in all tasks for a plan and renders them with the right parameters
 // it also takes care of applying KUDO specific conventions to the resources like commond labels
-func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer kubernetesObjectEnhancer) (*planResources, error) {
+func prepareKubeResources(plan *activePlan, meta *engineMetadata, renderer kubernetesObjectEnhancer) (*planResources, error) {
 	configs := make(map[string]interface{})
 	configs["OperatorName"] = meta.operatorName
 	configs["Name"] = meta.instanceName
@@ -283,11 +283,11 @@ func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer ku
 						}
 					}
 
-					resourcesWithConventions, err := renderer.applyConventionsToTemplates(resourcesAsString, metadata{
-						executionMetadata: *meta,
-						planName:          plan.name,
-						phaseName:         phase.Name,
-						stepName:          step.Name,
+					resourcesWithConventions, err := renderer.applyConventionsToTemplates(resourcesAsString, ExecutionMetadata{
+						engineMetadata: *meta,
+						planName:       plan.name,
+						phaseName:      phase.Name,
+						stepName:       step.Name,
 					})
 
 					if err != nil {

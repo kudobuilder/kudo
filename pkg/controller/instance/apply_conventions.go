@@ -25,9 +25,9 @@ import (
 
 const basePath = "/kustomize"
 
-// metadata contains metadata associated with current plan being executed
-type metadata struct {
-	executionMetadata
+// ExecutionMetadata contains ExecutionMetadata associated with current plan being executed
+type ExecutionMetadata struct {
+	engineMetadata
 
 	planName  string
 	phaseName string
@@ -38,7 +38,7 @@ type metadata struct {
 // and annotations
 // it also takes care of setting an owner of all the resources to the provided object
 type kubernetesObjectEnhancer interface {
-	applyConventionsToTemplates(templates map[string]string, metadata metadata) ([]runtime.Object, error)
+	applyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) ([]runtime.Object, error)
 }
 
 // kustomizeEnhancer is implementation of kubernetesObjectEnhancer that uses kustomize to apply the defined conventions
@@ -48,7 +48,7 @@ type kustomizeEnhancer struct {
 
 // ApplyConventions accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
-func (k *kustomizeEnhancer) applyConventionsToTemplates(templates map[string]string, metadata metadata) (objsToAdd []runtime.Object, err error) {
+func (k *kustomizeEnhancer) applyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) (objsToAdd []runtime.Object, err error) {
 	fsys := fs.MakeFakeFS()
 
 	templateNames := make([]string, 0, len(templates))
