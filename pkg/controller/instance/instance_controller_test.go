@@ -1,10 +1,11 @@
+// +build integration
+
 package instance
 
 import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -24,6 +25,7 @@ import (
 )
 
 const timeout = time.Second * 5
+const tick = time.Millisecond * 500
 
 func TestRestartController(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
@@ -42,6 +44,7 @@ func TestRestartController(t *testing.T) {
 			Parameters: map[string]string{"param": "value"},
 		},
 	}
+	instanceKey, _ := client.ObjectKeyFromObject(in)
 	assert.NoError(t, c.Create(context.TODO(), in))
 	defer c.Delete(context.TODO(), in)
 
@@ -62,60 +65,46 @@ func TestRestartController(t *testing.T) {
 	defer c.Delete(context.TODO(), ov)
 
 	log.Print("And a deploy plan that was already run")
-	gomega.Eventually(func() bool {
-		peList := &v1alpha1.PlanExecutionList{}
-		err := c.List(
-			context.TODO(),
-			peList,
-			client.MatchingLabels(map[string]string{
-				kudo.InstanceLabel: in.Name,
-			}))
-		assert.NoError(t, err)
-		return len(peList.Items) == 1 && strings.Contains(peList.Items[0].Name, "foo-instance-deploy")
-	}, timeout).Should(gomega.BeTrue())
+	assert.Eventually(t, func() bool { return instancePlanFinished(instanceKey, "deploy", c) }, timeout, tick)
 
 	log.Print("When we stop the manager")
 	close(stopMgr)
 	mgrStopped.Wait()
 
 	log.Print("And update the instance parameter value")
-	in.Spec.Parameters = map[string]string{ "param": "newvalue" }
+	err := c.Get(context.TODO(), instanceKey, in)
+	assert.NoError(t, err)
+	in.Spec.Parameters = map[string]string{"param": "newvalue"}
 	assert.NoError(t, c.Update(context.TODO(), in))
 
 	log.Print("And restart the manager again")
 	stopMgr, mgrStopped, c = startTestManager(g)
 
 	log.Print("Then an update plan should be triggered instead of deploy plan")
-	gomega.Eventually(func() bool {
-		peList := &v1alpha1.PlanExecutionList{}
-		err := c.List(
-			context.TODO(),
-			peList,
-			client.MatchingLabels(map[string]string{
-				kudo.InstanceLabel: in.Name,
-			}))
-		assert.NoError(t, err)
-		for _, item := range peList.Items {
-			fmt.Println(item.Name)
-			if strings.Contains(item.Name, "foo-instance-update") {
-				return true
-			}
-		}
-		return false
-	}, timeout).Should(gomega.BeTrue())
+	assert.Eventually(t, func() bool { return instancePlanFinished(instanceKey, "update", c) }, timeout, tick)
 
-	defer func() {
-		close(stopMgr)
-		mgrStopped.Wait()
-	}()
+	close(stopMgr)
+	mgrStopped.Wait()
+}
+
+func instancePlanFinished(key client.ObjectKey, planName string, c client.Client) bool {
+	i := &v1alpha1.Instance{}
+	err := c.Get(context.TODO(), key, i)
+	if err != nil {
+		fmt.Printf("%w", err)
+		return false
+	}
+	return i.Status.PlanStatus[planName].Status.IsFinished()
 }
 
 func startTestManager(g *gomega.GomegaWithT) (chan struct{}, *sync.WaitGroup, client.Client) {
 	mgr, err := manager.New(cfg, manager.Options{})
 	g.Expect(err).NotTo(gomega.HaveOccurred())
-	c := mgr.GetClient()
-	reconciler := newReconciler(mgr)
-	g.Expect(add(mgr, reconciler)).NotTo(gomega.HaveOccurred())
+	err = (&Reconciler{
+		Client:   mgr.GetClient(),
+		Recorder: mgr.GetEventRecorderFor("instance-controller"),
+		Scheme:   mgr.GetScheme(),
+	}).SetupWithManager(mgr)
 
 	stop := make(chan struct{})
 	wg := &sync.WaitGroup{}
@@ -124,5 +113,5 @@ func startTestManager(g *gomega.GomegaWithT) (chan struct{}, *sync.WaitGroup, cl
 		g.Expect(mgr.Start(stop)).NotTo(gomega.HaveOccurred())
 		wg.Done()
 	}()
-	return stop, wg, c
+	return stop, wg, mgr.GetClient()
 }
