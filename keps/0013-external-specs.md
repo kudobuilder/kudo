@@ -122,7 +122,7 @@ The functionality and rendering of KUDO operators will not change as a result of
 
 #### Helm Engine
 
-When a OperatorVersion is created from a Helm Chart, we will refer to this OperatorVersion as a **Helm OperatorVersion** to differentiate it from the underlying **Helm Chart** and a OperatorVersion that uses the KUDO Engine.
+When an OperatorVersion is created from a Helm Chart, we will refer to this OperatorVersion as a **Helm OperatorVersion** to differentiate it from the underlying **Helm Chart** and an OperatorVersion that uses the KUDO Engine.
 
 ##### Installation of Helm OperatorVersions
 

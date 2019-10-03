@@ -5,7 +5,9 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -13,17 +15,16 @@ import (
 func TestValidate(t *testing.T) {
 	tests := []struct {
 		arg []string
-		opt Options
 		err string
 	}{
-		{nil, *DefaultOptions, "expecting exactly one argument - \"instances\""},                          // 1
-		{[]string{"arg", "arg2"}, *DefaultOptions, "expecting exactly one argument - \"instances\""},      // 2
-		{[]string{}, *DefaultOptions, "expecting exactly one argument - \"instances\""},                   // 3
-		{[]string{"somethingelse"}, *DefaultOptions, "expecting \"instances\" and not \"somethingelse\""}, // 4
+		{nil, "expecting exactly one argument - \"instances\""},                          // 1
+		{[]string{"arg", "arg2"}, "expecting exactly one argument - \"instances\""},      // 2
+		{[]string{}, "expecting exactly one argument - \"instances\""},                   // 3
+		{[]string{"somethingelse"}, "expecting \"instances\" and not \"somethingelse\""}, // 4
 	}
 
 	for _, tt := range tests {
-		err := validate(tt.arg, DefaultOptions)
+		err := validate(tt.arg)
 		if err != nil {
 			if err.Error() != tt.err {
 				t.Errorf("Expecting error message '%s' but got '%s'", tt.err, err)
@@ -57,21 +58,20 @@ func TestGetInstances(t *testing.T) {
 	}
 	tests := []struct {
 		arg       []string
-		opt       Options
 		err       string
 		instances []string
 	}{
-		{nil, *DefaultOptions, "expecting exactly one argument - \"instances\"", nil},                                   // 1
-		{[]string{"arg", "arg2"}, *DefaultOptions, "expecting exactly one argument - \"instances\"", nil},               // 2
-		{[]string{}, *DefaultOptions, "expecting exactly one argument - \"instances\"", nil},                            // 3
-		{[]string{"somethingelse"}, *DefaultOptions, "expecting \"instances\" and not \"somethingelse\"", nil},          // 4
-		{[]string{"instances"}, *DefaultOptions, "expecting \"instances\" and not \"somethingelse\"", []string{"test"}}, // 5
+		{nil, "expecting exactly one argument - \"instances\"", nil},                                   // 1
+		{[]string{"arg", "arg2"}, "expecting exactly one argument - \"instances\"", nil},               // 2
+		{[]string{}, "expecting exactly one argument - \"instances\"", nil},                            // 3
+		{[]string{"somethingelse"}, "expecting \"instances\" and not \"somethingelse\"", nil},          // 4
+		{[]string{"instances"}, "expecting \"instances\" and not \"somethingelse\"", []string{"test"}}, // 5
 	}
 
 	for i, tt := range tests {
 		kc := newTestClient()
 		kc.InstallInstanceObjToCluster(testInstance, "default")
-		instanceList, err := getInstances(kc, DefaultOptions)
+		instanceList, err := getInstances(kc, env.DefaultSettings)
 		if err != nil {
 			if err.Error() != tt.err {
 				t.Errorf("%d: Expecting error message '%s' but got '%s'", i+1, tt.err, err)

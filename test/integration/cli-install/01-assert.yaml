@@ -8,10 +8,8 @@ spec:
   operatorVersion:
     name: cli-install-operator-0.1.0
 status:
-  status: COMPLETE
-  activePlan:
-    apiVersion: kudo.dev/v1alpha1
-    kind: PlanExecution
+  aggregatedStatus:
+    status: COMPLETE
 ---
 apiVersion: v1
 kind: Service

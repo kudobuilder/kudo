@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -396,9 +398,12 @@ func TestGetKubectlArgs(t *testing.T) {
 		},
 	} {
 		t.Run(test.testName, func(t *testing.T) {
-			args, err := GetKubectlArgs(test.args, test.namespace)
+			cmd, err := GetArgs(context.TODO(), "kubectl", kudo.Command{
+				Command:    test.args,
+				Namespaced: true,
+			}, test.namespace)
 			assert.Nil(t, err)
-			assert.Equal(t, test.expected, args)
+			assert.Equal(t, test.expected, cmd.Args)
 		})
 	}
 }

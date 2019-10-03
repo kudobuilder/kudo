@@ -6,8 +6,8 @@ import (
 	"log"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/xlab/treeprint"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -15,52 +15,29 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-type statusOptions struct {
-	instance  string
-	namespace string
-}
+// DefaultStatusOptions provides the default options for plan status
+var DefaultStatusOptions = &Options{}
 
-var defaultStatusOptions = &statusOptions{}
-
-//NewPlanStatusCmd creates a new command that shows the status of an instance by looking at its current plan
-func NewPlanStatusCmd() *cobra.Command {
-	options := defaultStatusOptions
-	statusCmd := &cobra.Command{
-		Use:   "status",
-		Short: "Shows the status of all plans to an particular instance.",
-		Long: `
-	# View plan status
-	kudoctl plan status --instance=<instanceName>`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runStatus(cmd, args, options)
-		},
-	}
-
-	statusCmd.Flags().StringVar(&options.instance, "instance", "", "The instance name available from 'kubectl get instances'")
-	statusCmd.Flags().StringVar(&options.namespace, "namespace", "default", "The namespace where the instance is running.")
-
-	return statusCmd
-}
-
-func runStatus(cmd *cobra.Command, args []string, options *statusOptions) error {
+// RunStatus runs the plan status command
+func RunStatus(cmd *cobra.Command, args []string, options *Options, settings *env.Settings) error {
 
 	instanceFlag, err := cmd.Flags().GetString("instance")
 	if err != nil || instanceFlag == "" {
 		return fmt.Errorf("flag Error: Please set instance flag, e.g. \"--instance=<instanceName>\"")
 	}
 
-	err = planStatus(options)
+	err = planStatus(options, settings)
 	if err != nil {
 		return fmt.Errorf("client Error: %v", err)
 	}
 	return nil
 }
 
-func planStatus(options *statusOptions) error {
+func planStatus(options *Options, settings *env.Settings) error {
 
 	tree := treeprint.New()
 
-	config, err := clientcmd.BuildConfigFromFlags("", viper.GetString("kubeconfig"))
+	config, err := clientcmd.BuildConfigFromFlags("", settings.KubeConfig)
 	if err != nil {
 		return err
 	}
@@ -77,7 +54,7 @@ func planStatus(options *statusOptions) error {
 		Resource: "instances",
 	}
 
-	instObj, err := dynamicClient.Resource(instancesGVR).Namespace(options.namespace).Get(options.instance, metav1.GetOptions{})
+	instObj, err := dynamicClient.Resource(instancesGVR).Namespace(options.Namespace).Get(options.Instance, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -103,7 +80,7 @@ func planStatus(options *statusOptions) error {
 	}
 
 	//  List all of the Virtual Services.
-	operatorObj, err := dynamicClient.Resource(operatorGVR).Namespace(options.namespace).Get(operatorVersionNameOfInstance, metav1.GetOptions{})
+	operatorObj, err := dynamicClient.Resource(operatorGVR).Namespace(options.Namespace).Get(operatorVersionNameOfInstance, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -120,45 +97,25 @@ func planStatus(options *statusOptions) error {
 		return err
 	}
 
-	planExecutionsGVR := schema.GroupVersionResource{
-		Group:    "kudo.dev",
-		Version:  "v1alpha1",
-		Resource: "planexecutions",
-	}
+	activePlanStatus := instance.GetPlanInProgress()
 
-	if instance.Status.ActivePlan.Name == "" {
+	if activePlanStatus == nil {
 		log.Printf("No active plan exists for instance %s", instance.Name)
 		return nil
 	}
-	activePlanObj, err := dynamicClient.Resource(planExecutionsGVR).Namespace(options.namespace).Get(instance.Status.ActivePlan.Name, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
 
-	mPlanObj, err := activePlanObj.MarshalJSON()
-	if err != nil {
-		return err
-	}
-
-	activePlanType := kudov1alpha1.PlanExecution{}
-
-	err = json.Unmarshal(mPlanObj, &activePlanType)
-	if err != nil {
-		return err
-	}
-
-	rootDisplay := fmt.Sprintf("%s (Operator-Version: \"%s\" Active-Plan: \"%s\")", instance.Name, instance.Spec.OperatorVersion.Name, instance.Status.ActivePlan.Name)
+	rootDisplay := fmt.Sprintf("%s (Operator-Version: \"%s\" Active-Plan: \"%s\")", instance.Name, instance.Spec.OperatorVersion.Name, activePlanStatus.Name)
 	rootBranchName := tree.AddBranch(rootDisplay)
 
 	for name, plan := range operator.Spec.Plans {
-		if name == activePlanType.Spec.PlanName {
-			planDisplay := fmt.Sprintf("Plan %s (%s strategy) [%s]", name, plan.Strategy, activePlanType.Status.State)
+		if name == activePlanStatus.Name {
+			planDisplay := fmt.Sprintf("Plan %s (%s strategy) [%s]", name, plan.Strategy, activePlanStatus.Status)
 			planBranchName := rootBranchName.AddBranch(planDisplay)
-			for _, phase := range activePlanType.Status.Phases {
-				phaseDisplay := fmt.Sprintf("Phase %s (%s strategy) [%s]", phase.Name, phase.Strategy, phase.State)
+			for _, phase := range activePlanStatus.Phases {
+				phaseDisplay := fmt.Sprintf("Phase %s [%s]", phase.Name, phase.Status)
 				phaseBranchName := planBranchName.AddBranch(phaseDisplay)
 				for _, steps := range phase.Steps {
-					stepsDisplay := fmt.Sprintf("Step %s (%s)", steps.Name, steps.State)
+					stepsDisplay := fmt.Sprintf("Step %s (%s)", steps.Name, steps.Status)
 					phaseBranchName.AddBranch(stepsDisplay)
 				}
 			}
@@ -180,7 +137,7 @@ func planStatus(options *statusOptions) error {
 		}
 	}
 
-	fmt.Printf("Plan(s) for \"%s\" in namespace \"%s\":\n", instance.Name, options.namespace)
+	fmt.Printf("Plan(s) for \"%s\" in namespace \"%s\":\n", instance.Name, options.Namespace)
 	fmt.Println(tree.String())
 
 	return nil

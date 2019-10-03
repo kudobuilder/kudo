@@ -3,70 +3,67 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/Masterminds/semver"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
+
+	"github.com/Masterminds/semver"
 	"github.com/pkg/errors"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
-	upgradeExample = `
-		The upgrade argument must be a name of the package in the repository, a path to package in *.tar.gz format,
-		or a path to an unpacked package directory.
+	upgradeDesc = `Upgrade KUDO package from current version to new version. The upgrade argument must be a name of the 
+package in the repository, a path to package in *.tgz format, or a path to an unpacked package directory.`
+	upgradeExample = `  # Upgrade flink instance dev-flink to the latest version
+  kubectl kudo upgrade flink --instance dev-flink
+  *Note*: should you have a local "flink" folder in the current directory it will take precedence over the remote repository.
 
-		# Upgrade flink instance dev-flink to the latest version
-		kubectl kudo upgrade flink --instance dev-flink
-		
-		*Note*: should you have a local "flink" folder in the current directory it will take precedence over the remote repository.
+  # Upgrade flink to the version 1.1.1
+  kubectl kudo upgrade flink --instance dev-flink --version 1.1.1
 
-		# Upgrade flink to the version 1.1.1
-		kubectl kudo upgrade flink --instance dev-flink --version 1.1.1
-
-		# By default parameters are all reused from the previous installation, if you need to modify, use -p
-		kubectl kudo upgrade flink --instance dev-flink -p param=xxx`
+  # By default arguments are all reused from the previous installation, if you need to modify, use -p
+  kubectl kudo upgrade flink --instance dev-flink -p param=xxx`
 )
 
 type options struct {
+	install.RepositoryOptions
 	InstanceName   string
-	Namespace      string
 	PackageVersion string
 	Parameters     map[string]string
 }
 
 // defaultOptions initializes the install command options to its defaults
-var defaultOptions = &options{
-	Namespace: "default",
-}
+var defaultOptions = &options{}
 
 // newUpgradeCmd creates the install command for the CLI
-func newUpgradeCmd() *cobra.Command {
+func newUpgradeCmd(fs afero.Fs) *cobra.Command {
 	options := defaultOptions
 	var parameters []string
 	upgradeCmd := &cobra.Command{
 		Use:     "upgrade <name>",
 		Short:   "Upgrade KUDO package.",
-		Long:    `Upgrade KUDO package from current version to new version.`,
+		Long:    upgradeDesc,
 		Example: upgradeExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Prior to command execution we parse and validate passed parameters
+			// Prior to command execution we parse and validate passed arguments
 			var err error
 			options.Parameters, err = install.GetParameterMap(parameters)
 			if err != nil {
-				return errors.WithMessage(err, "could not parse parameters")
+				return errors.WithMessage(err, "could not parse arguments")
 			}
-			return runUpgrade(args, options)
+			return runUpgrade(args, options, fs, &Settings)
 		},
 	}
 
 	upgradeCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name.")
 	upgradeCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")
-	upgradeCmd.Flags().StringVar(&options.Namespace, "namespace", defaultOptions.Namespace, "The namespace where the instance you want to upgrade is installed in.")
-	upgradeCmd.Flags().StringVarP(&options.PackageVersion, "version", "v", "", "A specific package version on the official repository. When installing from other sources than official repository, version from inside operator.yaml will be used. (default to the most recent)")
+	upgradeCmd.Flags().StringVar(&options.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
+	upgradeCmd.Flags().StringVar(&options.PackageVersion, "version", "", "A specific package version on the official repository. When installing from other sources than official repository, version from inside operator.yaml will be used. (default to the most recent)")
 
 	return upgradeCmd
 }
@@ -82,20 +79,20 @@ func validateCmd(args []string, options *options) error {
 	return nil
 }
 
-func runUpgrade(args []string, options *options) error {
+func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Settings) error {
 	err := validateCmd(args, options)
 	if err != nil {
 		return err
 	}
 	packageToUpgrade := args[0]
 
-	kc, err := kudo.NewClient(options.Namespace, viper.GetString("kubeconfig"))
+	kc, err := kudo.NewClient(settings.Namespace, settings.KubeConfig)
 	if err != nil {
 		return errors.Wrap(err, "creating kudo client")
 	}
 
 	// Resolve the package to upgrade to
-	repository, err := repo.NewOperatorRepository(repo.Default)
+	repository, err := repo.ClientFromSettings(fs, settings.Home, options.RepoName)
 	if err != nil {
 		return errors.WithMessage(err, "could not build operator repository")
 	}
@@ -104,29 +101,29 @@ func runUpgrade(args []string, options *options) error {
 		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", packageToUpgrade)
 	}
 
-	return upgrade(crds.OperatorVersion, kc, options)
+	return upgrade(crds.OperatorVersion, kc, options, settings)
 }
 
-func upgrade(newOv *v1alpha1.OperatorVersion, kc *kudo.Client, options *options) error {
+func upgrade(newOv *v1alpha1.OperatorVersion, kc *kudo.Client, options *options, settings *env.Settings) error {
 	operatorName := newOv.Spec.Operator.Name
 	nextOperatorVersion := newOv.Spec.Version
 
 	// Make sure the instance you want to upgrade exists
-	instance, err := kc.GetInstance(options.InstanceName, options.Namespace)
+	instance, err := kc.GetInstance(options.InstanceName, settings.Namespace)
 	if err != nil {
 		return errors.Wrapf(err, "verifying the instance does not already exist")
 	}
 	if instance == nil {
-		return fmt.Errorf("instance %s in namespace %s does not exist in the cluster", options.InstanceName, options.Namespace)
+		return fmt.Errorf("instance %s in namespace %s does not exist in the cluster", options.InstanceName, settings.Namespace)
 	}
 
 	// Check OperatorVersion and if upgraded version is higher than current version
-	ov, err := kc.GetOperatorVersion(instance.Spec.OperatorVersion.Name, options.Namespace)
+	ov, err := kc.GetOperatorVersion(instance.Spec.OperatorVersion.Name, settings.Namespace)
 	if err != nil {
 		return errors.Wrap(err, "retrieving existing operator version")
 	}
 	if ov == nil {
-		return fmt.Errorf("no operator version for this operator installed yet for %s in namespace %s. Please use install command if you want to install new operator into cluster", operatorName, options.Namespace)
+		return fmt.Errorf("no operator version for this operator installed yet for %s in namespace %s. Please use install command if you want to install new operator into cluster", operatorName, settings.Namespace)
 	}
 	oldVersion, err := semver.NewVersion(ov.Spec.Version)
 	if err != nil {
@@ -141,19 +138,19 @@ func upgrade(newOv *v1alpha1.OperatorVersion, kc *kudo.Client, options *options)
 	}
 
 	// install OV
-	versionsInstalled, err := kc.OperatorVersionsInstalled(operatorName, options.Namespace)
+	versionsInstalled, err := kc.OperatorVersionsInstalled(operatorName, settings.Namespace)
 	if err != nil {
 		return errors.Wrap(err, "retrieving existing operator versions")
 	}
 	if !install.VersionExists(versionsInstalled, nextOperatorVersion) {
-		if _, err := kc.InstallOperatorVersionObjToCluster(newOv, options.Namespace); err != nil {
+		if _, err := kc.InstallOperatorVersionObjToCluster(newOv, settings.Namespace); err != nil {
 			return errors.Wrapf(err, "failed installing OperatorVersion %s for operator: %s", nextOperatorVersion, operatorName)
 		}
 		fmt.Printf("operatorversion.%s/%s successfully created\n", newOv.APIVersion, newOv.Name)
 	}
 
-	// Change instance to point to the new OV and optionally update parameters
-	err = kc.UpdateInstance(options.InstanceName, options.Namespace, util.String(newOv.Name), options.Parameters)
+	// Change instance to point to the new OV and optionally update arguments
+	err = kc.UpdateInstance(options.InstanceName, settings.Namespace, util.String(newOv.Name), options.Parameters)
 	if err != nil {
 		return errors.Wrapf(err, "updating instance to point to new operatorversion %s", newOv.Name)
 	}

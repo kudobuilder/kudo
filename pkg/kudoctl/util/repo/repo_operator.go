@@ -1,31 +1,44 @@
 package repo
 
 import (
+	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/url"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+
 	"github.com/pkg/errors"
+	"github.com/spf13/afero"
 )
 
-// Repository is a abstraction for a service that can retrieve package bundles
+// Repository is an abstraction for a service that can retrieve packages
 type Repository interface {
-	GetBundle(name string, version string) (bundle.Bundle, error)
+	GetPackage(name string, version string) (packages.Package, error)
 }
 
-// OperatorRepository represents a operator repository
-type OperatorRepository struct {
-	Config *RepositoryConfiguration
+// Client represents an operator repository
+type Client struct {
+	Config *Configuration
 	Client http.Client
 }
 
-// NewOperatorRepository constructs OperatorRepository
-func NewOperatorRepository(conf *RepositoryConfiguration) (*OperatorRepository, error) {
+// ClientFromSettings retrieves the operator repo for the configured repo in settings
+func ClientFromSettings(fs afero.Fs, home kudohome.Home, repoName string) (*Client, error) {
+	rc, err := ConfigurationFromSettings(fs, home, repoName)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewClient(rc)
+}
+
+// NewClient constructs repository client
+func NewClient(conf *Configuration) (*Client, error) {
 	_, err := url.Parse(conf.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid repository URL: %s", conf.URL)
@@ -33,14 +46,14 @@ func NewOperatorRepository(conf *RepositoryConfiguration) (*OperatorRepository, 
 
 	client := http.NewClient()
 
-	return &OperatorRepository{
+	return &Client{
 		Config: conf,
 		Client: *client,
 	}, nil
 }
 
-// downloadIndexFile fetches the index file from a repository.
-func (r *OperatorRepository) downloadIndexFile() (*IndexFile, error) {
+// DownloadIndexFile fetches the index file from a repository.
+func (r *Client) DownloadIndexFile() (*IndexFile, error) {
 	var indexURL string
 	parsedURL, err := url.Parse(r.Config.URL)
 	if err != nil {
@@ -60,24 +73,30 @@ func (r *OperatorRepository) downloadIndexFile() (*IndexFile, error) {
 		return nil, errors.Wrap(err, "reading index response")
 	}
 
-	indexFile, err := parseIndexFile(indexBytes)
+	indexFile, err := ParseIndexFile(indexBytes)
 	return indexFile, err
 }
 
-// getPackageReaderByFullPackageName downloads the tgz file from the remote repository and unmarshals it to the package CRDs
-func (r *OperatorRepository) getPackageReaderByFullPackageName(fullPackageName string) (io.Reader, error) {
-	var fileURL string
-	parsedURL, err := url.Parse(r.Config.URL)
-	if err != nil {
-		return nil, errors.Wrap(err, "parsing config url")
+// getPackageReaderByAPackageURL downloads the tgz file from the remote repository and returns a reader
+// The PackageVersion is a package configuration from the index file which has a list of urls where
+// the package can be pulled from.  This will cycle through the list of urls and will return the reader
+// from the first successful url.  If all urls fail, the last error will be returned.
+func (r *Client) getPackageReaderByAPackageURL(pkg *PackageVersion) (*bytes.Buffer, error) {
+	var pkgErr error
+	for _, u := range pkg.URLs {
+		r, err := r.getPackageBytesByURL(u)
+		if err == nil {
+			return r, nil
+		}
+		pkgErr = fmt.Errorf("unable to read package %w", err)
+		clog.Errorf("failure against url: %v  %v", u, pkgErr)
 	}
-	parsedURL.Path = fmt.Sprintf("%s/%s.tgz", parsedURL.Path, fullPackageName)
-
-	fileURL = parsedURL.String()
-	return r.getPackageReaderByURL(fileURL)
+	clog.Printf("Giving up with err %v", pkgErr)
+	return nil, pkgErr
 }
 
-func (r *OperatorRepository) getPackageReaderByURL(packageURL string) (io.Reader, error) {
+func (r *Client) getPackageBytesByURL(packageURL string) (*bytes.Buffer, error) {
+	clog.V(4).Printf("attempt to retrieve package from url: %v", packageURL)
 	resp, err := r.Client.Get(packageURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "getting package url")
@@ -86,41 +105,29 @@ func (r *OperatorRepository) getPackageReaderByURL(packageURL string) (io.Reader
 	return resp, nil
 }
 
-// GetPackageReader provides an io.Reader for a provided package name and optional version
-func (r *OperatorRepository) GetPackageReader(name string, version string) (io.Reader, error) {
+// GetPackageBytes provides an io.Reader for a provided package name and optional version
+func (r *Client) GetPackageBytes(name string, version string) (*bytes.Buffer, error) {
+	clog.V(4).Printf("getting package reader for %v, %v", name, version)
+	clog.V(5).Printf("repository using: %v", r.Config)
 	// Construct the package name and download the index file from the remote repo
-	indexFile, err := r.downloadIndexFile()
+	indexFile, err := r.DownloadIndexFile()
 	if err != nil {
 		return nil, errors.WithMessage(err, "could not download repository index file")
 	}
 
-	bundleVersion, err := indexFile.GetByNameAndVersion(name, version)
+	pkgVersion, err := indexFile.GetByNameAndVersion(name, version)
 	if err != nil {
 		return nil, errors.Wrapf(err, "getting %s in index file", name)
 	}
 
-	packageName := bundleVersion.Name + "-" + bundleVersion.Version
-
-	return r.getPackageReaderByFullPackageName(packageName)
+	return r.getPackageReaderByAPackageURL(pkgVersion)
 }
 
-// GetBundle provides an Bundle for a provided package name and optional version
-func (r *OperatorRepository) GetBundle(name string, version string) (bundle.Bundle, error) {
-	reader, err := r.GetPackageReader(name, version)
+// GetPackage provides an Package for a provided package name and optional version
+func (r *Client) GetPackage(name string, version string) (packages.Package, error) {
+	reader, err := r.GetPackageBytes(name, version)
 	if err != nil {
 		return nil, err
 	}
-	return bundle.NewBundleFromReader(reader), nil
-}
-
-// GetOperatorVersionDependencies helper method returns a slice of strings that contains the names of all
-// dependency Operators
-func GetOperatorVersionDependencies(ov *v1alpha1.OperatorVersion) ([]string, error) {
-	var dependencyOperators []string
-	if ov.Spec.Dependencies != nil {
-		for _, v := range ov.Spec.Dependencies {
-			dependencyOperators = append(dependencyOperators, v.Name)
-		}
-	}
-	return dependencyOperators, nil
+	return packages.NewFromBytes(reader), nil
 }

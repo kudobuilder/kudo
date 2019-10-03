@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 	v1 "k8s.io/api/core/v1"
@@ -67,7 +69,7 @@ func TestUpdate(t *testing.T) {
 		errMessageContains string
 	}{
 		{"instance does not exist", false, map[string]string{"param": "value"}, "instance test in namespace default does not exist in the cluster"},
-		{"update parameters", true, map[string]string{"param": "value"}, ""},
+		{"update arguments", true, map[string]string{"param": "value"}, ""},
 	}
 
 	for _, tt := range tests {
@@ -76,10 +78,7 @@ func TestUpdate(t *testing.T) {
 			c.InstallInstanceObjToCluster(&testInstance, installNamespace)
 		}
 
-		err := update(testInstance.Name, c, &updateOptions{
-			Namespace:  installNamespace,
-			Parameters: tt.parameters,
-		})
+		err := update(testInstance.Name, c, &updateOptions{Parameters: tt.parameters}, env.DefaultSettings)
 		if err != nil {
 			if !strings.Contains(err.Error(), tt.errMessageContains) {
 				t.Errorf("%s: expected error '%s' but got '%v'", tt.name, tt.errMessageContains, err)

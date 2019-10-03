@@ -1,7 +1,6 @@
 package health
 
 import (
-	"context"
 	"fmt"
 	"log"
 
@@ -42,62 +41,16 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 		}
 		return fmt.Errorf("job \"%v\" still running or failed", obj.Name)
 	case *kudov1alpha1.Instance:
-		// Instances are healthy when their Active Plan has succeeded
-		plan := &kudov1alpha1.PlanExecution{}
-		if obj.Status.ActivePlan.Name == "" {
-			return fmt.Errorf("checking health of instance %s: not healthy because does not have any active plan assigned yet", obj.Name)
-		}
-		err := c.Get(context.TODO(), client.ObjectKey{
-			Name:      obj.Status.ActivePlan.Name,
-			Namespace: obj.Status.ActivePlan.Namespace,
-		}, plan)
-		if err != nil {
-			log.Printf("Error getting PlaneExecution %v/%v: %v\n", obj.Status.ActivePlan.Name, obj.Status.ActivePlan.Namespace, err)
-			return fmt.Errorf("instance active plan not found: %v", err)
-		}
-		log.Printf("HealthUtil: Instance %v is in state %v", obj.Name, plan.Status.State)
+		log.Printf("HealthUtil: Instance %v is in state %v", obj.Name, obj.Status.AggregatedStatus.Status)
 
-		if plan.Status.State == kudov1alpha1.PhaseStateComplete {
+		if obj.Status.AggregatedStatus.Status.IsFinished() {
 			return nil
 		}
-		return fmt.Errorf("instance's active plan is in state %v", plan.Status.State)
+		return fmt.Errorf("instance's active plan is in state %v", obj.Status.AggregatedStatus.Status)
 
 	// unless we build logic for what a healthy object is, assume it's healthy when created.
 	default:
 		log.Printf("HealthUtil: Unknown type is marked healthy by default")
 		return nil
 	}
-}
-
-// IsStepHealthy returns whether each object in the given step is healthy.
-func IsStepHealthy(c client.Client, step kudov1alpha1.StepStatus) bool {
-	for _, obj := range step.Objects {
-		if e := IsHealthy(c, obj); e != nil {
-			log.Printf("HealthUtil: Step %v is not healthy", step.Name)
-			return false
-		}
-	}
-	return true
-}
-
-// IsPhaseHealthy returns whether each step in the phase is healthy. See IsStepHealthy for step health.
-func IsPhaseHealthy(phase kudov1alpha1.PhaseStatus) bool {
-	for _, step := range phase.Steps {
-		if step.State != kudov1alpha1.PhaseStateComplete {
-			log.Printf("HealthUtil: Phase %v is not healthy b/c step %v is not healthy", phase.Name, step.Name)
-			return false
-		}
-	}
-	log.Printf("HealthUtil: Phase %v is healthy", phase.Name)
-	return true
-}
-
-// IsPlanHealthy returns whether each Phase in the plan is healthy. See IsPhaseHealthy for phase health.
-func IsPlanHealthy(plan kudov1alpha1.PlanExecutionStatus) bool {
-	for _, phase := range plan.Phases {
-		if !IsPhaseHealthy(phase) {
-			return false
-		}
-	}
-	return true
 }

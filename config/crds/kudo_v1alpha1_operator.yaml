@@ -36,7 +36,12 @@ spec:
               type: string
             maintainers:
               items:
-                type: string
+                properties:
+                  name:
+                    type: string
+                  email:
+                    type: string
+                type: object
               type: array
             url:
               type: string

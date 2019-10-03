@@ -38,7 +38,7 @@ The goal of this KEP is to improve the end user UX through dynamic instances. Ot
 ### Goals
 
 - Create a mechanism for operator developers to specify an instance CRD
-- Enable management for custom resources based on dynamic instances. Deploying a operator specific custom resource should deploy a plan as `Instance` was able to before.
+- Enable management for custom resources based on dynamic instances. Deploying an operator specific custom resource should deploy a plan as `Instance` was able to before.
 
 ### Non-Goals
 

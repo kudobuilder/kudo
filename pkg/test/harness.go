@@ -11,10 +11,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kudobuilder/kudo/pkg/controller/instance"
+	"github.com/kudobuilder/kudo/pkg/controller/operator"
+	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
+
+	volumetypes "github.com/docker/docker/api/types/volume"
+	docker "github.com/docker/docker/client"
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/controller"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
-	"github.com/kudobuilder/kudo/pkg/webhook"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -22,8 +26,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	kindConfig "sigs.k8s.io/kind/pkg/apis/config/v1alpha3"
 	kind "sigs.k8s.io/kind/pkg/cluster"
-	kindConfig "sigs.k8s.io/kind/pkg/cluster/config"
+	kindCreate "sigs.k8s.io/kind/pkg/cluster/create"
+	"sigs.k8s.io/kind/pkg/container/cri"
 )
 
 // Harness loads and runs tests based on the configuration provided.
@@ -34,6 +40,7 @@ type Harness struct {
 	logger        testutils.Logger
 	managerStopCh chan struct{}
 	config        *rest.Config
+	docker        testutils.DockerClient
 	client        client.Client
 	dclient       discovery.DiscoveryInterface
 	env           *envtest.Environment
@@ -56,13 +63,16 @@ func (h *Harness) LoadTests(dir string) ([]*Case, error) {
 
 	tests := []*Case{}
 
+	timeout := h.GetTimeout()
+	h.T.Logf("Going to run test suite with timeout of %d seconds for each step", timeout)
+
 	for _, file := range files {
 		if !file.IsDir() {
 			continue
 		}
 
 		tests = append(tests, &Case{
-			Timeout:    h.GetTimeout(),
+			Timeout:    timeout,
 			Steps:      []*Step{},
 			Name:       file.Name(),
 			Dir:        filepath.Join(dir, file.Name()),
@@ -125,13 +135,58 @@ func (h *Harness) RunKIND() (*rest.Config, error) {
 			}
 		}
 
-		err := h.kind.Create(kindCfg)
-		if err != nil {
+		if err := h.addNodeCaches(kindCfg); err != nil {
+			return nil, err
+		}
+
+		if err := h.kind.Create(kindCreate.WithV1Alpha3(kindCfg)); err != nil {
 			return nil, err
 		}
 	}
 
 	return clientcmd.BuildConfigFromFlags("", h.kind.KubeConfigPath())
+}
+
+func (h *Harness) addNodeCaches(kindCfg *kindConfig.Cluster) error {
+	if !h.TestSuite.KINDNodeCache {
+		return nil
+	}
+
+	dockerClient, err := h.DockerClient()
+	if err != nil {
+		return err
+	}
+
+	// Determine the correct API version to use with the user's Docker client.
+	dockerClient.NegotiateAPIVersion(context.TODO())
+
+	// add a default node if there are none specified.
+	if len(kindCfg.Nodes) == 0 {
+		kindCfg.Nodes = append(kindCfg.Nodes, kindConfig.Node{})
+	}
+
+	if h.TestSuite.KINDContext == "" {
+		h.TestSuite.KINDContext = kudo.DefaultKINDContext
+	}
+
+	for index := range kindCfg.Nodes {
+		volume, err := dockerClient.VolumeCreate(context.TODO(), volumetypes.VolumeCreateBody{
+			Driver: "local",
+			Name:   fmt.Sprintf("%s-%d", h.TestSuite.KINDContext, index),
+		})
+		if err != nil {
+			h.T.Log("error creating volume for node", err)
+			continue
+		}
+
+		h.T.Log("node mount point", volume.Mountpoint)
+		kindCfg.Nodes[index].ExtraMounts = append(kindCfg.Nodes[index].ExtraMounts, cri.Mount{
+			ContainerPath: "/var/lib/containerd",
+			HostPath:      volume.Mountpoint,
+		})
+	}
+
+	return nil
 }
 
 // RunTestEnv starts a Kubernetes API server and etcd server for use in the
@@ -201,12 +256,35 @@ func (h *Harness) RunKUDO() error {
 		return err
 	}
 
-	if err = controller.AddToManager(mgr); err != nil {
-		return err
+	// Setup all Controllers
+
+	h.logger.Log("Setting up operator controller")
+	err = (&operator.Reconciler{
+		Client: mgr.GetClient(),
+	}).SetupWithManager(mgr)
+	if err != nil {
+		h.logger.Log(err, "unable to register operator controller to the manager")
+		os.Exit(1)
 	}
 
-	if err = webhook.AddToManager(mgr); err != nil {
-		return err
+	h.logger.Log("Setting up operator version controller")
+	err = (&operatorversion.Reconciler{
+		Client: mgr.GetClient(),
+	}).SetupWithManager(mgr)
+	if err != nil {
+		h.logger.Log(err, "unable to register operator controller to the manager")
+		os.Exit(1)
+	}
+
+	h.logger.Log("Setting up instance controller")
+	err = (&instance.Reconciler{
+		Client:   mgr.GetClient(),
+		Recorder: mgr.GetEventRecorderFor("instance-controller"),
+		Scheme:   mgr.GetScheme(),
+	}).SetupWithManager(mgr)
+	if err != nil {
+		h.logger.Log(err, "unable to register instance controller to the manager")
+		os.Exit(1)
 	}
 
 	h.managerStopCh = make(chan struct{})
@@ -251,6 +329,17 @@ func (h *Harness) DiscoveryClient() (discovery.DiscoveryInterface, error) {
 
 	h.dclient, err = discovery.NewDiscoveryClientForConfig(config)
 	return h.dclient, err
+}
+
+// DockerClient returns the Docker client to use for the test harness.
+func (h *Harness) DockerClient() (testutils.DockerClient, error) {
+	if h.docker != nil {
+		return h.docker, nil
+	}
+
+	var err error
+	h.docker, err = docker.NewClientWithOpts(docker.FromEnv)
+	return h.docker, err
 }
 
 // RunTests should be called from within a Go test (t) and launches all of the KUDO integration
@@ -323,6 +412,10 @@ func (h *Harness) Run() {
 		if _, err := testutils.InstallManifests(context.TODO(), cl, dClient, manifestDir); err != nil {
 			h.T.Fatal(err)
 		}
+	}
+
+	if err := testutils.RunCommands(h.GetLogger(), "default", "", h.TestSuite.Commands, ""); err != nil {
+		h.T.Fatal(err)
 	}
 
 	if err := testutils.RunKubectlCommands(h.GetLogger(), "default", h.TestSuite.Kubectl, ""); err != nil {

@@ -1,8 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
 
 # This script generates a Krew-compatible plugin manifest. It should be run after goreleaser.
 
-VERSION=${VERSION:-$(git describe --tags |sed 's/^v//g')}
+VERSION=${VERSION:-$(git describe --tags | sed 's/^v//g')}
 
 # Generate the manifest for a single platform.
 function generate_platform {
@@ -13,13 +17,16 @@ function generate_platform {
         ARCH=i386
     fi
 
+    local sha
+    sha=$(curl -L https://github.com/kudobuilder/kudo/releases/download/v"${VERSION}"/kudo_"${VERSION}"_"${1}"_"${ARCH}".tar.gz | sha256sum - | awk '{print $1}')
+
     cat <<EOF
   - selector:
       matchLabels:
         os: "${1}"
         arch: "${2}"
     uri: https://github.com/kudobuilder/kudo/releases/download/v${VERSION}/kudo_${VERSION}_${1}_${ARCH}.tar.gz
-    sha256: "$(curl -L https://github.com/kudobuilder/kudo/releases/download/v${VERSION}/kudo_${VERSION}_${1}_${ARCH}.tar.gz |sha256sum - |awk '{print $1}')"
+    sha256: "${sha}"
     bin: "${3}"
     files:
     - from: "*"
@@ -29,6 +36,7 @@ EOF
 
 rm -f kudo.yaml
 
+# shellcheck disable=SC2129
 cat <<EOF >> kudo.yaml
 apiVersion: krew.googlecontainertools.github.com/v1alpha2
 kind: Plugin

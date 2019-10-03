@@ -1,12 +1,14 @@
 name: "upgrade-operator"
 version: "0.1.0"
+kubernetesVersion: 1.13
 maintainers:
-  - Your name <your@email.com>
+  - name: Your name
+    email: <your@email.com>
 url: https://kudo.dev
 tasks:
   app:
     resources:
-      - deployment.yaml
+      - pod.yaml
 plans:
   deploy:
     strategy: serial

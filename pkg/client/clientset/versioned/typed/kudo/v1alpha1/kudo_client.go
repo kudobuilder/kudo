@@ -28,7 +28,6 @@ type KudoV1alpha1Interface interface {
 	InstancesGetter
 	OperatorsGetter
 	OperatorVersionsGetter
-	PlanExecutionsGetter
 }
 
 // KudoV1alpha1Client is used to interact with features provided by the kudo.dev group.
@@ -46,10 +45,6 @@ func (c *KudoV1alpha1Client) Operators(namespace string) OperatorInterface {
 
 func (c *KudoV1alpha1Client) OperatorVersions(namespace string) OperatorVersionInterface {
 	return newOperatorVersions(c, namespace)
-}
-
-func (c *KudoV1alpha1Client) PlanExecutions(namespace string) PlanExecutionInterface {
-	return newPlanExecutions(c, namespace)
 }
 
 // NewForConfig creates a new KudoV1alpha1Client for the given config.

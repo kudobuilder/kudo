@@ -15,7 +15,7 @@ status: provisional
 
 In order to enable the creation use of certain CRDs, some cluster scoped objects may need to be created.  This should not be
 part of the creation of a particular CRD instantiation since the deletion of that instance would remove the
-dependency from all objects.  Allowing a Operator or OperatorVersion to define a set of Cluster objects that are present
+dependency from all objects. Allowing an Operator or OperatorVersion to define a set of Cluster objects that are present
 to support the creation and management of CRDs would circumvent the CRD from having to create and manage the object.
 
 
@@ -45,7 +45,7 @@ to support the creation and management of CRDs would circumvent the CRD from hav
 
 In order to enable the creation use of certain CRDs, some cluster scoped objects, or common objects, may need to be created.  This should not be
 part of the creation of a particular CRD instantiation since the deletion of that instance would remove the
-dependency from all objects.  Allowing a Operator or OperatorVersion to define a set of Cluster objects that are present
+dependency from all objects. Allowing an Operator or OperatorVersion to define a set of Cluster objects that are present
 to support the creation and management of CRDs would circumvent the CRD from having to create and manage the object.
 
 ## Motivation
@@ -72,7 +72,7 @@ by default.
 
 #### Story 2
 
-A Operator could leverage a MutatingWebHook for modifying pods deployments based on Node metadata (e.g. use a different image for nodes configured with GPU, PMEM, etc)
+An Operator could leverage a MutatingWebHook for modifying pods deployments based on Node metadata (e.g. use a different image for nodes configured with GPU, PMEM, etc)
 
 
 #### Story 3

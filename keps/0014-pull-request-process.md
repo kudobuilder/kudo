@@ -8,8 +8,8 @@ owners:
   - "@orsenthil"
 editor: TBD
 creation-date: 2019-07-16
-last-updated: 2019-07-16
-status: provisional
+last-updated: 2019-10-02
+status: rejected
 see-also:
   - KEP-0004
   - KEP-0008
@@ -35,6 +35,9 @@ see-also:
 ## Summary
 
 In order to ensure that contributors to the KUDO project have a good experience, we have a streamlined pull request review and merging process using Prow.
+
+After analyzing prow for few iterations, the team decided to reject prow, and decided to adopt Github Actions for Pull Request Process.
+Github Actions provided the desired goal as a service, and it was easier to administer for the project team members. The status of this proposal was changed to rejected.
 
 ## Goals
 

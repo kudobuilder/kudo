@@ -4,20 +4,20 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/bundle"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
 
 const (
-	example = `
-		The package argument must be a directory which contains the operator definition files.  The package command will create a tgz file containing the operator.
+	pkgDesc = `Package a KUDO operator from local filesystem into a package tarball.
+The package argument must be a directory which contains the operator definition files.  The package command will create a tgz file containing the operator.
+`
+	pkgExample = `  # package zookeeper (where zookeeper is a folder in the current directory)
+  kubectl kudo package zookeeper
 
-		# package zookeeper (where zookeeper is a folder in the current directory)
-		kubectl kudo package zookeeper
-
-		# Specify a destination folder other than current working directory
-		kubectl kudo package ../operators/repository/zookeeper/operator/ --destination=out-folder`
+  # Specify a destination folder other than current working directory
+  kubectl kudo package ../operators/repository/zookeeper/operator/ --destination=out-folder`
 )
 
 type packageCmd struct {
@@ -35,8 +35,8 @@ func newPackageCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "package <operator_dir>",
 		Short:   "Package a local KUDO operator into a tarball.",
-		Long:    `Package a KUDO operator from local filesystem into a package tarball.`,
-		Example: example,
+		Long:    pkgDesc,
+		Example: pkgExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validate(args); err != nil {
 				return err
@@ -51,7 +51,7 @@ func newPackageCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVarP(&pkg.destination, "destination", "d", ".", "Location to write the package.")
-	f.BoolVarP(&pkg.overwrite, "overwrite", "o", false, "Overwrite existing package.")
+	f.BoolVarP(&pkg.overwrite, "overwrite", "w", false, "Overwrite existing package.")
 	return cmd
 }
 
@@ -64,7 +64,7 @@ func validate(args []string) error {
 
 // run returns the errors associated with cmd env
 func (pkg *packageCmd) run() error {
-	tarfile, err := bundle.ToTarBundle(pkg.fs, pkg.path, pkg.destination, pkg.overwrite)
+	tarfile, err := packages.CreateTarball(pkg.fs, pkg.path, pkg.destination, pkg.overwrite)
 	if err == nil {
 		fmt.Fprintf(pkg.out, "Package created: %v\n", tarfile)
 	}

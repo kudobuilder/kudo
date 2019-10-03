@@ -21,15 +21,21 @@ import (
 
 // OperatorSpec defines the desired state of Operator
 type OperatorSpec struct {
-	Description       string       `json:"description,omitempty"`
-	KudoVersion       string       `json:"kudoVersion,omitempty"`
-	KubernetesVersion string       `json:"kubernetesVersion,omitempty"`
-	Maintainers       []Maintainer `json:"maintainers,omitempty"`
-	URL               string       `json:"url,omitempty"`
+	Description       string        `json:"description,omitempty"`
+	KudoVersion       string        `json:"kudoVersion,omitempty"`
+	KubernetesVersion string        `json:"kubernetesVersion,omitempty"`
+	Maintainers       []*Maintainer `json:"maintainers,omitempty"`
+	URL               string        `json:"url,omitempty"`
 }
 
-// Maintainer contains contact info for the maintainer of the Operator
-type Maintainer string
+// Maintainer describes an Operator maintainer.
+type Maintainer struct {
+	// Name is a user name or organization name.
+	Name string `json:"name,omitempty"`
+
+	// Email is an optional email address to contact the named maintainer.
+	Email string `json:"email,omitempty"`
+}
 
 // OperatorStatus defines the observed state of Operator
 type OperatorStatus struct {

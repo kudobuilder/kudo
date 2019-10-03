@@ -15,20 +15,29 @@ import (
 // If testToRun is set to a non-empty string, it is passed as a `-run` argument to the go test harness.
 // If paralellism is set, it limits the number of concurrently running tests.
 func RunTests(testName string, testToRun string, parallelism int, testFunc func(*testing.T)) {
+	flag.Parse()
+	testing.Init()
+
 	// Set the verbose test flag to true since we are not using the regular go test CLI.
-	flag.Set("test.v", "true")
+	if err := flag.Set("test.v", "true"); err != nil {
+		panic(err)
+	}
 
 	// Set the -run flag on the Go test harness.
 	// See the go test documentation: https://golang.org/pkg/cmd/go/internal/test/
 	if testToRun != "" {
-		flag.Set("test.run", fmt.Sprintf("//%s", testToRun))
+		if err := flag.Set("test.run", fmt.Sprintf("//%s", testToRun)); err != nil {
+			panic(err)
+		}
 	}
 
 	parallelismStr := "8"
 	if parallelism != 0 {
 		parallelismStr = fmt.Sprintf("%d", parallelism)
 	}
-	flag.Set("test.parallel", parallelismStr)
+	if err := flag.Set("test.parallel", parallelismStr); err != nil {
+		panic(err)
+	}
 
 	os.Exit(testing.MainStart(&testDeps{}, []testing.InternalTest{
 		{

@@ -38,10 +38,6 @@ func (c *FakeKudoV1alpha1) OperatorVersions(namespace string) v1alpha1.OperatorV
 	return &FakeOperatorVersions{c, namespace}
 }
 
-func (c *FakeKudoV1alpha1) PlanExecutions(namespace string) v1alpha1.PlanExecutionInterface {
-	return &FakePlanExecutions{c, namespace}
-}
-
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeKudoV1alpha1) RESTClient() rest.Interface {

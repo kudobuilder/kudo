@@ -48,7 +48,7 @@ import (
 	api "k8s.io/client-go/tools/clientcmd/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	kindConfig "sigs.k8s.io/kind/pkg/cluster/config"
+	kindConfig "sigs.k8s.io/kind/pkg/apis/config/v1alpha3"
 )
 
 // ensure that we only add to the scheme once.
@@ -152,22 +152,29 @@ func NewRetryClient(cfg *rest.Config, opts client.Options) (*RetryClient, error)
 }
 
 // Create saves the object obj in the Kubernetes cluster.
-func (r *RetryClient) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOptionFunc) error {
+func (r *RetryClient) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
 	return Retry(ctx, func(ctx context.Context) error {
 		return r.Client.Create(ctx, obj, opts...)
 	}, IsJSONSyntaxError)
 }
 
 // Delete deletes the given obj from Kubernetes cluster.
-func (r *RetryClient) Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOptionFunc) error {
+func (r *RetryClient) Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOption) error {
 	return Retry(ctx, func(ctx context.Context) error {
 		return r.Client.Delete(ctx, obj, opts...)
 	}, IsJSONSyntaxError)
 }
 
+// DeleteAllOf deletes the given obj from Kubernetes cluster.
+func (r *RetryClient) DeleteAllOf(ctx context.Context, obj runtime.Object, opts ...client.DeleteAllOfOption) error {
+	return Retry(ctx, func(ctx context.Context) error {
+		return r.Client.DeleteAllOf(ctx, obj, opts...)
+	}, IsJSONSyntaxError)
+}
+
 // Update updates the given obj in the Kubernetes cluster. obj must be a
 // struct pointer so that obj can be updated with the content returned by the Server.
-func (r *RetryClient) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOptionFunc) error {
+func (r *RetryClient) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
 	return Retry(ctx, func(ctx context.Context) error {
 		return r.Client.Update(ctx, obj, opts...)
 	}, IsJSONSyntaxError)
@@ -175,7 +182,7 @@ func (r *RetryClient) Update(ctx context.Context, obj runtime.Object, opts ...cl
 
 // Patch patches the given obj in the Kubernetes cluster. obj must be a
 // struct pointer so that obj can be updated with the content returned by the Server.
-func (r *RetryClient) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOptionFunc) error {
+func (r *RetryClient) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOption) error {
 	return Retry(ctx, func(ctx context.Context) error {
 		return r.Client.Patch(ctx, obj, patch, opts...)
 	}, IsJSONSyntaxError)
@@ -193,7 +200,7 @@ func (r *RetryClient) Get(ctx context.Context, key client.ObjectKey, obj runtime
 // List retrieves list of objects for a given namespace and list options. On a
 // successful call, Items field in the list will be populated with the
 // result returned from the server.
-func (r *RetryClient) List(ctx context.Context, list runtime.Object, opts ...client.ListOptionFunc) error {
+func (r *RetryClient) List(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
 	return Retry(ctx, func(ctx context.Context) error {
 		return r.Client.List(ctx, list, opts...)
 	}, IsJSONSyntaxError)
@@ -233,7 +240,7 @@ func (r *RetryClient) Status() client.StatusWriter {
 
 // Update updates the given obj in the Kubernetes cluster. obj must be a
 // struct pointer so that obj can be updated with the content returned by the Server.
-func (r *RetryStatusWriter) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOptionFunc) error {
+func (r *RetryStatusWriter) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
 	return Retry(ctx, func(ctx context.Context) error {
 		return r.StatusWriter.Update(ctx, obj, opts...)
 	}, IsJSONSyntaxError)
@@ -241,7 +248,7 @@ func (r *RetryStatusWriter) Update(ctx context.Context, obj runtime.Object, opts
 
 // Patch patches the given obj in the Kubernetes cluster. obj must be a
 // struct pointer so that obj can be updated with the content returned by the Server.
-func (r *RetryStatusWriter) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOptionFunc) error {
+func (r *RetryStatusWriter) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOption) error {
 	return Retry(ctx, func(ctx context.Context) error {
 		return r.StatusWriter.Patch(ctx, obj, patch, opts...)
 	}, IsJSONSyntaxError)
@@ -250,6 +257,7 @@ func (r *RetryStatusWriter) Patch(ctx context.Context, obj runtime.Object, patch
 // Scheme returns an initialized Kubernetes Scheme.
 func Scheme() *runtime.Scheme {
 	schemeLock.Do(func() {
+		// FIXME: add error handling
 		apis.AddToScheme(scheme.Scheme)
 		apiextensions.AddToScheme(scheme.Scheme)
 	})
@@ -596,6 +604,7 @@ func WithKeyValue(obj runtime.Object, key string, value map[string]interface{}) 
 
 	content[key] = value
 
+	// FIXME: add error handling
 	runtime.DefaultUnstructuredConverter.FromUnstructured(content, obj)
 	return obj.DeepCopyObject()
 }
@@ -668,7 +677,7 @@ func CreateOrUpdate(ctx context.Context, cl client.Client, obj runtime.Object, r
 
 			err = cl.Patch(ctx, actual, client.ConstantPatch(types.MergePatchType, expectedBytes))
 			updated = true
-		} else if err != nil && k8serrors.IsNotFound(err) {
+		} else if k8serrors.IsNotFound(err) {
 			err = cl.Create(ctx, obj)
 			updated = false
 		}
@@ -708,6 +717,21 @@ func GetAPIResource(dClient discovery.DiscoveryInterface, gvk schema.GroupVersio
 	}
 
 	return metav1.APIResource{}, fmt.Errorf("resource type not found")
+}
+
+// WaitForDelete waits for the provide runtime objects to be deleted from cluster
+func WaitForDelete(c *RetryClient, objs []runtime.Object) error {
+	// Wait for resources to be deleted.
+	return wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (done bool, err error) {
+		for _, obj := range objs {
+			err = c.Get(context.TODO(), ObjectKey(obj), obj.DeepCopyObject())
+			if err == nil || !k8serrors.IsNotFound(err) {
+				return false, err
+			}
+		}
+
+		return true, nil
+	})
 }
 
 // WaitForCRDs waits for the provided CRD types to be available in the Kubernetes API.
@@ -787,64 +811,74 @@ func StartTestEnvironment() (env TestEnvironment, err error) {
 	return
 }
 
-// GetKubectlArgs parses a kubectl command line string into its arguments and appends a namespace if it is not already set.
-func GetKubectlArgs(args string, namespace string) ([]string, error) {
+// GetArgs parses a command line string into its arguments and appends a namespace if it is not already set.
+func GetArgs(ctx context.Context, command string, cmd kudo.Command, namespace string) (*exec.Cmd, error) {
 	argSlice := []string{}
 
-	argSplit, err := shlex.Split(args)
+	argSplit, err := shlex.Split(cmd.Command)
 	if err != nil {
 		return nil, err
 	}
 
-	fs := pflag.NewFlagSet("", pflag.ContinueOnError)
-	fs.ParseErrorsWhitelist.UnknownFlags = true
-
-	namespaceParsed := fs.StringP("namespace", "n", "", "")
-	if err := fs.Parse(argSplit); err != nil {
-		return nil, err
-	}
-
-	if argSplit[0] != "kubectl" {
-		argSlice = append(argSlice, "kubectl")
+	if command != "" && argSplit[0] != command {
+		argSlice = append(argSlice, command)
 	}
 
 	argSlice = append(argSlice, argSplit...)
 
-	if *namespaceParsed == "" {
-		argSlice = append(argSlice, "--namespace", namespace)
+	if cmd.Namespaced {
+		fs := pflag.NewFlagSet("", pflag.ContinueOnError)
+		fs.ParseErrorsWhitelist.UnknownFlags = true
+
+		namespaceParsed := fs.StringP("namespace", "n", "", "")
+		if err := fs.Parse(argSplit); err != nil {
+			return nil, err
+		}
+
+		if *namespaceParsed == "" {
+			argSlice = append(argSlice, "--namespace", namespace)
+		}
 	}
 
-	return argSlice, nil
+	builtCmd := exec.Command(argSlice[0])
+	builtCmd.Args = argSlice
+	return builtCmd, nil
 }
 
-// Kubectl runs a kubectl command (or plugin) with args.
+// RunCommand runs a command with args.
 // args gets split on spaces (respecting quoted strings).
-func Kubectl(ctx context.Context, namespace string, args string, cwd string, stdout io.Writer, stderr io.Writer) error {
+func RunCommand(ctx context.Context, namespace string, command string, cmd kudo.Command, cwd string, stdout io.Writer, stderr io.Writer) error {
 	actualDir, err := os.Getwd()
 	if err != nil {
 		return err
 	}
 
-	argSlice, err := GetKubectlArgs(args, namespace)
+	builtCmd, err := GetArgs(ctx, command, cmd, namespace)
 	if err != nil {
 		return err
 	}
 
-	cmd := exec.Command("kubectl")
-	cmd.Args = argSlice
-	cmd.Dir = cwd
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-	cmd.Env = []string{
+	builtCmd.Dir = cwd
+	builtCmd.Stdout = stdout
+	builtCmd.Stderr = stderr
+	builtCmd.Env = []string{
 		fmt.Sprintf("KUBECONFIG=%s/kubeconfig", actualDir),
 		fmt.Sprintf("PATH=%s/bin/:%s", actualDir, os.Getenv("PATH")),
 	}
 
-	return cmd.Run()
+	err = builtCmd.Run()
+	if err != nil {
+		if _, ok := err.(*exec.ExitError); ok && cmd.IgnoreFailure {
+			return nil
+		}
+	}
+
+	return err
 }
 
-// RunKubectlCommands runs a set of kubectl commands, returning any errors.
-func RunKubectlCommands(logger Logger, namespace string, commands []string, workdir string) []error {
+// RunCommands runs a set of commands, returning any errors.
+// If `command` is set, then `command` will be the command that is invoked (if a command specifies it already, it will not be prepended again).
+func RunCommands(logger Logger, namespace string, command string, commands []kudo.Command, workdir string) []error {
 	errs := []error{}
 
 	if commands == nil {
@@ -855,9 +889,9 @@ func RunKubectlCommands(logger Logger, namespace string, commands []string, work
 		stdout := &bytes.Buffer{}
 		stderr := &bytes.Buffer{}
 
-		logger.Log("Running kubectl:", cmd)
+		logger.Log("Running command:", cmd)
 
-		err := Kubectl(context.TODO(), namespace, cmd, workdir, stdout, stderr)
+		err := RunCommand(context.TODO(), namespace, command, cmd, workdir, stdout, stderr)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -871,6 +905,20 @@ func RunKubectlCommands(logger Logger, namespace string, commands []string, work
 	}
 
 	return errs
+}
+
+// RunKubectlCommands runs a set of kubectl commands, returning any errors.
+func RunKubectlCommands(logger Logger, namespace string, commands []string, workdir string) []error {
+	apiCommands := []kudo.Command{}
+
+	for _, cmd := range commands {
+		apiCommands = append(apiCommands, kudo.Command{
+			Command:    cmd,
+			Namespaced: true,
+		})
+	}
+
+	return RunCommands(logger, namespace, "kubectl", apiCommands, workdir)
 }
 
 // Kubeconfig converts a rest.Config into a YAML kubeconfig and writes it to w
