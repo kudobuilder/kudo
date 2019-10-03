@@ -93,7 +93,7 @@ func generateOperator() *apiextv1beta1.CustomResourceDefinition {
 		"description":       apiextv1beta1.JSONSchemaProps{Type: "string"},
 		"kubernetesVersion": apiextv1beta1.JSONSchemaProps{Type: "string"},
 		"kudoVersion":       apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"maintainers": apiextv1beta1.JSONSchemaProps{
+		"maintainers": apiextv1beta1.JSONSchemaProps{Type: "object",
 			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{
 				Type:       "object",
 				Properties: maintainers,
@@ -109,9 +109,10 @@ func generateOperator() *apiextv1beta1.CustomResourceDefinition {
 		"spec":       apiextv1beta1.JSONSchemaProps{Properties: specProps, Type: "object"},
 		"status":     apiextv1beta1.JSONSchemaProps{Type: "object"},
 	}
-
+	// preserveFields := false
+	// crd.Spec.PreserveUnknownFields = &preserveFields
 	crd.Spec.Validation = &apiextv1beta1.CustomResourceValidation{
-		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
+		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{Type: "object",
 			Properties: validationProps,
 		},
 	}
@@ -180,7 +181,7 @@ func generateOperatorVersion() *apiextv1beta1.CustomResourceDefinition {
 	}
 
 	crd.Spec.Validation = &apiextv1beta1.CustomResourceValidation{
-		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
+		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{Type: "object",
 			Properties: validationProps,
 		},
 	}
@@ -233,7 +234,7 @@ func generateInstance() *apiextv1beta1.CustomResourceDefinition {
 	}
 
 	crd.Spec.Validation = &apiextv1beta1.CustomResourceValidation{
-		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
+		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{Type: "object",
 			Properties: validationProps,
 		},
 	}
