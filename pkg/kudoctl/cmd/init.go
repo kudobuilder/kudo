@@ -14,6 +14,7 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+	flag "github.com/spf13/pflag"
 )
 
 const (
@@ -77,7 +78,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			if len(args) != 0 {
 				return errors.New("this command does not accept arguments")
 			}
-			if err := i.validate(); err != nil {
+			if err := i.validate(cmd.Flags()); err != nil {
 				return err
 			}
 			i.home = Settings.Home
@@ -99,7 +100,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	return cmd
 }
 
-func (initCmd *initCmd) validate() error {
+func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 	// we do not allow the setting of image and version!
 	if initCmd.image != "" && initCmd.version != "" {
 		return errors.New("specify either 'kudo-image' or 'version', not both")
@@ -112,6 +113,10 @@ func (initCmd *initCmd) validate() error {
 	if initCmd.crdOnly && initCmd.wait {
 		return errors.New("wait is not allowed with crd-only")
 	}
+	if flags.Changed("wait-timeout") && !initCmd.wait {
+		return errors.New("wait-timeout is only useful when using the flag '--wait'")
+	}
+
 	return nil
 }
 
