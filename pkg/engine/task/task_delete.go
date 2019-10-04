@@ -1,7 +1,9 @@
-package engine
+package task
 
 import (
 	"fmt"
+
+	engine2 "github.com/kudobuilder/kudo/pkg/engine"
 
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/pkg/errors"
@@ -65,7 +67,7 @@ func render(resourceNames []string, templates map[string]string, params map[stri
 	//meta["OwnerRef"] <- add this to Metadata too
 
 	resources := map[string]string{}
-	engine := New()
+	engine := engine2.New()
 
 	for _, rn := range resourceNames {
 		resource, ok := templates[rn]

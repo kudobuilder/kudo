@@ -16,7 +16,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/kudobuilder/kudo/pkg/engine/task"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,8 +29,8 @@ type OperatorVersionSpec struct {
 	Version  string                 `json:"version,omitempty"`
 
 	// Yaml captures a templated yaml list of elements that define the application operator instance.
-	Templates map[string]string      `json:"templates,omitempty"`
-	Tasks     map[string]engine.Task `json:"tasks,omitempty"`
+	Templates map[string]string    `json:"templates,omitempty"`
+	Tasks     map[string]task.Task `json:"tasks,omitempty"`
 
 	Parameters []Parameter `json:"parameters,omitempty"`
 

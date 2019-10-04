@@ -1,6 +1,10 @@
-package engine
+package task
 
-import "errors"
+import (
+	"errors"
+
+	engine2 "github.com/kudobuilder/kudo/pkg/engine"
+)
 
 // TemplateTask is a task that, when given a set of templates, will take parameters from the Context and template them out using KUDO's builtin templating engine.
 type TemplateTask struct {
@@ -16,7 +20,7 @@ func TemplateTaskBuilder(input interface{}) (Tasker, error) {
 }
 
 func (e *TemplateTask) Run(ctx Context) error {
-	engine := New()
+	engine := engine2.New()
 	for _, t := range e.Templates {
 		tpl, err := engine.Render(t, map[string]interface{}{})
 		if err != nil {

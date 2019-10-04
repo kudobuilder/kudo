@@ -1,4 +1,4 @@
-package engine
+package task
 
 import "fmt"
 
@@ -18,14 +18,14 @@ func (m *MultiTask) Run(ctx Context) error {
 			return err
 		}
 
-		err = task.Run(ctx)
+		err = Run(ctx)
 		if err != nil {
 			return err
 		}
 
 		op, ok := task.(Outputter)
 		if ok {
-			input = op.Output()
+			input = Output()
 		}
 
 		fmt.Println(i, len(m.Tasks))

@@ -1,4 +1,4 @@
-package engine
+package task
 
 // NilTask is a task that accepts nothing and has no public or private members
 // +k8s:deepcopy-gen=true
