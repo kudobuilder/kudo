@@ -45,6 +45,7 @@ type executionMetadata struct {
 	operatorName        string
 	operatorVersionName string
 	operatorVersion     string
+	appVersion          string
 
 	planExecutionID string // TODO will be removed when PE CRD is removed
 
@@ -238,6 +239,8 @@ func prepareKubeResources(plan *activePlan, meta *executionMetadata, renderer ku
 	configs["OperatorName"] = meta.operatorName
 	configs["Name"] = meta.instanceName
 	configs["Namespace"] = meta.instanceNamespace
+	configs["AppVersion"] = meta.appVersion
+	configs["Version"] = meta.operatorVersion
 	configs["Params"] = plan.params
 
 	result := &planResources{

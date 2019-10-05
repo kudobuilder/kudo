@@ -174,6 +174,8 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 		Status: v1alpha1.OperatorStatus{},
 	}
 
+	fmt.Println("Print AppVersion: ", p.Operator.AppVersion)
+
 	fv := &v1alpha1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "OperatorVersion",
@@ -193,6 +195,7 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 			Tasks:          p.Operator.Tasks,
 			Parameters:     p.Params,
 			Plans:          p.Operator.Plans,
+			AppVersion:     p.Operator.AppVersion,
 			UpgradableFrom: nil,
 		},
 		Status: v1alpha1.OperatorVersionStatus{},

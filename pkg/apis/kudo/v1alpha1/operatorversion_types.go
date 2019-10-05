@@ -45,6 +45,9 @@ type OperatorVersionSpec struct {
 
 	// UpgradableFrom lists all OperatorVersions that can upgrade to this OperatorVersion.
 	UpgradableFrom []OperatorVersion `json:"upgradableFrom,omitempty"`
+
+	// AppVersion available as templatable value from operator.yaml
+	AppVersion string `json:"appVersion,omitempty"`
 }
 
 // Ordering specifies how the subitems in this plan/phase should be rolled out.

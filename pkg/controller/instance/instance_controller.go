@@ -216,6 +216,7 @@ func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.Oper
 			operatorName:        ov.Spec.Operator.Name,
 			instanceNamespace:   instance.Namespace,
 			instanceName:        instance.Name,
+			appVersion:          ov.Spec.AppVersion,
 		}, nil
 }
 
