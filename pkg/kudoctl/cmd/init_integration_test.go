@@ -124,7 +124,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 
 func deleteInitObjects(client *testutils.RetryClient) {
 	crds := cmdinit.CRDs()
-	prereqs := cmdinit.Prereq(cmdinit.NewOptions(""))
+	prereqs := cmdinit.Prereq(cmdinit.NewOptions("", ""))
 	deleteCRDs(crds, client)
 	deletePrereq(prereqs, client)
 }
