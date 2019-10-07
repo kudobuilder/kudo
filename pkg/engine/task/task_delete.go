@@ -22,7 +22,7 @@ type DeleteTask struct {
 
 type TaskContext struct {
 	Client     client.Client
-	Enhancer   instance.KubernetesObjectEnhancer
+	Enhancer   instance.kubernetesObjectEnhancer
 	Meta       instance.ExecutionMetadata
 	Templates  map[string]string // Raw templates
 	Parameters map[string]string // I and OV parameters merged
@@ -86,8 +86,8 @@ func render(resourceNames []string, templates map[string]string, params map[stri
 	return resources, nil
 }
 
-func kustomize(rendered map[string]string, meta instance.ExecutionMetadata, enhancer instance.KubernetesObjectEnhancer) ([]runtime.Object, error) {
-	enhanced, err := enhancer.ApplyConventionsToTemplates(rendered, instance.Metadata{
+func kustomize(rendered map[string]string, meta instance.ExecutionMetadata, enhancer instance.kubernetesObjectEnhancer) ([]runtime.Object, error) {
+	enhanced, err := enhancer.applyConventionsToTemplates(rendered, instance.Metadata{
 		InstanceName:    meta.InstanceName,
 		Namespace:       meta.InstanceNamespace,
 		OperatorName:    meta.OperatorName,
@@ -96,7 +96,7 @@ func kustomize(rendered map[string]string, meta instance.ExecutionMetadata, enha
 		//PlanName:        plan.Name,
 		//PhaseName:       phase.Name,
 		//StepName:        step.Name,
-	}, meta.ResourcesOwner)
+	}, meta.resourcesOwner)
 
 	return enhanced, err
 }
