@@ -58,6 +58,7 @@ type initCmd struct {
 	dryRun     bool
 	output     string
 	version    string
+	ns         string
 	wait       bool
 	timeout    int64
 	clientOnly bool
@@ -91,6 +92,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.BoolVarP(&i.clientOnly, "client-only", "c", false, "If set does not install KUDO on the server")
 	f.StringVarP(&i.image, "kudo-image", "i", "", "Override KUDO controller image and/or version")
 	f.StringVarP(&i.version, "version", "", "", "Override KUDO controller version of the KUDO image")
+	f.StringVarP(&i.ns, "controller-namespace", "", "", "Override namespace for the KUDO controller")
 	f.StringVarP(&i.output, "output", "o", "", "Output format")
 	f.BoolVar(&i.dryRun, "dry-run", false, "Do not install local or remote")
 	f.BoolVar(&i.crdOnly, "crd-only", false, "Add only KUDO CRDs to your cluster")
@@ -122,7 +124,7 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (initCmd *initCmd) run() error {
-	opts := cmdInit.NewOptions(initCmd.version)
+	opts := cmdInit.NewOptions(initCmd.version, initCmd.ns)
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image

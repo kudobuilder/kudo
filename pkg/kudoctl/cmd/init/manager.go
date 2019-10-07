@@ -42,15 +42,18 @@ type Options struct {
 }
 
 // NewOptions provides an option struct with defaults
-func NewOptions(v string) Options {
+func NewOptions(v string, ns string) Options {
 
 	if v == "" {
 		v = version.Get().GitVersion
 	}
+	if ns == "" {
+		ns = defaultns
+	}
 
 	return Options{
 		Version:                       v,
-		Namespace:                     defaultns,
+		Namespace:                     ns,
 		TerminationGracePeriodSeconds: defaultGracePeriod,
 		Image:                         fmt.Sprintf("kudobuilder/controller:v%v", v),
 	}
