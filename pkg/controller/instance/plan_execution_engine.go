@@ -39,15 +39,15 @@ type phaseResources struct {
 	StepResources map[string][]runtime.Object
 }
 
-type engineMetadata struct {
-	instanceName        string
-	instanceNamespace   string
-	operatorName        string
-	operatorVersionName string
-	operatorVersion     string
+type EngineMetadata struct {
+	InstanceName        string
+	InstanceNamespace   string
+	OperatorName        string
+	OperatorVersionName string
+	OperatorVersion     string
 
 	// the object that will own all the resources created by this execution
-	resourcesOwner metav1.Object
+	ResourcesOwner metav1.Object
 }
 
 // executePlan takes a currently active plan and ExecutionMetadata from the underlying operator and executes next "step" in that execution
@@ -55,9 +55,9 @@ type engineMetadata struct {
 // result of running this function is new state of the execution that is returned to the caller (it can either be completed, or still in progress or errored)
 // in case of error, error is returned along with the state as well (so that it's possible to report which step caused the error)
 // in case of error, method returns ErrorStatus which has property to indicate unrecoverable error meaning if there is no point in retrying that execution
-func executePlan(plan *activePlan, metadata *engineMetadata, c client.Client, enhancer kubernetesObjectEnhancer) (*v1alpha1.PlanStatus, error) {
+func executePlan(plan *activePlan, metadata *EngineMetadata, c client.Client, enhancer KubernetesObjectEnhancer) (*v1alpha1.PlanStatus, error) {
 	if plan.Status.IsTerminal() {
-		log.Printf("PlanExecution: Plan %s for instance %s is terminal, nothing to do", plan.name, metadata.instanceName)
+		log.Printf("PlanExecution: Plan %s for instance %s is terminal, nothing to do", plan.name, metadata.InstanceName)
 		return plan.PlanStatus, nil
 	}
 
@@ -82,12 +82,12 @@ func executePlan(plan *activePlan, metadata *engineMetadata, c client.Client, en
 		currentPhaseState, _ := getPhaseFromStatus(ph.Name, newState)
 		if isFinished(currentPhaseState.Status) {
 			// nothing to do
-			log.Printf("PlanExecution: Phase %s on plan %s and instance %s is in state %s, nothing to do", ph.Name, plan.name, metadata.instanceName, currentPhaseState.Status)
+			log.Printf("PlanExecution: Phase %s on plan %s and instance %s is in state %s, nothing to do", ph.Name, plan.name, metadata.InstanceName, currentPhaseState.Status)
 			continue
 		} else if isInProgress(currentPhaseState.Status) {
 			newState.Status = v1alpha1.ExecutionInProgress
 			currentPhaseState.Status = v1alpha1.ExecutionInProgress
-			log.Printf("PlanExecution: Executing phase %s on plan %s and instance %s - it's in progress", ph.Name, plan.name, metadata.instanceName)
+			log.Printf("PlanExecution: Executing phase %s on plan %s and instance %s - it's in progress", ph.Name, plan.name, metadata.InstanceName)
 
 			// we're currently executing this phase
 			allStepsHealthy := true
@@ -95,7 +95,7 @@ func executePlan(plan *activePlan, metadata *engineMetadata, c client.Client, en
 				currentStepState, _ := getStepFromStatus(st.Name, currentPhaseState)
 				resources := planResources.PhaseResources[ph.Name].StepResources[st.Name]
 
-				log.Printf("PlanExecution: Executing step %s on plan %s and instance %s - it's in %s state", st.Name, plan.name, metadata.instanceName, currentStepState.Status)
+				log.Printf("PlanExecution: Executing step %s on plan %s and instance %s - it's in %s state", st.Name, plan.name, metadata.InstanceName, currentStepState.Status)
 				err := executeStep(st, currentStepState, resources, c)
 				if err != nil {
 					currentPhaseState.Status = v1alpha1.ErrorStatus
@@ -113,7 +113,7 @@ func executePlan(plan *activePlan, metadata *engineMetadata, c client.Client, en
 			}
 
 			if allStepsHealthy {
-				log.Printf("PlanExecution: All steps on phase %s plan %s and instance %s are healthy", ph.Name, plan.name, metadata.instanceName)
+				log.Printf("PlanExecution: All steps on phase %s plan %s and instance %s are healthy", ph.Name, plan.name, metadata.InstanceName)
 				currentPhaseState.Status = v1alpha1.ExecutionComplete
 			}
 		}
@@ -126,7 +126,7 @@ func executePlan(plan *activePlan, metadata *engineMetadata, c client.Client, en
 	}
 
 	if allPhasesCompleted {
-		log.Printf("PlanExecution: All phases on plan %s and instance %s are healthy", plan.name, metadata.instanceName)
+		log.Printf("PlanExecution: All phases on plan %s and instance %s are healthy", plan.name, metadata.InstanceName)
 		newState.Status = v1alpha1.ExecutionComplete
 	}
 
@@ -231,7 +231,7 @@ func patchExistingObject(newResource runtime.Object, existingResource runtime.Ob
 
 // prepareKubeResources takes all resources in all tasks for a plan and renders them with the right parameters
 // it also takes care of applying KUDO specific conventions to the resources like commond labels
-func prepareKubeResources(plan *activePlan, meta *engineMetadata, renderer kubernetesObjectEnhancer) (*planResources, error) {
+func prepareKubeResources(plan *activePlan, meta *EngineMetadata, renderer KubernetesObjectEnhancer) (*planResources, error) {
 	configs := make(map[string]interface{})
 	configs["OperatorName"] = meta.OperatorName
 	configs["Name"] = meta.InstanceName
@@ -249,9 +249,9 @@ func prepareKubeResources(plan *activePlan, meta *engineMetadata, renderer kuber
 			StepResources: perStepResources,
 		}
 		for j, step := range phase.Steps {
-			configs["planName"] = plan.name
-			configs["phaseName"] = phase.Name
-			configs["stepName"] = step.Name
+			configs["PlanName"] = plan.name
+			configs["PhaseName"] = phase.Name
+			configs["StepName"] = step.Name
 			configs["StepNumber"] = strconv.FormatInt(int64(j), 10)
 			var resources []runtime.Object
 			stepState, _ := getStepFromStatus(step.Name, phaseState)
@@ -283,18 +283,18 @@ func prepareKubeResources(plan *activePlan, meta *engineMetadata, renderer kuber
 						}
 					}
 
-					resourcesWithConventions, err := renderer.applyConventionsToTemplates(resourcesAsString, ExecutionMetadata{
-						engineMetadata: *meta,
-						planName:       plan.name,
-						phaseName:      phase.Name,
-						stepName:       step.Name,
+					resourcesWithConventions, err := renderer.ApplyConventionsToTemplates(resourcesAsString, ExecutionMetadata{
+						EngineMetadata: *meta,
+						PlanName:       plan.name,
+						PhaseName:      phase.Name,
+						StepName:       step.Name,
 					})
 
 					if err != nil {
 						phaseState.Status = v1alpha1.ErrorStatus
 						stepState.Status = v1alpha1.ErrorStatus
 
-						log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v and instance %s/%s: %v", step.Name, phase.Name, plan.name, meta.instanceNamespace, meta.instanceName, err)
+						log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v and instance %s/%s: %v", step.Name, phase.Name, plan.name, meta.InstanceNamespace, meta.InstanceName, err)
 						return nil, &executionError{err, false, nil}
 					}
 					resources = append(resources, resourcesWithConventions...)

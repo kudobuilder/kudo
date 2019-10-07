@@ -19,18 +19,18 @@ import (
 )
 
 func TestExecutePlan(t *testing.T) {
-	defaultMetadata := &engineMetadata{
-		instanceName:        "Instance",
-		instanceNamespace:   "default",
-		operatorVersion:     "ov-1.0",
-		operatorName:        "operator",
-		resourcesOwner:      getJob("pod2", "default"),
-		operatorVersionName: "ovname",
+	defaultMetadata := &EngineMetadata{
+		InstanceName:        "Instance",
+		InstanceNamespace:   "default",
+		OperatorVersion:     "ov-1.0",
+		OperatorName:        "operator",
+		ResourcesOwner:      getJob("pod2", "default"),
+		OperatorVersionName: "ovname",
 	}
 	tests := []struct {
 		name           string
 		activePlan     *activePlan
-		metadata       *engineMetadata
+		metadata       *EngineMetadata
 		expectedStatus *v1alpha1.PlanStatus
 	}{
 		{"plan already finished", &activePlan{
@@ -155,7 +155,7 @@ func getResourceAsString(resource v1.Object) string {
 
 type testKubernetesObjectEnhancer struct{}
 
-func (k *testKubernetesObjectEnhancer) applyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) ([]runtime.Object, error) {
+func (k *testKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) ([]runtime.Object, error) {
 	result := make([]runtime.Object, 0)
 	for _, t := range templates {
 		objsToAdd, err := template.ParseKubernetesObjects(t)

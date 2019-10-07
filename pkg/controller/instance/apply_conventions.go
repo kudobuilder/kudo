@@ -27,28 +27,28 @@ const basePath = "/kustomize"
 
 // ExecutionMetadata contains ExecutionMetadata associated with current plan being executed
 type ExecutionMetadata struct {
-	engineMetadata
+	EngineMetadata
 
-	planName  string
-	phaseName string
-	stepName  string
+	PlanName  string
+	PhaseName string
+	StepName  string
 }
 
-// kubernetesObjectEnhancer takes your kubernetes template and kudo related Metadata and applies them to all resources in form of labels
+// KubernetesObjectEnhancer takes your kubernetes template and kudo related Metadata and applies them to all resources in form of labels
 // and annotations
 // it also takes care of setting an owner of all the resources to the provided object
-type kubernetesObjectEnhancer interface {
-	applyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) ([]runtime.Object, error)
+type KubernetesObjectEnhancer interface {
+	ApplyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) ([]runtime.Object, error)
 }
 
-// kustomizeEnhancer is implementation of kubernetesObjectEnhancer that uses kustomize to apply the defined conventions
+// kustomizeEnhancer is implementation of KubernetesObjectEnhancer that uses kustomize to apply the defined conventions
 type kustomizeEnhancer struct {
 	scheme *runtime.Scheme
 }
 
 // ApplyConventions accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
-func (k *kustomizeEnhancer) applyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) (objsToAdd []runtime.Object, err error) {
+func (k *kustomizeEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) (objsToAdd []runtime.Object, err error) {
 	fsys := fs.MakeFakeFS()
 
 	templateNames := make([]string, 0, len(templates))
@@ -62,18 +62,18 @@ func (k *kustomizeEnhancer) applyConventionsToTemplates(templates map[string]str
 	}
 
 	kustomization := &ktypes.Kustomization{
-		NamePrefix: metadata.instanceName + "-",
-		Namespace:  metadata.instanceNamespace,
+		NamePrefix: metadata.InstanceName + "-",
+		Namespace:  metadata.InstanceNamespace,
 		CommonLabels: map[string]string{
 			kudo.HeritageLabel: "kudo",
-			kudo.OperatorLabel: metadata.operatorName,
-			kudo.InstanceLabel: metadata.instanceName,
+			kudo.OperatorLabel: metadata.OperatorName,
+			kudo.InstanceLabel: metadata.InstanceName,
 		},
 		CommonAnnotations: map[string]string{
-			kudo.PlanAnnotation:            metadata.planName,
-			kudo.PhaseAnnotation:           metadata.phaseName,
-			kudo.StepAnnotation:            metadata.stepName,
-			kudo.OperatorVersionAnnotation: metadata.operatorVersion,
+			kudo.PlanAnnotation:            metadata.PlanName,
+			kudo.PhaseAnnotation:           metadata.PhaseName,
+			kudo.StepAnnotation:            metadata.StepName,
+			kudo.OperatorVersionAnnotation: metadata.OperatorVersion,
 		},
 		GeneratorOptions: &ktypes.GeneratorOptions{
 			DisableNameSuffixHash: true,
@@ -124,7 +124,7 @@ func (k *kustomizeEnhancer) applyConventionsToTemplates(templates map[string]str
 	}
 
 	for _, o := range objsToAdd {
-		err = setControllerReference(metadata.resourcesOwner, o, k.scheme)
+		err = setControllerReference(metadata.ResourcesOwner, o, k.scheme)
 		if err != nil {
 			return nil, errors.Wrapf(err, "setting controller reference on parsed object")
 		}
