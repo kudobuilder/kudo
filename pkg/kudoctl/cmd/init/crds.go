@@ -266,8 +266,10 @@ func generateCrd(kind string, plural string) *apiextv1beta1.CustomResourceDefini
 			StoredVersions: []string{},
 		},
 	}
-	preserveFields := false
-	crd.Spec.PreserveUnknownFields = &preserveFields
+	// below is needed if we support 1.15 CRD in v1beta1, it is deprecated within the 1.15
+	// for 1.16 it is removed and functions as if preserve == false
+	// preserveFields := false
+	// crd.Spec.PreserveUnknownFields = &preserveFields
 	return crd
 }
 
