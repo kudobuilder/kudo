@@ -26,9 +26,18 @@ type activePlan struct {
 	name string
 	*v1alpha1.PlanStatus
 	spec      *v1alpha1.Plan
-	tasks     map[string]v1alpha1.TaskSpec
+	tasks     []v1alpha1.Task
 	templates map[string]string
 	params    map[string]string
+}
+
+func (ap *activePlan) taskByName(name string) (*v1alpha1.Task, bool) {
+	for _, t := range ap.tasks {
+		if t.Name == name {
+			return &t, true
+		}
+	}
+	return nil, false
 }
 
 type planResources struct {
@@ -257,11 +266,11 @@ func prepareKubeResources(plan *activePlan, meta *EngineMetadata, renderer Kuber
 			stepState, _ := getStepFromStatus(step.Name, phaseState)
 
 			engine := kudoengine.New()
-			for _, t := range step.Tasks {
-				if taskSpec, ok := plan.tasks[t]; ok {
+			for _, tn := range step.Tasks {
+				if task, ok := plan.taskByName(tn); ok {
 					resourcesAsString := make(map[string]string)
 
-					for _, res := range taskSpec.Resources {
+					for _, res := range task.Spec.Resources {
 						if resource, ok := plan.templates[res]; ok {
 							templatedYaml, err := engine.Render(resource, configs)
 							if err != nil {
@@ -302,7 +311,7 @@ func prepareKubeResources(plan *activePlan, meta *EngineMetadata, renderer Kuber
 					phaseState.Status = v1alpha1.ErrorStatus
 					stepState.Status = v1alpha1.ErrorStatus
 
-					err := fmt.Errorf("Error finding task named %s for operator version %s", taskSpec, meta.OperatorVersionName)
+					err := fmt.Errorf("Error finding task named %s for operator version %s", task, meta.OperatorVersionName)
 					log.Print(err)
 					return nil, &executionError{err, false, nil}
 				}

@@ -2,7 +2,15 @@ package task
 
 import (
 	"errors"
+	"fmt"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 )
+
+// Tasker is an interface that represents any runnable task for an operator
+type Tasker interface {
+	Run(ctx Context) (bool, error)
+}
 
 const (
 	ApplyTaskKind  = "Apply"
@@ -11,59 +19,41 @@ const (
 )
 
 var (
-	ErrNoValidTaskNames = errors.New("no valid task names found")
+	ErrInvalidTaskKind = errors.New("invalid task kind")
 )
 
-// Tasker is an interface that represents any runnable task for an operator
-type Tasker interface {
-	Run(ctx Context) error
-}
-
-type Outputter interface {
-	Output() interface{}
-}
-
-type TaskBuilder func(input interface{}) (Tasker, error)
-
-// Task is a global, polymorphic implementation of all publicly available tasks
-// +k8s:deepcopy-gen=true
-type Task struct {
-	Name string   `json:"name"`
-	Kind string   `json:"kind"`
-	Spec TaskSpec `json:"spec"`
-}
-
-// +k8s:deepcopy-gen=true
-type TaskSpec struct {
-	NilTask
-	ApplyTask
-	DeleteTask
-}
-
-// Run is the entrypoint function to run a task, polymorphically determining which task to run and run it
-func (t *Task) Run(ctx Context) error {
-	var task Tasker
-	switch t.Kind {
+// Builder factory method takes an v1alpha1.Task and returns a corresponding Tasker object
+func Builder(task v1alpha1.Task) (Tasker, error) {
+	switch task.Kind {
 	case ApplyTaskKind:
-		task = &ApplyTask{
-			Resources: []string{},
-		}
-		break
+		return newApply(task), nil
+	case DeleteTaskKind:
+		return newDelete(task), nil
 	case NilTaskKind:
-		task = &NilTask{}
-		break
-	//case DeleteTaskKind:
-	//	task = &DeleteTask{
-	//		Resources: []runtime.Object{},
-	//	}
+		return newNil(task), nil
 	default:
-		return ErrNoValidTaskNames
+		return nil, fmt.Errorf("unknown task kind %s: %w", task.Kind, ErrInvalidTaskKind)
 	}
-
-	return task.Run(ctx)
 }
 
-//------
+func newApply(task v1alpha1.Task) ApplyTask {
+	return ApplyTask{
+		Name:      task.Name,
+		Resources: task.Spec.ApplyTaskSpec.Resources,
+	}
+}
+
+func newDelete(task v1alpha1.Task) DeleteTask {
+	return DeleteTask{
+		Name:      task.Name,
+		Resources: task.Spec.DeleteTaskSpec.Resources,
+	}
+}
+
+func newNil(task v1alpha1.Task) NilTask {
+	return NilTask{}
+}
+
 // An example of new TaskSpec
 //tasks:
 //	- name: helmExample

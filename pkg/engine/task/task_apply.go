@@ -28,7 +28,7 @@ type ApplyTask struct {
 // ApplyTask Run method. Given the task context, it renders the templates using context parameters
 // creates runtime objects and kustomizes them, and applies them using the controller client. Finally,
 // resources are checked for health.
-func (at *ApplyTask) Run(ctx TaskContext) (bool, error) {
+func (at ApplyTask) Run(ctx Context) (bool, error) {
 	// 1. Render task templates
 	rendered, err := render(at.Resources, ctx.Templates, ctx.Parameters, ctx.Meta)
 	if err != nil {

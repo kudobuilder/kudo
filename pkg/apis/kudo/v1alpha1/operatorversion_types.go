@@ -16,7 +16,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/kudobuilder/kudo/pkg/engine/task"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,8 +28,8 @@ type OperatorVersionSpec struct {
 	Version  string                 `json:"version,omitempty"`
 
 	// Yaml captures a templated yaml list of elements that define the application operator instance.
-	Templates map[string]string    `json:"templates,omitempty"`
-	Tasks     map[string]task.Task `json:"tasks,omitempty"`
+	Templates map[string]string `json:"templates,omitempty"`
+	Tasks     []Task            `json:"tasks,omitempty"`
 
 	Parameters []Parameter `json:"parameters,omitempty"`
 
@@ -109,13 +108,40 @@ type Phase struct {
 
 // Step defines a specific set of operations that occur.
 type Step struct {
-	Name   string   `json:"name" validate:"required"`                     // makes field mandatory and checks if set and non empty
-	Tasks  []string `json:"tasks" validate:"required,gt=0,dive,required"` // makes field mandatory and checks if non empty
-	Delete bool     `json:"delete,omitempty"`                             // no checks needed
+	Name   string   `json:"name" validate:"required"`            // makes field mandatory and checks if set and non empty
+	Tasks  []string `json:"tasks" validate:"required,gt=0,dive"` // makes field mandatory and checks if non empty
+	Delete bool     `json:"delete,omitempty"`                    // no checks needed
 
 	// Objects will be serialized for each instance as the params and defaults are provided.
 	Objects []runtime.Object `json:"-"` // no checks needed
 }
+
+// Task is a global, polymorphic implementation of all publicly available tasks
+type Task struct {
+	Name string   `json:"name" validate:"required"`
+	Kind string   `json:"kind" validate:"required"`
+	Spec TaskSpec `json:"spec" validate:"required"`
+}
+
+// TaskSpec embeds all possible task specs. This allows us to avoid writing custom un/marshallers that would only parse
+// certain fields depending on the task Kind. The downside of this approach is, that embedded types can not have fields
+// with the same json names as it would become ambiguous for the default parser. We might revisit this approach in the
+// future should this become an issue.
+type TaskSpec struct {
+	ApplyTaskSpec
+	DeleteTaskSpec
+	NilTaskSpec
+}
+
+type ApplyTaskSpec struct {
+	Resources []string `json:"applyResources"`
+}
+
+type DeleteTaskSpec struct {
+	Resources []string `json:"deleteResources"`
+}
+
+type NilTaskSpec struct{}
 
 // OperatorVersionStatus defines the observed state of OperatorVersion.
 type OperatorVersionStatus struct {

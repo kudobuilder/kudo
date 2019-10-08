@@ -19,18 +19,9 @@ type DeleteTask struct {
 	Resources []string
 }
 
-// TODO (ad) find a better place for task context
-type TaskContext struct {
-	Client     client.Client
-	Enhancer   instance.KubernetesObjectEnhancer
-	Meta       instance.ExecutionMetadata
-	Templates  map[string]string // Raw templates
-	Parameters map[string]string // I and OV parameters merged
-}
-
 // DeleteTask Run method. Given the task context, it renders the templates using context parameters
 // creates runtime objects and kustomizes them, and finally removes them using the controller client.
-func (dt *DeleteTask) Run(ctx TaskContext) (bool, error) {
+func (dt DeleteTask) Run(ctx Context) (bool, error) {
 	// 1. Render task templates
 	rendered, err := render(dt.Resources, ctx.Templates, ctx.Parameters, ctx.Meta)
 	if err != nil {
