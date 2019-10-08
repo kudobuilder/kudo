@@ -182,7 +182,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	if instance.Status.AggregatedStatus.Status.IsTerminal() {
+	if newStatus != nil && instance.Status.AggregatedStatus.Status.IsTerminal() {
 		r.Recorder.Event(instance, "Normal", "PlanFinished", fmt.Sprintf("Execution of plan %s finished with status %s", activePlanStatus.Name, instance.Status.AggregatedStatus.Status))
 	}
 
