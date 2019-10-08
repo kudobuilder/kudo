@@ -16,8 +16,6 @@ require (
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dustinkirkland/golang-petname v0.0.0-20170921220637-d3c2ba80e75e
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-playground/locales v0.12.1 // indirect
-	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/go-test/deep v1.0.1
 	github.com/gogo/protobuf v1.3.0 // indirect
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
@@ -29,7 +27,6 @@ require (
 	github.com/huandu/xstrings v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
-	github.com/leodido/go-urn v1.1.0 // indirect
 	github.com/magiconair/properties v1.8.1
 	github.com/masterminds/sprig v2.18.0+incompatible
 	github.com/mattn/go-isatty v0.0.9 // indirect
@@ -58,8 +55,6 @@ require (
 	golang.org/x/tools v0.0.0-20190909030654-5b82db07426d
 	google.golang.org/appengine v1.5.0 // indirect
 	google.golang.org/grpc v1.21.0 // indirect
-	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
-	gopkg.in/go-playground/validator.v9 v9.27.0
 	gopkg.in/yaml.v2 v2.2.2
 	gotest.tools v2.2.0+incompatible // indirect
 	honnef.co/go/tools v0.0.0-20190106161140-3f1c8253044a
