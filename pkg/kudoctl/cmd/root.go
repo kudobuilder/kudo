@@ -29,6 +29,7 @@ func NewKudoctlCmd() *cobra.Command {
 		Long: `KUDO CLI and future sub-commands can be used to manipulate, inspect and troubleshoot KUDO-specific CRDs
 and serves as an API aggregation layer.
 `,
+		SilenceUsage: true,
 		Example: `  # Install a KUDO package from the official GitHub repo.
   kubectl kudo install <name> [flags]
 
