@@ -24,6 +24,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
 	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
 	"github.com/kudobuilder/kudo/pkg/version"
+	apiextenstionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -48,8 +49,13 @@ func main() {
 	log.Info("Registering Components.")
 
 	log.Info("setting up scheme")
+
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
 		log.Error(err, "unable add APIs to scheme")
+	}
+
+	if err := apiextenstionsv1beta1.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Error(err, "unable to add extension APIs to scheme")
 	}
 
 	// Setup all Controllers
