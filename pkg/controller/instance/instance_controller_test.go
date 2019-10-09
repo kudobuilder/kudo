@@ -10,8 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/onsi/ginkgo"
-
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"github.com/stretchr/testify/assert"
@@ -28,9 +26,6 @@ const timeout = time.Second * 5
 const tick = time.Millisecond * 500
 
 func TestRestartController(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
-	gomega.RegisterFailHandler(ginkgo.Fail)
-
 	stopMgr, mgrStopped, c := startTestManager(g)
 
 	log.Printf("Given an existing instance 'foo-instance' and operator 'foo-operator'")
@@ -72,7 +67,7 @@ func TestRestartController(t *testing.T) {
 	mgrStopped.Wait()
 
 	log.Print("And update the instance parameter value")
-	err := c.Get(context.TODO(), instanceKey, in)
+	err := c.Get(context.TODO(), instanceKey, in) // we need to pull here again because the state of instance was modified in between
 	assert.NoError(t, err)
 	in.Spec.Parameters = map[string]string{"param": "newvalue"}
 	assert.NoError(t, c.Update(context.TODO(), in))
@@ -97,9 +92,9 @@ func instancePlanFinished(key client.ObjectKey, planName string, c client.Client
 	return i.Status.PlanStatus[planName].Status.IsFinished()
 }
 
-func startTestManager(g *gomega.GomegaWithT) (chan struct{}, *sync.WaitGroup, client.Client) {
+func startTestManager() (chan struct{}, *sync.WaitGroup, client.Client) {
 	mgr, err := manager.New(cfg, manager.Options{})
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	assert.Nil(t, err, "Error when creating manager")
 	err = (&Reconciler{
 		Client:   mgr.GetClient(),
 		Recorder: mgr.GetEventRecorderFor("instance-controller"),
