@@ -1,5 +1,3 @@
-// +build integration
-
 package instance
 
 import (
@@ -17,8 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/onsi/gomega"
-
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -26,7 +22,7 @@ const timeout = time.Second * 5
 const tick = time.Millisecond * 500
 
 func TestRestartController(t *testing.T) {
-	stopMgr, mgrStopped, c := startTestManager(g)
+	stopMgr, mgrStopped, c := startTestManager(t)
 
 	log.Printf("Given an existing instance 'foo-instance' and operator 'foo-operator'")
 	in := &v1alpha1.Instance{
@@ -73,7 +69,7 @@ func TestRestartController(t *testing.T) {
 	assert.NoError(t, c.Update(context.TODO(), in))
 
 	log.Print("And restart the manager again")
-	stopMgr, mgrStopped, c = startTestManager(g)
+	stopMgr, mgrStopped, c = startTestManager(t)
 
 	log.Print("Then an update plan should be triggered instead of deploy plan")
 	assert.Eventually(t, func() bool { return instancePlanFinished(instanceKey, "update", c) }, timeout, tick)
@@ -92,7 +88,7 @@ func instancePlanFinished(key client.ObjectKey, planName string, c client.Client
 	return i.Status.PlanStatus[planName].Status.IsFinished()
 }
 
-func startTestManager() (chan struct{}, *sync.WaitGroup, client.Client) {
+func startTestManager(t *testing.T) (chan struct{}, *sync.WaitGroup, client.Client) {
 	mgr, err := manager.New(cfg, manager.Options{})
 	assert.Nil(t, err, "Error when creating manager")
 	err = (&Reconciler{
@@ -105,7 +101,7 @@ func startTestManager() (chan struct{}, *sync.WaitGroup, client.Client) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
-		g.Expect(mgr.Start(stop)).NotTo(gomega.HaveOccurred())
+		_ = mgr.Start(stop)
 		wg.Done()
 	}()
 	return stop, wg, mgr.GetClient()
