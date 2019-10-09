@@ -5,6 +5,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -19,6 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -75,6 +77,56 @@ func TestIntegInitForCRDs(t *testing.T) {
 
 	// make sure that we can create an object of this type now
 	assert.Nil(t, testClient.Create(context.TODO(), instance))
+}
+
+func TestIntegInitWithNameSpace(t *testing.T) {
+	namespace := "integration-test"
+	// Kubernetes client caches the types, se we need to re-initialize it.
+	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
+		Scheme: testutils.Scheme(),
+	})
+	assert.Nil(t, err)
+	kclient := getKubeClient(t)
+
+	instance := testutils.NewResource("kudo.dev/v1alpha1", "Instance", "zk", "ns")
+	// Verify that we cannot create the instance, because the test environment is empty.
+	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
+
+	// Install all of the CRDs.
+	crds := cmdinit.CRDs()
+	defer deleteInitObjects(testClient)
+
+	var buf bytes.Buffer
+	cmd := &initCmd{
+		out:    &buf,
+		fs:     afero.NewMemMapFs(),
+		client: kclient,
+		ns:     namespace,
+	}
+	err = cmd.run()
+	assert.Nil(t, err)
+
+	// WaitForCRDs to be created... the init cmd did NOT wait
+	assert.Nil(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+
+	// Kubernetes client caches the types, so we need to re-initialize it.
+	testClient, err = testutils.NewRetryClient(testenv.Config, client.Options{
+		Scheme: testutils.Scheme(),
+	})
+	assert.Nil(t, err)
+	kclient = getKubeClient(t)
+
+	// make sure that the controller lives in the correct namespace
+	statefulsets, err := kclient.KubeClient.AppsV1().StatefulSets(namespace).List(metav1.ListOptions{})
+	assert.Nil(t, err)
+
+	kudoControllerFound := false
+	for _, ss := range statefulsets.Items {
+		if ss.Name == "kudo-controller-manager" {
+			kudoControllerFound = true
+		}
+	}
+	assert.True(t, kudoControllerFound, fmt.Sprintf("No kudo-controller-manager statefulset found in namespace %s", namespace))
 }
 
 func TestNoErrorOnReInit(t *testing.T) {

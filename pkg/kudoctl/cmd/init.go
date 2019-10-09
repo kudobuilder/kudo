@@ -83,6 +83,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 				return err
 			}
 			i.home = Settings.Home
+			i.ns = Settings.Namespace
 			clog.V(8).Printf("init cmd %v", i)
 			return i.run()
 		},
@@ -92,7 +93,6 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.BoolVarP(&i.clientOnly, "client-only", "c", false, "If set does not install KUDO on the server")
 	f.StringVarP(&i.image, "kudo-image", "i", "", "Override KUDO controller image and/or version")
 	f.StringVarP(&i.version, "version", "", "", "Override KUDO controller version of the KUDO image")
-	f.StringVarP(&i.ns, "controller-namespace", "", "", "Override namespace for the KUDO controller. Defaults to kudo-system")
 	f.StringVarP(&i.output, "output", "o", "", "Output format")
 	f.BoolVar(&i.dryRun, "dry-run", false, "Do not install local or remote")
 	f.BoolVar(&i.crdOnly, "crd-only", false, "Add only KUDO CRDs to your cluster")
