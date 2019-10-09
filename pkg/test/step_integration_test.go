@@ -6,8 +6,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"testing"
+	"time"
 
 	petname "github.com/dustinkirkland/golang-petname"
 
@@ -38,6 +40,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestCheckResourceIntegration(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
+
 	for _, test := range []struct {
 		testName    string
 		actual      []runtime.Object
