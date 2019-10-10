@@ -53,7 +53,7 @@ func NewPlanStatusCmd() *cobra.Command {
 		Short:   "Shows the status of all plans to an particular instance.",
 		Example: planStatuExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return plan.RunStatus(cmd, args, options, &Settings)
+			return plan.RunStatus(cmd, options, &Settings)
 		},
 	}
 

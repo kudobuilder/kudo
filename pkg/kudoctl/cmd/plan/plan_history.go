@@ -13,8 +13,7 @@ import (
 
 // Options are the configurable options for plans
 type Options struct {
-	Instance  string
-	Namespace string
+	Instance string
 }
 
 var (
@@ -37,12 +36,14 @@ func RunHistory(cmd *cobra.Command, options *Options, settings *env.Settings) er
 }
 
 func planHistory(options *Options, settings *env.Settings) error {
+	namespace := settings.Namespace
+
 	kc, err := kudo.NewClient(settings.Namespace, settings.KubeConfig)
 	if err != nil {
 		fmt.Printf("Unable to create kudo client to talk to kubernetes API server %w", err)
 		return err
 	}
-	instance, err := kc.GetInstance(options.Instance, options.Namespace)
+	instance, err := kc.GetInstance(options.Instance, namespace)
 	if errors.IsNotFound(err) {
 		fmt.Printf("Instance %s/%s does not exist", instance.Namespace, instance.Name)
 	}
