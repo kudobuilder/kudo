@@ -33,7 +33,7 @@ func TestTask_Run(t1 *testing.T) {
 				Name: "Do Nothing",
 				Kind: "Nil",
 				Spec: TaskSpec{
-					NilTask: NilTask{},
+					DummyTask: DummyTask{},
 				},
 			},
 		},

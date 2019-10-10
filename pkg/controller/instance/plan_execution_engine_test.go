@@ -54,7 +54,15 @@ func TestExecutePlan(t *testing.T) {
 					{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"job"}}},
+			tasks: []v1alpha1.Task{
+				{
+					Name: "task",
+					Kind: "Apply",
+					Spec: v1alpha1.TaskSpec{
+						ApplyTaskSpec: v1alpha1.ApplyTaskSpec{Resources: []string{"job"}},
+					},
+				},
+			},
 			templates: map[string]string{"job": getResourceAsString(getJob("job1", "default"))},
 		}, defaultMetadata, &v1alpha1.PlanStatus{
 			Status: v1alpha1.ExecutionInProgress,
@@ -75,7 +83,15 @@ func TestExecutePlan(t *testing.T) {
 					{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"pod"}}},
+			tasks: []v1alpha1.Task{
+				{
+					Name: "task",
+					Kind: "Apply",
+					Spec: v1alpha1.TaskSpec{
+						ApplyTaskSpec: v1alpha1.ApplyTaskSpec{Resources: []string{"pod"}},
+					},
+				},
+			},
 			templates: map[string]string{"pod": getResourceAsString(getPod("pod1", "default"))},
 		}, defaultMetadata, &v1alpha1.PlanStatus{
 			Status: v1alpha1.ExecutionComplete,
@@ -95,7 +111,15 @@ func TestExecutePlan(t *testing.T) {
 					{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"pod"}}},
+			tasks: []v1alpha1.Task{
+				{
+					Name: "task",
+					Kind: "Apply",
+					Spec: v1alpha1.TaskSpec{
+						ApplyTaskSpec: v1alpha1.ApplyTaskSpec{Resources: []string{"pod"}},
+					},
+				},
+			},
 			templates: map[string]string{"pod": getResourceAsString(getPod("pod1", "default"))},
 		}, defaultMetadata, &v1alpha1.PlanStatus{
 			Status: v1alpha1.ExecutionComplete,
@@ -156,7 +180,7 @@ func getResourceAsString(resource v1.Object) string {
 type testKubernetesObjectEnhancer struct{}
 
 func (k *testKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) ([]runtime.Object, error) {
-	result := make([]runtime.Object, 0)
+	result := make([]runtime.Object, len(templates))
 	for _, t := range templates {
 		objsToAdd, err := template.ParseKubernetesObjects(t)
 		if err != nil {

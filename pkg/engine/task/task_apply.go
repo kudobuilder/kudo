@@ -3,8 +3,8 @@ package task
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"log"
 
 	"github.com/kudobuilder/kudo/pkg/util/health"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -12,11 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	apijson "k8s.io/apimachinery/pkg/util/json"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-)
-
-// TODO (ad) find a better place for this error var
-var (
-	FatalTaskExecutionError = errors.New("fatal error during task execution")
 )
 
 // ApplyTask will apply a set of given resources to the cluster. See Run method for more details.
@@ -32,13 +27,13 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 	// 1. Render task templates
 	rendered, err := render(at.Resources, ctx.Templates, ctx.Parameters, ctx.Meta)
 	if err != nil {
-		return false, fmt.Errorf("failed to render task resources: %s, %w", err.Error(), FatalTaskExecutionError)
+		return false, fmt.Errorf("%wfailed to render task resources: %v", FatalExecutionError, err)
 	}
 
 	// 2. Kustomize them with metadata
 	kustomized, err := kustomize(rendered, ctx.Meta, ctx.Enhancer)
 	if err != nil {
-		return false, fmt.Errorf("failed to kustomize task resources: %s, %w", err.Error(), FatalTaskExecutionError)
+		return false, fmt.Errorf("%wfailed to kustomize task resources: %v", FatalExecutionError, err)
 	}
 
 	// 3. Apply them using the client
@@ -50,7 +45,8 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 	// 4. Check health for all resources
 	err = isHealthy(applied, ctx.Client)
 	if err != nil {
-		return false, err
+		log.Printf("TaskExecution: %v", err)
+		return false, nil // unhealthy resources are NOT treated as errors
 	}
 
 	return true, nil

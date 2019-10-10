@@ -3,15 +3,15 @@ package instance
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
 
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"k8s.io/apimachinery/pkg/types"
 
-	"errors"
-
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	kudoengine "github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/util/health"
 	errwrap "github.com/pkg/errors"
@@ -20,6 +20,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	apijson "k8s.io/apimachinery/pkg/util/json"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+var (
+	UnknownTaskNameEventName         = "UnknownTaskName"
+	UnknownTaskKindEventName         = "UnknownTaskName"
+	TaskExecutionErrorEventName      = "TaskExecutionError"
+	FatalTaskExecutionErrorEventName = "FatalTaskExecutionError"
 )
 
 type activePlan struct {
@@ -59,6 +66,164 @@ type EngineMetadata struct {
 	ResourcesOwner metav1.Object
 }
 
+// === New plan execution entry point ===
+func executePlan2(pl *activePlan, em *EngineMetadata, c client.Client, enh KubernetesObjectEnhancer) (*v1alpha1.PlanStatus, error) {
+	if pl.Status.IsTerminal() {
+		log.Printf("PlanExecution: Plan %s for instance %s is terminal, nothing to do", pl.name, em.InstanceName)
+		return pl.PlanStatus, nil
+	}
+
+	planStatus := pl.PlanStatus.DeepCopy()
+	planStatus.Status = v1alpha1.ExecutionInProgress
+
+	phasesLeft := len(pl.spec.Phases)
+	// --- 1. Iterate over plan phases ---
+	for _, ph := range pl.spec.Phases {
+		phaseStatus := getOrCreatePhaseStatus(ph.Name, planStatus)
+
+		// Check current phase status: skip if finished, proceed if in progress, break out if a fatal error has occurred
+		if isFinished(phaseStatus.Status) {
+			phasesLeft = phasesLeft - 1
+			continue
+		} else if isInProgress(phaseStatus.Status) {
+			phaseStatus.Status = v1alpha1.ExecutionInProgress
+		} else {
+			break
+		}
+
+		stepsLeft := len(ph.Steps)
+		// --- 2. Iterate over phase steps ---
+		for _, st := range ph.Steps {
+			stepStatus := getOrCreateStepStatus(st.Name, phaseStatus)
+
+			// Check current phase status: skip if finished, proceed if in progress, break out if a fatal error has occurred
+			if isFinished(stepStatus.Status) {
+				stepsLeft = stepsLeft - 1
+				continue
+			} else if isInProgress(stepStatus.Status) {
+				stepStatus.Status = v1alpha1.ExecutionInProgress
+			} else {
+				// we are not in progress and not finished. An unexpected error occurred so that we can not proceed to the next phase
+				break
+			}
+
+			tasksLeft := len(st.Tasks)
+			// --- 3. Iterate over step tasks ---
+			for _, tn := range st.Tasks {
+				t, ok := pl.taskByName(tn)
+				if !ok {
+					phaseStatus.Status = v1alpha1.ExecutionFatalError
+					stepStatus.Status = v1alpha1.ExecutionFatalError
+					planStatus.Status = v1alpha1.ExecutionFatalError
+					return planStatus, ExecutionError{
+						Err:       fmt.Errorf("failed to find task %s for operator version %s", t, em.OperatorVersionName),
+						Fatal:     true,
+						EventName: &UnknownTaskNameEventName,
+					}
+				}
+				// - 3.a build execution metadata -
+				exm := ExecutionMetadata{
+					EngineMetadata: *em,
+					PlanName:       pl.name,
+					PhaseName:      ph.Name,
+					StepName:       st.Name,
+					TaskName:       tn,
+				}
+
+				// - 3.b build the engine task -
+				task, err := engtask.Build(t)
+				if err != nil {
+					phaseStatus.Status = v1alpha1.ExecutionFatalError
+					stepStatus.Status = v1alpha1.ExecutionFatalError
+					planStatus.Status = v1alpha1.ExecutionFatalError
+					return planStatus, ExecutionError{
+						Err:       fmt.Errorf("failed to resolve task %s for operator version %s: %w", tn, em.OperatorVersionName, err),
+						Fatal:     true,
+						EventName: &UnknownTaskKindEventName,
+					}
+				}
+
+				// - 3.c build task context -
+				ctx := engtask.Context{
+					Client:     c,
+					Enhancer:   enh,
+					Meta:       exm,
+					Templates:  pl.templates,
+					Parameters: pl.params,
+				}
+
+				// --- 4. Execute the engine task ---
+				done, err := task.Run(ctx)
+
+				// Tasks within a step are executed "in parallel", meaning that we will not wait for current task to
+				// be ready before executing the next one. However, this does not apply to fatal errors! Should a
+				// fatal error occur, we will, in the spirit of "fail-loud-and-proud", abort current execution.
+				//
+				// Note: a task fatal error is set all the way through Plan/Phase/Step status fields:
+				// PlanA: FATAL_ERROR
+				//   PhaseB: FATAL_ERROR
+				//     StepOne: FATAL_ERROR
+				//
+				// This is different for transient errors. Transient errors are retryable, so the corresponding Plan/Phase
+				// are still "in progress":
+				// PlanA: IN_PROGRESS
+				//   PhaseB: IN_PROGRESS
+				//     StepOne: ERROR
+				switch {
+				case errors.Is(err, engtask.FatalExecutionError):
+					log.Printf("PlanExecution: fatal error during task %s execution for operator version %s: %v", exm.TaskName, exm.OperatorVersionName, err)
+					phaseStatus.Status = v1alpha1.ExecutionFatalError
+					stepStatus.Status = v1alpha1.ExecutionFatalError
+					planStatus.Status = v1alpha1.ExecutionFatalError
+					return planStatus, ExecutionError{
+						Err:       fmt.Errorf("fatal task %s execution error  for operator version %s: %w", tn, em.OperatorVersionName, err),
+						Fatal:     true,
+						EventName: &FatalTaskExecutionErrorEventName,
+					}
+				case err != nil:
+					log.Printf("PlanExecution: error during task %s execution for operator version %s: %v", exm.TaskName, exm.OperatorVersionName, err)
+					stepStatus.Status = v1alpha1.ErrorStatus
+				case done:
+					tasksLeft = tasksLeft - 1
+				}
+			}
+
+			// if some TASKs aren't ready yet and STEPs strategy is serial we can not proceed.
+			if tasksLeft > 0 {
+				if ph.Strategy == v1alpha1.Serial {
+					log.Printf("PlanExecution: some tasks of the %s.%s, operator version %s are not ready", ph.Name, st.Name, em.OperatorVersionName)
+					break
+				}
+			} else {
+				stepStatus.Status = v1alpha1.ExecutionComplete
+			}
+			// otherwise, if STEPs strategy is parallel or all TASKs are finished, we can go to the next STEP:
+			stepsLeft = stepsLeft - 1
+		}
+
+		// if some STEPs aren't ready yet and PHASEs strategy is serial we can not proceed.
+		if stepsLeft > 0 {
+			if pl.spec.Strategy == v1alpha1.Serial {
+				log.Printf("PlanExecution: some steps of the %s.%s, operator version %s are not ready", pl.Name, ph.Name, em.OperatorVersionName)
+				break
+			}
+		} else {
+			phaseStatus.Status = v1alpha1.ExecutionComplete
+		}
+		// otherwise, if PHASEs strategy is parallel or all STEPs are finished, we can go to the next PHASE:
+		phasesLeft = phasesLeft - 1
+	}
+
+	if phasesLeft == 0 {
+		log.Printf("PlanExecution: All phases on plan %s and instance %s are healthy", pl.name, em.InstanceName)
+		planStatus.Status = v1alpha1.ExecutionComplete
+	}
+
+	return planStatus, nil
+}
+
+// ======================================
+
 // executePlan takes a currently active plan and ExecutionMetadata from the underlying operator and executes next "step" in that execution
 // the next step could consist of actually executing multiple steps of the plan or just one depending on the execution strategy of the phase (serial/parallel)
 // result of running this function is new state of the execution that is returned to the caller (it can either be completed, or still in progress or errored)
@@ -76,7 +241,7 @@ func executePlan(plan *activePlan, metadata *EngineMetadata, c client.Client, en
 	// render kubernetes resources needed to execute this plan
 	planResources, err := prepareKubeResources(plan, metadata, enhancer)
 	if err != nil {
-		var exErr *executionError
+		var exErr *ExecutionError
 		if errors.As(err, &exErr) {
 			newState.Status = v1alpha1.ExecutionFatalError
 		} else {
@@ -88,7 +253,7 @@ func executePlan(plan *activePlan, metadata *EngineMetadata, c client.Client, en
 	// do a next step in the current plan execution
 	allPhasesCompleted := true
 	for _, ph := range plan.spec.Phases {
-		currentPhaseState, _ := getPhaseFromStatus(ph.Name, newState)
+		currentPhaseState := getOrCreatePhaseStatus(ph.Name, newState)
 		if isFinished(currentPhaseState.Status) {
 			// nothing to do
 			log.Printf("PlanExecution: Phase %s on plan %s and instance %s is in state %s, nothing to do", ph.Name, plan.name, metadata.InstanceName, currentPhaseState.Status)
@@ -101,7 +266,7 @@ func executePlan(plan *activePlan, metadata *EngineMetadata, c client.Client, en
 			// we're currently executing this phase
 			allStepsHealthy := true
 			for _, st := range ph.Steps {
-				currentStepState, _ := getStepFromStatus(st.Name, currentPhaseState)
+				currentStepState := getOrCreateStepStatus(st.Name, currentPhaseState)
 				resources := planResources.PhaseResources[ph.Name].StepResources[st.Name]
 
 				log.Printf("PlanExecution: Executing step %s on plan %s and instance %s - it's in %s state", st.Name, plan.name, metadata.InstanceName, currentStepState.Status)
@@ -239,7 +404,7 @@ func patchExistingObject(newResource runtime.Object, existingResource runtime.Ob
 }
 
 // prepareKubeResources takes all resources in all tasks for a plan and renders them with the right parameters
-// it also takes care of applying KUDO specific conventions to the resources like commond labels
+// it also takes care of applying KUDO specific conventions to the resources like common labels
 func prepareKubeResources(plan *activePlan, meta *EngineMetadata, renderer KubernetesObjectEnhancer) (*planResources, error) {
 	configs := make(map[string]interface{})
 	configs["OperatorName"] = meta.OperatorName
@@ -252,7 +417,7 @@ func prepareKubeResources(plan *activePlan, meta *EngineMetadata, renderer Kuber
 	}
 
 	for _, phase := range plan.spec.Phases {
-		phaseState, _ := getPhaseFromStatus(phase.Name, plan.PlanStatus)
+		phaseState := getOrCreatePhaseStatus(phase.Name, plan.PlanStatus)
 		perStepResources := make(map[string][]runtime.Object)
 		result.PhaseResources[phase.Name] = phaseResources{
 			StepResources: perStepResources,
@@ -263,7 +428,7 @@ func prepareKubeResources(plan *activePlan, meta *EngineMetadata, renderer Kuber
 			configs["StepName"] = step.Name
 			configs["StepNumber"] = strconv.FormatInt(int64(j), 10)
 			var resources []runtime.Object
-			stepState, _ := getStepFromStatus(step.Name, phaseState)
+			stepState := getOrCreateStepStatus(step.Name, phaseState)
 
 			engine := kudoengine.New()
 			for _, tn := range step.Tasks {
@@ -279,7 +444,7 @@ func prepareKubeResources(plan *activePlan, meta *EngineMetadata, renderer Kuber
 
 								err := errwrap.Wrap(err, "error expanding template")
 								log.Print(err)
-								return nil, &executionError{err, true, nil}
+								return nil, &ExecutionError{err, true, nil}
 							}
 							resourcesAsString[res] = templatedYaml
 						} else {
@@ -288,7 +453,7 @@ func prepareKubeResources(plan *activePlan, meta *EngineMetadata, renderer Kuber
 
 							err := fmt.Errorf("PlanExecution: Error finding resource named %v for operator version %v", res, meta.OperatorVersionName)
 							log.Print(err)
-							return nil, &executionError{err, true, nil}
+							return nil, &ExecutionError{err, true, nil}
 						}
 					}
 
@@ -304,7 +469,7 @@ func prepareKubeResources(plan *activePlan, meta *EngineMetadata, renderer Kuber
 						stepState.Status = v1alpha1.ErrorStatus
 
 						log.Printf("Error creating Kubernetes objects from step %v in phase %v of plan %v and instance %s/%s: %v", step.Name, phase.Name, plan.name, meta.InstanceNamespace, meta.InstanceName, err)
-						return nil, &executionError{err, false, nil}
+						return nil, &ExecutionError{err, false, nil}
 					}
 					resources = append(resources, resourcesWithConventions...)
 				} else {
@@ -313,7 +478,7 @@ func prepareKubeResources(plan *activePlan, meta *EngineMetadata, renderer Kuber
 
 					err := fmt.Errorf("Error finding task named %s for operator version %s", task, meta.OperatorVersionName)
 					log.Print(err)
-					return nil, &executionError{err, false, nil}
+					return nil, &ExecutionError{err, false, nil}
 				}
 			}
 
@@ -324,22 +489,31 @@ func prepareKubeResources(plan *activePlan, meta *EngineMetadata, renderer Kuber
 	return result, nil
 }
 
-func getStepFromStatus(stepName string, status *v1alpha1.PhaseStatus) (*v1alpha1.StepStatus, error) {
-	for i, p := range status.Steps {
+func getOrCreateStepStatus(stepName string, phaseStatus *v1alpha1.PhaseStatus) *v1alpha1.StepStatus {
+	for i, p := range phaseStatus.Steps {
 		if p.Name == stepName {
-			return &status.Steps[i], nil
+			return &phaseStatus.Steps[i]
 		}
 	}
-	return nil, fmt.Errorf("PlanExecution: Cannot find step %s in plan", stepName)
+
+	log.Printf("PlanExecution: creating missing (!) step %s status for the phase status: %+v", stepName, phaseStatus)
+	stepStatus := &v1alpha1.StepStatus{Name: stepName}
+	phaseStatus.Steps = append(phaseStatus.Steps, *stepStatus)
+
+	return stepStatus
 }
 
-func getPhaseFromStatus(phaseName string, status *v1alpha1.PlanStatus) (*v1alpha1.PhaseStatus, error) {
-	for i, p := range status.Phases {
+func getOrCreatePhaseStatus(phaseName string, planStatus *v1alpha1.PlanStatus) *v1alpha1.PhaseStatus {
+	for i, p := range planStatus.Phases {
 		if p.Name == phaseName {
-			return &status.Phases[i], nil
+			return &planStatus.Phases[i]
 		}
 	}
-	return nil, fmt.Errorf("PlanExecution: Cannot find phase %s in plan", phaseName)
+
+	log.Printf("PlanExecution: creating missing (!) phase %s status in plan status: %+v", phaseName, planStatus)
+	phaseStatus := &v1alpha1.PhaseStatus{Name: phaseName}
+	planStatus.Phases = append(planStatus.Phases, *phaseStatus)
+	return phaseStatus
 }
 
 func isFinished(state v1alpha1.ExecutionStatus) bool {

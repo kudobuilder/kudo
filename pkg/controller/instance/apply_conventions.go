@@ -32,6 +32,7 @@ type ExecutionMetadata struct {
 	PlanName  string
 	PhaseName string
 	StepName  string
+	TaskName  string
 }
 
 // KubernetesObjectEnhancer takes your kubernetes template and kudo related Metadata and applies them to all resources in form of labels

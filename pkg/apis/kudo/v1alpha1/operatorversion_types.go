@@ -130,7 +130,7 @@ type Task struct {
 type TaskSpec struct {
 	ApplyTaskSpec
 	DeleteTaskSpec
-	NilTaskSpec
+	DummyTaskSpec
 }
 
 type ApplyTaskSpec struct {
@@ -141,7 +141,9 @@ type DeleteTaskSpec struct {
 	Resources []string `json:"deleteResources"`
 }
 
-type NilTaskSpec struct{}
+type DummyTaskSpec struct {
+	Fail bool `json:fail`
+}
 
 // OperatorVersionStatus defines the observed state of OperatorVersion.
 type OperatorVersionStatus struct {

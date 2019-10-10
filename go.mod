@@ -3,7 +3,7 @@ module github.com/kudobuilder/kudo
 go 1.13
 
 require (
-	cloud.google.com/go v0.38.0 // indirect
+	cloud.google.com/go v0.38.0
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Azure/go-autorest/autorest v0.5.0 // indirect
 	github.com/Masterminds/goutils v1.1.0 // indirect

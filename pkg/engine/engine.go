@@ -22,7 +22,7 @@ func New() *Engine {
 	funcs := []string{"env", "expandenv", "base", "dir", "clean", "ext", "isAbs"}
 
 	for _, fun := range funcs {
-		task.delete(f, fun)
+		delete(f, fun)
 	}
 
 	return &Engine{

@@ -197,7 +197,7 @@ func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.Oper
 
 	planSpec, ok := ov.Spec.Plans[activePlanStatus.Name]
 	if !ok {
-		return nil, nil, &executionError{fmt.Errorf("could not find required plan (%v)", activePlanStatus.Name), false, kudo.String("InvalidPlan")}
+		return nil, nil, &ExecutionError{fmt.Errorf("could not find required plan (%v)", activePlanStatus.Name), false, kudo.String("InvalidPlan")}
 	}
 
 	return &activePlan{
@@ -231,12 +231,12 @@ func (r *Reconciler) handleError(err error, instance *kudov1alpha1.Instance) err
 	}
 
 	// determine if retry is necessary based on the error type
-	if exErr, ok := err.(*executionError); ok {
-		if exErr.eventName != nil {
-			r.Recorder.Event(instance, "Warning", kudo.StringValue(exErr.eventName), err.Error())
+	if exErr, ok := err.(*ExecutionError); ok {
+		if exErr.EventName != nil {
+			r.Recorder.Event(instance, "Warning", kudo.StringValue(exErr.EventName), err.Error())
 		}
 
-		if exErr.fatal {
+		if exErr.Fatal {
 			return nil // not retrying fatal error
 		}
 	}
@@ -308,7 +308,7 @@ func getParameters(instance *kudov1alpha1.Instance, operatorVersion *kudov1alpha
 	}
 
 	if len(missingRequiredParameters) != 0 {
-		return nil, &executionError{err: fmt.Errorf("parameters are missing when evaluating template: %s", strings.Join(missingRequiredParameters, ",")), fatal: true, eventName: kudo.String("Missing parameter")}
+		return nil, &ExecutionError{Err: fmt.Errorf("parameters are missing when evaluating template: %s", strings.Join(missingRequiredParameters, ",")), Fatal: true, EventName: kudo.String("Missing parameter")}
 	}
 
 	return params, nil
@@ -334,15 +334,15 @@ func parameterDifference(old, new map[string]string) map[string]string {
 	return diff
 }
 
-type executionError struct {
-	err       error
-	fatal     bool    // these errors should not be retried
-	eventName *string // nil if no warn even should be created
+type ExecutionError struct {
+	Err       error
+	Fatal     bool    // these errors should not be retried
+	EventName *string // nil if no warn even should be created
 }
 
-func (e *executionError) Error() string {
-	if e.fatal {
-		return fmt.Sprintf("Fatal error: %v", e.err)
+func (e ExecutionError) Error() string {
+	if e.Fatal {
+		return fmt.Sprintf("Fatal error: %v", e.Err)
 	}
-	return fmt.Sprintf("Error during execution: %v", e.err)
+	return fmt.Sprintf("Error during execution: %v", e.Err)
 }

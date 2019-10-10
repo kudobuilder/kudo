@@ -3,9 +3,9 @@ package task
 import (
 	"fmt"
 
+	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/engine"
 
-	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"golang.org/x/net/context"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,13 +25,13 @@ func (dt DeleteTask) Run(ctx Context) (bool, error) {
 	// 1. Render task templates
 	rendered, err := render(dt.Resources, ctx.Templates, ctx.Parameters, ctx.Meta)
 	if err != nil {
-		return false, fmt.Errorf("failed to render task resources: %s, %w", err.Error(), FatalTaskExecutionError)
+		return false, fmt.Errorf("%wfailed to render task resources: %v", FatalExecutionError, err)
 	}
 
 	// 2. Kustomize them with metadata
 	kustomized, err := kustomize(rendered, ctx.Meta, ctx.Enhancer)
 	if err != nil {
-		return false, fmt.Errorf("failed to kustomize task resources: %s, %w", err.Error(), FatalTaskExecutionError)
+		return false, fmt.Errorf("%wfailed to kustomize task resources: %v", FatalExecutionError, err)
 	}
 
 	// 3. Delete them using the client

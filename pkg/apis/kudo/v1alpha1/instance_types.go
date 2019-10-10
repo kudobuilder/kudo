@@ -50,7 +50,7 @@ type AggregatedStatus struct {
 
 // PlanStatus is representing status of a plan
 //
-// These are valid states and trainsitions
+// These are valid states and transitions
 //
 //                       +----------------+
 //                       | Never executed |

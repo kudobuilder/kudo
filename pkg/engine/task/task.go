@@ -4,10 +4,17 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	v1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 )
 
-// Tasker is an interface that represents any runnable task for an operator
+// Tasker is an interface that represents any runnable task for an operator. This method is treated
+// as idempotent and will be called multiple times during the life-cycle of the plan execution.
+// Method returns a boolean, signalizing that the task has finished successfully, and an error.
+// An error can wrap the FatalExecutionError for errors that can not be retried e.g. failed template
+// rendering. This will result in a v1alpha1.ExecutionFatalError in the plan execution status. A normal
+// error e.g. failure during accessing the API server will be treated  as "transient", meaning plan
+// execution engine  can retry it next time. Only a (true, nil) return value will be treated as successful
+// task execution.
 type Tasker interface {
 	Run(ctx Context) (bool, error)
 }
@@ -15,43 +22,43 @@ type Tasker interface {
 const (
 	ApplyTaskKind  = "Apply"
 	DeleteTaskKind = "Delete"
-	NilTaskKind    = "Nil"
+	DummyTaskKind  = "Dummy"
 )
 
 var (
-	ErrInvalidTaskKind = errors.New("invalid task kind")
+	FatalExecutionError = errors.New("")
 )
 
-// Builder factory method takes an v1alpha1.Task and returns a corresponding Tasker object
-func Builder(task v1alpha1.Task) (Tasker, error) {
+// Build factory method takes an v1alpha1.Task and returns a corresponding Tasker object
+func Build(task *v1alpha1.Task) (Tasker, error) {
 	switch task.Kind {
 	case ApplyTaskKind:
 		return newApply(task), nil
 	case DeleteTaskKind:
 		return newDelete(task), nil
-	case NilTaskKind:
-		return newNil(task), nil
+	case DummyTaskKind:
+		return newDummy(task), nil
 	default:
-		return nil, fmt.Errorf("unknown task kind %s: %w", task.Kind, ErrInvalidTaskKind)
+		return nil, fmt.Errorf("unknown task kind %s", task.Kind)
 	}
 }
 
-func newApply(task v1alpha1.Task) ApplyTask {
+func newApply(task *v1alpha1.Task) ApplyTask {
 	return ApplyTask{
 		Name:      task.Name,
 		Resources: task.Spec.ApplyTaskSpec.Resources,
 	}
 }
 
-func newDelete(task v1alpha1.Task) DeleteTask {
+func newDelete(task *v1alpha1.Task) DeleteTask {
 	return DeleteTask{
 		Name:      task.Name,
 		Resources: task.Spec.DeleteTaskSpec.Resources,
 	}
 }
 
-func newNil(task v1alpha1.Task) NilTask {
-	return NilTask{}
+func newDummy(task *v1alpha1.Task) DummyTask {
+	return DummyTask{Fail: task.Spec.DummyTaskSpec.Fail}
 }
 
 // An example of new TaskSpec
