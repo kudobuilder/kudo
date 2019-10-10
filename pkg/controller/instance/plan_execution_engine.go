@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -17,6 +18,7 @@ import (
 	errwrap "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apijson "k8s.io/apimachinery/pkg/util/json"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -128,6 +130,7 @@ func executePlan(plan *activePlan, metadata *engineMetadata, c client.Client, en
 	if allPhasesCompleted {
 		log.Printf("PlanExecution: All phases on plan %s and instance %s are healthy", plan.name, metadata.instanceName)
 		newState.Status = v1alpha1.ExecutionComplete
+		newState.LastFinishedRun = v1.Time{Time: time.Now()}
 	}
 
 	return newState, nil
