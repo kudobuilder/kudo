@@ -145,7 +145,7 @@ func (initCmd *initCmd) run() error {
 			if err != nil {
 				return err
 			}
-			mans = prereq
+			mans = append(mans, prereq...)
 
 			deploy, err := cmdInit.ManagerManifests(opts)
 			if err != nil {
