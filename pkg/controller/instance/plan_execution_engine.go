@@ -9,8 +9,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 
-	"errors"
-
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	kudoengine "github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/util/health"
@@ -61,18 +59,12 @@ func executePlan(plan *activePlan, metadata *engineMetadata, c client.Client, en
 		return plan.PlanStatus, nil
 	}
 
-	// we don't want to modify the original state, and State does not contain any pointer, so shallow copy is enough
-	newState := &(*plan.PlanStatus)
+	// we don't want to modify the original state -> need to do deepcopy
+	newState := plan.PlanStatus.DeepCopy()
 
 	// render kubernetes resources needed to execute this plan
-	planResources, err := prepareKubeResources(plan, metadata, enhancer)
+	planResources, err := prepareKubeResources(plan, newState, metadata, enhancer)
 	if err != nil {
-		var exErr *executionError
-		if errors.As(err, &exErr) {
-			newState.Status = v1alpha1.ExecutionFatalError
-		} else {
-			newState.Status = v1alpha1.ErrorStatus
-		}
 		return newState, err
 	}
 
@@ -231,7 +223,8 @@ func patchExistingObject(newResource runtime.Object, existingResource runtime.Ob
 
 // prepareKubeResources takes all resources in all tasks for a plan and renders them with the right parameters
 // it also takes care of applying KUDO specific conventions to the resources like commond labels
-func prepareKubeResources(plan *activePlan, meta *engineMetadata, renderer kubernetesObjectEnhancer) (*planResources, error) {
+// newState gets modified with possible state changes as a result of this method
+func prepareKubeResources(plan *activePlan, newState *v1alpha1.PlanStatus, meta *engineMetadata, renderer kubernetesObjectEnhancer) (*planResources, error) {
 	configs := make(map[string]interface{})
 	configs["OperatorName"] = meta.operatorName
 	configs["Name"] = meta.instanceName
@@ -243,7 +236,7 @@ func prepareKubeResources(plan *activePlan, meta *engineMetadata, renderer kuber
 	}
 
 	for _, phase := range plan.spec.Phases {
-		phaseState, _ := getPhaseFromStatus(phase.Name, plan.PlanStatus)
+		phaseState, _ := getPhaseFromStatus(phase.Name, newState)
 		perStepResources := make(map[string][]runtime.Object)
 		result.PhaseResources[phase.Name] = phaseResources{
 			StepResources: perStepResources,
@@ -265,6 +258,7 @@ func prepareKubeResources(plan *activePlan, meta *engineMetadata, renderer kuber
 						if resource, ok := plan.templates[res]; ok {
 							templatedYaml, err := engine.Render(resource, configs)
 							if err != nil {
+								newState.Status = v1alpha1.ExecutionFatalError
 								phaseState.Status = v1alpha1.ExecutionFatalError
 								stepState.Status = v1alpha1.ExecutionFatalError
 
@@ -274,6 +268,7 @@ func prepareKubeResources(plan *activePlan, meta *engineMetadata, renderer kuber
 							}
 							resourcesAsString[res] = templatedYaml
 						} else {
+							newState.Status = v1alpha1.ExecutionFatalError
 							phaseState.Status = v1alpha1.ExecutionFatalError
 							stepState.Status = v1alpha1.ExecutionFatalError
 
@@ -291,6 +286,7 @@ func prepareKubeResources(plan *activePlan, meta *engineMetadata, renderer kuber
 					})
 
 					if err != nil {
+						newState.Status = v1alpha1.ErrorStatus
 						phaseState.Status = v1alpha1.ErrorStatus
 						stepState.Status = v1alpha1.ErrorStatus
 
@@ -299,6 +295,7 @@ func prepareKubeResources(plan *activePlan, meta *engineMetadata, renderer kuber
 					}
 					resources = append(resources, resourcesWithConventions...)
 				} else {
+					newState.Status = v1alpha1.ErrorStatus
 					phaseState.Status = v1alpha1.ErrorStatus
 					stepState.Status = v1alpha1.ErrorStatus
 
