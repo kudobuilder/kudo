@@ -51,7 +51,8 @@ func NewRepositories() *Repositories {
 }
 
 // GetConfiguration returns a RepoName Config for a name or nil
-func (r Repositories) GetConfiguration(name string) *Configuration {
+func (r *Repositories) GetConfiguration(name string) *Configuration {
+	fmt.Printf("%v\n", r.Repositories)
 	for _, repo := range r.Repositories {
 		if repo.Name == name {
 			return repo
@@ -61,7 +62,7 @@ func (r Repositories) GetConfiguration(name string) *Configuration {
 }
 
 // CurrentConfiguration provides the repo config for the current context
-func (r Repositories) CurrentConfiguration() *Configuration {
+func (r *Repositories) CurrentConfiguration() *Configuration {
 	return r.GetConfiguration(r.Context)
 }
 
