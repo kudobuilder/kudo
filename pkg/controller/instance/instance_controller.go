@@ -22,6 +22,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -164,7 +165,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.name, instance.Namespace, instance.Name)
-	newStatus, err := executePlan(activePlan, metadata, r.Client, &engine.kustomizeEnhancer{r.Scheme})
+	newStatus, err := executePlan(activePlan, metadata, r.Client, &task.KustomizeEnhancer{r.Scheme})
 
 	// ---------- 4. Update status of instance after the execution proceeded ----------
 
@@ -207,7 +208,7 @@ func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.Oper
 			tasks:      ov.Spec.Tasks,
 			templates:  ov.Spec.Templates,
 			params:     params,
-		}, &EngineMetadata{
+		}, &task.EngineMetadata{
 			OperatorVersionName: ov.Name,
 			OperatorVersion:     ov.Spec.Version,
 			ResourcesOwner:      instance,

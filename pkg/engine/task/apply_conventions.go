@@ -32,14 +32,14 @@ type KubernetesObjectEnhancer interface {
 	ApplyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) ([]runtime.Object, error)
 }
 
-// kustomizeEnhancer is implementation of KubernetesObjectEnhancer that uses kustomize to apply the defined conventions
-type kustomizeEnhancer struct {
+// KustomizeEnhancer is implementation of KubernetesObjectEnhancer that uses kustomize to apply the defined conventions
+type KustomizeEnhancer struct {
 	scheme *runtime.Scheme
 }
 
 // ApplyConventions accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
-func (k *kustomizeEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) (objsToAdd []runtime.Object, err error) {
+func (k *KustomizeEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) (objsToAdd []runtime.Object, err error) {
 	fsys := fs.MakeFakeFS()
 
 	templateNames := make([]string, 0, len(templates))
