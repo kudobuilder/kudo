@@ -1,0 +1,42 @@
+name: Release Master Snapshot
+on:
+  push:
+    branches:
+      - master
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get current time
+        uses: gerred/current-time@v1.0.0
+      - name: Checkout Code
+        uses: actions/checkout@v1
+        id: current-time
+      - name: Login to Github Package Registry
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_GITHUB_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_GITHUB_KEY }}
+          DOCKER_REGISTRY_URL: "docker.pkg.github.com"
+        run: docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD} ${DOCKER_REGISTRY_URL}
+      - name: Build and tag with SHA
+        env:
+          REPOSITORY: ${{ secrets.REPOSITORY }}
+          BUILD_DATE: ${{ steps.current-time.outputs.time }}
+        run: |
+          docker build \
+             --build-arg git_version_arg=github.com/kudobuilder/kudo/pkg/version.gitVersion=v$GITHUB_SHA \
+            --build-arg git_commit_arg=github.com/kudobuilder/kudo/pkg/version.gitCommit=$GITHUB_SHA \
+            --build-arg build_date_arg=github.com/kudobuilder/kudo/pkg/version.buildDate=$BUILD_DATE . -t docker.pkg.github.com/$REPOSITORY:$GITHUB_SHA
+      - name: Tag with `master`
+        env:
+          REPOSITORY: ${{ secrets.REPOSITORY }}
+        run: |
+            docker tag docker.pkg.github.com/$REPOSITORY:$GITHUB_SHA docker.pkg.github.com/$REPOSITORY:master
+      - name: Push image with commit SHA
+        env:
+          REPOSITORY: ${{ secrets.REPOSITORY }}
+        run: docker push docker.pkg.github.com/$REPOSITORY:$GITHUB_SHA
+      - name: Push master tag
+        env:
+          REPOSITORY: ${{ secrets.REPOSITORY }}
+        run: docker push docker.pkg.github.com/$REPOSITORY:master
