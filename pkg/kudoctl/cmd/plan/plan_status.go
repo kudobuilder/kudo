@@ -101,7 +101,7 @@ func planStatus(options *Options, settings *env.Settings) error {
 	lastPlanStatus := instance.GetLastExecutedPlanStatus()
 
 	if lastPlanStatus == nil {
-		log.Printf("No plan ever run for instance - nothing to show %s\n", instance.Name)
+		log.Printf("No plan ever run for instance - nothing to show for instance %s\n", instance.Name)
 		return nil
 	}
 
