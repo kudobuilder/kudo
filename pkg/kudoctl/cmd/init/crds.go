@@ -93,7 +93,7 @@ func generateOperator() *apiextv1beta1.CustomResourceDefinition {
 		"description":       apiextv1beta1.JSONSchemaProps{Type: "string"},
 		"kubernetesVersion": apiextv1beta1.JSONSchemaProps{Type: "string"},
 		"kudoVersion":       apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"maintainers": apiextv1beta1.JSONSchemaProps{Type: "object",
+		"maintainers": apiextv1beta1.JSONSchemaProps{Type: "array",
 			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{
 				Type:       "object",
 				Properties: maintainers,
