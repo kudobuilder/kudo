@@ -196,7 +196,7 @@ func patchExistingObject(newResource runtime.Object, existingResource runtime.Ob
 	_, isUnstructured := newResource.(runtime.Unstructured)
 	_, isCRD := newResource.(*apiextv1beta1.CustomResourceDefinition)
 
-	if isUnstructured || isCRD || isKudoType(newResource) {
+	if isUnstructured || isCRD {
 		// strategic merge patch is not supported for these types, falling back to mergepatch
 		err := c.Patch(context.TODO(), newResource, client.ConstantPatch(types.MergePatchType, newResourceJSON))
 		if err != nil {
@@ -207,7 +207,15 @@ func patchExistingObject(newResource runtime.Object, existingResource runtime.Ob
 		err := c.Patch(context.TODO(), existingResource, client.ConstantPatch(types.StrategicMergePatchType, newResourceJSON))
 		if err != nil {
 			log.Printf("PlanExecution: Error when applying StrategicMergePatch to object %v: %w", key, err)
-			return err
+			if apierrors.IsUnsupportedMediaType(err) {
+				err = c.Patch(context.TODO(), newResource, client.ConstantPatch(types.MergePatchType, newResourceJSON))
+				if err != nil {
+					log.Printf("PlanExecution: Error when applying merge patch to object %v: %v", key, err)
+					return err
+				}
+			} else {
+				return err
+			}
 		}
 	}
 	return nil
