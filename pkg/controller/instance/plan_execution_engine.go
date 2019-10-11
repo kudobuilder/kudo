@@ -13,6 +13,7 @@ import (
 	kudoengine "github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/util/health"
 	errwrap "github.com/pkg/errors"
+	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -192,33 +193,31 @@ func prettyPrint(i interface{}) string {
 func patchExistingObject(newResource runtime.Object, existingResource runtime.Object, c client.Client) error {
 	newResourceJSON, _ := apijson.Marshal(newResource)
 	key, _ := client.ObjectKeyFromObject(newResource)
-	err := c.Patch(context.TODO(), existingResource, client.ConstantPatch(types.StrategicMergePatchType, newResourceJSON))
-	if err != nil {
-		// Right now applying a Strategic Merge Patch to custom resources does not work. There is
-		// certain metadata needed, which when missing, leads to an invalid Content-Type Header and
-		// causes the request to fail.
-		// ( see https://github.com/kubernetes-sigs/kustomize/issues/742#issuecomment-458650435 )
-		//
-		// We temporarily solve this by checking for the specific error when a SMP is applied to
-		// custom resources and handle it by defaulting to a Merge Patch.
-		//
-		// The error message for which we check is:
-		// 		the body of the request was in an unknown format - accepted media types include:
-		//			application/json-patch+json, application/merge-patch+json
-		//
-		// 		Reason: "UnsupportedMediaType" Code: 415
-		if apierrors.IsUnsupportedMediaType(err) {
-			err = c.Patch(context.TODO(), newResource, client.ConstantPatch(types.MergePatchType, newResourceJSON))
-			if err != nil {
-				log.Printf("PlanExecution: Error when applying merge patch to object %v: %v", key, err)
-				return err
-			}
-		} else {
-			log.Printf("PlanExecution: Error when applying StrategicMergePatch to object %v: %v", key, err)
+	_, isUnstructured := newResource.(runtime.Unstructured)
+	_, isCRD := newResource.(*apiextv1beta1.CustomResourceDefinition)
+
+	if isUnstructured || isCRD || isKudoType(newResource) {
+		// strategic merge patch is not supported for these types, falling back to mergepatch
+		err := c.Patch(context.TODO(), newResource, client.ConstantPatch(types.MergePatchType, newResourceJSON))
+		if err != nil {
+			log.Printf("PlanExecution: Error when applying merge patch to object %v: %v", key, err)
+			return err
+		}
+	} else {
+		err := c.Patch(context.TODO(), existingResource, client.ConstantPatch(types.StrategicMergePatchType, newResourceJSON))
+		if err != nil {
+			log.Printf("PlanExecution: Error when applying StrategicMergePatch to object %v: %w", key, err)
 			return err
 		}
 	}
 	return nil
+}
+
+func isKudoType(object runtime.Object) bool {
+	_, isOperator := object.(*v1alpha1.OperatorVersion)
+	_, isOperatorVersion := object.(*v1alpha1.Operator)
+	_, isInstance := object.(*v1alpha1.Instance)
+	return isOperator || isOperatorVersion || isInstance
 }
 
 // prepareKubeResources takes all resources in all tasks for a plan and renders them with the right parameters
