@@ -221,13 +221,6 @@ func patchExistingObject(newResource runtime.Object, existingResource runtime.Ob
 	return nil
 }
 
-func isKudoType(object runtime.Object) bool {
-	_, isOperator := object.(*v1alpha1.OperatorVersion)
-	_, isOperatorVersion := object.(*v1alpha1.Operator)
-	_, isInstance := object.(*v1alpha1.Instance)
-	return isOperator || isOperatorVersion || isInstance
-}
-
 // prepareKubeResources takes all resources in all tasks for a plan and renders them with the right parameters
 // it also takes care of applying KUDO specific conventions to the resources like commond labels
 // newState gets modified with possible state changes as a result of this method
