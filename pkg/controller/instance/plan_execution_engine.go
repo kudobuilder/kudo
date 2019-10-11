@@ -55,7 +55,7 @@ type engineMetadata struct {
 // result of running this function is new state of the execution that is returned to the caller (it can either be completed, or still in progress or errored)
 // in case of error, error is returned along with the state as well (so that it's possible to report which step caused the error)
 // in case of error, method returns ErrorStatus which has property to indicate unrecoverable error meaning if there is no point in retrying that execution
-func executePlan(plan *activePlan, metadata *engineMetadata, c client.Client, enhancer kubernetesObjectEnhancer) (*v1alpha1.PlanStatus, error) {
+func executePlan(plan *activePlan, metadata *engineMetadata, c client.Client, enhancer kubernetesObjectEnhancer, currentTime time.Time) (*v1alpha1.PlanStatus, error) {
 	if plan.Status.IsTerminal() {
 		log.Printf("PlanExecution: Plan %s for instance %s is terminal, nothing to do", plan.name, metadata.instanceName)
 		return plan.PlanStatus, nil
@@ -122,7 +122,7 @@ func executePlan(plan *activePlan, metadata *engineMetadata, c client.Client, en
 	if allPhasesCompleted {
 		log.Printf("PlanExecution: All phases on plan %s and instance %s are healthy", plan.name, metadata.instanceName)
 		newState.Status = v1alpha1.ExecutionComplete
-		newState.LastFinishedRun = v1.Time{Time: time.Now()}
+		newState.LastFinishedRun = v1.Time{Time: currentTime}
 	}
 
 	return newState, nil
