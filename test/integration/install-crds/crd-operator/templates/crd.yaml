@@ -1,0 +1,64 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    app: kudo-manager
+    controller-tools.k8s.io: "1.0"
+  name: instances.kudo.dev
+spec:
+  group: kudo.dev
+  names:
+    kind: Instance
+    plural: instances
+    singular: instance
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        meta:
+          type: object
+        spec:
+          properties:
+            OperatorVersion:
+              description: Operator specifies a reference to a specific Operator object
+              type: object
+            dependencies:
+              description: Dependency references specific
+              items:
+                properties:
+                  crdVersion:
+                    description: 'Version captures the requirements for what versions
+                      of the above object are allowed Example: ^3.1.4'
+                    type: string
+                  referenceName:
+                    description: Name specifies the name of the dependency.  Referenced
+                      via this in defaults.config
+                    type: string
+                required:
+                  - referenceName
+                  - crdVersion
+                type: object
+              type: array
+            parameters:
+              type: object
+          type: object
+        status:
+          properties:
+            aggregatedStatus:
+              type: object
+            planStatus:
+              type: object
+          type: object
+      type: object
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
