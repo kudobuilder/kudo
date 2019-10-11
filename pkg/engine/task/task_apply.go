@@ -83,7 +83,6 @@ func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
 	return applied, nil
 }
 
-// TODO(ad): find a better place for this method
 // patch calls update method on kubernetes client to make sure the current resource reflects what is on server
 //
 // an obvious optimization here would be to not patch when objects are the same, however that is not easy
