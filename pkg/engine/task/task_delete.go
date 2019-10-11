@@ -3,7 +3,6 @@ package task
 import (
 	"fmt"
 
-	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/engine"
 
 	"golang.org/x/net/context"
@@ -46,7 +45,7 @@ func (dt DeleteTask) Run(ctx Context) (bool, error) {
 
 // TODO(ad) find a better place for this method
 // render method takes resource names and Instance parameters and then renders passed templates using kudo engine.
-func render(resourceNames []string, templates map[string]string, params map[string]string, meta instance.ExecutionMetadata) (map[string]string, error) {
+func render(resourceNames []string, templates map[string]string, params map[string]string, meta ExecutionMetadata) (map[string]string, error) {
 	configs := make(map[string]interface{})
 	configs["OperatorName"] = meta.OperatorName
 	configs["Name"] = meta.InstanceName
@@ -79,7 +78,7 @@ func render(resourceNames []string, templates map[string]string, params map[stri
 // TODO (ad) find a better place for this method
 // kustomize method takes a slice of rendered templates, applies conventions using KubernetesObjectEnhancer and
 // returns a slice of k8s objects.
-func kustomize(rendered map[string]string, meta instance.ExecutionMetadata, enhancer instance.KubernetesObjectEnhancer) ([]runtime.Object, error) {
+func kustomize(rendered map[string]string, meta ExecutionMetadata, enhancer KubernetesObjectEnhancer) ([]runtime.Object, error) {
 	enhanced, err := enhancer.ApplyConventionsToTemplates(rendered, meta)
 	return enhanced, err
 }

@@ -1,4 +1,4 @@
-package instance
+package task
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/kustomize/k8sdeps/transformer"
 	"sigs.k8s.io/kustomize/pkg/fs"
 	"sigs.k8s.io/kustomize/pkg/loader"
-	"sigs.k8s.io/kustomize/pkg/patch"
+	apipatch "sigs.k8s.io/kustomize/pkg/patch"
 	"sigs.k8s.io/kustomize/pkg/resmap"
 	"sigs.k8s.io/kustomize/pkg/resource"
 	"sigs.k8s.io/kustomize/pkg/target"
@@ -24,16 +24,6 @@ import (
 )
 
 const basePath = "/kustomize"
-
-// ExecutionMetadata contains ExecutionMetadata associated with current plan being executed
-type ExecutionMetadata struct {
-	EngineMetadata
-
-	PlanName  string
-	PhaseName string
-	StepName  string
-	TaskName  string
-}
 
 // KubernetesObjectEnhancer takes your kubernetes template and kudo related Metadata and applies them to all resources in form of labels
 // and annotations
@@ -80,7 +70,7 @@ func (k *kustomizeEnhancer) ApplyConventionsToTemplates(templates map[string]str
 			DisableNameSuffixHash: true,
 		},
 		Resources:             templateNames,
-		PatchesStrategicMerge: []patch.StrategicMerge{},
+		PatchesStrategicMerge: []apipatch.StrategicMerge{},
 	}
 
 	yamlBytes, err := yaml.Marshal(kustomization)

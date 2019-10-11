@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/util/template"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -34,13 +33,13 @@ func TestApplyTask_Run(t *testing.T) {
 	ctx := Context{
 		Client:     fake.NewFakeClientWithScheme(scheme.Scheme),
 		Enhancer:   &testKubernetesObjectEnhancer{},
-		Meta:       instance.ExecutionMetadata{},
+		Meta:       ExecutionMetadata{},
 		Templates:  nil,
 		Parameters: nil,
 	}
 	for _, tt := range tests {
 		got, err := tt.task.Run(ctx)
-		assert.True(t, tt.want == got, fmt.Printf("%s was not want = %t, wantErr = %v", tt.name, got, err))
+		assert.True(t, tt.want == got, fmt.Sprintf("%s failed: want = %t, wantErr = %v", tt.name, got, err))
 		if tt.wantErr {
 			assert.Error(t, err)
 		}
@@ -49,7 +48,7 @@ func TestApplyTask_Run(t *testing.T) {
 
 type testKubernetesObjectEnhancer struct{}
 
-func (k *testKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata instance.ExecutionMetadata) ([]runtime.Object, error) {
+func (k *testKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) ([]runtime.Object, error) {
 	result := make([]runtime.Object, len(templates))
 	for _, t := range templates {
 		objsToAdd, err := template.ParseKubernetesObjects(t)

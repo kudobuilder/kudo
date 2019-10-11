@@ -16,18 +16,18 @@ func TestDummyTask_Run(t *testing.T) {
 		{
 			name: "dummy failure",
 			task: DummyTask{Fail: true},
-			want: true,
+			want: false,
 		},
 		{
 			name: "dummy success",
 			task: DummyTask{Fail: false},
-			want: false,
+			want: true,
 		},
 	}
 	ctx := Context{}
 
 	for _, tt := range tests {
 		got, _ := tt.task.Run(ctx)
-		assert.True(t, got == tt.want, fmt.Errorf("%s test failed, wanted %t but was %t"), tt.name, tt.want, got)
+		assert.True(t, got == tt.want, fmt.Sprintf("%s test failed, wanted %t but was %t", tt.name, tt.want, got))
 	}
 }

@@ -1,53 +1,33 @@
 package task
 
 import (
+	"reflect"
 	"testing"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 )
 
-func TestTask_Run(t1 *testing.T) {
-	type fields struct {
-		Name string
-		Kind string
-		Spec TaskSpec
+func TestBuild(t *testing.T) {
+	type args struct {
+		task *v1alpha1.Task
 	}
 	tests := []struct {
 		name    string
-		fields  fields
+		args    args
+		want    Tasker
 		wantErr bool
 	}{
-		{
-			name: "Run Apply Task",
-			fields: fields{
-				Name: "Install",
-				Kind: "Apply",
-				Spec: TaskSpec{
-					ApplyTask: ApplyTask{
-						Resources: []string{},
-					},
-				},
-			},
-		},
-		{
-			name: "Run Nil Task",
-			fields: fields{
-				Name: "Do Nothing",
-				Kind: "Nil",
-				Spec: TaskSpec{
-					DummyTask: DummyTask{},
-				},
-			},
-		},
+		// TODO: Add test cases.
 	}
-	ctx := Context{}
 	for _, tt := range tests {
-		t1.Run(tt.name, func(t1 *testing.T) {
-			t := &Task{
-				Name: tt.fields.Name,
-				Kind: tt.fields.Kind,
-				Spec: tt.fields.Spec,
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := Build(tt.args.task)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Build() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
-			if err := t.Run(ctx); (err != nil) != tt.wantErr {
-				t1.Errorf("Run() error = %v, wantErr %v", err, tt.wantErr)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Build() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

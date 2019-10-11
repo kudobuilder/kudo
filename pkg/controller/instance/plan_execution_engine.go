@@ -55,19 +55,8 @@ type phaseResources struct {
 	StepResources map[string][]runtime.Object
 }
 
-type EngineMetadata struct {
-	InstanceName        string
-	InstanceNamespace   string
-	OperatorName        string
-	OperatorVersionName string
-	OperatorVersion     string
-
-	// the object that will own all the resources created by this execution
-	ResourcesOwner metav1.Object
-}
-
 // === New plan execution entry point ===
-func executePlan2(pl *activePlan, em *EngineMetadata, c client.Client, enh KubernetesObjectEnhancer) (*v1alpha1.PlanStatus, error) {
+func executePlan2(pl *activePlan, em *engtask.EngineMetadata, c client.Client, enh engtask.KubernetesObjectEnhancer) (*v1alpha1.PlanStatus, error) {
 	if pl.Status.IsTerminal() {
 		log.Printf("PlanExecution: Plan %s for instance %s is terminal, nothing to do", pl.name, em.InstanceName)
 		return pl.PlanStatus, nil
@@ -122,7 +111,7 @@ func executePlan2(pl *activePlan, em *EngineMetadata, c client.Client, enh Kuber
 					}
 				}
 				// - 3.a build execution metadata -
-				exm := ExecutionMetadata{
+				exm := engtask.ExecutionMetadata{
 					EngineMetadata: *em,
 					PlanName:       pl.name,
 					PhaseName:      ph.Name,
@@ -229,7 +218,7 @@ func executePlan2(pl *activePlan, em *EngineMetadata, c client.Client, enh Kuber
 // result of running this function is new state of the execution that is returned to the caller (it can either be completed, or still in progress or errored)
 // in case of error, error is returned along with the state as well (so that it's possible to report which step caused the error)
 // in case of error, method returns ErrorStatus which has property to indicate unrecoverable error meaning if there is no point in retrying that execution
-func executePlan(plan *activePlan, metadata *EngineMetadata, c client.Client, enhancer KubernetesObjectEnhancer) (*v1alpha1.PlanStatus, error) {
+func executePlan(plan *activePlan, metadata *engtask.EngineMetadata, c client.Client, enhancer engtask.KubernetesObjectEnhancer) (*v1alpha1.PlanStatus, error) {
 	if plan.Status.IsTerminal() {
 		log.Printf("PlanExecution: Plan %s for instance %s is terminal, nothing to do", plan.name, metadata.InstanceName)
 		return plan.PlanStatus, nil
@@ -405,7 +394,7 @@ func patchExistingObject(newResource runtime.Object, existingResource runtime.Ob
 
 // prepareKubeResources takes all resources in all tasks for a plan and renders them with the right parameters
 // it also takes care of applying KUDO specific conventions to the resources like common labels
-func prepareKubeResources(plan *activePlan, meta *EngineMetadata, renderer KubernetesObjectEnhancer) (*planResources, error) {
+func prepareKubeResources(plan *activePlan, meta *engtask.EngineMetadata, renderer engtask.KubernetesObjectEnhancer) (*planResources, error) {
 	configs := make(map[string]interface{})
 	configs["OperatorName"] = meta.OperatorName
 	configs["Name"] = meta.InstanceName
@@ -457,7 +446,7 @@ func prepareKubeResources(plan *activePlan, meta *EngineMetadata, renderer Kuber
 						}
 					}
 
-					resourcesWithConventions, err := renderer.ApplyConventionsToTemplates(resourcesAsString, ExecutionMetadata{
+					resourcesWithConventions, err := renderer.ApplyConventionsToTemplates(resourcesAsString, engtask.ExecutionMetadata{
 						EngineMetadata: *meta,
 						PlanName:       plan.name,
 						PhaseName:      phase.Name,

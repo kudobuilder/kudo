@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	v1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 )
 
 // Tasker is an interface that represents any runnable task for an operator. This method is treated
