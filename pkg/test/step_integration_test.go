@@ -6,8 +6,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"testing"
+	"time"
 
 	petname "github.com/dustinkirkland/golang-petname"
 
@@ -38,6 +40,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestCheckResourceIntegration(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
+
 	for _, test := range []struct {
 		testName    string
 		actual      []runtime.Object
@@ -47,7 +51,7 @@ func TestCheckResourceIntegration(t *testing.T) {
 		{
 			testName: "match object by labels, first in list matches",
 			actual: []runtime.Object{
-				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("aa", ""), map[string]string{
+				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("labels-match-pod", ""), map[string]string{
 					"app": "nginx",
 				}), map[string]interface{}{
 					"containers": []interface{}{
@@ -91,7 +95,7 @@ func TestCheckResourceIntegration(t *testing.T) {
 		{
 			testName: "match object by labels, last in list matches",
 			actual: []runtime.Object{
-				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("aa", ""), map[string]string{
+				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("last-in-list", ""), map[string]string{
 					"app": "not-match",
 				}), map[string]interface{}{
 					"containers": []interface{}{

@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/util/health"
+	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -93,31 +95,29 @@ func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
 func patch(newObj runtime.Object, existingObj runtime.Object, c client.Client) error {
 	newObjJSON, _ := apijson.Marshal(newObj)
 	key, _ := client.ObjectKeyFromObject(newObj)
-	err := c.Patch(context.TODO(), existingObj, client.ConstantPatch(types.StrategicMergePatchType, newObjJSON))
-	if err != nil {
-		// Right now applying a Strategic Merge Patch to custom resources does not work. There is
-		// certain Metadata needed, which when missing, leads to an invalid Content-Type Header and
-		// causes the request to fail.
-		// ( see https://github.com/kubernetes-sigs/kustomize/issues/742#issuecomment-458650435 )
-		//
-		// We temporarily solve this by checking for the specific error when a SMP is applied to
-		// custom resources and handle it by defaulting to a Merge Patch.
-		//
-		// The error message for which we check is:
-		// 		the body of the request was in an unknown format - accepted media types include:
-		//			application/json-patch+json, application/merge-patch+json
-		//
-		// 		Reason: "UnsupportedMediaType" Code: 415
-		if apierrors.IsUnsupportedMediaType(err) {
-			err = c.Patch(context.TODO(), newObj, client.ConstantPatch(types.MergePatchType, newObjJSON))
-			if err != nil {
-				return fmt.Errorf("failed to merge patch task object %s: %w", prettyPrint(key), err)
-			}
-		} else {
-			return fmt.Errorf("failed to apply StrategicMergePatch to  task object %s: %w", prettyPrint(key), err)
+	_, isUnstructured := newObj.(runtime.Unstructured)
+	_, isCRD := newObj.(*apiextv1beta1.CustomResourceDefinition)
+
+	if isUnstructured || isCRD || isKudoType(newObj) {
+		// strategic merge patch is not supported for these types, falling back to merge patch
+		err := c.Patch(context.TODO(), newObj, client.ConstantPatch(types.MergePatchType, newObjJSON))
+		if err != nil {
+			return fmt.Errorf("failed to apply merge patch to object %s: %w", prettyPrint(key), err)
+		}
+	} else {
+		err := c.Patch(context.TODO(), existingObj, client.ConstantPatch(types.StrategicMergePatchType, newObjJSON))
+		if err != nil {
+			return fmt.Errorf("failed to apply StrategicMergePatch to object %s: %w", prettyPrint(key), err)
 		}
 	}
 	return nil
+}
+
+func isKudoType(object runtime.Object) bool {
+	_, isOperator := object.(*v1alpha1.OperatorVersion)
+	_, isOperatorVersion := object.(*v1alpha1.Operator)
+	_, isInstance := object.(*v1alpha1.Instance)
+	return isOperator || isOperatorVersion || isInstance
 }
 
 func isHealthy(ro []runtime.Object, c client.Client) error {
@@ -125,8 +125,7 @@ func isHealthy(ro []runtime.Object, c client.Client) error {
 		err := health.IsHealthy(c, r)
 		if err != nil {
 			key, _ := client.ObjectKeyFromObject(r)
-			fmt.Errorf("object %s is NOT healthy: %w", prettyPrint(key), err)
-			return err
+			return fmt.Errorf("object %s is NOT healthy: %w", prettyPrint(key), err)
 		}
 	}
 	return nil

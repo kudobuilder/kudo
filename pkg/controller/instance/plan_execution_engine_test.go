@@ -21,7 +21,7 @@ import (
 
 func TestExecutePlan(t *testing.T) {
 	instance := instance()
-	defaultMetadata := &engtask.EngineMetadata{
+	meta := &engtask.EngineMetadata{
 		InstanceName:        instance.Name,
 		InstanceNamespace:   instance.Namespace,
 		OperatorName:        "first-operator",
@@ -29,24 +29,28 @@ func TestExecutePlan(t *testing.T) {
 		OperatorVersion:     "1.0",
 		ResourcesOwner:      instance,
 	}
+	enhancer := &testKubernetesObjectEnhancer{}
+	errEnhancer := &errKubernetesObjectEnhancer{}
+
 	tests := []struct {
 		name           string
 		activePlan     *activePlan
 		metadata       *task.EngineMetadata
 		expectedStatus *v1alpha1.PlanStatus
 		wantErr        bool
+		kustomizer     task.KubernetesObjectEnhancer
 	}{
-		{"plan already finished will not change its status", &activePlan{
+		{name: "plan already finished will not change its status", activePlan: &activePlan{
 			name: "test",
 			PlanStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionComplete,
 			},
 		},
-			defaultMetadata,
-			&v1alpha1.PlanStatus{Status: v1alpha1.ExecutionComplete},
-			false,
+			metadata:       meta,
+			expectedStatus: &v1alpha1.PlanStatus{Status: v1alpha1.ExecutionComplete},
+			kustomizer:     enhancer,
 		},
-		{"plan with one step to be executed, still in progress", &activePlan{
+		{name: "plan with one step to be executed, still in progress", activePlan: &activePlan{
 			name: "test",
 			PlanStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionPending,
@@ -70,14 +74,14 @@ func TestExecutePlan(t *testing.T) {
 			},
 			templates: map[string]string{"job": getResourceAsString(job("job1", "default"))},
 		},
-			defaultMetadata,
-			&v1alpha1.PlanStatus{
+			metadata: meta,
+			expectedStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionInProgress,
 				Name:   "test",
 				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionInProgress, Name: "step"}}}}},
-			false},
+			kustomizer: enhancer},
 		// this plan deploys pod, that is marked as healthy immediately because we cannot evaluate health
-		{"plan with one step, immediately healthy -> completed", &activePlan{
+		{name: "plan with one step, immediately healthy -> completed", activePlan: &activePlan{
 			name: "test",
 			PlanStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionPending,
@@ -101,15 +105,15 @@ func TestExecutePlan(t *testing.T) {
 			},
 			templates: map[string]string{"pod": getResourceAsString(pod("pod1", "default"))},
 		},
-			defaultMetadata,
-			&v1alpha1.PlanStatus{
+			metadata: meta,
+			expectedStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionComplete,
 				Name:   "test",
 				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
 			},
-			false,
+			kustomizer: enhancer,
 		},
-		{"plan in errored state will be retried and completed when no error happens", &activePlan{
+		{name: "plan in errored state will be retried and completed when no error happens", activePlan: &activePlan{
 			name: "test",
 			PlanStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ErrorStatus,
@@ -133,16 +137,16 @@ func TestExecutePlan(t *testing.T) {
 			},
 			templates: map[string]string{"pod": getResourceAsString(pod("pod1", "default"))},
 		},
-			defaultMetadata,
-			&v1alpha1.PlanStatus{
+			metadata: meta,
+			expectedStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionComplete,
 				Name:   "test",
 				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
 			},
-			false,
+			kustomizer: enhancer,
 		},
 		// --- Proper error and fatal error status propagation ---
-		{"plan in progress, will have step error status, when a task fails", &activePlan{
+		{name: "plan in progress, will have step error status, when a task fails", activePlan: &activePlan{
 			name: "test",
 			PlanStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionInProgress,
@@ -166,15 +170,15 @@ func TestExecutePlan(t *testing.T) {
 			},
 			templates: map[string]string{},
 		},
-			defaultMetadata,
-			&v1alpha1.PlanStatus{
+			metadata: meta,
+			expectedStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionInProgress,
 				Name:   "test",
 				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ErrorStatus, Name: "step"}}}},
 			},
-			false,
+			kustomizer: enhancer,
 		},
-		{"plan in progress, will have plan/phase/step fatal error status, when a task fails with a fatal error", &activePlan{
+		{name: "plan in progress, will have plan/phase/step fatal error status, when a task fails with a fatal error", activePlan: &activePlan{
 			name: "test",
 			PlanStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionInProgress,
@@ -198,15 +202,16 @@ func TestExecutePlan(t *testing.T) {
 			},
 			templates: map[string]string{},
 		},
-			defaultMetadata,
-			&v1alpha1.PlanStatus{
+			metadata: meta,
+			expectedStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionFatalError,
 				Name:   "test",
 				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionFatalError, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionFatalError, Name: "step"}}}},
 			},
-			true,
+			wantErr:    true,
+			kustomizer: enhancer,
 		},
-		{"plan in progress with a misconfigured task will fail with a fatal error", &activePlan{
+		{name: "plan in progress with a misconfigured task will fail with a fatal error", activePlan: &activePlan{
 			name: "test",
 			PlanStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionInProgress,
@@ -230,15 +235,16 @@ func TestExecutePlan(t *testing.T) {
 			},
 			templates: map[string]string{},
 		},
-			defaultMetadata,
-			&v1alpha1.PlanStatus{
+			metadata: meta,
+			expectedStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionFatalError,
 				Name:   "test",
 				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionFatalError, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionFatalError, Name: "step"}}}},
 			},
-			true,
+			wantErr:    true,
+			kustomizer: enhancer,
 		},
-		{"plan in progress with an unknown task spec will fail with a fatal error", &activePlan{
+		{name: "plan in progress with an unknown task spec will fail with a fatal error", activePlan: &activePlan{
 			name: "test",
 			PlanStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionInProgress,
@@ -260,16 +266,17 @@ func TestExecutePlan(t *testing.T) {
 			},
 			templates: map[string]string{},
 		},
-			defaultMetadata,
-			&v1alpha1.PlanStatus{
+			metadata: meta,
+			expectedStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionFatalError,
 				Name:   "test",
 				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionFatalError, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionFatalError, Name: "step"}}}},
 			},
-			true,
+			wantErr:    true,
+			kustomizer: enhancer,
 		},
 		// --- Respect the Steps execution strategy ---
-		{"plan in progress with multiple serial steps, will respect serial step strategy and stop after first step fails", &activePlan{
+		{name: "plan in progress with multiple serial steps, will respect serial step strategy and stop after first step fails", activePlan: &activePlan{
 			name: "test",
 			PlanStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionInProgress,
@@ -306,8 +313,8 @@ func TestExecutePlan(t *testing.T) {
 			},
 			templates: map[string]string{},
 		},
-			defaultMetadata,
-			&v1alpha1.PlanStatus{
+			metadata: meta,
+			expectedStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionInProgress,
 				Name:   "test",
 				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{
@@ -315,9 +322,9 @@ func TestExecutePlan(t *testing.T) {
 					{Name: "stepTwo", Status: v1alpha1.ExecutionInProgress},
 				}}},
 			},
-			false,
+			kustomizer: enhancer,
 		},
-		{"plan in progress with multiple parallel steps, will respect parallel step strategy and continue when first step fails", &activePlan{
+		{name: "plan in progress with multiple parallel steps, will respect parallel step strategy and continue when first step fails", activePlan: &activePlan{
 			name: "test",
 			PlanStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionInProgress,
@@ -354,8 +361,8 @@ func TestExecutePlan(t *testing.T) {
 			},
 			templates: map[string]string{},
 		},
-			defaultMetadata,
-			&v1alpha1.PlanStatus{
+			metadata: meta,
+			expectedStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionInProgress,
 				Name:   "test",
 				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{
@@ -363,9 +370,9 @@ func TestExecutePlan(t *testing.T) {
 					{Name: "stepTwo", Status: v1alpha1.ExecutionComplete},
 				}}},
 			},
-			false,
+			kustomizer: enhancer,
 		},
-		{"plan in progress with multiple parallel steps, will stop the execution on the first fatal step error", &activePlan{
+		{name: "plan in progress with multiple parallel steps, will stop the execution on the first fatal step error", activePlan: &activePlan{
 			name: "test",
 			PlanStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionInProgress,
@@ -402,8 +409,8 @@ func TestExecutePlan(t *testing.T) {
 			},
 			templates: map[string]string{},
 		},
-			defaultMetadata,
-			&v1alpha1.PlanStatus{
+			metadata: meta,
+			expectedStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionFatalError,
 				Name:   "test",
 				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionFatalError, Steps: []v1alpha1.StepStatus{
@@ -411,10 +418,11 @@ func TestExecutePlan(t *testing.T) {
 					{Name: "stepTwo", Status: v1alpha1.ExecutionInProgress},
 				}}},
 			},
-			true,
+			wantErr:    true,
+			kustomizer: enhancer,
 		},
 		// --- Respect the Phases execution strategy ---
-		{"plan in progress with multiple serial phases, will respect serial phase strategy and stop after first phase fails", &activePlan{
+		{name: "plan in progress with multiple serial phases, will respect serial phase strategy and stop after first phase fails", activePlan: &activePlan{
 			name: "test",
 			PlanStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionInProgress,
@@ -449,8 +457,8 @@ func TestExecutePlan(t *testing.T) {
 			},
 			templates: map[string]string{},
 		},
-			defaultMetadata,
-			&v1alpha1.PlanStatus{
+			metadata: meta,
+			expectedStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionInProgress,
 				Name:   "test",
 				Phases: []v1alpha1.PhaseStatus{
@@ -458,9 +466,9 @@ func TestExecutePlan(t *testing.T) {
 					{Name: "phaseTwo", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionInProgress}}},
 				},
 			},
-			false,
+			kustomizer: enhancer,
 		},
-		{"plan in progress with multiple parallel phases, will respect parallel phase strategy and continue after first phase fails", &activePlan{
+		{name: "plan in progress with multiple parallel phases, will respect parallel phase strategy and continue after first phase fails", activePlan: &activePlan{
 			name: "test",
 			PlanStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionInProgress,
@@ -495,8 +503,8 @@ func TestExecutePlan(t *testing.T) {
 			},
 			templates: map[string]string{},
 		},
-			defaultMetadata,
-			&v1alpha1.PlanStatus{
+			metadata: meta,
+			expectedStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionInProgress,
 				Name:   "test",
 				Phases: []v1alpha1.PhaseStatus{
@@ -504,9 +512,9 @@ func TestExecutePlan(t *testing.T) {
 					{Name: "phaseTwo", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionComplete}}},
 				},
 			},
-			false,
+			kustomizer: enhancer,
 		},
-		{"plan in progress with multiple parallel phases, will stop the execution on the first fatal step error", &activePlan{
+		{name: "plan in progress with multiple parallel phases, will stop the execution on the first fatal step error", activePlan: &activePlan{
 			name: "test",
 			PlanStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionInProgress,
@@ -541,8 +549,8 @@ func TestExecutePlan(t *testing.T) {
 			},
 			templates: map[string]string{},
 		},
-			defaultMetadata,
-			&v1alpha1.PlanStatus{
+			metadata: meta,
+			expectedStatus: &v1alpha1.PlanStatus{
 				Status: v1alpha1.ExecutionFatalError,
 				Name:   "test",
 				Phases: []v1alpha1.PhaseStatus{
@@ -550,13 +558,48 @@ func TestExecutePlan(t *testing.T) {
 					{Name: "phaseTwo", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionInProgress}}},
 				},
 			},
-			true,
+			wantErr:    true,
+			kustomizer: enhancer,
+		},
+		{
+			name: "plan with an enhancer that fails to kustomize the resources will result in a fatal failure",
+			activePlan: &activePlan{
+				name: "test",
+				PlanStatus: &v1alpha1.PlanStatus{
+					Status: v1alpha1.ExecutionPending,
+					Name:   "test",
+					Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionPending, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionPending}}}},
+				},
+				spec: &v1alpha1.Plan{
+					Strategy: "serial",
+					Phases: []v1alpha1.Phase{
+						{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
+					},
+				},
+				tasks: []v1alpha1.Task{
+					{
+						Name: "task",
+						Kind: "Apply",
+						Spec: v1alpha1.TaskSpec{
+							ApplyTaskSpec: v1alpha1.ApplyTaskSpec{Resources: []string{"job"}},
+						},
+					},
+				},
+				templates: map[string]string{"job": getResourceAsString(job("job1", "default"))},
+			},
+			metadata: meta,
+			expectedStatus: &v1alpha1.PlanStatus{
+				Status: v1alpha1.ExecutionFatalError,
+				Name:   "test",
+				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionFatalError, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionFatalError, Name: "step"}}}}},
+			wantErr:    true,
+			kustomizer: errEnhancer,
 		},
 	}
 
 	for _, tt := range tests {
 		testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
-		newStatus, err := executePlan(tt.activePlan, tt.metadata, testClient, &testKubernetesObjectEnhancer{})
+		newStatus, err := executePlan(tt.activePlan, tt.metadata, testClient, tt.kustomizer)
 
 		if !tt.wantErr && err != nil {
 			t.Errorf("%s: Expecting no error but got one: %v", tt.name, err)
@@ -637,4 +680,10 @@ func (k *testKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map
 		result = append(result, objsToAdd[0])
 	}
 	return result, nil
+}
+
+type errKubernetesObjectEnhancer struct{}
+
+func (k *errKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata task.ExecutionMetadata) ([]runtime.Object, error) {
+	return nil, errors.New("always error")
 }

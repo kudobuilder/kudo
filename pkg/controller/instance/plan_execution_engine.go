@@ -161,7 +161,7 @@ func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, en
 				}
 			}
 
-			// --- 4.1 Check if all TASKs are finished ---
+			// --- 5. Check if all TASKs are finished ---
 			// if some TASKs aren't ready yet and STEPs strategy is serial we can not proceed
 			// otherwise, if STEPs strategy is parallel or all TASKs are finished, we can go to the next STEP
 			if tasksLeft > 0 {
@@ -175,7 +175,7 @@ func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, en
 			}
 		}
 
-		// --- 3.1 Check if all STEPs are finished ---
+		// --- 6. Check if all STEPs are finished ---
 		// if some STEPs aren't ready yet and PHASEs strategy is serial we can not proceed
 		// otherwise, if PHASEs strategy is parallel or all STEPs are finished, we can go to the next PHASE
 		if stepsLeft > 0 {
@@ -189,7 +189,7 @@ func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, en
 		}
 	}
 
-	// --- 2.1 Check if all PHASEs are finished ---
+	// --- 7. Check if all PHASEs are finished ---
 	if phasesLeft == 0 {
 		log.Printf("PlanExecution: All phases on plan %s and instance %s are healthy", pl.name, em.InstanceName)
 		planStatus.Status = v1alpha1.ExecutionComplete

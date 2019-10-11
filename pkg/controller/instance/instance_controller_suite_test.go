@@ -16,10 +16,36 @@ limitations under the License.
 package instance
 
 import (
+	"log"
+	"os"
+	"path/filepath"
 	"testing"
+
+	"github.com/kudobuilder/kudo/pkg/apis"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	"github.com/onsi/gomega"
 )
+
+var cfg *rest.Config
+
+func TestMain(m *testing.M) {
+	t := &envtest.Environment{
+		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crds")},
+	}
+	apis.AddToScheme(scheme.Scheme)
+
+	var err error
+	if cfg, err = t.Start(); err != nil {
+		log.Fatal(err)
+	}
+
+	code := m.Run()
+	t.Stop()
+	os.Exit(code)
+}
 
 func TestSpecParameterDifference(t *testing.T) {
 	var testParams = []struct {
