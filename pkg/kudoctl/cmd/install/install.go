@@ -225,7 +225,7 @@ func installSingleOperatorToCluster(name, namespace string, o *v1alpha1.Operator
 	if _, err := kc.InstallOperatorObjToCluster(o, namespace); err != nil {
 		return errors.Wrapf(err, "installing %s-operator.yaml", name)
 	}
-	clog.Printf("operator.%s/%s created\n", o.APIVersion, o.Name)
+	clog.Printf("operator.%s/%s created", o.APIVersion, o.Name)
 	return nil
 }
 
@@ -235,7 +235,7 @@ func installSingleOperatorVersionToCluster(name, namespace string, kc *kudo.Clie
 	if _, err := kc.InstallOperatorVersionObjToCluster(ov, namespace); err != nil {
 		return errors.Wrapf(err, "installing %s-operatorversion.yaml", name)
 	}
-	clog.Printf("operatorversion.%s/%s created\n", ov.APIVersion, ov.Name)
+	clog.Printf("operatorversion.%s/%s created", ov.APIVersion, ov.Name)
 	return nil
 }
 
@@ -245,7 +245,7 @@ func installSingleInstanceToCluster(name string, instance *v1alpha1.Instance, kc
 	if _, err := kc.InstallInstanceObjToCluster(instance, settings.Namespace); err != nil {
 		return errors.Wrapf(err, "installing instance %s", name)
 	}
-	clog.Printf("instance.%s/%s created\n", instance.APIVersion, instance.Name)
+	clog.Printf("instance.%s/%s created", instance.APIVersion, instance.Name)
 	return nil
 }
 
