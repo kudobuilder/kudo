@@ -165,7 +165,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.name, instance.Namespace, instance.Name)
-	newStatus, err := executePlan(activePlan, metadata, r.Client, &task.KustomizeEnhancer{r.Scheme})
+	newStatus, err := executePlan(activePlan, metadata, r.Client, &task.KustomizeEnhancer{Scheme: r.Scheme})
 
 	// ---------- 4. Update status of instance after the execution proceeded ----------
 
@@ -190,7 +190,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	return reconcile.Result{}, nil
 }
 
-func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.OperatorVersion, activePlanStatus *kudov1alpha1.PlanStatus) (*activePlan, *EngineMetadata, error) {
+func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.OperatorVersion, activePlanStatus *kudov1alpha1.PlanStatus) (*activePlan, *task.EngineMetadata, error) {
 	params, err := getParameters(instance, ov)
 	if err != nil {
 		return nil, nil, err

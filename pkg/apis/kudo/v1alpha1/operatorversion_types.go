@@ -142,7 +142,8 @@ type DeleteTaskSpec struct {
 }
 
 type DummyTaskSpec struct {
-	Fail bool `json:fail`
+	WantErr bool `json:wantErr`
+	Fatal   bool `json:fatal`
 }
 
 // OperatorVersionStatus defines the observed state of OperatorVersion.

@@ -58,34 +58,8 @@ func newDelete(task *v1alpha1.Task) DeleteTask {
 }
 
 func newDummy(task *v1alpha1.Task) DummyTask {
-	return DummyTask{Fail: task.Spec.DummyTaskSpec.Fail}
+	return DummyTask{
+		WantErr: task.Spec.DummyTaskSpec.WantErr,
+		Fatal:   task.Spec.DummyTaskSpec.Fatal,
+	}
 }
-
-// An example of new TaskSpec
-//tasks:
-//	- name: helmExample
-//	  kind: Helm
-//	  spec:
-//		baseChart: //some/helm/url
-//		...
-//	- name: applyExample
-//	  kind: Apply
-//	  spec:
-//	  	applyResources:
-//	  	  - pdb.yaml
-//		  - deployment.yaml
-//	- name: deleteExample
-//	  kind: Delete
-//  	  spec:
-//		deleteResources:
-//			- pod.yaml
-//			- service.yaml
-//	- namme: pipeExample
-//	  kind: Pipe
-//	  spec:
-//		containerSpec:
-//			...
-//		pipe:
-//			file: /usr/share/MyKey.key
-//			kind: Secret # ConfigMap
-//			key: {{.Pipes.Certificate}}

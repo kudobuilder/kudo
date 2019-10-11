@@ -24,31 +24,32 @@ type ApplyTask struct {
 // creates runtime objects and kustomizes them, and applies them using the controller client. Finally,
 // resources are checked for health.
 func (at ApplyTask) Run(ctx Context) (bool, error) {
-	// 1. Render task templates
+	// 1. - Render task templates -
 	rendered, err := render(at.Resources, ctx.Templates, ctx.Parameters, ctx.Meta)
 	if err != nil {
 		return false, fmt.Errorf("%wfailed to render task resources: %v", FatalExecutionError, err)
 	}
 
-	// 2. Kustomize them with metadata
+	// 2. - Kustomize them with metadata -
 	kustomized, err := kustomize(rendered, ctx.Meta, ctx.Enhancer)
 	if err != nil {
 		return false, fmt.Errorf("%wfailed to kustomize task resources: %v", FatalExecutionError, err)
 	}
 
-	// 3. Apply them using the client
+	// 3. - Apply them using the client -
 	applied, err := apply(kustomized, ctx.Client)
 	if err != nil {
 		return false, err
 	}
 
-	// 4. Check health for all resources
+	// 4. - Check health for all resources -
 	err = isHealthy(applied, ctx.Client)
 	if err != nil {
+		// so far we do not distinguish between unhealthy resources and other errors that might occur during a health check
+		// an error during a health check is not treated task execution error
 		log.Printf("TaskExecution: %v", err)
-		return false, nil // unhealthy resources are NOT treated as errors
+		return false, nil
 	}
-
 	return true, nil
 }
 
@@ -124,7 +125,8 @@ func isHealthy(ro []runtime.Object, c client.Client) error {
 		err := health.IsHealthy(c, r)
 		if err != nil {
 			key, _ := client.ObjectKeyFromObject(r)
-			return fmt.Errorf("task object %s is NOT healthy", prettyPrint(key))
+			fmt.Errorf("object %s is NOT healthy: %w", prettyPrint(key), err)
+			return err
 		}
 	}
 	return nil

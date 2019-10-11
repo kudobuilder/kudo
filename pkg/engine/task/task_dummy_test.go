@@ -1,6 +1,7 @@
 package task
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -14,20 +15,29 @@ func TestDummyTask_Run(t *testing.T) {
 		want bool
 	}{
 		{
-			name: "dummy failure",
-			task: DummyTask{Fail: true},
+			name: "dummy error",
+			task: DummyTask{WantErr: true},
+			want: false,
+		},
+		{
+			name: "fatal dummy error",
+			task: DummyTask{WantErr: true, Fatal: true},
 			want: false,
 		},
 		{
 			name: "dummy success",
-			task: DummyTask{Fail: false},
+			task: DummyTask{WantErr: false},
 			want: true,
 		},
 	}
 	ctx := Context{}
 
 	for _, tt := range tests {
-		got, _ := tt.task.Run(ctx)
+		got, err := tt.task.Run(ctx)
 		assert.True(t, got == tt.want, fmt.Sprintf("%s test failed, wanted %t but was %t", tt.name, tt.want, got))
+
+		if tt.task.Fatal {
+			assert.True(t, errors.Is(err, FatalExecutionError))
+		}
 	}
 }

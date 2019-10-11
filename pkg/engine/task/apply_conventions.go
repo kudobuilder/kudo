@@ -35,7 +35,7 @@ type KubernetesObjectEnhancer interface {
 
 // KustomizeEnhancer is implementation of KubernetesObjectEnhancer that uses kustomize to apply the defined conventions
 type KustomizeEnhancer struct {
-	scheme *runtime.Scheme
+	Scheme *runtime.Scheme
 }
 
 // ApplyConventions accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
@@ -116,7 +116,7 @@ func (k *KustomizeEnhancer) ApplyConventionsToTemplates(templates map[string]str
 	}
 
 	for _, o := range objsToAdd {
-		err = setControllerReference(metadata.ResourcesOwner, o, k.scheme)
+		err = setControllerReference(metadata.ResourcesOwner, o, k.Scheme)
 		if err != nil {
 			return nil, errors.Wrapf(err, "setting controller reference on parsed object")
 		}
