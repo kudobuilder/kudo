@@ -205,8 +205,10 @@ func patchExistingObject(newResource runtime.Object, existingResource runtime.Ob
 		}
 	} else {
 		err := c.Patch(context.TODO(), existingResource, client.ConstantPatch(types.StrategicMergePatchType, newResourceJSON))
-		log.Printf("PlanExecution: Error when applying StrategicMergePatch to object %v: %w", key, err)
-		return err
+		if err != nil {
+			log.Printf("PlanExecution: Error when applying StrategicMergePatch to object %v: %w", key, err)
+			return err
+		}
 	}
 	return nil
 }
