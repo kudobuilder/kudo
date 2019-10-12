@@ -72,7 +72,7 @@ func TestRepoIndexCmd_IndexCreation(t *testing.T) {
 	}
 
 	if !bytes.Equal(indexOut, g) {
-		t.Errorf("yaml does not match .golden file")
+		t.Errorf("yaml does not match .golden file %s:\n%s", gp, string(indexOut))
 	}
 }
 
