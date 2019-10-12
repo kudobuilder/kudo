@@ -59,7 +59,9 @@ func newDelete(task *v1alpha1.Task) DeleteTask {
 
 func newDummy(task *v1alpha1.Task) DummyTask {
 	return DummyTask{
+		Name:    task.Name,
 		WantErr: task.Spec.DummyTaskSpec.WantErr,
 		Fatal:   task.Spec.DummyTaskSpec.Fatal,
+		Done:    task.Spec.DummyTaskSpec.Done,
 	}
 }

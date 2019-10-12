@@ -1,6 +1,7 @@
 package task
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -29,6 +30,7 @@ func TestDeleteTask_Run(t *testing.T) {
 		task    DeleteTask
 		done    bool
 		wantErr bool
+		fatal   bool
 		ctx     Context
 	}{
 		{
@@ -53,6 +55,7 @@ func TestDeleteTask_Run(t *testing.T) {
 			},
 			done:    false,
 			wantErr: true,
+			fatal:   true,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
 				Enhancer:  &testKubernetesObjectEnhancer{},
@@ -68,6 +71,7 @@ func TestDeleteTask_Run(t *testing.T) {
 			},
 			done:    false,
 			wantErr: true,
+			fatal:   true,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
 				Enhancer:  &errKubernetesObjectEnhancer{},
@@ -96,6 +100,7 @@ func TestDeleteTask_Run(t *testing.T) {
 		got, err := tt.task.Run(tt.ctx)
 		assert.True(t, tt.done == got, fmt.Sprintf("%s failed: want = %t, wantErr = %v", tt.name, got, err))
 		if tt.wantErr {
+			assert.True(t, errors.Is(err, FatalExecutionError) == tt.fatal, "expected a fatal: %t error", tt.fatal)
 			assert.Error(t, err)
 		}
 		if !tt.wantErr {

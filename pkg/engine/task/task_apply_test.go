@@ -1,11 +1,11 @@
 package task
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
 	"github.com/kudobuilder/kudo/pkg/util/template"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -36,6 +36,7 @@ func TestApplyTask_Run(t *testing.T) {
 		task    ApplyTask
 		done    bool
 		wantErr bool
+		fatal   bool
 		ctx     Context
 	}{
 		{
@@ -60,6 +61,7 @@ func TestApplyTask_Run(t *testing.T) {
 			},
 			done:    false,
 			wantErr: true,
+			fatal:   true,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
 				Enhancer:  &testKubernetesObjectEnhancer{},
@@ -75,6 +77,7 @@ func TestApplyTask_Run(t *testing.T) {
 			},
 			done:    false,
 			wantErr: true,
+			fatal:   true,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
 				Enhancer:  &errKubernetesObjectEnhancer{},
@@ -118,6 +121,7 @@ func TestApplyTask_Run(t *testing.T) {
 		got, err := tt.task.Run(tt.ctx)
 		assert.True(t, tt.done == got, fmt.Sprintf("%s failed: want = %t, wantErr = %v", tt.name, got, err))
 		if tt.wantErr {
+			assert.True(t, errors.Is(err, FatalExecutionError) == tt.fatal)
 			assert.Error(t, err)
 		}
 		if !tt.wantErr {
@@ -168,7 +172,7 @@ func (k *testKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map
 	for _, t := range templates {
 		objsToAdd, err := template.ParseKubernetesObjects(t)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing kubernetes objects after applying kustomize")
+			return nil, fmt.Errorf("error parsing kubernetes objects after applying kustomize: %w", err)
 		}
 		result = append(result, objsToAdd[0])
 	}

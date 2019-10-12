@@ -7,8 +7,10 @@ import (
 
 // DummyTask is a task that can fail or succeed on demand
 type DummyTask struct {
+	Name    string
 	WantErr bool
 	Fatal   bool
+	Done    bool
 }
 
 // DummyTask Run has no side effects and returns a dummy error if WantErr is true
@@ -20,5 +22,6 @@ func (dt DummyTask) Run(ctx Context) (bool, error) {
 		}
 		return false, err
 	}
-	return true, nil
+
+	return dt.Done, nil
 }

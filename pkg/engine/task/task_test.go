@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/yaml"
 )
 
@@ -56,6 +57,7 @@ kind: Dummy
 spec: 
     wantErr: true`,
 			want: DummyTask{
+				Name:    "dummy-task",
 				WantErr: true,
 			},
 			wantErr: false,
@@ -81,12 +83,12 @@ spec:
 			}
 
 			got, err := Build(task)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Build() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				assert.Error(t, err, "Build(%s) error = %v, wantErr %v", tt.name, err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Build() got = %v, want %v", got, tt.want)
+				t.Errorf("Build(%s) got = %v, want %v", tt.name, got, tt.want)
 			}
 		})
 	}

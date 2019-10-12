@@ -25,8 +25,13 @@ func TestDummyTask_Run(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "dummy success",
+			name: "dummy not done",
 			task: DummyTask{WantErr: false},
+			want: false,
+		},
+		{
+			name: "dummy done",
+			task: DummyTask{Done: true},
 			want: true,
 		},
 	}
