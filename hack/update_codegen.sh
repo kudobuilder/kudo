@@ -23,4 +23,4 @@ fi
   github.com/kudobuilder/kudo/pkg/client \
   github.com/kudobuilder/kudo/pkg/apis \
   "kudo:v1alpha1" \
-  --go-header-file hack/boilerplate.go.txt $@
+  --go-header-file hack/boilerplate.go.txt # must be last for some reason
