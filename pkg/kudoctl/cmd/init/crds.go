@@ -141,6 +141,11 @@ func generateOperatorVersion() *apiextv1beta1.CustomResourceDefinition {
 		"required":    apiextv1beta1.JSONSchemaProps{Type: "boolean", Description: "Required specifies if the parameter is required to be provided by all instances, or whether a default can suffice"},
 		"trigger":     apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Trigger identifies the plan that gets executed when this parameter changes in the Instance object. Default is `update` if present, or `deploy` if not present"},
 	}
+	taskProps := map[string]apiextv1beta1.JSONSchemaProps{
+		"name": apiextv1beta1.JSONSchemaProps{Type: "string"},
+		"kind": apiextv1beta1.JSONSchemaProps{Type: "string"},
+		"spec": apiextv1beta1.JSONSchemaProps{Type: "object"},
+	}
 	specProps := map[string]apiextv1beta1.JSONSchemaProps{
 		"connectionString": apiextv1beta1.JSONSchemaProps{Type: "string", Description: "ConnectionString defines a mustached string that can be used to connect to an instance of the Operator"},
 		"dependencies": apiextv1beta1.JSONSchemaProps{
@@ -162,8 +167,11 @@ func generateOperatorVersion() *apiextv1beta1.CustomResourceDefinition {
 		"plans": apiextv1beta1.JSONSchemaProps{Type: "object", Description: "Plans specify a map a plans that specify how to"},
 		"tasks": apiextv1beta1.JSONSchemaProps{
 			Type:        "array",
-			Description: "Tasks list of all tasks available in this OperatorVersions",
-			Items:       &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{Type: "object"}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
+			Description: "List of all tasks available in this OperatorVersions",
+			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{
+				Type:       "object",
+				Properties: taskProps,
+			}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
 		},
 		"templates": apiextv1beta1.JSONSchemaProps{Type: "object", Description: "List of go templates YAML files that define the application operator instance"},
 		"upgradableFrom": apiextv1beta1.JSONSchemaProps{
