@@ -16,9 +16,11 @@ metadata:
 spec:
   version: "1.0"
   tasks:
-    deploy:
-      resources:
-      - service.yaml
+    - name: deploy
+      kind: Apply
+      spec:
+        applyResources:
+          - service.yaml
   parameters:
   - name: LABEL
     default: "test"

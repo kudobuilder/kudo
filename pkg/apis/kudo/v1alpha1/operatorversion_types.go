@@ -133,14 +133,17 @@ type TaskSpec struct {
 	DummyTaskSpec
 }
 
+// ApplyTaskSpec is used to apply a list of resources
 type ApplyTaskSpec struct {
 	Resources []string `json:"applyResources"`
 }
 
+// DeleteTaskSpec is used to delete a list of resources
 type DeleteTaskSpec struct {
 	Resources []string `json:"deleteResources"`
 }
 
+// DummyTaskSpec can succeed of fail on demand and is very useful for testing operators
 type DummyTaskSpec struct {
 	WantErr bool `json:"wantErr"`
 	Fatal   bool `json:"fatal"`
@@ -166,8 +169,8 @@ type OperatorVersion struct {
 	Status OperatorVersionStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // OperatorVersionList contains a list of OperatorVersion.
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type OperatorVersionList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

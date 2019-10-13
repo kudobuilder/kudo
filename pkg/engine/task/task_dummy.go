@@ -13,12 +13,12 @@ type DummyTask struct {
 	Done    bool
 }
 
-// DummyTask Run has no side effects and returns a dummy error if WantErr is true
+// Run method for the tDummyTask. It has no side effects and returns a dummy error if WantErr is true
 func (dt DummyTask) Run(ctx Context) (bool, error) {
 	if dt.WantErr {
 		err := errors.New("dummy error")
 		if dt.Fatal {
-			err = fmt.Errorf("fatal %w", FatalExecutionError)
+			err = fmt.Errorf("fatal %w", ErrFatalExecution)
 		}
 		return false, err
 	}

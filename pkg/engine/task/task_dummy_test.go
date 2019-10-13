@@ -42,7 +42,7 @@ func TestDummyTask_Run(t *testing.T) {
 		assert.True(t, got == tt.want, fmt.Sprintf("%s test failed, wanted %t but was %t", tt.name, tt.want, got))
 
 		if tt.task.Fatal {
-			assert.True(t, errors.Is(err, FatalExecutionError))
+			assert.True(t, errors.Is(err, ErrFatalExecution))
 		}
 	}
 }

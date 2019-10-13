@@ -121,7 +121,7 @@ func TestApplyTask_Run(t *testing.T) {
 		got, err := tt.task.Run(tt.ctx)
 		assert.True(t, tt.done == got, fmt.Sprintf("%s failed: want = %t, wantErr = %v", tt.name, got, err))
 		if tt.wantErr {
-			assert.True(t, errors.Is(err, FatalExecutionError) == tt.fatal)
+			assert.True(t, errors.Is(err, ErrFatalExecution) == tt.fatal)
 			assert.Error(t, err)
 		}
 		if !tt.wantErr {

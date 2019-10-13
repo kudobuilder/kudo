@@ -8,6 +8,7 @@ import (
 	"github.com/masterminds/sprig"
 )
 
+// Engine is the control struct for parsing and templating Kubernetes resources in an ordered fashion
 type Engine struct {
 	FuncMap template.FuncMap
 }

@@ -38,7 +38,7 @@ type KustomizeEnhancer struct {
 	Scheme *runtime.Scheme
 }
 
-// ApplyConventions accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
+// ApplyConventionsToTemplates accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
 func (k *KustomizeEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) (objsToAdd []runtime.Object, err error) {
 	fsys := fs.MakeFakeFS()

@@ -11,9 +11,9 @@ import (
 )
 
 var (
-	UnknownTaskNameEventName         = "UnknownTaskName"
-	UnknownTaskKindEventName         = "UnknownTaskName"
-	FatalTaskExecutionErrorEventName = "FatalTaskExecutionError"
+	unknownTaskNameEventName         = "UnknownTaskName"
+	unknownTaskKindEventName         = "UnknownTaskName"
+	fatalTaskExecutionErrorEventName = "FatalTaskExecutionError"
 )
 
 type activePlan struct {
@@ -103,7 +103,7 @@ func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, en
 					return planStatus, ExecutionError{
 						Err:       fmt.Errorf("failed to find task %s for operator version %s", tn, em.OperatorVersionName),
 						Fatal:     true,
-						EventName: &UnknownTaskNameEventName,
+						EventName: &unknownTaskNameEventName,
 					}
 				}
 				// - 3.a build execution metadata -
@@ -124,7 +124,7 @@ func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, en
 					return planStatus, ExecutionError{
 						Err:       fmt.Errorf("failed to resolve task %s for operator version %s: %w", tn, em.OperatorVersionName, err),
 						Fatal:     true,
-						EventName: &UnknownTaskKindEventName,
+						EventName: &unknownTaskKindEventName,
 					}
 				}
 
@@ -143,7 +143,7 @@ func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, en
 				// a fatal error is propagated through the plan/phase/step statuses and the plan execution will be
 				// stopped in the spirit of "fail-loud-and-proud".
 				switch {
-				case errors.Is(err, engtask.FatalExecutionError):
+				case errors.Is(err, engtask.ErrFatalExecution):
 					log.Printf("PlanExecution: fatal error during task %s execution for operator version %s: %v", exm.TaskName, exm.OperatorVersionName, err)
 					phaseStatus.Status = v1alpha1.ExecutionFatalError
 					stepStatus.Status = v1alpha1.ExecutionFatalError
@@ -151,7 +151,7 @@ func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, en
 					return planStatus, ExecutionError{
 						Err:       fmt.Errorf("fatal task %s execution error  for operator version %s: %w", tn, em.OperatorVersionName, err),
 						Fatal:     true,
-						EventName: &FatalTaskExecutionErrorEventName,
+						EventName: &fatalTaskExecutionErrorEventName,
 					}
 				case err != nil:
 					log.Printf("PlanExecution: error during task %s execution for operator version %s: %v", exm.TaskName, exm.OperatorVersionName, err)

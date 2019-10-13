@@ -35,9 +35,11 @@ spec:
           REPLICAS: "{{ .Params.REPLICAS }}"
           PARAM: "after"
   tasks:
-    operator:
-      resources:
-        - operator.yaml
+    - name: operator
+      kind: Apply
+      spec:
+        applyResources:
+          - operator.yaml
   parameters:
     - name: Param
       description: "Sample parameter"

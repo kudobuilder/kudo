@@ -8,9 +8,11 @@ metadata:
 spec:
   version: "1.0"
   tasks:
-    validate:
-      resources:
-      - job.yaml
+    - name: validate
+      kind: Apply
+      spec:
+        applyResources:
+          - job.yaml
   parameters:
   - name: LABEL
     default: "test"

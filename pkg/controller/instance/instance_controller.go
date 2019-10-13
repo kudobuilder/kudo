@@ -335,6 +335,8 @@ func parameterDifference(old, new map[string]string) map[string]string {
 	return diff
 }
 
+// ExecutionError wraps plan execution engine errors with additional fields. E.g an error with EventName set
+// will be published on the event bus.
 type ExecutionError struct {
 	Err       error
 	Fatal     bool    // these errors should not be retried

@@ -10,9 +10,6 @@ import (
 )
 
 func TestBuild(t *testing.T) {
-	type args struct {
-		task *v1alpha1.Task
-	}
 	tests := []struct {
 		name     string
 		taskYaml string

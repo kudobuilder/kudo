@@ -5,7 +5,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ExecutionMetadata contains ExecutionMetadata associated with current plan being executed
+// ExecutionMetadata contains ExecutionMetadata along with specific fields associated with current plan
+// being executed like current plan, phase, step or task names.
 type ExecutionMetadata struct {
 	EngineMetadata
 
@@ -15,6 +16,7 @@ type ExecutionMetadata struct {
 	TaskName  string
 }
 
+// EngineMetadata contains metadata associated with the current operator being executed
 type EngineMetadata struct {
 	InstanceName        string
 	InstanceNamespace   string
@@ -26,10 +28,11 @@ type EngineMetadata struct {
 	ResourcesOwner metav1.Object
 }
 
+// Context is a engine.task execution context containing k8s client, templates parameters etc.
 type Context struct {
 	Client     client.Client
 	Enhancer   KubernetesObjectEnhancer
 	Meta       ExecutionMetadata
 	Templates  map[string]string // Raw templates
-	Parameters map[string]string // I and OV parameters merged
+	Parameters map[string]string // Instance and OperatorVersion parameters merged
 }
