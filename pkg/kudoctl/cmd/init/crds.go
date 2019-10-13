@@ -159,8 +159,12 @@ func generateOperatorVersion() *apiextv1beta1.CustomResourceDefinition {
 				Properties: paramProps,
 			}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
 		},
-		"plans":     apiextv1beta1.JSONSchemaProps{Type: "object", Description: "Plans specify a map a plans that specify how to"},
-		"tasks":     apiextv1beta1.JSONSchemaProps{Type: "object"},
+		"plans": apiextv1beta1.JSONSchemaProps{Type: "object", Description: "Plans specify a map a plans that specify how to"},
+		"tasks": apiextv1beta1.JSONSchemaProps{
+			Type:        "array",
+			Description: "Tasks list of all tasks available in this OperatorVersions",
+			Items:       &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{Type: "object"}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
+		},
 		"templates": apiextv1beta1.JSONSchemaProps{Type: "object", Description: "List of go templates YAML files that define the application operator instance"},
 		"upgradableFrom": apiextv1beta1.JSONSchemaProps{
 			Type:        "array",

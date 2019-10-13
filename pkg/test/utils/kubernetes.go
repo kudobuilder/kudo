@@ -328,11 +328,6 @@ func PrettyDiff(expected runtime.Object, actual runtime.Object) (string, error) 
 	return difflib.GetUnifiedDiffString(diffed)
 }
 
-func prettyPrint(i interface{}) string {
-	s, _ := ejson.MarshalIndent(i, "", "  ")
-	return string(s)
-}
-
 // ConvertUnstructured converts an unstructured object to the known struct. If the type is not known, then
 // the unstructured object is returned unmodified.
 func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
@@ -527,7 +522,7 @@ func InstallManifests(ctx context.Context, client client.Client, dClient discove
 
 			updated, err := CreateOrUpdate(ctx, client, obj, true)
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("error creating resource:\n%s\n%s", ResourceID(obj), prettyPrint(obj)))
+				return errors.Wrap(err, fmt.Sprintf("error creating resource %s", ResourceID(obj)))
 			}
 
 			action := "created"

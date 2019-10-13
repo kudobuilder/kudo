@@ -143,7 +143,7 @@ func TestInitCmd_YAMLWriter(t *testing.T) {
 	}
 
 	if !bytes.Equal(out.Bytes(), g) {
-		t.Errorf("json does not match .golden file")
+		t.Errorf("json does not match .golden file? %s", gp)
 	}
 }
 

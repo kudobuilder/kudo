@@ -37,7 +37,7 @@ func (ap *activePlan) taskByName(name string) (*v1alpha1.Task, bool) {
 // executePlan method takes a currently active plan and ExecutionMetadata from the underlying operator and executes it.
 // An execution loop iterates through plan phases, steps and tasks, executing them according to the execution strategy
 // (serial/parallel). Task execution might result in success, error and fatal error. It is to distinguish between transient
-// and fatal errors.  Transient errors are retryable, so the corresponding Plan/Phase  are still in progress:
+// and fatal errors.  Transient errors are retryable, so the corresponding Plan/Phase are still in progress:
 //  └── first-operator-zljnmj
 //     └── Plan deploy (serial strategy) [IN_PROGRESS]
 //        └── Phase main [IN_PROGRESS]

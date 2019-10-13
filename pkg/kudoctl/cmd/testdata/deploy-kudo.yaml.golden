@@ -138,7 +138,10 @@ spec:
               description: Plans specify a map a plans that specify how to
               type: object
             tasks:
-              type: object
+              description: Tasks list of all tasks available in this OperatorVersions
+              items:
+                type: object
+              type: array
             templates:
               description: List of go templates YAML files that define the application
                 operator instance
