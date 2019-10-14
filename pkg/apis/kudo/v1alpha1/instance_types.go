@@ -148,6 +148,25 @@ func (i *Instance) GetPlanInProgress() *PlanStatus {
 	return nil
 }
 
+// GetLastExecutedPlanStatus returns status of plan that is currently running, if there is one running
+// if no plan is running it looks for last executed plan based on timestamps
+func (i *Instance) GetLastExecutedPlanStatus() *PlanStatus {
+	if i.NoPlanEverExecuted() {
+		return nil
+	}
+	activePlan := i.GetPlanInProgress()
+	if activePlan != nil {
+		return activePlan
+	}
+	var lastExecutedPlan *PlanStatus
+	for _, p := range i.Status.PlanStatus {
+		if p.Status != ExecutionNeverRun && (lastExecutedPlan == nil || p.LastFinishedRun.Before(&lastExecutedPlan.LastFinishedRun)) {
+			lastExecutedPlan = &p
+		}
+	}
+	return lastExecutedPlan
+}
+
 // NoPlanEverExecuted returns true is this is new instance for which we never executed any plan
 func (i *Instance) NoPlanEverExecuted() bool {
 	for _, p := range i.Status.PlanStatus {
