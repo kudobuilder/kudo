@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -16,6 +17,7 @@ import (
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apijson "k8s.io/apimachinery/pkg/util/json"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -54,7 +56,7 @@ type engineMetadata struct {
 // result of running this function is new state of the execution that is returned to the caller (it can either be completed, or still in progress or errored)
 // in case of error, error is returned along with the state as well (so that it's possible to report which step caused the error)
 // in case of error, method returns ErrorStatus which has property to indicate unrecoverable error meaning if there is no point in retrying that execution
-func executePlan(plan *activePlan, metadata *engineMetadata, c client.Client, enhancer kubernetesObjectEnhancer) (*v1alpha1.PlanStatus, error) {
+func executePlan(plan *activePlan, metadata *engineMetadata, c client.Client, enhancer kubernetesObjectEnhancer, currentTime time.Time) (*v1alpha1.PlanStatus, error) {
 	if plan.Status.IsTerminal() {
 		log.Printf("PlanExecution: Plan %s for instance %s is terminal, nothing to do", plan.name, metadata.instanceName)
 		return plan.PlanStatus, nil
@@ -121,6 +123,7 @@ func executePlan(plan *activePlan, metadata *engineMetadata, c client.Client, en
 	if allPhasesCompleted {
 		log.Printf("PlanExecution: All phases on plan %s and instance %s are healthy", plan.name, metadata.instanceName)
 		newState.Status = v1alpha1.ExecutionComplete
+		newState.LastFinishedRun = v1.Time{Time: currentTime}
 	}
 
 	return newState, nil
