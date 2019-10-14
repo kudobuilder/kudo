@@ -27,6 +27,10 @@ type Client struct {
 	Client http.Client
 }
 
+func (c *Client) String() string {
+	return c.Config.String()
+}
+
 // ClientFromSettings retrieves the operator repo for the configured repo in settings
 func ClientFromSettings(fs afero.Fs, home kudohome.Home, repoName string) (*Client, error) {
 	rc, err := ConfigurationFromSettings(fs, home, repoName)
@@ -53,9 +57,9 @@ func NewClient(conf *Configuration) (*Client, error) {
 }
 
 // DownloadIndexFile fetches the index file from a repository.
-func (r *Client) DownloadIndexFile() (*IndexFile, error) {
+func (c *Client) DownloadIndexFile() (*IndexFile, error) {
 	var indexURL string
-	parsedURL, err := url.Parse(r.Config.URL)
+	parsedURL, err := url.Parse(c.Config.URL)
 	if err != nil {
 		return nil, errors.Wrap(err, "parsing config url")
 	}
@@ -63,7 +67,7 @@ func (r *Client) DownloadIndexFile() (*IndexFile, error) {
 
 	indexURL = parsedURL.String()
 
-	resp, err := r.Client.Get(indexURL)
+	resp, err := c.Client.Get(indexURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "getting index url")
 	}
@@ -81,10 +85,10 @@ func (r *Client) DownloadIndexFile() (*IndexFile, error) {
 // The PackageVersion is a package configuration from the index file which has a list of urls where
 // the package can be pulled from.  This will cycle through the list of urls and will return the reader
 // from the first successful url.  If all urls fail, the last error will be returned.
-func (r *Client) getPackageReaderByAPackageURL(pkg *PackageVersion) (*bytes.Buffer, error) {
+func (c *Client) getPackageReaderByAPackageURL(pkg *PackageVersion) (*bytes.Buffer, error) {
 	var pkgErr error
 	for _, u := range pkg.URLs {
-		r, err := r.getPackageBytesByURL(u)
+		r, err := c.getPackageBytesByURL(u)
 		if err == nil {
 			return r, nil
 		}
@@ -95,9 +99,9 @@ func (r *Client) getPackageReaderByAPackageURL(pkg *PackageVersion) (*bytes.Buff
 	return nil, pkgErr
 }
 
-func (r *Client) getPackageBytesByURL(packageURL string) (*bytes.Buffer, error) {
+func (c *Client) getPackageBytesByURL(packageURL string) (*bytes.Buffer, error) {
 	clog.V(4).Printf("attempt to retrieve package from url: %v", packageURL)
-	resp, err := r.Client.Get(packageURL)
+	resp, err := c.Client.Get(packageURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "getting package url")
 	}
@@ -106,11 +110,11 @@ func (r *Client) getPackageBytesByURL(packageURL string) (*bytes.Buffer, error) 
 }
 
 // GetPackageBytes provides an io.Reader for a provided package name and optional version
-func (r *Client) GetPackageBytes(name string, version string) (*bytes.Buffer, error) {
+func (c *Client) GetPackageBytes(name string, version string) (*bytes.Buffer, error) {
 	clog.V(4).Printf("getting package reader for %v, %v", name, version)
-	clog.V(5).Printf("repository using: %v", r.Config)
+	clog.V(5).Printf("repository using: %v", c.Config)
 	// Construct the package name and download the index file from the remote repo
-	indexFile, err := r.DownloadIndexFile()
+	indexFile, err := c.DownloadIndexFile()
 	if err != nil {
 		return nil, errors.WithMessage(err, "could not download repository index file")
 	}
@@ -120,12 +124,12 @@ func (r *Client) GetPackageBytes(name string, version string) (*bytes.Buffer, er
 		return nil, errors.Wrapf(err, "getting %s in index file", name)
 	}
 
-	return r.getPackageReaderByAPackageURL(pkgVersion)
+	return c.getPackageReaderByAPackageURL(pkgVersion)
 }
 
 // GetPackage provides an Package for a provided package name and optional version
-func (r *Client) GetPackage(name string, version string) (packages.Package, error) {
-	reader, err := r.GetPackageBytes(name, version)
+func (c *Client) GetPackage(name string, version string) (packages.Package, error) {
+	reader, err := c.GetPackageBytes(name, version)
 	if err != nil {
 		return nil, err
 	}

@@ -100,7 +100,7 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 	if err != nil {
 		return errors.WithMessage(err, "could not build operator repository")
 	}
-	clog.V(4).Printf("repository used %v", repository)
+	clog.V(4).Printf("repository used %s", repository)
 
 	kc, err := kudo.NewClient(settings.Namespace, settings.KubeConfig)
 	clog.V(3).Printf("acquiring kudo client")
