@@ -142,6 +142,7 @@ func TestInitCmd_YAMLWriter(t *testing.T) {
 		t.Fatalf("failed reading .golden: %s", err)
 	}
 
+	assert.Equal(t, string(out.Bytes()), string(g))
 	if !bytes.Equal(out.Bytes(), g) {
 		t.Errorf("json does not match .golden file? %s", gp)
 	}

@@ -138,8 +138,15 @@ spec:
               description: Plans specify a map a plans that specify how to
               type: object
             tasks:
-              description: Tasks list of all tasks available in this OperatorVersions
+              description: List of all tasks available in this OperatorVersions
               items:
+                properties:
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                  spec:
+                    type: object
                 type: object
               type: array
             templates:
