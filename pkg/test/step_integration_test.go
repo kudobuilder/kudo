@@ -234,7 +234,11 @@ func TestCheckResourceIntegration(t *testing.T) {
 		t.Run(test.testName, func(t *testing.T) {
 			namespace := fmt.Sprintf("kudo-test-%s", petname.Generate(2, "-"))
 
-			assert.Nil(t, testenv.Client.Create(context.TODO(), testutils.NewResource("v1", "Namespace", namespace, "")))
+			err := testenv.Client.Create(context.TODO(), testutils.NewResource("v1", "Namespace", namespace, ""))
+			if !k8serrors.IsAlreadyExists(err) {
+				// we are ignoring already exists here because in tests we by default use retry client so this can happen
+				assert.Nil(t, err)
+			}
 
 			for _, actual := range test.actual {
 				_, _, err := testutils.Namespaced(testenv.DiscoveryClient, actual, namespace)
