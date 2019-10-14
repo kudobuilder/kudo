@@ -3,6 +3,7 @@ package instance
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/kudobuilder/kudo/pkg/util/template"
 	"github.com/pkg/errors"
@@ -19,6 +20,7 @@ import (
 )
 
 func TestExecutePlan(t *testing.T) {
+	timeNow := time.Now()
 	defaultMetadata := &executionMetadata{
 		instanceName:        "Instance",
 		planExecutionID:     "pid",
@@ -79,9 +81,10 @@ func TestExecutePlan(t *testing.T) {
 			Tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"pod"}}},
 			Templates: map[string]string{"pod": getResourceAsString(getPod("pod1", "default"))},
 		}, defaultMetadata, &v1alpha1.PlanStatus{
-			Status: v1alpha1.ExecutionComplete,
-			Name:   "test",
-			Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
+			Status:          v1alpha1.ExecutionComplete,
+			Name:            "test",
+			LastFinishedRun: v1.Time{Time: timeNow},
+			Phases:          []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
 		}},
 		{"plan in errored state will be retried and completed when no error happens", &activePlan{
 			Name: "test",
@@ -99,15 +102,16 @@ func TestExecutePlan(t *testing.T) {
 			Tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"pod"}}},
 			Templates: map[string]string{"pod": getResourceAsString(getPod("pod1", "default"))},
 		}, defaultMetadata, &v1alpha1.PlanStatus{
-			Status: v1alpha1.ExecutionComplete,
-			Name:   "test",
-			Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
+			Status:          v1alpha1.ExecutionComplete,
+			LastFinishedRun: v1.Time{Time: timeNow},
+			Name:            "test",
+			Phases:          []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
 		}},
 	}
 
 	for _, tt := range tests {
 		testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
-		newStatus, err := executePlan(tt.activePlan, tt.metadata, testClient, &testKubernetesObjectEnhancer{})
+		newStatus, err := executePlan(tt.activePlan, tt.metadata, testClient, &testKubernetesObjectEnhancer{}, timeNow)
 
 		if err != nil {
 			t.Errorf("%s: Expecting no error but got error %v", tt.name, err)
