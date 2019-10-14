@@ -9,9 +9,9 @@ spec:
   version: "1.0"
   tasks:
     - name: validate
-      kind: Apply
+      kind: Delete
       spec:
-        applyResources:
+        deleteResources:
           - job.yaml
   parameters:
   - name: LABEL
@@ -26,7 +26,6 @@ spec:
         - name: validate
           tasks:
           - validate
-          delete: true
   templates:
     job.yaml: |
       apiVersion: batch/v1

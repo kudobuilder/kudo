@@ -6,9 +6,11 @@ maintainers:
     email: <your@email.com>
 url: https://kudo.dev
 tasks:
-  app:
-    resources:
-      - deployment.yaml
+  - name: app
+    kind: Apply
+    spec:
+      applyResources:
+        - deployment.yaml
 plans:
   deploy:
     strategy: serial
