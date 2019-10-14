@@ -123,37 +123,6 @@ func TestExecutePlan(t *testing.T) {
 	}
 }
 
-func TestExecutePlanWithEnhancerError(t *testing.T) {
-	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
-	newStatus, err := executePlan(&activePlan{
-		Name: "test",
-		PlanStatus: &v1alpha1.PlanStatus{
-			Status: v1alpha1.ExecutionPending,
-			Name:   "test",
-			Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionPending, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionPending, Name: "step"}}}},
-		},
-		Spec: &v1alpha1.Plan{
-			Strategy: "serial",
-			Phases: []v1alpha1.Phase{
-				{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
-			},
-		},
-		Tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"job"}}},
-		Templates: map[string]string{"job": getResourceAsString(getJob("job1", "default"))},
-	}, &executionMetadata{
-		instanceName:        "Instance",
-		instanceNamespace:   "default",
-		operatorVersion:     "ov-1.0",
-		operatorName:        "operator",
-		resourcesOwner:      getJob("pod2", "default"),
-		operatorVersionName: "ovname",
-	}, testClient, &errKubernetesObjectEnhancer{}, time.Now())
-
-	if err == nil || newStatus == nil || newStatus.Status != v1alpha1.ErrorStatus || newStatus.Phases[0].Status != v1alpha1.ErrorStatus || newStatus.Phases[0].Steps[0].Status != v1alpha1.ErrorStatus {
-		t.Fatalf("Expecting to get an error with fatal error in status for error in using enhancer, got %w, %v", err, newStatus)
-	}
-}
-
 func getJob(name string, namespace string) *batchv1.Job {
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
@@ -201,10 +170,4 @@ func (k *testKubernetesObjectEnhancer) applyConventionsToTemplates(templates map
 		result = append(result, objsToAdd[0])
 	}
 	return result, nil
-}
-
-type errKubernetesObjectEnhancer struct{}
-
-func (k *errKubernetesObjectEnhancer) applyConventionsToTemplates(templates map[string]string, metadata metadata, owner v1.Object) ([]runtime.Object, error) {
-	return nil, errors.New("Always error")
 }
