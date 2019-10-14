@@ -1,7 +1,6 @@
 package init
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
@@ -35,7 +34,7 @@ func installCrds(client apiextensionsclient.Interface) error {
 func installOperator(client v1beta1.CustomResourceDefinitionsGetter) error {
 	o := generateOperator()
 	_, err := client.CustomResourceDefinitions().Create(o)
-	if isAlreadyExistsError(err) {
+	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("crd %v already exists", o.Name)
 		return nil
 	}
@@ -43,18 +42,10 @@ func installOperator(client v1beta1.CustomResourceDefinitionsGetter) error {
 
 }
 
-func isAlreadyExistsError(err error) bool {
-	var statusError *kerrors.StatusError
-	if errors.As(err, &statusError) {
-		return statusError.ErrStatus.Reason == "AlreadyExists"
-	}
-	return false
-}
-
 func installOperatorVersion(client v1beta1.CustomResourceDefinitionsGetter) error {
 	ov := generateOperatorVersion()
 	_, err := client.CustomResourceDefinitions().Create(ov)
-	if isAlreadyExistsError(err) {
+	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("crd %v already exists", ov.Name)
 		return nil
 	}
@@ -64,7 +55,7 @@ func installOperatorVersion(client v1beta1.CustomResourceDefinitionsGetter) erro
 func installInstance(client v1beta1.CustomResourceDefinitionsGetter) error {
 	instance := generateInstance()
 	_, err := client.CustomResourceDefinitions().Create(instance)
-	if isAlreadyExistsError(err) {
+	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("crd %v already exists", instance.Name)
 		return nil
 	}
