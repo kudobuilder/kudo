@@ -3,6 +3,10 @@ kind: Operator
 metadata:
   name: test-operator
   namespace: default
+spec:
+  maintainers:
+    - name: KUDO
+      email: kudobuilder@gmail.com
 ---
 apiVersion: kudo.dev/v1alpha1
 kind: OperatorVersion
