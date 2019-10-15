@@ -21,7 +21,7 @@ if ! docker inspect "$builder_image"; then
 fi
 
 if docker build -f test/Dockerfile -t kudo-test .; then
-    if docker run -it -m 4g -v "$(pwd)"/reports:/go/src/github.com/kudobuilder/kudo/reports --rm kudo-test; then
+    if docker run -it -m 4g -v -e INTEGRATION_OUTPUT_JUNIT="$(INTEGRATION_OUTPUT_JUNIT)" "$(pwd)"/reports:/go/src/github.com/kudobuilder/kudo/reports --rm kudo-test; then
         echo "Tests finished successfully! ヽ(•‿•)ノ"
     else
         exit $?
