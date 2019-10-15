@@ -168,7 +168,6 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	newStatus, err := executePlan(activePlan, metadata, r.Client, &kustomizeEnhancer{r.Scheme}, time.Now())
 
 	// ---------- 4. Update status of instance after the execution proceeded ----------
-
 	if newStatus != nil {
 		instance.UpdateInstanceStatus(newStatus)
 	}
