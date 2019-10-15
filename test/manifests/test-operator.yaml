@@ -50,7 +50,7 @@ spec:
     - name: deploy
       kind: Apply
       spec:
-        applyResources:
+        resources:
           - deploy.yaml
   plans:
     deploy:

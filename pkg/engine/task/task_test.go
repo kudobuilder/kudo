@@ -22,7 +22,7 @@ func TestBuild(t *testing.T) {
 name: apply-task
 kind: Apply
 spec: 
-    applyResources:
+    resources:
       - pod.yaml
       - service.yaml`,
 			want: ApplyTask{
@@ -37,7 +37,7 @@ spec:
 name: delete-task
 kind: Delete
 spec: 
-    deleteResources:
+    resources:
       - pod.yaml
       - service.yaml`,
 			want: DeleteTask{

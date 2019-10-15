@@ -41,7 +41,7 @@ spec:
     - name: invalid-task
       kind: Apply
       spec:
-        applyResources:
+        resources:
           - serial.yaml
   parameters:
     - name: Sleep

@@ -15,18 +15,18 @@ tasks:
   - name: infra
     kind: Apply
     spec:
-      applyResources:
+      resources:
         - services.yaml
         - pdb.yaml
   - name: app
     kind: Apply
     spec:
-      applyResources:
+      resources:
         - statefulset.yaml
   - name: validation
     kind: Apply
     spec:
-      applyResources:
+      resources:
         - validation.yaml
 plans:
   deploy:

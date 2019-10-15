@@ -9,7 +9,7 @@ tasks:
   - name: infra
     kind: Apply
     spec:
-      applyResources:
+      resources:
         - deployment.yaml
 plans:
   deploy:

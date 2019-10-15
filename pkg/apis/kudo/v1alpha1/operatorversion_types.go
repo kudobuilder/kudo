@@ -128,19 +128,13 @@ type Task struct {
 // with the same json names as it would become ambiguous for the default parser. We might revisit this approach in the
 // future should this become an issue.
 type TaskSpec struct {
-	ApplyTaskSpec
-	DeleteTaskSpec
+	ResourceTaskSpec
 	DummyTaskSpec
 }
 
-// ApplyTaskSpec is used to apply a list of resources
-type ApplyTaskSpec struct {
-	Resources []string `json:"applyResources"`
-}
-
-// DeleteTaskSpec is used to delete a list of resources
-type DeleteTaskSpec struct {
-	Resources []string `json:"deleteResources"`
+// ResourceTaskSpec is referencing a list of resources
+type ResourceTaskSpec struct {
+	Resources []string `json:"resources"`
 }
 
 // DummyTaskSpec can succeed of fail on demand and is very useful for testing operators

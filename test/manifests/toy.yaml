@@ -35,7 +35,7 @@ spec:
     - name: deploy
       kind: Apply
       spec:
-        applyResources:
+        resources:
           - deployment.yaml
   parameters:
   - name: Param

@@ -48,14 +48,14 @@ func Build(task *v1alpha1.Task) (Tasker, error) {
 func newApply(task *v1alpha1.Task) ApplyTask {
 	return ApplyTask{
 		Name:      task.Name,
-		Resources: task.Spec.ApplyTaskSpec.Resources,
+		Resources: task.Spec.ResourceTaskSpec.Resources,
 	}
 }
 
 func newDelete(task *v1alpha1.Task) DeleteTask {
 	return DeleteTask{
 		Name:      task.Name,
-		Resources: task.Spec.DeleteTaskSpec.Resources,
+		Resources: task.Spec.ResourceTaskSpec.Resources,
 	}
 }
 

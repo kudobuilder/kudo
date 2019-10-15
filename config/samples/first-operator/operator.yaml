@@ -9,7 +9,7 @@ tasks:
   - name: app
     kind: Apply
     spec:
-      applyResources:
+      resources:
         - deployment.yaml
 plans:
   deploy:

@@ -19,7 +19,7 @@ spec:
     - name: deploy
       kind: Apply
       spec:
-        applyResources:
+        resources:
           - service.yaml
   parameters:
   - name: LABEL

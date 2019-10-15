@@ -141,9 +141,9 @@ func validateTask(t v1alpha1.Task, templates map[string]string) []string {
 	var resources []string
 	switch t.Kind {
 	case task.ApplyTaskKind:
-		resources = t.Spec.ApplyTaskSpec.Resources
+		resources = t.Spec.ResourceTaskSpec.Resources
 	case task.DeleteTaskKind:
-		resources = t.Spec.DeleteTaskSpec.Resources
+		resources = t.Spec.ResourceTaskSpec.Resources
 	case task.DummyTaskKind:
 	default:
 		log.Printf("no validation for task kind %s implemented", t.Kind)
