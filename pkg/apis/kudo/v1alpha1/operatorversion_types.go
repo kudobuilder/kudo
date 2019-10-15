@@ -150,6 +150,7 @@ type OperatorVersionStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
+// +genclient
 // OperatorVersion is the Schema for the operatorversions API.
 // +k8s:openapi-gen=true
 type OperatorVersion struct {
