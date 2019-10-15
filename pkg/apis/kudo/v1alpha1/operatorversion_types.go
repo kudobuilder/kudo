@@ -151,6 +151,8 @@ type OperatorVersionStatus struct {
 }
 
 // +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // OperatorVersion is the Schema for the operatorversions API.
 // +k8s:openapi-gen=true
 type OperatorVersion struct {
@@ -161,8 +163,9 @@ type OperatorVersion struct {
 	Status OperatorVersionStatus `json:"status,omitempty"`
 }
 
-// OperatorVersionList contains a list of OperatorVersion.
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// OperatorVersionList contains a list of OperatorVersion.
 type OperatorVersionList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
