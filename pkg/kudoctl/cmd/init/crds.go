@@ -134,7 +134,7 @@ func generateOperatorVersion() *apiextv1beta1.CustomResourceDefinition {
 		"crdVersion":    apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Version captures the requirements for what versions of the above object are allowed Example: ^3.1.4"},
 	}
 	paramProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"default":     apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Default is a default value if no paramter is provided by the instance"},
+		"default":     apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Default is a default value if no parameter is provided by the instance"},
 		"description": apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Description captures a longer description of how the variable will be used"},
 		"displayName": apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Human friendly crdVersion of the parameter name"},
 		"name":        apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Name is the string that should be used in the template file for example, if `name: COUNT` then using the variable `.Params.COUNT`"},

@@ -52,7 +52,7 @@ spec:
               items:
                 properties:
                   default:
-                    description: Default is a default value if no paramter is provided
+                    description: Default is a default value if no parameter is provided
                       by the instance
                     type: string
                   description:
