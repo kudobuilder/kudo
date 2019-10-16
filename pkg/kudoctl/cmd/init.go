@@ -83,7 +83,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 				return err
 			}
 			i.home = Settings.Home
-			i.ns = Settings.Namespace
+			i.ns = Settings.FlagNotChangedValue(cmd.Flags(), "namespace", "kudo-system")
 			clog.V(8).Printf("init cmd %v", i)
 			return i.run()
 		},
