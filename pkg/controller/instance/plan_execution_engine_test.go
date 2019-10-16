@@ -27,6 +27,7 @@ func TestExecutePlan(t *testing.T) {
 		operatorName:        "operator",
 		resourcesOwner:      getJob("pod2", "default"),
 		operatorVersionName: "ovname",
+		appVersion:          "3.4.10-test_version",
 	}
 	tests := []struct {
 		name           string
