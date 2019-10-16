@@ -10,7 +10,7 @@ import (
 // Tasker is an interface that represents any runnable task for an operator. This method is treated
 // as idempotent and will be called multiple times during the life-cycle of the plan execution.
 // Method returns a boolean, signalizing that the task has finished successfully, and an error.
-// An error can wrap the ErrFatalExecution for errors that can not be retried e.g. failed template
+// An error can wrap the ErrFatalExecution for errors that should not be retried e.g. failed template
 // rendering. This will result in a v1alpha1.ExecutionFatalError in the plan execution status. A normal
 // error e.g. failure during accessing the API server will be treated  as "transient", meaning plan
 // execution engine  can retry it next time. Only a (true, nil) return value will be treated as successful
@@ -19,7 +19,7 @@ type Tasker interface {
 	Run(ctx Context) (bool, error)
 }
 
-// Available engine tasks kinds
+// Available tasks kinds
 const (
 	ApplyTaskKind  = "Apply"
 	DeleteTaskKind = "Delete"
@@ -28,7 +28,7 @@ const (
 
 var (
 	// ErrFatalExecution is a wrapper for the fatal engine task execution error
-	ErrFatalExecution = errors.New("")
+	ErrFatalExecution = errors.New("fatal task error: ")
 )
 
 // Build factory method takes an v1alpha1.Task and returns a corresponding Tasker object
@@ -41,7 +41,7 @@ func Build(task *v1alpha1.Task) (Tasker, error) {
 	case DummyTaskKind:
 		return newDummy(task), nil
 	default:
-		return nil, fmt.Errorf("unknown task kind %s", task.Kind)
+		return nil, fmt.Errorf("%wunknown task kind %s", ErrFatalExecution, task.Kind)
 	}
 }
 

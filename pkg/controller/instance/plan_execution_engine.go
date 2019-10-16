@@ -12,7 +12,7 @@ import (
 
 var (
 	unknownTaskNameEventName         = "UnknownTaskName"
-	unknownTaskKindEventName         = "UnknownTaskName"
+	unknownTaskKindEventName         = "UnknownTaskKind"
 	fatalTaskExecutionErrorEventName = "FatalTaskExecutionError"
 )
 
@@ -144,12 +144,12 @@ func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, en
 				// stopped in the spirit of "fail-loud-and-proud".
 				switch {
 				case errors.Is(err, engtask.ErrFatalExecution):
-					log.Printf("PlanExecution: fatal error during task %s execution for operator version %s: %v", exm.TaskName, exm.OperatorVersionName, err)
+					log.Printf("PlanExecution: error during task %s execution for operator version %s: %v", exm.TaskName, exm.OperatorVersionName, err)
 					phaseStatus.Status = v1alpha1.ExecutionFatalError
 					stepStatus.Status = v1alpha1.ExecutionFatalError
 					planStatus.Status = v1alpha1.ExecutionFatalError
 					return planStatus, ExecutionError{
-						Err:       fmt.Errorf("fatal task %s execution error  for operator version %s: %w", tn, em.OperatorVersionName, err),
+						Err:       fmt.Errorf("error during task %s execution for operator version %s: %w", tn, em.OperatorVersionName, err),
 						Fatal:     true,
 						EventName: &fatalTaskExecutionErrorEventName,
 					}
