@@ -34,8 +34,10 @@ func ParseKubernetesObjects(yaml string) (objs []runtime.Object, err error) {
 			if err = decoder.Decode(unstructuredObj); err != nil {
 				return nil, err
 			}
+			objs = append(objs, unstructuredObj)
+		} else {
+			objs = append(objs, obj)
 		}
-		objs = append(objs, obj)
 	}
 	return
 }
