@@ -1,14 +1,20 @@
 package template
 
 import (
+	"bytes"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
+	yamlutil "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes/scheme"
 )
 
-//ParseKubernetesObjects parses a list of runtime.Objects from the provided yaml
+// ParseKubernetesObjects parses a list of runtime.Objects from the provided yaml
+// If the type is not known in the scheme, it tries to parse it as Unstructured
+// TODO(av) could we use something else than a global scheme here? Should we somehow inject it?
 func ParseKubernetesObjects(yaml string) (objs []runtime.Object, err error) {
 	sepYamlfiles := strings.Split(yaml, "---")
 	for _, f := range sepYamlfiles {
@@ -21,8 +27,13 @@ func ParseKubernetesObjects(yaml string) (objs []runtime.Object, err error) {
 		obj, _, e := decode([]byte(f), nil, nil)
 
 		if e != nil {
-			err = e
-			return
+			// if parsing to scheme known types fails, just try to parse into unstructured
+			unstructuredObj := &unstructured.Unstructured{}
+			fileBytes := []byte(f)
+			decoder := yamlutil.NewYAMLOrJSONDecoder(bytes.NewBuffer(fileBytes), len(fileBytes))
+			if err = decoder.Decode(unstructuredObj); err != nil {
+				return nil, err
+			}
 		}
 		objs = append(objs, obj)
 	}
