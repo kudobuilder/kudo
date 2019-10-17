@@ -176,7 +176,6 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	fmt.Printf("%v", instance.Status.PlanStatus)
 	err = r.Client.Status().Update(context.TODO(), instance)
 	if err != nil {
 		log.Printf("InstanceController: Error when updating instance state. %v", err)
