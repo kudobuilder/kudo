@@ -1,0 +1,10 @@
+apiVersion: kudo.dev/v1alpha1
+kind: TestSuite
+crdDir: ./config/crds/
+manifestDirs:
+- ./test/manifests/
+testDirs:
+- ./test/e2e
+startKIND: true
+startKUDO: true
+timeout: 300
