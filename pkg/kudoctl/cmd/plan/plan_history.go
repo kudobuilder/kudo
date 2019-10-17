@@ -57,7 +57,7 @@ func planHistory(options *Options, settings *env.Settings) error {
 
 		if !p.LastFinishedRun.IsZero() { // plan already finished
 			t := p.LastFinishedRun.Format(timeLayout)
-			msg = fmt.Sprintf("last run at %s", t)
+			msg = fmt.Sprintf("last finished run at %s (%s)", t, string(p.Status))
 		} else if p.Status.IsRunning() {
 			msg = "is running"
 		} else if p.Status != "" {
