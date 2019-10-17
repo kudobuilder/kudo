@@ -63,8 +63,8 @@ func setFlagFromEnv(name, envar string, fs *pflag.FlagSet) {
 	}
 }
 
-// FlagNotChangedValue used for deviations from global defaults
-func (s *Settings) FlagNotChangedValue(fs *pflag.FlagSet, name, value string) string {
+// OverrideDefault used for deviations from global defaults
+func (s *Settings) OverrideDefault(fs *pflag.FlagSet, name, value string) string {
 	if fs.Changed(name) {
 		return s.Namespace
 	}
