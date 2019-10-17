@@ -59,19 +59,19 @@ func NewOptions(v string) Options {
 // Install uses Kubernetes client to install KUDO.
 func Install(client *kube.Client, opts Options, crdOnly bool) error {
 
-	clog.Printf("✓ installing crds")
+	clog.Printf("✅  installing crds")
 	if err := installCrds(client.ExtClient); err != nil {
 		return err
 	}
 	if crdOnly {
 		return nil
 	}
-	clog.Printf("✅ installing prereqs")
+	clog.Printf("✅  preparing service accounts and other requirements for controller to run")
 	if err := installPrereqs(client.KubeClient, opts); err != nil {
 		return err
 	}
 
-	clog.Printf("✅ installing kudo controller")
+	clog.Printf("✅  installing kudo controller")
 	if err := installManager(client.KubeClient, opts); err != nil {
 		return err
 	}
