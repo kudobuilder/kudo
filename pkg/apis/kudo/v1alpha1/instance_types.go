@@ -159,7 +159,7 @@ func (i *Instance) GetLastExecutedPlanStatus() *PlanStatus {
 		return activePlan
 	}
 	var lastExecutedPlan *PlanStatus
-	for n, _ := range i.Status.PlanStatus {
+	for n := range i.Status.PlanStatus {
 		p := i.Status.PlanStatus[n]
 		if p.Status == ExecutionNeverRun {
 			continue // only interested in plans that run
