@@ -26,9 +26,9 @@ const tick = time.Millisecond * 500
 func TestRestartController(t *testing.T) {
 	stopMgr, mgrStopped, c := startTestManager(t)
 
-	log.Printf("Given an existing instance 'restart-instance' and operator 'foo-operator'")
+	log.Printf("Given an existing instance 'foo-instance' and operator 'foo-operator'")
 	in := &v1alpha1.Instance{
-		ObjectMeta: metav1.ObjectMeta{Name: "restart-instance", Namespace: "default", Labels: map[string]string{kudo.OperatorLabel: "foo-operator"}},
+		ObjectMeta: metav1.ObjectMeta{Name: "foo-instance", Namespace: "default", Labels: map[string]string{kudo.OperatorLabel: "foo-operator"}},
 		Spec: v1alpha1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name:      "foo-operator",
