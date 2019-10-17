@@ -71,7 +71,7 @@ func Install(client *kube.Client, opts Options, crdOnly bool) error {
 		return err
 	}
 
-	clog.Printf("✓ installing kudo controller")
+	clog.Printf("✅ installing kudo controller")
 	if err := installManager(client.KubeClient, opts); err != nil {
 		return err
 	}
