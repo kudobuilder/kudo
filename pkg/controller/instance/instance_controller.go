@@ -176,7 +176,8 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	err = r.Client.Update(context.TODO(), instance)
+	fmt.Printf("%v", instance.Status.PlanStatus)
+	err = r.Client.Status().Update(context.TODO(), instance)
 	if err != nil {
 		log.Printf("InstanceController: Error when updating instance state. %v", err)
 		return reconcile.Result{}, err
@@ -224,7 +225,7 @@ func (r *Reconciler) handleError(err error, instance *kudov1alpha1.Instance) err
 	log.Printf("InstanceController: %v", err)
 
 	// first update instance as we want to propagate errors also to the `Instance.Status.PlanStatus`
-	clientErr := r.Client.Update(context.TODO(), instance)
+	clientErr := r.Client.Status().Update(context.TODO(), instance)
 	if clientErr != nil {
 		log.Printf("InstanceController: Error when updating instance state. %v", clientErr)
 		return clientErr
