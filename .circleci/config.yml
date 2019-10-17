@@ -7,8 +7,8 @@ jobs:
     machine: true
     steps:
       - checkout
-      - run: ./test/run_tests.sh
-      - run: ./test/run_tests.sh make e2e-test
+      - run: ./test/run_tests.sh integration-test
+      - run: ./test/run_tests.sh e2e-test
       - store_test_results:
           path: reports/
 
