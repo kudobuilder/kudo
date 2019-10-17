@@ -66,7 +66,7 @@ func Install(client *kube.Client, opts Options, crdOnly bool) error {
 	if crdOnly {
 		return nil
 	}
-	clog.Printf("✓ installing prereqs")
+	clog.Printf("✅ installing prereqs")
 	if err := installPrereqs(client.KubeClient, opts); err != nil {
 		return err
 	}
