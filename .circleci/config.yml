@@ -5,11 +5,13 @@ version: 2
 jobs:
   test:
     machine: true
+    parameters:
+      suite:
+        type: string
     steps:
       - checkout
       - run: echo 'export INTEGRATION_OUTPUT_JUNIT="true"' >> $BASH_ENV
-      - run: ./test/run_tests.sh integration-test
-      - run: ./test/run_tests.sh e2e-test
+      - run: ./test/run_tests.sh << parameters.suite >>
       - store_test_results:
           path: reports/
 
@@ -42,10 +44,17 @@ jobs:
             - "/go/bin"
 workflows:
   version: 2
-  test:
+  lint:
     jobs:
       - code-formatting
-      - test
+  e2e-test:
+    jobs:
+      - test:
+          suite: e2e-test  
+  integration-test:
+    jobs:
+      - test:
+          suite: integration-test
   release:
     jobs:
       - release:
