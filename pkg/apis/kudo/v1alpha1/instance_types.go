@@ -159,7 +159,8 @@ func (i *Instance) GetLastExecutedPlanStatus() *PlanStatus {
 		return activePlan
 	}
 	var lastExecutedPlan *PlanStatus
-	for _, p := range i.Status.PlanStatus {
+	for n, _ := range i.Status.PlanStatus {
+		p := i.Status.PlanStatus[n]
 		if p.Status == ExecutionNeverRun {
 			continue // only interested in plans that run
 		}
@@ -177,7 +178,7 @@ func wasRunAfter(p1 PlanStatus, p2 PlanStatus) bool {
 	if p1.Status == ExecutionNeverRun || p2.Status == ExecutionNeverRun {
 		return false
 	}
-	return !p1.LastFinishedRun.Before(&p2.LastFinishedRun)
+	return p1.LastFinishedRun.Time.After(p2.LastFinishedRun.Time)
 }
 
 // NoPlanEverExecuted returns true is this is new instance for which we never executed any plan
