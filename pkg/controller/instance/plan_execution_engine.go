@@ -6,17 +6,18 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"k8s.io/apimachinery/pkg/types"
-
-	"errors"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	kudoengine "github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/util/health"
 	errwrap "github.com/pkg/errors"
+	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apijson "k8s.io/apimachinery/pkg/util/json"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -55,24 +56,18 @@ type engineMetadata struct {
 // result of running this function is new state of the execution that is returned to the caller (it can either be completed, or still in progress or errored)
 // in case of error, error is returned along with the state as well (so that it's possible to report which step caused the error)
 // in case of error, method returns ErrorStatus which has property to indicate unrecoverable error meaning if there is no point in retrying that execution
-func executePlan(plan *activePlan, metadata *engineMetadata, c client.Client, enhancer kubernetesObjectEnhancer) (*v1alpha1.PlanStatus, error) {
+func executePlan(plan *activePlan, metadata *engineMetadata, c client.Client, enhancer kubernetesObjectEnhancer, currentTime time.Time) (*v1alpha1.PlanStatus, error) {
 	if plan.Status.IsTerminal() {
 		log.Printf("PlanExecution: Plan %s for instance %s is terminal, nothing to do", plan.name, metadata.instanceName)
 		return plan.PlanStatus, nil
 	}
 
-	// we don't want to modify the original state, and State does not contain any pointer, so shallow copy is enough
-	newState := &(*plan.PlanStatus)
+	// we don't want to modify the original state -> need to do deepcopy
+	newState := plan.PlanStatus.DeepCopy()
 
 	// render kubernetes resources needed to execute this plan
-	planResources, err := prepareKubeResources(plan, metadata, enhancer)
+	planResources, err := prepareKubeResources(plan, newState, metadata, enhancer)
 	if err != nil {
-		var exErr *executionError
-		if errors.As(err, &exErr) {
-			newState.Status = v1alpha1.ExecutionFatalError
-		} else {
-			newState.Status = v1alpha1.ErrorStatus
-		}
 		return newState, err
 	}
 
@@ -128,6 +123,7 @@ func executePlan(plan *activePlan, metadata *engineMetadata, c client.Client, en
 	if allPhasesCompleted {
 		log.Printf("PlanExecution: All phases on plan %s and instance %s are healthy", plan.name, metadata.instanceName)
 		newState.Status = v1alpha1.ExecutionComplete
+		newState.LastFinishedRun = v1.Time{Time: currentTime}
 	}
 
 	return newState, nil
@@ -200,38 +196,37 @@ func prettyPrint(i interface{}) string {
 func patchExistingObject(newResource runtime.Object, existingResource runtime.Object, c client.Client) error {
 	newResourceJSON, _ := apijson.Marshal(newResource)
 	key, _ := client.ObjectKeyFromObject(newResource)
-	err := c.Patch(context.TODO(), existingResource, client.ConstantPatch(types.StrategicMergePatchType, newResourceJSON))
-	if err != nil {
-		// Right now applying a Strategic Merge Patch to custom resources does not work. There is
-		// certain metadata needed, which when missing, leads to an invalid Content-Type Header and
-		// causes the request to fail.
-		// ( see https://github.com/kubernetes-sigs/kustomize/issues/742#issuecomment-458650435 )
-		//
-		// We temporarily solve this by checking for the specific error when a SMP is applied to
-		// custom resources and handle it by defaulting to a Merge Patch.
-		//
-		// The error message for which we check is:
-		// 		the body of the request was in an unknown format - accepted media types include:
-		//			application/json-patch+json, application/merge-patch+json
-		//
-		// 		Reason: "UnsupportedMediaType" Code: 415
-		if apierrors.IsUnsupportedMediaType(err) {
-			err = c.Patch(context.TODO(), newResource, client.ConstantPatch(types.MergePatchType, newResourceJSON))
-			if err != nil {
-				log.Printf("PlanExecution: Error when applying merge patch to object %v: %v", key, err)
-				return err
-			}
-		} else {
-			log.Printf("PlanExecution: Error when applying StrategicMergePatch to object %v: %v", key, err)
+	_, isUnstructured := newResource.(runtime.Unstructured)
+	_, isCRD := newResource.(*apiextv1beta1.CustomResourceDefinition)
+
+	if isUnstructured || isCRD || isKudoType(newResource) {
+		// strategic merge patch is not supported for these types, falling back to mergepatch
+		err := c.Patch(context.TODO(), newResource, client.ConstantPatch(types.MergePatchType, newResourceJSON))
+		if err != nil {
+			log.Printf("PlanExecution: Error when applying merge patch to object %v: %v", key, err)
+			return err
+		}
+	} else {
+		err := c.Patch(context.TODO(), existingResource, client.ConstantPatch(types.StrategicMergePatchType, newResourceJSON))
+		if err != nil {
+			log.Printf("PlanExecution: Error when applying StrategicMergePatch to object %v: %w", key, err)
 			return err
 		}
 	}
 	return nil
 }
 
+func isKudoType(object runtime.Object) bool {
+	_, isOperator := object.(*v1alpha1.OperatorVersion)
+	_, isOperatorVersion := object.(*v1alpha1.Operator)
+	_, isInstance := object.(*v1alpha1.Instance)
+	return isOperator || isOperatorVersion || isInstance
+}
+
 // prepareKubeResources takes all resources in all tasks for a plan and renders them with the right parameters
 // it also takes care of applying KUDO specific conventions to the resources like commond labels
-func prepareKubeResources(plan *activePlan, meta *engineMetadata, renderer kubernetesObjectEnhancer) (*planResources, error) {
+// newState gets modified with possible state changes as a result of this method
+func prepareKubeResources(plan *activePlan, newState *v1alpha1.PlanStatus, meta *engineMetadata, renderer kubernetesObjectEnhancer) (*planResources, error) {
 	configs := make(map[string]interface{})
 	configs["OperatorName"] = meta.operatorName
 	configs["Name"] = meta.instanceName
@@ -243,7 +238,7 @@ func prepareKubeResources(plan *activePlan, meta *engineMetadata, renderer kuber
 	}
 
 	for _, phase := range plan.spec.Phases {
-		phaseState, _ := getPhaseFromStatus(phase.Name, plan.PlanStatus)
+		phaseState, _ := getPhaseFromStatus(phase.Name, newState)
 		perStepResources := make(map[string][]runtime.Object)
 		result.PhaseResources[phase.Name] = phaseResources{
 			StepResources: perStepResources,
@@ -265,6 +260,7 @@ func prepareKubeResources(plan *activePlan, meta *engineMetadata, renderer kuber
 						if resource, ok := plan.templates[res]; ok {
 							templatedYaml, err := engine.Render(resource, configs)
 							if err != nil {
+								newState.Status = v1alpha1.ExecutionFatalError
 								phaseState.Status = v1alpha1.ExecutionFatalError
 								stepState.Status = v1alpha1.ExecutionFatalError
 
@@ -274,6 +270,7 @@ func prepareKubeResources(plan *activePlan, meta *engineMetadata, renderer kuber
 							}
 							resourcesAsString[res] = templatedYaml
 						} else {
+							newState.Status = v1alpha1.ExecutionFatalError
 							phaseState.Status = v1alpha1.ExecutionFatalError
 							stepState.Status = v1alpha1.ExecutionFatalError
 
@@ -291,6 +288,7 @@ func prepareKubeResources(plan *activePlan, meta *engineMetadata, renderer kuber
 					})
 
 					if err != nil {
+						newState.Status = v1alpha1.ErrorStatus
 						phaseState.Status = v1alpha1.ErrorStatus
 						stepState.Status = v1alpha1.ErrorStatus
 
@@ -299,6 +297,7 @@ func prepareKubeResources(plan *activePlan, meta *engineMetadata, renderer kuber
 					}
 					resources = append(resources, resourcesWithConventions...)
 				} else {
+					newState.Status = v1alpha1.ErrorStatus
 					phaseState.Status = v1alpha1.ErrorStatus
 					stepState.Status = v1alpha1.ErrorStatus
 

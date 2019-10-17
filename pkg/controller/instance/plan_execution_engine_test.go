@@ -3,6 +3,7 @@ package instance
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/kudobuilder/kudo/pkg/util/template"
 	"github.com/pkg/errors"
@@ -19,6 +20,7 @@ import (
 )
 
 func TestExecutePlan(t *testing.T) {
+	timeNow := time.Now()
 	defaultMetadata := &engineMetadata{
 		instanceName:        "Instance",
 		instanceNamespace:   "default",
@@ -78,9 +80,10 @@ func TestExecutePlan(t *testing.T) {
 			tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"pod"}}},
 			templates: map[string]string{"pod": getResourceAsString(getPod("pod1", "default"))},
 		}, defaultMetadata, &v1alpha1.PlanStatus{
-			Status: v1alpha1.ExecutionComplete,
-			Name:   "test",
-			Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
+			Status:          v1alpha1.ExecutionComplete,
+			Name:            "test",
+			LastFinishedRun: v1.Time{Time: timeNow},
+			Phases:          []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
 		}},
 		{"plan in errored state will be retried and completed when no error happens", &activePlan{
 			name: "test",
@@ -98,15 +101,16 @@ func TestExecutePlan(t *testing.T) {
 			tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"pod"}}},
 			templates: map[string]string{"pod": getResourceAsString(getPod("pod1", "default"))},
 		}, defaultMetadata, &v1alpha1.PlanStatus{
-			Status: v1alpha1.ExecutionComplete,
-			Name:   "test",
-			Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
+			Status:          v1alpha1.ExecutionComplete,
+			LastFinishedRun: v1.Time{Time: timeNow},
+			Name:            "test",
+			Phases:          []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
 		}},
 	}
 
 	for _, tt := range tests {
 		testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
-		newStatus, err := executePlan(tt.activePlan, tt.metadata, testClient, &testKubernetesObjectEnhancer{})
+		newStatus, err := executePlan(tt.activePlan, tt.metadata, testClient, &testKubernetesObjectEnhancer{}, timeNow)
 
 		if err != nil {
 			t.Errorf("%s: Expecting no error but got error %v", tt.name, err)
@@ -115,6 +119,37 @@ func TestExecutePlan(t *testing.T) {
 		if !reflect.DeepEqual(tt.expectedStatus, newStatus) {
 			t.Errorf("%s: Expecting status to be %v but got %v", tt.name, *tt.expectedStatus, *newStatus)
 		}
+	}
+}
+
+func TestExecutePlanWithEnhancerError(t *testing.T) {
+	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
+	newStatus, err := executePlan(&activePlan{
+		name: "test",
+		PlanStatus: &v1alpha1.PlanStatus{
+			Status: v1alpha1.ExecutionPending,
+			Name:   "test",
+			Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionPending, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionPending, Name: "step"}}}},
+		},
+		spec: &v1alpha1.Plan{
+			Strategy: "serial",
+			Phases: []v1alpha1.Phase{
+				{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
+			},
+		},
+		tasks:     map[string]v1alpha1.TaskSpec{"task": {Resources: []string{"job"}}},
+		templates: map[string]string{"job": getResourceAsString(getJob("job1", "default"))},
+	}, &engineMetadata{
+		instanceName:        "Instance",
+		instanceNamespace:   "default",
+		operatorVersion:     "ov-1.0",
+		operatorName:        "operator",
+		resourcesOwner:      getJob("pod2", "default"),
+		operatorVersionName: "ovname",
+	}, testClient, &errKubernetesObjectEnhancer{}, time.Now())
+
+	if err == nil || newStatus == nil || newStatus.Status != v1alpha1.ErrorStatus || newStatus.Phases[0].Status != v1alpha1.ErrorStatus || newStatus.Phases[0].Steps[0].Status != v1alpha1.ErrorStatus {
+		t.Fatalf("Expecting to get an error with fatal error in status for error in using enhancer, got %w, %v", err, newStatus)
 	}
 }
 
@@ -165,4 +200,10 @@ func (k *testKubernetesObjectEnhancer) applyConventionsToTemplates(templates map
 		result = append(result, objsToAdd[0])
 	}
 	return result, nil
+}
+
+type errKubernetesObjectEnhancer struct{}
+
+func (k *errKubernetesObjectEnhancer) applyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) ([]runtime.Object, error) {
+	return nil, errors.New("Always error")
 }

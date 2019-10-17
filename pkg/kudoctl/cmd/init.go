@@ -58,6 +58,7 @@ type initCmd struct {
 	dryRun     bool
 	output     string
 	version    string
+	ns         string
 	wait       bool
 	timeout    int64
 	clientOnly bool
@@ -82,6 +83,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 				return err
 			}
 			i.home = Settings.Home
+			i.ns = Settings.Namespace
 			clog.V(8).Printf("init cmd %v", i)
 			return i.run()
 		},
@@ -122,7 +124,7 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (initCmd *initCmd) run() error {
-	opts := cmdInit.NewOptions(initCmd.version)
+	opts := cmdInit.NewOptions(initCmd.version, initCmd.ns)
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image
@@ -145,7 +147,7 @@ func (initCmd *initCmd) run() error {
 			if err != nil {
 				return err
 			}
-			mans = prereq
+			mans = append(mans, prereq...)
 
 			deploy, err := cmdInit.ManagerManifests(opts)
 			if err != nil {

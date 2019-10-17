@@ -19,7 +19,7 @@ import (
 var DefaultStatusOptions = &Options{}
 
 // RunStatus runs the plan status command
-func RunStatus(cmd *cobra.Command, args []string, options *Options, settings *env.Settings) error {
+func RunStatus(cmd *cobra.Command, options *Options, settings *env.Settings) error {
 
 	instanceFlag, err := cmd.Flags().GetString("instance")
 	if err != nil || instanceFlag == "" {
@@ -34,6 +34,7 @@ func RunStatus(cmd *cobra.Command, args []string, options *Options, settings *en
 }
 
 func planStatus(options *Options, settings *env.Settings) error {
+	namespace := settings.Namespace
 
 	tree := treeprint.New()
 
@@ -54,7 +55,7 @@ func planStatus(options *Options, settings *env.Settings) error {
 		Resource: "instances",
 	}
 
-	instObj, err := dynamicClient.Resource(instancesGVR).Namespace(options.Namespace).Get(options.Instance, metav1.GetOptions{})
+	instObj, err := dynamicClient.Resource(instancesGVR).Namespace(namespace).Get(options.Instance, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -80,7 +81,7 @@ func planStatus(options *Options, settings *env.Settings) error {
 	}
 
 	//  List all of the Virtual Services.
-	operatorObj, err := dynamicClient.Resource(operatorGVR).Namespace(options.Namespace).Get(operatorVersionNameOfInstance, metav1.GetOptions{})
+	operatorObj, err := dynamicClient.Resource(operatorGVR).Namespace(namespace).Get(operatorVersionNameOfInstance, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -97,21 +98,21 @@ func planStatus(options *Options, settings *env.Settings) error {
 		return err
 	}
 
-	activePlanStatus := instance.GetPlanInProgress()
+	lastPlanStatus := instance.GetLastExecutedPlanStatus()
 
-	if activePlanStatus == nil {
-		log.Printf("No active plan exists for instance %s", instance.Name)
+	if lastPlanStatus == nil {
+		log.Printf("No plan ever run for instance - nothing to show for instance %s\n", instance.Name)
 		return nil
 	}
 
-	rootDisplay := fmt.Sprintf("%s (Operator-Version: \"%s\" Active-Plan: \"%s\")", instance.Name, instance.Spec.OperatorVersion.Name, activePlanStatus.Name)
+	rootDisplay := fmt.Sprintf("%s (Operator-Version: \"%s\" Active-Plan: \"%s\")", instance.Name, instance.Spec.OperatorVersion.Name, lastPlanStatus.Name)
 	rootBranchName := tree.AddBranch(rootDisplay)
 
 	for name, plan := range operator.Spec.Plans {
-		if name == activePlanStatus.Name {
-			planDisplay := fmt.Sprintf("Plan %s (%s strategy) [%s]", name, plan.Strategy, activePlanStatus.Status)
+		if name == lastPlanStatus.Name {
+			planDisplay := fmt.Sprintf("Plan %s (%s strategy) [%s]", name, plan.Strategy, lastPlanStatus.Status)
 			planBranchName := rootBranchName.AddBranch(planDisplay)
-			for _, phase := range activePlanStatus.Phases {
+			for _, phase := range lastPlanStatus.Phases {
 				phaseDisplay := fmt.Sprintf("Phase %s [%s]", phase.Name, phase.Status)
 				phaseBranchName := planBranchName.AddBranch(phaseDisplay)
 				for _, steps := range phase.Steps {
@@ -137,7 +138,7 @@ func planStatus(options *Options, settings *env.Settings) error {
 		}
 	}
 
-	fmt.Printf("Plan(s) for \"%s\" in namespace \"%s\":\n", instance.Name, options.Namespace)
+	fmt.Printf("Plan(s) for \"%s\" in namespace \"%s\":\n", instance.Name, namespace)
 	fmt.Println(tree.String())
 
 	return nil
