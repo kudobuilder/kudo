@@ -46,11 +46,11 @@ func planHistory(options *Options, settings *env.Settings) error {
 		return err
 	}
 	if instance == nil {
-		return fmt.Errorf("instance %s/%s does not exist", options.Instance, namespace)
+		return fmt.Errorf("instance %s/%s does not exist", namespace, options.Instance)
 	}
 
 	tree := treeprint.New()
-	timeLayout := "2006-01-02"
+	timeLayout := "2006-01-02T15:04:05"
 
 	for _, p := range instance.Status.PlanStatus {
 		msg := "never run" // this is for the cases when status was not yet populated
