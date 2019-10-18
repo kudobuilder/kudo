@@ -24,7 +24,7 @@ func (cmd *uninstallCmd) run(options uninstallOptions, settings *env.Settings) e
 	kc, err := kudo.NewClient(settings.Namespace, settings.KubeConfig)
 	clog.V(3).Printf("acquiring kudo client")
 	if err != nil {
-		clog.V(3).Printf("failed to acquire kudo client")
+		clog.V(3).Printf("failed to acquire kudo client: %v", err)
 		return fmt.Errorf("failed to acquire kudo client: %w", err)
 	}
 
