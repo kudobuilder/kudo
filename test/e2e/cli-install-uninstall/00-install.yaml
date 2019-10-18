@@ -1,4 +1,4 @@
 apiVersion: kudo.dev/v1alpha1
 kind: TestStep
 kubectl:
-- kudo install --instance cli-install ./cli-install-operator
+- kudo install --instance first-operator ../../../config/samples/first-operator

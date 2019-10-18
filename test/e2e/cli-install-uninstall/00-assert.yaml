@@ -1,18 +1,12 @@
 apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
-  labels:
-    kudo.dev/operator: cli-install-operator
-spec:
-  operatorVersion:
-    name: cli-install-operator-0.1.0
+  name: first-operator
 status:
   aggregatedStatus:
     status: COMPLETE
 ---
-apiVersion: v1
-kind: Service
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  labels:
-    memory: "1Gi"
-    cpu: "0.25"
+  name: first-operator-nginx-deployment
