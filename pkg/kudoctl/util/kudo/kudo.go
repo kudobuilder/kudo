@@ -30,7 +30,7 @@ type Client struct {
 }
 
 // NewClient creates new KUDO Client
-func NewClient(namespace, kubeConfigPath string) (*Client, error) {
+func NewClient(namespace, kubeConfigPath string, requestTimeout int64) (*Client, error) {
 
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
@@ -39,7 +39,7 @@ func NewClient(namespace, kubeConfigPath string) (*Client, error) {
 	}
 
 	// set default configs
-	config.Timeout = time.Second * 3
+	config.Timeout = time.Duration(requestTimeout) * time.Second
 
 	// create the clientset
 	kudoClientset, err := versioned.NewForConfig(config)

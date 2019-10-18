@@ -76,7 +76,7 @@ func runUpdate(args []string, options *updateOptions, settings *env.Settings) er
 	}
 	instanceToUpdate := options.InstanceName
 
-	kc, err := kudo.NewClient(settings.Namespace, settings.KubeConfig)
+	kc, err := env.GetClient(settings)
 	if err != nil {
 		return errors.Wrap(err, "creating kudo client")
 	}
