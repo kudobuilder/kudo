@@ -57,7 +57,7 @@ func newUninstallCmd() *cobra.Command {
 	uninstallCmd := &cobra.Command{
 		Use:     "uninstall",
 		Short:   "Uninstall a KUDO package.",
-		Long:    "Uninstall the instance of a KUDO package.",
+		Long:    "Uninstall the instance of a KUDO package. This also removes dependent objects, e.g. deployments, pods",
 		Example: uninstallExample,
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
