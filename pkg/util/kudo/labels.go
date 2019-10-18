@@ -10,8 +10,6 @@ const (
 	// HeritageLabel is k8s label key for heritage
 	HeritageLabel = "heritage" // this is not specific to KUDO
 
-	// PlanExecutionAnnotation is k8s annotation key for planexecution that created this object
-	PlanExecutionAnnotation = "kudo.dev/plan-execution"
 	// PlanAnnotation is k8s annotation key for plan name that created this object
 	PlanAnnotation = "kudo.dev/plan"
 	// PhaseAnnotation is k8s annotation key for phase that created this object

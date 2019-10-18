@@ -43,8 +43,6 @@ func (r *Reconciler) SetupWithManager(
 // and what is in the OperatorVersion.Spec.
 //
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=kudo.dev,resources=operatorversions,verbs=get;list;watch;create;update;patch;delete
 func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	// Fetch the operator version
 	operatorVersion := &kudov1alpha1.OperatorVersion{}

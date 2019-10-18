@@ -1,7 +1,6 @@
 package init
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
@@ -35,7 +34,7 @@ func installCrds(client apiextensionsclient.Interface) error {
 func installOperator(client v1beta1.CustomResourceDefinitionsGetter) error {
 	o := generateOperator()
 	_, err := client.CustomResourceDefinitions().Create(o)
-	if isAlreadyExistsError(err) {
+	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("crd %v already exists", o.Name)
 		return nil
 	}
@@ -43,18 +42,10 @@ func installOperator(client v1beta1.CustomResourceDefinitionsGetter) error {
 
 }
 
-func isAlreadyExistsError(err error) bool {
-	var statusError *kerrors.StatusError
-	if errors.As(err, &statusError) {
-		return statusError.ErrStatus.Reason == "AlreadyExists"
-	}
-	return false
-}
-
 func installOperatorVersion(client v1beta1.CustomResourceDefinitionsGetter) error {
 	ov := generateOperatorVersion()
 	_, err := client.CustomResourceDefinitions().Create(ov)
-	if isAlreadyExistsError(err) {
+	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("crd %v already exists", ov.Name)
 		return nil
 	}
@@ -64,7 +55,7 @@ func installOperatorVersion(client v1beta1.CustomResourceDefinitionsGetter) erro
 func installInstance(client v1beta1.CustomResourceDefinitionsGetter) error {
 	instance := generateInstance()
 	_, err := client.CustomResourceDefinitions().Create(instance)
-	if isAlreadyExistsError(err) {
+	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("crd %v already exists", instance.Name)
 		return nil
 	}
@@ -93,7 +84,7 @@ func generateOperator() *apiextv1beta1.CustomResourceDefinition {
 		"description":       apiextv1beta1.JSONSchemaProps{Type: "string"},
 		"kubernetesVersion": apiextv1beta1.JSONSchemaProps{Type: "string"},
 		"kudoVersion":       apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"maintainers": apiextv1beta1.JSONSchemaProps{
+		"maintainers": apiextv1beta1.JSONSchemaProps{Type: "array",
 			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{
 				Type:       "object",
 				Properties: maintainers,
@@ -109,9 +100,8 @@ func generateOperator() *apiextv1beta1.CustomResourceDefinition {
 		"spec":       apiextv1beta1.JSONSchemaProps{Properties: specProps, Type: "object"},
 		"status":     apiextv1beta1.JSONSchemaProps{Type: "object"},
 	}
-
 	crd.Spec.Validation = &apiextv1beta1.CustomResourceValidation{
-		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
+		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{Type: "object",
 			Properties: validationProps,
 		},
 	}
@@ -180,7 +170,7 @@ func generateOperatorVersion() *apiextv1beta1.CustomResourceDefinition {
 	}
 
 	crd.Spec.Validation = &apiextv1beta1.CustomResourceValidation{
-		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
+		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{Type: "object",
 			Properties: validationProps,
 		},
 	}
@@ -233,7 +223,7 @@ func generateInstance() *apiextv1beta1.CustomResourceDefinition {
 	}
 
 	crd.Spec.Validation = &apiextv1beta1.CustomResourceValidation{
-		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
+		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{Type: "object",
 			Properties: validationProps,
 		},
 	}
@@ -267,6 +257,10 @@ func generateCrd(kind string, plural string) *apiextv1beta1.CustomResourceDefini
 			StoredVersions: []string{},
 		},
 	}
+	// below is needed if we support 1.15 CRD in v1beta1, it is deprecated within the 1.15
+	// for 1.16 it is removed and functions as if preserve == false
+	// preserveFields := false
+	// crd.Spec.PreserveUnknownFields = &preserveFields
 	return crd
 }
 

@@ -1,15 +1,26 @@
 # Golang CircleCI 2.0 configuration file
 #
 # Check https://circleci.com/docs/2.0/language-go/ for more details
-version: 2
+version: 2.1
 jobs:
-  test:
+  integration-test:
     machine: true
     steps:
       - checkout
-      - run: ./test/run_tests.sh
+      - run: echo 'export INTEGRATION_OUTPUT_JUNIT="true"' >> $BASH_ENV
+      - run: ./test/run_tests.sh integration-test
       - store_test_results:
           path: reports/
+
+  e2e-test:
+    machine: true
+    steps:
+      - checkout
+      - run: echo 'export INTEGRATION_OUTPUT_JUNIT="true"' >> $BASH_ENV
+      - run: ./test/run_tests.sh e2e-test
+      - store_test_results:
+          path: reports/
+
   release:
     docker:
       - image: kudobuilder/golang:1.13
@@ -39,10 +50,15 @@ jobs:
             - "/go/bin"
 workflows:
   version: 2
-  test:
+  lint:
     jobs:
       - code-formatting
-      - test
+  integration-test:
+    jobs:
+      - integration-test
+  e2e-test:
+    jobs:
+      - e2e-test
   release:
     jobs:
       - release:

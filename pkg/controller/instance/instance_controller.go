@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -117,8 +118,6 @@ func (r *Reconciler) SetupWithManager(
 //   +-------------------------------+
 //
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=kudo.dev,resources=instances,verbs=get;list;watch;create;update;patch;delete
 func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	// ---------- 1. Query the current state ----------
 
@@ -165,11 +164,10 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		err = r.handleError(err, instance)
 		return reconcile.Result{}, err
 	}
-	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
-	newStatus, err := executePlan(activePlan, metadata, r.Client, &kustomizeEnhancer{r.Scheme})
+	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.name, instance.Namespace, instance.Name)
+	newStatus, err := executePlan(activePlan, metadata, r.Client, &kustomizeEnhancer{r.Scheme}, time.Now())
 
 	// ---------- 4. Update status of instance after the execution proceeded ----------
-
 	if newStatus != nil {
 		instance.UpdateInstanceStatus(newStatus)
 	}
@@ -191,7 +189,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	return reconcile.Result{}, nil
 }
 
-func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.OperatorVersion, activePlanStatus *kudov1alpha1.PlanStatus) (*activePlan, *executionMetadata, error) {
+func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.OperatorVersion, activePlanStatus *kudov1alpha1.PlanStatus) (*activePlan, *engineMetadata, error) {
 	params, err := getParameters(instance, ov)
 	if err != nil {
 		return nil, nil, err
@@ -203,13 +201,13 @@ func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.Oper
 	}
 
 	return &activePlan{
-			Name:       activePlanStatus.Name,
-			Spec:       &planSpec,
+			name:       activePlanStatus.Name,
+			spec:       &planSpec,
 			PlanStatus: activePlanStatus,
-			Tasks:      ov.Spec.Tasks,
-			Templates:  ov.Spec.Templates,
+			tasks:      ov.Spec.Tasks,
+			templates:  ov.Spec.Templates,
 			params:     params,
-		}, &executionMetadata{
+		}, &engineMetadata{
 			operatorVersionName: ov.Name,
 			operatorVersion:     ov.Spec.Version,
 			resourcesOwner:      instance,

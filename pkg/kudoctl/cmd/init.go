@@ -14,12 +14,12 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	flag "github.com/spf13/pflag"
 )
 
 const (
 	initDesc = `
-This command installs KUDO onto your Kubernetes Cluster and sets up local configuration in $KUDO_HOME (default ~/.kudo/).
+This command installs KUDO onto your Kubernetes cluster and sets up local configuration in $KUDO_HOME (default ~/.kudo/).
 
 As with the rest of the KUDO commands, 'kudo init' discovers Kubernetes clusters by reading 
 $KUBECONFIG (default '~/.kube/config') and using the default context.
@@ -32,6 +32,9 @@ version. You can specify an alternative image with '--kudo-image' which is the f
 or '--version' which will replace the version designation on the standard image.
 
 To dump a manifest containing the KUDO deployment YAML, combine the '--dry-run' and '--output=yaml' flags.
+
+Running 'kudo init' on server-side is idempotent - it skips manifests alredy applied to the cluster in previous runs
+and finishes with success if KUDO is already installed.
 `
 	initExample = `  # yaml output
   kubectl kudo init --dry-run --output yaml
@@ -55,6 +58,7 @@ type initCmd struct {
 	dryRun     bool
 	output     string
 	version    string
+	ns         string
 	wait       bool
 	timeout    int64
 	clientOnly bool
@@ -75,17 +79,18 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			if len(args) != 0 {
 				return errors.New("this command does not accept arguments")
 			}
-			if err := i.validate(); err != nil {
+			if err := i.validate(cmd.Flags()); err != nil {
 				return err
 			}
 			i.home = Settings.Home
+			i.ns = Settings.Namespace
 			clog.V(8).Printf("init cmd %v", i)
 			return i.run()
 		},
 	}
 
 	f := cmd.Flags()
-	f.BoolVarP(&i.clientOnly, "client-only", "c", false, "If set does not install KUDO")
+	f.BoolVarP(&i.clientOnly, "client-only", "c", false, "If set does not install KUDO on the server")
 	f.StringVarP(&i.image, "kudo-image", "i", "", "Override KUDO controller image and/or version")
 	f.StringVarP(&i.version, "version", "", "", "Override KUDO controller version of the KUDO image")
 	f.StringVarP(&i.output, "output", "o", "", "Output format")
@@ -97,20 +102,29 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	return cmd
 }
 
-func (initCmd *initCmd) validate() error {
+func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 	// we do not allow the setting of image and version!
 	if initCmd.image != "" && initCmd.version != "" {
 		return errors.New("specify either 'kudo-image' or 'version', not both")
 	}
+	if initCmd.clientOnly {
+		if initCmd.image != "" || initCmd.version != "" || initCmd.output != "" || initCmd.crdOnly || initCmd.wait {
+			return errors.New("you cannot use image, version, output, crd-only and wait flags with client-only option")
+		}
+	}
 	if initCmd.crdOnly && initCmd.wait {
 		return errors.New("wait is not allowed with crd-only")
 	}
+	if flags.Changed("wait-timeout") && !initCmd.wait {
+		return errors.New("wait-timeout is only useful when using the flag '--wait'")
+	}
+
 	return nil
 }
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (initCmd *initCmd) run() error {
-	opts := cmdInit.NewOptions(initCmd.version)
+	opts := cmdInit.NewOptions(initCmd.version, initCmd.ns)
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image
@@ -133,7 +147,7 @@ func (initCmd *initCmd) run() error {
 			if err != nil {
 				return err
 			}
-			mans = prereq
+			mans = append(mans, prereq...)
 
 			deploy, err := cmdInit.ManagerManifests(opts)
 			if err != nil {
@@ -168,15 +182,11 @@ func (initCmd *initCmd) run() error {
 		}
 
 		if err := cmdInit.Install(initCmd.client, opts, initCmd.crdOnly); err != nil {
-			if apierrors.IsAlreadyExists(err) {
-				clog.Printf("Warning: KUDO is already installed in the cluster.\n" +
-					"(Use --client-only to suppress this message)")
-			}
 			return clog.Errorf("error installing: %s", err)
 		}
 
 		if initCmd.wait {
-			clog.V(4).Printf("waiting for kudo at server init")
+			clog.Printf("⌛Waiting for KUDO controller to be ready in your cluster...")
 			finished := cmdInit.WatchKUDOUntilReady(initCmd.client.KubeClient, opts, initCmd.timeout)
 			if !finished {
 				return errors.New("watch timed out, readiness uncertain")

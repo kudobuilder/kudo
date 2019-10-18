@@ -15,21 +15,22 @@ Bug fixes are expected to be worked on and applied to `master`.  If the fix is n
 The KUDO Project is released on an as-needed basis. The process is as follows:
 
 1. An issue is proposing a new release with a changelog since the last release
-2. All [OWNERS](OWNERS) must LGTM this release
-3. Release process below is followed
-5. The release issue is closed
+1. All [OWNERS](OWNERS) must LGTM this release
+1. Release process below is followed
+1. The release issue is closed
 
 ### Release Process
 
 The official binaries for KUDO are created using [goreleaser](https://goreleaser.com/) for the release process through the circle-ci release job. The [.goreleaser.yml](.goreleaser.yml) defines the binaries which are supported for each release.  The circle-ci release process has not been provided with credentials for Github and Docker hub yet.  The current process to initiate a release is:
 
 1. Ensure you have credential `GITHUB_TOKEN` set. The env must include `export GITHUB_TOKEN=<personal access token>`. [Help](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) provided from Github. The token must grant full access to: repo, write:packages, read:packages.
-2. Ensure you are logged into Docker hub and have rights to push to kudobuilder.
-3. Tag repo with expected release `git tag -a v0.2.0 -m "v0.2.0"`  && push tag `git push --tags`.
-4. Invoke goreleaser `goreleaser --rm-dist`.
-5. Update the GH release with Release high-levels.
-6. An announcement email is sent to `kudobuilder@googlegroups.com` with the subject `[ANNOUNCE] Kudo $VERSION is released`
-7. Run `./hack/generate_krew.sh` and submit the generated `kudo.yaml` to https://github.com/kubernetes-sigs/krew-index/.
+1. Ensure you are logged into Docker hub and have rights to push to kudobuilder.
+1. Tag repo with expected release `git tag -a v0.2.0 -m "v0.2.0"`  && push tag `git push --tags`.
+1. Invoke goreleaser `goreleaser --rm-dist`.
+1. Update the GH release with Release high-levels and a changelog.
+1. Send an announcement email to `kudobuilder@googlegroups.com` with the subject `[ANNOUNCE] Kudo $VERSION is released`
+1. Create a PR against [kudobuilder/www](https://github.com/kudobuilder/www) with an according [blog post](https://kudo.dev/internal-docs/blog-index.html#release-posts).
+1. Run `./hack/generate_krew.sh` and submit the generated `kudo.yaml` to https://github.com/kubernetes-sigs/krew-index/.
 
 **Note:** If there are issues with the release, any changes to the repository will result in it being considered "dirty" and not in a state to be released.
 It is possible outside of the standard release process to build a "snapshot" release using the following command: `goreleaser release --skip-publish --snapshot --rm-dist`

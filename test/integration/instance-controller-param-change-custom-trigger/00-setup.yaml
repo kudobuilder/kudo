@@ -1,7 +1,7 @@
 # Create an OperatorVersion with a parameter and its corresponding trigger.
 #
 # The next step will update the parameter and verify that it triggers the
-# creation of a `PlanExecution` for the plan defined as a trigger.
+# execution for the plan defined as a trigger.
 apiVersion: kudo.dev/v1alpha1
 kind: OperatorVersion
 metadata:
