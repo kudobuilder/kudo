@@ -595,35 +595,44 @@ func TestKudoClient_DeleteInstance(t *testing.T) {
 	}
 
 	installNamespace := "default"
-
-	k2o := newTestSimpleK2o()
-
-	_, err := k2o.clientset.KudoV1alpha1().Instances(installNamespace).Create(&testInstance)
-	if err != nil {
-		t.Fatalf("error creating instance in tests setup for")
+	tests := []struct {
+		name         string
+		instanceName string
+		namespace    string
+		shouldFail   bool
+	}{
+		{"non-existing instance", "nonexisting-instance", installNamespace, true},
+		{"non-existing namespace", testInstance.Name, "otherns", true},
+		{"delete instance", testInstance.Name, installNamespace, false},
 	}
 
-	err = k2o.DeleteInstance("nonexisting-instance-name", installNamespace)
-	if err == nil {
-		t.Errorf("expected deletion of a non-existing instance to fail")
-	}
+	for _, test := range tests {
+		k2o := newTestSimpleK2o()
 
-	err = k2o.DeleteInstance(testInstance.Name, "otherns")
-	if err == nil {
-		t.Errorf("expected deletion of instance in different namespace to fail")
-	}
+		_, err := k2o.clientset.KudoV1alpha1().Instances(installNamespace).Create(&testInstance)
+		if err != nil {
+			t.Fatalf("error creating instance in tests setup for")
+		}
 
-	err = k2o.DeleteInstance(testInstance.Name, installNamespace)
-	if err != nil {
-		t.Errorf("deletion of instance did not succeed: %w", err)
-	}
+		err = k2o.DeleteInstance(test.instanceName, test.namespace)
+		if err == nil {
+			if test.shouldFail {
+				t.Errorf("expected test %s to fail", test.name)
+			} else {
+				instance, err := k2o.GetInstance(test.instanceName, test.namespace)
+				if err != nil {
+					t.Errorf("failed to get instance: %v", err)
+				}
 
-	instance, err := k2o.GetInstance(testInstance.Name, installNamespace)
-	if err != nil {
-		t.Errorf("failed to get instance: %w", err)
-	}
+				if instance != nil {
+					t.Errorf("instance is still retrieved after being deleted in test %s", test.name)
+				}
+			}
 
-	if instance != nil {
-		t.Errorf("instance is still retrieved after being deleted")
+		} else {
+			if !test.shouldFail {
+				t.Errorf("expected test %s to succeed but got error: %v", test.name, err)
+			}
+		}
 	}
 }
