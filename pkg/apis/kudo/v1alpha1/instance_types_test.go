@@ -23,6 +23,8 @@ import (
 )
 
 func TestGetLastExecutedPlanStatus(t *testing.T) {
+	testTime := time.Date(
+		2019, 10, 17, 1, 1, 1, 1, time.UTC)
 	tests := []struct {
 		name             string
 		planStatus       map[string]PlanStatus
@@ -48,13 +50,13 @@ func TestGetLastExecutedPlanStatus(t *testing.T) {
 			"test": {
 				Status:          ExecutionComplete,
 				Name:            "test",
-				LastFinishedRun: v1.Time{Time: time.Now()},
+				LastFinishedRun: v1.Time{Time: testTime},
 				Phases:          []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
 			},
 			"test2": {
 				Status:          ExecutionComplete,
 				Name:            "test2",
-				LastFinishedRun: v1.Time{Time: time.Now().Add(time.Hour)},
+				LastFinishedRun: v1.Time{Time: testTime.Add(time.Hour)},
 				Phases:          []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
 			}}, "test2"},
 	}
