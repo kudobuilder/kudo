@@ -1,0 +1,21 @@
+name: "cli-install-operator"
+version: "0.1.0"
+kudoVersion: 0.3.0
+kubernetesVersion: 1.5.1
+maintainers:
+  - name: Justin Taylor-Barrick
+    email: jbarrick-mesosphere@mesosphere.com
+tasks:
+  infra:
+    resources:
+      - deployment.yaml
+plans:
+  deploy:
+    strategy: serial
+    phases:
+      - name: infra
+        strategy: parallel
+        steps:
+          - name: everything
+            tasks:
+              - infra
