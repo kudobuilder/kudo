@@ -3,15 +3,21 @@
 # Check https://circleci.com/docs/2.0/language-go/ for more details
 version: 2.1
 jobs:
-  test:
+  integration-test:
     machine: true
-    parameters:
-      suite:
-        type: string
     steps:
       - checkout
       - run: echo 'export INTEGRATION_OUTPUT_JUNIT="true"' >> $BASH_ENV
-      - run: ./test/run_tests.sh << parameters.suite >>
+      - run: ./test/run_tests.sh integration-test
+      - store_test_results:
+          path: reports/
+
+  e2e-test:
+    machine: true
+    steps:
+      - checkout
+      - run: echo 'export INTEGRATION_OUTPUT_JUNIT="true"' >> $BASH_ENV
+      - run: ./test/run_tests.sh e2e-test
       - store_test_results:
           path: reports/
 
@@ -47,14 +53,12 @@ workflows:
   lint:
     jobs:
       - code-formatting
-  e2e-test:
-    jobs:
-      - test:
-          suite: e2e-test  
   integration-test:
     jobs:
-      - test:
-          suite: integration-test
+      - integration-test
+  e2e-test:
+    jobs:
+      - e2e-test
   release:
     jobs:
       - release:
