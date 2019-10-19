@@ -14,6 +14,8 @@ var (
 	unknownTaskNameEventName         = "UnknownTaskName"
 	unknownTaskKindEventName         = "UnknownTaskKind"
 	fatalTaskExecutionErrorEventName = "FatalTaskExecutionError"
+	missingPhaseStatus               = "MissingPhaseStatus"
+	missingStepStatus                = "MissingStepStatus"
 )
 
 type activePlan struct {
@@ -64,7 +66,15 @@ func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, en
 	phasesLeft := len(pl.spec.Phases)
 	// --- 1. Iterate over plan phases ---
 	for _, ph := range pl.spec.Phases {
-		phaseStatus := getOrCreatePhaseStatus(ph.Name, planStatus)
+		phaseStatus := getPhaseStatus(ph.Name, planStatus)
+		if phaseStatus == nil {
+			planStatus.Status = v1alpha1.ExecutionFatalError
+			return planStatus, ExecutionError{
+				Err:       fmt.Errorf("failed to find phase %s for operator version %s", ph.Name, em.OperatorVersionName),
+				Fatal:     true,
+				EventName: &missingPhaseStatus,
+			}
+		}
 
 		// Check current phase status: skip if finished, proceed if in progress, break out if a fatal error has occurred
 		if isFinished(phaseStatus.Status) {
@@ -79,7 +89,16 @@ func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, en
 		stepsLeft := len(ph.Steps)
 		// --- 2. Iterate over phase steps ---
 		for _, st := range ph.Steps {
-			stepStatus := getOrCreateStepStatus(st.Name, phaseStatus)
+			stepStatus := getStepStatus(st.Name, phaseStatus)
+			if stepStatus == nil {
+				phaseStatus.Status = v1alpha1.ExecutionFatalError
+				planStatus.Status = v1alpha1.ExecutionFatalError
+				return planStatus, ExecutionError{
+					Err:       fmt.Errorf("failed to find step %s for operator version %s", st.Name, em.OperatorVersionName),
+					Fatal:     true,
+					EventName: &missingStepStatus,
+				}
+			}
 
 			// Check current phase status: skip if finished, proceed if in progress, break out if a fatal error has occurred
 			if isFinished(stepStatus.Status) {
@@ -118,8 +137,8 @@ func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, en
 				// - 3.b build the engine task -
 				task, err := engtask.Build(t)
 				if err != nil {
-					phaseStatus.Status = v1alpha1.ExecutionFatalError
 					stepStatus.Status = v1alpha1.ExecutionFatalError
+					phaseStatus.Status = v1alpha1.ExecutionFatalError
 					planStatus.Status = v1alpha1.ExecutionFatalError
 					return planStatus, ExecutionError{
 						Err:       fmt.Errorf("failed to resolve task %s for operator version %s: %w", tn, em.OperatorVersionName, err),
@@ -198,31 +217,24 @@ func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, en
 	return planStatus, nil
 }
 
-func getOrCreateStepStatus(stepName string, phaseStatus *v1alpha1.PhaseStatus) *v1alpha1.StepStatus {
+func getStepStatus(stepName string, phaseStatus *v1alpha1.PhaseStatus) *v1alpha1.StepStatus {
 	for i, p := range phaseStatus.Steps {
 		if p.Name == stepName {
 			return &phaseStatus.Steps[i]
 		}
 	}
 
-	log.Printf("PlanExecution: creating missing (!) step %s status for the phase status: %+v", stepName, phaseStatus)
-	stepStatus := &v1alpha1.StepStatus{Name: stepName}
-	phaseStatus.Steps = append(phaseStatus.Steps, *stepStatus)
-
-	return stepStatus
+	return nil
 }
 
-func getOrCreatePhaseStatus(phaseName string, planStatus *v1alpha1.PlanStatus) *v1alpha1.PhaseStatus {
+func getPhaseStatus(phaseName string, planStatus *v1alpha1.PlanStatus) *v1alpha1.PhaseStatus {
 	for i, p := range planStatus.Phases {
 		if p.Name == phaseName {
 			return &planStatus.Phases[i]
 		}
 	}
 
-	log.Printf("PlanExecution: creating missing (!) phase %s status in plan status: %+v", phaseName, planStatus)
-	phaseStatus := &v1alpha1.PhaseStatus{Name: phaseName}
-	planStatus.Phases = append(planStatus.Phases, *phaseStatus)
-	return phaseStatus
+	return nil
 }
 
 func isFinished(state v1alpha1.ExecutionStatus) bool {

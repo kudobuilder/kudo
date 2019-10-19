@@ -10,6 +10,7 @@ require (
 	github.com/Masterminds/semver v1.4.2
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/containerd/containerd v1.2.9 // indirect
+	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v1.4.2-0.20190916154449-92cc603036dd
 	github.com/docker/go-connections v0.4.0 // indirect
