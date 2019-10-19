@@ -24,13 +24,15 @@ all: test manager
 test:
 	go test ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover.out
 
+# Run e2e tests
+.PHONY: e2e-test
+e2e-test: cli-fast
+	./hack/run-e2e-tests.sh
+
 .PHONY: integration-test
 # Run integration tests
 integration-test: cli-fast
-	mkdir -p reports/
-	go get github.com/jstemmer/go-junit-report
-	go test -tags integration ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover-integration.out 2>&1 |tee /dev/fd/2 |go-junit-report -set-exit-code > reports/integration_report.xml
-	go run ./cmd/kubectl-kudo test 2>&1 |tee /dev/fd/2 |go-junit-report -set-exit-code > reports/kudo_test_report.xml
+	./hack/run-integration-tests.sh
 
 .PHONY: test-clean
 # Clean test reports

@@ -5,6 +5,8 @@ package utils
 // This helps work around issues with the DiscoveryRESTMapper caching resources.
 
 import (
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -52,6 +54,7 @@ func (drm *DynamicRESTMapper) reloadOnError(err error) bool {
 		return false
 	}
 	err = drm.reload()
+	fmt.Println("reload")
 	if err != nil {
 		utilruntime.HandleError(err)
 	}

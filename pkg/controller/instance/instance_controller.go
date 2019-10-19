@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -165,10 +166,9 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.name, instance.Namespace, instance.Name)
-	newStatus, err := executePlan(activePlan, metadata, r.Client, &task.KustomizeEnhancer{Scheme: r.Scheme})
+	newStatus, err := executePlan(activePlan, metadata, r.Client, &task.KustomizeEnhancer{Scheme: r.Scheme}, time.Now())
 
 	// ---------- 4. Update status of instance after the execution proceeded ----------
-
 	if newStatus != nil {
 		instance.UpdateInstanceStatus(newStatus)
 	}

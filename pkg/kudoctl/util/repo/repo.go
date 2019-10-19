@@ -3,6 +3,7 @@ package repo
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
@@ -28,11 +29,30 @@ type Configuration struct {
 	Name string `json:"name"`
 }
 
+// Configurations is a collection of Configuration for Stringer
+type Configurations []*Configuration
+
 // Repositories represents the repositories.yaml file usually in the $KUDO_HOME
 type Repositories struct {
-	RepoVersion  string           `json:"repoVersion"`
-	Context      string           `json:"context"`
-	Repositories []*Configuration `json:"repositories"`
+	RepoVersion  string         `json:"repoVersion"`
+	Context      string         `json:"context"`
+	Repositories Configurations `json:"repositories"`
+}
+
+// String is a stringer function for Configuration
+func (c *Configuration) String() string {
+	return fmt.Sprintf("{ name:%v, url:%v }", c.Name, c.URL)
+}
+
+// String is a stringer function for Configurations
+func (c Configurations) String() string {
+
+	confs := make([]string, len(c))
+	for i, config := range c {
+		confs[i] = config.String()
+	}
+
+	return fmt.Sprintf("repo configs: %v", strings.Join(confs, ","))
 }
 
 // Default initialized repository.
@@ -51,7 +71,8 @@ func NewRepositories() *Repositories {
 }
 
 // GetConfiguration returns a RepoName Config for a name or nil
-func (r Repositories) GetConfiguration(name string) *Configuration {
+func (r *Repositories) GetConfiguration(name string) *Configuration {
+	fmt.Printf("%v\n", r.Repositories)
 	for _, repo := range r.Repositories {
 		if repo.Name == name {
 			return repo
@@ -61,7 +82,7 @@ func (r Repositories) GetConfiguration(name string) *Configuration {
 }
 
 // CurrentConfiguration provides the repo config for the current context
-func (r Repositories) CurrentConfiguration() *Configuration {
+func (r *Repositories) CurrentConfiguration() *Configuration {
 	return r.GetConfiguration(r.Context)
 }
 

@@ -39,7 +39,7 @@ spec:
                   name:
                     type: string
                 type: object
-              type: object
+              type: array
             url:
               type: string
           type: object

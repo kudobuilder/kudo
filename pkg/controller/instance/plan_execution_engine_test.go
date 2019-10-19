@@ -3,6 +3,7 @@ package instance
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
@@ -11,12 +12,14 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestExecutePlan(t *testing.T) {
+	timeNow := time.Now()
 	instance := instance()
 	meta := &engtask.EngineMetadata{
 		InstanceName:        instance.Name,
@@ -103,9 +106,10 @@ func TestExecutePlan(t *testing.T) {
 		},
 			metadata: meta,
 			expectedStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionComplete,
-				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
+				Status:          v1alpha1.ExecutionComplete,
+				LastFinishedRun: v1.Time{Time: timeNow},
+				Name:            "test",
+				Phases:          []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
 			},
 			enhancer: testEnhancer,
 		},
@@ -135,9 +139,10 @@ func TestExecutePlan(t *testing.T) {
 		},
 			metadata: meta,
 			expectedStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionComplete,
-				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
+				Status:          v1alpha1.ExecutionComplete,
+				LastFinishedRun: v1.Time{Time: timeNow},
+				Name:            "test",
+				Phases:          []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
 			},
 			enhancer: testEnhancer,
 		},
@@ -595,7 +600,7 @@ func TestExecutePlan(t *testing.T) {
 
 	for _, tt := range tests {
 		testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
-		newStatus, err := executePlan(tt.activePlan, tt.metadata, testClient, tt.enhancer)
+		newStatus, err := executePlan(tt.activePlan, tt.metadata, testClient, tt.enhancer, timeNow)
 
 		if !tt.wantErr && err != nil {
 			t.Errorf("%s: Expecting no error but got one: %v", tt.name, err)

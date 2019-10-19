@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -54,7 +56,7 @@ func (ap *activePlan) taskByName(name string) (*v1alpha1.Task, bool) {
 //
 // Furthermore, a transient ERROR during a step execution, means that the next step may be executed if the step strategy
 // is "parallel". In case of a fatal error, it is returned alongside with the new plan status and published on the event bus.
-func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, enh engtask.KubernetesObjectEnhancer) (*v1alpha1.PlanStatus, error) {
+func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, enh engtask.KubernetesObjectEnhancer, currentTime time.Time) (*v1alpha1.PlanStatus, error) {
 	if pl.Status.IsTerminal() {
 		log.Printf("PlanExecution: Plan %s for instance %s is terminal, nothing to do", pl.name, em.InstanceName)
 		return pl.PlanStatus, nil
@@ -212,6 +214,7 @@ func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, en
 	if phasesLeft == 0 {
 		log.Printf("PlanExecution: All phases on plan %s and instance %s are healthy", pl.name, em.InstanceName)
 		planStatus.Status = v1alpha1.ExecutionComplete
+		planStatus.LastFinishedRun = v1.Time{Time: currentTime}
 	}
 
 	return planStatus, nil

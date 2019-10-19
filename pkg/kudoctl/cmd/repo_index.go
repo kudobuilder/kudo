@@ -105,14 +105,13 @@ func (ri *repoIndexCmd) validate(args []string) error {
 func (ri *repoIndexCmd) run() error {
 
 	if ri.urlRepoName != "" {
-		config, err := ri.repoConfig()
+		config, err := ri.repoConfig(ri.urlRepoName)
 		if err != nil {
 			return err
 		}
 		if config == nil {
 			return fmt.Errorf("configuration for repositories does not contain %s", ri.urlRepoName)
 		}
-		fmt.Printf("url: %v", config.URL)
 		ri.url = config.URL
 	}
 
@@ -167,7 +166,7 @@ func merge(index *repo.IndexFile, mergeIndex *repo.IndexFile) {
 
 func (ri *repoIndexCmd) mergeRepoConfig() (*repo.Configuration, error) {
 	if ri.mergeRepoName != "" {
-		return ri.repoConfig()
+		return ri.repoConfig(ri.mergeRepoName)
 	}
 
 	return &repo.Configuration{
@@ -176,10 +175,10 @@ func (ri *repoIndexCmd) mergeRepoConfig() (*repo.Configuration, error) {
 	}, nil
 }
 
-func (ri *repoIndexCmd) repoConfig() (*repo.Configuration, error) {
+func (ri *repoIndexCmd) repoConfig(repoName string) (*repo.Configuration, error) {
 	repos, err := repo.LoadRepositories(ri.fs, Settings.Home.RepositoryFile())
 	if err != nil {
 		return nil, err
 	}
-	return repos.GetConfiguration(ri.urlRepoName), nil
+	return repos.GetConfiguration(repoName), nil
 }

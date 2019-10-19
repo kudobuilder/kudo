@@ -9,6 +9,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -42,15 +43,18 @@ type Options struct {
 }
 
 // NewOptions provides an option struct with defaults
-func NewOptions(v string) Options {
+func NewOptions(v string, ns string) Options {
 
 	if v == "" {
 		v = version.Get().GitVersion
 	}
+	if ns == "" {
+		ns = defaultns
+	}
 
 	return Options{
 		Version:                       v,
-		Namespace:                     defaultns,
+		Namespace:                     ns,
 		TerminationGracePeriodSeconds: defaultGracePeriod,
 		Image:                         fmt.Sprintf("kudobuilder/controller:v%v", v),
 	}
@@ -59,19 +63,19 @@ func NewOptions(v string) Options {
 // Install uses Kubernetes client to install KUDO.
 func Install(client *kube.Client, opts Options, crdOnly bool) error {
 
-	clog.V(4).Printf("installing crds")
+	clog.Printf("✅ installing crds")
 	if err := installCrds(client.ExtClient); err != nil {
 		return err
 	}
 	if crdOnly {
 		return nil
 	}
-	clog.V(4).Printf("installing prereqs")
+	clog.Printf("✅ preparing service accounts and other requirements for controller to run")
 	if err := installPrereqs(client.KubeClient, opts); err != nil {
 		return err
 	}
 
-	clog.V(4).Printf("installing kudo controller")
+	clog.Printf("✅ installing kudo controller")
 	if err := installManager(client.KubeClient, opts); err != nil {
 		return err
 	}
@@ -93,7 +97,7 @@ func installManager(client kubernetes.Interface, opts Options) error {
 func installStatefulSet(client appsv1client.StatefulSetsGetter, opts Options) error {
 	ss := generateDeployment(opts)
 	_, err := client.StatefulSets(opts.Namespace).Create(ss)
-	if isAlreadyExistsError(err) {
+	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("statefulset %v already exists", ss.Name)
 		return nil
 	}
@@ -103,7 +107,7 @@ func installStatefulSet(client appsv1client.StatefulSetsGetter, opts Options) er
 func installService(client corev1.ServicesGetter, opts Options) error {
 	s := generateService(opts)
 	_, err := client.Services(opts.Namespace).Create(s)
-	if isAlreadyExistsError(err) {
+	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("service %v already exists", s.Name)
 		return nil
 	}
