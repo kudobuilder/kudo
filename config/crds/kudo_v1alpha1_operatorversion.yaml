@@ -3,6 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
   labels:
+    app: kudo-manager
     controller-tools.k8s.io: "1.0"
   name: operatorversions.kudo.dev
 spec:
@@ -10,43 +11,39 @@ spec:
   names:
     kind: OperatorVersion
     plural: operatorversions
+    singular: operatorversion
   scope: Namespaced
   validation:
     openAPIV3Schema:
       properties:
         apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
-        metadata:
+        meta:
           type: object
         spec:
           properties:
             connectionString:
-              description: ConnectionString defines a templated string that can be
-                used to connect to an instance of the Operator.
+              description: ConnectionString defines a mustached string that can be
+                used to connect to an instance of the Operator
+              type: string
+            crdVersion:
               type: string
             dependencies:
-              description: Dependencies a list of all dependencies of the operator.
               items:
                 properties:
-                  referenceName:
-                    description: Name specifies the name of the dependency. Referenced
-                      via defaults.config.
-                    type: string
-                  version:
+                  crdVersion:
                     description: 'Version captures the requirements for what versions
-                      of the above object are allowed.  Example: ^3.1.4'
+                      of the above object are allowed Example: ^3.1.4'
+                    type: string
+                  referenceName:
+                    description: Name specifies the name of the dependency.  Referenced
+                      via this in defaults.config
                     type: string
                 required:
                 - referenceName
-                - version
+                - crdVersion
                 type: object
               type: array
             operator:
@@ -56,51 +53,59 @@ spec:
                 properties:
                   default:
                     description: Default is a default value if no parameter is provided
-                      by the instance.
+                      by the instance
                     type: string
                   description:
                     description: Description captures a longer description of how
-                      the parameter will be used.
+                      the variable will be used
                     type: string
                   displayName:
-                    description: DisplayName can be used by UI's.
+                    description: Human friendly crdVersion of the parameter name
                     type: string
                   name:
-                    description: 'Name is the string that should be used in the templated
-                      file for example, if `name: COUNT` then using the variable in
-                      a spec like:  spec:   replicas:  {{COUNT}}'
+                    description: 'Name is the string that should be used in the template
+                      file for example, if `name: COUNT` then using the variable `.Params.COUNT`'
                     type: string
                   required:
                     description: Required specifies if the parameter is required to
-                      be provided by all instances, or whether a default can suffice.
+                      be provided by all instances, or whether a default can suffice
                     type: boolean
                   trigger:
                     description: Trigger identifies the plan that gets executed when
                       this parameter changes in the Instance object. Default is `update`
-                      if a plan with that name exists, otherwise it's `deploy`
+                      if present, or `deploy` if not present
                     type: string
                 type: object
               type: array
             plans:
-              description: Plans maps a plan name to a plan.
+              description: Plans specify a map a plans that specify how to
               type: object
             tasks:
-              type: object
+              description: List of all tasks available in this OperatorVersions
+              items:
+                properties:
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                  spec:
+                    type: object
+                type: object
+              type: array
             templates:
-              description: Yaml captures a templated yaml list of elements that define
-                the application operator instance.
+              description: List of go templates YAML files that define the application
+                operator instance
               type: object
             upgradableFrom:
               description: UpgradableFrom lists all OperatorVersions that can upgrade
-                to this OperatorVersion.
+                to this OperatorVersion
               items:
                 type: object
               type: array
-            version:
-              type: string
           type: object
         status:
           type: object
+      type: object
   version: v1alpha1
 status:
   acceptedNames:

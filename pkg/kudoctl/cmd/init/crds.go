@@ -125,12 +125,17 @@ func generateOperatorVersion() *apiextv1beta1.CustomResourceDefinition {
 		"crdVersion":    apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Version captures the requirements for what versions of the above object are allowed Example: ^3.1.4"},
 	}
 	paramProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"default":     apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Default is a default value if no paramter is provided by the instance"},
+		"default":     apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Default is a default value if no parameter is provided by the instance"},
 		"description": apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Description captures a longer description of how the variable will be used"},
 		"displayName": apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Human friendly crdVersion of the parameter name"},
 		"name":        apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Name is the string that should be used in the template file for example, if `name: COUNT` then using the variable `.Params.COUNT`"},
 		"required":    apiextv1beta1.JSONSchemaProps{Type: "boolean", Description: "Required specifies if the parameter is required to be provided by all instances, or whether a default can suffice"},
 		"trigger":     apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Trigger identifies the plan that gets executed when this parameter changes in the Instance object. Default is `update` if present, or `deploy` if not present"},
+	}
+	taskProps := map[string]apiextv1beta1.JSONSchemaProps{
+		"name": apiextv1beta1.JSONSchemaProps{Type: "string"},
+		"kind": apiextv1beta1.JSONSchemaProps{Type: "string"},
+		"spec": apiextv1beta1.JSONSchemaProps{Type: "object"},
 	}
 	specProps := map[string]apiextv1beta1.JSONSchemaProps{
 		"connectionString": apiextv1beta1.JSONSchemaProps{Type: "string", Description: "ConnectionString defines a mustached string that can be used to connect to an instance of the Operator"},
@@ -150,8 +155,15 @@ func generateOperatorVersion() *apiextv1beta1.CustomResourceDefinition {
 				Properties: paramProps,
 			}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
 		},
-		"plans":     apiextv1beta1.JSONSchemaProps{Type: "object", Description: "Plans specify a map a plans that specify how to"},
-		"tasks":     apiextv1beta1.JSONSchemaProps{Type: "object"},
+		"plans": apiextv1beta1.JSONSchemaProps{Type: "object", Description: "Plans specify a map a plans that specify how to"},
+		"tasks": apiextv1beta1.JSONSchemaProps{
+			Type:        "array",
+			Description: "List of all tasks available in this OperatorVersions",
+			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{
+				Type:       "object",
+				Properties: taskProps,
+			}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
+		},
 		"templates": apiextv1beta1.JSONSchemaProps{Type: "object", Description: "List of go templates YAML files that define the application operator instance"},
 		"upgradableFrom": apiextv1beta1.JSONSchemaProps{
 			Type:        "array",

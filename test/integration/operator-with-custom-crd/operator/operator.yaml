@@ -6,9 +6,11 @@ maintainers:
     email: <your@email.com>
 url: https://kudo.dev
 tasks:
-  crd:
-    resources:
-      - sm.yaml
+  - name: crd
+    kind: Apply
+    spec:
+      resources:
+        - sm.yaml
 plans:
   deploy:
     strategy: serial

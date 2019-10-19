@@ -1,4 +1,4 @@
-package instance
+package task
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/kustomize/k8sdeps/transformer"
 	"sigs.k8s.io/kustomize/pkg/fs"
 	"sigs.k8s.io/kustomize/pkg/loader"
-	"sigs.k8s.io/kustomize/pkg/patch"
+	apipatch "sigs.k8s.io/kustomize/pkg/patch"
 	"sigs.k8s.io/kustomize/pkg/resmap"
 	"sigs.k8s.io/kustomize/pkg/resource"
 	"sigs.k8s.io/kustomize/pkg/target"
@@ -25,30 +25,21 @@ import (
 
 const basePath = "/kustomize"
 
-// ExecutionMetadata contains ExecutionMetadata associated with current plan being executed
-type ExecutionMetadata struct {
-	engineMetadata
-
-	planName  string
-	phaseName string
-	stepName  string
-}
-
-// kubernetesObjectEnhancer takes your kubernetes template and kudo related metadata and applies them to all resources in form of labels
+// KubernetesObjectEnhancer takes your kubernetes template and kudo related Metadata and applies them to all resources in form of labels
 // and annotations
 // it also takes care of setting an owner of all the resources to the provided object
-type kubernetesObjectEnhancer interface {
-	applyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) ([]runtime.Object, error)
+type KubernetesObjectEnhancer interface {
+	ApplyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) ([]runtime.Object, error)
 }
 
-// kustomizeEnhancer is implementation of kubernetesObjectEnhancer that uses kustomize to apply the defined conventions
-type kustomizeEnhancer struct {
-	scheme *runtime.Scheme
+// KustomizeEnhancer is implementation of KubernetesObjectEnhancer that uses kustomize to apply the defined conventions
+type KustomizeEnhancer struct {
+	Scheme *runtime.Scheme
 }
 
-// ApplyConventions accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
+// ApplyConventionsToTemplates accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
-func (k *kustomizeEnhancer) applyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) (objsToAdd []runtime.Object, err error) {
+func (k *KustomizeEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) (objsToAdd []runtime.Object, err error) {
 	fsys := fs.MakeFakeFS()
 
 	templateNames := make([]string, 0, len(templates))
@@ -62,24 +53,24 @@ func (k *kustomizeEnhancer) applyConventionsToTemplates(templates map[string]str
 	}
 
 	kustomization := &ktypes.Kustomization{
-		NamePrefix: metadata.instanceName + "-",
-		Namespace:  metadata.instanceNamespace,
+		NamePrefix: metadata.InstanceName + "-",
+		Namespace:  metadata.InstanceNamespace,
 		CommonLabels: map[string]string{
 			kudo.HeritageLabel: "kudo",
-			kudo.OperatorLabel: metadata.operatorName,
-			kudo.InstanceLabel: metadata.instanceName,
+			kudo.OperatorLabel: metadata.OperatorName,
+			kudo.InstanceLabel: metadata.InstanceName,
 		},
 		CommonAnnotations: map[string]string{
-			kudo.PlanAnnotation:            metadata.planName,
-			kudo.PhaseAnnotation:           metadata.phaseName,
-			kudo.StepAnnotation:            metadata.stepName,
-			kudo.OperatorVersionAnnotation: metadata.operatorVersion,
+			kudo.PlanAnnotation:            metadata.PlanName,
+			kudo.PhaseAnnotation:           metadata.PhaseName,
+			kudo.StepAnnotation:            metadata.StepName,
+			kudo.OperatorVersionAnnotation: metadata.OperatorVersion,
 		},
 		GeneratorOptions: &ktypes.GeneratorOptions{
 			DisableNameSuffixHash: true,
 		},
 		Resources:             templateNames,
-		PatchesStrategicMerge: []patch.StrategicMerge{},
+		PatchesStrategicMerge: []apipatch.StrategicMerge{},
 	}
 
 	yamlBytes, err := yaml.Marshal(kustomization)
@@ -124,7 +115,7 @@ func (k *kustomizeEnhancer) applyConventionsToTemplates(templates map[string]str
 	}
 
 	for _, o := range objsToAdd {
-		err = setControllerReference(metadata.resourcesOwner, o, k.scheme)
+		err = setControllerReference(metadata.ResourcesOwner, o, k.Scheme)
 		if err != nil {
 			return nil, errors.Wrapf(err, "setting controller reference on parsed object")
 		}
@@ -138,4 +129,11 @@ func setControllerReference(owner v1.Object, obj runtime.Object, scheme *runtime
 		return err
 	}
 	return nil
+}
+
+// kustomize method takes a slice of rendered templates, applies conventions using KubernetesObjectEnhancer and
+// returns a slice of k8s objects.
+func kustomize(rendered map[string]string, meta ExecutionMetadata, enhancer KubernetesObjectEnhancer) ([]runtime.Object, error) {
+	enhanced, err := enhancer.ApplyConventionsToTemplates(rendered, meta)
+	return enhanced, err
 }

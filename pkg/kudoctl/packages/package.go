@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 
@@ -46,16 +48,16 @@ type PackageFiles struct {
 
 // Operator is a representation of the KEP-9 Operator YAML
 type Operator struct {
-	Name              string                       `json:"name"`
-	Description       string                       `json:"description,omitempty"`
-	Version           string                       `json:"version"`
-	AppVersion        string                       `json:"appVersion,omitempty"`
-	KUDOVersion       string                       `json:"kudoVersion,omitempty"`
-	KubernetesVersion string                       `json:"kubernetesVersion,omitempty"`
-	Maintainers       []*v1alpha1.Maintainer       `json:"maintainers,omitempty"`
-	URL               string                       `json:"url,omitempty"`
-	Tasks             map[string]v1alpha1.TaskSpec `json:"tasks"`
-	Plans             map[string]v1alpha1.Plan     `json:"plans"`
+	Name              string                   `json:"name"`
+	Description       string                   `json:"description,omitempty"`
+	Version           string                   `json:"version"`
+	AppVersion        string                   `json:"appVersion,omitempty"`
+	KUDOVersion       string                   `json:"kudoVersion,omitempty"`
+	KubernetesVersion string                   `json:"kubernetesVersion,omitempty"`
+	Maintainers       []*v1alpha1.Maintainer   `json:"maintainers,omitempty"`
+	URL               string                   `json:"url,omitempty"`
+	Tasks             []v1alpha1.Task          `json:"tasks"`
+	Plans             map[string]v1alpha1.Plan `json:"plans"`
 }
 
 // PackageFilesDigest is a tuple of data used to return the package files AND the digest of a tarball
@@ -135,6 +137,28 @@ func newPackageFiles() PackageFiles {
 	}
 }
 
+func validateTask(t v1alpha1.Task, templates map[string]string) []string {
+	var resources []string
+	switch t.Kind {
+	case task.ApplyTaskKind:
+		resources = t.Spec.ResourceTaskSpec.Resources
+	case task.DeleteTaskKind:
+		resources = t.Spec.ResourceTaskSpec.Resources
+	case task.DummyTaskKind:
+	default:
+		log.Printf("no validation for task kind %s implemented", t.Kind)
+	}
+
+	var errs []string
+	for _, res := range resources {
+		if _, ok := templates[res]; !ok {
+			errs = append(errs, fmt.Sprintf("task %s missing template: %s", t.Name, res))
+		}
+	}
+
+	return errs
+}
+
 func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 	if p.Operator == nil {
 		return nil, errors.New("operator.yaml file is missing")
@@ -143,12 +167,8 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 		return nil, errors.New("params.yaml file is missing")
 	}
 	var errs []string
-	for k, v := range p.Operator.Tasks {
-		for _, res := range v.Resources {
-			if _, ok := p.Templates[res]; !ok {
-				errs = append(errs, fmt.Sprintf("task %s missing template: %s", k, res))
-			}
-		}
+	for _, tt := range p.Operator.Tasks {
+		errs = append(errs, validateTask(tt, p.Templates)...)
 	}
 
 	if len(errs) != 0 {

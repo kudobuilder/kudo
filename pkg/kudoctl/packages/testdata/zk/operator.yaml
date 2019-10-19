@@ -12,16 +12,22 @@ maintainers:
     email: kensipe@gmail.com
 url: https://zookeeper.apache.org/
 tasks:
-  infra:
-    resources:
-      - services.yaml
-      - pdb.yaml
-  app:
-    resources:
-      - statefulset.yaml
-  validation:
-    resources:
-      - validation.yaml
+  - name: infra
+    kind: Apply
+    spec:
+      resources:
+        - services.yaml
+        - pdb.yaml
+  - name: app
+    kind: Apply
+    spec:
+      resources:
+        - statefulset.yaml
+  - name: validation
+    kind: Apply
+    spec:
+      resources:
+        - validation.yaml
 plans:
   deploy:
     strategy: serial
