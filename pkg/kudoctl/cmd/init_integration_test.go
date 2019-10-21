@@ -16,7 +16,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	cmdinit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
-	"gopkg.in/yaml.v2"
+	"sigs.k8s.io/yaml"
 
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/spf13/afero"
@@ -53,6 +53,24 @@ const (
 
 func TestCrds_Config(t *testing.T) {
 	crds := cmdinit.CRDs()
+
+	if false {
+		// change this to true if you want to one time override the manifests with new values
+		// this should be used only when the manifests changed in your PR and you want to update to the newly generated values
+		err := writeManifest(operatorFileName, crds.Operator)
+		if err != nil {
+			t.Errorf("Operator file override failed: %v", err)
+		}
+		err = writeManifest(operatorVersionFileName, crds.OperatorVersion)
+		if err != nil {
+			t.Errorf("OperatorVersion file override failed: %v", err)
+		}
+		if err != nil {
+			t.Errorf("Instance file override failed: %v", err)
+		}
+		err = writeManifest(instanceFileName, crds.Instance)
+	}
+
 	err := verifyManifestFile(operatorFileName, crds.Operator)
 	if err != nil {
 		t.Errorf("Operator file verification failed: %v", err)
@@ -67,13 +85,27 @@ func TestCrds_Config(t *testing.T) {
 	}
 }
 
+func writeManifest(fileName string, expectedObject runtime.Object) error {
+	expectedContent, err := runtimeObjectAsBytes(expectedObject)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Updating file %s", fileName)
+	path := filepath.Join(manifestsDir, fileName)
+	if err := ioutil.WriteFile(path, expectedContent, 0644); err != nil {
+		return fmt.Errorf("failed to update config file: %s", err)
+	}
+	return nil
+}
+
 func verifyManifestFile(fileName string, expectedObject runtime.Object) error {
 	expectedContent, err := runtimeObjectAsBytes(expectedObject)
 	if err != nil {
 		return err
 	}
-	op := filepath.Join(manifestsDir, fileName)
-	of, err := ioutil.ReadFile(op)
+	path := filepath.Join(manifestsDir, fileName)
+	of, err := ioutil.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed reading manifest file %s: %s", fileName, err)
 	}

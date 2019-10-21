@@ -40,8 +40,8 @@ spec:
                       via this in defaults.config
                     type: string
                 required:
-                  - referenceName
-                  - crdVersion
+                - referenceName
+                - crdVersion
                 type: object
               type: array
             parameters:
