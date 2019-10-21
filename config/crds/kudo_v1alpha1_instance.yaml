@@ -3,6 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
   labels:
+    app: kudo-manager
     controller-tools.k8s.io: "1.0"
   name: instances.kudo.dev
 spec:
@@ -10,55 +11,50 @@ spec:
   names:
     kind: Instance
     plural: instances
+    singular: instance
   scope: Namespaced
   validation:
     openAPIV3Schema:
       properties:
         apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
-        metadata:
+        meta:
           type: object
         spec:
           properties:
+            OperatorVersion:
+              description: Operator specifies a reference to a specific Operator object
+              type: object
             dependencies:
+              description: Dependency references specific
               items:
                 properties:
-                  referenceName:
-                    description: Name specifies the name of the dependency. Referenced
-                      via defaults.config.
-                    type: string
-                  version:
+                  crdVersion:
                     description: 'Version captures the requirements for what versions
-                      of the above object are allowed.  Example: ^3.1.4'
+                      of the above object are allowed Example: ^3.1.4'
+                    type: string
+                  referenceName:
+                    description: Name specifies the name of the dependency.  Referenced
+                      via this in defaults.config
                     type: string
                 required:
-                - referenceName
-                - version
+                  - referenceName
+                  - crdVersion
                 type: object
               type: array
-            operatorVersion:
-              description: Operator specifies a reference to a specific Operator object.
-              type: object
             parameters:
-              description: 'TODO: this is deprecated and should not be used'
               type: object
           type: object
         status:
           properties:
-            activePlan:
-              description: TODO turn into struct
+            aggregatedStatus:
               type: object
-            status:
-              type: string
+            planStatus:
+              type: object
           type: object
+      type: object
   version: v1alpha1
 status:
   acceptedNames:

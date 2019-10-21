@@ -189,8 +189,8 @@ func generateOperatorVersion() *apiextv1beta1.CustomResourceDefinition {
 	return crd
 }
 
-// InstanceCrd provides the Instance CRD manifest for printing
-func InstanceCrd() *apiextv1beta1.CustomResourceDefinition {
+// instanceCrd provides the Instance CRD manifest for printing
+func instanceCrd() *apiextv1beta1.CustomResourceDefinition {
 	crd := generateInstance()
 	crd.TypeMeta = metav1.TypeMeta{
 		Kind:       "CustomResourceDefinition",
@@ -276,9 +276,21 @@ func generateCrd(kind string, plural string) *apiextv1beta1.CustomResourceDefini
 	return crd
 }
 
-// CRDManifests provides a slice of strings for each CRD manifest
-func CRDManifests() ([]string, error) {
-	objs := CRDs()
+// KudoCrds represents custom resource definitions needed to run KUDO
+type KudoCrds struct {
+	Operator        runtime.Object
+	OperatorVersion runtime.Object
+	Instance        runtime.Object
+}
+
+// AsArray returns all CRDs as array of runtime objects
+func (c KudoCrds) AsArray() []runtime.Object {
+	return []runtime.Object{c.Operator, c.OperatorVersion, c.Instance}
+}
+
+// AsYamlStrings returns crds as slice of strings
+func (c KudoCrds) AsYamlStrings() ([]string, error) {
+	objs := c.AsArray()
 	manifests := make([]string, len(objs))
 	for i, obj := range objs {
 		o, err := yaml.Marshal(obj)
@@ -291,11 +303,11 @@ func CRDManifests() ([]string, error) {
 	return manifests, nil
 }
 
-// CRDs returns the slice of crd objects for KUDO
-func CRDs() []runtime.Object {
-	o := operatorCrd()
-	ov := operatorVersionCrd()
-	i := InstanceCrd()
-
-	return []runtime.Object{o, ov, i}
+// CRDs returns the runtime.Object representation of all the CRDs KUDO requires
+func CRDs() KudoCrds {
+	return KudoCrds{
+		Operator:        operatorCrd(),
+		OperatorVersion: operatorVersionCrd(),
+		Instance:        instanceCrd(),
+	}
 }

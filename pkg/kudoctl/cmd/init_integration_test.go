@@ -6,14 +6,17 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	cmdinit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"gopkg.in/yaml.v2"
 
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/spf13/afero"
@@ -41,6 +44,54 @@ func TestMain(m *testing.M) {
 	os.Exit(exitCode)
 }
 
+const (
+	operatorFileName        = "kudo_v1alpha1_operator.yaml"
+	operatorVersionFileName = "kudo_v1alpha1_operatorversion.yaml"
+	instanceFileName        = "kudo_v1alpha1_instance.yaml"
+	manifestsDir            = "../../../config/crds/"
+)
+
+func TestCrds_Config(t *testing.T) {
+	crds := cmdinit.CRDs()
+	err := verifyManifestFile(operatorFileName, crds.Operator)
+	if err != nil {
+		t.Errorf("Operator file verification failed: %v", err)
+	}
+	err = verifyManifestFile(operatorVersionFileName, crds.OperatorVersion)
+	if err != nil {
+		t.Errorf("OperatorVersion file verification failed: %v", err)
+	}
+	err = verifyManifestFile(instanceFileName, crds.Instance)
+	if err != nil {
+		t.Errorf("Instance file verification failed: %v", err)
+	}
+}
+
+func verifyManifestFile(fileName string, expectedObject runtime.Object) error {
+	expectedContent, err := runtimeObjectAsBytes(expectedObject)
+	if err != nil {
+		return err
+	}
+	op := filepath.Join(manifestsDir, fileName)
+	of, err := ioutil.ReadFile(op)
+	if err != nil {
+		return fmt.Errorf("failed reading manifest file %s: %s", fileName, err)
+	}
+
+	if !bytes.Equal(expectedContent, of) {
+		return fmt.Errorf("%s does not match output of init %s", fileName, string(of))
+	}
+	return nil
+}
+
+func runtimeObjectAsBytes(o runtime.Object) ([]byte, error) {
+	bytes, err := yaml.Marshal(o)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
+}
+
 func TestIntegInitForCRDs(t *testing.T) {
 	// Kubernetes client caches the types, se we need to re-initialize it.
 	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
@@ -54,7 +105,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := cmdinit.CRDs()
+	crds := cmdinit.CRDs().AsArray()
 	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
@@ -93,7 +144,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := cmdinit.CRDs()
+	crds := cmdinit.CRDs().AsArray()
 	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
@@ -142,7 +193,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := cmdinit.CRDs()
+	crds := cmdinit.CRDs().AsArray()
 	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
@@ -175,7 +226,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 }
 
 func deleteInitObjects(client *testutils.RetryClient) {
-	crds := cmdinit.CRDs()
+	crds := cmdinit.CRDs().AsArray()
 	prereqs := cmdinit.Prereq(cmdinit.NewOptions("", ""))
 	deleteCRDs(crds, client)
 	deletePrereq(prereqs, client)
