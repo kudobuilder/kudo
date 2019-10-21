@@ -16,6 +16,8 @@ then
 
 	rm -rf operators
 	git clone https://github.com/kudobuilder/operators
+	# KUDO e2e tests are executed against operators dev branch, which is held compatible with KUDOs bleeding edge
+	git checkout ad/tasker
 	mkdir operators/bin/
 	cp ./bin/kubectl-kudo operators/bin/
 	cd operators && go run ../cmd/kubectl-kudo test 2>&1 |tee /dev/fd/2 |go-junit-report -set-exit-code > ../reports/kudo_operators_test_report.xml
