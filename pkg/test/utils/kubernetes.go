@@ -708,6 +708,7 @@ func GetAPIResource(dClient discovery.DiscoveryInterface, gvk schema.GroupVersio
 		return metav1.APIResource{}, err
 	}
 
+	fmt.Printf("%v", resourceTypes)
 	for _, resource := range resourceTypes.APIResources {
 		if !strings.EqualFold(resource.Kind, gvk.Kind) {
 			continue
@@ -760,6 +761,7 @@ func WaitForCRDs(dClient discovery.DiscoveryInterface, crds []runtime.Object) er
 		for _, resource := range waitingFor {
 			_, err := GetAPIResource(dClient, resource)
 			if err != nil {
+				fmt.Printf("Waiting for resource %s... \n", resource)
 				return false, nil
 			}
 		}
