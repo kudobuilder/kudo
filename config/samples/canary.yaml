@@ -84,10 +84,16 @@ spec:
           app: appinfo
         type: LoadBalancer
   tasks:
-    deployment:
-      resources:
-      - service.yaml
-      - deployment.yaml
+    - name: deployment
+      kind: Apply
+      spec:
+        resources:
+          - deployment.yaml
+    - name: services
+      kind: Apply
+      spec:
+        resources:
+          - service.yaml
   parameters:
   - name: Tag
     description: "Docker image tag for runyonsolutions/appinfo"

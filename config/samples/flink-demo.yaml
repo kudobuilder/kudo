@@ -154,24 +154,36 @@ spec:
               echo "=====================";
               sleep 5; done;']
   tasks:
-    kafka:
-      resources:
-      - kafka.yaml
-    zookeeper:
-      resources:
-      - zookeeper.yaml
-    flink:
-      resources:
-      - flink.yaml
-    generator:
-      resources:
-      - generator.yaml
-    actor:
-      resources:
-      - actor.yaml
-    upload:
-      resources:
-      - uploader.yaml
+    - name: kafka
+      kind: Apply
+      spec:
+        resources:
+          - kafka.yaml
+    - name: zookeeper
+      kind: Apply
+      spec:
+        resources:
+          - zookeeper.yaml
+    - name: flink
+      kind: Apply
+      spec:
+        resources:
+          - flink.yaml
+    - name: generator
+      kind: Apply
+      spec:
+        resources:
+          - generator.yaml
+    - name: actor
+      kind: Apply
+      spec:
+        resources:
+          - actor.yaml
+    - name: upload
+      kind: Apply
+      spec:
+        resources:
+          - uploader.yaml
   plans:
     deploy:
       strategy: serial

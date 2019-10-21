@@ -103,15 +103,21 @@ spec:
               - name: JOB_MANAGER_RPC_ADDRESS
                 value: {{ .Name }}-jobmanager
   tasks:
-    jobmanager:
-      resources:
-      - jobmanager-deployment.yaml
-    jobmanager-service:
-      resources:
-      - services.yaml
-    taskmanager:
-      resources:
-      - taskmanager-deployment.yaml
+    - name: jobmanager
+      kind: Apply
+      spec:
+        resources:
+          - jobmanager-deployment.yaml
+    - name: jobmanager-service
+      kind: Apply
+      spec:
+        resources:
+          - services.yaml
+    - name: taskmanager
+      kind: Apply
+      spec:
+        resources:
+          - taskmanager-deployment.yaml
   plans:
     deploy:
       strategy: serial

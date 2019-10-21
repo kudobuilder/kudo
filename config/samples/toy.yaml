@@ -59,12 +59,16 @@ spec:
               - -c
               - "sleep {{ .Params.Sleep }}"
   tasks:
-    par:
-      resources:
-      - par.yaml
-    serial:
-      resources:
-      - serial.yaml
+    - name: par
+      kind: Apply
+      spec:
+        resources:
+          - par.yaml
+    - name: serial
+      kind: Apply
+      spec:
+        resources:
+          - serial.yaml
   parameters:
   - name: SLEEP
     description: "how long to have the container sleep for before returning"

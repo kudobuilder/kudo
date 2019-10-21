@@ -28,30 +28,61 @@ spec:
   - name: Password
     default: "password"
   tasks:
-    deploy:
-      resources:
-      - mysql.yaml
-    init:
-      resources:
-      - init.yaml
-    pv:
-      resources:
-      - backup-pv.yaml
-    backup:
-      resources:
-      - backup.yaml
-    restore:
-      resources:
-      - restore.yaml
-    load-data:
-      resources:
-      - job.yaml
-    clear-data:
-      resources:
-      - job.yaml
-    query:
-      resources:
-      - job.yaml
+    - name: deploy
+      kind: Apply
+      spec:
+        resources:
+          - mysql.yaml
+    - name: init
+      kind: Apply
+      spec:
+        resources:
+          - init.yaml
+    - name: cleanup
+      kind: Delete
+      spec:
+        resources:
+          - init.yaml
+    - name: pv
+      kind: Apply
+      spec:
+        resources:
+          - backup-pv.yaml
+    - name: backup
+      kind: Apply
+      spec:
+        resources:
+          - backup.yaml
+    - name: backup-cleanup
+      kind: Delete
+      spec:
+        resources:
+          - backup.yaml
+    - name: restore
+      kind: Apply
+      spec:
+        resources:
+          - restore.yaml
+    - name: restore-cleanup
+      kind: Delete
+      spec:
+        resources:
+          - restore.yaml
+    - name: load-data
+      kind: Apply
+      spec:
+        resources:
+          - job.yaml
+    - name: clear-data
+      kind: Delete
+      spec:
+        resources:
+          - job.yaml
+    - name: query
+      kind: Apply
+      spec:
+        resources:
+          - job.yaml
   templates:
     mysql.yaml: |
       apiVersion: v1
@@ -223,8 +254,7 @@ spec:
               - init
             - name: cleanup
               tasks:
-              - init
-              delete: true
+              - cleanup
     backup:
       strategy: serial
       phases:
@@ -239,8 +269,7 @@ spec:
               - backup
             - name: cleanup
               tasks:
-              - backup
-              delete: true
+              - backup-cleanup
     restore:
       strategy: serial
       phases:
@@ -252,8 +281,7 @@ spec:
               - restore
             - name: cleanup
               tasks:
-              - restore
-              delete: true
+              - restore-cleanup
 ---
 apiVersion: kudo.dev/v1alpha1
 kind: Instance

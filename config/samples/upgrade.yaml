@@ -40,9 +40,11 @@ spec:
               - -c
               - "echo {{ .PlanName }} for v1 && echo Going to sleep for {{ .Params.Sleep }} seconds && sleep {{ .Params.Sleep }}"
   tasks:
-    run:
-      resources:
-      - job.yaml
+    - name: run
+      kind: Apply
+      spec:
+        resources:
+          - job.yaml
   parameters:
   - name: SLEEP
     description: "how long to have the container sleep for before returning"
@@ -113,9 +115,11 @@ spec:
               - -c
               - "echo {{ .PlanName }} for v2 && echo Going to sleep for {{ .Params.Sleep }} seconds && sleep {{ .Params.Sleep }}"
   tasks:
-    run:
-      resources:
-      - job.yaml
+    - name: run
+      kind: Apply
+      spec:
+        resources:
+          - job.yaml
   parameters:
   - name: SLEEP
     description: "how long to have the container sleep for before returning"

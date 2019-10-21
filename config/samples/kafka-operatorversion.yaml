@@ -61,12 +61,14 @@ spec:
     name: zookeeper
     version: "^3.1.4"
   tasks:
-    deploy:
-      resources:
-      - service.yaml
-      - pdb.yaml
-      - configmap.yaml
-      - statefulset.yaml
+    - name: deploy
+      kind: Apply
+      spec:
+        resources:
+          - service.yaml
+          - pdb.yaml
+          - configmap.yaml
+          - statefulset.yaml
   templates:
     service.yaml: |
       apiVersion: v1
