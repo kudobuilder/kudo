@@ -84,7 +84,7 @@ func instancePlanFinished(key client.ObjectKey, planName string, c client.Client
 	i := &v1alpha1.Instance{}
 	err := c.Get(context.TODO(), key, i)
 	if err != nil {
-		fmt.Printf("%w", err)
+		fmt.Printf("%v", err)
 		return false
 	}
 	return i.Status.PlanStatus[planName].Status.IsFinished()

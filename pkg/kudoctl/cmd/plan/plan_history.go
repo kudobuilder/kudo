@@ -38,7 +38,7 @@ func planHistory(options *Options, settings *env.Settings) error {
 
 	kc, err := kudo.NewClient(settings.Namespace, settings.KubeConfig)
 	if err != nil {
-		fmt.Printf("Unable to create kudo client to talk to kubernetes API server %w", err)
+		fmt.Printf("Unable to create kudo client to talk to kubernetes API server %v", err)
 		return err
 	}
 	instance, err := kc.GetInstance(options.Instance, namespace)
