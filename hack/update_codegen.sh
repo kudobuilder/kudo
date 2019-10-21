@@ -15,7 +15,7 @@ if [ -d "$CODE_GEN_DIR" ]; then
     echo "Using cached code generator version: $VERSION"
 else
     git clone https://github.com/kubernetes/code-generator.git "${CODE_GEN_DIR}"
-    cd "${CODE_GEN_DIR}" && git reset --hard "${VERSION}" && go mod init
+    cd "${CODE_GEN_DIR}" && git reset --hard "${VERSION}" && go mod init && cd -
 fi
 
 "${CODE_GEN_DIR}"/generate-groups.sh \
