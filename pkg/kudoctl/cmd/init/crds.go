@@ -75,30 +75,30 @@ func operatorCrd() *apiextv1beta1.CustomResourceDefinition {
 func generateOperator() *apiextv1beta1.CustomResourceDefinition {
 
 	maintainers := map[string]apiextv1beta1.JSONSchemaProps{
-		"name":  apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"email": apiextv1beta1.JSONSchemaProps{Type: "string"},
+		"name":  {Type: "string"},
+		"email": {Type: "string"},
 	}
 
 	crd := generateCrd("Operator", "operators")
 	specProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"description":       apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"kubernetesVersion": apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"kudoVersion":       apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"maintainers": apiextv1beta1.JSONSchemaProps{Type: "array",
+		"description":       {Type: "string"},
+		"kubernetesVersion": {Type: "string"},
+		"kudoVersion":       {Type: "string"},
+		"maintainers": {Type: "array",
 			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{
 				Type:       "object",
 				Properties: maintainers,
 			}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
 		},
-		"url": apiextv1beta1.JSONSchemaProps{Type: "string"},
+		"url": {Type: "string"},
 	}
 
 	validationProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"apiVersion": apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"kind":       apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"meta":       apiextv1beta1.JSONSchemaProps{Type: "object"},
-		"spec":       apiextv1beta1.JSONSchemaProps{Properties: specProps, Type: "object"},
-		"status":     apiextv1beta1.JSONSchemaProps{Type: "object"},
+		"apiVersion": {Type: "string"},
+		"kind":       {Type: "string"},
+		"meta":       {Type: "object"},
+		"spec":       {Properties: specProps, Type: "object"},
+		"status":     {Type: "object"},
 	}
 	crd.Spec.Validation = &apiextv1beta1.CustomResourceValidation{
 		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{Type: "object",
@@ -121,25 +121,25 @@ func operatorVersionCrd() *apiextv1beta1.CustomResourceDefinition {
 func generateOperatorVersion() *apiextv1beta1.CustomResourceDefinition {
 	crd := generateCrd("OperatorVersion", "operatorversions")
 	dependProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"referenceName": apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Name specifies the name of the dependency.  Referenced via this in defaults.config"},
-		"crdVersion":    apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Version captures the requirements for what versions of the above object are allowed Example: ^3.1.4"},
+		"referenceName": {Type: "string", Description: "Name specifies the name of the dependency.  Referenced via this in defaults.config"},
+		"crdVersion":    {Type: "string", Description: "Version captures the requirements for what versions of the above object are allowed Example: ^3.1.4"},
 	}
 	paramProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"default":     apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Default is a default value if no parameter is provided by the instance"},
-		"description": apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Description captures a longer description of how the variable will be used"},
-		"displayName": apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Human friendly crdVersion of the parameter name"},
-		"name":        apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Name is the string that should be used in the template file for example, if `name: COUNT` then using the variable `.Params.COUNT`"},
-		"required":    apiextv1beta1.JSONSchemaProps{Type: "boolean", Description: "Required specifies if the parameter is required to be provided by all instances, or whether a default can suffice"},
-		"trigger":     apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Trigger identifies the plan that gets executed when this parameter changes in the Instance object. Default is `update` if present, or `deploy` if not present"},
+		"default":     {Type: "string", Description: "Default is a default value if no parameter is provided by the instance"},
+		"description": {Type: "string", Description: "Description captures a longer description of how the variable will be used"},
+		"displayName": {Type: "string", Description: "Human friendly crdVersion of the parameter name"},
+		"name":        {Type: "string", Description: "Name is the string that should be used in the template file for example, if `name: COUNT` then using the variable `.Params.COUNT`"},
+		"required":    {Type: "boolean", Description: "Required specifies if the parameter is required to be provided by all instances, or whether a default can suffice"},
+		"trigger":     {Type: "string", Description: "Trigger identifies the plan that gets executed when this parameter changes in the Instance object. Default is `update` if present, or `deploy` if not present"},
 	}
 	taskProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"name": apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"kind": apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"spec": apiextv1beta1.JSONSchemaProps{Type: "object"},
+		"name": {Type: "string"},
+		"kind": {Type: "string"},
+		"spec": {Type: "object"},
 	}
 	specProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"connectionString": apiextv1beta1.JSONSchemaProps{Type: "string", Description: "ConnectionString defines a mustached string that can be used to connect to an instance of the Operator"},
-		"dependencies": apiextv1beta1.JSONSchemaProps{
+		"connectionString": {Type: "string", Description: "ConnectionString defines a mustached string that can be used to connect to an instance of the Operator"},
+		"dependencies": {
 			Type: "array",
 			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{
 				Type:       "object",
@@ -147,16 +147,16 @@ func generateOperatorVersion() *apiextv1beta1.CustomResourceDefinition {
 				Properties: dependProps,
 			}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
 		},
-		"operator": apiextv1beta1.JSONSchemaProps{Type: "object"},
-		"parameters": apiextv1beta1.JSONSchemaProps{
+		"operator": {Type: "object"},
+		"parameters": {
 			Type: "array",
 			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{
 				Type:       "object",
 				Properties: paramProps,
 			}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
 		},
-		"plans": apiextv1beta1.JSONSchemaProps{Type: "object", Description: "Plans specify a map a plans that specify how to"},
-		"tasks": apiextv1beta1.JSONSchemaProps{
+		"plans": {Type: "object", Description: "Plans specify a map a plans that specify how to"},
+		"tasks": {
 			Type:        "array",
 			Description: "List of all tasks available in this OperatorVersions",
 			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{
@@ -164,21 +164,21 @@ func generateOperatorVersion() *apiextv1beta1.CustomResourceDefinition {
 				Properties: taskProps,
 			}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
 		},
-		"templates": apiextv1beta1.JSONSchemaProps{Type: "object", Description: "List of go templates YAML files that define the application operator instance"},
-		"upgradableFrom": apiextv1beta1.JSONSchemaProps{
+		"templates": {Type: "object", Description: "List of go templates YAML files that define the application operator instance"},
+		"upgradableFrom": {
 			Type:        "array",
 			Description: "UpgradableFrom lists all OperatorVersions that can upgrade to this OperatorVersion",
 			Items:       &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{Type: "object"}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
 		},
-		"crdVersion": apiextv1beta1.JSONSchemaProps{Type: "string"},
+		"crdVersion": {Type: "string"},
 	}
 
 	validationProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"apiVersion": apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"kind":       apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"meta":       apiextv1beta1.JSONSchemaProps{Type: "object"},
-		"spec":       apiextv1beta1.JSONSchemaProps{Properties: specProps, Type: "object"},
-		"status":     apiextv1beta1.JSONSchemaProps{Type: "object"},
+		"apiVersion": {Type: "string"},
+		"kind":       {Type: "string"},
+		"meta":       {Type: "object"},
+		"spec":       {Properties: specProps, Type: "object"},
+		"status":     {Type: "object"},
 	}
 
 	crd.Spec.Validation = &apiextv1beta1.CustomResourceValidation{
@@ -202,11 +202,11 @@ func InstanceCrd() *apiextv1beta1.CustomResourceDefinition {
 func generateInstance() *apiextv1beta1.CustomResourceDefinition {
 	crd := generateCrd("Instance", "instances")
 	dependProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"referenceName": apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Name specifies the name of the dependency.  Referenced via this in defaults.config"},
-		"crdVersion":    apiextv1beta1.JSONSchemaProps{Type: "string", Description: "Version captures the requirements for what versions of the above object are allowed Example: ^3.1.4"},
+		"referenceName": {Type: "string", Description: "Name specifies the name of the dependency.  Referenced via this in defaults.config"},
+		"crdVersion":    {Type: "string", Description: "Version captures the requirements for what versions of the above object are allowed Example: ^3.1.4"},
 	}
 	specProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"dependencies": apiextv1beta1.JSONSchemaProps{
+		"dependencies": {
 			Type:        "array",
 			Description: "Dependency references specific",
 			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{
@@ -215,20 +215,20 @@ func generateInstance() *apiextv1beta1.CustomResourceDefinition {
 				Properties: dependProps,
 			}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
 		},
-		"OperatorVersion": apiextv1beta1.JSONSchemaProps{Type: "object", Description: "Operator specifies a reference to a specific Operator object"},
-		"parameters":      apiextv1beta1.JSONSchemaProps{Type: "object"},
+		"OperatorVersion": {Type: "object", Description: "Operator specifies a reference to a specific Operator object"},
+		"parameters":      {Type: "object"},
 	}
 	statusProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"planStatus":       apiextv1beta1.JSONSchemaProps{Type: "object"},
-		"aggregatedStatus": apiextv1beta1.JSONSchemaProps{Type: "object"},
+		"planStatus":       {Type: "object"},
+		"aggregatedStatus": {Type: "object"},
 	}
 
 	validationProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"apiVersion": apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"kind":       apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"meta":       apiextv1beta1.JSONSchemaProps{Type: "object"},
-		"spec":       apiextv1beta1.JSONSchemaProps{Properties: specProps, Type: "object"},
-		"status": apiextv1beta1.JSONSchemaProps{
+		"apiVersion": {Type: "string"},
+		"kind":       {Type: "string"},
+		"meta":       {Type: "object"},
+		"spec":       {Properties: specProps, Type: "object"},
+		"status": {
 			Type:       "object",
 			Properties: statusProps,
 		},

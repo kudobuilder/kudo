@@ -51,8 +51,8 @@ func TestAddNodeCaches(t *testing.T) {
 
 	kindCfg = &kindConfig.Cluster{
 		Nodes: []kindConfig.Node{
-			kindConfig.Node{},
-			kindConfig.Node{},
+			{},
+			{},
 		},
 	}
 	h.addNodeCaches(kindCfg)
