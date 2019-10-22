@@ -87,22 +87,6 @@ spec:
               type: string
             crdVersion:
               type: string
-            dependencies:
-              items:
-                properties:
-                  crdVersion:
-                    description: 'Version captures the requirements for what versions
-                      of the above object are allowed Example: ^3.1.4'
-                    type: string
-                  referenceName:
-                    description: Name specifies the name of the dependency.  Referenced
-                      via this in defaults.config
-                    type: string
-                required:
-                - referenceName
-                - crdVersion
-                type: object
-              type: array
             operator:
               type: object
             parameters:
@@ -201,23 +185,6 @@ spec:
             OperatorVersion:
               description: Operator specifies a reference to a specific Operator object
               type: object
-            dependencies:
-              description: Dependency references specific
-              items:
-                properties:
-                  crdVersion:
-                    description: 'Version captures the requirements for what versions
-                      of the above object are allowed Example: ^3.1.4'
-                    type: string
-                  referenceName:
-                    description: Name specifies the name of the dependency.  Referenced
-                      via this in defaults.config
-                    type: string
-                required:
-                - referenceName
-                - crdVersion
-                type: object
-              type: array
             parameters:
               type: object
           type: object
