@@ -40,11 +40,7 @@ test-clean:
 	rm -f cover.out cover-integration.out
 
 .PHONY: check-formatting
-check-formatting: vet lint staticcheck
-	./hack/check_formatting.sh
-
-.PHONY: golint
-golint:
+check-formatting:
 	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 	golangci-lint run
 
