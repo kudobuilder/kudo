@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
@@ -118,32 +119,52 @@ func TestInitCmd_output(t *testing.T) {
 }
 
 func TestInitCmd_YAMLWriter(t *testing.T) {
-	file := "deploy-kudo.yaml"
-	fs := afero.NewMemMapFs()
-	out := &bytes.Buffer{}
-	initCmd := newInitCmd(fs, out)
-	flags := map[string]string{"dry-run": "true", "output": "yaml"}
-
-	for flag, value := range flags {
-		initCmd.Flags().Set(flag, value)
+	testCases := []struct {
+		file     string
+		settings *env.Settings
+	}{
+		{
+			file: "deploy-kudo.yaml",
+		},
+		{
+			file:     "deploy-kudo-ns-default.yaml",
+			settings: env.DefaultSettings, // "default" namespace
+		},
 	}
-	initCmd.RunE(initCmd, []string{})
 
-	gp := filepath.Join("testdata", file+".golden")
-
-	if *updateGolden {
-		t.Log("update golden file")
-		if err := ioutil.WriteFile(gp, out.Bytes(), 0644); err != nil {
-			t.Fatalf("failed to update golden file: %s", err)
+	for _, tc := range testCases {
+		Settings = env.Settings{}
+		if tc.settings != nil {
+			Settings = *tc.settings
 		}
-	}
-	g, err := ioutil.ReadFile(gp)
-	if err != nil {
-		t.Fatalf("failed reading .golden: %s", err)
-	}
 
-	if !bytes.Equal(out.Bytes(), g) {
-		t.Errorf("json does not match .golden file? %s", gp)
+		fs := afero.NewMemMapFs()
+		out := &bytes.Buffer{}
+		initCmd := newInitCmd(fs, out)
+
+		flags := map[string]string{
+			"dry-run": "true",
+			"output":  "yaml",
+		}
+		for name, value := range flags {
+			initCmd.Flags().Set(name, value)
+		}
+		initCmd.RunE(initCmd, []string{})
+
+		gp := filepath.Join("testdata", tc.file+".golden")
+
+		if *updateGolden {
+			t.Log("update golden file")
+			if err := ioutil.WriteFile(gp, out.Bytes(), 0644); err != nil {
+				t.Fatalf("failed to update golden file: %s", err)
+			}
+		}
+		g, err := ioutil.ReadFile(gp)
+		if err != nil {
+			t.Fatalf("failed reading .golden: %s", err)
+		}
+
+		assert.Equal(t, string(g), out.String())
 	}
 }
 
