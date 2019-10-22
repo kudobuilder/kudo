@@ -96,7 +96,7 @@ func generateOperator() *apiextv1beta1.CustomResourceDefinition {
 	validationProps := map[string]apiextv1beta1.JSONSchemaProps{
 		"apiVersion": apiextv1beta1.JSONSchemaProps{Type: "string"},
 		"kind":       apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"meta":       apiextv1beta1.JSONSchemaProps{Type: "object"},
+		"metadata":   apiextv1beta1.JSONSchemaProps{Type: "object"},
 		"spec":       apiextv1beta1.JSONSchemaProps{Properties: specProps, Type: "object"},
 		"status":     apiextv1beta1.JSONSchemaProps{Type: "object"},
 	}
@@ -176,7 +176,7 @@ func generateOperatorVersion() *apiextv1beta1.CustomResourceDefinition {
 	validationProps := map[string]apiextv1beta1.JSONSchemaProps{
 		"apiVersion": apiextv1beta1.JSONSchemaProps{Type: "string"},
 		"kind":       apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"meta":       apiextv1beta1.JSONSchemaProps{Type: "object"},
+		"metadata":   apiextv1beta1.JSONSchemaProps{Type: "object"},
 		"spec":       apiextv1beta1.JSONSchemaProps{Properties: specProps, Type: "object"},
 		"status":     apiextv1beta1.JSONSchemaProps{Type: "object"},
 	}
@@ -226,7 +226,7 @@ func generateInstance() *apiextv1beta1.CustomResourceDefinition {
 	validationProps := map[string]apiextv1beta1.JSONSchemaProps{
 		"apiVersion": apiextv1beta1.JSONSchemaProps{Type: "string"},
 		"kind":       apiextv1beta1.JSONSchemaProps{Type: "string"},
-		"meta":       apiextv1beta1.JSONSchemaProps{Type: "object"},
+		"metadata":   apiextv1beta1.JSONSchemaProps{Type: "object"},
 		"spec":       apiextv1beta1.JSONSchemaProps{Properties: specProps, Type: "object"},
 		"status": apiextv1beta1.JSONSchemaProps{
 			Type:       "object",
