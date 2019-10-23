@@ -20,7 +20,7 @@ spec:
           type: string
         kind:
           type: string
-        meta:
+        metadata:
           type: object
         spec:
           properties:
@@ -30,22 +30,6 @@ spec:
               type: string
             crdVersion:
               type: string
-            dependencies:
-              items:
-                properties:
-                  crdVersion:
-                    description: 'Version captures the requirements for what versions
-                      of the above object are allowed Example: ^3.1.4'
-                    type: string
-                  referenceName:
-                    description: Name specifies the name of the dependency.  Referenced
-                      via this in defaults.config
-                    type: string
-                required:
-                - referenceName
-                - crdVersion
-                type: object
-              type: array
             operator:
               type: object
             parameters:

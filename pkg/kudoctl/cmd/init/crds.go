@@ -25,7 +25,7 @@ func installCrds(client apiextensionsclient.Interface) error {
 	if err := install(client.ApiextensionsV1beta1(), operatorVersionCrd()); err != nil {
 		return err
 	}
-	if err := install(client.ApiextensionsV1beta1(), InstanceCrd()); err != nil {
+	if err := install(client.ApiextensionsV1beta1(), instanceCrd()); err != nil {
 		return err
 	}
 	return nil
@@ -66,7 +66,7 @@ func operatorCrd() *apiextv1beta1.CustomResourceDefinition {
 	validationProps := map[string]apiextv1beta1.JSONSchemaProps{
 		"apiVersion": {Type: "string"},
 		"kind":       {Type: "string"},
-		"meta":       {Type: "object"},
+		"metadata":   {Type: "object"},
 		"spec":       {Properties: specProps, Type: "object"},
 		"status":     {Type: "object"},
 	}
@@ -125,7 +125,7 @@ func operatorVersionCrd() *apiextv1beta1.CustomResourceDefinition {
 	validationProps := map[string]apiextv1beta1.JSONSchemaProps{
 		"apiVersion": {Type: "string"},
 		"kind":       {Type: "string"},
-		"meta":       {Type: "object"},
+		"metadata":   {Type: "object"},
 		"spec":       {Properties: specProps, Type: "object"},
 		"status":     {Type: "object"},
 	}
@@ -138,8 +138,8 @@ func operatorVersionCrd() *apiextv1beta1.CustomResourceDefinition {
 	return crd
 }
 
-// InstanceCrd provides definition of the instance CRD
-func InstanceCrd() *apiextv1beta1.CustomResourceDefinition {
+// instanceCrd provides the Instance CRD manifest for printing
+func instanceCrd() *apiextv1beta1.CustomResourceDefinition {
 	crd := generateCrd("Instance", "instances")
 	specProps := map[string]apiextv1beta1.JSONSchemaProps{
 		"OperatorVersion": {Type: "object", Description: "Operator specifies a reference to a specific Operator object"},
@@ -153,7 +153,7 @@ func InstanceCrd() *apiextv1beta1.CustomResourceDefinition {
 	validationProps := map[string]apiextv1beta1.JSONSchemaProps{
 		"apiVersion": {Type: "string"},
 		"kind":       {Type: "string"},
-		"meta":       {Type: "object"},
+		"metadata":   {Type: "object"},
 		"spec":       {Properties: specProps, Type: "object"},
 		"status": {
 			Type:       "object",
@@ -207,9 +207,21 @@ func generateCrd(kind string, plural string) *apiextv1beta1.CustomResourceDefini
 	return crd
 }
 
-// CRDManifests provides a slice of strings for each CRD manifest
-func CRDManifests() ([]string, error) {
-	objs := CRDs()
+// KudoCrds represents custom resource definitions needed to run KUDO
+type KudoCrds struct {
+	Operator        runtime.Object
+	OperatorVersion runtime.Object
+	Instance        runtime.Object
+}
+
+// AsArray returns all CRDs as array of runtime objects
+func (c KudoCrds) AsArray() []runtime.Object {
+	return []runtime.Object{c.Operator, c.OperatorVersion, c.Instance}
+}
+
+// AsYaml returns crds as slice of strings
+func (c KudoCrds) AsYaml() ([]string, error) {
+	objs := c.AsArray()
 	manifests := make([]string, len(objs))
 	for i, obj := range objs {
 		o, err := yaml.Marshal(obj)
@@ -222,11 +234,11 @@ func CRDManifests() ([]string, error) {
 	return manifests, nil
 }
 
-// CRDs returns the slice of crd objects for KUDO
-func CRDs() []runtime.Object {
-	o := operatorCrd()
-	ov := operatorVersionCrd()
-	i := InstanceCrd()
-
-	return []runtime.Object{o, ov, i}
+// CRDs returns the runtime.Object representation of all the CRDs KUDO requires
+func CRDs() KudoCrds {
+	return KudoCrds{
+		Operator:        operatorCrd(),
+		OperatorVersion: operatorVersionCrd(),
+		Instance:        instanceCrd(),
+	}
 }
