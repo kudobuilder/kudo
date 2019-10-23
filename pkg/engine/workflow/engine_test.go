@@ -29,7 +29,7 @@ func TestExecutePlan(t *testing.T) {
 		OperatorVersion:     "1.0",
 		ResourcesOwner:      instance,
 	}
-	testEnhancer := &testKubernetesObjectEnhancer{}
+	testEnhancer := &testEnhancer{}
 
 	tests := []struct {
 		name           string
@@ -37,7 +37,7 @@ func TestExecutePlan(t *testing.T) {
 		metadata       *engine.Metadata
 		expectedStatus *v1alpha1.PlanStatus
 		wantErr        bool
-		enhancer       task.KubernetesObjectEnhancer
+		enhancer       task.Enhancer
 	}{
 		{name: "plan already finished will not change its status", activePlan: &ActivePlan{
 			Name: "test",
@@ -634,9 +634,9 @@ func instance() *v1alpha1.Instance {
 	}
 }
 
-type testKubernetesObjectEnhancer struct{}
+type testEnhancer struct{}
 
-func (k *testKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata task.Metadata) ([]runtime.Object, error) {
+func (k *testEnhancer) Apply(templates map[string]string, metadata task.Metadata) ([]runtime.Object, error) {
 	result := make([]runtime.Object, 0)
 	for _, t := range templates {
 		objsToAdd, err := template.ParseKubernetesObjects(t)

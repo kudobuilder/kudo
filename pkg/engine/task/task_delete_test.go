@@ -44,7 +44,7 @@ func TestDeleteTask_Run(t *testing.T) {
 			wantErr: false,
 			ctx: Context{
 				Client:   fake.NewFakeClientWithScheme(scheme.Scheme),
-				Enhancer: &testKubernetesObjectEnhancer{},
+				Enhancer: &testEnhancer{},
 				Meta:     Metadata{},
 			},
 		},
@@ -59,7 +59,7 @@ func TestDeleteTask_Run(t *testing.T) {
 			fatal:   true,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
-				Enhancer:  &testKubernetesObjectEnhancer{},
+				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{},
 			},
@@ -75,7 +75,7 @@ func TestDeleteTask_Run(t *testing.T) {
 			fatal:   true,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
-				Enhancer:  &errKubernetesObjectEnhancer{},
+				Enhancer:  &errorEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},
 			},
@@ -90,7 +90,7 @@ func TestDeleteTask_Run(t *testing.T) {
 			wantErr: false,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
-				Enhancer:  &testKubernetesObjectEnhancer{},
+				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},
 			},

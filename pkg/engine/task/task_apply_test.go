@@ -50,7 +50,7 @@ func TestApplyTask_Run(t *testing.T) {
 			wantErr: false,
 			ctx: Context{
 				Client:   fake.NewFakeClientWithScheme(scheme.Scheme),
-				Enhancer: &testKubernetesObjectEnhancer{},
+				Enhancer: &testEnhancer{},
 				Meta:     Metadata{},
 			},
 		},
@@ -65,7 +65,7 @@ func TestApplyTask_Run(t *testing.T) {
 			fatal:   true,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
-				Enhancer:  &testKubernetesObjectEnhancer{},
+				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{},
 			},
@@ -81,7 +81,7 @@ func TestApplyTask_Run(t *testing.T) {
 			fatal:   true,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
-				Enhancer:  &errKubernetesObjectEnhancer{},
+				Enhancer:  &errorEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},
 			},
@@ -96,7 +96,7 @@ func TestApplyTask_Run(t *testing.T) {
 			wantErr: false,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
-				Enhancer:  &testKubernetesObjectEnhancer{},
+				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},
 			},
@@ -111,7 +111,7 @@ func TestApplyTask_Run(t *testing.T) {
 			wantErr: false,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
-				Enhancer:  &testKubernetesObjectEnhancer{},
+				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"job": resourceAsString(job("job1", "default"))},
 			},
@@ -166,9 +166,9 @@ func resourceAsString(resource metav1.Object) string {
 	return string(bytes)
 }
 
-type testKubernetesObjectEnhancer struct{}
+type testEnhancer struct{}
 
-func (k *testKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata Metadata) ([]runtime.Object, error) {
+func (k *testEnhancer) Apply(templates map[string]string, metadata Metadata) ([]runtime.Object, error) {
 	result := make([]runtime.Object, 0)
 	for _, t := range templates {
 		objsToAdd, err := template.ParseKubernetesObjects(t)
@@ -180,8 +180,8 @@ func (k *testKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map
 	return result, nil
 }
 
-type errKubernetesObjectEnhancer struct{}
+type errorEnhancer struct{}
 
-func (k *errKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata Metadata) ([]runtime.Object, error) {
+func (k *errorEnhancer) Apply(templates map[string]string, metadata Metadata) ([]runtime.Object, error) {
 	return nil, errors.New("always error")
 }

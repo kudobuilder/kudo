@@ -23,7 +23,7 @@ type Metadata struct {
 // Context is a engine.task execution context containing k8s client, templates parameters etc.
 type Context struct {
 	Client     client.Client
-	Enhancer   KubernetesObjectEnhancer
+	Enhancer   Enhancer
 	Meta       Metadata
 	Templates  map[string]string // Raw templates
 	Parameters map[string]string // Instance and OperatorVersion parameters merged
