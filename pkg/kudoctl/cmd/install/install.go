@@ -4,9 +4,9 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/crds"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/resources"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
@@ -66,14 +66,14 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 	}
 
 	clog.V(3).Printf("getting package crds")
-	packageCRDs, err := crds.GetPackageCRDs(operatorArgument, options.PackageVersion, repository)
+	res, err := resources.GetPackageResources(operatorArgument, options.PackageVersion, repository)
 	if err != nil {
 		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", operatorArgument)
 	}
 
-	return installCrds(packageCRDs, kc, options, settings)
+	return installCrds(res, kc, options, settings)
 }
 
-func installCrds(packageCRDs *packages.PackageCRDs, kc *kudo.Client, options *Options, settings *env.Settings) error {
-	return crds.Install(kc, packageCRDs, options.SkipInstance, options.InstanceName, settings.Namespace, options.Parameters)
+func installCrds(res *packages.PackageCRDs, kc *kudo.Client, options *Options, settings *env.Settings) error {
+	return resources.Install(kc, res, options.SkipInstance, options.InstanceName, settings.Namespace, options.Parameters)
 }
