@@ -5,7 +5,29 @@ import (
 	"fmt"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/engine"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// Metadata contains Metadata along with specific fields associated with current plan
+// being executed like current plan, phase, step or task names.
+type Metadata struct {
+	engine.Metadata
+
+	PlanName  string
+	PhaseName string
+	StepName  string
+	TaskName  string
+}
+
+// Context is a engine.task execution context containing k8s client, templates parameters etc.
+type Context struct {
+	Client     client.Client
+	Enhancer   KubernetesObjectEnhancer
+	Meta       Metadata
+	Templates  map[string]string // Raw templates
+	Parameters map[string]string // Instance and OperatorVersion parameters merged
+}
 
 // Tasker is an interface that represents any runnable task for an operator. This method is treated
 // as idempotent and will be called multiple times during the life-cycle of the plan execution.

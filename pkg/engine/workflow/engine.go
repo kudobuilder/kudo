@@ -1,4 +1,4 @@
-package instance
+package workflow
 
 import (
 	"errors"
@@ -7,7 +7,8 @@ import (
 	"time"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
+	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/kudobuilder/kudo/pkg/engine/task"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -20,17 +21,18 @@ var (
 	missingStepStatus                = "MissingStepStatus"
 )
 
-type activePlan struct {
-	name string
+// ActivePlan wraps over all data that is needed for its execution including tasks, templates, parameters etc.
+type ActivePlan struct {
+	Name string
 	*v1alpha1.PlanStatus
-	spec      *v1alpha1.Plan
-	tasks     []v1alpha1.Task
-	templates map[string]string
-	params    map[string]string
+	Spec      *v1alpha1.Plan
+	Tasks     []v1alpha1.Task
+	Templates map[string]string
+	Params    map[string]string
 }
 
-func (ap *activePlan) taskByName(name string) (*v1alpha1.Task, bool) {
-	for _, t := range ap.tasks {
+func (ap *ActivePlan) taskByName(name string) (*v1alpha1.Task, bool) {
+	for _, t := range ap.Tasks {
 		if t.Name == name {
 			return &t, true
 		}
@@ -38,7 +40,7 @@ func (ap *activePlan) taskByName(name string) (*v1alpha1.Task, bool) {
 	return nil, false
 }
 
-// executePlan method takes a currently active plan and ExecutionMetadata from the underlying operator and executes it.
+// Execute method takes a currently active plan and Metadata from the underlying operator and executes it.
 // An execution loop iterates through plan phases, steps and tasks, executing them according to the execution strategy
 // (serial/parallel). Task execution might result in success, error and fatal error. It is to distinguish between transient
 // and fatal errors.  Transient errors are retryable, so the corresponding Plan/Phase are still in progress:
@@ -56,18 +58,18 @@ func (ap *activePlan) taskByName(name string) (*v1alpha1.Task, bool) {
 //
 // Furthermore, a transient ERROR during a step execution, means that the next step may be executed if the step strategy
 // is "parallel". In case of a fatal error, it is returned alongside with the new plan status and published on the event bus.
-func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, enh engtask.KubernetesObjectEnhancer, currentTime time.Time) (*v1alpha1.PlanStatus, error) {
+func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh task.KubernetesObjectEnhancer, currentTime time.Time) (*v1alpha1.PlanStatus, error) {
 	if pl.Status.IsTerminal() {
-		log.Printf("PlanExecution: Plan %s for instance %s is terminal, nothing to do", pl.name, em.InstanceName)
+		log.Printf("PlanExecution: Plan %s for instance %s is terminal, nothing to do", pl.Name, em.InstanceName)
 		return pl.PlanStatus, nil
 	}
 
 	planStatus := pl.PlanStatus.DeepCopy()
 	planStatus.Status = v1alpha1.ExecutionInProgress
 
-	phasesLeft := len(pl.spec.Phases)
+	phasesLeft := len(pl.Spec.Phases)
 	// --- 1. Iterate over plan phases ---
-	for _, ph := range pl.spec.Phases {
+	for _, ph := range pl.Spec.Phases {
 		phaseStatus := getPhaseStatus(ph.Name, planStatus)
 		if phaseStatus == nil {
 			planStatus.Status = v1alpha1.ExecutionFatalError
@@ -128,16 +130,16 @@ func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, en
 					}
 				}
 				// - 3.a build execution metadata -
-				exm := engtask.ExecutionMetadata{
-					EngineMetadata: *em,
-					PlanName:       pl.name,
-					PhaseName:      ph.Name,
-					StepName:       st.Name,
-					TaskName:       tn,
+				exm := task.Metadata{
+					Metadata:  *em,
+					PlanName:  pl.Name,
+					PhaseName: ph.Name,
+					StepName:  st.Name,
+					TaskName:  tn,
 				}
 
 				// - 3.b build the engine task -
-				task, err := engtask.Build(t)
+				tt, err := task.Build(t)
 				if err != nil {
 					stepStatus.Status = v1alpha1.ExecutionFatalError
 					phaseStatus.Status = v1alpha1.ExecutionFatalError
@@ -150,21 +152,21 @@ func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, en
 				}
 
 				// - 3.c build task context -
-				ctx := engtask.Context{
+				ctx := task.Context{
 					Client:     c,
 					Enhancer:   enh,
 					Meta:       exm,
-					Templates:  pl.templates,
-					Parameters: pl.params,
+					Templates:  pl.Templates,
+					Parameters: pl.Params,
 				}
 
 				// --- 4. Execute the engine task ---
-				done, err := task.Run(ctx)
+				done, err := tt.Run(ctx)
 
 				// a fatal error is propagated through the plan/phase/step statuses and the plan execution will be
 				// stopped in the spirit of "fail-loud-and-proud".
 				switch {
-				case errors.Is(err, engtask.ErrFatalExecution):
+				case errors.Is(err, task.ErrFatalExecution):
 					log.Printf("PlanExecution: error during task %s execution for operator version %s: %v", exm.TaskName, exm.OperatorVersionName, err)
 					phaseStatus.Status = v1alpha1.ExecutionFatalError
 					stepStatus.Status = v1alpha1.ExecutionFatalError
@@ -200,7 +202,7 @@ func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, en
 		// if some STEPs aren't ready yet and PHASEs strategy is serial we can not proceed
 		// otherwise, if PHASEs strategy is parallel or all STEPs are finished, we can go to the next PHASE
 		if stepsLeft > 0 {
-			if pl.spec.Strategy == v1alpha1.Serial {
+			if pl.Spec.Strategy == v1alpha1.Serial {
 				log.Printf("PlanExecution: some steps of the %s.%s, operator version %s are not ready", pl.Name, ph.Name, em.OperatorVersionName)
 				break
 			}
@@ -212,7 +214,7 @@ func executePlan(pl *activePlan, em *engtask.EngineMetadata, c client.Client, en
 
 	// --- 7. Check if all PHASEs are finished ---
 	if phasesLeft == 0 {
-		log.Printf("PlanExecution: All phases on plan %s and instance %s are healthy", pl.name, em.InstanceName)
+		log.Printf("PlanExecution: All phases on plan %s and instance %s are healthy", pl.Name, em.InstanceName)
 		planStatus.Status = v1alpha1.ExecutionComplete
 		planStatus.LastFinishedRun = v1.Time{Time: currentTime}
 	}
@@ -246,4 +248,19 @@ func isFinished(state v1alpha1.ExecutionStatus) bool {
 
 func isInProgress(state v1alpha1.ExecutionStatus) bool {
 	return state == v1alpha1.ExecutionInProgress || state == v1alpha1.ExecutionPending || state == v1alpha1.ErrorStatus
+}
+
+// ExecutionError wraps plan execution engine errors with additional fields. E.g an error with EventName set
+// will be published on the event bus.
+type ExecutionError struct {
+	Err       error
+	Fatal     bool    // these errors should not be retried
+	EventName *string // nil if no warn even should be created
+}
+
+func (e ExecutionError) Error() string {
+	if e.Fatal {
+		return fmt.Sprintf("Fatal error: %v", e.Err)
+	}
+	return fmt.Sprintf("Error during execution: %v", e.Err)
 }

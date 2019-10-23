@@ -3,11 +3,12 @@ package task
 import (
 	"fmt"
 
-	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/kudobuilder/kudo/pkg/engine/renderer"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // render method takes resource names and Instance parameters and then renders passed templates using kudo engine.
-func render(resourceNames []string, templates map[string]string, params map[string]string, meta ExecutionMetadata) (map[string]string, error) {
+func render(resourceNames []string, templates map[string]string, params map[string]string, meta Metadata) (map[string]string, error) {
 	configs := make(map[string]interface{})
 	configs["OperatorName"] = meta.OperatorName
 	configs["Name"] = meta.InstanceName
@@ -18,7 +19,7 @@ func render(resourceNames []string, templates map[string]string, params map[stri
 	configs["StepName"] = meta.StepName
 
 	resources := map[string]string{}
-	engine := engine.New()
+	engine := renderer.New()
 
 	for _, rn := range resourceNames {
 		resource, ok := templates[rn]
@@ -35,4 +36,11 @@ func render(resourceNames []string, templates map[string]string, params map[stri
 		resources[rn] = rendered
 	}
 	return resources, nil
+}
+
+// kustomize method takes a slice of rendered templates, applies conventions using KubernetesObjectEnhancer and
+// returns a slice of k8s objects.
+func kustomize(rendered map[string]string, meta Metadata, enhancer KubernetesObjectEnhancer) ([]runtime.Object, error) {
+	enhanced, err := enhancer.ApplyConventionsToTemplates(rendered, meta)
+	return enhanced, err
 }

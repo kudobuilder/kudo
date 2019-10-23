@@ -23,7 +23,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
+	"github.com/kudobuilder/kudo/pkg/engine/workflow"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -165,8 +167,8 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		err = r.handleError(err, instance)
 		return reconcile.Result{}, err
 	}
-	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.name, instance.Namespace, instance.Name)
-	newStatus, err := executePlan(activePlan, metadata, r.Client, &task.KustomizeEnhancer{Scheme: r.Scheme}, time.Now())
+	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
+	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, &task.KustomizeEnhancer{Scheme: r.Scheme}, time.Now())
 
 	// ---------- 4. Update status of instance after the execution proceeded ----------
 	if newStatus != nil {
@@ -190,7 +192,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	return reconcile.Result{}, nil
 }
 
-func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.OperatorVersion, activePlanStatus *kudov1alpha1.PlanStatus) (*activePlan, *task.EngineMetadata, error) {
+func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.OperatorVersion, activePlanStatus *kudov1alpha1.PlanStatus) (*workflow.ActivePlan, *engine.Metadata, error) {
 	params, err := getParameters(instance, ov)
 	if err != nil {
 		return nil, nil, err
@@ -198,17 +200,17 @@ func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.Oper
 
 	planSpec, ok := ov.Spec.Plans[activePlanStatus.Name]
 	if !ok {
-		return nil, nil, &ExecutionError{fmt.Errorf("could not find required plan (%v)", activePlanStatus.Name), false, kudo.String("InvalidPlan")}
+		return nil, nil, &workflow.ExecutionError{Err: fmt.Errorf("could not find required plan (%v)", activePlanStatus.Name), EventName: kudo.String("InvalidPlan")}
 	}
 
-	return &activePlan{
-			name:       activePlanStatus.Name,
-			spec:       &planSpec,
+	return &workflow.ActivePlan{
+			Name:       activePlanStatus.Name,
+			Spec:       &planSpec,
 			PlanStatus: activePlanStatus,
-			tasks:      ov.Spec.Tasks,
-			templates:  ov.Spec.Templates,
-			params:     params,
-		}, &task.EngineMetadata{
+			Tasks:      ov.Spec.Tasks,
+			Templates:  ov.Spec.Templates,
+			Params:     params,
+		}, &engine.Metadata{
 			OperatorVersionName: ov.Name,
 			OperatorVersion:     ov.Spec.Version,
 			ResourcesOwner:      instance,
@@ -232,7 +234,7 @@ func (r *Reconciler) handleError(err error, instance *kudov1alpha1.Instance) err
 	}
 
 	// determine if retry is necessary based on the error type
-	if exErr, ok := err.(*ExecutionError); ok {
+	if exErr, ok := err.(*workflow.ExecutionError); ok {
 		if exErr.EventName != nil {
 			r.Recorder.Event(instance, "Warning", kudo.StringValue(exErr.EventName), err.Error())
 		}
@@ -309,7 +311,7 @@ func getParameters(instance *kudov1alpha1.Instance, operatorVersion *kudov1alpha
 	}
 
 	if len(missingRequiredParameters) != 0 {
-		return nil, &ExecutionError{Err: fmt.Errorf("parameters are missing when evaluating template: %s", strings.Join(missingRequiredParameters, ",")), Fatal: true, EventName: kudo.String("Missing parameter")}
+		return nil, &workflow.ExecutionError{Err: fmt.Errorf("parameters are missing when evaluating template: %s", strings.Join(missingRequiredParameters, ",")), Fatal: true, EventName: kudo.String("Missing parameter")}
 	}
 
 	return params, nil
@@ -333,19 +335,4 @@ func parameterDifference(old, new map[string]string) map[string]string {
 	}
 
 	return diff
-}
-
-// ExecutionError wraps plan execution engine errors with additional fields. E.g an error with EventName set
-// will be published on the event bus.
-type ExecutionError struct {
-	Err       error
-	Fatal     bool    // these errors should not be retried
-	EventName *string // nil if no warn even should be created
-}
-
-func (e ExecutionError) Error() string {
-	if e.Fatal {
-		return fmt.Sprintf("Fatal error: %v", e.Err)
-	}
-	return fmt.Sprintf("Error during execution: %v", e.Err)
 }

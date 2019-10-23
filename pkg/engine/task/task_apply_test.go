@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/util/template"
 	"github.com/stretchr/testify/assert"
 	batchv1 "k8s.io/api/batch/v1"
@@ -17,8 +18,8 @@ import (
 )
 
 func TestApplyTask_Run(t *testing.T) {
-	meta := ExecutionMetadata{
-		EngineMetadata: EngineMetadata{
+	meta := Metadata{
+		Metadata: engine.Metadata{
 			InstanceName:        "test",
 			InstanceNamespace:   "default",
 			OperatorName:        "first-operator",
@@ -50,7 +51,7 @@ func TestApplyTask_Run(t *testing.T) {
 			ctx: Context{
 				Client:   fake.NewFakeClientWithScheme(scheme.Scheme),
 				Enhancer: &testKubernetesObjectEnhancer{},
-				Meta:     ExecutionMetadata{},
+				Meta:     Metadata{},
 			},
 		},
 		{
@@ -167,7 +168,7 @@ func resourceAsString(resource metav1.Object) string {
 
 type testKubernetesObjectEnhancer struct{}
 
-func (k *testKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) ([]runtime.Object, error) {
+func (k *testKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata Metadata) ([]runtime.Object, error) {
 	result := make([]runtime.Object, 0)
 	for _, t := range templates {
 		objsToAdd, err := template.ParseKubernetesObjects(t)
@@ -181,6 +182,6 @@ func (k *testKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map
 
 type errKubernetesObjectEnhancer struct{}
 
-func (k *errKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) ([]runtime.Object, error) {
+func (k *errKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata Metadata) ([]runtime.Object, error) {
 	return nil, errors.New("always error")
 }
