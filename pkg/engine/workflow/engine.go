@@ -73,7 +73,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh task.Kube
 		phaseStatus := getPhaseStatus(ph.Name, planStatus)
 		if phaseStatus == nil {
 			planStatus.Status = v1alpha1.ExecutionFatalError
-			return planStatus, ExecutionError{
+			return planStatus, engine.ExecutionError{
 				Err:       fmt.Errorf("failed to find phase %s for operator version %s", ph.Name, em.OperatorVersionName),
 				Fatal:     true,
 				EventName: &missingPhaseStatus,
@@ -97,7 +97,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh task.Kube
 			if stepStatus == nil {
 				phaseStatus.Status = v1alpha1.ExecutionFatalError
 				planStatus.Status = v1alpha1.ExecutionFatalError
-				return planStatus, ExecutionError{
+				return planStatus, engine.ExecutionError{
 					Err:       fmt.Errorf("failed to find step %s for operator version %s", st.Name, em.OperatorVersionName),
 					Fatal:     true,
 					EventName: &missingStepStatus,
@@ -123,7 +123,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh task.Kube
 					phaseStatus.Status = v1alpha1.ExecutionFatalError
 					stepStatus.Status = v1alpha1.ExecutionFatalError
 					planStatus.Status = v1alpha1.ExecutionFatalError
-					return planStatus, ExecutionError{
+					return planStatus, engine.ExecutionError{
 						Err:       fmt.Errorf("failed to find task %s for operator version %s", tn, em.OperatorVersionName),
 						Fatal:     true,
 						EventName: &unknownTaskNameEventName,
@@ -144,7 +144,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh task.Kube
 					stepStatus.Status = v1alpha1.ExecutionFatalError
 					phaseStatus.Status = v1alpha1.ExecutionFatalError
 					planStatus.Status = v1alpha1.ExecutionFatalError
-					return planStatus, ExecutionError{
+					return planStatus, engine.ExecutionError{
 						Err:       fmt.Errorf("failed to resolve task %s for operator version %s: %w", tn, em.OperatorVersionName, err),
 						Fatal:     true,
 						EventName: &unknownTaskKindEventName,
@@ -171,7 +171,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh task.Kube
 					phaseStatus.Status = v1alpha1.ExecutionFatalError
 					stepStatus.Status = v1alpha1.ExecutionFatalError
 					planStatus.Status = v1alpha1.ExecutionFatalError
-					return planStatus, ExecutionError{
+					return planStatus, engine.ExecutionError{
 						Err:       fmt.Errorf("error during task %s execution for operator version %s: %w", tn, em.OperatorVersionName, err),
 						Fatal:     true,
 						EventName: &fatalTaskExecutionErrorEventName,
@@ -248,19 +248,4 @@ func isFinished(state v1alpha1.ExecutionStatus) bool {
 
 func isInProgress(state v1alpha1.ExecutionStatus) bool {
 	return state == v1alpha1.ExecutionInProgress || state == v1alpha1.ExecutionPending || state == v1alpha1.ErrorStatus
-}
-
-// ExecutionError wraps plan execution engine errors with additional fields. E.g an error with EventName set
-// will be published on the event bus.
-type ExecutionError struct {
-	Err       error
-	Fatal     bool    // these errors should not be retried
-	EventName *string // nil if no warn even should be created
-}
-
-func (e ExecutionError) Error() string {
-	if e.Fatal {
-		return fmt.Sprintf("Fatal error: %v", e.Err)
-	}
-	return fmt.Sprintf("Error during execution: %v", e.Err)
 }

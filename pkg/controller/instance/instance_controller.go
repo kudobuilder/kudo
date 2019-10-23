@@ -200,7 +200,7 @@ func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.Oper
 
 	planSpec, ok := ov.Spec.Plans[activePlanStatus.Name]
 	if !ok {
-		return nil, nil, &workflow.ExecutionError{Err: fmt.Errorf("could not find required plan (%v)", activePlanStatus.Name), EventName: kudo.String("InvalidPlan")}
+		return nil, nil, &engine.ExecutionError{Err: fmt.Errorf("could not find required plan (%v)", activePlanStatus.Name), EventName: kudo.String("InvalidPlan")}
 	}
 
 	return &workflow.ActivePlan{
@@ -234,7 +234,7 @@ func (r *Reconciler) handleError(err error, instance *kudov1alpha1.Instance) err
 	}
 
 	// determine if retry is necessary based on the error type
-	if exErr, ok := err.(*workflow.ExecutionError); ok {
+	if exErr, ok := err.(*engine.ExecutionError); ok {
 		if exErr.EventName != nil {
 			r.Recorder.Event(instance, "Warning", kudo.StringValue(exErr.EventName), err.Error())
 		}
@@ -311,7 +311,7 @@ func getParameters(instance *kudov1alpha1.Instance, operatorVersion *kudov1alpha
 	}
 
 	if len(missingRequiredParameters) != 0 {
-		return nil, &workflow.ExecutionError{Err: fmt.Errorf("parameters are missing when evaluating template: %s", strings.Join(missingRequiredParameters, ",")), Fatal: true, EventName: kudo.String("Missing parameter")}
+		return nil, &engine.ExecutionError{Err: fmt.Errorf("parameters are missing when evaluating template: %s", strings.Join(missingRequiredParameters, ",")), Fatal: true, EventName: kudo.String("Missing parameter")}
 	}
 
 	return params, nil
