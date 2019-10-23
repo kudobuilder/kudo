@@ -6,11 +6,10 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/crds"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
-	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 
-	"github.com/Masterminds/semver"
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -96,64 +95,14 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 	if err != nil {
 		return errors.WithMessage(err, "could not build operator repository")
 	}
-	crds, err := install.GetPackageCRDs(packageToUpgrade, options.PackageVersion, repository)
+	packageCRDs, err := crds.GetPackageCRDs(packageToUpgrade, options.PackageVersion, repository)
 	if err != nil {
 		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", packageToUpgrade)
 	}
 
-	return upgrade(crds.OperatorVersion, kc, options, settings)
+	return upgrade(packageCRDs.OperatorVersion, kc, options, settings)
 }
 
 func upgrade(newOv *v1alpha1.OperatorVersion, kc *kudo.Client, options *options, settings *env.Settings) error {
-	operatorName := newOv.Spec.Operator.Name
-	nextOperatorVersion := newOv.Spec.Version
-
-	// Make sure the instance you want to upgrade exists
-	instance, err := kc.GetInstance(options.InstanceName, settings.Namespace)
-	if err != nil {
-		return errors.Wrapf(err, "verifying the instance does not already exist")
-	}
-	if instance == nil {
-		return fmt.Errorf("instance %s in namespace %s does not exist in the cluster", options.InstanceName, settings.Namespace)
-	}
-
-	// Check OperatorVersion and if upgraded version is higher than current version
-	ov, err := kc.GetOperatorVersion(instance.Spec.OperatorVersion.Name, settings.Namespace)
-	if err != nil {
-		return errors.Wrap(err, "retrieving existing operator version")
-	}
-	if ov == nil {
-		return fmt.Errorf("no operator version for this operator installed yet for %s in namespace %s. Please use install command if you want to install new operator into cluster", operatorName, settings.Namespace)
-	}
-	oldVersion, err := semver.NewVersion(ov.Spec.Version)
-	if err != nil {
-		return errors.Wrapf(err, "when parsing %s as semver", ov.Spec.Version)
-	}
-	newVersion, err := semver.NewVersion(nextOperatorVersion)
-	if err != nil {
-		return errors.Wrapf(err, "when parsing %s as semver", nextOperatorVersion)
-	}
-	if !oldVersion.LessThan(newVersion) {
-		return fmt.Errorf("upgraded version %s is the same or smaller as current version %s -> not upgrading", nextOperatorVersion, ov.Spec.Version)
-	}
-
-	// install OV
-	versionsInstalled, err := kc.OperatorVersionsInstalled(operatorName, settings.Namespace)
-	if err != nil {
-		return errors.Wrap(err, "retrieving existing operator versions")
-	}
-	if !install.VersionExists(versionsInstalled, nextOperatorVersion) {
-		if _, err := kc.InstallOperatorVersionObjToCluster(newOv, settings.Namespace); err != nil {
-			return errors.Wrapf(err, "failed installing OperatorVersion %s for operator: %s", nextOperatorVersion, operatorName)
-		}
-		fmt.Printf("operatorversion.%s/%s successfully created\n", newOv.APIVersion, newOv.Name)
-	}
-
-	// Change instance to point to the new OV and optionally update arguments
-	err = kc.UpdateInstance(options.InstanceName, settings.Namespace, util.String(newOv.Name), options.Parameters)
-	if err != nil {
-		return errors.Wrapf(err, "updating instance to point to new operatorversion %s", newOv.Name)
-	}
-	fmt.Printf("instance.%s/%s successfully updated\n", instance.APIVersion, instance.Name)
-	return nil
+	return crds.UpgradeOperatorVersion(kc, newOv, options.InstanceName, settings.Namespace, options.Parameters)
 }
