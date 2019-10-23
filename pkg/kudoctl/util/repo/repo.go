@@ -102,7 +102,7 @@ func ConfigurationFromSettings(fs afero.Fs, home kudohome.Home, repoName string)
 		config = r.GetConfiguration(repoName)
 	}
 	if config == nil {
-		return nil, fmt.Errorf("unable to find respository for %s", repoName)
+		return nil, fmt.Errorf("unable to find repository for %s", repoName)
 	}
 	return config, nil
 }
