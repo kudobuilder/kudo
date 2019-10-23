@@ -14,7 +14,7 @@ import (
 const (
 	repoContextDesc = `When using an KUDO operation that requires access to a repository, KUDO needs to know which repository.
 This is defined by the "context". 'kubectl kudo repo list' will provide the list of repositories.  The "*" next to one of the
-names is the current context. 'kubectl kudo repo context local' will change the context to respository named local if it exists.
+names is the current context. 'kubectl kudo repo context local' will change the context to repository named local if it exists.
 `
 )
 

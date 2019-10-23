@@ -1,7 +1,7 @@
 apiVersion: kudo.dev/v1alpha1
 kind: TestStep
 metadata:
-  name: name-overriden
+  name: name-overridden
 ---
 apiVersion: v1
 kind: Pod
