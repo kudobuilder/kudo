@@ -223,6 +223,16 @@ func (c *Client) InstallInstanceObjToCluster(obj *v1alpha1.Instance, namespace s
 	return createdObj, nil
 }
 
+// DeleteInstance deletes an instance.
+func (c *Client) DeleteInstance(instanceName, namespace string) error {
+	propagationPolicy := v1.DeletePropagationForeground
+	options := &v1.DeleteOptions{
+		PropagationPolicy: &propagationPolicy,
+	}
+
+	return c.clientset.KudoV1alpha1().Instances(namespace).Delete(instanceName, options)
+}
+
 // ValidateServerForOperator validates that the k8s server version and kudo version are valid for operator
 // error message will provide detail of failure, otherwise nil
 func (c *Client) ValidateServerForOperator(operator *v1alpha1.Operator) error {

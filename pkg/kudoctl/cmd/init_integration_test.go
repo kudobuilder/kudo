@@ -21,6 +21,7 @@ import (
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -186,8 +187,20 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 		client: kclient,
 		ns:     namespace,
 	}
+
+	// On first attempt, the namespace does not exist, so the error is expected.
 	err = cmd.run()
-	assert.Nil(t, err)
+	require.Error(t, err)
+	assert.Equal(t, err.Error(), `error installing: namespace integration-test does not exist - KUDO expects that any namespace except the default kudo-system is created beforehand`)
+
+	// Then we manually create the namespace.
+	ns := testutils.NewResource("v1", "Namespace", namespace, "")
+	assert.NoError(t, testClient.Create(context.TODO(), ns))
+	defer testClient.Delete(context.TODO(), ns)
+
+	// On second attempt run should succeed.
+	err = cmd.run()
+	assert.NoError(t, err)
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
 	assert.Nil(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
