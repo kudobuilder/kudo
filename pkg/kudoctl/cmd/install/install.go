@@ -1,7 +1,6 @@
 package install
 
 import (
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
@@ -76,18 +75,5 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 }
 
 func installCrds(packageCRDs *packages.PackageCRDs, kc *kudo.Client, options *Options, settings *env.Settings) error {
-	// make sure that our instance object is up to date with overrides from commandline
-	applyInstanceOverrides(packageCRDs.Instance, options)
-	return crds.Install(kc, packageCRDs, settings.Namespace, options.SkipInstance)
-}
-
-func applyInstanceOverrides(instance *v1alpha1.Instance, options *Options) {
-	if options.InstanceName != "" {
-		instance.ObjectMeta.SetName(options.InstanceName)
-		clog.V(3).Printf("instance name: %v", options.InstanceName)
-	}
-	if options.Parameters != nil {
-		instance.Spec.Parameters = options.Parameters
-		clog.V(3).Printf("parameters in use: %v", options.Parameters)
-	}
+	return crds.Install(kc, packageCRDs, options.SkipInstance, options.InstanceName, settings.Namespace, options.Parameters)
 }
