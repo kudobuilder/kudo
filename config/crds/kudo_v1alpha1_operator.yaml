@@ -20,7 +20,7 @@ spec:
           type: string
         kind:
           type: string
-        meta:
+        metadata:
           type: object
         spec:
           properties:

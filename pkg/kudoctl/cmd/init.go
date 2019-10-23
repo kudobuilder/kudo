@@ -136,7 +136,7 @@ func (initCmd *initCmd) run() error {
 
 		var mans []string
 
-		crd, err := cmdInit.CRDs().AsYamlStrings()
+		crd, err := cmdInit.CRDs().AsYaml()
 		if err != nil {
 			return err
 		}

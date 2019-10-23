@@ -72,18 +72,9 @@ func TestCrds_Config(t *testing.T) {
 		err = writeManifest(instanceFileName, crds.Instance)
 	}
 
-	err := verifyManifestFile(operatorFileName, crds.Operator)
-	if err != nil {
-		t.Errorf("Operator file verification failed: %v", err)
-	}
-	err = verifyManifestFile(operatorVersionFileName, crds.OperatorVersion)
-	if err != nil {
-		t.Errorf("OperatorVersion file verification failed: %v", err)
-	}
-	err = verifyManifestFile(instanceFileName, crds.Instance)
-	if err != nil {
-		t.Errorf("Instance file verification failed: %v", err)
-	}
+	assertManifestFileMatch(t, operatorFileName, crds.Operator)
+	assertManifestFileMatch(t, operatorVersionFileName, crds.OperatorVersion)
+	assertManifestFileMatch(t, instanceFileName, crds.Instance)
 }
 
 func writeManifest(fileName string, expectedObject runtime.Object) error {
@@ -100,21 +91,14 @@ func writeManifest(fileName string, expectedObject runtime.Object) error {
 	return nil
 }
 
-func verifyManifestFile(fileName string, expectedObject runtime.Object) error {
+func assertManifestFileMatch(t *testing.T, fileName string, expectedObject runtime.Object) {
 	expectedContent, err := runtimeObjectAsBytes(expectedObject)
-	if err != nil {
-		return err
-	}
+	assert.Nil(t, err)
 	path := filepath.Join(manifestsDir, fileName)
 	of, err := ioutil.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("failed reading manifest file %s: %s", fileName, err)
-	}
+	assert.Nil(t, err)
 
-	if !bytes.Equal(expectedContent, of) {
-		return fmt.Errorf("%s does not match output of init %s", fileName, string(of))
-	}
-	return nil
+	assert.Equal(t, string(expectedContent), string(of), "manifest file does not match the existing one")
 }
 
 func runtimeObjectAsBytes(o runtime.Object) ([]byte, error) {

@@ -219,8 +219,8 @@ func (c KudoCrds) AsArray() []runtime.Object {
 	return []runtime.Object{c.Operator, c.OperatorVersion, c.Instance}
 }
 
-// AsYamlStrings returns crds as slice of strings
-func (c KudoCrds) AsYamlStrings() ([]string, error) {
+// AsYaml returns crds as slice of strings
+func (c KudoCrds) AsYaml() ([]string, error) {
 	objs := c.AsArray()
 	manifests := make([]string, len(objs))
 	for i, obj := range objs {
