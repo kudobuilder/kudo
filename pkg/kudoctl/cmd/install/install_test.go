@@ -39,8 +39,8 @@ func TestValidate(t *testing.T) {
 }
 
 // TODO: adapt these tests to run as part of the 'resources' package instead.
-func TestParameterValidation_InstallCrds(t *testing.T) {
-	crds := packages.PackageCRDs{
+func TestParameterValidation_InstallResources(t *testing.T) {
+	crds := packages.Resources{
 		Operator: &v1alpha1.Operator{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "kudo.dev/v1alpha1",

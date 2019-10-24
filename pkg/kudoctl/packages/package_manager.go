@@ -20,10 +20,10 @@ import (
 // This is an abstraction which abstracts the underlying packages, which is likely file system or compressed file.
 // There should be a complete separation between retrieving a packages if not local and working with a packages.
 
-// Package is an abstraction of the collection of files that makes up a package.  It is anything we can retrieve the PackageCRDs from.
+// Package is an abstraction of the collection of files that makes up a package.  It is anything we can retrieve the Resources from.
 type Package interface {
 	// transformed server view
-	GetCRDs() (*PackageCRDs, error)
+	GetCRDs() (*Resources, error)
 	// working with local package files
 	GetPkgFiles() (*PackageFiles, error)
 }
@@ -76,7 +76,7 @@ func (p tarPackage) GetPkgFiles() (*PackageFiles, error) {
 }
 
 // GetCRDs returns the server side CRDs
-func (p tarPackage) GetCRDs() (*PackageCRDs, error) {
+func (p tarPackage) GetCRDs() (*Resources, error) {
 	pf, err := p.GetPkgFiles()
 	if err != nil {
 		return nil, errors.Wrap(err, "while extracting package files")
@@ -84,7 +84,7 @@ func (p tarPackage) GetCRDs() (*PackageCRDs, error) {
 	return pf.getCRDs()
 }
 
-func (p filePackage) GetCRDs() (*PackageCRDs, error) {
+func (p filePackage) GetCRDs() (*Resources, error) {
 	pf, err := p.GetPkgFiles()
 	if err != nil {
 		return nil, errors.Wrap(err, "while reading package from the file system")
