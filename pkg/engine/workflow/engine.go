@@ -6,6 +6,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/kudobuilder/kudo/pkg/engine/renderer"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
@@ -58,7 +60,7 @@ func (ap *ActivePlan) taskByName(name string) (*v1alpha1.Task, bool) {
 //
 // Furthermore, a transient ERROR during a step execution, means that the next step may be executed if the step strategy
 // is "parallel". In case of a fatal error, it is returned alongside with the new plan status and published on the event bus.
-func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh task.Enhancer, currentTime time.Time) (*v1alpha1.PlanStatus, error) {
+func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.Enhancer, currentTime time.Time) (*v1alpha1.PlanStatus, error) {
 	if pl.Status.IsTerminal() {
 		log.Printf("PlanExecution: Plan %s for instance %s is terminal, nothing to do", pl.Name, em.InstanceName)
 		return pl.PlanStatus, nil
@@ -130,7 +132,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh task.Enha
 					}
 				}
 				// - 3.a build execution metadata -
-				exm := task.Metadata{
+				exm := renderer.Metadata{
 					Metadata:  *em,
 					PlanName:  pl.Name,
 					PhaseName: ph.Name,

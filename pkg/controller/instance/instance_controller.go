@@ -23,8 +23,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kudobuilder/kudo/pkg/engine/renderer"
+
 	"github.com/kudobuilder/kudo/pkg/engine"
-	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/engine/workflow"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -168,7 +169,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
-	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, &task.KustomizeEnhancer{Scheme: r.Scheme}, time.Now())
+	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, &renderer.KustomizeEnhancer{Scheme: r.Scheme}, time.Now())
 
 	// ---------- 4. Update status of instance after the execution proceeded ----------
 	if newStatus != nil {

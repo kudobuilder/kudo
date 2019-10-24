@@ -1,4 +1,4 @@
-package task
+package renderer
 
 import (
 	"fmt"
