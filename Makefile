@@ -66,6 +66,11 @@ manager: prebuild
 manager-clean:
 	rm -f bin/manager
 
+# Install reloader into a cluster via kubectl kudo init
+.PHONY: reloader
+reloader:
+	go run -ldflags "${LDFLAGS}" cmd/kubectl-kudo/main.go init --disable-manager
+
 .PHONY: run
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run:

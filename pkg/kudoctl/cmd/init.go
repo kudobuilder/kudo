@@ -51,20 +51,25 @@ and finishes with success if KUDO is already installed.
 `
 )
 
+const defaultReloaderImage = "stakater/reloader:v0.0.49"
+
 type initCmd struct {
-	out        io.Writer
-	fs         afero.Fs
-	image      string
-	dryRun     bool
-	output     string
-	version    string
-	ns         string
-	wait       bool
-	timeout    int64
-	clientOnly bool
-	crdOnly    bool
-	home       kudohome.Home
-	client     *kube.Client
+	out             io.Writer
+	fs              afero.Fs
+	image           string
+	reloaderImage   string
+	disableManager  bool
+	disableReloader bool
+	dryRun          bool
+	output          string
+	version         string
+	ns              string
+	wait            bool
+	timeout         int64
+	clientOnly      bool
+	crdOnly         bool
+	home            kudohome.Home
+	client          *kube.Client
 }
 
 func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
@@ -92,10 +97,13 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f := cmd.Flags()
 	f.BoolVarP(&i.clientOnly, "client-only", "c", false, "If set does not install KUDO on the server")
 	f.StringVarP(&i.image, "kudo-image", "i", "", "Override KUDO controller image and/or version")
+	f.StringVar(&i.reloaderImage, "reloader-image", defaultReloaderImage, "Override reloader controller image and/or version")
 	f.StringVarP(&i.version, "version", "", "", "Override KUDO controller version of the KUDO image")
 	f.StringVarP(&i.output, "output", "o", "", "Output format")
 	f.BoolVar(&i.dryRun, "dry-run", false, "Do not install local or remote")
 	f.BoolVar(&i.crdOnly, "crd-only", false, "Add only KUDO CRDs to your cluster")
+	f.BoolVar(&i.disableManager, "disable-manager", false, "Disable running the manager container. Useful in development.")
+	f.BoolVar(&i.disableReloader, "disable-reloader", false, "Disable running the reloader container. Useful in development.")
 	f.BoolVarP(&i.wait, "wait", "w", false, "Block until KUDO manager is running and ready to receive requests")
 	f.Int64Var(&i.timeout, "wait-timeout", 300, "Wait timeout to be used")
 
@@ -124,11 +132,14 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (initCmd *initCmd) run() error {
-	opts := cmdInit.NewOptions(initCmd.version, initCmd.ns)
+	opts := cmdInit.NewOptions(initCmd.version, initCmd.ns, initCmd.reloaderImage)
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image
 	}
+
+	opts.DisableManager = initCmd.disableManager
+	opts.DisableReloader = initCmd.disableReloader
 
 	//TODO: implement output=yaml|json (define a type for output to constrain)
 	//define an Encoder to replace YAMLWriter
