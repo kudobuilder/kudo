@@ -39,12 +39,8 @@ integration-test: cli-fast
 test-clean:
 	rm -f cover.out cover-integration.out
 
-.PHONY: check-formatting
-check-formatting: vet lint staticcheck
-	./hack/check_formatting.sh
-
-.PHONY: golint
-golint:
+.PHONY: lint
+lint:
 	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 	golangci-lint run
 
@@ -53,7 +49,7 @@ download:
 	go mod download
 
 .PHONY: prebuild
-prebuild: generate check-formatting
+prebuild: generate lint
 
 .PHONY: manager
 # Build manager binary
@@ -79,34 +75,6 @@ deploy:
 .PHONY: deploy-clean
 deploy-clean:
 	go run ./cmd/kubectl-kudo  init --crd-only --dry-run --output yaml | kubectl delete -f -
-
-.PHONY: fmt
-# Run go fmt against code
-fmt:
-	go fmt ./pkg/... ./cmd/...
-
-.PHONY: vet
-# Run go vet against code
-vet:
-	go vet ./pkg/... ./cmd/...
-
-.PHONY: lint
-# Run go lint against code
-lint:
-	go install golang.org/x/lint/golint
-	golint -set_exit_status ./pkg/... ./cmd/...
-
-.PHONY: staticcheck
-# Runs static check
-staticcheck:
-	go install honnef.co/go/tools/cmd/staticcheck
-	staticcheck ./...
-
-.PHONY: imports
-# Run go imports against code
-imports:
-	go install golang.org/x/tools/cmd/goimports
-	goimports -w ./pkg/ ./cmd/
 
 .PHONY: generate
 # Generate code
@@ -141,7 +109,7 @@ clean:  cli-clean test-clean manager-clean deploy-clean
 
 .PHONY: docker-build
 # Build the docker image
-docker-build: generate check-formatting
+docker-build: generate lint
 	docker build --build-arg git_version_arg=${GIT_VERSION_PATH}=v${GIT_VERSION} \
 	--build-arg git_commit_arg=${GIT_COMMIT_PATH}=${GIT_COMMIT} \
 	--build-arg build_date_arg=${BUILD_DATE_PATH}=${BUILD_DATE} . -t ${DOCKER_IMG}:${DOCKER_TAG}

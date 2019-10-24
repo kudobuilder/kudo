@@ -133,7 +133,7 @@ All Pull Requests into master need to have the following checks pass. These shou
 0. Check author has signed CLA
 1. If the user is not a contributor, a contributor must write `/ok-to-test` on the pull request before it will be triggered.
 1. `go fmt` does not change anything
-1. `make check-formatting passes.
+1. `make lint` passes.
 1. All unit tests pass (with `-race` flag)
 1. Dockerfile builds (this requires all dependencies in the vendor folder)
 1. All integration tests pass.
