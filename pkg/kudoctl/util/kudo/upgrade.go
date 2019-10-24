@@ -1,11 +1,10 @@
-package resources
+package kudo
 
 import (
 	"fmt"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	"github.com/Masterminds/semver"
@@ -13,7 +12,7 @@ import (
 
 // UpgradeOperatorVersion upgrades an OperatorVersion and its Instance.
 // For the updated Instance, new parameters can be provided.
-func UpgradeOperatorVersion(kc *kudo.Client, newOv *v1alpha1.OperatorVersion, instanceName, namespace string, parameters map[string]string) error {
+func UpgradeOperatorVersion(kc *Client, newOv *v1alpha1.OperatorVersion, instanceName, namespace string, parameters map[string]string) error {
 	operatorName := newOv.Spec.Operator.Name
 
 	instance, err := kc.GetInstance(instanceName, namespace)

@@ -8,7 +8,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/resources"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
@@ -95,14 +94,14 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 	if err != nil {
 		return errors.WithMessage(err, "could not build operator repository")
 	}
-	res, err := resources.GetPackageResources(packageToUpgrade, options.PackageVersion, repository)
+	resources, err := kudo.Resources(packageToUpgrade, options.PackageVersion, repository)
 	if err != nil {
 		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", packageToUpgrade)
 	}
 
-	return upgrade(res.OperatorVersion, kc, options, settings)
+	return upgrade(resources.OperatorVersion, kc, options, settings)
 }
 
 func upgrade(newOv *v1alpha1.OperatorVersion, kc *kudo.Client, options *options, settings *env.Settings) error {
-	return resources.UpgradeOperatorVersion(kc, newOv, options.InstanceName, settings.Namespace, options.Parameters)
+	return kudo.UpgradeOperatorVersion(kc, newOv, options.InstanceName, settings.Namespace, options.Parameters)
 }

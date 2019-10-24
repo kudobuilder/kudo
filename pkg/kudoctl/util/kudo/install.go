@@ -1,4 +1,4 @@
-package resources
+package kudo
 
 import (
 	"fmt"
@@ -7,12 +7,11 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
 // Install installs package resources.
 // If skipInstance is set to true, only a package's Operator and OperatorVersion is installed.
-func Install(kc *kudo.Client, resources *packages.PackageCRDs, skipInstance bool, instanceName, namespace string, parameters map[string]string) error {
+func Install(kc *Client, resources *packages.Resources, skipInstance bool, instanceName, namespace string, parameters map[string]string) error {
 	// PRE-INSTALLATION SETUP
 	operatorName := resources.Operator.ObjectMeta.Name
 	clog.V(3).Printf("operator name: %v", operatorName)
@@ -81,7 +80,7 @@ func applyInstanceOverrides(instance *v1alpha1.Instance, instanceName string, pa
 	}
 }
 
-func validate(resources *packages.PackageCRDs, skipInstance bool) error {
+func validate(resources *packages.Resources, skipInstance bool) error {
 	if skipInstance {
 		// right now we are just validating parameters on instance, if we're not creating instance right now, there is nothing to validate
 		clog.V(3).Printf("skipping instance...")

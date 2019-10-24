@@ -1,4 +1,4 @@
-package resources
+package kudo
 
 import (
 	"os"
@@ -10,14 +10,14 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
-// GetPackageResources tries to look for package files resolving the operator name to:
+// Resources tries to look for package files resolving the operator name to:
 // - a local tgz file
 // - a local directory
 // - a url to a tgz
 // - an operator name in the remote repository
 // in that order. Should there exist a local folder e.g. `cassandra` it will take precedence
 // over the remote repository package with the same name.
-func GetPackageResources(operatorName string, version string, repository repo.Repository) (*packages.PackageCRDs, error) {
+func Resources(operatorName string, version string, repository repo.Repository) (*packages.Resources, error) {
 	// Local files/folder have priority
 	if _, err := os.Stat(operatorName); err == nil {
 		clog.V(2).Printf("local operator discovered: %v", operatorName)
