@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
@@ -194,14 +193,11 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 }
 
 func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.OperatorVersion, activePlanStatus *kudov1alpha1.PlanStatus) (*workflow.ActivePlan, *engine.Metadata, error) {
-	params, err := getParameters(instance, ov)
-	if err != nil {
-		return nil, nil, err
-	}
+	params := getParameters(instance, ov)
 
 	planSpec, ok := ov.Spec.Plans[activePlanStatus.Name]
 	if !ok {
-		return nil, nil, &engine.ExecutionError{Err: fmt.Errorf("could not find required plan (%v)", activePlanStatus.Name), EventName: kudo.String("InvalidPlan")}
+		return nil, nil, &engine.ExecutionError{Err: fmt.Errorf("could not find required plan (%v)", activePlanStatus.Name), EventName: "InvalidPlan"}
 	}
 
 	return &workflow.ActivePlan{
@@ -235,12 +231,11 @@ func (r *Reconciler) handleError(err error, instance *kudov1alpha1.Instance) err
 	}
 
 	// determine if retry is necessary based on the error type
-	if exErr, ok := err.(*engine.ExecutionError); ok {
-		if exErr.EventName != nil {
-			r.Recorder.Event(instance, "Warning", kudo.StringValue(exErr.EventName), err.Error())
-		}
+	var exErr engine.ExecutionError
+	if errors.As(err, &exErr) {
+		r.Recorder.Event(instance, "Warning", exErr.EventName, err.Error())
 
-		if exErr.Fatal {
+		if errors.Is(exErr, engine.ErrFatalExecution) {
 			return nil // not retrying fatal error
 		}
 	}
@@ -291,31 +286,21 @@ func (r *Reconciler) getOperatorVersion(instance *kudov1alpha1.Instance) (ov *ku
 	return ov, nil
 }
 
-func getParameters(instance *kudov1alpha1.Instance, operatorVersion *kudov1alpha1.OperatorVersion) (map[string]string, error) {
+func getParameters(instance *kudov1alpha1.Instance, operatorVersion *kudov1alpha1.OperatorVersion) map[string]string {
 	params := make(map[string]string)
 
 	for k, v := range instance.Spec.Parameters {
 		params[k] = v
 	}
 
-	missingRequiredParameters := make([]string, 0)
-	// Merge defaults with customizations
+	// Merge defaults with customizations, if no override exist, use the default parameter
 	for _, param := range operatorVersion.Spec.Parameters {
-		_, ok := params[param.Name]
-		if !ok && param.Required && param.Default == nil {
-			// instance does not define this parameter and there is no default while the parameter is required -> error
-			missingRequiredParameters = append(missingRequiredParameters, param.Name)
-
-		} else if !ok {
+		if _, ok := params[param.Name]; !ok {
 			params[param.Name] = kudo.StringValue(param.Default)
 		}
 	}
 
-	if len(missingRequiredParameters) != 0 {
-		return nil, &engine.ExecutionError{Err: fmt.Errorf("parameters are missing when evaluating template: %s", strings.Join(missingRequiredParameters, ",")), Fatal: true, EventName: kudo.String("Missing parameter")}
-	}
-
-	return params, nil
+	return params
 }
 
 func parameterDifference(old, new map[string]string) map[string]string {

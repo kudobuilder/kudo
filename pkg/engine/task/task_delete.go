@@ -1,8 +1,6 @@
 package task
 
 import (
-	"fmt"
-
 	"golang.org/x/net/context"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,13 +20,13 @@ func (dt DeleteTask) Run(ctx Context) (bool, error) {
 	// 1. - Render task templates -
 	rendered, err := render(dt.Resources, ctx.Templates, ctx.Parameters, ctx.Meta)
 	if err != nil {
-		return false, fmt.Errorf("%wfailed to render task resources: %v", ErrFatalExecution, err)
+		return false, fatalExecutionError(err, taskRenderingError, ctx.Meta)
 	}
 
 	// 2. - Kustomize them with metadata -
 	kustomized, err := kustomize(rendered, ctx.Meta, ctx.Enhancer)
 	if err != nil {
-		return false, fmt.Errorf("%wfailed to kustomize task resources: %v", ErrFatalExecution, err)
+		return false, fatalExecutionError(err, taskEnhancementError, ctx.Meta)
 	}
 
 	// 3. - Delete them using the client -

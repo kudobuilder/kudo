@@ -2,7 +2,6 @@ package task
 
 import (
 	"errors"
-	"fmt"
 )
 
 // DummyTask is a task that can fail or succeed on demand
@@ -18,7 +17,7 @@ func (dt DummyTask) Run(ctx Context) (bool, error) {
 	if dt.WantErr {
 		err := errors.New("dummy error")
 		if dt.Fatal {
-			err = fmt.Errorf("fatal %w", ErrFatalExecution)
+			err = fatalExecutionError(err, dummyTaskError, ctx.Meta)
 		}
 		return false, err
 	}

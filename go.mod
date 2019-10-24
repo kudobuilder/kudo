@@ -51,9 +51,9 @@ require (
 	github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca
 	golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3
 	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
-	golang.org/x/sys v0.0.0-20191024073052-e66fe6eb8e0c // indirect
+	golang.org/x/sys v0.0.0-20191024172528-b4ff53e7a1cb // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
-	golang.org/x/tools v0.0.0-20191024074452-7defa796fec0
+	golang.org/x/tools v0.0.0-20191024212250-dc9d807def8c
 	golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7
 	gopkg.in/yaml.v2 v2.2.4
 	honnef.co/go/tools v0.0.1-2019.2.3
