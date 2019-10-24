@@ -8,7 +8,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 
 	"github.com/kudobuilder/kudo/pkg/engine"
-	"github.com/kudobuilder/kudo/pkg/util/template"
 	"github.com/stretchr/testify/assert"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -173,7 +172,7 @@ type testEnhancer struct{}
 func (k *testEnhancer) Apply(templates map[string]string, metadata renderer.Metadata) ([]runtime.Object, error) {
 	result := make([]runtime.Object, 0)
 	for _, t := range templates {
-		objsToAdd, err := template.ParseKubernetesObjects(t)
+		objsToAdd, err := renderer.YamlToObject(t)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing kubernetes objects after applying kustomize: %w", err)
 		}
