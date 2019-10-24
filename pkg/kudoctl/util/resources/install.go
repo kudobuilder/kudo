@@ -32,18 +32,18 @@ func Install(kc *kudo.Client, resources *packages.PackageCRDs, skipInstance bool
 
 	if !kc.OperatorExistsInCluster(resources.Operator.ObjectMeta.Name, namespace) {
 		if _, err := kc.InstallOperatorObjToCluster(resources.Operator, namespace); err != nil {
-			return fmt.Errorf("failed to install %s-operator.yaml: %w", operatorName, err)
+			return fmt.Errorf("failed to install %s-operator.yaml: %v", operatorName, err)
 		}
 		clog.Printf("operator.%s/%s created", resources.Operator.APIVersion, resources.Operator.Name)
 	}
 
 	versionsInstalled, err := kc.OperatorVersionsInstalled(operatorName, namespace)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve existing operator versions: %w", err)
+		return fmt.Errorf("failed to retrieve existing operator versions: %v", err)
 	}
 	if !versionExists(operatorVersion, versionsInstalled) {
 		if _, err := kc.InstallOperatorVersionObjToCluster(resources.OperatorVersion, namespace); err != nil {
-			return fmt.Errorf("failed to install %s-operatorversion.yaml: %w", operatorName, err)
+			return fmt.Errorf("failed to install %s-operatorversion.yaml: %v", operatorName, err)
 		}
 		clog.Printf("operatorversion.%s/%s created", resources.OperatorVersion.APIVersion, resources.OperatorVersion.Name)
 	}
@@ -55,12 +55,12 @@ func Install(kc *kudo.Client, resources *packages.PackageCRDs, skipInstance bool
 	instanceName = resources.Instance.ObjectMeta.Name
 	instanceExists, err := kc.InstanceExistsInCluster(operatorName, namespace, resources.OperatorVersion.Spec.Version, instanceName)
 	if err != nil {
-		return fmt.Errorf("failed to verify existing instance: %w", err)
+		return fmt.Errorf("failed to verify existing instance: %v", err)
 	}
 
 	if !instanceExists {
 		if _, err := kc.InstallInstanceObjToCluster(resources.Instance, namespace); err != nil {
-			return fmt.Errorf("failed to install instance %s: %w", instanceName, err)
+			return fmt.Errorf("failed to install instance %s: %v", instanceName, err)
 		}
 		clog.Printf("instance.%s/%s created", resources.Instance.APIVersion, resources.Instance.Name)
 	} else {

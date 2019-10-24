@@ -18,7 +18,7 @@ func UpgradeOperatorVersion(kc *kudo.Client, newOv *v1alpha1.OperatorVersion, in
 
 	instance, err := kc.GetInstance(instanceName, namespace)
 	if err != nil {
-		return fmt.Errorf("failed to get instance: %w", err)
+		return fmt.Errorf("failed to get instance: %v", err)
 	}
 	if instance == nil {
 		return fmt.Errorf("instance %s in namespace %s does not exist in the cluster", instanceName, namespace)
@@ -26,18 +26,18 @@ func UpgradeOperatorVersion(kc *kudo.Client, newOv *v1alpha1.OperatorVersion, in
 
 	ov, err := kc.GetOperatorVersion(instance.Spec.OperatorVersion.Name, namespace)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve existing operator version: %w", err)
+		return fmt.Errorf("failed to retrieve existing operator version: %v", err)
 	}
 	if ov == nil {
 		return fmt.Errorf("no operator version for this operator installed yet for %s in namespace %s. Please use install command if you want to install new operator into cluster", operatorName, namespace)
 	}
 	oldVersion, err := semver.NewVersion(ov.Spec.Version)
 	if err != nil {
-		return fmt.Errorf("failed to parse %s as semver: %w", ov.Spec.Version, err)
+		return fmt.Errorf("failed to parse %s as semver: %v", ov.Spec.Version, err)
 	}
 	newVersion, err := semver.NewVersion(newOv.Spec.Version)
 	if err != nil {
-		return fmt.Errorf("failed to parse %s as semver: %w", newOv.Spec.Version, err)
+		return fmt.Errorf("failed to parse %s as semver: %v", newOv.Spec.Version, err)
 	}
 	if !oldVersion.LessThan(newVersion) {
 		return fmt.Errorf("upgraded version %s is the same or smaller as current version %s -> not upgrading", newOv.Spec.Version, ov.Spec.Version)
@@ -45,11 +45,11 @@ func UpgradeOperatorVersion(kc *kudo.Client, newOv *v1alpha1.OperatorVersion, in
 
 	versionsInstalled, err := kc.OperatorVersionsInstalled(operatorName, namespace)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve operator versions: %w", err)
+		return fmt.Errorf("failed to retrieve operator versions: %v", err)
 	}
 	if !versionExists(newOv.Spec.Version, versionsInstalled) {
 		if _, err := kc.InstallOperatorVersionObjToCluster(newOv, namespace); err != nil {
-			return fmt.Errorf("failed to update %s-operatorversion.yaml to version %s: %w", operatorName, newOv.Spec.Version, err)
+			return fmt.Errorf("failed to update %s-operatorversion.yaml to version %s: %v", operatorName, newOv.Spec.Version, err)
 		}
 		clog.Printf("operatorversion.%s/%s created", newOv.APIVersion, newOv.Name)
 	}
