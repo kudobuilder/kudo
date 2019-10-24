@@ -25,7 +25,7 @@ func WatchKUDOUntilReady(client kubernetes.Interface, opts Options, timeout int6
 
 	go func() {
 		for range checkPodTicker.C {
-			image, err := GetKUDOPodImage(client.CoreV1(), opts.Namespace)
+			image, err := getKUDOPodImage(client.CoreV1(), opts.Namespace)
 			if err == nil && image == opts.Image {
 				doneChan <- true
 				break
@@ -43,8 +43,8 @@ func WatchKUDOUntilReady(client kubernetes.Interface, opts Options, timeout int6
 	}
 }
 
-// GetKUDOPodImage fetches the image of KUDO pod running in the given namespace.
-func GetKUDOPodImage(client corev1.PodsGetter, namespace string) (string, error) {
+// getKUDOPodImage fetches the image of KUDO pod running in the given namespace.
+func getKUDOPodImage(client corev1.PodsGetter, namespace string) (string, error) {
 	selector := managerLabels().AsSelector()
 	pod, err := getFirstRunningPod(client, namespace, selector)
 	if err != nil {

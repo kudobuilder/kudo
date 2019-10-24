@@ -137,6 +137,6 @@ func Errorf(format string, a ...interface{}) error {
 }
 
 func init() {
-	// expected to be overriden with Init().  This simplifies testing and default behavior
+	// expected to be overridden with Init().  This simplifies testing and default behavior
 	logging.out = os.Stdout
 }

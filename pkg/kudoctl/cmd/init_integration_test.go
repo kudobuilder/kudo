@@ -6,18 +6,22 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	cmdinit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"sigs.k8s.io/yaml"
 
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,6 +45,70 @@ func TestMain(m *testing.M) {
 	os.Exit(exitCode)
 }
 
+const (
+	operatorFileName        = "kudo_v1alpha1_operator.yaml"
+	operatorVersionFileName = "kudo_v1alpha1_operatorversion.yaml"
+	instanceFileName        = "kudo_v1alpha1_instance.yaml"
+	manifestsDir            = "../../../config/crds/"
+)
+
+func TestCrds_Config(t *testing.T) {
+	crds := cmdinit.CRDs()
+
+	if false {
+		// change this to true if you want to one time override the manifests with new values
+		// this should be used only when the manifests changed in your PR and you want to update to the newly generated values
+		err := writeManifest(operatorFileName, crds.Operator)
+		if err != nil {
+			t.Errorf("Operator file override failed: %v", err)
+		}
+		err = writeManifest(operatorVersionFileName, crds.OperatorVersion)
+		if err != nil {
+			t.Errorf("OperatorVersion file override failed: %v", err)
+		}
+		if err != nil {
+			t.Errorf("Instance file override failed: %v", err)
+		}
+		err = writeManifest(instanceFileName, crds.Instance)
+	}
+
+	assertManifestFileMatch(t, operatorFileName, crds.Operator)
+	assertManifestFileMatch(t, operatorVersionFileName, crds.OperatorVersion)
+	assertManifestFileMatch(t, instanceFileName, crds.Instance)
+}
+
+func writeManifest(fileName string, expectedObject runtime.Object) error {
+	expectedContent, err := runtimeObjectAsBytes(expectedObject)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Updating file %s", fileName)
+	path := filepath.Join(manifestsDir, fileName)
+	if err := ioutil.WriteFile(path, expectedContent, 0644); err != nil {
+		return fmt.Errorf("failed to update config file: %s", err)
+	}
+	return nil
+}
+
+func assertManifestFileMatch(t *testing.T, fileName string, expectedObject runtime.Object) {
+	expectedContent, err := runtimeObjectAsBytes(expectedObject)
+	assert.Nil(t, err)
+	path := filepath.Join(manifestsDir, fileName)
+	of, err := ioutil.ReadFile(path)
+	assert.Nil(t, err)
+
+	assert.Equal(t, string(expectedContent), string(of), "manifest file does not match the existing one")
+}
+
+func runtimeObjectAsBytes(o runtime.Object) ([]byte, error) {
+	bytes, err := yaml.Marshal(o)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
+}
+
 func TestIntegInitForCRDs(t *testing.T) {
 	// Kubernetes client caches the types, se we need to re-initialize it.
 	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
@@ -54,7 +122,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := cmdinit.CRDs()
+	crds := cmdinit.CRDs().AsArray()
 	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
@@ -93,7 +161,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := cmdinit.CRDs()
+	crds := cmdinit.CRDs().AsArray()
 	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
@@ -103,8 +171,20 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 		client: kclient,
 		ns:     namespace,
 	}
+
+	// On first attempt, the namespace does not exist, so the error is expected.
 	err = cmd.run()
-	assert.Nil(t, err)
+	require.Error(t, err)
+	assert.Equal(t, err.Error(), `error installing: namespace integration-test does not exist - KUDO expects that any namespace except the default kudo-system is created beforehand`)
+
+	// Then we manually create the namespace.
+	ns := testutils.NewResource("v1", "Namespace", namespace, "")
+	assert.NoError(t, testClient.Create(context.TODO(), ns))
+	defer testClient.Delete(context.TODO(), ns)
+
+	// On second attempt run should succeed.
+	err = cmd.run()
+	assert.NoError(t, err)
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
 	assert.Nil(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
@@ -142,7 +222,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := cmdinit.CRDs()
+	crds := cmdinit.CRDs().AsArray()
 	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
@@ -175,7 +255,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 }
 
 func deleteInitObjects(client *testutils.RetryClient) {
-	crds := cmdinit.CRDs()
+	crds := cmdinit.CRDs().AsArray()
 	prereqs := cmdinit.Prereq(cmdinit.NewOptions("", ""))
 	deleteCRDs(crds, client)
 	deletePrereq(prereqs, client)

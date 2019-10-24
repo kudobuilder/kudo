@@ -2,7 +2,7 @@ package task
 
 /*
 
-Package task implements the KUDO Task Engine
+Package task contains all available tasks of the KUDO plan execution engine.
 
 To create a new task, the following steps need to be performed:
 

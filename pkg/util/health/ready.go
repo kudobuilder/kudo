@@ -3,6 +3,7 @@ package health
 import (
 	"fmt"
 	"log"
+	"reflect"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -50,7 +51,7 @@ func IsHealthy(c client.Client, obj runtime.Object) error {
 
 	// unless we build logic for what a healthy object is, assume it's healthy when created.
 	default:
-		log.Printf("HealthUtil: Unknown type is marked healthy by default")
+		log.Printf("HealthUtil: Unknown type %s is marked healthy by default", reflect.TypeOf(obj))
 		return nil
 	}
 }

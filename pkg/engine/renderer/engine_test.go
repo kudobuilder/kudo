@@ -1,4 +1,4 @@
-package engine
+package renderer
 
 import (
 	"fmt"
@@ -13,15 +13,15 @@ func TestRender(t *testing.T) {
 		expected string
 	}{
 		{name: "empty", template: "", expected: ""},
-		{name: "basic template", template: "name: {{ .Params.Name }}", params: map[string]interface{}{"Name": "Some Name"}, expected: "name: Some Name"},
+		{name: "basic template", template: "Name: {{ .Params.Name }}", params: map[string]interface{}{"Name": "Some Name"}, expected: "Name: Some Name"},
 		{
 			name:     "nested template",
-			template: "name: {{ .Params.User.Name }}",
+			template: "Name: {{ .Params.User.Name }}",
 			params: map[string]interface{}{
 				"User": map[string]interface{}{"Name": "Bob User"},
 			},
-			expected: "name: Bob User"},
-		{name: "function", template: "name: {{ .Params.Name | upper }}", params: map[string]interface{}{"Name": "hello"}, expected: "name: HELLO"},
+			expected: "Name: Bob User"},
+		{name: "function", template: "Name: {{ .Params.Name | upper }}", params: map[string]interface{}{"Name": "hello"}, expected: "Name: HELLO"},
 	}
 
 	engine := New()

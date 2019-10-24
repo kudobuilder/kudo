@@ -1,6 +1,8 @@
 package init
 
 import (
+	"fmt"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 
 	v1 "k8s.io/api/core/v1"
@@ -54,6 +56,18 @@ func installRoleBindings(client kubernetes.Interface, opts Options) error {
 }
 
 func installNamespace(client corev1.NamespacesGetter, opts Options) error {
+	// We only manage kudo-system namespace. For others we expect they exist.
+	if opts.Namespace != defaultns {
+		_, err := client.Namespaces().Get(opts.Namespace, metav1.GetOptions{})
+		if err == nil {
+			return nil
+		}
+		if kerrors.IsNotFound(err) {
+			return fmt.Errorf("namespace %s does not exist - KUDO expects that any namespace except the default %s is created beforehand", opts.Namespace, defaultns)
+		}
+		return err
+	}
+
 	ns := generateSysNamespace(opts.Namespace)
 	_, err := client.Namespaces().Create(ns)
 	if kerrors.IsAlreadyExists(err) {
@@ -155,12 +169,19 @@ func PrereqManifests(opts Options) ([]string, error) {
 
 // Prereq returns the slice of prerequisite objects for KUDO
 func Prereq(opts Options) []runtime.Object {
-	ns := namespace(opts.Namespace)
-	svc := serviceAccount(opts)
-	rbac := roleBinding(opts)
-	secret := webhookSecret(opts)
+	var prereqs []runtime.Object
 
-	return []runtime.Object{ns, svc, rbac, secret}
+	// We only manage kudo-system namespace. For others we expect they exist.
+	if opts.Namespace == defaultns {
+		prereqs = append(prereqs, namespace(opts.Namespace))
+	}
+
+	return append(
+		prereqs,
+		serviceAccount(opts),
+		roleBinding(opts),
+		webhookSecret(opts),
+	)
 }
 
 // roleBinding provides the roleBinding rbac manifest for printing

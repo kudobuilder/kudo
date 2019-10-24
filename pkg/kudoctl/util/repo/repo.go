@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 
@@ -72,7 +74,7 @@ func NewRepositories() *Repositories {
 
 // GetConfiguration returns a RepoName Config for a name or nil
 func (r *Repositories) GetConfiguration(name string) *Configuration {
-	fmt.Printf("%v\n", r.Repositories)
+	clog.V(4).Printf("%v\n", r.Repositories)
 	for _, repo := range r.Repositories {
 		if repo.Name == name {
 			return repo
@@ -100,7 +102,7 @@ func ConfigurationFromSettings(fs afero.Fs, home kudohome.Home, repoName string)
 		config = r.GetConfiguration(repoName)
 	}
 	if config == nil {
-		return nil, fmt.Errorf("unable to find respository for %s", repoName)
+		return nil, fmt.Errorf("unable to find repository for %s", repoName)
 	}
 	return config, nil
 }

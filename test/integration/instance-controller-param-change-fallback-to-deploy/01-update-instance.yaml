@@ -1,12 +1,4 @@
 apiVersion: kudo.dev/v1alpha1
-kind: TestStep
-delete:
-  - apiVersion: kudo.dev/v1alpha1
-    kind: PlanExecution
-    labels:
-      kudo.dev/instance: icto-fallback-to-deploy
----
-apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
   name: icto-fallback-to-deploy
