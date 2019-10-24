@@ -115,9 +115,9 @@ func getTestPackageVersion(name string, version string) PackageVersion {
 			AppVersion:  "0.7.0",
 			Description: "fancy description is here",
 			Maintainers: []*v1alpha1.Maintainer{
-				&v1alpha1.Maintainer{Name: "Fabian Baier", Email: "<fabian@mesosphere.io>"},
-				&v1alpha1.Maintainer{Name: "Tom Runyon", Email: "<runyontr@gmail.com>"},
-				&v1alpha1.Maintainer{Name: "Ken Sipe", Email: "<kensipe@gmail.com>"}},
+				{Name: "Fabian Baier", Email: "<fabian@mesosphere.io>"},
+				{Name: "Tom Runyon", Email: "<runyontr@gmail.com>"},
+				{Name: "Ken Sipe", Email: "<kensipe@gmail.com>"}},
 		},
 		URLs:    urls,
 		Removed: false,
@@ -160,7 +160,7 @@ func TestMapPackageFileToPackageVersion(t *testing.T) {
 		AppVersion:        "2.2.2",
 		KUDOVersion:       "0.5.0",
 		KubernetesVersion: "1.15",
-		Maintainers:       []*v1alpha1.Maintainer{&v1alpha1.Maintainer{Name: "Ken Sipe"}},
+		Maintainers:       []*v1alpha1.Maintainer{{Name: "Ken Sipe"}},
 		URL:               "http://kudo.dev/kafka",
 	}
 	pf := packages.PackageFiles{
