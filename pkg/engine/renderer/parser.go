@@ -1,4 +1,4 @@
-package template
+package renderer
 
 import (
 	"bytes"
@@ -12,10 +12,10 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 )
 
-// ParseKubernetesObjects parses a list of runtime.Objects from the provided yaml
+// YamlToObject parses a list of runtime.Objects from the provided yaml
 // If the type is not known in the scheme, it tries to parse it as Unstructured
 // TODO(av) could we use something else than a global scheme here? Should we somehow inject it?
-func ParseKubernetesObjects(yaml string) (objs []runtime.Object, err error) {
+func YamlToObject(yaml string) (objs []runtime.Object, err error) {
 	sepYamlfiles := strings.Split(yaml, "---")
 	for _, f := range sepYamlfiles {
 		if f == "\n" || f == "" {

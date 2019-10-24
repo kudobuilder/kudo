@@ -5,8 +5,21 @@ import (
 	"fmt"
 	"text/template"
 
+	"github.com/kudobuilder/kudo/pkg/engine"
+
 	"github.com/masterminds/sprig"
 )
+
+// Metadata contains Metadata along with specific fields associated with current plan
+// being executed like current plan, phase, step or task names.
+type Metadata struct {
+	engine.Metadata
+
+	PlanName  string
+	PhaseName string
+	StepName  string
+	TaskName  string
+}
 
 // Engine is the control struct for parsing and templating Kubernetes resources in an ordered fashion
 type Engine struct {

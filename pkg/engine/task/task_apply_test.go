@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/kudobuilder/kudo/pkg/engine/renderer"
+
 	"github.com/kudobuilder/kudo/pkg/engine"
-	"github.com/kudobuilder/kudo/pkg/util/template"
 	"github.com/stretchr/testify/assert"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -18,7 +19,7 @@ import (
 )
 
 func TestApplyTask_Run(t *testing.T) {
-	meta := Metadata{
+	meta := renderer.Metadata{
 		Metadata: engine.Metadata{
 			InstanceName:        "test",
 			InstanceNamespace:   "default",
@@ -51,7 +52,7 @@ func TestApplyTask_Run(t *testing.T) {
 			ctx: Context{
 				Client:   fake.NewFakeClientWithScheme(scheme.Scheme),
 				Enhancer: &testEnhancer{},
-				Meta:     Metadata{},
+				Meta:     renderer.Metadata{},
 			},
 		},
 		{
@@ -168,10 +169,10 @@ func resourceAsString(resource metav1.Object) string {
 
 type testEnhancer struct{}
 
-func (k *testEnhancer) Apply(templates map[string]string, metadata Metadata) ([]runtime.Object, error) {
+func (k *testEnhancer) Apply(templates map[string]string, metadata renderer.Metadata) ([]runtime.Object, error) {
 	result := make([]runtime.Object, 0)
 	for _, t := range templates {
-		objsToAdd, err := template.ParseKubernetesObjects(t)
+		objsToAdd, err := renderer.YamlToObject(t)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing kubernetes objects after applying kustomize: %w", err)
 		}
@@ -182,6 +183,6 @@ func (k *testEnhancer) Apply(templates map[string]string, metadata Metadata) ([]
 
 type errorEnhancer struct{}
 
-func (k *errorEnhancer) Apply(templates map[string]string, metadata Metadata) ([]runtime.Object, error) {
+func (k *errorEnhancer) Apply(templates map[string]string, metadata renderer.Metadata) ([]runtime.Object, error) {
 	return nil, errors.New("always error")
 }

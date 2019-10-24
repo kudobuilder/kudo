@@ -1,4 +1,4 @@
-package task
+package renderer
 
 import (
 	"fmt"
@@ -9,7 +9,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/kudobuilder/kudo/pkg/util/template"
 	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/kustomize/k8sdeps/kunstruct"
@@ -109,7 +108,7 @@ func (k *KustomizeEnhancer) Apply(templates map[string]string, metadata Metadata
 		return nil, errors.Wrapf(err, "error encoding kustomized files into yaml")
 	}
 
-	objsToAdd, err = template.ParseKubernetesObjects(string(res))
+	objsToAdd, err = YamlToObject(string(res))
 	if err != nil {
 		return nil, errors.Wrapf(err, "error parsing kubernetes objects after applying kustomize")
 	}

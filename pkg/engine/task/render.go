@@ -8,7 +8,7 @@ import (
 )
 
 // render method takes resource names and Instance parameters and then renders passed templates using kudo engine.
-func render(resourceNames []string, templates map[string]string, params map[string]string, meta Metadata) (map[string]string, error) {
+func render(resourceNames []string, templates map[string]string, params map[string]string, meta renderer.Metadata) (map[string]string, error) {
 	configs := make(map[string]interface{})
 	configs["OperatorName"] = meta.OperatorName
 	configs["Name"] = meta.InstanceName
@@ -40,7 +40,7 @@ func render(resourceNames []string, templates map[string]string, params map[stri
 
 // kustomize method takes a slice of rendered templates, applies conventions using Enhancer and
 // returns a slice of k8s objects.
-func kustomize(rendered map[string]string, meta Metadata, enhancer Enhancer) ([]runtime.Object, error) {
+func kustomize(rendered map[string]string, meta renderer.Metadata, enhancer renderer.Enhancer) ([]runtime.Object, error) {
 	enhanced, err := enhancer.Apply(rendered, meta)
 	return enhanced, err
 }

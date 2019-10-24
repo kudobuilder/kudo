@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/kudobuilder/kudo/pkg/engine/renderer"
+
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -12,7 +14,7 @@ import (
 )
 
 func TestDeleteTask_Run(t *testing.T) {
-	meta := Metadata{
+	meta := renderer.Metadata{
 		Metadata: engine.Metadata{
 			InstanceName:        "test",
 			InstanceNamespace:   "default",
@@ -45,7 +47,7 @@ func TestDeleteTask_Run(t *testing.T) {
 			ctx: Context{
 				Client:   fake.NewFakeClientWithScheme(scheme.Scheme),
 				Enhancer: &testEnhancer{},
-				Meta:     Metadata{},
+				Meta:     renderer.Metadata{},
 			},
 		},
 		{
