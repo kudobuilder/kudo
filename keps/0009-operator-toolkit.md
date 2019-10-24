@@ -119,46 +119,79 @@ maintainers:
   - Alice <alice@example.com>
 url: https://github.com/myoperator/myoperator
 tasks:
-  deploy:
-    resources:
-      - pvc.yaml
-      - deployment.yaml
-      - service.yaml
-      - deployment2.yaml
-      - job.yaml
-    patches:
-      - deploy-patch.yaml
-    patchesStrategicMerge:
-      - super-weird-deploy-patch.yaml
-  init:
-    resources:
-      - init.yaml
-  pv:
-    resources:
-      - pvc.yaml
-  backup:
-    resources:
-      - init.yaml
-    patches:
-      - backup.yaml
-  restore:
-    resources:
-      - init.yaml
-    patches:
-      - restore.yaml
-  load-data:
-    resources:
-      - init.yaml
-    patches:
-      - load-data.yaml
-  clear-data:
-    resources:
-      - init.yaml
-    patches:
-      - clear-data.yaml
-  query:
-    resources:
-      - job.yaml
+  - name: deploy
+    kind: Apply
+    spec:
+      resources:
+        - pvc.yaml
+        - deployment.yaml
+        - service.yaml
+        - deployment2.yaml
+        - job.yaml
+      patches:
+        - deploy-patch.yaml
+      patchesStrategicMerge:
+        - super-weird-deploy-patch.yaml
+  - name: init
+    kind: Apply
+    spec:
+      resources:
+        - init.yaml
+  - name: cleanup
+    kind: Delete
+    spec:
+      resources:
+        - init.yaml
+  - name: pv
+    kind: Apply
+    spec:
+      resources:
+        - pvc.yaml
+  - name: backup
+    kind: Apply
+    spec:
+      resources:
+        - init.yaml
+      patches:
+        - backup.yaml
+  - name: backup-cleanup
+    kind: Delete
+    spec:
+      resources:
+        - init.yaml
+        - backup.yaml
+  - name: restore
+    kind: Apply
+    spec:
+      resources:
+        - init.yaml
+      patches:
+        - restore.yaml
+  - name: restore-cleanup
+    kind: Delete
+    spec:
+      resources:
+        - init.yaml
+        - restore.yaml
+  - name: load-data
+    kind: Apply
+    spec:
+      resources:
+        - init.yaml
+      patches:
+        - load-data.yaml
+  - name: clear-data
+    kind: Delete
+    spec:
+      resources:
+        - init.yaml
+      patches:
+        - clear-data.yaml
+  - name: query
+    kind: Apply
+    spec:
+      resources:
+        - job.yaml
 plans:
   deploy:
     steps:
@@ -170,8 +203,7 @@ plans:
           - init
       - name: cleanup
         tasks:
-          - init
-        delete: true
+          - cleanup
   backup:
     steps:
       - name: pv
@@ -182,8 +214,7 @@ plans:
           - backup
       - name: cleanup
         tasks:
-          - backup
-        delete: true
+          - backup-cleanup
   restore:
     steps:
       - name: restore
@@ -191,8 +222,7 @@ plans:
           - restore
       - name: cleanup
         tasks:
-          - restore
-        delete: true
+          - restore-cleanup
 ```
 
 While subsequent sections go into deeper detail, the top level keys of the operator are:

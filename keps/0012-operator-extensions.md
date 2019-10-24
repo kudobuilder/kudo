@@ -81,11 +81,11 @@ extends:
 
 will have the EXACT same functionality (plans, parameters, tasks, templates, etc) as the base `foo` operator.
 
-#### Refrencing an object from the base
+#### Referencing an object from the base
 
 #### Adding a Task
 
-Tasks can be added via the same `tasks` spec in the `Operator` definition. Templates used to define the task can come from the base operator by pre-fixing `base/` to the template name, or from local templates as defined in [KEP-0009](keps/0009-operator-toolkit.md). The follow example shows a new task called `load-data` defined for the extension operator that uses both a template from the base, with a patch object that is defined in the extention operator.
+Tasks can be added via the same `tasks` spec in the `Operator` definition. Templates used to define the task can come from the base operator by pre-fixing `base/` to the template name, or from local templates as defined in [KEP-0009](keps/0009-operator-toolkit.md). The follow example shows two new tasks called `load-data` and `clear-data` defined for the extension operator that uses both a template from the base, with a patch object that is defined in the extension operator.
 
 ```yaml
 extends:
@@ -94,16 +94,25 @@ extends:
     version: "5.7"
 version: "5.7"
 tasks:
-  load-data:
-    resources:
-      - base/init.yaml
-    patches:
-      - load-data.yaml
+  - name: load-data
+    kind: Apply
+    spec:
+      resources:
+        - base/init.yaml
+      patch:
+        - load-data.yaml
+  - name: clear-data
+    kind: Delete
+    spec:
+      resources:
+        - base/init.yaml
+      patch:
+        - load-data.yaml
 ```
 
 #### Adding a Plan
 
-Plans can be added to the extension operator and can reference tasks defined in either the base or the exension operator:
+Plans can be added to the extension operator and can reference tasks defined in either the base or the extension operator:
 
 ```yaml
 plans:
@@ -114,8 +123,7 @@ plans:
           - load-data
       - name: cleanup
         tasks:
-          - load-data
-        delete: true
+          - clear-data
 ```
 
 #### Modifying a Task
@@ -128,28 +136,34 @@ Presuming there was a task in the base operator defined as:
 
 ```yaml
 tasks:
-  init:
-    resources:
-      - init.yaml
+  - name: init
+    kind: Apply
+    spec:
+      resources:
+        - init.yaml
 ```
 
 An extension operator, that was trying to update the `init` task with a patch captured in `templates/init-patch.yaml` could update the task in different, but equivalent ways:
 
 ```yaml
 tasks:
-  init:
-    from: base/init
-    path:
-      - init-patch.yaml
+  - name: init
+    kind: Apply
+    spec:
+      from: base/init
+      patch:
+        - init-patch.yaml
 ```
 
 ```yaml
 tasks:
-  init:
-    resources:
-      - base/init.yaml
-    patch:
-      - init-patch.yaml
+  - name: init
+    kind: Apply
+    spec:
+      resources:
+        - base/init.yaml
+      patch:
+        - init-patch.yaml
 ```
 
 #### Modifying Plan
@@ -224,23 +238,44 @@ extends:
     version: "5.7"
 version: "5.7"
 tasks:
-  backup:
-    from: base/backup
-    patch:
-      - pvc-size-patch.yaml
-  restore:
-    from: base/restore
-    patch:
-      - pvc-size-patch.yaml
-  load-data:
-    resources:
-      - base/init.yaml
-    patches:
-      - load-data.yaml
-  clear-data:
-    from: base/init
-    patches:
-      - clear-data.yaml
+  - name: backup
+    kind: Apply
+    spec:
+      from: base/backup
+      patch:
+        - pvc-size-patch.yaml
+  - name: restore
+    kind: Apply
+    spec:
+      from: base/restore
+      patch:
+        - pvc-size-patch.yaml
+  - name: load-data
+    kind: Apply
+    spec:
+      resources:
+        - base/init.yaml
+      patch:
+        - load-data.yaml
+  - name: load-data-cleanup
+    kind: Delete
+    spec:
+      resources:
+        - base/init.yaml
+      patch:
+        - load-data.yaml
+  - name: clear-data
+    kind: Apply
+    spec:
+      from: base/init
+      patch:
+        - clear-data.yaml
+  - name: clear-data-cleanup
+    kind: Delete
+    spec:
+      from: base/init
+      patch:
+        - clear-data.yaml
 plans:
   resize-pv:
     steps:
@@ -254,8 +289,7 @@ plans:
           - load-data
       - name: cleanup
         tasks:
-          - load-data
-        delete: true
+          - load-data-cleanup
   clear:
     steps:
       - name: clear
@@ -263,8 +297,7 @@ plans:
           - clear-data
       - name: cleanup
         tasks:
-          - clear-data
-        delete: true
+          - clear-data-cleanup
 ```
 
 Tasks `load-data` and `clear-data` were created with the two different specifications for how to define a task. The `backup` and `restore` tasks were updated with the new patch this operator provides
