@@ -10,7 +10,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
-// Install installs package CRDs.
+// Install installs package resources.
 // If skipInstance is set to true, only a package's Operator and OperatorVersion is installed.
 func Install(kc *kudo.Client, resources *packages.PackageCRDs, skipInstance bool, instanceName, namespace string, parameters map[string]string) error {
 	// PRE-INSTALLATION SETUP

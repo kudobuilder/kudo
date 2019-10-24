@@ -38,7 +38,7 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-// TODO: adapt these tests to run as part of the 'crds' package instead.
+// TODO: adapt these tests to run as part of the 'resources' package instead.
 func TestParameterValidation_InstallCrds(t *testing.T) {
 	crds := packages.PackageCRDs{
 		Operator: &v1alpha1.Operator{
