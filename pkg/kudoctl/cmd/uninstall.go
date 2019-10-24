@@ -21,7 +21,7 @@ type uninstallOptions struct {
 type uninstallCmd struct{}
 
 func (cmd *uninstallCmd) run(options uninstallOptions, settings *env.Settings) error {
-	kc, err := kudo.NewClient(settings.Namespace, settings.KubeConfig)
+	kc, err := env.GetClient(settings)
 	clog.V(3).Printf("acquiring kudo client")
 	if err != nil {
 		clog.V(3).Printf("failed to acquire kudo client: %v", err)
