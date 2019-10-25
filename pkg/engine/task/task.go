@@ -1,9 +1,9 @@
 package task
 
 import (
-	"errors"
 	"fmt"
 
+	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
@@ -39,8 +39,9 @@ const (
 )
 
 var (
-	// ErrFatalExecution is a wrapper for the fatal engine task execution error
-	ErrFatalExecution = errors.New("fatal task error: ")
+	taskRenderingError   = "TaskRenderingError"
+	taskEnhancementError = "TaskEnhancementError"
+	dummyTaskError       = "DummyTaskError"
 )
 
 // Build factory method takes an v1alpha1.Task and returns a corresponding Tasker object
@@ -53,7 +54,7 @@ func Build(task *v1alpha1.Task) (Tasker, error) {
 	case DummyTaskKind:
 		return newDummy(task), nil
 	default:
-		return nil, fmt.Errorf("%wunknown task kind %s", ErrFatalExecution, task.Kind)
+		return nil, fmt.Errorf("unknown task kind %s", task.Kind)
 	}
 }
 
@@ -77,5 +78,21 @@ func newDummy(task *v1alpha1.Task) DummyTask {
 		WantErr: task.Spec.DummyTaskSpec.WantErr,
 		Fatal:   task.Spec.DummyTaskSpec.Fatal,
 		Done:    task.Spec.DummyTaskSpec.Done,
+	}
+}
+
+// fatalExecutionError is a helper method providing proper wrapping an message for the ExecutionError
+func fatalExecutionError(cause error, eventName string, meta renderer.Metadata) engine.ExecutionError {
+	return engine.ExecutionError{
+		Err: fmt.Errorf("%w%s/%s failed in %s.%s.%s.%s: %v",
+			engine.ErrFatalExecution,
+			meta.InstanceNamespace,
+			meta.InstanceName,
+			meta.PlanName,
+			meta.PhaseName,
+			meta.StepName,
+			meta.TaskName,
+			cause),
+		EventName: eventName,
 	}
 }

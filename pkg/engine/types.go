@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"errors"
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,17 +19,20 @@ type Metadata struct {
 	ResourcesOwner metav1.Object
 }
 
-// ExecutionError wraps plan execution engine errors with additional fields. E.g an error with EventName set
-// will be published on the event bus.
+var (
+	// ErrFatalExecution is a wrapper for the fatal engine task execution error
+	ErrFatalExecution = errors.New("fatal error: ")
+)
+
+// ExecutionError wraps plan execution engine errors with additional fields. An execution error will be published
+// on the event bus using provide EventName as a reason.
 type ExecutionError struct {
 	Err       error
-	Fatal     bool    // these errors should not be retried
-	EventName *string // nil if no warn even should be created
+	EventName string
 }
 
 func (e ExecutionError) Error() string {
-	if e.Fatal {
-		return fmt.Sprintf("Fatal error: %v", e.Err)
-	}
 	return fmt.Sprintf("Error during execution: %v", e.Err)
 }
+
+func (e ExecutionError) Unwrap() error { return e.Err }
