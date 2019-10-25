@@ -1,38 +1,56 @@
 package health
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"reflect"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"k8s.io/kubectl/pkg/polymorphichelpers"
 )
 
 // IsHealthy returns whether an object is healthy. Must be implemented for each type.
-func IsHealthy(c client.Client, obj runtime.Object) error {
+func IsHealthy(obj runtime.Object) error {
+	if obj == nil {
+		return nil
+	}
+	unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return err
+	}
 
+	objUnstructured := &unstructured.Unstructured{Object: unstructMap}
 	switch obj := obj.(type) {
 	case *appsv1.StatefulSet:
-		if obj.Spec.Replicas == nil {
-			return fmt.Errorf("replicas not set, so can't be healthy")
+		statusViewer := &polymorphichelpers.DeploymentStatusViewer{}
+		msg, done, err := statusViewer.Status(objUnstructured, 0)
+		if err != nil {
+			return err
 		}
-		if obj.Status.ReadyReplicas == *obj.Spec.Replicas {
-			log.Printf("Statefulset %v is marked healthy\n", obj.Name)
-			return nil
+		if !done {
+			log.Printf("HealthUtil: Statefulset %v is NOT healthy. %s", obj.Name, msg)
+			return errors.New(msg)
 		}
-		log.Printf("HealthUtil: Statefulset %v is NOT healthy. Not enough ready replicas: %v/%v", obj.Name, obj.Status.ReadyReplicas, obj.Status.Replicas)
-		return fmt.Errorf("ready replicas (%v) does not equal requested replicas (%v)", obj.Status.ReadyReplicas, obj.Status.Replicas)
+		log.Printf("Statefulset %v is marked healthy\n", obj.Name)
+		return nil
 	case *appsv1.Deployment:
-		if obj.Spec.Replicas != nil && obj.Status.ReadyReplicas == *obj.Spec.Replicas {
-			log.Printf("HealthUtil: Deployment %v is marked healthy", obj.Name)
-			return nil
+		statusViewer := &polymorphichelpers.DeploymentStatusViewer{}
+		msg, done, err := statusViewer.Status(objUnstructured, 0)
+		if err != nil {
+			return err
 		}
-		log.Printf("HealthUtil: Deployment %v is NOT healthy. Not enough ready replicas: %v/%v", obj.Name, obj.Status.ReadyReplicas, *obj.Spec.Replicas)
-		return fmt.Errorf("ready replicas (%v) does not equal requested replicas (%v)", obj.Status.ReadyReplicas, *obj.Spec.Replicas)
+		if !done {
+			log.Printf("HealthUtil: Deployment %v is NOT healthy. %s", obj.Name, msg)
+			return errors.New(msg)
+		}
+		log.Printf("Deployment %v is marked healthy\n", obj.Name)
+		return nil
 	case *batchv1.Job:
 
 		if obj.Status.Succeeded == int32(1) {
