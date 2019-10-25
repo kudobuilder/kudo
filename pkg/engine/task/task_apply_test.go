@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/util/template"
+	"github.com/kudobuilder/kudo/pkg/engine/renderer"
+
+	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/stretchr/testify/assert"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -17,8 +19,8 @@ import (
 )
 
 func TestApplyTask_Run(t *testing.T) {
-	meta := ExecutionMetadata{
-		EngineMetadata: EngineMetadata{
+	meta := renderer.Metadata{
+		Metadata: engine.Metadata{
 			InstanceName:        "test",
 			InstanceNamespace:   "default",
 			OperatorName:        "first-operator",
@@ -49,8 +51,8 @@ func TestApplyTask_Run(t *testing.T) {
 			wantErr: false,
 			ctx: Context{
 				Client:   fake.NewFakeClientWithScheme(scheme.Scheme),
-				Enhancer: &testKubernetesObjectEnhancer{},
-				Meta:     ExecutionMetadata{},
+				Enhancer: &testEnhancer{},
+				Meta:     renderer.Metadata{},
 			},
 		},
 		{
@@ -64,7 +66,7 @@ func TestApplyTask_Run(t *testing.T) {
 			fatal:   true,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
-				Enhancer:  &testKubernetesObjectEnhancer{},
+				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{},
 			},
@@ -80,7 +82,7 @@ func TestApplyTask_Run(t *testing.T) {
 			fatal:   true,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
-				Enhancer:  &errKubernetesObjectEnhancer{},
+				Enhancer:  &errorEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},
 			},
@@ -95,7 +97,7 @@ func TestApplyTask_Run(t *testing.T) {
 			wantErr: false,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
-				Enhancer:  &testKubernetesObjectEnhancer{},
+				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},
 			},
@@ -110,7 +112,7 @@ func TestApplyTask_Run(t *testing.T) {
 			wantErr: false,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
-				Enhancer:  &testKubernetesObjectEnhancer{},
+				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"job": resourceAsString(job("job1", "default"))},
 			},
@@ -121,7 +123,7 @@ func TestApplyTask_Run(t *testing.T) {
 		got, err := tt.task.Run(tt.ctx)
 		assert.True(t, tt.done == got, fmt.Sprintf("%s failed: want = %t, wantErr = %v", tt.name, got, err))
 		if tt.wantErr {
-			assert.True(t, errors.Is(err, ErrFatalExecution) == tt.fatal)
+			assert.True(t, errors.Is(err, engine.ErrFatalExecution) == tt.fatal)
 			assert.Error(t, err)
 		}
 		if !tt.wantErr {
@@ -165,12 +167,12 @@ func resourceAsString(resource metav1.Object) string {
 	return string(bytes)
 }
 
-type testKubernetesObjectEnhancer struct{}
+type testEnhancer struct{}
 
-func (k *testKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) ([]runtime.Object, error) {
+func (k *testEnhancer) Apply(templates map[string]string, metadata renderer.Metadata) ([]runtime.Object, error) {
 	result := make([]runtime.Object, 0)
 	for _, t := range templates {
-		objsToAdd, err := template.ParseKubernetesObjects(t)
+		objsToAdd, err := renderer.YamlToObject(t)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing kubernetes objects after applying kustomize: %w", err)
 		}
@@ -179,8 +181,8 @@ func (k *testKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map
 	return result, nil
 }
 
-type errKubernetesObjectEnhancer struct{}
+type errorEnhancer struct{}
 
-func (k *errKubernetesObjectEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) ([]runtime.Object, error) {
+func (k *errorEnhancer) Apply(templates map[string]string, metadata renderer.Metadata) ([]runtime.Object, error) {
 	return nil, errors.New("always error")
 }

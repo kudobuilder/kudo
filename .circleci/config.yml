@@ -32,7 +32,7 @@ jobs:
             - go-mod-v1-{{ checksum "go.sum" }}
       - run: curl -sL https://git.io/goreleaser | bash
 
-  code-formatting:
+  lint:
     docker:
       - image: kudobuilder/golang:1.13
     working_directory: /go/src/github.com/kudobuilder/kudo
@@ -41,8 +41,7 @@ jobs:
       - restore_cache:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
-
-      - run: make check-formatting
+      - run: make lint
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
@@ -52,7 +51,7 @@ workflows:
   version: 2
   lint:
     jobs:
-      - code-formatting
+      - lint
   integration-test:
     jobs:
       - integration-test

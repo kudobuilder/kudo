@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/spf13/cobra"
 	"github.com/xlab/treeprint"
 )
@@ -36,7 +35,7 @@ func RunHistory(cmd *cobra.Command, options *Options, settings *env.Settings) er
 func planHistory(options *Options, settings *env.Settings) error {
 	namespace := settings.Namespace
 
-	kc, err := kudo.NewClient(settings.Namespace, settings.KubeConfig)
+	kc, err := env.GetClient(settings)
 	if err != nil {
 		fmt.Printf("Unable to create kudo client to talk to kubernetes API server %v", err)
 		return err

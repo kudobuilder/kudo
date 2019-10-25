@@ -50,10 +50,10 @@ func newInstallCmd(fs afero.Fs) *cobra.Command {
 		},
 	}
 
-	installCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name. (defaults to operator name plus some random string)")
+	installCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The Instance name. (defaults to Operator name appended with -instance)")
 	installCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")
 	installCmd.Flags().StringVar(&options.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
 	installCmd.Flags().StringVar(&options.PackageVersion, "version", "", "A specific package version on the official GitHub repo. (default to the most recent)")
-	installCmd.Flags().BoolVar(&options.SkipInstance, "skip-instance", false, "If set, install will install the Operator and OperatorVersion, but not an instance. (default \"false\")")
+	installCmd.Flags().BoolVar(&options.SkipInstance, "skip-instance", false, "If set, install will install the Operator and OperatorVersion, but not an Instance. (default \"false\")")
 	return installCmd
 }

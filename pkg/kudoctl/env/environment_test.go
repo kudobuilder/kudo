@@ -19,7 +19,8 @@ func TestEnvSettings(t *testing.T) {
 		envars map[string]string
 
 		// expected values
-		home, kconfig string
+		home, kconfig  string
+		requesttimeout int64
 	}{
 		{
 			name:    "defaults",
@@ -46,6 +47,13 @@ func TestEnvSettings(t *testing.T) {
 			envars:  map[string]string{"KUDO_HOME": "/bar", "KUBECONFIG": "/foo"},
 			home:    "/foo",
 			kconfig: "/bar",
+		},
+		{
+			name:           "with request timeout set",
+			args:           []string{"--request-timeout", "5"},
+			home:           DefaultKudoHome,
+			kconfig:        os.Getenv("HOME") + "/.kube/config",
+			requesttimeout: 5,
 		},
 	}
 
@@ -77,7 +85,9 @@ func TestEnvSettings(t *testing.T) {
 			if settings.KubeConfig != tt.kconfig {
 				t.Errorf("expected kubeconfig %q, got %q", tt.kconfig, settings.KubeConfig)
 			}
-
+			if settings.RequestTimeout != tt.requesttimeout {
+				t.Errorf("expected request-timeout %d, got %d", tt.requesttimeout, settings.RequestTimeout)
+			}
 			resetEnv(tt.envars)
 		})
 	}

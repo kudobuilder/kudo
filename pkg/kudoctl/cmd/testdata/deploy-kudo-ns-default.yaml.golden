@@ -21,7 +21,7 @@ spec:
           type: string
         kind:
           type: string
-        meta:
+        metadata:
           type: object
         spec:
           properties:
@@ -77,7 +77,7 @@ spec:
           type: string
         kind:
           type: string
-        meta:
+        metadata:
           type: object
         spec:
           properties:
@@ -178,7 +178,7 @@ spec:
           type: string
         kind:
           type: string
-        meta:
+        metadata:
           type: object
         spec:
           properties:
@@ -311,6 +311,17 @@ spec:
         - mountPath: /tmp/cert
           name: cert
           readOnly: true
+      - args:
+        - --auto-annotation
+        - reloader.kudo.dev/auto
+        - --configmap-annotation
+        - configmap.reloader.kudo.dev/reload
+        - --secret-annotation
+        - secret.reloader.kudo.dev/reload
+        image: stakater/reloader:v0.0.49
+        imagePullPolicy: Always
+        name: reloader
+        resources: {}
       serviceAccountName: kudo-manager
       terminationGracePeriodSeconds: 10
       volumes:

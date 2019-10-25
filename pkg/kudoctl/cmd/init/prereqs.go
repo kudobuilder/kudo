@@ -125,7 +125,7 @@ func generateRoleBinding(opts Options) *rbacv1.ClusterRoleBinding {
 			Kind:     "ClusterRole",
 			Name:     "cluster-admin",
 		},
-		Subjects: []rbacv1.Subject{rbacv1.Subject{
+		Subjects: []rbacv1.Subject{{
 			Kind:      "ServiceAccount",
 			Name:      "kudo-manager",
 			Namespace: opts.Namespace,

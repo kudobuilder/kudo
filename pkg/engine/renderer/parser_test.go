@@ -1,9 +1,9 @@
-package template
+package renderer
 
 import "testing"
 
 func TestParseKubernetesObjects_UnknownType(t *testing.T) {
-	_, err := ParseKubernetesObjects(`apiVersion: monitoring.coreos.com/v1
+	_, err := YamlToObject(`apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   labels:

@@ -7,7 +7,7 @@ import (
 	"log"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/util/health"
+	"github.com/kudobuilder/kudo/pkg/engine/health"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,13 +29,13 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 	// 1. - Render task templates -
 	rendered, err := render(at.Resources, ctx.Templates, ctx.Parameters, ctx.Meta)
 	if err != nil {
-		return false, fmt.Errorf("%wfailed to render task resources: %v", ErrFatalExecution, err)
+		return false, fatalExecutionError(err, taskRenderingError, ctx.Meta)
 	}
 
 	// 2. - Kustomize them with metadata -
 	kustomized, err := kustomize(rendered, ctx.Meta, ctx.Enhancer)
 	if err != nil {
-		return false, fmt.Errorf("%wfailed to kustomize task resources: %v", ErrFatalExecution, err)
+		return false, fatalExecutionError(err, taskEnhancementError, ctx.Meta)
 	}
 
 	// 3. - Apply them using the client -

@@ -1,4 +1,4 @@
-package task
+package renderer
 
 import (
 	"fmt"
@@ -9,7 +9,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/kudobuilder/kudo/pkg/util/template"
 	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/kustomize/k8sdeps/kunstruct"
@@ -25,21 +24,21 @@ import (
 
 const basePath = "/kustomize"
 
-// KubernetesObjectEnhancer takes your kubernetes template and kudo related Metadata and applies them to all resources in form of labels
+// Enhancer takes your kubernetes template and kudo related Metadata and applies them to all resources in form of labels
 // and annotations
 // it also takes care of setting an owner of all the resources to the provided object
-type KubernetesObjectEnhancer interface {
-	ApplyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) ([]runtime.Object, error)
+type Enhancer interface {
+	Apply(templates map[string]string, metadata Metadata) ([]runtime.Object, error)
 }
 
-// KustomizeEnhancer is implementation of KubernetesObjectEnhancer that uses kustomize to apply the defined conventions
+// KustomizeEnhancer is implementation of Enhancer that uses kustomize to apply the defined conventions
 type KustomizeEnhancer struct {
 	Scheme *runtime.Scheme
 }
 
-// ApplyConventionsToTemplates accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
+// Apply accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
-func (k *KustomizeEnhancer) ApplyConventionsToTemplates(templates map[string]string, metadata ExecutionMetadata) (objsToAdd []runtime.Object, err error) {
+func (k *KustomizeEnhancer) Apply(templates map[string]string, metadata Metadata) (objsToAdd []runtime.Object, err error) {
 	fsys := fs.MakeFakeFS()
 
 	templateNames := make([]string, 0, len(templates))
@@ -109,7 +108,7 @@ func (k *KustomizeEnhancer) ApplyConventionsToTemplates(templates map[string]str
 		return nil, errors.Wrapf(err, "error encoding kustomized files into yaml")
 	}
 
-	objsToAdd, err = template.ParseKubernetesObjects(string(res))
+	objsToAdd, err = YamlToObject(string(res))
 	if err != nil {
 		return nil, errors.Wrapf(err, "error parsing kubernetes objects after applying kustomize")
 	}
@@ -129,11 +128,4 @@ func setControllerReference(owner v1.Object, obj runtime.Object, scheme *runtime
 		return err
 	}
 	return nil
-}
-
-// kustomize method takes a slice of rendered templates, applies conventions using KubernetesObjectEnhancer and
-// returns a slice of k8s objects.
-func kustomize(rendered map[string]string, meta ExecutionMetadata, enhancer KubernetesObjectEnhancer) ([]runtime.Object, error) {
-	enhanced, err := enhancer.ApplyConventionsToTemplates(rendered, meta)
-	return enhanced, err
 }

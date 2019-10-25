@@ -102,7 +102,7 @@ func (in *Instance) DeepCopyObject() runtime.Object {
 func (in *InstanceList) DeepCopyInto(out *InstanceList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Instance, len(*in))
@@ -268,7 +268,7 @@ func (in *OperatorDependency) DeepCopy() *OperatorDependency {
 func (in *OperatorList) DeepCopyInto(out *OperatorList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Operator, len(*in))
@@ -372,7 +372,7 @@ func (in *OperatorVersion) DeepCopyObject() runtime.Object {
 func (in *OperatorVersionList) DeepCopyInto(out *OperatorVersionList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]OperatorVersion, len(*in))

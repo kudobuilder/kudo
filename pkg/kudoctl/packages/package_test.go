@@ -9,8 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/util/rand"
-
 	"github.com/go-test/deep"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/pkg/errors"
@@ -19,17 +17,14 @@ import (
 )
 
 func TestReadFileSystemPackage(t *testing.T) {
-	// Set Kubernetes random seed for deterministic test results on the name
-	rand.Seed(1)
-
 	tests := []struct {
 		name         string
 		instanceName string
 		path         string
 		goldenFiles  string
 	}{
-		{"zookeeper", "zookeeper-xn8fg", "testdata/zk", "testdata/zk-crd-golden1"},
-		{"zookeeper", "zookeeper-txhzt", "testdata/zk.tgz", "testdata/zk-crd-golden2"},
+		{"zookeeper", "zk1", "testdata/zk", "testdata/zk-crd-golden1"},
+		{"zookeeper", "zk2", "testdata/zk.tgz", "testdata/zk-crd-golden2"},
 	}
 	var fs = afero.NewOsFs()
 

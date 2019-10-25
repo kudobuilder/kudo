@@ -19,7 +19,6 @@ import (
 	"github.com/spf13/afero"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/yaml"
 )
 
@@ -224,7 +223,7 @@ func (p *PackageFiles) getCRDs() (*Resources, error) {
 			APIVersion: apiVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   fmt.Sprintf("%s-%s", p.Operator.Name, rand.String(6)),
+			Name:   fmt.Sprintf("%s-instance", p.Operator.Name),
 			Labels: map[string]string{"controller-tools.k8s.io": "1.0", kudo.OperatorLabel: p.Operator.Name},
 		},
 		Spec: v1alpha1.InstanceSpec{

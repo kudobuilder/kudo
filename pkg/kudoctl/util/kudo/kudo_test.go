@@ -27,7 +27,7 @@ func TestNewK2oClient(t *testing.T) {
 
 	for _, tt := range tests {
 		// Just interested in errors
-		_, err := NewClient("default", "")
+		_, err := NewClient("default", "", 0)
 		if err.Error() != tt.err {
 			t.Errorf("non existing test:\nexpected: %v\n     got: %v", tt.err, err.Error())
 		}

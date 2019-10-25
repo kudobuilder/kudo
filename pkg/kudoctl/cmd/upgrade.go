@@ -83,7 +83,7 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 	}
 	packageToUpgrade := args[0]
 
-	kc, err := kudo.NewClient(settings.Namespace, settings.KubeConfig)
+	kc, err := env.GetClient(settings)
 	if err != nil {
 		return errors.Wrap(err, "creating kudo client")
 	}

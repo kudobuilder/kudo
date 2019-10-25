@@ -19,7 +19,7 @@ func Run(args []string, settings *env.Settings) error {
 		return err
 	}
 
-	kc, err := kudo.NewClient(settings.Namespace, settings.KubeConfig)
+	kc, err := env.GetClient(settings)
 	if err != nil {
 		return errors.Wrap(err, "creating kudo client")
 	}

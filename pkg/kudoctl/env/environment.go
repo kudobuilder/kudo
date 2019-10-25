@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/util/homedir"
@@ -21,11 +22,14 @@ type Settings struct {
 	Home kudohome.Home
 	// Namespace used when working with Kubernetes
 	Namespace string
+	// RequestTimeout is the timeout value (in seconds) when making API calls via the KUDO client
+	RequestTimeout int64
 }
 
 // DefaultSettings initializes the settings to its defaults
 var DefaultSettings = &Settings{
-	Namespace: "default",
+	Namespace:      "default",
+	RequestTimeout: 0,
 }
 
 // envMap maps flag names to envvars
@@ -39,6 +43,7 @@ func (s *Settings) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar((*string)(&s.Home), "home", DefaultKudoHome, "location of your KUDO config.")
 	fs.StringVar(&s.KubeConfig, "kubeconfig", os.Getenv("HOME")+"/.kube/config", "Path to your Kubernetes configuration file.")
 	fs.StringVarP(&s.Namespace, "namespace", "n", "default", "Target namespace for the object.")
+	fs.Int64Var(&s.RequestTimeout, "request-timeout", 0, "Request timeout value, in seconds.  Defaults to 0 (unlimited)")
 }
 
 // Init sets values from the environment.
@@ -61,4 +66,9 @@ func setFlagFromEnv(name, envar string, fs *pflag.FlagSet) {
 			panic(err)
 		}
 	}
+}
+
+// GetClient is a helper function that takes the Settings struct and returns a new KUDO Client
+func GetClient(s *Settings) (*kudo.Client, error) {
+	return kudo.NewClient(s.Namespace, s.KubeConfig, s.RequestTimeout)
 }
