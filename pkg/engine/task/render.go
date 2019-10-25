@@ -25,12 +25,12 @@ func render(resourceNames []string, templates map[string]string, params map[stri
 		resource, ok := templates[rn]
 
 		if !ok {
-			return nil, fmt.Errorf("error finding resource named %v for operator version %v", rn, meta.OperatorVersionName)
+			return nil, fmt.Errorf("error finding resource named %s", rn)
 		}
 
 		rendered, err := engine.Render(resource, configs)
 		if err != nil {
-			return nil, fmt.Errorf("error expanding template: %w", err)
+			return nil, fmt.Errorf("error expanding template %s: %w", rn, err)
 		}
 
 		resources[rn] = rendered

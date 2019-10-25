@@ -42,7 +42,7 @@ jobs:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
 
-      - run: make check-formatting
+      - run: make lint
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
