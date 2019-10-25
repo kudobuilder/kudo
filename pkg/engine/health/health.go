@@ -28,7 +28,7 @@ func IsHealthy(obj runtime.Object) error {
 	objUnstructured := &unstructured.Unstructured{Object: unstructMap}
 	switch obj := obj.(type) {
 	case *appsv1.StatefulSet:
-		statusViewer := &polymorphichelpers.DeploymentStatusViewer{}
+		statusViewer := &polymorphichelpers.StatefulSetStatusViewer{}
 		msg, done, err := statusViewer.Status(objUnstructured, 0)
 		if err != nil {
 			return err
