@@ -206,13 +206,25 @@ status:
 
 ---
 apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: null
+  labels:
+    app: kudo-manager
+    controller-tools.k8s.io: "1.0"
+  name: kudo-system
+spec: {}
+status: {}
+
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   creationTimestamp: null
   labels:
     app: kudo-manager
   name: kudo-manager
-  namespace: default
+  namespace: kudo-system
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -227,7 +239,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: kudo-manager
-  namespace: default
+  namespace: kudo-system
 
 ---
 apiVersion: v1
@@ -235,7 +247,7 @@ kind: Secret
 metadata:
   creationTimestamp: null
   name: kudo-webhook-server-secret
-  namespace: default
+  namespace: kudo-system
 
 ---
 apiVersion: v1
@@ -247,7 +259,7 @@ metadata:
     control-plane: controller-manager
     controller-tools.k8s.io: "1.0"
   name: kudo-controller-manager-service
-  namespace: default
+  namespace: kudo-system
 spec:
   ports:
   - name: kudo
@@ -270,7 +282,7 @@ metadata:
     control-plane: controller-manager
     controller-tools.k8s.io: "1.0"
   name: kudo-controller-manager
-  namespace: default
+  namespace: kudo-system
 spec:
   selector:
     matchLabels:
