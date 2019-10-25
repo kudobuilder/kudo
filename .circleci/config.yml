@@ -41,8 +41,6 @@ jobs:
       - restore_cache:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
-
-      - run: make install-linter
       - run: make lint
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
