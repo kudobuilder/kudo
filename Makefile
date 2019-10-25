@@ -41,7 +41,9 @@ test-clean:
 
 .PHONY: lint
 lint:
-	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+ifeq (, $(shell which golangci-lint))
+	go get github.com/golangci/golangci-lint/cmd/golangci-lint
+endif
 	golangci-lint run
 
 .PHONY: download
