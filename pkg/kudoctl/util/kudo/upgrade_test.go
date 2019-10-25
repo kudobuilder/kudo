@@ -7,7 +7,6 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	v1 "k8s.io/api/core/v1"
@@ -83,7 +82,7 @@ func Test_UpgradeOperatorVersion(t *testing.T) {
 		newOv := testOv
 		newOv.Spec.Version = tt.newVersion
 
-		err := UpgradeOperatorVersion(c, &newOv, "test", env.DefaultSettings.Namespace, nil)
+		err := UpgradeOperatorVersion(c, &newOv, "test", "default", nil)
 		if err != nil {
 			if !strings.Contains(err.Error(), tt.errMessageContains) {
 				t.Errorf("%s: expected error '%s' but got '%v'", tt.name, tt.errMessageContains, err)

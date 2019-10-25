@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 
@@ -96,7 +95,7 @@ func Test_InstallPackage(t *testing.T) {
 
 		testResources := resources
 		testResources.OperatorVersion.Spec.Parameters = tt.parameters
-		namespace := env.DefaultSettings.Namespace
+		namespace := "default"
 
 		err := InstallPackage(kc, &testResources, tt.skipInstance, "", namespace, tt.installParameters)
 		if err != nil && err.Error() != tt.err {
