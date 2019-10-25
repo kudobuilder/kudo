@@ -68,7 +68,7 @@ manager-clean:
 
 # Install reloader into a cluster via kubectl kudo init
 .PHONY: reloader
-reloader:
+deploy-reloader:
 	go run -ldflags "${LDFLAGS}" cmd/kubectl-kudo/main.go init --disable-manager
 
 .PHONY: run

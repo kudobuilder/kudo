@@ -126,6 +126,9 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 	if flags.Changed("wait-timeout") && !initCmd.wait {
 		return errors.New("wait-timeout is only useful when using the flag '--wait'")
 	}
+	if initCmd.disableManager && initCmd.disableReloader {
+		return errors.New("disabling both the manager and reloader is unsupported")
+	}
 
 	return nil
 }
