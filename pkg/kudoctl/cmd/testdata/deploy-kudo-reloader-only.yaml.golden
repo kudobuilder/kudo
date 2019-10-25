@@ -299,30 +299,6 @@ spec:
         controller-tools.k8s.io: "1.0"
     spec:
       containers:
-      - command:
-        - /root/manager
-        env:
-        - name: POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        - name: SECRET_NAME
-          value: kudo-webhook-server-secret
-        image: kudobuilder/controller:vdev
-        imagePullPolicy: Always
-        name: manager
-        ports:
-        - containerPort: 9876
-          name: webhook-server
-          protocol: TCP
-        resources:
-          requests:
-            cpu: 100m
-            memory: 50Mi
-        volumeMounts:
-        - mountPath: /tmp/cert
-          name: cert
-          readOnly: true
       - args:
         - --auto-annotation
         - reloader.kudo.dev/auto
