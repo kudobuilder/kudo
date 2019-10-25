@@ -17,7 +17,7 @@ import (
 // - an operator name in the remote repository
 // in that order. Should there exist a local folder e.g. `cassandra` it will take precedence
 // over the remote repository package with the same name.
-// TODO: move this to the 'packages' package -- currently not possible because if a dependency cycle
+// TODO: move this to the 'packages' package -- currently not possible because of a dependency cycle
 func Resources(operatorName string, version string, repository repo.Repository) (*packages.Resources, error) {
 	// Local files/folder have priority
 	if _, err := os.Stat(operatorName); err == nil {
