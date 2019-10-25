@@ -30,9 +30,9 @@ const (
 
 const apiVersion = "kudo.dev/v1alpha1"
 
-// PackageCRDs is collection of CRDs that are used when installing operator
+// Resources is collection of CRDs that are used when installing operator
 // during installation, package format is converted to this structure
-type PackageCRDs struct {
+type Resources struct {
 	Operator        *v1alpha1.Operator
 	OperatorVersion *v1alpha1.OperatorVersion
 	Instance        *v1alpha1.Instance
@@ -158,7 +158,7 @@ func validateTask(t v1alpha1.Task, templates map[string]string) []string {
 	return errs
 }
 
-func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
+func (p *PackageFiles) getCRDs() (*Resources, error) {
 	if p.Operator == nil {
 		return nil, errors.New("operator.yaml file is missing")
 	}
@@ -234,7 +234,7 @@ func (p *PackageFiles) getCRDs() (*PackageCRDs, error) {
 		Status: v1alpha1.InstanceStatus{},
 	}
 
-	return &PackageCRDs{
+	return &Resources{
 		Operator:        operator,
 		OperatorVersion: fv,
 		Instance:        instance,

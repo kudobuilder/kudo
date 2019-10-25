@@ -39,7 +39,7 @@ func TestReadFileSystemPackage(t *testing.T) {
 				t.Fatalf("Found unexpected error: %v", err)
 			}
 			actual.Instance.ObjectMeta.Name = tt.instanceName
-			golden, err := loadCRDsFromPath(tt.goldenFiles)
+			golden, err := loadResourcesFromPath(tt.goldenFiles)
 			if err != nil {
 				t.Fatalf("Found unexpected error when loading golden files: %v", err)
 			}
@@ -60,7 +60,7 @@ func TestReadFileSystemPackage(t *testing.T) {
 	}
 }
 
-func loadCRDsFromPath(goldenPath string) (*PackageCRDs, error) {
+func loadResourcesFromPath(goldenPath string) (*Resources, error) {
 	isOperatorFile := func(name string) bool {
 		return strings.HasSuffix(name, "operator.golden")
 	}
@@ -73,7 +73,7 @@ func loadCRDsFromPath(goldenPath string) (*PackageCRDs, error) {
 		return strings.HasSuffix(name, "instance.golden")
 	}
 
-	result := &PackageCRDs{}
+	result := &Resources{}
 	err := filepath.Walk(goldenPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
