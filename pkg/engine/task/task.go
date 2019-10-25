@@ -54,7 +54,7 @@ func Build(task *v1alpha1.Task) (Tasker, error) {
 	case DummyTaskKind:
 		return newDummy(task), nil
 	default:
-		return nil, fmt.Errorf("%wunknown task kind %s", engine.ErrFatalExecution, task.Kind)
+		return nil, fmt.Errorf("unknown task kind %s", task.Kind)
 	}
 }
 

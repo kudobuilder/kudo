@@ -75,7 +75,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 		if phaseStatus == nil {
 			planStatus.Status = v1alpha1.ExecutionFatalError
 			return planStatus, engine.ExecutionError{
-				Err:       fmt.Errorf("%s/%s missing phase status: %s.%s", em.InstanceNamespace, em.InstanceName, pl.Name, ph.Name),
+				Err:       fmt.Errorf("%s/%s %w missing phase status: %s.%s", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name),
 				EventName: missingPhaseStatus,
 			}
 		}
@@ -98,7 +98,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 				phaseStatus.Status = v1alpha1.ExecutionFatalError
 				planStatus.Status = v1alpha1.ExecutionFatalError
 				return planStatus, engine.ExecutionError{
-					Err:       fmt.Errorf("%s/%s missing step status: %s.%s.%s", em.InstanceNamespace, em.InstanceName, pl.Name, ph.Name, st.Name),
+					Err:       fmt.Errorf("%s/%s %w missing step status: %s.%s.%s", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name, st.Name),
 					EventName: missingStepStatus,
 				}
 			}
@@ -123,7 +123,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 					stepStatus.Status = v1alpha1.ExecutionFatalError
 					planStatus.Status = v1alpha1.ExecutionFatalError
 					return planStatus, engine.ExecutionError{
-						Err:       fmt.Errorf("%s/%s missing task %s.%s.%s.%s ", em.InstanceNamespace, em.InstanceName, pl.Name, ph.Name, st.Name, tn),
+						Err:       fmt.Errorf("%s/%s %w missing task %s.%s.%s.%s ", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name, st.Name, tn),
 						EventName: unknownTaskNameEventName,
 					}
 				}
@@ -143,7 +143,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 					phaseStatus.Status = v1alpha1.ExecutionFatalError
 					planStatus.Status = v1alpha1.ExecutionFatalError
 					return planStatus, engine.ExecutionError{
-						Err:       fmt.Errorf("%s/%s failed to build task %s.%s.%s.%s: %v", em.InstanceNamespace, em.InstanceName, pl.Name, ph.Name, st.Name, tn, err),
+						Err:       fmt.Errorf("%s/%s %w failed to build task %s.%s.%s.%s: %v", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name, st.Name, tn, err),
 						EventName: unknownTaskKindEventName,
 					}
 				}
@@ -180,7 +180,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 			// otherwise, if STEPs strategy is parallel or all TASKs are finished, we can go to the next STEP
 			if tasksLeft > 0 {
 				if ph.Strategy == v1alpha1.Serial {
-					log.Printf("PlanExecution: %s.%s some tasks of the %s.%s.%s are not ready", em.InstanceNamespace, em.InstanceName, pl.Name, ph.Name, st.Name)
+					log.Printf("PlanExecution: %s/%s some tasks of the %s.%s.%s are not ready", em.InstanceNamespace, em.InstanceName, pl.Name, ph.Name, st.Name)
 					break
 				}
 			} else {
@@ -194,7 +194,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 		// otherwise, if PHASEs strategy is parallel or all STEPs are finished, we can go to the next PHASE
 		if stepsLeft > 0 {
 			if pl.Spec.Strategy == v1alpha1.Serial {
-				log.Printf("PlanExecution: %s.%s, some steps of the %s.%s are not ready", em.InstanceNamespace, em.InstanceName, pl.Name, ph.Name)
+				log.Printf("PlanExecution: %s/%s, some steps of the %s.%s are not ready", em.InstanceNamespace, em.InstanceName, pl.Name, ph.Name)
 				break
 			}
 		} else {

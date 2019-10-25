@@ -162,7 +162,16 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
-	activePlan, metadata, err := preparePlanExecution(instance, ov, activePlanStatus)
+	metadata := &engine.Metadata{
+		OperatorVersionName: ov.Name,
+		OperatorVersion:     ov.Spec.Version,
+		ResourcesOwner:      instance,
+		OperatorName:        ov.Spec.Operator.Name,
+		InstanceNamespace:   instance.Namespace,
+		InstanceName:        instance.Name,
+	}
+
+	activePlan, err := preparePlanExecution(instance, ov, activePlanStatus)
 	if err != nil {
 		err = r.handleError(err, instance)
 		return reconcile.Result{}, err
@@ -192,29 +201,22 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	return reconcile.Result{}, nil
 }
 
-func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.OperatorVersion, activePlanStatus *kudov1alpha1.PlanStatus) (*workflow.ActivePlan, *engine.Metadata, error) {
+func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.OperatorVersion, activePlanStatus *kudov1alpha1.PlanStatus) (*workflow.ActivePlan, error) {
 	params := getParameters(instance, ov)
 
 	planSpec, ok := ov.Spec.Plans[activePlanStatus.Name]
 	if !ok {
-		return nil, nil, &engine.ExecutionError{Err: fmt.Errorf("could not find required plan (%v)", activePlanStatus.Name), EventName: "InvalidPlan"}
+		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not find required plan: %v", engine.ErrFatalExecution, activePlanStatus.Name), EventName: "InvalidPlan"}
 	}
 
 	return &workflow.ActivePlan{
-			Name:       activePlanStatus.Name,
-			Spec:       &planSpec,
-			PlanStatus: activePlanStatus,
-			Tasks:      ov.Spec.Tasks,
-			Templates:  ov.Spec.Templates,
-			Params:     params,
-		}, &engine.Metadata{
-			OperatorVersionName: ov.Name,
-			OperatorVersion:     ov.Spec.Version,
-			ResourcesOwner:      instance,
-			OperatorName:        ov.Spec.Operator.Name,
-			InstanceNamespace:   instance.Namespace,
-			InstanceName:        instance.Name,
-		}, nil
+		Name:       activePlanStatus.Name,
+		Spec:       &planSpec,
+		PlanStatus: activePlanStatus,
+		Tasks:      ov.Spec.Tasks,
+		Templates:  ov.Spec.Templates,
+		Params:     params,
+	}, nil
 }
 
 // handleError handles execution error by logging, updating the plan status and optionally publishing an event
@@ -293,7 +295,7 @@ func getParameters(instance *kudov1alpha1.Instance, operatorVersion *kudov1alpha
 		params[k] = v
 	}
 
-	// Merge defaults with customizations, if no override exist, use the default parameter
+	// Merge instance parameter overrides with operator version, if no override exist, use the default one
 	for _, param := range operatorVersion.Spec.Parameters {
 		if _, ok := params[param.Name]; !ok {
 			params[param.Name] = kudo.StringValue(param.Default)
