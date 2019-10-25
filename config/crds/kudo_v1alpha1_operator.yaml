@@ -3,6 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
   labels:
+    app: kudo-manager
     controller-tools.k8s.io: "1.0"
   name: operators.kudo.dev
 spec:
@@ -10,19 +11,14 @@ spec:
   names:
     kind: Operator
     plural: operators
+    singular: operator
   scope: Namespaced
   validation:
     openAPIV3Schema:
       properties:
         apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -37,9 +33,9 @@ spec:
             maintainers:
               items:
                 properties:
-                  name:
-                    type: string
                   email:
+                    type: string
+                  name:
                     type: string
                 type: object
               type: array
@@ -48,6 +44,7 @@ spec:
           type: object
         status:
           type: object
+      type: object
   version: v1alpha1
 status:
   acceptedNames:

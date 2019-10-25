@@ -6,9 +6,11 @@ maintainers:
   - name: Justin Taylor-Barrick
     email: jbarrick-mesosphere@mesosphere.com
 tasks:
-  infra:
-    resources:
-      - deployment.yaml
+  - name: infra
+    kind: Apply
+    spec:
+      resources:
+        - deployment.yaml
 plans:
   deploy:
     strategy: serial

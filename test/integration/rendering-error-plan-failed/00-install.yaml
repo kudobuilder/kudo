@@ -38,9 +38,11 @@ spec:
               - -c
               - "sleep {{ .Params.NonExisting }}"
   tasks:
-    invalid-task:
-      resources:
-        - serial.yaml
+    - name: invalid-task
+      kind: Apply
+      spec:
+        resources:
+          - serial.yaml
   parameters:
     - name: Sleep
       description: "how long to have the container sleep for before returning"

@@ -23,16 +23,18 @@ import (
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
 	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
+	util "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/kudobuilder/kudo/pkg/version"
 	apiextenstionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func main() {
-	logf.SetLogger(logf.ZapLogger(false))
+	logf.SetLogger(zap.Logger(false))
 	log := logf.Log.WithName("entrypoint")
 
 	// Get version of KUDO
@@ -40,7 +42,9 @@ func main() {
 
 	// create new controller-runtime manager
 	log.Info("setting up manager")
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{})
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		MapperProvider: util.NewDynamicRESTMapper,
+	})
 	if err != nil {
 		log.Error(err, "unable to start manager")
 		os.Exit(1)

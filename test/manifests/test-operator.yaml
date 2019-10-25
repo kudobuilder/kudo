@@ -51,9 +51,11 @@ spec:
               - name: PARAM_ENV
                 value: {{ .Params.PARAM }}
   tasks:
-    deploy:
-      resources:
-      - deploy.yaml
+    - name: deploy
+      kind: Apply
+      spec:
+        resources:
+          - deploy.yaml
   plans:
     deploy:
       strategy: serial

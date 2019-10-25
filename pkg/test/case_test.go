@@ -126,11 +126,11 @@ func TestLoadTestSteps(t *testing.T) {
 					Errors: []runtime.Object{},
 				},
 				{
-					Name:  "name-overriden",
+					Name:  "name-overridden",
 					Index: 3,
 					Step: &kudo.TestStep{
 						ObjectMeta: metav1.ObjectMeta{
-							Name: "name-overriden",
+							Name: "name-overridden",
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "TestStep",

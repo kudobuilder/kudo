@@ -71,9 +71,10 @@ func TestRepoIndexCmd_IndexCreation(t *testing.T) {
 		t.Fatalf("failed reading .golden: %s", err)
 	}
 
-	if !bytes.Equal(indexOut, g) {
-		t.Errorf("yaml does not match .golden file")
-	}
+	assert.Equal(t, string(indexOut), string(g), "yaml does not match .golden file %s", gp)
+	//if !bytes.Equal(indexOut, g) {
+	//	t.Errorf("yaml does not match .golden file %s:\n%s", gp, string(indexOut))
+	//}
 }
 
 func TestRepoIndexCmd_MergeIndex(t *testing.T) {

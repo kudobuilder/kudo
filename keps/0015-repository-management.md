@@ -24,7 +24,7 @@ status: provisional
       * [Proposal](#proposal)
          * [Create Operator Tarball](#create-operator-tarball)
          * [Create Repository Index](#create-repository-index)
-         * [Create Local Respository](#create-local-respository)
+         * [Create Local Repository](#create-local-repository)
          * [Update a Repository](#update-a-repository)
          * [CLI Repository Help](#cli-repository-help)
          * [User Stories](#user-stories)
@@ -81,7 +81,7 @@ kubectl kudo package docs/examples/zookeeper/ --destination=new-rep
 kubectl kudo repo index new-repo --url https://kudo-repo.storage.googleapis.com
 ```
 
-### Create Local Respository
+### Create Local Repository
 
 For convenience it should be possible to have KUDO start a repository service with a provided path.  `kubectl kudo serve --repo-path ./repo` would create a local http service for the repo in `./repo`
 

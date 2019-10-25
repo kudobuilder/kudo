@@ -29,6 +29,7 @@ type Options struct {
 	Parameters     map[string]string
 	PackageVersion string
 	SkipInstance   bool
+	RequestTimeout int64
 }
 
 // DefaultOptions initializes the install command options to its defaults
@@ -102,7 +103,7 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 	}
 	clog.V(4).Printf("repository used %s", repository)
 
-	kc, err := kudo.NewClient(settings.Namespace, settings.KubeConfig)
+	kc, err := env.GetClient(settings)
 	clog.V(3).Printf("acquiring kudo client")
 	if err != nil {
 		clog.V(3).Printf("failed to acquire client")

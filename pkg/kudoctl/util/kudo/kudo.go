@@ -30,7 +30,7 @@ type Client struct {
 }
 
 // NewClient creates new KUDO Client
-func NewClient(namespace, kubeConfigPath string) (*Client, error) {
+func NewClient(namespace, kubeConfigPath string, requestTimeout int64) (*Client, error) {
 
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
@@ -39,7 +39,7 @@ func NewClient(namespace, kubeConfigPath string) (*Client, error) {
 	}
 
 	// set default configs
-	config.Timeout = time.Second * 3
+	config.Timeout = time.Duration(requestTimeout) * time.Second
 
 	// create the clientset
 	kudoClientset, err := versioned.NewForConfig(config)
@@ -221,6 +221,16 @@ func (c *Client) InstallInstanceObjToCluster(obj *v1alpha1.Instance, namespace s
 	}
 	clog.V(2).Printf("instance %v created in namespace %v", createdObj.Name, namespace)
 	return createdObj, nil
+}
+
+// DeleteInstance deletes an instance.
+func (c *Client) DeleteInstance(instanceName, namespace string) error {
+	propagationPolicy := v1.DeletePropagationForeground
+	options := &v1.DeleteOptions{
+		PropagationPolicy: &propagationPolicy,
+	}
+
+	return c.clientset.KudoV1alpha1().Instances(namespace).Delete(instanceName, options)
 }
 
 // ValidateServerForOperator validates that the k8s server version and kudo version are valid for operator

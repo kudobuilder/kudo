@@ -32,9 +32,11 @@ spec:
           replicas: "{{ .Params.Replicas }}"
           param: "{{ .Params.Param }}"
   tasks:
-    deploy:
-      resources:
-      - deployment.yaml
+    - name: deploy
+      kind: Apply
+      spec:
+        resources:
+          - deployment.yaml
   parameters:
   - name: Param
     description: "Sample parameter"

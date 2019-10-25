@@ -18,7 +18,12 @@ function generate_platform {
     fi
 
     local sha
-    sha=$(curl -L https://github.com/kudobuilder/kudo/releases/download/v"${VERSION}"/kudo_"${VERSION}"_"${1}"_"${ARCH}".tar.gz | sha256sum - | awk '{print $1}')
+    PLATFORM=`uname`
+    if [ "$PLATFORM" == 'Darwin' ]; then
+       sha=$(curl -L https://github.com/kudobuilder/kudo/releases/download/v"${VERSION}"/kudo_"${VERSION}"_"${1}"_"${ARCH}".tar.gz | shasum -a 256 - | awk '{print $1}')
+    else
+        sha=$(curl -L https://github.com/kudobuilder/kudo/releases/download/v"${VERSION}"/kudo_"${VERSION}"_"${1}"_"${ARCH}".tar.gz | sha256sum - | awk '{print $1}')
+    fi
 
     cat <<EOF
   - selector:

@@ -28,8 +28,8 @@ type OperatorVersionSpec struct {
 	Version  string                 `json:"version,omitempty"`
 
 	// Yaml captures a templated yaml list of elements that define the application operator instance.
-	Templates map[string]string   `json:"templates,omitempty"`
-	Tasks     map[string]TaskSpec `json:"tasks,omitempty"`
+	Templates map[string]string `json:"templates,omitempty"`
+	Tasks     []Task            `json:"tasks,omitempty"`
 
 	Parameters []Parameter `json:"parameters,omitempty"`
 
@@ -50,12 +50,14 @@ type OperatorVersionSpec struct {
 // Ordering specifies how the subitems in this plan/phase should be rolled out.
 type Ordering string
 
-// Serial specifies that the plans or objects should be created in order. The first should be healthy before
-// continuing on.
-const Serial Ordering = "serial"
+const (
+	// Serial specifies that the plans or objects should be created in order. The first should be healthy before
+	// continuing on.
+	Serial Ordering = "serial"
 
-// Parallel specifies that the plan or objects in the phase can all be launched at the same time.
-const Parallel Ordering = "parallel"
+	// Parallel specifies that the plan or objects in the phase can all be launched at the same time.
+	Parallel Ordering = "parallel"
+)
 
 // Plan specifies a series of Phases that need to be completed.
 type Plan struct {
@@ -95,11 +97,6 @@ type Parameter struct {
 
 }
 
-// TaskSpec is a struct containing lists of Kustomize resources.
-type TaskSpec struct {
-	Resources []string `json:"resources"`
-}
-
 // Phase specifies a list of steps that contain Kubernetes objects.
 type Phase struct {
 	Name     string   `json:"name" validate:"required"`     // makes field mandatory and checks if set and non empty
@@ -111,12 +108,40 @@ type Phase struct {
 
 // Step defines a specific set of operations that occur.
 type Step struct {
-	Name   string   `json:"name" validate:"required"`                     // makes field mandatory and checks if set and non empty
-	Tasks  []string `json:"tasks" validate:"required,gt=0,dive,required"` // makes field mandatory and checks if non empty
-	Delete bool     `json:"delete,omitempty"`                             // no checks needed
+	Name   string   `json:"name" validate:"required"`            // makes field mandatory and checks if set and non empty
+	Tasks  []string `json:"tasks" validate:"required,gt=0,dive"` // makes field mandatory and checks if non empty
+	Delete bool     `json:"delete,omitempty"`                    // no checks needed
 
 	// Objects will be serialized for each instance as the params and defaults are provided.
 	Objects []runtime.Object `json:"-"` // no checks needed
+}
+
+// Task is a global, polymorphic implementation of all publicly available tasks
+type Task struct {
+	Name string   `json:"name" validate:"required"`
+	Kind string   `json:"kind" validate:"required"`
+	Spec TaskSpec `json:"spec" validate:"required"`
+}
+
+// TaskSpec embeds all possible task specs. This allows us to avoid writing custom un/marshallers that would only parse
+// certain fields depending on the task Kind. The downside of this approach is, that embedded types can not have fields
+// with the same json names as it would become ambiguous for the default parser. We might revisit this approach in the
+// future should this become an issue.
+type TaskSpec struct {
+	ResourceTaskSpec
+	DummyTaskSpec
+}
+
+// ResourceTaskSpec is referencing a list of resources
+type ResourceTaskSpec struct {
+	Resources []string `json:"resources"`
+}
+
+// DummyTaskSpec can succeed of fail on demand and is very useful for testing operators
+type DummyTaskSpec struct {
+	WantErr bool `json:"wantErr"`
+	Fatal   bool `json:"fatal"`
+	Done    bool `json:"done"`
 }
 
 // OperatorVersionStatus defines the observed state of OperatorVersion.
