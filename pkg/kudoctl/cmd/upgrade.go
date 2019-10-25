@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -99,9 +98,5 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", packageToUpgrade)
 	}
 
-	return upgrade(resources.OperatorVersion, kc, options, settings)
-}
-
-func upgrade(newOv *v1alpha1.OperatorVersion, kc *kudo.Client, options *options, settings *env.Settings) error {
-	return kudo.UpgradeOperatorVersion(kc, newOv, options.InstanceName, settings.Namespace, options.Parameters)
+	return kudo.UpgradeOperatorVersion(kc, resources.OperatorVersion, options.InstanceName, settings.Namespace, options.Parameters)
 }
