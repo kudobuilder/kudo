@@ -9,9 +9,9 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
-// Install installs package resources.
+// InstallPackage installs package resources.
 // If skipInstance is set to true, only a package's Operator and OperatorVersion is installed.
-func Install(kc *Client, resources *packages.Resources, skipInstance bool, instanceName, namespace string, parameters map[string]string) error {
+func InstallPackage(kc *Client, resources *packages.Resources, skipInstance bool, instanceName, namespace string, parameters map[string]string) error {
 	// PRE-INSTALLATION SETUP
 	operatorName := resources.Operator.ObjectMeta.Name
 	clog.V(3).Printf("operator name: %v", operatorName)

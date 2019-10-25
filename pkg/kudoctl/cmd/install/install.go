@@ -69,5 +69,5 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", operatorArgument)
 	}
 
-	return kudo.Install(kc, resources, options.SkipInstance, options.InstanceName, settings.Namespace, options.Parameters)
+	return kudo.InstallPackage(kc, resources, options.SkipInstance, options.InstanceName, settings.Namespace, options.Parameters)
 }

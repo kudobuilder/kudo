@@ -16,7 +16,7 @@ import (
 	fakediscovery "k8s.io/client-go/discovery/fake"
 )
 
-func Test_Install(t *testing.T) {
+func Test_InstallPackage(t *testing.T) {
 	resources := packages.Resources{
 		Operator: &v1alpha1.Operator{
 			TypeMeta: metav1.TypeMeta{
@@ -98,7 +98,7 @@ func Test_Install(t *testing.T) {
 		testResources.OperatorVersion.Spec.Parameters = tt.parameters
 		namespace := env.DefaultSettings.Namespace
 
-		err := Install(kc, &testResources, tt.skipInstance, "", namespace, tt.installParameters)
+		err := InstallPackage(kc, &testResources, tt.skipInstance, "", namespace, tt.installParameters)
 		if err != nil && err.Error() != tt.err {
 			t.Errorf("%s: Expected error '%s', got '%s'", tt.name, tt.err, err.Error())
 		}
