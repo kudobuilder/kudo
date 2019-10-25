@@ -39,9 +39,12 @@ integration-test: cli-fast
 test-clean:
 	rm -f cover.out cover-integration.out
 
+.PHONY: install-linter
+install-linter:
+	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+
 .PHONY: lint
 lint:
-	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 	golangci-lint run
 
 .PHONY: download
