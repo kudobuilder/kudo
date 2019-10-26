@@ -52,8 +52,7 @@ func (k *KustomizeEnhancer) Apply(templates map[string]string, metadata Metadata
 	}
 
 	kustomization := &ktypes.Kustomization{
-		NamePrefix: metadata.InstanceName + "-",
-		Namespace:  metadata.InstanceNamespace,
+		Namespace: metadata.InstanceNamespace,
 		CommonLabels: map[string]string{
 			kudo.HeritageLabel: "kudo",
 			kudo.OperatorLabel: metadata.OperatorName,
