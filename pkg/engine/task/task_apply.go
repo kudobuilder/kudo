@@ -45,7 +45,7 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 	}
 
 	// 4. - Check health for all resources -
-	err = isHealthy(applied, ctx.Client)
+	err = isHealthy(applied)
 	if err != nil {
 		// so far we do not distinguish between unhealthy resources and other errors that might occur during a health check
 		// an error during a health check is not treated task execution error
@@ -120,9 +120,9 @@ func isKudoType(object runtime.Object) bool {
 	return isOperator || isOperatorVersion || isInstance
 }
 
-func isHealthy(ro []runtime.Object, c client.Client) error {
+func isHealthy(ro []runtime.Object) error {
 	for _, r := range ro {
-		err := health.IsHealthy(c, r)
+		err := health.IsHealthy(r)
 		if err != nil {
 			key, _ := client.ObjectKeyFromObject(r)
 			return fmt.Errorf("object %s is NOT healthy: %w", prettyPrint(key), err)

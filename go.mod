@@ -33,7 +33,6 @@ require (
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/onsi/ginkgo v1.10.1 // indirect
 	github.com/onsi/gomega v1.7.0
-	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/pmezard/go-difflib v1.0.0
@@ -59,6 +58,7 @@ require (
 	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/code-generator v0.0.0-20191004115455-8e001e5d1894
 	k8s.io/klog v1.0.0 // indirect
+	k8s.io/kubectl v0.0.0-20191016120415-2ed914427d51
 	sigs.k8s.io/controller-runtime v0.3.1-0.20191022174215-ad57a976ffa1
 	sigs.k8s.io/controller-tools v0.2.2
 	sigs.k8s.io/kind v0.5.1
