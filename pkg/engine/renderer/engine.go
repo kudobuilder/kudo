@@ -7,7 +7,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/engine"
 
-	"github.com/masterminds/sprig"
+	"github.com/Masterminds/sprig"
 )
 
 // Metadata contains Metadata along with specific fields associated with current plan

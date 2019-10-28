@@ -17,4 +17,4 @@ metadata:
   labels:
     memory: "2Gi"
     cpu: "0.25"
-  name: cli-install-cli-install-operator
+  name: cli-install-operator

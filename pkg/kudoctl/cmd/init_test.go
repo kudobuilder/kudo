@@ -120,8 +120,9 @@ func TestInitCmd_output(t *testing.T) {
 
 func TestInitCmd_YAMLWriter(t *testing.T) {
 	testCases := []struct {
-		file     string
-		settings *env.Settings
+		file            string
+		settings        *env.Settings
+		additionalFlags map[string]string
 	}{
 		{
 			file: "deploy-kudo.yaml",
@@ -129,6 +130,18 @@ func TestInitCmd_YAMLWriter(t *testing.T) {
 		{
 			file:     "deploy-kudo-ns-default.yaml",
 			settings: env.DefaultSettings, // "default" namespace
+		},
+		{
+			file: "deploy-kudo-manager-only.yaml",
+			additionalFlags: map[string]string{
+				"disable-reloader": "true",
+			},
+		},
+		{
+			file: "deploy-kudo-reloader-only.yaml",
+			additionalFlags: map[string]string{
+				"disable-manager": "true",
+			},
 		},
 	}
 
@@ -147,6 +160,10 @@ func TestInitCmd_YAMLWriter(t *testing.T) {
 			"output":  "yaml",
 		}
 		for name, value := range flags {
+			initCmd.Flags().Set(name, value)
+		}
+
+		for name, value := range tc.additionalFlags {
 			initCmd.Flags().Set(name, value)
 		}
 		initCmd.RunE(initCmd, []string{})
@@ -168,6 +185,37 @@ func TestInitCmd_YAMLWriter(t *testing.T) {
 	}
 }
 
+func TestInitCmd_CustomNamespace(t *testing.T) {
+	file := "deploy-kudo-ns.yaml"
+	fs := afero.NewMemMapFs()
+	out := &bytes.Buffer{}
+	initCmd := newInitCmd(fs, out)
+	Settings.AddFlags(initCmd.Flags())
+	flags := map[string]string{"dry-run": "true", "output": "yaml", "namespace": "foo"}
+
+	for flag, value := range flags {
+		initCmd.Flags().Set(flag, value)
+	}
+	initCmd.RunE(initCmd, []string{})
+
+	gp := filepath.Join("testdata", file+".golden")
+
+	if *updateGolden {
+		t.Log("update golden file")
+		if err := ioutil.WriteFile(gp, out.Bytes(), 0644); err != nil {
+			t.Fatalf("failed to update golden file: %s", err)
+		}
+	}
+	g, err := ioutil.ReadFile(gp)
+	if err != nil {
+		t.Fatalf("failed reading .golden: %s", err)
+	}
+
+	if !bytes.Equal(out.Bytes(), g) {
+		t.Errorf("json does not match .golden file")
+	}
+}
+
 func TestNewInitCmd(t *testing.T) {
 	fs := afero.NewMemMapFs()
 	var tests = []struct {
@@ -180,6 +228,7 @@ func TestNewInitCmd(t *testing.T) {
 		{name: "name and version together invalid", flags: map[string]string{"kudo-image": "foo", "version": "bar"}, errorMessage: "specify either 'kudo-image' or 'version', not both"},
 		{name: "crd-only and wait together invalid", flags: map[string]string{"crd-only": "true", "wait": "true"}, errorMessage: "wait is not allowed with crd-only"},
 		{name: "wait-timeout invalid without wait", flags: map[string]string{"wait-timeout": "400"}, errorMessage: "wait-timeout is only useful when using the flag '--wait'"},
+		{name: "specifying both disable-manager and disable-reloader", flags: map[string]string{"disable-manager": "true", "disable-reloader": "true"}, errorMessage: "disabling both the manager and reloader is unsupported"},
 	}
 
 	for _, tt := range tests {

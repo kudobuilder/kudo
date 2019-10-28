@@ -9,7 +9,7 @@ status:
 apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
-  name: dream1-operator
+  name: dream1
 status:
   aggregatedStatus:
     status: IN_PROGRESS
@@ -17,7 +17,7 @@ status:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dream1-operator-nginx
+  name: nginx
 spec:
   replicas: 2
   template:

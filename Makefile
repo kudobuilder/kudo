@@ -41,7 +41,9 @@ test-clean:
 
 .PHONY: lint
 lint:
-	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+ifeq (, $(shell which golangci-lint))
+	go get github.com/golangci/golangci-lint/cmd/golangci-lint
+endif
 	golangci-lint run
 
 .PHONY: download
@@ -62,15 +64,20 @@ manager: prebuild
 manager-clean:
 	rm -f bin/manager
 
+# Install reloader into a cluster via kubectl kudo init
+.PHONY: reloader
+deploy-reloader:
+	go run -ldflags "${LDFLAGS}" cmd/kubectl-kudo/main.go init --disable-manager
+
 .PHONY: run
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run:
 	go run -ldflags "${LDFLAGS}" ./cmd/manager/main.go
 
 .PHONY: deploy
-# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+# Install KUDO into a cluster via kubectl kudo init
 deploy:
-	@kustomize build config
+	go run -ldflags "${LDFLAGS}" cmd/kubectl-kudo/main.go init
 
 .PHONY: deploy-clean
 deploy-clean:
@@ -115,8 +122,6 @@ docker-build: generate lint
 	--build-arg build_date_arg=${BUILD_DATE_PATH}=${BUILD_DATE} . -t ${DOCKER_IMG}:${DOCKER_TAG}
 	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:v${GIT_VERSION}
 	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:latest
-	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${DOCKER_IMG}:v${GIT_VERSION}"'@' ./config/manager_image_patch.yaml
 
 .PHONY: docker-push
 # Push the docker image

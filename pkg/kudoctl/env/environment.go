@@ -68,6 +68,15 @@ func setFlagFromEnv(name, envar string, fs *pflag.FlagSet) {
 	}
 }
 
+// OverrideDefault used for deviations from global defaults
+func (s *Settings) OverrideDefault(fs *pflag.FlagSet, name, value string) string {
+	if fs.Changed(name) {
+		return s.Namespace
+	}
+
+	return value
+}
+
 // GetClient is a helper function that takes the Settings struct and returns a new KUDO Client
 func GetClient(s *Settings) (*kudo.Client, error) {
 	return kudo.NewClient(s.Namespace, s.KubeConfig, s.RequestTimeout)

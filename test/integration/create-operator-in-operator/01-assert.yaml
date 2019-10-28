@@ -9,7 +9,7 @@ status:
 apiVersion: kudo.dev/v1alpha1
 kind: Instance
 metadata:
-  name: oio-instance-inner-instance
+  name: inner-instance
 status:
   aggregatedStatus:
     status: COMPLETE
@@ -17,6 +17,6 @@ status:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: oio-instance-inner-instance-nginx
+  name: nginx
 spec:
   replicas: 0
