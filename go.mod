@@ -59,7 +59,7 @@ require (
 	k8s.io/code-generator v0.0.0-20191004115455-8e001e5d1894
 	k8s.io/klog v1.0.0 // indirect
 	sigs.k8s.io/controller-runtime v0.3.1-0.20191022174215-ad57a976ffa1
-	sigs.k8s.io/controller-tools v0.2.0
+	sigs.k8s.io/controller-tools v0.2.2
 	sigs.k8s.io/kind v0.5.1
 	sigs.k8s.io/kustomize v2.0.3+incompatible
 	sigs.k8s.io/yaml v1.1.0
