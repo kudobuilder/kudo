@@ -1,6 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: first-operator-nginx-deployment
+  name: nginx-deployment
 spec:
   replicas: 4

@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: operator-test-instance-nginx
+  name: nginx
 spec:
   replicas: 3
   template:

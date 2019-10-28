@@ -9,7 +9,7 @@ status:
 apiVersion: v1
 kind: Service
 metadata:
-  name: immutable-client-ip-instance-svc
+  name: svc
 spec:
   type: ClusterIP
   ports:
