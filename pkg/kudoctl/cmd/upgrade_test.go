@@ -3,6 +3,8 @@ package cmd
 import (
 	"testing"
 
+	"gotest.tools/assert"
+
 	"github.com/spf13/afero"
 )
 
@@ -22,11 +24,11 @@ func TestUpgradeCommand_Validation(t *testing.T) {
 		cmd := newUpgradeCmd(afero.NewOsFs())
 		cmd.SetArgs(tt.args)
 		if tt.instanceName != "" {
-			cmd.Flags().Set("instance", tt.instanceName)
+			if err := cmd.Flags().Set("instance", tt.instanceName); err != nil {
+				t.Fatal(err)
+			}
 		}
 		_, err := cmd.ExecuteC()
-		if err.Error() != tt.err {
-			t.Errorf("%s: expecting error %s got %v", tt.name, tt.err, err)
-		}
+		assert.ErrorContains(t, err, tt.err)
 	}
 }

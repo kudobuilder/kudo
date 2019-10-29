@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"testing"
 	"time"
 
 	"github.com/google/shlex"
@@ -257,9 +258,14 @@ func (r *RetryStatusWriter) Patch(ctx context.Context, obj runtime.Object, patch
 // Scheme returns an initialized Kubernetes Scheme.
 func Scheme() *runtime.Scheme {
 	schemeLock.Do(func() {
-		// FIXME: add error handling
-		apis.AddToScheme(scheme.Scheme)
-		apiextensions.AddToScheme(scheme.Scheme)
+		if err := apis.AddToScheme(scheme.Scheme); err != nil {
+			fmt.Printf("failed to add API resources to the scheme: %v", err)
+			os.Exit(-1)
+		}
+		if err := apiextensions.AddToScheme(scheme.Scheme); err != nil {
+			fmt.Printf("failed to add API extension resources to the scheme: %v", err)
+			os.Exit(-1)
+		}
 	})
 
 	return scheme.Scheme
@@ -584,36 +590,48 @@ func WithNamespace(obj runtime.Object, namespace string) runtime.Object {
 }
 
 // WithSpec applies the provided spec to the Kubernetes object.
-func WithSpec(obj runtime.Object, spec map[string]interface{}) runtime.Object {
-	return WithKeyValue(obj, "spec", spec)
+func WithSpec(t *testing.T, obj runtime.Object, spec map[string]interface{}) runtime.Object {
+	res, err := WithKeyValue(obj, "spec", spec)
+	if err != nil {
+		t.Fatalf("failed to apply spec %v to object %v: %v", spec, obj, err)
+	}
+	return res
 }
 
 // WithStatus applies the provided status to the Kubernetes object.
-func WithStatus(obj runtime.Object, status map[string]interface{}) runtime.Object {
-	return WithKeyValue(obj, "status", status)
+func WithStatus(t *testing.T, obj runtime.Object, status map[string]interface{}) runtime.Object {
+	res, err := WithKeyValue(obj, "status", status)
+	if err != nil {
+		t.Fatalf("failed to apply status %v to object %v: %v", status, obj, err)
+	}
+	return res
 }
 
 // WithKeyValue sets key in the provided object to value.
-func WithKeyValue(obj runtime.Object, key string, value map[string]interface{}) runtime.Object {
+func WithKeyValue(obj runtime.Object, key string, value map[string]interface{}) (runtime.Object, error) {
 	obj = obj.DeepCopyObject()
 
 	content, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 	if err != nil {
-		return obj
+		return nil, err
 	}
 
 	content[key] = value
 
-	// FIXME: add error handling
-	runtime.DefaultUnstructuredConverter.FromUnstructured(content, obj)
-	return obj.DeepCopyObject()
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(content, obj); err != nil {
+		return nil, err
+	}
+	return obj, nil
 }
 
 // WithLabels sets the labels on an object.
-func WithLabels(obj runtime.Object, labels map[string]string) runtime.Object {
+func WithLabels(t *testing.T, obj runtime.Object, labels map[string]string) runtime.Object {
 	obj = obj.DeepCopyObject()
 
-	m, _ := meta.Accessor(obj)
+	m, err := meta.Accessor(obj)
+	if err != nil {
+		t.Fatalf("failed to apply labels %v to object %v: %v", labels, obj, err)
+	}
 	m.SetLabels(labels)
 
 	return obj

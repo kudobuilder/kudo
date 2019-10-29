@@ -93,7 +93,7 @@ func (c *Client) getPackageReaderByAPackageURL(pkg *PackageVersion) (*bytes.Buff
 			return r, nil
 		}
 		pkgErr = fmt.Errorf("unable to read package %w", err)
-		clog.Errorf("failure against url: %v  %v", u, pkgErr)
+		clog.V(2).Printf("failure against url: %v  %v", u, pkgErr)
 	}
 	clog.Printf("Giving up with err %v", pkgErr)
 	return nil, pkgErr

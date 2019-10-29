@@ -7,6 +7,8 @@ import (
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
+	tassert "github.com/stretchr/testify/assert"
+	"gotest.tools/assert"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,11 +27,7 @@ func TestValidate(t *testing.T) {
 
 	for _, tt := range tests {
 		err := validate(tt.arg)
-		if err != nil {
-			if err.Error() != tt.err {
-				t.Errorf("Expecting error message '%s' but got '%s'", tt.err, err)
-			}
-		}
+		assert.ErrorContains(t, err, tt.err)
 	}
 }
 
@@ -57,53 +55,18 @@ func TestGetInstances(t *testing.T) {
 		},
 	}
 	tests := []struct {
-		arg       []string
-		err       string
 		instances []string
 	}{
-		{nil, "expecting exactly one argument - \"instances\"", nil},                                   // 1
-		{[]string{"arg", "arg2"}, "expecting exactly one argument - \"instances\"", nil},               // 2
-		{[]string{}, "expecting exactly one argument - \"instances\"", nil},                            // 3
-		{[]string{"somethingelse"}, "expecting \"instances\" and not \"somethingelse\"", nil},          // 4
-		{[]string{"instances"}, "expecting \"instances\" and not \"somethingelse\"", []string{"test"}}, // 5
+		{[]string{"test"}},
 	}
 
-	for i, tt := range tests {
+	for _, tt := range tests {
 		kc := newTestClient()
-		kc.InstallInstanceObjToCluster(testInstance, "default")
+		if _, err := kc.InstallInstanceObjToCluster(testInstance, "default"); err != nil {
+			t.Fatal(err)
+		}
 		instanceList, err := getInstances(kc, env.DefaultSettings)
-		if err != nil {
-			if err.Error() != tt.err {
-				t.Errorf("%d: Expecting error message '%s' but got '%s'", i+1, tt.err, err)
-			}
-		}
-		missing := compareSlice(tt.instances, instanceList)
-		for _, m := range missing {
-			t.Errorf("%d: Missed expected instance \"%v\"", i+1, m)
-		}
+		assert.NilError(t, err)
+		tassert.EqualValues(t, tt.instances, instanceList, "missing instances")
 	}
-}
-
-func compareSlice(real, mock []string) []string {
-	lm := len(mock)
-
-	var diff []string
-
-	for _, rv := range real {
-		i := 0
-		j := 0
-		for _, mv := range mock {
-			i++
-			if rv == mv {
-				continue
-			}
-			if rv != mv {
-				j++
-			}
-			if lm <= j {
-				diff = append(diff, rv)
-			}
-		}
-	}
-	return diff
 }

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"io"
-	"os"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
@@ -75,8 +74,7 @@ func initGlobalFlags(cmd *cobra.Command, out io.Writer) {
 	flags := cmd.PersistentFlags()
 	Settings.AddFlags(flags)
 	clog.Init(flags, out)
-	// FIXME: add error handling
-	cmd.ParseFlags(os.Args[1:])
-	// set ENV if flags are not used.
-	Settings.Init(flags)
+
+	// Override --home and --kubeconfig flags from environment variable if not set via args
+	Settings.SetEnvOverrides(flags)
 }

@@ -19,13 +19,17 @@ func TestRegularFileTarball(t *testing.T) {
 
 	// path is that copied into in-mem fs
 	_ = tarballWriter(fs, "/opt/zk", f)
-	f.Close()
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
 
 	//open for reading in an untar
 	f, _ = fs.Open("/opt/zk.tgz")
 	defer f.Close()
 
-	Untar(fs, "/opt/untar", f)
+	if err := Untar(fs, "/opt/untar", f); err != nil {
+		t.Fatal(err)
+	}
 
 	u, _ := os.Open("/opt/untar/operator.yaml")
 	actual, _ := files.Sha256Sum(u)

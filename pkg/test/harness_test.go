@@ -37,11 +37,15 @@ func TestAddNodeCaches(t *testing.T) {
 	}
 
 	kindCfg := &kindConfig.Cluster{}
-	h.addNodeCaches(kindCfg)
+	if err := h.addNodeCaches(kindCfg); err != nil {
+		t.Fatal(err)
+	}
 	assert.Nil(t, kindCfg.Nodes)
 
 	h.TestSuite.KINDNodeCache = true
-	h.addNodeCaches(kindCfg)
+	if err := h.addNodeCaches(kindCfg); err != nil {
+		t.Fatal(err)
+	}
 	assert.NotNil(t, kindCfg.Nodes)
 	assert.Equal(t, 1, len(kindCfg.Nodes))
 	assert.NotNil(t, kindCfg.Nodes[0].ExtraMounts)
@@ -55,7 +59,10 @@ func TestAddNodeCaches(t *testing.T) {
 			{},
 		},
 	}
-	h.addNodeCaches(kindCfg)
+
+	if err := h.addNodeCaches(kindCfg); err != nil {
+		t.Fatal(err)
+	}
 	assert.NotNil(t, kindCfg.Nodes)
 	assert.Equal(t, 2, len(kindCfg.Nodes))
 	assert.NotNil(t, kindCfg.Nodes[0].ExtraMounts)

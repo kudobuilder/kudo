@@ -36,7 +36,7 @@ func TestLoadTestSteps(t *testing.T) {
 						Index: 0,
 					},
 					Apply: []runtime.Object{
-						testutils.WithSpec(testutils.NewPod("test", ""), map[string]interface{}{
+						testutils.WithSpec(t, testutils.NewPod("test", ""), map[string]interface{}{
 							"restartPolicy": "Never",
 							"containers": []map[string]interface{}{
 								{
@@ -47,7 +47,7 @@ func TestLoadTestSteps(t *testing.T) {
 						}),
 					},
 					Asserts: []runtime.Object{
-						testutils.WithStatus(testutils.NewPod("test", ""), map[string]interface{}{
+						testutils.WithStatus(t, testutils.NewPod("test", ""), map[string]interface{}{
 							"qosClass": "BestEffort",
 						}),
 					},
@@ -80,7 +80,7 @@ func TestLoadTestSteps(t *testing.T) {
 						Timeout: 20,
 					},
 					Apply: []runtime.Object{
-						testutils.WithSpec(testutils.NewPod("test2", ""), map[string]interface{}{
+						testutils.WithSpec(t, testutils.NewPod("test2", ""), map[string]interface{}{
 							"restartPolicy": "Never",
 							"containers": []map[string]interface{}{
 								{
@@ -91,7 +91,7 @@ func TestLoadTestSteps(t *testing.T) {
 						}),
 					},
 					Asserts: []runtime.Object{
-						testutils.WithStatus(testutils.NewPod("test2", ""), map[string]interface{}{
+						testutils.WithStatus(t, testutils.NewPod("test2", ""), map[string]interface{}{
 							"qosClass": "BestEffort",
 						}),
 					},
@@ -101,7 +101,7 @@ func TestLoadTestSteps(t *testing.T) {
 					Name:  "pod",
 					Index: 2,
 					Apply: []runtime.Object{
-						testutils.WithSpec(testutils.NewPod("test4", ""), map[string]interface{}{
+						testutils.WithSpec(t, testutils.NewPod("test4", ""), map[string]interface{}{
 							"containers": []map[string]interface{}{
 								{
 									"name":  "nginx",
@@ -109,7 +109,7 @@ func TestLoadTestSteps(t *testing.T) {
 								},
 							},
 						}),
-						testutils.WithSpec(testutils.NewPod("test3", ""), map[string]interface{}{
+						testutils.WithSpec(t, testutils.NewPod("test3", ""), map[string]interface{}{
 							"containers": []map[string]interface{}{
 								{
 									"name":  "nginx",
@@ -119,7 +119,7 @@ func TestLoadTestSteps(t *testing.T) {
 						}),
 					},
 					Asserts: []runtime.Object{
-						testutils.WithStatus(testutils.NewPod("test3", ""), map[string]interface{}{
+						testutils.WithStatus(t, testutils.NewPod("test3", ""), map[string]interface{}{
 							"qosClass": "BestEffort",
 						}),
 					},
@@ -139,7 +139,7 @@ func TestLoadTestSteps(t *testing.T) {
 						Index: 3,
 					},
 					Apply: []runtime.Object{
-						testutils.WithSpec(testutils.NewPod("test6", ""), map[string]interface{}{
+						testutils.WithSpec(t, testutils.NewPod("test6", ""), map[string]interface{}{
 							"restartPolicy": "Never",
 							"containers": []map[string]interface{}{
 								{
@@ -148,7 +148,7 @@ func TestLoadTestSteps(t *testing.T) {
 								},
 							},
 						}),
-						testutils.WithSpec(testutils.NewPod("test5", ""), map[string]interface{}{
+						testutils.WithSpec(t, testutils.NewPod("test5", ""), map[string]interface{}{
 							"restartPolicy": "Never",
 							"containers": []map[string]interface{}{
 								{
@@ -159,7 +159,7 @@ func TestLoadTestSteps(t *testing.T) {
 						}),
 					},
 					Asserts: []runtime.Object{
-						testutils.WithSpec(testutils.NewPod("test5", ""), map[string]interface{}{
+						testutils.WithSpec(t, testutils.NewPod("test5", ""), map[string]interface{}{
 							"restartPolicy": "Never",
 						}),
 					},

@@ -46,8 +46,8 @@ func (s *Settings) AddFlags(fs *pflag.FlagSet) {
 	fs.Int64Var(&s.RequestTimeout, "request-timeout", 0, "Request timeout value, in seconds.  Defaults to 0 (unlimited)")
 }
 
-// Init sets values from the environment.
-func (s *Settings) Init(f *pflag.FlagSet) {
+// SetEnvOverrides sets values from the environment.
+func (s *Settings) SetEnvOverrides(f *pflag.FlagSet) {
 	for name, envar := range envMap {
 		setFlagFromEnv(name, envar, f)
 	}

@@ -2,6 +2,8 @@ package install
 
 import (
 	"testing"
+
+	"gotest.tools/assert"
 )
 
 func TestValidate(t *testing.T) {
@@ -17,10 +19,8 @@ func TestValidate(t *testing.T) {
 
 	for _, tt := range tests {
 		err := validate(tt.arg, DefaultOptions)
-		if err != nil {
-			if err.Error() != tt.err {
-				t.Errorf("Expecting error message '%s' but got '%s'", tt.err, err)
-			}
+		if len(tt.err) > 0 {
+			assert.ErrorContains(t, err, tt.err)
 		}
 	}
 }

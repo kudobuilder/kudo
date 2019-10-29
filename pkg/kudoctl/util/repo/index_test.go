@@ -71,14 +71,22 @@ func TestParsingGoldenIndex(t *testing.T) {
 func TestWriteIndexFile(t *testing.T) {
 	file := "flink-index.yaml"
 	// Given Index with an operator
-	index := getTestIndexFile()
+	index, err := getTestIndexFile()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Setup buffer to marshal yaml to
 	var buf bytes.Buffer
 	w := bufio.NewWriter(&buf)
 
-	index.Write(w)
-	w.Flush()
+	if err := index.Write(w); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := w.Flush(); err != nil {
+		t.Fatal(err)
+	}
 
 	gp := filepath.Join("testdata", file+".golden")
 
@@ -98,12 +106,14 @@ func TestWriteIndexFile(t *testing.T) {
 	}
 }
 
-func getTestIndexFile() *IndexFile {
+func getTestIndexFile() (*IndexFile, error) {
 	date, _ := time.Parse(time.RFC822, "09 Aug 19 15:04 UTC")
 	index := newIndexFile(&date)
 	pv := getTestPackageVersion("flink", "0.3.0")
-	index.AddPackageVersion(&pv)
-	return index
+	if err := index.AddPackageVersion(&pv); err != nil {
+		return nil, err
+	}
+	return index, nil
 }
 
 func getTestPackageVersion(name string, version string) PackageVersion {
@@ -127,7 +137,10 @@ func getTestPackageVersion(name string, version string) PackageVersion {
 }
 
 func TestAddPackageVersionErrorConditions(t *testing.T) {
-	index := getTestIndexFile()
+	index, err := getTestIndexFile()
+	if err != nil {
+		t.Fatal(err)
+	}
 	dup := index.Entries["flink"][0]
 	missing := getTestPackageVersion("flink", "")
 	good := getTestPackageVersion("flink", "1.0.0")
