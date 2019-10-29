@@ -108,7 +108,7 @@ func (v Verbose) Printf(format string, args ...interface{}) {
 	}
 }
 
-// SetEnvOverrides allows for the initialization of log via root command
+// Init allows for the initialization of log via root command
 func Init(f *pflag.FlagSet, out io.Writer) {
 	// allows for initialization of writer in testing without CLI flags
 	if f != nil {
@@ -137,6 +137,6 @@ func Errorf(format string, a ...interface{}) error {
 }
 
 func init() {
-	// expected to be overridden with SetEnvOverrides().  This simplifies testing and default behavior
+	// expected to be overridden with Init().  This simplifies testing and default behavior
 	logging.out = os.Stdout
 }
