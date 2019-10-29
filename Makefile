@@ -81,7 +81,7 @@ deploy:
 
 .PHONY: deploy-clean
 deploy-clean:
-	go run ./cmd/kubectl-kudo  init --crd-only --dry-run --output yaml | kubectl delete -f -
+	go run ./cmd/kubectl-kudo  init --dry-run --output yaml | kubectl delete -f -
 
 .PHONY: generate
 # Generate code
