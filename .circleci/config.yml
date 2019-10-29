@@ -21,17 +21,6 @@ jobs:
       - store_test_results:
           path: reports/
 
-  release:
-    docker:
-      - image: kudobuilder/golang:1.13
-    working_directory: /go/src/github.com/kudobuilder/kudo
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - go-mod-v1-{{ checksum "go.sum" }}
-      - run: curl -sL https://git.io/goreleaser | bash
-
   lint:
     docker:
       - image: kudobuilder/golang:1.13
@@ -58,11 +47,3 @@ workflows:
   e2e-test:
     jobs:
       - e2e-test
-  release:
-    jobs:
-      - release:
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /v[0-9]+(\.[0-9]+)*(-.*)*/
