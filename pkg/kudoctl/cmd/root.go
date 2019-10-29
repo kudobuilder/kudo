@@ -73,8 +73,5 @@ and serves as an API aggregation layer.
 func initGlobalFlags(cmd *cobra.Command, out io.Writer) {
 	flags := cmd.PersistentFlags()
 	Settings.AddFlags(flags)
-	clog.Init(flags, out)
-
-	// Override --home and --kubeconfig flags from environment variable if not set via args
-	Settings.SetEnvOverrides(flags)
+	clog.InitWithFlags(flags, out)
 }

@@ -57,14 +57,6 @@ func TestEnvSettings(t *testing.T) {
 		},
 	}
 
-	allEnvvars := map[string]string{
-		"KUDO_HOME":  "",
-		"KUBECONFIG": "",
-	}
-
-	resetOrigEnv := resetEnv(t, allEnvvars)
-	defer resetOrigEnv(t)
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			for k, v := range tt.envars {
@@ -81,8 +73,6 @@ func TestEnvSettings(t *testing.T) {
 			if err := flags.Parse(tt.args); err != nil {
 				t.Fatalf("failed to parse flags: %v", err)
 			}
-
-			settings.SetEnvOverrides(flags)
 
 			if settings.Home != kudohome.Home(tt.home) {
 				t.Errorf("expected home %q, got %q", tt.home, settings.Home)

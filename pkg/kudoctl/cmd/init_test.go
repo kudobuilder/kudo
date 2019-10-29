@@ -67,7 +67,7 @@ func TestInitCmd_exists(t *testing.T) {
 		fs:     afero.NewMemMapFs(),
 		client: &kube.Client{KubeClient: fc, ExtClient: fc2},
 	}
-	clog.Init(nil, &buf)
+	clog.InitWithFlags(nil, &buf)
 	Settings.Home = "/opt"
 
 	if err := cmd.run(); err != nil {
