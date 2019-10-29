@@ -169,6 +169,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 					planStatus.Status = v1alpha1.ExecutionFatalError
 					return planStatus, err
 				case err != nil:
+					fmt.Printf("PlanExecution: A transient error when executing task %s.%s.%s.%s. Will retry. %v", pl.Name, ph.Name, st.Name, t.Name, err)
 					stepStatus.Status = v1alpha1.ErrorStatus
 				case done:
 					tasksLeft = tasksLeft - 1
