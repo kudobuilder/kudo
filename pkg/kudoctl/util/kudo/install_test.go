@@ -99,7 +99,7 @@ func Test_InstallPackage(t *testing.T) {
 		namespace := "default"
 
 		err := InstallPackage(kc, &testResources, tt.skipInstance, "", namespace, tt.installParameters)
-		if len(tt.err) > 0 {
+		if tt.err != "" {
 			assert.ErrorContains(t, err, tt.err)
 		}
 	}

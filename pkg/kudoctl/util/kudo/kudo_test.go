@@ -292,7 +292,7 @@ func TestKudoClient_InstallOperatorObjToCluster(t *testing.T) {
 		k2o.InstallOperatorObjToCluster(tt.obj, tt.createns) //nolint
 
 		_, err := k2o.clientset.KudoV1alpha1().Operators(tt.createns).Get(tt.name, metav1.GetOptions{})
-		if len(tt.err) > 0 {
+		if tt.err != "" {
 			assert.ErrorContains(t, err, tt.err, "failure in %v test case", i+1)
 		}
 	}
@@ -335,7 +335,7 @@ func TestKudoClient_InstallOperatorVersionObjToCluster(t *testing.T) {
 		k2o.InstallOperatorVersionObjToCluster(tt.obj, tt.createns) //nolint
 
 		_, err := k2o.clientset.KudoV1alpha1().OperatorVersions(tt.createns).Get(tt.name, metav1.GetOptions{})
-		if len(tt.err) > 0 {
+		if tt.err != "" {
 			assert.ErrorContains(t, err, tt.err, "failure in %v test case", i+1)
 		}
 	}
@@ -378,7 +378,7 @@ func TestKudoClient_InstallInstanceObjToCluster(t *testing.T) {
 		k2o.InstallInstanceObjToCluster(tt.obj, tt.createns) //nolint
 
 		_, err := k2o.clientset.KudoV1alpha1().Instances(tt.createns).Get(tt.name, metav1.GetOptions{})
-		if len(tt.err) > 0 {
+		if tt.err != "" {
 			assert.ErrorContains(t, err, tt.err, "failure in %v test case", i+1)
 		}
 	}

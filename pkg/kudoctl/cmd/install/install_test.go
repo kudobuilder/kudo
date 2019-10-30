@@ -19,7 +19,7 @@ func TestValidate(t *testing.T) {
 
 	for _, tt := range tests {
 		err := validate(tt.arg, DefaultOptions)
-		if len(tt.err) > 0 {
+		if tt.err != "" {
 			assert.ErrorContains(t, err, tt.err)
 		}
 	}
