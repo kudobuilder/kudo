@@ -9,6 +9,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
+	"gotest.tools/assert"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,9 +29,7 @@ func TestNewK2oClient(t *testing.T) {
 	for _, tt := range tests {
 		// Just interested in errors
 		_, err := NewClient("default", "", 0)
-		if err.Error() != tt.err {
-			t.Errorf("non existing test:\nexpected: %v\n     got: %v", tt.err, err.Error())
-		}
+		assert.ErrorContains(t, err, tt.err)
 	}
 }
 
@@ -64,7 +63,6 @@ func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		i := i
 		k2o := newTestSimpleK2o()
 
 		// create Operator
@@ -285,20 +283,17 @@ func TestKudoClient_InstallOperatorObjToCluster(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		i := i
 		k2o := newTestSimpleK2o()
 
 		// create Operator
-		k2o.clientset.KudoV1alpha1().Operators(tt.createns).Create(tt.obj)
+		k2o.clientset.KudoV1alpha1().Operators(tt.createns).Create(tt.obj) //nolint
 
 		// test if Operator exists in namespace
-		k2o.InstallOperatorObjToCluster(tt.obj, tt.createns)
+		k2o.InstallOperatorObjToCluster(tt.obj, tt.createns) //nolint
 
 		_, err := k2o.clientset.KudoV1alpha1().Operators(tt.createns).Get(tt.name, metav1.GetOptions{})
-		if err != nil {
-			if err.Error() != tt.err {
-				t.Errorf("%d:\nexpected error: %v\n     got error: %v", i+1, tt.err, err)
-			}
+		if tt.err != "" {
+			assert.ErrorContains(t, err, tt.err, "failure in %v test case", i+1)
 		}
 	}
 }
@@ -331,20 +326,17 @@ func TestKudoClient_InstallOperatorVersionObjToCluster(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		i := i
 		k2o := newTestSimpleK2o()
 
 		// create Operator
-		k2o.clientset.KudoV1alpha1().OperatorVersions(tt.createns).Create(tt.obj)
+		k2o.clientset.KudoV1alpha1().OperatorVersions(tt.createns).Create(tt.obj) //nolint
 
 		// test if Operator exists in namespace
-		k2o.InstallOperatorVersionObjToCluster(tt.obj, tt.createns)
+		k2o.InstallOperatorVersionObjToCluster(tt.obj, tt.createns) //nolint
 
 		_, err := k2o.clientset.KudoV1alpha1().OperatorVersions(tt.createns).Get(tt.name, metav1.GetOptions{})
-		if err != nil {
-			if err.Error() != tt.err {
-				t.Errorf("%d:\nexpected error: %v\n     got error: %v", i+1, tt.err, err)
-			}
+		if tt.err != "" {
+			assert.ErrorContains(t, err, tt.err, "failure in %v test case", i+1)
 		}
 	}
 }
@@ -377,20 +369,17 @@ func TestKudoClient_InstallInstanceObjToCluster(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		i := i
 		k2o := newTestSimpleK2o()
 
 		// create Operator
-		k2o.clientset.KudoV1alpha1().Instances(tt.createns).Create(tt.obj)
+		k2o.clientset.KudoV1alpha1().Instances(tt.createns).Create(tt.obj) //nolint
 
 		// test if Operator exists in namespace
-		k2o.InstallInstanceObjToCluster(tt.obj, tt.createns)
+		k2o.InstallInstanceObjToCluster(tt.obj, tt.createns) //nolint
 
 		_, err := k2o.clientset.KudoV1alpha1().Instances(tt.createns).Get(tt.name, metav1.GetOptions{})
-		if err != nil {
-			if err.Error() != tt.err {
-				t.Errorf("%d:\nexpected error: %v\n     got error: %v", i+1, tt.err, err)
-			}
+		if tt.err != "" {
+			assert.ErrorContains(t, err, tt.err, "failure in %v test case", i+1)
 		}
 	}
 }

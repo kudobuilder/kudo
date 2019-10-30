@@ -128,7 +128,7 @@ func TestLoadYAML(t *testing.T) {
 	assert.Nil(t, err)
 	defer tmpfile.Close()
 
-	ioutil.WriteFile(tmpfile.Name(), []byte(`
+	err = ioutil.WriteFile(tmpfile.Name(), []byte(`
 apiVersion: v1
 kind: Pod
 metadata:
@@ -150,6 +150,9 @@ spec:
   - name: nginx
     image: nginx:1.7.9
 `), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	objs, err := LoadYAML(tmpfile.Name())
 	assert.Nil(t, err)
@@ -201,7 +204,7 @@ func TestMatchesKind(t *testing.T) {
 	assert.Nil(t, err)
 	defer tmpfile.Close()
 
-	ioutil.WriteFile(tmpfile.Name(), []byte(`
+	err = ioutil.WriteFile(tmpfile.Name(), []byte(`
 apiVersion: v1
 kind: Pod
 metadata:
@@ -216,6 +219,9 @@ kind: CustomResourceDefinition
 metadata:
   name: hello
 `), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	objs, err := LoadYAML(tmpfile.Name())
 	assert.Nil(t, err)

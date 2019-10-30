@@ -51,7 +51,7 @@ func TestCheckResourceIntegration(t *testing.T) {
 		{
 			testName: "match object by labels, first in list matches",
 			actual: []runtime.Object{
-				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("labels-match-pod", ""), map[string]string{
+				testutils.WithSpec(t, testutils.WithLabels(t, testutils.NewPod("labels-match-pod", ""), map[string]string{
 					"app": "nginx",
 				}), map[string]interface{}{
 					"containers": []interface{}{
@@ -61,7 +61,7 @@ func TestCheckResourceIntegration(t *testing.T) {
 						},
 					},
 				}),
-				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("bb", ""), map[string]string{
+				testutils.WithSpec(t, testutils.WithLabels(t, testutils.NewPod("bb", ""), map[string]string{
 					"app": "not-match",
 				}), map[string]interface{}{
 					"containers": []interface{}{
@@ -95,7 +95,7 @@ func TestCheckResourceIntegration(t *testing.T) {
 		{
 			testName: "match object by labels, last in list matches",
 			actual: []runtime.Object{
-				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("last-in-list", ""), map[string]string{
+				testutils.WithSpec(t, testutils.WithLabels(t, testutils.NewPod("last-in-list", ""), map[string]string{
 					"app": "not-match",
 				}), map[string]interface{}{
 					"containers": []interface{}{
@@ -105,7 +105,7 @@ func TestCheckResourceIntegration(t *testing.T) {
 						},
 					},
 				}),
-				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("bb", ""), map[string]string{
+				testutils.WithSpec(t, testutils.WithLabels(t, testutils.NewPod("bb", ""), map[string]string{
 					"app": "nginx",
 				}), map[string]interface{}{
 					"containers": []interface{}{
@@ -139,7 +139,7 @@ func TestCheckResourceIntegration(t *testing.T) {
 		{
 			testName: "match object by labels, does not exist",
 			actual: []runtime.Object{
-				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("hello", ""), map[string]string{
+				testutils.WithSpec(t, testutils.WithLabels(t, testutils.NewPod("hello", ""), map[string]string{
 					"app": "NOT-A-MATCH",
 				}), map[string]interface{}{
 					"containers": []interface{}{
@@ -174,7 +174,7 @@ func TestCheckResourceIntegration(t *testing.T) {
 		{
 			testName: "match object by labels, field mismatch",
 			actual: []runtime.Object{
-				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("hello", ""), map[string]string{
+				testutils.WithSpec(t, testutils.WithLabels(t, testutils.NewPod("hello", ""), map[string]string{
 					"app": "nginx",
 				}), map[string]interface{}{
 					"containers": []interface{}{
@@ -277,15 +277,15 @@ func TestStepDeleteExistingLabelMatch(t *testing.T) {
 		},
 	}
 
-	podToDelete := testutils.WithSpec(testutils.WithLabels(testutils.NewPod("aa-delete-me", "world"), map[string]string{
+	podToDelete := testutils.WithSpec(t, testutils.WithLabels(t, testutils.NewPod("aa-delete-me", "world"), map[string]string{
 		"hello": "world",
 	}), podSpec)
 
-	podToKeep := testutils.WithSpec(testutils.WithLabels(testutils.NewPod("bb-dont-delete-me", "world"), map[string]string{
+	podToKeep := testutils.WithSpec(t, testutils.WithLabels(t, testutils.NewPod("bb-dont-delete-me", "world"), map[string]string{
 		"bye": "moon",
 	}), podSpec)
 
-	podToDelete2 := testutils.WithSpec(testutils.WithLabels(testutils.NewPod("cc-delete-me", "world"), map[string]string{
+	podToDelete2 := testutils.WithSpec(t, testutils.WithLabels(t, testutils.NewPod("cc-delete-me", "world"), map[string]string{
 		"hello": "world",
 	}), podSpec)
 

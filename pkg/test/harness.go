@@ -289,7 +289,12 @@ func (h *Harness) RunKUDO() error {
 	}
 
 	h.managerStopCh = make(chan struct{})
-	go mgr.Start(h.managerStopCh)
+	go func(stopCh chan struct{}) {
+		if err := mgr.Start(stopCh); err != nil {
+			fmt.Printf("failed to start the manager")
+			os.Exit(-1)
+		}
+	}(h.managerStopCh)
 
 	return nil
 }
@@ -303,12 +308,12 @@ func (h *Harness) Client(forceNew bool) (client.Client, error) {
 		return h.client, nil
 	}
 
-	config, err := h.Config()
+	cfg, err := h.Config()
 	if err != nil {
 		return nil, err
 	}
 
-	h.client, err = testutils.NewRetryClient(config, client.Options{
+	h.client, err = testutils.NewRetryClient(cfg, client.Options{
 		Scheme: testutils.Scheme(),
 	})
 	return h.client, err
@@ -323,12 +328,12 @@ func (h *Harness) DiscoveryClient() (discovery.DiscoveryInterface, error) {
 		return h.dclient, nil
 	}
 
-	config, err := h.Config()
+	cfg, err := h.Config()
 	if err != nil {
 		return nil, err
 	}
 
-	h.dclient, err = discovery.NewDiscoveryClientForConfig(config)
+	h.dclient, err = discovery.NewDiscoveryClientForConfig(cfg)
 	return h.dclient, err
 }
 

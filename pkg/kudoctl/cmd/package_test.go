@@ -24,7 +24,9 @@ var packageCmdArgs = []struct {
 func TestTableNewPackageCmd(t *testing.T) {
 	fs := afero.NewMemMapFs()
 	testdir, _ := filepath.Abs("")
-	fs.Mkdir(testdir, 0777)
+	if err := fs.Mkdir(testdir, 0777); err != nil {
+		t.Fatal(err)
+	}
 	files.CopyOperatorToFs(fs, "../packages/testdata/zk", "/opt")
 	for _, test := range packageCmdArgs {
 		newCmd := newPackageCmd(fs, os.Stdout)

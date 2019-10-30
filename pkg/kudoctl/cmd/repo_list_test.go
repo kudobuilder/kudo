@@ -31,7 +31,9 @@ func TestRepoList(t *testing.T) {
 	// reset buffer for repo list
 	out = &bytes.Buffer{}
 	rl := &repoListCmd{out: out, home: home}
-	rl.run(fs)
+	if err := rl.run(fs); err != nil {
+		t.Fatal(err)
+	}
 	gp := filepath.Join("testdata", file+".golden")
 
 	if *updateGolden {

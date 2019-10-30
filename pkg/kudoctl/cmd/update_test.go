@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
+	"gotest.tools/assert"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
@@ -17,27 +18,24 @@ func TestUpdateCommand_Validation(t *testing.T) {
 		name         string
 		args         []string
 		instanceName string
-		parameters   map[string]string
 		err          string
 	}{
-		{"too many arguments", []string{"aaa"}, "instance", map[string]string{"param": "value"}, "expecting no arguments provided"},
-		{"no instance name", []string{}, "", map[string]string{}, "--instance flag has to be provided"},
-		{"no parameter", []string{}, "instance", map[string]string{}, "need to specify at least one parameter to override "},
+		{"too many arguments", []string{"aaa"}, "instance", "expecting no arguments provided"},
+		{"no instance name", []string{}, "", "--instance flag has to be provided"},
+		{"no parameter", []string{}, "instance", "need to specify at least one parameter to override "},
 	}
 
 	for _, tt := range tests {
 		cmd := newUpdateCmd()
 		cmd.SetArgs(tt.args)
-		for _, v := range tt.parameters {
-			cmd.Flags().Set("p", v)
-		}
+
 		if tt.instanceName != "" {
-			cmd.Flags().Set("instance", tt.instanceName)
+			if err := cmd.Flags().Set("instance", tt.instanceName); err != nil {
+				t.Fatal(err)
+			}
 		}
 		_, err := cmd.ExecuteC()
-		if !strings.Contains(err.Error(), tt.err) {
-			t.Errorf("%s: expecting error %s got %v", tt.name, tt.err, err)
-		}
+		assert.ErrorContains(t, err, tt.err)
 	}
 }
 
@@ -75,7 +73,9 @@ func TestUpdate(t *testing.T) {
 	for _, tt := range tests {
 		c := newTestClient()
 		if tt.instanceExists {
-			c.InstallInstanceObjToCluster(&testInstance, installNamespace)
+			if _, err := c.InstallInstanceObjToCluster(&testInstance, installNamespace); err != nil {
+				t.Fatal(err)
+			}
 		}
 
 		err := update(testInstance.Name, c, &updateOptions{Parameters: tt.parameters}, env.DefaultSettings)

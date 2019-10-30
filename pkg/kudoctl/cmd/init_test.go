@@ -67,7 +67,7 @@ func TestInitCmd_exists(t *testing.T) {
 		fs:     afero.NewMemMapFs(),
 		client: &kube.Client{KubeClient: fc, ExtClient: fc2},
 	}
-	clog.Init(nil, &buf)
+	clog.InitWithFlags(nil, &buf)
 	Settings.Home = "/opt"
 
 	if err := cmd.run(); err != nil {
@@ -160,13 +160,19 @@ func TestInitCmd_YAMLWriter(t *testing.T) {
 			"output":  "yaml",
 		}
 		for name, value := range flags {
-			initCmd.Flags().Set(name, value)
+			if err := initCmd.Flags().Set(name, value); err != nil {
+				t.Fatal(err)
+			}
 		}
 
 		for name, value := range tc.additionalFlags {
-			initCmd.Flags().Set(name, value)
+			if err := initCmd.Flags().Set(name, value); err != nil {
+				t.Fatal(err)
+			}
 		}
-		initCmd.RunE(initCmd, []string{})
+		if err := initCmd.RunE(initCmd, []string{}); err != nil {
+			t.Fatal(err)
+		}
 
 		gp := filepath.Join("testdata", tc.file+".golden")
 
@@ -181,7 +187,7 @@ func TestInitCmd_YAMLWriter(t *testing.T) {
 			t.Fatalf("failed reading .golden: %s", err)
 		}
 
-		assert.Equal(t, string(g), out.String())
+		assert.Equal(t, string(g), out.String(), "for golden file: %s", gp)
 	}
 }
 
@@ -194,9 +200,13 @@ func TestInitCmd_CustomNamespace(t *testing.T) {
 	flags := map[string]string{"dry-run": "true", "output": "yaml", "namespace": "foo"}
 
 	for flag, value := range flags {
-		initCmd.Flags().Set(flag, value)
+		if err := initCmd.Flags().Set(flag, value); err != nil {
+			t.Fatal(err)
+		}
 	}
-	initCmd.RunE(initCmd, []string{})
+	if err := initCmd.RunE(initCmd, []string{}); err != nil {
+		t.Fatal(err)
+	}
 
 	gp := filepath.Join("testdata", file+".golden")
 
@@ -236,7 +246,9 @@ func TestNewInitCmd(t *testing.T) {
 			out := &bytes.Buffer{}
 			initCmd := newInitCmd(fs, out)
 			for key, value := range tt.flags {
-				initCmd.Flags().Set(key, value)
+				if err := initCmd.Flags().Set(key, value); err != nil {
+					t.Fatal(err)
+				}
 			}
 			err := initCmd.RunE(initCmd, tt.parameters)
 			assert.EqualError(t, err, tt.errorMessage)

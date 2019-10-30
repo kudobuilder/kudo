@@ -11,8 +11,25 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-// DefaultKudoHome is the default KUDO_HOME.
+// DefaultKudoHome is the default KUDO_HOME. We put .kudo file in the same directory where k8s keeps
+// its config files (..kube/config). The place is determined by homedir.HomeDir() method and is different
+// from what os.UserHomeDir() returns.
 var DefaultKudoHome = filepath.Join(homedir.HomeDir(), ".kudo")
+var DefaultKubeConfig = filepath.Join(homedir.HomeDir(), "/.kube/config")
+
+func kudoHome() string {
+	if val, ok := os.LookupEnv("KUDO_HOME"); ok {
+		return val
+	}
+	return DefaultKudoHome
+}
+
+func kubeConfigHome() string {
+	if val, ok := os.LookupEnv("KUBECONFIG"); ok {
+		return val
+	}
+	return DefaultKubeConfig
+}
 
 // Settings defines global variables and settings
 type Settings struct {
@@ -32,40 +49,12 @@ var DefaultSettings = &Settings{
 	RequestTimeout: 0,
 }
 
-// envMap maps flag names to envvars
-var envMap = map[string]string{
-	"home":       "KUDO_HOME",
-	"kubeconfig": "KUBECONFIG",
-}
-
 // AddFlags binds flags to the given flagset.
 func (s *Settings) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar((*string)(&s.Home), "home", DefaultKudoHome, "location of your KUDO config.")
-	fs.StringVar(&s.KubeConfig, "kubeconfig", os.Getenv("HOME")+"/.kube/config", "Path to your Kubernetes configuration file.")
+	fs.StringVar((*string)(&s.Home), "home", kudoHome(), "location of your KUDO config.")
+	fs.StringVar(&s.KubeConfig, "kubeconfig", kubeConfigHome(), "Path to your Kubernetes configuration file.")
 	fs.StringVarP(&s.Namespace, "namespace", "n", "default", "Target namespace for the object.")
 	fs.Int64Var(&s.RequestTimeout, "request-timeout", 0, "Request timeout value, in seconds.  Defaults to 0 (unlimited)")
-}
-
-// Init sets values from the environment.
-func (s *Settings) Init(f *pflag.FlagSet) {
-	for name, envar := range envMap {
-		setFlagFromEnv(name, envar, f)
-	}
-}
-
-// setFlagFromEnv looks up and sets a flag if the corresponding environment variable changed.
-// if the flag with the corresponding name was set during fs.Parse(), then the environment
-// variable is ignored.
-func setFlagFromEnv(name, envar string, fs *pflag.FlagSet) {
-	if fs.Changed(name) {
-		return
-	}
-	if v, ok := os.LookupEnv(envar); ok {
-		if err := fs.Set(name, v); err != nil {
-			// As all flags are taken from 'envMap', errors aren't expected here.
-			panic(err)
-		}
-	}
 }
 
 // OverrideDefault used for deviations from global defaults

@@ -53,7 +53,7 @@ func TestStepCreate(t *testing.T) {
 	podWithNamespace := testutils.NewPod("hello2", "different-namespace")
 	clusterScopedResource := testutils.NewResource("v1", "Namespace", "my-namespace", "")
 	podToUpdate := testutils.NewPod("update-me", "")
-	updateToApply := testutils.WithSpec(podToUpdate, map[string]interface{}{
+	updateToApply := testutils.WithSpec(t, podToUpdate, map[string]interface{}{
 		"replicas": 2,
 	})
 
@@ -142,16 +142,16 @@ func TestCheckResource(t *testing.T) {
 		{
 			testName:    "resource mis-match",
 			actual:      testutils.NewPod("hello", ""),
-			expected:    testutils.WithSpec(testutils.NewPod("hello", ""), map[string]interface{}{"invalid": "key"}),
+			expected:    testutils.WithSpec(t, testutils.NewPod("hello", ""), map[string]interface{}{"invalid": "key"}),
 			shouldError: true,
 		},
 		{
 			testName: "resource subset match",
-			actual: testutils.WithSpec(testutils.NewPod("hello", ""), map[string]interface{}{
+			actual: testutils.WithSpec(t, testutils.NewPod("hello", ""), map[string]interface{}{
 				"ignored": "key",
 				"seen":    "key",
 			}),
-			expected: testutils.WithSpec(testutils.NewPod("hello", ""), map[string]interface{}{
+			expected: testutils.WithSpec(t, testutils.NewPod("hello", ""), map[string]interface{}{
 				"seen": "key",
 			}),
 		},
@@ -202,7 +202,7 @@ func TestCheckResourceAbsent(t *testing.T) {
 		{
 			name:     "resource mis-match",
 			actual:   testutils.NewPod("hello", ""),
-			expected: testutils.WithSpec(testutils.NewPod("hello", ""), map[string]interface{}{"invalid": "key"}),
+			expected: testutils.WithSpec(t, testutils.NewPod("hello", ""), map[string]interface{}{"invalid": "key"}),
 		},
 		{
 			name:     "resource does not exist",
@@ -257,7 +257,7 @@ func TestRun(t *testing.T) {
 					testutils.NewPod("hello", ""),
 				},
 				Asserts: []runtime.Object{
-					testutils.WithStatus(testutils.NewPod("hello", ""), map[string]interface{}{
+					testutils.WithStatus(t, testutils.NewPod("hello", ""), map[string]interface{}{
 						"phase": "Ready",
 					}),
 				},
@@ -269,13 +269,13 @@ func TestRun(t *testing.T) {
 					testutils.NewPod("hello", ""),
 				},
 				Asserts: []runtime.Object{
-					testutils.WithStatus(testutils.NewPod("hello", ""), map[string]interface{}{
+					testutils.WithStatus(t, testutils.NewPod("hello", ""), map[string]interface{}{
 						"phase": "Ready",
 					}),
 				},
 			}, func(t *testing.T, client client.Client) {
 				// mock kubelet to set the pod status
-				assert.Nil(t, client.Update(context.TODO(), testutils.WithStatus(testutils.NewPod("hello", "world"), map[string]interface{}{
+				assert.Nil(t, client.Update(context.TODO(), testutils.WithStatus(t, testutils.NewPod("hello", "world"), map[string]interface{}{
 					"phase": "Ready",
 				})))
 			},

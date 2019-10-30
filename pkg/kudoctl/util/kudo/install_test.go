@@ -6,6 +6,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
+	"gotest.tools/assert"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
@@ -98,8 +99,8 @@ func Test_InstallPackage(t *testing.T) {
 		namespace := "default"
 
 		err := InstallPackage(kc, &testResources, tt.skipInstance, "", namespace, tt.installParameters)
-		if err != nil && err.Error() != tt.err {
-			t.Errorf("%s: Expected error '%s', got '%s'", tt.name, tt.err, err.Error())
+		if tt.err != "" {
+			assert.ErrorContains(t, err, tt.err)
 		}
 	}
 }

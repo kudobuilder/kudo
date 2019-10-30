@@ -57,27 +57,22 @@ func TestEnvSettings(t *testing.T) {
 		},
 	}
 
-	allEnvvars := map[string]string{
-		"KUDO_HOME":  "",
-		"KUBECONFIG": "",
-	}
-
-	resetOrigEnv := resetEnv(allEnvvars)
-	defer resetOrigEnv()
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			for k, v := range tt.envars {
-				os.Setenv(k, v)
+				if err := os.Setenv(k, v); err != nil {
+					t.Fatalf("failed to set env var %s=%s: %v", k, v, err)
+				}
 			}
 
 			flags := pflag.NewFlagSet("testing", pflag.ContinueOnError)
 
 			settings := &Settings{}
 			settings.AddFlags(flags)
-			flags.Parse(tt.args)
 
-			settings.Init(flags)
+			if err := flags.Parse(tt.args); err != nil {
+				t.Fatalf("failed to parse flags: %v", err)
+			}
 
 			if settings.Home != kudohome.Home(tt.home) {
 				t.Errorf("expected home %q, got %q", tt.home, settings.Home)
@@ -88,23 +83,27 @@ func TestEnvSettings(t *testing.T) {
 			if settings.RequestTimeout != tt.requesttimeout {
 				t.Errorf("expected request-timeout %d, got %d", tt.requesttimeout, settings.RequestTimeout)
 			}
-			resetEnv(tt.envars)
+			resetEnv(t, tt.envars)
 		})
 	}
 }
 
-func resetEnv(envars map[string]string) func() {
+func resetEnv(t *testing.T, envars map[string]string) func(t *testing.T) {
 	origEnv := os.Environ()
 
 	// clear local envvars of test envs
 	for e := range envars {
-		os.Unsetenv(e)
+		if err := os.Unsetenv(e); err != nil {
+			t.Fatalf("failed to unset env var %s: %v", e, err)
+		}
 	}
 
-	return func() {
+	return func(t *testing.T) {
 		for _, pair := range origEnv {
 			kv := strings.SplitN(pair, "=", 2)
-			os.Setenv(kv[0], kv[1])
+			if err := os.Setenv(kv[0], kv[1]); err != nil {
+				t.Fatalf("failed to reset env var %s=%s: %v", kv[0], kv[1], err)
+			}
 		}
 	}
 }
