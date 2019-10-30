@@ -67,7 +67,7 @@ func Test_InstallPackage(t *testing.T) {
 			},
 		},
 	}
-
+	tv := true
 	tests := []struct {
 		name              string
 		parameters        []v1alpha1.Parameter
@@ -75,11 +75,11 @@ func Test_InstallPackage(t *testing.T) {
 		skipInstance      bool
 		err               string
 	}{
-		{"all parameters with defaults", []v1alpha1.Parameter{{Name: "param", Required: true, Default: util.String("aaa")}}, map[string]string{}, false, ""},
-		{"missing parameter provided", []v1alpha1.Parameter{{Name: "param", Required: true}}, map[string]string{"param": "value"}, false, ""},
-		{"missing parameter", []v1alpha1.Parameter{{Name: "param", Required: true, Default: nil}}, map[string]string{}, false, "missing required parameters during installation: param"},
-		{"multiple missing parameter", []v1alpha1.Parameter{{Name: "param", Required: true}, {Name: "param2", Required: true}}, map[string]string{}, false, "missing required parameters during installation: param,param2"},
-		{"skip instance ignores missing parameter", []v1alpha1.Parameter{{Name: "param", Required: true}}, map[string]string{}, true, ""},
+		{"all parameters with defaults", []v1alpha1.Parameter{{Name: "param", Required: &tv, Default: util.String("aaa")}}, map[string]string{}, false, ""},
+		{"missing parameter provided", []v1alpha1.Parameter{{Name: "param", Required: &tv}}, map[string]string{"param": "value"}, false, ""},
+		{"missing parameter", []v1alpha1.Parameter{{Name: "param", Required: &tv, Default: nil}}, map[string]string{}, false, "missing required parameters during installation: param"},
+		{"multiple missing parameter", []v1alpha1.Parameter{{Name: "param", Required: &tv}, {Name: "param2", Required: &tv}}, map[string]string{}, false, "missing required parameters during installation: param,param2"},
+		{"skip instance ignores missing parameter", []v1alpha1.Parameter{{Name: "param", Required: &tv}}, map[string]string{}, true, ""},
 	}
 
 	for _, tt := range tests {

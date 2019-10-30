@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
@@ -43,6 +42,10 @@ type PackageFiles struct {
 	Templates map[string]string
 	Operator  *Operator
 	Params    []v1alpha1.Parameter
+}
+
+type ParametersFile struct {
+	Params map[string]v1alpha1.Parameter	`json:"parameters"`
 }
 
 // Operator is a representation of the KEP-9 Operator YAML
@@ -92,36 +95,19 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 		name := pathParts[len(pathParts)-1]
 		currentPackage.Templates[name] = string(fileBytes)
 	case isParametersFile(filePath):
-		var params map[string]map[string]string
-		if err := yaml.Unmarshal(fileBytes, &params); err != nil {
+		paramsFile := ParametersFile{}
+		//var params map[string]map[string]string
+		if err := yaml.Unmarshal(fileBytes, &paramsFile); err != nil {
 			return errors.Wrapf(err, "failed to unmarshal parameters file: %s", filePath)
 		}
 		paramsStruct := make([]v1alpha1.Parameter, 0)
-		for paramName, param := range params {
-			required := true // defaults to true
-			if _, ok := param["required"]; ok {
-				parsed, err := strconv.ParseBool(param["required"])
-				if err != nil {
-					// ideally this should never happen and be already caught by some kind of linter
-					return errors.Wrapf(err, "failed parsing required field from parameter %s. cannot convert %s to bool", paramName, param["required"])
-				}
-
-				required = parsed
+		t := true
+		for name, value := range paramsFile.Params {
+			value.Name = name
+			if value.Required == nil {
+				value.Required = &t
 			}
-			var defaultValue *string
-			if val, ok := param["default"]; ok {
-				defaultValue = kudo.String(val)
-			}
-
-			r := v1alpha1.Parameter{
-				Name:        paramName,
-				Description: param["description"],
-				Default:     defaultValue,
-				Trigger:     param["trigger"],
-				Required:    required,
-				DisplayName: param["displayName"],
-			}
-			paramsStruct = append(paramsStruct, r)
+			paramsStruct = append(paramsStruct, value)
 		}
 		currentPackage.Params = paramsStruct
 	default:

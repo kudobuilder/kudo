@@ -89,7 +89,7 @@ func validate(resources *packages.Resources, skipInstance bool) error {
 	parameters := resources.OperatorVersion.Spec.Parameters
 	missingParameters := []string{}
 	for _, p := range parameters {
-		if p.Required && p.Default == nil {
+		if *p.Required && p.Default == nil {
 			_, ok := resources.Instance.Spec.Parameters[p.Name]
 			if !ok {
 				missingParameters = append(missingParameters, p.Name)
