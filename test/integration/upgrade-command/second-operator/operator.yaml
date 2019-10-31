@@ -1,3 +1,4 @@
+apiVersion: kudo.dev/v1alpha1
 name: "upgrade-operator"
 version: "0.2.0"
 kubernetesVersion: 1.13
