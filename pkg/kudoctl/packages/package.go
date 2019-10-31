@@ -116,7 +116,6 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 
 func readParametersFile(fileBytes []byte) (ParametersFile, error) {
 	paramsFile := ParametersFile{}
-	//var params map[string]map[string]string
 	if err := yaml.Unmarshal(fileBytes, &paramsFile); err != nil {
 		return paramsFile, err
 	}
