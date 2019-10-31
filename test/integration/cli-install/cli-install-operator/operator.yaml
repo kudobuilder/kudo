@@ -1,4 +1,4 @@
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 name: "cli-install-operator"
 version: "0.1.0"
 kudoVersion: 0.3.0
