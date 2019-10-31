@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
@@ -90,7 +91,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 			break
 		}
 
-		stepsLeft := len(ph.Steps)
+		stepsLeft := stepNamesToSet(ph.Steps)
 		// --- 2. Iterate over phase steps ---
 		for _, st := range ph.Steps {
 			stepStatus := getStepStatus(st.Name, phaseStatus)
@@ -105,7 +106,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 
 			// Check current phase status: skip if finished, proceed if in progress, break out if a fatal error has occurred
 			if isFinished(stepStatus.Status) {
-				stepsLeft = stepsLeft - 1
+				delete(stepsLeft, stepStatus.Name)
 				continue
 			} else if isInProgress(stepStatus.Status) {
 				stepStatus.Status = v1alpha1.ExecutionInProgress
@@ -114,7 +115,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 				break
 			}
 
-			tasksLeft := len(st.Tasks)
+			tasksLeft := stringArrayToSet(st.Tasks)
 			// --- 3. Iterate over step tasks ---
 			for _, tn := range st.Tasks {
 				t, ok := pl.taskByName(tn)
@@ -172,30 +173,30 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 					fmt.Printf("PlanExecution: A transient error when executing task %s.%s.%s.%s. Will retry. %v", pl.Name, ph.Name, st.Name, t.Name, err)
 					stepStatus.Status = v1alpha1.ErrorStatus
 				case done:
-					tasksLeft = tasksLeft - 1
+					delete(tasksLeft, t.Name)
 				}
 			}
 
 			// --- 5. Check if all TASKs are finished ---
 			// if some TASKs aren't ready yet and STEPs strategy is serial we can not proceed
 			// otherwise, if STEPs strategy is parallel or all TASKs are finished, we can go to the next STEP
-			if tasksLeft > 0 {
+			if len(tasksLeft) > 0 {
 				if ph.Strategy == v1alpha1.Serial {
-					log.Printf("PlanExecution: %s/%s some tasks of the %s.%s.%s are not ready", em.InstanceNamespace, em.InstanceName, pl.Name, ph.Name, st.Name)
+					log.Printf("PlanExecution: '%s' task(s) (instance: %s/%s) of the %s.%s.%s are not ready", mapKeysToString(tasksLeft), em.InstanceNamespace, em.InstanceName, pl.Name, ph.Name, st.Name)
 					break
 				}
 			} else {
 				stepStatus.Status = v1alpha1.ExecutionComplete
-				stepsLeft = stepsLeft - 1
+				delete(stepsLeft, stepStatus.Name)
 			}
 		}
 
 		// --- 6. Check if all STEPs are finished ---
 		// if some STEPs aren't ready yet and PHASEs strategy is serial we can not proceed
 		// otherwise, if PHASEs strategy is parallel or all STEPs are finished, we can go to the next PHASE
-		if stepsLeft > 0 {
+		if len(stepsLeft) > 0 {
 			if pl.Spec.Strategy == v1alpha1.Serial {
-				log.Printf("PlanExecution: %s/%s, some steps of the %s.%s are not ready", em.InstanceNamespace, em.InstanceName, pl.Name, ph.Name)
+				log.Printf("PlanExecution: '%s' step(s) (instance: %s/%s) of the %s.%s are not ready", mapKeysToString(stepsLeft), em.InstanceNamespace, em.InstanceName, pl.Name, ph.Name)
 				break
 			}
 		} else {
@@ -212,6 +213,36 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 	}
 
 	return planStatus, nil
+}
+
+// mapKeysToString is helper method for getting map keys as comma separated string
+func mapKeysToString(values map[string]bool) string {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+
+	return strings.Join(keys, ",")
+}
+
+// stringArrayToSet converts slice of strings to map (set)
+// this is useful to make it easier to remove from the collection
+func stringArrayToSet(values []string) map[string]bool {
+	set := make(map[string]bool)
+	for _, t := range values {
+		set[t] = true
+	}
+	return set
+}
+
+// stepNamesToSet converts slice of steps to map (set)
+// this is useful to make it easier to remove from the collection and track what steps are finished
+func stepNamesToSet(steps []v1alpha1.Step) map[string]bool {
+	set := make(map[string]bool)
+	for _, s := range steps {
+		set[s.Name] = true
+	}
+	return set
 }
 
 func getStepStatus(stepName string, phaseStatus *v1alpha1.PhaseStatus) *v1alpha1.StepStatus {
