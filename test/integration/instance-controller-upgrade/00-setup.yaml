@@ -7,12 +7,12 @@
 # The next step will then create new OperatorVersion which will include an
 # "upgrade" plan, update the instance, and finally verify that the right
 # plan executed.
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Operator
 metadata:
   name: icto-upgrade
 ---
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: OperatorVersion
 metadata:
   name: icto-upgrade
@@ -25,7 +25,7 @@ spec:
     deploy:
     upgrade:
 ---
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   name: icto-upgrade

@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/yaml"
 )
@@ -73,7 +73,7 @@ spec:
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			task := &v1alpha1.Task{}
+			task := &v1beta1.Task{}
 			err := yaml.Unmarshal([]byte(tt.taskYaml), task)
 			if err != nil {
 				t.Errorf("Failed to unmarshal task yaml %s: %v", tt.taskYaml, err)

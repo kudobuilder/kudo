@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
@@ -69,7 +69,7 @@ func InstallPackage(kc *Client, resources *packages.Resources, skipInstance bool
 	return nil
 }
 
-func applyInstanceOverrides(instance *v1alpha1.Instance, instanceName string, parameters map[string]string) {
+func applyInstanceOverrides(instance *v1beta1.Instance, instanceName string, parameters map[string]string) {
 	if instanceName != "" {
 		instance.ObjectMeta.SetName(instanceName)
 		clog.V(3).Printf("instance name: %v", instanceName)

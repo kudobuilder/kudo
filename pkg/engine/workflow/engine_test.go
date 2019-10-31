@@ -7,7 +7,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -35,243 +35,243 @@ func TestExecutePlan(t *testing.T) {
 		name           string
 		activePlan     *ActivePlan
 		metadata       *engine.Metadata
-		expectedStatus *v1alpha1.PlanStatus
+		expectedStatus *v1beta1.PlanStatus
 		wantErr        bool
 		enhancer       renderer.Enhancer
 	}{
 		{name: "plan already finished will not change its status", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionComplete,
+			PlanStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionComplete,
 			},
 		},
 			metadata:       meta,
-			expectedStatus: &v1alpha1.PlanStatus{Status: v1alpha1.ExecutionComplete},
+			expectedStatus: &v1beta1.PlanStatus{Status: v1beta1.ExecutionComplete},
 			enhancer:       testEnhancer,
 		},
 		{name: "plan with a step to be executed is in progress when the step is not completed", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionInProgress,
+			PlanStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionInProgress, Name: "step"}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionInProgress, Name: "step"}}}},
 			},
-			Spec: &v1alpha1.Plan{
+			Spec: &v1beta1.Plan{
 				Strategy: "serial",
-				Phases: []v1alpha1.Phase{
-					{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
+				Phases: []v1beta1.Phase{
+					{Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			Tasks: []v1alpha1.Task{
+			Tasks: []v1beta1.Task{
 				{
 					Name: "task",
 					Kind: "Dummy",
-					Spec: v1alpha1.TaskSpec{
-						DummyTaskSpec: v1alpha1.DummyTaskSpec{Done: false},
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{Done: false},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionInProgress,
+			expectedStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionInProgress, Name: "step"}}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionInProgress, Name: "step"}}}}},
 			enhancer: testEnhancer,
 		},
 		{name: "plan with one step that is healthy is marked as completed", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionPending,
+			PlanStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionPending,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionPending, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionPending, Name: "step"}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionPending, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionPending, Name: "step"}}}},
 			},
-			Spec: &v1alpha1.Plan{
+			Spec: &v1beta1.Plan{
 				Strategy: "serial",
-				Phases: []v1alpha1.Phase{
-					{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
+				Phases: []v1beta1.Phase{
+					{Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			Tasks: []v1alpha1.Task{
+			Tasks: []v1beta1.Task{
 				{
 					Name: "task",
 					Kind: "Dummy",
-					Spec: v1alpha1.TaskSpec{
-						DummyTaskSpec: v1alpha1.DummyTaskSpec{Done: true},
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{Done: true},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1alpha1.PlanStatus{
-				Status:          v1alpha1.ExecutionComplete,
+			expectedStatus: &v1beta1.PlanStatus{
+				Status:          v1beta1.ExecutionComplete,
 				LastFinishedRun: v1.Time{Time: timeNow},
 				Name:            "test",
-				Phases:          []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
+				Phases:          []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionComplete, Name: "step"}}}},
 			},
 			enhancer: testEnhancer,
 		},
 		{name: "plan in errored state will be retried and completed when the step is done", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionInProgress,
+			PlanStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ErrorStatus, Name: "step"}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ErrorStatus, Name: "step"}}}},
 			},
-			Spec: &v1alpha1.Plan{
+			Spec: &v1beta1.Plan{
 				Strategy: "serial",
-				Phases: []v1alpha1.Phase{
-					{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
+				Phases: []v1beta1.Phase{
+					{Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			Tasks: []v1alpha1.Task{
+			Tasks: []v1beta1.Task{
 				{
 					Name: "task",
 					Kind: "Dummy",
-					Spec: v1alpha1.TaskSpec{
-						DummyTaskSpec: v1alpha1.DummyTaskSpec{Done: true},
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{Done: true},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1alpha1.PlanStatus{
-				Status:          v1alpha1.ExecutionComplete,
+			expectedStatus: &v1beta1.PlanStatus{
+				Status:          v1beta1.ExecutionComplete,
 				LastFinishedRun: v1.Time{Time: timeNow},
 				Name:            "test",
-				Phases:          []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionComplete, Name: "step"}}}},
+				Phases:          []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionComplete, Name: "step"}}}},
 			},
 			enhancer: testEnhancer,
 		},
 		// --- Proper error and fatal error status propagation ---
 		{name: "plan in progress, will have step error status, when a task fails", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionInProgress,
+			PlanStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionInProgress}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}}},
 			},
-			Spec: &v1alpha1.Plan{
+			Spec: &v1beta1.Plan{
 				Strategy: "serial",
-				Phases: []v1alpha1.Phase{
-					{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
+				Phases: []v1beta1.Phase{
+					{Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			Tasks: []v1alpha1.Task{
+			Tasks: []v1beta1.Task{
 				{
 					Name: "task",
 					Kind: "Dummy",
-					Spec: v1alpha1.TaskSpec{
-						DummyTaskSpec: v1alpha1.DummyTaskSpec{WantErr: true},
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: true},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionInProgress,
+			expectedStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ErrorStatus, Name: "step"}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ErrorStatus, Name: "step"}}}},
 			},
 			enhancer: testEnhancer,
 		},
 		{name: "plan in progress, will have plan/phase/step fatal error status, when a task fails with a fatal error", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionInProgress,
+			PlanStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionInProgress}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}}},
 			},
-			Spec: &v1alpha1.Plan{
+			Spec: &v1beta1.Plan{
 				Strategy: "serial",
-				Phases: []v1alpha1.Phase{
-					{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
+				Phases: []v1beta1.Phase{
+					{Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			Tasks: []v1alpha1.Task{
+			Tasks: []v1beta1.Task{
 				{
 					Name: "task",
 					Kind: "Dummy",
-					Spec: v1alpha1.TaskSpec{
-						DummyTaskSpec: v1alpha1.DummyTaskSpec{WantErr: true, Fatal: true},
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: true, Fatal: true},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionFatalError,
+			expectedStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionFatalError,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionFatalError, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionFatalError, Name: "step"}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Name: "step"}}}},
 			},
 			wantErr:  true,
 			enhancer: testEnhancer,
 		},
 		{name: "plan in progress with a misconfigured task will fail with a fatal error", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionInProgress,
+			PlanStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionInProgress}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}}},
 			},
-			Spec: &v1alpha1.Plan{
+			Spec: &v1beta1.Plan{
 				Strategy: "serial",
-				Phases: []v1alpha1.Phase{
-					{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"fake-task"}}}},
+				Phases: []v1beta1.Phase{
+					{Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"fake-task"}}}},
 				},
 			},
-			Tasks: []v1alpha1.Task{
+			Tasks: []v1beta1.Task{
 				{
 					Name: "task",
 					Kind: "Dummy",
-					Spec: v1alpha1.TaskSpec{
-						DummyTaskSpec: v1alpha1.DummyTaskSpec{WantErr: false},
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: false},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionFatalError,
+			expectedStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionFatalError,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionFatalError, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionFatalError, Name: "step"}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Name: "step"}}}},
 			},
 			wantErr:  true,
 			enhancer: testEnhancer,
 		},
 		{name: "plan in progress with an unknown task spec will fail with a fatal error", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionInProgress,
+			PlanStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionInProgress}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}}},
 			},
-			Spec: &v1alpha1.Plan{
+			Spec: &v1beta1.Plan{
 				Strategy: "serial",
-				Phases: []v1alpha1.Phase{
-					{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
+				Phases: []v1beta1.Phase{
+					{Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			Tasks: []v1alpha1.Task{
+			Tasks: []v1beta1.Task{
 				{
 					Name: "task",
 					Kind: "Unknown",
-					Spec: v1alpha1.TaskSpec{},
+					Spec: v1beta1.TaskSpec{},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionFatalError,
+			expectedStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionFatalError,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionFatalError, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionFatalError, Name: "step"}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Name: "step"}}}},
 			},
 			wantErr:  true,
 			enhancer: testEnhancer,
@@ -279,144 +279,144 @@ func TestExecutePlan(t *testing.T) {
 		// --- Respect the Steps execution strategy ---
 		{name: "plan in progress with multiple serial steps, will respect serial step strategy and stop after first step fails", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionInProgress,
+			PlanStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{
-					{Name: "stepOne", Status: v1alpha1.ExecutionInProgress},
-					{Name: "stepTwo", Status: v1alpha1.ExecutionInProgress},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{
+					{Name: "stepOne", Status: v1beta1.ExecutionInProgress},
+					{Name: "stepTwo", Status: v1beta1.ExecutionInProgress},
 				}}},
 			},
-			Spec: &v1alpha1.Plan{
+			Spec: &v1beta1.Plan{
 				Strategy: "serial",
-				Phases: []v1alpha1.Phase{
-					{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{
+				Phases: []v1beta1.Phase{
+					{Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{
 						{Name: "stepOne", Tasks: []string{"taskOne"}},
 						{Name: "stepTwo", Tasks: []string{"taskTwo"}},
 					}},
 				},
 			},
-			Tasks: []v1alpha1.Task{
+			Tasks: []v1beta1.Task{
 				{
 					Name: "taskOne",
 					Kind: "Dummy",
-					Spec: v1alpha1.TaskSpec{
-						DummyTaskSpec: v1alpha1.DummyTaskSpec{WantErr: true},
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: true},
 					},
 				},
 				{
 					Name: "taskTwo",
 					Kind: "Dummy",
-					Spec: v1alpha1.TaskSpec{
-						DummyTaskSpec: v1alpha1.DummyTaskSpec{WantErr: false},
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: false},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionInProgress,
+			expectedStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{
-					{Name: "stepOne", Status: v1alpha1.ErrorStatus},
-					{Name: "stepTwo", Status: v1alpha1.ExecutionInProgress},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{
+					{Name: "stepOne", Status: v1beta1.ErrorStatus},
+					{Name: "stepTwo", Status: v1beta1.ExecutionInProgress},
 				}}},
 			},
 			enhancer: testEnhancer,
 		},
 		{name: "plan in progress with multiple parallel steps, will respect parallel step strategy and continue when first step fails", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionInProgress,
+			PlanStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{
-					{Name: "stepOne", Status: v1alpha1.ExecutionInProgress},
-					{Name: "stepTwo", Status: v1alpha1.ExecutionInProgress},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{
+					{Name: "stepOne", Status: v1beta1.ExecutionInProgress},
+					{Name: "stepTwo", Status: v1beta1.ExecutionInProgress},
 				}}},
 			},
-			Spec: &v1alpha1.Plan{
+			Spec: &v1beta1.Plan{
 				Strategy: "serial",
-				Phases: []v1alpha1.Phase{
-					{Name: "phase", Strategy: "parallel", Steps: []v1alpha1.Step{
+				Phases: []v1beta1.Phase{
+					{Name: "phase", Strategy: "parallel", Steps: []v1beta1.Step{
 						{Name: "stepOne", Tasks: []string{"taskOne"}},
 						{Name: "stepTwo", Tasks: []string{"taskTwo"}},
 					}},
 				},
 			},
-			Tasks: []v1alpha1.Task{
+			Tasks: []v1beta1.Task{
 				{
 					Name: "taskOne",
 					Kind: "Dummy",
-					Spec: v1alpha1.TaskSpec{
-						DummyTaskSpec: v1alpha1.DummyTaskSpec{WantErr: true},
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: true},
 					},
 				},
 				{
 					Name: "taskTwo",
 					Kind: "Dummy",
-					Spec: v1alpha1.TaskSpec{
-						DummyTaskSpec: v1alpha1.DummyTaskSpec{Done: true},
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{Done: true},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionInProgress,
+			expectedStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{
-					{Name: "stepOne", Status: v1alpha1.ErrorStatus},
-					{Name: "stepTwo", Status: v1alpha1.ExecutionComplete},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{
+					{Name: "stepOne", Status: v1beta1.ErrorStatus},
+					{Name: "stepTwo", Status: v1beta1.ExecutionComplete},
 				}}},
 			},
 			enhancer: testEnhancer,
 		},
 		{name: "plan in progress with multiple parallel steps, will stop the execution on the first fatal step error", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionInProgress,
+			PlanStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{
-					{Name: "stepOne", Status: v1alpha1.ExecutionInProgress},
-					{Name: "stepTwo", Status: v1alpha1.ExecutionInProgress},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{
+					{Name: "stepOne", Status: v1beta1.ExecutionInProgress},
+					{Name: "stepTwo", Status: v1beta1.ExecutionInProgress},
 				}}},
 			},
-			Spec: &v1alpha1.Plan{
+			Spec: &v1beta1.Plan{
 				Strategy: "serial",
-				Phases: []v1alpha1.Phase{
-					{Name: "phase", Strategy: "parallel", Steps: []v1alpha1.Step{
+				Phases: []v1beta1.Phase{
+					{Name: "phase", Strategy: "parallel", Steps: []v1beta1.Step{
 						{Name: "stepOne", Tasks: []string{"taskOne"}},
 						{Name: "stepTwo", Tasks: []string{"taskTwo"}},
 					}},
 				},
 			},
-			Tasks: []v1alpha1.Task{
+			Tasks: []v1beta1.Task{
 				{
 					Name: "taskOne",
 					Kind: "Dummy",
-					Spec: v1alpha1.TaskSpec{
-						DummyTaskSpec: v1alpha1.DummyTaskSpec{WantErr: true, Fatal: true},
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: true, Fatal: true},
 					},
 				},
 				{
 					Name: "taskTwo",
 					Kind: "Dummy",
-					Spec: v1alpha1.TaskSpec{
-						DummyTaskSpec: v1alpha1.DummyTaskSpec{WantErr: false},
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: false},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionFatalError,
+			expectedStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionFatalError,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionFatalError, Steps: []v1alpha1.StepStatus{
-					{Name: "stepOne", Status: v1alpha1.ExecutionFatalError},
-					{Name: "stepTwo", Status: v1alpha1.ExecutionInProgress},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{
+					{Name: "stepOne", Status: v1beta1.ExecutionFatalError},
+					{Name: "stepTwo", Status: v1beta1.ExecutionInProgress},
 				}}},
 			},
 			wantErr:  true,
@@ -425,138 +425,138 @@ func TestExecutePlan(t *testing.T) {
 		// --- Respect the Phases execution strategy ---
 		{name: "plan in progress with multiple serial phases, will respect serial phase strategy and stop after first phase fails", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionInProgress,
+			PlanStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{
-					{Name: "phaseOne", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionInProgress}}},
-					{Name: "phaseTwo", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionInProgress}}},
+				Phases: []v1beta1.PhaseStatus{
+					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
+					{Name: "phaseTwo", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
 				},
 			},
-			Spec: &v1alpha1.Plan{
+			Spec: &v1beta1.Plan{
 				Strategy: "serial",
-				Phases: []v1alpha1.Phase{
-					{Name: "phaseOne", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"taskOne"}}}},
-					{Name: "phaseTwo", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"taskTwo"}}}},
+				Phases: []v1beta1.Phase{
+					{Name: "phaseOne", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"taskOne"}}}},
+					{Name: "phaseTwo", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"taskTwo"}}}},
 				},
 			},
-			Tasks: []v1alpha1.Task{
+			Tasks: []v1beta1.Task{
 				{
 					Name: "taskOne",
 					Kind: "Dummy",
-					Spec: v1alpha1.TaskSpec{
-						DummyTaskSpec: v1alpha1.DummyTaskSpec{WantErr: true},
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: true},
 					},
 				},
 				{
 					Name: "taskTwo",
 					Kind: "Dummy",
-					Spec: v1alpha1.TaskSpec{
-						DummyTaskSpec: v1alpha1.DummyTaskSpec{WantErr: false},
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: false},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionInProgress,
+			expectedStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{
-					{Name: "phaseOne", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ErrorStatus}}},
-					{Name: "phaseTwo", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionInProgress}}},
+				Phases: []v1beta1.PhaseStatus{
+					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ErrorStatus}}},
+					{Name: "phaseTwo", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
 				},
 			},
 			enhancer: testEnhancer,
 		},
 		{name: "plan in progress with multiple parallel phases, will respect parallel phase strategy and continue after first phase fails", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionInProgress,
+			PlanStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{
-					{Name: "phaseOne", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionInProgress}}},
-					{Name: "phaseTwo", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionInProgress}}},
+				Phases: []v1beta1.PhaseStatus{
+					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
+					{Name: "phaseTwo", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
 				},
 			},
-			Spec: &v1alpha1.Plan{
+			Spec: &v1beta1.Plan{
 				Strategy: "parallel",
-				Phases: []v1alpha1.Phase{
-					{Name: "phaseOne", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"taskOne"}}}},
-					{Name: "phaseTwo", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"taskTwo"}}}},
+				Phases: []v1beta1.Phase{
+					{Name: "phaseOne", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"taskOne"}}}},
+					{Name: "phaseTwo", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"taskTwo"}}}},
 				},
 			},
-			Tasks: []v1alpha1.Task{
+			Tasks: []v1beta1.Task{
 				{
 					Name: "taskOne",
 					Kind: "Dummy",
-					Spec: v1alpha1.TaskSpec{
-						DummyTaskSpec: v1alpha1.DummyTaskSpec{WantErr: true},
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: true},
 					},
 				},
 				{
 					Name: "taskTwo",
 					Kind: "Dummy",
-					Spec: v1alpha1.TaskSpec{
-						DummyTaskSpec: v1alpha1.DummyTaskSpec{Done: true},
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{Done: true},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionInProgress,
+			expectedStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{
-					{Name: "phaseOne", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ErrorStatus}}},
-					{Name: "phaseTwo", Status: v1alpha1.ExecutionComplete, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionComplete}}},
+				Phases: []v1beta1.PhaseStatus{
+					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ErrorStatus}}},
+					{Name: "phaseTwo", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionComplete}}},
 				},
 			},
 			enhancer: testEnhancer,
 		},
 		{name: "plan in progress with multiple parallel phases, will stop the execution on the first fatal step error", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionInProgress,
+			PlanStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{
-					{Name: "phaseOne", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionInProgress}}},
-					{Name: "phaseTwo", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionInProgress}}},
+				Phases: []v1beta1.PhaseStatus{
+					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
+					{Name: "phaseTwo", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
 				},
 			},
-			Spec: &v1alpha1.Plan{
+			Spec: &v1beta1.Plan{
 				Strategy: "parallel",
-				Phases: []v1alpha1.Phase{
-					{Name: "phaseOne", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"taskOne"}}}},
-					{Name: "phaseTwo", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"taskTwo"}}}},
+				Phases: []v1beta1.Phase{
+					{Name: "phaseOne", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"taskOne"}}}},
+					{Name: "phaseTwo", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"taskTwo"}}}},
 				},
 			},
-			Tasks: []v1alpha1.Task{
+			Tasks: []v1beta1.Task{
 				{
 					Name: "taskOne",
 					Kind: "Dummy",
-					Spec: v1alpha1.TaskSpec{
-						DummyTaskSpec: v1alpha1.DummyTaskSpec{WantErr: true, Fatal: true},
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: true, Fatal: true},
 					},
 				},
 				{
 					Name: "taskTwo",
 					Kind: "Dummy",
-					Spec: v1alpha1.TaskSpec{
-						DummyTaskSpec: v1alpha1.DummyTaskSpec{WantErr: false},
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: false},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionFatalError,
+			expectedStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionFatalError,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{
-					{Name: "phaseOne", Status: v1alpha1.ExecutionFatalError, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionFatalError}}},
-					{Name: "phaseTwo", Status: v1alpha1.ExecutionInProgress, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionInProgress}}},
+				Phases: []v1beta1.PhaseStatus{
+					{Name: "phaseOne", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionFatalError}}},
+					{Name: "phaseTwo", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
 				},
 			},
 			wantErr:  true,
@@ -566,33 +566,33 @@ func TestExecutePlan(t *testing.T) {
 			name: "plan in a pending status will have fatal plan/phase/step statuses when a step has a fatal error",
 			activePlan: &ActivePlan{
 				Name: "test",
-				PlanStatus: &v1alpha1.PlanStatus{
-					Status: v1alpha1.ExecutionPending,
+				PlanStatus: &v1beta1.PlanStatus{
+					Status: v1beta1.ExecutionPending,
 					Name:   "test",
-					Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionPending, Steps: []v1alpha1.StepStatus{{Name: "step", Status: v1alpha1.ExecutionPending}}}},
+					Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionPending, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionPending}}}},
 				},
-				Spec: &v1alpha1.Plan{
+				Spec: &v1beta1.Plan{
 					Strategy: "serial",
-					Phases: []v1alpha1.Phase{
-						{Name: "phase", Strategy: "serial", Steps: []v1alpha1.Step{{Name: "step", Tasks: []string{"task"}}}},
+					Phases: []v1beta1.Phase{
+						{Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"task"}}}},
 					},
 				},
-				Tasks: []v1alpha1.Task{
+				Tasks: []v1beta1.Task{
 					{
 						Name: "task",
 						Kind: "Dummy",
-						Spec: v1alpha1.TaskSpec{
-							DummyTaskSpec: v1alpha1.DummyTaskSpec{WantErr: true, Fatal: true},
+						Spec: v1beta1.TaskSpec{
+							DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: true, Fatal: true},
 						},
 					},
 				},
 				Templates: map[string]string{},
 			},
 			metadata: meta,
-			expectedStatus: &v1alpha1.PlanStatus{
-				Status: v1alpha1.ExecutionFatalError,
+			expectedStatus: &v1beta1.PlanStatus{
+				Status: v1beta1.ExecutionFatalError,
 				Name:   "test",
-				Phases: []v1alpha1.PhaseStatus{{Name: "phase", Status: v1alpha1.ExecutionFatalError, Steps: []v1alpha1.StepStatus{{Status: v1alpha1.ExecutionFatalError, Name: "step"}}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Name: "step"}}}}},
 			wantErr:  true,
 			enhancer: testEnhancer,
 		},
@@ -616,17 +616,17 @@ func TestExecutePlan(t *testing.T) {
 	}
 }
 
-func instance() *v1alpha1.Instance {
-	return &v1alpha1.Instance{
+func instance() *v1beta1.Instance {
+	return &v1beta1.Instance{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.dev/v1alpha1",
+			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-instance",
 			Namespace: "default",
 		},
-		Spec: v1alpha1.InstanceSpec{
+		Spec: v1beta1.InstanceSpec{
 			OperatorVersion: corev1.ObjectReference{
 				Name: "first-operator",
 			},

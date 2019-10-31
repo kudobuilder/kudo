@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
@@ -88,19 +88,19 @@ func loadResourcesFromPath(goldenPath string) (*Resources, error) {
 		}
 		switch {
 		case isOperatorFile(info.Name()):
-			var f v1alpha1.Operator
+			var f v1beta1.Operator
 			if err = yaml.Unmarshal(bytes, &f); err != nil {
 				return errors.Wrapf(err, "cannot unmarshal %s content", info.Name())
 			}
 			result.Operator = &f
 		case isVersionFile(info.Name()):
-			var fv v1alpha1.OperatorVersion
+			var fv v1beta1.OperatorVersion
 			if err = yaml.Unmarshal(bytes, &fv); err != nil {
 				return errors.Wrapf(err, "cannot unmarshal %s content", info.Name())
 			}
 			result.OperatorVersion = &fv
 		case isInstanceFile(info.Name()):
-			var i v1alpha1.Instance
+			var i v1beta1.Instance
 			if err = yaml.Unmarshal(bytes, &i); err != nil {
 				return errors.Wrapf(err, "cannot unmarshal %s content", info.Name())
 			}

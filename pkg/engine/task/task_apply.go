@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/health"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -114,9 +114,9 @@ func patch(newObj runtime.Object, existingObj runtime.Object, c client.Client) e
 }
 
 func isKudoType(object runtime.Object) bool {
-	_, isOperator := object.(*v1alpha1.OperatorVersion)
-	_, isOperatorVersion := object.(*v1alpha1.Operator)
-	_, isInstance := object.(*v1alpha1.Instance)
+	_, isOperator := object.(*v1beta1.OperatorVersion)
+	_, isOperatorVersion := object.(*v1beta1.Operator)
+	_, isInstance := object.(*v1beta1.Instance)
 	return isOperator || isOperatorVersion || isInstance
 }
 

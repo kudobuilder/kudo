@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/test"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 

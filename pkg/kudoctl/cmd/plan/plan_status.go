@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/spf13/cobra"
 	"github.com/xlab/treeprint"
@@ -51,7 +51,7 @@ func planStatus(options *Options, settings *env.Settings) error {
 
 	instancesGVR := schema.GroupVersionResource{
 		Group:    "kudo.dev",
-		Version:  "v1alpha1",
+		Version:  "v1beta1",
 		Resource: "instances",
 	}
 
@@ -65,7 +65,7 @@ func planStatus(options *Options, settings *env.Settings) error {
 		return err
 	}
 
-	instance := kudov1alpha1.Instance{}
+	instance := kudov1beta1.Instance{}
 
 	err = json.Unmarshal(mInstObj, &instance)
 	if err != nil {
@@ -76,7 +76,7 @@ func planStatus(options *Options, settings *env.Settings) error {
 
 	operatorGVR := schema.GroupVersionResource{
 		Group:    "kudo.dev",
-		Version:  "v1alpha1",
+		Version:  "v1beta1",
 		Resource: "operatorversions",
 	}
 
@@ -91,7 +91,7 @@ func planStatus(options *Options, settings *env.Settings) error {
 		return err
 	}
 
-	operator := kudov1alpha1.OperatorVersion{}
+	operator := kudov1beta1.OperatorVersion{}
 
 	err = json.Unmarshal(mOperatorObj, &operator)
 	if err != nil {

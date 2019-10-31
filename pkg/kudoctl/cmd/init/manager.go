@@ -29,7 +29,7 @@ const (
 	autoAnnotation         = reloaderAnnotationBase + "auto"
 	secretAnnotation       = "secret." + reloaderAnnotationBase + "reload"
 	configMapAnnotation    = "configmap." + reloaderAnnotationBase + "reload"
-	crdVersion             = "v1alpha1"
+	crdVersion             = "v1beta1"
 	defaultns              = "kudo-system"
 	defaultGracePeriod     = 10
 )

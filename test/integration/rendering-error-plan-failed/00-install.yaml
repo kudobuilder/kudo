@@ -1,11 +1,11 @@
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Operator
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: invalid
 ---
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: OperatorVersion
 metadata:
   labels:
@@ -59,7 +59,7 @@ spec:
               tasks:
                 - invalid-task
 ---
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   labels:

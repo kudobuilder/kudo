@@ -1,4 +1,4 @@
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Operator
 metadata:
   name: test-operator
@@ -8,7 +8,7 @@ spec:
     - name: KUDO
       email: kudobuilder@gmail.com
 ---
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: OperatorVersion
 metadata:
   name: test-operator-1.0

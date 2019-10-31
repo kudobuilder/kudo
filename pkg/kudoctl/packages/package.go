@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
@@ -28,35 +28,35 @@ const (
 	paramsFileName        = "params.yaml"
 )
 
-const apiVersion = "kudo.dev/v1alpha1"
+const apiVersion = "kudo.dev/v1beta1"
 
 // Resources is collection of CRDs that are used when installing operator
 // during installation, package format is converted to this structure
 type Resources struct {
-	Operator        *v1alpha1.Operator
-	OperatorVersion *v1alpha1.OperatorVersion
-	Instance        *v1alpha1.Instance
+	Operator        *v1beta1.Operator
+	OperatorVersion *v1beta1.OperatorVersion
+	Instance        *v1beta1.Instance
 }
 
 // PackageFiles represents the raw operator package format the way it is found in the tgz packages
 type PackageFiles struct {
 	Templates map[string]string
 	Operator  *Operator
-	Params    []v1alpha1.Parameter
+	Params    []v1beta1.Parameter
 }
 
 // Operator is a representation of the KEP-9 Operator YAML
 type Operator struct {
-	Name              string                   `json:"name"`
-	Description       string                   `json:"description,omitempty"`
-	Version           string                   `json:"version"`
-	AppVersion        string                   `json:"appVersion,omitempty"`
-	KUDOVersion       string                   `json:"kudoVersion,omitempty"`
-	KubernetesVersion string                   `json:"kubernetesVersion,omitempty"`
-	Maintainers       []*v1alpha1.Maintainer   `json:"maintainers,omitempty"`
-	URL               string                   `json:"url,omitempty"`
-	Tasks             []v1alpha1.Task          `json:"tasks"`
-	Plans             map[string]v1alpha1.Plan `json:"plans"`
+	Name              string                  `json:"name"`
+	Description       string                  `json:"description,omitempty"`
+	Version           string                  `json:"version"`
+	AppVersion        string                  `json:"appVersion,omitempty"`
+	KUDOVersion       string                  `json:"kudoVersion,omitempty"`
+	KubernetesVersion string                  `json:"kubernetesVersion,omitempty"`
+	Maintainers       []*v1beta1.Maintainer   `json:"maintainers,omitempty"`
+	URL               string                  `json:"url,omitempty"`
+	Tasks             []v1beta1.Task          `json:"tasks"`
+	Plans             map[string]v1beta1.Plan `json:"plans"`
 }
 
 // PackageFilesDigest is a tuple of data used to return the package files AND the digest of a tarball
@@ -96,7 +96,7 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 		if err := yaml.Unmarshal(fileBytes, &params); err != nil {
 			return errors.Wrapf(err, "failed to unmarshal parameters file: %s", filePath)
 		}
-		paramsStruct := make([]v1alpha1.Parameter, 0)
+		paramsStruct := make([]v1beta1.Parameter, 0)
 		for paramName, param := range params {
 			required := true // defaults to true
 			if _, ok := param["required"]; ok {
@@ -113,7 +113,7 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 				defaultValue = kudo.String(val)
 			}
 
-			r := v1alpha1.Parameter{
+			r := v1beta1.Parameter{
 				Name:        paramName,
 				Description: param["description"],
 				Default:     defaultValue,
@@ -136,7 +136,7 @@ func newPackageFiles() PackageFiles {
 	}
 }
 
-func validateTask(t v1alpha1.Task, templates map[string]string) []string {
+func validateTask(t v1beta1.Task, templates map[string]string) []string {
 	var resources []string
 	switch t.Kind {
 	case task.ApplyTaskKind:
@@ -174,7 +174,7 @@ func (p *PackageFiles) getCRDs() (*Resources, error) {
 		return nil, errors.New(strings.Join(errs, "\n"))
 	}
 
-	operator := &v1alpha1.Operator{
+	operator := &v1beta1.Operator{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Operator",
 			APIVersion: apiVersion,
@@ -183,17 +183,17 @@ func (p *PackageFiles) getCRDs() (*Resources, error) {
 			Name:   p.Operator.Name,
 			Labels: map[string]string{"controller-tools.k8s.io": "1.0"},
 		},
-		Spec: v1alpha1.OperatorSpec{
+		Spec: v1beta1.OperatorSpec{
 			Description:       p.Operator.Description,
 			KudoVersion:       p.Operator.KUDOVersion,
 			KubernetesVersion: p.Operator.KubernetesVersion,
 			Maintainers:       p.Operator.Maintainers,
 			URL:               p.Operator.URL,
 		},
-		Status: v1alpha1.OperatorStatus{},
+		Status: v1beta1.OperatorStatus{},
 	}
 
-	fv := &v1alpha1.OperatorVersion{
+	fv := &v1beta1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "OperatorVersion",
 			APIVersion: apiVersion,
@@ -202,7 +202,7 @@ func (p *PackageFiles) getCRDs() (*Resources, error) {
 			Name:   fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.Version),
 			Labels: map[string]string{"controller-tools.k8s.io": "1.0"},
 		},
-		Spec: v1alpha1.OperatorVersionSpec{
+		Spec: v1beta1.OperatorVersionSpec{
 			Operator: v1.ObjectReference{
 				Name: p.Operator.Name,
 				Kind: "Operator",
@@ -214,10 +214,10 @@ func (p *PackageFiles) getCRDs() (*Resources, error) {
 			Plans:          p.Operator.Plans,
 			UpgradableFrom: nil,
 		},
-		Status: v1alpha1.OperatorVersionStatus{},
+		Status: v1beta1.OperatorVersionStatus{},
 	}
 
-	instance := &v1alpha1.Instance{
+	instance := &v1beta1.Instance{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Instance",
 			APIVersion: apiVersion,
@@ -226,12 +226,12 @@ func (p *PackageFiles) getCRDs() (*Resources, error) {
 			Name:   fmt.Sprintf("%s-instance", p.Operator.Name),
 			Labels: map[string]string{"controller-tools.k8s.io": "1.0", kudo.OperatorLabel: p.Operator.Name},
 		},
-		Spec: v1alpha1.InstanceSpec{
+		Spec: v1beta1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.Version),
 			},
 		},
-		Status: v1alpha1.InstanceStatus{},
+		Status: v1beta1.InstanceStatus{},
 	}
 
 	return &Resources{

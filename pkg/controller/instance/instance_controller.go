@@ -36,7 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 
-	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -58,7 +58,7 @@ func (r *Reconciler) SetupWithManager(
 	addOvRelatedInstancesToReconcile := handler.ToRequestsFunc(
 		func(obj handler.MapObject) []reconcile.Request {
 			requests := make([]reconcile.Request, 0)
-			instances := &kudov1alpha1.InstanceList{}
+			instances := &kudov1beta1.InstanceList{}
 			// we are listing all instances here, which could come with some performance penalty
 			// obj possible optimization is to introduce filtering based on operatorversion (or operator)
 			err := mgr.GetClient().List(
@@ -85,13 +85,13 @@ func (r *Reconciler) SetupWithManager(
 		})
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&kudov1alpha1.Instance{}).
-		Owns(&kudov1alpha1.Instance{}).
+		For(&kudov1beta1.Instance{}).
+		Owns(&kudov1beta1.Instance{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&batchv1.Job{}).
 		Owns(&appsv1.StatefulSet{}).
-		Watches(&source.Kind{Type: &kudov1alpha1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: addOvRelatedInstancesToReconcile}).
+		Watches(&source.Kind{Type: &kudov1beta1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: addOvRelatedInstancesToReconcile}).
 		Complete(r)
 }
 
@@ -201,7 +201,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	return reconcile.Result{}, nil
 }
 
-func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.OperatorVersion, activePlanStatus *kudov1alpha1.PlanStatus) (*workflow.ActivePlan, error) {
+func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion, activePlanStatus *kudov1beta1.PlanStatus) (*workflow.ActivePlan, error) {
 	params := getParameters(instance, ov)
 
 	planSpec, ok := ov.Spec.Plans[activePlanStatus.Name]
@@ -222,7 +222,7 @@ func preparePlanExecution(instance *kudov1alpha1.Instance, ov *kudov1alpha1.Oper
 // handleError handles execution error by logging, updating the plan status and optionally publishing an event
 // specify eventReason as nil if you don't wish to publish a warning event
 // returns err if this err should be retried, nil otherwise
-func (r *Reconciler) handleError(err error, instance *kudov1alpha1.Instance) error {
+func (r *Reconciler) handleError(err error, instance *kudov1beta1.Instance) error {
 	log.Printf("InstanceController: %v", err)
 
 	// first update instance as we want to propagate errors also to the `Instance.Status.PlanStatus`
@@ -243,7 +243,7 @@ func (r *Reconciler) handleError(err error, instance *kudov1alpha1.Instance) err
 	}
 
 	// for code being processed on instance, we need to handle these errors as well
-	var iError *kudov1alpha1.InstanceError
+	var iError *kudov1beta1.InstanceError
 	if errors.As(err, &iError) {
 		if iError.EventName != nil {
 			r.Recorder.Event(instance, "Warning", kudo.StringValue(iError.EventName), err.Error())
@@ -254,8 +254,8 @@ func (r *Reconciler) handleError(err error, instance *kudov1alpha1.Instance) err
 
 // getInstance retrieves the instance by namespaced name
 // returns nil, nil when instance is not found (not found is not considered an error)
-func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1alpha1.Instance, err error) {
-	instance = &kudov1alpha1.Instance{}
+func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1beta1.Instance, err error) {
+	instance = &kudov1beta1.Instance{}
 	err = r.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		// Error reading the object - requeue the request.
@@ -269,8 +269,8 @@ func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1alpha1.I
 
 // getOperatorVersion retrieves operatorversion belonging to the given instance
 // not found is treated here as any other error
-func (r *Reconciler) getOperatorVersion(instance *kudov1alpha1.Instance) (ov *kudov1alpha1.OperatorVersion, err error) {
-	ov = &kudov1alpha1.OperatorVersion{}
+func (r *Reconciler) getOperatorVersion(instance *kudov1beta1.Instance) (ov *kudov1beta1.OperatorVersion, err error) {
+	ov = &kudov1beta1.OperatorVersion{}
 	err = r.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      instance.Spec.OperatorVersion.Name,
@@ -288,7 +288,7 @@ func (r *Reconciler) getOperatorVersion(instance *kudov1alpha1.Instance) (ov *ku
 	return ov, nil
 }
 
-func getParameters(instance *kudov1alpha1.Instance, operatorVersion *kudov1alpha1.OperatorVersion) map[string]string {
+func getParameters(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.OperatorVersion) map[string]string {
 	params := make(map[string]string)
 
 	for k, v := range instance.Spec.Parameters {
