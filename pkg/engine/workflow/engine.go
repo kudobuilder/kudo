@@ -215,7 +215,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 	return planStatus, nil
 }
 
-// mapKeysToString is helper method for geting map keys as comma separated string
+// mapKeysToString is helper method for getting map keys as comma separated string
 func mapKeysToString(values map[string]bool) string {
 	keys := make([]string, 0, len(values))
 	for key := range values {
