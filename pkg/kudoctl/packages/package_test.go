@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
@@ -114,4 +115,44 @@ func loadResourcesFromPath(goldenPath string) (*Resources, error) {
 		return nil, err
 	}
 	return result, nil
+}
+
+func Test_readParametersFile(t *testing.T) {
+	noParams := `
+parameters:
+`
+	param := `
+parameters:
+  - name: example
+`
+	example := make([]v1alpha1.Parameter, 1)
+	example[0] = v1alpha1.Parameter{Name: "example"}
+
+	bad := `
+parameters:
+	- oops:
+`
+	tests := []struct {
+		name      string
+		fileBytes []byte
+		want      ParametersFile
+		wantErr   bool
+	}{
+		{"no data", []byte{}, ParametersFile{}, false},
+		{"no parameters", []byte(noParams), ParametersFile{}, false},
+		{"parameters", []byte(param), ParametersFile{example}, false},
+		{"bad data", []byte(bad), ParametersFile{}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := readParametersFile(tt.fileBytes)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("readParametersFile() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("readParametersFile() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

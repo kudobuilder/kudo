@@ -45,7 +45,7 @@ type PackageFiles struct {
 }
 
 type ParametersFile struct {
-	Params map[string]v1alpha1.Parameter `json:"parameters"`
+	Params []v1alpha1.Parameter `json:"parameters"`
 }
 
 // Operator is a representation of the KEP-9 Operator YAML
@@ -95,15 +95,13 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 		name := pathParts[len(pathParts)-1]
 		currentPackage.Templates[name] = string(fileBytes)
 	case isParametersFile(filePath):
-		paramsFile := ParametersFile{}
-		//var params map[string]map[string]string
-		if err := yaml.Unmarshal(fileBytes, &paramsFile); err != nil {
+		paramsFile, err := readParametersFile(fileBytes)
+		if err != nil {
 			return errors.Wrapf(err, "failed to unmarshal parameters file: %s", filePath)
 		}
 		currentPackage.Params = make([]v1alpha1.Parameter, 0)
 		defaultRequired := true
-		for name, param := range paramsFile.Params {
-			param.Name = name
+		for _, param := range paramsFile.Params {
 			if param.Required == nil {
 				// applying default value of required for all params where not specified
 				param.Required = &defaultRequired
@@ -114,6 +112,15 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 		return fmt.Errorf("unexpected file when reading package from filesystem: %s", filePath)
 	}
 	return nil
+}
+
+func readParametersFile(fileBytes []byte) (ParametersFile, error) {
+	paramsFile := ParametersFile{}
+	//var params map[string]map[string]string
+	if err := yaml.Unmarshal(fileBytes, &paramsFile); err != nil {
+		return paramsFile, err
+	}
+	return paramsFile, nil
 }
 
 func newPackageFiles() PackageFiles {

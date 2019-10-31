@@ -1,3 +1,4 @@
-version:
-  description: Version of image
-  default: 1.7.9
+parameters:
+  - name: version
+    description: Version of image
+    default: 1.7.9
