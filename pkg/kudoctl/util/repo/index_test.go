@@ -167,6 +167,7 @@ func TestAddPackageVersionErrorConditions(t *testing.T) {
 
 func TestMapPackageFileToPackageVersion(t *testing.T) {
 	o := packages.Operator{
+		APIVersion:        packages.ServerAPIVersion,
 		Name:              "kafka",
 		Description:       "",
 		Version:           "1.0.0",
