@@ -120,9 +120,11 @@ func loadResourcesFromPath(goldenPath string) (*Resources, error) {
 
 func Test_readParametersFile(t *testing.T) {
 	noParams := `
+apiVersion: kudo.dev/v1beta1
 parameters:
 `
 	param := `
+apiVersion: kudo.dev/v1beta1
 parameters:
   - name: example
 `
@@ -130,6 +132,7 @@ parameters:
 	example[0] = v1beta1.Parameter{Name: "example"}
 
 	bad := `
+apiVersion: kudo.dev/v1beta1
 parameters:
 	- oops:
 `
@@ -139,9 +142,9 @@ parameters:
 		want      ParametersFile
 		wantErr   bool
 	}{
-		{"no data", []byte{}, ParametersFile{}, false},
-		{"no parameters", []byte(noParams), ParametersFile{}, false},
-		{"parameters", []byte(param), ParametersFile{example}, false},
+		{"no data", []byte{}, ParametersFile{APIVersion: APIVersion}, false},
+		{"no parameters", []byte(noParams), ParametersFile{APIVersion: APIVersion}, false},
+		{"parameters", []byte(param), ParametersFile{APIVersion, example}, false},
 		{"bad data", []byte(bad), ParametersFile{}, true},
 	}
 	for _, tt := range tests {

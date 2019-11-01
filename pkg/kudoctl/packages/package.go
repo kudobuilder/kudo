@@ -44,7 +44,8 @@ type PackageFiles struct {
 }
 
 type ParametersFile struct {
-	Params []v1beta1.Parameter `json:"parameters"`
+	APIVersion string              `json:"apiVersion,omitempty"`
+	Params     []v1beta1.Parameter `json:"parameters"`
 }
 
 // Operator is a representation of the KEP-9 Operator YAML
@@ -125,6 +126,13 @@ func readParametersFile(fileBytes []byte) (ParametersFile, error) {
 	if err := yaml.Unmarshal(fileBytes, &paramsFile); err != nil {
 		return paramsFile, err
 	}
+	if paramsFile.APIVersion == "" {
+		paramsFile.APIVersion = APIVersion
+	}
+	if paramsFile.APIVersion != APIVersion {
+		return paramsFile, fmt.Errorf("expecting supported API version %s but got %s", APIVersion, paramsFile.APIVersion)
+	}
+
 	return paramsFile, nil
 }
 
