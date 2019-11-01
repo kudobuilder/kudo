@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 
@@ -14,9 +14,9 @@ import (
 )
 
 func Test_UpgradeOperatorVersion(t *testing.T) {
-	testOv := v1alpha1.OperatorVersion{
+	testOv := v1beta1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.dev/v1alpha1",
+			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -25,7 +25,7 @@ func Test_UpgradeOperatorVersion(t *testing.T) {
 			},
 			Name: "test-1.0",
 		},
-		Spec: v1alpha1.OperatorVersionSpec{
+		Spec: v1beta1.OperatorVersionSpec{
 			Version: "1.0",
 			Operator: v1.ObjectReference{
 				Name: "test",
@@ -33,9 +33,9 @@ func Test_UpgradeOperatorVersion(t *testing.T) {
 		},
 	}
 
-	testInstance := v1alpha1.Instance{
+	testInstance := v1beta1.Instance{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.dev/v1alpha1",
+			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -45,7 +45,7 @@ func Test_UpgradeOperatorVersion(t *testing.T) {
 			},
 			Name: "test",
 		},
-		Spec: v1alpha1.InstanceSpec{
+		Spec: v1beta1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},

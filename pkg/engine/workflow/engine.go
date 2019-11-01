@@ -9,7 +9,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,14 +26,14 @@ var (
 // ActivePlan wraps over all data that is needed for its execution including tasks, templates, parameters etc.
 type ActivePlan struct {
 	Name string
-	*v1alpha1.PlanStatus
-	Spec      *v1alpha1.Plan
-	Tasks     []v1alpha1.Task
+	*v1beta1.PlanStatus
+	Spec      *v1beta1.Plan
+	Tasks     []v1beta1.Task
 	Templates map[string]string
 	Params    map[string]string
 }
 
-func (ap *ActivePlan) taskByName(name string) (*v1alpha1.Task, bool) {
+func (ap *ActivePlan) taskByName(name string) (*v1beta1.Task, bool) {
 	for _, t := range ap.Tasks {
 		if t.Name == name {
 			return &t, true
@@ -60,21 +60,21 @@ func (ap *ActivePlan) taskByName(name string) (*v1alpha1.Task, bool) {
 //
 // Furthermore, a transient ERROR during a step execution, means that the next step may be executed if the step strategy
 // is "parallel". In case of a fatal error, it is returned alongside with the new plan status and published on the event bus.
-func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.Enhancer, currentTime time.Time) (*v1alpha1.PlanStatus, error) {
+func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.Enhancer, currentTime time.Time) (*v1beta1.PlanStatus, error) {
 	if pl.Status.IsTerminal() {
 		log.Printf("PlanExecution: %s/%s plan %s is terminal, nothing to do", em.InstanceNamespace, em.InstanceName, pl.Name)
 		return pl.PlanStatus, nil
 	}
 
 	planStatus := pl.PlanStatus.DeepCopy()
-	planStatus.Status = v1alpha1.ExecutionInProgress
+	planStatus.Status = v1beta1.ExecutionInProgress
 
 	phasesLeft := len(pl.Spec.Phases)
 	// --- 1. Iterate over plan phases ---
 	for _, ph := range pl.Spec.Phases {
 		phaseStatus := getPhaseStatus(ph.Name, planStatus)
 		if phaseStatus == nil {
-			planStatus.Status = v1alpha1.ExecutionFatalError
+			planStatus.Status = v1beta1.ExecutionFatalError
 			return planStatus, engine.ExecutionError{
 				Err:       fmt.Errorf("%s/%s %w missing phase status: %s.%s", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name),
 				EventName: missingPhaseStatus,
@@ -86,7 +86,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 			phasesLeft = phasesLeft - 1
 			continue
 		} else if isInProgress(phaseStatus.Status) {
-			phaseStatus.Status = v1alpha1.ExecutionInProgress
+			phaseStatus.Status = v1beta1.ExecutionInProgress
 		} else {
 			break
 		}
@@ -96,8 +96,8 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 		for _, st := range ph.Steps {
 			stepStatus := getStepStatus(st.Name, phaseStatus)
 			if stepStatus == nil {
-				phaseStatus.Status = v1alpha1.ExecutionFatalError
-				planStatus.Status = v1alpha1.ExecutionFatalError
+				phaseStatus.Status = v1beta1.ExecutionFatalError
+				planStatus.Status = v1beta1.ExecutionFatalError
 				return planStatus, engine.ExecutionError{
 					Err:       fmt.Errorf("%s/%s %w missing step status: %s.%s.%s", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name, st.Name),
 					EventName: missingStepStatus,
@@ -109,7 +109,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 				delete(stepsLeft, stepStatus.Name)
 				continue
 			} else if isInProgress(stepStatus.Status) {
-				stepStatus.Status = v1alpha1.ExecutionInProgress
+				stepStatus.Status = v1beta1.ExecutionInProgress
 			} else {
 				// we are not in progress and not finished. An unexpected error occurred so that we can not proceed to the next phase
 				break
@@ -120,9 +120,9 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 			for _, tn := range st.Tasks {
 				t, ok := pl.taskByName(tn)
 				if !ok {
-					phaseStatus.Status = v1alpha1.ExecutionFatalError
-					stepStatus.Status = v1alpha1.ExecutionFatalError
-					planStatus.Status = v1alpha1.ExecutionFatalError
+					phaseStatus.Status = v1beta1.ExecutionFatalError
+					stepStatus.Status = v1beta1.ExecutionFatalError
+					planStatus.Status = v1beta1.ExecutionFatalError
 					return planStatus, engine.ExecutionError{
 						Err:       fmt.Errorf("%s/%s %w missing task %s.%s.%s.%s ", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name, st.Name, tn),
 						EventName: unknownTaskNameEventName,
@@ -140,9 +140,9 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 				// - 3.b build the engine task -
 				tt, err := task.Build(t)
 				if err != nil {
-					stepStatus.Status = v1alpha1.ExecutionFatalError
-					phaseStatus.Status = v1alpha1.ExecutionFatalError
-					planStatus.Status = v1alpha1.ExecutionFatalError
+					stepStatus.Status = v1beta1.ExecutionFatalError
+					phaseStatus.Status = v1beta1.ExecutionFatalError
+					planStatus.Status = v1beta1.ExecutionFatalError
 					return planStatus, engine.ExecutionError{
 						Err:       fmt.Errorf("%s/%s %w failed to build task %s.%s.%s.%s: %v", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name, st.Name, tn, err),
 						EventName: unknownTaskKindEventName,
@@ -165,13 +165,13 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 				// stopped in the spirit of "fail-loud-and-proud".
 				switch {
 				case errors.Is(err, engine.ErrFatalExecution):
-					phaseStatus.Status = v1alpha1.ExecutionFatalError
-					stepStatus.Status = v1alpha1.ExecutionFatalError
-					planStatus.Status = v1alpha1.ExecutionFatalError
+					phaseStatus.Status = v1beta1.ExecutionFatalError
+					stepStatus.Status = v1beta1.ExecutionFatalError
+					planStatus.Status = v1beta1.ExecutionFatalError
 					return planStatus, err
 				case err != nil:
 					fmt.Printf("PlanExecution: A transient error when executing task %s.%s.%s.%s. Will retry. %v", pl.Name, ph.Name, st.Name, t.Name, err)
-					stepStatus.Status = v1alpha1.ErrorStatus
+					stepStatus.Status = v1beta1.ErrorStatus
 				case done:
 					delete(tasksLeft, t.Name)
 				}
@@ -181,12 +181,12 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 			// if some TASKs aren't ready yet and STEPs strategy is serial we can not proceed
 			// otherwise, if STEPs strategy is parallel or all TASKs are finished, we can go to the next STEP
 			if len(tasksLeft) > 0 {
-				if ph.Strategy == v1alpha1.Serial {
+				if ph.Strategy == v1beta1.Serial {
 					log.Printf("PlanExecution: '%s' task(s) (instance: %s/%s) of the %s.%s.%s are not ready", mapKeysToString(tasksLeft), em.InstanceNamespace, em.InstanceName, pl.Name, ph.Name, st.Name)
 					break
 				}
 			} else {
-				stepStatus.Status = v1alpha1.ExecutionComplete
+				stepStatus.Status = v1beta1.ExecutionComplete
 				delete(stepsLeft, stepStatus.Name)
 			}
 		}
@@ -195,12 +195,12 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 		// if some STEPs aren't ready yet and PHASEs strategy is serial we can not proceed
 		// otherwise, if PHASEs strategy is parallel or all STEPs are finished, we can go to the next PHASE
 		if len(stepsLeft) > 0 {
-			if pl.Spec.Strategy == v1alpha1.Serial {
+			if pl.Spec.Strategy == v1beta1.Serial {
 				log.Printf("PlanExecution: '%s' step(s) (instance: %s/%s) of the %s.%s are not ready", mapKeysToString(stepsLeft), em.InstanceNamespace, em.InstanceName, pl.Name, ph.Name)
 				break
 			}
 		} else {
-			phaseStatus.Status = v1alpha1.ExecutionComplete
+			phaseStatus.Status = v1beta1.ExecutionComplete
 			phasesLeft = phasesLeft - 1
 		}
 	}
@@ -208,7 +208,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 	// --- 7. Check if all PHASEs are finished ---
 	if phasesLeft == 0 {
 		log.Printf("PlanExecution: %s/%s all phases of the plan %s are ready", em.InstanceNamespace, em.InstanceName, pl.Name)
-		planStatus.Status = v1alpha1.ExecutionComplete
+		planStatus.Status = v1beta1.ExecutionComplete
 		planStatus.LastFinishedRun = v1.Time{Time: currentTime}
 	}
 
@@ -237,7 +237,7 @@ func stringArrayToSet(values []string) map[string]bool {
 
 // stepNamesToSet converts slice of steps to map (set)
 // this is useful to make it easier to remove from the collection and track what steps are finished
-func stepNamesToSet(steps []v1alpha1.Step) map[string]bool {
+func stepNamesToSet(steps []v1beta1.Step) map[string]bool {
 	set := make(map[string]bool)
 	for _, s := range steps {
 		set[s.Name] = true
@@ -245,7 +245,7 @@ func stepNamesToSet(steps []v1alpha1.Step) map[string]bool {
 	return set
 }
 
-func getStepStatus(stepName string, phaseStatus *v1alpha1.PhaseStatus) *v1alpha1.StepStatus {
+func getStepStatus(stepName string, phaseStatus *v1beta1.PhaseStatus) *v1beta1.StepStatus {
 	for i, p := range phaseStatus.Steps {
 		if p.Name == stepName {
 			return &phaseStatus.Steps[i]
@@ -255,7 +255,7 @@ func getStepStatus(stepName string, phaseStatus *v1alpha1.PhaseStatus) *v1alpha1
 	return nil
 }
 
-func getPhaseStatus(phaseName string, planStatus *v1alpha1.PlanStatus) *v1alpha1.PhaseStatus {
+func getPhaseStatus(phaseName string, planStatus *v1beta1.PlanStatus) *v1beta1.PhaseStatus {
 	for i, p := range planStatus.Phases {
 		if p.Name == phaseName {
 			return &planStatus.Phases[i]
@@ -265,10 +265,10 @@ func getPhaseStatus(phaseName string, planStatus *v1alpha1.PlanStatus) *v1alpha1
 	return nil
 }
 
-func isFinished(state v1alpha1.ExecutionStatus) bool {
-	return state == v1alpha1.ExecutionComplete
+func isFinished(state v1beta1.ExecutionStatus) bool {
+	return state == v1beta1.ExecutionComplete
 }
 
-func isInProgress(state v1alpha1.ExecutionStatus) bool {
-	return state == v1alpha1.ExecutionInProgress || state == v1alpha1.ExecutionPending || state == v1alpha1.ErrorStatus
+func isInProgress(state v1beta1.ExecutionStatus) bool {
+	return state == v1beta1.ExecutionInProgress || state == v1beta1.ExecutionPending || state == v1beta1.ErrorStatus
 }

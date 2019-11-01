@@ -3,7 +3,7 @@ package test
 import (
 	"testing"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -31,7 +31,7 @@ func TestLoadTestSteps(t *testing.T) {
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "TestStep",
-							APIVersion: "kudo.dev/v1alpha1",
+							APIVersion: "kudo.dev/v1beta1",
 						},
 						Index: 0,
 					},
@@ -59,7 +59,7 @@ func TestLoadTestSteps(t *testing.T) {
 					Step: &kudo.TestStep{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "TestStep",
-							APIVersion: "kudo.dev/v1alpha1",
+							APIVersion: "kudo.dev/v1beta1",
 						},
 						Index: 1,
 						Delete: []kudo.ObjectReference{
@@ -75,7 +75,7 @@ func TestLoadTestSteps(t *testing.T) {
 					Assert: &kudo.TestAssert{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "TestAssert",
-							APIVersion: "kudo.dev/v1alpha1",
+							APIVersion: "kudo.dev/v1beta1",
 						},
 						Timeout: 20,
 					},
@@ -134,7 +134,7 @@ func TestLoadTestSteps(t *testing.T) {
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "TestStep",
-							APIVersion: "kudo.dev/v1alpha1",
+							APIVersion: "kudo.dev/v1beta1",
 						},
 						Index: 3,
 					},

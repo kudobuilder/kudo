@@ -18,8 +18,8 @@ package fake
 
 import (
 	clientset "github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
-	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/client/clientset/versioned/typed/kudo/v1alpha1"
-	fakekudov1alpha1 "github.com/kudobuilder/kudo/pkg/client/clientset/versioned/typed/kudo/v1alpha1/fake"
+	kudov1beta1 "github.com/kudobuilder/kudo/pkg/client/clientset/versioned/typed/kudo/v1beta1"
+	fakekudov1beta1 "github.com/kudobuilder/kudo/pkg/client/clientset/versioned/typed/kudo/v1beta1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -74,7 +74,7 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 
 var _ clientset.Interface = &Clientset{}
 
-// KudoV1alpha1 retrieves the KudoV1alpha1Client
-func (c *Clientset) KudoV1alpha1() kudov1alpha1.KudoV1alpha1Interface {
-	return &fakekudov1alpha1.FakeKudoV1alpha1{Fake: &c.Fake}
+// KudoV1beta1 retrieves the KudoV1beta1Client
+func (c *Clientset) KudoV1beta1() kudov1beta1.KudoV1beta1Interface {
+	return &fakekudov1beta1.FakeKudoV1beta1{Fake: &c.Fake}
 }

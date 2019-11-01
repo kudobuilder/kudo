@@ -46,9 +46,9 @@ func TestMain(m *testing.M) {
 }
 
 const (
-	operatorFileName        = "kudo_v1alpha1_operator.yaml"
-	operatorVersionFileName = "kudo_v1alpha1_operatorversion.yaml"
-	instanceFileName        = "kudo_v1alpha1_instance.yaml"
+	operatorFileName        = "kudo_v1beta1_operator.yaml"
+	operatorVersionFileName = "kudo_v1beta1_operatorversion.yaml"
+	instanceFileName        = "kudo_v1beta1_instance.yaml"
 	manifestsDir            = "../../../config/crds/"
 )
 
@@ -117,7 +117,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 	assert.Nil(t, err)
 	kclient := getKubeClient(t)
 
-	instance := testutils.NewResource("kudo.dev/v1alpha1", "Instance", "zk", "ns")
+	instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "ns")
 	// Verify that we cannot create the instance, because the test environment is empty.
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
@@ -156,7 +156,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	assert.Nil(t, err)
 	kclient := getKubeClient(t)
 
-	instance := testutils.NewResource("kudo.dev/v1alpha1", "Instance", "zk", "ns")
+	instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "ns")
 	// Verify that we cannot create the instance, because the test environment is empty.
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
@@ -217,7 +217,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 	assert.Nil(t, err)
 	kclient := getKubeClient(t)
 
-	instance := testutils.NewResource("kudo.dev/v1alpha1", "Instance", "zk", "ns")
+	instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "ns")
 	// Verify that we cannot create the instance, because the test environment is empty.
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 

@@ -17,7 +17,7 @@ import (
 
 	volumetypes "github.com/docker/docker/api/types/volume"
 	docker "github.com/docker/docker/client"
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"

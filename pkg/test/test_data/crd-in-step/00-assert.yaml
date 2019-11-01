@@ -10,4 +10,4 @@ status:
     plural: mycrds
     singular: mycrd
   storedVersions:
-  - v1alpha1
+  - v1beta1

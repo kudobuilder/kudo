@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
@@ -27,9 +27,9 @@ func TestRestartController(t *testing.T) {
 	stopMgr, mgrStopped, c := startTestManager(t)
 
 	log.Printf("Given an existing instance 'foo-instance' and operator 'foo-operator'")
-	in := &v1alpha1.Instance{
+	in := &v1beta1.Instance{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-instance", Namespace: "default", Labels: map[string]string{kudo.OperatorLabel: "foo-operator"}},
-		Spec: v1alpha1.InstanceSpec{
+		Spec: v1beta1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name:      "foo-operator",
 				Namespace: "default",
@@ -41,12 +41,12 @@ func TestRestartController(t *testing.T) {
 	assert.NoError(t, c.Create(context.TODO(), in))
 	defer c.Delete(context.TODO(), in)
 
-	ov := &v1alpha1.OperatorVersion{
+	ov := &v1beta1.OperatorVersion{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
-		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.dev/v1alpha1"},
-		Spec: v1alpha1.OperatorVersionSpec{
-			Plans: map[string]v1alpha1.Plan{"deploy": {}, "update": {}},
-			Parameters: []v1alpha1.Parameter{
+		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.dev/v1beta1"},
+		Spec: v1beta1.OperatorVersionSpec{
+			Plans: map[string]v1beta1.Plan{"deploy": {}, "update": {}},
+			Parameters: []v1beta1.Parameter{
 				{
 					Name:    "param",
 					Default: kudo.String("default"),
@@ -81,7 +81,7 @@ func TestRestartController(t *testing.T) {
 }
 
 func instancePlanFinished(key client.ObjectKey, planName string, c client.Client) bool {
-	i := &v1alpha1.Instance{}
+	i := &v1beta1.Instance{}
 	err := c.Get(context.TODO(), key, i)
 	if err != nil {
 		fmt.Printf("%v", err)

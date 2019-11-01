@@ -20,7 +20,7 @@ import (
 
 	"github.com/google/shlex"
 	"github.com/kudobuilder/kudo/pkg/apis"
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/pmezard/go-difflib/difflib"
 	corev1 "k8s.io/api/core/v1"

@@ -19,7 +19,7 @@ import (
 	"context"
 	"log"
 
-	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -35,7 +35,7 @@ type Reconciler struct {
 func (r *Reconciler) SetupWithManager(
 	mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&kudov1alpha1.Operator{}).
+		For(&kudov1beta1.Operator{}).
 		Complete(r)
 }
 
@@ -44,7 +44,7 @@ func (r *Reconciler) SetupWithManager(
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	// Fetch the operator
-	operator := &kudov1alpha1.Operator{}
+	operator := &kudov1beta1.Operator{}
 	err := r.Get(context.TODO(), request.NamespacedName, operator)
 	if err != nil {
 		if errors.IsNotFound(err) {

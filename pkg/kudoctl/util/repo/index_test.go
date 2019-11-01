@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 
 	"github.com/magiconair/properties/assert"
@@ -23,20 +23,20 @@ func TestParseIndexFile(t *testing.T) {
 apiVersion: v1
 entries:
   flink:
-  - apiVersion: v1alpha1
+  - apiVersion: v1beta1
     appVersion: 1.7.2
     name: flink
     urls:
     - https://kudo-repository.storage.googleapis.com/flink-0.1.0.tgz
     version: 0.1.0
   kafka:
-  - apiVersion: v1alpha1
+  - apiVersion: v1beta1
     appVersion: 2.2.1
     name: kafka
     urls:
     - https://kudo-repository.storage.googleapis.com/kafka-0.1.0.tgz
     version: 0.1.0
-  - apiVersion: v1alpha1
+  - apiVersion: v1beta1
     appVersion: 2.3.0
     name: kafka
     urls:
@@ -124,7 +124,7 @@ func getTestPackageVersion(name string, version string) PackageVersion {
 			Version:     version,
 			AppVersion:  "0.7.0",
 			Description: "fancy description is here",
-			Maintainers: []*v1alpha1.Maintainer{
+			Maintainers: []*v1beta1.Maintainer{
 				{Name: "Fabian Baier", Email: "<fabian@mesosphere.io>"},
 				{Name: "Tom Runyon", Email: "<runyontr@gmail.com>"},
 				{Name: "Ken Sipe", Email: "<kensipe@gmail.com>"}},
@@ -167,14 +167,14 @@ func TestAddPackageVersionErrorConditions(t *testing.T) {
 
 func TestMapPackageFileToPackageVersion(t *testing.T) {
 	o := packages.Operator{
-		APIVersion:        packages.ServerAPIVersion,
+		APIVersion:        packages.APIVersion,
 		Name:              "kafka",
 		Description:       "",
 		Version:           "1.0.0",
 		AppVersion:        "2.2.2",
 		KUDOVersion:       "0.5.0",
 		KubernetesVersion: "1.15",
-		Maintainers:       []*v1alpha1.Maintainer{{Name: "Ken Sipe"}},
+		Maintainers:       []*v1beta1.Maintainer{{Name: "Ken Sipe"}},
 		URL:               "http://kudo.dev/kafka",
 	}
 	pf := packages.PackageFiles{

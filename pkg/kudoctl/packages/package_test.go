@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
@@ -32,16 +32,16 @@ func TestReadFileSystemPackage(t *testing.T) {
 		t.Run(fmt.Sprintf("%s-from-%s", tt.name, tt.path), func(t *testing.T) {
 			pkg, err := ReadPackage(fs, tt.path)
 			if err != nil {
-				t.Fatalf("Found unexpected error: %v", err)
+				t.Errorf("Found unexpected error: %v", err)
 			}
 			actual, err := pkg.GetCRDs()
 			if err != nil {
-				t.Fatalf("Found unexpected error: %v", err)
+				t.Errorf("Found unexpected error: %v", err)
 			}
 			actual.Instance.ObjectMeta.Name = tt.instanceName
 			golden, err := loadResourcesFromPath(tt.goldenFiles)
 			if err != nil {
-				t.Fatalf("Found unexpected error when loading golden files: %v", err)
+				t.Errorf("Found unexpected error when loading golden files: %v", err)
 			}
 
 			// we need to sort here because current yaml parsing is not preserving the order of fields
@@ -88,19 +88,19 @@ func loadResourcesFromPath(goldenPath string) (*Resources, error) {
 		}
 		switch {
 		case isOperatorFile(info.Name()):
-			var f v1alpha1.Operator
+			var f v1beta1.Operator
 			if err = yaml.Unmarshal(bytes, &f); err != nil {
 				return errors.Wrapf(err, "cannot unmarshal %s content", info.Name())
 			}
 			result.Operator = &f
 		case isVersionFile(info.Name()):
-			var fv v1alpha1.OperatorVersion
+			var fv v1beta1.OperatorVersion
 			if err = yaml.Unmarshal(bytes, &fv); err != nil {
 				return errors.Wrapf(err, "cannot unmarshal %s content", info.Name())
 			}
 			result.OperatorVersion = &fv
 		case isInstanceFile(info.Name()):
-			var i v1alpha1.Instance
+			var i v1beta1.Instance
 			if err = yaml.Unmarshal(bytes, &i); err != nil {
 				return errors.Wrapf(err, "cannot unmarshal %s content", info.Name())
 			}

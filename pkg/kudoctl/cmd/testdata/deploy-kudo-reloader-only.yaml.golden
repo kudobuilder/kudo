@@ -46,7 +46,7 @@ spec:
         status:
           type: object
       type: object
-  version: v1alpha1
+  version: v1beta1
 status:
   acceptedNames:
     kind: ""
@@ -147,7 +147,7 @@ spec:
         status:
           type: object
       type: object
-  version: v1alpha1
+  version: v1beta1
 status:
   acceptedNames:
     kind: ""
@@ -196,7 +196,7 @@ spec:
               type: object
           type: object
       type: object
-  version: v1alpha1
+  version: v1beta1
 status:
   acceptedNames:
     kind: ""

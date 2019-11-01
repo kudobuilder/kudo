@@ -13,4 +13,4 @@ spec:
     plural: abcs
     singular: abc
   scope: Namespaced
-  version: v1alpha1
+  version: v1beta1
