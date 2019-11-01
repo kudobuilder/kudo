@@ -7,7 +7,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 
 	"github.com/spf13/afero"
@@ -189,5 +189,5 @@ type Metadata struct {
 	Description string `json:"description,omitempty"`
 
 	// Maintainers is a list of name and URL/email addresses of the maintainer(s).
-	Maintainers []*v1alpha1.Maintainer `json:"maintainers,omitempty"`
+	Maintainers []*v1beta1.Maintainer `json:"maintainers,omitempty"`
 }

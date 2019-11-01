@@ -7,7 +7,7 @@ spec:
     replicas: "3"
     param: "30"
 ---
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   name: toy1

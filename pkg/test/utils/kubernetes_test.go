@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/meta"

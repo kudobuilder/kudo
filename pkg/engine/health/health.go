@@ -8,7 +8,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -59,7 +59,7 @@ func IsHealthy(obj runtime.Object) error {
 			return nil
 		}
 		return fmt.Errorf("job \"%v\" still running or failed", obj.Name)
-	case *kudov1alpha1.Instance:
+	case *kudov1beta1.Instance:
 		log.Printf("HealthUtil: Instance %v is in state %v", obj.Name, obj.Status.AggregatedStatus.Status)
 
 		if obj.Status.AggregatedStatus.Status.IsFinished() {

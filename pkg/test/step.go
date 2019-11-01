@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"time"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"

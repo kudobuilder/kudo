@@ -1,4 +1,4 @@
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   name: immutable-client-ip-instance
@@ -9,7 +9,7 @@ spec:
     name: service-operator
     kind: OperatorVersion
 ---
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: OperatorVersion
 metadata:
   name: service-operator

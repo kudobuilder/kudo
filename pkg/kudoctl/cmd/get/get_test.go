@@ -3,7 +3,7 @@ package get
 import (
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -36,9 +36,9 @@ func newTestClient() *kudo.Client {
 }
 
 func TestGetInstances(t *testing.T) {
-	testInstance := &v1alpha1.Instance{
+	testInstance := &v1beta1.Instance{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.dev/v1alpha1",
+			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -48,7 +48,7 @@ func TestGetInstances(t *testing.T) {
 			},
 			Name: "test",
 		},
-		Spec: v1alpha1.InstanceSpec{
+		Spec: v1beta1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
