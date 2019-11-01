@@ -26,9 +26,9 @@ const (
 	operatorFileName      = "operator.yaml"
 	templateFileNameRegex = "templates/.*.yaml"
 	paramsFileName        = "params.yaml"
+	ServerAPIVersion      = "kudo.dev/v1alpha1"
+	PackageAPIVersion     = "kudo.dev/v1beta1"
 )
-
-const apiVersion = "kudo.dev/v1beta1"
 
 // Resources is collection of CRDs that are used when installing operator
 // during installation, package format is converted to this structure
@@ -47,6 +47,7 @@ type PackageFiles struct {
 
 // Operator is a representation of the KEP-9 Operator YAML
 type Operator struct {
+	APIVersion        string                  `json:"apiVersion,omitempty"`
 	Name              string                  `json:"name"`
 	Description       string                  `json:"description,omitempty"`
 	Version           string                  `json:"version"`
@@ -86,6 +87,12 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 	case isOperatorFile(filePath):
 		if err := yaml.Unmarshal(fileBytes, &currentPackage.Operator); err != nil {
 			return errors.Wrap(err, "failed to unmarshal operator file")
+		}
+		if currentPackage.Operator.APIVersion == "" {
+			currentPackage.Operator.APIVersion = PackageAPIVersion
+		}
+		if currentPackage.Operator.APIVersion != PackageAPIVersion {
+			return fmt.Errorf("expecting supported API version %s but got %s", PackageAPIVersion, currentPackage.Operator.APIVersion)
 		}
 	case isTemplateFile(filePath):
 		pathParts := strings.Split(filePath, "templates/")
@@ -177,7 +184,7 @@ func (p *PackageFiles) getCRDs() (*Resources, error) {
 	operator := &v1beta1.Operator{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Operator",
-			APIVersion: apiVersion,
+			APIVersion: ServerAPIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   p.Operator.Name,
@@ -196,7 +203,7 @@ func (p *PackageFiles) getCRDs() (*Resources, error) {
 	fv := &v1beta1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "OperatorVersion",
-			APIVersion: apiVersion,
+			APIVersion: ServerAPIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.Version),
@@ -220,7 +227,7 @@ func (p *PackageFiles) getCRDs() (*Resources, error) {
 	instance := &v1beta1.Instance{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Instance",
-			APIVersion: apiVersion,
+			APIVersion: ServerAPIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   fmt.Sprintf("%s-instance", p.Operator.Name),

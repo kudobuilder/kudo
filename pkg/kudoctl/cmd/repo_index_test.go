@@ -35,7 +35,7 @@ func TestRepoIndexCmd(t *testing.T) {
 			riCmd := newRepoIndexCmd(fs, out, &time)
 			for key, value := range tt.flags {
 				if err := riCmd.Flags().Set(key, value); err != nil {
-					t.Fatal(err)
+					t.Fatalf("%s: %v", tt.name, err)
 				}
 			}
 			err := riCmd.RunE(riCmd, tt.arguments)

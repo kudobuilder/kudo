@@ -24,7 +24,7 @@ func TestReadFileSystemPackage(t *testing.T) {
 		goldenFiles  string
 	}{
 		{"zookeeper", "zk1", "testdata/zk", "testdata/zk-crd-golden1"},
-		{"zookeeper", "zk2", "testdata/zk.tgz", "testdata/zk-crd-golden2"},
+		{"zookeeper zipped", "zk2", "testdata/zk.tgz", "testdata/zk-crd-golden2"},
 	}
 	var fs = afero.NewOsFs()
 
@@ -32,16 +32,16 @@ func TestReadFileSystemPackage(t *testing.T) {
 		t.Run(fmt.Sprintf("%s-from-%s", tt.name, tt.path), func(t *testing.T) {
 			pkg, err := ReadPackage(fs, tt.path)
 			if err != nil {
-				t.Fatalf("Found unexpected error: %v", err)
+				t.Errorf("Found unexpected error: %v", err)
 			}
 			actual, err := pkg.GetCRDs()
 			if err != nil {
-				t.Fatalf("Found unexpected error: %v", err)
+				t.Errorf("Found unexpected error: %v", err)
 			}
 			actual.Instance.ObjectMeta.Name = tt.instanceName
 			golden, err := loadResourcesFromPath(tt.goldenFiles)
 			if err != nil {
-				t.Fatalf("Found unexpected error when loading golden files: %v", err)
+				t.Errorf("Found unexpected error when loading golden files: %v", err)
 			}
 
 			// we need to sort here because current yaml parsing is not preserving the order of fields
