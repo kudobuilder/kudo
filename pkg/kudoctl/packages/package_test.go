@@ -5,10 +5,11 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/go-test/deep"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -146,13 +147,8 @@ parameters:
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := readParametersFile(tt.fileBytes)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("readParametersFile() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("readParametersFile() got = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.wantErr, err != nil, "readParametersFile() error = %v, wantErr %v", err, tt.wantErr)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
