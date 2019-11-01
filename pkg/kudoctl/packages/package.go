@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -42,6 +41,10 @@ type PackageFiles struct {
 	Templates map[string]string
 	Operator  *Operator
 	Params    []v1beta1.Parameter
+}
+
+type ParametersFile struct {
+	Params []v1beta1.Parameter `json:"parameters"`
 }
 
 // Operator is a representation of the KEP-9 Operator YAML
@@ -98,42 +101,31 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 		name := pathParts[len(pathParts)-1]
 		currentPackage.Templates[name] = string(fileBytes)
 	case isParametersFile(filePath):
-		var params map[string]map[string]string
-		if err := yaml.Unmarshal(fileBytes, &params); err != nil {
+		paramsFile, err := readParametersFile(fileBytes)
+		if err != nil {
 			return errors.Wrapf(err, "failed to unmarshal parameters file: %s", filePath)
 		}
-		paramsStruct := make([]v1beta1.Parameter, 0)
-		for paramName, param := range params {
-			required := true // defaults to true
-			if _, ok := param["required"]; ok {
-				parsed, err := strconv.ParseBool(param["required"])
-				if err != nil {
-					// ideally this should never happen and be already caught by some kind of linter
-					return errors.Wrapf(err, "failed parsing required field from parameter %s. cannot convert %s to bool", paramName, param["required"])
-				}
-
-				required = parsed
+		currentPackage.Params = make([]v1beta1.Parameter, 0)
+		defaultRequired := true
+		for _, param := range paramsFile.Params {
+			if param.Required == nil {
+				// applying default value of required for all params where not specified
+				param.Required = &defaultRequired
 			}
-			var defaultValue *string
-			if val, ok := param["default"]; ok {
-				defaultValue = kudo.String(val)
-			}
-
-			r := v1beta1.Parameter{
-				Name:        paramName,
-				Description: param["description"],
-				Default:     defaultValue,
-				Trigger:     param["trigger"],
-				Required:    required,
-				DisplayName: param["displayName"],
-			}
-			paramsStruct = append(paramsStruct, r)
+			currentPackage.Params = append(currentPackage.Params, param)
 		}
-		currentPackage.Params = paramsStruct
 	default:
 		return fmt.Errorf("unexpected file when reading package from filesystem: %s", filePath)
 	}
 	return nil
+}
+
+func readParametersFile(fileBytes []byte) (ParametersFile, error) {
+	paramsFile := ParametersFile{}
+	if err := yaml.Unmarshal(fileBytes, &paramsFile); err != nil {
+		return paramsFile, err
+	}
+	return paramsFile, nil
 }
 
 func newPackageFiles() PackageFiles {

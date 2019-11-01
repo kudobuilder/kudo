@@ -82,7 +82,7 @@ type Parameter struct {
 	Description string `json:"description,omitempty"`
 
 	// Required specifies if the parameter is required to be provided by all instances, or whether a default can suffice.
-	Required bool `json:"required,omitempty"`
+	Required *bool `json:"required,omitempty"`
 
 	// Default is a default value if no parameter is provided by the instance.
 	Default *string `json:"default,omitempty"`
