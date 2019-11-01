@@ -26,8 +26,7 @@ const (
 	operatorFileName      = "operator.yaml"
 	templateFileNameRegex = "templates/.*.yaml"
 	paramsFileName        = "params.yaml"
-	ServerAPIVersion      = "kudo.dev/v1alpha1"
-	PackageAPIVersion     = "kudo.dev/v1beta1"
+	APIVersion            = "kudo.dev/v1beta1"
 )
 
 // Resources is collection of CRDs that are used when installing operator
@@ -89,10 +88,10 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *Package
 			return errors.Wrap(err, "failed to unmarshal operator file")
 		}
 		if currentPackage.Operator.APIVersion == "" {
-			currentPackage.Operator.APIVersion = PackageAPIVersion
+			currentPackage.Operator.APIVersion = APIVersion
 		}
-		if currentPackage.Operator.APIVersion != PackageAPIVersion {
-			return fmt.Errorf("expecting supported API version %s but got %s", PackageAPIVersion, currentPackage.Operator.APIVersion)
+		if currentPackage.Operator.APIVersion != APIVersion {
+			return fmt.Errorf("expecting supported API version %s but got %s", APIVersion, currentPackage.Operator.APIVersion)
 		}
 	case isTemplateFile(filePath):
 		pathParts := strings.Split(filePath, "templates/")
@@ -184,7 +183,7 @@ func (p *PackageFiles) getCRDs() (*Resources, error) {
 	operator := &v1beta1.Operator{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Operator",
-			APIVersion: ServerAPIVersion,
+			APIVersion: APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   p.Operator.Name,
@@ -203,7 +202,7 @@ func (p *PackageFiles) getCRDs() (*Resources, error) {
 	fv := &v1beta1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "OperatorVersion",
-			APIVersion: ServerAPIVersion,
+			APIVersion: APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.Version),
@@ -227,7 +226,7 @@ func (p *PackageFiles) getCRDs() (*Resources, error) {
 	instance := &v1beta1.Instance{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Instance",
-			APIVersion: ServerAPIVersion,
+			APIVersion: APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   fmt.Sprintf("%s-instance", p.Operator.Name),
