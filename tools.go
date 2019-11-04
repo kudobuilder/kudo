@@ -5,9 +5,7 @@
 package tools
 
 import (
-	_ "golang.org/x/lint/golint"
-	_ "golang.org/x/tools/cmd/goimports"
-	_ "honnef.co/go/tools/cmd/staticcheck"
+	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 
 	_ "k8s.io/code-generator/cmd/client-gen"
 	_ "k8s.io/code-generator/cmd/deepcopy-gen"
