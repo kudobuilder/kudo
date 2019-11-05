@@ -7,18 +7,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type paramsLintCmd struct {
+type operatorVerifyCmd struct {
 	fs  afero.Fs
 	out io.Writer
 }
 
-func newParamsLintCmd(fs afero.Fs, out io.Writer) *cobra.Command {
-	list := &paramsLintCmd{fs: fs, out: out}
+func newOperatorVerifyCmd(fs afero.Fs, out io.Writer) *cobra.Command {
+	list := &operatorVerifyCmd{fs: fs, out: out}
 
 	cmd := &cobra.Command{
-		Use:     "lint [operator]",
-		Short:   "Lint operator parameters",
-		Example: "  kubectl kudo params lint",
+		Use:     "verify [operator]",
+		Short:   "verify operator parameters",
+		Example: "  kubectl kudo operator verify",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			//list.home = Settings.Home
 			return list.run(fs)
@@ -28,7 +28,7 @@ func newParamsLintCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	return cmd
 }
 
-func (c *paramsLintCmd) run(fs afero.Fs) error {
+func (c *operatorVerifyCmd) run(fs afero.Fs) error {
 
 	//TODO (kensipe): add linting
 	// 1. error on dups

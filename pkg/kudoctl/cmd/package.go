@@ -57,7 +57,7 @@ func newPackageCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 func validateOperatorArg(args []string) error {
 	if len(args) != 1 {
-		return fmt.Errorf("expecting exactly one argument - directory of the operator to package")
+		return fmt.Errorf("expecting exactly one argument - directory of the operator or name of package")
 	}
 	return nil
 }
