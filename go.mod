@@ -37,9 +37,10 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
 	github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca
+	golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3
 	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
 	golang.org/x/sys v0.0.0-20191025090151-53bf42e6b339 // indirect
-	golang.org/x/tools v0.0.0-20191025023517-2077df36852e // indirect
+	golang.org/x/tools v0.0.0-20191025023517-2077df36852e
 	gopkg.in/yaml.v2 v2.2.4
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.0.0-20191016110408-35e52d86657a

@@ -1,0 +1,3 @@
+Name  	Default	Required
+cpus  	0.25   	true    
+memory	1Gi    	true    
