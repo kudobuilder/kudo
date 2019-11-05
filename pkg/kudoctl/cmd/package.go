@@ -38,7 +38,7 @@ func newPackageCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 		Long:    pkgDesc,
 		Example: pkgExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := validate(args); err != nil {
+			if err := validateOperatorArg(args); err != nil {
 				return err
 			}
 			pkg.path = args[0]
@@ -55,7 +55,7 @@ func newPackageCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	return cmd
 }
 
-func validate(args []string) error {
+func validateOperatorArg(args []string) error {
 	if len(args) != 1 {
 		return fmt.Errorf("expecting exactly one argument - directory of the operator to package")
 	}

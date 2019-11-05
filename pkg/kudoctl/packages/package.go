@@ -36,11 +36,27 @@ type Resources struct {
 	Instance        *v1beta1.Instance
 }
 
+type Params []v1beta1.Parameter
+
+// Len returns the number of params.
+// This is needed to allow sorting of params.
+func (p Params) Len() int { return len(p) }
+
+// Swap swaps the position of two items in the params slice.
+// This is needed to allow sorting of params.
+func (p Params) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
+
+// Less returns true if the name of a param a is less than the name of param b.
+// This is needed to allow sorting of params.
+func (p Params) Less(x, y int) bool {
+	return p[x].Name < p[y].Name
+}
+
 // PackageFiles represents the raw operator package format the way it is found in the tgz packages
 type PackageFiles struct {
 	Templates map[string]string
 	Operator  *Operator
-	Params    []v1beta1.Parameter
+	Params    Params
 }
 
 type ParametersFile struct {
