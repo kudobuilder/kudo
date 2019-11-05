@@ -55,7 +55,7 @@ func newParamsListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	return cmd
 }
 
-// runList provides a table listing the parameters.  There are 3 defined ways to view the tablle
+// run provides a table listing the parameters.  There are 3 defined ways to view the table
 // 1. names only using --names-only.  This is based on challenges with other approaches reading really long parameter names
 // 2. name, default and required.  This is the **default**
 // 3. name, default, required, desc.
