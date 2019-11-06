@@ -25,7 +25,7 @@ func newPackageVerifyCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "verify [package]",
 		Short:   "verify operator parameters",
-		Example: "  kubectl kudo operator verify",
+		Example: "  kubectl kudo package verify ../zk/operator",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validateOperatorArg(args); err != nil {
 				return err

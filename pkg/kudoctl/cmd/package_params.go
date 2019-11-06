@@ -13,14 +13,14 @@ This command consists of multiple sub-commands to interact with KUDO parameters 
 It can be used to list operator properties
 `
 
-const paramsExamples = `  kubectl kudo params list [operator folder]
+const paramsExamples = `  kubectl kudo package params list [operator folder]
 `
 
 // newPackageParamsCmd for repo commands such as building a repo index
 func newPackageParamsCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "params [FLAGS] list [ARGS]",
-		Short:   "list kudo operator",
+		Short:   "list kudo operator parameters",
 		Long:    paramsDesc,
 		Example: paramsExamples,
 	}

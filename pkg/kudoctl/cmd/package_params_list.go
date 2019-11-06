@@ -34,7 +34,7 @@ func newParamsListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list [operator]",
 		Short:   "List operator parameters",
-		Example: "  kubectl kudo params list",
+		Example: "  kubectl kudo package params list",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			//list.home = Settings.Home
 			if err := validateOperatorArg(args); err != nil {

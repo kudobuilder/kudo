@@ -14,7 +14,7 @@ It can be used to package or verify an operator, or list parameters.  When worki
 provide a list of parameters from a remote operator given a url or repository along with the name and version.
 `
 
-const packageExamples = `  kubectl kudo operator package [operator folder]
+const packageExamples = `  kubectl kudo package create [operator folder]
   kubectl kudo package params list [operator]
   kubectl kudo package verify [operator]
 `
@@ -23,7 +23,7 @@ const packageExamples = `  kubectl kudo operator package [operator folder]
 func newPackageCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "package [FLAGS] package|params|verify [ARGS]",
-		Short:   "Package an operator, or understand it's content",
+		Short:   "package an operator, or understand it's content",
 		Long:    packageDesc,
 		Example: packageExamples,
 	}

@@ -34,7 +34,7 @@ func newPackageCreateCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	pkg := &packageCreateCmd{out: out, fs: fs}
 	cmd := &cobra.Command{
 		Use:     "create <operator_dir>",
-		Short:   "Package a local KUDO operator into a tarball.",
+		Short:   "package a local KUDO operator into a tarball.",
 		Long:    pkgCreateDesc,
 		Example: pkgCreateExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
