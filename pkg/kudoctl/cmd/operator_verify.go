@@ -43,17 +43,15 @@ func (c *operatorVerifyCmd) run(fs afero.Fs, path string) error {
 	}
 	warnings, errors := verify.Parameters(pf.Params)
 
-	if warnings == nil && errors == nil {
-		fmt.Fprintf(c.out, "operator is valid\n")
+	if warnings != nil {
+		printWarnings(c.out, warnings)
 	}
 	if errors != nil {
 		printErrors(c.out, errors)
-		//todo: return an error
-		return nil
+		return fmt.Errorf("operator verification errors: %v", len(errors))
 	}
-	if warnings != nil {
-		printWarnings(c.out, warnings)
-		return nil
+	if warnings == nil && errors == nil {
+		fmt.Fprintf(c.out, "operator is valid\n")
 	}
 
 	//TODO (kensipe): add linting

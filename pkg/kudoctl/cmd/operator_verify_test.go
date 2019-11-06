@@ -15,7 +15,7 @@ func TestOperatorVerify(t *testing.T) {
 	cmd := newOperatorVerifyCmd(fs, out)
 	//	if err := cmd.RunE(cmd, []string{"testdata/invalid-zk"}); err != nil {
 	if err := cmd.RunE(cmd, []string{"./testdata/invalidzk"}); err != nil {
-		t.Fatal(err)
+		assert.Error(t, err)
 	}
 
 	gp := filepath.Join("testdata", file+".golden")
