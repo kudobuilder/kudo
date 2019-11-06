@@ -256,7 +256,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 
 func deleteInitObjects(client *testutils.RetryClient) {
 	crds := cmdinit.CRDs().AsArray()
-	prereqs := cmdinit.Prereq(cmdinit.NewOptions("", "", defaultReloaderImage))
+	prereqs := cmdinit.Prereq(cmdinit.NewOptions("", ""))
 	deleteCRDs(crds, client)
 	deletePrereq(prereqs, client)
 }
