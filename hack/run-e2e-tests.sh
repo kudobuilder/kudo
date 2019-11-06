@@ -15,8 +15,7 @@ then
     go run ./cmd/kubectl-kudo test --config kudo-e2e-test.yaml 2>&1 |tee /dev/fd/2 |go-junit-report -set-exit-code > reports/kudo_e2e_test_report.xml
 
 	rm -rf operators
-	# KUDO e2e tests are executed against operators dev branch, which is held compatible with KUDOs bleeding edge
-	git clone --branch dev https://github.com/kudobuilder/operators
+	git clone https://github.com/kudobuilder/operators
 	mkdir operators/bin/
 	cp ./bin/kubectl-kudo operators/bin/
 	cd operators && go run ../cmd/kubectl-kudo test 2>&1 |tee /dev/fd/2 |go-junit-report -set-exit-code > ../reports/kudo_operators_test_report.xml
@@ -26,7 +25,7 @@ else
     go run ./cmd/kubectl-kudo test --config kudo-e2e-test.yaml
 
 	rm -rf operators
-	git clone --branch dev https://github.com/kudobuilder/operators
+	git clone https://github.com/kudobuilder/operators
 	mkdir operators/bin/
 	cp ./bin/kubectl-kudo operators/bin/
 	cd operators && go run ../cmd/kubectl-kudo test
