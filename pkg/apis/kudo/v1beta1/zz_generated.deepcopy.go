@@ -620,15 +620,6 @@ func (in *Step) DeepCopyInto(out *Step) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.Objects != nil {
-		in, out := &in.Objects, &out.Objects
-		*out = make([]runtime.Object, len(*in))
-		for i := range *in {
-			if (*in)[i] != nil {
-				(*out)[i] = (*in)[i].DeepCopyObject()
-			}
-		}
-	}
 	return
 }
 
