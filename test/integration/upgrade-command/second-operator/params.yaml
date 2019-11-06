@@ -1,3 +1,5 @@
-version:
-  description: Version of image
-  default: 1.7.9
+apiVersion: kudo.dev/v1beta1
+parameters:
+  - name: version
+    description: Version of image
+    default: 1.7.9

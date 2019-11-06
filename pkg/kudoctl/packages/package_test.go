@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/go-test/deep"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/pkg/errors"
@@ -114,4 +116,42 @@ func loadResourcesFromPath(goldenPath string) (*Resources, error) {
 		return nil, err
 	}
 	return result, nil
+}
+
+func Test_readParametersFile(t *testing.T) {
+	noParams := `
+apiVersion: kudo.dev/v1beta1
+parameters:
+`
+	param := `
+apiVersion: kudo.dev/v1beta1
+parameters:
+  - name: example
+`
+	example := make([]v1beta1.Parameter, 1)
+	example[0] = v1beta1.Parameter{Name: "example"}
+
+	bad := `
+apiVersion: kudo.dev/v1beta1
+parameters:
+	- oops:
+`
+	tests := []struct {
+		name      string
+		fileBytes []byte
+		want      ParametersFile
+		wantErr   bool
+	}{
+		{"no data", []byte{}, ParametersFile{APIVersion: APIVersion}, false},
+		{"no parameters", []byte(noParams), ParametersFile{APIVersion: APIVersion}, false},
+		{"parameters", []byte(param), ParametersFile{APIVersion, example}, false},
+		{"bad data", []byte(bad), ParametersFile{}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := readParametersFile(tt.fileBytes)
+			assert.Equal(t, tt.wantErr, err != nil, "readParametersFile() error = %v, wantErr %v", err, tt.wantErr)
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
