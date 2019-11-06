@@ -24,14 +24,10 @@ import (
 //Defines the deployment of the KUDO manager and it's service definition.
 
 const (
-	group                  = "kudo.dev"
-	reloaderAnnotationBase = "reloader.kudo.dev/"
-	autoAnnotation         = reloaderAnnotationBase + "auto"
-	secretAnnotation       = "secret." + reloaderAnnotationBase + "reload"
-	configMapAnnotation    = "configmap." + reloaderAnnotationBase + "reload"
-	crdVersion             = "v1beta1"
-	defaultns              = "kudo-system"
-	defaultGracePeriod     = 10
+	group              = "kudo.dev"
+	crdVersion         = "v1beta1"
+	defaultns          = "kudo-system"
+	defaultGracePeriod = 10
 )
 
 // Options is the configurable options to init
@@ -44,15 +40,10 @@ type Options struct {
 	TerminationGracePeriodSeconds int64
 	// Image defines the image to be used
 	Image string
-
-	// ReloaderImage defines the reloader image
-	ReloaderImage   string
-	DisableManager  bool
-	DisableReloader bool
 }
 
 // NewOptions provides an option struct with defaults
-func NewOptions(v string, ns string, reloaderImage string) Options {
+func NewOptions(v string, ns string) Options {
 
 	if v == "" {
 		v = version.Get().GitVersion
@@ -66,7 +57,6 @@ func NewOptions(v string, ns string, reloaderImage string) Options {
 		Namespace:                     ns,
 		TerminationGracePeriodSeconds: defaultGracePeriod,
 		Image:                         fmt.Sprintf("kudobuilder/controller:v%v", v),
-		ReloaderImage:                 reloaderImage,
 	}
 }
 
@@ -185,8 +175,33 @@ func generateDeployment(opts Options) *appsv1.StatefulSet {
 					Labels: labels,
 				},
 				Spec: v1.PodSpec{
-					ServiceAccountName:            "kudo-manager",
-					Containers:                    []v1.Container{},
+					ServiceAccountName: "kudo-manager",
+					Containers: []v1.Container{
+
+						{
+
+							Command: []string{"/root/manager"},
+							Env: []v1.EnvVar{
+								{Name: "POD_NAMESPACE", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
+								{Name: "SECRET_NAME", Value: "kudo-webhook-server-secret"},
+							},
+							Image:           image,
+							ImagePullPolicy: "Always",
+							Name:            "manager",
+							Ports: []v1.ContainerPort{
+								// name matters for service
+								{ContainerPort: 9876, Name: "webhook-server", Protocol: "TCP"},
+							},
+							Resources: v1.ResourceRequirements{
+								Requests: v1.ResourceList{
+									"cpu":    resource.MustParse("100m"),
+									"memory": resource.MustParse("50Mi")},
+							},
+							VolumeMounts: []v1.VolumeMount{
+								{Name: "cert", MountPath: "/tmp/cert", ReadOnly: true},
+							},
+						},
+					},
 					TerminationGracePeriodSeconds: &opts.TerminationGracePeriodSeconds,
 					Volumes: []v1.Volume{
 						{Name: "cert", VolumeSource: v1.VolumeSource{Secret: &v1.SecretVolumeSource{SecretName: "kudo-webhook-server-secret", DefaultMode: &secretDefaultMode}}},
@@ -194,45 +209,6 @@ func generateDeployment(opts Options) *appsv1.StatefulSet {
 				},
 			},
 		},
-	}
-
-	if !opts.DisableManager {
-		d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, v1.Container{
-
-			Command: []string{"/root/manager"},
-			Env: []v1.EnvVar{
-				{Name: "POD_NAMESPACE", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
-				{Name: "SECRET_NAME", Value: "kudo-webhook-server-secret"},
-			},
-			Image:           image,
-			ImagePullPolicy: "Always",
-			Name:            "manager",
-			Ports: []v1.ContainerPort{
-				// name matters for service
-				{ContainerPort: 9876, Name: "webhook-server", Protocol: "TCP"},
-			},
-			Resources: v1.ResourceRequirements{
-				Requests: v1.ResourceList{
-					"cpu":    resource.MustParse("100m"),
-					"memory": resource.MustParse("50Mi")},
-			},
-			VolumeMounts: []v1.VolumeMount{
-				{Name: "cert", MountPath: "/tmp/cert", ReadOnly: true},
-			},
-		})
-	}
-
-	if !opts.DisableReloader {
-		d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, v1.Container{
-			Image:           opts.ReloaderImage,
-			ImagePullPolicy: "Always",
-			Name:            "reloader",
-			Args: []string{
-				"--auto-annotation", autoAnnotation,
-				"--configmap-annotation", configMapAnnotation,
-				"--secret-annotation", secretAnnotation,
-			},
-		})
 	}
 
 	return d
