@@ -14,6 +14,7 @@ type Metadata struct {
 	OperatorName        string
 	OperatorVersionName string
 	OperatorVersion     string
+	AppVersion          string
 
 	// the object that will own all the resources created by this execution
 	ResourcesOwner metav1.Object

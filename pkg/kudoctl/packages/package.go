@@ -213,6 +213,7 @@ func (p *PackageFiles) getCRDs() (*Resources, error) {
 				Name: p.Operator.Name,
 				Kind: "Operator",
 			},
+			AppVersion:     p.Operator.AppVersion,
 			Version:        p.Operator.Version,
 			Templates:      p.Templates,
 			Tasks:          p.Operator.Tasks,

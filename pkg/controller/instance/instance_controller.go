@@ -165,6 +165,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	metadata := &engine.Metadata{
 		OperatorVersionName: ov.Name,
 		OperatorVersion:     ov.Spec.Version,
+		AppVersion:          ov.Spec.AppVersion,
 		ResourcesOwner:      instance,
 		OperatorName:        ov.Spec.Operator.Name,
 		InstanceNamespace:   instance.Namespace,
