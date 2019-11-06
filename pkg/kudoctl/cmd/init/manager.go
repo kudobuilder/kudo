@@ -222,19 +222,6 @@ func generateDeployment(opts Options) *appsv1.StatefulSet {
 		})
 	}
 
-	if !opts.DisableReloader {
-		d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, v1.Container{
-			Image:           opts.ReloaderImage,
-			ImagePullPolicy: "Always",
-			Name:            "reloader",
-			Args: []string{
-				"--auto-annotation", autoAnnotation,
-				"--configmap-annotation", configMapAnnotation,
-				"--secret-annotation", secretAnnotation,
-			},
-		})
-	}
-
 	return d
 }
 

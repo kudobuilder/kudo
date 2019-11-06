@@ -132,6 +132,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 				exm := renderer.Metadata{
 					Metadata:  *em,
 					PlanName:  pl.Name,
+					PlanUID:   planStatus.UID,
 					PhaseName: ph.Name,
 					StepName:  st.Name,
 					TaskName:  tn,
