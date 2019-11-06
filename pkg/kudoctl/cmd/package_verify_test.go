@@ -12,7 +12,7 @@ import (
 func TestOperatorVerify(t *testing.T) {
 	file := "invalid-params"
 	out := &bytes.Buffer{}
-	cmd := newOperatorVerifyCmd(fs, out)
+	cmd := newPackageVerifyCmd(fs, out)
 	//	if err := cmd.RunE(cmd, []string{"testdata/invalid-zk"}); err != nil {
 	if err := cmd.RunE(cmd, []string{"./testdata/invalidzk"}); err != nil {
 		assert.Error(t, err)

@@ -16,8 +16,8 @@ It can be used to list operator properties
 const paramsExamples = `  kubectl kudo params list [operator folder]
 `
 
-// newParamsCmd for repo commands such as building a repo index
-func newParamsCmd(fs afero.Fs, out io.Writer) *cobra.Command {
+// newPackageParamsCmd for repo commands such as building a repo index
+func newPackageParamsCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "params [FLAGS] list [ARGS]",
 		Short:   "list kudo operator",

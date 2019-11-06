@@ -12,16 +12,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type operatorVerifyCmd struct {
+//TODO (kensipe): add long desc
+
+type packageVerifyCmd struct {
 	fs  afero.Fs
 	out io.Writer
 }
 
-func newOperatorVerifyCmd(fs afero.Fs, out io.Writer) *cobra.Command {
-	list := &operatorVerifyCmd{fs: fs, out: out}
+func newPackageVerifyCmd(fs afero.Fs, out io.Writer) *cobra.Command {
+	list := &packageVerifyCmd{fs: fs, out: out}
 
 	cmd := &cobra.Command{
-		Use:     "verify [operator]",
+		Use:     "verify [package]",
 		Short:   "verify operator parameters",
 		Example: "  kubectl kudo operator verify",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -35,7 +37,7 @@ func newOperatorVerifyCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	return cmd
 }
 
-func (c *operatorVerifyCmd) run(fs afero.Fs, path string) error {
+func (c *packageVerifyCmd) run(fs afero.Fs, path string) error {
 
 	pf, err := packages.FromFolder(fs, path)
 	if err != nil {

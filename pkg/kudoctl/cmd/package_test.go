@@ -29,7 +29,7 @@ func TestTableNewPackageCmd(t *testing.T) {
 	}
 	files.CopyOperatorToFs(fs, "../packages/testdata/zk", "/opt")
 	for _, test := range packageCmdArgs {
-		newCmd := newPackageCmd(fs, os.Stdout)
+		newCmd := newPackageCreateCmd(fs, os.Stdout)
 		err := newCmd.RunE(newCmd, test.arg)
 		if err != nil {
 			assert.Equal(t, test.errorMessage, err.Error(), test.name)
