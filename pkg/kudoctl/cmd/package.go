@@ -1,72 +1,36 @@
 package cmd
 
 import (
-	"fmt"
 	"io"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
 
-const (
-	pkgDesc = `Package a KUDO operator from local filesystem into a package tarball.
-The package argument must be a directory which contains the operator definition files.  The package command will create a tgz file containing the operator.
+const packageDesc = `
+This command consists of multiple sub-commands to interact with KUDO operators.
+
+It can be used to package or verify an operator, or list parameters.  When working with parameters it can 
+provide a list of parameters from a remote operator given a url or repository along with the name and version.
 `
-	pkgExample = `  # package zookeeper (where zookeeper is a folder in the current directory)
-  kubectl kudo package zookeeper
 
-  # Specify a destination folder other than current working directory
-  kubectl kudo package ../operators/repository/zookeeper/operator/ --destination=out-folder`
-)
+const packageExamples = `  kubectl kudo package create [operator folder]
+  kubectl kudo package params list [operator]
+  kubectl kudo package verify [operator]
+`
 
-type packageCmd struct {
-	path        string
-	destination string
-	overwrite   bool
-	out         io.Writer
-	fs          afero.Fs
-}
-
-// newPackageCmd creates an operator tarball. fs is the file system, out is stdout for CLI
+// newPackageCmd for operator commands such as packaging an operator or retrieving it's parameters
 func newPackageCmd(fs afero.Fs, out io.Writer) *cobra.Command {
-
-	pkg := &packageCmd{out: out, fs: fs}
 	cmd := &cobra.Command{
-		Use:     "package <operator_dir>",
-		Short:   "Package a local KUDO operator into a tarball.",
-		Long:    pkgDesc,
-		Example: pkgExample,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := validate(args); err != nil {
-				return err
-			}
-			pkg.path = args[0]
-			if err := pkg.run(); err != nil {
-				return err
-			}
-			return nil
-		},
+		Use:     "package [FLAGS] package|params|verify [ARGS]",
+		Short:   "package an operator, or understand it's content",
+		Long:    packageDesc,
+		Example: packageExamples,
 	}
 
-	f := cmd.Flags()
-	f.StringVarP(&pkg.destination, "destination", "d", ".", "Location to write the package.")
-	f.BoolVarP(&pkg.overwrite, "overwrite", "w", false, "Overwrite existing package.")
+	cmd.AddCommand(newPackageCreateCmd(fs, out))
+	cmd.AddCommand(newPackageParamsCmd(fs, out))
+	cmd.AddCommand(newPackageVerifyCmd(fs, out))
+
 	return cmd
-}
-
-func validate(args []string) error {
-	if len(args) != 1 {
-		return fmt.Errorf("expecting exactly one argument - directory of the operator to package")
-	}
-	return nil
-}
-
-// run returns the errors associated with cmd env
-func (pkg *packageCmd) run() error {
-	tarfile, err := packages.CreateTarball(pkg.fs, pkg.path, pkg.destination, pkg.overwrite)
-	if err == nil {
-		fmt.Fprintf(pkg.out, "Package created: %v\n", tarfile)
-	}
-	return err
 }

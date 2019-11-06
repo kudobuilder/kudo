@@ -93,12 +93,12 @@ func (p filePackage) GetCRDs() (*Resources, error) {
 }
 
 func (p filePackage) GetPkgFiles() (*PackageFiles, error) {
-	return fromFolder(p.fs, p.path)
+	return FromFolder(p.fs, p.path)
 }
 
 // CreateTarball takes a path to operator files and creates a tgz of those files with the destination and name provided
 func CreateTarball(fs afero.Fs, path string, destination string, overwrite bool) (target string, err error) {
-	pkg, err := fromFolder(fs, path)
+	pkg, err := FromFolder(fs, path)
 	if err != nil {
 		return "", fmt.Errorf("invalid operator in path: %v error: %w", path, err)
 	}
@@ -131,8 +131,8 @@ func packageVersionedName(pkg *PackageFiles) string {
 	return fmt.Sprintf("%v-%v", pkg.Operator.Name, pkg.Operator.Version)
 }
 
-// fromFolder walks the path provided and returns CRD package files or an error
-func fromFolder(fs afero.Fs, packagePath string) (*PackageFiles, error) {
+// FromFolder walks the path provided and returns CRD package files or an error
+func FromFolder(fs afero.Fs, packagePath string) (*PackageFiles, error) {
 	if packagePath == "" {
 		return nil, errors.New("path must be specified")
 	}
