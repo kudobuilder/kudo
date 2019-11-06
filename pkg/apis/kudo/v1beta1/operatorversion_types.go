@@ -23,8 +23,9 @@ import (
 // OperatorVersionSpec defines the desired state of OperatorVersion.
 type OperatorVersionSpec struct {
 	// +optional
-	Operator corev1.ObjectReference `json:"operator,omitempty"`
-	Version  string                 `json:"version,omitempty"`
+	Operator   corev1.ObjectReference `json:"operator,omitempty"`
+	Version    string                 `json:"version,omitempty"`
+	AppVersion string                 `json:"appVersion,omitempty"`
 
 	// Yaml captures a templated yaml list of elements that define the application operator instance.
 	Templates map[string]string `json:"templates,omitempty"`
@@ -44,8 +45,6 @@ type OperatorVersionSpec struct {
 
 	// UpgradableFrom lists all OperatorVersions that can upgrade to this OperatorVersion.
 	UpgradableFrom []OperatorVersion `json:"upgradableFrom,omitempty"`
-
-	AppVersion string `json:"appVersion,omitempty"`
 }
 
 // Ordering specifies how the subitems in this plan/phase should be rolled out.
