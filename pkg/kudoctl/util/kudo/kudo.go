@@ -14,6 +14,7 @@ import (
 
 	"github.com/pkg/errors"
 	v1core "k8s.io/api/core/v1"
+	extensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -30,7 +31,7 @@ type Client struct {
 }
 
 // NewClient creates new KUDO Client
-func NewClient(namespace, kubeConfigPath string, requestTimeout int64) (*Client, error) {
+func NewClient(kubeConfigPath string, requestTimeout int64) (*Client, error) {
 
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
@@ -47,15 +48,23 @@ func NewClient(namespace, kubeConfigPath string, requestTimeout int64) (*Client,
 		return nil, err
 	}
 
-	_, err = kudoClientset.KudoV1beta1().Operators(namespace).List(v1.ListOptions{})
+	// use the apiextensions clientset to check for the existence of KUDO CRDs in the cluster
+	extensionsClientset, err := extensionsclient.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = extensionsClientset.CustomResourceDefinitions().Get("operators.kudo.dev", v1.GetOptions{})
 	if err != nil {
 		return nil, errors.WithMessage(err, "operators")
 	}
-	_, err = kudoClientset.KudoV1beta1().OperatorVersions(namespace).List(v1.ListOptions{})
+
+	_, err = extensionsClientset.CustomResourceDefinitions().Get("operatorversions.kudo.dev", v1.GetOptions{})
 	if err != nil {
 		return nil, errors.WithMessage(err, "operatorversions")
 	}
-	_, err = kudoClientset.KudoV1beta1().Instances(namespace).List(v1.ListOptions{})
+
+	_, err = extensionsClientset.CustomResourceDefinitions().Get("instances.kudo.dev", v1.GetOptions{})
 	if err != nil {
 		return nil, errors.WithMessage(err, "instances")
 	}
