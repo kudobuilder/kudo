@@ -140,5 +140,9 @@ func displayParamsTable(pf *packages.PackageFiles, cmd *paramsListCmd) error {
 }
 
 func onlyOneSet(b bool, b2 bool, b3 bool) bool {
+	// all false is ok all other combos need to verify only 1
+	if (b && b2 && b3) == false {
+		return true
+	}
 	return (b && !b2 && !b3) || (!b && b2 && !b3) || (!b && !b2 && b3)
 }

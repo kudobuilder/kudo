@@ -48,18 +48,16 @@ func (c *packageVerifyCmd) run(fs afero.Fs, path string) error {
 	if warnings != nil {
 		printWarnings(c.out, warnings)
 	}
-	if errors != nil {
-		printErrors(c.out, errors)
-		return fmt.Errorf("package verification errors: %v", len(errors))
-	}
-	if warnings == nil {
+	if errors == nil {
 		fmt.Fprintf(c.out, "package is valid\n")
+		return nil
 	}
 
+	printErrors(c.out, errors)
+	return fmt.Errorf("package verification errors: %v", len(errors))
 	//TODO (kensipe): add linting
 	// 2. warning on params not used
 	// 3. error on param in template not defined
-	return nil
 }
 
 func printErrors(out io.Writer, errors verify.ParamErrors) {
