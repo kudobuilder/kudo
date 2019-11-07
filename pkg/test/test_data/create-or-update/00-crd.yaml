@@ -12,6 +12,7 @@ spec:
   scope: Namespaced
   validation:
     openAPIV3Schema:
+      type: object
       properties:
         spec:
           properties:
