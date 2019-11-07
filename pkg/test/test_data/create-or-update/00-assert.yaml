@@ -7,7 +7,6 @@ status:
     kind: ProwJob
   # InitialNamesAccepted will change from False -> True once the CRD is ready.
   conditions:
-  - type: NonStructuralSchema
   - reason: NoConflicts
     status: "True"
     type: NamesAccepted
