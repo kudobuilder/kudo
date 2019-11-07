@@ -20,7 +20,6 @@ var verifiers = []ParameterVerifier{
 
 // Parameters verifies parameters
 func Parameters(params packages.Params) (warnings ParamWarnings, errors ParamErrors) {
-
 	for _, verifier := range verifiers {
 		w, err := verifier.Verify(params)
 		warnings = append(warnings, w...)
@@ -59,12 +58,11 @@ type InvalidCharVerifier struct {
 }
 
 func (v InvalidCharVerifier) Verify(params packages.Params) (warnings ParamWarnings, errors ParamErrors) {
-
 	for _, param := range params {
 		name := strings.ToLower(param.Name)
 		for _, char := range name {
 			if strings.Contains(v.InvalidChars, strings.ToLower(string(char))) {
-				errors = append(errors, CreateParamError(param, fmt.Sprintf("has a the invalid char %q", char)))
+				errors = append(errors, CreateParamError(param, fmt.Sprintf("contains invalid character %q", char)))
 			}
 		}
 
