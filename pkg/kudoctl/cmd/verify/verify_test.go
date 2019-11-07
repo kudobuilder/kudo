@@ -8,69 +8,56 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDuplicateVerifier_NoErrorVerify(t *testing.T) {
-
-	goodParams := []v1beta1.Parameter{
-		{Name: "Foo"},
-		{Name: "Fighters"},
+func TestDuplicateVerifier(t *testing.T) {
+	tests := []struct {
+		name             string
+		params           []v1beta1.Parameter
+		expectedWarnings ParamWarnings
+		expectedErrors   ParamErrors
+	}{
+		{"no warning or error", []v1beta1.Parameter{
+			{Name: "Foo"},
+			{Name: "Fighters"},
+		}, nil, nil},
+		{"duplicate parameter", []v1beta1.Parameter{
+			{Name: "Foo"},
+			{Name: "Foo"},
+		}, nil, []ParamError{ParamError(fmt.Sprintf("parameter \"Foo\" has a duplicate"))}},
+		{"duplicate with different casing", []v1beta1.Parameter{
+			{Name: "Foo"},
+			{Name: "foo"},
+		}, nil, ParamErrors{ParamError(fmt.Sprintf("parameter \"foo\" has a duplicate"))}},
 	}
 
 	verifier := DuplicateVerifier{}
-
-	warnings, errors := verifier.Verify(goodParams)
-	assert.Nil(t, warnings)
-	assert.Nil(t, errors)
-}
-
-func TestDuplicateVerifier_ErrorVerify(t *testing.T) {
-
-	dupParams := []v1beta1.Parameter{
-		{Name: "Foo"},
-		{Name: "Foo"},
+	for _, tt := range tests {
+		warnings, errors := verifier.Verify(tt.params)
+		assert.Equal(t, tt.expectedWarnings, warnings)
+		assert.Equal(t, tt.expectedErrors, errors)
 	}
-
-	verifier := DuplicateVerifier{}
-
-	warnings, errors := verifier.Verify(dupParams)
-	assert.Nil(t, warnings)
-	assert.Equal(t, ParamError(fmt.Sprintf("parameter \"Foo\" has a duplicate")), errors[0])
 }
 
-func TestDuplicateVerifier_CaseErrorVerify(t *testing.T) {
-
-	dupParams := []v1beta1.Parameter{
-		{Name: "Foo"},
-		{Name: "foo"},
-	}
-
-	verifier := DuplicateVerifier{}
-
-	warnings, errors := verifier.Verify(dupParams)
-	assert.Nil(t, warnings)
-	assert.Equal(t, ParamError(fmt.Sprintf("parameter \"foo\" has a duplicate")), errors[0])
-}
-
-func TestInvalidCharVerifier_GoodVerify(t *testing.T) {
-	params := []v1beta1.Parameter{
-		{Name: "Foo"},
-		{Name: "Fighters"},
+func TestInvalidCharVerifier(t *testing.T) {
+	tests := []struct {
+		name             string
+		params           []v1beta1.Parameter
+		expectedWarnings ParamWarnings
+		expectedErrors   ParamErrors
+	}{
+		{"no warning or error", []v1beta1.Parameter{
+			{Name: "Foo"},
+			{Name: "Fighters"},
+		}, nil, nil},
+		{"invalid character", []v1beta1.Parameter{
+			{Name: "Foo:"},
+			{Name: "Fighters,"},
+		}, nil, []ParamError{ParamError("parameter \"Foo:\" contains invalid character ':'"), ParamError("parameter \"Fighters,\" contains invalid character ','")}},
 	}
 
 	verifier := InvalidCharVerifier{InvalidChars: ":,"}
-	warnings, errors := verifier.Verify(params)
-	assert.Nil(t, warnings)
-	assert.Nil(t, errors)
-}
-
-func TestInvalidCharVerifier_BadVerify(t *testing.T) {
-	params := []v1beta1.Parameter{
-		{Name: "Foo:"},
-		{Name: "Fighters,"},
+	for _, tt := range tests {
+		warnings, errors := verifier.Verify(tt.params)
+		assert.Equal(t, tt.expectedWarnings, warnings, tt.name)
+		assert.Equal(t, tt.expectedErrors, errors, tt.name)
 	}
-
-	verifier := InvalidCharVerifier{InvalidChars: ":,"}
-	warnings, errors := verifier.Verify(params)
-	assert.Nil(t, warnings)
-	assert.Equal(t, 2, len(errors))
-	assert.Equal(t, ParamError("parameter \"Foo:\" has a the invalid char ':'"), errors[0])
 }

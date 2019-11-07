@@ -24,7 +24,7 @@ func newPackageVerifyCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "verify [package]",
-		Short:   "verify operator parameters",
+		Short:   "verify package parameters",
 		Example: "  kubectl kudo package verify ../zk/operator",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validateOperatorArg(args); err != nil {
@@ -48,25 +48,23 @@ func (c *packageVerifyCmd) run(fs afero.Fs, path string) error {
 	if warnings != nil {
 		printWarnings(c.out, warnings)
 	}
-	if errors != nil {
-		printErrors(c.out, errors)
-		return fmt.Errorf("operator verification errors: %v", len(errors))
-	}
-	if warnings == nil && errors == nil {
-		fmt.Fprintf(c.out, "operator is valid\n")
+	if errors == nil {
+		fmt.Fprintf(c.out, "package is valid\n")
+		return nil
 	}
 
+	printErrors(c.out, errors)
+	return fmt.Errorf("package verification errors: %v", len(errors))
 	//TODO (kensipe): add linting
 	// 2. warning on params not used
 	// 3. error on param in template not defined
-	return nil
 }
 
 func printErrors(out io.Writer, errors verify.ParamErrors) {
 	table := uitable.New()
 	table.AddRow("Errors")
-	for _, warning := range errors {
-		table.AddRow(warning)
+	for _, err := range errors {
+		table.AddRow(err)
 	}
 	fmt.Fprintln(out, table)
 }
