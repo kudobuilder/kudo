@@ -23,10 +23,18 @@ type paramsListCmd struct {
 	path           string
 	descriptions   bool
 	namesOnly      bool
-	required       bool
+	requiredOnly   bool
 	RepoName       string
 	PackageVersion string
 }
+
+const (
+	pkgParamsExample = `# show parameters from local-folder (where local-folder is a folder in the current directory)
+  kubectl kudo package params list local-folder
+
+  # show parameters from zookeeper (where zookeeper is name of package in KUDO repository)
+  kubectl kudo package params list zookeeper`
+)
 
 func newParamsListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	list := &paramsListCmd{fs: fs, out: out}
@@ -34,9 +42,8 @@ func newParamsListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list [operator]",
 		Short:   "List operator parameters",
-		Example: "  kubectl kudo package params list",
+		Example: pkgParamsExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			//list.home = Settings.Home
 			if err := validateOperatorArg(args); err != nil {
 				return err
 			}
@@ -47,20 +54,22 @@ func newParamsListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 	f := cmd.Flags()
 	f.BoolVarP(&list.descriptions, "descriptions", "d", false, "Display descriptions.")
-	f.BoolVarP(&list.required, "required", "r", false, "Restricts list to params which have no defaults but are required.")
-	f.BoolVar(&list.namesOnly, "names-only", false, "Display only names.")
+	f.BoolVarP(&list.requiredOnly, "required", "r", false, "Show only parameters which have no defaults but are required.")
+	f.BoolVar(&list.namesOnly, "names", false, "Display only names.")
 	f.StringVar(&list.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
-	f.StringVar(&list.PackageVersion, "version", "", "A specific package version on the official GitHub repo. (default to the most recent)")
+	f.StringVarP(&list.PackageVersion, "version", "v", "", "A specific package version on the official GitHub repo. (default to the most recent)")
 
 	return cmd
 }
 
 // run provides a table listing the parameters.  There are 3 defined ways to view the table
-// 1. names only using --names-only.  This is based on challenges with other approaches reading really long parameter names
+// 1. names only using --names.  This is based on challenges with other approaches reading really long parameter names
 // 2. name, default and required.  This is the **default**
 // 3. name, default, required, desc.
 func (c *paramsListCmd) run(fs afero.Fs, settings *env.Settings) error {
-
+	if !onlyOneSet(c.requiredOnly, c.namesOnly, c.descriptions) {
+		return fmt.Errorf("only one of the flags 'required', 'names', 'descriptions' can be set")
+	}
 	repository, err := repo.ClientFromSettings(fs, settings.Home, c.RepoName)
 	if err != nil {
 		return errors.WithMessage(err, "could not build operator repository")
@@ -81,7 +90,7 @@ func displayParamsTable(pf *packages.PackageFiles, cmd *paramsListCmd) error {
 	table := uitable.New()
 	tValue := true
 	// required
-	if cmd.required {
+	if cmd.requiredOnly {
 		table.AddRow("Name")
 		found := false
 		for _, p := range pf.Params {
@@ -109,7 +118,6 @@ func displayParamsTable(pf *packages.PackageFiles, cmd *paramsListCmd) error {
 	table.MaxColWidth = 35
 	table.Wrap = true
 	if cmd.descriptions {
-		//table.MaxColWidth = 50
 		table.AddRow("Name", "Default", "Required", "Descriptions")
 
 	} else {
@@ -129,4 +137,12 @@ func displayParamsTable(pf *packages.PackageFiles, cmd *paramsListCmd) error {
 	}
 	fmt.Fprintln(cmd.out, table)
 	return nil
+}
+
+func onlyOneSet(b bool, b2 bool, b3 bool) bool {
+	// all false is ok all other combos need to verify only 1
+	if !b && !b2 && !b3 {
+		return true
+	}
+	return (b && !b2 && !b3) || (!b && b2 && !b3) || (!b && !b2 && b3)
 }
