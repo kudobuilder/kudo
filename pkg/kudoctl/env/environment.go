@@ -68,5 +68,5 @@ func (s *Settings) OverrideDefault(fs *pflag.FlagSet, name, value string) string
 
 // GetClient is a helper function that takes the Settings struct and returns a new KUDO Client
 func GetClient(s *Settings) (*kudo.Client, error) {
-	return kudo.NewClient(s.Namespace, s.KubeConfig, s.RequestTimeout)
+	return kudo.NewClient(s.KubeConfig, s.RequestTimeout)
 }

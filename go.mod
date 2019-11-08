@@ -14,7 +14,6 @@ require (
 	github.com/dustinkirkland/golang-petname v0.0.0-20170921220637-d3c2ba80e75e
 	github.com/go-test/deep v1.0.1
 	github.com/gogo/protobuf v1.3.1 // indirect
-	github.com/golang-collections/collections v0.0.0-20130729185459-604e922904d3
 	github.com/golangci/golangci-lint v1.21.0
 	github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf
 	github.com/gophercloud/gophercloud v0.2.0 // indirect
