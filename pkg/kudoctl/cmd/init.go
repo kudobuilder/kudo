@@ -48,6 +48,8 @@ and finishes with success if KUDO is already installed.
   kubectl kudo init --crd-only
   # delete crds
   kubectl kudo init --crd-only --dry-run --output yaml | kubectl delete -f -
+  # pass existing serviceaccount 
+  kubectl kudo init --serviceaccount testaccount
 `
 )
 
@@ -59,6 +61,7 @@ type initCmd struct {
 	output     string
 	version    string
 	ns         string
+	sa         string
 	wait       bool
 	timeout    int64
 	clientOnly bool
@@ -124,7 +127,7 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (initCmd *initCmd) run() error {
-	opts := cmdInit.NewOptions(initCmd.version, initCmd.ns)
+	opts := cmdInit.NewOptions(initCmd.version, initCmd.ns, initCmd.sa)
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image
