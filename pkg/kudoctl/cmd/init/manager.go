@@ -183,7 +183,7 @@ func generateDeployment(opts Options) *appsv1.StatefulSet {
 					Labels: labels,
 				},
 				Spec: v1.PodSpec{
-					ServiceAccountName: "kudo-manager",
+					ServiceAccountName: opts.ServiceAccount,
 					Containers: []v1.Container{
 
 						{
