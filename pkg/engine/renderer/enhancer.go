@@ -63,6 +63,7 @@ func (k *KustomizeEnhancer) Apply(templates map[string]string, metadata Metadata
 			kudo.PhaseAnnotation:           metadata.PhaseName,
 			kudo.StepAnnotation:            metadata.StepName,
 			kudo.OperatorVersionAnnotation: metadata.OperatorVersion,
+			kudo.PlanUIDAnnotation:         string(metadata.PlanUID),
 		},
 		GeneratorOptions: &ktypes.GeneratorOptions{
 			DisableNameSuffixHash: true,
