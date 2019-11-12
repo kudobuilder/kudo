@@ -167,11 +167,11 @@ func (i *IndexFile) WriteFile(fs afero.Fs, file string) (err error) {
 }
 
 // Map transforms a slice of packagefiles with file digests into a slice of PackageVersions
-func Map(pkgs []*packages.PackageFilesDigest, url string) PackageVersions {
+func Map(pkgs []*PackageFilesDigest, url string) PackageVersions {
 	return mapPackages(pkgs, url, ToPackageVersion)
 }
 
-func mapPackages(packages []*packages.PackageFilesDigest, url string, f func(*packages.PackageFiles, string, string) *PackageVersion) PackageVersions {
+func mapPackages(packages []*PackageFilesDigest, url string, f func(*packages.Files, string, string) *PackageVersion) PackageVersions {
 	pvs := make(PackageVersions, len(packages))
 	for i, pkg := range packages {
 		pvs[i] = f(pkg.PkgFiles, pkg.Digest, url)
@@ -180,7 +180,7 @@ func mapPackages(packages []*packages.PackageFilesDigest, url string, f func(*pa
 }
 
 // ToPackageVersion provided the packageFiles will create a PackageVersion (used for index)
-func ToPackageVersion(pf *packages.PackageFiles, digest string, url string) *PackageVersion {
+func ToPackageVersion(pf *packages.Files, digest string, url string) *PackageVersion {
 	o := pf.Operator
 	if url == "" {
 		url = defaultURL
@@ -221,7 +221,7 @@ func IndexDirectory(fs afero.Fs, path string, url string, now *time.Time) (*Inde
 		return nil, errors.New("no packages discovered")
 	}
 	index := newIndexFile(now)
-	ops := packages.GetFilesDigest(fs, archives)
+	ops := GetFilesDigest(fs, archives)
 	pvs := Map(ops, url)
 	for _, pv := range pvs {
 		err = index.AddPackageVersion(pv)

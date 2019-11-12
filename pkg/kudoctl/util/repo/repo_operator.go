@@ -11,15 +11,11 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
-
-// Repository is an abstraction for a service that can retrieve packages
-type Repository interface {
-	GetPackage(name string, version string) (packages.Package, error)
-}
 
 // Client represents an operator repository
 type Client struct {
@@ -127,11 +123,24 @@ func (c *Client) GetPackageBytes(name string, version string) (*bytes.Buffer, er
 	return c.getPackageReaderByAPackageURL(pkgVersion)
 }
 
-// GetPackage provides an Package for a provided package name and optional version
-func (c *Client) GetPackage(name string, version string) (packages.Package, error) {
-	reader, err := c.GetPackageBytes(name, version)
+// Resolve provides an Package for a provided package name and optional version
+func (c *Client) Resolve(name string, version string) (*packages.Package, error) {
+	buf, err := c.GetPackageBytes(name, version)
 	if err != nil {
 		return nil, err
 	}
-	return packages.NewFromBytes(reader), nil
+	files, err := reader.ParseTgz(buf)
+	if err != nil {
+		return nil, err
+	}
+
+	resources, err := files.Resources()
+	if err != nil {
+		return nil, err
+	}
+
+	return &packages.Package{
+		Resources: resources,
+		Files:     files,
+	}, nil
 }
