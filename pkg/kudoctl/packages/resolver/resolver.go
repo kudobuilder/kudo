@@ -17,8 +17,8 @@ type Resolver interface {
 
 // PackageResolver is the source of resolver of operator packages.
 type PackageResolver struct {
-	local *LocalFinder
-	uri   *URLFinder
+	local *LocalResolver
+	uri   *URLResolver
 	repo  *repo.Client
 }
 

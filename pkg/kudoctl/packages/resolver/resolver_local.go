@@ -6,13 +6,13 @@ import (
 	"github.com/spf13/afero"
 )
 
-// LocalFinder will find local operator packages: folders or tgz
-type LocalFinder struct {
+// LocalResolver will find local operator packages: folders or tgz
+type LocalResolver struct {
 	fs afero.Fs
 }
 
 // Resolve provides a package for the local folder or tarball provided
-func (f *LocalFinder) Resolve(name string, version string) (*packages.Package, error) {
+func (f *LocalResolver) Resolve(name string, version string) (*packages.Package, error) {
 	//	make sure file exists
 	_, err := f.fs.Stat(name)
 	if err != nil {
@@ -25,6 +25,6 @@ func (f *LocalFinder) Resolve(name string, version string) (*packages.Package, e
 }
 
 // NewLocal creates a resolver for local operator package
-func NewLocal() *LocalFinder {
-	return &LocalFinder{fs: afero.NewOsFs()}
+func NewLocal() *LocalResolver {
+	return &LocalResolver{fs: afero.NewOsFs()}
 }

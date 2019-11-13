@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLocalFinder_GetPackage(t *testing.T) {
+func TestLocalResolver_GetPackage(t *testing.T) {
 	f := NewLocal()
 	pkg, err := f.Resolve("../testdata/zk", "")
 	if err != nil {
