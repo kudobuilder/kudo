@@ -129,12 +129,12 @@ parameters:
 	tests := []struct {
 		name       string
 		paramsYaml string
-		want       packages.ParametersFile
+		want       packages.ParamsFile
 		wantErr    bool
 	}{
-		{"no data", "", packages.ParametersFile{APIVersion: APIVersion}, false},
-		{"no parameters", noParams, packages.ParametersFile{APIVersion: APIVersion}, false},
-		{"parameters", oneParam, packages.ParametersFile{APIVersion: APIVersion, Params: example}, false},
+		{"no data", "", packages.ParamsFile{APIVersion: APIVersion}, false},
+		{"no parameters", noParams, packages.ParamsFile{APIVersion: APIVersion}, false},
+		{"parameters", oneParam, packages.ParamsFile{APIVersion: APIVersion, Parameters: example}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

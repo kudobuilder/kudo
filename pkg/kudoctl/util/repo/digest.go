@@ -14,12 +14,12 @@ import (
 
 // PackageFilesDigest is a tuple of data used to return the package files AND the digest of a tarball
 type PackageFilesDigest struct {
-	PkgFiles *packages.Files
-	Digest   string
+	PackageFiles *packages.Files
+	Digest       string
 }
 
-// GetFilesDigest maps []string of paths to the [] Operators
-func GetFilesDigest(fs afero.Fs, paths []string) []*PackageFilesDigest {
+// filesDigest maps []string of paths to the [] Operators
+func filesDigest(fs afero.Fs, paths []string) []*PackageFilesDigest {
 	return mapPaths(fs, paths, pathToOperator)
 }
 

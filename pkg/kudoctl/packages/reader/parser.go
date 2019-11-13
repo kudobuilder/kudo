@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
@@ -61,23 +60,23 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *package
 		if err != nil {
 			return errors.Wrapf(err, "failed to unmarshal parameters file: %s", filePath)
 		}
-		currentPackage.Params = make([]v1beta1.Parameter, 0)
 		defaultRequired := true
-		for _, param := range paramsFile.Params {
-			if param.Required == nil {
+		for i := 0; i < len(paramsFile.Parameters); i++ {
+			p := &paramsFile.Parameters[i]
+			if p.Required == nil {
 				// applying default value of required for all params where not specified
-				param.Required = &defaultRequired
+				p.Required = &defaultRequired
 			}
-			currentPackage.Params = append(currentPackage.Params, param)
 		}
+		currentPackage.Params = &paramsFile
 	default:
 		return fmt.Errorf("unexpected file when reading package from filesystem: %s", filePath)
 	}
 	return nil
 }
 
-func readParametersFile(fileBytes []byte) (packages.ParametersFile, error) {
-	paramsFile := packages.ParametersFile{}
+func readParametersFile(fileBytes []byte) (packages.ParamsFile, error) {
+	paramsFile := packages.ParamsFile{}
 	if err := yaml.Unmarshal(fileBytes, &paramsFile); err != nil {
 		return paramsFile, err
 	}

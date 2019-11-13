@@ -67,7 +67,7 @@ func (p *Files) Resources() (*Resources, error) {
 			Version:        p.Operator.Version,
 			Templates:      p.Templates,
 			Tasks:          p.Operator.Tasks,
-			Parameters:     p.Params,
+			Parameters:     p.Params.Parameters,
 			Plans:          p.Operator.Plans,
 			UpgradableFrom: nil,
 		},

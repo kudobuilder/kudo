@@ -43,7 +43,7 @@ func (c *packageVerifyCmd) run(fs afero.Fs, path string) error {
 	if err != nil {
 		return err
 	}
-	warnings, errors := verify.Parameters(pf.Params)
+	warnings, errors := verify.Parameters(pf.Params.Parameters)
 
 	if warnings != nil {
 		printWarnings(c.out, warnings)

@@ -87,14 +87,14 @@ func (c *paramsListCmd) run(fs afero.Fs, settings *env.Settings) error {
 }
 
 func displayParamsTable(pf *packages.Files, cmd *paramsListCmd) error {
-	sort.Sort(pf.Params)
+	sort.Sort(pf.Params.Parameters)
 	table := uitable.New()
 	tValue := true
 	// required
 	if cmd.requiredOnly {
 		table.AddRow("Name")
 		found := false
-		for _, p := range pf.Params {
+		for _, p := range pf.Params.Parameters {
 			if p.Default == nil && p.Required == &tValue {
 				found = true
 				table.AddRow(p.Name)
@@ -110,7 +110,7 @@ func displayParamsTable(pf *packages.Files, cmd *paramsListCmd) error {
 	// names only
 	if cmd.namesOnly {
 		table.AddRow("Name")
-		for _, p := range pf.Params {
+		for _, p := range pf.Params.Parameters {
 			table.AddRow(p.Name)
 		}
 		fmt.Fprintln(cmd.out, table)
@@ -124,8 +124,8 @@ func displayParamsTable(pf *packages.Files, cmd *paramsListCmd) error {
 	} else {
 		table.AddRow("Name", "Default", "Required")
 	}
-	sort.Sort(pf.Params)
-	for _, p := range pf.Params {
+	sort.Sort(pf.Params.Parameters)
+	for _, p := range pf.Params.Parameters {
 		pDefault := ""
 		if p.Default != nil {
 			pDefault = *p.Default

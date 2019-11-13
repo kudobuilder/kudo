@@ -174,7 +174,7 @@ func Map(pkgs []*PackageFilesDigest, url string) PackageVersions {
 func mapPackages(packages []*PackageFilesDigest, url string, f func(*packages.Files, string, string) *PackageVersion) PackageVersions {
 	pvs := make(PackageVersions, len(packages))
 	for i, pkg := range packages {
-		pvs[i] = f(pkg.PkgFiles, pkg.Digest, url)
+		pvs[i] = f(pkg.PackageFiles, pkg.Digest, url)
 	}
 	return pvs
 }
@@ -221,7 +221,7 @@ func IndexDirectory(fs afero.Fs, path string, url string, now *time.Time) (*Inde
 		return nil, errors.New("no packages discovered")
 	}
 	index := newIndexFile(now)
-	ops := GetFilesDigest(fs, archives)
+	ops := filesDigest(fs, archives)
 	pvs := Map(ops, url)
 	for _, pv := range pvs {
 		err = index.AddPackageVersion(pv)
