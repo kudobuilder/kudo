@@ -9,8 +9,8 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
-// Resolver is a packages resolver and is any implementation which can find/discover a packages.
-// Even Repos are finders. Local and URL Finders current do nothing with the version information.
+// Resolver will try to resolve a given package name to either local tarball, folder, remote url or
+// an operator in the remote repository.
 type Resolver interface {
 	Resolve(name string, version string) (*packages.Package, error)
 }

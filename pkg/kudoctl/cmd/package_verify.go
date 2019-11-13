@@ -39,7 +39,7 @@ func newPackageVerifyCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 func (c *packageVerifyCmd) run(fs afero.Fs, path string) error {
 
-	pf, err := reader.FromFolder(fs, path)
+	pf, err := reader.FromDir(fs, path)
 	if err != nil {
 		return err
 	}
