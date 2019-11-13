@@ -32,10 +32,16 @@ func TestReadFileSystemPackage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s-from-%s", tt.name, tt.path), func(t *testing.T) {
-			pkg, err := Read(fs, tt.path)
-			if err != nil {
-				t.Errorf("Found unexpected error: %v", err)
+			var err error
+			var pkg *packages.Package
+
+			if strings.HasSuffix(tt.path, ".tgz") {
+				pkg, err = ReadTar(fs, tt.path)
+			} else {
+				pkg, err = ReadDir(fs, tt.path)
 			}
+
+			assert.NilError(t, err, "unexpected error while reading the package")
 			actual := pkg.Resources
 
 			actual.Instance.ObjectMeta.Name = tt.instanceName
