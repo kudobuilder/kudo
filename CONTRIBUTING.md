@@ -39,13 +39,13 @@ When updating the structs under [APIs](https://github.com/kudobuilder/kudo/blob/
 
 After updating CRD manifests, use `make deploy` to apply the new CRDs to your cluster.
 
-#### Testing
+### Testing
 
 See the [contributor's testing guide](https://github.com/kudobuilder/kudo/blob/master/test/README.md).
 
 ## Community, Discussion, and Support
 
-Learn how to engage with the Kubernetes community on the [community page](community page).
+Learn how to engage with the Kubernetes community on the [community page](https://kudo.dev/community/).
 
 You can reach the maintainers of this project at:
 
