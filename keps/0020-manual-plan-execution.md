@@ -64,7 +64,22 @@ There are multiple ways we can do this. The goal of the KEP is to choose the one
 
 ### Update the status of Instance with name of the plan you want to run, let controller pick it up
 
-This is by far the simplest solution but probably not the one with cleanest design. We just need an API call that will change the value of instance.Status.PlanStatus.Status to Pending for the status where instance.Status.PlanStatus.Name is equal to the plan you want to run (this is what current controller does when executing one of the built-in plans). Although it’s very easy to do this, it’s not very kubernetes idiomatic way of doing things especially because Status should never be updated from a client and it should just capture the state of the object.
+This is by far the simplest solution but probably not the one with cleanest design. The implementation of this could be as simple as introducing new CLI command that would do:
+
+```go
+newStatus := instance.Status.DeepCopy()
+// TODO planStatus now contains status of that plan we want to run
+// for implementation details of that look at instance.StartPlanExecution
+planStatus.Status = ExecutionPending
+planStatus.UID = uuid.NewUUID()
+
+instance.Status = newStatus
+client.Status().Update(context.TODO(), instance)
+```
+
+This also counts with the fact that on the server-side we have an admission webhook that won't allow setting a status like that in case there is another plan running. Such update would be rejected.
+
+Although it’s very easy to do this, it’s not very kubernetes idiomatic way of doing things especially because Status should never be updated from a client and it should just capture the state of the object.
 
 For some background, including definition of status subresource by [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#spec-and-status): `The status summarizes the current state of the object in the system, and is usually persisted with the object by an automated processes but may be generated on the fly. At some cost and perhaps some temporary degradation in behavior, the status could be reconstructed by observation if it were lost.`  
 
