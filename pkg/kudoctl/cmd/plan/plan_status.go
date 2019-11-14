@@ -110,13 +110,13 @@ func planStatus(options *Options, settings *env.Settings) error {
 
 	for name, plan := range operator.Spec.Plans {
 		if name == lastPlanStatus.Name {
-			planDisplay := fmt.Sprintf("Plan %s (%s strategy) [%s]", name, plan.Strategy, lastPlanStatus.Status)
+			planDisplay := fmt.Sprintf("Plan %s (%s strategy) [%s]%s", name, plan.Strategy, lastPlanStatus.Status, printMessageIfAvailable(lastPlanStatus.Message))
 			planBranchName := rootBranchName.AddBranch(planDisplay)
 			for _, phase := range lastPlanStatus.Phases {
-				phaseDisplay := fmt.Sprintf("Phase %s [%s]", phase.Name, phase.Status)
+				phaseDisplay := fmt.Sprintf("Phase %s [%s]%s", phase.Name, phase.Status, printMessageIfAvailable(lastPlanStatus.Message))
 				phaseBranchName := planBranchName.AddBranch(phaseDisplay)
 				for _, steps := range phase.Steps {
-					stepsDisplay := fmt.Sprintf("Step %s (%s)", steps.Name, steps.Status)
+					stepsDisplay := fmt.Sprintf("Step %s (%s)%s", steps.Name, steps.Status, printMessageIfAvailable(lastPlanStatus.Message))
 					phaseBranchName.AddBranch(stepsDisplay)
 				}
 			}
@@ -142,4 +142,11 @@ func planStatus(options *Options, settings *env.Settings) error {
 	fmt.Println(tree.String())
 
 	return nil
+}
+
+func printMessageIfAvailable(s string) string {
+	if s != "" {
+		return fmt.Sprintf(" (%s)", s)
+	}
+	return ""
 }
