@@ -11,3 +11,8 @@ status:
     singular: mycrd
   storedVersions:
   - v1beta1
+  conditions:
+  - type: NamesAccepted
+    status: "True"
+  - type: Established
+    status: "True"
