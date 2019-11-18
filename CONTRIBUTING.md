@@ -32,6 +32,7 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 
 - Get the KUDO repo: `git clone https://github.com/kudobuilder/kudo.git`
 - `cd kudo`
+- Export `GOPATH` (this is necessary because of an issue in [codegenerator](https://github.com/kubernetes/code-generator/issues/87))
 - `make all` to build project
 - [optionally] `make docker-build` to build the Docker images
 
