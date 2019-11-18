@@ -1,6 +1,6 @@
 ---
 kep-number: 19
-title: Versioning of KUDO API in Operator Packages
+title: Versioning of Operator Packages
 authors:
   - "@nfnt"
 owners:
@@ -10,7 +10,7 @@ last-updated: 2019-11-05
 status: provisional
 ---
 
-# Versioning of KUDO API in Operator Packages
+# Versioning of Operator Packages
 
 ## Table of Contents
 
@@ -24,15 +24,16 @@ status: provisional
 
 ## Summary
 
-By adding a KUDO API version to package indexes, we will avoid that changes to the operator schema will affect existing KUDO versions and package definitions.
+The different versions of components that describe an operator package are surfaced to users, so that they are able to install exactly specify which version can be installed. Furthermore, compatibility with existing packages for older APIs of KUDO is provided.
 
 ## Motivation
 
-Operator packages are developed by defining the operator using YAML files. The schema to use for these files is defined by KUDO. While the KUDO team tries to keep the schema definitions consistent, there can be situations where the schema has to be changed. We need to ensure that packages are in sync with these changes while at the same time allowing existing packages to work with existing versions of KUDO.
+The dependencies between KUDO, operators packages and the application that is managed by the operator enforce the use of multiple versions to fully describe these dependencies. First, there is the dependency on a specific API version of KUDO. Also, a specific version of an application is provided by the package. And last, the operator itself may have multiple revisions. All of these versions need to be captured as part of the operator in a concise way that makes it easy for users to install specific operators for any of these versions.
 
 ### Goals
 
 * Allow users to install packages from a package repository that provides packages for multiple KUDO API versions
+* Allow users to install a specific version of an application and/or a specific revision of an operator
 * Reject packages that don't have a matching KUDO API version
 
 ### Non-Goals
@@ -40,6 +41,19 @@ Operator packages are developed by defining the operator using YAML files. The s
 * Handle operator dependencies on specific Kubernetes versions
 
 ## Proposal
+
+A `operator.yaml` file already provides versions for all components describing an operator:
+  * The dependency on KUDO is provided by the `apiVersion` and `kudoVersion` fields
+  * The bundled application version is provided by the `appVersion` field
+  * The version of the operator is provided by the `version` field
+  * The version of Kubernetes is provided by the `kubernetesVersion` field
+
+From these versions, currently only the `version` field can be used when installing packages with `kubectl kudo install`. Furthermore, a package repository index only contains `appVersion` and `version` fields in its entries. This limits the possible installation scenarios.
+At least the following installation scenarios should be supported:
+  1. A package repository could contain operators for older `apiVersion` and than the currently released KUDO. A user should be able to install these operators with older versions of KUDO.
+  2. A user should be able to install a specific `appVersion` of an operator
+
+### Support multiple API versions in the package repository
 
 Through the `apiVersion` field in an `operator.yaml` it is already guaranteed that the operator will match a specific API version of KUDO. However, this field isn't taken into account when installing packages from a repository. KUDO will try to install the latest version of the package even if the `apiVersion` doesn't match. This can be mitigated by adding the packages `apiVersion` to the repository index and filtering out all packages that don't have a matching version. This way, older versions of packages can still be part of the repository and keep working with older versions of KUDO.
 
@@ -63,10 +77,27 @@ For this, the following changes have to be made in KUDO:
 
 * Update `pkg/kudoctl/util/repo.ParseIndexFile` to filter packages by API version. It should filter out packages whose `apiVersion` doesn't match the current `apiVersion` of KUDO.
 
+### Install a specific application version
+
+As `appVersion` is already part of the repository index, a command line flag `--app-version` will be added to `kubectl kudo install` to select a specific application version. Because this version is application specific and might not follow [semantic versioning](https://semver.org/), the absence of this command line flag will result in KUDO installing the latest `version` of a package, or the version indicated with the `--version` flag.
+
+### Naming a package tarballs
+
+To avoid disambiguities, the `appVersion` of a package will be part of the tarball name. E.g., the Kafka package described above will be named `kafka-2.3.0-0.2.0.tgz`. For this, changes in `kudoctl/packages/writer` are necessary.
+
+### Semantic versioning
+
+`kudoVersion` and `version` follow the [Semantic Versioning Specification](https://semver.org/). `appVersion` is application dependent and might not follow this specification. It should be treated as a free-form string without ordering. The following filtering should be used when installing packages from a repository:
+  1. Filter by `apiVersion` of packages that match the one used by `kubectl kudo`
+  2. Filter by `kudoVersion` of packages that are smaller or equal than the one of `kubectl kudo`
+  3. Filter by `appVersion` of package if provided by user
+  4. Use latest or user-provided `version` of package
+
 ### Risks and Mitigations
 
-Because existing packages already set an `apiVersion` in their `operator.yaml` and this change only affects repository indexes, this doesn't break any existing packages. Older versions of KUDO will still work with the new indexes because the additional `apiVersion` field isn't used when parsing the old `Metadata` struct. However, a user might have to manually specify a package version to make sure that their API versions match.
+Because existing packages already set an `apiVersion` in their `operator.yaml` and the described change only affects repository indexes, this doesn't break any existing packages. Older versions of KUDO will still work with the new indexes because the additional `apiVersion` field isn't used when parsing the old `Metadata` struct.
 
 ## Implementation History
 
 - 2019/11/05 - Initial draft.
+- 2019/11/18 - Changed scope to include all package versions.
