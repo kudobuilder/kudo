@@ -101,6 +101,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.BoolVar(&i.crdOnly, "crd-only", false, "Add only KUDO CRDs to your cluster")
 	f.BoolVarP(&i.wait, "wait", "w", false, "Block until KUDO manager is running and ready to receive requests")
 	f.Int64Var(&i.timeout, "wait-timeout", 300, "Wait timeout to be used")
+	f.StringVarP(&i.sa, "serviceaccount", "", "", "Override for the default serviceAccount kudo-manager")
 
 	return cmd
 }
