@@ -19,16 +19,29 @@ import (
 
 // Install uses Kubernetes client to install KUDO manager prereqs.
 func installPrereqs(client kubernetes.Interface, opts Options) error {
+
 	if err := installNamespace(client.CoreV1(), opts); err != nil {
 		return err
 	}
 
-	if err := installServiceAccount(client.CoreV1(), opts); err != nil {
-		return err
+	if opts.ServiceAccount != "kudo-manager" {
+		// Validate the alternate serviceaccount has cluster-admin clusterrolebinding
+		if err := validateServiceAccountExists(client.CoreV1(), opts); err != nil {
+			return err
+		}
+
+		if err := validateClusterAdminRoleForSA(client, opts); err != nil {
+			return err
+		}
+	} else {
+		if err := installServiceAccount(client.CoreV1(), opts); err != nil {
+			return err
+		}
+		if err := installRoleBindings(client, opts); err != nil {
+			return err
+		}
 	}
-	if err := installRoleBindings(client, opts); err != nil {
-		return err
-	}
+
 	if err := installSecret(client.CoreV1(), opts); err != nil {
 		return err
 	}
@@ -222,4 +235,70 @@ func namespace(namespace string) *v1.Namespace {
 		APIVersion: "v1",
 	}
 	return ns
+}
+
+// Validate whether the serviceAccount exists
+func validateServiceAccountExists(client corev1.ServiceAccountsGetter, opts Options) error {
+
+	serviceAccountExists := false
+
+	saList, err := client.ServiceAccounts(opts.Namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, sa := range saList.Items {
+		if sa.Name == opts.ServiceAccount {
+			serviceAccountExists = true
+			break
+		}
+	}
+
+	if !serviceAccountExists {
+		return fmt.Errorf("Service Account %s does not exists - KUDO expects the serviceAccount to be present", opts.ServiceAccount)
+	}
+	return nil
+}
+
+// Validate whether the serviceAccount has cluster-admin role
+func validateClusterAdminRoleForSA(client kubernetes.Interface, opts Options) error {
+
+	saCheck := false
+	nsCheck := false
+	crCheck := false
+
+	// Check whether the serviceAccount has clusterrolebinding cluster-admin
+	crbs, err := client.RbacV1().ClusterRoleBindings().List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, crb := range crbs.Items {
+		// Check whether the serviceAccount is part of the cluster-admin clusterrolebindings Subject's
+		for _, subject := range crb.Subjects {
+			if subject.Name == opts.ServiceAccount {
+				saCheck = true
+				if subject.Namespace == opts.Namespace {
+					nsCheck = true
+					if crb.RoleRef.Name == "cluster-admin" {
+						crCheck = true
+						break
+					}
+				}
+			}
+		}
+	}
+
+	if !saCheck {
+		return fmt.Errorf("Service Account %s does not exist in clusterrolebindings - KUDO expects the serviceAccount passed to have cluster-admin role", opts.ServiceAccount)
+	}
+
+	if !nsCheck {
+		return fmt.Errorf("Service Account %s is not in the expected Namespace - KUDO expects the serviceAccount to be in the namespace %s", opts.ServiceAccount, opts.Namespace)
+	}
+
+	if !crCheck {
+		return fmt.Errorf("Service Account %s does not have cluster-admin role - KUDO expects the serviceAccount passed to have cluster-admin role", opts.ServiceAccount)
+	}
+
+	return nil
 }
