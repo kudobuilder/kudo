@@ -8,9 +8,7 @@ import (
 )
 
 const paramsDesc = `
-This command consists of multiple sub-commands to interact with KUDO parameters when working on creating or modifying an operator.
-
-It can be used to list operator properties
+List operator parameters
 `
 
 const paramsExamples = `  kubectl kudo package params list [operator folder]

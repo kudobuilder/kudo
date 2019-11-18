@@ -8,13 +8,13 @@ require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/containerd/containerd v1.2.9 // indirect
+	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/docker v1.4.2-0.20190916154449-92cc603036dd
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dustinkirkland/golang-petname v0.0.0-20170921220637-d3c2ba80e75e
 	github.com/go-test/deep v1.0.1
 	github.com/gogo/protobuf v1.3.1 // indirect
-	github.com/golang-collections/collections v0.0.0-20130729185459-604e922904d3
 	github.com/golangci/golangci-lint v1.21.0
 	github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf
 	github.com/gophercloud/gophercloud v0.2.0 // indirect

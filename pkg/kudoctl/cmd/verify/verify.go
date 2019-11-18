@@ -19,8 +19,7 @@ var verifiers = []ParameterVerifier{
 }
 
 // Parameters verifies parameters
-func Parameters(params packages.Params) (warnings ParamWarnings, errors ParamErrors) {
-
+func Parameters(params packages.Parameter) (warnings ParamWarnings, errors ParamErrors) {
 	for _, verifier := range verifiers {
 		w, err := verifier.Verify(params)
 		warnings = append(warnings, w...)
@@ -31,7 +30,7 @@ func Parameters(params packages.Params) (warnings ParamWarnings, errors ParamErr
 
 // ParameterVerifier defines the interface for all parameter verifiers
 type ParameterVerifier interface {
-	Verify(params packages.Params) (ParamWarnings, ParamErrors)
+	Verify(params packages.Parameter) (ParamWarnings, ParamErrors)
 }
 
 func CreateParamError(param v1beta1.Parameter, reason string) ParamError {
@@ -42,7 +41,7 @@ func CreateParamError(param v1beta1.Parameter, reason string) ParamError {
 type DuplicateVerifier struct {
 }
 
-func (DuplicateVerifier) Verify(params packages.Params) (warnings ParamWarnings, errors ParamErrors) {
+func (DuplicateVerifier) Verify(params packages.Parameter) (warnings ParamWarnings, errors ParamErrors) {
 	names := map[string]bool{}
 	for _, param := range params {
 		name := strings.ToLower(param.Name)
@@ -58,13 +57,12 @@ type InvalidCharVerifier struct {
 	InvalidChars string
 }
 
-func (v InvalidCharVerifier) Verify(params packages.Params) (warnings ParamWarnings, errors ParamErrors) {
-
+func (v InvalidCharVerifier) Verify(params packages.Parameter) (warnings ParamWarnings, errors ParamErrors) {
 	for _, param := range params {
 		name := strings.ToLower(param.Name)
 		for _, char := range name {
 			if strings.Contains(v.InvalidChars, strings.ToLower(string(char))) {
-				errors = append(errors, CreateParamError(param, fmt.Sprintf("has a the invalid char %q", char)))
+				errors = append(errors, CreateParamError(param, fmt.Sprintf("contains invalid character %q", char)))
 			}
 		}
 

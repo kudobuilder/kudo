@@ -8,7 +8,7 @@ import (
 )
 
 const packageDesc = `
-This command consists of multiple sub-commands to interact with KUDO operators.
+This command consists of multiple sub-commands to interact with KUDO packages.
 
 It can be used to package or verify an operator, or list parameters.  When working with parameters it can 
 provide a list of parameters from a remote operator given a url or repository along with the name and version.
@@ -22,7 +22,7 @@ const packageExamples = `  kubectl kudo package create [operator folder]
 // newPackageCmd for operator commands such as packaging an operator or retrieving it's parameters
 func newPackageCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "package [FLAGS] package|params|verify [ARGS]",
+		Use:     "package [SUBCOMMAND] [FLAGS] [ARGS]",
 		Short:   "package an operator, or understand it's content",
 		Long:    packageDesc,
 		Example: packageExamples,
