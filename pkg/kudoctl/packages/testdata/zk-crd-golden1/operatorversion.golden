@@ -10,6 +10,7 @@ spec:
     kind: Operator
   # Add fields here
   version: "0.1.0"
+  appVersion: "3.4.10"
   parameters:
     - name: cpus
       description: Amount of cpu to provide to Zookeeper pods

@@ -6,6 +6,7 @@ import (
 	"text/template"
 
 	"github.com/kudobuilder/kudo/pkg/engine"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/Masterminds/sprig"
 )
@@ -16,6 +17,7 @@ type Metadata struct {
 	engine.Metadata
 
 	PlanName  string
+	PlanUID   types.UID
 	PhaseName string
 	StepName  string
 	TaskName  string

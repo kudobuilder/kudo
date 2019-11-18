@@ -28,7 +28,7 @@ func TestNewK2oClient(t *testing.T) {
 
 	for _, tt := range tests {
 		// Just interested in errors
-		_, err := NewClient("default", "", 0)
+		_, err := NewClient("", 0)
 		assert.ErrorContains(t, err, tt.err)
 	}
 }

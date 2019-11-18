@@ -18,14 +18,14 @@ package v1beta1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // OperatorVersionSpec defines the desired state of OperatorVersion.
 type OperatorVersionSpec struct {
 	// +optional
-	Operator corev1.ObjectReference `json:"operator,omitempty"`
-	Version  string                 `json:"version,omitempty"`
+	Operator   corev1.ObjectReference `json:"operator,omitempty"`
+	Version    string                 `json:"version,omitempty"`
+	AppVersion string                 `json:"appVersion,omitempty"`
 
 	// Yaml captures a templated yaml list of elements that define the application operator instance.
 	Templates map[string]string `json:"templates,omitempty"`
@@ -90,11 +90,6 @@ type Parameter struct {
 	// Trigger identifies the plan that gets executed when this parameter changes in the Instance object.
 	// Default is `update` if a plan with that name exists, otherwise it's `deploy`
 	Trigger string `json:"trigger,omitempty"`
-
-	// TODO: Add generated parameters (e.g. passwords).
-	// These values should be saved off in a secret instead of updating the spec
-	// with values that viewing the instance does not return credentials.
-
 }
 
 // Phase specifies a list of steps that contain Kubernetes objects.
@@ -108,12 +103,8 @@ type Phase struct {
 
 // Step defines a specific set of operations that occur.
 type Step struct {
-	Name   string   `json:"name" validate:"required"`            // makes field mandatory and checks if set and non empty
-	Tasks  []string `json:"tasks" validate:"required,gt=0,dive"` // makes field mandatory and checks if non empty
-	Delete bool     `json:"delete,omitempty"`                    // no checks needed
-
-	// Objects will be serialized for each instance as the params and defaults are provided.
-	Objects []runtime.Object `json:"-"` // no checks needed
+	Name  string   `json:"name" validate:"required"`            // makes field mandatory and checks if set and non empty
+	Tasks []string `json:"tasks" validate:"required,gt=0,dive"` // makes field mandatory and checks if non empty
 }
 
 // Task is a global, polymorphic implementation of all publicly available tasks

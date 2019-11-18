@@ -21,6 +21,10 @@ import (
 	"log"
 	"reflect"
 
+	"k8s.io/apimachinery/pkg/util/uuid"
+
+	apimachinerytypes "k8s.io/apimachinery/pkg/types"
+
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	corev1 "k8s.io/api/core/v1"
@@ -72,10 +76,11 @@ type AggregatedStatus struct {
 //+-------------+        +----------------+
 //
 type PlanStatus struct {
-	Name            string          `json:"name,omitempty"`
-	Status          ExecutionStatus `json:"status,omitempty"`
-	LastFinishedRun metav1.Time     `json:"lastFinishedRun,omitempty"`
-	Phases          []PhaseStatus   `json:"phases,omitempty"`
+	Name            string                `json:"name,omitempty"`
+	Status          ExecutionStatus       `json:"status,omitempty"`
+	LastFinishedRun metav1.Time           `json:"lastFinishedRun,omitempty"`
+	Phases          []PhaseStatus         `json:"phases,omitempty"`
+	UID             apimachinerytypes.UID `json:"uid,omitempty"`
 }
 
 // PhaseStatus is representing status of a phase
@@ -260,6 +265,7 @@ func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) erro
 			notFound = false
 			planStatus := i.Status.PlanStatus[planIndex]
 			planStatus.Status = ExecutionPending
+			planStatus.UID = uuid.NewUUID()
 			for j, p := range v.Phases {
 				planStatus.Phases[j].Status = ExecutionPending
 				for k := range p.Steps {

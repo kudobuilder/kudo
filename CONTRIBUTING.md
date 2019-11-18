@@ -24,8 +24,8 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 
 - Git
 - Go `1.13` or later
-- [Kubebuilder](https://book.kubebuilder.io/getting_started/installation_and_setup.html)
-- A Kubernetes Cluster running version `1.13` or later (e.g., [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
+- [Kubebuilder](https://book-v1.book.kubebuilder.io/getting_started/installation_and_setup.html)
+- A Kubernetes Cluster running version `1.13` or later (e.g., [kind](https://kind.sigs.k8s.io/) or [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
 ### Build Instructions
@@ -39,13 +39,13 @@ When updating the structs under [APIs](https://github.com/kudobuilder/kudo/blob/
 
 After updating CRD manifests, use `make deploy` to apply the new CRDs to your cluster.
 
-#### Testing
+### Testing
 
 See the [contributor's testing guide](https://github.com/kudobuilder/kudo/blob/master/test/README.md).
 
 ## Community, Discussion, and Support
 
-Learn how to engage with the Kubernetes community on the [community page](community page).
+Learn how to engage with the Kubernetes community on the [community page](https://kudo.dev/community/).
 
 You can reach the maintainers of this project at:
 

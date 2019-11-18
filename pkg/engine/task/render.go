@@ -17,6 +17,7 @@ func render(resourceNames []string, templates map[string]string, params map[stri
 	configs["PlanName"] = meta.PlanName
 	configs["PhaseName"] = meta.PhaseName
 	configs["StepName"] = meta.StepName
+	configs["AppVersion"] = meta.AppVersion
 
 	resources := map[string]string{}
 	engine := renderer.New()
