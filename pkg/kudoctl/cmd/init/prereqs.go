@@ -25,11 +25,11 @@ func installPrereqs(client kubernetes.Interface, opts Options) error {
 	}
 
 	if opts.ServiceAccount != "kudo-manager" {
-		// Validate the alternate serviceaccount has cluster-admin clusterrolebinding
+		// Validate alternate serviceaccount exists in the cluster
 		if err := validateServiceAccountExists(client.CoreV1(), opts); err != nil {
 			return err
 		}
-
+		// Validate the alternate serviceaccount has cluster-admin clusterrolebinding
 		if err := validateClusterAdminRoleForSA(client, opts); err != nil {
 			return err
 		}
