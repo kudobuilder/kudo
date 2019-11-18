@@ -19,6 +19,10 @@ status: provisional
   * [Goals](#goals)
   * [Non-Goals](#non-goals)
 * [Proposal](#proposal)
+  * [Support multiple API versions in the package repository](#support-multiple-api-versions-in-the-package-repository)
+  * [Install a specific application version](#install-a-specific-application-version)
+  * [Naming of package tarballs](#naming-of-package-tarballs)
+  * [Semantic versioning](#semantic-versioning)
   * [Risks and Mitigations](#risks-and-mitigations)
 * [Implementation History](#implementation-history)
 
@@ -81,7 +85,7 @@ For this, the following changes have to be made in KUDO:
 
 As `appVersion` is already part of the repository index, a command line flag `--app-version` will be added to `kubectl kudo install` to select a specific application version. Because this version is application specific and might not follow [semantic versioning](https://semver.org/), the absence of this command line flag will result in KUDO installing the latest `version` of a package, or the version indicated with the `--version` flag.
 
-### Naming a package tarballs
+### Naming of package tarballs
 
 To avoid disambiguities, the `appVersion` of a package will be part of the tarball name. E.g., the Kafka package described above will be named `kafka-2.3.0-0.2.0.tgz`. For this, changes in `kudoctl/packages/writer` are necessary.
 
