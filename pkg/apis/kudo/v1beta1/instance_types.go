@@ -99,32 +99,32 @@ type StepStatus struct {
 	Status  ExecutionStatus `json:"status,omitempty"`
 }
 
-func (s *StepStatus) SetStatus(status ExecutionStatus) {
+func (s *StepStatus) Set(status ExecutionStatus) {
 	s.Status = status
 	s.Message = ""
 }
 
-func (s *StepStatus) SetStatusWithMessage(status ExecutionStatus, message string) {
+func (s *StepStatus) SetWithMessage(status ExecutionStatus, message string) {
 	s.Status = status
 	s.Message = message
 }
 
-func (s *PhaseStatus) SetStatus(status ExecutionStatus) {
+func (s *PhaseStatus) Set(status ExecutionStatus) {
 	s.Status = status
 	s.Message = ""
 }
 
-func (s *PhaseStatus) SetStatusWithMessage(status ExecutionStatus, message string) {
+func (s *PhaseStatus) SetWithMessage(status ExecutionStatus, message string) {
 	s.Status = status
 	s.Message = message
 }
 
-func (s *PlanStatus) SetStatus(status ExecutionStatus) {
+func (s *PlanStatus) Set(status ExecutionStatus) {
 	s.Status = status
 	s.Message = ""
 }
 
-func (s *PlanStatus) SetStatusWithMessage(status ExecutionStatus, message string) {
+func (s *PlanStatus) SetWithMessage(status ExecutionStatus, message string) {
 	s.Status = status
 	s.Message = message
 }
@@ -246,7 +246,7 @@ func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
 
 		existingPlanStatus, planExists := i.Status.PlanStatus[planName]
 		if planExists {
-			planStatus.SetStatusWithMessage(existingPlanStatus.Status, existingPlanStatus.Message)
+			planStatus.SetWithMessage(existingPlanStatus.Status, existingPlanStatus.Message)
 		}
 		for _, phase := range plan.Phases {
 			phaseStatus := &PhaseStatus{
@@ -260,7 +260,7 @@ func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
 					if phase.Name == oldPhase.Name {
 						existingPhaseStatus = oldPhase
 						phaseExists = true
-						phaseStatus.SetStatusWithMessage(existingPhaseStatus.Status, existingPhaseStatus.Message)
+						phaseStatus.SetWithMessage(existingPhaseStatus.Status, existingPhaseStatus.Message)
 					}
 				}
 			}
@@ -272,7 +272,7 @@ func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
 				if phaseExists {
 					for _, oldStep := range existingPhaseStatus.Steps {
 						if step.Name == oldStep.Name {
-							stepStatus.SetStatusWithMessage(oldStep.Status, oldStep.Message)
+							stepStatus.SetWithMessage(oldStep.Status, oldStep.Message)
 						}
 					}
 				}
@@ -297,12 +297,12 @@ func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) erro
 			// update plan status
 			notFound = false
 			planStatus := i.Status.PlanStatus[planIndex]
-			planStatus.SetStatus(ExecutionPending)
+			planStatus.Set(ExecutionPending)
 			planStatus.UID = uuid.NewUUID()
 			for j, p := range v.Phases {
-				planStatus.Phases[j].SetStatus(ExecutionPending)
+				planStatus.Phases[j].Set(ExecutionPending)
 				for k := range p.Steps {
-					i.Status.PlanStatus[planIndex].Phases[j].Steps[k].SetStatus(ExecutionPending)
+					i.Status.PlanStatus[planIndex].Phases[j].Steps[k].Set(ExecutionPending)
 				}
 			}
 

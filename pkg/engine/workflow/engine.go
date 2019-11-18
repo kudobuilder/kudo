@@ -67,7 +67,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 	}
 
 	planStatus := pl.PlanStatus.DeepCopy()
-	planStatus.SetStatus(v1beta1.ExecutionInProgress)
+	planStatus.Set(v1beta1.ExecutionInProgress)
 
 	phasesLeft := len(pl.Spec.Phases)
 	// --- 1. Iterate over plan phases ---
@@ -76,7 +76,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 		if phaseStatus == nil {
 			err := fmt.Errorf("%s/%s %w missing phase status: %s.%s", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name)
 
-			planStatus.SetStatusWithMessage(v1beta1.ExecutionFatalError, err.Error())
+			planStatus.SetWithMessage(v1beta1.ExecutionFatalError, err.Error())
 			return planStatus, engine.ExecutionError{
 				Err:       err,
 				EventName: missingPhaseStatus,
@@ -88,7 +88,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 			phasesLeft = phasesLeft - 1
 			continue
 		} else if isInProgress(phaseStatus.Status) {
-			phaseStatus.SetStatus(v1beta1.ExecutionInProgress)
+			phaseStatus.Set(v1beta1.ExecutionInProgress)
 		} else {
 			break
 		}
@@ -100,8 +100,8 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 			if stepStatus == nil {
 				err := fmt.Errorf("%s/%s %w missing step status: %s.%s.%s", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name, st.Name)
 
-				phaseStatus.SetStatusWithMessage(v1beta1.ExecutionFatalError, err.Error())
-				planStatus.SetStatusWithMessage(v1beta1.ExecutionFatalError, err.Error())
+				phaseStatus.SetWithMessage(v1beta1.ExecutionFatalError, err.Error())
+				planStatus.Set(v1beta1.ExecutionFatalError)
 				return planStatus, engine.ExecutionError{
 					Err:       err,
 					EventName: missingStepStatus,
@@ -113,7 +113,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 				delete(stepsLeft, stepStatus.Name)
 				continue
 			} else if isInProgress(stepStatus.Status) {
-				stepStatus.SetStatus(v1beta1.ExecutionInProgress)
+				stepStatus.Set(v1beta1.ExecutionInProgress)
 			} else {
 				// we are not in progress and not finished. An unexpected error occurred so that we can not proceed to the next phase
 				break
@@ -126,9 +126,9 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 				if !ok {
 					err := fmt.Errorf("%s/%s %w missing task %s.%s.%s.%s", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name, st.Name, tn)
 
-					phaseStatus.SetStatusWithMessage(v1beta1.ExecutionFatalError, err.Error())
-					stepStatus.SetStatusWithMessage(v1beta1.ExecutionFatalError, err.Error())
-					planStatus.SetStatusWithMessage(v1beta1.ExecutionFatalError, err.Error())
+					phaseStatus.Set(v1beta1.ExecutionFatalError)
+					planStatus.Set(v1beta1.ExecutionFatalError)
+					stepStatus.SetWithMessage(v1beta1.ExecutionFatalError, err.Error())
 					return planStatus, engine.ExecutionError{
 						Err:       err,
 						EventName: unknownTaskNameEventName,
@@ -149,9 +149,9 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 				if err != nil {
 					err := fmt.Errorf("%s/%s %w failed to build task %s.%s.%s.%s: %v", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name, st.Name, tn, err)
 
-					stepStatus.SetStatusWithMessage(v1beta1.ExecutionFatalError, err.Error())
-					planStatus.SetStatusWithMessage(v1beta1.ExecutionFatalError, err.Error())
-					phaseStatus.SetStatusWithMessage(v1beta1.ExecutionFatalError, err.Error())
+					stepStatus.SetWithMessage(v1beta1.ExecutionFatalError, err.Error())
+					planStatus.Set(v1beta1.ExecutionFatalError)
+					phaseStatus.Set(v1beta1.ExecutionFatalError)
 					return planStatus, engine.ExecutionError{
 						Err:       err,
 						EventName: unknownTaskKindEventName,
@@ -174,13 +174,13 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 				// stopped in the spirit of "fail-loud-and-proud".
 				switch {
 				case errors.Is(err, engine.ErrFatalExecution):
-					phaseStatus.SetStatusWithMessage(v1beta1.ExecutionFatalError, err.Error())
-					stepStatus.SetStatusWithMessage(v1beta1.ExecutionFatalError, err.Error())
-					planStatus.SetStatusWithMessage(v1beta1.ExecutionFatalError, err.Error())
+					phaseStatus.Set(v1beta1.ExecutionFatalError)
+					planStatus.Set(v1beta1.ExecutionFatalError)
+					stepStatus.SetWithMessage(v1beta1.ExecutionFatalError, err.Error())
 					return planStatus, err
 				case err != nil:
 					message := fmt.Sprintf("A transient error when executing task %s.%s.%s.%s. Will retry. %v", pl.Name, ph.Name, st.Name, t.Name, err)
-					stepStatus.SetStatusWithMessage(v1beta1.ErrorStatus, message)
+					stepStatus.SetWithMessage(v1beta1.ErrorStatus, message)
 					fmt.Printf("PlanExecution: %s", message)
 				case done:
 					delete(tasksLeft, t.Name)
@@ -196,7 +196,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 					break
 				}
 			} else {
-				stepStatus.SetStatus(v1beta1.ExecutionComplete)
+				stepStatus.Set(v1beta1.ExecutionComplete)
 				delete(stepsLeft, stepStatus.Name)
 			}
 		}
@@ -210,7 +210,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 				break
 			}
 		} else {
-			phaseStatus.SetStatus(v1beta1.ExecutionComplete)
+			phaseStatus.Set(v1beta1.ExecutionComplete)
 			phasesLeft = phasesLeft - 1
 		}
 	}
@@ -218,7 +218,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 	// --- 7. Check if all PHASEs are finished ---
 	if phasesLeft == 0 {
 		log.Printf("PlanExecution: %s/%s all phases of the plan %s are ready", em.InstanceNamespace, em.InstanceName, pl.Name)
-		planStatus.SetStatus(v1beta1.ExecutionComplete)
+		planStatus.Set(v1beta1.ExecutionComplete)
 		planStatus.LastFinishedRun = v1.Time{Time: currentTime}
 	}
 
