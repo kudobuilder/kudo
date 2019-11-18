@@ -58,6 +58,8 @@ func (ap *ActivePlan) taskByName(name string) (*v1beta1.Task, bool) {
 //        └── Phase main [FATAL_ERROR]
 //           └── Step everything (FATAL_ERROR)
 //
+// In terms of Status Message, we don't propagate the message up for fatal errors
+//
 // Furthermore, a transient ERROR during a step execution, means that the next step may be executed if the step strategy
 // is "parallel". In case of a fatal error, it is returned alongside with the new plan status and published on the event bus.
 func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.Enhancer, currentTime time.Time) (*v1beta1.PlanStatus, error) {

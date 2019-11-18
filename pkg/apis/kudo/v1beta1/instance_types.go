@@ -78,7 +78,7 @@ type AggregatedStatus struct {
 type PlanStatus struct {
 	Name            string                `json:"name,omitempty"`
 	Status          ExecutionStatus       `json:"status,omitempty"`
-	Message         string                `json:"message,omitempty"`
+	Message         string                `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
 	LastFinishedRun metav1.Time           `json:"lastFinishedRun,omitempty"`
 	Phases          []PhaseStatus         `json:"phases,omitempty"`
 	UID             apimachinerytypes.UID `json:"uid,omitempty"`
@@ -88,14 +88,14 @@ type PlanStatus struct {
 type PhaseStatus struct {
 	Name    string          `json:"name,omitempty"`
 	Status  ExecutionStatus `json:"status,omitempty"`
-	Message string          `json:"message,omitempty"`
+	Message string          `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
 	Steps   []StepStatus    `json:"steps,omitempty"`
 }
 
 // StepStatus is representing status of a step
 type StepStatus struct {
 	Name    string          `json:"name,omitempty"`
-	Message string          `json:"message,omitempty"`
+	Message string          `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
 	Status  ExecutionStatus `json:"status,omitempty"`
 }
 
