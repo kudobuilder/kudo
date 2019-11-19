@@ -205,6 +205,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 }
 
 func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance, client client.Client) error {
+	// update instance spec and metadata. this will not update Instance.Status field
 	if !reflect.DeepEqual(instance.Spec, oldInstance.Spec) || !reflect.DeepEqual(instance.ObjectMeta.Annotations, oldInstance.ObjectMeta.Annotations) {
 		instanceStatus := instance.Status.DeepCopy()
 		err := client.Update(context.TODO(), instance)
@@ -215,6 +216,7 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 		instance.Status = *instanceStatus
 	}
 
+	// update instance status
 	err := client.Status().Update(context.TODO(), instance)
 	if err != nil {
 		log.Printf("InstanceController: Error when updating instance status. %v", err)
