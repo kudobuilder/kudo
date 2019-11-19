@@ -289,7 +289,7 @@ func validateClusterAdminRoleForSA(client kubernetes.Interface, opts Options) er
 	}
 
 	if !saCheck {
-		return fmt.Errorf("Service Account %s does not exist in clusterrolebindings - KUDO expects the serviceAccount passed to have cluster-admin role", opts.ServiceAccount)
+		return fmt.Errorf("Service Account %s does not exist in clusterrolebindings - KUDO expects the service account passed to be created beforehand", opts.ServiceAccount)
 	}
 
 	if !nsCheck {
