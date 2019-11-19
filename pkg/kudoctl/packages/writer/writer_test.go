@@ -12,6 +12,8 @@ import (
 	"github.com/spf13/afero"
 )
 
+const expectedTarballSHA = "ad0b1650b6f50979815acedae884851527b4e721696a7cc1d37fef3970888b19"
+
 func TestRegularFileTarball(t *testing.T) {
 	var fs = afero.NewMemMapFs()
 	files.CopyOperatorToFs(fs, "../testdata/zk", "/opt")
@@ -30,6 +32,18 @@ func TestRegularFileTarball(t *testing.T) {
 	//open for reading in an untar
 	f, _ = fs.Open("/opt/zk.tgz")
 	defer f.Close()
+
+	actualTarballSHA, err := files.Sha256Sum(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if expectedTarballSHA != actualTarballSHA {
+		t.Errorf("Expecting the tarball to have a specific (reproducible) hash but it differs: %v, %v", expectedTarballSHA, actualTarballSHA)
+	}
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := untar(fs, "/opt/untar", f); err != nil {
 		t.Fatal(err)
