@@ -78,6 +78,7 @@ type AggregatedStatus struct {
 type PlanStatus struct {
 	Name            string                `json:"name,omitempty"`
 	Status          ExecutionStatus       `json:"status,omitempty"`
+	Message         string                `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
 	LastFinishedRun metav1.Time           `json:"lastFinishedRun,omitempty"`
 	Phases          []PhaseStatus         `json:"phases,omitempty"`
 	UID             apimachinerytypes.UID `json:"uid,omitempty"`
@@ -85,15 +86,47 @@ type PlanStatus struct {
 
 // PhaseStatus is representing status of a phase
 type PhaseStatus struct {
-	Name   string          `json:"name,omitempty"`
-	Status ExecutionStatus `json:"status,omitempty"`
-	Steps  []StepStatus    `json:"steps,omitempty"`
+	Name    string          `json:"name,omitempty"`
+	Status  ExecutionStatus `json:"status,omitempty"`
+	Message string          `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
+	Steps   []StepStatus    `json:"steps,omitempty"`
 }
 
 // StepStatus is representing status of a step
 type StepStatus struct {
-	Name   string          `json:"name,omitempty"`
-	Status ExecutionStatus `json:"status,omitempty"`
+	Name    string          `json:"name,omitempty"`
+	Message string          `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
+	Status  ExecutionStatus `json:"status,omitempty"`
+}
+
+func (s *StepStatus) Set(status ExecutionStatus) {
+	s.Status = status
+	s.Message = ""
+}
+
+func (s *StepStatus) SetWithMessage(status ExecutionStatus, message string) {
+	s.Status = status
+	s.Message = message
+}
+
+func (s *PhaseStatus) Set(status ExecutionStatus) {
+	s.Status = status
+	s.Message = ""
+}
+
+func (s *PhaseStatus) SetWithMessage(status ExecutionStatus, message string) {
+	s.Status = status
+	s.Message = message
+}
+
+func (s *PlanStatus) Set(status ExecutionStatus) {
+	s.Status = status
+	s.Message = ""
+}
+
+func (s *PlanStatus) SetWithMessage(status ExecutionStatus, message string) {
+	s.Status = status
+	s.Message = message
 }
 
 // ExecutionStatus captures the state of the rollout.
@@ -213,7 +246,7 @@ func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
 
 		existingPlanStatus, planExists := i.Status.PlanStatus[planName]
 		if planExists {
-			planStatus.Status = existingPlanStatus.Status
+			planStatus.SetWithMessage(existingPlanStatus.Status, existingPlanStatus.Message)
 		}
 		for _, phase := range plan.Phases {
 			phaseStatus := &PhaseStatus{
@@ -227,7 +260,7 @@ func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
 					if phase.Name == oldPhase.Name {
 						existingPhaseStatus = oldPhase
 						phaseExists = true
-						phaseStatus.Status = existingPhaseStatus.Status
+						phaseStatus.SetWithMessage(existingPhaseStatus.Status, existingPhaseStatus.Message)
 					}
 				}
 			}
@@ -239,7 +272,7 @@ func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
 				if phaseExists {
 					for _, oldStep := range existingPhaseStatus.Steps {
 						if step.Name == oldStep.Name {
-							stepStatus.Status = oldStep.Status
+							stepStatus.SetWithMessage(oldStep.Status, oldStep.Message)
 						}
 					}
 				}
@@ -265,12 +298,12 @@ func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) erro
 			// update plan status
 			notFound = false
 			planStatus := i.Status.PlanStatus[planIndex]
-			planStatus.Status = ExecutionPending
+			planStatus.Set(ExecutionPending)
 			planStatus.UID = uuid.NewUUID()
 			for j, p := range v.Phases {
-				planStatus.Phases[j].Status = ExecutionPending
+				planStatus.Phases[j].Set(ExecutionPending)
 				for k := range p.Steps {
-					i.Status.PlanStatus[planIndex].Phases[j].Steps[k].Status = ExecutionPending
+					i.Status.PlanStatus[planIndex].Phases[j].Steps[k].Set(ExecutionPending)
 				}
 			}
 
