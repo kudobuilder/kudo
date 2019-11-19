@@ -113,10 +113,10 @@ func planStatus(options *Options, settings *env.Settings) error {
 			planDisplay := fmt.Sprintf("Plan %s (%s strategy) [%s]%s", name, plan.Strategy, lastPlanStatus.Status, printMessageIfAvailable(lastPlanStatus.Message))
 			planBranchName := rootBranchName.AddBranch(planDisplay)
 			for _, phase := range lastPlanStatus.Phases {
-				phaseDisplay := fmt.Sprintf("Phase %s [%s]%s", phase.Name, phase.Status, printMessageIfAvailable(lastPlanStatus.Message))
+				phaseDisplay := fmt.Sprintf("Phase %s [%s]%s", phase.Name, phase.Status, printMessageIfAvailable(phase.Message))
 				phaseBranchName := planBranchName.AddBranch(phaseDisplay)
 				for _, steps := range phase.Steps {
-					stepsDisplay := fmt.Sprintf("Step %s (%s)%s", steps.Name, steps.Status, printMessageIfAvailable(lastPlanStatus.Message))
+					stepsDisplay := fmt.Sprintf("Step %s (%s)%s", steps.Name, steps.Status, printMessageIfAvailable(steps.Message))
 					phaseBranchName.AddBranch(stepsDisplay)
 				}
 			}
