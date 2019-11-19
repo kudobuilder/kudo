@@ -24,11 +24,11 @@ import (
 //Defines the deployment of the KUDO manager and it's service definition.
 
 const (
-	group              = "kudo.dev"
-	crdVersion         = "v1beta1"
-	defaultns          = "kudo-system"
-	defaultGracePeriod = 10
-	defaultsa          = "kudo-manager"
+	group                 = "kudo.dev"
+	crdVersion            = "v1beta1"
+	defaultns             = "kudo-system"
+	defaultGracePeriod    = 10
+	defaultServiceAccount = "kudo-manager"
 )
 
 // Options is the configurable options to init
@@ -56,7 +56,7 @@ func NewOptions(v string, ns string, sa string) Options {
 	}
 
 	if sa == "" {
-		sa = defaultsa
+		sa = defaultServiceAccount
 	}
 
 	return Options{
