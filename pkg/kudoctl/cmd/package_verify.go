@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/verify"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 
 	"github.com/gosuri/uitable"
 	"github.com/spf13/afero"
@@ -39,11 +39,11 @@ func newPackageVerifyCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 func (c *packageVerifyCmd) run(fs afero.Fs, path string) error {
 
-	pf, err := packages.FromFolder(fs, path)
+	pf, err := reader.FromDir(fs, path)
 	if err != nil {
 		return err
 	}
-	warnings, errors := verify.Parameters(pf.Params)
+	warnings, errors := verify.Parameters(pf.Params.Parameters)
 
 	if warnings != nil {
 		printWarnings(c.out, warnings)

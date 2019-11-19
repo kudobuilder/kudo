@@ -166,7 +166,7 @@ func TestAddPackageVersionErrorConditions(t *testing.T) {
 }
 
 func TestMapPackageFileToPackageVersion(t *testing.T) {
-	o := packages.Operator{
+	o := packages.OperatorFile{
 		APIVersion:        packages.APIVersion,
 		Name:              "kafka",
 		Description:       "",
@@ -177,7 +177,7 @@ func TestMapPackageFileToPackageVersion(t *testing.T) {
 		Maintainers:       []*v1beta1.Maintainer{{Name: "Ken Sipe"}},
 		URL:               "http://kudo.dev/kafka",
 	}
-	pf := packages.PackageFiles{
+	pf := packages.Files{
 		Operator: &o,
 	}
 

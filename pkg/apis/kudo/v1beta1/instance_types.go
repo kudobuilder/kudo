@@ -285,6 +285,7 @@ func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
 }
 
 // StartPlanExecution mark plan as to be executed
+// this modifies the instance.Status as well as instance.Metadata.Annotation (to save snapshot if needed)
 func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) error {
 	if i.NoPlanEverExecuted() || isUpgradePlan(planName) {
 		i.EnsurePlanStatusInitialized(ov)

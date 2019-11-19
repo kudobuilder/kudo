@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"reflect"
 	"time"
 
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
@@ -126,6 +127,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	log.Printf("InstanceController: Received Reconcile request for instance \"%+v\"", request.Name)
 	instance, err := r.getInstance(request)
+	oldInstance := instance.DeepCopy()
 	if err != nil {
 		if apierrors.IsNotFound(err) { // not retrying if instance not found, probably someone manually removed it?
 			log.Printf("Instances in namespace %s not found, not retrying reconcile since this error is usually not recoverable (without manual intervention).", request.NamespacedName)
@@ -149,7 +151,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		log.Printf("InstanceController: Going to start execution of plan %s on instance %s/%s", kudo.StringValue(planToBeExecuted), instance.Namespace, instance.Name)
 		err = instance.StartPlanExecution(kudo.StringValue(planToBeExecuted), ov)
 		if err != nil {
-			return reconcile.Result{}, r.handleError(err, instance)
+			return reconcile.Result{}, r.handleError(err, instance, oldInstance)
 		}
 		r.Recorder.Event(instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", kudo.StringValue(planToBeExecuted)))
 	}
@@ -174,7 +176,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	activePlan, err := preparePlanExecution(instance, ov, activePlanStatus)
 	if err != nil {
-		err = r.handleError(err, instance)
+		err = r.handleError(err, instance, oldInstance)
 		return reconcile.Result{}, err
 	}
 	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
@@ -185,13 +187,13 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		instance.UpdateInstanceStatus(newStatus)
 	}
 	if err != nil {
-		err = r.handleError(err, instance)
+		err = r.handleError(err, instance, oldInstance)
 		return reconcile.Result{}, err
 	}
 
-	err = r.Client.Update(context.TODO(), instance)
+	err = updateInstance(instance, oldInstance, r.Client)
 	if err != nil {
-		log.Printf("InstanceController: Error when updating instance state. %v", err)
+		log.Printf("InstanceController: Error when updating instance. %v", err)
 		return reconcile.Result{}, err
 	}
 
@@ -200,6 +202,25 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	}
 
 	return reconcile.Result{}, nil
+}
+
+func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance, client client.Client) error {
+	if !reflect.DeepEqual(instance.Spec, oldInstance.Spec) || !reflect.DeepEqual(instance.ObjectMeta.Annotations, oldInstance.ObjectMeta.Annotations) {
+		instanceStatus := instance.Status.DeepCopy()
+		err := client.Update(context.TODO(), instance)
+		if err != nil {
+			log.Printf("InstanceController: Error when updating instance spec. %v", err)
+			return err
+		}
+		instance.Status = *instanceStatus
+	}
+
+	err := client.Status().Update(context.TODO(), instance)
+	if err != nil {
+		log.Printf("InstanceController: Error when updating instance status. %v", err)
+		return err
+	}
+	return nil
 }
 
 func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion, activePlanStatus *kudov1beta1.PlanStatus) (*workflow.ActivePlan, error) {
@@ -223,11 +244,11 @@ func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.Operat
 // handleError handles execution error by logging, updating the plan status and optionally publishing an event
 // specify eventReason as nil if you don't wish to publish a warning event
 // returns err if this err should be retried, nil otherwise
-func (r *Reconciler) handleError(err error, instance *kudov1beta1.Instance) error {
+func (r *Reconciler) handleError(err error, instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance) error {
 	log.Printf("InstanceController: %v", err)
 
 	// first update instance as we want to propagate errors also to the `Instance.Status.PlanStatus`
-	clientErr := r.Client.Update(context.TODO(), instance)
+	clientErr := updateInstance(instance, oldInstance, r.Client)
 	if clientErr != nil {
 		log.Printf("InstanceController: Error when updating instance state. %v", clientErr)
 		return clientErr

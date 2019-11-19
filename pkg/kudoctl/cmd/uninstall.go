@@ -59,7 +59,12 @@ func newUninstallCmd() *cobra.Command {
 		Short:   "Uninstall a KUDO package.",
 		Long:    "Uninstall the instance of a KUDO package. This also removes dependent objects, e.g. deployments, pods",
 		Example: uninstallExample,
-		Args:    cobra.NoArgs,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 0 {
+				return fmt.Errorf("The command expects no arguments and --instance flag must be provided.\n %s", cmd.UsageString())
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return uninstall.run(options, &Settings)
 		},
