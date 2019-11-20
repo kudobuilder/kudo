@@ -409,7 +409,7 @@ func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
 	}
 	if instanceSnapshot.OperatorVersion.Name != i.Spec.OperatorVersion.Name {
 		// this instance was upgraded to newer version
-		log.Printf("Instance: instance %s/%s was upgraded from %s to %s operatorversion", i.Namespace, i.Name, instanceSnapshot.OperatorVersion.Name, i.Spec.OperatorVersion.Name)
+		log.Printf("Instance: instance %s/%s was upgraded from %s to %s operatorVersion", i.Namespace, i.Name, instanceSnapshot.OperatorVersion.Name, i.Spec.OperatorVersion.Name)
 		plan := selectPlan([]string{UpgradePlanName, UpdatePlanName, DeployPlanName}, ov)
 		if plan == nil {
 			return nil, &InstanceError{fmt.Errorf("supposed to execute plan because instance %s/%s was upgraded but none of the deploy, upgrade, update plans found in linked operatorVersion", i.Namespace, i.Name), kudo.String("PlanNotFound")}
@@ -424,7 +424,7 @@ func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
 		paramDefinitions := getParamDefinitions(paramDiff, ov)
 		plan := planNameFromParameters(paramDefinitions, ov)
 		if plan == nil {
-			return nil, &InstanceError{fmt.Errorf("supposed to execute plan because instance %s/%s was updatet but none of the deploy, update plans found in linked operatorVersion", i.Namespace, i.Name), kudo.String("PlanNotFound")}
+			return nil, &InstanceError{fmt.Errorf("supposed to execute plan because instance %s/%s was updated but none of the deploy, update plans found in linked operatorVersion", i.Namespace, i.Name), kudo.String("PlanNotFound")}
 		}
 		return plan, nil
 	}

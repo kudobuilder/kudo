@@ -300,11 +300,11 @@ func (r *Reconciler) getOperatorVersion(instance *kudov1beta1.Instance) (ov *kud
 		},
 		ov)
 	if err != nil {
-		log.Printf("InstanceController: Error getting operatorversion \"%v\" for instance \"%v\": %v",
+		log.Printf("InstanceController: Error getting operatorVersion \"%v\" for instance \"%v\": %v",
 			instance.Spec.OperatorVersion.Name,
 			instance.Name,
 			err)
-		r.Recorder.Event(instance, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Error getting operatorversion \"%v\": %v", instance.Spec.OperatorVersion.Name, err))
+		r.Recorder.Event(instance, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Error getting operatorVersion \"%v\": %v", instance.Spec.OperatorVersion.Name, err))
 		return nil, err
 	}
 	return ov, nil
