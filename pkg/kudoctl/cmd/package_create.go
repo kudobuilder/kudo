@@ -64,6 +64,10 @@ func validateOperatorArg(args []string) error {
 
 // run returns the errors associated with cmd env
 func (pkg *packageCreateCmd) run() error {
+	err := verifyPackage(pkg.fs, pkg.path, pkg.out)
+	if err != nil {
+		return err
+	}
 	tarfile, err := writer.WriteTgz(pkg.fs, pkg.path, pkg.destination, pkg.overwrite)
 	if err == nil {
 		fmt.Fprintf(pkg.out, "Package created: %v\n", tarfile)
