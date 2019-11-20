@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"io"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/plan"
 	"github.com/spf13/cobra"
 )
@@ -15,7 +17,7 @@ const (
 )
 
 // newPlanCmd creates a new command that shows the plans available for an instance
-func newPlanCmd() *cobra.Command {
+func newPlanCmd(out io.Writer) *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "plan",
 		Short: "View all available plans.",
@@ -23,7 +25,7 @@ func newPlanCmd() *cobra.Command {
 	}
 
 	newCmd.AddCommand(NewPlanHistoryCmd())
-	newCmd.AddCommand(NewPlanStatusCmd())
+	newCmd.AddCommand(NewPlanStatusCmd(out))
 
 	return newCmd
 }
@@ -46,18 +48,21 @@ func NewPlanHistoryCmd() *cobra.Command {
 }
 
 //NewPlanStatusCmd creates a new command that shows the status of an instance by looking at its current plan
-func NewPlanStatusCmd() *cobra.Command {
-	options := plan.DefaultStatusOptions
+func NewPlanStatusCmd(out io.Writer) *cobra.Command {
+	options := &plan.Options{Out: out}
 	statusCmd := &cobra.Command{
 		Use:     "status",
 		Short:   "Shows the status of all plans to an particular instance.",
 		Example: planStatuExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return plan.RunStatus(cmd, options, &Settings)
+			return plan.Status(options, &Settings)
 		},
 	}
 
 	statusCmd.Flags().StringVar(&options.Instance, "instance", "", "The instance name available from 'kubectl get instances'")
+	if err := statusCmd.MarkFlagRequired("instance"); err != nil {
+		panic(err)
+	}
 
 	return statusCmd
 }
