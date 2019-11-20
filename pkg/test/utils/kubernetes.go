@@ -339,7 +339,7 @@ func PrettyDiff(expected runtime.Object, actual runtime.Object) (string, error) 
 func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 	unstruct, err := runtime.DefaultUnstructuredConverter.ToUnstructured(in)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("erroring converting %s to unstructured", ResourceID(in)))
+		return nil, errors.Wrap(err, fmt.Sprintf("error converting %s to unstructured", ResourceID(in)))
 	}
 
 	var converted runtime.Object
@@ -361,7 +361,7 @@ func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 
 	err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstruct, converted)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("erroring converting %s from unstructured", ResourceID(in)))
+		return nil, errors.Wrap(err, fmt.Sprintf("error converting %s from unstructured", ResourceID(in)))
 	}
 
 	return converted, nil
