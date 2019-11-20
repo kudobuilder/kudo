@@ -2,6 +2,7 @@ package renderer
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -124,7 +125,26 @@ func (k *KustomizeEnhancer) Apply(templates map[string]string, metadata Metadata
 }
 
 func setControllerReference(owner v1.Object, obj runtime.Object, scheme *runtime.Scheme) error {
-	if err := controllerutil.SetControllerReference(owner, obj.(v1.Object), scheme); err != nil {
+	object := obj.(v1.Object)
+	ownerNs := owner.GetNamespace()
+	if ownerNs != "" {
+		objNs := object.GetNamespace()
+		if objNs == "" {
+			// we're trying to create cluster-scoped resource from and bind Instance as owner of that
+			// that is disallowed by design, see https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/#owners-and-dependents
+			// for now solve by not adding the owner
+			log.Printf("Not adding owner to resource %s because it's cluster-scoped and cannot be owned by namespace-scoped instance %s/%s", object.GetName(), owner.GetNamespace(), owner.GetName())
+			return nil
+		}
+		if ownerNs != objNs {
+			// we're trying to create resource in another namespace as is Instance's namespace, Instance cannot be owner of such resource
+			// that is disallowed by design, see https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/#owners-and-dependents
+			// for now solve by not adding the owner
+			log.Printf("Not adding owner to resource %s/%s because it's in different namespace than instance %s/%s and thus cannot be owned by that instance", object.GetNamespace(), object.GetName(), owner.GetNamespace(), owner.GetName())
+			return nil
+		}
+	}
+	if err := controllerutil.SetControllerReference(owner, object, scheme); err != nil {
 		return err
 	}
 	return nil
