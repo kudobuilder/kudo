@@ -24,7 +24,7 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 
 - Git
 - Go `1.13` or later
-- [Kubebuilder](https://book.kubebuilder.io/getting_started/installation_and_setup.html)
+- [Kubebuilder](https://book.kubebuilder.io/getting_started/installation_and_setup.html) - note that it is only needed for the `kube-apiserver` and `etcd` binaries, so no need to install *its* dependencies (such as `kustomize`).
 - A Kubernetes Cluster running version `1.13` or later (e.g., [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
