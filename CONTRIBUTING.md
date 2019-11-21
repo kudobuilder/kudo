@@ -46,12 +46,35 @@ See the [contributor's testing guide](https://github.com/kudobuilder/kudo/blob/m
 
 ## Community, Discussion, and Support
 
-Learn how to engage with the Kubernetes community on the [community page](https://kudo.dev/community/).
+Learn how to engage with the KUDO community on the [community page](https://kudo.dev/community/).
 
 You can reach the maintainers of this project at:
 
 - [Slack](https://kubernetes.slack.com/messages/kudo/)
 - [Mailing List](https://groups.google.com/d/forum/kudobuilder)
+
+## Code culture
+
+This is a set of practices we try to live by when developing KUDO. These are just defaults (soft rules). Deviations from them are possible, only has to be justified.
+
+### General guidelines
+- Master is always releasable (green CI)
+- All feature/bug-fixing work should have an open issue with a description
+- Every user-facing feature that is NOT behind a feature gate should have an integration test
+
+### Pull requests
+- One core-team member has to approve the PR to be able to merge (defined in code owners file)
+- When core-team member puts 'request for changes' on your PR, that stops merging until it's resolved (even when have enough approvals)
+- Since KUDO is developed in multiple timezones, try to keep the PR open for everyone to be able to see it (~24h)
+- We prefer squash commits so that all changes from a branch are committed to master as a single commit
+- Before you merge, make sure your commit title is meaningful and the commit contains description
+
+- For a piece of work that takes >3-5 days, pair with somebody
+- When you pair with somebody, don't forget to appreciate their work using [co-authorship](https://help.github.com/en/github/committing-changes-to-your-project/creating-a-commit-with-multiple-authors)
+- Open a PR as soon as possible to give everybody a chance to review it
+
+### As a code owner (core team mamber)
+- Schedule a portion of your day to review PRs to appreciate work of others
 
 ## Is My Thing an Enhancement?
 
