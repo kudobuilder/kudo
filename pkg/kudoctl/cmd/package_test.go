@@ -16,9 +16,9 @@ var packageCmdArgs = []struct {
 	errorMessage string
 }{
 	{"expect exactly one argument", []string{}, "expecting exactly one argument - directory of the operator or name of package"}, // 1
-	{"empty string argument", []string{""}, "invalid operator in path:  error: path must be specified"},                          // 2
-	{"invalid operator", []string{"foo"}, "invalid operator in path: foo error: open foo: file does not exist"},                  // 3
-	{"valid operator", []string{"/opt/zk"}, ""}, // 4
+	{"empty string argument", []string{""}, "path must be specified"},                                                            // 2
+	{"invalid operator", []string{"foo"}, "open foo: file does not exist"},                                                       // 3
+	{"valid operator", []string{"/opt/zk"}, ""},                                                                                  // 4
 }
 
 func TestTableNewPackageCmd(t *testing.T) {

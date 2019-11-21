@@ -8,12 +8,10 @@ require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/containerd/containerd v1.2.9 // indirect
-	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/docker v1.4.2-0.20190916154449-92cc603036dd
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dustinkirkland/golang-petname v0.0.0-20170921220637-d3c2ba80e75e
-	github.com/go-test/deep v1.0.1
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golangci/golangci-lint v1.21.0
 	github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf
@@ -33,6 +31,7 @@ require (
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/pmezard/go-difflib v1.0.0
+	github.com/prometheus/client_golang v1.0.0 // indirect
 	github.com/spf13/afero v1.2.2
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
@@ -50,8 +49,8 @@ require (
 	k8s.io/code-generator v0.0.0-20191004115455-8e001e5d1894
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/kubectl v0.0.0-20191016120415-2ed914427d51
-	sigs.k8s.io/controller-runtime v0.3.1-0.20191022174215-ad57a976ffa1
-	sigs.k8s.io/controller-tools v0.2.2
+	sigs.k8s.io/controller-runtime v0.4.0
+	sigs.k8s.io/controller-tools v0.2.3
 	sigs.k8s.io/kind v0.5.1
 	sigs.k8s.io/kustomize v2.0.3+incompatible
 	sigs.k8s.io/yaml v1.1.0

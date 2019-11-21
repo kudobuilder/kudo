@@ -97,28 +97,6 @@ func (i IndexFile) Write(w io.Writer) error {
 	return err
 }
 
-// GetByNameAndVersion returns the operator of given name and version.
-// If no specific version is required, pass an empty string as version and the
-// the latest version will be returned.
-func (i IndexFile) GetByNameAndVersion(name, version string) (*PackageVersion, error) {
-	vs, ok := i.Entries[name]
-	if !ok || len(vs) == 0 {
-		return nil, fmt.Errorf("no operator found for: %s", name)
-	}
-
-	for _, ver := range vs {
-		if ver.Version == version || version == "" {
-			return ver, nil
-		}
-	}
-
-	if version == "" {
-		return nil, fmt.Errorf("no operator version found for %s", name)
-	}
-
-	return nil, fmt.Errorf("no operator version found for %s-%v", name, version)
-}
-
 // AddPackageVersion adds an entry to the IndexFile (does not allow dups)
 func (i *IndexFile) AddPackageVersion(pv *PackageVersion) error {
 	name := pv.Name

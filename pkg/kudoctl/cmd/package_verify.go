@@ -30,30 +30,32 @@ func newPackageVerifyCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			if err := validateOperatorArg(args); err != nil {
 				return err
 			}
-			return list.run(fs, args[0])
+			return list.run(args[0])
 		},
 	}
 
 	return cmd
 }
 
-func (c *packageVerifyCmd) run(fs afero.Fs, path string) error {
+func (c *packageVerifyCmd) run(path string) error {
 
+	return verifyPackage(c.fs, path, c.out)
+}
+
+func verifyPackage(fs afero.Fs, path string, out io.Writer) error {
 	pf, err := reader.FromDir(fs, path)
 	if err != nil {
 		return err
 	}
 	warnings, errors := verify.Parameters(pf.Params.Parameters)
-
 	if warnings != nil {
-		printWarnings(c.out, warnings)
+		printWarnings(out, warnings)
 	}
 	if errors == nil {
-		fmt.Fprintf(c.out, "package is valid\n")
+		fmt.Fprintf(out, "package is valid\n")
 		return nil
 	}
-
-	printErrors(c.out, errors)
+	printErrors(out, errors)
 	return fmt.Errorf("package verification errors: %v", len(errors))
 	//TODO (kensipe): add linting
 	// 2. warning on params not used

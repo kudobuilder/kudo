@@ -33,7 +33,7 @@ or '--version' which will replace the version designation on the standard image.
 
 To dump a manifest containing the KUDO deployment YAML, combine the '--dry-run' and '--output=yaml' flags.
 
-Running 'kudo init' on server-side is idempotent - it skips manifests alredy applied to the cluster in previous runs
+Running 'kudo init' on server-side is idempotent - it skips manifests already applied to the cluster in previous runs
 and finishes with success if KUDO is already installed.
 `
 	initExample = `  # yaml output
