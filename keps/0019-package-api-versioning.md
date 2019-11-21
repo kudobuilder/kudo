@@ -46,7 +46,7 @@ The dependencies between KUDO, operators packages and the application that is ma
 
 ## Proposal
 
-A `operator.yaml` file already provides versions for all components describing an operator:
+An `operator.yaml` file already provides versions for all components describing an operator:
   * The dependency on KUDO is provided by the `apiVersion` and `kudoVersion` fields
   * The bundled application version is provided by the `appVersion` field
   * The version of the operator is provided by the `version` field
