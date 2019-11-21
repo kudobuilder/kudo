@@ -166,6 +166,8 @@ func instanceCrd() *apiextv1beta1.CustomResourceDefinition {
 			Properties: validationProps,
 		},
 	}
+
+	crd.Spec.Subresources = &apiextv1beta1.CustomResourceSubresources{Status: &apiextv1beta1.CustomResourceSubresourceStatus{}}
 	return crd
 }
 

@@ -3,6 +3,7 @@ package install
 import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
+	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 
@@ -65,10 +66,12 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 	}
 
 	clog.V(3).Printf("getting package crds")
-	resources, err := kudo.Resources(operatorArgument, options.PackageVersion, repository)
+
+	resolver := pkgresolver.New(repository)
+	pkg, err := resolver.Resolve(operatorArgument, options.PackageVersion)
 	if err != nil {
 		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", operatorArgument)
 	}
 
-	return kudo.InstallPackage(kc, resources, options.SkipInstance, options.InstanceName, settings.Namespace, options.Parameters)
+	return kudo.InstallPackage(kc, pkg.Resources, options.SkipInstance, options.InstanceName, settings.Namespace, options.Parameters)
 }

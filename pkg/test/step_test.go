@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/stretchr/testify/assert"
@@ -52,10 +54,10 @@ func TestStepCreate(t *testing.T) {
 	pod := testutils.NewPod("hello", "")
 	podWithNamespace := testutils.NewPod("hello2", "different-namespace")
 	clusterScopedResource := testutils.NewResource("v1", "Namespace", "my-namespace", "")
-	podToUpdate := testutils.NewPod("update-me", "")
+	podToUpdate := testutils.NewPod("update-me", "").(*unstructured.Unstructured)
 	updateToApply := testutils.WithSpec(t, podToUpdate, map[string]interface{}{
 		"replicas": 2,
-	})
+	}).(*unstructured.Unstructured)
 
 	cl := fake.NewFakeClient(testutils.WithNamespace(podToUpdate, "world"))
 
@@ -74,7 +76,7 @@ func TestStepCreate(t *testing.T) {
 	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(clusterScopedResource), clusterScopedResource))
 
 	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podToUpdate), podToUpdate))
-	assert.Equal(t, updateToApply, podToUpdate)
+	assert.Equal(t, updateToApply.Object["spec"], podToUpdate.Object["spec"])
 
 	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podWithNamespace), podWithNamespace))
 	actual := testutils.NewPod("hello2", namespace)
