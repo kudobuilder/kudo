@@ -24,7 +24,7 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 
 - Git
 - Go `1.13` or later
-- [Kubebuilder](https://book-v1.book.kubebuilder.io/getting_started/installation_and_setup.html)
+- [Kubebuilder >2.0](https://book-v1.book.kubebuilder.io/getting_started/installation_and_setup.html) (we use kubebuilder only for api server and etcd binaries, if you have those in path in the right versions, you don't need kubebuilder)
 - A Kubernetes Cluster running version `1.13` or later (e.g., [kind](https://kind.sigs.k8s.io/) or [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
