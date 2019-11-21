@@ -24,7 +24,7 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 
 - Git
 - Go `1.13` or later
-- [Kubebuilder](https://book-v1.book.kubebuilder.io/getting_started/installation_and_setup.html)
+- [Kubebuilder](https://book.kubebuilder.io/quick-start.html#installation)
 - A Kubernetes Cluster running version `1.13` or later (e.g., [kind](https://kind.sigs.k8s.io/) or [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
