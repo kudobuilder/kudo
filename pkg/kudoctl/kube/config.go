@@ -3,6 +3,8 @@ package kube
 import (
 	"fmt"
 
+	"k8s.io/client-go/dynamic"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -13,12 +15,13 @@ import (
 
 // Client provides access different K8S clients
 type Client struct {
-	KubeClient kubernetes.Interface
-	ExtClient  apiextensionsclient.Interface
+	KubeClient    kubernetes.Interface
+	ExtClient     apiextensionsclient.Interface
+	DynamicClient dynamic.Interface
 }
 
-// GetConfig returns a Kubernetes client config for a given kubeconfig.
-func GetConfig(kubeconfig string) clientcmd.ClientConfig {
+// getConfig returns a Kubernetes client config for a given kubeconfig.
+func getConfig(kubeconfig string) clientcmd.ClientConfig {
 	rules := clientcmd.NewDefaultClientConfigLoadingRules()
 	rules.DefaultClientConfig = &clientcmd.DefaultClientConfig
 
@@ -32,7 +35,7 @@ func GetConfig(kubeconfig string) clientcmd.ClientConfig {
 }
 
 func getRestConfig(kubeconfig string) (*rest.Config, error) {
-	config, err := GetConfig(kubeconfig).ClientConfig()
+	config, err := getConfig(kubeconfig).ClientConfig()
 	if err != nil {
 		return nil, fmt.Errorf("could not get Kubernetes config using configuration %q: %s", kubeconfig, err)
 	}
@@ -54,6 +57,10 @@ func GetKubeClient(kubeconfig string) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not get Kubernetes client: %s", err)
 	}
+	dynamicClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("could not create Kubernetes dynamic client: %s", err)
+	}
 
-	return &Client{client, extClient}, nil
+	return &Client{client, extClient, dynamicClient}, nil
 }

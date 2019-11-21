@@ -13,6 +13,7 @@ BUILD_DATE_PATH := github.com/kudobuilder/kudo/pkg/version.buildDate
 DATE_FMT := "%Y-%m-%dT%H:%M:%SZ"
 BUILD_DATE := $(shell date -u -d "@$SOURCE_DATE_EPOCH" "+${DATE_FMT}" 2>/dev/null || date -u -r "${SOURCE_DATE_EPOCH}" "+${DATE_FMT}" 2>/dev/null || date -u "+${DATE_FMT}")
 LDFLAGS := -X ${GIT_VERSION_PATH}=${GIT_VERSION} -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} -X ${BUILD_DATE_PATH}=${BUILD_DATE}
+ENABLE_WEBHOOKS ?= false
 
 export GO111MODULE=on
 
@@ -67,7 +68,9 @@ manager-clean:
 .PHONY: run
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run:
-	go run -ldflags "${LDFLAGS}" ./cmd/manager/main.go
+    # for local development, webhooks are disabled by default
+    # if you enable them, you have to take care of providing the TLS certs locally
+	ENABLE_WEBHOOKS=${ENABLE_WEBHOOKS} go run -ldflags "${LDFLAGS}" ./cmd/manager/main.go
 
 .PHONY: deploy
 # Install KUDO into a cluster via kubectl kudo init
@@ -114,9 +117,7 @@ clean:  cli-clean test-clean manager-clean deploy-clean
 docker-build: generate lint
 	docker build --build-arg git_version_arg=${GIT_VERSION_PATH}=v${GIT_VERSION} \
 	--build-arg git_commit_arg=${GIT_COMMIT_PATH}=${GIT_COMMIT} \
-	--build-arg build_date_arg=${BUILD_DATE_PATH}=${BUILD_DATE} . -t ${DOCKER_IMG}:${DOCKER_TAG}
-	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:v${GIT_VERSION}
-	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:latest
+	--build-arg build_date_arg=${BUILD_DATE_PATH}=${BUILD_DATE} . -t alenkacz/kudobuilder-test:${DOCKER_TAG}
 
 .PHONY: docker-push
 # Push the docker image

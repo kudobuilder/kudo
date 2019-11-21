@@ -40,10 +40,12 @@ type Options struct {
 	TerminationGracePeriodSeconds int64
 	// Image defines the image to be used
 	Image string
+	// Enable validation
+	EnableValidation bool
 }
 
 // NewOptions provides an option struct with defaults
-func NewOptions(v string, ns string) Options {
+func NewOptions(v string, ns string, validation bool) Options {
 
 	if v == "" {
 		v = version.Get().GitVersion
@@ -57,28 +59,36 @@ func NewOptions(v string, ns string) Options {
 		Namespace:                     ns,
 		TerminationGracePeriodSeconds: defaultGracePeriod,
 		Image:                         fmt.Sprintf("kudobuilder/controller:v%v", v),
+		EnableValidation:              validation,
 	}
 }
 
 // Install uses Kubernetes client to install KUDO.
 func Install(client *kube.Client, opts Options, crdOnly bool) error {
 
-	clog.Printf("✅ installing crds")
 	if err := installCrds(client.ExtClient); err != nil {
 		return err
 	}
+	clog.Printf("✅ installed crds")
 	if crdOnly {
 		return nil
 	}
-	clog.Printf("✅ preparing service accounts and other requirements for controller to run")
 	if err := installPrereqs(client.KubeClient, opts); err != nil {
 		return err
 	}
+	clog.Printf("✅ installed service accounts and other requirements for controller to run")
 
-	clog.Printf("✅ installing kudo controller")
+	if opts.EnableValidation {
+		if err := installWebhook(client.KubeClient, client.DynamicClient, opts.Namespace); err != nil {
+			return err
+		}
+		clog.Printf("✅ installed webhook")
+	}
+
 	if err := installManager(client.KubeClient, opts); err != nil {
 		return err
 	}
+	clog.Printf("✅ installed kudo controller")
 	return nil
 }
 
@@ -184,13 +194,14 @@ func generateDeployment(opts Options) *appsv1.StatefulSet {
 							Env: []v1.EnvVar{
 								{Name: "POD_NAMESPACE", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
 								{Name: "SECRET_NAME", Value: "kudo-webhook-server-secret"},
+								{Name: "ENABLE_WEBHOOKS", Value: enableWebhooks(opts)},
 							},
 							Image:           image,
 							ImagePullPolicy: "Always",
 							Name:            "manager",
 							Ports: []v1.ContainerPort{
 								// name matters for service
-								{ContainerPort: 9876, Name: "webhook-server", Protocol: "TCP"},
+								{ContainerPort: 443, Name: "webhook-server", Protocol: "TCP"},
 							},
 							Resources: v1.ResourceRequirements{
 								Requests: v1.ResourceList{
@@ -212,6 +223,13 @@ func generateDeployment(opts Options) *appsv1.StatefulSet {
 	}
 
 	return d
+}
+
+func enableWebhooks(options Options) string {
+	if options.EnableValidation {
+		return "true"
+	}
+	return "false"
 }
 
 func managerLabels() labels.Set {
