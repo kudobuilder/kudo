@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"io"
+	"os"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/plan"
 	"github.com/spf13/cobra"
@@ -61,7 +64,8 @@ func NewPlanStatusCmd(out io.Writer) *cobra.Command {
 
 	statusCmd.Flags().StringVar(&options.Instance, "instance", "", "The instance name available from 'kubectl get instances'")
 	if err := statusCmd.MarkFlagRequired("instance"); err != nil {
-		panic(err)
+		clog.Printf("failed to make --instance flag as required: %v", err)
+		os.Exit(1)
 	}
 
 	return statusCmd
