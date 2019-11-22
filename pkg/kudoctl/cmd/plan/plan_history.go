@@ -2,6 +2,7 @@ package plan
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/spf13/cobra"
@@ -10,6 +11,7 @@ import (
 
 // Options are the configurable options for plans
 type Options struct {
+	Out      io.Writer
 	Instance string
 }
 

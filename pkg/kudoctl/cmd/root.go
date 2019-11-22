@@ -60,7 +60,7 @@ and serves as an API aggregation layer.
 	cmd.AddCommand(newUninstallCmd())
 	cmd.AddCommand(newPackageCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newGetCmd())
-	cmd.AddCommand(newPlanCmd())
+	cmd.AddCommand(newPlanCmd(cmd.OutOrStdout()))
 	cmd.AddCommand(newRepoCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newTestCmd())
 	cmd.AddCommand(newVersionCmd())
