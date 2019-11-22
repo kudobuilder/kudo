@@ -64,7 +64,7 @@ func NewPlanStatusCmd(out io.Writer) *cobra.Command {
 
 	statusCmd.Flags().StringVar(&options.Instance, "instance", "", "The instance name available from 'kubectl get instances'")
 	if err := statusCmd.MarkFlagRequired("instance"); err != nil {
-		clog.Printf("failed to make --instance flag as required: %v", err)
+		clog.Printf("failed to mark --instance flag as required: %v", err)
 		os.Exit(1)
 	}
 
