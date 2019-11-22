@@ -119,7 +119,7 @@ func generateServiceAccount(opts Options) *v1.ServiceAccount {
 	sa := &v1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels:    labels,
-			Name:      "kudo-manager",
+			Name:      opts.ServiceAccount,
 			Namespace: opts.Namespace,
 		},
 	}
@@ -140,7 +140,7 @@ func generateRoleBinding(opts Options) *rbacv1.ClusterRoleBinding {
 		},
 		Subjects: []rbacv1.Subject{{
 			Kind:      "ServiceAccount",
-			Name:      "kudo-manager",
+			Name:      opts.ServiceAccount,
 			Namespace: opts.Namespace,
 		}},
 	}
