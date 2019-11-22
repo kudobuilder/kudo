@@ -65,7 +65,7 @@ func FromDir(fs afero.Fs, packagePath string) (*packages.Files, error) {
 		}
 		if file.IsDir() {
 			// skip directories
-			clog.V(6).Printf("folder walking skipping directory %v", file)
+			clog.V(6).Printf("folder walking through directory %v", file.Name())
 			return nil
 		}
 		if path == packagePath {

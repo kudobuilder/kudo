@@ -1,7 +1,12 @@
 package packages
 
 import (
+	"strings"
+	"text/template"
+	"text/template/parse"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 )
 
 const (
@@ -43,9 +48,90 @@ func (p Parameter) Less(x, y int) bool {
 	return p[x].Name < p[y].Name
 }
 
+// Templates is a map of file names and stringified files in the template folder of an operator
+type Templates map[string]string
+
+// Nodes are template nodes
+type Nodes []string
+
+// TemplateNodes is a map of template files to template nodes
+type TemplateNodes map[string]Nodes
+
+// Nodes converts a set of Templates to TemplateNodes which is a map of file names to template nodes
+func (ts Templates) Nodes() TemplateNodes {
+
+	tnodes := TemplateNodes{}
+
+	for fname, file := range ts {
+		// template nodes to be collected in a set
+		// fresh for each file
+		tempNodes := map[string]bool{}
+		t := template.New(fname)
+		// parse 1 template
+		tplate, err := t.Parse(file)
+		if err != nil {
+			clog.Printf("template file %q has a parsing issue", fname)
+			clog.V(2).Printf("template file %q reports the following error: %v", fname, err)
+			continue
+		}
+		// cycle through all the nodes and get Action nodes
+		nodes := tplate.Root.Nodes
+		for _, node := range nodes {
+			if node.Type() == parse.NodeAction {
+				tempNodes[trimNode(node.String())] = true
+			}
+		}
+		tnodes[fname] = convert2Nodes(tempNodes)
+	}
+
+	return tnodes
+}
+
+// convert2Nodes takes a map and returns Nodes (which is a []string).
+// map is used for set functionality (a goism)
+func convert2Nodes(nodes map[string]bool) Nodes {
+	fields := make([]string, 0, len(nodes))
+	for k := range nodes {
+		fields = append(fields, k)
+	}
+	return fields
+}
+
+// Parameters converts array of Nodes to just nodes of parameters (those prefixed with "Params.") and strips the prefix
+func (n Nodes) Parameters() []string {
+	params := []string{}
+	for _, field := range n {
+		if strings.Contains(field, "Params.") {
+			params = append(params, trimParam(field))
+		}
+	}
+	return params
+}
+
+// ImplicitParams converts array of Nodes to just nodes of implicits
+func (n Nodes) ImplicitParams() []string {
+	params := []string{}
+	for _, field := range n {
+		if !strings.Contains(field, "Params.") {
+			params = append(params, field)
+		}
+	}
+	return params
+}
+
+// takes string with "{{." prefix and "}}" suffix and removes prefix and suffix
+func trimNode(s string) string {
+	return strings.TrimSuffix(strings.TrimPrefix(s, "{{."), "}}")
+}
+
+// takes string with "Params." prefix and removes prefix
+func trimParam(s string) string {
+	return strings.TrimPrefix(s, "Params.")
+}
+
 // Files represents the raw operator package format the way it is found in the tgz packages
 type Files struct {
-	Templates map[string]string
+	Templates Templates
 	Operator  *OperatorFile
 	Params    *ParamsFile
 }
