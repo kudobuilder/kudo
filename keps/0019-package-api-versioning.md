@@ -178,10 +178,14 @@ Two proposals: singular and composite package/operator version. In the case of p
   | Time | Package/operator version | App version        | Comment                                            |
   | ---- | ---------------          | ------------------ | -------------------------------------------------- |
   | T0   | 1.0.0                    | 2.3.0              | Initial release based on app version 2.3.x         |
-  | T1   | 2.0.0                    | 3.0.0              | Release based on app version 3.0.x                 |
-  | T2   | 2.1.0                    | 2.3.0              | New operator-related feature for app version 2.3.x |
-  | T2   | 2.2.0                    | 3.0.0              | New operator-related feature for app version 3.0.x |
-  | T3   | 2.3.0                    | 2.3.1              | Bug fix release for app version 2.3.x              |
+  | T1   | 1.1.0                    | 3.0.0              | Release based on app version 3.0.x                 |
+  | T2   | 1.2.0                    | 2.3.0              | New operator-related feature for app version 2.3.x |
+  | T2   | 1.3.0                    | 3.0.0              | New operator-related feature for app version 3.0.x |
+  | T3   | 1.4.0                    | 2.3.1              | Bug fix release for app version 2.3.x              |
+  | T4   | 1.5.0                    | 2.3.1              | Important bug fix A in operator-related code       |
+  | T4   | 1.6.0                    | 3.0.0              | Important bug fix A in operator-related code       |
+  | T5   | 1.6.1                    | 2.3.1              | Small bug fix B in operator-related code           |
+  | T5   | 1.6.2                    | 3.0.0              | Small bug fix B in operator-related code           |
 
   The example above illustrates two sources of confusion:
   - A higher package version can contain a lower app version
