@@ -49,7 +49,7 @@ and finishes with success if KUDO is already installed.
   # delete crds
   kubectl kudo init --crd-only --dry-run --output yaml | kubectl delete -f -
   # pass existing serviceaccount 
-  kubectl kudo init --serviceaccount testaccount
+  kubectl kudo init --service-account testaccount
 `
 )
 
