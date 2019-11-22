@@ -60,12 +60,12 @@ type TemplateNodes map[string]Nodes
 // Nodes converts a set of Templates to TemplateNodes which is a map of file names to template nodes
 func (ts Templates) Nodes() TemplateNodes {
 
-	tnodes := TemplateNodes{}
+	tNodes := TemplateNodes{}
 
 	for fname, file := range ts {
 		// template nodes to be collected in a set
 		// fresh for each file
-		tempNodes := map[string]bool{}
+		nodeSet := map[string]bool{}
 		t := template.New(fname)
 		// parse 1 template
 		tplate, err := t.Parse(file)
@@ -74,17 +74,44 @@ func (ts Templates) Nodes() TemplateNodes {
 			clog.V(2).Printf("template file %q reports the following error: %v", fname, err)
 			continue
 		}
-		// cycle through all the nodes and get Action nodes
-		nodes := tplate.Root.Nodes
+		// cycle through all the nodes and collect Action nodes
+		nodes := walkNodes(tplate.Root, fname)
 		for _, node := range nodes {
-			if node.Type() == parse.NodeAction {
-				tempNodes[trimNode(node.String())] = true
-			}
+			tnode := trimNode(node)
+			nodeSet[tnode] = true
 		}
-		tnodes[fname] = convert2Nodes(tempNodes)
+		tNodes[fname] = convert2Nodes(nodeSet)
 	}
 
-	return tnodes
+	return tNodes
+}
+
+func walkNodes(node parse.Node, fname string) []string {
+	switch node := node.(type) {
+	case *parse.ActionNode:
+		return []string{trimNode(node.String())}
+	//	if and with operate the same however we can't fail through in type switch
+	case *parse.IfNode:
+		list := walkNodes(node.List, fname)
+		elist := walkNodes(node.ElseList, fname)
+		return append(list, elist...)
+	case *parse.WithNode:
+		list := walkNodes(node.List, fname)
+		elist := walkNodes(node.ElseList, fname)
+		return append(list, elist...)
+	case *parse.ListNode:
+		list := []string{}
+		if node == nil {
+			return list
+		}
+		for _, n := range node.Nodes {
+			list = append(list, walkNodes(n, fname)...)
+		}
+		return list
+	default:
+		clog.V(2).Printf("file %q has unknown node: %s", fname, node)
+	}
+	return []string{}
 }
 
 // convert2Nodes takes a map and returns Nodes (which is a []string).
