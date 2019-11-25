@@ -208,7 +208,7 @@ If a base tech does big releases with minor versions, the operator developer can
 
 - Visually more complex
 - Makes it complex to know which operator-related features are available in which versions.  Operator revision for different app versions are unrelated
-- Upgrades paths are unclear. Upgrading from `3.11.4-0.1.2` to `3.12.0-0.1.2` might result in missing some features that were present in `3.11.4-0.1.2`
+- Upgrading from `3.11.4-0.1.2` to `3.12.0-0.1.2` might result in missing some operator-related features that were present in `3.11.4-0.1.2`, even if unlikely
 
 ##### Example hypothetical timeline for Apache Cassandra releases
 
