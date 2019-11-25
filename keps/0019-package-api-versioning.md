@@ -165,7 +165,7 @@ Two proposals: singular and composite package/operator version. In the case of p
 
 - Visually simple
 - It can be known just from the package version whether or not it contains a certain operator-related feature or bug fix
-- Version is a derived from the base tech and operator development as a single semver.
+- Version is a combination of the application and operator in a single SemVer.
 
 ##### Cons
 
