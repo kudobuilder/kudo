@@ -32,17 +32,17 @@ spec:
 	tnodes := templates.Nodes()
 	nodes := tnodes["example.yaml"]
 
-	assert.Equal(t, 2, len(nodes.Parameters()))
+	assert.Equal(t, 2, len(nodes.Parameters))
 	params := []string{"Foo", "JVM_OPT_AVAILABLE_PROCESSORS"}
 	for _, param := range params {
-		if !contains(nodes.Parameters(), param) {
+		if !contains(nodes.Parameters, param) {
 			t.Fatalf("missing %q parameter", param)
 		}
 	}
-	assert.Equal(t, 2, len(nodes.ImplicitParams()))
+	assert.Equal(t, 2, len(nodes.ImplicitParams))
 	implicits := []string{"Name", "Namespace"}
 	for _, param := range implicits {
-		if !contains(nodes.ImplicitParams(), param) {
+		if !contains(nodes.ImplicitParams, param) {
 			t.Fatalf("missing %q parameter", param)
 		}
 	}

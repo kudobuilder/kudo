@@ -1,6 +1,7 @@
 package packages
 
 import (
+	"fmt"
 	"strings"
 	"text/template"
 	"text/template/parse"
@@ -52,7 +53,12 @@ func (p Parameter) Less(x, y int) bool {
 type Templates map[string]string
 
 // Nodes are template nodes
-type Nodes []string
+type Nodes struct {
+	Parameters     []string
+	ImplicitParams []string
+	Warnings       []string
+	Error          string
+}
 
 // TemplateNodes is a map of template files to template nodes
 type TemplateNodes map[string]Nodes
@@ -70,8 +76,11 @@ func (ts Templates) Nodes() TemplateNodes {
 		// parse 1 template
 		tplate, err := t.Parse(file)
 		if err != nil {
-			clog.Printf("template file %q has a parsing issue", fname)
-			clog.V(2).Printf("template file %q reports the following error: %v", fname, err)
+			n := Nodes{
+				Error: fmt.Sprintf("template file %q reports the following error: %v", fname, err),
+			}
+			tNodes[fname] = n
+
 			continue
 		}
 		// cycle through all the nodes and collect Action nodes
@@ -80,7 +89,12 @@ func (ts Templates) Nodes() TemplateNodes {
 			tnode := trimNode(node)
 			nodeSet[tnode] = true
 		}
-		tNodes[fname] = convert2Nodes(nodeSet)
+
+		n := Nodes{
+			Parameters:     parameters(nodeSet),
+			ImplicitParams: implicits(nodeSet),
+		}
+		tNodes[fname] = n
 	}
 
 	return tNodes
@@ -114,36 +128,33 @@ func walkNodes(node parse.Node, fname string) []string {
 	return []string{}
 }
 
-// convert2Nodes takes a map and returns Nodes (which is a []string).
+// parameters takes a map and returns Nodes (which is a []string).
 // map is used for set functionality (a goism)
-func convert2Nodes(nodes map[string]bool) Nodes {
-	fields := make([]string, 0, len(nodes))
+// parameters converts array of Nodes to just nodes of parameters (those prefixed with "Params.") and strips the prefix
+func parameters(nodes map[string]bool) []string {
+
+	fields := []string{}
+
 	for k := range nodes {
-		fields = append(fields, k)
+		if strings.Contains(k, "Params.") {
+			fields = append(fields, trimParam(k))
+		}
 	}
 	return fields
 }
 
-// Parameters converts array of Nodes to just nodes of parameters (those prefixed with "Params.") and strips the prefix
-func (n Nodes) Parameters() []string {
-	params := []string{}
-	for _, field := range n {
-		if strings.Contains(field, "Params.") {
-			params = append(params, trimParam(field))
-		}
-	}
-	return params
-}
+// implicits takes a map and returns implicits (which is a []string).
+// map is used for set functionality (a goism)
+func implicits(nodes map[string]bool) []string {
 
-// ImplicitParams converts array of Nodes to just nodes of implicits
-func (n Nodes) ImplicitParams() []string {
-	params := []string{}
-	for _, field := range n {
-		if !strings.Contains(field, "Params.") {
-			params = append(params, field)
+	fields := []string{}
+
+	for k := range nodes {
+		if !strings.Contains(k, "Params.") {
+			fields = append(fields, k)
 		}
 	}
-	return params
+	return fields
 }
 
 // takes string with "{{." prefix and "}}" suffix and removes prefix and suffix
