@@ -3,6 +3,7 @@ package resolver
 import (
 	"bytes"
 	"fmt"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
@@ -33,6 +34,8 @@ func (f *URLResolver) Resolve(name string, version string) (*packages.Package, e
 	if err != nil {
 		return nil, err
 	}
+
+	clog.V(0).Printf("%v is a remote tgz package", name)
 
 	return &packages.Package{
 		Resources: resources,
