@@ -58,7 +58,7 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 // apply method takes a slice of k8s object and applies them using passed client. If an object
 // doesn't exist it will be created. An already existing object will be patched.
 func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
-	applied := make([]runtime.Object, len(ro))
+	applied := make([]runtime.Object, 0)
 
 	for _, r := range ro {
 		key, _ := client.ObjectKeyFromObject(r)
