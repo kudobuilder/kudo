@@ -16,6 +16,7 @@ type ParamErrors []ParamError
 var verifiers = []PackageVerifier{
 	DuplicateVerifier{},
 	InvalidCharVerifier{";,"},
+	TemplateParametersVerifier{},
 }
 
 // Parameters verifies parameters
@@ -35,6 +36,10 @@ type PackageVerifier interface {
 
 func CreateParamError(param v1beta1.Parameter, reason string) ParamError {
 	return ParamError(fmt.Sprintf("parameter %q %s", param.Name, reason))
+}
+
+func CreateParamWarning(param v1beta1.Parameter, reason string) ParamWarning {
+	return ParamWarning(fmt.Sprintf("parameter %q %s", param.Name, reason))
 }
 
 // DuplicateVerifier provides verification that there are no duplicates disallowing casing (Kudo and kudo are duplicates)
@@ -72,33 +77,61 @@ func (v InvalidCharVerifier) Verify(pf *packages.Files) (warnings ParamWarnings,
 }
 
 // TemplateParametersDefinedVerifier checks that all parameters used in templates are defined
-type TemplateParametersDefinedVerifier struct {
+// checks that all defined parameters are used in templates
+type TemplateParametersVerifier struct {
 }
 
-func (TemplateParametersDefinedVerifier) Verify(pf *packages.Files) (warnings ParamWarnings, errors ParamErrors) {
-	//names := map[string]bool{}
-	//for _, param := range pf.Params.Parameters {
-	//	name := strings.ToLower(param.Name)
-	//	if names[name] {
-	//		errors = append(errors, CreateParamError(param, "has a duplicate"))
-	//	}
-	//	names[name] = true
-	//}
+func (TemplateParametersVerifier) Verify(pf *packages.Files) (warnings ParamWarnings, errors ParamErrors) {
+
+	errors = append(errors, paramsNotDefined(pf)...)
+	warnings = append(warnings, paramsDefinedNotUsed(pf)...)
+
+	// additional processing errors
+	for fname, node := range pf.Templates.Nodes() {
+		if node.Error != nil {
+			errors = append(errors, ParamError(fmt.Sprintf("template %v has error %v", fname, node.Error)))
+		}
+	}
+
 	return warnings, errors
 }
 
-// ParametersUsedVerifier checks that all defined parameters are used in templates
-type ParametersUsedVerifier struct {
+func paramsDefinedNotUsed(pf *packages.Files) (warnings ParamWarnings) {
+	tparams := make(map[string]bool)
+	for _, nodes := range pf.Templates.Nodes() {
+		for _, tparam := range nodes.Parameters {
+			tparams[tparam] = true
+		}
+	}
+	for _, value := range pf.Params.Parameters {
+		if _, ok := tparams[value.Name]; ok {
+			warnings = append(warnings, CreateParamWarning(value, "defined but not used."))
+		}
+	}
+	return warnings
 }
 
-func (ParametersUsedVerifier) Verify(pf *packages.Files) (warnings ParamWarnings, errors ParamErrors) {
-	//names := map[string]bool{}
-	//for _, param := range pf.Params.Parameters {
-	//	name := strings.ToLower(param.Name)
-	//	if names[name] {
-	//		errors = append(errors, CreateParamError(param, "has a duplicate"))
-	//	}
-	//	names[name] = true
-	//}
+func paramsNotDefined(pf *packages.Files) (errors ParamErrors) {
+	params := make(map[string]bool)
+	for _, param := range pf.Params.Parameters {
+		params[param.Name] = true
+	}
+	for fname, nodes := range pf.Templates.Nodes() {
+		for _, tparam := range nodes.Parameters {
+			if _, ok := params[tparam]; !ok {
+				errors = append(errors, ParamError(fmt.Sprintf("parameter %q in template %v is not defined", tparam, fname)))
+			}
+		}
+	}
+	return errors
+}
+
+// TemplateVerifier checks that all referenced templates exists (without errors)
+// and warns if a template exists but isn't referenced in a plan
+type TemplateVerifier struct {
+}
+
+func (TemplateVerifier) Verify(pf *packages.Files) (warnings ParamWarnings, errors ParamErrors) {
+
 	return warnings, errors
 }

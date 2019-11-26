@@ -56,8 +56,7 @@ type Templates map[string]string
 type Nodes struct {
 	Parameters     []string
 	ImplicitParams []string
-	Warnings       []string
-	Error          string
+	Error          *string
 }
 
 // TemplateNodes is a map of template files to template nodes
@@ -76,8 +75,9 @@ func (ts Templates) Nodes() TemplateNodes {
 		// parse 1 template
 		tplate, err := t.Parse(file)
 		if err != nil {
+			errMsg := fmt.Sprintf("template file %q reports the following error: %v", fname, err)
 			n := Nodes{
-				Error: fmt.Sprintf("template file %q reports the following error: %v", fname, err),
+				Error: &errMsg,
 			}
 			tNodes[fname] = n
 
