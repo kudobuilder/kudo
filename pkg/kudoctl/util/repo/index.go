@@ -10,7 +10,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 
 	"github.com/Masterminds/semver"
-	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
 )
@@ -76,10 +75,10 @@ func (i IndexFile) sortPackages() {
 func ParseIndexFile(data []byte) (*IndexFile, error) {
 	i := &IndexFile{}
 	if err := yaml.Unmarshal(data, i); err != nil {
-		return nil, errors.Wrap(err, "unmarshalling index file")
+		return nil, fmt.Errorf("unmarshalling index file: %w", err)
 	}
 	if i.APIVersion == "" {
-		return nil, errors.New("no API version specified")
+		return nil, fmt.Errorf("no API version specified")
 	}
 	i.sortPackages()
 	return i, nil
@@ -102,7 +101,7 @@ func (i *IndexFile) AddPackageVersion(pv *PackageVersion) error {
 	name := pv.Name
 	version := pv.Version
 	if version == "" {
-		return errors.Errorf("operator '%v' is missing version", name)
+		return fmt.Errorf("operator '%v' is missing version", name)
 	}
 	if i.Entries == nil {
 		i.Entries = make(map[string]PackageVersions)
@@ -118,7 +117,7 @@ func (i *IndexFile) AddPackageVersion(pv *PackageVersion) error {
 	// loop thru all... don't allow dups
 	for _, ver := range vs {
 		if ver.Version == version {
-			return errors.Errorf("operator '%v' version: %v already exists", name, version)
+			return fmt.Errorf("operator '%v' version: %v already exists", name, version)
 		}
 	}
 
@@ -196,7 +195,7 @@ func IndexDirectory(fs afero.Fs, path string, url string, now *time.Time) (*Inde
 		return nil, err
 	}
 	if len(archives) == 0 {
-		return nil, errors.New("no packages discovered")
+		return nil, fmt.Errorf("no packages discovered")
 	}
 	index := newIndexFile(now)
 	ops := filesDigest(fs, archives)

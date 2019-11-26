@@ -1,11 +1,11 @@
 package reader
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
 
@@ -26,13 +26,13 @@ func ReadDir(fs afero.Fs, path string) (*packages.Package, error) {
 	// 1. get files
 	files, err := FromDir(fs, path)
 	if err != nil {
-		return nil, errors.Wrap(err, "while parsing package files")
+		return nil, fmt.Errorf("while parsing package files: %w", err)
 	}
 
 	// 2. get resources
 	resources, err := files.Resources()
 	if err != nil {
-		return nil, errors.Wrap(err, "while getting package resources")
+		return nil, fmt.Errorf("while getting package resources: %w", err)
 	}
 
 	return &packages.Package{
@@ -44,7 +44,7 @@ func ReadDir(fs afero.Fs, path string) (*packages.Package, error) {
 // FromDir walks the path provided and returns package files or an error
 func FromDir(fs afero.Fs, packagePath string) (*packages.Files, error) {
 	if packagePath == "" {
-		return nil, errors.New("path must be specified")
+		return nil, fmt.Errorf("path must be specified")
 	}
 	result := newPackageFiles()
 
@@ -73,10 +73,10 @@ func FromDir(fs afero.Fs, packagePath string) (*packages.Files, error) {
 	}
 	// final check
 	if result.Operator == nil {
-		return nil, errors.New("operator package missing operator.yaml")
+		return nil, fmt.Errorf("operator package missing operator.yaml")
 	}
 	if result.Params == nil {
-		return nil, errors.New("operator package missing params.yaml")
+		return nil, fmt.Errorf("operator package missing params.yaml")
 	}
 	return &result, nil
 }

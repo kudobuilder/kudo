@@ -7,7 +7,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 
-	"github.com/pkg/errors"
 	"github.com/xlab/treeprint"
 )
 
@@ -21,7 +20,7 @@ func Run(args []string, settings *env.Settings) error {
 
 	kc, err := env.GetClient(settings)
 	if err != nil {
-		return errors.Wrap(err, "creating kudo client")
+		return fmt.Errorf("creating kudo client: %w", err)
 	}
 
 	p, err := getInstances(kc, settings)
@@ -55,7 +54,7 @@ func getInstances(kc *kudo.Client, settings *env.Settings) ([]string, error) {
 
 	instanceList, err := kc.ListInstances(settings.Namespace)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting instances")
+		return nil, fmt.Errorf("getting instances: %w", err)
 	}
 
 	return instanceList, nil

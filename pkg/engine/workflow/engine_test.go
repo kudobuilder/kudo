@@ -1,6 +1,7 @@
 package workflow
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -641,7 +641,7 @@ func (k *testEnhancer) Apply(templates map[string]string, metadata renderer.Meta
 	for _, t := range templates {
 		objsToAdd, err := renderer.YamlToObject(t)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing kubernetes objects after applying kustomize")
+			return nil, fmt.Errorf("error parsing kubernetes objects after applying kustomize: %w", err)
 		}
 		result = append(result, objsToAdd[0])
 	}

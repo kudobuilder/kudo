@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
 
@@ -24,13 +23,13 @@ func ReadTar(fs afero.Fs, path string) (*packages.Package, error) {
 	// 2. ParseTgz tar files
 	files, err := ParseTgz(buf)
 	if err != nil {
-		return nil, errors.Wrap(err, "while parsing package files")
+		return nil, fmt.Errorf("while parsing package files: %w", err)
 	}
 
 	// 3. convert to resources
 	resources, err := files.Resources()
 	if err != nil {
-		return nil, errors.Wrap(err, "while getting package resources")
+		return nil, fmt.Errorf("while getting package resources: %w", err)
 	}
 
 	return &packages.Package{
@@ -81,7 +80,7 @@ func ParseTgz(r io.Reader) (*packages.Files, error) {
 		case tar.TypeReg:
 			buf, err := ioutil.ReadAll(tr)
 			if err != nil {
-				return nil, errors.Wrapf(err, "while reading file from package tarball %s", header.Name)
+				return nil, fmt.Errorf("while reading file from package tarball %s: %w", header.Name, err)
 			}
 
 			err = parsePackageFile(header.Name, buf, &result)

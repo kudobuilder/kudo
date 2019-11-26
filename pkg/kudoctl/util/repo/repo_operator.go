@@ -8,7 +8,6 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
-	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
 
@@ -52,7 +51,7 @@ func (c *Client) DownloadIndexFile() (*IndexFile, error) {
 	var indexURL string
 	parsedURL, err := url.Parse(c.Config.URL)
 	if err != nil {
-		return nil, errors.Wrap(err, "parsing config url")
+		return nil, fmt.Errorf("parsing config url: %w", err)
 	}
 	parsedURL.Path = fmt.Sprintf("%s/index.yaml", strings.TrimSuffix(parsedURL.Path, "/"))
 
@@ -60,12 +59,12 @@ func (c *Client) DownloadIndexFile() (*IndexFile, error) {
 
 	resp, err := c.Client.Get(indexURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting index url")
+		return nil, fmt.Errorf("getting index url: %w", err)
 	}
 
 	indexBytes, err := ioutil.ReadAll(resp)
 	if err != nil {
-		return nil, errors.Wrap(err, "reading index response")
+		return nil, fmt.Errorf("reading index response: %w", err)
 	}
 
 	indexFile, err := ParseIndexFile(indexBytes)

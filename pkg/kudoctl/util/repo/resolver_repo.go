@@ -7,7 +7,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
-	"github.com/pkg/errors"
 )
 
 // Resolve returns a Package for a passed package name and optional version. This is an implementation
@@ -40,12 +39,12 @@ func (c *Client) GetPackageBytes(name string, version string) (*bytes.Buffer, er
 	// Construct the package name and download the index file from the remote repo
 	indexFile, err := c.DownloadIndexFile()
 	if err != nil {
-		return nil, errors.WithMessage(err, "could not download repository index file")
+		return nil, fmt.Errorf("could not download repository index file: %w", err)
 	}
 
 	pkgVersion, err := indexFile.GetByNameAndVersion(name, version)
 	if err != nil {
-		return nil, errors.Wrapf(err, "getting %s in index file", name)
+		return nil, fmt.Errorf("getting %s in index file: %w", name, err)
 	}
 
 	return c.getPackageReaderByAPackageURL(pkgVersion)
@@ -73,7 +72,7 @@ func (c *Client) getPackageBytesByURL(packageURL string) (*bytes.Buffer, error) 
 	clog.V(4).Printf("attempt to retrieve package from url: %v", packageURL)
 	resp, err := c.Client.Get(packageURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting package url")
+		return nil, fmt.Errorf("getting package url: %w", err)
 	}
 
 	return resp, nil

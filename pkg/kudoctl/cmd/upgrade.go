@@ -9,7 +9,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
@@ -52,7 +51,7 @@ func newUpgradeCmd(fs afero.Fs) *cobra.Command {
 			var err error
 			options.Parameters, err = install.GetParameterMap(parameters)
 			if err != nil {
-				return errors.WithMessage(err, "could not parse arguments")
+				return fmt.Errorf("could not parse arguments: %w", err)
 			}
 			return runUpgrade(args, options, fs, &Settings)
 		},
@@ -86,18 +85,18 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 
 	kc, err := env.GetClient(settings)
 	if err != nil {
-		return errors.Wrap(err, "creating kudo client")
+		return fmt.Errorf("creating kudo client: %w", err)
 	}
 
 	// Resolve the package to upgrade to
 	repository, err := repo.ClientFromSettings(fs, settings.Home, options.RepoName)
 	if err != nil {
-		return errors.WithMessage(err, "could not build operator repository")
+		return fmt.Errorf("could not build operator repository: %w", err)
 	}
 	resolver := pkgresolver.New(repository)
 	pkg, err := resolver.Resolve(packageToUpgrade, options.PackageVersion)
 	if err != nil {
-		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", packageToUpgrade)
+		return fmt.Errorf("failed to resolve package CRDs for operator: %s: %w", packageToUpgrade, err)
 	}
 
 	resources := pkg.Resources
