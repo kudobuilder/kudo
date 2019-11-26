@@ -197,12 +197,12 @@ func implicits(nodes map[string]bool) []string {
 	return fields
 }
 
-// takes string with "{{." prefix and "}}" suffix and removes prefix and suffix
+// takes string with "{{" prefix and "}}" suffix and removes prefix and suffix
 func trimNode(s string) string {
 	return strings.TrimSuffix(strings.TrimPrefix(s, "{{"), "}}")
 }
 
-// takes string with "Params." prefix and removes prefix
+// takes string with ".Params." prefix and removes prefix
 func trimParam(s string) string {
 	return strings.TrimPrefix(s, ".Params.")
 }

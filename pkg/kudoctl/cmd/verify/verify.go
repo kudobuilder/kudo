@@ -77,7 +77,7 @@ func (v InvalidCharVerifier) Verify(pf *packages.Files) (warnings ParamWarnings,
 	return warnings, errors
 }
 
-// TemplateParametersDefinedVerifier checks that all parameters used in templates are defined
+// This verifier checks that all parameters used in templates are defined
 // checks that all defined parameters are used in templates
 type TemplateParametersVerifier struct {
 }
