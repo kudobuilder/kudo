@@ -46,6 +46,7 @@ func New() *Engine {
 	}
 }
 
+// Template provides access to the engines template engine.
 func (e Engine) Template(name string) *template.Template {
 	t := template.New("gotpl")
 	t.Option("missingkey=error")
