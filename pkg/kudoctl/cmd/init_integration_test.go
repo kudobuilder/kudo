@@ -209,6 +209,98 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	assert.True(t, kudoControllerFound, fmt.Sprintf("No kudo-controller-manager statefulset found in namespace %s", namespace))
 }
 
+/*
+	Test 4 scenarios in the below test case
+		1. Run Init command with a serviceAccount that is not present in the cluster.
+		2. Run init command with a serviceAccount that is present in the cluster, but not in the clusterrole-binding.
+		3. Run Init command with a serviceAccount that does not have cluster-admin role.
+		4. Run Init command with a serviceAccount that does have cluster-admin role, but not in the expected namespace.
+		4. Run Init command with a serviceAccount that is present in the cluster and also has cluster-admin role.
+*/
+
+func TestIntegInitWithServiceAccount(t *testing.T) {
+	namespace := "integration-test"
+	serviceAccount := "sa-integration"
+	// Kubernetes client caches the types, se we need to re-initialize it.
+	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
+		Scheme: testutils.Scheme(),
+	})
+	assert.Nil(t, err)
+	kclient := getKubeClient(t)
+
+	instance := testutils.NewResourceWithServiceAccount("kudo.dev/v1beta1", "Instance", "zk", "ns", "service-account")
+	// Verify that we cannot create the instance, because the test environment is empty.
+	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
+
+	// Install all of the CRDs.
+	crds := cmdinit.CRDs().AsArray()
+	defer deleteInitObjects(testClient)
+
+	var buf bytes.Buffer
+	cmd := &initCmd{
+		out:            &buf,
+		fs:             afero.NewMemMapFs(),
+		client:         kclient,
+		ns:             namespace,
+		serviceAccount: serviceAccount,
+	}
+
+	// On first attempt, the serviceAccount does not exist, so the error is expected.
+	err = cmd.run()
+	require.Error(t, err)
+	assert.Equal(t, err.Error(), `error installing: Service Account sa-integration does not exists - KUDO expects the serviceAccount to be present`)
+
+	// Then we manually create the namespace and serviceAccount
+	ns := testutils.NewResource("v1", "Namespace", "diffNameSpace", "")
+	assert.NoError(t, testClient.Create(context.TODO(), ns))
+	sa := testutils.NewResource("v1", "ServiceAccount", serviceAccount, "diffNameSpace")
+	assert.NoError(t, testClient.Create(context.TODO(), sa))
+
+	// On second attempt create a ServiceAccount with a Namespace not as integration-test
+	err = cmd.run()
+	require.Error(t, err)
+	assert.Equal(t, err.Error(), `error installing: Service Account %s is not in the expected Namespace - KUDO expects the serviceAccount to be in the namespace`)
+	testClient.Delete(context.TODO(), ns)
+	testClient.Delete(context.TODO(), sa)
+
+	//3rd Test case, create a serviceAccount in the namespace integration-test. But don't create cluster-admin role to the serviceAccount.
+	ns = testutils.NewResource("v1", "Namespace", namespace, "")
+	assert.NoError(t, testClient.Create(context.TODO(), ns))
+	sa = testutils.NewResource("v1", "ServiceAccount", serviceAccount, namespace)
+	assert.NoError(t, testClient.Create(context.TODO(), sa)	
+
+	// On second attempt create a ServiceAccount with a Namespace not as integration-test
+	err = cmd.run()
+	require.Error(t, err)
+	assert.Equal(t, err.Error(), `error installing: Service Account %s does not have cluster-admin role - KUDO expects the serviceAccount passed to have cluster-admin role`)
+	defer testClient.Delete(context.TODO(), ns)
+	defer testClient.Delete(context.TODO(), sa)
+
+	// Manually attach the serviceAccount to the cluster-admin role
+
+	// WaitForCRDs to be created... the init cmd did NOT wait
+	assert.Nil(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+
+	// Kubernetes client caches the types, so we need to re-initialize it.
+	testClient, err = testutils.NewRetryClient(testenv.Config, client.Options{
+		Scheme: testutils.Scheme(),
+	})
+	assert.Nil(t, err)
+	kclient = getKubeClient(t)
+
+	// make sure that the controller lives in the correct namespace
+	statefulsets, err := kclient.KubeClient.AppsV1().StatefulSets(namespace).List(metav1.ListOptions{})
+	assert.Nil(t, err)
+
+	kudoControllerFound := false
+	for _, ss := range statefulsets.Items {
+		if ss.Name == "kudo-controller-manager" {
+			kudoControllerFound = true
+		}
+	}
+	assert.True(t, kudoControllerFound, fmt.Sprintf("No kudo-controller-manager statefulset found in namespace %s", namespace))
+}
+
 func TestNoErrorOnReInit(t *testing.T) {
 	//	 if the CRD exists and we init again there should be no error
 	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
