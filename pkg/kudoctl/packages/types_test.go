@@ -24,16 +24,18 @@ spec:
     {{ if .Params.JVM_OPT_AVAILABLE_PROCESSORS }}
 	processors={{ .Params.JVM_OPT_AVAILABLE_PROCESSORS }}
     {{ end }}
-
+	{{ if eq .Params.AUTHORIZATION_ENABLED "true" }}
+	foo is authorized
+    {{ end }}
 `
-	var templates Templates = Templates{}
+	var templates = Templates{}
 	templates["example.yaml"] = template
 
 	tnodes := templates.Nodes()
 	nodes := tnodes["example.yaml"]
 
-	assert.Equal(t, 2, len(nodes.Parameters))
-	params := []string{"Foo", "JVM_OPT_AVAILABLE_PROCESSORS"}
+	assert.Equal(t, 3, len(nodes.Parameters))
+	params := []string{"Foo", "JVM_OPT_AVAILABLE_PROCESSORS", "AUTHORIZATION_ENABLED"}
 	for _, param := range params {
 		if !contains(nodes.Parameters, param) {
 			t.Fatalf("missing %q parameter", param)
@@ -43,7 +45,7 @@ spec:
 	implicits := []string{"Name", "Namespace"}
 	for _, param := range implicits {
 		if !contains(nodes.ImplicitParams, param) {
-			t.Fatalf("missing %q parameter", param)
+			t.Fatalf("missing %q implicit parameter", param)
 		}
 	}
 

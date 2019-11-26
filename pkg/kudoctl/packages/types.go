@@ -115,6 +115,7 @@ func (ts Templates) Nodes() TemplateNodes {
 	return tNodes
 }
 
+//walkNodes walks the nodes of a template providing an array of parameters
 func walkNodes(node parse.Node, fname string) []string {
 	switch node := node.(type) {
 	case *parse.ActionNode:
@@ -123,11 +124,15 @@ func walkNodes(node parse.Node, fname string) []string {
 	case *parse.IfNode:
 		list := walkNodes(node.List, fname)
 		elist := walkNodes(node.ElseList, fname)
-		return append(list, elist...)
+		list = append(list, elist...)
+		clist := walkPipes(node.Pipe)
+		return append(list, clist...)
 	case *parse.WithNode:
 		list := walkNodes(node.List, fname)
 		elist := walkNodes(node.ElseList, fname)
-		return append(list, elist...)
+		list = append(list, elist...)
+		clist := walkPipes(node.Pipe)
+		return append(list, clist...)
 	case *parse.ListNode:
 		list := []string{}
 		if node == nil {
@@ -137,10 +142,29 @@ func walkNodes(node parse.Node, fname string) []string {
 			list = append(list, walkNodes(n, fname)...)
 		}
 		return list
+	case *parse.RangeNode: // no support for Range, Template or TextNodes
+	case *parse.TemplateNode:
+	case *parse.TextNode:
 	default:
 		clog.V(2).Printf("file %q has unknown node: %s", fname, node)
 	}
 	return []string{}
+}
+
+// walkPipes walks the pipes of specific block types which may contain params
+func walkPipes(node *parse.PipeNode) []string {
+	params := []string{}
+	for _, cmd := range node.Cmds {
+		for _, arg := range cmd.Args {
+			switch arg.(type) {
+			case *parse.FieldNode:
+				if strings.HasPrefix(arg.String(), ".Params") {
+					params = append(params, arg.String())
+				}
+			}
+		}
+	}
+	return params
 }
 
 // parameters takes a map and returns Nodes (which is a []string).
@@ -165,8 +189,8 @@ func implicits(nodes map[string]bool) []string {
 	fields := []string{}
 
 	for k := range nodes {
-		if !strings.Contains(k, "Params.") {
-			fields = append(fields, k)
+		if !strings.Contains(k, ".Params.") {
+			fields = append(fields, strings.TrimPrefix(k, "."))
 		}
 	}
 	return fields
@@ -174,12 +198,12 @@ func implicits(nodes map[string]bool) []string {
 
 // takes string with "{{." prefix and "}}" suffix and removes prefix and suffix
 func trimNode(s string) string {
-	return strings.TrimSuffix(strings.TrimPrefix(s, "{{."), "}}")
+	return strings.TrimSuffix(strings.TrimPrefix(s, "{{"), "}}")
 }
 
 // takes string with "Params." prefix and removes prefix
 func trimParam(s string) string {
-	return strings.TrimPrefix(s, "Params.")
+	return strings.TrimPrefix(s, ".Params.")
 }
 
 // Files represents the raw operator package format the way it is found in the tgz packages
