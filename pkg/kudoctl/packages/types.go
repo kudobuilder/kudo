@@ -176,7 +176,7 @@ func parameters(nodes map[string]bool) []string {
 	fields := []string{}
 
 	for k := range nodes {
-		if strings.Contains(k, "Params.") {
+		if strings.HasPrefix(k, ".Params.") {
 			fields = append(fields, trimParam(k))
 		}
 	}

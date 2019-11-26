@@ -17,7 +17,7 @@ var verifiers = []PackageVerifier{
 	DuplicateVerifier{},
 	InvalidCharVerifier{";,"},
 	TemplateParametersVerifier{},
-	TemplateVerifier{},
+	TemplateReferenceVerifier{},
 }
 
 // Operator verifies operator package files
@@ -133,12 +133,12 @@ func paramsNotDefined(pf *packages.Files) (errors ParamErrors) {
 	return errors
 }
 
-// TemplateVerifier checks that all referenced templates exists (without errors)
+// TemplateReferenceVerifier checks that all referenced templates exists (without errors)
 // and warns if a template exists but isn't referenced in a plan
-type TemplateVerifier struct {
+type TemplateReferenceVerifier struct {
 }
 
-func (TemplateVerifier) Verify(pf *packages.Files) (warnings ParamWarnings, errors ParamErrors) {
+func (TemplateReferenceVerifier) Verify(pf *packages.Files) (warnings ParamWarnings, errors ParamErrors) {
 	templates := make(map[string]bool)
 	for template := range pf.Templates {
 		templates[template] = true
