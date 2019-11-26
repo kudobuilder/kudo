@@ -90,7 +90,7 @@ func (TemplateParametersVerifier) Verify(pf *packages.Files) (warnings ParamWarn
 	// additional processing errors
 	for fname, node := range pf.Templates.Nodes() {
 		if node.Error != nil {
-			errors = append(errors, ParamError(fmt.Sprintf("template %v has error %v", fname, node.Error)))
+			errors = append(errors, ParamError(fmt.Sprintf(*node.Error)))
 			continue
 		}
 		for _, param := range node.ImplicitParams {
