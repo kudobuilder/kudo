@@ -23,13 +23,13 @@ func ReadTar(fs afero.Fs, path string) (*packages.Package, error) {
 	// 2. ParseTgz tar files
 	files, err := ParseTgz(buf)
 	if err != nil {
-		return nil, fmt.Errorf("while parsing package files from %v: %w", path, err)
+		return nil, fmt.Errorf("while parsing package files from %s: %w", path, err)
 	}
 
 	// 3. convert to resources
 	resources, err := files.Resources()
 	if err != nil {
-		return nil, fmt.Errorf("while getting package resources from %v: %w", path, err)
+		return nil, fmt.Errorf("while getting package resources from %s: %w", path, err)
 	}
 
 	return &packages.Package{

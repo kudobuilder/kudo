@@ -16,7 +16,7 @@ func ReadDir(fs afero.Fs, path string) (*packages.Package, error) {
 	//	make sure file exists
 	fi, err := fs.Stat(path)
 	if err != nil {
-		clog.V(4).Printf("error reading package directory %v", path)
+		clog.V(4).Printf("error reading package directory %s", path)
 		return nil, err
 	}
 	if !fi.IsDir() {
@@ -52,7 +52,7 @@ func FromDir(fs afero.Fs, packagePath string) (*packages.Files, error) {
 		// Normalize package path to provide more meaningful error messages
 		absPackagePath, err := filepath.Abs(packagePath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to normalize package path %v: %w", packagePath, err)
+			return nil, fmt.Errorf("failed to normalize package path %s: %w", packagePath, err)
 		}
 		packagePath = absPackagePath
 	}
@@ -84,10 +84,10 @@ func FromDir(fs afero.Fs, packagePath string) (*packages.Files, error) {
 	}
 	// final check
 	if result.Operator == nil {
-		return nil, fmt.Errorf("operator package missing operator.yaml in %v", packagePath)
+		return nil, fmt.Errorf("operator package missing operator.yaml in %s", packagePath)
 	}
 	if result.Params == nil {
-		return nil, fmt.Errorf("operator package missing params.yaml in %v", packagePath)
+		return nil, fmt.Errorf("operator package missing params.yaml in %s", packagePath)
 	}
 	return &result, nil
 }
