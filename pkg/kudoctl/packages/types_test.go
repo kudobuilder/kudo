@@ -27,6 +27,10 @@ spec:
 	{{ if eq .Params.AUTHORIZATION_ENABLED "true" }}
 	foo is authorized
     {{ end }}
+	{{ if .Params.CUSTOM_CASSANDRA_YAML_BASE64 }}
+    {{ .Params.CUSTOM_CASSANDRA_YAML_BASE64 | b64dec }}
+    {{ end }}
+
 `
 	var templates = Templates{}
 	templates["example.yaml"] = template
@@ -34,8 +38,8 @@ spec:
 	tnodes := templates.Nodes()
 	nodes := tnodes["example.yaml"]
 
-	assert.Equal(t, 3, len(nodes.Parameters))
-	params := []string{"Foo", "JVM_OPT_AVAILABLE_PROCESSORS", "AUTHORIZATION_ENABLED"}
+	assert.Equal(t, 4, len(nodes.Parameters))
+	params := []string{"Foo", "JVM_OPT_AVAILABLE_PROCESSORS", "AUTHORIZATION_ENABLED", "CUSTOM_CASSANDRA_YAML_BASE64"}
 	for _, param := range params {
 		if !contains(nodes.Parameters, param) {
 			t.Fatalf("missing %q parameter", param)

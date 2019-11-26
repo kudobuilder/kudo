@@ -3,10 +3,10 @@ package packages
 import (
 	"fmt"
 	"strings"
-	"text/template"
 	"text/template/parse"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 )
 
@@ -86,7 +86,8 @@ func (ts Templates) Nodes() TemplateNodes {
 		// template nodes to be collected in a set
 		// fresh for each file
 		nodeSet := map[string]bool{}
-		t := template.New(fname)
+		e := renderer.New()
+		t := e.Template(fname)
 		// parse 1 template
 		tplate, err := t.Parse(file)
 		if err != nil {
@@ -119,7 +120,7 @@ func (ts Templates) Nodes() TemplateNodes {
 func walkNodes(node parse.Node, fname string) []string {
 	switch node := node.(type) {
 	case *parse.ActionNode:
-		return []string{trimNode(node.String())}
+		return walkPipes(node.Pipe)
 	//	if and with operate the same however we can't fail through in type switch
 	case *parse.IfNode:
 		list := walkNodes(node.List, fname)
@@ -158,7 +159,7 @@ func walkPipes(node *parse.PipeNode) []string {
 		for _, arg := range cmd.Args {
 			switch arg.(type) {
 			case *parse.FieldNode:
-				if strings.HasPrefix(arg.String(), ".Params") {
+				if strings.HasPrefix(arg.String(), ".") {
 					params = append(params, arg.String())
 				}
 			}

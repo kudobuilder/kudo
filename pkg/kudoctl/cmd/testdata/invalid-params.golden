@@ -1,6 +1,6 @@
 Warnings                                
-parameter "memory" defined but not used.
-parameter "cpus" defined but not used.  
+parameter "Cpus" defined but not used.  
+parameter "comma," defined but not used.
 Errors                                           
 parameter "Cpus" has a duplicate                 
 parameter "comma," contains invalid character ','
