@@ -47,7 +47,7 @@ func verifyPackage(fs afero.Fs, path string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	warnings, errors := verify.Parameters(pf.Params.Parameters)
+	warnings, errors := verify.Parameters(pf)
 	if warnings != nil {
 		printWarnings(out, warnings)
 	}

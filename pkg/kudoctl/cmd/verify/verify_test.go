@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +32,7 @@ func TestDuplicateVerifier(t *testing.T) {
 
 	verifier := DuplicateVerifier{}
 	for _, tt := range tests {
-		warnings, errors := verifier.Verify(tt.params)
+		warnings, errors := verifier.Verify(packageFileForParams(tt.params))
 		assert.Equal(t, tt.expectedWarnings, warnings)
 		assert.Equal(t, tt.expectedErrors, errors)
 	}
@@ -56,8 +57,17 @@ func TestInvalidCharVerifier(t *testing.T) {
 
 	verifier := InvalidCharVerifier{InvalidChars: ":,"}
 	for _, tt := range tests {
-		warnings, errors := verifier.Verify(tt.params)
+		warnings, errors := verifier.Verify(packageFileForParams(tt.params))
 		assert.Equal(t, tt.expectedWarnings, warnings, tt.name)
 		assert.Equal(t, tt.expectedErrors, errors, tt.name)
+	}
+}
+
+func packageFileForParams(params []v1beta1.Parameter) *packages.Files {
+	p := packages.ParamsFile{
+		Parameters: params,
+	}
+	return &packages.Files{
+		Params: &p,
 	}
 }
