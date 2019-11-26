@@ -33,7 +33,10 @@ type PodExec struct {
 	Err           io.Writer
 }
 
-// Run execution the pod command.
+// Run executes a command in a pod. This is a distilled version of what `kubectl exec` (and
+// also `kubectl  cp`) doing under the hood: a POST request is made to the `exec` subresource
+// of the v1/pods endpoint containing the pod information and the command. Here is a good article
+// describing it in detail: https://erkanerol.github.io/post/how-kubectl-exec-works/
 func (pe *PodExec) Run() error {
 	codec := serializer.NewCodecFactory(scheme.Scheme)
 	restClient, err := apiutil.RESTClientForGVK(
@@ -54,15 +57,14 @@ func (pe *PodExec) Run() error {
 		Namespace(pe.PodNamespace).
 		SubResource("exec")
 
-	poe := &v1.PodExecOptions{
+	req.VersionedParams(&v1.PodExecOptions{
 		Stdin:     pe.In != nil,
 		Stdout:    pe.Out != nil,
 		Stderr:    pe.Err != nil,
 		TTY:       false,
 		Container: pe.ContainerName,
 		Command:   pe.Args,
-	}
-	req.VersionedParams(poe, scheme.ParameterCodec)
+	}, scheme.ParameterCodec)
 
 	exec, err := remotecommand.NewSPDYExecutor(pe.RestCfg, "POST", req.URL())
 	if err != nil {
@@ -76,7 +78,12 @@ func (pe *PodExec) Run() error {
 		Tty:    false,
 	}
 
+	// Executor.Stream() call has to be made in a goroutine, otherwise it blocks the execution.
+	// We don't wait for the execution to end: the result of the command is returned though the
+	// streams (In, Out and Err) defined in the PodExec, e.g. when downloading a file, Out will
+	// contain the file bytes.
 	go func(exec remotecommand.Executor, so remotecommand.StreamOptions) {
+		// TODO: we need to propagate this error to the caller
 		err = exec.Stream(so)
 		if err != nil {
 			fmt.Printf("error during pod command %+v execution: %v", pe, err)

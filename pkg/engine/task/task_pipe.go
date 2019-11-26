@@ -133,7 +133,6 @@ func unmarshal(ctrStr string) (*corev1.Container, error) {
 	return ctr, nil
 }
 
-// this regexp is used by K87 for validation Secret/ConfigMap data keys.
 var pipeFileRe = regexp.MustCompile(`[-._a-zA-Z0-9]+`)
 
 func isRelative(base, file string) bool {
@@ -162,9 +161,9 @@ func validate(ctr *corev1.Container, ff []PipeFile) error {
 		}
 
 		fileName := path.Base(f.File)
-		// k8s uses the same validation for Secret/ConfigMap data keys: a valid key must consist of alphanumeric
-		// characters, '-', '_' or '.' (e.g. 'key.name',  or 'KEY_NAME',  or 'key-name', regex used for
-		// validation is '[-._a-zA-Z0-9]+')
+		// Same as K87 we use file names as ConfigMap data keys. A valid key name for a ConfigMap must consist
+		// of alphanumeric characters, '-', '_' or '.' (e.g. 'key.name',  or 'KEY_NAME',  or 'key-name', regex
+		// used for validation is '[-._a-zA-Z0-9]+')
 		if !pipeFileRe.MatchString(fileName) {
 			return fmt.Errorf("pipe file name %s should only contain alphanumeric characters, '.', '_' and '-'", fileName)
 		}
@@ -259,7 +258,7 @@ func copyFile(fs afero.Fs, pf PipeFile, pod *corev1.Pod, restCfg *rest.Config) e
 		return fmt.Errorf("failed to copy pipe file. err: %v", err)
 	}
 
-	if err := untarFile(fs, "", reader, pf.File); err != nil {
+	if err := untarFile(fs, reader, pf.File); err != nil {
 		return fmt.Errorf("failed to untar pipe file: %v", err)
 	}
 
@@ -352,9 +351,8 @@ func pipeConfigMap(pf PipeFile, data []byte, ctx Context) (string, error) {
 	return string(b), nil
 }
 
-// untar takes a destination path and a reader; a tar reader loops over the tarfile
-// creating the file structure at 'path' along the way, and writing any files
-func untarFile(fs afero.Fs, dest string, r io.Reader, file string) (err error) {
+// untarFile extracts a tar file from the passed reader using passed file name.
+func untarFile(fs afero.Fs, r io.Reader, fileName string) (err error) {
 	tr := tar.NewReader(r)
 
 	for {
@@ -374,7 +372,7 @@ func untarFile(fs afero.Fs, dest string, r io.Reader, file string) (err error) {
 		// the target location of the file. tar strips the leading "/" however, we treat the pipe file path
 		// as a key to the underlying data (otherwise we'll have to start splitting paths). To avoid all
 		// the complexity and because we only extract one file here, the path is taken from the PipeFile configuration
-		target := file
+		target := fileName
 
 		// check the file type
 		switch header.Typeflag {
