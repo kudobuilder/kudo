@@ -47,7 +47,7 @@ func verifyPackage(fs afero.Fs, path string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	warnings, errors := verify.Parameters(pf)
+	warnings, errors := verify.Operator(pf)
 	if warnings != nil {
 		printWarnings(out, warnings)
 	}
@@ -57,9 +57,6 @@ func verifyPackage(fs afero.Fs, path string, out io.Writer) error {
 	}
 	printErrors(out, errors)
 	return fmt.Errorf("package verification errors: %v", len(errors))
-	//TODO (kensipe): add linting
-	// 2. warning on params not used
-	// 3. error on param in template not defined
 }
 
 func printErrors(out io.Writer, errors verify.ParamErrors) {

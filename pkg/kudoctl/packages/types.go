@@ -14,6 +14,21 @@ const (
 	APIVersion = "kudo.dev/v1beta1"
 )
 
+var (
+	// Implicits is a set of usable implicits
+	// defined in render.go
+	Implicits = map[string]bool{
+		"Name":         true, // instance name
+		"Namespace":    true,
+		"OperatorName": true,
+		"Params":       true,
+		"PlanName":     true,
+		"PhaseName":    true,
+		"StepName":     true,
+		"AppVersion":   true,
+	}
+)
+
 // This is an abstraction which abstracts the underlying packages, which is likely file system or compressed file.
 // There should be a complete separation between retrieving a packages if not local and working with a packages.
 
