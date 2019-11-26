@@ -165,6 +165,7 @@ Two proposals: singular and composite package/operator version. In the case of p
 
 - Visually simple
 - It can be known just from the package version whether or not it contains a certain operator-related feature or bug fix
+- Version is a combination of the application and operator in a single SemVer.
 
 ##### Cons
 
@@ -175,21 +176,25 @@ Two proposals: singular and composite package/operator version. In the case of p
 
   Example:
 
-  | Time | Package/operator version | App version        | Comment                                            |
-  | ---- | ---------------          | ------------------ | -------------------------------------------------- |
-  | T0   | 1.0.0                    | 2.3.0              | Initial release based on app version 2.3.x         |
-  | T1   | 1.1.0                    | 3.0.0              | Release based on app version 3.0.x                 |
-  | T2   | 1.2.0                    | 2.3.0              | New operator-related feature for app version 2.3.x |
-  | T2   | 1.3.0                    | 3.0.0              | New operator-related feature for app version 3.0.x |
-  | T3   | 1.4.0                    | 2.3.1              | Bug fix release for app version 2.3.x              |
-  | T4   | 1.5.0                    | 2.3.1              | Important bug fix A in operator-related code       |
-  | T4   | 1.6.0                    | 3.0.0              | Important bug fix A in operator-related code       |
-  | T5   | 1.6.1                    | 2.3.1              | Small bug fix B in operator-related code           |
-  | T5   | 1.6.2                    | 3.0.0              | Small bug fix B in operator-related code           |
+  | Time | Version  | App version        | Comment                                                     |
+  | ---- | -------- | ------------------ | ----------------------------------------------------------- |
+  | T0   | 1.0.0    | 2.3.0              | Initial release based on app version 2.3.x                  |
+  | T1   | 2.0.0    | 2.4.0              | Release based on app version 2.4.x                          |
+  | T2   | 2.1.0    | 2.4.0              | New operator-related feature A for latest app version 2.4.x |
+  | T2   | 1.1.0    | 2.3.0              | Back-port feature A for app version 2.3.x on demand         |
+  | T3   | 1.1.1    | 2.3.1              | Bug fix release for app version 2.3.x                       |
+  | T4   | 2.2.0    | 2.4.0              | Important bug fix B in operator code for latest 2.4.x       |
+  | T4   | 1.2.0    | 2.3.1              | Back-port bug fix B in operator code for 2.3.x on demand    |
+  | T5   | 2.2.1    | 2.4.0              | Small bug fix C in operator code for latest 2.4.x           |
+  | T5   | 1.2.1    | 2.3.1              | Back-port bug fix C in operator code for 2.3.x on demand    |
 
-  The example above illustrates two sources of confusion:
-  - A higher package version can contain a lower app version
-  - There's no relation between the package version growth and the app version growth
+In above example we know:
+- What is the latest version of operator just by looking at `Version` column
+- When a feature was introduced
+
+The relationship between app and operator version is decided by the operator developer. 
+In the above case a major bump in version of app-version is a major bump in operator version also. But this should be up to the each operator. 
+If a base tech does big releases with minor versions, the operator developer can chose to bump the major version of operator with each minor release of base tech.   
 
 #### Composite package/operator version
 
@@ -202,7 +207,8 @@ Two proposals: singular and composite package/operator version. In the case of p
 ##### Cons
 
 - Visually more complex
-- Makes it complex to know which operator-related features are available in which versions
+- Makes it complex to know which operator-related features are available in which versions.  Operator revision for different app versions are unrelated
+- Upgrading from `3.11.4-0.1.2` to `3.12.0-0.1.2` might result in missing some operator-related features that were present in `3.11.4-0.1.2`, even if unlikely
 
 ##### Example hypothetical timeline for Apache Cassandra releases
 
@@ -237,7 +243,9 @@ Remember that _version_ is _operator version_ is _package version_.
 
 It's important to note that **operator revision for different app versions are unrelated**. E.g., assuming two versions `2.3.0-1.0.0` and `3.0.0-1.0.0`, even though both have the same operator revision (`1.0.0`) they wouldn't necessarily have any commonality with regards to exclusively operator-related features and bug fixes. The operator revision progression is only meaningful within an app version's `major.minor` family, i.e. `2.3.x` or `3.0.x`.
 
-###### CLI UX
+### CLI UX
+
+Independent of the version strategy, this will be the CLI UX
 
 | Concept                            | Flag          |
 | ------------------------           | ---------     |
@@ -245,7 +253,9 @@ It's important to note that **operator revision for different app versions are u
 | Application version                | --app-version |
 | Operator revision                  | --revision    |
 
-Assuming the following packages exist in the package registry:
+Assuming the following packages exist in the package registry
+
+for composite version:
 
 | Operator | Version     |
 | -------- | ----------- |
@@ -258,15 +268,38 @@ Assuming the following packages exist in the package registry:
 | kafka    | 3.0.1-1.1.0 |
 | kafka    | 3.1.1-1.0.0 |
 
+for single version:
+                           
+| Operator | Version  |
+| -------- | -------- |
+| kafka    | 1.0.0    |
+| kafka    | 2.0.0    |
+| kafka    | 2.1.0    |
+| kafka    | 1.1.0    |
+| kafka    | 1.1.1    |
+| kafka    | 2.2.0    |
+| kafka    | 1.2.0    |
+| kafka    | 2.2.1    |
+| kafka    | 1.2.1    |
+
 **Install latest version of the Kafka operator**
 
+In the composite package version strategy we will need to specify how app-version is ordered. 
 ```
 kudo install kafka
 ```
 
+**for composite version:** 
+
 Installs `kafka-3.1.1-1.0.0`.
 
+**for single version:** 
+
+Installs `kafka-2.2.1`.
+
 **Install the latest Kafka operator with a specific Kafka version**
+
+**for composite version:**
 
 ```
 kudo install kafka --app-version 2.3.0
@@ -280,19 +313,49 @@ kudo install kafka --app-version 3.0.0
 
 Installs `kafka-3.0.0-1.1.0`.
 
+**for single version:**
+
+```
+kudo install kafka --app-version 2.3.0
+```
+
+Installs `kafka-1.1.0`.
+
+```
+kudo install kafka --app-version 3.0.0
+```
+
+Installs `kafka-2.2.1`.
+
 **Install a Kafka operator with a specific version**
 
 Let's say a user wants to use Apache Kafka `3.0.0` and even though there's a `3.0.0` with a `1.1.0` revision released, they want the operator with revision `1.0.0` due to reasons like:
 - revision `1.1.0` introduced a bug for which there's still no released fixes
 - revision `1.1.0` changed in a way that will require them to invest time and resources to adapt
 
+**for composite version:**
+
 ```
 kudo install kafka --version 3.0.0-1.0.0
+```
+
+**for single version:**
+
+it should be enough with single version
+```
+kudo install kafka --version 2.2.0
+```
+
+But users can also specify the `app-version` flag
+```
+kudo install kafka --version 2.2.0  --app-version 3.0.0
 ```
 
 **Install a Kafka operator providing a partial version**
 
 Another interesting thing that having the concept of _version_ contain the _app version_ concatenated with the _operator revision_ is that it would be possible to not have operator users necessarily have to know about the existence of _app version_ and _operator revision_. With regards to versioning, CLI interactions could optionally "flatten" the usage of both flags into just the `--version` flag, which could also be provided as a prefix to be matched.
+
+**for composite version:**
 
 ```
 kudo install kafka --version 3
@@ -312,11 +375,33 @@ kudo install kafka --version 2.3.1
 
 Installs the latest Kafka operator based on Apache Kafka 2.3.1.
 
+**for single version:**
+
+```
+kudo install kafka --app-version 3
+```
+
+Installs the latest Kafka operator based on Apache Kafka 3.x.x.
+
+```
+kudo install kafka --app-version 2.3
+```
+
+Installs the latest Kafka operator based on Apache Kafka 2.3.x.
+
+```
+kudo install kafka --app-version 2.3.1
+```
+
+Installs the latest Kafka operator based on Apache Kafka 2.3.1.
+
 **Upgrade Kafka operator**
 
 The `kudo upgrade` commands would look similar as the `kudo install` commands above.
 
 **Search package registry**
+
+**for composite version:**
 
 ```
 $ kudo search kafka
@@ -349,6 +434,46 @@ kafka-2.3.0-1.0.0
 kafka-2.3.0-1.1.0
 kafka-2.3.0-1.1.1
 kafka-2.3.1-1.2.0
+```
+
+**for single version:**
+
+```
+$ kudo search kafka
+operator 	| app-version
+1.0.0 		| 	2.3.0
+1.1.0 		| 	2.3.0
+1.1.1 		| 	2.3.1
+1.2.0		| 	2.3.1
+2.0.0 		| 	3.0.0
+2.1.0 		| 	3.0.0
+2.2.0 		| 	3.0.0
+```
+
+```
+$ kudo search kafka --version 2
+operator 	| app-version
+2.0.0 		| 	3.0.0
+2.1.0 		| 	3.0.0
+2.2.0 		| 	3.0.0
+```
+
+```
+$ kudo search kafka --app-version 2
+operator 	| app-version
+1.0.0 		| 	2.3.0
+1.1.0 		| 	2.3.0
+1.1.1 		| 	2.3.1
+1.2.0		| 	2.3.1
+```
+
+```
+$ kudo search kafka --app-version 2.3
+operator 	| app-version
+1.0.0 		| 	2.3.0
+1.1.0 		| 	2.3.0
+1.1.1 		| 	2.3.1
+1.2.0		| 	2.3.1
 ```
 
 ---
@@ -422,3 +547,4 @@ Because existing packages already set an `apiVersion` in their `operator.yaml` a
 - 2019/11/05 - Initial draft. (@nfnt)
 - 2019/11/18 - Changed scope to include all package versions. (@nfnt)
 - 2019/11/21 - Added "concepts" section and expanded existing sections. (@mpereira)
+- 2019/11/25 - Expanded the single semver section and its CLI UX. (@zmalik)
