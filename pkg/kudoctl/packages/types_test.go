@@ -55,6 +55,27 @@ spec:
 
 }
 
+func TestBadTemplate(t *testing.T) {
+	template := `apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Name }}-pdb
+  namespace: {{ .Namespace }}
+  {{ end }}
+
+`
+	var templates = Templates{}
+	templates["example.yaml"] = template
+
+	tnodes := templates.Nodes()
+	nodes := tnodes["example.yaml"]
+
+	assert.Equal(t, 0, len(nodes.Parameters))
+	assert.Equal(t, 0, len(nodes.ImplicitParams))
+
+	assert.Equal(t, `template file "example.yaml" reports the following error: template: example.yaml:6: unexpected {{end}}`, *nodes.Error)
+}
+
 func contains(arr []string, str string) bool {
 	for _, a := range arr {
 		if a == str {
