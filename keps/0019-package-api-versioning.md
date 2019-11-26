@@ -57,7 +57,7 @@ The internal version for the KUDO implementation, e.g. v1alpha1, v1beta1, v1, et
 
 ### Operator
 
-An opinionated way to run a workload of a specific domain built on KUDO.
+A [Kubernetes Operator](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/) built on KUDO.
 
 ### Operator user (user)
 
@@ -179,13 +179,13 @@ Two proposals: singular and composite package/operator version. In the case of p
   | Time | Version  | App version        | Comment                                                     |
   | ---- | -------- | ------------------ | ----------------------------------------------------------- |
   | T0   | 1.0.0    | 2.3.0              | Initial release based on app version 2.3.x                  |
-  | T1   | 2.0.0    | 3.0.0              | Release based on app version 3.0.x                          |
-  | T2   | 2.1.0    | 3.0.0              | New operator-related feature A for latest app version 3.0.x |
+  | T1   | 2.0.0    | 2.4.0              | Release based on app version 2.4.x                          |
+  | T2   | 2.1.0    | 2.4.0              | New operator-related feature A for latest app version 2.4.x |
   | T2   | 1.1.0    | 2.3.0              | Back-port feature A for app version 2.3.x on demand         |
   | T3   | 1.1.1    | 2.3.1              | Bug fix release for app version 2.3.x                       |
-  | T4   | 2.2.0    | 3.0.0              | Important bug fix B in operator code for latest 3.0.x       |
+  | T4   | 2.2.0    | 2.4.0              | Important bug fix B in operator code for latest 2.4.x       |
   | T4   | 1.2.0    | 2.3.1              | Back-port bug fix B in operator code for 2.3.x on demand    |
-  | T5   | 2.2.1    | 3.0.0              | Small bug fix C in operator code for latest 3.0.x           |
+  | T5   | 2.2.1    | 2.4.0              | Small bug fix C in operator code for latest 2.4.x           |
   | T5   | 1.2.1    | 2.3.1              | Back-port bug fix C in operator code for 2.3.x on demand    |
 
 In above example we know:
