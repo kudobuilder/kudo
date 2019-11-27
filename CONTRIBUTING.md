@@ -72,6 +72,7 @@ This is a set of practices we try to live by when developing KUDO. These are jus
 - For a piece of work that takes >3-5 days, pair with somebody
 - When you pair with somebody, don't forget to appreciate their work using [co-authorship](https://help.github.com/en/github/committing-changes-to-your-project/creating-a-commit-with-multiple-authors)
 - Open a PR as soon as possible to give everybody a chance to review it
+- For PRs that tackle a bigger feature/refactoring schedule a walk-through with the team. PR reviews are a lot more meaningful if reviewers understand your code mental model.
 
 ### As a code owner (core team mamber)
 - Schedule a portion of your day to review PRs to appreciate work of others
