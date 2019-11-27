@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
@@ -56,13 +57,13 @@ func newUpdateCmd() *cobra.Command {
 
 func validateUpdateCmd(args []string, options *updateOptions) error {
 	if len(args) != 0 {
-		return fmt.Errorf("expecting no arguments provided for update. Only named flags are accepted")
+		return errors.New("expecting no arguments provided for update. Only named flags are accepted")
 	}
 	if options.InstanceName == "" {
-		return fmt.Errorf("--instance flag has to be provided to indicate which instance you want to update")
+		return errors.New("--instance flag has to be provided to indicate which instance you want to update")
 	}
 	if len(options.Parameters) == 0 {
-		return fmt.Errorf("need to specify at least one parameter to override via -p otherwise there is nothing to update")
+		return errors.New("need to specify at least one parameter to override via -p otherwise there is nothing to update")
 	}
 
 	return nil

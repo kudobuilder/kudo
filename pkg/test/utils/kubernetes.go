@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	ejson "encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -734,7 +735,7 @@ func GetAPIResource(dClient discovery.DiscoveryInterface, gvk schema.GroupVersio
 		return resource, nil
 	}
 
-	return metav1.APIResource{}, fmt.Errorf("resource type not found")
+	return metav1.APIResource{}, errors.New("resource type not found")
 }
 
 // WaitForDelete waits for the provide runtime objects to be deleted from cluster

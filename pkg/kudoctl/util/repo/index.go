@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -78,7 +79,7 @@ func ParseIndexFile(data []byte) (*IndexFile, error) {
 		return nil, fmt.Errorf("unmarshalling index file: %w", err)
 	}
 	if i.APIVersion == "" {
-		return nil, fmt.Errorf("no API version specified")
+		return nil, errors.New("no API version specified")
 	}
 	i.sortPackages()
 	return i, nil
@@ -195,7 +196,7 @@ func IndexDirectory(fs afero.Fs, path string, url string, now *time.Time) (*Inde
 		return nil, err
 	}
 	if len(archives) == 0 {
-		return nil, fmt.Errorf("no packages discovered")
+		return nil, errors.New("no packages discovered")
 	}
 	index := newIndexFile(now)
 	ops := filesDigest(fs, archives)

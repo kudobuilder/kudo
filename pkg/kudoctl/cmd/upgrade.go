@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
@@ -67,10 +68,10 @@ func newUpgradeCmd(fs afero.Fs) *cobra.Command {
 
 func validateCmd(args []string, options *options) error {
 	if len(args) != 1 {
-		return fmt.Errorf("expecting exactly one argument - name of the package or path to upgrade")
+		return errors.New("expecting exactly one argument - name of the package or path to upgrade")
 	}
 	if options.InstanceName == "" {
-		return fmt.Errorf("please use --instance and specify instance name. It cannot be empty")
+		return errors.New("please use --instance and specify instance name. It cannot be empty")
 	}
 
 	return nil

@@ -1,6 +1,7 @@
 package get
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -39,11 +40,11 @@ func Run(args []string, settings *env.Settings) error {
 
 func validate(args []string) error {
 	if len(args) != 1 {
-		return fmt.Errorf("expecting exactly one argument - \"instances\"")
+		return errors.New(`expecting exactly one argument - "instances"`)
 	}
 
 	if args[0] != "instances" {
-		return fmt.Errorf("expecting \"instances\" and not \"%s\"", args[0])
+		return fmt.Errorf(`expecting "instances" and not %q`, args[0])
 	}
 
 	return nil

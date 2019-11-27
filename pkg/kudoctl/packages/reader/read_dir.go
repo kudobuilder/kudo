@@ -1,6 +1,7 @@
 package reader
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -44,7 +45,7 @@ func ReadDir(fs afero.Fs, path string) (*packages.Package, error) {
 // FromDir walks the path provided and returns package files or an error
 func FromDir(fs afero.Fs, packagePath string) (*packages.Files, error) {
 	if packagePath == "" {
-		return nil, fmt.Errorf("path must be specified")
+		return nil, errors.New("path must be specified")
 	}
 	result := newPackageFiles()
 
@@ -73,10 +74,10 @@ func FromDir(fs afero.Fs, packagePath string) (*packages.Files, error) {
 	}
 	// final check
 	if result.Operator == nil {
-		return nil, fmt.Errorf("operator package missing operator.yaml")
+		return nil, errors.New("operator package missing operator.yaml")
 	}
 	if result.Params == nil {
-		return nil, fmt.Errorf("operator package missing params.yaml")
+		return nil, errors.New("operator package missing params.yaml")
 	}
 	return &result, nil
 }

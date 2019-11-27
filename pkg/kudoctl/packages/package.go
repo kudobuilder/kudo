@@ -1,6 +1,7 @@
 package packages
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -15,10 +16,10 @@ import (
 
 func (p *Files) Resources() (*Resources, error) {
 	if p.Operator == nil {
-		return nil, fmt.Errorf("operator.yaml file is missing")
+		return nil, errors.New("operator.yaml file is missing")
 	}
 	if p.Params == nil {
-		return nil, fmt.Errorf("params.yaml file is missing")
+		return nil, errors.New("params.yaml file is missing")
 	}
 	var errs []string
 	for _, tt := range p.Operator.Tasks {
@@ -26,7 +27,7 @@ func (p *Files) Resources() (*Resources, error) {
 	}
 
 	if len(errs) != 0 {
-		return nil, fmt.Errorf(strings.Join(errs, "\n"))
+		return nil, errors.New(strings.Join(errs, "\n"))
 	}
 
 	operator := &v1beta1.Operator{
