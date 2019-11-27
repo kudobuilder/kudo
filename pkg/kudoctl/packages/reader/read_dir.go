@@ -1,11 +1,12 @@
 package reader
 
 import (
+	"errors"
+	"fmt"
 	"os"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
 
@@ -26,13 +27,13 @@ func ReadDir(fs afero.Fs, path string) (*packages.Package, error) {
 	// 1. get files
 	files, err := FromDir(fs, path)
 	if err != nil {
-		return nil, errors.Wrap(err, "while parsing package files")
+		return nil, fmt.Errorf("while parsing package files: %w", err)
 	}
 
 	// 2. get resources
 	resources, err := files.Resources()
 	if err != nil {
-		return nil, errors.Wrap(err, "while getting package resources")
+		return nil, fmt.Errorf("while getting package resources: %w", err)
 	}
 
 	return &packages.Package{

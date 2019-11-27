@@ -1,13 +1,14 @@
 package install
 
 import (
+	"fmt"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
 
@@ -54,7 +55,7 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 
 	repository, err := repo.ClientFromSettings(fs, settings.Home, options.RepoName)
 	if err != nil {
-		return errors.WithMessage(err, "could not build operator repository")
+		return fmt.Errorf("could not build operator repository: %w", err)
 	}
 	clog.V(4).Printf("repository used %s", repository)
 
@@ -62,7 +63,7 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 	clog.V(3).Printf("acquiring kudo client")
 	if err != nil {
 		clog.V(3).Printf("failed to acquire client")
-		return errors.Wrap(err, "creating kudo client")
+		return fmt.Errorf("creating kudo client: %w", err)
 	}
 
 	clog.V(3).Printf("getting package crds")
@@ -70,7 +71,7 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 	resolver := pkgresolver.New(repository)
 	pkg, err := resolver.Resolve(operatorArgument, options.PackageVersion)
 	if err != nil {
-		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", operatorArgument)
+		return fmt.Errorf("failed to resolve package CRDs for operator: %s %w", operatorArgument, err)
 	}
 
 	return kudo.InstallPackage(kc, pkg.Resources, options.SkipInstance, options.InstanceName, settings.Namespace, options.Parameters)

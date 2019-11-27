@@ -1,7 +1,7 @@
 package init
 
 import (
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -55,7 +55,7 @@ func getKUDOPodImage(client corev1.PodsGetter, namespace string) (string, error)
 			return c.Image, nil
 		}
 	}
-	return "", fmt.Errorf("could not find a KUDO pod")
+	return "", errors.New("could not find a KUDO pod")
 }
 
 func getFirstRunningPod(client corev1.PodsGetter, namespace string, selector labels.Selector) (*v1.Pod, error) {
@@ -65,12 +65,12 @@ func getFirstRunningPod(client corev1.PodsGetter, namespace string, selector lab
 		return nil, err
 	}
 	if len(pods.Items) < 1 {
-		return nil, fmt.Errorf("could not find KUDO manager")
+		return nil, errors.New("could not find KUDO manager")
 	}
 	for _, p := range pods.Items {
 		if kube.IsPodReady(&p) {
 			return &p, nil
 		}
 	}
-	return nil, fmt.Errorf("could not find a ready KUDO pod")
+	return nil, errors.New("could not find a ready KUDO pod")
 }

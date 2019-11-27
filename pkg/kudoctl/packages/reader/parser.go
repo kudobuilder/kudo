@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 )
 
@@ -43,7 +42,7 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *package
 	switch {
 	case isOperatorFile(filePath):
 		if err := yaml.Unmarshal(fileBytes, &currentPackage.Operator); err != nil {
-			return errors.Wrap(err, "failed to unmarshal operator file")
+			return fmt.Errorf("failed to unmarshal operator file: %w", err)
 		}
 		if currentPackage.Operator.APIVersion == "" {
 			currentPackage.Operator.APIVersion = APIVersion
@@ -58,7 +57,7 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *package
 	case isParametersFile(filePath):
 		paramsFile, err := readParametersFile(fileBytes)
 		if err != nil {
-			return errors.Wrapf(err, "failed to unmarshal parameters file: %s", filePath)
+			return fmt.Errorf("failed to unmarshal parameters file: %s: %w", filePath, err)
 		}
 		defaultRequired := true
 		for i := 0; i < len(paramsFile.Parameters); i++ {
