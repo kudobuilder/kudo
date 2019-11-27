@@ -63,7 +63,7 @@ This is a set of practices we try to live by when developing KUDO. These are jus
 - Every user-facing feature that is NOT behind a feature gate should have integration or an e2e test
 
 ### Pull requests
-- One core-team member has to approve the PR to be able to merge (defined in code owners file)
+- One core-team member has to approve the PR to be able to merge (all people listed in `.github/CODEOWNERS` file)
 - One approval is enough to merge. However, if there are requests for change they have to be resolved prior to the merge
 - Since KUDO is developed in multiple timezones, try to keep the PR open for everyone to be able to see it (~24h)
 - We prefer squash commits so that all changes from a branch are committed to master as a single commit
