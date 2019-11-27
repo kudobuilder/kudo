@@ -6,6 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+
+	kudoinit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
@@ -14,7 +18,6 @@ import (
 
 	"github.com/pkg/errors"
 	v1core "k8s.io/api/core/v1"
-	extensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -42,31 +45,27 @@ func NewClient(kubeConfigPath string, requestTimeout int64) (*Client, error) {
 	// set default configs
 	config.Timeout = time.Duration(requestTimeout) * time.Second
 
-	// create the clientset
+	kubeClient, err := kube.GetKubeClient(kubeConfigPath)
+	if err != nil {
+		return nil, clog.Errorf("could not get Kubernetes client: %s", err)
+	}
+
+	err = kudoinit.ValidateManager(kubeClient, kudoinit.NewOptions("", ""))
+	if err != nil {
+		clog.V(0).Printf("KUDO manager not correctly installed. Do you need to run kudo init?")
+		return nil, fmt.Errorf("KUDO manager invalid: %v", err)
+	}
+
+	err = kudoinit.CRDs().Validate(kubeClient)
+	if err != nil {
+		clog.V(0).Printf("Cluster CRDS are not set up correctly. Do you need to run kudo init?")
+		return nil, fmt.Errorf("CRDs invalid: %v", err)
+	}
+
+	//// create the clientset
 	kudoClientset, err := versioned.NewForConfig(config)
 	if err != nil {
 		return nil, err
-	}
-
-	// use the apiextensions clientset to check for the existence of KUDO CRDs in the cluster
-	extensionsClientset, err := extensionsclient.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = extensionsClientset.CustomResourceDefinitions().Get("operators.kudo.dev", v1.GetOptions{})
-	if err != nil {
-		return nil, errors.WithMessage(err, "operators")
-	}
-
-	_, err = extensionsClientset.CustomResourceDefinitions().Get("operatorversions.kudo.dev", v1.GetOptions{})
-	if err != nil {
-		return nil, errors.WithMessage(err, "operatorversions")
-	}
-
-	_, err = extensionsClientset.CustomResourceDefinitions().Get("instances.kudo.dev", v1.GetOptions{})
-	if err != nil {
-		return nil, errors.WithMessage(err, "instances")
 	}
 
 	return &Client{

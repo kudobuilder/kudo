@@ -82,6 +82,23 @@ func Install(client *kube.Client, opts Options, crdOnly bool) error {
 	return nil
 }
 
+func ValidateManager(client *kube.Client, opts Options) error {
+	s := generateDeployment(opts)
+	set, err := client.KubeClient.AppsV1().StatefulSets(opts.Namespace).Get(s.Name, metav1.GetOptions{})
+
+	if err != nil {
+		return fmt.Errorf("failed to retrieve KUDO manager %v", err)
+	}
+	expectedImage := s.Spec.Template.Spec.Containers[0].Image
+	actualImage := set.Spec.Template.Spec.Containers[0].Image
+	if actualImage != expectedImage {
+		return fmt.Errorf("deployed KUDO manager image %s differes from expected image %s", actualImage, expectedImage)
+	}
+
+	clog.V(0).Printf("Installed StatefulSet: %v", set)
+	return nil
+}
+
 // Install uses Kubernetes client to install KUDO.
 func installManager(client kubernetes.Interface, opts Options) error {
 	if err := installStatefulSet(client.AppsV1(), opts); err != nil {
