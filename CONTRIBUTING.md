@@ -74,7 +74,7 @@ This is a set of practices we try to live by when developing KUDO. These are jus
 - Open a PR as soon as possible to give everybody a chance to review it
 - For PRs that tackle a bigger feature/refactoring schedule a walk-through with the team. PR reviews are a lot more meaningful if reviewers understand your code mental model.
 
-### As a code owner (core team mamber)
+### As a code owner (core team member)
 - Schedule a portion of your day to review PRs to appreciate work of others
 
 ## Is My Thing an Enhancement?
