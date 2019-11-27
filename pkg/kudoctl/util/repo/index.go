@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -10,7 +11,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 
 	"github.com/Masterminds/semver"
-	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
 )
@@ -76,7 +76,7 @@ func (i IndexFile) sortPackages() {
 func ParseIndexFile(data []byte) (*IndexFile, error) {
 	i := &IndexFile{}
 	if err := yaml.Unmarshal(data, i); err != nil {
-		return nil, errors.Wrap(err, "unmarshalling index file")
+		return nil, fmt.Errorf("unmarshalling index file: %w", err)
 	}
 	if i.APIVersion == "" {
 		return nil, errors.New("no API version specified")
@@ -102,7 +102,7 @@ func (i *IndexFile) AddPackageVersion(pv *PackageVersion) error {
 	name := pv.Name
 	version := pv.Version
 	if version == "" {
-		return errors.Errorf("operator '%v' is missing version", name)
+		return fmt.Errorf("operator '%v' is missing version", name)
 	}
 	if i.Entries == nil {
 		i.Entries = make(map[string]PackageVersions)
@@ -118,7 +118,7 @@ func (i *IndexFile) AddPackageVersion(pv *PackageVersion) error {
 	// loop thru all... don't allow dups
 	for _, ver := range vs {
 		if ver.Version == version {
-			return errors.Errorf("operator '%v' version: %v already exists", name, version)
+			return fmt.Errorf("operator '%v' version: %v already exists", name, version)
 		}
 	}
 

@@ -9,7 +9,6 @@ import (
 
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
-	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -119,7 +118,7 @@ func (s *Step) DeleteExisting(namespace string) error {
 
 			err := cl.List(context.TODO(), u, listOptions...)
 			if err != nil {
-				return errors.Wrap(err, "listing matching resources")
+				return fmt.Errorf("listing matching resources: %w", err)
 			}
 
 			for index := range u.Items {
@@ -265,7 +264,7 @@ func (s *Step) CheckResource(expected runtime.Object, namespace string) []error 
 		if err := testutils.IsSubset(expectedObj, actual.UnstructuredContent()); err != nil {
 			diff, diffErr := testutils.PrettyDiff(expected, &actual)
 			if diffErr == nil {
-				tmpTestErrors = append(tmpTestErrors, errors.New(diff))
+				tmpTestErrors = append(tmpTestErrors, fmt.Errorf(diff))
 			} else {
 				tmpTestErrors = append(tmpTestErrors, diffErr)
 			}

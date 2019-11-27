@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	ejson "encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -21,7 +22,6 @@ import (
 	"github.com/google/shlex"
 	"github.com/kudobuilder/kudo/pkg/apis"
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/pkg/errors"
 	"github.com/pmezard/go-difflib/difflib"
 	corev1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -339,7 +339,7 @@ func PrettyDiff(expected runtime.Object, actual runtime.Object) (string, error) 
 func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 	unstruct, err := runtime.DefaultUnstructuredConverter.ToUnstructured(in)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("error converting %s to unstructured", ResourceID(in)))
+		return nil, fmt.Errorf("error converting %s to unstructured error: %w", ResourceID(in), err)
 	}
 
 	var converted runtime.Object
@@ -361,7 +361,7 @@ func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 
 	err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstruct, converted)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("error converting %s from unstructured", ResourceID(in)))
+		return nil, fmt.Errorf("error converting %s from unstructured error: %w", ResourceID(in), err)
 	}
 
 	return converted, nil
@@ -449,19 +449,19 @@ func LoadYAML(path string) ([]runtime.Object, error) {
 			if err == io.EOF {
 				break
 			}
-			return nil, errors.Wrap(err, fmt.Sprintf("error reading yaml %s", path))
+			return nil, fmt.Errorf("error reading yaml %s: %w", path, err)
 		}
 
 		unstructuredObj := &unstructured.Unstructured{}
 		decoder := yaml.NewYAMLOrJSONDecoder(bytes.NewBuffer(data), len(data))
 
 		if err = decoder.Decode(unstructuredObj); err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("error decoding yaml %s", path))
+			return nil, fmt.Errorf("error decoding yaml %s: %w", path, err)
 		}
 
 		obj, err := ConvertUnstructured(unstructuredObj)
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("error converting unstructured object %s (%s)", ResourceID(unstructuredObj), path))
+			return nil, fmt.Errorf("error converting unstructured object %s (%s): %w", ResourceID(unstructuredObj), path, err)
 		}
 
 		objects = append(objects, obj)
@@ -528,7 +528,7 @@ func InstallManifests(ctx context.Context, client client.Client, dClient discove
 
 			updated, err := CreateOrUpdate(ctx, client, obj, true)
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("error creating resource %s", ResourceID(obj)))
+				return fmt.Errorf("error creating resource %s: %w", ResourceID(obj), err)
 			}
 
 			action := "created"
@@ -735,7 +735,7 @@ func GetAPIResource(dClient discovery.DiscoveryInterface, gvk schema.GroupVersio
 		return resource, nil
 	}
 
-	return metav1.APIResource{}, fmt.Errorf("resource type not found")
+	return metav1.APIResource{}, errors.New("resource type not found")
 }
 
 // WaitForDelete waits for the provide runtime objects to be deleted from cluster
