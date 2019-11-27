@@ -55,7 +55,7 @@ You can reach the maintainers of this project at:
 
 ## Code culture
 
-This is a set of practices we try to live by when developing KUDO. These are just defaults (soft rules). Deviations from them are possible, only has to be justified.
+This is a set of practices we try to live by when developing KUDO. These are just defaults (soft rules). Deviations from them are possible, but have to be justified.
 
 ### General guidelines
 - Master is always releasable (green CI)
