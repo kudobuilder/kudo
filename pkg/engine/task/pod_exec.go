@@ -1,7 +1,6 @@
 package task
 
 import (
-	"fmt"
 	"io"
 
 	v1 "k8s.io/api/core/v1"
@@ -19,9 +18,9 @@ import (
 // PodNamespace - Namespace of the pod
 // ContainerName - optional container to execute the command in. If empty, first container is taken
 // Args - The command (and args) to execute.
-// In - An (optional) command input stream.
-// Out - The command output stream set by `Run()`.
-// Err - the command error stream set by `Run()`.
+// In - Command input stream.
+// Out - Command output stream
+// Err - Command error stream
 type PodExec struct {
 	RestCfg       *rest.Config
 	PodName       string
@@ -78,17 +77,7 @@ func (pe *PodExec) Run() error {
 		Tty:    false,
 	}
 
-	// Executor.Stream() call has to be made in a goroutine, otherwise it blocks the execution.
-	// We don't wait for the execution to end: the result of the command is returned though the
-	// streams (In, Out and Err) defined in the PodExec, e.g. when downloading a file, Out will
-	// contain the file bytes.
-	go func(exec remotecommand.Executor, so remotecommand.StreamOptions) {
-		// TODO: we need to propagate this error to the caller
-		err = exec.Stream(so)
-		if err != nil {
-			fmt.Printf("error during pod command %+v execution: %v", pe, err)
-		}
-	}(exec, so)
-
-	return nil
+	// The result of the executor.Stream() call itself is returned through the streams (In, Out and Err)
+	// defined in the PodExec, e.g. when downloading a file, pe.Out will  contain the file bytes.
+	return exec.Stream(so)
 }

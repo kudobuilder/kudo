@@ -2,6 +2,7 @@ package task
 
 import (
 	"archive/tar"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -239,9 +240,7 @@ func copyFiles(fs afero.Fs, ff []PipeFile, pod *corev1.Pod, ctx Context) error {
 
 func copyFile(fs afero.Fs, pf PipeFile, pod *corev1.Pod, restCfg *rest.Config) error {
 	reader, stdout := io.Pipe()
-
-	defer reader.Close()
-	defer stdout.Close()
+	stderr := bytes.Buffer{}
 
 	pe := PodExec{
 		RestCfg:       restCfg,
@@ -251,15 +250,35 @@ func copyFile(fs afero.Fs, pf PipeFile, pod *corev1.Pod, restCfg *rest.Config) e
 		Args:          []string{"tar", "cf", "-", pf.File},
 		In:            nil,
 		Out:           stdout,
-		Err:           nil,
+		Err:           &stderr,
 	}
 
-	if err := pe.Run(); err != nil {
-		return fmt.Errorf("failed to copy pipe file. err: %v", err)
-	}
+	// When downloading files using remotecommand.Executor, the call HAS to be wrapped into
+	// a goroutine, otherwise it blocks the execution. It boils down to calling remotecommand/v4.go:54
+	// method, which will try copy stdout and stderr into provided buffers. We're using io.Pipe to move data
+	// from remote stdout to the local reader. It works synchronously as it copies data directly from the
+	// Write to the corresponding Read, there is no internal buffering.
+	//
+	// IMPORTANT: the PodExec.Run call doesn't return until we consume data from the pipe reader! It has
+	// 			  to be executed in a goroutine and we have to consume the passed stdout first.
+	//            Otherwise this code will deadlock. This is why consuming error from the errCh has to
+	//            happen AFTER we try to extract the file! 🤯
+	//
+	// See `kubectl cp` copyFromPod method for another example:
+	// https://github.com/kubernetes/kubernetes/blob/master/pkg/kubectl/cmd/cp/cp.go#L291
+	errCh := make(chan error, 0)
+	go func() {
+		defer stdout.Close()
+		errCh <- pe.Run()
+	}()
 
 	if err := untarFile(fs, reader, pf.File); err != nil {
 		return fmt.Errorf("failed to untar pipe file: %v", err)
+	}
+
+	// THIS CHECK HAS TO HAPPEN AFTER WE CONSUME THE READER. SEE THE COMMENT ABOVE.
+	if err := <-errCh; err != nil {
+		return fmt.Errorf("failed to copy pipe file. err: %v, stderr: %s", err, stderr.String())
 	}
 
 	return nil
@@ -357,16 +376,11 @@ func untarFile(fs afero.Fs, r io.Reader, fileName string) (err error) {
 
 	for {
 		header, err := tr.Next()
-
-		switch {
-		case err == io.EOF: // if no more files are found return
-			return nil
-
-		case err != nil: // return any other error
-			return err
-
-		case header == nil: // if the header is nil, just skip it
-			continue
+		if err != nil {
+			if err != io.EOF {
+				return err
+			}
+			break
 		}
 
 		// the target location of the file. tar strips the leading "/" however, we treat the pipe file path
@@ -396,6 +410,8 @@ func untarFile(fs afero.Fs, r io.Reader, fileName string) (err error) {
 			fmt.Printf("skipping %s because it is not a regular file or a directory", header.Name)
 		}
 	}
+
+	return nil
 }
 
 // podName returns a deterministic name for a pipe pod
