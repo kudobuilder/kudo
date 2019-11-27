@@ -159,6 +159,9 @@ const (
 
 	// UpdatePlanName is the name of the update plan
 	UpdatePlanName = "update"
+
+	// CleanupPlanName is the name of the cleanup plan
+	CleanupPlanName = "cleanup"
 )
 
 // IsTerminal returns true if the status is terminal (either complete, or in a nonrecoverable error)

@@ -46,6 +46,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+const instanceCleanupFinalizerName = "kudo.finalizers.instance.cleanup"
+
 // Reconciler reconciles an Instance object.
 type Reconciler struct {
 	client.Client
@@ -105,6 +107,12 @@ func (r *Reconciler) SetupWithManager(
 //                  |
 //                  v
 //   +-------------------------------+
+//   | Start cleanup plan if object  |
+//   | is being deleted              |
+//   +-------------------------------+
+//                  |
+//                  v
+//   +-------------------------------+
 //   | Start new plan if required    |
 //   | and none is running           |
 //   +-------------------------------+
@@ -141,12 +149,40 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err // OV not found has to be retried because it can really have been created after Instance
 	}
 
-	// ---------- 2. First check if we should start execution of new plan ----------
+	// ---------- 2. Check if the object is being deleted, start cleanup plan ----------
 
-	planToBeExecuted, err := instance.GetPlanToBeExecuted(ov)
-	if err != nil {
-		return reconcile.Result{}, err
+	var planToBeExecuted *string
+
+	// A delete request is indicated by a non-zero 'metadata.deletionTimestamp',
+	// see https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		if _, hasCleanupPlan := ov.Spec.Plans[kudov1beta1.CleanupPlanName]; hasCleanupPlan {
+			if err := r.addFinalizer(instance); err != nil {
+				return reconcile.Result{}, err
+			}
+		}
+	} else {
+		log.Printf("InstanceController: Instance %s/%s is being deleted", instance.Namespace, instance.Name)
+		if contains(instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
+			// Only start the cleanup plan if it isn't currently running or if
+			// it isn't already completed.
+			lastExecutedPlanStatus := instance.GetLastExecutedPlanStatus()
+			if lastExecutedPlanStatus == nil || lastExecutedPlanStatus.Name != kudov1beta1.CleanupPlanName {
+				cleanupPlan := kudov1beta1.CleanupPlanName
+				planToBeExecuted = &cleanupPlan
+			}
+		}
 	}
+
+	// ---------- 3. First check if we should start execution of new plan ----------
+
+	if planToBeExecuted == nil {
+		planToBeExecuted, err = instance.GetPlanToBeExecuted(ov)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
 	if planToBeExecuted != nil {
 		log.Printf("InstanceController: Going to start execution of plan %s on instance %s/%s", kudo.StringValue(planToBeExecuted), instance.Namespace, instance.Name)
 		err = instance.StartPlanExecution(kudo.StringValue(planToBeExecuted), ov)
@@ -156,7 +192,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		r.Recorder.Event(instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", kudo.StringValue(planToBeExecuted)))
 	}
 
-	// ---------- 3. If there's currently active plan, continue with the execution ----------
+	// ---------- 4. If there's currently active plan, continue with the execution ----------
 
 	activePlanStatus := instance.GetPlanInProgress()
 	if activePlanStatus == nil { // we have no plan in progress
@@ -182,7 +218,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
 	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, &renderer.KustomizeEnhancer{Scheme: r.Scheme}, time.Now())
 
-	// ---------- 4. Update status of instance after the execution proceeded ----------
+	// ---------- 5. Update status of instance after the execution proceeded ----------
 	if newStatus != nil {
 		instance.UpdateInstanceStatus(newStatus)
 	}
@@ -199,6 +235,13 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	if instance.Status.AggregatedStatus.Status.IsTerminal() {
 		r.Recorder.Event(instance, "Normal", "PlanFinished", fmt.Sprintf("Execution of plan %s finished with status %s", activePlanStatus.Name, instance.Status.AggregatedStatus.Status))
+
+		lastExecutedPlanStatus := instance.GetLastExecutedPlanStatus()
+		if lastExecutedPlanStatus != nil && lastExecutedPlanStatus.Name == kudov1beta1.CleanupPlanName {
+			if err := r.removeFinalizer(instance); err != nil {
+				return reconcile.Result{}, err
+			}
+		}
 	}
 
 	return reconcile.Result{}, nil
@@ -347,4 +390,47 @@ func parameterDifference(old, new map[string]string) map[string]string {
 	}
 
 	return diff
+}
+
+func contains(values []string, s string) bool {
+	for _, value := range values {
+		if value == s {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *Reconciler) addFinalizer(instance *kudov1beta1.Instance) error {
+	if !contains(instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
+		log.Printf("InstanceController: Adding finalizer on instance %s/%s", instance.Namespace, instance.Name)
+		instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
+		if err := r.Update(context.TODO(), instance); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *Reconciler) removeFinalizer(instance *kudov1beta1.Instance) error {
+	remove := func(values []string, s string) (result []string) {
+		for _, value := range values {
+			if value == s {
+				continue
+			}
+			result = append(result, value)
+		}
+		return
+	}
+
+	if contains(instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
+		log.Printf("InstanceController: Removing finalizer on instance %s/%s", instance.Namespace, instance.Name)
+		instance.ObjectMeta.Finalizers = remove(instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
+		if err := r.Update(context.TODO(), instance); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
