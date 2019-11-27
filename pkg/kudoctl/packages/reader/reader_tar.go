@@ -23,13 +23,13 @@ func ReadTar(fs afero.Fs, path string) (*packages.Package, error) {
 	// 2. ParseTgz tar files
 	files, err := ParseTgz(buf)
 	if err != nil {
-		return nil, fmt.Errorf("while parsing package files from %s: %w", path, err)
+		return nil, fmt.Errorf("while parsing package files from %s: %v", path, err)
 	}
 
 	// 3. convert to resources
 	resources, err := files.Resources()
 	if err != nil {
-		return nil, fmt.Errorf("while getting package resources from %s: %w", path, err)
+		return nil, fmt.Errorf("while getting package resources from %s: %v", path, err)
 	}
 
 	return &packages.Package{
@@ -80,7 +80,7 @@ func ParseTgz(r io.Reader) (*packages.Files, error) {
 		case tar.TypeReg:
 			buf, err := ioutil.ReadAll(tr)
 			if err != nil {
-				return nil, fmt.Errorf("while reading file %s from package tarball: %w", header.Name, err)
+				return nil, fmt.Errorf("while reading file %s from package tarball: %v", header.Name, err)
 			}
 
 			err = parsePackageFile(header.Name, buf, &result)

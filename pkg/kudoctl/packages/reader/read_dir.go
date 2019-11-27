@@ -27,13 +27,13 @@ func ReadDir(fs afero.Fs, path string) (*packages.Package, error) {
 	// 1. get files
 	files, err := FromDir(fs, path)
 	if err != nil {
-		return nil, fmt.Errorf("while parsing package files: %w", err)
+		return nil, fmt.Errorf("while parsing package files: %v", err)
 	}
 
 	// 2. get resources
 	resources, err := files.Resources()
 	if err != nil {
-		return nil, fmt.Errorf("while getting package resources: %w", err)
+		return nil, fmt.Errorf("while getting package resources: %v", err)
 	}
 
 	return &packages.Package{
@@ -52,7 +52,7 @@ func FromDir(fs afero.Fs, packagePath string) (*packages.Files, error) {
 		// Normalize package path to provide more meaningful error messages
 		absPackagePath, err := filepath.Abs(packagePath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to normalize package path %s: %w", packagePath, err)
+			return nil, fmt.Errorf("failed to normalize package path %s: %v", packagePath, err)
 		}
 		packagePath = absPackagePath
 	}
