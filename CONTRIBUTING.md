@@ -60,7 +60,7 @@ This is a set of practices we try to live by when developing KUDO. These are jus
 ### General guidelines
 - Master is always releasable (green CI)
 - All feature/bug-fixing work should have an open issue with a description, unless it's something very simple
-- Every user-facing feature that is NOT behind a feature gate should have an integration test
+- Every user-facing feature that is NOT behind a feature gate should have integration or an e2e test
 
 ### Pull requests
 - One core-team member has to approve the PR to be able to merge (defined in code owners file)
