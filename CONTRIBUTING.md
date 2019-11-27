@@ -67,7 +67,7 @@ This is a set of practices we try to live by when developing KUDO. These are jus
 - One approval is enough to merge. However, if there are requests for change they have to be resolved prior to the merge
 - Since KUDO is developed in multiple timezones, try to keep the PR open for everyone to be able to see it (~24h)
 - We prefer squash commits so that all changes from a branch are committed to master as a single commit
-- Before you merge, make sure your commit title is meaningful and the commit contains description
+- Before you merge, make sure your commit title and description are meaningful. Github by default will list all the individual PR commits when squashing which are rarely insightful. We aim for a clean and meaningful commit history. 
 
 - For a piece of work that takes >3-5 days, pair with somebody
 - When you pair with somebody, don't forget to appreciate their work using [co-authorship](https://help.github.com/en/github/committing-changes-to-your-project/creating-a-commit-with-multiple-authors)
