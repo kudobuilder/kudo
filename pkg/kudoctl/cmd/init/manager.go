@@ -95,7 +95,6 @@ func ValidateManager(client *kube.Client, opts Options) error {
 		return fmt.Errorf("deployed KUDO manager image %s differes from expected image %s", actualImage, expectedImage)
 	}
 
-	clog.V(0).Printf("Installed StatefulSet: %v", set)
 	return nil
 }
 

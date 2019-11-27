@@ -39,7 +39,7 @@ func validateCrd(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1be
 	if err != nil {
 		return fmt.Errorf("failed to retrieve CRD %s", crd.Name)
 	}
-	if existingCrd.ResourceVersion != crd.ResourceVersion {
+	if existingCrd.Spec.Version != crd.Spec.Version {
 		return fmt.Errorf("installed CRD %s has invalid version %s, expected %s", crd.Name, existingCrd.Spec.Version, crd.Spec.Version)
 	}
 	return nil
