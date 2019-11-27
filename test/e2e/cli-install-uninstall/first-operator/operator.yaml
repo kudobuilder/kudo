@@ -12,6 +12,11 @@ tasks:
     spec:
       resources:
         - deployment.yaml
+  - name: cleanup
+    kind: Apply
+    spec:
+      resources:
+        - cleanup.yaml
 plans:
   deploy:
     strategy: serial
@@ -22,3 +27,12 @@ plans:
           - name: everything
             tasks:
               - app
+  cleanup:
+    strategy: serial
+    phases:
+      - name: main
+        strategy: parallel
+        steps:
+          - name: everything
+            tasks:
+              - cleanup
