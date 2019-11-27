@@ -65,7 +65,7 @@ This is a set of practices we try to live by when developing KUDO. These are jus
 ### Pull requests
 - One core-team member has to approve the PR to be able to merge (all people listed in `.github/CODEOWNERS` file)
 - One approval is enough to merge. However, if there are requests for change they have to be resolved prior to the merge
-- Since KUDO is developed in multiple timezones, try to keep the PR open for everyone to be able to see it (~24h)
+- Since KUDO is developed in multiple timezones, try to keep the PR open for everyone to be able to see it (~24h, keep in mind public holidays)
 - We prefer squash commits so that all changes from a branch are committed to master as a single commit
 - Before you merge, make sure your commit title and description are meaningful. Github by default will list all the individual PR commits when squashing which are rarely insightful. We aim for a clean and meaningful commit history. 
 
