@@ -2,6 +2,7 @@ package init
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -37,6 +38,9 @@ func installCrds(client apiextensionsclient.Interface) error {
 func validateCrd(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition) error {
 	existingCrd, err := client.CustomResourceDefinitions().Get(crd.Name, v1.GetOptions{})
 	if err != nil {
+		if os.IsTimeout(err) {
+			return err
+		}
 		return fmt.Errorf("failed to retrieve CRD %s", crd.Name)
 	}
 	if existingCrd.Spec.Version != crd.Spec.Version {
@@ -255,6 +259,7 @@ func (c KudoCrds) Validate(client *kube.Client) error {
 		return err
 	}
 	if err := validateCrd(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion); err != nil {
+
 		return err
 	}
 	if err := validateCrd(client.ExtClient.ApiextensionsV1beta1(), c.Instance); err != nil {

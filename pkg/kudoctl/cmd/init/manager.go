@@ -2,6 +2,7 @@ package init
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -87,6 +88,9 @@ func ValidateManager(client *kube.Client, opts Options) error {
 	set, err := client.KubeClient.AppsV1().StatefulSets(opts.Namespace).Get(s.Name, metav1.GetOptions{})
 
 	if err != nil {
+		if os.IsTimeout(err) {
+			return err
+		}
 		return fmt.Errorf("failed to retrieve KUDO manager %v", err)
 	}
 	expectedImage := s.Spec.Template.Spec.Containers[0].Image
