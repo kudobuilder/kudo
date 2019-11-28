@@ -96,7 +96,7 @@ func ValidateManager(client *kube.Client, opts Options) error {
 	expectedImage := s.Spec.Template.Spec.Containers[0].Image
 	actualImage := set.Spec.Template.Spec.Containers[0].Image
 	if actualImage != expectedImage {
-		return fmt.Errorf("deployed KUDO manager image %s differes from expected image %s", actualImage, expectedImage)
+		return fmt.Errorf("deployed KUDO manager image %s differs from expected image %s", actualImage, expectedImage)
 	}
 
 	return nil
