@@ -1,9 +1,9 @@
 package reader
 
 import (
-	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
@@ -27,13 +27,13 @@ func ReadDir(fs afero.Fs, path string) (*packages.Package, error) {
 	// 1. get files
 	files, err := FromDir(fs, path)
 	if err != nil {
-		return nil, fmt.Errorf("while parsing package files: %w", err)
+		return nil, fmt.Errorf("while parsing package files: %v", err)
 	}
 
 	// 2. get resources
 	resources, err := files.Resources()
 	if err != nil {
-		return nil, fmt.Errorf("while getting package resources: %w", err)
+		return nil, fmt.Errorf("while getting package resources: %v", err)
 	}
 
 	return &packages.Package{
@@ -45,8 +45,18 @@ func ReadDir(fs afero.Fs, path string) (*packages.Package, error) {
 // FromDir walks the path provided and returns package files or an error
 func FromDir(fs afero.Fs, packagePath string) (*packages.Files, error) {
 	if packagePath == "" {
-		return nil, errors.New("path must be specified")
+		return nil, fmt.Errorf("path must be specified")
 	}
+
+	if !filepath.IsAbs(packagePath) {
+		// Normalize package path to provide more meaningful error messages
+		absPackagePath, err := filepath.Abs(packagePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to normalize package path %s: %v", packagePath, err)
+		}
+		packagePath = absPackagePath
+	}
+
 	result := newPackageFiles()
 
 	err := afero.Walk(fs, packagePath, func(path string, file os.FileInfo, err error) error {
@@ -74,10 +84,10 @@ func FromDir(fs afero.Fs, packagePath string) (*packages.Files, error) {
 	}
 	// final check
 	if result.Operator == nil {
-		return nil, errors.New("operator package missing operator.yaml")
+		return nil, fmt.Errorf("operator package missing operator.yaml in %s", packagePath)
 	}
 	if result.Params == nil {
-		return nil, errors.New("operator package missing params.yaml")
+		return nil, fmt.Errorf("operator package missing params.yaml in %s", packagePath)
 	}
 	return &result, nil
 }
