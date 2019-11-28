@@ -91,7 +91,7 @@ func ValidateManager(client *kube.Client, opts Options) error {
 		if os.IsTimeout(err) {
 			return err
 		}
-		return fmt.Errorf("failed to retrieve KUDO manager %v", err)
+		return fmt.Errorf("failed to retrieve KUDO manager: %v", err)
 	}
 	expectedImage := s.Spec.Template.Spec.Containers[0].Image
 	actualImage := set.Spec.Template.Spec.Containers[0].Image

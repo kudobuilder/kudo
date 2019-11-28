@@ -58,7 +58,7 @@ func (s *Settings) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.KubeConfig, "kubeconfig", kubeConfigHome(), "Path to your Kubernetes configuration file.")
 	fs.StringVarP(&s.Namespace, "namespace", "n", "default", "Target namespace for the object.")
 	fs.Int64Var(&s.RequestTimeout, "request-timeout", 0, "Request timeout value, in seconds.  Defaults to 0 (unlimited)")
-	fs.BoolVar(&s.ValidateInstallation, "validate-install", true, "Validate KUDO installation before running.")
+	fs.BoolVar(&s.ValidateInstallation, "validate-install", true, "ValidateInstallation KUDO installation before running.")
 }
 
 // OverrideDefault used for deviations from global defaults

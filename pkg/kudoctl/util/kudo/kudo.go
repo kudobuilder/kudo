@@ -7,13 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
-
-	kudoinit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
-
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	kudoinit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/version"
 
@@ -63,7 +61,7 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 		}
 	}
 
-	err = kudoinit.CRDs().Validate(kubeClient)
+	err = kudoinit.CRDs().ValidateInstallation(kubeClient)
 	if err != nil {
 		// see above
 		if os.IsTimeout(err) {

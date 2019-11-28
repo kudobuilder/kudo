@@ -34,7 +34,7 @@ func installCrds(client apiextensionsclient.Interface) error {
 	return nil
 }
 
-func validateCrd(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition) error {
+func validateInstallation(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition) error {
 	existingCrd, err := client.CustomResourceDefinitions().Get(crd.Name, v1.GetOptions{})
 	if err != nil {
 		if os.IsTimeout(err) {
@@ -253,14 +253,14 @@ func (c KudoCrds) AsYaml() ([]string, error) {
 	return manifests, nil
 }
 
-func (c KudoCrds) Validate(client *kube.Client) error {
-	if err := validateCrd(client.ExtClient.ApiextensionsV1beta1(), c.Operator); err != nil {
+func (c KudoCrds) ValidateInstallation(client *kube.Client) error {
+	if err := validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.Operator); err != nil {
 		return err
 	}
-	if err := validateCrd(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion); err != nil {
+	if err := validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion); err != nil {
 		return err
 	}
-	if err := validateCrd(client.ExtClient.ApiextensionsV1beta1(), c.Instance); err != nil {
+	if err := validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.Instance); err != nil {
 		return err
 	}
 	return nil
