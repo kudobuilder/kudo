@@ -48,19 +48,6 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 		return nil, clog.Errorf("could not get Kubernetes client: %s", err)
 	}
 
-	err = kudoinit.ValidateManager(kubeClient, kudoinit.NewOptions("", ""))
-	if err != nil {
-		// timeout is not a wrappable error, timeout is an underlying issue that is NOT validation specific,
-		// there is no value in wrapping or converting as well. best to provide the actual error for proper reporting.
-		if os.IsTimeout(err) {
-			return nil, err
-		}
-		clog.V(0).Printf("KUDO manager not correctly installed. Do you need to run kudo init?")
-		if validateInstall {
-			return nil, fmt.Errorf("KUDO manager invalid: %v", err)
-		}
-	}
-
 	err = kudoinit.CRDs().ValidateInstallation(kubeClient)
 	if err != nil {
 		// see above
