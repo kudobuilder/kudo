@@ -312,9 +312,9 @@ func pipeFiles(fs afero.Fs, files []PipeFile, meta renderer.Metadata) (map[strin
 
 		var art string
 		switch pf.Kind {
-		case "Secret":
+		case PipeFileKindSecret:
 			art, err = pipeSecret(pf, data, meta)
-		case "ConfigMap":
+		case PipeFileKindConfigMap:
 			art, err = pipeConfigMap(pf, data, meta)
 		default:
 			return nil, fmt.Errorf("unknown pipe file kind: %+v", pf)
