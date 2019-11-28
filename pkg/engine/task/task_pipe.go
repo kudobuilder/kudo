@@ -435,18 +435,18 @@ var (
 )
 
 // name returns a deterministic names for pipe artifacts (Pod, Secret, ConfigMap) in the form:
-// <instance>.<plan>.<phase>.<step>.<task>-<suffix> All non alphanumeric characters are removed and
-// replaced with "".
+// <instance>.<plan>.<phase>.<step>.<task>.<suffix> All non alphanumeric characters are removed.
 // A name for e.g a ConfigMap has to match a DNS-1123 subdomain, must consist of lower case alphanumeric
 // characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com',
 // regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
 func name(meta renderer.Metadata, suffix string) string {
-	i := alnum.ReplaceAllString(strings.ToLower(meta.InstanceName), "")
-	pl := alnum.ReplaceAllString(strings.ToLower(meta.PlanName), "")
-	ph := alnum.ReplaceAllString(strings.ToLower(meta.PhaseName), "")
-	st := alnum.ReplaceAllString(strings.ToLower(meta.StepName), "")
-	ts := alnum.ReplaceAllString(strings.ToLower(meta.TaskName), "")
-	sf := alnum.ReplaceAllString(strings.ToLower(suffix), "")
+	sanitize := func(s string) string {
+		return alnum.ReplaceAllString(strings.ToLower(s), "")
+	}
 
-	return fmt.Sprintf("%s.%s.%s.%s.%s-%s", i, pl, ph, st, ts, sf)
+	var parts []string
+	for _, s := range []string{meta.InstanceName, meta.PlanName, meta.PhaseName, meta.StepName, meta.TaskName, suffix} {
+		parts = append(parts, sanitize(s))
+	}
+	return strings.Join(parts, ".")
 }
