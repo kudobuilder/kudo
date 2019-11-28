@@ -5,9 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
-
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -41,7 +40,7 @@ func validateCrd(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1be
 		if os.IsTimeout(err) {
 			return err
 		}
-		return fmt.Errorf("failed to retrieve CRD %s", crd.Name)
+		return fmt.Errorf("failed to retrieve CRD %s: %v", crd.Name, err)
 	}
 	if existingCrd.Spec.Version != crd.Spec.Version {
 		return fmt.Errorf("installed CRD %s has invalid version %s, expected %s", crd.Name, existingCrd.Spec.Version, crd.Spec.Version)
@@ -259,7 +258,6 @@ func (c KudoCrds) Validate(client *kube.Client) error {
 		return err
 	}
 	if err := validateCrd(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion); err != nil {
-
 		return err
 	}
 	if err := validateCrd(client.ExtClient.ApiextensionsV1beta1(), c.Instance); err != nil {
