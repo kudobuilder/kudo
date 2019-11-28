@@ -34,7 +34,7 @@ type Client struct {
 }
 
 // NewClient creates new KUDO Client
-func NewClient(kubeConfigPath string, requestTimeout int64) (*Client, error) {
+func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool) (*Client, error) {
 
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
@@ -53,16 +53,20 @@ func NewClient(kubeConfigPath string, requestTimeout int64) (*Client, error) {
 	err = kudoinit.ValidateManager(kubeClient, kudoinit.NewOptions("", ""))
 	if err != nil {
 		clog.V(0).Printf("KUDO manager not correctly installed. Do you need to run kudo init?")
-		return nil, fmt.Errorf("KUDO manager invalid: %v", err)
+		if validateInstall {
+			return nil, fmt.Errorf("KUDO manager invalid: %v", err)
+		}
 	}
 
 	err = kudoinit.CRDs().Validate(kubeClient)
 	if err != nil {
 		clog.V(0).Printf("Cluster CRDS are not set up correctly. Do you need to run kudo init?")
-		return nil, fmt.Errorf("CRDs invalid: %v", err)
+		if validateInstall {
+			return nil, fmt.Errorf("CRDs invalid: %v", err)
+		}
 	}
 
-	//// create the clientset
+	// create the clientset
 	kudoClientset, err := versioned.NewForConfig(config)
 	if err != nil {
 		return nil, err
