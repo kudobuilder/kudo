@@ -1,6 +1,7 @@
 ---
 kep-number: 10
 title: Package Manager
+short-desc: KUDO Packages and basic repository description
 authors:
   - "@alenkacz"
   - "@fabianbaier"

@@ -1,6 +1,7 @@
 ---
 kep-number: 9
 title: New KUDO package format
+short-desc: Description of YAML operator definitions, features, plans/steps/tasks organization, templates and parameters
 authors:
   - "@kensipe"
   - "@gerred"

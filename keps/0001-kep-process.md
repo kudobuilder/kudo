@@ -1,6 +1,7 @@
 ---
 kep-number: 1
 title: KUDO Enhancement Proposal Process
+short-desc: Description of the KEP-Process
 authors:
   - "@fabianbaier"
 owners:

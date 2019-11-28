@@ -1,22 +1,37 @@
 #!/usr/bin/env bash
 
-KEP_FILES="../keps/*"
+# Files to be included in overview generation
+KEP_FILES="../keps/????-*"
 
-for kep in $KEP_FILES;
+# Target file
+KEP_OVERVIEW_FILE="../keps/README.md"
+
+# Overview header
+cat <<EOT > $KEP_OVERVIEW_FILE
+# KUDO Enhancement Proposals
+
+| KEP | Status | Description |
+| --- | ---: | --- |
+EOT
+
+for KEP in $KEP_FILES;
 do
-  echo "Processing $kep"
+  KEP_FILE=$(basename "$KEP")
+
+  echo "Processing $KEP_FILE"
 
   # Parse KEP-Header (the part between the '---')
-  KEP_HEADER=$(awk '/---/{p++} p==2{print; exit} p>=1' "$kep")
+  KEP_HEADER=$(awk '/---/{p++} p==2{print; exit} p>=1' "$KEP")
 
-#  echo "$KEP_HEADER"
-
+  # Extract fields from header
   KEP_NUMBER=$(echo "$KEP_HEADER" | sed -n -E 's/kep-number: ([0-9]+)/\1/p')
+  KEP_NUMBER=$(echo "$KEP_NUMBER" | sed 's/^0*//')  # Strip leading zeros, or we interpret in octal
+  KEP_NUMBER=$(printf %04d "$KEP_NUMBER")           # Fill up to 4 digits again
+
   KEP_TITLE=$(echo "$KEP_HEADER" | sed -n -E 's/title: (.*)/\1/p')
   KEP_STATUS=$(echo "$KEP_HEADER" | sed -n -E 's/status: (.*)/\1/p')
+  KEP_DESC=$(echo "$KEP_HEADER" | sed -n -E 's/short-desc: (.*)/\1/p')
 
-  echo "Kep Number: $KEP_NUMBER"
-  echo "Kep Title: $KEP_TITLE"
-  echo "Kep Status: $KEP_STATUS"
-
+  # Print one line for this KEP
+  echo "| [$KEP_NUMBER - $KEP_TITLE]($KEP_FILE) | $KEP_STATUS | $KEP_DESC |" >> $KEP_OVERVIEW_FILE
 done

@@ -1,6 +1,7 @@
 ---
 kep-number: 17
 title: Pipe Tasks
+short-desc: Feature for a mechanism that allows piping of resources (files) from one task to another
 authors:
   - "@zen-dog"
 owners:

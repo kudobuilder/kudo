@@ -1,6 +1,7 @@
 ---
 kep-number: 0
-title: My First KEP
+short-desc: Use this template for new KEPs
+title: KEP Template
 authors:
   - "@janedoe"
 owners:
@@ -9,7 +10,7 @@ owners:
 editor: TBD
 creation-date: yyyy-mm-dd
 last-updated: yyyy-mm-dd
-status: provisional/implementable/implemented/deferred/rejected/withdrawn/replaced
+status: implemented
 see-also:
   - KEP-1
   - KEP-2
@@ -32,6 +33,7 @@ To get started with this template:
   Name it `YYYYMMDD-my-title.md`.
 1. **Fill out the "overview" sections.**
   This includes the Summary and Motivation sections.
+  Status should be one of provisional/implementable/implemented/deferred/rejected/withdrawn/replaced
 1. **Create a PR.**
   Name it `[KEP NUMBER] Title`, e.g. `[KEP 0002] Initial work on Dynamic CRDs`.
   Assign it to owner(s) that are sponsoring this process.
