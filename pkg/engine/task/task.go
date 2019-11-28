@@ -106,7 +106,7 @@ func newPipe(task *v1beta1.Task) (Tasker, error) {
 
 	var pipeFiles []PipeFile
 	for _, pp := range task.Spec.PipeTaskSpec.Pipe {
-		pf := PipeFile{File: pp.File, Kind: pp.Kind, Key: pp.Key}
+		pf := PipeFile{File: pp.File, Kind: PipeFileKind(pp.Kind), Key: pp.Key}
 		// validate pipe file
 		if err := validPipeFile(pf); err != nil {
 			return nil, err
@@ -122,15 +122,14 @@ func newPipe(task *v1beta1.Task) (Tasker, error) {
 }
 
 var (
-	pipeFileKeyRe  = regexp.MustCompile(`^[a-zA-Z0-9_\-]+$`)    //a-z, A-Z, 0-9, _ and - are allowed
-	pipeFileKindRe = regexp.MustCompile("^Secret$|^ConfigMap$") // only Secret or ConfigMap are allowed
+	pipeFileKeyRe = regexp.MustCompile(`^[a-zA-Z0-9_\-]+$`) //a-z, A-Z, 0-9, _ and - are allowed
 )
 
 func validPipeFile(pf PipeFile) error {
 	if pf.File == "" {
 		return fmt.Errorf("task validation error: pipe file is empty: %v", pf)
 	}
-	if !pipeFileKindRe.MatchString(pf.Kind) {
+	if pf.Kind != PipeFileKindSecret && pf.Kind != PipeFileKindConfigMap {
 		return fmt.Errorf("task validation error: invalid pipe kind (must be Secret or ConfigMap): %v", pf)
 	}
 	if !pipeFileKeyRe.MatchString(pf.Key) {

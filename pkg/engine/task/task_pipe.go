@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/spf13/afero"
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
@@ -28,6 +29,15 @@ var (
 	pipePodContainerName = "waiter"
 )
 
+type PipeFileKind string
+
+const (
+	// PipeFile will be persisted as a Secret
+	PipeFileKindSecret PipeFileKind = "Secret"
+	// PipeFile will be persisted as a ConfigMap
+	PipeFileKindConfigMap PipeFileKind = "ConfigMap"
+)
+
 type PipeTask struct {
 	Name      string
 	Container string
@@ -36,7 +46,7 @@ type PipeTask struct {
 
 type PipeFile struct {
 	File string
-	Kind string
+	Kind PipeFileKind
 	Key  string
 }
 
@@ -60,7 +70,7 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 	}
 
 	// 4. - Create a pod using the container -
-	podName := podName(ctx)
+	podName := PipePodName(ctx.Meta)
 	podStr, err := pipePod(container, podName)
 	if err != nil {
 		return false, fatalExecutionError(err, pipeTaskError, ctx.Meta)
@@ -98,7 +108,7 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 
 	// 9. - Create k8s artifacts (ConfigMap/Secret) from the pipe files -
 	log.Printf("PipeTask: %s/%s creating pipe artifacts", ctx.Meta.InstanceNamespace, ctx.Meta.InstanceName)
-	artStr, err := pipeFiles(fs, pt.PipeFiles, ctx)
+	artStr, err := pipeFiles(fs, pt.PipeFiles, ctx.Meta)
 	if err != nil {
 		return false, err
 	}
@@ -286,7 +296,7 @@ func copyFile(fs afero.Fs, pf PipeFile, pod *corev1.Pod, restCfg *rest.Config) e
 
 // pipeFiles iterates through passed pipe files and their copied data, reads them, constructs k8s artifacts
 // and marshals them.
-func pipeFiles(fs afero.Fs, files []PipeFile, ctx Context) (map[string]string, error) {
+func pipeFiles(fs afero.Fs, files []PipeFile, meta renderer.Metadata) (map[string]string, error) {
 	artifacts := map[string]string{}
 
 	for _, pf := range files {
@@ -297,15 +307,15 @@ func pipeFiles(fs afero.Fs, files []PipeFile, ctx Context) (map[string]string, e
 
 		// API server has a limit of 1Mb for Secret/ConfigMap
 		if len(data) > 1024*1024 {
-			return nil, fatalExecutionError(fmt.Errorf("pipe file %s size (%d bytes) exceeds max size limit of 1Mb", pf.File, len(data)), pipeTaskError, ctx.Meta)
+			return nil, fatalExecutionError(fmt.Errorf("pipe file %s size (%d bytes) exceeds max size limit of 1Mb", pf.File, len(data)), pipeTaskError, meta)
 		}
 
 		var art string
 		switch pf.Kind {
 		case "Secret":
-			art, err = pipeSecret(pf, data, ctx)
+			art, err = pipeSecret(pf, data, meta)
 		case "ConfigMap":
-			art, err = pipeConfigMap(pf, data, ctx)
+			art, err = pipeConfigMap(pf, data, meta)
 		default:
 			return nil, fmt.Errorf("unknown pipe file kind: %+v", pf)
 		}
@@ -321,8 +331,8 @@ func pipeFiles(fs afero.Fs, files []PipeFile, ctx Context) (map[string]string, e
 
 // pipeSecret method creates a core/v1/Secret object using passed data. Pipe file name is used
 // as Secret data key. Secret name will be of the form <instance>.<plan>.<phase>.<step>.<task>-<PipeFile.Key>
-func pipeSecret(pf PipeFile, data []byte, ctx Context) (string, error) {
-	name := artifactName(ctx, pf.Key)
+func pipeSecret(pf PipeFile, data []byte, meta renderer.Metadata) (string, error) {
+	name := PipeArtifactName(meta, pf.Key)
 	key := path.Base(pf.File)
 
 	secret := corev1.Secret{
@@ -347,8 +357,8 @@ func pipeSecret(pf PipeFile, data []byte, ctx Context) (string, error) {
 
 // pipeConfigMap method creates a core/v1/ConfigMap object using passed data. Pipe file name is used
 // as ConfigMap data key. ConfigMap name will be of the form <instance>.<plan>.<phase>.<step>.<task>-<PipeFile.Key>
-func pipeConfigMap(pf PipeFile, data []byte, ctx Context) (string, error) {
-	name := artifactName(ctx, pf.Key)
+func pipeConfigMap(pf PipeFile, data []byte, meta renderer.Metadata) (string, error) {
+	name := PipeArtifactName(meta, pf.Key)
 	key := path.Base(pf.File)
 
 	configMap := corev1.ConfigMap{
@@ -414,28 +424,29 @@ func untarFile(fs afero.Fs, r io.Reader, fileName string) (err error) {
 	return nil
 }
 
-// podName returns a deterministic name for a pipe pod
-func podName(ctx Context) string { return name(ctx, "pipe-pod") }
+// PipePodName returns a deterministic name for a pipe pod
+func PipePodName(meta renderer.Metadata) string { return name(meta, "pipepod") }
 
-// artifactName returns a deterministic name for pipe artifact (ConfigMap, Secret)
-func artifactName(ctx Context, key string) string { return name(ctx, key) }
+// PipeArtifactName returns a deterministic name for pipe artifact (ConfigMap, Secret)
+func PipeArtifactName(meta renderer.Metadata, key string) string { return name(meta, key) }
 
 var (
-	nameRe = regexp.MustCompile(`^[^a-zA-Z0-9\-.]+`)
-	// TODO: this is the reqexp that API server is using for Secret/ConfigMap name validation
-	//artifactNameRe = regexp.MustCompile(`[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*`)
+	alnum = regexp.MustCompile(`[^a-z0-9]+`)
 )
 
 // name returns a deterministic names for pipe artifacts (Pod, Secret, ConfigMap) in the form:
-// <instance>.<plan>.<phase>.<step>.<task>-<suffix> All characters aside from these defined in
-// nameRe are removed and replaced with ""
-func name(ctx Context, suffix string) string {
-	name := fmt.Sprintf("%s.%s.%s.%s.%s-%s",
-		ctx.Meta.InstanceName,
-		ctx.Meta.PlanName,
-		ctx.Meta.PhaseName,
-		ctx.Meta.StepName,
-		ctx.Meta.TaskName,
-		suffix)
-	return nameRe.ReplaceAllString(strings.ToLower(name), "")
+// <instance>.<plan>.<phase>.<step>.<task>-<suffix> All non alphanumeric characters are removed and
+// replaced with "".
+// A name for e.g a ConfigMap has to match a DNS-1123 subdomain, must consist of lower case alphanumeric
+// characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com',
+// regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
+func name(meta renderer.Metadata, suffix string) string {
+	i := alnum.ReplaceAllString(strings.ToLower(meta.InstanceName), "")
+	pl := alnum.ReplaceAllString(strings.ToLower(meta.PlanName), "")
+	ph := alnum.ReplaceAllString(strings.ToLower(meta.PhaseName), "")
+	st := alnum.ReplaceAllString(strings.ToLower(meta.StepName), "")
+	ts := alnum.ReplaceAllString(strings.ToLower(meta.TaskName), "")
+	sf := alnum.ReplaceAllString(strings.ToLower(suffix), "")
+
+	return fmt.Sprintf("%s.%s.%s.%s.%s-%s", i, pl, ph, st, ts, sf)
 }
