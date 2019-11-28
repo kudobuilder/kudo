@@ -12,7 +12,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 
 	"github.com/gosuri/uitable"
-	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
@@ -72,7 +71,7 @@ func (c *paramsListCmd) run(fs afero.Fs, settings *env.Settings) error {
 	}
 	repository, err := repo.ClientFromSettings(fs, settings.Home, c.RepoName)
 	if err != nil {
-		return errors.WithMessage(err, "could not build operator repository")
+		return fmt.Errorf("could not build operator repository: %w", err)
 	}
 	clog.V(4).Printf("repository used %s", repository)
 
@@ -80,7 +79,7 @@ func (c *paramsListCmd) run(fs afero.Fs, settings *env.Settings) error {
 	resolver := pkgresolver.New(repository)
 	pf, err := resolver.Resolve(c.path, c.PackageVersion)
 	if err != nil {
-		return errors.Wrapf(err, "failed to resolve package files for operator: %s", c.path)
+		return fmt.Errorf("failed to resolve package files for operator: %s: %w", c.path, err)
 	}
 
 	return displayParamsTable(pf.Files, c)

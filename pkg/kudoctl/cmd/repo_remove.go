@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -33,7 +34,7 @@ func newRepoRemoveCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 		Example: repoRemoveExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
-				return fmt.Errorf("need at least one argument, name of operator repository")
+				return errors.New("need at least one argument, name of operator repository")
 			}
 
 			remove.home = Settings.Home

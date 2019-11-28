@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
@@ -43,7 +44,7 @@ func newInstallCmd(fs afero.Fs) *cobra.Command {
 			var err error
 			options.Parameters, err = install.GetParameterMap(parameters)
 			if err != nil {
-				return errors.WithMessage(err, "could not parse arguments")
+				return fmt.Errorf("could not parse arguments: %w", err)
 			}
 
 			return install.Run(args, options, fs, &Settings)

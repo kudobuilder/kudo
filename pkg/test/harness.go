@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -131,7 +132,7 @@ func (h *Harness) RunKIND() (*rest.Config, error) {
 			var ok bool
 			kindCfg, ok = objs[0].(*kindConfig.Cluster)
 			if !ok {
-				return nil, fmt.Errorf("kind configuration contains invalid kind config file")
+				return nil, errors.New("kind configuration contains invalid kind config file")
 			}
 		}
 
