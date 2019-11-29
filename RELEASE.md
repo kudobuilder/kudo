@@ -16,7 +16,7 @@ The KUDO Project is aiming to do monthly minor releases but the period could be 
 
 1. Every release should have an appointed release manager (RM)
 1. RM is responsible for following the process below
-1. RM should announce the release in the public kubernetes channel at least two days prior to the date
+1. RM should announce the release in the public [#kudo slack channel](https://kubernetes.slack.com/messages/kudo/) at least two days prior to the date
 1. RM makes sure all PRs that need to go into the release are merged prior to the process starting
 
 ### Release Process
