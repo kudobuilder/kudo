@@ -91,7 +91,7 @@ func (r *Reconciler) SetupWithManager(
 		Owns(&corev1.Service{}).
 		Owns(&batchv1.Job{}).
 		Owns(&appsv1.StatefulSet{}).
-		Owns(&corev1.Pod{}).
+		Owns(&corev1.Pod{}). // TODO (ad): filter out Pod Delete events (possibly also all other k8s native objects?) #1116
 		Watches(&source.Kind{Type: &kudov1beta1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: addOvRelatedInstancesToReconcile}).
 		Complete(r)
 }

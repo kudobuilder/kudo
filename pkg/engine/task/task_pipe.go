@@ -1,13 +1,9 @@
 package task
 
 import (
-	"archive/tar"
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"log"
-	"os"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -18,7 +14,6 @@ import (
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/yaml"
 )
@@ -26,7 +21,13 @@ import (
 var (
 	pipeTaskError = "PipeTaskError"
 
+	// name of the main pipe pod container
 	pipePodContainerName = "waiter"
+)
+
+const (
+	// Max file size of a pipe file.
+	maxPipeFileSize = 1024 * 1024
 )
 
 type PipeFileKind string
@@ -240,58 +241,24 @@ func copyFiles(fs afero.Fs, ff []PipeFile, pod *corev1.Pod, ctx Context) error {
 		f := f
 		log.Printf("PipeTask: %s/%s copying pipe file %s", ctx.Meta.InstanceNamespace, ctx.Meta.InstanceName, f.File)
 		g.Go(func() error {
-			return copyFile(fs, f, pod, restCfg)
+			// Check the size of the pipe file first. K87 has a inherent limit on the size of
+			// Secret/ConfigMap, so we avoid unnecessary copying of files that are too big by
+			// checking its size first.
+			size, err := FileSize(f.File, pod, restCfg)
+			if err != nil {
+				return fatalExecutionError(err, pipeTaskError, ctx.Meta)
+			}
+
+			if size > maxPipeFileSize {
+				return fatalExecutionError(fmt.Errorf("pipe file %s size %d exceeds maximum file size of %d bytes", f.File, size, maxPipeFileSize), pipeTaskError, ctx.Meta)
+			}
+
+			return DownloadFile(fs, f.File, pod, restCfg)
 		})
 	}
 
 	err = g.Wait()
 	return err
-}
-
-func copyFile(fs afero.Fs, pf PipeFile, pod *corev1.Pod, restCfg *rest.Config) error {
-	reader, stdout := io.Pipe()
-	stderr := bytes.Buffer{}
-
-	pe := PodExec{
-		RestCfg:       restCfg,
-		PodName:       pod.Name,
-		PodNamespace:  pod.Namespace,
-		ContainerName: pipePodContainerName,
-		Args:          []string{"tar", "cf", "-", pf.File},
-		In:            nil,
-		Out:           stdout,
-		Err:           &stderr,
-	}
-
-	// When downloading files using remotecommand.Executor, the call HAS to be wrapped into
-	// a goroutine, otherwise it blocks the execution. It boils down to calling remotecommand/v4.go:54
-	// method, which will try copy stdout and stderr into provided buffers. We're using io.Pipe to move data
-	// from remote stdout to the local reader. It works synchronously as it copies data directly from the
-	// Write to the corresponding Read, there is no internal buffering.
-	//
-	// IMPORTANT: the PodExec.Run call doesn't return until we consume data from the pipe reader! It has
-	// 			  to be executed in a goroutine and we have to consume the passed stdout first.
-	//            Otherwise this code will deadlock. This is why consuming error from the errCh has to
-	//            happen AFTER we try to extract the file! 🤯
-	//
-	// See `kubectl cp` copyFromPod method for another example:
-	// https://github.com/kubernetes/kubernetes/blob/master/pkg/kubectl/cmd/cp/cp.go#L291
-	errCh := make(chan error, 0)
-	go func() {
-		defer stdout.Close()
-		errCh <- pe.Run()
-	}()
-
-	if err := untarFile(fs, reader, pf.File); err != nil {
-		return fmt.Errorf("failed to untar pipe file: %v", err)
-	}
-
-	// THIS CHECK HAS TO HAPPEN AFTER WE CONSUME THE READER. SEE THE COMMENT ABOVE.
-	if err := <-errCh; err != nil {
-		return fmt.Errorf("failed to copy pipe file. err: %v, stderr: %s", err, stderr.String())
-	}
-
-	return nil
 }
 
 // pipeFiles iterates through passed pipe files and their copied data, reads them, constructs k8s artifacts
@@ -303,11 +270,6 @@ func pipeFiles(fs afero.Fs, files []PipeFile, meta renderer.Metadata) (map[strin
 		data, err := afero.ReadFile(fs, pf.File)
 		if err != nil {
 			return nil, fmt.Errorf("error opening pipe file %s", pf.File)
-		}
-
-		// API server has a limit of 1Mb for Secret/ConfigMap
-		if len(data) > 1024*1024 {
-			return nil, fatalExecutionError(fmt.Errorf("pipe file %s size (%d bytes) exceeds max size limit of 1Mb", pf.File, len(data)), pipeTaskError, meta)
 		}
 
 		var art string
@@ -378,50 +340,6 @@ func pipeConfigMap(pf PipeFile, data []byte, meta renderer.Metadata) (string, er
 	}
 
 	return string(b), nil
-}
-
-// untarFile extracts a tar file from the passed reader using passed file name.
-func untarFile(fs afero.Fs, r io.Reader, fileName string) (err error) {
-	tr := tar.NewReader(r)
-
-	for {
-		header, err := tr.Next()
-		if err != nil {
-			if err != io.EOF {
-				return err
-			}
-			break
-		}
-
-		// the target location of the file. tar strips the leading "/" however, we treat the pipe file path
-		// as a key to the underlying data (otherwise we'll have to start splitting paths). To avoid all
-		// the complexity and because we only extract one file here, the path is taken from the PipeFile configuration
-		target := fileName
-
-		// check the file type
-		switch header.Typeflag {
-		// if it's a file create it
-		case tar.TypeReg:
-			f, err := fs.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
-			if err != nil {
-				return err
-			}
-
-			// copy over contents
-			if _, err := io.Copy(f, tr); err != nil {
-				return err
-			}
-
-			// manually close here after each file operation; deferring would cause each file close
-			// to wait until all operations have completed.
-			f.Close() // nolint
-
-		default:
-			fmt.Printf("skipping %s because it is not a regular file or a directory", header.Name)
-		}
-	}
-
-	return nil
 }
 
 // PipePodName returns a deterministic name for a pipe pod

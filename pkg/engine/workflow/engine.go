@@ -183,7 +183,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 				case err != nil:
 					message := fmt.Sprintf("A transient error when executing task %s.%s.%s.%s. Will retry. %v", pl.Name, ph.Name, st.Name, t.Name, err)
 					stepStatus.SetWithMessage(v1beta1.ErrorStatus, message)
-					fmt.Printf("PlanExecution: %s", message)
+					log.Printf("PlanExecution: %s", message)
 				case done:
 					delete(tasksLeft, t.Name)
 				}
