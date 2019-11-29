@@ -1,21 +1,14 @@
 ---
-kep-number: 19
+kep-number: 20
 title: Upgrades of KUDO installation
 authors:
-  - "@aneumann"
+  - "@aneumann82"
 owners:
-  - "@aneumann"
+  - "@aneumann82"
 editor: TBD
 creation-date: 2019-11-28
 last-updated: 2019-11-28
 status: provisional
-see-also:
-  - KEP-1
-  - KEP-2
-replaces:
-  - KEP-3
-superseded-by:
-  - KEP-100
 ---
 
 # Upgrading KUDO
@@ -55,7 +48,7 @@ TBD
 ## Motivation
 
 We strive for quick and regular updates of KUDO. We need a process for upgrading all the moving parts of KUDO, and how 
-the different parts interact, and what kind of compatibility we want to provide
+the different parts interact, and what kind of compatibility we want to provide.
 
 ### Goals
 
@@ -63,8 +56,8 @@ the different parts interact, and what kind of compatibility we want to provide
   - Updates of CRDs
   - Updates of the KUDO manager
   - Updates of prerequisites (Namespaces, RoleBindings, ServiceAccounts, etc.)
-- How and if multiple versions of CRDs are maintained
 - Interoperability
+  - How and if multiple versions of CRDs are maintained
   - How a version of KUDO CLI work with older and newer CRD versions
 - How to handle operators that are not supported by a new KUDO version
 
@@ -72,13 +65,18 @@ the different parts interact, and what kind of compatibility we want to provide
 
 - Updates/Upgrades of operators and operator versions itself
 - Versioning of KUDO itself
+- Multi-Tenancy, i.e. running multiple KUDO installations on the same cluster
+
+
+### Current State
+
+At the moment, KUDO does not provide any migration capabilities and needs a clean installation to use a new version.
 
 ## Proposal
 
 ### KUDO Prerequisites
-
 Expected update frequency: Low
-Versioned: No Version, but closely tied to KUDO manager
+Versioned: No, but closely tied to KUDO manager
 
 The KUDO manager has a set of prerequisites that need to be present for the manager to run successfully. They are
 the least likely to change, but probably the most specific. If we make changes here, we need to implement custom
@@ -87,75 +85,96 @@ migration code.
 - TODO: List all specific prereqs
 
 #### Proposal for update process 
-
 Integrated into `kudo init --upgrade`
 
-Write specific migration code that targets a KUDO version range and executes manual migration steps. 
+Write specific migration code that targets a KUDO manager version range and executes manual migration steps. 
 
 **Alternative update process**
 - Can we just delete them all and reinstall them? Probably not
 
 ### KUDO Manager
-
 Expected update frequency: High
 Versioned: Yes
 
 The KUDO Manager is defined by an image version in a deployment set. To update, the deployment must be updated. The 
-manager is closely tied to the CRDS, but not to the CLI. When CRDs are updated, the Manager will most likely also
+manager is closely tied to the CRDs, but not to the CLI. When CRDs are updated, the Manager will most likely also
 need to be updated. 
 
 #### Proposal for update process
-
 Integrated into `kudo init --upgrade`
 
 - Use semantic versioning for the manager binary
+  - ToBeDiscussed: Use different versioning for Manager and CLI?
+- The manager needs to be shut down before updating the CRDs
+  - As soon as the new CRD is installed and marked as "stored"
+  - Without WebHook Conversion, even if the new CRD version is "served", the old content is returned without any conversion
 - Question: Do we need to ensure that the manager is not doing meaningful work at the moment, or can we just update the deployment?
 
 ### CRDs
-
 Expected update frequency: Medium
 Versioned: Yes, with a CRD-Version
 
 The CRDs are used to store installed operators and running instances. New features will regularly require us to add new
 fields. 
-- CRDs need to be migrated to new versions
+- Existing CRs need to be migrated to new versions
 - K8s CRD support
-    - Which K8s version do we want/need to support?
-    - TODO: Which K8s version supports versioned CRDs with which features?
-    - At the moment, we use v1beta1
+  - Which K8s version do we want/need to support?
+    - MultiVersion is supported since 1.11 (manual conversion)
+    - WebHook conversion since 1.16
+  - WebHook conversion would allow us to transparently switch to a new CRD version without manually migrating all existing CRs
+- CRD versioning
+  - Currently we have one global version for all CRDs
+  - Alternatively, we could have a one version per CRD
+  - Single version should be ok, in the worst case we have empty migrations
+  - One version for each CRD would require complex compatibility matrix
 
 #### Proposal for update process
 Integrated into `kudo init --upgrade`
 
-### KUDO CLI
+To support older K8s versions, no WebHook conversion is used. We only serve a single CRD-Version and migrate existing CRs in the update process
 
+### KUDO CLI
 Expected update frequency: High
 
-KUDO control is the command line tool to manage KUDO. It will be often updated to add new features and fix bugs. It needs
+KUDO CLI is the command line tool to manage KUDO. It will be often updated to add new features and fix bugs. It needs
 to be in sync with the installed CRDs, as it's writing them directly with the K8s extension API.
 
-- Do we allow an older KUDO ctrl to be used with a newer KUDO installation?
+- Do we allow an older KUDO CLI to be used with a newer KUDO installation?
 
 #### Proposal for update process
 User has to download newest KUDO version.
 
+- CLI will have to support multiple CRD versions
+  - At least one old and one new version to migrate CRDs
+  - Possibly more than one to support older KUDO installations
+  - Features not supported by a CRD version must be feature gated
+  - We need to decide how long a specific CRD version is supported by CLI
+- CLI must support the exact CRD version that is installed in a cluster. It will not be possible to use an old KUDO CLI on a newer cluster
+  - CLI updates should be easy, therefore no need to introduce additional complexity here
+  - CLI should support multiple CRDs anyway
+  - With WebHook conversion the K8s cluster could support multiple CRDs, but that's out of scope for this KEP
 
-### Updating KUDO installation
+## Updating KUDO installation
 
 The update of a KUDO installation is triggered by  `kudo init --upgrade`
 
 Steps:
 - Pre-Update-Verification
-  - Verify old CRDs are supported by new KUDO version
+  - Verify old CRDs can be read by new KUDO version
   - Verify all installed operators are supported by new KUDO version
   - User can abort here
-- Shutdown old manager version(?)
+- Shutdown old manager version
 - Install new CRDs
-  - Migrate all existing CRDs to new format(?) 
-- Deploy new manager version(?)
+- Migrate all existing CRs to new format
+  - Use Storage Version Migrator
+  - or
+  - Write custom code to migrate stored CRs
+- Deploy new manager version
 
-On 
-
+This operation will **need** a `--dry-run` option
+- Do normal Pre-Update-Verification
+- Read all existing CRs and run migration to new CRD version
+  - Report migration errors
 
 ### User Stories
 
@@ -190,28 +209,30 @@ Hopefully the content previously contained in [umbrella issues][] will be tracke
 
 [umbrella issues]: https://github.com/kubernetes/kubernetes/issues/42752
 
-## Implementation History TODO
-
-Major milestones in the life cycle of a KEP should be tracked in `Implementation History`.
-Major milestones might include
-
-- the `Summary` and `Motivation` sections being merged signaling owner acceptance
-- the `Proposal` section being merged signaling agreement on a proposed design
-- the date implementation started
-- the first KUDO release where an initial version of the KEP was available
-- the version of KUDO where the KEP graduated to general availability
-- when the KEP was retired or superseded
-
 ## Drawbacks TODO [optional]
-
 Why should this KEP _not_ be implemented.
 
-## Alternatives TODO [optional]
+## Alternatives
+A (possible future) alternative to updating the KUDO manager and migrating the CRDs is to use WebHook conversions. This would allow a no-downtime update, but require K8s 1.16 as minimum version.
 
-Similar to the `Drawbacks` section the `Alternatives` section is used to highlight and record other possible approaches to delivering the value proposed by a KEP.
+- Install new Conversion WebHook
+- Install new CRD version
+  - Old CRD version is stored, and both versions can be read and written(?)
+- Install new KUDO manager 
+  - From now on, the new KUDO manager can work through WebHook Conversion with the new CRD format
+- Mark new CRD version as "stored"
+- At some point in the future (maybe a release later):
+   - Switch the "served" flag on old CRD version to false
+   - Disable migration code in Conversion WebHook
 
-## Infrastructure Needed TODO [optional]
+This will require a new KEP to workout the details.
 
-Use this section if you need things from the project/owner.
-Examples include a new subproject, repos requested, github details.
-Listing these here allows an owner to get the process for these resources started right away.
+## Infrastructure Needed
+- Upgrade & Migration Test Harness
+
+## Resources
+- [CRD versioning](https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definition-versioning/)
+- [Kube Storage Version Migrator](https://github.com/kubernetes-sigs/kube-storage-version-migrator)
+
+## Implementation History
+- 2019/11/05 - Initial draft. (@aneumann82)
