@@ -4,47 +4,61 @@ title: Versioning of Operator Packages
 authors:
   - "@mpereira"
   - "@nfnt"
+  - "@zmalik"
 owners:
   - "@nfnt"
 creation-date: 2019-11-05
-last-updated: 2019-11-21
+last-updated: 2019-11-29
 status: provisional
 ---
 
 # Versioning of Operator Packages
 
-**Table of Contents**
+## Table of Contents
+<!-- TOC -->
 
-- [Concepts](#concepts)
-    - [KUDO version](#kudo-version)
-    - [KUDO API version](#kudo-api-version)
-    - [Operator](#operator)
-    - [Operator user (user)](#operator-user-user)
-    - [Operator developer (developer)](#operator-developer-developer)
-    - [Package](#package)
-    - [Package version](#package-version)
-    - [Package Registry](#package-registry)
-    - [Application](#application)
-    - [Application version (app version)](#application-version-app-version)
-- [Summary](#summary)
-- [Motivation](#motivation)
-    - [Goals](#goals)
-        - [Non-functional](#non-functional)
-        - [Functional](#functional)
-    - [Non-Goals](#non-goals)
-- [Current State](#current-state)
-- [Proposals](#proposals)
-    - [With regards to package version and operator version](#with-regards-to-package-version-and-operator-version)
-        - [Singular package/operator version (largely, the current state of things)](#singular-packageoperator-version-largely-the-current-state-of-things)
-        - [Composite package/operator version](#composite-packageoperator-version)
-    - [Support multiple KUDO API versions in the package repository](#support-multiple-kudo-api-versions-in-the-package-repository)
-    - [Install a specific application version](#install-a-specific-application-version)
-    - [Naming of package tarballs](#naming-of-package-tarballs)
-    - [Semantic versioning](#semantic-versioning)
-    - [Risks and Mitigations](#risks-and-mitigations)
-- [Open Questions](#open-questions)
-- [Implementation History](#implementation-history)
+- [Versioning of Operator Packages](#versioning-of-operator-packages)
+    - [Table of Contents](#table-of-contents)
+    - [Concepts](#concepts)
+        - [KUDO version](#kudo-version)
+        - [KUDO API version](#kudo-api-version)
+        - [Operator](#operator)
+        - [Operator user (user)](#operator-user-user)
+        - [Operator developer (developer)](#operator-developer-developer)
+        - [Package](#package)
+        - [Package versions](#package-versions)
+        - [Package Registry](#package-registry)
+        - [Application](#application)
+        - [Application version (app version)](#application-version-app-version)
+    - [Summary](#summary)
+    - [Motivation](#motivation)
+        - [Goals](#goals)
+            - [Non-functional](#non-functional)
+            - [Functional](#functional)
+        - [Non-Goals](#non-goals)
+    - [Current State](#current-state)
+    - [Proposal](#proposal)
+        - [Pros](#pros)
+        - [Cons](#cons)
+        - [Example hypothetical timeline for Apache Cassandra releases](#example-hypothetical-timeline-for-apache-cassandra-releases)
+        - [Required and Suggested Changes](#required-and-suggested-changes)
+        - [Alternative considered: Operator version independent from app version (largely, the current state of things)](#alternative-considered-operator-version-independent-from-app-version-largely-the-current-state-of-things)
+            - [Pros](#pros)
+            - [Cons](#cons)
+        - [CLI UX](#cli-ux)
+            - [Install latest version of the Kafka operator](#install-latest-version-of-the-kafka-operator)
+            - [Install the latest Kafka operator with a specific Kafka version](#install-the-latest-kafka-operator-with-a-specific-kafka-version)
+            - [Install a Kafka operator with a specific version](#install-a-kafka-operator-with-a-specific-version)
+            - [Install a Kafka operator with a specific operator version](#install-a-kafka-operator-with-a-specific-operator-version)
+            - [Upgrade Kafka operator](#upgrade-kafka-operator)
+        - [Support multiple KUDO API versions in the package repository](#support-multiple-kudo-api-versions-in-the-package-repository)
+        - [Naming of package tarballs](#naming-of-package-tarballs)
+        - [Semantic versioning](#semantic-versioning)
+        - [Risks and Mitigations](#risks-and-mitigations)
+    - [Open Questions](#open-questions)
+    - [Implementation History](#implementation-history)
 
+<!-- /TOC -->
 ## Concepts
 
 ### KUDO version
@@ -71,9 +85,9 @@ Someone that builds or maintains an _operator_.
 
 An archive that contains all necessary files for running an _operator_.
 
-### Package version
+### Package versions
 
-A single version identifier that represents all of the underlying exact versions or minimum version requirements for an _operator_:
+Version identifiers that represents all of the underlying exact versions or minimum version requirements for an _operator_:
 
 - KUDO API version
 - Application version
@@ -82,13 +96,13 @@ A single version identifier that represents all of the underlying exact versions
 
 ### Package Registry
 
-Storage accessible through the network (most commonly through the internet) containg multiple packages.
+Storage accessible through the network (most commonly through the internet) containing multiple packages.
 
 ### Application
 
 An underlying technology managed by an _operator_, e.g. Apache Cassandra, Apache Kafka, etc.
 
-It is possible that an _operator_ is composed of multiple _applications_.
+While it is possible that an _operator_ is composed of multiple _applications_, we assume that an _operator_ packages a "main" _application_ and additional _applications_ of a package are helpers for the main _application_.
 
 ### Application version (app version)
 
@@ -153,21 +167,57 @@ An `operator.yaml` file provides versions for all components describing an opera
 
 From these versions, currently only the `version` field can be used when installing packages with `kubectl kudo install`. Furthermore, a package repository index only contains `appVersion` and `version` fields in its entries. This limits the possible installation scenarios.
 
-## Proposals
+## Proposal
 
-### With regards to package version and operator version
+Allow users to filter packages by application version in addition to the operator version.
+Package version resolution considers both application version as well as operator version. Operator versions are evaluated for each application version.
 
-Two proposals: singular and composite package/operator version. In the case of potential operator "bundles" (operators containing multiple app versions) both would end up "hiding" those app versions behind the package/operator version.
+### Pros
 
-#### Singular package/operator version (largely, the current state of things)
+- Puts the app version (what the user cares about) front and center
+- Makes it trivial to have an "app version"-based backport/release strategy
+- Makes it trivial to have an "app version"-based support strategy (e.g., an organization communicates official support for only the N-2 versions of an operator)
 
-##### Pros
+### Cons
+
+- Visually more complex
+- Makes it complex to know which operator-related features are available in which versions.  Operator revision for different app versions are unrelated
+- Upgrading from `3.11.4-0.1.2` to `3.12.0-0.1.2` might result in missing some operator-related features that were present in `3.11.4-0.1.2`, even if unlikely
+
+### Example hypothetical timeline for Apache Cassandra releases
+
+_Resolved version_ is the combination of _app version_ and _operator version_ used when ordering the package versions.
+
+| Time | Resolved Version | App version | Operator version | KUDO API version | Comment                                    | Operator revision change |
+| ---- | ---------------- | ----------- | ---------------- | ---------------- | ------------------------------------------ | ------------------------ |
+| T0   | 3.11.4-0.1.0     |      3.11.4 |            0.1.0 | v1beta1          | Initial release based on Apache C\* 3.11.x | -                        |
+| T1   | 3.11.4-0.2.0     |      3.11.4 |            0.2.0 | v1beta1          | Important bug fix in operator-related code | Minor bump               |
+| T2   | 3.11.4-0.2.1     |      3.11.4 |            0.2.1 | v1beta1          | Small bug fix in operator-related code     | Patch bump               |
+| T3   | 3.12.0-0.1.0     |      3.12.0 |            0.1.0 | v1beta1          | Apache C\* 3.12.x release                  | Reset (0.1.0)            |
+| T4   | 3.11.4-0.3.0     |      3.11.4 |            0.3.0 | v1beta1          | Operator-related feature A added to 3.11.x | Minor bump               |
+| T4   | 3.12.0-0.2.0     |      3.12.0 |            0.2.0 | v1beta1          | Operator-related feature A added to 3.12.x | Minor bump               |
+| T5   |  4.0.0-0.1.0     |       4.0.0 |            0.1.0 | v1beta1          | Apache C\* 4.0.x release                   | Reset (0.1.0)            |
+| T6   | 3.11.4-0.4.0     |      3.11.4 |            0.4.0 | v1beta1          | Operator-related feature B added to 3.11.x | Minor bump               |
+| T6   | 3.12.0-0.3.0     |      3.12.0 |            0.3.0 | v1beta1          | Operator-related feature B added to 3.12.x | Minor bump               |
+| T6   |  4.0.0-0.2.0     |       4.0.0 |            0.2.0 | v1beta1          | Operator-related feature B added to 4.0.x  | Minor bump               |
+| T7   | 3.11.4-1.0.0     |      3.11.4 |            1.0.0 | v1               | KUDO API version change                    | Major bump               |
+| T7   | 3.12.0-1.0.0     |      3.12.0 |            1.0.0 | v1               | KUDO API version change                    | Major bump               |
+| T7   |  4.0.0-1.0.0     |       4.0.0 |            1.0.0 | v1               | KUDO API version change                    | Major bump               |
+
+### Required and Suggested Changes
+
+1. Make the _app version_ a required field, as it takes precedence over an (optional) operator version
+2. Make the _operator version_ field optional.
+
+### Alternative considered: Operator version independent from app version (largely, the current state of things)
+
+#### Pros
 
 - Visually simple
 - It can be known just from the package version whether or not it contains a certain operator-related feature or bug fix
 - Version is a combination of the application and operator in a single SemVer.
 
-##### Cons
+#### Cons
 
 - Operator users care about the application version, not a "synthetic" version
 - Makes it complex to have an "app version"-based backport strategy. Customers might not be able to use operator based on newer app versions due to constraints outside of our control, but would still want to receive new operator-related features and bug fixes
@@ -192,305 +242,77 @@ In above example we know:
 - What is the latest version of operator just by looking at `Version` column
 - When a feature was introduced
 
-The relationship between app and operator version is decided by the operator developer. 
-In the above case a major bump in version of app-version is a major bump in operator version also. But this should be up to the each operator. 
-If a base tech does big releases with minor versions, the operator developer can chose to bump the major version of operator with each minor release of base tech.   
-
-#### Composite package/operator version
-
-##### Pros
-
-- Puts the app version (what the user cares about) front and center
-- Makes it trivial to have an "app version"-based backport/release strategy
-- Makes it trivial to have an "app version"-based support strategy (e.g., an organization communicates official support for only the N-2 versions of an operator)
-
-##### Cons
-
-- Visually more complex
-- Makes it complex to know which operator-related features are available in which versions.  Operator revision for different app versions are unrelated
-- Upgrading from `3.11.4-0.1.2` to `3.12.0-0.1.2` might result in missing some operator-related features that were present in `3.11.4-0.1.2`, even if unlikely
-
-##### Example hypothetical timeline for Apache Cassandra releases
-
-Remember that _version_ is _operator version_ is _package version_.
-
-| Time |      Version | App version | Operator revision | KUDO API version | Comment                                    | Operator revision change |
-| ---- | ------------ | ----------- | ----------------- | ---------------- | ------------------------------------------ | ------------------------ |
-| T0   | 3.11.4-0.1.0 |      3.11.4 |             0.1.0 | v1beta1          | Initial release based on Apache C\* 3.11.x | -                        |
-| T1   | 3.11.4-0.2.0 |      3.11.4 |             0.2.0 | v1beta1          | Important bug fix in operator-related code | Minor bump               |
-| T2   | 3.11.4-0.2.1 |      3.11.4 |             0.2.1 | v1beta1          | Small bug fix in operator-related code     | Patch bump               |
-| T3   | 3.12.0-0.1.0 |      3.12.0 |             0.1.0 | v1beta1          | Apache C\* 3.12.x release                  | Reset (0.1.0)            |
-| T4   | 3.11.4-0.3.0 |      3.11.4 |             0.3.0 | v1beta1          | Operator-related feature A added to 3.11.x | Minor bump               |
-| T4   | 3.12.0-0.2.0 |      3.12.0 |             0.2.0 | v1beta1          | Operator-related feature A added to 3.12.x | Minor bump               |
-| T5   |  4.0.0-0.1.0 |       4.0.0 |             0.1.0 | v1beta1          | Apache C\* 4.0.x release                   | Reset (0.1.0)            |
-| T6   | 3.11.4-0.4.0 |      3.11.4 |             0.4.0 | v1beta1          | Operator-related feature B added to 3.11.x | Minor bump               |
-| T6   | 3.12.0-0.3.0 |      3.12.0 |             0.3.0 | v1beta1          | Operator-related feature B added to 3.12.x | Minor bump               |
-| T6   |  4.0.0-0.2.0 |       4.0.0 |             0.2.0 | v1beta1          | Operator-related feature B added to 4.0.x  | Minor bump               |
-| T7   | 3.11.4-1.0.0 |      3.11.4 |             1.0.0 | v1               | KUDO API version change                    | Major bump               |
-| T7   | 3.12.0-1.0.0 |      3.12.0 |             1.0.0 | v1               | KUDO API version change                    | Major bump               |
-| T7   |  4.0.0-1.0.0 |       4.0.0 |             1.0.0 | v1               | KUDO API version change                    | Major bump               |
-
-##### Required and Suggested Changes
-
-1. Introduce the concept of the _operator revision_, which is an identifier that is re-set on every major/minor _app version_-based release. The "revision" naming is just to differentiate it from the monotonically increasing "version"
-2. Make the concept of the _operator version_ be the composition of the _app version_ and an _operator revision_. In this section, _package version_ and _operator version_ are the same thing (and will henceforth be called _version_), like in the current state of things with the singular version, and are also deterministic.
-
-   For example, in `2.3.0-1.0.0`:
-   - The _operator version_ (and by extension the _package version_, or just _version_) is `2.3.0-1.0.0`
-   - The _app version_ is `2.3.0`
-   - The _operator revision_ is `1.0.0`
-3. The _operator version_ wouldn't necessarily need to be explicitly set in operator or package metadata (`operator.yaml` and `index.yaml` respectively) given that the metadata contains fields for the _app version_ and the _operator revision_.
-
-It's important to note that **operator revision for different app versions are unrelated**. E.g., assuming two versions `2.3.0-1.0.0` and `3.0.0-1.0.0`, even though both have the same operator revision (`1.0.0`) they wouldn't necessarily have any commonality with regards to exclusively operator-related features and bug fixes. The operator revision progression is only meaningful within an app version's `major.minor` family, i.e. `2.3.x` or `3.0.x`.
+The relationship between app and operator version is decided by the operator developer.
+In the above case a major bump in version of app-version is a major bump in operator version also. But this should be up to the each operator.
+If a base tech does big releases with minor versions, the operator developer can chose to bump the major version of operator with each minor release of base tech.
 
 ### CLI UX
 
-Independent of the version strategy, this will be the CLI UX
+For the CLI UX, the _app version_ is surfaced in addition to the _operator version_.
 
-| Concept                            | Flag          |
-| ------------------------           | ---------     |
-| Operator/package version (version) | --version     |
-| Application version                | --app-version |
-| Operator revision                  | --revision    |
+| Concept             | Flag          |
+| ------------------- | ------------- |
+| Operator version    | --version     |
+| Application version | --app-version |
 
-Assuming the following packages exist in the package registry
+Assuming the following packages exist in the package registry:
 
-for composite version:
+| Operator | App Version | Operator Version |
+| -------- | ----------- | ---------------- |
+| kafka    | 2.3.0       | 1.0.0            |
+| kafka    | 2.3.0       | 1.1.0            |
+| kafka    | 2.3.0       | 1.1.1            |
+| kafka    | 2.3.1       | 1.2.0            |
+| kafka    | 3.0.0       | 1.0.0            |
+| kafka    | 3.0.0       | 1.1.0            |
+| kafka    | 3.0.1       | 1.1.0            |
+| kafka    | 3.1.1       | 1.0.0            |
 
-| Operator | Version     |
-| -------- | ----------- |
-| kafka    | 2.3.0-1.0.0 |
-| kafka    | 2.3.0-1.1.0 |
-| kafka    | 2.3.0-1.1.1 |
-| kafka    | 2.3.1-1.2.0 |
-| kafka    | 3.0.0-1.0.0 |
-| kafka    | 3.0.0-1.1.0 |
-| kafka    | 3.0.1-1.1.0 |
-| kafka    | 3.1.1-1.0.0 |
+#### Install latest version of the Kafka operator
 
-for single version:
-                           
-| Operator | Version  |
-| -------- | -------- |
-| kafka    | 1.0.0    |
-| kafka    | 2.0.0    |
-| kafka    | 2.1.0    |
-| kafka    | 1.1.0    |
-| kafka    | 1.1.1    |
-| kafka    | 2.2.0    |
-| kafka    | 1.2.0    |
-| kafka    | 2.2.1    |
-| kafka    | 1.2.1    |
-
-**Install latest version of the Kafka operator**
-
-In the composite package version strategy we will need to specify how app-version is ordered. 
 ```
 kudo install kafka
 ```
 
-**for composite version:** 
+Installs `kafka` with app version `3.1.1` and operator versions `1.0.0`.
 
-Installs `kafka-3.1.1-1.0.0`.
-
-**for single version:** 
-
-Installs `kafka-2.2.1`.
-
-**Install the latest Kafka operator with a specific Kafka version**
-
-**for composite version:**
+#### Install the latest Kafka operator with a specific Kafka version
 
 ```
 kudo install kafka --app-version 2.3.0
 ```
 
-Installs `kafka-2.3.0-1.1.1`.
+Installs `kafka` with app version `2.3.0` and operator version `1.1.1`.
 
 ```
 kudo install kafka --app-version 3.0.0
 ```
 
-Installs `kafka-3.0.0-1.1.0`.
+Installs `kafka` with app version `3.0.0` and operator version `1.1.0`.
 
-**for single version:**
-
-```
-kudo install kafka --app-version 2.3.0
-```
-
-Installs `kafka-1.1.0`.
-
-```
-kudo install kafka --app-version 3.0.0
-```
-
-Installs `kafka-2.2.1`.
-
-**Install a Kafka operator with a specific version**
+#### Install a Kafka operator with a specific version
 
 Let's say a user wants to use Apache Kafka `3.0.0` and even though there's a `3.0.0` with a `1.1.0` revision released, they want the operator with revision `1.0.0` due to reasons like:
 - revision `1.1.0` introduced a bug for which there's still no released fixes
 - revision `1.1.0` changed in a way that will require them to invest time and resources to adapt
 
-**for composite version:**
-
 ```
-kudo install kafka --version 3.0.0-1.0.0
+kudo install kafka --app-version 3.0.0 --version 1.0.0
 ```
 
-**for single version:**
+#### Install a Kafka operator with a specific operator version
 
-it should be enough with single version
-```
-kudo install kafka --version 2.2.0
-```
-
-But users can also specify the `app-version` flag
-```
-kudo install kafka --version 2.2.0  --app-version 3.0.0
-```
-
-**Install a Kafka operator providing a partial version**
-
-Another interesting thing that having the concept of _version_ contain the _app version_ concatenated with the _operator revision_ is that it would be possible to not have operator users necessarily have to know about the existence of _app version_ and _operator revision_. With regards to versioning, CLI interactions could optionally "flatten" the usage of both flags into just the `--version` flag, which could also be provided as a prefix to be matched.
-
-**for composite version:**
+In the case that the `--version` flag is used to select a specific _operator version_, there could be multiple _app versions_ for this _operator version_. In this case, KUDO will try to order the _app version_ and install the latest one. If _app versions_ cannot get ordered the installation will be aborted and the user will be prompted to specify the _app version_ with the `--app-version` flag.
 
 ```
-kudo install kafka --version 3
+kudo install kafka --version 1.1.0
 ```
 
-Installs the latest Kafka operator based on Apache Kafka 3.x.x.
+Installs `kafka` with app version `3.0.1` and operator version `1.1.0`.
 
-```
-kudo install kafka --version 2.3
-```
-
-Installs the latest Kafka operator based on Apache Kafka 2.3.x.
-
-```
-kudo install kafka --version 2.3.1
-```
-
-Installs the latest Kafka operator based on Apache Kafka 2.3.1.
-
-**for single version:**
-
-```
-kudo install kafka --app-version 3
-```
-
-Installs the latest Kafka operator based on Apache Kafka 3.x.x.
-
-```
-kudo install kafka --app-version 2.3
-```
-
-Installs the latest Kafka operator based on Apache Kafka 2.3.x.
-
-```
-kudo install kafka --app-version 2.3.1
-```
-
-Installs the latest Kafka operator based on Apache Kafka 2.3.1.
-
-**Upgrade Kafka operator**
+#### Upgrade Kafka operator
 
 The `kudo upgrade` commands would look similar as the `kudo install` commands above.
-
-**Search package registry**
-
-**for composite version:**
-
-```
-$ kudo search kafka
-kafka-2.3.0-1.0.0
-kafka-2.3.0-1.1.0
-kafka-2.3.0-1.1.1
-kafka-2.3.1-1.2.0
-kafka-3.0.0-1.0.0
-kafka-3.0.0-1.1.0
-kafka-3.0.1-1.1.0
-kafka-3.1.1-1.0.0
-```
-
-```
-$ kudo search kafka --version 3
-kafka-3.0.0-1.0.0
-kafka-3.0.0-1.1.0
-kafka-3.0.1-1.1.0
-kafka-3.1.1-1.0.0
-```
-
-```
-$ kudo search kafka --version 3.1
-kafka-3.1.1-1.0.0
-```
-
-```
-$ kudo search kafka --version 2.3
-kafka-2.3.0-1.0.0
-kafka-2.3.0-1.1.0
-kafka-2.3.0-1.1.1
-kafka-2.3.1-1.2.0
-```
-
-**for single version:**
-
-```
-$ kudo search kafka
-operator 	| app-version
-1.0.0 		| 	2.3.0
-1.1.0 		| 	2.3.0
-1.1.1 		| 	2.3.1
-1.2.0		| 	2.3.1
-2.0.0 		| 	3.0.0
-2.1.0 		| 	3.0.0
-2.2.0 		| 	3.0.0
-```
-
-```
-$ kudo search kafka --version 2
-operator 	| app-version
-2.0.0 		| 	3.0.0
-2.1.0 		| 	3.0.0
-2.2.0 		| 	3.0.0
-```
-
-```
-$ kudo search kafka --app-version 2
-operator 	| app-version
-1.0.0 		| 	2.3.0
-1.1.0 		| 	2.3.0
-1.1.1 		| 	2.3.1
-1.2.0		| 	2.3.1
-```
-
-```
-$ kudo search kafka --app-version 2.3
-operator 	| app-version
-1.0.0 		| 	2.3.0
-1.1.0 		| 	2.3.0
-1.1.1 		| 	2.3.1
-1.2.0		| 	2.3.1
-```
-
----
-
-An alternative notation for specifying the version could also look something like this, but this is not important:
-
-```
-kudo install kafka@3
-```
-```
-kudo install kafka@2.3.0
-```
-```
-kudo install kafka@2.3.1
-```
-
-And, orthogonal to the singular VS composite SemVer proposals:
 
 ### Support multiple KUDO API versions in the package repository
 
@@ -516,13 +338,9 @@ For this, the following changes have to be made in KUDO:
 
 * Update `pkg/kudoctl/util/repo.ParseIndexFile` to filter packages by API version. It should filter out packages whose `apiVersion` doesn't match the current `apiVersion` of KUDO.
 
-### Install a specific application version
-
-As `appVersion` is already part of the repository index, a command line flag `--app-version` will be added to `kubectl kudo install` to select a specific application version. Because this version is application specific and might not follow [semantic versioning](https://semver.org/), the absence of this command line flag will result in KUDO installing the latest `version` of a package, or the version indicated with the `--version` flag.
-
 ### Naming of package tarballs
 
-Regardless of the operator/package version strategy chosen (singular VS composite), to avoid ambiguity the `appVersion` of a package will be part of the tarball name. E.g., the Kafka package described above will be named `kafka-2.3.0-0.2.0.tgz`. For this, changes in `kudoctl/packages/writer` are necessary.
+To avoid ambiguity the `appVersion` of a package will be part of the tarball name. E.g., the Kafka package described above will be named `kafka-2.3.0-0.2.0.tgz`. For this, changes in `kudoctl/packages/writer` are necessary.
 
 ### Semantic versioning
 
@@ -548,3 +366,4 @@ Because existing packages already set an `apiVersion` in their `operator.yaml` a
 - 2019/11/18 - Changed scope to include all package versions. (@nfnt)
 - 2019/11/21 - Added "concepts" section and expanded existing sections. (@mpereira)
 - 2019/11/25 - Expanded the single semver section and its CLI UX. (@zmalik)
+- 2019/11/29 - Updated after discussing the various versioning approaches. (@nfnt)
