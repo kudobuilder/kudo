@@ -12,7 +12,7 @@ Bug fixes are expected to be worked on and applied to `master`.  If the fix is n
 
 ## Release Request Process
 
-The KUDO Project is aiming to do a monthly minor releases but the period could be even shorter if necessary. The process is as follows:
+The KUDO Project is aiming to do monthly minor releases but the period could be even shorter if necessary. The process is as follows:
 
 1. Every release should have an appointed release manager (RM)
 1. RM is responsible for following the process below
