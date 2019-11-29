@@ -2,7 +2,6 @@ package init
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -80,25 +79,6 @@ func Install(client *kube.Client, opts Options, crdOnly bool) error {
 	if err := installManager(client.KubeClient, opts); err != nil {
 		return err
 	}
-	return nil
-}
-
-func ValidateManager(client *kube.Client, opts Options) error {
-	s := generateDeployment(opts)
-	set, err := client.KubeClient.AppsV1().StatefulSets(opts.Namespace).Get(s.Name, metav1.GetOptions{})
-
-	if err != nil {
-		if os.IsTimeout(err) {
-			return err
-		}
-		return fmt.Errorf("failed to retrieve KUDO manager: %v", err)
-	}
-	expectedImage := s.Spec.Template.Spec.Containers[0].Image
-	actualImage := set.Spec.Template.Spec.Containers[0].Image
-	if actualImage != expectedImage {
-		return fmt.Errorf("deployed KUDO manager image %s differs from expected image %s", actualImage, expectedImage)
-	}
-
 	return nil
 }
 

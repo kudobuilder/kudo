@@ -54,7 +54,7 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 		if os.IsTimeout(err) {
 			return nil, err
 		}
-		clog.V(0).Printf("Cluster CRDS are not set up correctly. Do you need to run kudo init?")
+		clog.V(0).Printf("KUDO CRDs are not set up correctly. Do you need to run kudo init?")
 		if validateInstall {
 			return nil, fmt.Errorf("CRDs invalid: %v", err)
 		}
