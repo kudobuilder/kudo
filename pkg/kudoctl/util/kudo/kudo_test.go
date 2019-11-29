@@ -27,7 +27,7 @@ func TestKudoClientValidate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		_, err := NewClient("testdata/kubeconfig", 0, true)
+		_, err := NewClient("testdata/test-config", 0, true)
 		assert.ErrorContains(t, err, tt.err)
 	}
 }
