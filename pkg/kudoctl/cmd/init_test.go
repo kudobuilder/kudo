@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
@@ -118,51 +117,33 @@ func TestInitCmd_output(t *testing.T) {
 	}
 }
 
-func TestInitCmd_YAMLWriter(t *testing.T) {
-	testCases := []struct {
-		file            string
-		settings        *env.Settings
-		additionalFlags map[string]string
+func TestInitCmd_yamlOutput(t *testing.T) {
+	tests := []struct {
+		name       string
+		goldenFile string
+		flags      map[string]string
 	}{
-		{
-			file: "deploy-kudo.yaml",
-		},
-		{
-			file:     "deploy-kudo-ns-default.yaml",
-			settings: env.DefaultSettings, // "default" namespace
-		},
+		{"custom namespace", "deploy-kudo-ns.yaml", map[string]string{"dry-run": "true", "output": "yaml", "namespace": "foo"}},
+		{"yaml output", "deploy-kudo.yaml", map[string]string{"dry-run": "true", "output": "yaml"}},
 	}
 
-	for _, tc := range testCases {
-		Settings = env.Settings{}
-		if tc.settings != nil {
-			Settings = *tc.settings
-		}
-
+	for _, tt := range tests {
 		fs := afero.NewMemMapFs()
 		out := &bytes.Buffer{}
 		initCmd := newInitCmd(fs, out)
+		Settings.AddFlags(initCmd.Flags())
 
-		flags := map[string]string{
-			"dry-run": "true",
-			"output":  "yaml",
-		}
-		for name, value := range flags {
-			if err := initCmd.Flags().Set(name, value); err != nil {
+		for f, value := range tt.flags {
+			if err := initCmd.Flags().Set(f, value); err != nil {
 				t.Fatal(err)
 			}
 		}
 
-		for name, value := range tc.additionalFlags {
-			if err := initCmd.Flags().Set(name, value); err != nil {
-				t.Fatal(err)
-			}
-		}
 		if err := initCmd.RunE(initCmd, []string{}); err != nil {
 			t.Fatal(err)
 		}
 
-		gp := filepath.Join("testdata", tc.file+".golden")
+		gp := filepath.Join("testdata", tt.goldenFile+".golden")
 
 		if *updateGolden {
 			t.Log("update golden file")
@@ -177,41 +158,7 @@ func TestInitCmd_YAMLWriter(t *testing.T) {
 
 		assert.Equal(t, string(g), out.String(), "for golden file: %s", gp)
 	}
-}
 
-func TestInitCmd_CustomNamespace(t *testing.T) {
-	file := "deploy-kudo-ns.yaml"
-	fs := afero.NewMemMapFs()
-	out := &bytes.Buffer{}
-	initCmd := newInitCmd(fs, out)
-	Settings.AddFlags(initCmd.Flags())
-	flags := map[string]string{"dry-run": "true", "output": "yaml", "namespace": "foo"}
-
-	for flag, value := range flags {
-		if err := initCmd.Flags().Set(flag, value); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if err := initCmd.RunE(initCmd, []string{}); err != nil {
-		t.Fatal(err)
-	}
-
-	gp := filepath.Join("testdata", file+".golden")
-
-	if *updateGolden {
-		t.Log("update golden file")
-		if err := ioutil.WriteFile(gp, out.Bytes(), 0644); err != nil {
-			t.Fatalf("failed to update golden file: %s", err)
-		}
-	}
-	g, err := ioutil.ReadFile(gp)
-	if err != nil {
-		t.Fatalf("failed reading .golden: %s", err)
-	}
-
-	if !bytes.Equal(out.Bytes(), g) {
-		t.Errorf("json does not match .golden file")
-	}
 }
 
 func TestNewInitCmd(t *testing.T) {
