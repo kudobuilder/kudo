@@ -8,8 +8,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/pkg/errors"
-
 	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/kustomize/k8sdeps/kunstruct"
@@ -48,7 +46,7 @@ func (k *KustomizeEnhancer) Apply(templates map[string]string, metadata Metadata
 		templateNames = append(templateNames, k)
 		err := fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, k), []byte(v))
 		if err != nil {
-			return nil, errors.Wrapf(err, "error when writing templates to filesystem before applying kustomize")
+			return nil, fmt.Errorf("error when writing templates to filesystem before applying kustomize: %w", err)
 		}
 	}
 
@@ -75,12 +73,12 @@ func (k *KustomizeEnhancer) Apply(templates map[string]string, metadata Metadata
 
 	yamlBytes, err := yaml.Marshal(kustomization)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error marshalling kustomize yaml")
+		return nil, fmt.Errorf("error marshalling kustomize yaml: %w", err)
 	}
 
 	err = fsys.WriteFile(fmt.Sprintf("%s/kustomization.yaml", basePath), yamlBytes)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error writing kustomization.yaml file")
+		return nil, fmt.Errorf("error writing kustomization.yaml file: %w", err)
 	}
 
 	ldr, err := loader.NewLoader(basePath, fsys)
@@ -96,28 +94,28 @@ func (k *KustomizeEnhancer) Apply(templates map[string]string, metadata Metadata
 	rf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()))
 	kt, err := target.NewKustTarget(ldr, rf, transformer.NewFactoryImpl())
 	if err != nil {
-		return nil, errors.Wrapf(err, "error creating kustomize target")
+		return nil, fmt.Errorf("error creating kustomize target: %w", err)
 	}
 
 	allResources, err := kt.MakeCustomizedResMap()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error creating customized resource map for kustomize")
+		return nil, fmt.Errorf("error creating customized resource map for kustomize: %w", err)
 	}
 
 	res, err := allResources.EncodeAsYaml()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error encoding kustomized files into yaml")
+		return nil, fmt.Errorf("error encoding kustomized files into yaml: %w", err)
 	}
 
 	objsToAdd, err = YamlToObject(string(res))
 	if err != nil {
-		return nil, errors.Wrapf(err, "error parsing kubernetes objects after applying kustomize")
+		return nil, fmt.Errorf("error parsing kubernetes objects after applying kustomize: %w", err)
 	}
 
 	for _, o := range objsToAdd {
 		err = setControllerReference(metadata.ResourcesOwner, o, k.Scheme)
 		if err != nil {
-			return nil, errors.Wrapf(err, "setting controller reference on parsed object")
+			return nil, fmt.Errorf("setting controller reference on parsed object: %w", err)
 		}
 	}
 

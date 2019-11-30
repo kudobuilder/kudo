@@ -1,7 +1,9 @@
 package plan
 
 import (
+	"errors"
 	"fmt"
+	"io"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/spf13/cobra"
@@ -10,6 +12,7 @@ import (
 
 // Options are the configurable options for plans
 type Options struct {
+	Out      io.Writer
 	Instance string
 }
 
@@ -22,7 +25,7 @@ var (
 func RunHistory(cmd *cobra.Command, options *Options, settings *env.Settings) error {
 	instanceFlag, err := cmd.Flags().GetString("instance")
 	if err != nil || instanceFlag == "" {
-		return fmt.Errorf("flag Error: Please set instance flag, e.g. \"--instance=<instanceName>\"")
+		return errors.New(`flag Error: Please set instance flag, e.g. "--instance=<instanceName>"`)
 	}
 
 	err = planHistory(options, settings)

@@ -3,6 +3,7 @@ package kudo
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/version"
 
-	"github.com/pkg/errors"
 	v1core "k8s.io/api/core/v1"
 	extensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -56,17 +56,30 @@ func NewClient(kubeConfigPath string, requestTimeout int64) (*Client, error) {
 
 	_, err = extensionsClientset.CustomResourceDefinitions().Get("operators.kudo.dev", v1.GetOptions{})
 	if err != nil {
-		return nil, errors.WithMessage(err, "operators")
+		// timeout is not a wrappable error, timeout is an underlying issue that is NOT CRD specific, there is no value in wrapping or converting as well.
+		// best to provide the actual error for proper reporting.
+		if os.IsTimeout(err) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("operators crd: %w", err)
 	}
 
 	_, err = extensionsClientset.CustomResourceDefinitions().Get("operatorversions.kudo.dev", v1.GetOptions{})
 	if err != nil {
-		return nil, errors.WithMessage(err, "operatorversions")
+		// timeout details above for first CRD
+		if os.IsTimeout(err) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("operatorversions crd: %w", err)
 	}
 
 	_, err = extensionsClientset.CustomResourceDefinitions().Get("instances.kudo.dev", v1.GetOptions{})
 	if err != nil {
-		return nil, errors.WithMessage(err, "instances")
+		// timeout details above for first CRD
+		if os.IsTimeout(err) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("instances crd: %w", err)
 	}
 
 	return &Client{
@@ -208,7 +221,11 @@ func (c *Client) OperatorVersionsInstalled(operatorName, namespace string) ([]st
 func (c *Client) InstallOperatorObjToCluster(obj *v1beta1.Operator, namespace string) (*v1beta1.Operator, error) {
 	createdObj, err := c.clientset.KudoV1beta1().Operators(namespace).Create(obj)
 	if err != nil {
-		return nil, errors.WithMessage(err, "installing Operator")
+		// we do NOT wrap timeouts
+		if os.IsTimeout(err) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("installing Operator: %w", err)
 	}
 	return createdObj, nil
 }
@@ -217,7 +234,11 @@ func (c *Client) InstallOperatorObjToCluster(obj *v1beta1.Operator, namespace st
 func (c *Client) InstallOperatorVersionObjToCluster(obj *v1beta1.OperatorVersion, namespace string) (*v1beta1.OperatorVersion, error) {
 	createdObj, err := c.clientset.KudoV1beta1().OperatorVersions(namespace).Create(obj)
 	if err != nil {
-		return nil, errors.WithMessage(err, "installing OperatorVersion")
+		// we do NOT wrap timeouts
+		if os.IsTimeout(err) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("installing OperatorVersion: %w", err)
 	}
 	return createdObj, nil
 }
@@ -226,7 +247,11 @@ func (c *Client) InstallOperatorVersionObjToCluster(obj *v1beta1.OperatorVersion
 func (c *Client) InstallInstanceObjToCluster(obj *v1beta1.Instance, namespace string) (*v1beta1.Instance, error) {
 	createdObj, err := c.clientset.KudoV1beta1().Instances(namespace).Create(obj)
 	if err != nil {
-		return nil, errors.WithMessage(err, "installing Instance")
+		// we do NOT wrap timeouts
+		if os.IsTimeout(err) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("installing Instance: %w", err)
 	}
 	clog.V(2).Printf("instance %v created in namespace %v", createdObj.Name, namespace)
 	return createdObj, nil

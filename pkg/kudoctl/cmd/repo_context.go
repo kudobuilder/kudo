@@ -35,7 +35,7 @@ func newRepoContextCmd(fs afero.Fs) *cobra.Command {
 		Example: "  kubectl kudo repo context local",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
-				return fmt.Errorf("need at least one argument, name of operator repository")
+				return errors.New("need at least one argument, name of operator repository")
 			}
 
 			ctxCmd.name = args[0]

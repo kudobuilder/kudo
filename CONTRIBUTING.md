@@ -24,7 +24,7 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 
 - Git
 - Go `1.13` or later
-- [Kubebuilder](https://book.kubebuilder.io/quick-start.html#installation)
+- [Kubebuilder](https://book.kubebuilder.io/quick-start.html#installation) version 2 or later - note that it is only needed for the `kube-apiserver` and `etcd` binaries, so no need to install *its* dependencies (such as `kustomize`).
 - A Kubernetes Cluster running version `1.13` or later (e.g., [kind](https://kind.sigs.k8s.io/) or [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
@@ -46,12 +46,36 @@ See the [contributor's testing guide](https://github.com/kudobuilder/kudo/blob/m
 
 ## Community, Discussion, and Support
 
-Learn how to engage with the Kubernetes community on the [community page](https://kudo.dev/community/).
+Learn how to engage with the KUDO community on the [community page](https://kudo.dev/community/).
 
 You can reach the maintainers of this project at:
 
 - [Slack](https://kubernetes.slack.com/messages/kudo/)
 - [Mailing List](https://groups.google.com/d/forum/kudobuilder)
+
+## Code culture
+
+This is a set of practices we try to live by when developing KUDO. These are just defaults (soft rules). Deviations from them are possible, but have to be justified.
+
+### General guidelines
+- Master is always releasable (green CI)
+- All feature/bug-fixing work should have an open issue with a description, unless it's something very simple
+- Every user-facing feature that is NOT behind a feature gate should have integration or an e2e test
+
+### Pull requests
+- One core-team member has to approve the PR to be able to merge (all people listed in `.github/CODEOWNERS` file)
+- One approval is enough to merge. However, if there are requests for change they have to be resolved prior to the merge
+- Since KUDO is developed in multiple timezones, try to keep the PR open for everyone to be able to see it (~24h, keep in mind public holidays)
+- We prefer squash commits so that all changes from a branch are committed to master as a single commit
+- Before you merge, make sure your commit title and description are meaningful. Github by default will list all the individual PR commits when squashing which are rarely insightful. We aim for a clean and meaningful commit history. 
+
+- For a piece of work that takes >3-5 days, pair with somebody
+- When you pair with somebody, don't forget to appreciate their work using [co-authorship](https://help.github.com/en/github/committing-changes-to-your-project/creating-a-commit-with-multiple-authors)
+- Open a PR as soon as possible to give everybody a chance to review it
+- For PRs that tackle a bigger feature/refactoring schedule a walk-through with the team. PR reviews are a lot more meaningful if reviewers understand your code mental model.
+
+### As a code owner (core team member)
+- Schedule a portion of your day to review PRs to appreciate work of others
 
 ## Is My Thing an Enhancement?
 

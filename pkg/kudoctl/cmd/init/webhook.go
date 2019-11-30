@@ -71,7 +71,7 @@ func admissionWebhook(ns string) v1beta1.ValidatingWebhookConfiguration {
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ValidatingWebhookConfiguration",
-			APIVersion: "v1beta1",
+			APIVersion: "admissionregistration.k8s.io/v1beta1",
 		},
 		Webhooks: []v1beta1.ValidatingWebhook{
 			{
@@ -121,7 +121,7 @@ func certificate(ns string) []unstructured.Unstructured {
 				"apiVersion": "cert-manager.io/v1alpha2",
 				"kind":       "Certificate",
 				"metadata": map[string]interface{}{
-					"name":      "selfsigned-issuer",
+					"name":      "kudo-webhook-server-certificate",
 					"namespace": ns,
 				},
 				"spec": map[string]interface{}{

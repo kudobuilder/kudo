@@ -31,13 +31,13 @@ func (f *LocalResolver) Resolve(name string, version string) (*packages.Package,
 	if err != nil {
 		return nil, err
 	}
-	clog.V(0).Printf("determining package type of %v", name)
+	clog.V(1).Printf("determining package type of %v", name)
 
 	if fi.Mode().IsRegular() && strings.HasSuffix(name, ".tgz") {
-		clog.V(0).Printf("%v is a tgz package", name)
+		clog.V(0).Printf("%v is a local tgz package", name)
 		return reader.ReadTar(f.fs, name)
 	} else if fi.IsDir() {
-		clog.V(0).Printf("%v is a file package", name)
+		clog.V(0).Printf("%v is a local file package", name)
 		return reader.ReadDir(f.fs, name)
 	} else {
 		return nil, fmt.Errorf("unsupported file system format %v. Expect either a *.tgz file or a folder", name)

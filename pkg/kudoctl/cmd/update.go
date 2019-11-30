@@ -1,13 +1,13 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -43,7 +43,7 @@ func newUpdateCmd() *cobra.Command {
 			var err error
 			options.Parameters, err = install.GetParameterMap(parameters)
 			if err != nil {
-				return errors.WithMessage(err, "could not parse arguments")
+				return fmt.Errorf("could not parse arguments: %w", err)
 			}
 			return runUpdate(args, options, &Settings)
 		},
@@ -78,7 +78,7 @@ func runUpdate(args []string, options *updateOptions, settings *env.Settings) er
 
 	kc, err := env.GetClient(settings)
 	if err != nil {
-		return errors.Wrap(err, "creating kudo client")
+		return fmt.Errorf("creating kudo client: %w", err)
 	}
 
 	return update(instanceToUpdate, kc, options, settings)
@@ -88,7 +88,7 @@ func update(instanceToUpdate string, kc *kudo.Client, options *updateOptions, se
 	// Make sure the instance you want to upgrade exists
 	instance, err := kc.GetInstance(instanceToUpdate, settings.Namespace)
 	if err != nil {
-		return errors.Wrapf(err, "verifying the instance does not already exist")
+		return fmt.Errorf("verifying the instance does not already exist: %w", err)
 	}
 	if instance == nil {
 		return fmt.Errorf("instance %s in namespace %s does not exist in the cluster", instanceToUpdate, settings.Namespace)
@@ -97,7 +97,7 @@ func update(instanceToUpdate string, kc *kudo.Client, options *updateOptions, se
 	// Update arguments
 	err = kc.UpdateInstance(instanceToUpdate, settings.Namespace, nil, options.Parameters)
 	if err != nil {
-		return errors.Wrapf(err, "updating instance %s", instanceToUpdate)
+		return fmt.Errorf("updating instance %s %w", instanceToUpdate, err)
 	}
 	fmt.Printf("Instance %s was updated.", instanceToUpdate)
 	return nil

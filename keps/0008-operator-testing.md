@@ -1,6 +1,7 @@
 ---
 kep-number: 8
 title: Operator Testing
+short-desc: Description of how to test operators
 authors:
   - "@jbarrick-mesosphere"
 owners:
