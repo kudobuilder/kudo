@@ -109,7 +109,7 @@ func FileSize(file string, pod *v1.Pod, restCfg *rest.Config) (int64, error) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		defer stdout.Close()
+		defer stdout.Close() // Close never returns an error
 		errCh <- pe.Run()
 	}()
 
@@ -160,17 +160,16 @@ func DownloadFile(fs afero.Fs, file string, pod *v1.Pod, restCfg *rest.Config) e
 	// block the execution). (for more details on how the underlying streams are copied see remotecommand/v4.go:54
 	//
 	// TL;DR:
-	//  - execute PodExec.Run() in a goroutine
-	//  - when using io.Pipe for In or Out streams, they have to be consumed first because io.Pipe is
-	//    synchronous (and thread-safe)
-	//  - there seems to be a bug when using BOTH Out AND Err pipe-based streams. When trying to consume
-	//    both (in goroutines), one of them would end up blocking the execution ¯\_(ツ)_/¯
+	//  - execute PodExec.Run() in a goroutine when using io.Pipe for Out or Err streams, they
+	//    have to be consumed first because io.Pipe is synchronous (and thread-safe)
+	//  - there seems to be a bug when using BOTH Out AND Err pipe-based streams. When trying to
+	//    consume both (in goroutines), one of them ends up blocking the execution ¯\_(ツ)_/¯
 	//
 	// See `kubectl cp` copyFromPod method for another example:
 	// https://github.com/kubernetes/kubernetes/blob/master/pkg/kubectl/cmd/cp/cp.go#L291
 	errCh := make(chan error, 0)
 	go func() {
-		defer writeout.Close()
+		defer writeout.Close() // Close never returns an error
 		errCh <- pe.Run()
 	}()
 
