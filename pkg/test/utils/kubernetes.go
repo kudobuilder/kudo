@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/pmezard/go-difflib/difflib"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -569,6 +570,36 @@ func NewResource(apiVersion, kind, name, namespace string) runtime.Object {
 			"apiVersion": apiVersion,
 			"kind":       kind,
 			"metadata":   meta,
+		},
+	}
+}
+
+// NewClusterRoleBinding Create a clusterrolebinding for the serviceAccount passed
+func NewClusterRoleBinding(apiVersion, kind, name, namespace string, serviceAccount string, roleName string) runtime.Object {
+
+	sa := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     roleName,
+		},
+		Subjects: []rbacv1.Subject{{
+			Kind:      "ServiceAccount",
+			Name:      serviceAccount,
+			Namespace: namespace,
+		}},
+	}
+
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "ClusterRoleBinding",
+			"apiVersion": "rbac.authorization.k8s.io/v1",
+			"metadata":   sa.ObjectMeta,
+			"subjects":   sa.Subjects,
+			"roleRef":    sa.RoleRef,
 		},
 	}
 }
