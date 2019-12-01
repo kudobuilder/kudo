@@ -210,7 +210,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 }
 
 /*
-	Test 4 scenarios in the below test case
+	Test the below 5 scenarios
 		1. Run Init command with a serviceAccount that is not present in the cluster.
 		2. Run init command with a serviceAccount that is present in the cluster, but not in the clusterrole-binding.
 		3. Run Init command with a serviceAccount that does not have cluster-admin role.
