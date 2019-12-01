@@ -215,11 +215,11 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 		2. Run init command with a serviceAccount that is present in the cluster, but not in the clusterrole-binding.
 		3. Run Init command with a serviceAccount that does not have cluster-admin role.
 		4. Run Init command with a serviceAccount that does have cluster-admin role, but not in the expected namespace.
-		4. Run Init command with a serviceAccount that is present in the cluster and also has cluster-admin role.
+		5. Run Init command with a serviceAccount that is present in the cluster and also has cluster-admin role.
 */
 
 func TestIntegInitWithServiceAccount(t *testing.T) {
-	namespace := "integration-test"
+	namespace := "sa-integration-test"
 	serviceAccount := "sa-integration"
 	// Kubernetes client caches the types, se we need to re-initialize it.
 	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
@@ -228,7 +228,7 @@ func TestIntegInitWithServiceAccount(t *testing.T) {
 	assert.Nil(t, err)
 	kclient := getKubeClient(t)
 
-	instance := testutils.NewResourceWithServiceAccount("kudo.dev/v1beta1", "Instance", "zk", "ns", "service-account")
+	instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "ns")
 	// Verify that we cannot create the instance, because the test environment is empty.
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
@@ -242,41 +242,64 @@ func TestIntegInitWithServiceAccount(t *testing.T) {
 		fs:             afero.NewMemMapFs(),
 		client:         kclient,
 		ns:             namespace,
-		serviceAccount: serviceAccount,
+		serviceAccount: "test-account",
 	}
 
-	// On first attempt, the serviceAccount does not exist, so the error is expected.
-	err = cmd.run()
-	require.Error(t, err)
-	assert.Equal(t, err.Error(), `error installing: Service Account sa-integration does not exists - KUDO expects the serviceAccount to be present`)
-
-	// Then we manually create the namespace and serviceAccount
-	ns := testutils.NewResource("v1", "Namespace", "diffNameSpace", "")
+	// Manually create the namespace and the serviceAccount to be used later
+	ns := testutils.NewResource("v1", "Namespace", namespace, "")
 	assert.NoError(t, testClient.Create(context.TODO(), ns))
-	sa := testutils.NewResource("v1", "ServiceAccount", serviceAccount, "diffNameSpace")
-	assert.NoError(t, testClient.Create(context.TODO(), sa))
-
-	// On second attempt create a ServiceAccount with a Namespace not as integration-test
-	err = cmd.run()
-	require.Error(t, err)
-	assert.Equal(t, err.Error(), `error installing: Service Account %s is not in the expected Namespace - KUDO expects the serviceAccount to be in the namespace`)
-	testClient.Delete(context.TODO(), ns)
-	testClient.Delete(context.TODO(), sa)
-
-	//3rd Test case, create a serviceAccount in the namespace integration-test. But don't create cluster-admin role to the serviceAccount.
-	ns = testutils.NewResource("v1", "Namespace", namespace, "")
-	assert.NoError(t, testClient.Create(context.TODO(), ns))
-	sa = testutils.NewResource("v1", "ServiceAccount", serviceAccount, namespace)
-	assert.NoError(t, testClient.Create(context.TODO(), sa)	
-
-	// On second attempt create a ServiceAccount with a Namespace not as integration-test
-	err = cmd.run()
-	require.Error(t, err)
-	assert.Equal(t, err.Error(), `error installing: Service Account %s does not have cluster-admin role - KUDO expects the serviceAccount passed to have cluster-admin role`)
 	defer testClient.Delete(context.TODO(), ns)
+	sa := testutils.NewResource("v1", "ServiceAccount", serviceAccount, namespace)
+	assert.NoError(t, testClient.Create(context.TODO(), sa))
 	defer testClient.Delete(context.TODO(), sa)
 
-	// Manually attach the serviceAccount to the cluster-admin role
+	// Test Case 1, the serviceAccount does not exist, expect serviceAccount not exists error
+	err = cmd.run()
+	require.Error(t, err)
+	assert.Equal(t, err.Error(), `error installing: Service Account test-account does not exists - KUDO expects the serviceAccount to be present`)
+
+	// Create the serviceAccount, in the default namespace.
+	ns2 := testutils.NewResource("v1", "Namespace", "test-ns", "")
+	assert.NoError(t, testClient.Create(context.TODO(), ns2))
+	defer testClient.Delete(context.TODO(), ns2)
+	sa2 := testutils.NewResource("v1", "ServiceAccount", "sa-nonadmin", "test-ns")
+	assert.NoError(t, testClient.Create(context.TODO(), sa2))
+	defer testClient.Delete(context.TODO(), sa2)
+
+	// Test Case 2, the serviceAccount exists, but does not part of clusterrolebindings
+	cmd.serviceAccount = "sa-nonadmin"
+	cmd.ns = "test-ns"
+	err = cmd.run()
+	require.Error(t, err)
+	assert.Equal(t, err.Error(), `error installing: Service Account sa-nonadmin does not exist in clusterrolebindings - KUDO expects the serviceAccount passed to have cluster-admin role created`)
+
+	// Test case 3: Run Init command with a serviceAccount that does not have cluster-admin role.
+	cmd.serviceAccount = serviceAccount
+	cmd.ns = namespace
+	crb := testutils.NewClusterRoleBinding("rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "kudo-test1", "test-ns", serviceAccount, "cluster-temp")
+	assert.NoError(t, testClient.Create(context.TODO(), crb))
+	defer testClient.Delete(context.TODO(), crb)
+
+	err = cmd.run()
+	require.Error(t, err)
+	assert.Equal(t, err.Error(), `error installing: Service Account sa-integration is not in the expected Namespace - KUDO expects the serviceAccount to be in the namespace sa-integration-test`)
+
+	// Test case 4: Run Init command with a serviceAccount that does not have cluster-admin role.
+	crb2 := testutils.NewClusterRoleBinding("rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "kudo-test2", namespace, serviceAccount, "cluster-temp")
+	assert.NoError(t, testClient.Create(context.TODO(), crb2))
+	defer testClient.Delete(context.TODO(), crb2)
+
+	err = cmd.run()
+	require.Error(t, err)
+	assert.Equal(t, err.Error(), `error installing: Service Account sa-integration does not have cluster-admin role - KUDO expects the serviceAccount passed to have cluster-admin role`)
+
+	// Test case 5: Run Init command with a serviceAccount that is present in the cluster and also has cluster-admin role.
+	crb3 := testutils.NewClusterRoleBinding("rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "kudo-clusterrole-binding", namespace, serviceAccount, "cluster-admin")
+	assert.NoError(t, testClient.Create(context.TODO(), crb3))
+	defer testClient.Delete(context.TODO(), crb3)
+
+	err = cmd.run()
+	assert.NoError(t, err)
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
 	assert.Nil(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
