@@ -595,8 +595,8 @@ func NewClusterRoleBinding(apiVersion, kind, name, namespace string, serviceAcco
 
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"kind":       "ClusterRoleBinding",
-			"apiVersion": "rbac.authorization.k8s.io/v1",
+			"apiVersion": apiVersion,
+			"kind":       kind,
 			"metadata":   sa.ObjectMeta,
 			"subjects":   sa.Subjects,
 			"roleRef":    sa.RoleRef,
