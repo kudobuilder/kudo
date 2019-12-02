@@ -13,7 +13,7 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 ## Contributing Steps
 
 1. Submit an issue describing your proposed change to the repo in question.
-2. The [repo owners](https://github.com/kudobuilder/kudo/blob/master/OWNERS) will respond to your issue promptly.
+2. The [repo owners](https://github.com/kudobuilder/kudo/blob/master/.github/CODEOWNERS) will respond to your issue promptly.
 3. If your proposed change is accepted, and you haven't already done so, sign a Contributor License Agreement (see details above).
 4. Fork the desired repo, develop and test your code changes.
 5. Submit a pull request.
@@ -97,7 +97,7 @@ It is unlikely an enhancement if it is:
 - performance improvements, which are only visible to users as faster API operations, or faster control loops
 - adding error messages or events
 
-If you are not sure, ask someone in the [#kudo](https://kubernetes.slack.com/messages/kudo/) channel on Slack or ping someone listed in [OWNERS](https://github.com/kudobuilder/kudo/blob/master/OWNERS).
+If you are not sure, ask someone in the [#kudo](https://kubernetes.slack.com/messages/kudo/) channel on Slack or ping someone listed in [CODEOWNERS](https://github.com/kudobuilder/kudo/blob/master/.github/CODEOWNERS).
 
 ### When to Create a New Enhancement Issue
 

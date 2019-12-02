@@ -15,7 +15,7 @@ Bug fixes are expected to be worked on and applied to `master`.  If the fix is n
 The KUDO Project is released on an as-needed basis. The process is as follows:
 
 1. An issue is proposing a new release with a changelog since the last release
-1. All [OWNERS](OWNERS) must LGTM this release
+1. All [OWNERS](.github/CODEOWNERS) must LGTM this release
 1. Release process below is followed
 1. The release issue is closed
 
