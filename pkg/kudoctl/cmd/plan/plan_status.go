@@ -3,6 +3,7 @@ package plan
 import (
 	"fmt"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/client"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/xlab/treeprint"
@@ -13,7 +14,7 @@ var DefaultStatusOptions = &Options{}
 
 // Status runs the plan status command
 func Status(options *Options, settings *env.Settings) error {
-	kc, err := env.GetClient(settings)
+	kc, err := client.GetValidatedClient(settings)
 	if err != nil {
 		return err
 	}

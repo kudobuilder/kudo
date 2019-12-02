@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/client"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -76,7 +77,7 @@ func runUpdate(args []string, options *updateOptions, settings *env.Settings) er
 	}
 	instanceToUpdate := options.InstanceName
 
-	kc, err := env.GetClient(settings)
+	kc, err := client.GetValidatedClient(settings)
 	if err != nil {
 		return fmt.Errorf("creating kudo client: %w", err)
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/client"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 
@@ -21,7 +22,7 @@ type uninstallOptions struct {
 type uninstallCmd struct{}
 
 func (cmd *uninstallCmd) run(options uninstallOptions, settings *env.Settings) error {
-	kc, err := env.GetClient(settings)
+	kc, err := client.GetValidatedClient(settings)
 	clog.V(3).Printf("acquiring kudo client")
 	if err != nil {
 		clog.V(3).Printf("failed to acquire kudo client: %v", err)

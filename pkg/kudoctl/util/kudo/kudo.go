@@ -10,8 +10,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	kudoinit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/version"
 
@@ -32,7 +30,7 @@ type Client struct {
 }
 
 // NewClient creates new KUDO Client
-func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool) (*Client, error) {
+func NewClient(kubeConfigPath string, requestTimeout int64) (*Client, error) {
 
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
@@ -42,23 +40,6 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 
 	// set default configs
 	config.Timeout = time.Duration(requestTimeout) * time.Second
-
-	kubeClient, err := kube.GetKubeClient(kubeConfigPath)
-	if err != nil {
-		return nil, clog.Errorf("could not get Kubernetes client: %s", err)
-	}
-
-	err = kudoinit.CRDs().ValidateInstallation(kubeClient)
-	if err != nil {
-		// see above
-		if os.IsTimeout(err) {
-			return nil, err
-		}
-		clog.V(0).Printf("KUDO CRDs are not set up correctly. Do you need to run kudo init?")
-		if validateInstall {
-			return nil, fmt.Errorf("CRDs invalid: %v", err)
-		}
-	}
 
 	// create the clientset
 	kudoClientset, err := versioned.NewForConfig(config)

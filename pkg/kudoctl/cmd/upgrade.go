@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/client"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
@@ -84,7 +85,7 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 	}
 	packageToUpgrade := args[0]
 
-	kc, err := env.GetClient(settings)
+	kc, err := client.GetValidatedClient(settings)
 	if err != nil {
 		return fmt.Errorf("creating kudo client: %w", err)
 	}

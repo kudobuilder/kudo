@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
-
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/util/homedir"
 )
@@ -68,9 +66,4 @@ func (s *Settings) OverrideDefault(fs *pflag.FlagSet, name, value string) string
 	}
 
 	return value
-}
-
-// GetClient is a helper function that takes the Settings struct and returns a new KUDO Client
-func GetClient(s *Settings) (*kudo.Client, error) {
-	return kudo.NewClient(s.KubeConfig, s.RequestTimeout, s.Validate)
 }

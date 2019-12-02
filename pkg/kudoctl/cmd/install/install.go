@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/client"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -59,7 +60,7 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 	}
 	clog.V(4).Printf("repository used %s", repository)
 
-	kc, err := env.GetClient(settings)
+	kc, err := client.GetValidatedClient(settings)
 	clog.V(3).Printf("acquiring kudo client")
 	if err != nil {
 		clog.V(3).Printf("failed to acquire client")

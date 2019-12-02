@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/client"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 
@@ -19,7 +20,7 @@ func Run(args []string, settings *env.Settings) error {
 		return err
 	}
 
-	kc, err := env.GetClient(settings)
+	kc, err := client.GetValidatedClient(settings)
 	if err != nil {
 		return fmt.Errorf("creating kudo client: %w", err)
 	}
