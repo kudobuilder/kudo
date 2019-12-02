@@ -21,23 +21,33 @@ status: provisional
       * [Motivation](#motivation)
          * [Goals](#goals)
          * [Non-Goals](#non-goals)
+         * [Current State](#current-state)
+      * [Open Questions](#open-questions)
       * [Proposal](#proposal)
          * [KUDO Prerequisites](#kudo-prerequisites)
+            * [Proposal for update process](#proposal-for-update-process)
          * [KUDO Manager](#kudo-manager)
+            * [Proposal for update process](#proposal-for-update-process-1)
          * [CRDs](#crds)
-         * [KUDO control](#kudo-control)
-         * [User Stories](#user-stories)
+            * [Proposal for update process](#proposal-for-update-process-2)
+         * [KUDO CLI](#kudo-cli)
+            * [Proposal for update process](#proposal-for-update-process-3)
+      * [Updating KUDO installation](#updating-kudo-installation)
+         * [Upgrade Steps](#upgrade-steps)
+      * [User Stories](#user-stories)
             * [Story 1](#story-1)
             * [Story 2](#story-2)
-         * [Implementation Details/Notes/Constraints TODO [optional]](#implementation-detailsnotesconstraints-todo-optional)
+         * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
          * [Risks and Mitigations TODO](#risks-and-mitigations-todo)
+            * [Failure cases](#failure-cases)
       * [Graduation Criteria TODO](#graduation-criteria-todo)
-      * [Implementation History TODO](#implementation-history-todo)
-      * [Drawbacks TODO [optional, TODO]](#drawbacks-todo-optional-todo)
-      * [Alternatives TODO [optional]](#alternatives-todo-optional)
-      * [Infrastructure Needed TODO [optional]](#infrastructure-needed-todo-optional)
+      * [Drawbacks TODO [optional]](#drawbacks-todo-optional)
+      * [Alternatives](#alternatives)
+      * [Infrastructure Needed](#infrastructure-needed)
+      * [Resources](#resources)
+      * [Implementation History](#implementation-history)
 
-<!-- Added by: aneumann, at: Thu Nov 28 16:03:05 CET 2019 -->
+<!-- Added by: aneumann, at: Mon Dec  2 11:34:32 CET 2019 -->
 
 <!--te-->
 
@@ -80,7 +90,7 @@ At the moment, KUDO does not provide any migration capabilities and needs a clea
 ## Proposal
 
 ### KUDO Prerequisites
-Expected update frequency: Low
+Expected update frequency: Low  
 Versioned: No, but closely tied to KUDO manager
 
 The KUDO manager has a set of prerequisites that need to be present for the manager to run successfully. They are
@@ -104,7 +114,7 @@ Each migration should have a validate-step that checks if the migration is possi
 - Can we just delete them all and reinstall them? Probably not
 
 ### KUDO Manager
-Expected update frequency: High
+Expected update frequency: High  
 Versioned: Yes
 
 The KUDO Manager is defined by an image version in a deployment set. To update, the deployment must be updated. The 
@@ -122,7 +132,7 @@ Integrated into `kudo init --upgrade`
 - Question: Do we need to ensure that the manager is not doing meaningful work at the moment, or can we just update the deployment?
 
 ### CRDs
-Expected update frequency: Medium
+Expected update frequency: Medium  
 Versioned: Yes, with a CRD-Version
 
 The CRDs are used to store installed operators and running instances. New features will regularly require us to add new
