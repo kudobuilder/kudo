@@ -72,6 +72,11 @@ the different parts interact, and what kind of compatibility we want to provide.
 
 At the moment, KUDO does not provide any migration capabilities and needs a clean installation to use a new version.
 
+## Open Questions
+- Lowest supported K8s version
+- Do we want to support downgrades? 
+- Split versions between KUDO manager and KUDO CLI?
+
 ## Proposal
 
 ### KUDO Prerequisites
@@ -82,12 +87,18 @@ The KUDO manager has a set of prerequisites that need to be present for the mana
 the least likely to change, but probably the most specific. If we make changes here, we need to implement custom
 migration code.
 
-- TODO: List all specific prereqs
+- Current prereqs
+  - Namespace
+  - Service Account
+  - Role Bindings
+  - Secret
 
 #### Proposal for update process 
 Integrated into `kudo init --upgrade`
 
 Write specific migration code that targets a KUDO manager version range and executes manual migration steps. 
+
+Each migration should have a validate-step that checks if the migration is possible.
 
 **Alternative update process**
 - Can we just delete them all and reinstall them? Probably not
@@ -158,8 +169,9 @@ User has to download newest KUDO version.
 
 The update of a KUDO installation is triggered by  `kudo init --upgrade`
 
-Steps:
+### Upgrade Steps
 - Pre-Update-Verification
+  - Detect if permissions to modify prerequisites are available
   - Verify old CRDs can be read by new KUDO version
   - Verify all installed operators are supported by new KUDO version
   - User can abort here
@@ -171,12 +183,7 @@ Steps:
   - Write custom code to migrate stored CRs
 - Deploy new manager version
 
-This operation will **need** a `--dry-run` option
-- Do normal Pre-Update-Verification
-- Read all existing CRs and run migration to new CRD version
-  - Report migration errors
-
-### User Stories
+## User Stories
 
 #### Story 1
 
@@ -188,18 +195,34 @@ to work.
 An Operator manages two K8s clusters with different KUDO versions installed. How does he manage to control both in the
 most easy way?
 
-### Implementation Details/Notes/Constraints TODO [optional]
+### Implementation Details/Notes/Constraints
 
-What are the caveats to the implementation?
-What are some important details that didn't come across above.
-Go in to as much detail as necessary here.
-This might be a good place to talk about core concepts and how they releate.
+- Base migration starts by comparing installed KUDO version vs. executing KUDO CLI version
+  - Check if prereq migration part is required
+  - Check if CRD migration part is required
+  - Check if manager migration part is required
+- Run pre-update verification for each part
+- TODO
 
 ### Risks and Mitigations TODO
 
-What are the risks of this proposal and how do we mitigate.
-Think broadly.
-For example, consider both security and how this will impact the larger kubernetes ecosystem.
+This operation will **need** a `--dry-run` option
+- Do normal Pre-Update-Verification
+- Read all existing CRs and run migration to new CRD version
+  - Report migration errors
+
+#### Failure cases
+- Migration of CRDs fails while in process
+  - Restart of migration must be able to support a started migration
+  - Detect an failed migration
+  - Continue migrating CRDs
+  - Start new version of manager
+- New manager fails to start
+  - Only available option here would be to downgrade?
+- Migration of prerequisites fails
+  - Very case specific failure cases here, i.e. a namespace already exists, some permission is missing
+
+TODO: Security implications
 
 ## Graduation Criteria TODO
 
