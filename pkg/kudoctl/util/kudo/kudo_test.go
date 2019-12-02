@@ -19,6 +19,19 @@ func newTestSimpleK2o() *Client {
 	return NewClientFromK8s(fake.NewSimpleClientset())
 }
 
+func TestKudoClientValidate(t *testing.T) {
+	tests := []struct {
+		err string
+	}{
+		{"CRDs invalid: failed to retrieve CRD"}, // verify that NewClient tries to validate CRDs
+	}
+
+	for _, tt := range tests {
+		_, err := NewClient("testdata/test-config", 0, true)
+		assert.ErrorContains(t, err, tt.err)
+	}
+}
+
 func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 
 	obj := v1beta1.Operator{
