@@ -56,7 +56,7 @@ func newParamsListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.BoolVarP(&list.requiredOnly, "required", "r", false, "Show only parameters which have no defaults but are required.")
 	f.BoolVar(&list.namesOnly, "names", false, "Display only names.")
 	f.StringVar(&list.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
-	f.StringVarP(&list.PackageVersion, "version", "", "", "A specific package version on the official GitHub repo. (default to the most recent)")
+	f.StringVar(&list.PackageVersion, "version", "", "A specific package version on the official GitHub repo. (default to the most recent)")
 
 	return cmd
 }
