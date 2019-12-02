@@ -1,5 +1,5 @@
 ---
-kep-number: 20
+kep-number: 21
 title: Upgrades of KUDO installation
 authors:
   - "@aneumann82"
@@ -7,7 +7,7 @@ owners:
   - "@aneumann82"
 editor: TBD
 creation-date: 2019-11-28
-last-updated: 2019-11-28
+last-updated: 2019-12-02
 status: provisional
 ---
 
