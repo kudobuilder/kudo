@@ -18,6 +18,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
+	"flag"
 
 	"github.com/kudobuilder/kudo/pkg/apis"
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
@@ -33,6 +35,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
+type args struct {
+
+	// SyncPeriod determines the minimum frequency at which watched resources are
+	// reconciled. A lower period will correct entropy more quickly, but reduce
+	// responsiveness to change if there are many watched resources. Change this
+	// value only if you know what you are doing. Defaults to 30 second if unset.
+	syncPeriod time.Duration
+}
+
+func parseArgs() args {
+	args := args{}
+
+	flag.DurationVar(&args.syncPeriod, "sync-period", time.Duration(30)*time.Second,
+		"SyncPeriod determines the minimum frequency at which watched resources are reconciled.")
+
+	flag.Parse()
+	return args
+}
+
 func main() {
 	logf.SetLogger(zap.Logger(false))
 	log := logf.Log.WithName("entrypoint")
@@ -40,10 +61,13 @@ func main() {
 	// Get version of KUDO
 	log.Info(fmt.Sprintf("KUDO Version: %s", fmt.Sprintf("%#v", version.Get())))
 
+	args := parseArgs()
+
 	// create new controller-runtime manager
-	log.Info("setting up manager")
+	log.Info(fmt.Sprintf("setting up manager, sync-period is %v", args.syncPeriod))
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		MapperProvider: util.NewDynamicRESTMapper,
+		SyncPeriod: &args.syncPeriod,
 	})
 	if err != nil {
 		log.Error(err, "unable to start manager")
