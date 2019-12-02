@@ -86,6 +86,9 @@ At the moment, KUDO does not provide any migration capabilities and needs a clea
 - Lowest supported K8s version
 - Do we want to support downgrades? 
 - Split versions between KUDO manager and KUDO CLI?
+- What is the lowest KUDO version that will support updates?
+  - Do we support update from KUDO 0.8.0 (which does not have any update support) to a higher version?
+  - Do we take the freedom to require a fresh install for the first KUDO version with an implementation of this KEP?
 
 ## Proposal
 
