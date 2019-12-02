@@ -19,6 +19,7 @@ type Context struct {
 	Meta       renderer.Metadata
 	Templates  map[string]string // Raw templates
 	Parameters map[string]string // Instance and OperatorVersion parameters merged
+	Pipes      map[string]string // Pipe artifacts
 }
 
 // Tasker is an interface that represents any runnable task for an operator. This method is treated

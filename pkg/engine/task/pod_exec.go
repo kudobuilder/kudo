@@ -153,11 +153,12 @@ func DownloadFile(fs afero.Fs, file string, pod *v1.Pod, restCfg *rest.Config) e
 		Err:           &stderr,
 	}
 
+	// IMPORTANT:
 	// When downloading files using remotecommand.Executor, we pump the contents of the tar file through
 	// the stdout. PodExec.Run() calls the stream executor, which first writes stdout and stderr of the
 	// command and then returns with an exit code. Since we're using io.Pipe reader and writer which is
 	// tread-safe but SYNCHRONOUS, Run() call will not return until we've consumed the streams (and will
-	// block the execution). (for more details on how the underlying streams are copied see remotecommand/v4.go:54
+	// block the execution). For more details on how the underlying streams are copied see remotecommand/v4.go:54
 	//
 	// TL;DR:
 	//  - execute PodExec.Run() in a goroutine when using io.Pipe for Out or Err streams, they
@@ -167,7 +168,7 @@ func DownloadFile(fs afero.Fs, file string, pod *v1.Pod, restCfg *rest.Config) e
 	//
 	// See `kubectl cp` copyFromPod method for another example:
 	// https://github.com/kubernetes/kubernetes/blob/master/pkg/kubectl/cmd/cp/cp.go#L291
-	errCh := make(chan error, 0)
+	errCh := make(chan error, 1)
 	go func() {
 		defer writeout.Close() // Close never returns an error
 		errCh <- pe.Run()

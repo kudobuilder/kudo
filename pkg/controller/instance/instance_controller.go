@@ -25,6 +25,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
+	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/engine/workflow"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -36,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -174,7 +176,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		InstanceName:        instance.Name,
 	}
 
-	activePlan, err := preparePlanExecution(instance, ov, activePlanStatus)
+	activePlan, err := preparePlanExecution(instance, ov, activePlanStatus, metadata)
 	if err != nil {
 		err = r.handleError(err, instance, oldInstance)
 		return reconcile.Result{}, err
@@ -225,13 +227,14 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 	return nil
 }
 
-func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion, activePlanStatus *kudov1beta1.PlanStatus) (*workflow.ActivePlan, error) {
-	params := getParameters(instance, ov)
-
+func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion, activePlanStatus *kudov1beta1.PlanStatus, meta *engine.Metadata) (*workflow.ActivePlan, error) {
 	planSpec, ok := ov.Spec.Plans[activePlanStatus.Name]
 	if !ok {
 		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not find required plan: %v", engine.ErrFatalExecution, activePlanStatus.Name), EventName: "InvalidPlan"}
 	}
+
+	params := makeParams(instance, ov)
+	pipes := makePipes(activePlanStatus.Name, &planSpec, ov.Spec.Tasks, meta)
 
 	return &workflow.ActivePlan{
 		Name:       activePlanStatus.Name,
@@ -240,6 +243,7 @@ func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.Operat
 		Tasks:      ov.Spec.Tasks,
 		Templates:  ov.Spec.Templates,
 		Params:     params,
+		Pipes:      pipes,
 	}, nil
 }
 
@@ -312,7 +316,8 @@ func (r *Reconciler) getOperatorVersion(instance *kudov1beta1.Instance) (ov *kud
 	return ov, nil
 }
 
-func getParameters(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.OperatorVersion) map[string]string {
+// makeParams generates {{ Params.* }} map of keys and values which is later used during template rendering.
+func makeParams(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.OperatorVersion) map[string]string {
 	params := make(map[string]string)
 
 	for k, v := range instance.Spec.Parameters {
@@ -329,7 +334,43 @@ func getParameters(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.
 	return params
 }
 
-func parameterDifference(old, new map[string]string) map[string]string {
+// makePipes generates {{ Pipes.* }} map of keys and values which is later used during template rendering.
+func makePipes(planName string, plan *v1beta1.Plan, tasks []v1beta1.Task, emeta *engine.Metadata) map[string]string {
+	taskByName := func(name string) (*v1beta1.Task, bool) {
+		for _, t := range tasks {
+			if t.Name == name {
+				return &t, true
+			}
+		}
+		return nil, false
+	}
+
+	pipes := make(map[string]string)
+
+	for _, ph := range plan.Phases {
+		for _, st := range ph.Steps {
+			for _, tn := range st.Tasks {
+				rmeta := renderer.Metadata{
+					Metadata:  *emeta,
+					PlanName:  planName,
+					PhaseName: ph.Name,
+					StepName:  st.Name,
+					TaskName:  tn,
+				}
+
+				if t, ok := taskByName(tn); ok && t.Kind == task.PipeTaskKind {
+					for _, pipe := range t.Spec.PipeTaskSpec.Pipe {
+						pipes[pipe.Key] = task.PipeArtifactName(rmeta, pipe.Key)
+					}
+				}
+			}
+		}
+	}
+
+	return pipes
+}
+
+func parameterDiff(old, new map[string]string) map[string]string {
 	diff := make(map[string]string)
 
 	for key, val := range old {

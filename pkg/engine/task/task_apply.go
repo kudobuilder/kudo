@@ -2,7 +2,6 @@ package task
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 
@@ -27,7 +26,7 @@ type ApplyTask struct {
 // resources are checked for health.
 func (at ApplyTask) Run(ctx Context) (bool, error) {
 	// 1. - Render task templates -
-	rendered, err := render(at.Resources, ctx.Templates, ctx.Parameters, ctx.Meta)
+	rendered, err := render(at.Resources, ctx)
 	if err != nil {
 		return false, fatalExecutionError(err, taskRenderingError, ctx.Meta)
 	}
@@ -102,12 +101,12 @@ func patch(newObj runtime.Object, existingObj runtime.Object, c client.Client) e
 		// strategic merge patch is not supported for these types, falling back to merge patch
 		err := c.Patch(context.TODO(), newObj, client.ConstantPatch(types.MergePatchType, newObjJSON))
 		if err != nil {
-			return fmt.Errorf("failed to apply merge patch to object %s: %w", prettyPrint(key), err)
+			return fmt.Errorf("failed to apply merge patch to object %s/%s: %w", key.Name, key.Name, err)
 		}
 	} else {
 		err := c.Patch(context.TODO(), existingObj, client.ConstantPatch(types.StrategicMergePatchType, newObjJSON))
 		if err != nil {
-			return fmt.Errorf("failed to apply StrategicMergePatch to object %s: %w", prettyPrint(key), err)
+			return fmt.Errorf("failed to apply StrategicMergePatch to object %s/%s: %w", key.Namespace, key.Name, err)
 		}
 	}
 	return nil
@@ -125,13 +124,8 @@ func isHealthy(ro []runtime.Object) error {
 		err := health.IsHealthy(r)
 		if err != nil {
 			key, _ := client.ObjectKeyFromObject(r)
-			return fmt.Errorf("object %s is NOT healthy: %w", prettyPrint(key), err)
+			return fmt.Errorf("object %s/%s is NOT healthy: %w", key.Namespace, key.Name, err)
 		}
 	}
 	return nil
-}
-
-func prettyPrint(key client.ObjectKey) string {
-	s, _ := json.MarshalIndent(key, "", "  ")
-	return string(s)
 }

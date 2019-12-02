@@ -31,6 +31,7 @@ type ActivePlan struct {
 	Tasks     []v1beta1.Task
 	Templates map[string]string
 	Params    map[string]string
+	Pipes     map[string]string
 }
 
 func (ap *ActivePlan) taskByName(name string) (*v1beta1.Task, bool) {
@@ -167,6 +168,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 					Meta:       exm,
 					Templates:  pl.Templates,
 					Parameters: pl.Params,
+					Pipes:      pl.Pipes,
 				}
 
 				// --- 4. Execute the engine task ---

@@ -53,7 +53,7 @@ type PipeFile struct {
 
 func (pt PipeTask) Run(ctx Context) (bool, error) {
 	// 1. - Render container template -
-	rendered, err := render([]string{pt.Container}, ctx.Templates, ctx.Parameters, ctx.Meta)
+	rendered, err := render([]string{pt.Container}, ctx)
 	if err != nil {
 		return false, fatalExecutionError(err, taskRenderingError, ctx.Meta)
 	}
