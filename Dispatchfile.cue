@@ -34,7 +34,7 @@ task "integration-test": {
     {
       name: "test"
       image: "kudobuilder/golang:1.13"
-      command: [ "./test/run_tests.sh", "integration-test" ],
+      command: [ "make", "integration-test" ],
       env: [
         {
           name: "INTEGRATION_OUTPUT_JUNIT"
@@ -52,7 +52,7 @@ task "e2e-test": {
     {
       name: "test"
       image: "kudobuilder/golang:1.13"
-      command: [ "./test/run_tests.sh", "e2e-test" ],
+      command: [ "make", "e2e-test" ],
       env: [
         {
           name: "INTEGRATION_OUTPUT_JUNIT"
