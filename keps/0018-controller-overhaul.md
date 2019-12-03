@@ -1,6 +1,7 @@
 ---
 kep-number: 18
 title: Controller redesign
+short-desc: Refactoring of KUDO controller
 authors:
   - "@alenkacz"
 owners:

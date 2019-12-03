@@ -1,6 +1,7 @@
 ---
-kep-number: 15
+kep-number: 0015
 title: Repository Management
+short-desc: Details on repositories, how to generate, update and manage repos
 authors:
   - "@kensipe"
 owners:

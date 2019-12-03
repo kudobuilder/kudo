@@ -16,6 +16,8 @@ func (c *Client) Resolve(name string, version string) (*packages.Package, error)
 	if err != nil {
 		return nil, err
 	}
+	clog.V(0).Printf("%v is a repository package from %v", name, c.Config)
+
 	files, err := reader.ParseTgz(buf)
 	if err != nil {
 		return nil, err

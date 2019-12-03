@@ -1,18 +1,16 @@
 ---
 kep-number: 4
 title: Add Testing Infrastructure
+short-desc: What, where, when and how we will test
 authors:
   - "@runyontr"
 owners:
-  - @runyontr
+  - "@runyontr"
   - "@fabian"
 editor: TBD
 creation-date: 2019-02-18
 last-updated: 2010-02-18
 status: implementable
-see-also:
-replaces:
-superseded-by:
 ---
 
 # add-testing-infrastructure

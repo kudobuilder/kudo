@@ -13,7 +13,7 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 ## Contributing Steps
 
 1. Submit an issue describing your proposed change to the repo in question.
-2. The [repo owners](https://github.com/kudobuilder/kudo/blob/master/OWNERS) will respond to your issue promptly.
+2. The [repo owners](https://github.com/kudobuilder/kudo/blob/master/.github/CODEOWNERS) will respond to your issue promptly.
 3. If your proposed change is accepted, and you haven't already done so, sign a Contributor License Agreement (see details above).
 4. Fork the desired repo, develop and test your code changes.
 5. Submit a pull request.
@@ -46,12 +46,36 @@ See the [contributor's testing guide](https://github.com/kudobuilder/kudo/blob/m
 
 ## Community, Discussion, and Support
 
-Learn how to engage with the Kubernetes community on the [community page](https://kudo.dev/community/).
+Learn how to engage with the KUDO community on the [community page](https://kudo.dev/community/).
 
 You can reach the maintainers of this project at:
 
 - [Slack](https://kubernetes.slack.com/messages/kudo/)
 - [Mailing List](https://groups.google.com/d/forum/kudobuilder)
+
+## Code culture
+
+This is a set of practices we try to live by when developing KUDO. These are just defaults (soft rules). Deviations from them are possible, but have to be justified.
+
+### General guidelines
+- Master is always releasable (green CI)
+- All feature/bug-fixing work should have an open issue with a description, unless it's something very simple
+- Every user-facing feature that is NOT behind a feature gate should have integration or an e2e test
+
+### Pull requests
+- One core-team member has to approve the PR to be able to merge (all people listed in `.github/CODEOWNERS` file)
+- One approval is enough to merge. However, if there are requests for change they have to be resolved prior to the merge
+- Since KUDO is developed in multiple timezones, try to keep the PR open for everyone to be able to see it (~24h, keep in mind public holidays)
+- We prefer squash commits so that all changes from a branch are committed to master as a single commit
+- Before you merge, make sure your commit title and description are meaningful. Github by default will list all the individual PR commits when squashing which are rarely insightful. We aim for a clean and meaningful commit history. 
+
+- For a piece of work that takes >3-5 days, pair with somebody
+- When you pair with somebody, don't forget to appreciate their work using [co-authorship](https://help.github.com/en/github/committing-changes-to-your-project/creating-a-commit-with-multiple-authors)
+- Open a PR as soon as possible to give everybody a chance to review it
+- For PRs that tackle a bigger feature/refactoring schedule a walk-through with the team. PR reviews are a lot more meaningful if reviewers understand your code mental model.
+
+### As a code owner (core team member)
+- Schedule a portion of your day to review PRs to appreciate work of others
 
 ## Is My Thing an Enhancement?
 
@@ -73,7 +97,7 @@ It is unlikely an enhancement if it is:
 - performance improvements, which are only visible to users as faster API operations, or faster control loops
 - adding error messages or events
 
-If you are not sure, ask someone in the [#kudo](https://kubernetes.slack.com/messages/kudo/) channel on Slack or ping someone listed in [OWNERS](https://github.com/kudobuilder/kudo/blob/master/OWNERS).
+If you are not sure, ask someone in the [#kudo](https://kubernetes.slack.com/messages/kudo/) channel on Slack or ping someone listed in [CODEOWNERS](https://github.com/kudobuilder/kudo/blob/master/.github/CODEOWNERS).
 
 ### When to Create a New Enhancement Issue
 

@@ -1,6 +1,7 @@
 ---
 kep-number: 6
 title: Stable Kafka Example
+short-description: Description for a full Kafka Operator
 authors:
   - "@guenter"
 owners:
