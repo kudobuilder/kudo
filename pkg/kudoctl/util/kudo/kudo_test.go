@@ -32,20 +32,6 @@ func TestKudoClientValidate(t *testing.T) {
 	}
 }
 
-func TestNewK2oClient(t *testing.T) {
-	tests := []struct {
-		err string
-	}{
-		{"invalid configuration: no configuration has been provided"}, // non existing test
-	}
-
-	for _, tt := range tests {
-		// Just interested in errors
-		_, err := NewClient("", 0, false)
-		assert.ErrorContains(t, err, tt.err)
-	}
-}
-
 func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 
 	obj := v1beta1.Operator{
