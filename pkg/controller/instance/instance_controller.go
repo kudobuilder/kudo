@@ -92,7 +92,7 @@ func (r *Reconciler) SetupWithManager(
 		if annotations == nil {
 			return false
 		}
-		for k, _ := range annotations {
+		for k := range annotations {
 			if k == key {
 				return true
 			}
