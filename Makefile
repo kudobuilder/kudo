@@ -42,6 +42,7 @@ test-clean:
 .PHONY: lint
 lint:
 ifeq (, $(shell which golangci-lint))
+# TODO(porridge): https://github.com/golangci/golangci-lint#go explicitly discourages this:
 	go get github.com/golangci/golangci-lint/cmd/golangci-lint
 endif
 	golangci-lint run

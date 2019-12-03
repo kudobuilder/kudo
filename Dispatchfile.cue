@@ -21,8 +21,8 @@ task "lint": {
   steps: [
     {
       name: "lint"
-      image: "kudobuilder/golang:1.13"
-      command: [ "make", "lint" ],
+      image: "golangci/golangci-lint:v1.21.0"
+      command: [ "golangci-lint", "run", "-v" ],
       workingDir: "/workspace/src-git"
     }
   ]
