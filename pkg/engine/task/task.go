@@ -117,7 +117,7 @@ func newPipe(task *v1beta1.Task) (Tasker, error) {
 
 	return PipeTask{
 		Name:      task.Name,
-		Container: task.Spec.PipeTaskSpec.Container,
+		Pod:       task.Spec.PipeTaskSpec.Pod,
 		PipeFiles: pipeFiles,
 	}, nil
 }

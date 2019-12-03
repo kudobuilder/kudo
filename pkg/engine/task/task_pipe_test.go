@@ -6,6 +6,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_isRelative(t *testing.T) {
@@ -113,6 +114,210 @@ func TestPipeNames(t *testing.T) {
 
 			if got := PipeArtifactName(tt.meta, tt.key); got != tt.wantArtifactName {
 				t.Errorf("PipeArtifactName() = %v, want %v", got, tt.wantArtifactName)
+			}
+		})
+	}
+}
+
+func Test_validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		podYaml string
+		ff      []PipeFile
+		wantErr bool
+	}{
+		{
+			name: "a valid pipe pod with one init container",
+			podYaml: `
+apiVersion: v1
+kind: Pod
+spec:
+  volumes:
+  - name: shared-data
+    emptyDir: {}
+
+  initContainers:
+    - name: init
+      image: busybox
+      command: [ "/bin/sh", "-c" ]
+      args:
+        - touch /tmp/foo.txt
+      volumeMounts:
+        - name: shared-data
+          mountPath: /tmp
+`,
+			ff: []PipeFile{
+				{
+					File: "/tmp/foo.txt",
+					Kind: PipeFileKindSecret,
+					Key:  "foo",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "an valid pipe pod with a container",
+			podYaml: `
+apiVersion: v1
+kind: Pod
+spec:
+  volumes:
+  - name: shared-data
+    emptyDir: {}
+
+  containers:
+    - name: init
+      image: busybox
+      command: [ "/bin/sh", "-c" ]
+      args:
+        - touch /tmp/foo.txt
+      volumeMounts:
+        - name: shared-data
+          mountPath: /tmp
+`,
+			ff: []PipeFile{
+				{
+					File: "/tmp/foo.txt",
+					Kind: PipeFileKindSecret,
+					Key:  "foo",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "an invalid pipe pod with wrong volume mount",
+			podYaml: `
+apiVersion: v1
+kind: Pod
+spec:
+  volumes:
+  - name: conf-data
+    configMap:
+      name: my-conf		
+
+  initContainers:
+    - name: init
+      image: busybox
+      command: [ "/bin/sh", "-c" ]
+      args:
+        - touch /tmp/foo.txt
+      volumeMounts:
+        - name: shared-data
+          mountPath: /tmp
+`,
+			ff: []PipeFile{
+				{
+					File: "/tmp/foo.txt",
+					Kind: PipeFileKindSecret,
+					Key:  "foo",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "a valid pipe pod with at least one emptyDir volume mount",
+			podYaml: `
+apiVersion: v1
+kind: Pod
+spec:
+  volumes:
+  - name: conf-data
+    configMap:
+      name: my-conf
+  - name: shared-data
+    emptyDir: {}
+
+  initContainers:
+    - name: init
+      image: busybox
+      command: [ "/bin/sh", "-c" ]
+      args:
+        - touch /tmp/foo.txt
+      volumeMounts:
+        - name: shared-data
+          mountPath: /tmp
+`,
+			ff: []PipeFile{
+				{
+					File: "/tmp/foo.txt",
+					Kind: PipeFileKindSecret,
+					Key:  "foo",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "an invalid pipe pod where init container does not mount shared volume",
+			podYaml: `
+apiVersion: v1
+kind: Pod
+spec:
+  volumes:
+  - name: conf-data
+    configMap:
+      name: my-conf
+  - name: shared-data
+    emptyDir: {}
+
+  initContainers:
+    - name: init
+      image: busybox
+      command: [ "/bin/sh", "-c" ]
+      args:
+        - touch /tmp/foo.txt
+      volumeMounts:
+        - name: conf-data
+          mountPath: /tmp
+`,
+			ff: []PipeFile{
+				{
+					File: "/tmp/foo.txt",
+					Kind: PipeFileKindSecret,
+					Key:  "foo",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "an invalid pipe pod where init container does not mount shared volume",
+			podYaml: `
+apiVersion: v1
+kind: Pod
+spec:
+  volumes:
+  - name: conf-data
+    configMap:
+      name: my-conf
+  - name: shared-data
+    emptyDir: {}
+
+  initContainers:
+    - name: init
+      image: busybox
+      command: [ "/bin/sh", "-c" ]
+      args:
+        - touch /tmp/foo.txt
+      volumeMounts:
+        - name: shared-data
+          mountPath: /tmp
+`,
+			ff: []PipeFile{
+				{
+					File: "/var/foo.txt",
+					Kind: PipeFileKindSecret,
+					Key:  "foo",
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod, err := unmarshal(tt.podYaml)
+			assert.NoError(t, err, "error during pipe pod unmarshaling")
+
+			if err := validate(pod, tt.ff); (err != nil) != tt.wantErr {
+				t.Errorf("validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

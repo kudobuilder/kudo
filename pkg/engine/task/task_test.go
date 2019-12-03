@@ -64,14 +64,14 @@ spec:
 name: pipe-task
 kind: Pipe
 spec:
-  container: container.yaml
+  pod: pipe-pod.yaml
   pipe:
     - file: /tmp/foo.txt
       kind: Secret
       key: Foo`,
 			want: PipeTask{
-				Name:      "pipe-task",
-				Container: "container.yaml",
+				Name: "pipe-task",
+				Pod:  "pipe-pod.yaml",
 				PipeFiles: []PipeFile{
 					{
 						File: "/tmp/foo.txt",
@@ -88,14 +88,14 @@ spec:
 name: pipe-task
 kind: Pipe
 spec:
-  container: container.yaml
+  pod: pipe-pod.yaml
   pipe:
     - file: /tmp/bar.txt
       kind: ConfigMap
       key: Bar`,
 			want: PipeTask{
-				Name:      "pipe-task",
-				Container: "container.yaml",
+				Name: "pipe-task",
+				Pod:  "pipe-pod.yaml",
 				PipeFiles: []PipeFile{
 					{
 						File: "/tmp/bar.txt",
@@ -112,7 +112,7 @@ spec:
 name: pipe-task
 kind: Pipe
 spec:
-  container: container.yaml
+  pod: pipe-pod.yaml
   pipe:
     - file: /tmp/bar.txt
       kind: Invalid
@@ -126,7 +126,7 @@ spec:
 name: pipe-task
 kind: Pipe
 spec:
-  container: container.yaml
+  pod: pipe-pod.yaml
   pipe:
     - file:
       kind: Secret
@@ -135,12 +135,12 @@ spec:
 			wantErr: true,
 		},
 		{
-			name: "pipe task keu is invalid",
+			name: "pipe task key is invalid",
 			taskYaml: `
 name: pipe-task
 kind: Pipe
 spec:
-  container: container.yaml
+  pod: pipe-pod.yaml
   pipe:
     - file: /tmp/bar.txt"
       kind: Secret

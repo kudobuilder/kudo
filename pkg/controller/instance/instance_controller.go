@@ -27,7 +27,9 @@ import (
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/engine/workflow"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -86,6 +88,26 @@ func (r *Reconciler) SetupWithManager(
 			return requests
 		})
 
+	hasAnnotation := func(key string, annotations map[string]string) bool {
+		if annotations == nil {
+			return false
+		}
+		for k, _ := range annotations {
+			if k == key {
+				return true
+			}
+		}
+		return false
+	}
+
+	// resPredicate ignores DeleteEvents for pipe-pods only (marked with task.PipePodAnnotation)
+	resPredicate := predicate.Funcs{
+		CreateFunc:  func(event.CreateEvent) bool { return true },
+		DeleteFunc:  func(e event.DeleteEvent) bool { return !hasAnnotation(task.PipePodAnnotation, e.Meta.GetAnnotations()) },
+		UpdateFunc:  func(event.UpdateEvent) bool { return true },
+		GenericFunc: func(event.GenericEvent) bool { return true },
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kudov1beta1.Instance{}).
 		Owns(&kudov1beta1.Instance{}).
@@ -93,7 +115,8 @@ func (r *Reconciler) SetupWithManager(
 		Owns(&corev1.Service{}).
 		Owns(&batchv1.Job{}).
 		Owns(&appsv1.StatefulSet{}).
-		Owns(&corev1.Pod{}). // TODO (ad): filter out Pod Delete events (possibly also all other k8s native objects?) #1116
+		Owns(&corev1.Pod{}).
+		WithEventFilter(resPredicate).
 		Watches(&source.Kind{Type: &kudov1beta1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: addOvRelatedInstancesToReconcile}).
 		Complete(r)
 }
@@ -132,7 +155,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	oldInstance := instance.DeepCopy()
 	if err != nil {
 		if apierrors.IsNotFound(err) { // not retrying if instance not found, probably someone manually removed it?
-			log.Printf("Instances in namespace %s not found, not retrying reconcile since this error is usually not recoverable (without manual intervention).", request.NamespacedName)
+			log.Printf("Instances %s was deleted, nothing to reconcile.", request.NamespacedName)
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err

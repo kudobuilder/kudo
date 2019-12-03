@@ -179,7 +179,7 @@ func Test_makePipes(t *testing.T) {
 					Kind: "Pipe",
 					Spec: v1beta1.TaskSpec{
 						PipeTaskSpec: v1beta1.PipeTaskSpec{
-							Container: "container.yaml",
+							Pod: "pipe-pod.yaml",
 							Pipe: []v1beta1.PipeSpec{
 								{
 									File: "foo.txt",
@@ -210,7 +210,7 @@ func Test_makePipes(t *testing.T) {
 					Kind: "Pipe",
 					Spec: v1beta1.TaskSpec{
 						PipeTaskSpec: v1beta1.PipeTaskSpec{
-							Container: "container.yaml",
+							Pod: "pipe-pod.yaml",
 							Pipe: []v1beta1.PipeSpec{
 								{
 									File: "foo.txt",
@@ -226,7 +226,7 @@ func Test_makePipes(t *testing.T) {
 					Kind: "Pipe",
 					Spec: v1beta1.TaskSpec{
 						PipeTaskSpec: v1beta1.PipeTaskSpec{
-							Container: "container.yaml",
+							Pod: "pipe-pod.yaml",
 							Pipe: []v1beta1.PipeSpec{
 								{
 									File: "bar.txt",

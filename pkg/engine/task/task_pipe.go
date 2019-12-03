@@ -23,6 +23,8 @@ var (
 
 	// name of the main pipe pod container
 	pipePodContainerName = "waiter"
+
+	PipePodAnnotation = "kudo.dev/pipepod"
 )
 
 const (
@@ -41,7 +43,7 @@ const (
 
 type PipeTask struct {
 	Name      string
-	Container string
+	Pod       string
 	PipeFiles []PipeFile
 }
 
@@ -53,32 +55,32 @@ type PipeFile struct {
 
 func (pt PipeTask) Run(ctx Context) (bool, error) {
 	// 1. - Render container template -
-	rendered, err := render([]string{pt.Container}, ctx)
+	rendered, err := render([]string{pt.Pod, pt.Pod}, ctx)
 	if err != nil {
 		return false, fatalExecutionError(err, taskRenderingError, ctx.Meta)
 	}
 
 	// 2. - Create core/v1 container object -
-	container, err := unmarshal(rendered[pt.Container])
+	usrPod, err := unmarshal(rendered[pt.Pod])
 	if err != nil {
 		return false, fatalExecutionError(err, resourceUnmarshalError, ctx.Meta)
 	}
 
 	// 3. - Validate the container object -
-	err = validate(container, pt.PipeFiles)
+	err = validate(usrPod, pt.PipeFiles)
 	if err != nil {
 		return false, fatalExecutionError(err, resourceValidationError, ctx.Meta)
 	}
 
 	// 4. - Create a pod using the container -
 	podName := PipePodName(ctx.Meta)
-	podStr, err := pipePod(container, podName)
+	podYaml, err := pipePod(usrPod, podName)
 	if err != nil {
 		return false, fatalExecutionError(err, pipeTaskError, ctx.Meta)
 	}
 
 	// 5. - Kustomize pod with metadata
-	podObj, err := kustomize(map[string]string{"pipe-pod.yaml": podStr}, ctx.Meta, ctx.Enhancer)
+	podObj, err := kustomize(map[string]string{"pipe-pod.yaml": podYaml}, ctx.Meta, ctx.Enhancer)
 	if err != nil {
 		return false, fatalExecutionError(err, taskEnhancementError, ctx.Meta)
 	}
@@ -136,13 +138,13 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 	return true, nil
 }
 
-func unmarshal(ctrStr string) (*corev1.Container, error) {
-	ctr := &corev1.Container{}
-	err := yaml.Unmarshal([]byte(ctrStr), ctr)
+func unmarshal(podStr string) (*corev1.Pod, error) {
+	pod := &corev1.Pod{}
+	err := yaml.Unmarshal([]byte(podStr), pod)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshall pipe container: %v", err)
+		return nil, fmt.Errorf("failed to unmarshall pipe pod: %v", err)
 	}
-	return ctr, nil
+	return pod, nil
 }
 
 var pipeFileRe = regexp.MustCompile(`[-._a-zA-Z0-9]+`)
@@ -152,21 +154,69 @@ func isRelative(base, file string) bool {
 	return err == nil && !strings.HasPrefix(rp, ".")
 }
 
-// validate method validates passed pipe container. It is expected to:
-// - have exactly one volume mount
-// - not have readiness probes (as k87 does not support them for init containers)
-// - pipe files should have valid names and exist within the volume mount
-func validate(ctr *corev1.Container, ff []PipeFile) error {
-	if len(ctr.VolumeMounts) != 1 {
-		return errors.New("pipe container should have exactly one volume mount")
+// sharedVolumeName method searches pod volumes for one of the type emptyDir and returns
+// its name. Method expects exactly one such volume to exits and will return an error otherwise.
+func sharedVolumeName(pod *corev1.Pod) (string, error) {
+	name := ""
+	vols := 0
+	for _, v := range pod.Spec.Volumes {
+		if v.EmptyDir != nil {
+			name = v.Name
+			vols++
+		}
+	}
+	if name == "" || vols != 1 {
+		return "", errors.New("pipe pod should define one emptyDir shared volume where the artifacts are temporary stored")
+	}
+	return name, nil
+}
+
+// sharedMountPath method searches pod initContainer volume mounts for one with a passed name.
+// It returns the mount path of the volume if found or an error otherwise.
+func sharedMountPath(pod *corev1.Pod, volName string) (string, error) {
+	mountPath := ""
+	for _, vm := range pod.Spec.InitContainers[0].VolumeMounts {
+		if vm.Name == volName {
+			mountPath = vm.MountPath
+		}
 	}
 
-	if ctr.ReadinessProbe != nil {
-		return errors.New("pipe container does not support readiness probes")
+	if mountPath == "" {
+		return "", fmt.Errorf("pipe pod should save generated artifacts in %s", volName)
+	}
+	return mountPath, nil
+}
+
+// validate method validates passed pipe pod. It is expected to:
+// - have one init container and zero containers specified
+// - one emptyDir shared volume should be defined where the artifacts will be stored
+// - shared volume should be mounted in the init container
+// - pipe files should have valid names and exist within mounted shared volume
+// - pod should not have a RestartPolicy defined (or define an "OnFailure" one)
+func validate(pod *corev1.Pod, ff []PipeFile) error {
+	if len(pod.Spec.Containers) > 0 {
+		return errors.New("pipe pod should not have containers. pipe artifacts are generated in the init container")
+	}
+
+	if len(pod.Spec.InitContainers) != 1 {
+		return errors.New("pipe pod should define one init container that generated artifacts defined")
+	}
+
+	if pod.Spec.RestartPolicy != "" && pod.Spec.RestartPolicy != corev1.RestartPolicyOnFailure {
+		return errors.New("pipe pod RestartPolicy should be OnFailure")
+	}
+
+	sharedVolName, err := sharedVolumeName(pod)
+	if err != nil {
+		return err
+	}
+
+	mountPath, err := sharedMountPath(pod, sharedVolName)
+	if err != nil {
+		return err
 	}
 
 	// check if all referenced pipe files are children of the container mountPath
-	mountPath := ctr.VolumeMounts[0].MountPath
 	for _, f := range ff {
 		if !isRelative(mountPath, f.File) {
 			return fmt.Errorf("pipe file %s should be a child of %s mount path", f.File, mountPath)
@@ -183,41 +233,28 @@ func validate(ctr *corev1.Container, ff []PipeFile) error {
 	return nil
 }
 
-func pipePod(ctr *corev1.Container, name string) (string, error) {
-	volumeName := ctr.VolumeMounts[0].Name
-	mountPath := ctr.VolumeMounts[0].MountPath
+func pipePod(pod *corev1.Pod, name string) (string, error) {
+	volumeName, _ := sharedVolumeName(pod)
+	mountPath, _ := sharedMountPath(pod, volumeName)
 
-	pod := corev1.Pod{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Pod",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Spec: corev1.PodSpec{
-			Volumes: []corev1.Volume{
+	if pod.GetAnnotations() == nil {
+		pod.SetAnnotations(make(map[string]string))
+	}
+	pod.Annotations[PipePodAnnotation] = "true"
+	pod.ObjectMeta.Name = name
+	pod.Spec.RestartPolicy = corev1.RestartPolicyOnFailure
+	pod.Spec.Containers = []corev1.Container{
+		{
+			Name:    pipePodContainerName,
+			Image:   "busybox",
+			Command: []string{"/bin/sh", "-c"},
+			Args:    []string{"sleep infinity"},
+			VolumeMounts: []corev1.VolumeMount{
 				{
-					Name:         volumeName,
-					VolumeSource: corev1.VolumeSource{EmptyDir: nil},
+					Name:      volumeName,
+					MountPath: mountPath,
 				},
 			},
-			InitContainers: []corev1.Container{*ctr},
-			Containers: []corev1.Container{
-				{
-					Name:    pipePodContainerName,
-					Image:   "busybox",
-					Command: []string{"/bin/sh", "-c"},
-					Args:    []string{"sleep infinity"},
-					VolumeMounts: []corev1.VolumeMount{
-						{
-							Name:      volumeName,
-							MountPath: mountPath,
-						},
-					},
-				},
-			},
-			RestartPolicy: corev1.RestartPolicyOnFailure,
 		},
 	}
 

@@ -49,14 +49,14 @@ tasks:
   - name: gencert
     kind: Pipe
     spec:
-      container: cert-container.yaml
+      pod: cert-pod.yaml
       pipe:
         - file: /usr/share/MyKey.key
           kind: Secret # ConfigMap
           key: Mycertificate
 ``` 
 
-`container` field is described in detail below. `key` will be used by the resources referencing generated file as following: `{{.Pipes.Mycertificate}}`. In the above example we would create a secret named `instance-myapp.deploy.bootstrap.gencert.mycertificate` to capture instance name along with plan/phase/step/task of the secret origin. The secret name would be stable so that a user can rerun the certificate generating task and reload all pods using it. Pipe file name will be used as Secret/ConfigMap data key. We would also use labels ensuring that the secret is cleaned up when the corresponding Instance is removed. `pipe` field is an array and can define how multiple generated files are stored and referenced.
+`pod` field is described in detail below. `key` will be used by the resources referencing generated file as following: `{{.Pipes.Mycertificate}}`. In the above example we would create a secret named `instancemyapp.deploy.bootstrap.gencert.mycertificate` to capture instance name along with plan/phase/step/task of the secret origin. The secret name would be stable so that a user can rerun the certificate generating task and reload all pods using it. Pipe file name will be used as Secret/ConfigMap data key. We would also use labels ensuring that the secret is cleaned up when the corresponding Instance is removed. `pipe` field is an array and can define how multiple generated files are stored and referenced.
 
 The corresponding `gencert` task can be used as usual in e.g.:
 ```yaml
@@ -74,23 +74,27 @@ plans:
 
 Note that piped files has to be generated before they can be used. In the example above, `bootstrap` phase has a strategy `serial` so that certificate generated in the `gencert` step can be used in subsequent steps. Or stated differently resources can not reference piped secrets/configmaps generated within the same step or within a parallel series of steps (it has to be a different step in the phase with serial strategy or a different phase). 
 
-For the pipe task `container`, we allow a [core/v1 container](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.10/#container-v1-core) resource to be specified. Reasons for that are explained below in the implementation details. The container has to define a volumeMount where the files are stored.
+For the pipe task `pod`, we allow a [core/v1 Pod](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.10/#pod-v1-core) to be specified, however, there are limitations. Reasons for that are explained below in the implementation details. In a nutshell:
+- a pipe pod should generate artifacts in the init container
+- it has to define and mount an emptyDir volume (where generated files are stored) 
 
 ```yaml
-volumes:
-- name: shared-data
-  emptyDir: {}
+apiVersion: v1
+kind: Pod
+spec:
+  volumes:
+  - name: shared-data
+    emptyDir: {}
 
-containers:
-  - name: gencert
-    image: frapsoft/openssl
-    imagePullPolicy: Always
-    command: [ "sh", "-c" ]
-    args:
-      - openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out MyCertificate.crt -keyout /usr/share/MyKey.key
-    volumeMounts:
-      - name: shared-data
-        mountPath: /usr/share/
+  initContainers:
+    - name: init
+      image: busybox
+      command: [ "/bin/sh", "-c" ]
+      args:
+        - openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out MyCertificate.crt -keyout /usr/share/MyKey.key
+      volumeMounts:
+        - name: shared-data
+          mountPath: /tmp 
 ```
 
 Any subsequent step resource (if the phase strategy is `serial`) might reference previously generated file by its key e.g.:
@@ -110,17 +114,15 @@ spec:
 ```
 
 ### Limitations
-- File generating container has to be side-effect free (meaning side-effects that are observable outside of the container like a 3rd party API call) as the container might be executed multiple times on failure. If that's not the case, `restartPolicy: OnFailure` has to be set to ensure the pod would be restarted if there is an issue with the initContainer.
+- File generating Pod has to be side-effect free (meaning side-effects that are observable outside of the container like a 3rd party API call) as the container might be executed multiple times on failure. A `restartPolicy: OnFailure` is used for the pipe pod.
 - Only files <1Mb are applicable to be stored as ConfigMap or Secret.
-- Only one resource per pipe task is allowed. If needed multiple tasks must be used.
 
 ### Implementation Details/Notes/Constraints
-
 There are several ways to implement pipe tasks, each one having its challenges and complexities. The approach below allows us not to worry about Pod container life-cycle as well as keep the storing logic in the KUDO controller:
-- Provided container is injected into a Pod as an [InitContainer](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/). This is the simplest way to wait for container completion. This is also the reason why pipe task resource definition is a container and not a complete Pod specification. Pod init container can not have Lifecycle actions, Readiness probes, or Liveness probes fields defined. 
-- The main container is a `busybox` image, running the `sleep infinity` command, which purpose is to wait for KUDO to extract and store the files.
-- Pod status `READY: 1/1, STATUS: Running` means that the init container has run successfully. As this point KUDO can copy out referenced files using `kubectl cp` and store them as specified.
-- Once files are stored, KUDO can delete the Pod and proceed to the next task.
+- Provided Pod is enriched with a main container, which uses a `busybox` image, running the `sleep infinity` command, which purpose is to wait for KUDO to extract and store the files.
+- Generating files in the initContainer is the simplest way to wait for container completion. A pipe pod status: `READY: 1/1, STATUS: Running` means that the init container has run successfully. As this point KUDO can copy out referenced files using `kubectl cp` and store them as specified. 
+- Pod init container can not have Lifecycle actions, Readiness probes, or Liveness probes fields defined which simplifies implementation significantly
+- Once files are stored, KUDO can delete the pipe pod and proceed to the next task.
 
 Here is a minimal example demonstrating the proposed implementation:
 ```yaml
@@ -164,7 +166,7 @@ foo-bar-bazz
 
 ## Alternatives
 
-An alternative approach would use the provided `container` as the main container (or let the user provide a complete Pod spec). We would inject a sidecar with a go executable which would:
+An alternative approach would allow user to specify the main container (`containers` field) or let the user provide a complete Pod spec. We would inject a sidecar with a go executable which have to:
 - Use controller runtime, watch its own Pod status and wait for termination of the main container
 - Once the main container exits, it would copy the referenced files and store them as specified
 - We would use `restartPolicy: Never/OnFailure` to prevent the main container from restarting

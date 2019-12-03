@@ -107,7 +107,7 @@ func validateTask(t v1beta1.Task, templates map[string]string) []string {
 	case task.DeleteTaskKind:
 		resources = t.Spec.ResourceTaskSpec.Resources
 	case task.PipeTaskKind:
-		resources = append(resources, t.Spec.PipeTaskSpec.Container)
+		resources = append(resources, t.Spec.PipeTaskSpec.Pod)
 
 		if len(t.Spec.PipeTaskSpec.Pipe) == 0 {
 			errs = append(errs, fmt.Sprintf("task %s does not have pipe files specified", t.Name))
