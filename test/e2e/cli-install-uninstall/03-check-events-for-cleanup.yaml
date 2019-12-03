@@ -1,4 +1,0 @@
-apiVersion: kudo.dev/v1beta1
-kind: TestStep
-commands:
-- command: bash -c 'kubectl get -A events | grep -q "Execution of plan cleanup finished with status COMPLETE"'

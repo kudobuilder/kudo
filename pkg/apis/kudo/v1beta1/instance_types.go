@@ -390,8 +390,35 @@ func selectPlan(possiblePlans []string, ov *OperatorVersion) *string {
 	return nil
 }
 
+func (i *Instance) PlanStatus(plan string) *PlanStatus {
+	for _, planStatus := range i.Status.PlanStatus {
+		if planStatus.Name == plan {
+			return &planStatus
+		}
+	}
+
+	return nil
+}
+
 // GetPlanToBeExecuted returns name of the plan that should be executed
-func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
+func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion, isDeleting bool) (*string, error) {
+	// the instance is being deleted
+	if isDeleting {
+		// we have a cleanup plan
+		plan := selectPlan([]string{CleanupPlanName}, ov)
+		if plan != nil {
+			if planStatus := i.PlanStatus(*plan); planStatus != nil {
+				if !planStatus.Status.IsRunning() {
+					if planStatus.Status.IsFinished() {
+						// we already finished the cleanup plan
+						return nil, nil
+					}
+					return plan, nil
+				}
+			}
+		}
+	}
+
 	if i.GetPlanInProgress() != nil { // we're already running some plan
 		return nil, nil
 	}
