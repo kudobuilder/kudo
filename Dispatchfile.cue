@@ -22,7 +22,7 @@ task "lint": {
     {
       name: "lint"
       image: "golangci/golangci-lint:v1.21.0"
-      command: [ "golangci-lint", "run", "-v" ],
+      command: [ "golangci-lint", "run", "-v", "--timeout", "16h" ],
       workingDir: "/workspace/src-git"
     }
   ]
