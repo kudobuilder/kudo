@@ -117,7 +117,9 @@ clean:  cli-clean test-clean manager-clean deploy-clean
 docker-build: generate lint
 	docker build --build-arg git_version_arg=${GIT_VERSION_PATH}=v${GIT_VERSION} \
 	--build-arg git_commit_arg=${GIT_COMMIT_PATH}=${GIT_COMMIT} \
-	--build-arg build_date_arg=${BUILD_DATE_PATH}=${BUILD_DATE} . -t alenkacz/kudobuilder-test:${DOCKER_TAG}
+	--build-arg build_date_arg=${BUILD_DATE_PATH}=${BUILD_DATE} . -t ${DOCKER_IMG}:${DOCKER_TAG}
+    	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:v${GIT_VERSION}
+    	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:latest
 
 .PHONY: docker-push
 # Push the docker image
