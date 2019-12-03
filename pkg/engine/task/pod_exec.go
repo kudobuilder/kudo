@@ -163,8 +163,9 @@ func DownloadFile(fs afero.Fs, file string, pod *v1.Pod, restCfg *rest.Config) e
 	// TL;DR:
 	//  - execute PodExec.Run() in a goroutine when using io.Pipe for Out or Err streams, they
 	//    have to be consumed first because io.Pipe is synchronous (and thread-safe)
-	//  - there seems to be a bug when using BOTH Out AND Err pipe-based streams. When trying to
-	//    consume both (in goroutines), one of them ends up blocking the execution ¯\_(ツ)_/¯
+	//  - there seems to be a bug when consuming the error stream of the above command: EOF is never
+	//    sent so reading it never ends ¯\_(ツ)_/¯ This is why we use simple bytes.Buffer for the
+	//    Err stream (it is only used in the error message)
 	//
 	// See `kubectl cp` copyFromPod method for another example:
 	// https://github.com/kubernetes/kubernetes/blob/master/pkg/kubectl/cmd/cp/cp.go#L291
