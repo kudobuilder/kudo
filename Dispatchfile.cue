@@ -46,31 +46,13 @@ task "integration-test": {
   ]
 }
 
-task "e2e-test": {
-  inputs: ["src-git"]
-  steps: [
-    {
-      name: "test"
-      image: "kudobuilder/golang:1.13"
-      command: [ "make", "e2e-test" ],
-      env: [
-        {
-          name: "INTEGRATION_OUTPUT_JUNIT"
-          value: "true"
-        }
-      ]
-      workingDir: "/workspace/src-git"
-    }
-  ]
-}
-
 actions: [
   {
-    tasks: ["test", "lint", "integration-test", "e2e-test"]
+    tasks: ["test", "lint", "integration-test"]
     on push branches: ["master"]
   },
   {
-    tasks: ["test", "lint", "integration-test", "e2e-test"]
+    tasks: ["test", "lint", "integration-test"]
     on pull_request chatops: ["test"]
   }
 ]
