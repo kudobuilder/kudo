@@ -257,7 +257,10 @@ func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.Operat
 	}
 
 	params := makeParams(instance, ov)
-	pipes := makePipes(activePlanStatus.Name, &planSpec, ov.Spec.Tasks, meta)
+	pipes, err := makePipes(activePlanStatus.Name, &planSpec, ov.Spec.Tasks, meta)
+	if err != nil {
+		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not make task pipes: %v", engine.ErrFatalExecution, err), EventName: "InvalidPlan"}
+	}
 
 	return &workflow.ActivePlan{
 		Name:       activePlanStatus.Name,
@@ -358,7 +361,7 @@ func makeParams(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.Ope
 }
 
 // makePipes generates {{ Pipes.* }} map of keys and values which is later used during template rendering.
-func makePipes(planName string, plan *v1beta1.Plan, tasks []v1beta1.Task, emeta *engine.Metadata) map[string]string {
+func makePipes(planName string, plan *v1beta1.Plan, tasks []v1beta1.Task, emeta *engine.Metadata) (map[string]string, error) {
 	taskByName := func(name string) (*v1beta1.Task, bool) {
 		for _, t := range tasks {
 			if t.Name == name {
@@ -383,6 +386,9 @@ func makePipes(planName string, plan *v1beta1.Plan, tasks []v1beta1.Task, emeta 
 
 				if t, ok := taskByName(tn); ok && t.Kind == task.PipeTaskKind {
 					for _, pipe := range t.Spec.PipeTaskSpec.Pipe {
+						if _, ok := pipes[pipe.Key]; ok {
+							return nil, fmt.Errorf("duplicated pipe key %s", pipe.Key)
+						}
 						pipes[pipe.Key] = task.PipeArtifactName(rmeta, pipe.Key)
 					}
 				}
@@ -390,7 +396,7 @@ func makePipes(planName string, plan *v1beta1.Plan, tasks []v1beta1.Task, emeta 
 		}
 	}
 
-	return pipes
+	return pipes, nil
 }
 
 func parameterDiff(old, new map[string]string) map[string]string {

@@ -126,6 +126,7 @@ func Test_makePipes(t *testing.T) {
 		tasks    []v1beta1.Task
 		emeta    *engine.Metadata
 		want     map[string]string
+		wantErr  bool
 	}{
 		{
 			name:     "no tasks, no pipes",
@@ -244,10 +245,55 @@ func Test_makePipes(t *testing.T) {
 				"Bar": "firstoperatorinstance.deploy.phase.steptwo.tasktwo.bar",
 			},
 		},
+		{
+			name:     "one pipe task, duplicated pipe keys",
+			planName: "deploy",
+			plan: &v1beta1.Plan{Strategy: "serial", Phases: []v1beta1.Phase{
+				{
+					Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{
+						{
+							Name: "step", Tasks: []string{"task"}},
+					}},
+			}},
+			tasks: []v1beta1.Task{
+				{
+					Name: "task",
+					Kind: "Pipe",
+					Spec: v1beta1.TaskSpec{
+						PipeTaskSpec: v1beta1.PipeTaskSpec{
+							Pod: "pipe-pod.yaml",
+							Pipe: []v1beta1.PipeSpec{
+								{
+									File: "foo.txt",
+									Kind: "Secret",
+									Key:  "Foo",
+								},
+								{
+									File: "bar.txt",
+									Kind: "ConfigMap",
+									Key:  "Foo",
+								},
+							},
+						},
+					},
+				},
+			},
+			emeta:   meta,
+			want:    nil,
+			wantErr: true,
+		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := makePipes(tt.planName, tt.plan, tt.tasks, tt.emeta)
+			got, err := makePipes(tt.planName, tt.plan, tt.tasks, tt.emeta)
+			if err != nil {
+				if !tt.wantErr {
+					t.Fatalf("makePipes() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				return
+			}
+
 			assert.Equal(t, tt.want, got)
 		})
 	}

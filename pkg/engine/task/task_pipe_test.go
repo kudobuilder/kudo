@@ -6,7 +6,11 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 func Test_isRelative(t *testing.T) {
@@ -319,6 +323,94 @@ spec:
 			if err := validate(pod, tt.ff); (err != nil) != tt.wantErr {
 				t.Errorf("validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
+		})
+	}
+}
+
+func Test_pipeFiles(t *testing.T) {
+	meta := renderer.Metadata{
+		Metadata:  engine.Metadata{InstanceName: "foo-instance"},
+		PlanName:  "deploy",
+		PhaseName: "first",
+		StepName:  "step",
+		TaskName:  "genfiles",
+	}
+
+	tests := []struct {
+		name         string
+		data         map[string]string
+		file         PipeFile
+		meta         renderer.Metadata
+		wantArtifact interface{}
+		wantErr      bool
+	}{
+		{
+			name: "pipe a secret",
+			data: map[string]string{"/tmp/foo.txt": "foo"},
+			file: PipeFile{
+				File: "/tmp/foo.txt",
+				Kind: PipeFileKindSecret,
+				Key:  "Foo",
+			},
+			meta: meta,
+			wantArtifact: v1.Secret{
+				TypeMeta:   metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
+				ObjectMeta: metav1.ObjectMeta{Name: "fooinstance.deploy.first.step.genfiles.foo"},
+				Data:       map[string][]byte{"foo.txt": []byte("foo")},
+				Type:       v1.SecretTypeOpaque,
+			},
+			wantErr: false,
+		},
+		{
+			name: "pipe a configMap",
+			data: map[string]string{"/tmp/bar.txt": "bar"},
+			file: PipeFile{
+				File: "/tmp/bar.txt",
+				Kind: PipeFileKindConfigMap,
+				Key:  "Bar",
+			},
+			meta: meta,
+			wantArtifact: v1.ConfigMap{
+				TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+				ObjectMeta: metav1.ObjectMeta{Name: "fooinstance.deploy.first.step.genfiles.bar"},
+				BinaryData: map[string][]byte{"bar.txt": []byte("bar")},
+			},
+			wantErr: false,
+		},
+		{
+			name: "return an error for an invalid pipe",
+			data: map[string]string{"nope.txt": ""},
+			file: PipeFile{
+				File: "nope.txt",
+				Kind: "Invalid",
+				Key:  "Nope",
+			},
+			meta:         meta,
+			wantArtifact: nil,
+			wantErr:      true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fs := afero.NewMemMapFs()
+
+			for path, data := range tt.data {
+				assert.NoError(t, afero.WriteFile(fs, path, []byte(data), 0644), "error while preparing test: %s", tt.name)
+			}
+
+			got, err := pipeFiles(fs, []PipeFile{tt.file}, tt.meta)
+			if err != nil {
+				if !tt.wantErr {
+					t.Fatalf("pipeFiles() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				return
+			}
+
+			out, err := yaml.Marshal(tt.wantArtifact)
+			assert.NoError(t, err, "failure during marshaling of the test pipe artifact in test: %s", tt.name)
+
+			want := map[string]string{tt.file.Key: string(out)}
+			assert.Equal(t, want, got, "pipeFiles() unexpected return value")
 		})
 	}
 }
