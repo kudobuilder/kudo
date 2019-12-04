@@ -111,7 +111,7 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 
 	// 9. - Create k8s artifacts (ConfigMap/Secret) from the pipe files -
 	log.Printf("PipeTask: %s/%s creating pipe artifacts", ctx.Meta.InstanceNamespace, ctx.Meta.InstanceName)
-	artStr, err := pipeFiles(fs, pt.PipeFiles, ctx.Meta)
+	artStr, err := storeArtifacts(fs, pt.PipeFiles, ctx.Meta)
 	if err != nil {
 		return false, err
 	}
@@ -223,7 +223,7 @@ func validate(pod *corev1.Pod, ff []PipeFile) error {
 		}
 
 		fileName := path.Base(f.File)
-		// Same as K87 we use file names as ConfigMap data keys. A valid key name for a ConfigMap must consist
+		// Same as k8s we use file names as ConfigMap data keys. A valid key name for a ConfigMap must consist
 		// of alphanumeric characters, '-', '_' or '.' (e.g. 'key.name',  or 'KEY_NAME',  or 'key-name', regex
 		// used for validation is '[-._a-zA-Z0-9]+')
 		if !pipeFileRe.MatchString(fileName) {
@@ -298,9 +298,9 @@ func copyFiles(fs afero.Fs, ff []PipeFile, pod *corev1.Pod, ctx Context) error {
 	return err
 }
 
-// pipeFiles iterates through passed pipe files and their copied data, reads them, constructs k8s artifacts
+// storeArtifacts iterates through passed pipe files and their copied data, reads them, constructs k8s artifacts
 // and marshals them.
-func pipeFiles(fs afero.Fs, files []PipeFile, meta renderer.Metadata) (map[string]string, error) {
+func storeArtifacts(fs afero.Fs, files []PipeFile, meta renderer.Metadata) (map[string]string, error) {
 	artifacts := map[string]string{}
 
 	for _, pf := range files {
@@ -312,9 +312,9 @@ func pipeFiles(fs afero.Fs, files []PipeFile, meta renderer.Metadata) (map[strin
 		var art string
 		switch pf.Kind {
 		case PipeFileKindSecret:
-			art, err = pipeSecret(pf, data, meta)
+			art, err = storeSecret(pf, data, meta)
 		case PipeFileKindConfigMap:
-			art, err = pipeConfigMap(pf, data, meta)
+			art, err = storeConfigMap(pf, data, meta)
 		default:
 			return nil, fmt.Errorf("unknown pipe file kind: %+v", pf)
 		}
@@ -328,9 +328,9 @@ func pipeFiles(fs afero.Fs, files []PipeFile, meta renderer.Metadata) (map[strin
 	return artifacts, nil
 }
 
-// pipeSecret method creates a core/v1/Secret object using passed data. Pipe file name is used
+// storeSecret method creates a core/v1/Secret object using passed data. Pipe file name is used
 // as Secret data key. Secret name will be of the form <instance>.<plan>.<phase>.<step>.<task>-<PipeFile.Key>
-func pipeSecret(pf PipeFile, data []byte, meta renderer.Metadata) (string, error) {
+func storeSecret(pf PipeFile, data []byte, meta renderer.Metadata) (string, error) {
 	name := PipeArtifactName(meta, pf.Key)
 	key := path.Base(pf.File)
 
@@ -354,9 +354,9 @@ func pipeSecret(pf PipeFile, data []byte, meta renderer.Metadata) (string, error
 	return string(b), nil
 }
 
-// pipeConfigMap method creates a core/v1/ConfigMap object using passed data. Pipe file name is used
+// storeConfigMap method creates a core/v1/ConfigMap object using passed data. Pipe file name is used
 // as ConfigMap data key. ConfigMap name will be of the form <instance>.<plan>.<phase>.<step>.<task>-<PipeFile.Key>
-func pipeConfigMap(pf PipeFile, data []byte, meta renderer.Metadata) (string, error) {
+func storeConfigMap(pf PipeFile, data []byte, meta renderer.Metadata) (string, error) {
 	name := PipeArtifactName(meta, pf.Key)
 	key := path.Base(pf.File)
 

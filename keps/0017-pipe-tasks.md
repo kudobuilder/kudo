@@ -43,7 +43,7 @@ Allowing to pipe all kind of files (>1Mb) between tasks requires a general-purpo
 
 ## Proposal
 
-This section describes how pipe tasks and files they produce are configured in the operator. Here is a pipe task definition that produces a file that will be stored as a Secret:
+This section describes how pipe tasks and files they produce are configured in the operator.This proposal is currently limited to pipe tasks which create files which are assigned to a key in a ConfigMap or a Secret. Here is a pipe task definition that produces a file that will be stored as a Secret:
 ```yaml
 tasks:
   - name: gencert
@@ -52,11 +52,20 @@ tasks:
       pod: cert-pod.yaml
       pipe:
         - file: /usr/share/MyKey.key
-          kind: Secret # ConfigMap
+          kind: Secret # or a ConfigMap
           key: Mycertificate
 ``` 
 
-`pod` field is described in detail below. `key` will be used by the resources referencing generated file as following: `{{.Pipes.Mycertificate}}`. In the above example we would create a secret named `instancemyapp.deploy.bootstrap.gencert.mycertificate` to capture instance name along with plan/phase/step/task of the secret origin. The secret name would be stable so that a user can rerun the certificate generating task and reload all pods using it. Pipe file name will be used as Secret/ConfigMap data key. We would also use labels ensuring that the secret is cleaned up when the corresponding Instance is removed. `pipe` field is an array and can define how multiple generated files are stored and referenced.
+`pod` field is described in detail below. `key` will be used by in the template file to reference generated artifact e.g:
+ ```yaml
+volumes:
+- name: cert
+    secret:
+      secretName: {{ .Pipes.Mycertificate }}
+```
+will create as a volume from the generated secret.
+
+In the above example we would create a secret named `instancemyapp.deploy.bootstrap.gencert.mycertificate` which captures instance name along with plan/phase/step/task of the secret origin. The secret name would be stable so that a user can rerun the certificate generating task and reload all pods using it. Pipe file name is used as Secret/ConfigMap data key. Secret/ConfigMap will be owned by the corresponding Instance so that artifacts are cleaned up when the Instance is deleted. `pipe` field is an array and can define how multiple generated files are stored and referenced.
 
 The corresponding `gencert` task can be used as usual in e.g.:
 ```yaml
@@ -74,9 +83,9 @@ plans:
 
 Note that piped files has to be generated before they can be used. In the example above, `bootstrap` phase has a strategy `serial` so that certificate generated in the `gencert` step can be used in subsequent steps. Or stated differently resources can not reference piped secrets/configmaps generated within the same step or within a parallel series of steps (it has to be a different step in the phase with serial strategy or a different phase). 
 
-For the pipe task `pod`, we allow a [core/v1 Pod](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.10/#pod-v1-core) to be specified, however, there are limitations. Reasons for that are explained below in the implementation details. In a nutshell:
-- a pipe pod should generate artifacts in the init container
-- it has to define and mount an emptyDir volume (where generated files are stored) 
+Pipe task's `spec.pod` field must reference a [core/v1 Pod](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.10/#pod-v1-core) template. However, there are limitations. Reasons for that are explained below in the implementation details. In a nutshell:
+- a pipe pod should generate artifacts in its init container
+- it has to define and mount an emptyDir volume (where its generated files are stored) 
 
 ```yaml
 apiVersion: v1
@@ -115,7 +124,7 @@ spec:
 
 ### Limitations
 - File generating Pod has to be side-effect free (meaning side-effects that are observable outside of the container like a 3rd party API call) as the container might be executed multiple times on failure. A `restartPolicy: OnFailure` is used for the pipe pod.
-- Only files <1Mb are applicable to be stored as ConfigMap or Secret.
+- Only files <1Mb are applicable to be stored as ConfigMap or Secret. A pipe task will fail should it try to copy files >1Mb
 
 ### Implementation Details/Notes/Constraints
 There are several ways to implement pipe tasks, each one having its challenges and complexities. The approach below allows us not to worry about Pod container life-cycle as well as keep the storing logic in the KUDO controller:

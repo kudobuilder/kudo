@@ -23,30 +23,27 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/engine/workflow"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
-
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // Reconciler reconciles an Instance object.
@@ -88,6 +85,7 @@ func (r *Reconciler) SetupWithManager(
 			return requests
 		})
 
+	// hasAnnotation returns true if an annotation with the passed key is found in the map
 	hasAnnotation := func(key string, annotations map[string]string) bool {
 		if annotations == nil {
 			return false
@@ -100,7 +98,11 @@ func (r *Reconciler) SetupWithManager(
 		return false
 	}
 
-	// resPredicate ignores DeleteEvents for pipe-pods only (marked with task.PipePodAnnotation)
+	// resPredicate ignores DeleteEvents for pipe-pods only (marked with task.PipePodAnnotation). This is due to an
+	// inherent race that was described in detail in #1116 (https://github.com/kudobuilder/kudo/issues/1116)
+	// tl;dr: pipe task will delete the pipe pod at the end of the execution. this would normally trigger another
+	// Instance reconciliation which might end up copying pipe files twice. we avoid this by explicitly ignoring
+	// DeleteEvents for pipe-pods.
 	resPredicate := predicate.Funcs{
 		CreateFunc:  func(event.CreateEvent) bool { return true },
 		DeleteFunc:  func(e event.DeleteEvent) bool { return !hasAnnotation(task.PipePodAnnotation, e.Meta.GetAnnotations()) },
@@ -155,7 +157,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	oldInstance := instance.DeepCopy()
 	if err != nil {
 		if apierrors.IsNotFound(err) { // not retrying if instance not found, probably someone manually removed it?
-			log.Printf("Instances %s was deleted, nothing to reconcile.", request.NamespacedName)
+			log.Printf("Instance %s was deleted, nothing to reconcile.", request.NamespacedName)
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
@@ -256,8 +258,8 @@ func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.Operat
 		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not find required plan: %v", engine.ErrFatalExecution, activePlanStatus.Name), EventName: "InvalidPlan"}
 	}
 
-	params := makeParams(instance, ov)
-	pipes, err := makePipes(activePlanStatus.Name, &planSpec, ov.Spec.Tasks, meta)
+	params := paramsMap(instance, ov)
+	pipes, err := pipesMap(activePlanStatus.Name, &planSpec, ov.Spec.Tasks, meta)
 	if err != nil {
 		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not make task pipes: %v", engine.ErrFatalExecution, err), EventName: "InvalidPlan"}
 	}
@@ -342,8 +344,8 @@ func (r *Reconciler) getOperatorVersion(instance *kudov1beta1.Instance) (ov *kud
 	return ov, nil
 }
 
-// makeParams generates {{ Params.* }} map of keys and values which is later used during template rendering.
-func makeParams(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.OperatorVersion) map[string]string {
+// paramsMap generates {{ Params.* }} map of keys and values which is later used during template rendering.
+func paramsMap(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.OperatorVersion) map[string]string {
 	params := make(map[string]string)
 
 	for k, v := range instance.Spec.Parameters {
@@ -360,8 +362,8 @@ func makeParams(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.Ope
 	return params
 }
 
-// makePipes generates {{ Pipes.* }} map of keys and values which is later used during template rendering.
-func makePipes(planName string, plan *v1beta1.Plan, tasks []v1beta1.Task, emeta *engine.Metadata) (map[string]string, error) {
+// pipesMap generates {{ Pipes.* }} map of keys and values which is later used during template rendering.
+func pipesMap(planName string, plan *v1beta1.Plan, tasks []v1beta1.Task, emeta *engine.Metadata) (map[string]string, error) {
 	taskByName := func(name string) (*v1beta1.Task, bool) {
 		for _, t := range tasks {
 			if t.Name == name {
