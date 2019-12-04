@@ -121,7 +121,7 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 		return errors.New("wait-timeout is only useful when using the flag '--wait'")
 	}
 	if initCmd.webhooks != "" && initCmd.webhooks != "InstanceValidation" {
-		return errors.New("webhooks can be only empty or contain a single string 'InstanceValidation'. No other webhooks supported right now.")
+		return errors.New("webhooks can be only empty or contain a single string 'InstanceValidation'. No other webhooks supported right now")
 	}
 
 	return nil
