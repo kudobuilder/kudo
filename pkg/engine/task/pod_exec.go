@@ -5,9 +5,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/afero"
 	v1 "k8s.io/api/core/v1"
@@ -44,6 +44,12 @@ type PodExec struct {
 // also `kubectl  cp`) doing under the hood: a POST request is made to the `exec` subresource
 // of the v1/pods endpoint containing the pod information and the command. Here is a good article
 // describing it in detail: https://erkanerol.github.io/post/how-kubectl-exec-works/
+//
+// The result of the command execution is returned via passed PodExec.Out and PodExec.Err streams.
+// Run calls the remotecommand executor, which executes the command in the remote pod, captures
+// stdout and stderr, writes them to the provided Out and Err writers and then returns with an exit code.
+// Note that when using SYNCHRONOUS io.Pipe for Out or Err streams Run call will not return until the
+// streams are consumed. Here, Run has to be executed in a goroutine.
 func (pe *PodExec) Run() error {
 	codec := serializer.NewCodecFactory(scheme.Scheme)
 	restClient, err := apiutil.RESTClientForGVK(
@@ -93,7 +99,7 @@ func (pe *PodExec) Run() error {
 // FileSize fetches the size of a file in a remote pod. It runs `stat -c %s file` command in the
 // pod and parses the output.
 func FileSize(file string, pod *v1.Pod, restCfg *rest.Config) (int64, error) {
-	readout, stdout := io.Pipe()
+	stdout := strings.Builder{}
 
 	pe := PodExec{
 		RestCfg:       restCfg,
@@ -102,31 +108,18 @@ func FileSize(file string, pod *v1.Pod, restCfg *rest.Config) (int64, error) {
 		ContainerName: pipePodContainerName,
 		Args:          []string{"stat", "-c", "%s", file},
 		In:            nil,
-		Out:           stdout,
+		Out:           &stdout,
 		Err:           nil,
 		TTY:           true, // this will forward 2>&1. otherwise, reading from Out will never return for e.g. missing files
 	}
 
-	errCh := make(chan error, 1)
-	go func() {
-		defer stdout.Close() // Close never returns an error
-		errCh <- pe.Run()
-	}()
-
-	buf, err := ioutil.ReadAll(readout)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get the size of %s `: %v", file, err)
+	if err := pe.Run(); err != nil {
+		return 0, fmt.Errorf("failed to get the size of %s, err: %v, stderr: %s", file, err, stdout.String())
 	}
 
-	raw := string(buf)
-
-	// THIS CHECK HAS TO HAPPEN AFTER WE CONSUME THE STDOUT/STDERR READER.
-	if err := <-errCh; err != nil {
-		return 0, fmt.Errorf("failed to get the size of %s, err: %v, %s", file, err, raw)
-	}
-
-	raw = raw[:len(raw)-2] // remove trailing \n\r
-	size, err := strconv.ParseInt(raw, 10, 64)
+	raw := stdout.String()
+	trimmed := raw[:len(raw)-2] // remove trailing \n\r
+	size, err := strconv.ParseInt(trimmed, 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("failed to parse the size '%s' of the file %s : %v", raw, file, err)
 	}
@@ -139,8 +132,8 @@ func FileSize(file string, pod *v1.Pod, restCfg *rest.Config) (int64, error) {
 // it is saved under the same path. Afero filesystem is used to allow the caller downloading and persisting
 // of multiple files concurrently (afero filesystem is thread-safe).
 func DownloadFile(fs afero.Fs, file string, pod *v1.Pod, restCfg *rest.Config) error {
-	readout, writeout := io.Pipe()
-	stderr := bytes.Buffer{}
+	stdout := bytes.Buffer{}
+	stderr := strings.Builder{}
 
 	pe := PodExec{
 		RestCfg:       restCfg,
@@ -149,39 +142,15 @@ func DownloadFile(fs afero.Fs, file string, pod *v1.Pod, restCfg *rest.Config) e
 		ContainerName: pipePodContainerName,
 		Args:          []string{"tar", "cf", "-", file},
 		In:            nil,
-		Out:           writeout,
+		Out:           &stdout,
 		Err:           &stderr,
 	}
-
-	// IMPORTANT:
-	// When downloading files using remotecommand.Executor, we pump the contents of the tar file through
-	// the stdout. PodExec.Run() calls the stream executor, which first writes stdout and stderr of the
-	// command and then returns with an exit code. Since we're using io.Pipe reader and writer which is
-	// tread-safe but SYNCHRONOUS, Run() call will not return until we've consumed the streams (and will
-	// block the execution). For more details on how the underlying streams are copied see remotecommand/v4.go:54
-	//
-	// TL;DR:
-	//  - execute PodExec.Run() in a goroutine when using io.Pipe for Out or Err streams, they
-	//    have to be consumed first because io.Pipe is synchronous (and thread-safe)
-	//  - there seems to be a bug when consuming the error stream of the above command: EOF is never
-	//    sent so reading it never ends ¯\_(ツ)_/¯ This is why we use simple bytes.Buffer for the
-	//    Err stream (it is only used in the error message)
-	//
-	// See `kubectl cp` copyFromPod method for another example:
-	// https://github.com/kubernetes/kubernetes/blob/master/pkg/kubectl/cmd/cp/cp.go#L291
-	errCh := make(chan error, 1)
-	go func() {
-		defer writeout.Close() // Close never returns an error
-		errCh <- pe.Run()
-	}()
-
-	if err := untarFile(fs, readout, file); err != nil {
-		return fmt.Errorf("failed to untar pipe file: %v", err)
+	if err := pe.Run(); err != nil {
+		return fmt.Errorf("failed to copy pipe file. err: %v, stderr: %s", err, stderr.String())
 	}
 
-	// THIS CHECK HAS TO HAPPEN AFTER WE CONSUME THE STDOUT/STDERR READER.
-	if err := <-errCh; err != nil {
-		return fmt.Errorf("failed to copy pipe file. err: %v, stderr: %s", err, stderr.String())
+	if err := untarFile(fs, &stdout, file); err != nil {
+		return fmt.Errorf("failed to untar pipe file: %v", err)
 	}
 
 	return nil
