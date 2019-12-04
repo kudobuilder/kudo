@@ -41,11 +41,11 @@ type Options struct {
 	// Image defines the image to be used
 	Image string
 	// Enable validation
-	EnableValidation bool
+	Webhooks []string
 }
 
 // NewOptions provides an option struct with defaults
-func NewOptions(v string, ns string, validation bool) Options {
+func NewOptions(v string, ns string, webhooks []string) Options {
 
 	if v == "" {
 		v = version.Get().GitVersion
@@ -59,7 +59,7 @@ func NewOptions(v string, ns string, validation bool) Options {
 		Namespace:                     ns,
 		TerminationGracePeriodSeconds: defaultGracePeriod,
 		Image:                         fmt.Sprintf("kudobuilder/controller:v%v", v),
-		EnableValidation:              validation,
+		Webhooks:                      webhooks,
 	}
 }
 

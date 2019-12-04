@@ -52,20 +52,20 @@ and finishes with success if KUDO is already installed.
 )
 
 type initCmd struct {
-	out              io.Writer
-	fs               afero.Fs
-	image            string
-	dryRun           bool
-	output           string
-	version          string
-	ns               string
-	wait             bool
-	timeout          int64
-	clientOnly       bool
-	crdOnly          bool
-	home             kudohome.Home
-	client           *kube.Client
-	enableValidation bool
+	out        io.Writer
+	fs         afero.Fs
+	image      string
+	dryRun     bool
+	output     string
+	version    string
+	ns         string
+	wait       bool
+	timeout    int64
+	clientOnly bool
+	crdOnly    bool
+	home       kudohome.Home
+	client     *kube.Client
+	webhooks   string
 }
 
 func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
@@ -99,7 +99,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.BoolVar(&i.crdOnly, "crd-only", false, "Add only KUDO CRDs to your cluster")
 	f.BoolVarP(&i.wait, "wait", "w", false, "Block until KUDO manager is running and ready to receive requests")
 	f.Int64Var(&i.timeout, "wait-timeout", 300, "Wait timeout to be used")
-	f.BoolVar(&i.enableValidation, "enable-validation", false, "When set to true, validation webhook will be deployed alongside KUDO controller")
+	f.StringVar(&i.webhooks, "webhook", "", "List of webhooks exposed, when empty, no webhook server will be started (the only webhook right now is InstanceValidation)")
 
 	return cmd
 }
@@ -120,13 +120,16 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 	if flags.Changed("wait-timeout") && !initCmd.wait {
 		return errors.New("wait-timeout is only useful when using the flag '--wait'")
 	}
+	if initCmd.webhooks != "" && initCmd.webhooks != "InstanceValidation" {
+		return errors.New("webhooks can be only empty or contain a single string 'InstanceValidation'. No other webhooks supported right now.")
+	}
 
 	return nil
 }
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (initCmd *initCmd) run() error {
-	opts := cmdInit.NewOptions(initCmd.version, initCmd.ns, initCmd.enableValidation)
+	opts := cmdInit.NewOptions(initCmd.version, initCmd.ns, []string{initCmd.webhooks})
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image
@@ -151,7 +154,7 @@ func (initCmd *initCmd) run() error {
 			}
 			mans = append(mans, prereq...)
 
-			if opts.EnableValidation {
+			if len(opts.Webhooks) != 0 { // right now there's only 0 or 1 webhook, so this is good enough
 				prereq, err := cmdInit.WebhookManifests(opts.Namespace)
 				if err != nil {
 					return err
