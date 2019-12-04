@@ -140,7 +140,7 @@ func registerValidatingWebhook(obj runtime.Object, mgr manager.Manager) error {
 	}
 	validator, isValidator := obj.(kudo.Validator)
 	if !isValidator {
-		log.Infof("skip registering a validating webhook, admission.Validator interface is not implemented", "GVK", gvk)
+		log.Infof("skip registering a validating webhook, kudo.Validator interface is not implemented", "GVK", gvk)
 		return nil
 	}
 	vwh := kudo.ValidatingWebhookFor(validator)
