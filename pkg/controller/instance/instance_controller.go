@@ -407,6 +407,8 @@ func remove(values []string, s string) (result []string) {
 func maybeAddFinalizer(instance *kudov1beta1.Instance) {
 	if !contains(instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
 		if planStatus := instance.PlanStatus(v1beta1.CleanupPlanName); planStatus != nil {
+			// avoid adding a finalizer again if a reconciliation is requested
+			// after it has just been removed but the instance isn't deleted yet
 			if planStatus.Status == v1beta1.ExecutionNeverRun {
 				log.Printf("InstanceController: Adding finalizer on instance %s/%s", instance.Namespace, instance.Name)
 				instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
