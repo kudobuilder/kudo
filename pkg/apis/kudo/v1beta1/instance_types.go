@@ -554,6 +554,11 @@ func (i *Instance) TryRemoveFinalizer() bool {
 				i.ObjectMeta.Finalizers = remove(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
 				return true
 			}
+		} else {
+			// We have a finalizer but no cleanup plan. This could be due to an updated instance.
+			// Let's remove the finalizer.
+			i.ObjectMeta.Finalizers = remove(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
+			return true
 		}
 	}
 
