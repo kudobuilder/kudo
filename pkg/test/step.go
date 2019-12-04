@@ -7,8 +7,6 @@ import (
 	"regexp"
 	"time"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -16,6 +14,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
 var fileNameRegex = regexp.MustCompile(`^(\d+-)?([^.]+)(.yaml)?$`)

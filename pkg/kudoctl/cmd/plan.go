@@ -6,8 +6,9 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/plan"
 	"github.com/spf13/cobra"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/plan"
 )
 
 const (

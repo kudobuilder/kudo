@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"text/template"
 
-	"github.com/kudobuilder/kudo/pkg/engine"
 	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/kudobuilder/kudo/pkg/engine"
 
 	"github.com/Masterminds/sprig"
 )

@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/spf13/afero"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
-	"github.com/spf13/afero"
 )
 
 // LocalResolver will find local operator packages: folders or tgz

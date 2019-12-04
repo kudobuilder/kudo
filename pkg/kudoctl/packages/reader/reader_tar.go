@@ -8,8 +8,9 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/spf13/afero"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
 func ReadTar(fs afero.Fs, path string) (*packages.Package, error) {

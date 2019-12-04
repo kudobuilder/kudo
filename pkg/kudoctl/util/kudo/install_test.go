@@ -4,16 +4,18 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 	"gotest.tools/assert"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	util "github.com/kudobuilder/kudo/pkg/util/kudo"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/version"
 	fakediscovery "k8s.io/client-go/discovery/fake"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 )
 
 func Test_InstallPackage(t *testing.T) {

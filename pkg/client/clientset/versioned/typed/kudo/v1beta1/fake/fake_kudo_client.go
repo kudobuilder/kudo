@@ -17,9 +17,10 @@ limitations under the License.
 package fake
 
 import (
-	v1beta1 "github.com/kudobuilder/kudo/pkg/client/clientset/versioned/typed/kudo/v1beta1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
+
+	v1beta1 "github.com/kudobuilder/kudo/pkg/client/clientset/versioned/typed/kudo/v1beta1"
 )
 
 type FakeKudoV1beta1 struct {

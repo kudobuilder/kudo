@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 func TestDuplicateVerifier(t *testing.T) {

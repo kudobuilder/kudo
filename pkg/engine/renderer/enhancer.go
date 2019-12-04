@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/runtime"

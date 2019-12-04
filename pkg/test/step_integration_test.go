@@ -13,8 +13,6 @@ import (
 
 	petname "github.com/dustinkirkland/golang-petname"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -22,6 +20,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
 var testenv testutils.TestEnvironment

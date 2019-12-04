@@ -6,8 +6,9 @@ import (
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 // Context is a engine.task execution context containing k8s client, templates parameters etc.

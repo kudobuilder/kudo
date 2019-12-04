@@ -3,8 +3,9 @@ package task
 import (
 	"fmt"
 
-	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 )
 
 // render method takes resource names and Instance parameters and then renders passed templates using kudo engine.

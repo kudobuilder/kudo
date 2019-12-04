@@ -8,8 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"github.com/spf13/afero"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 )
 
 const expectedTarballSHA = "ad0b1650b6f50979815acedae884851527b4e721696a7cc1d37fef3970888b19"

@@ -6,14 +6,15 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/engine/health"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	apijson "k8s.io/apimachinery/pkg/util/json"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/engine/health"
 )
 
 // ApplyTask will apply a set of given resources to the cluster. See Run method for more details.

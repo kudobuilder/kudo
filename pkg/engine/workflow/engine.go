@@ -9,11 +9,12 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (

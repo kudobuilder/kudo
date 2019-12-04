@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/get"
 	"github.com/spf13/cobra"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/get"
 )
 
 const getExample = `  # Get all available instances

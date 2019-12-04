@@ -23,27 +23,24 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/engine/renderer"
-
-	"github.com/kudobuilder/kudo/pkg/engine"
-	"github.com/kudobuilder/kudo/pkg/engine/workflow"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
-
-	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/kudobuilder/kudo/pkg/engine/renderer"
+	"github.com/kudobuilder/kudo/pkg/engine/workflow"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 // Reconciler reconciles an Instance object.

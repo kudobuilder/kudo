@@ -8,11 +8,12 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubectl/pkg/polymorphichelpers"
+
+	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 // IsHealthy returns whether an object is healthy. Must be implemented for each type.

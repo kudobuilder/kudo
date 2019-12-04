@@ -13,12 +13,12 @@ import (
 	"strings"
 	"testing"
 
+	"sigs.k8s.io/yaml"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	cmdinit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
-	"sigs.k8s.io/yaml"
 
-	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,6 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
 var testenv testutils.TestEnvironment

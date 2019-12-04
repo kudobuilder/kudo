@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/writer"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/writer"
 )
 
 const (
