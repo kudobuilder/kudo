@@ -125,8 +125,8 @@ docker-push:
 	docker push ${DOCKER_IMG}:${GIT_VERSION}
 	docker push ${DOCKER_IMG}:latest
 
-.PHONY: import
-import:
+.PHONY: imports
+imports:
 	goimports --local github.com/kudobuilder -w .
 
 .PHONY: todo
