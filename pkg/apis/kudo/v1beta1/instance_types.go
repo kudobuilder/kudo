@@ -401,9 +401,10 @@ func (i *Instance) PlanStatus(plan string) *PlanStatus {
 }
 
 // GetPlanToBeExecuted returns name of the plan that should be executed
-func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion, isDeleting bool) (*string, error) {
-	// the instance is being deleted
-	if isDeleting {
+func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
+	// a delete request is indicated by a non-zero 'metadata.deletionTimestamp',
+	// see https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
+	if !i.ObjectMeta.DeletionTimestamp.IsZero() {
 		// we have a cleanup plan
 		plan := selectPlan([]string{CleanupPlanName}, ov)
 		if plan != nil {

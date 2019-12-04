@@ -152,8 +152,6 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	// ---------- 2. Check if the object is being deleted, start cleanup plan ----------
 
-	var isDeleting bool
-
 	// a delete request is indicated by a non-zero 'metadata.deletionTimestamp',
 	// see https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -162,12 +160,11 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		}
 	} else {
 		log.Printf("InstanceController: Instance %s/%s is being deleted", instance.Namespace, instance.Name)
-		isDeleting = true
 	}
 
 	// ---------- 3. Check if we should start execution of new plan ----------
 
-	planToBeExecuted, err := instance.GetPlanToBeExecuted(ov, isDeleting)
+	planToBeExecuted, err := instance.GetPlanToBeExecuted(ov)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -406,11 +403,11 @@ func remove(values []string, s string) (result []string) {
 
 // maybeAddFinalizer adds the cleanup finalizer to an instance if the finalizer
 // hasn't been added yet, the instance has a cleanup plan and the cleanup plan
-// did not complete yet.
+// didn't run yet.
 func maybeAddFinalizer(instance *kudov1beta1.Instance) {
 	if !contains(instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
 		if planStatus := instance.PlanStatus(v1beta1.CleanupPlanName); planStatus != nil {
-			if !planStatus.Status.IsFinished() {
+			if planStatus.Status == v1beta1.ExecutionNeverRun {
 				log.Printf("InstanceController: Adding finalizer on instance %s/%s", instance.Namespace, instance.Name)
 				instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
 			}
@@ -423,7 +420,7 @@ func maybeAddFinalizer(instance *kudov1beta1.Instance) {
 func maybeRemoveFinalizer(instance *kudov1beta1.Instance) {
 	if contains(instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
 		if planStatus := instance.PlanStatus(v1beta1.CleanupPlanName); planStatus != nil {
-			if planStatus.Status.IsFinished() {
+			if planStatus.Status.IsTerminal() {
 				log.Printf("InstanceController: Removing finalizer on instance %s/%s", instance.Namespace, instance.Name)
 				instance.ObjectMeta.Finalizers = remove(instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
 			}
