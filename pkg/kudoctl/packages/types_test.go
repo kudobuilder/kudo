@@ -30,8 +30,10 @@ spec:
 	{{ if .Params.CUSTOM_CASSANDRA_YAML_BASE64 }}
     {{ .Params.CUSTOM_CASSANDRA_YAML_BASE64 | b64dec }}
     {{ end }}
-
+	{{ .Xyx.Foo }}
 `
+	// {{ .Xyz.Foo }} added to tests to allow for additional extensions to templating which will be ignored by linter until they are add to the set of lint validators
+
 	var templates = Templates{}
 	templates["example.yaml"] = template
 
