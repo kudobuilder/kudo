@@ -37,7 +37,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -46,8 +45,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-const instanceCleanupFinalizerName = "kudo.dev.instance.cleanup"
 
 // Reconciler reconciles an Instance object.
 type Reconciler struct {
@@ -152,11 +149,11 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	// ---------- 2. Check if the object is being deleted, start cleanup plan ----------
 
-	// a delete request is indicated by a non-zero 'metadata.deletionTimestamp',
-	// see https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
-	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !instance.IsDeleting() {
 		if _, hasCleanupPlan := ov.Spec.Plans[kudov1beta1.CleanupPlanName]; hasCleanupPlan {
-			maybeAddFinalizer(instance)
+			if instance.TryAddFinalizer() {
+				log.Printf("InstanceController: Adding finalizer on instance %s/%s", instance.Namespace, instance.Name)
+			}
 		}
 	} else {
 		log.Printf("InstanceController: Instance %s/%s is being deleted", instance.Namespace, instance.Name)
@@ -168,7 +165,6 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-
 	if planToBeExecuted != nil {
 		log.Printf("InstanceController: Going to start execution of plan %s on instance %s/%s", kudo.StringValue(planToBeExecuted), instance.Namespace, instance.Name)
 		err = instance.StartPlanExecution(kudo.StringValue(planToBeExecuted), ov)
@@ -227,17 +223,6 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 }
 
 func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance, client client.Client) error {
-	// update instance spec and metadata. this will not update Instance.Status field
-	if !reflect.DeepEqual(instance.Spec, oldInstance.Spec) || !reflect.DeepEqual(instance.ObjectMeta.Annotations, oldInstance.ObjectMeta.Annotations) {
-		instanceStatus := instance.Status.DeepCopy()
-		err := client.Update(context.TODO(), instance)
-		if err != nil {
-			log.Printf("InstanceController: Error when updating instance spec. %v", err)
-			return err
-		}
-		instance.Status = *instanceStatus
-	}
-
 	// update instance status
 	err := client.Status().Update(context.TODO(), instance)
 	if err != nil {
@@ -245,14 +230,21 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 		return err
 	}
 
-	// update instance metadata if finalizer is removed
-	// because Kubernetes will immediately delete the instance, this has to be the last instance update
-	maybeRemoveFinalizer(instance)
-	if !reflect.DeepEqual(instance.ObjectMeta.Finalizers, oldInstance.ObjectMeta.Finalizers) {
-		if err := client.Update(context.TODO(), instance); err != nil {
-			log.Printf("InstanceController: Error when removing instance finalizer. %v", err)
+	if instance.TryRemoveFinalizer() {
+		log.Printf("InstanceController: Removing finalizer on instance %s/%s", instance.Namespace, instance.Name)
+	}
+
+	// update instance spec and metadata. this will not update Instance.Status field
+	if !reflect.DeepEqual(instance.Spec, oldInstance.Spec) ||
+		!reflect.DeepEqual(instance.ObjectMeta.Annotations, oldInstance.ObjectMeta.Annotations) ||
+		!reflect.DeepEqual(instance.ObjectMeta.Finalizers, oldInstance.ObjectMeta.Finalizers) {
+		instanceStatus := instance.Status.DeepCopy()
+		err := client.Update(context.TODO(), instance)
+		if err != nil {
+			log.Printf("InstanceController: Error when updating instance spec. %v", err)
 			return err
 		}
+		instance.Status = *instanceStatus
 	}
 
 	return nil
@@ -380,52 +372,4 @@ func parameterDifference(old, new map[string]string) map[string]string {
 	}
 
 	return diff
-}
-
-func contains(values []string, s string) bool {
-	for _, value := range values {
-		if value == s {
-			return true
-		}
-	}
-	return false
-}
-
-func remove(values []string, s string) (result []string) {
-	for _, value := range values {
-		if value == s {
-			continue
-		}
-		result = append(result, value)
-	}
-	return
-}
-
-// maybeAddFinalizer adds the cleanup finalizer to an instance if the finalizer
-// hasn't been added yet, the instance has a cleanup plan and the cleanup plan
-// didn't run yet.
-func maybeAddFinalizer(instance *kudov1beta1.Instance) {
-	if !contains(instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
-		if planStatus := instance.PlanStatus(v1beta1.CleanupPlanName); planStatus != nil {
-			// avoid adding a finalizer again if a reconciliation is requested
-			// after it has just been removed but the instance isn't deleted yet
-			if planStatus.Status == v1beta1.ExecutionNeverRun {
-				log.Printf("InstanceController: Adding finalizer on instance %s/%s", instance.Namespace, instance.Name)
-				instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
-			}
-		}
-	}
-}
-
-// maybeRemoveFinalizer removes the cleanup finalizer of an instance if it has
-// been added, the instance has a cleanup plan and the cleanup plan completed.
-func maybeRemoveFinalizer(instance *kudov1beta1.Instance) {
-	if contains(instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
-		if planStatus := instance.PlanStatus(v1beta1.CleanupPlanName); planStatus != nil {
-			if planStatus.Status.IsTerminal() {
-				log.Printf("InstanceController: Removing finalizer on instance %s/%s", instance.Namespace, instance.Name)
-				instance.ObjectMeta.Finalizers = remove(instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
-			}
-		}
-	}
 }

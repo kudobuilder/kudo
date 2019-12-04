@@ -31,6 +31,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const instanceCleanupFinalizerName = "kudo.dev.instance.cleanup"
+
 // InstanceSpec defines the desired state of Instance.
 type InstanceSpec struct {
 	// OperatorVersion specifies a reference to a specific Operator object.
@@ -402,9 +404,7 @@ func (i *Instance) PlanStatus(plan string) *PlanStatus {
 
 // GetPlanToBeExecuted returns name of the plan that should be executed
 func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
-	// a delete request is indicated by a non-zero 'metadata.deletionTimestamp',
-	// see https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
-	if !i.ObjectMeta.DeletionTimestamp.IsZero() {
+	if i.IsDeleting() {
 		// we have a cleanup plan
 		plan := selectPlan([]string{CleanupPlanName}, ov)
 		if plan != nil {
@@ -505,6 +505,66 @@ func parameterDifference(old, new map[string]string) map[string]string {
 	}
 
 	return diff
+}
+
+func contains(values []string, s string) bool {
+	for _, value := range values {
+		if value == s {
+			return true
+		}
+	}
+	return false
+}
+
+func remove(values []string, s string) (result []string) {
+	for _, value := range values {
+		if value == s {
+			continue
+		}
+		result = append(result, value)
+	}
+	return
+}
+
+// TryAddFinalizer adds the cleanup finalizer to an instance if the finalizer
+// hasn't been added yet, the instance has a cleanup plan and the cleanup plan
+// didn't run yet. Returns true if the cleanup finalizer has been added.
+func (i *Instance) TryAddFinalizer() bool {
+	if !contains(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
+		if planStatus := i.PlanStatus(CleanupPlanName); planStatus != nil {
+			// avoid adding a finalizer again if a reconciliation is requested
+			// after it has just been removed but the instance isn't deleted yet
+			if planStatus.Status == ExecutionNeverRun {
+				i.ObjectMeta.Finalizers = append(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// TryRemoveFinalizer removes the cleanup finalizer of an instance if it has
+// been added, the instance has a cleanup plan and the cleanup plan completed.
+// Returns true if the cleanup finalizer has been removed.
+func (i *Instance) TryRemoveFinalizer() bool {
+	if contains(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
+		if planStatus := i.PlanStatus(CleanupPlanName); planStatus != nil {
+			if planStatus.Status.IsTerminal() {
+				i.ObjectMeta.Finalizers = remove(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// IsDeleting returns true is the instance is being deleted.
+func (i *Instance) IsDeleting() bool {
+	// a delete request is indicated by a non-zero 'metadata.deletionTimestamp',
+	// see https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
+	return !i.ObjectMeta.DeletionTimestamp.IsZero()
 }
 
 // +genclient
