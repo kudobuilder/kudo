@@ -223,17 +223,6 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 }
 
 func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance, client client.Client) error {
-	// update instance status
-	err := client.Status().Update(context.TODO(), instance)
-	if err != nil {
-		log.Printf("InstanceController: Error when updating instance status. %v", err)
-		return err
-	}
-
-	if instance.TryRemoveFinalizer() {
-		log.Printf("InstanceController: Removing finalizer on instance %s/%s", instance.Namespace, instance.Name)
-	}
-
 	// update instance spec and metadata. this will not update Instance.Status field
 	if !reflect.DeepEqual(instance.Spec, oldInstance.Spec) ||
 		!reflect.DeepEqual(instance.ObjectMeta.Annotations, oldInstance.ObjectMeta.Annotations) ||
@@ -245,6 +234,23 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 			return err
 		}
 		instance.Status = *instanceStatus
+	}
+
+	// update instance status
+	err := client.Status().Update(context.TODO(), instance)
+	if err != nil {
+		log.Printf("InstanceController: Error when updating instance status. %v", err)
+		return err
+	}
+
+	// update instance metadata if finalizer is removed
+	// because Kubernetes might immediately delete the instance, this has to be the last instance update
+	if instance.TryRemoveFinalizer() {
+		log.Printf("InstanceController: Removing finalizer on instance %s/%s", instance.Namespace, instance.Name)
+		if err := client.Update(context.TODO(), instance); err != nil {
+			log.Printf("InstanceController: Error when removing instance finalizer. %v", err)
+			return err
+		}
 	}
 
 	return nil
