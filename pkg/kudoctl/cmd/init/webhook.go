@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
-	"k8s.io/api/admissionregistration/v1beta1"
+	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -30,6 +29,7 @@ func installWebhook(client kubernetes.Interface, dynamicClient dynamic.Interface
 	return nil
 }
 
+// installUnstructured accepts kubernetes resource as unstructured.Unstructured and installs it into cluster
 func installUnstructured(dynamicClient dynamic.Interface, items []unstructured.Unstructured) error {
 	for _, item := range items {
 		obj := item
@@ -48,7 +48,7 @@ func installUnstructured(dynamicClient dynamic.Interface, items []unstructured.U
 	return nil
 }
 
-func installAdmissionWebhook(client clientv1beta1.ValidatingWebhookConfigurationsGetter, webhook v1beta1.ValidatingWebhookConfiguration) error {
+func installAdmissionWebhook(client clientv1beta1.ValidatingWebhookConfigurationsGetter, webhook admissionv1beta1.ValidatingWebhookConfiguration) error {
 	_, err := client.ValidatingWebhookConfigurations().Create(&webhook)
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("admission webhook %v already registered", webhook.Name)
@@ -57,12 +57,12 @@ func installAdmissionWebhook(client clientv1beta1.ValidatingWebhookConfiguration
 	return err
 }
 
-func admissionWebhook(ns string) v1beta1.ValidatingWebhookConfiguration {
-	namespacedScope := v1beta1.NamespacedScope
-	failedType := v1beta1.Fail
-	equivalentType := v1beta1.Equivalent
-	noSideEffects := v1beta1.SideEffectClassNone
-	return v1beta1.ValidatingWebhookConfiguration{
+func admissionWebhook(ns string) admissionv1beta1.ValidatingWebhookConfiguration {
+	namespacedScope := admissionv1beta1.NamespacedScope
+	failedType := admissionv1beta1.Fail
+	equivalentType := admissionv1beta1.Equivalent
+	noSideEffects := admissionv1beta1.SideEffectClassNone
+	return admissionv1beta1.ValidatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "kudo-manager-instance-validation-webhook-config",
 			Annotations: map[string]string{
@@ -73,13 +73,13 @@ func admissionWebhook(ns string) v1beta1.ValidatingWebhookConfiguration {
 			Kind:       "ValidatingWebhookConfiguration",
 			APIVersion: "admissionregistration.k8s.io/v1beta1",
 		},
-		Webhooks: []v1beta1.ValidatingWebhook{
+		Webhooks: []admissionv1beta1.ValidatingWebhook{
 			{
 				Name: "instance-validation.kudo.dev",
-				Rules: []v1beta1.RuleWithOperations{
+				Rules: []admissionv1beta1.RuleWithOperations{
 					{
-						Operations: []v1beta1.OperationType{"UPDATE"},
-						Rule: v1beta1.Rule{
+						Operations: []admissionv1beta1.OperationType{"UPDATE"},
+						Rule: admissionv1beta1.Rule{
 							APIGroups:   []string{"kudo.dev"},
 							APIVersions: []string{"v1beta1"},
 							Resources:   []string{"instances"},
@@ -90,8 +90,8 @@ func admissionWebhook(ns string) v1beta1.ValidatingWebhookConfiguration {
 				FailurePolicy: &failedType, // this means that the request to update instance would fail, if webhook is not up
 				MatchPolicy:   &equivalentType,
 				SideEffects:   &noSideEffects,
-				ClientConfig: v1beta1.WebhookClientConfig{
-					Service: &v1beta1.ServiceReference{
+				ClientConfig: admissionv1beta1.WebhookClientConfig{
+					Service: &admissionv1beta1.ServiceReference{
 						Name:      "kudo-controller-manager-service",
 						Namespace: ns,
 						Path:      kudo.String("/validate-kudo-dev-v1beta1-instance"),

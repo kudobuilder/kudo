@@ -28,11 +28,11 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	"github.com/go-logr/logr"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/google/martian/log"
 	"github.com/kudobuilder/kudo/pkg/apis"
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
@@ -48,7 +48,7 @@ import (
 )
 
 func main() {
-	logf.SetLogger(zap.Logger(false))
+	logf.SetLogger(zap.New(zap.UseDevMode(false)))
 	log := logf.Log.WithName("entrypoint")
 
 	// Get version of KUDO
@@ -108,8 +108,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
-		err = registerValidatingWebhook(&v1beta1.Instance{}, mgr)
+	if os.Getenv("ENABLE_WEBHOOKS") == "true" {
+		err = registerValidatingWebhook(&v1beta1.Instance{}, mgr, log)
 		if err != nil {
 			log.Error(err, "unable to create webhook")
 			os.Exit(1)
@@ -133,26 +133,24 @@ func main() {
 // Complete()
 //
 // that internally calls this method but using their own internal Validator type
-func registerValidatingWebhook(obj runtime.Object, mgr manager.Manager) error {
+func registerValidatingWebhook(obj runtime.Object, mgr manager.Manager, log logr.Logger) error {
 	gvk, err := apiutil.GVKForObject(obj, mgr.GetScheme())
 	if err != nil {
 		return err
 	}
 	validator, isValidator := obj.(kudo.Validator)
 	if !isValidator {
-		log.Infof("skip registering a validating webhook, admission.Validator interface is not implemented", "GVK", gvk)
+		log.Info("skip registering a validating webhook, admission.Validator interface is not implemented %v", gvk)
 		return nil
 	}
-	vwh := kudo.ValidatingWebhookFor(validator)
+	vwh := kudo.WebhookFor(validator)
 	if vwh != nil {
 		path := generateValidatePath(gvk)
 
 		// Checking if the path is already registered.
 		// If so, just skip it.
 		if !isAlreadyHandled(path, mgr) {
-			log.Infof("Registering a validating webhook",
-				"GVK", gvk,
-				"path", path)
+			log.Info("Registering a validating webhook for %v on path %s", gvk, path)
 			mgr.GetWebhookServer().Register(path, vwh)
 		}
 	}

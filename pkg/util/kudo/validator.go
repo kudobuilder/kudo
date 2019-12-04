@@ -19,8 +19,8 @@ type Validator interface {
 	ValidateDelete(req admission.Request) error
 }
 
-// ValidatingWebhookFor creates a new Webhook for validating the provided type.
-func ValidatingWebhookFor(validator Validator) *admission.Webhook {
+// WebhookFor creates a new Webhook for validating the provided type.
+func WebhookFor(validator Validator) *admission.Webhook {
 	return &admission.Webhook{
 		Handler: &validatingHandler{validator: validator},
 	}

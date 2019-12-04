@@ -3,11 +3,9 @@ package v1beta1
 import (
 	"fmt"
 
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
-
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 var _ kudo.Validator = &Instance{}
