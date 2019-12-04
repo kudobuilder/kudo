@@ -47,7 +47,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const instanceCleanupFinalizerName = "kudo.finalizers.instance.cleanup"
+const instanceCleanupFinalizerName = "kudo.dev.instance.cleanup"
 
 // Reconciler reconciles an Instance object.
 type Reconciler struct {
