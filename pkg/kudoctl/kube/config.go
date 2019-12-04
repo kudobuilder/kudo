@@ -3,14 +3,13 @@ package kube
 import (
 	"fmt"
 
-	"k8s.io/client-go/dynamic"
-
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 )
 
 // Client provides access different K8S clients

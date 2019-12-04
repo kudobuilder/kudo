@@ -3,9 +3,10 @@ package v1beta1
 import (
 	"fmt"
 
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 // this forces the instance type to implement Validator interface, we'll get compile time error if it's not true anymore
