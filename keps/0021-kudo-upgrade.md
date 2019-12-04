@@ -113,6 +113,15 @@ Write specific migration code that targets a KUDO manager version range and exec
 
 Each migration should have a validate-step that checks if the migration is possible.
 
+The update for prerequisites is tied to the version of KUDO manager:
+- There is a list of migrations:
+    - MigrationTo0_9_0
+    - MigrationTo0_10_0
+    - MigrationTo0_11_0
+- KUDO CLI checks installed version of manager
+- Every migration step after the installed version is executed
+- Every migration step only migrates the prerequisites from the previous version to the marked version of the migration
+
 **Alternative update process**
 - Can we just delete them all and reinstall them? Probably not
 
@@ -166,17 +175,10 @@ to be in sync with the installed CRDs, as it's writing them directly with the K8
 - Do we allow an older KUDO CLI to be used with a newer KUDO installation?
 
 #### Proposal for update process
-User has to download newest KUDO version.
+User has to download newest KUDO version, either manually or via `brew` or other means.
 
-- CLI will have to support multiple CRD versions
-  - At least one old and one new version to migrate CRDs
-  - Possibly more than one to support older KUDO installations
-  - Features not supported by a CRD version must be feature gated
-  - We need to decide how long a specific CRD version is supported by CLI
-- CLI must support the exact CRD version that is installed in a cluster. It will not be possible to use an old KUDO CLI on a newer cluster
-  - CLI updates should be easy, therefore no need to introduce additional complexity here
-  - CLI should support multiple CRDs anyway
-  - With WebHook conversion the K8s cluster could support multiple CRDs, but that's out of scope for this KEP
+- CLI must be at at least the version of the installed KUDO manager. It will not be possible to use an old KUDO CLI on a newer cluster
+- CLI updates should be easy, therefore no need to introduce additional complexity here
 
 ## Updating KUDO installation
 
@@ -269,6 +271,8 @@ This will require a new KEP to workout the details.
 ## Resources
 - [CRD versioning](https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definition-versioning/)
 - [Kube Storage Version Migrator](https://github.com/kubernetes-sigs/kube-storage-version-migrator)
+- [K8s API Change Conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api_changes.md)
+
 
 ## Implementation History
 - 2019/11/05 - Initial draft. (@aneumann82)
