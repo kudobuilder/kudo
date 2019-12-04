@@ -108,7 +108,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if os.Getenv("ENABLE_WEBHOOKS") == "true" {
+	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) == "true" {
 		err = registerValidatingWebhook(&v1beta1.Instance{}, mgr, log)
 		if err != nil {
 			log.Error(err, "unable to create webhook")
@@ -140,14 +140,11 @@ func registerValidatingWebhook(obj runtime.Object, mgr manager.Manager, log logr
 	}
 	validator, isValidator := obj.(kudo.Validator)
 	if !isValidator {
-<<<<<<< HEAD
-		log.Info("skip registering a validating webhook, admission.Validator interface is not implemented %v", gvk)
-=======
-		log.Infof("skip registering a validating webhook, kudo.Validator interface is not implemented", "GVK", gvk)
->>>>>>> fc12fe83516b102f81011da2b2a33c9b93a39dd1
+		log.Info("skip registering a validating webhook, kudo.Validator interface is not implemented %v", gvk)
+
 		return nil
 	}
-	vwh := kudo.WebhookFor(validator)
+	vwh := kudo.ValidatingWebhookFor(validator)
 	if vwh != nil {
 		path := generateValidatePath(gvk)
 

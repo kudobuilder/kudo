@@ -18,12 +18,12 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// Install uses Kubernetes client to install KUDO manager prereqs.
-func installWebhook(client kubernetes.Interface, dynamicClient dynamic.Interface, ns string) error {
+// installInstanceValidatingWebhook applies kubernetes resources related to the webhook to the cluster
+func installInstanceValidatingWebhook(client kubernetes.Interface, dynamicClient dynamic.Interface, ns string) error {
 	if err := installUnstructured(dynamicClient, certificate(ns)); err != nil {
 		return err
 	}
-	if err := installAdmissionWebhook(client.AdmissionregistrationV1beta1(), admissionWebhook(ns)); err != nil {
+	if err := installAdmissionWebhook(client.AdmissionregistrationV1beta1(), instanceUpdateValidatingWebhook(ns)); err != nil {
 		return err
 	}
 	return nil
@@ -57,7 +57,7 @@ func installAdmissionWebhook(client clientv1beta1.ValidatingWebhookConfiguration
 	return err
 }
 
-func admissionWebhook(ns string) admissionv1beta1.ValidatingWebhookConfiguration {
+func instanceUpdateValidatingWebhook(ns string) admissionv1beta1.ValidatingWebhookConfiguration {
 	namespacedScope := admissionv1beta1.NamespacedScope
 	failedType := admissionv1beta1.Fail
 	equivalentType := admissionv1beta1.Equivalent
@@ -138,9 +138,9 @@ func certificate(ns string) []unstructured.Unstructured {
 	}
 }
 
-// PrereqManifests provides a slice of strings for each pre requisite manifest
+// PrereWebhookManifests provides webhook related resources as set of strings with serialized yaml
 func WebhookManifests(ns string) ([]string, error) {
-	av := admissionWebhook(ns)
+	av := instanceUpdateValidatingWebhook(ns)
 	cert := certificate(ns)
 	objs := []runtime.Object{&av}
 	for _, c := range cert {

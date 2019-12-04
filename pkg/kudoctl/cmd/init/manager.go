@@ -2,6 +2,7 @@ package init
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -44,6 +45,10 @@ type Options struct {
 	Webhooks []string
 }
 
+func (o Options) webhooksEnabled() bool {
+	return len(o.Webhooks) != 0
+}
+
 // NewOptions provides an option struct with defaults
 func NewOptions(v string, ns string, webhooks []string) Options {
 
@@ -78,8 +83,8 @@ func Install(client *kube.Client, opts Options, crdOnly bool) error {
 	}
 	clog.Printf("✅ installed service accounts and other requirements for controller to run")
 
-	if opts.EnableValidation {
-		if err := installWebhook(client.KubeClient, client.DynamicClient, opts.Namespace); err != nil {
+	if opts.webhooksEnabled() {
+		if err := installInstanceValidatingWebhook(client.KubeClient, client.DynamicClient, opts.Namespace); err != nil {
 			return err
 		}
 		clog.Printf("✅ installed webhook")
@@ -194,7 +199,7 @@ func generateDeployment(opts Options) *appsv1.StatefulSet {
 							Env: []v1.EnvVar{
 								{Name: "POD_NAMESPACE", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
 								{Name: "SECRET_NAME", Value: "kudo-webhook-server-secret"},
-								{Name: "ENABLE_WEBHOOKS", Value: enableWebhooks(opts)},
+								{Name: "ENABLE_WEBHOOKS", Value: strconv.FormatBool(opts.webhooksEnabled())},
 							},
 							Image:           image,
 							ImagePullPolicy: "Always",
@@ -223,13 +228,6 @@ func generateDeployment(opts Options) *appsv1.StatefulSet {
 	}
 
 	return d
-}
-
-func enableWebhooks(options Options) string {
-	if options.EnableValidation {
-		return "true"
-	}
-	return "false"
 }
 
 func managerLabels() labels.Set {

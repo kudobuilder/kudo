@@ -8,6 +8,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
+// this forces the instance type to implement Validator interface, we'll get compile time error if it's not true anymore
 var _ kudo.Validator = &Instance{}
 
 // ValidateCreate implements webhookutil.validator (from controller-runtime)
