@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
+	"github.com/kudobuilder/kudo/pkg/engine/task/podexec"
 	"github.com/spf13/afero"
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
@@ -157,34 +158,28 @@ func isRelative(base, file string) bool {
 // sharedVolumeName method searches pod volumes for one of the type emptyDir and returns
 // its name. Method expects exactly one such volume to exits and will return an error otherwise.
 func sharedVolumeName(pod *corev1.Pod) (string, error) {
-	name := ""
-	vols := 0
+	volumes := []string{}
 	for _, v := range pod.Spec.Volumes {
 		if v.EmptyDir != nil {
-			name = v.Name
-			vols++
+			volumes = append(volumes, v.Name)
 		}
 	}
-	if name == "" || vols != 1 {
+	if len(volumes) != 1 {
 		return "", errors.New("pipe pod should define one emptyDir shared volume where the artifacts are temporary stored")
 	}
-	return name, nil
+	return volumes[0], nil
 }
 
 // sharedMountPath method searches pod initContainer volume mounts for one with a passed name.
 // It returns the mount path of the volume if found or an error otherwise.
 func sharedMountPath(pod *corev1.Pod, volName string) (string, error) {
-	mountPath := ""
 	for _, vm := range pod.Spec.InitContainers[0].VolumeMounts {
 		if vm.Name == volName {
-			mountPath = vm.MountPath
+			return vm.MountPath, nil
 		}
 	}
 
-	if mountPath == "" {
-		return "", fmt.Errorf("pipe pod should save generated artifacts in %s", volName)
-	}
-	return mountPath, nil
+	return "", fmt.Errorf("pipe pod should save generated artifacts in %s", volName)
 }
 
 // validate method validates passed pipe pod. It is expected to:
@@ -281,16 +276,27 @@ func copyFiles(fs afero.Fs, ff []PipeFile, pod *corev1.Pod, ctx Context) error {
 			// Check the size of the pipe file first. K87 has a inherent limit on the size of
 			// Secret/ConfigMap, so we avoid unnecessary copying of files that are too big by
 			// checking its size first.
-			size, err := FileSize(f.File, pod, restCfg)
+			size, err := podexec.FileSize(f.File, pod, pipePodContainerName, restCfg)
 			if err != nil {
-				return fatalExecutionError(err, pipeTaskError, ctx.Meta)
+				// Any remote command exit code > 0 is treated as a fatal error since retrying it doesn't make sense
+				if podexec.HasCommandFailed(err) {
+					return fatalExecutionError(err, pipeTaskError, ctx.Meta)
+				}
+				return err
 			}
 
 			if size > maxPipeFileSize {
 				return fatalExecutionError(fmt.Errorf("pipe file %s size %d exceeds maximum file size of %d bytes", f.File, size, maxPipeFileSize), pipeTaskError, ctx.Meta)
 			}
 
-			return DownloadFile(fs, f.File, pod, restCfg)
+			if err = podexec.DownloadFile(fs, f.File, pod, pipePodContainerName, restCfg); err != nil {
+				// Any remote command exit code > 0 is treated as a fatal error since retrying it doesn't make sense
+				if podexec.HasCommandFailed(err) {
+					return fatalExecutionError(err, pipeTaskError, ctx.Meta)
+				}
+				return err
+			}
+			return nil
 		})
 	}
 

@@ -1,8 +1,9 @@
-package task
+package podexec
 
 import (
 	"archive/tar"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -17,6 +18,11 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+)
+
+var (
+	// ErrCommandExecution is returned for command with an exit code > 0
+	ErrCommandFailed = errors.New("command failed: ")
 )
 
 // PodExec defines a command that will be executed in a running Pod.
@@ -98,14 +104,14 @@ func (pe *PodExec) Run() error {
 
 // FileSize fetches the size of a file in a remote pod. It runs `stat -c %s file` command in the
 // pod and parses the output.
-func FileSize(file string, pod *v1.Pod, restCfg *rest.Config) (int64, error) {
+func FileSize(file string, pod *v1.Pod, ctrName string, restCfg *rest.Config) (int64, error) {
 	stdout := strings.Builder{}
 
 	pe := PodExec{
 		RestCfg:       restCfg,
 		PodName:       pod.Name,
 		PodNamespace:  pod.Namespace,
-		ContainerName: pipePodContainerName,
+		ContainerName: ctrName,
 		Args:          []string{"stat", "-c", "%s", file},
 		In:            nil,
 		Out:           &stdout,
@@ -114,7 +120,7 @@ func FileSize(file string, pod *v1.Pod, restCfg *rest.Config) (int64, error) {
 	}
 
 	if err := pe.Run(); err != nil {
-		return 0, fmt.Errorf("failed to get the size of %s, err: %v, stderr: %s", file, err, stdout.String())
+		return 0, fmt.Errorf("%wfailed to get the size of %s, err: %v, stderr: %s", ErrCommandFailed, file, err, stdout.String())
 	}
 
 	raw := stdout.String()
@@ -131,7 +137,7 @@ func FileSize(file string, pod *v1.Pod, restCfg *rest.Config) (int64, error) {
 // of the file via the stdout. Locally, the tar file is extracted into the passed afero filesystem where
 // it is saved under the same path. Afero filesystem is used to allow the caller downloading and persisting
 // of multiple files concurrently (afero filesystem is thread-safe).
-func DownloadFile(fs afero.Fs, file string, pod *v1.Pod, restCfg *rest.Config) error {
+func DownloadFile(fs afero.Fs, file string, pod *v1.Pod, ctrName string, restCfg *rest.Config) error {
 	stdout := bytes.Buffer{}
 	stderr := strings.Builder{}
 
@@ -139,14 +145,14 @@ func DownloadFile(fs afero.Fs, file string, pod *v1.Pod, restCfg *rest.Config) e
 		RestCfg:       restCfg,
 		PodName:       pod.Name,
 		PodNamespace:  pod.Namespace,
-		ContainerName: pipePodContainerName,
+		ContainerName: ctrName,
 		Args:          []string{"tar", "cf", "-", file},
 		In:            nil,
 		Out:           &stdout,
 		Err:           &stderr,
 	}
 	if err := pe.Run(); err != nil {
-		return fmt.Errorf("failed to copy pipe file. err: %v, stderr: %s", err, stderr.String())
+		return fmt.Errorf("%wfailed to copy pipe file. err: %v, stderr: %s", ErrCommandFailed, err, stderr.String())
 	}
 
 	if err := untarFile(fs, &stdout, file); err != nil {
@@ -182,15 +188,12 @@ func untarFile(fs afero.Fs, r io.Reader, fileName string) error {
 			if err != nil {
 				return err
 			}
+			defer f.Close() // nolint
 
 			// copy over contents
 			if _, err := io.Copy(f, tr); err != nil {
 				return err
 			}
-
-			// manually close here after each file operation; deferring would cause each file close
-			// to wait until all operations have completed.
-			f.Close() // nolint
 
 		default:
 			fmt.Printf("skipping %s because it is not a regular file or a directory", header.Name)
@@ -198,4 +201,9 @@ func untarFile(fs afero.Fs, r io.Reader, fileName string) error {
 	}
 
 	return nil
+}
+
+// HasCommandFailed returns true if PodExec command returned an exit code > 0
+func HasCommandFailed(err error) bool {
+	return err != nil && errors.Is(err, ErrCommandFailed)
 }
