@@ -1,7 +1,9 @@
 package task
 
 import (
+	"errors"
 	"fmt"
+	"regexp"
 
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
@@ -17,6 +19,7 @@ type Context struct {
 	Meta       renderer.Metadata
 	Templates  map[string]string // Raw templates
 	Parameters map[string]string // Instance and OperatorVersion parameters merged
+	Pipes      map[string]string // Pipe artifacts
 }
 
 // Tasker is an interface that represents any runnable task for an operator. This method is treated
@@ -36,49 +39,104 @@ const (
 	ApplyTaskKind  = "Apply"
 	DeleteTaskKind = "Delete"
 	DummyTaskKind  = "Dummy"
+	PipeTaskKind   = "Pipe"
 )
 
 var (
-	taskRenderingError   = "TaskRenderingError"
-	taskEnhancementError = "TaskEnhancementError"
-	dummyTaskError       = "DummyTaskError"
+	taskRenderingError      = "TaskRenderingError"
+	taskEnhancementError    = "TaskEnhancementError"
+	dummyTaskError          = "DummyTaskError"
+	resourceUnmarshalError  = "ResourceUnmarshalError"
+	resourceValidationError = "ResourceValidationError"
 )
 
 // Build factory method takes an v1beta1.Task and returns a corresponding Tasker object
 func Build(task *v1beta1.Task) (Tasker, error) {
 	switch task.Kind {
 	case ApplyTaskKind:
-		return newApply(task), nil
+		return newApply(task)
 	case DeleteTaskKind:
-		return newDelete(task), nil
+		return newDelete(task)
 	case DummyTaskKind:
-		return newDummy(task), nil
+		return newDummy(task)
+	case PipeTaskKind:
+		return newPipe(task)
 	default:
 		return nil, fmt.Errorf("unknown task kind %s", task.Kind)
 	}
 }
 
-func newApply(task *v1beta1.Task) ApplyTask {
+func newApply(task *v1beta1.Task) (Tasker, error) {
+	// validate ApplyTask
+	if len(task.Spec.ResourceTaskSpec.Resources) == 0 {
+		return nil, errors.New("task validation error: apply task has an empty resource list. if that's what you need, use a Dummy task instead")
+	}
+
 	return ApplyTask{
 		Name:      task.Name,
 		Resources: task.Spec.ResourceTaskSpec.Resources,
-	}
+	}, nil
 }
 
-func newDelete(task *v1beta1.Task) DeleteTask {
+func newDelete(task *v1beta1.Task) (Tasker, error) {
+	// validate DeleteTask
+	if len(task.Spec.ResourceTaskSpec.Resources) == 0 {
+		return nil, errors.New("task validation error: delete task has an empty resource list. if that's what you need, use a Dummy task instead")
+	}
+
 	return DeleteTask{
 		Name:      task.Name,
 		Resources: task.Spec.ResourceTaskSpec.Resources,
-	}
+	}, nil
 }
 
-func newDummy(task *v1beta1.Task) DummyTask {
+func newDummy(task *v1beta1.Task) (Tasker, error) {
 	return DummyTask{
 		Name:    task.Name,
 		WantErr: task.Spec.DummyTaskSpec.WantErr,
 		Fatal:   task.Spec.DummyTaskSpec.Fatal,
 		Done:    task.Spec.DummyTaskSpec.Done,
+	}, nil
+}
+
+func newPipe(task *v1beta1.Task) (Tasker, error) {
+	// validate PipeTask
+	if len(task.Spec.PipeTaskSpec.Pipe) == 0 {
+		return nil, errors.New("task validation error: pipe task has an empty pipe files list")
 	}
+
+	var pipeFiles []PipeFile
+	for _, pp := range task.Spec.PipeTaskSpec.Pipe {
+		pf := PipeFile{File: pp.File, Kind: PipeFileKind(pp.Kind), Key: pp.Key}
+		// validate pipe file
+		if err := validPipeFile(pf); err != nil {
+			return nil, err
+		}
+		pipeFiles = append(pipeFiles, pf)
+	}
+
+	return PipeTask{
+		Name:      task.Name,
+		Pod:       task.Spec.PipeTaskSpec.Pod,
+		PipeFiles: pipeFiles,
+	}, nil
+}
+
+var (
+	pipeFileKeyRe = regexp.MustCompile(`^[a-zA-Z0-9_\-]+$`) //a-z, A-Z, 0-9, _ and - are allowed
+)
+
+func validPipeFile(pf PipeFile) error {
+	if pf.File == "" {
+		return fmt.Errorf("task validation error: pipe file is empty: %v", pf)
+	}
+	if pf.Kind != PipeFileKindSecret && pf.Kind != PipeFileKindConfigMap {
+		return fmt.Errorf("task validation error: invalid pipe kind (must be Secret or ConfigMap): %v", pf)
+	}
+	if !pipeFileKeyRe.MatchString(pf.Key) {
+		return fmt.Errorf("task validation error: invalid pipe key (only letters, numbers and _ and - are allowed): %v", pf)
+	}
+	return nil
 }
 
 // fatalExecutionError is a helper method providing proper wrapping an message for the ExecutionError

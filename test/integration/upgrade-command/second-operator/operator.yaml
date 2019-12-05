@@ -11,7 +11,7 @@ tasks:
     kind: Apply
     spec:
       resources:
-        - pod.yaml
+        - configmap.yaml
 plans:
   deploy:
     strategy: serial

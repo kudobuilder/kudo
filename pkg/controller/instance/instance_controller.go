@@ -23,27 +23,27 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/engine/renderer"
-
-	"github.com/kudobuilder/kudo/pkg/engine"
-	"github.com/kudobuilder/kudo/pkg/engine/workflow"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
-
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/kudobuilder/kudo/pkg/engine/renderer"
+	"github.com/kudobuilder/kudo/pkg/engine/task"
+	"github.com/kudobuilder/kudo/pkg/engine/workflow"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // Reconciler reconciles an Instance object.
@@ -85,6 +85,31 @@ func (r *Reconciler) SetupWithManager(
 			return requests
 		})
 
+	// hasAnnotation returns true if an annotation with the passed key is found in the map
+	hasAnnotation := func(key string, annotations map[string]string) bool {
+		if annotations == nil {
+			return false
+		}
+		for k := range annotations {
+			if k == key {
+				return true
+			}
+		}
+		return false
+	}
+
+	// resPredicate ignores DeleteEvents for pipe-pods only (marked with task.PipePodAnnotation). This is due to an
+	// inherent race that was described in detail in #1116 (https://github.com/kudobuilder/kudo/issues/1116)
+	// tl;dr: pipe task will delete the pipe pod at the end of the execution. this would normally trigger another
+	// Instance reconciliation which might end up copying pipe files twice. we avoid this by explicitly ignoring
+	// DeleteEvents for pipe-pods.
+	resPredicate := predicate.Funcs{
+		CreateFunc:  func(event.CreateEvent) bool { return true },
+		DeleteFunc:  func(e event.DeleteEvent) bool { return !hasAnnotation(task.PipePodAnnotation, e.Meta.GetAnnotations()) },
+		UpdateFunc:  func(event.UpdateEvent) bool { return true },
+		GenericFunc: func(event.GenericEvent) bool { return true },
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kudov1beta1.Instance{}).
 		Owns(&kudov1beta1.Instance{}).
@@ -92,6 +117,8 @@ func (r *Reconciler) SetupWithManager(
 		Owns(&corev1.Service{}).
 		Owns(&batchv1.Job{}).
 		Owns(&appsv1.StatefulSet{}).
+		Owns(&corev1.Pod{}).
+		WithEventFilter(resPredicate).
 		Watches(&source.Kind{Type: &kudov1beta1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: addOvRelatedInstancesToReconcile}).
 		Complete(r)
 }
@@ -136,7 +163,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	oldInstance := instance.DeepCopy()
 	if err != nil {
 		if apierrors.IsNotFound(err) { // not retrying if instance not found, probably someone manually removed it?
-			log.Printf("Instances in namespace %s not found, not retrying reconcile since this error is usually not recoverable (without manual intervention).", request.NamespacedName)
+			log.Printf("Instance %s was deleted, nothing to reconcile.", request.NamespacedName)
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
@@ -192,7 +219,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		InstanceName:        instance.Name,
 	}
 
-	activePlan, err := preparePlanExecution(instance, ov, activePlanStatus)
+	activePlan, err := preparePlanExecution(instance, ov, activePlanStatus, metadata)
 	if err != nil {
 		err = r.handleError(err, instance, oldInstance)
 		return reconcile.Result{}, err
@@ -256,12 +283,16 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 	return nil
 }
 
-func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion, activePlanStatus *kudov1beta1.PlanStatus) (*workflow.ActivePlan, error) {
-	params := getParameters(instance, ov)
-
+func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion, activePlanStatus *kudov1beta1.PlanStatus, meta *engine.Metadata) (*workflow.ActivePlan, error) {
 	planSpec, ok := ov.Spec.Plans[activePlanStatus.Name]
 	if !ok {
 		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not find required plan: %v", engine.ErrFatalExecution, activePlanStatus.Name), EventName: "InvalidPlan"}
+	}
+
+	params := paramsMap(instance, ov)
+	pipes, err := pipesMap(activePlanStatus.Name, &planSpec, ov.Spec.Tasks, meta)
+	if err != nil {
+		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not make task pipes: %v", engine.ErrFatalExecution, err), EventName: "InvalidPlan"}
 	}
 
 	return &workflow.ActivePlan{
@@ -271,6 +302,7 @@ func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.Operat
 		Tasks:      ov.Spec.Tasks,
 		Templates:  ov.Spec.Templates,
 		Params:     params,
+		Pipes:      pipes,
 	}, nil
 }
 
@@ -343,7 +375,8 @@ func (r *Reconciler) getOperatorVersion(instance *kudov1beta1.Instance) (ov *kud
 	return ov, nil
 }
 
-func getParameters(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.OperatorVersion) map[string]string {
+// paramsMap generates {{ Params.* }} map of keys and values which is later used during template rendering.
+func paramsMap(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.OperatorVersion) map[string]string {
 	params := make(map[string]string)
 
 	for k, v := range instance.Spec.Parameters {
@@ -360,7 +393,46 @@ func getParameters(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.
 	return params
 }
 
-func parameterDifference(old, new map[string]string) map[string]string {
+// pipesMap generates {{ Pipes.* }} map of keys and values which is later used during template rendering.
+func pipesMap(planName string, plan *v1beta1.Plan, tasks []v1beta1.Task, emeta *engine.Metadata) (map[string]string, error) {
+	taskByName := func(name string) (*v1beta1.Task, bool) {
+		for _, t := range tasks {
+			if t.Name == name {
+				return &t, true
+			}
+		}
+		return nil, false
+	}
+
+	pipes := make(map[string]string)
+
+	for _, ph := range plan.Phases {
+		for _, st := range ph.Steps {
+			for _, tn := range st.Tasks {
+				rmeta := renderer.Metadata{
+					Metadata:  *emeta,
+					PlanName:  planName,
+					PhaseName: ph.Name,
+					StepName:  st.Name,
+					TaskName:  tn,
+				}
+
+				if t, ok := taskByName(tn); ok && t.Kind == task.PipeTaskKind {
+					for _, pipe := range t.Spec.PipeTaskSpec.Pipe {
+						if _, ok := pipes[pipe.Key]; ok {
+							return nil, fmt.Errorf("duplicated pipe key %s", pipe.Key)
+						}
+						pipes[pipe.Key] = task.PipeArtifactName(rmeta, pipe.Key)
+					}
+				}
+			}
+		}
+	}
+
+	return pipes, nil
+}
+
+func parameterDiff(old, new map[string]string) map[string]string {
 	diff := make(map[string]string)
 
 	for key, val := range old {

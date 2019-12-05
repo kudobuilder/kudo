@@ -8,22 +8,23 @@ import (
 )
 
 // render method takes resource names and Instance parameters and then renders passed templates using kudo engine.
-func render(resourceNames []string, templates map[string]string, params map[string]string, meta renderer.Metadata) (map[string]string, error) {
+func render(resourceNames []string, ctx Context) (map[string]string, error) {
 	configs := make(map[string]interface{})
-	configs["OperatorName"] = meta.OperatorName
-	configs["Name"] = meta.InstanceName
-	configs["Namespace"] = meta.InstanceNamespace
-	configs["Params"] = params
-	configs["PlanName"] = meta.PlanName
-	configs["PhaseName"] = meta.PhaseName
-	configs["StepName"] = meta.StepName
-	configs["AppVersion"] = meta.AppVersion
+	configs["OperatorName"] = ctx.Meta.OperatorName
+	configs["Name"] = ctx.Meta.InstanceName
+	configs["Namespace"] = ctx.Meta.InstanceNamespace
+	configs["Params"] = ctx.Parameters
+	configs["Pipes"] = ctx.Pipes
+	configs["PlanName"] = ctx.Meta.PlanName
+	configs["PhaseName"] = ctx.Meta.PhaseName
+	configs["StepName"] = ctx.Meta.StepName
+	configs["AppVersion"] = ctx.Meta.AppVersion
 
 	resources := map[string]string{}
 	engine := renderer.New()
 
 	for _, rn := range resourceNames {
-		resource, ok := templates[rn]
+		resource, ok := ctx.Templates[rn]
 
 		if !ok {
 			return nil, fmt.Errorf("error finding resource named %s", rn)

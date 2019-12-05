@@ -6,6 +6,7 @@ import (
 	"log"
 	"reflect"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -66,6 +67,12 @@ func IsHealthy(obj runtime.Object) error {
 			return nil
 		}
 		return fmt.Errorf("instance's active plan is in state %v", obj.Status.AggregatedStatus.Status)
+
+	case *corev1.Pod:
+		if obj.Status.Phase == corev1.PodRunning {
+			return nil
+		}
+		return fmt.Errorf("pod \"%v\" is not running yet: %s", obj.Name, obj.Status.Phase)
 
 	// unless we build logic for what a healthy object is, assume it's healthy when created.
 	default:
