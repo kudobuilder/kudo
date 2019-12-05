@@ -3,6 +3,7 @@ package template
 import (
 	"testing"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"gotest.tools/assert"
 )
 
@@ -34,23 +35,23 @@ spec:
 `
 	// {{ .Xyz.Foo }} added to tests to allow for additional extensions to templating which will be ignored by linter until they are add to the set of lint validators
 
-	var templates = Templates{}
+	var templates = packages.Templates{}
 	templates["example.yaml"] = tplate
 
-	tnodes := templates.Nodes()
+	tnodes := getNodeMap(templates)
 	nodes := tnodes["example.yaml"]
 
-	assert.Equal(t, 4, len(nodes.Parameters))
+	assert.Equal(t, 4, len(nodes.parameters))
 	params := []string{"Foo", "JVM_OPT_AVAILABLE_PROCESSORS", "AUTHORIZATION_ENABLED", "CUSTOM_CASSANDRA_YAML_BASE64"}
 	for _, param := range params {
-		if !contains(nodes.Parameters, param) {
+		if !contains(nodes.parameters, param) {
 			t.Fatalf("missing %q parameter", param)
 		}
 	}
-	assert.Equal(t, 2, len(nodes.ImplicitParams))
+	assert.Equal(t, 2, len(nodes.implicitParams))
 	implicits := []string{"Name", "Namespace"}
 	for _, param := range implicits {
-		if !contains(nodes.ImplicitParams, param) {
+		if !contains(nodes.implicitParams, param) {
 			t.Fatalf("missing %q implicit parameter", param)
 		}
 	}
@@ -66,16 +67,16 @@ metadata:
   {{ end }}
 
 `
-	var templates = Templates{}
+	var templates = packages.Templates{}
 	templates["example.yaml"] = tplate
 
-	tnodes := templates.Nodes()
+	tnodes := getNodeMap(templates)
 	nodes := tnodes["example.yaml"]
 
-	assert.Equal(t, 0, len(nodes.Parameters))
-	assert.Equal(t, 0, len(nodes.ImplicitParams))
+	assert.Equal(t, 0, len(nodes.parameters))
+	assert.Equal(t, 0, len(nodes.implicitParams))
 
-	assert.Equal(t, `template file "example.yaml" reports the following error: template: example.yaml:6: unexpected {{end}}`, *nodes.Error)
+	assert.Equal(t, `template file "example.yaml" reports the following error: template: example.yaml:6: unexpected {{end}}`, *nodes.error)
 }
 
 func contains(arr []string, str string) bool {

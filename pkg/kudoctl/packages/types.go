@@ -2,7 +2,6 @@ package packages
 
 import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/template"
 )
 
 const (
@@ -45,6 +44,9 @@ type Resources struct {
 
 type Parameter []v1beta1.Parameter
 
+// Templates is a map of file names and stringified files in the template folder of an operator
+type Templates map[string]string
+
 // Len returns the number of params.
 // This is needed to allow sorting of params.
 func (p Parameter) Len() int { return len(p) }
@@ -61,7 +63,7 @@ func (p Parameter) Less(x, y int) bool {
 
 // Files represents the raw operator package format the way it is found in the tgz packages
 type Files struct {
-	Templates template.Templates
+	Templates Templates
 	Operator  *OperatorFile
 	Params    *ParamsFile
 }

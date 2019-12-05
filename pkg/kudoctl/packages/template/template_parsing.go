@@ -7,51 +7,47 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
-// Nodes are template nodes
-type Nodes struct {
-	Parameters     []string
-	ImplicitParams []string
-	Error          *string
+// nodes are template nodes
+type nodes struct {
+	parameters     []string
+	implicitParams []string
+	error          *string
 }
 
-// TemplateNodes is a map of template files to template nodes
-type NodeMap map[string]Nodes
+// nodeMap is a map of template files to template nodes
+type nodeMap map[string]nodes
 
-// Templates is a map of file names and stringified files in the template folder of an operator
-type Templates map[string]string
+// getNodeMap converts a set of Templates to nodeMap which is a map of file names to template nodes
+func getNodeMap(ts packages.Templates) nodeMap {
 
-// Nodes converts a set of Templates to TemplateNodes which is a map of file names to template nodes
-func (ts Templates) Nodes() NodeMap {
-
-	tNodes := NodeMap{}
+	tNodes := nodeMap{}
 
 	for fname, file := range ts {
-		// template nodes to be collected in a set
-		// fresh for each file
 
 		e := renderer.New()
 		t := e.Template(fname)
-		// parse 1 template
+		// parse 1 template file using engine render template
 		tplate, err := t.Parse(file)
 		if err != nil {
 			errMsg := fmt.Sprintf("template file %q reports the following error: %v", fname, err)
-			n := Nodes{
-				Error: &errMsg,
+			n := nodes{
+				error: &errMsg,
 			}
 			tNodes[fname] = n
 
 			continue
 		}
-		// cycle through all the nodes and collect Action nodes
-		//nodeMap is a map of node types ("implicit", "Params") to a set of that type (which is go is a map :))
+
+		//nodeMap is a map of node types ("Implicits", "Params") to a set of that type (which is go is a map :))
 		nodeMap := map[string]map[string]bool{}
 		walkNodes(tplate.Root, fname, nodeMap)
 
-		n := Nodes{
-			Parameters:     values(nodeMap, "Params"),
-			ImplicitParams: values(nodeMap, "Implicits"),
+		n := nodes{
+			parameters:     values(nodeMap, "Params"),
+			implicitParams: values(nodeMap, "Implicits"),
 		}
 		tNodes[fname] = n
 	}
