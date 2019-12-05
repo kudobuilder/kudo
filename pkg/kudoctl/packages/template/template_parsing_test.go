@@ -1,4 +1,4 @@
-package packages
+package template
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 )
 
 func TestTemplate_Parameters(t *testing.T) {
-	template := `apiVersion: policy/v1beta1
+	tplate := `apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
 metadata:
   name: {{ .Name }}-pdb
@@ -35,7 +35,7 @@ spec:
 	// {{ .Xyz.Foo }} added to tests to allow for additional extensions to templating which will be ignored by linter until they are add to the set of lint validators
 
 	var templates = Templates{}
-	templates["example.yaml"] = template
+	templates["example.yaml"] = tplate
 
 	tnodes := templates.Nodes()
 	nodes := tnodes["example.yaml"]
@@ -58,7 +58,7 @@ spec:
 }
 
 func TestBadTemplate(t *testing.T) {
-	template := `apiVersion: policy/v1beta1
+	tplate := `apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
 metadata:
   name: {{ .Name }}-pdb
@@ -67,7 +67,7 @@ metadata:
 
 `
 	var templates = Templates{}
-	templates["example.yaml"] = template
+	templates["example.yaml"] = tplate
 
 	tnodes := templates.Nodes()
 	nodes := tnodes["example.yaml"]
