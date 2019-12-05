@@ -31,6 +31,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const instanceCleanupFinalizerName = "kudo.dev.instance.cleanup"
+
 // InstanceSpec defines the desired state of Instance.
 type InstanceSpec struct {
 	// OperatorVersion specifies a reference to a specific Operator object.
@@ -159,6 +161,9 @@ const (
 
 	// UpdatePlanName is the name of the update plan
 	UpdatePlanName = "update"
+
+	// CleanupPlanName is the name of the cleanup plan
+	CleanupPlanName = "cleanup"
 )
 
 // IsTerminal returns true if the status is terminal (either complete, or in a nonrecoverable error)
@@ -387,8 +392,34 @@ func selectPlan(possiblePlans []string, ov *OperatorVersion) *string {
 	return nil
 }
 
+func (i *Instance) PlanStatus(plan string) *PlanStatus {
+	for _, planStatus := range i.Status.PlanStatus {
+		if planStatus.Name == plan {
+			return &planStatus
+		}
+	}
+
+	return nil
+}
+
 // GetPlanToBeExecuted returns name of the plan that should be executed
 func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
+	if i.IsDeleting() {
+		// we have a cleanup plan
+		plan := selectPlan([]string{CleanupPlanName}, ov)
+		if plan != nil {
+			if planStatus := i.PlanStatus(*plan); planStatus != nil {
+				if !planStatus.Status.IsRunning() {
+					if planStatus.Status.IsFinished() {
+						// we already finished the cleanup plan
+						return nil, nil
+					}
+					return plan, nil
+				}
+			}
+		}
+	}
+
 	if i.GetPlanInProgress() != nil { // we're already running some plan
 		return nil, nil
 	}
@@ -474,6 +505,71 @@ func parameterDifference(old, new map[string]string) map[string]string {
 	}
 
 	return diff
+}
+
+func contains(values []string, s string) bool {
+	for _, value := range values {
+		if value == s {
+			return true
+		}
+	}
+	return false
+}
+
+func remove(values []string, s string) (result []string) {
+	for _, value := range values {
+		if value == s {
+			continue
+		}
+		result = append(result, value)
+	}
+	return
+}
+
+// TryAddFinalizer adds the cleanup finalizer to an instance if the finalizer
+// hasn't been added yet, the instance has a cleanup plan and the cleanup plan
+// didn't run yet. Returns true if the cleanup finalizer has been added.
+func (i *Instance) TryAddFinalizer() bool {
+	if !contains(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
+		if planStatus := i.PlanStatus(CleanupPlanName); planStatus != nil {
+			// avoid adding a finalizer again if a reconciliation is requested
+			// after it has just been removed but the instance isn't deleted yet
+			if planStatus.Status == ExecutionNeverRun {
+				i.ObjectMeta.Finalizers = append(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// TryRemoveFinalizer removes the cleanup finalizer of an instance if it has
+// been added, the instance has a cleanup plan and the cleanup plan completed.
+// Returns true if the cleanup finalizer has been removed.
+func (i *Instance) TryRemoveFinalizer() bool {
+	if contains(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
+		if planStatus := i.PlanStatus(CleanupPlanName); planStatus != nil {
+			if planStatus.Status.IsTerminal() {
+				i.ObjectMeta.Finalizers = remove(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
+				return true
+			}
+		} else {
+			// We have a finalizer but no cleanup plan. This could be due to an updated instance.
+			// Let's remove the finalizer.
+			i.ObjectMeta.Finalizers = remove(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsDeleting returns true is the instance is being deleted.
+func (i *Instance) IsDeleting() bool {
+	// a delete request is indicated by a non-zero 'metadata.deletionTimestamp',
+	// see https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
+	return !i.ObjectMeta.DeletionTimestamp.IsZero()
 }
 
 // +genclient

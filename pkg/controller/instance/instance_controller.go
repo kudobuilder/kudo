@@ -105,6 +105,12 @@ func (r *Reconciler) SetupWithManager(
 //                  |
 //                  v
 //   +-------------------------------+
+//   | Start cleanup plan if object  |
+//   | is being deleted              |
+//   +-------------------------------+
+//                  |
+//                  v
+//   +-------------------------------+
 //   | Start new plan if required    |
 //   | and none is running           |
 //   +-------------------------------+
@@ -141,7 +147,19 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err // OV not found has to be retried because it can really have been created after Instance
 	}
 
-	// ---------- 2. First check if we should start execution of new plan ----------
+	// ---------- 2. Check if the object is being deleted, start cleanup plan ----------
+
+	if !instance.IsDeleting() {
+		if _, hasCleanupPlan := ov.Spec.Plans[kudov1beta1.CleanupPlanName]; hasCleanupPlan {
+			if instance.TryAddFinalizer() {
+				log.Printf("InstanceController: Adding finalizer on instance %s/%s", instance.Namespace, instance.Name)
+			}
+		}
+	} else {
+		log.Printf("InstanceController: Instance %s/%s is being deleted", instance.Namespace, instance.Name)
+	}
+
+	// ---------- 3. Check if we should start execution of new plan ----------
 
 	planToBeExecuted, err := instance.GetPlanToBeExecuted(ov)
 	if err != nil {
@@ -156,7 +174,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		r.Recorder.Event(instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", kudo.StringValue(planToBeExecuted)))
 	}
 
-	// ---------- 3. If there's currently active plan, continue with the execution ----------
+	// ---------- 4. If there's currently active plan, continue with the execution ----------
 
 	activePlanStatus := instance.GetPlanInProgress()
 	if activePlanStatus == nil { // we have no plan in progress
@@ -182,7 +200,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
 	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, &renderer.KustomizeEnhancer{Scheme: r.Scheme}, time.Now())
 
-	// ---------- 4. Update status of instance after the execution proceeded ----------
+	// ---------- 5. Update status of instance after the execution proceeded ----------
 	if newStatus != nil {
 		instance.UpdateInstanceStatus(newStatus)
 	}
@@ -206,7 +224,9 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance, client client.Client) error {
 	// update instance spec and metadata. this will not update Instance.Status field
-	if !reflect.DeepEqual(instance.Spec, oldInstance.Spec) || !reflect.DeepEqual(instance.ObjectMeta.Annotations, oldInstance.ObjectMeta.Annotations) {
+	if !reflect.DeepEqual(instance.Spec, oldInstance.Spec) ||
+		!reflect.DeepEqual(instance.ObjectMeta.Annotations, oldInstance.ObjectMeta.Annotations) ||
+		!reflect.DeepEqual(instance.ObjectMeta.Finalizers, oldInstance.ObjectMeta.Finalizers) {
 		instanceStatus := instance.Status.DeepCopy()
 		err := client.Update(context.TODO(), instance)
 		if err != nil {
@@ -222,6 +242,17 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 		log.Printf("InstanceController: Error when updating instance status. %v", err)
 		return err
 	}
+
+	// update instance metadata if finalizer is removed
+	// because Kubernetes might immediately delete the instance, this has to be the last instance update
+	if instance.TryRemoveFinalizer() {
+		log.Printf("InstanceController: Removing finalizer on instance %s/%s", instance.Namespace, instance.Name)
+		if err := client.Update(context.TODO(), instance); err != nil {
+			log.Printf("InstanceController: Error when removing instance finalizer. %v", err)
+			return err
+		}
+	}
+
 	return nil
 }
 
