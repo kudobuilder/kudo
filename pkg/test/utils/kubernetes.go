@@ -19,6 +19,8 @@ import (
 	"testing"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+
 	"github.com/google/shlex"
 	"github.com/kudobuilder/kudo/pkg/apis"
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -142,7 +144,7 @@ func NewRetryClient(cfg *rest.Config, opts client.Options) (*RetryClient, error)
 	}
 
 	if opts.Mapper == nil {
-		opts.Mapper, err = NewDynamicRESTMapper(cfg)
+		opts.Mapper, err = apiutil.NewDynamicRESTMapper(cfg)
 		if err != nil {
 			return nil, err
 		}
