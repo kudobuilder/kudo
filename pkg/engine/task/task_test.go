@@ -4,9 +4,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 func TestBuild(t *testing.T) {

@@ -6,8 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 	"github.com/spf13/afero"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 )
 
 func TestRepoList(t *testing.T) {

@@ -21,10 +21,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/apis"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+
+	"github.com/kudobuilder/kudo/pkg/apis"
 
 	"github.com/onsi/gomega"
 )

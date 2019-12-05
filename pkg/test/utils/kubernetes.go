@@ -20,8 +20,6 @@ import (
 	"time"
 
 	"github.com/google/shlex"
-	"github.com/kudobuilder/kudo/pkg/apis"
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/pmezard/go-difflib/difflib"
 	corev1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -29,6 +27,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"github.com/kudobuilder/kudo/pkg/apis"
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"

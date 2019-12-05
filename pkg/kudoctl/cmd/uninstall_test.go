@@ -5,12 +5,13 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func newTestClient() *kudo.Client {

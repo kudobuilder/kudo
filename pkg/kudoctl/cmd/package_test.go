@@ -6,9 +6,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 )
 
 func TestTableNewPackageCmd(t *testing.T) {

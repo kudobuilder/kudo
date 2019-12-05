@@ -5,8 +5,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
 const (

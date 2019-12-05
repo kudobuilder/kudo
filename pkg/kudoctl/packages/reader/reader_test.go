@@ -9,10 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 
 	"gotest.tools/assert"
 )

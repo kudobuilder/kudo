@@ -19,13 +19,14 @@ import (
 	"fmt"
 	"os"
 
+	apiextenstionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+
 	"github.com/kudobuilder/kudo/pkg/apis"
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
 	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
 	util "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/kudobuilder/kudo/pkg/version"
-	apiextenstionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"

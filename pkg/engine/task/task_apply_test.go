@@ -7,7 +7,6 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 
-	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/stretchr/testify/assert"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -16,6 +15,8 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kudobuilder/kudo/pkg/engine"
 )
 
 func TestApplyTask_Run(t *testing.T) {

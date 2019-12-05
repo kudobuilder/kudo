@@ -3,9 +3,10 @@ package plan
 import (
 	"fmt"
 
+	"github.com/xlab/treeprint"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
-	"github.com/xlab/treeprint"
 )
 
 // DefaultStatusOptions provides the default options for plan status

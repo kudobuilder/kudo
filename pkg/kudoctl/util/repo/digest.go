@@ -6,10 +6,11 @@ import (
 	"io"
 	"io/ioutil"
 
+	"github.com/spf13/afero"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
-	"github.com/spf13/afero"
 )
 
 // PackageFilesDigest is a tuple of data used to return the package files AND the digest of a tarball

@@ -6,9 +6,10 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/spf13/afero"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
-	"github.com/spf13/afero"
 )
 
 // Client represents an operator repository

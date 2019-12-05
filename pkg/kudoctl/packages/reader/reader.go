@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/spf13/afero"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/spf13/afero"
 )
 
 // ReadPackage creates the implementation of the packages based on the path. The expectation is the packages
