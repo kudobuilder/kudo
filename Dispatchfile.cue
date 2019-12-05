@@ -11,6 +11,12 @@ task "test": {
       name: "test"
       image: "kudobuilder/golang:1.13"
       command: [ "make", "test" ],
+      env: [
+        {
+          name: "KUBEBUILDER_ATTACH_CONTROL_PLANE_OUTPUT"
+          value: "true"
+        }
+      ]
       workingDir: "/workspace/src-git"
     }
   ]
@@ -38,6 +44,10 @@ task "integration-test": {
       env: [
         {
           name: "INTEGRATION_OUTPUT_JUNIT"
+          value: "true"
+        },
+        {
+          name: "KUBEBUILDER_ATTACH_CONTROL_PLANE_OUTPUT"
           value: "true"
         }
       ]
