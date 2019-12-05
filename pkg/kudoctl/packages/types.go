@@ -85,7 +85,7 @@ func (ts Templates) Nodes() TemplateNodes {
 	for fname, file := range ts {
 		// template nodes to be collected in a set
 		// fresh for each file
-		nodeSet := map[string]bool{}
+
 		e := renderer.New()
 		t := e.Template(fname)
 		// parse 1 template
@@ -100,15 +100,13 @@ func (ts Templates) Nodes() TemplateNodes {
 			continue
 		}
 		// cycle through all the nodes and collect Action nodes
-		nodes := walkNodes(tplate.Root, fname)
-		for _, node := range nodes {
-			tnode := trimNode(node)
-			nodeSet[tnode] = true
-		}
+		//nodeMap is a map of node types ("implicit", "Params") to a set of that type (which is go is a map :))
+		nodeMap := map[string]map[string]bool{}
+		walkNodes(tplate.Root, fname, nodeMap)
 
 		n := Nodes{
-			Parameters:     parameters(nodeSet),
-			ImplicitParams: implicits(nodeSet),
+			Parameters:     values(nodeMap, "Params"),
+			ImplicitParams: values(nodeMap, "Implicits"),
 		}
 		tNodes[fname] = n
 	}
@@ -117,94 +115,82 @@ func (ts Templates) Nodes() TemplateNodes {
 }
 
 //walkNodes walks the nodes of a template providing an array of parameters
-func walkNodes(node parse.Node, fname string) []string {
+func walkNodes(node parse.Node, fname string, nodeMap map[string]map[string]bool) {
 	switch node := node.(type) {
 	case *parse.ActionNode:
-		return walkPipes(node.Pipe)
+		walkPipes(node.Pipe, nodeMap)
 	//	if and with operate the same however we can't fail through in type switch
 	case *parse.IfNode:
-		list := walkNodes(node.List, fname)
-		elist := walkNodes(node.ElseList, fname)
-		list = append(list, elist...)
-		clist := walkPipes(node.Pipe)
-		return append(list, clist...)
+		walkNodes(node.List, fname, nodeMap)
+		walkNodes(node.ElseList, fname, nodeMap)
+		walkPipes(node.Pipe, nodeMap)
 	case *parse.WithNode:
-		list := walkNodes(node.List, fname)
-		elist := walkNodes(node.ElseList, fname)
-		list = append(list, elist...)
-		clist := walkPipes(node.Pipe)
-		return append(list, clist...)
+		walkNodes(node.List, fname, nodeMap)
+		walkNodes(node.ElseList, fname, nodeMap)
+		walkPipes(node.Pipe, nodeMap)
 	case *parse.ListNode:
-		list := []string{}
 		if node == nil {
-			return list
+			return
 		}
 		for _, n := range node.Nodes {
-			list = append(list, walkNodes(n, fname)...)
+			walkNodes(n, fname, nodeMap)
 		}
-		return list
 	case *parse.RangeNode: // no support for Range, Template or TextNodes
 	case *parse.TemplateNode:
 	case *parse.TextNode:
 	default:
 		clog.V(2).Printf("file %q has unknown node: %s", fname, node)
 	}
-	return []string{}
 }
 
 // walkPipes walks the pipes of specific block types which may contain params
-func walkPipes(node *parse.PipeNode) []string {
-	params := []string{}
+func walkPipes(node *parse.PipeNode, nodeMap map[string]map[string]bool) {
 	for _, cmd := range node.Cmds {
 		for _, arg := range cmd.Args {
-			switch arg.(type) {
+			switch n := arg.(type) {
 			case *parse.FieldNode:
-				if strings.HasPrefix(arg.String(), ".") {
-					params = append(params, arg.String())
+				// not evaluated
+				if len(n.Ident) < 1 {
+					return
+				}
+				//implicits have .Name which has 1 Indent
+				if len(n.Ident) == 1 {
+					addNodeSliceMap(nodeMap, "Implicits", trimNodeValue(arg.String()))
+					return
+				}
+				//	others like .Params.Foo  are deeper.   We currently only support 1 deep.
+				// .Params or similar is the key
+				addNodeSliceMap(nodeMap, n.Ident[0], n.Ident[1])
+				if len(n.Ident) > 2 {
+					clog.V(3).Printf("template node %v has more elements than is supported", arg.String())
 				}
 			}
 		}
 	}
-	return params
 }
 
-// parameters takes a map and returns Nodes (which is a []string).
-// map is used for set functionality (a goism)
-// parameters converts array of Nodes to just nodes of parameters (those prefixed with "Params.") and strips the prefix
-func parameters(nodes map[string]bool) []string {
-
-	fields := []string{}
-
-	for k := range nodes {
-		if strings.HasPrefix(k, ".Params.") {
-			fields = append(fields, trimParam(k))
-		}
+func ensureNodeMapFor(nodeMap map[string]map[string]bool, key string) {
+	if _, ok := nodeMap[key]; !ok {
+		nodeMap[key] = make(map[string]bool)
 	}
-	return fields
 }
 
-// implicits takes a map and returns implicits (which is a []string).
-// map is used for set functionality (a goism)
-func implicits(nodes map[string]bool) []string {
+func addNodeSliceMap(nodeMap map[string]map[string]bool, key string, value string) {
+	ensureNodeMapFor(nodeMap, key)
+	nodeMap[key][value] = true
+}
 
-	fields := []string{}
+func trimNodeValue(s string) string {
+	return strings.TrimPrefix(s, ".")
+}
 
-	for k := range nodes {
-		if !strings.Contains(k, ".Params.") {
-			fields = append(fields, strings.TrimPrefix(k, "."))
-		}
+// values takes a map of map node values and provides a slice of values
+func values(nodeMap map[string]map[string]bool, key string) []string {
+	var v []string
+	for k := range nodeMap[key] {
+		v = append(v, k)
 	}
-	return fields
-}
-
-// takes string with "{{" prefix and "}}" suffix and removes prefix and suffix
-func trimNode(s string) string {
-	return strings.TrimSuffix(strings.TrimPrefix(s, "{{"), "}}")
-}
-
-// takes string with ".Params." prefix and removes prefix
-func trimParam(s string) string {
-	return strings.TrimPrefix(s, ".Params.")
+	return v
 }
 
 // Files represents the raw operator package format the way it is found in the tgz packages
