@@ -129,7 +129,7 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (initCmd *initCmd) run() error {
-	opts := cmdInit.NewOptions(initCmd.version, initCmd.ns, []string{initCmd.webhooks})
+	opts := cmdInit.NewOptions(initCmd.version, initCmd.ns, webhooksArray(initCmd.webhooks))
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image
@@ -208,6 +208,13 @@ func (initCmd *initCmd) run() error {
 	}
 
 	return nil
+}
+
+func webhooksArray(webhooksAsStr string) []string {
+	if webhooksAsStr == "" {
+		return []string{}
+	}
+	return strings.Split(webhooksAsStr, ",")
 }
 
 // YAMLWriter writes yaml to writer.   Looked into using https://godoc.org/gopkg.in/yaml.v2#NewEncoder which
