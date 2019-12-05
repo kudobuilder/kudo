@@ -99,7 +99,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.BoolVar(&i.crdOnly, "crd-only", false, "Add only KUDO CRDs to your cluster")
 	f.BoolVarP(&i.wait, "wait", "w", false, "Block until KUDO manager is running and ready to receive requests")
 	f.Int64Var(&i.timeout, "wait-timeout", 300, "Wait timeout to be used")
-	f.StringVar(&i.webhooks, "webhook", "", "List of webhooks exposed, when empty, no webhook server will be started (the only webhook right now is InstanceValidation)")
+	f.StringVar(&i.webhooks, "webhook", "", "List of webhooks to install separated by commas (One of: InstanceValidation)")
 
 	return cmd
 }
@@ -121,7 +121,7 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 		return errors.New("wait-timeout is only useful when using the flag '--wait'")
 	}
 	if initCmd.webhooks != "" && initCmd.webhooks != "InstanceValidation" {
-		return errors.New("webhooks can be only empty or contain a single string 'InstanceValidation'. No other webhooks supported right now")
+		return errors.New("webhooks can be only empty or contain a single string 'InstanceValidation'. No other webhooks supported")
 	}
 
 	return nil

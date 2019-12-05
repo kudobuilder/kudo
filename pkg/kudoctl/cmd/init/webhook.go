@@ -138,7 +138,7 @@ func certificate(ns string) []unstructured.Unstructured {
 	}
 }
 
-// PrereWebhookManifests provides webhook related resources as set of strings with serialized yaml
+// WebhookManifests provides webhook related resources as set of strings with serialized yaml
 func WebhookManifests(ns string) ([]string, error) {
 	av := instanceUpdateValidatingWebhook(ns)
 	cert := certificate(ns)
