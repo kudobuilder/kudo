@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-var (
+const (
 	pipeTaskError = "PipeTaskError"
 
 	// name of the main pipe pod container

@@ -131,7 +131,7 @@ func Test_validate(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "a valid pipe pod with one init container",
+			name: "a valid pipe-pod with one init container",
 			podYaml: `
 apiVersion: v1
 kind: Pod
@@ -160,7 +160,7 @@ spec:
 			wantErr: false,
 		},
 		{
-			name: "an valid pipe pod with a container",
+			name: "an invalid pipe-pod with a container",
 			podYaml: `
 apiVersion: v1
 kind: Pod
@@ -189,7 +189,7 @@ spec:
 			wantErr: true,
 		},
 		{
-			name: "an invalid pipe pod with wrong volume mount",
+			name: "an invalid pipe-pod with wrong volume mount",
 			podYaml: `
 apiVersion: v1
 kind: Pod
@@ -219,7 +219,7 @@ spec:
 			wantErr: true,
 		},
 		{
-			name: "a valid pipe pod with at least one emptyDir volume mount",
+			name: "a valid pipe-pod with two volumes, one of which is emptyDir type",
 			podYaml: `
 apiVersion: v1
 kind: Pod
@@ -251,7 +251,38 @@ spec:
 			wantErr: false,
 		},
 		{
-			name: "an invalid pipe pod where init container does not mount shared volume",
+			name: "an invalid pipe-pod with two emptyDir volumes",
+			podYaml: `
+apiVersion: v1
+kind: Pod
+spec:
+  volumes:
+  - name: shared-data-one
+    emptyDir: {}
+  - name: shared-data-two
+    emptyDir: {}
+
+  initContainers:
+    - name: init
+      image: busybox
+      command: [ "/bin/sh", "-c" ]
+      args:
+        - touch /tmp/foo.txt
+      volumeMounts:
+        - name: shared-data-one
+          mountPath: /tmp
+`,
+			ff: []PipeFile{
+				{
+					File: "/tmp/foo.txt",
+					Kind: PipeFileKindSecret,
+					Key:  "foo",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "an invalid pipe-pod where init container does not mount shared volume",
 			podYaml: `
 apiVersion: v1
 kind: Pod
@@ -283,7 +314,7 @@ spec:
 			wantErr: true,
 		},
 		{
-			name: "an invalid pipe pod where init container does not mount shared volume",
+			name: "an invalid pipe-pod where init container does not mount shared volume",
 			podYaml: `
 apiVersion: v1
 kind: Pod
