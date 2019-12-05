@@ -240,31 +240,21 @@ func namespace(namespace string) *v1.Namespace {
 // Validate whether the serviceAccount exists
 func validateServiceAccountExists(client corev1.ServiceAccountsGetter, opts Options) error {
 
-	serviceAccountExists := false
-
 	saList, err := client.ServiceAccounts(opts.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	for _, sa := range saList.Items {
 		if sa.Name == opts.ServiceAccount {
-			serviceAccountExists = true
-			break
+			return nil
 		}
 	}
 
-	if !serviceAccountExists {
-		return fmt.Errorf("Service Account %s does not exists - KUDO expects the serviceAccount to be present", opts.ServiceAccount)
-	}
-	return nil
+	return fmt.Errorf("Service Account %s does not exists - KUDO expects the serviceAccount to be present in the namespace %s", opts.ServiceAccount, opts.Namespace)
 }
 
 // Validate whether the serviceAccount has cluster-admin role
 func validateClusterAdminRoleForSA(client kubernetes.Interface, opts Options) error {
-
-	saCheck := false
-	nsCheck := false
-	crCheck := false
 
 	// Check whether the serviceAccount has clusterrolebinding cluster-admin
 	crbs, err := client.RbacV1().ClusterRoleBindings().List(metav1.ListOptions{})
@@ -273,32 +263,12 @@ func validateClusterAdminRoleForSA(client kubernetes.Interface, opts Options) er
 	}
 
 	for _, crb := range crbs.Items {
-		// Check whether the serviceAccount is part of the cluster-admin clusterrolebindings Subject's
 		for _, subject := range crb.Subjects {
-			if subject.Name == opts.ServiceAccount {
-				saCheck = true
-				if subject.Namespace == opts.Namespace {
-					nsCheck = true
-					if crb.RoleRef.Name == "cluster-admin" {
-						crCheck = true
-						break
-					}
-				}
+			if subject.Name == opts.ServiceAccount && subject.Namespace == opts.Namespace && crb.RoleRef.Name == "cluster-admin" {
+				return nil
 			}
 		}
 	}
 
-	if !saCheck {
-		return fmt.Errorf("Service Account %s does not exist in clusterrolebindings - KUDO expects the serviceAccount passed to have cluster-admin role created", opts.ServiceAccount)
-	}
-
-	if !nsCheck {
-		return fmt.Errorf("Service Account %s is not in the expected Namespace - KUDO expects the serviceAccount to be in the namespace %s", opts.ServiceAccount, opts.Namespace)
-	}
-
-	if !crCheck {
-		return fmt.Errorf("Service Account %s does not have cluster-admin role - KUDO expects the serviceAccount passed to have cluster-admin role", opts.ServiceAccount)
-	}
-
-	return nil
+	return fmt.Errorf("Service Account %s does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace %s and to have cluster-admin role", opts.ServiceAccount, opts.Namespace)
 }
