@@ -105,8 +105,8 @@ func (r *Reconciler) SetupWithManager(
 //                  |
 //                  v
 //   +-------------------------------+
-//   | Start cleanup plan if object  |
-//   | is being deleted              |
+//   | Update finalizers if cleanup  |
+//   | plan exists                   |
 //   +-------------------------------+
 //                  |
 //                  v
