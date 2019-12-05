@@ -112,6 +112,7 @@ Integrated into `kudo init --upgrade`
 Write specific migration code that targets a KUDO manager version range and executes manual migration steps. 
 
 Each migration should have a validate-step that checks if the migration is possible.
+  - This might be problematic if multiple steps are to be executed - Can we validate a steps before the previous one is applied?
 
 The update for prerequisites is tied to the version of KUDO manager:
 - There is a list of migrations:
@@ -121,9 +122,6 @@ The update for prerequisites is tied to the version of KUDO manager:
 - KUDO CLI checks installed version of manager
 - Every migration step after the installed version is executed
 - Every migration step only migrates the prerequisites from the previous version to the marked version of the migration
-
-**Alternative update process**
-- Can we just delete them all and reinstall them? Probably not
 
 ### KUDO Manager
 Expected update frequency: High  
@@ -137,10 +135,8 @@ need to be updated.
 Integrated into `kudo init --upgrade`
 
 - Use semantic versioning for the manager binary
-  - ToBeDiscussed: Use different versioning for Manager and CLI?
-- The manager needs to be shut down before updating the CRDs
-  - As soon as the new CRD is installed and marked as "stored"
-  - Without WebHook Conversion, even if the new CRD version is "served", the old content is returned without any conversion
+- As updates to the same CRD version should be backwards compatible, the manager can keep running while the CRD version is updated
+- After CRD update we can deploy the new manager version 
 - Question: Do we need to ensure that the manager is not doing meaningful work at the moment, or can we just update the deployment?
 
 ### CRDs
@@ -156,10 +152,13 @@ fields.
     - WebHook conversion since 1.16
   - WebHook conversion would allow us to transparently switch to a new CRD version without manually migrating all existing CRs
 - CRD versioning
-  - Currently we have one global version for all CRDs
-  - Alternatively, we could have a one version per CRD
-  - Single version should be ok, in the worst case we have empty migrations
-  - One version for each CRD would require complex compatibility matrix
+  - If we want to keep the same API change conventions as K8s, we will have a slow development pace and probably a lot of version changes
+  - We *could* go with less strict conventions - if we ensure that the used KUDO CLI version is at least as high as the installed KUDO manager, 
+  we could add new (optional) fields in the CRDs and be sure that the fields are not dropped when round tripping from the cluster to CLI and 
+  back to the cluster.
+  - If we have only the CRD version to rely on, we can add new optional fields, but have to accept the risk that an older version of the CLI
+  silently drops the fields, as it doesn't know about them. (Correct me here if I'm wrong)
+  - More breaking changes (removing fields, making fields required, renaming fields, etc. ) require a CRD version change
 
 #### Proposal for update process
 Integrated into `kudo init --upgrade`
@@ -173,6 +172,8 @@ KUDO CLI is the command line tool to manage KUDO. It will be often updated to ad
 to be in sync with the installed CRDs, as it's writing them directly with the K8s extension API.
 
 - Do we allow an older KUDO CLI to be used with a newer KUDO installation?
+  - No. We would run into problems with the old KUDO CLI silently removing new fields from the CRDs
+
 
 #### Proposal for update process
 User has to download newest KUDO version, either manually or via `brew` or other means.
