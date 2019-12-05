@@ -147,7 +147,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err // OV not found has to be retried because it can really have been created after Instance
 	}
 
-	// ---------- 2. Check if the object is being deleted, start cleanup plan ----------
+	// ---------- 2. Check if the object is being deleted ----------
 
 	if !instance.IsDeleting() {
 		if _, hasCleanupPlan := ov.Spec.Plans[kudov1beta1.CleanupPlanName]; hasCleanupPlan {
