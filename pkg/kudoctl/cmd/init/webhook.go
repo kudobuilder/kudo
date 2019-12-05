@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,6 +14,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientv1beta1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 // installInstanceValidatingWebhook applies kubernetes resources related to the webhook to the cluster

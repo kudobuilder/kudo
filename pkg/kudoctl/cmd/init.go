@@ -6,15 +6,15 @@ import (
 	"io"
 	"strings"
 
+	"github.com/spf13/afero"
+	"github.com/spf13/cobra"
+	flag "github.com/spf13/pflag"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	cmdInit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
-
-	"github.com/spf13/afero"
-	"github.com/spf13/cobra"
-	flag "github.com/spf13/pflag"
 )
 
 const (
