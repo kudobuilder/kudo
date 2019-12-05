@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	// ErrCommandExecution is returned for command with an exit code > 0
+	// ErrCommandFailed is returned for command executions with an exit code > 0
 	ErrCommandFailed = errors.New("command failed: ")
 )
 
