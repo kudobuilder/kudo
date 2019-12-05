@@ -145,10 +145,10 @@ func (TemplateReferenceVerifier) Verify(pf *packages.Files) (warnings ParamWarni
 	}
 
 	// conflated a bit...  the loop 1) confirms that all resources are defined templates, and 2) creates a map of all resources for next verification
-	defined := make(map[string]bool)
+	requiredTemplates := make(map[string]bool)
 	for _, task := range pf.Operator.Tasks {
 		for _, resource := range task.Spec.Resources {
-			defined[resource] = true
+			requiredTemplates[resource] = true
 			if _, ok := templates[resource]; !ok {
 				errors = append(errors, ParamError(fmt.Sprintf("template %q required by %v but not defined", resource, task.Name)))
 			}
@@ -156,8 +156,8 @@ func (TemplateReferenceVerifier) Verify(pf *packages.Files) (warnings ParamWarni
 	}
 
 	for template := range templates {
-		if _, ok := defined[template]; !ok {
-			warnings = append(warnings, ParamWarning(fmt.Sprintf("template %q is not used as a resource", template)))
+		if _, ok := requiredTemplates[template]; !ok {
+			warnings = append(warnings, ParamWarning(fmt.Sprintf("template %q is not referenced from any task", template)))
 		}
 	}
 
