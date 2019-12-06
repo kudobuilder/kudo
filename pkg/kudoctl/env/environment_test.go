@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
-
 	"github.com/spf13/pflag"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 )
 
 func TestEnvSettings(t *testing.T) {

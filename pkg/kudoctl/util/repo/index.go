@@ -8,11 +8,11 @@ import (
 	"sort"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-
 	"github.com/Masterminds/semver"
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
 const defaultURL = "http://localhost/"

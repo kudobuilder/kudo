@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/kudobuilder/kudo/pkg/version"
-
 	"github.com/spf13/cobra"
+
+	"github.com/kudobuilder/kudo/pkg/version"
 )
 
 var (

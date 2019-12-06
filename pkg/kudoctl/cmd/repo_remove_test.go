@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
-
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 )
 
 func TestRemoveWithoutArg(t *testing.T) {

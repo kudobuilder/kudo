@@ -5,13 +5,11 @@ import (
 	"testing"
 
 	"gotest.tools/assert"
-
-	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
