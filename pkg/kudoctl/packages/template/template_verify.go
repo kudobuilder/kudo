@@ -3,6 +3,7 @@ package template
 import (
 	"fmt"
 
+	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
 )
@@ -82,10 +83,21 @@ func (ReferenceVerifier) Verify(pf *packages.Files) (warnings verifier.ParamWarn
 	// conflated a bit...  the loop 1) confirms that all resources are defined templates, and 2) creates a map of all resources for next verification
 	requiredTemplates := make(map[string]bool)
 	for _, task := range pf.Operator.Tasks {
-		for _, resource := range task.Spec.Resources {
-			requiredTemplates[resource] = true
-			if _, ok := templates[resource]; !ok {
-				errors = append(errors, verifier.ParamError(fmt.Sprintf("template %q required by %v but not defined", resource, task.Name)))
+		var resources []string
+		switch task.Kind {
+		case engtask.ApplyTaskKind:
+			resources = task.Spec.ResourceTaskSpec.Resources
+		case engtask.DeleteTaskKind:
+			resources = task.Spec.ResourceTaskSpec.Resources
+		case engtask.PipeTaskKind:
+			resources = append(resources, task.Spec.PipeTaskSpec.Pod)
+		default:
+		}
+
+		for _, r := range resources {
+			requiredTemplates[r] = true
+			if _, ok := templates[r]; !ok {
+				errors = append(errors, verifier.ParamError(fmt.Sprintf("template %q required by %v but not defined", r, task.Name)))
 			}
 		}
 	}

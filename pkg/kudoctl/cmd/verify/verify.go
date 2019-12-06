@@ -16,12 +16,12 @@ var verifiers = []verifier.PackageVerifier{
 	template.ReferenceVerifier{},
 }
 
-// Operator verifies operator package files
-func Operator(pf *packages.Files) (warnings verifier.ParamWarnings, errors verifier.ParamErrors) {
+// PackageFiles verifies operator package files
+func PackageFiles(pf *packages.Files) (warnings verifier.ParamWarnings, errors verifier.ParamErrors) {
 	for _, verifier := range verifiers {
-		w, err := verifier.Verify(pf)
-		warnings = append(warnings, w...)
-		errors = append(errors, err...)
+		ws, errs := verifier.Verify(pf)
+		warnings = append(warnings, ws...)
+		errors = append(errors, errs...)
 	}
 	return warnings, errors
 }

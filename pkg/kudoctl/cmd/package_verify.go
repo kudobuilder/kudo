@@ -48,7 +48,7 @@ func verifyPackage(fs afero.Fs, path string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	warnings, errors := verify.Operator(pf)
+	warnings, errors := verify.PackageFiles(pf)
 	if warnings != nil {
 		printWarnings(out, warnings)
 	}
