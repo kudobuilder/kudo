@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/template"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/template"
 )
 
 var verifiers = []verifier.PackageVerifier{
