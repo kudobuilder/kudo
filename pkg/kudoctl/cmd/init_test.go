@@ -125,6 +125,7 @@ func TestInitCmd_yamlOutput(t *testing.T) {
 	}{
 		{"custom namespace", "deploy-kudo-ns.yaml", map[string]string{"dry-run": "true", "output": "yaml", "namespace": "foo"}},
 		{"yaml output", "deploy-kudo.yaml", map[string]string{"dry-run": "true", "output": "yaml"}},
+		{"service account", "deploy-kudo-sa.yaml", map[string]string{"dry-run": "true", "output": "yaml", "service-account": "safoo", "namespace": "foo"}},
 	}
 
 	for _, tt := range tests {
@@ -156,42 +157,6 @@ func TestInitCmd_yamlOutput(t *testing.T) {
 			t.Fatalf("failed reading .golden: %s", err)
 		}
 
-		assert.Equal(t, string(g), out.String(), "for golden file: %s", gp)
-	}
-
-}
-
-func TestInitCmd_ServiceAccount(t *testing.T) {
-	file := "deploy-kudo-sa.yaml"
-	fs := afero.NewMemMapFs()
-	out := &bytes.Buffer{}
-	initCmd := newInitCmd(fs, out)
-	Settings.AddFlags(initCmd.Flags())
-	flags := map[string]string{"dry-run": "true", "output": "yaml", "service-account": "safoo", "namespace": "foo"}
-
-	for flag, value := range flags {
-		if err := initCmd.Flags().Set(flag, value); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if err := initCmd.RunE(initCmd, []string{}); err != nil {
-		t.Fatal(err)
-	}
-
-	gp := filepath.Join("testdata", file+".golden")
-
-	if *updateGolden {
-		t.Log("update golden file")
-		if err := ioutil.WriteFile(gp, out.Bytes(), 0644); err != nil {
-			t.Fatalf("failed to update golden file: %s", err)
-		}
-	}
-	g, err := ioutil.ReadFile(gp)
-	if err != nil {
-		t.Fatalf("failed reading .golden: %s", err)
-	}
-
-	if !bytes.Equal(out.Bytes(), g) {
 		assert.Equal(t, string(g), out.String(), "for golden file: %s", gp)
 	}
 
