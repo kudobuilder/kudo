@@ -48,24 +48,27 @@ and finishes with success if KUDO is already installed.
   kubectl kudo init --crd-only
   # delete crds
   kubectl kudo init --crd-only --dry-run --output yaml | kubectl delete -f -
+  # pass existing serviceaccount 
+  kubectl kudo init --service-account testaccount
 `
 )
 
 type initCmd struct {
-	out        io.Writer
-	fs         afero.Fs
-	image      string
-	dryRun     bool
-	output     string
-	version    string
-	ns         string
-	wait       bool
-	timeout    int64
-	clientOnly bool
-	crdOnly    bool
-	home       kudohome.Home
-	client     *kube.Client
-	webhooks   string
+	out            io.Writer
+	fs             afero.Fs
+	image          string
+	dryRun         bool
+	output         string
+	version        string
+	ns             string
+	serviceAccount string
+	wait           bool
+	timeout        int64
+	clientOnly     bool
+	crdOnly        bool
+	home           kudohome.Home
+	client         *kube.Client
+	webhooks       string
 }
 
 func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
@@ -100,6 +103,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.BoolVarP(&i.wait, "wait", "w", false, "Block until KUDO manager is running and ready to receive requests")
 	f.Int64Var(&i.timeout, "wait-timeout", 300, "Wait timeout to be used")
 	f.StringVar(&i.webhooks, "webhook", "", "List of webhooks to install separated by commas (One of: InstanceValidation)")
+	f.StringVarP(&i.serviceAccount, "service-account", "", "", "Override for the default serviceAccount kudo-manager")
 
 	return cmd
 }
@@ -129,7 +133,7 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (initCmd *initCmd) run() error {
-	opts := cmdInit.NewOptions(initCmd.version, initCmd.ns, webhooksArray(initCmd.webhooks))
+	opts := cmdInit.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks))
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image

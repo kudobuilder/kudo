@@ -38,6 +38,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca
 	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
+	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/sys v0.0.0-20191025090151-53bf42e6b339 // indirect
 	golang.org/x/tools v0.0.0-20191025023517-2077df36852e // indirect
 	gopkg.in/yaml.v2 v2.2.4

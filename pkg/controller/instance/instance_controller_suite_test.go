@@ -70,7 +70,7 @@ func TestSpecParameterDifference(t *testing.T) {
 	var old = map[string]string{"one": "1", "two": "2"}
 
 	for _, test := range testParams {
-		diff := parameterDifference(old, test.new)
+		diff := parameterDiff(old, test.new)
 		g.Expect(diff).Should(gomega.Equal(test.diff), test.name)
 	}
 }

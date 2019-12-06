@@ -88,7 +88,7 @@ func TestApplyTask_Run(t *testing.T) {
 			},
 		},
 		{
-			name: "succeeds when the resource is healthy (unknown type Pod is marked healthy by default)",
+			name: "succeeds when the resource is healthy (pod has PodStatus.Phase = Running)",
 			task: ApplyTask{
 				Name:      "task",
 				Resources: []string{"pod"},
@@ -143,6 +143,9 @@ func pod(name string, namespace string) *corev1.Pod {
 			Namespace: namespace,
 		},
 		Spec: corev1.PodSpec{},
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+		},
 	}
 	return pod
 }

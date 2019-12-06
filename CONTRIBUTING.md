@@ -13,7 +13,7 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 ## Contributing Steps
 
 1. Submit an issue describing your proposed change to the repo in question.
-2. The [repo owners](https://github.com/kudobuilder/kudo/blob/master/OWNERS) will respond to your issue promptly.
+2. The [repo owners](https://github.com/kudobuilder/kudo/blob/master/.github/CODEOWNERS) will respond to your issue promptly.
 3. If your proposed change is accepted, and you haven't already done so, sign a Contributor License Agreement (see details above).
 4. Fork the desired repo, develop and test your code changes.
 5. Submit a pull request.
@@ -33,12 +33,24 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 - Get the KUDO repo: `git clone https://github.com/kudobuilder/kudo.git`
 - `cd kudo`
 - Export `GOPATH` (this is necessary because of an issue in [codegenerator](https://github.com/kubernetes/code-generator/issues/87))
-- `make all` to build project
-- [optionally] `make docker-build` to build the Docker images
+- `make all` to build manager as well as CLI
+- [optionally] `make docker-build` to build the manager Docker images
 
-When updating the structs under [APIs](https://github.com/kudobuilder/kudo/blob/master/pkg/apis/), or any other code generated item, use `make generate` to generate the new DeepCopy structs. Use `make manifests` to generate out new YAML manifests representing these CRDs.
+When updating the structs under [APIs](https://github.com/kudobuilder/kudo/blob/master/pkg/apis/), or any other code generated item, use `make generate` to generate the new DeepCopy structs.
 
-After updating CRD manifests, use `make deploy` to apply the new CRDs to your cluster.
+#### Running manager locally
+The most convenient way to test new controller code is to run the manager locally. It will use kubernetes cluster defined via your local kubeconfig to talk to API server and resolve CRDs. You can run manager locally via `make run`.
+
+Make sure your local cluster has up to date CRDs. You can deploy new CRDs with `make deploy`. Beware that `make deploy` also deploys manager into your cluster (`kubectl get deployments -n kudo-system`) and it will be the latest stable manager, not the one from your current git. If you plan to run your own manager, just delete the one in your cluster via `kubectl delete deployment kudo-controller-manager -n kudo-system`
+
+#### Testing new CLI
+You can build CLI locally via `make cli`. After running that command, CLI will be available in `bin/kubectl-kudo` and you can invoke the command for example like this `bin/kubectl-kudo init` (no need to install it as kubectl plugin).
+
+#### Running new manager inside cluster
+For some situations, it might make sense to test your manager inside a real cluster running in a pod (not just running the binary locally). To do that you need:
+- build a docker image with the manager locally `DOCKER_IMG=nameofyourimage make docker-build`
+- push the image to a remote repository `DOCKER_IMG=nameofyourimage make docker-push`
+- run `kubectl kudo init --kudo-image nameofyourimage:tag`
 
 ### Testing
 
@@ -97,7 +109,7 @@ It is unlikely an enhancement if it is:
 - performance improvements, which are only visible to users as faster API operations, or faster control loops
 - adding error messages or events
 
-If you are not sure, ask someone in the [#kudo](https://kubernetes.slack.com/messages/kudo/) channel on Slack or ping someone listed in [OWNERS](https://github.com/kudobuilder/kudo/blob/master/OWNERS).
+If you are not sure, ask someone in the [#kudo](https://kubernetes.slack.com/messages/kudo/) channel on Slack or ping someone listed in [CODEOWNERS](https://github.com/kudobuilder/kudo/blob/master/.github/CODEOWNERS).
 
 ### When to Create a New Enhancement Issue
 

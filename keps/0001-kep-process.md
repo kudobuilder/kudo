@@ -116,7 +116,7 @@ will impact a large section of the development community should also be
 communicated widely. The KEP process is suited for this even if it will have
 zero impact on the typical user or operator.
 
-As the local bodies of governance, OWNERSs should have broad latitude in describing
+As the local bodies of governance, OWNERs should have broad latitude in describing
 what constitutes an enhancement which should be tracked through the KEP process.
 OWNERs may find that helpful to enumerate what _does not_ require a KEP rather
 than what does. OWNERs also have the freedom to customize the KEP template
@@ -167,7 +167,6 @@ Metadata items:
     In the future we may enhance this to include other types of identification.
 * **owners** Required
   * An OWNER is the person or entity that works on the proposal.
-  * OWNERs consist of `approvers` and `reviewers` joined from the [OWNERS](https://github.com/kudobuilder/kudo/blob/master/OWNERS) file  
   * OWNERs are listed as `@owner` where the name matches up with the Github ID.
   * The OWNER that is most closely associated with this KEP. If there is code or
     other artifacts that will result from this KEP, then it is expected that
