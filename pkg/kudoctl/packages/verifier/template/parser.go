@@ -107,6 +107,15 @@ func walkNodes(node parse.Node, fname string, nodeMap map[string]map[string]bool
 	}
 }
 
+/*
+ Regarding template node parsing.  The underlying field information of a node (for instances it's text) is packaged as
+args to commands (please review more in parse.Nodes in the go core for more detail).  The arg type we are interested in is FieldNodes
+which in the template could be {{.Name}}, {{.Params.Name}} or {{.Params.Foo.Bar}}.   It is at this point in processing (below switch case parse.FieldNode)
+that we know must the type of field we are processing.   The number of dot separated strings is the "Ident" of this field.  If an "Ident" of 0 is possible
+it isn't useful to KUDO.  If there is 1, that is an implicit field and will be mapped as an implicit.  If there are 2 it is something like
+{{.Params.Foo}} or {{.Pipes.Foo}} and will be mapped with it's kind.   Greater than 2 is not supported in KUDO.
+ */
+
 // walkPipes walks the pipes of specific block types which may contain params
 func walkPipes(node *parse.PipeNode, nodeMap map[string]map[string]bool) {
 	for _, cmd := range node.Cmds {
