@@ -6,13 +6,14 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/verify"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
 
 	"github.com/gosuri/uitable"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
 
-//TODO (kensipe): add long desc
+// package verify provides verification or linting checks against the package passed to the command.
 
 type packageVerifyCmd struct {
 	fs  afero.Fs
@@ -47,7 +48,7 @@ func verifyPackage(fs afero.Fs, path string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	warnings, errors := verify.Parameters(pf.Params.Parameters)
+	warnings, errors := verify.PackageFiles(pf)
 	if warnings != nil {
 		printWarnings(out, warnings)
 	}
@@ -57,12 +58,9 @@ func verifyPackage(fs afero.Fs, path string, out io.Writer) error {
 	}
 	printErrors(out, errors)
 	return fmt.Errorf("package verification errors: %v", len(errors))
-	//TODO (kensipe): add linting
-	// 2. warning on params not used
-	// 3. error on param in template not defined
 }
 
-func printErrors(out io.Writer, errors verify.ParamErrors) {
+func printErrors(out io.Writer, errors verifier.Errors) {
 	table := uitable.New()
 	table.AddRow("Errors")
 	for _, err := range errors {
@@ -71,7 +69,7 @@ func printErrors(out io.Writer, errors verify.ParamErrors) {
 	fmt.Fprintln(out, table)
 }
 
-func printWarnings(out io.Writer, warnings verify.ParamWarnings) {
+func printWarnings(out io.Writer, warnings verifier.Warnings) {
 	table := uitable.New()
 	table.AddRow("Warnings")
 	for _, warning := range warnings {
