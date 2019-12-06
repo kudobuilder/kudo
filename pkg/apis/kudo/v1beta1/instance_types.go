@@ -21,14 +21,12 @@ import (
 	"log"
 	"reflect"
 
-	"k8s.io/apimachinery/pkg/util/uuid"
-
-	apimachinerytypes "k8s.io/apimachinery/pkg/types"
-
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apimachinerytypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
+
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 // InstanceSpec defines the desired state of Instance.

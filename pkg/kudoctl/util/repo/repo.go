@@ -5,13 +5,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
-
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 )
 
 // A repository is a http backed service which holds operators and an index file for those operators.

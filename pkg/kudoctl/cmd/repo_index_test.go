@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
-
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
 func TestRepoIndexCmd(t *testing.T) {

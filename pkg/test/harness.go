@@ -12,10 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/controller/instance"
-	"github.com/kudobuilder/kudo/pkg/controller/operator"
-	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
-
 	volumetypes "github.com/docker/docker/api/types/volume"
 	docker "github.com/docker/docker/client"
 	"k8s.io/client-go/discovery"
@@ -31,6 +27,9 @@ import (
 	"sigs.k8s.io/kind/pkg/container/cri"
 
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/controller/instance"
+	"github.com/kudobuilder/kudo/pkg/controller/operator"
+	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 

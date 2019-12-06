@@ -3,12 +3,12 @@ package cmd
 import (
 	"io"
 
+	"github.com/spf13/afero"
+	"github.com/spf13/cobra"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/version"
-
-	"github.com/spf13/afero"
-	"github.com/spf13/cobra"
 )
 
 var (

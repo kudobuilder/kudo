@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/verify"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
-
 	"github.com/gosuri/uitable"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/verify"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 )
 
 //TODO (kensipe): add long desc

@@ -7,12 +7,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/test"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (

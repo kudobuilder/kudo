@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/magiconair/properties/assert"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-
-	"github.com/magiconair/properties/assert"
 )
 
 var update = flag.Bool("update", false, "update .golden files")

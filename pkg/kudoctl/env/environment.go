@@ -4,11 +4,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
-
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/util/homedir"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
 // DefaultKudoHome is the default KUDO_HOME. We put .kudo file in the same directory where k8s keeps
