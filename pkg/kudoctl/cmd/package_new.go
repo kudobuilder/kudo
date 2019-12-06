@@ -18,7 +18,7 @@ import (
 const (
 	pkgNewDesc = `Create a new KUDO operator on the local filesystem`
 
-	pkgNewExample = `  # Create a new KUDO operator name foo 
+	pkgNewExample = `  # Create a new KUDO operator name foo
   kubectl kudo package new foo
 `
 )
