@@ -12,6 +12,7 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dustinkirkland/golang-petname v0.0.0-20170921220637-d3c2ba80e75e
+	github.com/go-logr/logr v0.1.0
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golangci/golangci-lint v1.21.0
 	github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf

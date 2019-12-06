@@ -3,8 +3,6 @@ package init
 import (
 	"fmt"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -13,6 +11,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 )
 
 //Defines the Prerequisites that need to be in place to run the KUDO manager.  This includes setting up the kudo-system namespace and service account
@@ -41,21 +41,7 @@ func installPrereqs(client kubernetes.Interface, opts Options) error {
 			return err
 		}
 	}
-
-	if err := installSecret(client.CoreV1(), opts); err != nil {
-		return err
-	}
 	return nil
-}
-
-func installSecret(client corev1.SecretsGetter, opts Options) error {
-	secret := generateWebHookSecret(opts)
-	_, err := client.Secrets(opts.Namespace).Create(secret)
-	if kerrors.IsAlreadyExists(err) {
-		clog.V(4).Printf("secret %v already exists", secret.Name)
-		return nil
-	}
-	return err
 }
 
 func installRoleBindings(client kubernetes.Interface, opts Options) error {
@@ -147,19 +133,6 @@ func generateRoleBinding(opts Options) *rbacv1.ClusterRoleBinding {
 	return sa
 }
 
-// generateWebHookSecret builds the secret object used for webhooks
-func generateWebHookSecret(opts Options) *v1.Secret {
-	secret := &v1.Secret{
-		Data: make(map[string][]byte),
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kudo-webhook-server-secret",
-			Namespace: opts.Namespace,
-		},
-	}
-
-	return secret
-}
-
 func generateLabels(labels map[string]string) map[string]string {
 	labels["app"] = "kudo-manager"
 	return labels
@@ -193,7 +166,6 @@ func Prereq(opts Options) []runtime.Object {
 		prereqs,
 		serviceAccount(opts),
 		roleBinding(opts),
-		webhookSecret(opts),
 	)
 }
 
@@ -205,16 +177,6 @@ func roleBinding(opts Options) *rbacv1.ClusterRoleBinding {
 		APIVersion: "rbac.authorization.k8s.io/v1",
 	}
 	return rbac
-}
-
-// webhookSecret provides the webhook secret manifest for printing
-func webhookSecret(opts Options) *v1.Secret {
-	secret := generateWebHookSecret(opts)
-	secret.TypeMeta = metav1.TypeMeta{
-		Kind:       "Secret",
-		APIVersion: "v1",
-	}
-	return secret
 }
 
 // serviceAccount provides the service account manifest for printing
