@@ -2,19 +2,23 @@ package reader
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
 	"sigs.k8s.io/yaml"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
 const (
-	operatorFileName      = "operator.yaml"
-	templateFileNameRegex = "templates/.*.yaml"
-	paramsFileName        = "params.yaml"
-	APIVersion            = "kudo.dev/v1beta1"
+	operatorFileName = "operator.yaml"
+	paramsFileName   = "params.yaml"
+	templateBase     = "templates"
+	templateFileName = ".*\\.yaml"
+	APIVersion       = "kudo.dev/v1beta1"
 )
 
 func newPackageFiles() packages.Files {
@@ -29,11 +33,16 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *package
 	}
 
 	isTemplateFile := func(name string) bool {
-		matched, err := regexp.Match(templateFileNameRegex, []byte(name))
+		dir, file := filepath.Split(name)
+		base := filepath.Base(dir)
+
+		match, err := regexp.MatchString(templateFileName, file)
 		if err != nil {
-			panic(err)
+			clog.Printf("Failed to parse template file %s, err: %v", name, err)
+			os.Exit(1)
 		}
-		return matched
+
+		return base == templateBase && match
 	}
 
 	isParametersFile := func(name string) bool {
