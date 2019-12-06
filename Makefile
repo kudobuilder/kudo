@@ -126,6 +126,7 @@ docker-push:
 	docker push ${DOCKER_IMG}:latest
 
 .PHONY: imports
+# used to update imports on project.  NOT a linter.
 imports:
 	goimports --local github.com/kudobuilder -w .
 
