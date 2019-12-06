@@ -8,11 +8,13 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
 )
 
+var _ verifier.PackageVerifier = &ReferenceVerifier{}
+
 // ReferenceVerifier checks that all referenced templates exists (without errors)
 // and warns if a template exists but isn't referenced in a plan
 type ReferenceVerifier struct{}
 
-func (ReferenceVerifier) Verify(pf *packages.Files) (warnings verifier.ParamWarnings, errors verifier.ParamErrors) {
+func (ReferenceVerifier) Verify(pf *packages.Files) (warnings verifier.Warnings, errors verifier.Errors) {
 	templates := make(map[string]bool)
 	for template := range pf.Templates {
 		templates[template] = true
@@ -35,14 +37,14 @@ func (ReferenceVerifier) Verify(pf *packages.Files) (warnings verifier.ParamWarn
 		for _, r := range resources {
 			requiredTemplates[r] = true
 			if _, ok := templates[r]; !ok {
-				errors = append(errors, verifier.ParamError(fmt.Sprintf("template %q required by %v but not defined", r, task.Name)))
+				errors = append(errors, verifier.Error(fmt.Sprintf("template %q required by %s but is not defined", r, task.Name)))
 			}
 		}
 	}
 
 	for template := range templates {
 		if _, ok := requiredTemplates[template]; !ok {
-			warnings = append(warnings, verifier.ParamWarning(fmt.Sprintf("template %q is not referenced from any task", template)))
+			warnings = append(warnings, verifier.Warning(fmt.Sprintf("template %q is not referenced from any task", template)))
 		}
 	}
 

@@ -7,11 +7,28 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
 )
 
+var (
+	// implicits is a set of usable implicits defined in render.go
+	implicits = map[string]bool{
+		"Name":         true, // instance name
+		"Namespace":    true,
+		"OperatorName": true,
+		"Params":       true,
+		"PlanName":     true,
+		"PhaseName":    true,
+		"StepName":     true,
+		"AppVersion":   true,
+	}
+)
+
+var _ verifier.PackageVerifier = &ParametersVerifier{}
+
 // ParametersVerifier checks that all parameters used in templates are defined
 // checks that all defined parameters are used in templates
 type ParametersVerifier struct{}
 
-func (ParametersVerifier) Verify(pf *packages.Files) (warnings verifier.ParamWarnings, errors verifier.ParamErrors) {
+// Verify implements verifier.PackageVerifier for parameter verification
+func (ParametersVerifier) Verify(pf *packages.Files) (warnings verifier.Warnings, errors verifier.Errors) {
 	errors = append(errors, paramsNotDefined(pf)...)
 	warnings = append(warnings, paramsDefinedNotUsed(pf)...)
 
@@ -19,12 +36,12 @@ func (ParametersVerifier) Verify(pf *packages.Files) (warnings verifier.ParamWar
 	// additional processing errors
 	for fname, node := range nodes {
 		if node.error != nil {
-			errors = append(errors, verifier.ParamError(fmt.Sprintf(*node.error)))
+			errors = append(errors, verifier.Error(fmt.Sprintf(*node.error)))
 			continue
 		}
 		for _, param := range node.implicitParams {
-			if _, ok := verifier.Implicits[param]; !ok {
-				errors = append(errors, verifier.ParamError(fmt.Sprintf("template %v defines an invalid implicit parameter %q", fname, param)))
+			if _, ok := implicits[param]; !ok {
+				errors = append(errors, verifier.Error(fmt.Sprintf("template %v defines an invalid implicit parameter %q", fname, param)))
 			}
 		}
 	}
@@ -32,7 +49,7 @@ func (ParametersVerifier) Verify(pf *packages.Files) (warnings verifier.ParamWar
 	return warnings, errors
 }
 
-func paramsDefinedNotUsed(pf *packages.Files) (warnings verifier.ParamWarnings) {
+func paramsDefinedNotUsed(pf *packages.Files) (warnings verifier.Warnings) {
 	tparams := make(map[string]bool)
 	nodes := getNodeMap(pf.Templates)
 
@@ -49,7 +66,7 @@ func paramsDefinedNotUsed(pf *packages.Files) (warnings verifier.ParamWarnings) 
 	return warnings
 }
 
-func paramsNotDefined(pf *packages.Files) (errors verifier.ParamErrors) {
+func paramsNotDefined(pf *packages.Files) (errors verifier.Errors) {
 	params := make(map[string]bool)
 	for _, param := range pf.Params.Parameters {
 		params[param.Name] = true
@@ -59,7 +76,7 @@ func paramsNotDefined(pf *packages.Files) (errors verifier.ParamErrors) {
 	for fname, nodes := range nodes {
 		for _, tparam := range nodes.parameters {
 			if _, ok := params[tparam]; !ok {
-				errors = append(errors, verifier.ParamError(fmt.Sprintf("parameter %q in template %v is not defined", tparam, fname)))
+				errors = append(errors, verifier.Error(fmt.Sprintf("parameter %q in template %v is not defined", tparam, fname)))
 			}
 		}
 	}

@@ -60,7 +60,7 @@ func verifyPackage(fs afero.Fs, path string, out io.Writer) error {
 	return fmt.Errorf("package verification errors: %v", len(errors))
 }
 
-func printErrors(out io.Writer, errors verifier.ParamErrors) {
+func printErrors(out io.Writer, errors verifier.Errors) {
 	table := uitable.New()
 	table.AddRow("Errors")
 	for _, err := range errors {
@@ -69,7 +69,7 @@ func printErrors(out io.Writer, errors verifier.ParamErrors) {
 	fmt.Fprintln(out, table)
 }
 
-func printWarnings(out io.Writer, warnings verifier.ParamWarnings) {
+func printWarnings(out io.Writer, warnings verifier.Warnings) {
 	table := uitable.New()
 	table.AddRow("Warnings")
 	for _, warning := range warnings {

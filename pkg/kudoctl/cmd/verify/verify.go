@@ -17,7 +17,7 @@ var verifiers = []verifier.PackageVerifier{
 }
 
 // PackageFiles verifies operator package files
-func PackageFiles(pf *packages.Files) (warnings verifier.ParamWarnings, errors verifier.ParamErrors) {
+func PackageFiles(pf *packages.Files) (warnings verifier.Warnings, errors verifier.Errors) {
 	for _, verifier := range verifiers {
 		ws, errs := verifier.Verify(pf)
 		warnings = append(warnings, ws...)
@@ -29,7 +29,7 @@ func PackageFiles(pf *packages.Files) (warnings verifier.ParamWarnings, errors v
 // DuplicateVerifier provides verification that there are no duplicates disallowing casing (Kudo and kudo are duplicates)
 type DuplicateVerifier struct{}
 
-func (DuplicateVerifier) Verify(pf *packages.Files) (warnings verifier.ParamWarnings, errors verifier.ParamErrors) {
+func (DuplicateVerifier) Verify(pf *packages.Files) (warnings verifier.Warnings, errors verifier.Errors) {
 	names := map[string]bool{}
 	for _, param := range pf.Params.Parameters {
 		name := strings.ToLower(param.Name)
@@ -45,7 +45,7 @@ type InvalidCharVerifier struct {
 	InvalidChars string
 }
 
-func (v InvalidCharVerifier) Verify(pf *packages.Files) (warnings verifier.ParamWarnings, errors verifier.ParamErrors) {
+func (v InvalidCharVerifier) Verify(pf *packages.Files) (warnings verifier.Warnings, errors verifier.Errors) {
 	for _, param := range pf.Params.Parameters {
 		name := strings.ToLower(param.Name)
 		for _, char := range name {

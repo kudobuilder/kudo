@@ -14,8 +14,8 @@ func TestDuplicateVerifier(t *testing.T) {
 	tests := []struct {
 		name             string
 		params           []v1beta1.Parameter
-		expectedWarnings verifier.ParamWarnings
-		expectedErrors   verifier.ParamErrors
+		expectedWarnings verifier.Warnings
+		expectedErrors   verifier.Errors
 	}{
 		{"no warning or error", []v1beta1.Parameter{
 			{Name: "Foo"},
@@ -24,11 +24,11 @@ func TestDuplicateVerifier(t *testing.T) {
 		{"duplicate parameter", []v1beta1.Parameter{
 			{Name: "Foo"},
 			{Name: "Foo"},
-		}, nil, []verifier.ParamError{verifier.ParamError(fmt.Sprintf("parameter \"Foo\" has a duplicate"))}},
+		}, nil, []verifier.Error{verifier.Error(fmt.Sprintf("parameter \"Foo\" has a duplicate"))}},
 		{"duplicate with different casing", []v1beta1.Parameter{
 			{Name: "Foo"},
 			{Name: "foo"},
-		}, nil, verifier.ParamErrors{verifier.ParamError(fmt.Sprintf("parameter \"foo\" has a duplicate"))}},
+		}, nil, verifier.Errors{verifier.Error(fmt.Sprintf("parameter \"foo\" has a duplicate"))}},
 	}
 
 	verifier := DuplicateVerifier{}
@@ -43,8 +43,8 @@ func TestInvalidCharVerifier(t *testing.T) {
 	tests := []struct {
 		name             string
 		params           []v1beta1.Parameter
-		expectedWarnings verifier.ParamWarnings
-		expectedErrors   verifier.ParamErrors
+		expectedWarnings verifier.Warnings
+		expectedErrors   verifier.Errors
 	}{
 		{"no warning or error", []v1beta1.Parameter{
 			{Name: "Foo"},
@@ -53,7 +53,7 @@ func TestInvalidCharVerifier(t *testing.T) {
 		{"invalid character", []v1beta1.Parameter{
 			{Name: "Foo:"},
 			{Name: "Fighters,"},
-		}, nil, []verifier.ParamError{verifier.ParamError("parameter \"Foo:\" contains invalid character ':'"), verifier.ParamError("parameter \"Fighters,\" contains invalid character ','")}},
+		}, nil, []verifier.Error{verifier.Error("parameter \"Foo:\" contains invalid character ':'"), verifier.Error("parameter \"Fighters,\" contains invalid character ','")}},
 	}
 
 	verifier := InvalidCharVerifier{InvalidChars: ":,"}

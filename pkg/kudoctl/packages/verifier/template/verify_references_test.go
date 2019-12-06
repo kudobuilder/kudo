@@ -38,5 +38,5 @@ func TestTemplateReferenceVerifier(t *testing.T) {
 	assert.Equal(t, 1, len(warnings))
 	assert.Equal(t, `template "baz.yaml" is not referenced from any task`, string(warnings[0]))
 	assert.Equal(t, 1, len(errors))
-	assert.Equal(t, `template "bar.yaml" required by foo but not defined`, string(errors[0]))
+	assert.Equal(t, `template "bar.yaml" required by foo but is not defined`, string(errors[0]))
 }
