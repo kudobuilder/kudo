@@ -24,10 +24,11 @@ import (
 //Defines the deployment of the KUDO manager and it's service definition.
 
 const (
-	group              = "kudo.dev"
-	crdVersion         = "v1beta1"
-	defaultns          = "kudo-system"
-	defaultGracePeriod = 10
+	group                 = "kudo.dev"
+	crdVersion            = "v1beta1"
+	defaultns             = "kudo-system"
+	defaultGracePeriod    = 10
+	defaultServiceAccount = "kudo-manager"
 )
 
 // Options is the configurable options to init
@@ -40,10 +41,12 @@ type Options struct {
 	TerminationGracePeriodSeconds int64
 	// Image defines the image to be used
 	Image string
+	// ServiceAccount defines the optional serviceaccount to be used to install KUDO
+	ServiceAccount string
 }
 
 // NewOptions provides an option struct with defaults
-func NewOptions(v string, ns string) Options {
+func NewOptions(v string, ns string, sa string) Options {
 
 	if v == "" {
 		v = version.Get().GitVersion
@@ -52,11 +55,16 @@ func NewOptions(v string, ns string) Options {
 		ns = defaultns
 	}
 
+	if sa == "" {
+		sa = defaultServiceAccount
+	}
+
 	return Options{
 		Version:                       v,
 		Namespace:                     ns,
 		TerminationGracePeriodSeconds: defaultGracePeriod,
 		Image:                         fmt.Sprintf("kudobuilder/controller:v%v", v),
+		ServiceAccount:                sa,
 	}
 }
 
@@ -175,7 +183,7 @@ func generateDeployment(opts Options) *appsv1.StatefulSet {
 					Labels: labels,
 				},
 				Spec: v1.PodSpec{
-					ServiceAccountName: "kudo-manager",
+					ServiceAccountName: opts.ServiceAccount,
 					Containers: []v1.Container{
 
 						{
