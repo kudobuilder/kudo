@@ -93,35 +93,57 @@ At the moment, KUDO does not provide any migration capabilities and needs a clea
 ## Proposal
 
 ### KUDO Prerequisites
-Expected update frequency: Low  
+Expected update frequency: Medium  
 Versioned: No, but closely tied to KUDO manager
 
 The KUDO manager has a set of prerequisites that need to be present for the manager to run successfully. They are
 the least likely to change, but probably the most specific. If we make changes here, we need to implement custom
 migration code.
 
-- Current prereqs
+Usually the prerequisites are API resources, but may be more complex things.
+
+- Prerequisites may be feature-gated
+- Prerequisites may be k8s-version-dependent
+- Prerequisites may have other prerequisites as dependencies (i.e., service account needs the namespace to exist)
+- Prerequisites may have parameters and behave differently based on them (i.e. default namespace may be created, but a provided namespace needs to exist)
+
+- Possible Prereqs
   - Namespace
   - Service Account
   - Role Bindings
-  - Secret
+  - Secrets
+  - Webhooks
+  - Other software in the cluster (i.e. cert-manager)
+
+- For each prerequisite, there are a finite set of possible options in an update case:
+  - The Prereq exists and has the same version/content as the new one - no action required
+  - The Prereq does not exist - needs to be installed/created
+  - The Prereq exists and has different version/content - needs to be updated/replaced
+  - (The Prereq exists but should not exist anymore - needs to be removed/deleted) 
 
 #### Proposal for update process 
 Integrated into `kudo init --upgrade`
 
-Write specific migration code that targets a KUDO manager version range and executes manual migration steps. 
+Two possible implementations
 
-Each migration should have a validate-step that checks if the migration is possible.
-  - This might be problematic if multiple steps are to be executed - Can we validate a steps before the previous one is applied?
+1. Write specific migration code that targets a KUDO manager version range and executes manual migration steps. 
+  
+  - Each migration should have a validate-step that checks if the migration is possible.
+    - This might be problematic if multiple steps are to be executed - Can we validate a steps before the previous one is applied?
 
-The update for prerequisites is tied to the version of KUDO manager:
-- There is a list of migrations:
-    - MigrationTo0_9_0
-    - MigrationTo0_10_0
-    - MigrationTo0_11_0
-- KUDO CLI checks installed version of manager
-- Every migration step after the installed version is executed
-- Every migration step only migrates the prerequisites from the previous version to the marked version of the migration
+  - The update for prerequisites is tied to the version of KUDO manager:
+    - There is a list of migrations:
+        - MigrationTo0_9_0
+        - MigrationTo0_10_0
+        - MigrationTo0_11_0
+  - KUDO CLI checks installed version of manager
+  - Every migration step after the installed version is executed
+  - Every migration step only migrates the prerequisites from the previous version to the marked version of the migration
+
+2. Have only one setup/update version in KUDO
+  - The setup/update contains a list of all prerequisites in correct order
+  - Each prereq validates the current installed state, and verifies that it can install/update the current state to the expected state
+  - Prereqs that are deleted in newer versions need to stay in the list of prerequisites
 
 ### KUDO Manager
 Expected update frequency: High  
