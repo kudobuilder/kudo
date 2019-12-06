@@ -7,6 +7,20 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
+var (
+	// Implicits is a set of usable implicits defined in render.go
+	Implicits = map[string]bool{
+		"Name":         true, // instance name
+		"Namespace":    true,
+		"OperatorName": true,
+		"Params":       true,
+		"PlanName":     true,
+		"PhaseName":    true,
+		"StepName":     true,
+		"AppVersion":   true,
+	}
+)
+
 type ParamWarning string
 type ParamWarnings []ParamWarning
 type ParamError string

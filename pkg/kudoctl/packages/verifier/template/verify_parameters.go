@@ -23,7 +23,7 @@ func (ParametersVerifier) Verify(pf *packages.Files) (warnings verifier.ParamWar
 			continue
 		}
 		for _, param := range node.implicitParams {
-			if _, ok := packages.Implicits[param]; !ok {
+			if _, ok := verifier.Implicits[param]; !ok {
 				errors = append(errors, verifier.ParamError(fmt.Sprintf("template %v defines an invalid implicit parameter %q", fname, param)))
 			}
 		}
