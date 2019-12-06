@@ -9,14 +9,15 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/engine/renderer"
-	"github.com/kudobuilder/kudo/pkg/engine/task/podexec"
 	"github.com/spf13/afero"
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kudobuilder/kudo/pkg/engine/renderer"
+	"github.com/kudobuilder/kudo/pkg/engine/task/podexec"
 )
 
 const (

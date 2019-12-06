@@ -4,13 +4,13 @@ import (
 	"errors"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 )
 
 // WatchKUDOUntilReady waits for the KUDO pod to become available.

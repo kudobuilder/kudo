@@ -4,14 +4,14 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/spf13/afero"
+	"github.com/spf13/cobra"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
-
-	"github.com/spf13/afero"
-	"github.com/spf13/cobra"
 )
 
 var (

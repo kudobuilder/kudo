@@ -3,8 +3,9 @@ package template
 import (
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"gotest.tools/assert"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
 func TestTemplate_Parameters(t *testing.T) {

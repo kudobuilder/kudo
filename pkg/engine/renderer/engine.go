@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"text/template"
 
-	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/Masterminds/sprig"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/Masterminds/sprig"
+	"github.com/kudobuilder/kudo/pkg/engine"
 )
 
 // Metadata contains Metadata along with specific fields associated with current plan

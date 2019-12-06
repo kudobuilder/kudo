@@ -3,9 +3,10 @@ package template
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestTemplateParametersVerifier(t *testing.T) {

@@ -12,14 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/controller/instance"
-	"github.com/kudobuilder/kudo/pkg/controller/operator"
-	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
-
 	volumetypes "github.com/docker/docker/api/types/volume"
 	docker "github.com/docker/docker/client"
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -31,6 +25,12 @@ import (
 	kind "sigs.k8s.io/kind/pkg/cluster"
 	kindCreate "sigs.k8s.io/kind/pkg/cluster/create"
 	"sigs.k8s.io/kind/pkg/container/cri"
+
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/controller/instance"
+	"github.com/kudobuilder/kudo/pkg/controller/operator"
+	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
+	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
 // Harness loads and runs tests based on the configuration provided.

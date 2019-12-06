@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/verify"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
-
 	"github.com/gosuri/uitable"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/verify"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
 )
 
 // package verify provides verification or linting checks against the package passed to the command.

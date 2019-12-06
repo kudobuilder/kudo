@@ -10,10 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/afero"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
-	"github.com/spf13/afero"
 )
 
 // WriteTgz takes a path to operator files and creates a tgz of those files with the destination and name provided

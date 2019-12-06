@@ -5,14 +5,14 @@ import (
 	"reflect"
 	"testing"
 
+	"gotest.tools/assert"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
-	"gotest.tools/assert"
-
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func newTestSimpleK2o() *Client {

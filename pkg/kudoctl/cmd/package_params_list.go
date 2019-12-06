@@ -5,15 +5,15 @@ import (
 	"io"
 	"sort"
 
+	"github.com/gosuri/uitable"
+	"github.com/spf13/afero"
+	"github.com/spf13/cobra"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
-
-	"github.com/gosuri/uitable"
-	"github.com/spf13/afero"
-	"github.com/spf13/cobra"
 )
 
 type paramsListCmd struct {
