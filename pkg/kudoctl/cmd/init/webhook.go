@@ -79,7 +79,7 @@ func instanceUpdateValidatingWebhook(ns string) admissionv1beta1.ValidatingWebho
 				Name: "instance-validation.kudo.dev",
 				Rules: []admissionv1beta1.RuleWithOperations{
 					{
-						Operations: []admissionv1beta1.OperationType{"UPDATE"},
+						Operations: []admissionv1beta1.OperationType{"CREATE", "UPDATE"},
 						Rule: admissionv1beta1.Rule{
 							APIGroups:   []string{"kudo.dev"},
 							APIVersions: []string{"v1beta1"},
