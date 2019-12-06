@@ -27,8 +27,7 @@ func PackageFiles(pf *packages.Files) (warnings verifier.ParamWarnings, errors v
 }
 
 // DuplicateVerifier provides verification that there are no duplicates disallowing casing (Kudo and kudo are duplicates)
-type DuplicateVerifier struct {
-}
+type DuplicateVerifier struct{}
 
 func (DuplicateVerifier) Verify(pf *packages.Files) (warnings verifier.ParamWarnings, errors verifier.ParamErrors) {
 	names := map[string]bool{}

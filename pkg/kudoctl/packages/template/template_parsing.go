@@ -22,7 +22,6 @@ type nodeMap map[string]nodes
 
 // getNodeMap converts a set of Templates to nodeMap which is a map of file names to template nodes
 func getNodeMap(ts packages.Templates) nodeMap {
-
 	tNodes := nodeMap{}
 
 	for fname, file := range ts {

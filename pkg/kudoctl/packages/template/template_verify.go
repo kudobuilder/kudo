@@ -10,11 +10,9 @@ import (
 
 // ParametersVerifier checks that all parameters used in templates are defined
 // checks that all defined parameters are used in templates
-type ParametersVerifier struct {
-}
+type ParametersVerifier struct{}
 
 func (ParametersVerifier) Verify(pf *packages.Files) (warnings verifier.ParamWarnings, errors verifier.ParamErrors) {
-
 	errors = append(errors, paramsNotDefined(pf)...)
 	warnings = append(warnings, paramsDefinedNotUsed(pf)...)
 
@@ -71,8 +69,7 @@ func paramsNotDefined(pf *packages.Files) (errors verifier.ParamErrors) {
 
 // ReferenceVerifier checks that all referenced templates exists (without errors)
 // and warns if a template exists but isn't referenced in a plan
-type ReferenceVerifier struct {
-}
+type ReferenceVerifier struct{}
 
 func (ReferenceVerifier) Verify(pf *packages.Files) (warnings verifier.ParamWarnings, errors verifier.ParamErrors) {
 	templates := make(map[string]bool)
