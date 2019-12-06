@@ -18,7 +18,7 @@ func TestTemplateReferenceVerifier(t *testing.T) {
 	resources := []string{"foo.yaml", "bar.yaml"}
 	tasks := []v1beta1.Task{{
 		Name: "foo",
-		Kind: "",
+		Kind: "Apply",
 		Spec: v1beta1.TaskSpec{
 			ResourceTaskSpec: v1beta1.ResourceTaskSpec{Resources: resources},
 		},
