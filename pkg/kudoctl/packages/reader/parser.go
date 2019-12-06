@@ -17,7 +17,7 @@ const (
 	operatorFileName = "operator.yaml"
 	paramsFileName   = "params.yaml"
 	templateBase     = "templates"
-	templateFileName = ".*.yaml"
+	templateFileName = ".*\\.yaml"
 	APIVersion       = "kudo.dev/v1beta1"
 )
 
