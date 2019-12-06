@@ -29,6 +29,7 @@ func newPackageCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	}
 
 	cmd.AddCommand(newPackageCreateCmd(fs, out))
+	cmd.AddCommand(newPackageNewCmd(fs, out))
 	cmd.AddCommand(newPackageParamsCmd(fs, out))
 	cmd.AddCommand(newPackageVerifyCmd(fs, out))
 
