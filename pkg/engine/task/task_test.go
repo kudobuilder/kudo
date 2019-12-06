@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/yaml"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -61,6 +60,96 @@ spec:
 			wantErr: false,
 		},
 		{
+			name: "pipe task with a pipe file kind Secret",
+			taskYaml: `
+name: pipe-task
+kind: Pipe
+spec:
+  pod: pipe-pod.yaml
+  pipe:
+    - file: /tmp/foo.txt
+      kind: Secret
+      key: Foo`,
+			want: PipeTask{
+				Name: "pipe-task",
+				Pod:  "pipe-pod.yaml",
+				PipeFiles: []PipeFile{
+					{
+						File: "/tmp/foo.txt",
+						Kind: "Secret",
+						Key:  "Foo",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "pipe task with a pipe file kind ConfigMap",
+			taskYaml: `
+name: pipe-task
+kind: Pipe
+spec:
+  pod: pipe-pod.yaml
+  pipe:
+    - file: /tmp/bar.txt
+      kind: ConfigMap
+      key: Bar`,
+			want: PipeTask{
+				Name: "pipe-task",
+				Pod:  "pipe-pod.yaml",
+				PipeFiles: []PipeFile{
+					{
+						File: "/tmp/bar.txt",
+						Kind: "ConfigMap",
+						Key:  "Bar",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "pipe task with an invalid pipe file kind",
+			taskYaml: `
+name: pipe-task
+kind: Pipe
+spec:
+  pod: pipe-pod.yaml
+  pipe:
+    - file: /tmp/bar.txt
+      kind: Invalid
+      key: Bar`,
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "pipe task file must be defined",
+			taskYaml: `
+name: pipe-task
+kind: Pipe
+spec:
+  pod: pipe-pod.yaml
+  pipe:
+    - file:
+      kind: Secret
+      key: Bar`,
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "pipe task key is invalid",
+			taskYaml: `
+name: pipe-task
+kind: Pipe
+spec:
+  pod: pipe-pod.yaml
+  pipe:
+    - file: /tmp/bar.txt"
+      kind: Secret
+      key: $Bar^`,
+			want:    nil,
+			wantErr: true,
+		},
+		{
 			name: "unknown task",
 			taskYaml: `
 name: unknown-task
@@ -81,10 +170,10 @@ spec:
 			}
 
 			got, err := Build(task)
-			if tt.wantErr {
-				assert.Error(t, err, "Build(%s) error = %v, wantErr %v", tt.name, err, tt.wantErr)
-				return
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Build(%s) should've failed but hasn't: error = %v, wantErr %v", tt.name, err, tt.wantErr)
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Build(%s) got = %v, want %v", tt.name, got, tt.want)
 			}

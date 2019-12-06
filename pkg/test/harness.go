@@ -251,8 +251,7 @@ func (h *Harness) RunKUDO() error {
 	}
 
 	mgr, err := manager.New(config, manager.Options{
-		Scheme:         testutils.Scheme(),
-		MapperProvider: testutils.NewDynamicRESTMapper,
+		Scheme: testutils.Scheme(),
 	})
 	if err != nil {
 		return err

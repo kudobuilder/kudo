@@ -2,6 +2,7 @@ package init
 
 import (
 	"fmt"
+	"strconv"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -24,10 +25,11 @@ import (
 //Defines the deployment of the KUDO manager and it's service definition.
 
 const (
-	group              = "kudo.dev"
-	crdVersion         = "v1beta1"
-	defaultns          = "kudo-system"
-	defaultGracePeriod = 10
+	group                 = "kudo.dev"
+	crdVersion            = "v1beta1"
+	defaultns             = "kudo-system"
+	defaultGracePeriod    = 10
+	defaultServiceAccount = "kudo-manager"
 )
 
 // Options is the configurable options to init
@@ -40,10 +42,17 @@ type Options struct {
 	TerminationGracePeriodSeconds int64
 	// Image defines the image to be used
 	Image string
+	// Enable validation
+	Webhooks       []string
+	ServiceAccount string
+}
+
+func (o Options) webhooksEnabled() bool {
+	return len(o.Webhooks) != 0
 }
 
 // NewOptions provides an option struct with defaults
-func NewOptions(v string, ns string) Options {
+func NewOptions(v string, ns string, sa string, webhooks []string) Options {
 
 	if v == "" {
 		v = version.Get().GitVersion
@@ -52,33 +61,46 @@ func NewOptions(v string, ns string) Options {
 		ns = defaultns
 	}
 
+	if sa == "" {
+		sa = defaultServiceAccount
+	}
+
 	return Options{
 		Version:                       v,
 		Namespace:                     ns,
 		TerminationGracePeriodSeconds: defaultGracePeriod,
 		Image:                         fmt.Sprintf("kudobuilder/controller:v%v", v),
+		Webhooks:                      webhooks,
+		ServiceAccount:                sa,
 	}
 }
 
 // Install uses Kubernetes client to install KUDO.
 func Install(client *kube.Client, opts Options, crdOnly bool) error {
 
-	clog.Printf("✅ installing crds")
 	if err := installCrds(client.ExtClient); err != nil {
 		return err
 	}
+	clog.Printf("✅ installed crds")
 	if crdOnly {
 		return nil
 	}
-	clog.Printf("✅ preparing service accounts and other requirements for controller to run")
 	if err := installPrereqs(client.KubeClient, opts); err != nil {
 		return err
 	}
+	clog.Printf("✅ installed service accounts and other requirements for controller to run")
 
-	clog.Printf("✅ installing kudo controller")
+	if opts.webhooksEnabled() {
+		if err := installInstanceValidatingWebhook(client.KubeClient, client.DynamicClient, opts.Namespace); err != nil {
+			return err
+		}
+		clog.Printf("✅ installed webhook")
+	}
+
 	if err := installManager(client.KubeClient, opts); err != nil {
 		return err
 	}
+	clog.Printf("✅ installed kudo controller")
 	return nil
 }
 
@@ -175,7 +197,7 @@ func generateDeployment(opts Options) *appsv1.StatefulSet {
 					Labels: labels,
 				},
 				Spec: v1.PodSpec{
-					ServiceAccountName: "kudo-manager",
+					ServiceAccountName: opts.ServiceAccount,
 					Containers: []v1.Container{
 
 						{
@@ -184,13 +206,14 @@ func generateDeployment(opts Options) *appsv1.StatefulSet {
 							Env: []v1.EnvVar{
 								{Name: "POD_NAMESPACE", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
 								{Name: "SECRET_NAME", Value: "kudo-webhook-server-secret"},
+								{Name: "ENABLE_WEBHOOKS", Value: strconv.FormatBool(opts.webhooksEnabled())},
 							},
 							Image:           image,
 							ImagePullPolicy: "Always",
 							Name:            "manager",
 							Ports: []v1.ContainerPort{
 								// name matters for service
-								{ContainerPort: 9876, Name: "webhook-server", Protocol: "TCP"},
+								{ContainerPort: 443, Name: "webhook-server", Protocol: "TCP"},
 							},
 							Resources: v1.ResourceRequirements{
 								Requests: v1.ResourceList{

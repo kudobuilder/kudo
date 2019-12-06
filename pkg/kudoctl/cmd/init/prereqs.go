@@ -19,30 +19,29 @@ import (
 
 // Install uses Kubernetes client to install KUDO manager prereqs.
 func installPrereqs(client kubernetes.Interface, opts Options) error {
+
 	if err := installNamespace(client.CoreV1(), opts); err != nil {
 		return err
 	}
 
-	if err := installServiceAccount(client.CoreV1(), opts); err != nil {
-		return err
-	}
-	if err := installRoleBindings(client, opts); err != nil {
-		return err
-	}
-	if err := installSecret(client.CoreV1(), opts); err != nil {
-		return err
+	if opts.ServiceAccount != "kudo-manager" {
+		// Validate alternate serviceaccount exists in the cluster
+		if err := validateServiceAccountExists(client.CoreV1(), opts); err != nil {
+			return err
+		}
+		// Validate the alternate serviceaccount has cluster-admin clusterrolebinding
+		if err := validateClusterAdminRoleForSA(client, opts); err != nil {
+			return err
+		}
+	} else {
+		if err := installServiceAccount(client.CoreV1(), opts); err != nil {
+			return err
+		}
+		if err := installRoleBindings(client, opts); err != nil {
+			return err
+		}
 	}
 	return nil
-}
-
-func installSecret(client corev1.SecretsGetter, opts Options) error {
-	secret := generateWebHookSecret(opts)
-	_, err := client.Secrets(opts.Namespace).Create(secret)
-	if kerrors.IsAlreadyExists(err) {
-		clog.V(4).Printf("secret %v already exists", secret.Name)
-		return nil
-	}
-	return err
 }
 
 func installRoleBindings(client kubernetes.Interface, opts Options) error {
@@ -106,7 +105,7 @@ func generateServiceAccount(opts Options) *v1.ServiceAccount {
 	sa := &v1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels:    labels,
-			Name:      "kudo-manager",
+			Name:      opts.ServiceAccount,
 			Namespace: opts.Namespace,
 		},
 	}
@@ -127,24 +126,11 @@ func generateRoleBinding(opts Options) *rbacv1.ClusterRoleBinding {
 		},
 		Subjects: []rbacv1.Subject{{
 			Kind:      "ServiceAccount",
-			Name:      "kudo-manager",
+			Name:      opts.ServiceAccount,
 			Namespace: opts.Namespace,
 		}},
 	}
 	return sa
-}
-
-// generateWebHookSecret builds the secret object used for webhooks
-func generateWebHookSecret(opts Options) *v1.Secret {
-	secret := &v1.Secret{
-		Data: make(map[string][]byte),
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kudo-webhook-server-secret",
-			Namespace: opts.Namespace,
-		},
-	}
-
-	return secret
 }
 
 func generateLabels(labels map[string]string) map[string]string {
@@ -180,7 +166,6 @@ func Prereq(opts Options) []runtime.Object {
 		prereqs,
 		serviceAccount(opts),
 		roleBinding(opts),
-		webhookSecret(opts),
 	)
 }
 
@@ -192,16 +177,6 @@ func roleBinding(opts Options) *rbacv1.ClusterRoleBinding {
 		APIVersion: "rbac.authorization.k8s.io/v1",
 	}
 	return rbac
-}
-
-// webhookSecret provides the webhook secret manifest for printing
-func webhookSecret(opts Options) *v1.Secret {
-	secret := generateWebHookSecret(opts)
-	secret.TypeMeta = metav1.TypeMeta{
-		Kind:       "Secret",
-		APIVersion: "v1",
-	}
-	return secret
 }
 
 // serviceAccount provides the service account manifest for printing
@@ -222,4 +197,40 @@ func namespace(namespace string) *v1.Namespace {
 		APIVersion: "v1",
 	}
 	return ns
+}
+
+// Validate whether the serviceAccount exists
+func validateServiceAccountExists(client corev1.ServiceAccountsGetter, opts Options) error {
+
+	saList, err := client.ServiceAccounts(opts.Namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, sa := range saList.Items {
+		if sa.Name == opts.ServiceAccount {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("Service Account %s does not exists - KUDO expects the serviceAccount to be present in the namespace %s", opts.ServiceAccount, opts.Namespace)
+}
+
+// Validate whether the serviceAccount has cluster-admin role
+func validateClusterAdminRoleForSA(client kubernetes.Interface, opts Options) error {
+
+	// Check whether the serviceAccount has clusterrolebinding cluster-admin
+	crbs, err := client.RbacV1().ClusterRoleBindings().List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, crb := range crbs.Items {
+		for _, subject := range crb.Subjects {
+			if subject.Name == opts.ServiceAccount && subject.Namespace == opts.Namespace && crb.RoleRef.Name == "cluster-admin" {
+				return nil
+			}
+		}
+	}
+
+	return fmt.Errorf("Service Account %s does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace %s and to have cluster-admin role", opts.ServiceAccount, opts.Namespace)
 }

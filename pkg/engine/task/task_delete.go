@@ -18,7 +18,7 @@ type DeleteTask struct {
 // creates runtime objects and kustomizes them, and finally removes them using the controller client.
 func (dt DeleteTask) Run(ctx Context) (bool, error) {
 	// 1. - Render task templates -
-	rendered, err := render(dt.Resources, ctx.Templates, ctx.Parameters, ctx.Meta)
+	rendered, err := render(dt.Resources, ctx)
 	if err != nil {
 		return false, fatalExecutionError(err, taskRenderingError, ctx.Meta)
 	}

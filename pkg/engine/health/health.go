@@ -8,6 +8,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubectl/pkg/polymorphichelpers"
@@ -66,6 +67,12 @@ func IsHealthy(obj runtime.Object) error {
 			return nil
 		}
 		return fmt.Errorf("instance's active plan is in state %v", obj.Status.AggregatedStatus.Status)
+
+	case *corev1.Pod:
+		if obj.Status.Phase == corev1.PodRunning {
+			return nil
+		}
+		return fmt.Errorf("pod \"%v\" is not running yet: %s", obj.Name, obj.Status.Phase)
 
 	// unless we build logic for what a healthy object is, assume it's healthy when created.
 	default:
