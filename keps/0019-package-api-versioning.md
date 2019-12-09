@@ -67,7 +67,7 @@ A released version of KUDO (CLI, controller-manager), e.g. 0.7.0, 0.8.0, etc.
 
 ### KUDO API version
 
-The internal version for the KUDO implementation, e.g. v1alpha1, v1beta1, v1, etc.
+The internal version for the KUDO implementation, e.g. v1alpha1, v1beta1, v1, etc. These correspond to KUDO CRDs.
 
 ### Operator
 
@@ -342,6 +342,10 @@ For this, the following changes have to be made in KUDO:
 
 To avoid ambiguity the `appVersion` of a package will be part of the tarball name. E.g., the Kafka package described above will be named `kafka-2.3.0-0.2.0.tgz`. For this, changes in `kudoctl/packages/writer` are necessary.
 
+### Naming of `OperatorVersion` objects
+
+Currently, `OperatorVersion` objects are named "%operatorName%-%operatorVersion%". To avoid ambiguity, this will be updated to "%operatorName%-%appVersion%-%operatorVersion%", similar to the naming of package tarballs.
+
 ### Semantic versioning
 
 `kudoVersion` and `version` follow the [Semantic Versioning Specification](https://semver.org/). `appVersion` is application dependent and might not follow this specification. It should be treated as a free-form string without ordering. The following filtering should be used when installing packages from a repository:
@@ -353,6 +357,8 @@ To avoid ambiguity the `appVersion` of a package will be part of the tarball nam
 ### Risks and Mitigations
 
 Because existing packages already set an `apiVersion` in their `operator.yaml` and the described change only affects repository indexes, this doesn't break any existing packages. Older versions of KUDO will still work with the new indexes because the additional `apiVersion` field isn't used when parsing the old `Metadata` struct.
+Changing the `appVersion` to be required is a breaking change. From the packages in the community operators, most already set this field. Only the example operators "cowsay" and "first-operator" don't set this field. They would have to be updated. Given that these aren't usually used in production, this is an easy change.
+Changing the naming of `OperatorVersion` is a breaking change. It will further limit the maximum allow length of operator names because the length of this string is limited.
 
 ## Open Questions
 
