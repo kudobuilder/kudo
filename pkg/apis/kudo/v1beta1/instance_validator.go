@@ -2,6 +2,7 @@ package v1beta1
 
 import (
 	"fmt"
+	"reflect"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -12,25 +13,30 @@ import (
 // this forces the instance type to implement Validator interface, we'll get compile time error if it's not true anymore
 var _ kudo.Validator = &Instance{}
 
-// ValidateCreate implements webhookutil.validator (from controller-runtime)
+// ValidateCreate implements kudo.Validator (slightly tweaked interface originally from controller-runtime)
 // we do not enforce any rules upon creation right now
 func (i *Instance) ValidateCreate(req admission.Request) error {
 	return nil
 }
 
 // ValidateUpdate hook called when UPDATE operation is triggered and our admission webhook is triggered
-// ValidateUpdate implements webhookutil.validator (from controller-runtime)
+// ValidateUpdate implements kudo.Validator (slightly tweaked interface originally from controller-runtime)
 func (i *Instance) ValidateUpdate(old runtime.Object, req admission.Request) error {
-	if i.Status.AggregatedStatus.Status.IsRunning() && req.RequestSubResource != "status" {
+	oldInstance := old.(*Instance)
+	if i.Status.AggregatedStatus.Status.IsRunning() && specChanged(i.Spec, oldInstance.Spec) {
 		// when updating anything else than status, there shouldn't be a running plan
 		return fmt.Errorf("cannot update Instance %s/%s right now, there's plan %s in progress", i.Namespace, i.Name, i.Status.AggregatedStatus.ActivePlanName)
 	}
 	return nil
 }
 
+func specChanged(old InstanceSpec, new InstanceSpec) bool {
+	return !reflect.DeepEqual(old, new)
+}
+
 // ValidateDelete hook called when DELETE operation is triggered and our admission webhook is triggered
 // we don't enforce any validation on DELETE right now
-// ValidateDelete implements webhookutil.validator (from controller-runtime)
+// ValidateDelete implements kudo.Validator (slightly tweaked interface originally from controller-runtime)
 func (i *Instance) ValidateDelete(req admission.Request) error {
 	return nil
 }
