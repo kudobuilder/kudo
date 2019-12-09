@@ -21,6 +21,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	apiextenstionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -42,6 +43,20 @@ import (
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 
+// parseSyncPeriod determines the minimum frequency at which watched resources are reconciled.
+// If the variable is present in the environment the
+// duration is returned and the boolean is true.
+func parseSyncPeriod() (*time.Duration, error) {
+	if val, ok := os.LookupEnv("KUDO_SYNCPERIOD"); ok {
+		if sync, err := time.ParseDuration(val); err != nil {
+			return nil, err
+		} else {
+			return &sync, nil
+		}
+	}
+	return nil, nil
+}
+
 func main() {
 	logf.SetLogger(zap.New(zap.UseDevMode(false)))
 	log := logf.Log.WithName("entrypoint")
@@ -50,9 +65,18 @@ func main() {
 	log.Info(fmt.Sprintf("KUDO Version: %s", fmt.Sprintf("%#v", version.Get())))
 
 	// create new controller-runtime manager
-	log.Info("setting up manager")
+	syncPeriod, err := parseSyncPeriod()
+	if err != nil {
+		log.Error(err, "unable to parse manager sync period variable, run manager with defaults")
+	} else if syncPeriod != nil {
+		log.Info(fmt.Sprintf("setting up manager, sync-period is %v", syncPeriod))
+	} else {
+		log.Info(fmt.Sprintf("setting up manager"))
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		CertDir: "/tmp/cert",
+		CertDir:    "/tmp/cert",
+		SyncPeriod: syncPeriod,
 	})
 	if err != nil {
 		log.Error(err, "unable to start manager")
