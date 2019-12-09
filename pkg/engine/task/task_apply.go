@@ -2,18 +2,18 @@ package task
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/engine/health"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	apijson "k8s.io/apimachinery/pkg/util/json"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/engine/health"
 )
 
 // ApplyTask will apply a set of given resources to the cluster. See Run method for more details.
@@ -27,7 +27,7 @@ type ApplyTask struct {
 // resources are checked for health.
 func (at ApplyTask) Run(ctx Context) (bool, error) {
 	// 1. - Render task templates -
-	rendered, err := render(at.Resources, ctx.Templates, ctx.Parameters, ctx.Meta)
+	rendered, err := render(at.Resources, ctx)
 	if err != nil {
 		return false, fatalExecutionError(err, taskRenderingError, ctx.Meta)
 	}
@@ -58,7 +58,7 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 // apply method takes a slice of k8s object and applies them using passed client. If an object
 // doesn't exist it will be created. An already existing object will be patched.
 func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
-	applied := make([]runtime.Object, len(ro))
+	applied := make([]runtime.Object, 0)
 
 	for _, r := range ro {
 		key, _ := client.ObjectKeyFromObject(r)
@@ -102,12 +102,12 @@ func patch(newObj runtime.Object, existingObj runtime.Object, c client.Client) e
 		// strategic merge patch is not supported for these types, falling back to merge patch
 		err := c.Patch(context.TODO(), newObj, client.ConstantPatch(types.MergePatchType, newObjJSON))
 		if err != nil {
-			return fmt.Errorf("failed to apply merge patch to object %s: %w", prettyPrint(key), err)
+			return fmt.Errorf("failed to apply merge patch to object %s/%s: %w", key.Name, key.Name, err)
 		}
 	} else {
 		err := c.Patch(context.TODO(), existingObj, client.ConstantPatch(types.StrategicMergePatchType, newObjJSON))
 		if err != nil {
-			return fmt.Errorf("failed to apply StrategicMergePatch to object %s: %w", prettyPrint(key), err)
+			return fmt.Errorf("failed to apply StrategicMergePatch to object %s/%s: %w", key.Namespace, key.Name, err)
 		}
 	}
 	return nil
@@ -125,13 +125,8 @@ func isHealthy(ro []runtime.Object) error {
 		err := health.IsHealthy(r)
 		if err != nil {
 			key, _ := client.ObjectKeyFromObject(r)
-			return fmt.Errorf("object %s is NOT healthy: %w", prettyPrint(key), err)
+			return fmt.Errorf("object %s/%s is NOT healthy: %w", key.Namespace, key.Name, err)
 		}
 	}
 	return nil
-}
-
-func prettyPrint(key client.ObjectKey) string {
-	s, _ := json.MarshalIndent(key, "", "  ")
-	return string(s)
 }

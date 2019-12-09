@@ -112,7 +112,7 @@ func (v Verbose) Printf(format string, args ...interface{}) {
 func InitWithFlags(f *pflag.FlagSet, out io.Writer) {
 	// allows for initialization of writer in testing without CLI flags
 	if f != nil {
-		f.VarP(&logging.verbosity, "v", "v", "log level for V logs")
+		f.VarP(&logging.verbosity, "v", "v", "Log level for V logs")
 	}
 	logging.out = out
 }

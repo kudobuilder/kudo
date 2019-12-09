@@ -1,4 +1,4 @@
-package packages
+package reader
 
 import (
 	"fmt"
@@ -9,13 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
-	"github.com/go-test/deep"
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/pkg/errors"
 	"github.com/spf13/afero"
+	"gotest.tools/assert"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
 func TestReadFileSystemPackage(t *testing.T) {
@@ -25,29 +24,33 @@ func TestReadFileSystemPackage(t *testing.T) {
 		path         string
 		goldenFiles  string
 	}{
-		{"zookeeper", "zk1", "testdata/zk", "testdata/zk-crd-golden1"},
-		{"zookeeper zipped", "zk2", "testdata/zk.tgz", "testdata/zk-crd-golden2"},
+		{"zookeeper", "zk1", "../testdata/zk", "../testdata/zk-crd-golden1"},
+		{"zookeeper zipped", "zk2", "../testdata/zk.tgz", "../testdata/zk-crd-golden2"},
 	}
 	var fs = afero.NewOsFs()
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s-from-%s", tt.name, tt.path), func(t *testing.T) {
-			pkg, err := ReadPackage(fs, tt.path)
-			if err != nil {
-				t.Errorf("Found unexpected error: %v", err)
+			var err error
+			var pkg *packages.Package
+
+			if strings.HasSuffix(tt.path, ".tgz") {
+				pkg, err = ReadTar(fs, tt.path)
+			} else {
+				pkg, err = ReadDir(fs, tt.path)
 			}
-			actual, err := pkg.GetCRDs()
-			if err != nil {
-				t.Errorf("Found unexpected error: %v", err)
-			}
+
+			assert.NilError(t, err, "unexpected error while reading the package")
+			actual := pkg.Resources
+
 			actual.Instance.ObjectMeta.Name = tt.instanceName
 			golden, err := loadResourcesFromPath(tt.goldenFiles)
 			if err != nil {
 				t.Errorf("Found unexpected error when loading golden files: %v", err)
 			}
 
-			// we need to sort here because current yaml parsing is not preserving the order of fields
-			// at the same time, the deep library we use for equality does not support ignoring order
+			//we need to sort here because current yaml parsing is not preserving the order of fields
+			//at the same time, the deep library we use for equality does not support ignoring order
 			sort.Slice(actual.OperatorVersion.Spec.Parameters, func(i, j int) bool {
 				return actual.OperatorVersion.Spec.Parameters[i].Name < actual.OperatorVersion.Spec.Parameters[j].Name
 			})
@@ -55,14 +58,12 @@ func TestReadFileSystemPackage(t *testing.T) {
 				return golden.OperatorVersion.Spec.Parameters[i].Name < golden.OperatorVersion.Spec.Parameters[j].Name
 			})
 
-			if diff := deep.Equal(golden, actual); diff != nil {
-				t.Errorf("%+v\n", diff)
-			}
+			assert.DeepEqual(t, golden, actual)
 		})
 	}
 }
 
-func loadResourcesFromPath(goldenPath string) (*Resources, error) {
+func loadResourcesFromPath(goldenPath string) (*packages.Resources, error) {
 	isOperatorFile := func(name string) bool {
 		return strings.HasSuffix(name, "operator.golden")
 	}
@@ -75,7 +76,7 @@ func loadResourcesFromPath(goldenPath string) (*Resources, error) {
 		return strings.HasSuffix(name, "instance.golden")
 	}
 
-	result := &Resources{}
+	result := &packages.Resources{}
 	err := filepath.Walk(goldenPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -92,19 +93,19 @@ func loadResourcesFromPath(goldenPath string) (*Resources, error) {
 		case isOperatorFile(info.Name()):
 			var f v1beta1.Operator
 			if err = yaml.Unmarshal(bytes, &f); err != nil {
-				return errors.Wrapf(err, "cannot unmarshal %s content", info.Name())
+				return fmt.Errorf("cannot unmarshal %s content: %w", info.Name(), err)
 			}
 			result.Operator = &f
 		case isVersionFile(info.Name()):
 			var fv v1beta1.OperatorVersion
 			if err = yaml.Unmarshal(bytes, &fv); err != nil {
-				return errors.Wrapf(err, "cannot unmarshal %s content", info.Name())
+				return fmt.Errorf("cannot unmarshal %s content: %w", info.Name(), err)
 			}
 			result.OperatorVersion = &fv
 		case isInstanceFile(info.Name()):
 			var i v1beta1.Instance
 			if err = yaml.Unmarshal(bytes, &i); err != nil {
-				return errors.Wrapf(err, "cannot unmarshal %s content", info.Name())
+				return fmt.Errorf("cannot unmarshal %s content: %w", info.Name(), err)
 			}
 			result.Instance = &i
 		default:
@@ -123,35 +124,29 @@ func Test_readParametersFile(t *testing.T) {
 apiVersion: kudo.dev/v1beta1
 parameters:
 `
-	param := `
+	oneParam := `
 apiVersion: kudo.dev/v1beta1
 parameters:
-  - name: example
+    - name: example
 `
-	example := make([]v1beta1.Parameter, 1)
-	example[0] = v1beta1.Parameter{Name: "example"}
+	example := []v1beta1.Parameter{{Name: "example"}}
 
-	bad := `
-apiVersion: kudo.dev/v1beta1
-parameters:
-	- oops:
-`
 	tests := []struct {
-		name      string
-		fileBytes []byte
-		want      ParametersFile
-		wantErr   bool
+		name       string
+		paramsYaml string
+		want       packages.ParamsFile
+		wantErr    bool
 	}{
-		{"no data", []byte{}, ParametersFile{APIVersion: APIVersion}, false},
-		{"no parameters", []byte(noParams), ParametersFile{APIVersion: APIVersion}, false},
-		{"parameters", []byte(param), ParametersFile{APIVersion, example}, false},
-		{"bad data", []byte(bad), ParametersFile{}, true},
+		{"no data", "", packages.ParamsFile{APIVersion: APIVersion}, false},
+		{"no parameters", noParams, packages.ParamsFile{APIVersion: APIVersion}, false},
+		{"parameters", oneParam, packages.ParamsFile{APIVersion: APIVersion, Parameters: example}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := readParametersFile(tt.fileBytes)
+			got, err := readParametersFile([]byte(tt.paramsYaml))
+			fmt.Printf("%s got: %v\n", tt.name, got)
 			assert.Equal(t, tt.wantErr, err != nil, "readParametersFile() error = %v, wantErr %v", err, tt.wantErr)
-			assert.Equal(t, tt.want, got)
+			assert.DeepEqual(t, tt.want, got)
 		})
 	}
 }

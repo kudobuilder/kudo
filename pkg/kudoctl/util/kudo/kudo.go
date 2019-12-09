@@ -3,22 +3,23 @@ package kudo
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
-	"github.com/kudobuilder/kudo/pkg/version"
-
-	"github.com/pkg/errors"
 	v1core "k8s.io/api/core/v1"
-	extensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	kudoinit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/version"
 
 	// Import Kubernetes authentication providers to support GKE, etc.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -31,7 +32,7 @@ type Client struct {
 }
 
 // NewClient creates new KUDO Client
-func NewClient(kubeConfigPath string, requestTimeout int64) (*Client, error) {
+func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool) (*Client, error) {
 
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
@@ -42,31 +43,27 @@ func NewClient(kubeConfigPath string, requestTimeout int64) (*Client, error) {
 	// set default configs
 	config.Timeout = time.Duration(requestTimeout) * time.Second
 
+	kubeClient, err := kube.GetKubeClient(kubeConfigPath)
+	if err != nil {
+		return nil, clog.Errorf("could not get Kubernetes client: %s", err)
+	}
+
+	err = kudoinit.CRDs().ValidateInstallation(kubeClient)
+	if err != nil {
+		// see above
+		if os.IsTimeout(err) {
+			return nil, err
+		}
+		clog.V(0).Printf("KUDO CRDs are not set up correctly. Do you need to run kudo init?")
+		if validateInstall {
+			return nil, fmt.Errorf("CRDs invalid: %v", err)
+		}
+	}
+
 	// create the clientset
 	kudoClientset, err := versioned.NewForConfig(config)
 	if err != nil {
 		return nil, err
-	}
-
-	// use the apiextensions clientset to check for the existence of KUDO CRDs in the cluster
-	extensionsClientset, err := extensionsclient.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = extensionsClientset.CustomResourceDefinitions().Get("operators.kudo.dev", v1.GetOptions{})
-	if err != nil {
-		return nil, errors.WithMessage(err, "operators")
-	}
-
-	_, err = extensionsClientset.CustomResourceDefinitions().Get("operatorversions.kudo.dev", v1.GetOptions{})
-	if err != nil {
-		return nil, errors.WithMessage(err, "operatorversions")
-	}
-
-	_, err = extensionsClientset.CustomResourceDefinitions().Get("instances.kudo.dev", v1.GetOptions{})
-	if err != nil {
-		return nil, errors.WithMessage(err, "instances")
 	}
 
 	return &Client{
@@ -208,7 +205,11 @@ func (c *Client) OperatorVersionsInstalled(operatorName, namespace string) ([]st
 func (c *Client) InstallOperatorObjToCluster(obj *v1beta1.Operator, namespace string) (*v1beta1.Operator, error) {
 	createdObj, err := c.clientset.KudoV1beta1().Operators(namespace).Create(obj)
 	if err != nil {
-		return nil, errors.WithMessage(err, "installing Operator")
+		// we do NOT wrap timeouts
+		if os.IsTimeout(err) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("installing Operator: %w", err)
 	}
 	return createdObj, nil
 }
@@ -217,7 +218,11 @@ func (c *Client) InstallOperatorObjToCluster(obj *v1beta1.Operator, namespace st
 func (c *Client) InstallOperatorVersionObjToCluster(obj *v1beta1.OperatorVersion, namespace string) (*v1beta1.OperatorVersion, error) {
 	createdObj, err := c.clientset.KudoV1beta1().OperatorVersions(namespace).Create(obj)
 	if err != nil {
-		return nil, errors.WithMessage(err, "installing OperatorVersion")
+		// we do NOT wrap timeouts
+		if os.IsTimeout(err) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("installing OperatorVersion: %w", err)
 	}
 	return createdObj, nil
 }
@@ -226,7 +231,11 @@ func (c *Client) InstallOperatorVersionObjToCluster(obj *v1beta1.OperatorVersion
 func (c *Client) InstallInstanceObjToCluster(obj *v1beta1.Instance, namespace string) (*v1beta1.Instance, error) {
 	createdObj, err := c.clientset.KudoV1beta1().Instances(namespace).Create(obj)
 	if err != nil {
-		return nil, errors.WithMessage(err, "installing Instance")
+		// we do NOT wrap timeouts
+		if os.IsTimeout(err) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("installing Instance: %w", err)
 	}
 	clog.V(2).Printf("instance %v created in namespace %v", createdObj.Name, namespace)
 	return createdObj, nil
@@ -234,7 +243,7 @@ func (c *Client) InstallInstanceObjToCluster(obj *v1beta1.Instance, namespace st
 
 // DeleteInstance deletes an instance.
 func (c *Client) DeleteInstance(instanceName, namespace string) error {
-	propagationPolicy := v1.DeletePropagationForeground
+	propagationPolicy := v1.DeletePropagationBackground
 	options := &v1.DeleteOptions{
 		PropagationPolicy: &propagationPolicy,
 	}

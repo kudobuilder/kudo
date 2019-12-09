@@ -1,9 +1,9 @@
 package init
 
 import (
+	"fmt"
+	"os"
 	"strings"
-
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -13,6 +13,9 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 )
 
 //Defines the CRDs that the KUDO manager implements and watches.
@@ -27,6 +30,20 @@ func installCrds(client apiextensionsclient.Interface) error {
 	}
 	if err := install(client.ApiextensionsV1beta1(), instanceCrd()); err != nil {
 		return err
+	}
+	return nil
+}
+
+func validateInstallation(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition) error {
+	existingCrd, err := client.CustomResourceDefinitions().Get(crd.Name, v1.GetOptions{})
+	if err != nil {
+		if os.IsTimeout(err) {
+			return err
+		}
+		return fmt.Errorf("failed to retrieve CRD %s: %v", crd.Name, err)
+	}
+	if existingCrd.Spec.Version != crd.Spec.Version {
+		return fmt.Errorf("installed CRD %s has invalid version %s, expected %s", crd.Name, existingCrd.Spec.Version, crd.Spec.Version)
 	}
 	return nil
 }
@@ -166,6 +183,8 @@ func instanceCrd() *apiextv1beta1.CustomResourceDefinition {
 			Properties: validationProps,
 		},
 	}
+
+	crd.Spec.Subresources = &apiextv1beta1.CustomResourceSubresources{Status: &apiextv1beta1.CustomResourceSubresourceStatus{}}
 	return crd
 }
 
@@ -209,9 +228,9 @@ func generateCrd(kind string, plural string) *apiextv1beta1.CustomResourceDefini
 
 // KudoCrds represents custom resource definitions needed to run KUDO
 type KudoCrds struct {
-	Operator        runtime.Object
-	OperatorVersion runtime.Object
-	Instance        runtime.Object
+	Operator        *apiextv1beta1.CustomResourceDefinition
+	OperatorVersion *apiextv1beta1.CustomResourceDefinition
+	Instance        *apiextv1beta1.CustomResourceDefinition
 }
 
 // AsArray returns all CRDs as array of runtime objects
@@ -232,6 +251,19 @@ func (c KudoCrds) AsYaml() ([]string, error) {
 	}
 
 	return manifests, nil
+}
+
+func (c KudoCrds) ValidateInstallation(client *kube.Client) error {
+	if err := validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.Operator); err != nil {
+		return err
+	}
+	if err := validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion); err != nil {
+		return err
+	}
+	if err := validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.Instance); err != nil {
+		return err
+	}
+	return nil
 }
 
 // CRDs returns the runtime.Object representation of all the CRDs KUDO requires

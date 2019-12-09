@@ -11,13 +11,14 @@ import (
 	"testing"
 
 	petname "github.com/dustinkirkland/golang-petname"
-	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	corev1 "k8s.io/api/core/v1"
 	eventsbeta1 "k8s.io/api/events/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
 var testStepRegex = regexp.MustCompile(`^(\d+)-([^.]+)(.yaml)?$`)

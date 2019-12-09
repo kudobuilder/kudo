@@ -1,18 +1,18 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
 	"sort"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-
 	"github.com/Masterminds/semver"
-	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
 const defaultURL = "http://localhost/"
@@ -76,7 +76,7 @@ func (i IndexFile) sortPackages() {
 func ParseIndexFile(data []byte) (*IndexFile, error) {
 	i := &IndexFile{}
 	if err := yaml.Unmarshal(data, i); err != nil {
-		return nil, errors.Wrap(err, "unmarshalling index file")
+		return nil, fmt.Errorf("unmarshalling index file: %w", err)
 	}
 	if i.APIVersion == "" {
 		return nil, errors.New("no API version specified")
@@ -97,34 +97,12 @@ func (i IndexFile) Write(w io.Writer) error {
 	return err
 }
 
-// GetByNameAndVersion returns the operator of given name and version.
-// If no specific version is required, pass an empty string as version and the
-// the latest version will be returned.
-func (i IndexFile) GetByNameAndVersion(name, version string) (*PackageVersion, error) {
-	vs, ok := i.Entries[name]
-	if !ok || len(vs) == 0 {
-		return nil, fmt.Errorf("no operator found for: %s", name)
-	}
-
-	for _, ver := range vs {
-		if ver.Version == version || version == "" {
-			return ver, nil
-		}
-	}
-
-	if version == "" {
-		return nil, fmt.Errorf("no operator version found for %s", name)
-	}
-
-	return nil, fmt.Errorf("no operator version found for %s-%v", name, version)
-}
-
 // AddPackageVersion adds an entry to the IndexFile (does not allow dups)
 func (i *IndexFile) AddPackageVersion(pv *PackageVersion) error {
 	name := pv.Name
 	version := pv.Version
 	if version == "" {
-		return errors.Errorf("operator '%v' is missing version", name)
+		return fmt.Errorf("operator '%v' is missing version", name)
 	}
 	if i.Entries == nil {
 		i.Entries = make(map[string]PackageVersions)
@@ -140,7 +118,7 @@ func (i *IndexFile) AddPackageVersion(pv *PackageVersion) error {
 	// loop thru all... don't allow dups
 	for _, ver := range vs {
 		if ver.Version == version {
-			return errors.Errorf("operator '%v' version: %v already exists", name, version)
+			return fmt.Errorf("operator '%v' version: %v already exists", name, version)
 		}
 	}
 
@@ -167,20 +145,20 @@ func (i *IndexFile) WriteFile(fs afero.Fs, file string) (err error) {
 }
 
 // Map transforms a slice of packagefiles with file digests into a slice of PackageVersions
-func Map(pkgs []*packages.PackageFilesDigest, url string) PackageVersions {
+func Map(pkgs []*PackageFilesDigest, url string) PackageVersions {
 	return mapPackages(pkgs, url, ToPackageVersion)
 }
 
-func mapPackages(packages []*packages.PackageFilesDigest, url string, f func(*packages.PackageFiles, string, string) *PackageVersion) PackageVersions {
+func mapPackages(packages []*PackageFilesDigest, url string, f func(*packages.Files, string, string) *PackageVersion) PackageVersions {
 	pvs := make(PackageVersions, len(packages))
 	for i, pkg := range packages {
-		pvs[i] = f(pkg.PkgFiles, pkg.Digest, url)
+		pvs[i] = f(pkg.PackageFiles, pkg.Digest, url)
 	}
 	return pvs
 }
 
 // ToPackageVersion provided the packageFiles will create a PackageVersion (used for index)
-func ToPackageVersion(pf *packages.PackageFiles, digest string, url string) *PackageVersion {
+func ToPackageVersion(pf *packages.Files, digest string, url string) *PackageVersion {
 	o := pf.Operator
 	if url == "" {
 		url = defaultURL
@@ -221,7 +199,7 @@ func IndexDirectory(fs afero.Fs, path string, url string, now *time.Time) (*Inde
 		return nil, errors.New("no packages discovered")
 	}
 	index := newIndexFile(now)
-	ops := packages.GetFilesDigest(fs, archives)
+	ops := filesDigest(fs, archives)
 	pvs := Map(ops, url)
 	for _, pv := range pvs {
 		err = index.AddPackageVersion(pv)

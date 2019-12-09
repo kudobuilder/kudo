@@ -21,12 +21,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/apis"
+	"github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
-	"github.com/onsi/gomega"
+	"github.com/kudobuilder/kudo/pkg/apis"
 )
 
 var cfg *rest.Config
@@ -70,7 +70,7 @@ func TestSpecParameterDifference(t *testing.T) {
 	var old = map[string]string{"one": "1", "two": "2"}
 
 	for _, test := range testParams {
-		diff := parameterDifference(old, test.new)
+		diff := parameterDiff(old, test.new)
 		g.Expect(diff).Should(gomega.Equal(test.diff), test.name)
 	}
 }

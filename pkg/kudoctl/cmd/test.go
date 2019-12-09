@@ -1,17 +1,18 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"testing"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/test"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
@@ -71,7 +72,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 				if _, err := os.Stat("kudo-test.yaml"); err == nil {
 					configPath = "kudo-test.yaml"
 				} else {
-					return fmt.Errorf("kudo-test.yaml not found, provide either --config or arguments indicating the tests to load")
+					return errors.New("kudo-test.yaml not found, provide either --config or arguments indicating the tests to load")
 				}
 			}
 
@@ -125,7 +126,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 			}
 
 			if options.StartControlPlane && options.StartKIND {
-				return fmt.Errorf("only one of --start-control-plane and --start-kind can be set")
+				return errors.New("only one of --start-control-plane and --start-kind can be set")
 			}
 
 			if isSet(flags, "start-kudo") {
@@ -153,7 +154,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 			}
 
 			if len(options.TestDirs) == 0 {
-				return fmt.Errorf("no test directories provided, please provide either --config or test directories on the command line")
+				return errors.New("no test directories provided, please provide either --config or test directories on the command line")
 			}
 
 			return nil

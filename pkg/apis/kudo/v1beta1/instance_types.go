@@ -21,15 +21,15 @@ import (
 	"log"
 	"reflect"
 
-	"k8s.io/apimachinery/pkg/util/uuid"
-
-	apimachinerytypes "k8s.io/apimachinery/pkg/types"
-
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apimachinerytypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
+
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
+
+const instanceCleanupFinalizerName = "kudo.dev.instance.cleanup"
 
 // InstanceSpec defines the desired state of Instance.
 type InstanceSpec struct {
@@ -78,6 +78,7 @@ type AggregatedStatus struct {
 type PlanStatus struct {
 	Name            string                `json:"name,omitempty"`
 	Status          ExecutionStatus       `json:"status,omitempty"`
+	Message         string                `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
 	LastFinishedRun metav1.Time           `json:"lastFinishedRun,omitempty"`
 	Phases          []PhaseStatus         `json:"phases,omitempty"`
 	UID             apimachinerytypes.UID `json:"uid,omitempty"`
@@ -85,15 +86,47 @@ type PlanStatus struct {
 
 // PhaseStatus is representing status of a phase
 type PhaseStatus struct {
-	Name   string          `json:"name,omitempty"`
-	Status ExecutionStatus `json:"status,omitempty"`
-	Steps  []StepStatus    `json:"steps,omitempty"`
+	Name    string          `json:"name,omitempty"`
+	Status  ExecutionStatus `json:"status,omitempty"`
+	Message string          `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
+	Steps   []StepStatus    `json:"steps,omitempty"`
 }
 
 // StepStatus is representing status of a step
 type StepStatus struct {
-	Name   string          `json:"name,omitempty"`
-	Status ExecutionStatus `json:"status,omitempty"`
+	Name    string          `json:"name,omitempty"`
+	Message string          `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
+	Status  ExecutionStatus `json:"status,omitempty"`
+}
+
+func (s *StepStatus) Set(status ExecutionStatus) {
+	s.Status = status
+	s.Message = ""
+}
+
+func (s *StepStatus) SetWithMessage(status ExecutionStatus, message string) {
+	s.Status = status
+	s.Message = message
+}
+
+func (s *PhaseStatus) Set(status ExecutionStatus) {
+	s.Status = status
+	s.Message = ""
+}
+
+func (s *PhaseStatus) SetWithMessage(status ExecutionStatus, message string) {
+	s.Status = status
+	s.Message = message
+}
+
+func (s *PlanStatus) Set(status ExecutionStatus) {
+	s.Status = status
+	s.Message = ""
+}
+
+func (s *PlanStatus) SetWithMessage(status ExecutionStatus, message string) {
+	s.Status = status
+	s.Message = message
 }
 
 // ExecutionStatus captures the state of the rollout.
@@ -126,6 +159,9 @@ const (
 
 	// UpdatePlanName is the name of the update plan
 	UpdatePlanName = "update"
+
+	// CleanupPlanName is the name of the cleanup plan
+	CleanupPlanName = "cleanup"
 )
 
 // IsTerminal returns true if the status is terminal (either complete, or in a nonrecoverable error)
@@ -213,7 +249,7 @@ func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
 
 		existingPlanStatus, planExists := i.Status.PlanStatus[planName]
 		if planExists {
-			planStatus.Status = existingPlanStatus.Status
+			planStatus.SetWithMessage(existingPlanStatus.Status, existingPlanStatus.Message)
 		}
 		for _, phase := range plan.Phases {
 			phaseStatus := &PhaseStatus{
@@ -227,7 +263,7 @@ func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
 					if phase.Name == oldPhase.Name {
 						existingPhaseStatus = oldPhase
 						phaseExists = true
-						phaseStatus.Status = existingPhaseStatus.Status
+						phaseStatus.SetWithMessage(existingPhaseStatus.Status, existingPhaseStatus.Message)
 					}
 				}
 			}
@@ -239,7 +275,7 @@ func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
 				if phaseExists {
 					for _, oldStep := range existingPhaseStatus.Steps {
 						if step.Name == oldStep.Name {
-							stepStatus.Status = oldStep.Status
+							stepStatus.SetWithMessage(oldStep.Status, oldStep.Message)
 						}
 					}
 				}
@@ -252,6 +288,7 @@ func (i *Instance) EnsurePlanStatusInitialized(ov *OperatorVersion) {
 }
 
 // StartPlanExecution mark plan as to be executed
+// this modifies the instance.Status as well as instance.Metadata.Annotation (to save snapshot if needed)
 func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) error {
 	if i.NoPlanEverExecuted() || isUpgradePlan(planName) {
 		i.EnsurePlanStatusInitialized(ov)
@@ -264,12 +301,12 @@ func (i *Instance) StartPlanExecution(planName string, ov *OperatorVersion) erro
 			// update plan status
 			notFound = false
 			planStatus := i.Status.PlanStatus[planIndex]
-			planStatus.Status = ExecutionPending
+			planStatus.Set(ExecutionPending)
 			planStatus.UID = uuid.NewUUID()
 			for j, p := range v.Phases {
-				planStatus.Phases[j].Status = ExecutionPending
+				planStatus.Phases[j].Set(ExecutionPending)
 				for k := range p.Steps {
-					i.Status.PlanStatus[planIndex].Phases[j].Steps[k].Status = ExecutionPending
+					i.Status.PlanStatus[planIndex].Phases[j].Steps[k].Set(ExecutionPending)
 				}
 			}
 
@@ -353,8 +390,34 @@ func selectPlan(possiblePlans []string, ov *OperatorVersion) *string {
 	return nil
 }
 
+func (i *Instance) PlanStatus(plan string) *PlanStatus {
+	for _, planStatus := range i.Status.PlanStatus {
+		if planStatus.Name == plan {
+			return &planStatus
+		}
+	}
+
+	return nil
+}
+
 // GetPlanToBeExecuted returns name of the plan that should be executed
 func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
+	if i.IsDeleting() {
+		// we have a cleanup plan
+		plan := selectPlan([]string{CleanupPlanName}, ov)
+		if plan != nil {
+			if planStatus := i.PlanStatus(*plan); planStatus != nil {
+				if !planStatus.Status.IsRunning() {
+					if planStatus.Status.IsFinished() {
+						// we already finished the cleanup plan
+						return nil, nil
+					}
+					return plan, nil
+				}
+			}
+		}
+	}
+
 	if i.GetPlanInProgress() != nil { // we're already running some plan
 		return nil, nil
 	}
@@ -375,7 +438,7 @@ func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
 	}
 	if instanceSnapshot.OperatorVersion.Name != i.Spec.OperatorVersion.Name {
 		// this instance was upgraded to newer version
-		log.Printf("Instance: instance %s/%s was upgraded from %s to %s operatorversion", i.Namespace, i.Name, instanceSnapshot.OperatorVersion.Name, i.Spec.OperatorVersion.Name)
+		log.Printf("Instance: instance %s/%s was upgraded from %s to %s operatorVersion", i.Namespace, i.Name, instanceSnapshot.OperatorVersion.Name, i.Spec.OperatorVersion.Name)
 		plan := selectPlan([]string{UpgradePlanName, UpdatePlanName, DeployPlanName}, ov)
 		if plan == nil {
 			return nil, &InstanceError{fmt.Errorf("supposed to execute plan because instance %s/%s was upgraded but none of the deploy, upgrade, update plans found in linked operatorVersion", i.Namespace, i.Name), kudo.String("PlanNotFound")}
@@ -390,7 +453,7 @@ func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
 		paramDefinitions := getParamDefinitions(paramDiff, ov)
 		plan := planNameFromParameters(paramDefinitions, ov)
 		if plan == nil {
-			return nil, &InstanceError{fmt.Errorf("supposed to execute plan because instance %s/%s was updatet but none of the deploy, update plans found in linked operatorVersion", i.Namespace, i.Name), kudo.String("PlanNotFound")}
+			return nil, &InstanceError{fmt.Errorf("supposed to execute plan because instance %s/%s was updated but none of the deploy, update plans found in linked operatorVersion", i.Namespace, i.Name), kudo.String("PlanNotFound")}
 		}
 		return plan, nil
 	}
@@ -440,6 +503,71 @@ func parameterDifference(old, new map[string]string) map[string]string {
 	}
 
 	return diff
+}
+
+func contains(values []string, s string) bool {
+	for _, value := range values {
+		if value == s {
+			return true
+		}
+	}
+	return false
+}
+
+func remove(values []string, s string) (result []string) {
+	for _, value := range values {
+		if value == s {
+			continue
+		}
+		result = append(result, value)
+	}
+	return
+}
+
+// TryAddFinalizer adds the cleanup finalizer to an instance if the finalizer
+// hasn't been added yet, the instance has a cleanup plan and the cleanup plan
+// didn't run yet. Returns true if the cleanup finalizer has been added.
+func (i *Instance) TryAddFinalizer() bool {
+	if !contains(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
+		if planStatus := i.PlanStatus(CleanupPlanName); planStatus != nil {
+			// avoid adding a finalizer again if a reconciliation is requested
+			// after it has just been removed but the instance isn't deleted yet
+			if planStatus.Status == ExecutionNeverRun {
+				i.ObjectMeta.Finalizers = append(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// TryRemoveFinalizer removes the cleanup finalizer of an instance if it has
+// been added, the instance has a cleanup plan and the cleanup plan completed.
+// Returns true if the cleanup finalizer has been removed.
+func (i *Instance) TryRemoveFinalizer() bool {
+	if contains(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
+		if planStatus := i.PlanStatus(CleanupPlanName); planStatus != nil {
+			if planStatus.Status.IsTerminal() {
+				i.ObjectMeta.Finalizers = remove(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
+				return true
+			}
+		} else {
+			// We have a finalizer but no cleanup plan. This could be due to an updated instance.
+			// Let's remove the finalizer.
+			i.ObjectMeta.Finalizers = remove(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsDeleting returns true is the instance is being deleted.
+func (i *Instance) IsDeleting() bool {
+	// a delete request is indicated by a non-zero 'metadata.deletionTimestamp',
+	// see https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
+	return !i.ObjectMeta.DeletionTimestamp.IsZero()
 }
 
 // +genclient

@@ -1,76 +1,66 @@
-package packages
+package writer
 
 import (
 	"archive/tar"
 	"compress/gzip"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
+	"testing"
 
 	"github.com/spf13/afero"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 )
 
-// tarballWriter creates a tarball *.tgz file for the file system tree at the provided path.
-func tarballWriter(fs afero.Fs, path string, w io.Writer) (err error) {
-	gw := gzip.NewWriter(w)
-	defer gw.Close()
-	tw := tar.NewWriter(gw)
-	defer tw.Close()
+const expectedTarballSHA = "ad0b1650b6f50979815acedae884851527b4e721696a7cc1d37fef3970888b19"
 
-	err = afero.Walk(fs, path, func(file string, fi os.FileInfo, err error) error {
+func TestRegularFileTarball(t *testing.T) {
+	var fs = afero.NewMemMapFs()
+	files.CopyOperatorToFs(fs, "../testdata/zk", "/opt")
 
-		// return on any error
-		if err != nil {
-			return err
-		}
+	f, _ := fs.Create("/opt/zk.tgz")
 
-		// return on non-regular files.  We don't add directories without files and symlinks
-		if !fi.Mode().IsRegular() {
-			return nil
-		}
+	o, _ := os.Open("/opt/zk/operator.yaml")
+	expected, _ := files.Sha256Sum(o)
 
-		// create a new dir/file header
-		header, err := tar.FileInfoHeader(fi, fi.Name())
-		if err != nil {
-			fmt.Printf("Error creating tar header for: %v", fi.Name())
-			return err
-		}
+	// path is that copied into in-mem fs
+	_ = TgzDir(fs, "/opt/zk", f)
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
 
-		// update the name to correctly reflect the desired destination when untaring
-		header.Name = strings.TrimPrefix(strings.Replace(file, path, "", -1), string(filepath.Separator))
+	//open for reading in an untar
+	f, _ = fs.Open("/opt/zk.tgz")
+	defer f.Close()
 
-		// write the header
-		if err := tw.WriteHeader(header); err != nil {
-			return err
-		}
+	actualTarballSHA, err := files.Sha256Sum(f)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		// open files for taring
-		f, err := fs.Open(file)
-		if err != nil {
-			return err
-		}
+	if expectedTarballSHA != actualTarballSHA {
+		t.Errorf("Expecting the tarball to have a specific (reproducible) hash but it differs: %v, %v", expectedTarballSHA, actualTarballSHA)
+	}
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
 
-		defer func() {
-			if ferr := f.Close(); ferr != nil {
-				err = ferr
-			}
-		}()
+	if err := untar(fs, "/opt/untar", f); err != nil {
+		t.Fatal(err)
+	}
 
-		// copy file data into tar writer
-		if _, err := io.Copy(tw, f); err != nil {
-			return err
-		}
+	u, _ := os.Open("/opt/untar/operator.yaml")
+	actual, _ := files.Sha256Sum(u)
 
-		return nil
-	})
-	return err
+	if expected != actual {
+		t.Errorf("Expecting the tarball and untar of operator.yaml to have same hash but they differ: %v, %v", expected, actual)
+	}
 }
 
-// Untar takes a destination path and a reader; a tar reader loops over the tarfile
+// untar takes a destination path and a reader; a tar reader loops over the tarfile
 // creating the file structure at 'path' along the way, and writing any files
-func Untar(fs afero.Fs, path string, r io.Reader) (err error) {
+func untar(fs afero.Fs, path string, r io.Reader) (err error) {
 	//todo: refactor to combine with parseTarPackage
 	gzr, err := gzip.NewReader(r)
 	if err != nil {

@@ -17,24 +17,33 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+	"net/url"
 	"os"
+	"strings"
+
+	"github.com/go-logr/logr"
+	apiextenstionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/kudobuilder/kudo/pkg/apis"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
 	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
-	util "github.com/kudobuilder/kudo/pkg/test/utils"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/version"
-	apiextenstionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	ctrl "sigs.k8s.io/controller-runtime"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func main() {
-	logf.SetLogger(zap.Logger(false))
+	logf.SetLogger(zap.New(zap.UseDevMode(false)))
 	log := logf.Log.WithName("entrypoint")
 
 	// Get version of KUDO
@@ -43,7 +52,7 @@ func main() {
 	// create new controller-runtime manager
 	log.Info("setting up manager")
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		MapperProvider: util.NewDynamicRESTMapper,
+		CertDir: "/tmp/cert",
 	})
 	if err != nil {
 		log.Error(err, "unable to start manager")
@@ -93,10 +102,70 @@ func main() {
 		os.Exit(1)
 	}
 
+	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) == "true" {
+		err = registerValidatingWebhook(&v1beta1.Instance{}, mgr, log)
+		if err != nil {
+			log.Error(err, "unable to create webhook")
+			os.Exit(1)
+		}
+	}
+
 	// Start the Cmd
 	log.Info("Starting the Cmd.")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		log.Error(err, "unable to run the manager")
 		os.Exit(1)
 	}
+}
+
+// this is a fork of a code in controller-runtime to be able to pass in our own Validator interface
+// see kudo.Validator docs for more details\
+//
+// ideally in the future we should switch to just simply doing
+// err = ctrl.NewWebhookManagedBy(mgr).
+// For(&v1beta1.Instance{}).
+// Complete()
+//
+// that internally calls this method but using their own internal Validator type
+func registerValidatingWebhook(obj runtime.Object, mgr manager.Manager, log logr.Logger) error {
+	gvk, err := apiutil.GVKForObject(obj, mgr.GetScheme())
+	if err != nil {
+		return err
+	}
+	validator, ok := obj.(kudo.Validator)
+	if !ok {
+		log.Info("skip registering a validating webhook, kudo.Validator interface is not implemented %v", gvk)
+
+		return nil
+	}
+	vwh := kudo.ValidatingWebhookFor(validator)
+	if vwh != nil {
+		path := generateValidatePath(gvk)
+
+		// Checking if the path is already registered.
+		// If so, just skip it.
+		if !isAlreadyHandled(path, mgr) {
+			log.Info("Registering a validating webhook for %v on path %s", gvk, path)
+			mgr.GetWebhookServer().Register(path, vwh)
+		}
+	}
+	return nil
+}
+
+func isAlreadyHandled(path string, mgr manager.Manager) bool {
+	if mgr.GetWebhookServer().WebhookMux == nil {
+		return false
+	}
+	h, p := mgr.GetWebhookServer().WebhookMux.Handler(&http.Request{URL: &url.URL{Path: path}})
+	if p == path && h != nil {
+		return true
+	}
+	return false
+}
+
+// if the strategy to generate this path changes we should update init code and webhook setup
+// right now this is in sync how controller-runtime generates these paths
+func generateValidatePath(gvk schema.GroupVersionKind) string {
+	return "/validate-" + strings.Replace(gvk.Group, ".", "-", -1) + "-" +
+		gvk.Version + "-" + strings.ToLower(gvk.Kind)
 }

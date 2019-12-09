@@ -3,13 +3,14 @@ package test
 import (
 	"testing"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
 // Verify the test state as loaded from disk.

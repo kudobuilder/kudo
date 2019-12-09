@@ -10,14 +10,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 const timeout = time.Second * 5
@@ -107,4 +108,193 @@ func startTestManager(t *testing.T) (chan struct{}, *sync.WaitGroup, client.Clie
 		wg.Done()
 	}()
 	return stop, wg, mgr.GetClient()
+}
+
+func Test_makePipes(t *testing.T) {
+	meta := &engine.Metadata{
+		InstanceName:        "first-operator-instance",
+		InstanceNamespace:   "default",
+		OperatorName:        "first-operator",
+		OperatorVersionName: "first-operator-1.0",
+		OperatorVersion:     "1.0",
+	}
+
+	tests := []struct {
+		name     string
+		planName string
+		plan     *v1beta1.Plan
+		tasks    []v1beta1.Task
+		emeta    *engine.Metadata
+		want     map[string]string
+		wantErr  bool
+	}{
+		{
+			name:     "no tasks, no pipes",
+			planName: "deploy",
+			plan: &v1beta1.Plan{Strategy: "serial", Phases: []v1beta1.Phase{
+				{
+					Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{
+						{
+							Name: "step", Tasks: []string{}},
+					}},
+			}},
+			tasks: []v1beta1.Task{},
+			emeta: meta,
+			want:  map[string]string{},
+		},
+		{
+			name:     "no pipe tasks, no pipes",
+			planName: "deploy",
+			plan: &v1beta1.Plan{Strategy: "serial", Phases: []v1beta1.Phase{
+				{
+					Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{
+						{
+							Name: "step", Tasks: []string{"task"}},
+					}},
+			}},
+			tasks: []v1beta1.Task{
+				{
+					Name: "task",
+					Kind: "Dummy",
+					Spec: v1beta1.TaskSpec{
+						DummyTaskSpec: v1beta1.DummyTaskSpec{Done: false},
+					},
+				},
+			},
+			emeta: meta,
+			want:  map[string]string{},
+		},
+		{
+			name:     "one pipe task, one pipes element",
+			planName: "deploy",
+			plan: &v1beta1.Plan{Strategy: "serial", Phases: []v1beta1.Phase{
+				{
+					Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{
+						{
+							Name: "step", Tasks: []string{"task"}},
+					}},
+			}},
+			tasks: []v1beta1.Task{
+				{
+					Name: "task",
+					Kind: "Pipe",
+					Spec: v1beta1.TaskSpec{
+						PipeTaskSpec: v1beta1.PipeTaskSpec{
+							Pod: "pipe-pod.yaml",
+							Pipe: []v1beta1.PipeSpec{
+								{
+									File: "foo.txt",
+									Kind: "Secret",
+									Key:  "Foo",
+								},
+							},
+						},
+					},
+				},
+			},
+			emeta: meta,
+			want:  map[string]string{"Foo": "firstoperatorinstance.deploy.phase.step.task.foo"},
+		},
+		{
+			name:     "two pipe tasks, two pipes element",
+			planName: "deploy",
+			plan: &v1beta1.Plan{Strategy: "serial", Phases: []v1beta1.Phase{
+				{
+					Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{
+						{Name: "stepOne", Tasks: []string{"task-one"}},
+						{Name: "stepTwo", Tasks: []string{"task-two"}},
+					}},
+			}},
+			tasks: []v1beta1.Task{
+				{
+					Name: "task-one",
+					Kind: "Pipe",
+					Spec: v1beta1.TaskSpec{
+						PipeTaskSpec: v1beta1.PipeTaskSpec{
+							Pod: "pipe-pod.yaml",
+							Pipe: []v1beta1.PipeSpec{
+								{
+									File: "foo.txt",
+									Kind: "Secret",
+									Key:  "Foo",
+								},
+							},
+						},
+					},
+				},
+				{
+					Name: "task-two",
+					Kind: "Pipe",
+					Spec: v1beta1.TaskSpec{
+						PipeTaskSpec: v1beta1.PipeTaskSpec{
+							Pod: "pipe-pod.yaml",
+							Pipe: []v1beta1.PipeSpec{
+								{
+									File: "bar.txt",
+									Kind: "ConfigMap",
+									Key:  "Bar",
+								},
+							},
+						},
+					},
+				},
+			},
+			emeta: meta,
+			want: map[string]string{
+				"Foo": "firstoperatorinstance.deploy.phase.stepone.taskone.foo",
+				"Bar": "firstoperatorinstance.deploy.phase.steptwo.tasktwo.bar",
+			},
+		},
+		{
+			name:     "one pipe task, duplicated pipe keys",
+			planName: "deploy",
+			plan: &v1beta1.Plan{Strategy: "serial", Phases: []v1beta1.Phase{
+				{
+					Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{
+						{
+							Name: "step", Tasks: []string{"task"}},
+					}},
+			}},
+			tasks: []v1beta1.Task{
+				{
+					Name: "task",
+					Kind: "Pipe",
+					Spec: v1beta1.TaskSpec{
+						PipeTaskSpec: v1beta1.PipeTaskSpec{
+							Pod: "pipe-pod.yaml",
+							Pipe: []v1beta1.PipeSpec{
+								{
+									File: "foo.txt",
+									Kind: "Secret",
+									Key:  "Foo",
+								},
+								{
+									File: "bar.txt",
+									Kind: "ConfigMap",
+									Key:  "Foo",
+								},
+							},
+						},
+					},
+				},
+			},
+			emeta:   meta,
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := pipesMap(tt.planName, tt.plan, tt.tasks, tt.emeta)
+			if err != nil {
+				if !tt.wantErr {
+					t.Fatalf("pipesMap() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				return
+			}
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }

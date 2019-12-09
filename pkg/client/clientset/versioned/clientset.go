@@ -19,10 +19,11 @@ package versioned
 import (
 	"fmt"
 
-	kudov1beta1 "github.com/kudobuilder/kudo/pkg/client/clientset/versioned/typed/kudo/v1beta1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
+
+	kudov1beta1 "github.com/kudobuilder/kudo/pkg/client/clientset/versioned/typed/kudo/v1beta1"
 )
 
 type Interface interface {

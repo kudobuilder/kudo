@@ -1,14 +1,14 @@
 package get
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
+	"github.com/xlab/treeprint"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
-
-	"github.com/pkg/errors"
-	"github.com/xlab/treeprint"
 )
 
 // Run returns the errors associated with cmd env
@@ -21,7 +21,7 @@ func Run(args []string, settings *env.Settings) error {
 
 	kc, err := env.GetClient(settings)
 	if err != nil {
-		return errors.Wrap(err, "creating kudo client")
+		return fmt.Errorf("creating kudo client: %w", err)
 	}
 
 	p, err := getInstances(kc, settings)
@@ -40,11 +40,11 @@ func Run(args []string, settings *env.Settings) error {
 
 func validate(args []string) error {
 	if len(args) != 1 {
-		return fmt.Errorf("expecting exactly one argument - \"instances\"")
+		return errors.New(`expecting exactly one argument - "instances"`)
 	}
 
 	if args[0] != "instances" {
-		return fmt.Errorf("expecting \"instances\" and not \"%s\"", args[0])
+		return fmt.Errorf(`expecting "instances" and not %q`, args[0])
 	}
 
 	return nil
@@ -55,7 +55,7 @@ func getInstances(kc *kudo.Client, settings *env.Settings) ([]string, error) {
 
 	instanceList, err := kc.ListInstances(settings.Namespace)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting instances")
+		return nil, fmt.Errorf("getting instances: %w", err)
 	}
 
 	return instanceList, nil

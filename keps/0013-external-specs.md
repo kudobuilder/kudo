@@ -1,6 +1,7 @@
 ---
 kep-number: 0013
-title: external-specs
+title: External Specs
+short-desc: Run non-KUDO defined applications as Operators
 authors:
   - "@runyontr"
 owners:

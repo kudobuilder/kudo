@@ -1,21 +1,21 @@
 package workflow
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/engine/renderer"
-
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/engine"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 )
 
 func TestExecutePlan(t *testing.T) {
@@ -175,7 +175,7 @@ func TestExecutePlan(t *testing.T) {
 			expectedStatus: &v1beta1.PlanStatus{
 				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ErrorStatus, Name: "step"}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ErrorStatus, Name: "step", Message: "A transient error when executing task test.phase.step.task. Will retry. dummy error"}}}},
 			},
 			enhancer: testEnhancer,
 		},
@@ -207,7 +207,7 @@ func TestExecutePlan(t *testing.T) {
 			expectedStatus: &v1beta1.PlanStatus{
 				Status: v1beta1.ExecutionFatalError,
 				Name:   "test",
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Name: "step"}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Message: "Error during execution: fatal error: default/test-instance failed in test.phase.step.task: dummy error", Name: "step"}}}},
 			},
 			wantErr:  true,
 			enhancer: testEnhancer,
@@ -240,7 +240,7 @@ func TestExecutePlan(t *testing.T) {
 			expectedStatus: &v1beta1.PlanStatus{
 				Status: v1beta1.ExecutionFatalError,
 				Name:   "test",
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Name: "step"}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Message: "default/test-instance fatal error:  missing task test.phase.step.fake-task", Name: "step"}}}},
 			},
 			wantErr:  true,
 			enhancer: testEnhancer,
@@ -271,7 +271,7 @@ func TestExecutePlan(t *testing.T) {
 			expectedStatus: &v1beta1.PlanStatus{
 				Status: v1beta1.ExecutionFatalError,
 				Name:   "test",
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Name: "step"}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Name: "step", Message: "default/test-instance fatal error:  failed to build task test.phase.step.task: unknown task kind Unknown"}}}},
 			},
 			wantErr:  true,
 			enhancer: testEnhancer,
@@ -319,7 +319,7 @@ func TestExecutePlan(t *testing.T) {
 				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
 				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{
-					{Name: "stepOne", Status: v1beta1.ErrorStatus},
+					{Name: "stepOne", Status: v1beta1.ErrorStatus, Message: "A transient error when executing task test.phase.stepOne.taskOne. Will retry. dummy error"},
 					{Name: "stepTwo", Status: v1beta1.ExecutionInProgress},
 				}}},
 			},
@@ -367,7 +367,7 @@ func TestExecutePlan(t *testing.T) {
 				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
 				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{
-					{Name: "stepOne", Status: v1beta1.ErrorStatus},
+					{Name: "stepOne", Status: v1beta1.ErrorStatus, Message: "A transient error when executing task test.phase.stepOne.taskOne. Will retry. dummy error"},
 					{Name: "stepTwo", Status: v1beta1.ExecutionComplete},
 				}}},
 			},
@@ -415,7 +415,7 @@ func TestExecutePlan(t *testing.T) {
 				Status: v1beta1.ExecutionFatalError,
 				Name:   "test",
 				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{
-					{Name: "stepOne", Status: v1beta1.ExecutionFatalError},
+					{Name: "stepOne", Status: v1beta1.ExecutionFatalError, Message: "Error during execution: fatal error: default/test-instance failed in test.phase.stepOne.taskOne: dummy error"},
 					{Name: "stepTwo", Status: v1beta1.ExecutionInProgress},
 				}}},
 			},
@@ -463,7 +463,7 @@ func TestExecutePlan(t *testing.T) {
 				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
 				Phases: []v1beta1.PhaseStatus{
-					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ErrorStatus}}},
+					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ErrorStatus, Message: "A transient error when executing task test.phaseOne.step.taskOne. Will retry. dummy error"}}},
 					{Name: "phaseTwo", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
 				},
 			},
@@ -509,7 +509,7 @@ func TestExecutePlan(t *testing.T) {
 				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
 				Phases: []v1beta1.PhaseStatus{
-					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ErrorStatus}}},
+					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ErrorStatus, Message: "A transient error when executing task test.phaseOne.step.taskOne. Will retry. dummy error"}}},
 					{Name: "phaseTwo", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionComplete}}},
 				},
 			},
@@ -555,7 +555,7 @@ func TestExecutePlan(t *testing.T) {
 				Status: v1beta1.ExecutionFatalError,
 				Name:   "test",
 				Phases: []v1beta1.PhaseStatus{
-					{Name: "phaseOne", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionFatalError}}},
+					{Name: "phaseOne", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionFatalError, Message: "Error during execution: fatal error: default/test-instance failed in test.phaseOne.step.taskOne: dummy error"}}},
 					{Name: "phaseTwo", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
 				},
 			},
@@ -592,7 +592,7 @@ func TestExecutePlan(t *testing.T) {
 			expectedStatus: &v1beta1.PlanStatus{
 				Status: v1beta1.ExecutionFatalError,
 				Name:   "test",
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Name: "step"}}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Name: "step", Message: "Error during execution: fatal error: default/test-instance failed in test.phase.step.task: dummy error"}}}}},
 			wantErr:  true,
 			enhancer: testEnhancer,
 		},
@@ -641,7 +641,7 @@ func (k *testEnhancer) Apply(templates map[string]string, metadata renderer.Meta
 	for _, t := range templates {
 		objsToAdd, err := renderer.YamlToObject(t)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing kubernetes objects after applying kustomize")
+			return nil, fmt.Errorf("error parsing kubernetes objects after applying kustomize: %w", err)
 		}
 		result = append(result, objsToAdd[0])
 	}

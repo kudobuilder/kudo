@@ -171,6 +171,8 @@ spec:
     plural: instances
     singular: instance
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -227,14 +229,6 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: kudo-manager
-  namespace: foo
-
----
-apiVersion: v1
-kind: Secret
-metadata:
-  creationTimestamp: null
-  name: kudo-webhook-server-secret
   namespace: foo
 
 ---
@@ -296,11 +290,13 @@ spec:
               fieldPath: metadata.namespace
         - name: SECRET_NAME
           value: kudo-webhook-server-secret
+        - name: ENABLE_WEBHOOKS
+          value: "false"
         image: kudobuilder/controller:vdev
         imagePullPolicy: Always
         name: manager
         ports:
-        - containerPort: 9876
+        - containerPort: 443
           name: webhook-server
           protocol: TCP
         resources:

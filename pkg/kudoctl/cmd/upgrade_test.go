@@ -3,9 +3,8 @@ package cmd
 import (
 	"testing"
 
-	"gotest.tools/assert"
-
 	"github.com/spf13/afero"
+	"gotest.tools/assert"
 )
 
 func TestUpgradeCommand_Validation(t *testing.T) {

@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/writer"
 )
 
 const (
@@ -57,14 +59,18 @@ func newPackageCreateCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 func validateOperatorArg(args []string) error {
 	if len(args) != 1 {
-		return fmt.Errorf("expecting exactly one argument - directory of the operator or name of package")
+		return errors.New("expecting exactly one argument - directory of the operator or name of package")
 	}
 	return nil
 }
 
 // run returns the errors associated with cmd env
 func (pkg *packageCreateCmd) run() error {
-	tarfile, err := packages.CreateTarball(pkg.fs, pkg.path, pkg.destination, pkg.overwrite)
+	err := verifyPackage(pkg.fs, pkg.path, pkg.out)
+	if err != nil {
+		return err
+	}
+	tarfile, err := writer.WriteTgz(pkg.fs, pkg.path, pkg.destination, pkg.overwrite)
 	if err == nil {
 		fmt.Fprintf(pkg.out, "Package created: %v\n", tarfile)
 	}

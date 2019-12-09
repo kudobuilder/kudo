@@ -17,9 +17,10 @@ limitations under the License.
 package v1beta1
 
 import (
+	rest "k8s.io/client-go/rest"
+
 	v1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/scheme"
-	rest "k8s.io/client-go/rest"
 )
 
 type KudoV1beta1Interface interface {

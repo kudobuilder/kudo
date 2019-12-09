@@ -5,16 +5,15 @@ import (
 	"io"
 	"sort"
 
+	"github.com/gosuri/uitable"
+	"github.com/spf13/afero"
+	"github.com/spf13/cobra"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
+	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
-
-	"github.com/gosuri/uitable"
-	"github.com/pkg/errors"
-	"github.com/spf13/afero"
-	"github.com/spf13/cobra"
 )
 
 type paramsListCmd struct {
@@ -57,7 +56,7 @@ func newParamsListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.BoolVarP(&list.requiredOnly, "required", "r", false, "Show only parameters which have no defaults but are required.")
 	f.BoolVar(&list.namesOnly, "names", false, "Display only names.")
 	f.StringVar(&list.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
-	f.StringVarP(&list.PackageVersion, "version", "v", "", "A specific package version on the official GitHub repo. (default to the most recent)")
+	f.StringVar(&list.PackageVersion, "version", "", "A specific package version on the official GitHub repo. (default to the most recent)")
 
 	return cmd
 }
@@ -72,28 +71,29 @@ func (c *paramsListCmd) run(fs afero.Fs, settings *env.Settings) error {
 	}
 	repository, err := repo.ClientFromSettings(fs, settings.Home, c.RepoName)
 	if err != nil {
-		return errors.WithMessage(err, "could not build operator repository")
+		return fmt.Errorf("could not build operator repository: %w", err)
 	}
 	clog.V(4).Printf("repository used %s", repository)
 
 	clog.V(3).Printf("getting package pkg files for %v with version: %v", c.path, c.PackageVersion)
-	pf, err := kudo.PkgFiles(c.path, c.PackageVersion, repository)
+	resolver := pkgresolver.New(repository)
+	pf, err := resolver.Resolve(c.path, c.PackageVersion)
 	if err != nil {
-		return errors.Wrapf(err, "failed to resolve package files for operator: %s", c.path)
+		return fmt.Errorf("failed to resolve package files for operator: %s: %w", c.path, err)
 	}
 
-	return displayParamsTable(pf, c)
+	return displayParamsTable(pf.Files, c)
 }
 
-func displayParamsTable(pf *packages.PackageFiles, cmd *paramsListCmd) error {
-	sort.Sort(pf.Params)
+func displayParamsTable(pf *packages.Files, cmd *paramsListCmd) error {
+	sort.Sort(pf.Params.Parameters)
 	table := uitable.New()
 	tValue := true
 	// required
 	if cmd.requiredOnly {
 		table.AddRow("Name")
 		found := false
-		for _, p := range pf.Params {
+		for _, p := range pf.Params.Parameters {
 			if p.Default == nil && p.Required == &tValue {
 				found = true
 				table.AddRow(p.Name)
@@ -109,7 +109,7 @@ func displayParamsTable(pf *packages.PackageFiles, cmd *paramsListCmd) error {
 	// names only
 	if cmd.namesOnly {
 		table.AddRow("Name")
-		for _, p := range pf.Params {
+		for _, p := range pf.Params.Parameters {
 			table.AddRow(p.Name)
 		}
 		fmt.Fprintln(cmd.out, table)
@@ -123,8 +123,8 @@ func displayParamsTable(pf *packages.PackageFiles, cmd *paramsListCmd) error {
 	} else {
 		table.AddRow("Name", "Default", "Required")
 	}
-	sort.Sort(pf.Params)
-	for _, p := range pf.Params {
+	sort.Sort(pf.Params.Parameters)
+	for _, p := range pf.Params.Parameters {
 		pDefault := ""
 		if p.Default != nil {
 			pDefault = *p.Default

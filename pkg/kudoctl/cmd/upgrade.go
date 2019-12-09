@@ -1,16 +1,17 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+
+	"github.com/spf13/afero"
+	"github.com/spf13/cobra"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
+	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
-
-	"github.com/pkg/errors"
-	"github.com/spf13/afero"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -51,7 +52,7 @@ func newUpgradeCmd(fs afero.Fs) *cobra.Command {
 			var err error
 			options.Parameters, err = install.GetParameterMap(parameters)
 			if err != nil {
-				return errors.WithMessage(err, "could not parse arguments")
+				return fmt.Errorf("could not parse arguments: %w", err)
 			}
 			return runUpgrade(args, options, fs, &Settings)
 		},
@@ -67,10 +68,10 @@ func newUpgradeCmd(fs afero.Fs) *cobra.Command {
 
 func validateCmd(args []string, options *options) error {
 	if len(args) != 1 {
-		return fmt.Errorf("expecting exactly one argument - name of the package or path to upgrade")
+		return errors.New("expecting exactly one argument - name of the package or path to upgrade")
 	}
 	if options.InstanceName == "" {
-		return fmt.Errorf("please use --instance and specify instance name. It cannot be empty")
+		return errors.New("please use --instance and specify instance name. It cannot be empty")
 	}
 
 	return nil
@@ -85,18 +86,21 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 
 	kc, err := env.GetClient(settings)
 	if err != nil {
-		return errors.Wrap(err, "creating kudo client")
+		return fmt.Errorf("creating kudo client: %w", err)
 	}
 
 	// Resolve the package to upgrade to
 	repository, err := repo.ClientFromSettings(fs, settings.Home, options.RepoName)
 	if err != nil {
-		return errors.WithMessage(err, "could not build operator repository")
+		return fmt.Errorf("could not build operator repository: %w", err)
 	}
-	resources, err := kudo.Resources(packageToUpgrade, options.PackageVersion, repository)
+	resolver := pkgresolver.New(repository)
+	pkg, err := resolver.Resolve(packageToUpgrade, options.PackageVersion)
 	if err != nil {
-		return errors.Wrapf(err, "failed to resolve package CRDs for operator: %s", packageToUpgrade)
+		return fmt.Errorf("failed to resolve package CRDs for operator: %s: %w", packageToUpgrade, err)
 	}
+
+	resources := pkg.Resources
 
 	return kudo.UpgradeOperatorVersion(kc, resources.OperatorVersion, options.InstanceName, settings.Namespace, options.Parameters)
 }
