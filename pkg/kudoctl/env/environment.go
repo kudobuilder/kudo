@@ -3,6 +3,7 @@ package env
 import (
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -16,6 +17,21 @@ import (
 // from what os.UserHomeDir() returns.
 var DefaultKudoHome = filepath.Join(homedir.HomeDir(), ".kudo")
 var DefaultKubeConfig = filepath.Join(homedir.HomeDir(), "/.kube/config")
+
+// DefalutKudoSyncPeriod sets reconcile sync to 10h.
+// SyncPeriod determines the minimum frequency at which watched resources are reconciled.
+var DefalutKudoSyncPeriod = time.Duration(10) * time.Hour
+
+// Func to set kudo sync period.
+func KudoSyncPeriod() time.Duration {
+	if val, ok := os.LookupEnv("KUDO_SYNCPERIOD"); ok {
+		if sync, err := time.ParseDuration(val); err == nil {
+			return sync
+		}
+		return DefalutKudoSyncPeriod
+	}
+	return DefalutKudoSyncPeriod
+}
 
 func kudoHome() string {
 	if val, ok := os.LookupEnv("KUDO_HOME"); ok {
