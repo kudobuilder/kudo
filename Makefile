@@ -43,7 +43,7 @@ test-clean:
 .PHONY: lint
 lint:
 ifeq (, $(shell which golangci-lint))
-	go get github.com/golangci/golangci-lint/cmd/golangci-lint
+	./hack/install-golangcilint.sh
 endif
 	golangci-lint run
 
