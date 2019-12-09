@@ -53,6 +53,7 @@ status: provisional
             - [Upgrade Kafka operator](#upgrade-kafka-operator)
         - [Support multiple KUDO API versions in the package repository](#support-multiple-kudo-api-versions-in-the-package-repository)
         - [Naming of package tarballs](#naming-of-package-tarballs)
+        - [Naming of `OperatorVersion` objects](#naming-of-operatorversion-objects)
         - [Semantic versioning](#semantic-versioning)
         - [Risks and Mitigations](#risks-and-mitigations)
     - [Open Questions](#open-questions)
