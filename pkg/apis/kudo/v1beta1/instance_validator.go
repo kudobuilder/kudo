@@ -13,9 +13,8 @@ import (
 // this forces the instance type to implement Validator interface, we'll get compile time error if it's not true anymore
 var _ kudo.Validator = &Instance{}
 
-// ValidateCreate implements webhookutil.validator (from controller-runtime)
-// we do not enforce any rules upon creation right now
 // ValidateCreate implements kudo.Validator (slightly tweaked interface originally from controller-runtime)
+// we do not enforce any rules upon creation right now
 func (i *Instance) ValidateCreate(req admission.Request) error {
 	return nil
 }
