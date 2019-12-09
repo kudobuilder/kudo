@@ -73,7 +73,7 @@ func main() {
 	if syncPeriod != nil {
 		log.Info(fmt.Sprintf("setting up manager, sync-period is %v", syncPeriod))
 	} else {
-		log.Info(fmt.Sprintf("setting up manager"))
+		log.Info("setting up manager")
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
