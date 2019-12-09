@@ -66,7 +66,8 @@ func main() {
 	// create new controller-runtime manager
 	syncPeriod, err := parseSyncPeriod()
 	if err != nil {
-		log.Error(err, "unable to parse manager sync period variable, run manager with defaults")
+		log.Error(err, "unable to parse manager sync period variable")
+		os.Exit(1)
 	}
 
 	if syncPeriod != nil {
