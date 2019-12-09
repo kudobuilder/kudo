@@ -17,20 +17,18 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 
-	"github.com/go-logr/logr"
 	apiextenstionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/kudobuilder/kudo/pkg/apis"
@@ -43,77 +41,74 @@ import (
 )
 
 func main() {
-	logf.SetLogger(zap.New(zap.UseDevMode(false)))
-	log := logf.Log.WithName("entrypoint")
-
 	// Get version of KUDO
-	log.Info(fmt.Sprintf("KUDO Version: %s", fmt.Sprintf("%#v", version.Get())))
+	log.Printf("KUDO Version: %s", fmt.Sprintf("%#v", version.Get()))
 
 	// create new controller-runtime manager
-	log.Info("setting up manager")
+	log.Print("setting up manager")
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		CertDir: "/tmp/cert",
 	})
 	if err != nil {
-		log.Error(err, "unable to start manager")
+		log.Printf("unable to start manager: %v", err)
 		os.Exit(1)
 	}
 
-	log.Info("Registering Components.")
+	log.Print("Registering Components.")
 
-	log.Info("setting up scheme")
+	log.Print("setting up scheme")
 
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
-		log.Error(err, "unable add APIs to scheme")
+		log.Print(err, "unable add APIs to scheme")
 	}
 
 	if err := apiextenstionsv1beta1.AddToScheme(mgr.GetScheme()); err != nil {
-		log.Error(err, "unable to add extension APIs to scheme")
+		log.Print(err, "unable to add extension APIs to scheme")
 	}
 
 	// Setup all Controllers
 
-	log.Info("Setting up operator controller")
+	log.Print("Setting up operator controller")
 	err = (&operator.Reconciler{
 		Client: mgr.GetClient(),
 	}).SetupWithManager(mgr)
 	if err != nil {
-		log.Error(err, "unable to register operator controller to the manager")
+		log.Printf("unable to register operator controller to the manager: %v", err)
 		os.Exit(1)
 	}
 
-	log.Info("Setting up operator version controller")
+	log.Print("Setting up operator version controller")
 	err = (&operatorversion.Reconciler{
 		Client: mgr.GetClient(),
 	}).SetupWithManager(mgr)
 	if err != nil {
-		log.Error(err, "unable to register operator controller to the manager")
+		log.Printf("unable to register operator controller to the manager: %v", err)
 		os.Exit(1)
 	}
 
-	log.Info("Setting up instance controller")
+	log.Print("Setting up instance controller")
 	err = (&instance.Reconciler{
 		Client:   mgr.GetClient(),
 		Recorder: mgr.GetEventRecorderFor("instance-controller"),
 		Scheme:   mgr.GetScheme(),
 	}).SetupWithManager(mgr)
 	if err != nil {
-		log.Error(err, "unable to register instance controller to the manager")
+		log.Printf("unable to register instance controller to the manager: %v", err)
 		os.Exit(1)
 	}
 
 	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) == "true" {
-		err = registerValidatingWebhook(&v1beta1.Instance{}, mgr, log)
+		err = registerValidatingWebhook(&v1beta1.Instance{}, mgr)
 		if err != nil {
-			log.Error(err, "unable to create webhook")
+			log.Printf("unable to create webhook%v", err)
 			os.Exit(1)
 		}
 	}
 
 	// Start the Cmd
-	log.Info("Starting the Cmd.")
+	log.Print("Starting the Cmd.")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		log.Error(err, "unable to run the manager")
+		log.Printf("unable to run the manager: %v", err)
 		os.Exit(1)
 	}
 }
@@ -127,14 +122,14 @@ func main() {
 // Complete()
 //
 // that internally calls this method but using their own internal Validator type
-func registerValidatingWebhook(obj runtime.Object, mgr manager.Manager, log logr.Logger) error {
+func registerValidatingWebhook(obj runtime.Object, mgr manager.Manager) error {
 	gvk, err := apiutil.GVKForObject(obj, mgr.GetScheme())
 	if err != nil {
 		return err
 	}
 	validator, ok := obj.(kudo.Validator)
 	if !ok {
-		log.Info("skip registering a validating webhook, kudo.Validator interface is not implemented %v", gvk)
+		log.Printf("skip registering a validating webhook, kudo.Validator interface is not implemented %v", gvk)
 
 		return nil
 	}
@@ -145,7 +140,7 @@ func registerValidatingWebhook(obj runtime.Object, mgr manager.Manager, log logr
 		// Checking if the path is already registered.
 		// If so, just skip it.
 		if !isAlreadyHandled(path, mgr) {
-			log.Info("Registering a validating webhook for %v on path %s", gvk, path)
+			log.Printf("Registering a validating webhook for %v on path %s", gvk, path)
 			mgr.GetWebhookServer().Register(path, vwh)
 		}
 	}
