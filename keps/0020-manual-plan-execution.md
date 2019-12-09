@@ -112,15 +112,20 @@ How do we manage RBAC?
 
 ### Have a separate CRD just for maintaining commands to execute a plan
 
-This would basically mean going half-way back to state pre KEP-18 where we had a separate CRD that was created for every plan that was executed. In this implementation we could have a much leaner CRD capturing only the requests to execute a plan with very lean status that does not duplicate the instance's status. Could be as simple as:
+This would basically mean going half-way back to state pre KEP-18 where we had a separate CR that was created for every plan that was executed. In this implementation we could have a much leaner CRD capturing only the requests to execute a plan with very lean status that does not duplicate the instance's status. Could be as simple as:
 
 ```
 apiVersion: kudo.dev/v1beta1
 kind: PlanExecutionRequest
 Spec:
   planName: deploy
+  Instance: # this will be OwnerReference
+    Name: my-instance
+    Namespace: some-namespace
+  Parameters:
+    some-instance-param: my override
 Status:
-  Started: true
+  Status: Accepted # one of Accepted, Rejected, Cancelled (added in the future)
 ```
 
 The question is whether we would add a Status into that CRD. If not, it would be hard to tell the client if the execution was even possible and how it ended (in comparison to the API solution where we can validate as part of HTTP response and even return some unique ID for tracking). If we decide to include status, we’re back in pre-KEP-18 world where keeping those two Statuses in sync is hard in kubernetes world with no transactions and both CRDs being reconciled in their own loops.

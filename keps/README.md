@@ -23,3 +23,4 @@
 | [0015 - Repository Management](0015-repository-management.md) | provisional | Details on repositories, how to generate, update and manage repos |
 | [0017 - Pipe Tasks](0017-pipe-tasks.md) | provisional | Feature for a mechanism that allows piping of resources (files) from one task to another |
 | [0018 - Controller redesign](0018-controller-overhaul.md) | implementable | Refactoring of KUDO controller |
+| [0020 - Manual plan execution](0020-manual-plan-execution.md) | provisional |  |
