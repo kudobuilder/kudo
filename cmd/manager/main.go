@@ -44,8 +44,7 @@ import (
 )
 
 // parseSyncPeriod determines the minimum frequency at which watched resources are reconciled.
-// If the variable is present in the environment the
-// duration is returned and the boolean is true.
+// If the variable is present in the environment the duration is returned.
 func parseSyncPeriod() (*time.Duration, error) {
 	if val, ok := os.LookupEnv("KUDO_SYNCPERIOD"); ok {
 		sync, err := time.ParseDuration(val)
@@ -68,7 +67,9 @@ func main() {
 	syncPeriod, err := parseSyncPeriod()
 	if err != nil {
 		log.Error(err, "unable to parse manager sync period variable, run manager with defaults")
-	} else if syncPeriod != nil {
+	}
+
+	if syncPeriod != nil {
 		log.Info(fmt.Sprintf("setting up manager, sync-period is %v", syncPeriod))
 	} else {
 		log.Info(fmt.Sprintf("setting up manager"))
