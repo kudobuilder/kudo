@@ -1,8 +1,12 @@
-package init
+package setup
 
 import (
 	"fmt"
 	"strings"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -11,23 +15,54 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 	clientv1beta1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
-	"sigs.k8s.io/yaml"
-
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
-// installInstanceValidatingWebhook applies kubernetes resources related to the webhook to the cluster
-func installInstanceValidatingWebhook(client kubernetes.Interface, dynamicClient dynamic.Interface, ns string) error {
-	if err := installUnstructured(dynamicClient, certificate(ns)); err != nil {
+type KudoWebHook struct {
+	opts Options
+}
+
+func newWebHookSetup(options Options) KudoWebHook {
+	return KudoWebHook{
+		opts: options,
+	}
+}
+
+func (k KudoWebHook) Install(client *kube.Client) error {
+	if !k.opts.hasWebhooksEnabled() {
+		return nil
+	}
+
+	if err := installUnstructured(client.DynamicClient, certificate(k.opts.Namespace)); err != nil {
 		return err
 	}
-	if err := installAdmissionWebhook(client.AdmissionregistrationV1beta1(), instanceUpdateValidatingWebhook(ns)); err != nil {
+	if err := installAdmissionWebhook(client.KubeClient.AdmissionregistrationV1beta1(), instanceUpdateValidatingWebhook(k.opts.Namespace)); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (k KudoWebHook) Validate(client *kube.Client) error {
+	if !k.opts.hasWebhooksEnabled() {
+		return nil
+	}
+
+	// TODO: Check installed webhooks, check if cert-manager is installed, etc
+	panic("implement me")
+}
+
+func (k KudoWebHook) AsRuntimeObj() []runtime.Object {
+	if !k.opts.hasWebhooksEnabled() {
+		return make([]runtime.Object, 0)
+	}
+
+	av := instanceUpdateValidatingWebhook(k.opts.Namespace)
+	cert := certificate(k.opts.Namespace)
+	objs := []runtime.Object{&av}
+	for _, c := range cert {
+		objs = append(objs, &c)
+	}
+	return objs
 }
 
 // installUnstructured accepts kubernetes resource as unstructured.Unstructured and installs it into cluster
@@ -104,19 +139,20 @@ func instanceUpdateValidatingWebhook(ns string) admissionv1beta1.ValidatingWebho
 }
 
 func certificate(ns string) []unstructured.Unstructured {
-	return []unstructured.Unstructured{{
-		Object: map[string]interface{}{
-			"apiVersion": "cert-manager.io/v1alpha2",
-			"kind":       "Issuer",
-			"metadata": map[string]interface{}{
-				"name":      "selfsigned-issuer",
-				"namespace": ns,
-			},
-			"spec": map[string]interface{}{
-				"selfSigned": map[string]interface{}{},
+	return []unstructured.Unstructured{
+		{
+			Object: map[string]interface{}{
+				"apiVersion": "cert-manager.io/v1alpha2",
+				"kind":       "Issuer",
+				"metadata": map[string]interface{}{
+					"name":      "selfsigned-issuer",
+					"namespace": ns,
+				},
+				"spec": map[string]interface{}{
+					"selfSigned": map[string]interface{}{},
+				},
 			},
 		},
-	},
 		{
 			Object: map[string]interface{}{
 				"apiVersion": "cert-manager.io/v1alpha2",
@@ -137,25 +173,4 @@ func certificate(ns string) []unstructured.Unstructured {
 			},
 		},
 	}
-}
-
-// WebhookManifests provides webhook related resources as set of strings with serialized yaml
-func WebhookManifests(ns string) ([]string, error) {
-	av := instanceUpdateValidatingWebhook(ns)
-	cert := certificate(ns)
-	objs := []runtime.Object{&av}
-	for _, c := range cert {
-		obj := c
-		objs = append(objs, &obj)
-	}
-	manifests := make([]string, len(objs))
-	for i, obj := range objs {
-		o, err := yaml.Marshal(obj)
-		if err != nil {
-			return []string{}, err
-		}
-		manifests[i] = string(o)
-	}
-
-	return manifests, nil
 }

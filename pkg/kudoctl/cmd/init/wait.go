@@ -4,6 +4,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/setup"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -16,7 +18,7 @@ import (
 // WatchKUDOUntilReady waits for the KUDO pod to become available.
 //
 // Returns true if it exists. If the timeout was reached and it could not find the pod, it returns false.
-func WatchKUDOUntilReady(client kubernetes.Interface, opts Options, timeout int64) bool {
+func WatchKUDOUntilReady(client kubernetes.Interface, opts setup.Options, timeout int64) bool {
 	deadlineChan := time.NewTimer(time.Duration(timeout) * time.Second).C
 	checkPodTicker := time.NewTicker(500 * time.Millisecond)
 	doneChan := make(chan bool)
@@ -45,7 +47,7 @@ func WatchKUDOUntilReady(client kubernetes.Interface, opts Options, timeout int6
 
 // getKUDOPodImage fetches the image of KUDO pod running in the given namespace.
 func getKUDOPodImage(client corev1.PodsGetter, namespace string) (string, error) {
-	selector := managerLabels().AsSelector()
+	selector := setup.ManagerLabels().AsSelector()
 	pod, err := getFirstRunningPod(client, namespace, selector)
 	if err != nil {
 		return "", err

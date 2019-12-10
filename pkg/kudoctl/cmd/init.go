@@ -6,6 +6,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/setup"
+
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
@@ -133,7 +135,7 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (initCmd *initCmd) run() error {
-	opts := cmdInit.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks))
+	opts := setup.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks))
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image
@@ -142,37 +144,11 @@ func (initCmd *initCmd) run() error {
 	//TODO: implement output=yaml|json (define a type for output to constrain)
 	//define an Encoder to replace YAMLWriter
 	if strings.ToLower(initCmd.output) == "yaml" {
-
-		var mans []string
-
-		crd, err := cmdInit.CRDs().AsYaml()
+		manifests, err := setup.AsYamlManifests(opts, initCmd.crdOnly)
 		if err != nil {
 			return err
 		}
-		mans = append(mans, crd...)
-
-		if !initCmd.crdOnly {
-			prereq, err := cmdInit.PrereqManifests(opts)
-			if err != nil {
-				return err
-			}
-			mans = append(mans, prereq...)
-
-			if len(opts.Webhooks) != 0 { // right now there's only 0 or 1 webhook, so this is good enough
-				prereq, err := cmdInit.WebhookManifests(opts.Namespace)
-				if err != nil {
-					return err
-				}
-				mans = append(mans, prereq...)
-			}
-
-			deploy, err := cmdInit.ManagerManifests(opts)
-			if err != nil {
-				return err
-			}
-			mans = append(mans, deploy...)
-		}
-		if err := initCmd.YAMLWriter(initCmd.out, mans); err != nil {
+		if err := initCmd.YAMLWriter(initCmd.out, manifests); err != nil {
 			return err
 		}
 	}
@@ -198,7 +174,7 @@ func (initCmd *initCmd) run() error {
 			initCmd.client = client
 		}
 
-		if err := cmdInit.Install(initCmd.client, opts, initCmd.crdOnly); err != nil {
+		if err := setup.Install(initCmd.client, opts, initCmd.crdOnly); err != nil {
 			return clog.Errorf("error installing: %s", err)
 		}
 

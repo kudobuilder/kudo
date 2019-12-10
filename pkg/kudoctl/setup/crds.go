@@ -1,34 +1,87 @@
-package init
+package setup
 
 import (
 	"fmt"
 	"os"
 	"strings"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
-
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 )
 
 //Defines the CRDs that the KUDO manager implements and watches.
 
+const (
+	group      = "kudo.dev"
+	crdVersion = "v1beta1"
+)
+
+// KudoCrds represents custom resource definitions needed to run KUDO
+type KudoCrds struct {
+	Operator        *apiextv1beta1.CustomResourceDefinition
+	OperatorVersion *apiextv1beta1.CustomResourceDefinition
+	Instance        *apiextv1beta1.CustomResourceDefinition
+}
+
+// CRDs returns the runtime.Object representation of all the CRDs KUDO requires
+func CRDs() KudoCrds {
+	return KudoCrds{
+		Operator:        operatorCrd(),
+		OperatorVersion: operatorVersionCrd(),
+		Instance:        instanceCrd(),
+	}
+}
+
+// AsArray returns all CRDs as array of runtime objects
+func (c KudoCrds) AsArray() []runtime.Object {
+	return []runtime.Object{c.Operator, c.OperatorVersion, c.Instance}
+}
+
+// AsYamlManifests returns crds as slice of strings
+func (c KudoCrds) AsYamlManifests() ([]string, error) {
+	objs := c.AsArray()
+	manifests := make([]string, len(objs))
+	for i, obj := range objs {
+		o, err := yaml.Marshal(obj)
+		if err != nil {
+			return []string{}, err
+		}
+		manifests[i] = string(o)
+	}
+
+	return manifests, nil
+}
+
 // Install uses Kubernetes client to install KUDO Crds.
-func installCrds(client apiextensionsclient.Interface) error {
-	if err := install(client.ApiextensionsV1beta1(), operatorCrd()); err != nil {
+func (c KudoCrds) Install(client *kube.Client) error {
+	if err := install(client.ExtClient.ApiextensionsV1beta1(), c.Operator); err != nil {
 		return err
 	}
-	if err := install(client.ApiextensionsV1beta1(), operatorVersionCrd()); err != nil {
+	if err := install(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion); err != nil {
 		return err
 	}
-	if err := install(client.ApiextensionsV1beta1(), instanceCrd()); err != nil {
+	if err := install(client.ExtClient.ApiextensionsV1beta1(), c.Instance); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c KudoCrds) ValidateInstallation(client *kube.Client) error {
+	if err := validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.Operator); err != nil {
+		return err
+	}
+	if err := validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion); err != nil {
+		return err
+	}
+	if err := validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.Instance); err != nil {
 		return err
 	}
 	return nil
@@ -55,12 +108,10 @@ func install(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.
 		return nil
 	}
 	return err
-
 }
 
 // operatorCrd provides definition of the operator CRD
 func operatorCrd() *apiextv1beta1.CustomResourceDefinition {
-
 	maintainers := map[string]apiextv1beta1.JSONSchemaProps{
 		"name":  {Type: "string"},
 		"email": {Type: "string"},
@@ -224,53 +275,4 @@ func generateCrd(kind string, plural string) *apiextv1beta1.CustomResourceDefini
 	// preserveFields := false
 	// crd.Spec.PreserveUnknownFields = &preserveFields
 	return crd
-}
-
-// KudoCrds represents custom resource definitions needed to run KUDO
-type KudoCrds struct {
-	Operator        *apiextv1beta1.CustomResourceDefinition
-	OperatorVersion *apiextv1beta1.CustomResourceDefinition
-	Instance        *apiextv1beta1.CustomResourceDefinition
-}
-
-// AsArray returns all CRDs as array of runtime objects
-func (c KudoCrds) AsArray() []runtime.Object {
-	return []runtime.Object{c.Operator, c.OperatorVersion, c.Instance}
-}
-
-// AsYaml returns crds as slice of strings
-func (c KudoCrds) AsYaml() ([]string, error) {
-	objs := c.AsArray()
-	manifests := make([]string, len(objs))
-	for i, obj := range objs {
-		o, err := yaml.Marshal(obj)
-		if err != nil {
-			return []string{}, err
-		}
-		manifests[i] = string(o)
-	}
-
-	return manifests, nil
-}
-
-func (c KudoCrds) ValidateInstallation(client *kube.Client) error {
-	if err := validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.Operator); err != nil {
-		return err
-	}
-	if err := validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion); err != nil {
-		return err
-	}
-	if err := validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.Instance); err != nil {
-		return err
-	}
-	return nil
-}
-
-// CRDs returns the runtime.Object representation of all the CRDs KUDO requires
-func CRDs() KudoCrds {
-	return KudoCrds{
-		Operator:        operatorCrd(),
-		OperatorVersion: operatorVersionCrd(),
-		Instance:        instanceCrd(),
-	}
 }
