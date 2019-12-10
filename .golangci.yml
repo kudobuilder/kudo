@@ -4,6 +4,7 @@ linters:
     - gofmt
     - goimports
     - golint
+    - gosec
     - misspell
     - unparam
 run:
