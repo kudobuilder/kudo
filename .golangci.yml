@@ -1,7 +1,6 @@
 linters:
   auto-fix: false
   enable:
-    - gofmt
     - goimports
     - golint
     - gosec
