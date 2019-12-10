@@ -46,6 +46,7 @@ import (
 	"context"
 	"fmt"
       // above are standard library packages
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/kustomize/k8sdeps/kunstruct"
 	"sigs.k8s.io/kustomize/pkg/target"
@@ -53,10 +54,9 @@ import (
       // above are k8s library packages
 	"github.com/kudobuilder/kudo/pkg/util/health"
 	"github.com/kudobuilder/kudo/pkg/util/template"
-	appsv1 "k8s.io/api/apps/v1"
 )
 ```
 
 ### Naming
 
-In general, naming should follow Golang conventions over Kubernetes conventions.
+In general, naming should follow [Golang conventions](https://golang.org/doc/effective_go.html#names) over [Kubernetes code conventions](https://github.com/kubernetes/community/blob/master/contributors/guide/coding-conventions.md#code-conventions).
