@@ -128,14 +128,14 @@ Status:
   Status: Accepted # one of Accepted, Rejected, Cancelled (added in the future)
 ```
 
-The question is whether we would add a Status into that CRD. If not, it would be hard to tell the client if the execution was even possible and how it ended (in comparison to the API solution where we can validate as part of HTTP response and even return some unique ID for tracking). If we decide to include status, we’re back in pre-KEP-18 world where keeping those two Statuses in sync is hard in kubernetes world with no transactions and both CRDs being reconciled in their own loops.
+PlanExecutionRequest will also contain status subresource but it will be a status reflecting whether the request was accepted or not, it should in no way be a duplication of `Instance` status as that would move us to pre-KEP-18 situation where updating status in two separate CRDs caused some incosistencies as that cannot be done in a transactional way.
 
 But at the same time this seems to be the way people are leaning toward when coming to similar use-cases. The discussion under [this issue](https://github.com/kubernetes/kubernetes/issues/72637#issuecomment-515566586) is kind of touching on the topic of Request objects. What this [KEP](https://github.com/metal3-io/metal3-docs/pull/48/files) proposes for reboot is also kind of similar to what we’re trying to do. Alongside what they’re proposing we might not even need a controller for this CRD and we could treat it as “queue” meaning every request will be fulfilled so e.g. when you create a request and a plan is running, instance will pick up the next request when it has a capacity to run another plan.
 
-If we do that, it would mean:
+The implementation will have following properties:
 - there is no controller for PlanExecutionRequest
-- you cannot tell status of the execution just from the PlanExecution object
-- InstanceController will manage lifecycle of PlanExecutionRequest and will be responsible for garbage collection
+- you cannot tell status of the execution just from the PlanExecutionRequest object
+- PlanExecutionRequest is managed by the `InstanceController`. We might keep N last PERs for audit purposes, and delete old PERs eventually. All PERs will be GCed on Instance deletion.
 
 #### Pros
 
