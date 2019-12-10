@@ -28,28 +28,30 @@ var _ verifier.PackageVerifier = &ParametersVerifier{}
 type ParametersVerifier struct{}
 
 // Verify implements verifier.PackageVerifier for parameter verification
-func (ParametersVerifier) Verify(pf *packages.Files) (warnings verifier.Warnings, errors verifier.Errors) {
-	errors = append(errors, paramsNotDefined(pf)...)
-	warnings = append(warnings, paramsDefinedNotUsed(pf)...)
+func (ParametersVerifier) Verify(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
+	res.Merge(paramsNotDefined(pf))
+	res.Merge(paramsDefinedNotUsed(pf))
 
 	nodes := getNodeMap(pf.Templates)
 	// additional processing errors
 	for fname, node := range nodes {
 		if node.error != nil {
-			errors = append(errors, verifier.Error(fmt.Sprintf(*node.error)))
+			res.AddErrors(fmt.Sprintf(*node.error))
 			continue
 		}
 		for _, param := range node.implicitParams {
 			if _, ok := implicits[param]; !ok {
-				errors = append(errors, verifier.Error(fmt.Sprintf("template %v defines an invalid implicit parameter %q", fname, param)))
+				res.AddErrors(fmt.Sprintf("template %v defines an invalid implicit parameter %q", fname, param))
 			}
 		}
 	}
 
-	return warnings, errors
+	return res
 }
 
-func paramsDefinedNotUsed(pf *packages.Files) (warnings verifier.Warnings) {
+func paramsDefinedNotUsed(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
 	tparams := make(map[string]bool)
 	nodes := getNodeMap(pf.Templates)
 
@@ -60,13 +62,14 @@ func paramsDefinedNotUsed(pf *packages.Files) (warnings verifier.Warnings) {
 	}
 	for _, value := range pf.Params.Parameters {
 		if _, ok := tparams[value.Name]; !ok {
-			warnings = append(warnings, verifier.CreateParamWarning(value, "defined but not used."))
+			res.AddParamWarning(value, "defined but not used.")
 		}
 	}
-	return warnings
+	return res
 }
 
-func paramsNotDefined(pf *packages.Files) (errors verifier.Errors) {
+func paramsNotDefined(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
 	params := make(map[string]bool)
 	for _, param := range pf.Params.Parameters {
 		params[param.Name] = true
@@ -76,9 +79,9 @@ func paramsNotDefined(pf *packages.Files) (errors verifier.Errors) {
 	for fname, nodes := range nodes {
 		for _, tparam := range nodes.parameters {
 			if _, ok := params[tparam]; !ok {
-				errors = append(errors, verifier.Error(fmt.Sprintf("parameter %q in template %v is not defined", tparam, fname)))
+				res.AddErrors(fmt.Sprintf("parameter %q in template %v is not defined", tparam, fname))
 			}
 		}
 	}
-	return errors
+	return res
 }

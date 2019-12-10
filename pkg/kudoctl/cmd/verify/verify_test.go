@@ -8,35 +8,34 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
 )
 
 func TestDuplicateVerifier(t *testing.T) {
 	tests := []struct {
 		name             string
 		params           []v1beta1.Parameter
-		expectedWarnings verifier.Warnings
-		expectedErrors   verifier.Errors
+		expectedWarnings []string
+		expectedErrors   []string
 	}{
 		{"no warning or error", []v1beta1.Parameter{
 			{Name: "Foo"},
 			{Name: "Fighters"},
-		}, nil, nil},
+		}, []string{}, []string{}},
 		{"duplicate parameter", []v1beta1.Parameter{
 			{Name: "Foo"},
 			{Name: "Foo"},
-		}, nil, []verifier.Error{verifier.Error(fmt.Sprintf("parameter \"Foo\" has a duplicate"))}},
+		}, []string{}, []string{fmt.Sprintf("parameter \"Foo\" has a duplicate")}},
 		{"duplicate with different casing", []v1beta1.Parameter{
 			{Name: "Foo"},
 			{Name: "foo"},
-		}, nil, verifier.Errors{verifier.Error(fmt.Sprintf("parameter \"foo\" has a duplicate"))}},
+		}, []string{}, []string{fmt.Sprintf("parameter \"foo\" has a duplicate")}},
 	}
 
 	verifier := DuplicateVerifier{}
 	for _, tt := range tests {
-		warnings, errors := verifier.Verify(packageFileForParams(tt.params))
-		assert.Equal(t, tt.expectedWarnings, warnings)
-		assert.Equal(t, tt.expectedErrors, errors)
+		res := verifier.Verify(packageFileForParams(tt.params))
+		assert.Equal(t, tt.expectedWarnings, res.Warnings)
+		assert.Equal(t, tt.expectedErrors, res.Errors)
 	}
 }
 
@@ -44,24 +43,27 @@ func TestInvalidCharVerifier(t *testing.T) {
 	tests := []struct {
 		name             string
 		params           []v1beta1.Parameter
-		expectedWarnings verifier.Warnings
-		expectedErrors   verifier.Errors
+		expectedWarnings []string
+		expectedErrors   []string
 	}{
 		{"no warning or error", []v1beta1.Parameter{
 			{Name: "Foo"},
 			{Name: "Fighters"},
-		}, nil, nil},
+		}, []string{}, []string{}},
 		{"invalid character", []v1beta1.Parameter{
 			{Name: "Foo:"},
 			{Name: "Fighters,"},
-		}, nil, []verifier.Error{verifier.Error("parameter \"Foo:\" contains invalid character ':'"), verifier.Error("parameter \"Fighters,\" contains invalid character ','")}},
+		}, []string{}, []string{
+			fmt.Sprintf("parameter %q %s", "Foo:", "contains invalid character ':'"),
+			fmt.Sprintf("parameter %q %s", "Fighters,", "contains invalid character ','"),
+		}},
 	}
 
 	verifier := InvalidCharVerifier{InvalidChars: ":,"}
 	for _, tt := range tests {
-		warnings, errors := verifier.Verify(packageFileForParams(tt.params))
-		assert.Equal(t, tt.expectedWarnings, warnings, tt.name)
-		assert.Equal(t, tt.expectedErrors, errors, tt.name)
+		res := verifier.Verify(packageFileForParams(tt.params))
+		assert.Equal(t, tt.expectedWarnings, res.Warnings, tt.name)
+		assert.Equal(t, tt.expectedErrors, res.Errors, tt.name)
 	}
 }
 
