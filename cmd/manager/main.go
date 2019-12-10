@@ -81,7 +81,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Print("Registering Components.")
+	log.Print("Registering Components")
 
 	log.Print("setting up scheme")
 
@@ -133,7 +133,7 @@ func main() {
 	}
 
 	// Start the Cmd
-	log.Print("Starting the Cmd.")
+	log.Print("Starting the Cmd")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		log.Printf("unable to run the manager: %v", err)
 		os.Exit(1)
