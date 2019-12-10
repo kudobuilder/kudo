@@ -127,7 +127,7 @@ func main() {
 	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) == "true" {
 		err = registerValidatingWebhook(&v1beta1.Instance{}, mgr)
 		if err != nil {
-			log.Printf("unable to create webhook%v", err)
+			log.Printf("unable to create webhook: %v", err)
 			os.Exit(1)
 		}
 	}
