@@ -301,3 +301,17 @@ Why should this KEP _not_ be implemented.
 
 ## Implementation History
 - 2019/11/05 - Initial draft. (@aneumann82)
+
+
+
+## Action Items (to be converted into issues/tasks)
+- Extend `init` command to support `--upgrade`
+- Create structure to support general handling for prerequisite upgrades (validate, create, update, delete)
+- Create code to update manager deployment
+- Implement Installed Operator check
+  - Validate that all installed operators are compatible with new KUDO version
+- Write e2e test harness for KUDO updates
+- Write e2e tests that run KUDO CLI against old/different version of CRDs(?)
+- (Write code to support feature flags based on installed CRDs/KUDO version?)
+- (Implement WebHook Conversion Endpoint in Manager)
+- (Add init code to install webhook conversion CR)
