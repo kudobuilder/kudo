@@ -38,7 +38,7 @@ task "integration-test": {
   inputs: ["src-git"]
   steps: [
     {
-      name: "test"
+      name: "integration-test"
       image: "kudobuilder/golang:1.13"
       command: [ "make", "integration-test" ],
       env: [
