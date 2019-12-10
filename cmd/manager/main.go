@@ -56,7 +56,7 @@ func parseSyncPeriod() (*time.Duration, error) {
 
 func main() {
 	// Get version of KUDO
-	log.Printf("KUDO Version: %s", fmt.Sprintf("%#v", version.Get()))
+	log.Printf("KUDO Version: %#v", version.Get())
 
 	// create new controller-runtime manager
 
