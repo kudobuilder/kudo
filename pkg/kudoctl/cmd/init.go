@@ -243,14 +243,14 @@ func (initCmd *initCmd) YAMLWriter(w io.Writer, manifests []string) error {
 //func initialize(fs afero.Fs, settings env.Settings, out io.Writer) error {
 func (initCmd *initCmd) initialize() error {
 
-	if err := ensureDirectories(initCmd.fs, initCmd.home, initCmd.out); err != nil {
+	if err := ensureDirectories(initCmd.fs, initCmd.home); err != nil {
 		return err
 	}
 
-	return ensureRepositoryFile(initCmd.fs, initCmd.home, initCmd.out)
+	return ensureRepositoryFile(initCmd.fs, initCmd.home)
 }
 
-func ensureRepositoryFile(fs afero.Fs, home kudohome.Home, out io.Writer) error {
+func ensureRepositoryFile(fs afero.Fs, home kudohome.Home) error {
 	exists, err := afero.Exists(fs, home.RepositoryFile())
 	if err != nil {
 		return err
@@ -268,7 +268,7 @@ func ensureRepositoryFile(fs afero.Fs, home kudohome.Home, out io.Writer) error 
 	return nil
 }
 
-func ensureDirectories(fs afero.Fs, home kudohome.Home, out io.Writer) error {
+func ensureDirectories(fs afero.Fs, home kudohome.Home) error {
 	dirs := []string{
 		home.String(),
 		home.Repository(),

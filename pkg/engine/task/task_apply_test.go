@@ -132,7 +132,7 @@ func TestApplyTask_Run(t *testing.T) {
 	}
 }
 
-func pod(name string, namespace string) *corev1.Pod {
+func pod(name string, namespace string) *corev1.Pod { //nolint:unparam
 	pod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
