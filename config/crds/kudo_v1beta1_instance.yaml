@@ -27,7 +27,7 @@ spec:
         spec:
           properties:
             OperatorVersion:
-              description: Operator specifies a reference to a specific Operator object
+              description: OperatorVersion specifies a reference to a specific OperatorVersion object
               type: object
             parameters:
               type: object
