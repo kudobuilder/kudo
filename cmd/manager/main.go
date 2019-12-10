@@ -86,7 +86,7 @@ func main() {
 	log.Print("setting up scheme")
 
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
-		log.Print(err, "unable add APIs to scheme")
+		log.Printf("unable to add APIs to scheme: %v", err)
 	}
 
 	if err := apiextenstionsv1beta1.AddToScheme(mgr.GetScheme()); err != nil {
