@@ -90,7 +90,7 @@ func main() {
 	}
 
 	if err := apiextenstionsv1beta1.AddToScheme(mgr.GetScheme()); err != nil {
-		log.Print(err, "unable to add extension APIs to scheme")
+		log.Printf("unable to add extension APIs to scheme: %v", err)
 	}
 
 	// Setup all Controllers
