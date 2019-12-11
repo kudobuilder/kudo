@@ -131,6 +131,9 @@ docker-push:
 .PHONY: imports
 # used to update imports on project.  NOT a linter.
 imports:
+ifeq (, $(shell which golangci-lint))
+	./hack/install-golangcilint.sh
+endif
 	golangci-lint run --disable-all -E goimports --fix
 
 .PHONY: todo
