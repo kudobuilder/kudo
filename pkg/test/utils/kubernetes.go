@@ -894,6 +894,7 @@ func GetArgs(ctx context.Context, command string, cmd kudo.Command, namespace st
 		}
 	}
 
+	//nolint:gosec // We're running a user provided command. This is insecure by definition
 	builtCmd := exec.Command(argSlice[0])
 	builtCmd.Args = argSlice
 	return builtCmd, nil

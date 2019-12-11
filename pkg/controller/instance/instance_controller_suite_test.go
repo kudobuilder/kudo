@@ -47,7 +47,7 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 	// t.Stop() returns an error, but since we exit in the next line anyway, it is suppressed
-	t.Stop() //nolint
+	t.Stop() //nolint:errcheck
 	os.Exit(code)
 }
 
