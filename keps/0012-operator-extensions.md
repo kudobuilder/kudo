@@ -1,6 +1,7 @@
 ---
-kep-number: 0012
-title: operator-extensions
+kep-number: 12
+title: Operator Extensions
+short-desc: How to extend existing operators. Adding or modifying tasks and plans, etc.
 authors:
   - "@runyontr"
 owners:

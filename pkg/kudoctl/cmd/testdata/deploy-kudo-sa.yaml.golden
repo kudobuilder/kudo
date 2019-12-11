@@ -171,6 +171,8 @@ spec:
     plural: instances
     singular: instance
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -206,25 +208,13 @@ status:
 
 ---
 apiVersion: v1
-kind: Namespace
-metadata:
-  creationTimestamp: null
-  labels:
-    app: kudo-manager
-    controller-tools.k8s.io: "1.0"
-  name: kudo-system
-spec: {}
-status: {}
-
----
-apiVersion: v1
 kind: ServiceAccount
 metadata:
   creationTimestamp: null
   labels:
     app: kudo-manager
-  name: kudo-manager
-  namespace: kudo-system
+  name: safoo
+  namespace: foo
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -238,16 +228,8 @@ roleRef:
   name: cluster-admin
 subjects:
 - kind: ServiceAccount
-  name: kudo-manager
-  namespace: kudo-system
-
----
-apiVersion: v1
-kind: Secret
-metadata:
-  creationTimestamp: null
-  name: kudo-webhook-server-secret
-  namespace: kudo-system
+  name: safoo
+  namespace: foo
 
 ---
 apiVersion: v1
@@ -259,7 +241,7 @@ metadata:
     control-plane: controller-manager
     controller-tools.k8s.io: "1.0"
   name: kudo-controller-manager-service
-  namespace: kudo-system
+  namespace: foo
 spec:
   ports:
   - name: kudo
@@ -282,7 +264,7 @@ metadata:
     control-plane: controller-manager
     controller-tools.k8s.io: "1.0"
   name: kudo-controller-manager
-  namespace: kudo-system
+  namespace: foo
 spec:
   selector:
     matchLabels:
@@ -308,11 +290,13 @@ spec:
               fieldPath: metadata.namespace
         - name: SECRET_NAME
           value: kudo-webhook-server-secret
+        - name: ENABLE_WEBHOOKS
+          value: "false"
         image: kudobuilder/controller:vdev
         imagePullPolicy: Always
         name: manager
         ports:
-        - containerPort: 9876
+        - containerPort: 443
           name: webhook-server
           protocol: TCP
         resources:
@@ -323,7 +307,7 @@ spec:
         - mountPath: /tmp/cert
           name: cert
           readOnly: true
-      serviceAccountName: kudo-manager
+      serviceAccountName: safoo
       terminationGracePeriodSeconds: 10
       volumes:
       - name: cert

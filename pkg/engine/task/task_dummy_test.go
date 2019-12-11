@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kudobuilder/kudo/pkg/engine"
 )
 
 func TestDummyTask_Run(t *testing.T) {

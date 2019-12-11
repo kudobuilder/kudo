@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -11,14 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/controller/instance"
-	"github.com/kudobuilder/kudo/pkg/controller/operator"
-	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
-
 	volumetypes "github.com/docker/docker/api/types/volume"
 	docker "github.com/docker/docker/client"
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -30,6 +25,12 @@ import (
 	kind "sigs.k8s.io/kind/pkg/cluster"
 	kindCreate "sigs.k8s.io/kind/pkg/cluster/create"
 	"sigs.k8s.io/kind/pkg/container/cri"
+
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/controller/instance"
+	"github.com/kudobuilder/kudo/pkg/controller/operator"
+	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
+	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
 // Harness loads and runs tests based on the configuration provided.
@@ -131,7 +132,7 @@ func (h *Harness) RunKIND() (*rest.Config, error) {
 			var ok bool
 			kindCfg, ok = objs[0].(*kindConfig.Cluster)
 			if !ok {
-				return nil, fmt.Errorf("kind configuration contains invalid kind config file")
+				return nil, errors.New("kind configuration contains invalid kind config file")
 			}
 		}
 
@@ -250,8 +251,7 @@ func (h *Harness) RunKUDO() error {
 	}
 
 	mgr, err := manager.New(config, manager.Options{
-		Scheme:         testutils.Scheme(),
-		MapperProvider: testutils.NewDynamicRESTMapper,
+		Scheme: testutils.Scheme(),
 	})
 	if err != nil {
 		return err

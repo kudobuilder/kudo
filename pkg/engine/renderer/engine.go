@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"text/template"
 
-	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/Masterminds/sprig"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/Masterminds/sprig"
+	"github.com/kudobuilder/kudo/pkg/engine"
 )
 
 // Metadata contains Metadata along with specific fields associated with current plan
@@ -46,14 +46,19 @@ func New() *Engine {
 	}
 }
 
-// Render creates a fully rendered template based on a set of values. It parses these in strict mode,
-// returning errors when keys are missing.
-func (e *Engine) Render(tpl string, vals map[string]interface{}) (string, error) {
+// Template provides access to the engines template engine.
+func (e Engine) Template(name string) *template.Template {
 	t := template.New("gotpl")
 	t.Option("missingkey=error")
 
+	return t.New(name).Funcs(e.FuncMap)
+}
+
+// Render creates a fully rendered template based on a set of values. It parses these in strict mode,
+// returning errors when keys are missing.
+func (e *Engine) Render(tpl string, vals map[string]interface{}) (string, error) {
 	var buf bytes.Buffer
-	t = t.New("tpl").Funcs(e.FuncMap)
+	t := e.Template("tpl")
 
 	if _, err := t.Parse(tpl); err != nil {
 		return "", fmt.Errorf("error parsing template: %s", err)

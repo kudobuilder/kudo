@@ -3,11 +3,11 @@ package kudo
 import (
 	"fmt"
 
+	"github.com/Masterminds/semver"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
-
-	"github.com/Masterminds/semver"
 )
 
 // UpgradeOperatorVersion upgrades an OperatorVersion and its Instance.

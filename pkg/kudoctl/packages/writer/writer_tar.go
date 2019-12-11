@@ -8,11 +8,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+
+	"github.com/spf13/afero"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
-	"github.com/spf13/afero"
 )
 
 // WriteTgz takes a path to operator files and creates a tgz of those files with the destination and name provided
@@ -73,6 +75,13 @@ func TgzDir(fs afero.Fs, path string, w io.Writer) (err error) {
 
 		// update the name to correctly reflect the desired destination when untaring
 		header.Name = strings.TrimPrefix(strings.Replace(file, path, "", -1), string(filepath.Separator))
+
+		// change certain header metadata to make the build reproducible
+		header.ModTime = time.Time{}
+		header.Uid = 0
+		header.Gid = 0
+		header.Uname = "root"
+		header.Gname = "root"
 
 		// tar_zcvf the header
 		if err := tw.WriteHeader(header); err != nil {

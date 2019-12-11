@@ -4,15 +4,14 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/verify"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
-
-	"github.com/gosuri/uitable"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/verify"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 )
 
-//TODO (kensipe): add long desc
+// package verify provides verification or linting checks against the package passed to the command.
 
 type packageVerifyCmd struct {
 	fs  afero.Fs
@@ -30,50 +29,31 @@ func newPackageVerifyCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			if err := validateOperatorArg(args); err != nil {
 				return err
 			}
-			return list.run(fs, args[0])
+			return list.run(args[0])
 		},
 	}
 
 	return cmd
 }
 
-func (c *packageVerifyCmd) run(fs afero.Fs, path string) error {
+func (c *packageVerifyCmd) run(path string) error {
 
+	return verifyPackage(c.fs, path, c.out)
+}
+
+func verifyPackage(fs afero.Fs, path string, out io.Writer) error {
 	pf, err := reader.FromDir(fs, path)
 	if err != nil {
 		return err
 	}
-	warnings, errors := verify.Parameters(pf.Params.Parameters)
+	res := verify.PackageFiles(pf)
+	res.PrintWarnings(out)
+	res.PrintErrors(out)
 
-	if warnings != nil {
-		printWarnings(c.out, warnings)
-	}
-	if errors == nil {
-		fmt.Fprintf(c.out, "package is valid\n")
+	if res.IsValid() {
+		fmt.Fprintf(out, "package is valid\n")
 		return nil
 	}
 
-	printErrors(c.out, errors)
-	return fmt.Errorf("package verification errors: %v", len(errors))
-	//TODO (kensipe): add linting
-	// 2. warning on params not used
-	// 3. error on param in template not defined
-}
-
-func printErrors(out io.Writer, errors verify.ParamErrors) {
-	table := uitable.New()
-	table.AddRow("Errors")
-	for _, err := range errors {
-		table.AddRow(err)
-	}
-	fmt.Fprintln(out, table)
-}
-
-func printWarnings(out io.Writer, warnings verify.ParamWarnings) {
-	table := uitable.New()
-	table.AddRow("Warnings")
-	for _, warning := range warnings {
-		table.AddRow(warning)
-	}
-	fmt.Fprintln(out, table)
+	return fmt.Errorf("found %d package verification errors", len(res.Errors))
 }

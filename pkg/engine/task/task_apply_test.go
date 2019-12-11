@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/engine/renderer"
-
-	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/stretchr/testify/assert"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -16,6 +13,9 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 )
 
 func TestApplyTask_Run(t *testing.T) {
@@ -88,7 +88,7 @@ func TestApplyTask_Run(t *testing.T) {
 			},
 		},
 		{
-			name: "succeeds when the resource is healthy (unknown type Pod is marked healthy by default)",
+			name: "succeeds when the resource is healthy (pod has PodStatus.Phase = Running)",
 			task: ApplyTask{
 				Name:      "task",
 				Resources: []string{"pod"},
@@ -143,6 +143,9 @@ func pod(name string, namespace string) *corev1.Pod {
 			Namespace: namespace,
 		},
 		Spec: corev1.PodSpec{},
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+		},
 	}
 	return pod
 }

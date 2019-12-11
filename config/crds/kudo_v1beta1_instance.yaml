@@ -13,6 +13,8 @@ spec:
     plural: instances
     singular: instance
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:

@@ -4,11 +4,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
-
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/util/homedir"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
 // DefaultKudoHome is the default KUDO_HOME. We put .kudo file in the same directory where k8s keeps
@@ -41,20 +41,24 @@ type Settings struct {
 	Namespace string
 	// RequestTimeout is the timeout value (in seconds) when making API calls via the KUDO client
 	RequestTimeout int64
+	// Validate KUDO installation before creating a KUDO client
+	Validate bool
 }
 
 // DefaultSettings initializes the settings to its defaults
 var DefaultSettings = &Settings{
 	Namespace:      "default",
 	RequestTimeout: 0,
+	Validate:       true,
 }
 
 // AddFlags binds flags to the given flagset.
 func (s *Settings) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar((*string)(&s.Home), "home", kudoHome(), "location of your KUDO config.")
+	fs.StringVar((*string)(&s.Home), "home", kudoHome(), "Location of your KUDO config.")
 	fs.StringVar(&s.KubeConfig, "kubeconfig", kubeConfigHome(), "Path to your Kubernetes configuration file.")
 	fs.StringVarP(&s.Namespace, "namespace", "n", "default", "Target namespace for the object.")
 	fs.Int64Var(&s.RequestTimeout, "request-timeout", 0, "Request timeout value, in seconds.  Defaults to 0 (unlimited)")
+	fs.BoolVar(&s.Validate, "validate-install", true, "Validate KUDO installation before running.")
 }
 
 // OverrideDefault used for deviations from global defaults
@@ -68,5 +72,5 @@ func (s *Settings) OverrideDefault(fs *pflag.FlagSet, name, value string) string
 
 // GetClient is a helper function that takes the Settings struct and returns a new KUDO Client
 func GetClient(s *Settings) (*kudo.Client, error) {
-	return kudo.NewClient(s.KubeConfig, s.RequestTimeout)
+	return kudo.NewClient(s.KubeConfig, s.RequestTimeout, s.Validate)
 }

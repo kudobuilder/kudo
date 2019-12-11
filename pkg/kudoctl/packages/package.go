@@ -1,6 +1,7 @@
 package packages
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -9,7 +10,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 
-	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -99,18 +99,24 @@ func (p *Files) Resources() (*Resources, error) {
 }
 
 func validateTask(t v1beta1.Task, templates map[string]string) []string {
+	var errs []string
 	var resources []string
 	switch t.Kind {
 	case task.ApplyTaskKind:
 		resources = t.Spec.ResourceTaskSpec.Resources
 	case task.DeleteTaskKind:
 		resources = t.Spec.ResourceTaskSpec.Resources
+	case task.PipeTaskKind:
+		resources = append(resources, t.Spec.PipeTaskSpec.Pod)
+
+		if len(t.Spec.PipeTaskSpec.Pipe) == 0 {
+			errs = append(errs, fmt.Sprintf("task %s does not have pipe files specified", t.Name))
+		}
 	case task.DummyTaskKind:
 	default:
 		log.Printf("no validation for task kind %s implemented", t.Kind)
 	}
 
-	var errs []string
 	for _, res := range resources {
 		if _, ok := templates[res]; !ok {
 			errs = append(errs, fmt.Sprintf("task %s missing template: %s", t.Name, res))
