@@ -208,31 +208,6 @@ status:
 
 ---
 apiVersion: v1
-kind: ServiceAccount
-metadata:
-  creationTimestamp: null
-  labels:
-    app: kudo-manager
-  name: safoo
-  namespace: foo
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  creationTimestamp: null
-  name: kudo-manager-rolebinding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cluster-admin
-subjects:
-- kind: ServiceAccount
-  name: safoo
-  namespace: foo
-
----
-apiVersion: v1
 kind: Service
 metadata:
   creationTimestamp: null

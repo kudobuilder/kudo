@@ -175,7 +175,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	// On first attempt, the namespace does not exist, so the error is expected.
 	err = cmd.run()
 	require.Error(t, err)
-	assert.Equal(t, err.Error(), `error installing: namespace integration-test does not exist - KUDO expects that any namespace except the default kudo-system is created beforehand`)
+	assert.Equal(t, err.Error(), `error installing: prerequisites: failed to install: namespace integration-test does not exist - KUDO expects that any namespace except the default kudo-system is created beforehand`)
 
 	// Then we manually create the namespace.
 	ns := testutils.NewResource("v1", "Namespace", namespace, "")

@@ -11,8 +11,13 @@ import (
 
 // Defines a single prerequisite that is defined as a k8s resource
 type k8sResource interface {
+	// Install installs the manifests of this prerequisite
 	Install(client *kube.Client) error
+
+	// Validate verifies that the current state of the installation is as expected of this version of KUDO
 	Validate(client *kube.Client) error
+
+	// AsRuntimeObj returns the manifests that would be installed from this resource
 	AsRuntimeObj() []runtime.Object
 }
 
@@ -28,7 +33,6 @@ func Prereqs(options Options) KudoPrerequisite {
 		prereqs: []k8sResource{
 			newNamespaceSetup(options),
 			newServiceAccountSetup(options),
-			newRoleBindingSetup(options),
 			newWebHookSetup(options),
 		},
 	}
@@ -38,7 +42,7 @@ func (p KudoPrerequisite) Install(client *kube.Client) error {
 	for _, prereq := range p.prereqs {
 		err := prereq.Install(client)
 		if err != nil {
-			return fmt.Errorf("failed to install something: %v", err)
+			return fmt.Errorf("failed to install: %v", err)
 		}
 	}
 	return nil

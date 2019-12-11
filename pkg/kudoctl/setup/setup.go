@@ -37,6 +37,10 @@ func (o Options) isDefaultNamespace() bool {
 	return o.Namespace == defaultNamespace
 }
 
+func (o Options) isDefaultServiceAccount() bool {
+	return o.ServiceAccount == defaultServiceAccount
+}
+
 func NewOptions(v string, ns string, sa string, webhooks []string) Options {
 	if v == "" {
 		v = version.Get().GitVersion
