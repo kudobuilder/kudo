@@ -1,4 +1,5 @@
-package setup
+//Defines the CRDs that the KUDO manager implements and watches.
+package crd
 
 import (
 	"fmt"
@@ -7,6 +8,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
@@ -17,23 +19,24 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-//Defines the CRDs that the KUDO manager implements and watches.
-
 const (
 	group      = "kudo.dev"
 	crdVersion = "v1beta1"
 )
 
-// KudoCrds represents custom resource definitions needed to run KUDO
-type KudoCrds struct {
+// Ensure IF is implemented
+var _ kudoinit.InitStep = &Initializer{}
+
+// Initializer represents custom resource definitions needed to run KUDO
+type Initializer struct {
 	Operator        *apiextv1beta1.CustomResourceDefinition
 	OperatorVersion *apiextv1beta1.CustomResourceDefinition
 	Instance        *apiextv1beta1.CustomResourceDefinition
 }
 
 // CRDs returns the runtime.Object representation of all the CRDs KUDO requires
-func CRDs() KudoCrds {
-	return KudoCrds{
+func NewInitializer() Initializer {
+	return Initializer{
 		Operator:        operatorCrd(),
 		OperatorVersion: operatorVersionCrd(),
 		Instance:        instanceCrd(),
@@ -41,12 +44,12 @@ func CRDs() KudoCrds {
 }
 
 // AsArray returns all CRDs as array of runtime objects
-func (c KudoCrds) AsArray() []runtime.Object {
+func (c Initializer) AsArray() []runtime.Object {
 	return []runtime.Object{c.Operator, c.OperatorVersion, c.Instance}
 }
 
 // AsYamlManifests returns crds as slice of strings
-func (c KudoCrds) AsYamlManifests() ([]string, error) {
+func (c Initializer) AsYamlManifests() ([]string, error) {
 	objs := c.AsArray()
 	manifests := make([]string, len(objs))
 	for i, obj := range objs {
@@ -61,33 +64,33 @@ func (c KudoCrds) AsYamlManifests() ([]string, error) {
 }
 
 // Install uses Kubernetes client to install KUDO Crds.
-func (c KudoCrds) Install(client *kube.Client) error {
-	if err := install(client.ExtClient.ApiextensionsV1beta1(), c.Operator); err != nil {
+func (c Initializer) Install(client *kube.Client) error {
+	if err := c.install(client.ExtClient.ApiextensionsV1beta1(), c.Operator); err != nil {
 		return err
 	}
-	if err := install(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion); err != nil {
+	if err := c.install(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion); err != nil {
 		return err
 	}
-	if err := install(client.ExtClient.ApiextensionsV1beta1(), c.Instance); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c KudoCrds) ValidateInstallation(client *kube.Client) error {
-	if err := validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.Operator); err != nil {
-		return err
-	}
-	if err := validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion); err != nil {
-		return err
-	}
-	if err := validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.Instance); err != nil {
+	if err := c.install(client.ExtClient.ApiextensionsV1beta1(), c.Instance); err != nil {
 		return err
 	}
 	return nil
 }
 
-func validateInstallation(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition) error {
+func (c Initializer) ValidateInstallation(client *kube.Client) error {
+	if err := c.validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.Operator); err != nil {
+		return err
+	}
+	if err := c.validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion); err != nil {
+		return err
+	}
+	if err := c.validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.Instance); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c Initializer) validateInstallation(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition) error {
 	existingCrd, err := client.CustomResourceDefinitions().Get(crd.Name, v1.GetOptions{})
 	if err != nil {
 		if os.IsTimeout(err) {
@@ -101,7 +104,7 @@ func validateInstallation(client v1beta1.CustomResourceDefinitionsGetter, crd *a
 	return nil
 }
 
-func install(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition) error {
+func (c Initializer) install(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition) error {
 	_, err := client.CustomResourceDefinitions().Create(crd)
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("crd %v already exists", crd.Name)
@@ -244,7 +247,7 @@ func generateCrd(kind string, plural string) *apiextv1beta1.CustomResourceDefini
 	plural = strings.ToLower(plural)
 	name := plural + "." + group
 
-	labels := generateLabels(map[string]string{"controller-tools.k8s.io": "1.0"})
+	labels := kudoinit.GenerateLabels(map[string]string{"controller-tools.k8s.io": "1.0"})
 	crd := &apiextv1beta1.CustomResourceDefinition{
 		ObjectMeta: v1.ObjectMeta{
 			Name:   name,

@@ -11,7 +11,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/setup"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/version"
 
@@ -48,7 +48,7 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 		return nil, clog.Errorf("could not get Kubernetes client: %s", err)
 	}
 
-	err = setup.CRDs().ValidateInstallation(kubeClient)
+	err = crd.NewInitializer().ValidateInstallation(kubeClient)
 	if err != nil {
 		// see above
 		if os.IsTimeout(err) {

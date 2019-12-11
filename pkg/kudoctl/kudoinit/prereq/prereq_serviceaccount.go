@@ -1,8 +1,10 @@
-package setup
+package prereq
 
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -18,12 +20,12 @@ import (
 var _ k8sResource = &KudoServiceAccount{}
 
 type KudoServiceAccount struct {
-	opts           Options
+	opts           kudoinit.Options
 	serviceAccount *v1.ServiceAccount
 	roleBinding    *rbacv1.ClusterRoleBinding
 }
 
-func newServiceAccountSetup(options Options) KudoServiceAccount {
+func newServiceAccountSetup(options kudoinit.Options) KudoServiceAccount {
 	return KudoServiceAccount{
 		opts:           options,
 		serviceAccount: generateServiceAccount(options),
@@ -32,7 +34,7 @@ func newServiceAccountSetup(options Options) KudoServiceAccount {
 }
 
 func (o KudoServiceAccount) Install(client *kube.Client) error {
-	if !o.opts.isDefaultServiceAccount() {
+	if !o.opts.IsDefaultServiceAccount() {
 		// Validate alternate serviceaccount exists in the cluster
 		if err := o.validateServiceAccountExists(client); err != nil {
 			return err
@@ -107,7 +109,7 @@ func (o KudoServiceAccount) installRoleBinding(client *kube.Client) error {
 	return err
 }
 
-func (o KudoServiceAccount) Validate(client *kube.Client) error {
+func (o KudoServiceAccount) ValidateInstallation(client *kube.Client) error {
 	coreClient := client.KubeClient.CoreV1()
 
 	existingSA, err := coreClient.ServiceAccounts(o.opts.Namespace).Get(o.serviceAccount.Name, metav1.GetOptions{})
@@ -130,16 +132,16 @@ func (o KudoServiceAccount) Validate(client *kube.Client) error {
 	return nil
 }
 
-func (o KudoServiceAccount) AsRuntimeObj() []runtime.Object {
-	if o.opts.isDefaultServiceAccount() {
+func (o KudoServiceAccount) AsRuntimeObjs() []runtime.Object {
+	if o.opts.IsDefaultServiceAccount() {
 		return []runtime.Object{o.serviceAccount, o.roleBinding}
 	}
 	return make([]runtime.Object, 0)
 }
 
 // generateServiceAccount builds the system account
-func generateServiceAccount(opts Options) *v1.ServiceAccount {
-	labels := generateLabels(map[string]string{})
+func generateServiceAccount(opts kudoinit.Options) *v1.ServiceAccount {
+	labels := kudoinit.GenerateLabels(map[string]string{})
 	return &v1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels:    labels,
@@ -153,7 +155,7 @@ func generateServiceAccount(opts Options) *v1.ServiceAccount {
 	}
 }
 
-func generateRoleBinding(opts Options) *rbacv1.ClusterRoleBinding {
+func generateRoleBinding(opts kudoinit.Options) *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "kudo-manager-rolebinding",

@@ -1,4 +1,4 @@
-package setup
+package manager
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -20,16 +21,23 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+// Ensure IF is implemented
+var _ kudoinit.InitStep = &Initializer{}
+
 //Defines the deployment of the KUDO manager and it's service definition.
-type KudoManager struct {
-	options    Options
+type Initializer struct {
+	options    kudoinit.Options
 	service    *v1.Service
 	deployment *appsv1.StatefulSet
 }
 
-// Manager returns the setup management object
-func Manager(options Options) KudoManager {
-	return KudoManager{
+func (m Initializer) AsArray() []runtime.Object {
+	return []runtime.Object{m.service, m.deployment}
+}
+
+// NewInitializer returns the setup management object
+func NewInitializer(options kudoinit.Options) Initializer {
+	return Initializer{
 		options:    options,
 		service:    generateService(options),
 		deployment: generateDeployment(options),
@@ -37,7 +45,7 @@ func Manager(options Options) KudoManager {
 }
 
 // Install uses Kubernetes client to install KUDO.
-func (m KudoManager) Install(client *kube.Client) error {
+func (m Initializer) Install(client *kube.Client) error {
 	if err := m.installStatefulSet(client.KubeClient.AppsV1()); err != nil {
 		return err
 	}
@@ -48,7 +56,7 @@ func (m KudoManager) Install(client *kube.Client) error {
 	return nil
 }
 
-func (m KudoManager) installStatefulSet(client appsv1client.StatefulSetsGetter) error {
+func (m Initializer) installStatefulSet(client appsv1client.StatefulSetsGetter) error {
 	_, err := client.StatefulSets(m.options.Namespace).Create(m.deployment)
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("statefulset %v already exists", m.deployment.Name)
@@ -60,7 +68,7 @@ func (m KudoManager) installStatefulSet(client appsv1client.StatefulSetsGetter) 
 	return err
 }
 
-func (m KudoManager) installService(client corev1.ServicesGetter) error {
+func (m Initializer) installService(client corev1.ServicesGetter) error {
 	_, err := client.Services(m.options.Namespace).Create(m.service)
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("service %v already exists", m.service.Name)
@@ -73,7 +81,7 @@ func (m KudoManager) installService(client corev1.ServicesGetter) error {
 }
 
 // AsYamlManifests provides a slice of strings for the deployment and service manifest
-func (m KudoManager) AsYamlManifests() ([]string, error) {
+func (m Initializer) AsYamlManifests() ([]string, error) {
 	s := m.service
 	d := m.deployment
 
@@ -91,13 +99,13 @@ func (m KudoManager) AsYamlManifests() ([]string, error) {
 	return manifests, nil
 }
 
-// ManagerLabels returns the labels used by deployment and service
-func ManagerLabels() labels.Set {
-	return generateLabels(map[string]string{"control-plane": "controller-manager", "controller-tools.k8s.io": "1.0"})
+// GenerateLabels returns the labels used by deployment and service
+func GenerateLabels() labels.Set {
+	return kudoinit.GenerateLabels(map[string]string{"control-plane": "controller-manager", "controller-tools.k8s.io": "1.0"})
 }
 
-func generateDeployment(opts Options) *appsv1.StatefulSet {
-	managerLabels := ManagerLabels()
+func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
+	managerLabels := GenerateLabels()
 
 	secretDefaultMode := int32(420)
 	image := opts.Image
@@ -126,7 +134,7 @@ func generateDeployment(opts Options) *appsv1.StatefulSet {
 							Env: []v1.EnvVar{
 								{Name: "POD_NAMESPACE", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
 								{Name: "SECRET_NAME", Value: "kudo-webhook-server-secret"},
-								{Name: "ENABLE_WEBHOOKS", Value: strconv.FormatBool(opts.hasWebhooksEnabled())},
+								{Name: "ENABLE_WEBHOOKS", Value: strconv.FormatBool(opts.HasWebhooksEnabled())},
 							},
 							Image:           image,
 							ImagePullPolicy: "Always",
@@ -165,8 +173,8 @@ func generateDeployment(opts Options) *appsv1.StatefulSet {
 	return d
 }
 
-func generateService(opts Options) *v1.Service {
-	managerLabels := ManagerLabels()
+func generateService(opts kudoinit.Options) *v1.Service {
+	managerLabels := GenerateLabels()
 	s := &v1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",

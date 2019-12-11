@@ -1,34 +1,38 @@
-package setup
+package prereq
 
 import (
 	"fmt"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 )
+
+// Ensure IF is implemented
+var _ kudoinit.InitStep = &Initializer{}
 
 // Defines a single prerequisite that is defined as a k8s resource
 type k8sResource interface {
 	// Install installs the manifests of this prerequisite
 	Install(client *kube.Client) error
 
-	// Validate verifies that the current state of the installation is as expected of this version of KUDO
-	Validate(client *kube.Client) error
+	// ValidateInstallation verifies that the current state of the installation is as expected of this version of KUDO
+	ValidateInstallation(client *kube.Client) error
 
-	// AsRuntimeObj returns the manifests that would be installed from this resource
-	AsRuntimeObj() []runtime.Object
+	// AsRuntimeObjs returns the manifests that would be installed from this resource
+	AsRuntimeObjs() []runtime.Object
 }
 
 //Defines the Prerequisites that need to be in place to run the KUDO manager. This includes setting up the kudo-system namespace and service account
-type KudoPrerequisite struct {
-	Options Options
+type Initializer struct {
+	Options kudoinit.Options
 	prereqs []k8sResource
 }
 
-func Prereqs(options Options) KudoPrerequisite {
-	return KudoPrerequisite{
+func NewInitializer(options kudoinit.Options) Initializer {
+	return Initializer{
 		Options: options,
 		prereqs: []k8sResource{
 			newNamespaceSetup(options),
@@ -38,7 +42,7 @@ func Prereqs(options Options) KudoPrerequisite {
 	}
 }
 
-func (p KudoPrerequisite) Install(client *kube.Client) error {
+func (p Initializer) Install(client *kube.Client) error {
 	for _, prereq := range p.prereqs {
 		err := prereq.Install(client)
 		if err != nil {
@@ -48,16 +52,16 @@ func (p KudoPrerequisite) Install(client *kube.Client) error {
 	return nil
 }
 
-func (p KudoPrerequisite) AsArray() []runtime.Object {
+func (p Initializer) AsArray() []runtime.Object {
 	var prereqs []runtime.Object
 
 	for _, prereq := range p.prereqs {
-		prereqs = append(prereqs, prereq.AsRuntimeObj()...)
+		prereqs = append(prereqs, prereq.AsRuntimeObjs()...)
 	}
 	return prereqs
 }
 
-func (p KudoPrerequisite) AsYamlManifests() ([]string, error) {
+func (p Initializer) AsYamlManifests() ([]string, error) {
 	prereqs := p.AsArray()
 
 	manifests := make([]string, len(prereqs))

@@ -1,8 +1,10 @@
-package setup
+package prereq
 
 import (
 	"fmt"
 	"strings"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -22,17 +24,17 @@ import (
 var _ k8sResource = &KudoWebHook{}
 
 type KudoWebHook struct {
-	opts Options
+	opts kudoinit.Options
 }
 
-func newWebHookSetup(options Options) KudoWebHook {
+func newWebHookSetup(options kudoinit.Options) KudoWebHook {
 	return KudoWebHook{
 		opts: options,
 	}
 }
 
 func (k KudoWebHook) Install(client *kube.Client) error {
-	if !k.opts.hasWebhooksEnabled() {
+	if !k.opts.HasWebhooksEnabled() {
 		return nil
 	}
 
@@ -45,8 +47,8 @@ func (k KudoWebHook) Install(client *kube.Client) error {
 	return nil
 }
 
-func (k KudoWebHook) Validate(client *kube.Client) error {
-	if !k.opts.hasWebhooksEnabled() {
+func (k KudoWebHook) ValidateInstallation(client *kube.Client) error {
+	if !k.opts.HasWebhooksEnabled() {
 		return nil
 	}
 
@@ -54,8 +56,8 @@ func (k KudoWebHook) Validate(client *kube.Client) error {
 	panic("implement me")
 }
 
-func (k KudoWebHook) AsRuntimeObj() []runtime.Object {
-	if !k.opts.hasWebhooksEnabled() {
+func (k KudoWebHook) AsRuntimeObjs() []runtime.Object {
+	if !k.opts.HasWebhooksEnabled() {
 		return make([]runtime.Object, 0)
 	}
 

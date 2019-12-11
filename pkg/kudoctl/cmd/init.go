@@ -6,14 +6,14 @@ import (
 	"io"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/setup"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/setup"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	cmdInit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
@@ -135,7 +135,7 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (initCmd *initCmd) run() error {
-	opts := setup.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks))
+	opts := kudoinit.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks))
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image
@@ -180,7 +180,7 @@ func (initCmd *initCmd) run() error {
 
 		if initCmd.wait {
 			clog.Printf("⌛Waiting for KUDO controller to be ready in your cluster...")
-			finished := cmdInit.WatchKUDOUntilReady(initCmd.client.KubeClient, opts, initCmd.timeout)
+			finished := setup.WatchKUDOUntilReady(initCmd.client.KubeClient, opts, initCmd.timeout)
 			if !finished {
 				return errors.New("watch timed out, readiness uncertain")
 			}
