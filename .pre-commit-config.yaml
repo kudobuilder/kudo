@@ -3,3 +3,11 @@ repos:
     rev: v1.21.0
     hooks:
       - id: golangci-lint
+  - repo: local
+    hooks:
+      - id: signed-off-commits
+        name: signed-off-commits
+        description: Check that commit messages include a 'Signed-off-by' line
+        entry: ./hack/check-commit-signed-off.sh
+        language: script
+        stages: [commit-msg]
