@@ -48,8 +48,8 @@ import (
 	"fmt"
 
 	// third-party library packages that are *not* k8s
-	"github.com/go-logr/logr"
 	"github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 
 	// k8s library packages
 	appsv1 "k8s.io/api/apps/v1"
