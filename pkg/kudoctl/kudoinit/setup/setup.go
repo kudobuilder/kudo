@@ -10,7 +10,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/manager"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
 
-	"gopkg.in/yaml.v2"
+	"github.com/ghodss/yaml"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
