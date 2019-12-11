@@ -173,8 +173,55 @@ Does not look like people are really doing this that much (they usually rather f
 
 #### As a stateful service operator (person) I want to be able to run backup on my stateful service when a backup plan is defined.
 
-### Implementation Details/Notes/Constraints [optional]
+### Implementation Details/Notes/Constraints
 
-TODO: choose a solution
+We've decided to go with `Have a separate CRD just for maintaining commands to execute a plan` solution.
+
+#### Different or unified ways to trigger a plan
+
+Right now, triggering plan executions is fully encapsulated in the instance_controller. It watches updates on Instance objects and decide if it needs to run plan and more importantly which plan (do we run upgrade plan or deploy plan for example?). With manually executed plans, we'll theoretically have two ways to trigger plan:
+
+1. *Non-explicit executions* that are triggered by changing the state of instance (either updating parameter or updating OperatorVersion referencing it - upgrade)
+1. *Explicit executions* (I as operator want to run plan - e.g. backup - right now)
+
+There are multiple approaches how these two can co-exist.
+
+##### PlanExecutionRequest CRD only for external requests
+
+In this solution, PlanExecutionRequest CR is created only for *explicit* executions. With the following rules applied:
+
+If someone submits *explicit execution* (updates the declarative state of the Instance CR)
+
+- the request is **accepted** if (guarded by webhook)
+    - no plan is in progress (already exists in the webhook)
+    - no request for this instance exists which does not have status set (means controller did not pick it up yet)
+
+If someone submits *non-explicit execution* (creates new PlanExecutionRequest CR)
+
+- the request is **accepted** if (guarded by webhook)
+    - no plan is in progress (has to check Instance.Status so a status of a different CRD)
+    - no request for this instance exists which does not have status set (means controller did not pick it up yet)
+
+Also note that `PlanExecutionRequest` here is not a real queue, there can be for simplicitly only one request at a time, all others will be rejected (if not run with force=true). But that is pretty much aligned with the fact that we can run only one plan in parallel.
+
+These two can still race, as these are two separate CRDs, they can be modified concurrently so it's possible that at the same time, update to the instance is accepted as well as request. In that case, instance_controller seeing this during reconciliation can easily change the PlanExecutionRequest.Status to Rejected and pursue with executing the non-explicit trigger as that should always have biggest priority.
+
+##### PlanExecutionRequest is the only way to trigger a plan
+
+In this solution, PlanExecutionRequest CR is created only for both *explicit* and *non-explicit* executions. 
+
+To make that work, we need to **disallow any updates to Instance.Spec** which is something that goes strongly against the kubernetes design principles of declarative state. Also it would mean that without webhook preventing this update deployed alongside KUDO, very strange behavior could be triggered if someone tries to update Instance directly (which is natural thing for people operate kubernetes). Supporting both `Instance.Spec` updates and `PlanExecutionRequest` is very challenging as updating `Instance.Spec` modifies global state immediately that would affect all consequent plan executions that might be queued.
+
+For the two types of requests the following is true:
+
+- *explicit requests* will be submitted via `PlanExecutionRequest` CR, that is created including the plan name
+- *non-explicit requests* will be submitted via `PlanExecutionRequest` CR, these will allow to have only OV or parameters set, no plan name (which plan is run is a decision of controller)
+
+These two cannot be mixed so we'll have to validate it in webhook - you cannot have parameters in *explicit request* and you cannot have plan name in *non explicit* request.
+
+This is a big leap to the side of the kubernetes design principles and it's declarative nature and I would even say very unintuitive for anyone working with the CRDs but it would give us:
+
+- ability to have just one way of triggering plan
+- making it possible to queue multiple plans (do we even really need this? do you want to queue multipl backups? how will people know their plan was finished?)
 
 ### Risks and Mitigations
