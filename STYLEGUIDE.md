@@ -61,4 +61,4 @@ Executing `make import` should fix the imports for you.
 
 ### Naming
 
-In general, naming should follow [Golang conventions](https://golang.org/doc/effective_go.html#names) over [Kubernetes code conventions](https://github.com/kubernetes/community/blob/master/contributors/guide/coding-conventions.md#code-conventions).
+In general, naming should follow [Go conventions](https://golang.org/doc/effective_go.html#names) over [Kubernetes code conventions](https://github.com/kubernetes/community/blob/master/contributors/guide/coding-conventions.md#code-conventions).
