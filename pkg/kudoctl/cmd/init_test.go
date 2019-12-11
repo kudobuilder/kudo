@@ -147,7 +147,7 @@ func TestInitCmd_yamlOutput(t *testing.T) {
 		gp := filepath.Join("testdata", tt.goldenFile+".golden")
 
 		if *updateGolden {
-			t.Log("update golden file")
+			t.Logf("updating golden file %s", tt.goldenFile)
 			if err := ioutil.WriteFile(gp, out.Bytes(), 0644); err != nil {
 				t.Fatalf("failed to update golden file: %s", err)
 			}
