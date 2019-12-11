@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/gosuri/uitable"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/verify"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
 )
 
 // package verify provides verification or linting checks against the package passed to the command.
@@ -48,32 +46,14 @@ func verifyPackage(fs afero.Fs, path string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	warnings, errors := verify.PackageFiles(pf)
-	if warnings != nil {
-		printWarnings(out, warnings)
-	}
-	if errors == nil {
+	res := verify.PackageFiles(pf)
+	res.PrintWarnings(out)
+	res.PrintErrors(out)
+
+	if res.IsValid() {
 		fmt.Fprintf(out, "package is valid\n")
 		return nil
 	}
-	printErrors(out, errors)
-	return fmt.Errorf("package verification errors: %v", len(errors))
-}
 
-func printErrors(out io.Writer, errors verifier.Errors) {
-	table := uitable.New()
-	table.AddRow("Errors")
-	for _, err := range errors {
-		table.AddRow(err)
-	}
-	fmt.Fprintln(out, table)
-}
-
-func printWarnings(out io.Writer, warnings verifier.Warnings) {
-	table := uitable.New()
-	table.AddRow("Warnings")
-	for _, warning := range warnings {
-		table.AddRow(warning)
-	}
-	fmt.Fprintln(out, table)
+	return fmt.Errorf("found %d package verification errors", len(res.Errors))
 }

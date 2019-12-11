@@ -29,11 +29,11 @@ func TestTemplateParametersVerifier(t *testing.T) {
 		Params:    &paramFile,
 	}
 	verifier := ParametersVerifier{}
-	warnings, errors := verifier.Verify(&pf)
+	res := verifier.Verify(&pf)
 
-	assert.Equal(t, 1, len(warnings))
-	assert.Equal(t, `parameter "NotUsed" defined but not used.`, string(warnings[0]))
-	assert.Equal(t, 2, len(errors))
-	assert.Equal(t, `parameter "Bar" in template foo.yaml is not defined`, string(errors[0]))
-	assert.Equal(t, `template foo.yaml defines an invalid implicit parameter "Bar"`, string(errors[1]))
+	assert.Equal(t, 1, len(res.Warnings))
+	assert.Equal(t, `parameter "NotUsed" defined but not used.`, res.Warnings[0])
+	assert.Equal(t, 2, len(res.Errors))
+	assert.Equal(t, `parameter "Bar" in template foo.yaml is not defined`, res.Errors[0])
+	assert.Equal(t, `template foo.yaml defines an invalid implicit parameter "Bar"`, res.Errors[1])
 }
