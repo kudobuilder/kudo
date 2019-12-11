@@ -190,7 +190,7 @@ There are multiple approaches how these two can co-exist.
 
 In this solution, PlanExecutionRequest CR is created only for *explicit* executions. With the following rules applied:
 
-If someone submits *explicit execution* (updates the declarative state of the Instance CR)
+If someone submits *non-explicit execution* (updates the declarative state of the Instance CR)
 
 - the request is **accepted** if (guarded by webhook)
     - no plan is in progress (already exists in the webhook)
