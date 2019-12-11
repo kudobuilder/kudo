@@ -39,25 +39,36 @@ All code should pass `go vet`.
 
 ### import
 
-The general Golang approach is to have a line of separation between Golang libraries and external packages. We prefer to have an additional line of separation grouping Kubernetes packages. Example:
+The general Golang approach is to have a line of separation between Golang libraries and external packages. We prefer to have an additional line of separation grouping Kubernetes packages, and kudo packages grouped separately at the end. Example:
 
 ```
 import (
+	// standard library packages
 	"context"
 	"fmt"
-      // above are standard library packages
+
+	// third-party library packages that are *not* k8s
+	"github.com/go-logr/logr"
+	"github.com/onsi/gomega"
+
+	// k8s library packages
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/kustomize/k8sdeps/kunstruct"
 	"sigs.k8s.io/kustomize/pkg/target"
 	ktypes "sigs.k8s.io/kustomize/pkg/types"
-      // above are k8s library packages
-	"github.com/kudobuilder/kudo/pkg/util/health"
-	"github.com/kudobuilder/kudo/pkg/util/template"
+	
+	// kudo packages
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/version"
 )
 ```
 
-Executing `make import` should fix the imports for you.
+Executing `make import` will help you *somewhat*, but it will *not* do everything. It:
+1. makes sure imports are sorted *within* each section, and
+1. if an import that should be in the first (standard library) and last (kudo) section - but is somewhere else - then it will move it out of that section, but not necessarily into the correct one. as appropriate.
+
+So you still need to manually keep the k8s imports separate from other 3rd-party imports.
 
 ### Naming
 
