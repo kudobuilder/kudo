@@ -143,36 +143,36 @@ func (initCmd *initCmd) run() error {
 	//define an Encoder to replace YAMLWriter
 	if strings.ToLower(initCmd.output) == "yaml" {
 
-		var mans []string
+		var manifests []string
 
 		crd, err := cmdInit.CRDs().AsYaml()
 		if err != nil {
 			return err
 		}
-		mans = append(mans, crd...)
+		manifests = append(manifests, crd...)
 
 		if !initCmd.crdOnly {
 			prereq, err := cmdInit.PrereqManifests(opts)
 			if err != nil {
 				return err
 			}
-			mans = append(mans, prereq...)
+			manifests = append(manifests, prereq...)
 
 			if len(opts.Webhooks) != 0 { // right now there's only 0 or 1 webhook, so this is good enough
-				prereq, err := cmdInit.WebhookManifests(opts.Namespace)
+				webhooks, err := cmdInit.WebhookManifests(opts.Namespace)
 				if err != nil {
 					return err
 				}
-				mans = append(mans, prereq...)
+				manifests = append(manifests, webhooks...)
 			}
 
 			deploy, err := cmdInit.ManagerManifests(opts)
 			if err != nil {
 				return err
 			}
-			mans = append(mans, deploy...)
+			manifests = append(manifests, deploy...)
 		}
-		if err := initCmd.YAMLWriter(initCmd.out, mans); err != nil {
+		if err := initCmd.YAMLWriter(initCmd.out, manifests); err != nil {
 			return err
 		}
 	}
