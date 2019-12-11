@@ -44,12 +44,17 @@ func (p KudoPrerequisite) Install(client *kube.Client) error {
 	return nil
 }
 
-func (p KudoPrerequisite) AsYamlManifests() ([]string, error) {
+func (p KudoPrerequisite) AsArray() []runtime.Object {
 	var prereqs []runtime.Object
 
 	for _, prereq := range p.prereqs {
 		prereqs = append(prereqs, prereq.AsRuntimeObj()...)
 	}
+	return prereqs
+}
+
+func (p KudoPrerequisite) AsYamlManifests() ([]string, error) {
+	prereqs := p.AsArray()
 
 	manifests := make([]string, len(prereqs))
 	for i, obj := range prereqs {

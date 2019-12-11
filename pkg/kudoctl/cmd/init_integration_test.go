@@ -25,8 +25,8 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	cmdinit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/setup"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
@@ -53,7 +53,7 @@ const (
 )
 
 func TestCrds_Config(t *testing.T) {
-	crds := cmdinit.CRDs()
+	crds := setup.CRDs()
 
 	if false {
 		// change this to true if you want to one time override the manifests with new values
@@ -122,7 +122,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := cmdinit.CRDs().AsArray()
+	crds := setup.CRDs().AsArray()
 	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
@@ -161,7 +161,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := cmdinit.CRDs().AsArray()
+	crds := setup.CRDs().AsArray()
 	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
@@ -233,7 +233,7 @@ func TestIntegInitWithServiceAccount(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := cmdinit.CRDs().AsArray()
+	crds := setup.CRDs().AsArray()
 	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
@@ -337,7 +337,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := cmdinit.CRDs().AsArray()
+	crds := setup.CRDs().AsArray()
 	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
@@ -370,10 +370,10 @@ func TestNoErrorOnReInit(t *testing.T) {
 }
 
 func deleteInitObjects(client *testutils.RetryClient) {
-	crds := cmdinit.CRDs().AsArray()
-	prereqs := cmdinit.Prereq(cmdinit.NewOptions("", "", "", []string{}))
-	deleteCRDs(crds, client)
-	deletePrereq(prereqs, client)
+	crds := setup.CRDs()
+	prereqs := setup.Prereqs(setup.NewOptions("", "", "", []string{}))
+	deleteCRDs(crds.AsArray(), client)
+	deletePrereq(prereqs.AsArray(), client)
 }
 
 func deleteCRDs(crds []runtime.Object, client *testutils.RetryClient) {
