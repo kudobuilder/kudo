@@ -64,10 +64,10 @@ func TestCrds_Config(t *testing.T) {
 		if err != nil {
 			t.Errorf("OperatorVersion file override failed: %v", err)
 		}
+		err = writeManifest(instanceFileName, crds.Instance)
 		if err != nil {
 			t.Errorf("Instance file override failed: %v", err)
 		}
-		err = writeManifest(instanceFileName, crds.Instance)
 	}
 
 	assertManifestFileMatch(t, operatorFileName, crds.Operator)
