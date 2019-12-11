@@ -14,6 +14,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// Ensure IF is implemented
+var _ k8sResource = &KudoServiceAccount{}
+
 type KudoServiceAccount struct {
 	opts           Options
 	serviceAccount *v1.ServiceAccount

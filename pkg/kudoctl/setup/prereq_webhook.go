@@ -18,6 +18,9 @@ import (
 	clientv1beta1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
 )
 
+// Ensure IF is implemented
+var _ k8sResource = &KudoWebHook{}
+
 type KudoWebHook struct {
 	opts Options
 }

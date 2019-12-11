@@ -12,6 +12,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// Ensure IF is implemented
+var _ k8sResource = &KudoNamespace{}
+
 type KudoNamespace struct {
 	opts Options
 	ns   *v1.Namespace
