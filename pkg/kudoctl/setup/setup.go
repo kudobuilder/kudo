@@ -63,7 +63,7 @@ func Install(client *kube.Client, opts Options, crdOnly bool) error {
 
 	clog.Printf("✅ installing crds")
 	if err := CRDs().Install(client); err != nil {
-		return err
+		return fmt.Errorf("crds: %v", err)
 	}
 	if crdOnly {
 		return nil
@@ -71,12 +71,12 @@ func Install(client *kube.Client, opts Options, crdOnly bool) error {
 
 	clog.Printf("✅ preparing service accounts and other requirements for controller to run")
 	if err := Prereqs(opts).Install(client); err != nil {
-		return err
+		return fmt.Errorf("prerequisites: %v", err)
 	}
 
 	clog.Printf("✅ installing kudo controller")
 	if err := Manager(opts).Install(client); err != nil {
-		return err
+		return fmt.Errorf("manager: %v", err)
 	}
 	return nil
 }

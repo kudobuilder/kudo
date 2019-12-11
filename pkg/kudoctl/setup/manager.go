@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
@@ -29,6 +30,7 @@ type KudoManager struct {
 // Manager returns the setup management object
 func Manager(options Options) KudoManager {
 	return KudoManager{
+		options:    options,
 		service:    generateService(options),
 		deployment: generateDeployment(options),
 	}
@@ -52,6 +54,9 @@ func (m KudoManager) installStatefulSet(client appsv1client.StatefulSetsGetter) 
 		clog.V(4).Printf("statefulset %v already exists", m.deployment.Name)
 		return nil
 	}
+	if err != nil {
+		return fmt.Errorf("stateful set: %v", err)
+	}
 	return err
 }
 
@@ -60,6 +65,9 @@ func (m KudoManager) installService(client corev1.ServicesGetter) error {
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("service %v already exists", m.service.Name)
 		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("service: %v", err)
 	}
 	return err
 }
