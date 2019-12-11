@@ -139,7 +139,7 @@ func (s *Step) DeleteExisting(namespace string) error {
 	}
 
 	// Wait for resources to be deleted.
-	return wait.PollImmediate(100*time.Millisecond, s.GetTimeout()*time.Second, func() (done bool, err error) {
+	return wait.PollImmediate(100*time.Millisecond, time.Duration(s.GetTimeout())*time.Second, func() (done bool, err error) {
 		for _, obj := range toDelete {
 			err = cl.Get(context.TODO(), testutils.ObjectKey(obj), obj.DeepCopyObject())
 			if err == nil || !k8serrors.IsNotFound(err) {
