@@ -161,12 +161,10 @@ func Prereq(opts Options) []runtime.Object {
 	if opts.Namespace == defaultns {
 		prereqs = append(prereqs, namespace(opts.Namespace))
 	}
-
-	return append(
-		prereqs,
-		serviceAccount(opts),
-		roleBinding(opts),
-	)
+	if opts.ServiceAccount == defaultServiceAccount {
+		prereqs = append(prereqs, serviceAccount(opts), roleBinding(opts))
+	}
+	return prereqs
 }
 
 // roleBinding provides the roleBinding rbac manifest for printing
