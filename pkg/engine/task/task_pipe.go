@@ -113,7 +113,7 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 
 	// 9. - Create k8s artifacts (ConfigMap/Secret) from the pipe files -
 	log.Printf("PipeTask: %s/%s creating pipe artifacts", ctx.Meta.InstanceNamespace, ctx.Meta.InstanceName)
-	artStr, err := storeArtifacts(fs, pt.PipeFiles, ctx.Meta)
+	artStr, err := createArtifacts(fs, pt.PipeFiles, ctx.Meta)
 	if err != nil {
 		return false, err
 	}
@@ -305,9 +305,9 @@ func copyFiles(fs afero.Fs, ff []PipeFile, pod *corev1.Pod, ctx Context) error {
 	return err
 }
 
-// storeArtifacts iterates through passed pipe files and their copied data, reads them, constructs k8s artifacts
+// createArtifacts iterates through passed pipe files and their copied data, reads them, constructs k8s artifacts
 // and marshals them.
-func storeArtifacts(fs afero.Fs, files []PipeFile, meta renderer.Metadata) (map[string]string, error) {
+func createArtifacts(fs afero.Fs, files []PipeFile, meta renderer.Metadata) (map[string]string, error) {
 	artifacts := map[string]string{}
 
 	for _, pf := range files {
@@ -319,9 +319,9 @@ func storeArtifacts(fs afero.Fs, files []PipeFile, meta renderer.Metadata) (map[
 		var art string
 		switch pf.Kind {
 		case PipeFileKindSecret:
-			art, err = storeSecret(pf, data, meta)
+			art, err = createSecret(pf, data, meta)
 		case PipeFileKindConfigMap:
-			art, err = storeConfigMap(pf, data, meta)
+			art, err = createConfigMap(pf, data, meta)
 		default:
 			return nil, fmt.Errorf("unknown pipe file kind: %+v", pf)
 		}
@@ -335,9 +335,9 @@ func storeArtifacts(fs afero.Fs, files []PipeFile, meta renderer.Metadata) (map[
 	return artifacts, nil
 }
 
-// storeSecret method creates a core/v1/Secret object using passed data. Pipe file name is used
+// createSecret method creates a core/v1/Secret object using passed data. Pipe file name is used
 // as Secret data key. Secret name will be of the form <instance>.<plan>.<phase>.<step>.<task>-<PipeFile.Key>
-func storeSecret(pf PipeFile, data []byte, meta renderer.Metadata) (string, error) {
+func createSecret(pf PipeFile, data []byte, meta renderer.Metadata) (string, error) {
 	name := PipeArtifactName(meta, pf.Key)
 	key := path.Base(pf.File)
 
@@ -361,9 +361,9 @@ func storeSecret(pf PipeFile, data []byte, meta renderer.Metadata) (string, erro
 	return string(b), nil
 }
 
-// storeConfigMap method creates a core/v1/ConfigMap object using passed data. Pipe file name is used
+// createConfigMap method creates a core/v1/ConfigMap object using passed data. Pipe file name is used
 // as ConfigMap data key. ConfigMap name will be of the form <instance>.<plan>.<phase>.<step>.<task>-<PipeFile.Key>
-func storeConfigMap(pf PipeFile, data []byte, meta renderer.Metadata) (string, error) {
+func createConfigMap(pf PipeFile, data []byte, meta renderer.Metadata) (string, error) {
 	name := PipeArtifactName(meta, pf.Key)
 	key := path.Base(pf.File)
 

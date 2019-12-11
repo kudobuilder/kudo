@@ -430,10 +430,10 @@ func Test_pipeFiles(t *testing.T) {
 				assert.NoError(t, afero.WriteFile(fs, path, []byte(data), 0644), "error while preparing test: %s", tt.name)
 			}
 
-			got, err := storeArtifacts(fs, []PipeFile{tt.file}, tt.meta)
+			got, err := createArtifacts(fs, []PipeFile{tt.file}, tt.meta)
 			if err != nil {
 				if !tt.wantErr {
-					t.Fatalf("storeArtifacts() error = %v, wantErr %v", err, tt.wantErr)
+					t.Fatalf("createArtifacts() error = %v, wantErr %v", err, tt.wantErr)
 				}
 				return
 			}
@@ -442,7 +442,7 @@ func Test_pipeFiles(t *testing.T) {
 			assert.NoError(t, err, "failure during marshaling of the test pipe artifact in test: %s", tt.name)
 
 			want := map[string]string{tt.file.Key: string(out)}
-			assert.Equal(t, want, got, "storeArtifacts() unexpected return value")
+			assert.Equal(t, want, got, "createArtifacts() unexpected return value")
 		})
 	}
 }
