@@ -196,7 +196,7 @@ If someone submits *non-explicit execution* (updates the declarative state of th
     - no plan is in progress (already exists in the webhook)
     - no request for this instance exists which does not have status set (means controller did not pick it up yet)
 
-If someone submits *non-explicit execution* (creates new PlanExecutionRequest CR)
+If someone submits *explicit execution* (creates new PlanExecutionRequest CR)
 
 - the request is **accepted** if (guarded by webhook)
     - no plan is in progress (has to check Instance.Status so a status of a different CRD)
