@@ -1,6 +1,7 @@
 ---
 kep-number: 19
 title: Versioning of Operator Packages
+short-desc: Connection between the different versions that describe an operator
 authors:
   - "@mpereira"
   - "@nfnt"
@@ -9,7 +10,7 @@ owners:
   - "@nfnt"
 creation-date: 2019-11-05
 last-updated: 2019-11-29
-status: provisional
+status: implementable
 ---
 
 # Versioning of Operator Packages
