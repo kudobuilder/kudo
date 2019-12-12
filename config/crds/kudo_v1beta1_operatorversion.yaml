@@ -25,8 +25,8 @@ spec:
         spec:
           properties:
             connectionString:
-              description: ConnectionString defines a mustached string that can be
-                used to connect to an instance of the Operator
+              description: ConnectionString defines a templated string that can be
+                used to connect to an instance of the Operator.
               type: string
             crdVersion:
               type: string
@@ -37,35 +37,36 @@ spec:
                 properties:
                   default:
                     description: Default is a default value if no parameter is provided
-                      by the instance
+                      by the instance.
                     type: string
                   description:
                     description: Description captures a longer description of how
-                      the variable will be used
+                      the parameter will be used.
                     type: string
                   displayName:
-                    description: Human friendly crdVersion of the parameter name
+                    description: DisplayName can be used by UIs.
                     type: string
                   name:
-                    description: 'Name is the string that should be used in the template
-                      file for example, if `name: COUNT` then using the variable `.Params.COUNT`'
+                    description: "Name is the string that should be used in the template
+                      file for example, if `name: COUNT` then using the variable in
+                      a spec like: \n spec:   replicas:  {{ .Params.COUNT }}"
                     type: string
                   required:
                     description: Required specifies if the parameter is required to
-                      be provided by all instances, or whether a default can suffice
+                      be provided by all instances, or whether a default can suffice.
                     type: boolean
                   trigger:
                     description: Trigger identifies the plan that gets executed when
                       this parameter changes in the Instance object. Default is `update`
-                      if present, or `deploy` if not present
+                      if a plan with that name exists, otherwise it's `deploy`.
                     type: string
                 type: object
               type: array
             plans:
-              description: Plans specify a map a plans that specify how to
+              description: Plans maps a plan name to a plan.
               type: object
             tasks:
-              description: List of all tasks available in this OperatorVersions
+              description: List of all tasks available in this OperatorVersion.
               items:
                 properties:
                   kind:
@@ -77,12 +78,12 @@ spec:
                 type: object
               type: array
             templates:
-              description: List of go templates YAML files that define the application
-                operator instance
+              description: Yaml captures a templated yaml list of elements that define
+                the application operator instance.
               type: object
             upgradableFrom:
               description: UpgradableFrom lists all OperatorVersions that can upgrade
-                to this OperatorVersion
+                to this OperatorVersion.
               items:
                 type: object
               type: array

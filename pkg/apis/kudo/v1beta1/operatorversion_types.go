@@ -29,7 +29,8 @@ type OperatorVersionSpec struct {
 
 	// Yaml captures a templated yaml list of elements that define the application operator instance.
 	Templates map[string]string `json:"templates,omitempty"`
-	Tasks     []Task            `json:"tasks,omitempty"`
+	// List of all tasks available in this OperatorVersion.
+	Tasks []Task `json:"tasks,omitempty"`
 
 	Parameters []Parameter `json:"parameters,omitempty"`
 
@@ -68,14 +69,14 @@ type Plan struct {
 
 // Parameter captures the variability of an OperatorVersion being instantiated in an instance.
 type Parameter struct {
-	// DisplayName can be used by UI's.
+	// DisplayName can be used by UIs.
 	DisplayName string `json:"displayName,omitempty"`
 
-	// Name is the string that should be used in the templated file for example,
+	// Name is the string that should be used in the template file for example,
 	// if `name: COUNT` then using the variable in a spec like:
 	//
 	// spec:
-	//   replicas:  {{COUNT}}
+	//   replicas:  {{ .Params.COUNT }}
 	Name string `json:"name,omitempty"`
 
 	// Description captures a longer description of how the parameter will be used.
@@ -88,7 +89,7 @@ type Parameter struct {
 	Default *string `json:"default,omitempty"`
 
 	// Trigger identifies the plan that gets executed when this parameter changes in the Instance object.
-	// Default is `update` if a plan with that name exists, otherwise it's `deploy`
+	// Default is `update` if a plan with that name exists, otherwise it's `deploy`.
 	Trigger string `json:"trigger,omitempty"`
 }
 
@@ -129,7 +130,7 @@ type ResourceTaskSpec struct {
 	Resources []string `json:"resources"`
 }
 
-// DummyTaskSpec can succeed of fail on demand and is very useful for testing operators
+// DummyTaskSpec can succeed or fail on demand and is very useful for testing operators
 type DummyTaskSpec struct {
 	WantErr bool `json:"wantErr"`
 	Fatal   bool `json:"fatal"`
