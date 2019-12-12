@@ -175,16 +175,14 @@ fields or even new CRDs.
   - WebHook conversion would allow us to transparently switch to a new CRD version without manually migrating all existing CRs
     - MultiVersion is supported since 1.11 (manual conversion)
     - WebHook conversion GA since 1.16 (1.13 alpha feature gate, 1.15 beta feature gate)
-  - Manual CRD conversion would allow us to target a lower K8s version, but require code to migrate CRs in the upgrade process.
 - CRD versioning
-  - If we want to keep the same API change conventions as K8s, we will have a slower development pace and probably a lot of version changes
-  - We *could* go with less strict conventions - if we ensure that the used KUDO CLI version is at least as high as the installed KUDO manager, 
-  we could add new (optional) fields in the CRDs and be sure that the fields are not dropped when round tripping from the cluster to CLI and 
-  back to the cluster.
-  - If we have only the CRD version to rely on, we can add new optional fields, but have to accept the risk that an older version of the CLI
-  silently drops the fields, as it doesn't know about them. (Correct me here if I'm wrong)
+  - We need to provide support for multiple maintained API versions. This will allow us to evolve the API, and introduce backwards incompatible changes
+  in a way that allows clients to migrate at their own pace.
+  - Having an internal model of the data structures exposed via the API allows us to use defaulting, normalization between API versions and prevents
+  older clients from breaking existing resources
+  - We can add new optional fields, and make other minor modifications to an existing API version.
   - More breaking changes (removing fields, making fields required, renaming fields, etc. ) require a CRD version change
-
+  - See [K8s API Changes](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api_changes.md) for details
 - CRDs may have a similar upgrade process as prerequisites:
   - Create/Update might be simple
   - We may have CRDs that are outdated and not used anymore and should be deleted  
@@ -296,6 +294,7 @@ Why should this KEP _not_ be implemented.
 ## Resources
 - [CRD versioning](https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definition-versioning/)
 - [Kube Storage Version Migrator](https://github.com/kubernetes-sigs/kube-storage-version-migrator)
+- [K8s API Conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
 - [K8s API Change Conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api_changes.md)
 
 
@@ -306,6 +305,7 @@ Why should this KEP _not_ be implemented.
 
 ## Action Items (to be converted into issues/tasks)
 - Extend `init` command to support `--upgrade`
+- Refactor API to support multiple versions
 - Create structure to support general handling for prerequisite upgrades (validate, create, update, delete)
 - Create code to update manager deployment
 - Implement Installed Operator check
