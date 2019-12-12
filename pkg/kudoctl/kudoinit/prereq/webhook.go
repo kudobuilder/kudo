@@ -21,19 +21,19 @@ import (
 )
 
 // Ensure IF is implemented
-var _ k8sResource = &KudoWebHook{}
+var _ k8sResource = &kudoWebHook{}
 
-type KudoWebHook struct {
+type kudoWebHook struct {
 	opts kudoinit.Options
 }
 
-func newWebHookSetup(options kudoinit.Options) KudoWebHook {
-	return KudoWebHook{
+func newWebHook(options kudoinit.Options) kudoWebHook {
+	return kudoWebHook{
 		opts: options,
 	}
 }
 
-func (k KudoWebHook) Install(client *kube.Client) error {
+func (k kudoWebHook) Install(client *kube.Client) error {
 	if !k.opts.HasWebhooksEnabled() {
 		return nil
 	}
@@ -47,7 +47,7 @@ func (k KudoWebHook) Install(client *kube.Client) error {
 	return nil
 }
 
-func (k KudoWebHook) ValidateInstallation(client *kube.Client) error {
+func (k kudoWebHook) ValidateInstallation(client *kube.Client) error {
 	if !k.opts.HasWebhooksEnabled() {
 		return nil
 	}
@@ -56,7 +56,7 @@ func (k KudoWebHook) ValidateInstallation(client *kube.Client) error {
 	panic("implement me")
 }
 
-func (k KudoWebHook) AsRuntimeObjs() []runtime.Object {
+func (k kudoWebHook) AsRuntimeObjs() []runtime.Object {
 	if !k.opts.HasWebhooksEnabled() {
 		return make([]runtime.Object, 0)
 	}

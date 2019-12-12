@@ -14,21 +14,21 @@ import (
 )
 
 // Ensure IF is implemented
-var _ k8sResource = &KudoNamespace{}
+var _ k8sResource = &kudoNamespace{}
 
-type KudoNamespace struct {
+type kudoNamespace struct {
 	opts kudoinit.Options
 	ns   *v1.Namespace
 }
 
-func newNamespaceSetup(options kudoinit.Options) KudoNamespace {
-	return KudoNamespace{
+func newNamespace(options kudoinit.Options) kudoNamespace {
+	return kudoNamespace{
 		opts: options,
 		ns:   generateSysNamespace(options.Namespace),
 	}
 }
 
-func (o KudoNamespace) Install(client *kube.Client) error {
+func (o kudoNamespace) Install(client *kube.Client) error {
 	// We only manage kudo-system namespace. For others we expect they exist.
 	if !o.opts.IsDefaultNamespace() {
 		_, err := client.KubeClient.CoreV1().Namespaces().Get(o.opts.Namespace, metav1.GetOptions{})
@@ -49,11 +49,11 @@ func (o KudoNamespace) Install(client *kube.Client) error {
 	return err
 }
 
-func (o KudoNamespace) ValidateInstallation(client *kube.Client) error {
+func (o kudoNamespace) ValidateInstallation(client *kube.Client) error {
 	return nil
 }
 
-func (o KudoNamespace) AsRuntimeObjs() []runtime.Object {
+func (o kudoNamespace) AsRuntimeObjs() []runtime.Object {
 	if !o.opts.IsDefaultNamespace() {
 		return make([]runtime.Object, 0)
 	}

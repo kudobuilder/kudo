@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// Ensure IF is implemented
+// Ensure kudoinit.InitStep is implemented
 var _ kudoinit.InitStep = &Initializer{}
 
 //Defines the deployment of the KUDO manager and it's service definition.

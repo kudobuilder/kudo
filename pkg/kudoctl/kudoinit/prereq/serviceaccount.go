@@ -17,23 +17,23 @@ import (
 )
 
 // Ensure IF is implemented
-var _ k8sResource = &KudoServiceAccount{}
+var _ k8sResource = &kudoServiceAccount{}
 
-type KudoServiceAccount struct {
+type kudoServiceAccount struct {
 	opts           kudoinit.Options
 	serviceAccount *v1.ServiceAccount
 	roleBinding    *rbacv1.ClusterRoleBinding
 }
 
-func newServiceAccountSetup(options kudoinit.Options) KudoServiceAccount {
-	return KudoServiceAccount{
+func newServiceAccount(options kudoinit.Options) kudoServiceAccount {
+	return kudoServiceAccount{
 		opts:           options,
 		serviceAccount: generateServiceAccount(options),
 		roleBinding:    generateRoleBinding(options),
 	}
 }
 
-func (o KudoServiceAccount) Install(client *kube.Client) error {
+func (o kudoServiceAccount) Install(client *kube.Client) error {
 	if !o.opts.IsDefaultServiceAccount() {
 		// Validate alternate serviceaccount exists in the cluster
 		if err := o.validateServiceAccountExists(client); err != nil {
@@ -55,7 +55,7 @@ func (o KudoServiceAccount) Install(client *kube.Client) error {
 }
 
 // Validate whether the serviceAccount exists
-func (o KudoServiceAccount) validateServiceAccountExists(client *kube.Client) error {
+func (o kudoServiceAccount) validateServiceAccountExists(client *kube.Client) error {
 	coreClient := client.KubeClient.CoreV1()
 	saList, err := coreClient.ServiceAccounts(o.opts.Namespace).List(metav1.ListOptions{})
 	if err != nil {
@@ -71,7 +71,7 @@ func (o KudoServiceAccount) validateServiceAccountExists(client *kube.Client) er
 }
 
 // Validate whether the serviceAccount has cluster-admin role
-func (o KudoServiceAccount) validateClusterAdminRoleForSA(client *kube.Client) error {
+func (o kudoServiceAccount) validateClusterAdminRoleForSA(client *kube.Client) error {
 
 	// Check whether the serviceAccount has clusterrolebinding cluster-admin
 	crbs, err := client.KubeClient.RbacV1().ClusterRoleBindings().List(metav1.ListOptions{})
@@ -90,7 +90,7 @@ func (o KudoServiceAccount) validateClusterAdminRoleForSA(client *kube.Client) e
 	return fmt.Errorf("Service Account %s does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace %s and to have cluster-admin role", o.opts.ServiceAccount, o.opts.Namespace)
 }
 
-func (o KudoServiceAccount) installServiceAccount(client *kube.Client) error {
+func (o kudoServiceAccount) installServiceAccount(client *kube.Client) error {
 	coreClient := client.KubeClient.CoreV1()
 	_, err := coreClient.ServiceAccounts(o.opts.Namespace).Create(o.serviceAccount)
 	if kerrors.IsAlreadyExists(err) {
@@ -100,7 +100,7 @@ func (o KudoServiceAccount) installServiceAccount(client *kube.Client) error {
 	return err
 }
 
-func (o KudoServiceAccount) installRoleBinding(client *kube.Client) error {
+func (o kudoServiceAccount) installRoleBinding(client *kube.Client) error {
 	_, err := client.KubeClient.RbacV1().ClusterRoleBindings().Create(o.roleBinding)
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("role binding %v already exists", o.roleBinding.Name)
@@ -109,7 +109,7 @@ func (o KudoServiceAccount) installRoleBinding(client *kube.Client) error {
 	return err
 }
 
-func (o KudoServiceAccount) ValidateInstallation(client *kube.Client) error {
+func (o kudoServiceAccount) ValidateInstallation(client *kube.Client) error {
 	coreClient := client.KubeClient.CoreV1()
 
 	existingSA, err := coreClient.ServiceAccounts(o.opts.Namespace).Get(o.serviceAccount.Name, metav1.GetOptions{})
@@ -132,7 +132,7 @@ func (o KudoServiceAccount) ValidateInstallation(client *kube.Client) error {
 	return nil
 }
 
-func (o KudoServiceAccount) AsRuntimeObjs() []runtime.Object {
+func (o kudoServiceAccount) AsRuntimeObjs() []runtime.Object {
 	if o.opts.IsDefaultServiceAccount() {
 		return []runtime.Object{o.serviceAccount, o.roleBinding}
 	}

@@ -10,7 +10,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// Ensure IF is implemented
+// Ensure kudoinit.InitStep is implemented
 var _ kudoinit.InitStep = &Initializer{}
 
 // Defines a single prerequisite that is defined as a k8s resource
@@ -35,9 +35,9 @@ func NewInitializer(options kudoinit.Options) Initializer {
 	return Initializer{
 		Options: options,
 		prereqs: []k8sResource{
-			newNamespaceSetup(options),
-			newServiceAccountSetup(options),
-			newWebHookSetup(options),
+			newNamespace(options),
+			newServiceAccount(options),
+			newWebHook(options),
 		},
 	}
 }

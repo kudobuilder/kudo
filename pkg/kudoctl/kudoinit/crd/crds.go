@@ -24,7 +24,7 @@ const (
 	crdVersion = "v1beta1"
 )
 
-// Ensure IF is implemented
+// Ensure kudoinit.InitStep is implemented
 var _ kudoinit.InitStep = &Initializer{}
 
 // Initializer represents custom resource definitions needed to run KUDO
