@@ -276,18 +276,12 @@ webhooks:
 
 ---
 apiVersion: cert-manager.io/v1alpha2
-kind: Certificate
+kind: Issuer
 metadata:
-  name: kudo-webhook-server-certificate
+  name: selfsigned-issuer
   namespace: kudo-system
 spec:
-  commonName: kudo-controller-manager-service.kudo-system.svc
-  dnsNames:
-  - kudo-controller-manager-service.kudo-system.svc
-  issuerRef:
-    kind: Issuer
-    name: selfsigned-issuer
-  secretName: kudo-webhook-server-secret
+  selfSigned: {}
 
 ---
 apiVersion: cert-manager.io/v1alpha2
