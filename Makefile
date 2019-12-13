@@ -131,7 +131,10 @@ docker-push:
 .PHONY: imports
 # used to update imports on project.  NOT a linter.
 imports:
-	goimports --local github.com/kudobuilder -w .
+ifeq (, $(shell which golangci-lint))
+	./hack/install-golangcilint.sh
+endif
+	golangci-lint run --disable-all -E goimports --fix
 
 .PHONY: todo
 # Show to-do items per file.
