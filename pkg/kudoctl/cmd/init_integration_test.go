@@ -13,6 +13,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
+	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
+
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,11 +30,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
-
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	cmdinit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
-	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
 var testenv testutils.TestEnvironment
@@ -53,7 +55,7 @@ const (
 )
 
 func TestCrds_Config(t *testing.T) {
-	crds := cmdinit.CRDs()
+	crds := crd.NewInitializer()
 
 	if *updateGolden {
 		err := writeManifest(operatorFileName, crds.Operator)
@@ -120,7 +122,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := cmdinit.CRDs().AsArray()
+	crds := crd.NewInitializer().AsArray()
 	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
@@ -159,7 +161,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := cmdinit.CRDs().AsArray()
+	crds := crd.NewInitializer().AsArray()
 	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
@@ -173,7 +175,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	// On first attempt, the namespace does not exist, so the error is expected.
 	err = cmd.run()
 	require.Error(t, err)
-	assert.Equal(t, err.Error(), `error installing: namespace integration-test does not exist - KUDO expects that any namespace except the default kudo-system is created beforehand`)
+	assert.Equal(t, err.Error(), `error installing: prerequisites: failed to install: namespace integration-test does not exist - KUDO expects that any namespace except the default kudo-system is created beforehand`)
 
 	// Then we manually create the namespace.
 	ns := testutils.NewResource("v1", "Namespace", namespace, "")
@@ -231,7 +233,7 @@ func TestIntegInitWithServiceAccount(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := cmdinit.CRDs().AsArray()
+	crds := crd.NewInitializer().AsArray()
 	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
@@ -254,7 +256,7 @@ func TestIntegInitWithServiceAccount(t *testing.T) {
 	// Test Case 1, the serviceAccount does not exist, expect serviceAccount not exists error
 	err = cmd.run()
 	require.Error(t, err)
-	assert.Equal(t, err.Error(), `error installing: Service Account test-account does not exists - KUDO expects the serviceAccount to be present in the namespace sa-integration-test`)
+	assert.Equal(t, `error installing: prerequisites: failed to install: Service Account test-account does not exists - KUDO expects the serviceAccount to be present in the namespace sa-integration-test`, err.Error())
 
 	// Create the serviceAccount, in the default namespace.
 	ns2 := testutils.NewResource("v1", "Namespace", "test-ns", "")
@@ -269,7 +271,7 @@ func TestIntegInitWithServiceAccount(t *testing.T) {
 	cmd.ns = "test-ns"
 	err = cmd.run()
 	require.Error(t, err)
-	assert.Equal(t, err.Error(), `error installing: Service Account sa-nonadmin does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace test-ns and to have cluster-admin role`)
+	assert.Equal(t, `error installing: prerequisites: failed to install: Service Account sa-nonadmin does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace test-ns and to have cluster-admin role`, err.Error())
 
 	// Test case 3: Run Init command with a serviceAccount that does not have cluster-admin role.
 	cmd.serviceAccount = serviceAccount
@@ -280,7 +282,7 @@ func TestIntegInitWithServiceAccount(t *testing.T) {
 
 	err = cmd.run()
 	require.Error(t, err)
-	assert.Equal(t, err.Error(), `error installing: Service Account sa-integration does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test and to have cluster-admin role`)
+	assert.Equal(t, `error installing: prerequisites: failed to install: Service Account sa-integration does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test and to have cluster-admin role`, err.Error())
 
 	// Test case 4: Run Init command with a serviceAccount that does not have cluster-admin role.
 	crb2 := testutils.NewClusterRoleBinding("rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "kudo-test2", namespace, serviceAccount, "cluster-temp")
@@ -289,7 +291,7 @@ func TestIntegInitWithServiceAccount(t *testing.T) {
 
 	err = cmd.run()
 	require.Error(t, err)
-	assert.Equal(t, err.Error(), `error installing: Service Account sa-integration does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test and to have cluster-admin role`)
+	assert.Equal(t, `error installing: prerequisites: failed to install: Service Account sa-integration does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test and to have cluster-admin role`, err.Error())
 
 	// Test case 5: Run Init command with a serviceAccount that is present in the cluster and also has cluster-admin role.
 	crb3 := testutils.NewClusterRoleBinding("rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "kudo-clusterrole-binding", namespace, serviceAccount, "cluster-admin")
@@ -335,7 +337,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := cmdinit.CRDs().AsArray()
+	crds := crd.NewInitializer().AsArray()
 	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
@@ -368,10 +370,10 @@ func TestNoErrorOnReInit(t *testing.T) {
 }
 
 func deleteInitObjects(client *testutils.RetryClient) {
-	crds := cmdinit.CRDs().AsArray()
-	prereqs := cmdinit.Prereq(cmdinit.NewOptions("", "", "", []string{}))
-	deleteCRDs(crds, client)
-	deletePrereq(prereqs, client)
+	crds := crd.NewInitializer()
+	prereqs := prereq.NewInitializer(kudoinit.NewOptions("", "", "", []string{}))
+	deleteCRDs(crds.AsArray(), client)
+	deletePrereq(prereqs.AsArray(), client)
 }
 
 func deleteCRDs(crds []runtime.Object, client *testutils.RetryClient) {
