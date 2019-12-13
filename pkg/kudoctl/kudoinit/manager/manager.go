@@ -109,7 +109,7 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 
 	secretDefaultMode := int32(420)
 	image := opts.Image
-	d := &appsv1.StatefulSet{
+	s := &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "StatefulSet",
 			APIVersion: "apps/v1",
@@ -148,29 +148,32 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 									"cpu":    resource.MustParse("100m"),
 									"memory": resource.MustParse("50Mi")},
 							},
-							VolumeMounts: []v1.VolumeMount{
-								{Name: "cert", MountPath: "/tmp/cert", ReadOnly: true},
-							},
 						},
 					},
 					TerminationGracePeriodSeconds: &opts.TerminationGracePeriodSeconds,
-					Volumes: []v1.Volume{
-						{
-							Name: "cert",
-							VolumeSource: v1.VolumeSource{
-								Secret: &v1.SecretVolumeSource{
-									SecretName:  "kudo-webhook-server-secret",
-									DefaultMode: &secretDefaultMode,
-								},
-							},
-						},
-					},
 				},
 			},
 		},
 	}
 
-	return d
+	if opts.HasWebhooksEnabled() {
+		s.Spec.Template.Spec.Containers[0].VolumeMounts = []v1.VolumeMount{
+			{Name: "cert", MountPath: "/tmp/cert", ReadOnly: true},
+		}
+		s.Spec.Template.Spec.Volumes = []v1.Volume{
+			{
+				Name: "cert",
+				VolumeSource: v1.VolumeSource{
+					Secret: &v1.SecretVolumeSource{
+						SecretName:  "kudo-webhook-server-secret",
+						DefaultMode: &secretDefaultMode,
+					},
+				},
+			},
+		}
+	}
+
+	return s
 }
 
 func generateService(opts kudoinit.Options) *v1.Service {
