@@ -57,9 +57,7 @@ const (
 func TestCrds_Config(t *testing.T) {
 	crds := crd.NewInitializer()
 
-	if false {
-		// change this to true if you want to one time override the manifests with new values
-		// this should be used only when the manifests changed in your PR and you want to update to the newly generated values
+	if *updateGolden {
 		err := writeManifest(operatorFileName, crds.Operator)
 		if err != nil {
 			t.Errorf("Operator file override failed: %v", err)
@@ -68,10 +66,10 @@ func TestCrds_Config(t *testing.T) {
 		if err != nil {
 			t.Errorf("OperatorVersion file override failed: %v", err)
 		}
+		err = writeManifest(instanceFileName, crds.Instance)
 		if err != nil {
 			t.Errorf("Instance file override failed: %v", err)
 		}
-		err = writeManifest(instanceFileName, crds.Instance)
 	}
 
 	assertManifestFileMatch(t, operatorFileName, crds.Operator)

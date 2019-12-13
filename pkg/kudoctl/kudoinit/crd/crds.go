@@ -213,7 +213,7 @@ func operatorVersionCrd() *apiextv1beta1.CustomResourceDefinition {
 func instanceCrd() *apiextv1beta1.CustomResourceDefinition {
 	crd := generateCrd("Instance", "instances")
 	specProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"OperatorVersion": {Type: "object", Description: "Operator specifies a reference to a specific Operator object"},
+		"OperatorVersion": {Type: "object", Description: "OperatorVersion specifies a reference to a specific OperatorVersion object"},
 		"parameters":      {Type: "object"},
 	}
 	statusProps := map[string]apiextv1beta1.JSONSchemaProps{
