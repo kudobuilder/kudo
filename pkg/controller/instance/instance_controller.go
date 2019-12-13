@@ -26,7 +26,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -160,97 +159,102 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	// ---------- 1. Query the current state ----------
 
 	log.Printf("InstanceController: Received Reconcile request for instance \"%+v\"", request.Name)
-	instance, err := r.getInstance(request)
-	oldInstance := instance.DeepCopy()
+
+	op := newReconcileOperation(r.Client, r.Recorder)
+	err := op.load(request)
 	if err != nil {
-		if apierrors.IsNotFound(err) { // not retrying if instance not found, probably someone manually removed it?
-			log.Printf("Instance %s was deleted, nothing to reconcile.", request.NamespacedName)
-			return reconcile.Result{}, nil
-		}
 		return reconcile.Result{}, err
 	}
 
-	ov, err := r.getOperatorVersion(instance)
-	if err != nil {
-		return reconcile.Result{}, err // OV not found has to be retried because it can really have been created after Instance
-	}
+	//instance, err := r.getInstance(request)
+	//if err != nil {
+	//	if apierrors.IsNotFound(err) { // not retrying if instance not found, probably someone manually removed it?
+	//		log.Printf("Instance %s was deleted, nothing to reconcile.", request.NamespacedName)
+	//		return reconcile.Result{}, nil
+	//	}
+	//	return reconcile.Result{}, err
+	//}
+	//oldInstance := instance.DeepCopy()
+	//
+	//ov, err := r.getOperatorVersion(instance)
+	//if err != nil {
+	//	return reconcile.Result{}, err // OV not found has to be retried because it can really have been created after Instance
+	//}
 
 	// ---------- 2. Check if the object is being deleted ----------
-
-	if !instance.IsDeleting() {
-		if _, hasCleanupPlan := ov.Spec.Plans[kudov1beta1.CleanupPlanName]; hasCleanupPlan {
-			if instance.TryAddFinalizer() {
-				log.Printf("InstanceController: Adding finalizer on instance %s/%s", instance.Namespace, instance.Name)
+	if !op.IsInstanceDeleting() {
+		if _, hasCleanupPlan := op.ov.Spec.Plans[kudov1beta1.CleanupPlanName]; hasCleanupPlan {
+			if op.TryAddFinalizerToInstance() {
+				log.Printf("InstanceController: Adding finalizer on instance %s/%s", op.instance.Namespace, op.instance.Name)
 			}
 		}
 	} else {
-		log.Printf("InstanceController: Instance %s/%s is being deleted", instance.Namespace, instance.Name)
+		log.Printf("InstanceController: Instance %s/%s is being deleted", op.instance.Namespace, op.instance.Name)
 	}
 
 	// ---------- 3. Check if we should start execution of new plan ----------
-
-	planToBeExecuted, err := instance.GetPlanToBeExecuted(ov)
+	planToBeExecuted, err := op.GetPlanToBeExecuted()
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 	if planToBeExecuted != nil {
-		log.Printf("InstanceController: Going to start execution of plan %s on instance %s/%s", kudo.StringValue(planToBeExecuted), instance.Namespace, instance.Name)
-		err = instance.StartPlanExecution(kudo.StringValue(planToBeExecuted), ov)
+		log.Printf("InstanceController: Going to start execution of plan %s on instance %s/%s", kudo.StringValue(planToBeExecuted), op.instance.Namespace, op.instance.Name)
+		err = op.StartPlanExecution(kudo.StringValue(planToBeExecuted))
 		if err != nil {
-			return reconcile.Result{}, r.handleError(err, instance, oldInstance)
+			return reconcile.Result{}, r.handleError(err, op, op.instance, op.oldInstance)
 		}
-		r.Recorder.Event(instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", kudo.StringValue(planToBeExecuted)))
+		r.Recorder.Event(op.instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", kudo.StringValue(planToBeExecuted)))
 	}
 
 	// ---------- 4. If there's currently active plan, continue with the execution ----------
 
-	activePlanStatus := instance.GetPlanInProgress()
+	activePlanStatus := op.GetPlanInProgress()
 	if activePlanStatus == nil { // we have no plan in progress
-		log.Printf("InstanceController: Nothing to do, no plan in progress for instance %s/%s", instance.Namespace, instance.Name)
+		log.Printf("InstanceController: Nothing to do, no plan in progress for instance %s/%s", op.instance.Namespace, op.instance.Name)
 		return reconcile.Result{}, nil
 	}
 
 	metadata := &engine.Metadata{
-		OperatorVersionName: ov.Name,
-		OperatorVersion:     ov.Spec.Version,
-		AppVersion:          ov.Spec.AppVersion,
-		ResourcesOwner:      instance,
-		OperatorName:        ov.Spec.Operator.Name,
-		InstanceNamespace:   instance.Namespace,
-		InstanceName:        instance.Name,
+		OperatorVersionName: op.ov.Name,
+		OperatorVersion:     op.ov.Spec.Version,
+		AppVersion:          op.ov.Spec.AppVersion,
+		ResourcesOwner:      op.instance,
+		OperatorName:        op.ov.Spec.Operator.Name,
+		InstanceNamespace:   op.instance.Namespace,
+		InstanceName:        op.instance.Name,
 	}
 
-	activePlan, err := preparePlanExecution(instance, ov, activePlanStatus, metadata)
+	activePlan, err := preparePlanExecution(op.instance, op.ov, activePlanStatus, metadata)
 	if err != nil {
-		err = r.handleError(err, instance, oldInstance)
+		err = r.handleError(err, op, op.instance, op.oldInstance)
 		return reconcile.Result{}, err
 	}
-	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
+	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.Name, op.instance.Namespace, op.instance.Name)
 	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, &renderer.KustomizeEnhancer{Scheme: r.Scheme}, time.Now())
 
 	// ---------- 5. Update status of instance after the execution proceeded ----------
 	if newStatus != nil {
-		instance.UpdateInstanceStatus(newStatus)
+		op.UpdateInstanceStatus(newStatus)
 	}
 	if err != nil {
-		err = r.handleError(err, instance, oldInstance)
+		err = r.handleError(err, op, op.instance, op.oldInstance)
 		return reconcile.Result{}, err
 	}
 
-	err = updateInstance(instance, oldInstance, r.Client)
+	err = updateInstance(op, op.instance, op.oldInstance, r.Client)
 	if err != nil {
 		log.Printf("InstanceController: Error when updating instance. %v", err)
 		return reconcile.Result{}, err
 	}
 
-	if instance.Status.AggregatedStatus.Status.IsTerminal() {
-		r.Recorder.Event(instance, "Normal", "PlanFinished", fmt.Sprintf("Execution of plan %s finished with status %s", activePlanStatus.Name, instance.Status.AggregatedStatus.Status))
+	if op.instance.Status.AggregatedStatus.Status.IsTerminal() {
+		r.Recorder.Event(op.instance, "Normal", "PlanFinished", fmt.Sprintf("Execution of plan %s finished with status %s", activePlanStatus.Name, op.instance.Status.AggregatedStatus.Status))
 	}
 
 	return reconcile.Result{}, nil
 }
 
-func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance, client client.Client) error {
+func updateInstance(op reconcileOperation, instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance, client client.Client) error {
 	// update instance spec and metadata. this will not update Instance.Status field
 	if !reflect.DeepEqual(instance.Spec, oldInstance.Spec) ||
 		!reflect.DeepEqual(instance.ObjectMeta.Annotations, oldInstance.ObjectMeta.Annotations) ||
@@ -273,7 +277,7 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 
 	// update instance metadata if finalizer is removed
 	// because Kubernetes might immediately delete the instance, this has to be the last instance update
-	if instance.TryRemoveFinalizer() {
+	if op.TryRemoveFinalizer() {
 		log.Printf("InstanceController: Removing finalizer on instance %s/%s", instance.Namespace, instance.Name)
 		if err := client.Update(context.TODO(), instance); err != nil {
 			log.Printf("InstanceController: Error when removing instance finalizer. %v", err)
@@ -310,11 +314,11 @@ func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.Operat
 // handleError handles execution error by logging, updating the plan status and optionally publishing an event
 // specify eventReason as nil if you don't wish to publish a warning event
 // returns err if this err should be retried, nil otherwise
-func (r *Reconciler) handleError(err error, instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance) error {
+func (r *Reconciler) handleError(err error, op reconcileOperation, instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance) error {
 	log.Printf("InstanceController: %v", err)
 
 	// first update instance as we want to propagate errors also to the `Instance.Status.PlanStatus`
-	clientErr := updateInstance(instance, oldInstance, r.Client)
+	clientErr := updateInstance(op, instance, oldInstance, r.Client)
 	if clientErr != nil {
 		log.Printf("InstanceController: Error when updating instance state. %v", clientErr)
 		return clientErr
@@ -340,41 +344,41 @@ func (r *Reconciler) handleError(err error, instance *kudov1beta1.Instance, oldI
 	return err
 }
 
-// getInstance retrieves the instance by namespaced name
-// returns nil, nil when instance is not found (not found is not considered an error)
-func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1beta1.Instance, err error) {
-	instance = &kudov1beta1.Instance{}
-	err = r.Get(context.TODO(), request.NamespacedName, instance)
-	if err != nil {
-		// Error reading the object - requeue the request.
-		log.Printf("InstanceController: Error getting instance \"%v\": %v",
-			request.NamespacedName,
-			err)
-		return nil, err
-	}
-	return instance, nil
-}
+//// getInstance retrieves the instance by namespaced name
+//// returns nil, nil when instance is not found (not found is not considered an error)
+//func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1beta1.Instance, err error) {
+//	instance = &kudov1beta1.Instance{}
+//	err = r.Get(context.TODO(), request.NamespacedName, instance)
+//	if err != nil {
+//		// Error reading the object - requeue the request.
+//		log.Printf("InstanceController: Error getting instance \"%v\": %v",
+//			request.NamespacedName,
+//			err)
+//		return nil, err
+//	}
+//	return instance, nil
+//}
 
-// getOperatorVersion retrieves operatorversion belonging to the given instance
-// not found is treated here as any other error
-func (r *Reconciler) getOperatorVersion(instance *kudov1beta1.Instance) (ov *kudov1beta1.OperatorVersion, err error) {
-	ov = &kudov1beta1.OperatorVersion{}
-	err = r.Get(context.TODO(),
-		types.NamespacedName{
-			Name:      instance.Spec.OperatorVersion.Name,
-			Namespace: instance.OperatorVersionNamespace(),
-		},
-		ov)
-	if err != nil {
-		log.Printf("InstanceController: Error getting operatorVersion \"%v\" for instance \"%v\": %v",
-			instance.Spec.OperatorVersion.Name,
-			instance.Name,
-			err)
-		r.Recorder.Event(instance, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Error getting operatorVersion \"%v\": %v", instance.Spec.OperatorVersion.Name, err))
-		return nil, err
-	}
-	return ov, nil
-}
+//// getOperatorVersion retrieves operatorversion belonging to the given instance
+//// not found is treated here as any other error
+//func (r *Reconciler) getOperatorVersion(instance *kudov1beta1.Instance) (ov *kudov1beta1.OperatorVersion, err error) {
+//	ov = &kudov1beta1.OperatorVersion{}
+//	err = r.Get(context.TODO(),
+//		types.NamespacedName{
+//			Name:      instance.Spec.OperatorVersion.Name,
+//			Namespace: instance.OperatorVersionNamespace(),
+//		},
+//		ov)
+//	if err != nil {
+//		log.Printf("InstanceController: Error getting operatorVersion \"%v\" for instance \"%v\": %v",
+//			instance.Spec.OperatorVersion.Name,
+//			instance.Name,
+//			err)
+//		r.Recorder.Event(instance, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Error getting operatorVersion \"%v\": %v", instance.Spec.OperatorVersion.Name, err))
+//		return nil, err
+//	}
+//	return ov, nil
+//}
 
 // paramsMap generates {{ Params.* }} map of keys and values which is later used during template rendering.
 func paramsMap(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.OperatorVersion) map[string]string {

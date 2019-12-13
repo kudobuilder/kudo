@@ -3,6 +3,8 @@ package plan
 import (
 	"fmt"
 
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+
 	"github.com/xlab/treeprint"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
@@ -41,7 +43,7 @@ func status(kc *kudo.Client, options *Options, ns string) error {
 		return fmt.Errorf("OperatorVersion %s from instance %s/%s does not exist", instance.Spec.OperatorVersion.Name, ns, options.Instance)
 	}
 
-	lastPlanStatus := instance.GetLastExecutedPlanStatus()
+	lastPlanStatus := getLastExecutedPlanStatus(instance)
 
 	if lastPlanStatus == nil {
 		fmt.Fprintf(options.Out, "No plan ever run for instance - nothing to show for instance %s\n", instance.Name)
@@ -85,6 +87,59 @@ func status(kc *kudo.Client, options *Options, ns string) error {
 	fmt.Fprintln(options.Out, tree.String())
 
 	return nil
+}
+
+// GetPlanInProgress returns plan status of currently active plan or nil if no plan is running
+func getPlanInProgress(i *v1beta1.Instance) *v1beta1.PlanStatus {
+	for _, p := range i.Status.PlanStatus {
+		if p.Status.IsRunning() {
+			return &p
+		}
+	}
+	return nil
+}
+
+// GetLastExecutedPlanStatus returns status of plan that is currently running, if there is one running
+// if no plan is running it looks for last executed plan based on timestamps
+func getLastExecutedPlanStatus(i *v1beta1.Instance) *v1beta1.PlanStatus {
+	if noPlanEverExecuted(i) {
+		return nil
+	}
+	activePlan := getPlanInProgress(i)
+	if activePlan != nil {
+		return activePlan
+	}
+	var lastExecutedPlan *v1beta1.PlanStatus
+	for n := range i.Status.PlanStatus {
+		p := i.Status.PlanStatus[n]
+		if p.Status == v1beta1.ExecutionNeverRun {
+			continue // only interested in plans that run
+		}
+		if lastExecutedPlan == nil {
+			lastExecutedPlan = &p // first plan that was run and we're iterating over
+		} else if wasRunAfter(p, *lastExecutedPlan) {
+			lastExecutedPlan = &p // this plan was run after the plan we have chosen before
+		}
+	}
+	return lastExecutedPlan
+}
+
+// NoPlanEverExecuted returns true is this is new instance for which we never executed any plan
+func noPlanEverExecuted(instance *v1beta1.Instance) bool {
+	for _, p := range instance.Status.PlanStatus {
+		if p.Status != v1beta1.ExecutionNeverRun {
+			return false
+		}
+	}
+	return true
+}
+
+// wasRunAfter returns true if p1 was run after p2
+func wasRunAfter(p1 v1beta1.PlanStatus, p2 v1beta1.PlanStatus) bool {
+	if p1.Status == v1beta1.ExecutionNeverRun || p2.Status == v1beta1.ExecutionNeverRun {
+		return false
+	}
+	return p1.LastFinishedRun.Time.After(p2.LastFinishedRun.Time)
 }
 
 func printMessageIfAvailable(s string) string {
