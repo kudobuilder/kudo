@@ -65,7 +65,8 @@ func (k kudoWebHook) AsRuntimeObjs() []runtime.Object {
 	cert := certificate(k.opts.Namespace)
 	objs := []runtime.Object{&av}
 	for _, c := range cert {
-		objs = append(objs, &c)
+		obj := c
+		objs = append(objs, &obj)
 	}
 	return objs
 }
