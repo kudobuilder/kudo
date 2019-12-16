@@ -16,18 +16,7 @@ import (
 
 // Install uses Kubernetes client to install KUDO.
 func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
-	var initSteps []kudoinit.InitStep
-	if crdOnly {
-		initSteps = []kudoinit.InitStep{
-			crd.NewInitializer(),
-		}
-	} else {
-		initSteps = []kudoinit.InitStep{
-			crd.NewInitializer(),
-			prereq.NewInitializer(opts),
-			manager.NewInitializer(opts),
-		}
-	}
+	initSteps := initSteps(opts, crdOnly)
 
 	// Check if all steps are installable
 	for _, initStep := range initSteps {
@@ -47,23 +36,29 @@ func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
 	return nil
 }
 
-func AsYamlManifests(opts kudoinit.Options, crdOnly bool) ([]string, error) {
-	var manifests []runtime.Object
-
-	crds := crd.NewInitializer().AsArray()
-	manifests = append(manifests, crds...)
-
+func initSteps(opts kudoinit.Options, crdOnly bool) []kudoinit.InitStep {
 	if crdOnly {
-		return toYaml(manifests)
+		return []kudoinit.InitStep{
+			crd.NewInitializer(),
+		}
 	}
 
-	prereqs := prereq.NewInitializer(opts).AsArray()
-	manifests = append(manifests, prereqs...)
+	return []kudoinit.InitStep{
+		crd.NewInitializer(),
+		prereq.NewInitializer(opts),
+		manager.NewInitializer(opts),
+	}
+}
 
-	mgr := manager.NewInitializer(opts).AsArray()
-	manifests = append(manifests, mgr...)
+func AsYamlManifests(opts kudoinit.Options, crdOnly bool) ([]string, error) {
+	initSteps := initSteps(opts, crdOnly)
+	var allManifests []runtime.Object
 
-	return toYaml(manifests)
+	for _, initStep := range initSteps {
+		allManifests = append(allManifests, initStep.AsArray()...)
+	}
+
+	return toYaml(allManifests)
 }
 
 func toYaml(objs []runtime.Object) ([]string, error) {
