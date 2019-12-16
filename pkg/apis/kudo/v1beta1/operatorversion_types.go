@@ -121,7 +121,7 @@ type Task struct {
 // future should this become an issue.
 type TaskSpec struct {
 	ResourceTaskSpec `json:",inline"`
-	DummyTaskSpec    `json:""`
+	DummyTaskSpec    `json:",inline"`
 	PipeTaskSpec     `json:""`
 }
 
