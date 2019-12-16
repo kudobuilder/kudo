@@ -121,8 +121,8 @@ type Task struct {
 // future should this become an issue.
 type TaskSpec struct {
 	ResourceTaskSpec `json:""`
-	DummyTaskSpec `json:""`
-	PipeTaskSpec `json:""`
+	DummyTaskSpec    `json:""`
+	PipeTaskSpec     `json:""`
 }
 
 // ResourceTaskSpec is referencing a list of resources
@@ -185,7 +185,7 @@ func init() {
 // OperatorDependency references a defined operator.
 type OperatorDependency struct {
 	// Name specifies the name of the dependency. Referenced via defaults.config.
-	ReferenceName string `json:"referenceName"`
+	ReferenceName          string `json:"referenceName"`
 	corev1.ObjectReference `json:""`
 
 	// Version captures the requirements for what versions of the above object
