@@ -33,7 +33,7 @@ const instanceCleanupFinalizerName = "kudo.dev.instance.cleanup"
 
 // InstanceSpec defines the desired state of Instance.
 type InstanceSpec struct {
-	// OperatorVersion specifies a reference to a specific Operator object.
+	// OperatorVersion specifies a reference to a specific OperatorVersion object.
 	OperatorVersion corev1.ObjectReference `json:"operatorVersion,omitempty"`
 
 	Parameters map[string]string `json:"parameters,omitempty"`
