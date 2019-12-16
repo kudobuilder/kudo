@@ -27,6 +27,7 @@ func IsHealthy(obj runtime.Object) error {
 	}
 
 	objUnstructured := &unstructured.Unstructured{Object: unstructMap}
+	log.Printf("Generation: %d", objUnstructured.GetGeneration())
 	switch obj := obj.(type) {
 	case *appsv1.StatefulSet:
 		statusViewer := &polymorphichelpers.StatefulSetStatusViewer{}
