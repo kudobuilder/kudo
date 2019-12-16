@@ -120,7 +120,7 @@ type Task struct {
 // with the same json names as it would become ambiguous for the default parser. We might revisit this approach in the
 // future should this become an issue.
 type TaskSpec struct {
-	ResourceTaskSpec `json:""`
+	ResourceTaskSpec `json:",inline"`
 	DummyTaskSpec    `json:""`
 	PipeTaskSpec     `json:""`
 }
