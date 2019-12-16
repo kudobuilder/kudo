@@ -38,6 +38,23 @@ type InstanceSpec struct {
 	OperatorVersion corev1.ObjectReference `json:"operatorVersion,omitempty"`
 
 	Parameters map[string]string `json:"parameters,omitempty"`
+
+	PlanExecution PlanExecution `json:"planExecution,omitempty"`
+}
+
+// There are two ways a plan execution can be triggered:
+//  1) indirectly through update of a corresponding parameter in the InstanceSpec.Parameters map
+//  2) directly through setting of the InstanceSpec.PlanExecution field
+// PlanExecution field defines plan name and corresponding parameters that will be executed next.
+// Once the instance controller (IC) picks up the plan and executes it, this field will be cleared.
+// While indirect (1) PEs can also be expressed directly (2), this field gives us more control, e.g.
+// a PE can be forced interrupting a currently running plan (not implemented yet).
+type PlanExecution struct {
+	PlanName string `json:"planName"  validate:"required"`
+
+	Parameters map[string]string `json:"parameters,omitempty"`
+
+	// Future PE options like Force: bool. Not needed for now
 }
 
 // InstanceStatus defines the observed state of Instance
