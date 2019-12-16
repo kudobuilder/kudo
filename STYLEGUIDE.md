@@ -2,11 +2,11 @@
 
 In an effort to encourage clear, clean, uniform and readable code it is useful to have a style guide to establish standards and expectations for code and artifact files.
 
-KUDO is a [Kubernetes (K8S)](https://kubernetes.io/) project written primarily in [Golang](https://golang.org/), both of which have some differences in their style and expectation of code and APIs. In addition the founders of KUDO have some of their own preferences. This guide captures the preferred standards of this project.
+KUDO is a [Kubernetes (K8S)](https://kubernetes.io/) project written primarily in [Go](https://golang.org/), both of which have some differences in their style and expectation of code and APIs. In addition the founders of KUDO have some of their own preferences. This guide captures the preferred standards of this project.
 
 ## Golang
 
-When writing Golang code, We favor Golang idioms over Kubernetes style. Worth reading:
+When writing Go code, We favor Go idioms over Kubernetes style. Worth reading:
 
 * [Effective Go](https://golang.org/doc/effective_go.html)
 * [Idiomatic Go](https://dmitri.shuralyov.com/idiomatic-go)
@@ -39,7 +39,7 @@ All code should pass `go vet`.
 
 ### import
 
-The general Golang approach is to have a line of separation between Golang libraries and external packages. We prefer to have an additional line of separation grouping Kubernetes packages, and kudo packages grouped separately at the end. Example:
+The general Go approach is to have a line of separation between Go libraries and external packages. We prefer to have an additional line of separation grouping kudo packages separately at the end. Example:
 
 ```
 import (
@@ -50,25 +50,22 @@ import (
 	// third-party library packages that are *not* k8s
 	"github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-
-	// k8s library packages
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/kustomize/k8sdeps/kunstruct"
 	"sigs.k8s.io/kustomize/pkg/target"
 	ktypes "sigs.k8s.io/kustomize/pkg/types"
-	
+
 	// kudo packages
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 ```
 
-Executing `make import` will help you *somewhat*, but it will *not* do everything. It:
-1. makes sure imports are sorted *within* each section, and
-1. if an import that should be in the first (standard library) and last (kudo) section - but is somewhere else - then it will move it out of that section, but not necessarily into the correct one. as appropriate.
+Executing `make lint` uses `goimports` which is configured to ensure this structure and will error in most situations that differ.  Unfortunately not all pattern mismatches are captured.
 
-So you still need to manually keep the k8s imports separate from other 3rd-party imports.
+`make imports` is also a useful tool in order to help create this structure.  If all imports are in 1 import block (no lines of separation), `make imports` will modify the file in the appropriate order and structure.
+
 
 ### Naming
 
