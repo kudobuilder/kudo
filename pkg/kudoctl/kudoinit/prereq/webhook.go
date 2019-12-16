@@ -39,6 +39,9 @@ func newWebHook(options kudoinit.Options) kudoWebHook {
 }
 
 func (k kudoWebHook) PreInstallCheck(client *kube.Client) error {
+	if !k.opts.HasWebhooksEnabled() {
+		return nil
+	}
 	if err := validateCertManagerInstallation(client.ExtClient); err != nil {
 		return err
 	}
