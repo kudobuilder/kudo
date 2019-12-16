@@ -104,7 +104,7 @@ func patch(newObj runtime.Object, existingObj runtime.Object, c client.Client) (
 		// strategic merge patch is not supported for these types, falling back to merge patch
 		err := c.Patch(context.TODO(), newObj, client.ConstantPatch(types.MergePatchType, newObjJSON))
 		if err != nil {
-			return nil, fmt.Errorf("failed to apply merge patch to object %s/%s: %w", key. Namespace, key.Name, err)
+			return nil, fmt.Errorf("failed to apply merge patch to object %s/%s: %w", key.Namespace, key.Name, err)
 		}
 		return newObj, nil
 	}
