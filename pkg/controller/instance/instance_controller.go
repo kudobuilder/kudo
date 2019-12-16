@@ -341,7 +341,6 @@ func (r *Reconciler) handleError(err error, instance *kudov1beta1.Instance, oldI
 }
 
 // getInstance retrieves the instance by namespaced name
-// returns nil, nil when instance is not found (not found is not considered an error)
 func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1beta1.Instance, err error) {
 	instance = &kudov1beta1.Instance{}
 	err = r.Get(context.TODO(), request.NamespacedName, instance)
@@ -356,7 +355,6 @@ func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1beta1.In
 }
 
 // getOperatorVersion retrieves operatorversion belonging to the given instance
-// not found is treated here as any other error
 func (r *Reconciler) getOperatorVersion(instance *kudov1beta1.Instance) (ov *kudov1beta1.OperatorVersion, err error) {
 	ov = &kudov1beta1.OperatorVersion{}
 	err = r.Get(context.TODO(),
