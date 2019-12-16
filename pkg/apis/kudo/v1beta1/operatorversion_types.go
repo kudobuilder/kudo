@@ -186,7 +186,7 @@ func init() {
 type OperatorDependency struct {
 	// Name specifies the name of the dependency. Referenced via defaults.config.
 	ReferenceName          string `json:"referenceName"`
-	corev1.ObjectReference `json:""`
+	corev1.ObjectReference `json:",inline"`
 
 	// Version captures the requirements for what versions of the above object
 	// are allowed.
