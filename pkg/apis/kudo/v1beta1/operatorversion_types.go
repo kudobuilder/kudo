@@ -122,7 +122,7 @@ type Task struct {
 type TaskSpec struct {
 	ResourceTaskSpec `json:",inline"`
 	DummyTaskSpec    `json:",inline"`
-	PipeTaskSpec     `json:""`
+	PipeTaskSpec     `json:",inline"`
 }
 
 // ResourceTaskSpec is referencing a list of resources
