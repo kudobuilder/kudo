@@ -21,6 +21,10 @@ type kudoNamespace struct {
 	ns   *v1.Namespace
 }
 
+func (o kudoNamespace) PreInstallCheck(client *kube.Client) error {
+	return nil
+}
+
 func newNamespace(options kudoinit.Options) kudoNamespace {
 	return kudoNamespace{
 		opts: options,

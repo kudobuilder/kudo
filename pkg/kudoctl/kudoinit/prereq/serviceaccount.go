@@ -33,6 +33,10 @@ func newServiceAccount(options kudoinit.Options) kudoServiceAccount {
 	}
 }
 
+func (o kudoServiceAccount) PreInstallCheck(client *kube.Client) error {
+	return nil
+}
+
 func (o kudoServiceAccount) Install(client *kube.Client) error {
 	if !o.opts.IsDefaultServiceAccount() {
 		// Validate alternate serviceaccount exists in the cluster

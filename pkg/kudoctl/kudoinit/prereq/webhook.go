@@ -11,6 +11,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -27,10 +28,21 @@ type kudoWebHook struct {
 	opts kudoinit.Options
 }
 
+const (
+	certManagerAPIVersion = "cert-manager.io/v1alpha2"
+)
+
 func newWebHook(options kudoinit.Options) kudoWebHook {
 	return kudoWebHook{
 		opts: options,
 	}
+}
+
+func (k kudoWebHook) PreInstallCheck(client *kube.Client) error {
+	if err := validateCertManagerInstallation(client.ExtClient); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (k kudoWebHook) Install(client *kube.Client) error {
@@ -69,6 +81,26 @@ func (k kudoWebHook) AsRuntimeObjs() []runtime.Object {
 		objs = append(objs, &c)
 	}
 	return objs
+}
+
+func validateCertManagerInstallation(extClient apiextensionsclient.Interface) error {
+	certCRD, err := extClient.ApiextensionsV1().CustomResourceDefinitions().Get("Certificate", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("cert-manager is not installed: %s", err)
+	}
+	if certCRD.APIVersion != certManagerAPIVersion {
+		return fmt.Errorf("invalid cert-manager API version found for Certificate: %s instead of %s", certCRD.APIVersion, certManagerAPIVersion)
+	}
+
+	issuerCRD, err := extClient.ApiextensionsV1().CustomResourceDefinitions().Get("Issuer", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("cert-manager is not installed: %s", err)
+	}
+	if issuerCRD.APIVersion != certManagerAPIVersion {
+		return fmt.Errorf("invalid cert-manager API version found for Issuer: %s instead of %s", issuerCRD, certManagerAPIVersion)
+	}
+
+	return nil
 }
 
 // installUnstructured accepts kubernetes resource as unstructured.Unstructured and installs it into cluster

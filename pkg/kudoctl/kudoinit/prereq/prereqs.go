@@ -15,6 +15,9 @@ var _ kudoinit.InitStep = &Initializer{}
 
 // Defines a single prerequisite that is defined as a k8s resource
 type k8sResource interface {
+	// PreInstallCheck is called before the installation of any component is started and should return an error if the installation is not possible
+	PreInstallCheck(client *kube.Client) error
+
 	// Install installs the manifests of this prerequisite
 	Install(client *kube.Client) error
 
@@ -40,6 +43,20 @@ func NewInitializer(options kudoinit.Options) Initializer {
 			newWebHook(options),
 		},
 	}
+}
+
+func (p Initializer) Description() string {
+	return "service accounts and other requirements for controller to run"
+}
+
+func (p Initializer) PreInstallCheck(client *kube.Client) error {
+	for _, prereq := range p.prereqs {
+		err := prereq.PreInstallCheck(client)
+		if err != nil {
+			return fmt.Errorf("pre install check failed: %v", err)
+		}
+	}
+	return nil
 }
 
 func (p Initializer) Install(client *kube.Client) error {

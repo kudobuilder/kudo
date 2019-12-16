@@ -31,10 +31,6 @@ type Initializer struct {
 	deployment *appsv1.StatefulSet
 }
 
-func (m Initializer) AsArray() []runtime.Object {
-	return []runtime.Object{m.service, m.deployment}
-}
-
 // NewInitializer returns the setup management object
 func NewInitializer(options kudoinit.Options) Initializer {
 	return Initializer{
@@ -42,6 +38,14 @@ func NewInitializer(options kudoinit.Options) Initializer {
 		service:    generateService(options),
 		deployment: generateDeployment(options),
 	}
+}
+
+func (m Initializer) PreInstallCheck(client *kube.Client) error {
+	return nil
+}
+
+func (m Initializer) Description() string {
+	return "kudo controller"
 }
 
 // Install uses Kubernetes client to install KUDO.
@@ -80,12 +84,13 @@ func (m Initializer) installService(client corev1.ServicesGetter) error {
 	return err
 }
 
+func (m Initializer) AsArray() []runtime.Object {
+	return []runtime.Object{m.service, m.deployment}
+}
+
 // AsYamlManifests provides a slice of strings for the deployment and service manifest
 func (m Initializer) AsYamlManifests() ([]string, error) {
-	s := m.service
-	d := m.deployment
-
-	objs := []runtime.Object{s, d}
+	objs := m.AsArray()
 
 	manifests := make([]string, len(objs))
 	for i, obj := range objs {

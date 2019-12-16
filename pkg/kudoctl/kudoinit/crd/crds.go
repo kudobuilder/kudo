@@ -43,6 +43,10 @@ func NewInitializer() Initializer {
 	}
 }
 
+func (c Initializer) Description() string {
+	return "crds"
+}
+
 // AsArray returns all CRDs as array of runtime objects
 func (c Initializer) AsArray() []runtime.Object {
 	return []runtime.Object{c.Operator, c.OperatorVersion, c.Instance}
@@ -61,6 +65,10 @@ func (c Initializer) AsYamlManifests() ([]string, error) {
 	}
 
 	return manifests, nil
+}
+
+func (c Initializer) PreInstallCheck(client *kube.Client) error {
+	return nil
 }
 
 // Install uses Kubernetes client to install KUDO Crds.

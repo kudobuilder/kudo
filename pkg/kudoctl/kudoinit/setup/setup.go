@@ -16,24 +16,34 @@ import (
 
 // Install uses Kubernetes client to install KUDO.
 func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
-
-	if err := crd.NewInitializer().Install(client); err != nil {
-		return fmt.Errorf("crds: %v", err)
-	}
+	var initSteps []kudoinit.InitStep
 	if crdOnly {
-		return nil
+		initSteps = []kudoinit.InitStep{
+			crd.NewInitializer(),
+		}
+	} else {
+		initSteps = []kudoinit.InitStep{
+			crd.NewInitializer(),
+			manager.NewInitializer(opts),
+			prereq.NewInitializer(opts),
+		}
 	}
-	clog.Printf("✅ installed crds")
 
-	if err := prereq.NewInitializer(opts).Install(client); err != nil {
-		return fmt.Errorf("prerequisites: %v", err)
+	// Check if all steps are installable
+	for _, initStep := range initSteps {
+		if err := initStep.PreInstallCheck(client); err != nil {
+			return err
+		}
 	}
-	clog.Printf("✅ installed service accounts and other requirements for controller to run")
 
-	if err := manager.NewInitializer(opts).Install(client); err != nil {
-		return fmt.Errorf("manager: %v", err)
+	// Install everything
+	for _, initStep := range initSteps {
+		if err := initStep.Install(client); err != nil {
+			return fmt.Errorf("%s: %v", initStep.Description(), err)
+		}
+		clog.Printf("✅ installed %s", initStep.Description())
 	}
-	clog.Printf("✅ installed kudo controller")
+
 	return nil
 }
 
