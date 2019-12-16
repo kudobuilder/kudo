@@ -6,6 +6,7 @@ import (
 	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
 )
 
 var _ verifier.PackageVerifier = &ReferenceVerifier{}
@@ -14,8 +15,8 @@ var _ verifier.PackageVerifier = &ReferenceVerifier{}
 // and warns if a template exists but isn't referenced in a plan
 type ReferenceVerifier struct{}
 
-func (ReferenceVerifier) Verify(pf *packages.Files) verifier.Result {
-	res := verifier.NewResult()
+func (ReferenceVerifier) Verify(pf *packages.Files) verify.Result {
+	res := verify.NewResult()
 	templates := make(map[string]bool)
 	for template := range pf.Templates {
 		templates[template] = true

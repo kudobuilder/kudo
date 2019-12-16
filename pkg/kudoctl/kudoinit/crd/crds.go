@@ -15,10 +15,11 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
 )
 
-// Ensure kudoinit.InitStep is implemented
-var _ kudoinit.InitStep = &Initializer{}
+// Ensure kudoinit.Step is implemented
+var _ kudoinit.Step = &Initializer{}
 
 // Initializer represents custom resource definitions needed to run KUDO
 type Initializer struct {
@@ -36,24 +37,17 @@ func NewInitializer() Initializer {
 	}
 }
 
-// AsArray returns all CRDs as array of runtime objects
-func (c Initializer) AsArray() []runtime.Object {
+func (c Initializer) String() string {
+	return "crds"
+}
+
+// Resources returns all CRDs as array of runtime objects
+func (c Initializer) Resources() []runtime.Object {
 	return []runtime.Object{c.Operator, c.OperatorVersion, c.Instance}
 }
 
-// AsYamlManifests returns crds as slice of strings
-func (c Initializer) AsYamlManifests() ([]string, error) {
-	objs := c.AsArray()
-	manifests := make([]string, len(objs))
-	for i, obj := range objs {
-		o, err := yaml.Marshal(obj)
-		if err != nil {
-			return []string{}, err
-		}
-		manifests[i] = string(o)
-	}
-
-	return manifests, nil
+func (c Initializer) PreInstallVerify(client *kube.Client) verify.Result {
+	return verify.NewResult()
 }
 
 // Install uses Kubernetes client to install KUDO Crds.
