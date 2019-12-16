@@ -13,11 +13,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package instance
 
 import (
 	"testing"
 	"time"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -27,44 +29,44 @@ func TestGetLastExecutedPlanStatus(t *testing.T) {
 		2019, 10, 17, 1, 1, 1, 1, time.UTC)
 	tests := []struct {
 		name             string
-		planStatus       map[string]PlanStatus
+		planStatus       map[string]v1beta1.PlanStatus
 		expectedPlanName string
 	}{
-		{"no plan ever run", map[string]PlanStatus{"test": {
-			Status: ExecutionNeverRun,
+		{"no plan ever run", map[string]v1beta1.PlanStatus{"test": {
+			Status: v1beta1.ExecutionNeverRun,
 			Name:   "test",
-			Phases: []PhaseStatus{{Name: "phase", Status: ExecutionNeverRun, Steps: []StepStatus{{Status: ExecutionNeverRun, Name: "step"}}}},
+			Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionNeverRun, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionNeverRun, Name: "step"}}}},
 		}}, ""},
-		{"plan in progress", map[string]PlanStatus{
+		{"plan in progress", map[string]v1beta1.PlanStatus{
 			"test": {
-				Status: ExecutionInProgress,
+				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionInProgress, Steps: []StepStatus{{Status: ExecutionInProgress, Name: "step"}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionInProgress, Name: "step"}}}},
 			},
 			"test2": {
-				Status: ExecutionComplete,
+				Status: v1beta1.ExecutionComplete,
 				Name:   "test2",
-				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionComplete, Name: "step"}}}},
 			}}, "test"},
-		{"last executed plan", map[string]PlanStatus{
+		{"last executed plan", map[string]v1beta1.PlanStatus{
 			"test": {
-				Status:          ExecutionComplete,
+				Status:          v1beta1.ExecutionComplete,
 				Name:            "test",
 				LastFinishedRun: v1.Time{Time: testTime},
-				Phases:          []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
+				Phases:          []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionComplete, Name: "step"}}}},
 			},
 			"test2": {
-				Status:          ExecutionComplete,
+				Status:          v1beta1.ExecutionComplete,
 				Name:            "test2",
 				LastFinishedRun: v1.Time{Time: testTime.Add(time.Hour)},
-				Phases:          []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
+				Phases:          []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionComplete, Name: "step"}}}},
 			}}, "test2"},
 	}
 
 	for _, tt := range tests {
-		i := Instance{}
+		i := v1beta1.Instance{}
 		i.Status.PlanStatus = tt.planStatus
-		actual := i.GetLastExecutedPlanStatus()
+		actual := GetLastExecutedPlanStatus(&i)
 		actualName := ""
 		if actual != nil {
 			actualName = actual.Name

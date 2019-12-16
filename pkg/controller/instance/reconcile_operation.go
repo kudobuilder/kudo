@@ -96,14 +96,14 @@ func (op *reconcileOperation) GetPlanToBeExecuted() (*string, error) {
 	}
 	if instanceSnapshot == nil {
 		// we don't have snapshot -> we never run deploy, also we cannot run update/upgrade. This should never happen
-		return nil, &v1beta1.InstanceError{fmt.Errorf("unexpected state: no plan is running, no snapshot present - this should never happen :) for instance %s/%s", op.instance.Namespace, op.instance.Name), kudo.String("UnexpectedState")}
+		return nil, &v1beta1.InstanceError{Err: fmt.Errorf("unexpected state: no plan is running, no snapshot present - this should never happen :) for instance %s/%s", op.instance.Namespace, op.instance.Name), EventName: kudo.String("UnexpectedState")}
 	}
 	if instanceSnapshot.OperatorVersion.Name != op.instance.Spec.OperatorVersion.Name {
 		// this instance was upgraded to newer version
 		log.Printf("Instance: instance %s/%s was upgraded from %s to %s operatorVersion", op.instance.Namespace, op.instance.Name, instanceSnapshot.OperatorVersion.Name, op.instance.Spec.OperatorVersion.Name)
 		plan := selectPlan([]string{v1beta1.UpgradePlanName, v1beta1.UpdatePlanName, v1beta1.DeployPlanName}, op.ov)
 		if plan == nil {
-			return nil, &v1beta1.InstanceError{fmt.Errorf("supposed to execute plan because instance %s/%s was upgraded but none of the deploy, upgrade, update plans found in linked operatorVersion", op.instance.Namespace, op.instance.Name), kudo.String("PlanNotFound")}
+			return nil, &v1beta1.InstanceError{Err: fmt.Errorf("supposed to execute plan because instance %s/%s was upgraded but none of the deploy, upgrade, update plans found in linked operatorVersion", op.instance.Namespace, op.instance.Name), EventName: kudo.String("PlanNotFound")}
 		}
 		return plan, nil
 	}
@@ -115,7 +115,7 @@ func (op *reconcileOperation) GetPlanToBeExecuted() (*string, error) {
 		paramDefinitions := getParamDefinitions(paramDiff, op.ov)
 		plan := planNameFromParameters(paramDefinitions, op.ov)
 		if plan == nil {
-			return nil, &v1beta1.InstanceError{fmt.Errorf("supposed to execute plan because instance %s/%s was updated but none of the deploy, update plans found in linked operatorVersion", op.instance.Namespace, op.instance.Name), kudo.String("PlanNotFound")}
+			return nil, &v1beta1.InstanceError{Err: fmt.Errorf("supposed to execute plan because instance %s/%s was updated but none of the deploy, update plans found in linked operatorVersion", op.instance.Namespace, op.instance.Name), EventName: kudo.String("PlanNotFound")}
 		}
 		return plan, nil
 	}
@@ -155,7 +155,7 @@ func (op *reconcileOperation) StartPlanExecution(planName string) error {
 		}
 	}
 	if notFound {
-		return &v1beta1.InstanceError{fmt.Errorf("asked to execute a plan %s but no such plan found in instance %s/%s", planName, op.instance.Namespace, op.instance.Name), kudo.String("PlanNotFound")}
+		return &v1beta1.InstanceError{Err: fmt.Errorf("asked to execute a plan %s but no such plan found in instance %s/%s", planName, op.instance.Namespace, op.instance.Name), EventName: kudo.String("PlanNotFound")}
 	}
 
 	err := op.saveSnapshot()
