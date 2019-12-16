@@ -161,7 +161,6 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	log.Printf("InstanceController: Received Reconcile request for instance \"%+v\"", request.Name)
 	instance, err := r.getInstance(request)
-	oldInstance := instance.DeepCopy()
 	if err != nil {
 		if apierrors.IsNotFound(err) { // not retrying if instance not found, probably someone manually removed it?
 			log.Printf("Instance %s was deleted, nothing to reconcile.", request.NamespacedName)
@@ -169,6 +168,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		}
 		return reconcile.Result{}, err
 	}
+	oldInstance := instance.DeepCopy()
 
 	ov, err := r.getOperatorVersion(instance)
 	if err != nil {
