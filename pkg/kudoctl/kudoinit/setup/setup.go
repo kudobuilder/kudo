@@ -24,8 +24,8 @@ func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
 	} else {
 		initSteps = []kudoinit.InitStep{
 			crd.NewInitializer(),
-			manager.NewInitializer(opts),
 			prereq.NewInitializer(opts),
+			manager.NewInitializer(opts),
 		}
 	}
 
