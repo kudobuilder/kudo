@@ -23,8 +23,6 @@ import (
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 )
 
-const InstanceCleanupFinalizerName = "kudo.dev.instance.cleanup"
-
 // InstanceSpec defines the desired state of Instance.
 type InstanceSpec struct {
 	// OperatorVersion specifies a reference to a specific Operator object.

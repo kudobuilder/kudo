@@ -3,24 +3,28 @@ package instance
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"reflect"
 
-	"github.com/kudobuilder/kudo/pkg/apitools/instance"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
-
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"k8s.io/apimachinery/pkg/util/uuid"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/kudobuilder/kudo/pkg/apitools/instance"
+	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
-const snapshotAnnotation = "kudo.dev/last-applied-instance-state"
+const (
+	instanceCleanupFinalizerName = "kudo.dev.instance.cleanup"
+	snapshotAnnotation           = "kudo.dev/last-applied-instance-state"
+)
 
 type reconcileOperation struct {
 	client      client.Client
@@ -161,6 +165,76 @@ func (op reconcileOperation) StartPlanExecution(planName string) error {
 	return nil
 }
 
+// updateInstance saves the modified instance to K8s if it has changed
+func (op reconcileOperation) updateInstance() error {
+
+	// update instance spec and metadata. this will not update Instance.Status field
+	if !reflect.DeepEqual(op.instance.Spec, op.oldInstance.Spec) ||
+		!reflect.DeepEqual(op.instance.ObjectMeta.Annotations, op.oldInstance.ObjectMeta.Annotations) ||
+		!reflect.DeepEqual(op.instance.ObjectMeta.Finalizers, op.oldInstance.ObjectMeta.Finalizers) {
+		instanceStatus := op.instance.Status.DeepCopy()
+		err := op.client.Update(context.TODO(), op.instance)
+		if err != nil {
+			log.Printf("InstanceController: Error when updating instance spec. %v", err)
+			return err
+		}
+		op.instance.Status = *instanceStatus
+	}
+
+	// update instance status
+	err := op.client.Status().Update(context.TODO(), op.instance)
+	if err != nil {
+		log.Printf("InstanceController: Error when updating instance status. %v", err)
+		return err
+	}
+
+	// update instance metadata if finalizer is removed
+	// because Kubernetes might immediately delete the instance, this has to be the last instance update
+	if op.TryRemoveFinalizer() {
+		log.Printf("InstanceController: Removing finalizer on instance %s/%s", op.instance.Namespace, op.instance.Name)
+		if err := op.client.Update(context.TODO(), op.instance); err != nil {
+			log.Printf("InstanceController: Error when removing instance finalizer. %v", err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+// handleError handles execution error by logging, updating the plan status and optionally publishing an event
+// specify eventReason as nil if you don't wish to publish a warning event
+// returns err if this err should be retried, nil otherwise
+func (op reconcileOperation) handleError(err error) error {
+	inst := op.instance
+	log.Printf("InstanceController: %v", err)
+
+	// first update instance as we want to propagate errors also to the `Instance.Status.PlanStatus`
+	clientErr := op.updateInstance()
+	if clientErr != nil {
+		log.Printf("InstanceController: Error when updating instance state. %v", clientErr)
+		return clientErr
+	}
+
+	// determine if retry is necessary based on the error type
+	var exErr engine.ExecutionError
+	if errors.As(err, &exErr) {
+		op.recorder.Event(inst, "Warning", exErr.EventName, err.Error())
+
+		if errors.Is(exErr, engine.ErrFatalExecution) {
+			return nil // not retrying fatal error
+		}
+	}
+
+	// for code being processed on instance, we need to handle these errors as well
+	var iError *kudov1beta1.InstanceError
+	if errors.As(err, &iError) {
+		if iError.EventName != nil {
+			op.recorder.Event(inst, "Warning", kudo.StringValue(iError.EventName), err.Error())
+		}
+	}
+	return err
+}
+
 // ensurePlanStatusInitialized initializes plan status for all plans this instance supports
 // it does not trigger run of any plan
 // it either initializes everything for a fresh instance without any status or tries to adjust status after OV was updated
@@ -280,12 +354,12 @@ func selectPlan(possiblePlans []string, ov *v1beta1.OperatorVersion) *string {
 // hasn't been added yet, the instance has a cleanup plan and the cleanup plan
 // didn't run yet. Returns true if the cleanup finalizer has been added.
 func (op reconcileOperation) TryAddFinalizerToInstance() bool {
-	if !contains(op.instance.ObjectMeta.Finalizers, v1beta1.InstanceCleanupFinalizerName) {
+	if !contains(op.instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
 		if planStatus := instance.PlanStatus(op.instance, v1beta1.CleanupPlanName); planStatus != nil {
 			// avoid adding a finalizer again if a reconciliation is requested
 			// after it has just been removed but the instance isn't deleted yet
 			if planStatus.Status == v1beta1.ExecutionNeverRun {
-				op.instance.ObjectMeta.Finalizers = append(op.instance.ObjectMeta.Finalizers, v1beta1.InstanceCleanupFinalizerName)
+				op.instance.ObjectMeta.Finalizers = append(op.instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
 				return true
 			}
 		}
@@ -298,16 +372,16 @@ func (op reconcileOperation) TryAddFinalizerToInstance() bool {
 // been added, the instance has a cleanup plan and the cleanup plan completed.
 // Returns true if the cleanup finalizer has been removed.
 func (op reconcileOperation) TryRemoveFinalizer() bool {
-	if contains(op.instance.ObjectMeta.Finalizers, v1beta1.InstanceCleanupFinalizerName) {
+	if contains(op.instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
 		if planStatus := instance.PlanStatus(op.instance, v1beta1.CleanupPlanName); planStatus != nil {
 			if planStatus.Status.IsTerminal() {
-				op.instance.ObjectMeta.Finalizers = remove(op.instance.ObjectMeta.Finalizers, v1beta1.InstanceCleanupFinalizerName)
+				op.instance.ObjectMeta.Finalizers = remove(op.instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
 				return true
 			}
 		} else {
 			// We have a finalizer but no cleanup plan. This could be due to an updated instance.
 			// Let's remove the finalizer.
-			op.instance.ObjectMeta.Finalizers = remove(op.instance.ObjectMeta.Finalizers, v1beta1.InstanceCleanupFinalizerName)
+			op.instance.ObjectMeta.Finalizers = remove(op.instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
 			return true
 		}
 	}

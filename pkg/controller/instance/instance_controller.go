@@ -17,10 +17,8 @@ package instance
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
-	"reflect"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -163,6 +161,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	log.Printf("InstanceController: Received Reconcile request for instance \"%+v\"", request.Name)
 
 	op := newReconcileOperation(r.Client, r.Recorder)
+
 	err := op.loadInstance(request)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -196,7 +195,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		log.Printf("InstanceController: Going to start execution of plan %s on instance %s/%s", kudo.StringValue(planToBeExecuted), op.instance.Namespace, op.instance.Name)
 		err = op.StartPlanExecution(kudo.StringValue(planToBeExecuted))
 		if err != nil {
-			return reconcile.Result{}, r.handleError(err, op, op.instance, op.oldInstance)
+			return reconcile.Result{}, op.handleError(err)
 		}
 		r.Recorder.Event(op.instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", kudo.StringValue(planToBeExecuted)))
 	}
@@ -221,7 +220,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	activePlan, err := preparePlanExecution(op.instance, op.ov, activePlanStatus, metadata)
 	if err != nil {
-		err = r.handleError(err, op, op.instance, op.oldInstance)
+		err = op.handleError(err)
 		return reconcile.Result{}, err
 	}
 	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.Name, op.instance.Namespace, op.instance.Name)
@@ -232,11 +231,11 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		instance.UpdateStatus(op.instance, newStatus)
 	}
 	if err != nil {
-		err = r.handleError(err, op, op.instance, op.oldInstance)
+		err = op.handleError(err)
 		return reconcile.Result{}, err
 	}
 
-	err = updateInstance(op, op.instance, op.oldInstance, r.Client)
+	err = op.updateInstance()
 	if err != nil {
 		log.Printf("InstanceController: Error when updating instance. %v", err)
 		return reconcile.Result{}, err
@@ -247,40 +246,6 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	}
 
 	return reconcile.Result{}, nil
-}
-
-func updateInstance(op reconcileOperation, instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance, client client.Client) error {
-	// update instance spec and metadata. this will not update Instance.Status field
-	if !reflect.DeepEqual(instance.Spec, oldInstance.Spec) ||
-		!reflect.DeepEqual(instance.ObjectMeta.Annotations, oldInstance.ObjectMeta.Annotations) ||
-		!reflect.DeepEqual(instance.ObjectMeta.Finalizers, oldInstance.ObjectMeta.Finalizers) {
-		instanceStatus := instance.Status.DeepCopy()
-		err := client.Update(context.TODO(), instance)
-		if err != nil {
-			log.Printf("InstanceController: Error when updating instance spec. %v", err)
-			return err
-		}
-		instance.Status = *instanceStatus
-	}
-
-	// update instance status
-	err := client.Status().Update(context.TODO(), instance)
-	if err != nil {
-		log.Printf("InstanceController: Error when updating instance status. %v", err)
-		return err
-	}
-
-	// update instance metadata if finalizer is removed
-	// because Kubernetes might immediately delete the instance, this has to be the last instance update
-	if op.TryRemoveFinalizer() {
-		log.Printf("InstanceController: Removing finalizer on instance %s/%s", instance.Namespace, instance.Name)
-		if err := client.Update(context.TODO(), instance); err != nil {
-			log.Printf("InstanceController: Error when removing instance finalizer. %v", err)
-			return err
-		}
-	}
-
-	return nil
 }
 
 func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion, activePlanStatus *kudov1beta1.PlanStatus, meta *engine.Metadata) (*workflow.ActivePlan, error) {
@@ -304,39 +269,6 @@ func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.Operat
 		Params:     params,
 		Pipes:      pipes,
 	}, nil
-}
-
-// handleError handles execution error by logging, updating the plan status and optionally publishing an event
-// specify eventReason as nil if you don't wish to publish a warning event
-// returns err if this err should be retried, nil otherwise
-func (r *Reconciler) handleError(err error, op reconcileOperation, instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance) error {
-	log.Printf("InstanceController: %v", err)
-
-	// first update instance as we want to propagate errors also to the `Instance.Status.PlanStatus`
-	clientErr := updateInstance(op, instance, oldInstance, r.Client)
-	if clientErr != nil {
-		log.Printf("InstanceController: Error when updating instance state. %v", clientErr)
-		return clientErr
-	}
-
-	// determine if retry is necessary based on the error type
-	var exErr engine.ExecutionError
-	if errors.As(err, &exErr) {
-		r.Recorder.Event(instance, "Warning", exErr.EventName, err.Error())
-
-		if errors.Is(exErr, engine.ErrFatalExecution) {
-			return nil // not retrying fatal error
-		}
-	}
-
-	// for code being processed on instance, we need to handle these errors as well
-	var iError *kudov1beta1.InstanceError
-	if errors.As(err, &iError) {
-		if iError.EventName != nil {
-			r.Recorder.Event(instance, "Warning", kudo.StringValue(iError.EventName), err.Error())
-		}
-	}
-	return err
 }
 
 // paramsMap generates {{ Params.* }} map of keys and values which is later used during template rendering.
