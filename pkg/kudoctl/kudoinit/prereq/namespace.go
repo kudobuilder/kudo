@@ -22,17 +22,6 @@ type kudoNamespace struct {
 }
 
 func (o kudoNamespace) PreInstallCheck(client *kube.Client) error {
-	return nil
-}
-
-func newNamespace(options kudoinit.Options) kudoNamespace {
-	return kudoNamespace{
-		opts: options,
-		ns:   generateSysNamespace(options.Namespace),
-	}
-}
-
-func (o kudoNamespace) Install(client *kube.Client) error {
 	// We only manage kudo-system namespace. For others we expect they exist.
 	if !o.opts.IsDefaultNamespace() {
 		_, err := client.KubeClient.CoreV1().Namespaces().Get(o.opts.Namespace, metav1.GetOptions{})
@@ -44,7 +33,17 @@ func (o kudoNamespace) Install(client *kube.Client) error {
 		}
 		return err
 	}
+	return nil
+}
 
+func newNamespace(options kudoinit.Options) kudoNamespace {
+	return kudoNamespace{
+		opts: options,
+		ns:   generateSysNamespace(options.Namespace),
+	}
+}
+
+func (o kudoNamespace) Install(client *kube.Client) error {
 	_, err := client.KubeClient.CoreV1().Namespaces().Create(o.ns)
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("namespace %v already exists", o.ns.Name)

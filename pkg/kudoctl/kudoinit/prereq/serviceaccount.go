@@ -34,26 +34,28 @@ func newServiceAccount(options kudoinit.Options) kudoServiceAccount {
 }
 
 func (o kudoServiceAccount) PreInstallCheck(client *kube.Client) error {
+	if !o.opts.IsDefaultServiceAccount() {
+		// Validate alternate service account exists in the cluster
+		if err := o.validateServiceAccountExists(client); err != nil {
+			return err
+		}
+		// Validate the alternate service account has cluster-admin cluster role binding
+		if err := o.validateClusterAdminRoleForSA(client); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func (o kudoServiceAccount) Install(client *kube.Client) error {
 	if !o.opts.IsDefaultServiceAccount() {
-		// Validate alternate serviceaccount exists in the cluster
-		if err := o.validateServiceAccountExists(client); err != nil {
-			return err
-		}
-		// Validate the alternate serviceaccount has cluster-admin clusterrolebinding
-		if err := o.validateClusterAdminRoleForSA(client); err != nil {
-			return err
-		}
-	} else {
-		if err := o.installServiceAccount(client); err != nil {
-			return err
-		}
-		if err := o.installRoleBinding(client); err != nil {
-			return err
-		}
+		return nil
+	}
+	if err := o.installServiceAccount(client); err != nil {
+		return err
+	}
+	if err := o.installRoleBinding(client); err != nil {
+		return err
 	}
 	return nil
 }
