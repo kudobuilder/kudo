@@ -47,7 +47,7 @@ import (
 	"context"
 	"fmt"
 
-	// third-party library packages that are *not* k8s
+	// third-party library packages
 	"github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
