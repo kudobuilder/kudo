@@ -43,3 +43,16 @@ As outlined above, when it is necessary to create a new release branch, it is ne
 ### Cutting a Patch Release
 
 When cutting a patch release, for example `v0.3.3`, it is necessary to ensure that all bugs fixed on master after `v0.3.2` have landed on the release branch, `releases/0.3` in this case.
+
+### Cutting a pre-release
+
+Cutting  pre-release is very similar to cutting a stable release. That is because our `.goreleaser.yml` contains `prerelease: auto` which automatically detects a pre-release if the tag name looks like a pre-release.
+
+For pre-releases, we're not pushing docker images to the official repo. This is intentional because the following setting is set in `.goreleaser.yml` - `dockers.skip_push: auto`. That is because for pre-release, we don't want to update the latest tag just yet. Even though there is no push, goreleaser still builds the images for you.
+
+This is the full pre-release step by step:
+1. Ensure you have credential `GITHUB_TOKEN` set. The env must include `export GITHUB_TOKEN=<personal access token>`. [Help](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) provided from Github. The token must grant full access to: repo, write:packages, read:packages.
+1. Ensure you are logged into Docker hub and have rights to push to kudobuilder.
+1. Tag repo with expected pre-release (the name of the tag has to contain e.g. rc1 or similar) `git tag -a v0.2.0-rc1 -m "v0.2.0-rc1"`  && push tag `git push --tags`.
+1. Invoke goreleaser `goreleaser --rm-dist`.
+1. Push only versioned docker image via `docker push kudobuilder/controller:v0.2.0-rc1`

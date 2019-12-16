@@ -17,23 +17,23 @@ import (
 // Install uses Kubernetes client to install KUDO.
 func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
 
-	clog.Printf("✅ installing crds")
 	if err := crd.NewInitializer().Install(client); err != nil {
 		return fmt.Errorf("crds: %v", err)
 	}
 	if crdOnly {
 		return nil
 	}
+	clog.Printf("✅ installed crds")
 
-	clog.Printf("✅ preparing service accounts and other requirements for controller to run")
 	if err := prereq.NewInitializer(opts).Install(client); err != nil {
 		return fmt.Errorf("prerequisites: %v", err)
 	}
+	clog.Printf("✅ installed service accounts and other requirements for controller to run")
 
-	clog.Printf("✅ installing kudo controller")
 	if err := manager.NewInitializer(opts).Install(client); err != nil {
 		return fmt.Errorf("manager: %v", err)
 	}
+	clog.Printf("✅ installed kudo controller")
 	return nil
 }
 
