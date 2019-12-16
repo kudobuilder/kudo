@@ -3,10 +3,9 @@ package plan
 import (
 	"fmt"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-
 	"github.com/xlab/treeprint"
 
+	"github.com/kudobuilder/kudo/pkg/apitools/instance"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
@@ -27,30 +26,30 @@ func Status(options *Options, settings *env.Settings) error {
 func status(kc *kudo.Client, options *Options, ns string) error {
 	tree := treeprint.New()
 
-	instance, err := kc.GetInstance(options.Instance, ns)
+	inst, err := kc.GetInstance(options.Instance, ns)
 	if err != nil {
 		return err
 	}
-	if instance == nil {
+	if inst == nil {
 		return fmt.Errorf("Instance %s/%s does not exist", ns, options.Instance)
 	}
 
-	ov, err := kc.GetOperatorVersion(instance.Spec.OperatorVersion.Name, ns)
+	ov, err := kc.GetOperatorVersion(inst.Spec.OperatorVersion.Name, ns)
 	if err != nil {
 		return err
 	}
 	if ov == nil {
-		return fmt.Errorf("OperatorVersion %s from instance %s/%s does not exist", instance.Spec.OperatorVersion.Name, ns, options.Instance)
+		return fmt.Errorf("OperatorVersion %s from instance %s/%s does not exist", inst.Spec.OperatorVersion.Name, ns, options.Instance)
 	}
 
-	lastPlanStatus := getLastExecutedPlanStatus(instance)
+	lastPlanStatus := instance.GetLastExecutedPlanStatus(inst)
 
 	if lastPlanStatus == nil {
-		fmt.Fprintf(options.Out, "No plan ever run for instance - nothing to show for instance %s\n", instance.Name)
+		fmt.Fprintf(options.Out, "No plan ever run for instance - nothing to show for instance %s\n", inst.Name)
 		return nil
 	}
 
-	rootDisplay := fmt.Sprintf("%s (Operator-Version: \"%s\" Active-Plan: \"%s\")", instance.Name, instance.Spec.OperatorVersion.Name, lastPlanStatus.Name)
+	rootDisplay := fmt.Sprintf("%s (Operator-Version: \"%s\" Active-Plan: \"%s\")", inst.Name, inst.Spec.OperatorVersion.Name, lastPlanStatus.Name)
 	rootBranchName := tree.AddBranch(rootDisplay)
 
 	for name, plan := range ov.Spec.Plans {
@@ -83,63 +82,10 @@ func status(kc *kudo.Client, options *Options, ns string) error {
 		}
 	}
 
-	fmt.Fprintf(options.Out, "Plan(s) for \"%s\" in namespace \"%s\":\n", instance.Name, ns)
+	fmt.Fprintf(options.Out, "Plan(s) for \"%s\" in namespace \"%s\":\n", inst.Name, ns)
 	fmt.Fprintln(options.Out, tree.String())
 
 	return nil
-}
-
-// GetPlanInProgress returns plan status of currently active plan or nil if no plan is running
-func getPlanInProgress(i *v1beta1.Instance) *v1beta1.PlanStatus {
-	for _, p := range i.Status.PlanStatus {
-		if p.Status.IsRunning() {
-			return &p
-		}
-	}
-	return nil
-}
-
-// GetLastExecutedPlanStatus returns status of plan that is currently running, if there is one running
-// if no plan is running it looks for last executed plan based on timestamps
-func getLastExecutedPlanStatus(i *v1beta1.Instance) *v1beta1.PlanStatus {
-	if noPlanEverExecuted(i) {
-		return nil
-	}
-	activePlan := getPlanInProgress(i)
-	if activePlan != nil {
-		return activePlan
-	}
-	var lastExecutedPlan *v1beta1.PlanStatus
-	for n := range i.Status.PlanStatus {
-		p := i.Status.PlanStatus[n]
-		if p.Status == v1beta1.ExecutionNeverRun {
-			continue // only interested in plans that run
-		}
-		if lastExecutedPlan == nil {
-			lastExecutedPlan = &p // first plan that was run and we're iterating over
-		} else if wasRunAfter(p, *lastExecutedPlan) {
-			lastExecutedPlan = &p // this plan was run after the plan we have chosen before
-		}
-	}
-	return lastExecutedPlan
-}
-
-// NoPlanEverExecuted returns true is this is new instance for which we never executed any plan
-func noPlanEverExecuted(instance *v1beta1.Instance) bool {
-	for _, p := range instance.Status.PlanStatus {
-		if p.Status != v1beta1.ExecutionNeverRun {
-			return false
-		}
-	}
-	return true
-}
-
-// wasRunAfter returns true if p1 was run after p2
-func wasRunAfter(p1 v1beta1.PlanStatus, p2 v1beta1.PlanStatus) bool {
-	if p1.Status == v1beta1.ExecutionNeverRun || p2.Status == v1beta1.ExecutionNeverRun {
-		return false
-	}
-	return p1.LastFinishedRun.Time.After(p2.LastFinishedRun.Time)
 }
 
 func printMessageIfAvailable(s string) string {

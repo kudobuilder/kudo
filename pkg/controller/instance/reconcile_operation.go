@@ -7,6 +7,7 @@ import (
 	"log"
 	"reflect"
 
+	"github.com/kudobuilder/kudo/pkg/apitools/instance"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -36,35 +37,33 @@ func newReconcileOperation(client client.Client, recorder record.EventRecorder) 
 	}
 }
 
-func (op reconcileOperation) load(req ctrl.Request) error {
-	instance, err := op.getInstance(req)
+func (op reconcileOperation) loadInstance(req ctrl.Request) error {
+	inst, err := fetchInstance(op.client, req)
 	if err != nil {
 		return err
 	}
-	ov, err := op.getOperatorVersion(instance)
+	op.instance = inst
+	op.oldInstance = inst.DeepCopy()
+	return nil
+}
+
+func (op reconcileOperation) loadOperatorVersion() error {
+	ov, err := fetchOperatorVersion(op.client, op.recorder, op.instance)
 	if err != nil {
 		return err
 	}
 
-	op.instance = instance
-	op.oldInstance = instance.DeepCopy()
 	op.ov = ov
 	return nil
 }
 
-func (op reconcileOperation) IsInstanceDeleting() bool {
-	// a delete request is indicated by a non-zero 'metadata.deletionTimestamp',
-	// see https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
-	return !op.instance.ObjectMeta.DeletionTimestamp.IsZero()
-}
-
 // GetPlanToBeExecuted returns name of the plan that should be executed
 func (op reconcileOperation) GetPlanToBeExecuted() (*string, error) {
-	if op.IsInstanceDeleting() {
+	if instance.IsDeleting(op.instance) {
 		// we have a cleanup plan
 		plan := selectPlan([]string{v1beta1.CleanupPlanName}, op.ov)
 		if plan != nil {
-			if planStatus := op.PlanStatus(*plan); planStatus != nil {
+			if planStatus := instance.PlanStatus(op.instance, *plan); planStatus != nil {
 				if !planStatus.Status.IsRunning() {
 					if planStatus.Status.IsFinished() {
 						// we already finished the cleanup plan
@@ -76,12 +75,12 @@ func (op reconcileOperation) GetPlanToBeExecuted() (*string, error) {
 		}
 	}
 
-	if op.GetPlanInProgress() != nil { // we're already running some plan
+	if instance.GetPlanInProgress(op.instance) != nil { // we're already running some plan
 		return nil, nil
 	}
 
 	// new instance, need to run deploy plan
-	if op.NoPlanEverExecuted() {
+	if instance.NoPlanEverExecuted(op.instance) {
 		return kudo.String(v1beta1.DeployPlanName), nil
 	}
 
@@ -121,8 +120,8 @@ func (op reconcileOperation) GetPlanToBeExecuted() (*string, error) {
 // StartPlanExecution mark plan as to be executed
 // this modifies the instance.Status as well as instance.Metadata.Annotation (to save snapshot if needed)
 func (op reconcileOperation) StartPlanExecution(planName string) error {
-	if op.NoPlanEverExecuted() || isUpgradePlan(planName) {
-		op.EnsurePlanStatusInitialized()
+	if instance.NoPlanEverExecuted(op.instance) || isUpgradePlan(planName) {
+		op.ensurePlanStatusInitialized()
 	}
 
 	// update status of the instance to reflect the newly starting plan
@@ -154,7 +153,7 @@ func (op reconcileOperation) StartPlanExecution(planName string) error {
 		return &v1beta1.InstanceError{fmt.Errorf("asked to execute a plan %s but no such plan found in instance %s/%s", planName, op.instance.Namespace, op.instance.Name), kudo.String("PlanNotFound")}
 	}
 
-	err := op.SaveSnapshot()
+	err := op.saveSnapshot()
 	if err != nil {
 		return err
 	}
@@ -162,10 +161,10 @@ func (op reconcileOperation) StartPlanExecution(planName string) error {
 	return nil
 }
 
-// EnsurePlanStatusInitialized initializes plan status for all plans this instance supports
+// ensurePlanStatusInitialized initializes plan status for all plans this instance supports
 // it does not trigger run of any plan
 // it either initializes everything for a fresh instance without any status or tries to adjust status after OV was updated
-func (op reconcileOperation) EnsurePlanStatusInitialized() {
+func (op reconcileOperation) ensurePlanStatusInitialized() {
 	if op.instance.Status.PlanStatus == nil {
 		op.instance.Status.PlanStatus = make(map[string]v1beta1.PlanStatus)
 	}
@@ -214,19 +213,6 @@ func (op reconcileOperation) EnsurePlanStatusInitialized() {
 			planStatus.Phases = append(planStatus.Phases, *phaseStatus)
 		}
 		op.instance.Status.PlanStatus[planName] = *planStatus
-	}
-}
-
-// UpdateInstanceStatus updates `Status.PlanStatus` and `Status.AggregatedStatus` property based on the given plan
-func (op reconcileOperation) UpdateInstanceStatus(planStatus *v1beta1.PlanStatus) {
-	for k, v := range op.instance.Status.PlanStatus {
-		if v.Name == planStatus.Name {
-			op.instance.Status.PlanStatus[k] = *planStatus
-			op.instance.Status.AggregatedStatus.Status = planStatus.Status
-			if planStatus.Status.IsTerminal() {
-				op.instance.Status.AggregatedStatus.ActivePlanName = ""
-			}
-		}
 	}
 }
 
@@ -290,41 +276,12 @@ func selectPlan(possiblePlans []string, ov *v1beta1.OperatorVersion) *string {
 	return nil
 }
 
-func (op reconcileOperation) PlanStatus(plan string) *v1beta1.PlanStatus {
-	for _, planStatus := range op.instance.Status.PlanStatus {
-		if planStatus.Name == plan {
-			return &planStatus
-		}
-	}
-	return nil
-}
-
-// GetPlanInProgress returns plan status of currently active plan or nil if no plan is running
-func (op reconcileOperation) GetPlanInProgress() *v1beta1.PlanStatus {
-	for _, p := range op.instance.Status.PlanStatus {
-		if p.Status.IsRunning() {
-			return &p
-		}
-	}
-	return nil
-}
-
-// NoPlanEverExecuted returns true is this is new instance for which we never executed any plan
-func (op reconcileOperation) NoPlanEverExecuted() bool {
-	for _, p := range op.instance.Status.PlanStatus {
-		if p.Status != v1beta1.ExecutionNeverRun {
-			return false
-		}
-	}
-	return true
-}
-
 // TryAddFinalizerToInstance adds the cleanup finalizer to an instance if the finalizer
 // hasn't been added yet, the instance has a cleanup plan and the cleanup plan
 // didn't run yet. Returns true if the cleanup finalizer has been added.
 func (op reconcileOperation) TryAddFinalizerToInstance() bool {
 	if !contains(op.instance.ObjectMeta.Finalizers, v1beta1.InstanceCleanupFinalizerName) {
-		if planStatus := op.PlanStatus(v1beta1.CleanupPlanName); planStatus != nil {
+		if planStatus := instance.PlanStatus(op.instance, v1beta1.CleanupPlanName); planStatus != nil {
 			// avoid adding a finalizer again if a reconciliation is requested
 			// after it has just been removed but the instance isn't deleted yet
 			if planStatus.Status == v1beta1.ExecutionNeverRun {
@@ -342,7 +299,7 @@ func (op reconcileOperation) TryAddFinalizerToInstance() bool {
 // Returns true if the cleanup finalizer has been removed.
 func (op reconcileOperation) TryRemoveFinalizer() bool {
 	if contains(op.instance.ObjectMeta.Finalizers, v1beta1.InstanceCleanupFinalizerName) {
-		if planStatus := op.PlanStatus(v1beta1.CleanupPlanName); planStatus != nil {
+		if planStatus := instance.PlanStatus(op.instance, v1beta1.CleanupPlanName); planStatus != nil {
 			if planStatus.Status.IsTerminal() {
 				op.instance.ObjectMeta.Finalizers = remove(op.instance.ObjectMeta.Finalizers, v1beta1.InstanceCleanupFinalizerName)
 				return true
@@ -358,6 +315,15 @@ func (op reconcileOperation) TryRemoveFinalizer() bool {
 	return false
 }
 
+func contains(values []string, s string) bool {
+	for _, value := range values {
+		if value == s {
+			return true
+		}
+	}
+	return false
+}
+
 func remove(values []string, s string) (result []string) {
 	for _, value := range values {
 		if value == s {
@@ -368,9 +334,9 @@ func remove(values []string, s string) (result []string) {
 	return
 }
 
-// SaveSnapshot stores the current spec of Instance into the snapshot annotation
+// saveSnapshot stores the current spec of Instance into the snapshot annotation
 // this information is used when executing update/upgrade plans, this overrides any snapshot that existed before
-func (op reconcileOperation) SaveSnapshot() error {
+func (op reconcileOperation) saveSnapshot() error {
 	jsonBytes, err := json.Marshal(op.instance.Spec)
 	if err != nil {
 		return err
@@ -382,6 +348,7 @@ func (op reconcileOperation) SaveSnapshot() error {
 	return nil
 }
 
+// snapshotSpec returns a saved snapshot as an InstanceSpec
 func (op reconcileOperation) snapshotSpec() (*v1beta1.InstanceSpec, error) {
 	if op.instance.Annotations != nil {
 		snapshot, ok := op.instance.Annotations[snapshotAnnotation]
@@ -397,20 +364,11 @@ func (op reconcileOperation) snapshotSpec() (*v1beta1.InstanceSpec, error) {
 	return nil, nil
 }
 
-func contains(values []string, s string) bool {
-	for _, value := range values {
-		if value == s {
-			return true
-		}
-	}
-	return false
-}
-
-// getInstance retrieves the instance by namespaced name
+// fetchInstance retrieves the instance by namespaced name
 // returns nil, nil when instance is not found (not found is not considered an error)
-func (op reconcileOperation) getInstance(request ctrl.Request) (instance *v1beta1.Instance, err error) {
+func fetchInstance(client client.Client, request ctrl.Request) (instance *v1beta1.Instance, err error) {
 	instance = &kudov1beta1.Instance{}
-	err = op.client.Get(context.TODO(), request.NamespacedName, instance)
+	err = client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		// Error reading the object - requeue the request.
 		log.Printf("InstanceController: Error getting instance \"%v\": %v",
@@ -421,22 +379,22 @@ func (op reconcileOperation) getInstance(request ctrl.Request) (instance *v1beta
 	return instance, nil
 }
 
-// getOperatorVersion retrieves operatorversion belonging to the given instance
+// fetchOperatorVersion retrieves operatorversion belonging to the given instance
 // not found is treated here as any other error
-func (op reconcileOperation) getOperatorVersion(instance *kudov1beta1.Instance) (ov *kudov1beta1.OperatorVersion, err error) {
+func fetchOperatorVersion(client client.Client, recorder record.EventRecorder, in *kudov1beta1.Instance) (ov *kudov1beta1.OperatorVersion, err error) {
 	ov = &kudov1beta1.OperatorVersion{}
-	err = op.client.Get(context.TODO(),
+	err = client.Get(context.TODO(),
 		types.NamespacedName{
-			Name:      instance.Spec.OperatorVersion.Name,
-			Namespace: instance.OperatorVersionNamespace(),
+			Name:      in.Spec.OperatorVersion.Name,
+			Namespace: instance.OperatorVersionNamespace(in),
 		},
 		ov)
 	if err != nil {
 		log.Printf("InstanceController: Error getting operatorVersion \"%v\" for instance \"%v\": %v",
-			instance.Spec.OperatorVersion.Name,
-			instance.Name,
+			in.Spec.OperatorVersion.Name,
+			in.Name,
 			err)
-		op.recorder.Event(instance, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Error getting operatorVersion \"%v\": %v", instance.Spec.OperatorVersion.Name, err))
+		recorder.Event(in, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Error getting operatorVersion \"%v\": %v", in.Spec.OperatorVersion.Name, err))
 		return nil, err
 	}
 	return ov, nil

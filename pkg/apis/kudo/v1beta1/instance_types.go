@@ -186,14 +186,6 @@ type Instance struct {
 	Status InstanceStatus `json:"status,omitempty"`
 }
 
-// OperatorVersionNamespace returns the namespace of the OperatorVersion that the Instance references.
-func (i *Instance) OperatorVersionNamespace() string {
-	if i.Spec.OperatorVersion.Namespace == "" {
-		return i.ObjectMeta.Namespace
-	}
-	return i.Spec.OperatorVersion.Namespace
-}
-
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // InstanceList contains a list of Instance.

@@ -26,6 +26,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -39,6 +40,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/apitools/instance"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
@@ -70,14 +72,14 @@ func (r *Reconciler) SetupWithManager(
 				log.Printf("InstanceController: Error fetching instances list for operator %v: %v", obj.Meta.GetName(), err)
 				return nil
 			}
-			for _, instance := range instances.Items {
+			for _, inst := range instances.Items {
 				// we need to pick only those instances, that belong to the OperatorVersion we're reconciling
-				if instance.Spec.OperatorVersion.Name == obj.Meta.GetName() &&
-					instance.OperatorVersionNamespace() == obj.Meta.GetNamespace() {
+				if inst.Spec.OperatorVersion.Name == obj.Meta.GetName() &&
+					instance.OperatorVersionNamespace(&inst) == obj.Meta.GetNamespace() {
 					requests = append(requests, reconcile.Request{
 						NamespacedName: types.NamespacedName{
-							Name:      instance.Name,
-							Namespace: instance.Namespace,
+							Name:      inst.Name,
+							Namespace: inst.Namespace,
 						},
 					})
 				}
@@ -161,28 +163,21 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	log.Printf("InstanceController: Received Reconcile request for instance \"%+v\"", request.Name)
 
 	op := newReconcileOperation(r.Client, r.Recorder)
-	err := op.load(request)
+	err := op.loadInstance(request)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-
-	//instance, err := r.getInstance(request)
-	//if err != nil {
-	//	if apierrors.IsNotFound(err) { // not retrying if instance not found, probably someone manually removed it?
-	//		log.Printf("Instance %s was deleted, nothing to reconcile.", request.NamespacedName)
-	//		return reconcile.Result{}, nil
-	//	}
-	//	return reconcile.Result{}, err
-	//}
-	//oldInstance := instance.DeepCopy()
-	//
-	//ov, err := r.getOperatorVersion(instance)
-	//if err != nil {
-	//	return reconcile.Result{}, err // OV not found has to be retried because it can really have been created after Instance
-	//}
+	err = op.loadOperatorVersion()
+	if err != nil {
+		if apierrors.IsNotFound(err) { // not retrying if instance not found, probably someone manually removed it?
+			log.Printf("Instance %s was deleted, nothing to reconcile.", request.NamespacedName)
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
+	}
 
 	// ---------- 2. Check if the object is being deleted ----------
-	if !op.IsInstanceDeleting() {
+	if !instance.IsDeleting(op.instance) {
 		if _, hasCleanupPlan := op.ov.Spec.Plans[kudov1beta1.CleanupPlanName]; hasCleanupPlan {
 			if op.TryAddFinalizerToInstance() {
 				log.Printf("InstanceController: Adding finalizer on instance %s/%s", op.instance.Namespace, op.instance.Name)
@@ -208,7 +203,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	// ---------- 4. If there's currently active plan, continue with the execution ----------
 
-	activePlanStatus := op.GetPlanInProgress()
+	activePlanStatus := instance.GetPlanInProgress(op.instance)
 	if activePlanStatus == nil { // we have no plan in progress
 		log.Printf("InstanceController: Nothing to do, no plan in progress for instance %s/%s", op.instance.Namespace, op.instance.Name)
 		return reconcile.Result{}, nil
@@ -234,7 +229,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	// ---------- 5. Update status of instance after the execution proceeded ----------
 	if newStatus != nil {
-		op.UpdateInstanceStatus(newStatus)
+		instance.UpdateStatus(op.instance, newStatus)
 	}
 	if err != nil {
 		err = r.handleError(err, op, op.instance, op.oldInstance)
@@ -343,42 +338,6 @@ func (r *Reconciler) handleError(err error, op reconcileOperation, instance *kud
 	}
 	return err
 }
-
-//// getInstance retrieves the instance by namespaced name
-//// returns nil, nil when instance is not found (not found is not considered an error)
-//func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1beta1.Instance, err error) {
-//	instance = &kudov1beta1.Instance{}
-//	err = r.Get(context.TODO(), request.NamespacedName, instance)
-//	if err != nil {
-//		// Error reading the object - requeue the request.
-//		log.Printf("InstanceController: Error getting instance \"%v\": %v",
-//			request.NamespacedName,
-//			err)
-//		return nil, err
-//	}
-//	return instance, nil
-//}
-
-//// getOperatorVersion retrieves operatorversion belonging to the given instance
-//// not found is treated here as any other error
-//func (r *Reconciler) getOperatorVersion(instance *kudov1beta1.Instance) (ov *kudov1beta1.OperatorVersion, err error) {
-//	ov = &kudov1beta1.OperatorVersion{}
-//	err = r.Get(context.TODO(),
-//		types.NamespacedName{
-//			Name:      instance.Spec.OperatorVersion.Name,
-//			Namespace: instance.OperatorVersionNamespace(),
-//		},
-//		ov)
-//	if err != nil {
-//		log.Printf("InstanceController: Error getting operatorVersion \"%v\" for instance \"%v\": %v",
-//			instance.Spec.OperatorVersion.Name,
-//			instance.Name,
-//			err)
-//		r.Recorder.Event(instance, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Error getting operatorVersion \"%v\": %v", instance.Spec.OperatorVersion.Name, err))
-//		return nil, err
-//	}
-//	return ov, nil
-//}
 
 // paramsMap generates {{ Params.* }} map of keys and values which is later used during template rendering.
 func paramsMap(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.OperatorVersion) map[string]string {
