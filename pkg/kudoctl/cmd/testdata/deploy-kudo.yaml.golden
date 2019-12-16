@@ -135,8 +135,8 @@ spec:
                 type: object
               type: array
             templates:
-              description: Yaml captures a templated yaml list of elements that define
-                the application operator instance.
+              description: Templates is a list of references to YAML templates located
+                in the templates folder and later referenced from tasks.
               type: object
             upgradableFrom:
               description: UpgradableFrom lists all OperatorVersions that can upgrade

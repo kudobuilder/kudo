@@ -184,7 +184,7 @@ func operatorVersionCrd() *apiextv1beta1.CustomResourceDefinition {
 				Properties: taskProps,
 			}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
 		},
-		"templates": {Type: "object", Description: "Yaml captures a templated yaml list of elements that define the application operator instance."},
+		"templates": {Type: "object", Description: "Templates is a list of references to YAML templates located in the templates folder and later referenced from tasks."},
 		"upgradableFrom": {
 			Type:        "array",
 			Description: "UpgradableFrom lists all OperatorVersions that can upgrade to this OperatorVersion.",
