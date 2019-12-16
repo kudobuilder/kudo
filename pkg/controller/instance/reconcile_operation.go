@@ -34,24 +34,25 @@ type reconcileOperation struct {
 	ov          *v1beta1.OperatorVersion
 }
 
-func newReconcileOperation(client client.Client, recorder record.EventRecorder) reconcileOperation {
-	return reconcileOperation{
+func newReconcileOperation(client client.Client, recorder record.EventRecorder) *reconcileOperation {
+	return &reconcileOperation{
 		client:   client,
 		recorder: recorder,
 	}
 }
 
-func (op reconcileOperation) loadInstance(req ctrl.Request) error {
+func (op *reconcileOperation) loadInstance(req ctrl.Request) error {
 	inst, err := fetchInstance(op.client, req)
 	if err != nil {
 		return err
 	}
 	op.instance = inst
 	op.oldInstance = inst.DeepCopy()
+
 	return nil
 }
 
-func (op reconcileOperation) loadOperatorVersion() error {
+func (op *reconcileOperation) loadOperatorVersion() error {
 	ov, err := fetchOperatorVersion(op.client, op.recorder, op.instance)
 	if err != nil {
 		return err
@@ -62,7 +63,7 @@ func (op reconcileOperation) loadOperatorVersion() error {
 }
 
 // GetPlanToBeExecuted returns name of the plan that should be executed
-func (op reconcileOperation) GetPlanToBeExecuted() (*string, error) {
+func (op *reconcileOperation) GetPlanToBeExecuted() (*string, error) {
 	if instance.IsDeleting(op.instance) {
 		// we have a cleanup plan
 		plan := selectPlan([]string{v1beta1.CleanupPlanName}, op.ov)
@@ -123,7 +124,7 @@ func (op reconcileOperation) GetPlanToBeExecuted() (*string, error) {
 
 // StartPlanExecution mark plan as to be executed
 // this modifies the instance.Status as well as instance.Metadata.Annotation (to save snapshot if needed)
-func (op reconcileOperation) StartPlanExecution(planName string) error {
+func (op *reconcileOperation) StartPlanExecution(planName string) error {
 	if instance.NoPlanEverExecuted(op.instance) || isUpgradePlan(planName) {
 		op.ensurePlanStatusInitialized()
 	}
@@ -166,7 +167,7 @@ func (op reconcileOperation) StartPlanExecution(planName string) error {
 }
 
 // updateInstance saves the modified instance to K8s if it has changed
-func (op reconcileOperation) updateInstance() error {
+func (op *reconcileOperation) updateInstance() error {
 
 	// update instance spec and metadata. this will not update Instance.Status field
 	if !reflect.DeepEqual(op.instance.Spec, op.oldInstance.Spec) ||
@@ -204,7 +205,7 @@ func (op reconcileOperation) updateInstance() error {
 // handleError handles execution error by logging, updating the plan status and optionally publishing an event
 // specify eventReason as nil if you don't wish to publish a warning event
 // returns err if this err should be retried, nil otherwise
-func (op reconcileOperation) handleError(err error) error {
+func (op *reconcileOperation) handleError(err error) error {
 	inst := op.instance
 	log.Printf("InstanceController: %v", err)
 
@@ -238,7 +239,7 @@ func (op reconcileOperation) handleError(err error) error {
 // ensurePlanStatusInitialized initializes plan status for all plans this instance supports
 // it does not trigger run of any plan
 // it either initializes everything for a fresh instance without any status or tries to adjust status after OV was updated
-func (op reconcileOperation) ensurePlanStatusInitialized() {
+func (op *reconcileOperation) ensurePlanStatusInitialized() {
 	if op.instance.Status.PlanStatus == nil {
 		op.instance.Status.PlanStatus = make(map[string]v1beta1.PlanStatus)
 	}
@@ -353,7 +354,7 @@ func selectPlan(possiblePlans []string, ov *v1beta1.OperatorVersion) *string {
 // TryAddFinalizerToInstance adds the cleanup finalizer to an instance if the finalizer
 // hasn't been added yet, the instance has a cleanup plan and the cleanup plan
 // didn't run yet. Returns true if the cleanup finalizer has been added.
-func (op reconcileOperation) TryAddFinalizerToInstance() bool {
+func (op *reconcileOperation) TryAddFinalizerToInstance() bool {
 	if !contains(op.instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
 		if planStatus := instance.PlanStatus(op.instance, v1beta1.CleanupPlanName); planStatus != nil {
 			// avoid adding a finalizer again if a reconciliation is requested
@@ -371,7 +372,7 @@ func (op reconcileOperation) TryAddFinalizerToInstance() bool {
 // TryRemoveFinalizer removes the cleanup finalizer of an instance if it has
 // been added, the instance has a cleanup plan and the cleanup plan completed.
 // Returns true if the cleanup finalizer has been removed.
-func (op reconcileOperation) TryRemoveFinalizer() bool {
+func (op *reconcileOperation) TryRemoveFinalizer() bool {
 	if contains(op.instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
 		if planStatus := instance.PlanStatus(op.instance, v1beta1.CleanupPlanName); planStatus != nil {
 			if planStatus.Status.IsTerminal() {
@@ -410,7 +411,7 @@ func remove(values []string, s string) (result []string) {
 
 // saveSnapshot stores the current spec of Instance into the snapshot annotation
 // this information is used when executing update/upgrade plans, this overrides any snapshot that existed before
-func (op reconcileOperation) saveSnapshot() error {
+func (op *reconcileOperation) saveSnapshot() error {
 	jsonBytes, err := json.Marshal(op.instance.Spec)
 	if err != nil {
 		return err
@@ -423,7 +424,7 @@ func (op reconcileOperation) saveSnapshot() error {
 }
 
 // snapshotSpec returns a saved snapshot as an InstanceSpec
-func (op reconcileOperation) snapshotSpec() (*v1beta1.InstanceSpec, error) {
+func (op *reconcileOperation) snapshotSpec() (*v1beta1.InstanceSpec, error) {
 	if op.instance.Annotations != nil {
 		snapshot, ok := op.instance.Annotations[snapshotAnnotation]
 		if ok {

@@ -200,10 +200,10 @@ func init() {
 // InstanceError indicates error on that can also emit a kubernetes warn event
 // +k8s:deepcopy-gen=false
 type InstanceError struct {
-	err       error
+	Err       error
 	EventName *string // nil if no warn event should be created
 }
 
 func (e *InstanceError) Error() string {
-	return fmt.Sprintf("Error during execution: %v", e.err)
+	return fmt.Sprintf("Error during execution: %v", e.Err)
 }
