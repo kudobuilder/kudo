@@ -120,9 +120,9 @@ type Task struct {
 // with the same json names as it would become ambiguous for the default parser. We might revisit this approach in the
 // future should this become an issue.
 type TaskSpec struct {
-	ResourceTaskSpec
-	DummyTaskSpec
-	PipeTaskSpec
+	ResourceTaskSpec `json:""`
+	DummyTaskSpec `json:""`
+	PipeTaskSpec `json:""`
 }
 
 // ResourceTaskSpec is referencing a list of resources
@@ -186,7 +186,7 @@ func init() {
 type OperatorDependency struct {
 	// Name specifies the name of the dependency. Referenced via defaults.config.
 	ReferenceName string `json:"referenceName"`
-	corev1.ObjectReference
+	corev1.ObjectReference `json:""`
 
 	// Version captures the requirements for what versions of the above object
 	// are allowed.

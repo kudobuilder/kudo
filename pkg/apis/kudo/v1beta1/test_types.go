@@ -90,7 +90,7 @@ type TestAssert struct {
 type ObjectReference struct {
 	corev1.ObjectReference `json:",inline"`
 	// Labels to match on.
-	Labels map[string]string
+	Labels map[string]string `json:""`
 }
 
 // Command describes a command to run as a part of a test step or suite.
