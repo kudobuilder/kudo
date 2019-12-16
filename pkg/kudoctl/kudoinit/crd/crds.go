@@ -247,11 +247,9 @@ func generateCrd(kind string, plural string) *apiextv1beta1.CustomResourceDefini
 	plural = strings.ToLower(plural)
 	name := plural + "." + group
 
-	labels := kudoinit.GenerateLabels(map[string]string{"controller-tools.k8s.io": "1.0"})
 	crd := &apiextv1beta1.CustomResourceDefinition{
 		ObjectMeta: v1.ObjectMeta{
-			Name:   name,
-			Labels: labels,
+			Name: name,
 		},
 		Spec: apiextv1beta1.CustomResourceDefinitionSpec{
 			Group:   group,

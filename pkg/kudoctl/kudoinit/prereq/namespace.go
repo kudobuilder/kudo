@@ -62,7 +62,7 @@ func (o kudoNamespace) AsRuntimeObjs() []runtime.Object {
 
 // generateSysNamespace builds the system namespace
 func generateSysNamespace(namespace string) *v1.Namespace {
-	labels := kudoinit.GenerateLabels(map[string]string{"controller-tools.k8s.io": "1.0"})
+	labels := kudoinit.GenerateLabels(map[string]string{})
 	return &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: labels,

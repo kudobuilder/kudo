@@ -101,7 +101,6 @@ func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 //    		creationTimestamp: "2019-02-28T14:39:20Z"
 //    		generation: 1
 //    		labels:
-//      		controller-tools.k8s.io: "1.0"
 //      		kudo.dev/operator: kafka
 // This function also just returns true if the Instance matches a specific OperatorVersion of an Operator
 func (c *Client) InstanceExistsInCluster(operatorName, namespace, version, instanceName string) (bool, error) {
