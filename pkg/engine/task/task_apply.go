@@ -107,13 +107,13 @@ func patch(newObj runtime.Object, existingObj runtime.Object, c client.Client) (
 			return nil, fmt.Errorf("failed to apply merge patch to object %s/%s: %w", key.Name, key.Name, err)
 		}
 		return newObj, nil
-	} else {
-		err := c.Patch(context.TODO(), existingObj, client.ConstantPatch(types.StrategicMergePatchType, newObjJSON))
-		if err != nil {
-			return nil, fmt.Errorf("failed to apply StrategicMergePatch to object %s/%s: %w", key.Namespace, key.Name, err)
-		}
-		return existingObj, nil
 	}
+
+	err := c.Patch(context.TODO(), existingObj, client.ConstantPatch(types.StrategicMergePatchType, newObjJSON))
+	if err != nil {
+		return nil, fmt.Errorf("failed to apply StrategicMergePatch to object %s/%s: %w", key.Namespace, key.Name, err)
+	}
+	return existingObj, nil
 }
 
 func isKudoType(object runtime.Object) bool {
