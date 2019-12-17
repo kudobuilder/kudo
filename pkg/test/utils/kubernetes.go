@@ -53,7 +53,6 @@ import (
 	api "k8s.io/client-go/tools/clientcmd/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	kindConfig "sigs.k8s.io/kind/pkg/apis/config/v1alpha3"
 )
 
 // ensure that we only add to the scheme once.
@@ -357,8 +356,6 @@ func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 		converted = &kudo.TestAssert{}
 	} else if group == "kudo.dev" && kind == "TestSuite" {
 		converted = &kudo.TestSuite{}
-	} else if group == "kind.sigs.k8s.io" && kind == "Cluster" {
-		converted = &kindConfig.Cluster{}
 	} else {
 		return in, nil
 	}
