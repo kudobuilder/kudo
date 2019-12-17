@@ -105,6 +105,19 @@ func (h *Harness) GetTimeout() int {
 // RunKIND starts a KIND cluster.
 func (h *Harness) RunKIND() (*rest.Config, error) {
 	if h.kind == nil {
+		h.kind = kind.NewProvider()
+
+		contexts, err := h.kind.List()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, context := range contexts {
+			if context == h.TestSuite.KINDContext {
+				continue
+			}
+		}
+
 		kindCfg := &kindConfig.Cluster{}
 
 		if h.TestSuite.KINDConfig != "" {
@@ -119,9 +132,6 @@ func (h *Harness) RunKIND() (*rest.Config, error) {
 			return nil, err
 		}
 
-		h.kind = kind.NewProvider()
-
-		var err error
 		h.kubeConfigPath, err = ioutil.TempDir("", "kudo")
 		if err != nil {
 			return nil, err
