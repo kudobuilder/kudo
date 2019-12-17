@@ -27,7 +27,7 @@ type OperatorVersionSpec struct {
 	Version    string                 `json:"version,omitempty"`
 	AppVersion string                 `json:"appVersion,omitempty"`
 
-	// Yaml captures a templated yaml list of elements that define the application operator instance.
+	// Templates is a list of references to YAML templates located in the templates folder and later referenced from tasks.
 	Templates map[string]string `json:"templates,omitempty"`
 	// List of all tasks available in this OperatorVersion.
 	Tasks []Task `json:"tasks,omitempty"`
