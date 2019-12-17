@@ -185,7 +185,7 @@ spec:
           type: object
         spec:
           properties:
-            OperatorVersion:
+            operatorVersion:
               description: OperatorVersion specifies a reference to a specific OperatorVersion
                 object.
               type: object
