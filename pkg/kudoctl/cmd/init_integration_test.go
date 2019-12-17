@@ -48,9 +48,9 @@ func TestMain(m *testing.M) {
 }
 
 const (
-	operatorFileName        = "kudo_v1beta1_operator.yaml"
-	operatorVersionFileName = "kudo_v1beta1_operatorversion.yaml"
-	instanceFileName        = "kudo_v1beta1_instance.yaml"
+	operatorFileName        = "kudo.dev_operators.yaml"
+	operatorVersionFileName = "kudo.dev_operatorversions.yaml"
+	instanceFileName        = "kudo.dev_instances.yaml"
 	manifestsDir            = "../../../config/crds/"
 )
 
