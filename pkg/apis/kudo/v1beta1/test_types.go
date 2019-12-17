@@ -38,8 +38,10 @@ type TestSuite struct {
 	// If set, do not delete the mocked control plane or kind cluster.
 	SkipClusterDelete bool `json:"skipClusterDelete"`
 	// Override the default timeout of 30 seconds (in seconds).
+	// +kubebuilder:validation:Format:=int64
 	Timeout int `json:"timeout"`
 	// The maximum number of tests to run at once (default: 8).
+	// +kubebuilder:validation:Format:=int64
 	Parallel int `json:"parallel"`
 	// The directory to output artifacts to (current working directory if not specified).
 	ArtifactsDir string `json:"artifactsDir"`
@@ -58,6 +60,7 @@ type TestStep struct {
 	// Override the default metadata. Set labels or override the test step name.
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +kubebuilder:validation:Format:=int64
 	Index int `json:"index,omitempty"`
 	// Objects to delete at the beginning of the test step.
 	Delete []ObjectReference `json:"delete,omitempty"`
