@@ -46,6 +46,8 @@ type OperatorVersionSpec struct {
 
 	// UpgradableFrom lists all OperatorVersions that can upgrade to this OperatorVersion.
 	UpgradableFrom []OperatorVersion `json:"upgradableFrom,omitempty"`
+
+	CrdVersion string `json:"crdVersion,omitempty"`
 }
 
 // Ordering specifies how the subitems in this plan/phase should be rolled out.
