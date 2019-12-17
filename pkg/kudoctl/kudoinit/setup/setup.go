@@ -3,15 +3,15 @@ package setup
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/yaml"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/manager"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/yaml"
 )
 
 // Install uses Kubernetes client to install KUDO.
