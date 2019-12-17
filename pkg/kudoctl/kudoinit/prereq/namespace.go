@@ -21,19 +21,15 @@ type kudoNamespace struct {
 	ns   *v1.Namespace
 }
 
-func (o kudoNamespace) PreInstallCheck(client *kube.Client) error {
+func (o kudoNamespace) PreInstallCheck(client *kube.Client) kudoinit.Result {
 	// We only manage kudo-system namespace. For others we expect they exist.
 	if !o.opts.IsDefaultNamespace() {
 		_, err := client.KubeClient.CoreV1().Namespaces().Get(o.opts.Namespace, metav1.GetOptions{})
-		if err == nil {
-			return nil
-		}
 		if kerrors.IsNotFound(err) {
-			return fmt.Errorf("namespace %s does not exist - KUDO expects that any namespace except the default %s is created beforehand", o.opts.Namespace, kudoinit.DefaultNamespace)
+			return kudoinit.NewError(fmt.Sprintf("Namespace %s does not exist - KUDO expects that any namespace except the default %s is created beforehand", o.opts.Namespace, kudoinit.DefaultNamespace))
 		}
-		return err
 	}
-	return nil
+	return kudoinit.NewResult()
 }
 
 func newNamespace(options kudoinit.Options) kudoNamespace {

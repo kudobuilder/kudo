@@ -67,8 +67,8 @@ func (c Initializer) AsYamlManifests() ([]string, error) {
 	return manifests, nil
 }
 
-func (c Initializer) PreInstallCheck(client *kube.Client) error {
-	return nil
+func (c Initializer) PreInstallCheck(client *kube.Client) kudoinit.Result {
+	return kudoinit.NewResult()
 }
 
 // Install uses Kubernetes client to install KUDO Crds.

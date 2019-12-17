@@ -17,7 +17,7 @@ type InitStep interface {
 	Description() string
 
 	// Should return an error if the installation will not be possible
-	PreInstallCheck(client *kube.Client) error
+	PreInstallCheck(client *kube.Client) Result
 
 	// Executes the actual installation
 	Install(client *kube.Client) error

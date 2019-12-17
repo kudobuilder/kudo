@@ -2,6 +2,7 @@ package setup
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -18,11 +19,16 @@ import (
 func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
 	initSteps := initSteps(opts, crdOnly)
 
+	result := kudoinit.NewResult()
 	// Check if all steps are installable
 	for _, initStep := range initSteps {
-		if err := initStep.PreInstallCheck(client); err != nil {
-			return err
-		}
+		result.Merge(initStep.PreInstallCheck(client))
+	}
+
+	result.PrintWarnings(os.Stdout)
+	if !result.IsValid() {
+		result.PrintErrors(os.Stdout)
+		return nil
 	}
 
 	// Install everything

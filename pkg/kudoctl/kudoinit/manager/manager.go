@@ -40,8 +40,8 @@ func NewInitializer(options kudoinit.Options) Initializer {
 	}
 }
 
-func (m Initializer) PreInstallCheck(client *kube.Client) error {
-	return nil
+func (m Initializer) PreInstallCheck(client *kube.Client) kudoinit.Result {
+	return kudoinit.NewResult()
 }
 
 func (m Initializer) Description() string {
