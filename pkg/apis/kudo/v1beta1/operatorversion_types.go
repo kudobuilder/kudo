@@ -45,7 +45,7 @@ type OperatorVersionSpec struct {
 	Dependencies []OperatorDependency `json:"dependencies,omitempty"`
 
 	// UpgradableFrom lists all OperatorVersions that can upgrade to this OperatorVersion.
-	UpgradableFrom []OperatorVersion `json:"upgradableFrom,omitempty"`
+	UpgradableFrom []corev1.ObjectReference `json:"upgradableFrom,omitempty"`
 }
 
 // Ordering specifies how the subitems in this plan/phase should be rolled out.
