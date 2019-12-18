@@ -4,12 +4,10 @@ package crd
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
@@ -17,11 +15,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
-)
-
-const (
-	group      = "kudo.dev"
-	crdVersion = "v1beta1"
 )
 
 // Ensure kudoinit.InitStep is implemented
@@ -37,9 +30,9 @@ type Initializer struct {
 // CRDs returns the runtime.Object representation of all the CRDs KUDO requires
 func NewInitializer() Initializer {
 	return Initializer{
-		Operator:        operatorCrd(),
-		OperatorVersion: operatorVersionCrd(),
-		Instance:        instanceCrd(),
+		Operator:        embeddedCRD("config/crds/kudo.dev_operators.yaml"),
+		OperatorVersion: embeddedCRD("config/crds/kudo.dev_operatorversions.yaml"),
+		Instance:        embeddedCRD("config/crds/kudo.dev_instances.yaml"),
 	}
 }
 
@@ -113,168 +106,12 @@ func (c Initializer) install(client v1beta1.CustomResourceDefinitionsGetter, crd
 	return err
 }
 
-// operatorCrd provides definition of the operator CRD
-func operatorCrd() *apiextv1beta1.CustomResourceDefinition {
-	maintainers := map[string]apiextv1beta1.JSONSchemaProps{
-		"name":  {Type: "string"},
-		"email": {Type: "string"},
+func embeddedCRD(path string) *apiextv1beta1.CustomResourceDefinition {
+	operatorYaml := MustAsset(path)
+	crd := &apiextv1beta1.CustomResourceDefinition{}
+	err := yaml.UnmarshalStrict(operatorYaml, crd)
+	if err != nil {
+		panic(fmt.Sprintf("cannot unmarshal embedded content of %s: %v", path, err))
 	}
-
-	crd := generateCrd("Operator", "operators")
-	specProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"description":       {Type: "string"},
-		"kubernetesVersion": {Type: "string"},
-		"kudoVersion":       {Type: "string"},
-		"maintainers": {Type: "array",
-			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{
-				Type:       "object",
-				Properties: maintainers,
-			}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
-		},
-		"url": {Type: "string"},
-	}
-
-	validationProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"apiVersion": {Type: "string"},
-		"kind":       {Type: "string"},
-		"metadata":   {Type: "object"},
-		"spec":       {Properties: specProps, Type: "object"},
-		"status":     {Type: "object"},
-	}
-	crd.Spec.Validation = &apiextv1beta1.CustomResourceValidation{
-		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{Type: "object",
-			Properties: validationProps,
-		},
-	}
-	return crd
-}
-
-// operatorVersionCrd provides definition of the operatorversion crd
-func operatorVersionCrd() *apiextv1beta1.CustomResourceDefinition {
-	crd := generateCrd("OperatorVersion", "operatorversions")
-	paramProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"default":     {Type: "string", Description: "Default is a default value if no parameter is provided by the instance."},
-		"description": {Type: "string", Description: "Description captures a longer description of how the parameter will be used."},
-		"displayName": {Type: "string", Description: "DisplayName can be used by UIs."},
-		"name":        {Type: "string", Description: "Name is the string that should be used in the template file for example, if `name: COUNT` then using the variable in a spec like: \n spec:   replicas:  {{ .Params.COUNT }}"},
-		"required":    {Type: "boolean", Description: "Required specifies if the parameter is required to be provided by all instances, or whether a default can suffice."},
-		"trigger":     {Type: "string", Description: "Trigger identifies the plan that gets executed when this parameter changes in the Instance object. Default is `update` if a plan with that name exists, otherwise it's `deploy`."},
-	}
-	taskProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"name": {Type: "string"},
-		"kind": {Type: "string"},
-		"spec": {Type: "object"},
-	}
-	specProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"appVersion":       {Type: "string"},
-		"connectionString": {Type: "string", Description: "ConnectionString defines a templated string that can be used to connect to an instance of the Operator."},
-		"operator":         {Type: "object"},
-		"parameters": {
-			Type: "array",
-			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{
-				Type:       "object",
-				Properties: paramProps,
-			}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
-		},
-		"plans": {Type: "object", Description: "Plans maps a plan name to a plan."},
-		"tasks": {
-			Type:        "array",
-			Description: "List of all tasks available in this OperatorVersion.",
-			Items: &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{
-				Type:       "object",
-				Properties: taskProps,
-			}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
-		},
-		"templates": {Type: "object", Description: "Templates is a list of references to YAML templates located in the templates folder and later referenced from tasks."},
-		"upgradableFrom": {
-			Type:        "array",
-			Description: "UpgradableFrom lists all OperatorVersions that can upgrade to this OperatorVersion.",
-			Items:       &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{Type: "object"}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
-		},
-		"version": {Type: "string"},
-	}
-
-	validationProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"apiVersion": {Type: "string"},
-		"kind":       {Type: "string"},
-		"metadata":   {Type: "object"},
-		"spec":       {Properties: specProps, Type: "object"},
-		"status":     {Type: "object"},
-	}
-
-	crd.Spec.Validation = &apiextv1beta1.CustomResourceValidation{
-		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{Type: "object",
-			Properties: validationProps,
-		},
-	}
-	return crd
-}
-
-// instanceCrd provides the Instance CRD manifest for printing
-func instanceCrd() *apiextv1beta1.CustomResourceDefinition {
-	crd := generateCrd("Instance", "instances")
-	specProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"operatorVersion": {Type: "object", Description: "OperatorVersion specifies a reference to a specific OperatorVersion object."},
-		"parameters":      {Type: "object"},
-	}
-	statusProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"planStatus":       {Type: "object"},
-		"aggregatedStatus": {Type: "object"},
-	}
-
-	validationProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"apiVersion": {Type: "string"},
-		"kind":       {Type: "string"},
-		"metadata":   {Type: "object"},
-		"spec":       {Properties: specProps, Type: "object"},
-		"status": {
-			Type:       "object",
-			Properties: statusProps,
-		},
-	}
-
-	crd.Spec.Validation = &apiextv1beta1.CustomResourceValidation{
-		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{Type: "object",
-			Properties: validationProps,
-		},
-	}
-
-	crd.Spec.Subresources = &apiextv1beta1.CustomResourceSubresources{Status: &apiextv1beta1.CustomResourceSubresourceStatus{}}
-	return crd
-}
-
-// generateCrd provides a generic CRD object to be configured
-func generateCrd(kind string, plural string) *apiextv1beta1.CustomResourceDefinition {
-	plural = strings.ToLower(plural)
-	name := plural + "." + group
-
-	crd := &apiextv1beta1.CustomResourceDefinition{
-		ObjectMeta: v1.ObjectMeta{
-			Name: name,
-		},
-		Spec: apiextv1beta1.CustomResourceDefinitionSpec{
-			Group:   group,
-			Version: crdVersion,
-			Names: apiextv1beta1.CustomResourceDefinitionNames{
-				Plural:     plural,
-				Singular:   strings.ToLower(kind),
-				ShortNames: nil,
-				Kind:       kind,
-			},
-			Scope: "Namespaced",
-		},
-		Status: apiextv1beta1.CustomResourceDefinitionStatus{
-			Conditions:     []apiextv1beta1.CustomResourceDefinitionCondition{},
-			StoredVersions: []string{},
-		},
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "CustomResourceDefinition",
-			APIVersion: "apiextensions.k8s.io/v1beta1",
-		},
-	}
-	// below is needed if we support 1.15 CRD in v1beta1, it is deprecated within the 1.15
-	// for 1.16 it is removed and functions as if preserve == false
-	// preserveFields := false
-	// crd.Spec.PreserveUnknownFields = &preserveFields
 	return crd
 }
