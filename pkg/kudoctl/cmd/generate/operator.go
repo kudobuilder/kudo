@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
 // OperatorCheck checks to see if operator generation makes sense
@@ -28,7 +29,7 @@ func OperatorCheck(fs afero.Fs, dir string) error {
 		return err
 	}
 	if exists {
-		return errors.New("operator.yaml exists in the current directory.  creating an operator in an operator is not supported.")
+		return errors.New("operator.yaml exists in the current directory.  creating an operator in an operator is not supported")
 	}
 	return nil
 }
@@ -55,6 +56,9 @@ func Operator(fs afero.Fs, dir string, op packages.OperatorFile) error {
 	op.Plans = make(map[string]v1beta1.Plan)
 
 	o, err := yaml.Marshal(op)
+	if err != nil {
+		return err
+	}
 
 	err = afero.WriteFile(fs, fname, o, 0755)
 	if err != nil {

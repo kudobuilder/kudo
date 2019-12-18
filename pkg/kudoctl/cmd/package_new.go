@@ -2,15 +2,15 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"io"
+
+	"github.com/spf13/afero"
+	"github.com/spf13/cobra"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/generate"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/prompt"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/version"
-	"github.com/spf13/afero"
-	"github.com/spf13/cobra"
 )
 
 const (
@@ -114,9 +114,5 @@ func (pkg *packageNewCmd) run() error {
 		URL:         url,
 	}
 
-	fmt.Printf("%apiVersion", op)
-
-	generate.Operator(pkg.fs, dir, op)
-
-	return err
+	return generate.Operator(pkg.fs, dir, op)
 }
