@@ -125,7 +125,7 @@ func main() {
 	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) == "true" {
 		log.Printf("Setting up webhooks")
 
-		if err := registerWebhook("/validate", &v1beta1.Instance{}, mgr, &webhook.Admission{Handler: &v1beta1.InstanceValidator{}}); err != nil {
+		if err := registerWebhook("/validate", &v1beta1.Instance{}, &webhook.Admission{Handler: &v1beta1.InstanceValidator{}}, mgr); err != nil {
 			log.Printf("unable to create instance validation webhook: %v", err)
 			os.Exit(1)
 		}
@@ -141,7 +141,10 @@ func main() {
 	}
 }
 
-func registerWebhook(prefix string, obj runtime.Object, mgr manager.Manager, hook http.Handler) error {
+// registerWebhook method registers passed webhook using a give prefix (e.g. "/validate") and runtime object
+// (e.g. v1beta1.Instance) to generate a webhook path e.g. "/validate-kudo-dev-v1beta1-instances". Webhook
+// has to implement http.Handler interface (see v1beta1.InstanceValidator for an example)
+func registerWebhook(prefix string, obj runtime.Object, hook http.Handler, mgr manager.Manager) error {
 	path, err := webhookPath(prefix, obj, mgr)
 	if err != nil {
 		return fmt.Errorf("failed to generate webhook path: %v", err)
