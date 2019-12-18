@@ -166,6 +166,7 @@ func operatorVersionCrd() *apiextv1beta1.CustomResourceDefinition {
 		"spec": {Type: "object"},
 	}
 	specProps := map[string]apiextv1beta1.JSONSchemaProps{
+		"appVersion":       {Type: "string"},
 		"connectionString": {Type: "string", Description: "ConnectionString defines a templated string that can be used to connect to an instance of the Operator."},
 		"operator":         {Type: "object"},
 		"parameters": {
@@ -191,6 +192,7 @@ func operatorVersionCrd() *apiextv1beta1.CustomResourceDefinition {
 			Items:       &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{Type: "object"}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
 		},
 		"crdVersion": {Type: "string"},
+		"version":    {Type: "string"},
 	}
 
 	validationProps := map[string]apiextv1beta1.JSONSchemaProps{

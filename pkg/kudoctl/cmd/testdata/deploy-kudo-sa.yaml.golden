@@ -81,6 +81,8 @@ spec:
           type: object
         spec:
           properties:
+            appVersion:
+              type: string
             connectionString:
               description: ConnectionString defines a templated string that can be
                 used to connect to an instance of the Operator.
@@ -144,6 +146,8 @@ spec:
               items:
                 type: object
               type: array
+            version:
+              type: string
           type: object
         status:
           type: object
