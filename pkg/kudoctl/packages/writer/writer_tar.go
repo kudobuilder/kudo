@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/spf13/afero"
@@ -47,16 +46,20 @@ func WriteTgz(fs afero.Fs, path string, destination string, overwrite bool) (tar
 	return target, err
 }
 
-// tar_zcvf creates a tarball *.tgz file for the file system tree at the provided path.
+// TgzDir writes a tarball *.tgz file to a 'io.Writer' for the file system tree at the provided path.
 func TgzDir(fs afero.Fs, path string, w io.Writer) (err error) {
 	gw := gzip.NewWriter(w)
 	defer gw.Close()
-	tw := tar.NewWriter(gw)
+
+	return Tar(fs, path, gw)
+}
+
+// Tar writes a tarball to a 'io.Writer' for the file system tree at the provided path.
+func Tar(fs afero.Fs, root string, w io.Writer) error {
+	tw := tar.NewWriter(w)
 	defer tw.Close()
 
-	err = afero.Walk(fs, path, func(file string, fi os.FileInfo, err error) error {
-
-		// return on any error
+	err := afero.Walk(fs, root, func(file string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -74,7 +77,10 @@ func TgzDir(fs afero.Fs, path string, w io.Writer) (err error) {
 		}
 
 		// update the name to correctly reflect the desired destination when untaring
-		header.Name = strings.TrimPrefix(strings.Replace(file, path, "", -1), string(filepath.Separator))
+		header.Name, err = filepath.Rel(root, file)
+		if err != nil {
+			fmt.Printf("Error setting tar file name for: %v", file)
+		}
 
 		// change certain header metadata to make the build reproducible
 		header.ModTime = time.Time{}
