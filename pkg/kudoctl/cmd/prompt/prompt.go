@@ -1,6 +1,8 @@
 package prompt
 
 import (
+	"strings"
+
 	"github.com/manifoldco/promptui"
 )
 
@@ -25,7 +27,7 @@ func WithOptions(label string, options []string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return result, nil
+	return strings.TrimSpace(result), nil
 
 }
 
@@ -50,5 +52,5 @@ func WithValidator(label string, defaultStr string, validate promptui.ValidateFu
 	if err != nil {
 		return "", err
 	}
-	return result, nil
+	return strings.TrimSpace(result), nil
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 
+	"github.com/Masterminds/semver"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
@@ -85,7 +86,14 @@ func (pkg *packageNewCmd) run() error {
 		return err
 	}
 
-	opVersion, err := prompt.WithDefault("Operator Version", "")
+	vvalid := func(input string) error {
+		if len(input) < 1 {
+			return errors.New("Operator version is required in semver format")
+		}
+		_, err := semver.NewVersion(input)
+		return err
+	}
+	opVersion, err := prompt.WithValidator("Operator Version", "", vvalid)
 	if err != nil {
 		return err
 	}
