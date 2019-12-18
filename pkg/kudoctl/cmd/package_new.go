@@ -23,9 +23,11 @@ const (
 )
 
 type packageNewCmd struct {
-	name string
-	out  io.Writer
-	fs   afero.Fs
+	name        string
+	out         io.Writer
+	fs          afero.Fs
+	interactive bool
+	overwrite   bool
 }
 
 // newPackageNewCmd creates an operator package on the file system
@@ -49,12 +51,31 @@ func newPackageNewCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 		},
 	}
 
+	f := cmd.Flags()
+	f.BoolVarP(&pkg.interactive, "interactive", "i", false, "Interactively create operator")
+	f.BoolVarP(&pkg.overwrite, "overwrite", "w", false, "overwrite existing directory and operator.yaml file")
 	return cmd
 }
 
 // run returns the errors associated with cmd env
 func (pkg *packageNewCmd) run() error {
+	folderDefault := "operator"
+	ovDefault := "0.1.0"
+	kudoDefault := version.Get().GitVersion
+	apiVerDefault := "kudo.dev/v1beta1"
 
+	if !pkg.interactive {
+		op := packages.OperatorFile{
+			Name:        pkg.name,
+			APIVersion:  apiVerDefault,
+			Version:     ovDefault,
+			KUDOVersion: kudoDefault,
+		}
+
+		return generate.Operator(pkg.fs, folderDefault, op, pkg.overwrite)
+	}
+
+	// interactive mode
 	nvalid := func(input string) error {
 		if len(input) < 3 {
 			return errors.New("Operator name must have more than 3 characters")
@@ -71,10 +92,10 @@ func (pkg *packageNewCmd) run() error {
 		if len(input) < 1 {
 			return errors.New("Operator directory must have more than 1 character")
 		}
-		return generate.OperatorCheck(pkg.fs, input)
+		return generate.OperatorCheck(pkg.fs, input, pkg.overwrite)
 	}
 
-	dir, err := prompt.WithValidator("Operator directory", "operator", dvalid)
+	dir, err := prompt.WithValidator("Operator directory", folderDefault, dvalid)
 	if err != nil {
 		return err
 	}
@@ -93,7 +114,7 @@ func (pkg *packageNewCmd) run() error {
 		_, err := semver.NewVersion(input)
 		return err
 	}
-	opVersion, err := prompt.WithValidator("Operator Version", "", vvalid)
+	opVersion, err := prompt.WithValidator("Operator Version", ovDefault, vvalid)
 	if err != nil {
 		return err
 	}
@@ -103,7 +124,7 @@ func (pkg *packageNewCmd) run() error {
 		return err
 	}
 
-	kudoVersion, err := prompt.WithDefault("Required KUDO Version", version.Get().GitVersion)
+	kudoVersion, err := prompt.WithDefault("Required KUDO Version", kudoDefault)
 	if err != nil {
 		return err
 	}
@@ -122,5 +143,5 @@ func (pkg *packageNewCmd) run() error {
 		URL:         url,
 	}
 
-	return generate.Operator(pkg.fs, dir, op)
+	return generate.Operator(pkg.fs, dir, op, pkg.overwrite)
 }

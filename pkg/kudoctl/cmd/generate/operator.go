@@ -15,12 +15,12 @@ import (
 // OperatorCheck checks to see if operator generation makes sense
 // fails if folder exits (non-destructive)
 // if "operator.yaml" exists in current dir, we assume it's a mistake an error
-func OperatorCheck(fs afero.Fs, dir string) error {
+func OperatorCheck(fs afero.Fs, dir string, overwrite bool) error {
 	exists, err := afero.Exists(fs, dir)
 	if err != nil {
 		return err
 	}
-	if exists {
+	if exists && !overwrite {
 		return fmt.Errorf("folder %q already exists", dir)
 	}
 
@@ -35,16 +35,20 @@ func OperatorCheck(fs afero.Fs, dir string) error {
 }
 
 // Operator generates an initial operator folder with a operator.yaml
-func Operator(fs afero.Fs, dir string, op packages.OperatorFile) error {
+func Operator(fs afero.Fs, dir string, op packages.OperatorFile, overwrite bool) error {
 
-	err := OperatorCheck(fs, dir)
+	err := OperatorCheck(fs, dir, overwrite)
 	if err != nil {
 		return err
 	}
 
-	err = fs.Mkdir(dir, 0755)
+	exists, err := afero.DirExists(fs, dir)
 	if err != nil {
 		return err
+	}
+
+	if !exists {
+		err = fs.Mkdir(dir, 0755)
 	}
 	fname := path.Join(dir, "operator.yaml")
 	if err != nil {
