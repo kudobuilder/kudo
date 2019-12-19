@@ -191,7 +191,7 @@ func operatorVersionCrd() *apiextv1beta1.CustomResourceDefinition {
 			Description: "UpgradableFrom lists all OperatorVersions that can upgrade to this OperatorVersion.",
 			Items:       &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{Type: "object"}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
 		},
-		"version":    {Type: "string"},
+		"version": {Type: "string"},
 	}
 
 	validationProps := map[string]apiextv1beta1.JSONSchemaProps{
