@@ -81,8 +81,6 @@ spec:
               description: ConnectionString defines a templated string that can be
                 used to connect to an instance of the Operator.
               type: string
-            crdVersion:
-              type: string
             operator:
               type: object
             parameters:
