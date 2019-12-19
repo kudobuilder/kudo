@@ -19,6 +19,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	v1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -440,10 +441,8 @@ func (in *OperatorVersionSpec) DeepCopyInto(out *OperatorVersionSpec) {
 	}
 	if in.UpgradableFrom != nil {
 		in, out := &in.UpgradableFrom, &out.UpgradableFrom
-		*out = make([]OperatorVersion, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
+		*out = make([]v1.ObjectReference, len(*in))
+		copy(*out, *in)
 	}
 	return
 }
