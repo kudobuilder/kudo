@@ -10,6 +10,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 )
 
 // OperatorCheck checks to see if operator generation makes sense
@@ -24,7 +25,7 @@ func OperatorCheck(fs afero.Fs, dir string, overwrite bool) error {
 		return fmt.Errorf("folder %q already exists", dir)
 	}
 
-	exists, err = afero.Exists(fs, "operator.yaml")
+	exists, err = afero.Exists(fs, reader.OperatorFileName)
 	if err != nil {
 		return err
 	}
@@ -36,7 +37,6 @@ func OperatorCheck(fs afero.Fs, dir string, overwrite bool) error {
 
 // Operator generates an initial operator folder with a operator.yaml
 func Operator(fs afero.Fs, dir string, op packages.OperatorFile, overwrite bool) error {
-
 	err := OperatorCheck(fs, dir, overwrite)
 	if err != nil {
 		return err
@@ -50,7 +50,6 @@ func Operator(fs afero.Fs, dir string, op packages.OperatorFile, overwrite bool)
 	if !exists {
 		err = fs.Mkdir(dir, 0755)
 	}
-	fname := path.Join(dir, "operator.yaml")
 	if err != nil {
 		return err
 	}
@@ -59,15 +58,44 @@ func Operator(fs afero.Fs, dir string, op packages.OperatorFile, overwrite bool)
 	op.Tasks = []v1beta1.Task{}
 	op.Plans = make(map[string]v1beta1.Plan)
 
+	err = writeOperator(fs, dir, op)
+	if err != nil {
+		return err
+	}
+
+	pfname := path.Join(dir, reader.ParamsFileName)
+	exists, err = afero.Exists(fs, pfname)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return nil
+	}
+
+	// if params doesn't exist create it
+	p := packages.ParamsFile{
+		APIVersion: reader.APIVersion,
+		Parameters: []v1beta1.Parameter{},
+	}
+	return writeParameters(fs, dir, p)
+}
+
+func writeParameters(fs afero.Fs, dir string, params packages.ParamsFile) error {
+	p, err := yaml.Marshal(params)
+	if err != nil {
+		return err
+	}
+
+	fname := path.Join(dir, reader.ParamsFileName)
+	return afero.WriteFile(fs, fname, p, 0755)
+}
+
+func writeOperator(fs afero.Fs, dir string, op packages.OperatorFile) error {
 	o, err := yaml.Marshal(op)
 	if err != nil {
 		return err
 	}
 
-	err = afero.WriteFile(fs, fname, o, 0755)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	fname := path.Join(dir, reader.OperatorFileName)
+	return afero.WriteFile(fs, fname, o, 0755)
 }
