@@ -28,15 +28,6 @@ All code should pass the linter. For cases of intentional lint deviation, it is 
 
 `make lint`
 
-All code should pass [staticcheck](http://staticcheck.io/).
-
-`make staticcheck`
-
-All code should pass `go vet`.
-
-`make vet`
-
-
 ### import
 
 The general Go approach is to have a line of separation between Go libraries and external packages. We prefer to have an additional line of separation grouping kudo packages separately at the end. Example:
