@@ -19,10 +19,9 @@ import (
 	"testing"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
-
 	"github.com/google/shlex"
 	"github.com/pmezard/go-difflib/difflib"
+	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -30,11 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
-	"github.com/kudobuilder/kudo/pkg/apis"
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-
-	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
@@ -52,7 +46,11 @@ import (
 	coretesting "k8s.io/client-go/testing"
 	api "k8s.io/client-go/tools/clientcmd/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+
+	"github.com/kudobuilder/kudo/pkg/apis"
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 // ensure that we only add to the scheme once.

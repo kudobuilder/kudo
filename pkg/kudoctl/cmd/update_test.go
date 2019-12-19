@@ -47,8 +47,7 @@ func TestUpdate(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-				util.OperatorLabel:        "test",
+				util.OperatorLabel: "test",
 			},
 			Name: "test",
 		},

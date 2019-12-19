@@ -7,14 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
-	"github.com/kudobuilder/kudo/pkg/version"
-
 	v1core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,6 +16,14 @@ import (
 	// Import Kubernetes authentication providers to support GKE, etc.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/version"
 )
 
 // Client is a KUDO Client providing access to a clientset
@@ -101,7 +101,6 @@ func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 //    		creationTimestamp: "2019-02-28T14:39:20Z"
 //    		generation: 1
 //    		labels:
-//      		controller-tools.k8s.io: "1.0"
 //      		kudo.dev/operator: kafka
 // This function also just returns true if the Instance matches a specific OperatorVersion of an Operator
 func (c *Client) InstanceExistsInCluster(operatorName, namespace, version, instanceName string) (bool, error) {

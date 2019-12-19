@@ -6,10 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
-
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -17,6 +13,10 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 )
 
 const (
@@ -166,6 +166,7 @@ func operatorVersionCrd() *apiextv1beta1.CustomResourceDefinition {
 		"spec": {Type: "object"},
 	}
 	specProps := map[string]apiextv1beta1.JSONSchemaProps{
+		"appVersion":       {Type: "string"},
 		"connectionString": {Type: "string", Description: "ConnectionString defines a templated string that can be used to connect to an instance of the Operator."},
 		"operator":         {Type: "object"},
 		"parameters": {
@@ -191,6 +192,7 @@ func operatorVersionCrd() *apiextv1beta1.CustomResourceDefinition {
 			Items:       &apiextv1beta1.JSONSchemaPropsOrArray{Schema: &apiextv1beta1.JSONSchemaProps{Type: "object"}, JSONSchemas: []apiextv1beta1.JSONSchemaProps{}},
 		},
 		"crdVersion": {Type: "string"},
+		"version":    {Type: "string"},
 	}
 
 	validationProps := map[string]apiextv1beta1.JSONSchemaProps{
@@ -213,7 +215,7 @@ func operatorVersionCrd() *apiextv1beta1.CustomResourceDefinition {
 func instanceCrd() *apiextv1beta1.CustomResourceDefinition {
 	crd := generateCrd("Instance", "instances")
 	specProps := map[string]apiextv1beta1.JSONSchemaProps{
-		"OperatorVersion": {Type: "object", Description: "OperatorVersion specifies a reference to a specific OperatorVersion object."},
+		"operatorVersion": {Type: "object", Description: "OperatorVersion specifies a reference to a specific OperatorVersion object."},
 		"parameters":      {Type: "object"},
 	}
 	statusProps := map[string]apiextv1beta1.JSONSchemaProps{
@@ -247,11 +249,9 @@ func generateCrd(kind string, plural string) *apiextv1beta1.CustomResourceDefini
 	plural = strings.ToLower(plural)
 	name := plural + "." + group
 
-	labels := kudoinit.GenerateLabels(map[string]string{"controller-tools.k8s.io": "1.0"})
 	crd := &apiextv1beta1.CustomResourceDefinition{
 		ObjectMeta: v1.ObjectMeta{
-			Name:   name,
-			Labels: labels,
+			Name: name,
 		},
 		Spec: apiextv1beta1.CustomResourceDefinitionSpec{
 			Group:   group,

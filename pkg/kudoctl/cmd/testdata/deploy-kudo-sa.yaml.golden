@@ -3,9 +3,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
-  labels:
-    app: kudo-manager
-    controller-tools.k8s.io: "1.0"
   name: operators.kudo.dev
 spec:
   group: kudo.dev
@@ -59,9 +56,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
-  labels:
-    app: kudo-manager
-    controller-tools.k8s.io: "1.0"
   name: operatorversions.kudo.dev
 spec:
   group: kudo.dev
@@ -81,6 +75,8 @@ spec:
           type: object
         spec:
           properties:
+            appVersion:
+              type: string
             connectionString:
               description: ConnectionString defines a templated string that can be
                 used to connect to an instance of the Operator.
@@ -144,6 +140,8 @@ spec:
               items:
                 type: object
               type: array
+            version:
+              type: string
           type: object
         status:
           type: object
@@ -161,9 +159,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
-  labels:
-    app: kudo-manager
-    controller-tools.k8s.io: "1.0"
   name: instances.kudo.dev
 spec:
   group: kudo.dev
@@ -185,7 +180,7 @@ spec:
           type: object
         spec:
           properties:
-            OperatorVersion:
+            operatorVersion:
               description: OperatorVersion specifies a reference to a specific OperatorVersion
                 object.
               type: object
@@ -216,7 +211,6 @@ metadata:
   labels:
     app: kudo-manager
     control-plane: controller-manager
-    controller-tools.k8s.io: "1.0"
   name: kudo-controller-manager-service
   namespace: foo
 spec:
@@ -227,7 +221,6 @@ spec:
   selector:
     app: kudo-manager
     control-plane: controller-manager
-    controller-tools.k8s.io: "1.0"
 status:
   loadBalancer: {}
 
@@ -239,7 +232,6 @@ metadata:
   labels:
     app: kudo-manager
     control-plane: controller-manager
-    controller-tools.k8s.io: "1.0"
   name: kudo-controller-manager
   namespace: foo
 spec:
@@ -247,7 +239,6 @@ spec:
     matchLabels:
       app: kudo-manager
       control-plane: controller-manager
-      controller-tools.k8s.io: "1.0"
   serviceName: kudo-controller-manager-service
   template:
     metadata:
@@ -255,7 +246,6 @@ spec:
       labels:
         app: kudo-manager
         control-plane: controller-manager
-        controller-tools.k8s.io: "1.0"
     spec:
       containers:
       - command:
