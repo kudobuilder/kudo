@@ -13,10 +13,10 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 )
 
-// OperatorCheck checks to see if operator generation makes sense
+// OperatorGenSafe checks to see if operator generation makes sense (we don't generate over an operator or existing folder)
 // fails if folder exits (non-destructive)
 // if "operator.yaml" exists in current dir, we assume it's a mistake an error
-func OperatorCheck(fs afero.Fs, dir string, overwrite bool) error {
+func OperatorGenSafe(fs afero.Fs, dir string, overwrite bool) error {
 	exists, err := afero.Exists(fs, dir)
 	if err != nil {
 		return err
@@ -37,7 +37,7 @@ func OperatorCheck(fs afero.Fs, dir string, overwrite bool) error {
 
 // Operator generates an initial operator folder with a operator.yaml
 func Operator(fs afero.Fs, dir string, op packages.OperatorFile, overwrite bool) error {
-	err := OperatorCheck(fs, dir, overwrite)
+	err := OperatorGenSafe(fs, dir, overwrite)
 	if err != nil {
 		return err
 	}

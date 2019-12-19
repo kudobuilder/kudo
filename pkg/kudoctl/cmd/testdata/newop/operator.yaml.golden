@@ -1,0 +1,6 @@
+apiVersion: kudo.dev/v1beta1
+kudoVersion: dev
+name: newop
+plans: {}
+tasks: []
+version: 0.1.0

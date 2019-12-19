@@ -93,7 +93,7 @@ func (pkg *packageNewCmd) run() error {
 		if len(input) < 1 {
 			return errors.New("Operator directory must have more than 1 character")
 		}
-		return generate.OperatorCheck(pkg.fs, input, pkg.overwrite)
+		return generate.OperatorGenSafe(pkg.fs, input, pkg.overwrite)
 	}
 
 	path, err := prompt.WithValidator("Operator directory", pathDefault, pathValid)
