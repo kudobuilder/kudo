@@ -113,8 +113,9 @@ func (h *Harness) RunKIND() (*rest.Config, error) {
 		}
 
 		for _, context := range contexts {
+			// There is already a cluster with this context, let's re-use it.
 			if context == h.TestSuite.KINDContext {
-				continue
+				return clientcmd.BuildConfigFromFlags("", h.explicitPath())
 			}
 		}
 
