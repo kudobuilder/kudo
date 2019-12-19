@@ -31,6 +31,8 @@ type TestSuite struct {
 	// If set, each node defined in the kind configuration will have a docker named volume mounted into it to persist
 	// pulled container images across test runs.
 	KINDNodeCache bool `json:"kindNodeCache"`
+	// Containers to load to each KIND node prior to running the tests.
+	KINDContainers []string `json:"kindContainers"`
 	// Whether or not to start the KUDO controller for the tests.
 	StartKUDO bool `json:"startKUDO"`
 	// If set, do not delete the resources after running the tests (implies SkipClusterDelete).
