@@ -29,7 +29,6 @@ The official binaries for KUDO are created using [goreleaser](https://goreleaser
 1. Invoke goreleaser `goreleaser --rm-dist`.
 1. Update the GH release with Release highlights and a changelog.
 1. Send an announcement email to `kudobuilder@googlegroups.com` with the subject `[ANNOUNCE] Kudo $VERSION is released`
-1. Create a PR against [kudobuilder/kudo.dev](https://github.com/kudobuilder/kudo.dev) with an according [blog post](https://kudo.dev/internal-docs/blog-index.html#release-posts).
 1. Run `./hack/generate_krew.sh` and submit the generated `kudo.yaml` to https://github.com/kubernetes-sigs/krew-index/.
 1. Update KUDO_VERSION [in the Makefile](https://github.com/kudobuilder/operators/blob/master/Makefile#L2) of operators repo
 
