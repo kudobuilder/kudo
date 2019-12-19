@@ -11,6 +11,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/generate"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/prompt"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 
@@ -59,62 +60,55 @@ func newPackageNewCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 // run returns the errors associated with cmd env
 func (pkg *packageNewCmd) run() error {
-	folderDefault := "operator"
+	pathDefault := "operator"
 	ovDefault := "0.1.0"
 	kudoDefault := version.Get().GitVersion
-	apiVerDefault := "kudo.dev/v1beta1"
+	apiVersionDefault := reader.APIVersion
 
 	if !pkg.interactive {
 		op := packages.OperatorFile{
 			Name:        pkg.name,
-			APIVersion:  apiVerDefault,
+			APIVersion:  apiVersionDefault,
 			Version:     ovDefault,
 			KUDOVersion: kudoDefault,
 		}
 
-		return generate.Operator(pkg.fs, folderDefault, op, pkg.overwrite)
+		return generate.Operator(pkg.fs, pathDefault, op, pkg.overwrite)
 	}
 
 	// interactive mode
-	nvalid := func(input string) error {
+	nameValid := func(input string) error {
 		if len(input) < 3 {
 			return errors.New("Operator name must have more than 3 characters")
 		}
 		return nil
 	}
 
-	name, err := prompt.WithValidator("Operator Name", pkg.name, nvalid)
+	name, err := prompt.WithValidator("Operator Name", pkg.name, nameValid)
 	if err != nil {
 		return err
 	}
 
-	dvalid := func(input string) error {
+	pathValid := func(input string) error {
 		if len(input) < 1 {
 			return errors.New("Operator directory must have more than 1 character")
 		}
 		return generate.OperatorCheck(pkg.fs, input, pkg.overwrite)
 	}
 
-	dir, err := prompt.WithValidator("Operator directory", folderDefault, dvalid)
+	path, err := prompt.WithValidator("Operator directory", pathDefault, pathValid)
 	if err != nil {
 		return err
 	}
 
-	//TODO (kensipe): need list of supported versions some where
-	vOptions := []string{"kudo.dev/v1beta1"}
-	apiVersion, err := prompt.WithOptions("API Version", vOptions)
-	if err != nil {
-		return err
-	}
-
-	vvalid := func(input string) error {
+	versionValid := func(input string) error {
 		if len(input) < 1 {
 			return errors.New("Operator version is required in semver format")
 		}
 		_, err := semver.NewVersion(input)
 		return err
 	}
-	opVersion, err := prompt.WithValidator("Operator Version", ovDefault, vvalid)
+	opVersion, err := prompt.WithValidator("Operator Version", ovDefault, versionValid)
 	if err != nil {
 		return err
 	}
@@ -136,12 +130,12 @@ func (pkg *packageNewCmd) run() error {
 
 	op := packages.OperatorFile{
 		Name:        name,
-		APIVersion:  apiVersion,
+		APIVersion:  apiVersionDefault,
 		Version:     opVersion,
 		AppVersion:  appVersion,
 		KUDOVersion: kudoVersion,
 		URL:         url,
 	}
 
-	return generate.Operator(pkg.fs, dir, op, pkg.overwrite)
+	return generate.Operator(pkg.fs, path, op, pkg.overwrite)
 }
