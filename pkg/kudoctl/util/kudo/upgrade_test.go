@@ -20,9 +20,6 @@ func Test_UpgradeOperatorVersion(t *testing.T) {
 			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-			},
 			Name: "test-1.0",
 		},
 		Spec: v1beta1.OperatorVersionSpec{
@@ -40,8 +37,7 @@ func Test_UpgradeOperatorVersion(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-				util.OperatorLabel:        "test",
+				util.OperatorLabel: "test",
 			},
 			Name: "test",
 		},

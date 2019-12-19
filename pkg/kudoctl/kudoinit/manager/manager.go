@@ -101,7 +101,7 @@ func (m Initializer) AsYamlManifests() ([]string, error) {
 
 // GenerateLabels returns the labels used by deployment and service
 func GenerateLabels() labels.Set {
-	return kudoinit.GenerateLabels(map[string]string{"control-plane": "controller-manager", "controller-tools.k8s.io": "1.0"})
+	return kudoinit.GenerateLabels(map[string]string{"control-plane": "controller-manager"})
 }
 
 func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {

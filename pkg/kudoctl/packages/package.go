@@ -36,8 +36,7 @@ func (p *Files) Resources() (*Resources, error) {
 			APIVersion: APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   p.Operator.Name,
-			Labels: map[string]string{"controller-tools.k8s.io": "1.0"},
+			Name: p.Operator.Name,
 		},
 		Spec: v1beta1.OperatorSpec{
 			Description:       p.Operator.Description,
@@ -55,8 +54,7 @@ func (p *Files) Resources() (*Resources, error) {
 			APIVersion: APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.Version),
-			Labels: map[string]string{"controller-tools.k8s.io": "1.0"},
+			Name: fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.Version),
 		},
 		Spec: v1beta1.OperatorVersionSpec{
 			Operator: v1.ObjectReference{
@@ -81,7 +79,7 @@ func (p *Files) Resources() (*Resources, error) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   fmt.Sprintf("%s-instance", p.Operator.Name),
-			Labels: map[string]string{"controller-tools.k8s.io": "1.0", kudo.OperatorLabel: p.Operator.Name},
+			Labels: map[string]string{kudo.OperatorLabel: p.Operator.Name},
 		},
 		Spec: v1beta1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{

@@ -3,9 +3,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
-  labels:
-    app: kudo-manager
-    controller-tools.k8s.io: "1.0"
   name: operators.kudo.dev
 spec:
   group: kudo.dev
@@ -59,9 +56,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
-  labels:
-    app: kudo-manager
-    controller-tools.k8s.io: "1.0"
   name: operatorversions.kudo.dev
 spec:
   group: kudo.dev
@@ -165,9 +159,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
-  labels:
-    app: kudo-manager
-    controller-tools.k8s.io: "1.0"
   name: instances.kudo.dev
 spec:
   group: kudo.dev
@@ -220,7 +211,6 @@ metadata:
   labels:
     app: kudo-manager
     control-plane: controller-manager
-    controller-tools.k8s.io: "1.0"
   name: kudo-controller-manager-service
   namespace: foo
 spec:
@@ -231,7 +221,6 @@ spec:
   selector:
     app: kudo-manager
     control-plane: controller-manager
-    controller-tools.k8s.io: "1.0"
 status:
   loadBalancer: {}
 
@@ -243,7 +232,6 @@ metadata:
   labels:
     app: kudo-manager
     control-plane: controller-manager
-    controller-tools.k8s.io: "1.0"
   name: kudo-controller-manager
   namespace: foo
 spec:
@@ -251,7 +239,6 @@ spec:
     matchLabels:
       app: kudo-manager
       control-plane: controller-manager
-      controller-tools.k8s.io: "1.0"
   serviceName: kudo-controller-manager-service
   template:
     metadata:
@@ -259,7 +246,6 @@ spec:
       labels:
         app: kudo-manager
         control-plane: controller-manager
-        controller-tools.k8s.io: "1.0"
     spec:
       containers:
       - command:
