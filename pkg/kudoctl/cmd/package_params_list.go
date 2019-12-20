@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/generate"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
@@ -36,6 +37,7 @@ const (
 )
 
 func newParamsListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
+	//TODO (kensipe): move to package list params (instead of package params list)
 	list := &paramsListCmd{fs: fs, out: out}
 
 	cmd := &cobra.Command{
@@ -43,10 +45,22 @@ func newParamsListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 		Short:   "List operator parameters",
 		Example: pkgParamsExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := validateOperatorArg(args); err != nil {
+
+			//TODO (kensipe): default to discoverable operator or args passed
+			path, patherr := generate.OperatorPath(fs)
+			if patherr != nil {
+				clog.V(2).Printf("operator path is not relative to execution")
+			} else {
+				list.path = path
+			}
+			err := validateOperatorArg(args)
+			if err != nil && patherr != nil {
 				return err
 			}
-			list.path = args[0]
+			// if passed in... args take precedence
+			if err == nil {
+				list.path = args[0]
+			}
 			return list.run(fs, &Settings)
 		},
 	}

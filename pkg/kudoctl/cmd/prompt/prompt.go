@@ -28,7 +28,6 @@ func WithOptions(label string, options []string) (string, error) {
 		return "", err
 	}
 	return strings.TrimSpace(result), nil
-
 }
 
 // input is output rune, in other words, no cursor
