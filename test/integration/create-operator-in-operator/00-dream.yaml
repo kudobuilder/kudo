@@ -25,14 +25,14 @@ spec:
       metadata:
         name: inner-instance
         labels:
-          kudo.dev/operator: test-operator
+          kudo.dev/operator: configmap-operator
       spec:
         operatorVersion:
           kind: OperatorVersion
-          name: test-operator-1.0
+          name: configmap-operator-1.0
           namespace: default
         parameters:
-          REPLICAS: "0"
+          PARAM: "xxx"
   tasks:
     - name: operator
       kind: Apply

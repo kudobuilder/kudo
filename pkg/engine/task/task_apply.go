@@ -69,18 +69,25 @@ func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
 		switch {
 		case apierrors.IsNotFound(err): // create resource if it doesn't exist
 			err = c.Create(context.TODO(), r)
+			// c.Create always overrides the input, in this case, the object that had previously set GVK loses it (at least for integration tests)
+			// and this was causing problems in health module
+			// with error failed to convert *unstructured.Unstructured to *v1.Deployment: Object 'Kind' is missing in 'unstructured object has no kind'
+			// so re-setting the GVK here to be sure
+			// https://github.com/kubernetes/kubernetes/issues/80609
+			r.GetObjectKind().SetGroupVersionKind(existing.GetObjectKind().GroupVersionKind())
 			if err != nil {
 				return nil, err
 			}
+			applied = append(applied, r)
 		case err != nil: // raise any error other than StatusReasonNotFound
 			return nil, err
 		default: // update existing resource
-			err := patch(r, existing, c)
+			err := patch(r, c)
 			if err != nil {
 				return nil, err
 			}
+			applied = append(applied, r)
 		}
-		applied = append(applied, existing)
 	}
 
 	return applied, nil
@@ -92,7 +99,8 @@ func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
 // kubernetes native objects might be a problem because we cannot just compare the spec as the spec might have extra fields
 // and those extra fields are set by some kubernetes component
 // because of that for now we just try to apply the patch every time
-func patch(newObj runtime.Object, existingObj runtime.Object, c client.Client) error {
+// it mutates the object passed in to be consistent with the kubernetes client behavior
+func patch(newObj runtime.Object, c client.Client) error {
 	newObjJSON, _ := apijson.Marshal(newObj)
 	key, _ := client.ObjectKeyFromObject(newObj)
 	_, isUnstructured := newObj.(runtime.Unstructured)
@@ -102,14 +110,15 @@ func patch(newObj runtime.Object, existingObj runtime.Object, c client.Client) e
 		// strategic merge patch is not supported for these types, falling back to merge patch
 		err := c.Patch(context.TODO(), newObj, client.ConstantPatch(types.MergePatchType, newObjJSON))
 		if err != nil {
-			return fmt.Errorf("failed to apply merge patch to object %s/%s: %w", key.Name, key.Name, err)
+			return fmt.Errorf("failed to apply merge patch to object %s/%s: %w", key.Namespace, key.Name, err)
 		}
 	} else {
-		err := c.Patch(context.TODO(), existingObj, client.ConstantPatch(types.StrategicMergePatchType, newObjJSON))
+		err := c.Patch(context.TODO(), newObj, client.ConstantPatch(types.StrategicMergePatchType, newObjJSON))
 		if err != nil {
 			return fmt.Errorf("failed to apply StrategicMergePatch to object %s/%s: %w", key.Namespace, key.Name, err)
 		}
 	}
+
 	return nil
 }
 

@@ -14,9 +14,9 @@ status:
   aggregatedStatus:
     status: COMPLETE
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: ConfigMap
 metadata:
-  name: nginx
-spec:
-  replicas: 0
+  name: test-configmap
+data:
+  foo: bar-xxx
