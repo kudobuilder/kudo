@@ -28,12 +28,12 @@ test:
 # Run e2e tests
 .PHONY: e2e-test
 e2e-test: cli-fast
-	./hack/run-e2e-tests.sh
+	./scripts/run-e2e-tests.sh
 
 .PHONY: integration-test
 # Run integration tests
 integration-test: cli-fast
-	./hack/run-integration-tests.sh
+	./scripts/run-integration-tests.sh
 
 .PHONY: test-clean
 # Clean test reports
@@ -43,7 +43,7 @@ test-clean:
 .PHONY: lint
 lint:
 ifeq (, $(shell which golangci-lint))
-	./hack/install-golangcilint.sh
+	./scripts/install-golangcilint.sh
 endif
 	golangci-lint run
 
@@ -132,7 +132,7 @@ docker-push:
 # used to update imports on project.  NOT a linter.
 imports:
 ifeq (, $(shell which golangci-lint))
-	./hack/install-golangcilint.sh
+	./scripts/install-golangcilint.sh
 endif
 	golangci-lint run --disable-all -E goimports --fix
 
