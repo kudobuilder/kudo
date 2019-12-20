@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/spf13/afero"
@@ -94,7 +95,8 @@ func (pkg *packageAddParameterCmd) run() error {
 		p.Description = desc
 	}
 
-	requiredValues := []string{"true", "false"}
+	// order determines the default ("false" is preferred)
+	requiredValues := []string{"false", "true"}
 	required, err := prompt.WithOptions("Required", requiredValues)
 	if err != nil {
 		return err
@@ -104,9 +106,20 @@ func (pkg *packageAddParameterCmd) run() error {
 		p.Required = &t
 	}
 
-	// TODO (kensipe): get list of plans
-	// TODO (kensipe): allow for "add" a plan which will add the plan
-	trigger, err := prompt.WithDefault("Trigger Plan", "")
+	//PlanNameList
+	planNames, err := generate.PlanNameList(pkg.fs, pkg.path)
+	if err != nil {
+		return err
+	}
+	var trigger string
+	fmt.Printf("testign")
+	if len(planNames) == 0 {
+		fmt.Printf("plans == 0")
+		trigger, err = prompt.WithDefault("Trigger Plan", "")
+	} else {
+		fmt.Printf("names %v", planNames)
+		trigger, err = prompt.WithOptions("Trigger Plan", planNames)
+	}
 	if err != nil {
 		return err
 	}
