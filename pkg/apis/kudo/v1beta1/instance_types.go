@@ -52,8 +52,6 @@ type InstanceSpec struct {
 type PlanExecution struct {
 	PlanName string `json:"planName"  validate:"required"`
 
-	Parameters map[string]string `json:"parameters,omitempty"`
-
 	// Future PE options like Force: bool. Not needed for now
 }
 

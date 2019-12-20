@@ -13,16 +13,20 @@ import (
 
 // +k8s:deepcopy-gen=false
 
-// InstanceValidator holds the data for the instance validator hook
-type InstanceValidator struct {
+// InstanceAdmission validates updates to an Instance, guarding from conflicting plan executions
+type InstanceAdmission struct {
 	client  client.Client
 	decoder *admission.Decoder
 }
 
-// InstanceValidator validates updates to an Instance, guarding from conflicting plan executions
-func (v *InstanceValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
+// InstanceAdmission validates updates to an Instance, guarding from conflicting plan executions
+func (v *InstanceAdmission) Handle(ctx context.Context, req admission.Request) admission.Response {
 
 	switch req.Operation {
+
+	case v1beta1.Create:
+		// 0. Trigger "deploy" by setting Instance.PlanExecution.PlanName = "deploy"
+
 	// we only validate Instance Updates
 	case v1beta1.Update:
 		old, new := &Instance{}, &Instance{}
@@ -40,6 +44,21 @@ func (v *InstanceValidator) Handle(ctx context.Context, req admission.Request) a
 		if err := validateUpdate(old, new); err != nil {
 			return admission.Denied(err.Error())
 		}
+		// 0. Prereqs:
+		//  a) new PE (Instance.Spec.PlanExecution.PlanName)
+		//  b) new Params (parameterDiff)
+		//  c) new OV (Instance.Spec.OperatorVersion)
+
+		// DECLINE if:
+		// 1. old PE exists and != new PE : no plan overriding yet
+		// 2 OV changed and old PE exists : no upgrade if a plan running/scheduled
+		// 3. If >1 distinct plans should be triggered based on params diff
+		// 4. If old PE != plan triggered by param change
+
+		// else ACCEPT:
+		// 1. Populate Instance.PlanExecution with the plan triggered by param change
+
+		// PROFIT!
 		return admission.Allowed("")
 	default:
 		return admission.Allowed("")
@@ -59,20 +78,20 @@ func specChanged(old InstanceSpec, new InstanceSpec) bool {
 	return !reflect.DeepEqual(old, new)
 }
 
-// InstanceValidator implements inject.Client.
+// InstanceAdmission implements inject.Client.
 // A client will be automatically injected.
 
 // InjectClient injects the client.
-func (v *InstanceValidator) InjectClient(c client.Client) error {
+func (v *InstanceAdmission) InjectClient(c client.Client) error {
 	v.client = c
 	return nil
 }
 
-// InstanceValidator implements admission.DecoderInjector.
+// InstanceAdmission implements admission.DecoderInjector.
 // A decoder will be automatically injected.
 
 // InjectDecoder injects the decoder.
-func (v *InstanceValidator) InjectDecoder(d *admission.Decoder) error {
+func (v *InstanceAdmission) InjectDecoder(d *admission.Decoder) error {
 	v.decoder = d
 	return nil
 }
