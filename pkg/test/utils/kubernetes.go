@@ -942,7 +942,7 @@ func RunCommands(logger Logger, namespace string, command string, commands []kud
 		stdout := &bytes.Buffer{}
 		stderr := &bytes.Buffer{}
 
-		logger.Log("Running command:", cmd)
+		logger.Logf("Running command: %s %s", command, cmd)
 
 		err := RunCommand(context.TODO(), namespace, command, cmd, workdir, stdout, stderr)
 		if err != nil {
