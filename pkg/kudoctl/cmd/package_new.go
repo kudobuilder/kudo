@@ -19,7 +19,7 @@ const (
 	pkgNewDesc = `Create a new KUDO operator on the local filesystem`
 
 	pkgNewExample = `  # Create a new KUDO operator name foo 
-  kubectl kudo package foo
+  kubectl kudo package new foo
 `
 )
 
@@ -93,7 +93,7 @@ func (pkg *packageNewCmd) run() error {
 		if len(input) < 1 {
 			return errors.New("Operator directory must have more than 1 character")
 		}
-		return generate.OperatorGenSafe(pkg.fs, input, pkg.overwrite)
+		return generate.CanGenerateOperator(pkg.fs, input, pkg.overwrite)
 	}
 
 	path, err := prompt.WithValidator("Operator directory", pathDefault, pathValid)

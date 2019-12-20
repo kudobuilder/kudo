@@ -16,20 +16,20 @@ func TestOperatorGenSafe(t *testing.T) {
 
 	//	empty fs should be fine
 	fs := afero.NewMemMapFs()
-	err := OperatorGenSafe(fs, "operator", false)
+	err := CanGenerateOperator(fs, "operator", false)
 	assert.Nil(t, err)
 
 	// folder that doesn't exist should be fine
-	err = OperatorGenSafe(fs, "operator", false)
+	err = CanGenerateOperator(fs, "operator", false)
 	assert.Nil(t, err)
 
 	_ = fs.Mkdir("operator", 0755)
 	// folder that exist should fail
-	err = OperatorGenSafe(fs, "operator", false)
+	err = CanGenerateOperator(fs, "operator", false)
 	assert.NotNil(t, err)
 
 	// folder that exist should not fail if overwrite
-	err = OperatorGenSafe(fs, "operator", true)
+	err = CanGenerateOperator(fs, "operator", true)
 	assert.Nil(t, err)
 }
 
@@ -48,7 +48,7 @@ func TestOperator_Write(t *testing.T) {
 	fs := afero.NewMemMapFs()
 
 	err := Operator(fs, "operator", op1, false)
-	//no error on create
+	// no error on create
 	assert.Nil(t, err)
 
 	// results in operator file
@@ -58,13 +58,13 @@ func TestOperator_Write(t *testing.T) {
 	exists, _ = afero.Exists(fs, paramFilename)
 	assert.True(t, exists)
 
-	//	test fail on existing
+	// test fail on existing
 	err = Operator(fs, "operator", op1, false)
 	assert.Errorf(t, err, "folder 'operator' already exists")
 
-	//	 test overwriting with no error
+	// test overwriting with no error
 	err = Operator(fs, "operator", op1, true)
-	//no error on overwrite
+	// no error on overwrite
 	assert.Nil(t, err)
 
 	// updating params file and testing params are not overwritten
@@ -75,9 +75,9 @@ func TestOperator_Write(t *testing.T) {
 	// replace param file with a marker "FOO" to test that we do NOT overwrite it
 	err = writeParameters(fs, "operator", pf)
 	assert.Nil(t, err)
-	//test overwriting with no error
+	// test overwriting with no error
 	err = Operator(fs, "operator", op1, true)
-	//no error on overwrite
+	// no error on overwrite
 	assert.Nil(t, err)
 	parmfile, _ := afero.ReadFile(fs, paramFilename)
 	assert.Contains(t, string(parmfile), "FOO")

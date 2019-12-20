@@ -31,8 +31,8 @@ func WithOptions(label string, options []string) (string, error) {
 
 }
 
+// input is output rune, in other words, no cursor
 func cursor(input []rune) []rune {
-	//return []rune("\u258D")
 	return input
 }
 
