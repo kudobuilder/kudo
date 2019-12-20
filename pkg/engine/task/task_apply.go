@@ -73,6 +73,7 @@ func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
 			// and this was causing problems in health module
 			// with error failed to convert *unstructured.Unstructured to *v1.Deployment: Object 'Kind' is missing in 'unstructured object has no kind'
 			// so re-setting the GVK here to be sure
+			// https://github.com/kubernetes/kubernetes/issues/80609
 			r.GetObjectKind().SetGroupVersionKind(existing.GetObjectKind().GroupVersionKind())
 			if err != nil {
 				return nil, err

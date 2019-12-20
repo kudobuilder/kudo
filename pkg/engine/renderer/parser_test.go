@@ -1,12 +1,9 @@
 package renderer
 
 import (
-	"fmt"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseKubernetesObjects_UnknownType(t *testing.T) {
@@ -58,11 +55,5 @@ spec:
 		t.Errorf("Expecting no error but got %s", err)
 	}
 
-	var o runtime.Object = obj[0]
-	fmt.Printf("%v \n", o.GetObjectKind().GroupVersionKind())
-
-	unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(o)
-
-	objUnstructured := &unstructured.Unstructured{Object: unstructMap}
-	fmt.Printf("%v \n", objUnstructured.GetObjectKind().GroupVersionKind())
+	assert.Equal(t, "Deployment", obj[0].GetObjectKind().GroupVersionKind().Kind)
 }
