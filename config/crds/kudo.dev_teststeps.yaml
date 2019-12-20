@@ -78,8 +78,8 @@ spec:
             real Kubernetes cluster.
           type: boolean
       required:
-      - unitTest
       - kubectl
+      - unitTest
   version: v1beta1
 status:
   acceptedNames:
