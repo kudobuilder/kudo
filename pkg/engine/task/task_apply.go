@@ -82,11 +82,11 @@ func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
 		case err != nil: // raise any error other than StatusReasonNotFound
 			return nil, err
 		default: // update existing resource
-			o, err := patch(r, c)
+			err := patch(r, c)
 			if err != nil {
 				return nil, err
 			}
-			applied = append(applied, o)
+			applied = append(applied, r)
 		}
 	}
 
@@ -99,8 +99,8 @@ func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
 // kubernetes native objects might be a problem because we cannot just compare the spec as the spec might have extra fields
 // and those extra fields are set by some kubernetes component
 // because of that for now we just try to apply the patch every time
-// returns the object that has been applied to the cluster
-func patch(newObj runtime.Object, c client.Client) (runtime.Object, error) {
+// it mutates the object passed in to be consistent with the kubernetes client behavior
+func patch(newObj runtime.Object, c client.Client) error {
 	newObjJSON, _ := apijson.Marshal(newObj)
 	key, _ := client.ObjectKeyFromObject(newObj)
 	_, isUnstructured := newObj.(runtime.Unstructured)
@@ -110,16 +110,16 @@ func patch(newObj runtime.Object, c client.Client) (runtime.Object, error) {
 		// strategic merge patch is not supported for these types, falling back to merge patch
 		err := c.Patch(context.TODO(), newObj, client.ConstantPatch(types.MergePatchType, newObjJSON))
 		if err != nil {
-			return nil, fmt.Errorf("failed to apply merge patch to object %s/%s: %w", key.Namespace, key.Name, err)
+			return fmt.Errorf("failed to apply merge patch to object %s/%s: %w", key.Namespace, key.Name, err)
 		}
 	} else {
 		err := c.Patch(context.TODO(), newObj, client.ConstantPatch(types.StrategicMergePatchType, newObjJSON))
 		if err != nil {
-			return nil, fmt.Errorf("failed to apply StrategicMergePatch to object %s/%s: %w", key.Namespace, key.Name, err)
+			return fmt.Errorf("failed to apply StrategicMergePatch to object %s/%s: %w", key.Namespace, key.Name, err)
 		}
 	}
 
-	return newObj, nil
+	return nil
 }
 
 func isKudoType(object runtime.Object) bool {
