@@ -15,7 +15,7 @@ require (
 	github.com/dustinkirkland/golang-petname v0.0.0-20191129215211-8e5a1ed0cff0
 	github.com/emicklei/go-restful v2.9.6+incompatible // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
-	github.com/go-bindata/go-bindata v3.1.2+incompatible // indirect
+	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
 	github.com/google/btree v1.0.0 // indirect
@@ -29,6 +29,7 @@ require (
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/magiconair/properties v1.8.1
 	github.com/mailru/easyjson v0.0.0-20190620125010-da37f6c1e481 // indirect
+	github.com/manifoldco/promptui v0.6.0
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/mitchellh/copystructure v1.0.0 // indirect
