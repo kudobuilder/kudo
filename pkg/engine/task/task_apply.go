@@ -68,9 +68,11 @@ func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
 
 		switch {
 		case apierrors.IsNotFound(err): // create resource if it doesn't exist
-			fmt.Printf("pregvk %v \n", r.GetObjectKind().GroupVersionKind())
 			err = c.Create(context.TODO(), r)
-			fmt.Printf("postgvk %v \n", r.GetObjectKind().GroupVersionKind())
+			// c.Create always overrides the input, in this case, the object that had previously set GVK loses it (at least for integration tests)
+			// and this was causing problems in health module
+			// with error failed to convert *unstructured.Unstructured to *v1.Deployment: Object 'Kind' is missing in 'unstructured object has no kind'
+			// so re-setting the GVK here to be sure
 			r.GetObjectKind().SetGroupVersionKind(existing.GetObjectKind().GroupVersionKind())
 			if err != nil {
 				return nil, err
