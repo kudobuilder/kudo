@@ -82,20 +82,20 @@ spec:
           format: int64
           type: integer
       required:
+      - artifactsDir
       - crdDir
-      - manifestDirs
-      - testDirs
-      - startControlPlane
-      - startKIND
       - kindConfig
       - kindContext
-      - startKUDO
-      - skipDelete
-      - skipClusterDelete
-      - timeout
-      - parallel
-      - artifactsDir
       - kubectl
+      - manifestDirs
+      - parallel
+      - skipClusterDelete
+      - skipDelete
+      - startControlPlane
+      - startKIND
+      - startKUDO
+      - testDirs
+      - timeout
   version: v1beta1
 status:
   acceptedNames:
