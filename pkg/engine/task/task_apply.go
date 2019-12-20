@@ -68,7 +68,9 @@ func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
 
 		switch {
 		case apierrors.IsNotFound(err): // create resource if it doesn't exist
+			fmt.Printf("pregvk %v \n", r.GetObjectKind().GroupVersionKind())
 			err = c.Create(context.TODO(), r)
+			fmt.Printf("postgvk %v \n", r.GetObjectKind().GroupVersionKind())
 			r.GetObjectKind().SetGroupVersionKind(existing.GetObjectKind().GroupVersionKind())
 			if err != nil {
 				return nil, err

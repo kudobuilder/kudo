@@ -22,7 +22,7 @@ func YamlToObject(yaml string) (objs []runtime.Object, err error) {
 		}
 
 		decode := scheme.Codecs.UniversalDeserializer().Decode
-		obj, gvk, e := decode([]byte(f), nil, nil)
+		obj, _, e := decode([]byte(f), nil, nil)
 
 		if e != nil {
 			// if parsing to scheme known types fails, just try to parse into unstructured
@@ -34,9 +34,6 @@ func YamlToObject(yaml string) (objs []runtime.Object, err error) {
 			}
 			objs = append(objs, unstructuredObj)
 		} else {
-			if gvk != nil {
-				obj.GetObjectKind().SetGroupVersionKind(*gvk)
-			}
 			objs = append(objs, obj)
 		}
 	}

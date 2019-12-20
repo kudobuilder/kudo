@@ -27,8 +27,6 @@ func IsHealthy(obj runtime.Object) error {
 	}
 
 	objUnstructured := &unstructured.Unstructured{Object: unstructMap}
-	// if this is missing, unstructured won't contain GVK
-	objUnstructured.SetGroupVersionKind(obj.GetObjectKind().GroupVersionKind())
 	switch obj := obj.(type) {
 	case *appsv1.StatefulSet:
 		statusViewer := &polymorphichelpers.StatefulSetStatusViewer{}
