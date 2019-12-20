@@ -84,6 +84,10 @@ deploy-clean:
 .PHONY: generate
 # Generate code
 generate:
+ifeq (, $(shell which go-bindata))
+	go get github.com/go-bindata/go-bindata/go-bindata
+endif
+	go-bindata -pkg crd -o pkg/kudoctl/kudoinit/crd/bindata.go -ignore README.md config/crds
 	./hack/update_codegen.sh
 
 .PHONY: generate-clean
