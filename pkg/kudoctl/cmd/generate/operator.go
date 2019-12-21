@@ -37,7 +37,7 @@ func CanGenerateOperator(fs afero.Fs, dir string, overwrite bool) error {
 }
 
 // Operator generates an initial operator folder with a operator.yaml
-func Operator(fs afero.Fs, dir string, op packages.OperatorFile, overwrite bool) error {
+func Operator(fs afero.Fs, dir string, op *packages.OperatorFile, overwrite bool) error {
 	err := CanGenerateOperator(fs, dir, overwrite)
 	if err != nil {
 		return err
@@ -91,7 +91,7 @@ func writeParameters(fs afero.Fs, dir string, params packages.ParamsFile) error 
 	return afero.WriteFile(fs, fname, p, 0755)
 }
 
-func writeOperator(fs afero.Fs, dir string, op packages.OperatorFile) error {
+func writeOperator(fs afero.Fs, dir string, op *packages.OperatorFile) error {
 	o, err := yaml.Marshal(op)
 	if err != nil {
 		return err

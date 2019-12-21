@@ -7,6 +7,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 )
 
+// AddMaintainer adds a maintainer to the operator.yaml
 func AddMaintainer(fs afero.Fs, path string, m *v1beta1.Maintainer) error {
 
 	p, err := reader.ReadDir(fs, path)
@@ -17,7 +18,7 @@ func AddMaintainer(fs afero.Fs, path string, m *v1beta1.Maintainer) error {
 
 	o.Maintainers = append(o.Maintainers, m)
 
-	return writeOperator(fs, path, *o)
+	return writeOperator(fs, path, o)
 }
 
 // MaintainerList provides a list of operator maintainers

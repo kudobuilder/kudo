@@ -11,16 +11,17 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 )
 
-func AddTask(fs afero.Fs, path string, task v1beta1.Task) error {
+// AddTask adds a task to the operator.yaml file
+func AddTask(fs afero.Fs, path string, task *v1beta1.Task) error {
 	p, err := reader.ReadDir(fs, path)
 	if err != nil {
 		return err
 	}
 	o := p.Files.Operator
 
-	o.Tasks = append(o.Tasks, task)
+	o.Tasks = append(o.Tasks, *task)
 
-	return writeOperator(fs, path, *o)
+	return writeOperator(fs, path, o)
 }
 
 // TaskList provides a list of operator tasks
@@ -51,7 +52,8 @@ func TaskKinds() []string {
 	return []string{task.ApplyTaskKind, task.DeleteTaskKind} //, task.PipeTaskKind}
 }
 
-func AddResource(fs afero.Fs, dir string, resource string) error {
+// EnsureResource ensures that resource is in templates folder
+func EnsureResource(fs afero.Fs, dir string, resource string) error {
 
 	// does "operator" path exist?  if not err
 	exists, err := afero.DirExists(fs, dir)

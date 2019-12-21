@@ -7,6 +7,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 )
 
+// AddPlan adds a plan to the operator.yaml file
 func AddPlan(fs afero.Fs, path string, planName string, plan v1beta1.Plan) error {
 
 	pf, err := reader.ReadDir(fs, path)
@@ -19,7 +20,7 @@ func AddPlan(fs afero.Fs, path string, planName string, plan v1beta1.Plan) error
 	plans[planName] = plan
 	pf.Files.Operator.Plans = plans
 
-	return writeOperator(fs, path, *o)
+	return writeOperator(fs, path, o)
 }
 
 // PlanList provides a list of operator plans

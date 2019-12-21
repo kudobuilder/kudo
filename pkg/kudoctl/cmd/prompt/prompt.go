@@ -6,6 +6,7 @@ import (
 	"github.com/manifoldco/promptui"
 )
 
+// WithOptions prompts for option selection, first element in slice is default
 func WithOptions(label string, options []string, allowOther bool) (string, error) {
 
 	if allowOther {
@@ -48,10 +49,12 @@ func cursor(input []rune) []rune {
 	return input
 }
 
+// WithDefault prompts for a response to a label
 func WithDefault(label string, defaultStr string) (string, error) {
 	return WithValidator(label, defaultStr, nil)
 }
 
+// WithValidator prompts for a response to a label with a validation function
 func WithValidator(label string, defaultStr string, validate promptui.ValidateFunc) (string, error) {
 	prompt := promptui.Prompt{
 		Label:    label,

@@ -1,15 +1,11 @@
 package cmd
 
 import (
-	"errors"
-	"fmt"
 	"io"
-	"strings"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/generate"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/prompt"
 )
@@ -57,68 +53,22 @@ func newPackageAddTaskCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 func (pkg *packageAddTaskCmd) run() error {
 	// interactive mode
-	nameValid := func(input string) error {
-		if len(input) < 1 {
-			return errors.New("Task name must be > than 1 character")
-		}
-		exists, err := generate.TaskInList(pkg.fs, pkg.path, input)
-		if err != nil {
-			return err
-		}
-		if exists {
-			return errors.New("Task name must be unique")
-		}
-		return nil
+	existing, err := generate.TaskList(pkg.fs, pkg.path)
+	if err != nil {
+		return err
 	}
-	name, err := prompt.WithValidator("Task Name", "", nameValid)
+	task, err := prompt.ForTask(existing)
 	if err != nil {
 		return err
 	}
 
-	kind, err := prompt.WithOptions("Task Kind", generate.TaskKinds(), false)
-	if err != nil {
-		return err
-	}
-
-	var again bool
-	resources := []string{}
-	for {
-		resource, err := prompt.WithDefault("Task Resource", "")
+	// ensure resources exist
+	for _, resource := range task.Spec.Resources {
+		err = generate.EnsureResource(pkg.fs, pkg.path, resource)
 		if err != nil {
-			return err
+			return nil
 		}
-		resources = append(resources, ensureFileExtension(resource, "yaml"))
-
-		again = prompt.Confirm("Add another resource")
-		if !again {
-			break
-		}
-	}
-
-	for _, resource := range resources {
-		err = generate.AddResource(pkg.fs, pkg.path, resource)
-		if err != nil {
-			return err
-		}
-	}
-
-	//TODO (kensipe): lets add pipe tasks!
-	spec := v1beta1.TaskSpec{
-		ResourceTaskSpec: v1beta1.ResourceTaskSpec{Resources: resources},
-	}
-
-	task := v1beta1.Task{
-		Name: name,
-		Kind: kind,
-		Spec: spec,
 	}
 
 	return generate.AddTask(pkg.fs, pkg.path, task)
-}
-
-func ensureFileExtension(fname, ext string) string {
-	if strings.Contains(fname, ".") {
-		return fname
-	}
-	return fmt.Sprintf("%s.%s", fname, ext)
 }

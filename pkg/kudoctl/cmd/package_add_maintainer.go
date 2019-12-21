@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"io"
-	"regexp"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -79,38 +78,11 @@ func (pkg *packageAddMaintainerCmd) run(args []string) error {
 		m := v1beta1.Maintainer{Name: args[0], Email: args[1]}
 		return generate.AddMaintainer(pkg.fs, pkg.path, &m)
 	}
-
 	// interactive mode
-	nameValid := func(input string) error {
-		if len(input) < 1 {
-			return errors.New("Maintainer name must be > than 1 character")
-		}
-		return nil
-	}
-
-	name, err := prompt.WithValidator("Maintainer Name", "", nameValid)
+	m, err := prompt.ForMaintainer()
 	if err != nil {
 		return err
 	}
 
-	emailValid := func(input string) error {
-
-		if !validEmail(input) {
-			return errors.New("maintainer email must be valid email address")
-		}
-		return nil
-	}
-
-	email, err := prompt.WithValidator("Maintainer Email", "", emailValid)
-	if err != nil {
-		return err
-	}
-
-	m := v1beta1.Maintainer{Name: name, Email: email}
-	return generate.AddMaintainer(pkg.fs, pkg.path, &m)
-}
-
-func validEmail(email string) bool {
-	re := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
-	return re.MatchString(email)
+	return generate.AddMaintainer(pkg.fs, pkg.path, m)
 }

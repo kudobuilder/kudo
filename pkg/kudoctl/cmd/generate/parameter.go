@@ -7,6 +7,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 )
 
+// AddParameter writes a parameter to the params.yaml file
 func AddParameter(fs afero.Fs, path string, p *v1beta1.Parameter) error {
 
 	pf, err := reader.ReadDir(fs, path)
