@@ -54,7 +54,6 @@ func newPackageAddParameterCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	return cmd
 }
 
-// run returns the errors associated with cmd env
 func (pkg *packageAddParameterCmd) run() error {
 	// interactive mode
 	nameValid := func(input string) error {
@@ -97,7 +96,7 @@ func (pkg *packageAddParameterCmd) run() error {
 
 	// order determines the default ("false" is preferred)
 	requiredValues := []string{"false", "true"}
-	required, err := prompt.WithOptions("Required", requiredValues)
+	required, err := prompt.WithOptions("Required", requiredValues, true)
 	if err != nil {
 		return err
 	}
@@ -118,7 +117,7 @@ func (pkg *packageAddParameterCmd) run() error {
 		trigger, err = prompt.WithDefault("Trigger Plan", "")
 	} else {
 		fmt.Printf("names %v", planNames)
-		trigger, err = prompt.WithOptions("Trigger Plan", planNames)
+		trigger, err = prompt.WithOptions("Trigger Plan", planNames, true)
 	}
 	if err != nil {
 		return err

@@ -6,28 +6,41 @@ import (
 	"github.com/manifoldco/promptui"
 )
 
-func WithOptions(label string, options []string) (string, error) {
-	index := -1
-	var err error
-	var result string
+func WithOptions(label string, options []string, allowOther bool) (string, error) {
 
-	for index < 0 {
-		prompt := promptui.SelectWithAdd{
-			Label:    label,
-			Items:    options,
-			AddLabel: "Other",
+	if allowOther {
+		var err error
+		var result string
+		index := -1
+		for index < 0 {
+			prompt := promptui.SelectWithAdd{
+				Label:    label,
+				Items:    options,
+				AddLabel: "Other",
+			}
+
+			index, result, err = prompt.Run()
+			if index == -1 {
+				options = append(options, result)
+			}
 		}
 
-		index, result, err = prompt.Run()
-		if index == -1 {
-			options = append(options, result)
+		if err != nil {
+			return "", err
 		}
+		return strings.TrimSpace(result), nil
+	}
+	prompt := promptui.Select{
+		Label: label,
+		Items: options,
 	}
 
+	_, result, err := prompt.Run()
 	if err != nil {
 		return "", err
 	}
 	return strings.TrimSpace(result), nil
+
 }
 
 // input is output rune, in other words, no cursor
@@ -52,4 +65,18 @@ func WithValidator(label string, defaultStr string, validate promptui.ValidateFu
 		return "", err
 	}
 	return strings.TrimSpace(result), nil
+}
+
+// Confirm prompts for Y/N question with label and returns true or false for confirmation
+func Confirm(label string) bool {
+	prompt := promptui.Prompt{
+		Label:     label,
+		IsConfirm: true,
+	}
+
+	result, err := prompt.Run()
+	if err != nil {
+		return false
+	}
+	return strings.ToLower(result) == "y"
 }
