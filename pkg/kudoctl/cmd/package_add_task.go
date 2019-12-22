@@ -70,5 +70,12 @@ func (pkg *packageAddTaskCmd) run() error {
 		}
 	}
 
+	if task.Spec.Pod != "" {
+		err = generate.EnsureResource(pkg.fs, pkg.path, task.Spec.Pod)
+		if err != nil {
+			return nil
+		}
+	}
+
 	return generate.AddTask(pkg.fs, pkg.path, task)
 }

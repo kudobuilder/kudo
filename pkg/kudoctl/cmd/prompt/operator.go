@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/generate"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
@@ -202,34 +203,71 @@ func ForTask(existingTasks []v1beta1.Task) (*v1beta1.Task, error) {
 	if err != nil {
 		return nil, err
 	}
+	spec := v1beta1.TaskSpec{}
 
-	var again bool
-	resources := []string{}
-	for {
-		resource, err := WithDefault("Task Resource", "")
+	switch kind {
+	case task.ApplyTaskKind:
+		fallthrough
+	case task.DeleteTaskKind:
+		var again bool
+		resources := []string{}
+		for {
+			resource, err := WithDefault("Task Resource", "")
+			if err != nil {
+				return nil, err
+			}
+			resources = append(resources, ensureFileExtension(resource, "yaml"))
+
+			again = Confirm("Add another resource")
+			if !again {
+				break
+			}
+		}
+		spec.ResourceTaskSpec = v1beta1.ResourceTaskSpec{Resources: resources}
+
+	case task.PipeTaskKind:
+		pod, err := WithDefault("Pipe Pod File", "")
 		if err != nil {
 			return nil, err
 		}
-		resources = append(resources, ensureFileExtension(resource, "yaml"))
-
-		again = Confirm("Add another resource")
-		if !again {
-			break
+		var again bool
+		pipes := []v1beta1.PipeSpec{}
+		for {
+			file, err := WithDefault("Pipe File (internal to pod)", "")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := WithDefault("Pipe Kind", "ConfigMap")
+			if err != nil {
+				return nil, err
+			}
+			key, err := WithDefault("Pipe Kind Key", "")
+			if err != nil {
+				return nil, err
+			}
+			pipes = append(pipes, v1beta1.PipeSpec{
+				File: file,
+				Kind: kind,
+				Key:  key,
+			})
+			again = Confirm("Add another pipe")
+			if !again {
+				break
+			}
+		}
+		spec.PipeTaskSpec = v1beta1.PipeTaskSpec{
+			Pod:  ensureFileExtension(pod, "yaml"),
+			Pipe: pipes,
 		}
 	}
 
-	//TODO (kensipe): lets add pipe tasks!
-	spec := v1beta1.TaskSpec{
-		ResourceTaskSpec: v1beta1.ResourceTaskSpec{Resources: resources},
-	}
-
-	task := v1beta1.Task{
+	t := v1beta1.Task{
 		Name: name,
 		Kind: kind,
 		Spec: spec,
 	}
 
-	return &task, nil
+	return &t, nil
 }
 
 func taskExists(name string, existingTasks []v1beta1.Task) bool {
