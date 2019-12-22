@@ -15,7 +15,7 @@ spec:
   parameters:
   - name: foo
   plans:
-    deploy:
+    deploy: {}
 ---
 apiVersion: kudo.dev/v1beta1
 kind: Instance

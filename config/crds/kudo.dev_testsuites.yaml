@@ -3,42 +3,77 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.4
   creationTimestamp: null
-  labels:
-    controller-tools.k8s.io: "1.0"
   name: testsuites.kudo.dev
 spec:
   group: kudo.dev
   names:
     kind: TestSuite
+    listKind: TestSuiteList
     plural: testsuites
+    singular: testsuite
   scope: Namespaced
   validation:
     openAPIV3Schema:
+      description: TestSuite configures which tests should be loaded.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
             of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         artifactsDir:
           description: The directory to output artifacts to (current working directory
             if not specified).
           type: string
+        commands:
+          description: Commands to run prior to running the tests.
+          items:
+            description: Command describes a command to run as a part of a test step
+              or suite.
+            properties:
+              command:
+                description: The command and argument to run as a string.
+                type: string
+              ignoreFailure:
+                description: If set, failures will be ignored.
+                type: boolean
+              namespaced:
+                description: If set, the `--namespace` flag will be appended to the
+                  command with the namespace to use.
+                type: boolean
+            required:
+            - command
+            - ignoreFailure
+            - namespaced
+            type: object
+          type: array
         crdDir:
           description: Path to CRDs to install before running tests.
           type: string
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         kindConfig:
           description: Path to the KIND configuration file to use.
           type: string
+        kindContainers:
+          description: Containers to load to each KIND node prior to running the tests.
+          items:
+            type: string
+          type: array
         kindContext:
           description: KIND context to use.
           type: string
+        kindNodeCache:
+          description: If set, each node defined in the kind configuration will have
+            a docker named volume mounted into it to persist pulled container images
+            across test runs.
+          type: boolean
         kubectl:
           description: Kubectl commands to run before running any tests.
           items:
@@ -85,9 +120,12 @@ spec:
           type: integer
       required:
       - artifactsDir
+      - commands
       - crdDir
       - kindConfig
+      - kindContainers
       - kindContext
+      - kindNodeCache
       - kubectl
       - manifestDirs
       - parallel
@@ -98,7 +136,12 @@ spec:
       - startKUDO
       - testDirs
       - timeout
+      type: object
   version: v1beta1
+  versions:
+  - name: v1beta1
+    served: true
+    storage: true
 status:
   acceptedNames:
     kind: ""
