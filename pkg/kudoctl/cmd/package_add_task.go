@@ -24,7 +24,7 @@ type packageAddTaskCmd struct {
 	fs          afero.Fs
 }
 
-// newPackageAddTaskCmd creates an operator tarball. fs is the file system, out is stdout for CLI
+// newPackageAddTaskCmd adds a task to an exist operator package
 func newPackageAddTaskCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 	pkg := &packageAddTaskCmd{out: out, fs: fs}

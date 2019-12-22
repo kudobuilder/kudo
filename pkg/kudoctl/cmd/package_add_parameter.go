@@ -24,7 +24,7 @@ type packageAddParameterCmd struct {
 	fs          afero.Fs
 }
 
-// newPackageAddParameterCmd creates an operator tarball. fs is the file system, out is stdout for CLI
+// newPackageAddParameterCmd adds a parameter to an exist operator params.yaml file
 func newPackageAddParameterCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 	pkg := &packageAddParameterCmd{out: out, fs: fs}

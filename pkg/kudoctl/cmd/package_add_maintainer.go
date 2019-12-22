@@ -28,12 +28,12 @@ type packageAddMaintainerCmd struct {
 	fs          afero.Fs
 }
 
-// newPackageCreateCmd creates an operator tarball. fs is the file system, out is stdout for CLI
+// newPackageAddMaintainerCmd adds a maintainer to an exist operator package
 func newPackageAddMaintainerCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 	pkg := &packageAddMaintainerCmd{out: out, fs: fs}
 	cmd := &cobra.Command{
-		Use:     "maintainer <operator_dir>",
+		Use:     "maintainer",
 		Short:   "adds a maintainer to the operator.yaml file",
 		Long:    pkgAddMaintainerDesc,
 		Example: pkgAddMaintainerExample,
