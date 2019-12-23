@@ -53,6 +53,9 @@ func newPackageAddPlanCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 func (pkg *packageAddPlanCmd) run() error {
 
+	// get list of plans
+	// get list of tasks
+
 	// interactive mode
 	existing, err := generate.TaskList(pkg.fs, pkg.path)
 	if err != nil {
