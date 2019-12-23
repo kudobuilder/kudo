@@ -117,7 +117,6 @@ func OperatorPath(fs afero.Fs) (string, error) {
 	pat := path.Join("**", fname)
 	// one more try
 	files, err := afero.Glob(fs, pat)
-	fmt.Printf("files: %v", files)
 	if err != nil {
 		return "", err
 	}
