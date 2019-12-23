@@ -20,3 +20,16 @@ func AddParameter(fs afero.Fs, path string, p *v1beta1.Parameter) error {
 
 	return writeParameters(fs, path, *params)
 }
+
+func ParameterNameList(fs afero.Fs, path string) (paramNames []string, err error) {
+	pf, err := reader.ReadDir(fs, path)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, parameter := range pf.Files.Params.Parameters {
+		paramNames = append(paramNames, parameter.Name)
+	}
+
+	return paramNames, nil
+}

@@ -59,7 +59,12 @@ func (pkg *packageAddParameterCmd) run() error {
 		return err
 	}
 
-	param, err := prompt.ForParameter(planNames)
+	paramNames, err := generate.ParameterNameList(pkg.fs, pkg.path)
+	if err != nil {
+		return err
+	}
+
+	param, err := prompt.ForParameter(planNames, paramNames)
 	if err != nil {
 		return err
 	}

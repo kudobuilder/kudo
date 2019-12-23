@@ -116,10 +116,13 @@ func validEmail(email string) bool {
 }
 
 // ForParameter prompts to gather information to add an operator parameter
-func ForParameter(planNames []string) (*v1beta1.Parameter, error) {
+func ForParameter(planNames []string, paramNameList []string) (*v1beta1.Parameter, error) {
 	nameValid := func(input string) error {
 		if len(input) < 1 {
 			return errors.New("Parameter name must be > than 1 character")
+		}
+		if inArray(input, paramNameList) {
+			return errors.New("Parameter name must be unique")
 		}
 		return nil
 	}
@@ -167,17 +170,19 @@ func ForParameter(planNames []string) (*v1beta1.Parameter, error) {
 	}
 
 	//PlanNameList
-	var trigger string
-	if len(planNames) == 0 {
-		trigger, err = WithDefault("Trigger Plan", "")
-	} else {
-		trigger, err = WithOptions("Trigger Plan", planNames, "New plan name to trigger")
-	}
-	if err != nil {
-		return nil, err
-	}
-	if trigger != "" {
-		parameter.Trigger = trigger
+	if Confirm("Add Trigger Plan") {
+		var trigger string
+		if len(planNames) == 0 {
+			trigger, err = WithDefault("Trigger Plan", "")
+		} else {
+			trigger, err = WithOptions("Trigger Plan", planNames, "New plan name to trigger")
+		}
+		if err != nil {
+			return nil, err
+		}
+		if trigger != "" {
+			parameter.Trigger = trigger
+		}
 	}
 
 	return &parameter, nil
