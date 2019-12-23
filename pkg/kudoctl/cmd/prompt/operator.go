@@ -241,7 +241,7 @@ func ForTask(name string) (*v1beta1.Task, error) {
 			if err != nil {
 				return nil, err
 			}
-			kind, err := WithDefault("Pipe Kind", "ConfigMap")
+			kind, err := WithOptions("Pipe Kind", []string{"ConfigMap", "Secret"}, "")
 			if err != nil {
 				return nil, err
 			}
@@ -308,10 +308,7 @@ func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string,
 		}
 		return nil
 	}
-	defaultPlanName := ""
-	defaultPhaseName := ""
-	defaultStepName := ""
-	defaultTaskName := ""
+	var defaultPlanName, defaultPhaseName, defaultStepName, defaultTaskName string
 	if len(planNames) == 0 {
 		defaultPlanName = "deploy"
 		defaultPhaseName = defaultPlanName
@@ -338,26 +335,9 @@ func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string,
 	phaseNames := []string{}
 	phases := []v1beta1.Phase{}
 	for {
-		pnameValid := func(input string) error {
-			if len(input) < 1 {
-				return errors.New("Phase name must be > than 1 character")
-			}
-			if inArray(input, phaseNames) {
-				return errors.New("Phase name must be unique in plan")
-			}
-			return nil
-		}
-		pname, err := WithValidator(fmt.Sprintf("Phase %v name", index), defaultPhaseName, pnameValid)
+		phase, err := forPhase(phaseNames, index, defaultPhaseName)
 		if err != nil {
 			return "", nil, err
-		}
-		phaseStrat, err := WithOptions("Phase strategy for steps", []string{string(v1beta1.Serial), string(v1beta1.Parallel)}, "")
-		if err != nil {
-			return "", nil, err
-		}
-		phase := v1beta1.Phase{
-			Name:     pname,
-			Strategy: v1beta1.Ordering(phaseStrat),
 		}
 
 		// setting up for array of steps in a phase
@@ -366,35 +346,21 @@ func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string,
 		var stepNames []string
 		var steps []v1beta1.Step
 		for {
-			stepNameValid := func(input string) error {
-				if len(input) < 1 {
-					return errors.New("Step name must be > than 1 character")
-				}
-				if inArray(input, stepNames) {
-					return errors.New("Step name must be unique in a Phase")
-				}
-				return nil
-			}
-			stepName, err := WithValidator(fmt.Sprintf("Step %v name", stepIndex), defaultStepName, stepNameValid)
+
+			step, err := forStep(stepNames, stepIndex, defaultStepName)
 			if err != nil {
 				return "", nil, err
 			}
+
 			stepIndex++
-			stepNames = append(stepNames, stepName)
+			stepNames = append(stepNames, step.Name)
 
 			// setting up for array of tasks in a step
 			var stepTaskNames []string
 			taskIndex := 1
 			anotherTask := false
 			for {
-				var taskName string
-				// if there are no tasks OR if we are using all tasks that are defined
-				if len(allTaskNames) == 0 || len(allTaskNames) == len(stepTaskNames) {
-					// no list if there is nothing in the list
-					taskName, err = WithDefault(fmt.Sprintf("Task Name %v for Step %q", taskIndex, stepName), defaultTaskName)
-				} else {
-					taskName, err = WithOptions(fmt.Sprintf("Task Name %v for Step %q", taskIndex, stepName), allTaskNames, "Add New Task")
-				}
+				taskName, err := forStepTaskName(allTaskNames, stepTaskNames, taskIndex, step.Name, defaultTaskName)
 				if err != nil {
 					return "", nil, err
 				}
@@ -414,9 +380,8 @@ func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string,
 				}
 			}
 
-			step := v1beta1.Step{Name: stepName, Tasks: stepTaskNames}
-
-			steps = append(steps, step)
+			step.Tasks = stepTaskNames
+			steps = append(steps, *step)
 			defaultStepName = ""
 			anotherStep = Confirm("Add another Step")
 			if !anotherStep {
@@ -425,7 +390,7 @@ func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string,
 		}
 		phase.Steps = steps
 
-		phases = append(phases, phase)
+		phases = append(phases, *phase)
 		index++
 		defaultPhaseName = ""
 		anotherPhase = Confirm("Add another Phase")
@@ -437,6 +402,60 @@ func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string,
 
 	return name, &plan, nil
 
+}
+
+func forStepTaskName(allTaskNames []string, stepTaskNames []string, taskIndex int, name string, defaultTaskName string) (taskName string, err error) {
+	// if there are no tasks OR if we are using all tasks that are defined
+	if len(allTaskNames) == 0 || len(allTaskNames) == len(stepTaskNames) {
+		// no list if there is nothing in the list
+		taskName, err = WithDefault(fmt.Sprintf("Task Name %v for Step %q", taskIndex, name), defaultTaskName)
+	} else {
+		taskName, err = WithOptions(fmt.Sprintf("Task Name %v for Step %q", taskIndex, name), allTaskNames, "Add New Task")
+	}
+	return taskName, err
+}
+
+func forStep(stepNames []string, stepIndex int, defaultStepName string) (*v1beta1.Step, error) {
+	stepNameValid := func(input string) error {
+		if len(input) < 1 {
+			return errors.New("Step name must be > than 1 character")
+		}
+		if inArray(input, stepNames) {
+			return errors.New("Step name must be unique in a Phase")
+		}
+		return nil
+	}
+	stepName, err := WithValidator(fmt.Sprintf("Step %v name", stepIndex), defaultStepName, stepNameValid)
+	if err != nil {
+		return nil, err
+	}
+	step := v1beta1.Step{Name: stepName}
+	return &step, nil
+}
+
+func forPhase(phaseNames []string, index int, defaultPhaseName string) (*v1beta1.Phase, error) {
+	pnameValid := func(input string) error {
+		if len(input) < 1 {
+			return errors.New("Phase name must be > than 1 character")
+		}
+		if inArray(input, phaseNames) {
+			return errors.New("Phase name must be unique in plan")
+		}
+		return nil
+	}
+	pname, err := WithValidator(fmt.Sprintf("Phase %v name", index), defaultPhaseName, pnameValid)
+	if err != nil {
+		return nil, err
+	}
+	phaseStrat, err := WithOptions("Phase strategy for steps", []string{string(v1beta1.Serial), string(v1beta1.Parallel)}, "")
+	if err != nil {
+		return nil, err
+	}
+	phase := v1beta1.Phase{
+		Name:     pname,
+		Strategy: v1beta1.Ordering(phaseStrat),
+	}
+	return &phase, nil
 }
 
 func inArray(input string, values []string) bool {
