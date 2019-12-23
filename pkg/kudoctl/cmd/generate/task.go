@@ -52,6 +52,25 @@ func TaskKinds() []string {
 	return []string{task.ApplyTaskKind, task.DeleteTaskKind, task.PipeTaskKind}
 }
 
+// EnsureTaskResources give a task will ensure all resources exist
+func EnsureTaskResources(fs afero.Fs, path string, task *v1beta1.Task) error {
+
+	for _, resource := range task.Spec.Resources {
+		err := EnsureResource(fs, path, resource)
+		if err != nil {
+			return nil
+		}
+	}
+
+	if task.Spec.Pod != "" {
+		err := EnsureResource(fs, path, task.Spec.Pod)
+		if err != nil {
+			return nil
+		}
+	}
+	return nil
+}
+
 // EnsureResource ensures that resource is in templates folder
 func EnsureResource(fs afero.Fs, dir string, resource string) error {
 

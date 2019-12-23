@@ -8,7 +8,7 @@ import (
 )
 
 // AddPlan adds a plan to the operator.yaml file
-func AddPlan(fs afero.Fs, path string, planName string, plan v1beta1.Plan) error {
+func AddPlan(fs afero.Fs, path string, planName string, plan *v1beta1.Plan) error {
 
 	pf, err := reader.ReadDir(fs, path)
 	if err != nil {
@@ -17,7 +17,7 @@ func AddPlan(fs afero.Fs, path string, planName string, plan v1beta1.Plan) error
 
 	o := pf.Files.Operator
 	plans := o.Plans
-	plans[planName] = plan
+	plans[planName] = *plan
 	pf.Files.Operator.Plans = plans
 
 	return writeOperator(fs, path, o)

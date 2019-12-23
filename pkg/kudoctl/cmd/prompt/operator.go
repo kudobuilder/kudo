@@ -285,3 +285,157 @@ func ensureFileExtension(fname, ext string) string {
 	}
 	return fmt.Sprintf("%s.%s", fname, ext)
 }
+
+func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string, createTaskFun func(fs afero.Fs, path string) error) (string, *v1beta1.Plan, error) {
+
+	// initialized to all TaskNames... tasks can be added in the process of creating a plan which will be
+	// added to this list in the process.
+	allTaskNames := []string{}
+	for _, task := range tasks {
+		allTaskNames = append(allTaskNames, task.Name)
+	}
+
+	nameValid := func(input string) error {
+		if len(input) < 1 {
+			return errors.New("Plan name must be > than 1 character")
+		}
+		if inArray(input, planNames) {
+			return errors.New("Plan name must be unique")
+		}
+		return nil
+	}
+	defaultPlanName := ""
+	defaultPhaseName := ""
+	defaultStepName := ""
+	defaultTaskName := ""
+	if len(planNames) == 0 {
+		defaultPlanName = "deploy"
+		defaultPhaseName = defaultPlanName
+		defaultStepName = defaultPlanName
+		defaultTaskName = defaultPlanName
+	}
+
+	name, err := WithValidator("Plan Name", defaultPlanName, nameValid)
+	if err != nil {
+		return "", nil, err
+	}
+
+	planStrat, err := WithOptions("Plan strategy for phase", []string{string(v1beta1.Serial), string(v1beta1.Parallel)}, false)
+	if err != nil {
+		return "", nil, err
+	}
+	plan := v1beta1.Plan{
+		Strategy: v1beta1.Ordering(planStrat),
+	}
+
+	// setting up for array of phases in a plan
+	index := 1
+	anotherPhase := false
+	phaseNames := []string{}
+	phases := []v1beta1.Phase{}
+	for {
+		pnameValid := func(input string) error {
+			if len(input) < 1 {
+				return errors.New("Phase name must be > than 1 character")
+			}
+			if inArray(input, phaseNames) {
+				return errors.New("Phase name must be unique in plan")
+			}
+			return nil
+		}
+		pname, err := WithValidator(fmt.Sprintf("Phase %v name", index), defaultPhaseName, pnameValid)
+		if err != nil {
+			return "", nil, err
+		}
+		phaseStrat, err := WithOptions("Phase strategy for steps", []string{string(v1beta1.Serial), string(v1beta1.Parallel)}, false)
+		if err != nil {
+			return "", nil, err
+		}
+		phase := v1beta1.Phase{
+			Name:     pname,
+			Strategy: v1beta1.Ordering(phaseStrat),
+		}
+
+		// setting up for array of steps in a phase
+		stepIndex := 1
+		anotherStep := false
+		stepNames := []string{}
+		steps := []v1beta1.Step{}
+		for {
+			stepNameValid := func(input string) error {
+				if len(input) < 1 {
+					return errors.New("Step name must be > than 1 character")
+				}
+				if inArray(input, stepNames) {
+					return errors.New("Step name must be unique in a Phase")
+				}
+				return nil
+			}
+			stepName, err := WithValidator(fmt.Sprintf("Step %v name", stepIndex), defaultStepName, stepNameValid)
+			if err != nil {
+				return "", nil, err
+			}
+			stepIndex++
+			stepNames = append(stepNames, stepName)
+
+			// setting up for array of tasks in a step
+			stepTaskNames := []string{}
+			taskIndex := 1
+			anotherTask := false
+			for {
+				var taskName string
+				if len(allTaskNames) == 0 {
+					// no list if there is nothing in the list
+					taskName, err = WithDefault(fmt.Sprintf("Task Name %v for step %q", taskIndex, stepName), defaultTaskName)
+				} else {
+					taskName, err = WithOptions(fmt.Sprintf("Task Name %v for step %q", taskIndex, stepName), allTaskNames, true)
+				}
+				if err != nil {
+					return "", nil, err
+				}
+				if !inArray(taskName, allTaskNames) {
+					err = createTaskFun(fs, path)
+					if err != nil {
+						return "", nil, err
+					}
+					allTaskNames = append(allTaskNames, taskName)
+				}
+				stepTaskNames = append(stepTaskNames, taskName)
+				taskIndex++
+				anotherTask = Confirm("Add another task")
+				if !anotherTask {
+					break
+				}
+			}
+
+			step := v1beta1.Step{Name: stepName, Tasks: stepTaskNames}
+
+			steps = append(steps, step)
+			anotherStep = Confirm("Add another Step")
+			if !anotherStep {
+				break
+			}
+		}
+		phase.Steps = steps
+
+		phases = append(phases, phase)
+		index++
+		anotherPhase = Confirm("Add another Phase")
+		if !anotherPhase {
+			break
+		}
+	}
+	plan.Phases = phases
+
+	return name, &plan, nil
+
+}
+
+func inArray(input string, values []string) bool {
+	for _, name := range values {
+		if input == name {
+			return true
+		}
+	}
+	return false
+}

@@ -53,33 +53,21 @@ func newPackageAddPlanCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 func (pkg *packageAddPlanCmd) run() error {
 
-	// get list of plans
+	planNames, err := generate.PlanNameList(pkg.fs, pkg.path)
+	if err != nil {
+		return err
+	}
 	// get list of tasks
+	tasks, err := generate.TaskList(pkg.fs, pkg.path)
+	if err != nil {
+		return err
+	}
 
 	// interactive mode
-	existing, err := generate.TaskList(pkg.fs, pkg.path)
-	if err != nil {
-		return err
-	}
-	task, err := prompt.ForTask(existing)
+	planName, plan, err := prompt.ForPlan(planNames, tasks, pkg.fs, pkg.path, createTaskFromPrompts)
 	if err != nil {
 		return err
 	}
 
-	// ensure resources exist
-	for _, resource := range task.Spec.Resources {
-		err = generate.EnsureResource(pkg.fs, pkg.path, resource)
-		if err != nil {
-			return nil
-		}
-	}
-
-	if task.Spec.Pod != "" {
-		err = generate.EnsureResource(pkg.fs, pkg.path, task.Spec.Pod)
-		if err != nil {
-			return nil
-		}
-	}
-
-	return generate.AddTask(pkg.fs, pkg.path, task)
+	return generate.AddPlan(pkg.fs, pkg.path, planName, plan)
 }
