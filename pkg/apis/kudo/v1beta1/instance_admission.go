@@ -72,6 +72,7 @@ func validateUpdate(old, new *Instance) error {
 	}
 
 	// 2 OV changed and old PE exists : no upgrade if a plan running/scheduled
+	// TODO: what about newOv and newPlan != "" ?? -> request that is trying to update OV as well as run a plan
 	if oldPlan != "" && newOV != oldOV {
 		return fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s is not possible while a plan %s is scheduled", old.Namespace, old.Name, newOV, oldPlan)
 	}
