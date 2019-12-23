@@ -365,9 +365,11 @@ func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string,
 					return "", nil, err
 				}
 				if !inArray(taskName, allTaskNames) {
-					err = createTaskFun(fs, path, taskName)
-					if err != nil {
-						return "", nil, err
+					if Confirm("Create Task Now") {
+						err = createTaskFun(fs, path, taskName)
+						if err != nil {
+							return "", nil, err
+						}
 					}
 					allTaskNames = append(allTaskNames, taskName)
 				}
@@ -405,14 +407,25 @@ func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string,
 }
 
 func forStepTaskName(allTaskNames []string, stepTaskNames []string, taskIndex int, name string, defaultTaskName string) (taskName string, err error) {
+	// reduce options of tasks to those not already for this step
+	taskNameOptions := subtract(allTaskNames, stepTaskNames)
 	// if there are no tasks OR if we are using all tasks that are defined
-	if len(allTaskNames) == 0 || len(allTaskNames) == len(stepTaskNames) {
+	if len(taskNameOptions) == 0 {
 		// no list if there is nothing in the list
 		taskName, err = WithDefault(fmt.Sprintf("Task Name %v for Step %q", taskIndex, name), defaultTaskName)
 	} else {
-		taskName, err = WithOptions(fmt.Sprintf("Task Name %v for Step %q", taskIndex, name), allTaskNames, "Add New Task")
+		taskName, err = WithOptions(fmt.Sprintf("Task Name %v for Step %q", taskIndex, name), taskNameOptions, "Add New Task")
 	}
 	return taskName, err
+}
+
+func subtract(allTasksNames []string, currentStepTaskNames []string) (result []string) {
+	for _, name := range allTasksNames {
+		if !inArray(name, currentStepTaskNames) {
+			result = append(result, name)
+		}
+	}
+	return result
 }
 
 func forStep(stepNames []string, stepIndex int, defaultStepName string) (*v1beta1.Step, error) {
