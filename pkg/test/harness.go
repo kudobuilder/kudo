@@ -23,7 +23,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	kindConfig "sigs.k8s.io/kind/pkg/apis/config/v1alpha3"
-	kind "sigs.k8s.io/kind/pkg/cluster"
 
 	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
@@ -44,7 +43,7 @@ type Harness struct {
 	client         client.Client
 	dclient        discovery.DiscoveryInterface
 	env            *envtest.Environment
-	kind           *kind.Provider
+	kind           *kind
 	kubeConfigPath string
 	clientLock     sync.Mutex
 	configLock     sync.Mutex
@@ -105,18 +104,18 @@ func (h *Harness) GetTimeout() int {
 // RunKIND starts a KIND cluster.
 func (h *Harness) RunKIND() (*rest.Config, error) {
 	if h.kind == nil {
-		h.kind = kind.NewProvider()
+		var err error
 
-		contexts, err := h.kind.List()
+		h.kubeConfigPath, err = ioutil.TempDir("", "kudo")
 		if err != nil {
 			return nil, err
 		}
 
-		for _, context := range contexts {
-			// There is already a cluster with this context, let's re-use it.
-			if context == h.TestSuite.KINDContext {
-				return clientcmd.BuildConfigFromFlags("", h.explicitPath())
-			}
+		kind := newKind(h.TestSuite.KINDContext, h.explicitPath())
+		h.kind = &kind
+
+		if h.kind.IsRunning() {
+			return clientcmd.BuildConfigFromFlags("", h.explicitPath())
 		}
 
 		kindCfg := &kindConfig.Cluster{}
@@ -129,20 +128,21 @@ func (h *Harness) RunKIND() (*rest.Config, error) {
 			}
 		}
 
-		if err := h.addNodeCaches(kindCfg); err != nil {
-			return nil, err
-		}
-
-		h.kubeConfigPath, err = ioutil.TempDir("", "kudo")
+		dockerClient, err := h.DockerClient()
 		if err != nil {
 			return nil, err
 		}
 
-		if err := h.kind.Create(
-			h.TestSuite.KINDContext,
-			kind.CreateWithV1Alpha3Config(kindCfg),
-			kind.CreateWithKubeconfigPath(h.explicitPath()),
-		); err != nil {
+		// Determine the correct API version to use with the user's Docker client.
+		dockerClient.NegotiateAPIVersion(context.TODO())
+
+		h.addNodeCaches(dockerClient, kindCfg)
+
+		if err := h.kind.Run(kindCfg); err != nil {
+			return nil, err
+		}
+
+		if err := h.kind.AddContainers(dockerClient, h.TestSuite.KINDContainers); err != nil {
 			return nil, err
 		}
 	}
@@ -150,18 +150,10 @@ func (h *Harness) RunKIND() (*rest.Config, error) {
 	return clientcmd.BuildConfigFromFlags("", h.explicitPath())
 }
 
-func (h *Harness) addNodeCaches(kindCfg *kindConfig.Cluster) error {
+func (h *Harness) addNodeCaches(dockerClient testutils.DockerClient, kindCfg *kindConfig.Cluster) {
 	if !h.TestSuite.KINDNodeCache {
-		return nil
+		return
 	}
-
-	dockerClient, err := h.DockerClient()
-	if err != nil {
-		return err
-	}
-
-	// Determine the correct API version to use with the user's Docker client.
-	dockerClient.NegotiateAPIVersion(context.TODO())
 
 	// add a default node if there are none specified.
 	if len(kindCfg.Nodes) == 0 {
@@ -188,8 +180,6 @@ func (h *Harness) addNodeCaches(kindCfg *kindConfig.Cluster) error {
 			HostPath:      volume.Mountpoint,
 		})
 	}
-
-	return nil
 }
 
 // RunTestEnv starts a Kubernetes API server and etcd server for use in the
@@ -451,7 +441,7 @@ func (h *Harness) Stop() {
 
 		h.T.Log("collecting cluster logs to", logDir)
 
-		if err := h.kind.CollectLogs(h.TestSuite.KINDContext, logDir); err != nil {
+		if err := h.kind.CollectLogs(logDir); err != nil {
 			h.T.Log("error collecting kind cluster logs", err)
 		}
 	}
@@ -477,7 +467,7 @@ func (h *Harness) Stop() {
 
 	if h.kind != nil {
 		h.T.Log("tearing down kind cluster")
-		if err := h.kind.Delete(h.TestSuite.KINDContext, h.explicitPath()); err != nil {
+		if err := h.kind.Stop(); err != nil {
 			h.T.Log("error tearing down kind cluster", err)
 		}
 
