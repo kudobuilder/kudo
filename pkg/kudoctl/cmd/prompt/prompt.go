@@ -7,8 +7,10 @@ import (
 )
 
 // WithOptions prompts for option selection, first element in slice is default
-func WithOptions(label string, options []string, allowOther bool) (string, error) {
+func WithOptions(label string, options []string, addLabel string) (string, error) {
 
+	// addLabel allows control to add more than what is in the list
+	allowOther := addLabel != ""
 	if allowOther {
 		var err error
 		var result string
@@ -17,12 +19,13 @@ func WithOptions(label string, options []string, allowOther bool) (string, error
 			prompt := promptui.SelectWithAdd{
 				Label:    label,
 				Items:    options,
-				AddLabel: "Other",
+				AddLabel: addLabel,
 			}
 
 			index, result, err = prompt.Run()
 			if index == -1 {
-				options = append(options, result)
+				// lets not force reselection, just return the enter value
+				return strings.TrimSpace(result), nil
 			}
 		}
 
@@ -31,6 +34,7 @@ func WithOptions(label string, options []string, allowOther bool) (string, error
 		}
 		return strings.TrimSpace(result), nil
 	}
+
 	prompt := promptui.Select{
 		Label: label,
 		Items: options,

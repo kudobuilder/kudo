@@ -53,17 +53,23 @@ func newPackageAddTaskCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 func (pkg *packageAddTaskCmd) run() error {
 	// interactive mode
-	return createTaskFromPrompts(pkg.fs, pkg.path)
-}
-
-// createTaskFromPrompts provides sharable function for creating tasks from prompts
-func createTaskFromPrompts(fs afero.Fs, path string) error {
-	// interactive mode
-	existing, err := generate.TaskList(fs, path)
+	existing, err := generate.TaskList(pkg.fs, pkg.path)
 	if err != nil {
 		return err
 	}
-	task, err := prompt.ForTask(existing)
+
+	taskName, err := prompt.ForTaskName(existing)
+	if err != nil {
+		return err
+	}
+
+	return createTaskFromPrompts(pkg.fs, pkg.path, taskName)
+}
+
+// createTaskFromPrompts provides sharable function for creating tasks from prompts
+func createTaskFromPrompts(fs afero.Fs, path string, taskName string) error {
+	// interactive mode
+	task, err := prompt.ForTask(taskName)
 	if err != nil {
 		return err
 	}

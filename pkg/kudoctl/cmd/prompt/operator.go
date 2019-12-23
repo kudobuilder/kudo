@@ -157,7 +157,7 @@ func ForParameter(planNames []string) (*v1beta1.Parameter, error) {
 
 	// order determines the default ("false" is preferred)
 	requiredValues := []string{"false", "true"}
-	required, err := WithOptions("Required", requiredValues, true)
+	required, err := WithOptions("Required", requiredValues, "")
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func ForParameter(planNames []string) (*v1beta1.Parameter, error) {
 	if len(planNames) == 0 {
 		trigger, err = WithDefault("Trigger Plan", "")
 	} else {
-		trigger, err = WithOptions("Trigger Plan", planNames, true)
+		trigger, err = WithOptions("Trigger Plan", planNames, "New plan name to trigger")
 	}
 	if err != nil {
 		return nil, err
@@ -183,8 +183,7 @@ func ForParameter(planNames []string) (*v1beta1.Parameter, error) {
 	return &parameter, nil
 }
 
-// ForTask prompts to gather information to add new task to operator
-func ForTask(existingTasks []v1beta1.Task) (*v1beta1.Task, error) {
+func ForTaskName(existingTasks []v1beta1.Task) (string, error) {
 	nameValid := func(input string) error {
 		if len(input) < 1 {
 			return errors.New("Task name must be > than 1 character")
@@ -196,10 +195,15 @@ func ForTask(existingTasks []v1beta1.Task) (*v1beta1.Task, error) {
 	}
 	name, err := WithValidator("Task Name", "", nameValid)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
+	return name, nil
+}
 
-	kind, err := WithOptions("Task Kind", generate.TaskKinds(), false)
+// ForTask prompts to gather information to add new task to operator
+func ForTask(name string) (*v1beta1.Task, error) {
+
+	kind, err := WithOptions("Task Kind", generate.TaskKinds(), "")
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +222,7 @@ func ForTask(existingTasks []v1beta1.Task) (*v1beta1.Task, error) {
 			}
 			resources = append(resources, ensureFileExtension(resource, "yaml"))
 
-			again = Confirm("Add another resource")
+			again = Confirm("Add another Resource")
 			if !again {
 				break
 			}
@@ -286,7 +290,7 @@ func ensureFileExtension(fname, ext string) string {
 	return fmt.Sprintf("%s.%s", fname, ext)
 }
 
-func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string, createTaskFun func(fs afero.Fs, path string) error) (string, *v1beta1.Plan, error) {
+func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string, createTaskFun func(fs afero.Fs, path string, taskName string) error) (string, *v1beta1.Plan, error) {
 
 	// initialized to all TaskNames... tasks can be added in the process of creating a plan which will be
 	// added to this list in the process.
@@ -320,7 +324,7 @@ func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string,
 		return "", nil, err
 	}
 
-	planStrat, err := WithOptions("Plan strategy for phase", []string{string(v1beta1.Serial), string(v1beta1.Parallel)}, false)
+	planStrat, err := WithOptions("Plan strategy for phase", []string{string(v1beta1.Serial), string(v1beta1.Parallel)}, "")
 	if err != nil {
 		return "", nil, err
 	}
@@ -347,7 +351,7 @@ func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string,
 		if err != nil {
 			return "", nil, err
 		}
-		phaseStrat, err := WithOptions("Phase strategy for steps", []string{string(v1beta1.Serial), string(v1beta1.Parallel)}, false)
+		phaseStrat, err := WithOptions("Phase strategy for steps", []string{string(v1beta1.Serial), string(v1beta1.Parallel)}, "")
 		if err != nil {
 			return "", nil, err
 		}
@@ -359,8 +363,8 @@ func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string,
 		// setting up for array of steps in a phase
 		stepIndex := 1
 		anotherStep := false
-		stepNames := []string{}
-		steps := []v1beta1.Step{}
+		var stepNames []string
+		var steps []v1beta1.Step
 		for {
 			stepNameValid := func(input string) error {
 				if len(input) < 1 {
@@ -379,22 +383,23 @@ func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string,
 			stepNames = append(stepNames, stepName)
 
 			// setting up for array of tasks in a step
-			stepTaskNames := []string{}
+			var stepTaskNames []string
 			taskIndex := 1
 			anotherTask := false
 			for {
 				var taskName string
-				if len(allTaskNames) == 0 {
+				// if there are no tasks OR if we are using all tasks that are defined
+				if len(allTaskNames) == 0 || len(allTaskNames) == len(stepTaskNames) {
 					// no list if there is nothing in the list
-					taskName, err = WithDefault(fmt.Sprintf("Task Name %v for step %q", taskIndex, stepName), defaultTaskName)
+					taskName, err = WithDefault(fmt.Sprintf("Task Name %v for Step %q", taskIndex, stepName), defaultTaskName)
 				} else {
-					taskName, err = WithOptions(fmt.Sprintf("Task Name %v for step %q", taskIndex, stepName), allTaskNames, true)
+					taskName, err = WithOptions(fmt.Sprintf("Task Name %v for Step %q", taskIndex, stepName), allTaskNames, "Add New Task")
 				}
 				if err != nil {
 					return "", nil, err
 				}
 				if !inArray(taskName, allTaskNames) {
-					err = createTaskFun(fs, path)
+					err = createTaskFun(fs, path, taskName)
 					if err != nil {
 						return "", nil, err
 					}
@@ -402,7 +407,8 @@ func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string,
 				}
 				stepTaskNames = append(stepTaskNames, taskName)
 				taskIndex++
-				anotherTask = Confirm("Add another task")
+				defaultTaskName = ""
+				anotherTask = Confirm("Add another Task")
 				if !anotherTask {
 					break
 				}
@@ -411,6 +417,7 @@ func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string,
 			step := v1beta1.Step{Name: stepName, Tasks: stepTaskNames}
 
 			steps = append(steps, step)
+			defaultStepName = ""
 			anotherStep = Confirm("Add another Step")
 			if !anotherStep {
 				break
@@ -420,6 +427,7 @@ func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string,
 
 		phases = append(phases, phase)
 		index++
+		defaultPhaseName = ""
 		anotherPhase = Confirm("Add another Phase")
 		if !anotherPhase {
 			break
