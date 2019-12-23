@@ -15,7 +15,7 @@ provide a list of parameters from a remote operator given a url or repository al
 `
 
 const packageExamples = `  kubectl kudo package create [operator folder]
-  kubectl kudo package params list [operator]
+  kubectl kudo package list parameters [operator]
   kubectl kudo package verify [operator]
 `
 

@@ -29,17 +29,17 @@ type paramsListCmd struct {
 
 const (
 	pkgParamsExample = `# show parameters from local-folder (where local-folder is a folder in the current directory)
-  kubectl kudo package params list local-folder
+  kubectl kudo package list parameters local-folder
 
   # show parameters from zookeeper (where zookeeper is name of package in KUDO repository)
-  kubectl kudo package params list zookeeper`
+  kubectl kudo package list parameters zookeeper`
 )
 
 func newParamsListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	list := &paramsListCmd{fs: fs, out: out}
 
 	cmd := &cobra.Command{
-		Use:     "list [operator]",
+		Use:     "parameters [operator]",
 		Short:   "List operator parameters",
 		Example: pkgParamsExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
