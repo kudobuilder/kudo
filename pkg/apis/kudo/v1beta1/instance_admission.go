@@ -44,19 +44,6 @@ func (v *InstanceAdmission) Handle(ctx context.Context, req admission.Request) a
 		if err := validateUpdate(old, new); err != nil {
 			return admission.Denied(err.Error())
 		}
-		// 0. Prereqs:
-		//  a) new PE (Instance.Spec.PlanExecution.PlanName)
-		//  b) new Params (parameterDiff)
-		//  c) new OV (Instance.Spec.OperatorVersion)
-
-		// DECLINE if:
-		// 1. old PE exists and != new PE : no plan overriding yet
-		// 2 OV changed and old PE exists : no upgrade if a plan running/scheduled
-		// 3. If >1 distinct plans should be triggered based on params diff
-		// 4. If old PE != plan triggered by param change
-
-		// else ACCEPT:
-		// 1. Populate Instance.PlanExecution with the plan triggered by param change
 
 		// PROFIT!
 		return admission.Allowed("")
@@ -66,10 +53,38 @@ func (v *InstanceAdmission) Handle(ctx context.Context, req admission.Request) a
 }
 
 func validateUpdate(old, new *Instance) error {
-	// Disallow spec updates when a plan is in progress
-	if old.Status.AggregatedStatus.Status.IsRunning() && specChanged(old.Spec, new.Spec) {
-		return fmt.Errorf("cannot update Instance %s/%s right now, there's plan %s in progress", old.Namespace, old.Name, old.Status.AggregatedStatus.ActivePlanName)
+	// 0. Prereqs:
+	//  a) new PE (Instance.Spec.PlanExecution.PlanName)
+	//  b) new Params (parameterDiff)
+	//  c) new OV (Instance.Spec.OperatorVersion)
+	newPlan := new.Spec.PlanExecution.PlanName
+	oldPlan := old.Spec.PlanExecution.PlanName
+	paramDiff := parameterDiff(old.Spec.Parameters, new.Spec.Parameters)
+	newOV := new.Spec.OperatorVersion
+	oldOV := old.Spec.OperatorVersion
+
+	// DECLINE if:
+	// 4. If old PE != plan triggered by param change
+
+	// 1. old PE exists and != new PE : no plan overriding yet
+	if oldPlan != "" && oldPlan != newPlan {
+		return fmt.Errorf("failed to update Instance %s/%s: plan %s is scheduled and an update would trigger a different plan %s", old.Namespace, old.Name, oldPlan, newPlan)
 	}
+
+	// 2 OV changed and old PE exists : no upgrade if a plan running/scheduled
+	if oldPlan != "" && newOV != oldOV {
+		return fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s is not possible while a plan %s is scheduled", old.Namespace, old.Name, newOV, oldPlan)
+	}
+
+	// 3. If >1 distinct plans should be triggered based on params diff
+
+	// 5. Disallow spec updates when a plan is in progress
+	if old.Status.AggregatedStatus.Status.IsRunning() && specChanged(old.Spec, new.Spec) {
+		return fmt.Errorf("failed to update Instance %s/%s: plan %s is in progress", old.Namespace, old.Name, old.Status.AggregatedStatus.ActivePlanName)
+	}
+
+	// else ACCEPT:
+	// 1. Populate Instance.PlanExecution with the plan triggered by param change
 
 	return nil
 }
