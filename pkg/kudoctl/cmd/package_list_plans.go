@@ -66,22 +66,26 @@ func displayPlanTable(pf *packages.Files, out io.Writer) error {
 	table := uitable.New()
 	table.AddRow("Name", "Phase", "Strategy", "Step", "Task")
 	for name, plan := range pf.Operator.Plans {
-		phase1 := true
-		step1 := true
+		var currentPlan, currentPhase, currentStep string
 		for _, phase := range plan.Phases {
 			for _, step := range phase.Steps {
-				if phase1 && step1 {
-					table.AddRow(name, phase.Name, plan.Strategy, step.Name, step.Tasks)
+				var planName, strategy string
+				var phaseName, stepName string
+				if name != currentPlan {
+					planName = name
+					strategy = string(plan.Strategy)
+					currentPlan = name
 				}
-				if !phase1 && step1 {
-					table.AddRow("name", phase.Name, plan.Strategy, step.Name, step.Tasks)
+				if phase.Name != currentPhase {
+					phaseName = phase.Name
+					currentPhase = phase.Name
 				}
-				if !phase1 && !step1 {
-					table.AddRow("", "", "", step.Name, step.Tasks)
+				if step.Name != currentStep {
+					stepName = step.Name
+					currentStep = step.Name
 				}
-				step1 = false
+				table.AddRow(planName, phaseName, strategy, stepName, step.Tasks)
 			}
-			phase1 = false
 		}
 	}
 	var err error
