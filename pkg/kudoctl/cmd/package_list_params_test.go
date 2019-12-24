@@ -12,7 +12,7 @@ import (
 func TestParamsLis(t *testing.T) {
 	file := "params-list"
 	out := &bytes.Buffer{}
-	cmd := newParamsListCmd(fs, out)
+	cmd := newPackageListParamsCmd(fs, out)
 	if err := cmd.RunE(cmd, []string{"../packages/testdata/zk.tgz"}); err != nil {
 		t.Fatal(err)
 	}
