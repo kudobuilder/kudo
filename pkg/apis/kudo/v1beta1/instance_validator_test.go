@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -32,10 +34,12 @@ func TestValidateUpdate(t *testing.T) {
 		},
 	}
 
+	req := admission.Request{}
+
 	tests := []struct {
 		name          string
-		new           Instance
-		old           Instance
+		i             Instance
+		oldInstance   Instance
 		expectedError error
 	}{
 		{"no change", runningInstance, runningInstance, nil},
@@ -52,7 +56,7 @@ func TestValidateUpdate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := validateUpdate(&tt.old, &tt.new)
+		err := tt.i.ValidateUpdate(&tt.oldInstance, req)
 		assert.Equal(t, tt.expectedError, err)
 	}
 }

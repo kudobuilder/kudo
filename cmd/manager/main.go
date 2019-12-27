@@ -26,17 +26,18 @@ import (
 
 	apiextenstionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/kudobuilder/kudo/pkg/apis"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
 	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 
@@ -83,6 +84,7 @@ func main() {
 	log.Print("Registering Components")
 
 	log.Print("setting up scheme")
+
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
 		log.Printf("unable to add APIs to scheme: %v", err)
 	}
@@ -123,61 +125,55 @@ func main() {
 	}
 
 	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) == "true" {
-		log.Printf("Setting up webhooks")
-
-		if err := registerWebhook("/validate", &v1beta1.Instance{}, &webhook.Admission{Handler: &v1beta1.InstanceValidator{}}, mgr); err != nil {
-			log.Printf("unable to create instance validation webhook: %v", err)
+		err = registerValidatingWebhook(&v1beta1.Instance{}, mgr)
+		if err != nil {
+			log.Printf("unable to create webhook: %v", err)
 			os.Exit(1)
 		}
-
-		// Add more webhooks below using the above registerWebhook method
 	}
 
-	// Start the KUDO manager
-	log.Print("Starting KUDO manager")
+	// Start the Cmd
+	log.Print("Starting the Cmd")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		log.Printf("unable to run the manager: %v", err)
 		os.Exit(1)
 	}
 }
 
-// registerWebhook method registers passed webhook using a give prefix (e.g. "/validate") and runtime object
-// (e.g. v1beta1.Instance) to generate a webhook path e.g. "/validate-kudo-dev-v1beta1-instances". Webhook
-// has to implement http.Handler interface (see v1beta1.InstanceValidator for an example)
-func registerWebhook(prefix string, obj runtime.Object, hook http.Handler, mgr manager.Manager) error {
-	path, err := webhookPath(prefix, obj, mgr)
+// this is a fork of a code in controller-runtime to be able to pass in our own Validator interface
+// see kudo.Validator docs for more details\
+//
+// ideally in the future we should switch to just simply doing
+// err = ctrl.NewWebhookManagedBy(mgr).
+// For(&v1beta1.Instance{}).
+// Complete()
+//
+// that internally calls this method but using their own internal Validator type
+func registerValidatingWebhook(obj runtime.Object, mgr manager.Manager) error {
+	gvk, err := apiutil.GVKForObject(obj, mgr.GetScheme())
 	if err != nil {
-		return fmt.Errorf("failed to generate webhook path: %v", err)
+		return err
 	}
+	validator, ok := obj.(kudo.Validator)
+	if !ok {
+		log.Printf("skip registering a validating webhook, kudo.Validator interface is not implemented %v", gvk)
 
-	// an already handled path is likely a misconfiguration that should be fixed. failing loud and proud
-	if isAlreadyHandled(path, mgr) {
-		return fmt.Errorf("webhook path %s is already handled", path)
+		return nil
 	}
+	vwh := kudo.ValidatingWebhookFor(validator)
+	if vwh != nil {
+		path := generateValidatePath(gvk)
 
-	mgr.GetWebhookServer().Register(path, hook)
-
+		// Checking if the path is already registered.
+		// If so, just skip it.
+		if !isAlreadyHandled(path, mgr) {
+			log.Printf("Registering a validating webhook for %v on path %s", gvk, path)
+			mgr.GetWebhookServer().Register(path, vwh)
+		}
+	}
 	return nil
 }
 
-// webhookPath method generates a unique path for a given prefix and object GVK of the form:
-// /validate-kudo-dev-v1beta1-instances
-// Not that object version is included in the path since different object versions can have
-// different webhooks. If the strategy to generate this path changes we should update init
-// code and webhook setup. Right now this is in sync how controller-runtime generates these paths
-func webhookPath(prefix string, obj runtime.Object, mgr manager.Manager) (string, error) {
-	gvk, err := apiutil.GVKForObject(obj, mgr.GetScheme())
-	if err != nil {
-		return "", err
-	}
-
-	// if the strategy to generate this path changes we should update init code and webhook setup
-	// right now this is in sync how controller-runtime generates these paths
-	return prefix + "-" + strings.Replace(gvk.Group, ".", "-", -1) + "-" +
-		gvk.Version + "-" + strings.ToLower(gvk.Kind), nil
-}
-
-// isAlreadyHandled method check if there is already an admission webhook registered for a given path
 func isAlreadyHandled(path string, mgr manager.Manager) bool {
 	if mgr.GetWebhookServer().WebhookMux == nil {
 		return false
@@ -187,4 +183,11 @@ func isAlreadyHandled(path string, mgr manager.Manager) bool {
 		return true
 	}
 	return false
+}
+
+// if the strategy to generate this path changes we should update init code and webhook setup
+// right now this is in sync how controller-runtime generates these paths
+func generateValidatePath(gvk schema.GroupVersionKind) string {
+	return "/validate-" + strings.Replace(gvk.Group, ".", "-", -1) + "-" +
+		gvk.Version + "-" + strings.ToLower(gvk.Kind)
 }

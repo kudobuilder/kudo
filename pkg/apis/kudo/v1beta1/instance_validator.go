@@ -1,54 +1,32 @@
 package v1beta1
 
 import (
-	"context"
 	"fmt"
-	"net/http"
 	"reflect"
 
-	"github.com/coreos/etcd/client"
-	"k8s.io/api/admission/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
-type InstanceValidator struct {
-	client  client.Client
-	decoder *admission.Decoder
+// this forces the instance type to implement Validator interface, we'll get compile time error if it's not true anymore
+var _ kudo.Validator = &Instance{}
+
+// ValidateCreate implements kudo.Validator (slightly tweaked interface originally from controller-runtime)
+// we do not enforce any rules upon creation right now
+func (i *Instance) ValidateCreate(req admission.Request) error {
+	return nil
 }
 
-// InstanceValidator validates updates to an Instance, guarding from conflicting plan executions
-func (v *InstanceValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-
-	switch req.Operation {
-	// we only validate Instance Updates
-	case v1beta1.Update:
-		old, new := &Instance{}, &Instance{}
-
-		// req.Object contains the updated object
-		if err := v.decoder.DecodeRaw(req.Object, new); err != nil {
-			return admission.Errored(http.StatusBadRequest, err)
-		}
-
-		// req.OldObject is populated for DELETE and UPDATE requests
-		if err := v.decoder.DecodeRaw(req.OldObject, old); err != nil {
-			return admission.Errored(http.StatusBadRequest, err)
-		}
-
-		if err := validateUpdate(old, new); err != nil {
-			return admission.Denied(err.Error())
-		}
-		return admission.Allowed("")
-	default:
-		return admission.Allowed("")
+// ValidateUpdate hook called when UPDATE operation is triggered and our admission webhook is triggered
+// ValidateUpdate implements kudo.Validator (slightly tweaked interface originally from controller-runtime)
+func (i *Instance) ValidateUpdate(old runtime.Object, req admission.Request) error {
+	oldInstance := old.(*Instance)
+	if i.Status.AggregatedStatus.Status.IsRunning() && specChanged(i.Spec, oldInstance.Spec) {
+		// when updating anything else than status, there shouldn't be a running plan
+		return fmt.Errorf("cannot update Instance %s/%s right now, there's plan %s in progress", i.Namespace, i.Name, i.Status.AggregatedStatus.ActivePlanName)
 	}
-}
-
-func validateUpdate(old, new *Instance) error {
-	// Disallow spec updates when a plan is in progress
-	if old.Status.AggregatedStatus.Status.IsRunning() && specChanged(old.Spec, new.Spec) {
-		return fmt.Errorf("cannot update Instance %s/%s right now, there's plan %s in progress", old.Namespace, old.Name, old.Status.AggregatedStatus.ActivePlanName)
-	}
-
 	return nil
 }
 
@@ -56,20 +34,9 @@ func specChanged(old InstanceSpec, new InstanceSpec) bool {
 	return !reflect.DeepEqual(old, new)
 }
 
-// InstanceValidator implements inject.Client.
-// A client will be automatically injected.
-
-// InjectClient injects the client.
-func (v *InstanceValidator) InjectClient(c client.Client) error {
-	v.client = c
-	return nil
-}
-
-// InstanceValidator implements admission.DecoderInjector.
-// A decoder will be automatically injected.
-
-// InjectDecoder injects the decoder.
-func (v *InstanceValidator) InjectDecoder(d *admission.Decoder) error {
-	v.decoder = d
+// ValidateDelete hook called when DELETE operation is triggered and our admission webhook is triggered
+// we don't enforce any validation on DELETE right now
+// ValidateDelete implements kudo.Validator (slightly tweaked interface originally from controller-runtime)
+func (i *Instance) ValidateDelete(req admission.Request) error {
 	return nil
 }
