@@ -755,7 +755,6 @@ func GetAPIResource(dClient discovery.DiscoveryInterface, gvk schema.GroupVersio
 		return metav1.APIResource{}, err
 	}
 
-	fmt.Printf("%v", resourceTypes)
 	for _, resource := range resourceTypes.APIResources {
 		if !strings.EqualFold(resource.Kind, gvk.Kind) {
 			continue
