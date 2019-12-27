@@ -17,15 +17,14 @@ limitations under the License.
 package fake
 
 import (
+	clientset "github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
+	kudov1beta1 "github.com/kudobuilder/kudo/pkg/client/clientset/versioned/typed/kudo/v1beta1"
+	fakekudov1beta1 "github.com/kudobuilder/kudo/pkg/client/clientset/versioned/typed/kudo/v1beta1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/testing"
-
-	clientset "github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
-	kudov1beta1 "github.com/kudobuilder/kudo/pkg/client/clientset/versioned/typed/kudo/v1beta1"
-	fakekudov1beta1 "github.com/kudobuilder/kudo/pkg/client/clientset/versioned/typed/kudo/v1beta1/fake"
 )
 
 // NewSimpleClientset returns a clientset that will respond with the provided objects.
