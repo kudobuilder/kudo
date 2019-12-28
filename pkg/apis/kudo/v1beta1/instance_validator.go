@@ -6,11 +6,14 @@ import (
 	"net/http"
 	"reflect"
 
-	"github.com/coreos/etcd/client"
 	"k8s.io/api/admission/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
+// +k8s:deepcopy-gen=false
+
+// InstanceValidator holds the data for the instance validator hook
 type InstanceValidator struct {
 	client  client.Client
 	decoder *admission.Decoder
