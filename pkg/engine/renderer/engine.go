@@ -32,6 +32,15 @@ type Engine struct {
 // templates are rendered by the operator, we delete any functions that potentially access the environment
 // the controller is running in.
 func New() *Engine {
+
+	f := funcMap()
+
+	return &Engine{
+		FuncMap: f,
+	}
+}
+
+func funcMap() template.FuncMap {
 	f := sprig.TxtFuncMap()
 
 	// Prevent environment access inside the running KUDO Controller
@@ -41,9 +50,14 @@ func New() *Engine {
 		delete(f, fun)
 	}
 
-	return &Engine{
-		FuncMap: f,
+	// extending functions map
+	extend := template.FuncMap{
+		"toYaml": toYAML,
 	}
+	for k, v := range extend {
+		f[k] = v
+	}
+	return f
 }
 
 // Template provides access to the engines template engine.
