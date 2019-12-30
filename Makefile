@@ -87,7 +87,7 @@ generate:
 ifeq (, $(shell which go-bindata))
 	go get github.com/go-bindata/go-bindata/go-bindata@v3.1.2
 endif
-	go-bindata -pkg crd -o pkg/kudoctl/kudoinit/crd/bindata.go -ignore README.md config/crds
+	go-bindata -pkg crd -o pkg/kudoctl/kudoinit/crd/bindata.go -ignore README.md -modtime 0 config/crds
 	./hack/update_codegen.sh
 
 .PHONY: generate-clean
