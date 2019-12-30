@@ -6,12 +6,14 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/template"
 )
 
 var verifiers = []verifier.PackageVerifier{
 	DuplicateVerifier{},
 	InvalidCharVerifier{";,"},
+	task.ReferenceVerifier{},
 	template.ParametersVerifier{},
 	template.ReferenceVerifier{},
 }
