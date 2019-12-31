@@ -96,7 +96,7 @@ func configCrdsKudoDev_instancesYaml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "config/crds/kudo.dev_instances.yaml", size: 1040, mode: os.FileMode(420), modTime: time.Unix(1577106046, 0)}
+	info := bindataFileInfo{name: "config/crds/kudo.dev_instances.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
