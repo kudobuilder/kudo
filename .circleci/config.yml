@@ -30,8 +30,8 @@ jobs:
       - restore_cache:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
-            # prebuild runs lint after code generation
-      - run: make prebuild
+      - run: make lint
+      - run: ./hack/verify-generate.sh
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
