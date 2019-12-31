@@ -14,11 +14,10 @@ fi
 
 git diff-index --quiet HEAD --
 RETVAL=$?
-echo $RETVAL
 
 if [[ ${RETVAL} != 0 ]]; then
     echo "Running 'make generate' produces changes to the current git status. Maybe you forgot to check-in your updated generated files?"
-    echo "The current diff: `git diff`"
+    echo "The current diff: `git diff-index HEAD --`"
     exit 1
 fi
 
