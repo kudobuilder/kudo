@@ -48,7 +48,6 @@ func TestAddMaintainer(t *testing.T) {
 }
 
 func TestListMaintainers(t *testing.T) {
-
 	fs := afero.OsFs{}
 	m, err := MaintainerList(fs, "../../packages/testdata/zk")
 	assert.NoError(t, err)
