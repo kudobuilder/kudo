@@ -58,14 +58,14 @@ func EnsureTaskResources(fs afero.Fs, path string, task *v1beta1.Task) error {
 	for _, resource := range task.Spec.Resources {
 		err := EnsureResource(fs, path, resource)
 		if err != nil {
-			return nil
+			return err
 		}
 	}
 
 	if task.Spec.Pod != "" {
 		err := EnsureResource(fs, path, task.Spec.Pod)
 		if err != nil {
-			return nil
+			return err
 		}
 	}
 	return nil

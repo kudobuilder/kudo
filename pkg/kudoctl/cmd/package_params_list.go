@@ -37,7 +37,6 @@ const (
 )
 
 func newParamsListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
-	//TODO (kensipe): move to package list params (instead of package params list)
 	list := &paramsListCmd{fs: fs, out: out}
 
 	cmd := &cobra.Command{
@@ -46,7 +45,6 @@ func newParamsListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 		Example: pkgParamsExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			//TODO (kensipe): default to discoverable operator or args passed
 			path, patherr := generate.OperatorPath(fs)
 			if patherr != nil {
 				clog.V(2).Printf("operator path is not relative to execution")
