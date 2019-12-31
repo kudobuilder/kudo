@@ -96,7 +96,7 @@ func configCrdsKudoDev_instancesYaml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "config/crds/kudo.dev_instances.yaml", size: 1040, mode: os.FileMode(420), modTime: time.Unix(1576836957, 0)}
+	info := bindataFileInfo{name: "config/crds/kudo.dev_instances.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -116,7 +116,7 @@ func configCrdsKudoDev_operatorsYaml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "config/crds/kudo.dev_operators.yaml", size: 1103, mode: os.FileMode(420), modTime: time.Unix(1576836957, 0)}
+	info := bindataFileInfo{name: "config/crds/kudo.dev_operators.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -136,7 +136,7 @@ func configCrdsKudoDev_operatorversionsYaml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "config/crds/kudo.dev_operatorversions.yaml", size: 3449, mode: os.FileMode(420), modTime: time.Unix(1576836957, 0)}
+	info := bindataFileInfo{name: "config/crds/kudo.dev_operatorversions.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -156,7 +156,7 @@ func configCrdsKudoDev_teststepsYaml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "config/crds/kudo.dev_teststeps.yaml", size: 3992, mode: os.FileMode(420), modTime: time.Unix(1576836957, 0)}
+	info := bindataFileInfo{name: "config/crds/kudo.dev_teststeps.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -176,7 +176,7 @@ func configCrdsKudoDev_testsuitesYaml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "config/crds/kudo.dev_testsuites.yaml", size: 3529, mode: os.FileMode(420), modTime: time.Unix(1576836957, 0)}
+	info := bindataFileInfo{name: "config/crds/kudo.dev_testsuites.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
