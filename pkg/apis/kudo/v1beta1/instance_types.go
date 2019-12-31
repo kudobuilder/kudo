@@ -21,12 +21,13 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
+
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 const instanceCleanupFinalizerName = "kudo.dev.instance.cleanup"

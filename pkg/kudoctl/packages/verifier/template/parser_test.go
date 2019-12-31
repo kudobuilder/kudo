@@ -3,9 +3,10 @@ package template
 import (
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/thoas/go-funk"
 	"gotest.tools/assert"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
 func TestTemplate_Parameters(t *testing.T) {
