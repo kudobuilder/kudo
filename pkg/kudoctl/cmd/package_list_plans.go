@@ -4,20 +4,22 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/gosuri/uitable"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+	"github.com/xlab/treeprint"
 
+	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
 type packageListPlansCmd struct {
-	fs             afero.Fs
-	out            io.Writer
-	pathOrName     string
-	RepoName       string
-	PackageVersion string
+	fs                 afero.Fs
+	out                io.Writer
+	pathOrName         string
+	RepoName           string
+	PackageVersion     string
+	WithTasksResources bool
 }
 
 const (
@@ -47,6 +49,7 @@ func newPackageListPlansCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f := cmd.Flags()
 	f.StringVar(&list.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
 	f.StringVar(&list.PackageVersion, "version", "", "A specific package version on the official GitHub repo. (default to the most recent)")
+	f.BoolVarP(&list.WithTasksResources, "with-tasks", "t", false, "Display task resources with plans")
 
 	return cmd
 }
@@ -57,41 +60,58 @@ func (c *packageListPlansCmd) run(settings *env.Settings) error {
 		return err
 	}
 
-	return displayPlanTable(pf.Files, c.out)
+	return displayPlanTable(pf.Files, c.WithTasksResources, c.out)
 }
 
-func displayPlanTable(pf *packages.Files, out io.Writer) error {
-	table := uitable.New()
-	table.AddRow("Name", "Phase", "Strategy", "Step", "Task")
+func displayPlanTable(pf *packages.Files, withTasks bool, out io.Writer) error {
+	tree := treeprint.New()
+	tree.SetValue("plans")
 	for name, plan := range pf.Operator.Plans {
-		var currentPlan, currentPhase, currentStep string
+		pNode := tree.AddBranch(fmt.Sprintf("%s (%s)", name, plan.Strategy))
+
 		for _, phase := range plan.Phases {
+			phNode := pNode.AddMetaBranch("phase", fmt.Sprintf("%s (%s)", phase.Name, phase.Strategy))
 			for _, step := range phase.Steps {
-				var planName, strategy string
-				var phaseName, stepName string
-				if name != currentPlan {
-					planName = name
-					strategy = string(plan.Strategy)
-					currentPlan = name
+				sNode := phNode.AddMetaBranch("step", step.Name)
+				for _, taskName := range step.Tasks {
+					if withTasks {
+						addTaskNodeWithResources(sNode, taskName, pf)
+					} else {
+						sNode.AddNode(taskName)
+					}
 				}
-				if phase.Name != currentPhase {
-					phaseName = phase.Name
-					currentPhase = phase.Name
-				}
-				if step.Name != currentStep {
-					stepName = step.Name
-					currentStep = step.Name
-				}
-				table.AddRow(planName, phaseName, strategy, stepName, step.Tasks)
 			}
 		}
 	}
+
 	var err error
 	if len(pf.Operator.Plans) == 0 {
 		_, err = fmt.Fprintf(out, "no plans found\n")
 	} else {
-		_, err = fmt.Fprintln(out, table)
+		_, err = fmt.Fprintln(out, tree.String())
 	}
 
 	return err
+}
+
+func addTaskNodeWithResources(sNode treeprint.Tree, taskName string, pf *packages.Files) {
+	for _, t := range pf.Operator.Tasks {
+		if t.Name == taskName {
+			switch t.Kind {
+			case task.ApplyTaskKind:
+				tNode := sNode.AddMetaBranch("apply", taskName)
+				for _, resource := range t.Spec.Resources {
+					tNode.AddNode(resource)
+				}
+			case task.DeleteTaskKind:
+				tNode := sNode.AddMetaBranch("delete", taskName)
+				for _, resource := range t.Spec.Resources {
+					tNode.AddNode(resource)
+				}
+			case task.PipeTaskKind:
+				tNode := sNode.AddMetaBranch("pipe", taskName)
+				tNode.AddNode(t.Spec.Pod)
+			}
+		}
+	}
 }
