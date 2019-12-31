@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"sort"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -65,8 +66,10 @@ func (c *packageListPlansCmd) run(settings *env.Settings) error {
 
 func displayPlanTable(pf *packages.Files, withTasks bool, out io.Writer) error {
 	tree := treeprint.New()
+	planNames := sortedPlanNames(pf)
 	tree.SetValue("plans")
-	for name, plan := range pf.Operator.Plans {
+	for _, name := range planNames {
+		plan := pf.Operator.Plans[name]
 		pNode := tree.AddBranch(fmt.Sprintf("%s (%s)", name, plan.Strategy))
 
 		for _, phase := range plan.Phases {
@@ -92,6 +95,15 @@ func displayPlanTable(pf *packages.Files, withTasks bool, out io.Writer) error {
 	}
 
 	return err
+}
+
+func sortedPlanNames(pf *packages.Files) []string {
+	planNames := make([]string, 0, len(pf.Operator.Plans))
+	for name := range pf.Operator.Plans {
+		planNames = append(planNames, name)
+	}
+	sort.Strings(planNames)
+	return planNames
 }
 
 func addTaskNodeWithResources(sNode treeprint.Tree, taskName string, pf *packages.Files) {
