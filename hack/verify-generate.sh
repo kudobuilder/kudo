@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
 
-set -o errexit
 set -o nounset
 set -o pipefail
+# intentionally not setting 'set -o errexit' because we want to print custom error messages
 
 # make sure make generate can be invoked
-if ! make generate; then
+make generate
+RETVAL=$?
+if [[ ${RETVAL} != 0 ]]; then
     echo "Invoking 'make generate' ends with non-zero exit code."
     exit 1
 fi
 
-if ! git diff-index --quiet HEAD --; then
+git diff-index --quiet HEAD --
+RETVAL=$?
+echo $RETVAL
+
+if [[ ${RETVAL} != 0 ]]; then
     echo "Running 'make generate' produces changes to the current git status. Maybe you forgot to check-in your updated generated files?"
     echo "The current diff: `git diff`"
     exit 1
