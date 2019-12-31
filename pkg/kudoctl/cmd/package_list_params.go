@@ -16,7 +16,7 @@ import (
 type packageListParamsCmd struct {
 	fs             afero.Fs
 	out            io.Writer
-	path           string
+	pathOrName     string
 	descriptions   bool
 	namesOnly      bool
 	requiredOnly   bool
@@ -43,8 +43,8 @@ func newPackageListParamsCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			if err := validateOperatorArg(args); err != nil {
 				return err
 			}
-			list.path = args[0]
-			return list.run(fs, &Settings)
+			list.pathOrName = args[0]
+			return list.run(&Settings)
 		},
 	}
 
@@ -62,11 +62,11 @@ func newPackageListParamsCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 // 1. names only using --names.  This is based on challenges with other approaches reading really long parameter names
 // 2. name, default and required.  This is the **default**
 // 3. name, default, required, desc.
-func (c *packageListParamsCmd) run(fs afero.Fs, settings *env.Settings) error {
+func (c *packageListParamsCmd) run(settings *env.Settings) error {
 	if !onlyOneSet(c.requiredOnly, c.namesOnly, c.descriptions) {
 		return fmt.Errorf("only one of the flags 'required', 'names', 'descriptions' can be set")
 	}
-	pf, err := packageDiscovery(fs, settings, c.RepoName, c.path, c.PackageVersion)
+	pf, err := packageDiscovery(c.fs, settings, c.RepoName, c.pathOrName, c.PackageVersion)
 	if err != nil {
 		return err
 	}

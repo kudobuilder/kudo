@@ -15,17 +15,17 @@ import (
 type packageListTasksCmd struct {
 	fs             afero.Fs
 	out            io.Writer
-	path           string
+	pathOrName     string
 	RepoName       string
 	PackageVersion string
 }
 
 const (
-	packageListTasksExample = `# show parameters from local-folder (where local-folder is a folder in the current directory)
-  kubectl kudo package list parameters local-folder
+	packageListTasksExample = `# show tasks from local-folder (where local-folder is a folder in the current directory)
+  kubectl kudo package list tasks local-folder
 
-  # show parameters from zookeeper (where zookeeper is name of package in KUDO repository)
-  kubectl kudo package list parameters zookeeper`
+  # show tasks from zookeeper (where zookeeper is name of package in KUDO repository)
+  kubectl kudo package list tasks zookeeper`
 )
 
 func newPackageListTasksCmd(fs afero.Fs, out io.Writer) *cobra.Command {
@@ -39,8 +39,8 @@ func newPackageListTasksCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			if err := validateOperatorArg(args); err != nil {
 				return err
 			}
-			list.path = args[0]
-			return list.run(fs, &Settings)
+			list.pathOrName = args[0]
+			return list.run(&Settings)
 		},
 	}
 
@@ -52,8 +52,8 @@ func newPackageListTasksCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 }
 
 // run provides a table listing the tasks for an operator.
-func (c *packageListTasksCmd) run(fs afero.Fs, settings *env.Settings) error {
-	pf, err := packageDiscovery(fs, settings, c.RepoName, c.path, c.PackageVersion)
+func (c *packageListTasksCmd) run(settings *env.Settings) error {
+	pf, err := packageDiscovery(c.fs, settings, c.RepoName, c.pathOrName, c.PackageVersion)
 	if err != nil {
 		return err
 	}

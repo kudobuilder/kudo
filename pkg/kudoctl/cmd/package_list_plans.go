@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"sort"
 
 	"github.com/gosuri/uitable"
 	"github.com/spf13/afero"
@@ -16,7 +15,7 @@ import (
 type packageListPlansCmd struct {
 	fs             afero.Fs
 	out            io.Writer
-	path           string
+	pathOrName     string
 	RepoName       string
 	PackageVersion string
 }
@@ -40,8 +39,8 @@ func newPackageListPlansCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			if err := validateOperatorArg(args); err != nil {
 				return err
 			}
-			list.path = args[0]
-			return list.run(fs, &Settings)
+			list.pathOrName = args[0]
+			return list.run(&Settings)
 		},
 	}
 
@@ -52,8 +51,8 @@ func newPackageListPlansCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	return cmd
 }
 
-func (c *packageListPlansCmd) run(fs afero.Fs, settings *env.Settings) error {
-	pf, err := packageDiscovery(fs, settings, c.RepoName, c.path, c.PackageVersion)
+func (c *packageListPlansCmd) run(settings *env.Settings) error {
+	pf, err := packageDiscovery(c.fs, settings, c.RepoName, c.pathOrName, c.PackageVersion)
 	if err != nil {
 		return err
 	}
@@ -62,7 +61,6 @@ func (c *packageListPlansCmd) run(fs afero.Fs, settings *env.Settings) error {
 }
 
 func displayPlanTable(pf *packages.Files, out io.Writer) error {
-	sort.Sort(pf.Params.Parameters)
 	table := uitable.New()
 	table.AddRow("Name", "Phase", "Strategy", "Step", "Task")
 	for name, plan := range pf.Operator.Plans {

@@ -17,8 +17,6 @@ import (
 const packageListDesc = `
 This command consists of multiple sub-commands to interact with KUDO packages.  These commands are used in the listing 
 of an operator details such as parameters, tasks or plans.
-
-List operator parameters
 `
 
 const packageListExamples = `  kubectl kudo package list parameters [operator folder]
@@ -42,18 +40,18 @@ func newPackageParamsCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 }
 
 // packageDiscovery is used by all list cmds to "discover" the packages
-func packageDiscovery(fs afero.Fs, settings *env.Settings, repoName, path, packageVersion string) (*packages.Package, error) {
+func packageDiscovery(fs afero.Fs, settings *env.Settings, repoName, pathOrName, packageVersion string) (*packages.Package, error) {
 	repository, err := repo.ClientFromSettings(fs, settings.Home, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("could not build operator repository: %w", err)
 	}
 	clog.V(4).Printf("repository used %s", repository)
 
-	clog.V(3).Printf("getting package pkg files for %v with version: %v", path, packageVersion)
+	clog.V(3).Printf("getting package pkg files for %v with version: %v", pathOrName, packageVersion)
 	resolver := pkgresolver.New(repository)
-	pf, err := resolver.Resolve(path, packageVersion)
+	pf, err := resolver.Resolve(pathOrName, packageVersion)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve package files for operator: %s: %w", path, err)
+		return nil, fmt.Errorf("failed to resolve package files for operator: %s: %w", pathOrName, err)
 	}
 	return pf, nil
 }
