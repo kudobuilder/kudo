@@ -57,6 +57,9 @@ Executing `make lint` uses `goimports` which is configured to ensure this struct
 
 `make imports` is also a useful tool in order to help create this structure.  If all imports are in 1 import block (no lines of separation), `make imports` will modify the file in the appropriate order and structure.
 
+If you use Goland or Intellij IDEA, the following settings will match the above requirements:
+
+![Intellij imports](intellij-imports.png)
 
 ### Naming
 
