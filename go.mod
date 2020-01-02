@@ -27,7 +27,6 @@ require (
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/magiconair/properties v1.8.1
-	github.com/mailru/easyjson v0.0.0-20190620125010-da37f6c1e481 // indirect
 	github.com/manifoldco/promptui v0.6.0
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
@@ -56,8 +55,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.0.0-20191016113550-5357c4baaf65
 	k8s.io/apimachinery v0.0.0-20191028221656-72ed19daf4bb
 	k8s.io/client-go v11.0.0+incompatible
-	k8s.io/code-generator v0.0.0-20191004115455-8e001e5d1894
-	k8s.io/klog v1.0.0 // indirect
+	k8s.io/code-generator v0.18.0-alpha.1.0.20191220033320-6b257a9d6f46
 	k8s.io/kubectl v0.0.0-20191016120415-2ed914427d51
 	sigs.k8s.io/controller-runtime v0.4.0
 	sigs.k8s.io/controller-tools v0.2.4
