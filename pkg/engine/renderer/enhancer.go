@@ -20,7 +20,7 @@ type Enhancer interface {
 	Apply(templates map[string]string, metadata Metadata) ([]runtime.Object, error)
 }
 
-// DefaultEnhancer is implementation of Enhancer that uses kustomize to apply the defined conventions
+// DefaultEnhancer is implementation of Enhancer that applies the defined conventions by directly editing runtime.Objects (Unstructured).
 type DefaultEnhancer struct {
 	Scheme *runtime.Scheme
 }

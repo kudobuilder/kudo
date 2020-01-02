@@ -23,7 +23,7 @@ type ApplyTask struct {
 }
 
 // Run method for the ApplyTask. Given the task context, it renders the templates using context parameters
-// creates runtime objects and kustomizes them, and applies them using the controller client. Finally,
+// creates runtime objects and enhances them, and applies them using the controller client. Finally,
 // resources are checked for health.
 func (at ApplyTask) Run(ctx Context) (bool, error) {
 	// 1. - Render task templates -
@@ -32,14 +32,14 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 		return false, fatalExecutionError(err, taskRenderingError, ctx.Meta)
 	}
 
-	// 2. - Kustomize them with metadata -
-	kustomized, err := kustomize(rendered, ctx.Meta, ctx.Enhancer)
+	// 2. - Enhance them with metadata -
+	enhanced, err := enhance(rendered, ctx.Meta, ctx.Enhancer)
 	if err != nil {
 		return false, fatalExecutionError(err, taskEnhancementError, ctx.Meta)
 	}
 
 	// 3. - Apply them using the client -
-	applied, err := apply(kustomized, ctx.Client)
+	applied, err := apply(enhanced, ctx.Client)
 	if err != nil {
 		return false, err
 	}
