@@ -179,8 +179,8 @@ func (initCmd *initCmd) run() error {
 
 		if initCmd.wait {
 			clog.Printf("⌛Waiting for KUDO controller to be ready in your cluster...")
-			finished := setup.WatchKUDOUntilReady(initCmd.client.KubeClient, opts, initCmd.timeout)
-			if !finished {
+			err := setup.WatchKUDOUntilReady(initCmd.client.KubeClient, opts, initCmd.timeout)
+			if err != nil {
 				return errors.New("watch timed out, readiness uncertain")
 			}
 		}
