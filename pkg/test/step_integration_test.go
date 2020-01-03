@@ -322,3 +322,21 @@ func TestStepDeleteExistingLabelMatch(t *testing.T) {
 	assert.True(t, k8serrors.IsNotFound(testenv.Client.Get(context.TODO(), testutils.ObjectKey(podToDelete), podToDelete)))
 	assert.True(t, k8serrors.IsNotFound(testenv.Client.Get(context.TODO(), testutils.ObjectKey(podToDelete2), podToDelete2)))
 }
+
+func TestCheckedTypeAssertions(t *testing.T) {
+	tests := []struct {
+		name     string
+		typeName string
+	}{
+		{"assert", "TestAssert"},
+		{"apply", "TestStep"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			step := Step{}
+			assert.EqualError(t, step.LoadYAML(fmt.Sprintf("test_data/type-assertions/00-%s.yaml", test.name)),
+				fmt.Sprintf("failed to load %s object from test_data/type-assertions/00-%s.yaml: it contains an object of type *unstructured.Unstructured",
+					test.typeName, test.name))
+		})
+	}
+}
