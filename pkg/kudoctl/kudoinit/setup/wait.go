@@ -26,9 +26,9 @@ func WatchKUDOUntilReady(client kubernetes.Interface, opts kudoinit.Options, tim
 		func() (bool, error) { return verifyKudoDeployment(client.CoreV1(), opts.Namespace, opts.Image) })
 }
 
-func verifyKudoDeployment(client corev1.PodsGetter, namespace, image string) (bool, error) {
+func verifyKudoDeployment(client corev1.PodsGetter, namespace, expectedImage string) (bool, error) {
 	image, err := getKUDOPodImage(client, namespace)
-	if err == nil && image == image {
+	if err == nil && image == expectedImage {
 		return true, nil
 	}
 	return false, nil
