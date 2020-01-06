@@ -208,8 +208,8 @@ _Resolved version_ is the combination of _app version_ and _operator version_ us
 
 ### Required and Suggested Changes
 
-1. Make the _app version_ a required field, as it takes precedence over an (optional) operator version
-2. Make the _operator version_ field optional.
+1. Require the (optional) _app version_ to be SemVer, as it takes precedence over an operator version if set.
+2. Rename the (required) `version` field to `operatorVersion` to make it clear that it is for the _operator version_.
 
 ### Alternative considered: Operator version independent from app version (largely, the current state of things)
 
@@ -252,10 +252,10 @@ If a base tech does big releases with minor versions, the operator developer can
 
 For the CLI UX, the _app version_ is surfaced in addition to the _operator version_.
 
-| Concept             | Flag          |
-| ------------------- | ------------- |
-| Operator version    | --version     |
-| Application version | --app-version |
+| Concept             | Flag               |
+| ------------------- | ------------------ |
+| Operator version    | --operator-version |
+| Application version | --app-version      |
 
 Assuming the following packages exist in the package registry:
 
@@ -299,15 +299,15 @@ Let's say a user wants to use Apache Kafka `3.0.0` and even though there's a `3.
 - revision `1.1.0` changed in a way that will require them to invest time and resources to adapt
 
 ```
-kudo install kafka --app-version 3.0.0 --version 1.0.0
+kudo install kafka --app-version 3.0.0 --operator-version 1.0.0
 ```
 
 #### Install a Kafka operator with a specific operator version
 
-In the case that the `--version` flag is used to select a specific _operator version_, there could be multiple _app versions_ for this _operator version_. In this case, KUDO will try to order the _app version_ and install the latest one. If _app versions_ cannot get ordered the installation will be aborted and the user will be prompted to specify the _app version_ with the `--app-version` flag.
+In the case that the `--operator-version` flag is used to select a specific _operator version_, there could be multiple _app versions_ for this _operator version_. In this case, KUDO will try to order the _app version_ and install the latest one. Because the _app version_ is required to be SemVer, it will always be possible to order these versions. In the case that _app version_ isn't set, this is treated like a 'v0.0.0', i.e. it will be treated like the oldest version available.
 
 ```
-kudo install kafka --version 1.1.0
+kudo install kafka --operator-version 1.1.0
 ```
 
 Installs `kafka` with app version `3.0.1` and operator version `1.1.0`.
@@ -342,7 +342,7 @@ For this, the following changes have to be made in KUDO:
 
 ### Naming of package tarballs
 
-To avoid ambiguity the `appVersion` of a package will be part of the tarball name. E.g., the Kafka package described above will be named `kafka-2.3.0-0.2.0.tgz`. For this, changes in `kudoctl/packages/writer` are necessary.
+To avoid ambiguity the `appVersion` of a package will be part of the tarball name. E.g., the Kafka package described above will be named `kafka-2.3.0-0.2.0.tgz`. For this, changes in `kudoctl/packages/writer` are necessary. If `appVersion` isn't set, it won't be part of the tarball name.
 
 ### Naming of `OperatorVersion` objects
 
@@ -350,11 +350,11 @@ Currently, `OperatorVersion` objects are named "%operatorName%-%operatorVersion%
 
 ### Semantic versioning
 
-`kudoVersion` and `version` follow the [Semantic Versioning Specification](https://semver.org/). `appVersion` is application dependent and might not follow this specification. It should be treated as a free-form string without ordering. The following filtering should be used when installing packages from a repository:
+`appVersion`, `kudoVersion` and `operatorVersion` follow the [Semantic Versioning Specification](https://semver.org/). The following filtering should be used when installing packages from a repository:
   1. Filter by `apiVersion` of packages that match the one used by `kubectl kudo`
   2. Filter by `kudoVersion` of packages that are smaller or equal than the one of `kubectl kudo`
   3. Filter by `appVersion` of package if provided by user
-  4. Use latest or user-provided `version` of package
+  4. Use latest or user-provided `operatorVersion` of package
 
 ### Risks and Mitigations
 
@@ -375,3 +375,4 @@ Changing the naming of `OperatorVersion` is a breaking change. It will further l
 - 2019/11/21 - Added "concepts" section and expanded existing sections. (@mpereira)
 - 2019/11/25 - Expanded the single semver section and its CLI UX. (@zmalik)
 - 2019/11/29 - Updated after discussing the various versioning approaches. (@nfnt)
+- 2020/01/06 - Updated, renaming `version` to `operatorVersion`. (@nfnt)
