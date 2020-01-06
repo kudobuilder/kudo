@@ -13,11 +13,12 @@ import (
 )
 
 type packageListTasksCmd struct {
-	fs             afero.Fs
-	out            io.Writer
-	pathOrName     string
-	RepoName       string
-	PackageVersion string
+	fs              afero.Fs
+	out             io.Writer
+	pathOrName      string
+	RepoName        string
+	AppVersion      string
+	OperatorVersion string
 }
 
 const (
@@ -46,14 +47,15 @@ func newPackageListTasksCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVar(&lc.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
-	f.StringVar(&lc.PackageVersion, "version", "", "A specific package version on the official GitHub repo. (default to the most recent)")
+	f.StringVar(&lc.AppVersion, "app-version", "", "A specific app version on the official GitHub repo. (default to the most recent)")
+	f.StringVar(&lc.OperatorVersion, "operator-version", "", "A specific operator version on the official GitHub repo. (default to the most recent)")
 
 	return cmd
 }
 
 // run provides a table listing the tasks for an operator.
 func (c *packageListTasksCmd) run(settings *env.Settings) error {
-	pf, err := packageDiscovery(c.fs, settings, c.RepoName, c.pathOrName, c.PackageVersion)
+	pf, err := packageDiscovery(c.fs, settings, c.RepoName, c.pathOrName, c.AppVersion, c.OperatorVersion)
 	if err != nil {
 		return err
 	}

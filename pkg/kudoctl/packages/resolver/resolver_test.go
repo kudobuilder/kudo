@@ -11,7 +11,7 @@ func TestManager_GetPackage(t *testing.T) {
 		local: NewLocal(),
 		uri:   nil,
 	}
-	pkg, err := m.Resolve("../testdata/zk", "")
+	pkg, err := m.Resolve("../testdata/zk", "", "")
 	if err != nil {
 		t.Errorf("PackageResolver.Resolve() error = %v", err)
 		return

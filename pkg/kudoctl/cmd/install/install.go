@@ -20,11 +20,12 @@ type RepositoryOptions struct {
 // Options defines configuration options for the install command
 type Options struct {
 	RepositoryOptions
-	InstanceName   string
-	Parameters     map[string]string
-	PackageVersion string
-	SkipInstance   bool
-	RequestTimeout int64
+	InstanceName    string
+	Parameters      map[string]string
+	AppVersion      string
+	OperatorVersion string
+	SkipInstance    bool
+	RequestTimeout  int64
 }
 
 // DefaultOptions initializes the install command options to its defaults
@@ -69,7 +70,7 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 	clog.V(3).Printf("getting package crds")
 
 	resolver := pkgresolver.New(repository)
-	pkg, err := resolver.Resolve(operatorArgument, options.PackageVersion)
+	pkg, err := resolver.Resolve(operatorArgument, options.AppVersion, options.OperatorVersion)
 	if err != nil {
 		return fmt.Errorf("failed to resolve package CRDs for operator: %s %w", operatorArgument, err)
 	}

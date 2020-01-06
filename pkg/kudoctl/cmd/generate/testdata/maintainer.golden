@@ -12,6 +12,7 @@ maintainers:
 - email: c@hat.com
   name: Cat in the hat
 name: zookeeper
+operatorVersion: 0.1.0
 plans:
   deploy:
     phases:
@@ -50,4 +51,3 @@ tasks:
     resources:
     - validation.yaml
 url: https://zookeeper.apache.org/
-version: 0.1.0

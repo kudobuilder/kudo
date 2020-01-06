@@ -48,15 +48,32 @@ func (b PackageVersions) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
 // This is needed to allow sorting of packages.
 func (b PackageVersions) Less(x, y int) bool {
 	// Failed parse pushes to the back.
-	i, err := semver.NewVersion(b[x].Version)
+	appVersionX, err := semver.NewVersion(b[x].AppVersion)
 	if err != nil {
 		return true
 	}
-	j, err := semver.NewVersion(b[y].Version)
+
+	appVersionY, err := semver.NewVersion(b[y].AppVersion)
 	if err != nil {
 		return false
 	}
-	return i.LessThan(j)
+
+	if appVersionX.Equal(appVersionY) {
+		// Failed parse pushes to the back.
+		versionX, err := semver.NewVersion(b[x].OperatorVersion)
+		if err != nil {
+			return true
+		}
+
+		versionY, err := semver.NewVersion(b[y].OperatorVersion)
+		if err != nil {
+			return false
+		}
+
+		return versionX.LessThan(versionY)
+	}
+
+	return appVersionX.LessThan(appVersionY)
 }
 
 // sortPackages sorts the entries by version in descending order.
@@ -100,9 +117,10 @@ func (i IndexFile) Write(w io.Writer) error {
 // AddPackageVersion adds an entry to the IndexFile (does not allow dups)
 func (i *IndexFile) AddPackageVersion(pv *PackageVersion) error {
 	name := pv.Name
-	version := pv.Version
-	if version == "" {
-		return fmt.Errorf("operator '%v' is missing version", name)
+	appVersion := pv.AppVersion
+	operatorVersion := pv.OperatorVersion
+	if operatorVersion == "" {
+		return fmt.Errorf("operator '%v' is missing operator version", name)
 	}
 	if i.Entries == nil {
 		i.Entries = make(map[string]PackageVersions)
@@ -117,8 +135,8 @@ func (i *IndexFile) AddPackageVersion(pv *PackageVersion) error {
 
 	// loop thru all... don't allow dups
 	for _, ver := range vs {
-		if ver.Version == version {
-			return fmt.Errorf("operator '%v' version: %v already exists", name, version)
+		if ver.AppVersion == appVersion && ver.OperatorVersion == operatorVersion {
+			return fmt.Errorf("operator '%v' version: %v-%v already exists", name, appVersion, operatorVersion)
 		}
 	}
 
@@ -166,14 +184,18 @@ func ToPackageVersion(pf *packages.Files, digest string, url string) *PackageVer
 	if url[len(url)-1:] != "/" {
 		url = url + "/"
 	}
-	url = fmt.Sprintf("%s%s-%v.tgz", url, o.Name, o.Version)
+	if o.AppVersion == "" {
+		url = fmt.Sprintf("%s%s-%v.tgz", url, o.Name, o.OperatorVersion)
+	} else {
+		url = fmt.Sprintf("%s%s-%v-%v.tgz", url, o.Name, o.AppVersion, o.OperatorVersion)
+	}
 	pv := PackageVersion{
 		Metadata: &Metadata{
-			Name:        o.Name,
-			Version:     o.Version,
-			Description: o.Description,
-			Maintainers: o.Maintainers,
-			AppVersion:  o.AppVersion,
+			Name:            o.Name,
+			OperatorVersion: o.OperatorVersion,
+			Description:     o.Description,
+			Maintainers:     o.Maintainers,
+			AppVersion:      o.AppVersion,
 		},
 		URLs:   []string{url},
 		Digest: digest,
