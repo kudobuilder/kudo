@@ -71,10 +71,11 @@ func (c *packageListParamsCmd) run(settings *env.Settings) error {
 		return err
 	}
 
-	return displayParamsTable(pf.Files, c.out, c.requiredOnly, c.namesOnly, c.descriptions)
+	displayParamsTable(pf.Files, c.out, c.requiredOnly, c.namesOnly, c.descriptions)
+	return nil
 }
 
-func displayParamsTable(pf *packages.Files, out io.Writer, requiredOnly, namesOnly, descriptions bool) error {
+func displayParamsTable(pf *packages.Files, out io.Writer, requiredOnly, namesOnly, descriptions bool) {
 	sort.Sort(pf.Params.Parameters)
 	table := uitable.New()
 	tValue := true
@@ -93,7 +94,6 @@ func displayParamsTable(pf *packages.Files, out io.Writer, requiredOnly, namesOn
 		} else {
 			fmt.Fprintf(out, "no required parameters without default values found\n")
 		}
-		return nil
 	}
 	// names only
 	if namesOnly {
@@ -102,7 +102,6 @@ func displayParamsTable(pf *packages.Files, out io.Writer, requiredOnly, namesOn
 			table.AddRow(p.Name)
 		}
 		fmt.Fprintln(out, table)
-		return nil
 	}
 	table.MaxColWidth = 35
 	table.Wrap = true
@@ -124,8 +123,7 @@ func displayParamsTable(pf *packages.Files, out io.Writer, requiredOnly, namesOn
 			table.AddRow(p.Name, pDefault, *p.Required)
 		}
 	}
-	_, err := fmt.Fprintln(out, table)
-	return err
+	fmt.Fprintln(out, table)
 }
 
 func onlyOneSet(b bool, b2 bool, b3 bool) bool {

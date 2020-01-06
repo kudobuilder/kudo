@@ -29,7 +29,7 @@ const (
 )
 
 func newPackageListTasksCmd(fs afero.Fs, out io.Writer) *cobra.Command {
-	list := &packageListTasksCmd{fs: fs, out: out}
+	lc := &packageListTasksCmd{fs: fs, out: out}
 
 	cmd := &cobra.Command{
 		Use:     "tasks [operator]",
@@ -39,14 +39,14 @@ func newPackageListTasksCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			if err := validateOperatorArg(args); err != nil {
 				return err
 			}
-			list.pathOrName = args[0]
-			return list.run(&Settings)
+			lc.pathOrName = args[0]
+			return lc.run(&Settings)
 		},
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&list.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
-	f.StringVar(&list.PackageVersion, "version", "", "A specific package version on the official GitHub repo. (default to the most recent)")
+	f.StringVar(&lc.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
+	f.StringVar(&lc.PackageVersion, "version", "", "A specific package version on the official GitHub repo. (default to the most recent)")
 
 	return cmd
 }
@@ -57,10 +57,11 @@ func (c *packageListTasksCmd) run(settings *env.Settings) error {
 	if err != nil {
 		return err
 	}
-	return displayTasksTable(pf.Files, c.out)
+	displayTasksTable(pf.Files, c.out)
+	return nil
 }
 
-func displayTasksTable(pf *packages.Files, out io.Writer) error {
+func displayTasksTable(pf *packages.Files, out io.Writer) {
 	table := uitable.New()
 	table.AddRow("Name", "Kind", "Resources")
 	for _, task := range pf.Operator.Tasks {
@@ -70,11 +71,9 @@ func displayTasksTable(pf *packages.Files, out io.Writer) error {
 			table.AddRow(task.Name, task.Kind, task.Spec.Resources)
 		}
 	}
-	var err error
 	if len(pf.Operator.Tasks) == 0 {
-		_, err = fmt.Fprintf(out, "no tasks  found\n")
+		fmt.Fprintf(out, "no tasks  found\n")
 	} else {
-		_, err = fmt.Fprintln(out, table)
+		fmt.Fprintln(out, table)
 	}
-	return err
 }

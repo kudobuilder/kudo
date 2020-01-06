@@ -17,11 +17,32 @@ import (
 const packageListDesc = `
 This command consists of multiple sub-commands to interact with KUDO packages.  These commands are used in the listing 
 of an operator details such as parameters, tasks or plans.
+
+For list commands, the argument passed represents an operator.   That representation can be:
+
+  - name of operator in the repository
+  - url to the operator package (tgz file)
+  - local operator package
+  - local operator folder
 `
 
-const packageListExamples = `  kubectl kudo package list parameters [operator folder]
-  kubectl kudo package list task [operator folder]
-  kubectl kudo package list plans [operator folder]
+const packageListExamples = `  # show list of parameters from local operator folder   
+  kubectl kudo package list parameters local-folder
+
+  # show list of parameters from zookeeper (where zookeeper is name of package in KUDO repository)
+  kubectl kudo package list parameters zookeeper
+
+  # show list of tasks from local operator folder
+  kubectl kudo package list task local-folder
+
+  # show list of tasks from zookeeper (where zookeeper is name of package in KUDO repository)
+  kubectl kudo package list task zookeeper
+
+  # show list of plans from local operator folder
+  kubectl kudo package list plans local-folder
+
+  # show plans from zookeeper (where zookeeper is name of package in KUDO repository)
+  kubectl kudo package list plans zookeeper
 `
 
 // newPackageParamsCmd for repo commands such as building a repo index
@@ -45,7 +66,7 @@ func packageDiscovery(fs afero.Fs, settings *env.Settings, repoName, pathOrName,
 	if err != nil {
 		return nil, fmt.Errorf("could not build operator repository: %w", err)
 	}
-	clog.V(4).Printf("repository used %s", repository)
+	clog.V(3).Printf("repository used %s", repository)
 
 	clog.V(3).Printf("getting package pkg files for %v with version: %v", pathOrName, packageVersion)
 	resolver := pkgresolver.New(repository)

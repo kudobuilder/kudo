@@ -24,7 +24,7 @@ type packageListPlansCmd struct {
 }
 
 const (
-	packageListPlansExample = `# show plans from local-folder (where local-folder is a folder in the current directory)
+	packageListPlansExample = `  # show plans from local-folder (where local-folder is a folder in the current directory)
   kubectl kudo package list plans local-folder
 
   # show plans from zookeeper (where zookeeper is name of package in KUDO repository)
@@ -32,7 +32,7 @@ const (
 )
 
 func newPackageListPlansCmd(fs afero.Fs, out io.Writer) *cobra.Command {
-	list := &packageListPlansCmd{fs: fs, out: out}
+	lc := &packageListPlansCmd{fs: fs, out: out}
 
 	cmd := &cobra.Command{
 		Use:     "plans [operator]",
@@ -42,15 +42,15 @@ func newPackageListPlansCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			if err := validateOperatorArg(args); err != nil {
 				return err
 			}
-			list.pathOrName = args[0]
-			return list.run(&Settings)
+			lc.pathOrName = args[0]
+			return lc.run(&Settings)
 		},
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&list.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
-	f.StringVar(&list.PackageVersion, "version", "", "A specific package version on the official GitHub repo. (default to the most recent)")
-	f.BoolVarP(&list.WithTasksResources, "with-tasks", "t", false, "Display task resources with plans")
+	f.StringVar(&lc.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
+	f.StringVar(&lc.PackageVersion, "version", "", "A specific package version on the official GitHub repo. (default to the most recent)")
+	f.BoolVarP(&lc.WithTasksResources, "with-tasks", "t", false, "Display task resources with plans")
 
 	return cmd
 }
@@ -61,10 +61,11 @@ func (c *packageListPlansCmd) run(settings *env.Settings) error {
 		return err
 	}
 
-	return displayPlanTable(pf.Files, c.WithTasksResources, c.out)
+	displayPlanTable(pf.Files, c.WithTasksResources, c.out)
+	return nil
 }
 
-func displayPlanTable(pf *packages.Files, withTasks bool, out io.Writer) error {
+func displayPlanTable(pf *packages.Files, withTasks bool, out io.Writer) {
 	tree := treeprint.New()
 	planNames := sortedPlanNames(pf)
 	tree.SetValue("plans")
@@ -87,14 +88,11 @@ func displayPlanTable(pf *packages.Files, withTasks bool, out io.Writer) error {
 		}
 	}
 
-	var err error
 	if len(pf.Operator.Plans) == 0 {
-		_, err = fmt.Fprintf(out, "no plans found\n")
+		fmt.Fprintf(out, "no plans found\n")
 	} else {
-		_, err = fmt.Fprintln(out, tree.String())
+		fmt.Fprintln(out, tree.String())
 	}
-
-	return err
 }
 
 func sortedPlanNames(pf *packages.Files) []string {
@@ -123,6 +121,10 @@ func addTaskNodeWithResources(sNode treeprint.Tree, taskName string, pf *package
 			case task.PipeTaskKind:
 				tNode := sNode.AddMetaBranch("pipe", taskName)
 				tNode.AddNode(t.Spec.Pod)
+			case task.DummyTaskKind:
+				sNode.AddMetaBranch("dummy", taskName)
+			default:
+				sNode.AddMetaBranch("unknown", taskName)
 			}
 		}
 	}
