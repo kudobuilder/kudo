@@ -2,6 +2,7 @@ package generate
 
 import (
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -47,7 +48,7 @@ func TestAddParameter(t *testing.T) {
 }
 
 func TestAddParameter_bad_path(t *testing.T) {
-	path := "."
+	path, _ := os.Getwd()
 	fs := afero.OsFs{}
 
 	bar := "Bar"

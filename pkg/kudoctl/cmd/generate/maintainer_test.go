@@ -17,7 +17,6 @@ var updateGolden = flag.Bool("update", false, "update .golden files and manifest
 
 func TestAddMaintainer(t *testing.T) {
 	goldenFile := "maintainer"
-	path := "/opt/zk"
 	fs := afero.NewMemMapFs()
 	files.CopyOperatorToFs(fs, "../../packages/testdata/zk", "/opt")
 	m := v1beta1.Maintainer{
@@ -25,7 +24,7 @@ func TestAddMaintainer(t *testing.T) {
 		Email: "c@hat.com",
 	}
 
-	err := AddMaintainer(fs, path, &m)
+	err := AddMaintainer(fs, "/opt/zk", &m)
 	assert.NoError(t, err)
 
 	operator, err := afero.ReadFile(fs, "/opt/zk/operator.yaml")

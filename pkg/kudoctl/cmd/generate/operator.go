@@ -111,9 +111,11 @@ func OperatorPath(fs afero.Fs) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	if exists {
 		return "", nil
 	}
+
 	pat := path.Join("**", fname)
 	// one more try
 	files, err := afero.Glob(fs, pat)
