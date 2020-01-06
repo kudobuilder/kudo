@@ -21,6 +21,7 @@ import (
 	"log"
 	"reflect"
 
+	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
@@ -505,15 +506,6 @@ func parameterDiff(old, new map[string]string) map[string]string {
 	return diff
 }
 
-func contains(values []string, s string) bool {
-	for _, value := range values {
-		if value == s {
-			return true
-		}
-	}
-	return false
-}
-
 func remove(values []string, s string) (result []string) {
 	for _, value := range values {
 		if value == s {
@@ -528,7 +520,7 @@ func remove(values []string, s string) (result []string) {
 // hasn't been added yet, the instance has a cleanup plan and the cleanup plan
 // didn't run yet. Returns true if the cleanup finalizer has been added.
 func (i *Instance) TryAddFinalizer() bool {
-	if !contains(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
+	if !funk.ContainsString(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
 		if planStatus := i.PlanStatus(CleanupPlanName); planStatus != nil {
 			// avoid adding a finalizer again if a reconciliation is requested
 			// after it has just been removed but the instance isn't deleted yet
@@ -546,7 +538,7 @@ func (i *Instance) TryAddFinalizer() bool {
 // been added, the instance has a cleanup plan and the cleanup plan completed.
 // Returns true if the cleanup finalizer has been removed.
 func (i *Instance) TryRemoveFinalizer() bool {
-	if contains(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
+	if funk.ContainsString(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
 		if planStatus := i.PlanStatus(CleanupPlanName); planStatus != nil {
 			if planStatus.Status.IsTerminal() {
 				i.ObjectMeta.Finalizers = remove(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)

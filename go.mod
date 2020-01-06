@@ -41,6 +41,7 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
+	github.com/thoas/go-funk v0.5.0
 	github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/zap v1.10.0 // indirect

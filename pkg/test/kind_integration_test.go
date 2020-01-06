@@ -11,13 +11,14 @@ import (
 
 	"github.com/docker/docker/api/types"
 	dockerClient "github.com/docker/docker/client"
+	"github.com/thoas/go-funk"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha3"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 )
 
 const (
 	kindTestContext = "test"
-	testImage = "busybox:latest"
+	testImage       = "docker.io/library/busybox:latest"
 )
 
 // Tests that Docker images are added to the nodes of a KIND cluster with the
@@ -79,7 +80,7 @@ func TestAddContainers(t *testing.T) {
 			t.Errorf("failed to list node images: %v", err)
 		}
 
-		if !contains(images, testImage) {
+		if !funk.ContainsString(images, testImage) {
 			t.Errorf("failed to find image %s on node %s", testImage, node.String())
 		}
 	}
@@ -96,14 +97,4 @@ func nodeImages(node nodes.Node) ([]string, error) {
 	}
 
 	return strings.Split(stdout.String(), "\n"), nil
-}
-
-func contains(values []string, value string) bool {
-	for _, v := range values {
-		if strings.Contains(v, value) {
-			return true
-		}
-	}
-
-	return false
 }
