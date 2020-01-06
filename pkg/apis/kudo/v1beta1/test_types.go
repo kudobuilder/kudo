@@ -31,6 +31,8 @@ type TestSuite struct {
 	// If set, each node defined in the kind configuration will have a docker named volume mounted into it to persist
 	// pulled container images across test runs.
 	KINDNodeCache bool `json:"kindNodeCache"`
+	// Containers to load to each KIND node prior to running the tests.
+	KINDContainers []string `json:"kindContainers"`
 	// Whether or not to start the KUDO controller for the tests.
 	StartKUDO bool `json:"startKUDO"`
 	// If set, do not delete the resources after running the tests (implies SkipClusterDelete).
@@ -38,8 +40,10 @@ type TestSuite struct {
 	// If set, do not delete the mocked control plane or kind cluster.
 	SkipClusterDelete bool `json:"skipClusterDelete"`
 	// Override the default timeout of 30 seconds (in seconds).
+	// +kubebuilder:validation:Format:=int64
 	Timeout int `json:"timeout"`
 	// The maximum number of tests to run at once (default: 8).
+	// +kubebuilder:validation:Format:=int64
 	Parallel int `json:"parallel"`
 	// The directory to output artifacts to (current working directory if not specified).
 	ArtifactsDir string `json:"artifactsDir"`
@@ -58,6 +62,7 @@ type TestStep struct {
 	// Override the default metadata. Set labels or override the test step name.
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +kubebuilder:validation:Format:=int64
 	Index int `json:"index,omitempty"`
 	// Objects to delete at the beginning of the test step.
 	Delete []ObjectReference `json:"delete,omitempty"`
@@ -90,7 +95,7 @@ type TestAssert struct {
 type ObjectReference struct {
 	corev1.ObjectReference `json:",inline"`
 	// Labels to match on.
-	Labels map[string]string
+	Labels map[string]string `json:"labels"`
 }
 
 // Command describes a command to run as a part of a test step or suite.

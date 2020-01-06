@@ -43,8 +43,7 @@ func TestGetInstances(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-				"operator":                "test",
+				"operator": "test",
 			},
 			Name: "test",
 		},

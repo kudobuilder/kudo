@@ -33,7 +33,7 @@ const instanceCleanupFinalizerName = "kudo.dev.instance.cleanup"
 
 // InstanceSpec defines the desired state of Instance.
 type InstanceSpec struct {
-	// OperatorVersion specifies a reference to a specific Operator object.
+	// OperatorVersion specifies a reference to a specific OperatorVersion object.
 	OperatorVersion corev1.ObjectReference `json:"operatorVersion,omitempty"`
 
 	Parameters map[string]string `json:"parameters,omitempty"`
@@ -449,7 +449,7 @@ func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
 	if !reflect.DeepEqual(instanceSnapshot.Parameters, i.Spec.Parameters) {
 		// instance updated
 		log.Printf("Instance: instance %s/%s has updated parameters from %v to %v", i.Namespace, i.Name, instanceSnapshot.Parameters, i.Spec.Parameters)
-		paramDiff := parameterDifference(instanceSnapshot.Parameters, i.Spec.Parameters)
+		paramDiff := parameterDiff(instanceSnapshot.Parameters, i.Spec.Parameters)
 		paramDefinitions := getParamDefinitions(paramDiff, ov)
 		plan := planNameFromParameters(paramDefinitions, ov)
 		if plan == nil {
@@ -484,8 +484,8 @@ func getParamDefinitions(params map[string]string, ov *OperatorVersion) []Parame
 	return defs
 }
 
-// parameterDifference returns map containing all parameters that were removed or changed between old and new
-func parameterDifference(old, new map[string]string) map[string]string {
+// parameterDiff returns map containing all parameters that were removed or changed between old and new
+func parameterDiff(old, new map[string]string) map[string]string {
 	diff := make(map[string]string)
 
 	for key, val := range old {
@@ -575,6 +575,7 @@ func (i *Instance) IsDeleting() bool {
 
 // Instance is the Schema for the instances API.
 // +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
 type Instance struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

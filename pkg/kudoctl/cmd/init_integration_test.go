@@ -13,13 +13,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
-	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
-
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,6 +23,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
+	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
 var testenv testutils.TestEnvironment
@@ -48,47 +48,17 @@ func TestMain(m *testing.M) {
 }
 
 const (
-	operatorFileName        = "kudo_v1beta1_operator.yaml"
-	operatorVersionFileName = "kudo_v1beta1_operatorversion.yaml"
-	instanceFileName        = "kudo_v1beta1_instance.yaml"
+	operatorFileName        = "kudo.dev_operators.yaml"
+	operatorVersionFileName = "kudo.dev_operatorversions.yaml"
+	instanceFileName        = "kudo.dev_instances.yaml"
 	manifestsDir            = "../../../config/crds/"
 )
 
 func TestCrds_Config(t *testing.T) {
 	crds := crd.NewInitializer()
-
-	if *updateGolden {
-		err := writeManifest(operatorFileName, crds.Operator)
-		if err != nil {
-			t.Errorf("Operator file override failed: %v", err)
-		}
-		err = writeManifest(operatorVersionFileName, crds.OperatorVersion)
-		if err != nil {
-			t.Errorf("OperatorVersion file override failed: %v", err)
-		}
-		err = writeManifest(instanceFileName, crds.Instance)
-		if err != nil {
-			t.Errorf("Instance file override failed: %v", err)
-		}
-	}
-
 	assertManifestFileMatch(t, operatorFileName, crds.Operator)
 	assertManifestFileMatch(t, operatorVersionFileName, crds.OperatorVersion)
 	assertManifestFileMatch(t, instanceFileName, crds.Instance)
-}
-
-func writeManifest(fileName string, expectedObject runtime.Object) error {
-	expectedContent, err := runtimeObjectAsBytes(expectedObject)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("Updating file %s", fileName)
-	path := filepath.Join(manifestsDir, fileName)
-	if err := ioutil.WriteFile(path, expectedContent, 0644); err != nil {
-		return fmt.Errorf("failed to update config file: %s", err)
-	}
-	return nil
 }
 
 func assertManifestFileMatch(t *testing.T, fileName string, expectedObject runtime.Object) {
@@ -98,7 +68,7 @@ func assertManifestFileMatch(t *testing.T, fileName string, expectedObject runti
 	of, err := ioutil.ReadFile(path)
 	assert.Nil(t, err)
 
-	assert.Equal(t, string(expectedContent), string(of), "manifest file does not match the existing one")
+	assert.Equal(t, string(expectedContent), string(of), fmt.Sprintf("embedded file %s does not match the source, run 'make generate'", fileName))
 }
 
 func runtimeObjectAsBytes(o runtime.Object) ([]byte, error) {

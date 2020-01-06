@@ -3,9 +3,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
-  labels:
-    app: kudo-manager
-    controller-tools.k8s.io: "1.0"
   name: operators.kudo.dev
 spec:
   group: kudo.dev
@@ -59,9 +56,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
-  labels:
-    app: kudo-manager
-    controller-tools.k8s.io: "1.0"
   name: operatorversions.kudo.dev
 spec:
   group: kudo.dev
@@ -81,11 +75,11 @@ spec:
           type: object
         spec:
           properties:
-            connectionString:
-              description: ConnectionString defines a mustached string that can be
-                used to connect to an instance of the Operator
+            appVersion:
               type: string
-            crdVersion:
+            connectionString:
+              description: ConnectionString defines a templated string that can be
+                used to connect to an instance of the Operator.
               type: string
             operator:
               type: object
@@ -94,35 +88,36 @@ spec:
                 properties:
                   default:
                     description: Default is a default value if no parameter is provided
-                      by the instance
+                      by the instance.
                     type: string
                   description:
                     description: Description captures a longer description of how
-                      the variable will be used
+                      the parameter will be used.
                     type: string
                   displayName:
-                    description: Human friendly crdVersion of the parameter name
+                    description: DisplayName can be used by UIs.
                     type: string
                   name:
-                    description: 'Name is the string that should be used in the template
-                      file for example, if `name: COUNT` then using the variable `.Params.COUNT`'
+                    description: "Name is the string that should be used in the template
+                      file for example, if `name: COUNT` then using the variable in
+                      a spec like: \n spec:   replicas:  {{ .Params.COUNT }}"
                     type: string
                   required:
                     description: Required specifies if the parameter is required to
-                      be provided by all instances, or whether a default can suffice
+                      be provided by all instances, or whether a default can suffice.
                     type: boolean
                   trigger:
                     description: Trigger identifies the plan that gets executed when
                       this parameter changes in the Instance object. Default is `update`
-                      if present, or `deploy` if not present
+                      if a plan with that name exists, otherwise it's `deploy`.
                     type: string
                 type: object
               type: array
             plans:
-              description: Plans specify a map a plans that specify how to
+              description: Plans maps a plan name to a plan.
               type: object
             tasks:
-              description: List of all tasks available in this OperatorVersions
+              description: List of all tasks available in this OperatorVersion.
               items:
                 properties:
                   kind:
@@ -134,15 +129,17 @@ spec:
                 type: object
               type: array
             templates:
-              description: List of go templates YAML files that define the application
-                operator instance
+              description: Templates is a list of references to YAML templates located
+                in the templates folder and later referenced from tasks.
               type: object
             upgradableFrom:
               description: UpgradableFrom lists all OperatorVersions that can upgrade
-                to this OperatorVersion
+                to this OperatorVersion.
               items:
                 type: object
               type: array
+            version:
+              type: string
           type: object
         status:
           type: object
@@ -160,9 +157,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
-  labels:
-    app: kudo-manager
-    controller-tools.k8s.io: "1.0"
   name: instances.kudo.dev
 spec:
   group: kudo.dev
@@ -184,9 +178,9 @@ spec:
           type: object
         spec:
           properties:
-            OperatorVersion:
+            operatorVersion:
               description: OperatorVersion specifies a reference to a specific OperatorVersion
-                object
+                object.
               type: object
             parameters:
               type: object
@@ -240,7 +234,6 @@ metadata:
   labels:
     app: kudo-manager
     control-plane: controller-manager
-    controller-tools.k8s.io: "1.0"
   name: kudo-controller-manager-service
   namespace: foo
 spec:
@@ -251,7 +244,6 @@ spec:
   selector:
     app: kudo-manager
     control-plane: controller-manager
-    controller-tools.k8s.io: "1.0"
 status:
   loadBalancer: {}
 
@@ -263,7 +255,6 @@ metadata:
   labels:
     app: kudo-manager
     control-plane: controller-manager
-    controller-tools.k8s.io: "1.0"
   name: kudo-controller-manager
   namespace: foo
 spec:
@@ -271,7 +262,6 @@ spec:
     matchLabels:
       app: kudo-manager
       control-plane: controller-manager
-      controller-tools.k8s.io: "1.0"
   serviceName: kudo-controller-manager-service
   template:
     metadata:
@@ -279,7 +269,6 @@ spec:
       labels:
         app: kudo-manager
         control-plane: controller-manager
-        controller-tools.k8s.io: "1.0"
     spec:
       containers:
       - command:

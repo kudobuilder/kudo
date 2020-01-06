@@ -161,7 +161,6 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	log.Printf("InstanceController: Received Reconcile request for instance \"%+v\"", request.Name)
 	instance, err := r.getInstance(request)
-	oldInstance := instance.DeepCopy()
 	if err != nil {
 		if apierrors.IsNotFound(err) { // not retrying if instance not found, probably someone manually removed it?
 			log.Printf("Instance %s was deleted, nothing to reconcile.", request.NamespacedName)
@@ -169,6 +168,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		}
 		return reconcile.Result{}, err
 	}
+	oldInstance := instance.DeepCopy()
 
 	ov, err := r.getOperatorVersion(instance)
 	if err != nil {
@@ -226,7 +226,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
-	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, &renderer.KustomizeEnhancer{Scheme: r.Scheme}, time.Now())
+	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, &renderer.DefaultEnhancer{Scheme: r.Scheme}, time.Now())
 
 	// ---------- 5. Update status of instance after the execution proceeded ----------
 	if newStatus != nil {
@@ -341,7 +341,6 @@ func (r *Reconciler) handleError(err error, instance *kudov1beta1.Instance, oldI
 }
 
 // getInstance retrieves the instance by namespaced name
-// returns nil, nil when instance is not found (not found is not considered an error)
 func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1beta1.Instance, err error) {
 	instance = &kudov1beta1.Instance{}
 	err = r.Get(context.TODO(), request.NamespacedName, instance)
@@ -356,7 +355,6 @@ func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1beta1.In
 }
 
 // getOperatorVersion retrieves operatorversion belonging to the given instance
-// not found is treated here as any other error
 func (r *Reconciler) getOperatorVersion(instance *kudov1beta1.Instance) (ov *kudov1beta1.OperatorVersion, err error) {
 	ov = &kudov1beta1.OperatorVersion{}
 	err = r.Get(context.TODO(),
@@ -431,24 +429,4 @@ func pipesMap(planName string, plan *v1beta1.Plan, tasks []v1beta1.Task, emeta *
 	}
 
 	return pipes, nil
-}
-
-func parameterDiff(old, new map[string]string) map[string]string {
-	diff := make(map[string]string)
-
-	for key, val := range old {
-		// If a parameter was removed in the new spec
-		if _, ok := new[key]; !ok {
-			diff[key] = val
-		}
-	}
-
-	for key, val := range new {
-		// If new spec parameter was added or changed
-		if v, ok := old[key]; !ok || v != val {
-			diff[key] = val
-		}
-	}
-
-	return diff
 }

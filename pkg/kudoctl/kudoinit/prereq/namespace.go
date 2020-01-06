@@ -3,14 +3,14 @@ package prereq
 import (
 	"fmt"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
-
 	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 )
 
 // Ensure IF is implemented
@@ -61,7 +61,7 @@ func (o kudoNamespace) AsRuntimeObjs() []runtime.Object {
 
 // generateSysNamespace builds the system namespace
 func generateSysNamespace(namespace string) *v1.Namespace {
-	labels := kudoinit.GenerateLabels(map[string]string{"controller-tools.k8s.io": "1.0"})
+	labels := kudoinit.GenerateLabels(map[string]string{})
 	return &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: labels,

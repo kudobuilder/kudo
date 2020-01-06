@@ -70,12 +70,12 @@ manager-clean:
 run:
     # for local development, webhooks are disabled by default
     # if you enable them, you have to take care of providing the TLS certs locally
-	ENABLE_WEBHOOKS=${ENABLE_WEBHOOKS} go run -ldflags "${LDFLAGS}" ./cmd/manager/main.go
+	ENABLE_WEBHOOKS=${ENABLE_WEBHOOKS} go run -ldflags "${LDFLAGS}" ./cmd/manager
 
 .PHONY: deploy
 # Install KUDO into a cluster via kubectl kudo init
 deploy:
-	go run -ldflags "${LDFLAGS}" cmd/kubectl-kudo/main.go init
+	go run -ldflags "${LDFLAGS}" ./cmd/kubectl-kudo init
 
 .PHONY: deploy-clean
 deploy-clean:
@@ -84,6 +84,10 @@ deploy-clean:
 .PHONY: generate
 # Generate code
 generate:
+ifeq (, $(shell which go-bindata))
+	go get github.com/go-bindata/go-bindata/go-bindata@v3.1.2
+endif
+	go-bindata -pkg crd -o pkg/kudoctl/kudoinit/crd/bindata.go -ignore README.md -nometadata config/crds
 	./hack/update_codegen.sh
 
 .PHONY: generate-clean
@@ -93,7 +97,7 @@ generate-clean:
 .PHONY: cli-fast
 # Build CLI but don't lint or run code generation first.
 cli-fast:
-	go build -ldflags "${LDFLAGS}" -o bin/${CLI} cmd/kubectl-kudo/main.go
+	go build -ldflags "${LDFLAGS}" -o bin/${CLI} ./cmd/kubectl-kudo
 
 .PHONY: cli
 # Build CLI

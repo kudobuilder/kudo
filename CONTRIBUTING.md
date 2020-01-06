@@ -43,7 +43,6 @@ You can find the full text of the DCO here: https://developercertificate.org/
 
 - Get the KUDO repo: `git clone https://github.com/kudobuilder/kudo.git`
 - `cd kudo`
-- Export `GOPATH` (this is necessary because of an issue in [codegenerator](https://github.com/kubernetes/code-generator/issues/87))
 - `make all` to build manager as well as CLI
 - [optionally] `make docker-build` to build the manager Docker images
 

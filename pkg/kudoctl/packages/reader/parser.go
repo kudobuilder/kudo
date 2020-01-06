@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	operatorFileName = "operator.yaml"
-	paramsFileName   = "params.yaml"
+	OperatorFileName = "operator.yaml"
+	ParamsFileName   = "params.yaml"
 	templateBase     = "templates"
 	templateFileName = ".*\\.yaml"
 	APIVersion       = "kudo.dev/v1beta1"
@@ -29,7 +29,7 @@ func newPackageFiles() packages.Files {
 
 func parsePackageFile(filePath string, fileBytes []byte, currentPackage *packages.Files) error {
 	isOperatorFile := func(name string) bool {
-		return strings.HasSuffix(name, operatorFileName)
+		return strings.HasSuffix(name, OperatorFileName)
 	}
 
 	isTemplateFile := func(name string) bool {
@@ -46,7 +46,7 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *package
 	}
 
 	isParametersFile := func(name string) bool {
-		return strings.HasSuffix(name, paramsFileName)
+		return strings.HasSuffix(name, ParamsFileName)
 	}
 
 	switch {
