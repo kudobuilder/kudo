@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -28,7 +28,7 @@ type kudoWebHook struct {
 }
 
 const (
-	certManagerAPIVersion = "cert-manager.io/v1alpha2"
+	certManagerAPIVersion = "v1alpha2"
 )
 
 func newWebHook(options kudoinit.Options) kudoWebHook {
@@ -41,7 +41,7 @@ func (k kudoWebHook) PreInstallCheck(client *kube.Client) kudoinit.Result {
 	if !k.opts.HasWebhooksEnabled() {
 		return kudoinit.NewResult()
 	}
-	return validateCertManagerInstallation(client.ExtClient)
+	return validateCertManagerInstallation(client)
 }
 
 func (k kudoWebHook) Install(client *kube.Client) error {
@@ -82,31 +82,43 @@ func (k kudoWebHook) AsRuntimeObjs() []runtime.Object {
 	return objs
 }
 
-func validateCertManagerInstallation(extClient apiextensionsclient.Interface) kudoinit.Result {
-	certCRD, err := extClient.ApiextensionsV1().CustomResourceDefinitions().Get("Certificate", metav1.GetOptions{})
+func validateCertManagerInstallation(client *kube.Client) kudoinit.Result {
+	if result := validateCrdVersion(client.ExtClient, "certificates.cert-manager.io", certManagerAPIVersion); !result.IsEmpty() {
+		return result
+	}
+	if result := validateCrdVersion(client.ExtClient, "issuers.cert-manager.io", certManagerAPIVersion); !result.IsEmpty() {
+		return result
+	}
+
+	deployment, err := client.KubeClient.AppsV1().Deployments("cert-manager").Get("cert-manager", metav1.GetOptions{})
+	if err != nil {
+		return kudoinit.NewWarning(fmt.Sprintf("failed to get cert-manager deployment in namespace cert-manager. Make sure cert-manager is running (%s)", err))
+	}
+	if len(deployment.Spec.Template.Spec.Containers) < 1 {
+		return kudoinit.NewWarning("failed to validate cert-manager controller deployment. Spec had no containers")
+	}
+	if !strings.HasSuffix(deployment.Spec.Template.Spec.Containers[0].Image, "cert-manager-controller:v0.12.0") {
+		return kudoinit.NewWarning(fmt.Sprintf("cert-manager deployment had unexpected version. expected v0.12.0 in controller image name but found %s", deployment.Spec.Template.Spec.Containers[0].Image))
+	}
+	if deployment.Status.ReadyReplicas < 1 {
+		return kudoinit.NewWarning("cert-manager seems not to be running correctly. Make sure cert-manager is working")
+	}
+	return kudoinit.NewResult()
+}
+
+func validateCrdVersion(extClient clientset.Interface, crdName string, expectedVersion string) kudoinit.Result {
+	certCRD, err := extClient.ApiextensionsV1().CustomResourceDefinitions().Get(crdName, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			return kudoinit.NewError(fmt.Sprintf("cert-manager is not installed, failed to find Certificate CRD: %s", err))
+			return kudoinit.NewError(fmt.Sprintf("failed to find CRD '%s': %s", crdName, err))
 		}
-		return kudoinit.NewError(fmt.Sprintf("Failed to retrieve Certificate CRD from cert-manager: %s", err))
+		return kudoinit.NewError(fmt.Sprintf("Failed to retrieve CRD '%s': %s", crdName, err))
 	}
-	if certCRD.APIVersion != certManagerAPIVersion {
-		return kudoinit.NewError(fmt.Sprintf("invalid cert-manager API version found for Certificate CRD: %s instead of %s", certCRD.APIVersion, certManagerAPIVersion))
-	}
+	crdVersion := certCRD.Spec.Versions[0].Name
 
-	issuerCRD, err := extClient.ApiextensionsV1().CustomResourceDefinitions().Get("Issuer", metav1.GetOptions{})
-	if err != nil {
-		if kerrors.IsNotFound(err) {
-			return kudoinit.NewError(fmt.Sprintf("cert-manager is not installed, failed to find Issuer CRD: %s", err))
-		}
-		return kudoinit.NewError(fmt.Sprintf("Failed to retrieve Issuer CRD from cert-manager: %s", err))
+	if crdVersion != expectedVersion {
+		return kudoinit.NewError(fmt.Sprintf("invalid CRD version found for '%s': %s instead of %s", crdName, crdVersion, expectedVersion))
 	}
-	if issuerCRD.APIVersion != certManagerAPIVersion {
-		return kudoinit.NewError(fmt.Sprintf("invalid cert-manager API version found for Issuer CRD: %s instead of %s", issuerCRD.APIVersion, certManagerAPIVersion))
-	}
-
-	// TODO: Add check for cert-manager pods in default 'cert-manager' ns, as a warning
-
 	return kudoinit.NewResult()
 }
 

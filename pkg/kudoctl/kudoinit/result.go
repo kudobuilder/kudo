@@ -28,6 +28,12 @@ func NewError(err ...string) Result {
 	return result
 }
 
+func NewWarning(warn ...string) Result {
+	result := NewResult()
+	result.AddWarnings(warn...)
+	return result
+}
+
 func (vr *Result) Error() string {
 	buf := new(bytes.Buffer)
 	vr.printErrorsWithoutHeader(buf)
@@ -50,6 +56,8 @@ func (vr *Result) Merge(other Result) {
 func (vr *Result) IsValid() bool { return len(vr.Errors) == 0 }
 
 func (vr *Result) IsError() bool { return len(vr.Errors) > 0 }
+
+func (vr *Result) IsEmpty() bool { return len(vr.Errors) == 0 && len(vr.Warnings) == 0 }
 
 // PrintErrors is a simple printer for errors in Error context
 func (vr *Result) printErrorsWithoutHeader(out io.Writer) {
