@@ -81,8 +81,8 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 		return false, fatalExecutionError(err, pipeTaskError, ctx.Meta)
 	}
 
-	// 5. - Kustomize pod with metadata
-	podObj, err := kustomize(map[string]string{"pipe-pod.yaml": podYaml}, ctx.Meta, ctx.Enhancer)
+	// 5. - Enhance pod with metadata
+	podObj, err := enhance(map[string]string{"pipe-pod.yaml": podYaml}, ctx.Meta, ctx.Enhancer)
 	if err != nil {
 		return false, fatalExecutionError(err, taskEnhancementError, ctx.Meta)
 	}
@@ -118,8 +118,8 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 		return false, err
 	}
 
-	// 10. - Kustomize artifacts -
-	artObj, err := kustomize(artStr, ctx.Meta, ctx.Enhancer)
+	// 10. - Enhance artifacts -
+	artObj, err := enhance(artStr, ctx.Meta, ctx.Enhancer)
 	if err != nil {
 		return false, fatalExecutionError(err, taskEnhancementError, ctx.Meta)
 	}

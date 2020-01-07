@@ -1,6 +1,8 @@
 package generate
 
 import (
+	"sort"
+
 	"github.com/spf13/afero"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -44,5 +46,6 @@ func PlanNameList(fs afero.Fs, path string) ([]string, error) {
 	for name := range p.Files.Operator.Plans {
 		names = append(names, name)
 	}
+	sort.Strings(names)
 	return names, nil
 }

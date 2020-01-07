@@ -22,8 +22,8 @@ spec:
     kind: Operator
   version: "1.0"
   plans:
-    deploy:
-    upgrade:
+    deploy: {}
+    upgrade: {}
 ---
 apiVersion: kudo.dev/v1beta1
 kind: Instance
