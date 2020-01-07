@@ -1,6 +1,7 @@
 package kudoinit
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 
@@ -27,6 +28,12 @@ func NewError(err ...string) Result {
 	return result
 }
 
+func (vr *Result) Error() string {
+	buf := new(bytes.Buffer)
+	vr.printErrorsWithoutHeader(buf)
+	return buf.String()
+}
+
 // AddErrors adds an arbitrary error string to the verification result
 func (vr *Result) AddErrors(err ...string) { vr.Errors = append(vr.Errors, err...) }
 
@@ -42,7 +49,21 @@ func (vr *Result) Merge(other Result) {
 // IsValid returns true if verification result does not have errors
 func (vr *Result) IsValid() bool { return len(vr.Errors) == 0 }
 
-// PrintErrors is a pretty printer for verification errors
+func (vr *Result) IsError() bool { return len(vr.Errors) > 0 }
+
+// PrintErrors is a simple printer for errors in Error context
+func (vr *Result) printErrorsWithoutHeader(out io.Writer) {
+	if len(vr.Errors) == 0 {
+		return
+	}
+	table := uitable.New()
+	for _, err := range vr.Errors {
+		table.AddRow(err)
+	}
+	fmt.Fprintln(out, table) //nolint:errcheck
+}
+
+// PrintErrors is a pretty printer for errors
 func (vr *Result) PrintErrors(out io.Writer) {
 	if len(vr.Errors) == 0 {
 		return
@@ -55,7 +76,7 @@ func (vr *Result) PrintErrors(out io.Writer) {
 	fmt.Fprintln(out, table) //nolint:errcheck
 }
 
-// PrintWarnings is a pretty printer for verification warnings
+// PrintWarnings is a pretty printer for warnings
 func (vr *Result) PrintWarnings(out io.Writer) {
 	if len(vr.Warnings) == 0 {
 		return
