@@ -9,6 +9,8 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/generate"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
@@ -40,10 +42,21 @@ func newPackageListParamsCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 		Short:   "List operator parameters",
 		Example: pacakgeListParamsExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := validateOperatorArg(args); err != nil {
+
+			path, patherr := generate.OperatorPath(fs)
+			if patherr != nil {
+				clog.V(2).Printf("operator path is not relative to execution")
+			} else {
+				list.pathOrName = path
+			}
+			err := validateOperatorArg(args)
+			if err != nil && patherr != nil {
 				return err
 			}
-			list.pathOrName = args[0]
+			// if passed in... args take precedence
+			if err == nil {
+				list.pathOrName = args[0]
+			}
 			return list.run(&Settings)
 		},
 	}
