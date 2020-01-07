@@ -75,12 +75,11 @@ func (c *packageListParamsCmd) run(settings *env.Settings) error {
 	return nil
 }
 
-func displayParamsTable(pf *packages.Files, out io.Writer, requiredOnly, namesOnly, descriptions bool) {
+func displayParamsTable(pf *packages.Files, out io.Writer, printRequired, printNames, printDesc bool) {
 	sort.Sort(pf.Params.Parameters)
 	table := uitable.New()
 	tValue := true
-	// required
-	if requiredOnly {
+	if printRequired {
 		table.AddRow("Name")
 		found := false
 		for _, p := range pf.Params.Parameters {
@@ -95,8 +94,7 @@ func displayParamsTable(pf *packages.Files, out io.Writer, requiredOnly, namesOn
 			fmt.Fprintf(out, "no required parameters without default values found\n")
 		}
 	}
-	// names only
-	if namesOnly {
+	if printNames {
 		table.AddRow("Name")
 		for _, p := range pf.Params.Parameters {
 			table.AddRow(p.Name)
@@ -105,7 +103,7 @@ func displayParamsTable(pf *packages.Files, out io.Writer, requiredOnly, namesOn
 	}
 	table.MaxColWidth = 35
 	table.Wrap = true
-	if descriptions {
+	if printDesc {
 		table.AddRow("Name", "Default", "Required", "Descriptions")
 
 	} else {
@@ -117,7 +115,7 @@ func displayParamsTable(pf *packages.Files, out io.Writer, requiredOnly, namesOn
 		if p.Default != nil {
 			pDefault = *p.Default
 		}
-		if descriptions {
+		if printDesc {
 			table.AddRow(p.Name, pDefault, *p.Required, p.Description)
 		} else {
 			table.AddRow(p.Name, pDefault, *p.Required)

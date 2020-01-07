@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+	"github.com/thoas/go-funk"
 	"github.com/xlab/treeprint"
 
 	"github.com/kudobuilder/kudo/pkg/engine/task"
@@ -96,10 +97,7 @@ func displayPlanTable(pf *packages.Files, withTasks bool, out io.Writer) {
 }
 
 func sortedPlanNames(pf *packages.Files) []string {
-	planNames := make([]string, 0, len(pf.Operator.Plans))
-	for name := range pf.Operator.Plans {
-		planNames = append(planNames, name)
-	}
+	planNames := funk.Keys(pf.Operator.Plans).([]string)
 	sort.Strings(planNames)
 	return planNames
 }
