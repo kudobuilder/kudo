@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"path/filepath"
 
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
@@ -36,7 +37,7 @@ func CanGenerateOperator(fs afero.Fs, dir string, overwrite bool) error {
 }
 
 // Operator generates an initial operator folder with a operator.yaml
-func Operator(fs afero.Fs, dir string, op packages.OperatorFile, overwrite bool) error {
+func Operator(fs afero.Fs, dir string, op *packages.OperatorFile, overwrite bool) error {
 	err := CanGenerateOperator(fs, dir, overwrite)
 	if err != nil {
 		return err
@@ -90,7 +91,7 @@ func writeParameters(fs afero.Fs, dir string, params packages.ParamsFile) error 
 	return afero.WriteFile(fs, fname, p, 0755)
 }
 
-func writeOperator(fs afero.Fs, dir string, op packages.OperatorFile) error {
+func writeOperator(fs afero.Fs, dir string, op *packages.OperatorFile) error {
 	o, err := yaml.Marshal(op)
 	if err != nil {
 		return err
@@ -98,4 +99,34 @@ func writeOperator(fs afero.Fs, dir string, op packages.OperatorFile) error {
 
 	fname := path.Join(dir, reader.OperatorFileName)
 	return afero.WriteFile(fs, fname, o, 0755)
+}
+
+// OperatorPath determines the path to use as operator path for generators
+// the path is either current "", or a dir with operator.yaml (if 1) else an error
+// and is determined based on location of operator.yaml
+func OperatorPath(fs afero.Fs) (string, error) {
+	fname := "operator.yaml"
+
+	exists, err := afero.Exists(fs, fname)
+	if err != nil {
+		return "", err
+	}
+
+	if exists {
+		return "", nil
+	}
+
+	pat := path.Join("**", fname)
+	// one more try
+	files, err := afero.Glob(fs, pat)
+	if err != nil {
+		return "", err
+	}
+	if len(files) < 1 {
+		return "", errors.New("no operator folder discovered")
+	}
+	if len(files) > 1 {
+		return "", errors.New("multiple operator folders discovered")
+	}
+	return filepath.Dir(files[0]), nil
 }
