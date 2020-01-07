@@ -33,10 +33,10 @@ const packageListExamples = `  # show list of parameters from local operator fol
   kubectl kudo package list parameters zookeeper
 
   # show list of tasks from local operator folder
-  kubectl kudo package list task local-folder
+  kubectl kudo package list tasks local-folder
 
   # show list of tasks from zookeeper (where zookeeper is name of package in KUDO repository)
-  kubectl kudo package list task zookeeper
+  kubectl kudo package list tasks zookeeper
 
   # show list of plans from local operator folder
   kubectl kudo package list plans local-folder
