@@ -8,9 +8,9 @@ spec:
     kind: Operator
   version: "2.0"
   plans:
-    deploy:
-    update:
-    upgrade:
+    deploy: {}
+    update: {}
+    upgrade: {}
 ---
 apiVersion: kudo.dev/v1beta1
 kind: Instance

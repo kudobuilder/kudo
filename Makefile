@@ -84,8 +84,12 @@ deploy-clean:
 .PHONY: generate
 # Generate code
 generate:
+ifeq (, $(shell which controller-gen))
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@$$(go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools)
+endif
+	controller-gen crd paths=./pkg/apis/... output:crd:dir=config/crds output:stdout
 ifeq (, $(shell which go-bindata))
-	go get github.com/go-bindata/go-bindata/go-bindata@v3.1.2
+	go get github.com/go-bindata/go-bindata/go-bindata@$$(go list -f '{{.Version}}' -m github.com/go-bindata/go-bindata)
 endif
 	go-bindata -pkg crd -o pkg/kudoctl/kudoinit/crd/bindata.go -ignore README.md -nometadata config/crds
 	./hack/update_codegen.sh
