@@ -12,6 +12,7 @@ docker build . \
     --build-arg ldflags_arg="" \
     -t "kudobuilder/controller:$VERSION"
 
+# Generate the kudo.yaml that is used to install KUDO while running e2e-test
 ./bin/kubectl-kudo init --dry-run --output yaml \
     | sed -E -e "/image:/ s/:[[:alnum:]]+/:$VERSION/" -e '/imagePullPolicy/ s/Always/Never/' \
     > test/manifests/kudo.yaml
