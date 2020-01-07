@@ -334,9 +334,10 @@ func TestCheckedTypeAssertions(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			step := Step{}
-			assert.EqualError(t, step.LoadYAML(fmt.Sprintf("test_data/type-assertions/00-%s.yaml", test.name)),
-				fmt.Sprintf("failed to load %s object from test_data/type-assertions/00-%s.yaml: it contains an object of type *unstructured.Unstructured",
-					test.typeName, test.name))
+			path := fmt.Sprintf("step_integration_test_data/00-%s.yaml", test.name)
+			assert.EqualError(t, step.LoadYAML(path),
+				fmt.Sprintf("failed to load %s object from %s: it contains an object of type *unstructured.Unstructured",
+					test.typeName, path))
 		})
 	}
 }
