@@ -76,7 +76,7 @@ func runtimeObjectAsBytes(o runtime.Object) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return bytes, nil
+	return append([]byte("\n---\n"), bytes...), nil
 }
 
 func TestIntegInitForCRDs(t *testing.T) {

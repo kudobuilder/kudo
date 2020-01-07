@@ -804,6 +804,11 @@ func (in *TestSuite) DeepCopyInto(out *TestSuite) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.KINDContainers != nil {
+		in, out := &in.KINDContainers, &out.KINDContainers
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Kubectl != nil {
 		in, out := &in.Kubectl, &out.Kubectl
 		*out = make([]string, len(*in))

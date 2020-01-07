@@ -755,7 +755,6 @@ func GetAPIResource(dClient discovery.DiscoveryInterface, gvk schema.GroupVersio
 		return metav1.APIResource{}, err
 	}
 
-	fmt.Printf("%v", resourceTypes)
 	for _, resource := range resourceTypes.APIResources {
 		if !strings.EqualFold(resource.Kind, gvk.Kind) {
 			continue
@@ -975,7 +974,6 @@ func RunKubectlCommands(logger Logger, namespace string, commands []string, work
 func Kubeconfig(cfg *rest.Config, w io.Writer) error {
 	var authProvider *api.AuthProviderConfig
 	var execConfig *api.ExecConfig
-
 	if cfg.AuthProvider != nil {
 		authProvider = &api.AuthProviderConfig{
 			Name:   cfg.AuthProvider.Name,
@@ -998,7 +996,10 @@ func Kubeconfig(cfg *rest.Config, w io.Writer) error {
 			})
 		}
 	}
-
+	err := rest.LoadTLSFiles(cfg)
+	if err != nil {
+		return err
+	}
 	return json.NewYAMLSerializer(json.DefaultMetaFactory, nil, nil).Encode(&api.Config{
 		CurrentContext: "cluster",
 		Clusters: []api.NamedCluster{

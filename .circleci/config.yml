@@ -31,6 +31,7 @@ jobs:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
       - run: make lint
+      - run: ./hack/verify-generate.sh
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
