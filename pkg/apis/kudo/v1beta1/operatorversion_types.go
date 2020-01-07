@@ -149,15 +149,15 @@ type DummyTaskSpec struct {
 	// +optional
 	WantErr bool `json:"wantErr,omitempty"`
 	// +optional
-	Fatal   bool `json:"fatal,omitempty"`
+	Fatal bool `json:"fatal,omitempty"`
 	// +optional
-	Done    bool `json:"done,omitempty"`
+	Done bool `json:"done,omitempty"`
 }
 
 // PipeTask specifies a task that generates files and stores them for later usage in subsequent tasks
 type PipeTaskSpec struct {
 	// +optional
-	Pod  string     `json:"pod,omitempty"`
+	Pod string `json:"pod,omitempty"`
 	// +optional
 	// +nullable
 	Pipe []PipeSpec `json:"pipe,omitempty"`
