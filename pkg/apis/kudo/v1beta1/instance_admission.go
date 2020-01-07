@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"reflect"
 
+	"github.com/thoas/go-funk"
 	"k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -79,18 +80,20 @@ func validateUpdate(old, new *Instance, ov *OperatorVersion) (string, error) {
 	// DECLINE if:
 	// 1. old PE exists and != new PE : no plan overriding yet
 	if oldPlan != "" && oldPlan != newPlan {
-		return "", fmt.Errorf("failed to update Instance %s/%s: plan %s is scheduled and an update would trigger a different plan %s", old.Namespace, old.Name, oldPlan, newPlan)
+		return "", fmt.Errorf("failed to update Instance %s/%s: plan '%s' is scheduled and an update would trigger a different plan '%s'", old.Namespace, old.Name, oldPlan, newPlan)
 	}
 
 	// 2 OV changed and old PE exists : no upgrade if a plan running/scheduled
 	if oldPlan != "" && newOvRef != oldOvRef {
-		return "", fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s is not possible while a plan %s is scheduled", old.Namespace, old.Name, newOvRef, oldPlan)
+		return "", fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s is not possible while a plan '%s' is scheduled", old.Namespace, old.Name, newOvRef, oldPlan)
 	}
 
 	// 3. OV changed and newPlan set : an upgrade should not be triggered with another plan
 	if newPlan != "" && newOvRef != oldOvRef {
-		return "", fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s is not possible together with a new plan %s", old.Namespace, old.Name, newOvRef, newPlan)
+		return "", fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s is not possible together with a new plan '%s'", old.Namespace, old.Name, newOvRef, newPlan)
 	}
+
+	// 3.1 TODO (AD): No upgrade and no parameter diff detected : ???
 
 	// 4. If >1 distinct plans are triggered based on params diff
 	paramDefs := getParamDefinitions(paramDiff, ov)
@@ -100,12 +103,14 @@ func validateUpdate(old, new *Instance, ov *OperatorVersion) (string, error) {
 	}
 
 	// 5. If old PE != plan triggered by param change
-	if triggered == oldPlan {
-		// if an already running plan is re-triggered by a parameter change, we reset the Instance.Status to
-		// effectively restart the plan
+	if oldPlan != "" && triggered != oldPlan {
+		return "", fmt.Errorf("failed to update Instance %s/%s: plan '%s' is scheduled and an update would trigger a different plan '%s'", old.Namespace, old.Name, oldPlan, triggered)
+	}
+
+	// if an already running plan is re-triggered by a parameter change, we reset the Instance.Status to
+	// effectively restart the plan
+	if oldPlan != "" && triggered == oldPlan {
 		// TODO (av): reset the Instance.Status
-	} else {
-		return "", fmt.Errorf("failed to update Instance %s/%s: plan %s is scheduled and an update would trigger a different plan %s", old.Namespace, old.Name, oldPlan, triggered)
 	}
 
 	// else ACCEPT and return the triggered plan
@@ -130,18 +135,21 @@ func (ia *InstanceAdmission) getOperatorVersion(instance *Instance) (ov *Operato
 
 // parameterDiffPlan determines what plan to run based on params that changed and the related trigger plans.
 func parameterDiffPlan(params []Parameter, ov *OperatorVersion) (string, error) {
-	plansMap := make(map[string]bool)
+	// If no parameters were changed, we return an empty string so no plan would be triggered
+	if len(params) == 0 {
+		return "", nil
+	}
+
+	plans := make([]string, 0)
 	for _, p := range params {
 		if p.Trigger != "" && selectPlan([]string{p.Trigger}, ov) != nil {
-			plansMap[p.Trigger] = true
+			plans = append(plans, p.Trigger)
 		}
 	}
 
-	plansArr := make([]string, 0)
-	for key, _ := range plansMap {
-		plansArr = append(plansArr, key)
-	}
-	switch len(plansArr) {
+	plans = funk.UniqString(plans)
+
+	switch len(plans) {
 	case 0:
 		// no plan could be triggered since we do not force existence of the "deploy" plan in the operators
 		fallback := selectPlan([]string{UpdatePlanName, DeployPlanName}, ov)
@@ -150,9 +158,9 @@ func parameterDiffPlan(params []Parameter, ov *OperatorVersion) (string, error) 
 		}
 		return *fallback, nil
 	case 1:
-		return plansArr[0], nil
+		return plans[0], nil
 	default:
-		return "", fmt.Errorf("triggering multiple plans: [%v] at once is not allowed", plansArr)
+		return "", fmt.Errorf("triggering multiple plans: [%v] at once is not allowed", plans)
 	}
 }
 
