@@ -7,7 +7,7 @@ owners:
   - "@aneumann82"
 editor: TBD
 creation-date: 2019-11-28
-last-updated: 2019-12-02
+last-updated: 2020-01-07
 status: provisional
 ---
 
@@ -22,8 +22,8 @@ status: provisional
          * [Goals](#goals)
          * [Non-Goals](#non-goals)
          * [Current State](#current-state)
-      * [Open Questions](#open-questions)
       * [Proposal](#proposal)
+         * [Installed Operators](#installed-operators)
          * [KUDO Prerequisites](#kudo-prerequisites)
             * [Proposal for update process](#proposal-for-update-process)
          * [KUDO Manager](#kudo-manager)
@@ -38,16 +38,15 @@ status: provisional
             * [Story 1](#story-1)
             * [Story 2](#story-2)
          * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
-         * [Risks and Mitigations TODO](#risks-and-mitigations-todo)
+         * [Risks and Mitigations](#risks-and-mitigations)
             * [Failure cases](#failure-cases)
       * [Graduation Criteria TODO](#graduation-criteria-todo)
-      * [Drawbacks TODO [optional]](#drawbacks-todo-optional)
-      * [Alternatives](#alternatives)
       * [Infrastructure Needed](#infrastructure-needed)
       * [Resources](#resources)
       * [Implementation History](#implementation-history)
+      * [Action Items (to be converted into issues/tasks)](#action-items-to-be-converted-into-issuestasks)
 
-<!-- Added by: aneumann, at: Mon Dec  2 11:34:32 CET 2019 -->
+<!-- Added by: aneumann, at: Tue Jan  7 17:20:40 CET 2020 -->
 
 <!--te-->
 
@@ -81,20 +80,29 @@ the different parts interact, and what kind of compatibility we want to provide.
 
 At the moment, KUDO does not provide any migration capabilities and needs a clean installation to use a new version.
 
-## Open Questions
-- Lowest supported K8s version
-  - This determines if we use conversion webhooks or not
-- Do we want to support downgrades? 
-- What is the lowest KUDO version that will support updates?
-  - Do we support update from KUDO 0.8.0 (which does not have any update support) to a higher version?
-  - Do we take the freedom to require a fresh install for the first KUDO version with an implementation of this KEP?
-- How old of a KUDO version to we test for upgrades
-  - We will need some e2e-tests for upgrading KUDO, but we can't support every combination of upgrades. What is the lowest KUDO version that we test for upgrades?
-  - N-2 (i.e. we provide tests that upgrade from KUDO 0.10.0 to 0.11.0 and 0.12.0)
-  - Time-based (i.e. we provide tests that upgrade from the oldest KUDO version from 6 months ago)
-  - Baseline (we keep a single KUDO version (i.e. 0.10.0) as baseline and keep tests for updating to the latest KUDO version)
-
 ## Proposal
+
+- Extend the `kudo init` command to add a `--upgrade` flag that upgrades an existing KUDO installation
+  - Without the `--upgrade` flag, `kudo init` should detect an existing installation and abort
+  - The upgrade process should verify the existing validation, do as much pre-verification as possible and then upgrade required prerequisites, CRDs, the controller, etc.
+- Implement the CRD web hook conversion
+  - This is required to work with multiple CRD versions, which in turn is required to allow breaking changes in the CRDs
+- Implement an e2e test harness to test KUDO upgrades
+  - This harness is required to ensure our upgrade process works between different and new versions
+
+### Installed Operators
+
+Before an upgrade can be performed, the CLI must validate that all installed operators are compatible with the new KUDO version.
+To do this, each operator has certain attributes:
+- `kudoVersion` This determines the minimum version of KUDO that is required for this operator
+- `apiVersion` This defines the package format of the operator
+  - Currently both `operator.yaml` and `params.yaml` have an `apiVersion`, and they should be kept in sync, even if they could be changed separately
+  - The `apiVersion` is unrelated to the CRD version - the CLI converts from the package format to the CR, but the versions can change independently
+
+As the `apiVersion` (and the package format) is only used to install new operatorVersions, it does not play into the compatibility concerns when upgrading
+KUDO. 
+
+TODO: Add more details
 
 ### KUDO Prerequisites
 Expected update frequency: Medium  
@@ -128,24 +136,13 @@ Usually the prerequisites are API resources, but may be more complex things.
 #### Proposal for update process 
 Integrated into `kudo init --upgrade`
 
-Two possible implementations
+At the current time, it seems enough to use a simple install/update process.
+  - The setup/update contains a list of all prerequisites in correct order
+  - Each prereq validates the current installed state, and verifies that it can install/update the current state to the expected state
+  - Prereqs that are deleted in newer versions need to stay in the list of prerequisites
 
-1. Write specific migration code that targets a KUDO manager version range and executes manual migration steps. 
-    - Each migration should have a validate-step that checks if the migration is possible.
-      - This might be problematic if multiple steps are to be executed - Can we validate a steps before the previous one is applied?
-    - The update for prerequisites is tied to the version of KUDO manager:
-      - There is a list of migrations:
-        - MigrationTo0_9_0
-        - MigrationTo0_10_0
-        - MigrationTo0_11_0
-    - KUDO CLI checks installed version of manager
-    - Every migration step after the installed version is executed
-    - Every migration step only migrates the prerequisites from the previous version to the marked version of the migration
-
-2. Have only one setup/update version in KUDO
-    - The setup/update contains a list of all prerequisites in correct order
-    - Each prereq validates the current installed state, and verifies that it can install/update the current state to the expected state
-    - Prereqs that are deleted in newer versions need to stay in the list of prerequisites
+We may arrive at a point where we need to implement custom migration logic between KUDO versions, but so far this would mean a lot of
+implementation effort without a defined use case.    
 
 ### KUDO Manager
 Expected update frequency: High  
@@ -159,9 +156,9 @@ need to be updated.
 Integrated into `kudo init --upgrade`
 
 - Use semantic versioning for the manager binary
-- As updates to the same CRD version should be backwards compatible, the manager can keep running while the CRD version is updated
-- After CRD update we can deploy the new manager version 
-- Question: Do we need to ensure that the manager is not doing meaningful work at the moment, or can we just update the deployment?
+- As updates to the same CRD version should be backwards compatible, the manager could keep running while the CRD version is updated
+  - To be on the very safe side, the manager should be in an `idle` state where no changes on operators are accepted or worked on
+- After CRD update we can deploy the new manager version
 
 ### CRDs
 Expected update frequency: Medium  
@@ -170,27 +167,30 @@ Versioned: Yes, with a CRD-Version
 The CRDs are used to store installed operators, running instances and other custom persistent data. New features will regularly require us to add new
 fields or even new CRDs.
 
-- Existing CRs need to be migrated to new versions
-- K8s CRD support
-  - WebHook conversion would allow us to transparently switch to a new CRD version without manually migrating all existing CRs
-    - MultiVersion is supported since 1.11 (manual conversion)
-    - WebHook conversion GA since 1.16 (1.13 alpha feature gate, 1.15 beta feature gate)
-- CRD versioning
-  - We need to provide support for multiple maintained API versions. This will allow us to evolve the API, and introduce backwards incompatible changes
+#### Proposal for update process
+Integrated into `kudo init --upgrade`
+
+- We need to provide support for multiple maintained API versions. This will allow us to evolve the API, and introduce backwards incompatible changes
   in a way that allows clients to migrate at their own pace.
+- WebHook conversion allows us to transparently switch to a new CRD version without manually migrating all existing CRs
+  - MultiVersion is supported since 1.11 (manual conversion)
+  - WebHook conversion GA since 1.16 (1.13 alpha feature gate, 1.15 beta feature gate)
+  - If we ever need more complex scenarios, i.e. splitting a CRD into two, or merging two CRDs into one, WebHook conversion will not cover this use case
+    and we will need a different type of migration
+- CRD versioning
   - Having an internal model of the data structures exposed via the API allows us to use defaulting, normalization between API versions and prevents
   older clients from breaking existing resources
   - We can add new optional fields, and make other minor modifications to an existing API version.
   - More breaking changes (removing fields, making fields required, renaming fields, etc. ) require a CRD version change
   - See [K8s API Changes](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api_changes.md) for details
-- CRDs may have a similar upgrade process as prerequisites:
-  - Create/Update might be simple
-  - We may have CRDs that are outdated and not used anymore and should be deleted  
+- The introduction of new CRDs should be quite easy, as we simply need to install them
+  - Updates of existing CRDs should be fine as well, adding new fields or full new versions of the CRD is quite simple
+- Deletion of unused CRDs may be more difficult: We will need to make sure that all data is migrated from the old CRs
+  - Deletion of a CRD deletes **all** CRs of that type, this is a high risk operation
 
-#### Proposal for update process
-Integrated into `kudo init --upgrade`
-
-To be discussed.
+The upgrade process itself is simple:
+- Install/Replace the CRDs
+- Install the web hook for conversion between different versions
 
 ### KUDO CLI
 Expected update frequency: High
@@ -219,21 +219,21 @@ The update of a KUDO installation is triggered by  `kudo init --upgrade`
 - Pre-Update-Verification
   - Detect if permissions to modify prerequisites are available
   - Verify that all prerequisite upgrade steps could be executed
-  - Verify old CRDs can be read by new KUDO version
+  - Verify all old CRDs can be read by new KUDO version
   - Verify all installed operators are supported by new KUDO version
   - User can abort here
-- Shutdown old manager version
+- Shutdown old manager version (or move it to an `idle` state)
+- Run prerequisite upgrades
 - Install new CRDs
   - Set "served" flag on new CRD versions to "true"
-- Migrate all existing CRs to new format
-  - Use Storage Version Migrator
-  - Write custom code to migrate stored CRs
-  - If we use the CRD conversion webhooks, no work is required at this point
-- Deploy new manager version
-- If we use the CRD conversion webhooks, we need to set the new CRD version as "stored" and trigger an update of all existing CRs to migrate them
-    - At some point in the future (maybe a release later):
-       - Switch the "served" flag on old CRD version to false
-       - Disable migration code in Conversion WebHook
+- Deploy new webhook instance version
+  - This may be included with the manager
+- If a new CRD version was installed
+  - Set the new CRD versions as "stored" 
+  - (Optionally): Trigger an update of all existing CRs to migrate them
+  - At some point in the future:
+     - Switch the "served" flag on old CRD version to false
+     - Disable migration code in Conversion WebHook
    
 ## User Stories
 
@@ -249,19 +249,15 @@ most easy way?
 
 ### Implementation Details/Notes/Constraints
 
-- Base migration starts by comparing installed KUDO version vs. executing KUDO CLI version
-  - Check if prereq migration part is required
-  - Check if CRD migration part is required
-  - Check if manager migration part is required
-- Run pre-update verification for each part
-- TODO
 
-### Risks and Mitigations TODO
-
+### Risks and Mitigations
 This operation will **need** a `--dry-run` option
 - Do normal Pre-Update-Verification
 - Read all existing CRs and run migration to new CRD version
   - Report migration errors
+- It might be possible that the manager is doing meaningful work while the upgrade is performed. 
+  - This should be safe if everything works correctly, to be on the safe side it would be good to introduce an `idle` state 
+    for the manager in which it does not perform any work and is safe to shutdown, update the CRDs, etc.
 
 #### Failure cases
 - Migration of CRDs fails while in process
@@ -271,9 +267,10 @@ This operation will **need** a `--dry-run` option
     - Continue migrating CRDs
     - Start new version of manager
 - New manager fails to start
-  - Only available option here would be to downgrade?
+  - Only available option here would be to roll back?
 - Migration of prerequisites fails
   - Very case specific failure cases here, i.e. a namespace already exists, some permission is missing
+  - These cases should all be checkable before the upgrade starts
 
 TODO: Security implications
 
@@ -285,11 +282,13 @@ Hopefully the content previously contained in [umbrella issues][] will be tracke
 
 [umbrella issues]: https://github.com/kubernetes/kubernetes/issues/42752
 
-## Drawbacks TODO [optional]
-Why should this KEP _not_ be implemented.
-
 ## Infrastructure Needed
 - Upgrade & Migration Test Harness
+    - How old of a KUDO version do we test for upgrades
+      - We will need some e2e-tests for upgrading KUDO, but we can't support every combination of upgrades. What is the lowest KUDO version that we test for upgrades?
+      - N-2 (i.e. we provide tests that upgrade from KUDO 0.10.0 to 0.11.0 and 0.12.0)
+      - Time-based (i.e. we provide tests that upgrade from the oldest KUDO version from 6 months ago)
+      - Baseline (we keep a single KUDO version (i.e. 0.10.0) as baseline and keep tests for updating to the latest KUDO version)
 
 ## Resources
 - [CRD versioning](https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definition-versioning/)
@@ -300,7 +299,7 @@ Why should this KEP _not_ be implemented.
 
 ## Implementation History
 - 2019/11/05 - Initial draft. (@aneumann82)
-
+- 2020/01/07 - Cleanup, clarifications
 
 
 ## Action Items (to be converted into issues/tasks)
