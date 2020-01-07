@@ -104,7 +104,10 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 	// 8. - Copy out the pipe files -
 	log.Printf("PipeTask: %s/%s copying pipe files", ctx.Meta.InstanceNamespace, ctx.Meta.InstanceName)
 	fs := afero.NewMemMapFs()
-	pipePod := podObj[0].(*corev1.Pod)
+	pipePod, ok := podObj[0].(*corev1.Pod)
+	if !ok {
+		return false, errors.New("internal error: pipe pod changed type after enhance and apply")
+	}
 
 	err = copyFiles(fs, pt.PipeFiles, pipePod, ctx)
 	if err != nil {
