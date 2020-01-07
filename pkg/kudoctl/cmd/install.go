@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
-
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
 )
 
 var (

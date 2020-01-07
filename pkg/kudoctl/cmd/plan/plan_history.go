@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/spf13/cobra"
 	"github.com/xlab/treeprint"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 )
 
 // Options are the configurable options for plans

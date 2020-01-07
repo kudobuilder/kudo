@@ -6,16 +6,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/engine/renderer"
-
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/engine"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 )
 
 func TestExecutePlan(t *testing.T) {
@@ -641,7 +641,7 @@ func (k *testEnhancer) Apply(templates map[string]string, metadata renderer.Meta
 	for _, t := range templates {
 		objsToAdd, err := renderer.YamlToObject(t)
 		if err != nil {
-			return nil, fmt.Errorf("error parsing kubernetes objects after applying kustomize: %w", err)
+			return nil, fmt.Errorf("error parsing kubernetes objects after applying enhance: %v", err)
 		}
 		result = append(result, objsToAdd[0])
 	}

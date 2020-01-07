@@ -1,0 +1,277 @@
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: operators.kudo.dev
+spec:
+  group: kudo.dev
+  names:
+    kind: Operator
+    plural: operators
+    singular: operator
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            description:
+              type: string
+            kubernetesVersion:
+              type: string
+            kudoVersion:
+              type: string
+            maintainers:
+              items:
+                properties:
+                  email:
+                    type: string
+                  name:
+                    type: string
+                type: object
+              type: array
+            url:
+              type: string
+          type: object
+        status:
+          type: object
+      type: object
+  version: v1beta1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: operatorversions.kudo.dev
+spec:
+  group: kudo.dev
+  names:
+    kind: OperatorVersion
+    plural: operatorversions
+    singular: operatorversion
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            appVersion:
+              type: string
+            connectionString:
+              description: ConnectionString defines a templated string that can be
+                used to connect to an instance of the Operator.
+              type: string
+            operator:
+              type: object
+            parameters:
+              items:
+                properties:
+                  default:
+                    description: Default is a default value if no parameter is provided
+                      by the instance.
+                    type: string
+                  description:
+                    description: Description captures a longer description of how
+                      the parameter will be used.
+                    type: string
+                  displayName:
+                    description: DisplayName can be used by UIs.
+                    type: string
+                  name:
+                    description: "Name is the string that should be used in the template
+                      file for example, if `name: COUNT` then using the variable in
+                      a spec like: \n spec:   replicas:  {{ .Params.COUNT }}"
+                    type: string
+                  required:
+                    description: Required specifies if the parameter is required to
+                      be provided by all instances, or whether a default can suffice.
+                    type: boolean
+                  trigger:
+                    description: Trigger identifies the plan that gets executed when
+                      this parameter changes in the Instance object. Default is `update`
+                      if a plan with that name exists, otherwise it's `deploy`.
+                    type: string
+                type: object
+              type: array
+            plans:
+              description: Plans maps a plan name to a plan.
+              type: object
+            tasks:
+              description: List of all tasks available in this OperatorVersion.
+              items:
+                properties:
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                  spec:
+                    type: object
+                type: object
+              type: array
+            templates:
+              description: Templates is a list of references to YAML templates located
+                in the templates folder and later referenced from tasks.
+              type: object
+            upgradableFrom:
+              description: UpgradableFrom lists all OperatorVersions that can upgrade
+                to this OperatorVersion.
+              items:
+                type: object
+              type: array
+            version:
+              type: string
+          type: object
+        status:
+          type: object
+      type: object
+  version: v1beta1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: instances.kudo.dev
+spec:
+  group: kudo.dev
+  names:
+    kind: Instance
+    plural: instances
+    singular: instance
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            operatorVersion:
+              description: OperatorVersion specifies a reference to a specific OperatorVersion
+                object.
+              type: object
+            parameters:
+              type: object
+          type: object
+        status:
+          properties:
+            aggregatedStatus:
+              type: object
+            planStatus:
+              type: object
+          type: object
+      type: object
+  version: v1beta1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: kudo-manager
+    control-plane: controller-manager
+  name: kudo-controller-manager-service
+  namespace: foo
+spec:
+  ports:
+  - name: kudo
+    port: 443
+    targetPort: webhook-server
+  selector:
+    app: kudo-manager
+    control-plane: controller-manager
+status:
+  loadBalancer: {}
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  creationTimestamp: null
+  labels:
+    app: kudo-manager
+    control-plane: controller-manager
+  name: kudo-controller-manager
+  namespace: foo
+spec:
+  selector:
+    matchLabels:
+      app: kudo-manager
+      control-plane: controller-manager
+  serviceName: kudo-controller-manager-service
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: kudo-manager
+        control-plane: controller-manager
+    spec:
+      containers:
+      - command:
+        - /root/manager
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: SECRET_NAME
+          value: kudo-webhook-server-secret
+        - name: ENABLE_WEBHOOKS
+          value: "false"
+        image: kudobuilder/controller:vdev
+        imagePullPolicy: Always
+        name: manager
+        ports:
+        - containerPort: 443
+          name: webhook-server
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 100m
+            memory: 50Mi
+      serviceAccountName: safoo
+      terminationGracePeriodSeconds: 10
+  updateStrategy: {}
+status:
+  replicas: 0
+
+...

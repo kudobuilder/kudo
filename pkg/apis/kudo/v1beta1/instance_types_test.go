@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -72,5 +73,29 @@ func TestGetLastExecutedPlanStatus(t *testing.T) {
 		if actualName != tt.expectedPlanName {
 			t.Errorf("%s: Expected to get plan %s but got plan status of %v", tt.name, tt.expectedPlanName, actual)
 		}
+	}
+}
+
+func TestSpecParameterDifference(t *testing.T) {
+	var testParams = []struct {
+		name string
+		new  map[string]string
+		diff map[string]string
+	}{
+		{"update one value", map[string]string{"one": "11", "two": "2"}, map[string]string{"one": "11"}},
+		{"update multiple values", map[string]string{"one": "11", "two": "22"}, map[string]string{"one": "11", "two": "22"}},
+		{"add new value", map[string]string{"one": "1", "two": "2", "three": "3"}, map[string]string{"three": "3"}},
+		{"remove one value", map[string]string{"one": "1"}, map[string]string{"two": "2"}},
+		{"no difference", map[string]string{"one": "1", "two": "2"}, map[string]string{}},
+		{"empty new map", map[string]string{}, map[string]string{"one": "1", "two": "2"}},
+	}
+
+	g := gomega.NewGomegaWithT(t)
+
+	var old = map[string]string{"one": "1", "two": "2"}
+
+	for _, test := range testParams {
+		diff := parameterDiff(old, test.new)
+		g.Expect(diff).Should(gomega.Equal(test.diff), test.name)
 	}
 }

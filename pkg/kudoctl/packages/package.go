@@ -6,12 +6,12 @@ import (
 	"log"
 	"strings"
 
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
-
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func (p *Files) Resources() (*Resources, error) {
@@ -36,8 +36,7 @@ func (p *Files) Resources() (*Resources, error) {
 			APIVersion: APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   p.Operator.Name,
-			Labels: map[string]string{"controller-tools.k8s.io": "1.0"},
+			Name: p.Operator.Name,
 		},
 		Spec: v1beta1.OperatorSpec{
 			Description:       p.Operator.Description,
@@ -55,8 +54,7 @@ func (p *Files) Resources() (*Resources, error) {
 			APIVersion: APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.Version),
-			Labels: map[string]string{"controller-tools.k8s.io": "1.0"},
+			Name: fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.Version),
 		},
 		Spec: v1beta1.OperatorVersionSpec{
 			Operator: v1.ObjectReference{
@@ -81,7 +79,7 @@ func (p *Files) Resources() (*Resources, error) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   fmt.Sprintf("%s-instance", p.Operator.Name),
-			Labels: map[string]string{"controller-tools.k8s.io": "1.0", kudo.OperatorLabel: p.Operator.Name},
+			Labels: map[string]string{kudo.OperatorLabel: p.Operator.Name},
 		},
 		Spec: v1beta1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
@@ -99,18 +97,24 @@ func (p *Files) Resources() (*Resources, error) {
 }
 
 func validateTask(t v1beta1.Task, templates map[string]string) []string {
+	var errs []string
 	var resources []string
 	switch t.Kind {
 	case task.ApplyTaskKind:
 		resources = t.Spec.ResourceTaskSpec.Resources
 	case task.DeleteTaskKind:
 		resources = t.Spec.ResourceTaskSpec.Resources
+	case task.PipeTaskKind:
+		resources = append(resources, t.Spec.PipeTaskSpec.Pod)
+
+		if len(t.Spec.PipeTaskSpec.Pipe) == 0 {
+			errs = append(errs, fmt.Sprintf("task %s does not have pipe files specified", t.Name))
+		}
 	case task.DummyTaskKind:
 	default:
 		log.Printf("no validation for task kind %s implemented", t.Kind)
 	}
 
-	var errs []string
 	for _, res := range resources {
 		if _, ok := templates[res]; !ok {
 			errs = append(errs, fmt.Sprintf("task %s missing template: %s", t.Name, res))

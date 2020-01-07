@@ -3,13 +3,13 @@ package install
 import (
 	"fmt"
 
+	"github.com/spf13/afero"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
-
-	"github.com/spf13/afero"
 )
 
 // RepositoryOptions defines the options necessary for any cmd working with repository
@@ -33,7 +33,7 @@ var DefaultOptions = &Options{}
 // Run returns the errors associated with cmd env
 func Run(args []string, options *Options, fs afero.Fs, settings *env.Settings) error {
 
-	err := validate(args, options)
+	err := validate(args)
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func Run(args []string, options *Options, fs afero.Fs, settings *env.Settings) e
 	return err
 }
 
-func validate(args []string, options *Options) error {
+func validate(args []string) error {
 	if len(args) != 1 {
 		return clog.Errorf("expecting exactly one argument - name of the package or path to install")
 	}

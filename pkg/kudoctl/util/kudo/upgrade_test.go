@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
-
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func Test_UpgradeOperatorVersion(t *testing.T) {
@@ -20,9 +20,6 @@ func Test_UpgradeOperatorVersion(t *testing.T) {
 			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-			},
 			Name: "test-1.0",
 		},
 		Spec: v1beta1.OperatorVersionSpec{
@@ -40,8 +37,7 @@ func Test_UpgradeOperatorVersion(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-				util.OperatorLabel:        "test",
+				util.OperatorLabel: "test",
 			},
 			Name: "test",
 		},

@@ -20,17 +20,15 @@ import (
 	"time"
 
 	"github.com/google/shlex"
-	"github.com/kudobuilder/kudo/pkg/apis"
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/pmezard/go-difflib/difflib"
+	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
-	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
@@ -48,8 +46,11 @@ import (
 	coretesting "k8s.io/client-go/testing"
 	api "k8s.io/client-go/tools/clientcmd/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	kindConfig "sigs.k8s.io/kind/pkg/apis/config/v1alpha3"
+
+	"github.com/kudobuilder/kudo/pkg/apis"
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 // ensure that we only add to the scheme once.
@@ -142,7 +143,7 @@ func NewRetryClient(cfg *rest.Config, opts client.Options) (*RetryClient, error)
 	}
 
 	if opts.Mapper == nil {
-		opts.Mapper, err = NewDynamicRESTMapper(cfg)
+		opts.Mapper, err = apiutil.NewDynamicRESTMapper(cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -353,8 +354,6 @@ func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 		converted = &kudo.TestAssert{}
 	} else if group == "kudo.dev" && kind == "TestSuite" {
 		converted = &kudo.TestSuite{}
-	} else if group == "kind.sigs.k8s.io" && kind == "Cluster" {
-		converted = &kindConfig.Cluster{}
 	} else {
 		return in, nil
 	}
@@ -573,6 +572,36 @@ func NewResource(apiVersion, kind, name, namespace string) runtime.Object {
 	}
 }
 
+// NewClusterRoleBinding Create a clusterrolebinding for the serviceAccount passed
+func NewClusterRoleBinding(apiVersion, kind, name, namespace string, serviceAccount string, roleName string) runtime.Object {
+
+	sa := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     roleName,
+		},
+		Subjects: []rbacv1.Subject{{
+			Kind:      "ServiceAccount",
+			Name:      serviceAccount,
+			Namespace: namespace,
+		}},
+	}
+
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": apiVersion,
+			"kind":       kind,
+			"metadata":   sa.ObjectMeta,
+			"subjects":   sa.Subjects,
+			"roleRef":    sa.RoleRef,
+		},
+	}
+}
+
 // NewPod creates a new pod object.
 func NewPod(name, namespace string) runtime.Object {
 	return NewResource("v1", "Pod", name, namespace)
@@ -726,7 +755,6 @@ func GetAPIResource(dClient discovery.DiscoveryInterface, gvk schema.GroupVersio
 		return metav1.APIResource{}, err
 	}
 
-	fmt.Printf("%v", resourceTypes)
 	for _, resource := range resourceTypes.APIResources {
 		if !strings.EqualFold(resource.Kind, gvk.Kind) {
 			continue
@@ -860,6 +888,7 @@ func GetArgs(ctx context.Context, command string, cmd kudo.Command, namespace st
 		}
 	}
 
+	//nolint:gosec // We're running a user provided command. This is insecure by definition
 	builtCmd := exec.Command(argSlice[0])
 	builtCmd.Args = argSlice
 	return builtCmd, nil
@@ -909,7 +938,7 @@ func RunCommands(logger Logger, namespace string, command string, commands []kud
 		stdout := &bytes.Buffer{}
 		stderr := &bytes.Buffer{}
 
-		logger.Log("Running command:", cmd)
+		logger.Logf("Running command: %s %s", command, cmd)
 
 		err := RunCommand(context.TODO(), namespace, command, cmd, workdir, stdout, stderr)
 		if err != nil {
@@ -945,7 +974,6 @@ func RunKubectlCommands(logger Logger, namespace string, commands []string, work
 func Kubeconfig(cfg *rest.Config, w io.Writer) error {
 	var authProvider *api.AuthProviderConfig
 	var execConfig *api.ExecConfig
-
 	if cfg.AuthProvider != nil {
 		authProvider = &api.AuthProviderConfig{
 			Name:   cfg.AuthProvider.Name,
@@ -968,7 +996,10 @@ func Kubeconfig(cfg *rest.Config, w io.Writer) error {
 			})
 		}
 	}
-
+	err := rest.LoadTLSFiles(cfg)
+	if err != nil {
+		return err
+	}
 	return json.NewYAMLSerializer(json.DefaultMetaFactory, nil, nil).Encode(&api.Config{
 		CurrentContext: "cluster",
 		Clusters: []api.NamedCluster{

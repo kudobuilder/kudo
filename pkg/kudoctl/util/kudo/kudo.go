@@ -7,14 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
-	"github.com/kudobuilder/kudo/pkg/version"
-
 	v1core "k8s.io/api/core/v1"
-	extensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -23,6 +16,14 @@ import (
 	// Import Kubernetes authentication providers to support GKE, etc.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/version"
 )
 
 // Client is a KUDO Client providing access to a clientset
@@ -31,7 +32,7 @@ type Client struct {
 }
 
 // NewClient creates new KUDO Client
-func NewClient(kubeConfigPath string, requestTimeout int64) (*Client, error) {
+func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool) (*Client, error) {
 
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
@@ -42,44 +43,27 @@ func NewClient(kubeConfigPath string, requestTimeout int64) (*Client, error) {
 	// set default configs
 	config.Timeout = time.Duration(requestTimeout) * time.Second
 
+	kubeClient, err := kube.GetKubeClient(kubeConfigPath)
+	if err != nil {
+		return nil, clog.Errorf("could not get Kubernetes client: %s", err)
+	}
+
+	err = crd.NewInitializer().ValidateInstallation(kubeClient)
+	if err != nil {
+		// see above
+		if os.IsTimeout(err) {
+			return nil, err
+		}
+		clog.V(0).Printf("KUDO CRDs are not set up correctly. Do you need to run kudo init?")
+		if validateInstall {
+			return nil, fmt.Errorf("CRDs invalid: %v", err)
+		}
+	}
+
 	// create the clientset
 	kudoClientset, err := versioned.NewForConfig(config)
 	if err != nil {
 		return nil, err
-	}
-
-	// use the apiextensions clientset to check for the existence of KUDO CRDs in the cluster
-	extensionsClientset, err := extensionsclient.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = extensionsClientset.CustomResourceDefinitions().Get("operators.kudo.dev", v1.GetOptions{})
-	if err != nil {
-		// timeout is not a wrappable error, timeout is an underlying issue that is NOT CRD specific, there is no value in wrapping or converting as well.
-		// best to provide the actual error for proper reporting.
-		if os.IsTimeout(err) {
-			return nil, err
-		}
-		return nil, fmt.Errorf("operators crd: %w", err)
-	}
-
-	_, err = extensionsClientset.CustomResourceDefinitions().Get("operatorversions.kudo.dev", v1.GetOptions{})
-	if err != nil {
-		// timeout details above for first CRD
-		if os.IsTimeout(err) {
-			return nil, err
-		}
-		return nil, fmt.Errorf("operatorversions crd: %w", err)
-	}
-
-	_, err = extensionsClientset.CustomResourceDefinitions().Get("instances.kudo.dev", v1.GetOptions{})
-	if err != nil {
-		// timeout details above for first CRD
-		if os.IsTimeout(err) {
-			return nil, err
-		}
-		return nil, fmt.Errorf("instances crd: %w", err)
 	}
 
 	return &Client{
@@ -117,7 +101,6 @@ func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 //    		creationTimestamp: "2019-02-28T14:39:20Z"
 //    		generation: 1
 //    		labels:
-//      		controller-tools.k8s.io: "1.0"
 //      		kudo.dev/operator: kafka
 // This function also just returns true if the Instance matches a specific OperatorVersion of an Operator
 func (c *Client) InstanceExistsInCluster(operatorName, namespace, version, instanceName string) (bool, error) {

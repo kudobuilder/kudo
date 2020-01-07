@@ -80,7 +80,7 @@ func IsSubset(expected, actual interface{}) error {
 		}
 	} else {
 		return &SubsetError{
-			message: fmt.Sprintf("value mismatch: %v != %v", expected, actual),
+			message: fmt.Sprintf("value mismatch, expected: %v != actual: %v", expected, actual),
 		}
 	}
 

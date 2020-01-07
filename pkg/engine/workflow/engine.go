@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/engine/renderer"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -31,6 +31,7 @@ type ActivePlan struct {
 	Tasks     []v1beta1.Task
 	Templates map[string]string
 	Params    map[string]string
+	Pipes     map[string]string
 }
 
 func (ap *ActivePlan) taskByName(name string) (*v1beta1.Task, bool) {
@@ -167,6 +168,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 					Meta:       exm,
 					Templates:  pl.Templates,
 					Parameters: pl.Params,
+					Pipes:      pl.Pipes,
 				}
 
 				// --- 4. Execute the engine task ---
@@ -183,7 +185,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 				case err != nil:
 					message := fmt.Sprintf("A transient error when executing task %s.%s.%s.%s. Will retry. %v", pl.Name, ph.Name, st.Name, t.Name, err)
 					stepStatus.SetWithMessage(v1beta1.ErrorStatus, message)
-					fmt.Printf("PlanExecution: %s", message)
+					log.Printf("PlanExecution: %s", message)
 				case done:
 					delete(tasksLeft, t.Name)
 				}

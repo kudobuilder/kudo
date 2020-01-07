@@ -5,9 +5,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/spf13/afero"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/spf13/afero"
 )
 
 // ReadPackage creates the implementation of the packages based on the path. The expectation is the packages
@@ -65,7 +66,7 @@ func FromDir(fs afero.Fs, packagePath string) (*packages.Files, error) {
 		}
 		if file.IsDir() {
 			// skip directories
-			clog.V(6).Printf("folder walking skipping directory %v", file)
+			clog.V(6).Printf("folder walking through directory %v", file.Name())
 			return nil
 		}
 		if path == packagePath {

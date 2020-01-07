@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 	"gotest.tools/assert"
-
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/version"
 	fakediscovery "k8s.io/client-go/discovery/fake"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 func Test_InstallPackage(t *testing.T) {
@@ -24,9 +24,6 @@ func Test_InstallPackage(t *testing.T) {
 				Kind:       "Operator",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Labels: map[string]string{
-					"controller-tools.k8s.io": "1.0",
-				},
 				Name: "test",
 			},
 			Spec: v1beta1.OperatorSpec{
@@ -40,8 +37,7 @@ func Test_InstallPackage(t *testing.T) {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: map[string]string{
-					"controller-tools.k8s.io": "1.0",
-					"operator":                "test",
+					"operator": "test",
 				},
 				Name: "test",
 			},
@@ -57,9 +53,6 @@ func Test_InstallPackage(t *testing.T) {
 				Kind:       "OperatorVersion",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Labels: map[string]string{
-					"controller-tools.k8s.io": "1.0",
-				},
 				Name: fmt.Sprintf("%s-1.0", "operator"),
 			},
 			Spec: v1beta1.OperatorVersionSpec{

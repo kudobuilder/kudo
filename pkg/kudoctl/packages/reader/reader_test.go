@@ -9,12 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/spf13/afero"
+	"gotest.tools/assert"
 	"sigs.k8s.io/yaml"
 
-	"gotest.tools/assert"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
 func TestReadFileSystemPackage(t *testing.T) {

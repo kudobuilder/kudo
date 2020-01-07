@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/xlab/treeprint"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
-
-	"github.com/xlab/treeprint"
 )
 
 // Run returns the errors associated with cmd env
