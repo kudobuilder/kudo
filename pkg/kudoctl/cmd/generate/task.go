@@ -52,7 +52,7 @@ func TaskKinds() []string {
 	return []string{task.ApplyTaskKind, task.DeleteTaskKind, task.PipeTaskKind}
 }
 
-// EnsureTaskResources give a task will ensure all resources exist
+// EnsureTaskResources ensures that all resources used by the given task exist
 func EnsureTaskResources(fs afero.Fs, path string, task *v1beta1.Task) error {
 
 	for _, resource := range task.Spec.Resources {
