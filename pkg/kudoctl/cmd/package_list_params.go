@@ -13,14 +13,12 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/generate"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
-type paramsListCmd struct {
+type packageListParamsCmd struct {
 	fs             afero.Fs
 	out            io.Writer
-	path           string
+	pathOrName     string
 	descriptions   bool
 	namesOnly      bool
 	requiredOnly   bool
@@ -29,27 +27,27 @@ type paramsListCmd struct {
 }
 
 const (
-	pkgParamsExample = `# show parameters from local-folder (where local-folder is a folder in the current directory)
-  kubectl kudo package params list local-folder
+	pacakgeListParamsExample = `# show parameters from local-folder (where local-folder is a folder in the current directory)
+  kubectl kudo package list parameters local-folder
 
   # show parameters from zookeeper (where zookeeper is name of package in KUDO repository)
-  kubectl kudo package params list zookeeper`
+  kubectl kudo package list parameters zookeeper`
 )
 
-func newParamsListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
-	list := &paramsListCmd{fs: fs, out: out}
+func newPackageListParamsCmd(fs afero.Fs, out io.Writer) *cobra.Command {
+	list := &packageListParamsCmd{fs: fs, out: out}
 
 	cmd := &cobra.Command{
-		Use:     "list [operator]",
+		Use:     "parameters [operator]",
 		Short:   "List operator parameters",
-		Example: pkgParamsExample,
+		Example: pacakgeListParamsExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			path, patherr := generate.OperatorPath(fs)
 			if patherr != nil {
 				clog.V(2).Printf("operator path is not relative to execution")
 			} else {
-				list.path = path
+				list.pathOrName = path
 			}
 			err := validateOperatorArg(args)
 			if err != nil && patherr != nil {
@@ -57,9 +55,9 @@ func newParamsListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			}
 			// if passed in... args take precedence
 			if err == nil {
-				list.path = args[0]
+				list.pathOrName = args[0]
 			}
-			return list.run(fs, &Settings)
+			return list.run(&Settings)
 		},
 	}
 
@@ -77,32 +75,24 @@ func newParamsListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 // 1. names only using --names.  This is based on challenges with other approaches reading really long parameter names
 // 2. name, default and required.  This is the **default**
 // 3. name, default, required, desc.
-func (c *paramsListCmd) run(fs afero.Fs, settings *env.Settings) error {
+func (c *packageListParamsCmd) run(settings *env.Settings) error {
 	if !onlyOneSet(c.requiredOnly, c.namesOnly, c.descriptions) {
 		return fmt.Errorf("only one of the flags 'required', 'names', 'descriptions' can be set")
 	}
-	repository, err := repo.ClientFromSettings(fs, settings.Home, c.RepoName)
+	pf, err := packageDiscovery(c.fs, settings, c.RepoName, c.pathOrName, c.PackageVersion)
 	if err != nil {
-		return fmt.Errorf("could not build operator repository: %w", err)
-	}
-	clog.V(4).Printf("repository used %s", repository)
-
-	clog.V(3).Printf("getting package pkg files for %v with version: %v", c.path, c.PackageVersion)
-	resolver := pkgresolver.New(repository)
-	pf, err := resolver.Resolve(c.path, c.PackageVersion)
-	if err != nil {
-		return fmt.Errorf("failed to resolve package files for operator: %s: %w", c.path, err)
+		return err
 	}
 
-	return displayParamsTable(pf.Files, c)
+	displayParamsTable(pf.Files, c.out, c.requiredOnly, c.namesOnly, c.descriptions)
+	return nil
 }
 
-func displayParamsTable(pf *packages.Files, cmd *paramsListCmd) error {
+func displayParamsTable(pf *packages.Files, out io.Writer, printRequired, printNames, printDesc bool) {
 	sort.Sort(pf.Params.Parameters)
 	table := uitable.New()
 	tValue := true
-	// required
-	if cmd.requiredOnly {
+	if printRequired {
 		table.AddRow("Name")
 		found := false
 		for _, p := range pf.Params.Parameters {
@@ -112,24 +102,21 @@ func displayParamsTable(pf *packages.Files, cmd *paramsListCmd) error {
 			}
 		}
 		if found {
-			fmt.Fprintln(cmd.out, table)
+			fmt.Fprintln(out, table)
 		} else {
-			fmt.Fprintf(cmd.out, "no required parameters without default values found\n")
+			fmt.Fprintf(out, "no required parameters without default values found\n")
 		}
-		return nil
 	}
-	// names only
-	if cmd.namesOnly {
+	if printNames {
 		table.AddRow("Name")
 		for _, p := range pf.Params.Parameters {
 			table.AddRow(p.Name)
 		}
-		fmt.Fprintln(cmd.out, table)
-		return nil
+		fmt.Fprintln(out, table)
 	}
 	table.MaxColWidth = 35
 	table.Wrap = true
-	if cmd.descriptions {
+	if printDesc {
 		table.AddRow("Name", "Default", "Required", "Descriptions")
 
 	} else {
@@ -141,14 +128,13 @@ func displayParamsTable(pf *packages.Files, cmd *paramsListCmd) error {
 		if p.Default != nil {
 			pDefault = *p.Default
 		}
-		if cmd.descriptions {
+		if printDesc {
 			table.AddRow(p.Name, pDefault, *p.Required, p.Description)
 		} else {
 			table.AddRow(p.Name, pDefault, *p.Required)
 		}
 	}
-	fmt.Fprintln(cmd.out, table)
-	return nil
+	fmt.Fprintln(out, table)
 }
 
 func onlyOneSet(b bool, b2 bool, b3 bool) bool {
