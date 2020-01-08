@@ -57,7 +57,7 @@ Executing `make lint` uses `goimports` which is configured to ensure this struct
 
 `make imports` is also a useful tool in order to help create this structure.  If all imports are in 1 import block (no lines of separation), `make imports` will modify the file in the appropriate order and structure.
 
-If you use Goland or Intellij IDEA, the following settings will match the above requirements:
+If you use Goland or Intellij IDEA, setting the following under "Editor > Code Style > Go" in the "Imports" tab will match the above requirements:
 
 [x] Add parentheses for a single import
 Sorting type [gofmt]
