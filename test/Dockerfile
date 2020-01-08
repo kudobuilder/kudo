@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
     add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable" && \
     apt-get update && apt-get install -y docker-ce-cli
 
-COPY Makefile go.mod go.sum ./
+COPY Dockerfile Makefile go.mod go.sum ./
 RUN make download
 COPY config/ config/
 COPY pkg/ pkg/
@@ -21,4 +21,4 @@ COPY hack/run-integration-tests.sh hack/run-integration-tests.sh
 COPY hack/run-e2e-tests.sh hack/run-e2e-tests.sh
 COPY test/ test/
 COPY kudo-test.yaml kudo-test.yaml
-COPY kudo-e2e-test.yaml kudo-e2e-test.yaml
+COPY kudo-e2e-test.yaml.tmpl kudo-e2e-test.yaml.tmpl
