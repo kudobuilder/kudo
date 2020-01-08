@@ -64,11 +64,11 @@ const (
 // Plan specifies a series of Phases that need to be completed.
 type Plan struct {
 	// +optional
-	Strategy Ordering `json:"strategy" validate:"required"` // makes field mandatory and checks if set and non empty
+	Strategy Ordering `json:"strategy"`
 	// Phases maps a phase name to a Phase object.
 	// +optional
 	// +nullable
-	Phases []Phase `json:"phases" validate:"required,gt=0,dive"` // makes field mandatory and checks if its gt 0
+	Phases []Phase `json:"phases"`
 }
 
 // Parameter captures the variability of an OperatorVersion being instantiated in an instance.
@@ -100,31 +100,31 @@ type Parameter struct {
 // Phase specifies a list of steps that contain Kubernetes objects.
 type Phase struct {
 	// +optional
-	Name string `json:"name" validate:"required"` // makes field mandatory and checks if set and non empty
+	Name string `json:"name"`
 	// +optional
-	Strategy Ordering `json:"strategy" validate:"required"` // makes field mandatory and checks if set and non empty
+	Strategy Ordering `json:"strategy"`
 
 	// Steps maps a step name to a list of templated Kubernetes objects stored as a string.
 	// +optional
-	Steps []Step `json:"steps" validate:"required,gt=0,dive"` // makes field mandatory and checks if its gt 0
+	Steps []Step `json:"steps"`
 }
 
 // Step defines a specific set of operations that occur.
 type Step struct {
 	// +optional
-	Name string `json:"name" validate:"required"` // makes field mandatory and checks if set and non empty
+	Name string `json:"name"`
 	// +optional
-	Tasks []string `json:"tasks" validate:"required,gt=0,dive"` // makes field mandatory and checks if non empty
+	Tasks []string `json:"tasks"`
 }
 
 // Task is a global, polymorphic implementation of all publicly available tasks
 type Task struct {
 	// +optional
-	Name string `json:"name" validate:"required"`
+	Name string `json:"name"`
 	// +optional
-	Kind string `json:"kind" validate:"required"`
+	Kind string `json:"kind"`
 	// +optional
-	Spec TaskSpec `json:"spec" validate:"required"`
+	Spec TaskSpec `json:"spec"`
 }
 
 // TaskSpec embeds all possible task specs. This allows us to avoid writing custom un/marshallers that would only parse
