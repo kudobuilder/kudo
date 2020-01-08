@@ -97,7 +97,10 @@ func displayPlanTable(pf *packages.Files, withTasks bool, out io.Writer) {
 }
 
 func sortedPlanNames(pf *packages.Files) []string {
-	planNames := funk.Keys(pf.Operator.Plans).([]string)
+	planNames, ok := funk.Keys(pf.Operator.Plans).([]string)
+	if !ok {
+		panic("funk.Keys returned unexpected type")
+	}
 	sort.Strings(planNames)
 	return planNames
 }
