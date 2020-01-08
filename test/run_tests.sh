@@ -10,6 +10,9 @@ TARGET=$1
 
 INTEGRATION_OUTPUT_JUNIT=${INTEGRATION_OUTPUT_JUNIT:-false}
 
+CONTAINER_POSTFIX=$(< /dev/urandom base64 | tr -dc '[:alpha:]' | head -c 8)
+CONTAINER_NAME=${CONTAINER_NAME:-"kudo-e2e-test-$CONTAINER_POSTFIX"}
+
 # Set test harness artifacts dir to '/tmp/kudo-e2e-test', as it's easier to copy from in a container.
 echo 'artifactsDir: /tmp/kudo-e2e-test' >> kudo-e2e-test.yaml
 
@@ -31,7 +34,7 @@ fi
 
 if docker build -f test/Dockerfile -t kudo-test .; then
     docker run -e INTEGRATION_OUTPUT_JUNIT --net=host -it -m 4g \
-        --name kudo-e2e-test \
+        --name "$CONTAINER_NAME" \
         -v /var/run/docker.sock:/var/run/docker.sock \
         -v "$(pwd)"/reports:/go/src/github.com/kudobuilder/kudo/reports \
         kudo-test make "$TARGET"
@@ -39,10 +42,10 @@ if docker build -f test/Dockerfile -t kudo-test .; then
 
     # Archive test harness artifacts
     if [ "$TARGET" == "e2e-test" ]; then
-        docker cp kudo-e2e-test:/tmp/kudo-e2e-test - | bzip2 > kind-logs.tar.bz2
+        docker cp "$CONTAINER_NAME:/tmp/kudo-e2e-test" - | bzip2 > kind-logs.tar.bz2
     fi
 
-    docker rm kudo-e2e-test
+    docker rm "$CONTAINER_NAME"
 
     if [ $RESULT -eq 0 ]; then
         echo "Tests finished successfully! ヽ(•‿•)ノ"
