@@ -83,8 +83,7 @@ func (k *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) 
 	return objs, nil
 }
 
-func setControllerReference(owner v1.Object, obj runtime.Object, scheme *runtime.Scheme) error {
-	object := obj.(v1.Object)
+func setControllerReference(owner v1.Object, object *unstructured.Unstructured, scheme *runtime.Scheme) error {
 	ownerNs := owner.GetNamespace()
 	if ownerNs != "" {
 		objNs := object.GetNamespace()

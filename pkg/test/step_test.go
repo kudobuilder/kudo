@@ -54,10 +54,11 @@ func TestStepCreate(t *testing.T) {
 	pod := testutils.NewPod("hello", "")
 	podWithNamespace := testutils.NewPod("hello2", "different-namespace")
 	clusterScopedResource := testutils.NewResource("v1", "Namespace", "my-namespace", "")
-	podToUpdate := testutils.NewPod("update-me", "").(*unstructured.Unstructured)
-	updateToApply := testutils.WithSpec(t, podToUpdate, map[string]interface{}{
-		"replicas": 2,
-	}).(*unstructured.Unstructured)
+	podToUpdate := testutils.NewPod("update-me", "")
+	specToApply := map[string]interface{}{
+		"replicas": int64(2),
+	}
+	updateToApply := testutils.WithSpec(t, podToUpdate, specToApply)
 
 	cl := fake.NewFakeClient(testutils.WithNamespace(podToUpdate, "world"))
 
@@ -75,8 +76,9 @@ func TestStepCreate(t *testing.T) {
 	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(pod), pod))
 	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(clusterScopedResource), clusterScopedResource))
 
-	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podToUpdate), podToUpdate))
-	assert.Equal(t, updateToApply.Object["spec"], podToUpdate.Object["spec"])
+	updatedPod := &unstructured.Unstructured{Object: map[string]interface{}{"apiVersion": "v1", "kind": "Pod"}}
+	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podToUpdate), updatedPod))
+	assert.Equal(t, specToApply, updatedPod.Object["spec"])
 
 	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podWithNamespace), podWithNamespace))
 	actual := testutils.NewPod("hello2", namespace)
