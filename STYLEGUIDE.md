@@ -59,7 +59,12 @@ Executing `make lint` uses `goimports` which is configured to ensure this struct
 
 If you use Goland or Intellij IDEA, the following settings will match the above requirements:
 
-![Intellij imports](intellij-imports.png)
+[x] Add parentheses for a single import
+Sorting type [gofmt]
+[x] Group stdlib imports
+   [x] Move all stdlib imports in a single group
+[x] Group current project imports
+[x] Move all import in a single declaration
 
 ### Naming
 
