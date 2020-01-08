@@ -10,7 +10,7 @@ TARGET=$1
 
 INTEGRATION_OUTPUT_JUNIT=${INTEGRATION_OUTPUT_JUNIT:-false}
 
-CONTAINER_POSTFIX=$(< /dev/urandom base64 | tr -dc '[:alpha:]' | head -c 8)
+CONTAINER_POSTFIX=$(< /dev/urandom base64 | tr -dc '[:alpha:]' | fold -w 8 | head -n 1)
 CONTAINER_NAME=${CONTAINER_NAME:-"kudo-e2e-test-$CONTAINER_POSTFIX"}
 
 # Set test harness artifacts dir to '/tmp/kudo-e2e-test', as it's easier to copy from in a container.
