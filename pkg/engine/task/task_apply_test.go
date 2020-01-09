@@ -132,7 +132,7 @@ func TestApplyTask_Run(t *testing.T) {
 	}
 }
 
-func pod(name string, namespace string) *corev1.Pod {
+func pod(name string, namespace string) *corev1.Pod { //nolint:unparam
 	pod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -177,7 +177,7 @@ func (k *testEnhancer) Apply(templates map[string]string, metadata renderer.Meta
 	for _, t := range templates {
 		objsToAdd, err := renderer.YamlToObject(t)
 		if err != nil {
-			return nil, fmt.Errorf("error parsing kubernetes objects after applying kustomize: %w", err)
+			return nil, fmt.Errorf("error parsing kubernetes objects after applying enhance: %w", err)
 		}
 		result = append(result, objsToAdd[0])
 	}

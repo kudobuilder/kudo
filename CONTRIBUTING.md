@@ -4,11 +4,22 @@ First: if you're unsure or afraid of anything, just ask or submit the issue or p
 
 However, for those individuals who want a bit more guidance on the best way to contribute to the project, read on. This document will cover what we're looking for. By addressing all the points we're looking for, it raises the chances we can quickly merge or address your contributions.
 
-## Sign the CLA
+## Developer Certificate Of Origin
 
-Kubernetes projects require that you sign a Contributor License Agreement (CLA) before we can accept your pull requests.
+KUDO requires that contributors sign off on changes submitted to kudobuilder repositories.
+The [Developer Certificate of Origin (DCO)](https://developercertificate.org/) is a simple way to certify that you wrote or have the right to submit the code you are contributing to the project.
 
-Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CLA.md) for more info.
+You sign-off by adding the following to your commit messages:
+
+    This is my commit message
+
+    Signed-off-by: Random J Developer <random@developer.example.org>
+
+Git has a `-s` command line option to do this automatically.
+
+    git commit -s -m 'This is my commit message'
+
+You can find the full text of the DCO here: https://developercertificate.org/
 
 ## Contributing Steps
 
@@ -32,7 +43,6 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 
 - Get the KUDO repo: `git clone https://github.com/kudobuilder/kudo.git`
 - `cd kudo`
-- Export `GOPATH` (this is necessary because of an issue in [codegenerator](https://github.com/kubernetes/code-generator/issues/87))
 - `make all` to build manager as well as CLI
 - [optionally] `make docker-build` to build the manager Docker images
 

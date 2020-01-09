@@ -21,6 +21,7 @@ import (
 	"log"
 	"reflect"
 
+	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
@@ -33,7 +34,7 @@ const instanceCleanupFinalizerName = "kudo.dev.instance.cleanup"
 
 // InstanceSpec defines the desired state of Instance.
 type InstanceSpec struct {
-	// OperatorVersion specifies a reference to a specific Operator object.
+	// OperatorVersion specifies a reference to a specific OperatorVersion object.
 	OperatorVersion corev1.ObjectReference `json:"operatorVersion,omitempty"`
 
 	Parameters map[string]string `json:"parameters,omitempty"`
@@ -76,9 +77,10 @@ type AggregatedStatus struct {
 //+-------------+        +----------------+
 //
 type PlanStatus struct {
-	Name            string                `json:"name,omitempty"`
-	Status          ExecutionStatus       `json:"status,omitempty"`
-	Message         string                `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
+	Name    string          `json:"name,omitempty"`
+	Status  ExecutionStatus `json:"status,omitempty"`
+	Message string          `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
+	// +nullable
 	LastFinishedRun metav1.Time           `json:"lastFinishedRun,omitempty"`
 	Phases          []PhaseStatus         `json:"phases,omitempty"`
 	UID             apimachinerytypes.UID `json:"uid,omitempty"`
@@ -449,7 +451,7 @@ func (i *Instance) GetPlanToBeExecuted(ov *OperatorVersion) (*string, error) {
 	if !reflect.DeepEqual(instanceSnapshot.Parameters, i.Spec.Parameters) {
 		// instance updated
 		log.Printf("Instance: instance %s/%s has updated parameters from %v to %v", i.Namespace, i.Name, instanceSnapshot.Parameters, i.Spec.Parameters)
-		paramDiff := parameterDifference(instanceSnapshot.Parameters, i.Spec.Parameters)
+		paramDiff := parameterDiff(instanceSnapshot.Parameters, i.Spec.Parameters)
 		paramDefinitions := getParamDefinitions(paramDiff, ov)
 		plan := planNameFromParameters(paramDefinitions, ov)
 		if plan == nil {
@@ -484,8 +486,8 @@ func getParamDefinitions(params map[string]string, ov *OperatorVersion) []Parame
 	return defs
 }
 
-// parameterDifference returns map containing all parameters that were removed or changed between old and new
-func parameterDifference(old, new map[string]string) map[string]string {
+// parameterDiff returns map containing all parameters that were removed or changed between old and new
+func parameterDiff(old, new map[string]string) map[string]string {
 	diff := make(map[string]string)
 
 	for key, val := range old {
@@ -505,15 +507,6 @@ func parameterDifference(old, new map[string]string) map[string]string {
 	return diff
 }
 
-func contains(values []string, s string) bool {
-	for _, value := range values {
-		if value == s {
-			return true
-		}
-	}
-	return false
-}
-
 func remove(values []string, s string) (result []string) {
 	for _, value := range values {
 		if value == s {
@@ -528,7 +521,7 @@ func remove(values []string, s string) (result []string) {
 // hasn't been added yet, the instance has a cleanup plan and the cleanup plan
 // didn't run yet. Returns true if the cleanup finalizer has been added.
 func (i *Instance) TryAddFinalizer() bool {
-	if !contains(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
+	if !funk.ContainsString(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
 		if planStatus := i.PlanStatus(CleanupPlanName); planStatus != nil {
 			// avoid adding a finalizer again if a reconciliation is requested
 			// after it has just been removed but the instance isn't deleted yet
@@ -546,7 +539,7 @@ func (i *Instance) TryAddFinalizer() bool {
 // been added, the instance has a cleanup plan and the cleanup plan completed.
 // Returns true if the cleanup finalizer has been removed.
 func (i *Instance) TryRemoveFinalizer() bool {
-	if contains(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
+	if funk.ContainsString(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
 		if planStatus := i.PlanStatus(CleanupPlanName); planStatus != nil {
 			if planStatus.Status.IsTerminal() {
 				i.ObjectMeta.Finalizers = remove(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
@@ -575,6 +568,7 @@ func (i *Instance) IsDeleting() bool {
 
 // Instance is the Schema for the instances API.
 // +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
 type Instance struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

@@ -27,7 +27,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
-var updateGolden = flag.Bool("update", false, "update .golden files")
+var updateGolden = flag.Bool("update", false, "update .golden files and manifests in /config/crd")
 
 func TestInitCmd_dry(t *testing.T) {
 
@@ -126,6 +126,7 @@ func TestInitCmd_yamlOutput(t *testing.T) {
 		{"custom namespace", "deploy-kudo-ns.yaml", map[string]string{"dry-run": "true", "output": "yaml", "namespace": "foo"}},
 		{"yaml output", "deploy-kudo.yaml", map[string]string{"dry-run": "true", "output": "yaml"}},
 		{"service account", "deploy-kudo-sa.yaml", map[string]string{"dry-run": "true", "output": "yaml", "service-account": "safoo", "namespace": "foo"}},
+		{"with webhook", "deploy-kudo-webhook.yaml", map[string]string{"dry-run": "true", "output": "yaml", "webhook": "InstanceValidation"}},
 	}
 
 	for _, tt := range tests {
@@ -147,7 +148,7 @@ func TestInitCmd_yamlOutput(t *testing.T) {
 		gp := filepath.Join("testdata", tt.goldenFile+".golden")
 
 		if *updateGolden {
-			t.Log("update golden file")
+			t.Logf("updating golden file %s", tt.goldenFile)
 			if err := ioutil.WriteFile(gp, out.Bytes(), 0644); err != nil {
 				t.Fatalf("failed to update golden file: %s", err)
 			}

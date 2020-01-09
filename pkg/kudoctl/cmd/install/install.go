@@ -33,7 +33,7 @@ var DefaultOptions = &Options{}
 // Run returns the errors associated with cmd env
 func Run(args []string, options *Options, fs afero.Fs, settings *env.Settings) error {
 
-	err := validate(args, options)
+	err := validate(args)
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func Run(args []string, options *Options, fs afero.Fs, settings *env.Settings) e
 	return err
 }
 
-func validate(args []string, options *Options) error {
+func validate(args []string) error {
 	if len(args) != 1 {
 		return clog.Errorf("expecting exactly one argument - name of the package or path to install")
 	}

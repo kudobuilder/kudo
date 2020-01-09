@@ -1,0 +1,2 @@
+apiVersion: kudo.dev/v1beta1
+parameters: []

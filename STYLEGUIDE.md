@@ -2,11 +2,11 @@
 
 In an effort to encourage clear, clean, uniform and readable code it is useful to have a style guide to establish standards and expectations for code and artifact files.
 
-KUDO is a [Kubernetes (K8S)](https://kubernetes.io/) project written primarily in [Golang](https://golang.org/), both of which have some differences in their style and expectation of code and APIs. In addition the founders of KUDO have some of their own preferences. This guide captures the preferred standards of this project.
+KUDO is a [Kubernetes (K8S)](https://kubernetes.io/) project written primarily in [Go](https://golang.org/), both of which have some differences in their style and expectation of code and APIs. In addition the founders of KUDO have some of their own preferences. This guide captures the preferred standards of this project.
 
 ## Golang
 
-When writing Golang code, We favor Golang idioms over Kubernetes style. Worth reading:
+When writing Go code, We favor Go idioms over Kubernetes style. Worth reading:
 
 * [Effective Go](https://golang.org/doc/effective_go.html)
 * [Idiomatic Go](https://dmitri.shuralyov.com/idiomatic-go)
@@ -28,35 +28,45 @@ All code should pass the linter. For cases of intentional lint deviation, it is 
 
 `make lint`
 
-All code should pass [staticcheck](http://staticcheck.io/).
-
-`make staticcheck`
-
-All code should pass `go vet`.
-
-`make vet`
-
-
 ### import
 
-The general Golang approach is to have a line of separation between Golang libraries and external packages. We prefer to have an additional line of separation grouping Kubernetes packages. Example:
+The general Go approach is to have a line of separation between Go libraries and external packages. We prefer to have an additional line of separation grouping kudo packages separately at the end. Example:
 
 ```
 import (
+	// standard library packages
 	"context"
 	"fmt"
-      // above are standard library packages
+
+	// third-party library packages
+	"github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/kustomize/k8sdeps/kunstruct"
 	"sigs.k8s.io/kustomize/pkg/target"
 	ktypes "sigs.k8s.io/kustomize/pkg/types"
-      // above are k8s library packages
-	"github.com/kudobuilder/kudo/pkg/util/health"
-	"github.com/kudobuilder/kudo/pkg/util/template"
-	appsv1 "k8s.io/api/apps/v1"
+
+	// kudo packages
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/version"
 )
+```
+
+Executing `make lint` uses `goimports` which is configured to ensure this structure and will error in most situations that differ.  Unfortunately not all pattern mismatches are captured.
+
+`make imports` is also a useful tool in order to help create this structure.  If all imports are in 1 import block (no lines of separation), `make imports` will modify the file in the appropriate order and structure.
+
+If you use Goland or Intellij IDEA, setting the following under "Editor > Code Style > Go" in the "Imports" tab will match the above requirements:
+```
+[x] Add parentheses for a single import
+Sorting type [gofmt]
+[x] Group stdlib imports
+   [x] Move all stdlib imports in a single group
+[x] Group current project imports
+[x] Move all import in a single declaration
 ```
 
 ### Naming
 
-In general, naming should follow Golang conventions over Kubernetes conventions.
+In general, naming should follow [Go conventions](https://golang.org/doc/effective_go.html#names) over [Kubernetes code conventions](https://github.com/kubernetes/community/blob/master/contributors/guide/coding-conventions.md#code-conventions).

@@ -40,9 +40,6 @@ func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 			Kind:       "Operator",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-			},
 			Name: "test",
 		},
 	}
@@ -89,8 +86,7 @@ func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-				kudo.OperatorLabel:        "test",
+				kudo.OperatorLabel: "test",
 			},
 			Name: "test",
 		},
@@ -108,8 +104,7 @@ func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-				kudo.OperatorLabel:        "test",
+				kudo.OperatorLabel: "test",
 			},
 			Name: "test",
 		},
@@ -163,8 +158,7 @@ func TestKudoClient_ListInstances(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-				kudo.OperatorLabel:        "test",
+				kudo.OperatorLabel: "test",
 			},
 			Name: "test",
 		},
@@ -213,9 +207,6 @@ func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-			},
 			Name: fmt.Sprintf("%s-1.0", operatorName),
 		},
 		Spec: v1beta1.OperatorVersionSpec{
@@ -261,9 +252,6 @@ func TestKudoClient_InstallOperatorObjToCluster(t *testing.T) {
 			Kind:       "Operator",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-			},
 			Name: "test",
 		},
 	}
@@ -285,10 +273,10 @@ func TestKudoClient_InstallOperatorObjToCluster(t *testing.T) {
 		k2o := newTestSimpleK2o()
 
 		// create Operator
-		k2o.clientset.KudoV1beta1().Operators(tt.createns).Create(tt.obj) //nolint
+		k2o.clientset.KudoV1beta1().Operators(tt.createns).Create(tt.obj) //nolint:errcheck
 
 		// test if Operator exists in namespace
-		k2o.InstallOperatorObjToCluster(tt.obj, tt.createns) //nolint
+		k2o.InstallOperatorObjToCluster(tt.obj, tt.createns) //nolint:errcheck
 
 		_, err := k2o.clientset.KudoV1beta1().Operators(tt.createns).Get(tt.name, metav1.GetOptions{})
 		if tt.err != "" {
@@ -304,9 +292,6 @@ func TestKudoClient_InstallOperatorVersionObjToCluster(t *testing.T) {
 			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-			},
 			Name: "test",
 		},
 	}
@@ -328,10 +313,10 @@ func TestKudoClient_InstallOperatorVersionObjToCluster(t *testing.T) {
 		k2o := newTestSimpleK2o()
 
 		// create Operator
-		k2o.clientset.KudoV1beta1().OperatorVersions(tt.createns).Create(tt.obj) //nolint
+		k2o.clientset.KudoV1beta1().OperatorVersions(tt.createns).Create(tt.obj) //nolint:errcheck
 
 		// test if Operator exists in namespace
-		k2o.InstallOperatorVersionObjToCluster(tt.obj, tt.createns) //nolint
+		k2o.InstallOperatorVersionObjToCluster(tt.obj, tt.createns) //nolint:errcheck
 
 		_, err := k2o.clientset.KudoV1beta1().OperatorVersions(tt.createns).Get(tt.name, metav1.GetOptions{})
 		if tt.err != "" {
@@ -347,9 +332,6 @@ func TestKudoClient_InstallInstanceObjToCluster(t *testing.T) {
 			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-			},
 			Name: "test",
 		},
 	}
@@ -371,10 +353,10 @@ func TestKudoClient_InstallInstanceObjToCluster(t *testing.T) {
 		k2o := newTestSimpleK2o()
 
 		// create Operator
-		k2o.clientset.KudoV1beta1().Instances(tt.createns).Create(tt.obj) //nolint
+		k2o.clientset.KudoV1beta1().Instances(tt.createns).Create(tt.obj) //nolint:errcheck
 
 		// test if Operator exists in namespace
-		k2o.InstallInstanceObjToCluster(tt.obj, tt.createns) //nolint
+		k2o.InstallInstanceObjToCluster(tt.obj, tt.createns) //nolint:errcheck
 
 		_, err := k2o.clientset.KudoV1beta1().Instances(tt.createns).Get(tt.name, metav1.GetOptions{})
 		if tt.err != "" {
@@ -391,8 +373,7 @@ func TestKudoClient_GetInstance(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-				kudo.OperatorLabel:        "test",
+				kudo.OperatorLabel: "test",
 			},
 			Name: "test",
 		},
@@ -442,9 +423,6 @@ func TestKudoClient_GetOperatorVersion(t *testing.T) {
 			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-			},
 			Name: fmt.Sprintf("%s-1.0", operatorName),
 		},
 		Spec: v1beta1.OperatorVersionSpec{
@@ -491,8 +469,7 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-				kudo.OperatorLabel:        "test",
+				kudo.OperatorLabel: "test",
 			},
 			Name: "test",
 		},
@@ -570,9 +547,6 @@ func TestKudoClient_DeleteInstance(t *testing.T) {
 			Kind:       "Instance",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-			},
 			Name: "test",
 		},
 		Spec: v1beta1.InstanceSpec{

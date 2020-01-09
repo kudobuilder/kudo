@@ -188,7 +188,7 @@ func untarFile(fs afero.Fs, r io.Reader, fileName string) error {
 			if err != nil {
 				return err
 			}
-			defer f.Close() // nolint
+			defer f.Close() //nolint:errcheck
 
 			// copy over contents
 			if _, err := io.Copy(f, tr); err != nil {

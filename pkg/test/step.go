@@ -139,7 +139,7 @@ func (s *Step) DeleteExisting(namespace string) error {
 	}
 
 	// Wait for resources to be deleted.
-	return wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (done bool, err error) {
+	return wait.PollImmediate(100*time.Millisecond, time.Duration(s.GetTimeout())*time.Second, func() (done bool, err error) {
 		for _, obj := range toDelete {
 			err = cl.Get(context.TODO(), testutils.ObjectKey(obj), obj.DeepCopyObject())
 			if err == nil || !k8serrors.IsNotFound(err) {
@@ -441,7 +441,11 @@ func (s *Step) LoadYAML(file string) error {
 
 	for _, obj := range s.Asserts {
 		if obj.GetObjectKind().GroupVersionKind().Kind == "TestAssert" {
-			s.Assert = obj.(*kudo.TestAssert)
+			if testAssert, ok := obj.(*kudo.TestAssert); ok {
+				s.Assert = testAssert
+			} else {
+				return fmt.Errorf("failed to load TestAssert object from %s: it contains an object of type %T", file, obj)
+			}
 		} else {
 			asserts = append(asserts, obj)
 		}
@@ -451,7 +455,11 @@ func (s *Step) LoadYAML(file string) error {
 
 	for _, obj := range s.Apply {
 		if obj.GetObjectKind().GroupVersionKind().Kind == "TestStep" {
-			s.Step = obj.(*kudo.TestStep)
+			if testStep, ok := obj.(*kudo.TestStep); ok {
+				s.Step = testStep
+			} else {
+				return fmt.Errorf("failed to load TestStep object from %s: it contains an object of type %T", file, obj)
+			}
 			s.Step.Index = s.Index
 			if s.Step.Name != "" {
 				s.Name = s.Step.Name

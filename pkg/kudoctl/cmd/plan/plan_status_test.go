@@ -20,9 +20,6 @@ func TestStatus(t *testing.T) {
 			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-			},
 			Name: "test-1.0",
 		},
 		Spec: v1beta1.OperatorVersionSpec{
@@ -82,7 +79,7 @@ func TestStatus(t *testing.T) {
 .
 └── test (Operator-Version: "test-1.0" Active-Plan: "deploy")
     └── Plan deploy ( strategy) [FATAL_ERROR]
-        └── Phase deploy [FATAL_ERROR]
+        └── Phase deploy ( strategy) [FATAL_ERROR]
             └── Step deploy [FATAL_ERROR] (error detail)
 
 `},

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/magiconair/properties/assert"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
@@ -46,9 +46,9 @@ entries:
 	b := []byte(indexString)
 	index, _ := ParseIndexFile(b)
 
-	assert.Equal(t, len(index.Entries), 2, "number of operator entries is 2")
-	assert.Equal(t, len(index.Entries["kafka"]), 2, "number of kafka operators is 2")
-	assert.Equal(t, index.Entries["flink"][0].AppVersion, "1.7.2", "flink app version")
+	assert.Equal(t, 2, len(index.Entries), "number of operator entries is 2")
+	assert.Equal(t, 2, len(index.Entries["kafka"]), "number of kafka operators is 2")
+	assert.Equal(t, "1.7.2", index.Entries["flink"][0].AppVersion, "flink app version")
 }
 
 // TestParsingGoldenIndex and parses the index file catching marshalling issues.
@@ -183,8 +183,8 @@ func TestMapPackageFileToPackageVersion(t *testing.T) {
 
 	pv := ToPackageVersion(&pf, "1234", "http://localhost")
 
-	assert.Equal(t, pv.Name, o.Name)
-	assert.Equal(t, pv.Version, o.Version)
-	assert.Equal(t, pv.URLs[0], "http://localhost/kafka-1.0.0.tgz")
-	assert.Equal(t, pv.Digest, "1234")
+	assert.Equal(t, o.Name, pv.Name)
+	assert.Equal(t, o.Version, pv.Version)
+	assert.Equal(t, "http://localhost/kafka-1.0.0.tgz", pv.URLs[0])
+	assert.Equal(t, "1234", pv.Digest)
 }

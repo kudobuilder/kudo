@@ -4,24 +4,14 @@ import (
 	"fmt"
 	"log"
 
-	"gopkg.in/yaml.v2"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/kustomize/k8sdeps/kunstruct"
-	"sigs.k8s.io/kustomize/k8sdeps/transformer"
-	"sigs.k8s.io/kustomize/pkg/fs"
-	"sigs.k8s.io/kustomize/pkg/loader"
-	apipatch "sigs.k8s.io/kustomize/pkg/patch"
-	"sigs.k8s.io/kustomize/pkg/resmap"
-	"sigs.k8s.io/kustomize/pkg/resource"
-	"sigs.k8s.io/kustomize/pkg/target"
-	ktypes "sigs.k8s.io/kustomize/pkg/types"
 
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
-
-const basePath = "/kustomize"
 
 // Enhancer takes your kubernetes template and kudo related Metadata and applies them to all resources in form of labels
 // and annotations
@@ -30,100 +20,70 @@ type Enhancer interface {
 	Apply(templates map[string]string, metadata Metadata) ([]runtime.Object, error)
 }
 
-// KustomizeEnhancer is implementation of Enhancer that uses kustomize to apply the defined conventions
-type KustomizeEnhancer struct {
+// DefaultEnhancer is implementation of Enhancer that applies the defined conventions by directly editing runtime.Objects (Unstructured).
+type DefaultEnhancer struct {
 	Scheme *runtime.Scheme
 }
 
 // Apply accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
-func (k *KustomizeEnhancer) Apply(templates map[string]string, metadata Metadata) (objsToAdd []runtime.Object, err error) {
-	fsys := fs.MakeFakeFS()
+func (k *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) (objsToAdd []runtime.Object, err error) {
+	objs := make([]runtime.Object, 0, len(templates))
 
-	templateNames := make([]string, 0, len(templates))
-
-	for k, v := range templates {
-		templateNames = append(templateNames, k)
-		err := fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, k), []byte(v))
+	for _, v := range templates {
+		parsed, err := YamlToObject(string(v))
 		if err != nil {
-			return nil, fmt.Errorf("error when writing templates to filesystem before applying kustomize: %w", err)
+			return nil, err
+		}
+		for _, obj := range parsed {
+			unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+			if err != nil {
+				return nil, err
+			}
+			objUnstructured := &unstructured.Unstructured{Object: unstructMap}
+
+			labels := objUnstructured.GetLabels()
+			if labels == nil {
+				labels = make(map[string]string)
+			}
+			annotations := objUnstructured.GetAnnotations()
+			if annotations == nil {
+				annotations = make(map[string]string)
+			}
+
+			labels[kudo.HeritageLabel] = "kudo"
+			labels[kudo.OperatorLabel] = metadata.OperatorName
+			labels[kudo.InstanceLabel] = metadata.InstanceName
+
+			annotations[kudo.PlanAnnotation] = metadata.PlanName
+			annotations[kudo.PhaseAnnotation] = metadata.PhaseName
+			annotations[kudo.StepAnnotation] = metadata.StepName
+			annotations[kudo.OperatorVersionAnnotation] = metadata.OperatorVersion
+			annotations[kudo.PlanUIDAnnotation] = string(metadata.PlanUID)
+
+			objUnstructured.SetNamespace(metadata.InstanceNamespace)
+			objUnstructured.SetLabels(labels)
+			objUnstructured.SetAnnotations(annotations)
+
+			err = setControllerReference(metadata.ResourcesOwner, objUnstructured, k.Scheme)
+			if err != nil {
+				return nil, fmt.Errorf("setting controller reference on parsed object: %v", err)
+			}
+
+			// this is pretty important, if we don't convert it back to the original type everything will be Unstructured
+			// we depend on types later on in the processing e.g. when evaluating health
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(objUnstructured.UnstructuredContent(), obj)
+			if err != nil {
+				return nil, err
+			}
+			objs = append(objs, obj)
 		}
 	}
 
-	kustomization := &ktypes.Kustomization{
-		Namespace: metadata.InstanceNamespace,
-		CommonLabels: map[string]string{
-			kudo.HeritageLabel: "kudo",
-			kudo.OperatorLabel: metadata.OperatorName,
-			kudo.InstanceLabel: metadata.InstanceName,
-		},
-		CommonAnnotations: map[string]string{
-			kudo.PlanAnnotation:            metadata.PlanName,
-			kudo.PhaseAnnotation:           metadata.PhaseName,
-			kudo.StepAnnotation:            metadata.StepName,
-			kudo.OperatorVersionAnnotation: metadata.OperatorVersion,
-			kudo.PlanUIDAnnotation:         string(metadata.PlanUID),
-		},
-		GeneratorOptions: &ktypes.GeneratorOptions{
-			DisableNameSuffixHash: true,
-		},
-		Resources:             templateNames,
-		PatchesStrategicMerge: []apipatch.StrategicMerge{},
-	}
-
-	yamlBytes, err := yaml.Marshal(kustomization)
-	if err != nil {
-		return nil, fmt.Errorf("error marshalling kustomize yaml: %w", err)
-	}
-
-	err = fsys.WriteFile(fmt.Sprintf("%s/kustomization.yaml", basePath), yamlBytes)
-	if err != nil {
-		return nil, fmt.Errorf("error writing kustomization.yaml file: %w", err)
-	}
-
-	ldr, err := loader.NewLoader(basePath, fsys)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if ferr := ldr.Cleanup(); ferr != nil {
-			err = ferr
-		}
-	}()
-
-	rf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()))
-	kt, err := target.NewKustTarget(ldr, rf, transformer.NewFactoryImpl())
-	if err != nil {
-		return nil, fmt.Errorf("error creating kustomize target: %w", err)
-	}
-
-	allResources, err := kt.MakeCustomizedResMap()
-	if err != nil {
-		return nil, fmt.Errorf("error creating customized resource map for kustomize: %w", err)
-	}
-
-	res, err := allResources.EncodeAsYaml()
-	if err != nil {
-		return nil, fmt.Errorf("error encoding kustomized files into yaml: %w", err)
-	}
-
-	objsToAdd, err = YamlToObject(string(res))
-	if err != nil {
-		return nil, fmt.Errorf("error parsing kubernetes objects after applying kustomize: %w", err)
-	}
-
-	for _, o := range objsToAdd {
-		err = setControllerReference(metadata.ResourcesOwner, o, k.Scheme)
-		if err != nil {
-			return nil, fmt.Errorf("setting controller reference on parsed object: %w", err)
-		}
-	}
-
-	return objsToAdd, nil
+	return objs, nil
 }
 
-func setControllerReference(owner v1.Object, obj runtime.Object, scheme *runtime.Scheme) error {
-	object := obj.(v1.Object)
+func setControllerReference(owner v1.Object, object *unstructured.Unstructured, scheme *runtime.Scheme) error {
 	ownerNs := owner.GetNamespace()
 	if ownerNs != "" {
 		objNs := object.GetNamespace()

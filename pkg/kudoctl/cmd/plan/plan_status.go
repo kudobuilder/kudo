@@ -5,6 +5,7 @@ import (
 
 	"github.com/xlab/treeprint"
 
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
@@ -48,6 +49,17 @@ func status(kc *kudo.Client, options *Options, ns string) error {
 		return nil
 	}
 
+	getPhaseStrategy := func(s string) v1beta1.Ordering {
+		for _, plan := range ov.Spec.Plans {
+			for _, phase := range plan.Phases {
+				if phase.Name == s {
+					return phase.Strategy
+				}
+			}
+		}
+		return ""
+	}
+
 	rootDisplay := fmt.Sprintf("%s (Operator-Version: \"%s\" Active-Plan: \"%s\")", instance.Name, instance.Spec.OperatorVersion.Name, lastPlanStatus.Name)
 	rootBranchName := tree.AddBranch(rootDisplay)
 
@@ -56,7 +68,7 @@ func status(kc *kudo.Client, options *Options, ns string) error {
 			planDisplay := fmt.Sprintf("Plan %s (%s strategy) [%s]%s", name, plan.Strategy, lastPlanStatus.Status, printMessageIfAvailable(lastPlanStatus.Message))
 			planBranchName := rootBranchName.AddBranch(planDisplay)
 			for _, phase := range lastPlanStatus.Phases {
-				phaseDisplay := fmt.Sprintf("Phase %s [%s]%s", phase.Name, phase.Status, printMessageIfAvailable(phase.Message))
+				phaseDisplay := fmt.Sprintf("Phase %s (%s strategy) [%s]%s", phase.Name, getPhaseStrategy(phase.Name), phase.Status, printMessageIfAvailable(phase.Message))
 				phaseBranchName := planBranchName.AddBranch(phaseDisplay)
 				for _, steps := range phase.Steps {
 					stepsDisplay := fmt.Sprintf("Step %s [%s]%s", steps.Name, steps.Status, printMessageIfAvailable(steps.Message))
@@ -69,13 +81,9 @@ func status(kc *kudo.Client, options *Options, ns string) error {
 			for _, phase := range plan.Phases {
 				phaseDisplay := fmt.Sprintf("Phase %s (%s strategy) [NOT ACTIVE]", phase.Name, phase.Strategy)
 				phaseBranchName := planBranchName.AddBranch(phaseDisplay)
-				for _, steps := range plan.Phases {
-					stepsDisplay := fmt.Sprintf("Step %s (%s strategy) [NOT ACTIVE]", steps.Name, steps.Strategy)
-					stepBranchName := phaseBranchName.AddBranch(stepsDisplay)
-					for _, step := range steps.Steps {
-						stepDisplay := fmt.Sprintf("%s [NOT ACTIVE]", step.Name)
-						stepBranchName.AddBranch(stepDisplay)
-					}
+				for _, steps := range phase.Steps {
+					stepDisplay := fmt.Sprintf("Step %s [NOT ACTIVE]", steps.Name)
+					phaseBranchName.AddBranch(stepDisplay)
 				}
 			}
 		}

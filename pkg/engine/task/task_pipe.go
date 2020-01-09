@@ -81,8 +81,8 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 		return false, fatalExecutionError(err, pipeTaskError, ctx.Meta)
 	}
 
-	// 5. - Kustomize pod with metadata
-	podObj, err := kustomize(map[string]string{"pipe-pod.yaml": podYaml}, ctx.Meta, ctx.Enhancer)
+	// 5. - Enhance pod with metadata
+	podObj, err := enhance(map[string]string{"pipe-pod.yaml": podYaml}, ctx.Meta, ctx.Enhancer)
 	if err != nil {
 		return false, fatalExecutionError(err, taskEnhancementError, ctx.Meta)
 	}
@@ -104,7 +104,10 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 	// 8. - Copy out the pipe files -
 	log.Printf("PipeTask: %s/%s copying pipe files", ctx.Meta.InstanceNamespace, ctx.Meta.InstanceName)
 	fs := afero.NewMemMapFs()
-	pipePod := podObj[0].(*corev1.Pod)
+	pipePod, ok := podObj[0].(*corev1.Pod)
+	if !ok {
+		return false, errors.New("internal error: pipe pod changed type after enhance and apply")
+	}
 
 	err = copyFiles(fs, pt.PipeFiles, pipePod, ctx)
 	if err != nil {
@@ -118,8 +121,8 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 		return false, err
 	}
 
-	// 10. - Kustomize artifacts -
-	artObj, err := kustomize(artStr, ctx.Meta, ctx.Enhancer)
+	// 10. - Enhance artifacts -
+	artObj, err := enhance(artStr, ctx.Meta, ctx.Enhancer)
 	if err != nil {
 		return false, fatalExecutionError(err, taskEnhancementError, ctx.Meta)
 	}
