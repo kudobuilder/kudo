@@ -13,11 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package apis
+// Package kudo contains the internal model of the KUDO API
 
-import "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-
-func init() {
-	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
-	AddToSchemes = append(AddToSchemes, v1beta1.SchemeBuilder.AddToScheme)
-}
+// +k8s:deepcopy-gen=package
+// +groupName=kudo.dev
+package kudo

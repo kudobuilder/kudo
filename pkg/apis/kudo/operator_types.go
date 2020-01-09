@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package kudo
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,20 +21,20 @@ import (
 
 // OperatorSpec defines the desired state of Operator
 type OperatorSpec struct {
-	Description       string        `json:"description,omitempty"`
-	KudoVersion       string        `json:"kudoVersion,omitempty"`
-	KubernetesVersion string        `json:"kubernetesVersion,omitempty"`
-	Maintainers       []*Maintainer `json:"maintainers,omitempty"`
-	URL               string        `json:"url,omitempty"`
+	Description       string
+	KudoVersion       string
+	KubernetesVersion string
+	Maintainers       []*Maintainer
+	URL               string
 }
 
 // Maintainer describes an Operator maintainer.
 type Maintainer struct {
 	// Name is a user name or organization name.
-	Name string `json:"name,omitempty"`
+	Name string
 
 	// Email is an optional email address to contact the named maintainer.
-	Email string `json:"email,omitempty"`
+	Email string
 }
 
 // OperatorStatus defines the observed state of Operator
@@ -43,24 +43,20 @@ type OperatorStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // Operator is the Schema for the operator API
-// +k8s:openapi-gen=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type Operator struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.TypeMeta
+	metav1.ObjectMeta
 
-	Spec   OperatorSpec   `json:"spec,omitempty"`
-	Status OperatorStatus `json:"status,omitempty"`
+	Spec   OperatorSpec
+	Status OperatorStatus
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // OperatorList contains a list of Operator
 type OperatorList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Operator `json:"items"`
+	metav1.TypeMeta
+	metav1.ListMeta
+	Items []Operator
 }

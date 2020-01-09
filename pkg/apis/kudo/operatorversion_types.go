@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package kudo
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -23,30 +23,28 @@ import (
 // OperatorVersionSpec defines the desired state of OperatorVersion.
 type OperatorVersionSpec struct {
 	// +optional
-	Operator   corev1.ObjectReference `json:"operator,omitempty"`
-	Version    string                 `json:"version,omitempty"`
-	AppVersion string                 `json:"appVersion,omitempty"`
+	Operator   corev1.ObjectReference
+	Version    string
+	AppVersion string
 
-	// Templates is a list of references to YAML templates located in the templates folder and later referenced from tasks.
-	Templates map[string]string `json:"templates,omitempty"`
-	// List of all tasks available in this OperatorVersion.
-	Tasks []Task `json:"tasks,omitempty"`
+	// Yaml captures a templated yaml list of elements that define the application operator instance.
+	Templates map[string]string
+	Tasks     []Task
 
-	Parameters []Parameter `json:"parameters,omitempty"`
+	Parameters []Parameter
 
 	// Plans maps a plan name to a plan.
-	// +nullable
-	Plans map[string]Plan `json:"plans,omitempty"`
+	Plans map[string]Plan
 
 	// ConnectionString defines a templated string that can be used to connect to an instance of the Operator.
 	// +optional
-	ConnectionString string `json:"connectionString,omitempty"`
+	ConnectionString string
 
 	// Dependencies a list of all dependencies of the operator.
-	Dependencies []OperatorDependency `json:"dependencies,omitempty"`
+	Dependencies []OperatorDependency
 
 	// UpgradableFrom lists all OperatorVersions that can upgrade to this OperatorVersion.
-	UpgradableFrom []corev1.ObjectReference `json:"upgradableFrom,omitempty"`
+	UpgradableFrom []OperatorVersion
 }
 
 // Ordering specifies how the subitems in this plan/phase should be rolled out.
@@ -63,68 +61,57 @@ const (
 
 // Plan specifies a series of Phases that need to be completed.
 type Plan struct {
-	// +optional
-	Strategy Ordering `json:"strategy"`
+	Strategy Ordering
 	// Phases maps a phase name to a Phase object.
-	// +optional
-	// +nullable
-	Phases []Phase `json:"phases"`
+	Phases []Phase
 }
 
 // Parameter captures the variability of an OperatorVersion being instantiated in an instance.
 type Parameter struct {
-	// DisplayName can be used by UIs.
-	DisplayName string `json:"displayName,omitempty"`
+	// DisplayName can be used by UI's.
+	DisplayName string
 
-	// Name is the string that should be used in the template file for example,
+	// Name is the string that should be used in the templated file for example,
 	// if `name: COUNT` then using the variable in a spec like:
 	//
 	// spec:
-	//   replicas:  {{ .Params.COUNT }}
-	Name string `json:"name,omitempty"`
+	//   replicas:  {{COUNT}}
+	Name string
 
 	// Description captures a longer description of how the parameter will be used.
-	Description string `json:"description,omitempty"`
+	Description string
 
 	// Required specifies if the parameter is required to be provided by all instances, or whether a default can suffice.
-	Required *bool `json:"required,omitempty"`
+	Required *bool
 
 	// Default is a default value if no parameter is provided by the instance.
-	Default *string `json:"default,omitempty"`
+	Default *string
 
 	// Trigger identifies the plan that gets executed when this parameter changes in the Instance object.
-	// Default is `update` if a plan with that name exists, otherwise it's `deploy`.
-	Trigger string `json:"trigger,omitempty"`
+	// Default is `update` if a plan with that name exists, otherwise it's `deploy`
+	Trigger string
 }
 
 // Phase specifies a list of steps that contain Kubernetes objects.
 type Phase struct {
-	// +optional
-	Name string `json:"name"`
-	// +optional
-	Strategy Ordering `json:"strategy"`
+	Name     string
+	Strategy Ordering
 
 	// Steps maps a step name to a list of templated Kubernetes objects stored as a string.
-	// +optional
-	Steps []Step `json:"steps"`
+	Steps []Step
 }
 
 // Step defines a specific set of operations that occur.
 type Step struct {
-	// +optional
-	Name string `json:"name"`
-	// +optional
-	Tasks []string `json:"tasks"`
+	Name  string
+	Tasks []string
 }
 
 // Task is a global, polymorphic implementation of all publicly available tasks
 type Task struct {
-	// +optional
-	Name string `json:"name"`
-	// +optional
-	Kind string `json:"kind"`
-	// +optional
-	Spec TaskSpec `json:"spec"`
+	Name string
+	Kind string
+	Spec TaskSpec
 }
 
 // TaskSpec embeds all possible task specs. This allows us to avoid writing custom un/marshallers that would only parse
@@ -132,45 +119,34 @@ type Task struct {
 // with the same json names as it would become ambiguous for the default parser. We might revisit this approach in the
 // future should this become an issue.
 type TaskSpec struct {
-	ResourceTaskSpec `json:",inline"`
-	DummyTaskSpec    `json:",inline"`
-	PipeTaskSpec     `json:",inline"`
+	ResourceTaskSpec
+	DummyTaskSpec
+	PipeTaskSpec
 }
 
 // ResourceTaskSpec is referencing a list of resources
 type ResourceTaskSpec struct {
-	// +optional
-	// +nullable
-	Resources []string `json:"resources,omitempty"`
+	Resources []string
 }
 
-// DummyTaskSpec can succeed or fail on demand and is very useful for testing operators
+// DummyTaskSpec can succeed of fail on demand and is very useful for testing operators
 type DummyTaskSpec struct {
-	// +optional
-	WantErr bool `json:"wantErr,omitempty"`
-	// +optional
-	Fatal bool `json:"fatal,omitempty"`
-	// +optional
-	Done bool `json:"done,omitempty"`
+	WantErr bool
+	Fatal   bool
+	Done    bool
 }
 
 // PipeTask specifies a task that generates files and stores them for later usage in subsequent tasks
 type PipeTaskSpec struct {
-	// +optional
-	Pod string `json:"pod,omitempty"`
-	// +optional
-	// +nullable
-	Pipe []PipeSpec `json:"pipe,omitempty"`
+	Pod  string
+	Pipe []PipeSpec
 }
 
 // PipeSpec describes how a file generated by a PipeTask is stored and referenced
 type PipeSpec struct {
-	// +optional
-	File string `json:"file"`
-	// +optional
-	Kind string `json:"kind"`
-	// +optional
-	Key string `json:"key"`
+	File string
+	Kind string
+	Key  string
 }
 
 // OperatorVersionStatus defines the observed state of OperatorVersion.
@@ -179,37 +155,32 @@ type OperatorVersionStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-// +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// OperatorVersion is the Schema for the operatorversions API.
-// +k8s:openapi-gen=true
 type OperatorVersion struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.TypeMeta
+	metav1.ObjectMeta
 
-	Spec   OperatorVersionSpec   `json:"spec,omitempty"`
-	Status OperatorVersionStatus `json:"status,omitempty"`
+	Spec   OperatorVersionSpec
+	Status OperatorVersionStatus
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // OperatorVersionList contains a list of OperatorVersion.
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type OperatorVersionList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []OperatorVersion `json:"items"`
+	metav1.TypeMeta
+	metav1.ListMeta
+	Items []OperatorVersion
 }
 
 // OperatorDependency references a defined operator.
 type OperatorDependency struct {
 	// Name specifies the name of the dependency. Referenced via defaults.config.
-	ReferenceName          string `json:"referenceName"`
-	corev1.ObjectReference `json:",inline"`
+	ReferenceName string
+	corev1.ObjectReference
 
 	// Version captures the requirements for what versions of the above object
 	// are allowed.
 	//
 	// Example: ^3.1.4
-	Version string `json:"version"`
+	Version string
 }

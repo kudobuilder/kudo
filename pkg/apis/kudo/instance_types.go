@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package kudo
 
 import (
 	"fmt"
@@ -23,25 +23,42 @@ import (
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 )
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type Instance struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+
+	Spec   InstanceSpec
+	Status InstanceStatus
+}
+
+// InstanceList contains a list of Instance.
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type InstanceList struct {
+	metav1.TypeMeta
+	metav1.ListMeta
+	Items []Instance
+}
+
 // InstanceSpec defines the desired state of Instance.
 type InstanceSpec struct {
-	// OperatorVersion specifies a reference to a specific OperatorVersion object.
-	OperatorVersion corev1.ObjectReference `json:"operatorVersion,omitempty"`
+	// OperatorVersion specifies a reference to a specific Operator object.
+	OperatorVersion corev1.ObjectReference
 
-	Parameters map[string]string `json:"parameters,omitempty"`
+	Parameters map[string]string
 }
 
 // InstanceStatus defines the observed state of Instance
 type InstanceStatus struct {
 	// slice would be enough here but we cannot use slice because order of sequence in yaml is considered significant while here it's not
-	PlanStatus       map[string]PlanStatus `json:"planStatus,omitempty"`
-	AggregatedStatus AggregatedStatus      `json:"aggregatedStatus,omitempty"`
+	PlanStatus       map[string]PlanStatus
+	AggregatedStatus AggregatedStatus
 }
 
 // AggregatedStatus is overview of an instance status derived from the plan status
 type AggregatedStatus struct {
-	Status         ExecutionStatus `json:"status,omitempty"`
-	ActivePlanName string          `json:"activePlanName,omitempty"`
+	Status         ExecutionStatus
+	ActivePlanName string
 }
 
 // PlanStatus is representing status of a plan
@@ -68,28 +85,27 @@ type AggregatedStatus struct {
 //+-------------+        +----------------+
 //
 type PlanStatus struct {
-	Name    string          `json:"name,omitempty"`
-	Status  ExecutionStatus `json:"status,omitempty"`
-	Message string          `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
-	// +nullable
-	LastFinishedRun metav1.Time           `json:"lastFinishedRun,omitempty"`
-	Phases          []PhaseStatus         `json:"phases,omitempty"`
-	UID             apimachinerytypes.UID `json:"uid,omitempty"`
+	Name            string
+	Status          ExecutionStatus
+	Message         string // more verbose explanation of the status, e.g. a detailed error message
+	LastFinishedRun metav1.Time
+	Phases          []PhaseStatus
+	UID             apimachinerytypes.UID
 }
 
 // PhaseStatus is representing status of a phase
 type PhaseStatus struct {
-	Name    string          `json:"name,omitempty"`
-	Status  ExecutionStatus `json:"status,omitempty"`
-	Message string          `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
-	Steps   []StepStatus    `json:"steps,omitempty"`
+	Name    string
+	Status  ExecutionStatus
+	Message string // more verbose explanation of the status, e.g. a detailed error message
+	Steps   []StepStatus
 }
 
 // StepStatus is representing status of a step
 type StepStatus struct {
-	Name    string          `json:"name,omitempty"`
-	Message string          `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
-	Status  ExecutionStatus `json:"status,omitempty"`
+	Name    string
+	Message string // more verbose explanation of the status, e.g. a detailed error message
+	Status  ExecutionStatus
 }
 
 func (s *StepStatus) Set(status ExecutionStatus) {
@@ -172,30 +188,9 @@ func (s ExecutionStatus) IsRunning() bool {
 	return s == ExecutionInProgress || s == ExecutionPending || s == ErrorStatus
 }
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// Instance is the Schema for the instances API.
-// +k8s:openapi-gen=true
-// +kubebuilder:subresource:status
-type Instance struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   InstanceSpec   `json:"spec,omitempty"`
-	Status InstanceStatus `json:"status,omitempty"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// InstanceList contains a list of Instance.
-type InstanceList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Instance `json:"items"`
-}
-
 // InstanceError indicates error on that can also emit a kubernetes warn event
 // +k8s:deepcopy-gen=false
+// +k8s:conversion-gen=false
 type InstanceError struct {
 	Err       error
 	EventName *string // nil if no warn event should be created
