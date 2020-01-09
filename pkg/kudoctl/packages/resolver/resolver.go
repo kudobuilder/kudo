@@ -9,6 +9,12 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
+// Resolver will try to resolve a given package name to either local tarball, folder, remote url or
+// an operator in the remote repository.
+type Resolver interface {
+	Resolve(name string, version string) (*packages.Package, error)
+}
+
 // PackageResolver is the source of resolver of operator packages.
 type PackageResolver struct {
 	local *LocalResolver

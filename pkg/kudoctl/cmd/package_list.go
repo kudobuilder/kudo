@@ -68,7 +68,7 @@ func packageDiscovery(fs afero.Fs, settings *env.Settings, repoName, pathOrName,
 	}
 	clog.V(3).Printf("repository used %s", repository)
 
-	clog.V(3).Printf("getting package pkg files for %v with version: %v-%v", pathOrName, appVersion, operatorVersion)
+	clog.V(3).Printf("getting package pkg files for %v with version: %v_%v", pathOrName, appVersion, operatorVersion)
 	resolver := pkgresolver.New(repository)
 	pf, err := resolver.Resolve(pathOrName, appVersion, operatorVersion)
 	if err != nil {

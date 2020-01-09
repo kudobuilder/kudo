@@ -36,7 +36,7 @@ func (c *Client) Resolve(name string, appVersion string, operatorVersion string)
 
 // GetPackageBytes provides an io.Reader for a provided package name and optional version
 func (c *Client) GetPackageBytes(name string, appVersion string, operatorVersion string) (*bytes.Buffer, error) {
-	clog.V(4).Printf("getting package reader for %v, %v-%v", name, appVersion, operatorVersion)
+	clog.V(4).Printf("getting package reader for %v, %v_%v", name, appVersion, operatorVersion)
 	clog.V(5).Printf("repository using: %v", c.Config)
 	// Construct the package name and download the index file from the remote repo
 	indexFile, err := c.DownloadIndexFile()

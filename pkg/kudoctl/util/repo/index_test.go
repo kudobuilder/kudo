@@ -32,26 +32,26 @@ entries:
     appVersion: 1.7.2
     name: flink
     urls:
-    - https://kudo-repository.storage.googleapis.com/flink-1.7.2-0.1.0.tgz
+    - https://kudo-repository.storage.googleapis.com/flink-1.7.2_0.1.0.tgz
     operatorVersion: 0.1.0
   kafka:
   - apiVersion: v1beta1
     appVersion: 2.2.1
     name: kafka
     urls:
-    - https://kudo-repository.storage.googleapis.com/kafka-2.2.1-0.1.0.tgz
+    - https://kudo-repository.storage.googleapis.com/kafka-2.2.1_0.1.0.tgz
     operatorVersion: 0.1.0
   - apiVersion: v1beta1
     appVersion: 2.2.1
     name: kafka
     urls:
-    - https://kudo-repository.storage.googleapis.com/kafka-2.2.1-0.2.0.tgz
+    - https://kudo-repository.storage.googleapis.com/kafka-2.2.1_0.2.0.tgz
     operatorVersion: 0.2.0
   - apiVersion: v1beta1
     appVersion: 2.3.0
     name: kafka
     urls:
-    - https://kudo-repository.storage.googleapis.com/kafka-2.3.0-0.2.0.tgz
+    - https://kudo-repository.storage.googleapis.com/kafka-2.3.0_0.2.0.tgz
     operatorVersion: 0.2.0
 `
 	b := []byte(indexString)
@@ -174,7 +174,7 @@ func TestAddPackageVersionErrorConditions(t *testing.T) {
 		pv   *PackageVersion
 		err  string
 	}{
-		{"duplicate version", dup, "operator 'flink' version: 0.7.0-0.3.0 already exists"},
+		{"duplicate version", dup, "operator 'flink' version: 0.7.0_0.3.0 already exists"},
 		{"no version", &missing, "operator 'flink' is missing operator version"},
 		{"good additional version", &good, ""},
 		{"good additional package", &g2, ""},
@@ -209,6 +209,6 @@ func TestMapPackageFileToPackageVersion(t *testing.T) {
 	assert.Equal(t, o.Name, pv.Name)
 	assert.Equal(t, o.OperatorVersion, pv.OperatorVersion)
 	assert.Equal(t, o.AppVersion, pv.AppVersion)
-	assert.Equal(t, "http://localhost/kafka-2.2.2-1.0.0.tgz", pv.URLs[0])
+	assert.Equal(t, "http://localhost/kafka-2.2.2_1.0.0.tgz", pv.URLs[0])
 	assert.Equal(t, "1234", pv.Digest)
 }

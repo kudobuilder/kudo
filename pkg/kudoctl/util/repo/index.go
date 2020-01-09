@@ -185,7 +185,7 @@ func ToPackageVersion(pf *packages.Files, digest string, url string) *PackageVer
 		url = url + "/"
 	}
 	if o.AppVersion == "" {
-		url = fmt.Sprintf("%s%s_%v.tgz", url, o.Name, o.OperatorVersion)
+		url = fmt.Sprintf("%s%s-%v.tgz", url, o.Name, o.OperatorVersion)
 	} else {
 		url = fmt.Sprintf("%s%s-%v_%v.tgz", url, o.Name, o.AppVersion, o.OperatorVersion)
 	}
