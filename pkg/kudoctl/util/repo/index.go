@@ -136,7 +136,7 @@ func (i *IndexFile) AddPackageVersion(pv *PackageVersion) error {
 	// loop thru all... don't allow dups
 	for _, ver := range vs {
 		if ver.AppVersion == appVersion && ver.OperatorVersion == operatorVersion {
-			return fmt.Errorf("operator '%v' version: %v-%v already exists", name, appVersion, operatorVersion)
+			return fmt.Errorf("operator '%v' version: %v_%v already exists", name, appVersion, operatorVersion)
 		}
 	}
 
@@ -185,9 +185,9 @@ func ToPackageVersion(pf *packages.Files, digest string, url string) *PackageVer
 		url = url + "/"
 	}
 	if o.AppVersion == "" {
-		url = fmt.Sprintf("%s%s-%v.tgz", url, o.Name, o.OperatorVersion)
+		url = fmt.Sprintf("%s%s_%v.tgz", url, o.Name, o.OperatorVersion)
 	} else {
-		url = fmt.Sprintf("%s%s-%v-%v.tgz", url, o.Name, o.AppVersion, o.OperatorVersion)
+		url = fmt.Sprintf("%s%s-%v_%v.tgz", url, o.Name, o.AppVersion, o.OperatorVersion)
 	}
 	pv := PackageVersion{
 		Metadata: &Metadata{

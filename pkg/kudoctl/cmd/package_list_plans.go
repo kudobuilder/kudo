@@ -51,8 +51,8 @@ func newPackageListPlansCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVar(&lc.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
-	f.StringVar(&lc.AppVersion, "app-version", "", "A specific app version on the official GitHub repo. (default to the most recent)")
-	f.StringVar(&lc.OperatorVersion, "operator-version", "", "A specific operator version on the official GitHub repo. (default to the most recent)")
+	f.StringVar(&lc.AppVersion, "app-version", "", "A specific app version in the official GitHub repo. (default to the most recent)")
+	f.StringVar(&lc.OperatorVersion, "operator-version", "", "A specific operator version in the official GitHub repo. (default to the most recent)")
 	f.BoolVarP(&lc.WithTasksResources, "with-tasks", "t", false, "Display task resources with plans")
 
 	return cmd

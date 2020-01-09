@@ -116,5 +116,5 @@ func packageVersionedName(pkg *packages.Files) string {
 		return fmt.Sprintf("%v-%v", pkg.Operator.Name, pkg.Operator.OperatorVersion)
 	}
 
-	return fmt.Sprintf("%v-%v-%v", pkg.Operator.Name, pkg.Operator.AppVersion, pkg.Operator.OperatorVersion)
+	return fmt.Sprintf("%v-%v_%v", pkg.Operator.Name, pkg.Operator.AppVersion, pkg.Operator.OperatorVersion)
 }
