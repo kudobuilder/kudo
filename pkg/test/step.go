@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
@@ -29,8 +29,8 @@ type Step struct {
 
 	Dir string
 
-	Step   *kudo.TestStep
-	Assert *kudo.TestAssert
+	Step   *harness.TestStep
+	Assert *harness.TestAssert
 
 	Asserts []runtime.Object
 	Apply   []runtime.Object
@@ -441,7 +441,7 @@ func (s *Step) LoadYAML(file string) error {
 
 	for _, obj := range s.Asserts {
 		if obj.GetObjectKind().GroupVersionKind().Kind == "TestAssert" {
-			if testAssert, ok := obj.(*kudo.TestAssert); ok {
+			if testAssert, ok := obj.(*harness.TestAssert); ok {
 				s.Assert = testAssert
 			} else {
 				return fmt.Errorf("failed to load TestAssert object from %s: it contains an object of type %T", file, obj)
@@ -455,7 +455,7 @@ func (s *Step) LoadYAML(file string) error {
 
 	for _, obj := range s.Apply {
 		if obj.GetObjectKind().GroupVersionKind().Kind == "TestStep" {
-			if testStep, ok := obj.(*kudo.TestStep); ok {
+			if testStep, ok := obj.(*harness.TestStep); ok {
 				s.Step = testStep
 			} else {
 				return fmt.Errorf("failed to load TestStep object from %s: it contains an object of type %T", file, obj)

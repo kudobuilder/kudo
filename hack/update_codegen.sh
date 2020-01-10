@@ -19,6 +19,13 @@ else
 fi
 
 "${CODE_GEN_DIR}"/generate-groups.sh \
+  deepcopy \
+  github.com/kudobuilder/kudo/pkg/client \
+  github.com/kudobuilder/kudo/pkg/apis \
+  "testharness:v1beta1" \
+  --go-header-file hack/boilerplate.go.txt # must be last for some reason
+
+"${CODE_GEN_DIR}"/generate-groups.sh \
   all \
   github.com/kudobuilder/kudo/pkg/client \
   github.com/kudobuilder/kudo/pkg/apis \
