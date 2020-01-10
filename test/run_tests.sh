@@ -10,10 +10,10 @@ TARGET=$1
 
 INTEGRATION_OUTPUT_JUNIT=${INTEGRATION_OUTPUT_JUNIT:-false}
 
-CONTAINER_POSTFIX=$(< /dev/urandom base64 | tr -dc '[:alpha:]' | head -c 8 || true)
-CONTAINER_NAME=${CONTAINER_NAME:-"kudo-e2e-test-$CONTAINER_POSTFIX"}
+CONTAINER_SUFFIX=$(< /dev/urandom base64 | tr -dc '[:alpha:]' | head -c 8 || true)
+CONTAINER_NAME=${CONTAINER_NAME:-"kudo-e2e-test-$CONTAINER_SUFFIX"}
 
-# Set test harness artifacts dir to '/tmp/kudo-e2e-test', as it's easier to copy from in a container.
+# Set test harness artifacts dir to '/tmp/kudo-e2e-test', as it's easier to copy out from a container.
 echo 'artifactsDir: /tmp/kudo-e2e-test' >> kudo-e2e-test.yaml
 
 # Pull the builder image with retries if it doesn't already exist.
