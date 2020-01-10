@@ -20,6 +20,15 @@ echo 'artifactsDir: /tmp/kudo-e2e-test' >> kudo-e2e-test.yaml
 retries=0
 builder_image=$(awk '/FROM/ {print $2}' test/Dockerfile)
 
+function cleanup() {
+    # Archive test harness artifacts
+    if [ "$TARGET" == "e2e-test" ]; then
+        docker cp "$CONTAINER_NAME:/tmp/kudo-e2e-test" - | bzip2 > kind-logs.tar.bz2
+    fi
+
+    docker rm "$CONTAINER_NAME"
+}
+
 if ! docker inspect "$builder_image"; then
     until docker pull "$builder_image"; do
         if [ $retries -eq 3 ]; then
@@ -33,23 +42,17 @@ if ! docker inspect "$builder_image"; then
 fi
 
 if docker build -f test/Dockerfile -t kudo-test .; then
-    docker run -e INTEGRATION_OUTPUT_JUNIT --net=host -it -m 4g \
+    if docker run -e INTEGRATION_OUTPUT_JUNIT --net=host -it -m 4g \
         --name "$CONTAINER_NAME" \
         -v /var/run/docker.sock:/var/run/docker.sock \
         -v "$(pwd)"/reports:/go/src/github.com/kudobuilder/kudo/reports \
         kudo-test make "$TARGET"
-    RESULT=$?
-
-    # Archive test harness artifacts
-    if [ "$TARGET" == "e2e-test" ]; then
-        docker cp "$CONTAINER_NAME:/tmp/kudo-e2e-test" - | bzip2 > kind-logs.tar.bz2
-    fi
-
-    docker rm "$CONTAINER_NAME"
-
-    if [ $RESULT -eq 0 ]; then
+    then
+        cleanup
         echo "Tests finished successfully! ヽ(•‿•)ノ"
     else
+        RESULT=$?
+        cleanup
         exit $RESULT
     fi
 else
