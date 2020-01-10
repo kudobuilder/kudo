@@ -1,6 +1,6 @@
 apiVersion: kudo.dev/v1beta1
 name: "cli-install-operator"
-version: "0.1.0"
+operatorVersion: "0.1.0"
 kudoVersion: 0.3.0
 kubernetesVersion: 1.5.1
 maintainers:

@@ -20,7 +20,8 @@ type packageListPlansCmd struct {
 	out                io.Writer
 	pathOrName         string
 	RepoName           string
-	PackageVersion     string
+	AppVersion         string
+	OperatorVersion    string
 	WithTasksResources bool
 }
 
@@ -50,14 +51,15 @@ func newPackageListPlansCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVar(&lc.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
-	f.StringVar(&lc.PackageVersion, "version", "", "A specific package version on the official GitHub repo. (default to the most recent)")
+	f.StringVar(&lc.AppVersion, "app-version", "", "A specific app version in the official GitHub repo. (default to the most recent)")
+	f.StringVar(&lc.OperatorVersion, "operator-version", "", "A specific operator version in the official GitHub repo. (default to the most recent)")
 	f.BoolVarP(&lc.WithTasksResources, "with-tasks", "t", false, "Display task resources with plans")
 
 	return cmd
 }
 
 func (c *packageListPlansCmd) run(settings *env.Settings) error {
-	pf, err := packageDiscovery(c.fs, settings, c.RepoName, c.pathOrName, c.PackageVersion)
+	pf, err := packageDiscovery(c.fs, settings, c.RepoName, c.pathOrName, c.AppVersion, c.OperatorVersion)
 	if err != nil {
 		return err
 	}

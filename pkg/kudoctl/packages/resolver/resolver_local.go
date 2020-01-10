@@ -20,7 +20,7 @@ type LocalResolver struct {
 // Order of the discovery is:
 // 1. tarball
 // 2. dir based
-func (f *LocalResolver) Resolve(name string, version string) (*packages.Package, error) {
+func (f *LocalResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
 	//	make sure file exists
 	_, err := f.fs.Stat(name)
 	if err != nil {

@@ -35,9 +35,9 @@ func TestOperatorGenSafe(t *testing.T) {
 
 var (
 	op1 = packages.OperatorFile{
-		Name:       "foo",
-		APIVersion: reader.APIVersion,
-		Version:    "0.1.0",
+		Name:            "foo",
+		APIVersion:      reader.APIVersion,
+		OperatorVersion: "0.1.0",
 	}
 	opFilename    = path.Join("operator", "operator.yaml")
 	paramFilename = path.Join("operator", "params.yaml")

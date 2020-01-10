@@ -30,9 +30,10 @@ package in the repository, a path to package in *.tgz format, or a path to an un
 
 type options struct {
 	install.RepositoryOptions
-	InstanceName   string
-	PackageVersion string
-	Parameters     map[string]string
+	InstanceName    string
+	AppVersion      string
+	OperatorVersion string
+	Parameters      map[string]string
 }
 
 // defaultOptions initializes the install command options to its defaults
@@ -61,7 +62,8 @@ func newUpgradeCmd(fs afero.Fs) *cobra.Command {
 	upgradeCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name.")
 	upgradeCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")
 	upgradeCmd.Flags().StringVar(&options.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
-	upgradeCmd.Flags().StringVar(&options.PackageVersion, "version", "", "A specific package version on the official repository. When installing from other sources than official repository, version from inside operator.yaml will be used. (default to the most recent)")
+	upgradeCmd.Flags().StringVar(&options.AppVersion, "app-version", "", "A specific app version in the official repository. When installing from other sources than an official repository, a version from inside operator.yaml will be used. (default to the most recent)")
+	upgradeCmd.Flags().StringVar(&options.OperatorVersion, "operator-version", "", "A specific operator version in the official repository. When installing from other sources than an official repository, a version from inside operator.yaml will be used. (default to the most recent)")
 
 	return upgradeCmd
 }
@@ -95,7 +97,7 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 		return fmt.Errorf("could not build operator repository: %w", err)
 	}
 	resolver := pkgresolver.New(repository)
-	pkg, err := resolver.Resolve(packageToUpgrade, options.PackageVersion)
+	pkg, err := resolver.Resolve(packageToUpgrade, options.AppVersion, options.OperatorVersion)
 	if err != nil {
 		return fmt.Errorf("failed to resolve package CRDs for operator: %s: %w", packageToUpgrade, err)
 	}

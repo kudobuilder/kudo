@@ -64,7 +64,7 @@ type OperatorFile struct {
 	APIVersion        string                  `json:"apiVersion,omitempty"`
 	Name              string                  `json:"name"`
 	Description       string                  `json:"description,omitempty"`
-	Version           string                  `json:"version"`
+	OperatorVersion   string                  `json:"operatorVersion"`
 	AppVersion        string                  `json:"appVersion,omitempty"`
 	KUDOVersion       string                  `json:"kudoVersion,omitempty"`
 	KubernetesVersion string                  `json:"kubernetesVersion,omitempty"`

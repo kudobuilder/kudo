@@ -49,12 +49,19 @@ func ForOperator(fs afero.Fs, pathDefault string, overwrite bool, operatorDefaul
 		_, err := semver.NewVersion(input)
 		return err
 	}
-	opVersion, err := WithValidator("Operator Version", operatorDefault.Version, versionValid)
+	opVersion, err := WithValidator("Operator Version", operatorDefault.OperatorVersion, versionValid)
 	if err != nil {
 		return nil, "", err
 	}
 
-	appVersion, err := WithDefault("Application Version", "")
+	optionalVersionValid := func(input string) error {
+		if len(input) < 1 {
+			return nil
+		}
+		_, err := semver.NewVersion(input)
+		return err
+	}
+	appVersion, err := WithValidator("Application Version", "", optionalVersionValid)
 	if err != nil {
 		return nil, "", err
 	}
@@ -70,12 +77,12 @@ func ForOperator(fs afero.Fs, pathDefault string, overwrite bool, operatorDefaul
 	}
 
 	op := packages.OperatorFile{
-		Name:        name,
-		APIVersion:  operatorDefault.APIVersion,
-		Version:     opVersion,
-		AppVersion:  appVersion,
-		KUDOVersion: kudoVersion,
-		URL:         url,
+		Name:            name,
+		APIVersion:      operatorDefault.APIVersion,
+		OperatorVersion: opVersion,
+		AppVersion:      appVersion,
+		KUDOVersion:     kudoVersion,
+		URL:             url,
 	}
 	return &op, path, nil
 }

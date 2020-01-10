@@ -61,16 +61,16 @@ func newPackageParamsCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 }
 
 // packageDiscovery is used by all list cmds to "discover" the packages
-func packageDiscovery(fs afero.Fs, settings *env.Settings, repoName, pathOrName, packageVersion string) (*packages.Package, error) {
+func packageDiscovery(fs afero.Fs, settings *env.Settings, repoName, pathOrName, appVersion, operatorVersion string) (*packages.Package, error) {
 	repository, err := repo.ClientFromSettings(fs, settings.Home, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("could not build operator repository: %w", err)
 	}
 	clog.V(3).Printf("repository used %s", repository)
 
-	clog.V(3).Printf("getting package pkg files for %v with version: %v", pathOrName, packageVersion)
+	clog.V(3).Printf("getting package pkg files for %v with version: %v_%v", pathOrName, appVersion, operatorVersion)
 	resolver := pkgresolver.New(repository)
-	pf, err := resolver.Resolve(pathOrName, packageVersion)
+	pf, err := resolver.Resolve(pathOrName, appVersion, operatorVersion)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve package files for operator: %s: %w", pathOrName, err)
 	}

@@ -16,14 +16,15 @@ import (
 )
 
 type packageListParamsCmd struct {
-	fs             afero.Fs
-	out            io.Writer
-	pathOrName     string
-	descriptions   bool
-	namesOnly      bool
-	requiredOnly   bool
-	RepoName       string
-	PackageVersion string
+	fs              afero.Fs
+	out             io.Writer
+	pathOrName      string
+	descriptions    bool
+	namesOnly       bool
+	requiredOnly    bool
+	RepoName        string
+	AppVersion      string
+	OperatorVersion string
 }
 
 const (
@@ -66,7 +67,8 @@ func newPackageListParamsCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.BoolVarP(&list.requiredOnly, "required", "r", false, "Show only parameters which have no defaults but are required.")
 	f.BoolVar(&list.namesOnly, "names", false, "Display only names.")
 	f.StringVar(&list.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
-	f.StringVar(&list.PackageVersion, "version", "", "A specific package version on the official GitHub repo. (default to the most recent)")
+	f.StringVar(&list.AppVersion, "app-version", "", "A specific app version in the official GitHub repo. (default to the most recent)")
+	f.StringVar(&list.OperatorVersion, "operator-version", "", "A specific operator version in the official GitHub repo. (default to the most recent)")
 
 	return cmd
 }
@@ -79,7 +81,7 @@ func (c *packageListParamsCmd) run(settings *env.Settings) error {
 	if !onlyOneSet(c.requiredOnly, c.namesOnly, c.descriptions) {
 		return fmt.Errorf("only one of the flags 'required', 'names', 'descriptions' can be set")
 	}
-	pf, err := packageDiscovery(c.fs, settings, c.RepoName, c.pathOrName, c.PackageVersion)
+	pf, err := packageDiscovery(c.fs, settings, c.RepoName, c.pathOrName, c.AppVersion, c.OperatorVersion)
 	if err != nil {
 		return err
 	}

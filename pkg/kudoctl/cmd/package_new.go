@@ -62,10 +62,10 @@ func (pkg *packageNewCmd) run() error {
 	// defaults
 	pathDefault := "operator"
 	opDefault := packages.OperatorFile{
-		Name:        pkg.name,
-		APIVersion:  reader.APIVersion,
-		Version:     "0.1.0",
-		KUDOVersion: version.Get().GitVersion,
+		Name:            pkg.name,
+		APIVersion:      reader.APIVersion,
+		OperatorVersion: "0.1.0",
+		KUDOVersion:     version.Get().GitVersion,
 	}
 
 	if !pkg.interactive {
