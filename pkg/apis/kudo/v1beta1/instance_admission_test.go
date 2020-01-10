@@ -183,7 +183,7 @@ func TestValidateUpdate(t *testing.T) {
 				return i
 			}(),
 			ov:   ov,
-			want: nil,
+			want: &deploy,
 		},
 		{
 			name: "updating parameter on a scheduled instance IS NOT allowed when a different plan is triggered",
@@ -219,26 +219,41 @@ func TestValidateUpdate(t *testing.T) {
 			want: nil,
 		},
 		{
-			name: "parameter update together with an upgrade IS allowed",
+			name: "parameter update together with an upgrade IS normally NOT allowed",
 			old:  idle,
 			new: func() *Instance {
 				i := upgraded.DeepCopy()
-				i.Spec.Parameters = map[string]string{"foo": "newFoo", "bar": "newBar"}
+				i.Spec.Parameters = map[string]string{"foo": "newFoo"}
 				return i
 			}(),
-			ov:   ov,
+			ov:      ov,
+			wantErr: true,
+		},
+		{
+			name: "parameter update together with an upgrade IS allowed if update removes a parameter that doesn't exist in the new OV",
+			old:  idle,
+			new: func() *Instance {
+				i := upgraded.DeepCopy()
+				delete(i.Spec.Parameters, "foo") // removing from instance parameters
+				return i
+			}(),
+			ov: func() *OperatorVersion {
+				o := ov.DeepCopy()
+				o.Spec.Parameters = o.Spec.Parameters[1:len(o.Spec.Parameters)] // "foo" is the first parameter in the array
+				return o
+			}(),
 			want: &update,
 		},
 		{
-			name: "parameter update together with a directly triggered plan IS allowed if the same plan is triggered",
+			name: "parameter update together with a directly triggered plan IS NOT allowed",
 			old:  idle,
 			new: func() *Instance {
 				i := scheduled.DeepCopy()
 				i.Spec.Parameters = map[string]string{"foo": "newFoo"}
 				return i
 			}(),
-			ov:   ov,
-			want: &deploy,
+			ov:      ov,
+			wantErr: true,
 		},
 		{
 			name: "parameter update together with a directly triggered plan IS NOT allowed if different plans are triggered",
@@ -269,10 +284,10 @@ func stringPtrToString(p *string) string {
 	if p != nil {
 		return *p
 	}
-	return "(nil)"
+	return "<nil>"
 }
 
-func Test_parameterDiffPlan(t *testing.T) {
+func Test_triggeredPlan(t *testing.T) {
 	ov := &OperatorVersion{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
 		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.dev/v1beta1"},
@@ -287,55 +302,59 @@ func Test_parameterDiffPlan(t *testing.T) {
 		},
 	}
 
+	update := "update"
+	backup := "backup"
+	deploy := "deploy"
+
 	tests := []struct {
 		name    string
 		params  []Parameter
 		ov      *OperatorVersion
-		want    string
+		want    *string
 		wantErr bool
 	}{
 		{
 			name:    "no change doesn't trigger anything",
 			params:  []Parameter{},
 			ov:      ov,
-			want:    "",
+			want:    nil,
 			wantErr: false,
 		},
 		{
 			name:    "param without an explicit trigger, triggers update plan",
 			params:  []Parameter{{Name: "foo"}},
 			ov:      ov,
-			want:    "update",
+			want:    &update,
 			wantErr: false,
 		},
 		{
 			name:    "param with an explicit trigger",
 			params:  []Parameter{{Name: "foo", Trigger: "backup"}},
 			ov:      ov,
-			want:    "backup",
+			want:    &backup,
 			wantErr: false,
 		},
 		{
 			name:    "two params with the same triggers",
 			params:  []Parameter{{Name: "foo", Trigger: "deploy"}, {Name: "bar", Trigger: "deploy"}},
 			ov:      ov,
-			want:    "deploy",
+			want:    &deploy,
 			wantErr: false,
 		},
 		{
 			name:    "two params with conflicting triggers lead to an error",
 			params:  []Parameter{{Name: "foo", Trigger: "deploy"}, {Name: "bar", Trigger: "update"}},
 			ov:      ov,
-			want:    "",
+			want:    nil,
 			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parameterDiffPlan(tt.params, tt.ov)
+			got, err := triggeredPlan(tt.params, tt.ov)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("parameterDiffPlan() error = %v, wantErr %v, got = %s", err, tt.wantErr, got)
+				t.Errorf("triggeredPlan() error = %v, wantErr %v, got = %s", err, tt.wantErr, stringPtrToString(got))
 				return
 			}
 			assert.Equal(t, tt.want, got)
