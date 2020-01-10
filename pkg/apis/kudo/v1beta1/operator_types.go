@@ -48,6 +48,7 @@ type OperatorStatus struct {
 
 // Operator is the Schema for the operator API
 // +k8s:openapi-gen=true
+// +kubebuilder:storageversion
 type Operator struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -56,9 +57,9 @@ type Operator struct {
 	Status OperatorStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // OperatorList contains a list of Operator
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:storageversion
 type OperatorList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

@@ -21,12 +21,11 @@ package v1beta1
 import (
 	unsafe "unsafe"
 
+	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo"
 	v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	types "k8s.io/apimachinery/pkg/types"
-
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo"
 )
 
 func init() {

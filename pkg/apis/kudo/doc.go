@@ -17,4 +17,5 @@ limitations under the License.
 
 // +k8s:deepcopy-gen=package
 // +groupName=kudo.dev
+// +kubebuilder:skip
 package kudo
