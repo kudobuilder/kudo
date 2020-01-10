@@ -12,8 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/onsi/gomega"
-
 	"github.com/kudobuilder/kudo/pkg/apis"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
@@ -343,12 +341,10 @@ func TestSpecParameterDifference(t *testing.T) {
 		{"empty new map", map[string]string{}, map[string]string{"one": "1", "two": "2"}},
 	}
 
-	g := gomega.NewGomegaWithT(t)
-
 	var old = map[string]string{"one": "1", "two": "2"}
 
 	for _, test := range testParams {
 		diff := parameterDiff(old, test.new)
-		g.Expect(diff).Should(gomega.Equal(test.diff), test.name)
+		assert.Equal(t, test.diff, diff)
 	}
 }
