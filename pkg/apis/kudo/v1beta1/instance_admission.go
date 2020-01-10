@@ -81,7 +81,7 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 |                  | x               |         | x            |            | No    | Forbid simultaneous parameter update and directly triggered plan                                                    |
 |                  |                 | x       | x            |            | No    | Forbid simultaneous upgrades and directly triggered plans                                                           |
 |                  | x               | x       |              |            | No*   | Forbid simultaneous upgrades and parameter updates                                                                  |
-
+ --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  *Note: simultaneous upgrade and parameter update is NOT allowed. However, there is a exception where new OV removes an existing
  parameter. Removing this parameter in the instance update would not count as parameter update (since there is no plan to trigger).
 
@@ -182,7 +182,7 @@ func (ia *InstanceAdmission) getOperatorVersion(instance *Instance) (ov *Operato
 	return ov, nil
 }
 
-// triggeredPlan determines what plan to run based on params that changed and the related trigger plans.
+// triggeredPlan determines what plan to run based on parameters that changed and the corresponding parameter trigger.
 func triggeredPlan(params []Parameter, ov *OperatorVersion) (*string, error) {
 	// If no parameters were changed, we return an empty string so no plan would be triggered
 	if len(params) == 0 {
