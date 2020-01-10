@@ -59,7 +59,7 @@ func (c Configurations) String() string {
 // Default initialized repository.
 var Default = &Configuration{
 	Name: defaultRepoName,
-	URL:  "https://kudo-repository.storage.googleapis.com",
+	URL:  "https://kudo-repository.storage.googleapis.com/0.10.0",
 }
 
 // NewRepositories creates a new repo with only defaults populated
