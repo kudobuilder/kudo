@@ -20,7 +20,6 @@ then
 	mkdir operators/bin/
 	cp ./bin/kubectl-kudo operators/bin/
 	cd operators && go run ../cmd/kubectl-kudo test --artifacts-dir ../kind-logs 2>&1 |tee /dev/fd/2 |go-junit-report -set-exit-code > ../reports/kudo_operators_test_report.xml
-	find ../kind-logs -ls
 else
     echo "Running E2E tests without junit output"
 
