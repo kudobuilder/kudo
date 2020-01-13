@@ -51,12 +51,18 @@ if docker build -f test/Dockerfile -t kudo-test .; then
     then
         echo outside container:
         find kind-logs -ls
+        chmod a+r -R kind-logs
+        echo after chmod
+        find kind-logs -ls
         tar -zcvf kind-logs-exposed.tgz kind-logs
         cleanup
         echo "Tests finished successfully! ヽ(•‿•)ノ"
     else
         RESULT=$?
         echo outside container:
+        find kind-logs -ls
+        chmod a+r -R kind-logs
+        echo after chmod
         find kind-logs -ls
         tar -zcvf kind-logs-exposed.tgz kind-logs
         cleanup
