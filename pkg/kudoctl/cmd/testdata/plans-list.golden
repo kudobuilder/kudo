@@ -1,0 +1,11 @@
+plans
+├── deploy (serial)
+│   └── [phase]  zookeeper (parallel)
+│       └── [step]  everything
+│           ├── infra
+│           └── app
+└── validation (serial)
+    └── [phase]  connection (parallel)
+        └── [step]  connection
+            └── validation
+

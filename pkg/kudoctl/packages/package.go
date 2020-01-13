@@ -54,7 +54,7 @@ func (p *Files) Resources() (*Resources, error) {
 			APIVersion: APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.Version),
+			Name: fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.OperatorVersion),
 		},
 		Spec: v1beta1.OperatorVersionSpec{
 			Operator: v1.ObjectReference{
@@ -62,7 +62,7 @@ func (p *Files) Resources() (*Resources, error) {
 				Kind: "Operator",
 			},
 			AppVersion:     p.Operator.AppVersion,
-			Version:        p.Operator.Version,
+			Version:        p.Operator.OperatorVersion,
 			Templates:      p.Templates,
 			Tasks:          p.Operator.Tasks,
 			Parameters:     p.Params.Parameters,
@@ -83,7 +83,7 @@ func (p *Files) Resources() (*Resources, error) {
 		},
 		Spec: v1beta1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
-				Name: fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.Version),
+				Name: fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.OperatorVersion),
 			},
 		},
 		Status: v1beta1.InstanceStatus{},

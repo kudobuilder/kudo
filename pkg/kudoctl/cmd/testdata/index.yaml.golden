@@ -2,7 +2,7 @@ apiVersion: v1
 entries:
   zookeeper:
   - appVersion: 3.4.10
-    digest: fa9ba293e60d0770e686eab2618dadce896bdb556e1afd4554705487863f2089
+    digest: 050c5e67279c41e40e054d0e93d1361187ba8c9a289b5a00eb1c68cef4f0b18e
     maintainers:
     - email: avarkockova@mesosphere.com
       name: Alena Varkockova
@@ -11,7 +11,7 @@ entries:
     - email: kensipe@gmail.com
       name: Ken Sipe
     name: zookeeper
+    operatorVersion: 0.1.0
     urls:
-    - http://localhost/zookeeper-0.1.0.tgz
-    version: 0.1.0
+    - http://localhost/zookeeper-3.4.10_0.1.0.tgz
 generated: "2019-10-25T00:00:00Z"

@@ -35,9 +35,9 @@ func TestOperatorGenSafe(t *testing.T) {
 
 var (
 	op1 = packages.OperatorFile{
-		Name:       "foo",
-		APIVersion: reader.APIVersion,
-		Version:    "0.1.0",
+		Name:            "foo",
+		APIVersion:      reader.APIVersion,
+		OperatorVersion: "0.1.0",
 	}
 	opFilename    = path.Join("operator", "operator.yaml")
 	paramFilename = path.Join("operator", "params.yaml")
@@ -47,7 +47,7 @@ func TestOperator_Write(t *testing.T) {
 
 	fs := afero.NewMemMapFs()
 
-	err := Operator(fs, "operator", op1, false)
+	err := Operator(fs, "operator", &op1, false)
 	// no error on create
 	assert.Nil(t, err)
 
@@ -59,11 +59,11 @@ func TestOperator_Write(t *testing.T) {
 	assert.True(t, exists)
 
 	// test fail on existing
-	err = Operator(fs, "operator", op1, false)
+	err = Operator(fs, "operator", &op1, false)
 	assert.Errorf(t, err, "folder 'operator' already exists")
 
 	// test overwriting with no error
-	err = Operator(fs, "operator", op1, true)
+	err = Operator(fs, "operator", &op1, true)
 	// no error on overwrite
 	assert.Nil(t, err)
 
@@ -76,7 +76,7 @@ func TestOperator_Write(t *testing.T) {
 	err = writeParameters(fs, "operator", pf)
 	assert.Nil(t, err)
 	// test overwriting with no error
-	err = Operator(fs, "operator", op1, true)
+	err = Operator(fs, "operator", &op1, true)
 	// no error on overwrite
 	assert.Nil(t, err)
 	parmfile, _ := afero.ReadFile(fs, paramFilename)

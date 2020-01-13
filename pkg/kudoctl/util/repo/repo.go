@@ -59,7 +59,7 @@ func (c Configurations) String() string {
 // Default initialized repository.
 var Default = &Configuration{
 	Name: defaultRepoName,
-	URL:  "https://kudo-repository.storage.googleapis.com",
+	URL:  "https://kudo-repository.storage.googleapis.com/0.10.0",
 }
 
 // NewRepositories creates a new repo with only defaults populated
@@ -178,10 +178,10 @@ type Metadata struct {
 	// Name is the name of the operator.
 	Name string `json:"name,omitempty"`
 
-	// Version is a A SemVer 2 conformant version string of the operator.
-	Version string `protobuf:"bytes,4,opt,name=version" json:"version,omitempty"`
+	// OperatorVersion is a A SemVer 2 conformant version string of the operator.
+	OperatorVersion string `protobuf:"bytes,4,opt,name=version" json:"operatorVersion"`
 
-	// AppVersion is the underlying service version (the format is not in our control)
+	// AppVersion is a SemVer 2 conformant version string of the underlying service.
 	AppVersion string `json:"appVersion,omitempty"`
 
 	// Description is a one-sentence description of the operator.

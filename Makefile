@@ -84,8 +84,12 @@ deploy-clean:
 .PHONY: generate
 # Generate code
 generate:
+ifeq (, $(shell which controller-gen))
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@$$(go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools)
+endif
+	controller-gen crd paths=./pkg/apis/... output:crd:dir=config/crds output:stdout
 ifeq (, $(shell which go-bindata))
-	go get github.com/go-bindata/go-bindata/go-bindata@v3.1.2
+	go get github.com/go-bindata/go-bindata/go-bindata@$$(go list -f '{{.Version}}' -m github.com/go-bindata/go-bindata)
 endif
 	go-bindata -pkg crd -o pkg/kudoctl/kudoinit/crd/bindata.go -ignore README.md -nometadata config/crds
 	./hack/update_codegen.sh
@@ -119,9 +123,7 @@ clean:  cli-clean test-clean manager-clean deploy-clean
 .PHONY: docker-build
 # Build the docker image
 docker-build: generate lint
-	docker build --build-arg git_version_arg=${GIT_VERSION_PATH}=v${GIT_VERSION} \
-	--build-arg git_commit_arg=${GIT_COMMIT_PATH}=${GIT_COMMIT} \
-	--build-arg build_date_arg=${BUILD_DATE_PATH}=${BUILD_DATE} . -t ${DOCKER_IMG}:${DOCKER_TAG}
+	docker build --build-arg ldflags_arg="${LDFLAGS}" . -t ${DOCKER_IMG}:${DOCKER_TAG}
 	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:v${GIT_VERSION}
 	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:latest
 

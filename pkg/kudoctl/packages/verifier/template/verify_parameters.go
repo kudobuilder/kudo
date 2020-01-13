@@ -55,8 +55,8 @@ func paramsDefinedNotUsed(pf *packages.Files) verifier.Result {
 	tparams := make(map[string]bool)
 	nodes := getNodeMap(pf.Templates)
 
-	for _, nodes := range nodes {
-		for _, tparam := range nodes.parameters {
+	for _, node := range nodes {
+		for _, tparam := range node.parameters {
 			tparams[tparam] = true
 		}
 	}
