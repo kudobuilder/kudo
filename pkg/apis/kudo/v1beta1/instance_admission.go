@@ -100,8 +100,8 @@ func validateUpdate(old, new *Instance, ov *OperatorVersion) (*string, error) {
 	newOvRef := new.Spec.OperatorVersion
 	oldOvRef := old.Spec.OperatorVersion
 
-	paramDiff := parameterDiff(old.Spec.Parameters, new.Spec.Parameters)
-	paramDefs := getParamDefinitions(paramDiff, ov)
+	paramDiff := ParameterDiff(old.Spec.Parameters, new.Spec.Parameters)
+	paramDefs := GetParamDefinitions(paramDiff, ov)
 	triggeredPlan, err := triggeredPlan(paramDefs, ov)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update Instance %s/%s: %v", old.Namespace, old.Name, err)
@@ -137,7 +137,7 @@ func validateUpdate(old, new *Instance, ov *OperatorVersion) (*string, error) {
 	// Deciding which plan to trigger:
 	switch {
 	case isUpgrade:
-		plan := selectPlan([]string{UpgradePlanName, UpdatePlanName, DeployPlanName}, ov)
+		plan := SelectPlan([]string{UpgradePlanName, UpdatePlanName, DeployPlanName}, ov)
 		if plan == nil {
 			return nil, fmt.Errorf("failed to update Instance %s/%s: couldn't find any suitable plan that would be triggered by an OperatorVersion upgrade", old.Namespace, old.Name)
 		}
@@ -191,7 +191,7 @@ func triggeredPlan(params []Parameter, ov *OperatorVersion) (*string, error) {
 
 	plans := make([]string, 0)
 	for _, p := range params {
-		if p.Trigger != "" && selectPlan([]string{p.Trigger}, ov) != nil {
+		if p.Trigger != "" && SelectPlan([]string{p.Trigger}, ov) != nil {
 			plans = append(plans, p.Trigger)
 		}
 	}
@@ -201,7 +201,7 @@ func triggeredPlan(params []Parameter, ov *OperatorVersion) (*string, error) {
 	switch len(plans) {
 	case 0:
 		// no plan could be triggered since we do not force existence of the "deploy" plan in the operators
-		fallback := selectPlan([]string{UpdatePlanName, DeployPlanName}, ov)
+		fallback := SelectPlan([]string{UpdatePlanName, DeployPlanName}, ov)
 		if fallback == nil {
 			return nil, fmt.Errorf("couldn't find any plans that would be triggered by the update")
 		}

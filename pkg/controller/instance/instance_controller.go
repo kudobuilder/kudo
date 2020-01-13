@@ -538,7 +538,7 @@ func isUpgradePlan(planName string) bool {
 func getPlanToBeExecuted(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*string, error) {
 	if i.IsDeleting() {
 		// we have a cleanup plan
-		plan := selectPlan([]string{v1beta1.CleanupPlanName}, ov)
+		plan := kudov1beta1.SelectPlan([]string{v1beta1.CleanupPlanName}, ov)
 		if plan != nil {
 			if planStatus := i.PlanStatus(*plan); planStatus != nil {
 				if !planStatus.Status.IsRunning() {
@@ -573,7 +573,7 @@ func getPlanToBeExecuted(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*str
 	if instanceSnapshot.OperatorVersion.Name != i.Spec.OperatorVersion.Name {
 		// this instance was upgraded to newer version
 		log.Printf("Instance: instance %s/%s was upgraded from %s to %s operatorVersion", i.Namespace, i.Name, instanceSnapshot.OperatorVersion.Name, i.Spec.OperatorVersion.Name)
-		plan := selectPlan([]string{v1beta1.UpgradePlanName, v1beta1.UpdatePlanName, v1beta1.DeployPlanName}, ov)
+		plan := kudov1beta1.SelectPlan([]string{v1beta1.UpgradePlanName, v1beta1.UpdatePlanName, v1beta1.DeployPlanName}, ov)
 		if plan == nil {
 			return nil, &v1beta1.InstanceError{Err: fmt.Errorf("supposed to execute plan because instance %s/%s was upgraded but none of the deploy, upgrade, update plans found in linked operatorVersion", i.Namespace, i.Name), EventName: kudo.String("PlanNotFound")}
 		}
@@ -583,8 +583,8 @@ func getPlanToBeExecuted(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*str
 	if !reflect.DeepEqual(instanceSnapshot.Parameters, i.Spec.Parameters) {
 		// instance updated
 		log.Printf("Instance: instance %s/%s has updated parameters from %v to %v", i.Namespace, i.Name, instanceSnapshot.Parameters, i.Spec.Parameters)
-		paramDiff := parameterDiff(instanceSnapshot.Parameters, i.Spec.Parameters)
-		paramDefinitions := getParamDefinitions(paramDiff, ov)
+		paramDiff := kudov1beta1.ParameterDiff(instanceSnapshot.Parameters, i.Spec.Parameters)
+		paramDefinitions := kudov1beta1.GetParamDefinitions(paramDiff, ov)
 		plan := planNameFromParameters(paramDefinitions, ov)
 		if plan == nil {
 			return nil, &v1beta1.InstanceError{Err: fmt.Errorf("supposed to execute plan because instance %s/%s was updated but none of the deploy, update plans found in linked operatorVersion", i.Namespace, i.Name), EventName: kudo.String("PlanNotFound")}
@@ -598,55 +598,11 @@ func getPlanToBeExecuted(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*str
 func planNameFromParameters(params []v1beta1.Parameter, ov *v1beta1.OperatorVersion) *string {
 	for _, p := range params {
 		// TODO: if the params have different trigger plans, we always select first here which might not be ideal
-		if p.Trigger != "" && selectPlan([]string{p.Trigger}, ov) != nil {
+		if p.Trigger != "" && kudov1beta1.SelectPlan([]string{p.Trigger}, ov) != nil {
 			return kudo.String(p.Trigger)
 		}
 	}
-	return selectPlan([]string{v1beta1.UpdatePlanName, v1beta1.DeployPlanName}, ov)
-}
-
-// getParamDefinitions retrieves parameter metadata from OperatorVersion CRD
-func getParamDefinitions(params map[string]string, ov *v1beta1.OperatorVersion) []v1beta1.Parameter {
-	defs := []v1beta1.Parameter{}
-	for p1 := range params {
-		for _, p2 := range ov.Spec.Parameters {
-			if p2.Name == p1 {
-				defs = append(defs, p2)
-			}
-		}
-	}
-	return defs
-}
-
-// parameterDiff returns map containing all parameters that were removed or changed between old and new
-func parameterDiff(old, new map[string]string) map[string]string {
-	diff := make(map[string]string)
-
-	for key, val := range old {
-		// If a parameter was removed in the new spec
-		if _, ok := new[key]; !ok {
-			diff[key] = val
-		}
-	}
-
-	for key, val := range new {
-		// If new spec parameter was added or changed
-		if v, ok := old[key]; !ok || v != val {
-			diff[key] = val
-		}
-	}
-
-	return diff
-}
-
-// selectPlan returns nil if none of the plan exists, otherwise the first one in list that exists
-func selectPlan(possiblePlans []string, ov *v1beta1.OperatorVersion) *string {
-	for _, n := range possiblePlans {
-		if _, ok := ov.Spec.Plans[n]; ok {
-			return kudo.String(n)
-		}
-	}
-	return nil
+	return kudov1beta1.SelectPlan([]string{v1beta1.UpdatePlanName, v1beta1.DeployPlanName}, ov)
 }
 
 // SaveSnapshot stores the current spec of Instance into the snapshot annotation
