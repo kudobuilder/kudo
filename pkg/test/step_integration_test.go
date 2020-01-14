@@ -20,7 +20,7 @@ import (
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
@@ -291,8 +291,8 @@ func TestStepDeleteExistingLabelMatch(t *testing.T) {
 
 	step := Step{
 		Logger: testutils.NewTestLogger(t, ""),
-		Step: &kudo.TestStep{
-			Delete: []kudo.ObjectReference{
+		Step: &harness.TestStep{
+			Delete: []harness.ObjectReference{
 				{
 					ObjectReference: corev1.ObjectReference{
 						Kind:       "Pod",

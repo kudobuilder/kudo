@@ -50,7 +50,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	"github.com/kudobuilder/kudo/pkg/apis"
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
 )
 
 // ensure that we only add to the scheme once.
@@ -349,11 +349,11 @@ func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 	group := in.GetObjectKind().GroupVersionKind().Group
 
 	if group == "kudo.dev" && kind == "TestStep" {
-		converted = &kudo.TestStep{}
+		converted = &harness.TestStep{}
 	} else if group == "kudo.dev" && kind == "TestAssert" {
-		converted = &kudo.TestAssert{}
+		converted = &harness.TestAssert{}
 	} else if group == "kudo.dev" && kind == "TestSuite" {
-		converted = &kudo.TestSuite{}
+		converted = &harness.TestSuite{}
 	} else {
 		return in, nil
 	}
@@ -860,7 +860,7 @@ func StartTestEnvironment() (env TestEnvironment, err error) {
 }
 
 // GetArgs parses a command line string into its arguments and appends a namespace if it is not already set.
-func GetArgs(ctx context.Context, command string, cmd kudo.Command, namespace string) (*exec.Cmd, error) {
+func GetArgs(ctx context.Context, command string, cmd harness.Command, namespace string) (*exec.Cmd, error) {
 	argSlice := []string{}
 
 	argSplit, err := shlex.Split(cmd.Command)
@@ -896,7 +896,7 @@ func GetArgs(ctx context.Context, command string, cmd kudo.Command, namespace st
 
 // RunCommand runs a command with args.
 // args gets split on spaces (respecting quoted strings).
-func RunCommand(ctx context.Context, namespace string, command string, cmd kudo.Command, cwd string, stdout io.Writer, stderr io.Writer) error {
+func RunCommand(ctx context.Context, namespace string, command string, cmd harness.Command, cwd string, stdout io.Writer, stderr io.Writer) error {
 	actualDir, err := os.Getwd()
 	if err != nil {
 		return err
@@ -927,7 +927,7 @@ func RunCommand(ctx context.Context, namespace string, command string, cmd kudo.
 
 // RunCommands runs a set of commands, returning any errors.
 // If `command` is set, then `command` will be the command that is invoked (if a command specifies it already, it will not be prepended again).
-func RunCommands(logger Logger, namespace string, command string, commands []kudo.Command, workdir string) []error {
+func RunCommands(logger Logger, namespace string, command string, commands []harness.Command, workdir string) []error {
 	errs := []error{}
 
 	if commands == nil {
@@ -958,10 +958,10 @@ func RunCommands(logger Logger, namespace string, command string, commands []kud
 
 // RunKubectlCommands runs a set of kubectl commands, returning any errors.
 func RunKubectlCommands(logger Logger, namespace string, commands []string, workdir string) []error {
-	apiCommands := []kudo.Command{}
+	apiCommands := []harness.Command{}
 
 	for _, cmd := range commands {
-		apiCommands = append(apiCommands, kudo.Command{
+		apiCommands = append(apiCommands, harness.Command{
 			Command:    cmd,
 			Namespaced: true,
 		})

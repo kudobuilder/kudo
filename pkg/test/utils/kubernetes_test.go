@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
 )
 
 func TestNamespaced(t *testing.T) {
@@ -404,7 +404,7 @@ func TestGetKubectlArgs(t *testing.T) {
 		},
 	} {
 		t.Run(test.testName, func(t *testing.T) {
-			cmd, err := GetArgs(context.TODO(), "kubectl", kudo.Command{
+			cmd, err := GetArgs(context.TODO(), "kubectl", harness.Command{
 				Command:    test.args,
 				Namespaced: true,
 			}, test.namespace)
