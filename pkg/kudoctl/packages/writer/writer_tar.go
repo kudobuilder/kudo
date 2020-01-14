@@ -12,6 +12,7 @@ import (
 
 	"github.com/spf13/afero"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
@@ -69,7 +70,7 @@ func TgzDir(fs afero.Fs, path string, w io.Writer) (err error) {
 		// create a new dir/file header
 		header, err := tar.FileInfoHeader(fi, fi.Name())
 		if err != nil {
-			fmt.Printf("Error creating tar header for: %v", fi.Name())
+			clog.Printf("Error creating tar header for: %v", fi.Name())
 			return err
 		}
 

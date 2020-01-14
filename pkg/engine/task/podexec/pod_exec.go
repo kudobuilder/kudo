@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -196,7 +197,7 @@ func untarFile(fs afero.Fs, r io.Reader, fileName string) error {
 			}
 
 		default:
-			fmt.Printf("skipping %s because it is not a regular file or a directory", header.Name)
+			log.Printf("skipping %s because it is not a regular file or a directory", header.Name)
 		}
 	}
 
