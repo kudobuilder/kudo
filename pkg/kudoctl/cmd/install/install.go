@@ -67,12 +67,12 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 		return fmt.Errorf("creating kudo client: %w", err)
 	}
 
-	clog.V(3).Printf("getting package crds")
+	clog.V(3).Printf("getting operator package")
 
 	resolver := pkgresolver.New(repository)
 	pkg, err := resolver.Resolve(operatorArgument, options.AppVersion, options.OperatorVersion)
 	if err != nil {
-		return fmt.Errorf("failed to resolve package CRDs for operator: %s %w", operatorArgument, err)
+		return fmt.Errorf("failed to resolve operator package for: %s %w", operatorArgument, err)
 	}
 
 	return kudo.InstallPackage(kc, pkg.Resources, options.SkipInstance, options.InstanceName, settings.Namespace, options.Parameters)
