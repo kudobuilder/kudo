@@ -158,10 +158,6 @@ func (i *IndexFile) validate() error {
 
 	for _, packageVersions := range i.Entries {
 		for _, packageVersion := range packageVersions {
-			if packageVersion.Name == "" {
-				return errors.New("a package is missing a name")
-			}
-
 			if packageVersion.OperatorVersion == "" {
 				return fmt.Errorf("package %s is missing an operator version", packageVersion.Name)
 			}
