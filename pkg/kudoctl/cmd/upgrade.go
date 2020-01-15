@@ -99,7 +99,7 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 	resolver := pkgresolver.New(repository)
 	pkg, err := resolver.Resolve(packageToUpgrade, options.AppVersion, options.OperatorVersion)
 	if err != nil {
-		return fmt.Errorf("failed to resolve package CRDs for operator: %s: %w", packageToUpgrade, err)
+		return fmt.Errorf("failed to resolve operator package for: %s: %w", packageToUpgrade, err)
 	}
 
 	resources := pkg.Resources
