@@ -44,7 +44,7 @@ func (c *Client) GetPackageBytes(name string, appVersion string, operatorVersion
 		return nil, fmt.Errorf("could not download repository index file: %w", err)
 	}
 
-	pkgVersion, err := indexFile.GetByNameAndVersion(name, appVersion, operatorVersion)
+	pkgVersion, err := indexFile.FindFirstMatch(name, appVersion, operatorVersion)
 	if err != nil {
 		return nil, fmt.Errorf("getting %s in index file: %w", name, err)
 	}
@@ -80,10 +80,15 @@ func (c *Client) getPackageBytesByURL(packageURL string) (*bytes.Buffer, error) 
 	return resp, nil
 }
 
-// GetByNameAndVersion returns the operator of given name and version.
+// FindFirstMatch returns the operator of given name and version.
 // If no specific version is required, pass an empty string as version and the
 // the latest version will be returned.
-func (i IndexFile) GetByNameAndVersion(name string, appVersion string, operatorVersion string) (*PackageVersion, error) {
+// Possible package options include: foo-1.0.0.tgz, foo-2.0.0_1.0.1.tgz and foo-3.0.0_1.0.1.tgz
+// The Entries are sorted by AppVersion first, then OpVersion.  Entries with no appVersion are later in the sort order than
+// entries with appVersion.  Given a search for an opVersion = 1.0.1 (without appVersion) given the above foo options,
+// foo-3.0.0-1.0.1 (the latest app version for this opVersion)
+// appVersion could be arbitrary.  if appVersion is "bar" than foo-var_1.0.1.tgz
+func (i IndexFile) FindFirstMatch(name string, appVersion string, operatorVersion string) (*PackageVersion, error) {
 	vs, ok := i.Entries[name]
 	if !ok || len(vs) == 0 {
 		return nil, fmt.Errorf("no operator found for: %s", name)
