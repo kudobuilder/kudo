@@ -9,7 +9,8 @@ import (
 
 	v1core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
 
@@ -19,6 +20,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
+	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/scheme"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
@@ -127,6 +129,19 @@ func (c *Client) InstanceExistsInCluster(operatorName, namespace, version, insta
 	return true, nil
 }
 
+// Populate the GVK from scheme, since it is cleared by design on typed objects.
+// https://github.com/kubernetes/client-go/issues/413
+func setFirstGVK(object runtime.Object) error {
+	gvks, unversioned, err := scheme.Scheme.ObjectKinds(object)
+	if err != nil {
+		return err
+	}
+	if !unversioned {
+		object.GetObjectKind().SetGroupVersionKind(gvks[0])
+	}
+	return nil
+}
+
 // GetInstance queries kubernetes api for instance of given name in given namespace
 // returns error for error conditions. Instance not found is not considered an error and will result in 'nil, nil'
 func (c *Client) GetInstance(name, namespace string) (*v1beta1.Instance, error) {
@@ -134,6 +149,10 @@ func (c *Client) GetInstance(name, namespace string) (*v1beta1.Instance, error) 
 	if apierrors.IsNotFound(err) {
 		return nil, nil
 	}
+	if err != nil {
+		return instance, err
+	}
+	err = setFirstGVK(instance)
 	return instance, err
 }
 
@@ -144,6 +163,10 @@ func (c *Client) GetOperatorVersion(name, namespace string) (*v1beta1.OperatorVe
 	if apierrors.IsNotFound(err) {
 		return nil, nil
 	}
+	if err != nil {
+		return ov, err
+	}
+	err = setFirstGVK(ov)
 	return ov, err
 }
 
