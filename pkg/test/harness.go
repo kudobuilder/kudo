@@ -28,6 +28,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
 	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
@@ -283,7 +284,7 @@ func (h *Harness) RunKUDO() error {
 	h.managerStopCh = make(chan struct{})
 	go func(stopCh chan struct{}) {
 		if err := mgr.Start(stopCh); err != nil {
-			fmt.Printf("failed to start the manager")
+			clog.Printf("failed to start the manager: %v", err)
 			os.Exit(-1)
 		}
 	}(h.managerStopCh)

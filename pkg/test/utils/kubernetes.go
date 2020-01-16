@@ -51,6 +51,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis"
 	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 )
 
 // ensure that we only add to the scheme once.
@@ -260,11 +261,11 @@ func (r *RetryStatusWriter) Patch(ctx context.Context, obj runtime.Object, patch
 func Scheme() *runtime.Scheme {
 	schemeLock.Do(func() {
 		if err := apis.AddToScheme(scheme.Scheme); err != nil {
-			fmt.Printf("failed to add API resources to the scheme: %v", err)
+			clog.Printf("failed to add API resources to the scheme: %v", err)
 			os.Exit(-1)
 		}
 		if err := apiextensions.AddToScheme(scheme.Scheme); err != nil {
-			fmt.Printf("failed to add API extension resources to the scheme: %v", err)
+			clog.Printf("failed to add API extension resources to the scheme: %v", err)
 			os.Exit(-1)
 		}
 	})

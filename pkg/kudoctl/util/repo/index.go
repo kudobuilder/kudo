@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
@@ -109,7 +110,7 @@ func (i IndexFile) Write(w io.Writer) error {
 	}
 	_, err = w.Write(b)
 	if err != nil {
-		fmt.Printf("err: %v", err)
+		clog.Printf("Error writing index file: %v", err)
 	}
 	return err
 }
