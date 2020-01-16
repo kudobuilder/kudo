@@ -77,18 +77,6 @@ func (b PackageVersions) Less(x, y int) bool {
 	return appVersionX.LessThan(appVersionY)
 }
 
-// sortPackages sorts the entries by version in descending order.
-//
-// In canonical form, the individual version records should be sorted so that
-// the most recent release for every version is in the 0th slot in the
-// Entries.PackageVersions array. That way, tooling can predict the newest
-// version without needing to parse SemVers.
-func (i IndexFile) sortPackages() {
-	for _, versions := range i.Entries {
-		sort.Sort(sort.Reverse(versions))
-	}
-}
-
 // ParseIndexFile loads an index file and sorts the included packages by version.
 // The function will fail if `APIVersion` is not specified.
 func ParseIndexFile(data []byte) (*IndexFile, error) {
@@ -96,9 +84,10 @@ func ParseIndexFile(data []byte) (*IndexFile, error) {
 	if err := yaml.Unmarshal(data, i); err != nil {
 		return nil, fmt.Errorf("unmarshalling index file: %w", err)
 	}
-	if i.APIVersion == "" {
-		return nil, errors.New("no API version specified")
+	if err := i.validate(); err != nil {
+		return nil, fmt.Errorf("validating index file: %w", err)
 	}
+
 	i.sortPackages()
 	return i, nil
 }
@@ -161,6 +150,34 @@ func (i *IndexFile) WriteFile(fs afero.Fs, file string) (err error) {
 	}()
 
 	return i.Write(f)
+}
+
+func (i *IndexFile) validate() error {
+	if i.APIVersion == "" {
+		return errors.New("no API version defined")
+	}
+
+	for _, packageVersions := range i.Entries {
+		for _, packageVersion := range packageVersions {
+			if packageVersion.OperatorVersion == "" {
+				return fmt.Errorf("package %s is missing an operator version", packageVersion.Name)
+			}
+		}
+	}
+
+	return nil
+}
+
+// sortPackages sorts the entries by version in descending order.
+//
+// In canonical form, the individual version records should be sorted so that
+// the most recent release for every version is in the 0th slot in the
+// Entries.PackageVersions array. That way, tooling can predict the newest
+// version without needing to parse SemVers.
+func (i IndexFile) sortPackages() {
+	for _, versions := range i.Entries {
+		sort.Sort(sort.Reverse(versions))
+	}
 }
 
 // Map transforms a slice of packagefiles with file digests into a slice of PackageVersions
