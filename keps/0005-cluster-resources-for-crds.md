@@ -1,6 +1,7 @@
 ---
-kep-number: 0005
-title: cluster-resources-for-crds
+kep-number: 5
+title: Cluster Resources for CRDs
+short-description: Cluster Resources for CRDs
 authors:
   - "@runyontr"
 owners:

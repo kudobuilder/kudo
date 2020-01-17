@@ -1,13 +1,4 @@
-apiVersion: kudo.dev/v1alpha1
-kind: TestStep
-delete:
-  - apiVersion: kudo.dev/v1alpha1
-    kind: PlanExecution
-    labels:
-      kudo.dev/instance: icto-upgrade-fallback-to-deploy
-      kudo.dev/operator-version: icto-upgrade-fallback-to-deploy
----
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: OperatorVersion
 metadata:
   name: icto-upgrade-fallback-to-deploy
@@ -17,9 +8,9 @@ spec:
     kind: Operator
   version: "2.0"
   plans:
-    deploy:
+    deploy: {}
 ---
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   name: icto-upgrade-fallback-to-deploy

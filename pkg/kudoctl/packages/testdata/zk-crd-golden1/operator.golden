@@ -1,8 +1,6 @@
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Operator
 metadata:
-  labels:
-    controller-tools.k8s.io: "1.0"
   name: zookeeper
 spec:
   url: https://zookeeper.apache.org/

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	ejson "encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -15,21 +16,19 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"testing"
 	"time"
 
 	"github.com/google/shlex"
-	"github.com/kudobuilder/kudo/pkg/apis"
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/pkg/errors"
 	"github.com/pmezard/go-difflib/difflib"
+	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
-	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
@@ -47,8 +46,12 @@ import (
 	coretesting "k8s.io/client-go/testing"
 	api "k8s.io/client-go/tools/clientcmd/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	kindConfig "sigs.k8s.io/kind/pkg/apis/config/v1alpha3"
+
+	"github.com/kudobuilder/kudo/pkg/apis"
+	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 )
 
 // ensure that we only add to the scheme once.
@@ -141,7 +144,7 @@ func NewRetryClient(cfg *rest.Config, opts client.Options) (*RetryClient, error)
 	}
 
 	if opts.Mapper == nil {
-		opts.Mapper, err = NewDynamicRESTMapper(cfg)
+		opts.Mapper, err = apiutil.NewDynamicRESTMapper(cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -257,9 +260,14 @@ func (r *RetryStatusWriter) Patch(ctx context.Context, obj runtime.Object, patch
 // Scheme returns an initialized Kubernetes Scheme.
 func Scheme() *runtime.Scheme {
 	schemeLock.Do(func() {
-		// FIXME: add error handling
-		apis.AddToScheme(scheme.Scheme)
-		apiextensions.AddToScheme(scheme.Scheme)
+		if err := apis.AddToScheme(scheme.Scheme); err != nil {
+			clog.Printf("failed to add API resources to the scheme: %v", err)
+			os.Exit(-1)
+		}
+		if err := apiextensions.AddToScheme(scheme.Scheme); err != nil {
+			clog.Printf("failed to add API extension resources to the scheme: %v", err)
+			os.Exit(-1)
+		}
 	})
 
 	return scheme.Scheme
@@ -333,7 +341,7 @@ func PrettyDiff(expected runtime.Object, actual runtime.Object) (string, error) 
 func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 	unstruct, err := runtime.DefaultUnstructuredConverter.ToUnstructured(in)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("erroring converting %s to unstructured", ResourceID(in)))
+		return nil, fmt.Errorf("error converting %s to unstructured error: %w", ResourceID(in), err)
 	}
 
 	var converted runtime.Object
@@ -342,20 +350,18 @@ func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 	group := in.GetObjectKind().GroupVersionKind().Group
 
 	if group == "kudo.dev" && kind == "TestStep" {
-		converted = &kudo.TestStep{}
+		converted = &harness.TestStep{}
 	} else if group == "kudo.dev" && kind == "TestAssert" {
-		converted = &kudo.TestAssert{}
+		converted = &harness.TestAssert{}
 	} else if group == "kudo.dev" && kind == "TestSuite" {
-		converted = &kudo.TestSuite{}
-	} else if group == "kind.sigs.k8s.io" && kind == "Cluster" {
-		converted = &kindConfig.Cluster{}
+		converted = &harness.TestSuite{}
 	} else {
 		return in, nil
 	}
 
 	err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstruct, converted)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("erroring converting %s from unstructured", ResourceID(in)))
+		return nil, fmt.Errorf("error converting %s from unstructured error: %w", ResourceID(in), err)
 	}
 
 	return converted, nil
@@ -443,19 +449,19 @@ func LoadYAML(path string) ([]runtime.Object, error) {
 			if err == io.EOF {
 				break
 			}
-			return nil, errors.Wrap(err, fmt.Sprintf("error reading yaml %s", path))
+			return nil, fmt.Errorf("error reading yaml %s: %w", path, err)
 		}
 
 		unstructuredObj := &unstructured.Unstructured{}
 		decoder := yaml.NewYAMLOrJSONDecoder(bytes.NewBuffer(data), len(data))
 
 		if err = decoder.Decode(unstructuredObj); err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("error decoding yaml %s", path))
+			return nil, fmt.Errorf("error decoding yaml %s: %w", path, err)
 		}
 
 		obj, err := ConvertUnstructured(unstructuredObj)
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("error converting unstructured object %s (%s)", ResourceID(unstructuredObj), path))
+			return nil, fmt.Errorf("error converting unstructured object %s (%s): %w", ResourceID(unstructuredObj), path, err)
 		}
 
 		objects = append(objects, obj)
@@ -522,7 +528,7 @@ func InstallManifests(ctx context.Context, client client.Client, dClient discove
 
 			updated, err := CreateOrUpdate(ctx, client, obj, true)
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("error creating resource %s", ResourceID(obj)))
+				return fmt.Errorf("error creating resource %s: %w", ResourceID(obj), err)
 			}
 
 			action := "created"
@@ -567,6 +573,36 @@ func NewResource(apiVersion, kind, name, namespace string) runtime.Object {
 	}
 }
 
+// NewClusterRoleBinding Create a clusterrolebinding for the serviceAccount passed
+func NewClusterRoleBinding(apiVersion, kind, name, namespace string, serviceAccount string, roleName string) runtime.Object {
+
+	sa := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     roleName,
+		},
+		Subjects: []rbacv1.Subject{{
+			Kind:      "ServiceAccount",
+			Name:      serviceAccount,
+			Namespace: namespace,
+		}},
+	}
+
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": apiVersion,
+			"kind":       kind,
+			"metadata":   sa.ObjectMeta,
+			"subjects":   sa.Subjects,
+			"roleRef":    sa.RoleRef,
+		},
+	}
+}
+
 // NewPod creates a new pod object.
 func NewPod(name, namespace string) runtime.Object {
 	return NewResource("v1", "Pod", name, namespace)
@@ -584,36 +620,48 @@ func WithNamespace(obj runtime.Object, namespace string) runtime.Object {
 }
 
 // WithSpec applies the provided spec to the Kubernetes object.
-func WithSpec(obj runtime.Object, spec map[string]interface{}) runtime.Object {
-	return WithKeyValue(obj, "spec", spec)
+func WithSpec(t *testing.T, obj runtime.Object, spec map[string]interface{}) runtime.Object {
+	res, err := WithKeyValue(obj, "spec", spec)
+	if err != nil {
+		t.Fatalf("failed to apply spec %v to object %v: %v", spec, obj, err)
+	}
+	return res
 }
 
 // WithStatus applies the provided status to the Kubernetes object.
-func WithStatus(obj runtime.Object, status map[string]interface{}) runtime.Object {
-	return WithKeyValue(obj, "status", status)
+func WithStatus(t *testing.T, obj runtime.Object, status map[string]interface{}) runtime.Object {
+	res, err := WithKeyValue(obj, "status", status)
+	if err != nil {
+		t.Fatalf("failed to apply status %v to object %v: %v", status, obj, err)
+	}
+	return res
 }
 
 // WithKeyValue sets key in the provided object to value.
-func WithKeyValue(obj runtime.Object, key string, value map[string]interface{}) runtime.Object {
+func WithKeyValue(obj runtime.Object, key string, value map[string]interface{}) (runtime.Object, error) {
 	obj = obj.DeepCopyObject()
 
 	content, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 	if err != nil {
-		return obj
+		return nil, err
 	}
 
 	content[key] = value
 
-	// FIXME: add error handling
-	runtime.DefaultUnstructuredConverter.FromUnstructured(content, obj)
-	return obj.DeepCopyObject()
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(content, obj); err != nil {
+		return nil, err
+	}
+	return obj, nil
 }
 
 // WithLabels sets the labels on an object.
-func WithLabels(obj runtime.Object, labels map[string]string) runtime.Object {
+func WithLabels(t *testing.T, obj runtime.Object, labels map[string]string) runtime.Object {
 	obj = obj.DeepCopyObject()
 
-	m, _ := meta.Accessor(obj)
+	m, err := meta.Accessor(obj)
+	if err != nil {
+		t.Fatalf("failed to apply labels %v to object %v: %v", labels, obj, err)
+	}
 	m.SetLabels(labels)
 
 	return obj
@@ -716,7 +764,7 @@ func GetAPIResource(dClient discovery.DiscoveryInterface, gvk schema.GroupVersio
 		return resource, nil
 	}
 
-	return metav1.APIResource{}, fmt.Errorf("resource type not found")
+	return metav1.APIResource{}, errors.New("resource type not found")
 }
 
 // WaitForDelete waits for the provide runtime objects to be deleted from cluster
@@ -760,6 +808,7 @@ func WaitForCRDs(dClient discovery.DiscoveryInterface, crds []runtime.Object) er
 		for _, resource := range waitingFor {
 			_, err := GetAPIResource(dClient, resource)
 			if err != nil {
+				fmt.Printf("Waiting for resource %s... \n", resource)
 				return false, nil
 			}
 		}
@@ -812,7 +861,7 @@ func StartTestEnvironment() (env TestEnvironment, err error) {
 }
 
 // GetArgs parses a command line string into its arguments and appends a namespace if it is not already set.
-func GetArgs(ctx context.Context, command string, cmd kudo.Command, namespace string) (*exec.Cmd, error) {
+func GetArgs(ctx context.Context, command string, cmd harness.Command, namespace string) (*exec.Cmd, error) {
 	argSlice := []string{}
 
 	argSplit, err := shlex.Split(cmd.Command)
@@ -840,6 +889,7 @@ func GetArgs(ctx context.Context, command string, cmd kudo.Command, namespace st
 		}
 	}
 
+	//nolint:gosec // We're running a user provided command. This is insecure by definition
 	builtCmd := exec.Command(argSlice[0])
 	builtCmd.Args = argSlice
 	return builtCmd, nil
@@ -847,7 +897,7 @@ func GetArgs(ctx context.Context, command string, cmd kudo.Command, namespace st
 
 // RunCommand runs a command with args.
 // args gets split on spaces (respecting quoted strings).
-func RunCommand(ctx context.Context, namespace string, command string, cmd kudo.Command, cwd string, stdout io.Writer, stderr io.Writer) error {
+func RunCommand(ctx context.Context, namespace string, command string, cmd harness.Command, cwd string, stdout io.Writer, stderr io.Writer) error {
 	actualDir, err := os.Getwd()
 	if err != nil {
 		return err
@@ -878,7 +928,7 @@ func RunCommand(ctx context.Context, namespace string, command string, cmd kudo.
 
 // RunCommands runs a set of commands, returning any errors.
 // If `command` is set, then `command` will be the command that is invoked (if a command specifies it already, it will not be prepended again).
-func RunCommands(logger Logger, namespace string, command string, commands []kudo.Command, workdir string) []error {
+func RunCommands(logger Logger, namespace string, command string, commands []harness.Command, workdir string) []error {
 	errs := []error{}
 
 	if commands == nil {
@@ -889,7 +939,7 @@ func RunCommands(logger Logger, namespace string, command string, commands []kud
 		stdout := &bytes.Buffer{}
 		stderr := &bytes.Buffer{}
 
-		logger.Log("Running command:", cmd)
+		logger.Logf("Running command: %s %s", command, cmd)
 
 		err := RunCommand(context.TODO(), namespace, command, cmd, workdir, stdout, stderr)
 		if err != nil {
@@ -909,10 +959,10 @@ func RunCommands(logger Logger, namespace string, command string, commands []kud
 
 // RunKubectlCommands runs a set of kubectl commands, returning any errors.
 func RunKubectlCommands(logger Logger, namespace string, commands []string, workdir string) []error {
-	apiCommands := []kudo.Command{}
+	apiCommands := []harness.Command{}
 
 	for _, cmd := range commands {
-		apiCommands = append(apiCommands, kudo.Command{
+		apiCommands = append(apiCommands, harness.Command{
 			Command:    cmd,
 			Namespaced: true,
 		})
@@ -925,7 +975,6 @@ func RunKubectlCommands(logger Logger, namespace string, commands []string, work
 func Kubeconfig(cfg *rest.Config, w io.Writer) error {
 	var authProvider *api.AuthProviderConfig
 	var execConfig *api.ExecConfig
-
 	if cfg.AuthProvider != nil {
 		authProvider = &api.AuthProviderConfig{
 			Name:   cfg.AuthProvider.Name,
@@ -948,7 +997,10 @@ func Kubeconfig(cfg *rest.Config, w io.Writer) error {
 			})
 		}
 	}
-
+	err := rest.LoadTLSFiles(cfg)
+	if err != nil {
+		return err
+	}
 	return json.NewYAMLSerializer(json.DefaultMetaFactory, nil, nil).Encode(&api.Config{
 		CurrentContext: "cluster",
 		Clusters: []api.NamedCluster{

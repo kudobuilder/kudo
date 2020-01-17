@@ -3,13 +3,14 @@ package test
 import (
 	"testing"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
+	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
 // Verify the test state as loaded from disk.
@@ -25,18 +26,18 @@ func TestLoadTestSteps(t *testing.T) {
 				{
 					Name:  "with-test-step-name-override",
 					Index: 0,
-					Step: &kudo.TestStep{
+					Step: &harness.TestStep{
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "with-test-step-name-override",
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "TestStep",
-							APIVersion: "kudo.dev/v1alpha1",
+							APIVersion: "kudo.dev/v1beta1",
 						},
 						Index: 0,
 					},
 					Apply: []runtime.Object{
-						testutils.WithSpec(testutils.NewPod("test", ""), map[string]interface{}{
+						testutils.WithSpec(t, testutils.NewPod("test", ""), map[string]interface{}{
 							"restartPolicy": "Never",
 							"containers": []map[string]interface{}{
 								{
@@ -47,7 +48,7 @@ func TestLoadTestSteps(t *testing.T) {
 						}),
 					},
 					Asserts: []runtime.Object{
-						testutils.WithStatus(testutils.NewPod("test", ""), map[string]interface{}{
+						testutils.WithStatus(t, testutils.NewPod("test", ""), map[string]interface{}{
 							"qosClass": "BestEffort",
 						}),
 					},
@@ -56,13 +57,13 @@ func TestLoadTestSteps(t *testing.T) {
 				{
 					Name:  "test-assert",
 					Index: 1,
-					Step: &kudo.TestStep{
+					Step: &harness.TestStep{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "TestStep",
-							APIVersion: "kudo.dev/v1alpha1",
+							APIVersion: "kudo.dev/v1beta1",
 						},
 						Index: 1,
-						Delete: []kudo.ObjectReference{
+						Delete: []harness.ObjectReference{
 							{
 								ObjectReference: corev1.ObjectReference{
 									APIVersion: "v1",
@@ -72,15 +73,15 @@ func TestLoadTestSteps(t *testing.T) {
 							},
 						},
 					},
-					Assert: &kudo.TestAssert{
+					Assert: &harness.TestAssert{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "TestAssert",
-							APIVersion: "kudo.dev/v1alpha1",
+							APIVersion: "kudo.dev/v1beta1",
 						},
 						Timeout: 20,
 					},
 					Apply: []runtime.Object{
-						testutils.WithSpec(testutils.NewPod("test2", ""), map[string]interface{}{
+						testutils.WithSpec(t, testutils.NewPod("test2", ""), map[string]interface{}{
 							"restartPolicy": "Never",
 							"containers": []map[string]interface{}{
 								{
@@ -91,7 +92,7 @@ func TestLoadTestSteps(t *testing.T) {
 						}),
 					},
 					Asserts: []runtime.Object{
-						testutils.WithStatus(testutils.NewPod("test2", ""), map[string]interface{}{
+						testutils.WithStatus(t, testutils.NewPod("test2", ""), map[string]interface{}{
 							"qosClass": "BestEffort",
 						}),
 					},
@@ -101,7 +102,7 @@ func TestLoadTestSteps(t *testing.T) {
 					Name:  "pod",
 					Index: 2,
 					Apply: []runtime.Object{
-						testutils.WithSpec(testutils.NewPod("test4", ""), map[string]interface{}{
+						testutils.WithSpec(t, testutils.NewPod("test4", ""), map[string]interface{}{
 							"containers": []map[string]interface{}{
 								{
 									"name":  "nginx",
@@ -109,7 +110,7 @@ func TestLoadTestSteps(t *testing.T) {
 								},
 							},
 						}),
-						testutils.WithSpec(testutils.NewPod("test3", ""), map[string]interface{}{
+						testutils.WithSpec(t, testutils.NewPod("test3", ""), map[string]interface{}{
 							"containers": []map[string]interface{}{
 								{
 									"name":  "nginx",
@@ -119,27 +120,27 @@ func TestLoadTestSteps(t *testing.T) {
 						}),
 					},
 					Asserts: []runtime.Object{
-						testutils.WithStatus(testutils.NewPod("test3", ""), map[string]interface{}{
+						testutils.WithStatus(t, testutils.NewPod("test3", ""), map[string]interface{}{
 							"qosClass": "BestEffort",
 						}),
 					},
 					Errors: []runtime.Object{},
 				},
 				{
-					Name:  "name-overriden",
+					Name:  "name-overridden",
 					Index: 3,
-					Step: &kudo.TestStep{
+					Step: &harness.TestStep{
 						ObjectMeta: metav1.ObjectMeta{
-							Name: "name-overriden",
+							Name: "name-overridden",
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "TestStep",
-							APIVersion: "kudo.dev/v1alpha1",
+							APIVersion: "kudo.dev/v1beta1",
 						},
 						Index: 3,
 					},
 					Apply: []runtime.Object{
-						testutils.WithSpec(testutils.NewPod("test6", ""), map[string]interface{}{
+						testutils.WithSpec(t, testutils.NewPod("test6", ""), map[string]interface{}{
 							"restartPolicy": "Never",
 							"containers": []map[string]interface{}{
 								{
@@ -148,7 +149,7 @@ func TestLoadTestSteps(t *testing.T) {
 								},
 							},
 						}),
-						testutils.WithSpec(testutils.NewPod("test5", ""), map[string]interface{}{
+						testutils.WithSpec(t, testutils.NewPod("test5", ""), map[string]interface{}{
 							"restartPolicy": "Never",
 							"containers": []map[string]interface{}{
 								{
@@ -159,7 +160,7 @@ func TestLoadTestSteps(t *testing.T) {
 						}),
 					},
 					Asserts: []runtime.Object{
-						testutils.WithSpec(testutils.NewPod("test5", ""), map[string]interface{}{
+						testutils.WithSpec(t, testutils.NewPod("test5", ""), map[string]interface{}{
 							"restartPolicy": "Never",
 						}),
 					},

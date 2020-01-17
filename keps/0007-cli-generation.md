@@ -1,6 +1,7 @@
 ---
 kep-number: 7
-title: Skeleton generator
+title: CLI Skeleton generator
+short-desc: Generate operator skeletons for operator developers
 authors:
   - "@djannot"
 owners:

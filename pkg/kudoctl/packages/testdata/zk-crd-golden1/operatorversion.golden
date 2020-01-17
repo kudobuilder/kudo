@@ -1,8 +1,6 @@
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: OperatorVersion
 metadata:
-  labels:
-    controller-tools.k8s.io: "1.0"
   name: zookeeper-0.1.0
 spec:
   operator:
@@ -10,6 +8,7 @@ spec:
     kind: Operator
   # Add fields here
   version: "0.1.0"
+  appVersion: "3.4.10"
   parameters:
     - name: cpus
       description: Amount of cpu to provide to Zookeeper pods
@@ -187,16 +186,22 @@ spec:
                     --server $CONN \
                     ls /"
   tasks:
-    infra:
-      resources:
-        - services.yaml
-        - pdb.yaml
-    app:
-      resources:
-        - statefulset.yaml
-    validation:
-      resources:
-        - validation.yaml
+    - name: infra
+      kind: Apply
+      spec:
+        resources:
+          - services.yaml
+          - pdb.yaml
+    - name: app
+      kind: Apply
+      spec:
+        resources:
+          - statefulset.yaml
+    - name: validation
+      kind: Apply
+      spec:
+        resources:
+          - validation.yaml
   plans:
     deploy:
       strategy: serial

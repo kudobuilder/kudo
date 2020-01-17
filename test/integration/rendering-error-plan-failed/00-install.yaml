@@ -1,11 +1,11 @@
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Operator
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: invalid
 ---
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: OperatorVersion
 metadata:
   labels:
@@ -38,9 +38,11 @@ spec:
               - -c
               - "sleep {{ .Params.NonExisting }}"
   tasks:
-    invalid-task:
-      resources:
-        - serial.yaml
+    - name: invalid-task
+      kind: Apply
+      spec:
+        resources:
+          - serial.yaml
   parameters:
     - name: Sleep
       description: "how long to have the container sleep for before returning"
@@ -57,7 +59,7 @@ spec:
               tasks:
                 - invalid-task
 ---
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   labels:

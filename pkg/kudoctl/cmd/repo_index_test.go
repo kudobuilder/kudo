@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
-
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
 func TestRepoIndexCmd(t *testing.T) {
@@ -34,7 +34,9 @@ func TestRepoIndexCmd(t *testing.T) {
 			time := time.Now()
 			riCmd := newRepoIndexCmd(fs, out, &time)
 			for key, value := range tt.flags {
-				riCmd.Flags().Set(key, value)
+				if err := riCmd.Flags().Set(key, value); err != nil {
+					t.Fatalf("%s: %v", tt.name, err)
+				}
 			}
 			err := riCmd.RunE(riCmd, tt.arguments)
 			assert.EqualError(t, err, tt.errorMessage)
@@ -46,13 +48,17 @@ func TestRepoIndexCmd_IndexCreation(t *testing.T) {
 	file := "index.yaml"
 	fs := afero.NewMemMapFs()
 	testdir, _ := filepath.Abs("")
-	fs.Mkdir(testdir, 0777)
+	if err := fs.Mkdir(testdir, 0777); err != nil {
+		t.Fatal(err)
+	}
 	files.CopyOperatorToFs(fs, "../packages/testdata/zk.tgz", "/opt")
 
 	time, _ := time.Parse(time.RFC3339, "2019-10-25T00:00:00Z")
 	out := &bytes.Buffer{}
 	riCmd := newRepoIndexCmd(fs, out, &time)
-	riCmd.RunE(riCmd, []string{"/opt"})
+	if err := riCmd.RunE(riCmd, []string{"/opt"}); err != nil {
+		t.Fatal(err)
+	}
 
 	indexOut, err := afero.ReadFile(fs, "/opt/index.yaml")
 	if err != nil {
@@ -71,9 +77,7 @@ func TestRepoIndexCmd_IndexCreation(t *testing.T) {
 		t.Fatalf("failed reading .golden: %s", err)
 	}
 
-	if !bytes.Equal(indexOut, g) {
-		t.Errorf("yaml does not match .golden file")
-	}
+	assert.Equal(t, string(indexOut), string(g), "yaml does not match .golden file %s", gp)
 }
 
 func TestRepoIndexCmd_MergeIndex(t *testing.T) {
@@ -87,7 +91,9 @@ func TestRepoIndexCmd_MergeIndex(t *testing.T) {
 
 	resultBuf := &bytes.Buffer{}
 	merge(indexFile, mergeFile)
-	indexFile.Write(resultBuf)
+	if err := indexFile.Write(resultBuf); err != nil {
+		t.Fatal(err)
+	}
 
 	gp := filepath.Join("testdata", file+".golden")
 
@@ -107,6 +113,6 @@ func TestRepoIndexCmd_MergeIndex(t *testing.T) {
 	}
 
 	// local operator takes precedence
-	o, _ := indexFile.GetByNameAndVersion("mysql", "0.1.0")
+	o, _ := indexFile.FindFirstMatch("mysql", "5.7", "0.1.0")
 	assert.Equal(t, o.Maintainers[0].Name, "Ken Sipe")
 }

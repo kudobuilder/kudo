@@ -1,0 +1,24 @@
+apiVersion: kudo.dev/v1beta1
+name: "crd-operator"
+operatorVersion: "0.1.0"
+kubernetesVersion: 1.13
+maintainers:
+  - name: Your name
+    email: <your@email.com>
+url: https://kudo.dev
+tasks:
+  - name: app
+    kind: Apply
+    spec:
+      resources:
+        - crd.yaml
+plans:
+  deploy:
+    strategy: serial
+    phases:
+      - name: main
+        strategy: parallel
+        steps:
+          - name: everything
+            tasks:
+              - app

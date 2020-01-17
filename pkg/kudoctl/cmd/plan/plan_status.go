@@ -1,121 +1,77 @@
 package plan
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
 
-	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
-	"github.com/spf13/cobra"
 	"github.com/xlab/treeprint"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
 // DefaultStatusOptions provides the default options for plan status
 var DefaultStatusOptions = &Options{}
 
-// RunStatus runs the plan status command
-func RunStatus(cmd *cobra.Command, args []string, options *Options, settings *env.Settings) error {
-
-	instanceFlag, err := cmd.Flags().GetString("instance")
-	if err != nil || instanceFlag == "" {
-		return fmt.Errorf("flag Error: Please set instance flag, e.g. \"--instance=<instanceName>\"")
-	}
-
-	err = planStatus(options, settings)
+// Status runs the plan status command
+func Status(options *Options, settings *env.Settings) error {
+	kc, err := env.GetClient(settings)
 	if err != nil {
-		return fmt.Errorf("client Error: %v", err)
+		return err
 	}
-	return nil
+
+	return status(kc, options, settings.Namespace)
 }
 
-func planStatus(options *Options, settings *env.Settings) error {
-
+func status(kc *kudo.Client, options *Options, ns string) error {
 	tree := treeprint.New()
 
-	config, err := clientcmd.BuildConfigFromFlags("", settings.KubeConfig)
+	instance, err := kc.GetInstance(options.Instance, ns)
 	if err != nil {
 		return err
 	}
+	if instance == nil {
+		return fmt.Errorf("Instance %s/%s does not exist", ns, options.Instance)
+	}
 
-	//  Create a Dynamic Client to interface with CRDs.
-	dynamicClient, err := dynamic.NewForConfig(config)
+	ov, err := kc.GetOperatorVersion(instance.Spec.OperatorVersion.Name, ns)
 	if err != nil {
 		return err
 	}
-
-	instancesGVR := schema.GroupVersionResource{
-		Group:    "kudo.dev",
-		Version:  "v1alpha1",
-		Resource: "instances",
+	if ov == nil {
+		return fmt.Errorf("OperatorVersion %s from instance %s/%s does not exist", instance.Spec.OperatorVersion.Name, ns, options.Instance)
 	}
 
-	instObj, err := dynamicClient.Resource(instancesGVR).Namespace(options.Namespace).Get(options.Instance, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
+	lastPlanStatus := instance.GetLastExecutedPlanStatus()
 
-	mInstObj, err := instObj.MarshalJSON()
-	if err != nil {
-		return err
-	}
-
-	instance := kudov1alpha1.Instance{}
-
-	err = json.Unmarshal(mInstObj, &instance)
-	if err != nil {
-		return err
-	}
-
-	operatorVersionNameOfInstance := instance.Spec.OperatorVersion.Name
-
-	operatorGVR := schema.GroupVersionResource{
-		Group:    "kudo.dev",
-		Version:  "v1alpha1",
-		Resource: "operatorversions",
-	}
-
-	//  List all of the Virtual Services.
-	operatorObj, err := dynamicClient.Resource(operatorGVR).Namespace(options.Namespace).Get(operatorVersionNameOfInstance, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	mOperatorObj, err := operatorObj.MarshalJSON()
-	if err != nil {
-		return err
-	}
-
-	operator := kudov1alpha1.OperatorVersion{}
-
-	err = json.Unmarshal(mOperatorObj, &operator)
-	if err != nil {
-		return err
-	}
-
-	activePlanStatus := instance.GetPlanInProgress()
-
-	if activePlanStatus == nil {
-		log.Printf("No active plan exists for instance %s", instance.Name)
+	if lastPlanStatus == nil {
+		fmt.Fprintf(options.Out, "No plan ever run for instance - nothing to show for instance %s\n", instance.Name)
 		return nil
 	}
 
-	rootDisplay := fmt.Sprintf("%s (Operator-Version: \"%s\" Active-Plan: \"%s\")", instance.Name, instance.Spec.OperatorVersion.Name, activePlanStatus.Name)
+	getPhaseStrategy := func(s string) v1beta1.Ordering {
+		for _, plan := range ov.Spec.Plans {
+			for _, phase := range plan.Phases {
+				if phase.Name == s {
+					return phase.Strategy
+				}
+			}
+		}
+		return ""
+	}
+
+	rootDisplay := fmt.Sprintf("%s (Operator-Version: \"%s\" Active-Plan: \"%s\")", instance.Name, instance.Spec.OperatorVersion.Name, lastPlanStatus.Name)
 	rootBranchName := tree.AddBranch(rootDisplay)
 
-	for name, plan := range operator.Spec.Plans {
-		if name == activePlanStatus.Name {
-			planDisplay := fmt.Sprintf("Plan %s (%s strategy) [%s]", name, plan.Strategy, activePlanStatus.Status)
+	for name, plan := range ov.Spec.Plans {
+		if name == lastPlanStatus.Name {
+			planDisplay := fmt.Sprintf("Plan %s (%s strategy) [%s]%s", name, plan.Strategy, lastPlanStatus.Status, printMessageIfAvailable(lastPlanStatus.Message))
 			planBranchName := rootBranchName.AddBranch(planDisplay)
-			for _, phase := range activePlanStatus.Phases {
-				phaseDisplay := fmt.Sprintf("Phase %s [%s]", phase.Name, phase.Status)
+			for _, phase := range lastPlanStatus.Phases {
+				phaseDisplay := fmt.Sprintf("Phase %s (%s strategy) [%s]%s", phase.Name, getPhaseStrategy(phase.Name), phase.Status, printMessageIfAvailable(phase.Message))
 				phaseBranchName := planBranchName.AddBranch(phaseDisplay)
 				for _, steps := range phase.Steps {
-					stepsDisplay := fmt.Sprintf("Step %s (%s)", steps.Name, steps.Status)
+					stepsDisplay := fmt.Sprintf("Step %s [%s]%s", steps.Name, steps.Status, printMessageIfAvailable(steps.Message))
 					phaseBranchName.AddBranch(stepsDisplay)
 				}
 			}
@@ -125,20 +81,23 @@ func planStatus(options *Options, settings *env.Settings) error {
 			for _, phase := range plan.Phases {
 				phaseDisplay := fmt.Sprintf("Phase %s (%s strategy) [NOT ACTIVE]", phase.Name, phase.Strategy)
 				phaseBranchName := planBranchName.AddBranch(phaseDisplay)
-				for _, steps := range plan.Phases {
-					stepsDisplay := fmt.Sprintf("Step %s (%s strategy) [NOT ACTIVE]", steps.Name, steps.Strategy)
-					stepBranchName := phaseBranchName.AddBranch(stepsDisplay)
-					for _, step := range steps.Steps {
-						stepDisplay := fmt.Sprintf("%s [NOT ACTIVE]", step.Name)
-						stepBranchName.AddBranch(stepDisplay)
-					}
+				for _, steps := range phase.Steps {
+					stepDisplay := fmt.Sprintf("Step %s [NOT ACTIVE]", steps.Name)
+					phaseBranchName.AddBranch(stepDisplay)
 				}
 			}
 		}
 	}
 
-	fmt.Printf("Plan(s) for \"%s\" in namespace \"%s\":\n", instance.Name, options.Namespace)
-	fmt.Println(tree.String())
+	fmt.Fprintf(options.Out, "Plan(s) for \"%s\" in namespace \"%s\":\n", instance.Name, ns)
+	fmt.Fprintln(options.Out, tree.String())
 
 	return nil
+}
+
+func printMessageIfAvailable(s string) string {
+	if s != "" {
+		return fmt.Sprintf(" (%s)", s)
+	}
+	return ""
 }

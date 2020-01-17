@@ -4,17 +4,17 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
-
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
 const (
 	repoContextDesc = `When using an KUDO operation that requires access to a repository, KUDO needs to know which repository.
 This is defined by the "context". 'kubectl kudo repo list' will provide the list of repositories.  The "*" next to one of the
-names is the current context. 'kubectl kudo repo context local' will change the context to respository named local if it exists.
+names is the current context. 'kubectl kudo repo context local' will change the context to repository named local if it exists.
 `
 )
 
@@ -35,7 +35,7 @@ func newRepoContextCmd(fs afero.Fs) *cobra.Command {
 		Example: "  kubectl kudo repo context local",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
-				return fmt.Errorf("need at least one argument, name of operator repository")
+				return errors.New("need at least one argument, name of operator repository")
 			}
 
 			ctxCmd.name = args[0]

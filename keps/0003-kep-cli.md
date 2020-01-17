@@ -1,10 +1,10 @@
 ---
 kep-number: 3
 title: KEP CLI Proposal
+short-desc: Initial CLI description
 authors:
   - "@fabianbaier"
 owners:
-  - TBD
   - "@fabianbaier"
 editor: TBD
 creation-date: 2019-02-14

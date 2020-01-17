@@ -12,7 +12,7 @@ entries:
     - email: <kensipe@gmail.com>
       name: Ken Sipe
     name: flink
+    operatorVersion: 0.3.0
     urls:
     - http://kudo.dev/flink
-    version: 0.3.0
 generated: "2019-08-09T15:04:00Z"

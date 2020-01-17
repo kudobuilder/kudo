@@ -4,16 +4,27 @@ First: if you're unsure or afraid of anything, just ask or submit the issue or p
 
 However, for those individuals who want a bit more guidance on the best way to contribute to the project, read on. This document will cover what we're looking for. By addressing all the points we're looking for, it raises the chances we can quickly merge or address your contributions.
 
-## Sign the CLA
+## Developer Certificate Of Origin
 
-Kubernetes projects require that you sign a Contributor License Agreement (CLA) before we can accept your pull requests.
+KUDO requires that contributors sign off on changes submitted to kudobuilder repositories.
+The [Developer Certificate of Origin (DCO)](https://developercertificate.org/) is a simple way to certify that you wrote or have the right to submit the code you are contributing to the project.
 
-Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CLA.md) for more info.
+You sign-off by adding the following to your commit messages:
+
+    This is my commit message
+
+    Signed-off-by: Random J Developer <random@developer.example.org>
+
+Git has a `-s` command line option to do this automatically.
+
+    git commit -s -m 'This is my commit message'
+
+You can find the full text of the DCO here: https://developercertificate.org/
 
 ## Contributing Steps
 
 1. Submit an issue describing your proposed change to the repo in question.
-2. The [repo owners](https://github.com/kudobuilder/kudo/blob/master/OWNERS) will respond to your issue promptly.
+2. The [repo owners](https://github.com/kudobuilder/kudo/blob/master/.github/CODEOWNERS) will respond to your issue promptly.
 3. If your proposed change is accepted, and you haven't already done so, sign a Contributor License Agreement (see details above).
 4. Fork the desired repo, develop and test your code changes.
 5. Submit a pull request.
@@ -24,33 +35,69 @@ Please see [https://git.k8s.io/community/CLA.md](https://git.k8s.io/community/CL
 
 - Git
 - Go `1.13` or later
-- [Kubebuilder](https://book.kubebuilder.io/getting_started/installation_and_setup.html)
-- A Kubernetes Cluster running version `1.13` or later (e.g., [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
+- [Kubebuilder](https://book.kubebuilder.io/quick-start.html#installation) version 2 or later - note that it is only needed for the `kube-apiserver` and `etcd` binaries, so no need to install *its* dependencies (such as `kustomize`).
+- A Kubernetes Cluster running version `1.13` or later (e.g., [kind](https://kind.sigs.k8s.io/) or [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/))
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
 ### Build Instructions
 
 - Get the KUDO repo: `git clone https://github.com/kudobuilder/kudo.git`
 - `cd kudo`
-- `make all` to build project
-- [optionally] `make docker-build` to build the Docker images
+- `make all` to build manager as well as CLI
+- [optionally] `make docker-build` to build the manager Docker images
 
-When updating the structs under [APIs](https://github.com/kudobuilder/kudo/blob/master/pkg/apis/), or any other code generated item, use `make generate` to generate the new DeepCopy structs. Use `make manifests` to generate out new YAML manifests representing these CRDs.
+When updating the structs under [APIs](https://github.com/kudobuilder/kudo/blob/master/pkg/apis/), or any other code generated item, use `make generate` to generate the new DeepCopy structs.
 
-After updating CRD manifests, use `make deploy` to apply the new CRDs to your cluster.
+#### Running manager locally
+The most convenient way to test new controller code is to run the manager locally. It will use kubernetes cluster defined via your local kubeconfig to talk to API server and resolve CRDs. You can run manager locally via `make run`.
 
-#### Testing
+Make sure your local cluster has up to date CRDs. You can deploy new CRDs with `make deploy`. Beware that `make deploy` also deploys manager into your cluster (`kubectl get deployments -n kudo-system`) and it will be the latest stable manager, not the one from your current git. If you plan to run your own manager, just delete the one in your cluster via `kubectl delete deployment kudo-controller-manager -n kudo-system`
+
+#### Testing new CLI
+You can build CLI locally via `make cli`. After running that command, CLI will be available in `bin/kubectl-kudo` and you can invoke the command for example like this `bin/kubectl-kudo init` (no need to install it as kubectl plugin).
+
+#### Running new manager inside cluster
+For some situations, it might make sense to test your manager inside a real cluster running in a pod (not just running the binary locally). To do that you need:
+- build a docker image with the manager locally `DOCKER_IMG=nameofyourimage make docker-build`
+- push the image to a remote repository `DOCKER_IMG=nameofyourimage make docker-push`
+- run `kubectl kudo init --kudo-image nameofyourimage:tag`
+
+### Testing
 
 See the [contributor's testing guide](https://github.com/kudobuilder/kudo/blob/master/test/README.md).
 
 ## Community, Discussion, and Support
 
-Learn how to engage with the Kubernetes community on the [community page](community page).
+Learn how to engage with the KUDO community on the [community page](https://kudo.dev/community/).
 
 You can reach the maintainers of this project at:
 
 - [Slack](https://kubernetes.slack.com/messages/kudo/)
 - [Mailing List](https://groups.google.com/d/forum/kudobuilder)
+
+## Code culture
+
+This is a set of practices we try to live by when developing KUDO. These are just defaults (soft rules). Deviations from them are possible, but have to be justified.
+
+### General guidelines
+- Master is always releasable (green CI)
+- All feature/bug-fixing work should have an open issue with a description, unless it's something very simple
+- Every user-facing feature that is NOT behind a feature gate should have integration or an e2e test
+
+### Pull requests
+- One core-team member has to approve the PR to be able to merge (all people listed in `.github/CODEOWNERS` file)
+- One approval is enough to merge. However, if there are requests for change they have to be resolved prior to the merge
+- Since KUDO is developed in multiple timezones, try to keep the PR open for everyone to be able to see it (~24h, keep in mind public holidays)
+- We prefer squash commits so that all changes from a branch are committed to master as a single commit
+- Before you merge, make sure your commit title and description are meaningful. Github by default will list all the individual PR commits when squashing which are rarely insightful. We aim for a clean and meaningful commit history. 
+
+- For a piece of work that takes >3-5 days, pair with somebody
+- When you pair with somebody, don't forget to appreciate their work using [co-authorship](https://help.github.com/en/github/committing-changes-to-your-project/creating-a-commit-with-multiple-authors)
+- Open a PR as soon as possible to give everybody a chance to review it
+- For PRs that tackle a bigger feature/refactoring schedule a walk-through with the team. PR reviews are a lot more meaningful if reviewers understand your code mental model.
+
+### As a code owner (core team member)
+- Schedule a portion of your day to review PRs to appreciate work of others
 
 ## Is My Thing an Enhancement?
 
@@ -72,7 +119,7 @@ It is unlikely an enhancement if it is:
 - performance improvements, which are only visible to users as faster API operations, or faster control loops
 - adding error messages or events
 
-If you are not sure, ask someone in the [#kudo](https://kubernetes.slack.com/messages/kudo/) channel on Slack or ping someone listed in [OWNERS](https://github.com/kudobuilder/kudo/blob/master/OWNERS).
+If you are not sure, ask someone in the [#kudo](https://kubernetes.slack.com/messages/kudo/) channel on Slack or ping someone listed in [CODEOWNERS](https://github.com/kudobuilder/kudo/blob/master/.github/CODEOWNERS).
 
 ### When to Create a New Enhancement Issue
 

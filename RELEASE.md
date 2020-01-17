@@ -12,25 +12,26 @@ Bug fixes are expected to be worked on and applied to `master`.  If the fix is n
 
 ## Release Request Process
 
-The KUDO Project is released on an as-needed basis. The process is as follows:
+The KUDO Project is aiming to do monthly minor releases but the period could be even shorter if necessary. The process is as follows:
 
-1. An issue is proposing a new release with a changelog since the last release
-1. All [OWNERS](OWNERS) must LGTM this release
-1. Release process below is followed
-1. The release issue is closed
+1. Every release should have an appointed release manager (RM)
+1. RM is responsible for following the process below
+1. RM should announce the release in the public [#kudo slack channel](https://kubernetes.slack.com/messages/kudo/) at least two days prior to the date
+1. RM makes sure all PRs that need to go into the release are merged prior to the process starting
 
 ### Release Process
 
-The official binaries for KUDO are created using [goreleaser](https://goreleaser.com/) for the release process through the circle-ci release job. The [.goreleaser.yml](.goreleaser.yml) defines the binaries which are supported for each release.  The circle-ci release process has not been provided with credentials for Github and Docker hub yet.  The current process to initiate a release is:
+The official binaries for KUDO are created using [goreleaser](https://goreleaser.com/). The [.goreleaser.yml](.goreleaser.yml) defines the binaries which are supported for each release. Goreleaser is right now run manually from the RM computer. The current process to initiate a release is:
 
 1. Ensure you have credential `GITHUB_TOKEN` set. The env must include `export GITHUB_TOKEN=<personal access token>`. [Help](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) provided from Github. The token must grant full access to: repo, write:packages, read:packages.
 1. Ensure you are logged into Docker hub and have rights to push to kudobuilder.
 1. Tag repo with expected release `git tag -a v0.2.0 -m "v0.2.0"`  && push tag `git push --tags`.
 1. Invoke goreleaser `goreleaser --rm-dist`.
-1. Update the GH release with Release high-levels and a changelog.
+1. Update the GH release with Release highlights and a changelog.
 1. Send an announcement email to `kudobuilder@googlegroups.com` with the subject `[ANNOUNCE] Kudo $VERSION is released`
-1. Create a PR against [kudobuilder/www](https://github.com/kudobuilder/www) with an according [blog post](https://kudo.dev/internal-docs/blog-index.html#release-posts).
+1. Create a PR against [kudobuilder/kudo.dev](https://github.com/kudobuilder/kudo.dev) with an according [blog post](https://kudo.dev/internal-docs/blog-index.html#release-posts).
 1. Run `./hack/generate_krew.sh` and submit the generated `kudo.yaml` to https://github.com/kubernetes-sigs/krew-index/.
+1. Update KUDO_VERSION [in the Makefile](https://github.com/kudobuilder/operators/blob/master/Makefile#L2) of operators repo
 
 **Note:** If there are issues with the release, any changes to the repository will result in it being considered "dirty" and not in a state to be released.
 It is possible outside of the standard release process to build a "snapshot" release using the following command: `goreleaser release --skip-publish --snapshot --rm-dist`
@@ -43,3 +44,16 @@ As outlined above, when it is necessary to create a new release branch, it is ne
 ### Cutting a Patch Release
 
 When cutting a patch release, for example `v0.3.3`, it is necessary to ensure that all bugs fixed on master after `v0.3.2` have landed on the release branch, `releases/0.3` in this case.
+
+### Cutting a pre-release
+
+Cutting  pre-release is very similar to cutting a stable release. That is because our `.goreleaser.yml` contains `prerelease: auto` which automatically detects a pre-release if the tag name looks like a pre-release.
+
+For pre-releases, we're not pushing docker images to the official repo. This is intentional because the following setting is set in `.goreleaser.yml` - `dockers.skip_push: auto`. That is because for pre-release, we don't want to update the latest tag just yet. Even though there is no push, goreleaser still builds the images for you.
+
+This is the full pre-release step by step:
+1. Ensure you have credential `GITHUB_TOKEN` set. The env must include `export GITHUB_TOKEN=<personal access token>`. [Help](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) provided from Github. The token must grant full access to: repo, write:packages, read:packages.
+1. Ensure you are logged into Docker hub and have rights to push to kudobuilder.
+1. Tag repo with expected pre-release (the name of the tag has to contain e.g. rc1 or similar) `git tag -a v0.2.0-rc1 -m "v0.2.0-rc1"`  && push tag `git push --tags`.
+1. Invoke goreleaser `goreleaser --rm-dist`.
+1. Push only versioned docker image via `docker push kudobuilder/controller:v0.2.0-rc1`

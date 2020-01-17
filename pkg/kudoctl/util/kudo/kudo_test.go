@@ -5,46 +5,41 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	"gotest.tools/assert"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
-
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func newTestSimpleK2o() *Client {
 	return NewClientFromK8s(fake.NewSimpleClientset())
 }
 
-func TestNewK2oClient(t *testing.T) {
+func TestKudoClientValidate(t *testing.T) {
 	tests := []struct {
 		err string
 	}{
-		{"invalid configuration: no configuration has been provided"}, // non existing test
+		{"CRDs invalid: failed to retrieve CRD"}, // verify that NewClient tries to validate CRDs
 	}
 
 	for _, tt := range tests {
-		// Just interested in errors
-		_, err := NewClient("default", "")
-		if err.Error() != tt.err {
-			t.Errorf("non existing test:\nexpected: %v\n     got: %v", tt.err, err.Error())
-		}
+		_, err := NewClient("testdata/test-config", 0, true)
+		assert.ErrorContains(t, err, tt.err)
 	}
 }
 
 func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 
-	obj := v1alpha1.Operator{
+	obj := v1beta1.Operator{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.dev/v1alpha1",
+			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Operator",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-			},
 			Name: "test",
 		},
 	}
@@ -54,7 +49,7 @@ func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 		err      string
 		createns string
 		getns    string
-		obj      *v1alpha1.Operator
+		obj      *v1beta1.Operator
 	}{
 		{false, "", "", "", nil},               // 1
 		{false, "", "default", "default", nil}, // 2
@@ -64,11 +59,10 @@ func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		i := i
 		k2o := newTestSimpleK2o()
 
 		// create Operator
-		_, err := k2o.clientset.KudoV1alpha1().Operators(tt.createns).Create(tt.obj)
+		_, err := k2o.clientset.KudoV1beta1().Operators(tt.createns).Create(tt.obj)
 		if err != nil {
 			if err.Error() != "object does not implement the Object interfaces" {
 				t.Errorf("unexpected error: %+v", err)
@@ -85,38 +79,36 @@ func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 }
 
 func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
-	obj := v1alpha1.Instance{
+	obj := v1beta1.Instance{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.dev/v1alpha1",
+			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-				kudo.OperatorLabel:        "test",
+				kudo.OperatorLabel: "test",
 			},
 			Name: "test",
 		},
-		Spec: v1alpha1.InstanceSpec{
+		Spec: v1beta1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
 		},
 	}
 
-	wrongObj := v1alpha1.Instance{
+	wrongObj := v1beta1.Instance{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.dev/v1alpha1",
+			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-				kudo.OperatorLabel:        "test",
+				kudo.OperatorLabel: "test",
 			},
 			Name: "test",
 		},
-		Spec: v1alpha1.InstanceSpec{
+		Spec: v1beta1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-0.9",
 			},
@@ -130,7 +122,7 @@ func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
 		instanceExists bool
 		namespace      string
 		instanceName   string
-		obj            *v1alpha1.Instance
+		obj            *v1beta1.Instance
 	}{
 		{"no existing instance in cluster", false, "", "", nil},                                                     // 1
 		{"same namespace and instance name", true, instanceNamespace, obj.ObjectMeta.Name, &obj},                    // 3
@@ -143,7 +135,7 @@ func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
 
 		// create Instance
 		if tt.obj != nil {
-			_, err := k2o.clientset.KudoV1alpha1().Instances(instanceNamespace).Create(tt.obj)
+			_, err := k2o.clientset.KudoV1beta1().Instances(instanceNamespace).Create(tt.obj)
 			if err != nil {
 				t.Fatalf("%s: Error during test setup, cannot create test instance %v", tt.name, err)
 			}
@@ -159,19 +151,18 @@ func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
 }
 
 func TestKudoClient_ListInstances(t *testing.T) {
-	obj := v1alpha1.Instance{
+	obj := v1beta1.Instance{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.dev/v1alpha1",
+			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-				kudo.OperatorLabel:        "test",
+				kudo.OperatorLabel: "test",
 			},
 			Name: "test",
 		},
-		Spec: v1alpha1.InstanceSpec{
+		Spec: v1beta1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
@@ -182,7 +173,7 @@ func TestKudoClient_ListInstances(t *testing.T) {
 	tests := []struct {
 		expectedInstances []string
 		namespace         string
-		obj               *v1alpha1.Instance
+		obj               *v1beta1.Instance
 	}{
 		{[]string{}, installNamespace, nil},          // 1
 		{[]string{obj.Name}, installNamespace, &obj}, // 2
@@ -194,7 +185,7 @@ func TestKudoClient_ListInstances(t *testing.T) {
 
 		// create Instance
 		if tt.obj != nil {
-			_, err := k2o.clientset.KudoV1alpha1().Instances(installNamespace).Create(tt.obj)
+			_, err := k2o.clientset.KudoV1beta1().Instances(installNamespace).Create(tt.obj)
 			if err != nil {
 				t.Errorf("%d: Error creating instance in tests setup", i+1)
 			}
@@ -210,18 +201,15 @@ func TestKudoClient_ListInstances(t *testing.T) {
 
 func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 	operatorName := "test"
-	obj := v1alpha1.OperatorVersion{
+	obj := v1beta1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.dev/v1alpha1",
+			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-			},
 			Name: fmt.Sprintf("%s-1.0", operatorName),
 		},
-		Spec: v1alpha1.OperatorVersionSpec{
+		Spec: v1beta1.OperatorVersionSpec{
 			Version: "1.0",
 		},
 	}
@@ -231,7 +219,7 @@ func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 		name             string
 		expectedVersions []string
 		namespace        string
-		obj              *v1alpha1.OperatorVersion
+		obj              *v1beta1.OperatorVersion
 	}{
 		{"no operator version defined", []string{}, installNamespace, nil},
 		{"operator version exists in the same namespace", []string{obj.Spec.Version}, installNamespace, &obj},
@@ -243,7 +231,7 @@ func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 
 		// create Instance
 		if tt.obj != nil {
-			_, err := k2o.clientset.KudoV1alpha1().OperatorVersions(installNamespace).Create(tt.obj)
+			_, err := k2o.clientset.KudoV1beta1().OperatorVersions(installNamespace).Create(tt.obj)
 			if err != nil {
 				t.Errorf("Error creating operator version in tests setup for %s", tt.name)
 			}
@@ -258,15 +246,12 @@ func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 }
 
 func TestKudoClient_InstallOperatorObjToCluster(t *testing.T) {
-	obj := v1alpha1.Operator{
+	obj := v1beta1.Operator{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.dev/v1alpha1",
+			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Operator",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-			},
 			Name: "test",
 		},
 	}
@@ -275,7 +260,7 @@ func TestKudoClient_InstallOperatorObjToCluster(t *testing.T) {
 		name     string
 		err      string
 		createns string
-		obj      *v1alpha1.Operator
+		obj      *v1beta1.Operator
 	}{
 		{"", "operators.kudo.dev \"\" not found", "", nil},                // 1
 		{"", "operators.kudo.dev \"\" not found", "default", nil},         // 2
@@ -285,34 +270,28 @@ func TestKudoClient_InstallOperatorObjToCluster(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		i := i
 		k2o := newTestSimpleK2o()
 
 		// create Operator
-		k2o.clientset.KudoV1alpha1().Operators(tt.createns).Create(tt.obj)
+		k2o.clientset.KudoV1beta1().Operators(tt.createns).Create(tt.obj) //nolint:errcheck
 
 		// test if Operator exists in namespace
-		k2o.InstallOperatorObjToCluster(tt.obj, tt.createns)
+		k2o.InstallOperatorObjToCluster(tt.obj, tt.createns) //nolint:errcheck
 
-		_, err := k2o.clientset.KudoV1alpha1().Operators(tt.createns).Get(tt.name, metav1.GetOptions{})
-		if err != nil {
-			if err.Error() != tt.err {
-				t.Errorf("%d:\nexpected error: %v\n     got error: %v", i+1, tt.err, err)
-			}
+		_, err := k2o.clientset.KudoV1beta1().Operators(tt.createns).Get(tt.name, metav1.GetOptions{})
+		if tt.err != "" {
+			assert.ErrorContains(t, err, tt.err, "failure in %v test case", i+1)
 		}
 	}
 }
 
 func TestKudoClient_InstallOperatorVersionObjToCluster(t *testing.T) {
-	obj := v1alpha1.OperatorVersion{
+	obj := v1beta1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.dev/v1alpha1",
+			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-			},
 			Name: "test",
 		},
 	}
@@ -321,7 +300,7 @@ func TestKudoClient_InstallOperatorVersionObjToCluster(t *testing.T) {
 		name     string
 		err      string
 		createns string
-		obj      *v1alpha1.OperatorVersion
+		obj      *v1beta1.OperatorVersion
 	}{
 		{"", "operatorversions.kudo.dev \"\" not found", "", nil},                // 1
 		{"", "operatorversions.kudo.dev \"\" not found", "default", nil},         // 2
@@ -331,34 +310,28 @@ func TestKudoClient_InstallOperatorVersionObjToCluster(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		i := i
 		k2o := newTestSimpleK2o()
 
 		// create Operator
-		k2o.clientset.KudoV1alpha1().OperatorVersions(tt.createns).Create(tt.obj)
+		k2o.clientset.KudoV1beta1().OperatorVersions(tt.createns).Create(tt.obj) //nolint:errcheck
 
 		// test if Operator exists in namespace
-		k2o.InstallOperatorVersionObjToCluster(tt.obj, tt.createns)
+		k2o.InstallOperatorVersionObjToCluster(tt.obj, tt.createns) //nolint:errcheck
 
-		_, err := k2o.clientset.KudoV1alpha1().OperatorVersions(tt.createns).Get(tt.name, metav1.GetOptions{})
-		if err != nil {
-			if err.Error() != tt.err {
-				t.Errorf("%d:\nexpected error: %v\n     got error: %v", i+1, tt.err, err)
-			}
+		_, err := k2o.clientset.KudoV1beta1().OperatorVersions(tt.createns).Get(tt.name, metav1.GetOptions{})
+		if tt.err != "" {
+			assert.ErrorContains(t, err, tt.err, "failure in %v test case", i+1)
 		}
 	}
 }
 
 func TestKudoClient_InstallInstanceObjToCluster(t *testing.T) {
-	obj := v1alpha1.Instance{
+	obj := v1beta1.Instance{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.dev/v1alpha1",
+			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-			},
 			Name: "test",
 		},
 	}
@@ -367,7 +340,7 @@ func TestKudoClient_InstallInstanceObjToCluster(t *testing.T) {
 		name     string
 		err      string
 		createns string
-		obj      *v1alpha1.Instance
+		obj      *v1beta1.Instance
 	}{
 		{"", "instances.kudo.dev \"\" not found", "", nil},                // 1
 		{"", "instances.kudo.dev \"\" not found", "default", nil},         // 2
@@ -377,38 +350,34 @@ func TestKudoClient_InstallInstanceObjToCluster(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		i := i
 		k2o := newTestSimpleK2o()
 
 		// create Operator
-		k2o.clientset.KudoV1alpha1().Instances(tt.createns).Create(tt.obj)
+		k2o.clientset.KudoV1beta1().Instances(tt.createns).Create(tt.obj) //nolint:errcheck
 
 		// test if Operator exists in namespace
-		k2o.InstallInstanceObjToCluster(tt.obj, tt.createns)
+		k2o.InstallInstanceObjToCluster(tt.obj, tt.createns) //nolint:errcheck
 
-		_, err := k2o.clientset.KudoV1alpha1().Instances(tt.createns).Get(tt.name, metav1.GetOptions{})
-		if err != nil {
-			if err.Error() != tt.err {
-				t.Errorf("%d:\nexpected error: %v\n     got error: %v", i+1, tt.err, err)
-			}
+		_, err := k2o.clientset.KudoV1beta1().Instances(tt.createns).Get(tt.name, metav1.GetOptions{})
+		if tt.err != "" {
+			assert.ErrorContains(t, err, tt.err, "failure in %v test case", i+1)
 		}
 	}
 }
 
 func TestKudoClient_GetInstance(t *testing.T) {
-	testInstance := v1alpha1.Instance{
+	testInstance := v1beta1.Instance{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.dev/v1alpha1",
+			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-				kudo.OperatorLabel:        "test",
+				kudo.OperatorLabel: "test",
 			},
 			Name: "test",
 		},
-		Spec: v1alpha1.InstanceSpec{
+		Spec: v1beta1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
@@ -420,7 +389,7 @@ func TestKudoClient_GetInstance(t *testing.T) {
 		name             string
 		found            bool
 		namespaceToQuery string
-		storedInstance   *v1alpha1.Instance
+		storedInstance   *v1beta1.Instance
 	}{
 		{"no instance exists", false, installNamespace, nil},                        // 1
 		{"instance exists", true, installNamespace, &testInstance},                  // 2
@@ -432,7 +401,7 @@ func TestKudoClient_GetInstance(t *testing.T) {
 
 		// create Instance
 		if tt.storedInstance != nil {
-			_, err := k2o.clientset.KudoV1alpha1().Instances(installNamespace).Create(tt.storedInstance)
+			_, err := k2o.clientset.KudoV1beta1().Instances(installNamespace).Create(tt.storedInstance)
 			if err != nil {
 				t.Errorf("%d: Error creating instance in tests setup", i+1)
 			}
@@ -448,18 +417,15 @@ func TestKudoClient_GetInstance(t *testing.T) {
 
 func TestKudoClient_GetOperatorVersion(t *testing.T) {
 	operatorName := "test"
-	testOv := v1alpha1.OperatorVersion{
+	testOv := v1beta1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.dev/v1alpha1",
+			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "OperatorVersion",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-			},
 			Name: fmt.Sprintf("%s-1.0", operatorName),
 		},
-		Spec: v1alpha1.OperatorVersionSpec{
+		Spec: v1beta1.OperatorVersionSpec{
 			Version: "1.0",
 		},
 	}
@@ -469,7 +435,7 @@ func TestKudoClient_GetOperatorVersion(t *testing.T) {
 		name      string
 		found     bool
 		namespace string
-		storedOv  *v1alpha1.OperatorVersion
+		storedOv  *v1beta1.OperatorVersion
 	}{
 		{"no operator version defined", false, installNamespace, nil},
 		{"operator version exists in the same namespace", true, installNamespace, &testOv},
@@ -481,7 +447,7 @@ func TestKudoClient_GetOperatorVersion(t *testing.T) {
 
 		// create Instance
 		if tt.storedOv != nil {
-			_, err := k2o.clientset.KudoV1alpha1().OperatorVersions(installNamespace).Create(tt.storedOv)
+			_, err := k2o.clientset.KudoV1beta1().OperatorVersions(installNamespace).Create(tt.storedOv)
 			if err != nil {
 				t.Errorf("Error creating operator version in tests setup for %s", tt.name)
 			}
@@ -496,19 +462,18 @@ func TestKudoClient_GetOperatorVersion(t *testing.T) {
 }
 
 func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
-	testInstance := v1alpha1.Instance{
+	testInstance := v1beta1.Instance{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.dev/v1alpha1",
+			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-				kudo.OperatorLabel:        "test",
+				kudo.OperatorLabel: "test",
 			},
 			Name: "test",
 		},
-		Spec: v1alpha1.InstanceSpec{
+		Spec: v1beta1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
@@ -536,7 +501,7 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 		// create Instance
 		instanceToCreate := testInstance
 		instanceToCreate.Spec.Parameters = tt.existingParameters
-		_, err := k2o.clientset.KudoV1alpha1().Instances(installNamespace).Create(&instanceToCreate)
+		_, err := k2o.clientset.KudoV1beta1().Instances(installNamespace).Create(&instanceToCreate)
 		if err != nil {
 			t.Errorf("Error creating operator version in tests setup for %s", tt.name)
 		}
@@ -570,6 +535,65 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 			fmt.Println(n)
 			if !ok || found != v {
 				t.Errorf("%s: Value of parameter %s should have not been updated from value %s but is %s", tt.name, n, v, found)
+			}
+		}
+	}
+}
+
+func TestKudoClient_DeleteInstance(t *testing.T) {
+	testInstance := v1beta1.Instance{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kudo.dev/v1beta1",
+			Kind:       "Instance",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: v1beta1.InstanceSpec{
+			OperatorVersion: v1.ObjectReference{
+				Name: "test-1.0",
+			},
+		},
+	}
+
+	installNamespace := "default"
+	tests := []struct {
+		name         string
+		instanceName string
+		namespace    string
+		shouldFail   bool
+	}{
+		{"non-existing instance", "nonexisting-instance", installNamespace, true},
+		{"non-existing namespace", testInstance.Name, "otherns", true},
+		{"delete instance", testInstance.Name, installNamespace, false},
+	}
+
+	for _, test := range tests {
+		k2o := newTestSimpleK2o()
+
+		_, err := k2o.clientset.KudoV1beta1().Instances(installNamespace).Create(&testInstance)
+		if err != nil {
+			t.Fatalf("error creating instance in tests setup for")
+		}
+
+		err = k2o.DeleteInstance(test.instanceName, test.namespace)
+		if err == nil {
+			if test.shouldFail {
+				t.Errorf("expected test %s to fail", test.name)
+			} else {
+				instance, err := k2o.GetInstance(test.instanceName, test.namespace)
+				if err != nil {
+					t.Errorf("failed to get instance: %v", err)
+				}
+
+				if instance != nil {
+					t.Errorf("instance is still retrieved after being deleted in test %s", test.name)
+				}
+			}
+
+		} else {
+			if !test.shouldFail {
+				t.Errorf("expected test %s to succeed but got error: %v", test.name, err)
 			}
 		}
 	}

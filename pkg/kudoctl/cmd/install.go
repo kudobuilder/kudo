@@ -1,11 +1,12 @@
 package cmd
 
 import (
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
+	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
 )
 
 var (
@@ -25,8 +26,8 @@ var (
   # Install operator from tarball at URL
   kubectl kudo install http://kudo.dev/zk.tgz
 
-  # Specify a package version of Kafka to install to your cluster
-  kubectl kudo install kafka --version=1.1.1`
+  # Specify an operator version of Kafka to install to your cluster
+  kubectl kudo install kafka --operator-version=1.1.1`
 )
 
 // newInstallCmd creates the install command for the CLI
@@ -43,17 +44,18 @@ func newInstallCmd(fs afero.Fs) *cobra.Command {
 			var err error
 			options.Parameters, err = install.GetParameterMap(parameters)
 			if err != nil {
-				return errors.WithMessage(err, "could not parse arguments")
+				return fmt.Errorf("could not parse arguments: %w", err)
 			}
 
 			return install.Run(args, options, fs, &Settings)
 		},
 	}
 
-	installCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name. (default to Operator name)")
+	installCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The Instance name. (defaults to Operator name appended with -instance)")
 	installCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")
 	installCmd.Flags().StringVar(&options.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
-	installCmd.Flags().StringVar(&options.PackageVersion, "version", "", "A specific package version on the official GitHub repo. (default to the most recent)")
-	installCmd.Flags().BoolVar(&options.SkipInstance, "skip-instance", false, "If set, install will install the Operator and OperatorVersion, but not an instance. (default \"false\")")
+	installCmd.Flags().StringVar(&options.AppVersion, "app-version", "", "A specific app version in the official GitHub repo. (default to the most recent)")
+	installCmd.Flags().StringVar(&options.OperatorVersion, "operator-version", "", "A specific operator version int the official GitHub repo. (default to the most recent)")
+	installCmd.Flags().BoolVar(&options.SkipInstance, "skip-instance", false, "If set, install will install the Operator and OperatorVersion, but not an Instance. (default \"false\")")
 	return installCmd
 }

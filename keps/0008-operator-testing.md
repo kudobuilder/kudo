@@ -1,6 +1,7 @@
 ---
 kep-number: 8
 title: Operator Testing
+short-desc: Description of how to test operators
 authors:
   - "@jbarrick-mesosphere"
 owners:
@@ -250,7 +251,7 @@ When searching a test step file, if a `TestStep` object is found, it includes se
 
 ```
 type TestStep struct {
-    // The type meta object, should always be a GVK of kudo.dev/v1alpha1/TestStep.
+    // The type meta object, should always be a GVK of kudo.dev/v1beta1/TestStep.
     TypeMeta
     // Override the default metadata. Set labels or override the test step name.
     ObjectMeta
@@ -287,7 +288,7 @@ The `Delete` list can be used to specify objects to delete prior to running the 
 A `TestStep` is also able to invoke kubectl commands or plugins by specifying a list of commands in the `kubectl` setting, e.g.:
 
 ```
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: TestStep
 kubectl:
 - apply -f ./testdata/pod.yaml
@@ -336,7 +337,7 @@ When searching the assertion file for a test step, if a `TestAssert` object is f
 
 ```
 type TestAssert struct {
-    // The type meta object, should always be a GVK of kudo.dev/v1alpha1/TestAssert.
+    // The type meta object, should always be a GVK of kudo.dev/v1beta1/TestAssert.
     TypeMeta
     // Override the default timeout of 30 seconds (in seconds).
     Timeout int

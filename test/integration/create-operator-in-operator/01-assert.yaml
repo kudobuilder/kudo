@@ -1,4 +1,4 @@
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   name: oio-instance
@@ -6,17 +6,17 @@ status:
   aggregatedStatus:
     status: COMPLETE
 ---
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
-  name: oio-instance-inner-instance
+  name: inner-instance
 status:
   aggregatedStatus:
     status: COMPLETE
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: ConfigMap
 metadata:
-  name: oio-instance-inner-instance-nginx
-spec:
-  replicas: 0
+  name: test-configmap
+data:
+  foo: bar-xxx

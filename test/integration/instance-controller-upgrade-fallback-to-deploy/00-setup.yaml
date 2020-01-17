@@ -12,12 +12,12 @@
 #   2. Create a new operator version with just a "deploy" plan.
 #   3. Trigger an upgrading by updating the operator version used by the instance.
 #   4. Verify that KUDO creates a new "deploy" plan execution.
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Operator
 metadata:
   name: icto-upgrade
 ---
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: OperatorVersion
 metadata:
   name: icto-upgrade
@@ -27,10 +27,10 @@ spec:
     kind: Operator
   version: "1.0"
   plans:
-    deploy:
-    upgrade:
+    deploy: {}
+    upgrade: {}
 ---
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   name: icto-upgrade-fallback-to-deploy

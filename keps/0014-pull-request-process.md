@@ -1,6 +1,7 @@
 ---
 kep-number: 0014
 title: Pull Request Process
+short-desc: Description of GitHub issues, labels, pull requests and commands
 authors:
   - "@jbarrick-mesosphere"
 owners:

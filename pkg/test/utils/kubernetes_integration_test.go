@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 func TestCreateOrUpdate(t *testing.T) {
 	// Run the test a bunch of times to try to trigger a conflict and ensure that it handles conflicts properly.
 	for i := 0; i < 10; i++ {
-		depToUpdate := WithSpec(NewPod("update-me", fmt.Sprintf("default-%d", i)), map[string]interface{}{
+		depToUpdate := WithSpec(t, NewPod("update-me", fmt.Sprintf("default-%d", i)), map[string]interface{}{
 			"containers": []map[string]interface{}{
 				{
 					"image": "nginx",
@@ -76,7 +76,7 @@ func TestWaitForCRDs(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	instance := NewResource("kudo.dev/v1alpha1", "Instance", "zk", "ns")
+	instance := NewResource("kudo.dev/v1beta1", "Instance", "zk", "ns")
 
 	// Verify that we cannot create the instance, because the test environment is empty.
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
@@ -99,7 +99,7 @@ func TestWaitForCRDs(t *testing.T) {
 }
 
 func TestClientWatch(t *testing.T) {
-	pod := WithSpec(NewPod("my-pod", "default"), map[string]interface{}{
+	pod := WithSpec(t, NewPod("my-pod", "default"), map[string]interface{}{
 		"containers": []map[string]interface{}{
 			{
 				"image": "nginx",

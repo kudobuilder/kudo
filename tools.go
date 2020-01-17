@@ -5,10 +5,7 @@
 package tools
 
 import (
-	_ "golang.org/x/lint/golint"
-	_ "golang.org/x/tools/cmd/goimports"
-	_ "honnef.co/go/tools/cmd/staticcheck"
-
+	_ "github.com/go-bindata/go-bindata/go-bindata"
 	_ "k8s.io/code-generator/cmd/client-gen"
 	_ "k8s.io/code-generator/cmd/deepcopy-gen"
 	_ "k8s.io/code-generator/cmd/defaulter-gen"

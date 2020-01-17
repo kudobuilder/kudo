@@ -1,17 +1,18 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"testing"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/test"
-	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
+	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/test"
+	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
 var (
@@ -48,7 +49,7 @@ func newTestCmd() *cobra.Command {
 	parallel := 0
 	artifactsDir := ""
 
-	options := kudo.TestSuite{}
+	options := harness.TestSuite{}
 
 	testCmd := &cobra.Command{
 		Use:   "test [flags]... [test directories]...",
@@ -71,7 +72,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 				if _, err := os.Stat("kudo-test.yaml"); err == nil {
 					configPath = "kudo-test.yaml"
 				} else {
-					return fmt.Errorf("kudo-test.yaml not found, provide either --config or arguments indicating the tests to load")
+					return errors.New("kudo-test.yaml not found, provide either --config or arguments indicating the tests to load")
 				}
 			}
 
@@ -86,7 +87,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 					kind := obj.GetObjectKind().GroupVersionKind().Kind
 
 					if kind == "TestSuite" {
-						options = *obj.(*kudo.TestSuite)
+						options = *obj.(*harness.TestSuite)
 					} else {
 						log.Println(fmt.Errorf("unknown object type: %s", kind))
 					}
@@ -121,11 +122,11 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 			}
 
 			if options.KINDContext == "" {
-				options.KINDContext = kudo.DefaultKINDContext
+				options.KINDContext = harness.DefaultKINDContext
 			}
 
 			if options.StartControlPlane && options.StartKIND {
-				return fmt.Errorf("only one of --start-control-plane and --start-kind can be set")
+				return errors.New("only one of --start-control-plane and --start-kind can be set")
 			}
 
 			if isSet(flags, "start-kudo") {
@@ -153,7 +154,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 			}
 
 			if len(options.TestDirs) == 0 {
-				return fmt.Errorf("no test directories provided, please provide either --config or test directories on the command line")
+				return errors.New("no test directories provided, please provide either --config or test directories on the command line")
 			}
 
 			return nil

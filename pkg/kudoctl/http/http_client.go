@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 
@@ -37,11 +38,11 @@ func (c *Client) Get(href string) (*bytes.Buffer, error) {
 
 	_, err = io.Copy(buf, resp.Body)
 	if err != nil {
-		fmt.Printf("Error when copying response buffer %s", err)
+		clog.Printf("Error when copying response buffer %s", err)
 	}
 	err = resp.Body.Close()
 	if err != nil {
-		fmt.Printf("Error when closing the response body %s", err)
+		clog.Printf("Error when closing the response body %s", err)
 	}
 	return buf, err
 }

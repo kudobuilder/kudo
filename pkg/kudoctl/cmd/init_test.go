@@ -9,11 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
-
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
@@ -25,9 +20,14 @@ import (
 	yamlutil "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes/fake"
 	testcore "k8s.io/client-go/testing"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
-var updateGolden = flag.Bool("update", false, "update .golden files")
+var updateGolden = flag.Bool("update", false, "update .golden files and manifests in /config/crd")
 
 func TestInitCmd_dry(t *testing.T) {
 
@@ -66,7 +66,7 @@ func TestInitCmd_exists(t *testing.T) {
 		fs:     afero.NewMemMapFs(),
 		client: &kube.Client{KubeClient: fc, ExtClient: fc2},
 	}
-	clog.Init(nil, &buf)
+	clog.InitWithFlags(nil, &buf)
 	Settings.Home = "/opt"
 
 	if err := cmd.run(); err != nil {
@@ -117,34 +117,50 @@ func TestInitCmd_output(t *testing.T) {
 	}
 }
 
-func TestInitCmd_YAMLWriter(t *testing.T) {
-	file := "deploy-kudo.yaml"
-	fs := afero.NewMemMapFs()
-	out := &bytes.Buffer{}
-	initCmd := newInitCmd(fs, out)
-	flags := map[string]string{"dry-run": "true", "output": "yaml"}
-
-	for flag, value := range flags {
-		initCmd.Flags().Set(flag, value)
+func TestInitCmd_yamlOutput(t *testing.T) {
+	tests := []struct {
+		name       string
+		goldenFile string
+		flags      map[string]string
+	}{
+		{"custom namespace", "deploy-kudo-ns.yaml", map[string]string{"dry-run": "true", "output": "yaml", "namespace": "foo"}},
+		{"yaml output", "deploy-kudo.yaml", map[string]string{"dry-run": "true", "output": "yaml"}},
+		{"service account", "deploy-kudo-sa.yaml", map[string]string{"dry-run": "true", "output": "yaml", "service-account": "safoo", "namespace": "foo"}},
+		{"with webhook", "deploy-kudo-webhook.yaml", map[string]string{"dry-run": "true", "output": "yaml", "webhook": "InstanceValidation"}},
 	}
-	initCmd.RunE(initCmd, []string{})
 
-	gp := filepath.Join("testdata", file+".golden")
+	for _, tt := range tests {
+		fs := afero.NewMemMapFs()
+		out := &bytes.Buffer{}
+		initCmd := newInitCmd(fs, out)
+		Settings.AddFlags(initCmd.Flags())
 
-	if *updateGolden {
-		t.Log("update golden file")
-		if err := ioutil.WriteFile(gp, out.Bytes(), 0644); err != nil {
-			t.Fatalf("failed to update golden file: %s", err)
+		for f, value := range tt.flags {
+			if err := initCmd.Flags().Set(f, value); err != nil {
+				t.Fatal(err)
+			}
 		}
-	}
-	g, err := ioutil.ReadFile(gp)
-	if err != nil {
-		t.Fatalf("failed reading .golden: %s", err)
+
+		if err := initCmd.RunE(initCmd, []string{}); err != nil {
+			t.Fatal(err)
+		}
+
+		gp := filepath.Join("testdata", tt.goldenFile+".golden")
+
+		if *updateGolden {
+			t.Logf("updating golden file %s", tt.goldenFile)
+			if err := ioutil.WriteFile(gp, out.Bytes(), 0644); err != nil {
+				t.Fatalf("failed to update golden file: %s", err)
+			}
+		}
+		g, err := ioutil.ReadFile(gp)
+		if err != nil {
+			t.Fatalf("failed reading .golden: %s", err)
+		}
+
+		assert.Equal(t, string(g), out.String(), "for golden file: %s", gp)
 	}
 
-	if !bytes.Equal(out.Bytes(), g) {
-		t.Errorf("json does not match .golden file")
-	}
 }
 
 func TestNewInitCmd(t *testing.T) {
@@ -166,7 +182,9 @@ func TestNewInitCmd(t *testing.T) {
 			out := &bytes.Buffer{}
 			initCmd := newInitCmd(fs, out)
 			for key, value := range tt.flags {
-				initCmd.Flags().Set(key, value)
+				if err := initCmd.Flags().Set(key, value); err != nil {
+					t.Fatal(err)
+				}
 			}
 			err := initCmd.RunE(initCmd, tt.parameters)
 			assert.EqualError(t, err, tt.errorMessage)

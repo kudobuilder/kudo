@@ -16,4 +16,7 @@ const (
 	PhaseAnnotation = "kudo.dev/phase"
 	// StepAnnotation is k8s annotation key for step that created this object
 	StepAnnotation = "kudo.dev/step"
+
+	// PlanUIDAnnotation is a k8s annotation key for the last time a given plan was run on the referenced object
+	PlanUIDAnnotation = "kudo.dev/last-plan-execution-uid"
 )

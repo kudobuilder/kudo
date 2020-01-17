@@ -2,14 +2,13 @@ package cmd
 
 import (
 	"io"
-	"os"
+
+	"github.com/spf13/afero"
+	"github.com/spf13/cobra"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/version"
-
-	"github.com/spf13/afero"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -58,9 +57,10 @@ and serves as an API aggregation layer.
 	cmd.AddCommand(newInitCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newUpgradeCmd(fs))
 	cmd.AddCommand(newUpdateCmd())
+	cmd.AddCommand(newUninstallCmd())
 	cmd.AddCommand(newPackageCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newGetCmd())
-	cmd.AddCommand(newPlanCmd())
+	cmd.AddCommand(newPlanCmd(cmd.OutOrStdout()))
 	cmd.AddCommand(newRepoCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newTestCmd())
 	cmd.AddCommand(newVersionCmd())
@@ -73,9 +73,5 @@ and serves as an API aggregation layer.
 func initGlobalFlags(cmd *cobra.Command, out io.Writer) {
 	flags := cmd.PersistentFlags()
 	Settings.AddFlags(flags)
-	clog.Init(flags, out)
-	// FIXME: add error handling
-	cmd.ParseFlags(os.Args[1:])
-	// set ENV if flags are not used.
-	Settings.Init(flags)
+	clog.InitWithFlags(flags, out)
 }

@@ -60,12 +60,12 @@ func TestErrorf(t *testing.T) {
 	logging.out = &buf
 
 	// error f prints at level 2, no output by default
-	Errorf("error msg")
+	Errorf("error msg") //nolint:errcheck
 	assert.Equal(t, "", buf.String())
 	buf.Reset()
 
 	logging.verbosity = Level(2)
 	defer func() { logging.verbosity = Level(0) }()
-	Errorf("error msg")
+	Errorf("error msg") //nolint:errcheck
 	assert.Equal(t, "error msg\n", buf.String())
 }

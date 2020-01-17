@@ -3,12 +3,14 @@ package repo
 import (
 	"fmt"
 	"os"
-
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
+	"strings"
 
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 )
 
 // A repository is a http backed service which holds operators and an index file for those operators.
@@ -28,17 +30,36 @@ type Configuration struct {
 	Name string `json:"name"`
 }
 
+// Configurations is a collection of Configuration for Stringer
+type Configurations []*Configuration
+
 // Repositories represents the repositories.yaml file usually in the $KUDO_HOME
 type Repositories struct {
-	RepoVersion  string           `json:"repoVersion"`
-	Context      string           `json:"context"`
-	Repositories []*Configuration `json:"repositories"`
+	RepoVersion  string         `json:"repoVersion"`
+	Context      string         `json:"context"`
+	Repositories Configurations `json:"repositories"`
+}
+
+// String is a stringer function for Configuration
+func (c *Configuration) String() string {
+	return fmt.Sprintf("{ name:%v, url:%v }", c.Name, c.URL)
+}
+
+// String is a stringer function for Configurations
+func (c Configurations) String() string {
+
+	confs := make([]string, len(c))
+	for i, config := range c {
+		confs[i] = config.String()
+	}
+
+	return fmt.Sprintf("repo configs: %v", strings.Join(confs, ","))
 }
 
 // Default initialized repository.
 var Default = &Configuration{
 	Name: defaultRepoName,
-	URL:  "https://kudo-repository.storage.googleapis.com",
+	URL:  "https://kudo-repository.storage.googleapis.com/0.10.0",
 }
 
 // NewRepositories creates a new repo with only defaults populated
@@ -51,7 +72,8 @@ func NewRepositories() *Repositories {
 }
 
 // GetConfiguration returns a RepoName Config for a name or nil
-func (r Repositories) GetConfiguration(name string) *Configuration {
+func (r *Repositories) GetConfiguration(name string) *Configuration {
+	clog.V(4).Printf("%v\n", r.Repositories)
 	for _, repo := range r.Repositories {
 		if repo.Name == name {
 			return repo
@@ -61,7 +83,7 @@ func (r Repositories) GetConfiguration(name string) *Configuration {
 }
 
 // CurrentConfiguration provides the repo config for the current context
-func (r Repositories) CurrentConfiguration() *Configuration {
+func (r *Repositories) CurrentConfiguration() *Configuration {
 	return r.GetConfiguration(r.Context)
 }
 
@@ -79,7 +101,7 @@ func ConfigurationFromSettings(fs afero.Fs, home kudohome.Home, repoName string)
 		config = r.GetConfiguration(repoName)
 	}
 	if config == nil {
-		return nil, fmt.Errorf("unable to find respository for %s", repoName)
+		return nil, fmt.Errorf("unable to find repository for %s", repoName)
 	}
 	return config, nil
 }
@@ -156,15 +178,15 @@ type Metadata struct {
 	// Name is the name of the operator.
 	Name string `json:"name,omitempty"`
 
-	// Version is a A SemVer 2 conformant version string of the operator.
-	Version string `protobuf:"bytes,4,opt,name=version" json:"version,omitempty"`
+	// OperatorVersion is a A SemVer 2 conformant version string of the operator.
+	OperatorVersion string `protobuf:"bytes,4,opt,name=version" json:"operatorVersion"`
 
-	// AppVersion is the underlying service version (the format is not in our control)
+	// AppVersion is a SemVer 2 conformant version string of the underlying service.
 	AppVersion string `json:"appVersion,omitempty"`
 
 	// Description is a one-sentence description of the operator.
 	Description string `json:"description,omitempty"`
 
 	// Maintainers is a list of name and URL/email addresses of the maintainer(s).
-	Maintainers []*v1alpha1.Maintainer `json:"maintainers,omitempty"`
+	Maintainers []*v1beta1.Maintainer `json:"maintainers,omitempty"`
 }

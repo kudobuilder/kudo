@@ -1,14 +1,15 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
-
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
 const (
@@ -33,7 +34,7 @@ func newRepoRemoveCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 		Example: repoRemoveExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
-				return fmt.Errorf("need at least one argument, name of operator repository")
+				return errors.New("need at least one argument, name of operator repository")
 			}
 
 			remove.home = Settings.Home

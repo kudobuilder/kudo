@@ -2,7 +2,7 @@
 #
 # The next step will update the parameter and verify that it triggers the
 # execution for the plan defined as a trigger.
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: OperatorVersion
 metadata:
   name: icto-custom-trigger
@@ -12,11 +12,11 @@ spec:
   - name: foo
     trigger: foo-changed
   plans:
-    deploy:
-    update:
-    foo-changed:
+    deploy: {}
+    update: {}
+    foo-changed: {}
 ---
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   name: icto-custom-trigger

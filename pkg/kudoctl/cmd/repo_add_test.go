@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
-
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 )
 
 func TestAddDupRepo(t *testing.T) {
@@ -79,7 +79,9 @@ func TestAddSkipCheck(t *testing.T) {
 	// verified through repo list golden file
 	out = &bytes.Buffer{}
 	rl := &repoListCmd{out: out, home: home}
-	rl.run(fs)
+	if err := rl.run(fs); err != nil {
+		t.Fatal(err)
+	}
 	gp := filepath.Join("testdata", file+".golden")
 
 	if *updateGolden {

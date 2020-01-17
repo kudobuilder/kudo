@@ -6,13 +6,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"testing"
+	"time"
 
 	petname "github.com/dustinkirkland/golang-petname"
-
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
-	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -20,6 +19,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
+	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
 var testenv testutils.TestEnvironment
@@ -38,6 +40,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestCheckResourceIntegration(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
+
 	for _, test := range []struct {
 		testName    string
 		actual      []runtime.Object
@@ -47,7 +51,7 @@ func TestCheckResourceIntegration(t *testing.T) {
 		{
 			testName: "match object by labels, first in list matches",
 			actual: []runtime.Object{
-				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("aa", ""), map[string]string{
+				testutils.WithSpec(t, testutils.WithLabels(t, testutils.NewPod("labels-match-pod", ""), map[string]string{
 					"app": "nginx",
 				}), map[string]interface{}{
 					"containers": []interface{}{
@@ -57,7 +61,7 @@ func TestCheckResourceIntegration(t *testing.T) {
 						},
 					},
 				}),
-				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("bb", ""), map[string]string{
+				testutils.WithSpec(t, testutils.WithLabels(t, testutils.NewPod("bb", ""), map[string]string{
 					"app": "not-match",
 				}), map[string]interface{}{
 					"containers": []interface{}{
@@ -91,7 +95,7 @@ func TestCheckResourceIntegration(t *testing.T) {
 		{
 			testName: "match object by labels, last in list matches",
 			actual: []runtime.Object{
-				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("aa", ""), map[string]string{
+				testutils.WithSpec(t, testutils.WithLabels(t, testutils.NewPod("last-in-list", ""), map[string]string{
 					"app": "not-match",
 				}), map[string]interface{}{
 					"containers": []interface{}{
@@ -101,7 +105,7 @@ func TestCheckResourceIntegration(t *testing.T) {
 						},
 					},
 				}),
-				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("bb", ""), map[string]string{
+				testutils.WithSpec(t, testutils.WithLabels(t, testutils.NewPod("bb", ""), map[string]string{
 					"app": "nginx",
 				}), map[string]interface{}{
 					"containers": []interface{}{
@@ -135,7 +139,7 @@ func TestCheckResourceIntegration(t *testing.T) {
 		{
 			testName: "match object by labels, does not exist",
 			actual: []runtime.Object{
-				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("hello", ""), map[string]string{
+				testutils.WithSpec(t, testutils.WithLabels(t, testutils.NewPod("hello", ""), map[string]string{
 					"app": "NOT-A-MATCH",
 				}), map[string]interface{}{
 					"containers": []interface{}{
@@ -170,7 +174,7 @@ func TestCheckResourceIntegration(t *testing.T) {
 		{
 			testName: "match object by labels, field mismatch",
 			actual: []runtime.Object{
-				testutils.WithSpec(testutils.WithLabels(testutils.NewPod("hello", ""), map[string]string{
+				testutils.WithSpec(t, testutils.WithLabels(t, testutils.NewPod("hello", ""), map[string]string{
 					"app": "nginx",
 				}), map[string]interface{}{
 					"containers": []interface{}{
@@ -230,7 +234,11 @@ func TestCheckResourceIntegration(t *testing.T) {
 		t.Run(test.testName, func(t *testing.T) {
 			namespace := fmt.Sprintf("kudo-test-%s", petname.Generate(2, "-"))
 
-			assert.Nil(t, testenv.Client.Create(context.TODO(), testutils.NewResource("v1", "Namespace", namespace, "")))
+			err := testenv.Client.Create(context.TODO(), testutils.NewResource("v1", "Namespace", namespace, ""))
+			if !k8serrors.IsAlreadyExists(err) {
+				// we are ignoring already exists here because in tests we by default use retry client so this can happen
+				assert.Nil(t, err)
+			}
 
 			for _, actual := range test.actual {
 				_, _, err := testutils.Namespaced(testenv.DiscoveryClient, actual, namespace)
@@ -269,22 +277,22 @@ func TestStepDeleteExistingLabelMatch(t *testing.T) {
 		},
 	}
 
-	podToDelete := testutils.WithSpec(testutils.WithLabels(testutils.NewPod("aa-delete-me", "world"), map[string]string{
+	podToDelete := testutils.WithSpec(t, testutils.WithLabels(t, testutils.NewPod("aa-delete-me", "world"), map[string]string{
 		"hello": "world",
 	}), podSpec)
 
-	podToKeep := testutils.WithSpec(testutils.WithLabels(testutils.NewPod("bb-dont-delete-me", "world"), map[string]string{
+	podToKeep := testutils.WithSpec(t, testutils.WithLabels(t, testutils.NewPod("bb-dont-delete-me", "world"), map[string]string{
 		"bye": "moon",
 	}), podSpec)
 
-	podToDelete2 := testutils.WithSpec(testutils.WithLabels(testutils.NewPod("cc-delete-me", "world"), map[string]string{
+	podToDelete2 := testutils.WithSpec(t, testutils.WithLabels(t, testutils.NewPod("cc-delete-me", "world"), map[string]string{
 		"hello": "world",
 	}), podSpec)
 
 	step := Step{
 		Logger: testutils.NewTestLogger(t, ""),
-		Step: &kudo.TestStep{
-			Delete: []kudo.ObjectReference{
+		Step: &harness.TestStep{
+			Delete: []harness.ObjectReference{
 				{
 					ObjectReference: corev1.ObjectReference{
 						Kind:       "Pod",
@@ -313,4 +321,23 @@ func TestStepDeleteExistingLabelMatch(t *testing.T) {
 	assert.Nil(t, testenv.Client.Get(context.TODO(), testutils.ObjectKey(podToKeep), podToKeep))
 	assert.True(t, k8serrors.IsNotFound(testenv.Client.Get(context.TODO(), testutils.ObjectKey(podToDelete), podToDelete)))
 	assert.True(t, k8serrors.IsNotFound(testenv.Client.Get(context.TODO(), testutils.ObjectKey(podToDelete2), podToDelete2)))
+}
+
+func TestCheckedTypeAssertions(t *testing.T) {
+	tests := []struct {
+		name     string
+		typeName string
+	}{
+		{"assert", "TestAssert"},
+		{"apply", "TestStep"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			step := Step{}
+			path := fmt.Sprintf("step_integration_test_data/00-%s.yaml", test.name)
+			assert.EqualError(t, step.LoadYAML(path),
+				fmt.Sprintf("failed to load %s object from %s: it contains an object of type *unstructured.Unstructured",
+					test.typeName, path))
+		})
+	}
 }

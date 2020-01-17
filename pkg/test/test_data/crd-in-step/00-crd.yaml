@@ -5,7 +5,7 @@ metadata:
   name: mycrds.mycrd.k8s.io
 spec:
   group: mycrd.k8s.io
-  version: v1alpha1
+  version: v1beta1
   names:
     kind: MyCRD
     listKind: MyCRDList

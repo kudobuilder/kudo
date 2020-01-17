@@ -3,7 +3,7 @@
 #
 # The next step will update the parameter and verify that it triggers the creation
 # of a `PlanExecution` for the `deploy` plan.
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: OperatorVersion
 metadata:
   name: icto-fallback-to-deploy
@@ -15,9 +15,9 @@ spec:
   parameters:
   - name: foo
   plans:
-    deploy:
+    deploy: {}
 ---
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   name: icto-fallback-to-deploy

@@ -1,10 +1,9 @@
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   labels:
-    controller-tools.k8s.io: "1.0"
     kudo.dev/operator: zookeeper
-  name: zookeeper-xn8fg
+  name: zk1
 spec:
   operatorVersion:
     name: zookeeper-0.1.0

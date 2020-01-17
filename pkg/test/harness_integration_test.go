@@ -5,12 +5,12 @@ package test
 import (
 	"testing"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1alpha1"
+	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
 )
 
 func TestHarnessRunIntegration(t *testing.T) {
 	harness := Harness{
-		TestSuite: kudo.TestSuite{
+		TestSuite: harness.TestSuite{
 			CRDDir: "../../config/crds/",
 			TestDirs: []string{
 				"./test_data/",

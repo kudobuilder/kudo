@@ -1,15 +1,14 @@
-ARG GOLANG_VERSION=1.10
+ARG GOLANG_VERSION=1.13
 FROM golang:${GOLANG_VERSION}
-
+ARG KUBEBUILDER_VERSION=2.1.0
 
 # Download and install Kubebuilder
 
-# download the release
-RUN curl -L -O https://github.com/kubernetes-sigs/kubebuilder/releases/download/v1.0.8/kubebuilder_1.0.8_linux_amd64.tar.gz
-
-# extract the archive
-RUN tar -zxvf kubebuilder_1.0.8_linux_amd64.tar.gz
-RUN mv kubebuilder_1.0.8_linux_amd64 kubebuilder && mv kubebuilder /usr/local/
+# download the release, extract and move it in one step, to reduce layer size
+RUN curl --fail -L -O https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${KUBEBUILDER_VERSION}/kubebuilder_${KUBEBUILDER_VERSION}_linux_amd64.tar.gz && \
+    tar -zxvf kubebuilder_${KUBEBUILDER_VERSION}_linux_amd64.tar.gz && \
+    rm -f kubebuilder_${KUBEBUILDER_VERSION}_linux_amd64.tar.gz && \
+    mv kubebuilder_${KUBEBUILDER_VERSION}_linux_amd64 /usr/local/kubebuilder
 
 # update your PATH to include /usr/local/kubebuilder/bin
 ENV PATH $PATH:/usr/local/kubebuilder/bin

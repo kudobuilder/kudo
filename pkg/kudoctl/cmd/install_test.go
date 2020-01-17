@@ -44,7 +44,9 @@ func TestTableNewInstallCmd_WithParameters(t *testing.T) {
 	for _, test := range cmdParameterTests {
 		newCmdInstall := newInstallCmd(afero.NewOsFs())
 		for _, flag := range test.parameters {
-			newCmdInstall.Flags().Set("parameter", flag)
+			if err := newCmdInstall.Flags().Set("parameter", flag); err != nil {
+				t.Fatal(err)
+			}
 		}
 		err := newCmdInstall.RunE(newCmdInstall, []string{})
 		assert.NotNil(t, err, test.errorMessage)

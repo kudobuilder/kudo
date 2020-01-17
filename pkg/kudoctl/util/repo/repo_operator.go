@@ -1,30 +1,25 @@
 package repo
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/url"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/spf13/afero"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-
-	"github.com/pkg/errors"
-	"github.com/spf13/afero"
 )
-
-// Repository is an abstraction for a service that can retrieve packages
-type Repository interface {
-	GetPackage(name string, version string) (packages.Package, error)
-}
 
 // Client represents an operator repository
 type Client struct {
 	Config *Configuration
 	Client http.Client
+}
+
+func (c *Client) String() string {
+	return c.Config.String()
 }
 
 // ClientFromSettings retrieves the operator repo for the configured repo in settings
@@ -53,81 +48,26 @@ func NewClient(conf *Configuration) (*Client, error) {
 }
 
 // DownloadIndexFile fetches the index file from a repository.
-func (r *Client) DownloadIndexFile() (*IndexFile, error) {
+func (c *Client) DownloadIndexFile() (*IndexFile, error) {
 	var indexURL string
-	parsedURL, err := url.Parse(r.Config.URL)
+	parsedURL, err := url.Parse(c.Config.URL)
 	if err != nil {
-		return nil, errors.Wrap(err, "parsing config url")
+		return nil, fmt.Errorf("parsing config url: %w", err)
 	}
 	parsedURL.Path = fmt.Sprintf("%s/index.yaml", strings.TrimSuffix(parsedURL.Path, "/"))
 
 	indexURL = parsedURL.String()
 
-	resp, err := r.Client.Get(indexURL)
+	resp, err := c.Client.Get(indexURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting index url")
+		return nil, fmt.Errorf("getting index url: %w", err)
 	}
 
 	indexBytes, err := ioutil.ReadAll(resp)
 	if err != nil {
-		return nil, errors.Wrap(err, "reading index response")
+		return nil, fmt.Errorf("reading index response: %w", err)
 	}
 
 	indexFile, err := ParseIndexFile(indexBytes)
 	return indexFile, err
-}
-
-// getPackageReaderByAPackageURL downloads the tgz file from the remote repository and returns a reader
-// The PackageVersion is a package configuration from the index file which has a list of urls where
-// the package can be pulled from.  This will cycle through the list of urls and will return the reader
-// from the first successful url.  If all urls fail, the last error will be returned.
-func (r *Client) getPackageReaderByAPackageURL(pkg *PackageVersion) (*bytes.Buffer, error) {
-	var pkgErr error
-	for _, u := range pkg.URLs {
-		r, err := r.getPackageBytesByURL(u)
-		if err == nil {
-			return r, nil
-		}
-		pkgErr = fmt.Errorf("unable to read package %w", err)
-		clog.Errorf("failure against url: %v  %v", u, pkgErr)
-	}
-	clog.Printf("Giving up with err %v", pkgErr)
-	return nil, pkgErr
-}
-
-func (r *Client) getPackageBytesByURL(packageURL string) (*bytes.Buffer, error) {
-	clog.V(4).Printf("attempt to retrieve package from url: %v", packageURL)
-	resp, err := r.Client.Get(packageURL)
-	if err != nil {
-		return nil, errors.Wrap(err, "getting package url")
-	}
-
-	return resp, nil
-}
-
-// GetPackageBytes provides an io.Reader for a provided package name and optional version
-func (r *Client) GetPackageBytes(name string, version string) (*bytes.Buffer, error) {
-	clog.V(4).Printf("getting package reader for %v, %v", name, version)
-	clog.V(5).Printf("repository using: %v", r.Config)
-	// Construct the package name and download the index file from the remote repo
-	indexFile, err := r.DownloadIndexFile()
-	if err != nil {
-		return nil, errors.WithMessage(err, "could not download repository index file")
-	}
-
-	pkgVersion, err := indexFile.GetByNameAndVersion(name, version)
-	if err != nil {
-		return nil, errors.Wrapf(err, "getting %s in index file", name)
-	}
-
-	return r.getPackageReaderByAPackageURL(pkgVersion)
-}
-
-// GetPackage provides an Package for a provided package name and optional version
-func (r *Client) GetPackage(name string, version string) (packages.Package, error) {
-	reader, err := r.GetPackageBytes(name, version)
-	if err != nil {
-		return nil, err
-	}
-	return packages.NewFromBytes(reader), nil
 }

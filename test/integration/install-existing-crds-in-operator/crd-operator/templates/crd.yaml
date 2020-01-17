@@ -1,0 +1,16 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    app: kudo-manager
+    controller-tools.k8s.io: "1.0"
+  name: abcs.kudo.dev
+spec:
+  group: kudo.dev
+  names:
+    kind: Abc
+    plural: abcs
+    singular: abc
+  scope: Namespaced
+  version: v1beta1

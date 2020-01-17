@@ -1,5 +1,5 @@
 # Set the hello label on the instance Job so that we verify that it was deleted (it is immutable).
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   name: step-delete-instance

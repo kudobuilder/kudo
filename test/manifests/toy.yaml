@@ -1,11 +1,11 @@
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: Operator
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: toy
 ---
-apiVersion: kudo.dev/v1alpha1
+apiVersion: kudo.dev/v1beta1
 kind: OperatorVersion
 metadata:
   labels:
@@ -32,9 +32,11 @@ spec:
           replicas: "{{ .Params.Replicas }}"
           param: "{{ .Params.Param }}"
   tasks:
-    deploy:
-      resources:
-      - deployment.yaml
+    - name: deploy
+      kind: Apply
+      spec:
+        resources:
+          - deployment.yaml
   parameters:
   - name: Param
     description: "Sample parameter"

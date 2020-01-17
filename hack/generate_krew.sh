@@ -18,7 +18,12 @@ function generate_platform {
     fi
 
     local sha
-    sha=$(curl -L https://github.com/kudobuilder/kudo/releases/download/v"${VERSION}"/kudo_"${VERSION}"_"${1}"_"${ARCH}".tar.gz | sha256sum - | awk '{print $1}')
+    PLATFORM=`uname`
+    if [ "$PLATFORM" == 'Darwin' ]; then
+       sha=$(curl -L https://github.com/kudobuilder/kudo/releases/download/v"${VERSION}"/kudo_"${VERSION}"_"${1}"_"${ARCH}".tar.gz | shasum -a 256 - | awk '{print $1}')
+    else
+        sha=$(curl -L https://github.com/kudobuilder/kudo/releases/download/v"${VERSION}"/kudo_"${VERSION}"_"${1}"_"${ARCH}".tar.gz | sha256sum - | awk '{print $1}')
+    fi
 
     cat <<EOF
   - selector:
@@ -55,9 +60,7 @@ spec:
     Kubernetes.
   caveats: |
     Requires the KUDO controller to be installed:
-      kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.4.0/docs/deployment/00-prereqs.yaml
-      kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.4.0/docs/deployment/10-crds.yaml
-      kubectl create -f https://raw.githubusercontent.com/kudobuilder/kudo/v0.4.0/docs/deployment/20-deployment.yaml
+      kubectl kudo init
     Example usage:
       Install kafka:
         kubectl kudo install kafka
@@ -72,7 +75,9 @@ generate_platform linux amd64 ./kubectl-kudo >> kudo.yaml
 generate_platform linux 386 ./kubectl-kudo >> kudo.yaml
 generate_platform darwin amd64 ./kubectl-kudo >> kudo.yaml
 generate_platform darwin 386 ./kubectl-kudo >> kudo.yaml
-generate_platform windows amd64 ./kubectl-kudo.exe >> kudo.yaml
-generate_platform windows 386 ./kubectl-kudo.exe >> kudo.yaml
+
+### KUDO is not currently built for Windows. Uncomment once it is.
+# generate_platform windows amd64 ./kubectl-kudo.exe >> kudo.yaml
+# generate_platform windows 386 ./kubectl-kudo.exe >> kudo.yaml
 
 echo "To publish to the krew index, create a pull request to https://github.com/kubernetes-sigs/krew-index/tree/master/plugins to update kudo.yaml with the newly generated kudo.yaml."

@@ -73,14 +73,17 @@ func IsSubset(expected, actual interface{}) error {
 			}
 
 			if err := IsSubset(iter.Value().Interface(), actualValue.Interface()); err != nil {
-				subsetErr := err.(*SubsetError)
-				subsetErr.AppendPath(iter.Key().String())
-				return subsetErr
+				subsetErr, ok := err.(*SubsetError)
+				if ok {
+					subsetErr.AppendPath(iter.Key().String())
+					return subsetErr
+				}
+				return err
 			}
 		}
 	} else {
 		return &SubsetError{
-			message: fmt.Sprintf("value mismatch: %v != %v", expected, actual),
+			message: fmt.Sprintf("value mismatch, expected: %v != actual: %v", expected, actual),
 		}
 	}
 

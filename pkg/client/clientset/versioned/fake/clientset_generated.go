@@ -18,8 +18,8 @@ package fake
 
 import (
 	clientset "github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
-	kudov1alpha1 "github.com/kudobuilder/kudo/pkg/client/clientset/versioned/typed/kudo/v1alpha1"
-	fakekudov1alpha1 "github.com/kudobuilder/kudo/pkg/client/clientset/versioned/typed/kudo/v1alpha1/fake"
+	kudov1beta1 "github.com/kudobuilder/kudo/pkg/client/clientset/versioned/typed/kudo/v1beta1"
+	fakekudov1beta1 "github.com/kudobuilder/kudo/pkg/client/clientset/versioned/typed/kudo/v1beta1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -39,7 +39,7 @@ func NewSimpleClientset(objects ...runtime.Object) *Clientset {
 		}
 	}
 
-	cs := &Clientset{}
+	cs := &Clientset{tracker: o}
 	cs.discovery = &fakediscovery.FakeDiscovery{Fake: &cs.Fake}
 	cs.AddReactor("*", "*", testing.ObjectReaction(o))
 	cs.AddWatchReactor("*", func(action testing.Action) (handled bool, ret watch.Interface, err error) {
@@ -61,20 +61,20 @@ func NewSimpleClientset(objects ...runtime.Object) *Clientset {
 type Clientset struct {
 	testing.Fake
 	discovery *fakediscovery.FakeDiscovery
+	tracker   testing.ObjectTracker
 }
 
 func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 	return c.discovery
 }
 
-var _ clientset.Interface = &Clientset{}
-
-// KudoV1alpha1 retrieves the KudoV1alpha1Client
-func (c *Clientset) KudoV1alpha1() kudov1alpha1.KudoV1alpha1Interface {
-	return &fakekudov1alpha1.FakeKudoV1alpha1{Fake: &c.Fake}
+func (c *Clientset) Tracker() testing.ObjectTracker {
+	return c.tracker
 }
 
-// Kudo retrieves the KudoV1alpha1Client
-func (c *Clientset) Kudo() kudov1alpha1.KudoV1alpha1Interface {
-	return &fakekudov1alpha1.FakeKudoV1alpha1{Fake: &c.Fake}
+var _ clientset.Interface = &Clientset{}
+
+// KudoV1beta1 retrieves the KudoV1beta1Client
+func (c *Clientset) KudoV1beta1() kudov1beta1.KudoV1beta1Interface {
+	return &fakekudov1beta1.FakeKudoV1beta1{Fake: &c.Fake}
 }

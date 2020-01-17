@@ -1,0 +1,729 @@
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.4
+  creationTimestamp: null
+  name: operators.kudo.dev
+spec:
+  group: kudo.dev
+  names:
+    kind: Operator
+    listKind: OperatorList
+    plural: operators
+    singular: operator
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      description: Operator is the Schema for the operator API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: OperatorSpec defines the desired state of Operator
+          properties:
+            description:
+              type: string
+            kubernetesVersion:
+              type: string
+            kudoVersion:
+              type: string
+            maintainers:
+              items:
+                description: Maintainer describes an Operator maintainer.
+                properties:
+                  email:
+                    description: Email is an optional email address to contact the
+                      named maintainer.
+                    type: string
+                  name:
+                    description: Name is a user name or organization name.
+                    type: string
+                type: object
+              type: array
+            url:
+              type: string
+          type: object
+        status:
+          description: OperatorStatus defines the observed state of Operator
+          type: object
+      type: object
+  version: v1beta1
+  versions:
+  - name: v1beta1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.4
+  creationTimestamp: null
+  name: operatorversions.kudo.dev
+spec:
+  group: kudo.dev
+  names:
+    kind: OperatorVersion
+    listKind: OperatorVersionList
+    plural: operatorversions
+    singular: operatorversion
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      description: OperatorVersion is the Schema for the operatorversions API.
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: OperatorVersionSpec defines the desired state of OperatorVersion.
+          properties:
+            appVersion:
+              type: string
+            connectionString:
+              description: ConnectionString defines a templated string that can be
+                used to connect to an instance of the Operator.
+              type: string
+            dependencies:
+              description: Dependencies a list of all dependencies of the operator.
+              items:
+                description: OperatorDependency references a defined operator.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  referenceName:
+                    description: Name specifies the name of the dependency. Referenced
+                      via defaults.config.
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                  version:
+                    description: "Version captures the requirements for what versions
+                      of the above object are allowed. \n Example: ^3.1.4"
+                    type: string
+                required:
+                - referenceName
+                - version
+                type: object
+              type: array
+            operator:
+              description: ObjectReference contains enough information to let you
+                inspect or modify the referred object.
+              properties:
+                apiVersion:
+                  description: API version of the referent.
+                  type: string
+                fieldPath:
+                  description: 'If referring to a piece of an object instead of an
+                    entire object, this string should contain a valid JSON/Go field
+                    access statement, such as desiredState.manifest.containers[2].
+                    For example, if the object reference is to a container within
+                    a pod, this would take on a value like: "spec.containers{name}"
+                    (where "name" refers to the name of the container that triggered
+                    the event) or if no container name is specified "spec.containers[2]"
+                    (container with index 2 in this pod). This syntax is chosen only
+                    to have some well-defined way of referencing a part of an object.
+                    TODO: this design is not final and this field is subject to change
+                    in the future.'
+                  type: string
+                kind:
+                  description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                  type: string
+                name:
+                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                  type: string
+                namespace:
+                  description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                  type: string
+                resourceVersion:
+                  description: 'Specific resourceVersion to which this reference is
+                    made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                  type: string
+                uid:
+                  description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                  type: string
+              type: object
+            parameters:
+              items:
+                description: Parameter captures the variability of an OperatorVersion
+                  being instantiated in an instance.
+                properties:
+                  default:
+                    description: Default is a default value if no parameter is provided
+                      by the instance.
+                    type: string
+                  description:
+                    description: Description captures a longer description of how
+                      the parameter will be used.
+                    type: string
+                  displayName:
+                    description: DisplayName can be used by UIs.
+                    type: string
+                  name:
+                    description: "Name is the string that should be used in the template
+                      file for example, if `name: COUNT` then using the variable in
+                      a spec like: \n spec:   replicas:  {{ .Params.COUNT }}"
+                    type: string
+                  required:
+                    description: Required specifies if the parameter is required to
+                      be provided by all instances, or whether a default can suffice.
+                    type: boolean
+                  trigger:
+                    description: Trigger identifies the plan that gets executed when
+                      this parameter changes in the Instance object. Default is `update`
+                      if a plan with that name exists, otherwise it's `deploy`.
+                    type: string
+                type: object
+              type: array
+            plans:
+              additionalProperties:
+                description: Plan specifies a series of Phases that need to be completed.
+                properties:
+                  phases:
+                    description: Phases maps a phase name to a Phase object.
+                    items:
+                      description: Phase specifies a list of steps that contain Kubernetes
+                        objects.
+                      properties:
+                        name:
+                          type: string
+                        steps:
+                          description: Steps maps a step name to a list of templated
+                            Kubernetes objects stored as a string.
+                          items:
+                            description: Step defines a specific set of operations
+                              that occur.
+                            properties:
+                              name:
+                                type: string
+                              tasks:
+                                items:
+                                  type: string
+                                type: array
+                            type: object
+                          type: array
+                        strategy:
+                          description: Ordering specifies how the subitems in this
+                            plan/phase should be rolled out.
+                          type: string
+                      type: object
+                    nullable: true
+                    type: array
+                  strategy:
+                    description: Ordering specifies how the subitems in this plan/phase
+                      should be rolled out.
+                    type: string
+                type: object
+              description: Plans maps a plan name to a plan.
+              nullable: true
+              type: object
+            tasks:
+              description: List of all tasks available in this OperatorVersion.
+              items:
+                description: Task is a global, polymorphic implementation of all publicly
+                  available tasks
+                properties:
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                  spec:
+                    description: TaskSpec embeds all possible task specs. This allows
+                      us to avoid writing custom un/marshallers that would only parse
+                      certain fields depending on the task Kind. The downside of this
+                      approach is, that embedded types can not have fields with the
+                      same json names as it would become ambiguous for the default
+                      parser. We might revisit this approach in the future should
+                      this become an issue.
+                    properties:
+                      done:
+                        type: boolean
+                      fatal:
+                        type: boolean
+                      pipe:
+                        items:
+                          description: PipeSpec describes how a file generated by
+                            a PipeTask is stored and referenced
+                          properties:
+                            file:
+                              type: string
+                            key:
+                              type: string
+                            kind:
+                              type: string
+                          type: object
+                        nullable: true
+                        type: array
+                      pod:
+                        type: string
+                      resources:
+                        items:
+                          type: string
+                        nullable: true
+                        type: array
+                      wantErr:
+                        type: boolean
+                    type: object
+                type: object
+              type: array
+            templates:
+              additionalProperties:
+                type: string
+              description: Templates is a list of references to YAML templates located
+                in the templates folder and later referenced from tasks.
+              type: object
+            upgradableFrom:
+              description: UpgradableFrom lists all OperatorVersions that can upgrade
+                to this OperatorVersion.
+              items:
+                description: ObjectReference contains enough information to let you
+                  inspect or modify the referred object.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                type: object
+              type: array
+            version:
+              type: string
+          type: object
+        status:
+          description: OperatorVersionStatus defines the observed state of OperatorVersion.
+          type: object
+      type: object
+  version: v1beta1
+  versions:
+  - name: v1beta1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.4
+  creationTimestamp: null
+  name: instances.kudo.dev
+spec:
+  group: kudo.dev
+  names:
+    kind: Instance
+    listKind: InstanceList
+    plural: instances
+    singular: instance
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: Instance is the Schema for the instances API.
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: InstanceSpec defines the desired state of Instance.
+          properties:
+            operatorVersion:
+              description: OperatorVersion specifies a reference to a specific OperatorVersion
+                object.
+              properties:
+                apiVersion:
+                  description: API version of the referent.
+                  type: string
+                fieldPath:
+                  description: 'If referring to a piece of an object instead of an
+                    entire object, this string should contain a valid JSON/Go field
+                    access statement, such as desiredState.manifest.containers[2].
+                    For example, if the object reference is to a container within
+                    a pod, this would take on a value like: "spec.containers{name}"
+                    (where "name" refers to the name of the container that triggered
+                    the event) or if no container name is specified "spec.containers[2]"
+                    (container with index 2 in this pod). This syntax is chosen only
+                    to have some well-defined way of referencing a part of an object.
+                    TODO: this design is not final and this field is subject to change
+                    in the future.'
+                  type: string
+                kind:
+                  description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                  type: string
+                name:
+                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                  type: string
+                namespace:
+                  description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                  type: string
+                resourceVersion:
+                  description: 'Specific resourceVersion to which this reference is
+                    made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                  type: string
+                uid:
+                  description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                  type: string
+              type: object
+            parameters:
+              additionalProperties:
+                type: string
+              type: object
+          type: object
+        status:
+          description: InstanceStatus defines the observed state of Instance
+          properties:
+            aggregatedStatus:
+              description: AggregatedStatus is overview of an instance status derived
+                from the plan status
+              properties:
+                activePlanName:
+                  type: string
+                status:
+                  description: ExecutionStatus captures the state of the rollout.
+                  type: string
+              type: object
+            planStatus:
+              additionalProperties:
+                description: "PlanStatus is representing status of a plan \n These
+                  are valid states and transitions \n                       | Never
+                  executed |                               |                               v
+                  |    Error    |<------>|    Pending     |       ^                       |
+                  \      |                       v       |               +-------+--------+
+                  \      |               +-------+--------+       |                       |
+                  \      v                       v | Fatal error |        |    Complete
+                  \   |"
+                properties:
+                  lastFinishedRun:
+                    format: date-time
+                    nullable: true
+                    type: string
+                  message:
+                    type: string
+                  name:
+                    type: string
+                  phases:
+                    items:
+                      description: PhaseStatus is representing status of a phase
+                      properties:
+                        message:
+                          type: string
+                        name:
+                          type: string
+                        status:
+                          description: ExecutionStatus captures the state of the rollout.
+                          type: string
+                        steps:
+                          items:
+                            description: StepStatus is representing status of a step
+                            properties:
+                              message:
+                                type: string
+                              name:
+                                type: string
+                              status:
+                                description: ExecutionStatus captures the state of
+                                  the rollout.
+                                type: string
+                            type: object
+                          type: array
+                      type: object
+                    type: array
+                  status:
+                    description: ExecutionStatus captures the state of the rollout.
+                    type: string
+                  uid:
+                    description: UID is a type that holds unique ID values, including
+                      UUIDs.  Because we don't ONLY use UUIDs, this is an alias to
+                      string.  Being a type captures intent and helps make sure that
+                      UIDs and names do not get conflated.
+                    type: string
+                type: object
+              description: slice would be enough here but we cannot use slice because
+                order of sequence in yaml is considered significant while here it's
+                not
+              type: object
+          type: object
+      type: object
+  version: v1beta1
+  versions:
+  - name: v1beta1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: null
+  labels:
+    app: kudo-manager
+  name: kudo-system
+spec: {}
+status: {}
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  creationTimestamp: null
+  labels:
+    app: kudo-manager
+  name: kudo-manager
+  namespace: kudo-system
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  creationTimestamp: null
+  name: kudo-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: kudo-manager
+  namespace: kudo-system
+
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: kudo-system/kudo-webhook-server-certificate
+  creationTimestamp: null
+  name: kudo-manager-instance-validation-webhook-config
+webhooks:
+- clientConfig:
+    service:
+      name: kudo-controller-manager-service
+      namespace: kudo-system
+      path: /validate-kudo-dev-v1beta1-instance
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: instance-validation.kudo.dev
+  rules:
+  - apiGroups:
+    - kudo.dev
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - instances
+    scope: Namespaced
+  sideEffects: None
+
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Issuer
+metadata:
+  name: selfsigned-issuer
+  namespace: kudo-system
+spec:
+  selfSigned: {}
+
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: kudo-webhook-server-certificate
+  namespace: kudo-system
+spec:
+  commonName: kudo-controller-manager-service.kudo-system.svc
+  dnsNames:
+  - kudo-controller-manager-service.kudo-system.svc
+  issuerRef:
+    kind: Issuer
+    name: selfsigned-issuer
+  secretName: kudo-webhook-server-secret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: kudo-manager
+    control-plane: controller-manager
+  name: kudo-controller-manager-service
+  namespace: kudo-system
+spec:
+  ports:
+  - name: kudo
+    port: 443
+    targetPort: webhook-server
+  selector:
+    app: kudo-manager
+    control-plane: controller-manager
+status:
+  loadBalancer: {}
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  creationTimestamp: null
+  labels:
+    app: kudo-manager
+    control-plane: controller-manager
+  name: kudo-controller-manager
+  namespace: kudo-system
+spec:
+  selector:
+    matchLabels:
+      app: kudo-manager
+      control-plane: controller-manager
+  serviceName: kudo-controller-manager-service
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: kudo-manager
+        control-plane: controller-manager
+    spec:
+      containers:
+      - command:
+        - /root/manager
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: SECRET_NAME
+          value: kudo-webhook-server-secret
+        - name: ENABLE_WEBHOOKS
+          value: "true"
+        image: kudobuilder/controller:vdev
+        imagePullPolicy: Always
+        name: manager
+        ports:
+        - containerPort: 443
+          name: webhook-server
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 100m
+            memory: 50Mi
+        volumeMounts:
+        - mountPath: /tmp/cert
+          name: cert
+          readOnly: true
+      serviceAccountName: kudo-manager
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: kudo-webhook-server-secret
+  updateStrategy: {}
+status:
+  replicas: 0
+
+...

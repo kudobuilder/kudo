@@ -9,35 +9,32 @@ before:
     - go mod download
     # you may remove this if you don't need go generate
     - go generate ./...
+    # Pulls down the latest version of the controller's parent image
+    - docker pull ubuntu:18.04
 builds:
--
-  id: "manager"
-  binary: manager
-  main: cmd/manager/main.go
-  ldflags:
-    - -s -w -X github.com/kudobuilder/kudo/pkg/version.gitVersion={{ .Version }} -X github.com/kudobuilder/kudo/pkg/version.gitCommit={{ .ShortCommit }} -X github.com/kudobuilder/kudo/pkg/version.buildDate={{ .Date }}
-  goos:
-    - linux
-    - darwin
-    - windows
-  goarch:
-    - 386
-    - amd64
-    - arm
--
-  id: "kubectl-kudo"
-  binary: kubectl-kudo
-  main: cmd/kubectl-kudo/main.go
-  ldflags:
-    - -s -w -X github.com/kudobuilder/kudo/pkg/version.gitVersion={{ .Version }} -X github.com/kudobuilder/kudo/pkg/version.gitCommit={{ .ShortCommit }} -X github.com/kudobuilder/kudo/pkg/version.buildDate={{ .Date }}
-  goos:
-    - linux
-    - darwin
-    - windows
-  goarch:
-    - 386
-    - amd64
-    - arm
+  - id: "manager"
+    binary: manager
+    main: cmd/manager/main.go
+    ldflags:
+      - -s -w -X github.com/kudobuilder/kudo/pkg/version.gitVersion={{ .Version }} -X github.com/kudobuilder/kudo/pkg/version.gitCommit={{ .ShortCommit }} -X github.com/kudobuilder/kudo/pkg/version.buildDate={{ .Date }}
+    goos:
+      - linux
+    goarch:
+      - 386
+      - amd64
+      - arm
+  - id: "kubectl-kudo"
+    binary: kubectl-kudo
+    main: cmd/kubectl-kudo/main.go
+    ldflags:
+      - -s -w -X github.com/kudobuilder/kudo/pkg/version.gitVersion={{ .Version }} -X github.com/kudobuilder/kudo/pkg/version.gitCommit={{ .ShortCommit }} -X github.com/kudobuilder/kudo/pkg/version.buildDate={{ .Date }}
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - 386
+      - amd64
+      - arm
 dockers:
   - dockerfile: Dockerfile.goreleaser
     binaries:
@@ -46,23 +43,22 @@ dockers:
       - "kudobuilder/controller:latest"
       - "kudobuilder/controller:{{ .Tag }}"
     skip_push: auto
-
 archives:
-- id: kubectl-kudo-tarball
-  builds:
-    - kubectl-kudo
-  replacements:
-    386: i386
-    amd64: x86_64
-  format: tar.gz
-- id: binaries
-  builds:
-    - manager
-    - kubectl-kudo
-  replacements:
-    386: i386
-    amd64: x86_64
-  format: binary
+  - id: kubectl-kudo-tarball
+    builds:
+      - kubectl-kudo
+    replacements:
+      386: i386
+      amd64: x86_64
+    format: tar.gz
+  - id: binaries
+    builds:
+      - manager
+      - kubectl-kudo
+    replacements:
+      386: i386
+      amd64: x86_64
+    format: binary
 brews:
   - name: kudo-cli
     github:
@@ -71,6 +67,7 @@ brews:
     commit_author:
       name: kudoreleasebot
       email: release@kudo.dev
+    skip_upload: auto
     folder: Formula
     homepage: https://kudo.dev
     description: Interact with KUDO via the kubectl plugin
@@ -79,7 +76,7 @@ brews:
     install: |
       bin.install "kubectl-kudo"
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
 snapshot:
   name_template: "{{ .Tag }}-next"
 
@@ -96,5 +93,5 @@ changelog:
   sort: asc
   filters:
     exclude:
-    - '^docs:'
-    - '^test:'
+      - "^docs:"
+      - "^test:"
