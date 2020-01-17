@@ -131,10 +131,13 @@ func (c *Client) InstanceExistsInCluster(operatorName, namespace, version, insta
 
 // Populate the GVK from scheme, since it is cleared by design on typed objects.
 // https://github.com/kubernetes/client-go/issues/413
-func setFirstGVK(object runtime.Object) error {
+func setGVKFromScheme(object runtime.Object) error {
 	gvks, unversioned, err := scheme.Scheme.ObjectKinds(object)
 	if err != nil {
 		return err
+	}
+	if len(gvks) == 0 {
+		return fmt.Errorf("no ObjectKinds available for %T", object)
 	}
 	if !unversioned {
 		object.GetObjectKind().SetGroupVersionKind(gvks[0])
@@ -152,7 +155,7 @@ func (c *Client) GetInstance(name, namespace string) (*v1beta1.Instance, error) 
 	if err != nil {
 		return instance, err
 	}
-	err = setFirstGVK(instance)
+	err = setGVKFromScheme(instance)
 	return instance, err
 }
 
@@ -166,7 +169,7 @@ func (c *Client) GetOperatorVersion(name, namespace string) (*v1beta1.OperatorVe
 	if err != nil {
 		return ov, err
 	}
-	err = setFirstGVK(ov)
+	err = setGVKFromScheme(ov)
 	return ov, err
 }
 
