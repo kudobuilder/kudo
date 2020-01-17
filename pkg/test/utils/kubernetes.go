@@ -789,19 +789,25 @@ func WaitForCRDs(dClient discovery.DiscoveryInterface, crds []runtime.Object) er
 
 	for _, crdObj := range crds {
 		if !MatchesKind(crdObj, crdKind) {
-			continue
+			return fmt.Errorf("the following passed object does not match %v: %v", crdKind, crdObj)
 		}
 
-		crd, ok := crdObj.(*apiextensions.CustomResourceDefinition)
-		if !ok {
-			continue
+		switch crd := crdObj.(type) {
+		case *apiextensions.CustomResourceDefinition:
+			waitingFor = append(waitingFor, schema.GroupVersionKind{
+				Group:   crd.Spec.Group,
+				Version: crd.Spec.Version,
+				Kind:    crd.Spec.Names.Kind,
+			})
+		case *unstructured.Unstructured:
+			waitingFor = append(waitingFor, schema.GroupVersionKind{
+				Group:   crd.Object["spec"].(map[string]interface{})["group"].(string),
+				Version: crd.Object["spec"].(map[string]interface{})["version"].(string),
+				Kind:    crd.Object["spec"].(map[string]interface{})["names"].(map[string]interface{})["kind"].(string),
+			})
+		default:
+			return fmt.Errorf("the folllowing passed object is not a CRD: %v", crdObj)
 		}
-
-		waitingFor = append(waitingFor, schema.GroupVersionKind{
-			Group:   crd.Spec.Group,
-			Version: crd.Spec.Version,
-			Kind:    crd.Spec.Names.Kind,
-		})
 	}
 
 	return wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (done bool, err error) {
