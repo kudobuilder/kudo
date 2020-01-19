@@ -74,3 +74,97 @@ func TestGetLastExecutedPlanStatus(t *testing.T) {
 		}
 	}
 }
+
+func TestGetPlanInProgress(t *testing.T) {
+	tests := []struct {
+		name             string
+		planStatus       map[string]PlanStatus
+		expectedPlanName string
+	}{
+		{"no plan ever run", map[string]PlanStatus{"test": {
+			Status: ExecutionNeverRun,
+			Name:   "test",
+			Phases: []PhaseStatus{{Name: "phase", Status: ExecutionNeverRun, Steps: []StepStatus{{Status: ExecutionNeverRun, Name: "step"}}}},
+		}}, ""},
+		{"plan in progress", map[string]PlanStatus{
+			"test": {
+				Status: ExecutionInProgress,
+				Name:   "test",
+				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionInProgress, Steps: []StepStatus{{Status: ExecutionInProgress, Name: "step"}}}},
+			},
+			"test2": {
+				Status: ExecutionComplete,
+				Name:   "test2",
+				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
+			}}, "test"},
+		{"all plans complete", map[string]PlanStatus{
+			"test": {
+				Status: ExecutionComplete,
+				Name:   "test",
+				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
+			},
+			"test2": {
+				Status: ExecutionComplete,
+				Name:   "test2",
+				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
+			}}, ""},
+	}
+
+	for _, tt := range tests {
+		i := Instance{}
+		i.Status.PlanStatus = tt.planStatus
+		actual := i.GetPlanInProgress()
+		actualName := ""
+		if actual != nil {
+			actualName = actual.Name
+		}
+		if actualName != tt.expectedPlanName {
+			t.Errorf("%s: Expected to get plan %s but got plan status of %v", tt.name, tt.expectedPlanName, actual)
+		}
+	}
+}
+
+func TestNoPlanEverExecuted(t *testing.T) {
+	tests := []struct {
+		name           string
+		planStatus     map[string]PlanStatus
+		expectedResult bool
+	}{
+		{"no plan ever run", map[string]PlanStatus{"test": {
+			Status: ExecutionNeverRun,
+			Name:   "test",
+			Phases: []PhaseStatus{{Name: "phase", Status: ExecutionNeverRun, Steps: []StepStatus{{Status: ExecutionNeverRun, Name: "step"}}}},
+		}}, true},
+		{"plan in progress", map[string]PlanStatus{
+			"test": {
+				Status: ExecutionInProgress,
+				Name:   "test",
+				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionInProgress, Steps: []StepStatus{{Status: ExecutionInProgress, Name: "step"}}}},
+			},
+			"test2": {
+				Status: ExecutionComplete,
+				Name:   "test2",
+				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
+			}}, false},
+		{"all plans complete", map[string]PlanStatus{
+			"test": {
+				Status: ExecutionComplete,
+				Name:   "test",
+				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
+			},
+			"test2": {
+				Status: ExecutionComplete,
+				Name:   "test2",
+				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
+			}}, false},
+	}
+
+	for _, tt := range tests {
+		i := Instance{}
+		i.Status.PlanStatus = tt.planStatus
+		actual := i.NoPlanEverExecuted()
+		if actual != tt.expectedResult {
+			t.Errorf("%s: Expected to get plan %v but got %v", tt.name, tt.expectedResult, actual)
+		}
+	}
+}
