@@ -27,10 +27,17 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 	switch req.Operation {
 
 	case v1beta1.Create:
-		// 0. Trigger "deploy" by setting Instance.PlanExecution.PlanName = "deploy"
+		// trigger "deploy" for freshly created Instances: req.Object contains the created object
+		new := &Instance{}
+		if err := ia.decoder.DecodeRaw(req.Object, new); err != nil {
+			return admission.Errored(http.StatusBadRequest, err)
+		}
+
+		new.Spec.PlanExecution.PlanName = DeployPlanName
 		return admission.Allowed("")
-	// we only validate Instance Updates
+
 	case v1beta1.Update:
+		// call validation for Instance Updates
 		old, new := &Instance{}, &Instance{}
 
 		// req.Object contains the updated object
@@ -60,8 +67,8 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 			new.Spec.PlanExecution.PlanName = *triggered
 		}
 
-		// PROFIT!
 		return admission.Allowed("")
+
 	default:
 		return admission.Allowed("")
 	}
