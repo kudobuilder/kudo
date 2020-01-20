@@ -22,7 +22,7 @@ package in the repository, a path to package in *.tgz format, or a path to an un
   *Note*: should you have a local "flink" folder in the current directory it will take precedence over the remote repository.
 
   # Upgrade flink to the version 1.1.1
-  kubectl kudo upgrade flink --instance dev-flink --version 1.1.1
+  kubectl kudo upgrade flink --instance dev-flink --operator-version 1.1.1
 
   # By default arguments are all reused from the previous installation, if you need to modify, use -p
   kubectl kudo upgrade flink --instance dev-flink -p param=xxx`
@@ -99,7 +99,7 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 	resolver := pkgresolver.New(repository)
 	pkg, err := resolver.Resolve(packageToUpgrade, options.AppVersion, options.OperatorVersion)
 	if err != nil {
-		return fmt.Errorf("failed to resolve package CRDs for operator: %s: %w", packageToUpgrade, err)
+		return fmt.Errorf("failed to resolve operator package for: %s: %w", packageToUpgrade, err)
 	}
 
 	resources := pkg.Resources

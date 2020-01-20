@@ -32,7 +32,7 @@ require (
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/onsi/ginkgo v1.10.1 // indirect
-	github.com/onsi/gomega v1.7.1
+	github.com/onsi/gomega v1.7.1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/prometheus/client_golang v1.0.0 // indirect
@@ -56,6 +56,7 @@ require (
 	k8s.io/apimachinery v0.0.0-20191028221656-72ed19daf4bb
 	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/code-generator v0.18.0-alpha.1.0.20191220033320-6b257a9d6f46
+	k8s.io/component-base v0.0.0-20191016111319-039242c015a9
 	k8s.io/kubectl v0.0.0-20191016120415-2ed914427d51
 	sigs.k8s.io/controller-runtime v0.4.0
 	sigs.k8s.io/controller-tools v0.2.4
