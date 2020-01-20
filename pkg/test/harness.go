@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
+	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -14,7 +17,7 @@ import (
 
 	volumetypes "github.com/docker/docker/api/types/volume"
 	docker "github.com/docker/docker/client"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -232,8 +235,85 @@ func (h *Harness) Config() (*rest.Config, error) {
 	}
 
 	defer f.Close()
+	err = testutils.Kubeconfig(h.config, f)
+	if err != nil {
+		return h.config, err
+	}
 
-	return h.config, testutils.Kubeconfig(h.config, f)
+	if h.TestSuite.InstallKUDOVersion == "" {
+		err = h.InstallKUDO()
+		if err != nil {
+			return h.config, err
+		}
+	}
+
+	return h.config, err
+}
+
+// InstallKUDO installs a specific released version of KUDO
+func (h *Harness) InstallKUDO() error {
+	h.T.Logf("Installing KUDO with CLI, KubeConfig %s", h.kubeConfigPath)
+	kudoVersion := "0.9.0-rc1"
+	kudoBinURL := fmt.Sprintf("https://github.com/kudobuilder/kudo/releases/download/v%s/kubectl-kudo_%s_darwin_x86_64", kudoVersion, kudoVersion)
+
+	binDir, err := ioutil.TempDir("", "kudo-bin")
+	if err != nil {
+		return err
+	}
+
+	kudoBinFile := fmt.Sprintf("%s/%s", binDir, "kudo-bin")
+
+	h.T.Logf("Download KUDO CLI from %s", kudoBinURL)
+	err = downloadKudoBinary(kudoBinFile, kudoBinURL)
+	if err != nil {
+		return err
+	}
+
+	err = os.Chmod(kudoBinFile, 0755)
+	if err != nil {
+		return err
+	}
+
+	kudoCmd := exec.Command(kudoBinFile, "init", "--kubeconfig", h.explicitPath())
+
+	stdoutStderr, err := kudoCmd.CombinedOutput()
+
+	h.T.Logf("Install Output %s\n", stdoutStderr)
+
+	if err != nil {
+		return err
+	}
+
+	h.T.Log("Installed KUDO with CLI")
+
+	return nil
+}
+
+// DownloadFile will download a url to a local file. It's efficient because it will
+// write as it downloads and not load the whole file into memory.
+func downloadKudoBinary(filepath string, url string) error {
+	// Get the data
+	//nolint:gosec
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("status Code for KUDO download is %d", resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+
+	// Create the file
+	out, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	// Write the body to file
+	_, err = io.Copy(out, resp.Body)
+	return err
 }
 
 // RunKUDO starts the KUDO controllers and installs the required CRDs.
