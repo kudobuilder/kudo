@@ -169,8 +169,12 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	}
 	oldInstance := instance.DeepCopy()
 
-	ov, err := r.getOperatorVersion(instance)
+	ov, err := GetOperatorVersion(instance, r.Client)
 	if err != nil {
+		err = fmt.Errorf("InstanceController: Error getting operatorVersion %s for instance %s/%s: %v",
+			instance.Spec.OperatorVersion.Name, instance.Namespace, instance.Name, err)
+		log.Print(err)
+		r.Recorder.Event(instance, "Warning", "InvalidOperatorVersion", err.Error())
 		return reconcile.Result{}, err // OV not found has to be retried because it can really have been created after Instance
 	}
 
@@ -353,21 +357,16 @@ func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1beta1.In
 	return instance, nil
 }
 
-// getOperatorVersion retrieves operatorversion belonging to the given instance
-func (r *Reconciler) getOperatorVersion(instance *kudov1beta1.Instance) (ov *kudov1beta1.OperatorVersion, err error) {
+// GetOperatorVersion retrieves OperatorVersion belonging to the given instance
+func GetOperatorVersion(instance *kudov1beta1.Instance, c client.Client) (ov *kudov1beta1.OperatorVersion, err error) {
 	ov = &kudov1beta1.OperatorVersion{}
-	err = r.Get(context.TODO(),
+	err = c.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      instance.Spec.OperatorVersion.Name,
 			Namespace: instance.OperatorVersionNamespace(),
 		},
 		ov)
 	if err != nil {
-		log.Printf("InstanceController: Error getting operatorVersion \"%v\" for instance \"%v\": %v",
-			instance.Spec.OperatorVersion.Name,
-			instance.Name,
-			err)
-		r.Recorder.Event(instance, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Error getting operatorVersion \"%v\": %v", instance.Spec.OperatorVersion.Name, err))
 		return nil, err
 	}
 	return ov, nil

@@ -8,11 +8,11 @@ import (
 
 	"github.com/thoas/go-funk"
 	"k8s.io/api/admission/v1beta1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	v1beta12 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/controller/instance"
 )
 
 // +k8s:deepcopy-gen=false
@@ -30,17 +30,17 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 
 	case v1beta1.Create:
 		// trigger "deploy" for freshly created Instances: req.Object contains the created object
-		new := &v1beta12.Instance{}
+		new := &kudov1beta1.Instance{}
 		if err := ia.decoder.DecodeRaw(req.Object, new); err != nil {
 			return admission.Errored(http.StatusBadRequest, err)
 		}
 
-		new.Spec.PlanExecution.PlanName = v1beta12.DeployPlanName
+		new.Spec.PlanExecution.PlanName = kudov1beta1.DeployPlanName
 		return admission.Allowed("")
 
 	case v1beta1.Update:
 		// call validation for Instance Updates
-		old, new := &v1beta12.Instance{}, &v1beta12.Instance{}
+		old, new := &kudov1beta1.Instance{}, &kudov1beta1.Instance{}
 
 		// req.Object contains the updated object
 		if err := ia.decoder.DecodeRaw(req.Object, new); err != nil {
@@ -54,8 +54,9 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 
 		// fetch new OperatorVersion: we always fetch the new one, since if it's an update it's the same as the old one
 		// and if it's an upgrade, we need the new one anyway
-		ov, err := ia.getOperatorVersion(new)
+		ov, err := instance.GetOperatorVersion(new, ia.client)
 		if err != nil {
+			log.Printf("InstanceAdmission: Error getting operatorVersion %s for instance %s/%s: %v", new.Spec.OperatorVersion.Name, new.Namespace, new.Name, err)
 			admission.Errored(http.StatusInternalServerError, err)
 		}
 
@@ -102,15 +103,15 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 // - <nil> when there is no change to an existing scheduled plan
 // - '' empty string when an existing plan should be canceled (not implemented yet)
 // - 'newPlan' some new plan that should be triggered
-func validateUpdate(old, new *v1beta12.Instance, ov *v1beta12.OperatorVersion) (*string, error) {
+func validateUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion) (*string, error) {
 	// PREREQUISITES:
 	newPlan := new.Spec.PlanExecution.PlanName
 	oldPlan := old.Spec.PlanExecution.PlanName
 	newOvRef := new.Spec.OperatorVersion
 	oldOvRef := old.Spec.OperatorVersion
 
-	paramDiff := v1beta12.ParameterDiff(old.Spec.Parameters, new.Spec.Parameters)
-	paramDefs := v1beta12.GetParamDefinitions(paramDiff, ov)
+	paramDiff := kudov1beta1.ParameterDiff(old.Spec.Parameters, new.Spec.Parameters)
+	paramDefs := kudov1beta1.GetParamDefinitions(paramDiff, ov)
 	triggeredPlan, err := triggeredPlan(paramDefs, ov)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update Instance %s/%s: %v", old.Namespace, old.Name, err)
@@ -146,7 +147,7 @@ func validateUpdate(old, new *v1beta12.Instance, ov *v1beta12.OperatorVersion) (
 	// Deciding which plan to trigger:
 	switch {
 	case isUpgrade:
-		plan := v1beta12.SelectPlan([]string{v1beta12.UpgradePlanName, v1beta12.UpdatePlanName, v1beta12.DeployPlanName}, ov)
+		plan := kudov1beta1.SelectPlan([]string{kudov1beta1.UpgradePlanName, kudov1beta1.UpdatePlanName, kudov1beta1.DeployPlanName}, ov)
 		if plan == nil {
 			return nil, fmt.Errorf("failed to update Instance %s/%s: couldn't find any suitable plan that would be triggered by an OperatorVersion upgrade", old.Namespace, old.Name)
 		}
@@ -170,29 +171,13 @@ func validateUpdate(old, new *v1beta12.Instance, ov *v1beta12.OperatorVersion) (
 }
 
 // resetInstanceStatus clears Instance.Status to effectively restart existing plan
-func resetInstanceStatus(instance *v1beta12.Instance) error {
+func resetInstanceStatus(instance *kudov1beta1.Instance) error {
 	// TODO (AD): implement
 	return nil
 }
 
-// getOperatorVersion retrieves operator version belonging to the given instance
-func (ia *InstanceAdmission) getOperatorVersion(instance *v1beta12.Instance) (ov *v1beta12.OperatorVersion, err error) {
-	ov = &v1beta12.OperatorVersion{}
-	err = ia.client.Get(context.TODO(),
-		types.NamespacedName{
-			Name:      instance.Spec.OperatorVersion.Name,
-			Namespace: instance.OperatorVersionNamespace(),
-		},
-		ov)
-	if err != nil {
-		log.Printf("InstanceAdmission: Error getting operatorVersion %s for instance %s: %v", instance.Spec.OperatorVersion.Name, instance.Name, err)
-		return nil, err
-	}
-	return ov, nil
-}
-
 // triggeredPlan determines what plan to run based on parameters that changed and the corresponding parameter trigger.
-func triggeredPlan(params []v1beta12.Parameter, ov *v1beta12.OperatorVersion) (*string, error) {
+func triggeredPlan(params []kudov1beta1.Parameter, ov *kudov1beta1.OperatorVersion) (*string, error) {
 	// If no parameters were changed, we return an empty string so no plan would be triggered
 	if len(params) == 0 {
 		return nil, nil
@@ -200,7 +185,7 @@ func triggeredPlan(params []v1beta12.Parameter, ov *v1beta12.OperatorVersion) (*
 
 	plans := make([]string, 0)
 	for _, p := range params {
-		if p.Trigger != "" && v1beta12.SelectPlan([]string{p.Trigger}, ov) != nil {
+		if p.Trigger != "" && kudov1beta1.SelectPlan([]string{p.Trigger}, ov) != nil {
 			plans = append(plans, p.Trigger)
 		}
 	}
@@ -210,7 +195,7 @@ func triggeredPlan(params []v1beta12.Parameter, ov *v1beta12.OperatorVersion) (*
 	switch len(plans) {
 	case 0:
 		// no plan could be triggered since we do not force existence of the "deploy" plan in the operators
-		fallback := v1beta12.SelectPlan([]string{v1beta12.UpdatePlanName, v1beta12.DeployPlanName}, ov)
+		fallback := kudov1beta1.SelectPlan([]string{kudov1beta1.UpdatePlanName, kudov1beta1.DeployPlanName}, ov)
 		if fallback == nil {
 			return nil, fmt.Errorf("couldn't find any plans that would be triggered by the update")
 		}
