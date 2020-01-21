@@ -35,7 +35,20 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 			return admission.Errored(http.StatusBadRequest, err)
 		}
 
-		new.Spec.PlanExecution.PlanName = kudov1beta1.DeployPlanName
+		// since we don't yet enforce the existence of the 'deploy' plan in the OV, we check for its existence
+		// and decline Instance creation if the plan is not found
+		ov, err := instance.GetOperatorVersion(new, ia.client)
+		if err != nil {
+			log.Printf("InstanceAdmission: Error getting operatorVersion %s for instance %s/%s: %v", new.Spec.OperatorVersion.Name, new.Namespace, new.Name, err)
+			admission.Errored(http.StatusInternalServerError, err)
+		}
+
+		plan := kudov1beta1.SelectPlan([]string{kudov1beta1.DeployPlanName}, ov)
+		if plan == nil {
+			return admission.Denied(fmt.Sprintf("failed to create an Instance %s/%s: couldn't find '%s' plann in the operatorVersion", new.Namespace, new.Name, kudov1beta1.DeployPlanName))
+		}
+
+		new.Spec.PlanExecution.PlanName = *plan
 		return admission.Allowed("")
 
 	case v1beta1.Update:
