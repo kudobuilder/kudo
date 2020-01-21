@@ -1,4 +1,4 @@
-package v1beta1
+package webhook
 
 import (
 	"context"
@@ -11,6 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	v1beta12 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 // +k8s:deepcopy-gen=false
@@ -28,17 +30,17 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 
 	case v1beta1.Create:
 		// trigger "deploy" for freshly created Instances: req.Object contains the created object
-		new := &Instance{}
+		new := &v1beta12.Instance{}
 		if err := ia.decoder.DecodeRaw(req.Object, new); err != nil {
 			return admission.Errored(http.StatusBadRequest, err)
 		}
 
-		new.Spec.PlanExecution.PlanName = DeployPlanName
+		new.Spec.PlanExecution.PlanName = v1beta12.DeployPlanName
 		return admission.Allowed("")
 
 	case v1beta1.Update:
 		// call validation for Instance Updates
-		old, new := &Instance{}, &Instance{}
+		old, new := &v1beta12.Instance{}, &v1beta12.Instance{}
 
 		// req.Object contains the updated object
 		if err := ia.decoder.DecodeRaw(req.Object, new); err != nil {
@@ -81,7 +83,7 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 | HasScheduledPlan | ParameterUpdate | Upgrade | PlanOverride | PlanCancel | Allow |                                                     Description                                                     |
 |------------------|-----------------|---------|--------------|------------|-------|---------------------------------------------------------------------------------------------------------------------|
 | x                | x               |         |              |            | [No]  | Forbid parameter updates when a plan is scheduled unless the same plan is triggered (instance status will be reset) |
-| x                |                 | x       |              |            | No    | Forbid upgrades is another plan is running                                                                          |
+| x                |                 | x       |              |            | No    | Forbid upgrades if another plan is running                                                                          |
 | x                |                 |         | x            |            | No    | Forbid plan overrides (for now)                                                                                     |
 | x                |                 |         |              | x          | No    | Forbid plan cancellations (for now)                                                                                 |
 | ---              |                 |         |              |            |       | ---                                                                                                                 |
@@ -100,15 +102,15 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 // - <nil> when there is no change to an existing scheduled plan
 // - '' empty string when an existing plan should be canceled (not implemented yet)
 // - 'newPlan' some new plan that should be triggered
-func validateUpdate(old, new *Instance, ov *OperatorVersion) (*string, error) {
+func validateUpdate(old, new *v1beta12.Instance, ov *v1beta12.OperatorVersion) (*string, error) {
 	// PREREQUISITES:
 	newPlan := new.Spec.PlanExecution.PlanName
 	oldPlan := old.Spec.PlanExecution.PlanName
 	newOvRef := new.Spec.OperatorVersion
 	oldOvRef := old.Spec.OperatorVersion
 
-	paramDiff := ParameterDiff(old.Spec.Parameters, new.Spec.Parameters)
-	paramDefs := GetParamDefinitions(paramDiff, ov)
+	paramDiff := v1beta12.ParameterDiff(old.Spec.Parameters, new.Spec.Parameters)
+	paramDefs := v1beta12.GetParamDefinitions(paramDiff, ov)
 	triggeredPlan, err := triggeredPlan(paramDefs, ov)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update Instance %s/%s: %v", old.Namespace, old.Name, err)
@@ -124,15 +126,15 @@ func validateUpdate(old, new *Instance, ov *OperatorVersion) (*string, error) {
 	// Checking compatibility rules described in the table above:
 	switch {
 	case hasPlan && isParameterUpdate && *triggeredPlan != oldPlan:
-		return nil, fmt.Errorf("failed to update Instance %s/%s: plan '%s' is scheduled and an update would trigger a different plan '%s'", old.Namespace, old.Name, oldPlan, newPlan)
+		return nil, fmt.Errorf("failed to update Instance %s/%s: plan '%s' is scheduled (or running) and an update would trigger a different plan '%s'", old.Namespace, old.Name, oldPlan, newPlan)
 	case isUpgrade && hasPlan:
-		return nil, fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s while a plan '%s' is scheduled is not allowed", old.Namespace, old.Name, newOvRef, oldPlan)
+		return nil, fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s while a plan '%s' is scheduled (or running) is not allowed", old.Namespace, old.Name, newOvRef, oldPlan)
 	case isUpgrade && isNovelPlan:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s and triggering new plan '%s' is not allowed", old.Namespace, old.Name, newOvRef, newPlan)
 	case isPlanOverride:
-		return nil, fmt.Errorf("failed to update Instance %s/%s: overriding currently scheduled plan '%s' with '%s' is not supported", old.Namespace, old.Name, oldPlan, newPlan)
+		return nil, fmt.Errorf("failed to update Instance %s/%s: overriding currently scheduled (or running) plan '%s' with '%s' is not supported", old.Namespace, old.Name, oldPlan, newPlan)
 	case isPlanCancellation:
-		return nil, fmt.Errorf("failed to update Instance %s/%s: cancelling currently scheduled plan '%s' is not supported", old.Namespace, old.Name, oldPlan)
+		return nil, fmt.Errorf("failed to update Instance %s/%s: cancelling currently scheduled (or running) plan '%s' is not supported", old.Namespace, old.Name, oldPlan)
 	case isParameterUpdate && isUpgrade:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s together with a parameter update triggering '%s' is not allowed", old.Namespace, old.Name, newOvRef, *triggeredPlan)
 	case isParameterUpdate && isNovelPlan:
@@ -144,7 +146,7 @@ func validateUpdate(old, new *Instance, ov *OperatorVersion) (*string, error) {
 	// Deciding which plan to trigger:
 	switch {
 	case isUpgrade:
-		plan := SelectPlan([]string{UpgradePlanName, UpdatePlanName, DeployPlanName}, ov)
+		plan := v1beta12.SelectPlan([]string{v1beta12.UpgradePlanName, v1beta12.UpdatePlanName, v1beta12.DeployPlanName}, ov)
 		if plan == nil {
 			return nil, fmt.Errorf("failed to update Instance %s/%s: couldn't find any suitable plan that would be triggered by an OperatorVersion upgrade", old.Namespace, old.Name)
 		}
@@ -168,14 +170,14 @@ func validateUpdate(old, new *Instance, ov *OperatorVersion) (*string, error) {
 }
 
 // resetInstanceStatus clears Instance.Status to effectively restart existing plan
-func resetInstanceStatus(instance *Instance) error {
+func resetInstanceStatus(instance *v1beta12.Instance) error {
 	// TODO (AD): implement
 	return nil
 }
 
 // getOperatorVersion retrieves operator version belonging to the given instance
-func (ia *InstanceAdmission) getOperatorVersion(instance *Instance) (ov *OperatorVersion, err error) {
-	ov = &OperatorVersion{}
+func (ia *InstanceAdmission) getOperatorVersion(instance *v1beta12.Instance) (ov *v1beta12.OperatorVersion, err error) {
+	ov = &v1beta12.OperatorVersion{}
 	err = ia.client.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      instance.Spec.OperatorVersion.Name,
@@ -190,7 +192,7 @@ func (ia *InstanceAdmission) getOperatorVersion(instance *Instance) (ov *Operato
 }
 
 // triggeredPlan determines what plan to run based on parameters that changed and the corresponding parameter trigger.
-func triggeredPlan(params []Parameter, ov *OperatorVersion) (*string, error) {
+func triggeredPlan(params []v1beta12.Parameter, ov *v1beta12.OperatorVersion) (*string, error) {
 	// If no parameters were changed, we return an empty string so no plan would be triggered
 	if len(params) == 0 {
 		return nil, nil
@@ -198,7 +200,7 @@ func triggeredPlan(params []Parameter, ov *OperatorVersion) (*string, error) {
 
 	plans := make([]string, 0)
 	for _, p := range params {
-		if p.Trigger != "" && SelectPlan([]string{p.Trigger}, ov) != nil {
+		if p.Trigger != "" && v1beta12.SelectPlan([]string{p.Trigger}, ov) != nil {
 			plans = append(plans, p.Trigger)
 		}
 	}
@@ -208,7 +210,7 @@ func triggeredPlan(params []Parameter, ov *OperatorVersion) (*string, error) {
 	switch len(plans) {
 	case 0:
 		// no plan could be triggered since we do not force existence of the "deploy" plan in the operators
-		fallback := SelectPlan([]string{UpdatePlanName, DeployPlanName}, ov)
+		fallback := v1beta12.SelectPlan([]string{v1beta12.UpdatePlanName, v1beta12.DeployPlanName}, ov)
 		if fallback == nil {
 			return nil, fmt.Errorf("couldn't find any plans that would be triggered by the update")
 		}

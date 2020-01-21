@@ -1,4 +1,4 @@
-package v1beta1
+package webhook
 
 import (
 	"log"
@@ -8,6 +8,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
@@ -16,12 +17,12 @@ func TestValidateUpdate(t *testing.T) {
 	deploy := "deploy"
 	update := "update"
 
-	ov := &OperatorVersion{
+	ov := &v1beta1.OperatorVersion{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
 		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.dev/v1beta1"},
-		Spec: OperatorVersionSpec{
-			Plans: map[string]Plan{"deploy": {}, "update": {}},
-			Parameters: []Parameter{
+		Spec: v1beta1.OperatorVersionSpec{
+			Plans: map[string]v1beta1.Plan{"deploy": {}, "update": {}},
+			Parameters: []v1beta1.Parameter{
 				{
 					Name:    "foo",
 					Trigger: deploy,
@@ -38,7 +39,7 @@ func TestValidateUpdate(t *testing.T) {
 		},
 	}
 
-	idle := &Instance{
+	idle := &v1beta1.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -47,7 +48,7 @@ func TestValidateUpdate(t *testing.T) {
 			Name:      "test",
 			Namespace: "test",
 		},
-		Spec: InstanceSpec{
+		Spec: v1beta1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "foo-operator",
 			},
@@ -55,20 +56,20 @@ func TestValidateUpdate(t *testing.T) {
 				"foo": "foo",
 			},
 		},
-		Status: InstanceStatus{},
+		Status: v1beta1.InstanceStatus{},
 	}
 
 	scheduled := idle.DeepCopy()
-	scheduled.Spec.PlanExecution = PlanExecution{PlanName: deploy}
+	scheduled.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: deploy}
 
 	upgraded := idle.DeepCopy()
 	upgraded.Spec.OperatorVersion = v1.ObjectReference{Name: "foo-operator-2.0"}
 
 	tests := []struct {
 		name    string
-		new     *Instance
-		old     *Instance
-		ov      *OperatorVersion
+		new     *v1beta1.Instance
+		old     *v1beta1.Instance
+		ov      *v1beta1.OperatorVersion
 		want    *string
 		wantErr bool
 	}{
@@ -81,7 +82,7 @@ func TestValidateUpdate(t *testing.T) {
 		{
 			name: "change in labels does not trigger a plan",
 			old:  scheduled,
-			new: func() *Instance {
+			new: func() *v1beta1.Instance {
 				i := scheduled.DeepCopy()
 				i.ObjectMeta.Labels = map[string]string{"label": "label2"}
 				return i
@@ -106,9 +107,9 @@ func TestValidateUpdate(t *testing.T) {
 		{
 			name: "overriding an existing plan directly is NOT allowed",
 			old:  scheduled,
-			new: func() *Instance {
+			new: func() *v1beta1.Instance {
 				i := scheduled.DeepCopy()
-				i.Spec.PlanExecution = PlanExecution{PlanName: "update"}
+				i.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: "update"}
 				return i
 			}(),
 			ov:      ov,
@@ -117,9 +118,9 @@ func TestValidateUpdate(t *testing.T) {
 		{
 			name: "canceling an existing plan directly is NOT allowed",
 			old:  scheduled,
-			new: func() *Instance {
+			new: func() *v1beta1.Instance {
 				i := scheduled.DeepCopy()
-				i.Spec.PlanExecution = PlanExecution{PlanName: ""}
+				i.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: ""}
 				return i
 			}(),
 			ov:      ov,
@@ -143,9 +144,9 @@ func TestValidateUpdate(t *testing.T) {
 		{
 			name: "upgrade triggered on an idle instance together with another plan IS NOT allowed",
 			old:  idle,
-			new: func() *Instance {
+			new: func() *v1beta1.Instance {
 				i := upgraded.DeepCopy()
-				i.Spec.PlanExecution = PlanExecution{PlanName: deploy}
+				i.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: deploy}
 				return i
 			}(),
 			ov:      ov,
@@ -155,7 +156,7 @@ func TestValidateUpdate(t *testing.T) {
 		{
 			name: "parameter update on an idle instance IS allowed",
 			old:  idle,
-			new: func() *Instance {
+			new: func() *v1beta1.Instance {
 				i := idle.DeepCopy()
 				i.Spec.Parameters = map[string]string{"foo": "newFoo"}
 				return i
@@ -166,7 +167,7 @@ func TestValidateUpdate(t *testing.T) {
 		{
 			name: "updating multiple parameters on an idle instance IS allowed when the same plan is triggered",
 			old:  idle,
-			new: func() *Instance {
+			new: func() *v1beta1.Instance {
 				i := idle.DeepCopy()
 				i.Spec.Parameters = map[string]string{"foo": "newFoo", "other-foo": "newOtherFoo"}
 				return i
@@ -177,7 +178,7 @@ func TestValidateUpdate(t *testing.T) {
 		{
 			name: "parameter update on a scheduled instance IS allowed when the same plan is triggered",
 			old:  scheduled,
-			new: func() *Instance {
+			new: func() *v1beta1.Instance {
 				i := scheduled.DeepCopy()
 				i.Spec.Parameters = map[string]string{"foo": "newFoo"}
 				return i
@@ -188,7 +189,7 @@ func TestValidateUpdate(t *testing.T) {
 		{
 			name: "updating parameter on a scheduled instance IS NOT allowed when a different plan is triggered",
 			old:  scheduled,
-			new: func() *Instance {
+			new: func() *v1beta1.Instance {
 				i := scheduled.DeepCopy()
 				i.Spec.Parameters = map[string]string{"bar": "newBar"}
 				return i
@@ -199,7 +200,7 @@ func TestValidateUpdate(t *testing.T) {
 		{
 			name: "parameter update triggering multiple distinct plans IS NOT allowed",
 			old:  idle,
-			new: func() *Instance {
+			new: func() *v1beta1.Instance {
 				i := idle.DeepCopy()
 				i.Spec.Parameters = map[string]string{"foo": "newFoo", "bar": "newBar"}
 				return i
@@ -210,7 +211,7 @@ func TestValidateUpdate(t *testing.T) {
 		{
 			name: "parameter update triggering a non-existing ov plan IS allowed but will NOT trigger a plan",
 			old:  idle,
-			new: func() *Instance {
+			new: func() *v1beta1.Instance {
 				i := idle.DeepCopy()
 				i.Spec.Parameters["bazz"] = "newBazz"
 				return i
@@ -221,7 +222,7 @@ func TestValidateUpdate(t *testing.T) {
 		{
 			name: "parameter update together with an upgrade IS normally NOT allowed",
 			old:  idle,
-			new: func() *Instance {
+			new: func() *v1beta1.Instance {
 				i := upgraded.DeepCopy()
 				i.Spec.Parameters = map[string]string{"foo": "newFoo"}
 				return i
@@ -232,12 +233,12 @@ func TestValidateUpdate(t *testing.T) {
 		{
 			name: "parameter update together with an upgrade IS allowed if update removes a parameter that doesn't exist in the new OV",
 			old:  idle,
-			new: func() *Instance {
+			new: func() *v1beta1.Instance {
 				i := upgraded.DeepCopy()
 				delete(i.Spec.Parameters, "foo") // removing from instance parameters
 				return i
 			}(),
-			ov: func() *OperatorVersion {
+			ov: func() *v1beta1.OperatorVersion {
 				o := ov.DeepCopy()
 				o.Spec.Parameters = o.Spec.Parameters[1:len(o.Spec.Parameters)] // "foo" is the first parameter in the array
 				return o
@@ -247,7 +248,7 @@ func TestValidateUpdate(t *testing.T) {
 		{
 			name: "parameter update together with a directly triggered plan IS NOT allowed",
 			old:  idle,
-			new: func() *Instance {
+			new: func() *v1beta1.Instance {
 				i := scheduled.DeepCopy()
 				i.Spec.Parameters = map[string]string{"foo": "newFoo"}
 				return i
@@ -258,7 +259,7 @@ func TestValidateUpdate(t *testing.T) {
 		{
 			name: "parameter update together with a directly triggered plan IS NOT allowed if different plans are triggered",
 			old:  idle,
-			new: func() *Instance {
+			new: func() *v1beta1.Instance {
 				i := scheduled.DeepCopy()
 				i.Spec.Parameters["bar"] = "newBar"
 				return i
@@ -288,12 +289,12 @@ func stringPtrToString(p *string) string {
 }
 
 func Test_triggeredPlan(t *testing.T) {
-	ov := &OperatorVersion{
+	ov := &v1beta1.OperatorVersion{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
 		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.dev/v1beta1"},
-		Spec: OperatorVersionSpec{
-			Plans: map[string]Plan{"deploy": {}, "update": {}, "backup": {}},
-			Parameters: []Parameter{
+		Spec: v1beta1.OperatorVersionSpec{
+			Plans: map[string]v1beta1.Plan{"deploy": {}, "update": {}, "backup": {}},
+			Parameters: []v1beta1.Parameter{
 				{
 					Name:    "param",
 					Default: kudo.String("default"),
@@ -308,42 +309,42 @@ func Test_triggeredPlan(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		params  []Parameter
-		ov      *OperatorVersion
+		params  []v1beta1.Parameter
+		ov      *v1beta1.OperatorVersion
 		want    *string
 		wantErr bool
 	}{
 		{
 			name:    "no change doesn't trigger anything",
-			params:  []Parameter{},
+			params:  []v1beta1.Parameter{},
 			ov:      ov,
 			want:    nil,
 			wantErr: false,
 		},
 		{
 			name:    "param without an explicit trigger, triggers update plan",
-			params:  []Parameter{{Name: "foo"}},
+			params:  []v1beta1.Parameter{{Name: "foo"}},
 			ov:      ov,
 			want:    &update,
 			wantErr: false,
 		},
 		{
 			name:    "param with an explicit trigger",
-			params:  []Parameter{{Name: "foo", Trigger: "backup"}},
+			params:  []v1beta1.Parameter{{Name: "foo", Trigger: "backup"}},
 			ov:      ov,
 			want:    &backup,
 			wantErr: false,
 		},
 		{
 			name:    "two params with the same triggers",
-			params:  []Parameter{{Name: "foo", Trigger: "deploy"}, {Name: "bar", Trigger: "deploy"}},
+			params:  []v1beta1.Parameter{{Name: "foo", Trigger: "deploy"}, {Name: "bar", Trigger: "deploy"}},
 			ov:      ov,
 			want:    &deploy,
 			wantErr: false,
 		},
 		{
 			name:    "two params with conflicting triggers lead to an error",
-			params:  []Parameter{{Name: "foo", Trigger: "deploy"}, {Name: "bar", Trigger: "update"}},
+			params:  []v1beta1.Parameter{{Name: "foo", Trigger: "deploy"}, {Name: "bar", Trigger: "update"}},
 			ov:      ov,
 			want:    nil,
 			wantErr: true,

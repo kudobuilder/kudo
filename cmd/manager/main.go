@@ -38,6 +38,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
 	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
 	"github.com/kudobuilder/kudo/pkg/version"
+	webhook2 "github.com/kudobuilder/kudo/pkg/webhook"
 )
 
 // parseSyncPeriod determines the minimum frequency at which watched resources are reconciled.
@@ -125,7 +126,7 @@ func main() {
 	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) == "true" {
 		log.Printf("Setting up webhooks")
 
-		if err := registerWebhook("/validate", &v1beta1.Instance{}, &webhook.Admission{Handler: &v1beta1.InstanceAdmission{}}, mgr); err != nil {
+		if err := registerWebhook("/validate", &v1beta1.Instance{}, &webhook.Admission{Handler: &webhook2.InstanceAdmission{}}, mgr); err != nil {
 			log.Printf("unable to create instance validation webhook: %v", err)
 			os.Exit(1)
 		}
