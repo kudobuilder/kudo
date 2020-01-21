@@ -42,6 +42,10 @@ func NewInitializer(options kudoinit.Options) Initializer {
 	}
 }
 
+func (p Initializer) InstalledVersion(client *kube.Client) (string, error) {
+	return "", nil
+}
+
 func (p Initializer) Install(client *kube.Client) error {
 	for _, prereq := range p.prereqs {
 		err := prereq.Install(client)

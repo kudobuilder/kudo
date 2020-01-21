@@ -44,6 +44,10 @@ func NewInitializer(options kudoinit.Options) Initializer {
 	}
 }
 
+func (m Initializer) InstalledVersion(client *kube.Client) (string, error) {
+	return "", nil
+}
+
 // Install uses Kubernetes client to install KUDO.
 func (m Initializer) Install(client *kube.Client) error {
 	if err := m.installStatefulSet(client.KubeClient.AppsV1()); err != nil {

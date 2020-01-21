@@ -14,10 +14,25 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
 )
 
+type setup struct {
+	crds    kudoinit.InitStep
+	prereqs kudoinit.InitStep
+	manager kudoinit.InitStep
+}
+
+func newSetup(opts kudoinit.Options) setup {
+	return setup{
+		crds:    crd.NewInitializer(),
+		prereqs: prereq.NewInitializer(opts),
+		manager: manager.NewInitializer(opts),
+	}
+}
+
 // Install uses Kubernetes client to install KUDO.
 func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
+	setup := newSetup(opts)
 
-	if err := crd.NewInitializer().Install(client); err != nil {
+	if err := setup.crds.Install(client); err != nil {
 		return fmt.Errorf("crds: %v", err)
 	}
 	if crdOnly {
@@ -25,12 +40,12 @@ func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
 	}
 	clog.Printf("✅ installed crds")
 
-	if err := prereq.NewInitializer(opts).Install(client); err != nil {
+	if err := setup.prereqs.Install(client); err != nil {
 		return fmt.Errorf("prerequisites: %v", err)
 	}
 	clog.Printf("✅ installed service accounts and other requirements for controller to run")
 
-	if err := manager.NewInitializer(opts).Install(client); err != nil {
+	if err := setup.manager.Install(client); err != nil {
 		return fmt.Errorf("manager: %v", err)
 	}
 	clog.Printf("✅ installed kudo controller")

@@ -16,6 +16,9 @@ type InitStep interface {
 	Install(client *kube.Client) error
 	AsYamlManifests() ([]string, error)
 	AsArray() []runtime.Object
+
+	// InstalledVersion returns the currently installed version of this step, or nil if it is not installed
+	InstalledVersion(client *kube.Client) (string, error)
 }
 
 func GenerateLabels(labels map[string]string) map[string]string {

@@ -51,6 +51,8 @@ and finishes with success if KUDO is already installed.
   kubectl kudo init --crd-only --dry-run --output yaml | kubectl delete -f -
   # pass existing serviceaccount 
   kubectl kudo init --service-account testaccount
+  # upgrade an existing KUDO installation
+  kubectl kudo init --upgrade
 `
 )
 
@@ -67,6 +69,7 @@ type initCmd struct {
 	timeout        int64
 	clientOnly     bool
 	crdOnly        bool
+	upgrade        bool
 	home           kudohome.Home
 	client         *kube.Client
 	webhooks       string
@@ -100,6 +103,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.StringVarP(&i.version, "version", "", "", "Override KUDO controller version of the KUDO image")
 	f.StringVarP(&i.output, "output", "o", "", "Output format")
 	f.BoolVar(&i.dryRun, "dry-run", false, "Do not install local or remote")
+	f.BoolVar(&i.upgrade, "upgrade", false, "Upgrade an existing KUDO installation")
 	f.BoolVar(&i.crdOnly, "crd-only", false, "Add only KUDO CRDs to your cluster")
 	f.BoolVarP(&i.wait, "wait", "w", false, "Block until KUDO manager is running and ready to receive requests")
 	f.Int64Var(&i.timeout, "wait-timeout", 300, "Wait timeout to be used")
@@ -134,7 +138,7 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (initCmd *initCmd) run() error {
-	opts := kudoinit.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks))
+	opts := kudoinit.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks), initCmd.upgrade)
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image

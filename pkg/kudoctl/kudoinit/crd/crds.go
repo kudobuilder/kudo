@@ -36,6 +36,10 @@ func NewInitializer() Initializer {
 	}
 }
 
+func (c Initializer) InstalledVersion(client *kube.Client) (string, error) {
+	return "", nil
+}
+
 // AsArray returns all CRDs as array of runtime objects
 func (c Initializer) AsArray() []runtime.Object {
 	return []runtime.Object{c.Operator, c.OperatorVersion, c.Instance}
