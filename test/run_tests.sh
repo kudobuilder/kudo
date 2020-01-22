@@ -20,7 +20,7 @@ builder_image=$(awk '/FROM/ {print $2}' test/Dockerfile)
 function archive_logs() {
     # Archive test harness artifacts
     if [ "$TARGET" == "e2e-test" ]; then
-        tar -cvfj kind-logs.tar.bz2 kind-logs/
+        tar -cjvf kind-logs.tar.bz2 kind-logs/
     fi
 }
 
