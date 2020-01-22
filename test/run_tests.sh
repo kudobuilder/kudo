@@ -10,9 +10,6 @@ TARGET=$1
 
 INTEGRATION_OUTPUT_JUNIT=${INTEGRATION_OUTPUT_JUNIT:-false}
 
-CONTAINER_SUFFIX=$(< /dev/urandom base64 | tr -dc '[:alpha:]' | head -c 8 || true)
-CONTAINER_NAME=${CONTAINER_NAME:-"kudo-e2e-test-$CONTAINER_SUFFIX"}
-
 # Set test harness artifacts dir to '/tmp/kudo-e2e-test', as it's easier to copy out from a container.
 echo 'artifactsDir: /tmp/kudo-e2e-test' >> kudo-e2e-test.yaml
 
@@ -20,13 +17,11 @@ echo 'artifactsDir: /tmp/kudo-e2e-test' >> kudo-e2e-test.yaml
 retries=0
 builder_image=$(awk '/FROM/ {print $2}' test/Dockerfile)
 
-function cleanup() {
+function archive_logs() {
     # Archive test harness artifacts
     if [ "$TARGET" == "e2e-test" ]; then
-        docker cp "$CONTAINER_NAME:/tmp/kudo-e2e-test" - | bzip2 > kind-logs.tar.bz2
+        tar -cvfj kind-logs.tar.bz2 kind-logs/
     fi
-
-    docker rm "$CONTAINER_NAME"
 }
 
 if ! docker inspect "$builder_image"; then
@@ -42,17 +37,17 @@ if ! docker inspect "$builder_image"; then
 fi
 
 if docker build -f test/Dockerfile -t kudo-test .; then
-    if docker run -e INTEGRATION_OUTPUT_JUNIT --net=host -it -m 4g \
-        --name "$CONTAINER_NAME" \
+    if docker run -e INTEGRATION_OUTPUT_JUNIT --net=host -it --rm -m 4g \
         -v /var/run/docker.sock:/var/run/docker.sock \
         -v "$(pwd)"/reports:/go/src/github.com/kudobuilder/kudo/reports \
-        kudo-test make "$TARGET"
+        -v "$(pwd)"/kind-logs:/tmp/kudo-e2e-test \
+        kudo-test bash -c "make $TARGET; chmod a+r -R kind-logs"
     then
-        cleanup
+        archive_logs
         echo "Tests finished successfully! ヽ(•‿•)ノ"
     else
         RESULT=$?
-        cleanup
+        archive_logs
         exit $RESULT
     fi
 else
