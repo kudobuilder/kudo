@@ -50,7 +50,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	"github.com/kudobuilder/kudo/pkg/apis"
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 )
 
 // ensure that we only add to the scheme once.
@@ -260,11 +261,11 @@ func (r *RetryStatusWriter) Patch(ctx context.Context, obj runtime.Object, patch
 func Scheme() *runtime.Scheme {
 	schemeLock.Do(func() {
 		if err := apis.AddToScheme(scheme.Scheme); err != nil {
-			fmt.Printf("failed to add API resources to the scheme: %v", err)
+			clog.Printf("failed to add API resources to the scheme: %v", err)
 			os.Exit(-1)
 		}
 		if err := apiextensions.AddToScheme(scheme.Scheme); err != nil {
-			fmt.Printf("failed to add API extension resources to the scheme: %v", err)
+			clog.Printf("failed to add API extension resources to the scheme: %v", err)
 			os.Exit(-1)
 		}
 	})
@@ -349,11 +350,11 @@ func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 	group := in.GetObjectKind().GroupVersionKind().Group
 
 	if group == "kudo.dev" && kind == "TestStep" {
-		converted = &kudo.TestStep{}
+		converted = &harness.TestStep{}
 	} else if group == "kudo.dev" && kind == "TestAssert" {
-		converted = &kudo.TestAssert{}
+		converted = &harness.TestAssert{}
 	} else if group == "kudo.dev" && kind == "TestSuite" {
-		converted = &kudo.TestSuite{}
+		converted = &harness.TestSuite{}
 	} else {
 		return in, nil
 	}
@@ -788,19 +789,25 @@ func WaitForCRDs(dClient discovery.DiscoveryInterface, crds []runtime.Object) er
 
 	for _, crdObj := range crds {
 		if !MatchesKind(crdObj, crdKind) {
-			continue
+			return fmt.Errorf("the following passed object does not match %v: %v", crdKind, crdObj)
 		}
 
-		crd, ok := crdObj.(*apiextensions.CustomResourceDefinition)
-		if !ok {
-			continue
+		switch crd := crdObj.(type) {
+		case *apiextensions.CustomResourceDefinition:
+			waitingFor = append(waitingFor, schema.GroupVersionKind{
+				Group:   crd.Spec.Group,
+				Version: crd.Spec.Version,
+				Kind:    crd.Spec.Names.Kind,
+			})
+		case *unstructured.Unstructured:
+			waitingFor = append(waitingFor, schema.GroupVersionKind{
+				Group:   crd.Object["spec"].(map[string]interface{})["group"].(string),
+				Version: crd.Object["spec"].(map[string]interface{})["version"].(string),
+				Kind:    crd.Object["spec"].(map[string]interface{})["names"].(map[string]interface{})["kind"].(string),
+			})
+		default:
+			return fmt.Errorf("the folllowing passed object is not a CRD: %v", crdObj)
 		}
-
-		waitingFor = append(waitingFor, schema.GroupVersionKind{
-			Group:   crd.Spec.Group,
-			Version: crd.Spec.Version,
-			Kind:    crd.Spec.Names.Kind,
-		})
 	}
 
 	return wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (done bool, err error) {
@@ -860,7 +867,7 @@ func StartTestEnvironment() (env TestEnvironment, err error) {
 }
 
 // GetArgs parses a command line string into its arguments and appends a namespace if it is not already set.
-func GetArgs(ctx context.Context, command string, cmd kudo.Command, namespace string) (*exec.Cmd, error) {
+func GetArgs(ctx context.Context, command string, cmd harness.Command, namespace string) (*exec.Cmd, error) {
 	argSlice := []string{}
 
 	argSplit, err := shlex.Split(cmd.Command)
@@ -896,7 +903,7 @@ func GetArgs(ctx context.Context, command string, cmd kudo.Command, namespace st
 
 // RunCommand runs a command with args.
 // args gets split on spaces (respecting quoted strings).
-func RunCommand(ctx context.Context, namespace string, command string, cmd kudo.Command, cwd string, stdout io.Writer, stderr io.Writer) error {
+func RunCommand(ctx context.Context, namespace string, command string, cmd harness.Command, cwd string, stdout io.Writer, stderr io.Writer) error {
 	actualDir, err := os.Getwd()
 	if err != nil {
 		return err
@@ -927,7 +934,7 @@ func RunCommand(ctx context.Context, namespace string, command string, cmd kudo.
 
 // RunCommands runs a set of commands, returning any errors.
 // If `command` is set, then `command` will be the command that is invoked (if a command specifies it already, it will not be prepended again).
-func RunCommands(logger Logger, namespace string, command string, commands []kudo.Command, workdir string) []error {
+func RunCommands(logger Logger, namespace string, command string, commands []harness.Command, workdir string) []error {
 	errs := []error{}
 
 	if commands == nil {
@@ -958,10 +965,10 @@ func RunCommands(logger Logger, namespace string, command string, commands []kud
 
 // RunKubectlCommands runs a set of kubectl commands, returning any errors.
 func RunKubectlCommands(logger Logger, namespace string, commands []string, workdir string) []error {
-	apiCommands := []kudo.Command{}
+	apiCommands := []harness.Command{}
 
 	for _, cmd := range commands {
-		apiCommands = append(apiCommands, kudo.Command{
+		apiCommands = append(apiCommands, harness.Command{
 			Command:    cmd,
 			Namespaced: true,
 		})

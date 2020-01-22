@@ -13,6 +13,7 @@ func TestTemplateParametersVerifier(t *testing.T) {
 	params := []v1beta1.Parameter{
 		{Name: "Foo"},
 		{Name: "NotUsed"},
+		{Name: "UsedViaRoot"},
 	}
 	paramFile := packages.ParamsFile{Parameters: params}
 	templates := make(map[string]string)
@@ -21,6 +22,8 @@ func TestTemplateParametersVerifier(t *testing.T) {
 {{.Params.Bar}}
 {{.Bar}}
 {{.Name}}
+{{$.AppVersion}}
+{{$.Params.UsedViaRoot}}
 `
 	operator := packages.OperatorFile{}
 	pf := packages.Files{

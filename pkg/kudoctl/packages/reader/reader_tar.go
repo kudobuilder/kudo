@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/afero"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
@@ -47,7 +48,7 @@ func ParseTgz(r io.Reader) (*packages.Files, error) {
 	defer func() {
 		err := gzr.Close()
 		if err != nil {
-			fmt.Printf("Error when closing gzip reader: %s", err)
+			clog.Printf("Error when closing gzip reader: %s", err)
 		}
 	}()
 

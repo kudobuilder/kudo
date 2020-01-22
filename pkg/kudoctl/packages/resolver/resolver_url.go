@@ -16,7 +16,7 @@ type URLResolver struct {
 }
 
 // Resolve returns a package for the provided url
-func (f *URLResolver) Resolve(name string, version string) (*packages.Package, error) {
+func (f *URLResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
 	// check to see if name is url
 	if !http.IsValidURL(name) {
 		return nil, fmt.Errorf("resolver: url %v invalid", name)

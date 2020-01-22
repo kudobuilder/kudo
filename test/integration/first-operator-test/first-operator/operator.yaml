@@ -1,6 +1,6 @@
 apiVersion: kudo.dev/v1beta1
 name: "first-operator"
-version: "0.1.0"
+operatorVersion: "0.1.0"
 appVersion: "1.7.9"
 kubernetesVersion: 1.13.0
 maintainers:

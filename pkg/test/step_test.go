@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
@@ -54,10 +54,11 @@ func TestStepCreate(t *testing.T) {
 	pod := testutils.NewPod("hello", "")
 	podWithNamespace := testutils.NewPod("hello2", "different-namespace")
 	clusterScopedResource := testutils.NewResource("v1", "Namespace", "my-namespace", "")
-	podToUpdate := testutils.NewPod("update-me", "").(*unstructured.Unstructured)
-	updateToApply := testutils.WithSpec(t, podToUpdate, map[string]interface{}{
-		"replicas": 2,
-	}).(*unstructured.Unstructured)
+	podToUpdate := testutils.NewPod("update-me", "")
+	specToApply := map[string]interface{}{
+		"replicas": int64(2),
+	}
+	updateToApply := testutils.WithSpec(t, podToUpdate, specToApply)
 
 	cl := fake.NewFakeClient(testutils.WithNamespace(podToUpdate, "world"))
 
@@ -75,8 +76,9 @@ func TestStepCreate(t *testing.T) {
 	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(pod), pod))
 	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(clusterScopedResource), clusterScopedResource))
 
-	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podToUpdate), podToUpdate))
-	assert.Equal(t, updateToApply.Object["spec"], podToUpdate.Object["spec"])
+	updatedPod := &unstructured.Unstructured{Object: map[string]interface{}{"apiVersion": "v1", "kind": "Pod"}}
+	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podToUpdate), updatedPod))
+	assert.Equal(t, specToApply, updatedPod.Object["spec"])
 
 	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podWithNamespace), podWithNamespace))
 	actual := testutils.NewPod("hello2", namespace)
@@ -95,8 +97,8 @@ func TestStepDeleteExisting(t *testing.T) {
 
 	step := Step{
 		Logger: testutils.NewTestLogger(t, ""),
-		Step: &kudo.TestStep{
-			Delete: []kudo.ObjectReference{
+		Step: &harness.TestStep{
+			Delete: []harness.ObjectReference{
 				{
 					ObjectReference: corev1.ObjectReference{
 						Kind:       "Pod",
@@ -284,7 +286,7 @@ func TestRun(t *testing.T) {
 		},
 	} {
 		t.Run(test.testName, func(t *testing.T) {
-			test.Step.Assert = &kudo.TestAssert{
+			test.Step.Assert = &harness.TestAssert{
 				Timeout: 1,
 			}
 

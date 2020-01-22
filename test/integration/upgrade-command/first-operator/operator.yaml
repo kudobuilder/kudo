@@ -1,6 +1,6 @@
 apiVersion: kudo.dev/v1beta1
 name: "upgrade-operator"
-version: "0.1.0"
+operatorVersion: "0.1.0"
 kubernetesVersion: 1.13
 maintainers:
   - name: Your name

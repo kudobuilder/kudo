@@ -10,6 +10,7 @@ maintainers:
 - email: kensipe@gmail.com
   name: Ken Sipe
 name: zookeeper
+operatorVersion: 0.1.0
 plans:
   deploy:
     phases:
@@ -53,4 +54,3 @@ tasks:
     resources:
     - bar.yaml
 url: https://zookeeper.apache.org/
-version: 0.1.0
