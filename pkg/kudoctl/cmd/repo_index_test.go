@@ -29,6 +29,8 @@ func TestRepoIndexCmd(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
 			time := time.Now()

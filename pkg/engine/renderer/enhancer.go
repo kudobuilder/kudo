@@ -31,7 +31,7 @@ func (k *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) 
 	objs := make([]runtime.Object, 0, len(templates))
 
 	for _, v := range templates {
-		parsed, err := YamlToObject(string(v))
+		parsed, err := YamlToObject(v)
 		if err != nil {
 			return nil, err
 		}

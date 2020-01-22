@@ -68,6 +68,8 @@ func Test_isRelative(t *testing.T) {
 	}
 
 	for i, test := range tests {
+		test := test
+
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			if test.relative != isRelative(test.base, test.file) {
 				t.Errorf("unexpected result for: base %q, file %q", test.base, test.file)
@@ -112,6 +114,8 @@ func TestPipeNames(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
 			if got := PipePodName(tt.meta); got != tt.wantPodName {
 				t.Errorf("PipePodName() = %v, want %v", got, tt.wantPodName)
@@ -348,6 +352,8 @@ spec:
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
 			pod, err := unmarshal(tt.podYaml)
 			assert.NoError(t, err, "error during pipe pod unmarshaling")
@@ -423,6 +429,8 @@ func Test_pipeFiles(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
 			fs := afero.NewMemMapFs()
 

@@ -6,6 +6,8 @@ linters:
     - golint
     - gosec
     - misspell
+    - scopelint
+    - unconvert
     - unparam
 run:
   skip-dirs:

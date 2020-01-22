@@ -166,6 +166,8 @@ func TestCheckResource(t *testing.T) {
 			shouldError: true,
 		},
 	} {
+		test := test
+
 		t.Run(test.testName, func(t *testing.T) {
 			fakeDiscovery := testutils.FakeDiscoveryClient()
 			namespace := "world"
@@ -214,6 +216,8 @@ func TestCheckResourceAbsent(t *testing.T) {
 			expected: testutils.NewPod("hello", ""),
 		},
 	} {
+		test := test
+
 		t.Run(test.name, func(t *testing.T) {
 			fakeDiscovery := testutils.FakeDiscoveryClient()
 			namespace := "world"
@@ -285,6 +289,8 @@ func TestRun(t *testing.T) {
 			},
 		},
 	} {
+		test := test
+
 		t.Run(test.testName, func(t *testing.T) {
 			test.Step.Assert = &harness.TestAssert{
 				Timeout: 1,

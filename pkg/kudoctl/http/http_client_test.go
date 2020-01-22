@@ -17,6 +17,8 @@ func TestIsValidURL(t *testing.T) {
 		{name: "no http prefix", uri: "kudo.dev", want: false},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
 			if got := IsValidURL(tt.uri); got != tt.want {
 				t.Errorf("IsValidURL() = %v, want %v", got, tt.want)
