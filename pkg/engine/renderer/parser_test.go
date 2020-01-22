@@ -7,13 +7,17 @@ import (
 )
 
 func TestParseKubernetesObjects_UnknownType(t *testing.T) {
-	_, err := YamlToObject(`apiVersion: monitoring.coreos.com/v1
+	objects, err := YamlToObject(`apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   labels:
     app: prometheus-operator
     release: prometheus-kubeaddons
   name: spark-cluster-monitor
+  annotations:
+    foo: |-
+      ---
+      multiline
 spec:
   endpoints:
     - interval: 5s
@@ -25,6 +29,7 @@ spec:
 	if err != nil {
 		t.Errorf("Expecting no error but got %s", err)
 	}
+	assert.Equal(t, 1, len(objects))
 }
 
 func TestParseKubernetesObjects_KnownType(t *testing.T) {
