@@ -153,6 +153,7 @@ func validateUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVers
 		return nil, fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s together with a parameter update triggering '%s' is not allowed", old.Namespace, old.Name, newOvRef, *triggeredPlan)
 	case isParameterUpdate && isNovelPlan:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: triggering one plan '%s' directly and through parameter update '%s' is not allowed", old.Namespace, old.Name, oldPlan, newPlan)
+	// this case is effectively a noop because isPlanOverride is disallowed for now. However, once plan overrides are implemented, this will be needed so don't remove.
 	case isParameterUpdate && isPlanOverride:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: updating parameters and triggering plan '%s' is not allowed", old.Namespace, old.Name, *triggeredPlan)
 	}

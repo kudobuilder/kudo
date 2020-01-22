@@ -1,6 +1,10 @@
 package v1beta1
 
 import (
+	"fmt"
+
+	"k8s.io/apimachinery/pkg/util/uuid"
+
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
@@ -60,6 +64,31 @@ func (i *Instance) UpdateInstanceStatus(planStatus *PlanStatus) {
 			}
 		}
 	}
+}
+
+// ResetPlanStatus method resets a PlanStatus for a passed plan name and instance. Plan/phase/step statuses
+// are set to ExecutionPending meaning that the controller will restart plan execution.
+func (i *Instance) ResetPlanStatus(plan string) error {
+	planStatus := i.PlanStatus(plan)
+	if planStatus == nil {
+		return fmt.Errorf("failed to find planStatus for the plan '%s'", plan)
+	}
+
+	// reset plan's phases and steps by setting them to ExecutionPending
+	planStatus.Set(ExecutionPending)
+	planStatus.UID = uuid.NewUUID()
+
+	for i, ph := range planStatus.Phases {
+		planStatus.Phases[i].Set(ExecutionPending)
+
+		for j := range ph.Steps {
+			planStatus.Phases[i].Steps[j].Set(ExecutionPending)
+		}
+	}
+
+	// update instance aggregated status
+	i.UpdateInstanceStatus(planStatus)
+	return nil
 }
 
 // IsDeleting returns true is the instance is being deleted.
@@ -136,5 +165,25 @@ func SelectPlan(possiblePlans []string, ov *OperatorVersion) *string {
 			return kudo.String(n)
 		}
 	}
+	return nil
+}
+
+func GetStepStatus(stepName string, phaseStatus *PhaseStatus) *StepStatus {
+	for i, p := range phaseStatus.Steps {
+		if p.Name == stepName {
+			return &phaseStatus.Steps[i]
+		}
+	}
+
+	return nil
+}
+
+func GetPhaseStatus(phaseName string, planStatus *PlanStatus) *PhaseStatus {
+	for i, p := range planStatus.Phases {
+		if p.Name == phaseName {
+			return &planStatus.Phases[i]
+		}
+	}
+
 	return nil
 }
