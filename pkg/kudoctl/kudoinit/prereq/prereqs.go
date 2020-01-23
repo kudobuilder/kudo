@@ -45,7 +45,7 @@ func NewInitializer(options kudoinit.Options) Initializer {
 	}
 }
 
-func (p Initializer) Description() string {
+func (p Initializer) String() string {
 	return "service accounts and other requirements for controller to run"
 }
 

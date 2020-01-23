@@ -1,6 +1,8 @@
 package kudoinit
 
 import (
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -13,8 +15,7 @@ const (
 )
 
 type InitStep interface {
-	// Returns a one-line description to print
-	Description() string
+	fmt.Stringer
 
 	// Should return an error if the installation will not be possible
 	PreInstallCheck(client *kube.Client) Result

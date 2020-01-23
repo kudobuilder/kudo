@@ -36,7 +36,7 @@ func NewInitializer() Initializer {
 	}
 }
 
-func (c Initializer) Description() string {
+func (c Initializer) String() string {
 	return "crds"
 }
 

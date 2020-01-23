@@ -44,7 +44,7 @@ func (m Initializer) PreInstallCheck(client *kube.Client) kudoinit.Result {
 	return kudoinit.NewResult()
 }
 
-func (m Initializer) Description() string {
+func (m Initializer) String() string {
 	return "kudo controller"
 }
 

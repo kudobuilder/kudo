@@ -33,9 +33,9 @@ func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
 	// Install everything
 	for _, initStep := range initSteps {
 		if err := initStep.Install(client); err != nil {
-			return fmt.Errorf("%s: %v", initStep.Description(), err)
+			return fmt.Errorf("%s: %v", initStep, err)
 		}
-		clog.Printf("✅ installed %s", initStep.Description())
+		clog.Printf("✅ installed %s", initStep)
 	}
 
 	return nil
