@@ -1,10 +1,8 @@
 package cmd
 
 import (
-	"errors"
 	"io"
 
-	"github.com/Masterminds/semver"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
@@ -18,7 +16,7 @@ import (
 const (
 	pkgNewDesc = `Create a new KUDO operator on the local filesystem`
 
-	pkgNewExample = `  # Create a new KUDO operator name foo 
+	pkgNewExample = `  # Create a new KUDO operator name foo
   kubectl kudo package new foo
 `
 )
@@ -60,81 +58,25 @@ func newPackageNewCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 // run returns the errors associated with cmd env
 func (pkg *packageNewCmd) run() error {
+
+	// defaults
 	pathDefault := "operator"
-	ovDefault := "0.1.0"
-	kudoDefault := version.Get().GitVersion
-	apiVersionDefault := reader.APIVersion
+	opDefault := packages.OperatorFile{
+		Name:            pkg.name,
+		APIVersion:      reader.APIVersion,
+		OperatorVersion: "0.1.0",
+		KUDOVersion:     version.Get().GitVersion,
+	}
 
 	if !pkg.interactive {
-		op := packages.OperatorFile{
-			Name:        pkg.name,
-			APIVersion:  apiVersionDefault,
-			Version:     ovDefault,
-			KUDOVersion: kudoDefault,
-		}
 
-		return generate.Operator(pkg.fs, pathDefault, op, pkg.overwrite)
+		return generate.Operator(pkg.fs, pathDefault, &opDefault, pkg.overwrite)
 	}
 
 	// interactive mode
-	nameValid := func(input string) error {
-		if len(input) < 3 {
-			return errors.New("Operator name must have more than 3 characters")
-		}
-		return nil
-	}
-
-	name, err := prompt.WithValidator("Operator Name", pkg.name, nameValid)
+	op, path, err := prompt.ForOperator(pkg.fs, pathDefault, pkg.overwrite, opDefault)
 	if err != nil {
 		return err
-	}
-
-	pathValid := func(input string) error {
-		if len(input) < 1 {
-			return errors.New("Operator directory must have more than 1 character")
-		}
-		return generate.CanGenerateOperator(pkg.fs, input, pkg.overwrite)
-	}
-
-	path, err := prompt.WithValidator("Operator directory", pathDefault, pathValid)
-	if err != nil {
-		return err
-	}
-
-	versionValid := func(input string) error {
-		if len(input) < 1 {
-			return errors.New("Operator version is required in semver format")
-		}
-		_, err := semver.NewVersion(input)
-		return err
-	}
-	opVersion, err := prompt.WithValidator("Operator Version", ovDefault, versionValid)
-	if err != nil {
-		return err
-	}
-
-	appVersion, err := prompt.WithDefault("Application Version", "")
-	if err != nil {
-		return err
-	}
-
-	kudoVersion, err := prompt.WithDefault("Required KUDO Version", kudoDefault)
-	if err != nil {
-		return err
-	}
-
-	url, err := prompt.WithDefault("Project URL", "")
-	if err != nil {
-		return err
-	}
-
-	op := packages.OperatorFile{
-		Name:        name,
-		APIVersion:  apiVersionDefault,
-		Version:     opVersion,
-		AppVersion:  appVersion,
-		KUDOVersion: kudoVersion,
-		URL:         url,
 	}
 
 	return generate.Operator(pkg.fs, path, op, pkg.overwrite)

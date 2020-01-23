@@ -3,6 +3,7 @@ package template
 import (
 	"testing"
 
+	"github.com/thoas/go-funk"
 	"gotest.tools/assert"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
@@ -45,14 +46,14 @@ spec:
 	assert.Equal(t, 4, len(nodes.parameters))
 	params := []string{"Foo", "JVM_OPT_AVAILABLE_PROCESSORS", "AUTHORIZATION_ENABLED", "CUSTOM_CASSANDRA_YAML_BASE64"}
 	for _, param := range params {
-		if !contains(nodes.parameters, param) {
+		if !funk.ContainsString(nodes.parameters, param) {
 			t.Fatalf("missing %q parameter", param)
 		}
 	}
 	assert.Equal(t, 2, len(nodes.implicitParams))
 	implicits := []string{"Name", "Namespace"}
 	for _, param := range implicits {
-		if !contains(nodes.implicitParams, param) {
+		if !funk.ContainsString(nodes.implicitParams, param) {
 			t.Fatalf("missing %q implicit parameter", param)
 		}
 	}
@@ -78,13 +79,4 @@ metadata:
 	assert.Equal(t, 0, len(nodes.implicitParams))
 
 	assert.Equal(t, `template file "example.yaml" reports the following error: template: example.yaml:6: unexpected {{end}}`, *nodes.error)
-}
-
-func contains(arr []string, str string) bool {
-	for _, a := range arr {
-		if a == str {
-			return true
-		}
-	}
-	return false
 }

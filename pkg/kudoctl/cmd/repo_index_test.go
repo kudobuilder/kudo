@@ -113,6 +113,6 @@ func TestRepoIndexCmd_MergeIndex(t *testing.T) {
 	}
 
 	// local operator takes precedence
-	o, _ := indexFile.GetByNameAndVersion("mysql", "0.1.0")
+	o, _ := indexFile.FindFirstMatch("mysql", "5.7", "0.1.0")
 	assert.Equal(t, o.Maintainers[0].Name, "Ken Sipe")
 }

@@ -9,10 +9,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParamsLis(t *testing.T) {
-	file := "params-list"
+func TestPackageListTasks(t *testing.T) {
+	file := "tasks-list"
 	out := &bytes.Buffer{}
-	cmd := newParamsListCmd(fs, out)
+	cmd := newPackageListTasksCmd(fs, out)
 	if err := cmd.RunE(cmd, []string{"../packages/testdata/zk.tgz"}); err != nil {
 		t.Fatal(err)
 	}
@@ -30,5 +30,5 @@ func TestParamsLis(t *testing.T) {
 		t.Fatalf("failed reading .golden: %s", err)
 	}
 
-	assert.Equal(t, out.String(), string(g), "yaml does not match .golden file %s", gp)
+	assert.Equal(t, out.String(), string(g), "does not match .golden file %s", gp)
 }

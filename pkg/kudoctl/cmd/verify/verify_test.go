@@ -75,3 +75,36 @@ func packageFileForParams(params []v1beta1.Parameter) *packages.Files {
 		Params: &p,
 	}
 }
+
+func TestK8sVersionVerifier(t *testing.T) {
+	tests := []struct {
+		name             string
+		operatorFile     *packages.OperatorFile
+		expectedWarnings []string
+		expectedErrors   []string
+	}{
+		{"no warning or error", &packages.OperatorFile{
+			APIVersion:        packages.APIVersion,
+			Name:              "kafka",
+			KubernetesVersion: "1.15",
+		}, []string{}, []string{}},
+		{"no warning or error", &packages.OperatorFile{
+			APIVersion:        packages.APIVersion,
+			Name:              "kafka",
+			KubernetesVersion: "",
+		}, []string{}, []string{"Unable to parse operators kubernetes version: Invalid Semantic Version"}},
+	}
+
+	verifier := K8sVersionVerifier{}
+	for _, tt := range tests {
+		res := verifier.Verify(packageFileForOperator(tt.operatorFile))
+		assert.Equal(t, tt.expectedWarnings, res.Warnings, tt.name)
+		assert.Equal(t, tt.expectedErrors, res.Errors, tt.name)
+	}
+}
+
+func packageFileForOperator(op *packages.OperatorFile) *packages.Files {
+	return &packages.Files{
+		Operator: op,
+	}
+}

@@ -20,7 +20,7 @@ import (
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
@@ -291,8 +291,8 @@ func TestStepDeleteExistingLabelMatch(t *testing.T) {
 
 	step := Step{
 		Logger: testutils.NewTestLogger(t, ""),
-		Step: &kudo.TestStep{
-			Delete: []kudo.ObjectReference{
+		Step: &harness.TestStep{
+			Delete: []harness.ObjectReference{
 				{
 					ObjectReference: corev1.ObjectReference{
 						Kind:       "Pod",
@@ -321,4 +321,23 @@ func TestStepDeleteExistingLabelMatch(t *testing.T) {
 	assert.Nil(t, testenv.Client.Get(context.TODO(), testutils.ObjectKey(podToKeep), podToKeep))
 	assert.True(t, k8serrors.IsNotFound(testenv.Client.Get(context.TODO(), testutils.ObjectKey(podToDelete), podToDelete)))
 	assert.True(t, k8serrors.IsNotFound(testenv.Client.Get(context.TODO(), testutils.ObjectKey(podToDelete2), podToDelete2)))
+}
+
+func TestCheckedTypeAssertions(t *testing.T) {
+	tests := []struct {
+		name     string
+		typeName string
+	}{
+		{"assert", "TestAssert"},
+		{"apply", "TestStep"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			step := Step{}
+			path := fmt.Sprintf("step_integration_test_data/00-%s.yaml", test.name)
+			assert.EqualError(t, step.LoadYAML(path),
+				fmt.Sprintf("failed to load %s object from %s: it contains an object of type *unstructured.Unstructured",
+					test.typeName, path))
+		})
+	}
 }

@@ -6,5 +6,7 @@ manifestDirs:
 testDirs:
 - ./test/e2e
 startKIND: true
-startKUDO: true
+kindContainers:
+- kudobuilder/controller:%version%
+startKUDO: false
 timeout: 300

@@ -11,12 +11,12 @@ import (
 
 // Resolve returns a Package for a passed package name and optional version. This is an implementation
 // of the Resolver interface located in packages/resolver/resolver.go
-func (c *Client) Resolve(name string, version string) (*packages.Package, error) {
-	buf, err := c.GetPackageBytes(name, version)
+func (c *Client) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
+	buf, err := c.GetPackageBytes(name, appVersion, operatorVersion)
 	if err != nil {
 		return nil, err
 	}
-	clog.V(0).Printf("%v is a repository package from %v", name, c.Config)
+	clog.V(2).Printf("%v is a repository package from %v", name, c.Config)
 
 	files, err := reader.ParseTgz(buf)
 	if err != nil {
@@ -35,8 +35,8 @@ func (c *Client) Resolve(name string, version string) (*packages.Package, error)
 }
 
 // GetPackageBytes provides an io.Reader for a provided package name and optional version
-func (c *Client) GetPackageBytes(name string, version string) (*bytes.Buffer, error) {
-	clog.V(4).Printf("getting package reader for %v, %v", name, version)
+func (c *Client) GetPackageBytes(name string, appVersion string, operatorVersion string) (*bytes.Buffer, error) {
+	clog.V(4).Printf("getting package reader for %v, %v_%v", name, appVersion, operatorVersion)
 	clog.V(5).Printf("repository using: %v", c.Config)
 	// Construct the package name and download the index file from the remote repo
 	indexFile, err := c.DownloadIndexFile()
@@ -44,7 +44,7 @@ func (c *Client) GetPackageBytes(name string, version string) (*bytes.Buffer, er
 		return nil, fmt.Errorf("could not download repository index file: %w", err)
 	}
 
-	pkgVersion, err := indexFile.GetByNameAndVersion(name, version)
+	pkgVersion, err := indexFile.FindFirstMatch(name, appVersion, operatorVersion)
 	if err != nil {
 		return nil, fmt.Errorf("getting %s in index file: %w", name, err)
 	}
@@ -80,24 +80,30 @@ func (c *Client) getPackageBytesByURL(packageURL string) (*bytes.Buffer, error) 
 	return resp, nil
 }
 
-// GetByNameAndVersion returns the operator of given name and version.
+// FindFirstMatch returns the operator of given name and version.
 // If no specific version is required, pass an empty string as version and the
 // the latest version will be returned.
-func (i IndexFile) GetByNameAndVersion(name, version string) (*PackageVersion, error) {
+// Possible package options include: foo-1.0.0.tgz, foo-2.0.0_1.0.1.tgz and foo-3.0.0_1.0.1.tgz
+// The Entries are sorted by AppVersion first, then OpVersion.  Entries with no appVersion are later in the sort order than
+// entries with appVersion.  Given a search for an opVersion = 1.0.1 (without appVersion) given the above foo options,
+// foo-3.0.0-1.0.1 (the latest app version for this opVersion)
+// appVersion could be arbitrary.  if appVersion is "bar" than foo-var_1.0.1.tgz
+func (i IndexFile) FindFirstMatch(name string, appVersion string, operatorVersion string) (*PackageVersion, error) {
 	vs, ok := i.Entries[name]
 	if !ok || len(vs) == 0 {
 		return nil, fmt.Errorf("no operator found for: %s", name)
 	}
 
 	for _, ver := range vs {
-		if ver.Version == version || version == "" {
+		if (ver.AppVersion == appVersion || appVersion == "") &&
+			(ver.OperatorVersion == operatorVersion || operatorVersion == "") {
 			return ver, nil
 		}
 	}
 
-	if version == "" {
+	if operatorVersion == "" {
 		return nil, fmt.Errorf("no operator version found for %s", name)
 	}
 
-	return nil, fmt.Errorf("no operator version found for %s-%v", name, version)
+	return nil, fmt.Errorf("no operator version found for %s-%v", name, operatorVersion)
 }

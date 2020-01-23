@@ -20,7 +20,7 @@ type LocalResolver struct {
 // Order of the discovery is:
 // 1. tarball
 // 2. dir based
-func (f *LocalResolver) Resolve(name string, version string) (*packages.Package, error) {
+func (f *LocalResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
 	//	make sure file exists
 	_, err := f.fs.Stat(name)
 	if err != nil {
@@ -35,10 +35,10 @@ func (f *LocalResolver) Resolve(name string, version string) (*packages.Package,
 	clog.V(1).Printf("determining package type of %v", name)
 
 	if fi.Mode().IsRegular() && strings.HasSuffix(name, ".tgz") {
-		clog.V(0).Printf("%v is a local tgz package", name)
+		clog.V(1).Printf("%v is a local tgz package", name)
 		return reader.ReadTar(f.fs, name)
 	} else if fi.IsDir() {
-		clog.V(0).Printf("%v is a local file package", name)
+		clog.V(1).Printf("%v is a local file package", name)
 		return reader.ReadDir(f.fs, name)
 	} else {
 		return nil, fmt.Errorf("unsupported file system format %v. Expect either a *.tgz file or a folder", name)

@@ -12,6 +12,7 @@ import (
 
 	"github.com/spf13/afero"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
@@ -69,7 +70,7 @@ func TgzDir(fs afero.Fs, path string, w io.Writer) (err error) {
 		// create a new dir/file header
 		header, err := tar.FileInfoHeader(fi, fi.Name())
 		if err != nil {
-			fmt.Printf("Error creating tar header for: %v", fi.Name())
+			clog.Printf("Error creating tar header for: %v", fi.Name())
 			return err
 		}
 
@@ -112,5 +113,9 @@ func TgzDir(fs afero.Fs, path string, w io.Writer) (err error) {
 
 // packageVersionedName provides the version name of a package provided a set of Files.  Ex. "zookeeper-0.1.0"
 func packageVersionedName(pkg *packages.Files) string {
-	return fmt.Sprintf("%v-%v", pkg.Operator.Name, pkg.Operator.Version)
+	if pkg.Operator.AppVersion == "" {
+		return fmt.Sprintf("%v-%v", pkg.Operator.Name, pkg.Operator.OperatorVersion)
+	}
+
+	return fmt.Sprintf("%v-%v_%v", pkg.Operator.Name, pkg.Operator.AppVersion, pkg.Operator.OperatorVersion)
 }

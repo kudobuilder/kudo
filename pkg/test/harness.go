@@ -24,16 +24,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	kindConfig "sigs.k8s.io/kind/pkg/apis/config/v1alpha3"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
 	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
 // Harness loads and runs tests based on the configuration provided.
 type Harness struct {
-	TestSuite kudo.TestSuite
+	TestSuite harness.TestSuite
 	T         *testing.T
 
 	logger         testutils.Logger
@@ -161,7 +162,7 @@ func (h *Harness) addNodeCaches(dockerClient testutils.DockerClient, kindCfg *ki
 	}
 
 	if h.TestSuite.KINDContext == "" {
-		h.TestSuite.KINDContext = kudo.DefaultKINDContext
+		h.TestSuite.KINDContext = harness.DefaultKINDContext
 	}
 
 	for index := range kindCfg.Nodes {
@@ -283,7 +284,7 @@ func (h *Harness) RunKUDO() error {
 	h.managerStopCh = make(chan struct{})
 	go func(stopCh chan struct{}) {
 		if err := mgr.Start(stopCh); err != nil {
-			fmt.Printf("failed to start the manager")
+			clog.Printf("failed to start the manager: %v", err)
 			os.Exit(-1)
 		}
 	}(h.managerStopCh)
