@@ -46,6 +46,8 @@ func TestNamespaced(t *testing.T) {
 			shouldError: true,
 		},
 	} {
+		test := test
+
 		t.Run(test.testName, func(t *testing.T) {
 			m, _ := meta.Accessor(test.resource)
 
@@ -403,6 +405,8 @@ func TestGetKubectlArgs(t *testing.T) {
 			},
 		},
 	} {
+		test := test
+
 		t.Run(test.testName, func(t *testing.T) {
 			cmd, err := GetArgs(context.TODO(), "kubectl", harness.Command{
 				Command:    test.args,

@@ -59,6 +59,8 @@ func getFirstRunningPod(client corev1.PodsGetter, namespace string, selector lab
 		return nil, errors.New("could not find KUDO manager")
 	}
 	for _, p := range pods.Items {
+		p := p
+
 		if health.IsHealthy(&p) == nil {
 			return &p, nil
 		}
