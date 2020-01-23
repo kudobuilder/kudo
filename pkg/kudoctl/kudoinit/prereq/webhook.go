@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kudobuilder/kudo/pkg/engine/health"
+
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -100,9 +102,11 @@ func validateCertManagerInstallation(client *kube.Client) kudoinit.Result {
 	if !strings.HasSuffix(deployment.Spec.Template.Spec.Containers[0].Image, "cert-manager-controller:v0.12.0") {
 		return kudoinit.NewWarning(fmt.Sprintf("cert-manager deployment had unexpected version. expected v0.12.0 in controller image name but found %s", deployment.Spec.Template.Spec.Containers[0].Image))
 	}
-	if deployment.Status.ReadyReplicas < 1 {
+
+	if err := health.IsHealthy(deployment); err != nil {
 		return kudoinit.NewWarning("cert-manager seems not to be running correctly. Make sure cert-manager is working")
 	}
+
 	return kudoinit.NewResult()
 }
 
