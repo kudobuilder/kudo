@@ -306,7 +306,7 @@ func (c *Client) ValidateServerForOperator(operator *v1beta1.Operator) error {
 }
 
 // getKubeVersion returns stringified version of k8s server
-func getKubeVersion(client discovery.DiscoveryInterface) (string, error) {
+func getKubeVersion(client discovery.ServerVersionInterface) (string, error) {
 	v, err := client.ServerVersion()
 	if err != nil {
 		return "", err
