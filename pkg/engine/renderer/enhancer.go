@@ -39,9 +39,10 @@ func (k *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) 
 			if err != nil {
 				return nil, err
 			}
-			applyMetadataRecursively(unstructMap, metadata)
+			//applyMetadataRecursively(unstructMap, metadata)
 
 			objUnstructured := &unstructured.Unstructured{Object: unstructMap}
+			applyLabelsAndAnnotations(objUnstructured, metadata)
 			err = setControllerReference(metadata.ResourcesOwner, objUnstructured, k.Scheme)
 			if err != nil {
 				return nil, fmt.Errorf("setting controller reference on parsed object: %v", err)
@@ -83,29 +84,9 @@ func applyLabelsAndAnnotations(objUnstructured *unstructured.Unstructured, metad
 	objUnstructured.SetNamespace(metadata.InstanceNamespace)
 	objUnstructured.SetLabels(labels)
 	objUnstructured.SetAnnotations(annotations)
-}
 
-func applyMetadataRecursively(unstructuredData map[string]interface{}, metadata Metadata) {
-	for k, v := range unstructuredData {
-		if k == "metadata" {
-			// This seems like it has metadata and may be an unstructuredObject
-			unstructuredObj := &unstructured.Unstructured{Object: unstructuredData}
-			applyLabelsAndAnnotations(unstructuredObj, metadata)
-			continue
-		}
-		if l, ok := v.([]interface{}); ok {
-			// Array entries. Iterate, and call recursively if an entry is a map
-			for _, e := range l {
-				if m, ok := e.(map[string]interface{}); ok {
-					applyMetadataRecursively(m, metadata)
-				}
-			}
-		}
-		if m, ok := v.(map[string]interface{}); ok {
-			// Map entries. Call recursively
-			applyMetadataRecursively(m, metadata)
-		}
-	}
+	_ = unstructured.SetNestedStringMap(objUnstructured.Object, annotations, "spec", "template", "metadata", "annotations")
+	_ = unstructured.SetNestedStringMap(objUnstructured.Object, labels, "spec", "template", "metadata", "labels")
 }
 
 func setControllerReference(owner v1.Object, object *unstructured.Unstructured, scheme *runtime.Scheme) error {
