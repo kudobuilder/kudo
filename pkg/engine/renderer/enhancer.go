@@ -39,7 +39,7 @@ func (k *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) 
 			if err != nil {
 				return nil, err
 			}
-			applyMetadataRecursivly(unstructMap, metadata)
+			applyMetadataRecursively(unstructMap, metadata)
 
 			objUnstructured := &unstructured.Unstructured{Object: unstructMap}
 			err = setControllerReference(metadata.ResourcesOwner, objUnstructured, k.Scheme)
@@ -85,7 +85,7 @@ func applyLabelsAndAnnotations(objUnstructured *unstructured.Unstructured, metad
 	objUnstructured.SetAnnotations(annotations)
 }
 
-func applyMetadataRecursivly(unstructuredData map[string]interface{}, metadata Metadata) {
+func applyMetadataRecursively(unstructuredData map[string]interface{}, metadata Metadata) {
 	for k, v := range unstructuredData {
 		if k == "metadata" {
 			// This seems like it has metadata and may be an unstructuredObject
@@ -97,13 +97,13 @@ func applyMetadataRecursivly(unstructuredData map[string]interface{}, metadata M
 			// Array entries. Iterate, and call recursively if an entry is a map
 			for _, e := range l {
 				if m, ok := e.(map[string]interface{}); ok {
-					applyMetadataRecursivly(m, metadata)
+					applyMetadataRecursively(m, metadata)
 				}
 			}
 		}
 		if m, ok := v.(map[string]interface{}); ok {
 			// Map entries. Call recursively
-			applyMetadataRecursivly(m, metadata)
+			applyMetadataRecursively(m, metadata)
 		}
 	}
 }
