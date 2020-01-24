@@ -26,9 +26,7 @@ spec:
     matchLabels:
       spark/servicemonitor: true`)
 
-	if err != nil {
-		t.Errorf("Expecting no error but got %s", err)
-	}
+	assert.NoError(t, err)
 	assert.Equal(t, 1, len(objects))
 }
 
@@ -56,9 +54,21 @@ spec:
         - name: PARAM_ENV
           value: 1`)
 
-	if err != nil {
-		t.Errorf("Expecting no error but got %s", err)
-	}
-
+	assert.NoError(t, err)
 	assert.Equal(t, "Deployment", obj[0].GetObjectKind().GroupVersionKind().Kind)
+}
+
+func TestParseKubernetesObjects_MoreThanOne(t *testing.T) {
+	objects, err := YamlToObject(`apiVersion: foo
+kind: Foo
+metadata:
+  name: foo1
+---
+apiVersion: foo
+kind: Foo
+metadata:
+name: foo2`)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(objects))
 }
