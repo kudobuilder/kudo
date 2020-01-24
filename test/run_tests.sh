@@ -41,7 +41,7 @@ if docker build -f test/Dockerfile -t kudo-test .; then
         -v /var/run/docker.sock:/var/run/docker.sock \
         -v "$(pwd)"/reports:/go/src/github.com/kudobuilder/kudo/reports \
         -v "$(pwd)"/kind-logs:/tmp/kudo-e2e-test \
-        kudo-test bash -c "make $TARGET; chmod a+r -R /tmp/kudo-e2e-test"
+        kudo-test bash -c "make $TARGET; ret=$?; chmod a+r -R /tmp/kudo-e2e-test; exit $ret"
     then
         archive_logs
         echo "Tests finished successfully! ヽ(•‿•)ノ"
