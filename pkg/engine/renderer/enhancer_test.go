@@ -43,12 +43,16 @@ func TestEnhancerApply_embeddedMetadataSfs(t *testing.T) {
 			t.Errorf("failed to parse unstructured to StatefulSet: %s", err)
 		}
 
+		// Verify that labels are added directly and on template
 		assert.Equal(t, meta.InstanceNamespace, sfs.GetNamespace())
 		assert.Equal(t, string(meta.PlanUID), sfs.Annotations[kudo.PlanUIDAnnotation])
 		assert.Equal(t, "kudo", sfs.Labels[kudo.HeritageLabel])
 
 		assert.Equal(t, string(meta.PlanUID), sfs.Spec.Template.Annotations[kudo.PlanUIDAnnotation])
 		assert.Equal(t, "kudo", sfs.Spec.Template.Labels[kudo.HeritageLabel])
+
+		// Verify that existing labels are not removed
+		assert.Equal(t, "app-type", sfs.Spec.Template.Labels["app"])
 	}
 }
 
@@ -134,6 +138,11 @@ func statefulSet(name string, namespace string) *appsv1.StatefulSet {
 		Spec: appsv1.StatefulSetSpec{
 			ServiceName: name + "Service",
 			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": "app-type",
+					},
+				},
 				Spec: corev1.PodSpec{},
 			},
 		},

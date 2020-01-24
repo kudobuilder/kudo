@@ -62,31 +62,49 @@ func (k *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) 
 }
 
 func applyLabelsAndAnnotations(objUnstructured *unstructured.Unstructured, metadata Metadata) {
+	objUnstructured.SetNamespace(metadata.InstanceNamespace)
+
 	labels := objUnstructured.GetLabels()
+	labels = applyLabels(labels, metadata)
+	objUnstructured.SetLabels(labels)
+
+	annotations := objUnstructured.GetAnnotations()
+	annotations = applyAnnotations(annotations, metadata)
+	objUnstructured.SetAnnotations(annotations)
+
+	templateLabels, _, err := unstructured.NestedStringMap(objUnstructured.Object, "spec", "template", "metadata", "labels")
+	if err == nil {
+		templateLabels = applyLabels(templateLabels, metadata)
+		_ = unstructured.SetNestedStringMap(objUnstructured.Object, templateLabels, "spec", "template", "metadata", "labels")
+	}
+
+	templateAnnotations, _, err := unstructured.NestedStringMap(objUnstructured.Object, "spec", "template", "metadata", "labels")
+	if err == nil {
+		templateAnnotations = applyAnnotations(templateAnnotations, metadata)
+		_ = unstructured.SetNestedStringMap(objUnstructured.Object, templateAnnotations, "spec", "template", "metadata", "annotations")
+	}
+}
+
+func applyLabels(labels map[string]string, metadata Metadata) map[string]string {
 	if labels == nil {
 		labels = make(map[string]string)
 	}
-	annotations := objUnstructured.GetAnnotations()
-	if annotations == nil {
-		annotations = make(map[string]string)
-	}
-
 	labels[kudo.HeritageLabel] = "kudo"
 	labels[kudo.OperatorLabel] = metadata.OperatorName
 	labels[kudo.InstanceLabel] = metadata.InstanceName
+	return labels
+}
 
+func applyAnnotations(annotations map[string]string, metadata Metadata) map[string]string {
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
 	annotations[kudo.PlanAnnotation] = metadata.PlanName
 	annotations[kudo.PhaseAnnotation] = metadata.PhaseName
 	annotations[kudo.StepAnnotation] = metadata.StepName
 	annotations[kudo.OperatorVersionAnnotation] = metadata.OperatorVersion
 	annotations[kudo.PlanUIDAnnotation] = string(metadata.PlanUID)
-
-	objUnstructured.SetNamespace(metadata.InstanceNamespace)
-	objUnstructured.SetLabels(labels)
-	objUnstructured.SetAnnotations(annotations)
-
-	_ = unstructured.SetNestedStringMap(objUnstructured.Object, annotations, "spec", "template", "metadata", "annotations")
-	_ = unstructured.SetNestedStringMap(objUnstructured.Object, labels, "spec", "template", "metadata", "labels")
+	return annotations
 }
 
 func setControllerReference(owner v1.Object, object *unstructured.Unstructured, scheme *runtime.Scheme) error {
