@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -40,31 +39,9 @@ func (k *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) 
 			if err != nil {
 				return nil, err
 			}
+			applyMetadataRecursivly(unstructMap, metadata)
+
 			objUnstructured := &unstructured.Unstructured{Object: unstructMap}
-
-			labels := objUnstructured.GetLabels()
-			if labels == nil {
-				labels = make(map[string]string)
-			}
-			annotations := objUnstructured.GetAnnotations()
-			if annotations == nil {
-				annotations = make(map[string]string)
-			}
-
-			labels[kudo.HeritageLabel] = "kudo"
-			labels[kudo.OperatorLabel] = metadata.OperatorName
-			labels[kudo.InstanceLabel] = metadata.InstanceName
-
-			annotations[kudo.PlanAnnotation] = metadata.PlanName
-			annotations[kudo.PhaseAnnotation] = metadata.PhaseName
-			annotations[kudo.StepAnnotation] = metadata.StepName
-			annotations[kudo.OperatorVersionAnnotation] = metadata.OperatorVersion
-			annotations[kudo.PlanUIDAnnotation] = string(metadata.PlanUID)
-
-			objUnstructured.SetNamespace(metadata.InstanceNamespace)
-			objUnstructured.SetLabels(labels)
-			objUnstructured.SetAnnotations(annotations)
-
 			err = setControllerReference(metadata.ResourcesOwner, objUnstructured, k.Scheme)
 			if err != nil {
 				return nil, fmt.Errorf("setting controller reference on parsed object: %v", err)
@@ -81,6 +58,54 @@ func (k *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) 
 	}
 
 	return objs, nil
+}
+
+func applyLabelsAndAnnotations(objUnstructured *unstructured.Unstructured, metadata Metadata) {
+	labels := objUnstructured.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	annotations := objUnstructured.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+
+	labels[kudo.HeritageLabel] = "kudo"
+	labels[kudo.OperatorLabel] = metadata.OperatorName
+	labels[kudo.InstanceLabel] = metadata.InstanceName
+
+	annotations[kudo.PlanAnnotation] = metadata.PlanName
+	annotations[kudo.PhaseAnnotation] = metadata.PhaseName
+	annotations[kudo.StepAnnotation] = metadata.StepName
+	annotations[kudo.OperatorVersionAnnotation] = metadata.OperatorVersion
+	annotations[kudo.PlanUIDAnnotation] = string(metadata.PlanUID)
+
+	objUnstructured.SetNamespace(metadata.InstanceNamespace)
+	objUnstructured.SetLabels(labels)
+	objUnstructured.SetAnnotations(annotations)
+}
+
+func applyMetadataRecursivly(unstructuredData map[string]interface{}, metadata Metadata) {
+	for k, v := range unstructuredData {
+		if k == "metadata" {
+			// This seems like it has metadata and may be an unstructuredObject
+			unstructuredObj := &unstructured.Unstructured{Object: unstructuredData}
+			applyLabelsAndAnnotations(unstructuredObj, metadata)
+			continue
+		}
+		if l, ok := v.([]interface{}); ok {
+			// Array entries. Iterate, and call recursively if an entry is a map
+			for _, e := range l {
+				if m, ok := e.(map[string]interface{}); ok {
+					applyMetadataRecursivly(m, metadata)
+				}
+			}
+		}
+		if m, ok := v.(map[string]interface{}); ok {
+			// Map entries. Call recursively
+			applyMetadataRecursivly(m, metadata)
+		}
+	}
 }
 
 func setControllerReference(owner v1.Object, object *unstructured.Unstructured, scheme *runtime.Scheme) error {
