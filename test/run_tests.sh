@@ -10,19 +10,19 @@ TARGET=$1
 
 INTEGRATION_OUTPUT_JUNIT=${INTEGRATION_OUTPUT_JUNIT:-false}
 
-# Set test harness artifacts dir to '/tmp/kudo-e2e-test', as it's easier to copy out from a container.
-echo 'artifactsDir: /tmp/kudo-e2e-test' >> kudo-e2e-test.yaml.tmpl
-
-# Pull the builder image with retries if it doesn't already exist.
-retries=0
-builder_image=$(awk '/FROM/ {print $2}' test/Dockerfile)
-
 function archive_logs() {
     # Archive test harness artifacts
     if [ "$TARGET" == "e2e-test" ]; then
         tar -cjvf kind-logs.tar.bz2 kind-logs/
     fi
 }
+
+# Set test harness artifacts dir to '/tmp/kudo-e2e-test', as it's easier to copy out from a container.
+echo 'artifactsDir: /tmp/kudo-e2e-test' >> kudo-e2e-test.yaml.tmpl
+
+# Pull the builder image with retries if it doesn't already exist.
+retries=0
+builder_image=$(awk '/FROM/ {print $2}' test/Dockerfile)
 
 if ! docker inspect "$builder_image"; then
     until docker pull "$builder_image"; do
