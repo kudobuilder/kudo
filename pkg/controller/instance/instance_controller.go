@@ -483,9 +483,9 @@ func ensurePlanStatusInitialized(i *v1beta1.Instance, ov *v1beta1.OperatorVersio
 
 	for planName, plan := range ov.Spec.Plans {
 		planStatus := &v1beta1.PlanStatus{
-			Name:   planName,
-			Status: v1beta1.ExecutionNeverRun,
-			Phases: make([]v1beta1.PhaseStatus, 0),
+			Name:            planName,
+			Status:          v1beta1.ExecutionNeverRun,
+			Phases:          make([]v1beta1.PhaseStatus, 0),
 		}
 
 		existingPlanStatus, planExists := i.Status.PlanStatus[planName]

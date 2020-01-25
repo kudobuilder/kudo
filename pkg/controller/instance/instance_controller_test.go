@@ -74,7 +74,7 @@ func TestRestartController(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
 		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.dev/v1beta1"},
 		Spec: v1beta1.OperatorVersionSpec{
-			Plans: map[string]v1beta1.Plan{"deploy": {}, "update": {}},
+			Plans: map[string]v1beta1.Plan{"deploy": {Phases: []v1beta1.Phase{}}, "update": {Phases: []v1beta1.Phase{}}},
 			Parameters: []v1beta1.Parameter{
 				{
 					Name:    "param",

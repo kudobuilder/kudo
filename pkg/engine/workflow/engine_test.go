@@ -107,7 +107,7 @@ func TestExecutePlan(t *testing.T) {
 			metadata: meta,
 			expectedStatus: &v1beta1.PlanStatus{
 				Status:          v1beta1.ExecutionComplete,
-				LastFinishedRun: v1.Time{Time: timeNow},
+				LastFinishedRun: &v1.Time{Time: timeNow},
 				Name:            "test",
 				Phases:          []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionComplete, Name: "step"}}}},
 			},
@@ -140,7 +140,7 @@ func TestExecutePlan(t *testing.T) {
 			metadata: meta,
 			expectedStatus: &v1beta1.PlanStatus{
 				Status:          v1beta1.ExecutionComplete,
-				LastFinishedRun: v1.Time{Time: timeNow},
+				LastFinishedRun: &v1.Time{Time: timeNow},
 				Name:            "test",
 				Phases:          []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionComplete, Name: "step"}}}},
 			},

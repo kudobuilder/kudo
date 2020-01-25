@@ -223,7 +223,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 	if phasesLeft == 0 {
 		log.Printf("PlanExecution: %s/%s all phases of the plan %s are ready", em.InstanceNamespace, em.InstanceName, pl.Name)
 		planStatus.Set(v1beta1.ExecutionComplete)
-		planStatus.LastFinishedRun = v1.Time{Time: currentTime}
+		planStatus.LastFinishedRun = &v1.Time{Time: currentTime}
 	}
 
 	return planStatus, nil
