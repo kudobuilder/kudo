@@ -8,8 +8,10 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"github.com/kudobuilder/kudo/pkg/engine/helpers"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
@@ -22,12 +24,13 @@ type Enhancer interface {
 
 // DefaultEnhancer is implementation of Enhancer that applies the defined conventions by directly editing runtime.Objects (Unstructured).
 type DefaultEnhancer struct {
-	Scheme *runtime.Scheme
+	Scheme    *runtime.Scheme
+	Discovery discovery.DiscoveryInterface
 }
 
 // Apply accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
-func (k *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) (objsToAdd []runtime.Object, err error) {
+func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) (objsToAdd []runtime.Object, err error) {
 	objs := make([]runtime.Object, 0, len(templates))
 
 	for _, v := range templates {
@@ -45,14 +48,27 @@ func (k *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) 
 				return nil, fmt.Errorf("adding labels on parsed object: %v", err)
 			}
 			if err = addAnnotations(unstructMap, metadata); err != nil {
-				return nil, fmt.Errorf("adding annotations on parsed object: %v", err)
+				return nil, fmt.Errorf("adding annotations on parsed object %s: %v", obj.GetObjectKind(), err)
 			}
 
 			objUnstructured := &unstructured.Unstructured{Object: unstructMap}
 
-			objUnstructured.SetNamespace(metadata.InstanceNamespace)
-			if err = setControllerReference(metadata.ResourcesOwner, objUnstructured, k.Scheme); err != nil {
-				return nil, fmt.Errorf("setting controller reference on parsed object: %v", err)
+			isNamespaced, err := helpers.IsNamespacedObject(obj, de.Discovery)
+			if err != nil {
+				return nil, fmt.Errorf("failed to determine if object %s is namespaced: %v", obj.GetObjectKind(), err)
+			}
+
+			log.Printf(">>> %s is namespaced: %v", obj.GetObjectKind(), isNamespaced)
+			// Note: Cross-namespace owner references are disallowed by design. This means:
+			// 1) Namespace-scoped dependents can only specify owners in the same namespace, and owners that are cluster-scoped.
+			// 2) Cluster-scoped dependents can only specify cluster-scoped owners, but not namespace-scoped owners.
+			// More: https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/
+			if isNamespaced {
+				log.Printf(">>> setting namespace and controllerReference for: %s", obj.GetObjectKind())
+				objUnstructured.SetNamespace(metadata.InstanceNamespace)
+				if err = setControllerReference(metadata.ResourcesOwner, objUnstructured, de.Scheme); err != nil {
+					return nil, fmt.Errorf("setting controller reference on parsed object %s: %v", obj.GetObjectKind(), err)
+				}
 			}
 
 			// this is pretty important, if we don't convert it back to the original type everything will be Unstructured

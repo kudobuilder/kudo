@@ -16,6 +16,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
+	"github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
 func TestExecutePlan(t *testing.T) {
@@ -604,9 +605,10 @@ func TestExecutePlan(t *testing.T) {
 		},
 	}
 
+	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
+	fakeDiscovery := utils.FakeDiscoveryClient()
 	for _, tt := range tests {
-		testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
-		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, tt.enhancer, timeNow)
+		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, fakeDiscovery, tt.enhancer, timeNow)
 
 		if !tt.wantErr && err != nil {
 			t.Errorf("%s: Expecting no error but got one: %v", tt.name, err)

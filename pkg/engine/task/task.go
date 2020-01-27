@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -15,6 +16,7 @@ import (
 // Context is a engine.task execution context containing k8s client, templates parameters etc.
 type Context struct {
 	Client     client.Client
+	Discovery  discovery.DiscoveryInterface
 	Enhancer   renderer.Enhancer
 	Meta       renderer.Metadata
 	Templates  map[string]string // Raw templates

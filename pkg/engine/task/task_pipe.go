@@ -88,7 +88,7 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 	}
 
 	// 6. - Apply pod using the client -
-	podObj, err = apply(podObj, ctx.Client)
+	podObj, err = apply(podObj, ctx.Client, ctx.Discovery)
 	if err != nil {
 		return false, err
 	}
@@ -128,7 +128,7 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 	}
 
 	// 11. - Apply artifacts using the client -
-	_, err = apply(artObj, ctx.Client)
+	_, err = apply(artObj, ctx.Client, ctx.Discovery)
 	if err != nil {
 		return false, err
 	}
