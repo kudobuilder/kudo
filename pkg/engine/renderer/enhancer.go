@@ -56,6 +56,8 @@ func (k *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) 
 
 			// this is pretty important, if we don't convert it back to the original type everything will be Unstructured
 			// we depend on types later on in the processing e.g. when evaluating health
+			// additionally, as we add annotations and labels to all possible paths, this step gets rid of anything
+			// that doesn't belong to the specific object type
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(objUnstructured.UnstructuredContent(), obj)
 			if err != nil {
 				return nil, err
