@@ -78,7 +78,7 @@ func applyLabelsAndAnnotations(objUnstructured *unstructured.Unstructured, metad
 		_ = unstructured.SetNestedStringMap(objUnstructured.Object, templateLabels, "spec", "template", "metadata", "labels")
 	}
 
-	templateAnnotations, _, err := unstructured.NestedStringMap(objUnstructured.Object, "spec", "template", "metadata", "labels")
+	templateAnnotations, _, err := unstructured.NestedStringMap(objUnstructured.Object, "spec", "template", "metadata", "annotations")
 	if err == nil {
 		templateAnnotations = applyAnnotations(templateAnnotations, metadata)
 		_ = unstructured.SetNestedStringMap(objUnstructured.Object, templateAnnotations, "spec", "template", "metadata", "annotations")
