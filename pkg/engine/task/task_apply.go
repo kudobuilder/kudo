@@ -100,10 +100,14 @@ func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
 }
 
 func isClusterResource(r runtime.Object) bool {
+	// this misses a number of cluster scoped resources
+	// this is a temporary fix.  The correct solution will use the DiscoveryInterface
 	switch r.(type) {
 	case *apiextv1beta1.CustomResourceDefinition:
 		return true
 	case *v1.Namespace:
+		return true
+	case *v1.PersistentVolume:
 		return true
 	}
 	return false
