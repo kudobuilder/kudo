@@ -270,6 +270,7 @@ func TestValidateUpdate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := admitUpdate(tt.old, tt.new, tt.ov)
 			assert.Equal(t, tt.wantErr, err != nil, "expected an error: %v but got: %v", tt.wantErr, err)
@@ -352,6 +353,7 @@ func Test_triggeredPlan(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := triggeredPlan(tt.params, tt.ov)
 			if (err != nil) != tt.wantErr {
