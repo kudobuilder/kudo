@@ -118,7 +118,7 @@ func (i *Instance) PlanStatus(plan string) *PlanStatus {
 
 // wasRunAfter returns true if p1 was run after p2
 func wasRunAfter(p1 PlanStatus, p2 PlanStatus) bool {
-	if p1.Status == ExecutionNeverRun || p2.Status == ExecutionNeverRun {
+	if p1.Status == ExecutionNeverRun || p2.Status == ExecutionNeverRun || p1.LastFinishedRun == nil || p2.LastFinishedRun == nil {
 		return false
 	}
 	return p1.LastFinishedRun.Time.After(p2.LastFinishedRun.Time)
