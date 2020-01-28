@@ -31,7 +31,7 @@ func (k *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) 
 	objs := make([]runtime.Object, 0, len(templates))
 
 	for _, v := range templates {
-		parsed, err := YamlToObject(string(v))
+		parsed, err := YamlToObject(v)
 		if err != nil {
 			return nil, err
 		}
@@ -83,7 +83,7 @@ func (k *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) 
 	return objs, nil
 }
 
-func setControllerReference(owner v1.Object, object *unstructured.Unstructured, scheme *runtime.Scheme) error {
+func setControllerReference(owner v1.Object, object v1.Object, scheme *runtime.Scheme) error {
 	ownerNs := owner.GetNamespace()
 	if ownerNs != "" {
 		objNs := object.GetNamespace()

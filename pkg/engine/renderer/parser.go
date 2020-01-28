@@ -14,7 +14,7 @@ import (
 // If the type is not known in the scheme, it tries to parse it as Unstructured
 // TODO(av) could we use something else than a global scheme here? Should we somehow inject it?
 func YamlToObject(yaml string) (objs []runtime.Object, err error) {
-	sepYamlfiles := strings.Split(yaml, "---")
+	sepYamlfiles := strings.Split(yaml, "\n---\n")
 	for _, f := range sepYamlfiles {
 		if f == "\n" || f == "" {
 			// ignore empty cases

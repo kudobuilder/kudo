@@ -87,10 +87,10 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 		}
 
 		// Check current phase status: skip if finished, proceed if in progress, break out if a fatal error has occurred
-		if isFinished(phaseStatus.Status) {
+		if phaseStatus.Status.IsFinished() {
 			phasesLeft = phasesLeft - 1
 			continue
-		} else if isInProgress(phaseStatus.Status) {
+		} else if phaseStatus.Status.IsRunning() {
 			phaseStatus.Set(v1beta1.ExecutionInProgress)
 		} else {
 			break
@@ -112,10 +112,10 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 			}
 
 			// Check current phase status: skip if finished, proceed if in progress, break out if a fatal error has occurred
-			if isFinished(stepStatus.Status) {
+			if stepStatus.Status.IsFinished() {
 				delete(stepsLeft, stepStatus.Name)
 				continue
-			} else if isInProgress(stepStatus.Status) {
+			} else if stepStatus.Status.IsRunning() {
 				stepStatus.Set(v1beta1.ExecutionInProgress)
 			} else {
 				// we are not in progress and not finished. An unexpected error occurred so that we can not proceed to the next phase
@@ -257,12 +257,4 @@ func stepNamesToSet(steps []v1beta1.Step) map[string]bool {
 		set[s.Name] = true
 	}
 	return set
-}
-
-func isFinished(state v1beta1.ExecutionStatus) bool {
-	return state == v1beta1.ExecutionComplete
-}
-
-func isInProgress(state v1beta1.ExecutionStatus) bool {
-	return state == v1beta1.ExecutionInProgress || state == v1beta1.ExecutionPending || state == v1beta1.ErrorStatus
 }

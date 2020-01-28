@@ -18,6 +18,9 @@ func AddPlan(fs afero.Fs, path string, planName string, plan *v1beta1.Plan) erro
 	}
 
 	o := pf.Files.Operator
+	if o.Plans == nil {
+		o.Plans = make(map[string]v1beta1.Plan)
+	}
 	plans := o.Plans
 	plans[planName] = *plan
 	pf.Files.Operator.Plans = plans
