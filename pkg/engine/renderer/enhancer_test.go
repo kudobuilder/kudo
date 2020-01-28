@@ -20,7 +20,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
-func TestEnhancerApply_embeddedMetadataSfs(t *testing.T) {
+func TestEnhancerApply_embeddedMetadataStatefulSet(t *testing.T) {
 
 	tpls := map[string]string{
 		"deployment": resourceAsString(statefulSet("sfs1", "default")),
@@ -133,9 +133,6 @@ func TestEnhancerApply_noAdditionalMetadata(t *testing.T) {
 
 		assert.Nil(t, f)
 		assert.False(t, ok, "Pod struct contains template field")
-
-		t.Logf("Tree: %v", unstructMap)
-
 	}
 }
 

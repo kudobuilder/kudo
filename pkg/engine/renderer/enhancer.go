@@ -41,15 +41,16 @@ func (k *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) 
 				return nil, err
 			}
 
-			objUnstructured := &unstructured.Unstructured{Object: unstructMap}
-			objUnstructured.SetNamespace(metadata.InstanceNamespace)
-
-			if err = addLabels(objUnstructured.Object, metadata); err != nil {
+			if err = addLabels(unstructMap, metadata); err != nil {
 				return nil, fmt.Errorf("adding labels on parsed object: %v", err)
 			}
-			if err = addAnnotations(objUnstructured.Object, metadata); err != nil {
+			if err = addAnnotations(unstructMap, metadata); err != nil {
 				return nil, fmt.Errorf("adding annotations on parsed object: %v", err)
 			}
+
+			objUnstructured := &unstructured.Unstructured{Object: unstructMap}
+
+			objUnstructured.SetNamespace(metadata.InstanceNamespace)
 			if err = setControllerReference(metadata.ResourcesOwner, objUnstructured, k.Scheme); err != nil {
 				return nil, fmt.Errorf("setting controller reference on parsed object: %v", err)
 			}
@@ -87,7 +88,7 @@ func addLabels(obj map[string]interface{}, metadata Metadata) error {
 	}
 
 	for _, path := range labelPaths {
-		if err := applyMapValues(obj, fieldsToAdd, path...); err != nil {
+		if err := addMapValues(obj, fieldsToAdd, path...); err != nil {
 			return err
 		}
 	}
@@ -96,7 +97,7 @@ func addLabels(obj map[string]interface{}, metadata Metadata) error {
 }
 
 func addAnnotations(obj map[string]interface{}, metadata Metadata) error {
-	// List of pathsfor annotations from here:
+	// List of paths for annotations from here:
 	// https://github.com/kubernetes-sigs/kustomize/blob/master/api/konfig/builtinpluginconsts/commonannotations.go
 	annotationPaths := [][]string{
 		{"metadata", "annotations"},
@@ -114,7 +115,7 @@ func addAnnotations(obj map[string]interface{}, metadata Metadata) error {
 	}
 
 	for _, path := range annotationPaths {
-		if err := applyMapValues(obj, fieldsToAdd, path...); err != nil {
+		if err := addMapValues(obj, fieldsToAdd, path...); err != nil {
 			return err
 		}
 	}
@@ -122,7 +123,7 @@ func addAnnotations(obj map[string]interface{}, metadata Metadata) error {
 	return nil
 }
 
-func applyMapValues(obj map[string]interface{}, fieldsToAdd map[string]string, path ...string) error {
+func addMapValues(obj map[string]interface{}, fieldsToAdd map[string]string, path ...string) error {
 	for i, p := range path {
 		// If we have an element with a slice in the path, apply the fields to all elements of the
 		// slice with the remaining path
@@ -140,7 +141,7 @@ func applyMapValues(obj map[string]interface{}, fieldsToAdd map[string]string, p
 			}
 			for _, s := range unstructuredSlice {
 				if sliceMap, ok := s.(map[string]interface{}); ok {
-					if err = applyMapValues(sliceMap, fieldsToAdd, remainingPath...); err != nil {
+					if err = addMapValues(sliceMap, fieldsToAdd, remainingPath...); err != nil {
 						return err
 					}
 				}
