@@ -255,7 +255,7 @@ func cronjob(name string, namespace string) *v1beta1.CronJob {
 	return cronjob
 }
 
-func pod(name string, namespace string) *corev1.Pod { //nolint:unparam
+func pod(name string, namespace string) *corev1.Pod {
 	pod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
