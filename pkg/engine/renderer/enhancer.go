@@ -169,7 +169,7 @@ func applyMapValues(obj map[string]interface{}, fieldsToAdd map[string]string, p
 	return unstructured.SetNestedStringMap(obj, stringMap, path...)
 }
 
-func setControllerReference(owner v1.Object, object *unstructured.Unstructured, scheme *runtime.Scheme) error {
+func setControllerReference(owner v1.Object, object v1.Object, scheme *runtime.Scheme) error {
 	ownerNs := owner.GetNamespace()
 	if ownerNs != "" {
 		objNs := object.GetNamespace()
