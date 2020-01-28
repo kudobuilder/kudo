@@ -83,7 +83,7 @@ func TestGetLastExecutedPlanStatus(t *testing.T) {
 
 func TestInstance_ResetPlanStatus(t *testing.T) {
 	// a test instance with 'deploy' plan IN_PROGRESS and 'update' that NEVER_RUN
-	i := &Instance{
+	instance := &Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -122,46 +122,41 @@ func TestInstance_ResetPlanStatus(t *testing.T) {
 		},
 	}
 
-	tests := []struct {
-		name     string
-		instance *Instance
-		plan     string
-		wantErr  bool
-	}{
-		{
-			name:     "resetting a deploy plan updates the instance accordingly",
-			instance: i,
-			plan:     "deploy",
-			wantErr:  false,
+	oldUID := instance.Status.PlanStatus["deploy"].UID
+
+	err := instance.ResetPlanStatus("deploy")
+	assert.NoError(t, err)
+
+	// we test that UID has changed. afterwards, we replace it with the old one and compare new
+	// plan status with the desired state
+	assert.NotEqual(t, instance.Status.PlanStatus["deploy"].UID, oldUID)
+	oldPlanStatus := instance.Status.PlanStatus["deploy"]
+	statusCopy := oldPlanStatus.DeepCopy()
+	statusCopy.UID = testUUID
+	instance.Status.PlanStatus["deploy"] = *statusCopy
+
+	// Expected:
+	// - the status of the 'deploy' plan to be reset: all phases and steps should be PENDING, new UID should be assigned
+	// - AggregatedStatus should be PENDING too and 'deploy' should be the active plan
+	// - 'update' plan status should be unchanged
+	assert.Equal(t, InstanceStatus{
+		PlanStatus: map[string]PlanStatus{
+			"deploy": {
+				Status:          ExecutionPending,
+				Name:            "deploy",
+				LastFinishedRun: metav1.Time{Time: testTime},
+				UID:             testUUID,
+				Phases:          []PhaseStatus{{Name: "phase", Status: ExecutionPending, Steps: []StepStatus{{Status: ExecutionPending, Name: "step"}}}},
+			},
+			"update": {
+				Status: ExecutionNeverRun,
+				Name:   "update",
+				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionNeverRun, Steps: []StepStatus{{Status: ExecutionNeverRun, Name: "step"}}}},
+			},
 		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			oldUID := tt.instance.Status.PlanStatus["deploy"].UID
-			oldUpdateStatus := tt.instance.Status.PlanStatus["update"]
-
-			err := tt.instance.ResetPlanStatus(tt.plan)
-
-			assert.Equal(t, tt.wantErr, err != nil)
-
-			// check aggregated, plan, phase and step statuses
-			aggregatedStatus := tt.instance.Status.AggregatedStatus
-			assert.Equal(t, "deploy", aggregatedStatus.ActivePlanName)
-			assert.Equal(t, ExecutionPending, aggregatedStatus.Status)
-			assert.Equal(t, ExecutionPending, aggregatedStatus.Status)
-
-			planStatus := tt.instance.Status.PlanStatus["deploy"]
-			assert.NotEqual(t, planStatus.UID, oldUID)
-			assert.Equal(t, ExecutionPending, planStatus.Status)
-
-			phaseStatus := GetPhaseStatus("phase", &planStatus)
-			assert.Equal(t, ExecutionPending, phaseStatus.Status)
-
-			stepStatus := GetStepStatus("step", phaseStatus)
-			assert.Equal(t, ExecutionPending, stepStatus.Status)
-
-			// 'update' plan status should be unaffected
-			assert.EqualValues(t, oldUpdateStatus, tt.instance.Status.PlanStatus["update"])
-		})
-	}
+		AggregatedStatus: AggregatedStatus{
+			Status:         ExecutionPending,
+			ActivePlanName: "deploy",
+		},
+	}, instance.Status)
 }
