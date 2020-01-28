@@ -56,13 +56,13 @@ func TestGetLastExecutedPlanStatus(t *testing.T) {
 			"test": {
 				Status:          ExecutionComplete,
 				Name:            "test",
-				LastFinishedRun: metav1.Time{Time: testTime},
+				LastFinishedRun: &metav1.Time{Time: testTime},
 				Phases:          []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
 			},
 			"test2": {
 				Status:          ExecutionComplete,
 				Name:            "test2",
-				LastFinishedRun: metav1.Time{Time: testTime.Add(time.Hour)},
+				LastFinishedRun: &metav1.Time{Time: testTime.Add(time.Hour)},
 				Phases:          []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
 			}}, "test2"},
 	}
@@ -105,7 +105,7 @@ func TestInstance_ResetPlanStatus(t *testing.T) {
 				"deploy": {
 					Status:          ExecutionInProgress,
 					Name:            "deploy",
-					LastFinishedRun: metav1.Time{Time: testTime},
+					LastFinishedRun: &metav1.Time{Time: testTime},
 					UID:             testUUID,
 					Phases:          []PhaseStatus{{Name: "phase", Status: ExecutionInProgress, Steps: []StepStatus{{Status: ExecutionInProgress, Name: "step"}}}},
 				},
@@ -144,7 +144,7 @@ func TestInstance_ResetPlanStatus(t *testing.T) {
 			"deploy": {
 				Status:          ExecutionPending,
 				Name:            "deploy",
-				LastFinishedRun: metav1.Time{Time: testTime},
+				LastFinishedRun: &metav1.Time{Time: testTime},
 				UID:             testUUID,
 				Phases:          []PhaseStatus{{Name: "phase", Status: ExecutionPending, Steps: []StepStatus{{Status: ExecutionPending, Name: "step"}}}},
 			},
