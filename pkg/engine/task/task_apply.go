@@ -129,11 +129,7 @@ func isNamespaced(r runtime.Object) (bool, error) {
 	}
 
 	gvk := r.GetObjectKind().GroupVersionKind()
-	res, ok := namespaced[gvk]
-	if !ok {
-		return false, fmt.Errorf("a resource with GVK %v seems to be missing in API resource list", gvk)
-	}
-	return res, nil
+	return namespaced[gvk], nil
 }
 
 // patch calls update method on kubernetes client to make sure the current resource reflects what is on server
