@@ -5,15 +5,13 @@ import (
 	"fmt"
 	"log"
 
+	v1 "k8s.io/api/core/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	apijson "k8s.io/apimachinery/pkg/util/json"
-	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/health"
@@ -60,18 +58,19 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 
 // apply method takes a slice of k8s object and applies them using passed client. If an object
 // doesn't exist it will be created. An already existing object will be patched.
-func apply(rr []runtime.Object, c client.Client) ([]runtime.Object, error) {
+func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
 	applied := make([]runtime.Object, 0)
 
-	for _, r := range rr {
+	for _, r := range ro {
+		key, _ := client.ObjectKeyFromObject(r)
 		existing := r.DeepCopyObject()
 
-		key, err := ObjectKeyFromObject(r)
-		if err != nil {
-			return nil, err
+		// if CRD we need to clear then namespace from the copy
+		if isClusterResource(r) {
+			key.Namespace = ""
 		}
 
-		err = c.Get(context.TODO(), key, existing)
+		err := c.Get(context.TODO(), key, existing)
 
 		switch {
 		case apierrors.IsNotFound(err): // create resource if it doesn't exist
@@ -100,36 +99,14 @@ func apply(rr []runtime.Object, c client.Client) ([]runtime.Object, error) {
 	return applied, nil
 }
 
-// ObjectKeyFromObject method wraps client.ObjectKeyFromObject method by additionally checking if passed object is
-// a cluster-scoped resource (e.g. CustomResourceDefinition, ClusterRole etc.) and removing the namespace from the
-// key since cluster-scoped resources are not namespaced.
-func ObjectKeyFromObject(r runtime.Object) (client.ObjectKey, error) {
-	key, err := client.ObjectKeyFromObject(r)
-	if err != nil {
-		return client.ObjectKey{}, fmt.Errorf("failed to get an object key from object %v: %v", r.GetObjectKind(), err)
+func isClusterResource(r runtime.Object) bool {
+	switch r.(type) {
+	case *apiextv1beta1.CustomResourceDefinition:
+		return true
+	case *v1.Namespace:
+		return true
 	}
-
-	// if the resource is cluster-scoped we need to clear then namespace from the key
-	namespaced, err := isNamespaced(r)
-	if err != nil {
-		return client.ObjectKey{}, fmt.Errorf("failed to determine if the resource %v is cluster-scoped: %v", r.GetObjectKind(), err)
-	}
-
-	if !namespaced { // not namespaced means cluster-scoped!
-		key.Namespace = ""
-	}
-	return key, nil
-}
-
-// isNamespaced method return true if given runtime.Object is a namespaced (not cluster-scoped) resource
-func isNamespaced(r runtime.Object) (bool, error) {
-	namespaced, err := namespacedGVKResources()
-	if err != nil {
-		return false, err
-	}
-
-	gvk := r.GetObjectKind().GroupVersionKind()
-	return namespaced[gvk], nil
+	return false
 }
 
 // patch calls update method on kubernetes client to make sure the current resource reflects what is on server
@@ -177,38 +154,4 @@ func isHealthy(ro []runtime.Object) error {
 		}
 	}
 	return nil
-}
-
-// namespacedGVKResources method uses the discovery client to fetch all API resources (with Groups and Versions)
-// and returns a mapping of GVK -> isNamespaced. Useful when deciding whether a given object is a cluster-scoped resource.
-func namespacedGVKResources() (map[schema.GroupVersionKind]bool, error) {
-	namespaced := map[schema.GroupVersionKind]bool{}
-
-	restCfg, err := config.GetConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch cluster REST config: %v", err)
-	}
-	// Use a config object to create a discovery client
-	discClient, err := discovery.NewDiscoveryClientForConfig(restCfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create a discovery client: %v", err)
-	}
-	// Fetch namespaced API resources
-	_, apiResources, err := discClient.ServerGroupsAndResources()
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch server groups and resources: %v", err)
-	}
-
-	for _, rr := range apiResources {
-		gv, err := schema.ParseGroupVersion(rr.GroupVersion)
-		if err != nil {
-			continue
-		}
-		for _, r := range rr.APIResources {
-			gvk := gv.WithKind(r.Kind)
-			namespaced[gvk] = r.Namespaced
-		}
-	}
-
-	return namespaced, nil
 }
