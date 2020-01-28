@@ -73,7 +73,7 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 			admission.Errored(http.StatusInternalServerError, err)
 		}
 
-		triggered, err := validateUpdate(old, new, ov)
+		triggered, err := admitUpdate(old, new, ov)
 		if err != nil {
 			return admission.Denied(err.Error())
 		}
@@ -111,12 +111,12 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
  For the complete set of rules, see the corresponding test.
 */
 
-// validateUpdate takes in the old and new (updated) instance and returns a new plan that might
+// admitUpdate takes in the old and new (updated) instance and returns a new plan that might
 // be triggered based on the update and an error if the update is not valid. Return plan might be
 // - <nil> when there is no change to an existing scheduled plan
 // - '' empty string when an existing plan should be canceled (not implemented yet)
 // - 'newPlan' some new plan that should be triggered
-func validateUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion) (*string, error) {
+func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion) (*string, error) {
 	// PREREQUISITES:
 	newPlan := new.Spec.PlanExecution.PlanName
 	oldPlan := old.Spec.PlanExecution.PlanName
