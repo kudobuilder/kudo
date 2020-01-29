@@ -92,7 +92,7 @@ plans:
               - mirror-maker
 ```
 
-In the tasks is where we can use the `Feature` kind. Which will apply the resources rendered by templates `mirror-maker.yaml` and `mirror-maker-cm.yaml` in case the value of parameter `MIRROR_MAKER_ENABLED` is true. 
+If the `spec.parameter` is `"true"`, feature task acts like `Apply` task, applies the provided resources and waits for them to become healthy. If the `spec.parameter` is `"false"` it acts like a `Delete` task, deleting the resources.
 In case, the value is `false` it will delete the resources rendered by `mirror-maker.yaml` and `mirror-maker-cm.yaml`. 
 
 In case the parameter value is **true**:
