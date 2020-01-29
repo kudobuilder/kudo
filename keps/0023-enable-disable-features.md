@@ -41,26 +41,21 @@ The goal of this KEP is to provide a way to create and delete objects `x`, `y` a
 ### Using Instance Parameters
 
 In KUDO, specific plans can be triggered when updating a parameter. Plans are specifically formed by phases, steps and utimately by tasks.
-And when talking about enabling/disabling features, we are eventually talking about the `Kind` of the Task. Currently, we have `Apply`, `Delete` and `Pipe` tasks kind.
+And when talking about enabling/disabling features, we are eventually talking about the `Kind` of the Task. Currently, we have `Apply`, `Delete`, `Pipe` and `Dummy` tasks kind.
 Enabling a feature is running a task of `Apply` kind and disabling is running a task of `Delete`
 
-We propose introducing a new Task kind named `Feature`. The Feature kind handles Apply or Delete resources based on the value of a parameter in the Operator Instance.
+We propose introducing a new Task kind named `Toggle`. The Toggle kind handles Apply or Delete resources based on the value of a parameter in the Operator Instance.
 
-A `Feature` task will look like:
+A `Toggle` task will look like:
 
 ```
 tasks:
   - name: mirror-maker-configuration
-    kind: Feature
+    kind: Toggle
     spec:
       parameter: MIRROR_MAKER_ENABLED
       resources:
         - mirror-maker-cm.yaml
-  - name: mirror-maker
-    kind: Feature
-    spec:
-      parameter: MIRROR_MAKER_ENABLED
-      resources:
         - mirror-maker.yaml
 ```
 
@@ -74,7 +69,7 @@ parameters:
     trigger: mirror-maker-plan
 ```
 
-And the plan triggered by the parameter will be the one using `Feature` tasks in their steps.
+And the plan triggered by the parameter will be the one using `Toggle` tasks in their steps.
 
 ```
 plans:
@@ -92,30 +87,19 @@ plans:
               - mirror-maker
 ```
 
-If the `spec.parameter` is `"true"`, feature task acts like `Apply` task, applies the provided resources and waits for them to become healthy. If the `spec.parameter` is `"false"` it acts like a `Delete` task, deleting the resources.
-In case, the value is `false` it will delete the resources rendered by `mirror-maker.yaml` and `mirror-maker-cm.yaml`. 
-
-In case the parameter value is **true**:
-
-If there are objects to created the Task will be marked successful, once those are created.
-If there are no objects to be created the Task will be marked as successful. 
-
-In case the parameter value is **false**:
-
-If there are objects to be deleted the Task will be marked as successful, once those are marked for Deletion. 
-If there are no objects to be deleted the Task will be marked as successful. 
-
+If the `spec.parameter` is `"true"`, `Toggle` task acts like `Apply` task, applies the provided resources and waits for them to become healthy.
+If the `spec.parameter` is `"false"` it acts like a `Delete` task, deleting the resources.
 
 ### Limitations
 
-However the `Feature` task will have limitations like:
+However the `Toggle` task will have limitations like:
 
 - KUDO Operator must define the parameter which will be evaluated as a boolean.
 - The defined parameter must evaluate to a boolean value
 - Multiple parameters can trigger the same plan, but only one parameter will be evaluated
 
 For the last use case, e.g., we can have a parameter `MIRROR_MAKER_MEM` which triggers the `mirror-maker-plan` but
-the parameter which will decide in `Feature Task` if the kubernetes objects are created/updated or deleted will be `MIRROR_MAKER_ENABLED`
+the parameter which will decide in `Toggle Task` if the kubernetes objects are created/updated or deleted will be `MIRROR_MAKER_ENABLED`
 
 ## Alternatives
 
