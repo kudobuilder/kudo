@@ -10,8 +10,8 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 )
 
-// Ensure kudoinit.InitStep is implemented
-var _ kudoinit.InitStep = &Initializer{}
+// Ensure kudoinit.Step is implemented
+var _ kudoinit.Step = &Initializer{}
 
 // Defines a single prerequisite that is defined as a k8s resource
 type k8sResource interface {

@@ -41,14 +41,14 @@ func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
 	return nil
 }
 
-func initSteps(opts kudoinit.Options, crdOnly bool) []kudoinit.InitStep {
+func initSteps(opts kudoinit.Options, crdOnly bool) []kudoinit.Step {
 	if crdOnly {
-		return []kudoinit.InitStep{
+		return []kudoinit.Step{
 			crd.NewInitializer(),
 		}
 	}
 
-	return []kudoinit.InitStep{
+	return []kudoinit.Step{
 		crd.NewInitializer(),
 		prereq.NewInitializer(opts),
 		manager.NewInitializer(opts),

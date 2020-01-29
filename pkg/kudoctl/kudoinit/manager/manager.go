@@ -21,8 +21,8 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 )
 
-// Ensure kudoinit.InitStep is implemented
-var _ kudoinit.InitStep = &Initializer{}
+// Ensure kudoinit.Step is implemented
+var _ kudoinit.Step = &Initializer{}
 
 //Defines the deployment of the KUDO manager and it's service definition.
 type Initializer struct {
