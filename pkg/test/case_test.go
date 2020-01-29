@@ -222,6 +222,8 @@ func TestLoadTestSteps(t *testing.T) {
 			},
 		},
 	} {
+		tt := tt
+
 		t.Run(tt.path, func(t *testing.T) {
 			test := &Case{Dir: tt.path, Logger: testutils.NewTestLogger(t, tt.path)}
 
@@ -285,6 +287,8 @@ func TestCollectTestStepFiles(t *testing.T) {
 			},
 		},
 	} {
+		tt := tt
+
 		t.Run(tt.path, func(t *testing.T) {
 			test := &Case{Dir: tt.path, Logger: testutils.NewTestLogger(t, tt.path)}
 			testStepFiles, err := test.CollectTestStepFiles()

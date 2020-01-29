@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/apis"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	"github.com/kudobuilder/kudo/pkg/apis"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
@@ -74,7 +74,7 @@ func TestRestartController(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
 		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.dev/v1beta1"},
 		Spec: v1beta1.OperatorVersionSpec{
-			Plans: map[string]v1beta1.Plan{"deploy": {}, "update": {}},
+			Plans: map[string]v1beta1.Plan{"deploy": {Phases: []v1beta1.Phase{}}, "update": {Phases: []v1beta1.Phase{}}},
 			Parameters: []v1beta1.Parameter{
 				{
 					Name:    "param",
@@ -344,7 +344,7 @@ func TestSpecParameterDifference(t *testing.T) {
 	var old = map[string]string{"one": "1", "two": "2"}
 
 	for _, test := range testParams {
-		diff := parameterDiff(old, test.new)
+		diff := v1beta1.ParameterDiff(old, test.new)
 		assert.Equal(t, test.diff, diff)
 	}
 }

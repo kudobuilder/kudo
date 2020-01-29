@@ -20,6 +20,8 @@ jobs:
       - run: ./test/run_tests.sh e2e-test
       - store_test_results:
           path: reports/
+      - store_artifacts:
+          path: kind-logs.tar.bz2
 
   lint:
     docker:

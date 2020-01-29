@@ -75,7 +75,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 	phasesLeft := len(pl.Spec.Phases)
 	// --- 1. Iterate over plan phases ---
 	for _, ph := range pl.Spec.Phases {
-		phaseStatus := getPhaseStatus(ph.Name, planStatus)
+		phaseStatus := v1beta1.GetPhaseStatus(ph.Name, planStatus)
 		if phaseStatus == nil {
 			err := fmt.Errorf("%s/%s %w missing phase status: %s.%s", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name)
 
@@ -99,7 +99,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 		stepsLeft := stepNamesToSet(ph.Steps)
 		// --- 2. Iterate over phase steps ---
 		for _, st := range ph.Steps {
-			stepStatus := getStepStatus(st.Name, phaseStatus)
+			stepStatus := v1beta1.GetStepStatus(st.Name, phaseStatus)
 			if stepStatus == nil {
 				err := fmt.Errorf("%s/%s %w missing step status: %s.%s.%s", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name, st.Name)
 
@@ -223,7 +223,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 	if phasesLeft == 0 {
 		log.Printf("PlanExecution: %s/%s all phases of the plan %s are ready", em.InstanceNamespace, em.InstanceName, pl.Name)
 		planStatus.Set(v1beta1.ExecutionComplete)
-		planStatus.LastFinishedRun = v1.Time{Time: currentTime}
+		planStatus.LastFinishedRun = &v1.Time{Time: currentTime}
 	}
 
 	return planStatus, nil
@@ -257,24 +257,4 @@ func stepNamesToSet(steps []v1beta1.Step) map[string]bool {
 		set[s.Name] = true
 	}
 	return set
-}
-
-func getStepStatus(stepName string, phaseStatus *v1beta1.PhaseStatus) *v1beta1.StepStatus {
-	for i, p := range phaseStatus.Steps {
-		if p.Name == stepName {
-			return &phaseStatus.Steps[i]
-		}
-	}
-
-	return nil
-}
-
-func getPhaseStatus(phaseName string, planStatus *v1beta1.PlanStatus) *v1beta1.PhaseStatus {
-	for i, p := range planStatus.Phases {
-		if p.Name == phaseName {
-			return &planStatus.Phases[i]
-		}
-	}
-
-	return nil
 }

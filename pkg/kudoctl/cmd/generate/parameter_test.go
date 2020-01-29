@@ -15,7 +15,7 @@ import (
 
 func TestAddParameter(t *testing.T) {
 	goldenFile := "parameter"
-	path := "/opt/zk"
+	path := "/opt/zk" //nolint:goconst
 	fs := afero.NewMemMapFs()
 	files.CopyOperatorToFs(fs, "../../packages/testdata/zk", "/opt")
 

@@ -1,8 +1,6 @@
 package resolver
 
 import (
-	"fmt"
-
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
@@ -41,32 +39,24 @@ func New(repo *repo.Client) *PackageResolver {
 // - an operator name in the remote repository
 // in that order. Should there exist a local folder e.g. `cassandra` it will take precedence
 // over the remote repository package with the same name.
-func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
+func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersion string) (p *packages.Package, err error) {
 
 	// Local files/folder have priority
-	if _, err := m.local.fs.Stat(name); err == nil {
+	if _, err = m.local.fs.Stat(name); err == nil {
 		clog.V(2).Printf("local operator discovered: %v", name)
-		b, err := m.local.Resolve(name, appVersion, operatorVersion)
-		if err != nil {
-			return nil, err
-		}
-		return b, nil
+		p, err = m.local.Resolve(name, appVersion, operatorVersion)
+		return
 	}
 
 	clog.V(3).Printf("no local operator discovered, looking for http")
 	if http.IsValidURL(name) {
 		clog.V(3).Printf("operator using http protocol for %v", name)
-		b, err := m.uri.Resolve(name, appVersion, operatorVersion)
-		if err != nil {
-			return nil, err
-		}
-		return b, nil
+		p, err = m.uri.Resolve(name, appVersion, operatorVersion)
+		return
 	}
 
 	clog.V(3).Printf("no http discovered, looking for repository")
-	if b, err := m.repo.Resolve(name, appVersion, operatorVersion); err == nil {
-		return b, nil
-	}
+	p, err = m.repo.Resolve(name, appVersion, operatorVersion)
 
-	return nil, fmt.Errorf("resolver: unable to find packages for %v", name)
+	return
 }

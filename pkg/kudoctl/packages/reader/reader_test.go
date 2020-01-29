@@ -30,6 +30,8 @@ func TestReadFileSystemPackage(t *testing.T) {
 	var fs = afero.NewOsFs()
 
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(fmt.Sprintf("%s-from-%s", tt.name, tt.path), func(t *testing.T) {
 			var err error
 			var pkg *packages.Package
@@ -142,6 +144,8 @@ parameters:
 		{"parameters", oneParam, packages.ParamsFile{APIVersion: APIVersion, Parameters: example}, false},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := readParametersFile([]byte(tt.paramsYaml))
 			fmt.Printf("%s got: %v\n", tt.name, got)
