@@ -92,7 +92,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := crd.NewInitializer().AsArray()
+	crds := crd.NewInitializer().Resources()
 	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
@@ -131,7 +131,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := crd.NewInitializer().AsArray()
+	crds := crd.NewInitializer().Resources()
 	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
@@ -203,7 +203,7 @@ func TestIntegInitWithServiceAccount(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := crd.NewInitializer().AsArray()
+	crds := crd.NewInitializer().Resources()
 	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
@@ -307,7 +307,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := crd.NewInitializer().AsArray()
+	crds := crd.NewInitializer().Resources()
 	defer deleteInitObjects(testClient)
 
 	var buf bytes.Buffer
@@ -342,8 +342,8 @@ func TestNoErrorOnReInit(t *testing.T) {
 func deleteInitObjects(client *testutils.RetryClient) {
 	crds := crd.NewInitializer()
 	prereqs := prereq.NewInitializer(kudoinit.NewOptions("", "", "", []string{}))
-	deleteCRDs(crds.AsArray(), client)
-	deletePrereq(prereqs.AsArray(), client)
+	deleteCRDs(crds.Resources(), client)
+	deletePrereq(prereqs.Resources(), client)
 }
 
 func deleteCRDs(crds []runtime.Object, client *testutils.RetryClient) {

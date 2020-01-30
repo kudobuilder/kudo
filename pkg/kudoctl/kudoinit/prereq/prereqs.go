@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/yaml"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
@@ -69,26 +68,11 @@ func (p Initializer) Install(client *kube.Client) error {
 	return nil
 }
 
-func (p Initializer) AsArray() []runtime.Object {
+func (p Initializer) Resources() []runtime.Object {
 	var prereqs []runtime.Object
 
 	for _, prereq := range p.prereqs {
 		prereqs = append(prereqs, prereq.AsRuntimeObjs()...)
 	}
 	return prereqs
-}
-
-func (p Initializer) AsYamlManifests() ([]string, error) {
-	prereqs := p.AsArray()
-
-	manifests := make([]string, len(prereqs))
-	for i, obj := range prereqs {
-		o, err := yaml.Marshal(obj)
-		if err != nil {
-			return []string{}, err
-		}
-		manifests[i] = string(o)
-	}
-
-	return manifests, nil
 }

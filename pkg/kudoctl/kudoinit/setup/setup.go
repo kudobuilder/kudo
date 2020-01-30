@@ -61,7 +61,7 @@ func AsYamlManifests(opts kudoinit.Options, crdOnly bool) ([]string, error) {
 	var allManifests []runtime.Object
 
 	for _, initStep := range initSteps {
-		allManifests = append(allManifests, initStep.AsArray()...)
+		allManifests = append(allManifests, initStep.Resources()...)
 	}
 
 	return toYaml(allManifests)

@@ -15,10 +15,9 @@ const (
 	defaultServiceAccount = "kudo-manager"
 )
 
-type StepArtifacts interface {
-	// Returns the installed artifacts as yaml manifests
-	AsYamlManifests() ([]string, error)
-	AsArray() []runtime.Object
+type Artifacter interface {
+	// Returns the artifacts that would be installed as runtime objects
+	Resources() []runtime.Object
 }
 
 type InstallVerifier interface {
@@ -40,7 +39,7 @@ type Step interface {
 	InstallVerifier
 	Installer
 
-	StepArtifacts
+	Artifacter
 }
 
 func GenerateLabels(labels map[string]string) map[string]string {

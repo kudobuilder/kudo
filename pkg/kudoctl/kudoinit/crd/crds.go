@@ -41,24 +41,9 @@ func (c Initializer) String() string {
 	return "crds"
 }
 
-// AsArray returns all CRDs as array of runtime objects
-func (c Initializer) AsArray() []runtime.Object {
+// Resources returns all CRDs as array of runtime objects
+func (c Initializer) Resources() []runtime.Object {
 	return []runtime.Object{c.Operator, c.OperatorVersion, c.Instance}
-}
-
-// AsYamlManifests returns crds as slice of strings
-func (c Initializer) AsYamlManifests() ([]string, error) {
-	objs := c.AsArray()
-	manifests := make([]string, len(objs))
-	for i, obj := range objs {
-		o, err := yaml.Marshal(obj)
-		if err != nil {
-			return []string{}, err
-		}
-		manifests[i] = string(o)
-	}
-
-	return manifests, nil
 }
 
 func (c Initializer) PreInstallVerify(client *kube.Client) verify.Result {

@@ -14,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	appsv1client "k8s.io/client-go/kubernetes/typed/apps/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"sigs.k8s.io/yaml"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -85,24 +84,8 @@ func (m Initializer) installService(client corev1.ServicesGetter) error {
 	return err
 }
 
-func (m Initializer) AsArray() []runtime.Object {
+func (m Initializer) Resources() []runtime.Object {
 	return []runtime.Object{m.service, m.deployment}
-}
-
-// AsYamlManifests provides a slice of strings for the deployment and service manifest
-func (m Initializer) AsYamlManifests() ([]string, error) {
-	objs := m.AsArray()
-
-	manifests := make([]string, len(objs))
-	for i, obj := range objs {
-		o, err := yaml.Marshal(obj)
-		if err != nil {
-			return []string{}, err
-		}
-		manifests[i] = string(o)
-	}
-
-	return manifests, nil
 }
 
 // GenerateLabels returns the labels used by deployment and service
