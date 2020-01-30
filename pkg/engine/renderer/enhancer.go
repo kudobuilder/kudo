@@ -58,13 +58,11 @@ func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata)
 				return nil, fmt.Errorf("failed to determine if object %s is namespaced: %v", obj.GetObjectKind(), err)
 			}
 
-			log.Printf(">>> %s is namespaced: %v", obj.GetObjectKind(), isNamespaced)
 			// Note: Cross-namespace owner references are disallowed by design. This means:
 			// 1) Namespace-scoped dependents can only specify owners in the same namespace, and owners that are cluster-scoped.
 			// 2) Cluster-scoped dependents can only specify cluster-scoped owners, but not namespace-scoped owners.
 			// More: https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/
 			if isNamespaced {
-				log.Printf(">>> setting namespace and controllerReference for: %s", obj.GetObjectKind())
 				objUnstructured.SetNamespace(metadata.InstanceNamespace)
 				if err = setControllerReference(metadata.ResourcesOwner, objUnstructured, de.Scheme); err != nil {
 					return nil, fmt.Errorf("setting controller reference on parsed object %s: %v", obj.GetObjectKind(), err)
