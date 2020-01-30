@@ -19,6 +19,7 @@ The goal of this KEP is to facilitate operator developers to enable and disable 
 
 ## Motivation
 
+A feature in this KEP is defined as a set of Kubernetes objects.
 We want to provide operator users a way to enable and disable features in their operator. And right now there is no operator-user friendly or operator-developer friendly way to do it. 
 
 ### Goals
