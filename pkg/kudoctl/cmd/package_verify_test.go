@@ -31,5 +31,5 @@ func TestOperatorVerify(t *testing.T) {
 		t.Fatalf("failed reading .golden: %s", err)
 	}
 
-	assert.Equal(t, out.String(), string(g), "yaml does not match .golden file %s", gp)
+	assert.Equal(t, string(g), out.String(), "yaml does not match .golden file %s", gp)
 }

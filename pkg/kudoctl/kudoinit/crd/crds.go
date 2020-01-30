@@ -15,6 +15,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
 )
 
 // Ensure kudoinit.Step is implemented
@@ -60,8 +61,8 @@ func (c Initializer) AsYamlManifests() ([]string, error) {
 	return manifests, nil
 }
 
-func (c Initializer) PreInstallCheck(client *kube.Client) kudoinit.Result {
-	return kudoinit.NewResult()
+func (c Initializer) PreInstallVerify(client *kube.Client) verify.Result {
+	return verify.NewResult()
 }
 
 // Install uses Kubernetes client to install KUDO Crds.

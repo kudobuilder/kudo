@@ -6,6 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
 )
 
 const (
@@ -20,10 +21,15 @@ type StepArtifacts interface {
 	AsArray() []runtime.Object
 }
 
-type StepInstallation interface {
-	// Should return an error if the installation will not be possible
-	PreInstallCheck(client *kube.Client) Result
+type InstallVerifier interface {
+	// PreInstallVerify verifies that the installation is possible
+	PreInstallVerify(client *kube.Client) verify.Result
 
+	// TODO: Add verification of existing installation
+	// VerifyInstallation(client *kube.Client) Result
+}
+
+type Installer interface {
 	// Executes the actual installation
 	Install(client *kube.Client) error
 }
@@ -31,7 +37,9 @@ type StepInstallation interface {
 type Step interface {
 	fmt.Stringer
 
-	StepInstallation
+	InstallVerifier
+	Installer
+
 	StepArtifacts
 }
 

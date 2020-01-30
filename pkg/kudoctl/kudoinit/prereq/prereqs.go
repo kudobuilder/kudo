@@ -8,6 +8,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
 )
 
 // Ensure kudoinit.Step is implemented
@@ -15,8 +16,8 @@ var _ kudoinit.Step = &Initializer{}
 
 // Defines a single prerequisite that is defined as a k8s resource
 type k8sResource interface {
-	// PreInstallCheck is called before the installation of any component is started and should return an error if the installation is not possible
-	PreInstallCheck(client *kube.Client) kudoinit.Result
+	// PreInstallVerify is called before the installation of any component is started and should return an error if the installation is not possible
+	PreInstallVerify(client *kube.Client) verify.Result
 
 	// Install installs the manifests of this prerequisite
 	Install(client *kube.Client) error
@@ -49,10 +50,10 @@ func (p Initializer) String() string {
 	return "service accounts and other requirements for controller to run"
 }
 
-func (p Initializer) PreInstallCheck(client *kube.Client) kudoinit.Result {
-	result := kudoinit.NewResult()
+func (p Initializer) PreInstallVerify(client *kube.Client) verify.Result {
+	result := verify.NewResult()
 	for _, prereq := range p.prereqs {
-		res := prereq.PreInstallCheck(client)
+		res := prereq.PreInstallVerify(client)
 		result.Merge(res)
 	}
 	return result

@@ -13,16 +13,17 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/manager"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
 )
 
 // Install uses Kubernetes client to install KUDO.
 func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
 	initSteps := initSteps(opts, crdOnly)
 
-	result := kudoinit.NewResult()
+	result := verify.NewResult()
 	// Check if all steps are installable
 	for _, initStep := range initSteps {
-		result.Merge(initStep.PreInstallCheck(client))
+		result.Merge(initStep.PreInstallVerify(client))
 	}
 
 	result.PrintWarnings(os.Stdout)

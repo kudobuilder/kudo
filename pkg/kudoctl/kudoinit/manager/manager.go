@@ -19,6 +19,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
 )
 
 // Ensure kudoinit.Step is implemented
@@ -40,8 +41,8 @@ func NewInitializer(options kudoinit.Options) Initializer {
 	}
 }
 
-func (m Initializer) PreInstallCheck(client *kube.Client) kudoinit.Result {
-	return kudoinit.NewResult()
+func (m Initializer) PreInstallVerify(client *kube.Client) verify.Result {
+	return verify.NewResult()
 }
 
 func (m Initializer) String() string {

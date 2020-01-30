@@ -3,19 +3,19 @@ package prereq
 import (
 	"testing"
 
-	apiextensionfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	dynamicfake "k8s.io/client-go/dynamic/fake"
-
 	"github.com/stretchr/testify/assert"
 	core "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
+	apiextensionfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
 	testing2 "k8s.io/client-go/testing"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
 )
 
 func getFakeClient() *kube.Client {
@@ -36,9 +36,9 @@ func TestPrereq_Ok_PreValidate_DefaultOpts(t *testing.T) {
 
 	init := NewInitializer(kudoinit.NewOptions("", "", "", make([]string, 0)))
 
-	result := init.PreInstallCheck(client)
+	result := init.PreInstallVerify(client)
 
-	assert.EqualValues(t, kudoinit.NewResult(), result)
+	assert.EqualValues(t, verify.NewResult(), result)
 }
 
 func mockGetNamespace(client *kube.Client, nsName string) {
