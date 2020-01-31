@@ -12,6 +12,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kudobuilder/kudo/pkg/engine/task"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -346,5 +349,34 @@ func TestSpecParameterDifference(t *testing.T) {
 	for _, test := range testParams {
 		diff := v1beta1.ParameterDiff(old, test.new)
 		assert.Equal(t, test.diff, diff)
+	}
+}
+
+func TestEventFilterForDelete(t *testing.T) {
+	var testParams = []struct {
+		name    string
+		allowed bool
+		e       event.DeleteEvent
+	}{
+		{"A Pod without annotations", true, event.DeleteEvent{
+			Meta:               &v1.Pod{},
+			Object:             nil,
+			DeleteStateUnknown: false,
+		}},
+		{"A Pod with pipePod annotation", false, event.DeleteEvent{
+			Meta: &v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{task.PipePodAnnotation: "true"},
+				},
+			},
+			Object:             nil,
+			DeleteStateUnknown: false,
+		}},
+	}
+
+	filter := eventFilter()
+	for _, test := range testParams {
+		diff := filter.Delete(test.e)
+		assert.Equal(t, test.allowed, diff, test.name)
 	}
 }
