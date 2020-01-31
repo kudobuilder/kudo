@@ -103,8 +103,7 @@ func (r *Reconciler) SetupWithManager(
 	resPredicate := predicate.Funcs{
 		CreateFunc: func(event.CreateEvent) bool { return true },
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return e.Meta.GetAnnotations() != nil &&
-				funk.Contains(e.Meta.GetAnnotations(), task.PipePodAnnotation)
+			return !isForPipePod(e)
 		},
 		UpdateFunc:  func(event.UpdateEvent) bool { return true },
 		GenericFunc: func(event.GenericEvent) bool { return true },
@@ -121,6 +120,10 @@ func (r *Reconciler) SetupWithManager(
 		WithEventFilter(resPredicate).
 		Watches(&source.Kind{Type: &kudov1beta1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: addOvRelatedInstancesToReconcile}).
 		Complete(r)
+}
+
+func isForPipePod(e event.DeleteEvent) bool {
+	return e.Meta.GetAnnotations() != nil && funk.Contains(e.Meta.GetAnnotations(), task.PipePodAnnotation)
 }
 
 // Reconcile is the main controller method that gets called every time something about the instance changes
