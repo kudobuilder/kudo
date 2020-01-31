@@ -15,7 +15,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/health"
-	"github.com/kudobuilder/kudo/pkg/engine/helpers"
+	"github.com/kudobuilder/kudo/pkg/engine/resource"
 )
 
 // ApplyTask will apply a set of given resources to the cluster. See Run method for more details.
@@ -65,7 +65,7 @@ func apply(rr []runtime.Object, c client.Client, di discovery.DiscoveryInterface
 	for _, r := range rr {
 		existing := r.DeepCopyObject()
 
-		key, err := helpers.ObjectKeyFromObject(r, di)
+		key, err := resource.ObjectKeyFromObject(r, di)
 		if err != nil {
 			return nil, err
 		}

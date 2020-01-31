@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/kudobuilder/kudo/pkg/engine/helpers"
+	"github.com/kudobuilder/kudo/pkg/engine/resource"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
@@ -53,7 +53,7 @@ func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata)
 
 			objUnstructured := &unstructured.Unstructured{Object: unstructMap}
 
-			isNamespaced, err := helpers.IsNamespacedObject(obj, de.Discovery)
+			isNamespaced, err := resource.IsNamespacedObject(obj, de.Discovery)
 			if err != nil {
 				return nil, fmt.Errorf("failed to determine if object %s is namespaced: %v", obj.GetObjectKind(), err)
 			}
