@@ -28,7 +28,7 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 	configs["Name"] = "Name"
 	configs["Namespace"] = "Namespace"
 	configs["Params"] = params
-	configs["Pipes"] = "TODO"
+	configs["Pipes"] = make(map[string]string)
 	configs["PlanName"] = "PlanName"
 	configs["PhaseName"] = "PhaseName"
 	configs["StepName"] = "StepName"
