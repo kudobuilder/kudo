@@ -20,7 +20,7 @@ func TestTaskBasicsVerifier(t *testing.T) {
 			Name: "Task",
 			Kind: "Apply",
 			Spec: v1beta1.TaskSpec{},
-		}, errors: []string{"task validation error: apply task has an empty resource list. if that's what you need, use a Dummy task instead"}, warnings: []string{}},
+		}, errors: []string{"task validation error: apply task 'Task' has an empty resource list. if that's what you need, use a Dummy task instead"}, warnings: []string{}},
 		{name: "An Apply task with resources", task: v1beta1.Task{
 			Name: "Task",
 			Kind: "Apply",
@@ -32,7 +32,7 @@ func TestTaskBasicsVerifier(t *testing.T) {
 			Name: "Task",
 			Kind: "Delete",
 			Spec: v1beta1.TaskSpec{},
-		}, errors: []string{"task validation error: delete task has an empty resource list. if that's what you need, use a Dummy task instead"}, warnings: []string{}},
+		}, errors: []string{"task validation error: delete task 'Task' has an empty resource list. if that's what you need, use a Dummy task instead"}, warnings: []string{}},
 		{name: "An Delete task with resources", task: v1beta1.Task{
 			Name: "Task",
 			Kind: "Delete",
