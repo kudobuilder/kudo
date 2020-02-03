@@ -95,21 +95,6 @@ func (r *Reconciler) SetupWithManager(
 			return requests
 		})
 
-	// resPredicate ignores DeleteEvents for pipe-pods only (marked with task.PipePodAnnotation). This is due to an
-	// inherent race that was described in detail in #1116 (https://github.com/kudobuilder/kudo/issues/1116)
-	// tl;dr: pipe-task will delete the pipe pod at the end of the execution. this would normally trigger another
-	// Instance reconciliation which might end up copying pipe files twice. we avoid this by explicitly ignoring
-	// DeleteEvents for pipe-pods.
-	resPredicate := predicate.Funcs{
-		CreateFunc: func(event.CreateEvent) bool { return true },
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			return e.Meta.GetAnnotations() != nil &&
-				funk.Contains(e.Meta.GetAnnotations(), task.PipePodAnnotation)
-		},
-		UpdateFunc:  func(event.UpdateEvent) bool { return true },
-		GenericFunc: func(event.GenericEvent) bool { return true },
-	}
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kudov1beta1.Instance{}).
 		Owns(&kudov1beta1.Instance{}).
@@ -118,9 +103,29 @@ func (r *Reconciler) SetupWithManager(
 		Owns(&batchv1.Job{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Pod{}).
-		WithEventFilter(resPredicate).
+		WithEventFilter(eventFilter()).
 		Watches(&source.Kind{Type: &kudov1beta1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: addOvRelatedInstancesToReconcile}).
 		Complete(r)
+}
+
+// eventFilter ignores DeleteEvents for pipe-pods only (marked with task.PipePodAnnotation). This is due to an
+// inherent race that was described in detail in #1116 (https://github.com/kudobuilder/kudo/issues/1116)
+// tl;dr: pipe-task will delete the pipe pod at the end of the execution. this would normally trigger another
+// Instance reconciliation which might end up copying pipe files twice. we avoid this by explicitly ignoring
+// DeleteEvents for pipe-pods.
+func eventFilter() predicate.Funcs {
+	return predicate.Funcs{
+		CreateFunc: func(event.CreateEvent) bool { return true },
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return !isForPipePod(e)
+		},
+		UpdateFunc:  func(event.UpdateEvent) bool { return true },
+		GenericFunc: func(event.GenericEvent) bool { return true },
+	}
+}
+
+func isForPipePod(e event.DeleteEvent) bool {
+	return e.Meta.GetAnnotations() != nil && funk.Contains(e.Meta.GetAnnotations(), task.PipePodAnnotation)
 }
 
 // Reconcile is the main controller method that gets called every time something about the instance changes
