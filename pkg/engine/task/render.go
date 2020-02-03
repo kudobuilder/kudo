@@ -31,7 +31,7 @@ func render(resourceNames []string, ctx Context) (map[string]string, error) {
 			return nil, fmt.Errorf("error finding resource named %s", rn)
 		}
 
-		rendered, err := engine.Render(resource, configs)
+		rendered, err := engine.Render(rn, resource, configs)
 		if err != nil {
 			return nil, fmt.Errorf("error expanding template %s: %w", rn, err)
 		}

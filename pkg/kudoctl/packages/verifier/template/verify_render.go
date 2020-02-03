@@ -37,8 +37,8 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 	res := verifier.NewResult()
 
 	engine := renderer.New()
-	for _, v := range pf.Templates {
-		_, err := engine.Render(v, configs)
+	for k, v := range pf.Templates {
+		_, err := engine.Render(k, v, configs)
 		if err != nil {
 			res.AddErrors(err.Error())
 		}
