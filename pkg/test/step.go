@@ -260,6 +260,8 @@ func (s *Step) CheckResource(expected runtime.Object, namespace string) []error 
 	}
 
 	for _, actual := range actuals {
+		actual := actual
+
 		tmpTestErrors := []error{}
 
 		if err := testutils.IsSubset(expectedObj, actual.UnstructuredContent()); err != nil {

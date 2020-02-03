@@ -356,6 +356,8 @@ func (h *Harness) RunTests() {
 
 	h.T.Run("harness", func(t *testing.T) {
 		for _, test := range tests {
+			test := test
+
 			test.Client = h.Client
 			test.DiscoveryClient = h.DiscoveryClient
 

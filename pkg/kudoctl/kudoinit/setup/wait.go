@@ -49,7 +49,7 @@ func getKUDOPodImage(client corev1.PodsGetter, namespace string) (string, error)
 	return "", errors.New("could not find a KUDO pod")
 }
 
-func getFirstRunningPod(client corev1.PodsGetter, namespace string, selector labels.Selector) (*v1.Pod, error) {
+func getFirstRunningPod(client corev1.PodsGetter, namespace string, selector labels.Selector) (*v1.Pod, error) { //nolint:interfacer
 	options := metav1.ListOptions{LabelSelector: selector.String()}
 	pods, err := client.Pods(namespace).List(options)
 	if err != nil {
@@ -59,6 +59,8 @@ func getFirstRunningPod(client corev1.PodsGetter, namespace string, selector lab
 		return nil, errors.New("could not find KUDO manager")
 	}
 	for _, p := range pods.Items {
+		p := p
+
 		if health.IsHealthy(&p) == nil {
 			return &p, nil
 		}

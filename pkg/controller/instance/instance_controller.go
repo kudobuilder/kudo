@@ -95,21 +95,6 @@ func (r *Reconciler) SetupWithManager(
 			return requests
 		})
 
-	// resPredicate ignores DeleteEvents for pipe-pods only (marked with task.PipePodAnnotation). This is due to an
-	// inherent race that was described in detail in #1116 (https://github.com/kudobuilder/kudo/issues/1116)
-	// tl;dr: pipe-task will delete the pipe pod at the end of the execution. this would normally trigger another
-	// Instance reconciliation which might end up copying pipe files twice. we avoid this by explicitly ignoring
-	// DeleteEvents for pipe-pods.
-	resPredicate := predicate.Funcs{
-		CreateFunc: func(event.CreateEvent) bool { return true },
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			return e.Meta.GetAnnotations() != nil &&
-				funk.Contains(e.Meta.GetAnnotations(), task.PipePodAnnotation)
-		},
-		UpdateFunc:  func(event.UpdateEvent) bool { return true },
-		GenericFunc: func(event.GenericEvent) bool { return true },
-	}
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kudov1beta1.Instance{}).
 		Owns(&kudov1beta1.Instance{}).
@@ -118,9 +103,29 @@ func (r *Reconciler) SetupWithManager(
 		Owns(&batchv1.Job{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Pod{}).
-		WithEventFilter(resPredicate).
+		WithEventFilter(eventFilter()).
 		Watches(&source.Kind{Type: &kudov1beta1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: addOvRelatedInstancesToReconcile}).
 		Complete(r)
+}
+
+// eventFilter ignores DeleteEvents for pipe-pods only (marked with task.PipePodAnnotation). This is due to an
+// inherent race that was described in detail in #1116 (https://github.com/kudobuilder/kudo/issues/1116)
+// tl;dr: pipe-task will delete the pipe pod at the end of the execution. this would normally trigger another
+// Instance reconciliation which might end up copying pipe files twice. we avoid this by explicitly ignoring
+// DeleteEvents for pipe-pods.
+func eventFilter() predicate.Funcs {
+	return predicate.Funcs{
+		CreateFunc: func(event.CreateEvent) bool { return true },
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return !isForPipePod(e)
+		},
+		UpdateFunc:  func(event.UpdateEvent) bool { return true },
+		GenericFunc: func(event.GenericEvent) bool { return true },
+	}
+}
+
+func isForPipePod(e event.DeleteEvent) bool {
+	return e.Meta.GetAnnotations() != nil && funk.Contains(e.Meta.GetAnnotations(), task.PipePodAnnotation)
 }
 
 // Reconcile is the main controller method that gets called every time something about the instance changes
@@ -169,8 +174,12 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	}
 	oldInstance := instance.DeepCopy()
 
-	ov, err := r.getOperatorVersion(instance)
+	ov, err := GetOperatorVersion(instance, r.Client)
 	if err != nil {
+		err = fmt.Errorf("InstanceController: Error getting operatorVersion %s for instance %s/%s: %v",
+			instance.Spec.OperatorVersion.Name, instance.Namespace, instance.Name, err)
+		log.Print(err)
+		r.Recorder.Event(instance, "Warning", "InvalidOperatorVersion", err.Error())
 		return reconcile.Result{}, err // OV not found has to be retried because it can really have been created after Instance
 	}
 
@@ -353,21 +362,16 @@ func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1beta1.In
 	return instance, nil
 }
 
-// getOperatorVersion retrieves operatorversion belonging to the given instance
-func (r *Reconciler) getOperatorVersion(instance *kudov1beta1.Instance) (ov *kudov1beta1.OperatorVersion, err error) {
+// GetOperatorVersion retrieves OperatorVersion belonging to the given instance
+func GetOperatorVersion(instance *kudov1beta1.Instance, c client.Client) (ov *kudov1beta1.OperatorVersion, err error) {
 	ov = &kudov1beta1.OperatorVersion{}
-	err = r.Get(context.TODO(),
+	err = c.Get(context.TODO(),
 		types.NamespacedName{
 			Name:      instance.Spec.OperatorVersion.Name,
 			Namespace: instance.OperatorVersionNamespace(),
 		},
 		ov)
 	if err != nil {
-		log.Printf("InstanceController: Error getting operatorVersion \"%v\" for instance \"%v\": %v",
-			instance.Spec.OperatorVersion.Name,
-			instance.Name,
-			err)
-		r.Recorder.Event(instance, "Warning", "InvalidOperatorVersion", fmt.Sprintf("Error getting operatorVersion \"%v\": %v", instance.Spec.OperatorVersion.Name, err))
 		return nil, err
 	}
 	return ov, nil
@@ -538,7 +542,7 @@ func isUpgradePlan(planName string) bool {
 func getPlanToBeExecuted(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*string, error) {
 	if i.IsDeleting() {
 		// we have a cleanup plan
-		plan := selectPlan([]string{v1beta1.CleanupPlanName}, ov)
+		plan := kudov1beta1.SelectPlan([]string{v1beta1.CleanupPlanName}, ov)
 		if plan != nil {
 			if planStatus := i.PlanStatus(*plan); planStatus != nil {
 				if !planStatus.Status.IsRunning() {
@@ -573,9 +577,10 @@ func getPlanToBeExecuted(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*str
 	if instanceSnapshot.OperatorVersion.Name != i.Spec.OperatorVersion.Name {
 		// this instance was upgraded to newer version
 		log.Printf("Instance: instance %s/%s was upgraded from %s to %s operatorVersion", i.Namespace, i.Name, instanceSnapshot.OperatorVersion.Name, i.Spec.OperatorVersion.Name)
-		plan := selectPlan([]string{v1beta1.UpgradePlanName, v1beta1.UpdatePlanName, v1beta1.DeployPlanName}, ov)
+		plan := kudov1beta1.SelectPlan([]string{v1beta1.UpgradePlanName, v1beta1.UpdatePlanName, v1beta1.DeployPlanName}, ov)
 		if plan == nil {
-			return nil, &v1beta1.InstanceError{Err: fmt.Errorf("supposed to execute plan because instance %s/%s was upgraded but none of the deploy, upgrade, update plans found in linked operatorVersion", i.Namespace, i.Name), EventName: kudo.String("PlanNotFound")}
+			return nil, &v1beta1.InstanceError{Err: fmt.Errorf("supposed to execute plan because instance %s/%s was upgraded but none of the deploy, upgrade, update plans found in linked operatorVersion", i.Namespace, i.Name),
+				EventName: kudo.String("PlanNotFound")}
 		}
 		return plan, nil
 	}
@@ -583,8 +588,8 @@ func getPlanToBeExecuted(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*str
 	if !reflect.DeepEqual(instanceSnapshot.Parameters, i.Spec.Parameters) {
 		// instance updated
 		log.Printf("Instance: instance %s/%s has updated parameters from %v to %v", i.Namespace, i.Name, instanceSnapshot.Parameters, i.Spec.Parameters)
-		paramDiff := parameterDiff(instanceSnapshot.Parameters, i.Spec.Parameters)
-		paramDefinitions := getParamDefinitions(paramDiff, ov)
+		paramDiff := kudov1beta1.ParameterDiff(instanceSnapshot.Parameters, i.Spec.Parameters)
+		paramDefinitions := kudov1beta1.GetParamDefinitions(paramDiff, ov)
 		plan := planNameFromParameters(paramDefinitions, ov)
 		if plan == nil {
 			return nil, &v1beta1.InstanceError{Err: fmt.Errorf("supposed to execute plan because instance %s/%s was updated but none of the deploy, update plans found in linked operatorVersion", i.Namespace, i.Name), EventName: kudo.String("PlanNotFound")}
@@ -598,55 +603,11 @@ func getPlanToBeExecuted(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*str
 func planNameFromParameters(params []v1beta1.Parameter, ov *v1beta1.OperatorVersion) *string {
 	for _, p := range params {
 		// TODO: if the params have different trigger plans, we always select first here which might not be ideal
-		if p.Trigger != "" && selectPlan([]string{p.Trigger}, ov) != nil {
+		if p.Trigger != "" && kudov1beta1.SelectPlan([]string{p.Trigger}, ov) != nil {
 			return kudo.String(p.Trigger)
 		}
 	}
-	return selectPlan([]string{v1beta1.UpdatePlanName, v1beta1.DeployPlanName}, ov)
-}
-
-// getParamDefinitions retrieves parameter metadata from OperatorVersion CRD
-func getParamDefinitions(params map[string]string, ov *v1beta1.OperatorVersion) []v1beta1.Parameter {
-	defs := []v1beta1.Parameter{}
-	for p1 := range params {
-		for _, p2 := range ov.Spec.Parameters {
-			if p2.Name == p1 {
-				defs = append(defs, p2)
-			}
-		}
-	}
-	return defs
-}
-
-// parameterDiff returns map containing all parameters that were removed or changed between old and new
-func parameterDiff(old, new map[string]string) map[string]string {
-	diff := make(map[string]string)
-
-	for key, val := range old {
-		// If a parameter was removed in the new spec
-		if _, ok := new[key]; !ok {
-			diff[key] = val
-		}
-	}
-
-	for key, val := range new {
-		// If new spec parameter was added or changed
-		if v, ok := old[key]; !ok || v != val {
-			diff[key] = val
-		}
-	}
-
-	return diff
-}
-
-// selectPlan returns nil if none of the plan exists, otherwise the first one in list that exists
-func selectPlan(possiblePlans []string, ov *v1beta1.OperatorVersion) *string {
-	for _, n := range possiblePlans {
-		if _, ok := ov.Spec.Plans[n]; ok {
-			return kudo.String(n)
-		}
-	}
-	return nil
+	return kudov1beta1.SelectPlan([]string{v1beta1.UpdatePlanName, v1beta1.DeployPlanName}, ov)
 }
 
 // SaveSnapshot stores the current spec of Instance into the snapshot annotation
