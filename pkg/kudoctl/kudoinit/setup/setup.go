@@ -28,6 +28,16 @@ func newSetup(opts kudoinit.Options) setup {
 	}
 }
 
+// Validate checks that the current KUDO installation is correct
+func Validate(client *kube.Client, opts kudoinit.Options) error {
+	return nil
+}
+
+// Upgrade an existing KUDO installation
+func Upgrade(client *kube.Client, opts kudoinit.Options) error {
+	return nil
+}
+
 // Install uses Kubernetes client to install KUDO.
 func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
 	setup := newSetup(opts)
