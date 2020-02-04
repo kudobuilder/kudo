@@ -62,3 +62,24 @@ spec:
 
 	assert.Equal(t, "Deployment", obj[0].GetObjectKind().GroupVersionKind().Kind)
 }
+
+func TestParseKubernetesObjects_EmptyListOfObjects(t *testing.T) {
+	tests := []struct {
+		name string
+		yaml string
+	}{
+		{"empty", ""},
+		{"empty line", `
+`},
+		{"empty lines", `
+
+`},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			objects, err := YamlToObject(test.yaml)
+			assert.NoError(t, err)
+			assert.Empty(t, objects)
+		})
+	}
+}
