@@ -12,6 +12,9 @@ spec:
       labels:
         app: nginx
     spec:
+      {{ if eq .Params.WITH_PRIORITY "true" }}
+      priority: 100
+      {{ end }}
       containers:
         - name: nginx
           image: nginx:{{ .AppVersion }}
