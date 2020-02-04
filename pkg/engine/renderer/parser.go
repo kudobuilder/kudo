@@ -49,5 +49,5 @@ func YamlToObject(yaml string) (objs []runtime.Object, err error) {
 			objs = append(objs, obj)
 		}
 	}
-	return
+	return objs, nil
 }
