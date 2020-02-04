@@ -9,11 +9,8 @@ import (
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	apijson "k8s.io/apimachinery/pkg/util/json"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/health"
 )
 
@@ -121,33 +118,38 @@ func isClusterResource(r runtime.Object) bool {
 // because of that for now we just try to apply the patch every time
 // it mutates the object passed in to be consistent with the kubernetes client behavior
 func patch(newObj runtime.Object, c client.Client) error {
-	newObjJSON, _ := apijson.Marshal(newObj)
+	//newObjJSON, _ := apijson.Marshal(newObj)
 	key, _ := client.ObjectKeyFromObject(newObj)
-	_, isUnstructured := newObj.(runtime.Unstructured)
-	_, isCRD := newObj.(*apiextv1beta1.CustomResourceDefinition)
+	//_, isUnstructured := newObj.(runtime.Unstructured)
+	//_, isCRD := newObj.(*apiextv1beta1.CustomResourceDefinition)
 
-	if isUnstructured || isCRD || isKudoType(newObj) {
-		// strategic merge patch is not supported for these types, falling back to merge patch
-		err := c.Patch(context.TODO(), newObj, client.ConstantPatch(types.MergePatchType, newObjJSON))
-		if err != nil {
-			return fmt.Errorf("failed to apply merge patch to object %s/%s: %w", key.Namespace, key.Name, err)
-		}
-	} else {
-		err := c.Patch(context.TODO(), newObj, client.ConstantPatch(types.StrategicMergePatchType, newObjJSON))
-		if err != nil {
-			return fmt.Errorf("failed to apply StrategicMergePatch to object %s/%s: %w", key.Namespace, key.Name, err)
-		}
+	err := c.Update(context.TODO(), newObj)
+	if err != nil {
+		return fmt.Errorf("failed to update to object %s/%s: %w", key.Namespace, key.Name, err)
 	}
+
+	//if isUnstructured || isCRD || isKudoType(newObj) {
+	//	// strategic merge patch is not supported for these types, falling back to merge patch
+	//	err := c.Patch(context.TODO(), newObj, client.Apply)
+	//	if err != nil {
+	//		return fmt.Errorf("failed to apply merge patch to object %s/%s: %w", key.Namespace, key.Name, err)
+	//	}
+	//} else {
+	//	err := c.Patch(context.TODO(), newObj, client.ConstantPatch(types.StrategicMergePatchType, newObjJSON))
+	//	if err != nil {
+	//		return fmt.Errorf("failed to apply StrategicMergePatch to object %s/%s: %w", key.Namespace, key.Name, err)
+	//	}
+	//}
 
 	return nil
 }
 
-func isKudoType(object runtime.Object) bool {
-	_, isOperator := object.(*v1beta1.OperatorVersion)
-	_, isOperatorVersion := object.(*v1beta1.Operator)
-	_, isInstance := object.(*v1beta1.Instance)
-	return isOperator || isOperatorVersion || isInstance
-}
+//func isKudoType(object runtime.Object) bool {
+//	_, isOperator := object.(*v1beta1.OperatorVersion)
+//	_, isOperatorVersion := object.(*v1beta1.Operator)
+//	_, isInstance := object.(*v1beta1.Instance)
+//	return isOperator || isOperatorVersion || isInstance
+//}
 
 func isHealthy(ro []runtime.Object) error {
 	for _, r := range ro {

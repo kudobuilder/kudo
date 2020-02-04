@@ -1,0 +1,5 @@
+apiVersion: kudo.dev/v1beta1
+parameters:
+  - name: SECOND_CONTAINER
+    description: If the second container should be started
+    default: true
