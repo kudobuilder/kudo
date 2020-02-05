@@ -44,7 +44,10 @@ func YamlToObject(yaml string) (objs []runtime.Object, err error) {
 			if err = decoder.Decode(unstructuredObj); err != nil {
 				return nil, fmt.Errorf("decoding chunk %q failed: %v", chunk, err)
 			}
-			objs = append(objs, unstructuredObj)
+			// Skip those chunks/documents which (after rendering) consist solely of whitespace or comments.
+			if len(unstructuredObj.UnstructuredContent()) != 0 {
+				objs = append(objs, unstructuredObj)
+			}
 		} else {
 			objs = append(objs, obj)
 		}

@@ -33,12 +33,12 @@ func (k *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) 
 	for _, v := range templates {
 		parsed, err := YamlToObject(v)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("parsing YAML failed: %v", err)
 		}
 		for _, obj := range parsed {
 			unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("converting to unstructured failed: %v", err)
 			}
 
 			if err = addLabels(unstructMap, metadata); err != nil {
@@ -55,13 +55,13 @@ func (k *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) 
 				return nil, fmt.Errorf("setting controller reference on parsed object: %v", err)
 			}
 
-			// this is pretty important, if we don't convert it back to the original type everything will be Unstructured
-			// we depend on types later on in the processing e.g. when evaluating health
-			// additionally, as we add annotations and labels to all possible paths, this step gets rid of anything
-			// that doesn't belong to the specific object type
+			// This is pretty important, if we don't convert it back to the original type everything will be Unstructured.
+			// We depend on types later on in the processing e.g. when evaluating health.
+			// Additionally, as we add annotations and labels to all possible paths, this step gets rid of anything
+			// that doesn't belong to the specific object type.
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(objUnstructured.UnstructuredContent(), obj)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("converting from unstructured failed: %v", err)
 			}
 			objs = append(objs, obj)
 		}
