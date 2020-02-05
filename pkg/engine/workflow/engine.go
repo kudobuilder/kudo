@@ -8,6 +8,7 @@ import (
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -63,7 +64,7 @@ func (ap *ActivePlan) taskByName(name string) (*v1beta1.Task, bool) {
 //
 // Furthermore, a transient ERROR during a step execution, means that the next step may be executed if the step strategy
 // is "parallel". In case of a fatal error, it is returned alongside with the new plan status and published on the event bus.
-func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.Enhancer, currentTime time.Time) (*v1beta1.PlanStatus, error) {
+func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, config *rest.Config, enh renderer.Enhancer, currentTime time.Time) (*v1beta1.PlanStatus, error) {
 	if pl.Status.IsTerminal() {
 		log.Printf("PlanExecution: %s/%s plan %s is terminal, nothing to do", em.InstanceNamespace, em.InstanceName, pl.Name)
 		return pl.PlanStatus, nil
@@ -164,6 +165,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 				// - 3.c build task context -
 				ctx := task.Context{
 					Client:     c,
+					Config:     config,
 					Enhancer:   enh,
 					Meta:       exm,
 					Templates:  pl.Templates,
