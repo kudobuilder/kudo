@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 // SubsetError is an error type used by IsSubset for tracking the path in the struct.
@@ -63,6 +64,19 @@ func IsSubset(expected, actual interface{}) error {
 		iter := reflect.ValueOf(expected).MapRange()
 
 		for iter.Next() {
+			key := iter.Key().String()
+			if strings.HasPrefix(key, "$REQUIRE_MISSING_") {
+				key = strings.TrimPrefix(key, "$REQUIRE_MISSING_")
+				actualValue := reflect.ValueOf(actual).MapIndex(reflect.ValueOf(key))
+				if actualValue.IsValid() {
+					return &SubsetError{
+						path:    []string{key},
+						message: fmt.Sprintf("key was expected to be missing but is present (%v)", actualValue),
+					}
+				}
+				continue
+			}
+
 			actualValue := reflect.ValueOf(actual).MapIndex(iter.Key())
 
 			if !actualValue.IsValid() {
