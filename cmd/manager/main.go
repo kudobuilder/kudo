@@ -115,6 +115,7 @@ func main() {
 	log.Print("Setting up instance controller")
 	err = (&instance.Reconciler{
 		Client:   mgr.GetClient(),
+		Config:   mgr.GetConfig(),
 		Recorder: mgr.GetEventRecorderFor("instance-controller"),
 		Scheme:   mgr.GetScheme(),
 	}).SetupWithManager(mgr)

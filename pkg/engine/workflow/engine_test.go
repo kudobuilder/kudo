@@ -606,7 +606,7 @@ func TestExecutePlan(t *testing.T) {
 
 	for _, tt := range tests {
 		testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
-		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, tt.enhancer, timeNow)
+		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, nil, tt.enhancer, timeNow)
 
 		if !tt.wantErr && err != nil {
 			t.Errorf("%s: Expecting no error but got one: %v", tt.name, err)
