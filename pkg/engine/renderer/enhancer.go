@@ -3,10 +3,10 @@ package renderer
 import (
 	"fmt"
 	"log"
-
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"strings"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -31,50 +31,37 @@ func (k *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) 
 	objs := make([]runtime.Object, 0, len(templates))
 
 	for _, v := range templates {
-		parsed, err := YamlToObject(string(v))
+		parsed, err := YamlToObject(v)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("parsing YAML failed: %v", err)
 		}
 		for _, obj := range parsed {
 			unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("converting to unstructured failed: %v", err)
 			}
+
+			if err = addLabels(unstructMap, metadata); err != nil {
+				return nil, fmt.Errorf("adding labels on parsed object: %v", err)
+			}
+			if err = addAnnotations(unstructMap, metadata); err != nil {
+				return nil, fmt.Errorf("adding annotations on parsed object: %v", err)
+			}
+
 			objUnstructured := &unstructured.Unstructured{Object: unstructMap}
 
-			labels := objUnstructured.GetLabels()
-			if labels == nil {
-				labels = make(map[string]string)
-			}
-			annotations := objUnstructured.GetAnnotations()
-			if annotations == nil {
-				annotations = make(map[string]string)
-			}
-
-			labels[kudo.HeritageLabel] = "kudo"
-			labels[kudo.OperatorLabel] = metadata.OperatorName
-			labels[kudo.InstanceLabel] = metadata.InstanceName
-
-			annotations[kudo.PlanAnnotation] = metadata.PlanName
-			annotations[kudo.PhaseAnnotation] = metadata.PhaseName
-			annotations[kudo.StepAnnotation] = metadata.StepName
-			annotations[kudo.OperatorVersionAnnotation] = metadata.OperatorVersion
-			annotations[kudo.PlanUIDAnnotation] = string(metadata.PlanUID)
-
 			objUnstructured.SetNamespace(metadata.InstanceNamespace)
-			objUnstructured.SetLabels(labels)
-			objUnstructured.SetAnnotations(annotations)
-
-			err = setControllerReference(metadata.ResourcesOwner, objUnstructured, k.Scheme)
-			if err != nil {
+			if err = setControllerReference(metadata.ResourcesOwner, objUnstructured, k.Scheme); err != nil {
 				return nil, fmt.Errorf("setting controller reference on parsed object: %v", err)
 			}
 
-			// this is pretty important, if we don't convert it back to the original type everything will be Unstructured
-			// we depend on types later on in the processing e.g. when evaluating health
+			// This is pretty important, if we don't convert it back to the original type everything will be Unstructured.
+			// We depend on types later on in the processing e.g. when evaluating health.
+			// Additionally, as we add annotations and labels to all possible paths, this step gets rid of anything
+			// that doesn't belong to the specific object type.
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(objUnstructured.UnstructuredContent(), obj)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("converting from unstructured failed: %v", err)
 			}
 			objs = append(objs, obj)
 		}
@@ -83,7 +70,107 @@ func (k *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) 
 	return objs, nil
 }
 
-func setControllerReference(owner v1.Object, object *unstructured.Unstructured, scheme *runtime.Scheme) error {
+func addLabels(obj map[string]interface{}, metadata Metadata) error {
+	// List of paths for labels from here:
+	// https://github.com/kubernetes-sigs/kustomize/blob/master/api/konfig/builtinpluginconsts/commonlabels.go
+	labelPaths := [][]string{
+		{"metadata", "labels"},
+		{"spec", "template", "metadata", "labels"},
+		{"spec", "volumeClaimTemplates[]", "metadata", "labels"},
+		{"spec", "jobTemplate", "metadata", "labels"},
+		{"spec", "jobTemplate", "spec", "template", "metadata", "labels"},
+	}
+
+	fieldsToAdd := map[string]string{
+		kudo.HeritageLabel: "kudo",
+		kudo.OperatorLabel: metadata.OperatorName,
+		kudo.InstanceLabel: metadata.InstanceName,
+	}
+
+	for _, path := range labelPaths {
+		if err := addMapValues(obj, fieldsToAdd, path...); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func addAnnotations(obj map[string]interface{}, metadata Metadata) error {
+	// List of paths for annotations from here:
+	// https://github.com/kubernetes-sigs/kustomize/blob/master/api/konfig/builtinpluginconsts/commonannotations.go
+	annotationPaths := [][]string{
+		{"metadata", "annotations"},
+		{"spec", "template", "metadata", "annotations"},
+		{"spec", "jobTemplate", "metadata", "annotations"},
+		{"spec", "jobTemplate", "spec", "template", "metadata", "annotations"},
+	}
+
+	fieldsToAdd := map[string]string{
+		kudo.PlanAnnotation:            metadata.PlanName,
+		kudo.PhaseAnnotation:           metadata.PhaseName,
+		kudo.StepAnnotation:            metadata.StepName,
+		kudo.OperatorVersionAnnotation: metadata.OperatorVersion,
+		kudo.PlanUIDAnnotation:         string(metadata.PlanUID),
+	}
+
+	for _, path := range annotationPaths {
+		if err := addMapValues(obj, fieldsToAdd, path...); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func addMapValues(obj map[string]interface{}, fieldsToAdd map[string]string, path ...string) error {
+	for i, p := range path {
+		// If we have an element with a slice in the path, apply the fields to all elements of the
+		// slice with the remaining path
+		if strings.HasSuffix(p, "[]") {
+			sliceField := strings.TrimSuffix(p, "[]")
+
+			subPath := append(path[0:i], sliceField)
+			remainingPath := path[i+1:]
+
+			unstructuredSlice, found, err := unstructured.NestedSlice(obj, subPath...)
+			if !found || err != nil {
+				// We don't return err here, as it just means that path is invalid for this object.
+				// This is ok and does not indicate an error
+				return nil
+			}
+			for _, s := range unstructuredSlice {
+				if sliceMap, ok := s.(map[string]interface{}); ok {
+					if err = addMapValues(sliceMap, fieldsToAdd, remainingPath...); err != nil {
+						return err
+					}
+				}
+			}
+			if err = unstructured.SetNestedSlice(obj, unstructuredSlice, subPath...); err != nil {
+				return err
+			}
+
+			return nil
+		}
+	}
+
+	// Merge added fields to map at specified path
+	stringMap, _, err := unstructured.NestedStringMap(obj, path...)
+	if err != nil {
+		// We don't return err here, as it just means that path is invalid for this object.
+		// This is ok and does not indicate an error
+		return nil
+	}
+	if stringMap == nil {
+		stringMap = make(map[string]string)
+	}
+	for k, v := range fieldsToAdd {
+		stringMap[k] = v
+	}
+	return unstructured.SetNestedStringMap(obj, stringMap, path...)
+}
+
+func setControllerReference(owner v1.Object, object v1.Object, scheme *runtime.Scheme) error {
 	ownerNs := owner.GetNamespace()
 	if ownerNs != "" {
 		objNs := object.GetNamespace()

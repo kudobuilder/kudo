@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	v1 "k8s.io/api/core/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -64,6 +65,11 @@ func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
 		key, _ := client.ObjectKeyFromObject(r)
 		existing := r.DeepCopyObject()
 
+		// if CRD we need to clear then namespace from the copy
+		if isClusterResource(r) {
+			key.Namespace = ""
+		}
+
 		err := c.Get(context.TODO(), key, existing)
 
 		switch {
@@ -91,6 +97,20 @@ func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
 	}
 
 	return applied, nil
+}
+
+func isClusterResource(r runtime.Object) bool {
+	// this misses a number of cluster scoped resources
+	// this is a temporary fix.  The correct solution will use the DiscoveryInterface
+	switch r.(type) {
+	case *apiextv1beta1.CustomResourceDefinition:
+		return true
+	case *v1.Namespace:
+		return true
+	case *v1.PersistentVolume:
+		return true
+	}
+	return false
 }
 
 // patch calls update method on kubernetes client to make sure the current resource reflects what is on server

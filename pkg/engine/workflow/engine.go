@@ -8,6 +8,7 @@ import (
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -63,7 +64,7 @@ func (ap *ActivePlan) taskByName(name string) (*v1beta1.Task, bool) {
 //
 // Furthermore, a transient ERROR during a step execution, means that the next step may be executed if the step strategy
 // is "parallel". In case of a fatal error, it is returned alongside with the new plan status and published on the event bus.
-func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.Enhancer, currentTime time.Time) (*v1beta1.PlanStatus, error) {
+func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, config *rest.Config, enh renderer.Enhancer, currentTime time.Time) (*v1beta1.PlanStatus, error) {
 	if pl.Status.IsTerminal() {
 		log.Printf("PlanExecution: %s/%s plan %s is terminal, nothing to do", em.InstanceNamespace, em.InstanceName, pl.Name)
 		return pl.PlanStatus, nil
@@ -75,7 +76,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 	phasesLeft := len(pl.Spec.Phases)
 	// --- 1. Iterate over plan phases ---
 	for _, ph := range pl.Spec.Phases {
-		phaseStatus := getPhaseStatus(ph.Name, planStatus)
+		phaseStatus := v1beta1.GetPhaseStatus(ph.Name, planStatus)
 		if phaseStatus == nil {
 			err := fmt.Errorf("%s/%s %w missing phase status: %s.%s", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name)
 
@@ -87,10 +88,10 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 		}
 
 		// Check current phase status: skip if finished, proceed if in progress, break out if a fatal error has occurred
-		if isFinished(phaseStatus.Status) {
+		if phaseStatus.Status.IsFinished() {
 			phasesLeft = phasesLeft - 1
 			continue
-		} else if isInProgress(phaseStatus.Status) {
+		} else if phaseStatus.Status.IsRunning() {
 			phaseStatus.Set(v1beta1.ExecutionInProgress)
 		} else {
 			break
@@ -99,7 +100,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 		stepsLeft := stepNamesToSet(ph.Steps)
 		// --- 2. Iterate over phase steps ---
 		for _, st := range ph.Steps {
-			stepStatus := getStepStatus(st.Name, phaseStatus)
+			stepStatus := v1beta1.GetStepStatus(st.Name, phaseStatus)
 			if stepStatus == nil {
 				err := fmt.Errorf("%s/%s %w missing step status: %s.%s.%s", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name, st.Name)
 
@@ -112,10 +113,10 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 			}
 
 			// Check current phase status: skip if finished, proceed if in progress, break out if a fatal error has occurred
-			if isFinished(stepStatus.Status) {
+			if stepStatus.Status.IsFinished() {
 				delete(stepsLeft, stepStatus.Name)
 				continue
-			} else if isInProgress(stepStatus.Status) {
+			} else if stepStatus.Status.IsRunning() {
 				stepStatus.Set(v1beta1.ExecutionInProgress)
 			} else {
 				// we are not in progress and not finished. An unexpected error occurred so that we can not proceed to the next phase
@@ -164,6 +165,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 				// - 3.c build task context -
 				ctx := task.Context{
 					Client:     c,
+					Config:     config,
 					Enhancer:   enh,
 					Meta:       exm,
 					Templates:  pl.Templates,
@@ -223,7 +225,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 	if phasesLeft == 0 {
 		log.Printf("PlanExecution: %s/%s all phases of the plan %s are ready", em.InstanceNamespace, em.InstanceName, pl.Name)
 		planStatus.Set(v1beta1.ExecutionComplete)
-		planStatus.LastFinishedRun = v1.Time{Time: currentTime}
+		planStatus.LastFinishedRun = &v1.Time{Time: currentTime}
 	}
 
 	return planStatus, nil
@@ -257,32 +259,4 @@ func stepNamesToSet(steps []v1beta1.Step) map[string]bool {
 		set[s.Name] = true
 	}
 	return set
-}
-
-func getStepStatus(stepName string, phaseStatus *v1beta1.PhaseStatus) *v1beta1.StepStatus {
-	for i, p := range phaseStatus.Steps {
-		if p.Name == stepName {
-			return &phaseStatus.Steps[i]
-		}
-	}
-
-	return nil
-}
-
-func getPhaseStatus(phaseName string, planStatus *v1beta1.PlanStatus) *v1beta1.PhaseStatus {
-	for i, p := range planStatus.Phases {
-		if p.Name == phaseName {
-			return &planStatus.Phases[i]
-		}
-	}
-
-	return nil
-}
-
-func isFinished(state v1beta1.ExecutionStatus) bool {
-	return state == v1beta1.ExecutionComplete
-}
-
-func isInProgress(state v1beta1.ExecutionStatus) bool {
-	return state == v1beta1.ExecutionInProgress || state == v1beta1.ExecutionPending || state == v1beta1.ErrorStatus
 }

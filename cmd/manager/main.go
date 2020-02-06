@@ -38,6 +38,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
 	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
 	"github.com/kudobuilder/kudo/pkg/version"
+	kudohook "github.com/kudobuilder/kudo/pkg/webhook"
 )
 
 // parseSyncPeriod determines the minimum frequency at which watched resources are reconciled.
@@ -114,6 +115,7 @@ func main() {
 	log.Print("Setting up instance controller")
 	err = (&instance.Reconciler{
 		Client:   mgr.GetClient(),
+		Config:   mgr.GetConfig(),
 		Recorder: mgr.GetEventRecorderFor("instance-controller"),
 		Scheme:   mgr.GetScheme(),
 	}).SetupWithManager(mgr)
@@ -125,7 +127,7 @@ func main() {
 	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) == "true" {
 		log.Printf("Setting up webhooks")
 
-		if err := registerWebhook("/validate", &v1beta1.Instance{}, &webhook.Admission{Handler: &v1beta1.InstanceValidator{}}, mgr); err != nil {
+		if err := registerWebhook("/validate", &v1beta1.Instance{}, &webhook.Admission{Handler: &kudohook.InstanceAdmission{}}, mgr); err != nil {
 			log.Printf("unable to create instance validation webhook: %v", err)
 			os.Exit(1)
 		}
@@ -143,7 +145,7 @@ func main() {
 
 // registerWebhook method registers passed webhook using a give prefix (e.g. "/validate") and runtime object
 // (e.g. v1beta1.Instance) to generate a webhook path e.g. "/validate-kudo-dev-v1beta1-instances". Webhook
-// has to implement http.Handler interface (see v1beta1.InstanceValidator for an example)
+// has to implement http.Handler interface (see v1beta1.InstanceAdmission for an example)
 func registerWebhook(prefix string, obj runtime.Object, hook http.Handler, mgr manager.Manager) error {
 	path, err := webhookPath(prefix, obj, mgr)
 	if err != nil {

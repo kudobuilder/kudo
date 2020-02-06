@@ -107,7 +107,7 @@ func TestExecutePlan(t *testing.T) {
 			metadata: meta,
 			expectedStatus: &v1beta1.PlanStatus{
 				Status:          v1beta1.ExecutionComplete,
-				LastFinishedRun: v1.Time{Time: timeNow},
+				LastFinishedRun: &v1.Time{Time: timeNow},
 				Name:            "test",
 				Phases:          []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionComplete, Name: "step"}}}},
 			},
@@ -140,7 +140,7 @@ func TestExecutePlan(t *testing.T) {
 			metadata: meta,
 			expectedStatus: &v1beta1.PlanStatus{
 				Status:          v1beta1.ExecutionComplete,
-				LastFinishedRun: v1.Time{Time: timeNow},
+				LastFinishedRun: &v1.Time{Time: timeNow},
 				Name:            "test",
 				Phases:          []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionComplete, Name: "step"}}}},
 			},
@@ -175,7 +175,8 @@ func TestExecutePlan(t *testing.T) {
 			expectedStatus: &v1beta1.PlanStatus{
 				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ErrorStatus, Name: "step", Message: "A transient error when executing task test.phase.step.task. Will retry. dummy error"}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ErrorStatus, Name: "step",
+					Message: "A transient error when executing task test.phase.step.task. Will retry. dummy error"}}}},
 			},
 			enhancer: testEnhancer,
 		},
@@ -207,7 +208,8 @@ func TestExecutePlan(t *testing.T) {
 			expectedStatus: &v1beta1.PlanStatus{
 				Status: v1beta1.ExecutionFatalError,
 				Name:   "test",
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Message: "Error during execution: fatal error: default/test-instance failed in test.phase.step.task: dummy error", Name: "step"}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError,
+					Message: "Error during execution: fatal error: default/test-instance failed in test.phase.step.task: dummy error", Name: "step"}}}},
 			},
 			wantErr:  true,
 			enhancer: testEnhancer,
@@ -240,7 +242,8 @@ func TestExecutePlan(t *testing.T) {
 			expectedStatus: &v1beta1.PlanStatus{
 				Status: v1beta1.ExecutionFatalError,
 				Name:   "test",
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Message: "default/test-instance fatal error:  missing task test.phase.step.fake-task", Name: "step"}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError,
+					Message: "default/test-instance fatal error:  missing task test.phase.step.fake-task", Name: "step"}}}},
 			},
 			wantErr:  true,
 			enhancer: testEnhancer,
@@ -271,7 +274,8 @@ func TestExecutePlan(t *testing.T) {
 			expectedStatus: &v1beta1.PlanStatus{
 				Status: v1beta1.ExecutionFatalError,
 				Name:   "test",
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Name: "step", Message: "default/test-instance fatal error:  failed to build task test.phase.step.task: unknown task kind Unknown"}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Name: "step",
+					Message: "default/test-instance fatal error:  failed to build task test.phase.step.task: unknown task kind Unknown"}}}},
 			},
 			wantErr:  true,
 			enhancer: testEnhancer,
@@ -555,7 +559,8 @@ func TestExecutePlan(t *testing.T) {
 				Status: v1beta1.ExecutionFatalError,
 				Name:   "test",
 				Phases: []v1beta1.PhaseStatus{
-					{Name: "phaseOne", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionFatalError, Message: "Error during execution: fatal error: default/test-instance failed in test.phaseOne.step.taskOne: dummy error"}}},
+					{Name: "phaseOne", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionFatalError,
+						Message: "Error during execution: fatal error: default/test-instance failed in test.phaseOne.step.taskOne: dummy error"}}},
 					{Name: "phaseTwo", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
 				},
 			},
@@ -592,7 +597,8 @@ func TestExecutePlan(t *testing.T) {
 			expectedStatus: &v1beta1.PlanStatus{
 				Status: v1beta1.ExecutionFatalError,
 				Name:   "test",
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Name: "step", Message: "Error during execution: fatal error: default/test-instance failed in test.phase.step.task: dummy error"}}}}},
+				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Name: "step",
+					Message: "Error during execution: fatal error: default/test-instance failed in test.phase.step.task: dummy error"}}}}},
 			wantErr:  true,
 			enhancer: testEnhancer,
 		},
@@ -600,7 +606,7 @@ func TestExecutePlan(t *testing.T) {
 
 	for _, tt := range tests {
 		testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
-		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, tt.enhancer, timeNow)
+		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, nil, tt.enhancer, timeNow)
 
 		if !tt.wantErr && err != nil {
 			t.Errorf("%s: Expecting no error but got one: %v", tt.name, err)

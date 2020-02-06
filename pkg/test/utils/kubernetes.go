@@ -349,11 +349,12 @@ func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 	kind := in.GetObjectKind().GroupVersionKind().Kind
 	group := in.GetObjectKind().GroupVersionKind().Group
 
-	if group == "kudo.dev" && kind == "TestStep" {
+	kudoGroup := "kudo.dev"
+	if group == kudoGroup && kind == "TestStep" {
 		converted = &harness.TestStep{}
-	} else if group == "kudo.dev" && kind == "TestAssert" {
+	} else if group == kudoGroup && kind == "TestAssert" {
 		converted = &harness.TestAssert{}
-	} else if group == "kudo.dev" && kind == "TestSuite" {
+	} else if group == kudoGroup && kind == "TestSuite" {
 		converted = &harness.TestSuite{}
 	} else {
 		return in, nil

@@ -59,7 +59,7 @@ func planHistory(options *Options, settings *env.Settings) error {
 	for _, p := range instance.Status.PlanStatus {
 		msg := "never run" // this is for the cases when status was not yet populated
 
-		if !p.LastFinishedRun.IsZero() { // plan already finished
+		if p.LastFinishedRun != nil && !p.LastFinishedRun.IsZero() { // plan already finished
 			t := p.LastFinishedRun.Format(timeLayout)
 			msg = fmt.Sprintf("last finished run at %s (%s)", t, string(p.Status))
 		} else if p.Status.IsRunning() {
