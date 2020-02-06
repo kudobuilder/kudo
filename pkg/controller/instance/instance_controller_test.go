@@ -127,6 +127,7 @@ func startTestManager(t *testing.T) (chan struct{}, *sync.WaitGroup, client.Clie
 	assert.Nil(t, err, "Error when creating manager")
 	err = (&Reconciler{
 		Client:   mgr.GetClient(),
+		Config:   mgr.GetConfig(),
 		Recorder: mgr.GetEventRecorderFor("instance-controller"),
 		Scheme:   mgr.GetScheme(),
 	}).SetupWithManager(mgr)
