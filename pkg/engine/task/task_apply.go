@@ -26,6 +26,10 @@ type ApplyTask struct {
 	Resources []string
 }
 
+var (
+	metadataAccessor = meta.NewAccessor()
+)
+
 // Run method for the ApplyTask. Given the task context, it renders the templates using context parameters
 // creates runtime objects and enhances them, and applies them using the controller client. Finally,
 // resources are checked for health.
@@ -60,20 +64,23 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 }
 
 func addLastAppliedConfigAnnotation(r runtime.Object) error {
-	json, err := json.Marshal(r)
+	// Serialize object
+	rSer, err := json.Marshal(r)
 	if err != nil {
 		return fmt.Errorf("failed to marshal obj: %v", err)
 	}
-	annots, err := metadataAccessor.Annotations(r)
+
+	annotations, err := metadataAccessor.Annotations(r)
 	if err != nil {
 		return fmt.Errorf("failed to access annotations: %v", err)
 	}
-	if annots == nil {
-		annots = map[string]string{}
+	if annotations == nil {
+		annotations = map[string]string{}
 	}
 
-	annots[v1.LastAppliedConfigAnnotation] = string(json)
-	if err := metadataAccessor.SetAnnotations(r, annots); err != nil {
+	// Set serialized object as an annotation on itself
+	annotations[v1.LastAppliedConfigAnnotation] = string(rSer)
+	if err := metadataAccessor.SetAnnotations(r, annotations); err != nil {
 		return err
 	}
 
@@ -103,11 +110,11 @@ func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
 			}
 
 			err = c.Create(context.TODO(), r)
-			//// c.Create always overrides the input, in this case, the object that had previously set GVK loses it (at least for integration tests)
-			//// and this was causing problems in health module
-			//// with error failed to convert *unstructured.Unstructured to *v1.Deployment: Object 'Kind' is missing in 'unstructured object has no kind'
-			//// so re-setting the GVK here to be sure
-			//// https://github.com/kubernetes/kubernetes/issues/80609
+			// c.Create always overrides the input, in this case, the object that had previously set GVK loses it (at least for integration tests)
+			// and this was causing problems in health module
+			// with error failed to convert *unstructured.Unstructured to *v1.Deployment: Object 'Kind' is missing in 'unstructured object has no kind'
+			// so re-setting the GVK here to be sure
+			// https://github.com/kubernetes/kubernetes/issues/80609
 			r.GetObjectKind().SetGroupVersionKind(existing.GetObjectKind().GroupVersionKind())
 			if err != nil {
 				return nil, err
@@ -142,8 +149,6 @@ func isClusterResource(r runtime.Object) bool {
 	}
 	return false
 }
-
-var metadataAccessor = meta.NewAccessor()
 
 func doStrategicThreewayMergePatch(r runtime.Object, c client.Client) error {
 	key, _ := client.ObjectKeyFromObject(r)
