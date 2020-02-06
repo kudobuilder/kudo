@@ -134,7 +134,7 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 
 	// 12. - Delete pipe pod -
 	log.Printf("PipeTask: %s/%s deleting pipe pod", ctx.Meta.InstanceNamespace, ctx.Meta.InstanceName)
-	err = delete(podObj, ctx.Client)
+	err = deleteObj(podObj, ctx.Client)
 	if err != nil {
 		return false, err
 	}

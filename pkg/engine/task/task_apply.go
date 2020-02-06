@@ -16,11 +16,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/jsonmergepatch"
 	"k8s.io/apimachinery/pkg/util/mergepatch"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
-	"k8s.io/kubectl/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/health"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 // ApplyTask will apply a set of given resources to the cluster. See Run method for more details.
@@ -82,7 +82,7 @@ func addLastAppliedConfigAnnotation(r runtime.Object) error {
 	}
 
 	// Set serialized object as an annotation on itself
-	annotations[v1.LastAppliedConfigAnnotation] = string(rSer)
+	annotations[kudo.LastAppliedConfigAnnotation] = string(rSer)
 	if err := metadataAccessor.SetAnnotations(r, annotations); err != nil {
 		return err
 	}
@@ -166,21 +166,39 @@ func patch(r runtime.Object, c client.Client) error {
 	}
 
 	// Get previous configuration from currentObjs annotation
-	original, err := util.GetOriginalConfiguration(currentObj)
+	original, err := getOriginalConfiguration(currentObj)
 	if err != nil {
 		return fmt.Errorf("failed to get original configuration %v", err)
 	}
 
 	// Get new (modified) configuration
-	modified, err := util.GetModifiedConfiguration(r, true, unstructured.UnstructuredJSONScheme)
+	modified, err := getModifiedConfiguration(r, true, unstructured.UnstructuredJSONScheme)
 	if err != nil {
 		return fmt.Errorf("failed to get modified config %v", err)
 	}
 
+	// Create the actual patch
+	var patchData []byte
+	var patchType types.PatchType
 	if useJSONMerge(r) {
-		return jsonThreeWayMergePatch(r, original, modified, current, c)
+		patchType = types.MergePatchType
+		patchData, err = jsonThreeWayMergePatch(original, modified, current)
+	} else {
+		patchType = types.StrategicMergePatchType
+		patchData, err = strategicThreewayMergePatch(r, original, modified, current)
 	}
-	return strategicThreewayMergePatch(r, original, modified, current, c)
+
+	if err != nil {
+		// TODO: We could try to delete/create here, but that would be different behavior from before
+		return fmt.Errorf("failed to create patch: %v", err)
+	}
+
+	// Execute the patch
+	err = c.Patch(context.TODO(), r, client.ConstantPatch(patchType, patchData))
+	if err != nil {
+		return fmt.Errorf("failed to execute patch: %v", err)
+	}
+	return nil
 }
 
 func useJSONMerge(newObj runtime.Object) bool {
@@ -189,7 +207,7 @@ func useJSONMerge(newObj runtime.Object) bool {
 	return isUnstructured || isCRD || isKudoType(newObj)
 }
 
-func jsonThreeWayMergePatch(r runtime.Object, original, modified, current []byte, c client.Client) error {
+func jsonThreeWayMergePatch(original, modified, current []byte) ([]byte, error) {
 	preconditions := []mergepatch.PreconditionFunc{
 		mergepatch.RequireKeyUnchanged("apiVersion"),
 		mergepatch.RequireKeyUnchanged("kind"),
@@ -199,35 +217,27 @@ func jsonThreeWayMergePatch(r runtime.Object, original, modified, current []byte
 	patchData, err := jsonmergepatch.CreateThreeWayJSONMergePatch(original, modified, current, preconditions...)
 	if err != nil {
 		if mergepatch.IsPreconditionFailed(err) {
-			return fmt.Errorf("%s", "At least one of apiVersion, kind and name was changed")
+			return nil, fmt.Errorf("%s", "At least one of apiVersion, kind and name was changed")
 		}
-		return fmt.Errorf(" failed to create json merge patch: %v", err)
+		return nil, fmt.Errorf(" failed to create json merge patch: %v", err)
 	}
 
-	// Execute the patch
-	// TODO: If we get an error here, fall back to delete/create?
-	return c.Patch(context.TODO(), r, client.ConstantPatch(types.MergePatchType, patchData))
-
+	return patchData, nil
 }
 
-func strategicThreewayMergePatch(r runtime.Object, original, modified, current []byte, c client.Client) error {
+func strategicThreewayMergePatch(r runtime.Object, original, modified, current []byte) ([]byte, error) {
 	// Create the patch
 	patchMeta, err := strategicpatch.NewPatchMetaFromStruct(r)
 	if err != nil {
-		return fmt.Errorf("failed to create patch meta %v", err)
+		return nil, fmt.Errorf("failed to create patch meta %v", err)
 	}
 
 	patchData, err := strategicpatch.CreateThreeWayMergePatch(original, modified, current, patchMeta, true)
 	if err != nil {
-		// TODO: If we have conflicts when creating the patch, do a delete/create
-		return fmt.Errorf("failed to create patch data %v", err)
+		return nil, fmt.Errorf("failed to create patch data %v", err)
 	}
 
-	//fmt.Printf("Execute Strategic Patch: %s", string(patchData))
-
-	// Execute the patch
-	// TODO: If we get an error here, fall back to delete/create?
-	return c.Patch(context.TODO(), r, client.ConstantPatch(types.StrategicMergePatchType, patchData))
+	return patchData, nil
 }
 
 func isKudoType(object runtime.Object) bool {
@@ -246,4 +256,78 @@ func isHealthy(ro []runtime.Object) error {
 		}
 	}
 	return nil
+}
+
+// copy from k8s.io/kubectl@v0.16.6/pkg/util/apply.go, but with different annotation
+// GetOriginalConfiguration retrieves the original configuration of the object
+// from the annotation, or nil if no annotation was found.
+func getOriginalConfiguration(obj runtime.Object) ([]byte, error) {
+	annots, err := metadataAccessor.Annotations(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	if annots == nil {
+		return nil, nil
+	}
+
+	original, ok := annots[kudo.LastAppliedConfigAnnotation]
+	if !ok {
+		return nil, nil
+	}
+
+	return []byte(original), nil
+}
+
+// copy from k8s.io/kubectl@v0.16.6/pkg/util/apply.go, but with different annotation
+// GetModifiedConfiguration retrieves the modified configuration of the object.
+// If annotate is true, it embeds the result as an annotation in the modified
+// configuration. If an object was read from the command input, it will use that
+// version of the object. Otherwise, it will use the version from the server.
+func getModifiedConfiguration(obj runtime.Object, annotate bool, codec runtime.Encoder) ([]byte, error) {
+	// First serialize the object without the annotation to prevent recursion,
+	// then add that serialization to it as the annotation and serialize it again.
+	var modified []byte
+
+	// Otherwise, use the server side version of the object.
+	// Get the current annotations from the object.
+	annots, err := metadataAccessor.Annotations(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	if annots == nil {
+		annots = map[string]string{}
+	}
+
+	original := annots[kudo.LastAppliedConfigAnnotation]
+	delete(annots, kudo.LastAppliedConfigAnnotation)
+	if err := metadataAccessor.SetAnnotations(obj, annots); err != nil {
+		return nil, err
+	}
+
+	modified, err = runtime.Encode(codec, obj)
+	if err != nil {
+		return nil, err
+	}
+
+	if annotate {
+		annots[kudo.LastAppliedConfigAnnotation] = string(modified)
+		if err := metadataAccessor.SetAnnotations(obj, annots); err != nil {
+			return nil, err
+		}
+
+		modified, err = runtime.Encode(codec, obj)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Restore the object to its original condition.
+	annots[kudo.LastAppliedConfigAnnotation] = original
+	if err := metadataAccessor.SetAnnotations(obj, annots); err != nil {
+		return nil, err
+	}
+
+	return modified, nil
 }
