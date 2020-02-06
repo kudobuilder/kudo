@@ -2,18 +2,21 @@ package task
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 
 	v1 "k8s.io/api/core/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	apijson "k8s.io/apimachinery/pkg/util/json"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
+	"k8s.io/kubectl/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/health"
 )
 
@@ -56,6 +59,27 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 	return true, nil
 }
 
+func addLastAppliedConfigAnnotation(r runtime.Object) error {
+	json, err := json.Marshal(r)
+	if err != nil {
+		return fmt.Errorf("failed to marshal obj: %v", err)
+	}
+	annots, err := metadataAccessor.Annotations(r)
+	if err != nil {
+		return fmt.Errorf("failed to access annotations: %v", err)
+	}
+	if annots == nil {
+		annots = map[string]string{}
+	}
+
+	annots[v1.LastAppliedConfigAnnotation] = string(json)
+	if err := metadataAccessor.SetAnnotations(r, annots); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // apply method takes a slice of k8s object and applies them using passed client. If an object
 // doesn't exist it will be created. An already existing object will be patched.
 func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
@@ -74,12 +98,16 @@ func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
 
 		switch {
 		case apierrors.IsNotFound(err): // create resource if it doesn't exist
+			if err := addLastAppliedConfigAnnotation(r); err != nil {
+				return nil, fmt.Errorf("failed to add last applied config annotation: %v", err)
+			}
+
 			err = c.Create(context.TODO(), r)
-			// c.Create always overrides the input, in this case, the object that had previously set GVK loses it (at least for integration tests)
-			// and this was causing problems in health module
-			// with error failed to convert *unstructured.Unstructured to *v1.Deployment: Object 'Kind' is missing in 'unstructured object has no kind'
-			// so re-setting the GVK here to be sure
-			// https://github.com/kubernetes/kubernetes/issues/80609
+			//// c.Create always overrides the input, in this case, the object that had previously set GVK loses it (at least for integration tests)
+			//// and this was causing problems in health module
+			//// with error failed to convert *unstructured.Unstructured to *v1.Deployment: Object 'Kind' is missing in 'unstructured object has no kind'
+			//// so re-setting the GVK here to be sure
+			//// https://github.com/kubernetes/kubernetes/issues/80609
 			r.GetObjectKind().SetGroupVersionKind(existing.GetObjectKind().GroupVersionKind())
 			if err != nil {
 				return nil, err
@@ -88,9 +116,11 @@ func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
 		case err != nil: // raise any error other than StatusReasonNotFound
 			return nil, err
 		default: // update existing resource
-			err := patch(r, c)
+			//err := patch(r, c)
+			err := doStrategicThreewayMergePatch(r, c)
+			//err := cmdApply(r, c, scheme, restMapper, config)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to real patch: %v", err)
 			}
 			applied = append(applied, r)
 		}
@@ -113,139 +143,59 @@ func isClusterResource(r runtime.Object) bool {
 	return false
 }
 
-// patch calls update method on kubernetes client to make sure the current resource reflects what is on server
-//
-// an obvious optimization here would be to not patch when objects are the same, however that is not easy
-// kubernetes native objects might be a problem because we cannot just compare the spec as the spec might have extra fields
-// and those extra fields are set by some kubernetes component
-// because of that for now we just try to apply the patch every time
-// it mutates the object passed in to be consistent with the kubernetes client behavior
-func patch(newObj runtime.Object, c client.Client) error {
-	key, _ := client.ObjectKeyFromObject(newObj)
-	_, isUnstructured := newObj.(runtime.Unstructured)
-	_, isCRD := newObj.(*apiextv1beta1.CustomResourceDefinition)
+var metadataAccessor = meta.NewAccessor()
 
-	if isUnstructured || isCRD || isKudoType(newObj) {
-		newObjJSON, _ := apijson.Marshal(newObj)
+func doStrategicThreewayMergePatch(r runtime.Object, c client.Client) error {
+	key, _ := client.ObjectKeyFromObject(r)
 
-		// strategic merge patch is not supported for these types, falling back to merge patch
-		err := c.Patch(context.TODO(), newObj, client.ConstantPatch(types.MergePatchType, newObjJSON))
-		if err != nil {
-			return fmt.Errorf("failed to apply merge patch to object %s/%s: %w", key.Namespace, key.Name, err)
-		}
-	} else {
-		return patchNormalMerge(newObj, c)
-		//return patchStrategicMerge(newObj, c)
+	// Fetch current configuration from cluster
+	currentObj := r.DeepCopyObject()
+	err := c.Get(context.TODO(), key, currentObj)
+	if err != nil {
+		return fmt.Errorf("failed to get current %v", err)
+	}
+	current, err := json.Marshal(currentObj)
+	if err != nil {
+		return fmt.Errorf("failed to marshal current %v", err)
 	}
 
-	return nil
+	// Get previous configuration from currentObjs annotation
+	original, err := util.GetOriginalConfiguration(currentObj)
+	if err != nil {
+		return fmt.Errorf("failed to get original configuration %v", err)
+	}
+
+	// Get new (modified) configuration
+	modified, err := util.GetModifiedConfiguration(r, true, unstructured.UnstructuredJSONScheme)
+	if err != nil {
+		return fmt.Errorf("failed to get modified config %v", err)
+	}
+
+	// Create the three way merge patch
+	patchMeta, err := strategicpatch.NewPatchMetaFromStruct(r)
+	if err != nil {
+		return fmt.Errorf("failed to create patch meta %v", err)
+	}
+
+	patchData, err := strategicpatch.CreateThreeWayMergePatch(original, modified, current, patchMeta, true)
+	if err != nil {
+		// TODO: If we have conflicts when creating the patch, do a delete/create
+		return fmt.Errorf("failed to create patch data %v", err)
+	}
+
+	//fmt.Printf("Execute Strategic Patch: %s", string(patchData))
+
+	// Execute the patch
+	// TODO: If we get an error here, fall back to delete/create?
+	return c.Patch(context.TODO(), r, client.ConstantPatch(types.StrategicMergePatchType, patchData))
 }
 
-func patchNormalMerge(newObj runtime.Object, c client.Client) error {
-	newObjJSON, _ := apijson.Marshal(newObj)
-
-	// strategic merge patch is not supported for these types, falling back to merge patch
-	return c.Patch(context.TODO(), newObj, client.ConstantPatch(types.MergePatchType, newObjJSON))
-}
-
-//func patchStrategicMerge(newObj runtime.Object, c client.Client) error {
-//	key, _ := client.ObjectKeyFromObject(newObj)
-//
-//	// For the strategic merge patch we want to add the "$path: replace" directive so that
-//	// Lists get replaced and not merged.
-//	us, err := runtime.DefaultUnstructuredConverter.ToUnstructured(newObj)
-//	if err != nil {
-//		return fmt.Errorf("failed to convert object to unstructured %s/%s: %w", key.Namespace, key.Name, err)
-//	}
-//
-//	//us = markAllListsAsReplace(us).(map[string]interface{})
-//	//us = addPatchReplaceInRoot(us)
-//	us = addPatchReplaceToSelectedPaths(us)
-//
-//	newObjJSON, _ := apijson.Marshal(newObj)
-//	usObjJSON, _ := apijson.Marshal(us)
-//
-//	patchNew := make(map[string]interface{})
-//	patchUs := make(map[string]interface{})
-//
-//	err = apijson.Unmarshal(newObjJSON, &patchNew)
-//	if err != nil {
-//		fmt.Printf("Failed to unmarshal patch %v\n", err)
-//	}
-//	err = apijson.Unmarshal(usObjJSON, &patchUs)
-//	if err != nil {
-//		fmt.Printf("Failed to unmarshal patch %v\n", err)
-//	}
-//
-//	fmt.Printf("Sending patchNew %+v\n", patchNew)
-//	fmt.Printf("Sending patchUs  %+v\n", patchUs)
-//
-//	err = c.Patch(context.TODO(), newObj, client.ConstantPatch(types.StrategicMergePatchType, usObjJSON))
-//	if err != nil {
-//		return fmt.Errorf("failed to apply StrategicMergePatch to object %s/%s: %w", key.Namespace, key.Name, err)
-//	}
-//
-//	existing := &unstructured.Unstructured{}
-//	existing.GetObjectKind().SetGroupVersionKind(newObj.GetObjectKind().GroupVersionKind())
-//
-//	err = c.Get(context.TODO(), key, existing)
-//	if err != nil {
-//		fmt.Printf("Failed to get after patch %v\n", err)
-//	}
-//
-//	fmt.Printf("After Patching, the object is now: %+v\n", existing)
-//
-//	return nil
+//func isKudoType(object runtime.Object) bool {
+//	_, isOperator := object.(*v1beta1.OperatorVersion)
+//	_, isOperatorVersion := object.(*v1beta1.Operator)
+//	_, isInstance := object.(*v1beta1.Instance)
+//	return isOperator || isOperatorVersion || isInstance
 //}
-
-//func addPatchReplaceToSelectedPaths(data map[string]interface{}) map[string]interface{} {
-//	paths := [][]string{
-//		{"spec", "template", "spec", "containers"},
-//		{"spec", "template", "spec", "initContainers"},
-//		{"spec", "template", "spec", "ephemeralContainers"},
-//	}
-//
-//	for _, path := range paths {
-//		list, found, _ := unstructured.NestedSlice(data, path...)
-//		if found {
-//			// TODO: This does not yet work if we remove the full list in newObj...
-//			list = append(list, map[string]interface{}{"$patch": "replace"})
-//			_ = unstructured.SetNestedSlice(data, list, path...)
-//		}
-//	}
-//
-//	return data
-//}
-
-//func addPatchReplaceInRoot(data map[string]interface{}) map[string]interface{} {
-//	data["$patch"] = "replace"
-//	return data
-//}
-
-//func markAllListsAsReplace(data interface{}) interface{} {
-//	if m, ok := data.(map[string]interface{}); ok {
-//		for k, v := range m {
-//			m[k] = markAllListsAsReplace(v)
-//		}
-//		return m
-//	}
-//	if l, ok := data.([]interface{}); ok {
-//		for i, v := range l {
-//			l[i] = markAllListsAsReplace(v)
-//		}
-//		l = append(l, map[string]string{"$patch": "replace"})
-//		return l
-//	}
-//
-//	return data
-//}
-
-func isKudoType(object runtime.Object) bool {
-	_, isOperator := object.(*v1beta1.OperatorVersion)
-	_, isOperatorVersion := object.(*v1beta1.Operator)
-	_, isInstance := object.(*v1beta1.Instance)
-	return isOperator || isOperatorVersion || isInstance
-}
 
 func isHealthy(ro []runtime.Object) error {
 	for _, r := range ro {
