@@ -13,10 +13,13 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/jsonmergepatch"
+	"k8s.io/apimachinery/pkg/util/mergepatch"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/kubectl/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/health"
 )
 
@@ -123,11 +126,9 @@ func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
 		case err != nil: // raise any error other than StatusReasonNotFound
 			return nil, err
 		default: // update existing resource
-			//err := patch(r, c)
-			err := doStrategicThreewayMergePatch(r, c)
-			//err := cmdApply(r, c, scheme, restMapper, config)
+			err := patch(r, c)
 			if err != nil {
-				return nil, fmt.Errorf("failed to real patch: %v", err)
+				return nil, fmt.Errorf("failed to patch: %v", err)
 			}
 			applied = append(applied, r)
 		}
@@ -150,7 +151,7 @@ func isClusterResource(r runtime.Object) bool {
 	return false
 }
 
-func doStrategicThreewayMergePatch(r runtime.Object, c client.Client) error {
+func patch(r runtime.Object, c client.Client) error {
 	key, _ := client.ObjectKeyFromObject(r)
 
 	// Fetch current configuration from cluster
@@ -176,7 +177,41 @@ func doStrategicThreewayMergePatch(r runtime.Object, c client.Client) error {
 		return fmt.Errorf("failed to get modified config %v", err)
 	}
 
-	// Create the three way merge patch
+	if useJSONMerge(r) {
+		return jsonThreeWayMergePatch(r, original, modified, current, c)
+	}
+	return strategicThreewayMergePatch(r, original, modified, current, c)
+}
+
+func useJSONMerge(newObj runtime.Object) bool {
+	_, isUnstructured := newObj.(runtime.Unstructured)
+	_, isCRD := newObj.(*apiextv1beta1.CustomResourceDefinition)
+	return isUnstructured || isCRD || isKudoType(newObj)
+}
+
+func jsonThreeWayMergePatch(r runtime.Object, original, modified, current []byte, c client.Client) error {
+	preconditions := []mergepatch.PreconditionFunc{
+		mergepatch.RequireKeyUnchanged("apiVersion"),
+		mergepatch.RequireKeyUnchanged("kind"),
+		mergepatch.RequireMetadataKeyUnchanged("name"),
+	}
+
+	patchData, err := jsonmergepatch.CreateThreeWayJSONMergePatch(original, modified, current, preconditions...)
+	if err != nil {
+		if mergepatch.IsPreconditionFailed(err) {
+			return fmt.Errorf("%s", "At least one of apiVersion, kind and name was changed")
+		}
+		return fmt.Errorf(" failed to create json merge patch: %v", err)
+	}
+
+	// Execute the patch
+	// TODO: If we get an error here, fall back to delete/create?
+	return c.Patch(context.TODO(), r, client.ConstantPatch(types.MergePatchType, patchData))
+
+}
+
+func strategicThreewayMergePatch(r runtime.Object, original, modified, current []byte, c client.Client) error {
+	// Create the patch
 	patchMeta, err := strategicpatch.NewPatchMetaFromStruct(r)
 	if err != nil {
 		return fmt.Errorf("failed to create patch meta %v", err)
@@ -195,12 +230,12 @@ func doStrategicThreewayMergePatch(r runtime.Object, c client.Client) error {
 	return c.Patch(context.TODO(), r, client.ConstantPatch(types.StrategicMergePatchType, patchData))
 }
 
-//func isKudoType(object runtime.Object) bool {
-//	_, isOperator := object.(*v1beta1.OperatorVersion)
-//	_, isOperatorVersion := object.(*v1beta1.Operator)
-//	_, isInstance := object.(*v1beta1.Instance)
-//	return isOperator || isOperatorVersion || isInstance
-//}
+func isKudoType(object runtime.Object) bool {
+	_, isOperator := object.(*v1beta1.OperatorVersion)
+	_, isOperatorVersion := object.(*v1beta1.Operator)
+	_, isInstance := object.(*v1beta1.Instance)
+	return isOperator || isOperatorVersion || isInstance
+}
 
 func isHealthy(ro []runtime.Object) error {
 	for _, r := range ro {
