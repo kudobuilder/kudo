@@ -592,9 +592,9 @@ func getPlanToBeExecuted(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*str
 		log.Printf("Instance: instance %s/%s has updated parameters from %v to %v", i.Namespace, i.Name, instanceSnapshot.Parameters, i.Spec.Parameters)
 		paramDiff := kudov1beta1.ParameterDiff(instanceSnapshot.Parameters, i.Spec.Parameters)
 		paramDefinitions := kudov1beta1.GetParamDefinitions(paramDiff, ov)
-		plan := planNameFromParameters(paramDefinitions, ov)
-		if plan == nil {
-			return nil, &v1beta1.InstanceError{Err: fmt.Errorf("supposed to execute plan because instance %s/%s was updated but none of the deploy, update plans found in linked operatorVersion", i.Namespace, i.Name), EventName: kudo.String("PlanNotFound")}
+		plan, err := planNameFromParameters(paramDefinitions, ov)
+		if err != nil {
+			return nil, &v1beta1.InstanceError{Err: fmt.Errorf("supposed to execute plan because instance %s/%s was updated but no valid plan found: %v", i.Namespace, i.Name, err), EventName: kudo.String("PlanNotFound")}
 		}
 		return plan, nil
 	}
@@ -602,14 +602,21 @@ func getPlanToBeExecuted(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*str
 }
 
 // planNameFromParameters determines what plan to run based on params that changed and the related trigger plans
-func planNameFromParameters(params []v1beta1.Parameter, ov *v1beta1.OperatorVersion) *string {
+func planNameFromParameters(params []v1beta1.Parameter, ov *v1beta1.OperatorVersion) (*string, error) {
+	// TODO: if the params have different trigger plans, we always select first here which might not be ideal
 	for _, p := range params {
-		// TODO: if the params have different trigger plans, we always select first here which might not be ideal
-		if p.Trigger != "" && kudov1beta1.SelectPlan([]string{p.Trigger}, ov) != nil {
-			return kudo.String(p.Trigger)
+		if p.Trigger != "" {
+			if kudov1beta1.SelectPlan([]string{p.Trigger}, ov) != nil {
+				return kudo.String(p.Trigger), nil
+			}
+			return nil, fmt.Errorf("param %s defined trigger plan %s, but plan not defined in operatorversion", p.Name, p.Trigger)
 		}
 	}
-	return kudov1beta1.SelectPlan([]string{v1beta1.UpdatePlanName, v1beta1.DeployPlanName}, ov)
+	plan := kudov1beta1.SelectPlan([]string{v1beta1.UpdatePlanName, v1beta1.DeployPlanName}, ov)
+	if plan == nil {
+		return nil, fmt.Errorf("no default plan defined in operatorversion")
+	}
+	return plan, nil
 }
 
 // SaveSnapshot stores the current spec of Instance into the snapshot annotation

@@ -6,6 +6,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/plan"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/template"
 	"github.com/kudobuilder/kudo/pkg/version"
@@ -16,6 +17,7 @@ var verifiers = []verifier.PackageVerifier{
 	InvalidCharVerifier{";,"},
 	K8sVersionVerifier{},
 	task.ReferenceVerifier{},
+	plan.ReferenceVerifier{},
 	template.ParametersVerifier{},
 	template.ReferenceVerifier{},
 }
