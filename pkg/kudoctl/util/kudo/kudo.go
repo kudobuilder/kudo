@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	v1core "k8s.io/api/core/v1"
@@ -216,10 +215,10 @@ func (c *Client) OperatorVersionsInstalled(operatorName, namespace string) ([]st
 	if err != nil {
 		return nil, err
 	}
-	existingVersions := []string{}
+	existingVersions := make([]string, 0)
 
 	for _, v := range ov.Items {
-		if strings.HasPrefix(v.Name, operatorName) {
+		if v.Spec.Operator.Name == operatorName {
 			existingVersions = append(existingVersions, v.Spec.Version)
 		}
 	}

@@ -45,6 +45,8 @@ func InstallPackage(kc *Client, resources *packages.Resources, skipInstance bool
 			return fmt.Errorf("failed to install %s-operatorversion.yaml: %v", operatorName, err)
 		}
 		clog.Printf("operatorversion.%s/%s created", resources.OperatorVersion.APIVersion, resources.OperatorVersion.Name)
+	} else {
+		clog.Printf("operatorversion.%s/%s already installed", resources.OperatorVersion.APIVersion, resources.OperatorVersion.Name)
 	}
 
 	if skipInstance {
