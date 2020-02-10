@@ -20,6 +20,7 @@ var verifiers = []verifier.PackageVerifier{
 	plan.ReferenceVerifier{},
 	template.ParametersVerifier{},
 	template.ReferenceVerifier{},
+	template.RenderVerifier{},
 }
 
 // PackageFiles verifies operator package files
