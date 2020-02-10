@@ -6,8 +6,4 @@ spec:
   replicas: 1
   template:
     spec:
-      containers:
-      - name: nginx
-        image: nginx:1.7.9
-        ports:
-        - containerPort: 80
+      priority: 100
