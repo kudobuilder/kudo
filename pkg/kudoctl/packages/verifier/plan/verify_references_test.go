@@ -72,5 +72,5 @@ func TestPlanReferenceVerifier(t *testing.T) {
 	assert.Equal(t, 1, len(res.Warnings))
 	assert.Equal(t, `plan "unused-plan" defined but not used`, res.Warnings[0])
 	assert.Equal(t, 1, len(res.Errors))
-	assert.Equal(t, `plan "not-existing-plan" used in param "PARAM2" is not defined`, res.Errors[0])
+	assert.Equal(t, `plan "not-existing-plan" used in parameter "PARAM2" is not defined`, res.Errors[0])
 }
