@@ -2,7 +2,7 @@ Warnings
 plan "validation" defined but not used  
 parameter "Cpus" defined but not used.  
 parameter "comma," defined but not used.
-Errors                                                        
-parameter "Cpus" has a duplicate                              
-parameter "comma," contains invalid character ','             
-plan "not-existing-plan" used in param "comma," is not defined
+Errors                                                            
+parameter "Cpus" has a duplicate                                  
+parameter "comma," contains invalid character ','                 
+plan "not-existing-plan" used in parameter "comma," is not defined
