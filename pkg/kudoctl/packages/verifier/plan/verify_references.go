@@ -51,7 +51,7 @@ func plansNotDefined(pf *packages.Files) verifier.Result {
 	for _, param := range pf.Params.Parameters {
 		if param.Trigger != "" {
 			if _, ok := plans[param.Trigger]; !ok {
-				res.AddErrors(fmt.Sprintf("plan %q used in param %q is not defined", param.Trigger, param.Name))
+				res.AddErrors(fmt.Sprintf("plan %q used in parameter %q is not defined", param.Trigger, param.Name))
 			}
 		}
 	}
