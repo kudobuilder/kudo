@@ -37,7 +37,7 @@ func TestRender(t *testing.T) {
 			"Params": params,
 		}
 
-		rendered, err := engine.Render(test.template, vals)
+		rendered, err := engine.Render(test.name, test.template, vals)
 		if err != nil {
 			t.Errorf("error rendering template: %s", err)
 		}
@@ -54,7 +54,7 @@ func TestUnsafeFuncs(t *testing.T) {
 	unsafeFuncs := []string{"env", "expandenv", "base", "dir", "clean", "ext", "isAbs"}
 
 	for _, fun := range unsafeFuncs {
-		_, err := engine.Render(fmt.Sprintf("{{ \"foo\" | %s }}", fun), nil)
+		_, err := engine.Render("tpl", fmt.Sprintf("{{ \"foo\" | %s }}", fun), nil)
 
 		if err == nil {
 			t.Errorf("expected error for %s, got none", fun)
