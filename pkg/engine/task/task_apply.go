@@ -126,7 +126,7 @@ func apply(rr []runtime.Object, c client.Client, di discovery.DiscoveryInterface
 		case err != nil: // raise any error other than StatusReasonNotFound
 			return nil, err
 		default: // update existing resource
-			err := patch(r, c, di)
+			err := patch(r, existing, c)
 			if err != nil {
 				return nil, fmt.Errorf("failed to patch: %v", err)
 			}
@@ -137,18 +137,9 @@ func apply(rr []runtime.Object, c client.Client, di discovery.DiscoveryInterface
 	return applied, nil
 }
 
-func patch(r runtime.Object, c client.Client, di discovery.DiscoveryInterface) error {
-	key, err := resource.ObjectKeyFromObject(r, di)
-	if err != nil {
-		return err
-	}
+func patch(updatedObj, currentObj runtime.Object, c client.Client) error {
 
-	// Fetch current configuration from cluster
-	currentObj := r.DeepCopyObject()
-	err = c.Get(context.TODO(), key, currentObj)
-	if err != nil {
-		return fmt.Errorf("failed to get current %v", err)
-	}
+	// Serialize current configuration
 	current, err := json.Marshal(currentObj)
 	if err != nil {
 		return fmt.Errorf("failed to marshal current %v", err)
@@ -161,7 +152,7 @@ func patch(r runtime.Object, c client.Client, di discovery.DiscoveryInterface) e
 	}
 
 	// Get new (modified) configuration
-	modified, err := getModifiedConfiguration(r, true, unstructured.UnstructuredJSONScheme)
+	modified, err := getModifiedConfiguration(updatedObj, true, unstructured.UnstructuredJSONScheme)
 	if err != nil {
 		return fmt.Errorf("failed to get modified config %v", err)
 	}
@@ -169,12 +160,12 @@ func patch(r runtime.Object, c client.Client, di discovery.DiscoveryInterface) e
 	// Create the actual patch
 	var patchData []byte
 	var patchType types.PatchType
-	if useJSONMerge(r) {
+	if useJSONMerge(updatedObj) {
 		patchType = types.MergePatchType
 		patchData, err = jsonThreeWayMergePatch(original, modified, current)
 	} else {
 		patchType = types.StrategicMergePatchType
-		patchData, err = strategicThreewayMergePatch(r, original, modified, current)
+		patchData, err = strategicThreeWayMergePatch(updatedObj, original, modified, current)
 	}
 
 	if err != nil {
@@ -183,7 +174,7 @@ func patch(r runtime.Object, c client.Client, di discovery.DiscoveryInterface) e
 	}
 
 	// Execute the patch
-	err = c.Patch(context.TODO(), r, client.ConstantPatch(patchType, patchData))
+	err = c.Patch(context.TODO(), updatedObj, client.ConstantPatch(patchType, patchData))
 	if err != nil {
 		return fmt.Errorf("failed to execute patch: %v", err)
 	}
@@ -214,7 +205,7 @@ func jsonThreeWayMergePatch(original, modified, current []byte) ([]byte, error) 
 	return patchData, nil
 }
 
-func strategicThreewayMergePatch(r runtime.Object, original, modified, current []byte) ([]byte, error) {
+func strategicThreeWayMergePatch(r runtime.Object, original, modified, current []byte) ([]byte, error) {
 	// Create the patch
 	patchMeta, err := strategicpatch.NewPatchMetaFromStruct(r)
 	if err != nil {
