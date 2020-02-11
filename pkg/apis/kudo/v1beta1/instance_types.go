@@ -174,6 +174,15 @@ const (
 	CleanupPlanName = "cleanup"
 )
 
+var (
+	ReservedPlanNames = []string{
+		DeployPlanName,
+		UpgradePlanName,
+		UpdatePlanName,
+		CleanupPlanName,
+	}
+)
+
 // IsTerminal returns true if the status is terminal (either complete, or in a nonrecoverable error)
 func (s ExecutionStatus) IsTerminal() bool {
 	return s == ExecutionComplete || s == ExecutionFatalError
