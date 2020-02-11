@@ -7,10 +7,10 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
 )
 
-// ReferenceVerifier verifies tasks producing errors for tasks referenced in plans that do not exist and warnings for tasks which are not used in a plan
-type BasicVerifier struct{}
+// BuildVerifier verifies tasks producing errors for tasks referenced in plans that do not exist and warnings for tasks which are not used in a plan
+type BuildVerifier struct{}
 
-func (BasicVerifier) Verify(pf *packages.Files) verifier.Result {
+func (BuildVerifier) Verify(pf *packages.Files) verifier.Result {
 	res := verifier.NewResult()
 	res.Merge(tasksWellDefined(pf))
 	return res

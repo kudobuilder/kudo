@@ -64,7 +64,7 @@ func TestTaskBasicsVerifier(t *testing.T) {
 			},
 		}, errors: []string{}, warnings: []string{}},
 	}
-	verifier := BasicVerifier{}
+	verifier := BuildVerifier{}
 
 	for _, test := range tests {
 		test := test
