@@ -29,7 +29,8 @@ func TestEnhancerApply_embeddedMetadataStatefulSet(t *testing.T) {
 	meta := metadata()
 
 	e := &DefaultEnhancer{
-		Scheme: utils.Scheme(),
+		Scheme:    utils.Scheme(),
+		Discovery: utils.FakeDiscoveryClient(),
 	}
 
 	objs, err := e.Apply(tpls, meta)
@@ -74,7 +75,8 @@ func TestEnhancerApply_embeddedMetadataCronjob(t *testing.T) {
 	meta := metadata()
 
 	e := &DefaultEnhancer{
-		Scheme: utils.Scheme(),
+		Scheme:    utils.Scheme(),
+		Discovery: utils.FakeDiscoveryClient(),
 	}
 
 	objs, err := e.Apply(tpls, meta)
@@ -115,7 +117,8 @@ func TestEnhancerApply_noAdditionalMetadata(t *testing.T) {
 	meta := metadata()
 
 	e := &DefaultEnhancer{
-		Scheme: utils.Scheme(),
+		Scheme:    utils.Scheme(),
+		Discovery: utils.FakeDiscoveryClient(),
 	}
 
 	objs, err := e.Apply(tpls, meta)
