@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -16,6 +17,7 @@ import (
 // Context is a engine.task execution context containing k8s client, templates parameters etc.
 type Context struct {
 	Client     client.Client
+	Discovery  discovery.DiscoveryInterface
 	Config     *rest.Config
 	Enhancer   renderer.Enhancer
 	Meta       renderer.Metadata

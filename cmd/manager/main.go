@@ -37,6 +37,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
 	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
+	"github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/kudobuilder/kudo/pkg/version"
 	kudohook "github.com/kudobuilder/kudo/pkg/webhook"
 )
@@ -113,11 +114,18 @@ func main() {
 	}
 
 	log.Print("Setting up instance controller")
+	discoveryClient, err := utils.GetDiscoveryClient(mgr)
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
+
 	err = (&instance.Reconciler{
-		Client:   mgr.GetClient(),
-		Config:   mgr.GetConfig(),
-		Recorder: mgr.GetEventRecorderFor("instance-controller"),
-		Scheme:   mgr.GetScheme(),
+		Client:    mgr.GetClient(),
+		Config:    mgr.GetConfig(),
+		Discovery: discoveryClient,
+		Recorder:  mgr.GetEventRecorderFor("instance-controller"),
+		Scheme:    mgr.GetScheme(),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		log.Printf("unable to register instance controller to the manager: %v", err)

@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 
 	"github.com/thoas/go-funk"
@@ -60,9 +61,10 @@ const (
 // Reconciler reconciles an Instance object.
 type Reconciler struct {
 	client.Client
-	Config   *rest.Config
-	Recorder record.EventRecorder
-	Scheme   *runtime.Scheme
+	Discovery discovery.DiscoveryInterface
+	Config    *rest.Config
+	Recorder  record.EventRecorder
+	Scheme    *runtime.Scheme
 }
 
 // SetupWithManager registers this reconciler with the controller manager
@@ -236,7 +238,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
-	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, r.Config, &renderer.DefaultEnhancer{Scheme: r.Scheme}, time.Now())
+	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, r.Discovery, r.Config, &renderer.DefaultEnhancer{Scheme: r.Scheme, Discovery: r.Discovery}, time.Now())
 
 	// ---------- 5. Update status of instance after the execution proceeded ----------
 	if newStatus != nil {

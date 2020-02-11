@@ -20,10 +20,15 @@ export GO111MODULE=on
 .PHONY: all
 all: test manager
 
+# Run unit tests
 .PHONY: test
-# Run tests
 test:
+ifdef _INTELLIJ_FORCE_SET_GOFLAGS
+# Run tests from a Goland terminal. Goland already set '-mod=readonly'
+	go test ./pkg/... ./cmd/... -v -coverprofile cover.out
+else
 	go test ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover.out
+endif
 
 # Run e2e tests
 .PHONY: e2e-test
