@@ -26,6 +26,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 
 	"github.com/thoas/go-funk"
 	appsv1 "k8s.io/api/apps/v1"
@@ -61,6 +62,7 @@ const (
 type Reconciler struct {
 	client.Client
 	Discovery discovery.DiscoveryInterface
+	Config    *rest.Config
 	Recorder  record.EventRecorder
 	Scheme    *runtime.Scheme
 }
@@ -97,21 +99,6 @@ func (r *Reconciler) SetupWithManager(
 			return requests
 		})
 
-	// resPredicate ignores DeleteEvents for pipe-pods only (marked with task.PipePodAnnotation). This is due to an
-	// inherent race that was described in detail in #1116 (https://github.com/kudobuilder/kudo/issues/1116)
-	// tl;dr: pipe-task will delete the pipe pod at the end of the execution. this would normally trigger another
-	// Instance reconciliation which might end up copying pipe files twice. we avoid this by explicitly ignoring
-	// DeleteEvents for pipe-pods.
-	resPredicate := predicate.Funcs{
-		CreateFunc: func(event.CreateEvent) bool { return true },
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			return e.Meta.GetAnnotations() != nil &&
-				funk.Contains(e.Meta.GetAnnotations(), task.PipePodAnnotation)
-		},
-		UpdateFunc:  func(event.UpdateEvent) bool { return true },
-		GenericFunc: func(event.GenericEvent) bool { return true },
-	}
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kudov1beta1.Instance{}).
 		Owns(&kudov1beta1.Instance{}).
@@ -120,9 +107,29 @@ func (r *Reconciler) SetupWithManager(
 		Owns(&batchv1.Job{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Pod{}).
-		WithEventFilter(resPredicate).
+		WithEventFilter(eventFilter()).
 		Watches(&source.Kind{Type: &kudov1beta1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: addOvRelatedInstancesToReconcile}).
 		Complete(r)
+}
+
+// eventFilter ignores DeleteEvents for pipe-pods only (marked with task.PipePodAnnotation). This is due to an
+// inherent race that was described in detail in #1116 (https://github.com/kudobuilder/kudo/issues/1116)
+// tl;dr: pipe-task will delete the pipe pod at the end of the execution. this would normally trigger another
+// Instance reconciliation which might end up copying pipe files twice. we avoid this by explicitly ignoring
+// DeleteEvents for pipe-pods.
+func eventFilter() predicate.Funcs {
+	return predicate.Funcs{
+		CreateFunc: func(event.CreateEvent) bool { return true },
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return !isForPipePod(e)
+		},
+		UpdateFunc:  func(event.UpdateEvent) bool { return true },
+		GenericFunc: func(event.GenericEvent) bool { return true },
+	}
+}
+
+func isForPipePod(e event.DeleteEvent) bool {
+	return e.Meta.GetAnnotations() != nil && funk.Contains(e.Meta.GetAnnotations(), task.PipePodAnnotation)
 }
 
 // Reconcile is the main controller method that gets called every time something about the instance changes
@@ -231,13 +238,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
-	newStatus, err := workflow.Execute(
-		activePlan,
-		metadata,
-		r.Client,
-		r.Discovery,
-		&renderer.DefaultEnhancer{Scheme: r.Scheme, Discovery: r.Discovery},
-		time.Now())
+	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, r.Discovery, r.Config, &renderer.DefaultEnhancer{Scheme: r.Scheme, Discovery: r.Discovery}, time.Now())
 
 	// ---------- 5. Update status of instance after the execution proceeded ----------
 	if newStatus != nil {

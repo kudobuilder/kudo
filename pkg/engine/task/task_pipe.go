@@ -13,7 +13,6 @@ import (
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/yaml"
 
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
@@ -266,11 +265,6 @@ func pipePod(pod *corev1.Pod, name string) (string, error) {
 }
 
 func copyFiles(fs afero.Fs, ff []PipeFile, pod *corev1.Pod, ctx Context) error {
-	restCfg, err := config.GetConfig()
-	if err != nil {
-		return fatalExecutionError(fmt.Errorf("failed to fetch cluster REST config: %v", err), pipeTaskError, ctx.Meta)
-	}
-
 	var g errgroup.Group
 
 	for _, f := range ff {
@@ -280,7 +274,7 @@ func copyFiles(fs afero.Fs, ff []PipeFile, pod *corev1.Pod, ctx Context) error {
 			// Check the size of the pipe file first. K87 has a inherent limit on the size of
 			// Secret/ConfigMap, so we avoid unnecessary copying of files that are too big by
 			// checking its size first.
-			size, err := podexec.FileSize(f.File, pod, pipePodContainerName, restCfg)
+			size, err := podexec.FileSize(f.File, pod, pipePodContainerName, ctx.Config)
 			if err != nil {
 				// Any remote command exit code > 0 is treated as a fatal error since retrying it doesn't make sense
 				if podexec.HasCommandFailed(err) {
@@ -293,7 +287,7 @@ func copyFiles(fs afero.Fs, ff []PipeFile, pod *corev1.Pod, ctx Context) error {
 				return fatalExecutionError(fmt.Errorf("pipe file %s size %d exceeds maximum file size of %d bytes", f.File, size, maxPipeFileSize), pipeTaskError, ctx.Meta)
 			}
 
-			if err = podexec.DownloadFile(fs, f.File, pod, pipePodContainerName, restCfg); err != nil {
+			if err = podexec.DownloadFile(fs, f.File, pod, pipePodContainerName, ctx.Config); err != nil {
 				// Any remote command exit code > 0 is treated as a fatal error since retrying it doesn't make sense
 				if podexec.HasCommandFailed(err) {
 					return fatalExecutionError(err, pipeTaskError, ctx.Meta)
@@ -304,8 +298,7 @@ func copyFiles(fs afero.Fs, ff []PipeFile, pod *corev1.Pod, ctx Context) error {
 		})
 	}
 
-	err = g.Wait()
-	return err
+	return g.Wait()
 }
 
 // createArtifacts iterates through passed pipe files and their copied data, reads them, constructs k8s artifacts

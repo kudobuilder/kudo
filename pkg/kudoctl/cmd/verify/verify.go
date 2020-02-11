@@ -18,6 +18,7 @@ var verifiers = []verifier.PackageVerifier{
 	task.ReferenceVerifier{},
 	template.ParametersVerifier{},
 	template.ReferenceVerifier{},
+	template.RenderVerifier{},
 }
 
 // PackageFiles verifies operator package files

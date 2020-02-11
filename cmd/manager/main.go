@@ -122,6 +122,7 @@ func main() {
 
 	err = (&instance.Reconciler{
 		Client:    mgr.GetClient(),
+		Config:    mgr.GetConfig(),
 		Discovery: discoveryClient,
 		Recorder:  mgr.GetEventRecorderFor("instance-controller"),
 		Scheme:    mgr.GetScheme(),
