@@ -215,7 +215,7 @@ func (c *Client) OperatorVersionsInstalled(operatorName, namespace string) ([]st
 	if err != nil {
 		return nil, err
 	}
-	existingVersions := make([]string, 0)
+	existingVersions := []string{}
 
 	for _, v := range ov.Items {
 		if v.Spec.Operator.Name == operatorName {
