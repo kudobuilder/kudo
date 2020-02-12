@@ -15,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/jsonmergepatch"
 	"k8s.io/apimachinery/pkg/util/mergepatch"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
-	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -51,7 +50,7 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 	}
 
 	// 3. - Apply them using the client -
-	applied, err := applyResource(enhanced, ctx.Client, ctx.Discovery)
+	applied, err := applyResources(enhanced, ctx)
 	if err != nil {
 		return false, err
 	}
@@ -93,18 +92,18 @@ func addLastAppliedConfigAnnotation(r runtime.Object) error {
 
 // apply method takes a slice of k8s object and applies them using passed client. If an object
 // doesn't exist it will be created. An already existing object will be patched.
-func applyResource(rr []runtime.Object, c client.Client, di discovery.DiscoveryInterface) ([]runtime.Object, error) {
+func applyResources(rr []runtime.Object, ctx Context) ([]runtime.Object, error) {
 	applied := make([]runtime.Object, 0)
 
 	for _, r := range rr {
 		existing := r.DeepCopyObject()
 
-		key, err := resource.ObjectKeyFromObject(r, di)
+		key, err := resource.ObjectKeyFromObject(r, ctx.Discovery)
 		if err != nil {
 			return nil, err
 		}
 
-		err = c.Get(context.TODO(), key, existing)
+		err = ctx.Client.Get(context.TODO(), key, existing)
 
 		switch {
 		case apierrors.IsNotFound(err): // create resource if it doesn't exist
@@ -112,7 +111,7 @@ func applyResource(rr []runtime.Object, c client.Client, di discovery.DiscoveryI
 				return nil, fmt.Errorf("failed to add last applied config annotation to %s/%s: %w", key.Namespace, key.Name, err)
 			}
 
-			err = c.Create(context.TODO(), r)
+			err = ctx.Client.Create(context.TODO(), r)
 			// c.Create always overrides the input, in this case, the object that had previously set GVK loses it (at least for integration tests)
 			// and this was causing problems in health module
 			// with error failed to convert *unstructured.Unstructured to *v1.Deployment: Object 'Kind' is missing in 'unstructured object has no kind'
@@ -126,7 +125,7 @@ func applyResource(rr []runtime.Object, c client.Client, di discovery.DiscoveryI
 		case err != nil: // raise any error other than StatusReasonNotFound
 			return nil, err
 		default: // update existing resource
-			err := patchResource(r, existing, c)
+			err := patchResource(r, existing, ctx)
 			if err != nil {
 				return nil, fmt.Errorf("failed to patch %s/%s: %w", key.Namespace, key.Name, err)
 			}
@@ -137,24 +136,24 @@ func applyResource(rr []runtime.Object, c client.Client, di discovery.DiscoveryI
 	return applied, nil
 }
 
-func patchResource(modifiedObj, currentObj runtime.Object, c client.Client) error {
+func patchResource(modifiedObj, currentObj runtime.Object, ctx Context) error {
 
 	// Serialize current configuration
 	current, err := json.Marshal(currentObj)
 	if err != nil {
-		return fmt.Errorf("failed to marshal current %v", err)
+		return fatalExecutionError(fmt.Errorf("failed to marshal current %v", err), taskRenderingError, ctx.Meta)
 	}
 
 	// Get previous configuration from currentObjs annotation
 	original, err := getOriginalConfiguration(currentObj)
 	if err != nil {
-		return fmt.Errorf("failed to get original configuration %v", err)
+		return fatalExecutionError(fmt.Errorf("failed to get original configuration %v", err), taskRenderingError, ctx.Meta)
 	}
 
 	// Get new (modified) configuration
 	modified, err := getModifiedConfiguration(modifiedObj, true, unstructured.UnstructuredJSONScheme)
 	if err != nil {
-		return fmt.Errorf("failed to get modified config %v", err)
+		return fatalExecutionError(fmt.Errorf("failed to get modified config %v", err), taskRenderingError, ctx.Meta)
 	}
 
 	// Create the actual patchResource
@@ -170,11 +169,11 @@ func patchResource(modifiedObj, currentObj runtime.Object, c client.Client) erro
 
 	if err != nil {
 		// TODO: We could try to delete/create here, but that would be different behavior from before
-		return fmt.Errorf("failed to create patch: %v", err)
+		return fatalExecutionError(fmt.Errorf("failed to create patch: %v", err), taskRenderingError, ctx.Meta)
 	}
 
 	// Execute the patchResource
-	err = c.Patch(context.TODO(), modifiedObj, client.ConstantPatch(patchType, patchData))
+	err = ctx.Client.Patch(context.TODO(), modifiedObj, client.ConstantPatch(patchType, patchData))
 	if err != nil {
 		return fmt.Errorf("failed to execute patch: %v", err)
 	}
@@ -238,9 +237,10 @@ func isHealthy(ro []runtime.Object) error {
 	return nil
 }
 
-// copy from k8s.io/kubectl@v0.16.6/pkg/util/apply.go, but with different annotation
+// copy from k8s.io/kubectl@v0.16.6/pkg/util/apply.go, with adjustments
 // GetOriginalConfiguration retrieves the original configuration of the object
-// from the annotation, or nil if no annotation was found.
+// from the annotation.
+// returns an error if the annotation is nil or invalid JSON
 func getOriginalConfiguration(obj runtime.Object) ([]byte, error) {
 	annots, err := metadataAccessor.Annotations(obj)
 	if err != nil {
@@ -253,7 +253,16 @@ func getOriginalConfiguration(obj runtime.Object) ([]byte, error) {
 
 	original, ok := annots[kudo.LastAppliedConfigAnnotation]
 	if !ok {
-		return nil, nil
+		return nil, fmt.Errorf("LastAppliedConfigAnnotation is not set")
+	}
+
+	originalBytes := []byte(original)
+
+	originalMap := map[string]interface{}{}
+	if len(original) > 0 {
+		if err := json.Unmarshal(originalBytes, &originalMap); err != nil {
+			return nil, fmt.Errorf("LastAppliedConfigAnnotation is invalid JSON")
+		}
 	}
 
 	return []byte(original), nil
