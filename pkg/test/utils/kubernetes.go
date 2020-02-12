@@ -19,10 +19,12 @@ import (
 	"testing"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
-
 	"github.com/google/shlex"
 	"github.com/pmezard/go-difflib/difflib"
+	"github.com/spf13/pflag"
+	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	batchv1beta1 "k8s.io/api/batch/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -30,11 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
-	"github.com/kudobuilder/kudo/pkg/apis"
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-
-	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
@@ -52,8 +49,13 @@ import (
 	coretesting "k8s.io/client-go/testing"
 	api "k8s.io/client-go/tools/clientcmd/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	kindConfig "sigs.k8s.io/kind/pkg/apis/config/v1alpha3"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/kudobuilder/kudo/pkg/apis"
+	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 )
 
 // ensure that we only add to the scheme once.
@@ -263,11 +265,11 @@ func (r *RetryStatusWriter) Patch(ctx context.Context, obj runtime.Object, patch
 func Scheme() *runtime.Scheme {
 	schemeLock.Do(func() {
 		if err := apis.AddToScheme(scheme.Scheme); err != nil {
-			fmt.Printf("failed to add API resources to the scheme: %v", err)
+			clog.Printf("failed to add API resources to the scheme: %v", err)
 			os.Exit(-1)
 		}
 		if err := apiextensions.AddToScheme(scheme.Scheme); err != nil {
-			fmt.Printf("failed to add API extension resources to the scheme: %v", err)
+			clog.Printf("failed to add API extension resources to the scheme: %v", err)
 			os.Exit(-1)
 		}
 	})
@@ -351,14 +353,13 @@ func ConvertUnstructured(in runtime.Object) (runtime.Object, error) {
 	kind := in.GetObjectKind().GroupVersionKind().Kind
 	group := in.GetObjectKind().GroupVersionKind().Group
 
-	if group == "kudo.dev" && kind == "TestStep" {
-		converted = &kudo.TestStep{}
-	} else if group == "kudo.dev" && kind == "TestAssert" {
-		converted = &kudo.TestAssert{}
-	} else if group == "kudo.dev" && kind == "TestSuite" {
-		converted = &kudo.TestSuite{}
-	} else if group == "kind.sigs.k8s.io" && kind == "Cluster" {
-		converted = &kindConfig.Cluster{}
+	kudoGroup := "kudo.dev"
+	if group == kudoGroup && kind == "TestStep" {
+		converted = &harness.TestStep{}
+	} else if group == kudoGroup && kind == "TestAssert" {
+		converted = &harness.TestAssert{}
+	} else if group == kudoGroup && kind == "TestSuite" {
+		converted = &harness.TestSuite{}
 	} else {
 		return in, nil
 	}
@@ -690,8 +691,34 @@ func FakeDiscoveryClient() discovery.DiscoveryInterface {
 				{
 					GroupVersion: corev1.SchemeGroupVersion.String(),
 					APIResources: []metav1.APIResource{
-						{Name: "pods", Namespaced: true, Kind: "Pod"},
-						{Name: "namespaces", Namespaced: false, Kind: "Namespace"},
+						{Name: "pod", Namespaced: true, Kind: "Pod"},
+						{Name: "namespace", Namespaced: false, Kind: "Namespace"},
+						{Name: "service", Namespaced: true, Kind: "Service"},
+					},
+				},
+				{
+					GroupVersion: appsv1.SchemeGroupVersion.String(),
+					APIResources: []metav1.APIResource{
+						{Name: "statefulset", Namespaced: true, Kind: "StatefulSet"},
+						{Name: "deployment", Namespaced: true, Kind: "Deployment"},
+					},
+				},
+				{
+					GroupVersion: batchv1.SchemeGroupVersion.String(),
+					APIResources: []metav1.APIResource{
+						{Name: "job", Namespaced: true, Kind: "Job"},
+					},
+				},
+				{
+					GroupVersion: batchv1beta1.SchemeGroupVersion.String(),
+					APIResources: []metav1.APIResource{
+						{Name: "job", Namespaced: true, Kind: "CronJob"},
+					},
+				},
+				{
+					GroupVersion: apiextensions.SchemeGroupVersion.String(),
+					APIResources: []metav1.APIResource{
+						{Name: "customresourcedefinitions", Namespaced: false, Kind: "CustomResourceDefinition"},
 					},
 				},
 			},
@@ -760,7 +787,6 @@ func GetAPIResource(dClient discovery.DiscoveryInterface, gvk schema.GroupVersio
 		return metav1.APIResource{}, err
 	}
 
-	fmt.Printf("%v", resourceTypes)
 	for _, resource := range resourceTypes.APIResources {
 		if !strings.EqualFold(resource.Kind, gvk.Kind) {
 			continue
@@ -794,19 +820,25 @@ func WaitForCRDs(dClient discovery.DiscoveryInterface, crds []runtime.Object) er
 
 	for _, crdObj := range crds {
 		if !MatchesKind(crdObj, crdKind) {
-			continue
+			return fmt.Errorf("the following passed object does not match %v: %v", crdKind, crdObj)
 		}
 
-		crd, ok := crdObj.(*apiextensions.CustomResourceDefinition)
-		if !ok {
-			continue
+		switch crd := crdObj.(type) {
+		case *apiextensions.CustomResourceDefinition:
+			waitingFor = append(waitingFor, schema.GroupVersionKind{
+				Group:   crd.Spec.Group,
+				Version: crd.Spec.Version,
+				Kind:    crd.Spec.Names.Kind,
+			})
+		case *unstructured.Unstructured:
+			waitingFor = append(waitingFor, schema.GroupVersionKind{
+				Group:   crd.Object["spec"].(map[string]interface{})["group"].(string),
+				Version: crd.Object["spec"].(map[string]interface{})["version"].(string),
+				Kind:    crd.Object["spec"].(map[string]interface{})["names"].(map[string]interface{})["kind"].(string),
+			})
+		default:
+			return fmt.Errorf("the folllowing passed object is not a CRD: %v", crdObj)
 		}
-
-		waitingFor = append(waitingFor, schema.GroupVersionKind{
-			Group:   crd.Spec.Group,
-			Version: crd.Spec.Version,
-			Kind:    crd.Spec.Names.Kind,
-		})
 	}
 
 	return wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (done bool, err error) {
@@ -866,7 +898,7 @@ func StartTestEnvironment() (env TestEnvironment, err error) {
 }
 
 // GetArgs parses a command line string into its arguments and appends a namespace if it is not already set.
-func GetArgs(ctx context.Context, command string, cmd kudo.Command, namespace string) (*exec.Cmd, error) {
+func GetArgs(ctx context.Context, command string, cmd harness.Command, namespace string) (*exec.Cmd, error) {
 	argSlice := []string{}
 
 	argSplit, err := shlex.Split(cmd.Command)
@@ -902,7 +934,7 @@ func GetArgs(ctx context.Context, command string, cmd kudo.Command, namespace st
 
 // RunCommand runs a command with args.
 // args gets split on spaces (respecting quoted strings).
-func RunCommand(ctx context.Context, namespace string, command string, cmd kudo.Command, cwd string, stdout io.Writer, stderr io.Writer) error {
+func RunCommand(ctx context.Context, namespace string, command string, cmd harness.Command, cwd string, stdout io.Writer, stderr io.Writer) error {
 	actualDir, err := os.Getwd()
 	if err != nil {
 		return err
@@ -933,7 +965,7 @@ func RunCommand(ctx context.Context, namespace string, command string, cmd kudo.
 
 // RunCommands runs a set of commands, returning any errors.
 // If `command` is set, then `command` will be the command that is invoked (if a command specifies it already, it will not be prepended again).
-func RunCommands(logger Logger, namespace string, command string, commands []kudo.Command, workdir string) []error {
+func RunCommands(logger Logger, namespace string, command string, commands []harness.Command, workdir string) []error {
 	errs := []error{}
 
 	if commands == nil {
@@ -944,7 +976,7 @@ func RunCommands(logger Logger, namespace string, command string, commands []kud
 		stdout := &bytes.Buffer{}
 		stderr := &bytes.Buffer{}
 
-		logger.Log("Running command:", cmd)
+		logger.Logf("Running command: %s %s", command, cmd)
 
 		err := RunCommand(context.TODO(), namespace, command, cmd, workdir, stdout, stderr)
 		if err != nil {
@@ -964,10 +996,10 @@ func RunCommands(logger Logger, namespace string, command string, commands []kud
 
 // RunKubectlCommands runs a set of kubectl commands, returning any errors.
 func RunKubectlCommands(logger Logger, namespace string, commands []string, workdir string) []error {
-	apiCommands := []kudo.Command{}
+	apiCommands := []harness.Command{}
 
 	for _, cmd := range commands {
-		apiCommands = append(apiCommands, kudo.Command{
+		apiCommands = append(apiCommands, harness.Command{
 			Command:    cmd,
 			Namespaced: true,
 		})
@@ -980,7 +1012,6 @@ func RunKubectlCommands(logger Logger, namespace string, commands []string, work
 func Kubeconfig(cfg *rest.Config, w io.Writer) error {
 	var authProvider *api.AuthProviderConfig
 	var execConfig *api.ExecConfig
-
 	if cfg.AuthProvider != nil {
 		authProvider = &api.AuthProviderConfig{
 			Name:   cfg.AuthProvider.Name,
@@ -1003,7 +1034,10 @@ func Kubeconfig(cfg *rest.Config, w io.Writer) error {
 			})
 		}
 	}
-
+	err := rest.LoadTLSFiles(cfg)
+	if err != nil {
+		return err
+	}
 	return json.NewYAMLSerializer(json.DefaultMetaFactory, nil, nil).Encode(&api.Config{
 		CurrentContext: "cluster",
 		Clusters: []api.NamedCluster{
@@ -1043,4 +1077,14 @@ func Kubeconfig(cfg *rest.Config, w io.Writer) error {
 			},
 		},
 	}, w)
+}
+
+func GetDiscoveryClient(mgr manager.Manager) (*discovery.DiscoveryClient, error) {
+	// use manager rest config to create a discovery client
+	dc, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
+	if err != nil || dc == nil {
+		return nil, fmt.Errorf("failed to create a discovery client: %v", err)
+	}
+
+	return dc, nil
 }

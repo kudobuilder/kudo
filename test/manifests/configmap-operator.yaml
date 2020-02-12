@@ -1,0 +1,48 @@
+apiVersion: kudo.dev/v1beta1
+kind: Operator
+metadata:
+  name: configmap-operator
+  namespace: default
+spec:
+  maintainers:
+    - name: KUDO
+      email: kudobuilder@gmail.com
+---
+apiVersion: kudo.dev/v1beta1
+kind: OperatorVersion
+metadata:
+  name: configmap-operator-1.0
+  namespace: default
+spec:
+  operator:
+    name: configmap-operator
+    kind: Operator
+  version: "1.0"
+  parameters:
+  - name: PARAM
+    description: "Sample parameter"
+    default: "before"
+  templates:
+    configmap.yaml: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: test-configmap
+      data:
+        foo: bar-{{ .Params.PARAM }}
+  tasks:
+    - name: deploy
+      kind: Apply
+      spec:
+        resources:
+          - configmap.yaml
+  plans:
+    deploy:
+      strategy: serial
+      phases:
+      - name: deploy
+        strategy: parallel
+        steps:
+        - name: deploy
+          tasks:
+          - deploy

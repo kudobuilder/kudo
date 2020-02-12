@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"fmt"
+	"io"
 	"testing"
 
 	dockertypes "github.com/docker/docker/api/types"
@@ -19,7 +20,19 @@ func TestGetTimeout(t *testing.T) {
 	assert.Equal(t, 45, h.GetTimeout())
 }
 
-type dockerMock struct{}
+type dockerMock struct {
+	ImageWriter *io.PipeWriter
+	imageReader *io.PipeReader
+}
+
+func newDockerMock() *dockerMock {
+	reader, writer := io.Pipe()
+
+	return &dockerMock{
+		ImageWriter: writer,
+		imageReader: reader,
+	}
+}
 
 func (d *dockerMock) VolumeCreate(ctx context.Context, body volumetypes.VolumeCreateBody) (dockertypes.Volume, error) {
 	return dockertypes.Volume{
@@ -29,22 +42,22 @@ func (d *dockerMock) VolumeCreate(ctx context.Context, body volumetypes.VolumeCr
 
 func (d *dockerMock) NegotiateAPIVersion(ctx context.Context) {}
 
+func (d *dockerMock) ImageSave(ctx context.Context, imageIDs []string) (io.ReadCloser, error) {
+	return d.imageReader, nil
+}
+
 func TestAddNodeCaches(t *testing.T) {
 	h := Harness{
 		T:      t,
-		docker: &dockerMock{},
+		docker: newDockerMock(),
 	}
 
 	kindCfg := &kindConfig.Cluster{}
-	if err := h.addNodeCaches(kindCfg); err != nil {
-		t.Fatal(err)
-	}
+	h.addNodeCaches(h.docker, kindCfg)
 	assert.Nil(t, kindCfg.Nodes)
 
 	h.TestSuite.KINDNodeCache = true
-	if err := h.addNodeCaches(kindCfg); err != nil {
-		t.Fatal(err)
-	}
+	h.addNodeCaches(h.docker, kindCfg)
 	assert.NotNil(t, kindCfg.Nodes)
 	assert.Equal(t, 1, len(kindCfg.Nodes))
 	assert.NotNil(t, kindCfg.Nodes[0].ExtraMounts)
@@ -59,9 +72,7 @@ func TestAddNodeCaches(t *testing.T) {
 		},
 	}
 
-	if err := h.addNodeCaches(kindCfg); err != nil {
-		t.Fatal(err)
-	}
+	h.addNodeCaches(h.docker, kindCfg)
 	assert.NotNil(t, kindCfg.Nodes)
 	assert.Equal(t, 2, len(kindCfg.Nodes))
 	assert.NotNil(t, kindCfg.Nodes[0].ExtraMounts)

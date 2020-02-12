@@ -20,6 +20,8 @@ jobs:
       - run: ./test/run_tests.sh e2e-test
       - store_test_results:
           path: reports/
+      - store_artifacts:
+          path: kind-logs.tar.bz2
 
   lint:
     docker:
@@ -31,6 +33,7 @@ jobs:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
       - run: make lint
+      - run: ./hack/verify-generate.sh
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:

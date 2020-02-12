@@ -15,8 +15,9 @@ provide a list of parameters from a remote operator given a url or repository al
 `
 
 const packageExamples = `  kubectl kudo package create [operator folder]
-  kubectl kudo package params list [operator]
+  kubectl kudo package list parameters [operator]
   kubectl kudo package verify [operator]
+  kubectl kudo package add [subcommand]
 `
 
 // newPackageCmd for operator commands such as packaging an operator or retrieving it's parameters
@@ -28,7 +29,9 @@ func newPackageCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 		Example: packageExamples,
 	}
 
+	cmd.AddCommand(newPackageAddCmd(fs, out))
 	cmd.AddCommand(newPackageCreateCmd(fs, out))
+	cmd.AddCommand(newPackageNewCmd(fs, out))
 	cmd.AddCommand(newPackageParamsCmd(fs, out))
 	cmd.AddCommand(newPackageVerifyCmd(fs, out))
 

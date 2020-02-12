@@ -47,8 +47,7 @@ func TestUpdate(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"controller-tools.k8s.io": "1.0",
-				util.OperatorLabel:        "test",
+				util.OperatorLabel: "test",
 			},
 			Name: "test",
 		},
@@ -84,7 +83,7 @@ func TestUpdate(t *testing.T) {
 				t.Errorf("%s: expected error '%s' but got '%v'", tt.name, tt.errMessageContains, err)
 			}
 		} else if tt.errMessageContains != "" {
-			t.Errorf("%s: expected no error but got %v", tt.name, err)
+			t.Errorf("%s: expected error '%s' but got nil", tt.name, tt.errMessageContains)
 		} else {
 			// the upgrade should have passed without error
 			instance, err := c.GetInstance(testInstance.Name, installNamespace)

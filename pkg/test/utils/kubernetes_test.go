@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
 )
 
 func TestNamespaced(t *testing.T) {
@@ -46,6 +46,8 @@ func TestNamespaced(t *testing.T) {
 			shouldError: true,
 		},
 	} {
+		test := test
+
 		t.Run(test.testName, func(t *testing.T) {
 			m, _ := meta.Accessor(test.resource)
 
@@ -403,8 +405,10 @@ func TestGetKubectlArgs(t *testing.T) {
 			},
 		},
 	} {
+		test := test
+
 		t.Run(test.testName, func(t *testing.T) {
-			cmd, err := GetArgs(context.TODO(), "kubectl", kudo.Command{
+			cmd, err := GetArgs(context.TODO(), "kubectl", harness.Command{
 				Command:    test.args,
 				Namespaced: true,
 			}, test.namespace)

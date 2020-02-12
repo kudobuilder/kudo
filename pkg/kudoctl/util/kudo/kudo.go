@@ -10,20 +10,22 @@ import (
 	v1core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
-
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	kudoinit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
-	"github.com/kudobuilder/kudo/pkg/version"
 
 	// Import Kubernetes authentication providers to support GKE, etc.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
+	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/scheme"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/version"
 )
 
 // Client is a KUDO Client providing access to a clientset
@@ -48,7 +50,7 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 		return nil, clog.Errorf("could not get Kubernetes client: %s", err)
 	}
 
-	err = kudoinit.CRDs().ValidateInstallation(kubeClient)
+	err = crd.NewInitializer().ValidateInstallation(kubeClient)
 	if err != nil {
 		// see above
 		if os.IsTimeout(err) {
@@ -101,7 +103,6 @@ func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 //    		creationTimestamp: "2019-02-28T14:39:20Z"
 //    		generation: 1
 //    		labels:
-//      		controller-tools.k8s.io: "1.0"
 //      		kudo.dev/operator: kafka
 // This function also just returns true if the Instance matches a specific OperatorVersion of an Operator
 func (c *Client) InstanceExistsInCluster(operatorName, namespace, version, instanceName string) (bool, error) {
@@ -128,6 +129,22 @@ func (c *Client) InstanceExistsInCluster(operatorName, namespace, version, insta
 	return true, nil
 }
 
+// Populate the GVK from scheme, since it is cleared by design on typed objects.
+// https://github.com/kubernetes/client-go/issues/413
+func setGVKFromScheme(object runtime.Object) error {
+	gvks, unversioned, err := scheme.Scheme.ObjectKinds(object)
+	if err != nil {
+		return err
+	}
+	if len(gvks) == 0 {
+		return fmt.Errorf("no ObjectKinds available for %T", object)
+	}
+	if !unversioned {
+		object.GetObjectKind().SetGroupVersionKind(gvks[0])
+	}
+	return nil
+}
+
 // GetInstance queries kubernetes api for instance of given name in given namespace
 // returns error for error conditions. Instance not found is not considered an error and will result in 'nil, nil'
 func (c *Client) GetInstance(name, namespace string) (*v1beta1.Instance, error) {
@@ -135,6 +152,10 @@ func (c *Client) GetInstance(name, namespace string) (*v1beta1.Instance, error) 
 	if apierrors.IsNotFound(err) {
 		return nil, nil
 	}
+	if err != nil {
+		return instance, err
+	}
+	err = setGVKFromScheme(instance)
 	return instance, err
 }
 
@@ -145,6 +166,10 @@ func (c *Client) GetOperatorVersion(name, namespace string) (*v1beta1.OperatorVe
 	if apierrors.IsNotFound(err) {
 		return nil, nil
 	}
+	if err != nil {
+		return ov, err
+	}
+	err = setGVKFromScheme(ov)
 	return ov, err
 }
 
@@ -281,7 +306,7 @@ func (c *Client) ValidateServerForOperator(operator *v1beta1.Operator) error {
 }
 
 // getKubeVersion returns stringified version of k8s server
-func getKubeVersion(client discovery.DiscoveryInterface) (string, error) {
+func getKubeVersion(client discovery.ServerVersionInterface) (string, error) {
 	v, err := client.ServerVersion()
 	if err != nil {
 		return "", err

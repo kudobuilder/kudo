@@ -1,8 +1,8 @@
 package test
 
 import (
+	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -14,6 +14,7 @@ import (
 
 	volumetypes "github.com/docker/docker/api/types/volume"
 	docker "github.com/docker/docker/client"
+	yaml "gopkg.in/yaml.v2"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -22,32 +23,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	kindConfig "sigs.k8s.io/kind/pkg/apis/config/v1alpha3"
-	kind "sigs.k8s.io/kind/pkg/cluster"
-	kindCreate "sigs.k8s.io/kind/pkg/cluster/create"
-	"sigs.k8s.io/kind/pkg/container/cri"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
 	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
 // Harness loads and runs tests based on the configuration provided.
 type Harness struct {
-	TestSuite kudo.TestSuite
+	TestSuite harness.TestSuite
 	T         *testing.T
 
-	logger        testutils.Logger
-	managerStopCh chan struct{}
-	config        *rest.Config
-	docker        testutils.DockerClient
-	client        client.Client
-	dclient       discovery.DiscoveryInterface
-	env           *envtest.Environment
-	kind          *kind.Context
-	clientLock    sync.Mutex
-	configLock    sync.Mutex
+	logger         testutils.Logger
+	managerStopCh  chan struct{}
+	config         *rest.Config
+	docker         testutils.DockerClient
+	client         client.Client
+	dclient        discovery.DiscoveryInterface
+	env            *envtest.Environment
+	kind           *kind
+	kubeConfigPath string
+	clientLock     sync.Mutex
+	configLock     sync.Mutex
 }
 
 // LoadTests loads all of the tests in a given directory.
@@ -104,62 +104,57 @@ func (h *Harness) GetTimeout() int {
 
 // RunKIND starts a KIND cluster.
 func (h *Harness) RunKIND() (*rest.Config, error) {
-	contexts, err := kind.List()
-	if err != nil {
-		return nil, err
-	}
+	if h.kind == nil {
+		var err error
 
-	for index := range contexts {
-		if contexts[index].Name() != h.TestSuite.KINDContext {
-			continue
+		h.kubeConfigPath, err = ioutil.TempDir("", "kudo")
+		if err != nil {
+			return nil, err
 		}
 
-		h.kind = &contexts[index]
-		break
-	}
+		kind := newKind(h.TestSuite.KINDContext, h.explicitPath())
+		h.kind = &kind
 
-	if h.kind == nil {
-		h.kind = kind.NewContext(h.TestSuite.KINDContext)
+		if h.kind.IsRunning() {
+			return clientcmd.BuildConfigFromFlags("", h.explicitPath())
+		}
 
 		kindCfg := &kindConfig.Cluster{}
 
 		if h.TestSuite.KINDConfig != "" {
-			objs, err := testutils.LoadYAML(h.TestSuite.KINDConfig)
+			var err error
+			kindCfg, err = loadKindConfig(h.TestSuite.KINDConfig)
 			if err != nil {
 				return nil, err
 			}
-
-			var ok bool
-			kindCfg, ok = objs[0].(*kindConfig.Cluster)
-			if !ok {
-				return nil, errors.New("kind configuration contains invalid kind config file")
-			}
 		}
 
-		if err := h.addNodeCaches(kindCfg); err != nil {
+		dockerClient, err := h.DockerClient()
+		if err != nil {
 			return nil, err
 		}
 
-		if err := h.kind.Create(kindCreate.WithV1Alpha3(kindCfg)); err != nil {
+		// Determine the correct API version to use with the user's Docker client.
+		dockerClient.NegotiateAPIVersion(context.TODO())
+
+		h.addNodeCaches(dockerClient, kindCfg)
+
+		if err := h.kind.Run(kindCfg); err != nil {
+			return nil, err
+		}
+
+		if err := h.kind.AddContainers(dockerClient, h.TestSuite.KINDContainers); err != nil {
 			return nil, err
 		}
 	}
 
-	return clientcmd.BuildConfigFromFlags("", h.kind.KubeConfigPath())
+	return clientcmd.BuildConfigFromFlags("", h.explicitPath())
 }
 
-func (h *Harness) addNodeCaches(kindCfg *kindConfig.Cluster) error {
+func (h *Harness) addNodeCaches(dockerClient testutils.DockerClient, kindCfg *kindConfig.Cluster) {
 	if !h.TestSuite.KINDNodeCache {
-		return nil
+		return
 	}
-
-	dockerClient, err := h.DockerClient()
-	if err != nil {
-		return err
-	}
-
-	// Determine the correct API version to use with the user's Docker client.
-	dockerClient.NegotiateAPIVersion(context.TODO())
 
 	// add a default node if there are none specified.
 	if len(kindCfg.Nodes) == 0 {
@@ -167,7 +162,7 @@ func (h *Harness) addNodeCaches(kindCfg *kindConfig.Cluster) error {
 	}
 
 	if h.TestSuite.KINDContext == "" {
-		h.TestSuite.KINDContext = kudo.DefaultKINDContext
+		h.TestSuite.KINDContext = harness.DefaultKINDContext
 	}
 
 	for index := range kindCfg.Nodes {
@@ -181,13 +176,11 @@ func (h *Harness) addNodeCaches(kindCfg *kindConfig.Cluster) error {
 		}
 
 		h.T.Log("node mount point", volume.Mountpoint)
-		kindCfg.Nodes[index].ExtraMounts = append(kindCfg.Nodes[index].ExtraMounts, cri.Mount{
+		kindCfg.Nodes[index].ExtraMounts = append(kindCfg.Nodes[index].ExtraMounts, kindConfig.Mount{
 			ContainerPath: "/var/lib/containerd",
 			HostPath:      volume.Mountpoint,
 		})
 	}
-
-	return nil
 }
 
 // RunTestEnv starts a Kubernetes API server and etcd server for use in the
@@ -279,9 +272,11 @@ func (h *Harness) RunKUDO() error {
 
 	h.logger.Log("Setting up instance controller")
 	err = (&instance.Reconciler{
-		Client:   mgr.GetClient(),
-		Recorder: mgr.GetEventRecorderFor("instance-controller"),
-		Scheme:   mgr.GetScheme(),
+		Client:    mgr.GetClient(),
+		Config:    mgr.GetConfig(),
+		Recorder:  mgr.GetEventRecorderFor("instance-controller"),
+		Discovery: h.dclient,
+		Scheme:    mgr.GetScheme(),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		h.logger.Log(err, "unable to register instance controller to the manager")
@@ -291,7 +286,7 @@ func (h *Harness) RunKUDO() error {
 	h.managerStopCh = make(chan struct{})
 	go func(stopCh chan struct{}) {
 		if err := mgr.Start(stopCh); err != nil {
-			fmt.Printf("failed to start the manager")
+			clog.Printf("failed to start the manager: %v", err)
 			os.Exit(-1)
 		}
 	}(h.managerStopCh)
@@ -363,6 +358,8 @@ func (h *Harness) RunTests() {
 
 	h.T.Run("harness", func(t *testing.T) {
 		for _, test := range tests {
+			test := test
+
 			test.Client = h.Client
 			test.DiscoveryClient = h.DiscoveryClient
 
@@ -475,10 +472,36 @@ func (h *Harness) Stop() {
 
 	if h.kind != nil {
 		h.T.Log("tearing down kind cluster")
-		if err := h.kind.Delete(); err != nil {
+		if err := h.kind.Stop(); err != nil {
 			h.T.Log("error tearing down kind cluster", err)
+		}
+
+		if err := os.RemoveAll(h.kubeConfigPath); err != nil {
+			h.T.Log("error removing temporary directory", err)
 		}
 
 		h.kind = nil
 	}
+}
+
+func (h *Harness) explicitPath() string {
+	return filepath.Join(h.kubeConfigPath, "kubeconfig")
+}
+
+func loadKindConfig(path string) (*kindConfig.Cluster, error) {
+	raw, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	cluster := &kindConfig.Cluster{}
+
+	decoder := yaml.NewDecoder(bytes.NewReader(raw))
+	decoder.SetStrict(true)
+
+	if err := decoder.Decode(cluster); err != nil {
+		return nil, err
+	}
+
+	return cluster, nil
 }

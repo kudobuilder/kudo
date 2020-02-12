@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
@@ -26,7 +26,7 @@ func TestLoadTestSteps(t *testing.T) {
 				{
 					Name:  "with-test-step-name-override",
 					Index: 0,
-					Step: &kudo.TestStep{
+					Step: &harness.TestStep{
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "with-test-step-name-override",
 						},
@@ -57,13 +57,13 @@ func TestLoadTestSteps(t *testing.T) {
 				{
 					Name:  "test-assert",
 					Index: 1,
-					Step: &kudo.TestStep{
+					Step: &harness.TestStep{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "TestStep",
 							APIVersion: "kudo.dev/v1beta1",
 						},
 						Index: 1,
-						Delete: []kudo.ObjectReference{
+						Delete: []harness.ObjectReference{
 							{
 								ObjectReference: corev1.ObjectReference{
 									APIVersion: "v1",
@@ -73,7 +73,7 @@ func TestLoadTestSteps(t *testing.T) {
 							},
 						},
 					},
-					Assert: &kudo.TestAssert{
+					Assert: &harness.TestAssert{
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "TestAssert",
 							APIVersion: "kudo.dev/v1beta1",
@@ -129,7 +129,7 @@ func TestLoadTestSteps(t *testing.T) {
 				{
 					Name:  "name-overridden",
 					Index: 3,
-					Step: &kudo.TestStep{
+					Step: &harness.TestStep{
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "name-overridden",
 						},
@@ -222,6 +222,8 @@ func TestLoadTestSteps(t *testing.T) {
 			},
 		},
 	} {
+		tt := tt
+
 		t.Run(tt.path, func(t *testing.T) {
 			test := &Case{Dir: tt.path, Logger: testutils.NewTestLogger(t, tt.path)}
 
@@ -285,6 +287,8 @@ func TestCollectTestStepFiles(t *testing.T) {
 			},
 		},
 	} {
+		tt := tt
+
 		t.Run(tt.path, func(t *testing.T) {
 			test := &Case{Dir: tt.path, Logger: testutils.NewTestLogger(t, tt.path)}
 			testStepFiles, err := test.CollectTestStepFiles()

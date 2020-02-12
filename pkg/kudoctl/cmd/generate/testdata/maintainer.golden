@@ -1,0 +1,53 @@
+apiVersion: kudo.dev/v1beta1
+appVersion: 3.4.10
+kubernetesVersion: 1.15.0
+kudoVersion: 0.2.0
+maintainers:
+- email: avarkockova@mesosphere.com
+  name: Alena Varkockova
+- email: runyontr@gmail.com
+  name: Tom Runyon
+- email: kensipe@gmail.com
+  name: Ken Sipe
+- email: c@hat.com
+  name: Cat in the hat
+name: zookeeper
+operatorVersion: 0.1.0
+plans:
+  deploy:
+    phases:
+    - name: zookeeper
+      steps:
+      - name: everything
+        tasks:
+        - infra
+        - app
+      strategy: parallel
+    strategy: serial
+  validation:
+    phases:
+    - name: connection
+      steps:
+      - name: connection
+        tasks:
+        - validation
+      strategy: parallel
+    strategy: serial
+tasks:
+- kind: Apply
+  name: infra
+  spec:
+    resources:
+    - services.yaml
+    - pdb.yaml
+- kind: Apply
+  name: app
+  spec:
+    resources:
+    - statefulset.yaml
+- kind: Apply
+  name: validation
+  spec:
+    resources:
+    - validation.yaml
+url: https://zookeeper.apache.org/

@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -99,6 +100,6 @@ func update(instanceToUpdate string, kc *kudo.Client, options *updateOptions, se
 	if err != nil {
 		return fmt.Errorf("updating instance %s %w", instanceToUpdate, err)
 	}
-	fmt.Printf("Instance %s was updated.", instanceToUpdate)
+	clog.Printf("Instance %s was updated.", instanceToUpdate)
 	return nil
 }

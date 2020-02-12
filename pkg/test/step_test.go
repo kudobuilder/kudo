@@ -14,19 +14,22 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	kudo "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
 	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
+)
+
+const (
+	testNamespace = "world"
 )
 
 // Verify the test state as loaded from disk.
 // Each test provides a path to a set of test steps and their rendered result.
 func TestStepClean(t *testing.T) {
-	namespace := "world"
 
 	pod := testutils.NewPod("hello", "")
 
-	podWithNamespace := testutils.WithNamespace(pod, namespace)
-	pod2WithNamespace := testutils.NewPod("hello2", namespace)
+	podWithNamespace := testutils.WithNamespace(pod, testNamespace)
+	pod2WithNamespace := testutils.NewPod("hello2", testNamespace)
 	pod2WithDiffNamespace := testutils.NewPod("hello2", "different-namespace")
 
 	cl := fake.NewFakeClient(pod, pod2WithNamespace, pod2WithDiffNamespace)
@@ -39,7 +42,7 @@ func TestStepClean(t *testing.T) {
 		DiscoveryClient: func() (discovery.DiscoveryInterface, error) { return testutils.FakeDiscoveryClient(), nil },
 	}
 
-	assert.Nil(t, step.Clean(namespace))
+	assert.Nil(t, step.Clean(testNamespace))
 
 	assert.True(t, k8serrors.IsNotFound(cl.Get(context.TODO(), testutils.ObjectKey(podWithNamespace), podWithNamespace)))
 	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(pod2WithNamespace), pod2WithNamespace))
@@ -49,17 +52,17 @@ func TestStepClean(t *testing.T) {
 // Verify the test state as loaded from disk.
 // Each test provides a path to a set of test steps and their rendered result.
 func TestStepCreate(t *testing.T) {
-	namespace := "world"
 
 	pod := testutils.NewPod("hello", "")
 	podWithNamespace := testutils.NewPod("hello2", "different-namespace")
 	clusterScopedResource := testutils.NewResource("v1", "Namespace", "my-namespace", "")
-	podToUpdate := testutils.NewPod("update-me", "").(*unstructured.Unstructured)
-	updateToApply := testutils.WithSpec(t, podToUpdate, map[string]interface{}{
-		"replicas": 2,
-	}).(*unstructured.Unstructured)
+	podToUpdate := testutils.NewPod("update-me", "")
+	specToApply := map[string]interface{}{
+		"replicas": int64(2),
+	}
+	updateToApply := testutils.WithSpec(t, podToUpdate, specToApply)
 
-	cl := fake.NewFakeClient(testutils.WithNamespace(podToUpdate, "world"))
+	cl := fake.NewFakeClient(testutils.WithNamespace(podToUpdate, testNamespace))
 
 	step := Step{
 		Logger: testutils.NewTestLogger(t, ""),
@@ -70,33 +73,33 @@ func TestStepCreate(t *testing.T) {
 		DiscoveryClient: func() (discovery.DiscoveryInterface, error) { return testutils.FakeDiscoveryClient(), nil },
 	}
 
-	assert.Equal(t, []error{}, step.Create(namespace))
+	assert.Equal(t, []error{}, step.Create(testNamespace))
 
 	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(pod), pod))
 	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(clusterScopedResource), clusterScopedResource))
 
-	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podToUpdate), podToUpdate))
-	assert.Equal(t, updateToApply.Object["spec"], podToUpdate.Object["spec"])
+	updatedPod := &unstructured.Unstructured{Object: map[string]interface{}{"apiVersion": "v1", "kind": "Pod"}}
+	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podToUpdate), updatedPod))
+	assert.Equal(t, specToApply, updatedPod.Object["spec"])
 
 	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podWithNamespace), podWithNamespace))
-	actual := testutils.NewPod("hello2", namespace)
+	actual := testutils.NewPod("hello2", testNamespace)
 	assert.True(t, k8serrors.IsNotFound(cl.Get(context.TODO(), testutils.ObjectKey(actual), actual)))
 }
 
 // Verify that the DeleteExisting method properly cleans up resources during a test step.
 func TestStepDeleteExisting(t *testing.T) {
-	namespace := "world"
 
-	podToDelete := testutils.NewPod("delete-me", "world")
+	podToDelete := testutils.NewPod("delete-me", testNamespace)
 	podToDeleteDefaultNS := testutils.NewPod("also-delete-me", "default")
-	podToKeep := testutils.NewPod("keep-me", "world")
+	podToKeep := testutils.NewPod("keep-me", testNamespace)
 
 	cl := fake.NewFakeClient(podToDelete, podToKeep, podToDeleteDefaultNS)
 
 	step := Step{
 		Logger: testutils.NewTestLogger(t, ""),
-		Step: &kudo.TestStep{
-			Delete: []kudo.ObjectReference{
+		Step: &harness.TestStep{
+			Delete: []harness.ObjectReference{
 				{
 					ObjectReference: corev1.ObjectReference{
 						Kind:       "Pod",
@@ -122,7 +125,7 @@ func TestStepDeleteExisting(t *testing.T) {
 	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podToDelete), podToDelete))
 	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podToDeleteDefaultNS), podToDeleteDefaultNS))
 
-	assert.Nil(t, step.DeleteExisting(namespace))
+	assert.Nil(t, step.DeleteExisting(testNamespace))
 
 	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podToKeep), podToKeep))
 	assert.True(t, k8serrors.IsNotFound(cl.Get(context.TODO(), testutils.ObjectKey(podToDelete), podToDelete)))
@@ -164,9 +167,11 @@ func TestCheckResource(t *testing.T) {
 			shouldError: true,
 		},
 	} {
+		test := test
+
 		t.Run(test.testName, func(t *testing.T) {
 			fakeDiscovery := testutils.FakeDiscoveryClient()
-			namespace := "world"
+			namespace := testNamespace
 
 			_, _, err := testutils.Namespaced(fakeDiscovery, test.actual, namespace)
 			assert.Nil(t, err)
@@ -212,11 +217,12 @@ func TestCheckResourceAbsent(t *testing.T) {
 			expected: testutils.NewPod("hello", ""),
 		},
 	} {
+		test := test
+
 		t.Run(test.name, func(t *testing.T) {
 			fakeDiscovery := testutils.FakeDiscoveryClient()
-			namespace := "world"
 
-			_, _, err := testutils.Namespaced(fakeDiscovery, test.actual, namespace)
+			_, _, err := testutils.Namespaced(fakeDiscovery, test.actual, testNamespace)
 			assert.Nil(t, err)
 
 			step := Step{
@@ -225,7 +231,7 @@ func TestCheckResourceAbsent(t *testing.T) {
 				DiscoveryClient: func() (discovery.DiscoveryInterface, error) { return fakeDiscovery, nil },
 			}
 
-			error := step.CheckResourceAbsent(test.expected, namespace)
+			error := step.CheckResourceAbsent(test.expected, testNamespace)
 
 			if test.shouldError {
 				assert.NotNil(t, error)
@@ -277,14 +283,16 @@ func TestRun(t *testing.T) {
 				},
 			}, func(t *testing.T, client client.Client) {
 				// mock kubelet to set the pod status
-				assert.Nil(t, client.Update(context.TODO(), testutils.WithStatus(t, testutils.NewPod("hello", "world"), map[string]interface{}{
+				assert.Nil(t, client.Update(context.TODO(), testutils.WithStatus(t, testutils.NewPod("hello", testNamespace), map[string]interface{}{
 					"phase": "Ready",
 				})))
 			},
 		},
 	} {
+		test := test
+
 		t.Run(test.testName, func(t *testing.T) {
-			test.Step.Assert = &kudo.TestAssert{
+			test.Step.Assert = &harness.TestAssert{
 				Timeout: 1,
 			}
 
@@ -303,7 +311,7 @@ func TestRun(t *testing.T) {
 				}()
 			}
 
-			errors := test.Step.Run("world")
+			errors := test.Step.Run(testNamespace)
 
 			if test.shouldError {
 				assert.NotEqual(t, []error{}, errors)

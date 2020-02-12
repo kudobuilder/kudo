@@ -24,9 +24,6 @@ func Test_InstallPackage(t *testing.T) {
 				Kind:       "Operator",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Labels: map[string]string{
-					"controller-tools.k8s.io": "1.0",
-				},
 				Name: "test",
 			},
 			Spec: v1beta1.OperatorSpec{
@@ -40,8 +37,7 @@ func Test_InstallPackage(t *testing.T) {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: map[string]string{
-					"controller-tools.k8s.io": "1.0",
-					"operator":                "test",
+					"operator": "test",
 				},
 				Name: "test",
 			},
@@ -57,9 +53,6 @@ func Test_InstallPackage(t *testing.T) {
 				Kind:       "OperatorVersion",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Labels: map[string]string{
-					"controller-tools.k8s.io": "1.0",
-				},
 				Name: fmt.Sprintf("%s-1.0", "operator"),
 			},
 			Spec: v1beta1.OperatorVersionSpec{
@@ -96,7 +89,7 @@ func Test_InstallPackage(t *testing.T) {
 
 		testResources := resources
 		testResources.OperatorVersion.Spec.Parameters = tt.parameters
-		namespace := "default"
+		namespace := "default" //nolint:goconst
 
 		err := InstallPackage(kc, &testResources, tt.skipInstance, "", namespace, tt.installParameters)
 		if tt.err != "" {

@@ -20,10 +20,15 @@ export GO111MODULE=on
 .PHONY: all
 all: test manager
 
+# Run unit tests
 .PHONY: test
-# Run tests
 test:
+ifdef _INTELLIJ_FORCE_SET_GOFLAGS
+# Run tests from a Goland terminal. Goland already set '-mod=readonly'
+	go test ./pkg/... ./cmd/... -v -coverprofile cover.out
+else
 	go test ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover.out
+endif
 
 # Run e2e tests
 .PHONY: e2e-test
@@ -70,12 +75,12 @@ manager-clean:
 run:
     # for local development, webhooks are disabled by default
     # if you enable them, you have to take care of providing the TLS certs locally
-	ENABLE_WEBHOOKS=${ENABLE_WEBHOOKS} go run -ldflags "${LDFLAGS}" ./cmd/manager/main.go
+	ENABLE_WEBHOOKS=${ENABLE_WEBHOOKS} go run -ldflags "${LDFLAGS}" ./cmd/manager
 
 .PHONY: deploy
 # Install KUDO into a cluster via kubectl kudo init
 deploy:
-	go run -ldflags "${LDFLAGS}" cmd/kubectl-kudo/main.go init
+	go run -ldflags "${LDFLAGS}" ./cmd/kubectl-kudo init
 
 .PHONY: deploy-clean
 deploy-clean:
@@ -84,6 +89,14 @@ deploy-clean:
 .PHONY: generate
 # Generate code
 generate:
+ifeq (, $(shell which controller-gen))
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@$$(go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools)
+endif
+	controller-gen crd paths=./pkg/apis/... output:crd:dir=config/crds output:stdout
+ifeq (, $(shell which go-bindata))
+	go get github.com/go-bindata/go-bindata/go-bindata@$$(go list -f '{{.Version}}' -m github.com/go-bindata/go-bindata)
+endif
+	go-bindata -pkg crd -o pkg/kudoctl/kudoinit/crd/bindata.go -ignore README.md -nometadata config/crds
 	./hack/update_codegen.sh
 
 .PHONY: generate-clean
@@ -93,7 +106,7 @@ generate-clean:
 .PHONY: cli-fast
 # Build CLI but don't lint or run code generation first.
 cli-fast:
-	go build -ldflags "${LDFLAGS}" -o bin/${CLI} cmd/kubectl-kudo/main.go
+	go build -ldflags "${LDFLAGS}" -o bin/${CLI} ./cmd/kubectl-kudo
 
 .PHONY: cli
 # Build CLI
@@ -115,9 +128,7 @@ clean:  cli-clean test-clean manager-clean deploy-clean
 .PHONY: docker-build
 # Build the docker image
 docker-build: generate lint
-	docker build --build-arg git_version_arg=${GIT_VERSION_PATH}=v${GIT_VERSION} \
-	--build-arg git_commit_arg=${GIT_COMMIT_PATH}=${GIT_COMMIT} \
-	--build-arg build_date_arg=${BUILD_DATE_PATH}=${BUILD_DATE} . -t ${DOCKER_IMG}:${DOCKER_TAG}
+	docker build --build-arg ldflags_arg="${LDFLAGS}" . -t ${DOCKER_IMG}:${DOCKER_TAG}
 	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:v${GIT_VERSION}
 	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:latest
 
@@ -131,7 +142,10 @@ docker-push:
 .PHONY: imports
 # used to update imports on project.  NOT a linter.
 imports:
-	goimports --local github.com/kudobuilder -w .
+ifeq (, $(shell which golangci-lint))
+	./hack/install-golangcilint.sh
+endif
+	golangci-lint run --disable-all -E goimports --fix
 
 .PHONY: todo
 # Show to-do items per file.

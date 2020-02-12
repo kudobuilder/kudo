@@ -31,7 +31,7 @@ func render(resourceNames []string, ctx Context) (map[string]string, error) {
 			return nil, fmt.Errorf("error finding resource named %s", rn)
 		}
 
-		rendered, err := engine.Render(resource, configs)
+		rendered, err := engine.Render(rn, resource, configs)
 		if err != nil {
 			return nil, fmt.Errorf("error expanding template %s: %w", rn, err)
 		}
@@ -41,9 +41,9 @@ func render(resourceNames []string, ctx Context) (map[string]string, error) {
 	return resources, nil
 }
 
-// kustomize method takes a slice of rendered templates, applies conventions using Enhancer and
+// enhance method takes a slice of rendered templates, applies conventions using Enhancer and
 // returns a slice of k8s objects.
-func kustomize(rendered map[string]string, meta renderer.Metadata, enhancer renderer.Enhancer) ([]runtime.Object, error) {
+func enhance(rendered map[string]string, meta renderer.Metadata, enhancer renderer.Enhancer) ([]runtime.Object, error) {
 	enhanced, err := enhancer.Apply(rendered, meta)
 	return enhanced, err
 }

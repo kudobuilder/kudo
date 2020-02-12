@@ -19,15 +19,14 @@ package v1beta1
 import (
 	time "time"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	runtime "k8s.io/apimachinery/pkg/runtime"
-	watch "k8s.io/apimachinery/pkg/watch"
-	cache "k8s.io/client-go/tools/cache"
-
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	versioned "github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
 	internalinterfaces "github.com/kudobuilder/kudo/pkg/client/informers/externalversions/internalinterfaces"
 	v1beta1 "github.com/kudobuilder/kudo/pkg/client/listers/kudo/v1beta1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	watch "k8s.io/apimachinery/pkg/watch"
+	cache "k8s.io/client-go/tools/cache"
 )
 
 // InstanceInformer provides access to a shared informer and lister for

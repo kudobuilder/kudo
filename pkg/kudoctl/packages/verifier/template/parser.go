@@ -40,7 +40,7 @@ func getNodeMap(ts packages.Templates) nodeMap {
 			continue
 		}
 
-		//nodeMap is a map of node types ("Implicits", "Params") to a set of that type (which is go is a map :))
+		// nodeMap is a map of node types ("Implicits", "Params") to a set of that type (which in go is a map :))
 		nodeMap := map[string]map[string]bool{}
 		walkNodes(tplate.Root, fname, nodeMap)
 
@@ -78,7 +78,7 @@ All other Node types are not supported at this time.
 
 // walkNodes walks the nodes of a template providing an array of parameters
 // this function makes heavy use and deep understanding of Go Templating.   The details for
-// different types of nodes and how they are parse is in `parse.Node`.
+// different types of nodes and how they are parsed is in `parse.Node`.
 func walkNodes(node parse.Node, fname string, nodeMap map[string]map[string]bool) {
 	switch node := node.(type) {
 	case *parse.ActionNode:
@@ -109,11 +109,12 @@ func walkNodes(node parse.Node, fname string, nodeMap map[string]map[string]bool
 
 /*
  Regarding template node parsing.  The underlying field information of a node (for instances it's text) is packaged as
-args to commands (please review more in parse.Nodes in the go core for more detail).  The arg type we are interested in is FieldNodes
-which in the template could be {{.Name}}, {{.Params.Name}} or {{.Params.Foo.Bar}}.   It is at this point in processing (below switch case parse.FieldNode)
-that we know must the type of field we are processing.   The number of dot separated strings is the "Ident" of this field.  If an "Ident" of 0 is possible
+args to commands (please review more in parse.Nodes in the go core for more detail).  The arg types we are interested in is FieldNodes
+which in the template could be {{.Name}}, {{.Params.Name}} or {{.Params.Foo.Bar}} and VariableNodes, but only those where the variable
+name is empty (i.e. {{$.Name}} or {{$.Params.Name}}. It is at this point in processing (below switch case parse.FieldNode)
+that we know must be the type of field we are processing.   The number of dot separated strings is the "Ident" of this field.  If an "Ident" of 0 is possible
 it isn't useful to KUDO.  If there is 1, that is an implicit field and will be mapped as an implicit.  If there are 2 it is something like
-{{.Params.Foo}} or {{.Pipes.Foo}} and will be mapped with it's kind.   Greater than 2 is not supported in KUDO.
+{{.Params.Foo}} or {{.Pipes.Foo}} and will be mapped with its kind.   Greater than 2 is not supported in KUDO.
 */
 
 // walkPipes walks the pipes of specific block types which may contain params
@@ -126,15 +127,35 @@ func walkPipes(node *parse.PipeNode, nodeMap map[string]map[string]bool) {
 				if len(n.Ident) < 1 {
 					return
 				}
-				//implicits have .Name which has 1 Indent
+				// implicits have .Name which has 1 Ident
 				if len(n.Ident) == 1 {
 					addNodeSliceMap(nodeMap, "Implicits", trimNodeValue(arg.String()))
 					return
 				}
-				//	others like .Params.Foo  are deeper.   We currently only support 1 deep.
+				// others like .Params.Foo  are deeper. We currently only support 1 deep.
 				// .Params or similar is the key
 				addNodeSliceMap(nodeMap, n.Ident[0], n.Ident[1])
 				if len(n.Ident) > 2 {
+					clog.V(3).Printf("template node %v has more elements than is supported", arg.String())
+				}
+			case *parse.VariableNode:
+				// not evaluated
+				if len(n.Ident) < 2 {
+					return
+				}
+				if n.Ident[0] != "$" {
+					clog.V(3).Printf("template node %v refers to a user variable", arg.String())
+					return
+				}
+				// implicits have $.Name which has 2 Idents
+				if len(n.Ident) == 2 {
+					addNodeSliceMap(nodeMap, "Implicits", n.Ident[1])
+					return
+				}
+				// others like $.Params.Foo  are deeper. We currently only support 1 deep.
+				// .Params or similar is the key
+				addNodeSliceMap(nodeMap, n.Ident[1], n.Ident[2])
+				if len(n.Ident) > 3 {
 					clog.V(3).Printf("template node %v has more elements than is supported", arg.String())
 				}
 			}

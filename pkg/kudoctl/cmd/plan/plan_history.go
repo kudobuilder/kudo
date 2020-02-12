@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/xlab/treeprint"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 )
 
@@ -41,7 +42,7 @@ func planHistory(options *Options, settings *env.Settings) error {
 
 	kc, err := env.GetClient(settings)
 	if err != nil {
-		fmt.Printf("Unable to create kudo client to talk to kubernetes API server %v", err)
+		clog.Printf("Unable to create KUDO client to talk to kubernetes API server: %v", err)
 		return err
 	}
 	instance, err := kc.GetInstance(options.Instance, namespace)
@@ -49,7 +50,7 @@ func planHistory(options *Options, settings *env.Settings) error {
 		return err
 	}
 	if instance == nil {
-		return fmt.Errorf("instance %s/%s does not exist", namespace, options.Instance)
+		return clog.Errorf("instance %s/%s does not exist", namespace, options.Instance)
 	}
 
 	tree := treeprint.New()
@@ -58,7 +59,7 @@ func planHistory(options *Options, settings *env.Settings) error {
 	for _, p := range instance.Status.PlanStatus {
 		msg := "never run" // this is for the cases when status was not yet populated
 
-		if !p.LastFinishedRun.IsZero() { // plan already finished
+		if p.LastFinishedRun != nil && !p.LastFinishedRun.IsZero() { // plan already finished
 			t := p.LastFinishedRun.Format(timeLayout)
 			msg = fmt.Sprintf("last finished run at %s (%s)", t, string(p.Status))
 		} else if p.Status.IsRunning() {

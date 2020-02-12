@@ -1,8 +1,7 @@
 # Create an OperatorVersion with a parameter without a trigger and without an
 # `update` plan.
 #
-# The next step will update the parameter and verify that it triggers the creation
-# of a `PlanExecution` for the `deploy` plan.
+# The next step will update the parameter and verify that it triggers plan execution for the `deploy` plan.
 apiVersion: kudo.dev/v1beta1
 kind: OperatorVersion
 metadata:
@@ -15,7 +14,7 @@ spec:
   parameters:
   - name: foo
   plans:
-    deploy:
+    deploy: {}
 ---
 apiVersion: kudo.dev/v1beta1
 kind: Instance

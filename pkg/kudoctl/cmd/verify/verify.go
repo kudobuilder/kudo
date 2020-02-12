@@ -6,14 +6,21 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/plan"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/template"
+	"github.com/kudobuilder/kudo/pkg/version"
 )
 
 var verifiers = []verifier.PackageVerifier{
 	DuplicateVerifier{},
 	InvalidCharVerifier{";,"},
+	K8sVersionVerifier{},
+	task.ReferenceVerifier{},
+	plan.ReferenceVerifier{},
 	template.ParametersVerifier{},
 	template.ReferenceVerifier{},
+	template.RenderVerifier{},
 }
 
 // PackageFiles verifies operator package files
@@ -55,6 +62,24 @@ func (v InvalidCharVerifier) Verify(pf *packages.Files) verifier.Result {
 			}
 		}
 
+	}
+
+	return res
+}
+
+// K8sVersionVerifier verifies the kubernetesVersion of operator.yaml
+type K8sVersionVerifier struct{}
+
+func (K8sVersionVerifier) Verify(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
+	if pf.Operator == nil {
+		res.AddErrors("Operator not defined.")
+		return res
+	}
+	_, err := version.New(pf.Operator.KubernetesVersion)
+	if err != nil {
+		res.AddErrors(fmt.Sprintf("Unable to parse operators kubernetes version: %v", err))
+		return res
 	}
 
 	return res

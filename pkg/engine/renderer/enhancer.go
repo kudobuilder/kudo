@@ -3,25 +3,17 @@ package renderer
 import (
 	"fmt"
 	"log"
+	"strings"
 
-	"gopkg.in/yaml.v2"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/kustomize/k8sdeps/kunstruct"
-	"sigs.k8s.io/kustomize/k8sdeps/transformer"
-	"sigs.k8s.io/kustomize/pkg/fs"
-	"sigs.k8s.io/kustomize/pkg/loader"
-	apipatch "sigs.k8s.io/kustomize/pkg/patch"
-	"sigs.k8s.io/kustomize/pkg/resmap"
-	"sigs.k8s.io/kustomize/pkg/resource"
-	"sigs.k8s.io/kustomize/pkg/target"
-	ktypes "sigs.k8s.io/kustomize/pkg/types"
 
+	"github.com/kudobuilder/kudo/pkg/engine/resource"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
-
-const basePath = "/kustomize"
 
 // Enhancer takes your kubernetes template and kudo related Metadata and applies them to all resources in form of labels
 // and annotations
@@ -30,100 +22,169 @@ type Enhancer interface {
 	Apply(templates map[string]string, metadata Metadata) ([]runtime.Object, error)
 }
 
-// KustomizeEnhancer is implementation of Enhancer that uses kustomize to apply the defined conventions
-type KustomizeEnhancer struct {
-	Scheme *runtime.Scheme
+// DefaultEnhancer is implementation of Enhancer that applies the defined conventions by directly editing runtime.Objects (Unstructured).
+type DefaultEnhancer struct {
+	Scheme    *runtime.Scheme
+	Discovery discovery.DiscoveryInterface
 }
 
 // Apply accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
-func (k *KustomizeEnhancer) Apply(templates map[string]string, metadata Metadata) (objsToAdd []runtime.Object, err error) {
-	fsys := fs.MakeFakeFS()
+func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) (objsToAdd []runtime.Object, err error) {
+	objs := make([]runtime.Object, 0, len(templates))
 
-	templateNames := make([]string, 0, len(templates))
-
-	for k, v := range templates {
-		templateNames = append(templateNames, k)
-		err := fsys.WriteFile(fmt.Sprintf("%s/%s", basePath, k), []byte(v))
+	for _, v := range templates {
+		parsed, err := YamlToObject(v)
 		if err != nil {
-			return nil, fmt.Errorf("error when writing templates to filesystem before applying kustomize: %w", err)
+			return nil, fmt.Errorf("parsing YAML failed: %v", err)
+		}
+		for _, obj := range parsed {
+			unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+			if err != nil {
+				return nil, fmt.Errorf("converting to unstructured failed: %v", err)
+			}
+
+			if err = addLabels(unstructMap, metadata); err != nil {
+				return nil, fmt.Errorf("adding labels on parsed object: %v", err)
+			}
+			if err = addAnnotations(unstructMap, metadata); err != nil {
+				return nil, fmt.Errorf("adding annotations on parsed object %s: %v", obj.GetObjectKind(), err)
+			}
+
+			objUnstructured := &unstructured.Unstructured{Object: unstructMap}
+
+			isNamespaced, err := resource.IsNamespacedObject(obj, de.Discovery)
+			if err != nil {
+				return nil, fmt.Errorf("failed to determine if object %s is namespaced: %v", obj.GetObjectKind(), err)
+			}
+
+			// Note: Cross-namespace owner references are disallowed by design. This means:
+			// 1) Namespace-scoped dependents can only specify owners in the same namespace, and owners that are cluster-scoped.
+			// 2) Cluster-scoped dependents can only specify cluster-scoped owners, but not namespace-scoped owners.
+			// More: https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/
+			if isNamespaced {
+				objUnstructured.SetNamespace(metadata.InstanceNamespace)
+				if err = setControllerReference(metadata.ResourcesOwner, objUnstructured, de.Scheme); err != nil {
+					return nil, fmt.Errorf("setting controller reference on parsed object %s: %v", obj.GetObjectKind(), err)
+				}
+			}
+
+			// This is pretty important, if we don't convert it back to the original type everything will be Unstructured.
+			// We depend on types later on in the processing e.g. when evaluating health.
+			// Additionally, as we add annotations and labels to all possible paths, this step gets rid of anything
+			// that doesn't belong to the specific object type.
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(objUnstructured.UnstructuredContent(), obj)
+			if err != nil {
+				return nil, fmt.Errorf("converting from unstructured failed: %v", err)
+			}
+			objs = append(objs, obj)
 		}
 	}
 
-	kustomization := &ktypes.Kustomization{
-		Namespace: metadata.InstanceNamespace,
-		CommonLabels: map[string]string{
-			kudo.HeritageLabel: "kudo",
-			kudo.OperatorLabel: metadata.OperatorName,
-			kudo.InstanceLabel: metadata.InstanceName,
-		},
-		CommonAnnotations: map[string]string{
-			kudo.PlanAnnotation:            metadata.PlanName,
-			kudo.PhaseAnnotation:           metadata.PhaseName,
-			kudo.StepAnnotation:            metadata.StepName,
-			kudo.OperatorVersionAnnotation: metadata.OperatorVersion,
-			kudo.PlanUIDAnnotation:         string(metadata.PlanUID),
-		},
-		GeneratorOptions: &ktypes.GeneratorOptions{
-			DisableNameSuffixHash: true,
-		},
-		Resources:             templateNames,
-		PatchesStrategicMerge: []apipatch.StrategicMerge{},
-	}
-
-	yamlBytes, err := yaml.Marshal(kustomization)
-	if err != nil {
-		return nil, fmt.Errorf("error marshalling kustomize yaml: %w", err)
-	}
-
-	err = fsys.WriteFile(fmt.Sprintf("%s/kustomization.yaml", basePath), yamlBytes)
-	if err != nil {
-		return nil, fmt.Errorf("error writing kustomization.yaml file: %w", err)
-	}
-
-	ldr, err := loader.NewLoader(basePath, fsys)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if ferr := ldr.Cleanup(); ferr != nil {
-			err = ferr
-		}
-	}()
-
-	rf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()))
-	kt, err := target.NewKustTarget(ldr, rf, transformer.NewFactoryImpl())
-	if err != nil {
-		return nil, fmt.Errorf("error creating kustomize target: %w", err)
-	}
-
-	allResources, err := kt.MakeCustomizedResMap()
-	if err != nil {
-		return nil, fmt.Errorf("error creating customized resource map for kustomize: %w", err)
-	}
-
-	res, err := allResources.EncodeAsYaml()
-	if err != nil {
-		return nil, fmt.Errorf("error encoding kustomized files into yaml: %w", err)
-	}
-
-	objsToAdd, err = YamlToObject(string(res))
-	if err != nil {
-		return nil, fmt.Errorf("error parsing kubernetes objects after applying kustomize: %w", err)
-	}
-
-	for _, o := range objsToAdd {
-		err = setControllerReference(metadata.ResourcesOwner, o, k.Scheme)
-		if err != nil {
-			return nil, fmt.Errorf("setting controller reference on parsed object: %w", err)
-		}
-	}
-
-	return objsToAdd, nil
+	return objs, nil
 }
 
-func setControllerReference(owner v1.Object, obj runtime.Object, scheme *runtime.Scheme) error {
-	object := obj.(v1.Object)
+func addLabels(obj map[string]interface{}, metadata Metadata) error {
+	// List of paths for labels from here:
+	// https://github.com/kubernetes-sigs/kustomize/blob/master/api/konfig/builtinpluginconsts/commonlabels.go
+	labelPaths := [][]string{
+		{"metadata", "labels"},
+		{"spec", "template", "metadata", "labels"},
+		{"spec", "volumeClaimTemplates[]", "metadata", "labels"},
+		{"spec", "jobTemplate", "metadata", "labels"},
+		{"spec", "jobTemplate", "spec", "template", "metadata", "labels"},
+	}
+
+	fieldsToAdd := map[string]string{
+		kudo.HeritageLabel: "kudo",
+		kudo.OperatorLabel: metadata.OperatorName,
+		kudo.InstanceLabel: metadata.InstanceName,
+	}
+
+	for _, path := range labelPaths {
+		if err := addMapValues(obj, fieldsToAdd, path...); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func addAnnotations(obj map[string]interface{}, metadata Metadata) error {
+	// List of paths for annotations from here:
+	// https://github.com/kubernetes-sigs/kustomize/blob/master/api/konfig/builtinpluginconsts/commonannotations.go
+	annotationPaths := [][]string{
+		{"metadata", "annotations"},
+		{"spec", "template", "metadata", "annotations"},
+		{"spec", "jobTemplate", "metadata", "annotations"},
+		{"spec", "jobTemplate", "spec", "template", "metadata", "annotations"},
+	}
+
+	fieldsToAdd := map[string]string{
+		kudo.PlanAnnotation:            metadata.PlanName,
+		kudo.PhaseAnnotation:           metadata.PhaseName,
+		kudo.StepAnnotation:            metadata.StepName,
+		kudo.OperatorVersionAnnotation: metadata.OperatorVersion,
+		kudo.PlanUIDAnnotation:         string(metadata.PlanUID),
+	}
+
+	for _, path := range annotationPaths {
+		if err := addMapValues(obj, fieldsToAdd, path...); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func addMapValues(obj map[string]interface{}, fieldsToAdd map[string]string, path ...string) error {
+	for i, p := range path {
+		// If we have an element with a slice in the path, apply the fields to all elements of the
+		// slice with the remaining path
+		if strings.HasSuffix(p, "[]") {
+			sliceField := strings.TrimSuffix(p, "[]")
+
+			subPath := append(path[0:i], sliceField)
+			remainingPath := path[i+1:]
+
+			unstructuredSlice, found, err := unstructured.NestedSlice(obj, subPath...)
+			if !found || err != nil {
+				// We don't return err here, as it just means that path is invalid for this object.
+				// This is ok and does not indicate an error
+				return nil
+			}
+			for _, s := range unstructuredSlice {
+				if sliceMap, ok := s.(map[string]interface{}); ok {
+					if err = addMapValues(sliceMap, fieldsToAdd, remainingPath...); err != nil {
+						return err
+					}
+				}
+			}
+			if err = unstructured.SetNestedSlice(obj, unstructuredSlice, subPath...); err != nil {
+				return err
+			}
+
+			return nil
+		}
+	}
+
+	// Merge added fields to map at specified path
+	stringMap, _, err := unstructured.NestedStringMap(obj, path...)
+	if err != nil {
+		// We don't return err here, as it just means that path is invalid for this object.
+		// This is ok and does not indicate an error
+		return nil
+	}
+	if stringMap == nil {
+		stringMap = make(map[string]string)
+	}
+	for k, v := range fieldsToAdd {
+		stringMap[k] = v
+	}
+	return unstructured.SetNestedStringMap(obj, stringMap, path...)
+}
+
+func setControllerReference(owner v1.Object, object v1.Object, scheme *runtime.Scheme) error {
 	ownerNs := owner.GetNamespace()
 	if ownerNs != "" {
 		objNs := object.GetNamespace()

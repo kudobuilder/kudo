@@ -11,9 +11,10 @@ import (
 	flag "github.com/spf13/pflag"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	cmdInit "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/init"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/setup"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
@@ -133,7 +134,7 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (initCmd *initCmd) run() error {
-	opts := cmdInit.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks))
+	opts := kudoinit.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks))
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image
@@ -142,35 +143,9 @@ func (initCmd *initCmd) run() error {
 	//TODO: implement output=yaml|json (define a type for output to constrain)
 	//define an Encoder to replace YAMLWriter
 	if strings.ToLower(initCmd.output) == "yaml" {
-
-		var manifests []string
-
-		crd, err := cmdInit.CRDs().AsYaml()
+		manifests, err := setup.AsYamlManifests(opts, initCmd.crdOnly)
 		if err != nil {
 			return err
-		}
-		manifests = append(manifests, crd...)
-
-		if !initCmd.crdOnly {
-			prereq, err := cmdInit.PrereqManifests(opts)
-			if err != nil {
-				return err
-			}
-			manifests = append(manifests, prereq...)
-
-			if len(opts.Webhooks) != 0 { // right now there's only 0 or 1 webhook, so this is good enough
-				webhooks, err := cmdInit.WebhookManifests(opts.Namespace)
-				if err != nil {
-					return err
-				}
-				manifests = append(manifests, webhooks...)
-			}
-
-			deploy, err := cmdInit.ManagerManifests(opts)
-			if err != nil {
-				return err
-			}
-			manifests = append(manifests, deploy...)
 		}
 		if err := initCmd.YAMLWriter(initCmd.out, manifests); err != nil {
 			return err
@@ -198,14 +173,14 @@ func (initCmd *initCmd) run() error {
 			initCmd.client = client
 		}
 
-		if err := cmdInit.Install(initCmd.client, opts, initCmd.crdOnly); err != nil {
+		if err := setup.Install(initCmd.client, opts, initCmd.crdOnly); err != nil {
 			return clog.Errorf("error installing: %s", err)
 		}
 
 		if initCmd.wait {
 			clog.Printf("⌛Waiting for KUDO controller to be ready in your cluster...")
-			finished := cmdInit.WatchKUDOUntilReady(initCmd.client.KubeClient, opts, initCmd.timeout)
-			if !finished {
+			err := setup.WatchKUDOUntilReady(initCmd.client.KubeClient, opts, initCmd.timeout)
+			if err != nil {
 				return errors.New("watch timed out, readiness uncertain")
 			}
 		}

@@ -2,12 +2,12 @@ package repo
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
 
 	"github.com/spf13/afero"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
@@ -30,7 +30,7 @@ func mapPaths(fs afero.Fs, paths []string, f func(afero.Fs, string) (*PackageFil
 	for _, path := range paths {
 		op, err := f(fs, path)
 		if err != nil {
-			fmt.Printf("WARNING: operator: %v is invalid", path)
+			clog.Printf("WARNING: operator: %v is invalid", path)
 			continue
 		}
 		ops = append(ops, op)

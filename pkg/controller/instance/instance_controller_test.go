@@ -6,23 +6,55 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/kudobuilder/kudo/pkg/engine/task"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	"github.com/kudobuilder/kudo/pkg/apis"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 const timeout = time.Second * 5
 const tick = time.Millisecond * 500
+
+var cfg *rest.Config
+
+func TestMain(m *testing.M) {
+	t := &envtest.Environment{
+		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crds")},
+	}
+
+	if err := apis.AddToScheme(scheme.Scheme); err != nil {
+		log.Fatal(err)
+	}
+
+	var err error
+	if cfg, err = t.Start(); err != nil {
+		log.Fatal(err)
+	}
+
+	code := m.Run()
+	// t.Stop() returns an error, but since we exit in the next line anyway, it is suppressed
+	t.Stop() //nolint:errcheck
+	os.Exit(code)
+}
 
 func TestRestartController(t *testing.T) {
 	stopMgr, mgrStopped, c := startTestManager(t)
@@ -46,7 +78,7 @@ func TestRestartController(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
 		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.dev/v1beta1"},
 		Spec: v1beta1.OperatorVersionSpec{
-			Plans: map[string]v1beta1.Plan{"deploy": {}, "update": {}},
+			Plans: map[string]v1beta1.Plan{"deploy": {Phases: []v1beta1.Phase{}}, "update": {Phases: []v1beta1.Phase{}}},
 			Parameters: []v1beta1.Parameter{
 				{
 					Name:    "param",
@@ -94,10 +126,16 @@ func instancePlanFinished(key client.ObjectKey, planName string, c client.Client
 func startTestManager(t *testing.T) (chan struct{}, *sync.WaitGroup, client.Client) {
 	mgr, err := manager.New(cfg, manager.Options{})
 	assert.Nil(t, err, "Error when creating manager")
+
+	discoveryClient, err := utils.GetDiscoveryClient(mgr)
+	assert.NoError(t, err, "Error when creating discovery client")
+
 	err = (&Reconciler{
-		Client:   mgr.GetClient(),
-		Recorder: mgr.GetEventRecorderFor("instance-controller"),
-		Scheme:   mgr.GetScheme(),
+		Client:    mgr.GetClient(),
+		Discovery: discoveryClient,
+		Config:    mgr.GetConfig(),
+		Recorder:  mgr.GetEventRecorderFor("instance-controller"),
+		Scheme:    mgr.GetScheme(),
 	}).SetupWithManager(mgr)
 
 	stop := make(chan struct{})
@@ -296,5 +334,56 @@ func Test_makePipes(t *testing.T) {
 
 			assert.Equal(t, tt.want, got)
 		})
+	}
+}
+
+func TestSpecParameterDifference(t *testing.T) {
+	var testParams = []struct {
+		name string
+		new  map[string]string
+		diff map[string]string
+	}{
+		{"update one value", map[string]string{"one": "11", "two": "2"}, map[string]string{"one": "11"}},
+		{"update multiple values", map[string]string{"one": "11", "two": "22"}, map[string]string{"one": "11", "two": "22"}},
+		{"add new value", map[string]string{"one": "1", "two": "2", "three": "3"}, map[string]string{"three": "3"}},
+		{"remove one value", map[string]string{"one": "1"}, map[string]string{"two": "2"}},
+		{"no difference", map[string]string{"one": "1", "two": "2"}, map[string]string{}},
+		{"empty new map", map[string]string{}, map[string]string{"one": "1", "two": "2"}},
+	}
+
+	var old = map[string]string{"one": "1", "two": "2"}
+
+	for _, test := range testParams {
+		diff := v1beta1.ParameterDiff(old, test.new)
+		assert.Equal(t, test.diff, diff)
+	}
+}
+
+func TestEventFilterForDelete(t *testing.T) {
+	var testParams = []struct {
+		name    string
+		allowed bool
+		e       event.DeleteEvent
+	}{
+		{"A Pod without annotations", true, event.DeleteEvent{
+			Meta:               &v1.Pod{},
+			Object:             nil,
+			DeleteStateUnknown: false,
+		}},
+		{"A Pod with pipePod annotation", false, event.DeleteEvent{
+			Meta: &v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{task.PipePodAnnotation: "true"},
+				},
+			},
+			Object:             nil,
+			DeleteStateUnknown: false,
+		}},
+	}
+
+	filter := eventFilter()
+	for _, test := range testParams {
+		diff := filter.Delete(test.e)
+		assert.Equal(t, test.allowed, diff, test.name)
 	}
 }
