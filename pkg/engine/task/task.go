@@ -73,7 +73,7 @@ func Build(task *v1beta1.Task) (Tasker, error) {
 func newApply(task *v1beta1.Task) (Tasker, error) {
 	// validate ApplyTask
 	if len(task.Spec.ResourceTaskSpec.Resources) == 0 {
-		return nil, errors.New("task validation error: apply task has an empty resource list. if that's what you need, use a Dummy task instead")
+		return nil, fmt.Errorf("task validation error: apply task '%s' has an empty resource list. if that's what you need, use a Dummy task instead", task.Name)
 	}
 
 	return ApplyTask{
@@ -85,7 +85,7 @@ func newApply(task *v1beta1.Task) (Tasker, error) {
 func newDelete(task *v1beta1.Task) (Tasker, error) {
 	// validate DeleteTask
 	if len(task.Spec.ResourceTaskSpec.Resources) == 0 {
-		return nil, errors.New("task validation error: delete task has an empty resource list. if that's what you need, use a Dummy task instead")
+		return nil, fmt.Errorf("task validation error: delete task '%s' has an empty resource list. if that's what you need, use a Dummy task instead", task.Name)
 	}
 
 	return DeleteTask{

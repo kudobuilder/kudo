@@ -16,6 +16,7 @@ var verifiers = []verifier.PackageVerifier{
 	DuplicateVerifier{},
 	InvalidCharVerifier{";,"},
 	K8sVersionVerifier{},
+	task.BuildVerifier{},
 	task.ReferenceVerifier{},
 	plan.ReferenceVerifier{},
 	template.ParametersVerifier{},
