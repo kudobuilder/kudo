@@ -51,7 +51,7 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 	}
 
 	// 3. - Apply them using the client -
-	applied, err := apply(enhanced, ctx.Client, ctx.Discovery)
+	applied, err := applyResource(enhanced, ctx.Client, ctx.Discovery)
 	if err != nil {
 		return false, err
 	}
@@ -93,7 +93,7 @@ func addLastAppliedConfigAnnotation(r runtime.Object) error {
 
 // apply method takes a slice of k8s object and applies them using passed client. If an object
 // doesn't exist it will be created. An already existing object will be patched.
-func apply(rr []runtime.Object, c client.Client, di discovery.DiscoveryInterface) ([]runtime.Object, error) {
+func applyResource(rr []runtime.Object, c client.Client, di discovery.DiscoveryInterface) ([]runtime.Object, error) {
 	applied := make([]runtime.Object, 0)
 
 	for _, r := range rr {
@@ -109,7 +109,7 @@ func apply(rr []runtime.Object, c client.Client, di discovery.DiscoveryInterface
 		switch {
 		case apierrors.IsNotFound(err): // create resource if it doesn't exist
 			if err := addLastAppliedConfigAnnotation(r); err != nil {
-				return nil, fmt.Errorf("failed to add last applied config annotation: %v", err)
+				return nil, fmt.Errorf("failed to add last applied config annotation to %s/%s: %w", key.Namespace, key.Name, err)
 			}
 
 			err = c.Create(context.TODO(), r)
@@ -126,9 +126,9 @@ func apply(rr []runtime.Object, c client.Client, di discovery.DiscoveryInterface
 		case err != nil: // raise any error other than StatusReasonNotFound
 			return nil, err
 		default: // update existing resource
-			err := patch(r, existing, c)
+			err := patchResource(r, existing, c)
 			if err != nil {
-				return nil, fmt.Errorf("failed to patch: %v", err)
+				return nil, fmt.Errorf("failed to patch %s/%s: %w", key.Namespace, key.Name, err)
 			}
 			applied = append(applied, r)
 		}
@@ -137,7 +137,7 @@ func apply(rr []runtime.Object, c client.Client, di discovery.DiscoveryInterface
 	return applied, nil
 }
 
-func patch(updatedObj, currentObj runtime.Object, c client.Client) error {
+func patchResource(modifiedObj, currentObj runtime.Object, c client.Client) error {
 
 	// Serialize current configuration
 	current, err := json.Marshal(currentObj)
@@ -152,20 +152,20 @@ func patch(updatedObj, currentObj runtime.Object, c client.Client) error {
 	}
 
 	// Get new (modified) configuration
-	modified, err := getModifiedConfiguration(updatedObj, true, unstructured.UnstructuredJSONScheme)
+	modified, err := getModifiedConfiguration(modifiedObj, true, unstructured.UnstructuredJSONScheme)
 	if err != nil {
 		return fmt.Errorf("failed to get modified config %v", err)
 	}
 
-	// Create the actual patch
+	// Create the actual patchResource
 	var patchData []byte
 	var patchType types.PatchType
-	if useJSONMerge(updatedObj) {
+	if useSimpleThreeWayMerge(modifiedObj) {
 		patchType = types.MergePatchType
-		patchData, err = jsonThreeWayMergePatch(original, modified, current)
+		patchData, err = simpleThreeWayMergePatch(original, modified, current)
 	} else {
 		patchType = types.StrategicMergePatchType
-		patchData, err = strategicThreeWayMergePatch(updatedObj, original, modified, current)
+		patchData, err = strategicThreeWayMergePatch(modifiedObj, original, modified, current)
 	}
 
 	if err != nil {
@@ -173,21 +173,28 @@ func patch(updatedObj, currentObj runtime.Object, c client.Client) error {
 		return fmt.Errorf("failed to create patch: %v", err)
 	}
 
-	// Execute the patch
-	err = c.Patch(context.TODO(), updatedObj, client.ConstantPatch(patchType, patchData))
+	// Execute the patchResource
+	err = c.Patch(context.TODO(), modifiedObj, client.ConstantPatch(patchType, patchData))
 	if err != nil {
 		return fmt.Errorf("failed to execute patch: %v", err)
 	}
 	return nil
 }
 
-func useJSONMerge(newObj runtime.Object) bool {
+func useSimpleThreeWayMerge(newObj runtime.Object) bool {
 	_, isUnstructured := newObj.(runtime.Unstructured)
 	_, isCRD := newObj.(*apiextv1beta1.CustomResourceDefinition)
 	return isUnstructured || isCRD || isKudoType(newObj)
 }
 
-func jsonThreeWayMergePatch(original, modified, current []byte) ([]byte, error) {
+func isKudoType(object runtime.Object) bool {
+	_, isOperator := object.(*v1beta1.OperatorVersion)
+	_, isOperatorVersion := object.(*v1beta1.Operator)
+	_, isInstance := object.(*v1beta1.Instance)
+	return isOperator || isOperatorVersion || isInstance
+}
+
+func simpleThreeWayMergePatch(original, modified, current []byte) ([]byte, error) {
 	preconditions := []mergepatch.PreconditionFunc{
 		mergepatch.RequireKeyUnchanged("apiVersion"),
 		mergepatch.RequireKeyUnchanged("kind"),
@@ -206,7 +213,7 @@ func jsonThreeWayMergePatch(original, modified, current []byte) ([]byte, error) 
 }
 
 func strategicThreeWayMergePatch(r runtime.Object, original, modified, current []byte) ([]byte, error) {
-	// Create the patch
+	// Create the patchResource
 	patchMeta, err := strategicpatch.NewPatchMetaFromStruct(r)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create patch meta %v", err)
@@ -218,13 +225,6 @@ func strategicThreeWayMergePatch(r runtime.Object, original, modified, current [
 	}
 
 	return patchData, nil
-}
-
-func isKudoType(object runtime.Object) bool {
-	_, isOperator := object.(*v1beta1.OperatorVersion)
-	_, isOperatorVersion := object.(*v1beta1.Operator)
-	_, isInstance := object.(*v1beta1.Instance)
-	return isOperator || isOperatorVersion || isInstance
 }
 
 func isHealthy(ro []runtime.Object) error {
