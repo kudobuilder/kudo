@@ -19,6 +19,10 @@ Git has a `-s` command line option to do this automatically.
 
     git commit -s -m 'This is my commit message'
 
+And the following command will make sure you don't need to remember to add the `-s` every time:
+
+    git config --local --add alias.commit "commit -s"
+
 You can find the full text of the DCO here: https://developercertificate.org/
 
 ## Contributing Steps
