@@ -175,7 +175,7 @@ const (
 )
 
 var (
-	ReservedPlanNames = []string{
+	SpecialPlanNames = []string{
 		DeployPlanName,
 		UpgradePlanName,
 		UpdatePlanName,
