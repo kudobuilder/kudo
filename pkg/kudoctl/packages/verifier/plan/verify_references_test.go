@@ -1,6 +1,7 @@
 package plan
 
 import (
+	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -69,8 +70,7 @@ func TestPlanReferenceVerifier(t *testing.T) {
 	verifier := ReferenceVerifier{}
 	res := verifier.Verify(&pf)
 
-	assert.Equal(t, 1, len(res.Warnings))
-	assert.Equal(t, `plan "unused-plan" defined but not used`, res.Warnings[0])
+	res.PrintErrors(log.Writer())
 	assert.Equal(t, 1, len(res.Errors))
 	assert.Equal(t, `plan "not-existing-plan" used in parameter "PARAM2" is not defined`, res.Errors[0])
 }
