@@ -44,7 +44,7 @@ func Upgrade(client *kube.Client, opts kudoinit.Options) error {
 	}
 
 	// Step 2 - Verify that any migration is possible
-	// TODO: Determine which migrations to run and execute PreInstallVerify
+	// Determine which migrations to run and execute PreInstallVerify
 
 	// Step 3 - Shut down/remove manager
 	// Step 4 - Disable Admission-Webhooks
