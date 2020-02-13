@@ -18,11 +18,41 @@ import (
 
 // Validate checks that the current KUDO installation is correct
 func Validate(client *kube.Client, opts kudoinit.Options) error {
+	initSteps := initSteps(opts, false)
+
+	result := verify.NewResult()
+	// Check if all steps are correctly installed
+	for _, initStep := range initSteps {
+		result.Merge(initStep.VerifyInstallation(client))
+	}
+
 	return nil
 }
 
 // Upgrade an existing KUDO installation
 func Upgrade(client *kube.Client, opts kudoinit.Options) error {
+	initSteps := initSteps(opts, false)
+
+	// Step 1 - Verify that installation can be done
+	// Check if all steps are installable
+	result := verify.NewResult()
+	for _, initStep := range initSteps {
+		result.Merge(initStep.PreInstallVerify(client))
+	}
+	if !result.IsValid() {
+		return &result
+	}
+
+	// Step 2 - Verify that any migration is possible
+	// TODO: Determine which migrations to run and execute PreInstallVerify
+
+	// Step 3 - Shut down/remove manager
+	// Step 4 - Disable Admission-Webhooks
+
+	// Step 5 - Execute Migrations
+
+	// Step 6 - Execute Installation/Upgrade (this enables webhooks again and starts new manager
+
 	return nil
 }
 
@@ -61,7 +91,9 @@ func initSteps(opts kudoinit.Options, crdOnly bool) []kudoinit.Step {
 
 	return []kudoinit.Step{
 		crd.NewInitializer(),
-		prereq.NewInitializer(opts),
+		prereq.NewNamespaceInitializer(opts),
+		prereq.NewServiceAccountInitializer(opts),
+		prereq.NewWebHookInitializer(opts),
 		manager.NewInitializer(opts),
 	}
 }

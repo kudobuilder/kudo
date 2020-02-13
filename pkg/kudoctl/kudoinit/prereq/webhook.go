@@ -23,9 +23,9 @@ import (
 )
 
 // Ensure IF is implemented
-var _ k8sResource = &kudoWebHook{}
+var _ kudoinit.Step = &KudoWebHook{}
 
-type kudoWebHook struct {
+type KudoWebHook struct {
 	opts kudoinit.Options
 }
 
@@ -33,20 +33,39 @@ const (
 	certManagerAPIVersion = "v1alpha2"
 )
 
-func newWebHook(options kudoinit.Options) kudoWebHook {
-	return kudoWebHook{
+func NewWebHookInitializer(options kudoinit.Options) KudoWebHook {
+	return KudoWebHook{
 		opts: options,
 	}
 }
 
-func (k kudoWebHook) PreInstallVerify(client *kube.Client) verify.Result {
+func (k KudoWebHook) String() string {
+	return "webhook"
+}
+
+func (k KudoWebHook) PreInstallVerify(client *kube.Client) verify.Result {
 	if !k.opts.HasWebhooksEnabled() {
 		return verify.NewResult()
 	}
 	return validateCertManagerInstallation(client)
 }
 
-func (k kudoWebHook) Install(client *kube.Client) error {
+func (k KudoWebHook) VerifyInstallation(client *kube.Client) verify.Result {
+	if !k.opts.HasWebhooksEnabled() {
+		return verify.NewResult()
+	}
+
+	result := verify.NewResult()
+
+	result.Merge(validateCertManagerInstallation(client))
+
+	// TODO: Verify that cert-manager Issuer and Certificate are installed
+	// TODO: Verify that validating webhook is installed
+
+	return result
+}
+
+func (k KudoWebHook) Install(client *kube.Client) error {
 	if !k.opts.HasWebhooksEnabled() {
 		return nil
 	}
@@ -60,16 +79,7 @@ func (k kudoWebHook) Install(client *kube.Client) error {
 	return nil
 }
 
-func (k kudoWebHook) ValidateInstallation(client *kube.Client) error {
-	if !k.opts.HasWebhooksEnabled() {
-		return nil
-	}
-
-	// TODO: Check installed webhooks, check if cert-manager is installed, etc
-	panic("implement me")
-}
-
-func (k kudoWebHook) AsRuntimeObjs() []runtime.Object {
+func (k KudoWebHook) Resources() []runtime.Object {
 	if !k.opts.HasWebhooksEnabled() {
 		return make([]runtime.Object, 0)
 	}

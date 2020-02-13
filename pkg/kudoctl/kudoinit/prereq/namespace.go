@@ -15,14 +15,25 @@ import (
 )
 
 // Ensure IF is implemented
-var _ k8sResource = &kudoNamespace{}
+var _ kudoinit.Step = &KudoNamespace{}
 
-type kudoNamespace struct {
+type KudoNamespace struct {
 	opts kudoinit.Options
 	ns   *v1.Namespace
 }
 
-func (o kudoNamespace) PreInstallVerify(client *kube.Client) verify.Result {
+func NewNamespaceInitializer(options kudoinit.Options) KudoNamespace {
+	return KudoNamespace{
+		opts: options,
+		ns:   generateSysNamespace(options.Namespace),
+	}
+}
+
+func (o KudoNamespace) String() string {
+	return "namespace"
+}
+
+func (o KudoNamespace) PreInstallVerify(client *kube.Client) verify.Result {
 	// We only manage kudo-system namespace. For others we expect they exist.
 	if !o.opts.IsDefaultNamespace() {
 		_, err := client.KubeClient.CoreV1().Namespaces().Get(o.opts.Namespace, metav1.GetOptions{})
@@ -33,14 +44,15 @@ func (o kudoNamespace) PreInstallVerify(client *kube.Client) verify.Result {
 	return verify.NewResult()
 }
 
-func newNamespace(options kudoinit.Options) kudoNamespace {
-	return kudoNamespace{
-		opts: options,
-		ns:   generateSysNamespace(options.Namespace),
+func (o KudoNamespace) VerifyInstallation(client *kube.Client) verify.Result {
+	_, err := client.KubeClient.CoreV1().Namespaces().Get(o.opts.Namespace, metav1.GetOptions{})
+	if kerrors.IsNotFound(err) {
+		return verify.NewError(fmt.Sprintf("namespace %s does not exist", o.opts.Namespace))
 	}
+	return verify.NewResult()
 }
 
-func (o kudoNamespace) Install(client *kube.Client) error {
+func (o KudoNamespace) Install(client *kube.Client) error {
 	_, err := client.KubeClient.CoreV1().Namespaces().Create(o.ns)
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("namespace %v already exists", o.ns.Name)
@@ -49,11 +61,7 @@ func (o kudoNamespace) Install(client *kube.Client) error {
 	return err
 }
 
-func (o kudoNamespace) ValidateInstallation(client *kube.Client) error {
-	return nil
-}
-
-func (o kudoNamespace) AsRuntimeObjs() []runtime.Object {
+func (o KudoNamespace) Resources() []runtime.Object {
 	if !o.opts.IsDefaultNamespace() {
 		return make([]runtime.Object, 0)
 	}

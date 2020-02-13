@@ -44,8 +44,8 @@ func (m Initializer) PreInstallVerify(client *kube.Client) verify.Result {
 	return verify.NewResult()
 }
 
-func (m Initializer) InstalledVersion(client *kube.Client) (string, error) {
-	return "", nil
+func (m Initializer) VerifyInstallation(client *kube.Client) verify.Result {
+	return verify.NewResult()
 }
 
 func (m Initializer) String() string {

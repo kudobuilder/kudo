@@ -24,11 +24,8 @@ type InstallVerifier interface {
 	// PreInstallVerify verifies that the installation is possible
 	PreInstallVerify(client *kube.Client) verify.Result
 
-	// TODO: Add verification of existing installation
-	// VerifyInstallation(client *kube.Client) Result
-
-	// InstalledVersion returns the currently installed version of this step, or nil if it is not installed
-	InstalledVersion(client *kube.Client) (string, error)
+	// VerifyInstallation verifies that the current installation is as expected
+	VerifyInstallation(client *kube.Client) verify.Result
 }
 
 type Installer interface {

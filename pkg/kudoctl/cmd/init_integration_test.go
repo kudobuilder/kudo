@@ -340,10 +340,14 @@ func TestNoErrorOnReInit(t *testing.T) {
 }
 
 func deleteInitObjects(client *testutils.RetryClient) {
+	opts := kudoinit.NewOptions("", "", "", []string{}, false)
+
 	crds := crd.NewInitializer()
-	prereqs := prereq.NewInitializer(kudoinit.NewOptions("", "", "", []string{}))
+
 	deleteCRDs(crds.Resources(), client)
-	deletePrereq(prereqs.Resources(), client)
+	deletePrereq(prereq.NewNamespaceInitializer(opts).Resources(), client)
+	deletePrereq(prereq.NewServiceAccountInitializer(opts).Resources(), client)
+	deletePrereq(prereq.NewWebHookInitializer(opts).Resources(), client)
 }
 
 func deleteCRDs(crds []runtime.Object, client *testutils.RetryClient) {

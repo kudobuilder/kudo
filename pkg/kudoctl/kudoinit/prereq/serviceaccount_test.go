@@ -3,8 +3,16 @@ package prereq
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/core/v1"
 
+	"github.com/stretchr/testify/assert"
+	rbac "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
+	testing2 "k8s.io/client-go/testing"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
 )
@@ -12,7 +20,7 @@ import (
 func TestPrereq_Fail_PreValidate_CustomServiceAccount(t *testing.T) {
 	client := getFakeClient()
 
-	init := NewInitializer(kudoinit.NewOptions("", "", "customSA", make([]string, 0), false))
+	init := NewServiceAccountInitializer(kudoinit.NewOptions("", "", "customSA", make([]string, 0), false))
 
 	result := init.PreInstallVerify(client)
 
@@ -26,7 +34,7 @@ func TestPrereq_Fail_PreValidate_CustomServiceAccount_MissingPermissions(t *test
 
 	mockListServiceAccounts(client, customSA)
 
-	init := NewInitializer(kudoinit.NewOptions("", "", customSA, make([]string, 0), false))
+	init := NewServiceAccountInitializer(kudoinit.NewOptions("", "", customSA, make([]string, 0), false))
 
 	result := init.PreInstallVerify(client)
 
@@ -42,8 +50,46 @@ func TestPrereq_Ok_PreValidate_CustomServiceAccount(t *testing.T) {
 	mockListServiceAccounts(client, opts.ServiceAccount)
 	mockListClusterRoleBindings(client, opts)
 
-	init := NewInitializer(opts)
+	init := NewServiceAccountInitializer(opts)
 	result := init.PreInstallVerify(client)
 
 	assert.EqualValues(t, verify.NewResult(), result)
+}
+
+func mockListServiceAccounts(client *kube.Client, saName string) {
+	client.KubeClient.(*fake.Clientset).Fake.PrependReactor("list", "serviceaccounts", func(action testing2.Action) (handled bool, ret runtime.Object, err error) {
+		sa := v1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: saName,
+			},
+			Secrets:                      nil,
+			ImagePullSecrets:             nil,
+			AutomountServiceAccountToken: nil,
+		}
+		sal := &v1.ServiceAccountList{
+			Items: []v1.ServiceAccount{sa},
+		}
+		return true, sal, nil
+	})
+}
+
+func mockListClusterRoleBindings(client *kube.Client, opts kudoinit.Options) {
+	client.KubeClient.(*fake.Clientset).Fake.PrependReactor("list", "clusterrolebindings", func(action testing2.Action) (handled bool, ret runtime.Object, err error) {
+		subject := rbac.Subject{
+			Kind:      "",
+			Name:      opts.ServiceAccount,
+			Namespace: opts.Namespace,
+		}
+
+		crb := rbac.ClusterRoleBinding{
+			Subjects: []rbac.Subject{subject},
+			RoleRef: rbac.RoleRef{
+				Name: "cluster-admin",
+			},
+		}
+		crbList := &rbac.ClusterRoleBindingList{
+			Items: []rbac.ClusterRoleBinding{crb},
+		}
+		return true, crbList, nil
+	})
 }
