@@ -30,7 +30,12 @@ type kudoWebHook struct {
 }
 
 const (
-	certManagerAPIVersion = "v1alpha2"
+	certManagerAPIVersion        = "v1alpha2"
+	certManagerControllerVersion = "v0.12.0"
+)
+
+var (
+	certManagerControllerImageSuffix = fmt.Sprintf("cert-manager-controller:%s", certManagerControllerVersion)
 )
 
 func newWebHook(options kudoinit.Options) kudoWebHook {
@@ -100,8 +105,8 @@ func validateCertManagerInstallation(client *kube.Client) verify.Result {
 	if len(deployment.Spec.Template.Spec.Containers) < 1 {
 		return verify.NewWarning("failed to validate cert-manager controller deployment. Spec had no containers")
 	}
-	if !strings.HasSuffix(deployment.Spec.Template.Spec.Containers[0].Image, "cert-manager-controller:v0.12.0") {
-		return verify.NewWarning(fmt.Sprintf("cert-manager deployment had unexpected version. expected v0.12.0 in controller image name but found %s", deployment.Spec.Template.Spec.Containers[0].Image))
+	if !strings.HasSuffix(deployment.Spec.Template.Spec.Containers[0].Image, certManagerControllerImageSuffix) {
+		return verify.NewWarning(fmt.Sprintf("cert-manager deployment had unexpected version. expected %s in controller image name but found %s", certManagerControllerVersion, deployment.Spec.Template.Spec.Containers[0].Image))
 	}
 
 	if err := health.IsHealthy(deployment); err != nil {
