@@ -350,6 +350,13 @@ func Test_triggeredPlan(t *testing.T) {
 			want:    nil,
 			wantErr: true,
 		},
+		{
+			name:    "params triggering a non-existing plan",
+			params:  []v1beta1.Parameter{{Name: "foo", Trigger: "fake"}},
+			ov:      ov,
+			want:    nil,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
