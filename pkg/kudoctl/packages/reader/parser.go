@@ -29,7 +29,10 @@ func newPackageFiles() packages.Files {
 
 func parsePackageFile(filePath string, fileBytes []byte, currentPackage *packages.Files) error {
 	isOperatorFile := func(name string) bool {
-		return strings.HasSuffix(name, OperatorFileName)
+		dir, file := filepath.Split(name)
+		base := filepath.Base(dir)
+
+		return base == "." && file == OperatorFileName
 	}
 
 	isTemplateFile := func(name string) bool {
@@ -46,13 +49,19 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *package
 	}
 
 	isParametersFile := func(name string) bool {
-		return strings.HasSuffix(name, ParamsFileName)
+		dir, file := filepath.Split(name)
+		base := filepath.Base(dir)
+
+		return base == "." && file == ParamsFileName
 	}
 
 	switch {
 	case isOperatorFile(filePath):
 		if err := yaml.Unmarshal(fileBytes, &currentPackage.Operator); err != nil {
 			return fmt.Errorf("failed to unmarshal operator file: %w", err)
+		}
+		if currentPackage.Operator == nil {
+			return fmt.Errorf("failed to parse yaml into valid operator %s", filePath)
 		}
 		if currentPackage.Operator.APIVersion == "" {
 			currentPackage.Operator.APIVersion = APIVersion
