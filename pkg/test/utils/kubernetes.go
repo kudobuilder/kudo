@@ -22,6 +22,9 @@ import (
 	"github.com/google/shlex"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/spf13/pflag"
+	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	batchv1beta1 "k8s.io/api/batch/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -48,6 +51,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/kudobuilder/kudo/pkg/apis"
 	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
@@ -687,8 +691,34 @@ func FakeDiscoveryClient() discovery.DiscoveryInterface {
 				{
 					GroupVersion: corev1.SchemeGroupVersion.String(),
 					APIResources: []metav1.APIResource{
-						{Name: "pods", Namespaced: true, Kind: "Pod"},
-						{Name: "namespaces", Namespaced: false, Kind: "Namespace"},
+						{Name: "pod", Namespaced: true, Kind: "Pod"},
+						{Name: "namespace", Namespaced: false, Kind: "Namespace"},
+						{Name: "service", Namespaced: true, Kind: "Service"},
+					},
+				},
+				{
+					GroupVersion: appsv1.SchemeGroupVersion.String(),
+					APIResources: []metav1.APIResource{
+						{Name: "statefulset", Namespaced: true, Kind: "StatefulSet"},
+						{Name: "deployment", Namespaced: true, Kind: "Deployment"},
+					},
+				},
+				{
+					GroupVersion: batchv1.SchemeGroupVersion.String(),
+					APIResources: []metav1.APIResource{
+						{Name: "job", Namespaced: true, Kind: "Job"},
+					},
+				},
+				{
+					GroupVersion: batchv1beta1.SchemeGroupVersion.String(),
+					APIResources: []metav1.APIResource{
+						{Name: "job", Namespaced: true, Kind: "CronJob"},
+					},
+				},
+				{
+					GroupVersion: apiextensions.SchemeGroupVersion.String(),
+					APIResources: []metav1.APIResource{
+						{Name: "customresourcedefinitions", Namespaced: false, Kind: "CustomResourceDefinition"},
 					},
 				},
 			},
@@ -1047,4 +1077,14 @@ func Kubeconfig(cfg *rest.Config, w io.Writer) error {
 			},
 		},
 	}, w)
+}
+
+func GetDiscoveryClient(mgr manager.Manager) (*discovery.DiscoveryClient, error) {
+	// use manager rest config to create a discovery client
+	dc, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
+	if err != nil || dc == nil {
+		return nil, fmt.Errorf("failed to create a discovery client: %v", err)
+	}
+
+	return dc, nil
 }

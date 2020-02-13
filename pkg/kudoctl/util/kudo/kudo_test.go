@@ -211,8 +211,14 @@ func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 		},
 		Spec: v1beta1.OperatorVersionSpec{
 			Version: "1.0",
+			Operator: v1.ObjectReference{
+				Name: operatorName,
+			},
 		},
 	}
+	objWithSamePrefix := obj.DeepCopy()
+	objWithSamePrefix.Name = operatorName + "-demo"
+	objWithSamePrefix.Spec.Operator.Name = operatorName + "-demo"
 
 	installNamespace := "default"
 	tests := []struct {
@@ -224,6 +230,7 @@ func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 		{"no operator version defined", []string{}, installNamespace, nil},
 		{"operator version exists in the same namespace", []string{obj.Spec.Version}, installNamespace, &obj},
 		{"operator version exists in different namespace", []string{}, "otherns", &obj},
+		{"operator with same prefix exists", []string{}, installNamespace, objWithSamePrefix},
 	}
 
 	for _, tt := range tests {

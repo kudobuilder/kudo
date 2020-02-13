@@ -83,7 +83,7 @@ func TestUpdate(t *testing.T) {
 				t.Errorf("%s: expected error '%s' but got '%v'", tt.name, tt.errMessageContains, err)
 			}
 		} else if tt.errMessageContains != "" {
-			t.Errorf("%s: expected no error but got %v", tt.name, err)
+			t.Errorf("%s: expected error '%s' but got nil", tt.name, tt.errMessageContains)
 		} else {
 			// the upgrade should have passed without error
 			instance, err := c.GetInstance(testInstance.Name, installNamespace)
