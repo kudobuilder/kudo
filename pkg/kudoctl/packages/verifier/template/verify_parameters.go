@@ -5,6 +5,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
 )
 
 var (
@@ -28,8 +29,8 @@ var _ verifier.PackageVerifier = &ParametersVerifier{}
 type ParametersVerifier struct{}
 
 // Verify implements verifier.PackageVerifier for parameter verification
-func (ParametersVerifier) Verify(pf *packages.Files) verifier.Result {
-	res := verifier.NewResult()
+func (ParametersVerifier) Verify(pf *packages.Files) verify.Result {
+	res := verify.NewResult()
 	res.Merge(paramsNotDefined(pf))
 	res.Merge(paramsDefinedNotUsed(pf))
 
@@ -50,8 +51,8 @@ func (ParametersVerifier) Verify(pf *packages.Files) verifier.Result {
 	return res
 }
 
-func paramsDefinedNotUsed(pf *packages.Files) verifier.Result {
-	res := verifier.NewResult()
+func paramsDefinedNotUsed(pf *packages.Files) verify.Result {
+	res := verify.NewResult()
 	tparams := make(map[string]bool)
 	nodes := getNodeMap(pf.Templates)
 
@@ -68,8 +69,8 @@ func paramsDefinedNotUsed(pf *packages.Files) verifier.Result {
 	return res
 }
 
-func paramsNotDefined(pf *packages.Files) verifier.Result {
-	res := verifier.NewResult()
+func paramsNotDefined(pf *packages.Files) verify.Result {
+	res := verify.NewResult()
 	params := make(map[string]bool)
 	for _, param := range pf.Params.Parameters {
 		params[param.Name] = true

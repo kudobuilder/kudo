@@ -14,25 +14,21 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	appsv1client "k8s.io/client-go/kubernetes/typed/apps/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"sigs.k8s.io/yaml"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
 )
 
-// Ensure kudoinit.InitStep is implemented
-var _ kudoinit.InitStep = &Initializer{}
+// Ensure kudoinit.Step is implemented
+var _ kudoinit.Step = &Initializer{}
 
 //Defines the deployment of the KUDO manager and it's service definition.
 type Initializer struct {
 	options    kudoinit.Options
 	service    *v1.Service
 	deployment *appsv1.StatefulSet
-}
-
-func (m Initializer) AsArray() []runtime.Object {
-	return []runtime.Object{m.service, m.deployment}
 }
 
 // NewInitializer returns the setup management object
@@ -44,8 +40,16 @@ func NewInitializer(options kudoinit.Options) Initializer {
 	}
 }
 
+func (m Initializer) PreInstallVerify(client *kube.Client) verify.Result {
+	return verify.NewResult()
+}
+
 func (m Initializer) InstalledVersion(client *kube.Client) (string, error) {
 	return "", nil
+}
+
+func (m Initializer) String() string {
+	return "kudo controller"
 }
 
 // Install uses Kubernetes client to install KUDO.
@@ -84,23 +88,8 @@ func (m Initializer) installService(client corev1.ServicesGetter) error {
 	return err
 }
 
-// AsYamlManifests provides a slice of strings for the deployment and service manifest
-func (m Initializer) AsYamlManifests() ([]string, error) {
-	s := m.service
-	d := m.deployment
-
-	objs := []runtime.Object{s, d}
-
-	manifests := make([]string, len(objs))
-	for i, obj := range objs {
-		o, err := yaml.Marshal(obj)
-		if err != nil {
-			return []string{}, err
-		}
-		manifests[i] = string(o)
-	}
-
-	return manifests, nil
+func (m Initializer) Resources() []runtime.Object {
+	return []runtime.Object{m.service, m.deployment}
 }
 
 // GenerateLabels returns the labels used by deployment and service

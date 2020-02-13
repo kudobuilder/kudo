@@ -2,6 +2,7 @@ package setup
 
 import (
 	"fmt"
+	"os"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
@@ -12,21 +13,8 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/manager"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
 )
-
-type setup struct {
-	crds    kudoinit.InitStep
-	prereqs kudoinit.InitStep
-	manager kudoinit.InitStep
-}
-
-func newSetup(opts kudoinit.Options) setup {
-	return setup{
-		crds:    crd.NewInitializer(),
-		prereqs: prereq.NewInitializer(opts),
-		manager: manager.NewInitializer(opts),
-	}
-}
 
 // Validate checks that the current KUDO installation is correct
 func Validate(client *kube.Client, opts kudoinit.Options) error {
@@ -40,45 +28,53 @@ func Upgrade(client *kube.Client, opts kudoinit.Options) error {
 
 // Install uses Kubernetes client to install KUDO.
 func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
-	setup := newSetup(opts)
+	initSteps := initSteps(opts, crdOnly)
 
-	if err := setup.crds.Install(client); err != nil {
-		return fmt.Errorf("crds: %v", err)
+	result := verify.NewResult()
+	// Check if all steps are installable
+	for _, initStep := range initSteps {
+		result.Merge(initStep.PreInstallVerify(client))
 	}
-	if crdOnly {
-		return nil
-	}
-	clog.Printf("✅ installed crds")
 
-	if err := setup.prereqs.Install(client); err != nil {
-		return fmt.Errorf("prerequisites: %v", err)
+	result.PrintWarnings(os.Stdout)
+	if !result.IsValid() {
+		return &result
 	}
-	clog.Printf("✅ installed service accounts and other requirements for controller to run")
 
-	if err := setup.manager.Install(client); err != nil {
-		return fmt.Errorf("manager: %v", err)
+	// Install everything
+	for _, initStep := range initSteps {
+		if err := initStep.Install(client); err != nil {
+			return fmt.Errorf("%s: %v", initStep, err)
+		}
+		clog.Printf("✅ installed %s", initStep)
 	}
-	clog.Printf("✅ installed kudo controller")
+
 	return nil
 }
 
-func AsYamlManifests(opts kudoinit.Options, crdOnly bool) ([]string, error) {
-	var manifests []runtime.Object
-
-	crds := crd.NewInitializer().AsArray()
-	manifests = append(manifests, crds...)
-
+func initSteps(opts kudoinit.Options, crdOnly bool) []kudoinit.Step {
 	if crdOnly {
-		return toYaml(manifests)
+		return []kudoinit.Step{
+			crd.NewInitializer(),
+		}
 	}
 
-	prereqs := prereq.NewInitializer(opts).AsArray()
-	manifests = append(manifests, prereqs...)
+	return []kudoinit.Step{
+		crd.NewInitializer(),
+		prereq.NewInitializer(opts),
+		manager.NewInitializer(opts),
+	}
+}
 
-	mgr := manager.NewInitializer(opts).AsArray()
-	manifests = append(manifests, mgr...)
+func AsYamlManifests(opts kudoinit.Options, crdOnly bool) ([]string, error) {
+	initSteps := initSteps(opts, crdOnly)
+	var allManifests []runtime.Object
 
-	return toYaml(manifests)
+	for _, initStep := range initSteps {
+		allManifests = append(allManifests, initStep.Resources()...)
+	}
+
+	return toYaml(allManifests)
 }
 
 func toYaml(objs []runtime.Object) ([]string, error) {

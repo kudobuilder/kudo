@@ -6,46 +6,37 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
 )
 
-// ReferenceVerifier verifies plans producing errors for plans referenced in param triggers that do not exist and warnings for plans which are not used in a param
+var _ verifier.PackageVerifier = &ReferenceVerifier{}
+
+// ReferenceVerifier verifies plans producing errors for plans referenced in param triggers that do not exist
+// and warnings for missing mandatory plans.
 type ReferenceVerifier struct{}
 
-func (ReferenceVerifier) Verify(pf *packages.Files) verifier.Result {
-	res := verifier.NewResult()
+func (ReferenceVerifier) Verify(pf *packages.Files) verify.Result {
+	res := verify.NewResult()
 	res.Merge(plansNotDefined(pf))
-	res.Merge(plansDefinedNotUsed(pf))
+	res.Merge(hasMandatoryPlans(pf))
 
 	return res
 }
 
-func plansDefinedNotUsed(pf *packages.Files) verifier.Result {
-	res := verifier.NewResult()
-	usedPlans := make(map[string]bool)
+func hasMandatoryPlans(pf *packages.Files) verify.Result {
+	res := verify.NewResult()
+	plans := pf.Operator.Plans
 
-	// Mark reserved plan names as used
-	for _, plan := range v1beta1.ReservedPlanNames {
-		usedPlans[plan] = true
-	}
-
-	// Mark plans in param triggers as used
-	for _, param := range pf.Params.Parameters {
-		if param.Trigger != "" {
-			usedPlans[param.Trigger] = true
-		}
-	}
-
-	for name := range pf.Operator.Plans {
-		if _, ok := usedPlans[name]; !ok {
-			res.AddWarnings(fmt.Sprintf("plan %q defined but not used", name))
-		}
+	// Currently only 'deploy' plan is mandatory
+	if _, ok := plans[v1beta1.DeployPlanName]; !ok {
+		res.AddErrors(fmt.Sprintf("an operator is required to have '%s' plan", v1beta1.DeployPlanName))
 	}
 
 	return res
 }
 
-func plansNotDefined(pf *packages.Files) verifier.Result {
-	res := verifier.NewResult()
+func plansNotDefined(pf *packages.Files) verify.Result {
+	res := verify.NewResult()
 	plans := pf.Operator.Plans
 
 	for _, param := range pf.Params.Parameters {
