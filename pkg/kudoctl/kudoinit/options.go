@@ -19,9 +19,10 @@ type Options struct {
 	// Enable validation
 	Webhooks       []string
 	ServiceAccount string
+	Upgrade        bool
 }
 
-func NewOptions(v string, ns string, sa string, webhooks []string) Options {
+func NewOptions(v string, ns string, sa string, webhooks []string, upgrade bool) Options {
 	if v == "" {
 		v = version.Get().GitVersion
 	}
@@ -39,6 +40,7 @@ func NewOptions(v string, ns string, sa string, webhooks []string) Options {
 		Image:                         fmt.Sprintf("kudobuilder/controller:v%v", v),
 		Webhooks:                      webhooks,
 		ServiceAccount:                sa,
+		Upgrade:                       upgrade,
 	}
 }
 

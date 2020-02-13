@@ -18,7 +18,7 @@ import (
 func TestPrereq_Ok_PreValidate_Webhook_None(t *testing.T) {
 	client := getFakeClient()
 
-	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", []string{}))
+	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", []string{}, false))
 
 	result := init.PreInstallVerify(client)
 
@@ -28,7 +28,7 @@ func TestPrereq_Ok_PreValidate_Webhook_None(t *testing.T) {
 func TestPrereq_Fail_PreValidate_Webhook_NoCertificate(t *testing.T) {
 	client := getFakeClient()
 
-	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", []string{"validate"}))
+	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", []string{"validate"}, false))
 
 	result := init.PreInstallVerify(client)
 
@@ -44,7 +44,7 @@ func TestPrereq_Fail_PreValidate_Webhook_WrongCertificateVersion(t *testing.T) {
 	mockCRD(client, "certificates.cert-manager.io", "v0")
 	mockCRD(client, "issuers.cert-manager.io", "v0")
 
-	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", []string{"validate"}))
+	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", []string{"validate"}, false))
 
 	result := init.PreInstallVerify(client)
 
@@ -59,7 +59,7 @@ func TestPrereq_Fail_PreValidate_Webhook_NoIssuer(t *testing.T) {
 
 	mockCRD(client, "certificates.cert-manager.io", "v1alpha2")
 
-	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", []string{"validate"}))
+	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", []string{"validate"}, false))
 
 	result := init.PreInstallVerify(client)
 
@@ -72,7 +72,7 @@ func TestPrereq_Fail_PreValidate_Webhook_WrongIssuerVersion(t *testing.T) {
 	mockCRD(client, "certificates.cert-manager.io", "v1alpha2")
 	mockCRD(client, "issuers.cert-manager.io", "v0")
 
-	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", []string{"validate"}))
+	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", []string{"validate"}, false))
 
 	result := init.PreInstallVerify(client)
 
@@ -85,7 +85,7 @@ func TestPrereq_Ok_PreValidate_Webhook(t *testing.T) {
 	mockCRD(client, "certificates.cert-manager.io", "v1alpha2")
 	mockCRD(client, "issuers.cert-manager.io", "v1alpha2")
 
-	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", []string{"validate"}))
+	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", []string{"validate"}, false))
 
 	result := init.PreInstallVerify(client)
 
