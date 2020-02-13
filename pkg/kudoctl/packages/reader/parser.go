@@ -27,6 +27,8 @@ func newPackageFiles() packages.Files {
 	}
 }
 
+// parsePackageFile parses the passed file into the correct type and adds it to the currentPackage
+// The filePath needs to be relative to the package root
 func parsePackageFile(filePath string, fileBytes []byte, currentPackage *packages.Files) error {
 	isOperatorFile := func(name string) bool {
 		dir, file := filepath.Split(name)

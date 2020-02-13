@@ -2,9 +2,10 @@ package reader
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -32,12 +33,12 @@ func TestParsePackageFile(t *testing.T) {
 
 		expectedError error
 	}{
-		{"operator.yaml", validOperator, true, false, false, nil},
-		{"params.yaml", validParams, false, true, false, nil},
-		{"templates/pod-params.yaml", "", false, false, true, nil},
-		{"templates/pod-operator.yaml", "", false, false, true, nil},
-		{"templates/some-template.yaml", "", false, false, true, nil},
-		{"operator.yaml", "", true, false, false, errors.New("failed to parse yaml into valid operator operator.yaml")},
+		{filePath: "operator.yaml", fileContent: validOperator, isOperator: true},
+		{filePath: "params.yaml", fileContent: validParams, isParam: true},
+		{filePath: "templates/pod-params.yaml", isTemplate: true},
+		{filePath: "templates/pod-operator.yaml", isTemplate: true},
+		{filePath: "templates/some-template.yaml", isTemplate: true},
+		{filePath: "operator.yaml", isOperator: true, expectedError: errors.New("failed to parse yaml into valid operator operator.yaml")},
 	}
 
 	for _, tt := range tests {
@@ -51,19 +52,20 @@ func TestParsePackageFile(t *testing.T) {
 			assert.Equal(t, tt.expectedError.Error(), err.Error())
 			continue
 		} else {
-			assert.NilError(t, err)
+			assert.Nil(t, err)
 		}
 
 		if tt.isOperator {
-			assert.Check(t, pf.Operator != nil, "%v was not parsed as an operator file", tt.filePath)
+			assert.NotNil(t, pf.Operator, "%v was not parsed as an operator file", tt.filePath)
 		}
 		if tt.isParam {
-			assert.Check(t, pf.Params != nil, "%v was not parsed as a param file", tt.filePath)
+			assert.NotNil(t, pf.Params, "%v was not parsed as a param file", tt.filePath)
 		}
 		if tt.isTemplate {
-			assert.Check(t, len(pf.Templates) > 0, "%v was not parsed as a template file", tt.filePath)
+			assert.Equal(t, 1, len(pf.Templates), "%v was not parsed as a template file", tt.filePath)
 
-			//assert.Equal(t, pf.Templates[tt])
+			fileName := strings.TrimPrefix(tt.filePath, "templates/")
+			assert.NotNil(t, pf.Templates[fileName], "%v was not stored in template map", tt.filePath)
 		}
 
 	}
