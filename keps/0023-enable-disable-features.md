@@ -7,7 +7,7 @@ owners:
   - "@zmalik"
 creation-date: 2020-01-28
 last-updated: 2020-01-28
-status: provisional
+status: implementable
 ---
 
 # Enabling and Disabling features in KUDO Operators

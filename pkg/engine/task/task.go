@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"regexp"
 
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -15,6 +17,8 @@ import (
 // Context is a engine.task execution context containing k8s client, templates parameters etc.
 type Context struct {
 	Client     client.Client
+	Discovery  discovery.DiscoveryInterface
+	Config     *rest.Config
 	Enhancer   renderer.Enhancer
 	Meta       renderer.Metadata
 	Templates  map[string]string // Raw templates
@@ -69,7 +73,7 @@ func Build(task *v1beta1.Task) (Tasker, error) {
 func newApply(task *v1beta1.Task) (Tasker, error) {
 	// validate ApplyTask
 	if len(task.Spec.ResourceTaskSpec.Resources) == 0 {
-		return nil, errors.New("task validation error: apply task has an empty resource list. if that's what you need, use a Dummy task instead")
+		return nil, fmt.Errorf("task validation error: apply task '%s' has an empty resource list. if that's what you need, use a Dummy task instead", task.Name)
 	}
 
 	return ApplyTask{
@@ -81,7 +85,7 @@ func newApply(task *v1beta1.Task) (Tasker, error) {
 func newDelete(task *v1beta1.Task) (Tasker, error) {
 	// validate DeleteTask
 	if len(task.Spec.ResourceTaskSpec.Resources) == 0 {
-		return nil, errors.New("task validation error: delete task has an empty resource list. if that's what you need, use a Dummy task instead")
+		return nil, fmt.Errorf("task validation error: delete task '%s' has an empty resource list. if that's what you need, use a Dummy task instead", task.Name)
 	}
 
 	return DeleteTask{

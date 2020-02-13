@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"log"
 
-	v1 "k8s.io/api/core/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	apijson "k8s.io/apimachinery/pkg/util/json"
+	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/health"
+	"github.com/kudobuilder/kudo/pkg/engine/resource"
 )
 
 // ApplyTask will apply a set of given resources to the cluster. See Run method for more details.
@@ -40,7 +41,7 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 	}
 
 	// 3. - Apply them using the client -
-	applied, err := apply(enhanced, ctx.Client)
+	applied, err := apply(enhanced, ctx.Client, ctx.Discovery)
 	if err != nil {
 		return false, err
 	}
@@ -58,19 +59,18 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 
 // apply method takes a slice of k8s object and applies them using passed client. If an object
 // doesn't exist it will be created. An already existing object will be patched.
-func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
+func apply(rr []runtime.Object, c client.Client, di discovery.DiscoveryInterface) ([]runtime.Object, error) {
 	applied := make([]runtime.Object, 0)
 
-	for _, r := range ro {
-		key, _ := client.ObjectKeyFromObject(r)
+	for _, r := range rr {
 		existing := r.DeepCopyObject()
 
-		// if CRD we need to clear then namespace from the copy
-		if isClusterResource(r) {
-			key.Namespace = ""
+		key, err := resource.ObjectKeyFromObject(r, di)
+		if err != nil {
+			return nil, err
 		}
 
-		err := c.Get(context.TODO(), key, existing)
+		err = c.Get(context.TODO(), key, existing)
 
 		switch {
 		case apierrors.IsNotFound(err): // create resource if it doesn't exist
@@ -97,20 +97,6 @@ func apply(ro []runtime.Object, c client.Client) ([]runtime.Object, error) {
 	}
 
 	return applied, nil
-}
-
-func isClusterResource(r runtime.Object) bool {
-	// this misses a number of cluster scoped resources
-	// this is a temporary fix.  The correct solution will use the DiscoveryInterface
-	switch r.(type) {
-	case *apiextv1beta1.CustomResourceDefinition:
-		return true
-	case *v1.Namespace:
-		return true
-	case *v1.PersistentVolume:
-		return true
-	}
-	return false
 }
 
 // patch calls update method on kubernetes client to make sure the current resource reflects what is on server

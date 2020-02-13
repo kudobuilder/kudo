@@ -27,6 +27,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
@@ -125,10 +126,16 @@ func instancePlanFinished(key client.ObjectKey, planName string, c client.Client
 func startTestManager(t *testing.T) (chan struct{}, *sync.WaitGroup, client.Client) {
 	mgr, err := manager.New(cfg, manager.Options{})
 	assert.Nil(t, err, "Error when creating manager")
+
+	discoveryClient, err := utils.GetDiscoveryClient(mgr)
+	assert.NoError(t, err, "Error when creating discovery client")
+
 	err = (&Reconciler{
-		Client:   mgr.GetClient(),
-		Recorder: mgr.GetEventRecorderFor("instance-controller"),
-		Scheme:   mgr.GetScheme(),
+		Client:    mgr.GetClient(),
+		Discovery: discoveryClient,
+		Config:    mgr.GetConfig(),
+		Recorder:  mgr.GetEventRecorderFor("instance-controller"),
+		Scheme:    mgr.GetScheme(),
 	}).SetupWithManager(mgr)
 
 	stop := make(chan struct{})

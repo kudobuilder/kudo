@@ -6,6 +6,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/plan"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/template"
 	"github.com/kudobuilder/kudo/pkg/version"
@@ -15,9 +16,12 @@ var verifiers = []verifier.PackageVerifier{
 	DuplicateVerifier{},
 	InvalidCharVerifier{";,"},
 	K8sVersionVerifier{},
+	task.BuildVerifier{},
 	task.ReferenceVerifier{},
+	plan.ReferenceVerifier{},
 	template.ParametersVerifier{},
 	template.ReferenceVerifier{},
+	template.RenderVerifier{},
 }
 
 // PackageFiles verifies operator package files
