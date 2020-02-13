@@ -4,6 +4,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
 )
 
 var _ verifier.PackageVerifier = &RenderVerifier{}
@@ -11,13 +12,13 @@ var _ verifier.PackageVerifier = &RenderVerifier{}
 // RenderVerifier checks that all templates are compilable and contain valid golang template syntax
 type RenderVerifier struct{}
 
-func (RenderVerifier) Verify(pf *packages.Files) verifier.Result {
-	res := verifier.NewResult()
+func (RenderVerifier) Verify(pf *packages.Files) verify.Result {
+	res := verify.NewResult()
 	res.Merge(templateCompilable(pf))
 	return res
 }
 
-func templateCompilable(pf *packages.Files) verifier.Result {
+func templateCompilable(pf *packages.Files) verify.Result {
 	params := make(map[string]string)
 	for _, p := range pf.Params.Parameters {
 		params[p.Name] = "default"
@@ -34,7 +35,7 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 	configs["StepName"] = "StepName"
 	configs["AppVersion"] = "AppVersion"
 
-	res := verifier.NewResult()
+	res := verify.NewResult()
 
 	engine := renderer.New()
 	for k, v := range pf.Templates {
