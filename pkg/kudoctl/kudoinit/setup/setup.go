@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/migration"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 
@@ -29,6 +31,14 @@ func Validate(client *kube.Client, opts kudoinit.Options) error {
 	return nil
 }
 
+func requiredMigrations() []migration.Migrator {
+
+	// TODO: Determine which migrations to run
+	return []migration.Migrator{
+		migration.To1_11(),
+	}
+}
+
 // Upgrade an existing KUDO installation
 func Upgrade(client *kube.Client, opts kudoinit.Options) error {
 	initSteps := initSteps(opts, false)
@@ -44,16 +54,36 @@ func Upgrade(client *kube.Client, opts kudoinit.Options) error {
 	}
 
 	// Step 2 - Verify that any migration is possible
-	// Determine which migrations to run and execute PreInstallVerify
+	migrations := requiredMigrations()
+	for _, m := range migrations {
+		if err := m.CanMigrate(); err != nil {
+			return fmt.Errorf("migration %s failed install check: %v", m, err)
+		}
+	}
+
+	// TODO: Verify existing operators and instances?
+
+	// Until here, no changes are made to the existing installation
 
 	// Step 3 - Shut down/remove manager
+	if err := manager.UninstallStatefulSet(client, opts); err != nil {
+		return fmt.Errorf("failed to uninstall existing KUDO manager: %v", err)
+	}
+
 	// Step 4 - Disable Admission-Webhooks
+	if err := prereq.UninstallWebHook(client, opts); err != nil {
+		return fmt.Errorf("failed to uninstall webhook: %v", err)
+	}
 
 	// Step 5 - Execute Migrations
+	for _, m := range migrations {
+		if err := m.Migrate(); err != nil {
+			return fmt.Errorf("migration %s failed to execute: %v", m, err)
+		}
+	}
 
 	// Step 6 - Execute Installation/Upgrade (this enables webhooks again and starts new manager
-
-	return nil
+	return Install(client, opts, false)
 }
 
 // Install uses Kubernetes client to install KUDO.

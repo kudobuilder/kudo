@@ -21,6 +21,10 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
 )
 
+const (
+	controllerManagerName = "kudo-controller-manager"
+)
+
 // Ensure kudoinit.Step is implemented
 var _ kudoinit.Step = &Initializer{}
 
@@ -60,6 +64,14 @@ func (m Initializer) Install(client *kube.Client) error {
 
 	if err := m.installService(client.KubeClient.CoreV1()); err != nil {
 		return err
+	}
+	return nil
+}
+
+func UninstallStatefulSet(client *kube.Client, options kudoinit.Options) error {
+	err := client.KubeClient.AppsV1().StatefulSets(options.Namespace).Delete(controllerManagerName, &metav1.DeleteOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to uninstall KUDO manager: %v", err)
 	}
 	return nil
 }
@@ -109,7 +121,7 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: opts.Namespace,
-			Name:      "kudo-controller-manager",
+			Name:      controllerManagerName,
 			Labels:    managerLabels,
 		},
 		Spec: appsv1.StatefulSetSpec{
