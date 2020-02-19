@@ -1,0 +1,62 @@
+apiVersion: kudo.dev/v1beta1
+kind: OperatorVersion
+metadata:
+  name: nginx-operator
+spec:
+  version: "1.0"
+  parameters:
+  - name: PORTS
+  templates:
+    deployment.yaml: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: nginx-deployment
+      spec:
+        selector:
+          matchLabels:
+            app: nginx
+        replicas: 1
+        template:
+          metadata:
+            labels:
+              app: nginx
+          spec:
+            containers:
+              - name: nginx
+                image: nginx:1.7.9
+                ports:
+                  {{ range .Params.PORTS }}
+                  - containerPort: {{ . }}
+                  {{ end }}
+  tasks:
+    - name: app
+      kind: Apply
+      spec:
+        resources:
+          - deployment.yaml
+  plans:
+    deploy:
+      strategy: serial
+      phases:
+        - name: main
+          strategy: parallel
+          steps:
+            - name: everything
+              tasks:
+                - app
+---
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
+  name: nginx-instance
+  labels:
+    kudo.dev/operator: nginx-operator
+spec:
+  operatorVersion:
+    name: nginx-operator
+    kind: OperatorVersion
+  parameters:
+    PORTS: |
+      - 80
+      - 443
