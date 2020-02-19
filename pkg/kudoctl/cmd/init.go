@@ -174,7 +174,7 @@ func (initCmd *initCmd) run() error {
 		}
 
 		if err := setup.Install(initCmd.client, opts, initCmd.crdOnly); err != nil {
-			return clog.Errorf("error installing: %s", err)
+			return clog.Errorf("error installing %s", err)
 		}
 
 		if initCmd.wait {

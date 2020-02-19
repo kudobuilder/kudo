@@ -469,7 +469,7 @@ spec:
             planExecution:
               description: 'There are two ways a plan execution can be triggered:  1)
                 indirectly through update of a corresponding parameter in the InstanceSpec.Parameters
-                map  2) directly through setting of the InstanceSpec.PlanExecution
+                map  2) directly through setting of the InstanceSpec.PlanExecution.PlanName
                 field While indirect (1) triggers happens every time a user changes
                 a parameter, a directly (2) triggered plan is reserved for the situations
                 when parameters doesn''t change e.g. a periodic backup is triggered
@@ -481,8 +481,6 @@ spec:
               properties:
                 planName:
                   type: string
-              required:
-              - planName
               type: object
           type: object
         status:
@@ -610,7 +608,7 @@ subjects:
 
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1
-kind: ValidatingWebhookConfiguration
+kind: MutatingWebhookConfiguration
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: kudo-system/kudo-webhook-server-certificate
@@ -621,10 +619,10 @@ webhooks:
     service:
       name: kudo-controller-manager-service
       namespace: kudo-system
-      path: /validate-kudo-dev-v1beta1-instance
+      path: /admit-kudo-dev-v1beta1-instance
   failurePolicy: Fail
   matchPolicy: Equivalent
-  name: instance-validation.kudo.dev
+  name: instance-admission.kudo.dev
   rules:
   - apiGroups:
     - kudo.dev

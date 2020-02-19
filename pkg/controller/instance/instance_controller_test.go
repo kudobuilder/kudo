@@ -12,8 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+
+	"github.com/kudobuilder/kudo/pkg/engine/task"
 
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"

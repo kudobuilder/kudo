@@ -40,7 +40,7 @@ func (k kudoWebHook) Install(client *kube.Client) error {
 	if err := installUnstructured(client.DynamicClient, certificate(k.opts.Namespace)); err != nil {
 		return err
 	}
-	if err := installAdmissionWebhook(client.KubeClient.AdmissionregistrationV1beta1(), instanceUpdateValidatingWebhook(k.opts.Namespace)); err != nil {
+	if err := installAdmissionWebhook(client.KubeClient.AdmissionregistrationV1beta1(), instanceAdmissionWebhook(k.opts.Namespace)); err != nil {
 		return err
 	}
 	return nil
@@ -60,7 +60,7 @@ func (k kudoWebHook) AsRuntimeObjs() []runtime.Object {
 		return make([]runtime.Object, 0)
 	}
 
-	av := instanceUpdateValidatingWebhook(k.opts.Namespace)
+	av := instanceAdmissionWebhook(k.opts.Namespace)
 	cert := certificate(k.opts.Namespace)
 	objs := []runtime.Object{&av}
 	for _, c := range cert {
@@ -83,14 +83,14 @@ func installUnstructured(dynamicClient dynamic.Interface, items []unstructured.U
 		if kerrors.IsAlreadyExists(err) {
 			clog.V(4).Printf("resource %s already registered", obj.GetName())
 		} else if err != nil {
-			return fmt.Errorf("Error when creating resource %s/%s. %v", obj.GetName(), obj.GetNamespace(), err)
+			return fmt.Errorf("failed to created resource %s/%s: %v", obj.GetName(), obj.GetNamespace(), err)
 		}
 	}
 	return nil
 }
 
-func installAdmissionWebhook(client clientv1beta1.ValidatingWebhookConfigurationsGetter, webhook admissionv1beta1.ValidatingWebhookConfiguration) error {
-	_, err := client.ValidatingWebhookConfigurations().Create(&webhook)
+func installAdmissionWebhook(client clientv1beta1.MutatingWebhookConfigurationsGetter, webhook admissionv1beta1.MutatingWebhookConfiguration) error {
+	_, err := client.MutatingWebhookConfigurations().Create(&webhook)
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("admission webhook %v already registered", webhook.Name)
 		return nil
@@ -98,12 +98,12 @@ func installAdmissionWebhook(client clientv1beta1.ValidatingWebhookConfiguration
 	return err
 }
 
-func instanceUpdateValidatingWebhook(ns string) admissionv1beta1.ValidatingWebhookConfiguration {
+func instanceAdmissionWebhook(ns string) admissionv1beta1.MutatingWebhookConfiguration {
 	namespacedScope := admissionv1beta1.NamespacedScope
 	failedType := admissionv1beta1.Fail
 	equivalentType := admissionv1beta1.Equivalent
 	noSideEffects := admissionv1beta1.SideEffectClassNone
-	return admissionv1beta1.ValidatingWebhookConfiguration{
+	return admissionv1beta1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "kudo-manager-instance-validation-webhook-config",
 			Annotations: map[string]string{
@@ -111,12 +111,12 @@ func instanceUpdateValidatingWebhook(ns string) admissionv1beta1.ValidatingWebho
 			},
 		},
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "ValidatingWebhookConfiguration",
+			Kind:       "MutatingWebhookConfiguration",
 			APIVersion: "admissionregistration.k8s.io/v1beta1",
 		},
-		Webhooks: []admissionv1beta1.ValidatingWebhook{
+		Webhooks: []admissionv1beta1.MutatingWebhook{
 			{
-				Name: "instance-validation.kudo.dev",
+				Name: "instance-admission.kudo.dev",
 				Rules: []admissionv1beta1.RuleWithOperations{
 					{
 						Operations: []admissionv1beta1.OperationType{"CREATE", "UPDATE"},
@@ -135,7 +135,7 @@ func instanceUpdateValidatingWebhook(ns string) admissionv1beta1.ValidatingWebho
 					Service: &admissionv1beta1.ServiceReference{
 						Name:      "kudo-controller-manager-service",
 						Namespace: ns,
-						Path:      kudo.String("/validate-kudo-dev-v1beta1-instance"),
+						Path:      kudo.String("/admit-kudo-dev-v1beta1-instance"),
 					},
 				},
 			},
@@ -179,3 +179,67 @@ func certificate(ns string) []unstructured.Unstructured {
 		},
 	}
 }
+
+/*
+ ***************************************
+ *** How to test a webhook locally  ****
+ ***************************************
+
+Normally, I would simply `make run` the controller in my console. However, since the API server running, in my case
+inside the minikube, has be able to send POST requests to the webhook, this setup doesn't work out of the box. First of
+all the webhook needs tls.crt and tls.key files in /tmp/cert to start. You can use openssl to generate them:
+
+1. Generate the tls.crt and tls.key files in the /tmp/cert:
+ ❯ openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out /tmp/cert/tls.crt -keyout /tmp/cert/tls.key
+
+2. Install ngrok: https://ngrok.com/ and run a local tunnel on the port 443 which will give you an url to your local machine:
+ ❯ ngrok http 443
+  ...
+  Forwarding                    https://ff6b2dd5.ngrok.io -> https://localhost:443
+
+3. Set webhooks[].clientConfig.url to the url of the above tunnel and apply this MutatingWebhookConfiguration to the cluster:
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: kudo-manager-instance-validation-webhook-config
+webhooks:
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    url: https://ff6b2dd5.ngrok.io/admit-kudo-dev-v1beta1-instance
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: instance-admission.kudo.dev
+  namespaceSelector: {}
+  objectSelector: {}
+  reinvocationPolicy: Never
+  rules:
+  - apiGroups:
+    - kudo.dev
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - instances
+    scope: Namespaced
+  sideEffects: None
+  timeoutSeconds: 30
+---
+The difference between this one and the one generate by the instanceAdmissionWebhook() method is the usage of
+webhooks[].clientConfig.url (which points to our ngrok-tunnel) instead of webhooks[].clientConfig.Service.
+
+4. Finally run local manager with the webhook enabled:
+ ❯ ENABLE_WEBHOOKS=true make run
+and if everything was setup correctly you should see:
+...
+ ⌛ Setting up webhooks
+ ✅ Instance admission webhook
+ 🏄 Done! Everything is setup, starting KUDO manager now
+
+5. Test the webhook with:
+ ❯ curl -X POST https://ff6b2dd5.ngrok.io/admit-kudo-dev-v1beta1-instance
+{"response":{"uid":"","allowed":false,"status":{"metadata":{},"message":"contentType=, expected application/json","code":400}}}
+*/

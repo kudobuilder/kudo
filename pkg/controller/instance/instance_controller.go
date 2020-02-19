@@ -367,7 +367,7 @@ func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1beta1.In
 }
 
 // GetOperatorVersion retrieves OperatorVersion belonging to the given instance
-func GetOperatorVersion(instance *kudov1beta1.Instance, c client.Client) (ov *kudov1beta1.OperatorVersion, err error) {
+func GetOperatorVersion(instance *kudov1beta1.Instance, c client.Reader) (ov *kudov1beta1.OperatorVersion, err error) {
 	ov = &kudov1beta1.OperatorVersion{}
 	err = c.Get(context.TODO(),
 		types.NamespacedName{
@@ -650,14 +650,10 @@ func snapshotSpec(i *v1beta1.Instance) (*v1beta1.InstanceSpec, error) {
 	return nil, nil
 }
 
-func remove(values []string, s string) (result []string) {
-	for _, value := range values {
-		if value == s {
-			continue
-		}
-		result = append(result, value)
-	}
-	return
+func remove(values []string, s string) []string {
+	return funk.FilterString(values, func(str string) bool {
+		return str != s
+	})
 }
 
 // tryAddFinalizer adds the cleanup finalizer to an instance if the finalizer

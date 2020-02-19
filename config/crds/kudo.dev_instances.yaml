@@ -80,7 +80,7 @@ spec:
             planExecution:
               description: 'There are two ways a plan execution can be triggered:  1)
                 indirectly through update of a corresponding parameter in the InstanceSpec.Parameters
-                map  2) directly through setting of the InstanceSpec.PlanExecution
+                map  2) directly through setting of the InstanceSpec.PlanExecution.PlanName
                 field While indirect (1) triggers happens every time a user changes
                 a parameter, a directly (2) triggered plan is reserved for the situations
                 when parameters doesn''t change e.g. a periodic backup is triggered
@@ -92,8 +92,6 @@ spec:
               properties:
                 planName:
                   type: string
-              required:
-              - planName
               type: object
           type: object
         status:

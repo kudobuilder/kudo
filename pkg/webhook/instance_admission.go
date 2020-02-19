@@ -2,12 +2,14 @@ package webhook
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/thoas/go-funk"
 	"k8s.io/api/admission/v1beta1"
+	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -35,12 +37,18 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 			return admission.Errored(http.StatusBadRequest, err)
 		}
 
+		// if namespace is not set, 'default' is explicitly set, otherwise it is empty (at this point)
+		// and later search for the corresponding OV doesn't return anything
+		if new.Namespace == "" {
+			new.Namespace = v1.NamespaceDefault
+		}
+
 		// since we don't yet enforce the existence of the 'deploy' plan in the OV, we check for its existence
 		// and decline Instance creation if the plan is not found
 		ov, err := instance.GetOperatorVersion(new, ia.client)
 		if err != nil {
 			log.Printf("InstanceAdmission: Error getting operatorVersion %s for instance %s/%s: %v", new.Spec.OperatorVersion.Name, new.Namespace, new.Name, err)
-			admission.Errored(http.StatusInternalServerError, err)
+			return admission.Errored(http.StatusInternalServerError, err)
 		}
 
 		plan := kudov1beta1.SelectPlan([]string{kudov1beta1.DeployPlanName}, ov)
@@ -49,7 +57,14 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 		}
 
 		new.Spec.PlanExecution.PlanName = *plan
-		return admission.Allowed("")
+
+		marshaled, err := json.Marshal(new)
+		if err != nil {
+			return admission.Errored(http.StatusInternalServerError, err)
+		}
+
+		log.Printf("🧐")
+		return admission.PatchResponseFromRaw(req.Object.Raw, marshaled)
 
 	case v1beta1.Update:
 		// call validation for Instance Updates
@@ -70,7 +85,7 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 		ov, err := instance.GetOperatorVersion(new, ia.client)
 		if err != nil {
 			log.Printf("InstanceAdmission: Error getting operatorVersion %s for instance %s/%s: %v", new.Spec.OperatorVersion.Name, new.Namespace, new.Name, err)
-			admission.Errored(http.StatusInternalServerError, err)
+			return admission.Errored(http.StatusInternalServerError, err)
 		}
 
 		triggered, err := admitUpdate(old, new, ov)
@@ -83,7 +98,12 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 			new.Spec.PlanExecution.PlanName = *triggered
 		}
 
-		return admission.Allowed("")
+		marshaled, err := json.Marshal(new)
+		if err != nil {
+			return admission.Errored(http.StatusInternalServerError, err)
+		}
+
+		return admission.PatchResponseFromRaw(req.Object.Raw, marshaled)
 
 	default:
 		return admission.Allowed("")
