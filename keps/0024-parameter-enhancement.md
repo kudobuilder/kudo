@@ -43,7 +43,7 @@ Having parameter types creates the possibility for parameter validation.
 
 ### Non-Goals
 
-- Change how parameters are defined
+- Change existing parameter definitions in `params.yaml`
 
 ## Proposal
 
