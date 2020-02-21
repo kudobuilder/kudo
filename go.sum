@@ -313,6 +313,8 @@ github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/pty v1.1.5/go.mod h1:9r2w37qlBe7rQ6e1fg1S/9xpWHSnaqNdHD3WcMdbPDA=
 github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
+github.com/kudobuilder/code-generator v0.16.6-beta.0.0.20200221140535-0ef46f1228ff h1:nWmLr2OacKLJDzTc0RQ+icPZnYXwM/eY2rgsOrTUekQ=
+github.com/kudobuilder/code-generator v0.16.6-beta.0.0.20200221140535-0ef46f1228ff/go.mod h1:2aiDuxDU7RQK2PVypXAXHo6+YwOlF33iezHQbSmKSA4=
 github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de/go.mod h1:zAbeS9B/r2mtpb6U+EI2rYA5OAXxsYw6wTamcNW+zcE=
 github.com/lithammer/dedent v1.1.0/go.mod h1:jrXYCQtgg0nJiN+StA2KgR7w6CiQNv9Fd/Z9BP0jIOc=
 github.com/lunixbochs/vtclean v0.0.0-20180621232353-2d01aacdc34a h1:weJVJJRzAJBFRlAiJQROKQs8oC9vOxvm4rZmBBk0ONw=
@@ -666,8 +668,6 @@ k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90/go.mod h1:J69/JveO6XESwVgG53
 k8s.io/client-go v0.16.6 h1:OR6ZaSlIn9dUdpiN4r5mAvMv5aCupUJUiDJZdrrvmhw=
 k8s.io/client-go v0.16.6/go.mod h1:xIQ44uaAH4SD1EHMtCHsB9By7D0qblbv1ADeGyXpZUQ=
 k8s.io/code-generator v0.0.0-20190912054826-cd179ad6a269/go.mod h1:V5BD6M4CyaN5m+VthcclXWsVcT1Hu+glwa1bi3MIsyE=
-k8s.io/code-generator v0.16.6 h1:wykZVkEDQd/BcOZxcQMEW6uFgoM4ZmvjIhxkbmEJ3WA=
-k8s.io/code-generator v0.16.6/go.mod h1:2aiDuxDU7RQK2PVypXAXHo6+YwOlF33iezHQbSmKSA4=
 k8s.io/component-base v0.0.0-20190918160511-547f6c5d7090/go.mod h1:933PBGtQFJky3TEwYx4aEPZ4IxqhWh3R6DCmzqIn1hA=
 k8s.io/component-base v0.16.6 h1:1qIWVKni+gqRkN8vvaGYJk+R8tRtKDv0XvvDuYEBD1w=
 k8s.io/component-base v0.16.6/go.mod h1:8+4lrSEgLQ9wqOzHVYx4GLSCU6sus8wqg8bfaTdXTwg=
