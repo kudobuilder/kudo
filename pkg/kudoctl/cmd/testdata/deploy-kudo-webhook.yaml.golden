@@ -494,6 +494,9 @@ spec:
               properties:
                 activePlanName:
                   type: string
+                lastUpdated:
+                  format: date-time
+                  type: string
                 status:
                   description: ExecutionStatus captures the state of the rollout.
                   type: string
