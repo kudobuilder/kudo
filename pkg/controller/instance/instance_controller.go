@@ -24,7 +24,6 @@ import (
 	"reflect"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 
@@ -445,33 +444,9 @@ func startPlanExecution(i *v1beta1.Instance, planName string, ov *v1beta1.Operat
 		ensurePlanStatusInitialized(i, ov)
 	}
 
-	// update status of the instance to reflect the newly starting plan
-	notFound := true
-	for planIndex, v := range i.Status.PlanStatus {
-		if v.Name == planName {
-			// update plan status
-			notFound = false
-			planStatus := i.Status.PlanStatus[planIndex]
-			planStatus.Set(v1beta1.ExecutionPending)
-			planStatus.UID = uuid.NewUUID()
-			for j, p := range v.Phases {
-				planStatus.Phases[j].Set(v1beta1.ExecutionPending)
-				for k := range p.Steps {
-					i.Status.PlanStatus[planIndex].Phases[j].Steps[k].Set(v1beta1.ExecutionPending)
-				}
-			}
-
-			i.Status.PlanStatus[planIndex] = planStatus // we cannot modify item in map, we need to reassign here
-
-			// update activePlan and instance status
-			i.Status.AggregatedStatus.Status = v1beta1.ExecutionPending
-			i.Status.AggregatedStatus.ActivePlanName = planName
-
-			break
-		}
-	}
-	if notFound {
-		return &v1beta1.InstanceError{Err: fmt.Errorf("asked to execute a plan %s but no such plan found in instance %s/%s", planName, i.Namespace, i.Name), EventName: kudo.String("PlanNotFound")}
+	// reset newly starting plan status
+	if err := i.ResetPlanStatus(planName); err != nil {
+		return &v1beta1.InstanceError{Err: fmt.Errorf("failed to reset plan status for instance %s/%s: %v", i.Namespace, i.Name, err), EventName: kudo.String("PlanNotFound")}
 	}
 
 	err := saveSnapshot(i)

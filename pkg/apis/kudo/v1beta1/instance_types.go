@@ -42,8 +42,10 @@ type InstanceSpec struct {
 // currently running plans in the future.
 // Note: PlanExecution field defines plan name and corresponding parameters that IS CURRENTLY executed.
 // Once the instance controller (IC) is done with the execution, this field will be cleared.
+// Each plan execution has a unique UID so even if
 type PlanExecution struct {
-	PlanName string `json:"planName,omitempty"`
+	PlanName string                `json:"planName,omitempty"`
+	UID      apimachinerytypes.UID `json:"uid,omitempty"`
 
 	// Future PE options like Force: bool. Not needed for now
 }

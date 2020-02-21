@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"reflect"
 
 	"github.com/thoas/go-funk"
 	"k8s.io/api/admission/v1beta1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -38,7 +40,7 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 		}
 
 		// if namespace is not set, 'default' is explicitly set, otherwise it is empty (at this point)
-		// and later search for the corresponding OV doesn't return anything
+		// and a subsequent search for the corresponding OV doesn't return anything
 		if new.Namespace == "" {
 			new.Namespace = v1.NamespaceDefault
 		}
@@ -57,17 +59,16 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 		}
 
 		new.Spec.PlanExecution.PlanName = *plan
+		new.Spec.PlanExecution.UID = uuid.NewUUID()
 
 		marshaled, err := json.Marshal(new)
 		if err != nil {
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
 
-		log.Printf("🧐")
 		return admission.PatchResponseFromRaw(req.Object.Raw, marshaled)
 
 	case v1beta1.Update:
-		// call validation for Instance Updates
 		old, new := &kudov1beta1.Instance{}, &kudov1beta1.Instance{}
 
 		// req.Object contains the updated object
@@ -78,6 +79,12 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 		// req.OldObject is populated for DELETE and UPDATE requests
 		if err := ia.decoder.DecodeRaw(req.OldObject, old); err != nil {
 			return admission.Errored(http.StatusBadRequest, err)
+		}
+
+		// we explicitly only validate updates to the Instance.Spec while Metadata (and/or possible Status)
+		// changes are unchecked and allowed
+		if reflect.DeepEqual(old.Spec, new.Spec) {
+			return admission.Allowed("")
 		}
 
 		// fetch new OperatorVersion: we always fetch the new one, since if it's an update it's the same as the old one
@@ -93,17 +100,20 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 			return admission.Denied(err.Error())
 		}
 
-		// Populate Instance.PlanExecution with the plan triggered by param change
+		// Populate Instance.PlanExecution with the plan triggered by param change and a new UID
 		if triggered != nil {
 			new.Spec.PlanExecution.PlanName = *triggered
+			new.Spec.PlanExecution.UID = uuid.NewUUID()
+
+			marshaled, err := json.Marshal(new)
+			if err != nil {
+				return admission.Errored(http.StatusInternalServerError, err)
+			}
+
+			return admission.PatchResponseFromRaw(req.Object.Raw, marshaled)
 		}
 
-		marshaled, err := json.Marshal(new)
-		if err != nil {
-			return admission.Errored(http.StatusInternalServerError, err)
-		}
-
-		return admission.PatchResponseFromRaw(req.Object.Raw, marshaled)
+		return admission.Allowed("")
 
 	default:
 		return admission.Allowed("")
@@ -189,25 +199,16 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 
 	case isParameterUpdate:
 		// if the same plan is triggered by the update, we clean the Instance.Status to effectively restart the plan
-		if *triggeredPlan == oldPlan {
-			if err := resetInstanceStatus(old); err != nil {
-				return nil, fmt.Errorf("failed to update Instance %s/%s: %v", old.Namespace, old.Name, err)
-			}
-		}
 		return triggeredPlan, nil
 
 	case isNovelPlan:
 		return &newPlan, nil
 		// Implement plan overrides and cancellations below:
+
+	default:
+		// effectively nothing changed so it's a noop.
+		return nil, nil
 	}
-
-	return triggeredPlan, nil
-}
-
-// resetInstanceStatus clears Instance.Status to effectively restart existing plan
-func resetInstanceStatus(instance *kudov1beta1.Instance) error {
-	// TODO (AD): implement
-	return nil
 }
 
 // triggeredPlan determines what plan to run based on parameters that changed and the corresponding parameter trigger.

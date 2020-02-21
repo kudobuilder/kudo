@@ -88,9 +88,16 @@ spec:
                 for canceling and overriding currently running plans in the future.
                 Note: PlanExecution field defines plan name and corresponding parameters
                 that IS CURRENTLY executed. Once the instance controller (IC) is done
-                with the execution, this field will be cleared.'
+                with the execution, this field will be cleared. Each plan execution
+                has a unique UID so even if'
               properties:
                 planName:
+                  type: string
+                uid:
+                  description: UID is a type that holds unique ID values, including
+                    UUIDs.  Because we don't ONLY use UUIDs, this is an alias to string.  Being
+                    a type captures intent and helps make sure that UIDs and names
+                    do not get conflated.
                   type: string
               type: object
           type: object
