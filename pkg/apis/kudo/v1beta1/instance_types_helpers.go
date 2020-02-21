@@ -2,7 +2,9 @@ package v1beta1
 
 import (
 	"fmt"
+	"time"
 
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
@@ -55,10 +57,12 @@ func (i *Instance) NoPlanEverExecuted() bool {
 
 // UpdateInstanceStatus updates `Status.PlanStatus` and `Status.AggregatedStatus` property based on the given plan
 func (i *Instance) UpdateInstanceStatus(planStatus *PlanStatus) {
+	currentTime := time.Now()
 	for k, v := range i.Status.PlanStatus {
 		if v.Name == planStatus.Name {
 			i.Status.PlanStatus[k] = *planStatus
 			i.Status.AggregatedStatus.Status = planStatus.Status
+			i.Status.AggregatedStatus.LastUpdated = &v1.Time{Time: currentTime}
 			if planStatus.Status.IsTerminal() {
 				i.Status.AggregatedStatus.ActivePlanName = ""
 			}

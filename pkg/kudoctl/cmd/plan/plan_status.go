@@ -60,12 +60,17 @@ func status(kc *kudo.Client, options *Options, ns string) error {
 		return ""
 	}
 
-	rootDisplay := fmt.Sprintf("%s (Operator-Version: \"%s\" Active-Plan: \"%s\")", instance.Name, instance.Spec.OperatorVersion.Name, lastPlanStatus.Name)
+	rootDisplay := fmt.Sprintf("%s (Operator-Version: \"%s\" Active-Plan: \"%s\", last updated: \"%s\")", instance.Name, instance.Spec.OperatorVersion.Name, lastPlanStatus.Name, instance.Status.AggregatedStatus.LastUpdated.Format("2006-01-02 15:04:05"))
 	rootBranchName := tree.AddBranch(rootDisplay)
 
 	for name, plan := range ov.Spec.Plans {
+		var planDisplay string
 		if name == lastPlanStatus.Name {
-			planDisplay := fmt.Sprintf("Plan %s (%s strategy) [%s]%s", name, plan.Strategy, lastPlanStatus.Status, printMessageIfAvailable(lastPlanStatus.Message))
+			if lastPlanStatus.LastFinishedRun != nil {
+				planDisplay = fmt.Sprintf("Plan %s (%s strategy) [%s]%s, last finished %s", name, plan.Strategy, lastPlanStatus.Status, printMessageIfAvailable(lastPlanStatus.Message), lastPlanStatus.LastFinishedRun.Format("2006-01-02 15:04:05"))
+			} else {
+				planDisplay = fmt.Sprintf("Plan %s (%s strategy) [%s]%s", name, plan.Strategy, lastPlanStatus.Status, printMessageIfAvailable(lastPlanStatus.Message))
+			}
 			planBranchName := rootBranchName.AddBranch(planDisplay)
 			for _, phase := range lastPlanStatus.Phases {
 				phaseDisplay := fmt.Sprintf("Phase %s (%s strategy) [%s]%s", phase.Name, getPhaseStrategy(phase.Name), phase.Status, printMessageIfAvailable(phase.Message))

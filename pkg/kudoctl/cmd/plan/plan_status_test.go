@@ -3,6 +3,7 @@ package plan
 import (
 	"bytes"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
@@ -11,6 +12,10 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
+)
+
+var (
+	testTime = time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)
 )
 
 func TestStatus(t *testing.T) {
@@ -45,8 +50,9 @@ func TestStatus(t *testing.T) {
 	fatalErrInstance.Status = v1beta1.InstanceStatus{
 		PlanStatus: map[string]v1beta1.PlanStatus{
 			"deploy": {
-				Name:   "deploy",
-				Status: v1beta1.ExecutionFatalError,
+				Name:            "deploy",
+				Status:          v1beta1.ExecutionFatalError,
+				LastFinishedRun: &metav1.Time{Time: testTime},
 				Phases: []v1beta1.PhaseStatus{
 					{
 						Name:   "deploy",
@@ -61,6 +67,9 @@ func TestStatus(t *testing.T) {
 					},
 				},
 			},
+		},
+		AggregatedStatus: v1beta1.AggregatedStatus{
+			LastUpdated: &metav1.Time{Time: testTime},
 		},
 	}
 
@@ -77,8 +86,8 @@ func TestStatus(t *testing.T) {
 		{"no plan run", instance, ov, "test", "", "No plan ever run for instance - nothing to show for instance test\n"},
 		{"fatal error in a plan", fatalErrInstance, ov, "test", "", `Plan(s) for "test" in namespace "default":
 .
-└── test (Operator-Version: "test-1.0" Active-Plan: "deploy")
-    └── Plan deploy ( strategy) [FATAL_ERROR]
+└── test (Operator-Version: "test-1.0" Active-Plan: "deploy", last updated: "2019-10-17 01:01:01")
+    └── Plan deploy ( strategy) [FATAL_ERROR], last finished 2019-10-17 01:01:01
         └── Phase deploy ( strategy) [FATAL_ERROR]
             └── Step deploy [FATAL_ERROR] (error detail)
 

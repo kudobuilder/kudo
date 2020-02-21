@@ -118,6 +118,7 @@ func TestInstance_ResetPlanStatus(t *testing.T) {
 			AggregatedStatus: AggregatedStatus{
 				Status:         ExecutionInProgress,
 				ActivePlanName: "deploy",
+				LastUpdated:    &metav1.Time{Time: testTime},
 			},
 		},
 	}
@@ -134,6 +135,7 @@ func TestInstance_ResetPlanStatus(t *testing.T) {
 	statusCopy := oldPlanStatus.DeepCopy()
 	statusCopy.UID = testUUID
 	instance.Status.PlanStatus["deploy"] = *statusCopy
+	instance.Status.AggregatedStatus.LastUpdated = &metav1.Time{Time: testTime}
 
 	// Expected:
 	// - the status of the 'deploy' plan to be reset: all phases and steps should be PENDING, new UID should be assigned
@@ -157,6 +159,7 @@ func TestInstance_ResetPlanStatus(t *testing.T) {
 		AggregatedStatus: AggregatedStatus{
 			Status:         ExecutionPending,
 			ActivePlanName: "deploy",
+			LastUpdated:    &metav1.Time{Time: testTime},
 		},
 	}, instance.Status)
 }

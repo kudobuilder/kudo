@@ -59,6 +59,7 @@ type InstanceStatus struct {
 type AggregatedStatus struct {
 	Status         ExecutionStatus `json:"status,omitempty"`
 	ActivePlanName string          `json:"activePlanName,omitempty"`
+	LastUpdated    *metav1.Time    `json:"lastUpdated,omitempty"`
 }
 
 // PlanStatus is representing status of a plan
