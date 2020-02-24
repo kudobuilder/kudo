@@ -54,7 +54,7 @@ import (
 )
 
 const (
-	snapshotAnnotation           = "kudo.dev/last-applied-instance-state"
+	SnapshotAnnotation           = "kudo.dev/last-applied-instance-state"
 	instanceCleanupFinalizerName = "kudo.dev.instance.cleanup"
 )
 
@@ -631,13 +631,13 @@ func saveSnapshot(i *v1beta1.Instance) error {
 	if i.Annotations == nil {
 		i.Annotations = make(map[string]string)
 	}
-	i.Annotations[snapshotAnnotation] = string(jsonBytes)
+	i.Annotations[SnapshotAnnotation] = string(jsonBytes)
 	return nil
 }
 
 func snapshotSpec(i *v1beta1.Instance) (*v1beta1.InstanceSpec, error) {
 	if i.Annotations != nil {
-		snapshot, ok := i.Annotations[snapshotAnnotation]
+		snapshot, ok := i.Annotations[SnapshotAnnotation]
 		if ok {
 			var spec *v1beta1.InstanceSpec
 			err := json.Unmarshal([]byte(snapshot), &spec)

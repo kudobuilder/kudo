@@ -3,6 +3,8 @@ package kube
 import (
 	"fmt"
 
+	"k8s.io/client-go/discovery"
+
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -17,6 +19,7 @@ type Client struct {
 	KubeClient    kubernetes.Interface
 	ExtClient     apiextensionsclient.Interface
 	DynamicClient dynamic.Interface
+	Discovery     discovery.DiscoveryInterface
 }
 
 // getConfig returns a Kubernetes client config for a given kubeconfig.
@@ -60,6 +63,14 @@ func GetKubeClient(kubeconfig string) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not create Kubernetes dynamic client: %s", err)
 	}
+	discovery, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("could not create discovery client: %s", err)
+	}
 
-	return &Client{client, extClient, dynamicClient}, nil
+	return &Client{
+		KubeClient:    client,
+		ExtClient:     extClient,
+		DynamicClient: dynamicClient,
+		Discovery:     discovery}, nil
 }

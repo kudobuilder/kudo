@@ -1,6 +1,8 @@
 package migration
 
+import "github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+
 type Migrator interface {
-	CanMigrate() error
-	Migrate() error
+	CanMigrate(client *kube.Client) error
+	Migrate(client *kube.Client) error
 }
