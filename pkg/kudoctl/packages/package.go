@@ -105,7 +105,7 @@ func validateTask(t v1beta1.Task, templates map[string]string) []string {
 	case task.ToggleTaskKind:
 		resources = t.Spec.ResourceTaskSpec.Resources
 		if len(t.Spec.Parameter) == 0 {
-			errs = append(errs, fmt.Sprintf("toggle task %s does not have pipe files specified", t.Name))
+			errs = append(errs, fmt.Sprintf("toggle task %s does not have parameter specified", t.Name))
 		}
 	case task.PipeTaskKind:
 		resources = append(resources, t.Spec.PipeTaskSpec.Pod)
