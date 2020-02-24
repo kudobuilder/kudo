@@ -121,6 +121,12 @@ func addTaskNodeWithResources(sNode treeprint.Tree, taskName string, pf *package
 				for _, resource := range t.Spec.Resources {
 					tNode.AddNode(resource)
 				}
+			case task.ToggleTaskKind:
+				tNode := sNode.AddMetaBranch("toggle", taskName)
+				tNode.AddMetaBranch("parameter", t.Spec.Parameter)
+				for _, resource := range t.Spec.Resources {
+					tNode.AddNode(resource)
+				}
 			case task.PipeTaskKind:
 				tNode := sNode.AddMetaBranch("pipe", taskName)
 				tNode.AddNode(t.Spec.Pod)
