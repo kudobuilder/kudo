@@ -33,7 +33,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -467,7 +467,7 @@ func startPlanExecution(i *v1beta1.Instance, planName string, ov *v1beta1.Operat
 			// update activePlan and instance status
 			i.Status.AggregatedStatus.Status = v1beta1.ExecutionPending
 			i.Status.AggregatedStatus.ActivePlanName = planName
-			i.Status.AggregatedStatus.LastUpdated = &v1.Time{Time: currentTime}
+			i.Status.AggregatedStatus.LastUpdated = &metav1.Time{Time: currentTime}
 
 			break
 		}
