@@ -27,6 +27,8 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
+// to regenerate the golden files run:
+// go test ./pkg/kudoctl/cmd --update=true
 var updateGolden = flag.Bool("update", false, "update .golden files and manifests in /config/crd")
 
 func TestInitCmd_dry(t *testing.T) {
