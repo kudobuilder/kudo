@@ -44,7 +44,7 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 			res.AddErrors(err.Error())
 		}
 
-		// Try to parse rendered template as valid YAML
+		// Try to parse rendered template as valid Kubernetes objects
 		_, err = renderer.YamlToObject(s)
 		if err != nil {
 			res.AddErrors(err.Error())
