@@ -12,6 +12,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
+	"github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
 func TestToggleTask_Run(t *testing.T) {
@@ -49,6 +50,7 @@ func TestToggleTask_Run(t *testing.T) {
 			fatal:   true,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: utils.FakeDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{},
@@ -68,6 +70,7 @@ func TestToggleTask_Run(t *testing.T) {
 					"feature-enabled": "true",
 				},
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: utils.FakeDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},
@@ -87,6 +90,7 @@ func TestToggleTask_Run(t *testing.T) {
 					"feature-enabled": "true",
 				},
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: utils.FakeDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"job": resourceAsString(job("job1", "default"))},
@@ -142,6 +146,7 @@ func TestToggleTask_getTask(t *testing.T) {
 					"feature-enabled": "true",
 				},
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: utils.FakeDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      renderer.Metadata{},
 				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},
@@ -161,6 +166,7 @@ func TestToggleTask_getTask(t *testing.T) {
 					"feature-enabled": "false",
 				},
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: utils.FakeDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      renderer.Metadata{},
 				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},
@@ -180,6 +186,7 @@ func TestToggleTask_getTask(t *testing.T) {
 					"feature-enabled": "notABooleanValue",
 				},
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: utils.FakeDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{},
@@ -199,6 +206,7 @@ func TestToggleTask_getTask(t *testing.T) {
 					"feature-enabled": "",
 				},
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: utils.FakeDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{},
@@ -217,6 +225,7 @@ func TestToggleTask_getTask(t *testing.T) {
 					"feature-enabled": "someValue",
 				},
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: utils.FakeDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{},
