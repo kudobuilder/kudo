@@ -133,11 +133,11 @@ A template function `fromYAML` could be used to convert a parameter value to a d
 {{ end }}
 ```
 
-In KUDO, this function would work the same way as the `dict` type conversion mentioned above. The difference is that the conversion has to be explicitly done by the operator developer in the template.
+In KUDO, this function would work the same way as the `dict` type conversion mentioned above. The difference is that the conversion has to be explicitly done by the operator developer in the template. Also, this approach wouldn't allow for parameter validation in KUDO.
 
 ### Alternative Considered: Allow Arbitrary Parameter Values
 
-Support for lists or dictionaries could be added by treating every parameter value as YAML. Because a single string is valid YAML, this would be compatible with string parameters. Though, this approach creates problems with Go template pipelines. Some template functions like `eq` no longer work with string parameters that have been converted from YAML, because their resulting type is no longer `string`.
+Support for lists or dictionaries could be added by treating every parameter value as YAML. Because a single string is valid YAML, this would be compatible with string parameters. Though, this approach creates problems with Go template pipelines. Some template functions like `eq` no longer work with parameters that have been converted from YAML, because their converted type is no longer `string` but could be `int`, `float`, or `boolean`.
 
 ## Implementation History
 
