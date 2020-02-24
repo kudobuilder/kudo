@@ -73,6 +73,7 @@ func (i *Instance) UpdateInstanceStatus(planStatus *PlanStatus) {
 // ResetPlanStatus method resets a PlanStatus for a passed plan name and instance. Plan/phase/step statuses
 // are set to ExecutionPending meaning that the controller will restart plan execution.
 func (i *Instance) ResetPlanStatus(plan string) error {
+	currentTime := time.Now()
 	planStatus := i.PlanStatus(plan)
 	if planStatus == nil {
 		return fmt.Errorf("failed to find planStatus for the plan '%s'", plan)
@@ -92,6 +93,7 @@ func (i *Instance) ResetPlanStatus(plan string) error {
 
 	// update instance aggregated status
 	i.UpdateInstanceStatus(planStatus)
+	i.Status.AggregatedStatus.LastUpdated = &v1.Time{Time: currentTime}
 	return nil
 }
 
