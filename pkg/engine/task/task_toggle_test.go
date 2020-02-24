@@ -111,7 +111,7 @@ func TestToggleTask_Run(t *testing.T) {
 	}
 }
 
-func TestToggleTask_getTask(t *testing.T) {
+func TestToggleTask_intermediateTask(t *testing.T) {
 	meta := renderer.Metadata{
 		Metadata: engine.Metadata{
 			InstanceName:        "test",
@@ -235,7 +235,7 @@ func TestToggleTask_getTask(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got, err := tt.task.getTask(tt.ctx)
+		got, err := tt.task.intermediateTask(tt.ctx)
 		assert.True(t, tt.expectedTaskType == reflect.TypeOf(got), fmt.Sprintf("%s failed: want = %t, wantErr = %v", tt.name, got, err))
 
 		if tt.wantErr {

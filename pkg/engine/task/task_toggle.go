@@ -20,7 +20,7 @@ type ToggleTask struct {
 
 func (tt ToggleTask) Run(ctx Context) (bool, error) {
 	// 1. - Get the task to run
-	task, err := tt.getTask(ctx)
+	task, err := tt.intermediateTask(ctx)
 	if err != nil {
 		return false, fatalExecutionError(err, toggleTaskError, ctx.Meta)
 	}
@@ -36,14 +36,14 @@ func (tt ToggleTask) intermediateTaskSpec() v1beta1.TaskSpec {
 	}
 }
 
-func (tt ToggleTask) getTask(ctx Context) (Tasker, error) {
+func (tt ToggleTask) intermediateTask(ctx Context) (Tasker, error) {
 	var task Tasker
 	// 1. - Get the parameter value
-	paramValue := ctx.Parameters[tt.Parameter]
-	if len(paramValue) == 0 {
-		return task, fmt.Errorf("empty value for parameter %s", tt.Parameter)
+	val, exists := ctx.Parameters[tt.Parameter]
+	if !exists {
+		return task, fmt.Errorf("no value for parameter [%s] found", tt.Parameter)
 	}
-	enabled, err := strconv.ParseBool(paramValue)
+	enabled, err := strconv.ParseBool(val)
 	if err != nil {
 		return task, err
 	}
@@ -52,15 +52,14 @@ func (tt ToggleTask) getTask(ctx Context) (Tasker, error) {
 		task, err = newApply(&v1beta1.Task{
 			Name: tt.Name,
 			Kind: ApplyTaskKind,
-			Spec: tt.convertToTaskSpec(),
+			Spec: tt.intermediateTaskSpec(),
 		})
 	} else {
 		task, err = newDelete(&v1beta1.Task{
 			Name: tt.Name,
 			Kind: DeleteTaskKind,
-			Spec: tt.convertToTaskSpec(),
+			Spec: tt.intermediateTaskSpec(),
 		})
-
 	}
 	return task, err
 }
