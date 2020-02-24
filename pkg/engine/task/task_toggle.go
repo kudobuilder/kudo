@@ -28,7 +28,7 @@ func (tt ToggleTask) Run(ctx Context) (bool, error) {
 	return task.Run(ctx)
 }
 
-func (tt ToggleTask) convertToTaskSpec() v1beta1.TaskSpec {
+func (tt ToggleTask) intermediateTaskSpec() v1beta1.TaskSpec {
 	return v1beta1.TaskSpec{
 		ResourceTaskSpec: v1beta1.ResourceTaskSpec{
 			Resources: tt.Resources,
