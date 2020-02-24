@@ -60,7 +60,12 @@ func status(kc *kudo.Client, options *Options, ns string) error {
 		return ""
 	}
 
-	rootDisplay := fmt.Sprintf("%s (Operator-Version: \"%s\" Active-Plan: \"%s\", last updated: \"%s\")", instance.Name, instance.Spec.OperatorVersion.Name, lastPlanStatus.Name, instance.Status.AggregatedStatus.LastUpdated.Format("2006-01-02 15:04:05"))
+	var rootDisplay string
+	if instance.Status.AggregatedStatus.LastUpdated != nil {
+		rootDisplay = fmt.Sprintf("%s (Operator-Version: \"%s\" Active-Plan: \"%s\", last updated: \"%s\")", instance.Name, instance.Spec.OperatorVersion.Name, lastPlanStatus.Name, instance.Status.AggregatedStatus.LastUpdated.Format("2006-01-02 15:04:05"))
+	} else {
+		rootDisplay = fmt.Sprintf("%s (Operator-Version: \"%s\" Active-Plan: \"%s\")", instance.Name, instance.Spec.OperatorVersion.Name, lastPlanStatus.Name)
+	}
 	rootBranchName := tree.AddBranch(rootDisplay)
 
 	for name, plan := range ov.Spec.Plans {
