@@ -62,7 +62,7 @@ parameters:
   - name: topology
     description: Node topology
     type: dict
-    default: |
+    default:
       - region: us-east-1:
         replicas: 2
       - region: us-west-1:
