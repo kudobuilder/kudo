@@ -45,7 +45,7 @@ func (tt ToggleTask) intermediateTask(ctx Context) (Tasker, error) {
 	}
 	enabled, err := strconv.ParseBool(val)
 	if err != nil {
-		return task, fmt.Errorf("could not parse value of parameter %s: %v", err)
+		return task, fmt.Errorf("could not parse value of parameter %s: %v", tt.Parameter, err)
 	}
 	// 2. - Return the Apply or Delete task based on parameter value
 	if enabled {
