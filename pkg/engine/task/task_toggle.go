@@ -41,11 +41,11 @@ func (tt ToggleTask) intermediateTask(ctx Context) (Tasker, error) {
 	// 1. - Get the parameter value
 	val, exists := ctx.Parameters[tt.Parameter]
 	if !exists {
-		return task, fmt.Errorf("no value for parameter [%s] found", tt.Parameter)
+		return task, fmt.Errorf("no value for parameter %s found", tt.Parameter)
 	}
 	enabled, err := strconv.ParseBool(val)
 	if err != nil {
-		return task, err
+		return task, fmt.Errorf("could not parse value of parameter %s: %v", err)
 	}
 	// 2. - Return the Apply or Delete task based on parameter value
 	if enabled {
