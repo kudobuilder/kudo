@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
@@ -57,12 +57,11 @@ func (i *Instance) NoPlanEverExecuted() bool {
 
 // UpdateInstanceStatus updates `Status.PlanStatus` and `Status.AggregatedStatus` property based on the given plan
 func (i *Instance) UpdateInstanceStatus(planStatus *PlanStatus) {
-	currentTime := time.Now()
 	for k, v := range i.Status.PlanStatus {
 		if v.Name == planStatus.Name {
 			i.Status.PlanStatus[k] = *planStatus
 			i.Status.AggregatedStatus.Status = planStatus.Status
-			i.Status.AggregatedStatus.LastUpdated = &v1.Time{Time: currentTime}
+			i.Status.AggregatedStatus.LastUpdated = &metav1.Time{Time: time.Now()}
 			if planStatus.Status.IsTerminal() {
 				i.Status.AggregatedStatus.ActivePlanName = ""
 			}
@@ -73,7 +72,6 @@ func (i *Instance) UpdateInstanceStatus(planStatus *PlanStatus) {
 // ResetPlanStatus method resets a PlanStatus for a passed plan name and instance. Plan/phase/step statuses
 // are set to ExecutionPending meaning that the controller will restart plan execution.
 func (i *Instance) ResetPlanStatus(plan string) error {
-	currentTime := time.Now()
 	planStatus := i.PlanStatus(plan)
 	if planStatus == nil {
 		return fmt.Errorf("failed to find planStatus for the plan '%s'", plan)
@@ -93,7 +91,7 @@ func (i *Instance) ResetPlanStatus(plan string) error {
 
 	// update instance aggregated status
 	i.UpdateInstanceStatus(planStatus)
-	i.Status.AggregatedStatus.LastUpdated = &v1.Time{Time: currentTime}
+	i.Status.AggregatedStatus.LastUpdated = &metav1.Time{Time: time.Now()}
 	return nil
 }
 

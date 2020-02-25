@@ -208,7 +208,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	}
 	if planToBeExecuted != nil {
 		log.Printf("InstanceController: Going to start execution of plan %s on instance %s/%s", kudo.StringValue(planToBeExecuted), instance.Namespace, instance.Name)
-		err = startPlanExecution(instance, kudo.StringValue(planToBeExecuted), ov, time.Now())
+		err = startPlanExecution(instance, kudo.StringValue(planToBeExecuted), ov)
 		if err != nil {
 			return reconcile.Result{}, r.handleError(err, instance, oldInstance)
 		}
@@ -441,7 +441,7 @@ func pipesMap(planName string, plan *v1beta1.Plan, tasks []v1beta1.Task, emeta *
 
 // startPlanExecution mark plan as to be executed
 // this modifies the instance.Status as well as instance.Metadata.Annotation (to save snapshot if needed)
-func startPlanExecution(i *v1beta1.Instance, planName string, ov *v1beta1.OperatorVersion, currentTime time.Time) error {
+func startPlanExecution(i *v1beta1.Instance, planName string, ov *v1beta1.OperatorVersion) error {
 	if i.NoPlanEverExecuted() || isUpgradePlan(planName) {
 		ensurePlanStatusInitialized(i, ov)
 	}
@@ -467,7 +467,7 @@ func startPlanExecution(i *v1beta1.Instance, planName string, ov *v1beta1.Operat
 			// update activePlan and instance status
 			i.Status.AggregatedStatus.Status = v1beta1.ExecutionPending
 			i.Status.AggregatedStatus.ActivePlanName = planName
-			i.Status.AggregatedStatus.LastUpdated = &metav1.Time{Time: currentTime}
+			i.Status.AggregatedStatus.LastUpdated = &metav1.Time{Time: time.Now()}
 
 			break
 		}
