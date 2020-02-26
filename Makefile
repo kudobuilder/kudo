@@ -47,10 +47,8 @@ test-clean:
 
 .PHONY: lint
 lint:
-ifeq (, $(shell which golangci-lint))
-	./hack/install-golangcilint.sh
-endif
-	golangci-lint run
+	if [ ! -f ${GOPATH}/bin/golangci-lint ]; then ./hack/install-golangcilint.sh; fi
+	${GOPATH}/bin/golangci-lint run
 
 .PHONY: download
 download:
