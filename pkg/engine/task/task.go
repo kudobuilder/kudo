@@ -131,7 +131,7 @@ func newPipe(task *v1beta1.Task) (Tasker, error) {
 
 func newToggle(task *v1beta1.Task) (Tasker, error) {
 	// validate if resources are present
-	if len(task.Spec.ToggleTaskSpec.Resources) == 0 {
+	if len(task.Spec.Resources) == 0 {
 		return nil, errors.New("task validation error: toggle task has an empty resource list. if that's what you need, use a Dummy task instead")
 	}
 	// validate if the parameter is present
@@ -140,8 +140,8 @@ func newToggle(task *v1beta1.Task) (Tasker, error) {
 	}
 	return ToggleTask{
 		Name:      task.Name,
-		Resources: task.Spec.ToggleTaskSpec.Resources,
-		Parameter: task.Spec.ToggleTaskSpec.Parameter,
+		Resources: task.Spec.Resources,
+		Parameter: task.Spec.Parameter,
 	}, nil
 }
 
