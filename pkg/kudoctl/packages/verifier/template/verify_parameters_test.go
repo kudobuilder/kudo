@@ -1,12 +1,12 @@
 package template
 
 import (
-	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
