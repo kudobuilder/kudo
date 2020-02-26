@@ -1,23 +1,4 @@
 apiVersion: kudo.dev/v1beta1
-kind: OperatorVersion
-spec:
-  operator:
-    kind: Operator
-    name: feature-operator
-  parameters:
-    - default: 'true'
-      description: Number of replicas that should be run as part of the deployment
-      name: enable_cm
-      required: true
-  tasks:
-    - kind: Toggle
-      name: app
-      spec:
-        parameter: enable_cm
-        resources:
-          - configmap.yaml
----
-apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   labels:
