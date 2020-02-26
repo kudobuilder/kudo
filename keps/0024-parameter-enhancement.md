@@ -23,8 +23,10 @@ status: provisional
   - [Proposal](#proposal)
     - [Support Optional Parameter Types](#support-optional-parameter-types)
     - [Provide Parameter Validation](#provide-parameter-validation)
-    - [Alternative Considered: Convert YAML in string to dictionaries](#alternative-considered-convert-yaml-in-string-to-dictionaries)
-    - [Alternative Considered: Allow Arbitrary Parameter Values](#alternative-considered-allow-arbitrary-parameter-values)
+    - [Notes](#notes)
+  - [Alternatives](#alternatives)
+    - [Convert YAML in string to dictionaries](#convert-yaml-in-string-to-dictionaries)
+    - [Allow Arbitrary Parameter Values](#allow-arbitrary-parameter-values)
   - [Implementation History](#implementation-history)
 
 ## Summary
