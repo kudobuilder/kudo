@@ -91,8 +91,11 @@ func paramsNotDefined(pf *packages.Files) verifier.Result {
 	}
 	for _, opTask := range pf.Operator.Tasks {
 		if opTask.Kind == task.ToggleTaskKind {
-			if _, ok := params[opTask.Spec.Parameter]; !ok {
-				res.AddErrors(fmt.Sprintf("parameter %q in ToggleTask %v is not defined", opTask.Spec.Parameter, opTask.Name))
+			// Only checking non-empty parameter prevents a double error in verification
+			if len(opTask.Spec.Parameter) > 0 {
+				if _, ok := params[opTask.Spec.Parameter]; !ok {
+					res.AddErrors(fmt.Sprintf("parameter %q in ToggleTask %v is not defined", opTask.Spec.Parameter, opTask.Name))
+				}
 			}
 		}
 	}

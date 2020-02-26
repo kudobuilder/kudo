@@ -147,7 +147,6 @@ type ResourceTaskSpec struct {
 
 // ToggleTaskSpec is referencing a ResourceTaskSpec and a parameter
 type ToggleTaskSpec struct {
-	ResourceTaskSpec `json:",inline"`
 	// +optional
 	Parameter string `json:"parameter,omitempty"`
 }

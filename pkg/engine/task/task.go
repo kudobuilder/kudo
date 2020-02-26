@@ -140,8 +140,8 @@ func newToggle(task *v1beta1.Task) (Tasker, error) {
 	}
 	return ToggleTask{
 		Name:      task.Name,
-		Resources: task.Spec.Resources,
-		Parameter: task.Spec.Parameter,
+		Resources: task.Spec.ResourceTaskSpec.Resources,
+		Parameter: task.Spec.ToggleTaskSpec.Parameter,
 	}, nil
 }
 

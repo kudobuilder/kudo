@@ -243,11 +243,8 @@ spec:
                       pod:
                         type: string
                       resources:
-                        allOf:
-                        - items:
-                            type: string
-                        - items:
-                            type: string
+                        items:
+                          type: string
                         nullable: true
                         type: array
                       wantErr:
