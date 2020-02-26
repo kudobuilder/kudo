@@ -20,7 +20,7 @@ type ToggleTask struct {
 
 func (tt ToggleTask) Run(ctx Context) (bool, error) {
 	// 1. - Get the task to run
-	task, err := tt.intermediateTask(ctx)
+	task, err := tt.delegateTask(ctx)
 	if err != nil {
 		return false, fatalExecutionError(err, toggleTaskError, ctx.Meta)
 	}
@@ -36,7 +36,7 @@ func (tt ToggleTask) intermediateTaskSpec() v1beta1.TaskSpec {
 	}
 }
 
-func (tt ToggleTask) intermediateTask(ctx Context) (Tasker, error) {
+func (tt ToggleTask) delegateTask(ctx Context) (Tasker, error) {
 	var task Tasker
 	// 1. - Get the parameter value
 	val, exists := ctx.Parameters[tt.Parameter]

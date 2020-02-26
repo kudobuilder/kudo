@@ -235,7 +235,7 @@ func TestToggleTask_intermediateTask(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got, err := tt.task.intermediateTask(tt.ctx)
+		got, err := tt.task.delegateTask(tt.ctx)
 		assert.True(t, tt.expectedTaskType == reflect.TypeOf(got), fmt.Sprintf("%s failed: want = %t, wantErr = %v", tt.name, got, err))
 
 		if tt.wantErr {
