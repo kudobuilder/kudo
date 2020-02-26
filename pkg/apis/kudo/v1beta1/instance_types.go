@@ -17,6 +17,7 @@ package v1beta1
 
 import (
 	"fmt"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -89,9 +90,9 @@ type PlanStatus struct {
 	Status  ExecutionStatus `json:"status,omitempty"`
 	Message string          `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
 	// +nullable
-	LastFinishedRun *metav1.Time          `json:"lastFinishedRun,omitempty"`
-	Phases          []PhaseStatus         `json:"phases,omitempty"`
-	UID             apimachinerytypes.UID `json:"uid,omitempty"`
+	LastUpdatedTimestamp *metav1.Time          `json:"lastUpdatedTimestamp,omitempty"`
+	Phases               []PhaseStatus         `json:"phases,omitempty"`
+	UID                  apimachinerytypes.UID `json:"uid,omitempty"`
 }
 
 // PhaseStatus is representing status of a phase
@@ -130,11 +131,13 @@ func (s *PhaseStatus) SetWithMessage(status ExecutionStatus, message string) {
 }
 
 func (s *PlanStatus) Set(status ExecutionStatus) {
+	s.LastUpdatedTimestamp = &metav1.Time{Time: time.Now()}
 	s.Status = status
 	s.Message = ""
 }
 
 func (s *PlanStatus) SetWithMessage(status ExecutionStatus, message string) {
+	s.LastUpdatedTimestamp = &metav1.Time{Time: time.Now()}
 	s.Status = status
 	s.Message = message
 }

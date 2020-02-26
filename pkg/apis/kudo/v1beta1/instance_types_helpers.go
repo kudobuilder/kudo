@@ -2,7 +2,9 @@ package v1beta1
 
 import (
 	"fmt"
+	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
@@ -57,6 +59,7 @@ func (i *Instance) NoPlanEverExecuted() bool {
 func (i *Instance) UpdateInstanceStatus(planStatus *PlanStatus) {
 	for k, v := range i.Status.PlanStatus {
 		if v.Name == planStatus.Name {
+			planStatus.LastUpdatedTimestamp = &metav1.Time{Time: time.Now()}
 			i.Status.PlanStatus[k] = *planStatus
 			i.Status.AggregatedStatus.Status = planStatus.Status
 			if planStatus.Status.IsTerminal() {
@@ -118,10 +121,10 @@ func (i *Instance) PlanStatus(plan string) *PlanStatus {
 
 // wasRunAfter returns true if p1 was run after p2
 func wasRunAfter(p1 PlanStatus, p2 PlanStatus) bool {
-	if p1.Status == ExecutionNeverRun || p2.Status == ExecutionNeverRun || p1.LastFinishedRun == nil || p2.LastFinishedRun == nil {
+	if p1.Status == ExecutionNeverRun || p2.Status == ExecutionNeverRun || p1.LastUpdatedTimestamp == nil || p2.LastUpdatedTimestamp == nil {
 		return false
 	}
-	return p1.LastFinishedRun.Time.After(p2.LastFinishedRun.Time)
+	return p1.LastUpdatedTimestamp.Time.After(p2.LastUpdatedTimestamp.Time)
 }
 
 // GetParamDefinitions retrieves parameter metadata from OperatorVersion CRD

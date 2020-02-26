@@ -19,8 +19,9 @@ import (
 	"github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
+var testTime = time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)
+
 func TestExecutePlan(t *testing.T) {
-	timeNow := time.Now()
 	instance := instance()
 	meta := &engine.Metadata{
 		InstanceName:        instance.Name,
@@ -47,15 +48,16 @@ func TestExecutePlan(t *testing.T) {
 			},
 		},
 			metadata:       meta,
-			expectedStatus: &v1beta1.PlanStatus{Status: v1beta1.ExecutionComplete},
+			expectedStatus: &v1beta1.PlanStatus{Status: v1beta1.ExecutionComplete, LastUpdatedTimestamp: &metav1.Time{Time: testTime}},
 			enhancer:       testEnhancer,
 		},
 		{name: "plan with a step to be executed is in progress when the step is not completed", activePlan: &ActivePlan{
 			Name: "test",
 			PlanStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionInProgress,
-				Name:   "test",
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionInProgress, Name: "step"}}}},
+				Name:                 "test",
+				Status:               v1beta1.ExecutionInProgress,
+				LastUpdatedTimestamp: &metav1.Time{Time: testTime},
+				Phases:               []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionInProgress, Name: "step"}}}},
 			},
 			Spec: &v1beta1.Plan{
 				Strategy: "serial",
@@ -76,17 +78,19 @@ func TestExecutePlan(t *testing.T) {
 		},
 			metadata: meta,
 			expectedStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionInProgress,
-				Name:   "test",
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionInProgress, Name: "step"}}}}},
+				Name:                 "test",
+				Status:               v1beta1.ExecutionInProgress,
+				LastUpdatedTimestamp: &metav1.Time{Time: testTime},
+				Phases:               []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionInProgress, Name: "step"}}}}},
 			enhancer: testEnhancer,
 		},
 		{name: "plan with one step that is healthy is marked as completed", activePlan: &ActivePlan{
 			Name: "test",
 			PlanStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionPending,
-				Name:   "test",
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionPending, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionPending, Name: "step"}}}},
+				Name:                 "test",
+				Status:               v1beta1.ExecutionPending,
+				LastUpdatedTimestamp: &metav1.Time{Time: testTime},
+				Phases:               []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionPending, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionPending, Name: "step"}}}},
 			},
 			Spec: &v1beta1.Plan{
 				Strategy: "serial",
@@ -107,19 +111,19 @@ func TestExecutePlan(t *testing.T) {
 		},
 			metadata: meta,
 			expectedStatus: &v1beta1.PlanStatus{
-				Status:          v1beta1.ExecutionComplete,
-				LastFinishedRun: &v1.Time{Time: timeNow},
-				Name:            "test",
-				Phases:          []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionComplete, Name: "step"}}}},
+				Name:                 "test",
+				Status:               v1beta1.ExecutionComplete,
+				LastUpdatedTimestamp: &v1.Time{Time: testTime},
+				Phases:               []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionComplete, Name: "step"}}}},
 			},
 			enhancer: testEnhancer,
 		},
 		{name: "plan in errored state will be retried and completed when the step is done", activePlan: &ActivePlan{
 			Name: "test",
 			PlanStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionInProgress,
-				Name:   "test",
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ErrorStatus, Name: "step"}}}},
+				Name:                 "test",
+				LastUpdatedTimestamp: &metav1.Time{Time: testTime},
+				Phases:               []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ErrorStatus, Name: "step"}}}},
 			},
 			Spec: &v1beta1.Plan{
 				Strategy: "serial",
@@ -140,10 +144,10 @@ func TestExecutePlan(t *testing.T) {
 		},
 			metadata: meta,
 			expectedStatus: &v1beta1.PlanStatus{
-				Status:          v1beta1.ExecutionComplete,
-				LastFinishedRun: &v1.Time{Time: timeNow},
-				Name:            "test",
-				Phases:          []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionComplete, Name: "step"}}}},
+				Name:                 "test",
+				Status:               v1beta1.ExecutionComplete,
+				LastUpdatedTimestamp: &v1.Time{Time: testTime},
+				Phases:               []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionComplete, Name: "step"}}}},
 			},
 			enhancer: testEnhancer,
 		},
@@ -151,8 +155,8 @@ func TestExecutePlan(t *testing.T) {
 		{name: "plan in progress, will have step error status, when a task fails", activePlan: &ActivePlan{
 			Name: "test",
 			PlanStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
+				Status: v1beta1.ExecutionInProgress,
 				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}}},
 			},
 			Spec: &v1beta1.Plan{
@@ -174,8 +178,9 @@ func TestExecutePlan(t *testing.T) {
 		},
 			metadata: meta,
 			expectedStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionInProgress,
-				Name:   "test",
+				Name:                 "test",
+				Status:               v1beta1.ExecutionInProgress,
+				LastUpdatedTimestamp: &v1.Time{Time: testTime},
 				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ErrorStatus, Name: "step",
 					Message: "A transient error when executing task test.phase.step.task. Will retry. dummy error"}}}},
 			},
@@ -184,8 +189,8 @@ func TestExecutePlan(t *testing.T) {
 		{name: "plan in progress, will have plan/phase/step fatal error status, when a task fails with a fatal error", activePlan: &ActivePlan{
 			Name: "test",
 			PlanStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
+				Status: v1beta1.ExecutionInProgress,
 				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}}},
 			},
 			Spec: &v1beta1.Plan{
@@ -207,8 +212,9 @@ func TestExecutePlan(t *testing.T) {
 		},
 			metadata: meta,
 			expectedStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionFatalError,
-				Name:   "test",
+				Name:                 "test",
+				Status:               v1beta1.ExecutionFatalError,
+				LastUpdatedTimestamp: &v1.Time{Time: testTime},
 				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError,
 					Message: "Error during execution: fatal error: default/test-instance failed in test.phase.step.task: dummy error", Name: "step"}}}},
 			},
@@ -218,8 +224,8 @@ func TestExecutePlan(t *testing.T) {
 		{name: "plan in progress with a misconfigured task will fail with a fatal error", activePlan: &ActivePlan{
 			Name: "test",
 			PlanStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
+				Status: v1beta1.ExecutionInProgress,
 				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}}},
 			},
 			Spec: &v1beta1.Plan{
@@ -241,8 +247,9 @@ func TestExecutePlan(t *testing.T) {
 		},
 			metadata: meta,
 			expectedStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionFatalError,
-				Name:   "test",
+				Name:                 "test",
+				Status:               v1beta1.ExecutionFatalError,
+				LastUpdatedTimestamp: &v1.Time{Time: testTime},
 				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError,
 					Message: "default/test-instance fatal error:  missing task test.phase.step.fake-task", Name: "step"}}}},
 			},
@@ -252,8 +259,8 @@ func TestExecutePlan(t *testing.T) {
 		{name: "plan in progress with an unknown task spec will fail with a fatal error", activePlan: &ActivePlan{
 			Name: "test",
 			PlanStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
+				Status: v1beta1.ExecutionInProgress,
 				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}}},
 			},
 			Spec: &v1beta1.Plan{
@@ -273,8 +280,9 @@ func TestExecutePlan(t *testing.T) {
 		},
 			metadata: meta,
 			expectedStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionFatalError,
-				Name:   "test",
+				Name:                 "test",
+				Status:               v1beta1.ExecutionFatalError,
+				LastUpdatedTimestamp: &v1.Time{Time: testTime},
 				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Name: "step",
 					Message: "default/test-instance fatal error:  failed to build task test.phase.step.task: unknown task kind Unknown"}}}},
 			},
@@ -285,8 +293,8 @@ func TestExecutePlan(t *testing.T) {
 		{name: "plan in progress with multiple serial steps, will respect serial step strategy and stop after first step fails", activePlan: &ActivePlan{
 			Name: "test",
 			PlanStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
+				Status: v1beta1.ExecutionInProgress,
 				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{
 					{Name: "stepOne", Status: v1beta1.ExecutionInProgress},
 					{Name: "stepTwo", Status: v1beta1.ExecutionInProgress},
@@ -321,8 +329,9 @@ func TestExecutePlan(t *testing.T) {
 		},
 			metadata: meta,
 			expectedStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionInProgress,
-				Name:   "test",
+				Name:                 "test",
+				Status:               v1beta1.ExecutionInProgress,
+				LastUpdatedTimestamp: &v1.Time{Time: testTime},
 				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{
 					{Name: "stepOne", Status: v1beta1.ErrorStatus, Message: "A transient error when executing task test.phase.stepOne.taskOne. Will retry. dummy error"},
 					{Name: "stepTwo", Status: v1beta1.ExecutionInProgress},
@@ -333,8 +342,8 @@ func TestExecutePlan(t *testing.T) {
 		{name: "plan in progress with multiple parallel steps, will respect parallel step strategy and continue when first step fails", activePlan: &ActivePlan{
 			Name: "test",
 			PlanStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
+				Status: v1beta1.ExecutionInProgress,
 				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{
 					{Name: "stepOne", Status: v1beta1.ExecutionInProgress},
 					{Name: "stepTwo", Status: v1beta1.ExecutionInProgress},
@@ -369,8 +378,9 @@ func TestExecutePlan(t *testing.T) {
 		},
 			metadata: meta,
 			expectedStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionInProgress,
-				Name:   "test",
+				Name:                 "test",
+				Status:               v1beta1.ExecutionInProgress,
+				LastUpdatedTimestamp: &v1.Time{Time: testTime},
 				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{
 					{Name: "stepOne", Status: v1beta1.ErrorStatus, Message: "A transient error when executing task test.phase.stepOne.taskOne. Will retry. dummy error"},
 					{Name: "stepTwo", Status: v1beta1.ExecutionComplete},
@@ -417,8 +427,9 @@ func TestExecutePlan(t *testing.T) {
 		},
 			metadata: meta,
 			expectedStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionFatalError,
-				Name:   "test",
+				Name:                 "test",
+				Status:               v1beta1.ExecutionFatalError,
+				LastUpdatedTimestamp: &v1.Time{Time: testTime},
 				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{
 					{Name: "stepOne", Status: v1beta1.ExecutionFatalError, Message: "Error during execution: fatal error: default/test-instance failed in test.phase.stepOne.taskOne: dummy error"},
 					{Name: "stepTwo", Status: v1beta1.ExecutionInProgress},
@@ -431,8 +442,8 @@ func TestExecutePlan(t *testing.T) {
 		{name: "plan in progress with multiple serial phases, will respect serial phase strategy and stop after first phase fails", activePlan: &ActivePlan{
 			Name: "test",
 			PlanStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
+				Status: v1beta1.ExecutionInProgress,
 				Phases: []v1beta1.PhaseStatus{
 					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
 					{Name: "phaseTwo", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
@@ -465,8 +476,9 @@ func TestExecutePlan(t *testing.T) {
 		},
 			metadata: meta,
 			expectedStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionInProgress,
-				Name:   "test",
+				Name:                 "test",
+				Status:               v1beta1.ExecutionInProgress,
+				LastUpdatedTimestamp: &metav1.Time{Time: testTime},
 				Phases: []v1beta1.PhaseStatus{
 					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ErrorStatus, Message: "A transient error when executing task test.phaseOne.step.taskOne. Will retry. dummy error"}}},
 					{Name: "phaseTwo", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
@@ -511,8 +523,9 @@ func TestExecutePlan(t *testing.T) {
 		},
 			metadata: meta,
 			expectedStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionInProgress,
-				Name:   "test",
+				Name:                 "test",
+				Status:               v1beta1.ExecutionInProgress,
+				LastUpdatedTimestamp: &v1.Time{Time: testTime},
 				Phases: []v1beta1.PhaseStatus{
 					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ErrorStatus, Message: "A transient error when executing task test.phaseOne.step.taskOne. Will retry. dummy error"}}},
 					{Name: "phaseTwo", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionComplete}}},
@@ -523,8 +536,8 @@ func TestExecutePlan(t *testing.T) {
 		{name: "plan in progress with multiple parallel phases, will stop the execution on the first fatal step error", activePlan: &ActivePlan{
 			Name: "test",
 			PlanStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionInProgress,
 				Name:   "test",
+				Status: v1beta1.ExecutionInProgress,
 				Phases: []v1beta1.PhaseStatus{
 					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
 					{Name: "phaseTwo", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
@@ -557,8 +570,9 @@ func TestExecutePlan(t *testing.T) {
 		},
 			metadata: meta,
 			expectedStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionFatalError,
-				Name:   "test",
+				Name:                 "test",
+				Status:               v1beta1.ExecutionFatalError,
+				LastUpdatedTimestamp: &v1.Time{Time: testTime},
 				Phases: []v1beta1.PhaseStatus{
 					{Name: "phaseOne", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionFatalError,
 						Message: "Error during execution: fatal error: default/test-instance failed in test.phaseOne.step.taskOne: dummy error"}}},
@@ -573,8 +587,8 @@ func TestExecutePlan(t *testing.T) {
 			activePlan: &ActivePlan{
 				Name: "test",
 				PlanStatus: &v1beta1.PlanStatus{
-					Status: v1beta1.ExecutionPending,
 					Name:   "test",
+					Status: v1beta1.ExecutionPending,
 					Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionPending, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionPending}}}},
 				},
 				Spec: &v1beta1.Plan{
@@ -596,8 +610,9 @@ func TestExecutePlan(t *testing.T) {
 			},
 			metadata: meta,
 			expectedStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionFatalError,
-				Name:   "test",
+				Name:                 "test",
+				Status:               v1beta1.ExecutionFatalError,
+				LastUpdatedTimestamp: &v1.Time{Time: testTime},
 				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Name: "step",
 					Message: "Error during execution: fatal error: default/test-instance failed in test.phase.step.task: dummy error"}}}}},
 			wantErr:  true,
@@ -608,7 +623,8 @@ func TestExecutePlan(t *testing.T) {
 	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
 	fakeDiscovery := utils.FakeDiscoveryClient()
 	for _, tt := range tests {
-		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, fakeDiscovery, nil, tt.enhancer, timeNow)
+		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, fakeDiscovery, nil, tt.enhancer)
+		newStatus.LastUpdatedTimestamp = &metav1.Time{Time: testTime}
 
 		if !tt.wantErr && err != nil {
 			t.Errorf("%s: Expecting no error but got one: %v", tt.name, err)

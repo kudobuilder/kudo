@@ -54,16 +54,16 @@ func TestGetLastExecutedPlanStatus(t *testing.T) {
 			}}, "test"},
 		{"last executed plan", map[string]PlanStatus{
 			"test": {
-				Status:          ExecutionComplete,
-				Name:            "test",
-				LastFinishedRun: &metav1.Time{Time: testTime},
-				Phases:          []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
+				Status:               ExecutionComplete,
+				Name:                 "test",
+				LastUpdatedTimestamp: &metav1.Time{Time: testTime},
+				Phases:               []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
 			},
 			"test2": {
-				Status:          ExecutionComplete,
-				Name:            "test2",
-				LastFinishedRun: &metav1.Time{Time: testTime.Add(time.Hour)},
-				Phases:          []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
+				Status:               ExecutionComplete,
+				Name:                 "test2",
+				LastUpdatedTimestamp: &metav1.Time{Time: testTime.Add(time.Hour)},
+				Phases:               []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
 			}}, "test2"},
 	}
 
@@ -103,11 +103,11 @@ func TestInstance_ResetPlanStatus(t *testing.T) {
 		Status: InstanceStatus{
 			PlanStatus: map[string]PlanStatus{
 				"deploy": {
-					Status:          ExecutionInProgress,
-					Name:            "deploy",
-					LastFinishedRun: &metav1.Time{Time: testTime},
-					UID:             testUUID,
-					Phases:          []PhaseStatus{{Name: "phase", Status: ExecutionInProgress, Steps: []StepStatus{{Status: ExecutionInProgress, Name: "step"}}}},
+					Status:               ExecutionInProgress,
+					Name:                 "deploy",
+					LastUpdatedTimestamp: &metav1.Time{Time: testTime},
+					UID:                  testUUID,
+					Phases:               []PhaseStatus{{Name: "phase", Status: ExecutionInProgress, Steps: []StepStatus{{Status: ExecutionInProgress, Name: "step"}}}},
 				},
 				"update": {
 					Status: ExecutionNeverRun,
@@ -133,6 +133,7 @@ func TestInstance_ResetPlanStatus(t *testing.T) {
 	oldPlanStatus := instance.Status.PlanStatus["deploy"]
 	statusCopy := oldPlanStatus.DeepCopy()
 	statusCopy.UID = testUUID
+	statusCopy.LastUpdatedTimestamp = &metav1.Time{Time: testTime}
 	instance.Status.PlanStatus["deploy"] = *statusCopy
 
 	// Expected:
@@ -142,11 +143,11 @@ func TestInstance_ResetPlanStatus(t *testing.T) {
 	assert.Equal(t, InstanceStatus{
 		PlanStatus: map[string]PlanStatus{
 			"deploy": {
-				Status:          ExecutionPending,
-				Name:            "deploy",
-				LastFinishedRun: &metav1.Time{Time: testTime},
-				UID:             testUUID,
-				Phases:          []PhaseStatus{{Name: "phase", Status: ExecutionPending, Steps: []StepStatus{{Status: ExecutionPending, Name: "step"}}}},
+				Status:               ExecutionPending,
+				Name:                 "deploy",
+				LastUpdatedTimestamp: &metav1.Time{Time: testTime},
+				UID:                  testUUID,
+				Phases:               []PhaseStatus{{Name: "phase", Status: ExecutionPending, Steps: []StepStatus{{Status: ExecutionPending, Name: "step"}}}},
 			},
 			"update": {
 				Status: ExecutionNeverRun,

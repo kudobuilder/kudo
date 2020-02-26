@@ -509,7 +509,7 @@ spec:
                   \      v                       v | Fatal error |        |    Complete
                   \   |"
                 properties:
-                  lastFinishedRun:
+                  lastUpdatedTimestamp:
                     format: date-time
                     nullable: true
                     type: string
