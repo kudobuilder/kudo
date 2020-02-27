@@ -5,15 +5,14 @@ import (
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/plan"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/template"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 
-var verifiers = []verifier.PackageVerifier{
+var verifiers = []packages.Verifier{
 	DuplicateVerifier{},
 	InvalidCharVerifier{";,"},
 	K8sVersionVerifier{},
@@ -26,8 +25,8 @@ var verifiers = []verifier.PackageVerifier{
 }
 
 // PackageFiles verifies operator package files
-func PackageFiles(pf *packages.Files) verify.Result {
-	res := verify.NewResult()
+func PackageFiles(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
 	for _, vv := range verifiers {
 		res.Merge(vv.Verify(pf))
 	}
@@ -37,8 +36,8 @@ func PackageFiles(pf *packages.Files) verify.Result {
 // DuplicateVerifier provides verification that there are no duplicates disallowing casing (Kudo and kudo are duplicates)
 type DuplicateVerifier struct{}
 
-func (DuplicateVerifier) Verify(pf *packages.Files) verify.Result {
-	res := verify.NewResult()
+func (DuplicateVerifier) Verify(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
 	names := map[string]bool{}
 	for _, param := range pf.Params.Parameters {
 		name := strings.ToLower(param.Name)
@@ -54,8 +53,8 @@ type InvalidCharVerifier struct {
 	InvalidChars string
 }
 
-func (v InvalidCharVerifier) Verify(pf *packages.Files) verify.Result {
-	res := verify.NewResult()
+func (v InvalidCharVerifier) Verify(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
 	for _, param := range pf.Params.Parameters {
 		name := strings.ToLower(param.Name)
 		for _, char := range name {
@@ -72,8 +71,8 @@ func (v InvalidCharVerifier) Verify(pf *packages.Files) verify.Result {
 // K8sVersionVerifier verifies the kubernetesVersion of operator.yaml
 type K8sVersionVerifier struct{}
 
-func (K8sVersionVerifier) Verify(pf *packages.Files) verify.Result {
-	res := verify.NewResult()
+func (K8sVersionVerifier) Verify(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
 	if pf.Operator == nil {
 		res.AddErrors("Operator not defined.")
 		return res

@@ -5,26 +5,25 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
-var _ verifier.PackageVerifier = &ReferenceVerifier{}
+var _ packages.Verifier = &ReferenceVerifier{}
 
 // ReferenceVerifier verifies plans producing errors for plans referenced in param triggers that do not exist
 // and warnings for missing mandatory plans.
 type ReferenceVerifier struct{}
 
-func (ReferenceVerifier) Verify(pf *packages.Files) verify.Result {
-	res := verify.NewResult()
+func (ReferenceVerifier) Verify(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
 	res.Merge(plansNotDefined(pf))
 	res.Merge(hasMandatoryPlans(pf))
 
 	return res
 }
 
-func hasMandatoryPlans(pf *packages.Files) verify.Result {
-	res := verify.NewResult()
+func hasMandatoryPlans(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
 	plans := pf.Operator.Plans
 
 	// Currently only 'deploy' plan is mandatory
@@ -35,8 +34,8 @@ func hasMandatoryPlans(pf *packages.Files) verify.Result {
 	return res
 }
 
-func plansNotDefined(pf *packages.Files) verify.Result {
-	res := verify.NewResult()
+func plansNotDefined(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
 	plans := pf.Operator.Plans
 
 	for _, param := range pf.Params.Parameters {

@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
 func TestPrereq_Fail_PreValidate_CustomNamespace(t *testing.T) {
@@ -16,7 +16,7 @@ func TestPrereq_Fail_PreValidate_CustomNamespace(t *testing.T) {
 
 	result := init.PreInstallVerify(client)
 
-	assert.EqualValues(t, verify.NewError("Namespace customNS does not exist - KUDO expects that any namespace except the default kudo-system is created beforehand"), result)
+	assert.EqualValues(t, verifier.NewError("Namespace customNS does not exist - KUDO expects that any namespace except the default kudo-system is created beforehand"), result)
 }
 
 func TestPrereq_Ok_PreValidate_CustomNamespace(t *testing.T) {
@@ -28,5 +28,5 @@ func TestPrereq_Ok_PreValidate_CustomNamespace(t *testing.T) {
 
 	result := init.PreInstallVerify(client)
 
-	assert.EqualValues(t, verify.NewResult(), result)
+	assert.EqualValues(t, verifier.NewResult(), result)
 }

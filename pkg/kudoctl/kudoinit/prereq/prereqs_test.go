@@ -15,7 +15,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
 func getFakeClient() *kube.Client {
@@ -38,7 +38,7 @@ func TestPrereq_Ok_PreValidate_DefaultOpts(t *testing.T) {
 
 	result := init.PreInstallVerify(client)
 
-	assert.EqualValues(t, verify.NewResult(), result)
+	assert.EqualValues(t, verifier.NewResult(), result)
 }
 
 func mockGetNamespace(client *kube.Client, nsName string) {

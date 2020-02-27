@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
 const (
@@ -22,7 +22,7 @@ type Artifacter interface {
 
 type InstallVerifier interface {
 	// PreInstallVerify verifies that the installation is possible
-	PreInstallVerify(client *kube.Client) verify.Result
+	PreInstallVerify(client *kube.Client) verifier.Result
 
 	// TODO: Add verification of existing installation
 	// VerifyInstallation(client *kube.Client) Result

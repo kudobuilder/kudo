@@ -11,7 +11,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
 // Ensure IF is implemented
@@ -22,15 +22,15 @@ type kudoNamespace struct {
 	ns   *v1.Namespace
 }
 
-func (o kudoNamespace) PreInstallVerify(client *kube.Client) verify.Result {
+func (o kudoNamespace) PreInstallVerify(client *kube.Client) verifier.Result {
 	// We only manage kudo-system namespace. For others we expect they exist.
 	if !o.opts.IsDefaultNamespace() {
 		_, err := client.KubeClient.CoreV1().Namespaces().Get(o.opts.Namespace, metav1.GetOptions{})
 		if kerrors.IsNotFound(err) {
-			return verify.NewError(fmt.Sprintf("Namespace %s does not exist - KUDO expects that any namespace except the default %s is created beforehand", o.opts.Namespace, kudoinit.DefaultNamespace))
+			return verifier.NewError(fmt.Sprintf("Namespace %s does not exist - KUDO expects that any namespace except the default %s is created beforehand", o.opts.Namespace, kudoinit.DefaultNamespace))
 		}
 	}
-	return verify.NewResult()
+	return verifier.NewResult()
 }
 
 func newNamespace(options kudoinit.Options) kudoNamespace {

@@ -1,7 +1,6 @@
-package verify
+package verifier
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 
@@ -63,13 +62,6 @@ func (vr *Result) IsValid() bool { return len(vr.Errors) == 0 }
 
 // IsEmpty returns true if verification result has no errors AND no warnings
 func (vr *Result) IsEmpty() bool { return len(vr.Errors) == 0 && len(vr.Warnings) == 0 }
-
-// Error allows the Result to be used as an error
-func (vr *Result) Error() string {
-	buf := new(bytes.Buffer)
-	printStringsWithHeader(buf, vr.Errors, nil)
-	return buf.String()
-}
 
 // PrintErrors is a pretty printer for verification errors
 func (vr *Result) PrintErrors(out io.Writer) {

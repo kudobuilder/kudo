@@ -13,7 +13,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
 // Ensure IF is implemented
@@ -33,8 +33,8 @@ func newServiceAccount(options kudoinit.Options) kudoServiceAccount {
 	}
 }
 
-func (o kudoServiceAccount) PreInstallVerify(client *kube.Client) verify.Result {
-	result := verify.NewResult()
+func (o kudoServiceAccount) PreInstallVerify(client *kube.Client) verifier.Result {
+	result := verifier.NewResult()
 	if o.opts.IsDefaultServiceAccount() {
 		return result
 	}
@@ -62,37 +62,37 @@ func (o kudoServiceAccount) Install(client *kube.Client) error {
 }
 
 // Validate whether the serviceAccount exists
-func (o kudoServiceAccount) validateServiceAccountExists(client *kube.Client) verify.Result {
+func (o kudoServiceAccount) validateServiceAccountExists(client *kube.Client) verifier.Result {
 	coreClient := client.KubeClient.CoreV1()
 	saList, err := coreClient.ServiceAccounts(o.opts.Namespace).List(metav1.ListOptions{})
 	if err != nil {
-		return verify.NewError(fmt.Sprintf("Failed to validate that service account %s exists: %v", o.opts.ServiceAccount, err))
+		return verifier.NewError(fmt.Sprintf("Failed to validate that service account %s exists: %v", o.opts.ServiceAccount, err))
 	}
 	for _, sa := range saList.Items {
 		if sa.Name == o.opts.ServiceAccount {
-			return verify.NewResult()
+			return verifier.NewResult()
 		}
 	}
-	return verify.NewError(fmt.Sprintf("Service Account %s does not exists - KUDO expects the serviceAccount to be present in the namespace %s", o.opts.ServiceAccount, o.opts.Namespace))
+	return verifier.NewError(fmt.Sprintf("Service Account %s does not exists - KUDO expects the serviceAccount to be present in the namespace %s", o.opts.ServiceAccount, o.opts.Namespace))
 }
 
 // Validate whether the serviceAccount has cluster-admin role
-func (o kudoServiceAccount) validateClusterAdminRoleForSA(client *kube.Client) verify.Result {
+func (o kudoServiceAccount) validateClusterAdminRoleForSA(client *kube.Client) verifier.Result {
 	// Check whether the serviceAccount has clusterrolebinding cluster-admin
 	crbs, err := client.KubeClient.RbacV1().ClusterRoleBindings().List(metav1.ListOptions{})
 	if err != nil {
-		return verify.NewError(fmt.Sprintf("Failed to validate role bindings: %v", err))
+		return verifier.NewError(fmt.Sprintf("Failed to validate role bindings: %v", err))
 	}
 
 	for _, crb := range crbs.Items {
 		for _, subject := range crb.Subjects {
 			if subject.Name == o.opts.ServiceAccount && subject.Namespace == o.opts.Namespace && crb.RoleRef.Name == "cluster-admin" {
-				return verify.NewResult()
+				return verifier.NewResult()
 			}
 		}
 	}
 
-	return verify.NewError(fmt.Sprintf("Service Account %s does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace %s and to have cluster-admin role", o.opts.ServiceAccount, o.opts.Namespace))
+	return verifier.NewError(fmt.Sprintf("Service Account %s does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace %s and to have cluster-admin role", o.opts.ServiceAccount, o.opts.Namespace))
 }
 
 func (o kudoServiceAccount) installServiceAccount(client *kube.Client) error {
