@@ -1,0 +1,19 @@
+name-template: 'kudo-v$NEXT_PATCH_VERSION'
+tag-template: 'v$NEXT_PATCH_VERSION'
+categories:
+  - title: '🚀 Highlights'
+    labels:
+      - 'release/highlight'
+  - title: '⚠️ Breaking Changes'
+    labels:
+      - 'release/breaking-change'
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+template: |
+  ## Changes
+
+  $CHANGES
+
+  ## Docker images
+
+  - `docker pull kudobuilder/controller:latest`
+  - `docker pull kudobuilder/controller:$NEXT_PATCH_VERSION`
