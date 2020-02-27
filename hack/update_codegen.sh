@@ -17,6 +17,7 @@ CODE_GEN_DIR="${REPO_ROOT}/hack/code-gen/$VERSION"
 if [[ -d ${CODE_GEN_DIR} ]]; then
     echo "Using cached code generator version: $VERSION"
 else
+    echo "Cloning code-generator from ${CODEGEN_REPO}"
     git clone https://${CODEGEN_REPO}.git "${CODE_GEN_DIR}"
     git -C "${CODE_GEN_DIR}" reset --hard "${VERSION}"
 fi
