@@ -679,12 +679,14 @@ func tryAddFinalizer(i *v1beta1.Instance) bool {
 }
 
 // tryRemoveFinalizer removes the cleanup finalizer of an instance if it has
-// been added, the instance has a cleanup plan and the cleanup plan completed.
+// been added, the instance has a cleanup plan and the cleanup plan *successfully* finished.
 // Returns true if the cleanup finalizer has been removed.
 func tryRemoveFinalizer(i *v1beta1.Instance) bool {
 	if funk.ContainsString(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
 		if planStatus := i.PlanStatus(v1beta1.CleanupPlanName); planStatus != nil {
-			if planStatus.Status.IsTerminal() {
+			// we check IsFinished and *not* IsTerminal here so that the finalizer is not removed in the FatalError
+			// case. This way a human operator has to intervene and we don't leave garbage in the cluster.
+			if planStatus.Status.IsFinished() {
 				i.ObjectMeta.Finalizers = remove(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
 				return true
 			}
