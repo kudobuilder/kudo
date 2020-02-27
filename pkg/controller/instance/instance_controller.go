@@ -549,12 +549,12 @@ func getPlanToBeExecuted(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*str
 		plan := kudov1beta1.SelectPlan([]string{v1beta1.CleanupPlanName}, ov)
 		if plan != nil {
 			if planStatus := i.PlanStatus(*plan); planStatus != nil {
-				if !planStatus.Status.IsRunning() {
-					if planStatus.Status.IsFinished() {
-						// we already finished the cleanup plan
-						return nil, nil
-					}
+				switch planStatus.Status {
+				case kudov1beta1.ExecutionNeverRun:
 					return plan, nil
+				case kudov1beta1.ExecutionComplete:
+					// we already finished the cleanup plan
+					return nil, nil
 				}
 			}
 		}

@@ -39,10 +39,18 @@ func templateCompilable(pf *packages.Files) verify.Result {
 
 	engine := renderer.New()
 	for k, v := range pf.Templates {
-		_, err := engine.Render(k, v, configs)
+		// Render the template
+		s, err := engine.Render(k, v, configs)
 		if err != nil {
 			res.AddErrors(err.Error())
 		}
+
+		// Try to parse rendered template as valid Kubernetes objects
+		_, err = renderer.YamlToObject(s)
+		if err != nil {
+			res.AddErrors(err.Error())
+		}
+
 	}
 
 	return res

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: feature-operator-cm
+  namespace: {{ .Namespace }}
+data:
+  foo: "1234"

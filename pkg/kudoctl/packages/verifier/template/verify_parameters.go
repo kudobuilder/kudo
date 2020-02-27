@@ -3,6 +3,7 @@ package template
 import (
 	"fmt"
 
+	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
@@ -61,6 +62,11 @@ func paramsDefinedNotUsed(pf *packages.Files) verify.Result {
 			tparams[tparam] = true
 		}
 	}
+	for _, opTask := range pf.Operator.Tasks {
+		if opTask.Kind == task.ToggleTaskKind {
+			tparams[opTask.Spec.Parameter] = true
+		}
+	}
 	for _, value := range pf.Params.Parameters {
 		if _, ok := tparams[value.Name]; !ok {
 			res.AddParamWarning(value, "defined but not used.")
@@ -81,6 +87,16 @@ func paramsNotDefined(pf *packages.Files) verify.Result {
 		for _, tparam := range nodes.parameters {
 			if _, ok := params[tparam]; !ok {
 				res.AddErrors(fmt.Sprintf("parameter %q in template %v is not defined", tparam, fname))
+			}
+		}
+	}
+	for _, opTask := range pf.Operator.Tasks {
+		if opTask.Kind == task.ToggleTaskKind {
+			// Only checking non-empty parameter prevents a double error in verification
+			if len(opTask.Spec.Parameter) > 0 {
+				if _, ok := params[opTask.Spec.Parameter]; !ok {
+					res.AddErrors(fmt.Sprintf("parameter %q in ToggleTask %v is not defined", opTask.Spec.Parameter, opTask.Name))
+				}
 			}
 		}
 	}
