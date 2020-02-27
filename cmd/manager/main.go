@@ -69,7 +69,7 @@ func main() {
 	if syncPeriod != nil {
 		log.Print(fmt.Sprintf("⌛ Setting up manager, sync-period is %v:", syncPeriod))
 	} else {
-		log.Print("⌛ Setting up manager: ")
+		log.Print("🏝 Setting up manager")
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -81,12 +81,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Print("⌛ Registering Components")
+	log.Print("✨ Registering Components")
 
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
 		log.Printf("❌ unable to add APIs to scheme: %v", err)
 	}
-	log.Print("✅ Scheme initialization")
+	log.Print("💎 Scheme initialization")
 
 	if err := apiextenstionsv1beta1.AddToScheme(mgr.GetScheme()); err != nil {
 		log.Printf("❌ unable to add extension APIs to scheme: %v", err)
@@ -100,7 +100,7 @@ func main() {
 		log.Printf("❌ unable to register operator controller to the manager: %v", err)
 		os.Exit(1)
 	}
-	log.Print("✅ Operator controller")
+	log.Print("📗 Operator controller")
 
 	err = (&operatorversion.Reconciler{
 		Client: mgr.GetClient(),
@@ -109,7 +109,7 @@ func main() {
 		log.Printf("❌ unable to register operator controller to the manager: %v", err)
 		os.Exit(1)
 	}
-	log.Print("✅ OperatorVersion controller")
+	log.Print("📘 OperatorVersion controller")
 
 	discoveryClient, err := utils.GetDiscoveryClient(mgr)
 	if err != nil {
@@ -128,20 +128,16 @@ func main() {
 		log.Printf("❌ unable to register instance controller to the manager: %v", err)
 		os.Exit(1)
 	}
-	log.Print("✅ Instance controller")
+	log.Print("📙 Instance controller")
 
 	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) == "true" {
-		log.Printf("⌛ Setting up webhooks")
+		log.Printf("🔸 Setting up webhooks")
 
-		// TODO (ad/an): this introduces a new mutating webhook instead of the old, validating one. However, old configuration
-		// has to be removed from the cluster, or every request will fail:
-		// $ k delete validatingwebhookconfigurations.admissionregistration.k8s.io kudo-manager-instance-validation-webhook-config
-		// This is either a breaking change, or we need to figure out a way to handle this as a part of an upgrade process.
 		if err := registerWebhook("/admit", &v1beta1.Instance{}, &webhook.Admission{Handler: &kudohook.InstanceAdmission{}}, mgr); err != nil {
 			log.Printf("❌ unable to create instance validation webhook: %v", err)
 			os.Exit(1)
 		}
-		log.Printf("✅ Instance admission webhook")
+		log.Printf("🧲 Instance admission webhook")
 
 		// Add more webhooks below using the above registerWebhook method
 	}
@@ -149,7 +145,7 @@ func main() {
 	// Start the KUDO manager
 	log.Print("🏄 Done! Everything is setup, starting KUDO manager now")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		log.Printf("❌ unable to run the manager: %v", err)
+		log.Printf("💀 unable to run the manager: %v", err)
 		os.Exit(1)
 	}
 }

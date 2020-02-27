@@ -31,34 +31,96 @@ type InstanceAdmission struct {
 func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) admission.Response {
 
 	switch req.Operation {
-
 	case v1beta1.Create:
-		// trigger "deploy" for freshly created Instances: req.Object contains the created object
-		new := &kudov1beta1.Instance{}
-		if err := ia.decoder.DecodeRaw(req.Object, new); err != nil {
-			return admission.Errored(http.StatusBadRequest, err)
-		}
+		return handleCreate(ia, req)
+	case v1beta1.Update:
+		return handleUpdate(ia, req)
+	default:
+		return admission.Allowed("")
+	}
+}
 
-		// if namespace is not set, 'default' is explicitly set, otherwise it is empty (at this point)
-		// and a subsequent search for the corresponding OV doesn't return anything
-		if new.Namespace == "" {
-			new.Namespace = v1.NamespaceDefault
-		}
+func handleCreate(ia *InstanceAdmission, req admission.Request) admission.Response {
+	// trigger "deploy" for freshly created Instances: req.Object contains the created object
+	new := &kudov1beta1.Instance{}
+	if err := ia.decoder.DecodeRaw(req.Object, new); err != nil {
+		return admission.Errored(http.StatusBadRequest, err)
+	}
 
-		// since we don't yet enforce the existence of the 'deploy' plan in the OV, we check for its existence
-		// and decline Instance creation if the plan is not found
-		ov, err := instance.GetOperatorVersion(new, ia.client)
-		if err != nil {
-			log.Printf("InstanceAdmission: Error getting operatorVersion %s for instance %s/%s: %v", new.Spec.OperatorVersion.Name, new.Namespace, new.Name, err)
-			return admission.Errored(http.StatusInternalServerError, err)
-		}
+	// if namespace is not set, 'default' is explicitly set, otherwise it is empty (at this point)
+	// and a subsequent search for the corresponding OV doesn't return anything
+	if new.Namespace == "" {
+		new.Namespace = v1.NamespaceDefault
+	}
 
-		plan := kudov1beta1.SelectPlan([]string{kudov1beta1.DeployPlanName}, ov)
-		if plan == nil {
-			return admission.Denied(fmt.Sprintf("failed to create an Instance %s/%s: couldn't find '%s' plann in the operatorVersion", new.Namespace, new.Name, kudov1beta1.DeployPlanName))
-		}
+	// since we don't yet enforce the existence of the 'deploy' plan in the OV, we check for its existence
+	// and decline Instance creation if the plan is not found
+	ov, err := instance.GetOperatorVersion(new, ia.client)
+	if err != nil {
+		log.Printf("InstanceAdmission: Error getting operatorVersion %s for instance %s/%s: %v", new.Spec.OperatorVersion.Name, new.Namespace, new.Name, err)
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
 
-		new.Spec.PlanExecution.PlanName = *plan
+	// if there is a 'cleanup' plan present in the OV, we add a finalizer to the instance
+	if kudov1beta1.CleanupPlanExists(ov) {
+		new.TryAddFinalizer()
+	}
+
+	// add an instance snapshot *BEFORE* setting new Spec.PlanExecution. this way the controller will recognize the plan as newly scheduled
+	if err = new.AnnotateSnapshot(); err != nil {
+		return admission.Errored(http.StatusInternalServerError, fmt.Errorf("failed to create an Instance snapshot %s/%s: %v", new.Namespace, new.Name, err))
+	}
+
+	// schedule 'deploy' plan for execution (and fail if it doesn't exist)
+	if !kudov1beta1.PlanExists(kudov1beta1.DeployPlanName, ov) {
+		return admission.Denied(fmt.Sprintf("failed to create an Instance %s/%s: couldn't find '%s' plann in the operatorVersion", new.Namespace, new.Name, kudov1beta1.DeployPlanName))
+	}
+	new.Spec.PlanExecution.PlanName = kudov1beta1.DeployPlanName
+	new.Spec.PlanExecution.UID = uuid.NewUUID()
+
+	marshaled, err := json.Marshal(new)
+	if err != nil {
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
+
+	return admission.PatchResponseFromRaw(req.Object.Raw, marshaled)
+}
+
+func handleUpdate(ia *InstanceAdmission, req admission.Request) admission.Response {
+	old, new := &kudov1beta1.Instance{}, &kudov1beta1.Instance{}
+
+	// req.Object contains the updated object
+	if err := ia.decoder.DecodeRaw(req.Object, new); err != nil {
+		return admission.Errored(http.StatusBadRequest, err)
+	}
+
+	// req.OldObject is populated for DELETE and UPDATE requests
+	if err := ia.decoder.DecodeRaw(req.OldObject, old); err != nil {
+		return admission.Errored(http.StatusBadRequest, err)
+	}
+
+	// fetch new OperatorVersion: we always fetch the new one, since if it's an update it's the same as the old one
+	// and if it's an upgrade, we need the new one anyway
+	ov, err := instance.GetOperatorVersion(new, ia.client)
+	if err != nil {
+		log.Printf("InstanceAdmission: Error getting operatorVersion %s for instance %s/%s: %v", new.Spec.OperatorVersion.Name, new.Namespace, new.Name, err)
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
+
+	// we explicitly only validate updates to the Instance.Spec while Metadata (and/or possible Status)
+	// changes are unchecked and allowed
+	if reflect.DeepEqual(old.Spec, new.Spec) {
+		return admission.Allowed("")
+	}
+
+	triggered, err := admitUpdate(old, new, ov)
+	if err != nil {
+		return admission.Denied(err.Error())
+	}
+
+	// Populate Instance.PlanExecution with the plan triggered by param change and a new UID
+	if triggered != nil {
+		new.Spec.PlanExecution.PlanName = *triggered
 		new.Spec.PlanExecution.UID = uuid.NewUUID()
 
 		marshaled, err := json.Marshal(new)
@@ -67,78 +129,31 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 		}
 
 		return admission.PatchResponseFromRaw(req.Object.Raw, marshaled)
-
-	case v1beta1.Update:
-		old, new := &kudov1beta1.Instance{}, &kudov1beta1.Instance{}
-
-		// req.Object contains the updated object
-		if err := ia.decoder.DecodeRaw(req.Object, new); err != nil {
-			return admission.Errored(http.StatusBadRequest, err)
-		}
-
-		// req.OldObject is populated for DELETE and UPDATE requests
-		if err := ia.decoder.DecodeRaw(req.OldObject, old); err != nil {
-			return admission.Errored(http.StatusBadRequest, err)
-		}
-
-		// we explicitly only validate updates to the Instance.Spec while Metadata (and/or possible Status)
-		// changes are unchecked and allowed
-		if reflect.DeepEqual(old.Spec, new.Spec) {
-			return admission.Allowed("")
-		}
-
-		// fetch new OperatorVersion: we always fetch the new one, since if it's an update it's the same as the old one
-		// and if it's an upgrade, we need the new one anyway
-		ov, err := instance.GetOperatorVersion(new, ia.client)
-		if err != nil {
-			log.Printf("InstanceAdmission: Error getting operatorVersion %s for instance %s/%s: %v", new.Spec.OperatorVersion.Name, new.Namespace, new.Name, err)
-			return admission.Errored(http.StatusInternalServerError, err)
-		}
-
-		triggered, err := admitUpdate(old, new, ov)
-		if err != nil {
-			return admission.Denied(err.Error())
-		}
-
-		// Populate Instance.PlanExecution with the plan triggered by param change and a new UID
-		if triggered != nil {
-			new.Spec.PlanExecution.PlanName = *triggered
-			new.Spec.PlanExecution.UID = uuid.NewUUID()
-
-			marshaled, err := json.Marshal(new)
-			if err != nil {
-				return admission.Errored(http.StatusInternalServerError, err)
-			}
-
-			return admission.PatchResponseFromRaw(req.Object.Raw, marshaled)
-		}
-
-		return admission.Allowed("")
-
-	default:
-		return admission.Allowed("")
 	}
+
+	return admission.Allowed("")
 }
 
 /*
- A coarse-grained set of compatibility rules between upgrades, directly triggered plans and parameter updates
- with the focus on when an update should be declined.
+ A coarse-grained set of compatibility rules applied during the normal life-cycle phase of the Instance. Defines the rules applied for upgrades,
+ directly triggered plans and parameter updates with the focus on when an update should be declined.
  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 | HasScheduledPlan | ParameterUpdate | Upgrade | PlanOverride | PlanCancel | Allow |                                                     Description                                                     |
 |------------------|-----------------|---------|--------------|------------|-------|---------------------------------------------------------------------------------------------------------------------|
-| x                | x               |         |              |            | [No]  | Forbid parameter updates when a plan is scheduled unless the same plan is triggered (instance status will be reset) |
+| x                | x               |         |              |            | No²  | Forbid parameter updates when a plan is scheduled unless the same plan is triggered (instance status will be reset) |
 | x                |                 | x       |              |            | No    | Forbid upgrades if another plan is running                                                                          |
-| x                |                 |         | x            |            | No    | Forbid plan overrides (for now)                                                                                     |
+| x                |                 |         | x            |            | No³   | Forbid plan overrides (for now)                                                                                     |
 | x                |                 |         |              | x          | No    | Forbid plan cancellations (for now)                                                                                 |
 | ---              |                 |         |              |            |       | ---                                                                                                                 |
 |                  | x               |         | x            |            | No    | Forbid simultaneous parameter update and directly triggered plan                                                    |
 |                  |                 | x       | x            |            | No    | Forbid simultaneous upgrades and directly triggered plans                                                           |
 |                  | x               | x       |              |            | No*   | Forbid simultaneous upgrades and parameter updates                                                                  |
  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- *Note: simultaneous upgrade and parameter update is NOT allowed. However, there is a exception where new OV removes an existing
- parameter. Removing this parameter in the instance update would not count as parameter update (since there is no plan to trigger).
-
- For the complete set of rules, see the corresponding test.
+2. Simultaneous upgrade and parameter update are NOT allowed. However, there is a exception where new OV removes an existing
+   parameter. Removing this parameter in the instance update would not count as parameter update (since there is no plan to
+   trigger).
+3. 'cleanup' plan is the only one that is allowed to override an existing one. Overriding 'cleanup' should be impossible even
+   if an 'override=true' flag is introduced. This exception exists only during Instance cleanup phase.
 */
 
 // admitUpdate takes in the old and new (updated) instance and returns a new plan that might
@@ -146,7 +161,7 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 // - <nil> when there is no change to an existing scheduled plan
 // - '' empty string when an existing plan should be canceled (not implemented yet)
 // - 'newPlan' some new plan that should be triggered
-func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion) (*string, error) {
+func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion) (*string, error) { //nolint:gocyclo
 	// PREREQUISITES:
 	newPlan := new.Spec.PlanExecution.PlanName
 	oldPlan := old.Spec.PlanExecution.PlanName
@@ -160,24 +175,58 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 		return nil, fmt.Errorf("failed to update Instance %s/%s: %v", old.Namespace, old.Name, err)
 	}
 
-	hasPlan := oldPlan != ""
+	// update and upgrade helpers
+	hadPlan := oldPlan != ""
 	isParameterUpdate := triggeredPlan != nil
 	isUpgrade := newOvRef != oldOvRef
-	isNovelPlan := !hasPlan && newPlan != ""
-	isPlanOverride := hasPlan && newPlan != "" && newPlan != oldPlan
-	isPlanCancellation := hasPlan && newPlan == ""
+	isNovelPlan := !hadPlan && newPlan != ""
+	isPlanOverride := hadPlan && newPlan != "" && newPlan != oldPlan
+	isPlanCancellation := hadPlan && newPlan == ""
+	isUninstalling := new.IsDeleting() && new.HasCleanupFinalizer() // a cleanup finalizer exists only when there is a cleanup plan
+	isOldPlanTerminal := oldPlan != "" && new.PlanStatus(oldPlan) != nil && new.PlanStatus(oldPlan).Status.IsTerminal()
 
-	// Checking compatibility rules described in the table above:
+	// --------------------------------------------------------------------------------------------------------------------------------
+	// ---- Instance can have two major life-cycle phases: normal and cleanup (uninstall) phase. Different rule sets apply in both. ---
+	// --------------------------------------------------------------------------------------------------------------------------------
+
+	// --- Instance uninstall/cleanup ---
+	//
+	// - only 'cleanup' plan (if exists) can be scheduled in this phase
+	// - only the instance controller (and not the webhook or the user) can schedule 'cleanup'
+	// - 'cleanup' overrides any existing update/upgrade plan
+	// - 'cleanup' itself can *NOT* be cancelled or overridden by any other plan
+	if isUninstalling {
+		Cleanup := kudov1beta1.CleanupPlanName
+		cleanupTerminal := new.PlanStatus(Cleanup) != nil && new.PlanStatus(Cleanup).Status.IsTerminal()
+		cleanupOverride := oldPlan == Cleanup && newPlan != "" && newPlan != Cleanup
+		cleanupCanceled := newPlan == "" && oldPlan == Cleanup
+		notCleanupScheduled := newPlan != "" && newPlan != Cleanup
+
+		switch {
+		case cleanupOverride:
+			return nil, fmt.Errorf("failed to update Instance %s/%s: '%s' plan can not be overridden by another '%s' plan since the instance is being deleted", old.Namespace, old.Name, oldPlan, newPlan)
+		case cleanupCanceled && !cleanupTerminal:
+			return nil, fmt.Errorf("failed to update Instance %s/%s: '%s' plan can not be cancelled since the instance is being deleted", old.Namespace, old.Name, oldPlan)
+		case isParameterUpdate || isUpgrade:
+			return nil, fmt.Errorf("failed to update Instance %s/%s: parameter update and/or upgrade is not allowed when an instance is being deleted", old.Namespace, old.Name)
+		case notCleanupScheduled:
+			return nil, fmt.Errorf("failed to update Instance %s/%s: only '%s' plan can be scheduled when an instance is being deleted", old.Namespace, old.Name, Cleanup)
+		}
+		// cleanup is being scheduled by the controller so we don't have to return anything here
+		return nil, nil
+	}
+
+	// ---- Normal life-cycle -----
 	switch {
-	case hasPlan && isParameterUpdate && *triggeredPlan != oldPlan:
+	case hadPlan && isParameterUpdate && *triggeredPlan != oldPlan:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: plan '%s' is scheduled (or running) and an update would trigger a different plan '%s'", old.Namespace, old.Name, oldPlan, newPlan)
-	case isUpgrade && hasPlan:
+	case isUpgrade && hadPlan:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s while a plan '%s' is scheduled (or running) is not allowed", old.Namespace, old.Name, newOvRef, oldPlan)
 	case isUpgrade && isNovelPlan:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s and triggering new plan '%s' is not allowed", old.Namespace, old.Name, newOvRef, newPlan)
-	case isPlanOverride:
+	case isPlanOverride && !isOldPlanTerminal:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: overriding currently scheduled (or running) plan '%s' with '%s' is not supported", old.Namespace, old.Name, oldPlan, newPlan)
-	case isPlanCancellation:
+	case isPlanCancellation && !isOldPlanTerminal:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: cancelling currently scheduled (or running) plan '%s' is not supported", old.Namespace, old.Name, oldPlan)
 	case isParameterUpdate && isUpgrade:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s together with a parameter update triggering '%s' is not allowed", old.Namespace, old.Name, newOvRef, *triggeredPlan)
@@ -186,6 +235,8 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 	// this case is effectively a noop because isPlanOverride is disallowed for now. However, once plan overrides are implemented, this will be needed so don't remove.
 	case isParameterUpdate && isPlanOverride:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: updating parameters and triggering plan '%s' is not allowed", old.Namespace, old.Name, *triggeredPlan)
+	case newPlan == kudov1beta1.CleanupPlanName:
+		return nil, fmt.Errorf("failed to update Instance %s/%s: only the controller schedules the '%s' plan when the instance is deleted", old.Namespace, old.Name, newPlan)
 	}
 
 	// Deciding which plan to trigger:
@@ -203,8 +254,6 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 
 	case isNovelPlan:
 		return &newPlan, nil
-		// Implement plan overrides and cancellations below:
-
 	default:
 		// effectively nothing changed so it's a noop.
 		return nil, nil
@@ -221,7 +270,7 @@ func triggeredPlan(params []kudov1beta1.Parameter, ov *kudov1beta1.OperatorVersi
 	plans := make([]string, 0)
 	for _, p := range params {
 		if p.Trigger != "" {
-			if kudov1beta1.SelectPlan([]string{p.Trigger}, ov) != nil {
+			if kudov1beta1.PlanExists(p.Trigger, ov) {
 				plans = append(plans, p.Trigger)
 			} else {
 				return nil, fmt.Errorf("param %s defined trigger plan %s, but plan not defined in operatorversion", p.Name, p.Trigger)

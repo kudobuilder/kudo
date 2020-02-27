@@ -197,7 +197,7 @@ all the webhook needs tls.crt and tls.key files in /tmp/cert to start. You can u
   ...
   Forwarding                    https://ff6b2dd5.ngrok.io -> https://localhost:443
 
-3. Set webhooks[].clientConfig.url to the url of the above tunnel and apply this MutatingWebhookConfiguration to the cluster:
+3. Set webhooks[].clientConfig.url to the url of the above tunnel and apply/edit webhook MutatingWebhookConfiguration to the cluster:
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration

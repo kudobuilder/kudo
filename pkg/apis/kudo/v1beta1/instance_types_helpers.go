@@ -1,11 +1,18 @@
 package v1beta1
 
 import (
+	"encoding/json"
 	"fmt"
 
+	"github.com/thoas/go-funk"
 	"k8s.io/apimachinery/pkg/util/uuid"
 
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
+)
+
+const (
+	instanceCleanupFinalizerName = "kudo.dev.instance.cleanup"
+	snapshotAnnotation           = "kudo.dev/last-applied-instance-state"
 )
 
 // GetPlanInProgress returns plan status of currently active plan or nil if no plan is running
@@ -76,7 +83,12 @@ func (i *Instance) ResetPlanStatus(plan string) error {
 
 	// reset plan's phases and steps by setting them to ExecutionPending
 	planStatus.Set(ExecutionPending)
-	planStatus.UID = uuid.NewUUID()
+	// when using webhooks, instance admission webhook already generate an UID for current plan, otherwise, we generate a new one.
+	if i.Spec.PlanExecution.UID != "" {
+		planStatus.UID = i.Spec.PlanExecution.UID
+	} else {
+		planStatus.UID = uuid.NewUUID()
+	}
 
 	for i, ph := range planStatus.Phases {
 		planStatus.Phases[i].Set(ExecutionPending)
@@ -86,7 +98,7 @@ func (i *Instance) ResetPlanStatus(plan string) error {
 		}
 	}
 
-	// update instance aggregated status
+	// update plan status and instance aggregated status
 	i.UpdateInstanceStatus(planStatus)
 	return nil
 }
@@ -114,6 +126,85 @@ func (i *Instance) PlanStatus(plan string) *PlanStatus {
 	}
 
 	return nil
+}
+
+// annotateSnapshot stores the current spec of Instance into the snapshot annotation
+// this information is used when executing update/upgrade plans, this overrides any snapshot that existed before
+func (i *Instance) AnnotateSnapshot() error {
+	jsonBytes, err := json.Marshal(i.Spec)
+	if err != nil {
+		return err
+	}
+	if i.Annotations == nil {
+		i.Annotations = make(map[string]string)
+	}
+	i.Annotations[snapshotAnnotation] = string(jsonBytes)
+	return nil
+}
+
+func (i *Instance) SnapshotSpec() (*InstanceSpec, error) {
+	if i.Annotations != nil {
+		snapshot, ok := i.Annotations[snapshotAnnotation]
+		if ok {
+			var spec *InstanceSpec
+			err := json.Unmarshal([]byte(snapshot), &spec)
+			if err != nil {
+				return nil, err
+			}
+			return spec, nil
+		}
+	}
+	return nil, nil
+}
+
+func (i *Instance) HasCleanupFinalizer() bool {
+	return funk.ContainsString(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
+}
+
+// TryAddFinalizer adds the cleanup finalizer to an instance if the finalizer
+// hasn't been added yet, the instance has a cleanup plan and the cleanup plan
+// didn't run yet. Returns true if the cleanup finalizer has been added.
+func (i *Instance) TryAddFinalizer() bool {
+	if !i.HasCleanupFinalizer() {
+		planStatus := i.PlanStatus(CleanupPlanName)
+		// avoid adding a finalizer multiple times: we only add it if the corresponding
+		// plan.Status is nil (meaning the plan never ran) or if it exists but equals ExecutionNeverRun
+		if planStatus == nil || planStatus.Status == ExecutionNeverRun {
+			i.ObjectMeta.Finalizers = append(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
+			return true
+		}
+	}
+
+	return false
+}
+
+// TryRemoveFinalizer removes the cleanup finalizer of an instance if it has
+// been added, the instance has a cleanup plan and the cleanup plan *successfully* finished.
+// Returns true if the cleanup finalizer has been removed.
+func (i *Instance) TryRemoveFinalizer() bool {
+	if i.HasCleanupFinalizer() {
+		if planStatus := i.PlanStatus(CleanupPlanName); planStatus != nil {
+			// we check IsFinished and *not* IsTerminal here so that the finalizer is not removed in the FatalError
+			// case. This way a human operator has to intervene and we don't leave garbage in the cluster.
+			if planStatus.Status.IsFinished() {
+				i.ObjectMeta.Finalizers = remove(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
+				return true
+			}
+		} else {
+			// We have a finalizer but no cleanup plan. This could be due to an updated instance.
+			// Let's remove the finalizer.
+			i.ObjectMeta.Finalizers = remove(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
+			return true
+		}
+	}
+
+	return false
+}
+
+func remove(values []string, s string) []string {
+	return funk.FilterString(values, func(str string) bool {
+		return str != s
+	})
 }
 
 // wasRunAfter returns true if p1 was run after p2
@@ -156,6 +247,13 @@ func ParameterDiff(old, new map[string]string) map[string]string {
 	}
 
 	return diff
+}
+
+func CleanupPlanExists(ov *OperatorVersion) bool { return PlanExists(CleanupPlanName, ov) }
+
+func PlanExists(plan string, ov *OperatorVersion) bool {
+	_, ok := ov.Spec.Plans[plan]
+	return ok
 }
 
 // SelectPlan returns nil if none of the plan exists, otherwise the first one in list that exists
