@@ -100,10 +100,13 @@ func validateTask(t v1beta1.Task, templates map[string]string) []string {
 	var errs []string
 	var resources []string
 	switch t.Kind {
-	case task.ApplyTaskKind:
+	case task.ApplyTaskKind, task.DeleteTaskKind:
 		resources = t.Spec.ResourceTaskSpec.Resources
-	case task.DeleteTaskKind:
+	case task.ToggleTaskKind:
 		resources = t.Spec.ResourceTaskSpec.Resources
+		if len(t.Spec.Parameter) == 0 {
+			errs = append(errs, fmt.Sprintf("toggle task %s does not have parameter specified", t.Name))
+		}
 	case task.PipeTaskKind:
 		resources = append(resources, t.Spec.PipeTaskSpec.Pod)
 

@@ -26,9 +26,7 @@ func (ReferenceVerifier) Verify(pf *packages.Files) verifier.Result {
 	for _, task := range pf.Operator.Tasks {
 		var resources []string
 		switch task.Kind {
-		case engtask.ApplyTaskKind:
-			resources = task.Spec.ResourceTaskSpec.Resources
-		case engtask.DeleteTaskKind:
+		case engtask.ApplyTaskKind, engtask.DeleteTaskKind, engtask.ToggleTaskKind:
 			resources = task.Spec.ResourceTaskSpec.Resources
 		case engtask.PipeTaskKind:
 			resources = append(resources, task.Spec.PipeTaskSpec.Pod)
