@@ -145,6 +145,13 @@ ifeq (, $(shell which golangci-lint))
 endif
 	golangci-lint run --disable-all -E goimports --fix
 
+.PHONY: update-golden-%
+# used to update the golden files present in ./pkg/kudoctl/cmd/testdata
+# Requires the individual test name to avoid massive update of all golden files
+# example: make update-golden-TestInitCmd_dry
+update-golden-%:
+	go test ./pkg/kudoctl/cmd -run $* --update=true
+
 .PHONY: todo
 # Show to-do items per file.
 todo:
