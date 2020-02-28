@@ -1,5 +1,9 @@
 package kudo
 
+import (
+	"sigs.k8s.io/yaml"
+)
+
 // String returns a pointer to the string value passed in.
 func String(v string) *string {
 	return &v
@@ -12,4 +16,25 @@ func StringValue(v *string) string {
 		return *v
 	}
 	return ""
+}
+
+func YAMLList(v string) ([]interface{}, error) {
+	var result []interface{}
+
+	if err := yaml.Unmarshal([]byte(v), &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// YAMLDict returns
+func YAMLDict(v string) (interface{}, error) {
+	var result interface{}
+
+	if err := yaml.Unmarshal([]byte(v), &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }

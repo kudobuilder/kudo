@@ -1,9 +1,11 @@
 package template
 
 import (
+	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 var _ packages.Verifier = &RenderVerifier{}
@@ -18,9 +20,29 @@ func (RenderVerifier) Verify(pf *packages.Files) verifier.Result {
 }
 
 func templateCompilable(pf *packages.Files) verifier.Result {
-	params := make(map[string]string)
+	res := verifier.NewResult()
+
+	params := make(map[string]interface{}, len(pf.Params.Parameters))
+
 	for _, p := range pf.Params.Parameters {
-		params[p.Name] = "default"
+		switch p.Type {
+		case kudov1beta1.DictValueType:
+			value, err := kudo.YAMLDict(kudo.StringValue(p.Default))
+			if err != nil {
+				res.AddErrors(err.Error())
+			}
+
+			params[p.Name] = value
+		case kudov1beta1.ListValueType:
+			value, err := kudo.YAMLDict(kudo.StringValue(p.Default))
+			if err != nil {
+				res.AddErrors(err.Error())
+			}
+
+			params[p.Name] = value
+		default:
+			params[p.Name] = kudo.StringValue(p.Default)
+		}
 	}
 
 	configs := make(map[string]interface{})
@@ -33,8 +55,6 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 	configs["PhaseName"] = "PhaseName"
 	configs["StepName"] = "StepName"
 	configs["AppVersion"] = "AppVersion"
-
-	res := verifier.NewResult()
 
 	engine := renderer.New()
 	for k, v := range pf.Templates {
@@ -49,7 +69,6 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 		if err != nil {
 			res.AddErrors(err.Error())
 		}
-
 	}
 
 	return res

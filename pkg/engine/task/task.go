@@ -21,9 +21,9 @@ type Context struct {
 	Config     *rest.Config
 	Enhancer   renderer.Enhancer
 	Meta       renderer.Metadata
-	Templates  map[string]string // Raw templates
-	Parameters map[string]string // Instance and OperatorVersion parameters merged
-	Pipes      map[string]string // Pipe artifacts
+	Templates  map[string]string      // Raw templates
+	Parameters map[string]interface{} // Instance and OperatorVersion parameters merged
+	Pipes      map[string]string      // Pipe artifacts
 }
 
 // Tasker is an interface that represents any runnable task for an operator. This method is treated

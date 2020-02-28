@@ -303,7 +303,11 @@ func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.Operat
 		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not find required plan: %v", engine.ErrFatalExecution, activePlanStatus.Name), EventName: "InvalidPlan"}
 	}
 
-	params := paramsMap(instance, ov)
+	params, err := paramsMap(instance, ov)
+	if err != nil {
+		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not parse parameters: %v", engine.ErrFatalExecution, err), EventName: "InvalidParams"}
+	}
+
 	pipes, err := pipesMap(activePlanStatus.Name, &planSpec, ov.Spec.Tasks, meta)
 	if err != nil {
 		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not make task pipes: %v", engine.ErrFatalExecution, err), EventName: "InvalidPlan"}
@@ -382,22 +386,40 @@ func GetOperatorVersion(instance *kudov1beta1.Instance, c client.Client) (ov *ku
 	return ov, nil
 }
 
-// paramsMap generates {{ Params.* }} map of keys and values which is later used during template rendering.
-func paramsMap(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.OperatorVersion) map[string]string {
-	params := make(map[string]string)
-
-	for k, v := range instance.Spec.Parameters {
-		params[k] = v
+func paramValue(v *string, t v1beta1.ParameterValueType) (r interface{}, err error) {
+	switch t {
+	case kudov1beta1.DictValueType:
+		r, err = kudo.YAMLDict(kudo.StringValue(v))
+	case kudov1beta1.ListValueType:
+		r, err = kudo.YAMLList(kudo.StringValue(v))
+	default:
+		r = kudo.StringValue(v)
 	}
 
-	// Merge instance parameter overrides with operator version, if no override exist, use the default one
+	return
+}
+
+// paramsMap generates {{ Params.* }} map of keys and values which is later used during template rendering.
+func paramsMap(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.OperatorVersion) (map[string]interface{}, error) {
+	params := make(map[string]interface{}, len(operatorVersion.Spec.Parameters))
+
 	for _, param := range operatorVersion.Spec.Parameters {
-		if _, ok := params[param.Name]; !ok {
-			params[param.Name] = kudo.StringValue(param.Default)
+		var err error
+
+		params[param.Name], err = paramValue(param.Default, param.Type)
+		if err != nil {
+			return nil, err
+		}
+
+		if value, ok := instance.Spec.Parameters[param.Name]; ok {
+			params[param.Name], err = paramValue(&value, param.Type)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	return params
+	return params, nil
 }
 
 // pipesMap generates {{ Pipes.* }} map of keys and values which is later used during template rendering.
