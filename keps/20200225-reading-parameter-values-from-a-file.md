@@ -38,7 +38,8 @@ updating an operator instance.
 This has two motivations:
 1. A better way for a user to store parameter values than a shell command line.
 1. A more convenient way to pass complex parameter values, especially in the light of
-coming structured parameter values (see [KEP-24](https://github.com/kudobuilder/kudo/pull/1356)).
+coming structured parameter values (see [KEP-24](https://github.com/kudobuilder/kudo/pull/1356))
+and their intended use cases (see [KEP-25](https://github.com/kudobuilder/kudo/pull/1364)).
 
 See [User Stories](#user-stories) below for more details.
 
