@@ -53,7 +53,7 @@ types of parameter values.
 
 - Make it possible for a user to pass any other command line flags through the file.
 - Provide any templating or other pre-processing capabilities for the parameter value file.
-
+ - Providing any new way of storage on the back-end.  This is strictly a way of passing parameters to the CLI.
 ## Proposal
 
 The idea is to introduce a new command-line flag: `--parameter-file`, in every place that
