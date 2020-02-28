@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParamsLis(t *testing.T) {
+func TestParamsList(t *testing.T) {
 	file := "params-list"
 	out := &bytes.Buffer{}
 	cmd := newPackageListParamsCmd(fs, out)
