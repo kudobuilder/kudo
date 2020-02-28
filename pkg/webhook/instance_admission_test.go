@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
@@ -17,6 +18,9 @@ func TestValidateUpdate(t *testing.T) {
 	deploy := v1beta1.DeployPlanName
 	update := v1beta1.UpdatePlanName
 	cleanup := v1beta1.CleanupPlanName
+	empty := ""
+
+	testUUID := uuid.NewUUID()
 
 	ov := &v1beta1.OperatorVersion{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
@@ -61,7 +65,7 @@ func TestValidateUpdate(t *testing.T) {
 	}
 
 	scheduled := idle.DeepCopy()
-	scheduled.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: deploy}
+	scheduled.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: deploy, UID: testUUID}
 
 	upgraded := idle.DeepCopy()
 	upgraded.Spec.OperatorVersion = v1.ObjectReference{Name: "foo-operator-2.0"}
@@ -141,17 +145,28 @@ func TestValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "cleanup plan CAN be 'cancelled' when its status is terminal",
+			name: "cleanup plan CAN NOT be cancelled when the instance is being deleted",
 			old:  uninstalling,
 			new: func() *v1beta1.Instance {
 				i := uninstalling.DeepCopy()
 				i.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: ""}
+				return i
+			}(),
+			ov:      ov,
+			wantErr: true,
+		},
+		{
+			name: "plan execution IS reset when the plan is terminal",
+			old:  scheduled,
+			new: func() *v1beta1.Instance {
+				i := scheduled.DeepCopy()
 				i.Status.PlanStatus = map[string]v1beta1.PlanStatus{
-					"cleanup": {Name: "cleanup", Status: v1beta1.ExecutionComplete},
+					deploy: {Name: deploy, UID: testUUID, Status: v1beta1.ExecutionComplete},
 				}
 				return i
 			}(),
-			ov: ov,
+			ov:   ov,
+			want: &empty,
 		},
 		{
 			name: "cleanup plan CAN NOT be triggered directly by the user",

@@ -11,6 +11,7 @@ import (
 	"github.com/thoas/go-funk"
 	"k8s.io/api/admission/v1beta1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -107,9 +108,8 @@ func handleUpdate(ia *InstanceAdmission, req admission.Request) admission.Respon
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	// we explicitly only validate updates to the Instance.Spec while Metadata (and/or possible Status)
-	// changes are unchecked and allowed
-	if reflect.DeepEqual(old.Spec, new.Spec) {
+	// we explicitly ignore Metadata updates
+	if reflect.DeepEqual(old.Spec, new.Spec) && reflect.DeepEqual(old.Status, new.Status) {
 		return admission.Allowed("")
 	}
 
@@ -118,10 +118,13 @@ func handleUpdate(ia *InstanceAdmission, req admission.Request) admission.Respon
 		return admission.Denied(err.Error())
 	}
 
-	// Populate Instance.PlanExecution with the plan triggered by param change and a new UID
+	// populate Instance.PlanExecution with the plan triggered by param change and evtl. a new UID
 	if triggered != nil {
 		new.Spec.PlanExecution.PlanName = *triggered
-		new.Spec.PlanExecution.UID = uuid.NewUUID()
+		new.Spec.PlanExecution.UID = ""
+		if *triggered != "" {
+			new.Spec.PlanExecution.UID = uuid.NewUUID() // if there is a new plan, generate new UID
+		}
 
 		marshaled, err := json.Marshal(new)
 		if err != nil {
@@ -183,30 +186,26 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 	isPlanOverride := hadPlan && newPlan != "" && newPlan != oldPlan
 	isPlanCancellation := hadPlan && newPlan == ""
 	isUninstalling := new.IsDeleting() && new.HasCleanupFinalizer() // a cleanup finalizer exists only when there is a cleanup plan
-	isOldPlanTerminal := oldPlan != "" && new.PlanStatus(oldPlan) != nil && new.PlanStatus(oldPlan).Status.IsTerminal()
+	isPlanTerminal := isTerminal(new, newPlan, new.Spec.PlanExecution.UID)
 
 	// --------------------------------------------------------------------------------------------------------------------------------
 	// ---- Instance can have two major life-cycle phases: normal and cleanup (uninstall) phase. Different rule sets apply in both. ---
 	// --------------------------------------------------------------------------------------------------------------------------------
 
 	// --- Instance uninstall/cleanup ---
-	//
+	// Following rules apply:
 	// - only 'cleanup' plan (if exists) can be scheduled in this phase
 	// - only the instance controller (and not the webhook or the user) can schedule 'cleanup'
 	// - 'cleanup' overrides any existing update/upgrade plan
-	// - 'cleanup' itself can *NOT* be cancelled or overridden by any other plan
+	// - 'cleanup' itself can *NOT* be cancelled or overridden by any other plan since the instance is being deleted
 	if isUninstalling {
 		Cleanup := kudov1beta1.CleanupPlanName
-		cleanupTerminal := new.PlanStatus(Cleanup) != nil && new.PlanStatus(Cleanup).Status.IsTerminal()
-		cleanupOverride := oldPlan == Cleanup && newPlan != "" && newPlan != Cleanup
-		cleanupCanceled := newPlan == "" && oldPlan == Cleanup
+		cleanupOverride := oldPlan == Cleanup && newPlan != oldPlan
 		notCleanupScheduled := newPlan != "" && newPlan != Cleanup
 
 		switch {
 		case cleanupOverride:
-			return nil, fmt.Errorf("failed to update Instance %s/%s: '%s' plan can not be overridden by another '%s' plan since the instance is being deleted", old.Namespace, old.Name, oldPlan, newPlan)
-		case cleanupCanceled && !cleanupTerminal:
-			return nil, fmt.Errorf("failed to update Instance %s/%s: '%s' plan can not be cancelled since the instance is being deleted", old.Namespace, old.Name, oldPlan)
+			return nil, fmt.Errorf("failed to update Instance %s/%s: '%s' plan can not be cancelled or overridden by another plan since the instance is being deleted", old.Namespace, old.Name, oldPlan)
 		case isParameterUpdate || isUpgrade:
 			return nil, fmt.Errorf("failed to update Instance %s/%s: parameter update and/or upgrade is not allowed when an instance is being deleted", old.Namespace, old.Name)
 		case notCleanupScheduled:
@@ -219,14 +218,14 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 	// ---- Normal life-cycle -----
 	switch {
 	case hadPlan && isParameterUpdate && *triggeredPlan != oldPlan:
-		return nil, fmt.Errorf("failed to update Instance %s/%s: plan '%s' is scheduled (or running) and an update would trigger a different plan '%s'", old.Namespace, old.Name, oldPlan, newPlan)
+		return nil, fmt.Errorf("failed to update Instance %s/%s: plan '%s' is scheduled (or running) and an update would trigger a different plan '%s'", old.Namespace, old.Name, oldPlan, *triggeredPlan)
 	case isUpgrade && hadPlan:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s while a plan '%s' is scheduled (or running) is not allowed", old.Namespace, old.Name, newOvRef, oldPlan)
 	case isUpgrade && isNovelPlan:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s and triggering new plan '%s' is not allowed", old.Namespace, old.Name, newOvRef, newPlan)
-	case isPlanOverride && !isOldPlanTerminal:
+	case isPlanOverride:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: overriding currently scheduled (or running) plan '%s' with '%s' is not supported", old.Namespace, old.Name, oldPlan, newPlan)
-	case isPlanCancellation && !isOldPlanTerminal:
+	case isPlanCancellation:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: cancelling currently scheduled (or running) plan '%s' is not supported", old.Namespace, old.Name, oldPlan)
 	case isParameterUpdate && isUpgrade:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s together with a parameter update triggering '%s' is not allowed", old.Namespace, old.Name, newOvRef, *triggeredPlan)
@@ -254,10 +253,22 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 
 	case isNovelPlan:
 		return &newPlan, nil
+
+	case isPlanTerminal:
+		// if current plan is terminal we reset the Instance.PlanExecution field and become ready for the new plan
+		empty := ""
+		return &empty, nil
+
 	default:
 		// effectively nothing changed so it's a noop.
 		return nil, nil
 	}
+}
+
+/// isTerminal returns true if passed plan exists, has the same uid and is terminal
+func isTerminal(i *kudov1beta1.Instance, plan string, uid types.UID) bool {
+	status := i.PlanStatus(plan)
+	return status != nil && status.UID == uid && status.Status.IsTerminal()
 }
 
 // triggeredPlan determines what plan to run based on parameters that changed and the corresponding parameter trigger.

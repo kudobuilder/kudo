@@ -245,16 +245,6 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	// Reset Spec.PlanExecution once the plan is finished
-	if newStatus.Status.IsTerminal() {
-		instance.Spec.PlanExecution.PlanName = ""
-		instance.Spec.PlanExecution.UID = ""
-		err := instance.AnnotateSnapshot()
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-	}
-
 	err = updateInstance(instance, oldInstance, r.Client)
 	if err != nil {
 		log.Printf("InstanceController: Error when updating instance. %v", err)
