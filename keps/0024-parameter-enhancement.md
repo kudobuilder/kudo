@@ -60,11 +60,11 @@ parameters:
   - name: ports
     description: Ports
     type: list
-    default: [ 80, 443 ]
+    default: "[ 80, 443 ]"
   - name: topology
     description: Node topology
     type: dict
-    default:
+    default: |
       - region: us-east-1
         replicas: 2
       - region: us-west-1
