@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -15,14 +16,14 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/manager"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
 // Validate checks that the current KUDO installation is correct
 func Validate(client *kube.Client, opts kudoinit.Options) error {
 	initSteps := initSteps(opts, false)
 
-	result := verify.NewResult()
+	result := verifier.NewResult()
 	// Check if all steps are correctly installed
 	for _, initStep := range initSteps {
 		result.Merge(initStep.VerifyInstallation(client))
@@ -45,12 +46,13 @@ func Upgrade(client *kube.Client, opts kudoinit.Options) error {
 
 	// Step 1 - Verify that installation can be done
 	// Check if all steps are installable
-	result := verify.NewResult()
+	result := verifier.NewResult()
 	for _, initStep := range initSteps {
 		result.Merge(initStep.PreInstallVerify(client))
 	}
 	if !result.IsValid() {
-		return &result
+		result.PrintErrors(os.Stdout)
+		return errors.New(result.ErrorsAsString())
 	}
 
 	// Step 2 - Verify that any migration is possible
@@ -91,7 +93,7 @@ func Upgrade(client *kube.Client, opts kudoinit.Options) error {
 func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
 	initSteps := initSteps(opts, crdOnly)
 
-	result := verify.NewResult()
+	result := verifier.NewResult()
 	// Check if all steps are installable
 	for _, initStep := range initSteps {
 		result.Merge(initStep.PreInstallVerify(client))
@@ -99,7 +101,8 @@ func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
 
 	result.PrintWarnings(os.Stdout)
 	if !result.IsValid() {
-		return &result
+		result.PrintErrors(os.Stdout)
+		return errors.New(result.ErrorsAsString())
 	}
 
 	// Install everything

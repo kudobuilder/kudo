@@ -199,11 +199,14 @@ func triggeredPlan(params []kudov1beta1.Parameter, ov *kudov1beta1.OperatorVersi
 
 	plans := make([]string, 0)
 	for _, p := range params {
-		if p.Trigger != "" && kudov1beta1.SelectPlan([]string{p.Trigger}, ov) != nil {
-			plans = append(plans, p.Trigger)
+		if p.Trigger != "" {
+			if kudov1beta1.SelectPlan([]string{p.Trigger}, ov) != nil {
+				plans = append(plans, p.Trigger)
+			} else {
+				return nil, fmt.Errorf("param %s defined trigger plan %s, but plan not defined in operatorversion", p.Name, p.Trigger)
+			}
 		}
 	}
-
 	plans = funk.UniqString(plans)
 
 	switch len(plans) {

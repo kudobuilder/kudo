@@ -4,22 +4,22 @@ import (
 	"fmt"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
 // ReferenceVerifier verifies tasks producing errors for tasks referenced in plans that do not exist and warnings for tasks which are not used in a plan
 type ReferenceVerifier struct{}
 
-func (ReferenceVerifier) Verify(pf *packages.Files) verify.Result {
-	res := verify.NewResult()
+func (ReferenceVerifier) Verify(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
 	res.Merge(tasksNotDefined(pf))
 	res.Merge(tasksDefinedNotUsed(pf))
 
 	return res
 }
 
-func tasksDefinedNotUsed(pf *packages.Files) verify.Result {
-	res := verify.NewResult()
+func tasksDefinedNotUsed(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
 	usedTasks := make(map[string]bool)
 
 	// map / set of all tasks that are referenced in a plan
@@ -42,8 +42,8 @@ func tasksDefinedNotUsed(pf *packages.Files) verify.Result {
 	return res
 }
 
-func tasksNotDefined(pf *packages.Files) verify.Result {
-	res := verify.NewResult()
+func tasksNotDefined(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
 	definedTasks := make(map[string]bool)
 
 	// map of all tasks defined

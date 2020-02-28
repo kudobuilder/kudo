@@ -78,6 +78,12 @@ func FromDir(fs afero.Fs, packagePath string) (*packages.Files, error) {
 			return err
 		}
 
+		// Trim package path to use only package relative paths in parser
+		path, err = filepath.Rel(packagePath, path)
+		if err != nil {
+			return err
+		}
+
 		return parsePackageFile(path, buf, &result)
 	})
 	if err != nil {

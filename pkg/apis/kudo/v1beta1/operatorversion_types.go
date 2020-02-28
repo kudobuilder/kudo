@@ -135,6 +135,7 @@ type TaskSpec struct {
 	ResourceTaskSpec `json:",inline"`
 	DummyTaskSpec    `json:",inline"`
 	PipeTaskSpec     `json:",inline"`
+	ToggleTaskSpec   `json:",inline"`
 }
 
 // ResourceTaskSpec is referencing a list of resources
@@ -142,6 +143,12 @@ type ResourceTaskSpec struct {
 	// +optional
 	// +nullable
 	Resources []string `json:"resources,omitempty"`
+}
+
+// ToggleTaskSpec is referencing a ResourceTaskSpec and a parameter
+type ToggleTaskSpec struct {
+	// +optional
+	Parameter string `json:"parameter,omitempty"`
 }
 
 // DummyTaskSpec can succeed or fail on demand and is very useful for testing operators

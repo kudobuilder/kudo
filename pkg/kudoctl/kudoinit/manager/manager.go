@@ -18,7 +18,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
 const (
@@ -44,12 +44,12 @@ func NewInitializer(options kudoinit.Options) Initializer {
 	}
 }
 
-func (m Initializer) PreInstallVerify(client *kube.Client) verify.Result {
-	return verify.NewResult()
+func (m Initializer) PreInstallVerify(client *kube.Client) verifier.Result {
+	return verifier.NewResult()
 }
 
-func (m Initializer) VerifyInstallation(client *kube.Client) verify.Result {
-	return verify.NewResult()
+func (m Initializer) VerifyInstallation(client *kube.Client) verifier.Result {
+	return verifier.NewResult()
 }
 
 func (m Initializer) String() string {

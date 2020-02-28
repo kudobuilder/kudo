@@ -15,7 +15,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/verify"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
 // Ensure kudoinit.Step is implemented
@@ -46,12 +46,12 @@ func (c Initializer) Resources() []runtime.Object {
 	return []runtime.Object{c.Operator, c.OperatorVersion, c.Instance}
 }
 
-func (c Initializer) PreInstallVerify(client *kube.Client) verify.Result {
-	return verify.NewResult()
+func (c Initializer) PreInstallVerify(client *kube.Client) verifier.Result {
+	return verifier.NewResult()
 }
 
-func (c Initializer) VerifyInstallation(client *kube.Client) verify.Result {
-	return verify.NewResult()
+func (c Initializer) VerifyInstallation(client *kube.Client) verifier.Result {
+	return verifier.NewResult()
 }
 
 // Install uses Kubernetes client to install KUDO Crds.
