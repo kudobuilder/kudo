@@ -22,10 +22,13 @@ type Artifacter interface {
 
 type InstallVerifier interface {
 	// PreInstallVerify verifies that the installation is possible
-	PreInstallVerify(client *kube.Client) verifier.Result
+	PreInstallVerify(client *kube.Client, result *verifier.Result) error
+
+	// PreInstallVerify verifies that an upgrade to the new version is possible
+	PreUpgradeVerify(client *kube.Client, result *verifier.Result) error
 
 	// VerifyInstallation verifies that the current installation is as expected
-	VerifyInstallation(client *kube.Client) verifier.Result
+	VerifyInstallation(client *kube.Client, result *verifier.Result) error
 }
 
 type Installer interface {

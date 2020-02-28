@@ -3,9 +3,6 @@ package setup
 import (
 	"errors"
 	"fmt"
-	"os"
-
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/migration"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
@@ -15,6 +12,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/manager"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/migration"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
@@ -26,33 +24,34 @@ func Validate(client *kube.Client, opts kudoinit.Options) error {
 	result := verifier.NewResult()
 	// Check if all steps are correctly installed
 	for _, initStep := range initSteps {
-		result.Merge(initStep.VerifyInstallation(client))
+		if err := initStep.VerifyInstallation(client, &result); err != nil {
+			return fmt.Errorf("error while verifying init step %s: %v", initStep.String(), err)
+		}
 	}
 
 	return nil
 }
 
-func requiredMigrations() []migration.Migrator {
+func requiredMigrations() []migration.Migrater {
 
 	// TODO: Determine which migrations to run
-	return []migration.Migrator{
+	return []migration.Migrater{
 		migration.To1_11(),
 	}
 }
 
-// Upgrade an existing KUDO installation
-func Upgrade(client *kube.Client, opts kudoinit.Options) error {
+func PreUpgradeVerify(client *kube.Client, opts kudoinit.Options, result *verifier.Result) error {
 	initSteps := initSteps(opts, false)
 
 	// Step 1 - Verify that installation can be done
 	// Check if all steps are installable
-	result := verifier.NewResult()
 	for _, initStep := range initSteps {
-		result.Merge(initStep.PreInstallVerify(client))
+		if err := initStep.PreInstallVerify(client, result); err != nil {
+			return fmt.Errorf("error while verifying upgrade step %s: %v", initStep.String(), err)
+		}
 	}
 	if !result.IsValid() {
-		result.PrintErrors(os.Stdout)
-		return errors.New(result.ErrorsAsString())
+		return nil
 	}
 
 	// Step 2 - Verify that any migration is possible
@@ -60,11 +59,24 @@ func Upgrade(client *kube.Client, opts kudoinit.Options) error {
 	migrations := requiredMigrations()
 	for _, m := range migrations {
 		if err := m.CanMigrate(client); err != nil {
-			return fmt.Errorf("migration %s failed install check: %v", m, err)
+			result.AddErrors(fmt.Errorf("migration %s failed install check: %v", m, err).Error())
 		}
 	}
 
 	// TODO: Verify existing operators and instances?
+
+	return nil
+}
+
+// Upgrade an existing KUDO installation
+func Upgrade(client *kube.Client, opts kudoinit.Options) error {
+	result := verifier.NewResult()
+	if err := PreUpgradeVerify(client, opts, &result); err != nil {
+		return err
+	}
+	if !result.IsValid() {
+		return errors.New(result.ErrorsAsString())
+	}
 
 	// Until here, no changes are made to the existing installation
 
@@ -79,6 +91,7 @@ func Upgrade(client *kube.Client, opts kudoinit.Options) error {
 	}
 
 	// Step 5 - Execute Migrations
+	migrations := requiredMigrations()
 	for _, m := range migrations {
 		if err := m.Migrate(client); err != nil {
 			return fmt.Errorf("migration %s failed to execute: %v", m, err)
@@ -86,33 +99,45 @@ func Upgrade(client *kube.Client, opts kudoinit.Options) error {
 	}
 
 	// Step 6 - Execute Installation/Upgrade (this enables webhooks again and starts new manager
-	return Install(client, opts, false)
+	return executeInstallation(client, opts, false)
+}
+
+// Verifies that the installation is possible. Returns an error if any part of KUDO is already installed
+func PreInstallVerify(client *kube.Client, opts kudoinit.Options, crdOnly bool, result *verifier.Result) error {
+	initSteps := initSteps(opts, crdOnly)
+
+	// Check if all steps are installable
+	for _, initStep := range initSteps {
+		if err := initStep.PreInstallVerify(client, result); err != nil {
+			return fmt.Errorf("error while verifying install step %s: %v", initStep.String(), err)
+		}
+	}
+
+	return nil
 }
 
 // Install uses Kubernetes client to install KUDO.
 func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
-	initSteps := initSteps(opts, crdOnly)
-
 	result := verifier.NewResult()
-	// Check if all steps are installable
-	for _, initStep := range initSteps {
-		result.Merge(initStep.PreInstallVerify(client))
+	if err := PreInstallVerify(client, opts, crdOnly, &result); err != nil {
+		return err
 	}
-
-	result.PrintWarnings(os.Stdout)
 	if !result.IsValid() {
-		result.PrintErrors(os.Stdout)
 		return errors.New(result.ErrorsAsString())
 	}
+	return executeInstallation(client, opts, crdOnly)
+}
 
+// Executes the installation without any previous verification
+func executeInstallation(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
 	// Install everything
+	initSteps := initSteps(opts, crdOnly)
 	for _, initStep := range initSteps {
 		if err := initStep.Install(client); err != nil {
 			return fmt.Errorf("%s: %v", initStep, err)
 		}
 		clog.Printf("✅ installed %s", initStep)
 	}
-
 	return nil
 }
 

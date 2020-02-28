@@ -16,12 +16,12 @@ import (
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
-var _ Migrator = &To1_11Migration{}
+var _ Migrater = &To1_11Migration{}
 
 type To1_11Migration struct {
 }
 
-func To1_11() Migrator {
+func To1_11() Migrater {
 	return &To1_11Migration{}
 }
 
@@ -81,7 +81,6 @@ func (m *To1_11Migration) CanMigrate(client *kube.Client) error {
 					log.Infof("Skipping %v - %v - %v, already has snapshot annotation", uObj.GroupVersionKind(), uObj.GetNamespace(), uObj.GetName())
 					continue
 				}
-
 			}
 		}
 	}

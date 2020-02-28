@@ -20,7 +20,8 @@ func TestPrereq_Ok_PreValidate_Webhook_None(t *testing.T) {
 
 	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", []string{}, false))
 
-	result := init.PreInstallVerify(client)
+	result := verifier.NewResult()
+	_ = init.PreInstallVerify(client, &result)
 
 	assert.EqualValues(t, verifier.NewResult(), result)
 }
@@ -30,7 +31,8 @@ func TestPrereq_Fail_PreValidate_Webhook_NoCertificate(t *testing.T) {
 
 	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", []string{"validate"}, false))
 
-	result := init.PreInstallVerify(client)
+	result := verifier.NewResult()
+	_ = init.PreInstallVerify(client, &result)
 
 	assert.EqualValues(t, verifier.NewError(
 		"failed to find CRD 'certificates.cert-manager.io': customresourcedefinitions.apiextensions.k8s.io \"certificates.cert-manager.io\" not found",
@@ -46,7 +48,8 @@ func TestPrereq_Fail_PreValidate_Webhook_WrongCertificateVersion(t *testing.T) {
 
 	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", []string{"validate"}, false))
 
-	result := init.PreInstallVerify(client)
+	result := verifier.NewResult()
+	_ = init.PreInstallVerify(client, &result)
 
 	assert.EqualValues(t, verifier.NewError(
 		"invalid CRD version found for 'certificates.cert-manager.io': v0 instead of v1alpha2",
@@ -61,7 +64,8 @@ func TestPrereq_Fail_PreValidate_Webhook_NoIssuer(t *testing.T) {
 
 	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", []string{"validate"}, false))
 
-	result := init.PreInstallVerify(client)
+	result := verifier.NewResult()
+	_ = init.PreInstallVerify(client, &result)
 
 	assert.EqualValues(t, verifier.NewError("failed to find CRD 'issuers.cert-manager.io': customresourcedefinitions.apiextensions.k8s.io \"issuers.cert-manager.io\" not found"), result)
 }
@@ -74,7 +78,8 @@ func TestPrereq_Fail_PreValidate_Webhook_WrongIssuerVersion(t *testing.T) {
 
 	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", []string{"validate"}, false))
 
-	result := init.PreInstallVerify(client)
+	result := verifier.NewResult()
+	_ = init.PreInstallVerify(client, &result)
 
 	assert.EqualValues(t, verifier.NewError("invalid CRD version found for 'issuers.cert-manager.io': v0 instead of v1alpha2"), result)
 }
@@ -87,7 +92,8 @@ func TestPrereq_Ok_PreValidate_Webhook(t *testing.T) {
 
 	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", []string{"validate"}, false))
 
-	result := init.PreInstallVerify(client)
+	result := verifier.NewResult()
+	_ = init.PreInstallVerify(client, &result)
 
 	assert.Equal(t, 0, len(result.Errors))
 }

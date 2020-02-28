@@ -22,7 +22,8 @@ func TestPrereq_Fail_PreValidate_CustomServiceAccount(t *testing.T) {
 
 	init := NewServiceAccountInitializer(kudoinit.NewOptions("", "", "customSA", make([]string, 0), false))
 
-	result := init.PreInstallVerify(client)
+	result := verifier.NewResult()
+	_ = init.PreInstallVerify(client, &result)
 
 	assert.EqualValues(t, verifier.NewError("Service Account customSA does not exists - KUDO expects the serviceAccount to be present in the namespace kudo-system"), result)
 }
@@ -36,7 +37,8 @@ func TestPrereq_Fail_PreValidate_CustomServiceAccount_MissingPermissions(t *test
 
 	init := NewServiceAccountInitializer(kudoinit.NewOptions("", "", customSA, make([]string, 0), false))
 
-	result := init.PreInstallVerify(client)
+	result := verifier.NewResult()
+	_ = init.PreInstallVerify(client, &result)
 
 	assert.EqualValues(t, verifier.NewError("Service Account customSA does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace kudo-system and to have cluster-admin role"), result)
 }
@@ -51,7 +53,8 @@ func TestPrereq_Ok_PreValidate_CustomServiceAccount(t *testing.T) {
 	mockListClusterRoleBindings(client, opts)
 
 	init := NewServiceAccountInitializer(opts)
-	result := init.PreInstallVerify(client)
+	result := verifier.NewResult()
+	_ = init.PreInstallVerify(client, &result)
 
 	assert.EqualValues(t, verifier.NewResult(), result)
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/setup"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
 const (
@@ -173,33 +174,48 @@ func (initCmd *initCmd) run() error {
 	}
 	clog.Printf("$KUDO_HOME has been configured at %s", Settings.Home)
 
-	// initialize server
-	if !initCmd.clientOnly {
-		clog.V(4).Printf("initializing server")
-		if initCmd.client == nil {
-			client, err := kube.GetKubeClient(Settings.KubeConfig)
-			if err != nil {
-				return clog.Errorf("could not get Kubernetes client: %s", err)
-			}
-			initCmd.client = client
-		}
+	if initCmd.clientOnly {
+		return nil
+	}
 
-		if initCmd.upgrade {
-			if err := setup.Upgrade(initCmd.client, opts); err != nil {
-				return clog.Errorf("error installing: %s", err)
+	// initialize server
+
+	clog.V(4).Printf("initializing server")
+	if initCmd.client == nil {
+		client, err := kube.GetKubeClient(Settings.KubeConfig)
+		if err != nil {
+			return clog.Errorf("could not get Kubernetes client: %s", err)
+		}
+		initCmd.client = client
+	}
+
+	if initCmd.upgrade {
+		if err := setup.Upgrade(initCmd.client, opts); err != nil {
+			return clog.Errorf("error installing: %s", err)
+		}
+	} else {
+		if initCmd.dryRun {
+			result := verifier.NewResult()
+			if err := setup.PreInstallVerify(initCmd.client, opts, initCmd.crdOnly, &result); err != nil {
+				return err
+			}
+			result.PrintWarnings(initCmd.out)
+			if !result.IsValid() {
+				result.PrintErrors(initCmd.out)
+				return nil
 			}
 		} else {
 			if err := setup.Install(initCmd.client, opts, initCmd.crdOnly); err != nil {
 				return clog.Errorf("error installing: %s", err)
 			}
 		}
+	}
 
-		if initCmd.wait {
-			clog.Printf("⌛Waiting for KUDO controller to be ready in your cluster...")
-			err := setup.WatchKUDOUntilReady(initCmd.client.KubeClient, opts, initCmd.timeout)
-			if err != nil {
-				return errors.New("watch timed out, readiness uncertain")
-			}
+	if initCmd.wait {
+		clog.Printf("⌛Waiting for KUDO controller to be ready in your cluster...")
+		err := setup.WatchKUDOUntilReady(initCmd.client.KubeClient, opts, initCmd.timeout)
+		if err != nil {
+			return errors.New("watch timed out, readiness uncertain")
 		}
 	}
 

@@ -21,8 +21,8 @@ func TestPrereq_Fail_PreValidate_CustomNamespace(t *testing.T) {
 	client := getFakeClient()
 
 	init := NewNamespaceInitializer(kudoinit.NewOptions("", "customNS", "", make([]string, 0), false))
-
-	result := init.PreInstallVerify(client)
+	result := verifier.NewResult()
+	_ = init.PreInstallVerify(client, &result)
 
 	assert.EqualValues(t, verifier.NewError("Namespace customNS does not exist - KUDO expects that any namespace except the default kudo-system is created beforehand"), result)
 }
@@ -34,7 +34,8 @@ func TestPrereq_Ok_PreValidate_CustomNamespace(t *testing.T) {
 
 	init := NewNamespaceInitializer(kudoinit.NewOptions("", "customNS", "", make([]string, 0), false))
 
-	result := init.PreInstallVerify(client)
+	result := verifier.NewResult()
+	_ = init.PreInstallVerify(client, &result)
 
 	assert.EqualValues(t, verifier.NewResult(), result)
 }

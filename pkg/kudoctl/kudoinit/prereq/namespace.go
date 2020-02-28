@@ -33,23 +33,36 @@ func (o KudoNamespace) String() string {
 	return "namespace"
 }
 
-func (o KudoNamespace) PreInstallVerify(client *kube.Client) verifier.Result {
+func (o KudoNamespace) PreInstallVerify(client *kube.Client, result *verifier.Result) error {
 	// We only manage kudo-system namespace. For others we expect they exist.
 	if !o.opts.IsDefaultNamespace() {
 		_, err := client.KubeClient.CoreV1().Namespaces().Get(o.opts.Namespace, metav1.GetOptions{})
-		if kerrors.IsNotFound(err) {
-			return verifier.NewError(fmt.Sprintf("Namespace %s does not exist - KUDO expects that any namespace except the default %s is created beforehand", o.opts.Namespace, kudoinit.DefaultNamespace))
+		if err != nil {
+			if kerrors.IsNotFound(err) {
+				result.AddErrors(fmt.Sprintf("Namespace %s does not exist - KUDO expects that any namespace except the default %s is created beforehand", o.opts.Namespace, kudoinit.DefaultNamespace))
+				return nil
+			}
+			return err
 		}
 	}
-	return verifier.NewResult()
+	return nil
 }
 
-func (o KudoNamespace) VerifyInstallation(client *kube.Client) verifier.Result {
+func (o KudoNamespace) PreUpgradeVerify(client *kube.Client, result *verifier.Result) error {
+	// For Upgrades we want to make sure that the namespace exists, there's nothing we can really upgrade for NS
+	return o.VerifyInstallation(client, result)
+}
+
+func (o KudoNamespace) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
 	_, err := client.KubeClient.CoreV1().Namespaces().Get(o.opts.Namespace, metav1.GetOptions{})
-	if kerrors.IsNotFound(err) {
-		return verifier.NewError(fmt.Sprintf("namespace %s does not exist", o.opts.Namespace))
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			result.AddErrors(fmt.Sprintf("namespace %s does not exist", o.opts.Namespace))
+			return nil
+		}
+		return err
 	}
-	return verifier.NewResult()
+	return nil
 }
 
 func (o KudoNamespace) Install(client *kube.Client) error {

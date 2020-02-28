@@ -44,12 +44,16 @@ func NewInitializer(options kudoinit.Options) Initializer {
 	}
 }
 
-func (m Initializer) PreInstallVerify(client *kube.Client) verifier.Result {
-	return verifier.NewResult()
+func (m Initializer) PreInstallVerify(client *kube.Client, result *verifier.Result) error {
+	return nil
 }
 
-func (m Initializer) VerifyInstallation(client *kube.Client) verifier.Result {
-	return verifier.NewResult()
+func (m Initializer) PreUpgradeVerify(client *kube.Client, result *verifier.Result) error {
+	return nil
+}
+
+func (m Initializer) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
+	return nil
 }
 
 func (m Initializer) String() string {
