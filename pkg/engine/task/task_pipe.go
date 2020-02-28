@@ -87,7 +87,7 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 	}
 
 	// 6. - Apply pod using the client -
-	podObj, err = apply(podObj, ctx.Client, ctx.Discovery)
+	podObj, err = applyResources(podObj, ctx)
 	if err != nil {
 		return false, err
 	}
@@ -127,14 +127,14 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 	}
 
 	// 11. - Apply artifacts using the client -
-	_, err = apply(artObj, ctx.Client, ctx.Discovery)
+	_, err = applyResources(artObj, ctx)
 	if err != nil {
 		return false, err
 	}
 
 	// 12. - Delete pipe pod -
 	log.Printf("PipeTask: %s/%s deleting pipe pod", ctx.Meta.InstanceNamespace, ctx.Meta.InstanceName)
-	err = delete(podObj, ctx.Client)
+	err = deleteResource(podObj, ctx.Client)
 	if err != nil {
 		return false, err
 	}
