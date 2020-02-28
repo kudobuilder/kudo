@@ -3,10 +3,10 @@ package template
 import (
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
-var _ verifier.PackageVerifier = &RenderVerifier{}
+var _ packages.Verifier = &RenderVerifier{}
 
 // RenderVerifier checks that all templates are compilable and contain valid golang template syntax
 type RenderVerifier struct{}

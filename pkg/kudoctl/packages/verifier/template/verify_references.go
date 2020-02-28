@@ -5,10 +5,10 @@ import (
 
 	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
-var _ verifier.PackageVerifier = &ReferenceVerifier{}
+var _ packages.Verifier = &ReferenceVerifier{}
 
 // ReferenceVerifier checks that all referenced templates exists (without errors)
 // and warns if a template exists but isn't referenced in a plan

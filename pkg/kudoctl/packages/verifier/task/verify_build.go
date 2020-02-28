@@ -2,10 +2,11 @@ package task
 
 import (
 	"github.com/kudobuilder/kudo/pkg/engine/task"
-
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
+
+var _ packages.Verifier = &BuildVerifier{}
 
 // BuildVerifier verifies tasks producing errors for tasks referenced in plans that do not exist and warnings for tasks which are not used in a plan
 type BuildVerifier struct{}

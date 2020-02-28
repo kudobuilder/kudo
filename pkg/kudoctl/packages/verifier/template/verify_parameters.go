@@ -5,7 +5,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
 var (
@@ -22,13 +22,13 @@ var (
 	}
 )
 
-var _ verifier.PackageVerifier = &ParametersVerifier{}
+var _ packages.Verifier = &ParametersVerifier{}
 
 // ParametersVerifier checks that all parameters used in templates are defined
 // checks that all defined parameters are used in templates
 type ParametersVerifier struct{}
 
-// Verify implements verifier.PackageVerifier for parameter verification
+// Verify implements packages.Verifier for parameter verification
 func (ParametersVerifier) Verify(pf *packages.Files) verifier.Result {
 	res := verifier.NewResult()
 	res.Merge(paramsNotDefined(pf))

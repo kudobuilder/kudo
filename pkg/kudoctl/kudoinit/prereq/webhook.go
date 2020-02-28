@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -13,9 +14,11 @@ import (
 	"k8s.io/client-go/dynamic"
 	clientv1beta1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
 
+	"github.com/kudobuilder/kudo/pkg/engine/health"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
@@ -26,10 +29,26 @@ type kudoWebHook struct {
 	opts kudoinit.Options
 }
 
+const (
+	certManagerAPIVersion        = "v1alpha2"
+	certManagerControllerVersion = "v0.12.0"
+)
+
+var (
+	certManagerControllerImageSuffix = fmt.Sprintf("cert-manager-controller:%s", certManagerControllerVersion)
+)
+
 func newWebHook(options kudoinit.Options) kudoWebHook {
 	return kudoWebHook{
 		opts: options,
 	}
+}
+
+func (k kudoWebHook) PreInstallVerify(client *kube.Client) verifier.Result {
+	if !k.opts.HasWebhooksEnabled() {
+		return verifier.NewResult()
+	}
+	return validateCertManagerInstallation(client)
 }
 
 func (k kudoWebHook) Install(client *kube.Client) error {
@@ -68,6 +87,49 @@ func (k kudoWebHook) AsRuntimeObjs() []runtime.Object {
 		objs = append(objs, &c)
 	}
 	return objs
+}
+
+func validateCertManagerInstallation(client *kube.Client) verifier.Result {
+	result := verifier.NewResult()
+	result.Merge(validateCrdVersion(client.ExtClient, "certificates.cert-manager.io", certManagerAPIVersion))
+	result.Merge(validateCrdVersion(client.ExtClient, "issuers.cert-manager.io", certManagerAPIVersion))
+
+	if !result.IsEmpty() {
+		return result
+	}
+
+	deployment, err := client.KubeClient.AppsV1().Deployments("cert-manager").Get("cert-manager", metav1.GetOptions{})
+	if err != nil {
+		return verifier.NewWarning(fmt.Sprintf("failed to get cert-manager deployment in namespace cert-manager. Make sure cert-manager is running (%s)", err))
+	}
+	if len(deployment.Spec.Template.Spec.Containers) < 1 {
+		return verifier.NewWarning("failed to validate cert-manager controller deployment. Spec had no containers")
+	}
+	if !strings.HasSuffix(deployment.Spec.Template.Spec.Containers[0].Image, certManagerControllerImageSuffix) {
+		return verifier.NewWarning(fmt.Sprintf("cert-manager deployment had unexpected version. expected %s in controller image name but found %s", certManagerControllerVersion, deployment.Spec.Template.Spec.Containers[0].Image))
+	}
+
+	if err := health.IsHealthy(deployment); err != nil {
+		return verifier.NewWarning("cert-manager seems not to be running correctly. Make sure cert-manager is working")
+	}
+
+	return verifier.NewResult()
+}
+
+func validateCrdVersion(extClient clientset.Interface, crdName string, expectedVersion string) verifier.Result {
+	certCRD, err := extClient.ApiextensionsV1().CustomResourceDefinitions().Get(crdName, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return verifier.NewError(fmt.Sprintf("failed to find CRD '%s': %s", crdName, err))
+		}
+		return verifier.NewError(fmt.Sprintf("Failed to retrieve CRD '%s': %s", crdName, err))
+	}
+	crdVersion := certCRD.Spec.Versions[0].Name
+
+	if crdVersion != expectedVersion {
+		return verifier.NewError(fmt.Sprintf("invalid CRD version found for '%s': %s instead of %s", crdName, crdVersion, expectedVersion))
+	}
+	return verifier.NewResult()
 }
 
 // installUnstructured accepts kubernetes resource as unstructured.Unstructured and installs it into cluster
