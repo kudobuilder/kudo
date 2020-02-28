@@ -1,0 +1,8 @@
+apiVersion: kudo.dev/v1beta1
+parameters:
+  - name: SECOND_CONTAINER
+    description: If the second container should be started
+    default: true
+  - name: WITH_PRIORITY
+    description: If true, a priority is set
+    default: true
