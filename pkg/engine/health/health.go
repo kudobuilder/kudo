@@ -25,7 +25,7 @@ func IsTerminallyFailed(obj runtime.Object) bool {
 	switch obj := obj.(type) {
 	case *batchv1.Job:
 		if obj.Spec.BackoffLimit != nil {
-			if obj.Status.Failed >= *obj.Spec.BackoffLimit {
+			if obj.Status.Failed > *obj.Spec.BackoffLimit {
 				log.Printf("HealthUtil: Job \"%v\" has reached terminal state and is unsuccessful, abort", obj.Name)
 				return true
 			}
