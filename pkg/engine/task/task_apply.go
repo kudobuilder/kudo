@@ -58,7 +58,9 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 	// 4. - Check health for all resources -
 	err = isHealthy(applied)
 	if err != nil {
-		// so far we do not distinguish between unhealthy resources and other errors that might occur during a health check
+		if fatal := isTerminallyFailed(applied); fatal != nil {
+			return false, fatalExecutionError(fatal, failedTerminalState, ctx.Meta)
+		}
 		// an error during a health check is not treated task execution error
 		log.Printf("TaskExecution: %v", err)
 		return false, nil
@@ -232,6 +234,16 @@ func isHealthy(ro []runtime.Object) error {
 		if err != nil {
 			key, _ := client.ObjectKeyFromObject(r)
 			return fmt.Errorf("object %s/%s is NOT healthy: %w", key.Namespace, key.Name, err)
+		}
+	}
+	return nil
+}
+
+func isTerminallyFailed(ro []runtime.Object) error {
+	for _, r := range ro {
+		if health.IsTerminallyFailed(r) {
+			key, _ := client.ObjectKeyFromObject(r)
+			return fmt.Errorf("object %s/%s has reached a terminal failed state", key.Namespace, key.Name)
 		}
 	}
 	return nil

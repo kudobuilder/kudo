@@ -16,6 +16,26 @@ import (
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
+// IsTerminallyFailed returns whether an object is in a terminal failed state and has no chance to reach healthy
+func IsTerminallyFailed(obj runtime.Object) bool {
+	if obj == nil {
+		return false
+	}
+
+	switch obj := obj.(type) {
+	case *batchv1.Job:
+		if obj.Spec.BackoffLimit != nil {
+			if obj.Status.Failed >= *obj.Spec.BackoffLimit {
+				log.Printf("HealthUtil: Job \"%v\" has reached terminal state and is unsuccessful, abort", obj.Name)
+				return true
+			}
+		}
+	default:
+		return false
+	}
+	return false
+}
+
 // IsHealthy returns whether an object is healthy. Must be implemented for each type.
 func IsHealthy(obj runtime.Object) error {
 	if obj == nil {
