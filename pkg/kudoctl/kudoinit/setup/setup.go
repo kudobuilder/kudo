@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -29,7 +30,7 @@ func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
 	result.PrintWarnings(os.Stdout)
 	if !result.IsValid() {
 		result.PrintErrors(os.Stdout)
-		return fmt.Errorf("PreInstall contains errors")
+		return errors.New(result.ErrorsAsString())
 	}
 
 	// Install everything
