@@ -150,7 +150,7 @@ endif
 # Requires the individual test name to avoid massive update of all golden files
 # example: make update-golden-TestInitCmd_dry
 update-golden-%:
-	go test ./pkg/kudoctl/cmd -run $* --update=true
+	go test ./pkg/kudoctl/cmd ./pkg/kudoctl/packages ./pkg/kudoctl/util/repo -v -mod=readonly -run $* --update=true
 
 .PHONY: todo
 # Show to-do items per file.

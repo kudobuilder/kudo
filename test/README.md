@@ -88,4 +88,4 @@ Running a non-existing test would return a
 ok      github.com/kudobuilder/kudo/pkg/kudoctl/cmd     0.048s [no tests to run]
 ```
 
-Currently we don't allow to update all golden files through `Makefile` target
+Currently we don't allow to update all golden files through a single `Makefile` target in one go.
