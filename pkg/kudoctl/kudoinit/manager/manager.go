@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/kudobuilder/kudo/pkg/engine/health"
+
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -45,15 +47,16 @@ func NewInitializer(options kudoinit.Options) Initializer {
 }
 
 func (m Initializer) PreInstallVerify(client *kube.Client, result *verifier.Result) error {
-	return nil
+	return m.verifyManagerNotInstalled(client, result)
 }
 
 func (m Initializer) PreUpgradeVerify(client *kube.Client, result *verifier.Result) error {
+	// For upgrade we don't verify anything. We assume the install process can overwrite existing manager
 	return nil
 }
 
 func (m Initializer) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
-	return nil
+	return m.verifyManagerInstalled(client, result)
 }
 
 func (m Initializer) String() string {
@@ -76,6 +79,42 @@ func UninstallStatefulSet(client *kube.Client, options kudoinit.Options) error {
 	err := client.KubeClient.AppsV1().StatefulSets(options.Namespace).Delete(controllerManagerName, &metav1.DeleteOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to uninstall KUDO manager: %v", err)
+	}
+	return nil
+}
+
+func (m Initializer) verifyManagerNotInstalled(client *kube.Client, result *verifier.Result) error {
+	_, err := client.KubeClient.AppsV1().StatefulSets(m.options.Namespace).Get(controllerManagerName, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	result.AddErrors(fmt.Sprintf("KUDO manager seems to be installed. Did you mean to use --upgrade"))
+	return nil
+}
+
+func (m Initializer) verifyManagerInstalled(client *kube.Client, result *verifier.Result) error {
+	mgr, err := client.KubeClient.AppsV1().StatefulSets(m.options.Namespace).Get(controllerManagerName, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			result.AddErrors(fmt.Sprintf("failed to find KUDO manager in namespace %s", m.options.Namespace))
+			return nil
+		}
+		return err
+	}
+	if len(mgr.Spec.Template.Spec.Containers) < 1 {
+		result.AddErrors("failed to validate KUDO manager. Spec had no containers")
+		return nil
+	}
+	if mgr.Spec.Template.Spec.Containers[0].Image != m.options.Image {
+		result.AddErrors(fmt.Sprintf("KUDO manager has an unexpected image. Expected %s but found %s", m.options.Image, mgr.Spec.Template.Spec.Containers[0].Image))
+		return nil
+	}
+	if err := health.IsHealthy(mgr); err != nil {
+		result.AddErrors("KUDO manager seems to be not healthy")
+		return nil
 	}
 	return nil
 }

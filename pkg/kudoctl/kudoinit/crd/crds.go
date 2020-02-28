@@ -98,7 +98,7 @@ func (c Initializer) verifyIsNotInstalled(client v1beta1.CustomResourceDefinitio
 		}
 		return err
 	}
-	result.AddErrors(fmt.Sprintf("CRD %s is already installed, did you mean to upgrade?", c.Operator.Name))
+	result.AddErrors(fmt.Sprintf("CRD %s is already installed. Did you mean to use --upgrade?", c.Operator.Name))
 	return nil
 }
 

@@ -189,25 +189,31 @@ func (initCmd *initCmd) run() error {
 		initCmd.client = client
 	}
 
+	if initCmd.verify {
+		return initCmd.initVerify(opts)
+	}
+
 	if initCmd.upgrade {
+		ok, err := initCmd.upgradeVerify(opts)
+		if err != nil {
+			return err
+		}
+		if !ok || initCmd.dryRun {
+			return nil
+		}
 		if err := setup.Upgrade(initCmd.client, opts); err != nil {
-			return clog.Errorf("error installing: %s", err)
+			return clog.Errorf("error upgrading: %s", err)
 		}
 	} else {
-		if initCmd.dryRun {
-			result := verifier.NewResult()
-			if err := setup.PreInstallVerify(initCmd.client, opts, initCmd.crdOnly, &result); err != nil {
-				return err
-			}
-			result.PrintWarnings(initCmd.out)
-			if !result.IsValid() {
-				result.PrintErrors(initCmd.out)
-				return nil
-			}
-		} else {
-			if err := setup.Install(initCmd.client, opts, initCmd.crdOnly); err != nil {
-				return clog.Errorf("error installing: %s", err)
-			}
+		ok, err := initCmd.installVerify(opts)
+		if err != nil {
+			return err
+		}
+		if !ok || initCmd.dryRun {
+			return nil
+		}
+		if err := setup.Install(initCmd.client, opts, initCmd.crdOnly); err != nil {
+			return clog.Errorf("error installing: %s", err)
 		}
 	}
 
@@ -220,6 +226,46 @@ func (initCmd *initCmd) run() error {
 	}
 
 	return nil
+}
+
+func (initCmd *initCmd) initVerify(opts kudoinit.Options) error {
+	result := verifier.NewResult()
+	if err := setup.Validate(initCmd.client, opts, &result); err != nil {
+		return err
+	}
+	result.PrintWarnings(initCmd.out)
+	if !result.IsValid() {
+		result.PrintErrors(initCmd.out)
+	}
+	return nil
+}
+
+// installVerify runs the pre-installation verification and returns true if the installation can continue
+func (initCmd *initCmd) installVerify(opts kudoinit.Options) (bool, error) {
+	result := verifier.NewResult()
+	if err := setup.PreInstallVerify(initCmd.client, opts, initCmd.crdOnly, &result); err != nil {
+		return false, err
+	}
+	result.PrintWarnings(initCmd.out)
+	if !result.IsValid() {
+		result.PrintErrors(initCmd.out)
+		return false, nil
+	}
+	return true, nil
+}
+
+// upgradeVerify runs the pre-installation verification and returns true if the upgrade can continue
+func (initCmd *initCmd) upgradeVerify(opts kudoinit.Options) (bool, error) {
+	result := verifier.NewResult()
+	if err := setup.PreUpgradeVerify(initCmd.client, opts, &result); err != nil {
+		return false, err
+	}
+	result.PrintWarnings(initCmd.out)
+	if !result.IsValid() {
+		result.PrintErrors(initCmd.out)
+		return false, nil
+	}
+	return true, nil
 }
 
 func webhooksArray(webhooksAsStr string) []string {
