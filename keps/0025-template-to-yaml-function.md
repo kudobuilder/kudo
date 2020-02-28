@@ -1,5 +1,5 @@
 ---
-kep-number: draft-20200225
+kep-number: 25
 title: Template toYaml function
 short-desc: New toYaml function for use in templates
 authors:
@@ -9,7 +9,7 @@ owners:
 editor: @porridge
 creation-date: 2020-02-25
 last-updated: 2020-02-25
-status: provisional
+status: implementable
 see-also:
   - KEP-24
 ---
@@ -124,6 +124,7 @@ Ultimately, operator developers need to apply this feature with some care.
 ## Implementation History
 
 - 2020-02-25 - Initial draft. (@porridge)
+- 2020-02-28 - Changed to implementable. (@porridge)
 
 ## Alternatives
 
