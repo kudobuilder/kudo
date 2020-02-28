@@ -34,7 +34,7 @@ func requiredMigrations() []migration.Migrater {
 
 	// TODO: Determine which migrations to run
 	return []migration.Migrater{
-		migration.To1_11(),
+		// TODO: Implement actual migrations
 	}
 }
 

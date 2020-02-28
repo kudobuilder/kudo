@@ -140,6 +140,12 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 	if initCmd.upgrade && initCmd.verify {
 		return errors.New("'--upgrade' and '--validate' can not be used at the same time")
 	}
+	if initCmd.verify && initCmd.dryRun {
+		return errors.New("'--dry-run' and '--validate' can not be used at the same time")
+	}
+	if initCmd.crdOnly && initCmd.upgrade {
+		return errors.New("'--upgrade' and '--crd-only' can not be used at the same time")
+	}
 
 	return nil
 }
