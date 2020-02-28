@@ -65,16 +65,15 @@ parameters:
     description: Node topology
     type: dict
     default:
-      - region: us-east-1:
+      - region: us-east-1
         replicas: 2
-      - region: us-west-1:
+      - region: us-west-1
         replicas: 1
 ```
 
 The deployment template then iterates over the items of the respective parameters:
 
 ```yaml
-{{ $ports := .Params.ports }}
 {{ range .Params.topology }}
 apiVersion: apps/v1
 kind: Deployment
@@ -99,7 +98,7 @@ spec:
       - name: nginx
         image: nginx:stable
         ports:
-        {{ range $ports }}
+        {{ range $.Params.ports }}
         - containerPort: {{ . }}
         {{ end }}
 {{ end }}
@@ -126,7 +125,7 @@ parameters:
 
 ### Notes
 
-Setting parameters from the KUDO CLI needs to add support for YAML value input. In addition to multi-line strings, the CLI should also allow to use files and heredocs as parameter value input.
+Setting parameters from the KUDO CLI needs to add support for YAML value input. In addition to multi-line strings, the CLI should also allow to use files and heredocs as parameter value input. See [draft KEP-26](https://github.com/kudobuilder/kudo/pull/1364).
 
 ## Alternatives
 
