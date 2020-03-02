@@ -27,7 +27,7 @@ var (
 func RunHistory(cmd *cobra.Command, options *Options, settings *env.Settings) error {
 	instanceFlag, err := cmd.Flags().GetString("instance")
 	if err != nil || instanceFlag == "" {
-		return errors.New(`flag Error: Please set instance flag, e.g. "--instance=<instanceName>"`)
+		return errors.New("please choose the instance with '--instance=<instanceName>'")
 	}
 
 	err = planHistory(options, settings)

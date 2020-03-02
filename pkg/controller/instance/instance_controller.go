@@ -202,7 +202,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	}
 
 	if newExecutionPlan != nil {
-		log.Printf("InstanceController: Going to start execution of plan %s on instance %s/%s", kudo.StringValue(newExecutionPlan), instance.Namespace, instance.Name)
+		log.Printf("InstanceController: Going to start execution of plan '%s' on instance %s/%s", kudo.StringValue(newExecutionPlan), instance.Namespace, instance.Name)
 		err = startPlanExecution(instance, kudo.StringValue(newExecutionPlan), ov)
 		if err != nil {
 			return reconcile.Result{}, r.handleError(err, instance, oldInstance)
@@ -233,7 +233,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		err = r.handleError(err, instance, oldInstance)
 		return reconcile.Result{}, err
 	}
-	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
+	log.Printf("InstanceController: Going to proceed in execution of active plan '%s' on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
 	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, r.Discovery, r.Config, &renderer.DefaultEnhancer{Scheme: r.Scheme, Discovery: r.Discovery})
 
 	// ---------- 5. Update instance and its status after the execution proceeded ----------
@@ -254,7 +254,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	// Publish a PlanFinished event after instance and its status were successfully updated
 	if instance.Status.AggregatedStatus.Status.IsTerminal() {
-		r.Recorder.Event(instance, "Normal", "PlanFinished", fmt.Sprintf("Execution of plan %s finished with status %s", activePlanStatus.Name, instance.Status.AggregatedStatus.Status))
+		r.Recorder.Event(instance, "Normal", "PlanFinished", fmt.Sprintf("Execution of plan '%s' finished with status %s", activePlanStatus.Name, instance.Status.AggregatedStatus.Status))
 	}
 
 	return reconcile.Result{}, nil
@@ -297,7 +297,7 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion, activePlanStatus *kudov1beta1.PlanStatus, meta *engine.Metadata) (*workflow.ActivePlan, error) {
 	planSpec, ok := ov.Spec.Plans[activePlanStatus.Name]
 	if !ok {
-		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not find required plan: %v", engine.ErrFatalExecution, activePlanStatus.Name), EventName: "InvalidPlan"}
+		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not find required plan: '%v'", engine.ErrFatalExecution, activePlanStatus.Name), EventName: "InvalidPlan"}
 	}
 
 	params := paramsMap(instance, ov)
@@ -585,12 +585,18 @@ func fetchNewExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*s
 	}
 
 	newPlanScheduled := func() bool {
+		// this can happen if the user installed an instance without an active webhook (e.g. in the previous KUDO version)
+		// as long as we don't have an upgrade path, we must handle this
+		if snapshot == nil {
+			return i.Spec.PlanExecution.PlanName != ""
+		}
+		oldPlan := snapshot.PlanExecution.PlanName
 		oldUID := snapshot.PlanExecution.UID
+		newPlan := i.Spec.PlanExecution.PlanName
 		newUID := i.Spec.PlanExecution.UID
-		isNovelPlan := oldUID == "" && newUID != ""
-		isPlanOverride := oldUID != "" && newUID != "" && newUID != oldUID
 
-		return isNovelPlan || isPlanOverride
+		return (newPlan != oldPlan && newPlan != "") || // either there is a non-empty new plan
+			(oldPlan != "" && newPlan == oldPlan && newUID != oldUID) // or the same plan with a new UID
 	}
 
 	if newPlanScheduled() {

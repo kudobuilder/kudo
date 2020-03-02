@@ -112,16 +112,20 @@ func TestValidateUpdate(t *testing.T) {
 		{
 			name: "triggering the same plan directly IS allowed",
 			old:  scheduled,
-			new:  scheduled,
+			new: func() *v1beta1.Instance {
+				i := scheduled.DeepCopy()
+				i.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: deploy, UID: "foo"} // a UID change will result in the same plan re-triggered
+				return i
+			}(),
 			ov:   ov,
-			want: nil,
+			want: &deploy,
 		},
 		{
 			name: "overriding an existing plan directly is NOT allowed",
 			old:  scheduled,
 			new: func() *v1beta1.Instance {
 				i := scheduled.DeepCopy()
-				i.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: "update"}
+				i.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: update}
 				return i
 			}(),
 			ov:      ov,

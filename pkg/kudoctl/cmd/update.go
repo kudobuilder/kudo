@@ -96,7 +96,7 @@ func update(instanceToUpdate string, kc *kudo.Client, options *updateOptions, se
 	}
 
 	// Update arguments
-	err = kc.UpdateInstance(instanceToUpdate, settings.Namespace, nil, options.Parameters)
+	err = kc.UpdateInstance(instanceToUpdate, settings.Namespace, nil, options.Parameters, nil)
 	if err != nil {
 		return fmt.Errorf("updating instance %s %w", instanceToUpdate, err)
 	}

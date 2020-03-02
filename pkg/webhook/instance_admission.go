@@ -170,6 +170,8 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 	oldPlan := old.Spec.PlanExecution.PlanName
 	newOvRef := new.Spec.OperatorVersion
 	oldOvRef := old.Spec.OperatorVersion
+	newUID := new.Spec.PlanExecution.UID
+	oldUID := old.Spec.PlanExecution.UID
 
 	paramDiff := kudov1beta1.ParameterDiff(old.Spec.Parameters, new.Spec.Parameters)
 	paramDefs := kudov1beta1.GetParamDefinitions(paramDiff, ov)
@@ -184,6 +186,7 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 	isUpgrade := newOvRef != oldOvRef
 	isNovelPlan := !hadPlan && newPlan != ""
 	isPlanOverride := hadPlan && newPlan != "" && newPlan != oldPlan
+	isPlanRetriggered := hadPlan && newPlan == oldPlan && newUID != oldUID
 	isPlanCancellation := hadPlan && newPlan == ""
 	isUninstalling := new.IsDeleting() && new.HasCleanupFinalizer() // a cleanup finalizer exists only when there is a cleanup plan
 	isPlanTerminal := isTerminal(new, newPlan, new.Spec.PlanExecution.UID)
@@ -258,6 +261,10 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 		// if current plan is terminal we reset the Instance.PlanExecution field and become ready for the new plan
 		empty := ""
 		return &empty, nil
+
+	case isPlanRetriggered:
+		// return the existing plan which will lead to a new UID generated and hence the plan will be re-triggered
+		return &newPlan, nil
 
 	default:
 		// effectively nothing changed so it's a noop.
