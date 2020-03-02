@@ -29,7 +29,7 @@ spec:
         {{ end }}
       spec:
         selector:
-          matchlabels:
+          matchLabels:
             app: nginx
         replicas: 1
         template:

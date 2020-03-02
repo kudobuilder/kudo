@@ -18,6 +18,7 @@ func StringValue(v *string) string {
 	return ""
 }
 
+// YAMLList converts YAML input describing a list.
 func YAMLList(v string) ([]interface{}, error) {
 	var result []interface{}
 
@@ -28,7 +29,7 @@ func YAMLList(v string) ([]interface{}, error) {
 	return result, nil
 }
 
-// YAMLDict returns
+// YAMLDict converts YAML input describing a dictionary.
 func YAMLDict(v string) (interface{}, error) {
 	var result interface{}
 
