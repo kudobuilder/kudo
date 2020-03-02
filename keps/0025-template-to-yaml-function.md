@@ -90,6 +90,10 @@ spec:
     {{- end }}
 ```
 
+This matches the idiomatic way to do this in Helm.
+Here is some [context](https://github.com/kudobuilder/kudo/pull/1363#discussion_r386247611)
+on the need for `trim` and `indent`.
+
 As mentioned in the [Non-Goals](#non-goals) section, a user would initially
 pass the value for above example `podAnnotations` parameter like this:
 
