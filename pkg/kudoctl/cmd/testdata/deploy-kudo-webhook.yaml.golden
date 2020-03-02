@@ -229,6 +229,10 @@ spec:
                       this parameter changes in the Instance object. Default is `update`
                       if a plan with that name exists, otherwise it's `deploy`.
                     type: string
+                  type:
+                    description: Type specifies the value type. By default a string
+                      is assumed.
+                    type: string
                 type: object
               type: array
             plans:
