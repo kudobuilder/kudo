@@ -73,3 +73,19 @@ Run tests against a live cluster and do not delete resources after running:
 ```
 go run ./cmd/kubectl-kudo test --start-control-plane=false --skip-delete
 ```
+### Update golden files of the directory testdata
+
+You can update golden files per each test by running `make update-golden-${test-name}`
+
+Examples:
+```
+make update-golden-TestInitCmd_dry
+make update-golden-TestParamsList
+```
+
+Running a non-existing test would return a 
+```
+ok      github.com/kudobuilder/kudo/pkg/kudoctl/cmd     0.048s [no tests to run]
+```
+
+Currently we don't allow to update all golden files through a single `Makefile` target in one go.

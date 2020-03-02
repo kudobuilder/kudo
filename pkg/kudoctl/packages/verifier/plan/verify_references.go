@@ -5,8 +5,10 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
+
+var _ packages.Verifier = &ReferenceVerifier{}
 
 // ReferenceVerifier verifies plans producing errors for plans referenced in param triggers that do not exist
 // and warnings for missing mandatory plans.

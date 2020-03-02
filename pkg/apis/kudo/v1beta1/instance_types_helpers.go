@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/thoas/go-funk"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
@@ -61,9 +62,10 @@ func (i *Instance) NoPlanEverExecuted() bool {
 }
 
 // UpdateInstanceStatus updates `Status.PlanStatus` and `Status.AggregatedStatus` property based on the given plan
-func (i *Instance) UpdateInstanceStatus(planStatus *PlanStatus) {
+func (i *Instance) UpdateInstanceStatus(planStatus *PlanStatus, updatedTimestamp *metav1.Time) {
 	for k, v := range i.Status.PlanStatus {
 		if v.Name == planStatus.Name {
+			planStatus.LastUpdatedTimestamp = updatedTimestamp
 			i.Status.PlanStatus[k] = *planStatus
 			i.Status.AggregatedStatus.Status = planStatus.Status
 			if planStatus.Status.IsTerminal() {
@@ -75,7 +77,7 @@ func (i *Instance) UpdateInstanceStatus(planStatus *PlanStatus) {
 
 // ResetPlanStatus method resets a PlanStatus for a passed plan name and instance. Plan/phase/step statuses
 // are set to ExecutionPending meaning that the controller will restart plan execution.
-func (i *Instance) ResetPlanStatus(plan string) error {
+func (i *Instance) ResetPlanStatus(plan string, updatedTimestamp *metav1.Time) error {
 	planStatus := i.PlanStatus(plan)
 	if planStatus == nil {
 		return fmt.Errorf("failed to find planStatus for the plan '%s'", plan)
@@ -99,7 +101,7 @@ func (i *Instance) ResetPlanStatus(plan string) error {
 	}
 
 	// update plan status and instance aggregated status
-	i.UpdateInstanceStatus(planStatus)
+	i.UpdateInstanceStatus(planStatus, updatedTimestamp)
 	return nil
 }
 
@@ -209,10 +211,10 @@ func remove(values []string, s string) []string {
 
 // wasRunAfter returns true if p1 was run after p2
 func wasRunAfter(p1 PlanStatus, p2 PlanStatus) bool {
-	if p1.Status == ExecutionNeverRun || p2.Status == ExecutionNeverRun || p1.LastFinishedRun == nil || p2.LastFinishedRun == nil {
+	if p1.Status == ExecutionNeverRun || p2.Status == ExecutionNeverRun || p1.LastUpdatedTimestamp == nil || p2.LastUpdatedTimestamp == nil {
 		return false
 	}
-	return p1.LastFinishedRun.Time.After(p2.LastFinishedRun.Time)
+	return p1.LastUpdatedTimestamp.Time.After(p2.LastUpdatedTimestamp.Time)
 }
 
 // GetParamDefinitions retrieves parameter metadata from OperatorVersion CRD

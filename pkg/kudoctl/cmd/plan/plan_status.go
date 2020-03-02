@@ -65,7 +65,13 @@ func status(kc *kudo.Client, options *Options, ns string) error {
 
 	for name, plan := range ov.Spec.Plans {
 		if name == lastPlanStatus.Name {
-			planDisplay := fmt.Sprintf("Plan %s (%s strategy) [%s]%s", name, plan.Strategy, lastPlanStatus.Status, printMessageIfAvailable(lastPlanStatus.Message))
+			var planDisplay string
+			if lastPlanStatus.LastUpdatedTimestamp != nil {
+				planDisplay = fmt.Sprintf("Plan %s (%s strategy) [%s]%s, last updated %s", name, plan.Strategy, lastPlanStatus.Status, printMessageIfAvailable(lastPlanStatus.Message), lastPlanStatus.LastUpdatedTimestamp.Format("2006-01-02 15:04:05"))
+			} else {
+				planDisplay = fmt.Sprintf("Plan %s (%s strategy) [%s]%s", name, plan.Strategy, lastPlanStatus.Status, printMessageIfAvailable(lastPlanStatus.Message))
+			}
+
 			planBranchName := rootBranchName.AddBranch(planDisplay)
 			for _, phase := range lastPlanStatus.Phases {
 				phaseDisplay := fmt.Sprintf("Phase %s (%s strategy) [%s]%s", phase.Name, getPhaseStrategy(phase.Name), phase.Status, printMessageIfAvailable(phase.Message))

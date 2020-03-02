@@ -1,0 +1,11 @@
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
+  labels:
+    kudo.dev/operator: feature-operator
+spec:
+  operatorVersion:
+    name: feature-operator-0.1.0
+status:
+  aggregatedStatus:
+    status: COMPLETE

@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
@@ -233,12 +234,12 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 	log.Printf("InstanceController: Going to proceed in execution of active plan %s on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
-	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, r.Discovery, r.Config, &renderer.DefaultEnhancer{Scheme: r.Scheme, Discovery: r.Discovery}, time.Now())
+	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, r.Discovery, r.Config, &renderer.DefaultEnhancer{Scheme: r.Scheme, Discovery: r.Discovery})
 
 	// ---------- 5. Update instance and its status after the execution proceeded ----------
 
 	if newStatus != nil {
-		instance.UpdateInstanceStatus(newStatus)
+		instance.UpdateInstanceStatus(newStatus, &metav1.Time{Time: time.Now()})
 	}
 	if err != nil {
 		err = r.handleError(err, instance, oldInstance)
@@ -443,7 +444,7 @@ func startPlanExecution(i *v1beta1.Instance, planName string, ov *v1beta1.Operat
 	}
 
 	// reset newly starting plan status
-	if err := i.ResetPlanStatus(planName); err != nil {
+	if err := i.ResetPlanStatus(planName, &metav1.Time{Time: time.Now()}); err != nil {
 		return &v1beta1.InstanceError{Err: fmt.Errorf("failed to reset plan status for instance %s/%s: %v", i.Namespace, i.Name, err), EventName: kudo.String("PlanNotFound")}
 	}
 

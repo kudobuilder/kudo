@@ -5,14 +5,14 @@ import (
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/plan"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/template"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 
-var verifiers = []verifier.PackageVerifier{
+var verifiers = []packages.Verifier{
 	DuplicateVerifier{},
 	InvalidCharVerifier{";,"},
 	K8sVersionVerifier{},

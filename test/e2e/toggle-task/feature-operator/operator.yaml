@@ -1,0 +1,26 @@
+apiVersion: kudo.dev/v1beta1
+name: "feature-operator"
+operatorVersion: "0.1.0"
+appVersion: "1.7.9"
+kubernetesVersion: 1.13.0
+maintainers:
+  - name: Your name
+    email: <your@email.com>
+url: https://kudo.dev
+tasks:
+  - name: app
+    kind: Toggle
+    spec:
+      parameter: enable_cm
+      resources:
+        - configmap.yaml
+plans:
+  deploy:
+    strategy: serial
+    phases:
+      - name: main
+        strategy: parallel
+        steps:
+          - name: everything
+            tasks:
+              - app

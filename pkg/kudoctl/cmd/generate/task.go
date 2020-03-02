@@ -49,7 +49,7 @@ func TaskInList(fs afero.Fs, path, taskName string) (bool, error) {
 
 // TaskKinds provides a list of task kinds what are supported via generators
 func TaskKinds() []string {
-	return []string{task.ApplyTaskKind, task.DeleteTaskKind, task.PipeTaskKind}
+	return []string{task.ApplyTaskKind, task.DeleteTaskKind, task.PipeTaskKind, task.ToggleTaskKind}
 }
 
 // EnsureTaskResources ensures that all resources used by the given task exist

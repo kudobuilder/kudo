@@ -19,4 +19,7 @@ const (
 
 	// PlanUIDAnnotation is a k8s annotation key for the last time a given plan was run on the referenced object
 	PlanUIDAnnotation = "kudo.dev/last-plan-execution-uid"
+
+	// Last applied state for three way merges
+	LastAppliedConfigAnnotation = "kudo.dev/last-applied-configuration"
 )

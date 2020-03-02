@@ -44,6 +44,7 @@ const (
 	DeleteTaskKind = "Delete"
 	DummyTaskKind  = "Dummy"
 	PipeTaskKind   = "Pipe"
+	ToggleTaskKind = "Toggle"
 )
 
 var (
@@ -65,6 +66,8 @@ func Build(task *v1beta1.Task) (Tasker, error) {
 		return newDummy(task)
 	case PipeTaskKind:
 		return newPipe(task)
+	case ToggleTaskKind:
+		return newToggle(task)
 	default:
 		return nil, fmt.Errorf("unknown task kind %s", task.Kind)
 	}
@@ -123,6 +126,22 @@ func newPipe(task *v1beta1.Task) (Tasker, error) {
 		Name:      task.Name,
 		Pod:       task.Spec.PipeTaskSpec.Pod,
 		PipeFiles: pipeFiles,
+	}, nil
+}
+
+func newToggle(task *v1beta1.Task) (Tasker, error) {
+	// validate if resources are present
+	if len(task.Spec.Resources) == 0 {
+		return nil, errors.New("task validation error: toggle task has an empty resource list. if that's what you need, use a Dummy task instead")
+	}
+	// validate if the parameter is present
+	if len(task.Spec.ToggleTaskSpec.Parameter) == 0 {
+		return nil, errors.New("task validation error: Missing parameter to evaluate the Toggle Task")
+	}
+	return ToggleTask{
+		Name:      task.Name,
+		Resources: task.Spec.ResourceTaskSpec.Resources,
+		Parameter: task.Spec.ToggleTaskSpec.Parameter,
 	}, nil
 }
 
