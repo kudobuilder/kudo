@@ -124,7 +124,7 @@ func TestInstance_ResetPlanStatus(t *testing.T) {
 
 	oldUID := instance.Status.PlanStatus["deploy"].UID
 
-	err := instance.ResetPlanStatus("deploy")
+	err := instance.ResetPlanStatus("deploy", &metav1.Time{Time: time.Now()})
 	assert.NoError(t, err)
 
 	// we test that UID has changed. afterwards, we replace it with the old one and compare new

@@ -22,7 +22,9 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
@@ -241,7 +243,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	// ---------- 5. Update status of instance after the execution proceeded ----------
 	if newStatus != nil {
-		instance.UpdateInstanceStatus(newStatus)
+		instance.UpdateInstanceStatus(newStatus, &metav1.Time{Time: time.Now()})
 	}
 	if err != nil {
 		err = r.handleError(err, instance, oldInstance)
