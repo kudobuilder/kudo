@@ -8,7 +8,7 @@ owners:
   - "@porridge"
 editor: @porridge
 creation-date: 2020-02-25
-last-updated: 2020-02-25
+last-updated: 2020-03-02
 status: provisional
 see-also:
   - KEP-24
@@ -26,6 +26,8 @@ see-also:
 * [Proposal](#proposal)
     * [User Stories](#user-stories)
     * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+        * [Parameter value file schema](#parameter-value-file-schema)
+        * [Parameter precedence rules](#parameter-precedence-rules)
 * [Implementation History](#implementation-history)
 
 ## Summary
@@ -38,8 +40,8 @@ updating an operator instance.
 This has two motivations:
 1. A better way for a user to store parameter values than a shell command line.
 1. A more convenient way to pass complex parameter values, especially in the light of
-coming structured parameter values (see [KEP-24](https://github.com/kudobuilder/kudo/pull/1356))
-and their intended use cases (see [KEP-25](https://github.com/kudobuilder/kudo/pull/1364)).
+coming structured parameter values (see [KEP-24](https://github.com/kudobuilder/kudo/blob/master/keps/0024-parameter-enhancement.md))
+and their intended use cases (see [KEP-25](https://github.com/kudobuilder/kudo/blob/master/keps/0025-template-to-yaml-function.md)).
 
 See [User Stories](#user-stories) below for more details.
 
@@ -47,7 +49,7 @@ See [User Stories](#user-stories) below for more details.
 
 - Make it possible to store parameter values in a file, and pass them in this form
 to any `kubectl kudo` command which currently takes the `-p` / `--parameter` flag.
-- Support both currently supported (i.e. `string`) and planned (see [KEP-24](https://github.com/kudobuilder/kudo/pull/1356))
+- Support both currently supported (i.e. `string`) and planned (see [KEP-24](https://github.com/kudobuilder/kudo/blob/master/keps/0024-parameter-enhancement.md))
 types of parameter values.
 
 ### Non-Goals
@@ -61,6 +63,7 @@ The idea is to introduce a new command-line flag: `--parameter-file`, in every p
 currently accepts the `--parameter` flag.
 This flag should require a single argument, interpreted as a path to a YAML file.
 This file should contain parameters a mapping of strings to whatever values are supported as parameter values.
+See the section on [parameter value file schema](#parameter-value-file-schema) for an example.
 
 ### User Stories
 
@@ -100,6 +103,38 @@ powerful than shell command line editing, such as a text editor with syntax high
 
 ### Implementation Details/Notes/Constraints
 
+#### Parameter value file schema
+
+The top-level element is a mapping from strings which represent parameter names their to values.
+The following example shows a string parameter (supported at the time of writing this KEP)
+as well as an integer and a mapping (to be added in [KEP-24](https://github.com/kudobuilder/kudo/blob/master/keps/0024-parameter-enhancement.md)).
+
+```yaml
+PARAM_FOO: a string
+BAR: 42
+MASTER_NODE_AFFINITY:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/e2e-az-name
+          operator: In
+          values:
+          - e2e-az1
+          - e2e-az2
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 1
+      preference:
+        matchExpressions:
+        - key: another-node-label-key
+          operator: In
+          values:
+          - another-node-label-value
+```
+
+
+#### Parameter precedence rules
+
 Currently it is possible to provide the same parameter multiple times with
 different values on the same command line. In this case the last value wins.
 
@@ -119,3 +154,4 @@ the relative order of different flags.
 ## Implementation History
 
 - 2020-02-25 - Initial draft. (@porridge)
+- 2020-03-02 - Added example schema, updated references to other KEPs. (@porridge)
