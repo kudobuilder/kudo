@@ -17,23 +17,27 @@ import (
 )
 
 // IsTerminallyFailed returns whether an object is in a terminal failed state and has no chance to reach healthy
-func IsTerminallyFailed(obj runtime.Object) bool {
+func IsTerminallyFailed(obj runtime.Object) (bool, string) {
 	if obj == nil {
-		return false
+		return false, ""
 	}
 
 	switch obj := obj.(type) {
 	case *batchv1.Job:
-		if obj.Spec.BackoffLimit != nil {
-			if obj.Status.Failed > *obj.Spec.BackoffLimit {
-				log.Printf("HealthUtil: Job \"%v\" has reached terminal state and is unsuccessful, abort", obj.Name)
-				return true
-			}
-		}
+		return isJobTerminallyFailed(obj)
 	default:
-		return false
+		return false, ""
 	}
-	return false
+}
+
+func isJobTerminallyFailed(job *batchv1.Job) (bool, string) {
+	for _, c := range job.Status.Conditions {
+		if c.Type == batchv1.JobFailed && c.Status == corev1.ConditionTrue {
+			log.Printf("HealthUtil: Job \"%v\" has failed: %s", job.Name, c.Message)
+			return true, c.Message
+		}
+	}
+	return false, ""
 }
 
 // IsHealthy returns whether an object is healthy. Must be implemented for each type.

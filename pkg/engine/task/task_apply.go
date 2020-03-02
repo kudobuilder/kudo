@@ -241,9 +241,9 @@ func isHealthy(ro []runtime.Object) error {
 
 func isTerminallyFailed(ro []runtime.Object) error {
 	for _, r := range ro {
-		if health.IsTerminallyFailed(r) {
+		if failed, msg := health.IsTerminallyFailed(r); failed {
 			key, _ := client.ObjectKeyFromObject(r)
-			return fmt.Errorf("object %s/%s has reached a terminal failed state", key.Namespace, key.Name)
+			return fmt.Errorf("object %s/%s has failed: %s", key.Namespace, key.Name, msg)
 		}
 	}
 	return nil
