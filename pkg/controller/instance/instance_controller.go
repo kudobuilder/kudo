@@ -388,8 +388,8 @@ func GetOperatorVersion(instance *kudov1beta1.Instance, c client.Client) (ov *ku
 
 func paramValue(v *string, t v1beta1.ParameterType) (r interface{}, err error) {
 	switch t {
-	case kudov1beta1.ObjectValueType:
-		r, err = convert.YAMLObject(convert.StringValue(v))
+	case kudov1beta1.MapValueType:
+		r, err = convert.YAMLMap(convert.StringValue(v))
 	case kudov1beta1.ArrayValueType:
 		r, err = convert.YAMLArray(convert.StringValue(v))
 	case kudov1beta1.StringValueType:

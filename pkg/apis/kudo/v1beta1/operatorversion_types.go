@@ -81,8 +81,8 @@ const (
 	// ArrayValueType is used for parameter values that described an array of values.
 	ArrayValueType ParameterType = "array"
 
-	// ObjectValueType is used for parameter values that describe a mapping type.
-	ObjectValueType ParameterType = "object"
+	// MapValueType is used for parameter values that describe a mapping type.
+	MapValueType ParameterType = "map"
 )
 
 // Parameter captures the variability of an OperatorVersion being instantiated in an instance.

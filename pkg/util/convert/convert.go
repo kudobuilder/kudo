@@ -30,7 +30,7 @@ func YAMLArray(v string) ([]interface{}, error) {
 }
 
 // YAMLObject converts YAML input describing a mapping type.
-func YAMLObject(v string) (interface{}, error) {
+func YAMLMap(v string) (interface{}, error) {
 	var result interface{}
 
 	if err := yaml.Unmarshal([]byte(v), &result); err != nil {

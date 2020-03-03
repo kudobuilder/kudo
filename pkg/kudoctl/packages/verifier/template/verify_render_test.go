@@ -69,7 +69,7 @@ func TestTemplateRenderVerifierParameterTypes(t *testing.T) {
 		v1beta1.Parameter{
 			Name:    "labels",
 			Default: convert.String("a: a\nb: b"),
-			Type:    v1beta1.ObjectValueType,
+			Type:    v1beta1.MapValueType,
 		},
 		v1beta1.Parameter{
 			Name:    "containers",

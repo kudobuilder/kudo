@@ -51,7 +51,7 @@ func TestYAMLArray(t *testing.T) {
 	}
 }
 
-func TestYAMLObject(t *testing.T) {
+func TestYAMLMap(t *testing.T) {
 	tests := []struct {
 		name      string
 		input     string
@@ -91,7 +91,7 @@ func TestYAMLObject(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		actual, err := YAMLObject(test.input)
+		actual, err := YAMLMap(test.input)
 
 		if test.expectErr {
 			assert.Error(t, err, test.name)

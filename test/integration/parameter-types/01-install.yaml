@@ -54,7 +54,7 @@ spec:
     - name: LABELS
       description: "Deployment labels"
       default: "a: a"
-      type: object
+      type: map
     - name: PORTS
       description: "Nginx ports"
       default: "[ 80 ]"

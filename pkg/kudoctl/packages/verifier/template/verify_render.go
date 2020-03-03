@@ -26,15 +26,15 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 
 	for _, p := range pf.Params.Parameters {
 		switch p.Type {
-		case kudov1beta1.ObjectValueType:
-			value, err := convert.YAMLObject(convert.StringValue(p.Default))
+		case kudov1beta1.MapValueType:
+			value, err := convert.YAMLMap(convert.StringValue(p.Default))
 			if err != nil {
 				res.AddErrors(err.Error())
 			}
 
 			params[p.Name] = value
 		case kudov1beta1.ArrayValueType:
-			value, err := convert.YAMLObject(convert.StringValue(p.Default))
+			value, err := convert.YAMLMap(convert.StringValue(p.Default))
 			if err != nil {
 				res.AddErrors(err.Error())
 			}
