@@ -34,6 +34,8 @@ type Engine struct {
 func New() *Engine {
 	f := sprig.TxtFuncMap()
 
+	f["toYaml"] = ToYaml
+
 	// Prevent environment access inside the running KUDO Controller
 	funcs := []string{"env", "expandenv", "base", "dir", "clean", "ext", "isAbs"}
 
