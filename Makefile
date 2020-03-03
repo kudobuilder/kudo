@@ -164,4 +164,4 @@ todo:
 		--exclude-dir=bin \
 		--text \
 		--color \
-		-nRo -E ' TODO.*|SkipNow' .
+		-nRo -E " *[^\.]TODO.*|SkipNow" .
