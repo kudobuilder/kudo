@@ -254,7 +254,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	// Publish a PlanFinished event after instance and its status were successfully updated
 	if instance.Status.AggregatedStatus.Status.IsTerminal() {
-		r.Recorder.Event(instance, "Normal", "PlanFinished", fmt.Sprintf("Execution of plan '%s' finished with status %s", activePlanStatus.Name, instance.Status.AggregatedStatus.Status))
+		r.Recorder.Event(instance, "Normal", "PlanFinished", fmt.Sprintf("Execution of plan %s finished with status %s", activePlanStatus.Name, instance.Status.AggregatedStatus.Status))
 	}
 
 	return reconcile.Result{}, nil
