@@ -7,7 +7,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
 func TestTemplateRenderVerifier(t *testing.T) {
@@ -68,13 +68,13 @@ func TestTemplateRenderVerifierParameterTypes(t *testing.T) {
 	params := []v1beta1.Parameter{
 		v1beta1.Parameter{
 			Name:    "labels",
-			Default: kudo.String("a: a\nb: b"),
-			Type:    v1beta1.DictValueType,
+			Default: convert.String("a: a\nb: b"),
+			Type:    v1beta1.ObjectValueType,
 		},
 		v1beta1.Parameter{
 			Name:    "containers",
-			Default: kudo.String("[a, b]"),
-			Type:    v1beta1.ListValueType,
+			Default: convert.String("[a, b]"),
+			Type:    v1beta1.ArrayValueType,
 		},
 	}
 	paramFile := packages.ParamsFile{Parameters: params}

@@ -71,18 +71,18 @@ type Plan struct {
 	Phases []Phase `json:"phases"`
 }
 
-// ParameterValueType specifies the type of a parameter value.
-type ParameterValueType string
+// ParameterType specifies the type of a parameter value.
+type ParameterType string
 
 const (
 	// StringValueType is used for parameter values that are provided as a string.
-	StringValueType ParameterValueType = "string"
+	StringValueType ParameterType = "string"
 
-	// ListValueType is used for parameter values that described a list of values.
-	ListValueType ParameterValueType = "list"
+	// ArrayValueType is used for parameter values that described an array of values.
+	ArrayValueType ParameterType = "array"
 
-	// DictValueType is used for parameter values that describe a dictionary.
-	DictValueType ParameterValueType = "dict"
+	// ObjectValueType is used for parameter values that describe a mapping type.
+	ObjectValueType ParameterType = "object"
 )
 
 // Parameter captures the variability of an OperatorVersion being instantiated in an instance.
@@ -110,8 +110,8 @@ type Parameter struct {
 	// Default is `update` if a plan with that name exists, otherwise it's `deploy`.
 	Trigger string `json:"trigger,omitempty"`
 
-	// Type specifies the value type. By default a string is assumed.
-	Type ParameterValueType `json:"type,omitempty"`
+	// Type specifies the value type. Defaults to "string".
+	Type ParameterType `json:"type,omitempty"`
 }
 
 // Phase specifies a list of steps that contain Kubernetes objects.

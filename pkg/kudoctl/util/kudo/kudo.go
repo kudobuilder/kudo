@@ -23,7 +23,8 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/util/convert"
+	label "github.com/kudobuilder/kudo/pkg/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 
@@ -105,7 +106,7 @@ func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 //      		kudo.dev/operator: kafka
 // This function also just returns true if the Instance matches a specific OperatorVersion of an Operator
 func (c *Client) InstanceExistsInCluster(operatorName, namespace, version, instanceName string) (bool, error) {
-	instances, err := c.clientset.KudoV1beta1().Instances(namespace).List(v1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", kudo.OperatorLabel, operatorName)})
+	instances, err := c.clientset.KudoV1beta1().Instances(namespace).List(v1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", label.OperatorLabel, operatorName)})
 	if err != nil {
 		return false, err
 	}
@@ -177,7 +178,7 @@ func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersionN
 	instanceSpec := v1beta1.InstanceSpec{}
 	if operatorVersionName != nil {
 		instanceSpec.OperatorVersion = v1core.ObjectReference{
-			Name: kudo.StringValue(operatorVersionName),
+			Name: convert.StringValue(operatorVersionName),
 		}
 	}
 	if parameters != nil {

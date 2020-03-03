@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
 // GetPlanInProgress returns plan status of currently active plan or nil if no plan is running
@@ -164,7 +164,7 @@ func ParameterDiff(old, new map[string]string) map[string]string {
 func SelectPlan(possiblePlans []string, ov *OperatorVersion) *string {
 	for _, n := range possiblePlans {
 		if _, ok := ov.Spec.Plans[n]; ok {
-			return kudo.String(n)
+			return convert.String(n)
 		}
 	}
 	return nil

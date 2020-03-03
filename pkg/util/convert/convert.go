@@ -1,4 +1,4 @@
-package kudo
+package convert
 
 import (
 	"sigs.k8s.io/yaml"
@@ -18,8 +18,8 @@ func StringValue(v *string) string {
 	return ""
 }
 
-// YAMLList converts YAML input describing a list.
-func YAMLList(v string) ([]interface{}, error) {
+// YAMLArray converts YAML input describing an array.
+func YAMLArray(v string) ([]interface{}, error) {
 	var result []interface{}
 
 	if err := yaml.Unmarshal([]byte(v), &result); err != nil {
@@ -29,8 +29,8 @@ func YAMLList(v string) ([]interface{}, error) {
 	return result, nil
 }
 
-// YAMLDict converts YAML input describing a dictionary.
-func YAMLDict(v string) (interface{}, error) {
+// YAMLObject converts YAML input describing a mapping type.
+func YAMLObject(v string) (interface{}, error) {
 	var result interface{}
 
 	if err := yaml.Unmarshal([]byte(v), &result); err != nil {

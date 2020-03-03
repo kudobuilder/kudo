@@ -5,7 +5,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
 var _ packages.Verifier = &RenderVerifier{}
@@ -26,22 +26,24 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 
 	for _, p := range pf.Params.Parameters {
 		switch p.Type {
-		case kudov1beta1.DictValueType:
-			value, err := kudo.YAMLDict(kudo.StringValue(p.Default))
+		case kudov1beta1.ObjectValueType:
+			value, err := convert.YAMLObject(convert.StringValue(p.Default))
 			if err != nil {
 				res.AddErrors(err.Error())
 			}
 
 			params[p.Name] = value
-		case kudov1beta1.ListValueType:
-			value, err := kudo.YAMLDict(kudo.StringValue(p.Default))
+		case kudov1beta1.ArrayValueType:
+			value, err := convert.YAMLObject(convert.StringValue(p.Default))
 			if err != nil {
 				res.AddErrors(err.Error())
 			}
 
 			params[p.Name] = value
+		case kudov1beta1.StringValueType:
+			fallthrough
 		default:
-			params[p.Name] = kudo.StringValue(p.Default)
+			params[p.Name] = convert.StringValue(p.Default)
 		}
 	}
 

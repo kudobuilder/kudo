@@ -51,7 +51,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/engine/workflow"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
 const (
@@ -207,12 +207,12 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 	if planToBeExecuted != nil {
-		log.Printf("InstanceController: Going to start execution of plan %s on instance %s/%s", kudo.StringValue(planToBeExecuted), instance.Namespace, instance.Name)
-		err = startPlanExecution(instance, kudo.StringValue(planToBeExecuted), ov)
+		log.Printf("InstanceController: Going to start execution of plan %s on instance %s/%s", convert.StringValue(planToBeExecuted), instance.Namespace, instance.Name)
+		err = startPlanExecution(instance, convert.StringValue(planToBeExecuted), ov)
 		if err != nil {
 			return reconcile.Result{}, r.handleError(err, instance, oldInstance)
 		}
-		r.Recorder.Event(instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", kudo.StringValue(planToBeExecuted)))
+		r.Recorder.Event(instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", convert.StringValue(planToBeExecuted)))
 	}
 
 	// ---------- 4. If there's currently active plan, continue with the execution ----------
@@ -351,7 +351,7 @@ func (r *Reconciler) handleError(err error, instance *kudov1beta1.Instance, oldI
 	var iError *kudov1beta1.InstanceError
 	if errors.As(err, &iError) {
 		if iError.EventName != nil {
-			r.Recorder.Event(instance, "Warning", kudo.StringValue(iError.EventName), err.Error())
+			r.Recorder.Event(instance, "Warning", convert.StringValue(iError.EventName), err.Error())
 		}
 	}
 	return err
@@ -386,14 +386,16 @@ func GetOperatorVersion(instance *kudov1beta1.Instance, c client.Client) (ov *ku
 	return ov, nil
 }
 
-func paramValue(v *string, t v1beta1.ParameterValueType) (r interface{}, err error) {
+func paramValue(v *string, t v1beta1.ParameterType) (r interface{}, err error) {
 	switch t {
-	case kudov1beta1.DictValueType:
-		r, err = kudo.YAMLDict(kudo.StringValue(v))
-	case kudov1beta1.ListValueType:
-		r, err = kudo.YAMLList(kudo.StringValue(v))
+	case kudov1beta1.ObjectValueType:
+		r, err = convert.YAMLObject(convert.StringValue(v))
+	case kudov1beta1.ArrayValueType:
+		r, err = convert.YAMLArray(convert.StringValue(v))
+	case kudov1beta1.StringValueType:
+		fallthrough
 	default:
-		r = kudo.StringValue(v)
+		r = convert.StringValue(v)
 	}
 
 	return
@@ -494,7 +496,7 @@ func startPlanExecution(i *v1beta1.Instance, planName string, ov *v1beta1.Operat
 		}
 	}
 	if notFound {
-		return &v1beta1.InstanceError{Err: fmt.Errorf("asked to execute a plan %s but no such plan found in instance %s/%s", planName, i.Namespace, i.Name), EventName: kudo.String("PlanNotFound")}
+		return &v1beta1.InstanceError{Err: fmt.Errorf("asked to execute a plan %s but no such plan found in instance %s/%s", planName, i.Namespace, i.Name), EventName: convert.String("PlanNotFound")}
 	}
 
 	err := saveSnapshot(i)
@@ -589,7 +591,7 @@ func getPlanToBeExecuted(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*str
 
 	// new instance, need to run deploy plan
 	if i.NoPlanEverExecuted() {
-		return kudo.String(v1beta1.DeployPlanName), nil
+		return convert.String(v1beta1.DeployPlanName), nil
 	}
 
 	// did the instance change so that we need to run deploy/upgrade/update plan?
@@ -599,7 +601,7 @@ func getPlanToBeExecuted(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*str
 	}
 	if instanceSnapshot == nil {
 		// we don't have snapshot -> we never run deploy, also we cannot run update/upgrade. This should never happen
-		return nil, &v1beta1.InstanceError{Err: fmt.Errorf("unexpected state: no plan is running, no snapshot present - this should never happen :) for instance %s/%s", i.Namespace, i.Name), EventName: kudo.String("UnexpectedState")}
+		return nil, &v1beta1.InstanceError{Err: fmt.Errorf("unexpected state: no plan is running, no snapshot present - this should never happen :) for instance %s/%s", i.Namespace, i.Name), EventName: convert.String("UnexpectedState")}
 	}
 	if instanceSnapshot.OperatorVersion.Name != i.Spec.OperatorVersion.Name {
 		// this instance was upgraded to newer version
@@ -607,7 +609,7 @@ func getPlanToBeExecuted(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*str
 		plan := kudov1beta1.SelectPlan([]string{v1beta1.UpgradePlanName, v1beta1.UpdatePlanName, v1beta1.DeployPlanName}, ov)
 		if plan == nil {
 			return nil, &v1beta1.InstanceError{Err: fmt.Errorf("supposed to execute plan because instance %s/%s was upgraded but none of the deploy, upgrade, update plans found in linked operatorVersion", i.Namespace, i.Name),
-				EventName: kudo.String("PlanNotFound")}
+				EventName: convert.String("PlanNotFound")}
 		}
 		return plan, nil
 	}
@@ -619,7 +621,7 @@ func getPlanToBeExecuted(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*str
 		paramDefinitions := kudov1beta1.GetParamDefinitions(paramDiff, ov)
 		plan, err := planNameFromParameters(paramDefinitions, ov)
 		if err != nil {
-			return nil, &v1beta1.InstanceError{Err: fmt.Errorf("supposed to execute plan because instance %s/%s was updated but no valid plan found: %v", i.Namespace, i.Name, err), EventName: kudo.String("PlanNotFound")}
+			return nil, &v1beta1.InstanceError{Err: fmt.Errorf("supposed to execute plan because instance %s/%s was updated but no valid plan found: %v", i.Namespace, i.Name, err), EventName: convert.String("PlanNotFound")}
 		}
 		return plan, nil
 	}
@@ -632,7 +634,7 @@ func planNameFromParameters(params []v1beta1.Parameter, ov *v1beta1.OperatorVers
 	for _, p := range params {
 		if p.Trigger != "" {
 			if kudov1beta1.SelectPlan([]string{p.Trigger}, ov) != nil {
-				return kudo.String(p.Trigger), nil
+				return convert.String(p.Trigger), nil
 			}
 			return nil, fmt.Errorf("param %s defined trigger plan %s, but plan not defined in operatorversion", p.Name, p.Trigger)
 		}
