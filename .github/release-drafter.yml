@@ -1,5 +1,5 @@
-name-template: 'Draft'
-tag-template: 'draft'
+name-template: 'kudo-v$NEXT_MINOR_VERSION Draft'
+tag-template: 'v$NEXT_MINOR_VERSION-draft'
 categories:
   - title: '🚀 Highlights'
     labels:
@@ -16,8 +16,3 @@ template: |
   ## Changes
 
   $CHANGES
-
-  ## Docker images
-
-  - `docker pull kudobuilder/controller:latest`
-  - `docker pull kudobuilder/controller:EDITME`
