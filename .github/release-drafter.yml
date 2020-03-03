@@ -1,5 +1,5 @@
-name-template: 'kudo-v$NEXT_PATCH_VERSION'
-tag-template: 'v$NEXT_PATCH_VERSION'
+name-template: 'kudo-v$NEXT_MINOR_VERSION'
+tag-template: 'v$NEXT_MINOR_VERSION'
 categories:
   - title: '🚀 Highlights'
     labels:
@@ -12,8 +12,3 @@ template: |
   ## Changes
 
   $CHANGES
-
-  ## Docker images
-
-  - `docker pull kudobuilder/controller:latest`
-  - `docker pull kudobuilder/controller:$NEXT_PATCH_VERSION`
