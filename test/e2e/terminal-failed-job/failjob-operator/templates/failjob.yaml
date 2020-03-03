@@ -1,0 +1,14 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: failing-job
+  namespace: {{ .Namespace }}
+spec:
+  template:
+    spec:
+      containers:
+        - name: main
+          image: alpine
+          command: ["false"]
+      restartPolicy: Never
+  backoffLimit: 0

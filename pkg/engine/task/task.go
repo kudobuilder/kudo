@@ -53,6 +53,7 @@ var (
 	dummyTaskError          = "DummyTaskError"
 	resourceUnmarshalError  = "ResourceUnmarshalError"
 	resourceValidationError = "ResourceValidationError"
+	failedTerminalState     = "FailedTerminalStateError"
 )
 
 // Build factory method takes an v1beta1.Task and returns a corresponding Tasker object
