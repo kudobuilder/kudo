@@ -268,15 +268,16 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 	// If Status is update first, a new reconcile request will be scheduled with *WRONG* instance snapshot (which is
 	// saved in the annotations). This request will then have wrong "previous state".
 
-	// 1. update instance spec and metadata. this will not update Instance.Status field
+	// 1. check if the finalizer can be removed (if the instance is being deleted and cleanup is completed) and then
+	// update instance spec and metadata. this will not update Instance.Status field
+	if tryRemoveFinalizer(instance) {
+		log.Printf("InstanceController: Removing finalizer on instance %s/%s", instance.Namespace, instance.Name)
+	}
+
 	if !reflect.DeepEqual(instance.Spec, oldInstance.Spec) ||
 		!reflect.DeepEqual(instance.ObjectMeta, oldInstance.ObjectMeta) {
 
 		instanceStatus := instance.Status.DeepCopy()
-
-		if tryRemoveFinalizer(instance) {
-			log.Printf("InstanceController: Removing finalizer on instance %s/%s", instance.Namespace, instance.Name)
-		}
 
 		err := client.Update(context.TODO(), instance)
 		if err != nil {
