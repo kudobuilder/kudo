@@ -59,7 +59,7 @@ func (p Parameters) ToAPI() ([]v1beta1.Parameter, error) {
 	result := make([]v1beta1.Parameter, 0, len(p))
 
 	for _, parameter := range p {
-		d, err := convert.YAMLValue(parameter.Default, parameter.Type)
+		d, err := convert.WrapParamValue(parameter.Default, parameter.Type)
 		if err != nil {
 			return nil, err
 		}

@@ -40,7 +40,7 @@ func TestYAMLArray(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		actual, err := YAMLArray(test.input)
+		actual, err := ToYAMLArray(test.input)
 
 		if test.expectErr {
 			assert.Error(t, err, test.name)
@@ -91,7 +91,7 @@ func TestYAMLMap(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		actual, err := YAMLMap(test.input)
+		actual, err := ToYAMLMap(test.input)
 
 		if test.expectErr {
 			assert.Error(t, err, test.name)

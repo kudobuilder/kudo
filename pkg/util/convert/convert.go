@@ -22,14 +22,14 @@ func StringValue(v *string) string {
 	return ""
 }
 
-// ParamValue unwraps a parameter value.
+// UnwrapParamValue unwraps a parameter value.
 // Depending on the parameter type, the value can represent a string or an object described in YAML.
-func ParamValue(v *string, t kudov1beta1.ParameterType) (r interface{}, err error) {
+func UnwrapParamValue(v *string, t kudov1beta1.ParameterType) (r interface{}, err error) {
 	switch t {
 	case kudov1beta1.MapValueType:
-		r, err = YAMLMap(StringValue(v))
+		r, err = ToYAMLMap(StringValue(v))
 	case kudov1beta1.ArrayValueType:
-		r, err = YAMLArray(StringValue(v))
+		r, err = ToYAMLArray(StringValue(v))
 	case kudov1beta1.StringValueType:
 		fallthrough
 	default:
@@ -39,8 +39,8 @@ func ParamValue(v *string, t kudov1beta1.ParameterType) (r interface{}, err erro
 	return
 }
 
-// YAMLValue wraps a parameter value.
-func YAMLValue(i interface{}, t kudov1beta1.ParameterType) (*string, error) {
+// WrapParamValue wraps a parameter value.
+func WrapParamValue(i interface{}, t kudov1beta1.ParameterType) (*string, error) {
 	switch t {
 	case kudov1beta1.MapValueType:
 		fallthrough
@@ -64,8 +64,8 @@ func YAMLValue(i interface{}, t kudov1beta1.ParameterType) (*string, error) {
 	}
 }
 
-// YAMLArray converts YAML input describing an array.
-func YAMLArray(v string) ([]interface{}, error) {
+// ToYAMLArray converts YAML input describing an array.
+func ToYAMLArray(v string) ([]interface{}, error) {
 	var result []interface{}
 
 	if err := yaml.Unmarshal([]byte(v), &result); err != nil {
@@ -75,8 +75,8 @@ func YAMLArray(v string) ([]interface{}, error) {
 	return result, nil
 }
 
-// YAMLObject converts YAML input describing a mapping type.
-func YAMLMap(v string) (interface{}, error) {
+// ToYAMLMap converts YAML input describing a mapping type.
+func ToYAMLMap(v string) (interface{}, error) {
 	var result interface{}
 
 	if err := yaml.Unmarshal([]byte(v), &result); err != nil {

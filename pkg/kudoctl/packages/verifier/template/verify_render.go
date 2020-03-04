@@ -30,7 +30,7 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 	}
 
 	for _, p := range parameters {
-		value, err := convert.ParamValue(p.Default, p.Type)
+		value, err := convert.UnwrapParamValue(p.Default, p.Type)
 		if err != nil {
 			res.AddErrors(err.Error())
 			continue

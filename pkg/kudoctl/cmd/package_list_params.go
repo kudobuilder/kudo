@@ -130,7 +130,7 @@ func displayParamsTable(pf *packages.Files, out io.Writer, printRequired, printN
 	}
 	sort.Sort(pf.Params.Parameters)
 	for _, p := range pf.Params.Parameters {
-		pDefault, err := convert.YAMLValue(p.Default, p.Type)
+		pDefault, err := convert.WrapParamValue(p.Default, p.Type)
 		if err != nil {
 			return err
 		}

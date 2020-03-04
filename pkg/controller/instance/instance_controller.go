@@ -401,7 +401,7 @@ func paramsMap(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.Oper
 
 		var err error
 
-		params[param.Name], err = convert.ParamValue(value, param.Type)
+		params[param.Name], err = convert.UnwrapParamValue(value, param.Type)
 		if err != nil {
 			return nil, err
 		}
