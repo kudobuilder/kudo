@@ -270,7 +270,8 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 
 	// 1. check if the finalizer can be removed (if the instance is being deleted and cleanup is completed) and then
 	// update instance spec and metadata. this will not update Instance.Status field
-	if tryRemoveFinalizer(instance) {
+	isDelete := tryRemoveFinalizer(instance)
+	if isDelete {
 		log.Printf("InstanceController: Removing finalizer on instance %s/%s", instance.Namespace, instance.Name)
 	}
 
@@ -291,8 +292,15 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 	err := client.Status().Update(context.TODO(), instance)
 	if err != nil {
 		// this can happen if k8s GC was fast and managed to removed the instance after the above Update removed the finalizer
-		if apierrors.IsNotFound(err) {
-			log.Printf("Instance %s/%s was deleted, nothing to update.", instance.Namespace, instance.Name)
+		if isDelete {
+			// This is what *should* happen when the GC is too fast.
+			if apierrors.IsNotFound(err) {
+				log.Printf("Instance %s/%s was deleted, nothing to update.", instance.Namespace, instance.Name)
+				return nil
+			}
+
+			// At the moment, k8s returns an untyped "StorageError", so we ignore all errors for now.
+			log.Printf("Instance %s/%s was deleted, nothing to update. (Ignored error: %v)", instance.Namespace, instance.Name, err)
 			return nil
 		}
 		log.Printf("InstanceController: Error when updating instance status. %v", err)
