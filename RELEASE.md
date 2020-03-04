@@ -27,7 +27,7 @@ The official binaries for KUDO are created using [goreleaser](https://goreleaser
 1. Ensure you are logged into Docker hub and have rights to push to kudobuilder.
 1. Tag repo with expected release `git tag -a v0.2.0 -m "v0.2.0"`  && push tag `git push --tags`.
 1. Invoke goreleaser `goreleaser --rm-dist`.
-1. Update the GH release with Release highlights and a changelog.
+1. Update the GH release with Release highlights and a changelog. There is a draft that contains categorized changes since the last release, use this as a template. It provides categories for highlights and breaking changes, the issues there should get a more detailed description. After the contents are copied, the draft can be deleted.
 1. Send an announcement email to `kudobuilder@googlegroups.com` with the subject `[ANNOUNCE] Kudo $VERSION is released`
 1. Create a PR against [kudobuilder/kudo.dev](https://github.com/kudobuilder/kudo.dev) with an according [blog post](https://kudo.dev/internal-docs/blog-index.html#release-posts).
 1. Run `./hack/generate_krew.sh` and submit the generated `kudo.yaml` to https://github.com/kubernetes-sigs/krew-index/.

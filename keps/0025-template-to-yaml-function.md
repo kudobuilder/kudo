@@ -9,7 +9,7 @@ owners:
 editor: @porridge
 creation-date: 2020-02-25
 last-updated: 2020-02-25
-status: implementable
+status: implemented
 see-also:
   - KEP-24
 ---
@@ -129,6 +129,7 @@ Ultimately, operator developers need to apply this feature with some care.
 
 - 2020-02-25 - Initial draft. (@porridge)
 - 2020-02-28 - Changed to implementable. (@porridge)
+- 2020-03-02 - Implemented in [#1375](https://github.com/kudobuilder/kudo/pull/1375). (@porridge)
 
 ## Alternatives
 

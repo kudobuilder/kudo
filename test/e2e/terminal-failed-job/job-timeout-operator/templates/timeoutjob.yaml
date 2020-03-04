@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: timeout-job
+  namespace: {{ .Namespace }}
+spec:
+  template:
+    spec:
+      containers:
+        - name: main
+          image: alpine
+          command: ["sleep", "1000"]
+      restartPolicy: Never
+  backoffLimit: 3
+  activeDeadlineSeconds: 60

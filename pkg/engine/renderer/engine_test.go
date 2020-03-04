@@ -22,6 +22,14 @@ func TestRender(t *testing.T) {
 			},
 			expected: "Name: Bob User"},
 		{name: "function", template: "Name: {{ .Params.Name | upper }}", params: map[string]interface{}{"Name": "hello"}, expected: "Name: HELLO"},
+		{
+			name:     "toYaml",
+			template: "{{ toYaml .Params.Dict | trim | indent 2 }}",
+			params: map[string]interface{}{
+				"Dict": map[string]string{"Foo": "Bar", "Baz": "Quux"},
+			},
+			expected: "  Baz: Quux\n  Foo: Bar",
+		},
 	}
 
 	engine := New()

@@ -261,11 +261,20 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 }
 
 func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance, client client.Client) error {
+
+	// The order of both updates below is important: *first* the instance Spec and Metadata and *then* the Status.
+	// If Status is updated first, a new reconcile request will be scheduled and might fetch the *WRONG* instance
+	// snapshot (which is saved in the annotations). This request will then have wrong "previous state".
+
+	// 1. check if the finalizer can be removed (if the instance is being deleted and cleanup is completed) and then
 	// update instance spec and metadata. this will not update Instance.Status field
+	isDelete := instance.TryRemoveFinalizer()
+
 	if !reflect.DeepEqual(instance.Spec, oldInstance.Spec) ||
-		!reflect.DeepEqual(instance.ObjectMeta.Annotations, oldInstance.ObjectMeta.Annotations) ||
-		!reflect.DeepEqual(instance.ObjectMeta.Finalizers, oldInstance.ObjectMeta.Finalizers) {
+		!reflect.DeepEqual(instance.ObjectMeta, oldInstance.ObjectMeta) {
+
 		instanceStatus := instance.Status.DeepCopy()
+
 		err := client.Update(context.TODO(), instance)
 		if err != nil {
 			log.Printf("InstanceController: Error when updating instance spec. %v", err)
@@ -274,21 +283,17 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 		instance.Status = *instanceStatus
 	}
 
-	// update instance status
+	// 2. update instance status
 	err := client.Status().Update(context.TODO(), instance)
 	if err != nil {
+		// if k8s GC was fast and managed to removed the instance (after the above Update removed the finalizer), we get  an untyped
+		// "StorageError" telling us that the sub-resource couldn't be modified. We ignore the error (but log it just in case).
+		if isDelete {
+			log.Printf("InstanceController: failed status update for a deleted Instance %s/%s. (Ignored error: %v)", instance.Namespace, instance.Name, err)
+			return nil
+		}
 		log.Printf("InstanceController: Error when updating instance status. %v", err)
 		return err
-	}
-
-	// update instance metadata if finalizer is removed
-	// because Kubernetes might immediately delete the instance, this has to be the last instance update
-	if instance.TryRemoveFinalizer() {
-		log.Printf("InstanceController: Removing finalizer on instance %s/%s", instance.Namespace, instance.Name)
-		if err := client.Update(context.TODO(), instance); err != nil {
-			log.Printf("InstanceController: Error when removing instance finalizer. %v", err)
-			return err
-		}
 	}
 
 	return nil

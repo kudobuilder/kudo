@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sort"
 
 	"github.com/spf13/cobra"
+	"github.com/thoas/go-funk"
 	"github.com/xlab/treeprint"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
@@ -56,18 +58,22 @@ func planHistory(options *Options, settings *env.Settings) error {
 	tree := treeprint.New()
 	timeLayout := "2006-01-02T15:04:05"
 
-	for _, p := range instance.Status.PlanStatus {
+	plans, _ := funk.Keys(instance.Status.PlanStatus).([]string)
+	sort.Strings(plans)
+
+	for _, p := range plans {
+		plan := instance.Status.PlanStatus[p]
 		msg := "never run" // this is for the cases when status was not yet populated
 
-		if p.LastUpdatedTimestamp != nil && !p.LastUpdatedTimestamp.IsZero() { // plan already finished
-			t := p.LastUpdatedTimestamp.Format(timeLayout)
-			msg = fmt.Sprintf("last finished run at %s (%s)", t, string(p.Status))
-		} else if p.Status.IsRunning() {
+		if plan.LastUpdatedTimestamp != nil && !plan.LastUpdatedTimestamp.IsZero() { // plan already finished
+			t := plan.LastUpdatedTimestamp.Format(timeLayout)
+			msg = fmt.Sprintf("last finished run at %s (%s)", t, string(plan.Status))
+		} else if plan.Status.IsRunning() {
 			msg = "is running"
-		} else if p.Status != "" {
-			msg = string(p.Status)
+		} else if plan.Status != "" {
+			msg = string(plan.Status)
 		}
-		historyDisplay := fmt.Sprintf("%s (%s)", p.Name, msg)
+		historyDisplay := fmt.Sprintf("%s (%s)", plan.Name, msg)
 		tree.AddBranch(historyDisplay)
 	}
 

@@ -3,6 +3,7 @@ package v1beta1
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/thoas/go-funk"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -184,17 +185,19 @@ func (i *Instance) TryAddFinalizer() bool {
 // been added, the instance has a cleanup plan and the cleanup plan *successfully* finished.
 // Returns true if the cleanup finalizer has been removed.
 func (i *Instance) TryRemoveFinalizer() bool {
-	if i.HasCleanupFinalizer() {
+	if funk.ContainsString(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName) {
 		if planStatus := i.PlanStatus(CleanupPlanName); planStatus != nil {
 			// we check IsFinished and *not* IsTerminal here so that the finalizer is not removed in the FatalError
 			// case. This way a human operator has to intervene and we don't leave garbage in the cluster.
 			if planStatus.Status.IsFinished() {
+				log.Printf("Removing finalizer on instance %s/%s, cleanup plan is finished", i.Namespace, i.Name)
 				i.ObjectMeta.Finalizers = remove(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
 				return true
 			}
 		} else {
 			// We have a finalizer but no cleanup plan. This could be due to an updated instance.
 			// Let's remove the finalizer.
+			log.Printf("Removing finalizer on instance %s/%s because there is no cleanup plan", i.Namespace, i.Name)
 			i.ObjectMeta.Finalizers = remove(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
 			return true
 		}
