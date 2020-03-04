@@ -54,11 +54,11 @@ spec:
     - name: LABELS
       description: "Deployment labels"
       default: "a: a"
-      type: map
+      value-type: map
     - name: PORTS
       description: "Nginx ports"
       default: "[ 80 ]"
-      type: array
+      value-type: array
   plans:
     deploy:
       strategy: serial

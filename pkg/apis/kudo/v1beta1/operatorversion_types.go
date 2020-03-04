@@ -111,7 +111,7 @@ type Parameter struct {
 	Trigger string `json:"trigger,omitempty"`
 
 	// Type specifies the value type. Defaults to `string`.
-	Type ParameterType `json:"type,omitempty"`
+	Type ParameterType `json:"value-type,omitempty"`
 }
 
 // Phase specifies a list of steps that contain Kubernetes objects.
