@@ -273,7 +273,7 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 	// update instance spec and metadata. this will not update Instance.Status field
 	tryRemoveFinalizer(instance)
 
-	// If all finalizers are removed and we're in deletion, after the update the instance can be cleaned up
+	// If the cleanup finalizers are removed and we're in deletion, after the update the instance can be cleaned up
 	isInstanceDeleted := instance.IsDeleting() && !funk.Contains(instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
 
 	if !reflect.DeepEqual(instance.Spec, oldInstance.Spec) ||
@@ -294,6 +294,7 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 	if err != nil {
 		// if k8s GC was fast and managed to removed the instance (after the above Update removed the finalizer), we get  an untyped
 		// "StorageError" telling us that the sub-resource couldn't be modified. We ignore the error (but log it just in case).
+		// historically we checked with a kerrors.IsNotFound() which failed based on the StorageError.   Perhaps this is a k8s bug?
 		if isInstanceDeleted {
 			log.Printf("InstanceController: failed status update for a deleted Instance %s/%s. (Ignored error: %v)", instance.Namespace, instance.Name, err)
 			return nil
