@@ -187,7 +187,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	// ---------- 2. Try to add a finalizer (effectively happens only once after creation) ----------
 
 	if !instance.IsDeleting() {
-		if _, hasCleanupPlan := ov.Spec.Plans[kudov1beta1.CleanupPlanName]; hasCleanupPlan {
+		if kudov1beta1.CleanupPlanExists(ov) {
 			if instance.TryAddFinalizer() {
 				log.Printf("InstanceController: Adding finalizer on instance %s/%s", instance.Namespace, instance.Name)
 			}
@@ -540,7 +540,9 @@ func getPlanInProgress(i *v1beta1.Instance) *kudov1beta1.PlanStatus {
 //    by diffing current state with the one from the snapshot.
 // 2. WITH the webhook, instance admission webhook has already decided on the plan and the result is in the
 //    Spec.PlanExecution.PlanName field.
-func newExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (plan *string, err error) {
+func newExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*string, error) {
+	var plan *string
+	var err error
 	if areWebhooksEnabled() {
 		if plan, err = fetchNewExecutionPlan(i, ov); plan != nil && err == nil {
 			log.Printf("InstanceController: Fetched new execution plan '%s' from the spec for instance %s/%s", kudo.StringValue(plan), i.Namespace, i.Name)
@@ -551,7 +553,7 @@ func newExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (plan *s
 		}
 	}
 
-	return
+	return plan, err
 }
 
 // fetchNewExecutionPlan method fetches a new execution plan from Instance.Spec.PlanExecution field. A plan is actually
@@ -595,8 +597,8 @@ func fetchNewExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*s
 		newPlan := i.Spec.PlanExecution.PlanName
 		newUID := i.Spec.PlanExecution.UID
 
-		return (newPlan != oldPlan && newPlan != "") || // either there is a non-empty new plan
-			(oldPlan != "" && newPlan == oldPlan && newUID != oldUID) // or the same plan with a new UID
+		// either there is a non-empty new plan or the same plan with a new UID
+		return newPlan != "" && (newPlan != oldPlan || newUID != oldUID)
 	}
 
 	if newPlanScheduled() {

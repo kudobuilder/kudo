@@ -32,10 +32,14 @@ type InstanceAdmission struct {
 func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) admission.Response {
 
 	switch req.Operation {
+
 	case v1beta1.Create:
 		return handleCreate(ia, req)
+
 	case v1beta1.Update:
+		// req has both old and new Instance objects
 		return handleUpdate(ia, req)
+
 	default:
 		return admission.Allowed("")
 	}
@@ -74,7 +78,7 @@ func handleCreate(ia *InstanceAdmission, req admission.Request) admission.Respon
 
 	// schedule 'deploy' plan for execution (and fail if it doesn't exist)
 	if !kudov1beta1.PlanExists(kudov1beta1.DeployPlanName, ov) {
-		return admission.Denied(fmt.Sprintf("failed to create an Instance %s/%s: couldn't find '%s' plann in the operatorVersion", new.Namespace, new.Name, kudov1beta1.DeployPlanName))
+		return admission.Denied(fmt.Sprintf("failed to create an Instance %s/%s: couldn't find '%s' plan in the operatorVersion", new.Namespace, new.Name, kudov1beta1.DeployPlanName))
 	}
 	new.Spec.PlanExecution.PlanName = kudov1beta1.DeployPlanName
 	new.Spec.PlanExecution.UID = uuid.NewUUID()

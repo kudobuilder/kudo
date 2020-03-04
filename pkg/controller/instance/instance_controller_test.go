@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	"github.com/kudobuilder/kudo/pkg/engine/task"
@@ -387,4 +388,148 @@ func TestEventFilterForDelete(t *testing.T) {
 		diff := filter.Delete(test.e)
 		assert.Equal(t, test.allowed, diff, test.name)
 	}
+}
+
+func Test_fetchNewExecutionPlan(t *testing.T) {
+	ov := &v1beta1.OperatorVersion{
+		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
+		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.dev/v1beta1"},
+		Spec:       v1beta1.OperatorVersionSpec{Plans: map[string]v1beta1.Plan{"cleanup": {}}},
+	}
+
+	idle := &v1beta1.Instance{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "kudo.dev/v1beta1", Kind: "Instance"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "test"},
+		Spec: v1beta1.InstanceSpec{
+			PlanExecution: v1beta1.PlanExecution{
+				PlanName: "",
+				UID:      "",
+			},
+		},
+	}
+	if err := idle.AnnotateSnapshot(); err != nil {
+		t.Fatalf("failed to annotate instance snaphot: %v", err)
+	}
+
+	deploy := "deploy"
+	cleanup := "cleanup"
+	backup := "backup"
+	testUUID := uuid.NewUUID()
+
+	deploying := idle.DeepCopy()
+	deploying.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: deploy, UID: testUUID}
+	if err := deploying.AnnotateSnapshot(); err != nil {
+		t.Fatalf("failed to annotate instance snaphot: %v", err)
+	}
+
+	deleted := deploying.DeepCopy()
+	deleted.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)}
+	deleted.ObjectMeta.Finalizers = []string{"kudo.dev.instance.cleanup"}
+
+	uninstalling := deleted.DeepCopy()
+	uninstalling.Spec.PlanExecution.PlanName = cleanup
+	if err := uninstalling.AnnotateSnapshot(); err != nil {
+		t.Fatalf("failed to annotate instance snaphot: %v", err)
+	}
+
+	tests := []struct {
+		name    string
+		i       *v1beta1.Instance
+		ov      *v1beta1.OperatorVersion
+		want    *string
+		wantErr bool
+	}{
+		{
+			name:    "no change means no new plan",
+			i:       idle,
+			ov:      ov,
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name: "deploy plan is scheduled without new UID",
+			i: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.PlanExecution.PlanName = deploy
+				return i
+			}(),
+			ov:      ov,
+			want:    &deploy,
+			wantErr: false,
+		},
+		{
+			name: "deploy plan is scheduled WITH new UID",
+			i: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.PlanExecution.PlanName = deploy
+				i.Spec.PlanExecution.UID = uuid.NewUUID()
+				return i
+			}(),
+			ov:      ov,
+			want:    &deploy,
+			wantErr: false,
+		},
+		{
+			name: "no new plan was scheduled WITH a new UID",
+			i: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.PlanExecution.UID = uuid.NewUUID()
+				return i
+			}(),
+			ov:      ov,
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name: "new plan overrides deploy plan",
+			i: func() *v1beta1.Instance {
+				i := deploying.DeepCopy()
+				i.Spec.PlanExecution.PlanName = backup
+				return i
+			}(),
+			ov:      ov,
+			want:    &backup,
+			wantErr: false,
+		},
+		{
+			name: "new plan overrides deploy plan WITH new UID",
+			i: func() *v1beta1.Instance {
+				i := deploying.DeepCopy()
+				i.Spec.PlanExecution.PlanName = backup
+				i.Spec.PlanExecution.UID = uuid.NewUUID()
+				return i
+			}(),
+			ov:      ov,
+			want:    &backup,
+			wantErr: false,
+		},
+		{
+			name:    "cleanup is scheduled for a deleted instance",
+			i:       deleted,
+			ov:      ov,
+			want:    &cleanup,
+			wantErr: false,
+		},
+		{
+			name:    "cleanup is NOT scheduled when it is already scheduled",
+			i:       uninstalling,
+			ov:      ov,
+			want:    nil,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := fetchNewExecutionPlan(tt.i, tt.ov)
+			assert.Equal(t, tt.wantErr, err != nil, "expected error %v, but got %v", tt.wantErr, err)
+			assert.Equal(t, tt.want, got, "expected '%s' plan returned but got: '%s'", stringPtrToString(tt.want), stringPtrToString(got))
+		})
+	}
+}
+
+func stringPtrToString(p *string) string {
+	if p != nil {
+		return *p
+	}
+	return "<nil>"
 }
