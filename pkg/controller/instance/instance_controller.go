@@ -271,7 +271,11 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 
 	// 1. check if the finalizer can be removed (if the instance is being deleted and cleanup is completed) and then
 	// update instance spec and metadata. this will not update Instance.Status field
-	isDelete := tryRemoveFinalizer(instance)
+	isDeletionComplete := false
+	if instance.IsDeleting() {
+		// If the finalizer could be removed the k8s GC can clean up the instance after the update
+		isDeletionComplete = tryRemoveFinalizer(instance)
+	}
 
 	if !reflect.DeepEqual(instance.Spec, oldInstance.Spec) ||
 		!reflect.DeepEqual(instance.ObjectMeta, oldInstance.ObjectMeta) {
@@ -291,7 +295,7 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 	if err != nil {
 		// if k8s GC was fast and managed to removed the instance (after the above Update removed the finalizer), we get  an untyped
 		// "StorageError" telling us that the sub-resource couldn't be modified. We ignore the error (but log it just in case).
-		if isDelete {
+		if isDeletionComplete {
 			log.Printf("InstanceController: failed status update for a deleted Instance %s/%s. (Ignored error: %v)", instance.Namespace, instance.Name, err)
 			return nil
 		}
