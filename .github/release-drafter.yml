@@ -7,6 +7,9 @@ categories:
   - title: '⚠️ Breaking Changes'
     labels:
       - 'release/breaking-change'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'release/bugfix'
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 template: |
   This is a draft for the next release.
@@ -16,3 +19,7 @@ template: |
   ## Changes
 
   $CHANGES
+
+  ## Contributors
+
+  $CONTRIBUTORS

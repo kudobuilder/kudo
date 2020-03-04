@@ -93,6 +93,7 @@ This is a set of practices we try to live by when developing KUDO. These are jus
 - Labels: If your PR includes either **breaking changes** or should get additional attention in the release, add one of these label:
   - `release/highlight` For a big new feature, an important bug fix, the focus of the current release
   - `release/breaking-change`  For anything that breaks backwards compatibility and requires users to take special care when upgrading to the new version
+  - `release/bugfix` For noteworthy bugfixes
 
 - For a piece of work that takes >3-5 days, pair with somebody
 - When you pair with somebody, don't forget to appreciate their work using [co-authorship](https://help.github.com/en/github/committing-changes-to-your-project/creating-a-commit-with-multiple-authors)
