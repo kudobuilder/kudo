@@ -1,7 +1,6 @@
 package template
 
 import (
-	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
@@ -25,26 +24,13 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 	params := make(map[string]interface{}, len(pf.Params.Parameters))
 
 	for _, p := range pf.Params.Parameters {
-		switch p.Type {
-		case kudov1beta1.MapValueType:
-			value, err := convert.YAMLMap(convert.StringValue(p.Default))
-			if err != nil {
-				res.AddErrors(err.Error())
-			}
-
-			params[p.Name] = value
-		case kudov1beta1.ArrayValueType:
-			value, err := convert.YAMLMap(convert.StringValue(p.Default))
-			if err != nil {
-				res.AddErrors(err.Error())
-			}
-
-			params[p.Name] = value
-		case kudov1beta1.StringValueType:
-			fallthrough
-		default:
-			params[p.Name] = convert.StringValue(p.Default)
+		value, err := convert.ParamValue(p.Default, p.Type)
+		if err != nil {
+			res.AddErrors(err.Error())
+			continue
 		}
+
+		params[p.Name] = value
 	}
 
 	configs := make(map[string]interface{})

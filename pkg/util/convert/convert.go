@@ -2,6 +2,8 @@ package convert
 
 import (
 	"sigs.k8s.io/yaml"
+
+	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 // String returns a pointer to the string value passed in.
@@ -16,6 +18,23 @@ func StringValue(v *string) string {
 		return *v
 	}
 	return ""
+}
+
+// ParamValue unwraps a parameter value.
+// Depending on the parameter type, the value can represent a string or an object described in YAML.
+func ParamValue(v *string, t kudov1beta1.ParameterType) (r interface{}, err error) {
+	switch t {
+	case kudov1beta1.MapValueType:
+		r, err = YAMLMap(StringValue(v))
+	case kudov1beta1.ArrayValueType:
+		r, err = YAMLArray(StringValue(v))
+	case kudov1beta1.StringValueType:
+		fallthrough
+	default:
+		r = StringValue(v)
+	}
+
+	return
 }
 
 // YAMLArray converts YAML input describing an array.

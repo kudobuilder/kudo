@@ -386,21 +386,6 @@ func GetOperatorVersion(instance *kudov1beta1.Instance, c client.Client) (ov *ku
 	return ov, nil
 }
 
-func paramValue(v *string, t v1beta1.ParameterType) (r interface{}, err error) {
-	switch t {
-	case kudov1beta1.MapValueType:
-		r, err = convert.YAMLMap(convert.StringValue(v))
-	case kudov1beta1.ArrayValueType:
-		r, err = convert.YAMLArray(convert.StringValue(v))
-	case kudov1beta1.StringValueType:
-		fallthrough
-	default:
-		r = convert.StringValue(v)
-	}
-
-	return
-}
-
 // paramsMap generates {{ Params.* }} map of keys and values which is later used during template rendering.
 func paramsMap(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.OperatorVersion) (map[string]interface{}, error) {
 	params := make(map[string]interface{}, len(operatorVersion.Spec.Parameters))
@@ -408,13 +393,13 @@ func paramsMap(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.Oper
 	for _, param := range operatorVersion.Spec.Parameters {
 		var err error
 
-		params[param.Name], err = paramValue(param.Default, param.Type)
+		params[param.Name], err = convert.ParamValue(param.Default, param.Type)
 		if err != nil {
 			return nil, err
 		}
 
 		if value, ok := instance.Spec.Parameters[param.Name]; ok {
-			params[param.Name], err = paramValue(&value, param.Type)
+			params[param.Name], err = convert.ParamValue(&value, param.Type)
 			if err != nil {
 				return nil, err
 			}
