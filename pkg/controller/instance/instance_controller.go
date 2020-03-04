@@ -391,18 +391,19 @@ func paramsMap(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.Oper
 	params := make(map[string]interface{}, len(operatorVersion.Spec.Parameters))
 
 	for _, param := range operatorVersion.Spec.Parameters {
-		var err error
+		var value *string
 
-		params[param.Name], err = convert.ParamValue(param.Default, param.Type)
-		if err != nil {
-			return nil, err
+		if v, ok := instance.Spec.Parameters[param.Name]; ok {
+			value = &v
+		} else {
+			value = param.Default
 		}
 
-		if value, ok := instance.Spec.Parameters[param.Name]; ok {
-			params[param.Name], err = convert.ParamValue(&value, param.Type)
-			if err != nil {
-				return nil, err
-			}
+		var err error
+
+		params[param.Name], err = convert.ParamValue(value, param.Type)
+		if err != nil {
+			return nil, err
 		}
 	}
 
