@@ -50,12 +50,12 @@ func TestPlanReferenceVerifier(t *testing.T) {
 		Plans: plans,
 	}
 	params := packages.ParamsFile{
-		Parameters: packages.Parameter{
-			v1beta1.Parameter{
+		Parameters: packages.Parameters{
+			packages.Parameter{
 				Name:    "PARAM1",
 				Trigger: "used-plan",
 			},
-			v1beta1.Parameter{
+			packages.Parameter{
 				Name:    "PARAM2",
 				Trigger: "not-existing-plan",
 			},

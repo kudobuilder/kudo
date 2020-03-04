@@ -2,6 +2,7 @@ package packages
 
 import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
 const (
@@ -27,24 +28,58 @@ type Resources struct {
 	Instance        *v1beta1.Instance
 }
 
-type Parameter []v1beta1.Parameter
+// Modified v1beta1.Parameter that allows for defaults provided as YAML.
+type Parameter struct {
+	DisplayName string                `json:"displayName,omitempty"`
+	Name        string                `json:"name,omitempty"`
+	Description string                `json:"description,omitempty"`
+	Required    *bool                 `json:"required,omitempty"`
+	Default     interface{}           `json:"default,omitempty"`
+	Trigger     string                `json:"trigger,omitempty"`
+	Type        v1beta1.ParameterType `json:"type,omitempty"`
+}
 
-// Templates is a map of file names and stringified files in the template folder of an operator
-type Templates map[string]string
+type Parameters []Parameter
 
 // Len returns the number of params.
 // This is needed to allow sorting of params.
-func (p Parameter) Len() int { return len(p) }
+func (p Parameters) Len() int { return len(p) }
 
 // Swap swaps the position of two items in the params slice.
 // This is needed to allow sorting of params.
-func (p Parameter) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
+func (p Parameters) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 
 // Less returns true if the name of a param a is less than the name of param b.
 // This is needed to allow sorting of params.
-func (p Parameter) Less(x, y int) bool {
+func (p Parameters) Less(x, y int) bool {
 	return p[x].Name < p[y].Name
 }
+
+func (p Parameters) ToAPI() ([]v1beta1.Parameter, error) {
+	result := make([]v1beta1.Parameter, 0, len(p))
+
+	for _, parameter := range p {
+		d, err := convert.YAMLValue(parameter.Default, parameter.Type)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, v1beta1.Parameter{
+			DisplayName: parameter.DisplayName,
+			Name:        parameter.Name,
+			Description: parameter.Description,
+			Required:    parameter.Required,
+			Default:     &d,
+			Trigger:     parameter.Trigger,
+			Type:        parameter.Type,
+		})
+	}
+
+	return result, nil
+}
+
+// Templates is a map of file names and stringified files in the template folder of an operator
+type Templates map[string]string
 
 // Files represents the raw operator package format the way it is found in the tgz packages
 type Files struct {
@@ -55,8 +90,8 @@ type Files struct {
 
 // ParamsFile is a representation of the package params.yaml
 type ParamsFile struct {
-	APIVersion string    `json:"apiVersion,omitempty"`
-	Parameters Parameter `json:"parameters"`
+	APIVersion string     `json:"apiVersion,omitempty"`
+	Parameters Parameters `json:"parameters"`
 }
 
 // OperatorFile is a representation of the package operator.yaml

@@ -7,11 +7,10 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
 func TestTemplateRenderVerifier(t *testing.T) {
-	params := make([]v1beta1.Parameter, 0)
+	params := make([]packages.Parameter, 0)
 	paramFile := packages.ParamsFile{Parameters: params}
 	templates := make(map[string]string)
 	templates["foo.yaml"] = `
@@ -33,7 +32,7 @@ func TestTemplateRenderVerifier(t *testing.T) {
 }
 
 func TestTemplateRenderVerifier_InvalidYAML(t *testing.T) {
-	params := make([]v1beta1.Parameter, 0)
+	params := make([]packages.Parameter, 0)
 	paramFile := packages.ParamsFile{Parameters: params}
 	templates := make(map[string]string)
 	templates["foo.yaml"] = `
@@ -65,15 +64,15 @@ spec:
 }
 
 func TestTemplateRenderVerifierParameterTypes(t *testing.T) {
-	params := []v1beta1.Parameter{
-		v1beta1.Parameter{
+	params := []packages.Parameter{
+		packages.Parameter{
 			Name:    "labels",
-			Default: convert.String("a: a\nb: b"),
+			Default: map[string]string{"a": "a", "b": "b"},
 			Type:    v1beta1.MapValueType,
 		},
-		v1beta1.Parameter{
+		packages.Parameter{
 			Name:    "containers",
-			Default: convert.String("[a, b]"),
+			Default: []string{"a", "b"},
 			Type:    v1beta1.ArrayValueType,
 		},
 	}

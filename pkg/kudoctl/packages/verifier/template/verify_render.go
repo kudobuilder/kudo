@@ -23,7 +23,13 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 
 	params := make(map[string]interface{}, len(pf.Params.Parameters))
 
-	for _, p := range pf.Params.Parameters {
+	parameters, err := pf.Params.Parameters.ToAPI()
+	if err != nil {
+		res.AddErrors(err.Error())
+		return res
+	}
+
+	for _, p := range parameters {
 		value, err := convert.ParamValue(p.Default, p.Type)
 		if err != nil {
 			res.AddErrors(err.Error())

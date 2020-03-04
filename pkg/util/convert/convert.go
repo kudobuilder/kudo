@@ -1,6 +1,8 @@
 package convert
 
 import (
+	"fmt"
+
 	"sigs.k8s.io/yaml"
 
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -32,6 +34,28 @@ func ParamValue(v *string, t kudov1beta1.ParameterType) (r interface{}, err erro
 		fallthrough
 	default:
 		r = StringValue(v)
+	}
+
+	return
+}
+
+// YAMLValue wraps a parameter value.
+func YAMLValue(i interface{}, t kudov1beta1.ParameterType) (v string, err error) {
+	switch t {
+	case kudov1beta1.MapValueType:
+		fallthrough
+	case kudov1beta1.ArrayValueType:
+		var bytes []byte
+		bytes, err = yaml.Marshal(i)
+		v = string(bytes)
+	case kudov1beta1.StringValueType:
+		fallthrough
+	default:
+		if i == nil {
+			v = ""
+		}
+
+		v = fmt.Sprintf("%v", i)
 	}
 
 	return

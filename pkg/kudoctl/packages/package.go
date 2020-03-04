@@ -48,6 +48,11 @@ func (p *Files) Resources() (*Resources, error) {
 		Status: v1beta1.OperatorStatus{},
 	}
 
+	parameters, err := p.Params.Parameters.ToAPI()
+	if err != nil {
+		return nil, err
+	}
+
 	fv := &v1beta1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "OperatorVersion",
@@ -65,7 +70,7 @@ func (p *Files) Resources() (*Resources, error) {
 			Version:        p.Operator.OperatorVersion,
 			Templates:      p.Templates,
 			Tasks:          p.Operator.Tasks,
-			Parameters:     p.Params.Parameters,
+			Parameters:     parameters,
 			Plans:          p.Operator.Plans,
 			UpgradableFrom: nil,
 		},
