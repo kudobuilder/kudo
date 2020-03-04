@@ -40,25 +40,28 @@ func ParamValue(v *string, t kudov1beta1.ParameterType) (r interface{}, err erro
 }
 
 // YAMLValue wraps a parameter value.
-func YAMLValue(i interface{}, t kudov1beta1.ParameterType) (v string, err error) {
+func YAMLValue(i interface{}, t kudov1beta1.ParameterType) (*string, error) {
 	switch t {
 	case kudov1beta1.MapValueType:
 		fallthrough
 	case kudov1beta1.ArrayValueType:
-		var bytes []byte
-		bytes, err = yaml.Marshal(i)
-		v = string(bytes)
+		bytes, err := yaml.Marshal(i)
+		if err != nil {
+			return nil, err
+		}
+
+		result := string(bytes)
+		return &result, nil
 	case kudov1beta1.StringValueType:
 		fallthrough
 	default:
 		if i == nil {
-			v = ""
+			return nil, nil
 		}
 
-		v = fmt.Sprintf("%v", i)
+		result := fmt.Sprintf("%v", i)
+		return &result, nil
 	}
-
-	return
 }
 
 // YAMLArray converts YAML input describing an array.

@@ -69,7 +69,7 @@ func (p Parameters) ToAPI() ([]v1beta1.Parameter, error) {
 			Name:        parameter.Name,
 			Description: parameter.Description,
 			Required:    parameter.Required,
-			Default:     &d,
+			Default:     d,
 			Trigger:     parameter.Trigger,
 			Type:        parameter.Type,
 		})
