@@ -153,3 +153,10 @@ Here, e.g. apply-mirror-maker is a simple Apply and delete-mirror-maker a Delete
 
 - YAMLy programming language
 - hard to debug
+
+
+## Implementation History
+
+- 2020-01-30 - Initial draft. (@zmalik)
+- 2020-02-06 - Changed to implementable. (@zmalik)
+- 2020-02-27 - Implemented in [#1361](https://github.com/kudobuilder/kudo/pull/1361). (@zmalik)
