@@ -110,7 +110,7 @@ type Parameter struct {
 	// Default is `update` if a plan with that name exists, otherwise it's `deploy`.
 	Trigger string `json:"trigger,omitempty"`
 
-	// Type specifies the value type. Defaults to "string".
+	// Type specifies the value type. Defaults to `string`.
 	Type ParameterType `json:"type,omitempty"`
 }
 
