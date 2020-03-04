@@ -271,9 +271,6 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 	// 1. check if the finalizer can be removed (if the instance is being deleted and cleanup is completed) and then
 	// update instance spec and metadata. this will not update Instance.Status field
 	isDelete := tryRemoveFinalizer(instance)
-	if isDelete {
-		log.Printf("InstanceController: Removing finalizer on instance %s/%s", instance.Namespace, instance.Name)
-	}
 
 	if !reflect.DeepEqual(instance.Spec, oldInstance.Spec) ||
 		!reflect.DeepEqual(instance.ObjectMeta, oldInstance.ObjectMeta) {
@@ -701,12 +698,14 @@ func tryRemoveFinalizer(i *v1beta1.Instance) bool {
 			// we check IsFinished and *not* IsTerminal here so that the finalizer is not removed in the FatalError
 			// case. This way a human operator has to intervene and we don't leave garbage in the cluster.
 			if planStatus.Status.IsFinished() {
+				log.Printf("InstanceController: Removing finalizer on instance %s/%s, cleanup plan is finished", i.Namespace, i.Name)
 				i.ObjectMeta.Finalizers = remove(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
 				return true
 			}
 		} else {
 			// We have a finalizer but no cleanup plan. This could be due to an updated instance.
 			// Let's remove the finalizer.
+			log.Printf("InstanceController: Removing finalizer on instance %s/%s because there is no cleanup plan", i.Namespace, i.Name)
 			i.ObjectMeta.Finalizers = remove(i.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
 			return true
 		}
