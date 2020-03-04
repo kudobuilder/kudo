@@ -230,7 +230,7 @@ spec:
                       if a plan with that name exists, otherwise it's `deploy`.
                     type: string
                   type:
-                    description: Type specifies the value type. Defaults to "string".
+                    description: Type specifies the value type. Defaults to `string`.
                     type: string
                 type: object
               type: array
