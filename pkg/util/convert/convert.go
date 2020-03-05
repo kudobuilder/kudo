@@ -65,7 +65,7 @@ func WrapParamValue(unwrapped interface{}, parameterType kudov1beta1.ParameterTy
 	}
 }
 
-// ToYAMLArray converts YAML input describing an array.
+// ToYAMLArray unmarshals stringified YAML into an array.
 func ToYAMLArray(input string) ([]interface{}, error) {
 	var result []interface{}
 
@@ -76,7 +76,7 @@ func ToYAMLArray(input string) ([]interface{}, error) {
 	return result, nil
 }
 
-// ToYAMLMap converts YAML input describing a mapping type.
+// ToYAMLMap unmarshals stringified YAML into an interface.
 func ToYAMLMap(input string) (interface{}, error) {
 	var result interface{}
 
