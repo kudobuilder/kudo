@@ -55,6 +55,7 @@ func (p Parameters) Less(x, y int) bool {
 	return p[x].Name < p[y].Name
 }
 
+// ToAPI converts parameters to an array of 'Parameter' defined in the KUDO API.
 func (p Parameters) ToAPI() ([]v1beta1.Parameter, error) {
 	result := make([]v1beta1.Parameter, 0, len(p))
 

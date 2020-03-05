@@ -495,11 +495,11 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 		parametersToPatch  map[string]string
 		namespace          string
 	}{
-		{"patch to version", convert.String("test-1.1.1"), nil, nil, installNamespace},
-		{"patch adding new parameter", convert.String("test-1.1.1"), nil, map[string]string{"param": "value"}, installNamespace},
-		{"patch updating parameter", convert.String("test-1.1.1"), map[string]string{"param": "value"}, map[string]string{"param": "value2"}, installNamespace},
+		{"patch to version", convert.StringPtr("test-1.1.1"), nil, nil, installNamespace},
+		{"patch adding new parameter", convert.StringPtr("test-1.1.1"), nil, map[string]string{"param": "value"}, installNamespace},
+		{"patch updating parameter", convert.StringPtr("test-1.1.1"), map[string]string{"param": "value"}, map[string]string{"param": "value2"}, installNamespace},
 		{"do not patch the version", nil, map[string]string{"param": "value"}, map[string]string{"param": "value2"}, installNamespace},
-		{"patch with existing parameter should not override", convert.String("1.1.1"), map[string]string{"param": "value"}, map[string]string{"other": "value2"}, installNamespace},
+		{"patch with existing parameter should not override", convert.StringPtr("1.1.1"), map[string]string{"param": "value"}, map[string]string{"other": "value2"}, installNamespace},
 	}
 
 	for _, tt := range tests {

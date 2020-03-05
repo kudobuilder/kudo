@@ -298,7 +298,7 @@ func Test_triggeredPlan(t *testing.T) {
 			Parameters: []v1beta1.Parameter{
 				{
 					Name:    "param",
-					Default: convert.String("default"),
+					Default: convert.StringPtr("default"),
 				},
 			},
 		},

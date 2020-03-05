@@ -8,67 +8,68 @@ import (
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
-// String returns a pointer to the string value passed in.
-func String(v string) *string {
-	return &v
+// StringPtr returns a pointer to the string value passed in.
+func StringPtr(input string) *string {
+	return &input
 }
 
 // StringValue returns the value of the string pointer passed in or
 // "" if the pointer is nil.
-func StringValue(v *string) string {
-	if v != nil {
-		return *v
+func StringValue(input *string) string {
+	if input != nil {
+		return *input
 	}
 	return ""
 }
 
-// UnwrapParamValue unwraps a parameter value.
-// Depending on the parameter type, the value can represent a string or an object described in YAML.
-func UnwrapParamValue(v *string, t kudov1beta1.ParameterType) (r interface{}, err error) {
-	switch t {
+// UnwrapParamValue unwraps a parameter value to and interface according to its type.
+// Depending on the parameter type, the input value can represent a string or an object described in YAML.
+func UnwrapParamValue(wrapped *string, parameterType kudov1beta1.ParameterType) (unwrapped interface{}, err error) {
+	switch parameterType {
 	case kudov1beta1.MapValueType:
-		r, err = ToYAMLMap(StringValue(v))
+		unwrapped, err = ToYAMLMap(StringValue(wrapped))
 	case kudov1beta1.ArrayValueType:
-		r, err = ToYAMLArray(StringValue(v))
+		unwrapped, err = ToYAMLArray(StringValue(wrapped))
 	case kudov1beta1.StringValueType:
 		fallthrough
 	default:
-		r = StringValue(v)
+		unwrapped = StringValue(wrapped)
 	}
 
 	return
 }
 
-// WrapParamValue wraps a parameter value.
-func WrapParamValue(i interface{}, t kudov1beta1.ParameterType) (*string, error) {
-	switch t {
+// WrapParamValue wraps a parameter value to a string according to its type.
+// Complex parameter types will be described as YAML, simple parameter types use the string value.
+func WrapParamValue(unwrapped interface{}, parameterType kudov1beta1.ParameterType) (*string, error) {
+	switch parameterType {
 	case kudov1beta1.MapValueType:
 		fallthrough
 	case kudov1beta1.ArrayValueType:
-		bytes, err := yaml.Marshal(i)
+		bytes, err := yaml.Marshal(unwrapped)
 		if err != nil {
 			return nil, err
 		}
 
-		result := string(bytes)
-		return &result, nil
+		wrapped := string(bytes)
+		return &wrapped, nil
 	case kudov1beta1.StringValueType:
 		fallthrough
 	default:
-		if i == nil {
+		if unwrapped == nil {
 			return nil, nil
 		}
 
-		result := fmt.Sprintf("%v", i)
-		return &result, nil
+		wrapped := fmt.Sprintf("%v", unwrapped)
+		return &wrapped, nil
 	}
 }
 
 // ToYAMLArray converts YAML input describing an array.
-func ToYAMLArray(v string) ([]interface{}, error) {
+func ToYAMLArray(input string) ([]interface{}, error) {
 	var result []interface{}
 
-	if err := yaml.Unmarshal([]byte(v), &result); err != nil {
+	if err := yaml.Unmarshal([]byte(input), &result); err != nil {
 		return nil, err
 	}
 
@@ -76,10 +77,10 @@ func ToYAMLArray(v string) ([]interface{}, error) {
 }
 
 // ToYAMLMap converts YAML input describing a mapping type.
-func ToYAMLMap(v string) (interface{}, error) {
+func ToYAMLMap(input string) (interface{}, error) {
 	var result interface{}
 
-	if err := yaml.Unmarshal([]byte(v), &result); err != nil {
+	if err := yaml.Unmarshal([]byte(input), &result); err != nil {
 		return nil, err
 	}
 

@@ -197,7 +197,7 @@ func instanceUpdateValidatingWebhook(ns string) admissionv1beta1.ValidatingWebho
 					Service: &admissionv1beta1.ServiceReference{
 						Name:      "kudo-controller-manager-service",
 						Namespace: ns,
-						Path:      convert.String("/validate-kudo-dev-v1beta1-instance"),
+						Path:      convert.StringPtr("/validate-kudo-dev-v1beta1-instance"),
 					},
 				},
 			},
