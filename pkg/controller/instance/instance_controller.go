@@ -125,8 +125,9 @@ func eventFilter() predicate.Funcs {
 			return !isForPipePod(e)
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			// by comparing the Meta.Generation counter we effectively ignore Status sub-resource changes
-			return e.MetaNew.GetGeneration() != e.MetaOld.GetGeneration()
+			// by comparing the Meta.Generation counter for Instances we effectively ignore Instance.Status sub-resource changes
+			_, isInstance := e.ObjectNew.(*kudov1beta1.Instance)
+			return isInstance && (e.MetaNew.GetGeneration() != e.MetaOld.GetGeneration())
 		},
 		GenericFunc: func(event.GenericEvent) bool { return true },
 	}
