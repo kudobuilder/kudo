@@ -160,6 +160,8 @@ todo:
 	@grep \
 		--exclude-dir=hack \
 		--exclude=Makefile \
+		--exclude-dir=.git \
+		--exclude-dir=bin \
 		--text \
 		--color \
-		-nRo -E ' TODO:.*|SkipNow' .
+		-nRo -E " *[^\.]TODO.*|SkipNow" .
