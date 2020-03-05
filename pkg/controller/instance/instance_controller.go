@@ -113,18 +113,21 @@ func (r *Reconciler) SetupWithManager(
 		Complete(r)
 }
 
-// eventFilter ignores DeleteEvents for pipe-pods only (marked with task.PipePodAnnotation). This is due to an
-// inherent race that was described in detail in #1116 (https://github.com/kudobuilder/kudo/issues/1116)
-// tl;dr: pipe-task will delete the pipe pod at the end of the execution. this would normally trigger another
-// Instance reconciliation which might end up copying pipe files twice. we avoid this by explicitly ignoring
-// DeleteEvents for pipe-pods.
 func eventFilter() predicate.Funcs {
 	return predicate.Funcs{
 		CreateFunc: func(event.CreateEvent) bool { return true },
 		DeleteFunc: func(e event.DeleteEvent) bool {
+			// eventFilter ignores DeleteEvents for pipe-pods only (marked with task.PipePodAnnotation). This is due to an
+			// inherent race that was described in detail in #1116 (https://github.com/kudobuilder/kudo/issues/1116)
+			// tl;dr: pipe-task will delete the pipe pod at the end of the execution. this would normally trigger another
+			// Instance reconciliation which might end up copying pipe files twice. we avoid this by explicitly ignoring
+			// DeleteEvents for pipe-pods.
 			return !isForPipePod(e)
 		},
-		UpdateFunc:  func(event.UpdateEvent) bool { return true },
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			// by comparing the Meta.Generation counter we effectively ignore Status sub-resource changes
+			return e.MetaNew.GetGeneration() != e.MetaOld.GetGeneration()
+		},
 		GenericFunc: func(event.GenericEvent) bool { return true },
 	}
 }
