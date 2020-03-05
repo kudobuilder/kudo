@@ -17,6 +17,8 @@ From that tag work will continue on master.
 *If* it is necessary in the future to have a patch release for `v0.4.1`, a branch will be created off the `v0.4.0` tag with the nomenclature of `releases/{major.minor}`, in this example `releases/0.4`.
 Branches matching `releases/*` are protected branches in the repository.
 
+The `HEAD` of the release branches follows the same conventions as master.  It is expected that `HEAD` of the release branch is always in a releasable state. The purpose of the release branch is for bug fixes only.  New features should not be targeted to a release branch.
+
 ### Documentation
 
 Pull request for documentation (in the `kudo.dev` repo) should be prepared and reviewed at
