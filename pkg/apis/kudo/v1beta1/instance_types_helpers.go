@@ -160,9 +160,9 @@ func ParameterDiff(old, new map[string]string) map[string]string {
 
 // SelectPlan returns nil if none of the plan exists, otherwise the first one in list that exists
 func SelectPlan(possiblePlans []string, ov *OperatorVersion) *string {
-	for _, n := range possiblePlans {
-		if _, ok := ov.Spec.Plans[n]; ok {
-			return &n
+	for _, plan := range possiblePlans {
+		if _, ok := ov.Spec.Plans[plan]; ok {
+			return &plan
 		}
 	}
 	return nil
