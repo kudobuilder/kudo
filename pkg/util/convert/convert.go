@@ -22,7 +22,7 @@ func StringValue(input *string) string {
 	return ""
 }
 
-// UnwrapParamValue unwraps a parameter value to and interface according to its type.
+// UnwrapParamValue unwraps a parameter value to an interface according to its type.
 // Depending on the parameter type, the input value can represent a string or an object described in YAML.
 func UnwrapParamValue(wrapped *string, parameterType kudov1beta1.ParameterType) (unwrapped interface{}, err error) {
 	switch parameterType {
