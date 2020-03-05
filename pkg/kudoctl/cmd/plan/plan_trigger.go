@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 )
 
@@ -26,5 +27,9 @@ func RunTrigger(options *TriggerOptions, settings *env.Settings) error {
 		return fmt.Errorf("creating kudo client: %w", err)
 	}
 
-	return kc.UpdateInstance(options.Instance, settings.Namespace, nil, nil, &options.Plan)
+	err = kc.UpdateInstance(options.Instance, settings.Namespace, nil, nil, &options.Plan)
+	if err == nil {
+		clog.Printf("Triggered %s plan for %s/%s instance", options.Plan, settings.Namespace, options.Instance)
+	}
+	return err
 }

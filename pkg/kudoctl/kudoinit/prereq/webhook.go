@@ -145,7 +145,7 @@ func installUnstructured(dynamicClient dynamic.Interface, items []unstructured.U
 		if kerrors.IsAlreadyExists(err) {
 			clog.V(4).Printf("resource %s already registered", obj.GetName())
 		} else if err != nil {
-			return fmt.Errorf("failed to created resource %s/%s: %v", obj.GetName(), obj.GetNamespace(), err)
+			return fmt.Errorf("failed to create resource %s/%s: %v", obj.GetName(), obj.GetNamespace(), err)
 		}
 	}
 	return nil

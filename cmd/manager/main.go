@@ -134,7 +134,7 @@ func main() {
 		log.Printf("🔸 Setting up webhooks")
 
 		if err := registerWebhook("/admit", &v1beta1.Instance{}, &webhook.Admission{Handler: &kudohook.InstanceAdmission{}}, mgr); err != nil {
-			log.Printf("❌ unable to create instance validation webhook: %v", err)
+			log.Printf("❌ unable to create instance admission webhook: %v", err)
 			os.Exit(1)
 		}
 		log.Printf("🧲 Instance admission webhook")

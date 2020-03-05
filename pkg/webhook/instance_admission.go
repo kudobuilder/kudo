@@ -10,7 +10,6 @@ import (
 
 	"github.com/thoas/go-funk"
 	"k8s.io/api/admission/v1beta1"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -52,11 +51,10 @@ func handleCreate(ia *InstanceAdmission, req admission.Request) admission.Respon
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	// if namespace is not set, 'default' is explicitly set, otherwise it is empty (at this point)
-	// and a subsequent search for the corresponding OV doesn't return anything
-	if new.Namespace == "" {
-		new.Namespace = v1.NamespaceDefault
-	}
+	// Metadata.Namespace of submitted objects is not trustworthy in Mutating Webhooks, and may be blank in Validation
+	// Webhooks. The namespace needs to always be read out of the AdmissionReview object. For more information see:
+	// https://github.com/kubernetes/kubernetes/issues/88282
+	new.Namespace = req.Namespace
 
 	// since we don't yet enforce the existence of the 'deploy' plan in the OV, we check for its existence
 	// and decline Instance creation if the plan is not found
@@ -192,7 +190,7 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 	isPlanOverride := hadPlan && newPlan != "" && newPlan != oldPlan
 	isPlanRetriggered := hadPlan && newPlan == oldPlan && newUID != oldUID
 	isPlanCancellation := hadPlan && newPlan == ""
-	isUninstalling := new.IsDeleting() && new.HasCleanupFinalizer() // a cleanup finalizer exists only when there is a cleanup plan
+	isDeleting := new.IsDeleting() // a non-empty meta.deletionTimestamp is a signal to switch to the uninstalling life-cycle phase
 	isPlanTerminal := isTerminal(new, newPlan, new.Spec.PlanExecution.UID)
 
 	// --------------------------------------------------------------------------------------------------------------------------------
@@ -205,7 +203,7 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 	// - only the instance controller (and not the webhook or the user) can schedule 'cleanup'
 	// - 'cleanup' overrides any existing update/upgrade plan
 	// - 'cleanup' itself can *NOT* be cancelled or overridden by any other plan since the instance is being deleted
-	if isUninstalling {
+	if isDeleting {
 		Cleanup := kudov1beta1.CleanupPlanName
 		cleanupOverride := oldPlan == Cleanup && newPlan != oldPlan
 		notCleanupScheduled := newPlan != "" && newPlan != Cleanup
@@ -252,31 +250,37 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 		if plan == nil {
 			return nil, fmt.Errorf("failed to update Instance %s/%s: couldn't find any suitable plan that would be triggered by an OperatorVersion upgrade", old.Namespace, old.Name)
 		}
+		log.Printf("InstanceAdmission: instance %s/%s is being upgraded using %s plan", new.Namespace, new.Name, *plan)
 		return plan, nil
 
 	case isParameterUpdate:
 		// if the same plan is triggered by the update, we clean the Instance.Status to effectively restart the plan
+		log.Printf("InstanceAdmission: instance %s/%s, triggering %s plan after parameters has changed", new.Namespace, new.Name, *triggeredPlan)
 		return triggeredPlan, nil
 
 	case isNovelPlan:
+		log.Printf("InstanceAdmission: instance %s/%s, new %s plan is triggered", new.Namespace, new.Name, newPlan)
 		return &newPlan, nil
 
 	case isPlanTerminal:
 		// if current plan is terminal we reset the Instance.PlanExecution field and become ready for the new plan
+		log.Printf("InstanceAdmission: instance %s/%s, %s plan is terminal", new.Namespace, new.Name, newPlan)
 		empty := ""
 		return &empty, nil
 
 	case isPlanRetriggered:
 		// return the existing plan which will lead to a new UID generated and hence the plan will be re-triggered
+		log.Printf("InstanceAdmission: instance %s/%s, %s plan is re-triggered", new.Namespace, new.Name, newPlan)
 		return &newPlan, nil
 
 	default:
 		// effectively nothing changed so it's a noop.
+		log.Printf("InstanceAdmission: instance %s/%s no change in plan execution after the update", new.Namespace, new.Name)
 		return nil, nil
 	}
 }
 
-/// isTerminal returns true if passed plan exists, has the same uid and is terminal
+// isTerminal returns true if passed plan exists, has the same uid and is terminal
 func isTerminal(i *kudov1beta1.Instance, plan string, uid types.UID) bool {
 	status := i.PlanStatus(plan)
 	return status != nil && status.UID == uid && status.Status.IsTerminal()
