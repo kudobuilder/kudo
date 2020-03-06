@@ -100,6 +100,8 @@ func (i *Instance) IsDeleting() bool {
 	return !i.ObjectMeta.DeletionTimestamp.IsZero()
 }
 
+func (i *Instance) HasNoFinalizers() bool { return len(i.GetFinalizers()) == 0 }
+
 // OperatorVersionNamespace returns the namespace of the OperatorVersion that the Instance references.
 func (i *Instance) OperatorVersionNamespace() string {
 	if i.Spec.OperatorVersion.Namespace == "" {
