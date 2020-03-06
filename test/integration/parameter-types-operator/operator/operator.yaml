@@ -1,0 +1,23 @@
+apiVersion: kudo.dev/v1beta1
+name: "operator"
+operatorVersion: "0.1.0"
+kudoVersion: 0.11
+kubernetesVersion: 1.15
+maintainers:
+  - name: Jan Schlicht
+    email: jan@d2iq.com
+tasks:
+  - name: operator
+    kind: Apply
+    spec:
+      resources:
+        - deployment.yaml
+plans:
+  deploy:
+    strategy: serial
+    phases:
+      - name: dependencies
+        steps:
+          - name: operator
+            tasks:
+              - operator

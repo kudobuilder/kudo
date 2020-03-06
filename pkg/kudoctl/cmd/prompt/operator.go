@@ -123,7 +123,7 @@ func validEmail(email string) bool {
 }
 
 // ForParameter prompts to gather information to add an operator parameter
-func ForParameter(planNames []string, paramNameList []string) (*v1beta1.Parameter, error) {
+func ForParameter(planNames []string, paramNameList []string) (*packages.Parameter, error) {
 	nameValid := func(input string) error {
 		if len(input) < 1 {
 			return errors.New("Parameter name must be > than 1 character")
@@ -149,7 +149,7 @@ func ForParameter(planNames []string, paramNameList []string) (*v1beta1.Paramete
 	}
 
 	// building param
-	parameter := v1beta1.Parameter{
+	parameter := packages.Parameter{
 		DisplayName: displayName,
 		Name:        name,
 	}

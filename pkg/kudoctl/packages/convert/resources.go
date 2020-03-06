@@ -1,4 +1,4 @@
-package packages
+package convert
 
 import (
 	"errors"
@@ -6,24 +6,25 @@ import (
 	"log"
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
-func (p *Files) Resources() (*Resources, error) {
-	if p.Operator == nil {
+func FilesToResources(files *packages.Files) (*packages.Resources, error) {
+	if files.Operator == nil {
 		return nil, errors.New("operator.yaml file is missing")
 	}
-	if p.Params == nil {
+	if files.Params == nil {
 		return nil, errors.New("params.yaml file is missing")
 	}
 	var errs []string
-	for _, tt := range p.Operator.Tasks {
-		errs = append(errs, validateTask(tt, p.Templates)...)
+	for _, tt := range files.Operator.Tasks {
+		errs = append(errs, validateTask(tt, files.Templates)...)
 	}
 
 	if len(errs) != 0 {
@@ -33,40 +34,45 @@ func (p *Files) Resources() (*Resources, error) {
 	operator := &v1beta1.Operator{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Operator",
-			APIVersion: APIVersion,
+			APIVersion: packages.APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: p.Operator.Name,
+			Name: files.Operator.Name,
 		},
 		Spec: v1beta1.OperatorSpec{
-			Description:       p.Operator.Description,
-			KudoVersion:       p.Operator.KUDOVersion,
-			KubernetesVersion: p.Operator.KubernetesVersion,
-			Maintainers:       p.Operator.Maintainers,
-			URL:               p.Operator.URL,
+			Description:       files.Operator.Description,
+			KudoVersion:       files.Operator.KUDOVersion,
+			KubernetesVersion: files.Operator.KubernetesVersion,
+			Maintainers:       files.Operator.Maintainers,
+			URL:               files.Operator.URL,
 		},
 		Status: v1beta1.OperatorStatus{},
+	}
+
+	parameters, err := ParametersToCRDType(files.Params.Parameters)
+	if err != nil {
+		return nil, err
 	}
 
 	fv := &v1beta1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "OperatorVersion",
-			APIVersion: APIVersion,
+			APIVersion: packages.APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.OperatorVersion),
+			Name: fmt.Sprintf("%s-%s", files.Operator.Name, files.Operator.OperatorVersion),
 		},
 		Spec: v1beta1.OperatorVersionSpec{
-			Operator: v1.ObjectReference{
-				Name: p.Operator.Name,
+			Operator: corev1.ObjectReference{
+				Name: files.Operator.Name,
 				Kind: "Operator",
 			},
-			AppVersion:     p.Operator.AppVersion,
-			Version:        p.Operator.OperatorVersion,
-			Templates:      p.Templates,
-			Tasks:          p.Operator.Tasks,
-			Parameters:     p.Params.Parameters,
-			Plans:          p.Operator.Plans,
+			AppVersion:     files.Operator.AppVersion,
+			Version:        files.Operator.OperatorVersion,
+			Templates:      files.Templates,
+			Tasks:          files.Operator.Tasks,
+			Parameters:     parameters,
+			Plans:          files.Operator.Plans,
 			UpgradableFrom: nil,
 		},
 		Status: v1beta1.OperatorVersionStatus{},
@@ -75,21 +81,21 @@ func (p *Files) Resources() (*Resources, error) {
 	instance := &v1beta1.Instance{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Instance",
-			APIVersion: APIVersion,
+			APIVersion: packages.APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   fmt.Sprintf("%s-instance", p.Operator.Name),
-			Labels: map[string]string{kudo.OperatorLabel: p.Operator.Name},
+			Name:   fmt.Sprintf("%s-instance", files.Operator.Name),
+			Labels: map[string]string{kudo.OperatorLabel: files.Operator.Name},
 		},
 		Spec: v1beta1.InstanceSpec{
-			OperatorVersion: v1.ObjectReference{
-				Name: fmt.Sprintf("%s-%s", p.Operator.Name, p.Operator.OperatorVersion),
+			OperatorVersion: corev1.ObjectReference{
+				Name: fmt.Sprintf("%s-%s", files.Operator.Name, files.Operator.OperatorVersion),
 			},
 		},
 		Status: v1beta1.InstanceStatus{},
 	}
 
-	return &Resources{
+	return &packages.Resources{
 		Operator:        operator,
 		OperatorVersion: fv,
 		Instance:        instance,

@@ -11,8 +11,8 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
+	"github.com/kudobuilder/kudo/pkg/util/convert"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
-	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 func newTestSimpleK2o() *Client {
@@ -495,11 +495,11 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 		parametersToPatch  map[string]string
 		namespace          string
 	}{
-		{"patch to version", util.String("test-1.1.1"), nil, nil, installNamespace},
-		{"patch adding new parameter", util.String("test-1.1.1"), nil, map[string]string{"param": "value"}, installNamespace},
-		{"patch updating parameter", util.String("test-1.1.1"), map[string]string{"param": "value"}, map[string]string{"param": "value2"}, installNamespace},
+		{"patch to version", convert.StringPtr("test-1.1.1"), nil, nil, installNamespace},
+		{"patch adding new parameter", convert.StringPtr("test-1.1.1"), nil, map[string]string{"param": "value"}, installNamespace},
+		{"patch updating parameter", convert.StringPtr("test-1.1.1"), map[string]string{"param": "value"}, map[string]string{"param": "value2"}, installNamespace},
 		{"do not patch the version", nil, map[string]string{"param": "value"}, map[string]string{"param": "value2"}, installNamespace},
-		{"patch with existing parameter should not override", util.String("1.1.1"), map[string]string{"param": "value"}, map[string]string{"other": "value2"}, installNamespace},
+		{"patch with existing parameter should not override", convert.StringPtr("1.1.1"), map[string]string{"param": "value"}, map[string]string{"other": "value2"}, installNamespace},
 	}
 
 	for _, tt := range tests {
@@ -516,8 +516,8 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 		err = k2o.UpdateInstance(testInstance.Name, installNamespace, tt.patchToVersion, tt.parametersToPatch)
 		instance, _ := k2o.GetInstance(testInstance.Name, installNamespace)
 		if tt.patchToVersion != nil {
-			if err != nil || instance.Spec.OperatorVersion.Name != util.StringValue(tt.patchToVersion) {
-				t.Errorf("%s:\nexpected version: %v\n     got: %v, err: %v", tt.name, util.StringValue(tt.patchToVersion), instance.Spec.OperatorVersion.Name, err)
+			if err != nil || instance.Spec.OperatorVersion.Name != convert.StringValue(tt.patchToVersion) {
+				t.Errorf("%s:\nexpected version: %v\n     got: %v, err: %v", tt.name, convert.StringValue(tt.patchToVersion), instance.Spec.OperatorVersion.Name, err)
 			}
 		} else {
 			if instance.Spec.OperatorVersion.Name != testInstance.Spec.OperatorVersion.Name {

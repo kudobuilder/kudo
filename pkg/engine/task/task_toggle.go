@@ -43,7 +43,13 @@ func (tt ToggleTask) delegateTask(ctx Context) (Tasker, error) {
 	if !exists {
 		return task, fmt.Errorf("no value for parameter %s found", tt.Parameter)
 	}
-	enabled, err := strconv.ParseBool(val)
+
+	stringVal, ok := val.(string)
+	if !ok {
+		return task, fmt.Errorf("value of parameter %s isn't a string", tt.Parameter)
+	}
+
+	enabled, err := strconv.ParseBool(stringVal)
 	if err != nil {
 		return task, fmt.Errorf("could not parse value of parameter %s: %v", tt.Parameter, err)
 	}

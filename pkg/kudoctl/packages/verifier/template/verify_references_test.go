@@ -10,7 +10,7 @@ import (
 )
 
 func TestTemplateReferenceVerifier(t *testing.T) {
-	params := []v1beta1.Parameter{}
+	params := []packages.Parameter{}
 	paramFile := packages.ParamsFile{Parameters: params}
 	templates := make(map[string]string)
 	templates["foo.yaml"] = "does not matter"

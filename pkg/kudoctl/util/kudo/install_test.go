@@ -13,7 +13,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	util "github.com/kudobuilder/kudo/pkg/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
 func Test_InstallPackage(t *testing.T) {
@@ -68,7 +68,7 @@ func Test_InstallPackage(t *testing.T) {
 		skipInstance      bool
 		err               string
 	}{
-		{"all parameters with defaults", []v1beta1.Parameter{{Name: "param", Required: &tv, Default: util.String("aaa")}}, map[string]string{}, false, ""},
+		{"all parameters with defaults", []v1beta1.Parameter{{Name: "param", Required: &tv, Default: convert.StringPtr("aaa")}}, map[string]string{}, false, ""},
 		{"missing parameter provided", []v1beta1.Parameter{{Name: "param", Required: &tv}}, map[string]string{"param": "value"}, false, ""},
 		{"missing parameter", []v1beta1.Parameter{{Name: "param", Required: &tv, Default: nil}}, map[string]string{}, false, "missing required parameters during installation: param"},
 		{"multiple missing parameter", []v1beta1.Parameter{{Name: "param", Required: &tv}, {Name: "param2", Required: &tv}}, map[string]string{}, false, "missing required parameters during installation: param,param2"},

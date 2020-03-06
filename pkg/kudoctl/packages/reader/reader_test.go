@@ -131,7 +131,7 @@ apiVersion: kudo.dev/v1beta1
 parameters:
     - name: example
 `
-	example := []v1beta1.Parameter{{Name: "example"}}
+	example := []packages.Parameter{{Name: "example"}}
 
 	tests := []struct {
 		name       string

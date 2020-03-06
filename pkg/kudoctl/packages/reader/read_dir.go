@@ -9,6 +9,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/convert"
 )
 
 // ReadPackage creates the implementation of the packages based on the path. The expectation is the packages
@@ -32,7 +33,7 @@ func ReadDir(fs afero.Fs, path string) (*packages.Package, error) {
 	}
 
 	// 2. get resources
-	resources, err := files.Resources()
+	resources, err := convert.FilesToResources(files)
 	if err != nil {
 		return nil, fmt.Errorf("while getting package resources: %v", err)
 	}
