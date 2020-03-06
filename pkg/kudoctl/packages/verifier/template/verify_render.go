@@ -3,6 +3,7 @@ package template
 import (
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	packageconvert "github.com/kudobuilder/kudo/pkg/kudoctl/packages/convert"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
@@ -23,7 +24,7 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 
 	params := make(map[string]interface{}, len(pf.Params.Parameters))
 
-	parameters, err := pf.Params.Parameters.ToAPI()
+	parameters, err := packageconvert.ParametersToCRDType(pf.Params.Parameters)
 	if err != nil {
 		res.AddErrors(err.Error())
 		return res

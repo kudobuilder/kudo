@@ -2,7 +2,6 @@ package packages
 
 import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
 const (
@@ -53,30 +52,6 @@ func (p Parameters) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 // This is needed to allow sorting of params.
 func (p Parameters) Less(x, y int) bool {
 	return p[x].Name < p[y].Name
-}
-
-// ToAPI converts parameters to an array of 'Parameter' defined in the KUDO API.
-func (p Parameters) ToAPI() ([]v1beta1.Parameter, error) {
-	result := make([]v1beta1.Parameter, 0, len(p))
-
-	for _, parameter := range p {
-		d, err := convert.WrapParamValue(parameter.Default, parameter.Type)
-		if err != nil {
-			return nil, err
-		}
-
-		result = append(result, v1beta1.Parameter{
-			DisplayName: parameter.DisplayName,
-			Name:        parameter.Name,
-			Description: parameter.Description,
-			Required:    parameter.Required,
-			Default:     d,
-			Trigger:     parameter.Trigger,
-			Type:        parameter.Type,
-		})
-	}
-
-	return result, nil
 }
 
 // Templates is a map of file names and stringified files in the template folder of an operator
