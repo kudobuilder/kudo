@@ -124,6 +124,10 @@ func eventFilter() predicate.Funcs {
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			return !isForPipePod(e)
 		},
+		// It is possible to filter out reconciling Instance.Status updates here by comparing
+		// e.MetaNew.GetGeneration() != e.MetaOld.GetGeneration() for Instance resources. However, there is a pitfall
+		// because a "nested operators" might install Instances and monitor their status. For more infos see:
+		// https://github.com/kudobuilder/kudo/pull/1391
 		UpdateFunc:  func(event.UpdateEvent) bool { return true },
 		GenericFunc: func(event.GenericEvent) bool { return true },
 	}
@@ -273,9 +277,6 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 	// update instance spec and metadata. this will not update Instance.Status field
 	tryRemoveFinalizer(instance)
 
-	// If the cleanup finalizers are removed and we're in deletion, after the update the instance can be cleaned up
-	isInstanceDeleted := instance.IsDeleting() && !funk.Contains(instance.ObjectMeta.Finalizers, instanceCleanupFinalizerName)
-
 	if !reflect.DeepEqual(instance.Spec, oldInstance.Spec) ||
 		!reflect.DeepEqual(instance.ObjectMeta, oldInstance.ObjectMeta) {
 
@@ -292,10 +293,10 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 	// 2. update instance status
 	err := client.Status().Update(context.TODO(), instance)
 	if err != nil {
-		// if k8s GC was fast and managed to removed the instance (after the above Update removed the finalizer), we get  an untyped
-		// "StorageError" telling us that the sub-resource couldn't be modified. We ignore the error (but log it just in case).
-		// historically we checked with a kerrors.IsNotFound() which failed based on the StorageError.   Perhaps this is a k8s bug?
-		if isInstanceDeleted {
+		// if k8s GC was fast and managed to removed the instance (after the above Update removed the finalizer), we might get  an
+		// untyped "StorageError" telling us that the sub-resource couldn't be modified. We ignore the error (but log it just in case).
+		// historically we checked with a kerrors.IsNotFound() which failed based on the StorageError. Perhaps this is a k8s bug?
+		if instance.IsDeleting() && instance.HasNoFinalizers() {
 			log.Printf("InstanceController: failed status update for a deleted Instance %s/%s. (Ignored error: %v)", instance.Namespace, instance.Name, err)
 			return nil
 		}
