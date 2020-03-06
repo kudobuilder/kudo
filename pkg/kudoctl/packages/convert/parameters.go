@@ -1,6 +1,8 @@
 package convert
 
 import (
+	"fmt"
+
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	utilconvert "github.com/kudobuilder/kudo/pkg/util/convert"
@@ -13,7 +15,7 @@ func ParametersToCRDType(parameters packages.Parameters) ([]kudov1beta1.Paramete
 	for _, parameter := range parameters {
 		d, err := utilconvert.WrapParamValue(parameter.Default, parameter.Type)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to convert %s default for parameter '%s': %w", parameter.Type, parameter.Name, err)
 		}
 
 		result = append(result, kudov1beta1.Parameter{

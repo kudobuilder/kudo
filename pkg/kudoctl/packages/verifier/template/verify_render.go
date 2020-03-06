@@ -1,6 +1,8 @@
 package template
 
 import (
+	"fmt"
+
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	packageconvert "github.com/kudobuilder/kudo/pkg/kudoctl/packages/convert"
@@ -33,7 +35,7 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 	for _, p := range parameters {
 		value, err := convert.UnwrapParamValue(p.Default, p.Type)
 		if err != nil {
-			res.AddErrors(err.Error())
+			res.AddErrors(fmt.Sprintf("failed to unwrap %s default for parameter '%s': %v", p.Type, p.Name, err))
 			continue
 		}
 
