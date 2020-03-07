@@ -51,7 +51,7 @@ When updating the structs under [APIs](https://github.com/kudobuilder/kudo/blob/
 #### Running manager locally
 The most convenient way to test new controller code is to run the manager locally. It will use kubernetes cluster defined via your local kubeconfig to talk to API server and resolve CRDs. You can run manager locally via `make run`.
 
-Make sure your local cluster has up to date CRDs. You can deploy new CRDs with `make deploy`. Beware that `make deploy` also deploys manager into your cluster (`kubectl get deployments -n kudo-system`) and it will be the latest stable manager, not the one from your current git. If you plan to run your own manager, just delete the one in your cluster via `kubectl delete deployment kudo-controller-manager -n kudo-system`
+Make sure your local cluster has up to date CRDs. You can deploy new CRDs with `make deploy`. Beware that `make deploy` also deploys manager into your cluster (`kubectl get deployments -n kudo-system`) and it will be the latest stable manager, not the one from your current git. If you plan to run your own manager, just delete the one in your cluster via `kubectl delete statefulset kudo-controller-manager -n kudo-system`
 
 #### Testing new CLI
 You can build CLI locally via `make cli`. After running that command, CLI will be available in `bin/kubectl-kudo` and you can invoke the command for example like this `bin/kubectl-kudo init` (no need to install it as kubectl plugin).
