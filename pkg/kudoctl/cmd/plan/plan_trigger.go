@@ -13,7 +13,7 @@ type TriggerOptions struct {
 	Instance string
 }
 
-// RunHistory runs the plan history command
+// RunTrigger triggers a plan execution
 func RunTrigger(options *TriggerOptions, settings *env.Settings) error {
 	if options.Instance == "" {
 		return errors.New("please choose the instance with '--instance=<instanceName>'")

@@ -145,7 +145,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	// On first attempt, the namespace does not exist, so the error is expected.
 	err = cmd.run()
 	require.Error(t, err)
-	assert.Equal(t, "error installing Namespace integration-test does not exist - KUDO expects that any namespace except the default kudo-system is created beforehand\n", err.Error())
+	assert.Equal(t, "error installing: Namespace integration-test does not exist - KUDO expects that any namespace except the default kudo-system is created beforehand\n", err.Error())
 
 	// Then we manually create the namespace.
 	ns := testutils.NewResource("v1", "Namespace", namespace, "")
@@ -226,7 +226,7 @@ func TestIntegInitWithServiceAccount(t *testing.T) {
 	// Test Case 1, the serviceAccount does not exist, expect serviceAccount not exists error
 	err = cmd.run()
 	require.Error(t, err)
-	assert.Equal(t, "error installing Service Account test-account does not exists - KUDO expects the serviceAccount to be present in the namespace sa-integration-test\n", err.Error())
+	assert.Equal(t, "error installing: Service Account test-account does not exists - KUDO expects the serviceAccount to be present in the namespace sa-integration-test\n", err.Error())
 
 	// Create the serviceAccount, in the default namespace.
 	ns2 := testutils.NewResource("v1", "Namespace", "test-ns", "")
@@ -241,7 +241,7 @@ func TestIntegInitWithServiceAccount(t *testing.T) {
 	cmd.ns = "test-ns"
 	err = cmd.run()
 	require.Error(t, err)
-	assert.Equal(t, "error installing Service Account sa-nonadmin does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace test-ns and to have cluster-admin role\n", err.Error())
+	assert.Equal(t, "error installing: Service Account sa-nonadmin does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace test-ns and to have cluster-admin role\n", err.Error())
 
 	// Test case 3: Run Init command with a serviceAccount that does not have cluster-admin role.
 	cmd.serviceAccount = serviceAccount
@@ -252,7 +252,7 @@ func TestIntegInitWithServiceAccount(t *testing.T) {
 
 	err = cmd.run()
 	require.Error(t, err)
-	assert.Equal(t, "error installing Service Account sa-integration does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test and to have cluster-admin role\n", err.Error())
+	assert.Equal(t, "error installing: Service Account sa-integration does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test and to have cluster-admin role\n", err.Error())
 
 	// Test case 4: Run Init command with a serviceAccount that does not have cluster-admin role.
 	crb2 := testutils.NewClusterRoleBinding("rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "kudo-test2", namespace, serviceAccount, "cluster-temp")
@@ -261,7 +261,7 @@ func TestIntegInitWithServiceAccount(t *testing.T) {
 
 	err = cmd.run()
 	require.Error(t, err)
-	assert.Equal(t, "error installing Service Account sa-integration does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test and to have cluster-admin role\n", err.Error())
+	assert.Equal(t, "error installing: Service Account sa-integration does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test and to have cluster-admin role\n", err.Error())
 
 	// Test case 5: Run Init command with a serviceAccount that is present in the cluster and also has cluster-admin role.
 	crb3 := testutils.NewClusterRoleBinding("rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "kudo-clusterrole-binding", namespace, serviceAccount, "cluster-admin")

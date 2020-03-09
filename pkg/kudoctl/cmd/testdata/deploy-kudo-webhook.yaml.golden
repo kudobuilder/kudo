@@ -623,7 +623,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: kudo-system/kudo-webhook-server-certificate
   creationTimestamp: null
-  name: kudo-manager-instance-validation-webhook-config
+  name: kudo-manager-instance-admission-webhook-config
 webhooks:
 - clientConfig:
     service:

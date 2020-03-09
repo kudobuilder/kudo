@@ -548,11 +548,10 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 		}
 
 		// triggered plan
-		if tt.triggeredPlan != nil {
-			if err != nil {
-				assert.Equal(t, *tt.triggeredPlan, instance.Spec.PlanExecution.PlanName)
-				assert.Check(t, instance.Spec.PlanExecution.UID != "")
-			}
+		if tt.triggeredPlan != nil && err != nil {
+			assert.Equal(t, *tt.triggeredPlan, instance.Spec.PlanExecution.PlanName)
+			assert.Check(t, instance.Spec.PlanExecution.UID != "")
+
 		}
 	}
 }

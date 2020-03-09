@@ -86,7 +86,7 @@ func (i *Instance) ResetPlanStatus(plan string, updatedTimestamp *metav1.Time) e
 
 	// reset plan's phases and steps by setting them to ExecutionPending
 	planStatus.Set(ExecutionPending)
-	// when using webhooks, instance admission webhook already generate an UID for current plan, otherwise, we generate a new one.
+	// when using webhooks, instance admission webhook already generates an UID for current plan, otherwise, we generate a new one.
 	if i.Spec.PlanExecution.UID != "" {
 		planStatus.UID = i.Spec.PlanExecution.UID
 	} else {
