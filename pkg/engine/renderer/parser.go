@@ -12,6 +12,8 @@ import (
 
 // YamlToObject parses a list of runtime.Objects from the provided yaml
 // If the type is not known in the scheme, it tries to parse it as Unstructured
+// We avoid using `bufio.Scanner` or the helper methods in 'apimachiner/pkg/util/yaml' for splitting the input.
+// The YAML input can be too large for the default scan token size used by these packages.
 // TODO(av) could we use something else than a global scheme here? Should we somehow inject it?
 func YamlToObject(yaml string) (objs []runtime.Object, err error) {
 	sepYamlfiles := strings.Split(yaml, "\n---\n")
