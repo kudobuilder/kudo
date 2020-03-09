@@ -33,10 +33,10 @@ type DefaultEnhancer struct {
 func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) (objsToAdd []runtime.Object, err error) {
 	objs := make([]runtime.Object, 0, len(templates))
 
-	for _, v := range templates {
+	for name, v := range templates {
 		parsed, err := YamlToObject(v)
 		if err != nil {
-			return nil, fmt.Errorf("parsing YAML failed: %v", err)
+			return nil, fmt.Errorf("parsing YAML from %s failed: %v", name, err)
 		}
 		for _, obj := range parsed {
 			unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
