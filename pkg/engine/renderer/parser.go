@@ -2,6 +2,7 @@ package renderer
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -32,9 +33,13 @@ func YamlToObject(yaml string) (objs []runtime.Object, err error) {
 			fileBytes := []byte(f)
 			decoder := yamlutil.NewYAMLOrJSONDecoder(bytes.NewBuffer(fileBytes), len(fileBytes))
 			if err = decoder.Decode(unstructuredObj); err != nil {
-				return nil, err
+				return nil, fmt.Errorf("decoding chunk %q failed: %v", fileBytes, err)
 			}
-			objs = append(objs, unstructuredObj)
+
+			// Skip those chunks/documents which (after rendering) consist solely of whitespace or comments.
+			if len(unstructuredObj.UnstructuredContent()) != 0 {
+				objs = append(objs, unstructuredObj)
+			}
 		} else {
 			objs = append(objs, obj)
 		}
