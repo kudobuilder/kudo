@@ -52,7 +52,7 @@ spec:
         - containerPort: 80
         env:
         - name: PARAM_ENV
-          value: 1`)
+          value: "1"`)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "Deployment", obj[0].GetObjectKind().GroupVersionKind().Kind)
