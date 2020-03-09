@@ -26,7 +26,9 @@ spec:
     matchLabels:
       spark/servicemonitor: true`)
 
-	assert.NoError(t, err)
+	if err != nil {
+		t.Errorf("Expecting no error but got %s", err)
+	}
 	assert.Equal(t, 1, len(objects))
 }
 
@@ -52,51 +54,11 @@ spec:
         - containerPort: 80
         env:
         - name: PARAM_ENV
-          value: "1"`)
+          value: 1`)
 
-	assert.NoError(t, err)
+	if err != nil {
+		t.Errorf("Expecting no error but got %s", err)
+	}
+
 	assert.Equal(t, "Deployment", obj[0].GetObjectKind().GroupVersionKind().Kind)
-}
-
-func TestParseKubernetesObjects_InvalidYAML(t *testing.T) {
-	_, err := YamlToObject(`"`)
-	assert.Error(t, err)
-}
-
-func TestParseKubernetesObjects_MoreThanOne(t *testing.T) {
-	objects, err := YamlToObject(`apiVersion: foo
-kind: Foo
-metadata:
-  name: foo1
----
-apiVersion: foo
-kind: Foo
-metadata:
-name: foo2`)
-
-	assert.NoError(t, err)
-	assert.Equal(t, 2, len(objects))
-}
-
-func TestParseKubernetesObjects_EmptyListOfObjects(t *testing.T) {
-	tests := []struct {
-		name string
-		yaml string
-	}{
-		{"empty", ""},
-		{"comment", "#comment"},
-		{"empty line", `
-`},
-		{"empty lines", `
-
-`},
-	}
-	for _, test := range tests {
-		test := test
-		t.Run(test.name, func(t *testing.T) {
-			objects, err := YamlToObject(test.yaml)
-			assert.NoError(t, err)
-			assert.Empty(t, objects)
-		})
-	}
 }

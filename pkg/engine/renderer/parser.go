@@ -2,9 +2,6 @@ package renderer
 
 import (
 	"bytes"
-	"fmt"
-	"io"
-	"io/ioutil"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -17,40 +14,28 @@ import (
 // If the type is not known in the scheme, it tries to parse it as Unstructured
 // TODO(av) could we use something else than a global scheme here? Should we somehow inject it?
 func YamlToObject(yaml string) (objs []runtime.Object, err error) {
-	decode := scheme.Codecs.UniversalDeserializer().Decode
-	// There can be any number of chunks in a YAML file, separated with "\n---".
-	// This "decoder" returns one chunk at a time.
-	docDecoder := yamlutil.NewDocumentDecoder(ioutil.NopCloser(strings.NewReader(yaml)))
-	for {
-		// Prepare slice large enough from the start, rather than do the ErrShortBuffer dance,
-		// since we're reading from an in-memory string already anyway.
-		chunk := make([]byte, len(yaml))
-		n, err := docDecoder.Read(chunk)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, fmt.Errorf("reading from document decoder failed: %v", err)
+	sepYamlfiles := strings.Split(yaml, "\n---\n")
+	for _, f := range sepYamlfiles {
+		if f == "\n" || f == "" {
+			// ignore empty cases
+			continue
 		}
-		// Truncate to what was actually read, to not confuse the consumers with NUL bytes.
-		chunk = chunk[:n]
 
-		obj, _, e := decode(chunk, nil, nil)
+		decode := scheme.Codecs.UniversalDeserializer().Decode
+		obj, _, e := decode([]byte(f), nil, nil)
 
 		if e != nil {
 			// if parsing to scheme known types fails, just try to parse into unstructured
 			unstructuredObj := &unstructured.Unstructured{}
-			decoder := yamlutil.NewYAMLOrJSONDecoder(bytes.NewBuffer(chunk), n)
+			fileBytes := []byte(f)
+			decoder := yamlutil.NewYAMLOrJSONDecoder(bytes.NewBuffer(fileBytes), len(fileBytes))
 			if err = decoder.Decode(unstructuredObj); err != nil {
-				return nil, fmt.Errorf("decoding chunk %q failed: %v", chunk, err)
+				return nil, err
 			}
-			// Skip those chunks/documents which (after rendering) consist solely of whitespace or comments.
-			if len(unstructuredObj.UnstructuredContent()) != 0 {
-				objs = append(objs, unstructuredObj)
-			}
+			objs = append(objs, unstructuredObj)
 		} else {
 			objs = append(objs, obj)
 		}
 	}
-	return objs, nil
+	return
 }
