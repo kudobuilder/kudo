@@ -1,8 +1,6 @@
 package prereq
 
 import (
-	"fmt"
-
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -62,7 +60,7 @@ func (p Initializer) Install(client *kube.Client) error {
 	for _, prereq := range p.prereqs {
 		err := prereq.Install(client)
 		if err != nil {
-			return fmt.Errorf("failed to install: %v", err)
+			return err
 		}
 	}
 	return nil

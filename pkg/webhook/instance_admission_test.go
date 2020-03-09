@@ -3,25 +3,30 @@ package webhook
 import (
 	"log"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
 func TestValidateUpdate(t *testing.T) {
-	// because Go doesn't let us take a pointer of a literal
-	deploy := "deploy"
-	update := "update"
+	deploy := v1beta1.DeployPlanName
+	update := v1beta1.UpdatePlanName
+	cleanup := v1beta1.CleanupPlanName
+	empty := ""
+
+	testUUID := uuid.NewUUID()
 
 	ov := &v1beta1.OperatorVersion{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
 		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.dev/v1beta1"},
 		Spec: v1beta1.OperatorVersionSpec{
-			Plans: map[string]v1beta1.Plan{"deploy": {}, "update": {}},
+			Plans: map[string]v1beta1.Plan{deploy: {}, update: {}, cleanup: {}},
 			Parameters: []v1beta1.Parameter{
 				{
 					Name:    "foo",
@@ -60,10 +65,17 @@ func TestValidateUpdate(t *testing.T) {
 	}
 
 	scheduled := idle.DeepCopy()
-	scheduled.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: deploy}
+	scheduled.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: deploy, UID: testUUID}
 
 	upgraded := idle.DeepCopy()
 	upgraded.Spec.OperatorVersion = v1.ObjectReference{Name: "foo-operator-2.0"}
+
+	deleted := scheduled.DeepCopy()
+	deleted.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)}
+	deleted.ObjectMeta.Finalizers = []string{"kudo.dev.instance.cleanup"}
+
+	uninstalling := deleted.DeepCopy()
+	uninstalling.Spec.PlanExecution.PlanName = cleanup
 
 	tests := []struct {
 		name    string
@@ -74,13 +86,13 @@ func TestValidateUpdate(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "no change is a noop",
+			name: "no change is a NOOP",
 			old:  idle,
 			new:  idle,
 			ov:   ov,
 		},
 		{
-			name: "change in labels does not trigger a plan",
+			name: "change in labels does NOT trigger a plan",
 			old:  scheduled,
 			new: func() *v1beta1.Instance {
 				i := scheduled.DeepCopy()
@@ -100,16 +112,94 @@ func TestValidateUpdate(t *testing.T) {
 		{
 			name: "triggering the same plan directly IS allowed",
 			old:  scheduled,
-			new:  scheduled,
+			new: func() *v1beta1.Instance {
+				i := scheduled.DeepCopy()
+				i.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: deploy, UID: "foo"} // a UID change will result in the same plan re-triggered
+				return i
+			}(),
 			ov:   ov,
-			want: nil,
+			want: &deploy,
 		},
 		{
 			name: "overriding an existing plan directly is NOT allowed",
 			old:  scheduled,
 			new: func() *v1beta1.Instance {
 				i := scheduled.DeepCopy()
-				i.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: "update"}
+				i.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: update}
+				return i
+			}(),
+			ov:      ov,
+			wantErr: true,
+		},
+		{
+			name: "cleanup plan CAN override an existing plan directly if the instance is being deleted",
+			old:  deleted,
+			new:  uninstalling,
+			ov:   ov,
+		},
+		{
+			name: "cleanup plan CAN NOT be overridden by any other plan if the instance is being deleted",
+			old:  uninstalling,
+			new: func() *v1beta1.Instance {
+				i := uninstalling.DeepCopy()
+				i.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: deploy}
+				return i
+			}(),
+			ov:      ov,
+			wantErr: true,
+		},
+		{
+			name: "cleanup plan CAN NOT be cancelled when the instance is being deleted",
+			old:  uninstalling,
+			new: func() *v1beta1.Instance {
+				i := uninstalling.DeepCopy()
+				i.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: ""}
+				return i
+			}(),
+			ov:      ov,
+			wantErr: true,
+		},
+		{
+			name: "plan execution IS reset when the plan is terminal",
+			old:  scheduled,
+			new: func() *v1beta1.Instance {
+				i := scheduled.DeepCopy()
+				i.Status.PlanStatus = map[string]v1beta1.PlanStatus{
+					deploy: {Name: deploy, UID: testUUID, Status: v1beta1.ExecutionComplete},
+				}
+				return i
+			}(),
+			ov:   ov,
+			want: &empty,
+		},
+		{
+			name: "cleanup plan CAN NOT be triggered directly by the user",
+			old:  idle,
+			new: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: cleanup}
+				return i
+			}(),
+			ov:      ov,
+			wantErr: true,
+		},
+		{
+			name: "updates are NOT allowed when the instance is being deleted",
+			old:  deleted,
+			new: func() *v1beta1.Instance {
+				i := deleted.DeepCopy()
+				i.Spec.Parameters = map[string]string{"foo": "newFoo"}
+				return i
+			}(),
+			ov:      ov,
+			wantErr: true,
+		},
+		{
+			name: "upgrades are NOT allowed when the instance is being deleted",
+			old:  deleted,
+			new: func() *v1beta1.Instance {
+				i := deleted.DeepCopy()
+				i.Spec.OperatorVersion = v1.ObjectReference{Name: "foo-operator-2.0"}
 				return i
 			}(),
 			ov:      ov,
@@ -209,7 +299,7 @@ func TestValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "parameter update triggering a non-existing ov plan IS allowed but will NOT trigger a plan",
+			name: "parameter update triggering a non-existing OV plan IS allowed but will NOT trigger a plan",
 			old:  idle,
 			new: func() *v1beta1.Instance {
 				i := idle.DeepCopy()
@@ -251,17 +341,6 @@ func TestValidateUpdate(t *testing.T) {
 			new: func() *v1beta1.Instance {
 				i := scheduled.DeepCopy()
 				i.Spec.Parameters = map[string]string{"foo": "newFoo"}
-				return i
-			}(),
-			ov:      ov,
-			wantErr: true,
-		},
-		{
-			name: "parameter update together with a directly triggered plan IS NOT allowed if different plans are triggered",
-			old:  idle,
-			new: func() *v1beta1.Instance {
-				i := scheduled.DeepCopy()
-				i.Spec.Parameters["bar"] = "newBar"
 				return i
 			}(),
 			ov:      ov,

@@ -88,3 +88,77 @@ ok      github.com/kudobuilder/kudo/pkg/kudoctl/cmd     0.048s [no tests to run]
 ```
 
 This will update all golden files.   There is no fear in updating the entire project as any change resulting in a golden file test failure would need to be updated regardless.
+
+
+## How to setup a webhook locally
+
+Some KUDO features (like triggering plans manually) require the controller to run with enabled webhooks (`ENABLE_WEBHOOKS=true`) It is also common to simply `make run` the controller in the console for local development. However, since the API server running, in most cases inside the minikube, has be able to send POST requests to the webhook, this setup doesn't work out of the box. 
+
+Here what you need to make this setup work:
+
+1. First of all the webhook needs tls.crt and tls.key files in /tmp/cert to start. You can use openssl to generate them:
+```shell script
+ ❯ openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out /tmp/cert/tls.crt -keyout /tmp/cert/tls.key
+```
+
+2. Install ngrok: https://ngrok.com/ and run a local tunnel on the port 443 which will give you an url to your local machine:
+```shell script
+ ❯ ngrok http 443
+  ...
+  Forwarding                    https://ff6b2dd5.ngrok.io -> https://localhost:443
+```
+
+3. Set webhooks[].clientConfig.url to the url of the above tunnel and apply/edit webhook configuration to the cluster:
+```yaml
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: kudo-manager-instance-admission-webhook-config
+webhooks:
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    url: https://ff6b2dd5.ngrok.io/admit-kudo-dev-v1beta1-instance
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: instance-admission.kudo.dev
+  namespaceSelector: {}
+  objectSelector: {}
+  reinvocationPolicy: Never
+  rules:
+  - apiGroups:
+    - kudo.dev
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - instances
+    scope: Namespaced
+  sideEffects: None
+  timeoutSeconds: 30
+---
+```
+
+The difference between this one and the one generate by the `kudo init --webhook=InstanceValidation` command, (see this [method](pkg/kudoctl/kudoinit/prereq/webhook.go:163) for more information) is the usage of `webhooks[].clientConfig.url` (which points to our ngrok-tunnel) instead of `webhooks[].clientConfig.Service`.
+
+4. Finally you can run local manager with the webhook enabled:
+```shell script
+ ❯ ENABLE_WEBHOOKS=true make run
+```
+
+and if everything was setup correctly the log should show:
+```text
+...
+ ⌛ Setting up webhooks
+ ✅ Instance admission webhook
+ 🏄 Done! Everything is setup, starting KUDO manager now
+```
+
+5. Test the webhook with:
+```shell script
+ ❯ curl -X POST https://ff6b2dd5.ngrok.io/admit-kudo-dev-v1beta1-instance
+{"response":{"uid":"","allowed":false,"status":{"metadata":{},"message":"contentType=, expected application/json","code":400}}}
+```

@@ -11,6 +11,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/discovery"
 
 	// Import Kubernetes authentication providers to support GKE, etc.
@@ -174,16 +175,25 @@ func (c *Client) GetOperatorVersion(name, namespace string) (*v1beta1.OperatorVe
 }
 
 // UpdateInstance updates operatorversion on instance
-func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersionName *string, parameters map[string]string) error {
+func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersion *string, parameters map[string]string, triggeredPlan *string) error {
 	instanceSpec := v1beta1.InstanceSpec{}
-	if operatorVersionName != nil {
+	// 1. new OperatorVersion
+	if operatorVersion != nil {
 		instanceSpec.OperatorVersion = v1core.ObjectReference{
-			Name: convert.StringValue(operatorVersionName),
+			Name: convert.StringValue(operatorVersion),
 		}
 	}
+	// 2. new/updated parameters
 	if parameters != nil {
 		instanceSpec.Parameters = parameters
 	}
+	// 3. new/updated execution plan
+	if triggeredPlan != nil {
+		instanceSpec.PlanExecution.PlanName = *triggeredPlan
+		instanceSpec.PlanExecution.UID = uuid.NewUUID() // we need to generate a new UID for KUDO manager to detect a new plan
+	}
+
+	// 4. create new instance object and patch the existing one
 	serializedPatch, err := json.Marshal(struct {
 		Spec *v1beta1.InstanceSpec `json:"spec"`
 	}{

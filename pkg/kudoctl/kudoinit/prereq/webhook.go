@@ -59,7 +59,7 @@ func (k kudoWebHook) Install(client *kube.Client) error {
 	if err := installUnstructured(client.DynamicClient, certificate(k.opts.Namespace)); err != nil {
 		return err
 	}
-	if err := installAdmissionWebhook(client.KubeClient.AdmissionregistrationV1beta1(), instanceUpdateValidatingWebhook(k.opts.Namespace)); err != nil {
+	if err := installAdmissionWebhook(client.KubeClient.AdmissionregistrationV1beta1(), instanceAdmissionWebhook(k.opts.Namespace)); err != nil {
 		return err
 	}
 	return nil
@@ -79,7 +79,7 @@ func (k kudoWebHook) AsRuntimeObjs() []runtime.Object {
 		return make([]runtime.Object, 0)
 	}
 
-	av := instanceUpdateValidatingWebhook(k.opts.Namespace)
+	av := instanceAdmissionWebhook(k.opts.Namespace)
 	cert := certificate(k.opts.Namespace)
 	objs := []runtime.Object{&av}
 	for _, c := range cert {
@@ -145,14 +145,14 @@ func installUnstructured(dynamicClient dynamic.Interface, items []unstructured.U
 		if kerrors.IsAlreadyExists(err) {
 			clog.V(4).Printf("resource %s already registered", obj.GetName())
 		} else if err != nil {
-			return fmt.Errorf("Error when creating resource %s/%s. %v", obj.GetName(), obj.GetNamespace(), err)
+			return fmt.Errorf("failed to create resource %s/%s: %v", obj.GetName(), obj.GetNamespace(), err)
 		}
 	}
 	return nil
 }
 
-func installAdmissionWebhook(client clientv1beta1.ValidatingWebhookConfigurationsGetter, webhook admissionv1beta1.ValidatingWebhookConfiguration) error {
-	_, err := client.ValidatingWebhookConfigurations().Create(&webhook)
+func installAdmissionWebhook(client clientv1beta1.MutatingWebhookConfigurationsGetter, webhook admissionv1beta1.MutatingWebhookConfiguration) error {
+	_, err := client.MutatingWebhookConfigurations().Create(&webhook)
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("admission webhook %v already registered", webhook.Name)
 		return nil
@@ -160,25 +160,25 @@ func installAdmissionWebhook(client clientv1beta1.ValidatingWebhookConfiguration
 	return err
 }
 
-func instanceUpdateValidatingWebhook(ns string) admissionv1beta1.ValidatingWebhookConfiguration {
+func instanceAdmissionWebhook(ns string) admissionv1beta1.MutatingWebhookConfiguration {
 	namespacedScope := admissionv1beta1.NamespacedScope
 	failedType := admissionv1beta1.Fail
 	equivalentType := admissionv1beta1.Equivalent
 	noSideEffects := admissionv1beta1.SideEffectClassNone
-	return admissionv1beta1.ValidatingWebhookConfiguration{
+	return admissionv1beta1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "kudo-manager-instance-validation-webhook-config",
+			Name: "kudo-manager-instance-admission-webhook-config",
 			Annotations: map[string]string{
 				"cert-manager.io/inject-ca-from": fmt.Sprintf("%s/kudo-webhook-server-certificate", ns),
 			},
 		},
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "ValidatingWebhookConfiguration",
+			Kind:       "MutatingWebhookConfiguration",
 			APIVersion: "admissionregistration.k8s.io/v1beta1",
 		},
-		Webhooks: []admissionv1beta1.ValidatingWebhook{
+		Webhooks: []admissionv1beta1.MutatingWebhook{
 			{
-				Name: "instance-validation.kudo.dev",
+				Name: "instance-admission.kudo.dev",
 				Rules: []admissionv1beta1.RuleWithOperations{
 					{
 						Operations: []admissionv1beta1.OperationType{"CREATE", "UPDATE"},
@@ -197,7 +197,7 @@ func instanceUpdateValidatingWebhook(ns string) admissionv1beta1.ValidatingWebho
 					Service: &admissionv1beta1.ServiceReference{
 						Name:      "kudo-controller-manager-service",
 						Namespace: ns,
-						Path:      convert.StringPtr("/validate-kudo-dev-v1beta1-instance"),
+						Path:      convert.StringPtr("/admit-kudo-dev-v1beta1-instance"),
 					},
 				},
 			},
