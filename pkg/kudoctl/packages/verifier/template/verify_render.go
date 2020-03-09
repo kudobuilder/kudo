@@ -58,13 +58,13 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 		// Render the template
 		s, err := engine.Render(k, v, configs)
 		if err != nil {
-			res.AddErrors(err.Error())
+			res.AddErrors(fmt.Sprintf("rendering template %s failed: %v", k, err))
 		}
 
 		// Try to parse rendered template as valid Kubernetes objects
 		_, err = renderer.YamlToObject(s)
 		if err != nil {
-			res.AddErrors(err.Error())
+			res.AddErrors(fmt.Sprintf("parsing rendered YAML from %s failed: %v", k, err))
 		}
 	}
 
