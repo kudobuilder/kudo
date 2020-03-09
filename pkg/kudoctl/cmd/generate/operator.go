@@ -76,7 +76,7 @@ func Operator(fs afero.Fs, dir string, op *packages.OperatorFile, overwrite bool
 	// if params doesn't exist create it
 	p := packages.ParamsFile{
 		APIVersion: reader.APIVersion,
-		Parameters: []v1beta1.Parameter{},
+		Parameters: []packages.Parameter{},
 	}
 	return writeParameters(fs, dir, p)
 }

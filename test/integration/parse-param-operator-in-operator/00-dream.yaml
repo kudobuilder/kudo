@@ -41,9 +41,9 @@ spec:
         resources:
           - operator.yaml
   parameters:
-    - name: Param
-      description: "Sample parameter"
-      default: "dream-in-a-dream"
+    - name: REPLICAS
+      description: "Number of replicas"
+      default: "3"
   plans:
     deploy:
       strategy: serial

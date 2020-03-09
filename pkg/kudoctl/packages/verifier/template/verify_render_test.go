@@ -10,7 +10,7 @@ import (
 )
 
 func TestTemplateRenderVerifier(t *testing.T) {
-	params := make([]v1beta1.Parameter, 0)
+	params := make([]packages.Parameter, 0)
 	paramFile := packages.ParamsFile{Parameters: params}
 	templates := make(map[string]string)
 	templates["foo.yaml"] = `
@@ -32,7 +32,7 @@ func TestTemplateRenderVerifier(t *testing.T) {
 }
 
 func TestTemplateRenderVerifier_InvalidYAML(t *testing.T) {
-	params := make([]v1beta1.Parameter, 0)
+	params := make([]packages.Parameter, 0)
 	paramFile := packages.ParamsFile{Parameters: params}
 	templates := make(map[string]string)
 	templates["foo.yaml"] = `
@@ -61,4 +61,50 @@ spec:
 	assert.Equal(t,
 		`decoding chunk "\napiVersion: batch/v1\nkind: Job\nmetadata:\n  name: backup\nspec:\n  template:\n    spec:\n      containers:\n        - name: backup\n`+
 			`       restartPolicy: Never\n" failed: error converting YAML to JSON: yaml: line 10: did not find expected key`, res.Errors[0])
+}
+
+func TestTemplateRenderVerifierParameterTypes(t *testing.T) {
+	params := []packages.Parameter{
+		packages.Parameter{
+			Name:    "labels",
+			Default: map[string]string{"a": "a", "b": "b"},
+			Type:    v1beta1.MapValueType,
+		},
+		packages.Parameter{
+			Name:    "containers",
+			Default: []string{"a", "b"},
+			Type:    v1beta1.ArrayValueType,
+		},
+	}
+	paramFile := packages.ParamsFile{Parameters: params}
+	templates := make(map[string]string)
+	templates["foo.yaml"] = `
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backup
+  labels:
+  {{ range $key, $value := .Params.labels }}
+    {{ $key }}: {{ $value }}
+  {{ end }}
+spec:
+  template:
+    spec:
+      containers:
+        {{ range .Params.containers }}
+        - name: {{ . }}
+          restartPolicy: Never
+        {{ end }}
+`
+	operator := packages.OperatorFile{}
+	pf := packages.Files{
+		Templates: templates,
+		Operator:  &operator,
+		Params:    &paramFile,
+	}
+	verifier := RenderVerifier{}
+	res := verifier.Verify(&pf)
+
+	assert.Equal(t, 0, len(res.Warnings))
+	assert.Equal(t, 0, len(res.Errors))
 }

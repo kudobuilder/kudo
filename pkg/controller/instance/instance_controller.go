@@ -52,7 +52,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/engine/workflow"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
 // Reconciler reconciles an Instance object.
@@ -120,6 +120,10 @@ func eventFilter() predicate.Funcs {
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			return !isForPipePod(e)
 		},
+		// It is possible to filter out reconciling Instance.Status updates here by comparing
+		// e.MetaNew.GetGeneration() != e.MetaOld.GetGeneration() for Instance resources. However, there is a pitfall
+		// because a "nested operators" might install Instances and monitor their status. For more infos see:
+		// https://github.com/kudobuilder/kudo/pull/1391
 		UpdateFunc:  func(event.UpdateEvent) bool { return true },
 		GenericFunc: func(event.GenericEvent) bool { return true },
 	}
@@ -202,12 +206,12 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	}
 
 	if newExecutionPlan != nil {
-		log.Printf("InstanceController: Going to start execution of plan '%s' on instance %s/%s", kudo.StringValue(newExecutionPlan), instance.Namespace, instance.Name)
-		err = startPlanExecution(instance, kudo.StringValue(newExecutionPlan), ov)
+		log.Printf("InstanceController: Going to start execution of plan '%s' on instance %s/%s", convert.StringValue(newExecutionPlan), instance.Namespace, instance.Name)
+		err = startPlanExecution(instance, convert.StringValue(newExecutionPlan), ov)
 		if err != nil {
 			return reconcile.Result{}, r.handleError(err, instance, oldInstance)
 		}
-		r.Recorder.Event(instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", kudo.StringValue(newExecutionPlan)))
+		r.Recorder.Event(instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", convert.StringValue(newExecutionPlan)))
 	}
 
 	// ---------- 4. If there's currently active plan, continue with the execution ----------
@@ -270,9 +274,6 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 	// update instance spec and metadata. this will not update Instance.Status field
 	instance.TryRemoveFinalizer()
 
-	// If the cleanup finalizers are removed and we're in deletion, after the update the instance can be cleaned up
-	isInstanceDeleted := instance.IsDeleting() && !instance.HasCleanupFinalizer()
-
 	if !reflect.DeepEqual(instance.Spec, oldInstance.Spec) ||
 		!reflect.DeepEqual(instance.ObjectMeta, oldInstance.ObjectMeta) {
 
@@ -289,10 +290,10 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 	// 2. update instance status
 	err := client.Status().Update(context.TODO(), instance)
 	if err != nil {
-		// if k8s GC was fast and managed to removed the instance (after the above Update removed the finalizer), we get  an untyped
-		// "StorageError" telling us that the sub-resource couldn't be modified. We ignore the error (but log it just in case).
-		// historically we checked with a kerrors.IsNotFound() which failed based on the StorageError.   Perhaps this is a k8s bug?
-		if isInstanceDeleted {
+		// if k8s GC was fast and managed to removed the instance (after the above Update removed the finalizer), we might get  an
+		// untyped "StorageError" telling us that the sub-resource couldn't be modified. We ignore the error (but log it just in case).
+		// historically we checked with a kerrors.IsNotFound() which failed based on the StorageError. Perhaps this is a k8s bug?
+		if instance.IsDeleting() && instance.HasNoFinalizers() {
 			log.Printf("InstanceController: failed status update for a deleted Instance %s/%s. (Ignored error: %v)", instance.Namespace, instance.Name, err)
 			return nil
 		}
@@ -309,7 +310,11 @@ func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.Operat
 		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not find required plan: '%v'", engine.ErrFatalExecution, activePlanStatus.Name), EventName: "InvalidPlan"}
 	}
 
-	params := paramsMap(instance, ov)
+	params, err := paramsMap(instance, ov)
+	if err != nil {
+		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not parse parameters: %v", engine.ErrFatalExecution, err), EventName: "InvalidParams"}
+	}
+
 	pipes, err := pipesMap(activePlanStatus.Name, &planSpec, ov.Spec.Tasks, meta)
 	if err != nil {
 		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not make task pipes: %v", engine.ErrFatalExecution, err), EventName: "InvalidPlan"}
@@ -353,7 +358,7 @@ func (r *Reconciler) handleError(err error, instance *kudov1beta1.Instance, oldI
 	var iError *kudov1beta1.InstanceError
 	if errors.As(err, &iError) {
 		if iError.EventName != nil {
-			r.Recorder.Event(instance, "Warning", kudo.StringValue(iError.EventName), err.Error())
+			r.Recorder.Event(instance, "Warning", convert.StringValue(iError.EventName), err.Error())
 		}
 	}
 	return err
@@ -389,21 +394,27 @@ func GetOperatorVersion(instance *kudov1beta1.Instance, c client.Reader) (ov *ku
 }
 
 // paramsMap generates {{ Params.* }} map of keys and values which is later used during template rendering.
-func paramsMap(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.OperatorVersion) map[string]string {
-	params := make(map[string]string)
+func paramsMap(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.OperatorVersion) (map[string]interface{}, error) {
+	params := make(map[string]interface{}, len(operatorVersion.Spec.Parameters))
 
-	for k, v := range instance.Spec.Parameters {
-		params[k] = v
-	}
-
-	// Merge instance parameter overrides with operator version, if no override exist, use the default one
 	for _, param := range operatorVersion.Spec.Parameters {
-		if _, ok := params[param.Name]; !ok {
-			params[param.Name] = kudo.StringValue(param.Default)
+		var value *string
+
+		if v, ok := instance.Spec.Parameters[param.Name]; ok {
+			value = &v
+		} else {
+			value = param.Default
+		}
+
+		var err error
+
+		params[param.Name], err = convert.UnwrapParamValue(value, param.Type)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	return params
+	return params, nil
 }
 
 // pipesMap generates {{ Pipes.* }} map of keys and values which is later used during template rendering.
@@ -454,7 +465,7 @@ func startPlanExecution(i *v1beta1.Instance, planName string, ov *v1beta1.Operat
 
 	// reset newly starting plan status
 	if err := i.ResetPlanStatus(planName, &metav1.Time{Time: time.Now()}); err != nil {
-		return &v1beta1.InstanceError{Err: fmt.Errorf("failed to reset plan status for instance %s/%s: %v", i.Namespace, i.Name, err), EventName: kudo.String("PlanNotFound")}
+		return &v1beta1.InstanceError{Err: fmt.Errorf("failed to reset plan status for instance %s/%s: %v", i.Namespace, i.Name, err), EventName: convert.StringPtr("PlanNotFound")}
 	}
 
 	err := i.AnnotateSnapshot()
@@ -554,11 +565,11 @@ func newExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*string
 	var err error
 	if areWebhooksEnabled() {
 		if plan, err = fetchNewExecutionPlan(i, ov); plan != nil && err == nil {
-			log.Printf("InstanceController: Fetched new execution plan '%s' from the spec for instance %s/%s", kudo.StringValue(plan), i.Namespace, i.Name)
+			log.Printf("InstanceController: Fetched new execution plan '%s' from the spec for instance %s/%s", convert.StringValue(plan), i.Namespace, i.Name)
 		}
 	} else {
 		if plan, err = inferNewExecutionPlan(i, ov); plan != nil && err == nil {
-			log.Printf("InstanceController: Inferred new execution plan '%s' from instance %s/%s state", kudo.StringValue(plan), i.Namespace, i.Name)
+			log.Printf("InstanceController: Inferred new execution plan '%s' from instance %s/%s state", convert.StringValue(plan), i.Namespace, i.Name)
 		}
 	}
 
@@ -572,7 +583,7 @@ func newExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*string
 func fetchNewExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*string, error) {
 	snapshot, err := i.SnapshotSpec()
 	if err != nil {
-		return nil, &v1beta1.InstanceError{Err: fmt.Errorf("failed to unmarshal instance snapshot %s/%s: %v", i.Namespace, i.Name, err), EventName: kudo.String("UnexpectedState")}
+		return nil, &v1beta1.InstanceError{Err: fmt.Errorf("failed to unmarshal instance snapshot %s/%s: %v", i.Namespace, i.Name, err), EventName: convert.StringPtr("UnexpectedState")}
 	}
 
 	// Instance deletion is an edge case where the admission webhook *can not* populate the Spec.PlanExecution.PlanName
@@ -644,7 +655,7 @@ func inferNewExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*s
 
 	// new instance, need to run deploy plan
 	if i.NoPlanEverExecuted() {
-		return kudo.String(v1beta1.DeployPlanName), nil
+		return convert.StringPtr(v1beta1.DeployPlanName), nil
 	}
 
 	// did the instance change so that we need to run deploy/upgrade/update plan?
@@ -654,7 +665,7 @@ func inferNewExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*s
 	}
 	if instanceSnapshot == nil {
 		// we don't have snapshot -> we never run deploy, also we cannot run update/upgrade. This should never happen
-		return nil, &v1beta1.InstanceError{Err: fmt.Errorf("unexpected state: no plan is running, no snapshot present - this should never happen :) for instance %s/%s", i.Namespace, i.Name), EventName: kudo.String("UnexpectedState")}
+		return nil, &v1beta1.InstanceError{Err: fmt.Errorf("unexpected state: no plan is running, no snapshot present - this should never happen :) for instance %s/%s", i.Namespace, i.Name), EventName: convert.StringPtr("UnexpectedState")}
 	}
 	if instanceSnapshot.OperatorVersion.Name != i.Spec.OperatorVersion.Name {
 		// this instance was upgraded to newer version
@@ -662,7 +673,7 @@ func inferNewExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*s
 		plan := kudov1beta1.SelectPlan([]string{v1beta1.UpgradePlanName, v1beta1.UpdatePlanName, v1beta1.DeployPlanName}, ov)
 		if plan == nil {
 			return nil, &v1beta1.InstanceError{Err: fmt.Errorf("supposed to execute plan because instance %s/%s was upgraded but none of the deploy, upgrade, update plans found in linked operatorVersion", i.Namespace, i.Name),
-				EventName: kudo.String("PlanNotFound")}
+				EventName: convert.StringPtr("PlanNotFound")}
 		}
 		return plan, nil
 	}
@@ -674,7 +685,7 @@ func inferNewExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*s
 		paramDefinitions := kudov1beta1.GetParamDefinitions(paramDiff, ov)
 		plan, err := planNameFromParameters(paramDefinitions, ov)
 		if err != nil {
-			return nil, &v1beta1.InstanceError{Err: fmt.Errorf("supposed to execute plan because instance %s/%s was updated but no valid plan found: %v", i.Namespace, i.Name, err), EventName: kudo.String("PlanNotFound")}
+			return nil, &v1beta1.InstanceError{Err: fmt.Errorf("supposed to execute plan because instance %s/%s was updated but no valid plan found: %v", i.Namespace, i.Name, err), EventName: convert.StringPtr("PlanNotFound")}
 		}
 		return plan, nil
 	}
@@ -687,7 +698,7 @@ func planNameFromParameters(params []v1beta1.Parameter, ov *v1beta1.OperatorVers
 	for _, p := range params {
 		if p.Trigger != "" {
 			if kudov1beta1.SelectPlan([]string{p.Trigger}, ov) != nil {
-				return kudo.String(p.Trigger), nil
+				return convert.StringPtr(p.Trigger), nil
 			}
 			return nil, fmt.Errorf("param %s defined trigger plan %s, but plan not defined in operatorversion", p.Name, p.Trigger)
 		}

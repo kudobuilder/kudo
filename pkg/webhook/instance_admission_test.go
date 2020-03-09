@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
 func TestValidateUpdate(t *testing.T) {
@@ -377,7 +377,7 @@ func Test_triggeredPlan(t *testing.T) {
 			Parameters: []v1beta1.Parameter{
 				{
 					Name:    "param",
-					Default: kudo.String("default"),
+					Default: convert.StringPtr("default"),
 				},
 			},
 		},

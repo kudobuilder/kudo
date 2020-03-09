@@ -8,8 +8,6 @@ import (
 	"github.com/thoas/go-funk"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
-
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 const (
@@ -112,6 +110,8 @@ func (i *Instance) IsDeleting() bool {
 	// see https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
 	return !i.ObjectMeta.DeletionTimestamp.IsZero()
 }
+
+func (i *Instance) HasNoFinalizers() bool { return len(i.GetFinalizers()) == 0 }
 
 // OperatorVersionNamespace returns the namespace of the OperatorVersion that the Instance references.
 func (i *Instance) OperatorVersionNamespace() string {
@@ -263,9 +263,9 @@ func PlanExists(plan string, ov *OperatorVersion) bool {
 
 // SelectPlan returns nil if none of the plan exists, otherwise the first one in list that exists
 func SelectPlan(possiblePlans []string, ov *OperatorVersion) *string {
-	for _, n := range possiblePlans {
-		if _, ok := ov.Spec.Plans[n]; ok {
-			return kudo.String(n)
+	for _, plan := range possiblePlans {
+		if _, ok := ov.Spec.Plans[plan]; ok {
+			return &plan
 		}
 	}
 	return nil

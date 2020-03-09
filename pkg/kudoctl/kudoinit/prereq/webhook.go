@@ -19,7 +19,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
 // Ensure IF is implemented
@@ -197,7 +197,7 @@ func instanceAdmissionWebhook(ns string) admissionv1beta1.MutatingWebhookConfigu
 					Service: &admissionv1beta1.ServiceReference{
 						Name:      "kudo-controller-manager-service",
 						Namespace: ns,
-						Path:      kudo.String("/admit-kudo-dev-v1beta1-instance"),
+						Path:      convert.StringPtr("/admit-kudo-dev-v1beta1-instance"),
 					},
 				},
 			},

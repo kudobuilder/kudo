@@ -75,20 +75,19 @@ go run ./cmd/kubectl-kudo test --start-control-plane=false --skip-delete
 ```
 ### Update golden files of the directory testdata
 
-You can update golden files per each test by running `make update-golden-${test-name}`
+You can update golden files across the project by running `make update-golden`
 
 Examples:
 ```
-make update-golden-TestInitCmd_dry
-make update-golden-TestParamsList
+make update-golden
 ```
 
-Running a non-existing test would return a 
+Running a non-existing test would return a
 ```
 ok      github.com/kudobuilder/kudo/pkg/kudoctl/cmd     0.048s [no tests to run]
 ```
 
-Currently we don't allow to update all golden files through a single `Makefile` target in one go.
+This will update all golden files.   There is no fear in updating the entire project as any change resulting in a golden file test failure would need to be updated regardless.
 
 
 ## How to setup a webhook locally

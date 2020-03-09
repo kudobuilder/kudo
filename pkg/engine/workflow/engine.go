@@ -30,7 +30,7 @@ type ActivePlan struct {
 	Spec      *v1beta1.Plan
 	Tasks     []v1beta1.Task
 	Templates map[string]string
-	Params    map[string]string
+	Params    map[string]interface{}
 	Pipes     map[string]string
 }
 

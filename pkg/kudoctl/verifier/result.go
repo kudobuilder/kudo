@@ -6,8 +6,6 @@ import (
 	"io"
 
 	"github.com/gosuri/uitable"
-
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 // Result holds the errors and warnings of a package verification
@@ -43,13 +41,13 @@ func (vr *Result) AddErrors(err ...string) { vr.Errors = append(vr.Errors, err..
 func (vr *Result) AddWarnings(wrn ...string) { vr.Warnings = append(vr.Warnings, wrn...) }
 
 // AddParamError adds a formatted error string for a package parameter error
-func (vr *Result) AddParamError(param v1beta1.Parameter, reason string) {
-	vr.AddErrors(fmt.Sprintf("parameter %q %s", param.Name, reason))
+func (vr *Result) AddParamError(paramName string, reason string) {
+	vr.AddErrors(fmt.Sprintf("parameter %q %s", paramName, reason))
 }
 
 // AddParamWarning adds a formatted warning string for a package parameter error
-func (vr *Result) AddParamWarning(param v1beta1.Parameter, reason string) {
-	vr.AddWarnings(fmt.Sprintf("parameter %q %s", param.Name, reason))
+func (vr *Result) AddParamWarning(paramName string, reason string) {
+	vr.AddWarnings(fmt.Sprintf("parameter %q %s", paramName, reason))
 }
 
 // Merge method merges the errors and warnings from two verification results

@@ -30,6 +30,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/test/utils"
+	"github.com/kudobuilder/kudo/pkg/util/convert"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
@@ -84,7 +85,7 @@ func TestRestartController(t *testing.T) {
 			Parameters: []v1beta1.Parameter{
 				{
 					Name:    "param",
-					Default: kudo.String("default"),
+					Default: convert.StringPtr("default"),
 				},
 			},
 		},

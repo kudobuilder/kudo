@@ -11,8 +11,8 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
+	"github.com/kudobuilder/kudo/pkg/util/convert"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
-	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 func newTestSimpleK2o() *Client {
@@ -496,12 +496,12 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 		namespace          string
 		triggeredPlan      *string
 	}{
-		{name: "patch to version", patchToVersion: util.String("test-1.1.1"), namespace: installNamespace},
-		{name: "patch adding new parameter", patchToVersion: util.String("test-1.1.1"), parametersToPatch: map[string]string{"param": "value"}, namespace: installNamespace},
-		{name: "patch updating parameter", patchToVersion: util.String("test-1.1.1"), existingParameters: map[string]string{"param": "value"}, parametersToPatch: map[string]string{"param": "value2"}, namespace: installNamespace},
+		{name: "patch to version", patchToVersion: convert.StringPtr("test-1.1.1"), namespace: installNamespace},
+		{name: "patch adding new parameter", patchToVersion: convert.StringPtr("test-1.1.1"), parametersToPatch: map[string]string{"param": "value"}, namespace: installNamespace},
+		{name: "patch updating parameter", patchToVersion: convert.StringPtr("test-1.1.1"), existingParameters: map[string]string{"param": "value"}, parametersToPatch: map[string]string{"param": "value2"}, namespace: installNamespace},
 		{name: "do not patch the version", existingParameters: map[string]string{"param": "value"}, parametersToPatch: map[string]string{"param": "value2"}, namespace: installNamespace},
-		{name: "patch with existing parameter should not override", patchToVersion: util.String("1.1.1"), existingParameters: map[string]string{"param": "value"}, parametersToPatch: map[string]string{"other": "value2"}, namespace: installNamespace},
-		{name: "patch with a new plan to execute", patchToVersion: util.String("1.1.1"), existingParameters: map[string]string{"param": "value"}, namespace: installNamespace},
+		{name: "patch with existing parameter should not override", patchToVersion: convert.StringPtr("1.1.1"), existingParameters: map[string]string{"param": "value"}, parametersToPatch: map[string]string{"other": "value2"}, namespace: installNamespace},
+		{name: "patch with a new plan to execute", patchToVersion: convert.StringPtr("1.1.1"), existingParameters: map[string]string{"param": "value"}, namespace: installNamespace},
 	}
 
 	for _, tt := range tests {
@@ -518,8 +518,8 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 		err = k2o.UpdateInstance(testInstance.Name, installNamespace, tt.patchToVersion, tt.parametersToPatch, nil)
 		instance, _ := k2o.GetInstance(testInstance.Name, installNamespace)
 		if tt.patchToVersion != nil {
-			if err != nil || instance.Spec.OperatorVersion.Name != util.StringValue(tt.patchToVersion) {
-				t.Errorf("%s:\nexpected version: %v\n     got: %v, err: %v", tt.name, util.StringValue(tt.patchToVersion), instance.Spec.OperatorVersion.Name, err)
+			if err != nil || instance.Spec.OperatorVersion.Name != convert.StringValue(tt.patchToVersion) {
+				t.Errorf("%s:\nexpected version: %v\n     got: %v, err: %v", tt.name, convert.StringValue(tt.patchToVersion), instance.Spec.OperatorVersion.Name, err)
 			}
 		} else {
 			if instance.Spec.OperatorVersion.Name != testInstance.Spec.OperatorVersion.Name {

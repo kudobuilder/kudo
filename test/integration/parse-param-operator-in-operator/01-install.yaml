@@ -11,4 +11,3 @@ spec:
     kind: OperatorVersion
   parameters:
     REPLICAS: "2"
-    PARAM: "after"
