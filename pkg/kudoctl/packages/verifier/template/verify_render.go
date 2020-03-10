@@ -3,11 +3,13 @@ package template
 import (
 	"fmt"
 
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/controller/instance"
+	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	packageconvert "github.com/kudobuilder/kudo/pkg/kudoctl/packages/convert"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
-	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
 var _ packages.Verifier = &RenderVerifier{}
@@ -24,22 +26,15 @@ func (RenderVerifier) Verify(pf *packages.Files) verifier.Result {
 func templateCompilable(pf *packages.Files) verifier.Result {
 	res := verifier.NewResult()
 
-	params := make(map[string]interface{}, len(pf.Params.Parameters))
-
-	parameters, err := packageconvert.ParametersToCRDType(pf.Params.Parameters)
+	params, err := collectParams(pf)
 	if err != nil {
 		res.AddErrors(err.Error())
 		return res
 	}
-
-	for _, p := range parameters {
-		value, err := convert.UnwrapParamValue(p.Default, p.Type)
-		if err != nil {
-			res.AddErrors(fmt.Sprintf("failed to unwrap %s default for parameter '%s': %v", p.Type, p.Name, err))
-			continue
-		}
-
-		params[p.Name] = value
+	pipes, err := collectPipes(pf)
+	if err != nil {
+		res.AddErrors(err.Error())
+		return res
 	}
 
 	configs := make(map[string]interface{})
@@ -47,7 +42,7 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 	configs["Name"] = "Name"
 	configs["Namespace"] = "Namespace"
 	configs["Params"] = params
-	configs["Pipes"] = make(map[string]string)
+	configs["Pipes"] = pipes
 	configs["PlanName"] = "PlanName"
 	configs["PhaseName"] = "PhaseName"
 	configs["StepName"] = "StepName"
@@ -58,7 +53,7 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 		// Render the template
 		s, err := engine.Render(k, v, configs)
 		if err != nil {
-			res.AddErrors(fmt.Sprintf("rendering template %s failed: %v", k, err))
+			res.AddErrors(err.Error()) // err already mentions template name
 		}
 
 		// Try to parse rendered template as valid Kubernetes objects
@@ -69,4 +64,27 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 	}
 
 	return res
+}
+
+func collectPipes(pf *packages.Files) (map[string]string, error) {
+	pipes := make(map[string]string)
+	for name, plan := range pf.Operator.Plans {
+		plan := plan
+		planPipes, err := instance.PipesMap(name, &plan, pf.Operator.Tasks, &engine.Metadata{})
+		if err != nil {
+			return nil, err
+		}
+		for key, value := range planPipes {
+			pipes[key] = value
+		}
+	}
+	return pipes, nil
+}
+
+func collectParams(pf *packages.Files) (map[string]interface{}, error) {
+	parameters, err := packageconvert.ParametersToCRDType(pf.Params.Parameters)
+	if err != nil {
+		return nil, err
+	}
+	return instance.ParamsMap(&v1beta1.Instance{}, &v1beta1.OperatorVersion{Spec: v1beta1.OperatorVersionSpec{Parameters: parameters}})
 }

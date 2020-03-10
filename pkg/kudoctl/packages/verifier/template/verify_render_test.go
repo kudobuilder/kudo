@@ -28,7 +28,57 @@ func TestTemplateRenderVerifier(t *testing.T) {
 
 	assert.Equal(t, 0, len(res.Warnings))
 	assert.Equal(t, 1, len(res.Errors))
-	assert.Equal(t, `rendering template foo.yaml failed: error rendering template: template: foo.yaml:2:6: executing "foo.yaml" at <eq>: wrong number of args for eq: want at least 1 got 0`, res.Errors[0])
+	assert.Equal(t, `error rendering template: template: foo.yaml:2:6: executing "foo.yaml" at <eq>: wrong number of args for eq: want at least 1 got 0`, res.Errors[0])
+}
+
+func TestTemplateRenderVerifier_Pipes(t *testing.T) {
+	params := make([]packages.Parameter, 0)
+	paramFile := packages.ParamsFile{Parameters: params}
+	templates := make(map[string]string)
+	templates["foo.yaml"] = `
+correct: {{ .Pipes.existing }}
+wrong: {{ .Pipes.inexistent }}
+`
+	operator := packages.OperatorFile{
+		Tasks: []v1beta1.Task{
+			{
+				Name: "a-task",
+				Kind: "Pipe",
+				Spec: v1beta1.TaskSpec{
+					PipeTaskSpec: v1beta1.PipeTaskSpec{
+						Pipe: []v1beta1.PipeSpec{
+							{
+								Key: "existing",
+							},
+						},
+					},
+				},
+			},
+		},
+		Plans: map[string]v1beta1.Plan{
+			"a-plan": {
+				Phases: []v1beta1.Phase{
+					{
+						Steps: []v1beta1.Step{
+							{Tasks: []string{"a-task"}},
+						},
+					},
+				},
+			},
+		},
+	}
+	pf := packages.Files{
+		Templates: templates,
+		Operator:  &operator,
+		Params:    &paramFile,
+	}
+	verifier := RenderVerifier{}
+	res := verifier.Verify(&pf)
+
+	assert.Equal(t, 0, len(res.Warnings))
+	assert.Equal(t, 1, len(res.Errors))
+	assert.Equal(t, `error rendering template: template: foo.yaml:3:16: executing "foo.yaml" at <.Pipes.inexistent>: `+
+		`map has no entry for key "inexistent"`, res.Errors[0])
 }
 
 func TestTemplateRenderVerifier_InvalidYAML(t *testing.T) {

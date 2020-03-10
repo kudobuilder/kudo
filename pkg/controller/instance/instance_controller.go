@@ -310,12 +310,12 @@ func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.Operat
 		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not find required plan: '%v'", engine.ErrFatalExecution, activePlanStatus.Name), EventName: "InvalidPlan"}
 	}
 
-	params, err := paramsMap(instance, ov)
+	params, err := ParamsMap(instance, ov)
 	if err != nil {
 		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not parse parameters: %v", engine.ErrFatalExecution, err), EventName: "InvalidParams"}
 	}
 
-	pipes, err := pipesMap(activePlanStatus.Name, &planSpec, ov.Spec.Tasks, meta)
+	pipes, err := PipesMap(activePlanStatus.Name, &planSpec, ov.Spec.Tasks, meta)
 	if err != nil {
 		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not make task pipes: %v", engine.ErrFatalExecution, err), EventName: "InvalidPlan"}
 	}
@@ -393,8 +393,8 @@ func GetOperatorVersion(instance *kudov1beta1.Instance, c client.Reader) (ov *ku
 	return ov, nil
 }
 
-// paramsMap generates {{ Params.* }} map of keys and values which is later used during template rendering.
-func paramsMap(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.OperatorVersion) (map[string]interface{}, error) {
+// ParamsMap generates {{ Params.* }} map of keys and values which is later used during template rendering.
+func ParamsMap(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.OperatorVersion) (map[string]interface{}, error) {
 	params := make(map[string]interface{}, len(operatorVersion.Spec.Parameters))
 
 	for _, param := range operatorVersion.Spec.Parameters {
@@ -417,8 +417,8 @@ func paramsMap(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.Oper
 	return params, nil
 }
 
-// pipesMap generates {{ Pipes.* }} map of keys and values which is later used during template rendering.
-func pipesMap(planName string, plan *v1beta1.Plan, tasks []v1beta1.Task, emeta *engine.Metadata) (map[string]string, error) {
+// PipesMap generates {{ Pipes.* }} map of keys and values which is later used during template rendering.
+func PipesMap(planName string, plan *v1beta1.Plan, tasks []v1beta1.Task, emeta *engine.Metadata) (map[string]string, error) {
 	taskByName := func(name string) (*v1beta1.Task, bool) {
 		for _, t := range tasks {
 			if t.Name == name {
