@@ -9,7 +9,7 @@ owners:
   - "@zen-dog"
 creation-date: 2019-11-08
 last-updated: 2020-01-20
-status: provisional
+status: implemented
 see-also:
   - KEP-18
 ---
