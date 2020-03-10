@@ -11,6 +11,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
 // Ensure IF is implemented
@@ -21,6 +22,17 @@ type kudoNamespace struct {
 	ns   *v1.Namespace
 }
 
+func (o kudoNamespace) PreInstallVerify(client *kube.Client) verifier.Result {
+	// We only manage kudo-system namespace. For others we expect they exist.
+	if !o.opts.IsDefaultNamespace() {
+		_, err := client.KubeClient.CoreV1().Namespaces().Get(o.opts.Namespace, metav1.GetOptions{})
+		if kerrors.IsNotFound(err) {
+			return verifier.NewError(fmt.Sprintf("Namespace %s does not exist - KUDO expects that any namespace except the default %s is created beforehand", o.opts.Namespace, kudoinit.DefaultNamespace))
+		}
+	}
+	return verifier.NewResult()
+}
+
 func newNamespace(options kudoinit.Options) kudoNamespace {
 	return kudoNamespace{
 		opts: options,
@@ -29,18 +41,6 @@ func newNamespace(options kudoinit.Options) kudoNamespace {
 }
 
 func (o kudoNamespace) Install(client *kube.Client) error {
-	// We only manage kudo-system namespace. For others we expect they exist.
-	if !o.opts.IsDefaultNamespace() {
-		_, err := client.KubeClient.CoreV1().Namespaces().Get(o.opts.Namespace, metav1.GetOptions{})
-		if err == nil {
-			return nil
-		}
-		if kerrors.IsNotFound(err) {
-			return fmt.Errorf("namespace %s does not exist - KUDO expects that any namespace except the default %s is created beforehand", o.opts.Namespace, kudoinit.DefaultNamespace)
-		}
-		return err
-	}
-
 	_, err := client.KubeClient.CoreV1().Namespaces().Create(o.ns)
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("namespace %v already exists", o.ns.Name)

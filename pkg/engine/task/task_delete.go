@@ -30,7 +30,7 @@ func (dt DeleteTask) Run(ctx Context) (bool, error) {
 	}
 
 	// 3. - Delete them using the client -
-	err = delete(enhanced, ctx.Client)
+	err = deleteResource(enhanced, ctx.Client)
 	if err != nil {
 		return false, err
 	}
@@ -39,7 +39,7 @@ func (dt DeleteTask) Run(ctx Context) (bool, error) {
 	return true, nil
 }
 
-func delete(ro []runtime.Object, c client.Client) error {
+func deleteResource(ro []runtime.Object, c client.Client) error {
 	for _, r := range ro {
 		err := c.Delete(context.TODO(), r, client.PropagationPolicy(metav1.DeletePropagationForeground))
 		if !apierrors.IsNotFound(err) && err != nil {

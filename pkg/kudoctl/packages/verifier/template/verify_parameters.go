@@ -3,8 +3,9 @@ package template
 import (
 	"fmt"
 
+	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
 var (
@@ -21,13 +22,13 @@ var (
 	}
 )
 
-var _ verifier.PackageVerifier = &ParametersVerifier{}
+var _ packages.Verifier = &ParametersVerifier{}
 
 // ParametersVerifier checks that all parameters used in templates are defined
 // checks that all defined parameters are used in templates
 type ParametersVerifier struct{}
 
-// Verify implements verifier.PackageVerifier for parameter verification
+// Verify implements packages.Verifier for parameter verification
 func (ParametersVerifier) Verify(pf *packages.Files) verifier.Result {
 	res := verifier.NewResult()
 	res.Merge(paramsNotDefined(pf))
@@ -60,9 +61,14 @@ func paramsDefinedNotUsed(pf *packages.Files) verifier.Result {
 			tparams[tparam] = true
 		}
 	}
+	for _, opTask := range pf.Operator.Tasks {
+		if opTask.Kind == task.ToggleTaskKind {
+			tparams[opTask.Spec.Parameter] = true
+		}
+	}
 	for _, value := range pf.Params.Parameters {
 		if _, ok := tparams[value.Name]; !ok {
-			res.AddParamWarning(value, "defined but not used.")
+			res.AddParamWarning(value.Name, "defined but not used.")
 		}
 	}
 	return res
@@ -80,6 +86,16 @@ func paramsNotDefined(pf *packages.Files) verifier.Result {
 		for _, tparam := range nodes.parameters {
 			if _, ok := params[tparam]; !ok {
 				res.AddErrors(fmt.Sprintf("parameter %q in template %v is not defined", tparam, fname))
+			}
+		}
+	}
+	for _, opTask := range pf.Operator.Tasks {
+		if opTask.Kind == task.ToggleTaskKind {
+			// Only checking non-empty parameter prevents a double error in verification
+			if len(opTask.Spec.Parameter) > 0 {
+				if _, ok := params[opTask.Spec.Parameter]; !ok {
+					res.AddErrors(fmt.Sprintf("parameter %q in ToggleTask %v is not defined", opTask.Spec.Parameter, opTask.Name))
+				}
 			}
 		}
 	}

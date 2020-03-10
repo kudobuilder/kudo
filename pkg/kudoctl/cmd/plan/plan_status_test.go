@@ -3,6 +3,7 @@ package plan
 import (
 	"bytes"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
@@ -11,6 +12,10 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
+)
+
+var (
+	testTime = time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)
 )
 
 func TestStatus(t *testing.T) {
@@ -24,7 +29,33 @@ func TestStatus(t *testing.T) {
 		},
 		Spec: v1beta1.OperatorVersionSpec{
 			Version: "1.0",
-			Plans:   map[string]v1beta1.Plan{"deploy": {}},
+			Plans: map[string]v1beta1.Plan{
+				"zzzinvalid": {
+					Phases: []v1beta1.Phase{
+						v1beta1.Phase{
+							Name: "zzzinvalid",
+							Steps: []v1beta1.Step{
+								v1beta1.Step{
+									Name: "zzzinvalid",
+								},
+							},
+						},
+					},
+				},
+				"validate": {
+					Phases: []v1beta1.Phase{
+						v1beta1.Phase{
+							Name: "validate",
+							Steps: []v1beta1.Step{
+								v1beta1.Step{
+									Name: "validate",
+								},
+							},
+						},
+					},
+				},
+				"deploy": {},
+			},
 		}}
 	instance := &v1beta1.Instance{
 		TypeMeta: metav1.TypeMeta{
@@ -45,8 +76,9 @@ func TestStatus(t *testing.T) {
 	fatalErrInstance.Status = v1beta1.InstanceStatus{
 		PlanStatus: map[string]v1beta1.PlanStatus{
 			"deploy": {
-				Name:   "deploy",
-				Status: v1beta1.ExecutionFatalError,
+				Name:                 "deploy",
+				Status:               v1beta1.ExecutionFatalError,
+				LastUpdatedTimestamp: &metav1.Time{Time: testTime},
 				Phases: []v1beta1.PhaseStatus{
 					{
 						Name:   "deploy",
@@ -78,9 +110,15 @@ func TestStatus(t *testing.T) {
 		{"fatal error in a plan", fatalErrInstance, ov, "test", "", `Plan(s) for "test" in namespace "default":
 .
 └── test (Operator-Version: "test-1.0" Active-Plan: "deploy")
-    └── Plan deploy ( strategy) [FATAL_ERROR]
-        └── Phase deploy ( strategy) [FATAL_ERROR]
-            └── Step deploy [FATAL_ERROR] (error detail)
+    ├── Plan deploy ( strategy) [FATAL_ERROR], last updated 2019-10-17 01:01:01
+    │   └── Phase deploy ( strategy) [FATAL_ERROR]
+    │       └── Step deploy [FATAL_ERROR] (error detail)
+    ├── Plan validate ( strategy) [NOT ACTIVE]
+    │   └── Phase validate ( strategy) [NOT ACTIVE]
+    │       └── Step validate [NOT ACTIVE]
+    └── Plan zzzinvalid ( strategy) [NOT ACTIVE]
+        └── Phase zzzinvalid ( strategy) [NOT ACTIVE]
+            └── Step zzzinvalid [NOT ACTIVE]
 
 `},
 	}

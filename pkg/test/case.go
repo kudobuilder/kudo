@@ -14,6 +14,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	eventsbeta1 "k8s.io/api/events/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -112,7 +113,7 @@ func (t *Case) CollectEvents(namespace string) {
 	printEvents(events, t.Logger)
 }
 
-func printEvents(events []eventsbeta1.Event, logger testutils.Logger) {
+func printEvents(events []eventsbeta1.Event, logger conversion.DebugLogger) {
 	for _, e := range events {
 		// time type reason kind message
 		logger.Logf("%s\t%s\t%s\t%s", e.ObjectMeta.CreationTimestamp, e.Type, e.Reason, e.Note)

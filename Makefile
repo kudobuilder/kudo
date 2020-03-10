@@ -20,10 +20,15 @@ export GO111MODULE=on
 .PHONY: all
 all: test manager
 
+# Run unit tests
 .PHONY: test
-# Run tests
 test:
+ifdef _INTELLIJ_FORCE_SET_GOFLAGS
+# Run tests from a Goland terminal. Goland already set '-mod=readonly'
+	go test ./pkg/... ./cmd/... -v -coverprofile cover.out
+else
 	go test ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover.out
+endif
 
 # Run e2e tests
 .PHONY: e2e-test
@@ -142,12 +147,21 @@ ifeq (, $(shell which golangci-lint))
 endif
 	golangci-lint run --disable-all -E goimports --fix
 
+.PHONY: update-golden
+# used to update the golden files present in ./pkg/.../testdata
+# example: make update-golden
+# tests in update==true mode show as failures
+update-golden:
+	go test ./pkg/... -v -mod=readonly --update=true
+
 .PHONY: todo
 # Show to-do items per file.
 todo:
 	@grep \
 		--exclude-dir=hack \
 		--exclude=Makefile \
+		--exclude-dir=.git \
+		--exclude-dir=bin \
 		--text \
 		--color \
-		-nRo -E ' TODO:.*|SkipNow' .
+		-nRo -E " *[^\.]TODO.*|SkipNow" .

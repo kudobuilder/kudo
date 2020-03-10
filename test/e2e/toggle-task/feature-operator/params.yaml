@@ -1,0 +1,5 @@
+apiVersion: kudo.dev/v1beta1
+parameters:
+  - name: enable_cm
+    description: If true, a configMap is created, if false it's removed
+    default: true

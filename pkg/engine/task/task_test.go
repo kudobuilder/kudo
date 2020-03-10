@@ -162,6 +162,8 @@ spec:
 	}
 
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
 			task := &v1beta1.Task{}
 			err := yaml.Unmarshal([]byte(tt.taskYaml), task)

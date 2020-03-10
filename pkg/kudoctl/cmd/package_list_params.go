@@ -13,6 +13,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/generate"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
 type packageListParamsCmd struct {
@@ -86,11 +87,14 @@ func (c *packageListParamsCmd) run(settings *env.Settings) error {
 		return err
 	}
 
-	displayParamsTable(pf.Files, c.out, c.requiredOnly, c.namesOnly, c.descriptions)
+	if err := displayParamsTable(pf.Files, c.out, c.requiredOnly, c.namesOnly, c.descriptions); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func displayParamsTable(pf *packages.Files, out io.Writer, printRequired, printNames, printDesc bool) {
+func displayParamsTable(pf *packages.Files, out io.Writer, printRequired, printNames, printDesc bool) error {
 	sort.Sort(pf.Params.Parameters)
 	table := uitable.New()
 	tValue := true
@@ -126,17 +130,19 @@ func displayParamsTable(pf *packages.Files, out io.Writer, printRequired, printN
 	}
 	sort.Sort(pf.Params.Parameters)
 	for _, p := range pf.Params.Parameters {
-		pDefault := ""
-		if p.Default != nil {
-			pDefault = *p.Default
+		pDefault, err := convert.WrapParamValue(p.Default, p.Type)
+		if err != nil {
+			return err
 		}
+
 		if printDesc {
-			table.AddRow(p.Name, pDefault, *p.Required, p.Description)
+			table.AddRow(p.Name, convert.StringValue(pDefault), *p.Required, p.Description)
 		} else {
-			table.AddRow(p.Name, pDefault, *p.Required)
+			table.AddRow(p.Name, convert.StringValue(pDefault), *p.Required)
 		}
 	}
 	fmt.Fprintln(out, table)
+	return nil
 }
 
 func onlyOneSet(b bool, b2 bool, b3 bool) bool {

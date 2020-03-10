@@ -37,7 +37,9 @@ import (
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
 	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
+	"github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/kudobuilder/kudo/pkg/version"
+	kudohook "github.com/kudobuilder/kudo/pkg/webhook"
 )
 
 // parseSyncPeriod determines the minimum frequency at which watched resources are reconciled.
@@ -58,17 +60,16 @@ func main() {
 	log.Printf("KUDO Version: %#v", version.Get())
 
 	// create new controller-runtime manager
-
 	syncPeriod, err := parseSyncPeriod()
 	if err != nil {
-		log.Printf("unable to parse manager sync period variable: %v", err)
+		log.Printf("Unable to parse manager sync period variable: %v", err)
 		os.Exit(1)
 	}
 
 	if syncPeriod != nil {
-		log.Print(fmt.Sprintf("setting up manager, sync-period is %v", syncPeriod))
+		log.Print(fmt.Sprintf("Setting up manager, sync-period is %v:", syncPeriod))
 	} else {
-		log.Print("setting up manager")
+		log.Print("Setting up manager")
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -76,74 +77,86 @@ func main() {
 		SyncPeriod: syncPeriod,
 	})
 	if err != nil {
-		log.Printf("unable to start manager: %v", err)
+		log.Printf("Unable to start manager: %v", err)
 		os.Exit(1)
 	}
 
 	log.Print("Registering Components")
 
-	log.Print("setting up scheme")
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
-		log.Printf("unable to add APIs to scheme: %v", err)
+		log.Printf("Unable to add APIs to scheme: %v", err)
 	}
+	log.Print("Scheme initialization")
 
 	if err := apiextenstionsv1beta1.AddToScheme(mgr.GetScheme()); err != nil {
-		log.Printf("unable to add extension APIs to scheme: %v", err)
+		log.Printf("Unable to add extension APIs to scheme: %v", err)
 	}
 
 	// Setup all Controllers
-
-	log.Print("Setting up operator controller")
 	err = (&operator.Reconciler{
 		Client: mgr.GetClient(),
 	}).SetupWithManager(mgr)
 	if err != nil {
-		log.Printf("unable to register operator controller to the manager: %v", err)
+		log.Printf("Unable to register operator controller to the manager: %v", err)
 		os.Exit(1)
 	}
+	log.Print("Operator controller set up")
 
-	log.Print("Setting up operator version controller")
 	err = (&operatorversion.Reconciler{
 		Client: mgr.GetClient(),
 	}).SetupWithManager(mgr)
 	if err != nil {
-		log.Printf("unable to register operator controller to the manager: %v", err)
+		log.Printf("Unable to register operator controller to the manager: %v", err)
+		os.Exit(1)
+	}
+	log.Print("OperatorVersion controller set up")
+
+	discoveryClient, err := utils.GetDiscoveryClient(mgr)
+	if err != nil {
+		log.Println(err)
 		os.Exit(1)
 	}
 
-	log.Print("Setting up instance controller")
 	err = (&instance.Reconciler{
-		Client:   mgr.GetClient(),
-		Recorder: mgr.GetEventRecorderFor("instance-controller"),
-		Scheme:   mgr.GetScheme(),
+		Client:    mgr.GetClient(),
+		Config:    mgr.GetConfig(),
+		Discovery: discoveryClient,
+		Recorder:  mgr.GetEventRecorderFor("instance-controller"),
+		Scheme:    mgr.GetScheme(),
 	}).SetupWithManager(mgr)
 	if err != nil {
-		log.Printf("unable to register instance controller to the manager: %v", err)
+		log.Printf("Unable to register instance controller to the manager: %v", err)
 		os.Exit(1)
 	}
+	log.Print("Instance controller set up")
 
 	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) == "true" {
-		log.Printf("Setting up webhooks")
+		log.Printf("🔸 Setting up webhooks")
 
-		if err := registerWebhook("/validate", &v1beta1.Instance{}, &webhook.Admission{Handler: &v1beta1.InstanceValidator{}}, mgr); err != nil {
-			log.Printf("unable to create instance validation webhook: %v", err)
+		if err := registerWebhook("/admit", &v1beta1.Instance{}, &webhook.Admission{Handler: &kudohook.InstanceAdmission{}}, mgr); err != nil {
+			log.Printf("Unable to create instance admission webhook: %v", err)
 			os.Exit(1)
 		}
+		log.Printf("Instance admission webhook")
 
 		// Add more webhooks below using the above registerWebhook method
 	}
 
 	// Start the KUDO manager
-	log.Print("Starting KUDO manager")
+	log.Print("Done! Everything is setup, starting KUDO manager now")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		log.Printf("unable to run the manager: %v", err)
+		log.Printf("Unable to run the manager: %v", err)
 		os.Exit(1)
 	}
 }
 
 // registerWebhook method registers passed webhook using a give prefix (e.g. "/validate") and runtime object
 // (e.g. v1beta1.Instance) to generate a webhook path e.g. "/validate-kudo-dev-v1beta1-instances". Webhook
-// has to implement http.Handler interface (see v1beta1.InstanceValidator for an example)
+// has to implement http.Handler interface (see v1beta1.InstanceAdmission for an example)
+//
+// NOTE: generated webhook path HAS to match the one used in the webhook configuration. See for example how
+// MutatingWebhookConfiguration.Webhooks[0].ClientConfig.Service.Path is set in
+// pkg/kudoctl/kudoinit/prereq/webhook.go::instanceAdmissionWebhook method
 func registerWebhook(prefix string, obj runtime.Object, hook http.Handler, mgr manager.Manager) error {
 	path, err := webhookPath(prefix, obj, mgr)
 	if err != nil {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
 // ReferenceVerifier verifies tasks producing errors for tasks referenced in plans that do not exist and warnings for tasks which are not used in a plan

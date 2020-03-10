@@ -5,17 +5,23 @@ import (
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/plan"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/template"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
+	"github.com/kudobuilder/kudo/pkg/version"
 )
 
-var verifiers = []verifier.PackageVerifier{
+var verifiers = []packages.Verifier{
 	DuplicateVerifier{},
 	InvalidCharVerifier{";,"},
+	K8sVersionVerifier{},
+	task.BuildVerifier{},
 	task.ReferenceVerifier{},
+	plan.ReferenceVerifier{},
 	template.ParametersVerifier{},
 	template.ReferenceVerifier{},
+	template.RenderVerifier{},
 }
 
 // PackageFiles verifies operator package files
@@ -36,7 +42,7 @@ func (DuplicateVerifier) Verify(pf *packages.Files) verifier.Result {
 	for _, param := range pf.Params.Parameters {
 		name := strings.ToLower(param.Name)
 		if names[name] {
-			res.AddParamError(param, "has a duplicate")
+			res.AddParamError(param.Name, "has a duplicate")
 		}
 		names[name] = true
 	}
@@ -53,10 +59,28 @@ func (v InvalidCharVerifier) Verify(pf *packages.Files) verifier.Result {
 		name := strings.ToLower(param.Name)
 		for _, char := range name {
 			if strings.Contains(v.InvalidChars, strings.ToLower(string(char))) {
-				res.AddParamError(param, fmt.Sprintf("contains invalid character %q", char))
+				res.AddParamError(param.Name, fmt.Sprintf("contains invalid character %q", char))
 			}
 		}
 
+	}
+
+	return res
+}
+
+// K8sVersionVerifier verifies the kubernetesVersion of operator.yaml
+type K8sVersionVerifier struct{}
+
+func (K8sVersionVerifier) Verify(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
+	if pf.Operator == nil {
+		res.AddErrors("Operator not defined.")
+		return res
+	}
+	_, err := version.New(pf.Operator.KubernetesVersion)
+	if err != nil {
+		res.AddErrors(fmt.Sprintf("Unable to parse operators kubernetes version: %v", err))
+		return res
 	}
 
 	return res

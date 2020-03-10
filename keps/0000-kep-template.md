@@ -10,7 +10,7 @@ owners:
 editor: TBD
 creation-date: yyyy-mm-dd
 last-updated: yyyy-mm-dd
-status: implemented
+status: provisional
 see-also:
   - KEP-1
   - KEP-2

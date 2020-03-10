@@ -12,3 +12,4 @@ parameters:
   - name: comma,
     description: Amount of cpu to provide to Zookeeper pods
     default: "0.25"
+    trigger: not-existing-plan

@@ -16,6 +16,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
+	"github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
 func TestApplyTask_Run(t *testing.T) {
@@ -50,9 +51,10 @@ func TestApplyTask_Run(t *testing.T) {
 			done:    true,
 			wantErr: false,
 			ctx: Context{
-				Client:   fake.NewFakeClientWithScheme(scheme.Scheme),
-				Enhancer: &testEnhancer{},
-				Meta:     renderer.Metadata{},
+				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: utils.FakeDiscoveryClient(),
+				Enhancer:  &testEnhancer{},
+				Meta:      renderer.Metadata{},
 			},
 		},
 		{
@@ -66,6 +68,7 @@ func TestApplyTask_Run(t *testing.T) {
 			fatal:   true,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: utils.FakeDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{},
@@ -82,6 +85,7 @@ func TestApplyTask_Run(t *testing.T) {
 			fatal:   true,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: utils.FakeDiscoveryClient(),
 				Enhancer:  &errorEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},
@@ -97,6 +101,7 @@ func TestApplyTask_Run(t *testing.T) {
 			wantErr: false,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: utils.FakeDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},
@@ -112,6 +117,7 @@ func TestApplyTask_Run(t *testing.T) {
 			wantErr: false,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: utils.FakeDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"job": resourceAsString(job("job1", "default"))},

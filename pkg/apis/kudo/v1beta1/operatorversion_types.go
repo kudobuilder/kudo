@@ -71,6 +71,20 @@ type Plan struct {
 	Phases []Phase `json:"phases"`
 }
 
+// ParameterType specifies the type of a parameter value.
+type ParameterType string
+
+const (
+	// StringValueType is used for parameter values that are provided as a string.
+	StringValueType ParameterType = "string"
+
+	// ArrayValueType is used for parameter values that described an array of values.
+	ArrayValueType ParameterType = "array"
+
+	// MapValueType is used for parameter values that describe a mapping type.
+	MapValueType ParameterType = "map"
+)
+
 // Parameter captures the variability of an OperatorVersion being instantiated in an instance.
 type Parameter struct {
 	// DisplayName can be used by UIs.
@@ -95,6 +109,9 @@ type Parameter struct {
 	// Trigger identifies the plan that gets executed when this parameter changes in the Instance object.
 	// Default is `update` if a plan with that name exists, otherwise it's `deploy`.
 	Trigger string `json:"trigger,omitempty"`
+
+	// Type specifies the value type. Defaults to `string`.
+	Type ParameterType `json:"value-type,omitempty"`
 }
 
 // Phase specifies a list of steps that contain Kubernetes objects.
@@ -135,6 +152,7 @@ type TaskSpec struct {
 	ResourceTaskSpec `json:",inline"`
 	DummyTaskSpec    `json:",inline"`
 	PipeTaskSpec     `json:",inline"`
+	ToggleTaskSpec   `json:",inline"`
 }
 
 // ResourceTaskSpec is referencing a list of resources
@@ -142,6 +160,12 @@ type ResourceTaskSpec struct {
 	// +optional
 	// +nullable
 	Resources []string `json:"resources,omitempty"`
+}
+
+// ToggleTaskSpec is referencing a ResourceTaskSpec and a parameter
+type ToggleTaskSpec struct {
+	// +optional
+	Parameter string `json:"parameter,omitempty"`
 }
 
 // DummyTaskSpec can succeed or fail on demand and is very useful for testing operators

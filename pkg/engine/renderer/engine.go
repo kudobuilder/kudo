@@ -34,6 +34,8 @@ type Engine struct {
 func New() *Engine {
 	f := sprig.TxtFuncMap()
 
+	f["toYaml"] = ToYaml
+
 	// Prevent environment access inside the running KUDO Controller
 	funcs := []string{"env", "expandenv", "base", "dir", "clean", "ext", "isAbs"}
 
@@ -56,15 +58,15 @@ func (e Engine) Template(name string) *template.Template {
 
 // Render creates a fully rendered template based on a set of values. It parses these in strict mode,
 // returning errors when keys are missing.
-func (e *Engine) Render(tpl string, vals map[string]interface{}) (string, error) {
+func (e *Engine) Render(tplName string, tpl string, vals map[string]interface{}) (string, error) {
 	var buf bytes.Buffer
-	t := e.Template("tpl")
+	t := e.Template(tplName)
 
 	if _, err := t.Parse(tpl); err != nil {
 		return "", fmt.Errorf("error parsing template: %s", err)
 	}
 
-	if err := t.ExecuteTemplate(&buf, "tpl", vals); err != nil {
+	if err := t.ExecuteTemplate(&buf, tplName, vals); err != nil {
 		return "", fmt.Errorf("error rendering template: %s", err)
 	}
 

@@ -16,4 +16,6 @@ spec:
         - name: nginx
           image: nginx:1.7.9
           ports:
-            - containerPort: 80
+            {{ range .Params.ports }}
+            - containerPort: {{ . }}
+            {{ end }}
