@@ -6,7 +6,7 @@
 
 | KEP | Status | Description |
 | --- | ---: | --- |
-| [0000 - KEP Template](0000-kep-template.md) | implemented | Use this template for new KEPs |
+| [0000 - KEP Template](0000-kep-template.md) | provisional | Use this template for new KEPs |
 | [0001 - KUDO Enhancement Proposal Process](0001-kep-process.md) | implemented | Description of the KEP-Process |
 | [0002 - Dynamic Instances](0002-dynamic-instances.md) | implementable |  |
 | [0003 - KEP CLI Proposal](0003-kep-cli.md) | implementable | Initial CLI description |
@@ -25,6 +25,7 @@
 | [0018 - Controller redesign](0018-controller-overhaul.md) | implementable | Refactoring of KUDO controller |
 | [0019 - Versioning of Operator Packages](0019-package-api-versioning.md) | implementable | Connection between the different versions that describe an operator |
 | [0020 - Manual plan execution](0020-manual-plan-execution.md) | provisional |  |
-| [0023 - Enabling and Disabling features in KUDO Operators](0023-enable-disable-features.md) | implemented |  |
-| [0024 - Enabling and Disabling features in KUDO Operators](0024-parameter-enhancement.md) | provisional |  |
+| [0023 - Enabling and Disabling features in KUDO Operators](0023-enable-disable-features.md) | implementable |  |
+| [0024 - Enhanced Operator Parameters](0024-parameter-enhancement.md) | implemented |  |
 | [0025 - Template toYaml function](0025-template-to-yaml-function.md) | implemented | New toYaml function for use in templates |
+| [0026 - Reading parameter values from a file](0026-reading-parameter-values-from-a-file.md) | implementable | Reading parameter values from a file |
