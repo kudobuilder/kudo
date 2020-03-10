@@ -4,12 +4,34 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/spf13/afero"
+	"gopkg.in/yaml.v2"
 )
 
-// GetParameterMap takes a slice of parameter strings, parses parameters into a map of keys and values
-func GetParameterMap(raw []string) (map[string]string, error) {
+// GetParameterMap takes a slice of parameter strings and a slice of parameter filenames as well as a filesystem,
+// parses parameters into a map of keys and values
+func GetParameterMap(raw []string, filePaths []string, fs afero.Fs) (map[string]string, error) {
 	var errs []string
 	parameters := make(map[string]string)
+
+	for _, filePath := range filePaths {
+		var err error
+		rawData, err := afero.ReadFile(fs, filePath)
+		if err != nil {
+			errs = append(errs, fmt.Sprintf("error reading from parameter file %s: %v", filePath, err))
+			continue
+		}
+		data := make(map[string]string)
+		err = yaml.Unmarshal(rawData, data)
+		if err != nil {
+			errs = append(errs, fmt.Sprintf("error unmarshalling content of parameter file %s: %v", filePath, err))
+			continue
+		}
+		for key, value := range data {
+			parameters[key] = value
+		}
+	}
 
 	for _, a := range raw {
 		key, value, err := parseParameter(a)

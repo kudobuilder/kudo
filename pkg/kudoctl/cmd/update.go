@@ -34,6 +34,7 @@ var defaultUpdateOptions = &updateOptions{}
 func newUpdateCmd() *cobra.Command {
 	options := defaultUpdateOptions
 	var parameters []string
+	var parameterFiles []string
 	updateCmd := &cobra.Command{
 		Use:     "update",
 		Short:   "Update KUDO operator instance.",
@@ -42,9 +43,9 @@ func newUpdateCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Prior to command execution we parse and validate passed arguments
 			var err error
-			options.Parameters, err = install.GetParameterMap(parameters)
+			options.Parameters, err = install.GetParameterMap(parameters, parameterFiles, fs)
 			if err != nil {
-				return fmt.Errorf("could not parse arguments: %w", err)
+				return fmt.Errorf("could not parse parameters: %v", err)
 			}
 			return runUpdate(args, options, &Settings)
 		},
@@ -52,6 +53,7 @@ func newUpdateCmd() *cobra.Command {
 
 	updateCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name.")
 	updateCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")
+	updateCmd.Flags().StringArrayVarP(&parameterFiles, "parameter-file", "P", nil, "YAML file with parameters")
 
 	return updateCmd
 }
