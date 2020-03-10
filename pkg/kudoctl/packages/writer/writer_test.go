@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/spf13/afero"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 )
@@ -19,39 +20,42 @@ func TestRegularFileTarball(t *testing.T) {
 	var fs = afero.NewMemMapFs()
 	files.CopyOperatorToFs(fs, "../testdata/zk", "/opt")
 
-	f, _ := fs.Create("/opt/zk.tgz")
+	var err error
+	f, err := fs.Create("/opt/zk.tgz")
+	assert.NoError(t, err)
 
-	o, _ := os.Open("/opt/zk/operator.yaml")
-	expected, _ := files.Sha256Sum(o)
+	o, err := fs.Open("/opt/zk/operator.yaml")
+	assert.NoError(t, err)
+	expected, err := files.Sha256Sum(o)
+	assert.NoError(t, err)
 
 	// path is that copied into in-mem fs
-	_ = TgzDir(fs, "/opt/zk", f)
-	if err := f.Close(); err != nil {
-		t.Fatal(err)
-	}
+	err = TgzDir(fs, "/opt/zk", f)
+	assert.NoError(t, err)
+	err = f.Close()
+	assert.NoError(t, err)
 
 	//open for reading in an untar
-	f, _ = fs.Open("/opt/zk.tgz")
+	f, err = fs.Open("/opt/zk.tgz")
+	assert.NoError(t, err)
 	defer f.Close()
 
 	actualTarballSHA, err := files.Sha256Sum(f)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
 	if expectedTarballSHA != actualTarballSHA {
 		t.Errorf("Expecting the tarball to have a specific (reproducible) hash but it differs: %v, %v", expectedTarballSHA, actualTarballSHA)
 	}
-	if _, err := f.Seek(0, io.SeekStart); err != nil {
-		t.Fatal(err)
-	}
+	_, err = f.Seek(0, io.SeekStart)
+	assert.NoError(t, err)
 
-	if err := untar(fs, "/opt/untar", f); err != nil {
-		t.Fatal(err)
-	}
+	err = untar(fs, "/opt/untar", f)
+	assert.NoError(t, err)
 
-	u, _ := os.Open("/opt/untar/operator.yaml")
-	actual, _ := files.Sha256Sum(u)
+	u, err := fs.Open("/opt/untar/operator.yaml")
+	assert.NoError(t, err)
+	actual, err := files.Sha256Sum(u)
+	assert.NoError(t, err)
 
 	if expected != actual {
 		t.Errorf("Expecting the tarball and untar of operator.yaml to have same hash but they differ: %v, %v", expected, actual)
