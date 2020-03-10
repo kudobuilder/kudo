@@ -1,0 +1,5 @@
+apiVersion: kudo.dev/v1beta1
+kind: TestStep
+kubectl:
+  - create namespace cert-manager
+  - apply -f https://github.com/jetstack/cert-manager/releases/download/v0.13.1/cert-manager.yaml

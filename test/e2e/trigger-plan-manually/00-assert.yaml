@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: cert-manager
+    app.kubernetes.io/name: cert-manager
+  namespace: cert-manager
+status:
+  phase: Running
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: cainjector
+    app.kubernetes.io/name: cainjector
+  namespace: cert-manager
+status:
+  phase: Running
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: webhook
+    app.kubernetes.io/name: webhook
+  namespace: cert-manager
+status:
+  phase: Running

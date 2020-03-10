@@ -145,7 +145,7 @@ func handleUpdate(ia *InstanceAdmission, req admission.Request) admission.Respon
  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 | HasScheduledPlan | ParameterUpdate | Upgrade | PlanOverride | PlanCancel | Allow |                                                     Description                                                     |
 |------------------|-----------------|---------|--------------|------------|-------|---------------------------------------------------------------------------------------------------------------------|
-| x                | x               |         |              |            | No²  | Forbid parameter updates when a plan is scheduled unless the same plan is triggered (instance status will be reset) |
+| x                | x               |         |              |            | No²   | Forbid parameter updates when a plan is scheduled unless the same plan is triggered (instance status will be reset) |
 | x                |                 | x       |              |            | No    | Forbid upgrades if another plan is running                                                                          |
 | x                |                 |         | x            |            | No³   | Forbid plan overrides (for now)                                                                                     |
 | x                |                 |         |              | x          | No    | Forbid plan cancellations (for now)                                                                                 |

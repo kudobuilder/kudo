@@ -1,0 +1,14 @@
+apiVersion: kudo.dev/v1beta1
+parameters:
+  - name: dummy
+    description: Fake parameter not changing anything
+    default: 1
+    trigger: deploy
+  - name: dummy2
+    description: Fake parameter not changing anything
+    default: 1
+    trigger: fail
+  - name: dummy3
+    description: Fake parameter not changing anything
+    default: 1
+    trigger: fail-fatally

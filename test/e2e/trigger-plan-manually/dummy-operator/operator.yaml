@@ -1,0 +1,61 @@
+apiVersion: kudo.dev/v1beta1
+name: "dummy"
+operatorVersion: "0.1.0"
+kubernetesVersion: 1.13.0
+maintainers:
+  - name: zen-dog
+    email: <adukhovniy@D2iQ.com>
+url: https://kudo.dev
+tasks:
+  - name: done
+    kind: Dummy
+    spec:
+      done: true
+  - name: error
+    kind: Dummy
+    spec:
+      wantErr: true
+      fatal: false
+  - name: fatal-error
+    kind: Dummy
+    spec:
+      wantErr: true
+      fatal: true
+
+plans:
+  deploy:
+    strategy: serial
+    phases:
+      - name: deploy
+        strategy: serial
+        steps:
+          - name: deploy
+            tasks:
+              - done
+  fail:
+    strategy: serial
+    phases:
+      - name: fail
+        strategy: serial
+        steps:
+          - name: fail
+            tasks:
+              - error
+  fail-fatally:
+    strategy: serial
+    phases:
+      - name: fail
+        strategy: serial
+        steps:
+          - name: fail
+            tasks:
+              - fatal-error
+  cleanup:
+    strategy: serial
+    phases:
+      - name: cleanup
+        strategy: serial
+        steps:
+          - name: cleanup
+            tasks:
+              - done
