@@ -327,10 +327,10 @@ func Test_makePipes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := pipesMap(tt.planName, tt.plan, tt.tasks, tt.emeta)
+			got, err := PipesMap(tt.planName, tt.plan, tt.tasks, tt.emeta)
 			if err != nil {
 				if !tt.wantErr {
-					t.Fatalf("pipesMap() error = %v, wantErr %v", err, tt.wantErr)
+					t.Fatalf("PipesMap() error = %v, wantErr %v", err, tt.wantErr)
 				}
 				return
 			}
