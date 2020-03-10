@@ -36,12 +36,12 @@ func TestGetLastExecutedPlanStatus(t *testing.T) {
 		planStatus       map[string]PlanStatus
 		expectedPlanName string
 	}{
-		{"no plan ever run", map[string]PlanStatus{"test": {
+		{name: "no plan ever run", planStatus: map[string]PlanStatus{"test": {
 			Status: ExecutionNeverRun,
 			Name:   "test",
 			Phases: []PhaseStatus{{Name: "phase", Status: ExecutionNeverRun, Steps: []StepStatus{{Status: ExecutionNeverRun, Name: "step"}}}},
-		}}, ""},
-		{"plan in progress", map[string]PlanStatus{
+		}}},
+		{name: "plan in progress", planStatus: map[string]PlanStatus{
 			"test": {
 				Status: ExecutionInProgress,
 				Name:   "test",
@@ -51,8 +51,8 @@ func TestGetLastExecutedPlanStatus(t *testing.T) {
 				Status: ExecutionComplete,
 				Name:   "test2",
 				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
-			}}, "test"},
-		{"last executed plan", map[string]PlanStatus{
+			}}, expectedPlanName: "test"},
+		{name: "last executed plan", planStatus: map[string]PlanStatus{
 			"test": {
 				Status:               ExecutionComplete,
 				Name:                 "test",
@@ -64,19 +64,17 @@ func TestGetLastExecutedPlanStatus(t *testing.T) {
 				Name:                 "test2",
 				LastUpdatedTimestamp: &metav1.Time{Time: testTime.Add(time.Hour)},
 				Phases:               []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
-			}}, "test2"},
+			}}, expectedPlanName: "test2"},
 	}
 
 	for _, tt := range tests {
 		i := Instance{}
 		i.Status.PlanStatus = tt.planStatus
 		actual := i.GetLastExecutedPlanStatus()
-		actualName := ""
 		if actual != nil {
-			actualName = actual.Name
-		}
-		if actualName != tt.expectedPlanName {
-			t.Errorf("%s: Expected to get plan %s but got plan status of %v", tt.name, tt.expectedPlanName, actual)
+			assert.Equal(t, tt.expectedPlanName, actual.Name)
+		} else {
+			assert.True(t, tt.expectedPlanName == "")
 		}
 	}
 }
