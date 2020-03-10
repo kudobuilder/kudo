@@ -66,13 +66,13 @@ func TestGetParameterMap(t *testing.T) {
 			[]string{"file-a", "file-b"},
 			map[string]string{
 				"file-a": "a: 42\nb: 43\n",
-				"file-b": "a: 742\nc: 777\n",
+				"file-b": "a: 742\nc: [7, 7, 7]\n",
 			},
 			"",
 			map[string]string{
 				"a": "742",
 				"b": "43",
-				"c": "777",
+				"c": "- 7\n- 7\n- 7\n",
 			},
 		},
 		{

@@ -7,6 +7,9 @@ import (
 
 	"github.com/spf13/afero"
 	"gopkg.in/yaml.v2"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
 // GetParameterMap takes a slice of parameter strings and a slice of parameter filenames as well as a filesystem,
@@ -22,14 +25,30 @@ func GetParameterMap(raw []string, filePaths []string, fs afero.Fs) (map[string]
 			errs = append(errs, fmt.Sprintf("error reading from parameter file %s: %v", filePath, err))
 			continue
 		}
-		data := make(map[string]string)
+		data := make(map[string]interface{})
 		err = yaml.Unmarshal(rawData, data)
 		if err != nil {
 			errs = append(errs, fmt.Sprintf("error unmarshalling content of parameter file %s: %v", filePath, err))
 			continue
 		}
 		for key, value := range data {
-			parameters[key] = value
+			var valueType v1beta1.ParameterType
+			switch value.(type) {
+			case map[string]interface{}:
+				valueType = v1beta1.MapValueType
+			case []interface{}:
+				valueType = v1beta1.ArrayValueType
+			case string:
+				valueType = v1beta1.StringValueType
+			default:
+				valueType = v1beta1.StringValueType
+			}
+			wrapped, err := convert.WrapParamValue(value, valueType)
+			if err != nil {
+				errs = append(errs, fmt.Sprintf("error converting value of parameter %s %q to a string: %v", key, value, err))
+				continue
+			}
+			parameters[key] = *wrapped
 		}
 	}
 
