@@ -18,7 +18,7 @@ Please refer to the [getting started guide](https://kudo.dev/docs/) documentatio
 
 ## Community Meetings
 
-We have open community meetings every 2nd and 4th Wednesday of the month at 9:00 a.m. PST. (17:00 UTC)
+We have open community meetings every 2nd and 4th Thursday of the month at 9:00 a.m. PST. (17:00 UTC)
 
 * Agenda and Notes: https://docs.google.com/document/d/1UqgtCMUHSsOohZYF8K7zX8WcErttuMSx7NbvksIbZgg
 * Zoom Meeting: https://d2iq.zoom.us/j/443128842
