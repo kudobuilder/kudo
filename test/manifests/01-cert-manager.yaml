@@ -5682,9 +5682,6 @@ subjects:
     name: cert-manager-cainjector
     namespace: cert-manager
 ---
-# Source: cert-manager/templates/webhook-rbac.yaml
-### Webhook ###
----
 # apiserver gets the auth-delegator role to delegate auth decisions to
 # the core apiserver
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -6435,45 +6432,6 @@ webhooks:
         name: cert-manager-webhook
         namespace: "cert-manager"
         path: /mutate
----
-# Source: cert-manager/templates/cainjector-psp-clusterrole.yaml
-
-
----
-# Source: cert-manager/templates/cainjector-psp-clusterrolebinding.yaml
-
-
----
-# Source: cert-manager/templates/cainjector-psp.yaml
-
----
-# Source: cert-manager/templates/psp-clusterrole.yaml
-
-
----
-# Source: cert-manager/templates/psp-clusterrolebinding.yaml
-
-
----
-# Source: cert-manager/templates/psp.yaml
-
-
----
-# Source: cert-manager/templates/servicemonitor.yaml
-
-
----
-# Source: cert-manager/templates/webhook-psp-clusterrole.yaml
-
-
----
-# Source: cert-manager/templates/webhook-psp-clusterrolebinding.yaml
-
-
----
-# Source: cert-manager/templates/webhook-psp.yaml
-
-
 ---
 # Source: cert-manager/templates/webhook-validating-webhook.yaml
 apiVersion: admissionregistration.k8s.io/v1beta1
