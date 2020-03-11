@@ -1,5 +1,5 @@
 ---
-kep-number: draft-20200225
+kep-number: 26
 title: Reading parameter values from a file
 short-desc: Reading parameter values from a file
 authors:
@@ -9,7 +9,7 @@ owners:
 editor: @porridge
 creation-date: 2020-02-25
 last-updated: 2020-03-02
-status: provisional
+status: implementable
 see-also:
   - KEP-24
   - KEP-25
