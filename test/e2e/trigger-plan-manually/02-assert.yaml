@@ -1,0 +1,23 @@
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
+  labels:
+    kudo.dev/operator: dummy
+  name: dummy-instance
+spec:
+  operatorVersion:
+    name: dummy-0.1.0
+  parameters:
+    dummy: "2"
+  planExecution: {}
+status:
+  planStatus:
+    deploy:
+      name: deploy
+      phases:
+        - name: deploy
+          status: COMPLETE
+          steps:
+            - name: dummy
+              status: COMPLETE
+      status: COMPLETE
