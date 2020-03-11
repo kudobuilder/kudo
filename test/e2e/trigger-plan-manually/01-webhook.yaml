@@ -1,33 +1,3 @@
-apiVersion: admissionregistration.k8s.io/v1beta1
-kind: MutatingWebhookConfiguration
-metadata:
-  annotations:
-    cert-manager.io/inject-ca-from: kudo-system/kudo-webhook-server-certificate
-  creationTimestamp: null
-  name: kudo-manager-instance-admission-webhook-config
-webhooks:
-  - clientConfig:
-      service:
-        name: kudo-controller-manager-service
-        namespace: kudo-system
-        path: /admit-kudo-dev-v1beta1-instance
-    failurePolicy: Fail
-    matchPolicy: Equivalent
-    name: instance-admission.kudo.dev
-    rules:
-      - apiGroups:
-          - kudo.dev
-        apiVersions:
-          - v1beta1
-        operations:
-          - CREATE
-          - UPDATE
-        resources:
-          - instances
-        scope: Namespaced
-    sideEffects: None
-
----
 apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
@@ -50,3 +20,32 @@ spec:
     kind: Issuer
     name: selfsigned-issuer
   secretName: kudo-webhook-server-secret
+
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: kudo-system/kudo-webhook-server-certificate
+  name: kudo-manager-instance-admission-webhook-config
+webhooks:
+  - clientConfig:
+      service:
+        name: kudo-controller-manager-service
+        namespace: kudo-system
+        path: /admit-kudo-dev-v1beta1-instance
+    failurePolicy: Fail
+    matchPolicy: Equivalent
+    name: instance-admission.kudo.dev
+    rules:
+      - apiGroups:
+          - kudo.dev
+        apiVersions:
+          - v1beta1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - instances
+        scope: Namespaced
+    sideEffects: None
