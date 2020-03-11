@@ -872,8 +872,21 @@ type TestEnvironment struct {
 // StartTestEnvironment is a wrapper for controller-runtime's envtest that creates a Kubernetes API server and etcd
 // suitable for use in tests.
 func StartTestEnvironment() (env TestEnvironment, err error) {
+	// these are copied from the internal controller-runtime pkg/internal/testing/integration/internal/apiserver.go
+	// sadly, we can't import them anymore since it is an internal package
+	var APIServerDefaultArgs = []string{
+		"--etcd-servers={{ if .EtcdURL }}{{ .EtcdURL.String }}{{ end }}",
+		"--cert-dir={{ .CertDir }}",
+		"--insecure-port={{ if .URL }}{{ .URL.Port }}{{ end }}",
+		"--insecure-bind-address={{ if .URL }}{{ .URL.Hostname }}{{ end }}",
+		"--secure-port={{ if .SecurePort }}{{ .SecurePort }}{{ end }}",
+		"--admission-control=AlwaysAdmit",
+		"--service-cluster-ip-range=10.0.0.0/24",
+		"--allow-privileged=true",
+	}
+
 	env.Environment = &envtest.Environment{
-		KubeAPIServerFlags: append(envtest.DefaultKubeAPIServerFlags, "--advertise-address={{ if .URL }}{{ .URL.Hostname }}{{ end }}"),
+		KubeAPIServerFlags: append(APIServerDefaultArgs, "--advertise-address={{ if .URL }}{{ .URL.Hostname }}{{ end }}"),
 	}
 
 	// Retry up to three times for the test environment to start up in case there is a port collision (#510).
