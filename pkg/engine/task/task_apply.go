@@ -175,7 +175,7 @@ func patchResource(modifiedObj, currentObj runtime.Object, ctx Context) error {
 	}
 
 	// Execute the patchResource
-	err = ctx.Client.Patch(context.TODO(), modifiedObj, client.ConstantPatch(patchType, patchData))
+	err = ctx.Client.Patch(context.TODO(), modifiedObj, client.RawPatch(patchType, patchData))
 	if err != nil {
 		return fmt.Errorf("failed to execute patch: %v", err)
 	}
