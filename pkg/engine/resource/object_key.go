@@ -70,25 +70,27 @@ func isNamespaced(gvk schema.GroupVersionKind, di discovery.CachedDiscoveryInter
 // getAPIResource returns a specific APIResource from the DiscoveryInterface or nil if no resource was found.
 // As the CachedDI may contain stale data, it can return nil even if the resource actually exists, in that
 // case it is advised to invalidate the DI cache and retry the query
+// Additionally, this method may return false positives, i.e. an API resource that was already deleted from the api
+// server. If no false positive results is required, call di.Invalidate before calling this method
 func getAPIResource(gvk schema.GroupVersionKind, di discovery.CachedDiscoveryInterface) (*metav1.APIResource, error) {
-	_, apiResources, err := di.ServerGroupsAndResources()
-	if err != nil {
+	resList, err := di.ServerResourcesForGroupVersion(gvk.GroupVersion().String())
+
+	if err != nil || resList == nil {
 		if err == memory.ErrCacheNotFound {
 			return nil, nil
 		}
 		return nil, err
 	}
 
-	for _, rr := range apiResources {
-		gv, err := schema.ParseGroupVersion(rr.GroupVersion)
-		if err != nil {
-			continue
-		}
-		for _, r := range rr.APIResources {
-			if gvk == gv.WithKind(r.Kind) {
-				return &r, nil
-			}
+	gv, err := schema.ParseGroupVersion(resList.GroupVersion)
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range resList.APIResources {
+		if gvk == gv.WithKind(r.Kind) {
+			return &r, nil
 		}
 	}
+
 	return nil, nil
 }
