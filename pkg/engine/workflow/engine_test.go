@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -622,8 +623,9 @@ func TestExecutePlan(t *testing.T) {
 
 	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
 	fakeDiscovery := utils.FakeDiscoveryClient()
+	fakeCachedDiscovery := memory.NewMemCacheClient(fakeDiscovery)
 	for _, tt := range tests {
-		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, fakeDiscovery, nil, tt.enhancer)
+		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, fakeCachedDiscovery, nil, tt.enhancer)
 		newStatus.LastUpdatedTimestamp = &metav1.Time{Time: testTime}
 
 		if !tt.wantErr && err != nil {

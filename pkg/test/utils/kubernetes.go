@@ -41,6 +41,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/discovery/cached/memory"
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -684,8 +685,8 @@ func WithAnnotations(obj runtime.Object, annotations map[string]string) runtime.
 
 // FakeDiscoveryClient returns a fake discovery client that is populated with some types for use in
 // unit tests.
-func FakeDiscoveryClient() discovery.DiscoveryInterface {
-	return &fakediscovery.FakeDiscovery{
+func FakeDiscoveryClient() discovery.CachedDiscoveryInterface {
+	fakeDiscovery := &fakediscovery.FakeDiscovery{
 		Fake: &coretesting.Fake{
 			Resources: []*metav1.APIResourceList{
 				{
@@ -724,6 +725,7 @@ func FakeDiscoveryClient() discovery.DiscoveryInterface {
 			},
 		},
 	}
+	return memory.NewMemCacheClient(fakeDiscovery)
 }
 
 // CreateOrUpdate will create obj if it does not exist and update if it it does.

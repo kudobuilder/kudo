@@ -6,13 +6,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/discovery/cached/memory"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ObjectKeyFromObject method wraps client.ObjectKeyFromObject method by additionally checking if passed object is
 // a cluster-scoped resource (e.g. CustomResourceDefinition, ClusterRole etc.) and removing the namespace from the
 // key since cluster-scoped resources are not namespaced.
-func ObjectKeyFromObject(r runtime.Object, di discovery.DiscoveryInterface) (client.ObjectKey, error) {
+func ObjectKeyFromObject(r runtime.Object, di discovery.CachedDiscoveryInterface) (client.ObjectKey, error) {
 	key, err := client.ObjectKeyFromObject(r)
 	if err != nil {
 		return client.ObjectKey{}, fmt.Errorf("failed to get an object key from object %v: %v", r.GetObjectKind(), err)
@@ -30,7 +31,7 @@ func ObjectKeyFromObject(r runtime.Object, di discovery.DiscoveryInterface) (cli
 	return key, nil
 }
 
-func IsNamespacedObject(r runtime.Object, di discovery.DiscoveryInterface) (bool, error) {
+func IsNamespacedObject(r runtime.Object, di discovery.CachedDiscoveryInterface) (bool, error) {
 	gvk := r.GetObjectKind().GroupVersionKind()
 	return isNamespaced(gvk, di)
 }
@@ -38,11 +39,17 @@ func IsNamespacedObject(r runtime.Object, di discovery.DiscoveryInterface) (bool
 // isNamespaced method return true if given runtime.Object is a namespaced (not cluster-scoped) resource. It uses the
 // discovery client to fetch all API resources (with Groups and Versions), searches for a resource with the passed GVK
 // and returns true if it's namespaced. Method returns an error if passed GVK wasn't found in the discovered resource list.
-func isNamespaced(gvk schema.GroupVersionKind, di discovery.DiscoveryInterface) (bool, error) {
+func isNamespaced(gvk schema.GroupVersionKind, di discovery.CachedDiscoveryInterface) (bool, error) {
 	// Fetch namespaced API resources
 	_, apiResources, err := di.ServerGroupsAndResources()
 	if err != nil {
-		return false, fmt.Errorf("failed to fetch server groups and resources: %v", err)
+		if err == memory.ErrCacheNotFound {
+			di.Invalidate()
+			_, apiResources, err = di.ServerGroupsAndResources()
+			if err != nil {
+				return false, fmt.Errorf("failed to fetch server groups and resources: %v", err)
+			}
+		}
 	}
 
 	for _, rr := range apiResources {
