@@ -53,4 +53,4 @@ require (
 	sigs.k8s.io/yaml v1.1.0
 )
 
-replace k8s.io/code-generator v0.16.6 => github.com/kudobuilder/code-generator v0.16.6-beta.0.0.20200221140535-0ef46f1228ff
+replace k8s.io/code-generator v0.17.3 => github.com/kudobuilder/code-generator v0.17.3
