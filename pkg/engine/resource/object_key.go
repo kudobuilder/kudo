@@ -39,22 +39,22 @@ func IsNamespacedObject(r runtime.Object, di discovery.DiscoveryInterface) (bool
 // discovery client to fetch all API resources (with Groups and Versions), searches for a resource with the passed GVK
 // and returns true if it's namespaced. Method returns an error if passed GVK wasn't found in the discovered resource list.
 func isNamespaced(gvk schema.GroupVersionKind, di discovery.DiscoveryInterface) (bool, error) {
-	// Fetch namespaced API resources
-	_, apiResources, err := di.ServerGroupsAndResources()
+	resList, err := di.ServerResourcesForGroupVersion(gvk.GroupVersion().String())
+
 	if err != nil {
-		return false, fmt.Errorf("failed to fetch server groups and resources: %v", err)
+		return false, fmt.Errorf("failed to fetch server resources for %s: %v", gvk.GroupVersion().String(), err)
+	}
+	if resList == nil {
+		return false, fmt.Errorf("failed to find server resources for %s: %v", gvk.GroupVersion().String(), err)
 	}
 
-	for _, rr := range apiResources {
-		gv, err := schema.ParseGroupVersion(rr.GroupVersion)
-		if err != nil {
-			continue
-		}
-		for _, r := range rr.APIResources {
-			if gvk == gv.WithKind(r.Kind) {
-				return r.Namespaced, nil
-			}
-			//log.Printf("[%s], Name: %s: %v", gvk, r.Name, r.Namespaced)
+	gv, err := schema.ParseGroupVersion(resList.GroupVersion)
+	if err != nil {
+		return false, err
+	}
+	for _, r := range resList.APIResources {
+		if gvk == gv.WithKind(r.Kind) {
+			return r.Namespaced, nil
 		}
 	}
 
