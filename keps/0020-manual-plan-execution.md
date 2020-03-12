@@ -8,8 +8,8 @@ owners:
   - "@alenkacz"
   - "@zen-dog"
 creation-date: 2019-11-08
-last-updated: 2020-01-20
-status: provisional
+last-updated: 2020-03-10
+status: implemented
 see-also:
   - KEP-18
 ---
