@@ -2,7 +2,9 @@ package resource
 
 import (
 	"fmt"
+	"log"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
@@ -41,15 +43,35 @@ func IsNamespacedObject(r runtime.Object, di discovery.CachedDiscoveryInterface)
 // and returns true if it's namespaced. Method returns an error if passed GVK wasn't found in the discovered resource list.
 func isNamespaced(gvk schema.GroupVersionKind, di discovery.CachedDiscoveryInterface) (bool, error) {
 	// Fetch namespaced API resources
+
+	apiResource, err := getAPIResource(gvk, di)
+	if err != nil {
+		return false, err
+	}
+	if apiResource == nil {
+		log.Printf("Failed to get APIResource for %v, retry with invalidated cache.", gvk)
+		di.Invalidate()
+		apiResource, err = getAPIResource(gvk, di)
+	}
+	if err != nil {
+		return false, err
+	}
+	if apiResource == nil {
+		return false, fmt.Errorf("a resource with GVK %v seems to be missing in API resource list", gvk)
+	}
+	return apiResource.Namespaced, nil
+}
+
+// getAPIResource returns a specific APIResource from the DiscoveryInterface or nil if no resource was found.
+// As the CachedDI may contain stale data, it can return nil even if the resource actually exists, in that
+// case it is advised to invalidate the DI cache and retry the query
+func getAPIResource(gvk schema.GroupVersionKind, di discovery.CachedDiscoveryInterface) (*metav1.APIResource, error) {
 	_, apiResources, err := di.ServerGroupsAndResources()
 	if err != nil {
 		if err == memory.ErrCacheNotFound {
-			di.Invalidate()
-			_, apiResources, err = di.ServerGroupsAndResources()
-			if err != nil {
-				return false, fmt.Errorf("failed to fetch server groups and resources: %v", err)
-			}
+			return nil, nil
 		}
+		return nil, err
 	}
 
 	for _, rr := range apiResources {
@@ -58,12 +80,11 @@ func isNamespaced(gvk schema.GroupVersionKind, di discovery.CachedDiscoveryInter
 			continue
 		}
 		for _, r := range rr.APIResources {
+			r := r
 			if gvk == gv.WithKind(r.Kind) {
-				return r.Namespaced, nil
+				return &r, nil
 			}
-			//log.Printf("[%s], Name: %s: %v", gvk, r.Name, r.Namespaced)
 		}
 	}
-
-	return false, fmt.Errorf("a resource with GVK %v seems to be missing in API resource list", gvk)
+	return nil, nil
 }
