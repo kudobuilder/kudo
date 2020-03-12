@@ -68,7 +68,7 @@ func isNamespaced(gvk schema.GroupVersionKind, di discovery.CachedDiscoveryInter
 }
 
 // getAPIResource returns a specific APIResource from the DiscoveryInterface or nil if no resource was found.
-// As the CachedDI may contain stale data, it can return nil even if the resource actually exists, in that
+// As the CachedDiscoverInterface may contain stale data, it can return nil even if the resource actually exists, in that
 // case it is advised to invalidate the DI cache and retry the query
 // Additionally, this method may return false positives, i.e. an API resource that was already deleted from the api
 // server. If no false positive results is required, call di.Invalidate before calling this method
