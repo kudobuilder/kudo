@@ -39,7 +39,7 @@ func TestStepClean(t *testing.T) {
 			pod.DeepCopyObject(), pod2WithDiffNamespace.DeepCopyObject(), testutils.NewPod("does-not-exist", ""),
 		},
 		Client:          func(bool) (client.Client, error) { return cl, nil },
-		DiscoveryClient: func() (discovery.DiscoveryInterface, error) { return testutils.FakeDiscoveryClient(), nil },
+		DiscoveryClient: func() (discovery.CachedDiscoveryInterface, error) { return testutils.FakeDiscoveryClient(), nil },
 	}
 
 	assert.Nil(t, step.Clean(testNamespace))
@@ -70,7 +70,7 @@ func TestStepCreate(t *testing.T) {
 			pod.DeepCopyObject(), podWithNamespace.DeepCopyObject(), clusterScopedResource, updateToApply,
 		},
 		Client:          func(bool) (client.Client, error) { return cl, nil },
-		DiscoveryClient: func() (discovery.DiscoveryInterface, error) { return testutils.FakeDiscoveryClient(), nil },
+		DiscoveryClient: func() (discovery.CachedDiscoveryInterface, error) { return testutils.FakeDiscoveryClient(), nil },
 	}
 
 	assert.Equal(t, []error{}, step.Create(testNamespace))
@@ -118,7 +118,7 @@ func TestStepDeleteExisting(t *testing.T) {
 			},
 		},
 		Client:          func(bool) (client.Client, error) { return cl, nil },
-		DiscoveryClient: func() (discovery.DiscoveryInterface, error) { return testutils.FakeDiscoveryClient(), nil },
+		DiscoveryClient: func() (discovery.CachedDiscoveryInterface, error) { return testutils.FakeDiscoveryClient(), nil },
 	}
 
 	assert.Nil(t, cl.Get(context.TODO(), testutils.ObjectKey(podToKeep), podToKeep))
@@ -179,7 +179,7 @@ func TestCheckResource(t *testing.T) {
 			step := Step{
 				Logger:          testutils.NewTestLogger(t, ""),
 				Client:          func(bool) (client.Client, error) { return fake.NewFakeClient(test.actual), nil },
-				DiscoveryClient: func() (discovery.DiscoveryInterface, error) { return fakeDiscovery, nil },
+				DiscoveryClient: func() (discovery.CachedDiscoveryInterface, error) { return fakeDiscovery, nil },
 			}
 
 			errors := step.CheckResource(test.expected, namespace)
@@ -228,7 +228,7 @@ func TestCheckResourceAbsent(t *testing.T) {
 			step := Step{
 				Logger:          testutils.NewTestLogger(t, ""),
 				Client:          func(bool) (client.Client, error) { return fake.NewFakeClient(test.actual), nil },
-				DiscoveryClient: func() (discovery.DiscoveryInterface, error) { return fakeDiscovery, nil },
+				DiscoveryClient: func() (discovery.CachedDiscoveryInterface, error) { return fakeDiscovery, nil },
 			}
 
 			error := step.CheckResourceAbsent(test.expected, testNamespace)
@@ -299,7 +299,7 @@ func TestRun(t *testing.T) {
 			cl := fake.NewFakeClient()
 
 			test.Step.Client = func(bool) (client.Client, error) { return cl, nil }
-			test.Step.DiscoveryClient = func() (discovery.DiscoveryInterface, error) { return testutils.FakeDiscoveryClient(), nil }
+			test.Step.DiscoveryClient = func() (discovery.CachedDiscoveryInterface, error) { return testutils.FakeDiscoveryClient(), nil }
 			test.Step.Logger = testutils.NewTestLogger(t, "")
 
 			if test.updateMethod != nil {

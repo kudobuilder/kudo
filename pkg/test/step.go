@@ -39,7 +39,7 @@ type Step struct {
 	Timeout int
 
 	Client          func(forceNew bool) (client.Client, error)
-	DiscoveryClient func() (discovery.DiscoveryInterface, error)
+	DiscoveryClient func() (discovery.CachedDiscoveryInterface, error)
 
 	Logger testutils.Logger
 }

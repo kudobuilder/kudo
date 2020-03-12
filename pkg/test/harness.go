@@ -316,7 +316,7 @@ func (h *Harness) Client(forceNew bool) (client.Client, error) {
 }
 
 // DiscoveryClient returns the current Kubernetes discovery client for the test harness.
-func (h *Harness) DiscoveryClient() (discovery.DiscoveryInterface, error) {
+func (h *Harness) DiscoveryClient() (discovery.CachedDiscoveryInterface, error) {
 	h.clientLock.Lock()
 	defer h.clientLock.Unlock()
 
