@@ -120,7 +120,7 @@ func TestGetParameterMap(t *testing.T) {
 			for fileName, content := range test.fsContent {
 				assert.NoError(t, afero.WriteFile(fs, fileName, []byte(content), os.ModePerm))
 			}
-			params, err := GetParameterMap(test.params, test.paramFiles, fs)
+			params, err := GetParameterMap(fs, test.params, test.paramFiles)
 			if len(test.expectedError) == 0 {
 				assert.NoError(t, err)
 				assert.Equal(t, test.expected, params)

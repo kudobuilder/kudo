@@ -13,11 +13,35 @@ import (
 )
 
 // GetParameterMap takes a slice of parameter strings and a slice of parameter filenames as well as a filesystem,
-// parses parameters into a map of keys and values
-func GetParameterMap(raw []string, filePaths []string, fs afero.Fs) (map[string]string, error) {
+// parses parameters into a map of keys and values.
+// All values are marshalled into string form.
+func GetParameterMap(fs afero.Fs, raw []string, filePaths []string) (map[string]string, error) {
 	var errs []string
 	parameters := make(map[string]string)
 
+	errs = getParametersFromFiles(fs, filePaths, parameters, errs)
+	errs = getParametersFromCommandLine(raw, parameters, errs)
+
+	if errs != nil {
+		return nil, errors.New(strings.Join(errs, ", "))
+	}
+
+	return parameters, nil
+}
+
+func getParametersFromCommandLine(raw []string, parameters map[string]string, errs []string) []string {
+	for _, a := range raw {
+		key, value, err := parseParameter(a)
+		if err != nil {
+			errs = append(errs, *err)
+			continue
+		}
+		parameters[key] = value
+	}
+	return errs
+}
+
+func getParametersFromFiles(fs afero.Fs, filePaths []string, parameters map[string]string, errs []string) []string {
 	for _, filePath := range filePaths {
 		var err error
 		rawData, err := afero.ReadFile(fs, filePath)
@@ -51,21 +75,7 @@ func GetParameterMap(raw []string, filePaths []string, fs afero.Fs) (map[string]
 			parameters[key] = *wrapped
 		}
 	}
-
-	for _, a := range raw {
-		key, value, err := parseParameter(a)
-		if err != nil {
-			errs = append(errs, *err)
-			continue
-		}
-		parameters[key] = value
-	}
-
-	if errs != nil {
-		return nil, errors.New(strings.Join(errs, ", "))
-	}
-
-	return parameters, nil
+	return errs
 }
 
 // parseParameter does all the parsing logic for an instance of a parameter provided to the command line
