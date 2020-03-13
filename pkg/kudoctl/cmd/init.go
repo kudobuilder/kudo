@@ -204,7 +204,10 @@ func (initCmd *initCmd) run() error {
 		if err != nil {
 			return err
 		}
-		if !ok || initCmd.dryRun {
+		if !ok {
+			return fmt.Errorf("failed to verify upgrade requirements")
+		}
+		if initCmd.dryRun {
 			return nil
 		}
 		if err := setup.Upgrade(initCmd.client, opts); err != nil {
@@ -215,7 +218,10 @@ func (initCmd *initCmd) run() error {
 		if err != nil {
 			return err
 		}
-		if !ok || initCmd.dryRun {
+		if !ok {
+			return fmt.Errorf("failed to verify installation requirements")
+		}
+		if initCmd.dryRun {
 			return nil
 		}
 		if err := setup.Install(initCmd.client, opts, initCmd.crdOnly); err != nil {
