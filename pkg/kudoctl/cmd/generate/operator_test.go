@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 )
@@ -70,7 +69,7 @@ func TestOperator_Write(t *testing.T) {
 	// updating params file and testing params are not overwritten
 	pf := packages.ParamsFile{
 		APIVersion: "FOO",
-		Parameters: []v1beta1.Parameter{},
+		Parameters: []packages.Parameter{},
 	}
 	// replace param file with a marker "FOO" to test that we do NOT overwrite it
 	err = writeParameters(fs, "operator", pf)

@@ -3,8 +3,6 @@ package renderer
 import (
 	"bytes"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -13,37 +11,36 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 )
 
+const yamlSeparator = "\n---"
+
 // YamlToObject parses a list of runtime.Objects from the provided yaml
 // If the type is not known in the scheme, it tries to parse it as Unstructured
+// We used to use 'apimachiner/pkg/util/yaml' for splitting the input into multiple yamls,
+// however under the covers it uses bufio.NewScanner with token defaults with no option to modify.
+// see: https://github.com/kubernetes/apimachinery/blob/release-1.6/pkg/util/yaml/decoder.go#L94
+// The YAML input can be too large for the default scan token size used by these packages.
+// For more detail read: https://github.com/kudobuilder/kudo/pull/1400
 // TODO(av) could we use something else than a global scheme here? Should we somehow inject it?
 func YamlToObject(yaml string) (objs []runtime.Object, err error) {
-	decode := scheme.Codecs.UniversalDeserializer().Decode
-	// There can be any number of chunks in a YAML file, separated with "\n---".
-	// This "decoder" returns one chunk at a time.
-	docDecoder := yamlutil.NewDocumentDecoder(ioutil.NopCloser(strings.NewReader(yaml)))
-	for {
-		// Prepare slice large enough from the start, rather than do the ErrShortBuffer dance,
-		// since we're reading from an in-memory string already anyway.
-		chunk := make([]byte, len(yaml))
-		n, err := docDecoder.Read(chunk)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, fmt.Errorf("reading from document decoder failed: %v", err)
+	yamls := strings.Split(yaml, yamlSeparator)
+	for _, y := range yamls {
+		if len(strings.TrimSpace(y)) == 0 {
+			// ignore empty cases
+			continue
 		}
-		// Truncate to what was actually read, to not confuse the consumers with NUL bytes.
-		chunk = chunk[:n]
 
-		obj, _, e := decode(chunk, nil, nil)
+		decode := scheme.Codecs.UniversalDeserializer().Decode
+		obj, _, e := decode([]byte(y), nil, nil)
 
 		if e != nil {
 			// if parsing to scheme known types fails, just try to parse into unstructured
 			unstructuredObj := &unstructured.Unstructured{}
-			decoder := yamlutil.NewYAMLOrJSONDecoder(bytes.NewBuffer(chunk), n)
+			fileBytes := []byte(y)
+			decoder := yamlutil.NewYAMLOrJSONDecoder(bytes.NewBuffer(fileBytes), len(fileBytes))
 			if err = decoder.Decode(unstructuredObj); err != nil {
-				return nil, fmt.Errorf("decoding chunk %q failed: %v", chunk, err)
+				return nil, fmt.Errorf("decoding chunk %q failed: %v", fileBytes, err)
 			}
+
 			// Skip those chunks/documents which (after rendering) consist solely of whitespace or comments.
 			if len(unstructuredObj.UnstructuredContent()) != 0 {
 				objs = append(objs, unstructuredObj)
@@ -52,5 +49,5 @@ func YamlToObject(yaml string) (objs []runtime.Object, err error) {
 			objs = append(objs, obj)
 		}
 	}
-	return objs, nil
+	return
 }

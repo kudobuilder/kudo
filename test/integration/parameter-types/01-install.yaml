@@ -1,0 +1,87 @@
+apiVersion: kudo.dev/v1beta1
+kind: Operator
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: parameter-test
+---
+apiVersion: kudo.dev/v1beta1
+kind: OperatorVersion
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: parameter-test-v1
+spec:
+  version: "1.0.0"
+  connectionString: ""
+  operator:
+    name: parameter-test
+    kind: Operator
+  templates:
+    deployment.yaml: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: nginx-deployment
+        labels:
+        {{ range $key, $value := .Params.LABELS }}
+          {{ $key }}: {{ $value }}
+        {{ end }}
+      spec:
+        selector:
+          matchLabels:
+            app: nginx
+        replicas: 1
+        template:
+          metadata:
+            labels:
+              app: nginx
+          spec:
+            containers:
+            - name: nginx
+              image: nginx:1.7.9
+              ports:
+              {{ range .Params.PORTS }}
+              - containerPort: {{ . }}
+              {{ end }}
+  tasks:
+    - name: operator
+      kind: Apply
+      spec:
+        resources:
+          - deployment.yaml
+  parameters:
+    - name: LABELS
+      description: "Deployment labels"
+      default: "a: a"
+      value-type: map
+    - name: PORTS
+      description: "Nginx ports"
+      default: "[ 80 ]"
+      value-type: array
+  plans:
+    deploy:
+      strategy: serial
+      phases:
+        - name: dependencies
+          steps:
+            - name: operator
+              tasks:
+                - operator
+---
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+    kudo.dev/operator: parameter-test
+  name: parameter-test-instance
+spec:
+  operatorVersion:
+    name: parameter-test-v1
+    kind: OperatorVersion
+  parameters:
+    LABELS: |
+      a: a
+      b: b
+    PORTS: "[ 80, 443 ]"

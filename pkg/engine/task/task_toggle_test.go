@@ -66,7 +66,7 @@ func TestToggleTask_Run(t *testing.T) {
 			done:    true,
 			wantErr: false,
 			ctx: Context{
-				Parameters: map[string]string{
+				Parameters: map[string]interface{}{
 					"feature-enabled": "true",
 				},
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
@@ -86,7 +86,7 @@ func TestToggleTask_Run(t *testing.T) {
 			done:    false,
 			wantErr: false,
 			ctx: Context{
-				Parameters: map[string]string{
+				Parameters: map[string]interface{}{
 					"feature-enabled": "true",
 				},
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
@@ -142,7 +142,7 @@ func TestToggleTask_intermediateTask(t *testing.T) {
 			},
 			wantErr: false,
 			ctx: Context{
-				Parameters: map[string]string{
+				Parameters: map[string]interface{}{
 					"feature-enabled": "true",
 				},
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
@@ -162,7 +162,7 @@ func TestToggleTask_intermediateTask(t *testing.T) {
 			},
 			wantErr: false,
 			ctx: Context{
-				Parameters: map[string]string{
+				Parameters: map[string]interface{}{
 					"feature-enabled": "false",
 				},
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
@@ -182,7 +182,7 @@ func TestToggleTask_intermediateTask(t *testing.T) {
 			},
 			wantErr: true,
 			ctx: Context{
-				Parameters: map[string]string{
+				Parameters: map[string]interface{}{
 					"feature-enabled": "notABooleanValue",
 				},
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
@@ -202,7 +202,7 @@ func TestToggleTask_intermediateTask(t *testing.T) {
 			},
 			wantErr: true,
 			ctx: Context{
-				Parameters: map[string]string{
+				Parameters: map[string]interface{}{
 					"feature-enabled": "",
 				},
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
@@ -221,7 +221,7 @@ func TestToggleTask_intermediateTask(t *testing.T) {
 			},
 			wantErr: true,
 			ctx: Context{
-				Parameters: map[string]string{
+				Parameters: map[string]interface{}{
 					"feature-enabled": "someValue",
 				},
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),

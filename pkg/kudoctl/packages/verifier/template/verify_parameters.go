@@ -68,7 +68,7 @@ func paramsDefinedNotUsed(pf *packages.Files) verifier.Result {
 	}
 	for _, value := range pf.Params.Parameters {
 		if _, ok := tparams[value.Name]; !ok {
-			res.AddParamWarning(value, "defined but not used.")
+			res.AddParamWarning(value.Name, "defined but not used.")
 		}
 	}
 	return res

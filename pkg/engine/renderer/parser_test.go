@@ -88,7 +88,6 @@ func TestParseKubernetesObjects_EmptyListOfObjects(t *testing.T) {
 		{"empty line", `
 `},
 		{"empty lines", `
-
 `},
 	}
 	for _, test := range tests {

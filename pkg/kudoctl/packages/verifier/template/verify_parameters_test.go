@@ -11,7 +11,7 @@ import (
 )
 
 func TestTemplateParametersVerifier(t *testing.T) {
-	params := []v1beta1.Parameter{
+	params := []packages.Parameter{
 		{Name: "Foo"},
 		{Name: "NotUsed"},
 		{Name: "UsedViaRoot"},

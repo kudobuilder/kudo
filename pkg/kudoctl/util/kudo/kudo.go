@@ -11,6 +11,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/discovery"
 
 	// Import Kubernetes authentication providers to support GKE, etc.
@@ -24,7 +25,8 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/util/convert"
+	label "github.com/kudobuilder/kudo/pkg/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 
@@ -106,7 +108,7 @@ func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 //      		kudo.dev/operator: kafka
 // This function also just returns true if the Instance matches a specific OperatorVersion of an Operator
 func (c *Client) InstanceExistsInCluster(operatorName, namespace, version, instanceName string) (bool, error) {
-	instances, err := c.clientset.KudoV1beta1().Instances(namespace).List(v1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", kudo.OperatorLabel, operatorName)})
+	instances, err := c.clientset.KudoV1beta1().Instances(namespace).List(v1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", label.OperatorLabel, operatorName)})
 	if err != nil {
 		return false, err
 	}
@@ -174,16 +176,25 @@ func (c *Client) GetOperatorVersion(name, namespace string) (*v1beta1.OperatorVe
 }
 
 // UpdateInstance updates operatorversion on instance
-func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersionName *string, parameters map[string]string) error {
+func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersion *string, parameters map[string]string, triggeredPlan *string) error {
 	instanceSpec := v1beta1.InstanceSpec{}
-	if operatorVersionName != nil {
+	// 1. new OperatorVersion
+	if operatorVersion != nil {
 		instanceSpec.OperatorVersion = v1core.ObjectReference{
-			Name: kudo.StringValue(operatorVersionName),
+			Name: convert.StringValue(operatorVersion),
 		}
 	}
+	// 2. new/updated parameters
 	if parameters != nil {
 		instanceSpec.Parameters = parameters
 	}
+	// 3. new/updated execution plan
+	if triggeredPlan != nil {
+		instanceSpec.PlanExecution.PlanName = *triggeredPlan
+		instanceSpec.PlanExecution.UID = uuid.NewUUID() // we need to generate a new UID for KUDO manager to detect a new plan
+	}
+
+	// 4. create new instance object and patch the existing one
 	serializedPatch, err := json.Marshal(struct {
 		Spec *v1beta1.InstanceSpec `json:"spec"`
 	}{

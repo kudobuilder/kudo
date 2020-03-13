@@ -47,8 +47,10 @@ test-clean:
 
 .PHONY: lint
 lint:
-	if [ ! -f ${GOPATH}/bin/golangci-lint ]; then ./hack/install-golangcilint.sh; fi
-	${GOPATH}/bin/golangci-lint run
+ifeq (, $(shell which golangci-lint))
+	./hack/install-golangcilint.sh
+endif
+	golangci-lint run
 
 .PHONY: download
 download:
@@ -145,12 +147,21 @@ ifeq (, $(shell which golangci-lint))
 endif
 	golangci-lint run --disable-all -E goimports --fix
 
+.PHONY: update-golden
+# used to update the golden files present in ./pkg/.../testdata
+# example: make update-golden
+# tests in update==true mode show as failures
+update-golden:
+	go test ./pkg/... -v -mod=readonly --update=true
+
 .PHONY: todo
 # Show to-do items per file.
 todo:
 	@grep \
 		--exclude-dir=hack \
 		--exclude=Makefile \
+		--exclude-dir=.git \
+		--exclude-dir=bin \
 		--text \
 		--color \
-		-nRo -E ' TODO:.*|SkipNow' .
+		-nRo -E " *[^\.]TODO.*|SkipNow" .

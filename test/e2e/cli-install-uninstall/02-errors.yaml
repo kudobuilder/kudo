@@ -2,9 +2,6 @@ apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   name: first-operator
-status:
-  aggregatedStatus:
-    status: COMPLETE
 ---
 apiVersion: apps/v1
 kind: Deployment

@@ -17,6 +17,7 @@ package v1beta1
 
 import (
 	"fmt"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,15 +36,17 @@ type InstanceSpec struct {
 
 // There are two ways a plan execution can be triggered:
 //  1) indirectly through update of a corresponding parameter in the InstanceSpec.Parameters map
-//  2) directly through setting of the InstanceSpec.PlanExecution field
+//  2) directly through setting of the InstanceSpec.PlanExecution.PlanName field
 // While indirect (1) triggers happens every time a user changes a parameter, a directly (2) triggered
 // plan is reserved for the situations when parameters doesn't change e.g. a periodic backup is triggered
 // overriding the existing backup file. Additionally, this opens room for canceling and overriding
 // currently running plans in the future.
 // Note: PlanExecution field defines plan name and corresponding parameters that IS CURRENTLY executed.
 // Once the instance controller (IC) is done with the execution, this field will be cleared.
+// Each plan execution has a unique UID so should the same plan be re-triggered it will have a new UID
 type PlanExecution struct {
-	PlanName string `json:"planName"  validate:"required"`
+	PlanName string                `json:"planName,omitempty"`
+	UID      apimachinerytypes.UID `json:"uid,omitempty"`
 
 	// Future PE options like Force: bool. Not needed for now
 }
@@ -89,9 +92,9 @@ type PlanStatus struct {
 	Status  ExecutionStatus `json:"status,omitempty"`
 	Message string          `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
 	// +nullable
-	LastFinishedRun *metav1.Time          `json:"lastFinishedRun,omitempty"`
-	Phases          []PhaseStatus         `json:"phases,omitempty"`
-	UID             apimachinerytypes.UID `json:"uid,omitempty"`
+	LastUpdatedTimestamp *metav1.Time          `json:"lastUpdatedTimestamp,omitempty"`
+	Phases               []PhaseStatus         `json:"phases,omitempty"`
+	UID                  apimachinerytypes.UID `json:"uid,omitempty"`
 }
 
 // PhaseStatus is representing status of a phase
@@ -130,11 +133,13 @@ func (s *PhaseStatus) SetWithMessage(status ExecutionStatus, message string) {
 }
 
 func (s *PlanStatus) Set(status ExecutionStatus) {
+	s.LastUpdatedTimestamp = &metav1.Time{Time: time.Now()}
 	s.Status = status
 	s.Message = ""
 }
 
 func (s *PlanStatus) SetWithMessage(status ExecutionStatus, message string) {
+	s.LastUpdatedTimestamp = &metav1.Time{Time: time.Now()}
 	s.Status = status
 	s.Message = message
 }

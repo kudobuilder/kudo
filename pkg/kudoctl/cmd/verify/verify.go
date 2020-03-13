@@ -42,7 +42,7 @@ func (DuplicateVerifier) Verify(pf *packages.Files) verifier.Result {
 	for _, param := range pf.Params.Parameters {
 		name := strings.ToLower(param.Name)
 		if names[name] {
-			res.AddParamError(param, "has a duplicate")
+			res.AddParamError(param.Name, "has a duplicate")
 		}
 		names[name] = true
 	}
@@ -59,7 +59,7 @@ func (v InvalidCharVerifier) Verify(pf *packages.Files) verifier.Result {
 		name := strings.ToLower(param.Name)
 		for _, char := range name {
 			if strings.Contains(v.InvalidChars, strings.ToLower(string(char))) {
-				res.AddParamError(param, fmt.Sprintf("contains invalid character %q", char))
+				res.AddParamError(param.Name, fmt.Sprintf("contains invalid character %q", char))
 			}
 		}
 

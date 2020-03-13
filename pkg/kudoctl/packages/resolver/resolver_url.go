@@ -7,6 +7,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/convert"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 )
 
@@ -30,7 +31,7 @@ func (f *URLResolver) Resolve(name string, appVersion string, operatorVersion st
 		return nil, err
 	}
 
-	resources, err := files.Resources()
+	resources, err := convert.FilesToResources(files)
 	if err != nil {
 		return nil, err
 	}
