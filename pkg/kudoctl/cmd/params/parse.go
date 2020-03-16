@@ -1,4 +1,4 @@
-package install
+package params
 
 import (
 	"errors"
@@ -17,19 +17,19 @@ import (
 // All values are marshalled into string form.
 func GetParameterMap(fs afero.Fs, raw []string, filePaths []string) (map[string]string, error) {
 	var errs []string
-	parameters := make(map[string]string)
 
-	errs = getParametersFromFiles(fs, filePaths, parameters, errs)
-	errs = getParametersFromCommandLine(raw, parameters, errs)
+	paramsFromCmdline, errs := getParamsFromCmdline(raw, errs)
+	paramsFromFiles, errs := getParamsFromFiles(fs, filePaths, errs)
 
 	if errs != nil {
 		return nil, errors.New(strings.Join(errs, ", "))
 	}
 
-	return parameters, nil
+	return mergeParams(paramsFromCmdline, paramsFromFiles), nil
 }
 
-func getParametersFromCommandLine(raw []string, parameters map[string]string, errs []string) []string {
+func getParamsFromCmdline(raw []string, errs []string) (map[string]string, []string) {
+	parameters := make(map[string]string)
 	for _, a := range raw {
 		key, value, err := parseParameter(a)
 		if err != nil {
@@ -38,10 +38,11 @@ func getParametersFromCommandLine(raw []string, parameters map[string]string, er
 		}
 		parameters[key] = value
 	}
-	return errs
+	return parameters, errs
 }
 
-func getParametersFromFiles(fs afero.Fs, filePaths []string, parameters map[string]string, errs []string) []string {
+func getParamsFromFiles(fs afero.Fs, filePaths []string, errs []string) (map[string]string, []string) {
+	parameters := make(map[string]string)
 	for _, filePath := range filePaths {
 		var err error
 		rawData, err := afero.ReadFile(fs, filePath)
@@ -69,13 +70,25 @@ func getParametersFromFiles(fs afero.Fs, filePaths []string, parameters map[stri
 			}
 			wrapped, err := convert.WrapParamValue(value, valueType)
 			if err != nil {
-				errs = append(errs, fmt.Sprintf("error converting value of parameter %s %q to a string: %v", key, value, err))
+				errs = append(errs, fmt.Sprintf("error converting value of parameter %s from file %s %q to a string: %v", key, filePath, value, err))
 				continue
 			}
 			parameters[key] = *wrapped
 		}
 	}
-	return errs
+	return parameters, errs
+}
+
+func mergeParams(paramsFromCmdline map[string]string, paramsFromFiles map[string]string) map[string]string {
+	params := make(map[string]string)
+	for key, value := range paramsFromFiles {
+		params[key] = value
+	}
+	// parameters specified on command line override those provided in parameter value files
+	for key, value := range paramsFromCmdline {
+		params[key] = value
+	}
+	return params
 }
 
 // parseParameter does all the parsing logic for an instance of a parameter provided to the command line

@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/params"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
@@ -43,7 +43,7 @@ func newUpdateCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Prior to command execution we parse and validate passed arguments
 			var err error
-			options.Parameters, err = install.GetParameterMap(fs, parameters, parameterFiles)
+			options.Parameters, err = params.GetParameterMap(fs, parameters, parameterFiles)
 			if err != nil {
 				return fmt.Errorf("could not parse parameters: %v", err)
 			}
