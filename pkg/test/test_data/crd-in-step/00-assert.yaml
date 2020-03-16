@@ -2,7 +2,7 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: mycrds.mycrd.k8s.io
+  name: mycrds.mycrd.example.com
 status:
   acceptedNames:
     kind: MyCRD
@@ -11,3 +11,8 @@ status:
     singular: mycrd
   storedVersions:
   - v1beta1
+  conditions:
+  - type: NamesAccepted
+    status: "True"
+  - type: Established
+    status: "True"
