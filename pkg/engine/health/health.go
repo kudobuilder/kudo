@@ -14,21 +14,8 @@ import (
 	"k8s.io/kubectl/pkg/polymorphichelpers"
 
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/engine"
 )
-
-// IsTerminallyFailed returns whether an object is in a terminal failed state and has no chance to reach healthy
-func IsTerminallyFailed(obj runtime.Object) (bool, string) {
-	if obj == nil {
-		return false, ""
-	}
-
-	switch obj := obj.(type) {
-	case *batchv1.Job:
-		return isJobTerminallyFailed(obj)
-	default:
-		return false, ""
-	}
-}
 
 func isJobTerminallyFailed(job *batchv1.Job) (bool, string) {
 	for _, c := range job.Status.Conditions {
@@ -83,6 +70,10 @@ func IsHealthy(obj runtime.Object) error {
 			log.Printf("HealthUtil: Job \"%v\" is marked healthy", obj.Name)
 			return nil
 		}
+		if terminal, msg := isJobTerminallyFailed(obj); terminal {
+			return fmt.Errorf("%wHealthUtil: Job \"%v\" has failed terminally: %s", engine.ErrFatalExecution, obj.Name, msg)
+		}
+
 		return fmt.Errorf("job \"%v\" still running or failed", obj.Name)
 	case *kudov1beta1.Instance:
 		log.Printf("HealthUtil: Instance %v is in state %v", obj.Name, obj.Status.AggregatedStatus.Status)

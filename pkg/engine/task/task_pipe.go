@@ -97,9 +97,8 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 	// once the pod is Ready, it means that its initContainer finished successfully and we can copy
 	// out the generated files. An error during a health check is not treated as task execution error
 	if err != nil {
-		if fatal := isTerminallyFailed(podObj); fatal != nil {
-			return false, fatalExecutionError(fatal, failedTerminalState, ctx.Meta)
-		}
+		// our pod can not fail terminally, so we treat it as a transient error
+		log.Printf("TaskExecution: %v", err)
 		return false, nil
 	}
 
