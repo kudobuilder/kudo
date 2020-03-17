@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/resource"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
@@ -55,7 +56,7 @@ func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata)
 
 			isNamespaced, err := resource.IsNamespacedObject(obj, de.Discovery)
 			if err != nil {
-				return nil, fmt.Errorf("failed to determine if object %s is namespaced: %v", obj.GetObjectKind(), err)
+				return nil, fmt.Errorf("%wfailed to determine if object %s is namespaced: %v", engine.ErrTransientExecution, obj.GetObjectKind(), err)
 			}
 
 			// Note: Cross-namespace owner references are disallowed by design. This means:

@@ -23,6 +23,12 @@ type Metadata struct {
 var (
 	// ErrFatalExecution is a wrapper for the fatal engine task execution error
 	ErrFatalExecution = errors.New("fatal error: ")
+
+	// ErrTransientExecution is a wrapper for the transient engine task execution errors. Most of the engine methods
+	// return a usual error, where the caller (e.g. one of the tasks) decides whether to treat it as a fatal
+	// or transient one. However, in some cases it is beneficial to explicitly mark an error an transient e.g.
+	// DefaultEnhancer::Apply method.
+	ErrTransientExecution = errors.New("transient error: ")
 )
 
 // ExecutionError wraps plan execution engine errors with additional fields. An execution error will be published

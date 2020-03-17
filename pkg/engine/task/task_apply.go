@@ -46,7 +46,7 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 	// 2. - Enhance them with metadata -
 	enhanced, err := enhance(rendered, ctx.Meta, ctx.Enhancer)
 	if err != nil {
-		return false, fatalExecutionError(err, taskEnhancementError, ctx.Meta)
+		return false, err
 	}
 
 	// 3. - Apply them using the client -

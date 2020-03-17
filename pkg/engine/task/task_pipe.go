@@ -83,7 +83,7 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 	// 5. - Enhance pod with metadata
 	podObj, err := enhance(map[string]string{"pipe-pod.yaml": podYaml}, ctx.Meta, ctx.Enhancer)
 	if err != nil {
-		return false, fatalExecutionError(err, taskEnhancementError, ctx.Meta)
+		return false, err
 	}
 
 	// 6. - Apply pod using the client -
@@ -126,7 +126,7 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 	// 10. - Enhance artifacts -
 	artObj, err := enhance(artStr, ctx.Meta, ctx.Enhancer)
 	if err != nil {
-		return false, fatalExecutionError(err, taskEnhancementError, ctx.Meta)
+		return false, err
 	}
 
 	// 11. - Apply artifacts using the client -
