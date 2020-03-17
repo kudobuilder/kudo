@@ -37,26 +37,26 @@ func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata)
 	for name, v := range templates {
 		parsed, err := YamlToObject(v)
 		if err != nil {
-			return nil, fmt.Errorf("parsing YAML from %s failed: %v", name, err)
+			return nil, fmt.Errorf("%wparsing YAML from %s: %v", engine.ErrFatalExecution, name, err)
 		}
 		for _, obj := range parsed {
 			unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 			if err != nil {
-				return nil, fmt.Errorf("converting to unstructured failed: %v", err)
+				return nil, fmt.Errorf("%wconverting to unstructured failed: %v", engine.ErrFatalExecution, err)
 			}
 
 			if err = addLabels(unstructMap, metadata); err != nil {
-				return nil, fmt.Errorf("adding labels on parsed object: %v", err)
+				return nil, fmt.Errorf("%wadding labels on parsed object: %v", engine.ErrFatalExecution, err)
 			}
 			if err = addAnnotations(unstructMap, metadata); err != nil {
-				return nil, fmt.Errorf("adding annotations on parsed object %s: %v", obj.GetObjectKind(), err)
+				return nil, fmt.Errorf("%wadding annotations on parsed object %s: %v", engine.ErrFatalExecution, obj.GetObjectKind(), err)
 			}
 
 			objUnstructured := &unstructured.Unstructured{Object: unstructMap}
 
 			isNamespaced, err := resource.IsNamespacedObject(obj, de.Discovery)
 			if err != nil {
-				return nil, fmt.Errorf("%wfailed to determine if object %s is namespaced: %v", engine.ErrTransientExecution, obj.GetObjectKind(), err)
+				return nil, fmt.Errorf("failed to determine if object %s is namespaced: %v", obj.GetObjectKind(), err)
 			}
 
 			// Note: Cross-namespace owner references are disallowed by design. This means:
@@ -66,7 +66,7 @@ func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata)
 			if isNamespaced {
 				objUnstructured.SetNamespace(metadata.InstanceNamespace)
 				if err = setControllerReference(metadata.ResourcesOwner, objUnstructured, de.Scheme); err != nil {
-					return nil, fmt.Errorf("setting controller reference on parsed object %s: %v", obj.GetObjectKind(), err)
+					return nil, fmt.Errorf("%wsetting controller reference on parsed object %s: %v", engine.ErrFatalExecution, obj.GetObjectKind(), err)
 				}
 			}
 
@@ -76,7 +76,7 @@ func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata)
 			// that doesn't belong to the specific object type.
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(objUnstructured.UnstructuredContent(), obj)
 			if err != nil {
-				return nil, fmt.Errorf("converting from unstructured failed: %v", err)
+				return nil, fmt.Errorf("%wconverting from unstructured failed: %v", engine.ErrFatalExecution, err)
 			}
 			objs = append(objs, obj)
 		}

@@ -49,10 +49,10 @@ func enhance(rendered map[string]string, meta renderer.Metadata, enhancer render
 	enhanced, err := enhancer.Apply(rendered, meta)
 
 	switch {
-	case errors.Is(err, engine.ErrTransientExecution):
-		return nil, err
-	case err != nil:
+	case errors.Is(err, engine.ErrFatalExecution):
 		return nil, fatalExecutionError(err, taskEnhancementError, meta)
+	case err != nil:
+		return nil, err
 	}
 
 	return enhanced, err
