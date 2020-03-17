@@ -126,15 +126,18 @@ func TestApplyTask_Run(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got, err := tt.task.Run(tt.ctx)
-		assert.True(t, tt.done == got, fmt.Sprintf("%s failed: want = %t, wantErr = %v", tt.name, got, err))
-		if tt.wantErr {
-			assert.True(t, errors.Is(err, engine.ErrFatalExecution) == tt.fatal)
-			assert.Error(t, err)
-		}
-		if !tt.wantErr {
-			assert.NoError(t, err)
-		}
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.task.Run(tt.ctx)
+			assert.True(t, tt.done == got, fmt.Sprintf("%s failed: want = %t, wantErr = %v", tt.name, got, err))
+			if tt.wantErr {
+				assert.True(t, errors.Is(err, engine.ErrFatalExecution) == tt.fatal)
+				assert.Error(t, err)
+			}
+			if !tt.wantErr {
+				assert.NoError(t, err)
+			}
+		})
 	}
 }
 
@@ -193,5 +196,5 @@ func (k *testEnhancer) Apply(templates map[string]string, metadata renderer.Meta
 type errorEnhancer struct{}
 
 func (k *errorEnhancer) Apply(templates map[string]string, metadata renderer.Metadata) ([]runtime.Object, error) {
-	return nil, errors.New("always error")
+	return nil, fmt.Errorf("%wsomething bad happens", engine.ErrFatalExecution)
 }
