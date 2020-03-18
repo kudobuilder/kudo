@@ -1,7 +1,7 @@
 ---
 kep-number: 23
 title: Enabling and Disabling features in KUDO Operators
-title: Enabling and Disabling features in KUDO Operators a.k.a. the Toggle task
+short-desc: Enabling and Disabling features in KUDO Operators a.k.a. the Toggle task
 authors:
   - "@zmalik"
 owners:

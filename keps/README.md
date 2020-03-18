@@ -4,29 +4,28 @@
 
 *Please run /hack/update_kep_overview.sh after adding or updating a KEP*
 
-| KEP | Status | Description |
-| --- | ---: | --- |
-| [0000 - KEP Template](0000-kep-template.md) | :question: provisional | Use this template for new KEPs |
-| [0001 - KUDO Enhancement Proposal Process](0001-kep-process.md) | :heavy_check_mark: implemented | Description of the KEP-Process |
-| [0002 - Dynamic Instances](0002-dynamic-instances.md) | :heavy_plus_sign: implementable |  |
-| [0003 - KEP CLI Proposal](0003-kep-cli.md) | :heavy_plus_sign: implementable | Initial CLI description |
-| [0004 - Add Testing Infrastructure](0004-add-testing-infrastructure.md) | :heavy_plus_sign: implementable | What, where, when and how we will test |
-| [0005 - Cluster Resources for CRDs](0005-cluster-resources-for-crds.md) | :question: provisional |  |
-| [0006 - Stable Kafka Example](0006-stable-kafka-example.md) | :question: provisional |  |
-| [0007 - CLI Skeleton generator](0007-cli-generation.md) | :question: provisional | Generate operator skeletons for operator developers |
-| [0008 - Operator Testing](0008-operator-testing.md) | :heavy_plus_sign: implementable | Description of how to test operators |
-| [0009 - New KUDO package format](0009-operator-toolkit.md) | :heavy_check_mark: implemented | Description of YAML operator definitions, features, plans/steps/tasks organization, templates and parameters |
-| [0010 - Package Manager](0010-package-manager.md) | :heavy_plus_sign: implementable | KUDO Packages and basic repository description |
-| [0012 - Operator Extensions](0012-operator-extensions.md) | :heavy_plus_sign: implementable | How to extend existing operators. Adding or modifying tasks and plans, etc. |
-| [0013 - External Specs](0013-external-specs.md) | :question: provisional | Run non-KUDO defined applications as Operators |
-| [0014 - Pull Request Process](0014-pull-request-process.md) | :no_entry: rejected | Description of GitHub issues, labels, pull requests and commands |
-| [0015 - Repository Management](0015-repository-management.md) | :question: provisional | Details on repositories, how to generate, update and manage repos |
-| [0017 - Pipe Tasks](0017-pipe-tasks.md) | :question: provisional | Feature for a mechanism that allows piping of resources (files) from one task to another |
-| [0018 - Controller redesign](0018-controller-overhaul.md) | :heavy_plus_sign: implementable | Refactoring of KUDO controller |
-| [0019 - Versioning of Operator Packages](0019-package-api-versioning.md) | :heavy_plus_sign: implementable | Connection between the different versions that describe an operator |
-| [0020 - Manual plan execution](0020-manual-plan-execution.md) | :heavy_check_mark: implemented |  |
-| [0023 - Enabling and Disabling features in KUDO Operators
-Enabling and Disabling features in KUDO Operators a.k.a. the Toggle task](0023-enable-disable-features.md) | :heavy_plus_sign: implementable |  |
-| [0024 - Enhanced Operator Parameters](0024-parameter-enhancement.md) | :heavy_check_mark: implemented | Parameter types other than `string` |
-| [0025 - Template toYaml function](0025-template-to-yaml-function.md) | :heavy_check_mark: implemented | New toYaml function for use in templates |
-| [0026 - Reading parameter values from a file](0026-reading-parameter-values-from-a-file.md) | :heavy_check_mark: implemented | Reading parameter values from a file |
+| KEP | | Status | Description |
+| --- | --- | ---: | --- |
+| [0000 - KEP Template](0000-kep-template.md) | :question: | provisional | Use this template for new KEPs |
+| [0001 - KUDO Enhancement Proposal Process](0001-kep-process.md) | :heavy_check_mark: | implemented | Description of the KEP-Process |
+| [0002 - Dynamic Instances](0002-dynamic-instances.md) | :heavy_plus_sign: | implementable |  |
+| [0003 - KEP CLI Proposal](0003-kep-cli.md) | :heavy_plus_sign: | implementable | Initial CLI description |
+| [0004 - Add Testing Infrastructure](0004-add-testing-infrastructure.md) | :heavy_plus_sign: | implementable | What, where, when and how we will test |
+| [0005 - Cluster Resources for CRDs](0005-cluster-resources-for-crds.md) | :question: | provisional |  |
+| [0006 - Stable Kafka Example](0006-stable-kafka-example.md) | :question: | provisional |  |
+| [0007 - CLI Skeleton generator](0007-cli-generation.md) | :question: | provisional | Generate operator skeletons for operator developers |
+| [0008 - Operator Testing](0008-operator-testing.md) | :heavy_plus_sign: | implementable | Description of how to test operators |
+| [0009 - New KUDO package format](0009-operator-toolkit.md) | :heavy_check_mark: | implemented | Description of YAML operator definitions, features, plans/steps/tasks organization, templates and parameters |
+| [0010 - Package Manager](0010-package-manager.md) | :heavy_plus_sign: | implementable | KUDO Packages and basic repository description |
+| [0012 - Operator Extensions](0012-operator-extensions.md) | :heavy_plus_sign: | implementable | How to extend existing operators. Adding or modifying tasks and plans, etc. |
+| [0013 - External Specs](0013-external-specs.md) | :question: | provisional | Run non-KUDO defined applications as Operators |
+| [0014 - Pull Request Process](0014-pull-request-process.md) | :no_entry: | rejected | Description of GitHub issues, labels, pull requests and commands |
+| [0015 - Repository Management](0015-repository-management.md) | :question: | provisional | Details on repositories, how to generate, update and manage repos |
+| [0017 - Pipe Tasks](0017-pipe-tasks.md) | :question: | provisional | Feature for a mechanism that allows piping of resources (files) from one task to another |
+| [0018 - Controller redesign](0018-controller-overhaul.md) | :heavy_plus_sign: | implementable | Refactoring of KUDO controller |
+| [0019 - Versioning of Operator Packages](0019-package-api-versioning.md) | :heavy_plus_sign: | implementable | Connection between the different versions that describe an operator |
+| [0020 - Manual plan execution](0020-manual-plan-execution.md) | :heavy_check_mark: | implemented |  |
+| [0023 - Enabling and Disabling features in KUDO Operators](0023-enable-disable-features.md) | :heavy_plus_sign: | implementable | Enabling and Disabling features in KUDO Operators a.k.a. the Toggle task |
+| [0024 - Enhanced Operator Parameters](0024-parameter-enhancement.md) | :heavy_check_mark: | implemented | Parameter types other than `string` |
+| [0025 - Template toYaml function](0025-template-to-yaml-function.md) | :heavy_check_mark: | implemented | New toYaml function for use in templates |
+| [0026 - Reading parameter values from a file](0026-reading-parameter-values-from-a-file.md) | :heavy_check_mark: | implemented | Reading parameter values from a file |
