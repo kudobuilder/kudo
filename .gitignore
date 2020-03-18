@@ -6,7 +6,7 @@ hack/controller-gen
 test/.git-credentials
 reports/
 config/manager_image_patch.yaml-e
-# created with krew gen scripts
+# created by /hack/generate_krew.sh during release
 kudo.yaml
 
 ### mac
