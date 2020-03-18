@@ -21,7 +21,7 @@
 | [0013 - External Specs](0013-external-specs.md) | :question: | provisional | Run non-KUDO defined applications as Operators |
 | [0014 - Pull Request Process](0014-pull-request-process.md) | :no_entry: | rejected | Description of GitHub issues, labels, pull requests and commands |
 | [0015 - Repository Management](0015-repository-management.md) | :question: | provisional | Details on repositories, how to generate, update and manage repos |
-| [0017 - Pipe Tasks](0017-pipe-tasks.md) | :question: | provisional | Feature for a mechanism that allows piping of resources (files) from one task to another |
+| [0017 - Pipe Tasks](0017-pipe-tasks.md) | :heavy_check_mark: | implemented | Feature for a mechanism that allows piping of resources (files) from one task to another |
 | [0018 - Controller redesign](0018-controller-overhaul.md) | :heavy_plus_sign: | implementable | Refactoring of KUDO controller |
 | [0019 - Versioning of Operator Packages](0019-package-api-versioning.md) | :heavy_plus_sign: | implementable | Connection between the different versions that describe an operator |
 | [0020 - Manual plan execution](0020-manual-plan-execution.md) | :heavy_check_mark: | implemented |  |
