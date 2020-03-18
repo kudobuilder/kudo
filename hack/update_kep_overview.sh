@@ -36,6 +36,20 @@ do
 
   KEP_TITLE=$(echo "$KEP_HEADER" | sed -n -E 's/title: (.*)/\1/p')
   KEP_STATUS=$(echo "$KEP_HEADER" | sed -n -E 's/status: (.*)/\1/p')
+  case $KEP_STATUS in
+  provisional)
+	  KEP_STATUS=":question: $KEP_STATUS"
+	  ;;
+  implementable)
+	  KEP_STATUS=":heavy_plus_sign: $KEP_STATUS"
+	  ;;
+  implemented)
+	  KEP_STATUS=":heavy_check_mark: $KEP_STATUS"
+	  ;;
+  rejected)
+	  KEP_STATUS=":no_entry: $KEP_STATUS"
+	  ;;
+  esac
   KEP_DESC=$(echo "$KEP_HEADER" | sed -n -E 's/short-desc: (.*)/\1/p')
 
   # Print one line for this KEP
