@@ -1,4 +1,4 @@
-apiVersion: prow.k8s.io/v1
+apiVersion: prow.example.com/v1
 kind: ProwJob
 metadata:
   name: my-job

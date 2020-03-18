@@ -45,7 +45,7 @@ func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 	}
 
 	tests := []struct {
-		bool     bool
+		exists   bool
 		err      string
 		createns string
 		getns    string
@@ -53,9 +53,9 @@ func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 	}{
 		{},                                      // 1
 		{createns: "default", getns: "default"}, // 2
-		{bool: true, obj: &obj},                 // 3
-		{bool: true, createns: "default", obj: &obj}, // 4
-		{getns: "kudo", obj: &obj},                   // 4
+		{exists: true, obj: &obj},               // 3
+		{exists: true, createns: "default", obj: &obj, getns: "default"}, // 4
+		{getns: "kudo", obj: &obj},                                       // 5
 	}
 
 	for i, tt := range tests {
@@ -72,8 +72,8 @@ func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 		// test if Operator exists in namespace
 		exist := k2o.OperatorExistsInCluster("test", tt.getns)
 
-		if tt.bool != exist {
-			t.Errorf("%d:\nexpected: %v\n     got: %v", i+1, tt.bool, exist)
+		if tt.exists != exist {
+			t.Errorf("%d:\nexpected: %v\n     got: %v", i+1, tt.exists, exist)
 		}
 	}
 }
