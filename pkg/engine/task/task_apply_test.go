@@ -75,7 +75,7 @@ func TestApplyTask_Run(t *testing.T) {
 			},
 		},
 		{
-			name: "fails when a kustomizing error occurs",
+			name: "fails with a fatal error when a fatal kustomizing error occurs",
 			task: ApplyTask{
 				Name:      "task",
 				Resources: []string{"pod"},
@@ -86,7 +86,24 @@ func TestApplyTask_Run(t *testing.T) {
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
 				Discovery: utils.FakeDiscoveryClient(),
-				Enhancer:  &errorEnhancer{},
+				Enhancer:  &fatalErrorEnhancer{},
+				Meta:      meta,
+				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},
+			},
+		},
+		{
+			name: "fails with a transient error when a normal kustomizing error occurs",
+			task: ApplyTask{
+				Name:      "task",
+				Resources: []string{"pod"},
+			},
+			done:    false,
+			wantErr: true,
+			fatal:   false,
+			ctx: Context{
+				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: utils.FakeDiscoveryClient(),
+				Enhancer:  &transientErrorEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},
 			},
@@ -193,8 +210,14 @@ func (k *testEnhancer) Apply(templates map[string]string, metadata renderer.Meta
 	return result, nil
 }
 
-type errorEnhancer struct{}
+type fatalErrorEnhancer struct{}
 
-func (k *errorEnhancer) Apply(templates map[string]string, metadata renderer.Metadata) ([]runtime.Object, error) {
-	return nil, fmt.Errorf("%wsomething bad happens", engine.ErrFatalExecution)
+func (k *fatalErrorEnhancer) Apply(templates map[string]string, metadata renderer.Metadata) ([]runtime.Object, error) {
+	return nil, fmt.Errorf("%wsomething fatally bad happens every time", engine.ErrFatalExecution)
+}
+
+type transientErrorEnhancer struct{}
+
+func (k *transientErrorEnhancer) Apply(templates map[string]string, metadata renderer.Metadata) ([]runtime.Object, error) {
+	return nil, fmt.Errorf("something transiently bad happens every time")
 }

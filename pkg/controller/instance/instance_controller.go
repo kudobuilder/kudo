@@ -370,7 +370,7 @@ func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1beta1.In
 	err = r.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		// Error reading the object - requeue the request.
-		log.Printf("InstanceController: Error getting instance \"%v\": %v",
+		log.Printf("InstanceController: Error getting instance %v: %v",
 			request.NamespacedName,
 			err)
 		return nil, err

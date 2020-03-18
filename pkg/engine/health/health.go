@@ -20,7 +20,7 @@ import (
 func isJobTerminallyFailed(job *batchv1.Job) (bool, string) {
 	for _, c := range job.Status.Conditions {
 		if c.Type == batchv1.JobFailed && c.Status == corev1.ConditionTrue {
-			log.Printf("HealthUtil: Job \"%v\" has failed: %s", job.Name, c.Message)
+			log.Printf("HealthUtil: Job %q has failed: %s", job.Name, c.Message)
 			return true, c.Message
 		}
 	}
@@ -67,14 +67,14 @@ func IsHealthy(obj runtime.Object) error {
 
 		if obj.Status.Succeeded == int32(1) {
 			// Done!
-			log.Printf("HealthUtil: Job \"%v\" is marked healthy", obj.Name)
+			log.Printf("HealthUtil: Job %q is marked healthy", obj.Name)
 			return nil
 		}
 		if terminal, msg := isJobTerminallyFailed(obj); terminal {
-			return fmt.Errorf("%wHealthUtil: Job \"%v\" has failed terminally: %s", engine.ErrFatalExecution, obj.Name, msg)
+			return fmt.Errorf("%wHealthUtil: Job %q has failed terminally: %s", engine.ErrFatalExecution, obj.Name, msg)
 		}
 
-		return fmt.Errorf("job \"%v\" still running or failed", obj.Name)
+		return fmt.Errorf("job %q still running or failed", obj.Name)
 	case *kudov1beta1.Instance:
 		log.Printf("HealthUtil: Instance %v is in state %v", obj.Name, obj.Status.AggregatedStatus.Status)
 
@@ -87,7 +87,7 @@ func IsHealthy(obj runtime.Object) error {
 		if obj.Status.Phase == corev1.PodRunning {
 			return nil
 		}
-		return fmt.Errorf("pod \"%v\" is not running yet: %s", obj.Name, obj.Status.Phase)
+		return fmt.Errorf("pod %q is not running yet: %s", obj.Name, obj.Status.Phase)
 
 	// unless we build logic for what a healthy object is, assume it's healthy when created.
 	default:
