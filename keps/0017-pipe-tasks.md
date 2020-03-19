@@ -9,7 +9,7 @@ owners:
 editor: TBD
 creation-date: 2019-09-12
 last-updated: 2019-09-12
-status: provisional
+status: implemented
 ---
 
 # Pipe Tasks

@@ -16,8 +16,8 @@ cat <<EOT > $KEP_OVERVIEW_FILE
 
 *Please run /hack/update_kep_overview.sh after adding or updating a KEP*
 
-| KEP | Status | Description |
-| --- | ---: | --- |
+| KEP | | Status | Description |
+| --- | --- | ---: | --- |
 EOT
 
 for KEP in $KEP_FILES;
@@ -36,8 +36,25 @@ do
 
   KEP_TITLE=$(echo "$KEP_HEADER" | sed -n -E 's/title: (.*)/\1/p')
   KEP_STATUS=$(echo "$KEP_HEADER" | sed -n -E 's/status: (.*)/\1/p')
+  case $KEP_STATUS in
+  provisional)
+    KEP_ICON=":question:"
+    ;;
+  implementable)
+    KEP_ICON=":heavy_plus_sign:"
+    ;;
+  implemented)
+    KEP_ICON=":heavy_check_mark:"
+    ;;
+  rejected)
+    KEP_ICON=":no_entry:"
+    ;;
+  *)
+    KEP_ICON=""
+    ;;
+  esac
   KEP_DESC=$(echo "$KEP_HEADER" | sed -n -E 's/short-desc: (.*)/\1/p')
 
   # Print one line for this KEP
-  echo "| [$KEP_NUMBER - $KEP_TITLE]($KEP_FILE) | $KEP_STATUS | $KEP_DESC |" >> $KEP_OVERVIEW_FILE
+  echo "| [$KEP_NUMBER - $KEP_TITLE]($KEP_FILE) | $KEP_ICON | $KEP_STATUS | $KEP_DESC |" >> $KEP_OVERVIEW_FILE
 done
