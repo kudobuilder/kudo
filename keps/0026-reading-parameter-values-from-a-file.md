@@ -8,8 +8,8 @@ owners:
   - "@porridge"
 editor: @porridge
 creation-date: 2020-02-25
-last-updated: 2020-03-02
-status: implementable
+last-updated: 2020-03-18
+status: implemented
 see-also:
   - KEP-24
   - KEP-25
@@ -155,3 +155,4 @@ the relative order of different flags.
 
 - 2020-02-25 - Initial draft. (@porridge)
 - 2020-03-02 - Added example schema, updated references to other KEPs. (@porridge)
+- 2020-03-18 - Updated status after merge of implementation. (@porridge)

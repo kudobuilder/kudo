@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -32,7 +33,7 @@ func TestStepClean(t *testing.T) {
 	pod2WithNamespace := testutils.NewPod("hello2", testNamespace)
 	pod2WithDiffNamespace := testutils.NewPod("hello2", "different-namespace")
 
-	cl := fake.NewFakeClient(pod, pod2WithNamespace, pod2WithDiffNamespace)
+	cl := fake.NewFakeClientWithScheme(scheme.Scheme, pod, pod2WithNamespace, pod2WithDiffNamespace)
 
 	step := Step{
 		Apply: []runtime.Object{
@@ -53,16 +54,16 @@ func TestStepClean(t *testing.T) {
 // Each test provides a path to a set of test steps and their rendered result.
 func TestStepCreate(t *testing.T) {
 
-	pod := testutils.NewPod("hello", "")
+	pod := testutils.NewPod("hello", "default")
 	podWithNamespace := testutils.NewPod("hello2", "different-namespace")
-	clusterScopedResource := testutils.NewResource("v1", "Namespace", "my-namespace", "")
-	podToUpdate := testutils.NewPod("update-me", "")
+	clusterScopedResource := testutils.NewResource("v1", "Namespace", "my-namespace", "default")
+	podToUpdate := testutils.NewPod("update-me", "default")
 	specToApply := map[string]interface{}{
 		"replicas": int64(2),
 	}
 	updateToApply := testutils.WithSpec(t, podToUpdate, specToApply)
 
-	cl := fake.NewFakeClient(testutils.WithNamespace(podToUpdate, testNamespace))
+	cl := fake.NewFakeClientWithScheme(scheme.Scheme, testutils.WithNamespace(podToUpdate, testNamespace))
 
 	step := Step{
 		Logger: testutils.NewTestLogger(t, ""),
@@ -94,7 +95,7 @@ func TestStepDeleteExisting(t *testing.T) {
 	podToDeleteDefaultNS := testutils.NewPod("also-delete-me", "default")
 	podToKeep := testutils.NewPod("keep-me", testNamespace)
 
-	cl := fake.NewFakeClient(podToDelete, podToKeep, podToDeleteDefaultNS)
+	cl := fake.NewFakeClientWithScheme(scheme.Scheme, podToDelete, podToKeep, podToDeleteDefaultNS)
 
 	step := Step{
 		Logger: testutils.NewTestLogger(t, ""),
@@ -177,8 +178,10 @@ func TestCheckResource(t *testing.T) {
 			assert.Nil(t, err)
 
 			step := Step{
-				Logger:          testutils.NewTestLogger(t, ""),
-				Client:          func(bool) (client.Client, error) { return fake.NewFakeClient(test.actual), nil },
+				Logger: testutils.NewTestLogger(t, ""),
+				Client: func(bool) (client.Client, error) {
+					return fake.NewFakeClientWithScheme(scheme.Scheme, test.actual), nil
+				},
 				DiscoveryClient: func() (discovery.CachedDiscoveryInterface, error) { return fakeDiscovery, nil },
 			}
 
@@ -226,8 +229,10 @@ func TestCheckResourceAbsent(t *testing.T) {
 			assert.Nil(t, err)
 
 			step := Step{
-				Logger:          testutils.NewTestLogger(t, ""),
-				Client:          func(bool) (client.Client, error) { return fake.NewFakeClient(test.actual), nil },
+				Logger: testutils.NewTestLogger(t, ""),
+				Client: func(bool) (client.Client, error) {
+					return fake.NewFakeClientWithScheme(scheme.Scheme, test.actual), nil
+				},
 				DiscoveryClient: func() (discovery.CachedDiscoveryInterface, error) { return fakeDiscovery, nil },
 			}
 
@@ -296,7 +301,7 @@ func TestRun(t *testing.T) {
 				Timeout: 1,
 			}
 
-			cl := fake.NewFakeClient()
+			cl := fake.NewFakeClientWithScheme(scheme.Scheme)
 
 			test.Step.Client = func(bool) (client.Client, error) { return cl, nil }
 			test.Step.DiscoveryClient = func() (discovery.CachedDiscoveryInterface, error) { return testutils.FakeDiscoveryClient(), nil }

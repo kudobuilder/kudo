@@ -62,6 +62,19 @@ import (
 // ensure that we only add to the scheme once.
 var schemeLock sync.Once
 
+// APIServerDefaultArgs are copied from the internal controller-runtime pkg/internal/testing/integration/internal/apiserver.go
+// sadly, we can't import them anymore since it is an internal package
+var APIServerDefaultArgs = []string{
+	"--advertise-address=127.0.0.1",
+	"--etcd-servers={{ if .EtcdURL }}{{ .EtcdURL.String }}{{ end }}",
+	"--cert-dir={{ .CertDir }}",
+	"--insecure-port={{ if .URL }}{{ .URL.Port }}{{ end }}",
+	"--insecure-bind-address={{ if .URL }}{{ .URL.Hostname }}{{ end }}",
+	"--secure-port={{ if .SecurePort }}{{ .SecurePort }}{{ end }}",
+	"--admission-control=AlwaysAdmit",
+	"--service-cluster-ip-range=10.0.0.0/24",
+}
+
 // IsJSONSyntaxError returns true if the error is a JSON syntax error.
 func IsJSONSyntaxError(err error) bool {
 	_, ok := err.(*ejson.SyntaxError)
@@ -770,7 +783,7 @@ func CreateOrUpdate(ctx context.Context, cl client.Client, obj runtime.Object, r
 				return err
 			}
 
-			err = cl.Patch(ctx, actual, client.ConstantPatch(types.MergePatchType, expectedBytes))
+			err = cl.Patch(ctx, actual, client.RawPatch(types.MergePatchType, expectedBytes))
 			updated = true
 		} else if k8serrors.IsNotFound(err) {
 			err = cl.Create(ctx, obj)
@@ -898,7 +911,7 @@ type TestEnvironment struct {
 // suitable for use in tests.
 func StartTestEnvironment() (env TestEnvironment, err error) {
 	env.Environment = &envtest.Environment{
-		KubeAPIServerFlags: append(envtest.DefaultKubeAPIServerFlags, "--advertise-address={{ if .URL }}{{ .URL.Hostname }}{{ end }}"),
+		KubeAPIServerFlags: append(APIServerDefaultArgs, "--advertise-address={{ if .URL }}{{ .URL.Hostname }}{{ end }}"),
 	}
 
 	// Retry up to three times for the test environment to start up in case there is a port collision (#510).

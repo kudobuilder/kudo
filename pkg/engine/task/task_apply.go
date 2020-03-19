@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 
@@ -18,6 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/health"
 	"github.com/kudobuilder/kudo/pkg/engine/resource"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
@@ -46,7 +48,7 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 	// 2. - Enhance them with metadata -
 	enhanced, err := enhance(rendered, ctx.Meta, ctx.Enhancer)
 	if err != nil {
-		return false, fatalExecutionError(err, taskEnhancementError, ctx.Meta)
+		return false, err
 	}
 
 	// 3. - Apply them using the client -
@@ -58,8 +60,8 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 	// 4. - Check health for all resources -
 	err = isHealthy(applied)
 	if err != nil {
-		if fatal := isTerminallyFailed(applied); fatal != nil {
-			return false, fatalExecutionError(fatal, failedTerminalState, ctx.Meta)
+		if errors.Is(err, engine.ErrFatalExecution) {
+			return false, fatalExecutionError(err, failedTerminalState, ctx.Meta)
 		}
 		// an error during a health check is not treated task execution error
 		log.Printf("TaskExecution: %v", err)
@@ -175,7 +177,7 @@ func patchResource(modifiedObj, currentObj runtime.Object, ctx Context) error {
 	}
 
 	// Execute the patchResource
-	err = ctx.Client.Patch(context.TODO(), modifiedObj, client.ConstantPatch(patchType, patchData))
+	err = ctx.Client.Patch(context.TODO(), modifiedObj, client.RawPatch(patchType, patchData))
 	if err != nil {
 		return fmt.Errorf("failed to execute patch: %v", err)
 	}
@@ -234,16 +236,6 @@ func isHealthy(ro []runtime.Object) error {
 		if err != nil {
 			key, _ := client.ObjectKeyFromObject(r)
 			return fmt.Errorf("object %s/%s is NOT healthy: %w", key.Namespace, key.Name, err)
-		}
-	}
-	return nil
-}
-
-func isTerminallyFailed(ro []runtime.Object) error {
-	for _, r := range ro {
-		if failed, msg := health.IsTerminallyFailed(r); failed {
-			key, _ := client.ObjectKeyFromObject(r)
-			return fmt.Errorf("object %s/%s has failed: %s", key.Namespace, key.Name, msg)
 		}
 	}
 	return nil

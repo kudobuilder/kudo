@@ -8,7 +8,7 @@ owners:
   - "@porridge"
 editor: @porridge
 creation-date: 2020-02-25
-last-updated: 2020-02-25
+last-updated: 2020-03-02
 status: implemented
 see-also:
   - KEP-24

@@ -1,5 +1,5 @@
 # Try to use the CRD we just created.
-apiVersion: mycrd.k8s.io/v1beta1
+apiVersion: mycrd.example.com/v1beta1
 kind: MyCRD
 metadata:
   name: my-crd

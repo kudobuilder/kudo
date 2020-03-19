@@ -77,7 +77,7 @@ func TestDeleteTask_Run(t *testing.T) {
 			fatal:   true,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
-				Enhancer:  &errorEnhancer{},
+				Enhancer:  &fatalErrorEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},
 			},

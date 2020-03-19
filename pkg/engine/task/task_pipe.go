@@ -83,7 +83,7 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 	// 5. - Enhance pod with metadata
 	podObj, err := enhance(map[string]string{"pipe-pod.yaml": podYaml}, ctx.Meta, ctx.Enhancer)
 	if err != nil {
-		return false, fatalExecutionError(err, taskEnhancementError, ctx.Meta)
+		return false, err
 	}
 
 	// 6. - Apply pod using the client -
@@ -97,9 +97,8 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 	// once the pod is Ready, it means that its initContainer finished successfully and we can copy
 	// out the generated files. An error during a health check is not treated as task execution error
 	if err != nil {
-		if fatal := isTerminallyFailed(podObj); fatal != nil {
-			return false, fatalExecutionError(fatal, failedTerminalState, ctx.Meta)
-		}
+		// our pod can not fail terminally, so we treat it as a transient error
+		log.Printf("TaskExecution: %v", err)
 		return false, nil
 	}
 
@@ -126,7 +125,7 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 	// 10. - Enhance artifacts -
 	artObj, err := enhance(artStr, ctx.Meta, ctx.Enhancer)
 	if err != nil {
-		return false, fatalExecutionError(err, taskEnhancementError, ctx.Meta)
+		return false, err
 	}
 
 	// 11. - Apply artifacts using the client -

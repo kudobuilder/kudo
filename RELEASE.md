@@ -50,16 +50,20 @@ The KUDO Project is aiming to do monthly minor releases but the period could be 
 
 ### Release Process
 
-The official binaries for KUDO are created using [goreleaser](https://goreleaser.com/). The [.goreleaser.yml](.goreleaser.yml) defines the binaries which are supported for each release. Goreleaser is right now run manually from the RM computer. The current process to initiate a release is:
+The official binaries for KUDO are created using [goreleaser](https://goreleaser.com/). The [.goreleaser.yml](.goreleaser.yml) defines the binaries which are supported for each release. Goreleaser is right now run manually from the RM computer. The following are preconditions for the release process:
 
 1. Ensure you have credential `GITHUB_TOKEN` set.
 The env must include `export GITHUB_TOKEN=<personal access token>`.
 [Help](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) provided from Github.
 The token must grant full access to: `repo`, `write:packages`, `read:packages`.
 1. Ensure you are logged into Docker hub and have rights to push to kudobuilder.
-1. Tag the `kudo` repo with expected release `git tag -a v0.2.0 -m "v0.2.0"` and push the tag `git push --tags`.
+
+
+The release process is:
+
+1. Tag the kudo repo with expected release `git tag -a v0.2.0 -m "v0.2.0"` and push the tag `git push --tags`.
 1. Invoke goreleaser `goreleaser --rm-dist`.
-1. Update the GH release with Release highlights and a changelog. There is a draft that contains categorized changes since the last release, use this as a template. It provides categories for highlights and breaking changes, the issues there should get a more detailed description. After the contents are copied, the draft can be deleted.
+1. Update the GH release with release highlights. There is a draft that contains categorized changes since the last release. It provides categories for highlights, breaking changes, and contributors which should be added the gorelease release notes. The changelog from the draft log is ignored. After the contents are copied, the draft can be deleted.
 1. Merge the `next-release` branch of the `kudo.dev` repo into its `master` with:
    ```bash
    cd kudo.dev
@@ -73,13 +77,14 @@ The token must grant full access to: `repo`, `write:packages`, `read:packages`.
    git push origin +HEAD
    ```
 1. Send an announcement email to [kudobuilder@googlegroups.com](https://groups.google.com/forum/#!forum/kudobuilder) with the subject `[ANNOUNCE] Kudo $VERSION is released`
-1. Create a PR against [kudobuilder/kudo.dev](https://github.com/kudobuilder/kudo.dev) with an according [blog post](https://kudo.dev/internal-docs/blog-index.html#release-posts).
 1. Run `./hack/generate_krew.sh` and submit the generated `kudo.yaml` to https://github.com/kubernetes-sigs/krew-index/.
 1. Update KUDO_VERSION [in the Makefile](https://github.com/kudobuilder/operators/blob/master/Makefile#L2) of operators repo
 
 **Note:** If there are issues with the release, any changes to the repository will result in it being considered "dirty" and not in a state to be released.
 It is possible outside of the standard release process to build a "snapshot" release using the following command: `goreleaser release --skip-publish --snapshot --rm-dist`
 This process will create a `dist` folder with all the build artifacts. The changelog is not created unless a full release is executed. If you are looking to get a "similar" changelog, install [github-release-notes](https://github.com/buchanae/github-release-notes) and execute `github-release-notes -org kudobuilder -repo kudo -since-latest-release`.
+
+**Note:** There is value in providing a blog of highlighted features after release against [kudobuilder/kudo.dev](https://github.com/kudobuilder/kudo.dev) with a [blog post](https://kudo.dev/internal-docs/blog-index.html#release-posts). 
 
 ### Cutting a Release Branch
 

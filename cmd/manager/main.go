@@ -133,7 +133,7 @@ func main() {
 	log.Print("Instance controller set up")
 
 	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) == "true" {
-		log.Printf("🔸 Setting up webhooks")
+		log.Printf("Setting up webhooks")
 
 		if err := registerWebhook("/admit", &v1beta1.Instance{}, &webhook.Admission{Handler: &kudohook.InstanceAdmission{}}, mgr); err != nil {
 			log.Printf("Unable to create instance admission webhook: %v", err)
