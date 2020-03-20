@@ -89,7 +89,7 @@ deploy-clean:
 .PHONY: generate
 # Generate code
 generate:
-ifeq (, $(shell which controller-gen))
+ifneq ($(shell go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools), $(shell controller-gen --version | cut -b 10-))
 	go get sigs.k8s.io/controller-tools/cmd/controller-gen@$$(go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools)
 endif
 	controller-gen crd paths=./pkg/apis/... output:crd:dir=config/crds output:stdout
