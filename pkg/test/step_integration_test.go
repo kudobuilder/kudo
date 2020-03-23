@@ -250,7 +250,7 @@ func TestCheckResourceIntegration(t *testing.T) {
 			step := Step{
 				Logger:          testutils.NewTestLogger(t, ""),
 				Client:          func(bool) (client.Client, error) { return testenv.Client, nil },
-				DiscoveryClient: func() (discovery.DiscoveryInterface, error) { return testenv.DiscoveryClient, nil },
+				DiscoveryClient: func() (discovery.CachedDiscoveryInterface, error) { return testenv.DiscoveryClient, nil },
 			}
 
 			errors := step.CheckResource(test.expected, namespace)
@@ -305,7 +305,7 @@ func TestStepDeleteExistingLabelMatch(t *testing.T) {
 			},
 		},
 		Client:          func(bool) (client.Client, error) { return testenv.Client, nil },
-		DiscoveryClient: func() (discovery.DiscoveryInterface, error) { return testenv.DiscoveryClient, nil },
+		DiscoveryClient: func() (discovery.CachedDiscoveryInterface, error) { return testenv.DiscoveryClient, nil },
 	}
 
 	assert.Nil(t, testenv.Client.Create(context.TODO(), podToKeep))

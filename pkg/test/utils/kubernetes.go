@@ -41,6 +41,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/discovery/cached/memory"
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -305,7 +306,7 @@ func ResourceID(obj runtime.Object) string {
 // Namespaced sets the namespace on an object to namespace, if it is a namespace scoped resource.
 // If the resource is cluster scoped, then it is ignored and the namespace is not set.
 // If it is a namespaced resource and a namespace is already set, then the namespace is unchanged.
-func Namespaced(dClient discovery.DiscoveryInterface, obj runtime.Object, namespace string) (string, string, error) {
+func Namespaced(dClient discovery.CachedDiscoveryInterface, obj runtime.Object, namespace string) (string, string, error) {
 	m, err := meta.Accessor(obj)
 	if err != nil {
 		return "", "", err
@@ -502,7 +503,7 @@ func MatchesKind(obj runtime.Object, kinds ...runtime.Object) bool {
 }
 
 // InstallManifests recurses over ManifestsDir to install all resources defined in YAML manifests.
-func InstallManifests(ctx context.Context, client client.Client, dClient discovery.DiscoveryInterface, manifestsDir string, kinds ...runtime.Object) ([]runtime.Object, error) {
+func InstallManifests(ctx context.Context, client client.Client, dClient discovery.CachedDiscoveryInterface, manifestsDir string, kinds ...runtime.Object) ([]runtime.Object, error) {
 	objects := []runtime.Object{}
 
 	if manifestsDir == "" {
@@ -695,43 +696,58 @@ func WithAnnotations(obj runtime.Object, annotations map[string]string) runtime.
 	return obj
 }
 
+type FakeCachedDiscovery struct {
+	fakediscovery.FakeDiscovery
+}
+
+func (d *FakeCachedDiscovery) Fresh() bool {
+	return true
+}
+
+func (d *FakeCachedDiscovery) Invalidate() {
+
+}
+
 // FakeDiscoveryClient returns a fake discovery client that is populated with some types for use in
 // unit tests.
-func FakeDiscoveryClient() discovery.DiscoveryInterface {
-	return &fakediscovery.FakeDiscovery{
-		Fake: &coretesting.Fake{
-			Resources: []*metav1.APIResourceList{
-				{
-					GroupVersion: corev1.SchemeGroupVersion.String(),
-					APIResources: []metav1.APIResource{
-						{Name: "pod", Namespaced: true, Kind: "Pod"},
-						{Name: "namespace", Namespaced: false, Kind: "Namespace"},
-						{Name: "service", Namespaced: true, Kind: "Service"},
+func FakeDiscoveryClient() discovery.CachedDiscoveryInterface {
+
+	return &FakeCachedDiscovery{
+		FakeDiscovery: fakediscovery.FakeDiscovery{
+			Fake: &coretesting.Fake{
+				Resources: []*metav1.APIResourceList{
+					{
+						GroupVersion: corev1.SchemeGroupVersion.String(),
+						APIResources: []metav1.APIResource{
+							{Name: "pod", Namespaced: true, Kind: "Pod"},
+							{Name: "namespace", Namespaced: false, Kind: "Namespace"},
+							{Name: "service", Namespaced: true, Kind: "Service"},
+						},
 					},
-				},
-				{
-					GroupVersion: appsv1.SchemeGroupVersion.String(),
-					APIResources: []metav1.APIResource{
-						{Name: "statefulset", Namespaced: true, Kind: "StatefulSet"},
-						{Name: "deployment", Namespaced: true, Kind: "Deployment"},
+					{
+						GroupVersion: appsv1.SchemeGroupVersion.String(),
+						APIResources: []metav1.APIResource{
+							{Name: "statefulset", Namespaced: true, Kind: "StatefulSet"},
+							{Name: "deployment", Namespaced: true, Kind: "Deployment"},
+						},
 					},
-				},
-				{
-					GroupVersion: batchv1.SchemeGroupVersion.String(),
-					APIResources: []metav1.APIResource{
-						{Name: "job", Namespaced: true, Kind: "Job"},
+					{
+						GroupVersion: batchv1.SchemeGroupVersion.String(),
+						APIResources: []metav1.APIResource{
+							{Name: "job", Namespaced: true, Kind: "Job"},
+						},
 					},
-				},
-				{
-					GroupVersion: batchv1beta1.SchemeGroupVersion.String(),
-					APIResources: []metav1.APIResource{
-						{Name: "job", Namespaced: true, Kind: "CronJob"},
+					{
+						GroupVersion: batchv1beta1.SchemeGroupVersion.String(),
+						APIResources: []metav1.APIResource{
+							{Name: "job", Namespaced: true, Kind: "CronJob"},
+						},
 					},
-				},
-				{
-					GroupVersion: apiextensions.SchemeGroupVersion.String(),
-					APIResources: []metav1.APIResource{
-						{Name: "customresourcedefinitions", Namespaced: false, Kind: "CustomResourceDefinition"},
+					{
+						GroupVersion: apiextensions.SchemeGroupVersion.String(),
+						APIResources: []metav1.APIResource{
+							{Name: "customresourcedefinitions", Namespaced: false, Kind: "CustomResourceDefinition"},
+						},
 					},
 				},
 			},
@@ -794,10 +810,16 @@ func SetAnnotation(obj runtime.Object, key, value string) runtime.Object {
 }
 
 // GetAPIResource returns the APIResource object for a specific GroupVersionKind.
-func GetAPIResource(dClient discovery.DiscoveryInterface, gvk schema.GroupVersionKind) (metav1.APIResource, error) {
+func GetAPIResource(dClient discovery.CachedDiscoveryInterface, gvk schema.GroupVersionKind) (metav1.APIResource, error) {
 	resourceTypes, err := dClient.ServerResourcesForGroupVersion(gvk.GroupVersion().String())
 	if err != nil {
-		return metav1.APIResource{}, err
+		if err == memory.ErrCacheNotFound {
+			dClient.Invalidate()
+			resourceTypes, err = dClient.ServerResourcesForGroupVersion(gvk.GroupVersion().String())
+			if err != nil {
+				return metav1.APIResource{}, err
+			}
+		}
 	}
 
 	for _, resource := range resourceTypes.APIResources {
@@ -807,6 +829,9 @@ func GetAPIResource(dClient discovery.DiscoveryInterface, gvk schema.GroupVersio
 
 		return resource, nil
 	}
+
+	// We have not found the API resource. It might be that the resources for the GV have been updated, so invalidate and retry
+	dClient.Invalidate()
 
 	return metav1.APIResource{}, errors.New("resource type not found")
 }
@@ -827,7 +852,7 @@ func WaitForDelete(c *RetryClient, objs []runtime.Object) error {
 }
 
 // WaitForCRDs waits for the provided CRD types to be available in the Kubernetes API.
-func WaitForCRDs(dClient discovery.DiscoveryInterface, crds []runtime.Object) error {
+func WaitForCRDs(dClient discovery.CachedDiscoveryInterface, crds []runtime.Object) error {
 	waitingFor := []schema.GroupVersionKind{}
 	crdKind := NewResource("apiextensions.k8s.io/v1beta1", "CustomResourceDefinition", "", "")
 
@@ -879,7 +904,7 @@ type TestEnvironment struct {
 	Environment     *envtest.Environment
 	Config          *rest.Config
 	Client          Client
-	DiscoveryClient discovery.DiscoveryInterface
+	DiscoveryClient discovery.CachedDiscoveryInterface
 }
 
 // StartTestEnvironment is a wrapper for controller-runtime's envtest that creates a Kubernetes API server and etcd
@@ -906,7 +931,8 @@ func StartTestEnvironment() (env TestEnvironment, err error) {
 		return
 	}
 
-	env.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(env.Config)
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(env.Config)
+	env.DiscoveryClient = memory.NewMemCacheClient(discoveryClient)
 	return
 }
 

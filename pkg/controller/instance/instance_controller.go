@@ -58,7 +58,7 @@ import (
 // Reconciler reconciles an Instance object.
 type Reconciler struct {
 	client.Client
-	Discovery discovery.DiscoveryInterface
+	Discovery discovery.CachedDiscoveryInterface
 	Config    *rest.Config
 	Recorder  record.EventRecorder
 	Scheme    *runtime.Scheme

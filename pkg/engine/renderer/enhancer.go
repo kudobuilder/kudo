@@ -26,7 +26,7 @@ type Enhancer interface {
 // DefaultEnhancer is implementation of Enhancer that applies the defined conventions by directly editing runtime.Objects (Unstructured).
 type DefaultEnhancer struct {
 	Scheme    *runtime.Scheme
-	Discovery discovery.DiscoveryInterface
+	Discovery discovery.CachedDiscoveryInterface
 }
 
 // Apply accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions

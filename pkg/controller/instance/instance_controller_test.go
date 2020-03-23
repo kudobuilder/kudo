@@ -12,23 +12,22 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/uuid"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-
-	"github.com/kudobuilder/kudo/pkg/engine/task"
-
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/kudobuilder/kudo/pkg/apis"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/test/utils"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
@@ -132,10 +131,11 @@ func startTestManager(t *testing.T) (chan struct{}, *sync.WaitGroup, client.Clie
 
 	discoveryClient, err := utils.GetDiscoveryClient(mgr)
 	assert.NoError(t, err, "Error when creating discovery client")
+	cachedDiscoveryClient := memory.NewMemCacheClient(discoveryClient)
 
 	err = (&Reconciler{
 		Client:    mgr.GetClient(),
-		Discovery: discoveryClient,
+		Discovery: cachedDiscoveryClient,
 		Config:    mgr.GetConfig(),
 		Recorder:  mgr.GetEventRecorderFor("instance-controller"),
 		Scheme:    mgr.GetScheme(),

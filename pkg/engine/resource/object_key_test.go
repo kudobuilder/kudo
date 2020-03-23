@@ -16,7 +16,7 @@ func Test_isNamespaced(t *testing.T) {
 	tests := []struct {
 		name    string
 		gvk     schema.GroupVersionKind
-		di      discovery.DiscoveryInterface
+		di      discovery.CachedDiscoveryInterface
 		want    bool
 		wantErr bool
 	}{

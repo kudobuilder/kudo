@@ -16,6 +16,7 @@ import (
 	docker "github.com/docker/docker/client"
 	yaml "gopkg.in/yaml.v2"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,7 +43,7 @@ type Harness struct {
 	config         *rest.Config
 	docker         testutils.DockerClient
 	client         client.Client
-	dclient        discovery.DiscoveryInterface
+	dclient        discovery.CachedDiscoveryInterface
 	env            *envtest.Environment
 	kind           *kind
 	kubeConfigPath string
@@ -315,7 +316,7 @@ func (h *Harness) Client(forceNew bool) (client.Client, error) {
 }
 
 // DiscoveryClient returns the current Kubernetes discovery client for the test harness.
-func (h *Harness) DiscoveryClient() (discovery.DiscoveryInterface, error) {
+func (h *Harness) DiscoveryClient() (discovery.CachedDiscoveryInterface, error) {
 	h.clientLock.Lock()
 	defer h.clientLock.Unlock()
 
@@ -328,7 +329,8 @@ func (h *Harness) DiscoveryClient() (discovery.DiscoveryInterface, error) {
 		return nil, err
 	}
 
-	h.dclient, err = discovery.NewDiscoveryClientForConfig(cfg)
+	disoveryClient, err := discovery.NewDiscoveryClientForConfig(cfg)
+	h.dclient = memory.NewMemCacheClient(disoveryClient)
 	return h.dclient, err
 }
 
