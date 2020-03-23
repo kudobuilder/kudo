@@ -28,7 +28,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
-	"github.com/kudobuilder/kudo/pkg/test/utils"
+	"github.com/kudobuilder/kudo/pkg/kubernetes"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
@@ -129,7 +129,7 @@ func startTestManager(t *testing.T) (chan struct{}, *sync.WaitGroup, client.Clie
 	mgr, err := manager.New(cfg, manager.Options{})
 	assert.Nil(t, err, "Error when creating manager")
 
-	discoveryClient, err := utils.GetDiscoveryClient(mgr)
+	discoveryClient, err := kubernetes.GetDiscoveryClient(mgr)
 	assert.NoError(t, err, "Error when creating discovery client")
 	cachedDiscoveryClient := memory.NewMemCacheClient(discoveryClient)
 
@@ -175,9 +175,9 @@ func Test_makePipes(t *testing.T) {
 			plan: &v1beta1.Plan{Strategy: "serial", Phases: []v1beta1.Phase{
 				{
 					Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{
-						{
-							Name: "step", Tasks: []string{}},
-					}},
+					{
+						Name: "step", Tasks: []string{}},
+				}},
 			}},
 			tasks: []v1beta1.Task{},
 			emeta: meta,
@@ -189,9 +189,9 @@ func Test_makePipes(t *testing.T) {
 			plan: &v1beta1.Plan{Strategy: "serial", Phases: []v1beta1.Phase{
 				{
 					Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{
-						{
-							Name: "step", Tasks: []string{"task"}},
-					}},
+					{
+						Name: "step", Tasks: []string{"task"}},
+				}},
 			}},
 			tasks: []v1beta1.Task{
 				{
@@ -211,9 +211,9 @@ func Test_makePipes(t *testing.T) {
 			plan: &v1beta1.Plan{Strategy: "serial", Phases: []v1beta1.Phase{
 				{
 					Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{
-						{
-							Name: "step", Tasks: []string{"task"}},
-					}},
+					{
+						Name: "step", Tasks: []string{"task"}},
+				}},
 			}},
 			tasks: []v1beta1.Task{
 				{
@@ -242,9 +242,9 @@ func Test_makePipes(t *testing.T) {
 			plan: &v1beta1.Plan{Strategy: "serial", Phases: []v1beta1.Phase{
 				{
 					Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{
-						{Name: "stepOne", Tasks: []string{"task-one"}},
-						{Name: "stepTwo", Tasks: []string{"task-two"}},
-					}},
+					{Name: "stepOne", Tasks: []string{"task-one"}},
+					{Name: "stepTwo", Tasks: []string{"task-two"}},
+				}},
 			}},
 			tasks: []v1beta1.Task{
 				{
@@ -292,9 +292,9 @@ func Test_makePipes(t *testing.T) {
 			plan: &v1beta1.Plan{Strategy: "serial", Phases: []v1beta1.Phase{
 				{
 					Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{
-						{
-							Name: "step", Tasks: []string{"task"}},
-					}},
+					{
+						Name: "step", Tasks: []string{"task"}},
+				}},
 			}},
 			tasks: []v1beta1.Task{
 				{
