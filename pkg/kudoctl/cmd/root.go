@@ -64,6 +64,7 @@ and serves as an API aggregation layer.
 	cmd.AddCommand(newRepoCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newTestCmd())
 	cmd.AddCommand(newVersionCmd())
+	cmd.AddCommand(newDiagnosticsCmd())
 
 	initGlobalFlags(cmd, cmd.OutOrStdout())
 
