@@ -67,13 +67,13 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 	}
 
 	// create the clientset
-	kudoClientset, err := versioned.NewForConfig(config)
+	kudoClientSet, err := versioned.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Client{
-		clientset: kudoClientset,
+		clientset: kudoClientSet,
 	}, nil
 }
 
@@ -175,6 +175,20 @@ func (c *Client) GetOperatorVersion(name, namespace string) (*v1beta1.OperatorVe
 	}
 	err = setGVKFromScheme(ov)
 	return ov, err
+}
+
+// GetOperatorVersion queries kubernetes api for operator of given name in given namespace
+// returns error for all other errors that not found, not found is treated as result being 'nil, nil'
+func (c *Client) GetOperator(name, namespace string) (*v1beta1.Operator, error) {
+	o, err := c.clientset.KudoV1beta1().Operators(namespace).Get(name, v1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return o, err
+	}
+	err = setGVKFromScheme(o)
+	return o, err
 }
 
 // UpdateInstance updates operatorversion on instance
