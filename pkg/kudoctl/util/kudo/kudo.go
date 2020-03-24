@@ -187,6 +187,20 @@ func (c *Client) GetOperatorVersion(name, namespace string) (*v1beta1.OperatorVe
 	return ov, err
 }
 
+// GetOperatorVersion queries kubernetes api for operator of given name in given namespace
+// returns error for all other errors that not found, not found is treated as result being 'nil, nil'
+func (c *Client) GetOperator(name, namespace string) (*v1beta1.Operator, error) {
+	o, err := c.clientset.KudoV1beta1().Operators(namespace).Get(name, v1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return o, err
+	}
+	err = setGVKFromScheme(o)
+	return o, err
+}
+
 // UpdateInstance updates operatorversion on instance
 func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersion *string, parameters map[string]string, triggeredPlan *string) error {
 	instanceSpec := v1beta1.InstanceSpec{}
