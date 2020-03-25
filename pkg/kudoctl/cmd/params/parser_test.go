@@ -112,6 +112,18 @@ func TestGetParameterMap(t *testing.T) {
 			"error reading from parameter file missing-file: open missing-file: file does not exist",
 			nil,
 		},
+		{
+			"regression test for #14337",
+			nil,
+			[]string{"param-file"},
+			map[string]string{
+				"param-file": "A:\n- foo: bar\n",
+			},
+			"",
+			map[string]string{
+				"A": "- foo: bar\n",
+			},
+		},
 	}
 	for _, test := range tests {
 		test := test
