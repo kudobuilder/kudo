@@ -40,6 +40,7 @@ require (
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/tools v0.0.0-20191025023517-2077df36852e // indirect
 	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v3 v3.0.0-20191106092431-e228e37189d3
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.17.3
 	k8s.io/apiextensions-apiserver v0.17.2
