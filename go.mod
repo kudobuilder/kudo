@@ -11,7 +11,7 @@ require (
 	github.com/gophercloud/gophercloud v0.2.0 // indirect
 	github.com/gosuri/uitable v0.0.4
 	github.com/huandu/xstrings v1.2.0 // indirect
-	github.com/kudobuilder/kuttl v0.0.0-20200325163112-d28e40672842
+	github.com/kudobuilder/kuttl v0.0.0-20200325200947-889c2a9b7a99
 	github.com/manifoldco/promptui v0.6.0
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/mitchellh/copystructure v1.0.0 // indirect
