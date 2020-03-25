@@ -301,7 +301,6 @@ github.com/json-iterator/go v1.1.8 h1:QiWkFLKq0T7mpzwOTu6BzNDbfTE8OLrYhVKYMLF46O
 github.com/json-iterator/go v1.1.8/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/jstemmer/go-junit-report v0.0.0-20190106144839-af01ea7f8024 h1:rBMNdlhTLzJjJSDIjNEXX1Pz3Hmwmz91v+zycvx9PJc=
 github.com/jstemmer/go-junit-report v0.0.0-20190106144839-af01ea7f8024/go.mod h1:6v2b51hI/fHJwM22ozAgKL4VKDeJcHhJFhtBdhmNjmU=
-github.com/jstemmer/go-junit-report v0.9.1/go.mod h1:Brl9GWCQeLvo8nXZwPNNblvFj/XSXhF0NWZEnDohbsk=
 github.com/juju/ansiterm v0.0.0-20180109212912-720a0952cc2a h1:FaWFmfWdAUKbSCtOU2QjDaorUexogfaMgbipgYATUMU=
 github.com/juju/ansiterm v0.0.0-20180109212912-720a0952cc2a/go.mod h1:UJSiEoRfvx3hP73CvoARgeLjaIOjybY9vj8PUPPFGeU=
 github.com/julienschmidt/httprouter v1.2.0/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7VTCxuUUipMqKk8s4w=
@@ -324,6 +323,8 @@ github.com/kudobuilder/code-generator v0.17.4-beta.0.0.20200316162450-cc91a92014
 github.com/kudobuilder/code-generator v0.17.4-beta.0.0.20200316162450-cc91a9201457/go.mod h1:l8BLVwASXQZTo2xamW5mQNFCe1XPiAesVq7Y1t7PiQQ=
 github.com/kudobuilder/kuttl v0.0.0-20200323171915-a03c0f1bc3b4 h1:raMvE0v/UwWisS7vOxJ+J2EXo3g7u+EBM0ubKRnGaSM=
 github.com/kudobuilder/kuttl v0.0.0-20200323171915-a03c0f1bc3b4/go.mod h1:2cEfzTxPoa6Ayxq/mtk3ngd4C+578cB8RWiuaokBlZE=
+github.com/kudobuilder/kuttl v0.0.0-20200325163112-d28e40672842 h1:w3TYVYpfwHN11p6kByv7R99fLxK81+Bc1U/OdpO6Ees=
+github.com/kudobuilder/kuttl v0.0.0-20200325163112-d28e40672842/go.mod h1:2cEfzTxPoa6Ayxq/mtk3ngd4C+578cB8RWiuaokBlZE=
 github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de h1:9TO3cAIGXtEhnIaL+V+BEER86oLrvS+kWobKpbJuye0=
 github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de/go.mod h1:zAbeS9B/r2mtpb6U+EI2rYA5OAXxsYw6wTamcNW+zcE=
 github.com/lithammer/dedent v1.1.0/go.mod h1:jrXYCQtgg0nJiN+StA2KgR7w6CiQNv9Fd/Z9BP0jIOc=
