@@ -3,18 +3,12 @@ module github.com/kudobuilder/kudo
 go 1.13
 
 require (
-	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/Masterminds/semver v1.5.0
 	github.com/Masterminds/sprig v2.22.0+incompatible
-	github.com/emicklei/go-restful v2.9.6+incompatible // indirect
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
-	github.com/gophercloud/gophercloud v0.2.0 // indirect
 	github.com/gosuri/uitable v0.0.4
-	github.com/huandu/xstrings v1.2.0 // indirect
 	github.com/kudobuilder/kuttl v0.0.0-20200325200947-889c2a9b7a99
 	github.com/manifoldco/promptui v0.6.0
-	github.com/mattn/go-runewidth v0.0.4 // indirect
-	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/spf13/afero v1.2.2
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
