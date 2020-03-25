@@ -21,7 +21,6 @@ require (
 	github.com/gosuri/uitable v0.0.4
 	github.com/huandu/xstrings v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
-	github.com/jstemmer/go-junit-report v0.9.1 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/manifoldco/promptui v0.6.0
 	github.com/mattn/go-colorable v0.1.4 // indirect
