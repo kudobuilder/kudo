@@ -113,7 +113,7 @@ func TestGetParameterMap(t *testing.T) {
 			nil,
 		},
 		{
-			"regression test for #14337",
+			"regression test for #1437",
 			nil,
 			[]string{"param-file"},
 			map[string]string{
