@@ -682,7 +682,7 @@ func inferNewExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*s
 		// instance updated
 		log.Printf("Instance: instance %s/%s has updated parameters from %v to %v", i.Namespace, i.Name, instanceSnapshot.Parameters, i.Spec.Parameters)
 		paramDiff := kudov1beta1.ParameterDiff(instanceSnapshot.Parameters, i.Spec.Parameters)
-		paramDefinitions := kudov1beta1.GetParamDefinitions(paramDiff, ov)
+		paramDefinitions := kudov1beta1.GetExistingParamDefinitions(paramDiff, ov)
 		plan, err := planNameFromParameters(paramDefinitions, ov)
 		if err != nil {
 			return nil, &v1beta1.InstanceError{Err: fmt.Errorf("supposed to execute plan because instance %s/%s was updated but no valid plan found: %v", i.Namespace, i.Name, err), EventName: convert.StringPtr("PlanNotFound")}

@@ -299,15 +299,15 @@ func TestValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "parameter update triggering a non-existing OV plan IS allowed but will NOT trigger a plan",
+			name: "parameter update triggering a non-existing OV plan IS NOT allowed",
 			old:  idle,
 			new: func() *v1beta1.Instance {
 				i := idle.DeepCopy()
 				i.Spec.Parameters["bazz"] = "newBazz"
 				return i
 			}(),
-			ov:   ov,
-			want: nil,
+			ov:      ov,
+			wantErr: true,
 		},
 		{
 			name: "parameter update together with an upgrade IS normally NOT allowed",
@@ -441,9 +441,9 @@ func Test_triggeredPlan(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := triggeredPlan(tt.params, tt.ov)
+			got, err := triggeredByParameterUpdate(tt.params, tt.ov)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("triggeredPlan() error = %v, wantErr %v, got = %s", err, tt.wantErr, stringPtrToString(got))
+				t.Errorf("triggeredByParameterUpdate() error = %v, wantErr %v, got = %s", err, tt.wantErr, stringPtrToString(got))
 				return
 			}
 			assert.Equal(t, tt.want, got)

@@ -220,8 +220,8 @@ func wasRunAfter(p1 PlanStatus, p2 PlanStatus) bool {
 	return p1.LastUpdatedTimestamp.Time.After(p2.LastUpdatedTimestamp.Time)
 }
 
-// GetParamDefinitions retrieves parameter metadata from OperatorVersion CRD
-func GetParamDefinitions(params map[string]string, ov *OperatorVersion) []Parameter {
+// GetExistingParamDefinitions retrieves parameter metadata from OperatorVersion
+func GetExistingParamDefinitions(params map[string]string, ov *OperatorVersion) []Parameter {
 	defs := []Parameter{}
 	for p1 := range params {
 		for _, p2 := range ov.Spec.Parameters {
@@ -231,6 +231,23 @@ func GetParamDefinitions(params map[string]string, ov *OperatorVersion) []Parame
 		}
 	}
 	return defs
+}
+
+// GetParamDefinitions retrieves parameter metadata from OperatorVersion but returns an error if any parameter is missing
+func GetParamDefinitions(params map[string]string, ov *OperatorVersion) ([]Parameter, error) {
+	defs := []Parameter{}
+	for p1 := range params {
+		p2 := funk.Find(ov.Spec.Parameters, func(e Parameter) bool {
+			return e.Name == p1
+		})
+
+		if p2 == nil {
+			return nil, fmt.Errorf("failed to find parameter %q in the OperatorVersion", p1)
+		}
+
+		defs = append(defs, p2.(Parameter))
+	}
+	return defs, nil
 }
 
 // ParameterDiff returns map containing all parameters that were removed or changed between old and new
