@@ -237,6 +237,7 @@ func GetExistingParamDefinitions(params map[string]string, ov *OperatorVersion) 
 func GetParamDefinitions(params map[string]string, ov *OperatorVersion) ([]Parameter, error) {
 	defs := []Parameter{}
 	for p1 := range params {
+		p1 := p1
 		p2 := funk.Find(ov.Spec.Parameters, func(e Parameter) bool {
 			return e.Name == p1
 		})
