@@ -31,7 +31,7 @@ then
         > reports/kudo_e2e_test_report.xml
 
     rm -rf operators
-    git clone https://github.com/kudobuilder/operators
+    git clone -b ken/remove-kubectl --single-branch https://github.com/kudobuilder/operators
     mkdir operators/bin/
     cp ./bin/kubectl-kudo operators/bin/
     cd operators && ./bin/kubectl-kudo test 2>&1 \
@@ -44,7 +44,7 @@ else
     ./bin/kubectl-kudo test --config kudo-e2e-test.yaml
 
     rm -rf operators
-    git clone https://github.com/kudobuilder/operators
+    git clone -b ken/remove-kubectl --single-branch https://github.com/kudobuilder/operators
     mkdir operators/bin/
     cp ./bin/kubectl-kudo operators/bin/
     cd operators && ./bin/kubectl-kudo test
