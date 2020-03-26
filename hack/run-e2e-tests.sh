@@ -34,7 +34,7 @@ then
     git clone https://github.com/kudobuilder/operators
     mkdir operators/bin/
     cp ./bin/kubectl-kudo operators/bin/
-    cd operators && ./bin/kubectl-kudo test 2>&1 \
+    cd operators && ./bin/kubectl-kudo test --parallel 0 2>&1 \
         | tee /dev/fd/2 \
         | go-junit-report -set-exit-code \
         > ../reports/kudo_operators_test_report.xml
@@ -47,5 +47,5 @@ else
     git clone https://github.com/kudobuilder/operators
     mkdir operators/bin/
     cp ./bin/kubectl-kudo operators/bin/
-    cd operators && ./bin/kubectl-kudo test
+    cd operators && ./bin/kubectl-kudo test --parallel 0
 fi
