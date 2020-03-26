@@ -59,7 +59,7 @@ func (k kudoWebHook) Install(client *kube.Client) error {
 	if err := installUnstructured(client.DynamicClient, certificate(k.opts.Namespace)); err != nil {
 		return err
 	}
-	if err := installAdmissionWebhook(client.KubeClient.AdmissionregistrationV1beta1(), instanceAdmissionWebhook(k.opts.Namespace)); err != nil {
+	if err := installAdmissionWebhook(client.KubeClient.AdmissionregistrationV1beta1(), InstanceAdmissionWebhook(k.opts.Namespace)); err != nil {
 		return err
 	}
 	return nil
@@ -79,7 +79,7 @@ func (k kudoWebHook) AsRuntimeObjs() []runtime.Object {
 		return make([]runtime.Object, 0)
 	}
 
-	av := instanceAdmissionWebhook(k.opts.Namespace)
+	av := InstanceAdmissionWebhook(k.opts.Namespace)
 	cert := certificate(k.opts.Namespace)
 	objs := []runtime.Object{&av}
 	for _, c := range cert {
@@ -160,7 +160,8 @@ func installAdmissionWebhook(client clientv1beta1.MutatingWebhookConfigurationsG
 	return err
 }
 
-func instanceAdmissionWebhook(ns string) admissionv1beta1.MutatingWebhookConfiguration {
+// InstanceAdmissionWebhook returns a MutatingWebhookConfiguration for the instance admission controller.
+func InstanceAdmissionWebhook(ns string) admissionv1beta1.MutatingWebhookConfiguration {
 	namespacedScope := admissionv1beta1.NamespacedScope
 	failedType := admissionv1beta1.Fail
 	equivalentType := admissionv1beta1.Equivalent
@@ -185,7 +186,7 @@ func instanceAdmissionWebhook(ns string) admissionv1beta1.MutatingWebhookConfigu
 						Rule: admissionv1beta1.Rule{
 							APIGroups:   []string{"kudo.dev"},
 							APIVersions: []string{"v1beta1"},
-							Resources:   []string{"instances"},
+							Resources:   []string{"instances", "instances/*"},
 							Scope:       &namespacedScope,
 						},
 					},
