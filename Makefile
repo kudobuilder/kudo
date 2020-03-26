@@ -32,7 +32,7 @@ endif
 
 # Run e2e tests
 .PHONY: e2e-test
-e2e-test: cli-fast
+e2e-test: cli-fast manager-fast
 	./hack/run-e2e-tests.sh
 
 .PHONY: integration-test
