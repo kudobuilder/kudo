@@ -272,6 +272,27 @@ func ParameterDiff(old, new map[string]string) map[string]string {
 	return diff
 }
 
+// RichParameterDiff compares new and old map and returns two maps: first containing all changed/added
+// and second all removed parameters.
+func RichParameterDiff(old, new map[string]string) (changed, removed map[string]string) {
+	changed, removed = make(map[string]string), make(map[string]string)
+
+	for key, val := range old {
+		// If a parameter was removed in the new spec
+		if _, ok := new[key]; !ok {
+			removed[key] = val
+		}
+	}
+
+	for key, val := range new {
+		// If new spec parameter was added or changed
+		if v, ok := old[key]; !ok || v != val {
+			changed[key] = val
+		}
+	}
+	return
+}
+
 func CleanupPlanExists(ov *OperatorVersion) bool { return PlanExists(CleanupPlanName, ov) }
 
 func PlanExists(plan string, ov *OperatorVersion) bool {

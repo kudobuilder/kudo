@@ -185,13 +185,12 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 	isDeleting := new.IsDeleting() // a non-empty meta.deletionTimestamp is a signal to switch to the uninstalling life-cycle phase
 	isPlanTerminal := isTerminal(new, newPlan, new.Spec.PlanExecution.UID)
 
-	paramDiff := kudov1beta1.ParameterDiff(old.Spec.Parameters, new.Spec.Parameters)
-	paramDefs, err := kudov1beta1.GetParamDefinitions(paramDiff, ov)
-	if err != nil && !isUpgrade { // we allow removing parameters when upgrading to a new OV
+	parameterDefs, err := changedParameterDefinitions(old.Spec.Parameters, new.Spec.Parameters, ov)
+	if err != nil {
 		return nil, fmt.Errorf("failed to update Instance %s/%s: %v", old.Namespace, old.Name, err)
 	}
 
-	triggeredPlan, err := triggeredByParameterUpdate(paramDefs, ov)
+	triggeredPlan, err := triggeredByParameterUpdate(parameterDefs, ov)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update Instance %s/%s: %v", old.Namespace, old.Name, err)
 	}
@@ -323,6 +322,22 @@ func triggeredByParameterUpdate(params []kudov1beta1.Parameter, ov *kudov1beta1.
 	default:
 		return nil, fmt.Errorf("triggering multiple plans: [%v] at once is not allowed", plans)
 	}
+}
+
+// merge method merges two maps and returns the result. Note, that left map is being modified in process.
+func changedParameterDefinitions(old map[string]string, new map[string]string, ov *kudov1beta1.OperatorVersion) ([]kudov1beta1.Parameter, error) {
+	c, r := kudov1beta1.RichParameterDiff(old, new)
+	cpd, err := kudov1beta1.GetParamDefinitions(c, ov)
+	if err != nil {
+		return nil, err
+	}
+
+	// we ignore the error for missing OV parameter definitions for removed parameters. For once, this is a valid use-case when
+	// upgrading an Instance (new OV might remove parameters), but the user can also manually edit current OV and remove parameters.
+	// while discouraged, this is still possible since OV is not immutable.
+	rpd, _ := kudov1beta1.GetParamDefinitions(r, ov)
+
+	return append(cpd, rpd...), nil
 }
 
 // InstanceAdmission implements inject.Client.
