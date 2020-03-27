@@ -186,7 +186,7 @@ func InstanceAdmissionWebhook(ns string) admissionv1beta1.MutatingWebhookConfigu
 						Rule: admissionv1beta1.Rule{
 							APIGroups:   []string{"kudo.dev"},
 							APIVersions: []string{"v1beta1"},
-							Resources:   []string{"instances", "instances/*"},
+							Resources:   []string{"instances"},
 							Scope:       &namespacedScope,
 						},
 					},
