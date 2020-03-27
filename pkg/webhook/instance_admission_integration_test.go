@@ -1,12 +1,12 @@
+// +build integration
+
 package webhook
 
 import (
 	"context"
-	"encoding/json"
-	"log"
+	"fmt"
 	"os"
 	"testing"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -64,6 +64,8 @@ var _ = AfterSuite(func(done Done) {
 
 var _ = Describe("Test", func() {
 
+	var defaultTimeout float64 = 5 // seconds
+
 	var c client.Client
 	var stop chan struct{}
 
@@ -102,14 +104,9 @@ var _ = Describe("Test", func() {
 		c, err = client.New(env.Config, client.Options{Scheme: mgr.GetScheme()})
 		Expect(err).NotTo(HaveOccurred())
 
-		// --- DEBUG ---
-		// write kubconfig to be able to debug the cluster with kubectl
-		f, err := os.Create("testkubeconfig")
-		defer f.Close()
-		Expect(err).NotTo(HaveOccurred())
-
-		err = testutils.Kubeconfig(env.Config, f)
-		Expect(err).NotTo(HaveOccurred())
+		// --- DEBUG: write kubconfig to be able to debug the cluster with kubectl ---
+		writeKubeconfig()
+		// --- DEBUG: END ---
 	})
 
 	AfterEach(func() {
@@ -119,7 +116,6 @@ var _ = Describe("Test", func() {
 	deploy := v1beta1.DeployPlanName
 	update := v1beta1.UpdatePlanName
 	cleanup := v1beta1.CleanupPlanName
-	//empty := ""
 
 	ov := &v1beta1.OperatorVersion{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
@@ -129,10 +125,6 @@ var _ = Describe("Test", func() {
 			Parameters: []v1beta1.Parameter{
 				{
 					Name:    "foo",
-					Trigger: deploy,
-				},
-				{
-					Name:    "other-foo",
 					Trigger: deploy,
 				},
 				{
@@ -155,55 +147,115 @@ var _ = Describe("Test", func() {
 		Spec: v1beta1.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{Name: "foo-operator"},
 		},
-		Status: v1beta1.InstanceStatus{},
 	}
 
 	Describe("Instance admission controller", func() {
-		It("should schedule deploy plan when an instance is created", func(done Done) {
+		var key client.ObjectKey
 
-			//Eventually(func() error {
-			//	return c.Create(context.TODO(), ov)
-			//}, 1*time.Second).Should(BeNil())
-
+		It("should allow instance creation", func() {
 			// 1. create the OV first
+			ov := ov.DeepCopy()
 			err := c.Create(context.TODO(), ov)
 			Expect(err).NotTo(HaveOccurred())
 
 			// 2. create the initial Instance
 			err = c.Create(context.TODO(), idle)
 			Expect(err).NotTo(HaveOccurred())
+		}, defaultTimeout)
 
-			// 3. admission controller should schedule 'deploy' plan and add cleanup finalizer
-			key := keyFrom(idle)
+		It("should schedule deploy plan when an instance is created", func() {
+			// 1. admission controller should schedule 'deploy' plan and add cleanup finalizer for new instances
+			key = keyFrom(idle)
 			i := instanceWith(c, key)
 
 			Expect(i.HasPlanScheduled(deploy))
 			Expect(i.HasCleanupFinalizer()).Should(BeTrue())
+		}, defaultTimeout)
 
+		It("should allow rescheduling of the deploy plan directly", func() {
+			i := instanceWith(c, key)
+
+			// 1. restart currently running plan by resetting the UID
+			uid := i.Spec.PlanExecution.UID // save current plan UID for later checks
+			i.Spec.PlanExecution.UID = ""
+
+			err := c.Update(context.TODO(), i)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(i.HasPlanScheduled(deploy))
+			Expect(i.Spec.PlanExecution.UID).NotTo(Equal(uid)) // same plan but new UID
+		}, defaultTimeout)
+
+		It("should allow rescheduling of the deploy plan through parameter update", func() {
+			i := instanceWith(c, key)
+
+			// 1. restart currently running plan by resetting the UID
+			uid := i.Spec.PlanExecution.UID // save current plan UID for later checks
+			i.Spec.Parameters = map[string]string{"foo": "2"}
+
+			err := c.Update(context.TODO(), i)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(i.HasPlanScheduled(deploy))
+			Expect(i.Spec.PlanExecution.UID).NotTo(Equal(uid)) // same plan but new UID
+		}, defaultTimeout)
+
+		It("should NOT allow scheduling of another plan while deploy is running", func() {
+			i := instanceWith(c, key)
+
+			// 1. try to start the 'update' plan while another plan is in progress
+			i.Spec.PlanExecution.PlanName = update
+
+			err := c.Update(context.TODO(), i)
+			Expect(err).To(HaveOccurred()) // boom
+		}, defaultTimeout)
+
+		It("should NOT allow upgrading instance while a plan is running", func() {
+			// 1. create new OV first
+			newOv := ov.DeepCopy()
+			newOv.Name = fmt.Sprintf("%s-%s", ov.Name, "2.0")
+			err := c.Create(context.TODO(), newOv)
+			Expect(err).NotTo(HaveOccurred())
+
+			i := instanceWith(c, key)
+
+			// 2. bump instance OV reference
+			i.Spec.OperatorVersion.Name = newOv.Name
+			err = c.Update(context.TODO(), i)
+			Expect(err).To(HaveOccurred()) // boom
+		}, defaultTimeout)
+
+		It("should NOT allow updating parameters while another plan is running", func() {
+			i := instanceWith(c, key)
+
+			// 1. try to instance parameters that would trigger a different plan while another plan is in progress
+			i.Spec.Parameters = map[string]string{"bar": "2"}
+
+			err := c.Update(context.TODO(), i)
+			Expect(err).To(HaveOccurred()) // boom
+		}, defaultTimeout)
+
+		It("should clear scheduled plan when it is completed", func() {
+			i := instanceWith(c, key)
 			uid := i.Spec.PlanExecution.UID // save current plan UID for later checks
 
-			// 4. finish the 'deploy' plan by updating the corresponding status field
+			// 1. finish the 'deploy' plan by updating the corresponding status field
 			i.Status.PlanStatus = map[string]v1beta1.PlanStatus{
 				deploy: {Name: deploy, UID: uid, Status: v1beta1.ExecutionComplete},
 			}
-			err = c.Status().Update(context.TODO(), i)
+			err := c.Status().Update(context.TODO(), i)
 			Expect(err).NotTo(HaveOccurred())
 
-			// 5. admission controller should reset the Spec.PlanExecution
+			// 2. admission controller should reset the Spec.PlanExecution
+			i = instanceWith(c, key)
+			Expect(i.HasPlanScheduled(deploy)).Should(BeFalse())
+			//Eventually(func() bool {
+			//	i = instanceWith(c, key)
+			//	s, _ := json.MarshalIndent(i, "", "  ")
+			//	log.Printf(">>> DEBUG TEST:\n%s", s)
+			//
+			//	return i.HasPlanScheduled(deploy)
+			//}, 3*time.Second).Should(BeFalse())
 
-			Eventually(func() bool {
-				i = instanceWith(c, key)
-				s, _ := json.MarshalIndent(i, "", "  ")
-				log.Printf(">>> DEBUG TEST:\n%s", s)
-
-				return i.HasPlanScheduled(deploy)
-			}, 3*time.Second).Should(BeFalse())
-
-			//s, _ := json.MarshalIndent(i, "", "  ")
-			//log.Printf("+++ DEBUG: foo-instance +++\n%s", s)
-
-			close(done)
-		}, 1000000)
+		}, defaultTimeout)
 	})
 })
 
@@ -222,4 +274,15 @@ func instanceWith(c client.Client, key client.ObjectKey) *v1beta1.Instance {
 	err := c.Get(context.TODO(), key, i)
 	Expect(err).NotTo(HaveOccurred())
 	return i
+}
+
+// writeKubeconfig writes current cluster's configuration into a testkubeconfig file. Useful for debugging
+// test environment with kubectl.
+func writeKubeconfig() {
+	f, err := os.Create("testkubeconfig")
+	defer f.Close() // nolint
+	Expect(err).NotTo(HaveOccurred())
+
+	err = testutils.Kubeconfig(env.Config, f)
+	Expect(err).NotTo(HaveOccurred())
 }

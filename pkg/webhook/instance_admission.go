@@ -109,8 +109,8 @@ func handleUpdate(ia *InstanceAdmission, req admission.Request) admission.Respon
 		log.Printf("InstanceAdmission: Error getting operatorVersion %s for instance %s/%s: %v", new.Spec.OperatorVersion.Name, new.Namespace, new.Name, err)
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
-	s, _ := json.MarshalIndent(new, "", "  ")
-	log.Printf("+++ 🧐 DEBUG instance admission UPDATE: +++\n%s", s)
+	//s, _ := json.MarshalIndent(new, "", "  ")
+	//log.Printf("+++ 🧐 DEBUG instance admission UPDATE: +++\n%s", s)
 
 	// we explicitly ignore Metadata updates
 	if reflect.DeepEqual(old.Spec, new.Spec) && reflect.DeepEqual(old.Status, new.Status) {
@@ -135,8 +135,8 @@ func handleUpdate(ia *InstanceAdmission, req admission.Request) admission.Respon
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
 
-		s, _ := json.MarshalIndent(new, "", "  ")
-		log.Printf("--- 🤖 DEBUG admitting: ---\n%s", s)
+		//s, _ := json.MarshalIndent(new, "", "  ")
+		//log.Printf("--- 🤖 DEBUG admitting: ---\n%s", s)
 
 		return admission.PatchResponseFromRaw(req.Object.Raw, marshaled)
 	}
