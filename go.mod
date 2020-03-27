@@ -7,7 +7,7 @@ require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/gosuri/uitable v0.0.4
-	github.com/kudobuilder/kuttl v0.0.0-20200325200947-889c2a9b7a99
+	github.com/kudobuilder/kuttl v0.1.0
 	github.com/manifoldco/promptui v0.6.0
 	github.com/spf13/afero v1.2.2
 	github.com/spf13/cobra v0.0.5
