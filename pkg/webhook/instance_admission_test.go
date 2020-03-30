@@ -299,7 +299,7 @@ func TestValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "parameter update triggering a non-existing OV plan IS NOT allowed",
+			name: "parameter update triggering a non-existing OV parameter IS NOT allowed",
 			old:  idle,
 			new: func() *v1beta1.Instance {
 				i := idle.DeepCopy()
