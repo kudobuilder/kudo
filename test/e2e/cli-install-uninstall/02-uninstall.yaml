@@ -1,4 +1,5 @@
 apiVersion: kudo.dev/v1beta1
 kind: TestStep
-kubectl:
-- kudo uninstall --instance first-operator
+commands:
+  - command: kubectl kudo uninstall --instance first-operator
+    namespaced: true

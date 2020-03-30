@@ -1,5 +1,7 @@
 apiVersion: kudo.dev/v1beta1
 kind: TestStep
-kubectl:
-- kudo uninstall --instance failjob-operator-instance
-- kudo install --instance job-timout-operator-instance ./job-timeout-operator
+commands:
+  - command: kubectl kudo uninstall --instance failjob-operator-instance
+    namespaced: true
+  - command: kubectl kudo install --instance job-timout-operator-instance ./job-timeout-operator
+    namespaced: true

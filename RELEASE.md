@@ -21,12 +21,16 @@ The `HEAD` of the release branches follows the same conventions as master.  It i
 
 ### Documentation
 
-Pull request for documentation (in the `kudo.dev` repo) should be prepared and reviewed at
+Pull request for documentation (in the [`kudo.dev`](https://github.com/kudobuilder/kudo.dev) repo) should be prepared and reviewed at
 the same time as the pull request for any user-visible (documentation-worthy) change.
 The description for the code change PR should link to the documentation PR (and vice-versa).
 
-The documentation PR should be made against the `next-release` branch, and merged as soon as its
+The documentation PR should be made against the branch dedicated to next release, and merged as soon as its
 corresponding PR(s) against the `kudo` repo is/are merged.
+
+The name of the release-dedicated branch is `post-vx.y.z` where `x.y.z` is the *previous* release.
+This gives us the ability to have each branch be used for only a single release without knowing in advance
+what the exact version number will be up-front.
 
 ### Bug Fixes
 
@@ -50,7 +54,9 @@ The KUDO Project is aiming to do monthly minor releases but the period could be 
 
 ### Release Process
 
-The official binaries for KUDO are created using [goreleaser](https://goreleaser.com/). The [.goreleaser.yml](.goreleaser.yml) defines the binaries which are supported for each release. Goreleaser is right now run manually from the RM computer. The following are preconditions for the release process:
+The official binaries for KUDO are created using [goreleaser](https://goreleaser.com/). The [.goreleaser.yml](.goreleaser.yml) defines the binaries which are supported for each release. Goreleaser is right now run manually from the RM computer.
+
+#### Preconditions
 
 1. Ensure you have credential `GITHUB_TOKEN` set.
 The env must include `export GITHUB_TOKEN=<personal access token>`.
@@ -58,24 +64,18 @@ The env must include `export GITHUB_TOKEN=<personal access token>`.
 The token must grant full access to: `repo`, `write:packages`, `read:packages`.
 1. Ensure you are logged into Docker hub and have rights to push to kudobuilder.
 
-
-The release process is:
+#### Actual release process
 
 1. Tag the kudo repo with expected release `git tag -a v0.2.0 -m "v0.2.0"` and push the tag `git push --tags`.
 1. Invoke goreleaser `goreleaser --rm-dist`.
 1. Update the GH release with release highlights. There is a draft that contains categorized changes since the last release. It provides categories for highlights, breaking changes, and contributors which should be added the gorelease release notes. The changelog from the draft log is ignored. After the contents are copied, the draft can be deleted.
-1. Merge the `next-release` branch of the `kudo.dev` repo into its `master` with:
-   ```bash
-   cd kudo.dev
-   git checkout master && git pull && git merge origin/next-release
-   git push origin master
-   ```
-   Immediately after that, re-create the `next-release` from the tip of `master` with:
-   ```bash
-   git branch -D next-release
-   git checkout -b next-release
-   git push origin +HEAD
-   ```
+1. Merge the [branch](#documentation) of the [`kudo.dev`](https://github.com/kudobuilder/kudo.dev) repo dedicated to current release
+   into `master`, following the regular GitHub pull request process.
+1. Immediately after that, create a `post-v0.2.0` branch for documentation for a *future* release
+   from the tip of `master` of the [`kudo.dev`](https://github.com/kudobuilder/kudo.dev) repo,
+   for example in the GitHub UI:
+   
+   ![img](.github/new-branch.png)
 1. Send an announcement email to [kudobuilder@googlegroups.com](https://groups.google.com/forum/#!forum/kudobuilder) with the subject `[ANNOUNCE] Kudo $VERSION is released`
 1. Run `./hack/generate_krew.sh` and submit the generated `kudo.yaml` to https://github.com/kubernetes-sigs/krew-index/.
 1. Update KUDO_VERSION [in the Makefile](https://github.com/kudobuilder/operators/blob/master/Makefile#L2) of operators repo

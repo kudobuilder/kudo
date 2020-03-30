@@ -32,12 +32,12 @@ endif
 
 # Run e2e tests
 .PHONY: e2e-test
-e2e-test: cli-fast
+e2e-test: cli-fast manager-fast
 	./hack/run-e2e-tests.sh
 
 .PHONY: integration-test
 # Run integration tests
-integration-test: cli-fast
+integration-test: cli-fast manager-fast
 	./hack/run-integration-tests.sh
 
 .PHONY: test-clean
@@ -59,11 +59,16 @@ download:
 .PHONY: prebuild
 prebuild: generate lint
 
-.PHONY: manager
+
 # Build manager binary
-manager: prebuild
+manager: prebuild manager-fast
+
+.PHONY: manager-fast
+# Build manager binary
+manager-fast:
 	# developer convenience for platform they are running
 	go build -ldflags "${LDFLAGS}" -o bin/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
+
 
 .PHONY: manager-clean
 # Clean manager build
@@ -104,7 +109,6 @@ endif
 generate-clean:
 	rm -rf hack/code-gen
 
-.PHONY: cli-fast
 # Build CLI but don't lint or run code generation first.
 cli-fast:
 	go build -ldflags "${LDFLAGS}" -o bin/${CLI} ./cmd/kubectl-kudo
