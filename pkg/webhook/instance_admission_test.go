@@ -40,6 +40,10 @@ func TestValidateUpdate(t *testing.T) {
 					Name:    "bar",
 					Trigger: update,
 				},
+				{
+					Name:    "invalid",
+					Trigger: "missing",
+				},
 			},
 		},
 	}
@@ -304,6 +308,17 @@ func TestValidateUpdate(t *testing.T) {
 			new: func() *v1beta1.Instance {
 				i := idle.DeepCopy()
 				i.Spec.Parameters["bazz"] = "newBazz"
+				return i
+			}(),
+			ov:      ov,
+			wantErr: true,
+		},
+		{
+			name: "parameter update triggering a non-existing OV plan IS NOT allowed",
+			old:  idle,
+			new: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.Parameters["invalid"] = "invalid"
 				return i
 			}(),
 			ov:      ov,
