@@ -1,4 +1,5 @@
 apiVersion: kudo.dev/v1beta1
 kind: TestStep
-kubectl:
-- kudo update --instance feature-operator-instance -p enable_cm=true
+commands:
+  - command: kubectl kudo update --instance feature-operator-instance -p enable_cm=true
+    namespaced: true

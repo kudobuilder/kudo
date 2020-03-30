@@ -7,11 +7,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 
-	"github.com/kudobuilder/kudo/pkg/test/utils"
+	"github.com/kudobuilder/kudo/pkg/test/fake"
 )
 
 func Test_isNamespaced(t *testing.T) {
-	fdc := utils.FakeDiscoveryClient()
+	fdc := fake.CachedDiscoveryClient()
 
 	tests := []struct {
 		name    string

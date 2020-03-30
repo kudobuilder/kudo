@@ -15,8 +15,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 
+	"github.com/kudobuilder/kuttl/pkg/test/utils"
+
 	"github.com/kudobuilder/kudo/pkg/engine"
-	"github.com/kudobuilder/kudo/pkg/test/utils"
+	"github.com/kudobuilder/kudo/pkg/test/fake"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
@@ -30,7 +32,7 @@ func TestEnhancerApply_embeddedMetadataStatefulSet(t *testing.T) {
 
 	e := &DefaultEnhancer{
 		Scheme:    utils.Scheme(),
-		Discovery: utils.FakeDiscoveryClient(),
+		Discovery: fake.CachedDiscoveryClient(),
 	}
 
 	objs, err := e.Apply(tpls, meta)
@@ -76,7 +78,7 @@ func TestEnhancerApply_embeddedMetadataCronjob(t *testing.T) {
 
 	e := &DefaultEnhancer{
 		Scheme:    utils.Scheme(),
-		Discovery: utils.FakeDiscoveryClient(),
+		Discovery: fake.CachedDiscoveryClient(),
 	}
 
 	objs, err := e.Apply(tpls, meta)
@@ -118,7 +120,7 @@ func TestEnhancerApply_noAdditionalMetadata(t *testing.T) {
 
 	e := &DefaultEnhancer{
 		Scheme:    utils.Scheme(),
-		Discovery: utils.FakeDiscoveryClient(),
+		Discovery: fake.CachedDiscoveryClient(),
 	}
 
 	objs, err := e.Apply(tpls, meta)

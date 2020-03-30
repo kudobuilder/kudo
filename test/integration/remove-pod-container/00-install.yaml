@@ -1,4 +1,5 @@
 apiVersion: kudo.dev/v1beta1
 kind: TestStep
-kubectl:
-- kudo install --instance dual-pod ./dual-pod-operator -p  WITH_PRIORITY="false"
+commands:
+  - command: kubectl kudo install --instance dual-pod ./dual-pod-operator -p  WITH_PRIORITY="false"
+    namespaced: true
