@@ -23,11 +23,11 @@ func TestDuplicateVerifier(t *testing.T) {
 		{"duplicate parameter", []packages.Parameter{
 			{Name: "Foo"},
 			{Name: "Foo"},
-		}, []string{}, []string{fmt.Sprintf("parameter \"Foo\" has a duplicate")}},
+		}, []string{}, []string{"parameter \"Foo\" has a duplicate"}},
 		{"duplicate with different casing", []packages.Parameter{
 			{Name: "Foo"},
 			{Name: "foo"},
-		}, []string{}, []string{fmt.Sprintf("parameter \"foo\" has a duplicate")}},
+		}, []string{}, []string{"parameter \"foo\" has a duplicate"}},
 	}
 
 	verifier := DuplicateVerifier{}
