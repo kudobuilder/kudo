@@ -34,7 +34,7 @@ status: provisional
 
 ## Summary
 
-There is a number of ways that an operator can be installed via KUDO.  The operator developer can install via the local file system (with a operator folder or tarball).  It is also possible to install via url to a tarball.  While [KEP-0010](keps/0010-package-manager.md) defines the packaging structure, this kep defines:
+There is a number of ways that an operator can be installed via KUDO.  The operator developer can install via the local file system (with a operator folder or tarball).  It is also possible to install via url to a tarball.  While [KEP-0010](0010-package-manager.md) defines the packaging structure, this kep defines:
 
 * The structure of a repository
 * Defining authoritative repositories: incubator & graduated
@@ -44,7 +44,7 @@ There is a number of ways that an operator can be installed via KUDO.  The opera
 * CLI Tooling for search, packaging, and pushing to/from repository
 * Define the rules and means to promote incubated operators to the graduated repository.
 
-By providing a repository (or set of repositories), KUDO will provide a mechanism for administrators to easy discover and install KUDO operators.  [Helm has provided some prior art](https://github.com/helm/helm/blob/master/docs/chart_repository.md) which we should align closely to from a mental model stand point.
+By providing a repository (or set of repositories), KUDO will provide a mechanism for administrators to easy discover and install KUDO operators.  [Helm has provided some prior art](https://helm.sh/docs/topics/chart_repository/) which we should align closely to from a mental model stand point.
 It is useful to note that helm is [moving away from the custom repository model](https://blog.bacongobbler.com/post/2019-01-25-distributing-with-distribution/index.html) and towards OCI-compatible registries for a backend.  While this seems like a worthy ambition, it adds work that we should focus on for a phase 2 effort.   The first version of the repository should
 
 ## Motivation
@@ -62,18 +62,18 @@ We need a way for the operator author to update a repository with their operator
 ### Non-Goals
 
 - Manage repos of non-KUDO applications (e.g. Helm Charts)
-- External formats defined by [KEP0013](keps/0013-external-specs.md)
+- External formats defined by [KEP0013](0013-external-specs.md)
 - Repository cacheing
 
 ## Proposal
 
 ### Create Operator Tarball
 
-An operator packaage as defined in [KEP0010](keps/0010-package-manager.md).  The storage package at the repository is a tarball. We need a way to create this tarball in a uniformed way. KUDO shall a way to generate a tarball based on the standard file system layout.  As an example: `kubectl kudo package docs/examples/zookeeper/`.  This will create a `zookeeper-3.4.10.tgz` based on parsing the `operator.yaml` for version details. It would be best if this included linting to ensure that the static structure of the operator is correct. At this point, it will guarantee that operator folder has `operator.yaml` and `params.yaml` along with a templates directory.  It will create the following operator tarball `{operator.yaml:name}-{operator.yaml:version}.tgz`.
+An operator packaage as defined in [KEP0010](0010-package-manager.md).  The storage package at the repository is a tarball. We need a way to create this tarball in a uniformed way. KUDO shall a way to generate a tarball based on the standard file system layout.  As an example: `kubectl kudo package docs/examples/zookeeper/`.  This will create a `zookeeper-3.4.10.tgz` based on parsing the `operator.yaml` for version details. It would be best if this included linting to ensure that the static structure of the operator is correct. At this point, it will guarantee that operator folder has `operator.yaml` and `params.yaml` along with a templates directory.  It will create the following operator tarball `{operator.yaml:name}-{operator.yaml:version}.tgz`.
 
 ### Create Repository Index
 
-KUDO needs the ability to create an index file for the repository. Something like `kubectl kudo repo index new-repo --url https://kudo-repo.storage.googleapis.com`. In this example, the `kudo repo index` is the command. The `new-repo` is a folder containing operator tarballs. The index file defined in [KEP0010](keps/0010-package-manager.md) will be created using the url provided for links in the file.
+KUDO needs the ability to create an index file for the repository. Something like `kubectl kudo repo index new-repo --url https://kudo-repo.storage.googleapis.com`. In this example, the `kudo repo index` is the command. The `new-repo` is a folder containing operator tarballs. The index file defined in [KEP0010](0010-package-manager.md) will be created using the url provided for links in the file.
 
 Steps for creating an index file for a new operator looks like:
 ```
