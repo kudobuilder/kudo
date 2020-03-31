@@ -60,11 +60,6 @@ func (i *Instance) NoPlanEverExecuted() bool {
 	return true
 }
 
-func (i *Instance) HasPlanScheduled(plan string) bool {
-	return i.Spec.PlanExecution.PlanName == plan &&
-		i.Spec.PlanExecution.UID != ""
-}
-
 // UpdateInstanceStatus updates `Status.PlanStatus` and `Status.AggregatedStatus` property based on the given plan
 func (i *Instance) UpdateInstanceStatus(planStatus *PlanStatus, updatedTimestamp *metav1.Time) {
 	for k, v := range i.Status.PlanStatus {

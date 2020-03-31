@@ -163,7 +163,8 @@ var _ = Describe("Test", func() {
 			key = keyFrom(idle)
 			i := instanceWith(c, key)
 
-			Expect(i.HasPlanScheduled(deploy))
+			Expect(i.Spec.PlanExecution.PlanName).Should(Equal(deploy))
+			Expect(i.Spec.PlanExecution.UID).ShouldNot(BeEmpty())
 			Expect(i.HasCleanupFinalizer()).Should(BeTrue())
 		}, defaultTimeout)
 
@@ -176,7 +177,8 @@ var _ = Describe("Test", func() {
 
 			err := c.Update(context.TODO(), i)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(i.HasPlanScheduled(deploy))
+			Expect(i.Spec.PlanExecution.PlanName).Should(Equal(deploy))
+			Expect(i.Spec.PlanExecution.UID).ShouldNot(BeEmpty())
 			Expect(i.Spec.PlanExecution.UID).NotTo(Equal(uid)) // same plan but new UID
 		}, defaultTimeout)
 
@@ -189,7 +191,8 @@ var _ = Describe("Test", func() {
 
 			err := c.Update(context.TODO(), i)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(i.HasPlanScheduled(deploy))
+			Expect(i.Spec.PlanExecution.PlanName).Should(Equal(deploy))
+			Expect(i.Spec.PlanExecution.UID).ShouldNot(BeEmpty())
 			Expect(i.Spec.PlanExecution.UID).NotTo(Equal(uid)) // same plan but new UID
 			Expect(i.Spec.PlanExecution.Status).Should(Equal(v1beta1.ExecutionNeverRun))
 		}, defaultTimeout)
