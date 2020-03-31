@@ -10,9 +10,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	harness "github.com/kudobuilder/kudo/pkg/apis/testharness/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/test"
-	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
+	harness "github.com/kudobuilder/kuttl/pkg/apis/testharness/v1beta1"
+	"github.com/kudobuilder/kuttl/pkg/test"
+	testutils "github.com/kudobuilder/kuttl/pkg/test/utils"
 )
 
 var (
@@ -129,9 +129,9 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 				return errors.New("only one of --start-control-plane and --start-kind can be set")
 			}
 
-			if isSet(flags, "start-kudo") {
-				options.StartKUDO = startKUDO
-			}
+			//if isSet(flags, "start-kudo") {
+			//	//TODO (kensipe): switch to a new way to start kudo (outside of kuttl)
+			//}
 
 			if isSet(flags, "skip-delete") {
 				options.SkipDelete = skipDelete

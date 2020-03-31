@@ -38,7 +38,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
 	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
-	"github.com/kudobuilder/kudo/pkg/test/utils"
+	"github.com/kudobuilder/kudo/pkg/kubernetes"
 	"github.com/kudobuilder/kudo/pkg/version"
 	kudohook "github.com/kudobuilder/kudo/pkg/webhook"
 )
@@ -112,7 +112,7 @@ func main() {
 	}
 	log.Print("OperatorVersion controller set up")
 
-	discoveryClient, err := utils.GetDiscoveryClient(mgr)
+	discoveryClient, err := kubernetes.GetDiscoveryClient(mgr)
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)

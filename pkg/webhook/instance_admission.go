@@ -180,16 +180,8 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 	newUID := new.Spec.PlanExecution.UID
 	oldUID := old.Spec.PlanExecution.UID
 
-	paramDiff := kudov1beta1.ParameterDiff(old.Spec.Parameters, new.Spec.Parameters)
-	paramDefs := kudov1beta1.GetParamDefinitions(paramDiff, ov)
-	triggeredPlan, err := triggeredPlan(paramDefs, ov)
-	if err != nil {
-		return nil, fmt.Errorf("failed to update Instance %s/%s: %v", old.Namespace, old.Name, err)
-	}
-
 	// update and upgrade helpers
 	hadPlan := oldPlan != ""
-	isParameterUpdate := triggeredPlan != nil
 	isUpgrade := newOvRef != oldOvRef
 	isNovelPlan := !hadPlan && newPlan != ""
 	isPlanOverride := hadPlan && newPlan != "" && newPlan != oldPlan
@@ -197,6 +189,18 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 	isPlanCancellation := hadPlan && newPlan == ""
 	isDeleting := new.IsDeleting() // a non-empty meta.deletionTimestamp is a signal to switch to the uninstalling life-cycle phase
 	isPlanTerminal := isTerminal(new, newPlan, new.Spec.PlanExecution.UID)
+
+	parameterDefs, err := changedParameterDefinitions(old.Spec.Parameters, new.Spec.Parameters, ov)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update Instance %s/%s: %v", old.Namespace, old.Name, err)
+	}
+
+	triggeredPlan, err := triggeredByParameterUpdate(parameterDefs, ov)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update Instance %s/%s: %v", old.Namespace, old.Name, err)
+	}
+
+	isParameterUpdate := triggeredPlan != nil
 
 	// --------------------------------------------------------------------------------------------------------------------------------
 	// ---- Instance can have two major life-cycle phases: normal and cleanup (uninstall) phase. Different rule sets apply in both. ---
@@ -291,8 +295,8 @@ func isTerminal(i *kudov1beta1.Instance, plan string, uid types.UID) bool {
 	return status != nil && status.UID == uid && status.Status.IsTerminal()
 }
 
-// triggeredPlan determines what plan to run based on parameters that changed and the corresponding parameter trigger.
-func triggeredPlan(params []kudov1beta1.Parameter, ov *kudov1beta1.OperatorVersion) (*string, error) {
+// triggeredByParameterUpdate determines what plan to run based on parameters that changed and the corresponding parameter trigger.
+func triggeredByParameterUpdate(params []kudov1beta1.Parameter, ov *kudov1beta1.OperatorVersion) (*string, error) {
 	// If no parameters were changed, we return an empty string so no plan would be triggered
 	if len(params) == 0 {
 		return nil, nil
@@ -323,6 +327,22 @@ func triggeredPlan(params []kudov1beta1.Parameter, ov *kudov1beta1.OperatorVersi
 	default:
 		return nil, fmt.Errorf("triggering multiple plans: [%v] at once is not allowed", plans)
 	}
+}
+
+// merge method merges two maps and returns the result. Note, that left map is being modified in process.
+func changedParameterDefinitions(old map[string]string, new map[string]string, ov *kudov1beta1.OperatorVersion) ([]kudov1beta1.Parameter, error) {
+	c, r := kudov1beta1.RichParameterDiff(old, new)
+	cpd, err := kudov1beta1.GetParamDefinitions(c, ov)
+	if err != nil {
+		return nil, err
+	}
+
+	// we ignore the error for missing OV parameter definitions for removed parameters. For once, this is a valid use-case when
+	// upgrading an Instance (new OV might remove parameters), but the user can also manually edit current OV and remove parameters.
+	// while discouraged, this is still possible since OV is not immutable.
+	rpd, _ := kudov1beta1.GetParamDefinitions(r, ov)
+
+	return append(cpd, rpd...), nil
 }
 
 // InstanceAdmission implements inject.Client.

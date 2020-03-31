@@ -6,9 +6,10 @@ import (
 	"strings"
 
 	"github.com/spf13/afero"
-	"gopkg.in/yaml.v2"
+	"sigs.k8s.io/yaml"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
@@ -51,12 +52,14 @@ func getParamsFromFiles(fs afero.Fs, filePaths []string, errs []string) (map[str
 			continue
 		}
 		data := make(map[string]interface{})
-		err = yaml.Unmarshal(rawData, data)
+		err = yaml.Unmarshal(rawData, &data)
 		if err != nil {
 			errs = append(errs, fmt.Sprintf("error unmarshalling content of parameter file %s: %v", filePath, err))
 			continue
 		}
+		clog.V(2).Printf("Unmarshalling %q...", filePath)
 		for key, value := range data {
+			clog.V(3).Printf("Value of parameter %q is a %T: %v", key, value, value)
 			var valueType v1beta1.ParameterType
 			switch value.(type) {
 			case map[string]interface{}:

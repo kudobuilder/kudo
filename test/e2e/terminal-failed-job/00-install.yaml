@@ -1,4 +1,5 @@
 apiVersion: kudo.dev/v1beta1
 kind: TestStep
-kubectl:
-- kudo install --instance failjob-operator-instance ./failjob-operator
+commands:
+  - command: kubectl kudo install --instance failjob-operator-instance ./failjob-operator
+    namespaced: true
