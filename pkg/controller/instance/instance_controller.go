@@ -604,6 +604,7 @@ func fetchNewExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*s
 
 		i.Spec.PlanExecution.PlanName = v1beta1.CleanupPlanName
 		i.Spec.PlanExecution.UID = uuid.NewUUID()
+		i.Spec.PlanExecution.Status = v1beta1.ExecutionNeverRun
 	}
 
 	newPlanScheduled := func() bool {

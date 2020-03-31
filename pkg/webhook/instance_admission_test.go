@@ -168,9 +168,7 @@ func TestValidateUpdate(t *testing.T) {
 			old:  scheduled,
 			new: func() *v1beta1.Instance {
 				i := scheduled.DeepCopy()
-				i.Status.PlanStatus = map[string]v1beta1.PlanStatus{
-					deploy: {Name: deploy, UID: testUUID, Status: v1beta1.ExecutionComplete},
-				}
+				i.Spec.PlanExecution.Status = v1beta1.ExecutionComplete
 				return i
 			}(),
 			ov:   ov,

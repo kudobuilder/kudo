@@ -41,12 +41,15 @@ type InstanceSpec struct {
 // plan is reserved for the situations when parameters doesn't change e.g. a periodic backup is triggered
 // overriding the existing backup file. Additionally, this opens room for canceling and overriding
 // currently running plans in the future.
-// Note: PlanExecution field defines plan name and corresponding parameters that IS CURRENTLY executed.
-// Once the instance controller (IC) is done with the execution, this field will be cleared.
-// Each plan execution has a unique UID so should the same plan be re-triggered it will have a new UID
+//
+// Note: PlanExecution field defines plan name and corresponding parameters that is either being currently
+// executed or was executed last. Each plan execution has a unique UID so should the same plan be re-triggered
+// it will have a new UID. The Status field is derived from the corresponding plan status. If the plan is
+// terminal PlanExecution will have last executed plan and it's status.
 type PlanExecution struct {
 	PlanName string                `json:"planName,omitempty"`
 	UID      apimachinerytypes.UID `json:"uid,omitempty"`
+	Status   ExecutionStatus       `json:"status,omitempty"`
 
 	// Future PE options like Force: bool. Not needed for now
 }

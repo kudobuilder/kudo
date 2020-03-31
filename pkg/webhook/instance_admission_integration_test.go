@@ -5,7 +5,6 @@ package webhook
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -13,6 +12,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
@@ -25,7 +25,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
-	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
 )
 
 func TestSource(t *testing.T) {
@@ -103,10 +102,6 @@ var _ = Describe("Test", func() {
 		logf.Log.Info("test.BeforeEach: initializing client")
 		c, err = client.New(env.Config, client.Options{Scheme: mgr.GetScheme()})
 		Expect(err).NotTo(HaveOccurred())
-
-		// --- DEBUG: write kubconfig to be able to debug the cluster with kubectl ---
-		writeKubeconfig()
-		// --- DEBUG: END ---
 	})
 
 	AfterEach(func() {
@@ -196,6 +191,7 @@ var _ = Describe("Test", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(i.HasPlanScheduled(deploy))
 			Expect(i.Spec.PlanExecution.UID).NotTo(Equal(uid)) // same plan but new UID
+			Expect(i.Spec.PlanExecution.Status).Should(Equal(v1beta1.ExecutionNeverRun))
 		}, defaultTimeout)
 
 		It("should NOT allow scheduling of another plan while deploy is running", func() {
@@ -235,25 +231,59 @@ var _ = Describe("Test", func() {
 
 		It("should clear scheduled plan when it is completed", func() {
 			i := instanceWith(c, key)
-			uid := i.Spec.PlanExecution.UID // save current plan UID for later checks
 
-			// 1. finish the 'deploy' plan by updating the corresponding status field
-			i.Status.PlanStatus = map[string]v1beta1.PlanStatus{
-				deploy: {Name: deploy, UID: uid, Status: v1beta1.ExecutionComplete},
-			}
-			err := c.Status().Update(context.TODO(), i)
+			// 1. finish the 'deploy' plan by updating the status field
+			i.Spec.PlanExecution.Status = v1beta1.ExecutionComplete
+			err := c.Update(context.TODO(), i)
 			Expect(err).NotTo(HaveOccurred())
 
 			// 2. admission controller should reset the Spec.PlanExecution
 			i = instanceWith(c, key)
-			Expect(i.HasPlanScheduled(deploy)).Should(BeFalse())
-			//Eventually(func() bool {
-			//	i = instanceWith(c, key)
-			//	s, _ := json.MarshalIndent(i, "", "  ")
-			//	log.Printf(">>> DEBUG TEST:\n%s", s)
-			//
-			//	return i.HasPlanScheduled(deploy)
-			//}, 3*time.Second).Should(BeFalse())
+			Expect(string(i.Spec.PlanExecution.Status)).Should(Equal(""))
+			Expect(string(i.Spec.PlanExecution.UID)).Should(Equal(""))
+			Expect(i.Spec.PlanExecution.PlanName).Should(Equal(""))
+
+		}, defaultTimeout)
+
+		It("cleanup plan can NOT be scheduled if the instance is not being deleted", func() {
+			i := instanceWith(c, key)
+
+			// 1. finish the 'deploy' plan by updating the status field
+			i.Spec.PlanExecution.PlanName = v1beta1.CleanupPlanName
+			err := c.Update(context.TODO(), i)
+			Expect(err).To(HaveOccurred())
+
+		}, defaultTimeout)
+
+		It("cleanup plan CAN be scheduled if the instance is being deleted", func() {
+			// 1. delete the instance
+			i := instanceWith(c, key)
+			err := c.Delete(context.TODO(), i)
+			Expect(err).NotTo(HaveOccurred())
+
+			// 2. schedule the 'cleanup' plan like the controller would
+			i = instanceWith(c, key)
+			uid := i.Spec.PlanExecution.UID
+
+			i.Spec.PlanExecution.PlanName = v1beta1.CleanupPlanName
+			i.Spec.PlanExecution.UID = uuid.NewUUID()
+			err = c.Update(context.TODO(), i)
+			Expect(err).NotTo(HaveOccurred())
+
+			// 3. admission controller should reset the Spec.PlanExecution
+			i = instanceWith(c, key)
+			Expect(i.Spec.PlanExecution.PlanName).Should(Equal(v1beta1.CleanupPlanName))
+			Expect(i.Spec.PlanExecution.UID).ShouldNot(Equal(uid))
+
+		}, defaultTimeout)
+
+		It("another plan can NOT be scheduled while cleanup is running", func() {
+			i := instanceWith(c, key)
+
+			// 1. finish the 'deploy' plan by updating the status field
+			i.Spec.PlanExecution.PlanName = v1beta1.DeployPlanName
+			err := c.Update(context.TODO(), i)
+			Expect(err).To(HaveOccurred())
 
 		}, defaultTimeout)
 	})
@@ -274,15 +304,4 @@ func instanceWith(c client.Client, key client.ObjectKey) *v1beta1.Instance {
 	err := c.Get(context.TODO(), key, i)
 	Expect(err).NotTo(HaveOccurred())
 	return i
-}
-
-// writeKubeconfig writes current cluster's configuration into a testkubeconfig file. Useful for debugging
-// test environment with kubectl.
-func writeKubeconfig() {
-	f, err := os.Create("testkubeconfig")
-	defer f.Close() // nolint
-	Expect(err).NotTo(HaveOccurred())
-
-	err = testutils.Kubeconfig(env.Config, f)
-	Expect(err).NotTo(HaveOccurred())
 }
