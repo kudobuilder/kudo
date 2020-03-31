@@ -67,9 +67,6 @@ func (i *Instance) UpdateInstanceStatus(planStatus *PlanStatus, updatedTimestamp
 			planStatus.LastUpdatedTimestamp = updatedTimestamp
 			i.Status.PlanStatus[k] = *planStatus
 			i.Status.AggregatedStatus.Status = planStatus.Status
-			if planStatus.Status.IsTerminal() {
-				i.Status.AggregatedStatus.ActivePlanName = ""
-			}
 		}
 	}
 }
