@@ -5,6 +5,7 @@ package webhook
 import (
 	"context"
 	"fmt"
+	"log"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -16,8 +17,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	ctrhook "sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -36,18 +35,18 @@ var env *envtest.Environment
 var instanceAdmissionWebhookPath string
 
 var _ = BeforeSuite(func() {
-	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
+	log.SetOutput(GinkgoWriter)
 	env = &envtest.Environment{}
 
 	// 1. add webhook configuration to the env. we use the same webhook configuration that `kudo init` generates
-	logf.Log.Info("test.BeforeSuite: initializing webhook configuration")
+	log.Print("test.BeforeSuite: initializing webhook configuration")
 	iaw := prereq.InstanceAdmissionWebhook(v1.NamespaceDefault)
 	instanceAdmissionWebhookPath = *iaw.Webhooks[0].ClientConfig.Service.Path
 
 	env.WebhookInstallOptions = envtest.WebhookInstallOptions{MutatingWebhooks: []runtime.Object{&iaw}}
 
 	// 2. add KUDO CRDs
-	logf.Log.Info("test.BeforeSuite: initializing CRDs")
+	log.Print("test.BeforeSuite: initializing CRDs")
 	env.CRDs = crd.NewInitializer().Resources()
 
 	_, err := env.Start()
@@ -69,7 +68,7 @@ var _ = Describe("Test", func() {
 	// practice but it  seems to be fast enough.
 	BeforeEach(func() {
 		// 1. initializing manager
-		logf.Log.Info("test.BeforeEach: initializing manager")
+		log.Print("test.BeforeEach: initializing manager")
 		mgr, err := manager.New(env.Config, manager.Options{
 			Port:               env.WebhookInstallOptions.LocalServingPort,
 			Host:               env.WebhookInstallOptions.LocalServingHost,
@@ -79,12 +78,12 @@ var _ = Describe("Test", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// 2. initializing scheme with v1beta1 types
-		logf.Log.Info("test.BeforeEach: initializing scheme")
+		log.Print("test.BeforeEach: initializing scheme")
 		err = apis.AddToScheme(mgr.GetScheme())
 		Expect(err).NotTo(HaveOccurred())
 
 		// 3. registering instance admission controller
-		logf.Log.Info("test.BeforeEach: initializing webhook server")
+		log.Print("test.BeforeEach: initializing webhook server")
 		server := mgr.GetWebhookServer()
 		server.Register(instanceAdmissionWebhookPath, &ctrhook.Admission{Handler: &InstanceAdmission{}})
 
@@ -97,7 +96,7 @@ var _ = Describe("Test", func() {
 
 		// 5. creating the client. **Note:** client.New method will create an uncached client, a cached one
 		// (e.g. mgr.GetClient) leads to caching issues in this test.
-		logf.Log.Info("test.BeforeEach: initializing client")
+		log.Print("test.BeforeEach: initializing client")
 		c, err = client.New(env.Config, client.Options{Scheme: mgr.GetScheme()})
 		Expect(err).NotTo(HaveOccurred())
 	})
