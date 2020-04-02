@@ -35,7 +35,7 @@ func TestSource(t *testing.T) {
 var env *envtest.Environment
 var instanceAdmissionWebhookPath string
 
-var _ = BeforeSuite(func(done Done) {
+var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
 	env = &envtest.Environment{}
 
@@ -52,13 +52,10 @@ var _ = BeforeSuite(func(done Done) {
 
 	_, err := env.Start()
 	Expect(err).NotTo(HaveOccurred())
-
-	close(done)
 }, envtest.StartTimeout)
 
-var _ = AfterSuite(func(done Done) {
+var _ = AfterSuite(func() {
 	Expect(env.Stop()).NotTo(HaveOccurred())
-	close(done)
 }, envtest.StopTimeout)
 
 var _ = Describe("Test", func() {
@@ -74,9 +71,10 @@ var _ = Describe("Test", func() {
 		// 1. initializing manager
 		logf.Log.Info("test.BeforeEach: initializing manager")
 		mgr, err := manager.New(env.Config, manager.Options{
-			Port:    env.WebhookInstallOptions.LocalServingPort,
-			Host:    env.WebhookInstallOptions.LocalServingHost,
-			CertDir: env.WebhookInstallOptions.LocalServingCertDir,
+			Port:               env.WebhookInstallOptions.LocalServingPort,
+			Host:               env.WebhookInstallOptions.LocalServingHost,
+			CertDir:            env.WebhookInstallOptions.LocalServingCertDir,
+			MetricsBindAddress: "0", // disable metrics server
 		})
 		Expect(err).NotTo(HaveOccurred())
 
