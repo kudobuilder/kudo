@@ -130,6 +130,8 @@ func TestInstance_ResetPlanStatus(t *testing.T) {
 	// we test that UID has changed. afterwards, we replace it with the old one and compare new
 	// plan status with the desired state
 	assert.NotEqual(t, instance.Status.PlanStatus["deploy"].UID, oldUID)
+	assert.Equal(t, instance.Spec.PlanExecution.Status, ExecutionPending)
+
 	oldPlanStatus := instance.Status.PlanStatus["deploy"]
 	statusCopy := oldPlanStatus.DeepCopy()
 	statusCopy.UID = testUUID
