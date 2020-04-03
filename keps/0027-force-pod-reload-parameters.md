@@ -17,12 +17,24 @@ superseded-by:
 
 ## Summary
 
-This KEP describes addition of a flag for parameters that controls the forced pod reloading
+This KEP describes the addition of a flag for parameters that controls the forced pod reloading
 
 ## Motivation
 
-The new flag will allow an operator developer to control that a specific attribute does not automatically restart
-all pods of a deployment or stateful set if this parameter is changed.
+KUDO has a feature to automatically restart Pods of Deployments or StatefulSets if a KUDO-Parameter is changed. This
+is often required as a Parameter can change a value in a ConfigMap that is used by the Pods. If the Pods are not restarted
+the change is propagated to the Pods, but as most applications are not aware of changing config files they require a 
+restart. This can also be solved by other Controllers, for example [Reloader](https://github.com/stakater/Reloader).
+
+This behavior can currently not be controlled and is always active. The issue is that not all Parameter changes require
+a rolling restart of Pods, and sometimes the restart is unwanted and can negatively affect the state of the application
+the operator is controlling.
+
+One example would be the `replica` count of a StatefulSet: An increase here should only start new Pods and not restart
+all existing ones.  
+
+The new flag will allow an operator developer to control that changing certain parameters does not automatically restart
+all pods of a deployment or stateful set.
 
 ### Goals
 
@@ -37,6 +49,7 @@ reload all pods automatically.
 used to force pods to re-read config maps on a parameter update. When a user explicitly disables the pod restart for 
 a parameter, and this parameter updates a config map or another dependency of the pod, the change might not be applied
 in the pod until the next restart.
+- Restarting a stuck Pod
 
 ## Proposal
 
@@ -108,7 +121,7 @@ The labels are very static no change is required here.
 		{"spec", "jobTemplate", "spec", "template", "metadata", "annotations"},
 	}
 ```
-The annotations are volatile and will/may with every plan execution. The nested changes to template and jobTemplate
+The annotations are volatile and will/may change with every plan execution. The nested changes to template and jobTemplate
 are historically made because the behavior was modeled after Kustomize.
 
 This KEP proposes to change this: Attributes will only be applied to the top-level resource, not nested resources.
@@ -134,5 +147,13 @@ might be a too complex concept. This should be mitigated by careful naming of th
 ## Alternatives
 
 A better alternative would be to have a full dependency graph of all resources to parameters. This would need to include
-ConfigMaps, Secrets, potentially other pods, etc. Calculating the dependency graph would be a very complex undertaking,
-a simple configuration on a parameter seems to be a more reasonable approach.
+ConfigMaps, Secrets, potentially other pods, etc. With this dependency graph, KUDO could determine when a pod restart
+is necessary and when not, i.e. changing the replica value of a stateful set would not trigger a pod restart, changing
+a value in a ConfigMap that is used by the pod template would trigger a restart.
+An operator would still want to configure if and when pod restarts may be required, as a pod can be aware of changing
+ConfigMaps. 
+
+Calculating the dependency graph would be a very complex undertaking, a simple configuration on a parameter seems to be 
+a more reasonable approach at the moment.
+
+
