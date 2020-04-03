@@ -35,11 +35,11 @@ status: provisional
 
 ## Summary
 
-Organizations and companies already spend time building, updating and debugging specs for deploying their applications. Asking them to spend additional time to maintain a KUDO spec may prevent adoption of the platform. Improving KUDO to be able to consume more than just a KUDO Spec defined in [KEP-0009](keps/0009-operator-toolkit.md) would allow for oragnizations to provide access to their applications to the KUDO community.
+Organizations and companies already spend time building, updating and debugging specs for deploying their applications. Asking them to spend additional time to maintain a KUDO spec may prevent adoption of the platform. Improving KUDO to be able to consume more than just a KUDO Spec defined in [KEP-0009](0009-operator-toolkit.md) would allow for oragnizations to provide access to their applications to the KUDO community.
 
 ## Motivation
 
-While being able to package our own application definition via [KEP0009](keps/0009-operator-toolkit.md), being able to leverage other application package formats for customization and extension would provide access to a trove of KUDO Operators without any additional work required by OperatorVendors. There are
+While being able to package our own application definition via [KEP0009](0009-operator-toolkit.md), being able to leverage other application package formats for customization and extension would provide access to a trove of KUDO Operators without any additional work required by OperatorVendors. There are
 
 - Operators
 - Helm
@@ -150,7 +150,7 @@ By default there will be a `deploy` plan with one `deploy` phase and one `deploy
 ### Risks and Mitigations
 
 - It's not clear all functionality present in other application definition formats will be present in KUDO. Only support what KUDO supports currently.
-- Once [KEP-0012](keps/0012-operator-extensions.md) gets merged, we may need to adjust the interface to get rendered by the TASK, not the step so that tasks from different engines can be rendered in the same step.
+- Once [KEP-0012](0012-operator-extensions.md) gets merged, we may need to adjust the interface to get rendered by the TASK, not the step so that tasks from different engines can be rendered in the same step.
 
 ## Graduation Criteria
 
