@@ -9,6 +9,9 @@ require (
 	github.com/gosuri/uitable v0.0.4
 	github.com/kudobuilder/kuttl v0.1.0
 	github.com/manifoldco/promptui v0.6.0
+	github.com/onsi/ginkgo v1.11.0
+	github.com/onsi/gomega v1.8.1
+	github.com/prometheus/common v0.4.1
 	github.com/spf13/afero v1.2.2
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5

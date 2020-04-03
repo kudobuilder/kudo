@@ -488,6 +488,9 @@ spec:
               properties:
                 planName:
                   type: string
+                status:
+                  description: ExecutionStatus captures the state of the rollout.
+                  type: string
                 uid:
                   description: UID is a type that holds unique ID values, including
                     UUIDs.  Because we don't ONLY use UUIDs, this is an alias to string.  Being

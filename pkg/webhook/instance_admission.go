@@ -10,7 +10,6 @@ import (
 
 	"github.com/thoas/go-funk"
 	"k8s.io/api/admission/v1beta1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -120,12 +119,14 @@ func handleUpdate(ia *InstanceAdmission, req admission.Request) admission.Respon
 		return admission.Denied(err.Error())
 	}
 
-	// populate Instance.PlanExecution with the plan triggered by param change and evtl. a new UID
+	// populate Instance.PlanExecution with the plan triggered by param change and evtl. a new UID/Status
 	if triggered != nil {
 		new.Spec.PlanExecution.PlanName = *triggered
 		new.Spec.PlanExecution.UID = ""
+		new.Spec.PlanExecution.Status = ""
 		if *triggered != "" {
-			new.Spec.PlanExecution.UID = uuid.NewUUID() // if there is a new plan, generate new UID
+			new.Spec.PlanExecution.UID = uuid.NewUUID()                   // if there is a new plan, generate new UID
+			new.Spec.PlanExecution.Status = kudov1beta1.ExecutionNeverRun // and set status to NEVER_RUN
 		}
 
 		marshaled, err := json.Marshal(new)
@@ -183,7 +184,7 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 	isPlanRetriggered := hadPlan && newPlan == oldPlan && newUID != oldUID
 	isPlanCancellation := hadPlan && newPlan == ""
 	isDeleting := new.IsDeleting() // a non-empty meta.deletionTimestamp is a signal to switch to the uninstalling life-cycle phase
-	isPlanTerminal := isTerminal(new, newPlan, new.Spec.PlanExecution.UID)
+	isPlanTerminal := new.Spec.PlanExecution.Status.IsTerminal()
 
 	parameterDefs, err := changedParameterDefinitions(old.Spec.Parameters, new.Spec.Parameters, ov)
 	if err != nil {
@@ -282,12 +283,6 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 		log.Printf("InstanceAdmission: instance %s/%s no change in plan execution after the update", new.Namespace, new.Name)
 		return nil, nil
 	}
-}
-
-// isTerminal returns true if passed plan exists, has the same uid and is terminal
-func isTerminal(i *kudov1beta1.Instance, plan string, uid types.UID) bool {
-	status := i.PlanStatus(plan)
-	return status != nil && status.UID == uid && status.Status.IsTerminal()
 }
 
 // triggeredByParameterUpdate determines what plan to run based on parameters that changed and the corresponding parameter trigger.

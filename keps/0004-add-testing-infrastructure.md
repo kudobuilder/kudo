@@ -26,7 +26,7 @@ status: implementable
       * [Unit tests](#unit-tests)
       * [Integration tests](#integration-tests)
       * [Operator tests](#operator-tests)
-   * [Kubernetes clusters](keps/0004-add-testing-infrastructure.md#kubernetes-clusters)
+   * [Kubernetes clusters](0004-add-testing-infrastructure.md#kubernetes-clusters)
    * [CICD](#cicd)
       * [Pull Requests](#pull-requests)
       * [Master Branch](#master-branch)
