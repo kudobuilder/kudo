@@ -156,6 +156,8 @@ The instance controller (IC) then traverses the dependency graph in the evaluati
 
 The status of the execution can be seen as usual as part of the `Instance.Status`. We could additionally forward the status of a dependency `Instance` to the top-level `Instance.Status` to simplify the overview.
 
+Note that in the above example could not depend on the same `Instance` as it will create a dependency cycle. So if e.g. `EE` and `CC` are instances of the same `OperatorVersion`, they must use distinct names and will be installed as two separate `Instances`.
+
 ##### Dependencies Parameterization
 
 First, we need to provide parameters to different operators separately. For individual parameters (`-p` option) we can use namespaced names e.g. `-p <operatorName>.<key>=<value>`. For the parameter files (`--parameterFile` option) we could extend `parameterFile` schema (which is currently a simple map) with top-level fields e.g.:
