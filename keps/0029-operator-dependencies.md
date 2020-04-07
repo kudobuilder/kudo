@@ -160,11 +160,11 @@ Note that in the above example could not depend on the same `Instance` as it wil
 
 ##### Dependencies Parameterization
 
-First, we need to provide parameters to different operators separately. For individual parameters (`-p` option) we can use namespaced names e.g. `-p <operatorName>.<key>=<value>`. For the parameter files (`--parameterFile` option) we could extend `parameterFile` schema (which is currently a simple map) with top-level fields e.g.:
+First, we need to provide parameters to different operators separately. For individual parameters (`-p` option) we can use namespaced names e.g. `-p <instanceName>.<key>=<value>`. For the parameter files (`--parameterFile` option) we could extend `parameterFile` schema (which is currently a simple map) with top-level fields e.g.:
 
 ```yaml
 apiVersion: v1beta1
-operator: zookeeper
+instance: zookeeper-instance
 parameters:
   foo: bar # other parameterFile keys and values
 ```
