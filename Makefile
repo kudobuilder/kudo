@@ -48,7 +48,7 @@ test-clean:
 
 .PHONY: lint
 lint:
-ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint --version | cut -b 27-32)")
+ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint --version 2>/dev/null | cut -b 27-32)")
 	./hack/install-golangcilint.sh
 endif
 	golangci-lint run
@@ -95,8 +95,8 @@ deploy-clean:
 .PHONY: generate
 # Generate code
 generate:
-ifneq ($(shell go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools), $(shell controller-gen --version | cut -b 10-))
-	@echo "(Re-)installing controller-gen. Current version:  $(controller-gen --version | cut -b 10-). Need $(go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools)"
+ifneq ($(shell go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools), $(shell controller-gen --version 2>/dev/null | cut -b 10-))
+	@echo "(Re-)installing controller-gen. Current version:  $(controller-gen --version 2>/dev/null | cut -b 10-). Need $(go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools)"
 	go get sigs.k8s.io/controller-tools/cmd/controller-gen@$$(go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools)
 endif
 	controller-gen crd paths=./pkg/apis/... output:crd:dir=config/crds output:stdout
@@ -148,7 +148,7 @@ docker-push:
 .PHONY: imports
 # used to update imports on project.  NOT a linter.
 imports:
-ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint --version | cut -b 27-32)")
+ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint --version 2>/dev/null | cut -b 27-32)")
 	./hack/install-golangcilint.sh
 endif
 	golangci-lint run --disable-all -E goimports --fix
