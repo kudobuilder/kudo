@@ -10,7 +10,10 @@ import (
 )
 
 const (
+	DefaultName           = "kudo-controller-manager"
 	DefaultNamespace      = "kudo-system"
+	DefaultServiceName    = "kudo-controller-manager-service"
+	DefaultSecretName     = "kudo-webhook-server-secret" //nolint
 	defaultGracePeriod    = 10
 	defaultServiceAccount = "kudo-manager"
 )

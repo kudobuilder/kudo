@@ -22,6 +22,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
 )
@@ -40,7 +41,7 @@ var _ = BeforeSuite(func() {
 
 	// 1. add webhook configuration to the env. we use the same webhook configuration that `kudo init` generates
 	log.Print("test.BeforeSuite: initializing webhook configuration")
-	iaw := prereq.InstanceAdmissionWebhook(v1.NamespaceDefault)
+	iaw := prereq.InstanceAdmissionWebhook(kudoinit.DefaultServiceName, v1.NamespaceDefault)
 	instanceAdmissionWebhookPath = *iaw.Webhooks[0].ClientConfig.Service.Path
 
 	env.WebhookInstallOptions = envtest.WebhookInstallOptions{MutatingWebhooks: []runtime.Object{&iaw}}

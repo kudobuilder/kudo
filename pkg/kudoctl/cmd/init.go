@@ -51,25 +51,28 @@ and finishes with success if KUDO is already installed.
   kubectl kudo init --crd-only --dry-run --output yaml | kubectl delete -f -
   # pass existing serviceaccount 
   kubectl kudo init --service-account testaccount
+  # *FOR TESTING ONLY* use self-signed CA when using webhooks
+  kubectl kudo init --webhook InstanceValidation --self-signed-webhook-ca-for-testing-only
 `
 )
 
 type initCmd struct {
-	out            io.Writer
-	fs             afero.Fs
-	image          string
-	dryRun         bool
-	output         string
-	version        string
-	ns             string
-	serviceAccount string
-	wait           bool
-	timeout        int64
-	clientOnly     bool
-	crdOnly        bool
-	home           kudohome.Home
-	client         *kube.Client
-	webhooks       string
+	out                 io.Writer
+	fs                  afero.Fs
+	image               string
+	dryRun              bool
+	output              string
+	version             string
+	ns                  string
+	serviceAccount      string
+	wait                bool
+	timeout             int64
+	clientOnly          bool
+	crdOnly             bool
+	home                kudohome.Home
+	client              *kube.Client
+	webhooks            string
+	selfSignedWebhookCA bool
 }
 
 func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
@@ -105,6 +108,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.Int64Var(&i.timeout, "wait-timeout", 300, "Wait timeout to be used")
 	f.StringVar(&i.webhooks, "webhook", "", "List of webhooks to install separated by commas (One of: InstanceValidation)")
 	f.StringVarP(&i.serviceAccount, "service-account", "", "", "Override for the default serviceAccount kudo-manager")
+	f.BoolVar(&i.selfSignedWebhookCA, "self-signed-webhook-ca-for-testing-only", false, "Use self-signed CA bundle (for testing only) for the webhooks")
 
 	return cmd
 }
@@ -128,13 +132,16 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 	if initCmd.webhooks != "" && initCmd.webhooks != "InstanceValidation" {
 		return errors.New("webhooks can be only empty or contain a single string 'InstanceValidation'. No other webhooks supported")
 	}
+	if initCmd.webhooks == "" && initCmd.selfSignedWebhookCA {
+		return errors.New("self-signed CA bundle can only be used with webhooks option")
+	}
 
 	return nil
 }
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (initCmd *initCmd) run() error {
-	opts := kudoinit.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks))
+	opts := kudoinit.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks), initCmd.selfSignedWebhookCA)
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image

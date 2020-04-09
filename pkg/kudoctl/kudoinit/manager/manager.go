@@ -105,12 +105,12 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: opts.Namespace,
-			Name:      "kudo-controller-manager",
+			Name:      opts.Name,
 			Labels:    managerLabels,
 		},
 		Spec: appsv1.StatefulSetSpec{
 			Selector:    &metav1.LabelSelector{MatchLabels: managerLabels},
-			ServiceName: "kudo-controller-manager-service",
+			ServiceName: opts.ServiceName,
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: managerLabels,
@@ -122,7 +122,7 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 							Command: []string{"/root/manager"},
 							Env: []v1.EnvVar{
 								{Name: "POD_NAMESPACE", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
-								{Name: "SECRET_NAME", Value: "kudo-webhook-server-secret"},
+								{Name: "SECRET_NAME", Value: opts.SecretName},
 								{Name: "ENABLE_WEBHOOKS", Value: strconv.FormatBool(opts.HasWebhooksEnabled())},
 							},
 							Image:           image,
@@ -154,7 +154,7 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 				Name: "cert",
 				VolumeSource: v1.VolumeSource{
 					Secret: &v1.SecretVolumeSource{
-						SecretName:  "kudo-webhook-server-secret",
+						SecretName:  opts.SecretName,
 						DefaultMode: &secretDefaultMode,
 					},
 				},
@@ -174,7 +174,7 @@ func generateService(opts kudoinit.Options) *v1.Service {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: opts.Namespace,
-			Name:      "kudo-controller-manager-service",
+			Name:      opts.ServiceName,
 			Labels:    managerLabels,
 		},
 		Spec: v1.ServiceSpec{

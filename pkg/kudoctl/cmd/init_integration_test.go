@@ -341,7 +341,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 
 func deleteInitObjects(client *testutils.RetryClient) {
 	crds := crd.NewInitializer()
-	prereqs := prereq.NewInitializer(kudoinit.NewOptions("", "", "", []string{}))
+	prereqs := prereq.NewInitializer(kudoinit.NewOptions("", "", "", []string{}, false))
 	deleteCRDs(crds.Resources(), client)
 	deletePrereq(prereqs.Resources(), client)
 }
