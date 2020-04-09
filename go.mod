@@ -1,6 +1,6 @@
 module github.com/kudobuilder/kudo
 
-go 1.13
+go 1.14
 
 require (
 	github.com/Masterminds/semver v1.5.0
@@ -9,17 +9,18 @@ require (
 	github.com/gosuri/uitable v0.0.4
 	github.com/kudobuilder/kuttl v0.1.0
 	github.com/manifoldco/promptui v0.6.0
-	github.com/onsi/ginkgo v1.11.0
-	github.com/onsi/gomega v1.8.1
-	github.com/prometheus/common v0.4.1
+	github.com/onsi/ginkgo v1.12.0
+	github.com/onsi/gomega v1.9.0
 	github.com/spf13/afero v1.2.2
-	github.com/spf13/cobra v0.0.5
+	github.com/spf13/cobra v0.0.7
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.4.0
-	github.com/thoas/go-funk v0.5.0
-	github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca
-	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+	github.com/stretchr/testify v1.5.1
+	github.com/thoas/go-funk v0.6.0
+	github.com/xlab/treeprint v1.0.0
+	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
+	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
+	golang.org/x/sys v0.0.0-20200408040146-ea54a3c99b9b // indirect
+	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.17.3
