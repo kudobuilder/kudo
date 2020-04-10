@@ -1,9 +1,12 @@
 package kudo
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
+
+	pollwait "k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
@@ -12,7 +15,7 @@ import (
 
 // InstallPackage installs package resources.
 // If skipInstance is set to true, only a package's Operator and OperatorVersion is installed.
-func InstallPackage(kc *Client, resources *packages.Resources, skipInstance bool, instanceName, namespace string, parameters map[string]string, wait bool, waitTime time.Duration) error {
+func InstallPackage(kc *Client, resources *packages.Resources, skipInstance bool, instanceName, namespace string, parameters map[string]string, w bool, waitTime time.Duration) error {
 	// PRE-INSTALLATION SETUP
 	operatorName := resources.Operator.ObjectMeta.Name
 	clog.V(3).Printf("operator name: %v", operatorName)
@@ -66,14 +69,18 @@ func InstallPackage(kc *Client, resources *packages.Resources, skipInstance bool
 		}
 		clog.Printf("instance.%s/%s created", resources.Instance.APIVersion, resources.Instance.Name)
 		var err error
-		if wait {
+		if w {
 			err = kc.WaitForInstance(instanceName, namespace, nil, waitTime)
 		}
-		if err != nil {
+		if errors.Is(err, pollwait.ErrWaitTimeout) {
 			clog.Printf("timeout waiting for instance.%s/%s ", resources.Instance.APIVersion, resources.Instance.Name)
-		} else {
-			clog.Printf("instance.%s/%s ready", resources.Instance.APIVersion, resources.Instance.Name)
 		}
+		if err != nil {
+			return fmt.Errorf("failed to wait on instance %s: %v", instanceName, err)
+
+		}
+		clog.Printf("instance.%s/%s ready", resources.Instance.APIVersion, resources.Instance.Name)
+
 	} else {
 		return clog.Errorf("cannot install instance '%s' of operator '%s-%s' because an instance of that name already exists in namespace %s",
 			instanceName, operatorName, resources.OperatorVersion.Spec.Version, namespace)
