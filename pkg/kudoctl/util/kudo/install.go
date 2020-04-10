@@ -12,7 +12,7 @@ import (
 
 // InstallPackage installs package resources.
 // If skipInstance is set to true, only a package's Operator and OperatorVersion is installed.
-func InstallPackage(kc *Client, resources *packages.Resources, skipInstance bool, instanceName, namespace string, parameters map[string]string, wait bool) error {
+func InstallPackage(kc *Client, resources *packages.Resources, skipInstance bool, instanceName, namespace string, parameters map[string]string, wait bool, waitTime time.Duration) error {
 	// PRE-INSTALLATION SETUP
 	operatorName := resources.Operator.ObjectMeta.Name
 	clog.V(3).Printf("operator name: %v", operatorName)
@@ -67,7 +67,7 @@ func InstallPackage(kc *Client, resources *packages.Resources, skipInstance bool
 		clog.Printf("instance.%s/%s created", resources.Instance.APIVersion, resources.Instance.Name)
 		var err error
 		if wait {
-			err = kc.WaitForInstance(instanceName, namespace, nil, 5*time.Minute)
+			err = kc.WaitForInstance(instanceName, namespace, nil, waitTime)
 		}
 		if err != nil {
 			clog.Printf("timeout waiting for instance.%s/%s ", resources.Instance.APIVersion, resources.Instance.Name)
