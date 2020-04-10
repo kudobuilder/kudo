@@ -21,15 +21,16 @@ status: provisional
   * [Goals](#goals)
   * [Non-Goals](#non-goals)
 * [Proposal](#proposal)
-  * [Implementation Details](#implementation-detailsnotesconstraints)
+  * [Implementation Details](#implementation-details)
     * [Operator Task](#operator-task)
     * [Deployment](#deployment)
       * [Client-Side](#client-side)
       * [Server-Side](#server-side)
-      * [Parameterization](#dependencies-parameterization)
+      * [Parameterization](#dependencies-parametrization)
     * [Update](#update)
     * [Upgrade](#upgrade)
     * [Uninstalling](#uninstalling)
+    * [Other Plans](#other-plans)
   * [Risks and Mitigation](#risks-and-mitigation)
 * [Alternatives](#alternatives)
 
@@ -39,11 +40,14 @@ This KEP aims to improve operator user and developer experience by introducing o
 
 ## Motivation
 
-Recent operator development has shown that complex operators often depend on other operators to function. One workaround commonly seen can be found in the [Flink Demo](https://github.com/kudobuilder/operators/tree/master/repository/flink/docs/demo/financial-fraud). It requires manual installation of the dependency operators while skipping the instance creation (using the `--skip-instance` option). The `Instance` is then "manually" created during the execution of the `deploy` plan. This KEP is aiming at improving this experience, streamlining the developer and user experience.
+Recent operator development has shown that complex operators often depend on other operators to function. One workaround commonly seen can be found in the [Flink Demo](https://github.com/kudobuilder/operators/tree/master/repository/flink/docs/demo/financial-fraud) where an `Instance` of Flink needs an `Instance` of Kafka, which in turn needs an `Instance` of Zookeeper. There are two parts to the workaround:
+1. the operator user needs to first **manually** install the `kafka` and `zookeeper` operators while skipping the instance creation (using the `kubectl kudo install ... --skip-instance` CLI option).
+2. then, the user runs a regular `kubectl kudo install flink`, whose `deploy` plan includes `Instance` resources for Kafka and Zookeeper, which are bundled along other Flink operator templates in YAML format (rather than being created on-the-fly from an operator package).
+This KEP is aiming at streamlining this experience for users and developers.
 
 ### Goals
 
-Dependencies can be a complex topic. This KEP is not trying to boil the dependency ocean but rather limits itself to installation dependencies only.
+Dependencies can be a complex topic. This KEP is not trying to boil the dependency ocean but rather limits itself to installation dependencies only, i.e. a set of `Operators/Instances` being installed together and removed together as a unit.
 
 ### Non-Goals
 
@@ -82,7 +86,7 @@ plans:
       - name: deploy-zookeeper
         strategy: serial
         steps:
-          - name: dummy
+          - name: zookeeper
             tasks:
               - zookeeper-operator
       - name: deploy-kafka
@@ -105,7 +109,7 @@ tasks:
     instanceName: # optional, the instance name
 ```
 
-As you can see, this closely mimics the `kudo install` CLI command [options](https://github.com/kudobuilder/kudo/blob/master/pkg/kudoctl/cmd/install.go#L56) because at the end the later will be executed to install the operator. We omit `parameters` and `parameterFile` options at this point as they are discussed in detail [below](#dependencies-parameterization)
+As you can see, this closely mimics the `kudo install` CLI command [options](https://github.com/kudobuilder/kudo/blob/master/pkg/kudoctl/cmd/install.go#L56) because at the end the latter will be executed to install the operator. We omit `parameters` and `parameterFile` options at this point as they are discussed in detail [below](#dependencies-parametrization)
 
 #### Deployment
 
@@ -114,7 +118,7 @@ As you can see, this closely mimics the `kudo install` CLI command [options](htt
 Upon execution of `kudo install ...` command with the above operator definition, CLI will:
 
 1. Collect all operator dependencies by analyzing the `deploy` plan of the top-level operator and compose a list of all operator dependencies (tasks with the kind `Operator`) including **transitive dependencies**
-2. Install all collected operators **skipping the instances** (same as `kudo install ... --skip-instance`). Note that since we do not create instances here we can install them in any order
+2. Install all collected dependency operators. We create the `Instance`s but **mark them inactive** with an annotation e.g. `kudo.de/instance-inactive`. To make things easier instance admission controller would only allow this annotation to be set **only** when `CREATE`ing `Instance`s. This annotation would mark a new life-cycle `Instance` state where it would effectively be ignored by the instance controller. Note that since `Instances` are inactive (and subsequently no Kubernetes resources are being created) we can install them in any order
 3. Proceed with the installation of the top-level operator as usual (create `Operator`, `OperatorVersion` and `Instance` resources)
 
 Since we do this step on the client-side we have access to the full functionality of the `install` command including installing operators from the file system. This will come very handy during the development and debugging which arguably becomes more complex with dependencies.
@@ -152,15 +156,15 @@ Legend:
 
 In the first step we build a dependency graph. A set of all graph vertices (which are task-operators) `S` is defined as `S = {AA, BB, CC, EE, GG}`. A transitive relationship `R` between the vertices is defined as `(a, b) ∈ S` meaning that _`a` needs `b` deployed first_. The transitive relationship for the above example is: `R = { (AA,BB), (AA,CC), (BB,EE), (BB,GG) }`. The resulting topological order `O` is therefor `O = (EE, GG, BB, CC, AA)` which has no cycles.
 
-The instance controller (IC) then traverses the dependency graph in the evaluation order `O` and executes each vertex. Practically this means creating a corresponding `Instance` resource (`Operator` and `OperatorVersion` already exist) and wait for it to become healthy, meaning that its `deploy` plan was executed successfully. KUDO manager already has [health check](https://github.com/kudobuilder/kudo/blob/master/pkg/engine/health/health.go#L78) for `Instance` resources implemented. We would additionally add the top-level `Instance` reference (e.g. `AA`) to the `ownerReferences` list of each dependency `Instance` (e.g. `BB`). This would help with determining which `Instance` belongs to which operator and additionally help us with [operator uninstalling](#uninstalling).
+The instance controller (IC) then traverses the dependency graph in the evaluation order `O` and executes each vertex. Practically this means removing the inactive annotation for the corresponding `Instance` resource and wait for it to become healthy, meaning that its `deploy` plan was executed successfully. KUDO manager already has [health check](https://github.com/kudobuilder/kudo/blob/master/pkg/engine/health/health.go#L78) for `Instance` resources implemented. We would additionally add the top-level `Instance` reference (e.g. `AA`) to the `ownerReferences` list of each dependency `Instance` (e.g. `BB`). This would help with determining which `Instance` belongs to which operator and additionally help us with [operator uninstalling](#uninstalling).
 
 The status of the execution can be seen as usual as part of the `Instance.Status`. We could additionally forward the status of a dependency `Instance` to the top-level `Instance.Status` to simplify the overview.
 
-Note that in the above example could not depend on the same `Instance` as it will create a dependency cycle. So if e.g. `EE` and `CC` are instances of the same `OperatorVersion`, they must use distinct names and will be installed as two separate `Instances`.
+Note that in the above example if e.g. `EE` and `CC` task-operators reference the same operator package they must use distinct instance names `spec.instanceName` so that two separate `Instance`s are deployed. Otherwise, the dependency graph will have a cycle.
 
-##### Dependencies Parameterization
+##### Dependencies Parametrization
 
-First, we need to provide parameters to different operators separately. For individual parameters (`-p` option) we can use namespaced names e.g. `-p <instanceName>.<key>=<value>`. For the parameter files (`--parameterFile` option) we could extend `parameterFile` schema (which is currently a simple map) with top-level fields e.g.:
+First, we need to provide parameters to different operators separately. For individual parameters (`-p` option) we can use namespaced names e.g. `-p <instanceName>.<key>=<value>`. For the parameter files (`--parameterFile` option) we could either extend the `parameterFile` schema (which is currently a simple map) with top-level fields e.g.:
 
 ```yaml
 apiVersion: v1beta1
@@ -169,20 +173,7 @@ parameters:
   foo: bar # other parameterFile keys and values
 ```
 
-Second, parameters are normally parsed to the CLI and persisted in the `Instance` resource. Since the creation of the instances is delayed we need a place to store the parameters until then. We could keep them in the task definition e.g.:
-
-```yaml
-tasks:
-- name: demo
-  kind: Operator
-  spec:
-    ...
-    parameters: # optional, a map of parameter keys and values constructed by expanding the parameterFiles along with individual parameters
-
-```
-
-KUDO manager would then read them and populate `Instance.Spec.Parameters` as usual. The drawback here is that this would likely stretch currently slim task definitions.
-Alternatively, we could introduce a new field e.g. `OperatorVersionSpec.InstallationParameters` alongside with the existing [Parameters](https://github.com/kudobuilder/kudo/blob/master/pkg/apis/kudo/v1beta1/operatorversion_types.go#L35). Both approaches contradict our current data model where such parameters would exist in the `Instance` resource.
+or use namespaced keys the same as with individual parameters.
 
 #### Update
 
@@ -196,10 +187,14 @@ While an out-of-band upgrade of the individual dependency operators is possible 
 
 Current `kudo uninstall` CLI command only removes instances (with required `--instance` option) using [Background deletion propagation](https://github.com/kudobuilder/kudo/blob/master/pkg/kudoctl/util/kudo/kudo.go#L281). Remember that we've added top-level `Instance` reference to the dependency operators `ownerReferences` list during [deployment](#deployment). Now we can simply delete the top-level `Instance` and let the GC delete all the others.
 
+#### Other Plans
+
+It can be meaningful to allow [operator-tasks](#operator-task) outside of `deploy`, `update` and `upgrade` plans. A `monitoring` plan might install a monitoring operator package. We could even allow installation from a local disk by doing the same client-side steps for the `monitoring` plan when it is triggered. While the foundation provided by this KEP would make it easy, this KEP focuses on the installation dependencies so we would probably forbid operator-tasks outside of `deploy`, `update` and `upgrade` in the beginning.
+
 ### Risks and Mitigation
 
 The biggest risk is the increased complexity of the instance controller and the workflow engine. With the above approach, we can reuse much of the code and UX we have currently: plans and phases for flow control, local operators and custom operator repositories for easier development and deployment, and usual status reporting for debugging. The API footprint remains small as the only new API element is the [operator-task](#operator-task). Dependency graph building and traversal will require a graph library and there are a [few](https://github.com/yourbasic/graph) [out](https://godoc.org/github.com/twmb/algoimpl/go/graph) [there](https://godoc.org/gonum.org/v1/gonum/graph) so this will help mitigate some of the complexity.
 
 ## Alternatives
 
-One alternative is to use terraform and the existing [KUDO terraform provider](https://kudo.dev/blog/blog-2020-02-07-kudo-terraform-provider-1.html#current-process) to outsource the burden of dealing with the dependency graphs. On the upside, we would avoid the additional implementation complexity in KUDO _itself_ (though the complexity of the terraform provider is not going anywhere) and get output variables and referencing resources on top. On the downside, this would tie terraform to KUDOs metaphorical leg. It is hard to quantify the pros and cons of both approaches so it is left up for discussion.
+One alternative is to use terraform and the existing [KUDO terraform provider](https://kudo.dev/blog/blog-2020-02-07-kudo-terraform-provider-1.html#current-process) to outsource the burden of dealing with the dependency graphs. On the upside, we would avoid the additional implementation complexity in KUDO _itself_ (though the complexity of the terraform provider is not going anywhere) and get [output values](https://www.terraform.io/docs/configuration/outputs.html) and [resource referencing](https://www.terraform.io/docs/configuration/resources.html#referring-to-instances) on top. On the downside, terraform is a heavy dependency which will completely replace KUDO UI. It is hard to quantify the pros and cons of both approaches so it is left up for discussion.
