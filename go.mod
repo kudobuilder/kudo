@@ -5,7 +5,9 @@ go 1.13
 require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/Masterminds/sprig v2.22.0+incompatible
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
+	github.com/google/uuid v1.1.1
 	github.com/gosuri/uitable v0.0.4
 	github.com/kudobuilder/kuttl v0.1.0
 	github.com/manifoldco/promptui v0.6.0
@@ -18,10 +20,12 @@ require (
 	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v3 v3.0.0-20191106092431-e228e37189d3
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.17.3
 	k8s.io/apiextensions-apiserver v0.17.2
 	k8s.io/apimachinery v0.17.3
+	k8s.io/cli-runtime v0.17.3
 	k8s.io/client-go v0.17.3
 	k8s.io/code-generator v0.17.3
 	k8s.io/component-base v0.17.3

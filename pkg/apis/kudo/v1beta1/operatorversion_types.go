@@ -38,6 +38,10 @@ type OperatorVersionSpec struct {
 	// +nullable
 	Plans map[string]Plan `json:"plans,omitempty"`
 
+	// TODO: is it?
+	// +nullable
+	Diagnostics Diagnostics `json:"diagnostics,omitempty"`
+
 	// ConnectionString defines a templated string that can be used to connect to an instance of the Operator.
 	// +optional
 	ConnectionString string `json:"connectionString,omitempty"`
@@ -196,6 +200,51 @@ type PipeSpec struct {
 	// +optional
 	Key string `json:"key"`
 }
+
+type Diagnostics struct {
+	Bundle DiagnosticsBundle `json:"bundle"`
+}
+
+type DiagnosticsBundle struct {
+	Resources []DiagnosticResource `json:"resources"`
+	Redactors []Redactor           `json:"redact,omitempty"`
+}
+
+type DiagnosticResource struct {
+	Name        string                 `json:"name"`
+	Description string                 `json:"description,omitempty"`
+	Kind        string                 `json:"kind"`
+	Spec        DiagnosticResourceSpec `json:"spec"`
+}
+
+type DiagnosticResourceSpec struct {
+	Selectors   metav1.LabelSelector `json:"selector,omitempty"`
+	CommandSpec `json:",inline"`
+	CopySpec    `json:",inline"`
+	HttpSpec    `json:",inline"`
+}
+
+type CommandSpec struct {
+	Commands []string `json:"command,omitempty"`
+}
+
+type CopySpec struct {
+	Paths []string `json:"path,omitempty"`
+}
+
+type HttpSpec struct {
+	ServiceReference `json:"serviceRef,omitempty"`
+	Path             string `json:"urlPath,omitempty"`
+	Method           string `json:"method,omitempty"`
+	Query            string `json:"query,omitempty"`
+}
+
+type ServiceReference struct {
+	Name string `json:"name"`
+	Port int    `json:"port"` // TODO: string?
+}
+
+type Redactor struct{} // interface
 
 // OperatorVersionStatus defines the observed state of OperatorVersion.
 type OperatorVersionStatus struct {

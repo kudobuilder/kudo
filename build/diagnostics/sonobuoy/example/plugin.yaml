@@ -1,0 +1,40 @@
+podSpec:
+  containers: []
+  dnsPolicy: ClusterFirst
+  restartPolicy: Never
+  serviceAccountName: sonobuoy-serviceaccount
+  tolerations:
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/master
+      operator: Exists
+    - key: CriticalAddonsOnly
+      operator: Exists
+    - key: kubernetes.io/e2e-evict-taint-key
+      operator: Exists
+sonobuoy-config:
+  driver: Job
+  plugin-name: cmd-executor
+  result-format: raw
+spec:
+  args:
+    - copy
+    - cat /conf/zoo.cfg
+    - default
+    - kudo.dev/operator=zookeeper
+    - copy_zookeeper-configuration.txt
+    - command
+    - nslookup google.com
+    - default
+    - kudo.dev/operator=zookeeper
+    - command_dns-information.txt
+    - request
+    - echo stat | nc zookeeper-instance-cs.default.svc.cluster.local 2181
+    - request_cs-stat.txt
+  command:
+    - ./run.sh
+  image: vvy/easy-sonobuoy-cmds:v0.1
+  name: cmd-executor
+  resources: {}
+  volumeMounts:
+    - mountPath: /tmp/results
+      name: results

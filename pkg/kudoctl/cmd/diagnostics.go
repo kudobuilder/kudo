@@ -13,6 +13,9 @@ const (
 	diagAnalyzeExample = ` # analyze diagnostics example
   kubectl kudo diagnostics analyze cassandra_diagnostics.zip
 `
+	diagGenerateExample = ` # sonobuoy diagnostics example
+  kubectl kudo diagnostics sonobuoy-gen --instance=%instance% --namespace=%namespace%
+`
 )
 func newDiagnosticsCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -22,6 +25,7 @@ func newDiagnosticsCmd() *cobra.Command {
 	}
 	cmd.AddCommand(newDiagnosticsCollectCmd())
 	cmd.AddCommand(newDiagnosticsAnalyzeCmd())
+	cmd.AddCommand(newDiagnosticsSonobuoyCmd())
 	return cmd
 }
 
@@ -50,4 +54,18 @@ func newDiagnosticsAnalyzeCmd() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func newDiagnosticsSonobuoyCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "sonobuoy-gen",
+		Short:   "sonobuoy gen",
+		Long:    "generate sonobouy configs and plugins",
+		Example: diagGenerateExample,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return diagnostics.Sonobuoy(cmd, &Settings)
+		},
+	}
+	cmd.Flags().StringVar(&diagnostics.Options.Instance, "instance", "", "The instance name.")
+	return cmd
 }
