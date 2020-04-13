@@ -3,12 +3,21 @@ package repo
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/convert"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 )
+
+type EntrySummaries []EntrySummary
+
+type EntrySummary struct {
+	Name            string
+	OperatorVersion string
+	AppVersion      string
+}
 
 // Resolve returns a Package for a passed package name and optional version. This is an implementation
 // of the Resolver interface located in packages/resolver/resolver.go
@@ -33,6 +42,43 @@ func (c *Client) Resolve(name string, appVersion string, operatorVersion string)
 		Resources: resources,
 		Files:     files,
 	}, nil
+}
+
+func (c *Client) Find(search string, allVersions bool) (EntrySummaries, error) {
+
+	summaries := make([]EntrySummary, 0)
+	indexFile, err := c.DownloadIndexFile()
+	if err != nil {
+		return nil, fmt.Errorf("could not download repository index file: %w", err)
+	}
+	for name, versions := range indexFile.Entries {
+		if strings.Contains(name, search) {
+			if allVersions {
+				for _, pv := range versions {
+					summary := EntrySummary{
+						Name:            name,
+						OperatorVersion: pv.OperatorVersion,
+						AppVersion:      pv.AppVersion,
+					}
+					summaries = append(summaries, summary)
+				}
+				//	 only the current version
+			} else {
+				pv, err := indexFile.FindFirstMatch(name, "", "")
+				if err != nil {
+					return nil, err
+				}
+				summary := EntrySummary{
+					Name:            name,
+					OperatorVersion: pv.OperatorVersion,
+					AppVersion:      pv.AppVersion,
+				}
+				summaries = append(summaries, summary)
+			}
+		}
+	}
+
+	return summaries, nil
 }
 
 // GetPackageBytes provides an io.Reader for a provided package name and optional version
