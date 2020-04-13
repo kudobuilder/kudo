@@ -29,6 +29,7 @@ type searchCmd struct {
 	repoName    string
 	home        kudohome.Home
 	allVersions bool
+	repoClient  *repo.Client
 }
 
 // newSearchCmd search for operator searches based on names
@@ -57,12 +58,15 @@ func newSearchCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (s *searchCmd) run(criteria string) error {
-	repository, err := repo.ClientFromSettings(fs, s.home, s.repoName)
-	if err != nil {
-		return err
+	var err error
+	if s.repoClient == nil {
+		s.repoClient, err = repo.ClientFromSettings(fs, s.home, s.repoName)
+		if err != nil {
+			return err
+		}
 	}
 
-	found, err := repository.Find(criteria, s.allVersions)
+	found, err := s.repoClient.Find(criteria, s.allVersions)
 	if err != nil {
 		return err
 	}
