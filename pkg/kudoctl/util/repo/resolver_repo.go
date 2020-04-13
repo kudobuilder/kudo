@@ -19,6 +19,20 @@ type EntrySummary struct {
 	AppVersion      string
 }
 
+// Len returns the number of entry summaries.
+// This is needed to allow sorting of entries.
+func (b EntrySummaries) Len() int { return len(b) }
+
+// Swap swaps the position of two items in the entry summaries slice.
+// This is needed to allow sorting of entry summaries.
+func (b EntrySummaries) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+
+// Less returns true if the version of entry a is less than the version of entry b.
+// This is needed to allow sorting of entry summaries.
+func (b EntrySummaries) Less(x, y int) bool {
+	return b[x].Name < b[y].Name
+}
+
 // Resolve returns a Package for a passed package name and optional version. This is an implementation
 // of the Resolver interface located in packages/resolver/resolver.go
 func (c *Client) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {

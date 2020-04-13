@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sort"
 
 	"github.com/gosuri/uitable"
 	"github.com/spf13/afero"
@@ -70,6 +71,7 @@ func (s *searchCmd) run(criteria string) error {
 		fmt.Fprint(s.out, "no operators found\n")
 		return nil
 	}
+	sort.Sort(found)
 	table := uitable.New()
 	table.AddRow("Name", "Operator Version", "App Version")
 	preName := ""
