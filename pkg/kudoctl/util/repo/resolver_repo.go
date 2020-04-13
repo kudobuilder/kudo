@@ -3,6 +3,7 @@ package repo
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
@@ -59,40 +60,11 @@ func (c *Client) Resolve(name string, appVersion string, operatorVersion string)
 }
 
 func (c *Client) Find(search string, allVersions bool) (EntrySummaries, error) {
-
-	summaries := make([]EntrySummary, 0)
 	indexFile, err := c.DownloadIndexFile()
 	if err != nil {
 		return nil, fmt.Errorf("could not download repository index file: %w", err)
 	}
-	for name, versions := range indexFile.Entries {
-		if strings.Contains(name, search) {
-			if allVersions {
-				for _, pv := range versions {
-					summary := EntrySummary{
-						Name:            name,
-						OperatorVersion: pv.OperatorVersion,
-						AppVersion:      pv.AppVersion,
-					}
-					summaries = append(summaries, summary)
-				}
-				//	 only the current version
-			} else {
-				pv, err := indexFile.FindFirstMatch(name, "", "")
-				if err != nil {
-					return nil, err
-				}
-				summary := EntrySummary{
-					Name:            name,
-					OperatorVersion: pv.OperatorVersion,
-					AppVersion:      pv.AppVersion,
-				}
-				summaries = append(summaries, summary)
-			}
-		}
-	}
-
-	return summaries, nil
+	return indexFile.Find(search, allVersions)
 }
 
 // GetPackageBytes provides an io.Reader for a provided package name and optional version
@@ -167,4 +139,38 @@ func (i IndexFile) FindFirstMatch(name string, appVersion string, operatorVersio
 	}
 
 	return nil, fmt.Errorf("no operator version found for %s-%v", name, operatorVersion)
+}
+
+func (i IndexFile) Find(search string, allVersions bool) (EntrySummaries, error) {
+
+	summaries := make(EntrySummaries, 0)
+	for name, versions := range i.Entries {
+		if strings.Contains(name, search) {
+			if allVersions {
+				for _, pv := range versions {
+					summary := EntrySummary{
+						Name:            name,
+						OperatorVersion: pv.OperatorVersion,
+						AppVersion:      pv.AppVersion,
+					}
+					summaries = append(summaries, summary)
+				}
+				//	 only the current version
+			} else {
+				pv, err := i.FindFirstMatch(name, "", "")
+				if err != nil {
+					return nil, err
+				}
+				summary := EntrySummary{
+					Name:            name,
+					OperatorVersion: pv.OperatorVersion,
+					AppVersion:      pv.AppVersion,
+				}
+				summaries = append(summaries, summary)
+			}
+		}
+	}
+	sort.Sort(summaries)
+
+	return summaries, nil
 }
