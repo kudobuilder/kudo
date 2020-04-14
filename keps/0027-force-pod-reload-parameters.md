@@ -51,7 +51,7 @@ a parameter, and this parameter updates a config map or another dependency of th
 in the pod until the next restart.
 - Restarting a stuck Pod
 
-## Proposal
+## Proposal 1
 
 Add an additional attribute `forcePodRestart` to parameter specifications in `params.yaml`:
 
@@ -67,6 +67,42 @@ the way it is right now, that on a change of a parameter the pods will be automa
 
 If multiple parameters are changed in one update, the `forcePodRestart` flags of all attributes are `OR`ed: If at least one
 parameter has the `forcePodRestart` set to `true`, the pods will execute a rolling restart.
+
+## Proposal 2
+
+The Proposal 1 has the drawback that it still applies to all stateful sets and deployments. This second proposal adds
+an option to allow even more fine grained control:
+
+Add a list of `hash parameters` to each parameter:
+
+```yaml
+  - name: CONFIG_VALUE
+    description: "A parameter that changes a config map which is used by a stateful set."
+    default: "3"
+    hashes:
+      - MAIN_STATEFUL_SET
+  - name: SOME_OTHER_PARAMETER
+    description: "A parameter that changes something that is used by two stateful sets"
+    default: "3"
+    hashes:
+      - MAIN_STATEFUL_SET
+      - ADDITIONAL_SET
+```
+
+KUDO then calculates the hash of all parameters that define the hash parameters. The hash parameter can then be used
+instead of the the `last-plan-execution-uid` in a deployment or stateful set to trigger the reload of the pods:
+
+```yaml
+spec:
+  template:
+    metadata:
+      annotations:
+        config-values-hash: {{ .ParamHashes.MAIN_STATEFUL_SET }}
+```
+
+This proposal would fully remove the `last-plan-execution-uid` and automatic pod restarts. Configuration for
+pod restarts would be fully in the responsibility of the operator developer.  
+
 
 ### User Stories
 
@@ -143,6 +179,7 @@ might be a too complex concept. This should be mitigated by careful naming of th
 ## Implementation History
 
 - 2020-03-31 - Initial draft. (@aneumann)
+- 2020-04-14 - Add second Proposal
 
 ## Alternatives
 
