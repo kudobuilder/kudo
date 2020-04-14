@@ -51,8 +51,8 @@ and finishes with success if KUDO is already installed.
   kubectl kudo init --crd-only --dry-run --output yaml | kubectl delete -f -
   # pass existing serviceaccount 
   kubectl kudo init --service-account testaccount
-  # *FOR TESTING ONLY* use self-signed CA when using webhooks
-  kubectl kudo init --webhook InstanceValidation --self-signed-webhook-ca-for-testing-only
+  # install kudo with activated instance admission webhook
+  kubectl kudo init --webhook InstanceValidation
 `
 )
 
