@@ -18,6 +18,7 @@ import (
 type Options struct {
 	Out      io.Writer
 	Instance string
+	Wait     bool
 }
 
 var (
