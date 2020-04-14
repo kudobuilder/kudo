@@ -9,7 +9,7 @@ task "test": {
   steps: [
     {
       name: "test"
-      image: "kudobuilder/golang:1.13"
+      image: "kudobuilder/golang:1.14"
       command: [ "make", "test" ],
       workingDir: "/workspace/src-git"
     }
