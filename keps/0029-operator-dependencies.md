@@ -129,7 +129,7 @@ Upon receiving a new operator Instance with dependencies KUDO mangers workflow e
 
 1. Build a [dependency graph](https://en.wikipedia.org/wiki/Dependency_graph) by transitively expanding top-level `deploy` plan using operator-tasks as vertices and their execution order (`a` needs `b` to be installed first) as edges
 2. Perform cycle detection and fail if circular dependencies found. We could additionally run this check on the client-side as part of the `kudo package verify` command to improve the UX
-3. If no cycles were found we traverse the dependency graph in the topological order (e.g. using the reversed post-order) and execute all vertices
+3. If no cycles were found we traverse the dependency graph in the topological order (e.g. using the post-order) and execute all vertices
 
 Let's take a look at an example. Here is a simplified operator `AA` with a few dependencies:
 
