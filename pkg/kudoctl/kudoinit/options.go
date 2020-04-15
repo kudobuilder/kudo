@@ -12,7 +12,7 @@ type Options struct {
 	Version string
 	// Name is used as controller-manager Name and as a prefix for the service. Currently hard-coded
 	// to "kudo-controller-manager" as we don't support setting it in the CLI.
-	Name string
+	ManagerName string
 	// namespace to init into (default is kudo-system)
 	Namespace string
 	// TerminationGracePeriodSeconds defines the termination grace period for a pod
@@ -46,7 +46,7 @@ func NewOptions(v string, ns string, sa string, webhooks []string, selfSignedWeb
 
 	return Options{
 		Version:                       v,
-		Name:                          DefaultName,
+		ManagerName:                   DefaultName,
 		ServiceName:                   DefaultServiceName,
 		SecretName:                    DefaultSecretName,
 		Namespace:                     ns,

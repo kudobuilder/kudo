@@ -105,7 +105,7 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: opts.Namespace,
-			Name:      opts.Name,
+			Name:      opts.ManagerName,
 			Labels:    managerLabels,
 		},
 		Spec: appsv1.StatefulSetSpec{
