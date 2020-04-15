@@ -51,7 +51,7 @@ Dependencies can be a complex topic. This KEP is not trying to boil the dependen
 
 ### Non-Goals
 
-Dependency on an already running `Instance` is a non-goal. It is easy to imagine a situation when a new operator (e.g Kafka) may want to depend on the existing Zookeeper instance. However, such life-cycle dependency presents major challenges e.g. what happens when Zookeeper is removed? What happens when Zookeeper is upgraded and the new version is incompatible with the current Kafka `Instance`? How can compatibility be ensured? This KEP deliberately ignores this area and instead focuses on installation dependencies. Additionally, this KEP does not address output variables or referencing `Instance` resources.
+Dependency on an already running `Instance` is a non-goal. It is easy to imagine a situation when a new operator (e.g Kafka) may want to depend on the existing Zookeeper instance. However, such life-cycle dependency presents major challenges e.g. what happens when Zookeeper is removed? What happens when Zookeeper is upgraded, and the new version is incompatible with the current Kafka `Instance`? How can we ensure the compatibility? This KEP deliberately ignores this area and instead focuses on installation dependencies. Additionally, this KEP does not address output variables or referencing `Instance` resources.
 
 ## Proposal
 
@@ -109,7 +109,7 @@ tasks:
     instanceName: # optional, the instance name
 ```
 
-As you can see, this closely mimics the `kudo install` CLI command [options](https://github.com/kudobuilder/kudo/blob/master/pkg/kudoctl/cmd/install.go#L56) because at the end the latter will be executed to install the operator. We omit `parameters` and `parameterFile` options at this point as they are discussed in detail [below](#dependencies-parametrization)
+As you can see, this closely mimics the `kudo install` CLI command [options](https://github.com/kudobuilder/kudo/blob/master/pkg/kudoctl/cmd/install.go#L56) because at the end the latter will be executed to install the operator. We omit `parameters` and `parameterFile` options at this point as they are discussed in detail [below](#dependencies-parametrization).
 
 #### Deployment
 
@@ -127,9 +127,9 @@ Since we do this step on the client-side we have access to the full functionalit
 
 Upon receiving a new operator Instance with dependencies KUDO mangers workflow engine will:
 
-1. Build a [dependency graph](https://en.wikipedia.org/wiki/Dependency_graph) by transitively expanding top-level `deploy` plan using operator-tasks as vertices and their execution order (`a` needs `b` to be installed first) as edges
+1. Build a [dependency graph](https://en.wikipedia.org/wiki/Dependency_graph) by transitively expanding top-level `deploy` plan using operator-tasks as vertices, and their execution order (`a` needs `b` to be installed first) as edges
 2. Perform cycle detection and fail if circular dependencies found. We could additionally run this check on the client-side as part of the `kudo package verify` command to improve the UX
-3. If no cycles were found we traverse the dependency graph in the topological order (e.g. using the post-order) and execute all vertices
+3. If we haven't found any cycles, traverse the dependency graph in the topological order (e.g. using the post-order) and execute all vertices
 
 Let's take a look at an example. Here is a simplified operator `AA` with a few dependencies:
 
@@ -154,9 +154,9 @@ Legend:
 - direct children of an operator are the 'deploy' plan steps e.g. for 'AA' deploy steps are 'BB', 'CC' and 'D'
 ```
 
-In the first step we build a dependency graph. A set of all graph vertices (which are task-operators) `S` is defined as `S = {AA, BB, CC, EE, GG}`. A transitive relationship `R` between the vertices is defined as `(a, b) ∈ S` meaning that _`a` needs `b` deployed first_. The transitive relationship for the above example is: `R = { (AA,BB), (AA,CC), (BB,EE), (BB,GG) }`. The resulting topological order `O` is therefor `O = (EE, GG, BB, CC, AA)` which has no cycles.
+In the first step we build a dependency graph. A set of all graph vertices (which are task-operators) `S` is defined as `S = {AA, BB, CC, EE, GG}`. A transitive relationship `R` between the vertices is defined as `(a, b) ∈ S` meaning _`a` needs `b` deployed first_. The transitive relationship for the above example is: `R = { (AA,BB), (AA,CC), (BB,EE), (BB,GG) }`. The resulting topological order `O` is therefor `O = (EE, GG, BB, CC, AA)` which has no cycles.
 
-The instance controller (IC) then traverses the dependency graph in the evaluation order `O` and executes each vertex. Practically this means removing the inactive annotation for the corresponding `Instance` resource and wait for it to become healthy, meaning that its `deploy` plan was executed successfully. KUDO manager already has [health check](https://github.com/kudobuilder/kudo/blob/master/pkg/engine/health/health.go#L78) for `Instance` resources implemented. We would additionally add the top-level `Instance` reference (e.g. `AA`) to the `ownerReferences` list of each dependency `Instance` (e.g. `BB`). This would help with determining which `Instance` belongs to which operator and additionally help us with [operator uninstalling](#uninstalling).
+The instance controller (IC) then traverses the dependency graph in the evaluation order `O` and executes each vertex. Practically this means removing the inactive annotation for the corresponding `Instance` resource and wait for it to become healthy, meaning its `deploy` plan was executed successfully. KUDO manager already has [health check](https://github.com/kudobuilder/kudo/blob/master/pkg/engine/health/health.go#L78) for `Instance` resources implemented. We would additionally add the top-level `Instance` reference (e.g. `AA`) to the `ownerReferences` list of each dependency `Instance` (e.g. `BB`). This would help with determining which `Instance` belongs to which operator and additionally help us with [operator uninstalling](#uninstalling).
 
 The status of the execution can be seen as usual as part of the `Instance.Status`. We could additionally forward the status of a dependency `Instance` to the top-level `Instance.Status` to simplify the overview.
 
@@ -189,12 +189,12 @@ Current `kudo uninstall` CLI command only removes instances (with required `--in
 
 #### Other Plans
 
-It can be meaningful to allow [operator-tasks](#operator-task) outside of `deploy`, `update` and `upgrade` plans. A `monitoring` plan might install a monitoring operator package. We could even allow installation from a local disk by doing the same client-side steps for the `monitoring` plan when it is triggered. While the foundation provided by this KEP would make it easy, this KEP focuses on the installation dependencies so we would probably forbid operator-tasks outside of `deploy`, `update` and `upgrade` in the beginning.
+It can be meaningful to allow [operator-tasks](#operator-task) outside of `deploy`, `update` and `upgrade` plans. A `monitoring` plan might install a monitoring operator package. We could even allow installation from a local disk by doing the same client-side steps for the `monitoring` plan when it is triggered. While the foundation provided by this KEP would make it easy, this KEP focuses on the installation dependencies, so we would probably forbid operator-tasks outside of `deploy`, `update` and `upgrade` in the beginning.
 
 ### Risks and Mitigation
 
-The biggest risk is the increased complexity of the instance controller and the workflow engine. With the above approach, we can reuse much of the code and UX we have currently: plans and phases for flow control, local operators and custom operator repositories for easier development and deployment, and usual status reporting for debugging. The API footprint remains small as the only new API element is the [operator-task](#operator-task). Dependency graph building and traversal will require a graph library and there are a [few](https://github.com/yourbasic/graph) [out](https://godoc.org/github.com/twmb/algoimpl/go/graph) [there](https://godoc.org/gonum.org/v1/gonum/graph) so this will help mitigate some of the complexity.
+The biggest risk is the increased complexity of the instance controller and the workflow engine. With the above approach, we can reuse much of the code and UX we have currently: plans and phases for flow control, local operators and custom operator repositories for easier development and deployment, and usual status reporting for debugging. The API footprint remains small as the only new API element is the [operator-task](#operator-task). Dependency graph building and traversal will require a graph library and there are a [few](https://github.com/yourbasic/graph) [out](https://godoc.org/github.com/twmb/algoimpl/go/graph) [there](https://godoc.org/gonum.org/v1/gonum/graph) so this will help mitigate some complexity.
 
 ## Alternatives
 
-One alternative is to use terraform and the existing [KUDO terraform provider](https://kudo.dev/blog/blog-2020-02-07-kudo-terraform-provider-1.html#current-process) to outsource the burden of dealing with the dependency graphs. On the upside, we would avoid the additional implementation complexity in KUDO _itself_ (though the complexity of the terraform provider is not going anywhere) and get [output values](https://www.terraform.io/docs/configuration/outputs.html) and [resource referencing](https://www.terraform.io/docs/configuration/resources.html#referring-to-instances) on top. On the downside, terraform is a heavy dependency which will completely replace KUDO UI. It is hard to quantify the pros and cons of both approaches so it is left up for discussion.
+One alternative is to use terraform and the existing [KUDO terraform provider](https://kudo.dev/blog/blog-2020-02-07-kudo-terraform-provider-1.html#current-process) to outsource the burden of dealing with the dependency graphs. On the upside, we would avoid the additional implementation complexity in KUDO _itself_ (though the complexity of the terraform provider is not going anywhere) and get [output values](https://www.terraform.io/docs/configuration/outputs.html) and [resource referencing](https://www.terraform.io/docs/configuration/resources.html#referring-to-instances) on top. On the downside, terraform is a heavy dependency which will completely replace KUDO UI. It is hard to quantify the pros and cons of both approaches, so it is left up for discussion.
