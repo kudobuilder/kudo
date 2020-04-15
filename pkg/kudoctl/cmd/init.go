@@ -196,11 +196,11 @@ func (initCmd *initCmd) run() error {
 	}
 
 	if initCmd.verify {
-		return initCmd.initVerify(opts)
+		return initCmd.verifyExistingInstallation(opts)
 	}
 
 	if initCmd.upgrade {
-		ok, err := initCmd.upgradeVerify(opts)
+		ok, err := initCmd.preUpgradeVerify(opts)
 		if err != nil {
 			return err
 		}
@@ -214,7 +214,7 @@ func (initCmd *initCmd) run() error {
 			return clog.Errorf("error upgrading: %s", err)
 		}
 	} else {
-		ok, err := initCmd.installVerify(opts)
+		ok, err := initCmd.preInstallVerify(opts)
 		if err != nil {
 			return err
 		}
@@ -240,7 +240,8 @@ func (initCmd *initCmd) run() error {
 	return nil
 }
 
-func (initCmd *initCmd) initVerify(opts kudoinit.Options) error {
+// verifyExistingInstallation checks if the current installation is valid and as expected
+func (initCmd *initCmd) verifyExistingInstallation(opts kudoinit.Options) error {
 	result := verifier.NewResult()
 	if err := setup.Validate(initCmd.client, opts, &result); err != nil {
 		return err
@@ -252,8 +253,8 @@ func (initCmd *initCmd) initVerify(opts kudoinit.Options) error {
 	return nil
 }
 
-// installVerify runs the pre-installation verification and returns true if the installation can continue
-func (initCmd *initCmd) installVerify(opts kudoinit.Options) (bool, error) {
+// preInstallVerify runs the pre-installation verification and returns true if the installation can continue
+func (initCmd *initCmd) preInstallVerify(opts kudoinit.Options) (bool, error) {
 	result := verifier.NewResult()
 	if err := setup.PreInstallVerify(initCmd.client, opts, initCmd.crdOnly, &result); err != nil {
 		return false, err
@@ -266,8 +267,8 @@ func (initCmd *initCmd) installVerify(opts kudoinit.Options) (bool, error) {
 	return true, nil
 }
 
-// upgradeVerify runs the pre-installation verification and returns true if the upgrade can continue
-func (initCmd *initCmd) upgradeVerify(opts kudoinit.Options) (bool, error) {
+// preUpgradeVerify runs the pre-upgrade verification and returns true if the upgrade can continue
+func (initCmd *initCmd) preUpgradeVerify(opts kudoinit.Options) (bool, error) {
 	result := verifier.NewResult()
 	if err := setup.PreUpgradeVerify(initCmd.client, opts, &result); err != nil {
 		return false, err

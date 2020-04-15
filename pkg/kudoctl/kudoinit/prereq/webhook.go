@@ -61,6 +61,7 @@ func (k KudoWebHook) PreInstallVerify(client *kube.Client, result *verifier.Resu
 }
 
 func (k KudoWebHook) PreUpgradeVerify(client *kube.Client, result *verifier.Result) error {
+	// Nothing to verify here at the moment, needs to be extended when we have actual upgrades
 	return nil
 }
 
@@ -80,7 +81,9 @@ func (k KudoWebHook) VerifyInstallation(client *kube.Client, result *verifier.Re
 		return err
 	}
 
-	// TODO: Verify that validating webhook is installed
+	if err := validateAdmissionWebhookInstallation(client.KubeClient.AdmissionregistrationV1beta1(), InstanceAdmissionWebhook(k.opts.Namespace), result); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -210,7 +213,7 @@ func validateUnstructuredInstallation(dynamicClient dynamic.Interface, item unst
 		return err
 	}
 
-	// TODO: Maybe add more detailed validation. DeepEquals doesn't work because of added fields from k8s
+	// We could add more detailed validation here, but DeepEquals doesn't work because of added fields from k8s
 
 	return nil
 }
@@ -222,6 +225,21 @@ func installAdmissionWebhook(client clientv1beta1.MutatingWebhookConfigurationsG
 		return nil
 	}
 	return err
+}
+
+func validateAdmissionWebhookInstallation(client clientv1beta1.MutatingWebhookConfigurationsGetter, webhook admissionv1beta1.MutatingWebhookConfiguration, result *verifier.Result) error {
+	_, err := client.MutatingWebhookConfigurations().Get(webhook.Name, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			result.AddErrors(fmt.Sprintf("admission webhook %s is not installed", webhook.Name))
+			return nil
+		}
+		return err
+	}
+
+	// We could add more detailed validation here, regarding the details of the webhook configuration
+
+	return nil
 }
 
 // InstanceAdmissionWebhook returns a MutatingWebhookConfiguration for the instance admission controller.
