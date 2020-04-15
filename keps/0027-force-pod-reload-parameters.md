@@ -8,7 +8,7 @@ owners:
   - @aneumann82
 editor:
 creation-date: 2020-03-31
-last-updated: 2020-03-31
+last-updated: 2020-04-15
 status: provisional
 see-also:
 replaces:
@@ -25,7 +25,9 @@ that are not used in the template change.
 KUDO currently has a feature that automatically restarts Pods of Deployments or StatefulSets if any KUDO-Parameter is changed. This
 is often required as a Parameter can change a value in a ConfigMap that is used by the Pods. If the Pods are not restarted
 the change is propagated to the Pods, but as most applications are not aware of changing config files they require a 
-restart. This can also be solved by other Controllers, for example [Reloader](https://github.com/stakater/Reloader).
+restart. This was originally solved by using [stakater/Reloader](https://github.com/stakater/Reloader) but this had 
+[issues](https://github.com/kudobuilder/kudo/issues/1025) which lead to the self developed solution, which is at the 
+moment applied to [all templates](https://github.com/kudobuilder/kudo/issues/1036)
 
 This behavior can currently not be controlled and is always active. The issue is that not all Parameter changes require
 a rolling restart of Pods, and sometimes the restart is unwanted and can negatively affect the state of the application
@@ -35,8 +37,8 @@ One example would be the `replica` count of a StatefulSet: An increase here shou
 all existing ones. Another example would be an application that regularly re-reads the config files, in this case the 
 pod doesn't need to be restarted if a config map changes - the application would pick up changed values automatically.
 
-The new flag will allow an operator developer to control when a changed parameter will trigger a restart of pods from 
-a deployment or stateful set.
+A new flag introduced by this KEP will allow an operator developer to control when a changed parameter will trigger a 
+restart of pods from a deployment or stateful set.
 
 ### Goals
 
@@ -44,10 +46,10 @@ Make it possible for an operator developer to specify when a parameter will rest
 
 ### Non-Goals
 
-- Detailed control when Pods are restarted: If the spec template for a stateful set is changed, Kubernetes will still
+- Preventing Pod restart where plain k8s would do it: If the spec template for a stateful set is changed, Kubernetes will still
 restart all pods automatically - there is no way to prevent that.
 - Calculation of used config maps, secrets or other resources used by a pod: The automatic pod restart is currently 
-used to force pods to re-read config maps on a parameter update. When a user explicitly disables the pod restart for 
+used to force pods to re-read config maps on a parameter update. When a user disables the pod restart for 
 a parameter, and this parameter updates a config map or another dependency of the pod, the change might not be applied
 in the pod until the next restart.
 - Restarting a stuck Pod
@@ -66,7 +68,7 @@ Add a list of `groups` that each parameter is part of:
     groups:
       - MAIN_GROUP
   - name: SOME_OTHER_PARAMETER
-    description: "A parameter that changes something that is used by two stateful sets"
+    description: "A parameter that changes something that is used by two stateful sets."
     default: "3"
     groups:
       - MAIN_GROUP
@@ -90,11 +92,12 @@ pods.
 This proposal would remove the `last-plan-execution-uid` and automatic pod restarts. Configuration for
 pod restarts would be fully in the responsibility of the operator developer.  
 
-It may be a good idea to define a `default` group that is always the set of all defined parameters.
+It may be a good idea to define a `default` or `ALL` group that is always the set of all defined parameters.
 
 ### User Stories
 
 - [#1424](https://github.com/kudobuilder/kudo/issues/1424) Fine control over pod restarts
+- [#1036](https://github.com/kudobuilder/kudo/issues/1036) Restarting all pods when scaling up
 
 The main use case for this extension are big stateful sets that are sensitive to pod restarts, for example Cassandra. 
 
