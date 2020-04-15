@@ -207,9 +207,15 @@ func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersion 
 	return err
 }
 
-// WaitForInstance waits for instance to be "finished".  oldInstance is nil if there is no oldInstance.  oldInstance
-// should be provided if there was an update or upgrade.  The wait will then initially wait for the "new" plan to activate
-// then return when completed.  The error is either an error in working with kubernetes or a wait.ErrWaitTimeout
+// WaitForInstance waits for instance to be "complete".
+// It uses controller-runtime `wait.PollImmediate`, the function passed to it returns done==false if it isn't done.
+// For a situation where there is no previous state (like install), the "lastPlanStatus" will be nil until the manager
+// sets it, then it's state will be watched (see InInstanceDone for more detail)
+// For a situation where there is previous state (like update, upgrade, plan trigger) than it is important AND required
+// that the "oldInstance" be provided.  Without it, it is possible for this function to be "racy" and "flaky" meaning the
+// "current" status could be the old "done" status or the new status... it's hard to know.  If the oldInstance is provided
+// the wait will then initially wait for the "new" plan to activate then return when completed.
+// The error is either an error in working with kubernetes or a wait.ErrWaitTimeout
 func (c *Client) WaitForInstance(name, namespace string, oldInstance *v1beta1.Instance, timeout time.Duration) error {
 	// polling interval 1 sec
 	interval := 1 * time.Second
