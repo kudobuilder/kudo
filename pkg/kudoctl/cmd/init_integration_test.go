@@ -350,7 +350,7 @@ func TestReInitFails(t *testing.T) {
 }
 
 func deleteInitObjects(client *testutils.RetryClient) {
-	opts := kudoinit.NewOptions("", "", "", []string{}, false)
+	opts := kudoinit.NewOptions("", "", "", "", []string{}, false)
 
 	crds := crd.NewInitializer()
 
