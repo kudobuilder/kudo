@@ -4,6 +4,7 @@ title: Operator Dependencies
 short-desc: Introducing operators depending on other operators
 authors:
   - "@zen-dog"
+  - "@porridge"
 owners:
   - "@zen-dog"
 editor: @zen-dog
@@ -118,7 +119,7 @@ As you can see, this closely mimics the `kudo install` CLI command [options](htt
 Upon execution of `kudo install ...` command with the above operator definition, CLI will:
 
 1. Collect all operator dependencies by analyzing the `deploy` plan of the top-level operator and compose a list of all operator dependencies (tasks with the kind `Operator`) including **transitive dependencies**
-2. Install all collected dependency operators. We create the `Instance`s but **mark them inactive** with an annotation e.g. `kudo.de/instance-inactive`. To make things easier instance admission controller would only allow this annotation to be set **only** when `CREATE`ing `Instance`s. This annotation would mark a new life-cycle `Instance` state where it would effectively be ignored by the instance controller. Note that since `Instances` are inactive (and subsequently no Kubernetes resources are being created) we can install them in any order
+2. Install all collected operators **skipping the instances** (same as `kudo install ... --skip-instance`). Note that since we do not create instances here we can install them in any order
 3. Proceed with the installation of the top-level operator as usual (create `Operator`, `OperatorVersion` and `Instance` resources)
 
 Since we do this step on the client-side we have access to the full functionality of the `install` command including installing operators from the file system. This will come very handy during the development and debugging which arguably becomes more complex with dependencies.
@@ -129,7 +130,7 @@ Upon receiving a new operator Instance with dependencies KUDO mangers workflow e
 
 1. Build a [dependency graph](https://en.wikipedia.org/wiki/Dependency_graph) by transitively expanding top-level `deploy` plan using operator-tasks as vertices, and their execution order (`a` needs `b` to be installed first) as edges
 2. Perform cycle detection and fail if circular dependencies found. We could additionally run this check on the client-side as part of the `kudo package verify` command to improve the UX
-3. If we haven't found any cycles, traverse the dependency graph in the topological order (e.g. using the post-order) and execute all vertices
+3. If we haven't found any cycles, start executing the top-level `deploy` plan. When encountering an operator-task, apply the corresponding `Instance` resource. Here it is the same as for any other resource that we create: we check if it is healthy and if not, end current plan execution and "wait" for it to become healthy. KUDO manager already has a [health check](https://github.com/kudobuilder/kudo/blob/master/pkg/engine/health/health.go#L78) for `Instance` resources implemented.
 
 Let's take a look at an example. Here is a simplified operator `AA` with a few dependencies:
 
@@ -156,7 +157,9 @@ Legend:
 
 In the first step we build a dependency graph. A set of all graph vertices (which are task-operators) `S` is defined as `S = {AA, BB, CC, EE, GG}`. A transitive relationship `R` between the vertices is defined as `(a, b) ∈ S` meaning _`a` needs `b` deployed first_. The transitive relationship for the above example is: `R = { (AA,BB), (AA,CC), (BB,EE), (BB,GG) }`. The resulting topological order `O` is therefor `O = (EE, GG, BB, CC, AA)` which has no cycles.
 
-The instance controller (IC) then traverses the dependency graph in the evaluation order `O` and executes each vertex. Practically this means removing the inactive annotation for the corresponding `Instance` resource and wait for it to become healthy, meaning its `deploy` plan was executed successfully. KUDO manager already has [health check](https://github.com/kudobuilder/kudo/blob/master/pkg/engine/health/health.go#L78) for `Instance` resources implemented. We would additionally add the top-level `Instance` reference (e.g. `AA`) to the `ownerReferences` list of each dependency `Instance` (e.g. `BB`). This would help with determining which `Instance` belongs to which operator and additionally help us with [operator uninstalling](#uninstalling).
+The instance controller (IC) then starts with the execution of the top-level `deploy` plan of the operator `AA`. The first task is the `BB` operator-task. When executing it, IC creates the `Instance-BB` resource and ends current reconciliation. Next, IC notices new `Instance-BB` resource, starts new reconciliation, and executes the  `deploy` plan of the operator `BB` when then creates `Instance-EE` resource. This way we are basically performing the depth-first search for the dependency graph, executing each vertex in the right order e.g. `EE` has to be healthy before `BB` deploy plan can continue with the next step `F`.
+
+We would additionally add the higher-level `Instance` reference (e.g. `AA`) to the `ownerReferences` list of its direct children `Instance`s (e.g. `BB` and `CC`). This would help with determining which `Instance` belongs to which operator and additionally help us with [operator uninstalling](#uninstalling).
 
 The status of the execution can be seen as usual as part of the `Instance.Status`. We could additionally forward the status of a dependency `Instance` to the top-level `Instance.Status` to simplify the overview.
 
@@ -164,18 +167,96 @@ Note that in the above example if e.g. `EE` and `CC` task-operators reference th
 
 ##### Dependencies Parametrization
 
-First, we need to provide parameters to different operators separately. For individual parameters (`-p` option) we can use namespaced names e.g. `-p <instanceName>.<key>=<value>`. For the parameter files (`--parameterFile` option) we could either extend the `parameterFile` schema (which is currently a simple map) with top-level fields e.g.:
+We want to encourage operator composition by providing a way of operator encapsulation. In other words, operator users should not be allowed to arbitrarily modify the parameters of embedded operator instances. The higher-level operator should define all parameters that its **direct** dependency  operators need. Let's demonstrate this on an example of a simple operator `AA` that has operator `BB` as a dependency. 
 
 ```yaml
-apiVersion: v1beta1
-instance: zookeeper-instance
-parameters:
-  foo: bar # other parameterFile keys and values
+AA
+└── BB
+```
+Operator `BB` has a required and empty parameter `PASSWORD`. To provide a way for the `AA` operator user to set the password we extend the operator-task with a new field `parameterFile`:
+
+```yaml
+tasks:
+- name: deploy-bb
+  kind: Operator
+  spec:
+    parameterFile: bb-params.yaml # optional, defines the parameter that will be set on the bb-instance  
 ```
 
-or use namespaced keys the same as with individual parameters.
+The contents of the `bb-params.yaml` and the top-level `AA` `params.yaml`:
 
-#### Update
+```yaml
+# operator-aa/templates/bb-params.yaml
+# Note that I placed it under templates mostly because it also uses templating
+PASSWORD: {{ .Params.BB_PASSWORD }}
+```
+
+The `PASSWORD` value is computed on the server-side when IC executes the `deploy-bb` task. The `BB_PASSWORD` parameter is defined as usual in the top-level `params.yaml` file. 
+
+```yaml
+# operator-aa/params.yaml
+apiVersion: kudo.dev/v1beta1
+parameters:
+  - name: BB_PASSWORD
+    displayName: "BB password"
+    description: "password for the underlying instance of BB"
+    required: true
+```
+
+This is where we see the encapsulation is action. Every operator that incorporates other operators has to define all necessary parameters at the top-level. When installing the operator `AA` the user then has to define the `BB_PASSWORD` as usual:
+
+```bash
+$ kubectl kudo install AA -p BB_PASSWORD=secret
+```  
+
+which will create `OperatorVersion-AA` 
+
+```yaml
+# /apis/kudo.dev/v1beta1/namespaces/default/operatorversions/aa-0.1.0
+spec:
+  operator:
+    kind: Operator
+    name: dummy
+  parameters:
+  - name: BB_PASSWORD
+    displayName: "BB password"
+    description: "password for the underlying instance of BB"
+    required: true
+  tasks:
+  - name: deploy-bb
+    kind: Operator
+    spec:
+      parameterFile: bb-params.yaml
+  templates:
+    bb-params.yaml: |
+      PASSWORD: {{ .Params.BB_PASSWORD }}
+  plans:
+    deploy:
+      ...  
+```
+
+and `Instance-AA` resources
+
+```yaml
+# /apis/kudo.dev/v1beta1/namespaces/default/instances/instance-aa
+spec:
+  parameters:
+    BB_PASSWORD: secret
+```
+
+During the execution of the `deploy-bb` task, the `bb-params.yaml` is expanded the same way we expand templates during the apply-task execution. The `deploy-bb` operator-task then creates the `Instance-BB` resource and saves the expanded parameter `PASSWORD: secret` in it.
+
+What happens if we have a deeper nested operator-tasks tree e.g.:
+```yaml
+AA
+└── BB
+    └── CC
+        └── DD  
+            └── EE
+```
+and it is the low-level `EE` operator that needs the password? It is like the dependency injection through constructor parameters: every higher-level operator has to encapsulate the password parameter so that `AA` has the `BB_PASSWORD`, `BB` the `CC_PASSWORD` and so on.
+
+ #### Update
 
 Updating parameters work the same way as deploying the operator. In most cases, the `deploy` plan is executed. Since all dependencies already exist, the KUDO manager will traverse the dependency graph, updating Instance parameters. This will then trigger a corresponding `deploy` plan on each affected `Instance`. If the `Instance` hasn't changed no plan will be triggered.
 
