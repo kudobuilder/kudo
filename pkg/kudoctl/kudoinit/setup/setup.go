@@ -41,10 +41,10 @@ func requiredMigrations() []migration.Migrater {
 func PreUpgradeVerify(client *kube.Client, opts kudoinit.Options, result *verifier.Result) error {
 	initSteps := initSteps(opts, false)
 
-	// Step 1 - Verify that installation can be done
-	// Check if all steps are installable
+	// Step 1 - Verify that upgrade can be done
+	// Check if all steps are upgradeable
 	for _, initStep := range initSteps {
-		if err := initStep.PreInstallVerify(client, result); err != nil {
+		if err := initStep.PreUpgradeVerify(client, result); err != nil {
 			return fmt.Errorf("error while verifying upgrade step %s: %v", initStep.String(), err)
 		}
 	}
@@ -53,8 +53,8 @@ func PreUpgradeVerify(client *kube.Client, opts kudoinit.Options, result *verifi
 	}
 
 	// Step 2 - Verify that any migration is possible
-	clog.Printf("Check if migrations can be applied")
 	migrations := requiredMigrations()
+	clog.Printf("Verify that %d required migrations can be applied", len(migrations))
 	for _, m := range migrations {
 		if err := m.CanMigrate(client); err != nil {
 			result.AddErrors(fmt.Errorf("migration %s failed install check: %v", m, err).Error())
@@ -68,18 +68,23 @@ func PreUpgradeVerify(client *kube.Client, opts kudoinit.Options, result *verifi
 
 // Upgrade an existing KUDO installation
 func Upgrade(client *kube.Client, opts kudoinit.Options) error {
+	clog.Printf("Upgrade KUDO")
+
 	// Step 3 - Shut down/remove manager
 	if err := manager.UninstallStatefulSet(client, opts); err != nil {
 		return fmt.Errorf("failed to uninstall existing KUDO manager: %v", err)
 	}
 
 	// Step 4 - Disable Admission-Webhooks
-	if err := prereq.UninstallWebHook(client, opts); err != nil {
-		return fmt.Errorf("failed to uninstall webhook: %v", err)
+	if opts.HasWebhooksEnabled() {
+		if err := prereq.UninstallWebHook(client, opts); err != nil {
+			return fmt.Errorf("failed to uninstall webhook: %v", err)
+		}
 	}
 
 	// Step 5 - Execute Migrations
 	migrations := requiredMigrations()
+	clog.Printf("Run %d migrations", len(migrations))
 	for _, m := range migrations {
 		if err := m.Migrate(client); err != nil {
 			return fmt.Errorf("migration %s failed to execute: %v", m, err)

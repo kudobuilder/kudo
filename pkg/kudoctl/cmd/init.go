@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
+	v1 "k8s.io/api/core/v1"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -63,6 +64,8 @@ type initCmd struct {
 	out            io.Writer
 	fs             afero.Fs
 	image          string
+	pullPolicyStr  string
+	pullPolicy     v1.PullPolicy
 	dryRun         bool
 	output         string
 	version        string
@@ -104,6 +107,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f := cmd.Flags()
 	f.BoolVarP(&i.clientOnly, "client-only", "c", false, "If set does not install KUDO on the server")
 	f.StringVarP(&i.image, "kudo-image", "i", "", "Override KUDO controller image and/or version")
+	f.StringVarP(&i.pullPolicyStr, "kudo-image-pull-policy", "", "Always", "Override KUDO controller image pull policy (Always, IfPresent, Never)")
 	f.StringVarP(&i.version, "version", "", "", "Override KUDO controller version of the KUDO image")
 	f.StringVarP(&i.output, "output", "o", "", "Output format")
 	f.BoolVar(&i.dryRun, "dry-run", false, "Do not install local or remote")
@@ -146,13 +150,25 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 	if initCmd.crdOnly && initCmd.upgrade {
 		return errors.New("'--upgrade' and '--crd-only' can not be used at the same time")
 	}
+	if initCmd.pullPolicyStr != "" {
+		switch initCmd.pullPolicyStr {
+		case "Always":
+			initCmd.pullPolicy = v1.PullAlways
+		case "Never":
+			initCmd.pullPolicy = v1.PullNever
+		case "IfNotPresent":
+			initCmd.pullPolicy = v1.PullIfNotPresent
+		default:
+			return errors.New("--kudo-image-pull-policy can only be 'Always', 'Never' or 'IfNotPresent'")
+		}
+	}
 
 	return nil
 }
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (initCmd *initCmd) run() error {
-	opts := kudoinit.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks), initCmd.upgrade)
+	opts := kudoinit.NewOptions(initCmd.version, initCmd.pullPolicy, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks), initCmd.upgrade)
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image

@@ -185,7 +185,7 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 								{Name: "ENABLE_WEBHOOKS", Value: strconv.FormatBool(opts.HasWebhooksEnabled())},
 							},
 							Image:           image,
-							ImagePullPolicy: "Always",
+							ImagePullPolicy: opts.PullPolicy,
 							Name:            "manager",
 							Ports: []v1.ContainerPort{
 								// name matters for service
