@@ -1,9 +1,12 @@
 package kudo
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
+
+	pollwait "k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
@@ -12,7 +15,7 @@ import (
 
 // InstallPackage installs package resources.
 // If skipInstance is set to true, only a package's Operator and OperatorVersion is installed.
-func InstallPackage(kc *Client, resources *packages.Resources, skipInstance bool, instanceName, namespace string, parameters map[string]string, wait bool) error {
+func InstallPackage(kc *Client, resources *packages.Resources, skipInstance bool, instanceName, namespace string, parameters map[string]string, w bool, waitTime time.Duration) error {
 	// PRE-INSTALLATION SETUP
 	operatorName := resources.Operator.ObjectMeta.Name
 	clog.V(3).Printf("operator name: %v", operatorName)
@@ -64,27 +67,20 @@ func InstallPackage(kc *Client, resources *packages.Resources, skipInstance bool
 		if _, err := kc.InstallInstanceObjToCluster(resources.Instance, namespace); err != nil {
 			return fmt.Errorf("failed to install instance %s: %v", instanceName, err)
 		}
-		if wait {
-			for {
-				instance, err := kc.GetInstance(instanceName, namespace)
-
-				if err != nil {
-					return fmt.Errorf("failed to get instance %s: %v", instanceName, err)
-				}
-				lastPlanStatus := instance.GetLastExecutedPlanStatus()
-
-				if err != nil {
-					return fmt.Errorf("failed to get plan status %s: %v", instanceName, err)
-				}
-				if lastPlanStatus == nil || !lastPlanStatus.Status.IsFinished() {
-					fmt.Printf("plan status %s still pending, please wait...\n", instanceName)
-					time.Sleep(2 * time.Second)
-				} else {
-					break
-				}
-			}
-		}
 		clog.Printf("instance.%s/%s created", resources.Instance.APIVersion, resources.Instance.Name)
+		var err error
+		if w {
+			err = kc.WaitForInstance(instanceName, namespace, nil, waitTime)
+		}
+		if errors.Is(err, pollwait.ErrWaitTimeout) {
+			clog.Printf("timeout waiting for instance.%s/%s ", resources.Instance.APIVersion, resources.Instance.Name)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to wait on instance %s: %v", instanceName, err)
+
+		}
+		clog.Printf("instance.%s/%s ready", resources.Instance.APIVersion, resources.Instance.Name)
+
 	} else {
 		return clog.Errorf("cannot install instance '%s' of operator '%s-%s' because an instance of that name already exists in namespace %s",
 			instanceName, operatorName, resources.OperatorVersion.Spec.Version, namespace)

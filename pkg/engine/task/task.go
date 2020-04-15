@@ -17,7 +17,7 @@ import (
 // Context is a engine.task execution context containing k8s client, templates parameters etc.
 type Context struct {
 	Client     client.Client
-	Discovery  discovery.DiscoveryInterface
+	Discovery  discovery.CachedDiscoveryInterface
 	Config     *rest.Config
 	Enhancer   renderer.Enhancer
 	Meta       renderer.Metadata

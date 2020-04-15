@@ -47,6 +47,7 @@ type InstanceSpec struct {
 type PlanExecution struct {
 	PlanName string                `json:"planName,omitempty"`
 	UID      apimachinerytypes.UID `json:"uid,omitempty"`
+	Status   ExecutionStatus       `json:"status,omitempty"`
 
 	// Future PE options like Force: bool. Not needed for now
 }

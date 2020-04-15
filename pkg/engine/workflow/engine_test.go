@@ -10,13 +10,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
-	"github.com/kudobuilder/kudo/pkg/test/utils"
+	kudofake "github.com/kudobuilder/kudo/pkg/test/fake"
 )
 
 var testTime = time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)
@@ -621,9 +622,10 @@ func TestExecutePlan(t *testing.T) {
 	}
 
 	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
-	fakeDiscovery := utils.FakeDiscoveryClient()
+	fakeDiscovery := kudofake.CachedDiscoveryClient()
+	fakeCachedDiscovery := memory.NewMemCacheClient(fakeDiscovery)
 	for _, tt := range tests {
-		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, fakeDiscovery, nil, tt.enhancer)
+		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, fakeCachedDiscovery, nil, tt.enhancer)
 		newStatus.LastUpdatedTimestamp = &metav1.Time{Time: testTime}
 
 		if !tt.wantErr && err != nil {

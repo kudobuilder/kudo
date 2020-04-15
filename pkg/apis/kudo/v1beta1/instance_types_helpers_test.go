@@ -130,6 +130,8 @@ func TestInstance_ResetPlanStatus(t *testing.T) {
 	// we test that UID has changed. afterwards, we replace it with the old one and compare new
 	// plan status with the desired state
 	assert.NotEqual(t, instance.Status.PlanStatus["deploy"].UID, oldUID)
+	assert.Equal(t, instance.Spec.PlanExecution.Status, ExecutionPending)
+
 	oldPlanStatus := instance.Status.PlanStatus["deploy"]
 	statusCopy := oldPlanStatus.DeepCopy()
 	statusCopy.UID = testUUID
@@ -160,4 +162,57 @@ func TestInstance_ResetPlanStatus(t *testing.T) {
 			ActivePlanName: "deploy",
 		},
 	}, instance.Status)
+}
+
+func TestGetParamDefinitions(t *testing.T) {
+	ov := &OperatorVersion{
+		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
+		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.dev/v1beta1"},
+		Spec: OperatorVersionSpec{
+			Parameters: []Parameter{
+				{Name: "foo"},
+				{Name: "other-foo"},
+				{Name: "bar"},
+			},
+		},
+	}
+
+	tests := []struct {
+		name    string
+		params  map[string]string
+		ov      *OperatorVersion
+		want    []Parameter
+		wantErr bool
+	}{
+		{
+			name:    "all parameters exists",
+			params:  map[string]string{"foo": "1", "bar": "2"},
+			ov:      ov,
+			want:    []Parameter{{Name: "foo"}, {Name: "bar"}},
+			wantErr: false,
+		},
+		{
+			name:    "one parameter is missing",
+			params:  map[string]string{"foo": "1", "fake-one": "2"},
+			ov:      ov,
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "both parameters are missing",
+			params:  map[string]string{"fake-one": "1", "fake-two": "2"},
+			ov:      ov,
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetParamDefinitions(tt.params, tt.ov)
+
+			assert.True(t, (err != nil) == tt.wantErr, "GetParamDefinitions() error = %v, wantErr %v", err, tt.wantErr)
+			assert.ElementsMatch(t, got, tt.want, "GetParamDefinitions() got = %v, want %v", got, tt.want)
+		})
+	}
 }

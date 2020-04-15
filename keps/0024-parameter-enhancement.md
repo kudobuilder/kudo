@@ -1,6 +1,7 @@
 ---
 kep-number: 24
 title: Enhanced Operator Parameters
+short-desc: Parameter types other than `string`
 authors:
   - "@nfnt"
 owners:

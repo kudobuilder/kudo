@@ -15,16 +15,33 @@ func TestTemplateParametersVerifier(t *testing.T) {
 		{Name: "Foo"},
 		{Name: "NotUsed"},
 		{Name: "UsedViaRoot"},
+		{Name: "BROKER_COUNT"},
+		{Name: "EXTERNAL_NODE_PORT"},
 	}
 	paramFile := packages.ParamsFile{Parameters: params}
 	templates := make(map[string]string)
 	templates["foo.yaml"] = `
+## 2 types of params Foo and Bar
 {{.Params.Foo}}
 {{.Params.Bar}}
+
+## 2 implicits Bar and Name
 {{.Bar}}
 {{.Name}}
+
+## $ as a prefix should not cause issues
 {{$.AppVersion}}
 {{$.Params.UsedViaRoot}}
+
+## param used in range (int) should be counted as param
+{{ range $i, $v := until (int .Params.BROKER_COUNT) }}
+{{ end }}
+
+## range example should see EXTERNAL_NODE_PORT
+{{ range $i, $v := until (int .Params.BROKER_COUNT) }}
+- containerPort: {{ add (int $.Params.EXTERNAL_NODE_PORT) $v}}
+  name: node-port-{{ $v }}
+{{ end }}
 `
 	operator := packages.OperatorFile{
 		Tasks: []v1beta1.Task{

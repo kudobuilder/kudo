@@ -12,24 +12,23 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/uuid"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-
-	"github.com/kudobuilder/kudo/pkg/engine/task"
-
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/kudobuilder/kudo/pkg/apis"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
-	"github.com/kudobuilder/kudo/pkg/test/utils"
+	"github.com/kudobuilder/kudo/pkg/engine/task"
+	"github.com/kudobuilder/kudo/pkg/kubernetes"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
@@ -130,12 +129,13 @@ func startTestManager(t *testing.T) (chan struct{}, *sync.WaitGroup, client.Clie
 	mgr, err := manager.New(cfg, manager.Options{})
 	assert.Nil(t, err, "Error when creating manager")
 
-	discoveryClient, err := utils.GetDiscoveryClient(mgr)
+	discoveryClient, err := kubernetes.GetDiscoveryClient(mgr)
 	assert.NoError(t, err, "Error when creating discovery client")
+	cachedDiscoveryClient := memory.NewMemCacheClient(discoveryClient)
 
 	err = (&Reconciler{
 		Client:    mgr.GetClient(),
-		Discovery: discoveryClient,
+		Discovery: cachedDiscoveryClient,
 		Config:    mgr.GetConfig(),
 		Recorder:  mgr.GetEventRecorderFor("instance-controller"),
 		Scheme:    mgr.GetScheme(),
@@ -340,25 +340,58 @@ func Test_makePipes(t *testing.T) {
 	}
 }
 
-func TestSpecParameterDifference(t *testing.T) {
-	var testParams = []struct {
-		name string
-		new  map[string]string
-		diff map[string]string
-	}{
-		{"update one value", map[string]string{"one": "11", "two": "2"}, map[string]string{"one": "11"}},
-		{"update multiple values", map[string]string{"one": "11", "two": "22"}, map[string]string{"one": "11", "two": "22"}},
-		{"add new value", map[string]string{"one": "1", "two": "2", "three": "3"}, map[string]string{"three": "3"}},
-		{"remove one value", map[string]string{"one": "1"}, map[string]string{"two": "2"}},
-		{"no difference", map[string]string{"one": "1", "two": "2"}, map[string]string{}},
-		{"empty new map", map[string]string{}, map[string]string{"one": "1", "two": "2"}},
-	}
+func TestParameterDiff(t *testing.T) {
+	var (
+		tests = []struct {
+			name string
+			new  map[string]string
+			diff map[string]string
+		}{
+			{name: "update one value", new: map[string]string{"one": "11", "two": "2"}, diff: map[string]string{"one": "11"}},
+			{name: "update multiple values", new: map[string]string{"one": "11", "two": "22"}, diff: map[string]string{"one": "11", "two": "22"}},
+			{name: "add new value", new: map[string]string{"one": "1", "two": "2", "three": "3"}, diff: map[string]string{"three": "3"}},
+			{name: "remove one value", new: map[string]string{"one": "1"}, diff: map[string]string{"two": "2"}},
+			{name: "no difference", new: map[string]string{"one": "1", "two": "2"}, diff: map[string]string{}},
+			{name: "empty new map", new: map[string]string{}, diff: map[string]string{"one": "1", "two": "2"}},
+		}
+	)
 
 	var old = map[string]string{"one": "1", "two": "2"}
 
-	for _, test := range testParams {
-		diff := v1beta1.ParameterDiff(old, test.new)
-		assert.Equal(t, test.diff, diff)
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			diff := v1beta1.ParameterDiff(old, tt.new)
+			assert.Equal(t, tt.diff, diff)
+		})
+	}
+}
+
+func TestRichParameterDiff(t *testing.T) {
+	var empty = map[string]string{}
+	var old = map[string]string{"one": "1", "two": "2"}
+
+	var tests = []struct {
+		name    string
+		new     map[string]string
+		changed map[string]string
+		removed map[string]string
+	}{
+		{name: "update one value", new: map[string]string{"one": "11", "two": "2"}, changed: map[string]string{"one": "11"}, removed: empty},
+		{name: "update multiple values", new: map[string]string{"one": "11", "two": "22"}, changed: map[string]string{"one": "11", "two": "22"}, removed: empty},
+		{name: "add new value", new: map[string]string{"one": "1", "two": "2", "three": "3"}, changed: map[string]string{"three": "3"}, removed: empty},
+		{name: "remove one value", new: map[string]string{"one": "1"}, changed: empty, removed: map[string]string{"two": "2"}},
+		{name: "no difference", new: map[string]string{"one": "1", "two": "2"}, changed: empty, removed: empty},
+		{name: "empty new map", new: empty, changed: empty, removed: map[string]string{"one": "1", "two": "2"}},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			changed, removed := v1beta1.RichParameterDiff(old, tt.new)
+			assert.Equal(t, tt.changed, changed, "unexpected difference in changed parameters")
+			assert.Equal(t, tt.removed, removed, "unexpected difference in removed parameters")
+		})
 	}
 }
 

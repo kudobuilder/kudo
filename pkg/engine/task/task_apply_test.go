@@ -16,7 +16,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
-	"github.com/kudobuilder/kudo/pkg/test/utils"
+	kudofake "github.com/kudobuilder/kudo/pkg/test/fake"
 )
 
 func TestApplyTask_Run(t *testing.T) {
@@ -52,7 +52,7 @@ func TestApplyTask_Run(t *testing.T) {
 			wantErr: false,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
-				Discovery: utils.FakeDiscoveryClient(),
+				Discovery: kudofake.CachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      renderer.Metadata{},
 			},
@@ -68,14 +68,14 @@ func TestApplyTask_Run(t *testing.T) {
 			fatal:   true,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
-				Discovery: utils.FakeDiscoveryClient(),
+				Discovery: kudofake.CachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{},
 			},
 		},
 		{
-			name: "fails when a kustomizing error occurs",
+			name: "fails with a fatal error when a fatal kustomizing error occurs",
 			task: ApplyTask{
 				Name:      "task",
 				Resources: []string{"pod"},
@@ -85,8 +85,25 @@ func TestApplyTask_Run(t *testing.T) {
 			fatal:   true,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
-				Discovery: utils.FakeDiscoveryClient(),
-				Enhancer:  &errorEnhancer{},
+				Discovery: kudofake.CachedDiscoveryClient(),
+				Enhancer:  &fatalErrorEnhancer{},
+				Meta:      meta,
+				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},
+			},
+		},
+		{
+			name: "fails with a transient error when a normal kustomizing error occurs",
+			task: ApplyTask{
+				Name:      "task",
+				Resources: []string{"pod"},
+			},
+			done:    false,
+			wantErr: true,
+			fatal:   false,
+			ctx: Context{
+				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: kudofake.CachedDiscoveryClient(),
+				Enhancer:  &transientErrorEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},
 			},
@@ -101,7 +118,7 @@ func TestApplyTask_Run(t *testing.T) {
 			wantErr: false,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
-				Discovery: utils.FakeDiscoveryClient(),
+				Discovery: kudofake.CachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},
@@ -117,7 +134,7 @@ func TestApplyTask_Run(t *testing.T) {
 			wantErr: false,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
-				Discovery: utils.FakeDiscoveryClient(),
+				Discovery: kudofake.CachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"job": resourceAsString(job("job1", "default"))},
@@ -126,15 +143,18 @@ func TestApplyTask_Run(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got, err := tt.task.Run(tt.ctx)
-		assert.True(t, tt.done == got, fmt.Sprintf("%s failed: want = %t, wantErr = %v", tt.name, got, err))
-		if tt.wantErr {
-			assert.True(t, errors.Is(err, engine.ErrFatalExecution) == tt.fatal)
-			assert.Error(t, err)
-		}
-		if !tt.wantErr {
-			assert.NoError(t, err)
-		}
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.task.Run(tt.ctx)
+			assert.True(t, tt.done == got, fmt.Sprintf("%s failed: want = %t, wantErr = %v", tt.name, got, err))
+			if tt.wantErr {
+				assert.True(t, errors.Is(err, engine.ErrFatalExecution) == tt.fatal)
+				assert.Error(t, err)
+			}
+			if !tt.wantErr {
+				assert.NoError(t, err)
+			}
+		})
 	}
 }
 
@@ -190,8 +210,14 @@ func (k *testEnhancer) Apply(templates map[string]string, metadata renderer.Meta
 	return result, nil
 }
 
-type errorEnhancer struct{}
+type fatalErrorEnhancer struct{}
 
-func (k *errorEnhancer) Apply(templates map[string]string, metadata renderer.Metadata) ([]runtime.Object, error) {
-	return nil, errors.New("always error")
+func (k *fatalErrorEnhancer) Apply(templates map[string]string, metadata renderer.Metadata) ([]runtime.Object, error) {
+	return nil, fmt.Errorf("%wsomething fatally bad happens every time", engine.ErrFatalExecution)
+}
+
+type transientErrorEnhancer struct{}
+
+func (k *transientErrorEnhancer) Apply(templates map[string]string, metadata renderer.Metadata) ([]runtime.Object, error) {
+	return nil, fmt.Errorf("something transiently bad happens every time")
 }

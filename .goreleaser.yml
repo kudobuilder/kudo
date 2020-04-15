@@ -19,6 +19,7 @@ builds:
       - -s -w -X github.com/kudobuilder/kudo/pkg/version.gitVersion={{ .Version }} -X github.com/kudobuilder/kudo/pkg/version.gitCommit={{ .ShortCommit }} -X github.com/kudobuilder/kudo/pkg/version.buildDate={{ .Date }}
     goos:
       - linux
+      - darwin
     goarch:
       - 386
       - amd64

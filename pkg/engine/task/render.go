@@ -1,10 +1,12 @@
 package task
 
 import (
+	"errors"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 )
 
@@ -45,5 +47,13 @@ func render(resourceNames []string, ctx Context) (map[string]string, error) {
 // returns a slice of k8s objects.
 func enhance(rendered map[string]string, meta renderer.Metadata, enhancer renderer.Enhancer) ([]runtime.Object, error) {
 	enhanced, err := enhancer.Apply(rendered, meta)
+
+	switch {
+	case errors.Is(err, engine.ErrFatalExecution):
+		return nil, fatalExecutionError(err, taskEnhancementError, meta)
+	case err != nil:
+		return nil, err
+	}
+
 	return enhanced, err
 }

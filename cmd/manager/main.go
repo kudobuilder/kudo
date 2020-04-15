@@ -26,6 +26,7 @@ import (
 
 	apiextenstionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery/cached/memory"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -37,7 +38,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
 	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
-	"github.com/kudobuilder/kudo/pkg/test/utils"
+	"github.com/kudobuilder/kudo/pkg/kubernetes"
 	"github.com/kudobuilder/kudo/pkg/version"
 	kudohook "github.com/kudobuilder/kudo/pkg/webhook"
 )
@@ -111,16 +112,17 @@ func main() {
 	}
 	log.Print("OperatorVersion controller set up")
 
-	discoveryClient, err := utils.GetDiscoveryClient(mgr)
+	discoveryClient, err := kubernetes.GetDiscoveryClient(mgr)
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)
 	}
+	cachedDiscoveryClient := memory.NewMemCacheClient(discoveryClient)
 
 	err = (&instance.Reconciler{
 		Client:    mgr.GetClient(),
 		Config:    mgr.GetConfig(),
-		Discovery: discoveryClient,
+		Discovery: cachedDiscoveryClient,
 		Recorder:  mgr.GetEventRecorderFor("instance-controller"),
 		Scheme:    mgr.GetScheme(),
 	}).SetupWithManager(mgr)
@@ -131,7 +133,7 @@ func main() {
 	log.Print("Instance controller set up")
 
 	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) == "true" {
-		log.Printf("🔸 Setting up webhooks")
+		log.Printf("Setting up webhooks")
 
 		if err := registerWebhook("/admit", &v1beta1.Instance{}, &webhook.Admission{Handler: &kudohook.InstanceAdmission{}}, mgr); err != nil {
 			log.Printf("Unable to create instance admission webhook: %v", err)

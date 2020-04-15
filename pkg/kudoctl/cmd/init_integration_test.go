@@ -29,7 +29,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
-	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
+	testutils "github.com/kudobuilder/kuttl/pkg/test/utils"
 )
 
 var testenv testutils.TestEnvironment

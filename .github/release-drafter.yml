@@ -10,7 +10,7 @@ categories:
   - title: '🐛 Bug Fixes'
     labels:
       - 'release/bugfix'
-change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+change-template: '- $TITLE (#$NUMBER)'
 template: |
   This is a draft for the next release.
 

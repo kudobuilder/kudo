@@ -5,6 +5,8 @@ manifestDirs:
 - ./test/manifests/
 testDirs:
 - ./test/integration
-startKUDO: true
+commands:
+  - command: ./bin/manager
+    background: true
 startControlPlane: true
 parallel: 4
