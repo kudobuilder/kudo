@@ -9,7 +9,7 @@ owners:
   - "@zen-dog"
 editor: @zen-dog
 creation-date: 2020-03-30
-last-updated: 2020-03-30
+last-updated: 2020-04-16
 status: provisional
 ---
 
@@ -44,6 +44,7 @@ This KEP aims to improve operator user and developer experience by introducing o
 Recent operator development has shown that complex operators often depend on other operators to function. One workaround commonly seen can be found in the [Flink Demo](https://github.com/kudobuilder/operators/tree/master/repository/flink/docs/demo/financial-fraud) where an `Instance` of Flink needs an `Instance` of Kafka, which in turn needs an `Instance` of Zookeeper. There are two parts to the workaround:
 1. the operator user needs to first **manually** install the `kafka` and `zookeeper` operators while skipping the instance creation (using the `kubectl kudo install ... --skip-instance` CLI option).
 2. then, the user runs a regular `kubectl kudo install flink`, whose `deploy` plan includes `Instance` resources for Kafka and Zookeeper, which are bundled along other Flink operator templates in YAML format (rather than being created on-the-fly from an operator package).
+
 This KEP is aiming at streamlining this experience for users and developers.
 
 ### Goals
@@ -119,7 +120,7 @@ As you can see, this closely mimics the `kudo install` CLI command [options](htt
 Upon execution of `kudo install ...` command with the above operator definition, CLI will:
 
 1. Collect all operator dependencies by analyzing the `deploy` plan of the top-level operator and compose a list of all operator dependencies (tasks with the kind `Operator`) including **transitive dependencies**
-2. Install all collected operators **skipping the instances** (same as `kudo install ... --skip-instance`). Note that since we do not create instances here we can install them in any order
+2. Install all collected packages **skipping the instances** (same as `kudo install ... --skip-instance`). This step creates `Operator` and `OperatorVersion` resources. Note that since we do not create instances here we can install them in any order
 3. Proceed with the installation of the top-level operator as usual (create `Operator`, `OperatorVersion` and `Instance` resources)
 
 Since we do this step on the client-side we have access to the full functionality of the `install` command including installing operators from the file system. This will come very handy during the development and debugging which arguably becomes more complex with dependencies.
@@ -157,7 +158,7 @@ Legend:
 
 In the first step we build a dependency graph. A set of all graph vertices (which are task-operators) `S` is defined as `S = {AA, BB, CC, EE, GG}`. A transitive relationship `R` between the vertices is defined as `(a, b) ∈ S` meaning _`a` needs `b` deployed first_. The transitive relationship for the above example is: `R = { (AA,BB), (AA,CC), (BB,EE), (BB,GG) }`. The resulting topological order `O` is therefor `O = (EE, GG, BB, CC, AA)` which has no cycles.
 
-The instance controller (IC) then starts with the execution of the top-level `deploy` plan of the operator `AA`. The first task is the `BB` operator-task. When executing it, IC creates the `Instance-BB` resource and ends current reconciliation. Next, IC notices new `Instance-BB` resource, starts new reconciliation, and executes the  `deploy` plan of the operator `BB` when then creates `Instance-EE` resource. This way we are basically performing the depth-first search for the dependency graph, executing each vertex in the right order e.g. `EE` has to be healthy before `BB` deploy plan can continue with the next step `F`.
+The instance controller (IC) then starts with the execution of the top-level `deploy` plan of the operator `AA`. The first task is the `BB` operator-task. When executing it, IC creates the `Instance-BB` resource and ends current reconciliation. Next, IC notices new `Instance-BB` resource, starts new reconciliation, and executes the  `deploy` plan of the operator `BB` which then creates `Instance-EE` resource. This way we are basically performing the depth-first search for the dependency graph, executing each vertex in the right order e.g. `EE` has to be healthy before `BB` deploy plan can continue with the next step `F`.
 
 We would additionally add the higher-level `Instance` reference (e.g. `AA`) to the `ownerReferences` list of its direct children `Instance`s (e.g. `BB` and `CC`). This would help with determining which `Instance` belongs to which operator and additionally help us with [operator uninstalling](#uninstalling).
 
@@ -262,7 +263,7 @@ Updating parameters work the same way as deploying the operator. In most cases, 
 
 #### Upgrade
 
-While an out-of-band upgrade of the individual dependency operators is possible (and practically impossible to prohibit), operators, in general, should be upgraded as a whole to preserve compatibility between all dependencies. An `upgrade` plan execution is very similar to the `deploy` plan. CLI creates new `OperatorVersion` resources for all new dependency operator versions. KUDO manager builds a dependency graph by traversing the `upgrade` plans of the operators and executes them in a similar fashion.
+While an out-of-band upgrade of the individual dependency operators is possible (and practically impossible to prohibit until KUDO learns drift detection), operators, in general, should be upgraded as a whole to preserve compatibility between all dependencies. An `upgrade` plan execution is very similar to the `deploy` plan. CLI creates new `OperatorVersion` resources for all new dependency operator versions. KUDO manager builds a dependency graph by traversing the `upgrade` plans of the operators and executes them in a similar fashion.
 
 #### Uninstalling
 
