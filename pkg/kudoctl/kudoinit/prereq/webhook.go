@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	clientv1beta1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
 
 	"github.com/kudobuilder/kudo/pkg/engine/health"
@@ -45,7 +47,8 @@ func newWebHook(options kudoinit.Options) kudoWebHook {
 }
 
 func (k kudoWebHook) PreInstallVerify(client *kube.Client) verifier.Result {
-	if !k.opts.HasWebhooksEnabled() {
+	// skip verification if webhooks are not used or self-signed CA is used
+	if !k.opts.HasWebhooksEnabled() || k.opts.SelfSignedWebhookCA {
 		return verifier.NewResult()
 	}
 	return validateCertManagerInstallation(client)
@@ -56,12 +59,36 @@ func (k kudoWebHook) Install(client *kube.Client) error {
 		return nil
 	}
 
+	if k.opts.SelfSignedWebhookCA {
+		return k.installWithSelfSignedCA(client)
+	}
+	return k.installWithCertManager(client)
+}
+
+func (k kudoWebHook) installWithCertManager(client *kube.Client) error {
 	if err := installUnstructured(client.DynamicClient, certificate(k.opts.Namespace)); err != nil {
 		return err
 	}
 	if err := installAdmissionWebhook(client.KubeClient.AdmissionregistrationV1beta1(), InstanceAdmissionWebhook(k.opts.Namespace)); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (k kudoWebHook) installWithSelfSignedCA(client *kube.Client) error {
+	iaw, s, err := k.runtimeObjsWithSelfSignedCA()
+	if err != nil {
+		return nil
+	}
+
+	if err := installAdmissionWebhook(client.KubeClient.AdmissionregistrationV1beta1(), *iaw); err != nil {
+		return err
+	}
+
+	if err := installWebhookSecret(client.KubeClient, *s); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -79,14 +106,49 @@ func (k kudoWebHook) AsRuntimeObjs() []runtime.Object {
 		return make([]runtime.Object, 0)
 	}
 
-	av := InstanceAdmissionWebhook(k.opts.Namespace)
-	cert := certificate(k.opts.Namespace)
-	objs := []runtime.Object{&av}
-	for _, c := range cert {
+	if k.opts.SelfSignedWebhookCA {
+		iaw, s, err := k.runtimeObjsWithSelfSignedCA()
+		if err != nil {
+			panic(err)
+		}
+		return []runtime.Object{iaw, s}
+
+	}
+
+	return k.runtimeObjsWithCertManager()
+}
+
+func (k kudoWebHook) runtimeObjsWithCertManager() []runtime.Object {
+	iaw := InstanceAdmissionWebhook(k.opts.Namespace)
+	certObjs := certificate(k.opts.Namespace)
+	objs := []runtime.Object{&iaw}
+	for _, c := range certObjs {
 		c := c
 		objs = append(objs, &c)
 	}
 	return objs
+}
+
+func (k kudoWebHook) runtimeObjsWithSelfSignedCA() (*admissionv1beta1.MutatingWebhookConfiguration, *corev1.Secret, error) {
+	tinyCA, err := NewTinyCA(kudoinit.DefaultServiceName, k.opts.Namespace)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to set up webhook CA: %v", err)
+	}
+
+	srvCertPair, err := tinyCA.NewServingCert()
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to set up webhook serving certs: %v", err)
+	}
+
+	srvCert, srvKey, err := srvCertPair.AsBytes()
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to marshal webhook serving certs: %v", err)
+	}
+
+	iaw := instanceAdmissionWebhookWithCABundle(k.opts.Namespace, tinyCA.CA.CertBytes())
+	ws := webhookSecret(k.opts.Namespace, srvCert, srvKey)
+
+	return &iaw, &ws, nil
 }
 
 func validateCertManagerInstallation(client *kube.Client) verifier.Result {
@@ -160,6 +222,21 @@ func installAdmissionWebhook(client clientv1beta1.MutatingWebhookConfigurationsG
 	return err
 }
 
+func installWebhookSecret(client kubernetes.Interface, secret corev1.Secret) error {
+	_, err := client.CoreV1().Secrets(secret.Namespace).Create(&secret)
+	if kerrors.IsAlreadyExists(err) {
+		clog.V(4).Printf("webhook secret %v already exists", secret.Name)
+		return nil
+	}
+	return err
+}
+
+func instanceAdmissionWebhookWithCABundle(ns string, caData []byte) admissionv1beta1.MutatingWebhookConfiguration {
+	iaw := InstanceAdmissionWebhook(ns)
+	iaw.Webhooks[0].ClientConfig.CABundle = caData
+	return iaw
+}
+
 // InstanceAdmissionWebhook returns a MutatingWebhookConfiguration for the instance admission controller.
 func InstanceAdmissionWebhook(ns string) admissionv1beta1.MutatingWebhookConfiguration {
 	namespacedScope := admissionv1beta1.NamespacedScope
@@ -196,7 +273,7 @@ func InstanceAdmissionWebhook(ns string) admissionv1beta1.MutatingWebhookConfigu
 				SideEffects:   &noSideEffects,
 				ClientConfig: admissionv1beta1.WebhookClientConfig{
 					Service: &admissionv1beta1.ServiceReference{
-						Name:      "kudo-controller-manager-service",
+						Name:      kudoinit.DefaultServiceName,
 						Namespace: ns,
 						Path:      convert.StringPtr("/admit-kudo-dev-v1beta1-instance"),
 					},
@@ -236,9 +313,27 @@ func certificate(ns string) []unstructured.Unstructured {
 						"kind": "Issuer",
 						"name": "selfsigned-issuer",
 					},
-					"secretName": "kudo-webhook-server-secret",
+					"secretName": kudoinit.DefaultSecretName,
 				},
 			},
+		},
+	}
+}
+
+func webhookSecret(ns string, cert, key []byte) corev1.Secret {
+	return corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Secret",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kudoinit.DefaultSecretName,
+			Namespace: ns,
+		},
+		Type: "kubernetes.io/tls",
+		Data: map[string][]byte{
+			"tls.crt": cert,
+			"tls.key": key,
 		},
 	}
 }
