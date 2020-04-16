@@ -108,7 +108,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.Int64Var(&i.timeout, "wait-timeout", 300, "Wait timeout to be used")
 	f.StringVar(&i.webhooks, "webhook", "", "List of webhooks to install separated by commas (One of: InstanceValidation)")
 	f.StringVarP(&i.serviceAccount, "service-account", "", "", "Override for the default serviceAccount kudo-manager")
-	f.BoolVar(&i.selfSignedWebhookCA, "self-signed-webhook-ca-for-testing-only", false, "Use self-signed CA bundle (for testing only) for the webhooks")
+	f.BoolVar(&i.selfSignedWebhookCA, "unsafe-self-signed-webhook-ca", false, "Use self-signed CA bundle (for testing only) for the webhooks")
 
 	return cmd
 }
