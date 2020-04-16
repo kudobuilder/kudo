@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	DefaultName           = "kudo-controller-manager"
+	DefaultManagerName    = "kudo-controller-manager"
 	DefaultNamespace      = "kudo-system"
 	DefaultServiceName    = "kudo-controller-manager-service"
 	DefaultSecretName     = "kudo-webhook-server-secret" //nolint
