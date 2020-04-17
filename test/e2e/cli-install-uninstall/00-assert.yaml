@@ -1,12 +1,9 @@
-apiVersion: kudo.dev/v1beta1
-kind: Instance
+apiVersion: v1
+kind: Pod
 metadata:
-  name: first-operator
+  labels:
+    app: kudo-manager
+    control-plane: controller-manager
+  namespace: kudo-system
 status:
-  aggregatedStatus:
-    status: COMPLETE
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-deployment
+  phase: Running
