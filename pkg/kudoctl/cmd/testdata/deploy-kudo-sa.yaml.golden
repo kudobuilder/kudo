@@ -502,16 +502,6 @@ spec:
         status:
           description: InstanceStatus defines the observed state of Instance
           properties:
-            aggregatedStatus:
-              description: AggregatedStatus is overview of an instance status derived
-                from the plan status
-              properties:
-                activePlanName:
-                  type: string
-                status:
-                  description: ExecutionStatus captures the state of the rollout.
-                  type: string
-              type: object
             planStatus:
               additionalProperties:
                 description: "PlanStatus is representing status of a plan \n These

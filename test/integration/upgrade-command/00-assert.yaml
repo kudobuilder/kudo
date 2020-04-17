@@ -6,5 +6,6 @@ spec:
   operatorVersion:
     name: upgrade-operator-0.1.0
 status:
-  aggregatedStatus:
-    status: COMPLETE
+  planStatus:
+    deploy:
+      status: COMPLETE

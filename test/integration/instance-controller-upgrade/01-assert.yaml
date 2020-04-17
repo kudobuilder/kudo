@@ -3,8 +3,6 @@ kind: Instance
 metadata:
   name: icto-upgrade
 status:
-  aggregatedStatus:
-    status: COMPLETE
   planStatus:
     upgrade:
       status: COMPLETE

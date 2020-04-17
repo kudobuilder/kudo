@@ -3,8 +3,6 @@ kind: Instance
 metadata:
   name: icto-fallback-to-deploy
 status:
-  aggregatedStatus:
-    status: COMPLETE
   planStatus:
     deploy:
       status: COMPLETE

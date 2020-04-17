@@ -55,14 +55,7 @@ type PlanExecution struct {
 // InstanceStatus defines the observed state of Instance
 type InstanceStatus struct {
 	// slice would be enough here but we cannot use slice because order of sequence in yaml is considered significant while here it's not
-	PlanStatus       map[string]PlanStatus `json:"planStatus,omitempty"`
-	AggregatedStatus AggregatedStatus      `json:"aggregatedStatus,omitempty"`
-}
-
-// AggregatedStatus is overview of an instance status derived from the plan status
-type AggregatedStatus struct {
-	Status         ExecutionStatus `json:"status,omitempty"`
-	ActivePlanName string          `json:"activePlanName,omitempty"`
+	PlanStatus map[string]PlanStatus `json:"planStatus,omitempty"`
 }
 
 // PlanStatus is representing status of a plan
