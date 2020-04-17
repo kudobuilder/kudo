@@ -58,12 +58,12 @@ func InstallPackage(kc *Client, resources *packages.Resources, skipInstance bool
 	}
 
 	instanceName = resources.Instance.ObjectMeta.Name
-	instanceExists, err := kc.InstanceExistsInCluster(operatorName, namespace, resources.OperatorVersion.Spec.Version, instanceName)
+	instance, err := kc.GetInstance(instanceName, namespace)
 	if err != nil {
 		return fmt.Errorf("failed to verify existing instance: %v", err)
 	}
 
-	if !instanceExists {
+	if instance == nil {
 		if _, err := kc.InstallInstanceObjToCluster(resources.Instance, namespace); err != nil {
 			return fmt.Errorf("failed to install instance %s: %v", instanceName, err)
 		}
