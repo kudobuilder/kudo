@@ -21,18 +21,14 @@ This KEP describes addition of a flag for parameters that allows a parameter to 
 
 ## Motivation
 
-The new flag allows an operator to define a parameter that is basically one-time-use. Especially for manually triggered
-plans this will be an often used case:
+The new flag allows an operator to define a parameter that is basically one-time-use. Especially for manually triggered plans this will be an often used case:
 - Start a backup with a specific name
 - Evict a specific pod from a stateful set
 - Start a repair plan for a specific node or datacenter
 
-All these examples have in common that they require input parameters. The parameters are required, and the user should be
-forced to set them. If we do not have resettable parameters, it might happen that a parameters are still set from a
-previous execution and the user forgets to set it.
+All these examples have in common that they require input parameters. The parameters are required, and the user should be forced to set them. If we do not have resettable parameters, it might happen that a parameters are still set from a previous execution and the user forgets to set it.
 
-When parameters are marked as resettable, they are set to the default value after plan execution, and KUDO can error 
-out if a required parameter is not set. 
+When parameters are marked as resettable, they are set to the default value after plan execution, and KUDO can error out if a required parameter is not set. 
 
 ### Goals
 
@@ -43,7 +39,7 @@ Make it possible to automatically reset a parameter after a plan is executed.
 - Set parameters to specific values (except for a default)
 - Set parameters at other moments than at the end of a plan
 
-## Proposal 1
+## Proposal 1 - Reset flag on parameter
 
 Add an additional attribute `resettable` to parameter specifications in `params.yaml`:
 
@@ -55,11 +51,9 @@ Add an additional attribute `resettable` to parameter specifications in `params.
 
 The default value for this flag would be `false`.
 
-If the flag is set to `true`, the parameter will be set to the default value when *any* plan finishes. This change
-of parameter value should *not* trigger any plan execution. This is the preferred proposal.
+If the flag is set to `true`, the parameter will be set to the default value when *any* plan finishes. This change of parameter value should *not* trigger any plan execution. This is the preferred proposal.
 
-An alternative would be a "string" type parameter that allows a user to set plans after which the parameter
-is reset:
+An alternative would be a "string" type parameter that allows a user to set plans after which the parameter is reset:
 
 ```yaml
   - name: BACKUP_NAME
@@ -67,8 +61,7 @@ is reset:
     resetAfterPlan: [ "backup", "restore" ]
 ```
 
-This would reset the parameter after the plan `backup` is executed. The downside with this approach is that a parameter
-could be set at some point and then be unknowingly used later.
+This would reset the parameter after the plan `backup` is executed. The downside with this approach is that a parameter could be set at some point and then be unknowingly used later.
 
 Pros:
 - Both variants would be an easy extension for parameters from the definition point of view
@@ -77,7 +70,7 @@ Cons:
 - The parameters for a specific plan are not separated from "normal" parameters
 - It's not easy to determine 
 
-## Proposal 2
+## Proposal 2 - SetParameters Task
 
 Add new task type, `SetParameters`:
 ```yaml
@@ -88,8 +81,7 @@ Add new task type, `SetParameters`:
         - name: 'RESTORE_FLAG'
            value: nil
 ```
-This is a lot more powerful, but also provides a lot more ways to introduce complexity: Parameter values could change 
-inside a plan execution, what about triggered plans from param changes, etc.
+This is a lot more powerful, but also provides a lot more ways to introduce complexity: Parameter values could change inside a plan execution, what about triggered plans from param changes, etc.
 
 Pros:
 - Very powerful
@@ -100,10 +92,9 @@ Cons:
 - Parameters could change while the plan is executed
 - What happens when a plan is triggered by a changed parameter
 
-## Proposal 3
+## Proposal 3 - Plan specific parameters
 
-Specific plan parameters: These parameters would only be valid inside a specific plan and could be defined inside the
-operator:
+Specific plan parameters: These parameters would only be valid inside a specific plan and could be defined inside the operator:
 
 ```yaml
 plans:
@@ -148,7 +139,7 @@ Cons:
 - Could potentially increase the size of the operator.yaml
 
 
-## Proposal 4
+## Proposal 4 - Parameter reset after plan finish
 
 Define a list of parameters to be reset when a plan is finished:
 
@@ -173,6 +164,25 @@ Pros:
 Cons:
 - It won't be obvious from the parameter list that this is a plan specific parameter
 
+## Proposal 5 - Transient parameters only on `kudo plan trigger`
+
+This proposal would not require new configuration options in the operator definition. Normal parameter definitions can be used, the handling depends on the usage:
+
+```bash
+kudo update --instance op-instance -p PARAM1=value
+```
+This would set a parameter persistently, the parameter value will be saved in the Instance CRD
+
+```bash
+kudo plan trigger someplan --instance op-instance -p PARAM1=value
+```
+This would use a parameter transiently, the value would be available while rendering templates, but the value would not be saved in the instance CRD. When the plan execution ends, the parameter value is discarded.
+
+Open Questions:
+- Should transient parameters marked in the parameter definition? 
+  - If not, they could be set permanently with `kudo update`, which would reverse most of the ideas of transient parameters
+  - If yes, it may allow setting permanent parameters with `kudo plan trigger`. The question would be if the definition would be more like Proposal 1 or 3 
+
 
 ### User Stories
 
@@ -183,8 +193,7 @@ Cons:
 A plan that starts a backup for the whole cluster which is manually triggered
 
 It has a BACKUP_NAME parameter that specifies the name of a backup that is to be created.  
-This parameter needs to be unique on every execution and should not be reused. If the parameter is not unset after the
-backup plan is finished, a user could forget to set it again for the next execution.
+This parameter needs to be unique on every execution and should not be reused. If the parameter is not unset after the backup plan is finished, a user could forget to set it again for the next execution.
 
 - Plan is manually triggered
 
@@ -194,8 +203,7 @@ The restore operation on the Cassandra Operator can be used to create a new clus
 
 It uses a RESTORE_FLAG parameter that can be used on installation of a new C* cluster to restore an existing backup. 
 It sets up an initContainer that downloads the data and prepares the new cluster to use this data.
-The initContainer is only used on the very first start of the cluster and should not exist on subsequent restarts of
-the nodes, additionally the RESTORE_FLAG is useless/not used after the initial deploy plan is done.
+The initContainer is only used on the very first start of the cluster and should not exist on subsequent restarts of the nodes, additionally the RESTORE_FLAG is useless/not used after the initial deploy plan is done.
 
 - Plan is `deploy`, used on installation
 
@@ -211,6 +219,7 @@ the nodes, additionally the RESTORE_FLAG is useless/not used after the initial d
 
 - 2020-03-31 - Initial draft. (@aneumann)
 - 2020-04-03 - Added alternatives and user stories
+- 2020-04-17 - Added proposal 5
 
 ## Alternatives
 
