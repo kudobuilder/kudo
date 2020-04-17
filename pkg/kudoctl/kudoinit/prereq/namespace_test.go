@@ -20,7 +20,7 @@ import (
 func TestPrereq_Fail_PreValidate_CustomNamespace(t *testing.T) {
 	client := getFakeClient()
 
-	init := NewNamespaceInitializer(kudoinit.NewOptions("", "", "customNS", "", make([]string, 0), false))
+	init := NewNamespaceInitializer(kudoinit.NewOptions("", "", "customNS", "", make([]string, 0), false, false))
 	result := verifier.NewResult()
 	_ = init.PreInstallVerify(client, &result)
 
@@ -32,7 +32,7 @@ func TestPrereq_Ok_PreValidate_CustomNamespace(t *testing.T) {
 
 	mockGetNamespace(client, "customNS")
 
-	init := NewNamespaceInitializer(kudoinit.NewOptions("", "", "customNS", "", make([]string, 0), false))
+	init := NewNamespaceInitializer(kudoinit.NewOptions("", "", "customNS", "", make([]string, 0), false, false))
 
 	result := verifier.NewResult()
 	_ = init.PreInstallVerify(client, &result)

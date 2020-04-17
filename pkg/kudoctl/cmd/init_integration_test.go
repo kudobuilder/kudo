@@ -177,7 +177,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 
 	kudoControllerFound := false
 	for _, ss := range statefulsets.Items {
-		if ss.Name == "kudo-controller-manager" {
+		if ss.Name == kudoinit.DefaultManagerName {
 			kudoControllerFound = true
 		}
 	}
@@ -296,7 +296,7 @@ func TestIntegInitWithServiceAccount(t *testing.T) {
 
 	kudoControllerFound := false
 	for _, ss := range statefulsets.Items {
-		if ss.Name == "kudo-controller-manager" {
+		if ss.Name == kudoinit.DefaultManagerName {
 			kudoControllerFound = true
 		}
 	}
@@ -350,7 +350,7 @@ func TestReInitFails(t *testing.T) {
 }
 
 func deleteInitObjects(client *testutils.RetryClient) {
-	opts := kudoinit.NewOptions("", "", "", "", []string{}, false)
+	opts := kudoinit.NewOptions("", "", "", "", []string{}, false, false)
 
 	crds := crd.NewInitializer()
 

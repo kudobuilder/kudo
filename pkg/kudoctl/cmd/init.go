@@ -53,6 +53,8 @@ and finishes with success if KUDO is already installed.
   kubectl kudo init --crd-only --dry-run --output yaml | kubectl delete -f -
   # pass existing serviceaccount 
   kubectl kudo init --service-account testaccount
+  # install kudo with activated instance admission webhook
+  kubectl kudo init --webhook InstanceValidation
   # upgrade an existing KUDO installation
   kubectl kudo init --upgrade
   # validate the current KUDO installation
@@ -61,24 +63,25 @@ and finishes with success if KUDO is already installed.
 )
 
 type initCmd struct {
-	out            io.Writer
-	fs             afero.Fs
-	image          string
-	pullPolicy     string
-	dryRun         bool
-	output         string
-	version        string
-	ns             string
-	serviceAccount string
-	wait           bool
-	timeout        int64
-	clientOnly     bool
-	crdOnly        bool
-	upgrade        bool
-	verify         bool
-	home           kudohome.Home
-	client         *kube.Client
-	webhooks       string
+	out                 io.Writer
+	fs                  afero.Fs
+	image               string
+	pullPolicy          string
+	dryRun              bool
+	output              string
+	version             string
+	ns                  string
+	serviceAccount      string
+	wait                bool
+	timeout             int64
+	clientOnly          bool
+	crdOnly             bool
+	upgrade             bool
+	verify              bool
+	home                kudohome.Home
+	client              *kube.Client
+	webhooks            string
+	selfSignedWebhookCA bool
 }
 
 func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
@@ -117,6 +120,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.Int64Var(&i.timeout, "wait-timeout", 300, "Wait timeout to be used")
 	f.StringVar(&i.webhooks, "webhook", "", "List of webhooks to install separated by commas (One of: InstanceValidation)")
 	f.StringVarP(&i.serviceAccount, "service-account", "", "", "Override for the default serviceAccount kudo-manager")
+	f.BoolVar(&i.selfSignedWebhookCA, "unsafe-self-signed-webhook-ca", false, "Use self-signed CA bundle (for testing only) for the webhooks")
 
 	return cmd
 }
@@ -139,6 +143,9 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 	}
 	if initCmd.webhooks != "" && initCmd.webhooks != "InstanceValidation" {
 		return errors.New("webhooks can be only empty or contain a single string 'InstanceValidation'. No other webhooks supported")
+	}
+	if initCmd.webhooks == "" && initCmd.selfSignedWebhookCA {
+		return errors.New("self-signed CA bundle can only be used with webhooks option")
 	}
 	if initCmd.upgrade && initCmd.verify {
 		return errors.New("'--upgrade' and '--validate' can not be used at the same time")
@@ -168,7 +175,8 @@ func (initCmd *initCmd) run() error {
 		pullPolicy = v1.PullIfNotPresent
 	}
 
-	opts := kudoinit.NewOptions(initCmd.version, pullPolicy, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks), initCmd.upgrade)
+	opts := kudoinit.NewOptions(initCmd.version, pullPolicy, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks), initCmd.upgrade, initCmd.selfSignedWebhookCA)
+
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image

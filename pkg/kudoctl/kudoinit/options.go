@@ -21,13 +21,16 @@ type Options struct {
 	// Image PullPolicy
 	PullPolicy v1.PullPolicy
 
-	// Enable validation
-	Webhooks       []string
+	// List of enabled webhooks
+	Webhooks []string
+	// Using self-signed webhook CA bundle
+	SelfSignedWebhookCA bool
+
 	ServiceAccount string
 	Upgrade        bool
 }
 
-func NewOptions(v string, pullPolicy v1.PullPolicy, ns string, sa string, webhooks []string, upgrade bool) Options {
+func NewOptions(v string, pullPolicy v1.PullPolicy, ns string, sa string, webhooks []string, upgrade bool, selfSignedWebhookCA bool) Options {
 	if pullPolicy == "" {
 		pullPolicy = v1.PullAlways
 	}
@@ -50,6 +53,7 @@ func NewOptions(v string, pullPolicy v1.PullPolicy, ns string, sa string, webhoo
 		Webhooks:                      webhooks,
 		ServiceAccount:                sa,
 		Upgrade:                       upgrade,
+		SelfSignedWebhookCA:           selfSignedWebhookCA,
 	}
 }
 

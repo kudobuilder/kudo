@@ -43,7 +43,6 @@ dockers:
     image_templates:
       - "kudobuilder/controller:latest"
       - "kudobuilder/controller:{{ .Tag }}"
-    skip_push: auto
 archives:
   - id: kubectl-kudo-tarball
     builds:

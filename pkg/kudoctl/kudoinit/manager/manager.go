@@ -23,10 +23,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
-const (
-	controllerManagerName = "kudo-controller-manager"
-)
-
 // Ensure kudoinit.Step is implemented
 var _ kudoinit.Step = &Initializer{}
 
@@ -76,7 +72,7 @@ func (m Initializer) Install(client *kube.Client) error {
 }
 
 func UninstallStatefulSet(client *kube.Client, options kudoinit.Options) error {
-	err := client.KubeClient.AppsV1().StatefulSets(options.Namespace).Delete(controllerManagerName, &metav1.DeleteOptions{})
+	err := client.KubeClient.AppsV1().StatefulSets(options.Namespace).Delete(kudoinit.DefaultManagerName, &metav1.DeleteOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to uninstall KUDO manager: %v", err)
 	}
@@ -84,7 +80,7 @@ func UninstallStatefulSet(client *kube.Client, options kudoinit.Options) error {
 }
 
 func (m Initializer) verifyManagerNotInstalled(client *kube.Client, result *verifier.Result) error {
-	_, err := client.KubeClient.AppsV1().StatefulSets(m.options.Namespace).Get(controllerManagerName, metav1.GetOptions{})
+	_, err := client.KubeClient.AppsV1().StatefulSets(m.options.Namespace).Get(kudoinit.DefaultManagerName, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return nil
@@ -96,7 +92,7 @@ func (m Initializer) verifyManagerNotInstalled(client *kube.Client, result *veri
 }
 
 func (m Initializer) verifyManagerInstalled(client *kube.Client, result *verifier.Result) error {
-	mgr, err := client.KubeClient.AppsV1().StatefulSets(m.options.Namespace).Get(controllerManagerName, metav1.GetOptions{})
+	mgr, err := client.KubeClient.AppsV1().StatefulSets(m.options.Namespace).Get(kudoinit.DefaultManagerName, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			result.AddErrors(fmt.Sprintf("failed to find KUDO manager in namespace %s", m.options.Namespace))
@@ -164,12 +160,12 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: opts.Namespace,
-			Name:      controllerManagerName,
+			Name:      kudoinit.DefaultManagerName,
 			Labels:    managerLabels,
 		},
 		Spec: appsv1.StatefulSetSpec{
 			Selector:    &metav1.LabelSelector{MatchLabels: managerLabels},
-			ServiceName: "kudo-controller-manager-service",
+			ServiceName: kudoinit.DefaultServiceName,
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: managerLabels,
@@ -181,7 +177,7 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 							Command: []string{"/root/manager"},
 							Env: []v1.EnvVar{
 								{Name: "POD_NAMESPACE", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
-								{Name: "SECRET_NAME", Value: "kudo-webhook-server-secret"},
+								{Name: "SECRET_NAME", Value: kudoinit.DefaultSecretName},
 								{Name: "ENABLE_WEBHOOKS", Value: strconv.FormatBool(opts.HasWebhooksEnabled())},
 							},
 							Image:           image,
@@ -213,7 +209,7 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 				Name: "cert",
 				VolumeSource: v1.VolumeSource{
 					Secret: &v1.SecretVolumeSource{
-						SecretName:  "kudo-webhook-server-secret",
+						SecretName:  kudoinit.DefaultSecretName,
 						DefaultMode: &secretDefaultMode,
 					},
 				},
@@ -233,7 +229,7 @@ func generateService(opts kudoinit.Options) *v1.Service {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: opts.Namespace,
-			Name:      "kudo-controller-manager-service",
+			Name:      kudoinit.DefaultServiceName,
 			Labels:    managerLabels,
 		},
 		Spec: v1.ServiceSpec{
