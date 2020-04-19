@@ -50,20 +50,27 @@ func NewClient(conf *Configuration) (*Client, error) {
 
 // DownloadIndexFile fetches the index file from a repository.
 func (c *Client) DownloadIndexFile() (*IndexFile, error) {
-	var indexURL string
 	parsedURL, err := url.Parse(c.Config.URL)
 	if err != nil {
 		return nil, fmt.Errorf("parsing config url: %w", err)
 	}
+	// we need the index.yaml at the url provided
 	parsedURL.Path = fmt.Sprintf("%s/index.yaml", strings.TrimSuffix(parsedURL.Path, "/"))
 
-	indexURL = parsedURL.String()
+	return c.downloadIndexFile(parsedURL)
+}
+
+func (c *Client) downloadIndexFile(url *url.URL) (*IndexFile, error) {
 	var resp *bytes.Buffer
-	if strings.HasPrefix(indexURL, "file:") {
-		b, _ := ioutil.ReadFile(parsedURL.Path)
+	var err error
+	if strings.HasPrefix(url.String(), "file:") {
+		b, err := ioutil.ReadFile(url.Path)
+		if err != nil {
+			return nil, err
+		}
 		resp = bytes.NewBuffer(b)
 	} else {
-		resp, err = c.Client.Get(indexURL)
+		resp, err = c.Client.Get(url.String())
 	}
 	if err != nil {
 		return nil, fmt.Errorf("getting index url: %w", err)
