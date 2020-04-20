@@ -7,5 +7,6 @@ spec:
   operatorVersion:
     name: job-timeout-operator-0.1.0
 status:
-  aggregatedStatus:
-    status: FATAL_ERROR
+  planStatus:
+    deploy:
+      status: FATAL_ERROR
