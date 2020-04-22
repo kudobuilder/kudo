@@ -105,6 +105,8 @@ func (c *Client) downloadIndexFile(parent *IndexFile, url *url.URL) (*IndexFile,
 	return indexFile, err
 }
 
+// Merge combines the Entries of 2 index files.   The first index file is the master
+// the second is merged into the first.  Any duplicates are ignored.
 func (c *Client) Merge(index *IndexFile, mergeIndex *IndexFile) {
 	// index is the master, any dups in the merged in index will have what is local replace those entries
 	for _, pvs := range mergeIndex.Entries {
