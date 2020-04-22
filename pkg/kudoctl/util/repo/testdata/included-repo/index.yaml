@@ -1,0 +1,39 @@
+apiVersion: v1
+entries:
+  mysql:
+    - appVersion: "5.7"
+      digest: ad2451eaf68896490a2864afbb3fcd81e6fe3368e4bf001f8a23dc9cbcddf49a
+      maintainers:
+        - email: nick@dischord.org
+          name: Nick Jones
+      name: mysql
+      operatorVersion: 0.2.0
+      urls:
+        - https://kudo-repository.storage.googleapis.com/0.10.0/mysql-5.7_0.2.0.tgz
+  flink:
+    - appVersion: 0.7.0
+      description: wrong flink (should NOT be included)
+      digest: 0787a078e64c73064287751b833d63ca3d1d284b4f494ebf670443683d5b96dd
+      maintainers:
+        - email: <runyontr@gmail.com>
+          name: Tom Runyon
+        - email: <kensipe@gmail.com>
+          name: Ken Sipe
+      name: flink
+      operatorVersion: 0.3.0
+    - appVersion: 0.8.0
+      description: this merges because the version doesn't exist in parent
+      digest: 0787a078e64c73064287751b833d63ca3d1d284b4f494ebf670443683d5b96dd
+      maintainers:
+        - email: <runyontr@gmail.com>
+          name: Tom Runyon
+        - email: <kensipe@gmail.com>
+          name: Ken Sipe
+      name: flink
+      operatorVersion: 0.4.0
+      urls:
+        - http://kudo.dev/flink
+
+generated: "2020-04-19T15:04:00Z"
+
+

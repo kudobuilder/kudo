@@ -42,3 +42,29 @@ func TestLoadRepositories(t *testing.T) {
 	assert.Equal(t, r.CurrentConfiguration().Name, Default.Name)
 	assert.Equal(t, r.CurrentConfiguration().URL, Default.URL)
 }
+
+func TestDownloadMultiRepo(t *testing.T) {
+
+	p, err := filepath.Abs("testdata/include-index")
+	assert.NoError(t, err)
+	config := &Configuration{
+		URL: fmt.Sprintf("file://%s", p),
+	}
+	client, err := NewClient(config)
+	assert.NoError(t, err)
+	index, err := client.DownloadIndexFile()
+	assert.NoError(t, err)
+	// mysql package only there, if include worked
+	assert.NotNil(t, index.Entries["mysql"])
+
+	// the merge for flink will have 1 dup that doesn't merge
+	flink, err := index.FindFirstMatch("flink", "", "0.3.0")
+	assert.NoError(t, err)
+	assert.Equal(t, "correct flink", flink.Description)
+
+	// and a new version that does merge
+	flink, err = index.FindFirstMatch("flink", "", "0.4.0")
+	assert.NoError(t, err)
+	assert.Equal(t, "0.4.0", flink.OperatorVersion)
+
+}

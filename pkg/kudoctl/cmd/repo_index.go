@@ -140,7 +140,7 @@ func (ri *repoIndexCmd) run() error {
 		if err != nil {
 			return err
 		}
-		merge(index, mergeIndex)
+		client.Merge(index, mergeIndex)
 	}
 
 	if err := index.WriteFile(ri.fs, target); err != nil {
@@ -148,20 +148,6 @@ func (ri *repoIndexCmd) run() error {
 	}
 	fmt.Fprintf(ri.out, "index %v created.\n", target)
 	return nil
-}
-
-func merge(index *repo.IndexFile, mergeIndex *repo.IndexFile) {
-	// index is the master, any dups in the merged in index will have what is local replace those entries
-	for _, pvs := range mergeIndex.Entries {
-		for _, pv := range pvs {
-			err := index.AddPackageVersion(pv)
-			// this is most likely to be a duplicate pv, which we ignore (but will log at the right v)
-			if err != nil {
-				// todo: add verbose logging here
-				continue
-			}
-		}
-	}
 }
 
 func (ri *repoIndexCmd) mergeRepoConfig() (*repo.Configuration, error) {

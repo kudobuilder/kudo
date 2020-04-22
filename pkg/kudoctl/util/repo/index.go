@@ -22,6 +22,7 @@ const defaultURL = "http://localhost/"
 type IndexFile struct {
 	APIVersion string                     `json:"apiVersion"`
 	Entries    map[string]PackageVersions `json:"entries"`
+	Includes   []string                   `json:"includes,omitempty"`
 	Generated  *time.Time                 `json:"generated"`
 }
 

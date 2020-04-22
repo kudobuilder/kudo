@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/afero"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 )
@@ -54,16 +55,17 @@ func (c *Client) DownloadIndexFile() (*IndexFile, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing config url: %w", err)
 	}
-	// we need the index.yaml at the url provided
-	parsedURL.Path = fmt.Sprintf("%s/index.yaml", strings.TrimSuffix(parsedURL.Path, "/"))
 
-	return c.downloadIndexFile(parsedURL)
+	return c.downloadIndexFile(nil, parsedURL)
 }
 
-func (c *Client) downloadIndexFile(url *url.URL) (*IndexFile, error) {
+func (c *Client) downloadIndexFile(parent *IndexFile, url *url.URL) (*IndexFile, error) {
 	var resp *bytes.Buffer
 	var err error
-	if strings.HasPrefix(url.String(), "file:") {
+	// we need the index.yaml at the url provided
+	url.Path = fmt.Sprintf("%s/index.yaml", strings.TrimSuffix(url.Path, "/"))
+
+	if url.Scheme == "file" || strings.HasPrefix(url.String(), "file:") {
 		b, err := ioutil.ReadFile(url.Path)
 		if err != nil {
 			return nil, err
@@ -82,5 +84,37 @@ func (c *Client) downloadIndexFile(url *url.URL) (*IndexFile, error) {
 	}
 
 	indexFile, err := ParseIndexFile(indexBytes)
+	//TODO (kensipe): err handling such that error in includes are ignored (but not root)
+	//TODO (kensipe): track which includes have happened so there are no repeats
+	for _, include := range indexFile.Includes {
+		iURL, err := url.Parse(include)
+		if err != nil {
+			clog.Printf("Unable to parse include url for %s", include)
+		}
+		nextIndex, err := c.downloadIndexFile(indexFile, iURL)
+		if err != nil {
+			return nil, err
+		}
+		if parent != nil {
+			c.Merge(parent, nextIndex)
+		} else {
+			c.Merge(indexFile, nextIndex)
+		}
+	}
+
 	return indexFile, err
+}
+
+func (c *Client) Merge(index *IndexFile, mergeIndex *IndexFile) {
+	// index is the master, any dups in the merged in index will have what is local replace those entries
+	for _, pvs := range mergeIndex.Entries {
+		for _, pv := range pvs {
+			err := index.AddPackageVersion(pv)
+			// this is most likely to be a duplicate pv, which we ignore (but will log at the right v)
+			if err != nil {
+				// todo: add verbose logging here
+				continue
+			}
+		}
+	}
 }
