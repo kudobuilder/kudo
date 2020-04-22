@@ -39,12 +39,28 @@ task("integration-test", inputs=["git"], steps=[k8s.corev1.Container(
   )
 )])
 
-task("e2e-test", inputs=["git"], steps=[k8s.corev1.Container(
-  name="e2e-test",
+dindTask("e2e-test", inputs=["git"], steps=[
+ k8s.corev1.Container(
+  name="e2e-test-prep",
   image="kudobuilder/golang:1.14",
-  command=[ "make", "e2e-test" ],
+  command=[ "make", "cli-fast", "manager-fast" ],
+  workingDir="/workspace/git",
+  resources = k8s.corev1.ResourceRequirements(
+    limits={
+      "cpu": k8s.resource_quantity("2000m"),
+      "memory": k8s.resource_quantity("7.5Gi")
+    },
+    requests={
+      "cpu": k8s.resource_quantity("2000m"),
+      "memory": k8s.resource_quantity("7.5Gi")
+    }
+  )
+ ),
+ k8s.corev1.Container(
+  name="e2e-test",
+  command=[ "./hack/run-e2e-tests.sh" ],
   env=[
-    k8s.corev1.EnvVar(name="INTEGRATION_OUTPUT_JUNIT", value="true"),
+    k8s.corev1.EnvVar(name="INTEGRATION_OUTPUT_JUNIT", value="false"), # TODO: enable
     k8s.corev1.EnvVar(name="KUBEBUILDER_ATTACH_CONTROL_PLANE_OUTPUT", value="true")
   ],
   workingDir="/workspace/git",
@@ -58,7 +74,8 @@ task("e2e-test", inputs=["git"], steps=[k8s.corev1.Container(
       "memory": k8s.resource_quantity("7.5Gi")
     }
   )
-)])
+ )
+])
 
 action(tasks=["lint", "integration-test", "e2e-test"], on=push())
 action(tasks=["lint", "integration-test", "e2e-test"], on=pullRequest(chatops=["test"]))
