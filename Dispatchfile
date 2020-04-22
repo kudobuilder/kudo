@@ -39,5 +39,5 @@ task("integration-test", inputs=["git"], steps=[k8s.corev1.Container(
   )
 )])
 
-action(tasks=["lint", "integration-test"], on=push(branches=["master"]))
+action(tasks=["lint", "integration-test"], on=push())
 action(tasks=["lint", "integration-test"], on=pullRequest(chatops=["test"]))
