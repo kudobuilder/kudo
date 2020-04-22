@@ -163,7 +163,7 @@ We would additionally add the higher-level `Instance` reference (e.g. `AA`) to t
 
 The status of the execution can be seen as usual as part of the `Instance.Status`. We could additionally forward the status of a dependency `Instance` to the top-level `Instance.Status` to simplify the overview.
 
-Note that in the above example if e.g. `EE` and `CC` task-operators reference the same operator package they must use distinct instance names `spec.instanceName` so that two separate `Instance`s are deployed. Otherwise, this would be a life-cycle dependency which is a [non-goal](#non-goals) for this KEP.
+Note that in the above example if e.g. `EE` and `CC` task-operators reference the same operator package KUDO will create two distinct instances (`Instance-EE` and `Instance-CC`). Otherwise, one of them would be a life-cycle dependency which is a [non-goal](#non-goals) for this KEP. There is also a naming issue here: an operator developer would have to give both instances distinct `spec.instanceName`s in order for them not to collide. Another issue is: what happens when a user installs the top-level operator in the same namespace twice? We should make sure dependencies instance names do not collide with each other. A suggestion would be to make instance names hierarchical so that e.g. `Instance-EE` would be named `aa.bb.ee` where `aa` is the name of the top-level instance of the operator `AA`. This will also improve the UX as users would be able to immediately know where the instance belongs to.
 
 ##### Dependencies Parametrization
 
