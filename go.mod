@@ -40,4 +40,4 @@ require (
 
 replace k8s.io/code-generator v0.17.3 => github.com/kudobuilder/code-generator v0.17.4-beta.0.0.20200316162450-cc91a9201457
 
-replace github.com/kudobuilder/kuttl v0.1.0 => github.com/porridge/kuttl v0.1.1-0.20200423104129-0c6fafd2598c
+replace github.com/kudobuilder/kuttl v0.1.0 => github.com/porridge/kuttl v0.1.1-0.20200423205628-83f2ffe1f8ad

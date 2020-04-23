@@ -422,8 +422,8 @@ github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pmezard/go-difflib v0.0.0-20151028094244-d8ed2627bdf0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/porridge/kuttl v0.1.1-0.20200423104129-0c6fafd2598c h1:D8wgTIW1jLc2wDsM5s4RoPJhPLsxlGYz1qCd570JbWw=
-github.com/porridge/kuttl v0.1.1-0.20200423104129-0c6fafd2598c/go.mod h1:2cEfzTxPoa6Ayxq/mtk3ngd4C+578cB8RWiuaokBlZE=
+github.com/porridge/kuttl v0.1.1-0.20200423205628-83f2ffe1f8ad h1:mHW3/pS77qjKnHB8G7mnsJTzh3FG+VH1wYj3djMla/k=
+github.com/porridge/kuttl v0.1.1-0.20200423205628-83f2ffe1f8ad/go.mod h1:2cEfzTxPoa6Ayxq/mtk3ngd4C+578cB8RWiuaokBlZE=
 github.com/pquerna/cachecontrol v0.0.0-20171018203845-0dec1b30a021/go.mod h1:prYjPmNq4d1NPVmpShWobRqXY3q7Vp+80DqgxxUrUIA=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
 github.com/prometheus/client_golang v0.9.3/go.mod h1:/TN21ttK/J9q6uSwhBd54HahCDft0ttaMvbicHlPoso=
