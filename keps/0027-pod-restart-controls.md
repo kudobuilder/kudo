@@ -40,68 +40,20 @@ Make it possible for an operator developer to specify when a parameter will rest
 - Calculation of used config maps, secrets or other resources used by a pod: The automatic pod restart is currently used to force pods to re-read config maps on a parameter update. When a user disables the pod restart for a parameter, and this parameter updates a config map or another dependency of the pod, the change might not be applied in the pod until the next restart.
 - Restarting a stuck Pod (A step that cannot be executed, a pod that cannot be deployed because of various reasons, a pod that crash loops, etc.)
 
-## Proposal 1 - Parameter Groups
+## Proposal - Resource Dependency Graph
 
-Allow the operator developer to define groups of parameters that can then be used to trigger a restart of pods from a deployment or stateful set.
+KUDO will analyze the operator and build a dependency graph of used resources:
 
-Add a list of `groups` that each parameter is part of:
+- Each deployment, stateful set and batch job will be analysed which results in list of required resources (ConfigMaps and Secrets).
+- When a resource is deployed, KUDO calculates a hash from all dependent resources and adds it as an annotation to the pod template. This will replace the current `last-plan-execution-uid`.
 
-```yaml
-  - name: CONFIG_VALUE
-    description: "A parameter that changes a config map which is used by a stateful set."
-    default: "3"
-    groups:
-      - MAIN_GROUP
-  - name: SOME_OTHER_PARAMETER
-    description: "A parameter that changes something that is used by two stateful sets."
-    default: "3"
-    groups:
-      - MAIN_GROUP
-      - ADDITIONAL_GROUP
-```
-
-KUDO then calculates the hash of all parameters in a group. This hash can then be used instead of the the `last-plan-execution-uid` in a deployment or stateful set to trigger the reload of the pods:
-
-```yaml
-spec:
-  template:
-    metadata:
-      annotations:
-        config-values-hash: {{ .ParamGroupHashses.MAIN_GROUP }}
-```
-
-When a parameter in the group changes, the hash will change, which in turn would then trigger the restart of the pods.
-
-This proposal would remove the `last-plan-execution-uid` and automatic pod restarts. Configuration for pod restarts would be fully in the responsibility of the operator developer.  
-
-There will be a default `ALL` group that all parameters belong to. For an operator developer to restore the current behavior, the would only need to add the following annotation to the spec template:
-
-```yaml
-spec:
-  template:
-    metadata:
-      annotations:
-        config-values-hash: {{ .ParamGroupHashses.ALL }}
-```
-
-## Proposal 2 - Dependency Graph
-
-KUDO will analyze the operator and build a dependency graph of resources:
-
-- Each deployment, stateful set and batch job will be analysed and contains a list of required resources (ConfigMaps and Secrets).
-- When a resource is deployed, KUDO calculates a hash from all dependent resources and adds that to the spec template annotation.
-
-The resources required by a top-level resource may no necessarily be deployed in the same plan as the resource itself. This can lead to an update of a required resource in a plan that does not deploy the top-level resource and vice versa. To correctly calculate the hash of the required resources this needs to be done different ways:
-- For resources that are deployed in the current plan: Calculate hashes of the resources from the rendered templates parameters
-- For resources that are *not* deployed in the current plan: Fetch the resources from the api-server and get the `kudo.LastAppliedConfigAnnotation` annotation to calculate the hash.
+The resources required by a top-level resource may not necessarily be deployed in the same step as the resource itself. This can lead to an update of a required resource in a step that does not deploy the top-level resource and vice versa. To correctly calculate the hash of the required resources this needs to be done different ways:
+- For resources that are deployed in the current step: Calculate hashes of the resources from the rendered templates parameters
+- For resources that are *not* deployed in the current step: Fetch the resources from the api-server and get the `kudo.LastAppliedConfigAnnotation` annotation to calculate the hash.
 
 This makes sure that the hash is correctly calculated even if a required resource was changed by a different plan in the meantime.
 
-Open questions:
-- A config map that is used by a stateful set or deployment may not necessarily require a pod restart:
-  - In the Cassandra backup/restore branch, there is a side car container that waits for a backup command to be triggered. It reads the mounted config map every time the action is triggered, therefore removing the need to restart the full pod when the config map changes.
-  - If this config map were to be included in the hash calculation, it could trigger a restart of pods the next time the stateful set is deployed.
-  - A solution would be to allow a special annotation in config maps and secrets that lets KUDO skip this resource in the hash calculation.
+There are use cases where a changed resource does not require a pod restart. To allow a resource to be *not* included in the hash calculation, the user can set a special annotation on a config map or secret.
 
 ### User Stories
 
@@ -157,7 +109,7 @@ The annotations are volatile and will/may change with every plan execution. The 
 
 This KEP proposes to change this: 
 - Annotations will only be applied to the top-level resource, not nested resources ( `spec/template/...`, `spec/jobTemplate/...`). This means it will not be possible to directly discover the plan, phase or step by which a pod was deployed. It will require to follow the ownerReference to find these values in the parent resource (StatefulSet, Deployment, BatchJob, etc.) 
-- The PlanUIDAnnotation will be completely removed.
+- The PlanUIDAnnotation will be removed and replaced by a calculated hash from the used resources.
 
 ### Risks and Mitigations
 
@@ -168,6 +120,7 @@ The proposed change removes the automatic pod restart. It will be a breaking cha
 - 2020-03-31 - Initial draft. (@aneumann)
 - 2020-04-14 - Add second Proposal
 - 2020-04-15 - Cleanup, moved first proposal to alternatives section
+- 2020-04-24 - Discarded parameter group proposal
 
 ## Alternatives
 
@@ -187,3 +140,49 @@ The default value for this parameter would be `true` to keep backwards compatibi
 If multiple parameters are changed in one update, the `forcePodRestart` flags of all attributes are `OR`ed: If at least one parameter has the `forcePodRestart` set to `true`, the pods will execute a rolling restart.
 
 This solution would be very easy to implement, but may be hard to explain and requires intimate knowledge of KUDO internals for operator developers. It also would not be possible to have different handling for multiple stateful sets or deployments.
+
+## Parameter Groups
+
+Allow the operator developer to define groups of parameters that can then be used to trigger a restart of pods from a deployment or stateful set.
+
+Add a list of `groups` that each parameter is part of:
+
+```yaml
+  - name: CONFIG_VALUE
+    description: "A parameter that changes a config map which is used by a stateful set."
+    default: "3"
+    groups:
+      - MAIN_GROUP
+  - name: SOME_OTHER_PARAMETER
+    description: "A parameter that changes something that is used by two stateful sets."
+    default: "3"
+    groups:
+      - MAIN_GROUP
+      - ADDITIONAL_GROUP
+```
+
+KUDO then calculates the hash of all parameters in a group. This hash can then be used instead of the the `last-plan-execution-uid` in a deployment or stateful set to trigger the reload of the pods:
+
+```yaml
+spec:
+  template:
+    metadata:
+      annotations:
+        config-values-hash: {{ .ParamGroupHashses.MAIN_GROUP }}
+```
+
+When a parameter in the group changes, the hash will change, which in turn would then trigger the restart of the pods.
+
+This proposal would remove the `last-plan-execution-uid` and automatic pod restarts. Configuration for pod restarts would be fully in the responsibility of the operator developer.  
+
+There will be a default `ALL` group that all parameters belong to. For an operator developer to restore the current behavior, the would only need to add the following annotation to the spec template:
+
+```yaml
+spec:
+  template:
+    metadata:
+      annotations:
+        config-values-hash: {{ .ParamGroupHashses.ALL }}
+```
+
+This proposal was discarded as param groups would put a big burden on operator developers to keep track of groups and would introduce a whole new paradigm for a limited outcome.
