@@ -21,20 +21,8 @@ entries:
           name: Ken Sipe
       name: flink
       operatorVersion: 0.3.0
-    - appVersion: 0.8.0
-      description: this merges because the version doesn't exist in parent
-      digest: 0787a078e64c73064287751b833d63ca3d1d284b4f494ebf670443683d5b96dd
-      maintainers:
-        - email: <runyontr@gmail.com>
-          name: Tom Runyon
-        - email: <kensipe@gmail.com>
-          name: Ken Sipe
-      name: flink
-      operatorVersion: 0.4.0
-      urls:
-        - http://kudo.dev/flink
     - appVersion: 0.8.1
-      description: this merges and overwrites the version in nested-included-repo
+      description: this will get overwritten by included-repo
       digest: 0787a078e64c73064287751b833d63ca3d1d284b4f494ebf670443683d5b96dd
       maintainers:
         - email: <runyontr@gmail.com>
@@ -45,8 +33,7 @@ entries:
       operatorVersion: 0.4.1
       urls:
         - http://kudo.dev/flink
-includes:
-  - ../nested-included-repo
+
 generated: "2020-04-19T15:04:00Z"
 
 

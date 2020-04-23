@@ -67,4 +67,10 @@ func TestDownloadMultiRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "0.4.0", flink.OperatorVersion)
 
+	// and a version that is nested in a repository
+	flink, err = index.FindFirstMatch("flink", "", "0.4.1")
+	assert.NoError(t, err)
+	assert.Equal(t, "0.4.1", flink.OperatorVersion)
+	assert.Equal(t, "this merges and overwrites the version in nested-included-repo", flink.Description)
+
 }
