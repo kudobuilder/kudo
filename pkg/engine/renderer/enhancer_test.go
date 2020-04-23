@@ -141,6 +141,76 @@ func TestEnhancerApply_noAdditionalMetadata(t *testing.T) {
 	}
 }
 
+func TestEnhancerApply_dependencyHash(t *testing.T) {
+
+	ss := statefulSet("statefulset", "default")
+
+	ss.Spec.Template.Spec.Volumes = append(ss.Spec.Template.Spec.Volumes, corev1.Volume{
+		Name: "configMap",
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: "configmap"},
+			},
+		},
+	})
+
+	tpls := map[string]string{
+		"statefulset": resourceAsString(ss),
+		"configmap":   resourceAsString(configMap("configmap", "default")),
+	}
+
+	meta := metadata()
+
+	e := &DefaultEnhancer{
+		Scheme:    utils.Scheme(),
+		Discovery: fake.CachedDiscoveryClient(),
+	}
+
+	objs, err := e.Apply(tpls, meta)
+	if err != nil {
+		t.Errorf("failed to apply template %s", err)
+	}
+
+	for _, o := range objs {
+		unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(o)
+		if err != nil {
+			t.Errorf("failed to parse object to unstructured: %s", err)
+		}
+		if o.(metav1.Object).GetName() != "statefulset" {
+			continue
+		}
+
+		f, ok, _ := unstructured.NestedFieldNoCopy(unstructMap, "spec", "template", "metadata", "annotations")
+		assert.NotNil(t, f)
+		assert.True(t, ok, "Statefulset contains no annotations")
+
+		t.Logf("Annotations: %v", f)
+		annotations, _ := f.(map[string]interface{})
+
+		hash, ok := annotations[kudo.DependenciesHashAnnotation]
+		assert.NotNil(t, hash)
+		assert.Equal(t, "98414921bfb88a4b395df09349406508", hash, "Hashes are not the same")
+		assert.True(t, ok, "Statefulset contains no dependency hash field")
+	}
+}
+
+func Test_calculateResourceDependencies(t *testing.T) {
+	ss := statefulSet("ss", "default")
+	ss.Spec.Template.Spec.Volumes = append(ss.Spec.Template.Spec.Volumes, corev1.Volume{
+		Name: "configMap",
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: "ConfigMap"},
+			},
+		},
+	})
+
+	_, deps := calculateResourceDependencies(ss)
+
+	assert.Equal(t, 1, len(deps.configMaps), "No config map dependency detected for stateful set")
+
+}
+
 func metadata() Metadata {
 	return Metadata{
 		Metadata: engine.Metadata{
@@ -175,6 +245,23 @@ func owner() *corev1.Pod {
 func resourceAsString(resource metav1.Object) string {
 	bytes, _ := yaml.Marshal(resource)
 	return string(bytes)
+}
+
+func configMap(name string, namespace string) *corev1.ConfigMap {
+	configMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"key": "value",
+		},
+	}
+	return configMap
 }
 
 func statefulSet(name string, namespace string) *appsv1.StatefulSet {

@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 3
+  template:
+    metadata:
+      annotations:
+        # This update to the deployment must have the same has as 00-assert.yaml
+        kudo.dev/dependencies-hash: dea9b93b4f0ab85000468c8054e99e57
+        kudo.dev/operator-version: 0.1.0
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.7.9
+        ports:
+        - containerPort: 80
