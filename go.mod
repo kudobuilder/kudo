@@ -3,12 +3,15 @@ module github.com/kudobuilder/kudo
 go 1.14
 
 require (
+	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/Masterminds/semver v1.5.0
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/gosuri/uitable v0.0.4
+	github.com/huandu/xstrings v1.3.1 // indirect
 	github.com/kudobuilder/kuttl v0.1.0
 	github.com/manifoldco/promptui v0.6.0
+	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
 	github.com/spf13/afero v1.2.2
@@ -36,3 +39,5 @@ require (
 )
 
 replace k8s.io/code-generator v0.17.3 => github.com/kudobuilder/code-generator v0.17.4-beta.0.0.20200316162450-cc91a9201457
+
+replace github.com/kudobuilder/kuttl v0.1.0 => github.com/porridge/kuttl v0.1.1-0.20200423104129-0c6fafd2598c
