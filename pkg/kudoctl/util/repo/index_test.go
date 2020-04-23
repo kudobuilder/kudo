@@ -174,8 +174,8 @@ func TestAddPackageVersionErrorConditions(t *testing.T) {
 		pv   *PackageVersion
 		err  string
 	}{
-		{"duplicate version", dup, "operator 'flink' version: 0.7.0_0.3.0 already exists"},
-		{"no version", &missing, "operator 'flink' is missing operator version"},
+		{"duplicate version", dup, "operator \"flink\" version: 0.7.0_0.3.0 already exists"},
+		{"no version", &missing, "operator \"flink\" is missing operator version"},
 		{"good additional version", &good, ""},
 		{"good additional package", &g2, ""},
 	}

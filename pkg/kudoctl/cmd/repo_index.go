@@ -140,7 +140,10 @@ func (ri *repoIndexCmd) run() error {
 		if err != nil {
 			return err
 		}
-		client.Merge(index, mergeIndex)
+		err = client.Merge(index, mergeIndex)
+		if err != nil {
+			return err
+		}
 	}
 
 	if err := index.WriteFile(ri.fs, target); err != nil {

@@ -2,6 +2,7 @@ package repo
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -84,21 +85,23 @@ func (c *Client) downloadIndexFile(parent *IndexFile, url *url.URL) (*IndexFile,
 	}
 
 	indexFile, err := ParseIndexFile(indexBytes)
-	//TODO (kensipe): err handling such that error in includes are ignored (but not root)
 	//TODO (kensipe): track which includes have happened so there are no repeats
 	for _, include := range indexFile.Includes {
 		iURL, err := url.Parse(include)
 		if err != nil {
-			clog.Printf("Unable to parse include url for %s", include)
+			return nil, clog.Errorf("unable to parse include url for %s", include)
 		}
 		nextIndex, err := c.downloadIndexFile(indexFile, iURL)
 		if err != nil {
 			return nil, err
 		}
 		if parent != nil {
-			c.Merge(parent, nextIndex)
+			err = c.Merge(parent, nextIndex)
 		} else {
-			c.Merge(indexFile, nextIndex)
+			err = c.Merge(indexFile, nextIndex)
+		}
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -107,16 +110,18 @@ func (c *Client) downloadIndexFile(parent *IndexFile, url *url.URL) (*IndexFile,
 
 // Merge combines the Entries of 2 index files.   The first index file is the master
 // the second is merged into the first.  Any duplicates are ignored.
-func (c *Client) Merge(index *IndexFile, mergeIndex *IndexFile) {
+func (c *Client) Merge(index *IndexFile, mergeIndex *IndexFile) error {
 	// index is the master, any dups in the merged in index will have what is local replace those entries
 	for _, pvs := range mergeIndex.Entries {
 		for _, pv := range pvs {
 			err := index.AddPackageVersion(pv)
-			// this is most likely to be a duplicate pv, which we ignore (but will log at the right v)
-			if err != nil {
-				// todo: add verbose logging here
+			if errors.Is(err, &DuplicateError{}) {
+				clog.V(1).Printf("ignoring duplicate for %q: appver: %v, opver: %v", pv.Name, pv.AppVersion, pv.OperatorVersion)
 				continue
+			} else if err != nil {
+				return err
 			}
 		}
 	}
+	return nil
 }

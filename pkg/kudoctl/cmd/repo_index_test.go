@@ -102,7 +102,8 @@ func TestRepoIndexCmd_MergeIndex(t *testing.T) {
 	client, err := repo.NewClient(config)
 	assert.NoError(t, err)
 
-	client.Merge(indexFile, mergeFile)
+	err = client.Merge(indexFile, mergeFile)
+	assert.NoError(t, err)
 	if err := indexFile.Write(resultBuf); err != nil {
 		t.Fatal(err)
 	}
