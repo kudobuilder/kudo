@@ -56,15 +56,21 @@ func (c *Client) DownloadIndexFile() (*IndexFile, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing config url: %w", err)
 	}
-
-	return c.downloadIndexFile(nil, parsedURL)
+	h := make(map[string]bool)
+	return c.downloadIndexFile(nil, parsedURL, h)
 }
 
-func (c *Client) downloadIndexFile(parent *IndexFile, url *url.URL) (*IndexFile, error) {
+func (c *Client) downloadIndexFile(parent *IndexFile, url *url.URL, urlHistory map[string]bool) (*IndexFile, error) {
 	var resp *bytes.Buffer
 	var err error
 	// we need the index.yaml at the url provided
 	url.Path = fmt.Sprintf("%s/index.yaml", strings.TrimSuffix(url.Path, "/"))
+	if val, ok := urlHistory[url.String()]; ok {
+		// if we have seen the url previous we don't process it
+		clog.V(1).Printf("duplicate url %v ignored", val)
+		return parent, nil
+	}
+	urlHistory[url.String()] = true
 
 	if url.Scheme == "file" || strings.HasPrefix(url.String(), "file:") {
 		b, err := ioutil.ReadFile(url.Path)
@@ -85,13 +91,12 @@ func (c *Client) downloadIndexFile(parent *IndexFile, url *url.URL) (*IndexFile,
 	}
 
 	indexFile, err := ParseIndexFile(indexBytes)
-	//TODO (kensipe): track which includes have happened so there are no repeats
 	for _, include := range indexFile.Includes {
 		iURL, err := url.Parse(include)
 		if err != nil {
 			return nil, clog.Errorf("unable to parse include url for %s", include)
 		}
-		nextIndex, err := c.downloadIndexFile(indexFile, iURL)
+		nextIndex, err := c.downloadIndexFile(indexFile, iURL, urlHistory)
 		if err != nil {
 			return nil, err
 		}
