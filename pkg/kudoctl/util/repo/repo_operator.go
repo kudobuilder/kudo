@@ -57,10 +57,10 @@ func (c *Client) DownloadIndexFile() (*IndexFile, error) {
 		return nil, fmt.Errorf("parsing config url: %w", err)
 	}
 	h := make(map[string]bool)
-	return c.downloadIndexFile(nil, parsedURL, h)
+	return c.downloadIndexFile(parsedURL, h)
 }
 
-func (c *Client) downloadIndexFile(parent *IndexFile, url *url.URL, urlHistory map[string]bool) (*IndexFile, error) {
+func (c *Client) downloadIndexFile(url *url.URL, urlHistory map[string]bool) (*IndexFile, error) {
 	var resp *bytes.Buffer
 	var err error
 	// we need the index.yaml at the url provided
@@ -68,7 +68,7 @@ func (c *Client) downloadIndexFile(parent *IndexFile, url *url.URL, urlHistory m
 	if val, ok := urlHistory[url.String()]; ok {
 		// if we have seen the url previous we don't process it
 		clog.V(1).Printf("duplicate url %v ignored", val)
-		return parent, nil
+		return nil, nil
 	}
 	urlHistory[url.String()] = true
 
@@ -96,15 +96,11 @@ func (c *Client) downloadIndexFile(parent *IndexFile, url *url.URL, urlHistory m
 		if err != nil {
 			return nil, clog.Errorf("unable to parse include url for %s", include)
 		}
-		nextIndex, err := c.downloadIndexFile(indexFile, iURL, urlHistory)
+		nextIndex, err := c.downloadIndexFile(iURL, urlHistory)
 		if err != nil {
 			return nil, err
 		}
-		if parent != nil {
-			err = c.Merge(parent, nextIndex)
-		} else {
-			err = c.Merge(indexFile, nextIndex)
-		}
+		err = c.Merge(indexFile, nextIndex)
 		if err != nil {
 			return nil, err
 		}
