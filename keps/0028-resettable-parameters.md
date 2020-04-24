@@ -137,7 +137,7 @@ Pros:
 
 Cons:
 - Could potentially increase the size of the operator.yaml
-
+- If the same parameter is used for two different plans, it would have to be repeated. ( for example BACKUP_NAME, used for backup and restore plans)
 
 ## Proposal 4 - Parameter reset after plan finish
 
@@ -192,20 +192,45 @@ Open Questions:
 
 A plan that starts a backup for the whole cluster which is manually triggered
 
-It has a BACKUP_NAME parameter that specifies the name of a backup that is to be created.  
+It has a `BACKUP_NAME` parameter that specifies the name of a backup that is to be created.  
 This parameter needs to be unique on every execution and should not be reused. If the parameter is not unset after the backup plan is finished, a user could forget to set it again for the next execution.
 
-- Plan is manually triggered
+The expected initiation is:
+
+`kudo plan trigger --instance cassandra backup -p BACKUP_NAME=NewBackup`
+
+- A call without defined parameter should fail.
+- The parameter BACKUP_NAME should not be stored in the instance and must be set the next time the backup plan is triggered.
+
+The operator has another parameter, `BACKUP_PREFIX`. This parameter describes the prefix that is used in the S3 bucket. This parameter should be saved in the instance, as it usually does not change often.
+
+It could be an option to set permanent parameters as well on plan trigger:
+
+`kudo plan trigger --instance cassandra backup -p BACKUP_NAME=2020-06 -p BACKUP_PREFIX=monthly`
+
+- BACKUP_PREFIX would be saved in the instance, BACKUP_NAME would be transient
+
+This is not a requirement, it's also possible to make two calls:
+```bash
+kudo update --instance cassandra -p BACKUP_PREFIX=monthly
+kudo plan trigger --instance cassandra -p BACKUP_NAME=2020-06
+```
 
 #### The restore operation in the Cassandra Operator
 
 The restore operation on the Cassandra Operator can be used to create a new cluster from an existing backup.
 
-It uses a RESTORE_FLAG parameter that can be used on installation of a new C* cluster to restore an existing backup. 
-It sets up an initContainer that downloads the data and prepares the new cluster to use this data.
-The initContainer is only used on the very first start of the cluster and should not exist on subsequent restarts of the nodes, additionally the RESTORE_FLAG is useless/not used after the initial deploy plan is done.
+It uses a RESTORE_FLAG parameter that can be used on installation of a new C* cluster to restore an existing backup, and additional parameters like RESTORE_OLD_NAME and RESTORE_OLD_NAMESPACE to define which backup should be restored. 
+When RESTORE_FLAG is set, the deployment includes an initContainer that downloads the data and prepares the new cluster to use this data.
+The initContainer is only used on the very first start of the cluster and should not exist on subsequent restarts of the nodes, additionally the RESTORE_FLAG, RESTORE_OLD_NAME and RESTORE_OLD_NAMESPACE are useless/not used after the initial deploy plan is done.
+
+The usage would be:
+
+`kudo install cassandra -p RESTORE_FLAG=true -p RESTORE_OLD_NAME=OldCluster -p RESTORE_OLD_NAMESPACE=OldNamespace -p NODECOUNT=3 ...`
 
 - Plan is `deploy`, used on installation
+- The command line includes transient and permanent parameters
+- The transient parameters should not be saved in the instance
 
 ### Implementation Details/Notes/Constraints
 
