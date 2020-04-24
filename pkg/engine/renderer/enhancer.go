@@ -3,7 +3,6 @@ package renderer
 import (
 	"fmt"
 	"log"
-	"reflect"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -85,17 +84,11 @@ func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata)
 		}
 	}
 
-	dc := dependencyCalculator{
-		Client:    de.Client,
-		namespace: metadata.InstanceNamespace,
-		objs:      objs,
-		cache:     map[reflect.Type]map[string]hashBytes{},
-	}
-
+	dc := newDependencyCalculator(de.Client, metadata.InstanceNamespace, objs)
 	for _, obj := range objs {
 		typedObj, deps := calculateResourceDependencies(obj)
 		if typedObj != nil {
-			err = dc.addDependenciesHash(typedObj, deps)
+			err = dc.calculateAndSetHash(typedObj, deps)
 			if err != nil {
 				return nil, fmt.Errorf("failed to add dependency hash to %s/%s: %v", typedObj.GetNamespace(), typedObj.GetName(), err)
 			}
@@ -108,6 +101,9 @@ func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata)
 func addLabels(obj map[string]interface{}, metadata Metadata) error {
 	// List of paths for labels from here:
 	// https://github.com/kubernetes-sigs/kustomize/blob/master/api/konfig/builtinpluginconsts/commonlabels.go
+
+	// Labels are added to top-level resources as well as pod template specs. All labels here do not change
+	// over the livetime of the instance and can not trigger unwanted restarts of the pods
 	labelPaths := [][]string{
 		{"metadata", "labels"},
 		{"spec", "template", "metadata", "labels"},
@@ -134,6 +130,9 @@ func addLabels(obj map[string]interface{}, metadata Metadata) error {
 func addAnnotations(obj map[string]interface{}, metadata Metadata) error {
 	// List of paths for annotations from here:
 	// https://github.com/kubernetes-sigs/kustomize/blob/master/api/konfig/builtinpluginconsts/commonannotations.go
+
+	// For all pod template specs, we only add the operator version. It is pretty stable
+	// and shouldn't change often, therefore not trigger an unwanted restart of the created pod
 	annotationPaths := [][]string{
 		{"metadata", "annotations"},
 		{"spec", "template", "metadata", "annotations"},
@@ -151,10 +150,13 @@ func addAnnotations(obj map[string]interface{}, metadata Metadata) error {
 		}
 	}
 
+	// The plan, phase and step annotations are only added to the top level resources, not and pod template specs, as
+	// that may lead to unwanted restarts of the pods
 	topLevelFieldsToAdd := map[string]string{
-		kudo.PlanAnnotation:  metadata.PlanName,
-		kudo.PhaseAnnotation: metadata.PhaseName,
-		kudo.StepAnnotation:  metadata.StepName,
+		kudo.PlanAnnotation:    metadata.PlanName,
+		kudo.PhaseAnnotation:   metadata.PhaseName,
+		kudo.StepAnnotation:    metadata.StepName,
+		kudo.PlanUIDAnnotation: string(metadata.PlanUID),
 	}
 	if err := addMapValues(obj, topLevelFieldsToAdd, "metadata", "annotations"); err != nil {
 		return err

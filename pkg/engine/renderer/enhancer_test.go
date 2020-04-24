@@ -55,7 +55,6 @@ func TestEnhancerApply_embeddedMetadataStatefulSet(t *testing.T) {
 		// Verify that labels are added
 		assert.Equal(t, meta.InstanceNamespace, sfs.GetNamespace())
 		assert.Equal(t, string(meta.PlanUID), sfs.Annotations[kudo.PlanUIDAnnotation])
-		assert.Equal(t, string(meta.PlanUID), sfs.Spec.Template.Annotations[kudo.PlanUIDAnnotation])
 
 		// Verify that annotations are added
 		assert.Equal(t, "kudo", sfs.Labels[kudo.HeritageLabel])
@@ -103,7 +102,6 @@ func TestEnhancerApply_embeddedMetadataCronjob(t *testing.T) {
 		assert.Equal(t, string(meta.PlanUID), cron.Annotations[kudo.PlanUIDAnnotation])
 		assert.Equal(t, "kudo", cron.Labels[kudo.HeritageLabel])
 
-		assert.Equal(t, string(meta.PlanUID), cron.Spec.JobTemplate.Spec.Template.Annotations[kudo.PlanUIDAnnotation])
 		assert.Equal(t, "kudo", cron.Spec.JobTemplate.Spec.Template.Labels[kudo.HeritageLabel])
 
 		// Verify that existing labels are not removed
@@ -187,12 +185,11 @@ func TestEnhancerApply_dependencyHash(t *testing.T) {
 		assert.NotNil(t, f)
 		assert.True(t, ok, "Statefulset contains no annotations")
 
-		t.Logf("Annotations: %v", f)
 		annotations, _ := f.(map[string]interface{})
 
 		hash, ok := annotations[kudo.DependenciesHashAnnotation]
 		assert.NotNil(t, hash)
-		assert.Equal(t, "48560a96e37ed6ecf959d16462f566c6", hash, "Hashes are not the same")
+		assert.Equal(t, "e3c6c9aed8752b21f3279dcf25b759a0", hash, "Hashes are not the same")
 		assert.True(t, ok, "Statefulset contains no dependency hash field")
 	}
 }
@@ -207,11 +204,19 @@ func Test_calculateResourceDependencies(t *testing.T) {
 			},
 		},
 	})
+	ss.Spec.Template.Spec.Volumes = append(ss.Spec.Template.Spec.Volumes, corev1.Volume{
+		Name: "secretVol",
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: "someSecret",
+			},
+		},
+	})
 
 	_, deps := calculateResourceDependencies(ss)
 
-	assert.Equal(t, 1, len(deps.configMaps), "No config map dependency detected for stateful set")
-
+	assert.Equal(t, 1, len(deps[typeConfigMap]), "No config map dependency detected for stateful set")
+	assert.Equal(t, 1, len(deps[typeSecret]), "No secret dependency detected for stateful set")
 }
 
 func metadata() Metadata {
