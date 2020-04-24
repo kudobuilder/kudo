@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/md5" //nolint:gosec
 	"fmt"
-	"log"
 	"reflect"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -45,7 +44,7 @@ func newDependencyCalculator(client client.Client, namespace string, taskObjects
 }
 
 var (
-	// The types of dependencies we support - need to be pointer to obj type
+	// The types of dependencies we support - must be pointer to obj type
 	typeSecret    = reflect.TypeOf(&corev1.Secret{})
 	typeConfigMap = reflect.TypeOf(&corev1.ConfigMap{})
 
@@ -85,7 +84,6 @@ func (rd resourceDependencies) addFromPodTemplateSpec(SpecTemplate corev1.PodTem
 
 // Adds a hash calculated from the dependencies to embedded pod template specs
 func (de *dependencyCalculator) calculateAndSetHash(obj metav1.Object, deps resourceDependencies) error {
-	log.Printf("Enhancer: Add dependencies hash for %s/%s: %+v\n", obj.GetNamespace(), obj.GetName(), deps)
 
 	depHash := md5.New() //nolint:gosec
 	for _, depType := range dependencyTypes {
@@ -153,7 +151,6 @@ func (de *dependencyCalculator) resourceDependency(name string, t reflect.Type) 
 
 	// First try to find the dependency in the local list, if it's deployed in the same task we'll find it here
 	for _, obj := range de.taskObjects {
-		log.Printf("Check Task Object %s - %s: %v", reflect.TypeOf(obj), t, obj)
 		if reflect.TypeOf(obj) == t {
 			obj, _ := obj.(metav1.Object)
 			if obj.GetName() == name {
