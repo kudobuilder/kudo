@@ -7,7 +7,8 @@ spec:
   template:
     metadata:
       annotations:
-        kudo.dev/dependencies-hash: cc4f9cb1616eb10cd568d74f38f7e2ad
+        # After this config map update the hash should change, as the deployment was applied as well
+        kudo.dev/dependencies-hash: b268cc5b2eafa3fd1dc87768350ad64e
         kudo.dev/operator-version: 0.1.0
     spec:
       containers:

@@ -7,8 +7,8 @@ spec:
   template:
     metadata:
       annotations:
-        # After this config map update the hash should change, as the deployment was applied as well
-        kudo.dev/dependencies-hash: b268cc5b2eafa3fd1dc87768350ad64e
+        # After the second update to replicas the hash should change, based on the last deployed version of the config map
+        kudo.dev/dependencies-hash: 5614212dfd146db9cc1538c58cf49225
         kudo.dev/operator-version: 0.1.0
     spec:
       containers:
@@ -23,5 +23,5 @@ status:
   aggregatedStatus:
     status: COMPLETE
   planStatus:
-    deploy:
+    update-replica:
       status: COMPLETE
