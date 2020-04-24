@@ -16,3 +16,12 @@ spec:
         image: nginx:1.7.9
         ports:
         - containerPort: 80
+---
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+status:
+  aggregatedStatus:
+    status: COMPLETE
+  planStatus:
+    update-replica:
+      status: COMPLETE

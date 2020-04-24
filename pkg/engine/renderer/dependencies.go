@@ -44,9 +44,9 @@ func newDependencyCalculator(client client.Client, namespace string, taskObjects
 }
 
 var (
-	// The types of dependencies we support - must be pointer to obj type
-	typeSecret    = reflect.TypeOf(&corev1.Secret{})
-	typeConfigMap = reflect.TypeOf(&corev1.ConfigMap{})
+	// The types of dependencies we support
+	typeSecret    = reflect.TypeOf(corev1.Secret{})
+	typeConfigMap = reflect.TypeOf(corev1.ConfigMap{})
 
 	// We need a list of types to ensure correct order of hash calculation
 	dependencyTypes = []reflect.Type{
@@ -151,7 +151,7 @@ func (de *dependencyCalculator) resourceDependency(name string, t reflect.Type) 
 
 	// First try to find the dependency in the local list, if it's deployed in the same task we'll find it here
 	for _, obj := range de.taskObjects {
-		if reflect.TypeOf(obj) == t {
+		if reflect.TypeOf(obj).Elem() == t {
 			obj, _ := obj.(metav1.Object)
 			if obj.GetName() == name {
 				return obj, nil
@@ -160,7 +160,7 @@ func (de *dependencyCalculator) resourceDependency(name string, t reflect.Type) 
 	}
 
 	// We haven't found it, so we need to query the api server to get the current version
-	dep, _ := reflect.New(t).Elem().Interface().(metav1.Object)
+	dep, _ := reflect.New(t).Interface().(metav1.Object)
 	key := client.ObjectKey{
 		Namespace: de.namespace,
 		Name:      name,
@@ -182,7 +182,13 @@ func (de *dependencyCalculator) resourceDependency(name string, t reflect.Type) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode lastAppliedConfigAnnotation from %s/%s: %v", de.namespace, name, err)
 	}
-	return obj.(metav1.Object), nil
+
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.(*unstructured.Unstructured).UnstructuredContent(), dep)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert lastAppliedConfigAnnotation of %s/%s from unstructured: %v", de.namespace, name, err)
+	}
+
+	return dep, nil
 }
 
 // Calculates the resource dependencies of the passed in object
