@@ -3,6 +3,8 @@ package renderer
 import (
 	"testing"
 
+	"k8s.io/apimachinery/pkg/util/uuid"
+
 	v1 "k8s.io/api/batch/v1"
 
 	"k8s.io/api/batch/v1beta1"
@@ -160,6 +162,7 @@ func TestEnhancerApply_dependencyHash(t *testing.T) {
 	}
 
 	meta := metadata()
+	meta.PlanUID = uuid.NewUUID()
 
 	e := &DefaultEnhancer{
 		Scheme:    utils.Scheme(),
@@ -189,7 +192,7 @@ func TestEnhancerApply_dependencyHash(t *testing.T) {
 
 		hash, ok := annotations[kudo.DependenciesHashAnnotation]
 		assert.NotNil(t, hash)
-		assert.Equal(t, "98414921bfb88a4b395df09349406508", hash, "Hashes are not the same")
+		assert.Equal(t, "48560a96e37ed6ecf959d16462f566c6", hash, "Hashes are not the same")
 		assert.True(t, ok, "Statefulset contains no dependency hash field")
 	}
 }

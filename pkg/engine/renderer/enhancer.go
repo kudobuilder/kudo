@@ -1,18 +1,11 @@
 package renderer
 
 import (
-	"context"
-	"crypto/sha256"
 	"fmt"
 	"log"
 	"reflect"
 	"strings"
 
-	"k8s.io/api/batch/v1beta1"
-
-	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,29 +30,6 @@ type DefaultEnhancer struct {
 	Scheme    *runtime.Scheme
 	Client    client.Client
 	Discovery discovery.CachedDiscoveryInterface
-}
-
-type resourceDependencies struct {
-	secrets    []string
-	configMaps []string
-}
-
-func (rd *resourceDependencies) addSecrets(secrets []corev1.LocalObjectReference) {
-	for _, s := range secrets {
-		rd.secrets = append(rd.secrets, s.Name)
-	}
-}
-
-func (rd *resourceDependencies) addSecretVolumeSource(svs *corev1.SecretVolumeSource) {
-	if svs != nil {
-		rd.secrets = append(rd.secrets, svs.SecretName)
-	}
-}
-
-func (rd *resourceDependencies) addConfigMapVolumeSource(cmvs *corev1.ConfigMapVolumeSource) {
-	if cmvs != nil {
-		rd.configMaps = append(rd.configMaps, cmvs.Name)
-	}
 }
 
 // Apply accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
@@ -115,146 +85,24 @@ func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata)
 		}
 	}
 
-	cache := map[reflect.Type]map[string][32]byte{}
+	dc := dependencyCalculator{
+		Client:    de.Client,
+		namespace: metadata.InstanceNamespace,
+		objs:      objs,
+		cache:     map[reflect.Type]map[string]hashBytes{},
+	}
 
 	for _, obj := range objs {
 		typedObj, deps := calculateResourceDependencies(obj)
 		if typedObj != nil {
-			err = de.addDependenciesHash(typedObj, deps, metadata, objs, cache)
+			err = dc.addDependenciesHash(typedObj, deps)
 			if err != nil {
-				return nil, fmt.Errorf("failed to add dependency hash")
+				return nil, fmt.Errorf("failed to add dependency hash to %s/%s: %v", typedObj.GetNamespace(), typedObj.GetName(), err)
 			}
-			log.Printf("Outside of add: %+v\n", typedObj)
 		}
 	}
 
 	return objs, nil
-}
-
-func (de *DefaultEnhancer) addDependenciesHash(obj metav1.Object, deps resourceDependencies, metadata Metadata, objs []runtime.Object, cache map[reflect.Type]map[string][32]byte) error {
-	log.Printf("Enhancer: Add dependencies hash for %+v: %+v\n", obj, deps)
-	depHash := sha256.New()
-
-	secretType := reflect.TypeOf(&corev1.Secret{})
-	if _, ok := cache[secretType]; !ok {
-		cache[secretType] = map[string][32]byte{}
-	}
-	for _, secretName := range deps.secrets {
-		hash, err := de.calcDependencyHash(secretName, metadata.InstanceNamespace, objs, cache[secretType], secretType)
-		if err != nil {
-			return fmt.Errorf("error calculating hash for secret: %v", err)
-		}
-		_, _ = depHash.Write(hash[:])
-	}
-
-	configMapType := reflect.TypeOf(&corev1.ConfigMap{})
-	if _, ok := cache[configMapType]; !ok {
-		cache[configMapType] = map[string][32]byte{}
-	}
-	for _, cmName := range deps.configMaps {
-		hash, err := de.calcDependencyHash(cmName, metadata.InstanceNamespace, objs, cache[configMapType], configMapType)
-		if err != nil {
-			return fmt.Errorf("error calculating hash for configMap: %v", err)
-		}
-		_, _ = depHash.Write(hash[:])
-	}
-
-	hashStr := fmt.Sprintf("%x", depHash.Sum([]byte{}))
-
-	switch obj := obj.(type) {
-	case *appsv1.StatefulSet:
-		obj.Spec.Template.Annotations[kudo.DependenciesHashAnnotation] = hashStr
-	case *appsv1.Deployment:
-		obj.Spec.Template.Annotations[kudo.DependenciesHashAnnotation] = hashStr
-	case *batchv1.Job:
-		obj.Spec.Template.Annotations[kudo.DependenciesHashAnnotation] = hashStr
-	case *corev1.Pod:
-		obj.Annotations[kudo.DependenciesHashAnnotation] = hashStr
-	case *v1beta1.CronJob:
-		obj.Spec.JobTemplate.Annotations[kudo.DependenciesHashAnnotation] = hashStr
-	}
-
-	//obj.GetAnnotations()[kudo.DependenciesHashAnnotation] = hashStr
-	log.Printf("Enhancer: Added hash: %s\n", obj.GetAnnotations()[kudo.DependenciesHashAnnotation])
-	return nil
-}
-
-func (de *DefaultEnhancer) calcDependencyHash(name string, namespace string, objs []runtime.Object, cache map[string][32]byte, t reflect.Type) ([32]byte, error) {
-	hash, ok := cache[name]
-	if !ok {
-		dep, err := de.resourceDependency(name, namespace, t, objs)
-		if err != nil {
-			return [32]byte{}, fmt.Errorf("failed to get dependeny %s/%s: %v", namespace, name, err)
-		}
-		if _, ok := dep.GetAnnotations()[kudo.SkipHashCalculationAnnotation]; ok {
-			cache[name] = [32]byte{}
-		} else {
-			yamlStr, err := ToYaml(dep)
-			if err != nil {
-				return [32]byte{}, fmt.Errorf("failed to serialize dependeny %s/%s: %v", namespace, name, err)
-			}
-			hash = sha256.Sum256([]byte(yamlStr))
-			cache[name] = hash
-		}
-	}
-	return hash, nil
-}
-
-// resourceDependency returns the resource of type t with the given namespace/name, either from the passed in list of objects or the last applied configuration from the API server
-func (de *DefaultEnhancer) resourceDependency(name string, namespace string, t reflect.Type, objs []runtime.Object) (metav1.Object, error) {
-	fmt.Printf("get resource Dependency %s/%s with type %s\n", namespace, name, t)
-	for _, obj := range objs {
-		fmt.Printf("Check existing object type: %s vs %s\n", reflect.TypeOf(obj), t)
-		if reflect.TypeOf(obj) == t {
-			obj, _ := obj.(metav1.Object)
-			fmt.Printf("Check existing object name: %s vs %s\n", obj.GetName(), name)
-			if obj.GetName() == name {
-				return obj, nil
-			}
-		}
-	}
-	dep, _ := reflect.New(t).Elem().Interface().(metav1.Object)
-	key := client.ObjectKey{
-		Namespace: namespace,
-		Name:      name,
-	}
-
-	err := de.Client.Get(context.TODO(), key, dep.(runtime.Object))
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve TODO")
-	}
-	lastConfiguration, ok := dep.GetAnnotations()[kudo.LastAppliedConfigAnnotation]
-	if !ok {
-		return nil, fmt.Errorf("LastAppliedConfigAnnotation is not available")
-	}
-
-	obj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, []byte(lastConfiguration))
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode lastAppliedConfigAnnotation")
-	}
-	return obj.(metav1.Object), err
-}
-
-// Calculates the resource dependencies of the passed in object. This are currently config maps and secrets
-func calculateResourceDependencies(obj runtime.Object) (metav1.Object, resourceDependencies) {
-	deps := resourceDependencies{}
-	switch obj := (obj).(type) {
-	case *appsv1.StatefulSet:
-		deps.addSecrets(obj.Spec.Template.Spec.ImagePullSecrets)
-		for _, v := range obj.Spec.Template.Spec.Volumes {
-			deps.addConfigMapVolumeSource(v.ConfigMap)
-			deps.addSecretVolumeSource(v.Secret)
-		}
-		return obj, deps
-	case *appsv1.Deployment:
-		deps.addSecrets(obj.Spec.Template.Spec.ImagePullSecrets)
-		for _, v := range obj.Spec.Template.Spec.Volumes {
-			deps.addConfigMapVolumeSource(v.ConfigMap)
-			deps.addSecretVolumeSource(v.Secret)
-		}
-		return obj, deps
-	}
-	return nil, resourceDependencies{}
 }
 
 func addLabels(obj map[string]interface{}, metadata Metadata) error {
