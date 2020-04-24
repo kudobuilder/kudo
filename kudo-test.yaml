@@ -8,5 +8,5 @@ testDirs:
 commands:
 - command: ./bin/manager
   background: true
-startControlPlane: false
+startControlPlane: true
 parallel: 4
