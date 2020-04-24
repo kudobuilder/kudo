@@ -9,7 +9,7 @@ owners:
 editor:
 creation-date: 2020-03-31
 last-updated: 2020-04-15
-status: provisional
+status: implementable
 see-also:
 replaces:
 superseded-by:
