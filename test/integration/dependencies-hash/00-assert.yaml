@@ -7,7 +7,7 @@ spec:
   template:
     metadata:
       annotations:
-        kudo.dev/dependencies-hash: 8003c5774ae61f3f17ca75ea3e9a004d
+        kudo.dev/dependencies-hash: cc4f9cb1616eb10cd568d74f38f7e2ad
         kudo.dev/operator-version: 0.1.0
     spec:
       containers:
