@@ -2,7 +2,6 @@ package diagnostics
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -44,48 +43,39 @@ func Collect(cmd *cobra.Command, settings *env.Settings) error {
 		LabelSelector: "app=" + appKudoManager,
 	}
 
-	iResources := &resourceFuncs{c, kc, ns, byOperator, instance}
-	cResources := &resourceFuncs{c, nil, nsKudoSystem, byKudoManager, nil} // no need for kudo and instance
+	iResources := &resourceFuncs{c, kc, ns, byOperator, corev1.PodLogOptions{}, instance}
+	cResources := &resourceFuncs{c, nil, nsKudoSystem, byKudoManager, corev1.PodLogOptions{}, nil} // no need for kudo and instance
 
 	// TODO: use more meaningful variable names
+	// TODO: use Builder
 	dc := resourceListCollector{getResources: iResources.deployments()}
 	pc := resourceListCollector{getResources: iResources.pods()}
 	ec := resourceListCollector{getResources: iResources.events()}
 	sc := resourceListCollector{getResources: iResources.services()}
+	sac := resourceListCollector{getResources: iResources.serviceAccounts(&pc)}
 	rsc := resourceListCollector{getResources: iResources.replicaSets()}
 	ovc := resourceCollector{getResource: iResources.operatorVersions()}
 	oc := resourceCollector{getResource: iResources.operators(&ovc)}
-	lc := logCollector{
-		Client: c,
-		ns:     ns,
-		opts:   corev1.PodLogOptions{}, // TODO: add time range
-		logs:   make(map[string]io.ReadCloser),
-		pods:   &pc,
-	}
+	lc := logCollector{getLogs: iResources.logs(&pc)}
 	cpc := resourceListCollector{getResources: cResources.pods()}
 	ssc := resourceListCollector{getResources: cResources.statefulSets()}
-	rbc := resourceListCollector{getResources: cResources.roleBindings()}
-	crbc := resourceListCollector{getResources: cResources.clusterRoleBindings()}
+	rbc := resourceListCollector{getResources: cResources.roleBindings(&sac)}
+	crbc := resourceListCollector{getResources: cResources.clusterRoleBindings(&sac)}
 	rc := resourceListCollector{getResources: cResources.roles(&rbc)}
 	crc := resourceListCollector{getResources: cResources.clusterRoles(&crbc)}
-	clc := logCollector{
-		Client: c,
-		ns:     nsKudoSystem,
-		opts:   corev1.PodLogOptions{}, // TODO: add time range
-		logs:   make(map[string]io.ReadCloser),
-		pods:   &cpc,
-	}
+	clc := logCollector{getLogs: cResources.logs(&cpc)}
 	verc := dumpingCollector{s: version.Get()}
 	setc := dumpingCollector{s: *settings}
 
-	collectors := []Collector{&dc, &pc, &ec, &sc, &rsc, &ovc, &oc, &cpc, &ssc, &rbc, &crbc, &rc, &crc, &lc, &clc, &verc, &setc}
+	// TODO: either make order irrelevant or add order validation
+	collectors := []Collector{&dc, &pc, &ec, &sc, &sac, &rsc, &ovc, &oc, &cpc, &ssc, &rbc, &crbc, &rc, &crc, &lc, &clc, &verc, &setc}
 	var describers []Collector
 	for _, c := range collectors {
 		switch rc := c.(type) {
 		case *resourceCollector:
-			describers = append(describers, &describeCollector{config: config, d: rc})
+			describers = append(describers, &describeCollector{getDescribe: description(rc, config)})
 		case *resourceListCollector:
-			describers = append(describers, &describeListCollector{config: config, d: rc})
+			describers = append(describers, &describeListCollector{getDescribes: descriptions(rc, config)})
 		}
 	}
 	collectors = append(collectors, describers...)
