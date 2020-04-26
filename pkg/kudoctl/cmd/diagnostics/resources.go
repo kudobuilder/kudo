@@ -4,16 +4,8 @@ package diagnostics
 
 import (
 	"fmt"
-	"io"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/cli-runtime/pkg/printers"
-	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubectl/pkg/describe"
-	"k8s.io/kubectl/pkg/describe/versioned"
 )
 
 type infoType int
@@ -31,39 +23,6 @@ type resourceInfo struct {
 	Name      string
 }
 
-type objectLister func() ([]runtime.Object, error)
-
-type objectGetter func() (runtime.Object, error)
-
-type resourceHolder struct {
-	obj     runtime.Object
-	printer printers.YAMLPrinter // TODO: allow other printers
-}
-
-func (h *resourceHolder) result() runtime.Object {
-	return h.obj
-}
-
-func (h *resourceHolder) print(f writerFactory) error {
-	meta := h.obj.(v1.ObjectMetaAccessor).GetObjectMeta() // TODO: handle error?
-	info := resourceInfo{
-		T:         ResourceInfoType,
-		Kind:      h.obj.GetObjectKind().GroupVersionKind().Kind,
-		Namespace: meta.GetNamespace(),
-		Name:      meta.GetName(),
-	}
-	w, err := f(info)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	err = h.printer.PrintObj(h.obj, w)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 type resourceCollector struct {
 	getResource objectGetter
 	resourceHolder
@@ -77,9 +36,24 @@ func (c *resourceCollector) Collect(f writerFactory) error {
 	return err
 }
 
-type resourceListHolder struct {
-	objs    []runtime.Object
-	printer printers.YAMLPrinter // TODO: allow other printers
+func (c *resourceCollector) print(f writerFactory) error {
+	meta := c.obj.(v1.ObjectMetaAccessor).GetObjectMeta() // TODO: handle error?
+	info := resourceInfo{
+		T:         ResourceInfoType,
+		Kind:      c.obj.GetObjectKind().GroupVersionKind().Kind,
+		Namespace: meta.GetNamespace(),
+		Name:      meta.GetName(),
+	}
+	w, err := f(info)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	err = c.printer.PrintObj(c.obj, w)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type resourceListCollector struct {
@@ -95,8 +69,8 @@ func (c *resourceListCollector) Collect(f writerFactory) error {
 	return err
 }
 
-func (h *resourceListHolder) print(f writerFactory) error {
-	for _, obj := range h.objs {
+func (c *resourceListCollector) print(f writerFactory) error {
+	for _, obj := range c.objs {
 		meta := obj.(v1.ObjectMetaAccessor).GetObjectMeta() // TODO: handle error?
 		info := resourceInfo{
 			T:         ResourceInfoType,
@@ -107,9 +81,9 @@ func (h *resourceListHolder) print(f writerFactory) error {
 		w, err := f(info)
 		if err != nil {
 			fmt.Println(err)
-			return err
+			return err // TODO: collect errors
 		}
-		err = h.printer.PrintObj(obj, w)
+		err = c.printer.PrintObj(obj, w)
 		if err != nil {
 			return err
 		}
@@ -117,34 +91,34 @@ func (h *resourceListHolder) print(f writerFactory) error {
 	return nil
 }
 
-func (h *resourceListHolder) result() []runtime.Object {
-	return h.objs
-}
-
 type describeListCollector struct {
-	config *restclient.Config
-	d      *resourceListCollector
+	objs []describeHolder
+	getDescribes      func() ([]describeHolder, error)
 }
 
-func (c *describeListCollector) Collect(f writerFactory) error {
-	for _, item := range c.d.result() {
-		describer, _ := versioned.DescriberFor(item.GetObjectKind().GroupVersionKind().GroupKind(), c.config)
-		meta := item.(v1.ObjectMetaAccessor).GetObjectMeta()
-		desc, _ := describer.Describe(meta.GetNamespace(), meta.GetName(), describe.DescriberSettings{ShowEvents: true})
+func (c *describeListCollector) Collect(writerFor writerFactory) error {
+	var err error
+	if c.objs, err = c.getDescribes(); err == nil {
+		err = c.print(writerFor)
+	}
+	return err
+}
 
+func (c *describeListCollector) print (writerFor writerFactory) error {
+	for _, obj := range c.objs {
 		info := resourceInfo{
 			T:         DescribeInfoType,
-			Kind:      item.GetObjectKind().GroupVersionKind().Kind,
-			Namespace: meta.GetNamespace(),
-			Name:      meta.GetName(),
+			Namespace: obj.GetNamespace(),
+			Kind:      obj.kind,
+			Name:      obj.GetName(),
 		}
-		w, err := f(info)
+		w, err := writerFor(info)
 		if err != nil {
 			fmt.Println(err)
 			// TODO: handle error, collect errors
 			return err
 		}
-		_, err = fmt.Fprintf(w, desc)
+		_, err = fmt.Fprintf(w, obj.desc)
 		if err != nil {
 			return err // TODO: collect errors
 		}
@@ -153,52 +127,45 @@ func (c *describeListCollector) Collect(f writerFactory) error {
 }
 
 type describeCollector struct {
-	config *restclient.Config
-	d      *resourceCollector
+	obj *describeHolder
+	getDescribe      func() (*describeHolder, error)
 }
 
-func (c *describeCollector) Collect(f writerFactory) error {
-	item := c.d.result()
-	describer, ok := versioned.DescriberFor(item.GetObjectKind().GroupVersionKind().GroupKind(), c.config)
-	if !ok {
-		return nil // TODO: describing only standard types may not be quite OK
+func (c *describeCollector) Collect(wf writerFactory) error {
+	var err error
+	if c.obj, err = c.getDescribe(); err == nil {
+		err = c.print(wf)
 	}
-	meta := item.(v1.ObjectMetaAccessor).GetObjectMeta()
-	desc, _ := describer.Describe(meta.GetNamespace(), meta.GetName(), describe.DescriberSettings{ShowEvents: true})
-
-	info := resourceInfo{
-		T:         DescribeInfoType,
-		Kind:      item.GetObjectKind().GroupVersionKind().Kind,
-		Namespace: meta.GetNamespace(),
-		Name:      meta.GetName(),
-	}
-	w, err := f(info)
-	if err != nil {
-		fmt.Println(err)
-		// TODO: handle error, collect errors
-		return err
-	}
-	_, err = fmt.Fprintf(w, desc)
 	return err
 }
 
+func (c *describeCollector) print (writerFor writerFactory) error {
+		info := resourceInfo{
+			T:         DescribeInfoType,
+			Namespace: c.obj.GetNamespace(),
+			Kind:      c.obj.kind,
+			Name:      c.obj.GetName(),
+		}
+		w, err := writerFor(info)
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+		_, err = fmt.Fprintf(w, c.obj.desc)
+		if err != nil {
+			return err
+		}
+	return nil
+}
+
 type logCollector struct {
-	*kube.Client
-	ns   string
-	opts corev1.PodLogOptions
-	logs map[string]io.ReadCloser // TODO: GVK as a key
-	pods *resourceListCollector
+	logs []logHolder
+	getLogs func() ([]logHolder, error)
 }
 
 func (c *logCollector) Collect(f writerFactory) error {
 	var err error
-	for _, p := range c.pods.result() {
-		pod := p.(*corev1.Pod)
-		c.logs[pod.Name], err = c.KubeClient.CoreV1().Pods(c.ns).GetLogs(pod.Name, &c.opts).Stream()
-		if err != nil {
-			return err // TODO: collect errors
-		}
-	}
+	c.logs, err = c.getLogs()
 	if err == nil {
 		err = c.print(f)
 	}
@@ -206,12 +173,12 @@ func (c *logCollector) Collect(f writerFactory) error {
 }
 
 func (c *logCollector) print(f writerFactory) error {
-	for name, log := range c.logs {
+	for _, log := range c.logs {
 		info := resourceInfo{
 			T:         LogInfoType,
-			Namespace: c.ns,
+			Namespace: log.GetNamespace(),
 			Kind:      "pod",
-			Name:      name,
+			Name:      log.GetName(),
 		}
 		w, err := f(info)
 		if err != nil {
@@ -219,8 +186,8 @@ func (c *logCollector) print(f writerFactory) error {
 			return err
 		}
 		z := newGzipWriter(w, 2048)
-		z.Write(log) //TODO: get error, return error
-		log.Close()
+		_ = z.Write(log.logStream) //TODO: get error, return error
+		_ = log.logStream.Close()
 	}
 	return nil
 }
