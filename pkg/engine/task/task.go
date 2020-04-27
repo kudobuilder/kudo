@@ -115,7 +115,7 @@ func newPipe(task *v1beta1.Task) (Tasker, error) {
 
 	var pipeFiles []PipeFile
 	for _, pp := range task.Spec.PipeTaskSpec.Pipe {
-		pf := PipeFile{File: pp.File, Kind: PipeFileKind(pp.Kind), Key: pp.Key}
+		pf := PipeFile{File: pp.File, EnvFile: pp.EnvFile, Kind: PipeFileKind(pp.Kind), Key: pp.Key}
 		// validate pipe file
 		if err := validPipeFile(pf); err != nil {
 			return nil, err
@@ -151,9 +151,11 @@ var (
 )
 
 func validPipeFile(pf PipeFile) error {
-	if pf.File == "" {
-		return fmt.Errorf("task validation error: pipe file is empty: %v", pf)
+	fset, efset := pf.File != "", pf.EnvFile != ""
+	if fset == efset {
+		return fmt.Errorf("task validation error: pipe file %v should have either a file or an envFile set but not both", pf)
 	}
+
 	if pf.Kind != PipeFileKindSecret && pf.Kind != PipeFileKindConfigMap {
 		return fmt.Errorf("task validation error: invalid pipe kind (must be Secret or ConfigMap): %v", pf)
 	}
