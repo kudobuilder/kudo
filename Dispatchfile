@@ -39,7 +39,14 @@ task("integration-test", inputs=["git"], steps=[k8s.corev1.Container(
   )
 )])
 
-storageResource("artifacts")
+resource("artifacts",
+  type="storage",
+  params={ "type": "gcs", "location": "s3://artifacts"},
+  secrets={
+    "BOTO_CONFIG": k8s.corev1.SecretKeySelector(
+      key="boto", localObjectReference=k8s.corev1.LocalObjectReference(name="s3-config"))
+  }
+)
 
 dindTask("e2e-test", inputs=["git"], outputs=["artifacts"], steps=[
  k8s.corev1.Container(
