@@ -4,7 +4,7 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-// helper collector to print any object as yaml
+// dumpingCollector - helper collector to print any object as yaml
 type dumpingCollector struct {
 	s interface{}
 }
