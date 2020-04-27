@@ -2,7 +2,6 @@ package manager
 
 import (
 	"fmt"
-	"strconv"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -123,7 +122,6 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 							Env: []v1.EnvVar{
 								{Name: "POD_NAMESPACE", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
 								{Name: "SECRET_NAME", Value: kudoinit.DefaultSecretName},
-								{Name: "ENABLE_WEBHOOKS", Value: strconv.FormatBool(opts.HasWebhooksEnabled())},
 							},
 							Image:           image,
 							ImagePullPolicy: "Always",
@@ -137,29 +135,26 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 									"cpu":    resource.MustParse("100m"),
 									"memory": resource.MustParse("50Mi")},
 							},
+							VolumeMounts: []v1.VolumeMount{
+								{Name: "cert", MountPath: "/tmp/cert", ReadOnly: true},
+							},
+						},
+					},
+					Volumes: []v1.Volume{
+						{
+							Name: "cert",
+							VolumeSource: v1.VolumeSource{
+								Secret: &v1.SecretVolumeSource{
+									SecretName:  kudoinit.DefaultSecretName,
+									DefaultMode: &secretDefaultMode,
+								},
+							},
 						},
 					},
 					TerminationGracePeriodSeconds: &opts.TerminationGracePeriodSeconds,
 				},
 			},
 		},
-	}
-
-	if opts.HasWebhooksEnabled() {
-		s.Spec.Template.Spec.Containers[0].VolumeMounts = []v1.VolumeMount{
-			{Name: "cert", MountPath: "/tmp/cert", ReadOnly: true},
-		}
-		s.Spec.Template.Spec.Volumes = []v1.Volume{
-			{
-				Name: "cert",
-				VolumeSource: v1.VolumeSource{
-					Secret: &v1.SecretVolumeSource{
-						SecretName:  kudoinit.DefaultSecretName,
-						DefaultMode: &secretDefaultMode,
-					},
-				},
-			},
-		}
 	}
 
 	return s

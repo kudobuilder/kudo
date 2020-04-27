@@ -34,7 +34,7 @@ func getFakeClient() *kube.Client {
 func TestPrereq_Ok_PreValidate_DefaultOpts(t *testing.T) {
 	client := getFakeClient()
 
-	init := NewInitializer(kudoinit.NewOptions("", "", "", make([]string, 0), false))
+	init := NewInitializer(kudoinit.NewOptions("", "", "", true))
 
 	result := init.PreInstallVerify(client)
 

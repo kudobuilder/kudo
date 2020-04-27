@@ -730,8 +730,6 @@ spec:
               fieldPath: metadata.namespace
         - name: SECRET_NAME
           value: kudo-webhook-server-secret
-        - name: ENABLE_WEBHOOKS
-          value: "true"
         image: kudobuilder/controller:vdev
         imagePullPolicy: Always
         name: manager

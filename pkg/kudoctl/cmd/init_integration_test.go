@@ -97,9 +97,10 @@ func TestIntegInitForCRDs(t *testing.T) {
 
 	var buf bytes.Buffer
 	cmd := &initCmd{
-		out:    &buf,
-		fs:     afero.NewMemMapFs(),
-		client: kclient,
+		out:                 &buf,
+		fs:                  afero.NewMemMapFs(),
+		client:              kclient,
+		selfSignedWebhookCA: true,
 	}
 	err = cmd.run()
 	assert.Nil(t, err)
@@ -136,10 +137,11 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 
 	var buf bytes.Buffer
 	cmd := &initCmd{
-		out:    &buf,
-		fs:     afero.NewMemMapFs(),
-		client: kclient,
-		ns:     namespace,
+		out:                 &buf,
+		fs:                  afero.NewMemMapFs(),
+		client:              kclient,
+		ns:                  namespace,
+		selfSignedWebhookCA: true,
 	}
 
 	// On first attempt, the namespace does not exist, so the error is expected.
@@ -208,11 +210,12 @@ func TestIntegInitWithServiceAccount(t *testing.T) {
 
 	var buf bytes.Buffer
 	cmd := &initCmd{
-		out:            &buf,
-		fs:             afero.NewMemMapFs(),
-		client:         kclient,
-		ns:             namespace,
-		serviceAccount: "test-account",
+		out:                 &buf,
+		fs:                  afero.NewMemMapFs(),
+		client:              kclient,
+		ns:                  namespace,
+		serviceAccount:      "test-account",
+		selfSignedWebhookCA: true,
 	}
 
 	// Manually create the namespace and the serviceAccount to be used later
@@ -341,7 +344,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 
 func deleteInitObjects(client *testutils.RetryClient) {
 	crds := crd.NewInitializer()
-	prereqs := prereq.NewInitializer(kudoinit.NewOptions("", "", "", []string{}, false))
+	prereqs := prereq.NewInitializer(kudoinit.NewOptions("", "", "", false))
 	deleteCRDs(crds.Resources(), client)
 	deletePrereq(prereqs.Resources(), client)
 }

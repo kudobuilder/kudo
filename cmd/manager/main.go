@@ -132,17 +132,15 @@ func main() {
 	}
 	log.Print("Instance controller set up")
 
-	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) == "true" {
-		log.Printf("Setting up webhooks")
+	log.Printf("Setting up admission webhook")
 
-		if err := registerWebhook("/admit", &v1beta1.Instance{}, &webhook.Admission{Handler: &kudohook.InstanceAdmission{}}, mgr); err != nil {
-			log.Printf("Unable to create instance admission webhook: %v", err)
-			os.Exit(1)
-		}
-		log.Printf("Instance admission webhook")
-
-		// Add more webhooks below using the above registerWebhook method
+	if err := registerWebhook("/admit", &v1beta1.Instance{}, &webhook.Admission{Handler: &kudohook.InstanceAdmission{}}, mgr); err != nil {
+		log.Printf("Unable to create instance admission webhook: %v", err)
+		os.Exit(1)
 	}
+	log.Printf("Instance admission webhook set up")
+
+	// Add more webhooks below using the above registerWebhook method
 
 	// Start the KUDO manager
 	log.Print("Done! Everything is setup, starting KUDO manager now")

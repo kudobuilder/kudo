@@ -47,18 +47,14 @@ func newWebHook(options kudoinit.Options) kudoWebHook {
 }
 
 func (k kudoWebHook) PreInstallVerify(client *kube.Client) verifier.Result {
-	// skip verification if webhooks are not used or self-signed CA is used
-	if !k.opts.HasWebhooksEnabled() || k.opts.SelfSignedWebhookCA {
+	// skip verification if self-signed certificate is used
+	if k.opts.SelfSignedWebhookCA {
 		return verifier.NewResult()
 	}
 	return validateCertManagerInstallation(client)
 }
 
 func (k kudoWebHook) Install(client *kube.Client) error {
-	if !k.opts.HasWebhooksEnabled() {
-		return nil
-	}
-
 	if k.opts.SelfSignedWebhookCA {
 		return k.installWithSelfSignedCA(client)
 	}
@@ -93,19 +89,11 @@ func (k kudoWebHook) installWithSelfSignedCA(client *kube.Client) error {
 }
 
 func (k kudoWebHook) ValidateInstallation(client *kube.Client) error {
-	if !k.opts.HasWebhooksEnabled() {
-		return nil
-	}
-
 	// TODO: Check installed webhooks, check if cert-manager is installed, etc
 	panic("implement me")
 }
 
 func (k kudoWebHook) AsRuntimeObjs() []runtime.Object {
-	if !k.opts.HasWebhooksEnabled() {
-		return make([]runtime.Object, 0)
-	}
-
 	if k.opts.SelfSignedWebhookCA {
 		iaw, s, err := k.runtimeObjsWithSelfSignedCA()
 		if err != nil {

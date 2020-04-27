@@ -12,7 +12,7 @@ import (
 func TestPrereq_Fail_PreValidate_CustomServiceAccount(t *testing.T) {
 	client := getFakeClient()
 
-	init := NewInitializer(kudoinit.NewOptions("", "", "customSA", make([]string, 0), false))
+	init := NewInitializer(kudoinit.NewOptions("", "", "customSA", true))
 
 	result := init.PreInstallVerify(client)
 
@@ -26,7 +26,7 @@ func TestPrereq_Fail_PreValidate_CustomServiceAccount_MissingPermissions(t *test
 
 	mockListServiceAccounts(client, customSA)
 
-	init := NewInitializer(kudoinit.NewOptions("", "", customSA, make([]string, 0), false))
+	init := NewInitializer(kudoinit.NewOptions("", "", customSA, true))
 
 	result := init.PreInstallVerify(client)
 
@@ -37,7 +37,7 @@ func TestPrereq_Ok_PreValidate_CustomServiceAccount(t *testing.T) {
 	client := getFakeClient()
 
 	customSA := "customSA"
-	opts := kudoinit.NewOptions("", "", customSA, make([]string, 0), false)
+	opts := kudoinit.NewOptions("", "", customSA, true)
 
 	mockListServiceAccounts(client, opts.ServiceAccount)
 	mockListClusterRoleBindings(client, opts)
