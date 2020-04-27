@@ -77,5 +77,5 @@ dindTask("e2e-test", inputs=["git"], steps=[
  )
 ])
 
-action(tasks=["lint", "integration-test", "e2e-test"], on=push())
+action(tasks=["e2e-test"], on=push())
 action(tasks=["lint", "integration-test", "e2e-test"], on=pullRequest(chatops=["test"]))
