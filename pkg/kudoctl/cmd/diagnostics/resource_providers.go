@@ -5,11 +5,11 @@ package diagnostics
 import (
 	"errors"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -17,10 +17,6 @@ import (
 	"k8s.io/kubectl/pkg/describe"
 	"k8s.io/kubectl/pkg/describe/versioned"
 )
-
-// TODO: we need a parent object for a flexible hierarchical structure
-// e.g: if service accounts are collected for pods, we'd like to have
-// pods
 
 // Object implements runtime.Object and
 // metav1.Object interfaces.
@@ -30,262 +26,370 @@ type Object interface {
 	metav1.Object
 }
 
-type objectLister func() ([]Object, error)
+type ObjectWithParent struct {
+	Object
+	parent *ObjectWithParent
+}
 
-type objectGetter func() (Object, error)
+type NameHolder struct {
+	name string
+	parent *ObjectWithParent
+}
+
+type NameGetter func() *NameHolder
+
+type NameLister func() []NameHolder
+
+type objectLister func() ([]ObjectWithParent, error)
+
+func listerWithCallback(f objectLister, callback func([]ObjectWithParent)) objectLister {
+	return func()([]ObjectWithParent, error) {
+		objs, err := f()
+		if err == nil {
+			callback(objs)
+		}
+		return objs, err
+	}
+}
+
+func getterWithCallback(f objectGetter, callback func(*ObjectWithParent)) objectGetter {
+	return func()(*ObjectWithParent, error) {
+		obj, err := f()
+		if err == nil {
+			callback(obj)
+		}
+		return obj, err
+	}
+}
+
+type objectGetter func() (*ObjectWithParent, error)
 
 type resulter interface {
-	result() Object
+	result() *ObjectWithParent
 }
 
 type resultLister interface {
-	result() []Object
+	result() []ObjectWithParent
 }
 
 type resultDumper struct {
-	Object
+	*ObjectWithParent
 }
 
-func (r *resultDumper) result() Object {
-	return r.Object
+func (r *resultDumper) result() *ObjectWithParent {
+	return r.ObjectWithParent
 }
 
 type resourceFuncs struct {
-	c        *kube.Client
-	kc       *kudo.Client
-	ns       string
-	opts     metav1.ListOptions
-	logOpts  corev1.PodLogOptions // TODO: set
-	instance *v1beta1.Instance
+	c           *kube.Client
+	kc          *kudo.Client
+	ns          string
+	opts        metav1.ListOptions
+	logOpts     corev1.PodLogOptions // TODO: set
+	instanceObj *v1beta1.Instance
+	root        *ObjectWithParent
+}
+
+// instanceObj related resources
+func NewInstanceResources(name string, s *env.Settings) (*resourceFuncs, error) {
+
+	kc, err := kudo.NewClient(s.KubeConfig, s.RequestTimeout, s.Validate)
+	if err != nil {
+		return nil ,err
+	}
+	c, err := kube.GetKubeClient(s.KubeConfig)
+	if err != nil {
+		return nil ,err
+	}
+	instance, err := kc.GetInstance(name, s.Namespace)
+	if err != nil {
+		return nil ,err
+	}
+	root := &ObjectWithParent{
+		Object: instance,
+		parent: nil,
+	}
+	return &resourceFuncs{
+		c:           c,
+		kc:          kc,
+		ns:          s.Namespace,
+		opts:        metav1.ListOptions{LabelSelector: labelKudoOperator + "=" + instance.Labels[labelKudoOperator]},
+		logOpts:     corev1.PodLogOptions{},
+		instanceObj: instance,
+		root:        root,
+	}, nil
+}
+
+// kudo controller related resources
+func NewKudoResources(s *env.Settings) (*resourceFuncs, error) {
+	c, err := kube.GetKubeClient(s.KubeConfig)
+	if err != nil {
+		return nil ,err
+	}
+	return &resourceFuncs{
+		c:        c,
+		ns: nsKudoSystem,
+		opts:     metav1.ListOptions{LabelSelector: "app=" + appKudoManager},
+		logOpts:  corev1.PodLogOptions{},
+	}, nil
+}
+
+func (f *resourceFuncs) instance() objectGetter {
+	return func()(*ObjectWithParent, error) {
+		return createObjectWithParent(f.instanceObj, nil, nil)
+	}
 }
 
 func (f *resourceFuncs) deployments() objectLister {
-	return func() ([]Object, error) {
+	return func() ([]ObjectWithParent, error) {
 		obj, err := f.c.KubeClient.AppsV1().Deployments(f.ns).List(f.opts)
-		return listOf(obj, err)
+		return listWithParent(obj, f.root, err)
 	}
 }
 
 func (f *resourceFuncs) events() objectLister {
-	return func() ([]Object, error) {
-		obj, err := f.c.KubeClient.CoreV1().Events(f.ns).List(f.opts)
-		return listOf(obj, err)
+	return func() ([]ObjectWithParent, error) {
+		obj, err := f.c.KubeClient.CoreV1().Events(f.ns).List(metav1.ListOptions{})
+		return listWithParent(obj, f.root, err)
 	}
 }
 
 func (f *resourceFuncs) pods() objectLister {
-	return func() ([]Object, error) {
+	return func() ([]ObjectWithParent, error) {
 		obj, err := f.c.KubeClient.CoreV1().Pods(f.ns).List(f.opts)
-		return listOf(obj, err)
+		return listWithParent(obj, f.root, err)
 	}
 }
 
 func (f *resourceFuncs) services() objectLister {
-	return func() ([]Object, error) {
+	return func() ([]ObjectWithParent, error) {
 		obj, err := f.c.KubeClient.CoreV1().Services(f.ns).List(f.opts)
-		return listOf(obj, err)
+		return listWithParent(obj, f.root, err)
 	}
 }
 
 func (f *resourceFuncs) replicaSets() objectLister {
-	return func() ([]Object, error) {
+	return func() ([]ObjectWithParent, error) {
 		obj, err := f.c.KubeClient.AppsV1().ReplicaSets(f.ns).List(f.opts)
-		return listOf(obj, err)
+		return listWithParent(obj, f.root, err)
 	}
 }
 
 func (f *resourceFuncs) statefulSets() objectLister {
-	return func() ([]Object, error) {
+	return func() ([]ObjectWithParent, error) {
 		obj, err := f.c.KubeClient.AppsV1().StatefulSets(f.ns).List(f.opts)
-		return listOf(obj, err)
+		return listWithParent(obj, f.root, err)
 	}
 }
 
-func (f *resourceFuncs) operators(operatorVersion resulter) objectGetter {
-	return func() (Object, error) {
-		ov := operatorVersion.result().(*v1beta1.OperatorVersion)
-		return f.kc.GetOperator(ov.Spec.Operator.Name, f.ns)
+func (f *resourceFuncs) operator(getOpName NameGetter) objectGetter {
+	return func() (*ObjectWithParent, error) {
+		opName := getOpName()
+		obj, err :=  f.kc.GetOperator(opName.name, f.ns)
+		return createObjectWithParent(obj, opName.parent, err)
 	}
 }
 
-func (f *resourceFuncs) operatorVersions() objectGetter {
-	return func() (Object, error) {
-		return f.kc.GetOperatorVersion(f.instance.Spec.OperatorVersion.Name, f.ns)
+func (f *resourceFuncs) operatorVersion(getOvName NameGetter) objectGetter {
+	return func() (*ObjectWithParent, error) {
+		ovName := getOvName()
+		obj, err :=  f.kc.GetOperatorVersion(f.instanceObj.Spec.OperatorVersion.Name, f.ns)
+		return createObjectWithParent(obj, ovName.parent, err)
 	}
 }
 
 // roleBindings - bindings for collected ServiceAccounts for collected Pods
+// roleBindings are modified to keep only "relevant" bindings
 // TODO: improvement needed: if a pod was collected but its SA failed to, the binding is lost
-func (f *resourceFuncs) roleBindings(serviceAccounts resultLister) objectLister {
-	return func() ([]Object, error) {
+func (f *resourceFuncs) roleBindings(nameGetters NameLister) objectLister {
+	return func() ([]ObjectWithParent, error) {
 		ret, err := f.c.KubeClient.RbacV1().RoleBindings(f.ns).List(metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
 
+		var objs []ObjectWithParent
 		// set of service account names
-		saExist := make(map[string]bool)
-		for _, sa := range serviceAccounts.result() {
-			saExist[sa.GetName()] = true
+		// TODO: fix filtering: if binding matches SA, ALL the pods should have it
+		serviceAccounts := make(map[string]*ObjectWithParent)
+		for _, nh := range nameGetters() {
+			serviceAccounts[nh.name] = nh.parent
 		}
-		// filtering "in place" by service account names:
-		// Items having at least one Subject referencing one of the provided Service Account,
-		j := 0
-		for _, item := range ret.Items {
+		for i := range ret.Items {
+			item := &ret.Items[i]
+			// filtering subjects "in place" by service account names
+			j := 0
 			for _, subject := range item.Subjects {
-				if subject.Kind == "ServiceAccount" && saExist[subject.Name] {
-					ret.Items[j] = item
+				if sa, ok := serviceAccounts[subject.Name]; ok && subject.Kind == "ServiceAccount" {
+					item.Subjects[j] = subject
 					j++
-					break
+					// assume that if we can't set GVK a cluster role, things are weird enough to quit
+					objs = append(objs, ObjectWithParent{
+						Object: item,
+						parent: sa,
+					})
 				}
 			}
+			if j > 0 {
+				if err = SetGVKFromScheme(item); err != nil {
+					return nil, err
+				}
+				item.Subjects = item.Subjects[:j]
+			}
 		}
-		ret.Items = ret.Items[:j]
-		return listOf(ret, nil)
+		return objs, nil
 	}
 }
 
 // clusterRoleBindings - bindings for collected ServiceAccounts for collected Pods
-// TODO: improvement needed: if a pod was collected but its sa failed to, the binding is lost
-func (f *resourceFuncs) clusterRoleBindings(serviceAccounts resultLister) objectLister {
-	return func() ([]Object, error) {
+// clusterRoleBindings are modified to keep only "relevant" bindings
+// TODO: improvement needed: if a pod was collected but its SA failed to, the binding is lost
+func (f *resourceFuncs) clusterRoleBindings(nameGetters NameLister) objectLister {
+	return func() ([]ObjectWithParent, error) {
 		ret, err := f.c.KubeClient.RbacV1().ClusterRoleBindings().List(metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
 
+		var objs []ObjectWithParent
+		// TODO: fix filtering: if binding matches SA, ALL the pods should have it
 		// set of service account names
-		saExist := make(map[string]bool)
-		for _, sa := range serviceAccounts.result() {
-			saExist[sa.GetName()] = true
+		serviceAccounts := make(map[string]*ObjectWithParent)
+		for _, nh := range nameGetters() {
+			serviceAccounts[nh.name] = nh.parent
 		}
-		// filtering "in place" by service account names:
-		// Items having at least one Subject referencing one of the provided Service Account,
-		j := 0
-		for _, item := range ret.Items {
+		for i := range ret.Items {
+			item := &ret.Items[i]
+			// filtering subjects "in place" by service account names
+			j := 0
 			for _, subject := range item.Subjects {
-				if subject.Kind == "ServiceAccount" && saExist[subject.Name] {
-					ret.Items[j] = item
+				if sa, ok := serviceAccounts[subject.Name]; ok && subject.Kind == "ServiceAccount" {
+					item.Subjects[j] = subject
 					j++
-					break
+					// assume that if we can't set GVK a cluster role, things are weird enough to quit
+					objs = append(objs, ObjectWithParent{
+						Object: item,
+						parent: sa,
+					})
 				}
 			}
+			if j > 0 {
+				if err = SetGVKFromScheme(item); err != nil {
+					return nil, err
+				}
+				item.Subjects = item.Subjects[:j]
+			}
 		}
-		ret.Items = ret.Items[:j]
-		return listOf(ret, nil)
+		return objs, nil
 	}
 }
 
-// service accounts for collected pods
-// service account used by a KUDO-labeled pod may not necessarily be created by KUDO
-// TODO: duplicated code with roles and clusterRoles
-func (f *resourceFuncs) serviceAccounts(pods resultLister) objectLister {
-	return func() ([]Object, error) {
-		var ret []Object
-		var err *multiError
-		for _, p := range pods.result() {
-			pod := p.(*corev1.Pod)
-			obj, e := f.c.KubeClient.CoreV1().ServiceAccounts(f.ns).Get(pod.Spec.ServiceAccountName, metav1.GetOptions{})
-			if e == nil {
-				e = setGVKFromScheme(obj)
-			}
-			err = appendError(err, e)
-			if e == nil {
-				ret = append(ret, obj)
-			}
-		}
-		if err != nil {
-			return ret, err
-		}
-		return ret, nil
+func (f *resourceFuncs) serviceAccounts(nameGetters NameLister) objectLister {
+	return objectGetterProviderFn(f.serviceAccount).toListerProviderFn(nameGetters)()
+}
+
+func (f *resourceFuncs) serviceAccount(getSaName NameGetter) objectGetter {
+	return func()(*ObjectWithParent, error) {
+		saName := getSaName()
+		obj, err := f.c.KubeClient.CoreV1().ServiceAccounts(f.ns).Get(saName.name, metav1.GetOptions{})
+		return createObjectWithParent(obj, saName.parent, err)
 	}
 }
 
-func (f *resourceFuncs) clusterRoles(bindingsCollector resultLister) objectLister {
-	return func() ([]Object, error) {
-		var ret []Object
-		var err *multiError
-		for _, b := range bindingsCollector.result() {
-			binding := b.(*rbacv1.ClusterRoleBinding)
-			obj, e := f.c.KubeClient.RbacV1().ClusterRoles().Get(binding.RoleRef.Name, metav1.GetOptions{})
-			if e == nil {
-				e = setGVKFromScheme(obj)
-			}
-			err = appendError(err, e)
-			if e == nil {
-				ret = append(ret, obj)
-			}
-		}
-		if err != nil {
-			return ret, err
-		}
-		return ret, nil
-	}
-}
+type objectGetterProviderFn func(NameGetter) objectGetter
 
-func (f *resourceFuncs) roles(bindingsCollector resultLister) objectLister {
-	return func() ([]Object, error) {
-		var ret []Object
-		var err *multiError
-		for _, b := range bindingsCollector.result() {
-			binding := b.(*rbacv1.RoleBinding)
-			obj, e := f.c.KubeClient.RbacV1().Roles(f.ns).Get(binding.RoleRef.Name, metav1.GetOptions{})
-			if e == nil {
-				e = setGVKFromScheme(obj)
-			}
-			err = appendError(err, e)
-			if e == nil {
-				ret = append(ret, obj)
-			}
-		}
-		if err != nil {
-			return ret, err
-		}
-		return ret, nil
-	}
-}
+type objectListerProviderFn func() objectLister
 
-func (f *resourceFuncs) logs(podsCollector resultLister) func() ([]logHolder, error) {
-	return func() ([]logHolder, error) {
-		var ret []logHolder
-		for _, p := range podsCollector.result() {
-			pod := p.(*corev1.Pod)
-			log, err := f.c.KubeClient.CoreV1().Pods(f.ns).GetLogs(pod.Name, &f.logOpts).Stream()
+func (fn objectGetterProviderFn) toListerProviderFn(nameHolders NameLister) objectListerProviderFn {
+	return func() objectLister {
+		return func()([]ObjectWithParent, error) {
+			var ret []ObjectWithParent
+			var err *MultiError
+			for _, nh := range nameHolders() {
+				obj, e := fn(nameDumper(&nh))()
+				if e == nil {
+					e = SetGVKFromScheme(obj.Object)
+				}
+				err = AppendError(err, e)
+				if e == nil {
+					ret = append(ret, *obj)
+				}
+			}
 			if err != nil {
-				return nil, err
+				return ret, err
 			}
-			ret = append(ret, logHolder{
-				logStream: log,
-				t:         LogInfoType,
-				kind:      "pod",
-				Object:    pod,
-			})
+			return ret, nil
 		}
-		return ret, nil
 	}
 }
 
-func descriptions(describedCollector resultLister, config *rest.Config) func() ([]describeHolder, error) {
-	return func() ([]describeHolder, error) {
-		var ret []describeHolder
-		var err *multiError
-		for _, p := range describedCollector.result() {
-			dh, e := description(&resultDumper{p}, config)()
-			err = appendError(err, e)
-			if e == nil {
-				ret = append(ret, *dh)
-			}
-		}
-		if err != nil {
-			return ret, err
-		}
-		return ret, nil
+func (f *resourceFuncs) clusterRole(getCRoleName NameGetter) objectGetter {
+	return func()(*ObjectWithParent, error) {
+		roleName := getCRoleName()
+		obj, err := f.c.KubeClient.RbacV1().ClusterRoles().Get(roleName.name, metav1.GetOptions{})
+		return createObjectWithParent(obj, roleName.parent, err)
 	}
 }
 
-func description(describedCollector resulter, config *rest.Config) func() (*describeHolder, error) {
-	return func() (*describeHolder, error) {
-		p := describedCollector.result()
+func (f *resourceFuncs) clusterRoles(nameGetters NameLister) objectLister {
+	return objectGetterProviderFn(f.clusterRole).toListerProviderFn(nameGetters)()
+}
+
+func (f *resourceFuncs) role(getCRoleName NameGetter) objectGetter {
+	return func()(*ObjectWithParent, error) {
+		roleName := getCRoleName()
+		obj, err := f.c.KubeClient.RbacV1().Roles(f.ns).Get(roleName.name, metav1.GetOptions{})
+		return createObjectWithParent(obj, roleName.parent, err)
+	}
+}
+
+func (f *resourceFuncs) roles(nameGetters NameLister) objectLister {
+	return objectGetterProviderFn(f.role).toListerProviderFn(nameGetters)()
+}
+
+   func (f *resourceFuncs) logs(podNames NameLister) func() ([]logHolder, error) {
+   	return func() ([]logHolder, error) {
+   		var ret []logHolder
+   		for _, ph := range podNames() {
+   			log, err := f.c.KubeClient.CoreV1().Pods(f.ns).GetLogs(ph.name, &f.logOpts).Stream()
+   			if err != nil {
+   				return nil, err
+   			}
+   			ret = append(ret, logHolder{
+   				logStream: log,
+   				t:         LogInfoType,
+   				kind:      "pod",
+   				podParent: ph.parent,
+   				podName: ph.name,
+   				nameSpace: f.ns,
+   			})
+   		}
+   		return ret, nil
+   	}
+   }
+
+   func descriptions(describedCollector resultLister, config *rest.Config) func() ([]descriptionHolder, error) {
+   	return func() ([]descriptionHolder, error) {
+   		var ret []descriptionHolder
+   		var err *MultiError
+   		for _, p := range describedCollector.result() {
+   			dh, e := description(&resultDumper{&p}, config)()
+   			err = AppendError(err, e)
+   			if e == nil {
+   				ret = append(ret, *dh)
+   			}
+   		}
+   		if err != nil {
+   			return ret, err
+   		}
+   		return ret, nil
+   	}
+   }
+
+
+func description(descriptionCollector resulter, config *rest.Config) func() (*descriptionHolder, error) {
+	return func() (*descriptionHolder, error) {
+		p := descriptionCollector.result()
 		describer, ok := versioned.DescriberFor(p.GetObjectKind().GroupVersionKind().GroupKind(), config)
 		if !ok {
 			return nil, errors.New("describer for " + p.GetObjectKind().GroupVersionKind().GroupKind().String() + " not found" )
@@ -295,7 +399,7 @@ func description(describedCollector resulter, config *rest.Config) func() (*desc
 			return nil, err
 		}
 
-		return &describeHolder{
+		return &descriptionHolder{
 			desc:   desc,
 			t:      DescribeInfoType,
 			kind:   p.GetObjectKind().GroupVersionKind().Kind,
@@ -316,7 +420,7 @@ func listOf(obj runtime.Object, e error) ([]Object, error) {
 	ret := make([]Object, len(objs))
 	var ok bool
 	for i := 0; i < len(objs); i++ {
-		err = setGVKFromScheme(objs[i])
+		err = SetGVKFromScheme(objs[i])
 		if err != nil {
 			return nil, err
 		}
@@ -325,4 +429,29 @@ func listOf(obj runtime.Object, e error) ([]Object, error) {
 		}
 	}
 	return ret, nil
+}
+
+func listWithParent(obj runtime.Object, parent *ObjectWithParent, e error) ([]ObjectWithParent, error) {
+	objs, err := listOf(obj, e)
+	if err != nil {
+		return nil, err
+	}
+	ret  := make([]ObjectWithParent, len(objs))
+	for i := 0; i < len(objs); i++ {
+		ret[i] = ObjectWithParent{
+			Object: objs[i].(Object),
+			parent: parent,
+		}
+	}
+	return ret, nil
+}
+
+func createObjectWithParent(obj runtime.Object, parent *ObjectWithParent, e error) (*ObjectWithParent, error) {
+	if e != nil {
+		return nil, e
+	}
+	return &ObjectWithParent{
+		Object: obj.(Object),
+		parent: parent,
+	}, nil
 }

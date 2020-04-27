@@ -2,22 +2,22 @@ package diagnostics
 
 import "strings"
 
-type multiError struct {
+type MultiError struct {
 	errs []error
 }
 
-func appendError(m *multiError, err error) *multiError {
+func AppendError(m *MultiError, err error) *MultiError {
 	if err == nil {
 		return m
 	}
 	if m == nil {
-		m = new(multiError)
+		m = new(MultiError)
 	}
 	m.errs = append(m.errs, err)
 	return m
 }
 
-func (e *multiError) Error() string {
+func (e *MultiError) Error() string {
 	var errs []string
 	for _, err := range e.errs {
 		if err != nil {

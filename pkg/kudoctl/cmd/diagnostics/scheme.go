@@ -9,7 +9,7 @@ import (
 
 // TODO: method copied from pkg/kudoctl/util/kudo. Probably should be made exported
 // unset GVK on kubernetes objects breaks printing and describing, this method is a fix
-func setGVKFromScheme(object runtime.Object) error {
+func SetGVKFromScheme(object runtime.Object) error {
 	gvks, unversioned, err := scheme.Scheme.ObjectKinds(object)
 	if err != nil {
 		return err

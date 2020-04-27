@@ -4,8 +4,6 @@ package diagnostics
 
 import (
 	"fmt"
-
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type infoType int
@@ -21,6 +19,7 @@ type resourceInfo struct {
 	Namespace string
 	Kind      string // TODO: should be GVK, not just Kind
 	Name      string
+	Parent *ObjectWithParent
 }
 
 type resourceCollector struct {
@@ -37,12 +36,13 @@ func (c *resourceCollector) Collect(f writerFactory) error {
 }
 
 func (c *resourceCollector) print(f writerFactory) error {
-	meta := c.obj.(v1.ObjectMetaAccessor).GetObjectMeta() // TODO: handle error?
+	meta := c.obj
 	info := resourceInfo{
 		T:         ResourceInfoType,
 		Kind:      c.obj.GetObjectKind().GroupVersionKind().Kind,
 		Namespace: meta.GetNamespace(),
 		Name:      meta.GetName(),
+		Parent: c.obj.parent,
 	}
 	w, err := f(info)
 	if err != nil {
@@ -71,12 +71,12 @@ func (c *resourceListCollector) Collect(f writerFactory) error {
 
 func (c *resourceListCollector) print(f writerFactory) error {
 	for _, obj := range c.objs {
-		meta := obj.(v1.ObjectMetaAccessor).GetObjectMeta() // TODO: handle error?
 		info := resourceInfo{
 			T:         ResourceInfoType,
 			Kind:      obj.GetObjectKind().GroupVersionKind().Kind,
-			Namespace: meta.GetNamespace(),
-			Name:      meta.GetName(),
+			Namespace: obj.GetNamespace(),
+			Name:      obj.GetName(),
+			Parent: obj.parent,
 		}
 		w, err := f(info)
 		if err != nil {
@@ -92,8 +92,8 @@ func (c *resourceListCollector) print(f writerFactory) error {
 }
 
 type describeListCollector struct {
-	objs []describeHolder
-	getDescribes      func() ([]describeHolder, error)
+	objs []descriptionHolder
+	getDescribes      func() ([]descriptionHolder, error)
 }
 
 func (c *describeListCollector) Collect(writerFor writerFactory) error {
@@ -127,8 +127,8 @@ func (c *describeListCollector) print (writerFor writerFactory) error {
 }
 
 type describeCollector struct {
-	obj *describeHolder
-	getDescribe      func() (*describeHolder, error)
+	obj *descriptionHolder
+	getDescribe      func() (*descriptionHolder, error)
 }
 
 func (c *describeCollector) Collect(wf writerFactory) error {
@@ -176,9 +176,10 @@ func (c *logCollector) print(f writerFactory) error {
 	for _, log := range c.logs {
 		info := resourceInfo{
 			T:         LogInfoType,
-			Namespace: log.GetNamespace(),
+			Namespace: log.nameSpace,
 			Kind:      "pod",
-			Name:      log.GetName(),
+			Name:      log.podName,
+			Parent: log.podParent,
 		}
 		w, err := f(info)
 		if err != nil {
