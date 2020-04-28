@@ -1,14 +1,14 @@
 ---
 kep-number: 28
-short-desc: A parameter flag to reset parameter values after a plan is executed
-title: Resettable parameters
+short-desc: Transient parameters that are not saved permanently in the instance
+title: Transient parameters
 authors:
   - @aneumann82
 owners:
   - @aneumann82
 editor:
 creation-date: 2020-03-31
-last-updated: 2020-03-31
+last-updated: 2020-04-28
 status: provisional
 see-also:
 replaces:
@@ -17,31 +17,31 @@ superseded-by:
 
 ## Summary
 
-This KEP describes addition of a flag for parameters that allows a parameter to be reset after it was used in a plan.
+This KEP describes addition of transient parameters that allows a parameter to be used only in a certain plan without saving the value in the instance.
 
 ## Motivation
 
-The new flag allows an operator to define a parameter that is basically one-time-use. Especially for manually triggered plans this will be an often used case:
+Transient parameters allow a specific use-case that is basically one-time-use. Especially for manually triggered plans this will be an often used case:
 - Start a backup with a specific name
 - Evict a specific pod from a stateful set
 - Start a repair plan for a specific node or datacenter
 
-All these examples have in common that they require input parameters. The parameters are required, and the user should be forced to set them. If we do not have resettable parameters, it might happen that a parameters are still set from a previous execution and the user forgets to set it.
+All these examples have in common that they require input parameters. The parameters are required, and the user should be forced to set them. If we do not have transient parameters, it might happen that a parameters are still set from a previous invocation and the user forgets to set it. Additionally, using permanent parameters for these use cases would clutter the instance parameter store with values that are not required to be saved.
 
-When parameters are marked as resettable, they are set to the default value after plan execution, and KUDO can error out if a required parameter is not set. 
+When parameters are transient, they should be set to their default value after plan execution, and KUDO can error out if a required parameter is not set. 
 
 ### Goals
 
-Make it possible to automatically reset a parameter after a plan is executed. 
+Make it possible to have transient parameters that are only available withing a single plan execution. 
 
 ### Non-Goals
 
 - Set parameters to specific values (except for a default)
-- Set parameters at other moments than at the end of a plan
+- Set or change parameters at other moments than at the end of a plan
 
-## Proposal 1 - Reset flag on parameter
+## Resettable parameters
 
-Add an additional attribute `resettable` to parameter specifications in `params.yaml`:
+Add an additional attribute `resettable` or `transient` to parameter specifications in `params.yaml`:
 
 ```yaml
   - name: BACKUP_NAME
@@ -53,7 +53,7 @@ The default value for this flag would be `false`.
 
 If the flag is set to `true`, the parameter will be set to the default value when *any* plan finishes. This change of parameter value should *not* trigger any plan execution. This is the preferred proposal.
 
-An alternative would be a "string" type parameter that allows a user to set plans after which the parameter is reset:
+An alternative would be a list of strings that allows a user to set plans after which the parameter is reset:
 
 ```yaml
   - name: BACKUP_NAME
@@ -63,36 +63,16 @@ An alternative would be a "string" type parameter that allows a user to set plan
 
 This would reset the parameter after the plan `backup` is executed. The downside with this approach is that a parameter could be set at some point and then be unknowingly used later.
 
+Transient parameters can be easily identified and stored only in the `planExecution` section of the instance. As the `planExecution` is reset after the plan is finished, the transient parameters there would be discarded as well.
+
 Pros:
 - Both variants would be an easy extension for parameters from the definition point of view
+- Parameters are not bound to specific plans. Multiple plans can use the same transient parameters. (For example `backup` and `restore` could use the same `BACKUP_NAME` parameter)
 
 Cons:
-- The parameters for a specific plan are not separated from "normal" parameters
-- It's not easy to determine 
+- The parameters for a specific plan are not separated from permanent parameters - It would be easy to miss the attribute.
 
-## Proposal 2 - SetParameters Task
-
-Add new task type, `SetParameters`:
-```yaml
-  - name: backup-done
-    kind: SetParameters
-    spec:
-      params:
-        - name: 'RESTORE_FLAG'
-           value: nil
-```
-This is a lot more powerful, but also provides a lot more ways to introduce complexity: Parameter values could change inside a plan execution, what about triggered plans from param changes, etc.
-
-Pros:
-- Very powerful
-- Would allow easy extension to set parameters to custom values
-
-Cons:
-- Very complex
-- Parameters could change while the plan is executed
-- What happens when a plan is triggered by a changed parameter
-
-## Proposal 3 - Plan specific parameters
+## Plan specific parameters
 
 Specific plan parameters: These parameters would only be valid inside a specific plan and could be defined inside the operator:
 
@@ -119,10 +99,11 @@ Alternatively it might be possible to define this in the `params.yaml`
     description: "The name under which the backup is saved."
 ```
 
-These parameters would only be valid during the execution of that plan.
+The parameters would only be valid during the execution of that plan and can only be used with the defining plan. As with the previous proposal, they can be stored in the `planExecution` part of the instance where the get discarded after plan execution.
 
 To use the parameter, it would have to be prefixed with the plan name in which it is defined:
 `kudo update <instance> -p backup.NAME=MyBackup`
+
 
 ```
 apiVersion: batch/v1
@@ -134,37 +115,14 @@ metadata:
 Pros:
 - Would work well for manually triggered plans
 - The parameter scope would be clearly defined
+- Transient and permanent parameters can be used at the same time 
+- A prefix will make it clear which type is used when invoking `kudo install`, `kudo update` or `kudo plan trigger` 
 
 Cons:
-- Could potentially increase the size of the operator.yaml
+- Could potentially increase the size of the operator.yaml (If parameters are defined there)
 - If the same parameter is used for two different plans, it would have to be repeated. ( for example BACKUP_NAME, used for backup and restore plans)
 
-## Proposal 4 - Parameter reset after plan finish
-
-Define a list of parameters to be reset when a plan is finished:
-
-```yaml
-plans:
-  backup:
-    resetAfterPlan:
-      - BACKUP_NAME
-    strategy: serial
-    phases:
-      - name: nodes
-        strategy: parallel
-        steps:
-          - name: node
-            tasks:
-              - backup
-```
-
-Pros:
-- Does not add a new flag on parameter definition
-
-Cons:
-- It won't be obvious from the parameter list that this is a plan specific parameter
-
-## Proposal 5 - Transient parameters only on `kudo plan trigger`
+## Transient parameters only on `kudo plan trigger`
 
 This proposal would not require new configuration options in the operator definition. Normal parameter definitions can be used, the handling depends on the usage:
 
@@ -182,6 +140,9 @@ Open Questions:
 - Should transient parameters marked in the parameter definition? 
   - If not, they could be set permanently with `kudo update`, which would reverse most of the ideas of transient parameters
   - If yes, it may allow setting permanent parameters with `kudo plan trigger`. The question would be if the definition would be more like Proposal 1 or 3 
+
+Pros:
+- Potentially no change to operator definition
 
 
 ### User Stories
@@ -234,7 +195,9 @@ The usage would be:
 
 ### Implementation Details/Notes/Constraints
 
-- The parameter reset should happen if a plan reaches a terminal state, either `COMPLETED` or `FATAL_ERROR`.
+- The parameter value will be discarded when plan reaches a terminal state, either `COMPLETED` or `FATAL_ERROR`.
+- Transient parameters will be safed in the `planExecution` structure in the instance CRD.
+
 
 ### Risks and Mitigations
 
@@ -245,6 +208,54 @@ The usage would be:
 - 2020-03-31 - Initial draft. (@aneumann)
 - 2020-04-03 - Added alternatives and user stories
 - 2020-04-17 - Added proposal 5
+- 2020-04-28 - Moved two proposals to alternatives, renamed KEP
 
 ## Alternatives
 
+### Parameter reset after plan finish
+
+This is a variant of the previous proposal: Plans will have a list of parameters that are reset when a plan is finished:
+
+```yaml
+plans:
+  backup:
+    resetAfterPlan:
+      - BACKUP_NAME
+    strategy: serial
+    phases:
+      - name: nodes
+        strategy: parallel
+        steps:
+          - name: node
+            tasks:
+              - backup
+```
+
+Pros:
+- Does not add a new flag on parameter definition
+
+Cons:
+- It won't be obvious from the parameter list that this is a plan specific parameter
+- It will be possible for a parameter to be transient for one plan but permanent for another. It would not be possible to store transient parameters in the `planExecution` structure of the instance
+
+### SetParameters Task
+
+Add new task type, `SetParameters`:
+```yaml
+  - name: backup-done
+    kind: SetParameters
+    spec:
+      params:
+        - name: 'RESTORE_FLAG'
+           value: nil
+```
+This would be a very powerful task, but it would also provide a lot more ways to introduce complexity: Parameter values could change inside a plan execution, the change could trigger additional plans, etc.
+
+Pros:
+- Very powerful
+- Would allow easy extension to set parameters to custom values
+
+Cons:
+- Very complex
+- Parameters could change while the plan is executed
+- What happens when a plan is triggered by a changed parameter
