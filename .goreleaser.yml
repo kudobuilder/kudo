@@ -37,12 +37,18 @@ builds:
       - amd64
       - arm
 dockers:
+  # always push a docker image on release for the .Tag version
+  - dockerfile: Dockerfile.goreleaser
+    binaries:
+      - manager
+    image_templates:
+      - "kudobuilder/controller:{{ .Tag }}"
+  # only update the docker :latest for a full release (not RC)
   - dockerfile: Dockerfile.goreleaser
     binaries:
       - manager
     image_templates:
       - "kudobuilder/controller:latest"
-      - "kudobuilder/controller:{{ .Tag }}"
     skip_push: auto
 archives:
   - id: kubectl-kudo-tarball

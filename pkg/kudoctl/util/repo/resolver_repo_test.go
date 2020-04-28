@@ -43,6 +43,34 @@ func TestIndexFile_FindFirstMatch(t *testing.T) {
 
 }
 
+func TestIndexFile_Find(t *testing.T) {
+
+	index := createTestIndexFile()
+
+	// first operator version should be the latest app version
+	summaries, _ := index.Find("Foo", false)
+	assert.Equal(t, 1, len(summaries))
+	assert.Equal(t, "1.0.1", summaries[0].OperatorVersion)
+
+	// find all operator versions with Foo in name
+	summaries, _ = index.Find("Foo", true)
+	assert.Equal(t, 4, len(summaries))
+
+	// find all operator versions with 'B' in name (Bar and Buzz)
+	summaries, _ = index.Find("B", false)
+	assert.Equal(t, 2, len(summaries))
+	assert.Equal(t, "Bar", summaries[0].Name)
+	assert.Equal(t, "Buzz", summaries[1].Name)
+
+	// finds all 3 Foo, Bar, Buzz
+	summaries, _ = index.Find("", false)
+	assert.Equal(t, 3, len(summaries))
+
+	// finds none
+	summaries, _ = index.Find("NotValid", false)
+	assert.Equal(t, 0, len(summaries))
+}
+
 func createTestIndexFile() *IndexFile {
 
 	index := &IndexFile{}
@@ -58,6 +86,8 @@ func createTestIndexFile() *IndexFile {
 	pv = createPackageVersion("Buzz", "", "1.0.1")
 	addToIndex(index, pv)
 	pv = createPackageVersion("Buzz", "", "1.0.2")
+	addToIndex(index, pv)
+	pv = createPackageVersion("Bar", "", "1.0.0")
 	addToIndex(index, pv)
 
 	index.sortPackages()

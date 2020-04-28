@@ -25,7 +25,9 @@
 | [0018 - Controller redesign](0018-controller-overhaul.md) | :heavy_plus_sign: | implementable | Refactoring of KUDO controller |
 | [0019 - Versioning of Operator Packages](0019-package-api-versioning.md) | :heavy_plus_sign: | implementable | Connection between the different versions that describe an operator |
 | [0020 - Manual plan execution](0020-manual-plan-execution.md) | :heavy_check_mark: | implemented |  |
+| [0022 - Diagnostics Bundle](0022-diagnostics-bundle.md) | :question: | provisional | Automatic collection of diagnostics data for KUDO operators |
 | [0023 - Enabling and Disabling features in KUDO Operators](0023-enable-disable-features.md) | :heavy_plus_sign: | implementable | Enabling and Disabling features in KUDO Operators a.k.a. the Toggle task |
 | [0024 - Enhanced Operator Parameters](0024-parameter-enhancement.md) | :heavy_check_mark: | implemented | Parameter types other than `string` |
 | [0025 - Template toYaml function](0025-template-to-yaml-function.md) | :heavy_check_mark: | implemented | New toYaml function for use in templates |
 | [0026 - Reading parameter values from a file](0026-reading-parameter-values-from-a-file.md) | :heavy_check_mark: | implemented | Reading parameter values from a file |
+| [0027 - Pod restart control](0027-pod-restart-controls.md) | :heavy_plus_sign: | implementable | Detailed control what parameter changes trigger pod restarts |

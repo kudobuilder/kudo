@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 
 	// Import Kubernetes authentication providers to support GKE, etc.
@@ -204,6 +205,73 @@ func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersion 
 	}
 	_, err = c.clientset.KudoV1beta1().Instances(namespace).Patch(instanceName, types.MergePatchType, serializedPatch)
 	return err
+}
+
+// WaitForInstance waits for instance to be "complete".
+// It uses controller-runtime `wait.PollImmediate`, the function passed to it returns done==false if it isn't done.
+// For a situation where there is no previous state (like install), the "lastPlanStatus" will be nil until the manager
+// sets it, then it's state will be watched (see InInstanceDone for more detail)
+// For a situation where there is previous state (like update, upgrade, plan trigger) than it is important AND required
+// that the "oldInstance" be provided.  Without it, it is possible for this function to be "racy" and "flaky" meaning the
+// "current" status could be the old "done" status or the new status... it's hard to know.  If the oldInstance is provided
+// the wait will then initially wait for the "new" plan to activate then return when completed.
+// The error is either an error in working with kubernetes or a wait.ErrWaitTimeout
+func (c *Client) WaitForInstance(name, namespace string, oldInstance *v1beta1.Instance, timeout time.Duration) error {
+	// polling interval 1 sec
+	interval := 1 * time.Second
+	return wait.PollImmediate(interval, timeout, func() (done bool, err error) {
+		instance, err := c.GetInstance(name, namespace)
+		if err != nil {
+			return false, err
+		}
+
+		return c.IsInstanceDone(instance, oldInstance)
+	})
+}
+
+// IsInstanceDone provides a check on instance to see if it is "finished" without retries
+// oldInstance is nil if there is no previous instance
+func (c *Client) IsInstanceDone(instance, oldInstance *v1beta1.Instance) (bool, error) {
+
+	// upgrade wait, needs to make sure the UID switches
+	if oldInstance != nil {
+		// We want one of the plans UIDs to change to identify that a new plan ran.
+		// If they're all the same, then nothing changed.
+		same := true
+		for planName, planStatus := range (*oldInstance).Status.PlanStatus {
+			same = same && planStatus.UID == instance.Status.PlanStatus[planName].UID
+		}
+		if same {
+			//Nothing changed yet... waiting on the right plan to wait on
+			return false, nil
+		}
+	}
+	lastPlanStatus := instance.GetLastExecutedPlanStatus()
+	// must have a status to check
+	if lastPlanStatus == nil {
+		clog.V(2).Printf("plan status for instance %q is not available\n", instance.Name)
+		return false, nil
+	}
+	status := lastPlanStatus.Status
+	if status.IsFinished() {
+		clog.V(2).Printf("plan status for %q is finished\n", instance.Name)
+		return true, nil
+	}
+
+	clog.V(4).Printf("\rinstance plan %q is not not finished running: %v, term: %v, finished: %v", lastPlanStatus.Name, status.IsRunning(), status.IsTerminal(), status.IsFinished())
+	return false, nil
+}
+
+// IsInstanceByNameDone provides a check on instance based on name to see if it is "finished" without retries
+// returns true if finished otherwise false
+// oldInstance is nil if there is no previous instance
+func (c *Client) IsInstanceByNameDone(name string, namespace string, oldInstance *v1beta1.Instance) (bool, error) {
+	instance, err := c.GetInstance(name, namespace)
+	if err != nil {
+		return false, err
+	}
+
+	return c.IsInstanceDone(instance, oldInstance)
 }
 
 // ListInstances lists all instances of given operator installed in the cluster in a given ns

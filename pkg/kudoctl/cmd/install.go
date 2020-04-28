@@ -61,5 +61,7 @@ func newInstallCmd(fs afero.Fs) *cobra.Command {
 	installCmd.Flags().StringVar(&options.OperatorVersion, "operator-version", "", "A specific operator version int the official GitHub repo. (default to the most recent)")
 	installCmd.Flags().BoolVar(&options.SkipInstance, "skip-instance", false, "If set, install will install the Operator and OperatorVersion, but not an Instance. (default \"false\")")
 	installCmd.Flags().BoolVar(&options.Wait, "wait", false, "Specify if the CLI should wait for the install to complete before returning (default \"false\")")
+	installCmd.Flags().Int64Var(&options.WaitTime, "wait-time", 300, "Specify the max wait time in seconds for CLI for the install to complete before returning (default \"300\")")
+
 	return installCmd
 }

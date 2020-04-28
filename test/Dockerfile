@@ -1,4 +1,4 @@
-FROM kudobuilder/golang:1.13
+FROM kudobuilder/golang:1.14
 
 WORKDIR $GOPATH/src/github.com/kudobuilder/kudo
 

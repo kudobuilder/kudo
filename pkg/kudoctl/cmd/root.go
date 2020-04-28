@@ -62,6 +62,7 @@ and serves as an API aggregation layer.
 	cmd.AddCommand(newGetCmd())
 	cmd.AddCommand(newPlanCmd(cmd.OutOrStdout()))
 	cmd.AddCommand(newRepoCmd(fs, cmd.OutOrStdout()))
+	cmd.AddCommand(newSearchCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newTestCmd())
 	cmd.AddCommand(newVersionCmd())
 

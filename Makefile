@@ -14,7 +14,7 @@ DATE_FMT := "%Y-%m-%dT%H:%M:%SZ"
 BUILD_DATE := $(shell date -u -d "@$SOURCE_DATE_EPOCH" "+${DATE_FMT}" 2>/dev/null || date -u -r "${SOURCE_DATE_EPOCH}" "+${DATE_FMT}" 2>/dev/null || date -u "+${DATE_FMT}")
 LDFLAGS := -X ${GIT_VERSION_PATH}=${GIT_VERSION} -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} -X ${BUILD_DATE_PATH}=${BUILD_DATE}
 ENABLE_WEBHOOKS ?= false
-GOLANGCI_LINT_VER = "1.24.0"
+GOLANGCI_LINT_VER = "1.23.8"
 
 export GO111MODULE=on
 
@@ -48,7 +48,7 @@ test-clean:
 
 .PHONY: lint
 lint:
-ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint --version | cut -b 27-32)")
+ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint --version 2>/dev/null | cut -b 27-32)")
 	./hack/install-golangcilint.sh
 endif
 	golangci-lint run
@@ -95,8 +95,8 @@ deploy-clean:
 .PHONY: generate
 # Generate code
 generate:
-ifneq ($(shell go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools), $(shell controller-gen --version | cut -b 10-))
-	@echo "(Re-)installing controller-gen. Current version:  $(controller-gen --version | cut -b 10-). Need $(go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools)"
+ifneq ($(shell go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools), $(shell controller-gen --version 2>/dev/null | cut -b 10-))
+	@echo "(Re-)installing controller-gen. Current version:  $(controller-gen --version 2>/dev/null | cut -b 10-). Need $(go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools)"
 	go get sigs.k8s.io/controller-tools/cmd/controller-gen@$$(go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools)
 endif
 	controller-gen crd paths=./pkg/apis/... output:crd:dir=config/crds output:stdout
@@ -148,7 +148,7 @@ docker-push:
 .PHONY: imports
 # used to update imports on project.  NOT a linter.
 imports:
-ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint --version | cut -b 27-32)")
+ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint --version 2>/dev/null | cut -b 27-32)")
 	./hack/install-golangcilint.sh
 endif
 	golangci-lint run --disable-all -E goimports --fix
