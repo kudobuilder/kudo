@@ -151,9 +151,10 @@ var (
 )
 
 func validPipeFile(pf PipeFile) error {
-	fset, efset := pf.File != "", pf.EnvFile != ""
-	if fset == efset {
-		return fmt.Errorf("task validation error: pipe file %v should have either a file or an envFile set but not both", pf)
+	fl := pf.File != ""
+	efl := pf.EnvFile != ""
+	if fl == efl {
+		return fmt.Errorf("task validation error: pipe file %v must have either 'file' or 'envFile' field set but not both", pf)
 	}
 
 	if pf.Kind != PipeFileKindSecret && pf.Kind != PipeFileKindConfigMap {
