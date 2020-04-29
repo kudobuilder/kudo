@@ -4,15 +4,10 @@ import (
 	"context"
 	"crypto/md5" //nolint:gosec
 	"fmt"
-	"log"
-	"reflect"
 	"sort"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
-	"k8s.io/api/batch/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -28,14 +23,14 @@ type dependencyCalculator struct {
 	// Used to retrieve the current version of dependencies if they are not in the taskObjects list
 	Client client.Client
 	// The resources that are deployed in the task
-	taskObjects []runtime.Object
+	taskObjects []*unstructured.Unstructured
 	// A simple cache that stores hashes of dependencies, in case they are used by multiple resources
 	// The cache is only valid during one call to enhancer apply, i.e one task execution. The cache
 	// is discarded after the task execution is completed
 	cache map[resourceDependency]hashBytes
 }
 
-func newDependencyCalculator(client client.Client, taskObjects []runtime.Object) dependencyCalculator {
+func newDependencyCalculator(client client.Client, taskObjects []*unstructured.Unstructured) dependencyCalculator {
 	c := dependencyCalculator{
 		Client:      client,
 		taskObjects: taskObjects,
@@ -56,6 +51,8 @@ type resourceDependency struct {
 	namespace string
 }
 type resourceDependencies []resourceDependency
+
+func (rd resourceDependencies) empty() bool { return len(rd) == 0 }
 
 // Len returns the number of dependencies
 // This is needed to allow sorting.
@@ -83,12 +80,27 @@ func (rd resourceDependencies) Less(x, y int) bool {
 	return rd[x].name < rd[y].name
 }
 
-// addFromPodTemplateSpec adds all dependencies from a pod template spec
-func (rd *resourceDependencies) addFromPodTemplateSpec(SpecTemplate corev1.PodTemplateSpec, ns string) {
-	for _, s := range SpecTemplate.Spec.ImagePullSecrets {
+// addFromEmbeddedPodTemplateSpec adds all dependencies from a possible embedded pod template spec at the given path
+// If the path does not exist in the unstructred object, no dependency is added and no error is returned
+func (rd *resourceDependencies) addFromEmbeddedPodTemplateSpec(obj *unstructured.Unstructured, fields ...string) error {
+	podTemplateData, ok, err := unstructured.NestedMap(obj.UnstructuredContent(), fields...)
+	if err != nil {
+		return fmt.Errorf("failed to get embedded pod template spec: %v", err)
+	}
+	if !ok {
+		return nil
+	}
+	ns := obj.GetNamespace()
+	podTemplate := &corev1.PodTemplateSpec{}
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(podTemplateData, podTemplate)
+	if err != nil {
+		return fmt.Errorf("failed to parse pod template spec: %v", err)
+	}
+
+	for _, s := range podTemplate.Spec.ImagePullSecrets {
 		*rd = append(*rd, resourceDependency{gvk: typeSecret, name: s.Name, namespace: ns})
 	}
-	for _, v := range SpecTemplate.Spec.Volumes {
+	for _, v := range podTemplate.Spec.Volumes {
 		if v.ConfigMap != nil {
 			*rd = append(*rd, resourceDependency{gvk: typeConfigMap, name: v.ConfigMap.Name, namespace: ns})
 		}
@@ -96,10 +108,11 @@ func (rd *resourceDependencies) addFromPodTemplateSpec(SpecTemplate corev1.PodTe
 			*rd = append(*rd, resourceDependency{gvk: typeSecret, name: v.Secret.SecretName, namespace: ns})
 		}
 	}
+	return nil
 }
 
 // calculateAndSetHash adds a hash calculated from the dependencies to embedded pod template specs
-func (de *dependencyCalculator) calculateAndSetHash(obj metav1.Object, deps resourceDependencies) error {
+func (de *dependencyCalculator) calculateAndSetHash(obj *unstructured.Unstructured, deps resourceDependencies) error {
 
 	depHash := md5.New() //nolint:gosec
 	sort.Sort(deps)
@@ -164,16 +177,9 @@ func (de *dependencyCalculator) resourceDependency(d resourceDependency) (*unstr
 
 	// First try to find the dependency in the local list, if it's deployed in the same task we'll find it here
 	for _, obj := range de.taskObjects {
-		log.Printf("Test TaskObject: %v vs %v", obj.GetObjectKind().GroupVersionKind(), d.gvk)
 		if obj.GetObjectKind().GroupVersionKind().String() == d.gvk.String() {
-			obj, _ := obj.(metav1.Object)
-			log.Printf("Test Name/Namespace: %s vs %s, %s vs %s", obj.GetName(), d.name, obj.GetNamespace(), d.namespace)
 			if obj.GetName() == d.name && obj.GetNamespace() == d.namespace {
-				unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
-				if err != nil {
-					return nil, err
-				}
-				return &unstructured.Unstructured{Object: unstructMap}, nil
+				return obj, nil
 			}
 		}
 	}
@@ -208,55 +214,40 @@ func (de *dependencyCalculator) resourceDependency(d resourceDependency) (*unstr
 	return obj.(*unstructured.Unstructured), nil
 }
 
-// Calculates the resource dependencies of the passed in object
-func calculateResourceDependencies(obj runtime.Object) (metav1.Object, resourceDependencies) {
+// calculateResourceDependencies gets the resource dependencies of the passed in object
+func calculateResourceDependencies(obj *unstructured.Unstructured) (resourceDependencies, error) {
 	deps := resourceDependencies{}
 
-	switch obj := (obj).(type) {
-	case *appsv1.StatefulSet:
-		deps.addFromPodTemplateSpec(obj.Spec.Template, obj.Namespace)
-		return obj, deps
-	case *appsv1.Deployment:
-		deps.addFromPodTemplateSpec(obj.Spec.Template, obj.Namespace)
-		return obj, deps
-	case *appsv1.DaemonSet:
-		deps.addFromPodTemplateSpec(obj.Spec.Template, obj.Namespace)
-		return obj, deps
-	case *appsv1.ReplicaSet:
-		deps.addFromPodTemplateSpec(obj.Spec.Template, obj.Namespace)
-		return obj, deps
-	case *corev1.ReplicationController:
-		deps.addFromPodTemplateSpec(*obj.Spec.Template, obj.Namespace)
-		return obj, deps
-	case *batchv1.Job:
-		deps.addFromPodTemplateSpec(obj.Spec.Template, obj.Namespace)
-		return obj, deps
-	case *v1beta1.CronJob:
-		deps.addFromPodTemplateSpec(obj.Spec.JobTemplate.Spec.Template, obj.Namespace)
-		return obj, deps
+	// We can't rely on actual types here, so we just look into each possible path and try to find a pod template spec
+
+	if err := deps.addFromEmbeddedPodTemplateSpec(obj, "spec", "template"); err != nil {
+		return nil, err
 	}
-	return nil, resourceDependencies{}
+	if err := deps.addFromEmbeddedPodTemplateSpec(obj, "spec", "jobTemplate", "spec", "template"); err != nil {
+		return nil, err
+	}
+
+	return deps, nil
 }
 
-// Sets the given hash in the pod template spec of the obj
-func setTemplateHash(obj metav1.Object, hashStr string) error {
-	switch obj := obj.(type) {
-	case *appsv1.StatefulSet:
-		obj.Spec.Template.Annotations[kudo.DependenciesHashAnnotation] = hashStr
-	case *appsv1.Deployment:
-		obj.Spec.Template.Annotations[kudo.DependenciesHashAnnotation] = hashStr
-	case *appsv1.DaemonSet:
-		obj.Spec.Template.Annotations[kudo.DependenciesHashAnnotation] = hashStr
-	case *appsv1.ReplicaSet:
-		obj.Spec.Template.Annotations[kudo.DependenciesHashAnnotation] = hashStr
-	case *corev1.ReplicationController:
-		obj.Spec.Template.Annotations[kudo.DependenciesHashAnnotation] = hashStr
-	case *batchv1.Job:
-		obj.Spec.Template.Annotations[kudo.DependenciesHashAnnotation] = hashStr
-	case *v1beta1.CronJob:
-		obj.Spec.JobTemplate.Annotations[kudo.DependenciesHashAnnotation] = hashStr
-	default:
-		return fmt.Errorf("unknown object type to set dependencies hash: %s", reflect.TypeOf(obj))
+// setTemplateHash adds the given hash in the pod template spec of the obj
+func setTemplateHash(obj *unstructured.Unstructured, hashStr string) error {
+	// Again, we don't know the actual type of the object, so we just add the annotation in
+	// possible paths and rely on the conversion to typed objects later to clear invalid locations
+
+	annotationPaths := [][]string{
+		{"spec", "template", "metadata", "annotations"},
+		{"spec", "jobTemplate", "spec", "template", "metadata", "annotations"},
 	}
+
+	fieldsToAdd := map[string]string{
+		kudo.DependenciesHashAnnotation: hashStr,
+	}
+	for _, path := range annotationPaths {
+		if err := addMapValues(obj.Object, fieldsToAdd, path...); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

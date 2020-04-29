@@ -32,9 +32,12 @@ func TestGetResources(t *testing.T) {
 	cmString, _ := runtime.Encode(unstructured.UnstructuredJSONScheme, &cm)
 	cm.Annotations[kudo.LastAppliedConfigAnnotation] = string(cmString)
 
+	cmUnstructuredData, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(&cm)
+	cmUnstructured := unstructured.Unstructured{Object: cmUnstructuredData}
+
 	// Test retrieval from api-server
 	testClient := fake.NewFakeClientWithScheme(scheme.Scheme, &cm)
-	dc := newDependencyCalculator(testClient, []runtime.Object{})
+	dc := newDependencyCalculator(testClient, []*unstructured.Unstructured{})
 	obj, err := dc.resourceDependency(resourceDependency{gvk: typeConfigMap, name: "configmap", namespace: "namespace"})
 	assert.NilError(t, err, "resourceDependency return error")
 	cmResult := &v1.ConfigMap{}
@@ -43,7 +46,7 @@ func TestGetResources(t *testing.T) {
 
 	// Test retrieval from taskObjects list
 	testClient = fake.NewFakeClientWithScheme(scheme.Scheme)
-	dc = newDependencyCalculator(testClient, []runtime.Object{&cm})
+	dc = newDependencyCalculator(testClient, []*unstructured.Unstructured{&cmUnstructured})
 	obj, err = dc.resourceDependency(resourceDependency{gvk: typeConfigMap, name: "configmap", namespace: "namespace"})
 	assert.NilError(t, err, "resourceDependency return error")
 	cmResult = &v1.ConfigMap{}

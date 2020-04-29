@@ -34,7 +34,7 @@ type DefaultEnhancer struct {
 // Apply accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
 func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) (objsToAdd []runtime.Object, err error) {
-	objs := make([]runtime.Object, 0, len(templates))
+	unstructuredObjs := make([]*unstructured.Unstructured, 0, len(templates))
 
 	for name, v := range templates {
 		parsed, err := YamlToObject(v)
@@ -72,27 +72,42 @@ func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata)
 				}
 			}
 
-			// This is pretty important, if we don't convert it back to the original type everything will be Unstructured.
-			// We depend on types later on in the processing e.g. when evaluating health.
-			// Additionally, as we add annotations and labels to all possible paths, this step gets rid of anything
-			// that doesn't belong to the specific object type.
-			err = runtime.DefaultUnstructuredConverter.FromUnstructured(objUnstructured.UnstructuredContent(), obj)
-			if err != nil {
-				return nil, fmt.Errorf("%wconverting from unstructured failed: %v", engine.ErrFatalExecution, err)
-			}
-			objs = append(objs, obj)
+			unstructuredObjs = append(unstructuredObjs, objUnstructured)
 		}
 	}
 
-	dc := newDependencyCalculator(de.Client, objs)
-	for _, obj := range objs {
-		typedObj, deps := calculateResourceDependencies(obj)
-		if typedObj != nil {
-			err = dc.calculateAndSetHash(typedObj, deps)
+	dc := newDependencyCalculator(de.Client, unstructuredObjs)
+	for _, uo := range unstructuredObjs {
+		deps, err := calculateResourceDependencies(uo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to calculate resource dependencies for %s/%s: %v", uo.GetNamespace(), uo.GetName(), err)
+		}
+		if deps != nil && !deps.empty() {
+			err = dc.calculateAndSetHash(uo, deps)
 			if err != nil {
-				return nil, fmt.Errorf("failed to add dependency hash to %s/%s: %v", typedObj.GetNamespace(), typedObj.GetName(), err)
+				return nil, fmt.Errorf("failed to add dependency hash to %s/%s: %v", uo.GetNamespace(), uo.GetName(), err)
 			}
 		}
+	}
+
+	// This is pretty important, if we don't convert it to the actual type everything will be Unstructured.
+	// We depend on types later on in the processing e.g. when evaluating health.
+	// Additionally, as we add annotations and labels to all possible paths, this step gets rid of anything
+	// that doesn't belong to the specific object type.
+	objs := make([]runtime.Object, 0, len(unstructuredObjs))
+	for _, uo := range unstructuredObjs {
+		obj, err := de.Scheme.New(uo.GroupVersionKind())
+		if err != nil {
+			objs = append(objs, uo)
+			continue
+		}
+
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(uo.UnstructuredContent(), obj)
+		if err != nil {
+			return nil, fmt.Errorf("%wconverting from unstructured failed: %v", engine.ErrFatalExecution, err)
+		}
+
+		objs = append(objs, obj)
 	}
 
 	return objs, nil
