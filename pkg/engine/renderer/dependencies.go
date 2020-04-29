@@ -28,6 +28,8 @@ type dependencyCalculator struct {
 	// The resources that are deployed in the task
 	taskObjects []runtime.Object
 	// A simple cache that stores hashes of dependencies, in case they are used by multiple resources
+	// The cache is only valid during one call to enhancer apply, i.e one task execution. The cache
+	// is discarded after the task execution is completed
 	cache map[reflect.Type]map[string]hashBytes
 }
 
@@ -48,7 +50,7 @@ var (
 	typeSecret    = reflect.TypeOf(corev1.Secret{})
 	typeConfigMap = reflect.TypeOf(corev1.ConfigMap{})
 
-	// We need a list of types to ensure correct order of hash calculation
+	// We need a list of types to ensure deterministic order of hash calculation
 	dependencyTypes = []reflect.Type{
 		typeSecret,
 		typeConfigMap,
@@ -67,7 +69,7 @@ func newDependencies() resourceDependencies {
 	return deps
 }
 
-// Adds all dependencies from a pod template spec
+// addFromPodTemplateSpec adds all dependencies from a pod template spec
 func (rd resourceDependencies) addFromPodTemplateSpec(SpecTemplate corev1.PodTemplateSpec) {
 	for _, s := range SpecTemplate.Spec.ImagePullSecrets {
 		rd[typeSecret] = append(rd[typeSecret], s.Name)
@@ -82,7 +84,7 @@ func (rd resourceDependencies) addFromPodTemplateSpec(SpecTemplate corev1.PodTem
 	}
 }
 
-// Adds a hash calculated from the dependencies to embedded pod template specs
+// calculateAndSetHash adds a hash calculated from the dependencies to embedded pod template specs
 func (de *dependencyCalculator) calculateAndSetHash(obj metav1.Object, deps resourceDependencies) error {
 
 	depHash := md5.New() //nolint:gosec
@@ -92,7 +94,7 @@ func (de *dependencyCalculator) calculateAndSetHash(obj metav1.Object, deps reso
 			if err != nil {
 				return fmt.Errorf("error calculating hash for %s of type %s: %v", name, depType, err)
 			}
-			_, _ = depHash.Write(hash[:])
+			_, _ = depHash.Write(hash[:]) // Hash.Write never returns an error
 		}
 	}
 
@@ -115,7 +117,7 @@ func (de *dependencyCalculator) getHashForDependency(name string, t reflect.Type
 	if _, ok := dep.GetAnnotations()[kudo.SkipHashCalculationAnnotation]; ok {
 		cache[name] = hashBytes{}
 	} else {
-		yamlStr, err := calculateResourceHash(dep)
+		yamlStr, err := sanitizeAndSerialize(dep)
 		if err != nil {
 			return hashBytes{}, fmt.Errorf("failed to serialize dependeny %s/%s: %v", de.namespace, name, err)
 		}
@@ -125,8 +127,8 @@ func (de *dependencyCalculator) getHashForDependency(name string, t reflect.Type
 	return cache[name], nil
 }
 
-// Calculates a stable hash from a resource
-func calculateResourceHash(obj metav1.Object) (string, error) {
+// sanitizeAndSerialize removes volatile parts of an object and returns the resulting object as serialized yaml
+func sanitizeAndSerialize(obj metav1.Object) (string, error) {
 	// Namespace is ignored mostly to allow easier integration tests (which use random namespaces)
 	ns := obj.GetNamespace()
 

@@ -4,27 +4,24 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
-
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"k8s.io/kubectl/pkg/scheme"
-
 	"gotest.tools/assert"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/kubectl/pkg/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 func TestGetResources(t *testing.T) {
 	cm := v1.ConfigMap{
-		TypeMeta: v12.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
 			APIVersion: "v1",
 		},
-		ObjectMeta: v12.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:        "configmap",
 			Namespace:   "namespace",
 			Annotations: map[string]string{},
