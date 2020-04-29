@@ -72,6 +72,19 @@ func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata)
 				}
 			}
 
+			// We convert to the typed version here and back to clean additional labels and annotations that were
+			// added. This needs to be done as otherwise the dependency calculator calculates hashes based on the added
+			// fields which are later missing if the resource is fetched from the api-server
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(objUnstructured.UnstructuredContent(), obj)
+			if err != nil {
+				return nil, fmt.Errorf("%wconverting from unstructured failed: %v", engine.ErrFatalExecution, err)
+			}
+			unstructMap, err = runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+			if err != nil {
+				return nil, fmt.Errorf("%wconverting to unstructured failed: %v", engine.ErrFatalExecution, err)
+			}
+			objUnstructured = &unstructured.Unstructured{Object: unstructMap}
+
 			unstructuredObjs = append(unstructuredObjs, objUnstructured)
 		}
 	}
