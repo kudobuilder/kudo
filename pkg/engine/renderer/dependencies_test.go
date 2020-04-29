@@ -1,7 +1,6 @@
 package renderer
 
 import (
-	"reflect"
 	"testing"
 
 	"gotest.tools/assert"
@@ -35,16 +34,20 @@ func TestGetResources(t *testing.T) {
 
 	// Test retrieval from api-server
 	testClient := fake.NewFakeClientWithScheme(scheme.Scheme, &cm)
-	dc := newDependencyCalculator(testClient, "namespace", []runtime.Object{})
-	obj, err := dc.resourceDependency("configmap", reflect.TypeOf(v1.ConfigMap{}))
+	dc := newDependencyCalculator(testClient, []runtime.Object{})
+	obj, err := dc.resourceDependency(resourceDependency{gvk: typeConfigMap, name: "configmap", namespace: "namespace"})
 	assert.NilError(t, err, "resourceDependency return error")
-	assert.DeepEqual(t, cm.Data, obj.(*v1.ConfigMap).Data)
+	cmResult := &v1.ConfigMap{}
+	_ = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), cmResult)
+	assert.DeepEqual(t, cm.Data, cmResult.Data)
 
 	// Test retrieval from taskObjects list
 	testClient = fake.NewFakeClientWithScheme(scheme.Scheme)
-	dc = newDependencyCalculator(testClient, "namespace", []runtime.Object{&cm})
-	obj, err = dc.resourceDependency("configmap", reflect.TypeOf(v1.ConfigMap{}))
+	dc = newDependencyCalculator(testClient, []runtime.Object{&cm})
+	obj, err = dc.resourceDependency(resourceDependency{gvk: typeConfigMap, name: "configmap", namespace: "namespace"})
 	assert.NilError(t, err, "resourceDependency return error")
-	assert.DeepEqual(t, cm.Data, obj.(*v1.ConfigMap).Data)
+	cmResult = &v1.ConfigMap{}
+	_ = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), cmResult)
+	assert.DeepEqual(t, cm.Data, cmResult.Data)
 
 }

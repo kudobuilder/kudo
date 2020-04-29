@@ -4,7 +4,11 @@ import (
 	"context"
 	"crypto/md5" //nolint:gosec
 	"fmt"
+	"log"
 	"reflect"
+	"sort"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -23,63 +27,73 @@ type hashBytes [16]byte
 type dependencyCalculator struct {
 	// Used to retrieve the current version of dependencies if they are not in the taskObjects list
 	Client client.Client
-	// The namespace to which the current task deploys
-	namespace string
 	// The resources that are deployed in the task
 	taskObjects []runtime.Object
 	// A simple cache that stores hashes of dependencies, in case they are used by multiple resources
 	// The cache is only valid during one call to enhancer apply, i.e one task execution. The cache
 	// is discarded after the task execution is completed
-	cache map[reflect.Type]map[string]hashBytes
+	cache map[resourceDependency]hashBytes
 }
 
-func newDependencyCalculator(client client.Client, namespace string, taskObjects []runtime.Object) dependencyCalculator {
+func newDependencyCalculator(client client.Client, taskObjects []runtime.Object) dependencyCalculator {
 	c := dependencyCalculator{
 		Client:      client,
-		namespace:   namespace,
 		taskObjects: taskObjects,
-		cache:       map[reflect.Type]map[string]hashBytes{},
+		cache:       map[resourceDependency]hashBytes{},
 	}
-	c.cache[typeSecret] = map[string]hashBytes{}
-	c.cache[typeConfigMap] = map[string]hashBytes{}
 	return c
 }
 
 var (
 	// The types of dependencies we support
-	typeSecret    = reflect.TypeOf(corev1.Secret{})
-	typeConfigMap = reflect.TypeOf(corev1.ConfigMap{})
-
-	// We need a list of types to ensure deterministic order of hash calculation
-	dependencyTypes = []reflect.Type{
-		typeSecret,
-		typeConfigMap,
-	}
+	typeSecret    = schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Secret"}
+	typeConfigMap = schema.GroupVersionKind{Group: "", Version: "v1", Kind: "ConfigMap"}
 )
 
-type resourceDependencies map[reflect.Type][]string
+type resourceDependency struct {
+	gvk       schema.GroupVersionKind
+	name      string
+	namespace string
+}
+type resourceDependencies []resourceDependency
 
-func newDependencies() resourceDependencies {
-	deps := map[reflect.Type][]string{}
+// Len returns the number of dependencies
+// This is needed to allow sorting.
+func (rd resourceDependencies) Len() int { return len(rd) }
 
-	for _, t := range dependencyTypes {
-		deps[t] = []string{}
+// Swap swaps the position of two items in the dependencies slice.
+// This is needed to allow sorting.
+func (rd resourceDependencies) Swap(i, j int) { rd[i], rd[j] = rd[j], rd[i] }
+
+// Less returns true if the version of entry a is less than the version of entry b.
+// This is needed to allow sorting.
+func (rd resourceDependencies) Less(x, y int) bool {
+	if rd[x].gvk.Group != rd[y].gvk.Group {
+		return rd[x].gvk.Group < rd[y].gvk.Group
 	}
-
-	return deps
+	if rd[x].gvk.Kind != rd[y].gvk.Kind {
+		return rd[x].gvk.Kind < rd[y].gvk.Kind
+	}
+	if rd[x].gvk.Version != rd[y].gvk.Version {
+		return rd[x].gvk.Version < rd[y].gvk.Version
+	}
+	if rd[x].namespace != rd[y].namespace {
+		return rd[x].namespace < rd[y].namespace
+	}
+	return rd[x].name < rd[y].name
 }
 
 // addFromPodTemplateSpec adds all dependencies from a pod template spec
-func (rd resourceDependencies) addFromPodTemplateSpec(SpecTemplate corev1.PodTemplateSpec) {
+func (rd *resourceDependencies) addFromPodTemplateSpec(SpecTemplate corev1.PodTemplateSpec, ns string) {
 	for _, s := range SpecTemplate.Spec.ImagePullSecrets {
-		rd[typeSecret] = append(rd[typeSecret], s.Name)
+		*rd = append(*rd, resourceDependency{gvk: typeSecret, name: s.Name, namespace: ns})
 	}
 	for _, v := range SpecTemplate.Spec.Volumes {
 		if v.ConfigMap != nil {
-			rd[typeConfigMap] = append(rd[typeConfigMap], v.ConfigMap.Name)
+			*rd = append(*rd, resourceDependency{gvk: typeConfigMap, name: v.ConfigMap.Name, namespace: ns})
 		}
 		if v.Secret != nil {
-			rd[typeSecret] = append(rd[typeSecret], v.Secret.SecretName)
+			*rd = append(*rd, resourceDependency{gvk: typeSecret, name: v.Secret.SecretName, namespace: ns})
 		}
 	}
 }
@@ -88,14 +102,13 @@ func (rd resourceDependencies) addFromPodTemplateSpec(SpecTemplate corev1.PodTem
 func (de *dependencyCalculator) calculateAndSetHash(obj metav1.Object, deps resourceDependencies) error {
 
 	depHash := md5.New() //nolint:gosec
-	for _, depType := range dependencyTypes {
-		for _, name := range deps[depType] {
-			hash, err := de.getHashForDependency(name, depType)
-			if err != nil {
-				return fmt.Errorf("error calculating hash for %s of type %s: %v", name, depType, err)
-			}
-			_, _ = depHash.Write(hash[:]) // Hash.Write never returns an error
+	sort.Sort(deps)
+	for _, dep := range deps {
+		hash, err := de.getHashForDependency(dep)
+		if err != nil {
+			return fmt.Errorf("error calculating hash for %s of type %s: %v", dep.name, dep.gvk, err)
 		}
+		_, _ = depHash.Write(hash[:]) // Hash.Write never returns an error
 	}
 
 	hashStr := fmt.Sprintf("%x", depHash.Sum([]byte{}))
@@ -103,28 +116,26 @@ func (de *dependencyCalculator) calculateAndSetHash(obj metav1.Object, deps reso
 	return setTemplateHash(obj, hashStr)
 }
 
-func (de *dependencyCalculator) getHashForDependency(name string, t reflect.Type) (hashBytes, error) {
-	cache := de.cache[t]
-
-	if hash, ok := cache[name]; ok {
+func (de *dependencyCalculator) getHashForDependency(d resourceDependency) (hashBytes, error) {
+	if hash, ok := de.cache[d]; ok {
 		return hash, nil
 	}
 
-	dep, err := de.resourceDependency(name, t)
+	dep, err := de.resourceDependency(d)
 	if err != nil {
-		return hashBytes{}, fmt.Errorf("failed to get dependeny %s/%s: %v", de.namespace, name, err)
+		return hashBytes{}, fmt.Errorf("failed to get dependeny %s/%s: %v", d.namespace, d.name, err)
 	}
 	if _, ok := dep.GetAnnotations()[kudo.SkipHashCalculationAnnotation]; ok {
-		cache[name] = hashBytes{}
+		de.cache[d] = hashBytes{}
 	} else {
 		yamlStr, err := sanitizeAndSerialize(dep)
 		if err != nil {
-			return hashBytes{}, fmt.Errorf("failed to serialize dependeny %s/%s: %v", de.namespace, name, err)
+			return hashBytes{}, fmt.Errorf("failed to serialize dependeny %s/%s: %v", d.namespace, d.name, err)
 		}
-		cache[name] = md5.Sum([]byte(yamlStr)) //nolint:gosec
+		de.cache[d] = md5.Sum([]byte(yamlStr)) //nolint:gosec
 	}
 
-	return cache[name], nil
+	return de.cache[d], nil
 }
 
 // sanitizeAndSerialize removes volatile parts of an object and returns the resulting object as serialized yaml
@@ -149,75 +160,79 @@ func sanitizeAndSerialize(obj metav1.Object) (string, error) {
 }
 
 // resourceDependency returns the resource of type t with the given namespace/name, either from the passed in list of objects or the last applied configuration from the API server
-func (de *dependencyCalculator) resourceDependency(name string, t reflect.Type) (metav1.Object, error) {
+func (de *dependencyCalculator) resourceDependency(d resourceDependency) (*unstructured.Unstructured, error) {
 
 	// First try to find the dependency in the local list, if it's deployed in the same task we'll find it here
 	for _, obj := range de.taskObjects {
-		if reflect.TypeOf(obj).Elem() == t {
+		log.Printf("Test TaskObject: %v vs %v", obj.GetObjectKind().GroupVersionKind(), d.gvk)
+		if obj.GetObjectKind().GroupVersionKind().String() == d.gvk.String() {
 			obj, _ := obj.(metav1.Object)
-			if obj.GetName() == name {
-				return obj, nil
+			log.Printf("Test Name/Namespace: %s vs %s, %s vs %s", obj.GetName(), d.name, obj.GetNamespace(), d.namespace)
+			if obj.GetName() == d.name && obj.GetNamespace() == d.namespace {
+				unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+				if err != nil {
+					return nil, err
+				}
+				return &unstructured.Unstructured{Object: unstructMap}, nil
 			}
 		}
 	}
 
 	// We haven't found it, so we need to query the api server to get the current version
-	dep, _ := reflect.New(t).Interface().(metav1.Object)
+	//dep, _ := reflect.New(t).Interface().(metav1.Object)
+	dep := &unstructured.Unstructured{}
+	dep.SetGroupVersionKind(d.gvk)
+
 	key := client.ObjectKey{
-		Namespace: de.namespace,
-		Name:      name,
+		Namespace: d.namespace,
+		Name:      d.name,
 	}
 
-	err := de.Client.Get(context.TODO(), key, dep.(runtime.Object))
+	err := de.Client.Get(context.TODO(), key, dep)
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve object %s/%s: %v", de.namespace, name, err)
+		return nil, fmt.Errorf("failed to retrieve object %s/%s: %v", d.namespace, d.name, err)
 	}
 
 	// We don't want the hash from the object itself, because of added metadata from the api-server
 	// We use the LastAppliedConfigAnnotation that stores exactly what we applied last time
 	lastConfiguration, ok := dep.GetAnnotations()[kudo.LastAppliedConfigAnnotation]
 	if !ok {
-		return nil, fmt.Errorf("LastAppliedConfigAnnotation is not available on %s/%s", de.namespace, name)
+		return nil, fmt.Errorf("LastAppliedConfigAnnotation is not available on %s/%s", d.namespace, d.name)
 	}
 
 	obj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, []byte(lastConfiguration))
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode lastAppliedConfigAnnotation from %s/%s: %v", de.namespace, name, err)
+		return nil, fmt.Errorf("failed to decode lastAppliedConfigAnnotation from %s/%s: %v", d.namespace, d.name, err)
 	}
 
-	err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.(*unstructured.Unstructured).UnstructuredContent(), dep)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert lastAppliedConfigAnnotation of %s/%s from unstructured: %v", de.namespace, name, err)
-	}
-
-	return dep, nil
+	return obj.(*unstructured.Unstructured), nil
 }
 
 // Calculates the resource dependencies of the passed in object
 func calculateResourceDependencies(obj runtime.Object) (metav1.Object, resourceDependencies) {
-	deps := newDependencies()
+	deps := resourceDependencies{}
 
 	switch obj := (obj).(type) {
 	case *appsv1.StatefulSet:
-		deps.addFromPodTemplateSpec(obj.Spec.Template)
+		deps.addFromPodTemplateSpec(obj.Spec.Template, obj.Namespace)
 		return obj, deps
 	case *appsv1.Deployment:
-		deps.addFromPodTemplateSpec(obj.Spec.Template)
+		deps.addFromPodTemplateSpec(obj.Spec.Template, obj.Namespace)
 		return obj, deps
 	case *appsv1.DaemonSet:
-		deps.addFromPodTemplateSpec(obj.Spec.Template)
+		deps.addFromPodTemplateSpec(obj.Spec.Template, obj.Namespace)
 		return obj, deps
 	case *appsv1.ReplicaSet:
-		deps.addFromPodTemplateSpec(obj.Spec.Template)
+		deps.addFromPodTemplateSpec(obj.Spec.Template, obj.Namespace)
 		return obj, deps
 	case *corev1.ReplicationController:
-		deps.addFromPodTemplateSpec(*obj.Spec.Template)
+		deps.addFromPodTemplateSpec(*obj.Spec.Template, obj.Namespace)
 		return obj, deps
 	case *batchv1.Job:
-		deps.addFromPodTemplateSpec(obj.Spec.Template)
+		deps.addFromPodTemplateSpec(obj.Spec.Template, obj.Namespace)
 		return obj, deps
 	case *v1beta1.CronJob:
-		deps.addFromPodTemplateSpec(obj.Spec.JobTemplate.Spec.Template)
+		deps.addFromPodTemplateSpec(obj.Spec.JobTemplate.Spec.Template, obj.Namespace)
 		return obj, deps
 	}
 	return nil, resourceDependencies{}

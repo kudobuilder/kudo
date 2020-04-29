@@ -84,7 +84,7 @@ func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata)
 		}
 	}
 
-	dc := newDependencyCalculator(de.Client, metadata.InstanceNamespace, objs)
+	dc := newDependencyCalculator(de.Client, objs)
 	for _, obj := range objs {
 		typedObj, deps := calculateResourceDependencies(obj)
 		if typedObj != nil {

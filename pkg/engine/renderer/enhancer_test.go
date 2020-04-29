@@ -189,7 +189,7 @@ func TestEnhancerApply_dependencyHash(t *testing.T) {
 
 		hash, ok := annotations[kudo.DependenciesHashAnnotation]
 		assert.NotNil(t, hash)
-		assert.Equal(t, "e3c6c9aed8752b21f3279dcf25b759a0", hash, "Hashes are not the same")
+		assert.Equal(t, "929a2dffa86ad2460fdcf72977998bd0", hash, "Hashes are not the same")
 		assert.True(t, ok, "Statefulset contains no dependency hash field")
 	}
 }
@@ -215,8 +215,7 @@ func Test_calculateResourceDependencies(t *testing.T) {
 
 	_, deps := calculateResourceDependencies(ss)
 
-	assert.Equal(t, 1, len(deps[typeConfigMap]), "No config map dependency detected for stateful set")
-	assert.Equal(t, 1, len(deps[typeSecret]), "No secret dependency detected for stateful set")
+	assert.Equal(t, 2, len(deps), "No dependencies detected for stateful set")
 }
 
 func metadata() Metadata {
