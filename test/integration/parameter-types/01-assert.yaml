@@ -4,8 +4,9 @@ kind: Instance
 metadata:
   name: parameter-test-instance
 status:
-  aggregatedStatus:
-    status: IN_PROGRESS
+  planStatus:
+    deploy:
+      status: IN_PROGRESS
 ---
 apiVersion: apps/v1
 kind: Deployment

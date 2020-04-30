@@ -12,8 +12,6 @@ kind: Instance
 metadata:
   name: toy1
 status:
-  aggregatedStatus:
-    status: COMPLETE
   planStatus:
     scale:
       status: COMPLETE
