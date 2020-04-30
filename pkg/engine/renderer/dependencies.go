@@ -152,24 +152,19 @@ func (de *dependencyCalculator) getHashForDependency(d resourceDependency) (hash
 }
 
 // sanitizeAndSerialize removes volatile parts of an object and returns the resulting object as serialized yaml
-func sanitizeAndSerialize(obj metav1.Object) (string, error) {
+func sanitizeAndSerialize(origObj *unstructured.Unstructured) (string, error) {
+	obj := origObj.DeepCopy()
+
 	// Namespace is ignored mostly to allow easier integration tests (which use random namespaces)
-	ns := obj.GetNamespace()
+	obj.SetNamespace("")
 
 	// OwnerReferences need to be skipped as they contain a changing UID
-	or := obj.GetOwnerReferences()
+	obj.SetOwnerReferences([]metav1.OwnerReference{})
 
 	// Annotations are notorious for containing quickly changing strings: plan/phase/task names, uids, dates, etc.
-	ann := obj.GetAnnotations()
-
-	obj.SetNamespace("")
-	obj.SetOwnerReferences([]metav1.OwnerReference{})
 	obj.SetAnnotations(map[string]string{})
-	yamlStr, err := ToYaml(obj)
-	obj.SetNamespace(ns)
-	obj.SetOwnerReferences(or)
-	obj.SetAnnotations(ann)
-	return yamlStr, err
+
+	return ToYaml(obj)
 }
 
 // resourceDependency returns the resource of type t with the given namespace/name, either from the passed in list of objects or the last applied configuration from the API server
@@ -177,7 +172,7 @@ func (de *dependencyCalculator) resourceDependency(d resourceDependency) (*unstr
 
 	// First try to find the dependency in the local list, if it's deployed in the same task we'll find it here
 	for _, obj := range de.taskObjects {
-		if obj.GetObjectKind().GroupVersionKind().String() == d.gvk.String() {
+		if obj.GetObjectKind().GroupVersionKind() == d.gvk {
 			if obj.GetName() == d.name && obj.GetNamespace() == d.namespace {
 				return obj, nil
 			}

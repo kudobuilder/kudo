@@ -89,24 +89,40 @@ func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata)
 		}
 	}
 
-	dc := newDependencyCalculator(de.Client, unstructuredObjs)
-	for _, uo := range unstructuredObjs {
-		deps, err := calculateResourceDependencies(uo)
-		if err != nil {
-			return nil, fmt.Errorf("failed to calculate resource dependencies for %s/%s: %v", uo.GetNamespace(), uo.GetName(), err)
-		}
-		if deps != nil && !deps.empty() {
-			err = dc.calculateAndSetHash(uo, deps)
-			if err != nil {
-				return nil, fmt.Errorf("failed to add dependency hash to %s/%s: %v", uo.GetNamespace(), uo.GetName(), err)
-			}
-		}
+	if err := de.addDependenciesHashes(unstructuredObjs); err != nil {
+		return nil, fmt.Errorf("failed to add dependencies hash: %v", err)
 	}
 
 	// This is pretty important, if we don't convert it to the actual type everything will be Unstructured.
 	// We depend on types later on in the processing e.g. when evaluating health.
 	// Additionally, as we add annotations and labels to all possible paths, this step gets rid of anything
 	// that doesn't belong to the specific object type.
+	objs, err := de.convertToTyped(unstructuredObjs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert objects to typed: %v", err)
+	}
+
+	return objs, nil
+}
+
+func (de *DefaultEnhancer) addDependenciesHashes(unstructuredObjs []*unstructured.Unstructured) error {
+	dc := newDependencyCalculator(de.Client, unstructuredObjs)
+	for _, uo := range unstructuredObjs {
+		deps, err := calculateResourceDependencies(uo)
+		if err != nil {
+			return fmt.Errorf("failed to calculate resource dependencies for %s/%s: %v", uo.GetNamespace(), uo.GetName(), err)
+		}
+		if !deps.empty() {
+			err = dc.calculateAndSetHash(uo, deps)
+			if err != nil {
+				return fmt.Errorf("failed to add dependency hash to %s/%s: %v", uo.GetNamespace(), uo.GetName(), err)
+			}
+		}
+	}
+	return nil
+}
+
+func (de *DefaultEnhancer) convertToTyped(unstructuredObjs []*unstructured.Unstructured) ([]runtime.Object, error) {
 	objs := make([]runtime.Object, 0, len(unstructuredObjs))
 	for _, uo := range unstructuredObjs {
 		obj, err := de.Scheme.New(uo.GroupVersionKind())
@@ -122,7 +138,6 @@ func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata)
 
 		objs = append(objs, obj)
 	}
-
 	return objs, nil
 }
 
