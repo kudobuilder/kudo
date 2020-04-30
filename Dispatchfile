@@ -66,6 +66,7 @@ dindTask("e2e-test", inputs=["git"], outputs=["artifacts"], steps=[
  ),
  k8s.corev1.Container(
   name="e2e-test",
+  image="mesosphere/dispatch-dind:1.1.0",
   command=[ "bash", "-c", "./hack/run-e2e-tests.sh ; cp -a kind-logs-* $(resources.outputs.artifacts.path)" ],
   env=[
     k8s.corev1.EnvVar(name="INTEGRATION_OUTPUT_JUNIT", value="false"), # TODO: enable
