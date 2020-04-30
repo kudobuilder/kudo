@@ -189,7 +189,7 @@ func TestEnhancerApply_dependencyHash(t *testing.T) {
 
 		hash, ok := annotations[kudo.DependenciesHashAnnotation]
 		assert.NotNil(t, hash)
-		assert.Equal(t, "158999050a2919e1b1465d568ba40871", hash, "Hashes are not the same")
+		assert.Equal(t, "929a2dffa86ad2460fdcf72977998bd0", hash, "Hashes are not the same")
 		assert.True(t, ok, "Statefulset contains no dependency hash field")
 	}
 }
