@@ -3,25 +3,23 @@ package renderer
 import (
 	"testing"
 
-	"k8s.io/apimachinery/pkg/util/uuid"
-
-	v1 "k8s.io/api/batch/v1"
-
-	"k8s.io/api/batch/v1beta1"
-
 	"github.com/stretchr/testify/assert"
+	"github.com/thoas/go-funk"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/batch/v1"
+	"k8s.io/api/batch/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/yaml"
-
-	"github.com/kudobuilder/kuttl/pkg/test/utils"
 
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/test/fake"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"github.com/kudobuilder/kuttl/pkg/test/utils"
 )
 
 func TestEnhancerApply_embeddedMetadataStatefulSet(t *testing.T) {
@@ -140,23 +138,11 @@ func TestEnhancerApply_noAdditionalMetadata(t *testing.T) {
 		assert.False(t, ok, "Pod struct contains template field")
 	}
 }
-
-func TestEnhancerApply_dependencyHash(t *testing.T) {
-
+func TestEnhancerApply_dependencyHash_noDependencies(t *testing.T) {
 	ss := statefulSet("statefulset", "default")
-
-	ss.Spec.Template.Spec.Volumes = append(ss.Spec.Template.Spec.Volumes, corev1.Volume{
-		Name: "configMap",
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: "configmap"},
-			},
-		},
-	})
 
 	tpls := map[string]string{
 		"statefulset": resourceAsString(ss),
-		"configmap":   resourceAsString(configMap("configmap", "default")),
 	}
 
 	meta := metadata()
@@ -172,53 +158,86 @@ func TestEnhancerApply_dependencyHash(t *testing.T) {
 		t.Errorf("failed to apply template %s", err)
 	}
 
-	for _, o := range objs {
-		unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(o)
-		if err != nil {
-			t.Errorf("failed to parse object to unstructured: %s", err)
-		}
-		if o.(metav1.Object).GetName() != "statefulset" {
-			continue
-		}
+	ssApplied := funk.Find(objs, func(o runtime.Object) bool {
+		return o.GetObjectKind().GroupVersionKind() == schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "StatefulSet"}
+	})
 
-		f, ok, _ := unstructured.NestedFieldNoCopy(unstructMap, "spec", "template", "metadata", "annotations")
-		assert.NotNil(t, f)
-		assert.True(t, ok, "Statefulset contains no annotations")
+	unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(ssApplied)
+	assert.Nil(t, err, "failed to parse object to unstructured: %s", err)
 
-		annotations, _ := f.(map[string]interface{})
+	annotations, _, _ := unstructured.NestedMap(unstructMap, "spec", "template", "metadata", "annotations")
+	assert.NotNil(t, annotations, "Statefulset pod template spec contains no annotations")
 
-		hash, ok := annotations[kudo.DependenciesHashAnnotation]
-		assert.NotNil(t, hash)
-		assert.Equal(t, "929a2dffa86ad2460fdcf72977998bd0", hash, "Hashes are not the same")
-		assert.True(t, ok, "Statefulset contains no dependency hash field")
-	}
+	hash := annotations[kudo.DependenciesHashAnnotation]
+	assert.Nil(t, hash, "Pod template spec annotations contains a dependency hash but no dependencies")
 }
 
-func Test_calculateResourceDependencies(t *testing.T) {
-	ss := statefulSet("ss", "default")
+func TestEnhancerApply_dependencyHash_changes(t *testing.T) {
+	ss := statefulSet("statefulset", "default")
+	cm := configMap("configmap", "default")
+
 	ss.Spec.Template.Spec.Volumes = append(ss.Spec.Template.Spec.Volumes, corev1.Volume{
 		Name: "configMap",
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: "ConfigMap"},
-			},
-		},
-	})
-	ss.Spec.Template.Spec.Volumes = append(ss.Spec.Template.Spec.Volumes, corev1.Volume{
-		Name: "secretVol",
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: "someSecret",
+				LocalObjectReference: corev1.LocalObjectReference{Name: cm.Name},
 			},
 		},
 	})
 
-	data, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(ss)
-	ssUnstructured := unstructured.Unstructured{Object: data}
+	tpls := map[string]string{
+		"statefulset": resourceAsString(ss),
+		"configmap":   resourceAsString(cm),
+	}
 
-	deps, _ := calculateResourceDependencies(&ssUnstructured)
+	meta := metadata()
+	meta.PlanUID = uuid.NewUUID()
 
-	assert.Equal(t, 2, len(deps), "No dependencies detected for stateful set")
+	e := &DefaultEnhancer{
+		Scheme:    utils.Scheme(),
+		Discovery: fake.CachedDiscoveryClient(),
+	}
+
+	objs, err := e.Apply(tpls, meta)
+	if err != nil {
+		t.Errorf("failed to apply template %s", err)
+	}
+
+	ssApplied := funk.Find(objs, func(o runtime.Object) bool {
+		return o.GetObjectKind().GroupVersionKind() == schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "StatefulSet"}
+	})
+
+	unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(ssApplied)
+	assert.Nil(t, err, "failed to parse object to unstructured: %s", err)
+
+	annotations, _, _ := unstructured.NestedMap(unstructMap, "spec", "template", "metadata", "annotations")
+	assert.NotNil(t, annotations, "Statefulset pod template spec contains no annotations")
+
+	hash := annotations[kudo.DependenciesHashAnnotation]
+	assert.NotNil(t, hash, "Pod template spec annotations contains no dependency hash field")
+	assert.Equal(t, "929a2dffa86ad2460fdcf72977998bd0", hash, "Hashes are not the same")
+
+	cm.Data["newkey"] = "newvalue"
+	tpls = map[string]string{
+		"statefulset": resourceAsString(ss),
+		"configmap":   resourceAsString(cm),
+	}
+
+	objs, err = e.Apply(tpls, meta)
+	assert.Nil(t, err)
+	ssApplied = funk.Find(objs, func(o runtime.Object) bool {
+		return o.GetObjectKind().GroupVersionKind() == schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "StatefulSet"}
+	})
+
+	unstructMap, err = runtime.DefaultUnstructuredConverter.ToUnstructured(ssApplied)
+	assert.Nil(t, err, "failed to parse object to unstructured: %s", err)
+
+	annotations, _, _ = unstructured.NestedMap(unstructMap, "spec", "template", "metadata", "annotations")
+	assert.NotNil(t, annotations, "Statefulset pod template spec contains no annotations")
+
+	newHash := annotations[kudo.DependenciesHashAnnotation]
+	assert.NotNil(t, newHash, "Pod template spec annotations contains no dependency hash field")
+	assert.NotEqual(t, hash, newHash, "Hashes are the same after the config map changed")
 }
 
 func metadata() Metadata {
@@ -291,6 +310,7 @@ func statefulSet(name string, namespace string) *appsv1.StatefulSet {
 					Labels: map[string]string{
 						"app": "app-type",
 					},
+					Annotations: map[string]string{},
 				},
 				Spec: corev1.PodSpec{},
 			},
