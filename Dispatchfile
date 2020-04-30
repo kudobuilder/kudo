@@ -51,6 +51,7 @@ resource("artifacts",
 dindTask("e2e-test", inputs=["git"], outputs=["artifacts"], steps=[
  k8s.corev1.Container(
   name="e2e-test-prep",
+  image="mesosphere/dispatch-dind:1.1.0",
   command=[ "docker", "run", "-v", "/workspace/git:/workspace/git", "-w", "/workspace/git", "kudobuilder/golang:1.14", "make", "cli-fast", "manager-fast" ],
   workingDir="/workspace/git",
   resources = k8s.corev1.ResourceRequirements(
