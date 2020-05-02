@@ -22,7 +22,7 @@ echo 'artifactsDir: /tmp/kudo-e2e-test' >> kudo-e2e-test.yaml.tmpl
 
 # Pull the builder image with retries if it doesn't already exist.
 retries=0
-builder_image=$(awk '/FROM/ {print $2}' test/Dockerfile)
+builder_image=$(awk '/FROM/ {print $2}' test/Dockerfile.amd64)
 
 if ! docker inspect "$builder_image"; then
     until docker pull "$builder_image"; do
@@ -36,7 +36,7 @@ if ! docker inspect "$builder_image"; then
     done
 fi
 
-if docker build -f test/Dockerfile -t kudo-test .; then
+if docker build -f test/Dockerfile.amd64 -t kudo-test .; then
     if docker run -e INTEGRATION_OUTPUT_JUNIT --net=host -it --rm -m 4g \
         -v /var/run/docker.sock:/var/run/docker.sock \
         -v "$(pwd)"/reports:/go/src/github.com/kudobuilder/kudo/reports \
