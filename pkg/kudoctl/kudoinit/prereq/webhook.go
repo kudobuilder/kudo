@@ -76,7 +76,7 @@ func (k KudoWebHook) installWithCertManager(client *kube.Client) error {
 }
 
 func (k KudoWebHook) installWithSelfSignedCA(client *kube.Client) error {
-	iaw, s, err := k.runtimeObjsWithSelfSignedCA()
+	iaw, s, err := k.resourcesWithSelfSignedCA()
 	if err != nil {
 		return nil
 	}
@@ -108,7 +108,7 @@ func (k KudoWebHook) Resources() []runtime.Object {
 	}
 
 	if k.opts.SelfSignedWebhookCA {
-		iaw, s, err := k.runtimeObjsWithSelfSignedCA()
+		iaw, s, err := k.resourcesWithSelfSignedCA()
 		if err != nil {
 			panic(err)
 		}
@@ -116,10 +116,10 @@ func (k KudoWebHook) Resources() []runtime.Object {
 
 	}
 
-	return k.runtimeObjsWithCertManager()
+	return k.resourcesWithCertManager()
 }
 
-func (k KudoWebHook) runtimeObjsWithCertManager() []runtime.Object {
+func (k KudoWebHook) resourcesWithCertManager() []runtime.Object {
 	av := InstanceAdmissionWebhook(k.opts.Namespace)
 	objs := []runtime.Object{&av}
 	objs = append(objs, &k.issuer)
@@ -127,7 +127,7 @@ func (k KudoWebHook) runtimeObjsWithCertManager() []runtime.Object {
 	return objs
 }
 
-func (k KudoWebHook) runtimeObjsWithSelfSignedCA() (*admissionv1beta1.MutatingWebhookConfiguration, *corev1.Secret, error) {
+func (k KudoWebHook) resourcesWithSelfSignedCA() (*admissionv1beta1.MutatingWebhookConfiguration, *corev1.Secret, error) {
 	tinyCA, err := NewTinyCA(kudoinit.DefaultServiceName, k.opts.Namespace)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to set up webhook CA: %v", err)
