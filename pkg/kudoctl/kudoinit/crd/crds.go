@@ -7,7 +7,7 @@ import (
 
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
@@ -83,7 +83,7 @@ func (c Initializer) verifyInstallation(client v1beta1.CustomResourceDefinitions
 		if os.IsTimeout(err) {
 			return err
 		}
-		if k8serrors.IsNotFound(err) {
+		if kerrors.IsNotFound(err) {
 			result.AddErrors(fmt.Sprintf("CRD %s is not installed", crd.Name))
 			return nil
 		}
@@ -98,7 +98,7 @@ func (c Initializer) verifyInstallation(client v1beta1.CustomResourceDefinitions
 
 func (c Initializer) install(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition) error {
 	_, err := client.CustomResourceDefinitions().Create(crd)
-	if k8serrors.IsAlreadyExists(err) {
+	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("crd %v already exists", crd.Name)
 		return nil
 	}

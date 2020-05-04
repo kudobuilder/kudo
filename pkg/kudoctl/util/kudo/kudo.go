@@ -55,12 +55,13 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 
 	result := verifier.NewResult()
 	err = crd.NewInitializer().VerifyInstallation(kubeClient, &result)
-	if err != nil || !result.IsValid() {
+	if err != nil {
+		return nil, fmt.Errorf("failed to run crd verification: %v", err)
+	}
+	if !result.IsValid() {
 		clog.V(0).Printf("KUDO CRDs are not set up correctly. Do you need to run kudo init?")
+
 		if validateInstall {
-			if err != nil {
-				return nil, fmt.Errorf("CRDs invalid: %v", err)
-			}
 			return nil, fmt.Errorf("CRDs invalid: %v", result.ErrorsAsString())
 		}
 	}
