@@ -55,16 +55,13 @@ The default value for `immutable` is `false`.
 
 ### Implementation Details/Notes/Constraints
 
-The KUDO CLI will check if a parameter is immutable when updating an instance and error out.
+The KUDO CLI will not check if a parameter is immutable to allow providing an immutable parameter on the CLI or in a parameter file without changing it's value. This allows the user to keep the full operator configuration in a parameter file and use that for installation and updates.  
 
-The admission webhook should verify if the parameter is immutable and reject the update to the instance on update.
+The admission webhook verifies if the parameter is immutable and reject the update to the instance on update.
 
+If no value for an immutable parameter is given on installation, KUDO copies the default value from the OperatorVersion into the instance. This makes sure that the parameter value will never change, even if the default value changes in a later OperatorVersion.
 
-Open Questions: 
-- Should it be allowed to use an immutable parameter in a `kudo update` invocation when the value is the same as in the instance? This would effectively not be an update. 
-  - Yes: The CLI would have to either check the current instance or rely on the admission webhook to error out
-  - No: Would make using the same parameter file to install and update a KUDO instance impossible 
-
+If a parameter definition is immutable, it must either have a default value or needs to be marked as required.
 
 ### Risks and Mitigations
 
@@ -72,5 +69,6 @@ Open Questions:
 ## Implementation History
 
 - 2020-04-28 - Initial draft. (@aneumann)
+- 2020-05-01 - Clarified point of check (webhook) and use of default values.
 
 ## Alternatives
