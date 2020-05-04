@@ -3,16 +3,18 @@ kind: Instance
 metadata:
   name: oio-instance
 status:
-  aggregatedStatus:
-    status: COMPLETE
+  planStatus:
+    deploy:
+      status: COMPLETE
 ---
 apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   name: inner-instance
 status:
-  aggregatedStatus:
-    status: COMPLETE
+  planStatus:
+    deploy:
+      status: COMPLETE
 ---
 apiVersion: v1
 kind: ConfigMap

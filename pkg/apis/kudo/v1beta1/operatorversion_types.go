@@ -192,6 +192,8 @@ type PipeSpec struct {
 	// +optional
 	File string `json:"file"`
 	// +optional
+	EnvFile string `json:"envFile"`
+	// +optional
 	Kind string `json:"kind"`
 	// +optional
 	Key string `json:"key"`
