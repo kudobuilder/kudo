@@ -48,15 +48,17 @@ func TestGetResources(t *testing.T) {
 		{name: "from task objects", taskObjects: []*unstructured.Unstructured{&cmUnstructured}, client: fake.NewFakeClientWithScheme(scheme.Scheme)},
 	}
 
-	for _, test := range tests {
-		dc := newDependencyCalculator(test.client, test.taskObjects)
-		obj, err := dc.resourceDependency(resourceDependency{gvk: typeConfigMap, name: "configmap", namespace: "namespace"})
-		assert.NilError(t, err, "resourceDependency return error")
-		cmResult := &corev1.ConfigMap{}
-		_ = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), cmResult)
-		assert.DeepEqual(t, cm.Data, cmResult.Data)
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			dc := newDependencyCalculator(tt.client, tt.taskObjects)
+			obj, err := dc.resourceDependency(resourceDependency{gvk: typeConfigMap, name: "configmap", namespace: "namespace"})
+			assert.NilError(t, err, "resourceDependency return error")
+			cmResult := &corev1.ConfigMap{}
+			_ = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), cmResult)
+			assert.DeepEqual(t, cm.Data, cmResult.Data)
+		})
 	}
-
 }
 
 func configMapVolume(name string, objectRef string) corev1.Volume {
@@ -106,14 +108,17 @@ func TestSetDependenciesHash(t *testing.T) {
 			assert.DeepEqual(t, pod("somename", "namespace"), p)
 		}},
 	}
-	for _, test := range tests {
-		cmUnstructuredData, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(test.obj)
-		cmUnstructured := &unstructured.Unstructured{Object: cmUnstructuredData}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			cmUnstructuredData, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(tt.obj)
+			cmUnstructured := &unstructured.Unstructured{Object: cmUnstructuredData}
 
-		err := setTemplateHash(cmUnstructured, "fancyHash")
-		assert.NilError(t, err)
+			err := setTemplateHash(cmUnstructured, "fancyHash")
+			assert.NilError(t, err)
 
-		test.assert(cmUnstructured)
+			tt.assert(cmUnstructured)
+		})
 	}
 }
 
