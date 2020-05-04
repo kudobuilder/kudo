@@ -25,6 +25,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 	label "github.com/kudobuilder/kudo/pkg/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/version"
@@ -52,15 +53,15 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 		return nil, clog.Errorf("could not get Kubernetes client: %s", err)
 	}
 
-	err = crd.NewInitializer().ValidateInstallation(kubeClient)
-	if err != nil {
-		// see above
-		if os.IsTimeout(err) {
-			return nil, err
-		}
+	result := verifier.NewResult()
+	err = crd.NewInitializer().VerifyInstallation(kubeClient, &result)
+	if err != nil || !result.IsValid() {
 		clog.V(0).Printf("KUDO CRDs are not set up correctly. Do you need to run kudo init?")
 		if validateInstall {
-			return nil, fmt.Errorf("CRDs invalid: %v", err)
+			if err != nil {
+				return nil, fmt.Errorf("CRDs invalid: %v", err)
+			}
+			return nil, fmt.Errorf("CRDs invalid: %v", result.ErrorsAsString())
 		}
 	}
 
