@@ -8,8 +8,6 @@ data:
 apiVersion: kudo.dev/v1beta1
 kind: Instance
 status:
-  aggregatedStatus:
-    status: COMPLETE
   planStatus:
     update-param:
       status: COMPLETE

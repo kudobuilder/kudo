@@ -20,8 +20,6 @@ spec:
 apiVersion: kudo.dev/v1beta1
 kind: Instance
 status:
-  aggregatedStatus:
-    status: COMPLETE
   planStatus:
     deploy:
       status: COMPLETE

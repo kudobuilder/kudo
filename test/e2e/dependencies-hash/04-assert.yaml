@@ -21,8 +21,6 @@ apiVersion: kudo.dev/v1beta1
 kind: Instance
 status:
   # We need to check for IN_PROGRESS here and for COMPLETE in the next step, as update-replica ran before and is still set to COMPLETE from the last run
-  aggregatedStatus:
-    status: IN_PROGRESS
   planStatus:
     update-replica:
       status: IN_PROGRESS
