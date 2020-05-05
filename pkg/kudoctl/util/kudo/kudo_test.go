@@ -23,7 +23,7 @@ func TestKudoClientValidate(t *testing.T) {
 	tests := []struct {
 		err string
 	}{
-		{"CRDs invalid: failed to retrieve CRD"}, // verify that NewClient tries to validate CRDs
+		{"failed to run crd verification: failed to retrieve CRD"}, // verify that NewClient tries to validate CRDs
 	}
 
 	for _, tt := range tests {

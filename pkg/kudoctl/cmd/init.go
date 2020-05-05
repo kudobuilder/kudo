@@ -6,6 +6,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
+
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
@@ -179,6 +181,13 @@ func (initCmd *initCmd) run() error {
 			}
 			initCmd.client = client
 		}
+		ok, err := initCmd.preInstallVerify(opts)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("failed to verify installation requirements")
+		}
 
 		if err := setup.Install(initCmd.client, opts, initCmd.crdOnly); err != nil {
 			return clog.Errorf("error installing: %s", err)
@@ -194,6 +203,20 @@ func (initCmd *initCmd) run() error {
 	}
 
 	return nil
+}
+
+// preInstallVerify runs the pre-installation verification and returns true if the installation can continue
+func (initCmd *initCmd) preInstallVerify(opts kudoinit.Options) (bool, error) {
+	result := verifier.NewResult()
+	if err := setup.PreInstallVerify(initCmd.client, opts, initCmd.crdOnly, &result); err != nil {
+		return false, err
+	}
+	result.PrintWarnings(initCmd.out)
+	if !result.IsValid() {
+		result.PrintErrors(initCmd.out)
+		return false, nil
+	}
+	return true, nil
 }
 
 func webhooksArray(webhooksAsStr string) []string {

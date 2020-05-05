@@ -3,5 +3,6 @@ kind: Instance
 metadata:
   name: crd-instance
 status:
-  aggregatedStatus:
-    status: COMPLETE
+  planStatus:
+    deploy:
+      status: COMPLETE

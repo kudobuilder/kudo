@@ -8,8 +8,6 @@ spec:
   parameters:
     version: 1.7.10
 status:
-  aggregatedStatus:
-    status: COMPLETE
   planStatus:
-    upgrade:
+    deploy:
       status: COMPLETE

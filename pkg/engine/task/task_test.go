@@ -91,7 +91,7 @@ kind: Pipe
 spec:
   pod: pipe-pod.yaml
   pipe:
-    - file: /tmp/bar.txt
+    - envFile: /tmp/bar.txt
       kind: ConfigMap
       key: Bar`,
 			want: PipeTask{
@@ -99,9 +99,9 @@ spec:
 				Pod:  "pipe-pod.yaml",
 				PipeFiles: []PipeFile{
 					{
-						File: "/tmp/bar.txt",
-						Kind: "ConfigMap",
-						Key:  "Bar",
+						EnvFile: "/tmp/bar.txt",
+						Kind:    "ConfigMap",
+						Key:     "Bar",
 					},
 				},
 			},
@@ -122,14 +122,28 @@ spec:
 			wantErr: true,
 		},
 		{
-			name: "pipe task file must be defined",
+			name: "either pipe task file or envFile must be defined",
 			taskYaml: `
 name: pipe-task
 kind: Pipe
 spec:
   pod: pipe-pod.yaml
   pipe:
-    - file:
+    - kind: Secret
+      key: Bar`,
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "pipe task file and envFile should not be defined at the same time",
+			taskYaml: `
+name: pipe-task
+kind: Pipe
+spec:
+  pod: pipe-pod.yaml
+  pipe:
+    - file: foo.yaml
+      envFile: bar.yaml
       kind: Secret
       key: Bar`,
 			want:    nil,
@@ -177,7 +191,7 @@ spec:
 			}
 
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Build(%s) got = %v, want %v", tt.name, got, tt.want)
+				t.Errorf("Build(%s) got = %+v, want %+v", tt.name, got, tt.want)
 			}
 		})
 	}
