@@ -48,6 +48,23 @@ func (o KudoNamespace) PreInstallVerify(client *kube.Client, result *verifier.Re
 	return nil
 }
 
+func (o KudoNamespace) PreUpgradeVerify(client *kube.Client, result *verifier.Result) error {
+	// For Upgrades we want to make sure that the namespace exists, there's nothing we can really upgrade for NS
+	return o.VerifyInstallation(client, result)
+}
+
+func (o KudoNamespace) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
+	_, err := client.KubeClient.CoreV1().Namespaces().Get(o.opts.Namespace, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			result.AddErrors(fmt.Sprintf("namespace %s does not exist", o.opts.Namespace))
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
 func (o KudoNamespace) Install(client *kube.Client) error {
 	_, err := client.KubeClient.CoreV1().Namespaces().Create(o.ns)
 	if kerrors.IsAlreadyExists(err) {

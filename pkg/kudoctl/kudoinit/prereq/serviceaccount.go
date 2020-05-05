@@ -54,6 +54,26 @@ func (o KudoServiceAccount) PreInstallVerify(client *kube.Client, result *verifi
 	return nil
 }
 
+func (o KudoServiceAccount) PreUpgradeVerify(client *kube.Client, result *verifier.Result) error {
+	// For the service account we just verify that the installation is valid. Nothing really to upgrade here
+	return o.VerifyInstallation(client, result)
+}
+
+func (o KudoServiceAccount) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
+	if err := o.validateServiceAccountExists(client, result); err != nil {
+		return err
+	}
+
+	if result.IsValid() {
+		// Only validate role if SA is ok
+		if err := o.validateClusterAdminRoleForSA(client, result); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (o KudoServiceAccount) Install(client *kube.Client) error {
 	if !o.opts.IsDefaultServiceAccount() {
 		return nil

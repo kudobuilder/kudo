@@ -293,7 +293,7 @@ func TestInitWithServiceAccount(t *testing.T) {
 	}
 }
 
-func TestNoErrorOnReInit(t *testing.T) {
+func TestReInitFails(t *testing.T) {
 	//	 if the CRD exists and we init again there should be no error
 	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
 		Scheme: testutils.Scheme(),
@@ -334,12 +334,13 @@ func TestNoErrorOnReInit(t *testing.T) {
 
 	// second run will have an output that it already exists
 	err = cmd.run()
-	assert.Nil(t, err)
-	assert.True(t, strings.Contains(buf.String(), "crd operators.kudo.dev already exists"))
+
+	assert.Equal(t, "failed to verify installation requirements", err.Error())
+	assertStringContains(t, "CRD operators.kudo.dev is already installed. Did you mean to use --upgrade?", buf.String())
 }
 
 func deleteInitObjects(client *testutils.RetryClient) {
-	opts := kudoinit.NewOptions("", "", "", []string{}, false)
+	opts := kudoinit.NewOptions("", "", "", "", []string{}, false, false)
 
 	crds := crd.NewInitializer()
 

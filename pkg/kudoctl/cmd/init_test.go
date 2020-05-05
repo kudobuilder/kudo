@@ -11,15 +11,11 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	apiextfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	yamlutil "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes/fake"
-	testcore "k8s.io/client-go/testing"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -58,9 +54,6 @@ func TestInitCmd_exists(t *testing.T) {
 	})
 	fc2 := apiextfake.NewSimpleClientset()
 
-	fc.PrependReactor("*", "*", func(action testcore.Action) (bool, runtime.Object, error) {
-		return true, nil, apierrors.NewAlreadyExists(v1.Resource("deployments"), "1")
-	})
 	cmd := &initCmd{
 		out:    &buf,
 		fs:     afero.NewMemMapFs(),
@@ -175,6 +168,9 @@ func TestNewInitCmd(t *testing.T) {
 		{name: "name and version together invalid", flags: map[string]string{"kudo-image": "foo", "version": "bar"}, errorMessage: "specify either 'kudo-image' or 'version', not both"},
 		{name: "crd-only and wait together invalid", flags: map[string]string{"crd-only": "true", "wait": "true"}, errorMessage: "wait is not allowed with crd-only"},
 		{name: "wait-timeout invalid without wait", flags: map[string]string{"wait-timeout": "400"}, errorMessage: "wait-timeout is only useful when using the flag '--wait'"},
+		{name: "crd-only and upgrade together invalid", flags: map[string]string{"crd-only": "true", "upgrade": "true"}, errorMessage: "'--upgrade' and '--crd-only' can not be used at the same time"},
+		{name: "validate and dry-run together invalid:", flags: map[string]string{"dry-run": "true", "validate": "true"}, errorMessage: "'--dry-run' and '--validate' can not be used at the same time"},
+		{name: "validate and upgrade together invalid:", flags: map[string]string{"upgrade": "true", "validate": "true"}, errorMessage: "'--upgrade' and '--validate' can not be used at the same time"},
 	}
 
 	for _, tt := range tests {

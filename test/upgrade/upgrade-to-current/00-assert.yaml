@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: kudo-manager
+    control-plane: controller-manager
+  name: kudo-controller-manager
+  namespace: kudo-system
+spec:
+  template:
+    spec:
+      containers:
+        - image: kudobuilder/controller:v0.11.1

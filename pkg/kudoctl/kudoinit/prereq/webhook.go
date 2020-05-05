@@ -34,8 +34,9 @@ type KudoWebHook struct {
 }
 
 const (
-	certManagerAPIVersion        = "v1alpha2"
-	certManagerControllerVersion = "v0.12.0"
+	certManagerAPIVersion         = "v1alpha2"
+	certManagerControllerVersion  = "v0.12.0"
+	instanceValidationWebHookName = "kudo-manager-instance-validation-webhook-config"
 )
 
 var (
@@ -60,6 +61,32 @@ func (k KudoWebHook) PreInstallVerify(client *kube.Client, result *verifier.Resu
 		return nil
 	}
 	return validateCertManagerInstallation(client, result)
+}
+
+func (k KudoWebHook) PreUpgradeVerify(client *kube.Client, result *verifier.Result) error {
+	// Nothing to verify here at the moment, needs to be extended when we have actual upgrades
+	return nil
+}
+
+func (k KudoWebHook) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
+	if !k.opts.HasWebhooksEnabled() {
+		return nil
+	}
+
+	if err := validateCertManagerInstallation(client, result); err != nil {
+		return err
+	}
+	if err := validateUnstructuredInstallation(client.DynamicClient, k.issuer, result); err != nil {
+		return err
+	}
+	if err := validateUnstructuredInstallation(client.DynamicClient, k.certificate, result); err != nil {
+		return err
+	}
+	if err := validateAdmissionWebhookInstallation(client.KubeClient.AdmissionregistrationV1beta1(), InstanceAdmissionWebhook(k.opts.Namespace), result); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (k KudoWebHook) installWithCertManager(client *kube.Client) error {
@@ -100,6 +127,14 @@ func (k KudoWebHook) Install(client *kube.Client) error {
 		return k.installWithSelfSignedCA(client)
 	}
 	return k.installWithCertManager(client)
+}
+
+func UninstallWebHook(client *kube.Client) error {
+	err := client.KubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(instanceValidationWebHookName, &metav1.DeleteOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to uninstall WebHook: %v", err)
+	}
+	return nil
 }
 
 func (k KudoWebHook) Resources() []runtime.Object {
@@ -218,6 +253,28 @@ func installUnstructured(dynamicClient dynamic.Interface, item unstructured.Unst
 	return nil
 }
 
+func validateUnstructuredInstallation(dynamicClient dynamic.Interface, item unstructured.Unstructured, result *verifier.Result) error {
+	gvk := item.GroupVersionKind()
+	gvr := schema.GroupVersionResource{
+		Group:    gvk.Group,
+		Version:  gvk.Version,
+		Resource: fmt.Sprintf("%ss", strings.ToLower(gvk.Kind)), // since we know what kinds are we dealing with here, this is OK
+	}
+
+	_, err := dynamicClient.Resource(gvr).Namespace(item.GetNamespace()).Get(item.GetName(), metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			result.AddErrors(fmt.Sprintf("%s is not installed in namespace %s", item.GetName(), item.GetNamespace()))
+			return nil
+		}
+		return err
+	}
+
+	// We could add more detailed validation here, but DeepEquals doesn't work because of added fields from k8s
+
+	return nil
+}
+
 func installAdmissionWebhook(client clientv1beta1.MutatingWebhookConfigurationsGetter, webhook admissionv1beta1.MutatingWebhookConfiguration) error {
 	_, err := client.MutatingWebhookConfigurations().Create(&webhook)
 	if kerrors.IsAlreadyExists(err) {
@@ -240,6 +297,21 @@ func instanceAdmissionWebhookWithCABundle(ns string, caData []byte) admissionv1b
 	iaw := InstanceAdmissionWebhook(ns)
 	iaw.Webhooks[0].ClientConfig.CABundle = caData
 	return iaw
+}
+
+func validateAdmissionWebhookInstallation(client clientv1beta1.MutatingWebhookConfigurationsGetter, webhook admissionv1beta1.MutatingWebhookConfiguration, result *verifier.Result) error {
+	_, err := client.MutatingWebhookConfigurations().Get(webhook.Name, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			result.AddErrors(fmt.Sprintf("admission webhook %s is not installed", webhook.Name))
+			return nil
+		}
+		return err
+	}
+
+	// We could add more detailed validation here, regarding the details of the webhook configuration
+
+	return nil
 }
 
 // InstanceAdmissionWebhook returns a MutatingWebhookConfiguration for the instance admission controller.
