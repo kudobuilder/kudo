@@ -5,10 +5,11 @@ import (
 	"log"
 	"strings"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/kudobuilder/kudo/pkg/engine"
@@ -26,13 +27,14 @@ type Enhancer interface {
 // DefaultEnhancer is implementation of Enhancer that applies the defined conventions by directly editing runtime.Objects (Unstructured).
 type DefaultEnhancer struct {
 	Scheme    *runtime.Scheme
+	Client    client.Client
 	Discovery discovery.CachedDiscoveryInterface
 }
 
 // Apply accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
 func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) (objsToAdd []runtime.Object, err error) {
-	objs := make([]runtime.Object, 0, len(templates))
+	unstructuredObjs := make([]*unstructured.Unstructured, 0, len(templates))
 
 	for name, v := range templates {
 		parsed, err := YamlToObject(v)
@@ -70,24 +72,81 @@ func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata)
 				}
 			}
 
-			// This is pretty important, if we don't convert it back to the original type everything will be Unstructured.
-			// We depend on types later on in the processing e.g. when evaluating health.
-			// Additionally, as we add annotations and labels to all possible paths, this step gets rid of anything
-			// that doesn't belong to the specific object type.
+			// We convert to the typed version here and back to clean additional labels and annotations that were
+			// added. This needs to be done as otherwise the dependency calculator calculates hashes based on the added
+			// fields which are later missing if the resource is fetched from the api-server
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(objUnstructured.UnstructuredContent(), obj)
 			if err != nil {
 				return nil, fmt.Errorf("%wconverting from unstructured failed: %v", engine.ErrFatalExecution, err)
 			}
-			objs = append(objs, obj)
+			unstructMap, err = runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+			if err != nil {
+				return nil, fmt.Errorf("%wconverting to unstructured failed: %v", engine.ErrFatalExecution, err)
+			}
+			objUnstructured = &unstructured.Unstructured{Object: unstructMap}
+
+			unstructuredObjs = append(unstructuredObjs, objUnstructured)
 		}
 	}
 
+	if err := de.addDependenciesHashes(unstructuredObjs); err != nil {
+		return nil, fmt.Errorf("failed to add dependencies hash: %v", err)
+	}
+
+	// This is pretty important, if we don't convert it to the actual type everything will be Unstructured.
+	// We depend on types later on in the processing e.g. when evaluating health.
+	// Additionally, as we add annotations and labels to all possible paths, this step gets rid of anything
+	// that doesn't belong to the specific object type.
+	objs, err := de.convertToTyped(unstructuredObjs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert objects to typed: %v", err)
+	}
+
+	return objs, nil
+}
+
+func (de *DefaultEnhancer) addDependenciesHashes(unstructuredObjs []*unstructured.Unstructured) error {
+	dc := newDependencyCalculator(de.Client, unstructuredObjs)
+	for _, uo := range unstructuredObjs {
+		deps, err := calculateResourceDependencies(uo)
+		if err != nil {
+			return fmt.Errorf("failed to calculate resource dependencies for %s/%s: %v", uo.GetNamespace(), uo.GetName(), err)
+		}
+		if !deps.empty() {
+			err = dc.calculateAndSetHash(uo, deps)
+			if err != nil {
+				return fmt.Errorf("failed to add dependency hash to %s/%s: %v", uo.GetNamespace(), uo.GetName(), err)
+			}
+		}
+	}
+	return nil
+}
+
+func (de *DefaultEnhancer) convertToTyped(unstructuredObjs []*unstructured.Unstructured) ([]runtime.Object, error) {
+	objs := make([]runtime.Object, 0, len(unstructuredObjs))
+	for _, uo := range unstructuredObjs {
+		obj, err := de.Scheme.New(uo.GroupVersionKind())
+		if err != nil {
+			objs = append(objs, uo)
+			continue
+		}
+
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(uo.UnstructuredContent(), obj)
+		if err != nil {
+			return nil, fmt.Errorf("%wconverting from unstructured failed: %v", engine.ErrFatalExecution, err)
+		}
+
+		objs = append(objs, obj)
+	}
 	return objs, nil
 }
 
 func addLabels(obj map[string]interface{}, metadata Metadata) error {
 	// List of paths for labels from here:
 	// https://github.com/kubernetes-sigs/kustomize/blob/master/api/konfig/builtinpluginconsts/commonlabels.go
+
+	// Labels are added to top-level resources as well as pod template specs. All labels here do not change
+	// over the livetime of the instance and can not trigger unwanted restarts of the pods
 	labelPaths := [][]string{
 		{"metadata", "labels"},
 		{"spec", "template", "metadata", "labels"},
@@ -114,6 +173,9 @@ func addLabels(obj map[string]interface{}, metadata Metadata) error {
 func addAnnotations(obj map[string]interface{}, metadata Metadata) error {
 	// List of paths for annotations from here:
 	// https://github.com/kubernetes-sigs/kustomize/blob/master/api/konfig/builtinpluginconsts/commonannotations.go
+
+	// For all pod template specs, we only add the operator version. It is pretty stable
+	// and shouldn't change often, therefore not trigger an unwanted restart of the created pod
 	annotationPaths := [][]string{
 		{"metadata", "annotations"},
 		{"spec", "template", "metadata", "annotations"},
@@ -122,17 +184,25 @@ func addAnnotations(obj map[string]interface{}, metadata Metadata) error {
 	}
 
 	fieldsToAdd := map[string]string{
-		kudo.PlanAnnotation:            metadata.PlanName,
-		kudo.PhaseAnnotation:           metadata.PhaseName,
-		kudo.StepAnnotation:            metadata.StepName,
 		kudo.OperatorVersionAnnotation: metadata.OperatorVersion,
-		kudo.PlanUIDAnnotation:         string(metadata.PlanUID),
 	}
 
 	for _, path := range annotationPaths {
 		if err := addMapValues(obj, fieldsToAdd, path...); err != nil {
 			return err
 		}
+	}
+
+	// The plan, phase and step annotations are only added to the top level resources, not and pod template specs, as
+	// that may lead to unwanted restarts of the pods
+	topLevelFieldsToAdd := map[string]string{
+		kudo.PlanAnnotation:    metadata.PlanName,
+		kudo.PhaseAnnotation:   metadata.PhaseName,
+		kudo.StepAnnotation:    metadata.StepName,
+		kudo.PlanUIDAnnotation: string(metadata.PlanUID),
+	}
+	if err := addMapValues(obj, topLevelFieldsToAdd, "metadata", "annotations"); err != nil {
+		return err
 	}
 
 	return nil
@@ -185,7 +255,7 @@ func addMapValues(obj map[string]interface{}, fieldsToAdd map[string]string, pat
 	return unstructured.SetNestedStringMap(obj, stringMap, path...)
 }
 
-func setControllerReference(owner v1.Object, object v1.Object, scheme *runtime.Scheme) error {
+func setControllerReference(owner metav1.Object, object metav1.Object, scheme *runtime.Scheme) error {
 	ownerNs := owner.GetNamespace()
 	if ownerNs != "" {
 		objNs := object.GetNamespace()

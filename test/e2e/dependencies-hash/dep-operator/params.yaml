@@ -1,0 +1,13 @@
+apiVersion: kudo.dev/v1beta1
+parameters:
+  - name: REPLICAS
+    description: Number of replicas that should be run as part of the deployment
+    default: 2
+    trigger: update-replica
+  - name: CONFIG_MAP_VALUE
+    description: A parameter used in the config map
+    default: FancyValue
+    trigger: update-param
+  - name: OTHER_CONFIG_VALUE
+    description: A parameter used in the config map but deployed together with the normal deploy plan
+    default: OtherFancyValue

@@ -3,23 +3,23 @@ package renderer
 import (
 	"testing"
 
-	v1 "k8s.io/api/batch/v1"
-
-	"k8s.io/api/batch/v1beta1"
-
 	"github.com/stretchr/testify/assert"
+	"github.com/thoas/go-funk"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/batch/v1"
+	"k8s.io/api/batch/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/yaml"
-
-	"github.com/kudobuilder/kuttl/pkg/test/utils"
 
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/test/fake"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
+	"github.com/kudobuilder/kuttl/pkg/test/utils"
 )
 
 func TestEnhancerApply_embeddedMetadataStatefulSet(t *testing.T) {
@@ -53,7 +53,6 @@ func TestEnhancerApply_embeddedMetadataStatefulSet(t *testing.T) {
 		// Verify that labels are added
 		assert.Equal(t, meta.InstanceNamespace, sfs.GetNamespace())
 		assert.Equal(t, string(meta.PlanUID), sfs.Annotations[kudo.PlanUIDAnnotation])
-		assert.Equal(t, string(meta.PlanUID), sfs.Spec.Template.Annotations[kudo.PlanUIDAnnotation])
 
 		// Verify that annotations are added
 		assert.Equal(t, "kudo", sfs.Labels[kudo.HeritageLabel])
@@ -101,7 +100,6 @@ func TestEnhancerApply_embeddedMetadataCronjob(t *testing.T) {
 		assert.Equal(t, string(meta.PlanUID), cron.Annotations[kudo.PlanUIDAnnotation])
 		assert.Equal(t, "kudo", cron.Labels[kudo.HeritageLabel])
 
-		assert.Equal(t, string(meta.PlanUID), cron.Spec.JobTemplate.Spec.Template.Annotations[kudo.PlanUIDAnnotation])
 		assert.Equal(t, "kudo", cron.Spec.JobTemplate.Spec.Template.Labels[kudo.HeritageLabel])
 
 		// Verify that existing labels are not removed
@@ -140,6 +138,107 @@ func TestEnhancerApply_noAdditionalMetadata(t *testing.T) {
 		assert.False(t, ok, "Pod struct contains template field")
 	}
 }
+func TestEnhancerApply_dependencyHash_noDependencies(t *testing.T) {
+	ss := statefulSet("statefulset", "default")
+
+	tpls := map[string]string{
+		"statefulset": resourceAsString(ss),
+	}
+
+	meta := metadata()
+	meta.PlanUID = uuid.NewUUID()
+
+	e := &DefaultEnhancer{
+		Scheme:    utils.Scheme(),
+		Discovery: fake.CachedDiscoveryClient(),
+	}
+
+	objs, err := e.Apply(tpls, meta)
+	if err != nil {
+		t.Errorf("failed to apply template %s", err)
+	}
+
+	ssApplied := funk.Find(objs, func(o runtime.Object) bool {
+		return o.GetObjectKind().GroupVersionKind() == schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "StatefulSet"}
+	})
+
+	unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(ssApplied)
+	assert.Nil(t, err, "failed to parse object to unstructured: %s", err)
+
+	annotations, _, _ := unstructured.NestedMap(unstructMap, "spec", "template", "metadata", "annotations")
+	assert.NotNil(t, annotations, "Statefulset pod template spec contains no annotations")
+
+	hash := annotations[kudo.DependenciesHashAnnotation]
+	assert.Nil(t, hash, "Pod template spec annotations contains a dependency hash but no dependencies")
+}
+
+func TestEnhancerApply_dependencyHash_changes(t *testing.T) {
+	ss := statefulSet("statefulset", "default")
+	cm := configMap("configmap", "default")
+
+	ss.Spec.Template.Spec.Volumes = append(ss.Spec.Template.Spec.Volumes, corev1.Volume{
+		Name: "configMap",
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: cm.Name},
+			},
+		},
+	})
+
+	tpls := map[string]string{
+		"statefulset": resourceAsString(ss),
+		"configmap":   resourceAsString(cm),
+	}
+
+	meta := metadata()
+	meta.PlanUID = uuid.NewUUID()
+
+	e := &DefaultEnhancer{
+		Scheme:    utils.Scheme(),
+		Discovery: fake.CachedDiscoveryClient(),
+	}
+
+	objs, err := e.Apply(tpls, meta)
+	if err != nil {
+		t.Errorf("failed to apply template %s", err)
+	}
+
+	ssApplied := funk.Find(objs, func(o runtime.Object) bool {
+		return o.GetObjectKind().GroupVersionKind() == schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "StatefulSet"}
+	})
+
+	unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(ssApplied)
+	assert.Nil(t, err, "failed to parse object to unstructured: %s", err)
+
+	annotations, _, _ := unstructured.NestedMap(unstructMap, "spec", "template", "metadata", "annotations")
+	assert.NotNil(t, annotations, "Statefulset pod template spec contains no annotations")
+
+	hash := annotations[kudo.DependenciesHashAnnotation]
+	assert.NotNil(t, hash, "Pod template spec annotations contains no dependency hash field")
+	assert.Equal(t, "929a2dffa86ad2460fdcf72977998bd0", hash, "Hashes are not the same")
+
+	cm.Data["newkey"] = "newvalue"
+	tpls = map[string]string{
+		"statefulset": resourceAsString(ss),
+		"configmap":   resourceAsString(cm),
+	}
+
+	objs, err = e.Apply(tpls, meta)
+	assert.Nil(t, err)
+	ssApplied = funk.Find(objs, func(o runtime.Object) bool {
+		return o.GetObjectKind().GroupVersionKind() == schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "StatefulSet"}
+	})
+
+	unstructMap, err = runtime.DefaultUnstructuredConverter.ToUnstructured(ssApplied)
+	assert.Nil(t, err, "failed to parse object to unstructured: %s", err)
+
+	annotations, _, _ = unstructured.NestedMap(unstructMap, "spec", "template", "metadata", "annotations")
+	assert.NotNil(t, annotations, "Statefulset pod template spec contains no annotations")
+
+	newHash := annotations[kudo.DependenciesHashAnnotation]
+	assert.NotNil(t, newHash, "Pod template spec annotations contains no dependency hash field")
+	assert.NotEqual(t, hash, newHash, "Hashes are the same after the config map changed")
+}
 
 func metadata() Metadata {
 	return Metadata{
@@ -177,6 +276,23 @@ func resourceAsString(resource metav1.Object) string {
 	return string(bytes)
 }
 
+func configMap(name string, namespace string) *corev1.ConfigMap {
+	configMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"key": "value",
+		},
+	}
+	return configMap
+}
+
 func statefulSet(name string, namespace string) *appsv1.StatefulSet {
 	statefulSet := &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
@@ -194,6 +310,7 @@ func statefulSet(name string, namespace string) *appsv1.StatefulSet {
 					Labels: map[string]string{
 						"app": "app-type",
 					},
+					Annotations: map[string]string{},
 				},
 				Spec: corev1.PodSpec{},
 			},
