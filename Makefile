@@ -14,6 +14,7 @@ DATE_FMT := "%Y-%m-%dT%H:%M:%SZ"
 BUILD_DATE := $(shell date -u -d "@$SOURCE_DATE_EPOCH" "+${DATE_FMT}" 2>/dev/null || date -u -r "${SOURCE_DATE_EPOCH}" "+${DATE_FMT}" 2>/dev/null || date -u "+${DATE_FMT}")
 LDFLAGS := -X ${GIT_VERSION_PATH}=${GIT_VERSION} -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} -X ${BUILD_DATE_PATH}=${BUILD_DATE}
 GOLANGCI_LINT_VER = "1.23.8"
+SUPPORTED_PLATFORMS = amd64 arm64
 
 export GO111MODULE=on
 
@@ -50,7 +51,7 @@ lint:
 ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint --version 2>/dev/null | cut -b 27-32)")
 	./hack/install-golangcilint.sh
 endif
-	golangci-lint run
+	golangci-lint --timeout 3m run
 
 .PHONY: download
 download:
@@ -131,18 +132,32 @@ cli-install:
 clean:  cli-clean test-clean manager-clean deploy-clean
 
 .PHONY: docker-build
-# Build the docker image
+# Build the docker image for each supported platform
 docker-build: generate lint
-	docker build --build-arg ldflags_arg="${LDFLAGS}" . -t ${DOCKER_IMG}:${DOCKER_TAG}
-	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:v${GIT_VERSION}
-	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:latest
+	$(foreach arch,$(SUPPORTED_PLATFORMS),docker build --build-arg ldflags_arg="$(LDFLAGS)" -f Dockerfile.$(arch) -t $(DOCKER_IMG)-$(arch):$(DOCKER_TAG) .;)
+	$(foreach arch,$(SUPPORTED_PLATFORMS),docker tag $(DOCKER_IMG)-$(arch):$(DOCKER_TAG) $(DOCKER_IMG)-$(arch):v$(GIT_VERSION);)
+	$(foreach arch,$(SUPPORTED_PLATFORMS),docker tag $(DOCKER_IMG)-$(arch):$(DOCKER_TAG) $(DOCKER_IMG)-$(arch):latest;)
+
+.PHONY: docker-push-all-platforms
+# Push the platform specific images for each supported arch
+docker-push-platforms:
+	$(foreach arch,$(SUPPORTED_PLATFORMS),docker push $(DOCKER_IMG)-$(arch):$(DOCKER_TAG);)
+	$(foreach arch,$(SUPPORTED_PLATFORMS),docker push $(DOCKER_IMG)-$(arch):v$(GIT_VERSION);)
+	$(foreach arch,$(SUPPORTED_PLATFORMS),docker push $(DOCKER_IMG)-$(arch):latest;)
+
+.PHONY: docker-push-manifest
+# Push the multi-arch image manifest
+docker-push-manifests:
+	DOCKER_CLI_EXPERIMENTAL=enabled docker manifest create --amend $(DOCKER_IMG):$(DOCKER_TAG) $(foreach arch,$(SUPPORTED_PLATFORMS),$(DOCKER_IMG)-$(arch):$(DOCKER_TAG))
+	DOCKER_CLI_EXPERIMENTAL=enabled docker manifest create --amend $(DOCKER_IMG):v$(GIT_VERSION) $(foreach arch,$(SUPPORTED_PLATFORMS),$(DOCKER_IMG)-$(arch):v$(GIT_VERSION))
+	DOCKER_CLI_EXPERIMENTAL=enabled docker manifest create --amend $(DOCKER_IMG):latest $(foreach arch,$(SUPPORTED_PLATFORMS),$(DOCKER_IMG)-$(arch):latest)
+	DOCKER_CLI_EXPERIMENTAL=enabled docker manifest push --purge $(DOCKER_IMG):$(DOCKER_TAG)
+	DOCKER_CLI_EXPERIMENTAL=enabled docker manifest push --purge $(DOCKER_IMG):v$(GIT_VERSION)
+	DOCKER_CLI_EXPERIMENTAL=enabled docker manifest push --purge $(DOCKER_IMG):latest
 
 .PHONY: docker-push
-# Push the docker image
-docker-push:
-	docker push ${DOCKER_IMG}:${DOCKER_TAG}
-	docker push ${DOCKER_IMG}:${GIT_VERSION}
-	docker push ${DOCKER_IMG}:latest
+# Push all images and manifests
+docker-push: docker-push-platforms docker-push-manifests
 
 .PHONY: imports
 # used to update imports on project.  NOT a linter.

@@ -39,8 +39,9 @@ func NewInitializer(options kudoinit.Options) Initializer {
 	}
 }
 
-func (m Initializer) PreInstallVerify(client *kube.Client) verifier.Result {
-	return verifier.NewResult()
+func (m Initializer) PreInstallVerify(client *kube.Client, result *verifier.Result) error {
+	// Nothing to verify yet
+	return nil
 }
 
 func (m Initializer) String() string {

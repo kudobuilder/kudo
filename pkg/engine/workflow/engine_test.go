@@ -621,11 +621,12 @@ func TestExecutePlan(t *testing.T) {
 		},
 	}
 
+	testScheme := scheme.Scheme
 	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
 	fakeDiscovery := kudofake.CachedDiscoveryClient()
 	fakeCachedDiscovery := memory.NewMemCacheClient(fakeDiscovery)
 	for _, tt := range tests {
-		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, fakeCachedDiscovery, nil, tt.enhancer)
+		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, fakeCachedDiscovery, nil, testScheme)
 		newStatus.LastUpdatedTimestamp = &metav1.Time{Time: testTime}
 
 		if !tt.wantErr && err != nil {

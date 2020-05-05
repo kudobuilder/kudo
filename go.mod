@@ -6,6 +6,7 @@ require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
+	github.com/google/go-cmp v0.3.0
 	github.com/gosuri/uitable v0.0.4
 	github.com/kudobuilder/kuttl v0.1.0
 	github.com/manifoldco/promptui v0.6.0

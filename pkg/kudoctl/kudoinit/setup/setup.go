@@ -1,9 +1,7 @@
 package setup
 
 import (
-	"errors"
 	"fmt"
-	"os"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
@@ -17,23 +15,24 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
-// Install uses Kubernetes client to install KUDO.
-func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
+// Verifies that the installation is possible. Returns an error if any part of KUDO is already installed
+func PreInstallVerify(client *kube.Client, opts kudoinit.Options, crdOnly bool, result *verifier.Result) error {
 	initSteps := initSteps(opts, crdOnly)
 
-	result := verifier.NewResult()
 	// Check if all steps are installable
 	for _, initStep := range initSteps {
-		result.Merge(initStep.PreInstallVerify(client))
+		if err := initStep.PreInstallVerify(client, result); err != nil {
+			return fmt.Errorf("error while verifying install step %s: %v", initStep.String(), err)
+		}
 	}
 
-	result.PrintWarnings(os.Stdout)
-	if !result.IsValid() {
-		result.PrintErrors(os.Stdout)
-		return errors.New(result.ErrorsAsString())
-	}
+	return nil
+}
 
+// Install uses Kubernetes client to install KUDO.
+func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
 	// Install everything
+	initSteps := initSteps(opts, crdOnly)
 	for _, initStep := range initSteps {
 		if err := initStep.Install(client); err != nil {
 			return fmt.Errorf("%s: %v", initStep, err)
@@ -53,7 +52,9 @@ func initSteps(opts kudoinit.Options, crdOnly bool) []kudoinit.Step {
 
 	return []kudoinit.Step{
 		crd.NewInitializer(),
-		prereq.NewInitializer(opts),
+		prereq.NewNamespaceInitializer(opts),
+		prereq.NewServiceAccountInitializer(opts),
+		prereq.NewWebHookInitializer(opts),
 		manager.NewInitializer(opts),
 	}
 }

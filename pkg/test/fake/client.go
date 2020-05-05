@@ -38,6 +38,8 @@ func CachedDiscoveryClient() discovery.CachedDiscoveryInterface {
 							{Name: "pod", Namespaced: true, Kind: "Pod"},
 							{Name: "namespace", Namespaced: false, Kind: "Namespace"},
 							{Name: "service", Namespaced: true, Kind: "Service"},
+							{Name: "configmap", Namespaced: true, Kind: "ConfigMap"},
+							{Name: "secret", Namespaced: true, Kind: "Secret"},
 						},
 					},
 					{
