@@ -11,7 +11,7 @@ import (
 // builder should build a sequence of resource providers based on the AddResource
 // it should add missing dependencies based on the provided name extraction rules
 // probably extraction rules should make sure there is no loop, not the builder
-type otherBuilder struct {
+type builder struct {
 	n *nameProviders
 	factory *resourceProviderFactory
 	// one day more sophisticated data may be needed than just a resource names list
@@ -22,8 +22,8 @@ type otherBuilder struct {
 	collectors  []objectLister
 }
 
-func NewOtherBuilder(factory *resourceProviderFactory, providers *nameProviders) *otherBuilder {
-	return &otherBuilder{
+func NewOtherBuilder(factory *resourceProviderFactory, providers *nameProviders) *builder {
+	return &builder{
 		n:           providers,
 		factory:     factory,
 		namesCache:  make(map[string][]string),
@@ -33,12 +33,12 @@ func NewOtherBuilder(factory *resourceProviderFactory, providers *nameProviders)
 	}
 }
 
-func (b *otherBuilder) AddResource(kind string) {
+func (b *builder) AddResource(kind string) {
 	b.addResource(kind)
 	b.isExposed[kind] = struct{}{}
 }
 
-func (b *otherBuilder) addResource(kind string) {
+func (b *builder) addResource(kind string) {
 	if _, ok := b.isCollected[kind]; ok {
 		return
 	}
@@ -55,7 +55,7 @@ func (b *otherBuilder) addResource(kind string) {
 	b.isCollected[kind] = struct{}{}
 }
 
-func (b *otherBuilder) addMultiGetter(kind string) {
+func (b *builder) addMultiGetter(kind string) {
 	f := func() ([]Object, error) {
 		names, _ := b.namesCache[kind] // TODO: handle not found
 		getterFn := b.factory.MultiGetter(kind, names)
@@ -65,12 +65,12 @@ func (b *otherBuilder) addMultiGetter(kind string) {
 	b.collectors = append(b.collectors, f)
 }
 
-func (b *otherBuilder) addLister(kind string) {
+func (b *builder) addLister(kind string) {
 	lister := b.factory.Lister(kind)
 	b.collectors = append(b.collectors, lister)
 }
 
-func (b *otherBuilder) Collect() *ResourceCache {
+func (b *builder) Collect() *ResourceCache {
 	resourceListsByKind := make(map[string][]Object)
 	resourcesByNameKind := make(map[NameKind]Object)
 	for _, collectFn := range b.collectors {
