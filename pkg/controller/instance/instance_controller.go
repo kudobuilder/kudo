@@ -238,7 +238,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 	log.Printf("InstanceController: Going to proceed in execution of active plan '%s' on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
-	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, r.Discovery, r.Config, &renderer.DefaultEnhancer{Scheme: r.Scheme, Discovery: r.Discovery})
+	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, r.Discovery, r.Config, r.Scheme)
 
 	// ---------- 5. Update instance and its status after the execution proceeded ----------
 
@@ -257,8 +257,8 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// Publish a PlanFinished event after instance and its status were successfully updated
-	if instance.Status.AggregatedStatus.Status.IsTerminal() {
-		r.Recorder.Event(instance, "Normal", "PlanFinished", fmt.Sprintf("Execution of plan %s finished with status %s", activePlanStatus.Name, instance.Status.AggregatedStatus.Status))
+	if instance.Spec.PlanExecution.Status.IsTerminal() {
+		r.Recorder.Event(instance, "Normal", "PlanFinished", fmt.Sprintf("Execution of plan %s finished with status %s", activePlanStatus.Name, instance.Spec.PlanExecution.Status))
 	}
 
 	return reconcile.Result{}, nil

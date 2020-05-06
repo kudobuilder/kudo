@@ -383,7 +383,7 @@ func Test_pipeFiles(t *testing.T) {
 		wantErr      bool
 	}{
 		{
-			name: "pipe a secret",
+			name: "pipe a file to a secret",
 			data: map[string]string{"/tmp/foo.txt": "foo"},
 			file: PipeFile{
 				File: "/tmp/foo.txt",
@@ -400,7 +400,32 @@ func Test_pipeFiles(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "pipe a configMap",
+			name: "pipe an env file to a secret",
+			data: map[string]string{"/tmp/foo.env": `
+				enemies=aliens
+				lives=3
+				allowed="true"
+			`},
+			file: PipeFile{
+				EnvFile: "/tmp/foo.env",
+				Kind:    PipeFileKindSecret,
+				Key:     "Foo",
+			},
+			meta: meta,
+			wantArtifact: v1.Secret{
+				TypeMeta:   metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
+				ObjectMeta: metav1.ObjectMeta{Name: "fooinstance.deploy.first.step.genfiles.foo"},
+				Data: map[string][]byte{
+					"enemies": []byte("aliens"),
+					"lives":   []byte("3"),
+					"allowed": []byte("\"true\""),
+				},
+				Type: v1.SecretTypeOpaque,
+			},
+			wantErr: false,
+		},
+		{
+			name: "pipe a file to a configMap",
 			data: map[string]string{"/tmp/bar.txt": "bar"},
 			file: PipeFile{
 				File: "/tmp/bar.txt",
@@ -412,6 +437,30 @@ func Test_pipeFiles(t *testing.T) {
 				TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 				ObjectMeta: metav1.ObjectMeta{Name: "fooinstance.deploy.first.step.genfiles.bar"},
 				BinaryData: map[string][]byte{"bar.txt": []byte("bar")},
+			},
+			wantErr: false,
+		},
+		{
+			name: "pipe an env file to a configMap",
+			data: map[string]string{"/tmp/bar.env": `
+				enemies=aliens
+				lives=3
+				allowed="true"
+			`},
+			file: PipeFile{
+				EnvFile: "/tmp/bar.env",
+				Kind:    PipeFileKindConfigMap,
+				Key:     "Bar",
+			},
+			meta: meta,
+			wantArtifact: v1.ConfigMap{
+				TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+				ObjectMeta: metav1.ObjectMeta{Name: "fooinstance.deploy.first.step.genfiles.bar"},
+				Data: map[string]string{
+					"enemies": "aliens",
+					"lives":   "3",
+					"allowed": "\"true\"",
+				},
 			},
 			wantErr: false,
 		},
@@ -428,6 +477,7 @@ func Test_pipeFiles(t *testing.T) {
 			wantErr:      true,
 		},
 	}
+
 	for _, tt := range tests {
 		tt := tt
 

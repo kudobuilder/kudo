@@ -3,8 +3,6 @@ kind: Instance
 metadata:
   name: invalid1
 status:
-  aggregatedStatus:
-    status: FATAL_ERROR
   planStatus:
     deploy:
       status: FATAL_ERROR

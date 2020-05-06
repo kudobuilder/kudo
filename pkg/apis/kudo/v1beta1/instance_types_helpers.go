@@ -67,7 +67,6 @@ func (i *Instance) UpdateInstanceStatus(planStatus *PlanStatus, updatedTimestamp
 			planStatus.LastUpdatedTimestamp = updatedTimestamp
 			i.Status.PlanStatus[k] = *planStatus
 			i.Spec.PlanExecution.Status = planStatus.Status
-			i.Status.AggregatedStatus.Status = planStatus.Status
 		}
 	}
 }

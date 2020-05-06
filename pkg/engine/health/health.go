@@ -76,12 +76,15 @@ func IsHealthy(obj runtime.Object) error {
 
 		return fmt.Errorf("job %q still running or failed", obj.Name)
 	case *kudov1beta1.Instance:
-		log.Printf("HealthUtil: Instance %v is in state %v", obj.Name, obj.Status.AggregatedStatus.Status)
+		ps := obj.GetLastExecutedPlanStatus()
+		if ps == nil {
+			return fmt.Errorf("no plan has been executed for Instance %v", obj.Name)
+		}
 
-		if obj.Status.AggregatedStatus.Status.IsFinished() {
+		if ps.Status.IsFinished() {
 			return nil
 		}
-		return fmt.Errorf("instance's active plan is in state %v", obj.Status.AggregatedStatus.Status)
+		return fmt.Errorf("instance's active plan is in state %v", ps.Status)
 
 	case *corev1.Pod:
 		if obj.Status.Phase == corev1.PodRunning {
