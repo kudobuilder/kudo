@@ -9,7 +9,7 @@ type streamGzipper struct {
 	bufSize int
 	w io.Writer
 }
-
+// TODO: remove todo when logs are back
 func newGzipWriter(w io.Writer, size int) *streamGzipper {
 	return &streamGzipper{
 		bufSize: size,
