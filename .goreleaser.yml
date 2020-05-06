@@ -24,6 +24,10 @@ builds:
       - 386
       - amd64
       - arm
+      - arm64
+    ignore:
+      - goos: darwin
+        goarch: 386
   - id: "kubectl-kudo"
     binary: kubectl-kudo
     main: cmd/kubectl-kudo/main.go
@@ -36,19 +40,44 @@ builds:
       - 386
       - amd64
       - arm
+      - arm64
+    ignore:
+      - goos: darwin
+        goarch: 386
 dockers:
   # always push a docker image on release for the .Tag version
   - dockerfile: Dockerfile.goreleaser
     binaries:
       - manager
+    goos: linux
+    goarch: amd64
     image_templates:
       - "kudobuilder/controller:{{ .Tag }}"
   # only update the docker :latest for a full release (not RC)
   - dockerfile: Dockerfile.goreleaser
     binaries:
       - manager
+    goos: linux
+    goarch: amd64
     image_templates:
       - "kudobuilder/controller:latest"
+    skip_push: auto
+  # always push a docker image on release for the .Tag version
+  - dockerfile: Dockerfile.goreleaser
+    binaries:
+      - manager
+    goos: linux
+    goarch: arm64
+    image_templates:
+      - "kudobuilder/controller-arm64:{{ .Tag }}"
+  # only update the docker :latest for a full release (not RC)
+  - dockerfile: Dockerfile.goreleaser
+    binaries:
+      - manager
+    goos: linux
+    goarch: arm64
+    image_templates:
+      - "kudobuilder/controller-arm64:latest"
     skip_push: auto
 archives:
   - id: kubectl-kudo-tarball
