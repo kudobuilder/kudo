@@ -18,6 +18,7 @@ func TestValidateUpdate(t *testing.T) {
 	deploy := v1beta1.DeployPlanName
 	update := v1beta1.UpdatePlanName
 	cleanup := v1beta1.CleanupPlanName
+	backup := "backup"
 	empty := ""
 
 	testUUID := uuid.NewUUID()
@@ -26,7 +27,7 @@ func TestValidateUpdate(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
 		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.dev/v1beta1"},
 		Spec: v1beta1.OperatorVersionSpec{
-			Plans: map[string]v1beta1.Plan{deploy: {}, update: {}, cleanup: {}},
+			Plans: map[string]v1beta1.Plan{deploy: {}, update: {}, cleanup: {}, backup: {}},
 			Parameters: []v1beta1.Parameter{
 				{
 					Name:    "foo",
@@ -39,6 +40,10 @@ func TestValidateUpdate(t *testing.T) {
 				{
 					Name:    "bar",
 					Trigger: update,
+				},
+				{
+					Name:    "backup",
+					Trigger: backup,
 				},
 				{
 					Name:    "invalid",
@@ -323,7 +328,18 @@ func TestValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "parameter update together with an upgrade IS normally NOT allowed",
+			name: "parameter update together with an upgrade IS NOT allowed if a plan other than deploy is triggered",
+			old:  idle,
+			new: func() *v1beta1.Instance {
+				i := upgraded.DeepCopy()
+				i.Spec.Parameters = map[string]string{"backup": "back"}
+				return i
+			}(),
+			ov:      ov,
+			wantErr: true,
+		},
+		{
+			name: "parameter update together with an upgrade IS allowed if deploy is triggered",
 			old:  idle,
 			new: func() *v1beta1.Instance {
 				i := upgraded.DeepCopy()
@@ -331,19 +347,20 @@ func TestValidateUpdate(t *testing.T) {
 				return i
 			}(),
 			ov:      ov,
-			wantErr: true,
+			wantErr: false,
+			want:    &update,
 		},
 		{
 			name: "parameter update together with an upgrade IS allowed if update removes a parameter that doesn't exist in the new OV",
 			old:  idle,
 			new: func() *v1beta1.Instance {
 				i := upgraded.DeepCopy()
-				delete(i.Spec.Parameters, "foo") // removing from instance parameters
+				delete(i.Spec.Parameters, "backup") // removing from instance parameters
 				return i
 			}(),
 			ov: func() *v1beta1.OperatorVersion {
 				o := ov.DeepCopy()
-				o.Spec.Parameters = o.Spec.Parameters[1:len(o.Spec.Parameters)] // "foo" is the first parameter in the array
+				o.Spec.Parameters = o.Spec.Parameters[:len(o.Spec.Parameters)-1] // "backup" is the last parameter in the array
 				return o
 			}(),
 			want: &update,

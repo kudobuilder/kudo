@@ -59,7 +59,7 @@ You can build CLI locally via `make cli`. After running that command, CLI will b
 #### Running new manager inside cluster
 For some situations, it might make sense to test your manager inside a real cluster running in a pod (not just running the binary locally). To do that you need:
 - build a docker image with the manager locally `DOCKER_IMG=nameofyourimage make docker-build`
-- push the image to a remote repository `DOCKER_IMG=nameofyourimage make docker-push`
+- push the built image to a remote repository
 - run `kubectl kudo init --kudo-image nameofyourimage:tag`
 
 ### Testing
