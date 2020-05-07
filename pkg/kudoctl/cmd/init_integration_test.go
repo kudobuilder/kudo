@@ -91,7 +91,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 	assert.Nil(t, err)
 	kclient := getKubeClient(t)
 
-	instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "ns")
+	instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "default")
 	// Verify that we cannot create the instance, because the test environment is empty.
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
@@ -101,10 +101,10 @@ func TestIntegInitForCRDs(t *testing.T) {
 
 	var buf bytes.Buffer
 	cmd := &initCmd{
-		out:                 &buf,
-		fs:                  afero.NewMemMapFs(),
-		client:              kclient,
-		selfSignedWebhookCA: true,
+		out:     &buf,
+		fs:      afero.NewMemMapFs(),
+		client:  kclient,
+		crdOnly: true,
 	}
 	err = cmd.run()
 	assert.Nil(t, err)

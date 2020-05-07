@@ -166,7 +166,7 @@ func isForPipePod(e event.DeleteEvent) bool {
 func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	// ---------- 1. Query the current state ----------
 
-	log.Printf("InstanceController: Received Reconcile request for instance \"%+v\"", request.Name)
+	log.Printf("InstanceController: Received Reconcile request for instance %s", request.Name)
 	instance, err := r.getInstance(request)
 	if err != nil {
 		if apierrors.IsNotFound(err) { // not retrying if instance not found, probably someone manually removed it?

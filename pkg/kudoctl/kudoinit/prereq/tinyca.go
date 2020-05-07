@@ -16,7 +16,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"math/big"
-	"net"
 	"time"
 
 	certutil "k8s.io/client-go/util/cert"
@@ -118,7 +117,7 @@ func (ca *TinyCA) makeCert(cfg certutil.Config) (CertPair, error) {
 		NotBefore: now.UTC(),
 		// 1 week is just long enough for a long-term test, but not too long that anyone would
 		// try to use this seriously.
-		NotAfter: now.Add(24 * 365 * 3 * time.Hour).UTC(),
+		NotAfter: now.Add(168 * time.Hour).UTC(),
 	}
 
 	certRaw, err := x509.CreateCertificate(crand.Reader, &template, ca.CA.Cert, key.Public(), ca.CA.Key)
@@ -143,16 +142,10 @@ func (ca *TinyCA) NewServingCert() (CertPair, error) {
 	return ca.makeCert(certutil.Config{
 		CommonName: ca.CN,
 		AltNames: certutil.AltNames{
-			//DNSNames: []string{
-			//	ca.Service,
-			//	fmt.Sprintf("%s.%s", ca.Service, ca.Namespace),
-			//	fmt.Sprintf("%s.%s.svc", ca.Service, ca.Namespace),
-			//},
-			DNSNames: []string{"localhost"},
-			IPs: []net.IP{
-				net.IPv4(127, 0, 0, 1),
-				net.IPv6loopback,
-				net.IPv4(192, 168, 64, 2),
+			DNSNames: []string{
+				ca.Service,
+				fmt.Sprintf("%s.%s", ca.Service, ca.Namespace),
+				fmt.Sprintf("%s.%s.svc", ca.Service, ca.Namespace),
 			},
 		},
 		Usages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},

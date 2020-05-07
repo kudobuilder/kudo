@@ -56,6 +56,14 @@ func parseSyncPeriod() (*time.Duration, error) {
 	return nil, nil
 }
 
+func getEnv(key, def string) string {
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		val = def
+	}
+	return val
+}
+
 func main() {
 	// Get version of KUDO
 	log.Printf("KUDO Version: %#v", version.Get())
@@ -74,7 +82,7 @@ func main() {
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		CertDir:    "/tmp/cert",
+		CertDir:    getEnv("KUDO_CERT_DIR", "/tmp/cert"),
 		SyncPeriod: syncPeriod,
 	})
 	if err != nil {
