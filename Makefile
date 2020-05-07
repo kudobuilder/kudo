@@ -135,30 +135,7 @@ clean:  cli-clean test-clean manager-clean deploy-clean
 .PHONY: docker-build
 # Build the docker image for each supported platform
 docker-build: generate lint
-	$(foreach arch,$(SUPPORTED_PLATFORMS),docker build --build-arg ldflags_arg="$(LDFLAGS)" -f Dockerfile.$(arch) -t $(DOCKER_IMG)-$(arch):$(DOCKER_TAG) .;)
-	$(foreach arch,$(SUPPORTED_PLATFORMS),docker tag $(DOCKER_IMG)-$(arch):$(DOCKER_TAG) $(DOCKER_IMG)-$(arch):v$(GIT_VERSION);)
-	$(foreach arch,$(SUPPORTED_PLATFORMS),docker tag $(DOCKER_IMG)-$(arch):$(DOCKER_TAG) $(DOCKER_IMG)-$(arch):latest;)
-
-.PHONY: docker-push-all-platforms
-# Push the platform specific images for each supported arch
-docker-push-platforms:
-	$(foreach arch,$(SUPPORTED_PLATFORMS),docker push $(DOCKER_IMG)-$(arch):$(DOCKER_TAG);)
-	$(foreach arch,$(SUPPORTED_PLATFORMS),docker push $(DOCKER_IMG)-$(arch):v$(GIT_VERSION);)
-	$(foreach arch,$(SUPPORTED_PLATFORMS),docker push $(DOCKER_IMG)-$(arch):latest;)
-
-.PHONY: docker-push-manifest
-# Push the multi-arch image manifest
-docker-push-manifests:
-	DOCKER_CLI_EXPERIMENTAL=enabled docker manifest create --amend $(DOCKER_IMG):$(DOCKER_TAG) $(foreach arch,$(SUPPORTED_PLATFORMS),$(DOCKER_IMG)-$(arch):$(DOCKER_TAG))
-	DOCKER_CLI_EXPERIMENTAL=enabled docker manifest create --amend $(DOCKER_IMG):v$(GIT_VERSION) $(foreach arch,$(SUPPORTED_PLATFORMS),$(DOCKER_IMG)-$(arch):v$(GIT_VERSION))
-	DOCKER_CLI_EXPERIMENTAL=enabled docker manifest create --amend $(DOCKER_IMG):latest $(foreach arch,$(SUPPORTED_PLATFORMS),$(DOCKER_IMG)-$(arch):latest)
-	DOCKER_CLI_EXPERIMENTAL=enabled docker manifest push --purge $(DOCKER_IMG):$(DOCKER_TAG)
-	DOCKER_CLI_EXPERIMENTAL=enabled docker manifest push --purge $(DOCKER_IMG):v$(GIT_VERSION)
-	DOCKER_CLI_EXPERIMENTAL=enabled docker manifest push --purge $(DOCKER_IMG):latest
-
-.PHONY: docker-push
-# Push all images and manifests
-docker-push: docker-push-platforms docker-push-manifests
+	docker build --build-arg ldflags_arg="$(LDFLAGS)" -f Dockerfile -t $(DOCKER_IMG):$(DOCKER_TAG) .
 
 .PHONY: imports
 # used to update imports on project.  NOT a linter.
