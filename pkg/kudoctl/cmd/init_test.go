@@ -27,7 +27,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
-var updateGolden = flag.Bool("update", true, "update .golden files and manifests in /config/crd")
+var updateGolden = flag.Bool("update", false, "update .golden files and manifests in /config/crd")
 
 func TestInitCmd_dry(t *testing.T) {
 
