@@ -166,7 +166,7 @@ func isForPipePod(e event.DeleteEvent) bool {
 func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	// ---------- 1. Query the current state ----------
 
-	log.Printf("InstanceController: Received Reconcile request for instance %s", request.Name)
+	log.Printf("InstanceController: Received Reconcile request for instance %s", request.NamespacedName)
 	instance, err := r.getInstance(request)
 	if err != nil {
 		if apierrors.IsNotFound(err) { // not retrying if instance not found, probably someone manually removed it?
@@ -206,7 +206,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	activePlanStatus := instance.GetScheduledPlan()
 	if activePlanStatus == nil { // we have no plan in progress
-		log.Printf("InstanceController: Nothing to do, no plan in progress for instance %s/%s", instance.Namespace, instance.Name)
+		log.Printf("InstanceController: Nothing to do, no plan scheduled for instance %s/%s", instance.Namespace, instance.Name)
 		return reconcile.Result{}, nil
 	}
 
@@ -225,7 +225,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		err = r.handleError(err, instance, oldInstance)
 		return reconcile.Result{}, err
 	}
-	log.Printf("InstanceController: Going to proceed in execution of active plan '%s' on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
+	log.Printf("InstanceController: Going to proceed with execution of the scheduled plan '%s' on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
 	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, r.Discovery, r.Config, r.Scheme)
 
 	// ---------- 4. Update instance and its status after the execution proceeded ----------
