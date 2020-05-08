@@ -124,7 +124,7 @@ cli: prebuild cli-fast
 cli-clean:
 	rm -f bin/${CLI}
 
-# Install CLI
+# Install CLI locally
 cli-install:
 	go install -ldflags "${LDFLAGS}" ./cmd/kubectl-kudo
 
