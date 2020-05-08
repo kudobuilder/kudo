@@ -112,13 +112,21 @@ func TestEnhancerApply_noAdditionalMetadata(t *testing.T) {
 
 	tpls := map[string]string{
 		"pod": resourceAsString(pod("pod", "default")),
+		"crd": resourceAsString(unstructuredCrd("crd", "default")),
 	}
 
 	meta := metadata()
 
+	crdType := &metav1.APIResourceList{
+		GroupVersion: "install.istio.io/v1alpha1",
+		APIResources: []metav1.APIResource{
+			{Name: "istiooperator", Namespaced: true, Kind: "IstioOperator"},
+		},
+	}
+
 	e := &DefaultEnhancer{
 		Scheme:    utils.Scheme(),
-		Discovery: fake.CachedDiscoveryClient(),
+		Discovery: fake.CustomCachedDiscoveryClient(crdType),
 	}
 
 	objs, err := e.Apply(tpls, meta)
@@ -135,7 +143,7 @@ func TestEnhancerApply_noAdditionalMetadata(t *testing.T) {
 		f, ok, _ := unstructured.NestedFieldNoCopy(unstructMap, "spec", "template")
 
 		assert.Nil(t, f)
-		assert.False(t, ok, "Pod struct contains template field")
+		assert.False(t, ok, "%s struct contains template field", o.GetObjectKind())
 	}
 }
 func TestEnhancerApply_dependencyHash_noDependencies(t *testing.T) {
@@ -271,7 +279,7 @@ func owner() *corev1.Pod {
 	}
 }
 
-func resourceAsString(resource metav1.Object) string {
+func resourceAsString(resource runtime.Object) string {
 	bytes, _ := yaml.Marshal(resource)
 	return string(bytes)
 }
@@ -393,4 +401,18 @@ func pod(name string, namespace string) *corev1.Pod {
 		},
 	}
 	return pod
+}
+
+func unstructuredCrd(name string, namespace string) runtime.Object {
+	data := `apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  namespace: ` + namespace + `
+  name: ` + name + `
+spec:
+  profile: default`
+
+	parsed, _ := YamlToObject(data)
+
+	return parsed[0]
 }
