@@ -140,8 +140,13 @@ func TestEnhancerApply_noAdditionalMetadata(t *testing.T) {
 			t.Errorf("failed to parse object to unstructured: %s", err)
 		}
 
-		f, ok, _ := unstructured.NestedFieldNoCopy(unstructMap, "spec", "template")
+		// Make sure the top-level metadata is there
+		uo := unstructured.Unstructured{Object: unstructMap}
+		assert.Equal(t, string(meta.PlanUID), uo.GetAnnotations()[kudo.PlanUIDAnnotation])
+		assert.Equal(t, "kudo", uo.GetLabels()[kudo.HeritageLabel])
 
+		// But no nested fields
+		f, ok, _ := unstructured.NestedFieldNoCopy(unstructMap, "spec", "template")
 		assert.Nil(t, f)
 		assert.False(t, ok, "%s struct contains template field", o.GetObjectKind())
 	}
