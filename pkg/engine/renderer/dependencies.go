@@ -227,20 +227,16 @@ func calculateResourceDependencies(obj *unstructured.Unstructured) (resourceDepe
 
 // setTemplateHash adds the given hash in the pod template spec of the obj
 func setTemplateHash(obj *unstructured.Unstructured, hashStr string) error {
-	// Again, we don't know the actual type of the object, so we just add the annotation in
-	// possible paths and rely on the conversion to typed objects later to clear invalid locations
-
-	annotationPaths := [][]string{
-		{"spec", "template", "metadata", "annotations"},
-		{"spec", "jobTemplate", "spec", "template", "metadata", "annotations"},
-	}
-
 	fieldsToAdd := map[string]string{
 		kudo.DependenciesHashAnnotation: hashStr,
 	}
-	for _, path := range annotationPaths {
-		if err := addMapValues(obj.Object, fieldsToAdd, path...); err != nil {
-			return err
+
+	gvk := obj.GroupVersionKind()
+	for _, lp := range TemplateAnnotationPaths {
+		if lp.matches(gvk) {
+			if err := addMapValues(obj.UnstructuredContent(), fieldsToAdd, lp.pathFields()...); err != nil {
+				return err
+			}
 		}
 	}
 

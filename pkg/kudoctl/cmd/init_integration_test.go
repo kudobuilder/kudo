@@ -24,12 +24,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
+	testutils "github.com/kudobuilder/kuttl/pkg/test/utils"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
-	testutils "github.com/kudobuilder/kuttl/pkg/test/utils"
 )
 
 var testenv testutils.TestEnvironment
@@ -37,7 +38,7 @@ var testenv testutils.TestEnvironment
 func TestMain(m *testing.M) {
 	var err error
 
-	testenv, err = testutils.StartTestEnvironment()
+	testenv, err = testutils.StartTestEnvironment(testutils.APIServerDefaultArgs)
 	if err != nil {
 		log.Fatal(err)
 	}
