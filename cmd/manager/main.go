@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -82,7 +83,7 @@ func main() {
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		CertDir:    getEnv("KUDO_CERT_DIR", "/tmp/cert"),
+		CertDir:    getEnv("KUDO_CERT_DIR", filepath.Join("tmp", "cert")),
 		SyncPeriod: syncPeriod,
 	})
 	if err != nil {
