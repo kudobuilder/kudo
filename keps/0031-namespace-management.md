@@ -141,10 +141,21 @@ There is a desire to support multiple namespaces. The desire seems to stem from 
 
 This propose is for KUDO to deploy objects to KUDO managed {{.Namespace}} if not specified and to honor `namespace:` for objects that have them.  There are challenges to package validation as we won't know what is accidently missing or accidently specified.  There are challenges to it being static which can be overcome through the use of Params.  It seems if Params are used, that the values for the instance are  immutable after installation.
 
+If we support multi-namespaces in 1 KUDO operator, we need to update package verify to warn on all uses of namespaces that are NOT `{{ .Namespace }}` or empty.
+
+#### Alternative Ideas
+
+1. KUDO to create a cluster scoped instance to own the namespaces
 
 ### Proposal: Dependencies and Creating Namespaces
 
 Regarding dependencies and creating namespaces, it is expected that the use of `--namespace` applies to the parent AND all dependent operators AND take the namespace is created prior to applying any dependent steps.  While there is likely desire to have independent control for dependent operators namespaces, this functionality will need to be thoughout more thoroughly regarding dependency management.  This part of the proposal was to provide completeness of namespace management inclusive of the current state of the [KEP-29 Operator Dependencies](0029-operator-dependencies.md) and not to extend further.
+
+### Tangential Topics and Concerns
+
+1. Cluster Configurations such as Role, RoleBinding and ServiceAccount, etc. are not automated and fall into likely need on many clusters similar to namespace.
+1. It will likely be challenging for admins to management the auto-creation of namespaces in a cluster.
+1. There is NO consideration for namespace cleanup, even if KUDO created the namespace.
 
 ## Notes
 
