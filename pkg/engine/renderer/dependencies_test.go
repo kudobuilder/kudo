@@ -107,6 +107,9 @@ func TestSetDependenciesHash(t *testing.T) {
 			assert.NilError(t, err)
 			assert.DeepEqual(t, pod("somename", "namespace"), p)
 		}},
+		{name: "no change in unstructured CRD", obj: unstructuredCrd("crd", "namespace"), assert: func(us *unstructured.Unstructured) {
+			assert.DeepEqual(t, unstructuredCrd("crd", "namespace"), us)
+		}},
 	}
 	for _, tt := range tests {
 		tt := tt
