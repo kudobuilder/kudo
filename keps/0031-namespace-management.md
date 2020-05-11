@@ -8,7 +8,7 @@ owners:
   - "@kensipe"
 editor: @kensipe
 creation-date: 2020-05-06
-last-updated: 2020-05-06
+last-updated: 2020-05-11
 status: draft
 ---
 
@@ -98,10 +98,9 @@ metadata:
     ca.istio.io/override: "true"
     istio-injection: enabled
     katib-metricscollector-injection: enabled
-  name: {{ .Namespace }}
 ```
 
-The template supports the implicit `.Namespace` parameter (which already exists).  The `operator.yaml` file is to will be extended to support `namespaceManifest`.
+The template supports templates for labels and annotations, however the `name:` metadata is NOT allowed to be set or controlled through templating.   This is to prevent the "templating" of the namespace name such as `name: {.Namespace}-extended`.  KUDO will add the `name:` for metadata when there is a need to create a namespace with metadata using the namespaceManifest file. The `operator.yaml` file is to will be extended to support `namespaceManifest`.  
 
 ```
 # operator.yaml
@@ -113,15 +112,17 @@ appVersion: 1.0.0
 namespaceManifest: templates/namespace.yaml
 ```
 
+KUDO is to add a `--apply-ns`.  The use of `--namespace` defines the namespace that will be used by the operator.  If the namespace is missing than a failure will occur.  If used in conjunction with `--apply-ns`, than the namespace if missing from the cluster will be created using the manifest file.  If the namespace exists, the metadata will be applied to the existing namespace overwriting the exiting metadata.
+
 The follow rules apply:
 
-1. Missing `namespaceManifest` means that there is no metadata (creation still applies if warranted)
-1. Missing `name: {{ .Namespace }}` is a failure (and will be validated by package verifier)
-1. No support for static namespace, it must be templated or the manifest should not exist
-1. If no `namespaceManifest` and no `--namespace` the operator installs to "default"
-1. If `--namespace` provided and namespace doesn't exist, KUDO creates it
+1. Missing `namespaceManifest` means that there is no metadata.  Using `--apply-ns` will create namespace without metadata.
+1. `name: {{ .Namespace }}` is not allowed in the manifest file and is considered a failure by the package verifier.  The namespace manifest is only useful to provide metadata to the namespace.  The control over what the name of the namespace is is controlled by KUDO.
+1. No support for static namespace.
+1. If no `namespaceManifest` and no `--namespace` the operator installs to "default".  If used in conjunction with `--apply-ns`, it will be ignored.  There is no overwritting of the "default" namespace.
+1. If `--namespace` provided and namespace doesn't exist, if `--apply-ns` is provided KUDO creates it.
 1. If KUDO creates namespace, if there is a `namespaceManifest` it uses it to create namespace otherwise does a simple namespace creation.
-1. If KUDO has `namespaceManifest` the check on the namespace is a deepcopy (mean it will ensure that the labels and annotations exists and match) if not it overwrites
+1. If KUDO has `namespaceManifest` and `--apply-ns` is used there is no checks, the manifest file is applied to the namespace (exception is "default").
 1. if a namespace is created KUDO waits until the namespace is created to move forward in a plan.
 1. if a namespace is needed to be created, it is detected early in the process prior to the deployment plan or as a first step.
 
@@ -130,21 +131,24 @@ The follow rules apply:
 1. Do we allow for a default namespace other than "default"
 1. We could have another flag to enforce creation, meaning `--namespace` by itself will use that namespace but does NOT create and in combination with `--force` or `--ns-ensure` will create namespace.
 1. namespace comparison could be simple check.  It is unclear when an overwrite should occur or if this should be an error.
+1. Auto create (with a `--apply-ns` or `--ns-ensure`)
+1. Creation of namespace only handled if `namespaceManifest` is provided.  The case of simple namespace (without metadata) would need to be considered.
 
 ### Proposal: Multi-Namespace (static)
 
-There is a desire to support multiple namespaces.  In this model, the expectations are that the 2nd tier namespaces (not the "primary" operator) will have statically defined namespaces which should be honored.   A significant challenge to this is objects with No namespace will land whereever KUDO is configured to install the operator, but other objects will have no control and will be static.   Part of the justification of this is kubeflow, where there are 30+ operators, many which are supportive in nature that the operator developer would like to section off. 
+There is a desire to support multiple namespaces. The desire seems to stem from 2 sources; KUDO early adoptors as operator devs what have large multi-operator needs and those using KUDO for micro-service management. An example of large operator development is Kubeflow, where there is 20+ operators inside D2iQ KUDO Kubeflow operator.  There is a strong desire to logically group many of the supportive infrastructure operators inside their own namespace, reducing the cognitive burden of the end user by removing non-primary operators into a separate namespace from the primary operators.
+ In this model, the expectations are that the 2nd tier namespaces (not the "primary" operator) will have statically defined namespaces which should be honored.   A significant challenge to this is objects with No namespace will land whereever KUDO is configured to install the operator, but other objects will have no control and will be static.   Part of the justification of this is kubeflow, where there are 30+ operators, many which are supportive in nature that the operator developer would like to section off.
 
-This propose is for KUDO to deploy objects to KUDO managed {{.Namespace}} if not specified and to honor `namespace:` for objects that have them.  There are challenges to validation as we won't know what is accidently missing or accidently specified.  There are challenges to it being static which can be overcome through the use of Params.  It seems if Params are used, that they are  immutable after installation.
+This propose is for KUDO to deploy objects to KUDO managed {{.Namespace}} if not specified and to honor `namespace:` for objects that have them.  There are challenges to package validation as we won't know what is accidently missing or accidently specified.  There are challenges to it being static which can be overcome through the use of Params.  It seems if Params are used, that the values for the instance are  immutable after installation.
 
 
 ### Proposal: Dependencies and Creating Namespaces
 
-Regarding dependencies and creating namespaces, it is expected that the use of `--namespace` applies to the parent AND all dependent operators AND take the namespace is created prior to applying any dependent steps.
+Regarding dependencies and creating namespaces, it is expected that the use of `--namespace` applies to the parent AND all dependent operators AND take the namespace is created prior to applying any dependent steps.  While there is likely desire to have independent control for dependent operators namespaces, this functionality will need to be thoughout more thoroughly regarding dependency management.  This part of the proposal was to provide completeness of namespace management inclusive of the current state of the [KEP-29 Operator Dependencies](0029-operator-dependencies.md) and not to extend further.
 
 ## Notes
 
-1. It is important to note that cross namespace management of `ownerReferences` are not supported in Kubernetes.
+1. It is important to note that cross namespace management of `ownerReferences` are not supported in Kubernetes.  [Owners and dependents documentation](https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/#owners-and-dependents) explicitly states that this is "disallowed by design".
 1. It is unclear if we can delete a namespace, if we plan to manage this, then I would expect that we annotate or label the namespace as being managed by KUDO augmenting any manifest provided by the operator developer (which would need to be considered on a deepcopy)
 
 ## Alternatives
