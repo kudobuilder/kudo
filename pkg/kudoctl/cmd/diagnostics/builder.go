@@ -1,179 +1,79 @@
 package diagnostics
 
 import (
-	"io"
-	"strings"
-
-	"k8s.io/cli-runtime/pkg/printers"
+	"github.com/spf13/afero"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// TODO: rename callbacks
-// builder should build a sequence of resource providers based on the AddResource
-// it should add missing dependencies based on the provided name extraction rules
-// probably extraction rules should make sure there is no loop, not the builder
-type builder struct {
-	n *nameProviders
-	factory *resourceProviderFactory
-	// one day more sophisticated data may be needed than just a resource names list
-	namesCache  map[string][]string // kind: <resource names>
-	isCollected map[string]struct{}
-	isExposed   map[string]struct{}
-	callbacks   map[string]map[string]nameExtractorFn // name provider -> collected resources
-	collectors  []objectLister
-}
+type ResourceFn func(*ResourceFuncsConfig) (runtime.Object, error)
+type ResourceFnWithContext func(*ResourceFuncsConfig, *processingContext) (runtime.Object, error)
 
-func NewOtherBuilder(factory *resourceProviderFactory, providers *nameProviders) *builder {
-	return &builder{
-		n:           providers,
-		factory:     factory,
-		namesCache:  make(map[string][]string),
-		isCollected: make(map[string]struct{}),
-		isExposed:   make(map[string]struct{}),
-		callbacks:   make(map[string]map[string]nameExtractorFn),
+func (fn ResourceFnWithContext) toResourceFn(ctx *processingContext) ResourceFn {
+	return func(r *ResourceFuncsConfig) (runtime.Object, error) {
+		return fn(r, ctx)
 	}
 }
 
-func (b *builder) AddResource(kind string) {
-	b.addResource(kind)
-	b.isExposed[kind] = struct{}{}
+type SimpleBuilder struct {
+	r          *ResourceFuncsConfig
+	ctx        processingContext
+	collectors []collector
+	fs         afero.Fs
 }
 
-func (b *builder) addResource(kind string) {
-	if _, ok := b.isCollected[kind]; ok {
-		return
+func (b *SimpleBuilder) Collect(baseDir func(*processingContext) string, asObject printMode, r ResourceFn) *SimpleBuilder {
+	b.collectors = append(b.collectors, b.createResourceCollector(r, baseDir, asObject))
+	return b
+}
+
+func (b *SimpleBuilder) AddGroup(fns ...func(*SimpleBuilder) collector) *SimpleBuilder {
+	if len(fns) == 0 {
+		return b
 	}
-	if fromKind, extractorFn := b.n.NameProviderFor(kind); fromKind != "" {
-		b.addResource(fromKind)
-		if b.callbacks[fromKind] == nil {
-			b.callbacks[fromKind] = make(map[string]nameExtractorFn)
+	var collectors []collector
+	for _, fn := range fns {
+		collectors = append(collectors, fn(b))
+	}
+	b.collectors = append(b.collectors, &compositeCollector{collectors: collectors})
+	return b
+}
+
+func (b *SimpleBuilder) Add(fn func(*SimpleBuilder) collector) *SimpleBuilder {
+	b.collectors = append(b.collectors, fn(b))
+	return b
+}
+
+func (b *SimpleBuilder) AddAsYaml(baseDir func(ctx *processingContext) string, name string, o interface{}) *SimpleBuilder {
+	b.collectors = append(b.collectors, &AnyPrintable{
+		dir:  func() string { return baseDir(&b.ctx) },
+		name: name,
+		v:    o,
+	})
+	return b
+}
+
+func (b *SimpleBuilder) Run() error {
+	for _, c := range b.collectors {
+		p, err := c.Collect()
+		if err != nil {
+			return err
 		}
-		b.callbacks[fromKind][kind] = extractorFn // collector p should cache names for kind using rule from nameProviders
-		b.addMultiGetter(kind)
-	} else {
-		b.addLister(kind)
-	}
-	b.isCollected[kind] = struct{}{}
-}
-
-func (b *builder) addMultiGetter(kind string) {
-	f := func() ([]Object, error) {
-		names, _ := b.namesCache[kind] // TODO: handle not found
-		getterFn := b.factory.MultiGetter(kind, names)
-		ret, _ := getterFn() // TODO: handle error
-		return ret, nil
-	}
-	b.collectors = append(b.collectors, f)
-}
-
-func (b *builder) addLister(kind string) {
-	lister := b.factory.Lister(kind)
-	b.collectors = append(b.collectors, lister)
-}
-
-func (b *builder) Collect() *ResourceCache {
-	resourceListsByKind := make(map[string][]Object)
-	resourcesByNameKind := make(map[NameKind]Object)
-	for _, collectFn := range b.collectors {
-		objs, err := collectFn()
-		if err != nil { //TODO: handle error
+		if p == nil {
 			continue
 		}
-		if len(objs) == 0 {
-			continue
-		}
-		kind := objs[0].GetObjectKind().GroupVersionKind().Kind //TODO: fix this ugly hack
-		kind = strings.ToLower(kind)
-		resourceListsByKind[kind] = objs
-		for _, obj := range objs {
-			resourcesByNameKind[NameKind{
-				Name: obj.GetName(),
-				Kind: kind,
-			}] = obj
-		}
-		for dependentKind, callback := range b.callbacks[kind] {
-			isNameAdded:= make(map[string]struct{})
-			for _, o := range objs {
-				name := callback(o)
-				if _, ok := isNameAdded[name]; ok {
-					continue
-				}
-				isNameAdded[name] = struct{}{}
-				b.namesCache[dependentKind] = append(b.namesCache[dependentKind], name)
-			}
-		}
-
-	}
-	return &ResourceCache{
-		resourceListsByKind: resourceListsByKind,
-		resourcesByNameKind: resourcesByNameKind,
-	}
-}
-// The ultimate provider of the resource
-// we should be able to build the printable directory tree based on the resources and config
-type ResourceCache struct {
-	resourceListsByKind map[string][]Object
-	resourcesByNameKind map[NameKind]Object
-}
-
-func (r *ResourceCache) Resources(kind string) []Object {
-	return r.resourceListsByKind[kind]
-}
-func (r *ResourceCache) Resource(name, kind string) Object {
-	return r.resourcesByNameKind[NameKind{name, kind}]
-}
-
-func BuildPrintableTree (r *ResourceCache, a *attachmentRules, kinds []string) []*printableTree {
-	m := make(map[NameKind]*printableTree)
-	var ret []*printableTree
-	for _, kind := range kinds {
-		if _, ok :=a.m[kind]; !ok {
-			rootResources := r.resourceListsByKind[kind]
-			for _, resource := range rootResources {
-				nk := NameKind{
-					Name: resource.GetName(),
-					Kind: kind,
-				}
-				ret = append(ret, getOrCreate(nk, m, r))
-			}
-			continue
-		}
-		resources := r.Resources(kind)
-		for _, resource := range resources {
-			nk := a.AttachmentFor(resource) // TODO: consider attaching to root if nil
-			if nk == nil {
-				continue
-			}
-			parent := getOrCreate(*nk, m, r) // TODO: handle parent not collected error!
-			key := NameKind{
-				Name: resource.GetName(),
-				Kind: strings.ToLower(resource.GetObjectKind().GroupVersionKind().Kind),
-			}
-			child := getOrCreate(key, m, r)
-			parent.children = append(parent.children, child)
+		err = p.print(b.fs)
+		if err != nil {
+			return err
 		}
 	}
-	return ret
+	return nil
 }
 
-func getOrCreate(key NameKind, m map[NameKind]*printableTree, r *ResourceCache) *printableTree {
-	pt, ok := m[key]
-	if !ok {
-		resource := r.Resource(key.Name, key.Kind) // TODO: what if missing?
-		pt = &printableTree{o: toPrintableObject(resource)}
-		m[key] = pt
+func (b *SimpleBuilder) createResourceCollector(fn ResourceFn, baseDir func(*processingContext) string, mode printMode) *ResourceCollector {
+	return &ResourceCollector{
+		r:          b.r,
+		resourceFn: fn,
+		printMode:  mode,
+		baseDir:    func() string { return baseDir(&b.ctx) },
 	}
-	return pt
-}
-
-type printableObject struct {
-	Object
-	printer printers.YAMLPrinter // TODO: allow other printers
-}
-
-func (o *printableObject) Print(w io.Writer) error {
-	return o.printer.PrintObj(o, w)
-}
-
-func toPrintableObject(o Object) *printableObject {
-	return &printableObject{o, printers.YAMLPrinter{}}
 }

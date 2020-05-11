@@ -1,10 +1,10 @@
 package diagnostics
 
 import (
-	"fmt"
+	"github.com/spf13/afero"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
-	//"github.com/kudobuilder/kudo/pkg/version"
-	"github.com/spf13/cobra"
+	"github.com/kudobuilder/kudo/pkg/version"
 )
 
 const (
@@ -13,43 +13,105 @@ const (
 	appKudoManager    = "kudo-manager"
 )
 
-var Options = struct {
+type Options struct {
 	Instance string
-}{}
+	LogSince int64
+}
 
-func Collect(cmd *cobra.Command, settings *env.Settings) error {
-	fmt.Println("Collecting diagnostics")
+type collector interface {
+	Collect() (Printable, error)
+}
 
-	ir, err := NewInstanceResources(Options.Instance, settings)
+type compositeCollector struct {
+	collectors []collector
+}
+
+// TODO: add an option of not failing on error
+func (cc *compositeCollector) Collect() (Printable, error) {
+	l := len(cc.collectors)
+	ret := make([]Printable, l)
+	for i := 0; i < len(cc.collectors); i++ {
+		p, err := cc.collectors[i].Collect()
+		if err != nil {
+			return nil, err // TODO: need "Printable error" type
+		}
+		ret[l-1-i] = p
+	}
+	return PrintableList(ret), nil
+}
+
+func Collect(fs afero.Fs, options *Options, s *env.Settings) error {
+	ir, err := NewInstanceResources(options, s)
 	if err != nil {
-		return nil
+		return err
 	}
-	cr, err := NewKudoResources(settings)
+
+	err = (&SimpleBuilder{
+		r:  ir,
+		fs: fs,
+	}).
+		AddGroup(
+			ResourceWithContext(attachToOperator, ObjectWithDir, Instance),
+			ResourceWithContext(attachToOperator, ObjectWithDir, OperatorVersion),
+			ResourceWithContext(attachToRoot, ObjectWithDir, Operator)).
+		Add(ResourceWithContext(attachToInstance, ObjectsWithDir, Pods)).
+		Add(Resource(attachToInstance, RuntimeObject, Services)).
+		Add(Resource(attachToInstance, RuntimeObject, Deployments)).
+		Add(Resource(attachToInstance, RuntimeObject, ReplicaSets)).
+		Add(Resource(attachToInstance, RuntimeObject, StatefulSets)).
+		Add(Resource(attachToInstance, RuntimeObject, ServiceAccounts)).
+		Add(Resource(attachToInstance, RuntimeObject, ClusterRoleBindings)).
+		Add(Resource(attachToInstance, RuntimeObject, RoleBindings)).
+		Add(Resource(attachToInstance, RuntimeObject, ClusterRoles)).
+		Add(Resource(attachToInstance, RuntimeObject, Roles)).
+		Add(Logs(attachToInstance)).
+		AddAsYaml(attachToRoot, "version", version.Get()).
+		AddAsYaml(attachToRoot, "settings", s).
+		Run()
+
 	if err != nil {
-		return nil
+		return err
 	}
-	irf := newResourceProviderFactory(ir)
-	crf := newResourceProviderFactory(cr)
 
-	b := NewOtherBuilder(irf, DefaultNameProviders())
-	kinds := []string{"instance", "operatorversion", "operator", "pod", "statefulset", "replicaset", "event",
-		"deployment", "service", "serviceaccount", "role", "clusterrole"}
-	for _, kind := range kinds {
-		b.AddResource(kind)
+	kr, err := NewKudoResources(s)
+	if err != nil {
+		return err
 	}
-	cache := b.Collect()
-	tree := BuildPrintableTree(cache, DefaultAttachmentRules(), kinds)
-	err = printTree(tree, "")
-	fmt.Println(err)
 
-	b = NewOtherBuilder(crf, DefaultNameProviders())
-	for _, kind := range kinds {
-		b.AddResource(kind)
-	}
-	cache = b.Collect()
-	tree = BuildPrintableTree(cache, DefaultKudoAttachmentRules(), kinds)
-	err = printTree(tree, "kudo")
-	fmt.Println(err)
+	err = (&SimpleBuilder{
+		r:  kr,
+		fs: fs,
+	}).
+		Add(ResourceWithContext(attachToKudoRoot, ObjectsWithDir, Pods)).
+		Add(Resource(attachToKudoRoot, RuntimeObject, Services)).
+		Add(Resource(attachToKudoRoot, RuntimeObject, StatefulSets)).
+		Add(Resource(attachToKudoRoot, RuntimeObject, ServiceAccounts)).
+		Add(Logs(attachToKudoRoot)).
+		Run()
 
 	return err
+}
+
+func ResourceWithContext(baseDir func(*processingContext) string, mode printMode, r ResourceFnWithContext) func(*SimpleBuilder) collector {
+	return func(b *SimpleBuilder) collector {
+		return b.createResourceCollector(r.toResourceFn(&b.ctx), baseDir, mode)
+	}
+}
+
+func Resource(baseDir func(*processingContext) string, mode printMode, r ResourceFn) func(*SimpleBuilder) collector {
+	return func(b *SimpleBuilder) collector {
+		return b.createResourceCollector(r, baseDir, mode)
+	}
+}
+
+func Logs(baseDir func(*processingContext) string) func(*SimpleBuilder) collector {
+	return func(b *SimpleBuilder) collector {
+		var ret []collector
+		ret = append(ret, &LogCollector{
+			r:        b.r,
+			podNames: func() []string { return b.ctx.podNames },
+			baseDir:  func() string { return baseDir(&b.ctx) },
+		})
+		return &compositeCollector{ret}
+	}
 }

@@ -1,0 +1,5 @@
+kubeconfig: /home/vvy/.kube/config
+home: /home/vvy/.kudo
+namespace: default
+requesttimeout: 0
+validate: true

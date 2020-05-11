@@ -1,15 +1,16 @@
 package diagnostics
 
 import (
-	"compress/gzip"
 	"io"
+
+	"compress/gzip"
 )
 
 type streamGzipper struct {
 	bufSize int
-	w io.Writer
+	w       io.Writer
 }
-// TODO: remove todo when logs are back
+
 func newGzipWriter(w io.Writer, size int) *streamGzipper {
 	return &streamGzipper{
 		bufSize: size,
@@ -17,6 +18,7 @@ func newGzipWriter(w io.Writer, size int) *streamGzipper {
 	}
 }
 
+// TODO: error checks
 func (z *streamGzipper) Write(r io.ReadCloser) error {
 	buf := make([]byte, z.bufSize)
 	zw := gzip.NewWriter(z.w)
@@ -25,11 +27,11 @@ func (z *streamGzipper) Write(r io.ReadCloser) error {
 		var n int
 		n, err = r.Read(buf)
 		if n > 0 {
-			zw.Write(buf[:n])
+			_, _ = zw.Write(buf[:n])
 		}
-		if err != nil  {
-			zw.Close()
-			r.Close()
+		if err != nil {
+			_ = zw.Close()
+			_ = r.Close()
 			break
 		}
 	}

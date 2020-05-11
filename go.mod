@@ -26,6 +26,7 @@ require (
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	golang.org/x/sys v0.0.0-20200408040146-ea54a3c99b9b // indirect
 	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v3 v3.0.0-20191106092431-e228e37189d3
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.17.3
 	k8s.io/apiextensions-apiserver v0.17.2
