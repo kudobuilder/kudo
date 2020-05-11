@@ -35,11 +35,10 @@ then
     mkdir operators/bin/
     cp ./bin/kubectl-kudo operators/bin/
     cp ./bin/manager operators/bin/
-    cd operators && ./bin/kubectl-kudo test 2>&1 \
+    cd operators && ./bin/kubectl-kudo test --artifacts-dir /tmp/kudo-e2e-test 2>&1 \
         | tee /dev/fd/2 \
         | go-junit-report -set-exit-code \
         > ../reports/kudo_operators_test_report.xml
-    mv kind-logs ../kind-logs
 else
     echo "Running E2E tests without junit output"
 
@@ -50,6 +49,5 @@ else
     mkdir operators/bin/
     cp ./bin/kubectl-kudo operators/bin/
     cp ./bin/manager operators/bin/
-    cd operators && ./bin/kubectl-kudo test
-    mv kind-logs ../kind-logs
+    cd operators && ./bin/kubectl-kudo test --artifacts-dir /tmp/kudo-e2e-test
 fi
