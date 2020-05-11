@@ -169,8 +169,8 @@ func TestNewInitCmd(t *testing.T) {
 		{name: "crd-only and wait together invalid", flags: map[string]string{"crd-only": "true", "wait": "true"}, errorMessage: "wait is not allowed with crd-only"},
 		{name: "wait-timeout invalid without wait", flags: map[string]string{"wait-timeout": "400"}, errorMessage: "wait-timeout is only useful when using the flag '--wait'"},
 		{name: "crd-only and upgrade together invalid", flags: map[string]string{"crd-only": "true", "upgrade": "true"}, errorMessage: "'--upgrade' and '--crd-only' can not be used at the same time"},
-		{name: "validate and dry-run together invalid:", flags: map[string]string{"dry-run": "true", "validate": "true"}, errorMessage: "'--dry-run' and '--validate' can not be used at the same time"},
-		{name: "validate and upgrade together invalid:", flags: map[string]string{"upgrade": "true", "validate": "true"}, errorMessage: "'--upgrade' and '--validate' can not be used at the same time"},
+		{name: "verify and dry-run together invalid:", flags: map[string]string{"dry-run": "true", "verify": "true"}, errorMessage: "'--dry-run' and '--verify' can not be used at the same time"},
+		{name: "verify and upgrade together invalid:", flags: map[string]string{"upgrade": "true", "verify": "true"}, errorMessage: "'--upgrade' and '--verify' can not be used at the same time"},
 	}
 
 	for _, tt := range tests {
