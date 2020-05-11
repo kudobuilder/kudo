@@ -38,7 +38,7 @@ then
     ./bin/kubectl-kudo test ./operators 2>&1 \
         | tee /dev/fd/2 \
         | go-junit-report -set-exit-code \
-        > ../reports/kudo_operators_test_report.xml
+        > ./reports/kudo_operators_test_report.xml
 else
     echo "Running E2E tests without junit output"
 
