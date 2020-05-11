@@ -116,10 +116,18 @@ func (m Initializer) verifyManagerInstalled(client *kube.Client, result *verifie
 func (m Initializer) installStatefulSet(client appsv1client.StatefulSetsGetter) error {
 	_, err := client.StatefulSets(m.options.Namespace).Create(m.deployment)
 	if kerrors.IsAlreadyExists(err) {
-		clog.V(4).Printf("manager stateful set %v already exists", m.deployment.Name)
-		_, err = client.StatefulSets(m.options.Namespace).Update(m.deployment)
+		clog.V(4).Printf("manager stateful set %v already exists, recreate it", m.deployment.Name)
+		fg := metav1.DeletePropagationForeground
+		err := client.StatefulSets(m.options.Namespace).Delete(m.deployment.Name, &metav1.DeleteOptions{
+			PropagationPolicy: &fg,
+		})
 		if err != nil {
-			return fmt.Errorf("failed to update manager stateful set: %v", err)
+			return fmt.Errorf("failed to delete manager stateful set for recreation: %v", err)
+		}
+
+		_, err = client.StatefulSets(m.options.Namespace).Create(m.deployment)
+		if err != nil {
+			return fmt.Errorf("failed to recreate update manager stateful set: %v", err)
 		}
 		return nil
 	}
@@ -132,10 +140,15 @@ func (m Initializer) installStatefulSet(client appsv1client.StatefulSetsGetter) 
 func (m Initializer) installService(client corev1client.ServicesGetter) error {
 	_, err := client.Services(m.options.Namespace).Create(m.service)
 	if kerrors.IsAlreadyExists(err) {
-		clog.V(4).Printf("manager service %v already exists", m.service.Name)
-		_, err := client.Services(m.options.Namespace).Create(m.service)
+		clog.V(4).Printf("manager service %v already exists, recreate ", m.service.Name)
+		err := client.Services(m.options.Namespace).Delete(m.service.Name, &metav1.DeleteOptions{})
 		if err != nil {
-			return fmt.Errorf("failed to update manager service: %v", err)
+			return fmt.Errorf("failed to delete manager service for recreation: %v", err)
+		}
+
+		_, err = client.Services(m.options.Namespace).Create(m.service)
+		if err != nil {
+			return fmt.Errorf("failed to recreate manager service: %v", err)
 		}
 		return nil
 	}

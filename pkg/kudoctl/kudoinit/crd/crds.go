@@ -126,7 +126,16 @@ func (c Initializer) verifyInstallation(client v1beta1.CustomResourceDefinitions
 func (c Initializer) createOrUpdate(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition) error {
 	_, err := client.CustomResourceDefinitions().Create(crd)
 	if kerrors.IsAlreadyExists(err) {
-		clog.V(4).Printf("crd %v already exists", crd.Name)
+		// We need to be careful here and never delete/recreate CRDs, we would delete
+		// all installed custom resources. We must have a correct update!
+		clog.V(4).Printf("crd %v already exists, try to update", crd.Name)
+
+		oldCrd, err := client.CustomResourceDefinitions().Get(crd.Name, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to get crd for update %s: %v", crd.Name, err)
+		}
+
+		crd.ResourceVersion = oldCrd.ResourceVersion
 		_, err = client.CustomResourceDefinitions().Update(crd)
 		if err != nil {
 			return fmt.Errorf("failed to update crd %s: %v", crd.Name, err)

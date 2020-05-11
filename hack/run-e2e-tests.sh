@@ -7,7 +7,6 @@ set -o xtrace
 
 INTEGRATION_OUTPUT_JUNIT=${INTEGRATION_OUTPUT_JUNIT:-false}
 VERSION=${VERSION:-test}
-PREV_KUDO_VERSION=0.11.1
 
 docker build . \
     --build-arg ldflags_arg="" \
@@ -19,15 +18,6 @@ docker build . \
 
 sed "s/%version%/$VERSION/" kudo-e2e-test.yaml.tmpl > kudo-e2e-test.yaml
 sed "s/%version%/$VERSION/" kudo-upgrade-test.yaml.tmpl > kudo-upgrade-test.yaml
-
-# Download previous KUDO version for upgrade testing
-if [[ "$(uname)" == "Darwin" ]]; then
-    curl -L https://github.com/kudobuilder/kudo/releases/download/v${PREV_KUDO_VERSION}/kubectl-kudo_${PREV_KUDO_VERSION}_darwin_x86_64 --output bin/kubectl-oldkudo
-elif [[ "$(expr substr $(uname -s) 1 5)" == "Linux" ]]; then
-    curl -L https://github.com/kudobuilder/kudo/releases/download/v${PREV_KUDO_VERSION}/kubectl-kudo_${PREV_KUDO_VERSION}_linux_x86_64 --output bin/kubectl-oldkudo
-fi
-
-chmod +x bin/kubectl-oldkudo
 
 if [ "$INTEGRATION_OUTPUT_JUNIT" == true ]
 then

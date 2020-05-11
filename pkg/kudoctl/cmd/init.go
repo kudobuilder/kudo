@@ -57,7 +57,7 @@ and finishes with success if KUDO is already installed.
   kubectl kudo init --webhook InstanceValidation
   # upgrade an existing KUDO installation
   kubectl kudo init --upgrade
-  # validate the current KUDO installation
+  # verify the current KUDO installation
   kubectl kudo init --verify
 `
 )
@@ -114,7 +114,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.StringVarP(&i.output, "output", "o", "", "Output format")
 	f.BoolVar(&i.dryRun, "dry-run", false, "Do not install local or remote")
 	f.BoolVar(&i.upgrade, "upgrade", false, "Upgrade an existing KUDO installation")
-	f.BoolVar(&i.verify, "validate", false, "Validate an existing KUDO installation")
+	f.BoolVar(&i.verify, "verify", false, "Verify an existing KUDO installation")
 	f.BoolVar(&i.crdOnly, "crd-only", false, "Add only KUDO CRDs to your cluster")
 	f.BoolVarP(&i.wait, "wait", "w", false, "Block until KUDO manager is running and ready to receive requests")
 	f.Int64Var(&i.timeout, "wait-timeout", 300, "Wait timeout to be used")
@@ -148,10 +148,10 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 		return errors.New("self-signed CA bundle can only be used with webhooks option")
 	}
 	if initCmd.upgrade && initCmd.verify {
-		return errors.New("'--upgrade' and '--validate' can not be used at the same time")
+		return errors.New("'--upgrade' and '--verify' can not be used at the same time")
 	}
 	if initCmd.verify && initCmd.dryRun {
-		return errors.New("'--dry-run' and '--validate' can not be used at the same time")
+		return errors.New("'--dry-run' and '--verify' can not be used at the same time")
 	}
 	if initCmd.crdOnly && initCmd.upgrade {
 		return errors.New("'--upgrade' and '--crd-only' can not be used at the same time")
