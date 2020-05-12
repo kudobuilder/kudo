@@ -1,5 +1,8 @@
 package diagnostics
 
+// set of resource provide funcs
+// some require information from the context that should be put by some other funcs, therefore the correct order of calling is required
+
 import (
 	"fmt"
 	"io"
@@ -76,12 +79,14 @@ func isKudoCR(o runtime.Object) bool {
 	return kind == "Instance" || kind == "Operator" || kind == "OperatorVersion"
 }
 
+// Instance - updates context with Instance name and OperatroVersion name
 func Instance(r *ResourceFuncsConfig, ctx *processingContext) (runtime.Object, error) {
 	ctx.instanceName = r.instanceObj.Name
 	ctx.operatorVersionName = r.instanceObj.Spec.OperatorVersion.Name
 	return r.instanceObj, nil
 }
 
+// OperatorVersion - depends on Instance, updates context with Operator name
 func OperatorVersion(r *ResourceFuncsConfig, ctx *processingContext) (runtime.Object, error) {
 	ovName := ctx.operatorVersionName
 	obj, err := r.kc.GetOperatorVersion(ovName, r.ns)
@@ -106,6 +111,7 @@ func Deployments(r *ResourceFuncsConfig) (runtime.Object, error) {
 	return obj, err
 }
 
+// Pods - updates context with pod names
 func Pods(r *ResourceFuncsConfig, ctx *processingContext) (runtime.Object, error) {
 	obj, err := r.c.KubeClient.CoreV1().Pods(r.ns).List(r.opts)
 	if err != nil {
@@ -160,6 +166,7 @@ func Roles(r *ResourceFuncsConfig) (runtime.Object, error) {
 	return obj, err
 }
 
+// Log - depends on Pods
 func Log(r *ResourceFuncsConfig, podName string) (io.ReadCloser, error) {
 	return r.c.KubeClient.CoreV1().Pods(r.ns).GetLogs(podName, &r.logOpts).Stream()
 }

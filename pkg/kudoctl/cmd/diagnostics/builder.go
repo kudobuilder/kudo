@@ -5,8 +5,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-type ResourceFn func(*ResourceFuncsConfig) (runtime.Object, error)
+// ResourceFnWithContext - resource provider that can read or modify processingContext
 type ResourceFnWithContext func(*ResourceFuncsConfig, *processingContext) (runtime.Object, error)
+type ResourceFn func(*ResourceFuncsConfig) (runtime.Object, error)
 
 func (fn ResourceFnWithContext) toResourceFn(ctx *processingContext) ResourceFn {
 	return func(r *ResourceFuncsConfig) (runtime.Object, error) {

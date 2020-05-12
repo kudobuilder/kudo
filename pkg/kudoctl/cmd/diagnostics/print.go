@@ -41,24 +41,28 @@ func (ps PrintableList) print(fs afero.Fs) error {
 	return nil
 }
 
-func NewPrintableObject(obj runtime.Object, baseDir func() string) (Printable, error) {
+// NewPrintableObject - create a wrapper to print runtime.Object in its own directory based on its metadata
+// fails if the object does not implement metav1.Object
+func NewPrintableObject(obj runtime.Object, parentDir func() string) (Printable, error) {
 	o, ok := obj.(Object)
 	if !ok {
 		return nil, fmt.Errorf("kind %s doesn't have metadata", obj.GetObjectKind().GroupVersionKind().Kind)
 	}
 	ret := PrintableRuntimeObject{
 		o:              o,
-		parentDir:      baseDir,
+		parentDir:      parentDir,
 		relToParentDir: func() string { return strings.ToLower(o.GetObjectKind().GroupVersionKind().Kind) + "_" + o.GetName() },
 		name:           func() string { return o.GetName() + ".yaml" },
 	}
 	return &ret, nil
 }
 
-func NewPrintableObjectList(obj runtime.Object, baseDir func() string) (Printable, error) {
+// NewPrintableObjectList - wrappers of runtime.Object, so that each should be printed in its own directory based on its metadata
+// fails if the object is not a list or if any of the items does not implement metav1.Object
+func NewPrintableObjectList(obj runtime.Object, parentDir func() string) (Printable, error) {
 	var ret PrintableList
 	err := meta.EachListItem(obj, func(o runtime.Object) error {
-		p, err := NewPrintableObject(o, baseDir)
+		p, err := NewPrintableObject(o, parentDir)
 		if err != nil {
 			return err
 		}
@@ -71,13 +75,14 @@ func NewPrintableObjectList(obj runtime.Object, baseDir func() string) (Printabl
 	return ret, nil
 }
 
-func NewPrintableRuntimeObject(obj runtime.Object, baseDir func() string) (Printable, error) {
+// NewPrintableRuntimeObject - wrapper to print runtime.Object as a file in the parent's directory
+func NewPrintableRuntimeObject(obj runtime.Object, parentDir func() string) (Printable, error) {
 	if meta.IsListType(obj) && meta.LenList(obj) == 0 {
 		return nil, nil
 	}
 	ret := PrintableRuntimeObject{
 		o:         obj,
-		parentDir: baseDir,
+		parentDir: parentDir,
 		name:      func() string { return strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind) + ".yaml" },
 	}
 	return &ret, nil
@@ -104,6 +109,8 @@ func (p *PrintableLog) print(os afero.Fs) error {
 	return nil
 }
 
+// PrintableRuntimeObject - printable implementation for runtime.Object
+// name and directory information is packed into lambdas so that the object could be created before this data becomes available
 type PrintableRuntimeObject struct {
 	o              runtime.Object
 	parentDir      func() string
@@ -134,6 +141,8 @@ func (p *PrintableRuntimeObject) print(fs afero.Fs) error {
 	return printer.PrintObj(p.o, file)
 }
 
+// PrintableYaml - printable implementation to print anything as yaml
+// implements collector for convenience
 type PrintableYaml struct {
 	name string
 	dir  func() string

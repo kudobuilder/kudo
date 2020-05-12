@@ -23,14 +23,18 @@ type Options struct {
 	LogSince int64
 }
 
+// collector - implementors are expected to return error only if fatal, otherwise the error should be wrapped and
+// returned in place of Printable to print it instead of the object that failed to be collected
 type collector interface {
 	Collect() (Printable, error)
 }
 
+// compositeCollector - auxiliary union of collectors related via their side-effects on processingContext
 type compositeCollector struct {
 	collectors []collector
 }
 
+// Collect - flow ensures that objects are printed if and only after all of them are collected
 func (cc *compositeCollector) Collect() (Printable, error) {
 	l := len(cc.collectors)
 	ret := make([]Printable, l)
