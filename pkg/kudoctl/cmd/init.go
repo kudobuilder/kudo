@@ -103,7 +103,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f := cmd.Flags()
 	f.BoolVarP(&i.clientOnly, "client-only", "c", false, "If set does not install KUDO on the server")
 	f.StringVarP(&i.image, "kudo-image", "i", "", "Override KUDO controller image and/or version")
-	f.StringVarP(&i.imagePullPolicy, "pull-policy", "", "", "Override KUDO controller image pull policy")
+	f.StringVarP(&i.imagePullPolicy, "kudo-image-pull-policy", "", "", "Override KUDO controller image pull policy")
 	f.StringVarP(&i.version, "version", "", "", "Override KUDO controller version of the KUDO image")
 	f.StringVarP(&i.output, "output", "o", "", "Output format")
 	f.BoolVar(&i.dryRun, "dry-run", false, "Do not install local or remote")
