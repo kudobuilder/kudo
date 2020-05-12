@@ -31,15 +31,15 @@ func NewInstanceResources(opts *Options, s *env.Settings) (*ResourceFuncsConfig,
 
 	kc, err := kudo.NewClient(s.KubeConfig, s.RequestTimeout, s.Validate)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create kudo client: %v", err)
 	}
 	c, err := kube.GetKubeClient(s.KubeConfig)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create kube client: %v", err)
 	}
 	instance, err := kc.GetInstance(opts.Instance, s.Namespace)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get instance %s/%s: %v", s.Namespace, opts.Instance, err)
 	}
 
 	return &ResourceFuncsConfig{
@@ -91,7 +91,7 @@ func OperatorVersion(r *ResourceFuncsConfig, ctx *processingContext) (runtime.Ob
 	ovName := ctx.operatorVersionName
 	obj, err := r.kc.GetOperatorVersion(ovName, r.ns)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get operatorversion %s/%s: %v", r.ns, ovName, err)
 	}
 	if obj == nil {
 		return nil, fmt.Errorf("operator version not found")

@@ -198,7 +198,7 @@ func (c *Client) GetOperator(name, namespace string) (*v1beta1.Operator, error) 
 		return nil, nil
 	}
 	if err != nil {
-		return o, err
+		return o, fmt.Errorf("failed to get operator %s/%s: %v", namespace, name, err)
 	}
 	err = setGVKFromScheme(o)
 	return o, err

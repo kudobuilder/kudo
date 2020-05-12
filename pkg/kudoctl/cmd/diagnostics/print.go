@@ -130,12 +130,13 @@ func (p *PrintableRuntimeObject) print(fs afero.Fs) error {
 		dir += "/" + p.relToParentDir()
 		err := fs.MkdirAll(dir, 0700)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create directory %s: %v", dir, err)
 		}
 	}
-	file, err := fs.Create(dir + "/" + name)
+	fileWithPath := fmt.Sprintf("%s/%s", dir, name)
+	file, err := fs.Create(fileWithPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create %s: %v", fileWithPath, err)
 	}
 	printer := printers.YAMLPrinter{}
 	return printer.PrintObj(p.o, file)
@@ -156,9 +157,10 @@ func (p *PrintableYaml) Collect() (Printable, error) {
 func (p *PrintableYaml) print(fs afero.Fs) error {
 	b, err := yaml.Marshal(p.v)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal object to %s/%s.yaml: %v", p.dir(), p.name, err)
 	}
-	return printBytes(fs, b, p.dir()+"/"+p.name+".yaml")
+	fileNameWithPath := fmt.Sprintf("%s/%s.yaml", p.dir(), p.name)
+	return printBytes(fs, b, fileNameWithPath)
 }
 
 type PrintableError struct {
@@ -177,11 +179,11 @@ func (p *PrintableError) print(fs afero.Fs) error {
 func printBytes(fs afero.Fs, b []byte, fileName string) error {
 	file, err := fs.Create(fileName)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create file %s: %v", fileName, err)
 	}
 	_, err = file.Write(b)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to write to file %s: %v", fileName, err)
 	}
 	return nil
 }
