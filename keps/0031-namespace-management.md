@@ -8,31 +8,32 @@ owners:
   - "@kensipe"
 editor: @kensipe
 creation-date: 2020-05-06
-last-updated: 2020-05-11
-status: draft
+last-updated: 2020-05-12
+status: provisional
 ---
 
 # Namespace Management
 
 ## Table of Contents
 
-* [Summary](#summary)
-* [Motivation](#motivation)
+ * [Summary](#summary)
+ * [Motivation](#motivation)
     * [Goals](#goals)
     * [Non-Goals](#non-goals)
-* [Namespace Management in the Eco-System](#namespace-management-in-the-eco-system)
+ * [Namespace Management in the Eco-System](#namespace-management-in-the-eco-system)
     * [Kubernetes Objects and Namespaces](#kubernetes-objects-and-namespaces)
     * [Helm](#helm)
     * [The Many Meanings of a Namespace](#the-many-meanings-of-a-namespace)
-* [Proposals](#proposals)
-    * [Proposal 1: No namespace creation](#proposal-1-no-namespace-creation)
-    * [Proposal 2: Namespace Creation](#proposal-2-namespace-creation)
-      * [Alternative Ideas](#alternative-ideas)
+    * [Hierarchical Namespace Controller](#hierarchical-namespace-controller)
+ * [Proposals](#proposals)
+    * [Proposal: Single Namespace Support](#proposal-single-namespace-support)
+    * [Proposal: Namespace Creation](#proposal-namespace-creation)
     * [Proposal: Multi-Namespace (static)](#proposal-multi-namespace-static)
     * [Proposal: Dependencies and Creating Namespaces](#proposal-dependencies-and-creating-namespaces)
-* [Notes](#notes)
-* [Alternatives](#alternatives)
-
+    * [Proposal: Namespace Cleanup](#proposal-namespace-cleanup)
+ * [Notes](#notes)
+ * [Alternatives](#alternatives)
+    * [Proposal: No namespace creation](#proposal-no-namespace-creation)
 
 ## Summary
 
@@ -44,25 +45,27 @@ Like many Kubernetes Object, there is an expectation that a KUDO operator is org
 
 ### Goals
 
+In order to support a multi-namespace environoment, it is necessary to support cluster-wide resources (including kudo instnaces) which is in part (or full) defined in [KEP-05](0005-cluster-resources-for-crds.md).  Based on this constraint, the goals are limited to the existing limitations in KUDO of having namespace only support for instances and not having cluster-wide resource support.
+
 * Define if a namespace is a prerequistie to operator installation
 * Define if a namespace is created by KUDO
 * Define support for advance namespaces (namespaces with metadata)
 * Define if an operator can be installed into a new namespace
-* Define if an operator can leverage more than one namespace and under what conditions
-
 
 ### Non-Goals
 
+* multi-namespace support for an operator
+* support for an operator to create or manage a namespace
 
 ## Namespace Management in the Eco-System
 
 ### Kubernetes Objects and Namespaces
 
-When working kubernetes objects, be it Pods, ReplicaSets, Deployments and the like that require a namespace, the responsbility falls on the user to create that namespace prior assigning the resource or it will fail.  Available is an [auto-provision admission webhook](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#namespaceautoprovision) available to auto-create namespaces. Users desiring auto-provisioning of namespaces should install this tool.  This webhook has the limitation of creating namespaces without extra metadata which defeats the value for use cases which need that metadata.
+When working kubernetes objects, be it Pods, ReplicaSets, Deployments, etc. that require a namespace, the responsbility falls on the user to create that namespace prior assigning the resource or it will fail.  Available is an [auto-provision admission webhook](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#namespaceautoprovision) available to auto-create namespaces. Users desiring auto-provisioning of namespaces should install this tool.  This webhook has the limitation of creating namespaces without extra metadata which defeats the value for use cases which need that metadata.
 
 ### Helm
 
-Helm v1 and v2 provided an auto-provision capability.  The new Helm v3 (based on previous experiences) removed this capability and now requires users to create namespaces prior to installing a helm chart. Much detail is written in comments for [helm issue 6794](https://github.com/helm/helm/issues/6794)
+Helm v1 and v2 provided an auto-provision capability.  The initial release of Helm v3 removed this capability and now requires users to create namespaces prior to installing a helm chart. Much detail is written in comments for [helm issue 6794](https://github.com/helm/helm/issues/6794).  Helm v3 reintroduced the ability to create a namespace through the use of `--create-namespace` flag.
 
 ### The Many Meanings of a Namespace
 
@@ -75,18 +78,24 @@ Challenages to auto-provision of namespaces are complicated by the many reasons 
 
 Based on the last 3 reasons, it is common for an administrator to create namespaces to manage the other concerns associated with a namespace.  It would be challeging to manage a cluster where dozen or more namespaces are adhoc being created (or deleted) which may require a host of other configurations around quota and security.
 
+### Hierarchical Namespace Controller
+
+Currently in incubation, Kubernetes is introducing a Hierarchical Namespace Controller to more easily create and manage namespaces in the cluster, even if you don't have cluster-level permission to create namespaces, which is something to keep in mind in the future.  See https://github.com/kubernetes-sigs/multi-tenancy/tree/master/incubator/hnc
+
 ## Proposals
 
 Prior to making KEP `provisional` we will chose a namespace creation proposal to move forward with and move the 2nd proposal to alternative.  For now, we have 2 competing namespace creation proposals.  
 In addition there is a proposal for the use of multiple namespaces.
 
-### Proposal 1: No namespace creation
+### Proposal: Single Namespace Support
 
-All namespace creation is managed outside KUDO. Users such as D2iQ would need to find or build automation for the creation of their namespaces. This REQUIRES that KUDO honor the deployment of resources to the "default" namespace, or to the namespace defined by `--namespace` during install.  
+There is a desire to support multiple namespaces, however it requires the addition of cluster-wide resource support in KUDO.  Based on this and the desire to not break Kubernetes garbase collection, KUDO currenly only supports 1 namespace.  Which results in the following explicit rules for operators until a cluster-wide support is provided:
 
-KUDO should further require that NO namespaces be allow in manifests for resources deployed during "install".  The concept of defining manifest which land in multiple namespaces is defined in a latter proposal and is a separate concern. Without multi-namespace support, all resources are install to one namespace and namespace must be created prior to installation and that namespace must be specified during installation.
+* All manifests with metadata defining a namespace will be ignored or overridden.  The namespace that is being used by KUDO to install the operator is the only namespace that resources will be installed to.
+* All namespace manifests (manifest of `"kind": "Namespace"`) will have no affect as they can not be used by the operator.
+* All namespace manifests will be flagged by `package verify` as a warning
 
-### Proposal 2: Namespace Creation
+### Proposal: Namespace Creation
 
 KUDO should support the creation of a namespace if it does not exist.  Further KUDO will add a configuration for namespace such that at time of namespace creation it is created with the metadata provided. To this end a manifest file for namespace is to be supported in the template folder:
 
@@ -100,7 +109,7 @@ metadata:
     katib-metricscollector-injection: enabled
 ```
 
-The template supports templates for labels and annotations, however the `name:` metadata is NOT allowed to be set or controlled through templating.   This is to prevent the "templating" of the namespace name such as `name: {.Namespace}-extended`.  KUDO will add the `name:` for metadata when there is a need to create a namespace with metadata using the namespaceManifest file. The `operator.yaml` file is to will be extended to support `namespaceManifest`.  
+The template supports templates for labels and annotations, however the `name:` metadata is NOT allowed to be set or controlled through templating.   This is to prevent the "templating" of the namespace name such as `name: {.Namespace}-extended`. Other templating of labels and metadata is allowed and is the reason it lives under the template folder. KUDO will add the `name:` for metadata when there is a need to create a namespace with metadata using the namespaceManifest file. The `operator.yaml` file is to will be extended to support `namespaceManifest`.  
 
 ```
 # operator.yaml
@@ -112,56 +121,47 @@ appVersion: 1.0.0
 namespaceManifest: templates/namespace.yaml
 ```
 
-KUDO is to add a `--apply-ns`.  The use of `--namespace` defines the namespace that will be used by the operator.  If the namespace is missing than a failure will occur.  If used in conjunction with `--apply-ns`, than the namespace if missing from the cluster will be created using the manifest file.  If the namespace exists, the metadata will be applied to the existing namespace overwriting the exiting metadata.
+KUDO is to add a `--create-namespace`.  The use of `--namespace` defines the namespace that will be used by the operator.  If the `--namespace` is missing and `--create-namespace` is provide it will result in a failure.  If a namespace manifest is provide and used in conjunction with `--create-namespace`, AND the namespace is missing from the cluster it will be created using the manifest file.  If the namespace exists, it is a error which will be reported back to the user.
 
 The follow rules apply:
 
-1. Missing `namespaceManifest` means that there is no metadata.  Using `--apply-ns` will create namespace without metadata.
-1. `name: {{ .Namespace }}` is not allowed in the manifest file and is considered a failure by the package verifier.  The namespace manifest is only useful to provide metadata to the namespace.  The control over what the name of the namespace is is controlled by KUDO.
-1. No support for static namespace.
-1. If no `namespaceManifest` and no `--namespace` the operator installs to "default".  If used in conjunction with `--apply-ns`, it will be ignored.  There is no overwritting of the "default" namespace.
-1. If `--namespace` provided and namespace doesn't exist, if `--apply-ns` is provided KUDO creates it.
-1. If KUDO creates namespace, if there is a `namespaceManifest` it uses it to create namespace otherwise does a simple namespace creation.
-1. If KUDO has `namespaceManifest` and `--apply-ns` is used there is no checks, the manifest file is applied to the namespace (exception is "default").
-1. if a namespace is created KUDO waits until the namespace is created to move forward in a plan.
-1. if a namespace is needed to be created, it is detected early in the process prior to the deployment plan or as a first step.
+1. No implict creation of namespace, namespace creation alway requires `--create-namespace`
+1. If a namespace is being created if the namespace exists, it is a failure
+1. If a namespace is being created and there is NO namespace manifest file, it will be created (if missing) as a simple namespace without metadata (perhaps we should consider adding "created by kudo details")
+1. If a namespace is being created and there is a `namespaceManifest` file defined, the creation of the namespace will be with the metadata defined.
+1. `name: {{ .Namespace }}` is not allowed in the manifest file and is considered a failure by the package verifier.  The namespace manifest is only useful to provide metadata to the namespace.  The control over what the name of the namespace  is controlled by KUDO only.
+1. No support for static namespace or default namespace.
+1. If no `--namespace` is provided the operator is installed to the "default" namespace.  The rules for `--create-namespace` are the same, if it exists, it will fail, otherwise it will be created.
+1. If a namespace is created KUDO waits until the namespace is created to move forward in a plan.
+1. If a namespace is needed to be created, it is detected early in the process prior to the deployment plan or as a first step.
+1. All operator artifacts installed will go to this single namespace.
 
-#### Alternative Ideas
-
-1. Do we allow for a default namespace other than "default"
-1. We could have another flag to enforce creation, meaning `--namespace` by itself will use that namespace but does NOT create and in combination with `--force` or `--ns-ensure` will create namespace.
-1. namespace comparison could be simple check.  It is unclear when an overwrite should occur or if this should be an error.
-1. Auto create (with a `--apply-ns` or `--ns-ensure`)
-1. Creation of namespace only handled if `namespaceManifest` is provided.  The case of simple namespace (without metadata) would need to be considered.
 
 ### Proposal: Multi-Namespace (static)
 
-There is a desire to support multiple namespaces. The desire seems to stem from 2 sources; KUDO early adoptors as operator devs what have large multi-operator needs and those using KUDO for micro-service management. An example of large operator development is Kubeflow, where there is 20+ operators inside D2iQ KUDO Kubeflow operator.  There is a strong desire to logically group many of the supportive infrastructure operators inside their own namespace, reducing the cognitive burden of the end user by removing non-primary operators into a separate namespace from the primary operators.
- In this model, the expectations are that the 2nd tier namespaces (not the "primary" operator) will have statically defined namespaces which should be honored.   A significant challenge to this is objects with No namespace will land whereever KUDO is configured to install the operator, but other objects will have no control and will be static.   Part of the justification of this is kubeflow, where there are 30+ operators, many which are supportive in nature that the operator developer would like to section off.
-
-This propose is for KUDO to deploy objects to KUDO managed {{.Namespace}} if not specified and to honor `namespace:` for objects that have them.  There are challenges to package validation as we won't know what is accidently missing or accidently specified.  There are challenges to it being static which can be overcome through the use of Params.  It seems if Params are used, that the values for the instance are  immutable after installation.
-
-If we support multi-namespaces in 1 KUDO operator, we need to update package verify to warn on all uses of namespaces that are NOT `{{ .Namespace }}` or empty.
-
-#### Alternative Ideas
-
-1. KUDO to create a cluster scoped instance to own the namespaces
+There is NO support for multiple namespaces in a single operator or operators installed as dependencies.  Cluster-wide resource support is required to enable this feature.
 
 ### Proposal: Dependencies and Creating Namespaces
 
 Regarding dependencies and creating namespaces, it is expected that the use of `--namespace` applies to the parent AND all dependent operators AND take the namespace is created prior to applying any dependent steps.  While there is likely desire to have independent control for dependent operators namespaces, this functionality will need to be thoughout more thoroughly regarding dependency management.  This part of the proposal was to provide completeness of namespace management inclusive of the current state of the [KEP-29 Operator Dependencies](0029-operator-dependencies.md) and not to extend further.
 
-### Tangential Topics and Concerns
+### Proposal: Namespace Cleanup
 
-1. Cluster Configurations such as Role, RoleBinding and ServiceAccount, etc. are not automated and fall into likely need on many clusters similar to namespace.
-1. It will likely be challenging for admins to management the auto-creation of namespaces in a cluster.
-1. There is NO consideration for namespace cleanup, even if KUDO created the namespace.
+There is NO consideration for namespace cleanup, even if KUDO created the namespace.
 
 ## Notes
 
 1. It is important to note that cross namespace management of `ownerReferences` are not supported in Kubernetes.  [Owners and dependents documentation](https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/#owners-and-dependents) explicitly states that this is "disallowed by design".
 1. It is unclear if we can delete a namespace, if we plan to manage this, then I would expect that we annotate or label the namespace as being managed by KUDO augmenting any manifest provided by the operator developer (which would need to be considered on a deepcopy)
+1. Work Group Meeting on topic was recorded with details on the [community meeting notes](https://docs.google.com/document/d/19qveqaG5O4o1MouJmy2B23B2ehioAe8zGz3GgTJgRlI/edit#)
 
 ## Alternatives
 
-Intentionally left blank
+### Proposal: No namespace creation
+
+All namespace creation is managed outside KUDO. Users such as D2iQ would need to find or build automation for the creation of their namespaces. This REQUIRES that KUDO honor the deployment of resources to the "default" namespace, or to the namespace defined by `--namespace` during install.  
+
+KUDO should further require that NO namespaces be allow in manifests for resources deployed during "install".  The concept of defining manifest which land in multiple namespaces is defined in a latter proposal and is a separate concern. Without multi-namespace support, all resources are install to one namespace and namespace must be created prior to installation and that namespace must be specified during installation.
+blank
+
+This was rejected in favor of supporting the creation of namespaces.
