@@ -8,8 +8,6 @@ import (
 )
 
 const (
-	nsKudoSystem      = "kudo-system"
-	labelKudoOperator = "kudo.dev/operator"
 	appKudoManager    = "kudo-manager"
 )
 

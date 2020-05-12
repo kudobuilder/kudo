@@ -11,6 +11,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
+	kudoutil "github.com/kudobuilder/kudo/pkg/util/kudo"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,7 +48,7 @@ func NewInstanceResources(opts *Options, s *env.Settings) (*ResourceFuncsConfig,
 		kc:          kc,
 		ns:          s.Namespace,
 		instanceObj: instance,
-		opts:        metav1.ListOptions{LabelSelector: labelKudoOperator + "=" + instance.Labels[labelKudoOperator]},
+		opts:        metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", kudoutil.OperatorLabel, instance.Labels[kudoutil.OperatorLabel])},
 		logOpts:     corev1.PodLogOptions{SinceSeconds: &opts.LogSince},
 	}, nil
 }
@@ -58,10 +59,18 @@ func NewKudoResources(s *env.Settings) (*ResourceFuncsConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+	opts := metav1.ListOptions{LabelSelector: fmt.Sprintf("app=%s", appKudoManager)}
+	ns, err := c.KubeClient.CoreV1().Namespaces().List(opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get kudo system namespace: %v", err)
+	}
+	if ns == nil || len(ns.Items) == 0 {
+		return nil, fmt.Errorf("kudo system namespace not found")
+	}
 	return &ResourceFuncsConfig{
 		c:       c,
-		ns:      nsKudoSystem,
-		opts:    metav1.ListOptions{LabelSelector: "app=" + appKudoManager},
+		ns:      ns.Items[0].Name,
+		opts:    opts,
 		logOpts: corev1.PodLogOptions{},
 	}, nil
 }
