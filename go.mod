@@ -6,7 +6,6 @@ require (
 	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/Masterminds/semver v1.5.0
 	github.com/Masterminds/sprig v2.22.0+incompatible
-	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/google/go-cmp v0.4.0
 	github.com/gosuri/uitable v0.0.4
@@ -26,7 +25,6 @@ require (
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	golang.org/x/sys v0.0.0-20200408040146-ea54a3c99b9b // indirect
 	gopkg.in/yaml.v2 v2.2.8
-	gopkg.in/yaml.v3 v3.0.0-20191106092431-e228e37189d3
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.17.3
 	k8s.io/apiextensions-apiserver v0.17.2

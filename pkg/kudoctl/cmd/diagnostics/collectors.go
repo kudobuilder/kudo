@@ -25,7 +25,7 @@ func (c *ResourceCollector) Collect() (Printable, error) {
 	switch c.printMode {
 	case ObjectWithDir:
 		return NewPrintableObject(obj, c.parentDir)
-	case ObjectsWithDir:
+	case ObjectListWithDirs:
 		return NewPrintableObjectList(obj, c.parentDir)
 	case RuntimeObject:
 		fallthrough

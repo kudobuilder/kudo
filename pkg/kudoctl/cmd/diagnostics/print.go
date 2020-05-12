@@ -8,7 +8,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 
 	"github.com/spf13/afero"
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -22,7 +22,7 @@ type printMode int
 
 const (
 	ObjectWithDir printMode = iota
-	ObjectsWithDir
+	ObjectListWithDirs
 	RuntimeObject
 )
 
@@ -49,10 +49,12 @@ func NewPrintableObject(obj runtime.Object, parentDir func() string) (Printable,
 		return nil, fmt.Errorf("kind %s doesn't have metadata", obj.GetObjectKind().GroupVersionKind().Kind)
 	}
 	ret := PrintableRuntimeObject{
-		o:              o,
-		parentDir:      parentDir,
-		relToParentDir: func() string { return strings.ToLower(o.GetObjectKind().GroupVersionKind().Kind) + "_" + o.GetName() },
-		name:           func() string { return o.GetName() + ".yaml" },
+		o:         o,
+		parentDir: parentDir,
+		relToParentDir: func() string {
+			return fmt.Sprintf("%s_%s", strings.ToLower(o.GetObjectKind().GroupVersionKind().Kind), o.GetName())
+		},
+		name: func() string { return fmt.Sprintf("%s.yaml", o.GetName()) },
 	}
 	return &ret, nil
 }
@@ -83,7 +85,9 @@ func NewPrintableRuntimeObject(obj runtime.Object, parentDir func() string) (Pri
 	ret := PrintableRuntimeObject{
 		o:         obj,
 		parentDir: parentDir,
-		name:      func() string { return strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind) + ".yaml" },
+		name: func() string {
+			return fmt.Sprintf("%s.yaml", strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind))
+		},
 	}
 	return &ret, nil
 }
@@ -95,7 +99,7 @@ type PrintableLog struct {
 }
 
 func (p *PrintableLog) print(os afero.Fs) error {
-	name := p.parentDir() + "/" + "pod_" + p.name + "/" + p.name + ".log.gz"
+	name := fmt.Sprintf("%s/pod_%s/%s.log.gz", p.parentDir(), p.name, p.name)
 	file, err := os.Create(name)
 	if err != nil {
 		return err

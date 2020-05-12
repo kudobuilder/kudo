@@ -62,7 +62,7 @@ func Collect(fs afero.Fs, options *Options, s *env.Settings) error {
 			ResourceWithContext(attachToOperator, ObjectWithDir, Instance, "instance", failOnError),
 			ResourceWithContext(attachToOperator, ObjectWithDir, OperatorVersion, "operatorversion", failOnError),
 			ResourceWithContext(attachToRoot, ObjectWithDir, Operator, "operator", failOnError)).
-		Add(ResourceWithContext(attachToInstance, ObjectsWithDir, Pods, "pods", failOnError)).
+		Add(ResourceWithContext(attachToInstance, ObjectListWithDirs, Pods, "pods", failOnError)).
 		Add(Resource(attachToInstance, RuntimeObject, Services, "services", continueOnError)).
 		Add(Resource(attachToInstance, RuntimeObject, Deployments, "deployments", continueOnError)).
 		Add(Resource(attachToInstance, RuntimeObject, ReplicaSets, "replicasets", continueOnError)).
@@ -90,7 +90,7 @@ func Collect(fs afero.Fs, options *Options, s *env.Settings) error {
 		r:  kr,
 		fs: fs,
 	}).
-		Add(ResourceWithContext(attachToKudoRoot, ObjectsWithDir, Pods, "pods", failOnError)).
+		Add(ResourceWithContext(attachToKudoRoot, ObjectListWithDirs, Pods, "pods", failOnError)).
 		Add(Resource(attachToKudoRoot, RuntimeObject, Services, "services", continueOnError)).
 		Add(Resource(attachToKudoRoot, RuntimeObject, StatefulSets, "statefulsets", continueOnError)).
 		Add(Resource(attachToKudoRoot, RuntimeObject, ServiceAccounts, "serviceaccounts", continueOnError)).
