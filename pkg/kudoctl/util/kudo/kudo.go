@@ -193,7 +193,7 @@ func (c *Client) GetOperatorVersion(name, namespace string) (*v1beta1.OperatorVe
 // GetOperatorVersion queries kubernetes api for operator of given name in given namespace
 // returns error for all other errors that not found, not found is treated as result being 'nil, nil'
 func (c *Client) GetOperator(name, namespace string) (*v1beta1.Operator, error) {
-	o, err := c.clientset.KudoV1beta1().Operators(namespace).Get(name, v1.GetOptions{})
+	o, err := c.kudoClientset.KudoV1beta1().Operators(namespace).Get(name, v1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return nil, nil
 	}
