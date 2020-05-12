@@ -44,7 +44,11 @@ func TestMain(m *testing.M) {
 	}
 
 	exitCode := m.Run()
-	testenv.Environment.Stop()
+	err = testenv.Environment.Stop()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	os.Exit(exitCode)
 }
 
@@ -98,7 +102,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 
 	// Install all of the CRDs.
 	crds := crd.NewInitializer().Resources()
-	defer deleteInitObjects(testClient)
+	defer assert.NoError(t, deleteInitObjects(testClient))
 
 	var buf bytes.Buffer
 	cmd := &initCmd{
@@ -137,7 +141,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 
 	// Install all of the CRDs.
 	crds := crd.NewInitializer().Resources()
-	defer deleteInitObjects(testClient)
+	defer assert.NoError(t, deleteInitObjects(testClient))
 
 	var buf bytes.Buffer
 	cmd := &initCmd{
@@ -156,7 +160,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	// Then we manually create the namespace.
 	ns := testutils.NewResource("v1", "Namespace", namespace, "")
 	assert.NoError(t, testClient.Create(context.TODO(), ns))
-	defer testClient.Delete(context.TODO(), ns)
+	defer assert.NoError(t, testClient.Delete(context.TODO(), ns))
 
 	// On second attempt run should succeed.
 	err = cmd.run()
@@ -166,7 +170,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	assert.Nil(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
 
 	// Kubernetes client caches the types, so we need to re-initialize it.
-	testClient, err = testutils.NewRetryClient(testenv.Config, client.Options{
+	_, err = testutils.NewRetryClient(testenv.Config, client.Options{
 		Scheme: testutils.Scheme(),
 	})
 	assert.Nil(t, err)
@@ -201,17 +205,50 @@ func TestInitWithServiceAccount(t *testing.T) {
 		roleBindingNs      string
 		errMessageContains string
 	}{
-		{name: "service account not present", serviceAccount: "", errMessageContains: "Service Account test-account does not exists - KUDO expects the serviceAccount to be present in the namespace sa-integration-test-0"},
-		{name: "service account has no rb", serviceAccount: "test-account", errMessageContains: "Service Account test-account does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test-1 and to have cluster-admin role"},
-		{name: "rb has no cluster-admin role", serviceAccount: "test-account", roleBindingRole: "not-admin", errMessageContains: "Service Account test-account does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test-2 and to have cluster-admin role"},
-		{name: "rb has different ns", serviceAccount: "test-account", roleBindingRole: "not-admin", roleBindingNs: "otherns", errMessageContains: "Service Account test-account does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test-3 and to have cluster-admin role"},
-		{name: "rb has admin in different ns", serviceAccount: "test-account", roleBindingRole: "cluster-admin", roleBindingNs: "otherns", errMessageContains: "Service Account test-account does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test-4 and to have cluster-admin role"},
-		{name: "rb has cluster-admin role", serviceAccount: "test-account", roleBindingRole: "cluster-admin", errMessageContains: ""},
+		{
+			name:               "service account not present",
+			serviceAccount:     "",
+			errMessageContains: "Service Account test-account does not exists - KUDO expects the serviceAccount to be present in the namespace sa-integration-test-0",
+		},
+		{
+			name:               "service account has no rb",
+			serviceAccount:     "test-account",
+			errMessageContains: "Service Account test-account does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test-1 and to have cluster-admin role",
+		},
+		{
+			name:               "rb has no cluster-admin role",
+			serviceAccount:     "test-account",
+			roleBindingRole:    "not-admin",
+			errMessageContains: "Service Account test-account does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test-2 and to have cluster-admin role",
+		},
+		{
+			name:               "rb has different ns",
+			serviceAccount:     "test-account",
+			roleBindingRole:    "not-admin",
+			roleBindingNs:      "otherns",
+			errMessageContains: "Service Account test-account does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test-3 and to have cluster-admin role",
+		},
+		{
+			name:               "rb has admin in different ns",
+			serviceAccount:     "test-account",
+			roleBindingRole:    "cluster-admin",
+			roleBindingNs:      "otherns",
+			errMessageContains: "Service Account test-account does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test-4 and to have cluster-admin role",
+		},
+		{
+			name:               "rb has cluster-admin role",
+			serviceAccount:     "test-account",
+			roleBindingRole:    "cluster-admin",
+			errMessageContains: "",
+		},
 	}
 
 	namespaceBase := "sa-integration-test"
 
 	for idx, tt := range tests {
+		idx := idx
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
 			namespace := fmt.Sprintf("%s-%d", namespaceBase, idx)
 
@@ -228,7 +265,7 @@ func TestInitWithServiceAccount(t *testing.T) {
 
 			// Install all of the CRDs.
 			crds := crd.NewInitializer().Resources()
-			defer deleteInitObjects(testClient)
+			defer assert.NoError(t, deleteInitObjects(testClient))
 
 			var buf bytes.Buffer
 			cmd := &initCmd{
@@ -241,12 +278,12 @@ func TestInitWithServiceAccount(t *testing.T) {
 
 			ns := testutils.NewResource("v1", "Namespace", namespace, "")
 			assert.NoError(t, testClient.Create(context.TODO(), ns))
-			defer testClient.Delete(context.TODO(), ns)
+			defer assert.NoError(t, testClient.Delete(context.TODO(), ns))
 
 			if tt.serviceAccount != "" {
 				sa2 := testutils.NewResource("v1", "ServiceAccount", tt.serviceAccount, namespace)
 				assert.NoError(t, testClient.Create(context.TODO(), sa2))
-				defer testClient.Delete(context.TODO(), sa2)
+				defer assert.NoError(t, testClient.Delete(context.TODO(), sa2))
 			}
 
 			if tt.roleBindingRole != "" {
@@ -256,7 +293,7 @@ func TestInitWithServiceAccount(t *testing.T) {
 				}
 				crb := testutils.NewClusterRoleBinding("rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "kudo-clusterrole-binding", rbNamespace, tt.serviceAccount, tt.roleBindingRole)
 				assert.NoError(t, testClient.Create(context.TODO(), crb))
-				defer testClient.Delete(context.TODO(), crb)
+				defer assert.NoError(t, testClient.Delete(context.TODO(), crb))
 			}
 
 			err = cmd.run()
@@ -272,7 +309,7 @@ func TestInitWithServiceAccount(t *testing.T) {
 				assert.Nil(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
 
 				// Kubernetes client caches the types, so we need to re-initialize it.
-				testClient, err = testutils.NewRetryClient(testenv.Config, client.Options{
+				_, err = testutils.NewRetryClient(testenv.Config, client.Options{
 					Scheme: testutils.Scheme(),
 				})
 				assert.Nil(t, err)
@@ -308,7 +345,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 
 	// Install all of the CRDs.
 	crds := crd.NewInitializer().Resources()
-	defer deleteInitObjects(testClient)
+	defer assert.NoError(t, deleteInitObjects(testClient))
 
 	var buf bytes.Buffer
 	clog.InitNoFlag(&buf, clog.Level(4))
@@ -327,11 +364,10 @@ func TestNoErrorOnReInit(t *testing.T) {
 	assert.Nil(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
 
 	//	 if the CRD exists and we init again there should be no error
-	testClient, err = testutils.NewRetryClient(testenv.Config, client.Options{
+	_, err = testutils.NewRetryClient(testenv.Config, client.Options{
 		Scheme: testutils.Scheme(),
 	})
 	assert.Nil(t, err)
-	kclient = getKubeClient(t)
 
 	// second run will have an output that it already exists
 	err = cmd.run()
@@ -339,30 +375,56 @@ func TestNoErrorOnReInit(t *testing.T) {
 	assert.True(t, strings.Contains(buf.String(), "crd operators.kudo.dev already exists"))
 }
 
-func deleteInitObjects(client *testutils.RetryClient) {
+func deleteInitObjects(client *testutils.RetryClient) error {
 	opts := kudoinit.NewOptions("", "", "", []string{}, false)
 
 	crds := crd.NewInitializer()
 
-	deleteCRDs(crds.Resources(), client)
-	deletePrereq(prereq.NewNamespaceInitializer(opts).Resources(), client)
-	deletePrereq(prereq.NewServiceAccountInitializer(opts).Resources(), client)
-	deletePrereq(prereq.NewWebHookInitializer(opts).Resources(), client)
+	err := deleteCRDs(crds.Resources(), client)
+	if err != nil {
+		return err
+	}
+
+	err = deletePrereq(prereq.NewNamespaceInitializer(opts).Resources(), client)
+	if err != nil {
+		return err
+	}
+
+	err = deletePrereq(prereq.NewServiceAccountInitializer(opts).Resources(), client)
+	if err != nil {
+		return err
+	}
+
+	err = deletePrereq(prereq.NewWebHookInitializer(opts).Resources(), client)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func deleteCRDs(crds []runtime.Object, client *testutils.RetryClient) {
+func deleteCRDs(crds []runtime.Object, client *testutils.RetryClient) error {
+	var err error
 
 	for _, crd := range crds {
-		client.Delete(context.TODO(), crd)
+		err = client.Delete(context.TODO(), crd)
+		if err != nil {
+			return err
+		}
 	}
-	testutils.WaitForDelete(client, crds)
+	return testutils.WaitForDelete(client, crds)
 }
 
-func deletePrereq(prereqs []runtime.Object, client *testutils.RetryClient) {
+func deletePrereq(prereqs []runtime.Object, client *testutils.RetryClient) error {
+	var err error
+
 	for _, prereq := range prereqs {
-		client.Delete(context.TODO(), prereq)
+		err = client.Delete(context.TODO(), prereq)
+		if err != nil {
+			return err
+		}
 	}
-	testutils.WaitForDelete(client, prereqs)
+	return testutils.WaitForDelete(client, prereqs)
 }
 
 func getKubeClient(t *testing.T) *kube.Client {
