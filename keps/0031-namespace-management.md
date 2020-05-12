@@ -65,7 +65,7 @@ When working kubernetes objects, be it Pods, ReplicaSets, Deployments, etc. that
 
 ### Helm
 
-Helm v1 and v2 provided an auto-provision capability.  The initial release of Helm v3 removed this capability and now requires users to create namespaces prior to installing a helm chart. Much detail is written in comments for [helm issue 6794](https://github.com/helm/helm/issues/6794).  Helm v3 reintroduced the ability to create a namespace through the use of `--create-namespace` flag.
+Helm v1 and v2 provided an auto-provision capability.  The initial release of Helm v3 removed this capability and now requires users to create namespaces prior to installing a helm chart. Much detail is written in comments for [helm issue 6794](https://github.com/helm/helm/issues/6794).  Helm v3 [reintroduced the ability](https://github.com/helm/helm/issues/6794) to create a namespace through the use of `--create-namespace` flag.
 
 ### The Many Meanings of a Namespace
 
