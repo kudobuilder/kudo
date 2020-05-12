@@ -62,6 +62,7 @@ type initCmd struct {
 	out                 io.Writer
 	fs                  afero.Fs
 	image               string
+	imagePullPolicy     string
 	dryRun              bool
 	output              string
 	version             string
@@ -102,6 +103,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f := cmd.Flags()
 	f.BoolVarP(&i.clientOnly, "client-only", "c", false, "If set does not install KUDO on the server")
 	f.StringVarP(&i.image, "kudo-image", "i", "", "Override KUDO controller image and/or version")
+	f.StringVarP(&i.imagePullPolicy, "pull-policy", "", "", "Override KUDO controller image pull policy")
 	f.StringVarP(&i.version, "version", "", "", "Override KUDO controller version of the KUDO image")
 	f.StringVarP(&i.output, "output", "o", "", "Output format")
 	f.BoolVar(&i.dryRun, "dry-run", false, "Do not install local or remote")
@@ -147,6 +149,9 @@ func (initCmd *initCmd) run() error {
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image
+	}
+	if initCmd.imagePullPolicy != "" {
+		opts.ImagePullPolicy = initCmd.imagePullPolicy
 	}
 
 	//TODO: implement output=yaml|json (define a type for output to constrain)
