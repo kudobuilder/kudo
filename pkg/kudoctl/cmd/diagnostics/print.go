@@ -35,7 +35,7 @@ type PrintableList []Printable
 func (ps PrintableList) print(fs afero.Fs) error {
 	for _, p := range ps {
 		if err := p.print(fs); err != nil {
-			return err // TODO:
+			return err
 		}
 	}
 	return nil
@@ -47,10 +47,10 @@ func NewPrintableObject(obj runtime.Object, baseDir func() string) (Printable, e
 		return nil, fmt.Errorf("kind %s doesn't have metadata", obj.GetObjectKind().GroupVersionKind().Kind)
 	}
 	ret := PrintableRuntimeObject{
-		o:         o,
-		parentDir: baseDir,
-		ownDir:    func() string { return strings.ToLower(o.GetObjectKind().GroupVersionKind().Kind) + "_" + o.GetName() },
-		name:      func() string { return o.GetName() + ".yaml" },
+		o:              o,
+		parentDir:      baseDir,
+		relToParentDir: func() string { return strings.ToLower(o.GetObjectKind().GroupVersionKind().Kind) + "_" + o.GetName() },
+		name:           func() string { return o.GetName() + ".yaml" },
 	}
 	return &ret, nil
 }
@@ -105,10 +105,10 @@ func (p *PrintableLog) print(os afero.Fs) error {
 }
 
 type PrintableRuntimeObject struct {
-	o         runtime.Object
-	parentDir func() string
-	ownDir    func() string // path relative to parent
-	name      func() string
+	o              runtime.Object
+	parentDir      func() string
+	relToParentDir func() string
+	name           func() string
 }
 
 func (p *PrintableRuntimeObject) print(fs afero.Fs) error {
@@ -119,8 +119,8 @@ func (p *PrintableRuntimeObject) print(fs afero.Fs) error {
 		}
 	}
 	dir, name := p.parentDir(), p.name()
-	if p.ownDir != nil {
-		dir += "/" + p.ownDir()
+	if p.relToParentDir != nil {
+		dir += "/" + p.relToParentDir()
 		err := fs.MkdirAll(dir, 0700)
 		if err != nil {
 			return err
@@ -134,30 +134,22 @@ func (p *PrintableRuntimeObject) print(fs afero.Fs) error {
 	return printer.PrintObj(p.o, file)
 }
 
-type AnyPrintable struct {
+type PrintableYaml struct {
 	name string
 	dir  func() string
 	v    interface{}
 }
 
-func (p *AnyPrintable) Collect() (Printable, error) {
+func (p *PrintableYaml) Collect() (Printable, error) {
 	return p, nil
 }
 
-func (p *AnyPrintable) print(fs afero.Fs) error {
-	file, err := fs.Create(p.dir() + "/" + p.name + ".yaml")
-	if err != nil {
-		return err
-	}
+func (p *PrintableYaml) print(fs afero.Fs) error {
 	b, err := yaml.Marshal(p.v)
 	if err != nil {
 		return err
 	}
-	_, err = file.Write(b)
-	if err != nil {
-		return err
-	}
-	return nil
+	return printBytes(fs, b,p.dir() + "/" + p.name + ".yaml")
 }
 
 type PrintableError struct {
@@ -168,11 +160,16 @@ type PrintableError struct {
 }
 
 func (p *PrintableError) print(fs afero.Fs) error {
-	file, err := fs.Create(p.dir() + "/" + p.name + ".err")
+	b := []byte(p.Error())
+	return printBytes(fs, b, p.dir() + "/" + p.name + ".err")
+
+}
+
+func printBytes(fs afero.Fs, b []byte, fileName string) error {
+	file, err := fs.Create(fileName)
 	if err != nil {
 		return err
 	}
-	b := []byte(p.Error())
 	_, err = file.Write(b)
 	if err != nil {
 		return err

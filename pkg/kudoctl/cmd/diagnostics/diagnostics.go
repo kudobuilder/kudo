@@ -50,7 +50,7 @@ func Collect(fs afero.Fs, options *Options, s *env.Settings) error {
 		return err
 	}
 
-	err = (&SimpleBuilder{
+	err = (&Builder{
 		r:  ir,
 		fs: fs,
 	}).
@@ -82,7 +82,7 @@ func Collect(fs afero.Fs, options *Options, s *env.Settings) error {
 		return err
 	}
 
-	err = (&SimpleBuilder{
+	err = (&Builder{
 		r:  kr,
 		fs: fs,
 	}).
@@ -96,26 +96,24 @@ func Collect(fs afero.Fs, options *Options, s *env.Settings) error {
 	return err
 }
 
-func ResourceWithContext(baseDir func(*processingContext) string, mode printMode, r ResourceFnWithContext, errName string, failOnErr bool) func(*SimpleBuilder) collector {
-	return func(b *SimpleBuilder) collector {
+func ResourceWithContext(baseDir func(*processingContext) string, mode printMode, r ResourceFnWithContext, errName string, failOnErr bool) func(*Builder) collector {
+	return func(b *Builder) collector {
 		return b.createResourceCollector(r.toResourceFn(&b.ctx), baseDir, mode, errName, failOnErr)
 	}
 }
 
-func Resource(baseDir func(*processingContext) string, mode printMode, r ResourceFn, errName string, failOnErr bool) func(*SimpleBuilder) collector {
-	return func(b *SimpleBuilder) collector {
+func Resource(baseDir func(*processingContext) string, mode printMode, r ResourceFn, errName string, failOnErr bool) func(*Builder) collector {
+	return func(b *Builder) collector {
 		return b.createResourceCollector(r, baseDir, mode, errName, failOnErr)
 	}
 }
 
-func Logs(baseDir func(*processingContext) string) func(*SimpleBuilder) collector {
-	return func(b *SimpleBuilder) collector {
-		var ret []collector
-		ret = append(ret, &LogCollector{
-			r:        b.r,
-			podNames: func() []string { return b.ctx.podNames },
-			baseDir:  func() string { return baseDir(&b.ctx) },
-		})
-		return &compositeCollector{ret}
+func Logs(baseDir func(*processingContext) string) func(*Builder) collector {
+	return func(b *Builder) collector {
+		return &LogCollector{
+			r:         b.r,
+			podNames:  func() []string { return b.ctx.podNames },
+			parentDir: func() string { return baseDir(&b.ctx) },
+		}
 	}
 }

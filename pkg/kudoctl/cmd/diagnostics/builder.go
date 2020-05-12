@@ -14,14 +14,14 @@ func (fn ResourceFnWithContext) toResourceFn(ctx *processingContext) ResourceFn 
 	}
 }
 
-type SimpleBuilder struct {
+type Builder struct {
 	r          *ResourceFuncsConfig
 	ctx        processingContext
 	collectors []collector
 	fs         afero.Fs
 }
 
-func (b *SimpleBuilder) AddGroup(fns ...func(*SimpleBuilder) collector) *SimpleBuilder {
+func (b *Builder) AddGroup(fns ...func(*Builder) collector) *Builder {
 	if len(fns) == 0 {
 		return b
 	}
@@ -33,13 +33,13 @@ func (b *SimpleBuilder) AddGroup(fns ...func(*SimpleBuilder) collector) *SimpleB
 	return b
 }
 
-func (b *SimpleBuilder) Add(fn func(*SimpleBuilder) collector) *SimpleBuilder {
+func (b *Builder) Add(fn func(*Builder) collector) *Builder {
 	b.collectors = append(b.collectors, fn(b))
 	return b
 }
 
-func (b *SimpleBuilder) AddAsYaml(baseDir func(ctx *processingContext) string, name string, o interface{}) *SimpleBuilder {
-	b.collectors = append(b.collectors, &AnyPrintable{
+func (b *Builder) AddAsYaml(baseDir func(ctx *processingContext) string, name string, o interface{}) *Builder {
+	b.collectors = append(b.collectors, &PrintableYaml{
 		dir:  func() string { return baseDir(&b.ctx) },
 		name: name,
 		v:    o,
@@ -47,7 +47,7 @@ func (b *SimpleBuilder) AddAsYaml(baseDir func(ctx *processingContext) string, n
 	return b
 }
 
-func (b *SimpleBuilder) Run() error {
+func (b *Builder) Run() error {
 	for _, c := range b.collectors {
 		p, err := c.Collect()
 		if err != nil {
@@ -64,12 +64,12 @@ func (b *SimpleBuilder) Run() error {
 	return nil
 }
 
-func (b *SimpleBuilder) createResourceCollector(fn ResourceFn, baseDir func(*processingContext) string, mode printMode, errName string, failOnErr bool) *ResourceCollector {
+func (b *Builder) createResourceCollector(fn ResourceFn, baseDir func(*processingContext) string, mode printMode, errName string, failOnErr bool) *ResourceCollector {
 	return &ResourceCollector{
 		r:          b.r,
 		resourceFn: fn,
 		printMode:  mode,
-		baseDir:    func() string { return baseDir(&b.ctx) },
+		parentDir:  func() string { return baseDir(&b.ctx) },
 		errName:    errName,
 		failOnErr:  failOnErr,
 	}

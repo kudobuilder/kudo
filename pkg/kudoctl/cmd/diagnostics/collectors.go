@@ -4,7 +4,7 @@ type ResourceCollector struct {
 	r          *ResourceFuncsConfig
 	resourceFn ResourceFn
 	printMode  printMode
-	baseDir    func() string
+	parentDir  func() string
 	errName    string
 	failOnErr  bool
 }
@@ -19,25 +19,25 @@ func (c *ResourceCollector) Collect() (Printable, error) {
 			error: err,
 			Fatal: false,
 			name:  c.errName,
-			dir:   c.baseDir,
+			dir:   c.parentDir,
 		}, nil
 	}
 	switch c.printMode {
 	case ObjectWithDir:
-		return NewPrintableObject(obj, c.baseDir)
+		return NewPrintableObject(obj, c.parentDir)
 	case ObjectsWithDir:
-		return NewPrintableObjectList(obj, c.baseDir)
+		return NewPrintableObjectList(obj, c.parentDir)
 	case RuntimeObject:
 		fallthrough
 	default:
-		return NewPrintableRuntimeObject(obj, c.baseDir)
+		return NewPrintableRuntimeObject(obj, c.parentDir)
 	}
 }
 
 type LogCollector struct {
-	r        *ResourceFuncsConfig
-	podNames func() []string
-	baseDir  func() string
+	r         *ResourceFuncsConfig
+	podNames  func() []string
+	parentDir func() string
 }
 
 func (c *LogCollector) Collect() (Printable, error) {
@@ -49,13 +49,13 @@ func (c *LogCollector) Collect() (Printable, error) {
 				error: err,
 				Fatal: false,
 				name:  podName,
-				dir:   c.baseDir,
+				dir:   c.parentDir,
 			}, nil
 		}
 		ret = append(ret, &PrintableLog{
 			name:      podName,
 			log:       log,
-			parentDir: c.baseDir,
+			parentDir: c.parentDir,
 		})
 	}
 	return ret, nil
