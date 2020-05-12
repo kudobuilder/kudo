@@ -151,7 +151,15 @@ func (initCmd *initCmd) run() error {
 		opts.Image = initCmd.image
 	}
 	if initCmd.imagePullPolicy != "" {
-		opts.ImagePullPolicy = initCmd.imagePullPolicy
+		switch initCmd.imagePullPolicy {
+		case
+			"Always",
+			"Never",
+			"IfNotPresent":
+			opts.ImagePullPolicy = initCmd.imagePullPolicy
+		default:
+			return fmt.Errorf("Unknown image pull policy %s", initCmd.imagePullPolicy)
+		}
 	}
 
 	//TODO: implement output=yaml|json (define a type for output to constrain)
