@@ -109,7 +109,7 @@ metadata:
     katib-metricscollector-injection: enabled
 ```
 
-The template supports templates for labels and annotations, however the `name:` metadata is NOT allowed to be set or controlled through templating.   This is to prevent the "templating" of the namespace name such as `name: {.Namespace}-extended`. Other templating of labels and metadata is allowed and is the reason it lives under the template folder. KUDO will add the `name:` for metadata when there is a need to create a namespace with metadata using the namespaceManifest file. The `operator.yaml` file is to will be extended to support `namespaceManifest`.  
+The template supports templates for labels and annotations, however the `name:` metadata is NOT allowed to be set or controlled through templating.   This is to prevent the "templating" of the namespace name such as `name: {.Namespace}-extended`. Other templating of labels and metadata is allowed and is the reason the file lives under the template folder. KUDO will add the `name:` for metadata when there is a need to create a namespace with metadata using the namespaceManifest file. The `operator.yaml` file will be extended to support `namespaceManifest` attribute.  
 
 ```
 # operator.yaml
