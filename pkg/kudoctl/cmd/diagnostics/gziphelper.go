@@ -18,7 +18,6 @@ func newGzipWriter(w io.Writer, size int) *streamGzipper {
 	}
 }
 
-// TODO: error checks
 func (z *streamGzipper) Write(r io.ReadCloser) error {
 	buf := make([]byte, z.bufSize)
 	zw := gzip.NewWriter(z.w)
@@ -27,13 +26,16 @@ func (z *streamGzipper) Write(r io.ReadCloser) error {
 		var n int
 		n, err = r.Read(buf)
 		if n > 0 {
-			_, _ = zw.Write(buf[:n])
+			_, err = zw.Write(buf[:n])
 		}
 		if err != nil {
 			_ = zw.Close()
 			_ = r.Close()
 			break
 		}
+	}
+	if err == io.EOF {
+		return nil
 	}
 	return err
 }

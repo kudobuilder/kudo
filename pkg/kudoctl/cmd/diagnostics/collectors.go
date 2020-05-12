@@ -5,12 +5,22 @@ type ResourceCollector struct {
 	resourceFn ResourceFn
 	printMode  printMode
 	baseDir    func() string
+	errName    string
+	failOnErr  bool
 }
 
 func (c *ResourceCollector) Collect() (Printable, error) {
 	obj, err := c.resourceFn(c.r)
 	if err != nil {
-		return nil, err
+		if c.failOnErr {
+			return nil, err
+		}
+		return &PrintableError{
+			error: err,
+			Fatal: false,
+			name:  c.errName,
+			dir:   c.baseDir,
+		}, nil
 	}
 	switch c.printMode {
 	case ObjectWithDir:
@@ -35,7 +45,12 @@ func (c *LogCollector) Collect() (Printable, error) {
 	for _, podName := range c.podNames() {
 		log, err := Log(c.r, podName)
 		if err != nil {
-			return nil, err
+			return &PrintableError{
+				error: err,
+				Fatal: false,
+				name:  podName,
+				dir:   c.baseDir,
+			}, nil
 		}
 		ret = append(ret, &PrintableLog{
 			name:      podName,

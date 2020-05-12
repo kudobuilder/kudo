@@ -5,13 +5,15 @@ import (
 	"io"
 	"strings"
 
-	"github.com/spf13/afero"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 
+	"github.com/spf13/afero"
 	"gopkg.in/yaml.v3"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/printers"
+	"k8s.io/client-go/kubernetes/scheme"
 )
 
 const diagDir = "diag"
@@ -44,7 +46,13 @@ func NewPrintableObject(obj runtime.Object, baseDir func() string) (Printable, e
 	if !ok {
 		return nil, fmt.Errorf("kind %s doesn't have metadata", obj.GetObjectKind().GroupVersionKind().Kind)
 	}
-	return &PrintableObject{o: o, parentDir: baseDir}, nil
+	ret := PrintableRuntimeObject{
+		o:         o,
+		parentDir: baseDir,
+		ownDir:    func() string { return strings.ToLower(o.GetObjectKind().GroupVersionKind().Kind) + "_" + o.GetName() },
+		name:      func() string { return o.GetName() + ".yaml" },
+	}
+	return &ret, nil
 }
 
 func NewPrintableObjectList(obj runtime.Object, baseDir func() string) (Printable, error) {
@@ -67,7 +75,12 @@ func NewPrintableRuntimeObject(obj runtime.Object, baseDir func() string) (Print
 	if meta.IsListType(obj) && meta.LenList(obj) == 0 {
 		return nil, nil
 	}
-	return &PrintableRuntimeObject{o: obj, parentDir: baseDir}, nil
+	ret := PrintableRuntimeObject{
+		o:         obj,
+		parentDir: baseDir,
+		name:      func() string { return strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind) + ".yaml" },
+	}
+	return &ret, nil
 }
 
 type PrintableLog struct {
@@ -83,29 +96,42 @@ func (p *PrintableLog) print(os afero.Fs) error {
 		return err
 	}
 	z := newGzipWriter(file, 2048)
-	_ = z.Write(p.log) //TODO: get error, return error
+	err = z.Write(p.log)
+	if err != nil {
+		return err
+	}
 	_ = p.log.Close()
 	return nil
-}
-
-type PrintableObject struct {
-	o         Object
-	parentDir func() string
-	//printer printers.YAMLPrinter
-}
-
-func (p *PrintableObject) print(fs afero.Fs) error {
-	return printObject(fs, p.o, p.parentDir(), &printers.YAMLPrinter{})
 }
 
 type PrintableRuntimeObject struct {
 	o         runtime.Object
 	parentDir func() string
-	//printer printers.YAMLPrinter
+	ownDir    func() string // path relative to parent
+	name      func() string
 }
 
 func (p *PrintableRuntimeObject) print(fs afero.Fs) error {
-	return printRuntimeObject(fs, p.o, p.parentDir(), &printers.YAMLPrinter{})
+	if !isKudoCR(p.o) {
+		err := kudo.SetGVKFromScheme(p.o, scheme.Scheme)
+		if err != nil {
+			return err
+		}
+	}
+	dir, name := p.parentDir(), p.name()
+	if p.ownDir != nil {
+		dir += "/" + p.ownDir()
+		err := fs.MkdirAll(dir, 0700)
+		if err != nil {
+			return err
+		}
+	}
+	file, err := fs.Create(dir + "/" + name)
+	if err != nil {
+		return err
+	}
+	printer := printers.YAMLPrinter{}
+	return printer.PrintObj(p.o, file)
 }
 
 type AnyPrintable struct {
@@ -119,59 +145,34 @@ func (p *AnyPrintable) Collect() (Printable, error) {
 }
 
 func (p *AnyPrintable) print(fs afero.Fs) error {
-	return printAnyAsYaml(fs, p.v, p.dir(), p.name)
-}
-
-func printObject(os afero.Fs, o Object, dir string, printer printers.ResourcePrinter) error {
-	if !isKudoCR(o) {
-		err := SetGVKFromScheme(o)
-		if err != nil {
-			return err
-		}
-	}
-	pDir := dir + "/" + strings.ToLower(o.GetObjectKind().GroupVersionKind().Kind) + "_" + o.GetName()
-	name := pDir + "/" + o.GetName() + ".yaml"
-	err := os.MkdirAll(pDir, 0700)
+	file, err := fs.Create(p.dir() + "/" + p.name + ".yaml")
 	if err != nil {
 		return err
 	}
-	file, err := os.Create(name)
+	b, err := yaml.Marshal(p.v)
 	if err != nil {
 		return err
 	}
-	err = printer.PrintObj(o, file)
+	_, err = file.Write(b)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func printRuntimeObject(os afero.Fs, o runtime.Object, dir string, printer printers.ResourcePrinter) error {
-	err := SetGVKFromScheme(o)
-	if err != nil {
-		return err
-	}
-	name := dir + "/" + strings.ToLower(o.GetObjectKind().GroupVersionKind().Kind) + ".yaml"
-	file, err := os.Create(name)
-	if err != nil {
-		return err
-	}
-	err = printer.PrintObj(o, file)
-	if err != nil {
-		return err
-	}
-	return nil
+type PrintableError struct {
+	error
+	Fatal bool
+	name  string
+	dir   func() string
 }
 
-func printAnyAsYaml(os afero.Fs, o interface{}, dir, name string) error {
-	file, err := os.Create(dir + "/" + name + ".yaml")
+func (p *PrintableError) print(fs afero.Fs) error {
+	file, err := fs.Create(p.dir() + "/" + p.name + ".err")
 	if err != nil {
 		return err
 	}
-	b, err := yaml.Marshal(o)
-	if err != nil {
-		return err
-	}
+	b := []byte(p.Error())
 	_, err = file.Write(b)
 	if err != nil {
 		return err

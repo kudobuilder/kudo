@@ -21,11 +21,6 @@ type SimpleBuilder struct {
 	fs         afero.Fs
 }
 
-func (b *SimpleBuilder) Collect(baseDir func(*processingContext) string, asObject printMode, r ResourceFn) *SimpleBuilder {
-	b.collectors = append(b.collectors, b.createResourceCollector(r, baseDir, asObject))
-	return b
-}
-
 func (b *SimpleBuilder) AddGroup(fns ...func(*SimpleBuilder) collector) *SimpleBuilder {
 	if len(fns) == 0 {
 		return b
@@ -69,11 +64,13 @@ func (b *SimpleBuilder) Run() error {
 	return nil
 }
 
-func (b *SimpleBuilder) createResourceCollector(fn ResourceFn, baseDir func(*processingContext) string, mode printMode) *ResourceCollector {
+func (b *SimpleBuilder) createResourceCollector(fn ResourceFn, baseDir func(*processingContext) string, mode printMode, errName string, failOnErr bool) *ResourceCollector {
 	return &ResourceCollector{
 		r:          b.r,
 		resourceFn: fn,
 		printMode:  mode,
 		baseDir:    func() string { return baseDir(&b.ctx) },
+		errName:    errName,
+		failOnErr:  failOnErr,
 	}
 }

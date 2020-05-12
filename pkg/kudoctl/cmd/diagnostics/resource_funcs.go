@@ -20,7 +20,7 @@ type ResourceFuncsConfig struct {
 	ns          string
 	instanceObj *v1beta1.Instance
 	opts        metav1.ListOptions
-	logOpts     corev1.PodLogOptions // TODO: set
+	logOpts     corev1.PodLogOptions
 }
 
 // instanceObj related resources
@@ -71,7 +71,7 @@ type Object interface {
 	metav1.Object
 }
 
-func isKudoCR(o Object) bool {
+func isKudoCR(o runtime.Object) bool {
 	kind := o.GetObjectKind().GroupVersionKind().Kind
 	return kind == "Instance" || kind == "Operator" || kind == "OperatorVersion"
 }

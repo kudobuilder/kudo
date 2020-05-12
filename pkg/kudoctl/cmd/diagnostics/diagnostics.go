@@ -13,6 +13,11 @@ const (
 	appKudoManager    = "kudo-manager"
 )
 
+const (
+	continueOnError = false
+	failOnError     = true
+)
+
 type Options struct {
 	Instance string
 	LogSince int64
@@ -26,14 +31,13 @@ type compositeCollector struct {
 	collectors []collector
 }
 
-// TODO: add an option of not failing on error
 func (cc *compositeCollector) Collect() (Printable, error) {
 	l := len(cc.collectors)
 	ret := make([]Printable, l)
 	for i := 0; i < len(cc.collectors); i++ {
 		p, err := cc.collectors[i].Collect()
 		if err != nil {
-			return nil, err // TODO: need "Printable error" type
+			return nil, err // if a collector returns error it's fatal
 		}
 		ret[l-1-i] = p
 	}
@@ -51,19 +55,19 @@ func Collect(fs afero.Fs, options *Options, s *env.Settings) error {
 		fs: fs,
 	}).
 		AddGroup(
-			ResourceWithContext(attachToOperator, ObjectWithDir, Instance),
-			ResourceWithContext(attachToOperator, ObjectWithDir, OperatorVersion),
-			ResourceWithContext(attachToRoot, ObjectWithDir, Operator)).
-		Add(ResourceWithContext(attachToInstance, ObjectsWithDir, Pods)).
-		Add(Resource(attachToInstance, RuntimeObject, Services)).
-		Add(Resource(attachToInstance, RuntimeObject, Deployments)).
-		Add(Resource(attachToInstance, RuntimeObject, ReplicaSets)).
-		Add(Resource(attachToInstance, RuntimeObject, StatefulSets)).
-		Add(Resource(attachToInstance, RuntimeObject, ServiceAccounts)).
-		Add(Resource(attachToInstance, RuntimeObject, ClusterRoleBindings)).
-		Add(Resource(attachToInstance, RuntimeObject, RoleBindings)).
-		Add(Resource(attachToInstance, RuntimeObject, ClusterRoles)).
-		Add(Resource(attachToInstance, RuntimeObject, Roles)).
+			ResourceWithContext(attachToOperator, ObjectWithDir, Instance, "instance", failOnError),
+			ResourceWithContext(attachToOperator, ObjectWithDir, OperatorVersion, "operatorversion", failOnError),
+			ResourceWithContext(attachToRoot, ObjectWithDir, Operator, "operator", failOnError)).
+		Add(ResourceWithContext(attachToInstance, ObjectsWithDir, Pods, "pods", failOnError)).
+		Add(Resource(attachToInstance, RuntimeObject, Services, "services", continueOnError)).
+		Add(Resource(attachToInstance, RuntimeObject, Deployments, "deployments", continueOnError)).
+		Add(Resource(attachToInstance, RuntimeObject, ReplicaSets, "replicasets", continueOnError)).
+		Add(Resource(attachToInstance, RuntimeObject, StatefulSets, "statefulsets", continueOnError)).
+		Add(Resource(attachToInstance, RuntimeObject, ServiceAccounts, "serviceaccounts", continueOnError)).
+		Add(Resource(attachToInstance, RuntimeObject, ClusterRoleBindings, "clusterrolebindings", continueOnError)).
+		Add(Resource(attachToInstance, RuntimeObject, RoleBindings, "rolebindings", continueOnError)).
+		Add(Resource(attachToInstance, RuntimeObject, ClusterRoles, "clusterroles", continueOnError)).
+		Add(Resource(attachToInstance, RuntimeObject, Roles, "roles", continueOnError)).
 		Add(Logs(attachToInstance)).
 		AddAsYaml(attachToRoot, "version", version.Get()).
 		AddAsYaml(attachToRoot, "settings", s).
@@ -82,25 +86,25 @@ func Collect(fs afero.Fs, options *Options, s *env.Settings) error {
 		r:  kr,
 		fs: fs,
 	}).
-		Add(ResourceWithContext(attachToKudoRoot, ObjectsWithDir, Pods)).
-		Add(Resource(attachToKudoRoot, RuntimeObject, Services)).
-		Add(Resource(attachToKudoRoot, RuntimeObject, StatefulSets)).
-		Add(Resource(attachToKudoRoot, RuntimeObject, ServiceAccounts)).
+		Add(ResourceWithContext(attachToKudoRoot, ObjectsWithDir, Pods, "pods", failOnError)).
+		Add(Resource(attachToKudoRoot, RuntimeObject, Services, "services", continueOnError)).
+		Add(Resource(attachToKudoRoot, RuntimeObject, StatefulSets, "statefulsets", continueOnError)).
+		Add(Resource(attachToKudoRoot, RuntimeObject, ServiceAccounts, "serviceaccounts", continueOnError)).
 		Add(Logs(attachToKudoRoot)).
 		Run()
 
 	return err
 }
 
-func ResourceWithContext(baseDir func(*processingContext) string, mode printMode, r ResourceFnWithContext) func(*SimpleBuilder) collector {
+func ResourceWithContext(baseDir func(*processingContext) string, mode printMode, r ResourceFnWithContext, errName string, failOnErr bool) func(*SimpleBuilder) collector {
 	return func(b *SimpleBuilder) collector {
-		return b.createResourceCollector(r.toResourceFn(&b.ctx), baseDir, mode)
+		return b.createResourceCollector(r.toResourceFn(&b.ctx), baseDir, mode, errName, failOnErr)
 	}
 }
 
-func Resource(baseDir func(*processingContext) string, mode printMode, r ResourceFn) func(*SimpleBuilder) collector {
+func Resource(baseDir func(*processingContext) string, mode printMode, r ResourceFn, errName string, failOnErr bool) func(*SimpleBuilder) collector {
 	return func(b *SimpleBuilder) collector {
-		return b.createResourceCollector(r, baseDir, mode)
+		return b.createResourceCollector(r, baseDir, mode, errName, failOnErr)
 	}
 }
 
