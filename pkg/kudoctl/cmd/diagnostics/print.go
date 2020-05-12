@@ -149,7 +149,7 @@ func (p *PrintableYaml) print(fs afero.Fs) error {
 	if err != nil {
 		return err
 	}
-	return printBytes(fs, b,p.dir() + "/" + p.name + ".yaml")
+	return printBytes(fs, b, p.dir()+"/"+p.name+".yaml")
 }
 
 type PrintableError struct {
@@ -161,7 +161,7 @@ type PrintableError struct {
 
 func (p *PrintableError) print(fs afero.Fs) error {
 	b := []byte(p.Error())
-	return printBytes(fs, b, p.dir() + "/" + p.name + ".err")
+	return printBytes(fs, b, p.dir()+"/"+p.name+".err")
 
 }
 
