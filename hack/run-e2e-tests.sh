@@ -16,7 +16,7 @@ docker build . \
 ./bin/kubectl-kudo init --webhook InstanceValidation \
     --unsafe-self-signed-webhook-ca --dry-run --output yaml \
     --kudo-image kudobuilder/controller:$VERSION \
-    --pull-policy Never \
+    --kudo-image-pull-policy Never \
     > test/manifests/kudo.yaml
 
 sed "s/%version%/$VERSION/" kudo-e2e-test.yaml.tmpl > kudo-e2e-test.yaml
