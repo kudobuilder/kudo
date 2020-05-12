@@ -44,17 +44,32 @@ tasks:
 - kind: Apply
   name: infra
   spec:
+    appVersion: ""
+    instanceName: ""
+    operatorVersion: ""
+    package: ""
+    repoURL: ""
     resources:
     - services.yaml
     - pdb.yaml
 - kind: Apply
   name: app
   spec:
+    appVersion: ""
+    instanceName: ""
+    operatorVersion: ""
+    package: ""
+    repoURL: ""
     resources:
     - statefulset.yaml
 - kind: Apply
   name: validation
   spec:
+    appVersion: ""
+    instanceName: ""
+    operatorVersion: ""
+    package: ""
+    repoURL: ""
     resources:
     - validation.yaml
 url: https://zookeeper.apache.org/
