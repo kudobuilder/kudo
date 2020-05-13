@@ -8,7 +8,7 @@ owners:
   - "@kensipe"
 editor: @kensipe
 creation-date: 2020-05-06
-last-updated: 2020-05-12
+last-updated: 2020-05-13
 status: provisional
 ---
 
@@ -56,6 +56,7 @@ In order to support a multi-namespace environment, it is necessary to support cl
 
 * multi-namespace support for an operator
 * support for an operator to create or manage a namespace
+* support for namespace deletion
 
 ## Namespace Management in the Eco-System
 
@@ -93,7 +94,7 @@ There is a desire to support multiple namespaces, however it requires the additi
 
 * All manifests with metadata defining a namespace will be ignored or overridden.  The namespace that is being used by KUDO to install the operator is the only namespace that resources will be installed to.
 * All namespace manifests (manifest of `"kind": "Namespace"`) will have no affect as they can not be used by the operator.
-* All namespace manifests will be flagged by `package verify` as a warning
+* All namespace manifests will be flagged by `package verify` as an error
 
 ### Proposal: Namespace Creation
 
@@ -118,8 +119,10 @@ operatorVersion: "0.2.0"
 kudoVersion: "0.10.1"
 kubernetesVersion: 1.15.0
 appVersion: 1.0.0
-namespaceManifest: templates/namespace.yaml
+namespaceManifest: namespace.yaml
 ```
+
+The name of the manifest file is arbitary here named "namespace.yaml".  It lives in the `template` folder and can be templated as previously mentioned.
 
 KUDO is to add a `--create-namespace`.  The use of `--namespace` defines the namespace that will be used by the operator.  If the `--namespace` is missing and `--create-namespace` is provided it will result in a failure.  If a namespace manifest is provided and used in conjunction with `--create-namespace`, AND the namespace is missing from the cluster it will be created using the manifest file.  If the namespace exists, it is an error that will be reported back to the user.
 
@@ -144,7 +147,7 @@ There is NO support for multiple namespaces in a single operator or operators in
 
 ### Proposal: Dependencies and Creating Namespaces
 
-Regarding dependencies and creating namespaces, it is expected that the use of `--namespace` applies to the parent AND all dependent operators AND take the namespace is created prior to applying any dependent steps.  While there is likely desire to have independent control for dependent operators namespaces, this functionality will need to be thoughout more thoroughly regarding dependency management.  This part of the proposal was to provide completeness of namespace management inclusive of the current state of the [KEP-29 Operator Dependencies](0029-operator-dependencies.md) and not to extend further.
+Regarding dependencies and creating namespaces, it is expected that the use of `--namespace` applies to the parent AND all dependent operators AND take the namespace is created prior to applying any dependent steps.  While there is likely desire to have independent control for dependent operators namespaces, this functionality will need to be thoughout more thoroughly regarding dependency management.  This part of the proposal was to provide completeness of namespace management inclusive of the current state of the [KEP-29 Operator Dependencies](0029-operator-dependencies.md) and not to extend further.  For the case where a parent and a dependent namespace manifest file is provided, only the parent namespace manifest file will be used.  All dependencies namespace manifests will be ignored.
 
 ### Proposal: Namespace Cleanup
 
@@ -153,7 +156,7 @@ There is NO consideration for namespace cleanup, even if KUDO created the namesp
 ## Notes
 
 1. It is important to note that cross namespace management of `ownerReferences` are not supported in Kubernetes.  [Owners and dependents documentation](https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/#owners-and-dependents) explicitly states that this is "disallowed by design".
-1. It is unclear if we can delete a namespace, if we plan to manage this, then I would expect that we annotate or label the namespace as being managed by KUDO augmenting any manifest provided by the operator developer (which would need to be considered on a deepcopy)
+1. It is unclear if we can delete a namespace, if we plan to manage this, then I would expect that we annotate or label the namespace as being managed by KUDO augmenting any manifest provided by the operator developer (which would need to be considered on a deepcopy).  At a future time, we can consider the deletion of namespaces by KUDO for namespaces it created and for which is absent of any operators.  That is not part of this current KEP.
 1. Work Group Meeting on topic was recorded with details on the [community meeting notes](https://docs.google.com/document/d/19qveqaG5O4o1MouJmy2B23B2ehioAe8zGz3GgTJgRlI/edit#)
 
 ## Alternatives
