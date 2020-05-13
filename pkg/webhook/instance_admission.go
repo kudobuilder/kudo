@@ -22,7 +22,7 @@ import (
 
 // InstanceAdmission validates updates to an Instance, guarding from conflicting plan executions
 type InstanceAdmission struct {
-	client  client.Client
+	Client  client.Client
 	decoder *admission.Decoder
 }
 
@@ -57,7 +57,7 @@ func handleCreate(ia *InstanceAdmission, req admission.Request) admission.Respon
 
 	// since we don't yet enforce the existence of the 'deploy' plan in the OV, we check for its existence
 	// and decline Instance creation if the plan is not found
-	ov, err := instance.GetOperatorVersion(new, ia.client)
+	ov, err := instance.GetOperatorVersion(new, ia.Client)
 	if err != nil {
 		log.Printf("InstanceAdmission: Error getting operatorVersion %s for instance %s/%s: %v", new.Spec.OperatorVersion.Name, new.Namespace, new.Name, err)
 		return admission.Errored(http.StatusInternalServerError, err)
@@ -103,7 +103,7 @@ func handleUpdate(ia *InstanceAdmission, req admission.Request) admission.Respon
 
 	// fetch new OperatorVersion: we always fetch the new one, since if it's an update it's the same as the old one
 	// and if it's an upgrade, we need the new one anyway
-	ov, err := instance.GetOperatorVersion(new, ia.client)
+	ov, err := instance.GetOperatorVersion(new, ia.Client)
 	if err != nil {
 		log.Printf("InstanceAdmission: Error getting operatorVersion %s for instance %s/%s: %v", new.Spec.OperatorVersion.Name, new.Namespace, new.Name, err)
 		return admission.Errored(http.StatusInternalServerError, err)
@@ -339,15 +339,6 @@ func changedParameterDefinitions(old map[string]string, new map[string]string, o
 	rpd, _ := kudov1beta1.GetParamDefinitions(r, ov)
 
 	return append(cpd, rpd...), nil
-}
-
-// InstanceAdmission implements inject.Client.
-// A client will be automatically injected.
-
-// InjectClient injects the client.
-func (ia *InstanceAdmission) InjectClient(c client.Client) error {
-	ia.client = c
-	return nil
 }
 
 // InstanceAdmission implements admission.DecoderInjector.

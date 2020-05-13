@@ -29,6 +29,7 @@ import (
 	"k8s.io/client-go/discovery/cached/memory"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -135,11 +136,23 @@ func main() {
 	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) == "true" {
 		log.Printf("Setting up webhooks")
 
-		if err := registerWebhook("/admit", &v1beta1.Instance{}, &webhook.Admission{Handler: &kudohook.InstanceAdmission{}}, mgr); err != nil {
+		// client.New returns a new Client using the provided config and Options.
+		// The returned client reads *and* writes directly from the server
+		// (it doesn't use object caches). Using a cached client might lead to racy
+		// behaviour when installing operators e.g. and `OperatorVersion` is already created
+		// but not yet in cache which leads to an error during `Instance` creation.
+		uncachedClient, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
+		if err != nil {
+			log.Printf("Unable to create an uncached client for the webhook: %v", err)
+			os.Exit(1)
+		}
+
+		iac := &webhook.Admission{Handler: &kudohook.InstanceAdmission{Client: uncachedClient}}
+		if err := registerWebhook("/admit", &v1beta1.Instance{}, iac, mgr); err != nil {
 			log.Printf("Unable to create instance admission webhook: %v", err)
 			os.Exit(1)
 		}
-		log.Printf("Instance admission webhook")
+		log.Printf("Instance admission webhook set up")
 
 		// Add more webhooks below using the above registerWebhook method
 	}
