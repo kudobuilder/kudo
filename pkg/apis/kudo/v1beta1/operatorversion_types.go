@@ -35,6 +35,7 @@ type OperatorVersionSpec struct {
 	Parameters []Parameter `json:"parameters,omitempty"`
 
 	// Plans maps a plan name to a plan.
+	// +nullable
 	Plans map[string]Plan `json:"plans,omitempty"`
 
 	// ConnectionString defines a templated string that can be used to connect to an instance of the Operator.
@@ -63,6 +64,7 @@ type Plan struct {
 	Strategy Ordering `json:"strategy"`
 	// Phases maps a phase name to a Phase object.
 	// +optional
+	// +nullable
 	Phases []Phase `json:"phases"`
 }
 
@@ -154,6 +156,7 @@ type TaskSpec struct {
 // ResourceTaskSpec is referencing a list of resources
 type ResourceTaskSpec struct {
 	// +optional
+	// +nullable
 	Resources []string `json:"resources,omitempty"`
 }
 
@@ -178,6 +181,7 @@ type PipeTaskSpec struct {
 	// +optional
 	Pod string `json:"pod,omitempty"`
 	// +optional
+	// +nullable
 	Pipe []PipeSpec `json:"pipe,omitempty"`
 }
 

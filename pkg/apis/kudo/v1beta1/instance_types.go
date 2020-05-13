@@ -82,9 +82,10 @@ type InstanceStatus struct {
 //+-------------+        +----------------+
 //
 type PlanStatus struct {
-	Name                 string                `json:"name,omitempty"`
-	Status               ExecutionStatus       `json:"status,omitempty"`
-	Message              string                `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
+	Name    string          `json:"name,omitempty"`
+	Status  ExecutionStatus `json:"status,omitempty"`
+	Message string          `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
+	// +nullable
 	LastUpdatedTimestamp *metav1.Time          `json:"lastUpdatedTimestamp,omitempty"`
 	Phases               []PhaseStatus         `json:"phases,omitempty"`
 	UID                  apimachinerytypes.UID `json:"uid,omitempty"`

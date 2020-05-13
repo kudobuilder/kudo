@@ -144,6 +144,7 @@ spec:
                             plan/phase should be rolled out.
                           type: string
                       type: object
+                    nullable: true
                     type: array
                   strategy:
                     description: Ordering specifies how the subitems in this plan/phase
@@ -151,6 +152,7 @@ spec:
                     type: string
                 type: object
               description: Plans maps a plan name to a plan.
+              nullable: true
               type: object
             tasks:
               description: List of all tasks available in this OperatorVersion.
@@ -205,6 +207,7 @@ spec:
                             kind:
                               type: string
                           type: object
+                        nullable: true
                         type: array
                       pod:
                         type: string
@@ -215,6 +218,7 @@ spec:
                       resources:
                         items:
                           type: string
+                        nullable: true
                         type: array
                       wantErr:
                         type: boolean

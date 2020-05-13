@@ -121,6 +121,7 @@ spec:
                 properties:
                   lastUpdatedTimestamp:
                     format: date-time
+                    nullable: true
                     type: string
                   message:
                     type: string
