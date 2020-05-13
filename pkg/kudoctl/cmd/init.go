@@ -6,6 +6,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
+
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
@@ -51,25 +53,29 @@ and finishes with success if KUDO is already installed.
   kubectl kudo init --crd-only --dry-run --output yaml | kubectl delete -f -
   # pass existing serviceaccount 
   kubectl kudo init --service-account testaccount
+  # install kudo with activated instance admission webhook
+  kubectl kudo init --webhook InstanceValidation
 `
 )
 
 type initCmd struct {
-	out            io.Writer
-	fs             afero.Fs
-	image          string
-	dryRun         bool
-	output         string
-	version        string
-	ns             string
-	serviceAccount string
-	wait           bool
-	timeout        int64
-	clientOnly     bool
-	crdOnly        bool
-	home           kudohome.Home
-	client         *kube.Client
-	webhooks       string
+	out                 io.Writer
+	fs                  afero.Fs
+	image               string
+	imagePullPolicy     string
+	dryRun              bool
+	output              string
+	version             string
+	ns                  string
+	serviceAccount      string
+	wait                bool
+	timeout             int64
+	clientOnly          bool
+	crdOnly             bool
+	home                kudohome.Home
+	client              *kube.Client
+	webhooks            string
+	selfSignedWebhookCA bool
 }
 
 func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
@@ -97,6 +103,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f := cmd.Flags()
 	f.BoolVarP(&i.clientOnly, "client-only", "c", false, "If set does not install KUDO on the server")
 	f.StringVarP(&i.image, "kudo-image", "i", "", "Override KUDO controller image and/or version")
+	f.StringVarP(&i.imagePullPolicy, "kudo-image-pull-policy", "", "", "Override KUDO controller image pull policy")
 	f.StringVarP(&i.version, "version", "", "", "Override KUDO controller version of the KUDO image")
 	f.StringVarP(&i.output, "output", "o", "", "Output format")
 	f.BoolVar(&i.dryRun, "dry-run", false, "Do not install local or remote")
@@ -105,6 +112,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.Int64Var(&i.timeout, "wait-timeout", 300, "Wait timeout to be used")
 	f.StringVar(&i.webhooks, "webhook", "", "List of webhooks to install separated by commas (One of: InstanceValidation)")
 	f.StringVarP(&i.serviceAccount, "service-account", "", "", "Override for the default serviceAccount kudo-manager")
+	f.BoolVar(&i.selfSignedWebhookCA, "unsafe-self-signed-webhook-ca", false, "Use self-signed CA bundle (for testing only) for the webhooks")
 
 	return cmd
 }
@@ -128,16 +136,30 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 	if initCmd.webhooks != "" && initCmd.webhooks != "InstanceValidation" {
 		return errors.New("webhooks can be only empty or contain a single string 'InstanceValidation'. No other webhooks supported")
 	}
+	if initCmd.webhooks == "" && initCmd.selfSignedWebhookCA {
+		return errors.New("self-signed CA bundle can only be used with webhooks option")
+	}
 
 	return nil
 }
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (initCmd *initCmd) run() error {
-	opts := kudoinit.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks))
+	opts := kudoinit.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks), initCmd.selfSignedWebhookCA)
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image
+	}
+	if initCmd.imagePullPolicy != "" {
+		switch initCmd.imagePullPolicy {
+		case
+			"Always",
+			"Never",
+			"IfNotPresent":
+			opts.ImagePullPolicy = initCmd.imagePullPolicy
+		default:
+			return fmt.Errorf("Unknown image pull policy %s, must be one of 'Always', 'IfNotPresent' or 'Never'", initCmd.imagePullPolicy)
+		}
 	}
 
 	//TODO: implement output=yaml|json (define a type for output to constrain)
@@ -172,6 +194,13 @@ func (initCmd *initCmd) run() error {
 			}
 			initCmd.client = client
 		}
+		ok, err := initCmd.preInstallVerify(opts)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("failed to verify installation requirements")
+		}
 
 		if err := setup.Install(initCmd.client, opts, initCmd.crdOnly); err != nil {
 			return clog.Errorf("error installing: %s", err)
@@ -187,6 +216,20 @@ func (initCmd *initCmd) run() error {
 	}
 
 	return nil
+}
+
+// preInstallVerify runs the pre-installation verification and returns true if the installation can continue
+func (initCmd *initCmd) preInstallVerify(opts kudoinit.Options) (bool, error) {
+	result := verifier.NewResult()
+	if err := setup.PreInstallVerify(initCmd.client, opts, initCmd.crdOnly, &result); err != nil {
+		return false, err
+	}
+	result.PrintWarnings(initCmd.out)
+	if !result.IsValid() {
+		result.PrintErrors(initCmd.out)
+		return false, nil
+	}
+	return true, nil
 }
 
 func webhooksArray(webhooksAsStr string) []string {

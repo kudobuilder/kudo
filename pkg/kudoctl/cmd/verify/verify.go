@@ -15,7 +15,7 @@ import (
 var verifiers = []packages.Verifier{
 	DuplicateVerifier{},
 	InvalidCharVerifier{";,"},
-	K8sVersionVerifier{},
+	VersionVerifier{},
 	task.BuildVerifier{},
 	task.ReferenceVerifier{},
 	plan.ReferenceVerifier{},
@@ -68,20 +68,34 @@ func (v InvalidCharVerifier) Verify(pf *packages.Files) verifier.Result {
 	return res
 }
 
-// K8sVersionVerifier verifies the kubernetesVersion of operator.yaml
-type K8sVersionVerifier struct{}
+// VersionVerifier verifies the version in operator.yaml, kubernetesVersion, operatorVersion and kudoVersion
+type VersionVerifier struct{}
 
-func (K8sVersionVerifier) Verify(pf *packages.Files) verifier.Result {
+func (VersionVerifier) Verify(pf *packages.Files) verifier.Result {
 	res := verifier.NewResult()
 	if pf.Operator == nil {
-		res.AddErrors("Operator not defined.")
+		res.AddErrors("operator not defined.")
 		return res
 	}
-	_, err := version.New(pf.Operator.KubernetesVersion)
-	if err != nil {
-		res.AddErrors(fmt.Sprintf("Unable to parse operators kubernetes version: %v", err))
-		return res
+	verifySemVer(pf.Operator.OperatorVersion, "operatorVersion", &res, true)
+	verifySemVer(pf.Operator.KubernetesVersion, "kubernetesVersion", &res, true)
+	verifySemVer(pf.Operator.KUDOVersion, "kudoVersion", &res, false)
+	return res
+}
+
+func verifySemVer(ver string, name string, res *verifier.Result, required bool) {
+	v := strings.TrimSpace(ver)
+	if !required && v == "" {
+		return
 	}
 
-	return res
+	if required && v == "" {
+		res.AddErrors(fmt.Sprintf("%q is required and must be semver", name))
+		return
+	}
+
+	_, err := version.New(ver)
+	if err != nil {
+		res.AddErrors(fmt.Sprintf("unable to parse %q: %v", name, err))
+	}
 }

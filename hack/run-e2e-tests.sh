@@ -13,8 +13,10 @@ docker build . \
     -t "kudobuilder/controller:$VERSION"
 
 # Generate the kudo.yaml that is used to install KUDO while running e2e-test
-./bin/kubectl-kudo init --dry-run --output yaml --kudo-image kudobuilder/controller:$VERSION \
-    | sed -E -e '/imagePullPolicy/ s/Always/Never/' \
+./bin/kubectl-kudo init --webhook InstanceValidation \
+    --unsafe-self-signed-webhook-ca --dry-run --output yaml \
+    --kudo-image kudobuilder/controller:$VERSION \
+    --kudo-image-pull-policy Never \
     > test/manifests/kudo.yaml
 
 sed "s/%version%/$VERSION/" kudo-e2e-test.yaml.tmpl > kudo-e2e-test.yaml
@@ -34,6 +36,7 @@ then
     git clone https://github.com/kudobuilder/operators
     mkdir operators/bin/
     cp ./bin/kubectl-kudo operators/bin/
+    cp ./bin/manager operators/bin/
     cd operators && ./bin/kubectl-kudo test 2>&1 \
         | tee /dev/fd/2 \
         | go-junit-report -set-exit-code \
@@ -47,5 +50,6 @@ else
     git clone https://github.com/kudobuilder/operators
     mkdir operators/bin/
     cp ./bin/kubectl-kudo operators/bin/
+    cp ./bin/manager operators/bin/
     cd operators && ./bin/kubectl-kudo test
 fi

@@ -3,8 +3,6 @@ kind: Instance
 metadata:
   name: racy-instance
 status:
-  aggregatedStatus:
-    status: COMPLETE
   planStatus:
     deploy:
       status: COMPLETE

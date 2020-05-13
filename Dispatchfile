@@ -1,0 +1,43 @@
+#!starlark
+gitResource("git", url="$(context.git.url)", revision="$(context.git.commit)")
+
+task("lint", inputs=["git"], steps=[k8s.corev1.Container(
+  name="lint",
+  image="golangci/golangci-lint:v1.23.8",
+  command=[ "golangci-lint", "run", "-v", "--timeout", "15m" ],
+  workingDir="/workspace/git",
+  resources = k8s.corev1.ResourceRequirements(
+    limits={
+      "cpu": k8s.resource_quantity("2000m"),
+      "memory": k8s.resource_quantity("7.5Gi")
+    },
+    requests={
+      "cpu": k8s.resource_quantity("2000m"),
+      "memory": k8s.resource_quantity("7.5Gi")
+    }
+  )
+)])
+
+task("integration-test", inputs=["git"], steps=[k8s.corev1.Container(
+  name="integration-test",
+  image="kudobuilder/golang:1.14",
+  command=[ "make", "integration-test" ],
+  env=[
+    k8s.corev1.EnvVar(name="INTEGRATION_OUTPUT_JUNIT", value="true"),
+    k8s.corev1.EnvVar(name="KUBEBUILDER_ATTACH_CONTROL_PLANE_OUTPUT", value="true")
+  ],
+  workingDir="/workspace/git",
+  resources = k8s.corev1.ResourceRequirements(
+    limits={
+      "cpu": k8s.resource_quantity("2000m"),
+      "memory": k8s.resource_quantity("7.5Gi")
+    },
+    requests={
+      "cpu": k8s.resource_quantity("2000m"),
+      "memory": k8s.resource_quantity("7.5Gi")
+    }
+  )
+)])
+
+action(tasks=["lint", "integration-test"], on=push())
+action(tasks=["lint", "integration-test"], on=pullRequest(chatops=["test"]))

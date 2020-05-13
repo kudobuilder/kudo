@@ -1,0 +1,5 @@
+apiVersion: kudo.dev/v1beta1
+kind: TestStep
+commands: # Update a parameter that modifies the config map dependency and deploys the parent
+  - command: kubectl kudo update --instance depop -p OTHER_CONFIG_VALUE=SecondChangedValue
+    namespaced: true

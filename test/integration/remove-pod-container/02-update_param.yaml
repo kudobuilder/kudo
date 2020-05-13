@@ -1,4 +1,5 @@
 apiVersion: kudo.dev/v1beta1
 kind: TestStep
-kubectl:
-- kudo update --instance dual-pod -p WITH_PRIORITY="false"
+commands:
+  - command: kubectl kudo update --instance dual-pod -p WITH_PRIORITY="false"
+    namespaced: true

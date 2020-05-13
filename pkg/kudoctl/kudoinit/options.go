@@ -16,12 +16,17 @@ type Options struct {
 	TerminationGracePeriodSeconds int64
 	// Image defines the image to be used
 	Image string
-	// Enable validation
-	Webhooks       []string
+	// ImagePullPolicy sets the pull policy of the image
+	ImagePullPolicy string
+	// List of enabled webhooks
+	Webhooks []string
+	// Using self-signed webhook CA bundle
+	SelfSignedWebhookCA bool
+
 	ServiceAccount string
 }
 
-func NewOptions(v string, ns string, sa string, webhooks []string) Options {
+func NewOptions(v string, ns string, sa string, webhooks []string, selfSignedWebhookCA bool) Options {
 	if v == "" {
 		v = version.Get().GitVersion
 	}
@@ -37,8 +42,10 @@ func NewOptions(v string, ns string, sa string, webhooks []string) Options {
 		Namespace:                     ns,
 		TerminationGracePeriodSeconds: defaultGracePeriod,
 		Image:                         fmt.Sprintf("kudobuilder/controller:v%v", v),
+		ImagePullPolicy:               "Always",
 		Webhooks:                      webhooks,
 		ServiceAccount:                sa,
+		SelfSignedWebhookCA:           selfSignedWebhookCA,
 	}
 }
 

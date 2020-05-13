@@ -67,6 +67,8 @@ func NewPlanStatusCmd(out io.Writer) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&options.Instance, "instance", "", "The instance name available from 'kubectl get instances'")
+	cmd.Flags().BoolVar(&options.Wait, "wait", false, "Specify if the CLI should wait for the plan to complete before returning (default \"false\")")
+
 	if err := cmd.MarkFlagRequired("instance"); err != nil {
 		clog.Printf("Please choose the instance with '--instance=<instanceName>': %v", err)
 		os.Exit(1)

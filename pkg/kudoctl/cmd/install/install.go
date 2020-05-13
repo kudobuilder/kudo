@@ -2,6 +2,7 @@ package install
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/spf13/afero"
 
@@ -27,6 +28,7 @@ type Options struct {
 	SkipInstance    bool
 	RequestTimeout  int64
 	Wait            bool
+	WaitTime        int64
 }
 
 // DefaultOptions initializes the install command options to its defaults
@@ -76,5 +78,5 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 		return fmt.Errorf("failed to resolve operator package for: %s %w", operatorArgument, err)
 	}
 
-	return kudo.InstallPackage(kc, pkg.Resources, options.SkipInstance, options.InstanceName, settings.Namespace, options.Parameters, options.Wait)
+	return kudo.InstallPackage(kc, pkg.Resources, options.SkipInstance, options.InstanceName, settings.Namespace, options.Parameters, options.Wait, time.Duration(options.WaitTime)*time.Second)
 }

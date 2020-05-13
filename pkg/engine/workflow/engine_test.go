@@ -17,7 +17,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
-	"github.com/kudobuilder/kudo/pkg/test/utils"
+	kudofake "github.com/kudobuilder/kudo/pkg/test/fake"
 )
 
 var testTime = time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)
@@ -621,11 +621,12 @@ func TestExecutePlan(t *testing.T) {
 		},
 	}
 
+	testScheme := scheme.Scheme
 	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
-	fakeDiscovery := utils.FakeDiscoveryClient()
+	fakeDiscovery := kudofake.CachedDiscoveryClient()
 	fakeCachedDiscovery := memory.NewMemCacheClient(fakeDiscovery)
 	for _, tt := range tests {
-		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, fakeCachedDiscovery, nil, tt.enhancer)
+		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, fakeCachedDiscovery, nil, testScheme)
 		newStatus.LastUpdatedTimestamp = &metav1.Time{Time: testTime}
 
 		if !tt.wantErr && err != nil {

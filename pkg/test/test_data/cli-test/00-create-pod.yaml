@@ -1,4 +1,0 @@
-apiVersion: kudo.dev/v1beta1
-kind: TestStep
-kubectl:
-- apply -f ./test_data/pod.yaml

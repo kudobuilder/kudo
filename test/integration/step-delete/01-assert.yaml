@@ -4,5 +4,6 @@ kind: Instance
 metadata:
   name: step-delete-instance
 status:
-  aggregatedStatus:
-    status: COMPLETE
+  planStatus:
+    deploy:
+      status: COMPLETE

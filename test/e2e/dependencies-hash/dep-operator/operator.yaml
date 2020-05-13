@@ -1,0 +1,54 @@
+apiVersion: kudo.dev/v1beta1
+name: "dep-operator"
+operatorVersion: "0.1.0"
+appVersion: "1.7.9"
+kubernetesVersion: 1.13.0
+maintainers:
+  - name: Your name
+    email: <your@email.com>
+url: https://kudo.dev
+tasks:
+  - name: full
+    kind: Apply
+    spec:
+      resources:
+        - configmap.yaml
+        - deployment.yaml
+  - name: app
+    kind: Apply
+    spec:
+      resources:
+        - deployment.yaml
+  - name: config
+    kind: Apply
+    spec:
+      resources:
+        - configmap.yaml
+plans:
+  deploy:
+    strategy: serial
+    phases:
+      - name: main
+        strategy: parallel
+        steps:
+          - name: everything
+            tasks:
+              - full
+  update-replica:
+    strategy: serial
+    phases:
+      - name: main
+        strategy: parallel
+        steps:
+          - name: everything
+            tasks:
+              - app
+  update-param:
+    strategy: serial
+    phases:
+      - name: config
+        strategy: parallel
+        steps:
+          - name: allconfig
+            tasks:
+              - config

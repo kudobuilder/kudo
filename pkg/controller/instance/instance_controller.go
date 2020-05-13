@@ -238,7 +238,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 	log.Printf("InstanceController: Going to proceed in execution of active plan '%s' on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
-	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, r.Discovery, r.Config, &renderer.DefaultEnhancer{Scheme: r.Scheme, Discovery: r.Discovery})
+	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, r.Discovery, r.Config, r.Scheme)
 
 	// ---------- 5. Update instance and its status after the execution proceeded ----------
 
@@ -257,8 +257,8 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// Publish a PlanFinished event after instance and its status were successfully updated
-	if instance.Status.AggregatedStatus.Status.IsTerminal() {
-		r.Recorder.Event(instance, "Normal", "PlanFinished", fmt.Sprintf("Execution of plan %s finished with status %s", activePlanStatus.Name, instance.Status.AggregatedStatus.Status))
+	if instance.Spec.PlanExecution.Status.IsTerminal() {
+		r.Recorder.Event(instance, "Normal", "PlanFinished", fmt.Sprintf("Execution of plan %s finished with status %s", activePlanStatus.Name, instance.Spec.PlanExecution.Status))
 	}
 
 	return reconcile.Result{}, nil
@@ -604,6 +604,7 @@ func fetchNewExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*s
 
 		i.Spec.PlanExecution.PlanName = v1beta1.CleanupPlanName
 		i.Spec.PlanExecution.UID = uuid.NewUUID()
+		i.Spec.PlanExecution.Status = v1beta1.ExecutionNeverRun
 	}
 
 	newPlanScheduled := func() bool {
@@ -682,7 +683,7 @@ func inferNewExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*s
 		// instance updated
 		log.Printf("Instance: instance %s/%s has updated parameters from %v to %v", i.Namespace, i.Name, instanceSnapshot.Parameters, i.Spec.Parameters)
 		paramDiff := kudov1beta1.ParameterDiff(instanceSnapshot.Parameters, i.Spec.Parameters)
-		paramDefinitions := kudov1beta1.GetParamDefinitions(paramDiff, ov)
+		paramDefinitions := kudov1beta1.GetExistingParamDefinitions(paramDiff, ov)
 		plan, err := planNameFromParameters(paramDefinitions, ov)
 		if err != nil {
 			return nil, &v1beta1.InstanceError{Err: fmt.Errorf("supposed to execute plan because instance %s/%s was updated but no valid plan found: %v", i.Namespace, i.Name, err), EventName: convert.StringPtr("PlanNotFound")}
