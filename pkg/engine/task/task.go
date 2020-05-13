@@ -197,6 +197,5 @@ func newKudoOperator(task *v1beta1.Task) (Tasker, error) {
 		InstanceName:    task.Spec.KudoOperatorTaskSpec.InstanceName,
 		AppVersion:      task.Spec.KudoOperatorTaskSpec.AppVersion,
 		OperatorVersion: task.Spec.KudoOperatorTaskSpec.OperatorVersion,
-		RepoURL:         task.Spec.KudoOperatorTaskSpec.RepoURL,
 	}, nil
 }

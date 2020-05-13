@@ -283,10 +283,6 @@ spec:
                         type: array
                       pod:
                         type: string
-                      repoURL:
-                        description: if specified, will be used to resolve the package
-                          name, otherwise the locally configured one will be used
-                        type: string
                       resources:
                         items:
                           type: string

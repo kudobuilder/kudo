@@ -210,9 +210,6 @@ type KudoOperatorTaskSpec struct {
 	// a specific operator version in the official repo, defaults to the most recent one
 	// +optional
 	OperatorVersion string `json:"operatorVersion"`
-	// if specified, will be used to resolve the package name, otherwise the locally configured one will be used
-	// +optional
-	RepoURL string `json:"repoURL"`
 }
 
 // OperatorVersionStatus defines the observed state of OperatorVersion.

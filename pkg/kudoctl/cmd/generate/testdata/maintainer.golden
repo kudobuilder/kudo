@@ -41,7 +41,6 @@ tasks:
     instanceName: ""
     operatorVersion: ""
     package: ""
-    repoURL: ""
     resources:
     - services.yaml
     - pdb.yaml
@@ -52,7 +51,6 @@ tasks:
     instanceName: ""
     operatorVersion: ""
     package: ""
-    repoURL: ""
     resources:
     - statefulset.yaml
 - kind: Apply
@@ -62,7 +60,6 @@ tasks:
     instanceName: ""
     operatorVersion: ""
     package: ""
-    repoURL: ""
     resources:
     - validation.yaml
 url: https://zookeeper.apache.org/

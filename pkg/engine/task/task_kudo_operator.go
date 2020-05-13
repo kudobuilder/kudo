@@ -11,7 +11,6 @@ type KudoOperatorTask struct {
 	InstanceName    string
 	AppVersion      string
 	OperatorVersion string
-	RepoURL         string
 }
 
 // Run method for the KudoOperatorTask. Not yet implemented
