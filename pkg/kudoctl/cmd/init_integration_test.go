@@ -113,6 +113,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 	}
 	err = cmd.run()
 	assert.NoError(t, err)
+	defer assert.NoError(t, deletePrereqs(cmd, testClient))
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
 	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
@@ -307,6 +308,7 @@ func TestInitWithServiceAccount(t *testing.T) {
 				assertStringContains(t, tt.errMessageContains, buf.String())
 			} else {
 				assert.NoError(t, err)
+				defer assert.NoError(t, deletePrereqs(cmd, testClient))
 
 				// WaitForCRDs to be created... the init cmd did NOT wait
 				assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
@@ -362,6 +364,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 	}
 	err = cmd.run()
 	assert.NoError(t, err)
+	defer assert.NoError(t, deletePrereqs(cmd, testClient))
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
 	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
