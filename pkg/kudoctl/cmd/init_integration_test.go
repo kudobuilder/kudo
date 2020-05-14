@@ -167,7 +167,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	// On second attempt run should succeed.
 	err = cmd.run()
 	assert.NoError(t, err)
-	defer deletePrereqs(cmd, testClient)
+	defer assert.NoError(t, deletePrereqs(cmd, testClient))
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
 	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
