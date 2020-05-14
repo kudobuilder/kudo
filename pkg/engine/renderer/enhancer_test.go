@@ -14,12 +14,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
 
+	"github.com/kudobuilder/kuttl/pkg/test/utils"
+
+	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/scheme"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/test/fake"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
-	"github.com/kudobuilder/kuttl/pkg/test/utils"
 )
 
 func TestEnhancerApply_embeddedMetadataStatefulSet(t *testing.T) {
@@ -183,6 +186,52 @@ func TestEnhancerApply_dependencyHash_noDependencies(t *testing.T) {
 
 	hash := annotations[kudo.DependenciesHashAnnotation]
 	assert.Nil(t, hash, "Pod template spec annotations contains a dependency hash but no dependencies")
+}
+
+func TestEnhancerApply_dependencyHash_unavailableResource(t *testing.T) {
+	// Test that the dependency calculation does not error out on a resource that is NotAvailable at the moment
+
+	ss := statefulSet("statefulset", "default")
+
+	ss.Spec.Template.Spec.Volumes = append(ss.Spec.Template.Spec.Volumes, corev1.Volume{
+		Name: "configMap",
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: "unvailableConfigMap"},
+			},
+		},
+	})
+
+	tpls := map[string]string{
+		"statefulset": resourceAsString(ss),
+	}
+
+	meta := metadata()
+	meta.PlanUID = uuid.NewUUID()
+
+	e := &DefaultEnhancer{
+		Client:    clientfake.NewFakeClientWithScheme(scheme.Scheme),
+		Scheme:    utils.Scheme(),
+		Discovery: fake.CachedDiscoveryClient(),
+	}
+
+	objs, err := e.Apply(tpls, meta)
+	if err != nil {
+		t.Errorf("failed to apply template %s", err)
+	}
+
+	ssApplied := funk.Find(objs, func(o runtime.Object) bool {
+		return o.GetObjectKind().GroupVersionKind() == schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "StatefulSet"}
+	})
+
+	unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(ssApplied)
+	assert.Nil(t, err, "failed to parse object to unstructured: %s", err)
+
+	annotations, _, _ := unstructured.NestedMap(unstructMap, "spec", "template", "metadata", "annotations")
+	assert.NotNil(t, annotations, "Statefulset pod template spec contains no annotations")
+
+	hash := annotations[kudo.DependenciesHashAnnotation]
+	assert.NotNil(t, hash, "Pod template spec annotations contains no dependency hash field")
 }
 
 func TestEnhancerApply_dependencyHash_changes(t *testing.T) {
