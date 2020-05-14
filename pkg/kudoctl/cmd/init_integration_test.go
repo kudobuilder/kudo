@@ -403,13 +403,13 @@ func deleteObjects(objs []runtime.Object, client *testutils.RetryClient) error {
 func deletePrereqs(client *testutils.RetryClient) error {
 	opts := kudoinit.NewOptions("", "", "", []string{}, false)
 
-	if err := deleteObjects(prereq.NewWebHookInitializer(opts).Resources(), client); err != nil {
+	if err := deleteObjects(prereq.NewNamespaceInitializer(opts).Resources(), client); err != nil {
 		return err
 	}
 	if err := deleteObjects(prereq.NewServiceAccountInitializer(opts).Resources(), client); err != nil {
 		return err
 	}
-	if err := deleteObjects(prereq.NewNamespaceInitializer(opts).Resources(), client); err != nil {
+	if err := deleteObjects(prereq.NewWebHookInitializer(opts).Resources(), client); err != nil {
 		return err
 	}
 
