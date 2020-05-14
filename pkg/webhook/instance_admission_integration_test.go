@@ -82,23 +82,23 @@ var _ = Describe("Test", func() {
 		err = apis.AddToScheme(mgr.GetScheme())
 		Expect(err).NotTo(HaveOccurred())
 
-		// 3. registering instance admission controller
+		// 3. creating the client. **Note:** client.New method will create an uncached client, a cached one
+		// (e.g. mgr.GetClient) leads to caching issues in this test.
+		log.Print("test.BeforeEach: initializing client")
+		c, err = client.New(env.Config, client.Options{Scheme: mgr.GetScheme()})
+		Expect(err).NotTo(HaveOccurred())
+
+		// 4. registering instance admission controller
 		log.Print("test.BeforeEach: initializing webhook server")
 		server := mgr.GetWebhookServer()
-		server.Register(instanceAdmissionWebhookPath, &ctrhook.Admission{Handler: &InstanceAdmission{}})
+		server.Register(instanceAdmissionWebhookPath, &ctrhook.Admission{Handler: &InstanceAdmission{client: c}})
 
-		// 4. starting the manager
+		// 5. starting the manager
 		stop = make(chan struct{})
 		go func() {
 			err = mgr.Start(stop)
 			Expect(err).NotTo(HaveOccurred())
 		}()
-
-		// 5. creating the client. **Note:** client.New method will create an uncached client, a cached one
-		// (e.g. mgr.GetClient) leads to caching issues in this test.
-		log.Print("test.BeforeEach: initializing client")
-		c, err = client.New(env.Config, client.Options{Scheme: mgr.GetScheme()})
-		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
