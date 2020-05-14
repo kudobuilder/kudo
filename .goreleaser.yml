@@ -23,9 +23,6 @@ builds:
       - amd64
       - arm
       - arm64
-    ignore:
-      - goos: darwin
-        goarch: 386
   - id: "kubectl-kudo"
     binary: kubectl-kudo
     main: cmd/kubectl-kudo/main.go
@@ -39,9 +36,6 @@ builds:
       - amd64
       - arm
       - arm64
-    ignore:
-      - goos: darwin
-        goarch: 386
 dockers:
   # always push a docker image on release for the .Tag version
   - dockerfile: Dockerfile.goreleaser
