@@ -16,7 +16,10 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 )
 
-const diagDir = "diag"
+const (
+	DiagDir = "diag"
+	KudoDir = "diag/kudo"
+)
 
 type printMode int
 
@@ -26,158 +29,111 @@ const (
 	RuntimeObject
 )
 
-type Printable interface {
-	print(afero.Fs) error
+type ObjectPrinter struct {
+	fs     afero.Fs
+	errors []string
 }
 
-type PrintableList []Printable
-
-func (ps PrintableList) print(fs afero.Fs) error {
-	for _, p := range ps {
-		if err := p.print(fs); err != nil {
-			return err
-		}
+func (p *ObjectPrinter) printObject(o runtime.Object, parentDir string, mode printMode) {
+	if err := printRuntimeObject(p.fs, o, parentDir, mode); err != nil {
+		p.errors = append(p.errors, err.Error())
 	}
-	return nil
 }
 
-// NewPrintableObject - create a wrapper to print runtime.Object in its own directory based on its metadata
-// fails if the object does not implement metav1.Object
-func NewPrintableObject(obj runtime.Object, parentDir func() string) (Printable, error) {
-	o, ok := obj.(Object)
-	if !ok {
-		return nil, fmt.Errorf("kind %s doesn't have metadata", obj.GetObjectKind().GroupVersionKind().Kind)
+func (p *ObjectPrinter) printError(err error, parentDir, name string) {
+	b := []byte(err.Error())
+	if err := printBytes(p.fs, b, parentDir+"/"+name+".err"); err != nil {
+		p.errors = append(p.errors, err.Error())
 	}
-	ret := PrintableRuntimeObject{
-		o:         o,
-		parentDir: parentDir,
-		relToParentDir: func() string {
-			return fmt.Sprintf("%s_%s", strings.ToLower(o.GetObjectKind().GroupVersionKind().Kind), o.GetName())
-		},
-		name: func() string { return fmt.Sprintf("%s.yaml", o.GetName()) },
-	}
-	return &ret, nil
 }
 
-// NewPrintableObjectList - wrappers of runtime.Object, so that each should be printed in its own directory based on its metadata
-// fails if the object is not a list or if any of the items does not implement metav1.Object
-func NewPrintableObjectList(obj runtime.Object, parentDir func() string) (Printable, error) {
-	var ret PrintableList
-	err := meta.EachListItem(obj, func(o runtime.Object) error {
-		p, err := NewPrintableObject(o, parentDir)
-		if err != nil {
-			return err
-		}
-		ret = append(ret, p)
-		return nil
-	})
-	if err != nil {
-		return nil, err
+func (p *ObjectPrinter) printLog(log io.ReadCloser, parentDir, name string) {
+	if err := printLog(p.fs, log, parentDir, name); err != nil {
+		p.errors = append(p.errors, err.Error())
 	}
-	return ret, nil
 }
 
-// NewPrintableRuntimeObject - wrapper to print runtime.Object as a file in the parent's directory
-func NewPrintableRuntimeObject(obj runtime.Object, parentDir func() string) (Printable, error) {
-	if meta.IsListType(obj) && meta.LenList(obj) == 0 {
-		return nil, nil
+func (p *ObjectPrinter) printYaml(v interface{}, parentDir, name string) {
+	if err := printYaml(p.fs, v, parentDir, name); err != nil {
+		p.errors = append(p.errors, err.Error())
 	}
-	ret := PrintableRuntimeObject{
-		o:         obj,
-		parentDir: parentDir,
-		name: func() string {
-			return fmt.Sprintf("%s.yaml", strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind))
-		},
-	}
-	return &ret, nil
 }
 
-type PrintableLog struct {
-	name      string
-	log       io.ReadCloser
-	parentDir func() string
-}
-
-func (p *PrintableLog) print(os afero.Fs) error {
-	name := fmt.Sprintf("%s/pod_%s/%s.log.gz", p.parentDir(), p.name, p.name)
-	file, err := os.Create(name)
-	if err != nil {
-		return err
+func printRuntimeObject(fs afero.Fs, obj runtime.Object, parentDir string, mode printMode) error {
+	switch mode {
+	case ObjectWithDir:
+		return printSingleObject(fs, obj, parentDir)
+	case ObjectListWithDirs:
+		return meta.EachListItem(obj, func(ro runtime.Object) error {
+			return printSingleObject(fs, ro, parentDir)
+		})
+	case RuntimeObject:
+		fallthrough
+	default:
+		return printSingleRuntimeObject(fs, obj, parentDir)
 	}
-	z := newGzipWriter(file, 2048)
-	err = z.Write(p.log)
-	if err != nil {
-		return err
-	}
-	_ = p.log.Close()
-	return nil
 }
 
-// PrintableRuntimeObject - printable implementation for runtime.Object
-// name and directory information is packed into lambdas so that the object could be created before this data becomes available
-type PrintableRuntimeObject struct {
-	o              runtime.Object
-	parentDir      func() string
-	relToParentDir func() string
-	name           func() string
-}
-
-func (p *PrintableRuntimeObject) print(fs afero.Fs) error {
-	if !isKudoCR(p.o) {
-		err := kudo.SetGVKFromScheme(p.o, scheme.Scheme)
+func printSingleObject(fs afero.Fs, obj runtime.Object, parentDir string) error {
+	if !isKudoCR(obj) {
+		err := kudo.SetGVKFromScheme(obj, scheme.Scheme)
 		if err != nil {
 			return err
 		}
 	}
-	dir, name := p.parentDir(), p.name()
-	if p.relToParentDir != nil {
-		dir += "/" + p.relToParentDir()
-		err := fs.MkdirAll(dir, 0700)
-		if err != nil {
-			return fmt.Errorf("failed to create directory %s: %v", dir, err)
-		}
+	o, _ := obj.(Object)
+	relToParentDir := fmt.Sprintf("%s_%s", strings.ToLower(o.GetObjectKind().GroupVersionKind().Kind), o.GetName())
+	dir := fmt.Sprintf("%s/%s", parentDir, relToParentDir)
+	err := fs.MkdirAll(dir, 0700)
+	if err != nil {
+		return fmt.Errorf("failed to create directory %s: %v", dir, err)
 	}
+	name := fmt.Sprintf("%s.yaml", o.GetName())
 	fileWithPath := fmt.Sprintf("%s/%s", dir, name)
 	file, err := fs.Create(fileWithPath)
 	if err != nil {
 		return fmt.Errorf("failed to create %s: %v", fileWithPath, err)
 	}
 	printer := printers.YAMLPrinter{}
-	return printer.PrintObj(p.o, file)
+	return printer.PrintObj(o, file)
 }
 
-// PrintableYaml - printable implementation to print anything as yaml
-// implements collector for convenience
-type PrintableYaml struct {
-	name string
-	dir  func() string
-	v    interface{}
-}
-
-func (p *PrintableYaml) Collect() (Printable, error) {
-	return p, nil
-}
-
-func (p *PrintableYaml) print(fs afero.Fs) error {
-	b, err := yaml.Marshal(p.v)
+func printSingleRuntimeObject(fs afero.Fs, obj runtime.Object, dir string) error {
+	err := kudo.SetGVKFromScheme(obj, scheme.Scheme)
 	if err != nil {
-		return fmt.Errorf("failed to marshal object to %s/%s.yaml: %v", p.dir(), p.name, err)
+		return err
 	}
-	fileNameWithPath := fmt.Sprintf("%s/%s.yaml", p.dir(), p.name)
+	fileWithPath := fmt.Sprintf("%s/%s.yaml", dir, strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind))
+	file, err := fs.Create(fileWithPath)
+	if err != nil {
+		return fmt.Errorf("failed to create %s: %v", fileWithPath, err)
+	}
+	printer := printers.YAMLPrinter{}
+	return printer.PrintObj(obj, file)
+}
+
+func printLog(fs afero.Fs, log io.ReadCloser, parentDir, podName string) error {
+	name := fmt.Sprintf("%s/pod_%s/%s.log.gz", parentDir, podName, podName)
+	file, err := fs.Create(name)
+	if err != nil {
+		return err
+	}
+	z := newGzipWriter(file, 2048)
+	err = z.Write(log)
+	if err != nil {
+		return err
+	}
+	_ = log.Close()
+	return nil
+}
+
+func printYaml(fs afero.Fs, v interface{}, dir, name string) error {
+	b, err := yaml.Marshal(v)
+	if err != nil {
+		return fmt.Errorf("failed to marshal object to %s/%s.yaml: %v", dir, name, err)
+	}
+	fileNameWithPath := fmt.Sprintf("%s/%s.yaml", dir, name)
 	return printBytes(fs, b, fileNameWithPath)
-}
-
-type PrintableError struct {
-	error
-	Fatal bool
-	name  string
-	dir   func() string
-}
-
-func (p *PrintableError) print(fs afero.Fs) error {
-	b := []byte(p.Error())
-	return printBytes(fs, b, p.dir()+"/"+p.name+".err")
-
 }
 
 func printBytes(fs afero.Fs, b []byte, fileName string) error {

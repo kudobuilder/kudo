@@ -1,14 +1,17 @@
 package diagnostics
 
 import (
-	"github.com/spf13/afero"
+	"fmt"
+	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/version"
+
+	"github.com/spf13/afero"
 )
 
 const (
-	appKudoManager    = "kudo-manager"
+	appKudoManager = "kudo-manager"
 )
 
 const (
@@ -21,29 +24,8 @@ type Options struct {
 	LogSince int64
 }
 
-// collector - implementors are expected to return error only if fatal, otherwise the error should be wrapped and
-// returned in place of Printable to print it instead of the object that failed to be collected
-type collector interface {
-	Collect() (Printable, error)
-}
-
-// compositeCollector - auxiliary union of collectors related via their side-effects on processingContext
-type compositeCollector struct {
-	collectors []collector
-}
-
-// Collect - flow ensures that objects are printed if and only after all of them are collected
-func (cc *compositeCollector) Collect() (Printable, error) {
-	l := len(cc.collectors)
-	ret := make([]Printable, l)
-	for i := 0; i < len(cc.collectors); i++ {
-		p, err := cc.collectors[i].Collect()
-		if err != nil {
-			return nil, err // if a collector returns error it's fatal
-		}
-		ret[l-1-i] = p
-	}
-	return PrintableList(ret), nil
+type Collector interface {
+	Collect() error
 }
 
 func Collect(fs afero.Fs, options *Options, s *env.Settings) error {
@@ -51,71 +33,52 @@ func Collect(fs afero.Fs, options *Options, s *env.Settings) error {
 	if err != nil {
 		return err
 	}
+	instanceDiagRunner := &Runner{}
+	ctx := &processingContext{root: DiagDir, instanceName: options.Instance}
+	p := &ObjectPrinter{fs: fs}
 
-	err = (&Builder{
-		r:  ir,
-		fs: fs,
-	}).
-		AddGroup(
-			ResourceWithContext(attachToOperator, ObjectWithDir, Instance, "instance", failOnError),
-			ResourceWithContext(attachToOperator, ObjectWithDir, OperatorVersion, "operatorversion", failOnError),
-			ResourceWithContext(attachToRoot, ObjectWithDir, Operator, "operator", failOnError)).
-		Add(ResourceWithContext(attachToInstance, ObjectListWithDirs, Pods, "pods", failOnError)).
-		Add(Resource(attachToInstance, RuntimeObject, Services, "services", continueOnError)).
-		Add(Resource(attachToInstance, RuntimeObject, Deployments, "deployments", continueOnError)).
-		Add(Resource(attachToInstance, RuntimeObject, ReplicaSets, "replicasets", continueOnError)).
-		Add(Resource(attachToInstance, RuntimeObject, StatefulSets, "statefulsets", continueOnError)).
-		Add(Resource(attachToInstance, RuntimeObject, ServiceAccounts, "serviceaccounts", continueOnError)).
-		Add(Resource(attachToInstance, RuntimeObject, ClusterRoleBindings, "clusterrolebindings", continueOnError)).
-		Add(Resource(attachToInstance, RuntimeObject, RoleBindings, "rolebindings", continueOnError)).
-		Add(Resource(attachToInstance, RuntimeObject, ClusterRoles, "clusterroles", continueOnError)).
-		Add(Resource(attachToInstance, RuntimeObject, Roles, "roles", continueOnError)).
-		Add(Logs(attachToInstance)).
-		AddAsYaml(attachToRoot, "version", version.Get()).
-		AddAsYaml(attachToRoot, "settings", s).
-		Run()
-
-	if err != nil {
-		return err
-	}
+	instanceDiagRunner.
+		Run(ResourceCollectorGroup{
+			{ir.Instance, "instance", ctx.attachToOperator, failOnError, ctx.mustSetOperatorVersionNameFromInstance, p, ObjectWithDir},
+			{ir.OperatorVersion(ctx.operatorVersionName), "operatorversion", ctx.attachToOperator, failOnError, ctx.mustSetOperatorNameFromOperatorVersion, p, ObjectWithDir},
+			{ir.Operator(ctx.operatorName), "operator", ctx.attachToRoot, failOnError, nil, p, ObjectWithDir}}).
+		Run(&ResourceCollector{ir.Pods, "pod", ctx.attachToInstance, continueOnError, ctx.mustAddPodNames, p, ObjectListWithDirs}).
+		Run(&ResourceCollector{ir.Services, "service", ctx.attachToInstance, continueOnError, nil, p, RuntimeObject}).
+		Run(&ResourceCollector{ir.Deployments, "deployment", ctx.attachToInstance, continueOnError, nil, p, RuntimeObject}).
+		Run(&ResourceCollector{ir.ReplicaSets, "replicaset", ctx.attachToInstance, continueOnError, nil, p, RuntimeObject}).
+		Run(&ResourceCollector{ir.StatefulSets, "statefulset", ctx.attachToInstance, continueOnError, nil, p, RuntimeObject}).
+		Run(&ResourceCollector{ir.ServiceAccounts, "serviceaccount", ctx.attachToInstance, continueOnError, nil, p, RuntimeObject}).
+		Run(&ResourceCollector{ir.ClusterRoleBindings, "clusterrolebinding", ctx.attachToInstance, continueOnError, nil, p, RuntimeObject}).
+		Run(&ResourceCollector{ir.RoleBindings, "rolebinding", ctx.attachToInstance, continueOnError, nil, p, RuntimeObject}).
+		Run(&ResourceCollector{ir.ClusterRoles, "clusterrole", ctx.attachToInstance, continueOnError, nil, p, RuntimeObject}).
+		Run(&ResourceCollector{ir.Roles, "role", ctx.attachToInstance, continueOnError, nil, p, RuntimeObject}).
+		RunForEach(ctx.podNames, func(podName string) Collector { return &LogCollector{ir, podName, ctx.attachToInstance, p} }).
+		DumpToYaml(version.Get(), ctx.attachToRoot, "version", p).
+		DumpToYaml(s, ctx.attachToRoot, "settings", p)
 
 	kr, err := NewKudoResources(s)
 	if err != nil {
 		return err
 	}
 
-	err = (&Builder{
-		r:  kr,
-		fs: fs,
-	}).
-		Add(ResourceWithContext(attachToKudoRoot, ObjectListWithDirs, Pods, "pods", failOnError)).
-		Add(Resource(attachToKudoRoot, RuntimeObject, Services, "services", continueOnError)).
-		Add(Resource(attachToKudoRoot, RuntimeObject, StatefulSets, "statefulsets", continueOnError)).
-		Add(Resource(attachToKudoRoot, RuntimeObject, ServiceAccounts, "serviceaccounts", continueOnError)).
-		Add(Logs(attachToKudoRoot)).
-		Run()
+	ctx = &processingContext{root: KudoDir}
+	kudoDiagRunner := &Runner{}
+	kudoDiagRunner.
+		Run(&ResourceCollector{kr.Pods, "pod", ctx.attachToRoot, continueOnError, ctx.mustAddPodNames, p, ObjectListWithDirs}).
+		Run(&ResourceCollector{kr.Services, "service", ctx.attachToRoot, continueOnError, nil, p, RuntimeObject}).
+		Run(&ResourceCollector{kr.StatefulSets, "statefulset", ctx.attachToRoot, continueOnError, nil, p, RuntimeObject}).
+		Run(&ResourceCollector{kr.ServiceAccounts, "serviceaccount", ctx.attachToRoot, continueOnError, nil, p, RuntimeObject}).
+		RunForEach(ctx.podNames, func(podName string) Collector { return &LogCollector{kr, podName, ctx.attachToRoot, p} })
 
-	return err
-}
-
-func ResourceWithContext(baseDir func(*processingContext) string, mode printMode, r ResourceFnWithContext, errName string, failOnErr bool) func(*Builder) collector {
-	return func(b *Builder) collector {
-		return b.createResourceCollector(r.toResourceFn(&b.ctx), baseDir, mode, errName, failOnErr)
+	errMsgs := p.errors
+	if instanceDiagRunner.fatalErr != nil {
+		errMsgs = append(errMsgs, instanceDiagRunner.fatalErr.Error())
 	}
-}
-
-func Resource(baseDir func(*processingContext) string, mode printMode, r ResourceFn, errName string, failOnErr bool) func(*Builder) collector {
-	return func(b *Builder) collector {
-		return b.createResourceCollector(r, baseDir, mode, errName, failOnErr)
+	if kudoDiagRunner.fatalErr != nil {
+		errMsgs = append(errMsgs, instanceDiagRunner.fatalErr.Error())
 	}
-}
-
-func Logs(baseDir func(*processingContext) string) func(*Builder) collector {
-	return func(b *Builder) collector {
-		return &LogCollector{
-			r:         b.r,
-			podNames:  func() []string { return b.ctx.podNames },
-			parentDir: func() string { return baseDir(&b.ctx) },
-		}
+	if len(errMsgs) > 0 {
+		return fmt.Errorf(strings.Join(errMsgs, "\n"))
 	}
+	return nil
 }

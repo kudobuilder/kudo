@@ -1,62 +1,77 @@
 package diagnostics
 
+import (
+	"fmt"
+
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
+)
+
 type ResourceCollector struct {
-	r          *ResourceFuncsConfig
-	resourceFn ResourceFn
-	printMode  printMode
-	parentDir  func() string
-	errName    string
-	failOnErr  bool
+	resourceFn  func() (runtime.Object, error)
+	errKind     string
+	parentDir   func() string
+	failOnError bool
+	callback    func(o runtime.Object)
+	p           *ObjectPrinter
+	mode        printMode
 }
 
-func (c *ResourceCollector) Collect() (Printable, error) {
-	obj, err := c.resourceFn(c.r)
-	if err != nil {
-		if c.failOnErr {
-			return nil, err
+func (c *ResourceCollector) Collect() error {
+	obj, err := c.resourceFn()
+	switch {
+	case err != nil:
+		if c.failOnError {
+			return fmt.Errorf("failed to retrieve object(s) of kind %s: %v", c.errKind, err)
 		}
-		return &PrintableError{
-			error: err,
-			Fatal: false,
-			name:  c.errName,
-			dir:   c.parentDir,
-		}, nil
-	}
-	switch c.printMode {
-	case ObjectWithDir:
-		return NewPrintableObject(obj, c.parentDir)
-	case ObjectListWithDirs:
-		return NewPrintableObjectList(obj, c.parentDir)
-	case RuntimeObject:
-		fallthrough
+		c.p.printError(err, c.parentDir(), c.errKind)
+	case obj == nil || meta.IsListType(obj) && meta.LenList(obj) == 0:
+		if c.failOnError {
+			return fmt.Errorf("no object(s) of kind %s retrieved", c.errKind)
+		}
 	default:
-		return NewPrintableRuntimeObject(obj, c.parentDir)
+		if c.callback != nil {
+			c.callback(obj)
+		}
+		c.p.printObject(obj, c.parentDir(), c.mode)
 	}
+	return nil
+}
+
+type ResourceCollectorGroup []ResourceCollector
+
+func (g ResourceCollectorGroup) Collect() error {
+	objs := make([]runtime.Object, len(g))
+	modes := make([]printMode, len(g))
+	for i, c := range g {
+		obj, err := c.resourceFn()
+		if err != nil {
+			return err // TODO: wrap
+		}
+		if c.callback != nil {
+			c.callback(obj)
+		}
+		objs[i] = obj
+	}
+	for i, c := range g {
+		c.p.printObject(objs[i], c.parentDir(), modes[i])
+	}
+	return nil
 }
 
 type LogCollector struct {
 	r         *ResourceFuncsConfig
-	podNames  func() []string
+	podName   string
 	parentDir func() string
+	p         *ObjectPrinter
 }
 
-func (c *LogCollector) Collect() (Printable, error) {
-	var ret PrintableList
-	for _, podName := range c.podNames() {
-		log, err := Log(c.r, podName)
-		if err != nil {
-			return &PrintableError{
-				error: err,
-				Fatal: false,
-				name:  podName,
-				dir:   c.parentDir,
-			}, nil
-		}
-		ret = append(ret, &PrintableLog{
-			name:      podName,
-			log:       log,
-			parentDir: c.parentDir,
-		})
+func (c *LogCollector) Collect() error {
+	log, err := c.r.Log(c.podName)
+	if err != nil {
+		c.p.printError(err, c.parentDir(), fmt.Sprintf("%s.log", c.podName))
+	} else {
+		c.p.printLog(log, c.parentDir(), c.podName)
 	}
-	return ret, nil
+	return nil
 }
