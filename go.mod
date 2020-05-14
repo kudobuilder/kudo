@@ -36,7 +36,7 @@ require (
 	k8s.io/kubectl v0.17.3
 	sigs.k8s.io/controller-runtime v0.5.1
 	sigs.k8s.io/controller-tools v0.2.6
-	sigs.k8s.io/yaml v1.1.0
+	sigs.k8s.io/yaml v1.2.0
 )
 
 replace k8s.io/code-generator v0.17.3 => github.com/kudobuilder/code-generator v0.17.4-beta.0.0.20200316162450-cc91a9201457
