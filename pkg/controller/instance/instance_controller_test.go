@@ -74,7 +74,6 @@ func TestRestartController(t *testing.T) {
 	}
 	instanceKey, _ := client.ObjectKeyFromObject(in)
 	assert.NoError(t, c.Create(context.TODO(), in))
-	defer assert.NoError(t, c.Delete(context.TODO(), in))
 
 	ov := &v1beta1.OperatorVersion{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
@@ -90,7 +89,6 @@ func TestRestartController(t *testing.T) {
 		},
 	}
 	assert.NoError(t, c.Create(context.TODO(), ov))
-	defer assert.NoError(t, c.Delete(context.TODO(), ov))
 
 	log.Print("And a deploy plan that was already run")
 	assert.Eventually(t, func() bool { return instancePlanFinished(instanceKey, "deploy", c) }, timeout, tick)
