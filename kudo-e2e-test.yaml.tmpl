@@ -6,7 +6,7 @@ manifestDirs:
 testDirs:
 - ./test/e2e
 commands:
-- command: ./bin/kubectl-kudo init --webhook InstanceValidation --unsafe-self-signed-webhook-ca --dry-run --output yaml --kudo-image kudobuilder/controller:$KUDO_VERSION --kudo-image-pull-policy Never
+- command: ./bin/kubectl-kudo init --webhook InstanceValidation --unsafe-self-signed-webhook-ca --kudo-image kudobuilder/controller:$KUDO_VERSION --kudo-image-pull-policy Never
 startKIND: true
 kindContainers:
 - kudobuilder/controller:%version%
