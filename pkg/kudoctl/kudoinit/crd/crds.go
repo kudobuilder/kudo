@@ -142,7 +142,10 @@ func (c Initializer) createOrUpdate(client v1beta1.CustomResourceDefinitionsGett
 		}
 		return nil
 	}
-	return fmt.Errorf("failed to create crd %s: %v", crd.Name, err)
+	if err != nil {
+		return fmt.Errorf("failed to create crd %s: %v", crd.Name, err)
+	}
+	return nil
 }
 
 func embeddedCRD(path string) *apiextv1beta1.CustomResourceDefinition {
