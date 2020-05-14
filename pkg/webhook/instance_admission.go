@@ -10,7 +10,9 @@ import (
 
 	"github.com/thoas/go-funk"
 	"k8s.io/api/admission/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -22,8 +24,22 @@ import (
 
 // InstanceAdmission validates updates to an Instance, guarding from conflicting plan executions
 type InstanceAdmission struct {
-	Client  client.Client
+	client  client.Client
 	decoder *admission.Decoder
+}
+
+func NewInstanceAdmission(cfg *rest.Config, s *runtime.Scheme) (*InstanceAdmission, error) {
+	// client.New returns a new Client using the provided config and Options.
+	// The returned client reads *and* writes directly from the server
+	// (it doesn't use object caches). Using a cached client might lead to racy
+	// behaviour when installing operators e.g. and `OperatorVersion` is already created
+	// but not yet in cache which leads to an error during `Instance` creation.
+	c, err := client.New(cfg, client.Options{Scheme: s})
+	if err != nil {
+		return nil, err
+	}
+
+	return &InstanceAdmission{client: c}, nil
 }
 
 // InstanceAdmission validates updates to an Instance, guarding from conflicting plan executions
@@ -57,7 +73,7 @@ func handleCreate(ia *InstanceAdmission, req admission.Request) admission.Respon
 
 	// since we don't yet enforce the existence of the 'deploy' plan in the OV, we check for its existence
 	// and decline Instance creation if the plan is not found
-	ov, err := instance.GetOperatorVersion(new, ia.Client)
+	ov, err := instance.GetOperatorVersion(new, ia.client)
 	if err != nil {
 		log.Printf("InstanceAdmission: Error getting operatorVersion %s for instance %s/%s: %v", new.Spec.OperatorVersion.Name, new.Namespace, new.Name, err)
 		return admission.Errored(http.StatusInternalServerError, err)
@@ -103,7 +119,7 @@ func handleUpdate(ia *InstanceAdmission, req admission.Request) admission.Respon
 
 	// fetch new OperatorVersion: we always fetch the new one, since if it's an update it's the same as the old one
 	// and if it's an upgrade, we need the new one anyway
-	ov, err := instance.GetOperatorVersion(new, ia.Client)
+	ov, err := instance.GetOperatorVersion(new, ia.client)
 	if err != nil {
 		log.Printf("InstanceAdmission: Error getting operatorVersion %s for instance %s/%s: %v", new.Spec.OperatorVersion.Name, new.Namespace, new.Name, err)
 		return admission.Errored(http.StatusInternalServerError, err)

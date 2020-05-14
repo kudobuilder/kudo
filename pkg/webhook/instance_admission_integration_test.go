@@ -91,7 +91,7 @@ var _ = Describe("Test", func() {
 		// 4. registering instance admission controller
 		log.Print("test.BeforeEach: initializing webhook server")
 		server := mgr.GetWebhookServer()
-		server.Register(instanceAdmissionWebhookPath, &ctrhook.Admission{Handler: &InstanceAdmission{Client: c}})
+		server.Register(instanceAdmissionWebhookPath, &ctrhook.Admission{Handler: &InstanceAdmission{client: c}})
 
 		// 5. starting the manager
 		stop = make(chan struct{})
