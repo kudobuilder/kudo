@@ -31,6 +31,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
 )
 
 var testenv testutils.TestEnvironment
@@ -68,10 +69,10 @@ func TestCrds_Config(t *testing.T) {
 
 func assertManifestFileMatch(t *testing.T, fileName string, expectedObject runtime.Object) {
 	expectedContent, err := runtimeObjectAsBytes(expectedObject)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	path := filepath.Join(manifestsDir, fileName)
 	of, err := ioutil.ReadFile(path)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	assert.Equal(t, string(expectedContent), string(of), fmt.Sprintf("embedded file %s does not match the source, run 'make generate'", fileName))
 }
@@ -93,7 +94,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
 		Scheme: testutils.Scheme(),
 	})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	kclient := getKubeClient(t)
 
 	instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "ns")
@@ -102,7 +103,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 
 	// Install all of the CRDs.
 	crds := crd.NewInitializer().Resources()
-	defer assert.NoError(t, deleteCRDs(crds, testClient))
+	defer assert.NoError(t, deleteObjects(crds, testClient))
 
 	var buf bytes.Buffer
 	cmd := &initCmd{
@@ -111,19 +112,20 @@ func TestIntegInitForCRDs(t *testing.T) {
 		client: kclient,
 	}
 	err = cmd.run()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
-	assert.Nil(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
 
 	// Kubernetes client caches the types, se we need to re-initialize it.
 	testClient, err = testutils.NewRetryClient(testenv.Config, client.Options{
 		Scheme: testutils.Scheme(),
 	})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	// make sure that we can create an object of this type now
-	assert.Nil(t, testClient.Create(context.TODO(), instance))
+	assert.NoError(t, testClient.Create(context.TODO(), instance))
+	defer assert.NoError(t, testClient.Delete(context.TODO(), instance))
 }
 
 func TestIntegInitWithNameSpace(t *testing.T) {
@@ -132,7 +134,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
 		Scheme: testutils.Scheme(),
 	})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	kclient := getKubeClient(t)
 
 	instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "ns")
@@ -141,7 +143,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 
 	// Install all of the CRDs.
 	crds := crd.NewInitializer().Resources()
-	defer assert.NoError(t, deleteCRDs(crds, testClient))
+	defer assert.NoError(t, deleteObjects(crds, testClient))
 
 	var buf bytes.Buffer
 	cmd := &initCmd{
@@ -165,20 +167,21 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	// On second attempt run should succeed.
 	err = cmd.run()
 	assert.NoError(t, err)
+	defer deletePrereqs(cmd, testClient)
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
-	assert.Nil(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
 
 	// Kubernetes client caches the types, so we need to re-initialize it.
 	_, err = testutils.NewRetryClient(testenv.Config, client.Options{
 		Scheme: testutils.Scheme(),
 	})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	kclient = getKubeClient(t)
 
 	// make sure that the controller lives in the correct namespace
 	statefulsets, err := kclient.KubeClient.AppsV1().StatefulSets(namespace).List(metav1.ListOptions{})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	kudoControllerFound := false
 	for _, ss := range statefulsets.Items {
@@ -256,7 +259,7 @@ func TestInitWithServiceAccount(t *testing.T) {
 			testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
 				Scheme: testutils.Scheme(),
 			})
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 			kclient := getKubeClient(t)
 
 			instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "ns")
@@ -265,7 +268,7 @@ func TestInitWithServiceAccount(t *testing.T) {
 
 			// Install all of the CRDs.
 			crds := crd.NewInitializer().Resources()
-			defer assert.NoError(t, deleteCRDs(crds, testClient))
+			defer assert.NoError(t, deleteObjects(crds, testClient))
 
 			var buf bytes.Buffer
 			cmd := &initCmd{
@@ -306,18 +309,18 @@ func TestInitWithServiceAccount(t *testing.T) {
 				assert.NoError(t, err)
 
 				// WaitForCRDs to be created... the init cmd did NOT wait
-				assert.Nil(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+				assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
 
 				// Kubernetes client caches the types, so we need to re-initialize it.
 				_, err = testutils.NewRetryClient(testenv.Config, client.Options{
 					Scheme: testutils.Scheme(),
 				})
-				assert.Nil(t, err)
+				assert.NoError(t, err)
 				kclient = getKubeClient(t)
 
 				// make sure that the controller lives in the correct namespace
 				statefulsets, err := kclient.KubeClient.AppsV1().StatefulSets(namespace).List(metav1.ListOptions{})
-				assert.Nil(t, err)
+				assert.NoError(t, err)
 
 				kudoControllerFound := false
 				for _, ss := range statefulsets.Items {
@@ -345,7 +348,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 
 	// Install all of the CRDs.
 	crds := crd.NewInitializer().Resources()
-	defer assert.NoError(t, deleteCRDs(crds, testClient))
+	defer assert.NoError(t, deleteObjects(crds, testClient))
 
 	var buf bytes.Buffer
 	clog.InitNoFlag(&buf, clog.Level(4))
@@ -358,39 +361,55 @@ func TestNoErrorOnReInit(t *testing.T) {
 		crdOnly: true,
 	}
 	err = cmd.run()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
-	assert.Nil(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
 
 	//	 if the CRD exists and we init again there should be no error
 	_, err = testutils.NewRetryClient(testenv.Config, client.Options{
 		Scheme: testutils.Scheme(),
 	})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	// second run will have an output that it already exists
 	err = cmd.run()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.True(t, strings.Contains(buf.String(), "crd operators.kudo.dev already exists"))
 }
 
-func deleteCRDs(crds []runtime.Object, client *testutils.RetryClient) error {
+func deleteObjects(objs []runtime.Object, client *testutils.RetryClient) error {
 	var err error
 
-	for _, crd := range crds {
-		err = client.Delete(context.TODO(), crd)
+	for _, obj := range objs {
+		err = client.Delete(context.TODO(), obj)
 		if err != nil && !k8serrors.IsNotFound(err) {
 			return err
 		}
 	}
-	return testutils.WaitForDelete(client, crds)
+	return testutils.WaitForDelete(client, objs)
+}
+
+func deletePrereqs(cmd *initCmd, client *testutils.RetryClient) error {
+	opts := kudoinit.NewOptions(cmd.version, cmd.ns, cmd.serviceAccount, webhooksArray(cmd.webhooks), cmd.selfSignedWebhookCA)
+
+	if err := deleteObjects(prereq.NewNamespaceInitializer(opts).Resources(), client); err != nil {
+		return err
+	}
+	if err := deleteObjects(prereq.NewServiceAccountInitializer(opts).Resources(), client); err != nil {
+		return err
+	}
+	if err := deleteObjects(prereq.NewWebHookInitializer(opts).Resources(), client); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getKubeClient(t *testing.T) *kube.Client {
 	c, err := kubernetes.NewForConfig(testenv.Config)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	xc, err := apiextensionsclient.NewForConfig(testenv.Config)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	return &kube.Client{KubeClient: c, ExtClient: xc}
 }
