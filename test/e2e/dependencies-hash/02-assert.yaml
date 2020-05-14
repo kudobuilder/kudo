@@ -8,7 +8,7 @@ spec:
     metadata:
       annotations:
         # This update to the deployment must have the same hash as 00-assert.yaml
-        kudo.dev/dependencies-hash: af5aeaa4a7dbc49b5d5fd9090541c141
+        kudo.dev/dependencies-hash: 6fa812afe527bdb6c9a5fbfcba8193bb
         kudo.dev/operator-version: 0.1.0
     spec:
       containers:
