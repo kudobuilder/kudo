@@ -13,12 +13,34 @@ status: provisional
 see-also:
 ---
 
-<!--ts-->
-<!--te-->
-
 ## Summary
 
 This KEP describes a feature to allow parameters to be defined as immutable. Immutable parameters can not be updated after the installation of the operator
+
+## Table of Contents
+
+<!--ts-->
+      * [Summary](#summary)
+      * [Table of Contents](#table-of-contents)
+      * [Motivation](#motivation)
+         * [Goals](#goals)
+         * [Non-Goals](#non-goals)
+      * [Proposal](#proposal)
+         * [User Stories](#user-stories)
+         * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+            * [Installation](#installation)
+            * [Updates](#updates)
+            * [Upgrades](#upgrades)
+            * [Other](#other)
+         * [Risks and Mitigations](#risks-and-mitigations)
+      * [Alternatives](#alternatives)
+         * [Immutable Section in params.yaml](#immutable-section-in-paramsyaml)
+         * [A separate immutables.yaml](#a-separate-immutablesyaml)
+      * [Implementation History](#implementation-history)
+
+<!-- Added by: aneumann, at: Thu May 14 19:34:48 CEST 2020 -->
+
+<!--te-->
 
 ## Motivation
 
@@ -103,7 +125,7 @@ NODE_COUNT   	3      	true     false
 
 ## Alternatives
 
-### `immutable` Section in `params.yaml`
+### Immutable Section in `params.yaml`
 
 Instead of adding an `immutable` property to the parameter definition, we could add an `immutable` section to the params.yaml file:
 
