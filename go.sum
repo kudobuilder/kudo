@@ -331,6 +331,8 @@ github.com/kudobuilder/code-generator v0.17.4-beta.0.0.20200316162450-cc91a92014
 github.com/kudobuilder/code-generator v0.17.4-beta.0.0.20200316162450-cc91a9201457/go.mod h1:l8BLVwASXQZTo2xamW5mQNFCe1XPiAesVq7Y1t7PiQQ=
 github.com/kudobuilder/kuttl v0.2.0 h1:kU3FnFzhnKB57hPGetAAhsIenyD2R87ip65KCR2W7f8=
 github.com/kudobuilder/kuttl v0.2.0/go.mod h1:h3TcBWcPKnspaq4DE3qFgYNO3mEVKq+0owUzlzxP0Bk=
+github.com/kudobuilder/kuttl v0.2.1 h1:LT5Ow3q75FdU7zOfOlG0knS6yKM8pJR1RrP4jL0tMic=
+github.com/kudobuilder/kuttl v0.2.1/go.mod h1:h3TcBWcPKnspaq4DE3qFgYNO3mEVKq+0owUzlzxP0Bk=
 github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de h1:9TO3cAIGXtEhnIaL+V+BEER86oLrvS+kWobKpbJuye0=
 github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de/go.mod h1:zAbeS9B/r2mtpb6U+EI2rYA5OAXxsYw6wTamcNW+zcE=
 github.com/lithammer/dedent v1.1.0/go.mod h1:jrXYCQtgg0nJiN+StA2KgR7w6CiQNv9Fd/Z9BP0jIOc=
