@@ -13,6 +13,9 @@ status: provisional
 see-also:
 ---
 
+<!--ts-->
+<!--te-->
+
 ## Summary
 
 This KEP describes a feature to allow parameters to be defined as immutable. Immutable parameters can not be updated after the installation of the operator
@@ -29,6 +32,8 @@ Make it possible for an operator developer to specify that a parameter can not b
 
 ### Non-Goals
 
+- Allow modification of immutable parameters after the initial deploy plan is finished
+- Constants that can be used in templating but can not be changed by the user. Immutable parameters can always be set by the user on installation.
 - Immutable Parameters that can be set after the installation - There is a use case for parameters that have an undefined state until they are first used, for example in a specific plan, but can not be changed afterwards. This KEP requires a parameter to receive a value at installation time, either by using a default or provided by the user.
 
 ## Proposal
@@ -55,12 +60,35 @@ The default value for `immutable` is `false`.
 
 ### Implementation Details/Notes/Constraints
 
-- KUDO CLI will not perform any checks with regards to immutability
+#### Installation
+- If a parameter definition is immutable, it must either have a default value or needs to be marked as required.
+- If no value for an immutable parameter is given on installation, KUDO copies the default value from the OperatorVersion into the instance. This makes sure that the parameter value will never change, even if instance is changed to use a newer OperatorVersion that has different defaults.
+
+#### Updates
+- KUDO CLI will not perform any checks with regards to immutability on installation or updates
 - The admission webhook verifies if a parameter is immutable
   - If the value of any immutable parameter changes from the current value it rejects the whole update
   - If the value of all immutable parameters are the same as their current values it allows the update
-- If no value for an immutable parameter is given on installation, KUDO copies the default value from the OperatorVersion into the instance. This makes sure that the parameter value will never change, even if instance is changed to use a newer OperatorVersion that has different defaults.
-- If a parameter definition is immutable, it must either have a default value or needs to be marked as required.
+
+#### Upgrades
+- Upgrades to a new OperatorVersions:
+  - A parameter can be made immutable in a newly released OperatorVersion.
+    - When executing `kudo upgrade` the user has to explicitly set the value for parameters that are changed from mutable to immutable
+    - If an parameter is changed from mutable to immutable and the user does not explicitly specifies a parameter the upgrade will abort with an error message
+    - This ensures that the user knows about the new immutability
+  - A new immutable parameter can be added to the operator
+    - When executing `kudo upgrade` the user has to explicitly set the value for the new parameter, even if the parameter has a default value
+    - If the user does not provide a value on `kudo upgrade`, the upgrade will abort with an error message that contains the (optional) default value
+    - This ensures that the user knows about the new parameter and that it can not be changed after the upgrade
+  - A parameter can be made mutable in a newly released OperatorVersion
+    - The parameter keeps the existing value
+    - The value of the parameter can already be changed while running `kudo upgrade`
+    - This change does not require explicit consent from the user
+  - An immutable parameter can be removed
+    - This change does not require explicit consent from the user
+    - The value for a removed parameter will be removed from the installed instance
+
+#### Other
 - `k kudo package list parameters <operatorname>` will be extended to include the immutability (either by default or with an extra parameter):
 ```
 Name         	Default	Required Immutable
@@ -120,3 +148,4 @@ parameters:
 - 2020-04-28 - Initial draft. (@aneumann)
 - 2020-05-01 - Clarified point of check (webhook) and use of default values. (@aneumann)
 - 2020-05-14 - Clarified and reworded some things, added alternatives (@aneumann)
+- 2020-05-15 - Added section on upgrads (@aneumann)
