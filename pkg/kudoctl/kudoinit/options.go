@@ -3,8 +3,6 @@ package kudoinit
 import (
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
-
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 
@@ -18,9 +16,8 @@ type Options struct {
 	TerminationGracePeriodSeconds int64
 	// Image defines the image to be used
 	Image string
-	// Image PullPolicy
-	PullPolicy v1.PullPolicy
-
+	// ImagePullPolicy sets the pull policy of the image
+	ImagePullPolicy string
 	// List of enabled webhooks
 	Webhooks []string
 	// Using self-signed webhook CA bundle
@@ -30,10 +27,7 @@ type Options struct {
 	Upgrade        bool
 }
 
-func NewOptions(v string, pullPolicy v1.PullPolicy, ns string, sa string, webhooks []string, upgrade bool, selfSignedWebhookCA bool) Options {
-	if pullPolicy == "" {
-		pullPolicy = v1.PullAlways
-	}
+func NewOptions(v string, ns string, sa string, webhooks []string, upgrade bool, selfSignedWebhookCA bool) Options {
 	if v == "" {
 		v = version.Get().GitVersion
 	}
@@ -49,7 +43,7 @@ func NewOptions(v string, pullPolicy v1.PullPolicy, ns string, sa string, webhoo
 		Namespace:                     ns,
 		TerminationGracePeriodSeconds: defaultGracePeriod,
 		Image:                         fmt.Sprintf("kudobuilder/controller:v%v", v),
-		PullPolicy:                    pullPolicy,
+		ImagePullPolicy:               "Always",
 		Webhooks:                      webhooks,
 		ServiceAccount:                sa,
 		Upgrade:                       upgrade,

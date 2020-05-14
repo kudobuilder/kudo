@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
-	corev1 "k8s.io/api/core/v1"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -66,7 +65,7 @@ type initCmd struct {
 	out                 io.Writer
 	fs                  afero.Fs
 	image               string
-	pullPolicy          string
+	imagePullPolicy     string
 	dryRun              bool
 	output              string
 	version             string
@@ -109,7 +108,7 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f := cmd.Flags()
 	f.BoolVarP(&i.clientOnly, "client-only", "c", false, "If set does not install KUDO on the server")
 	f.StringVarP(&i.image, "kudo-image", "i", "", "Override KUDO controller image and/or version")
-	f.StringVarP(&i.pullPolicy, "kudo-image-pull-policy", "", "Always", "Override KUDO controller image pull policy (Always, IfPresent, Never)")
+	f.StringVarP(&i.imagePullPolicy, "kudo-image-pull-policy", "", "Always", "Override KUDO controller image pull policy")
 	f.StringVarP(&i.version, "version", "", "", "Override KUDO controller version of the KUDO image")
 	f.StringVarP(&i.output, "output", "o", "", "Output format")
 	f.BoolVar(&i.dryRun, "dry-run", false, "Do not install local or remote")
@@ -156,32 +155,27 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 	if initCmd.crdOnly && initCmd.upgrade {
 		return errors.New("'--upgrade' and '--crd-only' can not be used at the same time")
 	}
-	if initCmd.pullPolicy != "Always" && initCmd.pullPolicy != "Never" && initCmd.pullPolicy != "IfNotPresent" {
-		return errors.New("--kudo-image-pull-policy can only be 'Always', 'Never' or 'IfNotPresent'")
-	}
 
 	return nil
 }
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (initCmd *initCmd) run() error {
-	var pullPolicy corev1.PullPolicy
-	switch initCmd.pullPolicy {
-	case "Always":
-		pullPolicy = corev1.PullAlways
-	case "Never":
-		pullPolicy = corev1.PullNever
-	case "IfNotPresent":
-		pullPolicy = corev1.PullIfNotPresent
-	default:
-		return fmt.Errorf("invalid pull policy: %s", initCmd.pullPolicy)
-	}
-
-	opts := kudoinit.NewOptions(initCmd.version, pullPolicy, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks), initCmd.upgrade, initCmd.selfSignedWebhookCA)
-
+	opts := kudoinit.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks), initCmd.selfSignedWebhookCA, initCmd.upgrade)
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image
+	}
+	if initCmd.imagePullPolicy != "" {
+		switch initCmd.imagePullPolicy {
+		case
+			"Always",
+			"Never",
+			"IfNotPresent":
+			opts.ImagePullPolicy = initCmd.imagePullPolicy
+		default:
+			return fmt.Errorf("Unknown image pull policy %s, must be one of 'Always', 'IfNotPresent' or 'Never'", initCmd.imagePullPolicy)
+		}
 	}
 
 	//TODO: implement output=yaml|json (define a type for output to constrain)

@@ -6,6 +6,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -172,6 +173,7 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 
 	secretDefaultMode := int32(420)
 	image := opts.Image
+	imagePullPolicy := v1.PullPolicy(opts.ImagePullPolicy)
 	s := &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "StatefulSet",
@@ -200,7 +202,7 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 								{Name: "ENABLE_WEBHOOKS", Value: strconv.FormatBool(opts.HasWebhooksEnabled())},
 							},
 							Image:           image,
-							ImagePullPolicy: opts.PullPolicy,
+							ImagePullPolicy: imagePullPolicy,
 							Name:            "manager",
 							Ports: []corev1.ContainerPort{
 								// name matters for service

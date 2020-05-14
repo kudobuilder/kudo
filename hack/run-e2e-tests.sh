@@ -13,7 +13,10 @@ docker build . \
     -t "kudobuilder/controller:$VERSION"
 
 # Generate the kudo.yaml that is used to install KUDO while running e2e-test
-./bin/kubectl-kudo init --webhook InstanceValidation --unsafe-self-signed-webhook-ca --dry-run --output yaml --kudo-image kudobuilder/controller:$VERSION --kudo-image-pull-policy Never \
+./bin/kubectl-kudo init --webhook InstanceValidation \
+    --unsafe-self-signed-webhook-ca --dry-run --output yaml \
+    --kudo-image kudobuilder/controller:$VERSION \
+    --kudo-image-pull-policy Never \
     > test/manifests/kudo.yaml
 
 sed "s/%version%/$VERSION/" kudo-e2e-test.yaml.tmpl > kudo-e2e-test.yaml
