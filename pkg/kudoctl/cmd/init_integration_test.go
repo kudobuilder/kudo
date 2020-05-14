@@ -382,27 +382,26 @@ func TestNoErrorOnReInit(t *testing.T) {
 }
 
 func deleteObjects(objs []runtime.Object, client *testutils.RetryClient) error {
-	var err error
-
 	for _, obj := range objs {
-		err = client.Delete(context.TODO(), obj)
+		err := client.Delete(context.TODO(), obj)
 		if err != nil && !k8serrors.IsNotFound(err) {
 			return err
 		}
 	}
+
 	return testutils.WaitForDelete(client, objs)
 }
 
 func deletePrereqs(cmd *initCmd, client *testutils.RetryClient) error {
 	opts := kudoinit.NewOptions(cmd.version, cmd.ns, cmd.serviceAccount, webhooksArray(cmd.webhooks), cmd.selfSignedWebhookCA)
 
-	if err := deleteObjects(prereq.NewNamespaceInitializer(opts).Resources(), client); err != nil {
+	if err := deleteObjects(prereq.NewWebHookInitializer(opts).Resources(), client); err != nil {
 		return err
 	}
 	if err := deleteObjects(prereq.NewServiceAccountInitializer(opts).Resources(), client); err != nil {
 		return err
 	}
-	if err := deleteObjects(prereq.NewWebHookInitializer(opts).Resources(), client); err != nil {
+	if err := deleteObjects(prereq.NewNamespaceInitializer(opts).Resources(), client); err != nil {
 		return err
 	}
 
