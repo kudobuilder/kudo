@@ -4,14 +4,15 @@ import (
 	"context"
 	"crypto/md5" //nolint:gosec
 	"fmt"
+	"log"
 	"sort"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
@@ -138,16 +139,25 @@ func (de *dependencyCalculator) getHashForDependency(d resourceDependency) (hash
 	if err != nil {
 		return hashBytes{}, fmt.Errorf("failed to get dependeny %s/%s: %v", d.namespace, d.name, err)
 	}
+
+	if dep == nil {
+		// We ignore NotFound resources here. It would be better to fail and wait for a retry, but at the moment
+		// we may not get a reconcile request when the resource is available, as it may not be deployed directly
+		// by KUDO but indirectly (i.e. cert-manager creates a secret that is referenced here)
+		log.Printf("Resource %s/%s was not found for dependency calculation, skipping it", d.namespace, d.name)
+		de.cache[d] = hashBytes{}
+		return de.cache[d], nil
+	}
 	if _, ok := dep.GetAnnotations()[kudo.SkipHashCalculationAnnotation]; ok {
 		de.cache[d] = hashBytes{}
-	} else {
-		yamlStr, err := sanitizeAndSerialize(dep)
-		if err != nil {
-			return hashBytes{}, fmt.Errorf("failed to serialize dependeny %s/%s: %v", d.namespace, d.name, err)
-		}
-		de.cache[d] = md5.Sum([]byte(yamlStr)) //nolint:gosec
+		return de.cache[d], nil
 	}
 
+	yamlStr, err := sanitizeAndSerialize(dep)
+	if err != nil {
+		return hashBytes{}, fmt.Errorf("failed to serialize dependeny %s/%s: %v", d.namespace, d.name, err)
+	}
+	de.cache[d] = md5.Sum([]byte(yamlStr)) //nolint:gosec
 	return de.cache[d], nil
 }
 
@@ -167,7 +177,9 @@ func sanitizeAndSerialize(origObj *unstructured.Unstructured) (string, error) {
 	return ToYaml(obj)
 }
 
-// resourceDependency returns the resource of type t with the given namespace/name, either from the passed in list of objects or the last applied configuration from the API server
+// resourceDependency returns the resource of type t with the given namespace/name, either from the passed in list of
+// objects or the last applied configuration from the API server. If the resource is not found, the func returns
+// nil and no error
 func (de *dependencyCalculator) resourceDependency(d resourceDependency) (*unstructured.Unstructured, error) {
 
 	// First try to find the dependency in the local list, if it's deployed in the same task we'll find it here
@@ -190,6 +202,9 @@ func (de *dependencyCalculator) resourceDependency(d resourceDependency) (*unstr
 	}
 
 	err := de.Client.Get(context.TODO(), key, dep)
+	if apierrors.IsNotFound(err) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve object %s/%s: %v", d.namespace, d.name, err)
 	}
