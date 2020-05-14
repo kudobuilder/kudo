@@ -188,7 +188,7 @@ func sanitizeAndSerialize(origObj *unstructured.Unstructured) (string, error) {
 	obj.SetSelfLink("")
 	obj.SetUID("")
 
-	// This may be set or not, depending if the original object is typed or unstructured. To be safe we nil it
+	// This may be set or not, depending if the original object is typed or unstructured. To be safe we clear it
 	obj.SetGroupVersionKind(schema.GroupVersionKind{})
 
 	// Annotations are notorious for containing quickly changing strings: plan/phase/task names, uids, dates, etc.
@@ -197,9 +197,8 @@ func sanitizeAndSerialize(origObj *unstructured.Unstructured) (string, error) {
 	return ToYaml(obj)
 }
 
-// resourceDependency returns the resource of type t with the given namespace/name, either from the passed in list of
-// objects or the last applied configuration from the API server. If the resource is not found, the func returns
-// nil and no error
+// resourceDependency returns the specified resource, either from the passed in list of objects or the last applied
+// configuration from the API server.
 func (de *dependencyCalculator) resourceDependency(d resourceDependency) (*unstructured.Unstructured, error) {
 
 	// First try to find the dependency in the local list, if it's deployed in the same task we'll find it here
