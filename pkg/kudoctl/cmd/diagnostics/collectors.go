@@ -83,6 +83,7 @@ func (c *LogCollector) Collect() error {
 		c.p.printError(err, c.parentDir(), fmt.Sprintf("%s.log", c.podName))
 	} else {
 		c.p.printLog(log, c.parentDir(), c.podName)
+		_ = log.Close()
 	}
 	return nil
 }

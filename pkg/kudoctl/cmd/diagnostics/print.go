@@ -97,6 +97,7 @@ func printSingleObject(fs afero.Fs, obj runtime.Object, parentDir string) error 
 	if err != nil {
 		return fmt.Errorf("failed to create %s: %v", fileWithPath, err)
 	}
+	defer file.Close()
 	printer := printers.YAMLPrinter{}
 	return printer.PrintObj(o, file)
 }
@@ -115,6 +116,7 @@ func printSingleRuntimeObject(fs afero.Fs, obj runtime.Object, dir string) error
 	if err != nil {
 		return fmt.Errorf("failed to create %s: %v", fileWithPath, err)
 	}
+	defer file.Close()
 	printer := printers.YAMLPrinter{}
 	return printer.PrintObj(obj, file)
 }
@@ -130,12 +132,12 @@ func printLog(fs afero.Fs, log io.ReadCloser, parentDir, podName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create file %s: %v", fileNameWithPath, err)
 	}
+	defer file.Close()
 	z := newGzipWriter(file, 2048)
 	err = z.Write(log)
 	if err != nil {
 		return fmt.Errorf("failed to write to file %s: %v", fileNameWithPath, err)
 	}
-	_ = log.Close()
 	return nil
 }
 
@@ -162,6 +164,7 @@ func printBytes(fs afero.Fs, b []byte, dir, name string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create file %s: %v", fileNameWithPath, err)
 	}
+	defer file.Close()
 	_, err = file.Write(b)
 	if err != nil {
 		return fmt.Errorf("failed to write to file %s: %v", fileNameWithPath, err)
