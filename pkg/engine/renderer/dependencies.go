@@ -171,6 +171,26 @@ func sanitizeAndSerialize(origObj *unstructured.Unstructured) (string, error) {
 	// OwnerReferences need to be skipped as they contain a changing UID
 	obj.SetOwnerReferences([]metav1.OwnerReference{})
 
+	// These fields should not be present when we get the obj from our task or from the LastAppliedConfigAnnotation, but
+	// we may encounter objects that are not deployed by KUDO and therefore do not have the LastAppliedConfigAnnotation.
+	// This is a best effort attempt to make the hash as stable as possible
+	v := int64(0)
+	obj.SetResourceVersion("")
+	obj.SetClusterName("")
+	obj.SetFinalizers([]string{})
+	obj.SetContinue("")
+	obj.SetCreationTimestamp(metav1.Time{})
+	obj.SetDeletionGracePeriodSeconds(&v)
+	obj.SetGenerateName("")
+	obj.SetGeneration(0)
+	obj.SetManagedFields([]metav1.ManagedFieldsEntry{})
+	obj.SetRemainingItemCount(&v)
+	obj.SetSelfLink("")
+	obj.SetUID("")
+
+	// This may be set or not, depending if the original object is typed or unstructured. To be safe we nil it
+	obj.SetGroupVersionKind(schema.GroupVersionKind{})
+
 	// Annotations are notorious for containing quickly changing strings: plan/phase/task names, uids, dates, etc.
 	obj.SetAnnotations(map[string]string{})
 
@@ -213,7 +233,8 @@ func (de *dependencyCalculator) resourceDependency(d resourceDependency) (*unstr
 	// We use the LastAppliedConfigAnnotation that stores exactly what we applied last time
 	lastConfiguration, ok := dep.GetAnnotations()[kudo.LastAppliedConfigAnnotation]
 	if !ok {
-		return nil, fmt.Errorf("LastAppliedConfigAnnotation is not available on %s/%s", d.namespace, d.name)
+		log.Printf("LastAppliedConfigAnnotation is not available on %s/%s, using resource directly", d.namespace, d.name)
+		return dep, nil
 	}
 
 	obj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, []byte(lastConfiguration))
