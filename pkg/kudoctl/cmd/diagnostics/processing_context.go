@@ -10,6 +10,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// processingContext - shared data for the resource collectors
+// provides property accessors allowing to define a collector before the data it needs is available
+// provides update callback functions. callbacks panic if called on a wrong type of runtime.Object
 type processingContext struct {
 	podNames      []string
 	root          string

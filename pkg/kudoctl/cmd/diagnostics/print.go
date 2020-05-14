@@ -24,36 +24,38 @@ const (
 type printMode int
 
 const (
-	ObjectWithDir printMode = iota
-	ObjectListWithDirs
-	RuntimeObject
+	ObjectWithDir printMode = iota	// print object into its own nested directory based on its name and kind
+	ObjectListWithDirs				// print each object into its own nested directory based on its name and kind
+	RuntimeObject					// print as a file based on its kind only
 )
 
-type ObjectPrinter struct {
+// NonFailingPrinter - print provided data into provided directory and accumulate errors instead of returning them.
+// Creates a nested directory if an object type requires so.
+type NonFailingPrinter struct {
 	fs     afero.Fs
 	errors []string
 }
 
-func (p *ObjectPrinter) printObject(o runtime.Object, parentDir string, mode printMode) {
+func (p *NonFailingPrinter) printObject(o runtime.Object, parentDir string, mode printMode) {
 	if err := printRuntimeObject(p.fs, o, parentDir, mode); err != nil {
 		p.errors = append(p.errors, err.Error())
 	}
 }
 
-func (p *ObjectPrinter) printError(err error, parentDir, name string) {
+func (p *NonFailingPrinter) printError(err error, parentDir, name string) {
 	b := []byte(err.Error())
 	if err := printBytes(p.fs, b, parentDir+"/"+name+".err"); err != nil {
 		p.errors = append(p.errors, err.Error())
 	}
 }
 
-func (p *ObjectPrinter) printLog(log io.ReadCloser, parentDir, name string) {
+func (p *NonFailingPrinter) printLog(log io.ReadCloser, parentDir, name string) {
 	if err := printLog(p.fs, log, parentDir, name); err != nil {
 		p.errors = append(p.errors, err.Error())
 	}
 }
 
-func (p *ObjectPrinter) printYaml(v interface{}, parentDir, name string) {
+func (p *NonFailingPrinter) printYaml(v interface{}, parentDir, name string) {
 	if err := printYaml(p.fs, v, parentDir, name); err != nil {
 		p.errors = append(p.errors, err.Error())
 	}
@@ -74,6 +76,8 @@ func printRuntimeObject(fs afero.Fs, obj runtime.Object, parentDir string, mode 
 	}
 }
 
+// printSingleObject - print a runtime.Object assuming it exposes metadata by implementing metav1.Object
+// or panic otherwise. Object is put into a nested directory.
 func printSingleObject(fs afero.Fs, obj runtime.Object, parentDir string) error {
 	if !isKudoCR(obj) {
 		err := kudo.SetGVKFromScheme(obj, scheme.Scheme)

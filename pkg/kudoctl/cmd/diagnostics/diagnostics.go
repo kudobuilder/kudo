@@ -24,10 +24,6 @@ type Options struct {
 	LogSince int64
 }
 
-type Collector interface {
-	Collect() error
-}
-
 func Collect(fs afero.Fs, options *Options, s *env.Settings) error {
 	ir, err := NewInstanceResources(options, s)
 	if err != nil {
@@ -35,7 +31,7 @@ func Collect(fs afero.Fs, options *Options, s *env.Settings) error {
 	}
 	instanceDiagRunner := &Runner{}
 	ctx := &processingContext{root: DiagDir, instanceName: options.Instance}
-	p := &ObjectPrinter{fs: fs}
+	p := &NonFailingPrinter{fs: fs}
 
 	instanceDiagRunner.
 		Run(ResourceCollectorGroup{
@@ -52,7 +48,7 @@ func Collect(fs afero.Fs, options *Options, s *env.Settings) error {
 		Run(&ResourceCollector{ir.RoleBindings, "rolebinding", ctx.attachToInstance, continueOnError, nil, p, RuntimeObject}).
 		Run(&ResourceCollector{ir.ClusterRoles, "clusterrole", ctx.attachToInstance, continueOnError, nil, p, RuntimeObject}).
 		Run(&ResourceCollector{ir.Roles, "role", ctx.attachToInstance, continueOnError, nil, p, RuntimeObject}).
-		RunForEach(ctx.podNames, func(podName string) Collector { return &LogCollector{ir, podName, ctx.attachToInstance, p} }).
+		RunForEach(ctx.podNames, func(podName string) Collector { return &LogCollector{ir.Log, podName, ctx.attachToInstance, p} }).
 		DumpToYaml(version.Get(), ctx.attachToRoot, "version", p).
 		DumpToYaml(s, ctx.attachToRoot, "settings", p)
 
@@ -68,7 +64,7 @@ func Collect(fs afero.Fs, options *Options, s *env.Settings) error {
 		Run(&ResourceCollector{kr.Services, "service", ctx.attachToRoot, continueOnError, nil, p, RuntimeObject}).
 		Run(&ResourceCollector{kr.StatefulSets, "statefulset", ctx.attachToRoot, continueOnError, nil, p, RuntimeObject}).
 		Run(&ResourceCollector{kr.ServiceAccounts, "serviceaccount", ctx.attachToRoot, continueOnError, nil, p, RuntimeObject}).
-		RunForEach(ctx.podNames, func(podName string) Collector { return &LogCollector{kr, podName, ctx.attachToRoot, p} })
+		RunForEach(ctx.podNames, func(podName string) Collector { return &LogCollector{kr.Log, podName, ctx.attachToRoot, p} })
 
 	errMsgs := p.errors
 	if instanceDiagRunner.fatalErr != nil {

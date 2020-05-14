@@ -15,6 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// ResourceFuncsConfig - a wrapper for Kube and Kudo clients and common invocation parameters
+// for loading Kube and Kudo resources
 type ResourceFuncsConfig struct {
 	c           *kube.Client
 	kc          *kudo.Client
@@ -24,7 +26,7 @@ type ResourceFuncsConfig struct {
 	logOpts     corev1.PodLogOptions
 }
 
-// instanceObj related resources
+// NewInstanceResources is a configuration for Instance-related resources
 func NewInstanceResources(opts *Options, s *env.Settings) (*ResourceFuncsConfig, error) {
 
 	kc, err := kudo.NewClient(s.KubeConfig, s.RequestTimeout, s.Validate)
@@ -52,7 +54,8 @@ func NewInstanceResources(opts *Options, s *env.Settings) (*ResourceFuncsConfig,
 	}, nil
 }
 
-// kudo controller related resources
+// NewKudoResources is a configuration for Kudo controller related resources
+// panics if used to load Kudo CRDs (e.g. Instance etc.)
 func NewKudoResources(s *env.Settings) (*ResourceFuncsConfig, error) {
 	c, err := kube.GetKubeClient(s.KubeConfig)
 	if err != nil {
