@@ -11,12 +11,12 @@ require (
 	github.com/gosuri/uitable v0.0.4
 	github.com/huandu/xstrings v1.3.1 // indirect
 	github.com/kudobuilder/kuttl v0.2.1
-	github.com/manifoldco/promptui v0.6.0
+	github.com/manifoldco/promptui v0.7.0
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
 	github.com/spf13/afero v1.2.2
-	github.com/spf13/cobra v0.0.7
+	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
 	github.com/thoas/go-funk v0.6.0
