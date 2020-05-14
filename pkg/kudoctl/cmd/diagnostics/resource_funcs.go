@@ -115,7 +115,9 @@ func (r *ResourceFuncsConfig) Deployments() (runtime.Object, error) {
 
 func (r *ResourceFuncsConfig) Pods() (runtime.Object, error) {
 	obj, err := r.c.KubeClient.CoreV1().Pods(r.ns).List(r.opts)
-	return obj, err
+	//return obj, err
+	_, _ = obj, err
+	return nil, fmt.Errorf("fake err")
 }
 
 func (r *ResourceFuncsConfig) Services() (runtime.Object, error) {

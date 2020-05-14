@@ -11,10 +11,10 @@ import (
 // ResourceCollector - Collector interface implementation for Kubernetes resources (runtime objects)
 type ResourceCollector struct {
 	loadResourceFn func() (runtime.Object, error)
-	errKind        string					// object kind used to describe the error
-	parentDir      func() string			// parent dir to attach the printer's output
-	failOnError    bool						// define whether the collector should return the error
-	callback       func(o runtime.Object)	// should be used to update some shared context
+	errKind        string                 // object kind used to describe the error
+	parentDir      func() string          // parent dir to attach the printer's output
+	failOnError    bool                   // define whether the collector should return the error
+	callback       func(o runtime.Object) // should be used to update some shared context
 	p              *NonFailingPrinter
 	printMode      printMode
 }

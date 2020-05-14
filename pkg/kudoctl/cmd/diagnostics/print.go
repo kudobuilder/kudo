@@ -24,9 +24,9 @@ const (
 type printMode int
 
 const (
-	ObjectWithDir printMode = iota	// print object into its own nested directory based on its name and kind
-	ObjectListWithDirs				// print each object into its own nested directory based on its name and kind
-	RuntimeObject					// print as a file based on its kind only
+	ObjectWithDir      printMode = iota // print object into its own nested directory based on its name and kind
+	ObjectListWithDirs                  // print each object into its own nested directory based on its name and kind
+	RuntimeObject                       // print as a file based on its kind only
 )
 
 // NonFailingPrinter - print provided data into provided directory and accumulate errors instead of returning them.
@@ -44,7 +44,7 @@ func (p *NonFailingPrinter) printObject(o runtime.Object, parentDir string, mode
 
 func (p *NonFailingPrinter) printError(err error, parentDir, name string) {
 	b := []byte(err.Error())
-	if err := printBytes(p.fs, b, parentDir+"/"+name+".err"); err != nil {
+	if err := printBytes(p.fs, b, parentDir, fmt.Sprintf("%s.err", name)); err != nil {
 		p.errors = append(p.errors, err.Error())
 	}
 }
@@ -92,8 +92,7 @@ func printSingleObject(fs afero.Fs, obj runtime.Object, parentDir string) error 
 	if err != nil {
 		return fmt.Errorf("failed to create directory %s: %v", dir, err)
 	}
-	name := fmt.Sprintf("%s.yaml", o.GetName())
-	fileWithPath := fmt.Sprintf("%s/%s", dir, name)
+	fileWithPath := fmt.Sprintf("%s/%s.yaml", dir, o.GetName())
 	file, err := fs.Create(fileWithPath)
 	if err != nil {
 		return fmt.Errorf("failed to create %s: %v", fileWithPath, err)
@@ -107,6 +106,10 @@ func printSingleRuntimeObject(fs afero.Fs, obj runtime.Object, dir string) error
 	if err != nil {
 		return err
 	}
+	err = fs.MkdirAll(dir, 0700)
+	if err != nil {
+		return fmt.Errorf("failed to create directory %s: %v", dir, err)
+	}
 	fileWithPath := fmt.Sprintf("%s/%s.yaml", dir, strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind))
 	file, err := fs.Create(fileWithPath)
 	if err != nil {
@@ -117,15 +120,20 @@ func printSingleRuntimeObject(fs afero.Fs, obj runtime.Object, dir string) error
 }
 
 func printLog(fs afero.Fs, log io.ReadCloser, parentDir, podName string) error {
-	name := fmt.Sprintf("%s/pod_%s/%s.log.gz", parentDir, podName, podName)
-	file, err := fs.Create(name)
+	dir := fmt.Sprintf("%s/pod_%s", parentDir, podName)
+	err := fs.MkdirAll(dir, 0700)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create directory %s: %v", dir, err)
+	}
+	fileNameWithPath := fmt.Sprintf("%s/%s.log.gz", dir, podName)
+	file, err := fs.Create(fileNameWithPath)
+	if err != nil {
+		return fmt.Errorf("failed to create file %s: %v", fileNameWithPath, err)
 	}
 	z := newGzipWriter(file, 2048)
 	err = z.Write(log)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to write to file %s: %v", fileNameWithPath, err)
 	}
 	_ = log.Close()
 	return nil
@@ -136,18 +144,27 @@ func printYaml(fs afero.Fs, v interface{}, dir, name string) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal object to %s/%s.yaml: %v", dir, name, err)
 	}
-	fileNameWithPath := fmt.Sprintf("%s/%s.yaml", dir, name)
-	return printBytes(fs, b, fileNameWithPath)
+	err = fs.MkdirAll(dir, 0700)
+	if err != nil {
+		return fmt.Errorf("failed to create directory %s: %v", dir, err)
+	}
+	name = fmt.Sprintf("%s.yaml", name)
+	return printBytes(fs, b, dir, name)
 }
 
-func printBytes(fs afero.Fs, b []byte, fileName string) error {
-	file, err := fs.Create(fileName)
+func printBytes(fs afero.Fs, b []byte, dir, name string) error {
+	err := fs.MkdirAll(dir, 0700)
 	if err != nil {
-		return fmt.Errorf("failed to create file %s: %v", fileName, err)
+		return fmt.Errorf("failed to create directory %s: %v", dir, err)
+	}
+	fileNameWithPath := fmt.Sprintf("%s/%s", dir, name)
+	file, err := fs.Create(fileNameWithPath)
+	if err != nil {
+		return fmt.Errorf("failed to create file %s: %v", fileNameWithPath, err)
 	}
 	_, err = file.Write(b)
 	if err != nil {
-		return fmt.Errorf("failed to write to file %s: %v", fileName, err)
+		return fmt.Errorf("failed to write to file %s: %v", fileNameWithPath, err)
 	}
 	return nil
 }
