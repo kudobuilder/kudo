@@ -198,7 +198,7 @@ func sanitizeAndSerialize(origObj *unstructured.Unstructured) (string, error) {
 }
 
 // resourceDependency returns the specified resource, either from the passed in list of objects or the last applied
-// configuration from the API server.
+// configuration from the API server. If the resource is NotFound, the func returns nil and no error
 func (de *dependencyCalculator) resourceDependency(d resourceDependency) (*unstructured.Unstructured, error) {
 
 	// First try to find the dependency in the local list, if it's deployed in the same task we'll find it here
@@ -211,7 +211,6 @@ func (de *dependencyCalculator) resourceDependency(d resourceDependency) (*unstr
 	}
 
 	// We haven't found it, so we need to query the api server to get the current version
-	//dep, _ := reflect.New(t).Interface().(metav1.Object)
 	dep := &unstructured.Unstructured{}
 	dep.SetGroupVersionKind(d.gvk)
 
