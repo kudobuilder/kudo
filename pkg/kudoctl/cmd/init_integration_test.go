@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -379,7 +380,7 @@ func deleteCRDs(crds []runtime.Object, client *testutils.RetryClient) error {
 
 	for _, crd := range crds {
 		err = client.Delete(context.TODO(), crd)
-		if err != nil {
+		if err != nil && !k8serrors.IsNotFound(err) {
 			return err
 		}
 	}
