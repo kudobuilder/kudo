@@ -105,7 +105,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 	crds := crd.NewInitializer().Resources()
 	defer func() {
 		assert.NoError(t, deleteObjects(crds, testClient))
-		assert.NoError(t, deletePrereqs(testClient))
+		deletePrereqs(testClient)
 	}()
 
 	var buf bytes.Buffer
@@ -128,7 +128,6 @@ func TestIntegInitForCRDs(t *testing.T) {
 
 	// make sure that we can create an object of this type now
 	assert.NoError(t, testClient.Create(context.TODO(), instance))
-	defer assert.NoError(t, testClient.Delete(context.TODO(), instance))
 }
 
 func TestIntegInitWithNameSpace(t *testing.T) {
@@ -148,7 +147,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	crds := crd.NewInitializer().Resources()
 	defer func() {
 		assert.NoError(t, deleteObjects(crds, testClient))
-		assert.NoError(t, deletePrereqs(testClient))
+		deletePrereqs(testClient)
 	}()
 
 	var buf bytes.Buffer
@@ -275,7 +274,7 @@ func TestInitWithServiceAccount(t *testing.T) {
 			crds := crd.NewInitializer().Resources()
 			defer func() {
 				assert.NoError(t, deleteObjects(crds, testClient))
-				assert.NoError(t, deletePrereqs(testClient))
+				deletePrereqs(testClient)
 			}()
 
 			var buf bytes.Buffer
@@ -358,7 +357,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 	crds := crd.NewInitializer().Resources()
 	defer func() {
 		assert.NoError(t, deleteObjects(crds, testClient))
-		assert.NoError(t, deletePrereqs(testClient))
+		deletePrereqs(testClient)
 	}()
 
 	var buf bytes.Buffer
@@ -400,20 +399,12 @@ func deleteObjects(objs []runtime.Object, client *testutils.RetryClient) error {
 	return testutils.WaitForDelete(client, objs)
 }
 
-func deletePrereqs(client *testutils.RetryClient) error {
+func deletePrereqs(client *testutils.RetryClient) {
 	opts := kudoinit.NewOptions("", "", "", []string{}, false)
 
-	if err := deleteObjects(prereq.NewNamespaceInitializer(opts).Resources(), client); err != nil {
-		return err
-	}
-	if err := deleteObjects(prereq.NewServiceAccountInitializer(opts).Resources(), client); err != nil {
-		return err
-	}
-	if err := deleteObjects(prereq.NewWebHookInitializer(opts).Resources(), client); err != nil {
-		return err
-	}
-
-	return nil
+	_ = deleteObjects(prereq.NewNamespaceInitializer(opts).Resources(), client)
+	_ = deleteObjects(prereq.NewServiceAccountInitializer(opts).Resources(), client)
+	_ = deleteObjects(prereq.NewWebHookInitializer(opts).Resources(), client)
 }
 
 func getKubeClient(t *testing.T) *kube.Client {
