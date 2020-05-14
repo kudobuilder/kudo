@@ -45,6 +45,7 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 			KubernetesVersion: files.Operator.KubernetesVersion,
 			Maintainers:       files.Operator.Maintainers,
 			URL:               files.Operator.URL,
+			NamespaceManifest: files.Operator.NamespaceManifest,
 		},
 		Status: v1beta1.OperatorStatus{},
 	}

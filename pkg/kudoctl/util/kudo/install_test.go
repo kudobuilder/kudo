@@ -91,7 +91,7 @@ func Test_InstallPackage(t *testing.T) {
 		testResources.OperatorVersion.Spec.Parameters = tt.parameters
 		namespace := "default" //nolint:goconst
 
-		err := InstallPackage(kc, &testResources, tt.skipInstance, "", namespace, tt.installParameters, false, 0)
+		err := InstallPackage(kc, &testResources, tt.skipInstance, "", namespace, tt.installParameters, false, false, 0)
 		if tt.err != "" {
 			assert.ErrorContains(t, err, tt.err)
 		}
