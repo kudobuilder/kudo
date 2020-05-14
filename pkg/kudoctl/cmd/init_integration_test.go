@@ -30,7 +30,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
 )
 
 var testenv testutils.TestEnvironment
@@ -102,7 +101,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 
 	// Install all of the CRDs.
 	crds := crd.NewInitializer().Resources()
-	defer assert.NoError(t, deleteInitObjects(testClient))
+	defer assert.NoError(t, deleteCRDs(crds, testClient))
 
 	var buf bytes.Buffer
 	cmd := &initCmd{
@@ -141,7 +140,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 
 	// Install all of the CRDs.
 	crds := crd.NewInitializer().Resources()
-	defer assert.NoError(t, deleteInitObjects(testClient))
+	defer assert.NoError(t, deleteCRDs(crds, testClient))
 
 	var buf bytes.Buffer
 	cmd := &initCmd{
@@ -265,7 +264,7 @@ func TestInitWithServiceAccount(t *testing.T) {
 
 			// Install all of the CRDs.
 			crds := crd.NewInitializer().Resources()
-			defer assert.NoError(t, deleteInitObjects(testClient))
+			defer assert.NoError(t, deleteCRDs(crds, testClient))
 
 			var buf bytes.Buffer
 			cmd := &initCmd{
@@ -345,7 +344,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 
 	// Install all of the CRDs.
 	crds := crd.NewInitializer().Resources()
-	defer assert.NoError(t, deleteInitObjects(testClient))
+	defer assert.NoError(t, deleteCRDs(crds, testClient))
 
 	var buf bytes.Buffer
 	clog.InitNoFlag(&buf, clog.Level(4))
@@ -375,34 +374,6 @@ func TestNoErrorOnReInit(t *testing.T) {
 	assert.True(t, strings.Contains(buf.String(), "crd operators.kudo.dev already exists"))
 }
 
-func deleteInitObjects(client *testutils.RetryClient) error {
-	opts := kudoinit.NewOptions("", "", "", []string{}, false)
-
-	crds := crd.NewInitializer()
-
-	err := deleteCRDs(crds.Resources(), client)
-	if err != nil {
-		return err
-	}
-
-	err = deletePrereq(prereq.NewNamespaceInitializer(opts).Resources(), client)
-	if err != nil {
-		return err
-	}
-
-	err = deletePrereq(prereq.NewServiceAccountInitializer(opts).Resources(), client)
-	if err != nil {
-		return err
-	}
-
-	err = deletePrereq(prereq.NewWebHookInitializer(opts).Resources(), client)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func deleteCRDs(crds []runtime.Object, client *testutils.RetryClient) error {
 	var err error
 
@@ -413,18 +384,6 @@ func deleteCRDs(crds []runtime.Object, client *testutils.RetryClient) error {
 		}
 	}
 	return testutils.WaitForDelete(client, crds)
-}
-
-func deletePrereq(prereqs []runtime.Object, client *testutils.RetryClient) error {
-	var err error
-
-	for _, prereq := range prereqs {
-		err = client.Delete(context.TODO(), prereq)
-		if err != nil {
-			return err
-		}
-	}
-	return testutils.WaitForDelete(client, prereqs)
 }
 
 func getKubeClient(t *testing.T) *kube.Client {
