@@ -102,7 +102,7 @@ The `zookeeper-operator` task specification is equivalent to `kudo install zooke
 ```yaml
 tasks:
 - name: demo
-  kind: Operator
+  kind: KudoOperator
   spec:
     package: # required, either repo package name, local package folder or an URL to package tarball
     appVersion: # optional, a specific app version in the official repo, defaults to the most recent one

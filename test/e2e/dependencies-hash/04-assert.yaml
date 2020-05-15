@@ -8,7 +8,7 @@ spec:
     metadata:
       annotations:
         # After the second update to replicas the hash should change, based on the last deployed version of the config map
-        kudo.dev/dependencies-hash: 932a6cf74881302904011a9ad09cfe6e
+        kudo.dev/dependencies-hash: da9f56a62d3c4af2596bebace008d845
         kudo.dev/operator-version: 0.1.0
     spec:
       containers:
