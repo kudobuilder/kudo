@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/yaml"
 
 	// Import Kubernetes authentication providers to support GKE, etc.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -392,6 +393,21 @@ func (c *Client) ValidateServerForOperator(operator *v1beta1.Operator) error {
 	}
 
 	return nil
+}
+
+func (c *Client) CreateNamespace(namespace, manifest string) error {
+
+	ns := &v1core.Namespace{}
+	if manifest != "" {
+		if err := yaml.Unmarshal([]byte(manifest), ns); err != nil {
+			return fmt.Errorf("unmarshalling namespace manifest file: %w", err)
+		}
+	}
+	ns.TypeMeta.Kind = "Namespace"
+	ns.Name = namespace
+
+	_, err := c.kubeClientset.CoreV1().Namespaces().Create(ns)
+	return err
 }
 
 // getKubeVersion returns stringified version of k8s server
