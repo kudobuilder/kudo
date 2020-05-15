@@ -111,7 +111,9 @@ func TestIntegInitForCRDs(t *testing.T) {
 	}
 	err = cmd.run()
 	assert.NoError(t, err)
-	defer assert.NoError(t, deleteInitPrereqs(cmd, testClient))
+	defer func() {
+		assert.NoError(t, deleteInitPrereqs(cmd, testClient))
+	}()
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
 	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
@@ -159,15 +161,19 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	// Then we manually create the namespace.
 	ns := testutils.NewResource("v1", "Namespace", namespace, "")
 	assert.NoError(t, testClient.Create(context.TODO(), ns))
-	defer assert.NoError(t, testClient.Delete(context.TODO(), ns))
+	defer func() {
+		assert.NoError(t, testClient.Delete(context.TODO(), ns))
+	}()
 
 	// On second attempt run should succeed.
 	err = cmd.run()
 	assert.NoError(t, err)
-	defer assert.NoError(t, deleteInitPrereqs(cmd, testClient))
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
 	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+	defer func() {
+		assert.NoError(t, deleteInitPrereqs(cmd, testClient))
+	}()
 
 	// Kubernetes client caches the types, so we need to re-initialize it.
 	_, err = testutils.NewRetryClient(testenv.Config, client.Options{
@@ -277,12 +283,16 @@ func TestInitWithServiceAccount(t *testing.T) {
 
 			ns := testutils.NewResource("v1", "Namespace", namespace, "")
 			assert.NoError(t, testClient.Create(context.TODO(), ns))
-			defer assert.NoError(t, testClient.Delete(context.TODO(), ns))
+			defer func() {
+				assert.NoError(t, testClient.Delete(context.TODO(), ns))
+			}()
 
 			if tt.serviceAccount != "" {
 				sa2 := testutils.NewResource("v1", "ServiceAccount", tt.serviceAccount, namespace)
 				assert.NoError(t, testClient.Create(context.TODO(), sa2))
-				defer assert.NoError(t, testClient.Delete(context.TODO(), sa2))
+				defer func() {
+					assert.NoError(t, testClient.Delete(context.TODO(), sa2))
+				}()
 			}
 
 			if tt.roleBindingRole != "" {
@@ -292,7 +302,9 @@ func TestInitWithServiceAccount(t *testing.T) {
 				}
 				crb := testutils.NewClusterRoleBinding("rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "kudo-clusterrole-binding", rbNamespace, tt.serviceAccount, tt.roleBindingRole)
 				assert.NoError(t, testClient.Create(context.TODO(), crb))
-				defer assert.NoError(t, testClient.Delete(context.TODO(), crb))
+				defer func() {
+					assert.NoError(t, testClient.Delete(context.TODO(), crb))
+				}()
 			}
 
 			err = cmd.run()
@@ -303,7 +315,9 @@ func TestInitWithServiceAccount(t *testing.T) {
 				assertStringContains(t, tt.errMessageContains, buf.String())
 			} else {
 				assert.NoError(t, err)
-				defer assert.NoError(t, deleteInitPrereqs(cmd, testClient))
+				defer func() {
+					assert.NoError(t, deleteInitPrereqs(cmd, testClient))
+				}()
 
 				// WaitForCRDs to be created... the init cmd did NOT wait
 				assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
@@ -358,7 +372,9 @@ func TestNoErrorOnReInit(t *testing.T) {
 	}
 	err = cmd.run()
 	assert.NoError(t, err)
-	defer assert.NoError(t, deleteInitPrereqs(cmd, testClient))
+	defer func() {
+		assert.NoError(t, deleteInitPrereqs(cmd, testClient))
+	}()
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
 	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
