@@ -197,19 +197,19 @@ type PipeSpec struct {
 	Key string `json:"key"`
 }
 
-// KudoOperatorSpec describes a how a KUDO operator is installed
+// KudoOperatorSpec specifies how a KUDO operator is installed
 type KudoOperatorTaskSpec struct {
 	// either repo package name, local package folder or an URL to package tarball
 	// +optional
-	Package string `json:"package"`
+	Package string `json:"package,omitempty"`
 	// +optional
-	InstanceName string `json:"instanceName"`
+	InstanceName string `json:"instanceName,omitempty"`
 	// a specific app version in the official repo, defaults to the most recent
 	// +optional
-	AppVersion string `json:"appVersion"`
+	AppVersion string `json:"appVersion,omitempty"`
 	// a specific operator version in the official repo, defaults to the most recent one
 	// +optional
-	OperatorVersion string `json:"operatorVersion"`
+	OperatorVersion string `json:"operatorVersion,omitempty"`
 }
 
 // OperatorVersionStatus defines the observed state of OperatorVersion.
