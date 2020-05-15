@@ -43,7 +43,7 @@ func newDiagnosticsCollectCmd(fs afero.Fs) *cobra.Command {
 	return cmd
 }
 
-func toDiagOpts(instance string, logSince time.Duration) *diagnostics.Options {
+func newDiagOpts(instance string, logSince time.Duration) *diagnostics.Options {
 	opts := diagnostics.Options{Instance: instance}
 	if logSince > 0 {
 		sec := int64(logSince.Round(time.Second).Seconds())
