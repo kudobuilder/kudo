@@ -26,7 +26,6 @@ type OperatorSpec struct {
 	KubernetesVersion string        `json:"kubernetesVersion,omitempty"`
 	Maintainers       []*Maintainer `json:"maintainers,omitempty"`
 	URL               string        `json:"url,omitempty"`
-	NamespaceManifest string        `json:"namespaceManifest,omitempty"`
 }
 
 // Maintainer describes an Operator maintainer.

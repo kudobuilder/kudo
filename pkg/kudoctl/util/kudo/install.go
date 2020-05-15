@@ -15,30 +15,13 @@ import (
 
 // InstallPackage installs package resources.
 // If skipInstance is set to true, only a package's Operator and OperatorVersion is installed.
-func InstallPackage(kc *Client, resources *packages.Resources, skipInstance bool, instanceName, namespace string, parameters map[string]string, w bool, createNS bool, waitTime time.Duration) error {
+func InstallPackage(kc *Client, resources *packages.Resources, skipInstance bool, instanceName, namespace string, parameters map[string]string, w bool, waitTime time.Duration) error {
 	// PRE-INSTALLATION SETUP
 	operatorName := resources.Operator.ObjectMeta.Name
 	clog.V(3).Printf("operator name: %v", operatorName)
 	operatorVersion := resources.OperatorVersion.Spec.Version
 	clog.V(3).Printf("operator version: %v", operatorVersion)
 
-	// create NS if requested
-	//resources.Operator.Spec.NamespaceManifest
-	//resources.OperatorVersion.Spec.Templates
-	// namespace
-	if createNS {
-		clog.V(3).Printf("creating namespace: %q", namespace)
-		var manifest string = ""
-		if resources.Operator.Spec.NamespaceManifest != "" {
-			clog.V(3).Printf("creating namespace with manifest named: %q", resources.Operator.Spec.NamespaceManifest)
-			manifest = resources.OperatorVersion.Spec.Templates[resources.Operator.Spec.NamespaceManifest]
-		}
-		err := kc.CreateNamespace(namespace, manifest)
-		if err != nil {
-			// failure to create namespace ends installation process
-			return err
-		}
-	}
 	// make sure that our instance object is up to date with overrides from commandline
 	applyInstanceOverrides(resources.Instance, instanceName, parameters)
 	// this validation cannot be done earlier because we need to do it after applying things from commandline

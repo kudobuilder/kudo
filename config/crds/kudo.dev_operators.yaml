@@ -53,8 +53,6 @@ spec:
                     type: string
                 type: object
               type: array
-            namespaceManifest:
-              type: string
             url:
               type: string
           type: object

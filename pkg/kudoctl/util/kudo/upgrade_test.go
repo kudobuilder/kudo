@@ -7,6 +7,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kubefake "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
@@ -64,7 +65,7 @@ func Test_UpgradeOperatorVersion(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		c := NewClientFromK8s(fake.NewSimpleClientset())
+		c := NewClientFromK8s(fake.NewSimpleClientset(), kubefake.NewSimpleClientset())
 		if tt.instanceExists {
 			if _, err := c.InstallInstanceObjToCluster(&testInstance, installNamespace); err != nil {
 				t.Errorf("%s: failed to install instance: %v", tt.name, err)

@@ -83,5 +83,4 @@ type OperatorFile struct {
 	URL               string                  `json:"url,omitempty"`
 	Tasks             []v1beta1.Task          `json:"tasks"`
 	Plans             map[string]v1beta1.Plan `json:"plans"`
-	NamespaceManifest string                  `json:"namespaceManifest,omitempty"`
 }

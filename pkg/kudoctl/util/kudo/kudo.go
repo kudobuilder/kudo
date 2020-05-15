@@ -15,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/yaml"
 
 	// Import Kubernetes authentication providers to support GKE, etc.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -36,7 +35,7 @@ import (
 // Client is a KUDO Client providing access to a kudoClientset and kubernetes clientset
 type Client struct {
 	kudoClientset versioned.Interface
-	kubeClientSet *kubernetes.Clientset
+	kubeClientset kubernetes.Interface
 }
 
 // NewClient creates new KUDO Client
@@ -75,20 +74,21 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 		return nil, err
 	}
 
-	kc, err := kubernetes.NewForConfig(config)
+	kubeClientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
 	return &Client{
 		kudoClientset: kudoClientset,
-		kubeClientSet: kc,
+		kubeClientset: kubeClientset,
 	}, nil
 }
 
 // NewClientFromK8s creates KUDO client from kubernetes client interface
-func NewClientFromK8s(client versioned.Interface) *Client {
+func NewClientFromK8s(kudo versioned.Interface, kube kubernetes.Interface) *Client {
 	result := Client{}
-	result.kudoClientset = client
+	result.kudoClientset = kudo
+	result.kubeClientset = kube
 	return &result
 }
 
@@ -391,21 +391,6 @@ func (c *Client) ValidateServerForOperator(operator *v1beta1.Operator) error {
 	}
 
 	return nil
-}
-
-func (c *Client) CreateNamespace(namespace, manifest string) error {
-
-	ns := &v1core.Namespace{}
-	if manifest != "" {
-		if err := yaml.Unmarshal([]byte(manifest), ns); err != nil {
-			return fmt.Errorf("unmarshalling namespace manifest file: %w", err)
-		}
-	}
-	ns.TypeMeta.Kind = "Namespace"
-	ns.Name = namespace
-
-	_, err := c.kubeClientSet.CoreV1().Namespaces().Create(ns)
-	return err
 }
 
 // getKubeVersion returns stringified version of k8s server

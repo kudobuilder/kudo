@@ -8,6 +8,7 @@ import (
 	"gotest.tools/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kubefake "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
@@ -16,7 +17,7 @@ import (
 )
 
 func newTestSimpleK2o() *Client {
-	return NewClientFromK8s(fake.NewSimpleClientset())
+	return NewClientFromK8s(fake.NewSimpleClientset(), kubefake.NewSimpleClientset())
 }
 
 func TestKudoClientValidate(t *testing.T) {
