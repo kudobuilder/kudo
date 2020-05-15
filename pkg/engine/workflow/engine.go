@@ -19,7 +19,7 @@ import (
 
 var (
 	unknownTaskNameEventName = "UnknownTaskName"
-	unknownTaskKindEventName = "UnknownTaskKind"
+	taskBuildError           = "TaskBuildError"
 	missingPhaseStatus       = "MissingPhaseStatus"
 	missingStepStatus        = "MissingStepStatus"
 )
@@ -160,7 +160,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, di discovery.
 					phaseStatus.Set(v1beta1.ExecutionFatalError)
 					return planStatus, engine.ExecutionError{
 						Err:       err,
-						EventName: unknownTaskKindEventName,
+						EventName: taskBuildError,
 					}
 				}
 
