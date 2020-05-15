@@ -102,10 +102,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 
 	// Install all of the CRDs.
 	crds := crd.NewInitializer().Resources()
-	defer func() {
-		assert.NoError(t, deleteObjects(crds, testClient))
-		deletePrereqs(testClient)
-	}()
+	defer assert.NoError(t, deleteObjects(crds, testClient))
 
 	var buf bytes.Buffer
 	cmd := &initCmd{
@@ -115,6 +112,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 	}
 	err = cmd.run()
 	assert.NoError(t, err)
+	defer assert.NoError(t, deletePrereqs(cmd, testClient))
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
 	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
@@ -144,10 +142,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 
 	// Install all of the CRDs.
 	crds := crd.NewInitializer().Resources()
-	defer func() {
-		assert.NoError(t, deleteObjects(crds, testClient))
-		deletePrereqs(testClient)
-	}()
+	defer assert.NoError(t, deleteObjects(crds, testClient))
 
 	var buf bytes.Buffer
 	cmd := &initCmd{
@@ -171,6 +166,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	// On second attempt run should succeed.
 	err = cmd.run()
 	assert.NoError(t, err)
+	defer assert.NoError(t, deletePrereqs(cmd, testClient))
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
 	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
@@ -271,10 +267,7 @@ func TestInitWithServiceAccount(t *testing.T) {
 
 			// Install all of the CRDs.
 			crds := crd.NewInitializer().Resources()
-			defer func() {
-				assert.NoError(t, deleteObjects(crds, testClient))
-				deletePrereqs(testClient)
-			}()
+			defer assert.NoError(t, deleteObjects(crds, testClient))
 
 			var buf bytes.Buffer
 			cmd := &initCmd{
@@ -313,6 +306,7 @@ func TestInitWithServiceAccount(t *testing.T) {
 				assertStringContains(t, tt.errMessageContains, buf.String())
 			} else {
 				assert.NoError(t, err)
+				defer assert.NoError(t, deletePrereqs(cmd, testClient))
 
 				// WaitForCRDs to be created... the init cmd did NOT wait
 				assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
@@ -354,10 +348,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 
 	// Install all of the CRDs.
 	crds := crd.NewInitializer().Resources()
-	defer func() {
-		assert.NoError(t, deleteObjects(crds, testClient))
-		deletePrereqs(testClient)
-	}()
+	defer assert.NoError(t, deleteObjects(crds, testClient))
 
 	var buf bytes.Buffer
 	clog.InitNoFlag(&buf, clog.Level(4))
@@ -371,6 +362,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 	}
 	err = cmd.run()
 	assert.NoError(t, err)
+	defer assert.NoError(t, deletePrereqs(cmd, testClient))
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
 	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
@@ -397,12 +389,20 @@ func deleteObjects(objs []runtime.Object, client *testutils.RetryClient) error {
 	return testutils.WaitForDelete(client, objs)
 }
 
-func deletePrereqs(client *testutils.RetryClient) {
-	opts := kudoinit.NewOptions("", "", "", []string{}, false)
+func deletePrereqs(cmd *initCmd, client *testutils.RetryClient) error {
+	opts := kudoinit.NewOptions(cmd.version, cmd.ns, cmd.serviceAccount, webhooksArray(cmd.webhooks), cmd.selfSignedWebhookCA)
 
-	_ = deleteObjects(prereq.NewNamespaceInitializer(opts).Resources(), client)
-	_ = deleteObjects(prereq.NewServiceAccountInitializer(opts).Resources(), client)
-	_ = deleteObjects(prereq.NewWebHookInitializer(opts).Resources(), client)
+	if err := deleteObjects(prereq.NewNamespaceInitializer(opts).Resources(), client); err != nil {
+		return err
+	}
+	if err := deleteObjects(prereq.NewServiceAccountInitializer(opts).Resources(), client); err != nil {
+		return err
+	}
+	if err := deleteObjects(prereq.NewWebHookInitializer(opts).Resources(), client); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getKubeClient(t *testing.T) *kube.Client {
