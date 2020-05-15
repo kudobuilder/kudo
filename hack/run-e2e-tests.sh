@@ -6,20 +6,13 @@ set -o pipefail
 set -o xtrace
 
 INTEGRATION_OUTPUT_JUNIT=${INTEGRATION_OUTPUT_JUNIT:-false}
-VERSION=${VERSION:-test}
+KUDO_VERSION=${KUDO_VERSION:-test}
 
 docker build . \
     --build-arg ldflags_arg="" \
-    -t "kudobuilder/controller:$VERSION"
+    -t "kudobuilder/controller:$KUDO_VERSION"
 
-# Generate the kudo.yaml that is used to install KUDO while running e2e-test
-./bin/kubectl-kudo init --webhook InstanceValidation \
-    --unsafe-self-signed-webhook-ca --dry-run --output yaml \
-    --kudo-image kudobuilder/controller:$VERSION \
-    --kudo-image-pull-policy Never \
-    > test/manifests/kudo.yaml
-
-sed "s/%version%/$VERSION/" kudo-e2e-test.yaml.tmpl > kudo-e2e-test.yaml
+sed "s/%version%/$KUDO_VERSION/" kudo-e2e-test.yaml.tmpl > kudo-e2e-test.yaml
 
 if [ "$INTEGRATION_OUTPUT_JUNIT" == true ]
 then
