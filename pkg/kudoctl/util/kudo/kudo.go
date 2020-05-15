@@ -32,7 +32,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 
-// Client is a KUDO Client providing access to a kudoClientset and kubernetes clientset
+// Client is a KUDO Client providing access to a kudoClientset and kubernetes clientsets
 type Client struct {
 	kudoClientset versioned.Interface
 	kubeClientset kubernetes.Interface
@@ -68,12 +68,13 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 		}
 	}
 
-	// create the kudoClientset
+	// create the kudo clientset
 	kudoClientset, err := versioned.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
 
+	// create the kubernetes clientset
 	kubeClientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
