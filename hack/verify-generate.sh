@@ -6,7 +6,7 @@ set -o pipefail
 
 # versions of tools
 echo "controller-gen $(controller-gen --version)"
-go-bindata -v
+go-bindata -version
 
 # make sure make generate can be invoked
 make generate
