@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -390,10 +389,9 @@ func TestNoErrorOnReInit(t *testing.T) {
 
 func deleteObjects(objs []runtime.Object, client *testutils.RetryClient) error {
 	for _, obj := range objs {
-		err := client.Delete(context.TODO(), obj)
-		if err != nil && !k8serrors.IsNotFound(err) {
-			return err
-		}
+		// ignore errors here, as they may be transient
+		// WaitForDelete is the source of truth if resource have been deleted
+		_ = client.Delete(context.TODO(), obj)
 	}
 
 	return testutils.WaitForDelete(client, objs)
