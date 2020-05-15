@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -35,31 +36,38 @@ func VersionCmd(cmd *cobra.Command, args []string) error {
 	fmt.Printf("KUDO Version: %s\n", fmt.Sprintf("%#v", kudoVersion))
 
 	// Print the Controller Version
-	fmt.Printf("KUDO Controller Version: %s\n", GetControllerVersion())
+	controllerVersion, err := GetControllerVersion()
+	if err != nil {
+		fmt.Printf("KUDO Controller Version: %s\n", controllerVersion)
+	} else {
+		fmt.Printf("KUDO Controller Version: %#v\n", err)
+	}
 
 	return nil
 }
 
 // GetControllerVersion
-func GetControllerVersion() string {
+func GetControllerVersion() (string, error) {
 
-	controllerVersion := "<Controller Not Running>"
+	controllerVersion := ""
 
 	client, err := kube.GetKubeClient(Settings.KubeConfig)
-	clog.V(3).Printf("acquiring kudo client")
+	clog.V(3).Printf("Acquiring kudo client")
 	if err != nil {
-		clog.V(3).Printf("failed to acquire client")
-		return controllerVersion
+		clog.V(3).Printf("Failed to acquire kudo client")
+		return "", errors.New("<Failed to acquire kudo client>")
 	}
 
 	statefulsets, err := client.KubeClient.AppsV1().StatefulSets("").List(metav1.ListOptions{LabelSelector: "app=kudo-manager"})
+	clog.V(3).Printf("List statefulsets and filter kudo-manager")
 	if err != nil {
-		return controllerVersion
+		clog.V(3).Printf("Failed to list kudo-manager statefulset")
+		return "", errors.New("<Error: Failed to list kudo-manager statefulset>")
 	}
 
 	for _, d := range statefulsets.Items {
 		controllerVersion = d.Spec.Template.Spec.Containers[0].Image
 	}
 
-	return controllerVersion
+	return controllerVersion, nil
 }
