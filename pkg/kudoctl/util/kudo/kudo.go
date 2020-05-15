@@ -32,7 +32,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 
-// Client is a KUDO Client providing access to a kudoClientset and kubernetes clientsets
+// Client is a KUDO Client providing access to a kudo clientset and kubernetes clientsets
 type Client struct {
 	kudoClientset versioned.Interface
 	kubeClientset kubernetes.Interface
