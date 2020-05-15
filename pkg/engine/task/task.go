@@ -40,11 +40,12 @@ type Tasker interface {
 
 // Available tasks kinds
 const (
-	ApplyTaskKind  = "Apply"
-	DeleteTaskKind = "Delete"
-	DummyTaskKind  = "Dummy"
-	PipeTaskKind   = "Pipe"
-	ToggleTaskKind = "Toggle"
+	ApplyTaskKind        = "Apply"
+	DeleteTaskKind       = "Delete"
+	DummyTaskKind        = "Dummy"
+	PipeTaskKind         = "Pipe"
+	ToggleTaskKind       = "Toggle"
+	KudoOperatorTaskKind = "KudoOperator"
 )
 
 var (
@@ -69,6 +70,8 @@ func Build(task *v1beta1.Task) (Tasker, error) {
 		return newPipe(task)
 	case ToggleTaskKind:
 		return newToggle(task)
+	case KudoOperatorTaskKind:
+		return newKudoOperator(task)
 	default:
 		return nil, fmt.Errorf("unknown task kind %s", task.Kind)
 	}
@@ -180,4 +183,19 @@ func fatalExecutionError(cause error, eventName string, meta renderer.Metadata) 
 			cause),
 		EventName: eventName,
 	}
+}
+
+func newKudoOperator(task *v1beta1.Task) (Tasker, error) {
+	// validate KudoOperatorTask
+	if len(task.Spec.KudoOperatorTaskSpec.Package) == 0 {
+		return nil, fmt.Errorf("task validation error: kudo operator task '%s' has an empty package name", task.Name)
+	}
+
+	return KudoOperatorTask{
+		Name:            task.Name,
+		Package:         task.Spec.KudoOperatorTaskSpec.Package,
+		InstanceName:    task.Spec.KudoOperatorTaskSpec.InstanceName,
+		AppVersion:      task.Spec.KudoOperatorTaskSpec.AppVersion,
+		OperatorVersion: task.Spec.KudoOperatorTaskSpec.OperatorVersion,
+	}, nil
 }
