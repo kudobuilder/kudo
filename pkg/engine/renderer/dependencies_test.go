@@ -33,6 +33,7 @@ func TestGetResources(t *testing.T) {
 			"key": "value",
 		},
 	}
+	cmWithoutAnnotation := cm.DeepCopy()
 	cmString, _ := runtime.Encode(unstructured.UnstructuredJSONScheme, &cm)
 	cm.Annotations[kudo.LastAppliedConfigAnnotation] = string(cmString)
 
@@ -46,6 +47,7 @@ func TestGetResources(t *testing.T) {
 	}{
 		{name: "from api server", taskObjects: []*unstructured.Unstructured{}, client: fake.NewFakeClientWithScheme(scheme.Scheme, &cm)},
 		{name: "from task objects", taskObjects: []*unstructured.Unstructured{&cmUnstructured}, client: fake.NewFakeClientWithScheme(scheme.Scheme)},
+		{name: "from api server without annotation", taskObjects: []*unstructured.Unstructured{}, client: fake.NewFakeClientWithScheme(scheme.Scheme, cmWithoutAnnotation)},
 	}
 
 	for _, tt := range tests {

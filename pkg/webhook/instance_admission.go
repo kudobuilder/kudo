@@ -10,7 +10,9 @@ import (
 
 	"github.com/thoas/go-funk"
 	"k8s.io/api/admission/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -24,6 +26,20 @@ import (
 type InstanceAdmission struct {
 	client  client.Client
 	decoder *admission.Decoder
+}
+
+func NewInstanceAdmission(cfg *rest.Config, s *runtime.Scheme) (*InstanceAdmission, error) {
+	// client.New returns a new Client using the provided config and Options.
+	// The returned client reads *and* writes directly from the server
+	// (it doesn't use object caches). Using a cached client might lead to racy
+	// behaviour when installing operators e.g. and `OperatorVersion` is already created
+	// but not yet in cache which leads to an error during `Instance` creation.
+	c, err := client.New(cfg, client.Options{Scheme: s})
+	if err != nil {
+		return nil, err
+	}
+
+	return &InstanceAdmission{client: c}, nil
 }
 
 // InstanceAdmission validates updates to an Instance, guarding from conflicting plan executions
@@ -339,15 +355,6 @@ func changedParameterDefinitions(old map[string]string, new map[string]string, o
 	rpd, _ := kudov1beta1.GetParamDefinitions(r, ov)
 
 	return append(cpd, rpd...), nil
-}
-
-// InstanceAdmission implements inject.Client.
-// A client will be automatically injected.
-
-// InjectClient injects the client.
-func (ia *InstanceAdmission) InjectClient(c client.Client) error {
-	ia.client = c
-	return nil
 }
 
 // InstanceAdmission implements admission.DecoderInjector.

@@ -135,11 +135,17 @@ func main() {
 	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) == "true" {
 		log.Printf("Setting up webhooks")
 
-		if err := registerWebhook("/admit", &v1beta1.Instance{}, &webhook.Admission{Handler: &kudohook.InstanceAdmission{}}, mgr); err != nil {
+		iac, err := kudohook.NewInstanceAdmission(mgr.GetConfig(), mgr.GetScheme())
+		if err != nil {
+			log.Printf("Unable to create an uncached client for the webhook: %v", err)
+			os.Exit(1)
+		}
+
+		if err := registerWebhook("/admit", &v1beta1.Instance{}, &webhook.Admission{Handler: iac}, mgr); err != nil {
 			log.Printf("Unable to create instance admission webhook: %v", err)
 			os.Exit(1)
 		}
-		log.Printf("Instance admission webhook")
+		log.Printf("Instance admission webhook set up")
 
 		// Add more webhooks below using the above registerWebhook method
 	}

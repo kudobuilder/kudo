@@ -99,6 +99,7 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 
 	secretDefaultMode := int32(420)
 	image := opts.Image
+	imagePullPolicy := v1.PullPolicy(opts.ImagePullPolicy)
 	s := &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "StatefulSet",
@@ -127,7 +128,7 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 								{Name: "ENABLE_WEBHOOKS", Value: strconv.FormatBool(opts.HasWebhooksEnabled())},
 							},
 							Image:           image,
-							ImagePullPolicy: "Always",
+							ImagePullPolicy: imagePullPolicy,
 							Name:            "manager",
 							Ports: []v1.ContainerPort{
 								// name matters for service
