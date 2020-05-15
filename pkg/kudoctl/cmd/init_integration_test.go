@@ -89,7 +89,7 @@ func runtimeObjectAsBytes(o runtime.Object) ([]byte, error) {
 }
 
 func TestIntegInitForCRDs(t *testing.T) {
-	// Kubernetes client caches the types, se we need to re-initialize it.
+	// Kubernetes client caches the types, so we need to re-initialize it.
 	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
 		Scheme: testutils.Scheme(),
 	})
@@ -118,7 +118,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 	// WaitForCRDs to be created... the init cmd did NOT wait
 	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
 
-	// Kubernetes client caches the types, se we need to re-initialize it.
+	// Kubernetes client caches the types, so we need to re-initialize it.
 	testClient, err = testutils.NewRetryClient(testenv.Config, client.Options{
 		Scheme: testutils.Scheme(),
 	})
@@ -126,11 +126,12 @@ func TestIntegInitForCRDs(t *testing.T) {
 
 	// make sure that we can create an object of this type now
 	assert.NoError(t, testClient.Create(context.TODO(), instance))
+	assert.NoError(t, testClient.Delete(context.TODO(), instance))
 }
 
 func TestIntegInitWithNameSpace(t *testing.T) {
 	namespace := "integration-test"
-	// Kubernetes client caches the types, se we need to re-initialize it.
+	// Kubernetes client caches the types, so we need to re-initialize it.
 	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
 		Scheme: testutils.Scheme(),
 	})
@@ -168,12 +169,12 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	// On second attempt run should succeed.
 	err = cmd.run()
 	assert.NoError(t, err)
-
-	// WaitForCRDs to be created... the init cmd did NOT wait
-	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
 	defer func() {
 		assert.NoError(t, deleteInitPrereqs(cmd, testClient))
 	}()
+
+	// WaitForCRDs to be created... the init cmd did NOT wait
+	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
 
 	// Kubernetes client caches the types, so we need to re-initialize it.
 	_, err = testutils.NewRetryClient(testenv.Config, client.Options{
@@ -258,7 +259,7 @@ func TestInitWithServiceAccount(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			namespace := fmt.Sprintf("%s-%d", namespaceBase, idx)
 
-			// Kubernetes client caches the types, se we need to re-initialize it.
+			// Kubernetes client caches the types, so we need to re-initialize it.
 			testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
 				Scheme: testutils.Scheme(),
 			})
@@ -372,12 +373,12 @@ func TestNoErrorOnReInit(t *testing.T) {
 	}
 	err = cmd.run()
 	assert.NoError(t, err)
-	defer func() {
-		assert.NoError(t, deleteInitPrereqs(cmd, testClient))
-	}()
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
 	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+	defer func() {
+		assert.NoError(t, deleteObjects(crds, testClient))
+	}()
 
 	//	 if the CRD exists and we init again there should be no error
 	_, err = testutils.NewRetryClient(testenv.Config, client.Options{
@@ -393,9 +394,9 @@ func TestNoErrorOnReInit(t *testing.T) {
 
 func deleteObjects(objs []runtime.Object, client *testutils.RetryClient) error {
 	for _, obj := range objs {
-		// ignore errors here, as they may be transient
-		// WaitForDelete is the source of truth if resource have been deleted
-		_ = client.Delete(context.TODO(), obj)
+		if err := client.Delete(context.TODO(), obj); err != nil {
+			return err
+		}
 	}
 
 	return testutils.WaitForDelete(client, objs)
@@ -404,20 +405,18 @@ func deleteObjects(objs []runtime.Object, client *testutils.RetryClient) error {
 func deleteInitPrereqs(cmd *initCmd, client *testutils.RetryClient) error {
 	opts := kudoinit.NewOptions(cmd.version, cmd.ns, cmd.serviceAccount, webhooksArray(cmd.webhooks), cmd.selfSignedWebhookCA)
 
-	if err := deleteObjects(crd.NewInitializer().Resources(), client); err != nil {
-		return err
-	}
-	if err := deleteObjects(prereq.NewNamespaceInitializer(opts).Resources(), client); err != nil {
-		return err
-	}
-	if err := deleteObjects(prereq.NewServiceAccountInitializer(opts).Resources(), client); err != nil {
-		return err
-	}
-	if err := deleteObjects(prereq.NewWebHookInitializer(opts).Resources(), client); err != nil {
-		return err
+	objs := append([]runtime.Object{}, prereq.NewWebHookInitializer(opts).Resources()...)
+	objs = append(objs, prereq.NewServiceAccountInitializer(opts).Resources()...)
+	objs = append(objs, crd.NewInitializer().Resources()...)
+
+	// Namespaced resources aren't waited on after deletion because they aren't GC'ed in this test environment.
+	for _, ns := range prereq.NewNamespaceInitializer(opts).Resources() {
+		if err := client.Delete(context.TODO(), ns); err != nil {
+			return err
+		}
 	}
 
-	return nil
+	return deleteObjects(objs, client)
 }
 
 func getKubeClient(t *testing.T) *kube.Client {
