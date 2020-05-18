@@ -54,7 +54,6 @@ Make it possible for an operator developer to specify that a parameter can not b
 
 ### Non-Goals
 
-- Allow modification of immutable parameters after the initial deploy plan is finished
 - Constants that can be used in templating but can not be changed by the user. Immutable parameters can always be set by the user on installation.
 - Immutable Parameters that can be set after the installation - There is a use case for parameters that have an undefined state until they are first used, for example in a specific plan, but can not be changed afterwards. This KEP requires a parameter to receive a value at installation time, either by using a default or provided by the user.
 
@@ -90,13 +89,13 @@ The default value for `immutable` is `false`.
 - KUDO CLI will not perform any checks with regards to immutability on installation or updates
 - The admission webhook verifies if a parameter is immutable
   - If the value of any immutable parameter changes from the current value it rejects the whole update
-  - If the value of all immutable parameters are the same as their current values it allows the update
+  - If the value of all immutable parameters are the same as their current values it allows the update, allowing for the use of the same parameter file for installation and update as long as the immutable parameters do not change.
 
 #### Upgrades
 - Upgrades to a new OperatorVersions:
   - A parameter can be made immutable in a newly released OperatorVersion.
     - When executing `kudo upgrade` the user has to explicitly set the value for parameters that are changed from mutable to immutable
-    - If an parameter is changed from mutable to immutable and the user does not explicitly specifies a parameter the upgrade will abort with an error message
+    - If an parameter is changed from mutable to immutable and the user does not explicitly specify a parameter the upgrade will abort with an error message
     - This ensures that the user knows about the new immutability
   - A new immutable parameter can be added to the operator
     - When executing `kudo upgrade` the user has to explicitly set the value for the new parameter, even if the parameter has a default value
