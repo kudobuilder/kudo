@@ -74,7 +74,6 @@ func TestRestartController(t *testing.T) {
 	}
 	instanceKey, _ := client.ObjectKeyFromObject(in)
 	assert.NoError(t, c.Create(context.TODO(), in))
-	defer c.Delete(context.TODO(), in)
 
 	ov := &v1beta1.OperatorVersion{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
@@ -90,7 +89,6 @@ func TestRestartController(t *testing.T) {
 		},
 	}
 	assert.NoError(t, c.Create(context.TODO(), ov))
-	defer c.Delete(context.TODO(), ov)
 
 	log.Print("And a deploy plan that was already run")
 	assert.Eventually(t, func() bool { return instancePlanFinished(instanceKey, "deploy", c) }, timeout, tick)
@@ -140,6 +138,7 @@ func startTestManager(t *testing.T) (chan struct{}, *sync.WaitGroup, client.Clie
 		Recorder:  mgr.GetEventRecorderFor("instance-controller"),
 		Scheme:    mgr.GetScheme(),
 	}).SetupWithManager(mgr)
+	assert.NoError(t, err, "Error when setting up manager")
 
 	stop := make(chan struct{})
 	wg := &sync.WaitGroup{}
@@ -326,6 +325,8 @@ func Test_makePipes(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := PipesMap(tt.planName, tt.plan, tt.tasks, tt.emeta)
 			if err != nil {
@@ -553,6 +554,8 @@ func Test_fetchNewExecutionPlan(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := fetchNewExecutionPlan(tt.i, tt.ov)
 			assert.Equal(t, tt.wantErr, err != nil, "expected error %v, but got %v", tt.wantErr, err)
