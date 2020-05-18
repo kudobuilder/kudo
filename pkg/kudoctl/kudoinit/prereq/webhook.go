@@ -307,8 +307,8 @@ func certificate(ns string) unstructured.Unstructured {
 				"namespace": ns,
 			},
 			"spec": map[string]interface{}{
-				"commonName": "kudo-controller-manager-service.kudo-system.svc",
-				"dnsNames":   []string{"kudo-controller-manager-service.kudo-system.svc"},
+				"commonName": fmt.Sprintf("kudo-controller-manager-service.%s.svc", ns),
+				"dnsNames":   []string{fmt.Sprintf("kudo-controller-manager-service.%s.svc", ns)},
 				"issuerRef": map[string]interface{}{
 					"kind": "Issuer",
 					"name": "selfsigned-issuer",

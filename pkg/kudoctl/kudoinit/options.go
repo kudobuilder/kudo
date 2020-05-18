@@ -16,6 +16,8 @@ type Options struct {
 	TerminationGracePeriodSeconds int64
 	// Image defines the image to be used
 	Image string
+	// ImagePullPolicy sets the pull policy of the image
+	ImagePullPolicy string
 	// Using self-signed webhook CA bundle
 	SelfSignedWebhookCA bool
 
@@ -38,6 +40,7 @@ func NewOptions(v string, ns string, sa string, selfSignedWebhookCA bool) Option
 		Namespace:                     ns,
 		TerminationGracePeriodSeconds: defaultGracePeriod,
 		Image:                         fmt.Sprintf("kudobuilder/controller:v%v", v),
+		ImagePullPolicy:               "Always",
 		ServiceAccount:                sa,
 		SelfSignedWebhookCA:           selfSignedWebhookCA,
 	}

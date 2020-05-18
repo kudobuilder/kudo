@@ -4,6 +4,10 @@ set -o nounset
 set -o pipefail
 # intentionally not setting 'set -o errexit' because we want to print custom error messages
 
+# versions of tools
+echo "controller-gen $(controller-gen --version)"
+go-bindata -version
+
 # make sure make generate can be invoked
 make generate
 RETVAL=$?

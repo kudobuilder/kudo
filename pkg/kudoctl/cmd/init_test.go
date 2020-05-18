@@ -159,7 +159,7 @@ func TestInitCmd_yamlOutput(t *testing.T) {
 			t.Fatalf("failed reading .golden: %s", err)
 		}
 
-		assert.Equal(t, string(g), out.String(), "for golden file: %s", gp)
+		assert.Equal(t, string(g), out.String(), "for golden file: %s, for test %s", gp, tt.name)
 	}
 
 }

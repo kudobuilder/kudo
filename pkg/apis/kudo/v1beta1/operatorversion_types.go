@@ -42,9 +42,6 @@ type OperatorVersionSpec struct {
 	// +optional
 	ConnectionString string `json:"connectionString,omitempty"`
 
-	// Dependencies a list of all dependencies of the operator.
-	Dependencies []OperatorDependency `json:"dependencies,omitempty"`
-
 	// UpgradableFrom lists all OperatorVersions that can upgrade to this OperatorVersion.
 	UpgradableFrom []corev1.ObjectReference `json:"upgradableFrom,omitempty"`
 }
@@ -149,10 +146,11 @@ type Task struct {
 // with the same json names as it would become ambiguous for the default parser. We might revisit this approach in the
 // future should this become an issue.
 type TaskSpec struct {
-	ResourceTaskSpec `json:",inline"`
-	DummyTaskSpec    `json:",inline"`
-	PipeTaskSpec     `json:",inline"`
-	ToggleTaskSpec   `json:",inline"`
+	ResourceTaskSpec     `json:",inline"`
+	DummyTaskSpec        `json:",inline"`
+	PipeTaskSpec         `json:",inline"`
+	ToggleTaskSpec       `json:",inline"`
+	KudoOperatorTaskSpec `json:",inline"`
 }
 
 // ResourceTaskSpec is referencing a list of resources
@@ -199,6 +197,21 @@ type PipeSpec struct {
 	Key string `json:"key"`
 }
 
+// KudoOperatorSpec specifies how a KUDO operator is installed
+type KudoOperatorTaskSpec struct {
+	// either repo package name, local package folder or an URL to package tarball
+	// +optional
+	Package string `json:"package,omitempty"`
+	// +optional
+	InstanceName string `json:"instanceName,omitempty"`
+	// a specific app version in the official repo, defaults to the most recent
+	// +optional
+	AppVersion string `json:"appVersion,omitempty"`
+	// a specific operator version in the official repo, defaults to the most recent one
+	// +optional
+	OperatorVersion string `json:"operatorVersion,omitempty"`
+}
+
 // OperatorVersionStatus defines the observed state of OperatorVersion.
 type OperatorVersionStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
@@ -229,17 +242,4 @@ type OperatorVersionList struct {
 
 func init() {
 	SchemeBuilder.Register(&OperatorVersion{}, &OperatorVersionList{})
-}
-
-// OperatorDependency references a defined operator.
-type OperatorDependency struct {
-	// Name specifies the name of the dependency. Referenced via defaults.config.
-	ReferenceName          string `json:"referenceName"`
-	corev1.ObjectReference `json:",inline"`
-
-	// Version captures the requirements for what versions of the above object
-	// are allowed.
-	//
-	// Example: ^3.1.4
-	Version string `json:"version"`
 }
