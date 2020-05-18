@@ -176,14 +176,8 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	// WaitForCRDs to be created... the init cmd did NOT wait
 	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
 
-	// Kubernetes client caches the types, so we need to re-initialize it.
-	_, err = testutils.NewRetryClient(testenv.Config, client.Options{
-		Scheme: testutils.Scheme(),
-	})
-	assert.NoError(t, err)
-	kclient = getKubeClient(t)
-
 	// make sure that the controller lives in the correct namespace
+	kclient = getKubeClient(t)
 	statefulsets, err := kclient.KubeClient.AppsV1().StatefulSets(namespace).List(metav1.ListOptions{})
 	assert.NoError(t, err)
 
@@ -323,14 +317,8 @@ func TestInitWithServiceAccount(t *testing.T) {
 				// WaitForCRDs to be created... the init cmd did NOT wait
 				assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
 
-				// Kubernetes client caches the types, so we need to re-initialize it.
-				_, err = testutils.NewRetryClient(testenv.Config, client.Options{
-					Scheme: testutils.Scheme(),
-				})
-				assert.NoError(t, err)
-				kclient = getKubeClient(t)
-
 				// make sure that the controller lives in the correct namespace
+				kclient = getKubeClient(t)
 				statefulsets, err := kclient.KubeClient.AppsV1().StatefulSets(namespace).List(metav1.ListOptions{})
 				assert.NoError(t, err)
 
@@ -379,12 +367,6 @@ func TestNoErrorOnReInit(t *testing.T) {
 	defer func() {
 		assert.NoError(t, deleteObjects(crds, testClient))
 	}()
-
-	//	 if the CRD exists and we init again there should be no error
-	_, err = testutils.NewRetryClient(testenv.Config, client.Options{
-		Scheme: testutils.Scheme(),
-	})
-	assert.NoError(t, err)
 
 	// second run will have an output that it already exists
 	err = cmd.run()
