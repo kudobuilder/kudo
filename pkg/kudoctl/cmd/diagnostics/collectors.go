@@ -15,7 +15,7 @@ type ResourceCollector struct {
 	parentDir      func() string          // parent dir to attach the printer's output
 	failOnError    bool                   // define whether the collector should return the error
 	callback       func(o runtime.Object) // should be used to update some shared context
-	printer              *NonFailingPrinter
+	printer        *NonFailingPrinter
 	printMode      printMode
 }
 
@@ -29,7 +29,7 @@ func (c *ResourceCollector) Collect() error {
 		if c.failOnError {
 			return fmt.Errorf("failed to retrieve object(s) of kind %s: %v", c.errKind, err)
 		}
-		c.p.printError(err, c.parentDir(), c.errKind)
+		c.printer.printError(err, c.parentDir(), c.errKind)
 	case obj == nil || meta.IsListType(obj) && meta.LenList(obj) == 0:
 		if c.failOnError {
 			return fmt.Errorf("no object(s) of kind %s retrieved", c.errKind)
@@ -38,7 +38,7 @@ func (c *ResourceCollector) Collect() error {
 		if c.callback != nil {
 			c.callback(obj)
 		}
-		c.p.printObject(obj, c.parentDir(), c.printMode)
+		c.printer.printObject(obj, c.parentDir(), c.printMode)
 	}
 	return nil
 }
@@ -63,7 +63,7 @@ func (g ResourceCollectorGroup) Collect() error {
 		objs[i] = obj
 	}
 	for i, c := range g {
-		c.p.printObject(objs[i], c.parentDir(), modes[i])
+		c.printer.printObject(objs[i], c.parentDir(), modes[i])
 	}
 	return nil
 }
@@ -73,16 +73,16 @@ type LogCollector struct {
 	loadLogFn func(string) (io.ReadCloser, error)
 	podName   string
 	parentDir func() string
-	p         *NonFailingPrinter
+	printer   *NonFailingPrinter
 }
 
 // Collect - prints either a log or an error. Always returns nil error.
 func (c *LogCollector) Collect() error {
 	log, err := c.loadLogFn(c.podName)
 	if err != nil {
-		c.p.printError(err, c.parentDir(), fmt.Sprintf("%s.log", c.podName))
+		c.printer.printError(err, c.parentDir(), fmt.Sprintf("%s.log", c.podName))
 	} else {
-		c.p.printLog(log, c.parentDir(), c.podName)
+		c.printer.printLog(log, c.parentDir(), c.podName)
 		_ = log.Close()
 	}
 	return nil

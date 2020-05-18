@@ -3,6 +3,7 @@ package diagnostics
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -85,19 +86,22 @@ func printSingleObject(fs afero.Fs, obj runtime.Object, parentDir string) error 
 			return err
 		}
 	}
+
 	o, _ := obj.(Object)
 	relToParentDir := fmt.Sprintf("%s_%s", strings.ToLower(o.GetObjectKind().GroupVersionKind().Kind), o.GetName())
-	dir := fmt.Sprintf("%s/%s", parentDir, relToParentDir)
+	dir := filepath.Join(parentDir, relToParentDir)
 	err := fs.MkdirAll(dir, 0700)
 	if err != nil {
 		return fmt.Errorf("failed to create directory %s: %v", dir, err)
 	}
-	fileWithPath := fmt.Sprintf("%s/%s.yaml", dir, o.GetName())
+
+	fileWithPath := filepath.Join(dir, fmt.Sprintf("%s.yaml", o.GetName()))
 	file, err := fs.Create(fileWithPath)
 	if err != nil {
 		return fmt.Errorf("failed to create %s: %v", fileWithPath, err)
 	}
 	defer file.Close()
+
 	printer := printers.YAMLPrinter{}
 	return printer.PrintObj(o, file)
 }
@@ -111,28 +115,32 @@ func printSingleRuntimeObject(fs afero.Fs, obj runtime.Object, dir string) error
 	if err != nil {
 		return fmt.Errorf("failed to create directory %s: %v", dir, err)
 	}
-	fileWithPath := fmt.Sprintf("%s/%s.yaml", dir, strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind))
+
+	fileWithPath := filepath.Join(dir, fmt.Sprintf("%s.yaml", strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)))
 	file, err := fs.Create(fileWithPath)
 	if err != nil {
 		return fmt.Errorf("failed to create %s: %v", fileWithPath, err)
 	}
 	defer file.Close()
+
 	printer := printers.YAMLPrinter{}
 	return printer.PrintObj(obj, file)
 }
 
 func printLog(fs afero.Fs, log io.ReadCloser, parentDir, podName string) error {
-	dir := fmt.Sprintf("%s/pod_%s", parentDir, podName)
+	dir := filepath.Join(parentDir, fmt.Sprintf("pod_%s", podName))
 	err := fs.MkdirAll(dir, 0700)
 	if err != nil {
 		return fmt.Errorf("failed to create directory %s: %v", dir, err)
 	}
-	fileNameWithPath := fmt.Sprintf("%s/%s.log.gz", dir, podName)
+
+	fileNameWithPath := filepath.Join(dir, fmt.Sprintf("%s.log.gz", podName))
 	file, err := fs.Create(fileNameWithPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file %s: %v", fileNameWithPath, err)
 	}
 	defer file.Close()
+
 	z := newGzipWriter(file, 2048)
 	err = z.Write(log)
 	if err != nil {
@@ -146,10 +154,12 @@ func printYaml(fs afero.Fs, v interface{}, dir, name string) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal object to %s/%s.yaml: %v", dir, name, err)
 	}
+
 	err = fs.MkdirAll(dir, 0700)
 	if err != nil {
 		return fmt.Errorf("failed to create directory %s: %v", dir, err)
 	}
+
 	name = fmt.Sprintf("%s.yaml", name)
 	return printBytes(fs, b, dir, name)
 }
@@ -159,12 +169,14 @@ func printBytes(fs afero.Fs, b []byte, dir, name string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create directory %s: %v", dir, err)
 	}
-	fileNameWithPath := fmt.Sprintf("%s/%s", dir, name)
+
+	fileNameWithPath := filepath.Join(dir, name)
 	file, err := fs.Create(fileNameWithPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file %s: %v", fileNameWithPath, err)
 	}
 	defer file.Close()
+
 	_, err = file.Write(b)
 	if err != nil {
 		return fmt.Errorf("failed to write to file %s: %v", fileNameWithPath, err)

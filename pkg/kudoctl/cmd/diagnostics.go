@@ -18,7 +18,7 @@ const (
 func newDiagnosticsCmd(fs afero.Fs) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "diagnostics",
-		Short: "diagnostics",
+		Short: "collect diagnostics",
 		Long:  "diagnostics command has sub-commands to collect and analyze diagnostics data",
 	}
 	cmd.AddCommand(newDiagnosticsCollectCmd(fs))
@@ -30,24 +30,15 @@ func newDiagnosticsCollectCmd(fs afero.Fs) *cobra.Command {
 	var instance string
 	cmd := &cobra.Command{
 		Use:     "collect",
-		Short:   "collect",
-		Long:    "collect diagnostics",
+		Short:   "collect diagnostics",
+		Long:    "collect data relevant for diagnostics of the provided instance's state",
 		Example: diagCollectExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return diagnostics.Collect(fs, toDiagOpts(instance, logSince), &Settings)
+			return diagnostics.Collect(fs, diagnostics.NewOptions(instance, logSince), &Settings)
 		},
 	}
 	cmd.Flags().StringVar(&instance, "instance", "", "The instance name.")
-	cmd.Flags().DurationVar(&logSince, "log.since", 0, "Only return logs newer than a relative duration like 5s, 2m, or 3h. Defaults to all logs. Only one of since-time / since may be used.")
+	cmd.Flags().DurationVar(&logSince, "log-since", 0, "Only return logs newer than a relative duration like 5s, 2m, or 3h. Defaults to all logs. Only one of since-time / since may be used.")
 
 	return cmd
-}
-
-func newDiagOpts(instance string, logSince time.Duration) *diagnostics.Options {
-	opts := diagnostics.Options{Instance: instance}
-	if logSince > 0 {
-		sec := int64(logSince.Round(time.Second).Seconds())
-		opts.LogSince = sec
-	}
-	return &opts
 }

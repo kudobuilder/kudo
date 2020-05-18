@@ -7,6 +7,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	kudoutil "github.com/kudobuilder/kudo/pkg/util/kudo"
 
@@ -61,7 +62,7 @@ func NewKudoResources(s *env.Settings) (*ResourceFuncsConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	opts := metav1.ListOptions{LabelSelector: fmt.Sprintf("app=%s", appKudoManager)}
+	opts := metav1.ListOptions{LabelSelector: fmt.Sprintf("app=%s", kudoinit.DefaultKudoLabel)}
 	ns, err := c.KubeClient.CoreV1().Namespaces().List(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get kudo system namespace: %v", err)
@@ -115,9 +116,7 @@ func (r *ResourceFuncsConfig) Deployments() (runtime.Object, error) {
 
 func (r *ResourceFuncsConfig) Pods() (runtime.Object, error) {
 	obj, err := r.c.KubeClient.CoreV1().Pods(r.ns).List(r.opts)
-	//return obj, err
-	_, _ = obj, err
-	return nil, fmt.Errorf("fake err")
+	return obj, err
 }
 
 func (r *ResourceFuncsConfig) Services() (runtime.Object, error) {
