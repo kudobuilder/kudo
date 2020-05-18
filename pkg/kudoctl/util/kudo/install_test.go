@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/version"
 	fakediscovery "k8s.io/client-go/discovery/fake"
+	kubefake "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
@@ -77,7 +78,7 @@ func Test_InstallPackage(t *testing.T) {
 
 	for _, tt := range tests {
 		client := fake.NewSimpleClientset()
-		kc := NewClientFromK8s(client)
+		kc := NewClientFromK8s(client, kubefake.NewSimpleClientset())
 
 		fakeDiscovery, ok := client.Discovery().(*fakediscovery.FakeDiscovery)
 		if !ok {
