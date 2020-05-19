@@ -112,12 +112,11 @@ func TestIntegInitForCRDs(t *testing.T) {
 	}
 	err = cmd.run()
 	assert.NoError(t, err)
-	defer func() {
-		assert.NoError(t, deleteInitPrereqs(cmd, testClient))
-	}()
-
 	// WaitForCRDs to be created... the init cmd did NOT wait
 	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+	defer func() {
+		assert.NoError(t, deleteObjects(crds, testClient))
+	}()
 
 	// Kubernetes client caches the types, so we need to re-initialize it.
 	testClient, err = testutils.NewRetryClient(testenv.Config, client.Options{
