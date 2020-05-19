@@ -27,7 +27,7 @@ then
 
     # Operators tests
     rm -rf operators
-    git clone -b ad/test-with-manager-as-pod https://github.com/kudobuilder/operators
+    git clone https://github.com/kudobuilder/operators
     mkdir operators/bin/
     cp ./bin/kubectl-kudo operators/bin/
     sed "s/%version%/$KUDO_VERSION/" operators/kudo-test.yaml.tmpl > operators/kudo-test.yaml
@@ -42,7 +42,7 @@ else
 
     # Operators tests
     rm -rf operators
-    git clone -b ad/test-with-manager-as-pod https://github.com/kudobuilder/operators
+    git clone https://github.com/kudobuilder/operators
     mkdir operators/bin/
     cp ./bin/kubectl-kudo operators/bin/
     sed "s/%version%/$KUDO_VERSION/" operators/kudo-test.yaml.tmpl > operators/kudo-test.yaml

@@ -100,6 +100,11 @@ Here what you need to make this setup work:
 ```shell script
  ❯ openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out /tmp/cert/tls.crt -keyout /tmp/cert/tls.key
 ```
+and generate the certificates in the default location `/tmp/cert` or use the certificates that we use of the integration 
+tests and start the manager using `KUDO_CERT_DIR` option:
+```yaml
+KUDO_CERT_DIR=./test/cert/ make run
+```
 
 2. Install ngrok: https://ngrok.com/ and run a local tunnel on the port 443 which will give you an url to your local machine:
 ```shell script
