@@ -14,43 +14,34 @@ status: provisional
 
 # cluster-resources-for-crds
 
-In order to enable the creation use of certain CRDs, some cluster scoped objects may need to be created.  This should not be
-part of the creation of a particular CRD instantiation since the deletion of that instance would remove the
-dependency from all objects. Allowing an Operator or OperatorVersion to define a set of Cluster objects that are present
-to support the creation and management of CRDs would circumvent the CRD from having to create and manage the object.
+To enable the creation use of certain CRDs, some cluster scoped objects may need to be created.  This should not be part of the creation of a particular CRD instantiation since the deletion of that instance would remove the dependency from all objects. Allowing an Operator or OperatorVersion to define a set of Cluster objects that are present to support the creation and management of CRDs would circumvent the CRD from having to create and manage the object.
 
 ## Table of Contents
 
-* [cluster-resources-for-crds](#cluster-resources-for-crds)
-  * [Table of Contents](#table-of-contents)
-  * [Summary](#summary)
-  * [Motivation](#motivation)
-      * [Goals](#goals)
-      * [Non-Goals](#non-goals)
-  * [Proposal](#proposal)
-      * [User Stories](#user-stories)
-        * [Story 1](#story-1)
-        * [Story 2](#story-2)
-        * [Story 3](#story-3)
-        * [Story 4](#story-4)
-      * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
-        * [Instance Status update](#instance-status-update)
-        * [Object Owners](#object-owners)
-        * [Uninstalls and Object Cleanup](#uninstalls-and-object-cleanup)
-        * [Specifications of Operator](#specifications-of-operator)
-      * [Risks and Mitigations](#risks-and-mitigations)
-  * [Graduation Criteria](#graduation-criteria)
-  * [Implementation History](#implementation-history)
-  * [Drawbacks](#drawbacks-optional)
+* [Summary](#summary)
+* [Motivation](#motivation)
+    * [Goals](#goals)
+    * [Non-Goals](#non-goals)
+* [Proposal](#proposal)
+    * [User Stories](#user-stories)
+      * [Story 1](#story-1)
+      * [Story 2](#story-2)
+      * [Story 3](#story-3)
+      * [Story 4](#story-4)
+    * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+      * [Instance Status update](#instance-status-update)
+      * [Object Owners](#object-owners)
+      * [Uninstalls and Object Cleanup](#uninstalls-and-object-cleanup)
+      * [Specifications of Operator](#specifications-of-operator)
+    * [Risks and Mitigations](#risks-and-mitigations)
+* [Graduation Criteria](#graduation-criteria)
+* [Implementation History](#implementation-history)
+* [Drawbacks](#drawbacks-optional)
 
-[Tools for generating]: https://github.com/ekalinin/github-markdown-toc
 
 ## Summary
 
-In order to enable the creation use of certain CRDs, some cluster scoped objects, or common objects, may need to be created.  This should not be
-part of the creation of a particular CRD instantiation since the deletion of that instance would remove the
-dependency from all objects. Allowing an Operator or OperatorVersion to define a set of Cluster objects that are present
-to support the creation and management of CRDs would circumvent the CRD from having to create and manage the object.
+To enable the creation use of certain CRDs, some cluster scoped objects, or common objects, may need to be created.  This should not be part of the creation of a particular CRD instantiation since the deletion of that instance would remove the dependency from all objects. Allowing an Operator or OperatorVersion to define a set of Cluster objects that are present to support the creation and management of CRDs would circumvent the CRD from having to create and manage the object.
 
 ## Motivation
 
@@ -69,9 +60,7 @@ to support the creation and management of CRDs would circumvent the CRD from hav
 
 #### Story 1
 
-A database Operator may want a Restic server deployed as part of the Operator to provide a central location for storing backups.
-The capability here would define a namespace, service and deployment that provides Restic to the instance of the Operator to use
-by default.
+A database Operator may want a Restic server deployed as part of the Operator to provide a central location for storing backups. The capability here would define a namespace, service and deployment that provides Restic to the instance of the Operator to use by default.
 
 
 #### Story 2
@@ -81,8 +70,7 @@ An Operator could leverage a MutatingWebHook for modifying pods deployments base
 
 #### Story 3
 
-The creation of a CRD should be controlled by a ClusterRole that defines permissions on who can create instances of the CRD.  These
-should probably be created
+The creation of a CRD should be controlled by a ClusterRole that defines permissions on who can create instances of the CRD.  These should probably be created
 
 #### Story 4
 
@@ -90,8 +78,7 @@ OperatorVersions require the existence of CRDs that are not controlled by Kudo (
 
 ### Implementation Details/Notes/Constraints
 
-The installation of an Operator Version can run a plan specified by the Operator Version spec, when the `installPlan` value is specified in `operator.yaml`.  
-The value shall match a defined `plan` in the `plans` spec in the OperatorVersion. As with the Instance Status properties, the OperatorVersion will contain
+The installation of an Operator Version can run a plan specified by the Operator Version spec, when the `installPlan` value is specified in `operator.yaml`. The value shall match a defined `plan` in the `plans` spec in the OperatorVersion. As with the Instance Status properties, the OperatorVersion will contain
 
 ```golang
 	PlanStatus       map[string]PlanStatus `json:"planStatus,omitempty"`
@@ -102,7 +89,7 @@ to contain the status information on the execution of the `installPlan`. The run
 
 #### Instance Status update
 
-If Instances of an OperatorVersion are created before the Install plan of the OperatorVersion is successful, the Instance's will remian in a `PENDING` status until the OperatorVersion is successful.
+If Instances of an OperatorVersion are created before the Install plan of the OperatorVersion is successful, the Instance's will remain in a `PENDING` status until the OperatorVersion is successful.
 
 #### Object Owners
 
