@@ -28,4 +28,6 @@ const (
 
 	// Last applied state for three way merges
 	LastAppliedConfigAnnotation = "kudo.dev/last-applied-configuration"
+
+	CreatedByAnnotation = "kudo.dev/created-by"
 )

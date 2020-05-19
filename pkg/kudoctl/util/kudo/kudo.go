@@ -405,7 +405,7 @@ func (c *Client) CreateNamespace(namespace, manifest string) error {
 	}
 	ns.TypeMeta.Kind = "Namespace"
 	ns.Name = namespace
-	ns.Annotations["created-by"] = "kudo-cli"
+	ns.Annotations[label.CreatedByAnnotation] = "kudo-cli"
 
 	_, err := c.kubeClientset.CoreV1().Namespaces().Create(ns)
 	return err
