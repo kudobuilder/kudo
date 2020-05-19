@@ -1,10 +1,12 @@
 apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
-  name: update-command-instance
   labels:
-    kudo.dev/operator: update-command-operator
+    controller-tools.k8s.io: "1.0"
+    kudo.dev/operator: toy
+  name: toy1
 spec:
   operatorVersion:
-    name: update-command-operator-1.0
+    name: toy-v1
     kind: OperatorVersion
+    namespace: default

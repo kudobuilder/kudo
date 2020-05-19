@@ -1,0 +1,5 @@
+apiVersion: kudo.dev/v1beta1
+kind: TestStep
+commands:
+  - command: kubectl kudo update --instance toy1 -p "Param=after"
+    namespaced: true

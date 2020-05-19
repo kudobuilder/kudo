@@ -62,9 +62,10 @@ func TestInitCmd_exists(t *testing.T) {
 		return true, nil, apierrors.NewAlreadyExists(v1.Resource("deployments"), "1")
 	})
 	cmd := &initCmd{
-		out:    &buf,
-		fs:     afero.NewMemMapFs(),
-		client: &kube.Client{KubeClient: fc, ExtClient: fc2},
+		out:                 &buf,
+		fs:                  afero.NewMemMapFs(),
+		client:              &kube.Client{KubeClient: fc, ExtClient: fc2},
+		selfSignedWebhookCA: true,
 	}
 	clog.InitWithFlags(nil, &buf)
 	Settings.Home = "/opt"
@@ -126,7 +127,7 @@ func TestInitCmd_yamlOutput(t *testing.T) {
 		{"custom namespace", "deploy-kudo-ns.yaml", map[string]string{"dry-run": "true", "output": "yaml", "namespace": "foo"}},
 		{"yaml output", "deploy-kudo.yaml", map[string]string{"dry-run": "true", "output": "yaml"}},
 		{"service account", "deploy-kudo-sa.yaml", map[string]string{"dry-run": "true", "output": "yaml", "service-account": "safoo", "namespace": "foo"}},
-		{"with webhook", "deploy-kudo-webhook.yaml", map[string]string{"dry-run": "true", "output": "yaml", "webhook": "InstanceValidation"}},
+		{"using default cert-manager", "deploy-kudo-webhook.yaml", map[string]string{"dry-run": "true", "output": "yaml"}},
 	}
 
 	for _, tt := range tests {
@@ -158,7 +159,7 @@ func TestInitCmd_yamlOutput(t *testing.T) {
 			t.Fatalf("failed reading .golden: %s", err)
 		}
 
-		assert.Equal(t, string(g), out.String(), "for golden file: %s", gp)
+		assert.Equal(t, string(g), out.String(), "for golden file: %s, for test %s", gp, tt.name)
 	}
 
 }

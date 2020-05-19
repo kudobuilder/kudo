@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -56,6 +57,14 @@ func parseSyncPeriod() (*time.Duration, error) {
 	return nil, nil
 }
 
+func getEnv(key, def string) string {
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		val = def
+	}
+	return val
+}
+
 func main() {
 	// Get version of KUDO
 	log.Printf("KUDO Version: %#v", version.Get())
@@ -74,7 +83,7 @@ func main() {
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		CertDir:    "/tmp/cert",
+		CertDir:    getEnv("KUDO_CERT_DIR", filepath.Join("/tmp", "cert")),
 		SyncPeriod: syncPeriod,
 	})
 	if err != nil {
@@ -132,23 +141,21 @@ func main() {
 	}
 	log.Print("Instance controller set up")
 
-	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) == "true" {
-		log.Printf("Setting up webhooks")
+	log.Printf("Setting up admission webhook")
 
-		iac, err := kudohook.NewInstanceAdmission(mgr.GetConfig(), mgr.GetScheme())
-		if err != nil {
-			log.Printf("Unable to create an uncached client for the webhook: %v", err)
-			os.Exit(1)
-		}
-
-		if err := registerWebhook("/admit", &v1beta1.Instance{}, &webhook.Admission{Handler: iac}, mgr); err != nil {
-			log.Printf("Unable to create instance admission webhook: %v", err)
-			os.Exit(1)
-		}
-		log.Printf("Instance admission webhook set up")
-
-		// Add more webhooks below using the above registerWebhook method
+	iac, err := kudohook.NewInstanceAdmission(mgr.GetConfig(), mgr.GetScheme())
+	if err != nil {
+		log.Printf("Unable to create an uncached client for the webhook: %v", err)
+		os.Exit(1)
 	}
+
+	if err := registerWebhook("/admit", &v1beta1.Instance{}, &webhook.Admission{Handler: iac}, mgr); err != nil {
+		log.Printf("Unable to create instance admission webhook: %v", err)
+		os.Exit(1)
+	}
+	log.Printf("Instance admission webhook set up")
+
+	// Add more webhooks below using the above registerWebhook method
 
 	// Start the KUDO manager
 	log.Print("Done! Everything is setup, starting KUDO manager now")
