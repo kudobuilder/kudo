@@ -30,7 +30,7 @@ then
     git clone -b ad/test-with-manager-as-pod https://github.com/kudobuilder/operators
     mkdir operators/bin/
     cp ./bin/kubectl-kudo operators/bin/
-    sed "s/%version%/v$(KUDO_VERSION)/" operators/kudo-test.yaml.tmpl > operators/kudo-test.yaml
+    sed "s/%version%/$KUDO_VERSION/" operators/kudo-test.yaml.tmpl > operators/kudo-test.yaml
     cd operators && ./bin/kubectl-kudo test --artifacts-dir /tmp/kudo-e2e-test 2>&1 \
         | tee /dev/fd/2 \
         | go-junit-report -set-exit-code \
@@ -45,6 +45,6 @@ else
     git clone -b ad/test-with-manager-as-pod https://github.com/kudobuilder/operators
     mkdir operators/bin/
     cp ./bin/kubectl-kudo operators/bin/
-    sed "s/%version%/v$(KUDO_VERSION)/" operators/kudo-test.yaml.tmpl > operators/kudo-test.yaml
+    sed "s/%version%/$KUDO_VERSION/" operators/kudo-test.yaml.tmpl > operators/kudo-test.yaml
     cd operators && ./bin/kubectl-kudo test --artifacts-dir /tmp/kudo-e2e-test
 fi
