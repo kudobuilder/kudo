@@ -40,11 +40,12 @@ type Tasker interface {
 
 // Available tasks kinds
 const (
-	ApplyTaskKind  = "Apply"
-	DeleteTaskKind = "Delete"
-	DummyTaskKind  = "Dummy"
-	PipeTaskKind   = "Pipe"
-	ToggleTaskKind = "Toggle"
+	ApplyTaskKind        = "Apply"
+	DeleteTaskKind       = "Delete"
+	DummyTaskKind        = "Dummy"
+	PipeTaskKind         = "Pipe"
+	ToggleTaskKind       = "Toggle"
+	KudoOperatorTaskKind = "KudoOperator"
 )
 
 var (
@@ -69,6 +70,8 @@ func Build(task *v1beta1.Task) (Tasker, error) {
 		return newPipe(task)
 	case ToggleTaskKind:
 		return newToggle(task)
+	case KudoOperatorTaskKind:
+		return newKudoOperator(task)
 	default:
 		return nil, fmt.Errorf("unknown task kind %s", task.Kind)
 	}
@@ -115,7 +118,7 @@ func newPipe(task *v1beta1.Task) (Tasker, error) {
 
 	var pipeFiles []PipeFile
 	for _, pp := range task.Spec.PipeTaskSpec.Pipe {
-		pf := PipeFile{File: pp.File, Kind: PipeFileKind(pp.Kind), Key: pp.Key}
+		pf := PipeFile{File: pp.File, EnvFile: pp.EnvFile, Kind: PipeFileKind(pp.Kind), Key: pp.Key}
 		// validate pipe file
 		if err := validPipeFile(pf); err != nil {
 			return nil, err
@@ -151,9 +154,12 @@ var (
 )
 
 func validPipeFile(pf PipeFile) error {
-	if pf.File == "" {
-		return fmt.Errorf("task validation error: pipe file is empty: %v", pf)
+	fl := pf.File != ""
+	efl := pf.EnvFile != ""
+	if fl == efl {
+		return fmt.Errorf("task validation error: pipe file %v must have either 'file' or 'envFile' field set but not both", pf)
 	}
+
 	if pf.Kind != PipeFileKindSecret && pf.Kind != PipeFileKindConfigMap {
 		return fmt.Errorf("task validation error: invalid pipe kind (must be Secret or ConfigMap): %v", pf)
 	}
@@ -177,4 +183,19 @@ func fatalExecutionError(cause error, eventName string, meta renderer.Metadata) 
 			cause),
 		EventName: eventName,
 	}
+}
+
+func newKudoOperator(task *v1beta1.Task) (Tasker, error) {
+	// validate KudoOperatorTask
+	if len(task.Spec.KudoOperatorTaskSpec.Package) == 0 {
+		return nil, fmt.Errorf("task validation error: kudo operator task '%s' has an empty package name", task.Name)
+	}
+
+	return KudoOperatorTask{
+		Name:            task.Name,
+		Package:         task.Spec.KudoOperatorTaskSpec.Package,
+		InstanceName:    task.Spec.KudoOperatorTaskSpec.InstanceName,
+		AppVersion:      task.Spec.KudoOperatorTaskSpec.AppVersion,
+		OperatorVersion: task.Spec.KudoOperatorTaskSpec.OperatorVersion,
+	}, nil
 }

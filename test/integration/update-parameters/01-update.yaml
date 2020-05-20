@@ -1,10 +1,11 @@
 apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
-  name: racy-instance
+  name: toy1
+spec:
+  parameters:
+    Replicas: "3"
 status:
-  aggregatedStatus:
-    status: COMPLETE
   planStatus:
     deploy:
       status: COMPLETE

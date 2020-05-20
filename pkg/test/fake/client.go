@@ -24,49 +24,58 @@ func (d *CachedDiscovery) Invalidate() {
 
 }
 
-// CachedDiscoveryClient returns a fake discovery client that is populated with some types for use in
-// unit tests.
-func CachedDiscoveryClient() discovery.CachedDiscoveryInterface {
+func CustomCachedDiscoveryClient(additionalResources ...*metav1.APIResourceList) discovery.CachedDiscoveryInterface {
+	commonResources := []*metav1.APIResourceList{
+		{
+			GroupVersion: corev1.SchemeGroupVersion.String(),
+			APIResources: []metav1.APIResource{
+				{Name: "pod", Namespaced: true, Kind: "Pod"},
+				{Name: "namespace", Namespaced: false, Kind: "Namespace"},
+				{Name: "service", Namespaced: true, Kind: "Service"},
+				{Name: "configmap", Namespaced: true, Kind: "ConfigMap"},
+				{Name: "secret", Namespaced: true, Kind: "Secret"},
+			},
+		},
+		{
+			GroupVersion: appsv1.SchemeGroupVersion.String(),
+			APIResources: []metav1.APIResource{
+				{Name: "statefulset", Namespaced: true, Kind: "StatefulSet"},
+				{Name: "deployment", Namespaced: true, Kind: "Deployment"},
+			},
+		},
+		{
+			GroupVersion: batchv1.SchemeGroupVersion.String(),
+			APIResources: []metav1.APIResource{
+				{Name: "job", Namespaced: true, Kind: "Job"},
+			},
+		},
+		{
+			GroupVersion: batchv1beta1.SchemeGroupVersion.String(),
+			APIResources: []metav1.APIResource{
+				{Name: "job", Namespaced: true, Kind: "CronJob"},
+			},
+		},
+		{
+			GroupVersion: apiextensions.SchemeGroupVersion.String(),
+			APIResources: []metav1.APIResource{
+				{Name: "customresourcedefinitions", Namespaced: false, Kind: "CustomResourceDefinition"},
+			},
+		},
+	}
+
+	resources := append(commonResources, additionalResources...)
 
 	return &CachedDiscovery{
 		FakeDiscovery: fakediscovery.FakeDiscovery{
 			Fake: &coretesting.Fake{
-				Resources: []*metav1.APIResourceList{
-					{
-						GroupVersion: corev1.SchemeGroupVersion.String(),
-						APIResources: []metav1.APIResource{
-							{Name: "pod", Namespaced: true, Kind: "Pod"},
-							{Name: "namespace", Namespaced: false, Kind: "Namespace"},
-							{Name: "service", Namespaced: true, Kind: "Service"},
-						},
-					},
-					{
-						GroupVersion: appsv1.SchemeGroupVersion.String(),
-						APIResources: []metav1.APIResource{
-							{Name: "statefulset", Namespaced: true, Kind: "StatefulSet"},
-							{Name: "deployment", Namespaced: true, Kind: "Deployment"},
-						},
-					},
-					{
-						GroupVersion: batchv1.SchemeGroupVersion.String(),
-						APIResources: []metav1.APIResource{
-							{Name: "job", Namespaced: true, Kind: "Job"},
-						},
-					},
-					{
-						GroupVersion: batchv1beta1.SchemeGroupVersion.String(),
-						APIResources: []metav1.APIResource{
-							{Name: "job", Namespaced: true, Kind: "CronJob"},
-						},
-					},
-					{
-						GroupVersion: apiextensions.SchemeGroupVersion.String(),
-						APIResources: []metav1.APIResource{
-							{Name: "customresourcedefinitions", Namespaced: false, Kind: "CustomResourceDefinition"},
-						},
-					},
-				},
+				Resources: resources,
 			},
 		},
 	}
+}
+
+// CachedDiscoveryClient returns a fake discovery client that is populated with some types for use in
+// unit tests.
+func CachedDiscoveryClient() discovery.CachedDiscoveryInterface {
+	return CustomCachedDiscoveryClient()
 }

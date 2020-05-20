@@ -19,8 +19,8 @@ type Client struct {
 	DynamicClient dynamic.Interface
 }
 
-// getConfig returns a Kubernetes client config for a given kubeconfig.
-func getConfig(kubeconfig string) clientcmd.ClientConfig {
+// GetConfig returns a Kubernetes client config for a given kubeconfig.
+func GetConfig(kubeconfig string) clientcmd.ClientConfig {
 	rules := clientcmd.NewDefaultClientConfigLoadingRules()
 	rules.DefaultClientConfig = &clientcmd.DefaultClientConfig
 
@@ -34,7 +34,7 @@ func getConfig(kubeconfig string) clientcmd.ClientConfig {
 }
 
 func getRestConfig(kubeconfig string) (*rest.Config, error) {
-	config, err := getConfig(kubeconfig).ClientConfig()
+	config, err := GetConfig(kubeconfig).ClientConfig()
 	if err != nil {
 		return nil, fmt.Errorf("could not get Kubernetes config using configuration %q: %s", kubeconfig, err)
 	}

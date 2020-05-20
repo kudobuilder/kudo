@@ -10,7 +10,9 @@ import (
 
 	"github.com/thoas/go-funk"
 	"k8s.io/api/admission/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -24,6 +26,20 @@ import (
 type InstanceAdmission struct {
 	client  client.Client
 	decoder *admission.Decoder
+}
+
+func NewInstanceAdmission(cfg *rest.Config, s *runtime.Scheme) (*InstanceAdmission, error) {
+	// client.New returns a new Client using the provided config and Options.
+	// The returned client reads *and* writes directly from the server
+	// (it doesn't use object caches). Using a cached client might lead to racy
+	// behaviour when installing operators e.g. and `OperatorVersion` is already created
+	// but not yet in cache which leads to an error during `Instance` creation.
+	c, err := client.New(cfg, client.Options{Scheme: s})
+	if err != nil {
+		return nil, err
+	}
+
+	return &InstanceAdmission{client: c}, nil
 }
 
 // InstanceAdmission validates updates to an Instance, guarding from conflicting plan executions
@@ -197,12 +213,16 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 	}
 
 	isParameterUpdate := triggeredPlan != nil
+	updateIncompatibleWithUpgrade := isParameterUpdate && *triggeredPlan != kudov1beta1.DeployPlanName
 
-	// --------------------------------------------------------------------------------------------------------------------------------
-	// ---- Instance can have two major life-cycle phases: normal and cleanup (uninstall) phase. Different rule sets apply in both. ---
-	// --------------------------------------------------------------------------------------------------------------------------------
+	// --------------------------------------------------------------------------------------------
+	// --- Instance can have two major life-cycle phases: normal and cleanup (uninstall) phase. ---
+	// --- Different rule sets apply in both.                               				    ---
+	// ---------------------------------------------------------------------------------------------
 
+	// ----------------------------------
 	// --- Instance uninstall/cleanup ---
+	// ----------------------------------
 	// Following rules apply:
 	// - only 'cleanup' plan (if exists) can be scheduled in this phase
 	// - only the instance controller (and not the webhook or the user) can schedule 'cleanup'
@@ -210,11 +230,11 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 	// - 'cleanup' itself can *NOT* be cancelled or overridden by any other plan since the instance is being deleted
 	if isDeleting {
 		Cleanup := kudov1beta1.CleanupPlanName
-		cleanupOverride := oldPlan == Cleanup && newPlan != oldPlan
+		isCleanupOverride := oldPlan == Cleanup && newPlan != oldPlan
 		notCleanupScheduled := newPlan != "" && newPlan != Cleanup
 
 		switch {
-		case cleanupOverride:
+		case isCleanupOverride:
 			return nil, fmt.Errorf("failed to update Instance %s/%s: '%s' plan can not be cancelled or overridden by another plan since the instance is being deleted", old.Namespace, old.Name, oldPlan)
 		case isParameterUpdate || isUpgrade:
 			return nil, fmt.Errorf("failed to update Instance %s/%s: parameter update and/or upgrade is not allowed when an instance is being deleted", old.Namespace, old.Name)
@@ -225,7 +245,9 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 		return nil, nil
 	}
 
+	// ----------------------------
 	// ---- Normal life-cycle -----
+	// ----------------------------
 	switch {
 	case hadPlan && isParameterUpdate && *triggeredPlan != oldPlan:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: plan '%s' is scheduled (or running) and an update would trigger a different plan '%s'", old.Namespace, old.Name, oldPlan, *triggeredPlan)
@@ -233,12 +255,12 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 		return nil, fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s while a plan '%s' is scheduled (or running) is not allowed", old.Namespace, old.Name, newOvRef, oldPlan)
 	case isUpgrade && isNovelPlan:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s and triggering new plan '%s' is not allowed", old.Namespace, old.Name, newOvRef, newPlan)
+	case isUpgrade && updateIncompatibleWithUpgrade:
+		return nil, fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s together with a parameter update triggering '%s' is not allowed", old.Namespace, old.Name, newOvRef, *triggeredPlan)
 	case isPlanOverride:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: overriding currently scheduled (or running) plan '%s' with '%s' is not supported", old.Namespace, old.Name, oldPlan, newPlan)
 	case isPlanCancellation:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: cancelling currently scheduled (or running) plan '%s' is not supported", old.Namespace, old.Name, oldPlan)
-	case isParameterUpdate && isUpgrade:
-		return nil, fmt.Errorf("failed to update Instance %s/%s: upgrade to new OperatorVersion %s together with a parameter update triggering '%s' is not allowed", old.Namespace, old.Name, newOvRef, *triggeredPlan)
 	case isParameterUpdate && isNovelPlan:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: triggering one plan '%s' directly and through parameter update '%s' is not allowed", old.Namespace, old.Name, oldPlan, newPlan)
 	// this case is effectively a noop because isPlanOverride is disallowed for now. However, once plan overrides are implemented, this will be needed so don't remove.
@@ -333,15 +355,6 @@ func changedParameterDefinitions(old map[string]string, new map[string]string, o
 	rpd, _ := kudov1beta1.GetParamDefinitions(r, ov)
 
 	return append(cpd, rpd...), nil
-}
-
-// InstanceAdmission implements inject.Client.
-// A client will be automatically injected.
-
-// InjectClient injects the client.
-func (ia *InstanceAdmission) InjectClient(c client.Client) error {
-	ia.client = c
-	return nil
 }
 
 // InstanceAdmission implements admission.DecoderInjector.

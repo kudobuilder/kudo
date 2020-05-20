@@ -1,0 +1,6 @@
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+status:
+  planStatus:
+    update-replica:
+      status: COMPLETE

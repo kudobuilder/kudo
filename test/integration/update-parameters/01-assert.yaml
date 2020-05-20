@@ -5,21 +5,13 @@ metadata:
 spec:
   selector:
     replicas: "3"
-    param: "30"
+    param: "after"
 ---
 apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   name: toy1
 status:
-  aggregatedStatus:
-    status: COMPLETE
   planStatus:
     scale:
       status: COMPLETE
-      phases:
-        - name: scale
-          status: COMPLETE
-          steps:
-            - name: scale
-              status: COMPLETE

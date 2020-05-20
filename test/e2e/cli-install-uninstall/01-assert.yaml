@@ -3,8 +3,9 @@ kind: Instance
 metadata:
   name: first-operator
 status:
-  aggregatedStatus:
-    status: COMPLETE
+  planStatus:
+    deploy:
+      status: COMPLETE
 ---
 apiVersion: apps/v1
 kind: Deployment

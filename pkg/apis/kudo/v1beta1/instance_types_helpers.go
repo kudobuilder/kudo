@@ -15,6 +15,19 @@ const (
 	snapshotAnnotation           = "kudo.dev/last-applied-instance-state"
 )
 
+// ScheduledPlan returns plan status of currently active plan or nil if no plan is running. In most cases this method
+// will return the same plan status as the [GetPlanInProgress](pkg/apis/kudo/v1beta1/instance_types_helpers.go:25) below.
+// However, there is a small window where both might return different results:
+// 1. GetScheduledPlan reads the plan from i.Spec.PlanExecution.PlanName which is set and reset by the instance admission
+//   webhook
+// 2. GetPlanInProgress goes through i.Spec.PlanStatus map and returns the first found plan that is running
+//
+// (1) is set directly when the user updates the instance and reset **after** the plan is terminal
+// (2) is updated **after** each time the instance controller executes the plan
+func (i *Instance) GetScheduledPlan() *PlanStatus {
+	return i.PlanStatus(i.Spec.PlanExecution.PlanName)
+}
+
 // GetPlanInProgress returns plan status of currently active plan or nil if no plan is running
 func (i *Instance) GetPlanInProgress() *PlanStatus {
 	for _, p := range i.Status.PlanStatus {
@@ -67,7 +80,6 @@ func (i *Instance) UpdateInstanceStatus(planStatus *PlanStatus, updatedTimestamp
 			planStatus.LastUpdatedTimestamp = updatedTimestamp
 			i.Status.PlanStatus[k] = *planStatus
 			i.Spec.PlanExecution.Status = planStatus.Status
-			i.Status.AggregatedStatus.Status = planStatus.Status
 		}
 	}
 }

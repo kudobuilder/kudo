@@ -115,10 +115,6 @@ func TestInstance_ResetPlanStatus(t *testing.T) {
 					Phases: []PhaseStatus{{Name: "phase", Status: ExecutionNeverRun, Steps: []StepStatus{{Status: ExecutionNeverRun, Name: "step"}}}},
 				},
 			},
-			AggregatedStatus: AggregatedStatus{
-				Status:         ExecutionInProgress,
-				ActivePlanName: "deploy",
-			},
 		},
 	}
 
@@ -140,7 +136,6 @@ func TestInstance_ResetPlanStatus(t *testing.T) {
 
 	// Expected:
 	// - the status of the 'deploy' plan to be reset: all phases and steps should be PENDING, new UID should be assigned
-	// - AggregatedStatus should be PENDING too and 'deploy' should be the active plan
 	// - 'update' plan status should be unchanged
 	assert.Equal(t, InstanceStatus{
 		PlanStatus: map[string]PlanStatus{
@@ -156,10 +151,6 @@ func TestInstance_ResetPlanStatus(t *testing.T) {
 				Name:   "update",
 				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionNeverRun, Steps: []StepStatus{{Status: ExecutionNeverRun, Name: "step"}}}},
 			},
-		},
-		AggregatedStatus: AggregatedStatus{
-			Status:         ExecutionPending,
-			ActivePlanName: "deploy",
 		},
 	}, instance.Status)
 }

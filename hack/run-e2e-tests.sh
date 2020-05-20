@@ -6,18 +6,13 @@ set -o pipefail
 set -o xtrace
 
 INTEGRATION_OUTPUT_JUNIT=${INTEGRATION_OUTPUT_JUNIT:-false}
-VERSION=${VERSION:-test}
+KUDO_VERSION=${KUDO_VERSION:-test}
 
 docker build . \
     --build-arg ldflags_arg="" \
-    -t "kudobuilder/controller:$VERSION"
+    -t "kudobuilder/controller:$KUDO_VERSION"
 
-# Generate the kudo.yaml that is used to install KUDO while running e2e-test
-./bin/kubectl-kudo init --webhook InstanceValidation --unsafe-self-signed-webhook-ca --dry-run --output yaml --kudo-image kudobuilder/controller:$VERSION \
-    | sed -E -e '/imagePullPolicy/ s/Always/Never/' \
-    > test/manifests/kudo.yaml
-
-sed "s/%version%/$VERSION/" kudo-e2e-test.yaml.tmpl > kudo-e2e-test.yaml
+sed "s/%version%/$KUDO_VERSION/" kudo-e2e-test.yaml.tmpl > kudo-e2e-test.yaml
 
 if [ "$INTEGRATION_OUTPUT_JUNIT" == true ]
 then
@@ -30,12 +25,13 @@ then
         | go-junit-report -set-exit-code \
         > reports/kudo_e2e_test_report.xml
 
+    # Operators tests
     rm -rf operators
     git clone https://github.com/kudobuilder/operators
     mkdir operators/bin/
     cp ./bin/kubectl-kudo operators/bin/
-    cp ./bin/manager operators/bin/
-    cd operators && ./bin/kubectl-kudo test 2>&1 \
+    sed "s/%version%/$KUDO_VERSION/" operators/kudo-test.yaml.tmpl > operators/kudo-test.yaml
+    cd operators && ./bin/kubectl-kudo test --artifacts-dir /tmp/kudo-e2e-test 2>&1 \
         | tee /dev/fd/2 \
         | go-junit-report -set-exit-code \
         > ../reports/kudo_operators_test_report.xml
@@ -44,10 +40,11 @@ else
 
     ./bin/kubectl-kudo test --config kudo-e2e-test.yaml
 
+    # Operators tests
     rm -rf operators
     git clone https://github.com/kudobuilder/operators
     mkdir operators/bin/
     cp ./bin/kubectl-kudo operators/bin/
-    cp ./bin/manager operators/bin/
-    cd operators && ./bin/kubectl-kudo test
+    sed "s/%version%/$KUDO_VERSION/" operators/kudo-test.yaml.tmpl > operators/kudo-test.yaml
+    cd operators && ./bin/kubectl-kudo test --artifacts-dir /tmp/kudo-e2e-test
 fi

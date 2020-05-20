@@ -2,7 +2,6 @@ apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   labels:
-    controller-tools.k8s.io: "1.0"
     kudo.dev/operator: toy
   name: toy1
 spec:
@@ -10,7 +9,6 @@ spec:
     name: toy-v1
     kind: OperatorVersion
     namespace: default
-  # Add fields here
   parameters:
-    Param: "30"
+    Param: "after"
     Replicas: "1"
