@@ -82,7 +82,7 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 	}
 	return &Client{
 		kudoClientset: kudoClientset,
-		Interface: kubeClientset,
+		Interface:     kubeClientset,
 	}, nil
 }
 

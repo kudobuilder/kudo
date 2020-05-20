@@ -7,7 +7,6 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
-
 	"github.com/kudobuilder/kudo/pkg/version"
 
 	"github.com/spf13/afero"

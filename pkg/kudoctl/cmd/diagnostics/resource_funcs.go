@@ -33,7 +33,7 @@ type ResourceFuncsConfig struct {
 func NewInstanceResources(opts *Options, c *kudo.Client, s *env.Settings) (*ResourceFuncsConfig, error) {
 	instance, err := c.GetInstance(opts.Instance, s.Namespace)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get instance %s/%s: %v",s.Namespace, opts.Instance, err)
+		return nil, fmt.Errorf("failed to get instance %s/%s: %v", s.Namespace, opts.Instance, err)
 	}
 	if instance == nil {
 		return nil, fmt.Errorf("instance %s/%s not found", s.Namespace, opts.Instance)

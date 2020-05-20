@@ -2,13 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"time"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/diagnostics"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
 const (
