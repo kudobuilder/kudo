@@ -1,0 +1,164 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    kudo.dev/last-applied-configuration: |
+      {"kind":"StatefulSet","apiVersion":"apps/v1","metadata":{"name":"zookeeper-instance-zookeeper","namespace":"my-namespace","creationTimestamp":null,"labels":{"app":"zookeeper","heritage":"kudo","instance":"zookeeper-instance","kudo.dev/instance":"zookeeper-instance","kudo.dev/operator":"zookeeper","zookeeper":"zookeeper"},"annotations":{"kudo.dev/last-plan-execution-uid":"7ce82b37-3638-47c7-8bcb-42b807c3c470","kudo.dev/operator-version":"0.3.0","kudo.dev/phase":"zookeeper","kudo.dev/plan":"deploy","kudo.dev/step":"deploy","reloader.kudo.dev/auto":"true"},"ownerReferences":[{"apiVersion":"kudo.dev/v1beta1","kind":"Instance","name":"zookeeper-instance","uid":"51b95bd7-03fa-4e25-969a-241ef0467712","controller":true,"blockOwnerDeletion":true}]},"spec":{"replicas":3,"selector":{"matchLabels":{"app":"zookeeper","instance":"zookeeper-instance","zookeeper":"zookeeper"}},"template":{"metadata":{"creationTimestamp":null,"labels":{"app":"zookeeper","heritage":"kudo","instance":"zookeeper-instance","kudo.dev/instance":"zookeeper-instance","kudo.dev/operator":"zookeeper","zookeeper":"zookeeper"},"annotations":{"kudo.dev/last-plan-execution-uid":"7ce82b37-3638-47c7-8bcb-42b807c3c470","kudo.dev/operator-version":"0.3.0","kudo.dev/phase":"zookeeper","kudo.dev/plan":"deploy","kudo.dev/step":"deploy"}},"spec":{"volumes":[{"name":"zookeeper-instance-bootstrap","configMap":{"name":"zookeeper-instance-bootstrap","defaultMode":511}},{"name":"zookeeper-instance-healthcheck","configMap":{"name":"zookeeper-instance-healthcheck","defaultMode":511}}],"containers":[{"name":"kubernetes-zookeeper","image":"zookeeper:3.4.14","command":["sh","-c","ZOOKEEPERPATH=`pwd` /etc/zookeeper/bootstrap.sh --servers=3 --data_dir=/var/lib/zookeeper/data --data_log_dir=/logs --conf_dir=/conf --client_port=2181 --election_port=3888 --server_port=2888 --tick_time=2000 --init_limit=10 --sync_limit=5 --heap=512M --max_client_cnxns=60 --snap_retain_count=3 --purge_interval=12 --max_session_timeout=40000 --min_session_timeout=4000 --log_level=INFO"],"ports":[{"name":"client","containerPort":2181},{"name":"server","containerPort":2888},{"name":"leader-election","containerPort":3888}],"resources":{"limits":{"cpu":"1","memory":"2Gi"},"requests":{"cpu":"250m","memory":"1Gi"}},"volumeMounts":[{"name":"zookeeper-instance-datadir","mountPath":"/var/lib/zookeeper"},{"name":"zookeeper-instance-bootstrap","mountPath":"/etc/zookeeper"},{"name":"zookeeper-instance-healthcheck","mountPath":"/etc/healthcheck"}],"livenessProbe":{"exec":{"command":["sh","-c","/etc/healthcheck/healthcheck.sh 2181"]},"initialDelaySeconds":10,"timeoutSeconds":5,"periodSeconds":30},"readinessProbe":{"exec":{"command":["sh","-c","/etc/healthcheck/healthcheck.sh 2181"]},"initialDelaySeconds":10,"timeoutSeconds":5},"imagePullPolicy":"Always"}],"securityContext":{"runAsUser":1000,"fsGroup":1000}}},"volumeClaimTemplates":[{"metadata":{"name":"zookeeper-instance-datadir","creationTimestamp":null,"labels":{"heritage":"kudo","kudo.dev/instance":"zookeeper-instance","kudo.dev/operator":"zookeeper"}},"spec":{"accessModes":["ReadWriteOnce"],"resources":{"requests":{"storage":"5Gi"}}},"status":{}}],"serviceName":"zookeeper-instance-hs","podManagementPolicy":"Parallel","updateStrategy":{"type":"RollingUpdate"}},"status":{"replicas":0}}
+    kudo.dev/last-plan-execution-uid: 7ce82b37-3638-47c7-8bcb-42b807c3c470
+    kudo.dev/operator-version: 0.3.0
+    kudo.dev/phase: zookeeper
+    kudo.dev/plan: deploy
+    kudo.dev/step: deploy
+    reloader.kudo.dev/auto: "true"
+  creationTimestamp: "2020-05-18T20:19:11Z"
+  generation: 1
+  labels:
+    app: zookeeper
+    heritage: kudo
+    instance: zookeeper-instance
+    kudo.dev/instance: zookeeper-instance
+    kudo.dev/operator: zookeeper
+    zookeeper: zookeeper
+  name: zookeeper-instance-zookeeper
+  namespace: my-namespace
+  ownerReferences:
+  - apiVersion: kudo.dev/v1beta1
+    blockOwnerDeletion: true
+    controller: true
+    kind: Instance
+    name: zookeeper-instance
+    uid: 51b95bd7-03fa-4e25-969a-241ef0467712
+  resourceVersion: "5832889"
+  selfLink: /apis/apps/v1/namespaces/my-namespace/statefulsets/zookeeper-instance-zookeeper
+  uid: 809fe0e3-c4b9-4540-98ce-b939a5dca6ba
+spec:
+  podManagementPolicy: Parallel
+  replicas: 3
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: zookeeper
+      instance: zookeeper-instance
+      zookeeper: zookeeper
+  serviceName: zookeeper-instance-hs
+  template:
+    metadata:
+      annotations:
+        kudo.dev/last-plan-execution-uid: 7ce82b37-3638-47c7-8bcb-42b807c3c470
+        kudo.dev/operator-version: 0.3.0
+        kudo.dev/phase: zookeeper
+        kudo.dev/plan: deploy
+        kudo.dev/step: deploy
+      creationTimestamp: null
+      labels:
+        app: zookeeper
+        heritage: kudo
+        instance: zookeeper-instance
+        kudo.dev/instance: zookeeper-instance
+        kudo.dev/operator: zookeeper
+        zookeeper: zookeeper
+    spec:
+      containers:
+      - command:
+        - sh
+        - -c
+        - ZOOKEEPERPATH=`pwd` /etc/zookeeper/bootstrap.sh --servers=3 --data_dir=/var/lib/zookeeper/data
+          --data_log_dir=/logs --conf_dir=/conf --client_port=2181 --election_port=3888
+          --server_port=2888 --tick_time=2000 --init_limit=10 --sync_limit=5 --heap=512M
+          --max_client_cnxns=60 --snap_retain_count=3 --purge_interval=12 --max_session_timeout=40000
+          --min_session_timeout=4000 --log_level=INFO
+        image: zookeeper:3.4.14
+        imagePullPolicy: Always
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - /etc/healthcheck/healthcheck.sh 2181
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: kubernetes-zookeeper
+        ports:
+        - containerPort: 2181
+          name: client
+          protocol: TCP
+        - containerPort: 2888
+          name: server
+          protocol: TCP
+        - containerPort: 3888
+          name: leader-election
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - /etc/healthcheck/healthcheck.sh 2181
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: "1"
+            memory: 2Gi
+          requests:
+            cpu: 250m
+            memory: 1Gi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /var/lib/zookeeper
+          name: zookeeper-instance-datadir
+        - mountPath: /etc/zookeeper
+          name: zookeeper-instance-bootstrap
+        - mountPath: /etc/healthcheck
+          name: zookeeper-instance-healthcheck
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 511
+          name: zookeeper-instance-bootstrap
+        name: zookeeper-instance-bootstrap
+      - configMap:
+          defaultMode: 511
+          name: zookeeper-instance-healthcheck
+        name: zookeeper-instance-healthcheck
+  updateStrategy:
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - metadata:
+      creationTimestamp: null
+      labels:
+        heritage: kudo
+        kudo.dev/instance: zookeeper-instance
+        kudo.dev/operator: zookeeper
+      name: zookeeper-instance-datadir
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi
+      volumeMode: Filesystem
+    status:
+      phase: Pending
+status:
+  collisionCount: 0
+  currentReplicas: 3
+  currentRevision: zookeeper-instance-zookeeper-687d6785d6
+  observedGeneration: 1
+  readyReplicas: 3
+  replicas: 3
+  updateRevision: zookeeper-instance-zookeeper-687d6785d6
+  updatedReplicas: 3

@@ -3,6 +3,7 @@ package diagnostics
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -80,7 +81,7 @@ type LogCollector struct {
 func (c *LogCollector) Collect() error {
 	log, err := c.loadLogFn(c.podName)
 	if err != nil {
-		c.printer.printError(err, c.parentDir(), fmt.Sprintf("%s.log", c.podName))
+		c.printer.printError(err, filepath.Join(c.parentDir(), fmt.Sprintf("pod_%s", c.podName)), fmt.Sprintf("%s.log", c.podName))
 	} else {
 		c.printer.printLog(log, c.parentDir(), c.podName)
 		_ = log.Close()

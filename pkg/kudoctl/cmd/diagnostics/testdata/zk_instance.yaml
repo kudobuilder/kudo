@@ -1,0 +1,51 @@
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
+  annotations:
+    kudo.dev/last-applied-instance-state: '{"operatorVersion":{"name":"zookeeper-0.3.0"},"planExecution":{}}'
+  creationTimestamp: "2020-05-18T20:19:10Z"
+  generation: 1
+  labels:
+    kudo.dev/operator: zookeeper
+  name: zookeeper-instance
+  namespace: my-namespace
+  resourceVersion: "5833004"
+  selfLink: /apis/kudo.dev/v1beta1/namespaces/my-namespace/instances/zookeeper-instance
+  uid: 51b95bd7-03fa-4e25-969a-241ef0467712
+spec:
+  operatorVersion:
+    name: zookeeper-0.3.0
+  planExecution: {}
+status:
+  aggregatedStatus:
+    status: COMPLETE
+  planStatus:
+    deploy:
+      lastUpdatedTimestamp: "2020-05-18T20:22:02Z"
+      name: deploy
+      phases:
+      - name: zookeeper
+        status: COMPLETE
+        steps:
+        - name: deploy
+          status: COMPLETE
+      - name: validation
+        status: COMPLETE
+        steps:
+        - name: validation
+          status: COMPLETE
+        - name: cleanup
+          status: COMPLETE
+      status: COMPLETE
+      uid: 7ce82b37-3638-47c7-8bcb-42b807c3c470
+    validation:
+      name: validation
+      phases:
+      - name: connection
+        status: NEVER_RUN
+        steps:
+        - name: connection
+          status: NEVER_RUN
+        - name: cleanup
+          status: NEVER_RUN
+      status: NEVER_RUN

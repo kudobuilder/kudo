@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
+
 	"github.com/kudobuilder/kudo/pkg/version"
 
 	"github.com/spf13/afero"
@@ -25,8 +27,8 @@ func NewOptions(instance string, logSince time.Duration) *Options {
 	return &opts
 }
 
-func Collect(fs afero.Fs, options *Options, s *env.Settings) error {
-	ir, err := NewInstanceResources(options, s)
+func Collect(fs afero.Fs, options *Options, c *kudo.Client, s *env.Settings) error {
+	ir, err := NewInstanceResources(options, c, s)
 	if err != nil {
 		return err
 	}
@@ -125,7 +127,7 @@ func Collect(fs afero.Fs, options *Options, s *env.Settings) error {
 		DumpToYaml(version.Get(), ctx.attachToRoot, "version", p).
 		DumpToYaml(s, ctx.attachToRoot, "settings", p)
 
-	kr, err := NewKudoResources(s)
+	kr, err := NewKudoResources(c)
 	if err != nil {
 		return err
 	}

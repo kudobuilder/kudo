@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"time"
 
 	"github.com/spf13/afero"
@@ -34,7 +36,11 @@ func newDiagnosticsCollectCmd(fs afero.Fs) *cobra.Command {
 		Long:    "collect data relevant for diagnostics of the provided instance's state",
 		Example: diagCollectExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return diagnostics.Collect(fs, diagnostics.NewOptions(instance, logSince), &Settings)
+			c, err := kudo.NewClient(Settings.KubeConfig, Settings.RequestTimeout, Settings.Validate)
+			if err != nil {
+				return fmt.Errorf("failed to create kudo client: %v", err)
+			}
+			return diagnostics.Collect(fs, diagnostics.NewOptions(instance, logSince), c, &Settings)
 		},
 	}
 	cmd.Flags().StringVar(&instance, "instance", "", "The instance name.")
