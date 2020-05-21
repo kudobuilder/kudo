@@ -133,7 +133,7 @@ func TestNamespaceManifestRendering(t *testing.T) {
 		t.Fatalf("failed reading .golden: %s", err)
 	}
 
-	assert.Equal(t, string(golden), string(rendered), "for golden file: %s", gf)
+	assert.Equal(t, string(golden), rendered, "for golden file: %s", gf)
 }
 
 func testResources() *packages.Resources {
