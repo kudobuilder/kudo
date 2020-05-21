@@ -9,6 +9,7 @@ import (
 	pollwait "k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
@@ -27,7 +28,12 @@ func InstallPackage(kc *Client, resources *packages.Resources, skipInstance bool
 		var manifest string = ""
 		if resources.Operator.Spec.NamespaceManifest != "" {
 			clog.V(3).Printf("creating namespace with manifest named: %q", resources.Operator.Spec.NamespaceManifest)
-			manifest = resources.OperatorVersion.Spec.Templates[resources.Operator.Spec.NamespaceManifest]
+			template := resources.OperatorVersion.Spec.Templates[resources.Operator.Spec.NamespaceManifest]
+			var err error
+			manifest, err = render("namespace", template, resources, instanceName, namespace, parameters)
+			if err != nil {
+				return err
+			}
 		}
 		err := kc.CreateNamespace(namespace, manifest)
 		if err != nil {
@@ -144,4 +150,21 @@ func versionExists(version string, versions []string) bool {
 	}
 
 	return false
+}
+
+func render(name, manifest string, resources *packages.Resources, instanceName, namespace string, parameters map[string]string) (string, error) {
+	configs := make(map[string]interface{})
+	configs["OperatorName"] = resources.Operator.Name
+	configs["Name"] = instanceName
+	configs["Namespace"] = namespace
+	configs["Params"] = parameters
+	configs["AppVersion"] = resources.OperatorVersion.Spec.AppVersion
+	configs["OperatorVersion"] = resources.OperatorVersion.Spec.Version
+
+	engine := renderer.New()
+	rendered, err := engine.Render(name, manifest, configs)
+	if err != nil {
+		return "", err
+	}
+	return rendered, nil
 }
