@@ -2,6 +2,9 @@ package diagnostics
 
 import (
 	"fmt"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
+	"github.com/spf13/afero"
 	"io"
 	"path/filepath"
 	"reflect"
@@ -91,4 +94,156 @@ func (c *LogCollector) Collect() error {
 		_ = log.Close()
 	}
 	return nil
+}
+
+type InstanceCollector struct {
+	fs      afero.Fs
+	options *Options
+	c       *kudo.Client
+	s       *env.Settings
+	ctx     *processingContext
+	p       *NonFailingPrinter
+	ir      *ResourceFuncsConfig
+}
+
+func (c *InstanceCollector) Collect() error {
+
+	instanceDiagRunner := &Runner{}
+
+	instanceDiagRunner.
+		Run(ResourceCollectorGroup{
+			{
+				loadResourceFn: c.ir.Instance,
+				errKind:        "instance",
+				parentDir:      c.ctx.attachToOperator,
+				failOnError:    true,
+				callback:       c.ctx.mustSetOperatorVersionNameFromInstance,
+				printer:        c.p, printMode: ObjectWithDir},
+			{
+				loadResourceFn: c.ir.OperatorVersion(c.ctx.operatorVersionName),
+				errKind:        "operatorversion", parentDir: c.ctx.attachToOperator,
+				failOnError: true, callback: c.ctx.mustSetOperatorNameFromOperatorVersion,
+				printer: c.p, printMode: ObjectWithDir},
+			{
+				loadResourceFn: c.ir.Operator(c.ctx.operatorName),
+				errKind:        "operator",
+				parentDir:      c.ctx.attachToRoot,
+				failOnError:    true,
+				printer:        c.p,
+				printMode:      ObjectWithDir}}).
+		Run(&ResourceCollector{
+			loadResourceFn: c.ir.Pods, errKind: "pod",
+			parentDir: c.ctx.attachToInstance,
+			callback:  c.ctx.mustAddPodNames,
+			printer:   c.p,
+			printMode: ObjectListWithDirs}).
+		Run(&ResourceCollector{
+			loadResourceFn: c.ir.Services,
+			errKind:        "service",
+			parentDir:      c.ctx.attachToInstance,
+			printer:        c.p,
+			printMode:      RuntimeObject}).
+		Run(&ResourceCollector{
+			loadResourceFn: c.ir.Deployments,
+			errKind:        "deployment",
+			parentDir:      c.ctx.attachToInstance,
+			printer:        c.p,
+			printMode:      RuntimeObject}).
+		Run(&ResourceCollector{
+			loadResourceFn: c.ir.ReplicaSets,
+			errKind:        "replicaset",
+			parentDir:      c.ctx.attachToInstance,
+			printer:        c.p,
+			printMode:      RuntimeObject}).
+		Run(&ResourceCollector{
+			loadResourceFn: c.ir.StatefulSets,
+			errKind:        "statefulset",
+			parentDir:      c.ctx.attachToInstance,
+			printer:        c.p,
+			printMode:      RuntimeObject}).
+		Run(&ResourceCollector{
+			loadResourceFn: c.ir.ServiceAccounts,
+			errKind:        "serviceaccount",
+			parentDir:      c.ctx.attachToInstance,
+			printer:        c.p,
+			printMode:      RuntimeObject}).
+		Run(&ResourceCollector{
+			loadResourceFn: c.ir.ClusterRoleBindings,
+			errKind:        "clusterrolebinding",
+			parentDir:      c.ctx.attachToInstance,
+			printer:        c.p,
+			printMode:      RuntimeObject}).
+		Run(&ResourceCollector{
+			loadResourceFn: c.ir.RoleBindings,
+			errKind:        "rolebinding",
+			parentDir:      c.ctx.attachToInstance,
+			printer:        c.p,
+			printMode:      RuntimeObject}).
+		Run(&ResourceCollector{
+			loadResourceFn: c.ir.ClusterRoles,
+			errKind:        "clusterrole",
+			parentDir:      c.ctx.attachToInstance,
+			printer:        c.p,
+			printMode:      RuntimeObject}).
+		Run(&ResourceCollector{
+			loadResourceFn: c.ir.Roles,
+			errKind:        "role",
+			parentDir:      c.ctx.attachToInstance,
+			printer:        c.p,
+			printMode:      RuntimeObject}).
+		RunForEach(c.ctx.podNames,
+			func(podName string) Collector {
+				return &LogCollector{loadLogFn: c.ir.Log,
+					podName:   podName,
+					parentDir: c.ctx.attachToInstance,
+					printer:   c.p}
+			})
+	return instanceDiagRunner.fatalErr
+}
+
+type KudoManagerCollector struct {
+	fs      afero.Fs
+	options *Options
+	c       *kudo.Client
+	s       *env.Settings
+	ctx     *processingContext
+	p       *NonFailingPrinter
+	kr      *ResourceFuncsConfig
+}
+
+func (c *KudoManagerCollector) Collect() error {
+
+	kudoDiagRunner := &Runner{}
+	p := &NonFailingPrinter{fs: c.fs}
+
+	kudoDiagRunner.
+		Run(&ResourceCollector{
+			loadResourceFn: c.kr.Pods,
+			errKind:        "pod",
+			parentDir:      c.ctx.attachToRoot,
+			callback:       c.ctx.mustAddPodNames,
+			printer:        c.p,
+			printMode:      ObjectListWithDirs}).
+		Run(&ResourceCollector{
+			loadResourceFn: c.kr.Services,
+			errKind:        "service",
+			parentDir:      c.ctx.attachToRoot,
+			printer:        c.p,
+			printMode:      RuntimeObject}).
+		Run(&ResourceCollector{
+			loadResourceFn: c.kr.StatefulSets,
+			errKind:        "statefulset",
+			parentDir:      c.ctx.attachToRoot,
+			printer:        c.p,
+			printMode:      RuntimeObject}).
+		Run(&ResourceCollector{
+			loadResourceFn: c.kr.ServiceAccounts,
+			errKind:        "serviceaccount",
+			parentDir:      c.ctx.attachToRoot,
+			printer:        c.p,
+			printMode:      RuntimeObject}).
+		RunForEach(c.ctx.podNames, func(podName string) Collector {
+			return &LogCollector{loadLogFn: c.kr.Log, podName: podName, parentDir: c.ctx.attachToRoot, printer: p}
+		})
+	return kudoDiagRunner.fatalErr
 }
