@@ -22,6 +22,7 @@ var verifiers = []packages.Verifier{
 	template.ParametersVerifier{},
 	template.ReferenceVerifier{},
 	template.RenderVerifier{},
+	template.NamespaceVerifier{},
 }
 
 // PackageFiles verifies operator package files
