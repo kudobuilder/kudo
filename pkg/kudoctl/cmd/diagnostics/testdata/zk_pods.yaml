@@ -516,7 +516,7 @@ items:
     - ip: 172.17.0.7
     qosClass: Burstable
     startTime: "2020-05-18T20:19:15Z"
-kind: List
+kind: PodList
 metadata:
   resourceVersion: ""
   selfLink: ""

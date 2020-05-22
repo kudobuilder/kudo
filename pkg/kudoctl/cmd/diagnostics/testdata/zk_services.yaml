@@ -92,7 +92,7 @@ items:
     type: ClusterIP
   status:
     loadBalancer: {}
-kind: List
+kind: ServiceList
 metadata:
   resourceVersion: ""
   selfLink: ""

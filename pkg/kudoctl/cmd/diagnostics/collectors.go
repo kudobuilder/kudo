@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"reflect"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,7 +32,7 @@ func (c *ResourceCollector) Collect() error {
 			return fmt.Errorf("failed to retrieve object(s) of kind %s: %v", c.errKind, err)
 		}
 		c.printer.printError(err, c.parentDir(), c.errKind)
-	case obj == nil || meta.IsListType(obj) && meta.LenList(obj) == 0:
+	case obj == nil || reflect.ValueOf(obj).IsNil() || meta.IsListType(obj) && meta.LenList(obj) == 0:
 		if c.failOnError {
 			return fmt.Errorf("no object(s) of kind %s retrieved", c.errKind)
 		}
@@ -57,6 +58,9 @@ func (g ResourceCollectorGroup) Collect() error {
 		obj, err := c.loadResourceFn()
 		if err != nil {
 			return fmt.Errorf("failed to retrieve object(s) of kind %s: %v", c.errKind, err)
+		}
+		if obj == nil || reflect.ValueOf(obj).IsNil() || meta.IsListType(obj) && meta.LenList(obj) == 0 {
+			return fmt.Errorf("no object(s) of kind %s retrieved", c.errKind)
 		}
 		if c.callback != nil {
 			c.callback(obj)

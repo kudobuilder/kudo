@@ -99,7 +99,7 @@ items:
     volumeMode: Filesystem
   status:
     phase: Bound
-kind: List
+kind: PersistentVolumeList
 metadata:
   resourceVersion: ""
   selfLink: ""
