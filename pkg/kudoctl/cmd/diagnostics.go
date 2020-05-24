@@ -40,7 +40,7 @@ func newDiagnosticsCollectCmd(fs afero.Fs) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to create kudo client: %v", err)
 			}
-			return diagnostics.Collect(fs, diagnostics.NewOptions(instance, logSince), c, &Settings)
+			return diagnostics.Collect(fs, instance, diagnostics.NewOptions(logSince), c, &Settings)
 		},
 	}
 	cmd.Flags().StringVar(&instance, "instance", "", "The instance name.")

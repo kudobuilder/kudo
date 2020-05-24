@@ -1,32 +1,41 @@
 package diagnostics
 
-// Collector - generic interface for diagnostic data collection
+// collector - generic interface for diagnostic data collection
 // implementors are expected to return only fatal errors and handle non-fatal ones themselves
-type Collector interface {
-	Collect() error
+type collector interface {
+	collect() error
 }
 
-// Runner - sequential runner for Collectors reducing error checking boilerplate code
-type Runner struct {
+// runner - sequential runner for Collectors reducing error checking boilerplate code
+type runner struct {
 	fatalErr error
 }
 
-func (r *Runner) Run(c Collector) *Runner {
+func (r *runner) run(c collector) *runner {
 	if r.fatalErr == nil {
-		r.fatalErr = c.Collect()
+		r.fatalErr = c.collect()
 	}
 	return r
 }
 
-func (r *Runner) RunForEach(names []string, fn func(string) Collector) *Runner {
+func (r *runner) runForEach(names []string, fn func(string) collector) *runner {
 	for _, name := range names {
 		collector := fn(name)
-		r.Run(collector)
+		r.run(collector)
 	}
 	return r
 }
 
-func (r *Runner) DumpToYaml(v interface{}, dir stringGetter, name string, p *NonFailingPrinter) *Runner {
+func (r *runner) dumpToYaml(v interface{}, dir stringGetter, name string, p *nonFailingPrinter) *runner {
 	p.printYaml(v, dir(), name)
 	return r
+}
+
+type collectorForRunner struct {
+	runnerFn func() *runner
+}
+
+func (c *collectorForRunner) collect() error {
+	r := c.runnerFn()
+	return r.fatalErr
 }

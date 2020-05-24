@@ -192,8 +192,7 @@ func TestCollect_OK(t *testing.T) {
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, &Options{
-		Instance: fakeZkInstance,
+	err := Collect(fs, fakeZkInstance, &Options{
 		LogSince: -1,
 	}, client, &env.Settings{
 		Namespace: fakeNamespace,
@@ -259,11 +258,36 @@ func TestCollect_OK(t *testing.T) {
 }
 
 // Fatal error
+func TestCollect_InstanceNotFound(t *testing.T) {
+	k8cs := kubefake.NewSimpleClientset(kubeObjects...)
+	kcs := fake.NewSimpleClientset(kudoObjects...)
+
+	// force kudo clientset to return no operator
+	reactor := func(action clienttesting.Action) (handled bool, ret runtime.Object, err error) {
+		if action.GetNamespace() == fakeNamespace {
+			return true, nil, nil
+		}
+		return
+	}
+	kcs.PrependReactor("get", "instances", reactor)
+
+	client := kudo.NewClientFromK8s(kcs, k8cs)
+	fs := &afero.MemMapFs{}
+	err := Collect(fs, fakeZkInstance, &Options{
+		LogSince: -1,
+	}, client, &env.Settings{
+		Namespace: fakeNamespace,
+	})
+
+	assert.NotNil(t, err)
+}
+
+// Fatal error
 func TestCollect_FatalError(t *testing.T) {
 	k8cs := kubefake.NewSimpleClientset(kubeObjects...)
 	kcs := fake.NewSimpleClientset(kudoObjects...)
 
-	// force kudo clientset to return no Operator
+	// force kudo clientset to return no operator
 	reactor := func(action clienttesting.Action) (handled bool, ret runtime.Object, err error) {
 		if action.GetNamespace() == fakeNamespace {
 			return true, nil, nil
@@ -274,8 +298,7 @@ func TestCollect_FatalError(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, &Options{
-		Instance: fakeZkInstance,
+	err := Collect(fs, fakeZkInstance, &Options{
 		LogSince: -1,
 	}, client, &env.Settings{
 		Namespace: fakeNamespace,
@@ -289,7 +312,7 @@ func TestCollect_FatalNotFound(t *testing.T) {
 	k8cs := kubefake.NewSimpleClientset(kubeObjects...)
 	kcs := fake.NewSimpleClientset(kudoObjects...)
 
-	// force kudo clientset to return no Operator
+	// force kudo clientset to return no operator
 	reactor := func(action clienttesting.Action) (handled bool, ret runtime.Object, err error) {
 		if action.GetNamespace() == fakeNamespace {
 			err := errors.NewNotFound(schema.GroupResource{
@@ -304,8 +327,7 @@ func TestCollect_FatalNotFound(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, &Options{
-		Instance: fakeZkInstance,
+	err := Collect(fs, fakeZkInstance, &Options{
 		LogSince: -1,
 	}, client, &env.Settings{
 		Namespace: fakeNamespace,
@@ -331,8 +353,7 @@ func TestCollect_NonFatalError(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, &Options{
-		Instance: fakeZkInstance,
+	err := Collect(fs, fakeZkInstance, &Options{
 		LogSince: -1,
 	}, client, &env.Settings{
 		Namespace: fakeNamespace,
@@ -362,8 +383,7 @@ func TestCollect_NonFatalErrorWithDir(t *testing.T) {
 	k8cs.PrependReactor("list", "pods", reactor)
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, &Options{
-		Instance: fakeZkInstance,
+	err := Collect(fs, fakeZkInstance, &Options{
 		LogSince: -1,
 	}, client, &env.Settings{
 		Namespace: fakeNamespace,
@@ -385,7 +405,7 @@ func TestCollect_KudoNameSpaceNotFound(t *testing.T) {
 	k8cs := kubefake.NewSimpleClientset(kubeObjects...)
 	kcs := fake.NewSimpleClientset(kudoObjects...)
 
-	// force kudo clientset to return no Operator
+	// force kudo clientset to return no operator
 	reactor := func(action clienttesting.Action) (handled bool, ret runtime.Object, err error) {
 		err = errors.NewNotFound(schema.GroupResource{
 			Group:    "kudo.dev/v1beta1",
@@ -397,8 +417,7 @@ func TestCollect_KudoNameSpaceNotFound(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, &Options{
-		Instance: fakeZkInstance,
+	err := Collect(fs, fakeZkInstance, &Options{
 		LogSince: -1,
 	}, client, &env.Settings{
 		Namespace: fakeNamespace,
@@ -428,8 +447,7 @@ func TestCollect_PrintFailure(t *testing.T) {
 	a := &afero.MemMapFs{}
 	fs := &failingFs{Fs: a, failOn: zkPod2File}
 
-	err := Collect(fs, &Options{
-		Instance: fakeZkInstance,
+	err := Collect(fs, fakeZkInstance, &Options{
 		LogSince: -1,
 	}, client, &env.Settings{
 		Namespace: fakeNamespace,

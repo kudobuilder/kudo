@@ -19,8 +19,8 @@ func newGzipWriter(w io.Writer, size int) *streamGzipper {
 	}
 }
 
-// Write - gzip the provided stream by sequential reads into the underlying bytes buffer and gzipping the bytes
-func (z *streamGzipper) Write(r io.ReadCloser) error {
+// write - gzip the provided stream by sequential reads into the underlying bytes buffer and gzipping the bytes
+func (z *streamGzipper) write(r io.ReadCloser) error {
 	buf := make([]byte, z.bufSize)
 	zw := gzip.NewWriter(z.w)
 	var err error

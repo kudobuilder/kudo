@@ -30,33 +30,33 @@ const (
 	RuntimeObject                       // print as a file based on its kind only
 )
 
-// NonFailingPrinter - print provided data into provided directory and accumulate errors instead of returning them.
+// nonFailingPrinter - print provided data into provided directory and accumulate errors instead of returning them.
 // Creates a nested directory if an object type requires so.
-type NonFailingPrinter struct {
+type nonFailingPrinter struct {
 	fs     afero.Fs
 	errors []string
 }
 
-func (p *NonFailingPrinter) printObject(o runtime.Object, parentDir string, mode printMode) {
+func (p *nonFailingPrinter) printObject(o runtime.Object, parentDir string, mode printMode) {
 	if err := printRuntimeObject(p.fs, o, parentDir, mode); err != nil {
 		p.errors = append(p.errors, err.Error())
 	}
 }
 
-func (p *NonFailingPrinter) printError(err error, parentDir, name string) {
+func (p *nonFailingPrinter) printError(err error, parentDir, name string) {
 	b := []byte(err.Error())
 	if err := printBytes(p.fs, b, parentDir, fmt.Sprintf("%s.err", name)); err != nil {
 		p.errors = append(p.errors, err.Error())
 	}
 }
 
-func (p *NonFailingPrinter) printLog(log io.ReadCloser, parentDir, name string) {
+func (p *nonFailingPrinter) printLog(log io.ReadCloser, parentDir, name string) {
 	if err := printLog(p.fs, log, parentDir, name); err != nil {
 		p.errors = append(p.errors, err.Error())
 	}
 }
 
-func (p *NonFailingPrinter) printYaml(v interface{}, parentDir, name string) {
+func (p *nonFailingPrinter) printYaml(v interface{}, parentDir, name string) {
 	if err := printYaml(p.fs, v, parentDir, name); err != nil {
 		p.errors = append(p.errors, err.Error())
 	}
@@ -77,8 +77,8 @@ func printRuntimeObject(fs afero.Fs, obj runtime.Object, parentDir string, mode 
 	}
 }
 
-// printSingleObject - print a runtime.Object assuming it exposes metadata by implementing metav1.Object
-// or panic otherwise. Object is put into a nested directory.
+// printSingleObject - print a runtime.object assuming it exposes metadata by implementing metav1.object
+// or panic otherwise. object is put into a nested directory.
 func printSingleObject(fs afero.Fs, obj runtime.Object, parentDir string) error {
 	if !isKudoCR(obj) {
 		err := kudo.SetGVKFromScheme(obj, scheme.Scheme)
@@ -87,7 +87,7 @@ func printSingleObject(fs afero.Fs, obj runtime.Object, parentDir string) error 
 		}
 	}
 
-	o, _ := obj.(Object)
+	o, _ := obj.(object)
 	relToParentDir := fmt.Sprintf("%s_%s", strings.ToLower(o.GetObjectKind().GroupVersionKind().Kind), o.GetName())
 	dir := filepath.Join(parentDir, relToParentDir)
 	err := fs.MkdirAll(dir, 0700)
@@ -106,6 +106,7 @@ func printSingleObject(fs afero.Fs, obj runtime.Object, parentDir string) error 
 	return printer.PrintObj(o, file)
 }
 
+// printSingleRuntimeObject - print a runtime.Object in the supplied dir.
 func printSingleRuntimeObject(fs afero.Fs, obj runtime.Object, dir string) error {
 	err := kudo.SetGVKFromScheme(obj, scheme.Scheme)
 	if err != nil {
@@ -142,7 +143,7 @@ func printLog(fs afero.Fs, log io.ReadCloser, parentDir, podName string) error {
 	defer file.Close()
 
 	z := newGzipWriter(file, 2048)
-	err = z.Write(log)
+	err = z.write(log)
 	if err != nil {
 		return fmt.Errorf("failed to write to file %s: %v", fileNameWithPath, err)
 	}
@@ -182,4 +183,9 @@ func printBytes(fs afero.Fs, b []byte, dir, name string) error {
 		return fmt.Errorf("failed to write to file %s: %v", fileNameWithPath, err)
 	}
 	return nil
+}
+
+func isKudoCR(o runtime.Object) bool {
+	kind := o.GetObjectKind().GroupVersionKind().Kind
+	return kind == "Instance" || kind == "Operator" || kind == "OperatorVersion"
 }

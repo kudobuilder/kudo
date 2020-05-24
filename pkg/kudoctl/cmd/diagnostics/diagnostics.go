@@ -13,12 +13,11 @@ import (
 )
 
 type Options struct {
-	Instance string
 	LogSince int64
 }
 
-func NewOptions(instance string, logSince time.Duration) *Options {
-	opts := Options{Instance: instance}
+func NewOptions(logSince time.Duration) *Options {
+	opts := Options{}
 	if logSince > 0 {
 		sec := int64(logSince.Round(time.Second).Seconds())
 		opts.LogSince = sec
@@ -26,34 +25,30 @@ func NewOptions(instance string, logSince time.Duration) *Options {
 	return &opts
 }
 
-func Collect(fs afero.Fs, options *Options, c *kudo.Client, s *env.Settings) error {
-	ir, err := NewInstanceResources(options, c, s)
-	if err != nil {
-		return err
-	}
-	instanceDiagRunner := &Runner{}
-	ctx := &processingContext{root: DiagDir, instanceName: options.Instance}
-	p := &NonFailingPrinter{fs: fs}
+func Collect(fs afero.Fs, instance string, options *Options, c *kudo.Client, s *env.Settings) error {
+	p := &nonFailingPrinter{fs: fs}
+	rh := runnerHelper{p}
 
-	instanceDiagRunner.
-		Run(&InstanceCollector{fs, options, c, s, ctx, p, ir}).
-		DumpToYaml(version.Get(), ctx.attachToRoot, "version", p).
-		DumpToYaml(s, ctx.attachToRoot, "settings", p)
+	instanceErr := rh.runForInstance(instance, options, c, version.Get(), s)
+	//instanceDiagRunner := &runner{}
+	//ctx := &processingContext{root: DiagDir, instanceName: options.instance}
+	//
+	//instanceDiagRunner.
+	//	run(&InstanceCollector{fs, options, c, s, ctx, p, ir}).
+	//	dumpToYaml(version.Get(), ctx.attachToRoot, "version", p).
+	//	dumpToYaml(s, ctx.attachToRoot, "settings", p)
 
-	kr, err := NewKudoResources(c)
-	if err != nil {
-		return err
-	}
-	kudoDiagRunner := &Runner{}
-	ctx = &processingContext{root: KudoDir}
-	kudoDiagRunner.Run(&KudoManagerCollector{fs, options, c, s, ctx, p, kr})
+	kudoErr := rh.runForKudoManager(options, c)
+	//kudoDiagRunner := &runner{}
+	//ctx = &processingContext{root: KudoDir}
+	//kudoDiagRunner.run(&KudoManagerCollector{fs, options, c, s, ctx, p, kr})
 
 	errMsgs := p.errors
-	if instanceDiagRunner.fatalErr != nil {
-		errMsgs = append(errMsgs, instanceDiagRunner.fatalErr.Error())
+	if instanceErr != nil {
+		errMsgs = append(errMsgs, instanceErr.Error())
 	}
-	if kudoDiagRunner.fatalErr != nil {
-		errMsgs = append(errMsgs, instanceDiagRunner.fatalErr.Error())
+	if kudoErr != nil {
+		errMsgs = append(errMsgs, kudoErr.Error())
 	}
 	if len(errMsgs) > 0 {
 		return fmt.Errorf(strings.Join(errMsgs, "\n"))
