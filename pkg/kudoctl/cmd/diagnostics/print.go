@@ -38,8 +38,27 @@ type nonFailingPrinter struct {
 }
 
 func (p *nonFailingPrinter) printObject(o runtime.Object, parentDir string, mode printMode) {
-	if err := printRuntimeObject(p.fs, o, parentDir, mode); err != nil {
-		p.errors = append(p.errors, err.Error())
+	switch mode {
+	case ObjectWithDir:
+		if err := printSingleObject(p.fs, o, parentDir); err != nil {
+			p.errors = append(p.errors, err.Error())
+		}
+	case ObjectListWithDirs:
+		err := meta.EachListItem(o, func(ro runtime.Object) error {
+			if err := printSingleObject(p.fs, ro, parentDir); err != nil {
+				p.errors = append(p.errors, err.Error())
+			}
+			return nil
+		})
+		if err != nil {
+			p.errors = append(p.errors, err.Error())
+		}
+	case RuntimeObject:
+		fallthrough
+	default:
+		if err := printSingleRuntimeObject(p.fs, o, parentDir); err != nil {
+			p.errors = append(p.errors, err.Error())
+		}
 	}
 }
 
@@ -59,21 +78,6 @@ func (p *nonFailingPrinter) printLog(log io.ReadCloser, parentDir, name string) 
 func (p *nonFailingPrinter) printYaml(v interface{}, parentDir, name string) {
 	if err := printYaml(p.fs, v, parentDir, name); err != nil {
 		p.errors = append(p.errors, err.Error())
-	}
-}
-
-func printRuntimeObject(fs afero.Fs, obj runtime.Object, parentDir string, mode printMode) error {
-	switch mode {
-	case ObjectWithDir:
-		return printSingleObject(fs, obj, parentDir)
-	case ObjectListWithDirs:
-		return meta.EachListItem(obj, func(ro runtime.Object) error {
-			return printSingleObject(fs, ro, parentDir)
-		})
-	case RuntimeObject:
-		fallthrough
-	default:
-		return printSingleRuntimeObject(fs, obj, parentDir)
 	}
 }
 
