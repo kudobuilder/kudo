@@ -8,29 +8,23 @@ import (
 
 // streamGzipper - a helper for gzipping a stream
 type streamGzipper struct {
-	bufSize int
-	w       io.Writer
+	w io.Writer
 }
 
-func newGzipWriter(w io.Writer, size int) *streamGzipper {
+func newGzipWriter(w io.Writer) *streamGzipper {
 	return &streamGzipper{
-		bufSize: size,
-		w:       w,
+		w: w,
 	}
 }
 
 // write - gzip the provided stream by sequential reads into the underlying bytes buffer and gzipping the bytes
 func (z *streamGzipper) write(r io.ReadCloser) error {
-	buf := make([]byte, z.bufSize)
 	zw := gzip.NewWriter(z.w)
 	var err error
+	var written int64
 	for {
-		var n int
-		n, err = r.Read(buf)
-		if n > 0 {
-			_, err = zw.Write(buf[:n])
-		}
-		if err != nil {
+		written, err = io.Copy(zw, r)
+		if err != nil || written == 0 {
 			_ = zw.Close()
 			_ = r.Close()
 			break

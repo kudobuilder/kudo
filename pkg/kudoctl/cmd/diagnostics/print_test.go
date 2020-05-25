@@ -249,16 +249,15 @@ func TestPrinter_printLog(t *testing.T) {
 	}{
 		{
 			desc:      "print log OK",
-			log:       ioutil.NopCloser(strings.NewReader("Ein Fichtenbaum steht einsam im Norden auf kahler Höh")),
+			log:       ioutil.NopCloser(strings.NewReader(testLog)),
 			parentDir: "root",
 			podName:   "my-fancy-pod-01",
 			expFiles:  []string{"root/pod_my-fancy-pod-01/my-fancy-pod-01.log.gz"},
-			expData: []string{"\x1f\x8b\b\x00\x00\x00\x00\x00\x00\xffr\xcd\xccSp\xcbL\xce(I\xcdKJ,\xcdU(.I\xcd(QH\xcd" +
-				"\xcc+N\xccU\xc8\xccU\xf0\xcb/JI\xcdSH,MS\xc8N\xcc\xc8I-R\xf08\xbc-\x03\x10\x00\x00\xff\xff\x13\xa1nx6\x00\x00\x00"},
+			expData:   []string{testLogGZipped},
 		},
 		{
 			desc:      "print log failure",
-			log:       ioutil.NopCloser(strings.NewReader("Ein Fichtenbaum steht einsam im Norden auf kahler Höh")),
+			log:       ioutil.NopCloser(strings.NewReader(testLog)),
 			parentDir: "root",
 			podName:   "my-fancy-pod-01",
 			failOn:    "root/pod_my-fancy-pod-01/my-fancy-pod-01.log.gz",

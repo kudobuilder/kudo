@@ -1,10 +1,10 @@
 package diagnostics
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/ghodss/yaml"
 	"github.com/spf13/afero"
@@ -76,8 +76,6 @@ func defaultFileNames() map[string]struct{} {
 		settingsFile:          {},
 	}
 }
-
-var errFakeTestError = fmt.Errorf("fake test error")
 
 // resource to be loaded into fake clients
 var (
@@ -192,9 +190,7 @@ func TestCollect_OK(t *testing.T) {
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{
-		LogSince: -1,
-	}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 	assert.Nil(t, err)
@@ -273,9 +269,7 @@ func TestCollect_InstanceNotFound(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{
-		LogSince: -1,
-	}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 
@@ -298,9 +292,7 @@ func TestCollect_FatalError(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{
-		LogSince: -1,
-	}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 
@@ -327,9 +319,7 @@ func TestCollect_FatalNotFound(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{
-		LogSince: -1,
-	}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 
@@ -353,9 +343,7 @@ func TestCollect_NonFatalError(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{
-		LogSince: -1,
-	}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 
@@ -383,9 +371,7 @@ func TestCollect_NonFatalErrorWithDir(t *testing.T) {
 	k8cs.PrependReactor("list", "pods", reactor)
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{
-		LogSince: -1,
-	}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 
@@ -417,26 +403,11 @@ func TestCollect_KudoNameSpaceNotFound(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{
-		LogSince: -1,
-	}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 
 	assert.NotNil(t, err)
-}
-
-// failingFs is a wrapper of afero.Fs to simulate a specific file creation failure for printer
-type failingFs struct {
-	afero.Fs
-	failOn string
-}
-
-func (s *failingFs) Create(name string) (afero.File, error) {
-	if name == s.failOn {
-		return nil, errFakeTestError
-	}
-	return s.Fs.Create(name)
 }
 
 func TestCollect_PrintFailure(t *testing.T) {
@@ -447,9 +418,7 @@ func TestCollect_PrintFailure(t *testing.T) {
 	a := &afero.MemMapFs{}
 	fs := &failingFs{Fs: a, failOn: zkPod2File}
 
-	err := Collect(fs, fakeZkInstance, &Options{
-		LogSince: -1,
-	}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 	assert.NotNil(t, err)
@@ -469,4 +438,35 @@ func TestCollect_PrintFailure(t *testing.T) {
 		}
 		return nil
 	})
+}
+
+func TestNewOptions(t *testing.T) {
+	tests := []struct {
+		desc     string
+		logSince time.Duration
+		exp      int64
+	}{
+		{
+			desc:     "log-since provided and positive",
+			logSince: time.Second * 3600,
+			exp:      3600,
+		},
+		{
+			desc:     "log-since provided and negative",
+			logSince: time.Second * (-3600),
+		},
+		{
+			desc: "log-since not provided",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.desc, func(t *testing.T) {
+			opts := NewOptions(tt.logSince)
+			assert.True(t, (tt.exp > 0) == (opts.LogSince != nil))
+			if tt.exp > 0 {
+				assert.Equal(t, tt.exp, *opts.LogSince)
+			}
+		})
+	}
 }

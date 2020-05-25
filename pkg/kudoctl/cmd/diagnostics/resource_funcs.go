@@ -30,7 +30,7 @@ type resourceFuncsConfig struct {
 }
 
 // newInstanceResources is a configuration for instance-related resources
-func newInstanceResources(instanceName string, opts *Options, c *kudo.Client, s *env.Settings) (*resourceFuncsConfig, error) {
+func newInstanceResources(instanceName string, options *Options, c *kudo.Client, s *env.Settings) (*resourceFuncsConfig, error) {
 	instance, err := c.GetInstance(instanceName, s.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get instance %s/%s: %v", s.Namespace, instanceName, err)
@@ -38,22 +38,18 @@ func newInstanceResources(instanceName string, opts *Options, c *kudo.Client, s 
 	if instance == nil {
 		return nil, fmt.Errorf("instance %s/%s not found", s.Namespace, instanceName)
 	}
-	logOpts := corev1.PodLogOptions{}
-	if opts.LogSince > 0 {
-		logOpts.SinceSeconds = &opts.LogSince
-	}
 	return &resourceFuncsConfig{
 		c:           c,
 		ns:          s.Namespace,
 		instanceObj: instance,
 		opts:        metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", kudoutil.OperatorLabel, instance.Labels[kudoutil.OperatorLabel])},
-		logOpts:     logOpts,
+		logOpts:     corev1.PodLogOptions{SinceSeconds: options.LogSince},
 	}, nil
 }
 
 // newKudoResources is a configuration for Kudo controller related resources
 // panics if used to load Kudo CRDs (e.g. instance etc.)
-func newKudoResources(c *kudo.Client, logSince int64) (*resourceFuncsConfig, error) {
+func newKudoResources(options *Options, c *kudo.Client) (*resourceFuncsConfig, error) {
 	opts := metav1.ListOptions{LabelSelector: fmt.Sprintf("app=%s", kudoinit.DefaultKudoLabel)}
 	ns, err := c.CoreV1().Namespaces().List(opts)
 	if err != nil {
@@ -62,15 +58,11 @@ func newKudoResources(c *kudo.Client, logSince int64) (*resourceFuncsConfig, err
 	if ns == nil || len(ns.Items) == 0 {
 		return nil, fmt.Errorf("kudo system namespace not found")
 	}
-	logOpts := corev1.PodLogOptions{}
-	if logSince > 0 {
-		logOpts.SinceSeconds = &logSince
-	}
 	return &resourceFuncsConfig{
 		c:       c,
 		ns:      ns.Items[0].Name,
 		opts:    opts,
-		logOpts: corev1.PodLogOptions{},
+		logOpts: corev1.PodLogOptions{SinceSeconds: options.LogSince},
 	}, nil
 }
 

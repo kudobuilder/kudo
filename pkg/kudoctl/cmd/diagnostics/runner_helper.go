@@ -118,7 +118,7 @@ func (rh *runnerHelper) runForInstance(instance string, options *Options, c *kud
 }
 
 func (rh *runnerHelper) runForKudoManager(options *Options, c *kudo.Client) error {
-	kr, err := newKudoResources(c, options.LogSince)
+	kr, err := newKudoResources(options, c)
 	if err != nil {
 		return err
 	}

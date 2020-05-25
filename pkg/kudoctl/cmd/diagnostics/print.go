@@ -146,7 +146,7 @@ func printLog(fs afero.Fs, log io.ReadCloser, parentDir, podName string) error {
 	}
 	defer file.Close()
 
-	z := newGzipWriter(file, 2048)
+	z := newGzipWriter(file)
 	err = z.write(log)
 	if err != nil {
 		return fmt.Errorf("failed to write to file %s: %v", fileNameWithPath, err)
