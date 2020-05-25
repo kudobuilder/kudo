@@ -55,8 +55,3 @@ func (ctx *processingContext) operatorVersionName() string {
 func (ctx *processingContext) operatorName() string {
 	return ctx.opName
 }
-
-// TODO: remove
-func (ctx *processingContext) dependencies() []string {
-	return nil
-}

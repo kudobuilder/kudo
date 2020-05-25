@@ -30,12 +30,3 @@ func (r *runner) dumpToYaml(v interface{}, dir stringGetter, name string, p *non
 	p.printYaml(v, dir(), name)
 	return r
 }
-
-type collectorForRunner struct {
-	runnerFn func() *runner
-}
-
-func (c *collectorForRunner) collect() error {
-	r := c.runnerFn()
-	return r.fatalErr
-}
