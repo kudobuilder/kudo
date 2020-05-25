@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"context"
 	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -61,7 +62,12 @@ func (m Initializer) Install(client *kube.Client) error {
 }
 
 func (m Initializer) installStatefulSet(client appsv1client.StatefulSetsGetter) error {
-	_, err := client.StatefulSets(m.options.Namespace).Create(m.deployment)
+	opts := metav1.CreateOptions{}
+
+	_, err := client.StatefulSets(m.options.Namespace).Create(
+		context.TODO(),
+		m.deployment,
+		opts)
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("statefulset %v already exists", m.deployment.Name)
 		return nil
@@ -73,7 +79,12 @@ func (m Initializer) installStatefulSet(client appsv1client.StatefulSetsGetter) 
 }
 
 func (m Initializer) installService(client corev1.ServicesGetter) error {
-	_, err := client.Services(m.options.Namespace).Create(m.service)
+	opts := metav1.CreateOptions{}
+
+	_, err := client.Services(m.options.Namespace).Create(
+		context.TODO(),
+		m.service,
+		opts)
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("service %v already exists", m.service.Name)
 		return nil

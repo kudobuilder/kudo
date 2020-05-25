@@ -26,16 +26,14 @@ require (
 	golang.org/x/sys v0.0.0-20200408040146-ea54a3c99b9b // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	gotest.tools v2.2.0+incompatible
-	k8s.io/api v0.17.3
-	k8s.io/apiextensions-apiserver v0.17.2
-	k8s.io/apimachinery v0.17.3
-	k8s.io/client-go v0.17.3
-	k8s.io/code-generator v0.17.3
-	k8s.io/component-base v0.17.3
-	k8s.io/kubectl v0.17.3
-	sigs.k8s.io/controller-runtime v0.5.1
-	sigs.k8s.io/controller-tools v0.2.6
+	k8s.io/api v0.18.3
+	k8s.io/apiextensions-apiserver v0.18.3
+	k8s.io/apimachinery v0.18.3
+	k8s.io/client-go v0.18.3
+	k8s.io/code-generator v0.18.3
+	k8s.io/component-base v0.18.3
+	k8s.io/kubectl v0.18.3
+	sigs.k8s.io/controller-runtime v0.6.0
+	sigs.k8s.io/controller-tools v0.3.0
 	sigs.k8s.io/yaml v1.2.0
 )
-
-replace k8s.io/code-generator v0.17.3 => github.com/kudobuilder/code-generator v0.17.4-beta.0.0.20200316162450-cc91a9201457

@@ -1,6 +1,7 @@
 package prereq
 
 import (
+	"context"
 	"fmt"
 
 	v1 "k8s.io/api/core/v1"
@@ -36,7 +37,7 @@ func (o KudoNamespace) String() string {
 func (o KudoNamespace) PreInstallVerify(client *kube.Client, result *verifier.Result) error {
 	// We only manage kudo-system namespace. For others we expect they exist.
 	if !o.opts.IsDefaultNamespace() {
-		_, err := client.KubeClient.CoreV1().Namespaces().Get(o.opts.Namespace, metav1.GetOptions{})
+		_, err := client.KubeClient.CoreV1().Namespaces().Get(context.TODO(), o.opts.Namespace, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				result.AddErrors(fmt.Sprintf("Namespace %s does not exist - KUDO expects that any namespace except the default %s is created beforehand", o.opts.Namespace, kudoinit.DefaultNamespace))
@@ -49,7 +50,7 @@ func (o KudoNamespace) PreInstallVerify(client *kube.Client, result *verifier.Re
 }
 
 func (o KudoNamespace) Install(client *kube.Client) error {
-	_, err := client.KubeClient.CoreV1().Namespaces().Create(o.ns)
+	_, err := client.KubeClient.CoreV1().Namespaces().Create(context.TODO(), o.ns, metav1.CreateOptions{})
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("namespace %v already exists", o.ns.Name)
 		return nil

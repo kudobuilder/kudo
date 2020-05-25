@@ -17,6 +17,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -37,7 +39,7 @@ var instancesResource = schema.GroupVersionResource{Group: "kudo.dev", Version: 
 var instancesKind = schema.GroupVersionKind{Group: "kudo.dev", Version: "v1beta1", Kind: "Instance"}
 
 // Get takes name of the instance, and returns the corresponding instance object, and an error if there is any.
-func (c *FakeInstances) Get(name string, options v1.GetOptions) (result *v1beta1.Instance, err error) {
+func (c *FakeInstances) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.Instance, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(instancesResource, c.ns, name), &v1beta1.Instance{})
 
@@ -48,7 +50,7 @@ func (c *FakeInstances) Get(name string, options v1.GetOptions) (result *v1beta1
 }
 
 // List takes label and field selectors, and returns the list of Instances that match those selectors.
-func (c *FakeInstances) List(opts v1.ListOptions) (result *v1beta1.InstanceList, err error) {
+func (c *FakeInstances) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.InstanceList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(instancesResource, instancesKind, c.ns, opts), &v1beta1.InstanceList{})
 
@@ -70,14 +72,14 @@ func (c *FakeInstances) List(opts v1.ListOptions) (result *v1beta1.InstanceList,
 }
 
 // Watch returns a watch.Interface that watches the requested instances.
-func (c *FakeInstances) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeInstances) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(instancesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a instance and creates it.  Returns the server's representation of the instance, and an error, if there is any.
-func (c *FakeInstances) Create(instance *v1beta1.Instance) (result *v1beta1.Instance, err error) {
+func (c *FakeInstances) Create(ctx context.Context, instance *v1beta1.Instance, opts v1.CreateOptions) (result *v1beta1.Instance, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(instancesResource, c.ns, instance), &v1beta1.Instance{})
 
@@ -88,7 +90,7 @@ func (c *FakeInstances) Create(instance *v1beta1.Instance) (result *v1beta1.Inst
 }
 
 // Update takes the representation of a instance and updates it. Returns the server's representation of the instance, and an error, if there is any.
-func (c *FakeInstances) Update(instance *v1beta1.Instance) (result *v1beta1.Instance, err error) {
+func (c *FakeInstances) Update(ctx context.Context, instance *v1beta1.Instance, opts v1.UpdateOptions) (result *v1beta1.Instance, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(instancesResource, c.ns, instance), &v1beta1.Instance{})
 
@@ -100,7 +102,7 @@ func (c *FakeInstances) Update(instance *v1beta1.Instance) (result *v1beta1.Inst
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeInstances) UpdateStatus(instance *v1beta1.Instance) (*v1beta1.Instance, error) {
+func (c *FakeInstances) UpdateStatus(ctx context.Context, instance *v1beta1.Instance, opts v1.UpdateOptions) (*v1beta1.Instance, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(instancesResource, "status", c.ns, instance), &v1beta1.Instance{})
 
@@ -111,7 +113,7 @@ func (c *FakeInstances) UpdateStatus(instance *v1beta1.Instance) (*v1beta1.Insta
 }
 
 // Delete takes name of the instance and deletes it. Returns an error if one occurs.
-func (c *FakeInstances) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeInstances) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(instancesResource, c.ns, name), &v1beta1.Instance{})
 
@@ -119,15 +121,15 @@ func (c *FakeInstances) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeInstances) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(instancesResource, c.ns, listOptions)
+func (c *FakeInstances) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(instancesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.InstanceList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched instance.
-func (c *FakeInstances) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.Instance, err error) {
+func (c *FakeInstances) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.Instance, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(instancesResource, c.ns, name, pt, data, subresources...), &v1beta1.Instance{})
 
