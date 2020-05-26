@@ -32,6 +32,7 @@ func (n NamespaceVerifier) checkNamespaceManifest(pf *packages.Files, res *verif
 		ns, err := renderer.YamlToObject(val)
 		if err != nil {
 			res.AddErrors(fmt.Sprintf("Unable to marshal NamespaceManifest %q ", pf.Operator.NamespaceManifest))
+			return
 		}
 		switch count := len(ns); {
 		case count == 0:
