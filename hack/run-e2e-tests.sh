@@ -13,7 +13,7 @@ docker build . \
     -t "kudobuilder/controller:$KUDO_VERSION"
 
 sed "s/%version%/$KUDO_VERSION/" kudo-e2e-test.yaml.tmpl > kudo-e2e-test.yaml
-sed "s/%version%/$VERSION/" kudo-upgrade-test.yaml.tmpl > kudo-upgrade-test.yaml
+sed "s/%version%/$KUDO_VERSION/" kudo-upgrade-test.yaml.tmpl > kudo-upgrade-test.yaml
 
 if [ "$INTEGRATION_OUTPUT_JUNIT" == true ]
 then
