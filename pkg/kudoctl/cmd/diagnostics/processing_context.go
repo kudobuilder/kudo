@@ -21,15 +21,15 @@ type processingContext struct {
 	instanceName  string
 }
 
-func (ctx *processingContext) attachToRoot() string {
+func (ctx *processingContext) rootDirectory() string {
 	return ctx.root
 }
 
-func (ctx *processingContext) attachToOperator() string {
+func (ctx *processingContext) operatorDirectory() string {
 	return fmt.Sprintf("%s/operator_%s", ctx.root, ctx.opName)
 }
 
-func (ctx *processingContext) attachToInstance() string {
+func (ctx *processingContext) instanceDirectory() string {
 	return fmt.Sprintf("%s/instance_%s", ctx.attachToOperator(), ctx.instanceName)
 }
 

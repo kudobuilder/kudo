@@ -44,7 +44,7 @@ func newDiagnosticsCollectCmd(fs afero.Fs) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&instance, "instance", "", "The instance name.")
-	cmd.Flags().DurationVar(&logSince, "log-since", 0, "Only return logs newer than a relative duration like 5s, 2m, or 3h. Defaults to all logs. Only one of since-time / since may be used.")
+	cmd.Flags().DurationVar(&logSince, "log-since", 0, "Only return logs newer than a relative duration like 5s, 2m, or 3h. Defaults to all logs.")
 
 	return cmd
 }

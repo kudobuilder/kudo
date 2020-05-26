@@ -25,7 +25,7 @@ const (
 type printMode int
 
 const (
-	ObjectWithDir      printMode = iota // print object into its own nested directory based on its name and kind
+	ObjectWithDir printMode "ObjectsWithDir"
 	ObjectListWithDirs                  // print each object into its own nested directory based on its name and kind
 	RuntimeObject                       // print as a file based on its kind only
 )
@@ -91,8 +91,8 @@ func printSingleObject(fs afero.Fs, obj runtime.Object, parentDir string) error 
 		}
 	}
 
-	o, _ := obj.(object)
-	relToParentDir := fmt.Sprintf("%s_%s", strings.ToLower(o.GetObjectKind().GroupVersionKind().Kind), o.GetName())
+	o, _ := obj.(metav1.Object)
+	relToParentDir := fmt.Sprintf("%s_%s", strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind), o.GetName())
 	dir := filepath.Join(parentDir, relToParentDir)
 	err := fs.MkdirAll(dir, 0700)
 	if err != nil {
@@ -107,7 +107,7 @@ func printSingleObject(fs afero.Fs, obj runtime.Object, parentDir string) error 
 	defer file.Close()
 
 	printer := printers.YAMLPrinter{}
-	return printer.PrintObj(o, file)
+	return printer.PrintObj(obj, file)
 }
 
 // printSingleRuntimeObject - print a runtime.Object in the supplied dir.

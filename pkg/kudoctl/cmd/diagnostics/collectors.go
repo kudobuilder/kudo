@@ -16,7 +16,7 @@ type resourceCollector struct {
 	errKind        string                 // object kind used to describe the error
 	parentDir      func() string          // parent dir to attach the printer's output
 	failOnError    bool                   // define whether the collector should return the error
-	callback       func(o runtime.Object) // should be used to update some shared context
+	callback       func(o runtime.Object) // will be called with the retrieved resource after cllection to update  shared context
 	printer        *nonFailingPrinter
 	printMode      printMode
 }

@@ -29,15 +29,13 @@ func Collect(fs afero.Fs, instance string, options *Options, c *kudo.Client, s *
 	p := &nonFailingPrinter{fs: fs}
 	rh := runnerHelper{p}
 
-	instanceErr := rh.runForInstance(instance, options, c, version.Get(), s)
-	kudoErr := rh.runForKudoManager(options, c)
-
-	errMsgs := p.errors
-	if instanceErr != nil {
-		errMsgs = append(errMsgs, instanceErr.Error())
+        errMsgs := p.errors
+        
+	if err := rh.runForInstance(instance, options, c, version.Get(), s); err != nil {
+		errMsgs = append(errMsgs, err.Error())
 	}
-	if kudoErr != nil {
-		errMsgs = append(errMsgs, kudoErr.Error())
+	if err := rh.runForKudoManager(options, c); err != nil {
+		errMsgs = append(errMsgs, err.Error())
 	}
 	if len(errMsgs) > 0 {
 		return fmt.Errorf(strings.Join(errMsgs, "\n"))
