@@ -27,18 +27,15 @@ func NewOptions(logSince time.Duration) *Options {
 
 func Collect(fs afero.Fs, instance string, options *Options, c *kudo.Client, s *env.Settings) error {
 	p := &nonFailingPrinter{fs: fs}
-	rh := runnerHelper{p}
 
-	errMsgs := &p.errors
-
-	if err := rh.runForInstance(instance, options, c, version.Get(), s); err != nil {
-		*errMsgs = append(*errMsgs, err.Error())
+	if err := runForInstance(instance, options, c, version.Get(), s, p); err != nil {
+		p.errors = append(p.errors, err.Error())
 	}
-	if err := rh.runForKudoManager(options, c); err != nil {
-		*errMsgs = append(*errMsgs, err.Error())
+	if err := runForKudoManager(options, c, p); err != nil {
+		p.errors = append(p.errors, err.Error())
 	}
-	if len(*errMsgs) > 0 {
-		return fmt.Errorf(strings.Join(*errMsgs, "\n"))
+	if len(p.errors) > 0 {
+		return fmt.Errorf(strings.Join(p.errors, "\n"))
 	}
 	return nil
 }

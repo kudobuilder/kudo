@@ -46,7 +46,7 @@ spec:
       readOnly: true
   dnsPolicy: ClusterFirst
   enableServiceLinks: true
-  nodeName: eprupetw1146
+  nodeName: node007
   priority: 0
   restartPolicy: Always
   schedulerName: default-scheduler

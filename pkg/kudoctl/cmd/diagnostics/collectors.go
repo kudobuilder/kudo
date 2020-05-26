@@ -13,10 +13,10 @@ import (
 // resourceCollector - collector interface implementation for Kubernetes resources (runtime objects)
 type resourceCollector struct {
 	loadResourceFn func() (runtime.Object, error)
-	errKind        string                 // object kind used to describe the error
-	parentDir      func() string          // parent dir to attach the printer's output
-	failOnError    bool                   // define whether the collector should return the error
-	callback       func(o runtime.Object) // will be called with the retrieved resource after cllection to update  shared context
+	name           string               // object kind used to describe the error
+	parentDir      func() string        // parent dir to attach the printer's output
+	failOnError    bool                 // define whether the collector should return the error
+	callback       func(runtime.Object) // will be called with the retrieved resource after cllection to update  shared context
 	printer        *nonFailingPrinter
 	printMode      printMode
 }
@@ -29,12 +29,12 @@ func (c *resourceCollector) collect() error {
 	switch {
 	case err != nil:
 		if c.failOnError {
-			return fmt.Errorf("failed to retrieve object(s) of kind %s: %v", c.errKind, err)
+			return fmt.Errorf("failed to retrieve object(s) of kind %s: %v", c.name, err)
 		}
-		c.printer.printError(err, c.parentDir(), c.errKind)
+		c.printer.printError(err, c.parentDir(), c.name)
 	case obj == nil || reflect.ValueOf(obj).IsNil() || meta.IsListType(obj) && meta.LenList(obj) == 0:
 		if c.failOnError {
-			return fmt.Errorf("no object(s) of kind %s retrieved", c.errKind)
+			return fmt.Errorf("no object(s) of kind %s retrieved", c.name)
 		}
 	default:
 		if c.callback != nil {
@@ -57,10 +57,10 @@ func (g resourceCollectorGroup) collect() error {
 	for i, c := range g {
 		obj, err := c.loadResourceFn()
 		if err != nil {
-			return fmt.Errorf("failed to retrieve object(s) of kind %s: %v", c.errKind, err)
+			return fmt.Errorf("failed to retrieve object(s) of kind %s: %v", c.name, err)
 		}
 		if obj == nil || reflect.ValueOf(obj).IsNil() || meta.IsListType(obj) && meta.LenList(obj) == 0 {
-			return fmt.Errorf("no object(s) of kind %s retrieved", c.errKind)
+			return fmt.Errorf("no object(s) of kind %s retrieved", c.name)
 		}
 		if c.callback != nil {
 			c.callback(obj)

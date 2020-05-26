@@ -38,15 +38,15 @@ type nonFailingPrinter struct {
 	errors []string
 }
 
-func (p *nonFailingPrinter) printObject(o runtime.Object, parentDir string, mode printMode) {
+func (p *nonFailingPrinter) printObject(obj runtime.Object, parentDir string, mode printMode) {
 	switch mode {
 	case ObjectWithDir:
-		if err := printSingleObject(p.fs, o, parentDir); err != nil {
+		if err := printSingleObject(p.fs, obj, parentDir); err != nil {
 			p.errors = append(p.errors, err.Error())
 		}
 	case ObjectListWithDirs:
-		err := meta.EachListItem(o, func(ro runtime.Object) error {
-			if err := printSingleObject(p.fs, ro, parentDir); err != nil {
+		err := meta.EachListItem(obj, func(object runtime.Object) error {
+			if err := printSingleObject(p.fs, object, parentDir); err != nil {
 				p.errors = append(p.errors, err.Error())
 			}
 			return nil
@@ -57,7 +57,7 @@ func (p *nonFailingPrinter) printObject(o runtime.Object, parentDir string, mode
 	case RuntimeObject:
 		fallthrough
 	default:
-		if err := printSingleRuntimeObject(p.fs, o, parentDir); err != nil {
+		if err := printSingleRuntimeObject(p.fs, obj, parentDir); err != nil {
 			p.errors = append(p.errors, err.Error())
 		}
 	}
@@ -190,7 +190,7 @@ func printBytes(fs afero.Fs, b []byte, dir, name string) error {
 	return nil
 }
 
-func isKudoCR(o runtime.Object) bool {
-	kind := o.GetObjectKind().GroupVersionKind().Kind
+func isKudoCR(obj runtime.Object) bool {
+	kind := obj.GetObjectKind().GroupVersionKind().Kind
 	return kind == "Instance" || kind == "Operator" || kind == "OperatorVersion"
 }

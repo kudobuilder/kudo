@@ -54,7 +54,7 @@ spec:
   dnsPolicy: ClusterFirst
   enableServiceLinks: true
   hostname: kudo-controller-manager-0
-  nodeName: eprupetw1146
+  nodeName: node007
   priority: 0
   restartPolicy: Always
   schedulerName: default-scheduler

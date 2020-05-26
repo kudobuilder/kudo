@@ -13,7 +13,7 @@ import (
 
 const (
 	diagCollectExample = `  # collect diagnostics example
-  kubectl kudo diagnostics collect --instance=%instance% --namespace=%namespace%
+  kubectl kudo diagnostics collect --instance flink
 `
 )
 

@@ -84,7 +84,7 @@ func TestPrintYaml(t *testing.T) {}
 func TestPrinter_printObject(t *testing.T) {
 	tests := []struct {
 		desc      string
-		o         runtime.Object
+		obj       runtime.Object
 		parentDir string
 		mode      printMode
 		expFiles  []string
@@ -93,7 +93,7 @@ func TestPrinter_printObject(t *testing.T) {
 	}{
 		{
 			desc: "kube object with dir",
-			o: &v1.Pod{
+			obj: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-01"},
 			},
 			parentDir: "root",
@@ -103,7 +103,7 @@ func TestPrinter_printObject(t *testing.T) {
 		},
 		{
 			desc: "kudo object with dir",
-			o: &v1beta1.Operator{
+			obj: &v1beta1.Operator{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Operator",
 					APIVersion: "kudo.dev/v1beta1",
@@ -117,7 +117,7 @@ func TestPrinter_printObject(t *testing.T) {
 		},
 		{
 			desc: "kube object as runtime object",
-			o: &v1.Pod{
+			obj: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-01"},
 			},
 			parentDir: "root",
@@ -127,7 +127,7 @@ func TestPrinter_printObject(t *testing.T) {
 		},
 		{
 			desc: "list of objects as runtime object",
-			o: &v1.PodList{
+			obj: &v1.PodList{
 				Items: []v1.Pod{
 					{ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-01"}},
 					{ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-02"}},
@@ -140,7 +140,7 @@ func TestPrinter_printObject(t *testing.T) {
 		},
 		{
 			desc: "list of objects with dirs",
-			o: &v1.PodList{
+			obj: &v1.PodList{
 				Items: []v1.Pod{
 					{ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-01"}},
 					{ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-02"}},
@@ -153,7 +153,7 @@ func TestPrinter_printObject(t *testing.T) {
 		},
 		{
 			desc: "list of objects with dirs, one fails",
-			o: &v1.PodList{
+			obj: &v1.PodList{
 				Items: []v1.Pod{
 					{ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-01"}},
 					{ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-02"}},
@@ -178,7 +178,7 @@ func TestPrinter_printObject(t *testing.T) {
 			p := &nonFailingPrinter{
 				fs: fs,
 			}
-			p.printObject(tt.o, tt.parentDir, tt.mode)
+			p.printObject(tt.obj, tt.parentDir, tt.mode)
 			for i, fname := range tt.expFiles {
 				b, err := afero.ReadFile(fs, fname)
 				assert.Nil(t, err)

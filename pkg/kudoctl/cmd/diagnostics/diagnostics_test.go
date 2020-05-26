@@ -131,13 +131,13 @@ func mustReadObjectFromYaml(fs afero.Fs, fname string, object runtime.Object, ch
 
 type objectList []runtime.Object
 
-func (l objectList) append(o runtime.Object) objectList {
-	if meta.IsListType(o) {
-		objs, err := meta.ExtractList(o)
+func (l objectList) append(obj runtime.Object) objectList {
+	if meta.IsListType(obj) {
+		objs, err := meta.ExtractList(obj)
 		check(err)
 		return append(l, objs...)
 	}
-	return append(l, o)
+	return append(l, obj)
 }
 
 func init() {
@@ -273,7 +273,7 @@ func TestCollect_InstanceNotFound(t *testing.T) {
 		Namespace: fakeNamespace,
 	})
 
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 // Fatal error
@@ -296,7 +296,7 @@ func TestCollect_FatalError(t *testing.T) {
 		Namespace: fakeNamespace,
 	})
 
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 // Fatal error - special case: api server returns "Not Found", api then returns (nil, nil)
@@ -323,7 +323,7 @@ func TestCollect_FatalNotFound(t *testing.T) {
 		Namespace: fakeNamespace,
 	})
 
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 // Client returns an error retrieving a resource that should not be wrapped into its own dir
@@ -407,7 +407,7 @@ func TestCollect_KudoNameSpaceNotFound(t *testing.T) {
 		Namespace: fakeNamespace,
 	})
 
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestCollect_PrintFailure(t *testing.T) {
@@ -421,7 +421,7 @@ func TestCollect_PrintFailure(t *testing.T) {
 	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 
 	// all files should be present except the one failed to be printed, and no other files
 	fileNames := defaultFileNames()
