@@ -57,7 +57,7 @@ func (k KudoWebHook) String() string {
 
 func (k KudoWebHook) PreInstallVerify(client *kube.Client, result *verifier.Result) error {
 	// skip verification if webhooks are not used or self-signed CA is used
-	if !k.opts.HasWebhooksEnabled() || k.opts.SelfSignedWebhookCA {
+	if k.opts.SelfSignedWebhookCA {
 		return nil
 	}
 	return validateCertManagerInstallation(client, result)
@@ -69,10 +69,9 @@ func (k KudoWebHook) PreUpgradeVerify(client *kube.Client, result *verifier.Resu
 }
 
 func (k KudoWebHook) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
-	if !k.opts.HasWebhooksEnabled() {
+	if k.opts.SelfSignedWebhookCA {
 		return nil
 	}
-
 	if err := validateCertManagerInstallation(client, result); err != nil {
 		return err
 	}
@@ -120,9 +119,6 @@ func (k KudoWebHook) installWithSelfSignedCA(client *kube.Client) error {
 }
 
 func (k KudoWebHook) Install(client *kube.Client) error {
-	if !k.opts.HasWebhooksEnabled() {
-		return nil
-	}
 	if k.opts.SelfSignedWebhookCA {
 		return k.installWithSelfSignedCA(client)
 	}
@@ -138,10 +134,6 @@ func UninstallWebHook(client *kube.Client) error {
 }
 
 func (k KudoWebHook) Resources() []runtime.Object {
-	if !k.opts.HasWebhooksEnabled() {
-		return make([]runtime.Object, 0)
-	}
-
 	if k.opts.SelfSignedWebhookCA {
 		iaw, s, err := k.resourcesWithSelfSignedCA()
 		if err != nil {
@@ -386,8 +378,8 @@ func certificate(ns string) unstructured.Unstructured {
 				"namespace": ns,
 			},
 			"spec": map[string]interface{}{
-				"commonName": "kudo-controller-manager-service.kudo-system.svc",
-				"dnsNames":   []string{"kudo-controller-manager-service.kudo-system.svc"},
+				"commonName": fmt.Sprintf("kudo-controller-manager-service.%s.svc", ns),
+				"dnsNames":   []string{fmt.Sprintf("kudo-controller-manager-service.%s.svc", ns)},
 				"issuerRef": map[string]interface{}{
 					"kind": "Issuer",
 					"name": "selfsigned-issuer",

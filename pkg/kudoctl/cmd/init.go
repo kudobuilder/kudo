@@ -52,8 +52,8 @@ and finishes with success if KUDO is already installed.
   kubectl kudo init --crd-only --dry-run --output yaml | kubectl delete -f -
   # pass existing serviceaccount 
   kubectl kudo init --service-account testaccount
-  # install kudo with activated instance admission webhook
-  kubectl kudo init --webhook InstanceValidation
+  # install kudo using self-signed CA bundle for the webhooks (for testing and development)
+  kubectl kudo init --unsafe-self-signed-webhook-ca
   # upgrade an existing KUDO installation
   kubectl kudo init --upgrade
   # verify the current KUDO installation
@@ -79,7 +79,6 @@ type initCmd struct {
 	verify              bool
 	home                kudohome.Home
 	client              *kube.Client
-	webhooks            string
 	selfSignedWebhookCA bool
 }
 
@@ -117,7 +116,6 @@ func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.BoolVar(&i.crdOnly, "crd-only", false, "Add only KUDO CRDs to your cluster")
 	f.BoolVarP(&i.wait, "wait", "w", false, "Block until KUDO manager is running and ready to receive requests")
 	f.Int64Var(&i.timeout, "wait-timeout", 300, "Wait timeout to be used")
-	f.StringVar(&i.webhooks, "webhook", "", "List of webhooks to install separated by commas (One of: InstanceValidation)")
 	f.StringVarP(&i.serviceAccount, "service-account", "", "", "Override for the default serviceAccount kudo-manager")
 	f.BoolVar(&i.selfSignedWebhookCA, "unsafe-self-signed-webhook-ca", false, "Use self-signed CA bundle (for testing only) for the webhooks")
 
@@ -140,12 +138,6 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 	if flags.Changed("wait-timeout") && !initCmd.wait {
 		return errors.New("wait-timeout is only useful when using the flag '--wait'")
 	}
-	if initCmd.webhooks != "" && initCmd.webhooks != "InstanceValidation" {
-		return errors.New("webhooks can be only empty or contain a single string 'InstanceValidation'. No other webhooks supported")
-	}
-	if initCmd.webhooks == "" && initCmd.selfSignedWebhookCA {
-		return errors.New("self-signed CA bundle can only be used with webhooks option")
-	}
 	if initCmd.upgrade && initCmd.verify {
 		return errors.New("'--upgrade' and '--verify' can not be used at the same time")
 	}
@@ -161,7 +153,7 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (initCmd *initCmd) run() error {
-	opts := kudoinit.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, webhooksArray(initCmd.webhooks), initCmd.selfSignedWebhookCA, initCmd.upgrade)
+	opts := kudoinit.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, initCmd.upgrade, initCmd.selfSignedWebhookCA)
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image
@@ -298,13 +290,6 @@ func (initCmd *initCmd) preUpgradeVerify(opts kudoinit.Options) (bool, error) {
 		return false, nil
 	}
 	return true, nil
-}
-
-func webhooksArray(webhooksAsStr string) []string {
-	if webhooksAsStr == "" {
-		return []string{}
-	}
-	return strings.Split(webhooksAsStr, ",")
 }
 
 // YAMLWriter writes yaml to writer.   Looked into using https://godoc.org/gopkg.in/yaml.v2#NewEncoder which

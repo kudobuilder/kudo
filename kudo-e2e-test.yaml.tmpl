@@ -1,11 +1,11 @@
 apiVersion: kudo.dev/v1beta1
 kind: TestSuite
-crdDir: ./config/crds/
-manifestDirs:
-- ./test/manifests/
 testDirs:
 - ./test/e2e
+commands:
+- command: ./bin/kubectl-kudo init --unsafe-self-signed-webhook-ca --kudo-image kudobuilder/controller:%version% --kudo-image-pull-policy Never
 startKIND: true
 kindContainers:
 - kudobuilder/controller:%version%
 timeout: 300
+skipDelete: true

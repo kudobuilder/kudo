@@ -76,10 +76,8 @@ func Upgrade(client *kube.Client, opts kudoinit.Options) error {
 	}
 
 	// Step 4 - Disable Admission-Webhooks
-	if opts.HasWebhooksEnabled() {
-		if err := prereq.UninstallWebHook(client); err != nil {
-			return fmt.Errorf("failed to uninstall webhook: %v", err)
-		}
+	if err := prereq.UninstallWebHook(client); err != nil {
+		return fmt.Errorf("failed to uninstall webhook: %v", err)
 	}
 
 	// Step 5 - Execute Migrations
