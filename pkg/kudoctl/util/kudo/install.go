@@ -32,7 +32,7 @@ func InstallPackage(kc *Client, resources *packages.Resources, skipInstance bool
 			var err error
 			manifest, err = render("namespace", template, resources, instanceName, namespace, parameters)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to render namespace manifest %s: %w", resources.Operator.Spec.NamespaceManifest, err)
 			}
 		}
 		err := kc.CreateNamespace(namespace, manifest)
