@@ -66,17 +66,13 @@ The goal here is to make this feel real for users without getting bogged down.
 
 #### Story 2
 
-### Implementation Details/Notes/Constraints [optional]
+### Implementation Details/Notes/Constraints
 
 #### Pre-Upgrade Verification
 
-Before any modification of the cluster is made, the CLI should check if the upgrade would cause any issues. This
-includes 
+Before any modification of the cluster is made, the CLI should check if the upgrade can be executed correctly.
 
-What are the caveats to the implementation?
-What are some important details that didn't come across above.
-Go in to as much detail as necessary here.
-This might be a good place to talk about core concepts and how they releate.
+
 
 #### Upgrade Process
 
