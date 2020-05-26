@@ -66,14 +66,6 @@ func newKudoResources(options *Options, c *kudo.Client) (*resourceFuncsConfig, e
 	}, nil
 }
 
-// object implements runtime.object and
-// metav1.object interfaces.
-// copied from K8 internal type metaRuntimeInterface
-type object interface {
-	runtime.Object
-	metav1.Object
-}
-
 type stringGetter func() string
 
 func (r *resourceFuncsConfig) instance() (runtime.Object, error) {

@@ -6,15 +6,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
-
 	"github.com/spf13/afero"
 	"gopkg.in/yaml.v2"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/client-go/kubernetes/scheme"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
 const (
@@ -22,12 +23,12 @@ const (
 	KudoDir = "diag/kudo"
 )
 
-type printMode int
+type printMode string
 
 const (
-	ObjectWithDir printMode "ObjectsWithDir"
-	ObjectListWithDirs                  // print each object into its own nested directory based on its name and kind
-	RuntimeObject                       // print as a file based on its kind only
+	ObjectWithDir      printMode = "ObjectsWithDir"
+	ObjectListWithDirs printMode = "ObjectListWithDirs" // print each object into its own nested directory based on its name and kind
+	RuntimeObject      printMode = "RuntimeObject"      // print as a file based on its kind only
 )
 
 // nonFailingPrinter - print provided data into provided directory and accumulate errors instead of returning them.

@@ -30,7 +30,7 @@ func (ctx *processingContext) operatorDirectory() string {
 }
 
 func (ctx *processingContext) instanceDirectory() string {
-	return fmt.Sprintf("%s/instance_%s", ctx.attachToOperator(), ctx.instanceName)
+	return fmt.Sprintf("%s/instance_%s", ctx.operatorDirectory(), ctx.instanceName)
 }
 
 func (ctx *processingContext) mustSetOperatorNameFromOperatorVersion(o runtime.Object) {

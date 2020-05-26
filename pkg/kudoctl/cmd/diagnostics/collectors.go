@@ -65,7 +65,7 @@ func (g resourceCollectorGroup) collect() error {
 		if c.callback != nil {
 			c.callback(obj)
 		}
-		objs[i] = obj
+		objs[i], modes[i] = obj, c.printMode
 	}
 	for i, c := range g {
 		c.printer.printObject(objs[i], c.parentDir(), modes[i])
