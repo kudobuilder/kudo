@@ -13,6 +13,16 @@ func runForInstance(instance string, options *Options, c *kudo.Client, info vers
 	}
 
 	ctx := &processingContext{root: DiagDir, instanceName: instance}
+
+	instanceDiagRunner := _runForInstance(ir, ctx, p).
+		dumpToYaml(info, ctx.rootDirectory, "version", p).
+		dumpToYaml(s, ctx.rootDirectory, "settings", p)
+
+	return instanceDiagRunner.fatalErr
+}
+
+func _runForInstance(ir *resourceFuncsConfig, ctx *processingContext, p *nonFailingPrinter) *runner {
+
 	instanceDiagRunner := &runner{}
 	instanceDiagRunner.
 		run(resourceCollectorGroup{
@@ -43,7 +53,7 @@ func runForInstance(instance string, options *Options, c *kudo.Client, info vers
 			loadResourceFn: ir.pods,
 			name:           "pod",
 			parentDir:      ctx.instanceDirectory,
-			callback:       ctx.mustAddPodNames,
+			callback:       ctx.mustSetPods,
 			printer:        p,
 			printMode:      ObjectListWithDirs}).
 		run(&resourceCollector{
@@ -100,17 +110,13 @@ func runForInstance(instance string, options *Options, c *kudo.Client, info vers
 			parentDir:      ctx.instanceDirectory,
 			printer:        p,
 			printMode:      RuntimeObject}).
-		runForEach(ctx.podNames,
-			func(podName string) collector {
-				return &logCollector{loadLogFn: ir.log,
-					podName:   podName,
-					parentDir: ctx.instanceDirectory,
-					printer:   p}
-			}).
-		dumpToYaml(info, ctx.rootDirectory, "version", p).
-		dumpToYaml(s, ctx.rootDirectory, "settings", p)
-
-	return instanceDiagRunner.fatalErr
+		run(&logsCollector{
+			loadLogFn: ir.log,
+			pods:      ctx.pods,
+			parentDir: ctx.instanceDirectory,
+			printer:   p,
+		})
+	return instanceDiagRunner
 }
 
 func runForKudoManager(options *Options, c *kudo.Client, p *nonFailingPrinter) error {
@@ -125,7 +131,7 @@ func runForKudoManager(options *Options, c *kudo.Client, p *nonFailingPrinter) e
 			loadResourceFn: kr.pods,
 			name:           "pod",
 			parentDir:      ctx.rootDirectory,
-			callback:       ctx.mustAddPodNames,
+			callback:       ctx.mustSetPods,
 			printer:        p,
 			printMode:      ObjectListWithDirs}).
 		run(&resourceCollector{
@@ -146,8 +152,11 @@ func runForKudoManager(options *Options, c *kudo.Client, p *nonFailingPrinter) e
 			parentDir:      ctx.rootDirectory,
 			printer:        p,
 			printMode:      RuntimeObject}).
-		runForEach(ctx.podNames, func(podName string) collector {
-			return &logCollector{loadLogFn: kr.log, podName: podName, parentDir: ctx.rootDirectory, printer: p}
+		run(&logsCollector{
+			loadLogFn: kr.log,
+			pods:      ctx.pods,
+			parentDir: ctx.rootDirectory,
+			printer:   p,
 		})
 	return kudoDiagRunner.fatalErr
 }

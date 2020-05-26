@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"reflect"
 
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -73,22 +74,24 @@ func (g resourceCollectorGroup) collect() error {
 	return nil
 }
 
-// logCollector - collector interface implementation for logs for a pod
-type logCollector struct {
-	loadLogFn func(string) (io.ReadCloser, error)
-	podName   string
+type logsCollector struct {
+	loadLogFn func(string, string) (io.ReadCloser, error)
+	pods      []v1.Pod
 	parentDir func() string
 	printer   *nonFailingPrinter
 }
 
-// collect - prints either a log or an error. Always returns nil error.
-func (c *logCollector) collect() error {
-	log, err := c.loadLogFn(c.podName)
-	if err != nil {
-		c.printer.printError(err, filepath.Join(c.parentDir(), fmt.Sprintf("pod_%s", c.podName)), fmt.Sprintf("%s.log", c.podName))
-	} else {
-		c.printer.printLog(log, c.parentDir(), c.podName)
-		_ = log.Close()
+func (c *logsCollector) collect() error {
+	for _, pod := range c.pods {
+		for _, container := range pod.Spec.Containers {
+			log, err := c.loadLogFn(pod.Name, container.Name)
+			if err != nil {
+				c.printer.printError(err, filepath.Join(c.parentDir(), fmt.Sprintf("pod_%s", pod.Name)), fmt.Sprintf("%s.log", pod.Name))
+			} else {
+				c.printer.printLog(log, c.parentDir(), pod.Name)
+				_ = log.Close()
+			}
+		}
 	}
 	return nil
 }

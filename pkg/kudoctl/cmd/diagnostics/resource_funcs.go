@@ -134,8 +134,8 @@ func (r *resourceFuncsConfig) roles() (runtime.Object, error) {
 	return obj, err
 }
 
-func (r *resourceFuncsConfig) log(podName string) (io.ReadCloser, error) {
-	req := r.c.CoreV1().Pods(r.ns).GetLogs(podName, &r.logOpts)
+func (r *resourceFuncsConfig) log(podName, containerName string) (io.ReadCloser, error) {
+	req := r.c.CoreV1().Pods(r.ns).GetLogs(podName, &corev1.PodLogOptions{SinceSeconds: r.logOpts.SinceSeconds, Container: containerName})
 	// a hack for tests: fake client returns rest.Request{} for GetLogs and Stream panics with null-pointer
 	if reflect.DeepEqual(*req, rest.Request{}) {
 		return ioutil.NopCloser(&bytes.Buffer{}), nil

@@ -6,7 +6,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -14,11 +13,11 @@ import (
 // provides property accessors allowing to define a collector before the data it needs is available
 // provides update callback functions. callbacks panic if called on a wrong type of runtime.object
 type processingContext struct {
-	podNames      []string
 	root          string
 	opName        string
 	opVersionName string
 	instanceName  string
+	pods          []v1.Pod
 }
 
 func (ctx *processingContext) rootDirectory() string {
@@ -41,11 +40,8 @@ func (ctx *processingContext) mustSetOperatorVersionNameFromInstance(obj runtime
 	ctx.opVersionName = obj.(*v1beta1.Instance).Spec.OperatorVersion.Name
 }
 
-func (ctx *processingContext) mustAddPodNames(obj runtime.Object) {
-	_ = meta.EachListItem(obj, func(obj runtime.Object) error {
-		ctx.podNames = append(ctx.podNames, obj.(*v1.Pod).Name)
-		return nil
-	})
+func (ctx *processingContext) mustSetPods(o runtime.Object) {
+	ctx.pods = o.(*v1.PodList).Items
 }
 
 func (ctx *processingContext) operatorVersionName() string {

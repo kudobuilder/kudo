@@ -96,29 +96,37 @@ items:
       - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
         name: default-token-wz4h5
         readOnly: true
+    - args:
+        - /pause
+      image: gcr.io/google_containers/pause-amd64:3.0
+      imagePullPolicy: IfNotPresent
+      name: curl-debug
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          name: default-token-8nrb2
+          readOnly: true
     dnsPolicy: ClusterFirst
     enableServiceLinks: true
-    hostname: zookeeper-instance-zookeeper-0
-    nodeName: node007
+    nodeName: eprupetw1146
     priority: 0
-    restartPolicy: Always
+    restartPolicy: Never
     schedulerName: default-scheduler
-    securityContext:
-      fsGroup: 1000
-      runAsUser: 1000
+    securityContext: {}
     serviceAccount: default
     serviceAccountName: default
-    subdomain: zookeeper-instance-hs
     terminationGracePeriodSeconds: 30
     tolerations:
-    - effect: NoExecute
-      key: node.kubernetes.io/not-ready
-      operator: Exists
-      tolerationSeconds: 300
-    - effect: NoExecute
-      key: node.kubernetes.io/unreachable
-      operator: Exists
-      tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 300
     volumes:
     - name: zookeeper-instance-datadir
       persistentVolumeClaim:

@@ -18,14 +18,6 @@ func (r *runner) run(c collector) *runner {
 	return r
 }
 
-func (r *runner) runForEach(names []string, fn func(string) collector) *runner {
-	for _, name := range names {
-		collector := fn(name)
-		r.run(collector)
-	}
-	return r
-}
-
 func (r *runner) dumpToYaml(v interface{}, dir stringGetter, name string, p *nonFailingPrinter) *runner {
 	p.printYaml(v, dir(), name)
 	return r
