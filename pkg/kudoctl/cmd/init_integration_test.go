@@ -377,16 +377,6 @@ func TestReInitFails(t *testing.T) {
 	assertStringContains(t, "CRD operators.kudo.dev is already installed. Did you mean to use --upgrade?", buf.String())
 }
 
-//func deleteInitObjects(client *testutils.RetryClient) {
-//	opts := kudoinit.NewOptions("", "", "", false, false)
-//	crds := crd.NewInitializer()
-//
-//	deleteCRDs(crds.Resources(), client)
-//	deletePrereq(prereq.NewNamespaceInitializer(opts).Resources(), client)
-//	deletePrereq(prereq.NewServiceAccountInitializer(opts).Resources(), client)
-//	deletePrereq(prereq.NewWebHookInitializer(opts).Resources(), client)
-//}
-
 func deleteObjects(objs []runtime.Object, client *testutils.RetryClient) error {
 	for _, obj := range objs {
 		if err := client.Delete(context.TODO(), obj); err != nil {

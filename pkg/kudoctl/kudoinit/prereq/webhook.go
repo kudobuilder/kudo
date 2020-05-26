@@ -128,6 +128,10 @@ func (k KudoWebHook) Install(client *kube.Client) error {
 func UninstallWebHook(client *kube.Client) error {
 	err := client.KubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(instanceAdmissionWebHookName, &metav1.DeleteOptions{})
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			// We can ignore this, maybe we upgrade from an old version that did not have webhooks enabled
+			return nil
+		}
 		return fmt.Errorf("failed to uninstall WebHook: %v", err)
 	}
 	return nil
