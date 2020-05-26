@@ -1,9 +1,13 @@
 package kudo
 
 import (
+	"flag"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"testing"
 
+	tassert "github.com/stretchr/testify/assert"
 	"gotest.tools/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,6 +20,8 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
+
+var update = flag.Bool("update", false, "update .golden files")
 
 func Test_InstallPackage(t *testing.T) {
 	resources := packages.Resources{
@@ -97,4 +103,51 @@ func Test_InstallPackage(t *testing.T) {
 			assert.ErrorContains(t, err, tt.err)
 		}
 	}
+}
+
+func TestNamespaceManifestRendering(t *testing.T) {
+
+	namespaceFile := "testdata/namespace.yaml"
+
+	ns, err := ioutil.ReadFile(namespaceFile)
+	tassert.NoError(t, err)
+
+	params := make(map[string]string)
+	params["foo"] = "bar-param"
+
+	rendered, err := render("namespace", string(ns), testResources(), "foo-bar", "namespace-name", params)
+	tassert.NoError(t, err)
+
+	file := "rendered-namespace.yaml"
+	gf := filepath.Join("testdata", file+".golden")
+
+	if *update {
+		t.Log("update golden file")
+		if err := ioutil.WriteFile(gf, []byte(rendered), 0644); err != nil {
+			t.Fatalf("failed to update golden file: %s", err)
+		}
+	}
+
+	golden, err := ioutil.ReadFile(gf)
+	if err != nil {
+		t.Fatalf("failed reading .golden: %s", err)
+	}
+
+	assert.Equal(t, string(golden), rendered, "for golden file: %s", gf)
+}
+
+func testResources() *packages.Resources {
+	result := &packages.Resources{
+		Operator: &v1beta1.Operator{
+			ObjectMeta: metav1.ObjectMeta{Name: "InstanceName"},
+		},
+		OperatorVersion: &v1beta1.OperatorVersion{
+			Spec: v1beta1.OperatorVersionSpec{
+				AppVersion: "1.0",
+				Version:    "2.0",
+			},
+		},
+		Instance: nil,
+	}
+	return result
 }
