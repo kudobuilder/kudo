@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
 // Metadata contains Metadata along with specific fields associated with current plan
@@ -27,6 +28,9 @@ type Metadata struct {
 type Engine struct {
 	FuncMap template.FuncMap
 }
+
+// VariableMap is the map of variables which are used in templates like map["OperatorName"]
+type VariableMap map[string]interface{}
 
 // New creates an engine with a default function map, using a modified Sprig func map. Because these
 // templates are rendered by the operator, we delete any functions that potentially access the environment
@@ -71,4 +75,56 @@ func (e *Engine) Render(tplName string, tpl string, vals map[string]interface{})
 	}
 
 	return buf.String(), nil
+}
+
+// DefaultVariableMap defines variables which are potentially required by any operator.  By defaulting to this map,
+// all templates should pass, even if values are not expected.
+func DefaultVariableMap() VariableMap {
+	configs := newVariableMap("OperatorName", "Name", "Namespace", "AppVersion", "OperatorVersion")
+	configs["PlanName"] = "PlanName"
+	configs["PhaseName"] = "PhaseName"
+	configs["StepName"] = "StepName"
+	return configs
+}
+
+// VariableMapFromResources provides a common initializer for the variable map from package resources
+func VariableMapFromResources(resources *packages.Resources, instanceName, namespace string, parameters map[string]string) VariableMap {
+	configs := newVariableMap(
+		resources.Operator.Name,
+		instanceName,
+		namespace,
+		resources.OperatorVersion.Spec.AppVersion,
+		resources.OperatorVersion.Spec.Version,
+	)
+	configs["Params"] = parameters
+	return configs
+}
+
+// newVariableMap provides a private default initializer of variable maps
+func newVariableMap(operatorName, instanceName, namespace, appVersion, operatorVersion string) VariableMap {
+	configs := make(map[string]interface{})
+	configs["OperatorName"] = operatorName
+	configs["Name"] = instanceName
+	configs["Namespace"] = namespace
+	configs["AppVersion"] = appVersion
+	configs["OperatorVersion"] = operatorVersion
+
+	return configs
+}
+
+// VariableMapFromMeta provides a variable map for engine.meta
+func VariableMapFromMeta(metadata Metadata) VariableMap {
+	configs := newVariableMap(
+		metadata.OperatorName,
+		metadata.InstanceName,
+		metadata.InstanceNamespace,
+		metadata.AppVersion,
+		metadata.OperatorVersion,
+	)
+	configs["PlanName"] = metadata.PlanName
+	configs["PhaseName"] = metadata.PhaseName
+	configs["StepName"] = metadata.StepName
+	configs["AppVersion"] = metadata.AppVersion
+
+	return configs
 }

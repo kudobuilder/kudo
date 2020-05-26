@@ -153,14 +153,7 @@ func versionExists(version string, versions []string) bool {
 }
 
 func render(name, manifest string, resources *packages.Resources, instanceName, namespace string, parameters map[string]string) (string, error) {
-	configs := make(map[string]interface{})
-	configs["OperatorName"] = resources.Operator.Name
-	configs["Name"] = instanceName
-	configs["Namespace"] = namespace
-	configs["Params"] = parameters
-	configs["AppVersion"] = resources.OperatorVersion.Spec.AppVersion
-	configs["OperatorVersion"] = resources.OperatorVersion.Spec.Version
-
+	configs := renderer.VariableMapFromResources(resources, instanceName, namespace, parameters)
 	engine := renderer.New()
 	rendered, err := engine.Render(name, manifest, configs)
 	if err != nil {
