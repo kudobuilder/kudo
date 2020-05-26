@@ -77,54 +77,73 @@ func (e *Engine) Render(tplName string, tpl string, vals map[string]interface{})
 	return buf.String(), nil
 }
 
-// DefaultVariableMap defines variables which are potentially required by any operator.  By defaulting to this map,
+// NewVariableMap creates variable map necessary for template rendering
+// it uses a builder pattern to create the desired map of variables
+// for a map of default values `renderer.NewVariableMap().WithDefaults()`
+// as a builder pattern, when chaining latter methods in the chain take precedence
+// `renderer.NewVariableMap().WithDefaults().WithResource(pkg.Resources)` will have default values overwritten with resource data
+func NewVariableMap() VariableMap {
+	return make(map[string]interface{})
+}
+
+// WithDefaults defines variables which are potentially required by any operator.  By defaulting to this map,
 // all templates should pass, even if values are not expected.
-func DefaultVariableMap() VariableMap {
-	configs := newVariableMap("OperatorName", "Name", "Namespace", "AppVersion", "OperatorVersion")
-	configs["PlanName"] = "PlanName"
-	configs["PhaseName"] = "PhaseName"
-	configs["StepName"] = "StepName"
-	return configs
+func (m VariableMap) WithDefaults() VariableMap {
+	m.WithInstance("OperatorName", "Name", "Namespace", "AppVersion", "OperatorVersion")
+	m["PlanName"] = "PlanName"
+	m["PhaseName"] = "PhaseName"
+	m["StepName"] = "StepName"
+	return m
 }
 
-// VariableMapFromResources provides a common initializer for the variable map from package resources
-func VariableMapFromResources(resources *packages.Resources, instanceName, namespace string, parameters map[string]string) VariableMap {
-	configs := newVariableMap(
-		resources.Operator.Name,
-		instanceName,
-		namespace,
-		resources.OperatorVersion.Spec.AppVersion,
-		resources.OperatorVersion.Spec.Version,
-	)
-	configs["Params"] = parameters
-	return configs
+// WithInstance provides a convince for add instance information.
+func (m VariableMap) WithInstance(operatorName, instanceName, namespace, appVersion, operatorVersion string) VariableMap {
+	m["OperatorName"] = operatorName
+	m["Name"] = instanceName
+	m["Namespace"] = namespace
+	m["AppVersion"] = appVersion
+	m["OperatorVersion"] = operatorVersion
+
+	return m
+
 }
 
-// newVariableMap provides a private default initializer of variable maps
-func newVariableMap(operatorName, instanceName, namespace, appVersion, operatorVersion string) VariableMap {
-	configs := make(map[string]interface{})
-	configs["OperatorName"] = operatorName
-	configs["Name"] = instanceName
-	configs["Namespace"] = namespace
-	configs["AppVersion"] = appVersion
-	configs["OperatorVersion"] = operatorVersion
-
-	return configs
+// WithMetadata overrides the map with metadata data
+func (m VariableMap) WithMetadata(meta Metadata) VariableMap {
+	m["OperatorName"] = meta.OperatorName
+	m["Name"] = meta.InstanceName
+	m["Namespace"] = meta.InstanceNamespace
+	m["AppVersion"] = meta.AppVersion
+	m["OperatorVersion"] = meta.OperatorVersion
+	m["PlanName"] = meta.PlanName
+	m["PhaseName"] = meta.PhaseName
+	m["StepName"] = meta.StepName
+	m["AppVersion"] = meta.AppVersion
+	return m
 }
 
-// VariableMapFromMeta provides a variable map for engine.meta
-func VariableMapFromMeta(metadata Metadata) VariableMap {
-	configs := newVariableMap(
-		metadata.OperatorName,
-		metadata.InstanceName,
-		metadata.InstanceNamespace,
-		metadata.AppVersion,
-		metadata.OperatorVersion,
-	)
-	configs["PlanName"] = metadata.PlanName
-	configs["PhaseName"] = metadata.PhaseName
-	configs["StepName"] = metadata.StepName
-	configs["AppVersion"] = metadata.AppVersion
+// WithResource overrides map with resource data
+func (m VariableMap) WithResource(resources *packages.Resources) VariableMap {
+	m["OperatorName"] = resources.Operator.Name
+	m["AppVersion"] = resources.OperatorVersion.Spec.AppVersion
+	m["OperatorVersion"] = resources.OperatorVersion.Spec.Version
+	return m
+}
 
-	return configs
+// WithParameters overrides the map with parameter map which uses `interface{}` values
+func (m VariableMap) WithParameters(parameters map[string]interface{}) VariableMap {
+	m["Params"] = parameters
+	return m
+}
+
+// WithParameterStrings overrides the map with parameter map which uses `string values
+func (m VariableMap) WithParameterStrings(parameters map[string]string) VariableMap {
+	m["Params"] = parameters
+	return m
+}
+
+// WithPipes overrides the map with a pipe map
+func (m VariableMap) WithPipes(pipes map[string]string) VariableMap {
+	m["Pipes"] = pipes
+	return m
 }

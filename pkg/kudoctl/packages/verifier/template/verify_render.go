@@ -37,9 +37,10 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 		return res
 	}
 
-	configs := renderer.DefaultVariableMap()
-	configs["Params"] = params
-	configs["Pipes"] = pipes
+	configs := renderer.NewVariableMap().
+		WithDefaults().
+		WithParameters(params).
+		WithPipes(pipes)
 
 	engine := renderer.New()
 	for k, v := range pf.Templates {
