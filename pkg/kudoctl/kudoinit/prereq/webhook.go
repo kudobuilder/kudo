@@ -34,9 +34,9 @@ type KudoWebHook struct {
 }
 
 const (
-	certManagerAPIVersion         = "v1alpha2"
-	certManagerControllerVersion  = "v0.12.0"
-	instanceValidationWebHookName = "kudo-manager-instance-validation-webhook-config"
+	certManagerAPIVersion        = "v1alpha2"
+	certManagerControllerVersion = "v0.12.0"
+	instanceAdmissionWebHookName = "kudo-manager-instance-admission-webhook-config"
 )
 
 var (
@@ -126,7 +126,7 @@ func (k KudoWebHook) Install(client *kube.Client) error {
 }
 
 func UninstallWebHook(client *kube.Client) error {
-	err := client.KubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(instanceValidationWebHookName, &metav1.DeleteOptions{})
+	err := client.KubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(instanceAdmissionWebHookName, &metav1.DeleteOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to uninstall WebHook: %v", err)
 	}
@@ -314,7 +314,7 @@ func InstanceAdmissionWebhook(ns string) admissionv1beta1.MutatingWebhookConfigu
 	noSideEffects := admissionv1beta1.SideEffectClassNone
 	return admissionv1beta1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "kudo-manager-instance-admission-webhook-config",
+			Name: instanceAdmissionWebHookName,
 			Annotations: map[string]string{
 				"cert-manager.io/inject-ca-from": fmt.Sprintf("%s/kudo-webhook-server-certificate", ns),
 			},
