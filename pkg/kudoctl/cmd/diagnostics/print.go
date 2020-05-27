@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -65,13 +64,13 @@ func (p *nonFailingPrinter) printObject(obj runtime.Object, parentDir string, mo
 
 func (p *nonFailingPrinter) printError(err error, parentDir, name string) {
 	b := []byte(err.Error())
-	if err := printBytes(p.fs, b, parentDir, fmt.Sprintf("%s.err", name)); err != nil {
+	if err := doPrint(p.fs, byteWriter{b}.write, parentDir, fmt.Sprintf("%s.err", name)); err != nil {
 		p.errors = append(p.errors, err.Error())
 	}
 }
 
 func (p *nonFailingPrinter) printLog(log io.ReadCloser, parentDir, name string) {
-	if err := printLog(p.fs, log, parentDir, name); err != nil {
+	if err := doPrint(p.fs, gzipStreamWriter{log}.write, parentDir, fmt.Sprintf("%s.log.gz", name)); err != nil {
 		p.errors = append(p.errors, err.Error())
 	}
 }
@@ -99,7 +98,28 @@ func printSingleObject(fs afero.Fs, obj runtime.Object, parentDir string) error 
 	relToParentDir := fmt.Sprintf("%s_%s", strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind), o.GetName())
 	dir := filepath.Join(parentDir, relToParentDir)
 	name := fmt.Sprintf("%s.yaml", o.GetName())
-	return printRuntimeObjectInto(fs, obj, dir, name)
+	return doPrint(fs, objYamlWriter{obj}.write, dir, name)
+}
+
+// printSingleRuntimeObject - print a runtime.Object in the supplied dir.
+func printSingleRuntimeObject(fs afero.Fs, obj runtime.Object, dir string) error {
+	err := kudo.SetGVKFromScheme(obj, scheme.Scheme)
+	if err != nil {
+		return err
+	}
+
+	name := fmt.Sprintf("%s.yaml", strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind))
+	return doPrint(fs, objYamlWriter{obj}.write, dir, name)
+}
+
+func printYaml(fs afero.Fs, v interface{}, dir, name string) error {
+	b, err := yaml.Marshal(v)
+	if err != nil {
+		return fmt.Errorf("failed to marshal object to %s/%s.yaml: %v", dir, name, err)
+	}
+
+	name = fmt.Sprintf("%s.yaml", name)
+	return doPrint(fs, byteWriter{b}.write, dir, name)
 }
 
 func createFile (fs afero.Fs, dir, name string) (afero.File, error) {
@@ -115,67 +135,13 @@ func createFile (fs afero.Fs, dir, name string) (afero.File, error) {
 	}
 	return file, nil
 }
-
-func printRuntimeObjectInto(fs afero.Fs, obj runtime.Object, dir, name string) error {
+func doPrint(fs afero.Fs, writeFn func(afero.File) error, dir, name string) error{
 	file, err := createFile(fs, dir, name)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-
-	printer := printers.YAMLPrinter{}
-	return printer.PrintObj(obj, file)
-}
-
-// printSingleRuntimeObject - print a runtime.Object in the supplied dir.
-func printSingleRuntimeObject(fs afero.Fs, obj runtime.Object, dir string) error {
-	err := kudo.SetGVKFromScheme(obj, scheme.Scheme)
-	if err != nil {
-		return err
-	}
-
-	name := fmt.Sprintf("%s.yaml", strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind))
-	return printRuntimeObjectInto(fs, obj, dir, name)
-}
-
-func printLog(fs afero.Fs, log io.ReadCloser, dir, podName string) error {
-	name := fmt.Sprintf("%s.log.gz", podName)
-	file, err := createFile(fs, dir, name)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	z := newGzipWriter(file)
-	err = z.write(log)
-	if err != nil {
-		return fmt.Errorf("failed to write to file %s: %v", filepath.Join(dir, name), err)
-	}
-	return nil
-}
-
-func printYaml(fs afero.Fs, v interface{}, dir, name string) error {
-	b, err := yaml.Marshal(v)
-	if err != nil {
-		return fmt.Errorf("failed to marshal object to %s/%s.yaml: %v", dir, name, err)
-	}
-
-	name = fmt.Sprintf("%s.yaml", name)
-	return printBytes(fs, b, dir, name)
-}
-
-func printBytes(fs afero.Fs, b []byte, dir, name string) error {
-	file, err := createFile(fs, dir, name)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	_, err = file.Write(b)
-	if err != nil {
-		return fmt.Errorf("failed to write to file %s: %v", filepath.Join(dir, name), err)
-	}
-	return nil
+	return writeFn(file)
 }
 
 func isKudoCR(obj runtime.Object) bool {
