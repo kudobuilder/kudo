@@ -41,6 +41,10 @@ e2e-test: cli-fast manager-fast
 integration-test: cli-fast manager-fast
 	./hack/run-integration-tests.sh
 
+.PHONY: operator-test
+operator-test: cli-fast manager-fast
+	./hack/run-operator-tests.sh
+
 .PHONY: test-clean
 # Clean test reports
 test-clean:
