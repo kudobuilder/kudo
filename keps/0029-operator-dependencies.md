@@ -23,7 +23,7 @@ status: provisional
   * [Non-Goals](#non-goals)
 * [Proposal](#proposal)
   * [Implementation Details](#implementation-details)
-    * [Operator Task](#operator-task)
+    * [Operator Task](#kudooperator-task)
     * [Deployment](#deployment)
       * [Client-Side](#client-side)
       * [Server-Side](#server-side)
@@ -61,9 +61,9 @@ KUDO operators **already have** a mechanism to deal with installation dependenci
 
 ### Implementation details
 
-#### Operator Task
+#### KudoOperator Task
 
-A new task kind `Operator` is introduced which extends `operator.yaml` with the ability to install dependencies. Let's take a look at the Kafka+Zookeeper example:
+A new task kind `KudoOperator` is introduced which extends `operator.yaml` with the ability to install dependencies. Let's take a look at the Kafka+Zookeeper example:
 
 ```yaml
 apiVersion: kudo.dev/v1beta1
@@ -178,7 +178,7 @@ Operator `BB` has a required and empty parameter `PASSWORD`. To provide a way fo
 ```yaml
 tasks:
 - name: deploy-bb
-  kind: Operator
+  kind: KudoOperator
   spec:
     parameterFile: bb-params.yaml # optional, defines the parameter that will be set on the bb-instance  
 ```
@@ -224,7 +224,7 @@ spec:
     required: true
   tasks:
   - name: deploy-bb
-    kind: Operator
+    kind: KudoOperator
     spec:
       parameterFile: bb-params.yaml
   templates:
@@ -270,11 +270,11 @@ Current `kudo uninstall` CLI command only removes instances (with required `--in
 
 #### Other Plans
 
-It can be meaningful to allow [operator-tasks](#operator-task) outside of `deploy`, `update` and `upgrade` plans. A `monitoring` plan might install a monitoring operator package. We could even allow installation from a local disk by doing the same client-side steps for the `monitoring` plan when it is triggered. While the foundation provided by this KEP would make it easy, this KEP focuses on the installation dependencies, so we would probably forbid operator-tasks outside of `deploy`, `update` and `upgrade` in the beginning.
+It can be meaningful to allow [operator-tasks](#kudooperator-task) outside of `deploy`, `update` and `upgrade` plans. A `monitoring` plan might install a monitoring operator package. We could even allow installation from a local disk by doing the same client-side steps for the `monitoring` plan when it is triggered. While the foundation provided by this KEP would make it easy, this KEP focuses on the installation dependencies, so we would probably forbid operator-tasks outside of `deploy`, `update` and `upgrade` in the beginning.
 
 ### Risks and Mitigation
 
-The biggest risk is the increased complexity of the instance controller and the workflow engine. With the above approach, we can reuse much of the code and UX we have currently: plans and phases for flow control, local operators and custom operator repositories for easier development and deployment, and usual status reporting for debugging. The API footprint remains small as the only new API element is the [operator-task](#operator-task). Dependency graph building and traversal will require a graph library and there are a [few](https://github.com/yourbasic/graph) [out](https://godoc.org/github.com/twmb/algoimpl/go/graph) [there](https://godoc.org/gonum.org/v1/gonum/graph) so this will help mitigate some complexity.
+The biggest risk is the increased complexity of the instance controller and the workflow engine. With the above approach, we can reuse much of the code and UX we have currently: plans and phases for flow control, local operators and custom operator repositories for easier development and deployment, and usual status reporting for debugging. The API footprint remains small as the only new API element is the [operator-task](#kudooperator-task). Dependency graph building and traversal will require a graph library and there are a [few](https://github.com/yourbasic/graph) [out](https://godoc.org/github.com/twmb/algoimpl/go/graph) [there](https://godoc.org/gonum.org/v1/gonum/graph) so this will help mitigate some complexity.
 
 ## Alternatives
 

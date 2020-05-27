@@ -210,6 +210,9 @@ type KudoOperatorTaskSpec struct {
 	// a specific operator version in the official repo, defaults to the most recent one
 	// +optional
 	OperatorVersion string `json:"operatorVersion,omitempty"`
+	// a parameter file name that will be used to populate Instance.Spec.Parameters
+	// +optional
+	ParameterFile string `json:"parameterFile,omitempty"`
 }
 
 // OperatorVersionStatus defines the observed state of OperatorVersion.

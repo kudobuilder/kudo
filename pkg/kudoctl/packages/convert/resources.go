@@ -61,7 +61,7 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 			APIVersion: packages.APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-%s", files.Operator.Name, files.Operator.OperatorVersion),
+			Name: v1beta1.OperatorVersionName(files.Operator.Name, files.Operator.OperatorVersion),
 		},
 		Spec: v1beta1.OperatorVersionSpec{
 			Operator: corev1.ObjectReference{
@@ -85,12 +85,12 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 			APIVersion: packages.APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   fmt.Sprintf("%s-instance", files.Operator.Name),
+			Name:   v1beta1.InstanceName(files.Operator.Name),
 			Labels: map[string]string{kudo.OperatorLabel: files.Operator.Name},
 		},
 		Spec: v1beta1.InstanceSpec{
 			OperatorVersion: corev1.ObjectReference{
-				Name: fmt.Sprintf("%s-%s", files.Operator.Name, files.Operator.OperatorVersion),
+				Name: v1beta1.OperatorVersionName(files.Operator.Name, files.Operator.OperatorVersion),
 			},
 		},
 		Status: v1beta1.InstanceStatus{},
@@ -120,6 +120,11 @@ func validateTask(t v1beta1.Task, templates map[string]string) []string {
 		if len(t.Spec.PipeTaskSpec.Pipe) == 0 {
 			errs = append(errs, fmt.Sprintf("task %s does not have pipe files specified", t.Name))
 		}
+	case task.KudoOperatorTaskKind:
+		if len(t.Spec.ParameterFile) != 0 {
+			resources = append(resources, t.Spec.ParameterFile)
+		}
+
 	case task.DummyTaskKind:
 	default:
 		log.Printf("no validation for task kind %s implemented", t.Kind)

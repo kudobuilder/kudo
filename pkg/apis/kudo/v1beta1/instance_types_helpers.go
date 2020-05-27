@@ -1,13 +1,16 @@
 package v1beta1
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 
 	"github.com/thoas/go-funk"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -23,7 +26,7 @@ const (
 // 2. GetPlanInProgress goes through i.Spec.PlanStatus map and returns the first found plan that is running
 //
 // (1) is set directly when the user updates the instance and reset **after** the plan is terminal
-// (2) is updated **after** each time the instance controller executes the plan
+// (2) is updated **AFTER** the instance controller if done with the reconciliation call
 func (i *Instance) GetScheduledPlan() *PlanStatus {
 	return i.PlanStatus(i.Spec.PlanExecution.PlanName)
 }
@@ -222,6 +225,25 @@ func remove(values []string, s string) []string {
 	})
 }
 
+// GetOperatorVersion retrieves OperatorVersion belonging to the given instance
+func (i *Instance) GetOperatorVersion(c client.Reader) (ov *OperatorVersion, err error) {
+	return GetOperatorVersionByName(i.Spec.OperatorVersion.Name, i.OperatorVersionNamespace(), c)
+}
+
+func GetOperatorVersionByName(ovn, ns string, c client.Reader) (ov *OperatorVersion, err error) {
+	ov = &OperatorVersion{}
+	err = c.Get(context.TODO(),
+		types.NamespacedName{
+			Name:      ovn,
+			Namespace: ns,
+		},
+		ov)
+	if err != nil {
+		return nil, err
+	}
+	return ov, nil
+}
+
 // wasRunAfter returns true if p1 was run after p2
 func wasRunAfter(p1 PlanStatus, p2 PlanStatus) bool {
 	if p1.Status == ExecutionNeverRun || p2.Status == ExecutionNeverRun || p1.LastUpdatedTimestamp == nil || p2.LastUpdatedTimestamp == nil {
@@ -338,4 +360,12 @@ func GetPhaseStatus(phaseName string, planStatus *PlanStatus) *PhaseStatus {
 	}
 
 	return nil
+}
+
+func InstanceName(operatorName string) string {
+	return fmt.Sprintf("%s-instance", operatorName)
+}
+
+func OperatorVersionName(operatorName, operatorVersion string) string {
+	return fmt.Sprintf("%s-%s", operatorName, operatorVersion)
 }

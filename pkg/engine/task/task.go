@@ -191,11 +191,16 @@ func newKudoOperator(task *v1beta1.Task) (Tasker, error) {
 		return nil, fmt.Errorf("task validation error: kudo operator task '%s' has an empty package name", task.Name)
 	}
 
+	if len(task.Spec.KudoOperatorTaskSpec.OperatorVersion) == 0 {
+		return nil, fmt.Errorf("task validation error: kudo operator task '%s' has an empty operatorVersion", task.Name)
+	}
+
 	return KudoOperatorTask{
 		Name:            task.Name,
 		Package:         task.Spec.KudoOperatorTaskSpec.Package,
 		InstanceName:    task.Spec.KudoOperatorTaskSpec.InstanceName,
 		AppVersion:      task.Spec.KudoOperatorTaskSpec.AppVersion,
 		OperatorVersion: task.Spec.KudoOperatorTaskSpec.OperatorVersion,
+		ParameterFile:   task.Spec.KudoOperatorTaskSpec.ParameterFile,
 	}, nil
 }
