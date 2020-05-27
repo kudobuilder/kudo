@@ -120,13 +120,13 @@ func assertNilError(t *testing.T) func(error) {
 	}
 }
 
-func mustReadObjectFromYaml(fs afero.Fs, fname string, object runtime.Object, check func(error)) {
+func mustReadObjectFromYaml(fs afero.Fs, fname string, object runtime.Object, checkFn func(error)) {
 	b, err := afero.ReadFile(fs, fname)
-	check(err)
+	checkFn(err)
 	j, err := yaml.YAMLToJSON(b)
-	check(err)
+	checkFn(err)
 	err = json.Unmarshal(j, object)
-	check(err)
+	checkFn(err)
 }
 
 type objectList []runtime.Object
@@ -274,6 +274,8 @@ func TestCollect_InstanceNotFound(t *testing.T) {
 	})
 
 	assert.Error(t, err)
+	exists, _ := afero.Exists(fs, "diag/instance.err")
+	assert.True(t, exists)
 }
 
 // Fatal error
@@ -297,6 +299,8 @@ func TestCollect_FatalError(t *testing.T) {
 	})
 
 	assert.Error(t, err)
+	exists, _ := afero.Exists(fs, "diag/operator.err")
+	assert.True(t, exists)
 }
 
 // Fatal error - special case: api server returns "Not Found", api then returns (nil, nil)

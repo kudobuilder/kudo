@@ -17,7 +17,7 @@ type resourceCollector struct {
 	name           string               // object kind used to describe the error
 	parentDir      func() string        // parent dir to attach the printer's output
 	failOnError    bool                 // define whether the collector should return the error
-	callback       func(runtime.Object) // will be called with the retrieved resource after cllection to update  shared context
+	callback       func(runtime.Object) // will be called with the retrieved resource after collection to update shared context
 	printer        *nonFailingPrinter
 	printMode      printMode
 }
@@ -26,49 +26,57 @@ type resourceCollector struct {
 // return error if failOnError field is set to true
 // if failOnError is true, finding no object(s) is treated as an error
 func (c *resourceCollector) collect() error {
-	obj, err := c.loadResourceFn()
-	switch {
-	case err != nil:
-		if c.failOnError {
-			return fmt.Errorf("failed to retrieve object(s) of kind %s: %v", c.name, err)
-		}
+	obj, err := c._collect(c.failOnError)
+	if err != nil {
 		c.printer.printError(err, c.parentDir(), c.name)
-	case obj == nil || reflect.ValueOf(obj).IsNil() || meta.IsListType(obj) && meta.LenList(obj) == 0:
 		if c.failOnError {
-			return fmt.Errorf("no object(s) of kind %s retrieved", c.name)
+			return err
 		}
-	default:
-		if c.callback != nil {
-			c.callback(obj)
-		}
+	}
+	if obj != nil {
 		c.printer.printObject(obj, c.parentDir(), c.printMode)
 	}
 	return nil
 }
 
+func (c *resourceCollector) _collect(failOnError bool) (runtime.Object, error){
+	obj, err := c.loadResourceFn()
+	switch {
+	case err != nil:
+		return nil, fmt.Errorf("failed to retrieve object(s) of kind %s: %v", c.name, err)
+	case obj == nil || reflect.ValueOf(obj).IsNil() || meta.IsListType(obj) && meta.LenList(obj) == 0:
+		obj = nil
+		if failOnError {
+			return nil, fmt.Errorf("no object(s) of kind %s retrieved", c.name)
+		}
+	default:
+		if c.callback != nil {
+			c.callback(obj)
+		}
+	}
+	return obj, nil
+}
 // resourceCollectorGroup - a composite collector for Kubernetes runtime objects whose loading and printing depend on
 // each other's side-effects on the shared context
-type resourceCollectorGroup []resourceCollector
+type resourceCollectorGroup struct {
+	collectors []resourceCollector
+	parentDir      func() string
+}
 
 // collect - collect resource and run callback for each collector, print all afterwards
 // collection failures are treated as fatal regardless of the collectors failOnError flag setting
 func (g resourceCollectorGroup) collect() error {
-	objs := make([]runtime.Object, len(g))
-	modes := make([]printMode, len(g))
-	for i, c := range g {
-		obj, err := c.loadResourceFn()
+	objs := make([]runtime.Object, len(g.collectors))
+	modes := make([]printMode, len(g.collectors))
+	for i, c := range g.collectors {
+		obj, err := c._collect(true)
 		if err != nil {
-			return fmt.Errorf("failed to retrieve object(s) of kind %s: %v", c.name, err)
-		}
-		if obj == nil || reflect.ValueOf(obj).IsNil() || meta.IsListType(obj) && meta.LenList(obj) == 0 {
-			return fmt.Errorf("no object(s) of kind %s retrieved", c.name)
-		}
-		if c.callback != nil {
-			c.callback(obj)
+			c.printer.printError(err, g.parentDir(), c.name)
+			return err
 		}
 		objs[i], modes[i] = obj, c.printMode
 	}
-	for i, c := range g {
+	for i, c := range g.collectors {
 		c.printer.printObject(objs[i], c.parentDir(), modes[i])
 	}
 	return nil

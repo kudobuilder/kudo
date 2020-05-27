@@ -9,6 +9,7 @@ import (
 func runForInstance(instance string, options *Options, c *kudo.Client, info version.Info, s *env.Settings, p *nonFailingPrinter) error {
 	ir, err := newInstanceResources(instance, options, c, s)
 	if err != nil {
+		p.printError(err, DiagDir, "instance")
 		return err
 	}
 
@@ -25,7 +26,7 @@ func _runForInstance(ir *resourceFuncsConfig, ctx *processingContext, p *nonFail
 
 	instanceDiagRunner := &runner{}
 	instanceDiagRunner.
-		run(resourceCollectorGroup{
+		run(resourceCollectorGroup{[]resourceCollector{
 			{
 				loadResourceFn: ir.instance,
 				name:           "instance",
@@ -48,7 +49,8 @@ func _runForInstance(ir *resourceFuncsConfig, ctx *processingContext, p *nonFail
 				parentDir:      ctx.rootDirectory,
 				failOnError:    true,
 				printer:        p,
-				printMode:      ObjectWithDir}}).
+				printMode:      ObjectWithDir},
+		}, ctx.rootDirectory}).
 		run(&resourceCollector{
 			loadResourceFn: ir.pods,
 			name:           "pod",
