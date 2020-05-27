@@ -83,7 +83,6 @@ func (p *nonFailingPrinter) printYaml(v interface{}, parentDir, name string) {
 }
 
 // printSingleObject - print a runtime.object assuming it exposes metadata by implementing metav1.object
-// or panic otherwise. object is put into a nested directory.
 func printSingleObject(fs afero.Fs, obj runtime.Object, parentDir string) error {
 	if !isKudoCR(obj) {
 		err := kudo.SetGVKFromScheme(obj, scheme.Scheme)
@@ -103,16 +102,24 @@ func printSingleObject(fs afero.Fs, obj runtime.Object, parentDir string) error 
 	return printRuntimeObjectInto(fs, obj, dir, name)
 }
 
-func printRuntimeObjectInto(fs afero.Fs, obj runtime.Object, dir, name string) error {
+func createFile (fs afero.Fs, dir, name string) (afero.File, error) {
 	err := fs.MkdirAll(dir, 0700)
 	if err != nil {
-		return fmt.Errorf("failed to create directory %s: %v", dir, err)
+		return nil, fmt.Errorf("failed to create directory %s: %v", dir, err)
 	}
 
 	fileWithPath := filepath.Join(dir, name)
 	file, err := fs.Create(fileWithPath)
 	if err != nil {
-		return fmt.Errorf("failed to create %s: %v", fileWithPath, err)
+		return nil, fmt.Errorf("failed to create %s: %v", fileWithPath, err)
+	}
+	return file, nil
+}
+
+func printRuntimeObjectInto(fs afero.Fs, obj runtime.Object, dir, name string) error {
+	file, err := createFile(fs, dir, name)
+	if err != nil {
+		return err
 	}
 	defer file.Close()
 
@@ -132,22 +139,17 @@ func printSingleRuntimeObject(fs afero.Fs, obj runtime.Object, dir string) error
 }
 
 func printLog(fs afero.Fs, log io.ReadCloser, dir, podName string) error {
-	err := fs.MkdirAll(dir, 0700)
+	name := fmt.Sprintf("%s.log.gz", podName)
+	file, err := createFile(fs, dir, name)
 	if err != nil {
-		return fmt.Errorf("failed to create directory %s: %v", dir, err)
-	}
-
-	fileNameWithPath := filepath.Join(dir, fmt.Sprintf("%s.log.gz", podName))
-	file, err := fs.Create(fileNameWithPath)
-	if err != nil {
-		return fmt.Errorf("failed to create file %s: %v", fileNameWithPath, err)
+		return err
 	}
 	defer file.Close()
 
 	z := newGzipWriter(file)
 	err = z.write(log)
 	if err != nil {
-		return fmt.Errorf("failed to write to file %s: %v", fileNameWithPath, err)
+		return fmt.Errorf("failed to write to file %s: %v", filepath.Join(dir, name), err)
 	}
 	return nil
 }
@@ -158,31 +160,20 @@ func printYaml(fs afero.Fs, v interface{}, dir, name string) error {
 		return fmt.Errorf("failed to marshal object to %s/%s.yaml: %v", dir, name, err)
 	}
 
-	err = fs.MkdirAll(dir, 0700)
-	if err != nil {
-		return fmt.Errorf("failed to create directory %s: %v", dir, err)
-	}
-
 	name = fmt.Sprintf("%s.yaml", name)
 	return printBytes(fs, b, dir, name)
 }
 
 func printBytes(fs afero.Fs, b []byte, dir, name string) error {
-	err := fs.MkdirAll(dir, 0700)
+	file, err := createFile(fs, dir, name)
 	if err != nil {
-		return fmt.Errorf("failed to create directory %s: %v", dir, err)
-	}
-
-	fileNameWithPath := filepath.Join(dir, name)
-	file, err := fs.Create(fileNameWithPath)
-	if err != nil {
-		return fmt.Errorf("failed to create file %s: %v", fileNameWithPath, err)
+		return err
 	}
 	defer file.Close()
 
 	_, err = file.Write(b)
 	if err != nil {
-		return fmt.Errorf("failed to write to file %s: %v", fileNameWithPath, err)
+		return fmt.Errorf("failed to write to file %s: %v", filepath.Join(dir, name), err)
 	}
 	return nil
 }
