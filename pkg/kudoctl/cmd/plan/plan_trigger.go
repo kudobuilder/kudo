@@ -3,6 +3,7 @@ package plan
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
@@ -11,6 +12,8 @@ import (
 type TriggerOptions struct {
 	Plan     string
 	Instance string
+	Wait     bool
+	WaitTime int64
 }
 
 // RunTrigger triggers a plan execution
@@ -27,7 +30,7 @@ func RunTrigger(options *TriggerOptions, settings *env.Settings) error {
 		return fmt.Errorf("creating kudo client: %w", err)
 	}
 
-	err = kc.UpdateInstance(options.Instance, settings.Namespace, nil, nil, &options.Plan)
+	err = kc.UpdateInstance(options.Instance, settings.Namespace, nil, nil, &options.Plan, options.Wait, time.Duration(options.WaitTime)*time.Second)
 	if err == nil {
 		clog.Printf("Triggered %s plan for %s/%s instance", options.Plan, settings.Namespace, options.Instance)
 	}
