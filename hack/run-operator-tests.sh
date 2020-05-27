@@ -12,6 +12,8 @@ docker build . \
     --build-arg ldflags_arg="" \
     -t "kudobuilder/controller:$KUDO_VERSION"
 
+sed "s/%version%/$KUDO_VERSION/" operators/kudo-test.yaml.tmpl > operators/kudo-test.yaml
+
 if [ "$INTEGRATION_OUTPUT_JUNIT" == true ]
 then
     echo "Running operator tests with junit output"
@@ -22,7 +24,6 @@ then
     git clone https://github.com/kudobuilder/operators
     mkdir operators/bin/
     cp ./bin/kubectl-kudo operators/bin/
-    sed "s/%version%/$KUDO_VERSION/" operators/kudo-test.yaml.tmpl > operators/kudo-test.yaml
     cd operators && ./bin/kubectl-kudo test --artifacts-dir /tmp/kudo-e2e-test 2>&1 \
         | tee /dev/fd/2 \
         | go-junit-report -set-exit-code \
@@ -34,6 +35,5 @@ else
     git clone https://github.com/kudobuilder/operators
     mkdir operators/bin/
     cp ./bin/kubectl-kudo operators/bin/
-    sed "s/%version%/$KUDO_VERSION/" operators/kudo-test.yaml.tmpl > operators/kudo-test.yaml
     cd operators && ./bin/kubectl-kudo test --artifacts-dir /tmp/kudo-e2e-test
 fi
