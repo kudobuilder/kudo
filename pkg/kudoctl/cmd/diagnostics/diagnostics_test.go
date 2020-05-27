@@ -1,6 +1,7 @@
 package diagnostics
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -445,6 +446,20 @@ func TestCollect_PrintFailure(t *testing.T) {
 		return nil
 	})
 }
+
+func TestCollect_DiagDirExists(t *testing.T) {
+	k8cs := kubefake.NewSimpleClientset()
+	kcs := fake.NewSimpleClientset()
+	client := kudo.NewClientFromK8s(kcs, k8cs)
+	fs := afero.NewMemMapFs()
+	_ = fs.Mkdir(DiagDir, 700)
+	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+		Namespace: fakeNamespace,
+	})
+	assert.Error(t, err)
+	assert.Equal(t, fmt.Errorf("target directory %s already exists", DiagDir), err)
+}
+
 
 func TestNewOptions(t *testing.T) {
 	tests := []struct {

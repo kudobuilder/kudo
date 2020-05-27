@@ -6,7 +6,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 
-func runForInstance(instance string, options *Options, c *kudo.Client, info version.Info, s *env.Settings, p *nonFailingPrinter) error {
+func diagForInstance(instance string, options *Options, c *kudo.Client, info version.Info, s *env.Settings, p *nonFailingPrinter) error {
 	ir, err := newInstanceResources(instance, options, c, s)
 	if err != nil {
 		p.printError(err, DiagDir, "instance")
@@ -15,14 +15,14 @@ func runForInstance(instance string, options *Options, c *kudo.Client, info vers
 
 	ctx := &processingContext{root: DiagDir, instanceName: instance}
 
-	instanceDiagRunner := _runForInstance(ir, ctx, p).
+	instanceDiagRunner := runForInstance(ir, ctx, p).
 		dumpToYaml(info, ctx.rootDirectory, "version", p).
 		dumpToYaml(s, ctx.rootDirectory, "settings", p)
 
 	return instanceDiagRunner.fatalErr
 }
 
-func _runForInstance(ir *resourceFuncsConfig, ctx *processingContext, p *nonFailingPrinter) *runner {
+func runForInstance(ir *resourceFuncsConfig, ctx *processingContext, p *nonFailingPrinter) *runner {
 
 	instanceDiagRunner := &runner{}
 	instanceDiagRunner.
@@ -121,7 +121,7 @@ func _runForInstance(ir *resourceFuncsConfig, ctx *processingContext, p *nonFail
 	return instanceDiagRunner
 }
 
-func runForKudoManager(options *Options, c *kudo.Client, p *nonFailingPrinter) error {
+func diagForKudoManager(options *Options, c *kudo.Client, p *nonFailingPrinter) error {
 	kr, err := newKudoResources(options, c)
 	if err != nil {
 		return err
