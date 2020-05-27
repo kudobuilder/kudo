@@ -2,7 +2,9 @@ package diagnostics
 
 import (
 	"fmt"
+	kudoutil "github.com/kudobuilder/kudo/pkg/util/kudo"
 	"io"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
 	"reflect"
 
@@ -101,6 +103,40 @@ func (c *logsCollector) collect() error {
 				_ = log.Close()
 			}
 		}
+	}
+	return nil
+}
+
+type dependencyCollector struct {
+	ir        *resourceFuncsConfig
+	parentDir stringGetter
+	printer   *nonFailingPrinter
+}
+
+func (c *dependencyCollector) collect() error {
+	instances, err := c.ir.instanceDependencies()
+	if err != nil {
+		err = fmt.Errorf("failed to retrieve dependencies for %s: %v", c.ir.instanceObj.Name, err)
+	}
+	// TODO: disabled as at this moment it's not known how to distinguish between having no deps or failure to find them
+	//else if instances == nil || len(instances) == 0 {
+	//	err = fmt.Errorf("no dependencies for %s retrieved", c.ir.instanceObj.Name)
+	//}
+	if err != nil {
+		c.printer.printError(err, c.parentDir(), "dependencies")
+		return nil // discard the error because it should not be fatal for the parent instance
+	}
+
+	for _, instance := range instances {
+		ir := &resourceFuncsConfig{
+			c:           c.ir.c,
+			ns:          c.ir.ns,
+			instanceObj: &instance,
+			opts:        metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", kudoutil.OperatorLabel, instance.Labels[kudoutil.OperatorLabel])},
+			logOpts:     c.ir.logOpts,
+		}
+		_ = runForInstance(ir, &processingContext{root: c.parentDir(), instanceName: instance.Name}, c.printer)
+		// ignore runner.fatalErr as it must have been printed by the collector who threw it
 	}
 	return nil
 }

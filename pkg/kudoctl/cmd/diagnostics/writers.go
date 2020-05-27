@@ -22,8 +22,8 @@ type byteWriter struct {
 	b []byte
 }
 
-func (w byteWriter) write(file afero.File) error{
-	_, err :=  file.Write(w.b)
+func (w byteWriter) write(file afero.File) error {
+	_, err := file.Write(w.b)
 	return err
 }
 
@@ -31,6 +31,6 @@ type gzipStreamWriter struct {
 	stream io.ReadCloser
 }
 
-func (w gzipStreamWriter) write(file afero.File) error{
+func (w gzipStreamWriter) write(file afero.File) error {
 	return newGzipWriter(file).write(w.stream)
 }

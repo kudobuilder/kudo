@@ -72,6 +72,23 @@ func (r *resourceFuncsConfig) instance() (runtime.Object, error) {
 	return r.instanceObj, nil
 }
 
+func (r *resourceFuncsConfig) instanceDependencies() ([]v1beta1.Instance, error) {
+	obj, err := r.c.Instances(r.ns)
+	if err != nil || obj == nil {
+		return nil, err
+	}
+	var ret []v1beta1.Instance
+	for _, item := range obj.Items {
+		for _, ref := range item.OwnerReferences {
+			if ref.Kind == "Instance" && ref.Name == r.instanceObj.Name {
+				ret = append(ret, item)
+				break
+			}
+		}
+	}
+	return ret, nil
+}
+
 func (r *resourceFuncsConfig) operatorVersion(name stringGetter) func() (runtime.Object, error) {
 	return func() (runtime.Object, error) {
 		return r.c.GetOperatorVersion(name(), r.ns)

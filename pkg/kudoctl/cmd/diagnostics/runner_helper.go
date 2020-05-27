@@ -17,7 +17,13 @@ func diagForInstance(instance string, options *Options, c *kudo.Client, info ver
 
 	instanceDiagRunner := runForInstance(ir, ctx, p).
 		dumpToYaml(info, ctx.rootDirectory, "version", p).
-		dumpToYaml(s, ctx.rootDirectory, "settings", p)
+		dumpToYaml(s, ctx.rootDirectory, "settings", p).
+		// TODO: must be run conditionally
+		run(&dependencyCollector{
+			ir:        ir,
+			parentDir: ctx.instanceDirectory,
+			printer:   p,
+		})
 
 	return instanceDiagRunner.fatalErr
 }

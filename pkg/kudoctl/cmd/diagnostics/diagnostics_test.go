@@ -460,7 +460,6 @@ func TestCollect_DiagDirExists(t *testing.T) {
 	assert.Equal(t, fmt.Errorf("target directory %s already exists", DiagDir), err)
 }
 
-
 func TestNewOptions(t *testing.T) {
 	tests := []struct {
 		desc     string

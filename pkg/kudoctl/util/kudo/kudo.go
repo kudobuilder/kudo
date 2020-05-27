@@ -176,6 +176,10 @@ func (c *Client) GetInstance(name, namespace string) (*v1beta1.Instance, error) 
 	return instance, err
 }
 
+func (c *Client) Instances(namespace string) (*v1beta1.InstanceList, error) {
+	return c.kudoClientset.KudoV1beta1().Instances(namespace).List(v1.ListOptions{})
+}
+
 // GetOperatorVersion queries kubernetes api for operatorversion of given name in given namespace
 // returns error for all other errors that not found, not found is treated as result being 'nil, nil'
 func (c *Client) GetOperatorVersion(name, namespace string) (*v1beta1.OperatorVersion, error) {
