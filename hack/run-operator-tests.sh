@@ -12,6 +12,10 @@ docker build . \
     --build-arg ldflags_arg="" \
     -t "kudobuilder/controller:$KUDO_VERSION"
 
+rm -rf operators
+git clone https://github.com/kudobuilder/operators
+mkdir operators/bin/
+cp ./bin/kubectl-kudo operators/bin/
 sed "s/%version%/$KUDO_VERSION/" operators/kudo-test.yaml.tmpl > operators/kudo-test.yaml
 
 if [ "$INTEGRATION_OUTPUT_JUNIT" == true ]
@@ -20,10 +24,6 @@ then
     mkdir -p reports/
     go get github.com/jstemmer/go-junit-report
 
-    rm -rf operators
-    git clone https://github.com/kudobuilder/operators
-    mkdir operators/bin/
-    cp ./bin/kubectl-kudo operators/bin/
     cd operators && ./bin/kubectl-kudo test --artifacts-dir /tmp/kudo-e2e-test 2>&1 \
         | tee /dev/fd/2 \
         | go-junit-report -set-exit-code \
@@ -31,9 +31,5 @@ then
 else
     echo "Running operator tests without junit output"
 
-    rm -rf operators
-    git clone https://github.com/kudobuilder/operators
-    mkdir operators/bin/
-    cp ./bin/kubectl-kudo operators/bin/
     cd operators && ./bin/kubectl-kudo test --artifacts-dir /tmp/kudo-e2e-test
 fi
