@@ -1,8 +1,10 @@
 package diagnostics
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -25,7 +27,9 @@ metadata:
   name: my-fancy-pod-01
   namespace: my-namespace
 spec:
-  containers: null
+  containers:
+  - name: my-fancy-container-01
+    resources: {}
 status: {}
 `
 	pod2Yaml = `apiVersion: v1
@@ -35,7 +39,9 @@ metadata:
   name: my-fancy-pod-02
   namespace: my-namespace
 spec:
-  containers: null
+  containers:
+  - name: my-fancy-container-01
+    resources: {}
 status: {}
 `
 	podListYaml = `apiVersion: v1
@@ -45,14 +51,18 @@ items:
     name: my-fancy-pod-01
     namespace: my-namespace
   spec:
-    containers: null
+    containers:
+    - name: my-fancy-container-01
+      resources: {}
   status: {}
 - metadata:
     creationTimestamp: null
     name: my-fancy-pod-02
     namespace: my-namespace
   spec:
-    containers: null
+    containers:
+    - name: my-fancy-container-01
+      resources: {}
   status: {}
 kind: PodList
 metadata: {}
@@ -75,11 +85,26 @@ platform: linux/amd64
 `
 )
 
-func TestPrintLog(t *testing.T) {}
-
-func TestPrintError(t *testing.T) {}
-
-func TestPrintYaml(t *testing.T) {}
+var (
+	pod1 = v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-01"},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{{Name: "my-fancy-container-01"}},
+		},
+	}
+	pod2 = v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-02"},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{{Name: "my-fancy-container-01"}},
+		},
+	}
+	pod3 = v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-03"},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{{Name: "my-fancy-container-01"}},
+		},
+	}
+)
 
 func TestPrinter_printObject(t *testing.T) {
 	tests := []struct {
@@ -92,10 +117,8 @@ func TestPrinter_printObject(t *testing.T) {
 		failOn    string
 	}{
 		{
-			desc: "kube object with dir",
-			obj: &v1.Pod{
-				ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-01"},
-			},
+			desc:      "kube object with dir",
+			obj:       &pod1,
 			parentDir: "root",
 			mode:      ObjectWithDir,
 			expData:   []string{pod1Yaml},
@@ -116,10 +139,8 @@ func TestPrinter_printObject(t *testing.T) {
 			expFiles:  []string{"root/operator_my-fancy-operator/my-fancy-operator.yaml"},
 		},
 		{
-			desc: "kube object as runtime object",
-			obj: &v1.Pod{
-				ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-01"},
-			},
+			desc:      "kube object as runtime object",
+			obj:       &pod1,
 			parentDir: "root",
 			mode:      RuntimeObject,
 			expData:   []string{pod1Yaml},
@@ -129,8 +150,8 @@ func TestPrinter_printObject(t *testing.T) {
 			desc: "list of objects as runtime object",
 			obj: &v1.PodList{
 				Items: []v1.Pod{
-					{ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-01"}},
-					{ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-02"}},
+					pod1,
+					pod2,
 				},
 			},
 			parentDir: "root",
@@ -142,8 +163,8 @@ func TestPrinter_printObject(t *testing.T) {
 			desc: "list of objects with dirs",
 			obj: &v1.PodList{
 				Items: []v1.Pod{
-					{ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-01"}},
-					{ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-02"}},
+					pod1,
+					pod2,
 				},
 			},
 			parentDir: "root",
@@ -155,9 +176,9 @@ func TestPrinter_printObject(t *testing.T) {
 			desc: "list of objects with dirs, one fails",
 			obj: &v1.PodList{
 				Items: []v1.Pod{
-					{ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-01"}},
-					{ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-02"}},
-					{ObjectMeta: metav1.ObjectMeta{Namespace: fakeNamespace, Name: "my-fancy-pod-03"}},
+					pod1,
+					pod2,
+					pod3,
 				},
 			},
 			parentDir: "root",
@@ -239,28 +260,31 @@ func TestPrinter_printError(t *testing.T) {
 
 func TestPrinter_printLog(t *testing.T) {
 	tests := []struct {
-		desc      string
-		log       io.ReadCloser
-		parentDir string
-		podName   string
-		expFiles  []string
-		expData   []string
-		failOn    string
+		desc          string
+		log           io.ReadCloser
+		parentDir     string
+		podName       string
+		containerName string
+		expFiles      []string
+		expData       []string
+		failOn        string
 	}{
 		{
-			desc:      "print log OK",
-			log:       ioutil.NopCloser(strings.NewReader(testLog)),
-			parentDir: "root",
-			podName:   "my-fancy-pod-01",
-			expFiles:  []string{"root/pod_my-fancy-pod-01/my-fancy-pod-01.log.gz"},
-			expData:   []string{testLogGZipped},
+			desc:          "print log OK",
+			log:           ioutil.NopCloser(strings.NewReader(testLog)),
+			parentDir:     "root",
+			podName:       "my-fancy-pod-01",
+			containerName: "my-fancy-container-01",
+			expFiles:      []string{"root/pod_my-fancy-pod-01/my-fancy-container-01.log.gz"},
+			expData:       []string{testLogGZipped},
 		},
 		{
-			desc:      "print log failure",
-			log:       ioutil.NopCloser(strings.NewReader(testLog)),
-			parentDir: "root",
-			podName:   "my-fancy-pod-01",
-			failOn:    "root/pod_my-fancy-pod-01/my-fancy-pod-01.log.gz",
+			desc:          "print log failure",
+			log:           ioutil.NopCloser(strings.NewReader(testLog)),
+			parentDir:     "root",
+			podName:       "my-fancy-pod-01",
+			containerName: "my-fancy-container-01",
+			failOn:        "root/pod_my-fancy-pod-01/my-fancy-container-01.log.gz",
 		},
 	}
 	for _, tt := range tests {
@@ -274,7 +298,7 @@ func TestPrinter_printLog(t *testing.T) {
 			p := &nonFailingPrinter{
 				fs: fs,
 			}
-			p.printLog(tt.log, tt.parentDir, tt.podName)
+			p.printLog(tt.log, filepath.Join(tt.parentDir, fmt.Sprintf("pod_%s", tt.podName)), tt.containerName)
 			for i, fname := range tt.expFiles {
 				b, err := afero.ReadFile(fs, fname)
 				assert.Nil(t, err)

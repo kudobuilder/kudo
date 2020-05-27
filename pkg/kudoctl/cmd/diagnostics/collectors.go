@@ -39,7 +39,7 @@ func (c *resourceCollector) collect() error {
 	return nil
 }
 
-func (c *resourceCollector) _collect(failOnError bool) (runtime.Object, error){
+func (c *resourceCollector) _collect(failOnError bool) (runtime.Object, error) {
 	obj, err := c.loadResourceFn()
 	switch {
 	case err != nil:
@@ -56,11 +56,12 @@ func (c *resourceCollector) _collect(failOnError bool) (runtime.Object, error){
 	}
 	return obj, nil
 }
+
 // resourceCollectorGroup - a composite collector for Kubernetes runtime objects whose loading and printing depend on
 // each other's side-effects on the shared context
 type resourceCollectorGroup struct {
 	collectors []resourceCollector
-	parentDir      func() string
+	parentDir  func() string
 }
 
 // collect - collect resource and run callback for each collector, print all afterwards
@@ -94,9 +95,9 @@ func (c *logsCollector) collect() error {
 		for _, container := range pod.Spec.Containers {
 			log, err := c.loadLogFn(pod.Name, container.Name)
 			if err != nil {
-				c.printer.printError(err, filepath.Join(c.parentDir(), fmt.Sprintf("pod_%s", pod.Name)), fmt.Sprintf("%s.log", pod.Name))
+				c.printer.printError(err, filepath.Join(c.parentDir(), fmt.Sprintf("pod_%s", pod.Name)), fmt.Sprintf("%s.log", container.Name))
 			} else {
-				c.printer.printLog(log, c.parentDir(), pod.Name)
+				c.printer.printLog(log, filepath.Join(c.parentDir(), fmt.Sprintf("pod_%s", pod.Name)), container.Name)
 				_ = log.Close()
 			}
 		}

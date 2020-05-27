@@ -100,7 +100,7 @@ items:
         - /pause
       image: gcr.io/google_containers/pause-amd64:3.0
       imagePullPolicy: IfNotPresent
-      name: curl-debug
+      name: pause-debug
       resources: {}
       terminationMessagePath: /dev/termination-log
       terminationMessagePolicy: File

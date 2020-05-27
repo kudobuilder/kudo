@@ -92,15 +92,24 @@ func printSingleObject(fs afero.Fs, obj runtime.Object, parentDir string) error 
 		}
 	}
 
-	o, _ := obj.(metav1.Object)
+	o, ok := obj.(metav1.Object)
+	if !ok {
+		return fmt.Errorf("invalid print mode: can't get name for %s", strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind))
+	}
+
 	relToParentDir := fmt.Sprintf("%s_%s", strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind), o.GetName())
 	dir := filepath.Join(parentDir, relToParentDir)
+	name := fmt.Sprintf("%s.yaml", o.GetName())
+	return printRuntimeObjectInto(fs, obj, dir, name)
+}
+
+func printRuntimeObjectInto(fs afero.Fs, obj runtime.Object, dir, name string) error {
 	err := fs.MkdirAll(dir, 0700)
 	if err != nil {
 		return fmt.Errorf("failed to create directory %s: %v", dir, err)
 	}
 
-	fileWithPath := filepath.Join(dir, fmt.Sprintf("%s.yaml", o.GetName()))
+	fileWithPath := filepath.Join(dir, name)
 	file, err := fs.Create(fileWithPath)
 	if err != nil {
 		return fmt.Errorf("failed to create %s: %v", fileWithPath, err)
@@ -117,24 +126,12 @@ func printSingleRuntimeObject(fs afero.Fs, obj runtime.Object, dir string) error
 	if err != nil {
 		return err
 	}
-	err = fs.MkdirAll(dir, 0700)
-	if err != nil {
-		return fmt.Errorf("failed to create directory %s: %v", dir, err)
-	}
 
-	fileWithPath := filepath.Join(dir, fmt.Sprintf("%s.yaml", strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)))
-	file, err := fs.Create(fileWithPath)
-	if err != nil {
-		return fmt.Errorf("failed to create %s: %v", fileWithPath, err)
-	}
-	defer file.Close()
-
-	printer := printers.YAMLPrinter{}
-	return printer.PrintObj(obj, file)
+	name := fmt.Sprintf("%s.yaml", strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind))
+	return printRuntimeObjectInto(fs, obj, dir, name)
 }
 
-func printLog(fs afero.Fs, log io.ReadCloser, parentDir, podName string) error {
-	dir := filepath.Join(parentDir, fmt.Sprintf("pod_%s", podName))
+func printLog(fs afero.Fs, log io.ReadCloser, dir, podName string) error {
 	err := fs.MkdirAll(dir, 0700)
 	if err != nil {
 		return fmt.Errorf("failed to create directory %s: %v", dir, err)

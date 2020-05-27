@@ -36,18 +36,19 @@ const (
 	zkOperatorFile        = "diag/operator_zookeeper/zookeeper.yaml"
 	zkOperatorVersionFile = "diag/operator_zookeeper/operatorversion_zookeeper-0.3.0/zookeeper-0.3.0.yaml"
 	zkPod2File            = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-2/zookeeper-instance-zookeeper-2.yaml"
-	zkLog2File            = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-2/zookeeper-instance-zookeeper-2.log.gz"
+	zkLog2Container1File  = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-2/kubernetes-zookeeper.log.gz"
 	zkServicesFile        = "diag/operator_zookeeper/instance_zookeeper-instance/servicelist.yaml"
 	zkPod0File            = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-0/zookeeper-instance-zookeeper-0.yaml"
-	zkLog0File            = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-0/zookeeper-instance-zookeeper-0.log.gz"
+	zkLog0Container1File  = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-0/kubernetes-zookeeper.log.gz"
+	zkLog0Container2File  = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-0/pause-debug.log.gz"
 	zkInstanceFile        = "diag/operator_zookeeper/instance_zookeeper-instance/zookeeper-instance.yaml"
 	zkPod1File            = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-1/zookeeper-instance-zookeeper-1.yaml"
-	zkLog1File            = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-1/zookeeper-instance-zookeeper-1.log.gz"
+	zkLog1Container1File  = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-1/kubernetes-zookeeper.log.gz"
 	zkStatefulSetsFile    = "diag/operator_zookeeper/instance_zookeeper-instance/statefulsetlist.yaml"
 	versionFile           = "diag/version.yaml"
 	kmServicesFile        = "diag/kudo/servicelist.yaml"
 	kmPodFile             = "diag/kudo/pod_kudo-controller-manager-0/kudo-controller-manager-0.yaml"
-	kmLogFile             = "diag/kudo/pod_kudo-controller-manager-0/kudo-controller-manager-0.log.gz"
+	kmLogFile             = "diag/kudo/pod_kudo-controller-manager-0/manager.log.gz"
 	kmServiceAccountsFile = "diag/kudo/serviceaccountlist.yaml"
 	kmStatefulSetsFile    = "diag/kudo/statefulsetlist.yaml"
 	settingsFile          = "diag/settings.yaml"
@@ -59,13 +60,14 @@ func defaultFileNames() map[string]struct{} {
 		zkOperatorFile:        {},
 		zkOperatorVersionFile: {},
 		zkPod2File:            {},
-		zkLog2File:            {},
+		zkLog2Container1File:  {},
 		zkServicesFile:        {},
 		zkPod0File:            {},
-		zkLog0File:            {},
+		zkLog0Container1File:  {},
+		zkLog0Container2File:  {},
 		zkInstanceFile:        {},
 		zkPod1File:            {},
-		zkLog1File:            {},
+		zkLog1Container1File:  {},
 		zkStatefulSetsFile:    {},
 		versionFile:           {},
 		kmServicesFile:        {},
