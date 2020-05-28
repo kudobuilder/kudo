@@ -93,16 +93,14 @@ func instanceParameters(pf string, templates map[string]string, meta renderer.Me
 }
 
 func renderParametersFile(pf string, pft string, meta renderer.Metadata, parameters map[string]interface{}) (string, error) {
-	configs := make(map[string]interface{})
-	configs["OperatorName"] = meta.OperatorName
-	configs["AppVersion"] = meta.AppVersion
-	configs["Name"] = meta.InstanceName
-	configs["Namespace"] = meta.InstanceNamespace
-	configs["Params"] = parameters
+	vals := renderer.
+		NewVariableMap().
+		WithInstance(meta.OperatorName, meta.InstanceName, meta.InstanceNamespace, meta.AppVersion, meta.OperatorVersion).
+		WithParameters(parameters)
 
 	engine := renderer.New()
 
-	return engine.Render(pf, pft, configs)
+	return engine.Render(pf, pft, vals)
 }
 
 func instanceResource(operatorName, operatorVersionName, namespace string, parameters map[string]string) *v1beta1.Instance {
