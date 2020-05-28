@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    ca.istio.io/override: "true"
+    istio-injection: enabled
+    katib-metricscollector-injection: enabled
+    kudo.dev/instance-name: {{ .Name }}
+    kudo.dev/app-version: {{ .AppVersion }}
+    kudo.dev/param-foo: {{ .Params.foo }}

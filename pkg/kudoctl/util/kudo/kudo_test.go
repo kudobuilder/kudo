@@ -516,7 +516,7 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 			t.Errorf("Error creating operator version in tests setup for %s", tt.name)
 		}
 
-		err = k2o.UpdateInstance(testInstance.Name, installNamespace, tt.patchToVersion, tt.parametersToPatch, nil)
+		err = k2o.UpdateInstance(testInstance.Name, installNamespace, tt.patchToVersion, tt.parametersToPatch, nil, false, 0)
 		instance, _ := k2o.GetInstance(testInstance.Name, installNamespace)
 		if tt.patchToVersion != nil {
 			if err != nil || instance.Spec.OperatorVersion.Name != convert.StringValue(tt.patchToVersion) {
