@@ -5,6 +5,6 @@ metadata:
     ca.istio.io/override: "true"
     istio-injection: enabled
     katib-metricscollector-injection: enabled
-    kudo.dev/instance-name: foo-bar
+    kudo.dev/instance-name: InstanceName
     kudo.dev/app-version: 1.0
     kudo.dev/param-foo: bar-param

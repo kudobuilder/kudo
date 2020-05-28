@@ -1,14 +1,11 @@
-package kudo
+package install
 
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
 	"testing"
 
-	tassert "github.com/stretchr/testify/assert"
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/version"
@@ -18,6 +15,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
@@ -84,7 +82,7 @@ func Test_InstallPackage(t *testing.T) {
 
 	for _, tt := range tests {
 		client := fake.NewSimpleClientset()
-		kc := NewClientFromK8s(client, kubefake.NewSimpleClientset())
+		kc := kudo.NewClientFromK8s(client, kubefake.NewSimpleClientset())
 
 		fakeDiscovery, ok := client.Discovery().(*fakediscovery.FakeDiscovery)
 		if !ok {
@@ -96,50 +94,28 @@ func Test_InstallPackage(t *testing.T) {
 
 		testResources := resources
 		testResources.OperatorVersion.Spec.Parameters = tt.parameters
-		namespace := "default" //nolint:goconst
 
-		err := InstallPackage(kc, &testResources, tt.skipInstance, "", namespace, tt.installParameters, false, false, 0)
+		const namespace = "default"
+
+		options := []Option{}
+		if tt.skipInstance {
+			options = append(options, SkipInstance())
+		}
+
+		err := Package(kc, "", namespace, testResources, tt.installParameters, options...)
 		if tt.err != "" {
-			assert.ErrorContains(t, err, tt.err)
+			assert.EqualError(t, err, tt.err)
 		}
 	}
 }
 
-func TestNamespaceManifestRendering(t *testing.T) {
-
-	namespaceFile := "testdata/namespace.yaml"
-
-	ns, err := ioutil.ReadFile(namespaceFile)
-	tassert.NoError(t, err)
-
-	params := make(map[string]string)
-	params["foo"] = "bar-param"
-
-	rendered, err := render("namespace", string(ns), testResources(), "foo-bar", "namespace-name", params)
-	tassert.NoError(t, err)
-
-	file := "rendered-namespace.yaml"
-	gf := filepath.Join("testdata", file+".golden")
-
-	if *update {
-		t.Log("update golden file")
-		if err := ioutil.WriteFile(gf, []byte(rendered), 0644); err != nil {
-			t.Fatalf("failed to update golden file: %s", err)
-		}
-	}
-
-	golden, err := ioutil.ReadFile(gf)
-	if err != nil {
-		t.Fatalf("failed reading .golden: %s", err)
-	}
-
-	assert.Equal(t, string(golden), rendered, "for golden file: %s", gf)
-}
-
-func testResources() *packages.Resources {
-	result := &packages.Resources{
+func testResources() packages.Resources {
+	return packages.Resources{
 		Operator: &v1beta1.Operator{
-			ObjectMeta: metav1.ObjectMeta{Name: "InstanceName"},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "OperatorName",
+				Namespace: "default",
+			},
 		},
 		OperatorVersion: &v1beta1.OperatorVersion{
 			Spec: v1beta1.OperatorVersionSpec{
@@ -147,7 +123,11 @@ func testResources() *packages.Resources {
 				Version:    "2.0",
 			},
 		},
-		Instance: nil,
+		Instance: &v1beta1.Instance{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "InstanceName",
+				Namespace: "default",
+			},
+		},
 	}
-	return result
 }
