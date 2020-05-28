@@ -35,7 +35,8 @@ func Test_applyInstance(t *testing.T) {
 		Spec:       v1beta1.OperatorVersionSpec{Version: "0.1.0"},
 	}
 
-	instance := instanceResource(operatorName, operatorVersionName, namespace, nil)
+	instance, err := instanceResource("test-instance", operatorName, operatorVersionName, namespace, nil, operatorVersion, scheme)
+	assert.NoError(t, err)
 
 	tests := []struct {
 		name    string

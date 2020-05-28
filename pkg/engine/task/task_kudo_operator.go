@@ -10,8 +10,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/health"
@@ -41,6 +43,7 @@ func (dt KudoOperatorTask) Run(ctx Context) (bool, error) {
 	operatorName := dt.Package
 	operatorVersion := dt.OperatorVersion
 	operatorVersionName := v1beta1.OperatorVersionName(operatorName, operatorVersion)
+	instanceName := dependencyInstanceName(ctx.Meta.InstanceName, dt.InstanceName, operatorName)
 
 	// 1. - Expand parameter file if exists -
 	params, err := instanceParameters(dt.ParameterFile, ctx.Templates, ctx.Meta, ctx.Parameters)
@@ -49,8 +52,10 @@ func (dt KudoOperatorTask) Run(ctx Context) (bool, error) {
 	}
 
 	// 2. - Build the instance object -
-	// TODO: make it possible to install the same operator N times in the same namespace by making instance names unique/hierarchical
-	instance := instanceResource(operatorName, operatorVersionName, namespace, params)
+	instance, err := instanceResource(instanceName, operatorName, operatorVersionName, namespace, params, ctx.Meta.ResourcesOwner, ctx.Scheme)
+	if err != nil {
+		return false, fatalExecutionError(err, taskRenderingError, ctx.Meta)
+	}
 
 	// 3. - Apply the Instance object -
 	err = applyInstance(instance, namespace, ctx.Client)
@@ -64,6 +69,18 @@ func (dt KudoOperatorTask) Run(ctx Context) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// dependencyInstanceName returns a name for the child instance in an operator with dependencies looking like
+// <parent-instance.<child-instance> if a child instance name is provided e.g. `kafka-instance.custom-name` or
+// <parent-instance.<child-operator> if not e.g. `kafka-instance.zookeeper`. This way we always have a valid child
+// instance name and user can install the same operator multiple times in the same namespace, because the instance
+// names will be unique thanks to the top-level instance name prefix.
+func dependencyInstanceName(parentInstanceName, instanceName, operatorName string) string {
+	if instanceName != "" {
+		return fmt.Sprintf("%s.%s", parentInstanceName, instanceName)
+	}
+	return fmt.Sprintf("%s.%s", parentInstanceName, operatorName)
 }
 
 // render method takes templated parameter file and a map of parameters and then renders passed template using kudo engine.
@@ -103,14 +120,14 @@ func renderParametersFile(pf string, pft string, meta renderer.Metadata, paramet
 	return engine.Render(pf, pft, vals)
 }
 
-func instanceResource(operatorName, operatorVersionName, namespace string, parameters map[string]string) *v1beta1.Instance {
-	return &v1beta1.Instance{
+func instanceResource(instanceName, operatorName, operatorVersionName, namespace string, parameters map[string]string, owner metav1.Object, scheme *runtime.Scheme) (*v1beta1.Instance, error) {
+	instance := &v1beta1.Instance{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Instance",
 			APIVersion: packages.APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      v1beta1.InstanceName(operatorName),
+			Name:      instanceName,
 			Namespace: namespace,
 			Labels:    map[string]string{kudo.OperatorLabel: operatorName},
 		},
@@ -122,6 +139,11 @@ func instanceResource(operatorName, operatorVersionName, namespace string, param
 		},
 		Status: v1beta1.InstanceStatus{},
 	}
+	if err := controllerutil.SetControllerReference(owner, instance, scheme); err != nil {
+		return nil, fmt.Errorf("failed to set resource ownership for the new instance: %v", err)
+	}
+
+	return instance, nil
 }
 
 // applyInstance creates the passed instance if it doesn't exist or patches the existing one. Patch will override

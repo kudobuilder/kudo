@@ -1,0 +1,25 @@
+apiVersion: kudo.dev/v1beta1
+name: "dummy"
+operatorVersion: "0.1.0"
+kubernetesVersion: 1.15.0
+maintainers:
+  - name: zen-dog
+    email: <your@email.com>
+url: https://kudo.dev
+tasks:
+  - name: deploy-inner
+    kind: KudoOperator
+    spec:
+      package: inner
+      operatorVersion: 0.0.1
+
+plans:
+  deploy:
+    strategy: serial
+    phases:
+      - name: main
+        strategy: parallel
+        steps:
+          - name: deploy
+            tasks:
+              - deploy-inner

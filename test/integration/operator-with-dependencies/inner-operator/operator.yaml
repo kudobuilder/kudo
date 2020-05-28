@@ -1,0 +1,25 @@
+apiVersion: kudo.dev/v1beta1
+name: "inner"
+operatorVersion: "0.0.1"
+kubernetesVersion: 1.15.0
+maintainers:
+  - name: zen-dog
+    email: <your@email.com>
+url: https://kudo.dev
+tasks:
+  - name: deploy
+    kind: Dummy
+    spec:
+      done: true
+      wantErr: false
+
+plans:
+  deploy:
+    strategy: serial
+    phases:
+      - name: main
+        strategy: parallel
+        steps:
+          - name: deploy
+            tasks:
+              - deploy

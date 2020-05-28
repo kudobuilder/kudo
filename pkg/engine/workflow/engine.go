@@ -167,9 +167,10 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, di discovery.
 				// - 3.c build task context -
 				ctx := task.Context{
 					Client:     c,
-					Config:     config,
-					Enhancer:   enh,
 					Discovery:  di,
+					Config:     config,
+					Scheme:     scheme,
+					Enhancer:   enh,
 					Meta:       exm,
 					Templates:  pl.Templates,
 					Parameters: pl.Params,

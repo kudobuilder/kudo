@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -19,6 +20,7 @@ type Context struct {
 	Client     client.Client
 	Discovery  discovery.CachedDiscoveryInterface
 	Config     *rest.Config
+	Scheme     *runtime.Scheme
 	Enhancer   renderer.Enhancer
 	Meta       renderer.Metadata
 	Templates  map[string]string      // Raw templates

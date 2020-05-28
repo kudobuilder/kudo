@@ -1,0 +1,7 @@
+apiVersion: kudo.dev/v1beta1
+kind: TestStep
+commands:
+  - command: kubectl kudo install --skip-instance ./inner-operator
+    namespaced: true
+  - command: kubectl kudo install --instance dummy-instance ./dummy-operator
+    namespaced: true
