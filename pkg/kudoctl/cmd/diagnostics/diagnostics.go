@@ -46,7 +46,7 @@ func Collect(fs afero.Fs, instance string, options *Options, c *kudo.Client, s *
 func verifyDiagDirNotExists(fs afero.Fs) error {
 	exists, err := afero.Exists(fs, DiagDir)
 	if err != nil {
-		return fmt.Errorf("failed to verify that target directory %s doesn't exist: %v",  DiagDir, err)
+		return fmt.Errorf("failed to verify that target directory %s doesn't exist: %v", DiagDir, err)
 	}
 	if exists {
 		return fmt.Errorf("target directory %s already exists", DiagDir)

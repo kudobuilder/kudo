@@ -122,7 +122,7 @@ func printYaml(fs afero.Fs, v interface{}, dir, name string) error {
 	return doPrint(fs, byteWriter{b}.write, dir, name)
 }
 
-func createFile (fs afero.Fs, dir, name string) (afero.File, error) {
+func createFile(fs afero.Fs, dir, name string) (afero.File, error) {
 	err := fs.MkdirAll(dir, 0700)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create directory %s: %v", dir, err)
@@ -135,7 +135,7 @@ func createFile (fs afero.Fs, dir, name string) (afero.File, error) {
 	}
 	return file, nil
 }
-func doPrint(fs afero.Fs, writeFn func(afero.File) error, dir, name string) error{
+func doPrint(fs afero.Fs, writeFn func(io.Writer) error, dir, name string) error {
 	file, err := createFile(fs, dir, name)
 	if err != nil {
 		return err
