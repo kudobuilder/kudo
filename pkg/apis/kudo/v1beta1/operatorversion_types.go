@@ -38,6 +38,9 @@ type OperatorVersionSpec struct {
 	// +nullable
 	Plans map[string]Plan `json:"plans,omitempty"`
 
+	// +nullable
+	Diagnostics Diagnostics `json:"diagnostics,omitempty"`
+
 	// ConnectionString defines a templated string that can be used to connect to an instance of the Operator.
 	// +optional
 	ConnectionString string `json:"connectionString,omitempty"`
@@ -217,6 +220,61 @@ type OperatorVersionStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
+
+type Diagnostics struct {
+	Bundle DiagnosticsBundle `json:"bundle"`
+}
+
+type DiagnosticsBundle struct {
+	Resources []DiagnosticResource `json:"resources"`
+	Redactors []Redactor           `json:"redact,omitempty"`
+}
+
+type DiagnosticResource struct {
+	Name        string                 `json:"name"`
+	Description string                 `json:"description,omitempty"`
+	Kind        string                 `json:"kind"`
+	Spec        DiagnosticResourceSpec `json:"spec"`
+}
+
+type DiagnosticResourceSpec struct {
+	Selectors   metav1.LabelSelector `json:"selector,omitempty"`
+	CommandSpec `json:",inline"`
+	CopySpec    `json:",inline"`
+	HttpSpec    `json:",inline"`
+}
+
+type Command struct {
+	Container string `json:"container,omitempty"`
+	Exec string `json:"exec,omitempty"`
+}
+
+type CommandSpec struct {
+	Commands []Command `json:"command,omitempty"`
+}
+
+type Copy struct {
+	Container string `json:"container,omitempty"`
+	Path string `json:"path,omitempty"`
+}
+
+type CopySpec struct {
+	From []Copy `json:"from,omitempty"`
+}
+
+type HttpSpec struct {
+	ServiceReference `json:"serviceRef,omitempty"`
+	Path             string `json:"urlPath,omitempty"`
+	Method           string `json:"method,omitempty"`
+	Query            string `json:"query,omitempty"`
+}
+
+type ServiceReference struct {
+	Name string `json:"name"`
+	Port int    `json:"port"` // TODO: string?
+}
+
+type Redactor struct {}
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -2,6 +2,8 @@ package diagnostics
 
 import (
 	"fmt"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"io"
 	"path/filepath"
 	"reflect"
@@ -142,3 +144,14 @@ func (c *dependencyCollector) collect() error {
 	}
 	return nil
 }
+
+type fileCollector struct {
+	c kudo.Client
+	s *env.Settings
+	pods []v1.Pod
+}
+
+//func (c *fileCollector) collect() error {
+//	config := kube.GetConfig(c.s.KubeConfig)
+//	for
+//}

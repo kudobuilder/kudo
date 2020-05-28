@@ -75,6 +75,7 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 			Parameters:     parameters,
 			Plans:          files.Operator.Plans,
 			UpgradableFrom: nil,
+			Diagnostics: files.Operator.Diagnostics,
 		},
 		Status: v1beta1.OperatorVersionStatus{},
 	}
