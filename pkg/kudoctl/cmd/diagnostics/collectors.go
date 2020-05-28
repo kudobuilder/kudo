@@ -2,15 +2,16 @@ package diagnostics
 
 import (
 	"fmt"
-	kudoutil "github.com/kudobuilder/kudo/pkg/util/kudo"
 	"io"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
 	"reflect"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	kudoutil "github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 // resourceCollector - collector interface implementation for Kubernetes resources (runtime objects)
@@ -127,11 +128,12 @@ func (c *dependencyCollector) collect() error {
 		return nil // discard the error because it should not be fatal for the parent instance
 	}
 
-	for _, instance := range instances {
+	for i := range instances {
+		instance := &instances[i]
 		ir := &resourceFuncsConfig{
 			c:           c.ir.c,
 			ns:          c.ir.ns,
-			instanceObj: &instance,
+			instanceObj: instance,
 			opts:        metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", kudoutil.OperatorLabel, instance.Labels[kudoutil.OperatorLabel])},
 			logOpts:     c.ir.logOpts,
 		}

@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ghodss/yaml"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 
@@ -18,9 +17,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/json"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
+	"sigs.k8s.io/yaml"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
@@ -126,10 +125,9 @@ func assertNilError(t *testing.T) func(error) {
 func mustReadObjectFromYaml(fs afero.Fs, fname string, object runtime.Object, checkFn func(error)) {
 	b, err := afero.ReadFile(fs, fname)
 	checkFn(err)
-	j, err := yaml.YAMLToJSON(b)
+	err = yaml.Unmarshal(b, object)
 	checkFn(err)
-	err = json.Unmarshal(j, object)
-	checkFn(err)
+
 }
 
 type objectList []runtime.Object
@@ -452,7 +450,7 @@ func TestCollect_DiagDirExists(t *testing.T) {
 	kcs := fake.NewSimpleClientset()
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := afero.NewMemMapFs()
-	_ = fs.Mkdir(DiagDir, 700)
+	_ = fs.Mkdir(DiagDir, 0700)
 	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})

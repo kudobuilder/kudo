@@ -135,7 +135,7 @@ func createFile(fs afero.Fs, dir, name string) (afero.File, error) {
 	}
 	return file, nil
 }
-func doPrint(fs afero.Fs, writeFn func(afero.File) error, dir, name string) error {
+func doPrint(fs afero.Fs, writeFn func(io.Writer) error, dir, name string) error {
 	file, err := createFile(fs, dir, name)
 	if err != nil {
 		return err
