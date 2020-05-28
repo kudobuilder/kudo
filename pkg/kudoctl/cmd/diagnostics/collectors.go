@@ -11,6 +11,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// Ensure collector is implemented
+var (
+	_ collector = &resourceCollector{}
+	_ collector = &resourceCollectorGroup{}
+	_ collector = &logsCollector{}
+)
+
 // resourceCollector - collector interface implementation for Kubernetes resources (runtime objects)
 type resourceCollector struct {
 	loadResourceFn func() (runtime.Object, error)
@@ -44,7 +51,7 @@ func (c *resourceCollector) _collect(failOnError bool) (runtime.Object, error) {
 	switch {
 	case err != nil:
 		return nil, fmt.Errorf("failed to retrieve object(s) of kind %s: %v", c.name, err)
-	case obj == nil || reflect.ValueOf(obj).IsNil() || meta.IsListType(obj) && meta.LenList(obj) == 0:
+	case obj == nil || reflect.ValueOf(obj).IsNil() || (meta.IsListType(obj) && meta.LenList(obj) == 0):
 		obj = nil
 		if failOnError {
 			return nil, fmt.Errorf("no object(s) of kind %s retrieved", c.name)
