@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
-	"github.com/prometheus/common/log"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -136,11 +136,11 @@ func applyInstance(new *v1beta1.Instance, ns string, c client.Client) error {
 	switch {
 	// 1. if instance doesn't exist, create it
 	case apierrors.IsNotFound(err):
-		log.Infof("Instance %s/%s doesn't exist. Creating it", new.Namespace, new.Name)
+		log.Printf("Instance %s/%s doesn't exist. Creating it", new.Namespace, new.Name)
 		return createInstance(new, c)
 	// 2. if the instance exists (there was no error), try to patch it
 	case err == nil:
-		log.Infof("Instance %s/%s already exist. Patching it", new.Namespace, new.Name)
+		log.Printf("Instance %s/%s already exist. Patching it", new.Namespace, new.Name)
 		return patchInstance(new, c)
 	// 3. any other error is treated as transient
 	default:
