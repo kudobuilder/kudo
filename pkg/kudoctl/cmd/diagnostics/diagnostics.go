@@ -31,7 +31,7 @@ func Collect(fs afero.Fs, instance string, options *Options, c *kudo.Client, s *
 	}
 	p := &nonFailingPrinter{fs: fs}
 
-	if err := diagForInstance(instance, options, c, version.Get(), s, p); err != nil {
+	if err := diagForInstance(fs, instance, options, c, version.Get(), s, p); err != nil {
 		p.errors = append(p.errors, err.Error())
 	}
 	if err := diagForKudoManager(options, c, p); err != nil {

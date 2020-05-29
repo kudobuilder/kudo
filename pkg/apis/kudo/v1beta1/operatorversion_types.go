@@ -221,6 +221,12 @@ type OperatorVersionStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
+const (
+	CmdDiagResource = "command"
+	CopyDiagResource = "copy"
+	ReqDiagResource = "request"
+)
+
 type Diagnostics struct {
 	Bundle DiagnosticsBundle `json:"bundle"`
 }
@@ -233,7 +239,7 @@ type DiagnosticsBundle struct {
 type DiagnosticResource struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description,omitempty"`
-	Kind        string                 `json:"kind"`
+	Kind        string                 `json:"kind"` // TODO: probably should not be called Kind, it's confusing
 	Spec        DiagnosticResourceSpec `json:"spec"`
 }
 
@@ -247,6 +253,7 @@ type DiagnosticResourceSpec struct {
 type Command struct {
 	Container string `json:"container,omitempty"`
 	Exec string `json:"exec,omitempty"`
+	Dest string `json:"dest,omitempty"`
 }
 
 type CommandSpec struct {
@@ -256,6 +263,7 @@ type CommandSpec struct {
 type Copy struct {
 	Container string `json:"container,omitempty"`
 	Path string `json:"path,omitempty"`
+	Dest string `json:"dest,omitempty"`
 }
 
 type CopySpec struct {
@@ -271,7 +279,7 @@ type HttpSpec struct {
 
 type ServiceReference struct {
 	Name string `json:"name"`
-	Port int    `json:"port"` // TODO: string?
+	Port int    `json:"port"` // TODO: use named
 }
 
 type Redactor struct {}

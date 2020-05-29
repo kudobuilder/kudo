@@ -18,6 +18,10 @@ type processingContext struct {
 	opVersionName string
 	instanceName  string
 	pods          []v1.Pod
+
+	diagCmdSpecs  []v1beta1.DiagnosticResourceSpec
+	diagCopySpecs []v1beta1.DiagnosticResourceSpec
+	diagReqSpecs  []v1beta1.DiagnosticResourceSpec
 }
 
 func (ctx *processingContext) rootDirectory() string {
@@ -32,6 +36,22 @@ func (ctx *processingContext) instanceDirectory() string {
 	return fmt.Sprintf("%s/instance_%s", ctx.operatorDirectory(), ctx.instanceName)
 }
 
+func (ctx *processingContext) operatorVersionName() string {
+	return ctx.opVersionName
+}
+
+func (ctx *processingContext) operatorName() string {
+	return ctx.opName
+}
+
+func setAll(fns...func(runtime.Object)) func(runtime.Object) {
+	return func(obj runtime.Object) {
+		for _, fn := range fns {
+			fn(obj)
+		}
+	}
+}
+
 func (ctx *processingContext) mustSetOperatorNameFromOperatorVersion(obj runtime.Object) {
 	ctx.opName = obj.(*v1beta1.OperatorVersion).Spec.Operator.Name
 }
@@ -40,14 +60,21 @@ func (ctx *processingContext) mustSetOperatorVersionNameFromInstance(obj runtime
 	ctx.opVersionName = obj.(*v1beta1.Instance).Spec.OperatorVersion.Name
 }
 
-func (ctx *processingContext) mustSetPods(o runtime.Object) {
-	ctx.pods = o.(*v1.PodList).Items
+func (ctx *processingContext) mustSetDiagnosticsFromOperatorVersion(obj runtime.Object) {
+	ov := obj.(*v1beta1.OperatorVersion)
+	for _, resource := range ov.Spec.Diagnostics.Bundle.Resources {
+		switch resource.Kind {
+		case v1beta1.CmdDiagResource:
+			ctx.diagCmdSpecs = append(ctx.diagCmdSpecs, resource.Spec)
+		case v1beta1.CopyDiagResource:
+			ctx.diagCopySpecs = append(ctx.diagCopySpecs, resource.Spec)
+		case v1beta1.ReqDiagResource:
+			ctx.diagReqSpecs = append(ctx.diagReqSpecs, resource.Spec)
+		}
+	}
 }
 
-func (ctx *processingContext) operatorVersionName() string {
-	return ctx.opVersionName
+func (ctx *processingContext) mustSetPods(obj runtime.Object) {
+	ctx.pods = obj.(*v1.PodList).Items
 }
 
-func (ctx *processingContext) operatorName() string {
-	return ctx.opName
-}

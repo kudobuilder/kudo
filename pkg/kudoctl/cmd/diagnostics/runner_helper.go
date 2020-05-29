@@ -4,9 +4,10 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/version"
+	"github.com/spf13/afero"
 )
 
-func diagForInstance(instance string, options *Options, c *kudo.Client, info version.Info, s *env.Settings, p *nonFailingPrinter) error {
+func diagForInstance(fs afero.Fs, instance string, options *Options, c *kudo.Client, info version.Info, s *env.Settings, p *nonFailingPrinter) error {
 	ir, err := newInstanceResources(instance, options, c, s)
 	if err != nil {
 		p.printError(err, DiagDir, "instance")
@@ -15,11 +16,13 @@ func diagForInstance(instance string, options *Options, c *kudo.Client, info ver
 
 	ctx := &processingContext{root: DiagDir, instanceName: instance}
 
-	instanceDiagRunner := runForInstance(ir, ctx, p).
+	instanceDiagRunner := runForInstance(fs, s, ir, ctx, p).
 		dumpToYaml(info, ctx.rootDirectory, "version", p).
 		dumpToYaml(s, ctx.rootDirectory, "settings", p).
 		// TODO: must be run conditionally
 		run(&dependencyCollector{
+			fs:        fs,
+			s:         s,
 			ir:        ir,
 			parentDir: ctx.instanceDirectory,
 			printer:   p,
@@ -28,7 +31,7 @@ func diagForInstance(instance string, options *Options, c *kudo.Client, info ver
 	return instanceDiagRunner.fatalErr
 }
 
-func runForInstance(ir *resourceFuncsConfig, ctx *processingContext, p *nonFailingPrinter) *runner {
+func runForInstance(fs afero.Fs, s *env.Settings, ir *resourceFuncsConfig, ctx *processingContext, p *nonFailingPrinter) *runner {
 
 	instanceDiagRunner := &runner{}
 	instanceDiagRunner.
@@ -46,7 +49,7 @@ func runForInstance(ir *resourceFuncsConfig, ctx *processingContext, p *nonFaili
 				name:           "operatorversion",
 				parentDir:      ctx.operatorDirectory,
 				failOnError:    true,
-				callback:       ctx.mustSetOperatorNameFromOperatorVersion,
+				callback:       setAll(ctx.mustSetOperatorNameFromOperatorVersion, ctx.mustSetDiagnosticsFromOperatorVersion),
 				printer:        p,
 				printMode:      ObjectWithDir},
 			{
@@ -122,8 +125,15 @@ func runForInstance(ir *resourceFuncsConfig, ctx *processingContext, p *nonFaili
 			loadLogFn: ir.log,
 			pods:      ctx.pods,
 			parentDir: ctx.instanceDirectory,
-			printer:   p,
-		})
+			printer:   p}).
+		run(&fileCollector{
+			s:            s,
+			pods:         ctx.pods,
+			copyCmdSpecs: ctx.diagCopySpecs,
+			printer:      p,
+			parentDir:    ctx.instanceDirectory,
+			fs:           fs})
+
 	return instanceDiagRunner
 }
 

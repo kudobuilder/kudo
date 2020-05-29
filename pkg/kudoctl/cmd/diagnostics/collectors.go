@@ -2,8 +2,11 @@ package diagnostics
 
 import (
 	"fmt"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/engine/task/podexec"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/spf13/afero"
 	"io"
 	"path/filepath"
 	"reflect"
@@ -111,6 +114,8 @@ func (c *logsCollector) collect() error {
 }
 
 type dependencyCollector struct {
+	fs        afero.Fs
+	s         *env.Settings
 	ir        *resourceFuncsConfig
 	parentDir stringGetter
 	printer   *nonFailingPrinter
@@ -139,19 +144,60 @@ func (c *dependencyCollector) collect() error {
 			opts:        metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", kudoutil.OperatorLabel, instance.Labels[kudoutil.OperatorLabel])},
 			logOpts:     c.ir.logOpts,
 		}
-		_ = runForInstance(ir, &processingContext{root: c.parentDir(), instanceName: instance.Name}, c.printer)
+		_ = runForInstance(c.fs, c.s, ir, &processingContext{root: c.parentDir(), instanceName: instance.Name}, c.printer)
 		// ignore runner.fatalErr as it must have been printed by the collector who threw it
 	}
 	return nil
 }
 
-type fileCollector struct {
-	c kudo.Client
-	s *env.Settings
-	pods []v1.Pod
+func _containsMap(m1, m2 map[string]string) bool {
+	return false
 }
 
-//func (c *fileCollector) collect() error {
-//	config := kube.GetConfig(c.s.KubeConfig)
-//	for
-//}
+type fileCollector struct {
+	s            *env.Settings
+	pods         []v1.Pod
+	copyCmdSpecs []v1beta1.DiagnosticResourceSpec
+	printer      *nonFailingPrinter
+	parentDir    stringGetter
+	fs           afero.Fs
+}
+
+func (c *fileCollector) collect() error {
+	config, _ := kube.GetConfig(c.s.KubeConfig).ClientConfig() // TODO: handle error
+	tmpFs := afero.NewMemMapFs()                               // TODO: update podexec.DownloadFile
+	for _, copyCmdSpec := range c.copyCmdSpecs {
+		// filter pods by selector
+		var pods []v1.Pod
+		for _, pod := range c.pods {
+			if _containsMap(pod.Labels, copyCmdSpec.Selectors.MatchLabels) {
+				pods = append(pods, pod)
+			}
+		}
+		// for each filtered pod run copy commands for the corresponding containers
+		for _, pod := range pods {
+			containers := map[string]struct{}{}
+			for _, container := range pod.Spec.Containers {
+				containers[container.Name] = struct{}{}
+			}
+			for _, copyCmd := range copyCmdSpec.From {
+				if _, ok := containers[copyCmd.Container]; !ok {
+					c.printer.printError(
+						fmt.Errorf("container %s not found for pod %s", copyCmd.Container, pod.Name),
+						filepath.Join(c.parentDir(), fmt.Sprintf("pod_%s", pod.Name), copyCmd.Container),
+						fmt.Sprintf("%s.err", copyCmd.Dest))
+					continue
+				}
+				_ = podexec.DownloadFile(tmpFs, copyCmd.Path, &pod, copyCmd.Container, config) // TODO: handle error
+				b, _ := afero.ReadFile(tmpFs, copyCmd.Path)
+				err := doPrint(c.fs, byteWriter{b}.write, filepath.Join(c.parentDir(), fmt.Sprintf("pod_%s", pod.Name), copyCmd.Container), copyCmd.Dest) // TODO: expose
+				if err != nil {
+					c.printer.errors = append(c.printer.errors, err.Error()) // TODO:
+				}
+			}
+		}
+
+	}
+
+	return nil
+}
