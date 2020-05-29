@@ -615,3 +615,58 @@ func TestKudoClient_DeleteInstance(t *testing.T) {
 		}
 	}
 }
+
+func TestKudoClient_CreateNamespace(t *testing.T) {
+	tests := []struct {
+		name       string
+		namespace  string
+		manifest   string
+		shouldFail bool
+	}{
+		{
+			name:       "Invalid manifest",
+			namespace:  "foo-test",
+			manifest:   "invalid namespace resource",
+			shouldFail: true,
+		},
+		{
+			name:       "Namespace without manifest",
+			namespace:  "foo-test",
+			manifest:   "",
+			shouldFail: false,
+		},
+		{
+			name:      "Namespace name overwrites manifest",
+			namespace: "foo-test",
+			manifest: `apiVersion: v1
+kind: Namespace
+metadata:
+  name: bar-test
+`,
+			shouldFail: false,
+		},
+	}
+
+	for _, test := range tests {
+		k2o := newTestSimpleK2o()
+
+		err := k2o.CreateNamespace(test.namespace, test.manifest)
+		if err == nil {
+			if test.shouldFail {
+				t.Errorf("expected test %s to fail", test.name)
+			} else {
+				namespace, err := k2o.kubeClientset.
+					CoreV1().
+					Namespaces().
+					Get(test.namespace, metav1.GetOptions{})
+				assert.NilError(t, err)
+
+				assert.Equal(t, namespace.Annotations["created-by"], "kudo-cli")
+			}
+		} else {
+			if !test.shouldFail {
+				t.Errorf("expected test %s to succeed but got error: %v", test.name, err)
+			}
+		}
+	}
+}
