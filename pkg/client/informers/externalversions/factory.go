@@ -112,7 +112,7 @@ func (f *sharedInformerFactory) Start(stopCh <-chan struct{}) {
 
 	for informerType, informer := range f.informers {
 		if !f.startedInformers[informerType] {
-			go informer.run(stopCh)
+			go informer.Run(stopCh)
 			f.startedInformers[informerType] = true
 		}
 	}

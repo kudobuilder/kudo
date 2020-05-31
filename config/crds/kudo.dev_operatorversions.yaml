@@ -67,14 +67,18 @@ spec:
                                       type: string
                                     exec:
                                       type: string
+                                    out:
+                                      type: string
                                   type: object
                                 type: array
-                              from:
+                              copy:
                                 items:
                                   properties:
                                     container:
                                       type: string
-                                    path:
+                                    dest:
+                                      type: string
+                                    src:
                                       type: string
                                   type: object
                                 type: array
@@ -139,9 +143,6 @@ spec:
                                     type: string
                                   port:
                                     type: integer
-                                required:
-                                - name
-                                - port
                                 type: object
                               urlPath:
                                 type: string

@@ -1,21 +1,22 @@
 package diagnostics
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/engine/task/podexec"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
-	"github.com/spf13/afero"
 	"io"
 	"path/filepath"
 	"reflect"
+	"strings"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/engine/task/podexec"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	kudoutil "github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
@@ -98,6 +99,7 @@ type logsCollector struct {
 	printer   *nonFailingPrinter
 }
 
+// TODO: consider storing logs with commands and file copies: filepath.Join(c.parentDir(), fmt.Sprintf("pod_%s", pod.Name), container.Name)
 func (c *logsCollector) collect() error {
 	for _, pod := range c.pods {
 		for _, container := range pod.Spec.Containers {
@@ -114,7 +116,6 @@ func (c *logsCollector) collect() error {
 }
 
 type dependencyCollector struct {
-	fs        afero.Fs
 	s         *env.Settings
 	ir        *resourceFuncsConfig
 	parentDir stringGetter
@@ -144,33 +145,36 @@ func (c *dependencyCollector) collect() error {
 			opts:        metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", kudoutil.OperatorLabel, instance.Labels[kudoutil.OperatorLabel])},
 			logOpts:     c.ir.logOpts,
 		}
-		_ = runForInstance(c.fs, c.s, ir, &processingContext{root: c.parentDir(), instanceName: instance.Name}, c.printer)
+		_ = runForInstance(c.s, ir, &processingContext{root: c.parentDir(), instanceName: instance.Name}, c.printer)
 		// ignore runner.fatalErr as it must have been printed by the collector who threw it
 	}
 	return nil
 }
 
 func _containsMap(m1, m2 map[string]string) bool {
-	return false
+	for k, v := range m2 {
+		if m1[k] != v {
+			return false
+		}
+	}
+	return true
 }
 
 type fileCollector struct {
-	s            *env.Settings
-	pods         []v1.Pod
-	copyCmdSpecs []v1beta1.DiagnosticResourceSpec
-	printer      *nonFailingPrinter
-	parentDir    stringGetter
-	fs           afero.Fs
+	s         *env.Settings
+	pods      []v1.Pod
+	copySpecs []v1beta1.DiagnosticResourceSpec
+	parentDir stringGetter
+	printer   *nonFailingPrinter
 }
 
 func (c *fileCollector) collect() error {
-	config, _ := kube.GetConfig(c.s.KubeConfig).ClientConfig() // TODO: handle error
-	tmpFs := afero.NewMemMapFs()                               // TODO: update podexec.DownloadFile
-	for _, copyCmdSpec := range c.copyCmdSpecs {
+	restCfg, _ := kube.GetConfig(c.s.KubeConfig).ClientConfig() // TODO: err -> print and quit
+	for _, copySpec := range c.copySpecs {
 		// filter pods by selector
 		var pods []v1.Pod
 		for _, pod := range c.pods {
-			if _containsMap(pod.Labels, copyCmdSpec.Selectors.MatchLabels) {
+			if _containsMap(pod.Labels, copySpec.Selectors.MatchLabels) {
 				pods = append(pods, pod)
 			}
 		}
@@ -180,20 +184,86 @@ func (c *fileCollector) collect() error {
 			for _, container := range pod.Spec.Containers {
 				containers[container.Name] = struct{}{}
 			}
-			for _, copyCmd := range copyCmdSpec.From {
-				if _, ok := containers[copyCmd.Container]; !ok {
-					c.printer.printError(
-						fmt.Errorf("container %s not found for pod %s", copyCmd.Container, pod.Name),
-						filepath.Join(c.parentDir(), fmt.Sprintf("pod_%s", pod.Name), copyCmd.Container),
-						fmt.Sprintf("%s.err", copyCmd.Dest))
+			for _, copyCmd := range copySpec.CopyCmds {
+				stdout := bytes.Buffer{}
+				stderr := strings.Builder{}
+
+				pe := &podexec.PodExec{
+					RestCfg:       restCfg,
+					PodName:       pod.Name,
+					PodNamespace:  pod.Namespace,
+					ContainerName: copyCmd.Container,
+					Args:          []string{"cat", copyCmd.Source},
+					In:            nil,
+					Out:           &stdout,
+					Err:           &stderr,
+				}
+				if err := pe.Run(); err != nil {
+					err := fmt.Errorf("%wfailed to copy file. err: %v, stderr: %s, stdout: %s", podexec.ErrCommandFailed, err, stderr.String(), stdout.String())
+					c.printer.printError(err, filepath.Join(c.parentDir(), fmt.Sprintf("pod_%s", pod.Name), copyCmd.Container), copyCmd.Dest)
 					continue
 				}
-				_ = podexec.DownloadFile(tmpFs, copyCmd.Path, &pod, copyCmd.Container, config) // TODO: handle error
-				b, _ := afero.ReadFile(tmpFs, copyCmd.Path)
-				err := doPrint(c.fs, byteWriter{b}.write, filepath.Join(c.parentDir(), fmt.Sprintf("pod_%s", pod.Name), copyCmd.Container), copyCmd.Dest) // TODO: expose
-				if err != nil {
-					c.printer.errors = append(c.printer.errors, err.Error()) // TODO:
+				c.printer.printStream(&stdout, filepath.Join(c.parentDir(), fmt.Sprintf("pod_%s", pod.Name), copyCmd.Container), copyCmd.Dest)
+			}
+		}
+
+	}
+
+	return nil
+}
+
+type commandCollector struct {
+	s            *env.Settings
+	pods         []v1.Pod
+	commandSpecs []v1beta1.DiagnosticResourceSpec
+	parentDir    stringGetter
+	printer      *nonFailingPrinter
+}
+
+func (c *commandCollector) collect() error {
+	restCfg, _ := kube.GetConfig(c.s.KubeConfig).ClientConfig() // TODO: err -> print and quit
+	for _, commandSpec := range c.commandSpecs {
+		// filter pods by selector
+		var pods []v1.Pod
+		for _, pod := range c.pods {
+			if _containsMap(pod.Labels, commandSpec.Selectors.MatchLabels) {
+				pods = append(pods, pod)
+			}
+		}
+		// for each filtered pod run copy commands for the corresponding containers
+		for _, pod := range pods {
+			containers := map[string]struct{}{}
+			for _, container := range pod.Spec.Containers {
+				containers[container.Name] = struct{}{}
+			}
+			for _, cmd := range commandSpec.Commands {
+				if _, ok := containers[cmd.Container]; !ok {
+					c.printer.printError(
+						fmt.Errorf("container %s not found for pod %s", cmd.Container, pod.Name),
+						filepath.Join(c.parentDir(), fmt.Sprintf("pod_%s", pod.Name), cmd.Container),
+						fmt.Sprintf("%s.err", cmd.Output))
+					continue
 				}
+
+				stdout := bytes.Buffer{}
+				stderr := strings.Builder{}
+
+				pe := &podexec.PodExec{
+					RestCfg:       restCfg,
+					PodName:       pod.Name,
+					PodNamespace:  pod.Namespace,
+					ContainerName: cmd.Container,
+					Args:          []string{cmd.Exec},
+					In:            nil,
+					Out:           &stdout,
+					Err:           &stderr,
+				}
+				if err := pe.Run(); err != nil {
+					err = fmt.Errorf("%wfailed to execute '%s'. err: %v, stderr: %s, stdout: %s", podexec.ErrCommandFailed, cmd.Exec, err, stderr.String(), stdout.String())
+					c.printer.printError(err, filepath.Join(c.parentDir(), fmt.Sprintf("pod_%s", pod.Name), cmd.Container), cmd.Output)
+					continue
+				}
+				c.printer.printStream(&stdout, filepath.Join(c.parentDir(), fmt.Sprintf("pod_%s", pod.Name), cmd.Container), cmd.Output)
 			}
 		}
 

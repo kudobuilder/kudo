@@ -222,9 +222,9 @@ type OperatorVersionStatus struct {
 }
 
 const (
-	CmdDiagResource = "command"
-	CopyDiagResource = "copy"
-	ReqDiagResource = "request"
+	CmdDiagResource  = "Command"
+	CopyDiagResource = "Copy"
+	ReqDiagResource  = "Request"
 )
 
 type Diagnostics struct {
@@ -245,32 +245,32 @@ type DiagnosticResource struct {
 
 type DiagnosticResourceSpec struct {
 	Selectors   metav1.LabelSelector `json:"selector,omitempty"`
-	CommandSpec `json:",inline"`
-	CopySpec    `json:",inline"`
-	HttpSpec    `json:",inline"`
+	CommandSpec `json:",inline,omitempty"`
+	CopySpec    `json:",inline,omitempty"`
+	RequestSpec `json:",inline,omitempty"`
 }
 
 type Command struct {
 	Container string `json:"container,omitempty"`
-	Exec string `json:"exec,omitempty"`
-	Dest string `json:"dest,omitempty"`
+	Exec      string `json:"exec,omitempty"`
+	Output    string `json:"out,omitempty"`
 }
 
 type CommandSpec struct {
 	Commands []Command `json:"command,omitempty"`
 }
 
-type Copy struct {
+type CopyCmd struct {
 	Container string `json:"container,omitempty"`
-	Path string `json:"path,omitempty"`
-	Dest string `json:"dest,omitempty"`
+	Source    string `json:"src,omitempty"`
+	Dest      string `json:"dest,omitempty"`
 }
 
 type CopySpec struct {
-	From []Copy `json:"from,omitempty"`
+	CopyCmds []CopyCmd `json:"copy,omitempty"`
 }
 
-type HttpSpec struct {
+type RequestSpec struct {
 	ServiceReference `json:"serviceRef,omitempty"`
 	Path             string `json:"urlPath,omitempty"`
 	Method           string `json:"method,omitempty"`
@@ -278,11 +278,11 @@ type HttpSpec struct {
 }
 
 type ServiceReference struct {
-	Name string `json:"name"`
-	Port int    `json:"port"` // TODO: use named
+	Name string `json:"name,omitempty"`
+	Port int    `json:"port,omitempty"` // TODO: use named
 }
 
-type Redactor struct {}
+type Redactor struct{}
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

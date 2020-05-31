@@ -4,10 +4,9 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/version"
-	"github.com/spf13/afero"
 )
 
-func diagForInstance(fs afero.Fs, instance string, options *Options, c *kudo.Client, info version.Info, s *env.Settings, p *nonFailingPrinter) error {
+func diagForInstance(instance string, options *Options, c *kudo.Client, info version.Info, s *env.Settings, p *nonFailingPrinter) error {
 	ir, err := newInstanceResources(instance, options, c, s)
 	if err != nil {
 		p.printError(err, DiagDir, "instance")
@@ -16,12 +15,11 @@ func diagForInstance(fs afero.Fs, instance string, options *Options, c *kudo.Cli
 
 	ctx := &processingContext{root: DiagDir, instanceName: instance}
 
-	instanceDiagRunner := runForInstance(fs, s, ir, ctx, p).
+	instanceDiagRunner := runForInstance(s, ir, ctx, p).
 		dumpToYaml(info, ctx.rootDirectory, "version", p).
 		dumpToYaml(s, ctx.rootDirectory, "settings", p).
 		// TODO: must be run conditionally
 		run(&dependencyCollector{
-			fs:        fs,
 			s:         s,
 			ir:        ir,
 			parentDir: ctx.instanceDirectory,
@@ -31,7 +29,7 @@ func diagForInstance(fs afero.Fs, instance string, options *Options, c *kudo.Cli
 	return instanceDiagRunner.fatalErr
 }
 
-func runForInstance(fs afero.Fs, s *env.Settings, ir *resourceFuncsConfig, ctx *processingContext, p *nonFailingPrinter) *runner {
+func runForInstance(s *env.Settings, ir *resourceFuncsConfig, ctx *processingContext, p *nonFailingPrinter) *runner {
 
 	instanceDiagRunner := &runner{}
 	instanceDiagRunner.
@@ -127,12 +125,17 @@ func runForInstance(fs afero.Fs, s *env.Settings, ir *resourceFuncsConfig, ctx *
 			parentDir: ctx.instanceDirectory,
 			printer:   p}).
 		run(&fileCollector{
+			s:         s,
+			pods:      ctx.pods,
+			copySpecs: ctx.diagCopySpecs,
+			printer:   p,
+			parentDir: ctx.instanceDirectory}).
+		run(&commandCollector{
 			s:            s,
 			pods:         ctx.pods,
-			copyCmdSpecs: ctx.diagCopySpecs,
+			commandSpecs: ctx.diagCmdSpecs,
 			printer:      p,
-			parentDir:    ctx.instanceDirectory,
-			fs:           fs})
+			parentDir:    ctx.instanceDirectory})
 
 	return instanceDiagRunner
 }

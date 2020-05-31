@@ -1,0 +1,132 @@
+apiVersion: kudo.dev/v1beta1
+name: "zookeeper"
+operatorVersion: "0.3.0"
+kudoVersion: 0.10.0
+appVersion: 3.4.14
+kubernetesVersion: 1.14.8
+maintainers:
+  - name: Alena Varkockova
+    email: avarkockova@mesosphere.com
+  - name: Tom Runyon
+    email: runyontr@gmail.com
+url: https://zookeeper.apache.org/
+tasks:
+  - name: infra
+    kind: Apply
+    spec:
+      resources:
+        - bootstrap.sh.yaml
+        - healthcheck.sh.yaml
+        - services.yaml
+        - pdb.yaml
+  - name: app
+    kind: Apply
+    spec:
+      resources:
+        - statefulset.yaml
+  - name: validation
+    kind: Apply
+    spec:
+      resources:
+        - validation.yaml
+  - name: validation-cleanup
+    kind: Delete
+    spec:
+      resources:
+        - validation.yaml
+  - name: not-allowed
+    kind: Dummy
+    spec:
+      resources:
+plans:
+  deploy:
+    strategy: serial
+    phases:
+      - name: zookeeper
+        strategy: parallel
+        steps:
+          - name: deploy
+            tasks:
+              - infra
+              - app
+      - name: validation
+        strategy: serial
+        steps:
+          - name: validation
+            tasks:
+              - validation
+          - name: cleanup
+            tasks:
+              - validation-cleanup
+  validation:
+    strategy: serial
+    phases:
+      - name: connection
+        strategy: serial
+        steps:
+          - name: connection
+            tasks:
+              - validation
+          - name: cleanup
+            tasks:
+              - validation-cleanup
+diagnostics:
+  bundle:
+    resources:
+      - description: Zookeeper Configuration File
+        name: zookeeper-configuration
+        kind: Copy
+        spec:
+          copy:
+            - container: kubernetes-zookeeper
+              src: /conf/zoo.cfg
+              dest: zoo.cfg
+          selector:
+            matchLabels:
+              app: zookeeper
+              heritage: kudo
+      - description: Java Env File
+        name: java-env
+        kind: Copy
+        spec:
+          copy:
+            - container: kubernetes-zookeeper
+              src: /conf/java.env
+              dest: java.env
+          selector:
+            matchLabels:
+              app: zookeeper
+              heritage: kudo
+      - description: DNS information for running pod (will fail)
+        name: dns-information
+        kind: Command
+        spec:
+          command:
+            - container: kubernetes-zookeeper
+              exec: nslookup google.com
+              out: nslookup.out
+          selector:
+            matchLabels:
+              app: zookeeper
+              heritage: kudo
+      - description: Any working command
+        name: env-vars
+        kind: Command
+        spec:
+          command:
+            - container: kubernetes-zookeeper
+              exec: env
+              out: env-vars.out
+          selector:
+            matchLabels:
+              app: zookeeper
+              heritage: kudo
+      - description: Zookeeper Client Service Status
+        name: cs-stat
+        kind: Request
+        spec:
+          serviceRef:
+            name: zookeeper-instance-cs
+            port: 2181
+          urlPath:
+          query: stat

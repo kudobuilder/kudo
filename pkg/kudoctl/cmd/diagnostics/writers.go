@@ -32,3 +32,12 @@ type gzipStreamWriter struct {
 func (w gzipStreamWriter) write(file io.Writer) error {
 	return newGzipWriter(file).write(w.stream)
 }
+
+type streamWriter struct {
+	stream io.Reader
+}
+
+func (w streamWriter) write(file io.Writer) error {
+	_, err := io.Copy(file, w.stream)
+	return err
+}

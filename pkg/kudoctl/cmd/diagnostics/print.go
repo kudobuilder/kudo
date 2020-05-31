@@ -69,6 +69,12 @@ func (p *nonFailingPrinter) printError(err error, parentDir, name string) {
 	}
 }
 
+func (p *nonFailingPrinter) printStream(log io.Reader, parentDir, name string) {
+	if err := doPrint(p.fs, streamWriter{log}.write, parentDir, name); err != nil {
+		p.errors = append(p.errors, err.Error())
+	}
+}
+
 func (p *nonFailingPrinter) printLog(log io.ReadCloser, parentDir, name string) {
 	if err := doPrint(p.fs, gzipStreamWriter{log}.write, parentDir, fmt.Sprintf("%s.log.gz", name)); err != nil {
 		p.errors = append(p.errors, err.Error())
@@ -80,6 +86,12 @@ func (p *nonFailingPrinter) printYaml(v interface{}, parentDir, name string) {
 		p.errors = append(p.errors, err.Error())
 	}
 }
+
+//func (p *nonFailingPrinter) printBytes(b []byte, dir, name string) {
+//	if err := doPrint(p.fs, byteWriter{b}.write, dir, name); err != nil {
+//		p.errors = append(p.errors, err.Error())
+//	}
+//}
 
 // printSingleObject - print a runtime.object assuming it exposes metadata by implementing metav1.object
 func printSingleObject(fs afero.Fs, obj runtime.Object, parentDir string) error {

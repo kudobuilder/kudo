@@ -44,7 +44,7 @@ func (ctx *processingContext) operatorName() string {
 	return ctx.opName
 }
 
-func setAll(fns...func(runtime.Object)) func(runtime.Object) {
+func setAll(fns ...func(runtime.Object)) func(runtime.Object) {
 	return func(obj runtime.Object) {
 		for _, fn := range fns {
 			fn(obj)
@@ -61,7 +61,7 @@ func (ctx *processingContext) mustSetOperatorVersionNameFromInstance(obj runtime
 }
 
 func (ctx *processingContext) mustSetDiagnosticsFromOperatorVersion(obj runtime.Object) {
-	ov := obj.(*v1beta1.OperatorVersion)
+	ov, _ := obj.(*v1beta1.OperatorVersion)
 	for _, resource := range ov.Spec.Diagnostics.Bundle.Resources {
 		switch resource.Kind {
 		case v1beta1.CmdDiagResource:
@@ -77,4 +77,3 @@ func (ctx *processingContext) mustSetDiagnosticsFromOperatorVersion(obj runtime.
 func (ctx *processingContext) mustSetPods(obj runtime.Object) {
 	ctx.pods = obj.(*v1.PodList).Items
 }
-
