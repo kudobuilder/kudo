@@ -79,18 +79,14 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 		return fmt.Errorf("failed to resolve operator package for: %s %w", operatorArgument, err)
 	}
 
-	installOpts := []install.Option{}
-
-	if options.SkipInstance {
-		installOpts = append(installOpts, install.SkipInstance())
-	}
-
-	if options.CreateNameSpace {
-		installOpts = append(installOpts, install.CreateNamespace())
+	installOpts := install.Options{
+		SkipInstance:    options.SkipInstance,
+		CreateNamespace: options.CreateNameSpace,
 	}
 
 	if options.Wait {
-		installOpts = append(installOpts, install.WaitForInstance(time.Duration(options.WaitTime)*time.Second))
+		waitDuration := time.Duration(options.WaitTime) * time.Second
+		installOpts.Wait = &waitDuration
 	}
 
 	return install.Package(
@@ -99,5 +95,5 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 		settings.Namespace,
 		*pkg.Resources,
 		options.Parameters,
-		installOpts...)
+		installOpts)
 }

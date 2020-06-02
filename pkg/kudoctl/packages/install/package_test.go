@@ -97,12 +97,11 @@ func Test_InstallPackage(t *testing.T) {
 
 		const namespace = "default"
 
-		options := []Option{}
-		if tt.skipInstance {
-			options = append(options, SkipInstance())
+		options := Options{
+			SkipInstance: tt.skipInstance,
 		}
 
-		err := Package(kc, "", namespace, testResources, tt.installParameters, options...)
+		err := Package(kc, "", namespace, testResources, tt.installParameters, options)
 		if tt.err != "" {
 			assert.EqualError(t, err, tt.err)
 		}
