@@ -32,15 +32,15 @@ func (ctx *processingContext) instanceDirectory() string {
 	return fmt.Sprintf("%s/instance_%s", ctx.operatorDirectory(), ctx.instanceName)
 }
 
-func (ctx *processingContext) mustSetOperatorNameFromOperatorVersion(obj runtime.Object) {
+func (ctx *processingContext) setOperatorNameFromOperatorVersion(obj runtime.Object) {
 	ctx.opName = obj.(*v1beta1.OperatorVersion).Spec.Operator.Name
 }
 
-func (ctx *processingContext) mustSetOperatorVersionNameFromInstance(obj runtime.Object) {
+func (ctx *processingContext) setOperatorVersionNameFromInstance(obj runtime.Object) {
 	ctx.opVersionName = obj.(*v1beta1.Instance).Spec.OperatorVersion.Name
 }
 
-func (ctx *processingContext) mustSetPods(o runtime.Object) {
+func (ctx *processingContext) setPods(o runtime.Object) {
 	ctx.pods = o.(*v1.PodList).Items
 }
 

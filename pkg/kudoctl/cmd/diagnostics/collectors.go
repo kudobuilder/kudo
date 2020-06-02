@@ -12,11 +12,7 @@ import (
 )
 
 // Ensure collector is implemented
-var (
-	_ collector = &resourceCollector{}
-	_ collector = &resourceCollectorGroup{}
-	_ collector = &logsCollector{}
-)
+var _ collector = &resourceCollector{}
 
 // resourceCollector - collector interface implementation for Kubernetes resources (runtime objects)
 type resourceCollector struct {
@@ -64,6 +60,9 @@ func (c *resourceCollector) _collect(failOnError bool) (runtime.Object, error) {
 	return obj, nil
 }
 
+// Ensure collector is implemented
+var _ collector = &resourceCollectorGroup{}
+
 // resourceCollectorGroup - a composite collector for Kubernetes runtime objects whose loading and printing depend on
 // each other's side-effects on the shared context
 type resourceCollectorGroup struct {
@@ -89,6 +88,9 @@ func (g resourceCollectorGroup) collect() error {
 	}
 	return nil
 }
+
+// Ensure collector is implemented
+var _ collector = &logsCollector{}
 
 type logsCollector struct {
 	loadLogFn func(string, string) (io.ReadCloser, error)

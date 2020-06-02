@@ -36,7 +36,7 @@ import (
 // Client is a KUDO Client providing access to a kudo clientset and kubernetes clientsets
 type Client struct {
 	kudoClientset versioned.Interface
-	kubernetes.Interface
+	KubeClientset kubernetes.Interface
 }
 
 // NewClient creates new KUDO Client
@@ -82,7 +82,7 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 	}
 	return &Client{
 		kudoClientset: kudoClientset,
-		Interface:     kubeClientset,
+		KubeClientset: kubeClientset,
 	}, nil
 }
 
@@ -90,7 +90,7 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 func NewClientFromK8s(kudo versioned.Interface, kube kubernetes.Interface) *Client {
 	result := Client{}
 	result.kudoClientset = kudo
-	result.Interface = kube
+	result.KubeClientset = kube
 	return &result
 }
 
@@ -424,7 +424,7 @@ func (c *Client) CreateNamespace(namespace, manifest string) error {
 	ns.Name = namespace
 	ns.Annotations["created-by"] = "kudo-cli"
 
-	_, err := c.CoreV1().Namespaces().Create(ns)
+	_, err := c.KubeClientset.CoreV1().Namespaces().Create(ns)
 	return err
 }
 

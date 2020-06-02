@@ -21,7 +21,7 @@ func newDiagnosticsCmd(fs afero.Fs) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "diagnostics",
 		Short: "collect diagnostics",
-		Long:  "diagnostics command has sub-commands to collect and analyze diagnostics data",
+		Long:  "diagnostics provides functionality to collect and analyze diagnostics data",
 	}
 	cmd.AddCommand(newDiagnosticsCollectCmd(fs))
 	return cmd

@@ -32,7 +32,7 @@ func runForInstance(ir *resourceFuncsConfig, ctx *processingContext, p *nonFaili
 				name:           "instance",
 				parentDir:      ctx.operatorDirectory,
 				failOnError:    true,
-				callback:       ctx.mustSetOperatorVersionNameFromInstance,
+				callback:       ctx.setOperatorVersionNameFromInstance,
 				printer:        p,
 				printMode:      ObjectWithDir},
 			{
@@ -40,7 +40,7 @@ func runForInstance(ir *resourceFuncsConfig, ctx *processingContext, p *nonFaili
 				name:           "operatorversion",
 				parentDir:      ctx.operatorDirectory,
 				failOnError:    true,
-				callback:       ctx.mustSetOperatorNameFromOperatorVersion,
+				callback:       ctx.setOperatorNameFromOperatorVersion,
 				printer:        p,
 				printMode:      ObjectWithDir},
 			{
@@ -55,7 +55,7 @@ func runForInstance(ir *resourceFuncsConfig, ctx *processingContext, p *nonFaili
 			loadResourceFn: ir.pods,
 			name:           "pod",
 			parentDir:      ctx.instanceDirectory,
-			callback:       ctx.mustSetPods,
+			callback:       ctx.setPods,
 			printer:        p,
 			printMode:      ObjectListWithDirs}).
 		run(&resourceCollector{
@@ -133,7 +133,7 @@ func diagForKudoManager(options *Options, c *kudo.Client, p *nonFailingPrinter) 
 			loadResourceFn: kr.pods,
 			name:           "pod",
 			parentDir:      ctx.rootDirectory,
-			callback:       ctx.mustSetPods,
+			callback:       ctx.setPods,
 			printer:        p,
 			printMode:      ObjectListWithDirs}).
 		run(&resourceCollector{
