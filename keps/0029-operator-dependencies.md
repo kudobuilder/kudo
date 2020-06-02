@@ -23,7 +23,7 @@ status: provisional
   * [Non-Goals](#non-goals)
 * [Proposal](#proposal)
   * [Implementation Details](#implementation-details)
-    * [Operator Task](#kudooperator-task)
+    * [KudoOperator Task](#kudooperator-task)
     * [Deployment](#deployment)
       * [Client-Side](#client-side)
       * [Server-Side](#server-side)

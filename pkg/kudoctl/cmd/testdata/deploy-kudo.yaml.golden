@@ -268,8 +268,9 @@ spec:
                       parameter:
                         type: string
                       parameterFile:
-                        description: a parameter file name that will be used to populate
-                          Instance.Spec.Parameters
+                        description: name of the template file (located in the `templates`
+                          folder) from which the *parent* instance generates a parameter
+                          file used to populate the *child* Instance.Spec.Parameters
                         type: string
                       pipe:
                         items:

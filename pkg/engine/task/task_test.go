@@ -175,7 +175,7 @@ spec:
     instanceName: zk`,
 			want: KudoOperatorTask{
 				Name:            "deploy-zk",
-				Package:         "zookeeper",
+				OperatorName:    "zookeeper",
 				AppVersion:      "0.0.3",
 				OperatorVersion: "0.0.4",
 				InstanceName:    "zk",

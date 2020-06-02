@@ -141,7 +141,7 @@ func newToggle(task *v1beta1.Task) (Tasker, error) {
 		return nil, errors.New("task validation error: toggle task has an empty resource list. if that's what you need, use a Dummy task instead")
 	}
 	// validate if the parameter is present
-	if len(task.Spec.ToggleTaskSpec.Parameter) == 0 {
+	if task.Spec.ToggleTaskSpec.Parameter == "" {
 		return nil, errors.New("task validation error: Missing parameter to evaluate the Toggle Task")
 	}
 	return ToggleTask{
@@ -189,17 +189,17 @@ func fatalExecutionError(cause error, eventName string, meta renderer.Metadata) 
 
 func newKudoOperator(task *v1beta1.Task) (Tasker, error) {
 	// validate KudoOperatorTask
-	if len(task.Spec.KudoOperatorTaskSpec.Package) == 0 {
+	if task.Spec.KudoOperatorTaskSpec.Package == "" {
 		return nil, fmt.Errorf("task validation error: kudo operator task '%s' has an empty package name", task.Name)
 	}
 
-	if len(task.Spec.KudoOperatorTaskSpec.OperatorVersion) == 0 {
+	if task.Spec.KudoOperatorTaskSpec.OperatorVersion == "" {
 		return nil, fmt.Errorf("task validation error: kudo operator task '%s' has an empty operatorVersion", task.Name)
 	}
 
 	return KudoOperatorTask{
 		Name:            task.Name,
-		Package:         task.Spec.KudoOperatorTaskSpec.Package,
+		OperatorName:    task.Spec.KudoOperatorTaskSpec.Package,
 		InstanceName:    task.Spec.KudoOperatorTaskSpec.InstanceName,
 		AppVersion:      task.Spec.KudoOperatorTaskSpec.AppVersion,
 		OperatorVersion: task.Spec.KudoOperatorTaskSpec.OperatorVersion,

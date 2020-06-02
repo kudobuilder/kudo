@@ -85,7 +85,7 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 			APIVersion: packages.APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   v1beta1.InstanceName(files.Operator.Name),
+			Name:   v1beta1.OperatorInstanceName(files.Operator.Name),
 			Labels: map[string]string{kudo.OperatorLabel: files.Operator.Name},
 		},
 		Spec: v1beta1.InstanceSpec{

@@ -25,8 +25,9 @@ const (
 //   webhook
 // 2. GetPlanInProgress goes through i.Spec.PlanStatus map and returns the first found plan that is running
 //
-// (1) is set directly when the user updates the instance and reset **after** the plan is terminal
-// (2) is updated **AFTER** the instance controller if done with the reconciliation call
+// In (1), i.Spec.PlanExecution.PlanName is set directly when the user updates the instance and reset **after** the plan
+// is terminal
+// In (2) i.Spec.PlanStatus is updated **AFTER** the instance controller is done with the reconciliation call
 func (i *Instance) GetScheduledPlan() *PlanStatus {
 	return i.PlanStatus(i.Spec.PlanExecution.PlanName)
 }
@@ -360,12 +361,4 @@ func GetPhaseStatus(phaseName string, planStatus *PlanStatus) *PhaseStatus {
 	}
 
 	return nil
-}
-
-func InstanceName(operatorName string) string {
-	return fmt.Sprintf("%s-instance", operatorName)
-}
-
-func OperatorVersionName(operatorName, operatorVersion string) string {
-	return fmt.Sprintf("%s-%s", operatorName, operatorVersion)
 }

@@ -26,27 +26,27 @@ import (
 // KudoOperatorTask installs an instance of a KUDO operator in a cluster
 type KudoOperatorTask struct {
 	Name            string
-	Package         string
+	OperatorName    string
 	InstanceName    string
 	AppVersion      string
 	OperatorVersion string
 	ParameterFile   string
 }
 
-// Run method for the KudoOperatorTask. Not yet implemented
-func (dt KudoOperatorTask) Run(ctx Context) (bool, error) {
+// Run method for the KudoOperatorTask which will install a child operator
+func (kt KudoOperatorTask) Run(ctx Context) (bool, error) {
 
 	// 0. - A few prerequisites -
 	// Note: ctx.Meta has Meta.OperatorName and Meta.OperatorVersion fields but these are of the **parent instance**
 	// However, since we don't support multiple namespaces yet, we can use the Meta.InstanceNamespace for the namespace
 	namespace := ctx.Meta.InstanceNamespace
-	operatorName := dt.Package
-	operatorVersion := dt.OperatorVersion
+	operatorName := kt.OperatorName
+	operatorVersion := kt.OperatorVersion
 	operatorVersionName := v1beta1.OperatorVersionName(operatorName, operatorVersion)
-	instanceName := dependencyInstanceName(ctx.Meta.InstanceName, dt.InstanceName, operatorName)
+	instanceName := dependencyInstanceName(ctx.Meta.InstanceName, kt.InstanceName, operatorName)
 
 	// 1. - Expand parameter file if exists -
-	params, err := instanceParameters(dt.ParameterFile, ctx.Templates, ctx.Meta, ctx.Parameters)
+	params, err := instanceParameters(kt.ParameterFile, ctx.Templates, ctx.Meta, ctx.Parameters)
 	if err != nil {
 		return false, fatalExecutionError(err, taskRenderingError, ctx.Meta)
 	}
@@ -83,24 +83,24 @@ func dependencyInstanceName(parentInstanceName, instanceName, operatorName strin
 	return fmt.Sprintf("%s.%s", parentInstanceName, operatorName)
 }
 
-// render method takes templated parameter file and a map of parameters and then renders passed template using kudo engine.
-func instanceParameters(pf string, templates map[string]string, meta renderer.Metadata, parameters map[string]interface{}) (map[string]string, error) {
-	if len(pf) != 0 {
-		pft, ok := templates[pf]
+// instanceParameters method takes templated parameter file and a map of parameters and then renders passed template using kudo engine.
+func instanceParameters(parameterFile string, templates map[string]string, meta renderer.Metadata, parameters map[string]interface{}) (map[string]string, error) {
+	if parameterFile != "" {
+		pft, ok := templates[parameterFile]
 		if !ok {
-			return nil, fmt.Errorf("error finding parameter file %s", pf)
+			return nil, fmt.Errorf("error finding parameter file %s in templates", parameterFile)
 		}
 
-		rendered, err := renderParametersFile(pf, pft, meta, parameters)
+		rendered, err := renderParametersFile(parameterFile, pft, meta, parameters)
 		if err != nil {
-			return nil, fmt.Errorf("error expanding parameter file %s: %w", pf, err)
+			return nil, fmt.Errorf("error expanding parameter file %s: %w", parameterFile, err)
 		}
 
 		parameters := map[string]string{}
 		errs := []string{}
-		parser.GetParametersFromFile(pf, []byte(rendered), errs, parameters)
+		parser.GetParametersFromFile(parameterFile, []byte(rendered), errs, parameters)
 		if len(errs) > 0 {
-			return nil, fmt.Errorf("failed to unmarshal parameter file %s: %s", pf, strings.Join(errs, ", "))
+			return nil, fmt.Errorf("failed to unmarshal parameter file %s: %s", parameterFile, strings.Join(errs, ", "))
 		}
 
 		return parameters, nil
@@ -110,14 +110,14 @@ func instanceParameters(pf string, templates map[string]string, meta renderer.Me
 }
 
 func renderParametersFile(pf string, pft string, meta renderer.Metadata, parameters map[string]interface{}) (string, error) {
-	vals := renderer.
+	vars := renderer.
 		NewVariableMap().
 		WithInstance(meta.OperatorName, meta.InstanceName, meta.InstanceNamespace, meta.AppVersion, meta.OperatorVersion).
 		WithParameters(parameters)
 
 	engine := renderer.New()
 
-	return engine.Render(pf, pft, vals)
+	return engine.Render(pf, pft, vars)
 }
 
 func instanceResource(instanceName, operatorName, operatorVersionName, namespace string, parameters map[string]string, owner metav1.Object, scheme *runtime.Scheme) (*v1beta1.Instance, error) {

@@ -210,7 +210,8 @@ type KudoOperatorTaskSpec struct {
 	// a specific operator version in the official repo, defaults to the most recent one
 	// +optional
 	OperatorVersion string `json:"operatorVersion,omitempty"`
-	// a parameter file name that will be used to populate Instance.Spec.Parameters
+	// name of the template file (located in the `templates` folder) from which the *parent* instance
+	// generates a parameter file used to populate the *child* Instance.Spec.Parameters
 	// +optional
 	ParameterFile string `json:"parameterFile,omitempty"`
 }
