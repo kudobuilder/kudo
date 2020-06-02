@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -165,6 +166,9 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 					TestSuite: options,
 					T:         t,
 				}
+
+				s, _ := json.MarshalIndent(options, "", "  ")
+				fmt.Printf("Running integration tests with following options:\n%s\n", string(s))
 
 				harness.Run()
 			})

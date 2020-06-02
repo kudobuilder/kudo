@@ -205,7 +205,16 @@ func (c *Client) GetOperator(name, namespace string) (*v1beta1.Operator, error) 
 }
 
 // UpdateInstance updates operatorversion on instance
-func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersion *string, parameters map[string]string, triggeredPlan *string) error {
+func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersion *string, parameters map[string]string, triggeredPlan *string, wait bool, waitTime time.Duration) error {
+	var oldInstance *v1beta1.Instance
+	if wait {
+		var err error
+		oldInstance, err = c.GetInstance(instanceName, namespace)
+		if err != nil {
+			return err
+		}
+	}
+
 	instanceSpec := v1beta1.InstanceSpec{}
 	// 1. new OperatorVersion
 	if operatorVersion != nil {
@@ -233,7 +242,13 @@ func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersion 
 		return err
 	}
 	_, err = c.kudoClientset.KudoV1beta1().Instances(namespace).Patch(instanceName, types.MergePatchType, serializedPatch)
-	return err
+	if err != nil {
+		return err
+	}
+	if !wait {
+		return nil
+	}
+	return c.WaitForInstance(instanceName, namespace, oldInstance, waitTime)
 }
 
 // WaitForInstance waits for instance to be "complete".
@@ -422,6 +437,10 @@ func (c *Client) CreateNamespace(namespace, manifest string) error {
 	}
 	ns.TypeMeta.Kind = "Namespace"
 	ns.Name = namespace
+
+	if ns.Annotations == nil {
+		ns.Annotations = map[string]string{}
+	}
 	ns.Annotations["created-by"] = "kudo-cli"
 
 	_, err := c.KubeClientset.CoreV1().Namespaces().Create(ns)

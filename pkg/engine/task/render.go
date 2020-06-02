@@ -12,16 +12,11 @@ import (
 
 // render method takes resource names and Instance parameters and then renders passed templates using kudo engine.
 func render(resourceNames []string, ctx Context) (map[string]string, error) {
-	configs := make(map[string]interface{})
-	configs["OperatorName"] = ctx.Meta.OperatorName
-	configs["Name"] = ctx.Meta.InstanceName
-	configs["Namespace"] = ctx.Meta.InstanceNamespace
-	configs["Params"] = ctx.Parameters
-	configs["Pipes"] = ctx.Pipes
-	configs["PlanName"] = ctx.Meta.PlanName
-	configs["PhaseName"] = ctx.Meta.PhaseName
-	configs["StepName"] = ctx.Meta.StepName
-	configs["AppVersion"] = ctx.Meta.AppVersion
+
+	configs := renderer.NewVariableMap().
+		WithMetadata(ctx.Meta).
+		WithParameters(ctx.Parameters).
+		WithPipes(ctx.Pipes)
 
 	resources := map[string]string{}
 	engine := renderer.New()

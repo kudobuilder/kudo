@@ -96,7 +96,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 	assert.NoError(t, err)
 	kclient := getKubeClient(t)
 
-	instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "ns")
+	instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "default")
 	// Verify that we cannot create the instance, because the test environment is empty.
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
@@ -105,18 +105,18 @@ func TestIntegInitForCRDs(t *testing.T) {
 
 	var buf bytes.Buffer
 	cmd := &initCmd{
-		out:    &buf,
-		fs:     afero.NewMemMapFs(),
-		client: kclient,
+		out:     &buf,
+		fs:      afero.NewMemMapFs(),
+		client:  kclient,
+		crdOnly: true,
 	}
 	err = cmd.run()
 	assert.NoError(t, err)
-	defer func() {
-		assert.NoError(t, deleteInitPrereqs(cmd, testClient))
-	}()
-
 	// WaitForCRDs to be created... the init cmd did NOT wait
 	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+	defer func() {
+		assert.NoError(t, deleteObjects(crds, testClient))
+	}()
 
 	// Kubernetes client caches the types, so we need to re-initialize it.
 	testClient, err = testutils.NewRetryClient(testenv.Config, client.Options{
@@ -147,10 +147,11 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 
 	var buf bytes.Buffer
 	cmd := &initCmd{
-		out:    &buf,
-		fs:     afero.NewMemMapFs(),
-		client: kclient,
-		ns:     namespace,
+		out:                 &buf,
+		fs:                  afero.NewMemMapFs(),
+		client:              kclient,
+		ns:                  namespace,
+		selfSignedWebhookCA: true,
 	}
 
 	// On first attempt, the namespace does not exist, so the error is expected.
@@ -269,11 +270,12 @@ func TestInitWithServiceAccount(t *testing.T) {
 
 			var buf bytes.Buffer
 			cmd := &initCmd{
-				out:            &buf,
-				fs:             afero.NewMemMapFs(),
-				client:         kclient,
-				ns:             namespace,
-				serviceAccount: "test-account",
+				out:                 &buf,
+				fs:                  afero.NewMemMapFs(),
+				client:              kclient,
+				ns:                  namespace,
+				serviceAccount:      "test-account",
+				selfSignedWebhookCA: true,
 			}
 
 			ns := testutils.NewResource("v1", "Namespace", namespace, "")
@@ -385,7 +387,7 @@ func deleteObjects(objs []runtime.Object, client *testutils.RetryClient) error {
 }
 
 func deleteInitPrereqs(cmd *initCmd, client *testutils.RetryClient) error {
-	opts := kudoinit.NewOptions(cmd.version, cmd.ns, cmd.serviceAccount, webhooksArray(cmd.webhooks), cmd.selfSignedWebhookCA)
+	opts := kudoinit.NewOptions(cmd.version, cmd.ns, cmd.serviceAccount, cmd.selfSignedWebhookCA)
 
 	objs := append([]runtime.Object{}, prereq.NewWebHookInitializer(opts).Resources()...)
 	objs = append(objs, prereq.NewServiceAccountInitializer(opts).Resources()...)

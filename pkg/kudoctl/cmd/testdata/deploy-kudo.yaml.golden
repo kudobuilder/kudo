@@ -581,6 +581,60 @@ subjects:
   namespace: kudo-system
 
 ---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: kudo-system/kudo-webhook-server-certificate
+  creationTimestamp: null
+  name: kudo-manager-instance-admission-webhook-config
+webhooks:
+- clientConfig:
+    service:
+      name: kudo-controller-manager-service
+      namespace: kudo-system
+      path: /admit-kudo-dev-v1beta1-instance
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: instance-admission.kudo.dev
+  rules:
+  - apiGroups:
+    - kudo.dev
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - instances
+    scope: Namespaced
+  sideEffects: None
+
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Issuer
+metadata:
+  name: selfsigned-issuer
+  namespace: kudo-system
+spec:
+  selfSigned: {}
+
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: kudo-webhook-server-certificate
+  namespace: kudo-system
+spec:
+  commonName: kudo-controller-manager-service.kudo-system.svc
+  dnsNames:
+  - kudo-controller-manager-service.kudo-system.svc
+  issuerRef:
+    kind: Issuer
+    name: selfsigned-issuer
+  secretName: kudo-webhook-server-secret
+
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -634,8 +688,6 @@ spec:
               fieldPath: metadata.namespace
         - name: SECRET_NAME
           value: kudo-webhook-server-secret
-        - name: ENABLE_WEBHOOKS
-          value: "false"
         image: kudobuilder/controller:vdev
         imagePullPolicy: Always
         name: manager
@@ -647,8 +699,17 @@ spec:
           requests:
             cpu: 100m
             memory: 50Mi
+        volumeMounts:
+        - mountPath: /tmp/cert
+          name: cert
+          readOnly: true
       serviceAccountName: kudo-manager
       terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: kudo-webhook-server-secret
   updateStrategy: {}
 status:
   replicas: 0

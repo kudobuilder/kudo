@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -25,6 +26,8 @@ var (
 type updateOptions struct {
 	InstanceName string
 	Parameters   map[string]string
+	Wait         bool
+	WaitTime     int64
 }
 
 // defaultOptions initializes the install command options to its defaults
@@ -54,6 +57,8 @@ func newUpdateCmd() *cobra.Command {
 	updateCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name.")
 	updateCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")
 	updateCmd.Flags().StringArrayVarP(&parameterFiles, "parameter-file", "P", nil, "YAML file with parameters")
+	updateCmd.Flags().BoolVar(&options.Wait, "wait", false, "Specify if the CLI should wait for the update to complete before returning (default \"false\")")
+	updateCmd.Flags().Int64Var(&options.WaitTime, "wait-time", 300, "Specify the max wait time in seconds for CLI for the update to complete before returning (default \"300\")")
 
 	return updateCmd
 }
@@ -98,7 +103,7 @@ func update(instanceToUpdate string, kc *kudo.Client, options *updateOptions, se
 	}
 
 	// Update arguments
-	err = kc.UpdateInstance(instanceToUpdate, settings.Namespace, nil, options.Parameters, nil)
+	err = kc.UpdateInstance(instanceToUpdate, settings.Namespace, nil, options.Parameters, nil, options.Wait, time.Duration(options.WaitTime)*time.Second)
 	if err != nil {
 		return fmt.Errorf("updating instance %s %w", instanceToUpdate, err)
 	}

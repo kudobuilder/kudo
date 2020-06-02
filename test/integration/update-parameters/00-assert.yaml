@@ -4,8 +4,8 @@ metadata:
   name: my-service
 spec:
   selector:
+    param: "after"
     replicas: "1"
-    param: "30"
 ---
 apiVersion: kudo.dev/v1beta1
 kind: Instance
@@ -15,9 +15,3 @@ status:
   planStatus:
     deploy:
       status: COMPLETE
-      phases:
-        - name: deploy
-          status: COMPLETE
-          steps:
-            - name: deploy
-              status: COMPLETE

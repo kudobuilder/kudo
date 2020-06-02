@@ -53,7 +53,7 @@ func UpgradeOperatorVersion(kc *Client, newOv *v1beta1.OperatorVersion, instance
 		clog.Printf("operatorversion.%s/%s created", newOv.APIVersion, newOv.Name)
 	}
 
-	if err = kc.UpdateInstance(instanceName, namespace, convert.StringPtr(newOv.Name), parameters, nil); err != nil {
+	if err = kc.UpdateInstance(instanceName, namespace, convert.StringPtr(newOv.Name), parameters, nil, false, 0); err != nil {
 		return fmt.Errorf("failed to update instance for new OperatorVersion %s", newOv.Name)
 	}
 	clog.Printf("instance.%s/%s updated", instance.APIVersion, instanceName)

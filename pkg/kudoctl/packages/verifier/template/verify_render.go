@@ -37,16 +37,10 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 		return res
 	}
 
-	configs := make(map[string]interface{})
-	configs["OperatorName"] = "OperatorName"
-	configs["Name"] = "Name"
-	configs["Namespace"] = "Namespace"
-	configs["Params"] = params
-	configs["Pipes"] = pipes
-	configs["PlanName"] = "PlanName"
-	configs["PhaseName"] = "PhaseName"
-	configs["StepName"] = "StepName"
-	configs["AppVersion"] = "AppVersion"
+	configs := renderer.NewVariableMap().
+		WithDefaults().
+		WithParameters(params).
+		WithPipes(pipes)
 
 	engine := renderer.New()
 	for k, v := range pf.Templates {
