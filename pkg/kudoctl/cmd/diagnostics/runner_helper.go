@@ -15,110 +15,15 @@ func diagForInstance(instance string, options *Options, c *kudo.Client, info ver
 
 	ctx := &processingContext{root: DiagDir, instanceName: instance}
 
-	instanceDiagRunner := runForInstance(ir, ctx, p).
-		dumpToYaml(info, ctx.rootDirectory, "version", p).
-		dumpToYaml(s, ctx.rootDirectory, "settings", p)
+	runner := runnerForInstance(ir, ctx)
+	runner.addObjDump(info, ctx.rootDirectory, "version")
+	runner.addObjDump(s, ctx.rootDirectory, "settings")
 
-	return instanceDiagRunner.fatalErr
-}
+	if err := runner.run(p); err != nil {
+		return err
+	}
 
-func runForInstance(ir *resourceFuncsConfig, ctx *processingContext, p *nonFailingPrinter) *runner {
-
-	instanceDiagRunner := &runner{}
-	instanceDiagRunner.
-		run(resourceCollectorGroup{[]resourceCollector{
-			{
-				loadResourceFn: ir.instance,
-				name:           "instance",
-				parentDir:      ctx.operatorDirectory,
-				failOnError:    true,
-				callback:       ctx.setOperatorVersionNameFromInstance,
-				printer:        p,
-				printMode:      ObjectWithDir},
-			{
-				loadResourceFn: ir.operatorVersion(ctx.operatorVersionName),
-				name:           "operatorversion",
-				parentDir:      ctx.operatorDirectory,
-				failOnError:    true,
-				callback:       ctx.setOperatorNameFromOperatorVersion,
-				printer:        p,
-				printMode:      ObjectWithDir},
-			{
-				loadResourceFn: ir.operator(ctx.operatorName),
-				name:           "operator",
-				parentDir:      ctx.rootDirectory,
-				failOnError:    true,
-				printer:        p,
-				printMode:      ObjectWithDir},
-		}, ctx.rootDirectory}).
-		run(&resourceCollector{
-			loadResourceFn: ir.pods,
-			name:           "pod",
-			parentDir:      ctx.instanceDirectory,
-			callback:       ctx.setPods,
-			printer:        p,
-			printMode:      ObjectListWithDirs}).
-		run(&resourceCollector{
-			loadResourceFn: ir.services,
-			name:           "service",
-			parentDir:      ctx.instanceDirectory,
-			printer:        p,
-			printMode:      RuntimeObject}).
-		run(&resourceCollector{
-			loadResourceFn: ir.deployments,
-			name:           "deployment",
-			parentDir:      ctx.instanceDirectory,
-			printer:        p,
-			printMode:      RuntimeObject}).
-		run(&resourceCollector{
-			loadResourceFn: ir.replicaSets,
-			name:           "replicaset",
-			parentDir:      ctx.instanceDirectory,
-			printer:        p,
-			printMode:      RuntimeObject}).
-		run(&resourceCollector{
-			loadResourceFn: ir.statefulSets,
-			name:           "statefulset",
-			parentDir:      ctx.instanceDirectory,
-			printer:        p,
-			printMode:      RuntimeObject}).
-		run(&resourceCollector{
-			loadResourceFn: ir.serviceAccounts,
-			name:           "serviceaccount",
-			parentDir:      ctx.instanceDirectory,
-			printer:        p,
-			printMode:      RuntimeObject}).
-		run(&resourceCollector{
-			loadResourceFn: ir.clusterRoleBindings,
-			name:           "clusterrolebinding",
-			parentDir:      ctx.instanceDirectory,
-			printer:        p,
-			printMode:      RuntimeObject}).
-		run(&resourceCollector{
-			loadResourceFn: ir.roleBindings,
-			name:           "rolebinding",
-			parentDir:      ctx.instanceDirectory,
-			printer:        p,
-			printMode:      RuntimeObject}).
-		run(&resourceCollector{
-			loadResourceFn: ir.clusterRoles,
-			name:           "clusterrole",
-			parentDir:      ctx.instanceDirectory,
-			printer:        p,
-			printMode:      RuntimeObject}).
-		run(&resourceCollector{
-			loadResourceFn: ir.roles,
-			name:           "role",
-			parentDir:      ctx.instanceDirectory,
-			printer:        p,
-			printMode:      RuntimeObject}).
-		run(&logsCollector{
-			loadLogFn: ir.log,
-			pods:      ctx.pods,
-			parentDir: ctx.instanceDirectory,
-			printer:   p,
-		})
-	return instanceDiagRunner
+	return nil
 }
 
 func diagForKudoManager(options *Options, c *kudo.Client, p *nonFailingPrinter) error {
@@ -127,38 +32,136 @@ func diagForKudoManager(options *Options, c *kudo.Client, p *nonFailingPrinter) 
 		return err
 	}
 	ctx := &processingContext{root: KudoDir}
-	kudoDiagRunner := &runner{}
-	kudoDiagRunner.
-		run(&resourceCollector{
-			loadResourceFn: kr.pods,
-			name:           "pod",
+
+	runner := runnerForKudoManager(kr, ctx)
+
+	if err := runner.run(p); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func runnerForInstance(ir *resourceFuncsConfig, ctx *processingContext) *runner {
+	r := &runner{}
+
+	instance := resourceCollectorGroup{[]resourceCollector{
+		{
+			loadResourceFn: ir.instance,
+			name:           "instance",
+			parentDir:      ctx.operatorDirectory,
+			failOnError:    true,
+			callback:       ctx.setOperatorVersionNameFromInstance,
+			printMode:      ObjectWithDir},
+		{
+			loadResourceFn: ir.operatorVersion(ctx.operatorVersionName),
+			name:           "operatorversion",
+			parentDir:      ctx.operatorDirectory,
+			failOnError:    true,
+			callback:       ctx.setOperatorNameFromOperatorVersion,
+			printMode:      ObjectWithDir},
+		{
+			loadResourceFn: ir.operator(ctx.operatorName),
+			name:           "operator",
 			parentDir:      ctx.rootDirectory,
-			callback:       ctx.setPods,
-			printer:        p,
-			printMode:      ObjectListWithDirs}).
-		run(&resourceCollector{
-			loadResourceFn: kr.services,
-			name:           "service",
-			parentDir:      ctx.rootDirectory,
-			printer:        p,
-			printMode:      RuntimeObject}).
-		run(&resourceCollector{
-			loadResourceFn: kr.statefulSets,
-			name:           "statefulset",
-			parentDir:      ctx.rootDirectory,
-			printer:        p,
-			printMode:      RuntimeObject}).
-		run(&resourceCollector{
-			loadResourceFn: kr.serviceAccounts,
-			name:           "serviceaccount",
-			parentDir:      ctx.rootDirectory,
-			printer:        p,
-			printMode:      RuntimeObject}).
-		run(&logsCollector{
-			loadLogFn: kr.log,
-			pods:      ctx.pods,
-			parentDir: ctx.rootDirectory,
-			printer:   p,
-		})
-	return kudoDiagRunner.fatalErr
+			failOnError:    true,
+			printMode:      ObjectWithDir},
+	}}
+	r.addCollector(instance)
+
+	r.addCollector(&resourceCollector{
+		loadResourceFn: ir.pods,
+		name:           "pod",
+		parentDir:      ctx.instanceDirectory,
+		callback:       ctx.setPods,
+		printMode:      ObjectListWithDirs})
+	r.addCollector(&resourceCollector{
+		loadResourceFn: ir.services,
+		name:           "service",
+		parentDir:      ctx.instanceDirectory,
+		printMode:      RuntimeObject})
+	r.addCollector(&resourceCollector{
+		loadResourceFn: ir.deployments,
+		name:           "deployment",
+		parentDir:      ctx.instanceDirectory,
+		printMode:      RuntimeObject})
+	r.addCollector(&resourceCollector{
+		loadResourceFn: ir.statefulSets,
+		name:           "statefulset",
+		parentDir:      ctx.instanceDirectory,
+		printMode:      RuntimeObject})
+	r.addCollector(&resourceCollector{
+		loadResourceFn: ir.replicaSets,
+		name:           "replicaset",
+		parentDir:      ctx.instanceDirectory,
+		printMode:      RuntimeObject})
+	r.addCollector(&resourceCollector{
+		loadResourceFn: ir.statefulSets,
+		name:           "statefulset",
+		parentDir:      ctx.instanceDirectory,
+		printMode:      RuntimeObject})
+	r.addCollector(&resourceCollector{
+		loadResourceFn: ir.serviceAccounts,
+		name:           "serviceaccount",
+		parentDir:      ctx.instanceDirectory,
+		printMode:      RuntimeObject})
+	r.addCollector(&resourceCollector{
+		loadResourceFn: ir.clusterRoleBindings,
+		name:           "clusterrolebinding",
+		parentDir:      ctx.instanceDirectory,
+		printMode:      RuntimeObject})
+	r.addCollector(&resourceCollector{
+		loadResourceFn: ir.roleBindings,
+		name:           "rolebinding",
+		parentDir:      ctx.instanceDirectory,
+		printMode:      RuntimeObject})
+	r.addCollector(&resourceCollector{
+		loadResourceFn: ir.clusterRoles,
+		name:           "clusterrole",
+		parentDir:      ctx.instanceDirectory,
+		printMode:      RuntimeObject})
+	r.addCollector(&resourceCollector{
+		loadResourceFn: ir.roles,
+		name:           "role",
+		parentDir:      ctx.instanceDirectory,
+		printMode:      RuntimeObject})
+	r.addCollector(&logsCollector{
+		loadLogFn: ir.log,
+		pods:      ctx.podList,
+		parentDir: ctx.instanceDirectory,
+	})
+
+	return r
+}
+
+func runnerForKudoManager(kr *resourceFuncsConfig, ctx *processingContext) *runner {
+	r := &runner{}
+
+	r.addCollector(&resourceCollector{
+		loadResourceFn: kr.pods,
+		name:           "pod",
+		parentDir:      ctx.rootDirectory,
+		callback:       ctx.setPods,
+		printMode:      ObjectListWithDirs})
+	r.addCollector(&resourceCollector{
+		loadResourceFn: kr.services,
+		name:           "service",
+		parentDir:      ctx.rootDirectory,
+		printMode:      RuntimeObject})
+	r.addCollector(&resourceCollector{
+		loadResourceFn: kr.statefulSets,
+		name:           "statefulset",
+		parentDir:      ctx.rootDirectory,
+		printMode:      RuntimeObject})
+	r.addCollector(&resourceCollector{
+		loadResourceFn: kr.serviceAccounts,
+		name:           "serviceaccount",
+		parentDir:      ctx.rootDirectory,
+		printMode:      RuntimeObject})
+	r.addCollector(&logsCollector{
+		loadLogFn: kr.log,
+		pods:      ctx.podList,
+		parentDir: ctx.rootDirectory})
+
+	return r
 }

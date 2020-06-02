@@ -3,10 +3,10 @@ package diagnostics
 import (
 	"fmt"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 // processingContext - shared data for the resource collectors
@@ -50,4 +50,8 @@ func (ctx *processingContext) operatorVersionName() string {
 
 func (ctx *processingContext) operatorName() string {
 	return ctx.opName
+}
+
+func (ctx *processingContext) podList() []v1.Pod {
+	return ctx.pods
 }
