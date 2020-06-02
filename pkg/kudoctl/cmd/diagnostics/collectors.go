@@ -20,7 +20,7 @@ var _ collector = &resourceCollector{}
 type resourceCollector struct {
 	loadResourceFn func() (runtime.Object, error)
 	name           string               // object kind used to describe the error
-	parentDir      func() string        // parent dir to attach the printer's output
+	parentDir      stringGetter         // parent dir to attach the printer's output
 	failOnError    bool                 // define whether the collector should return the error
 	callback       func(runtime.Object) // will be called with the retrieved resource after collection to update shared context
 	printMode      printMode
@@ -79,17 +79,16 @@ type resourceCollectorGroup struct {
 func (g resourceCollectorGroup) collect(printer *nonFailingPrinter) error {
 	clog.V(0).Printf("Collect ResourceGroup for %d collectors", len(g.collectors))
 	objs := make([]runtime.Object, len(g.collectors))
-	modes := make([]printMode, len(g.collectors))
 	for i, c := range g.collectors {
 		obj, err := c._collect(true)
 		if err != nil {
 			printer.printError(err, c.parentDir(), c.name)
 			return err
 		}
-		objs[i], modes[i] = obj, c.printMode
+		objs[i] = obj
 	}
 	for i, c := range g.collectors {
-		printer.printObject(objs[i], c.parentDir(), modes[i])
+		printer.printObject(objs[i], c.parentDir(), c.printMode)
 	}
 	return nil
 }
@@ -100,7 +99,7 @@ var _ collector = &logsCollector{}
 type logsCollector struct {
 	loadLogFn func(string, string) (io.ReadCloser, error)
 	pods      func() []v1.Pod
-	parentDir func() string
+	parentDir stringGetter
 }
 
 func (c *logsCollector) collect(printer *nonFailingPrinter) error {
