@@ -104,7 +104,7 @@ func instanceParameters(parameterFile string, templates map[string]string, meta 
 		return parameters, nil
 	}
 
-	return nil, nil
+	return map[string]string{}, nil
 }
 
 func renderParametersFile(pf string, pft string, meta renderer.Metadata, parameters map[string]interface{}) (string, error) {

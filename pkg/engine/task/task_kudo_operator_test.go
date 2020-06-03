@@ -149,12 +149,12 @@ PASSWORD: {{ .Params.BB_PASSWORD }}
 		wantErr    bool
 	}{
 		{
-			name:       "no parameter file returns a nil map",
+			name:       "no parameter file returns an empty map",
 			pf:         "",
 			templates:  templates,
 			meta:       meta,
 			parameters: parameters,
-			want:       nil,
+			want:       map[string]string{},
 			wantErr:    false,
 		},
 		{
