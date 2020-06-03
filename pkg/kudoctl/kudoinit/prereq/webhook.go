@@ -218,20 +218,34 @@ func (k *KudoWebHook) validateCertManagerInstallation(client *kube.Client, resul
 	k.certificate = certificate(k.opts.Namespace, k.certManagerGroup, k.certManagerAPIVersion)
 	k.issuer = issuer(k.opts.Namespace, k.certManagerGroup, k.certManagerAPIVersion)
 
-	// A couple extra checks, these may fail because cert-manager can be installed in different namespaces
-	deployment, err := client.KubeClient.AppsV1().Deployments("cert-manager").Get("cert-manager", metav1.GetOptions{})
+	// A couple extra checks, checking for cert manager, detection requires the label app=cert-manager which is the
+	// default according to k8s.io docs.
+	deployments, err := client.KubeClient.AppsV1().Deployments("").List(metav1.ListOptions{
+		LabelSelector: "app=cert-manager",
+	})
 	if err != nil {
-		if kerrors.IsNotFound(err) {
-			result.AddWarnings(fmt.Sprintf("failed to get cert-manager deployment in namespace cert-manager. Make sure cert-manager is running."))
-			return nil
-		}
+		// err is an infra error, 0 deploys is not an error
 		return err
 	}
+	switch cnt := len(deployments.Items); {
+	case cnt == 0:
+		result.AddWarnings(fmt.Sprintf("unable to find cert-manager deployment. Make sure cert-manager is running."))
+		return nil
+	case cnt > 1:
+		result.AddWarnings(fmt.Sprintf("more than 1 cert-manager deployment found."))
+	}
+
+	// for some reason the list of objects (which are []Deployment) are stripped of their kind and apiversions (causing issues with unstructuring in the isHealth func)
+	// there should only be 1, regardless we check the first (the warning for more than 1 found is already provided above)
+	deployment := deployments.Items[0]
+	deployment.Kind = "Deployment"
+	deployment.APIVersion = "apps/v1"
+
 	if len(deployment.Spec.Template.Spec.Containers) < 1 {
-		result.AddWarnings("failed to validate cert-manager controller deployment. Spec had no containers")
+		result.AddWarnings("unable to validate cert-manager controller deployment. Spec had no containers")
 		return nil
 	}
-	if err := health.IsHealthy(deployment); err != nil {
+	if err := health.IsHealthy(&deployment); err != nil {
 		result.AddWarnings("cert-manager seems not to be running correctly. Make sure cert-manager is working")
 		return nil
 	}
