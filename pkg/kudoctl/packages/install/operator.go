@@ -14,25 +14,23 @@ func installOperatorAndOperatorVersion(client *kudo.Client, resources packages.R
 	if !client.OperatorExistsInCluster(resources.Operator.Name, resources.Operator.Namespace) {
 		if _, err := client.InstallOperatorObjToCluster(resources.Operator, resources.Operator.Namespace); err != nil {
 			return fmt.Errorf(
-				"failed to install %s-operator.yaml in namespace %s: %v",
-				resources.Operator.Name,
+				"failed to install operator %s/%s: %v",
 				resources.Operator.Namespace,
+				resources.Operator.Name,
 				err)
 		}
 		clog.Printf(
-			"operator.%s/%s created in namespace %s",
-			resources.Operator.APIVersion,
-			resources.Operator.Name,
-			resources.Operator.Namespace)
+			"operator %s/%s created",
+			resources.Operator.Namespace,
+			resources.Operator.Name)
 	}
 
 	versionsInstalled, err := client.OperatorVersionsInstalled(resources.Operator.Name, resources.Operator.Namespace)
 	if err != nil {
 		return fmt.Errorf(
-			"failed to retrieve existing operator versions of operator.%s/%s in namespace %s: %v",
-			resources.Operator.APIVersion,
-			resources.Operator.Name,
+			"failed to retrieve existing operator versions of operator %s/%s: %v",
 			resources.Operator.Namespace,
+			resources.Operator.Name,
 			err)
 	}
 
@@ -41,22 +39,20 @@ func installOperatorAndOperatorVersion(client *kudo.Client, resources packages.R
 			resources.OperatorVersion,
 			resources.OperatorVersion.Namespace); err != nil {
 			return fmt.Errorf(
-				"failed to install %s-operatorversion.yaml in namespace %s: %v",
-				resources.OperatorVersion.Name,
+				"failed to install operatorversion %s/%s: %v",
 				resources.OperatorVersion.Namespace,
+				resources.OperatorVersion.Name,
 				err)
 		}
 		clog.Printf(
-			"operatorversion.%s/%s created in namespace %s",
-			resources.OperatorVersion.APIVersion,
-			resources.OperatorVersion.Name,
-			resources.OperatorVersion.Namespace)
+			"operatorversion %s/%s created",
+			resources.OperatorVersion.Namespace,
+			resources.OperatorVersion.Name)
 	} else {
 		clog.Printf(
-			"operatorversion.%s/%s already installed in namespace %s",
-			resources.OperatorVersion.APIVersion,
-			resources.OperatorVersion.Name,
-			resources.OperatorVersion.Namespace)
+			"operatorversion %s/%s already installed",
+			resources.OperatorVersion.Namespace,
+			resources.OperatorVersion.Name)
 	}
 
 	return nil

@@ -48,18 +48,18 @@ func Package(
 		}
 	}
 
+	if err := validateParameters(
+		*resources.Instance,
+		resources.OperatorVersion.Spec.Parameters); err != nil {
+		return err
+	}
+
 	if err := installOperatorAndOperatorVersion(client, resources); err != nil {
 		return err
 	}
 
 	if options.SkipInstance {
 		return nil
-	}
-
-	if err := validateParameters(
-		*resources.Instance,
-		resources.OperatorVersion.Spec.Parameters); err != nil {
-		return err
 	}
 
 	if err := installInstance(client, resources.Instance); err != nil {

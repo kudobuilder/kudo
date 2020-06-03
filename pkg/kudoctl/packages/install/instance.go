@@ -26,22 +26,26 @@ func installInstance(client *kudo.Client, instance *v1beta1.Instance) error {
 	}
 
 	if _, err := client.InstallInstanceObjToCluster(instance, instance.Namespace); err != nil {
-		return fmt.Errorf("failed to install instance %s: %v", instance.Name, err)
+		return fmt.Errorf(
+			"failed to install instance %s/%s: %v",
+			instance.Namespace,
+			instance.Name,
+			err)
 	}
 
-	clog.Printf("instance.%s/%s created", instance.APIVersion, instance.Name)
+	clog.Printf("instance %s/%s created", instance.Namespace, instance.Name)
 	return nil
 }
 
 func waitForInstance(client *kudo.Client, instance *v1beta1.Instance, timeout time.Duration) error {
 	err := client.WaitForInstance(instance.Name, instance.Namespace, nil, timeout)
 	if errors.Is(err, pollwait.ErrWaitTimeout) {
-		clog.Printf("timeout waiting for instance.%s/%s", instance.APIVersion, instance.Name)
+		clog.Printf("timeout waiting for instance %s/%s", instance.Namespace, instance.Name)
 	}
 	if err != nil {
-		return fmt.Errorf("failed to wait on instance %s: %v", instance.Name, err)
+		return fmt.Errorf("failed to wait on instance %s/%s: %v", instance.Namespace, instance.Name, err)
 	}
 
-	clog.Printf("instance.%s/%s ready", instance.APIVersion, instance.Name)
+	clog.Printf("instance %s/%s ready", instance.Namespace, instance.Name)
 	return nil
 }
