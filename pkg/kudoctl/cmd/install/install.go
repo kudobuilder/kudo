@@ -79,5 +79,12 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 		return fmt.Errorf("failed to resolve operator package for: %s %w", operatorArgument, err)
 	}
 
-	return kudo.InstallPackage(kc, pkg.Resources, options.SkipInstance, options.InstanceName, settings.Namespace, options.Parameters, options.Wait, options.CreateNameSpace, time.Duration(options.WaitTime)*time.Second)
+	return kudo.InstallPackage(kc, pkg.Resources,
+		options.SkipInstance,
+		options.InstanceName,
+		settings.Namespace,
+		options.Parameters,
+		options.Wait,
+		options.CreateNameSpace,
+		time.Duration(options.WaitTime)*time.Second)
 }

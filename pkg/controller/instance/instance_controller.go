@@ -177,7 +177,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	}
 	oldInstance := instance.DeepCopy()
 
-	ov, err := GetOperatorVersion(instance, r.Client)
+	ov, err := instance.GetOperatorVersion(r.Client)
 	if err != nil {
 		err = fmt.Errorf("InstanceController: Error getting operatorVersion %s for instance %s/%s: %v",
 			instance.Spec.OperatorVersion.Name, instance.Namespace, instance.Name, err)
@@ -364,21 +364,6 @@ func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1beta1.In
 		return nil, err
 	}
 	return instance, nil
-}
-
-// GetOperatorVersion retrieves OperatorVersion belonging to the given instance
-func GetOperatorVersion(instance *kudov1beta1.Instance, c client.Reader) (ov *kudov1beta1.OperatorVersion, err error) {
-	ov = &kudov1beta1.OperatorVersion{}
-	err = c.Get(context.TODO(),
-		types.NamespacedName{
-			Name:      instance.Spec.OperatorVersion.Name,
-			Namespace: instance.OperatorVersionNamespace(),
-		},
-		ov)
-	if err != nil {
-		return nil, err
-	}
-	return ov, nil
 }
 
 // ParamsMap generates {{ Params.* }} map of keys and values which is later used during template rendering.
