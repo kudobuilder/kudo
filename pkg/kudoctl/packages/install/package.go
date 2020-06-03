@@ -38,6 +38,12 @@ func Package(
 
 	applyOverrides(&resources, instanceName, namespace, parameters)
 
+	if err := validateParameters(
+		*resources.Instance,
+		resources.OperatorVersion.Spec.Parameters); err != nil {
+		return err
+	}
+
 	if err := client.ValidateServerForOperator(resources.Operator); err != nil {
 		return err
 	}
@@ -46,12 +52,6 @@ func Package(
 		if err := installNamespace(client, resources, parameters); err != nil {
 			return err
 		}
-	}
-
-	if err := validateParameters(
-		*resources.Instance,
-		resources.OperatorVersion.Spec.Parameters); err != nil {
-		return err
 	}
 
 	if err := installOperatorAndOperatorVersion(client, resources); err != nil {
