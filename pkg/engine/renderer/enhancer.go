@@ -2,10 +2,8 @@ package renderer
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
@@ -67,7 +65,7 @@ func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata)
 			// More: https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/
 			if isNamespaced {
 				objUnstructured.SetNamespace(metadata.InstanceNamespace)
-				if err = setControllerReference(metadata.ResourcesOwner, objUnstructured, de.Scheme); err != nil {
+				if err := controllerutil.SetControllerReference(metadata.ResourcesOwner, objUnstructured, de.Scheme); err != nil {
 					return nil, fmt.Errorf("%wsetting controller reference on parsed object %s: %v", engine.ErrFatalExecution, obj.GetObjectKind(), err)
 				}
 			}
@@ -224,29 +222,4 @@ func addMapValues(obj map[string]interface{}, fieldsToAdd map[string]string, pat
 		stringMap[k] = v
 	}
 	return unstructured.SetNestedStringMap(obj, stringMap, path...)
-}
-
-func setControllerReference(owner metav1.Object, object metav1.Object, scheme *runtime.Scheme) error {
-	ownerNs := owner.GetNamespace()
-	if ownerNs != "" {
-		objNs := object.GetNamespace()
-		if objNs == "" {
-			// we're trying to create cluster-scoped resource from and bind Instance as owner of that
-			// that is disallowed by design, see https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/#owners-and-dependents
-			// for now solve by not adding the owner
-			log.Printf("Not adding owner to resource %s because it's cluster-scoped and cannot be owned by namespace-scoped instance %s/%s", object.GetName(), owner.GetNamespace(), owner.GetName())
-			return nil
-		}
-		if ownerNs != objNs {
-			// we're trying to create resource in another namespace as is Instance's namespace, Instance cannot be owner of such resource
-			// that is disallowed by design, see https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/#owners-and-dependents
-			// for now solve by not adding the owner
-			log.Printf("Not adding owner to resource %s/%s because it's in different namespace than instance %s/%s and thus cannot be owned by that instance", object.GetNamespace(), object.GetName(), owner.GetNamespace(), owner.GetName())
-			return nil
-		}
-	}
-	if err := controllerutil.SetControllerReference(owner, object, scheme); err != nil {
-		return err
-	}
-	return nil
 }
