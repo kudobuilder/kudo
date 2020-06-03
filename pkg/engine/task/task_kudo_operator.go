@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -97,10 +96,9 @@ func instanceParameters(parameterFile string, templates map[string]string, meta 
 		}
 
 		parameters := map[string]string{}
-		errs := []string{}
-		parser.GetParametersFromFile(parameterFile, []byte(rendered), errs, parameters)
-		if len(errs) > 0 {
-			return nil, fmt.Errorf("failed to unmarshal parameter file %s: %s", parameterFile, strings.Join(errs, ", "))
+		err = parser.GetParametersFromFile(parameterFile, []byte(rendered), parameters)
+		if err != nil {
+			return nil, err
 		}
 
 		return parameters, nil
