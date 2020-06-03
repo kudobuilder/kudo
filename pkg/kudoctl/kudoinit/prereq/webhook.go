@@ -200,15 +200,12 @@ func (k *KudoWebHook) validateCertManagerInstallation(client *kube.Client, resul
 		result.AddWarnings(fmt.Sprintf("Detected cert-manager CRDs with version %s, only versions %v are fully supported. Certificates for webhooks may not work.", k.certManagerAPIVersion, certManagerAPIVersions))
 	}
 
-	k.certificate = certificate(k.opts.Namespace, k.certManagerGroup, k.certManagerAPIVersion)
-	k.issuer = issuer(k.opts.Namespace, k.certManagerGroup, k.certManagerAPIVersion)
-
 	certificateCRD := fmt.Sprintf("certificates.%s", k.certManagerGroup)
-	if err := validateCrdVersion(client.ExtClient, certificateCRD, k.certificate.GroupVersionKind().Version, result); err != nil {
+	if err := validateCrdVersion(client.ExtClient, certificateCRD, k.certManagerAPIVersion, result); err != nil {
 		return err
 	}
 	issuerCRD := fmt.Sprintf("issuers.%s", k.certManagerGroup)
-	if err := validateCrdVersion(client.ExtClient, issuerCRD, k.issuer.GroupVersionKind().Version, result); err != nil {
+	if err := validateCrdVersion(client.ExtClient, issuerCRD, k.certManagerAPIVersion, result); err != nil {
 		return err
 	}
 
@@ -217,6 +214,11 @@ func (k *KudoWebHook) validateCertManagerInstallation(client *kube.Client, resul
 		return nil
 	}
 
+	// Initialize the custom resources that we're going to install
+	k.certificate = certificate(k.opts.Namespace, k.certManagerGroup, k.certManagerAPIVersion)
+	k.issuer = issuer(k.opts.Namespace, k.certManagerGroup, k.certManagerAPIVersion)
+
+	// A couple extra checks, these may fail because cert-manager can be installed in different namespaces
 	deployment, err := client.KubeClient.AppsV1().Deployments("cert-manager").Get("cert-manager", metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
