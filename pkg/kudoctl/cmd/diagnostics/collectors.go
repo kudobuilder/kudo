@@ -54,10 +54,10 @@ func (c *resourceCollector) _collect(failOnError bool) (runtime.Object, error) {
 		return nil, fmt.Errorf("failed to retrieve object(s) of kind %s: %v", c.name, err)
 	}
 	if emptyResult(obj) {
-		obj = nil
 		if failOnError {
 			return nil, fmt.Errorf("no object(s) of kind %s retrieved", c.name)
 		}
+		return nil, nil
 	}
 	if c.callback != nil {
 		c.callback(obj)
