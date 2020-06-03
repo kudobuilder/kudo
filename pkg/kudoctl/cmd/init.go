@@ -154,10 +154,12 @@ func (initCmd *initCmd) run() error {
 		}
 	}
 
+	installer := setup.NewInstaller(opts, initCmd.crdOnly)
+
 	//TODO: implement output=yaml|json (define a type for output to constrain)
 	//define an Encoder to replace YAMLWriter
 	if strings.ToLower(initCmd.output) == "yaml" {
-		manifests, err := setup.AsYamlManifests(opts, initCmd.crdOnly)
+		manifests, err := installer.AsYamlManifests()
 		if err != nil {
 			return err
 		}
@@ -186,7 +188,7 @@ func (initCmd *initCmd) run() error {
 			}
 			initCmd.client = client
 		}
-		ok, err := initCmd.preInstallVerify(opts)
+		ok, err := initCmd.preInstallVerify(installer)
 		if err != nil {
 			return err
 		}
@@ -194,7 +196,7 @@ func (initCmd *initCmd) run() error {
 			return fmt.Errorf("failed to verify installation requirements")
 		}
 
-		if err := setup.Install(initCmd.client, opts, initCmd.crdOnly); err != nil {
+		if err := installer.Install(initCmd.client); err != nil {
 			return clog.Errorf("error installing: %s", err)
 		}
 
@@ -211,9 +213,9 @@ func (initCmd *initCmd) run() error {
 }
 
 // preInstallVerify runs the pre-installation verification and returns true if the installation can continue
-func (initCmd *initCmd) preInstallVerify(opts kudoinit.Options) (bool, error) {
+func (initCmd *initCmd) preInstallVerify(v kudoinit.InstallVerifier) (bool, error) {
 	result := verifier.NewResult()
-	if err := setup.PreInstallVerify(initCmd.client, opts, initCmd.crdOnly, &result); err != nil {
+	if err := v.PreInstallVerify(initCmd.client, &result); err != nil {
 		return false, err
 	}
 	result.PrintWarnings(initCmd.out)

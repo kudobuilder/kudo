@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/thoas/go-funk"
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -28,41 +29,43 @@ import (
 var _ kudoinit.Step = &KudoWebHook{}
 
 type KudoWebHook struct {
-	opts        kudoinit.Options
-	issuer      unstructured.Unstructured
-	certificate unstructured.Unstructured
+	opts kudoinit.Options
+
+	certManagerGroup      string
+	certManagerAPIVersion string
+
+	issuer      *unstructured.Unstructured
+	certificate *unstructured.Unstructured
 }
 
 const (
-	certManagerAPIVersion        = "v1alpha2"
-	certManagerControllerVersion = "v0.12.0"
+	certManagerOldGroup = "certmanager.k8s.io"
+	certManagerNewGroup = "cert-manager.io"
 )
 
 var (
-	certManagerControllerImageSuffix = fmt.Sprintf("cert-manager-controller:%s", certManagerControllerVersion)
+	certManagerAPIVersions = []string{"v1alpha2", "v1alpha1"}
 )
 
-func NewWebHookInitializer(options kudoinit.Options) KudoWebHook {
-	return KudoWebHook{
-		opts:        options,
-		certificate: certificate(options.Namespace),
-		issuer:      issuer(options.Namespace),
+func NewWebHookInitializer(options kudoinit.Options) *KudoWebHook {
+	return &KudoWebHook{
+		opts: options,
 	}
 }
 
-func (k KudoWebHook) String() string {
+func (k *KudoWebHook) String() string {
 	return "webhook"
 }
 
-func (k KudoWebHook) PreInstallVerify(client *kube.Client, result *verifier.Result) error {
+func (k *KudoWebHook) PreInstallVerify(client *kube.Client, result *verifier.Result) error {
 	// skip verification if webhooks are not used or self-signed CA is used
 	if k.opts.SelfSignedWebhookCA {
 		return nil
 	}
-	return validateCertManagerInstallation(client, result)
+	return k.validateCertManagerInstallation(client, result)
 }
 
-func (k KudoWebHook) installWithCertManager(client *kube.Client) error {
+func (k *KudoWebHook) installWithCertManager(client *kube.Client) error {
 	if err := installUnstructured(client.DynamicClient, k.issuer); err != nil {
 		return err
 	}
@@ -75,7 +78,7 @@ func (k KudoWebHook) installWithCertManager(client *kube.Client) error {
 	return nil
 }
 
-func (k KudoWebHook) installWithSelfSignedCA(client *kube.Client) error {
+func (k *KudoWebHook) installWithSelfSignedCA(client *kube.Client) error {
 	iaw, s, err := k.resourcesWithSelfSignedCA()
 	if err != nil {
 		return nil
@@ -92,14 +95,14 @@ func (k KudoWebHook) installWithSelfSignedCA(client *kube.Client) error {
 	return nil
 }
 
-func (k KudoWebHook) Install(client *kube.Client) error {
+func (k *KudoWebHook) Install(client *kube.Client) error {
 	if k.opts.SelfSignedWebhookCA {
 		return k.installWithSelfSignedCA(client)
 	}
 	return k.installWithCertManager(client)
 }
 
-func (k KudoWebHook) Resources() []runtime.Object {
+func (k *KudoWebHook) Resources() []runtime.Object {
 	if k.opts.SelfSignedWebhookCA {
 		iaw, s, err := k.resourcesWithSelfSignedCA()
 		if err != nil {
@@ -112,15 +115,19 @@ func (k KudoWebHook) Resources() []runtime.Object {
 	return k.resourcesWithCertManager()
 }
 
-func (k KudoWebHook) resourcesWithCertManager() []runtime.Object {
+func (k *KudoWebHook) resourcesWithCertManager() []runtime.Object {
+	// We have to fall back to a default here as for a dry-run we can't detect the actual version of a cluster
+	k.issuer = issuer(k.opts.Namespace, certManagerNewGroup, certManagerAPIVersions[0])
+	k.certificate = certificate(k.opts.Namespace, certManagerNewGroup, certManagerAPIVersions[0])
+
 	av := InstanceAdmissionWebhook(k.opts.Namespace)
 	objs := []runtime.Object{&av}
-	objs = append(objs, &k.issuer)
-	objs = append(objs, &k.certificate)
+	objs = append(objs, k.issuer)
+	objs = append(objs, k.certificate)
 	return objs
 }
 
-func (k KudoWebHook) resourcesWithSelfSignedCA() (*admissionv1beta1.MutatingWebhookConfiguration, *corev1.Secret, error) {
+func (k *KudoWebHook) resourcesWithSelfSignedCA() (*admissionv1beta1.MutatingWebhookConfiguration, *corev1.Secret, error) {
 	tinyCA, err := NewTinyCA(kudoinit.DefaultServiceName, k.opts.Namespace)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to set up webhook CA: %v", err)
@@ -142,11 +149,66 @@ func (k KudoWebHook) resourcesWithSelfSignedCA() (*admissionv1beta1.MutatingWebh
 	return &iaw, &ws, nil
 }
 
-func validateCertManagerInstallation(client *kube.Client, result *verifier.Result) error {
-	if err := validateCrdVersion(client.ExtClient, "certificates.cert-manager.io", certManagerAPIVersion, result); err != nil {
+func (k *KudoWebHook) detectCertManagerVersion(client *kube.Client, result *verifier.Result) error {
+	extClient := client.ExtClient
+
+	// Cert-Manager 0.11.0+
+	if err := k.detectCertManagerCRD(extClient, certManagerNewGroup); err != nil {
 		return err
 	}
-	if err := validateCrdVersion(client.ExtClient, "issuers.cert-manager.io", certManagerAPIVersion, result); err != nil {
+	if k.certManagerGroup != "" {
+		return nil
+	}
+
+	// Cert-Manager 0.10.1
+	if err := k.detectCertManagerCRD(extClient, certManagerOldGroup); err != nil {
+		return err
+	}
+	if k.certManagerGroup != "" {
+		return nil
+	}
+	result.AddErrors(fmt.Sprintf("failed to detect any valid cert-manager CRDs. Make sure cert-manager is installed."))
+	return nil
+}
+
+func (k *KudoWebHook) detectCertManagerCRD(extClient clientset.Interface, group string) error {
+	testCRD := fmt.Sprintf("certificates.%s", group)
+	clog.V(4).Printf("Try to retrieve cert-manager CRD %s", testCRD)
+	crd, err := extClient.ApiextensionsV1().CustomResourceDefinitions().Get(testCRD, metav1.GetOptions{})
+	if err == nil {
+		clog.V(4).Printf("Got CRD. Group: %s, Version: %s", group, crd.Spec.Versions[0].Name)
+		k.certManagerGroup = group
+		k.certManagerAPIVersion = crd.Spec.Versions[0].Name
+		return nil
+	}
+	if !kerrors.IsNotFound(err) {
+		return fmt.Errorf("failed to detect cert manager CRD %s: %v", testCRD, err)
+	}
+	return nil
+}
+
+func (k *KudoWebHook) validateCertManagerInstallation(client *kube.Client, result *verifier.Result) error {
+	if err := k.detectCertManagerVersion(client, result); err != nil {
+		return err
+	}
+	if !result.IsValid() {
+		return nil
+	}
+	clog.V(4).Printf("Detected cert-manager CRDs %s/%s", k.certManagerGroup, k.certManagerAPIVersion)
+
+	if !funk.Contains(certManagerAPIVersions, k.certManagerAPIVersion) {
+		result.AddWarnings(fmt.Sprintf("Detected cert-manager CRDs with version %s, only versions %v are fully supported. Certificates for webhooks may not work.", k.certManagerAPIVersion, certManagerAPIVersions))
+	}
+
+	k.certificate = certificate(k.opts.Namespace, k.certManagerGroup, k.certManagerAPIVersion)
+	k.issuer = issuer(k.opts.Namespace, k.certManagerGroup, k.certManagerAPIVersion)
+
+	certificateCRD := fmt.Sprintf("certificates.%s", k.certManagerGroup)
+	if err := validateCrdVersion(client.ExtClient, certificateCRD, k.certificate.GroupVersionKind().Version, result); err != nil {
+		return err
+	}
+	issuerCRD := fmt.Sprintf("issuers.%s", k.certManagerGroup)
+	if err := validateCrdVersion(client.ExtClient, issuerCRD, k.issuer.GroupVersionKind().Version, result); err != nil {
 		return err
 	}
 
@@ -165,10 +227,6 @@ func validateCertManagerInstallation(client *kube.Client, result *verifier.Resul
 	}
 	if len(deployment.Spec.Template.Spec.Containers) < 1 {
 		result.AddWarnings("failed to validate cert-manager controller deployment. Spec had no containers")
-		return nil
-	}
-	if !strings.HasSuffix(deployment.Spec.Template.Spec.Containers[0].Image, certManagerControllerImageSuffix) {
-		result.AddWarnings(fmt.Sprintf("cert-manager deployment had unexpected version. expected %s in controller image name but found %s", certManagerControllerVersion, deployment.Spec.Template.Spec.Containers[0].Image))
 		return nil
 	}
 	if err := health.IsHealthy(deployment); err != nil {
@@ -196,13 +254,13 @@ func validateCrdVersion(extClient clientset.Interface, crdName string, expectedV
 }
 
 // installUnstructured accepts kubernetes resource as unstructured.Unstructured and installs it into cluster
-func installUnstructured(dynamicClient dynamic.Interface, item unstructured.Unstructured) error {
+func installUnstructured(dynamicClient dynamic.Interface, item *unstructured.Unstructured) error {
 	gvk := item.GroupVersionKind()
 	_, err := dynamicClient.Resource(schema.GroupVersionResource{
 		Group:    gvk.Group,
 		Version:  gvk.Version,
 		Resource: fmt.Sprintf("%ss", strings.ToLower(gvk.Kind)), // since we know what kinds are we dealing with here, this is OK
-	}).Namespace(item.GetNamespace()).Create(&item, metav1.CreateOptions{})
+	}).Namespace(item.GetNamespace()).Create(item, metav1.CreateOptions{})
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("resource %s already registered", item.GetName())
 	} else if err != nil {
@@ -281,10 +339,11 @@ func InstanceAdmissionWebhook(ns string) admissionv1beta1.MutatingWebhookConfigu
 	}
 }
 
-func issuer(ns string) unstructured.Unstructured {
-	return unstructured.Unstructured{
+func issuer(ns string, group string, apiVersion string) *unstructured.Unstructured {
+	apiString := fmt.Sprintf("%s/%s", group, apiVersion)
+	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"apiVersion": "cert-manager.io/v1alpha2",
+			"apiVersion": apiString,
 			"kind":       "Issuer",
 			"metadata": map[string]interface{}{
 				"name":      "selfsigned-issuer",
@@ -297,10 +356,11 @@ func issuer(ns string) unstructured.Unstructured {
 	}
 }
 
-func certificate(ns string) unstructured.Unstructured {
-	return unstructured.Unstructured{
+func certificate(ns string, group string, apiVersion string) *unstructured.Unstructured {
+	apiString := fmt.Sprintf("%s/%s", group, apiVersion)
+	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"apiVersion": "cert-manager.io/v1alpha2",
+			"apiVersion": apiString,
 			"kind":       "Certificate",
 			"metadata": map[string]interface{}{
 				"name":      "kudo-webhook-server-certificate",
