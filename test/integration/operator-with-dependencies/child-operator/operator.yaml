@@ -1,17 +1,17 @@
 apiVersion: kudo.dev/v1beta1
-name: "dummy"
-operatorVersion: "0.1.0"
+name: "child"
+operatorVersion: "0.0.1"
 kubernetesVersion: 1.15.0
 maintainers:
   - name: zen-dog
     email: <your@email.com>
 url: https://kudo.dev
 tasks:
-  - name: deploy-inner
-    kind: KudoOperator
+  - name: deploy
+    kind: Dummy
     spec:
-      package: inner
-      operatorVersion: 0.0.1
+      done: true
+      wantErr: false
 
 plans:
   deploy:
@@ -22,4 +22,4 @@ plans:
         steps:
           - name: deploy
             tasks:
-              - deploy-inner
+              - deploy
