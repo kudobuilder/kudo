@@ -38,13 +38,17 @@ type KudoWebHook struct {
 	certificate *unstructured.Unstructured
 }
 
-const (
-	certManagerOldGroup = "certmanager.k8s.io"
-	certManagerNewGroup = "cert-manager.io"
-)
+type certManagerVersion struct {
+	group    string
+	versions []string
+}
 
 var (
-	certManagerAPIVersions = []string{"v1alpha2", "v1alpha1"}
+	// Cert-Manager APIs that we can detect
+	certManagerAPIs = []certManagerVersion{
+		{group: "cert-manager.io", versions: []string{"v1alpha2", "v1alpha3"}}, // 0.11.0+
+		{group: "certmanager.k8s.io", versions: []string{"v1alpha2"}},          // 0.10.1
+	}
 )
 
 func NewWebHookInitializer(options kudoinit.Options) *KudoWebHook {
@@ -116,10 +120,6 @@ func (k *KudoWebHook) Resources() []runtime.Object {
 }
 
 func (k *KudoWebHook) resourcesWithCertManager() []runtime.Object {
-	// We have to fall back to a default here as for a dry-run we can't detect the actual version of a cluster
-	k.issuer = issuer(k.opts.Namespace, certManagerNewGroup, certManagerAPIVersions[0])
-	k.certificate = certificate(k.opts.Namespace, certManagerNewGroup, certManagerAPIVersions[0])
-
 	av := InstanceAdmissionWebhook(k.opts.Namespace)
 	objs := []runtime.Object{&av}
 	objs = append(objs, k.issuer)
@@ -152,39 +152,42 @@ func (k *KudoWebHook) resourcesWithSelfSignedCA() (*admissionv1beta1.MutatingWeb
 func (k *KudoWebHook) detectCertManagerVersion(client *kube.Client, result *verifier.Result) error {
 	extClient := client.ExtClient
 
-	// Cert-Manager 0.11.0+
-	if err := k.detectCertManagerCRD(extClient, certManagerNewGroup); err != nil {
-		return err
-	}
-	if k.certManagerGroup != "" {
-		return nil
+	for _, api := range certManagerAPIs {
+		group, version, err := detectCertManagerCRD(extClient, api)
+		if err != nil {
+			return err
+		}
+		if group != "" && version != "" {
+			clog.V(4).Printf("Detected cert-manager CRDs %s/%s", k.certManagerGroup, k.certManagerAPIVersion)
+
+			if !funk.Contains(api.versions, version) {
+				result.AddWarnings(fmt.Sprintf("Detected cert-manager CRDs with version %s, only versions %v are fully supported. Certificates for webhooks may not work.", version, api.versions))
+			}
+
+			k.certManagerGroup = group
+			k.certManagerAPIVersion = version
+
+			return nil
+		}
 	}
 
-	// Cert-Manager 0.10.1
-	if err := k.detectCertManagerCRD(extClient, certManagerOldGroup); err != nil {
-		return err
-	}
-	if k.certManagerGroup != "" {
-		return nil
-	}
 	result.AddErrors(fmt.Sprintf("failed to detect any valid cert-manager CRDs. Make sure cert-manager is installed."))
 	return nil
 }
 
-func (k *KudoWebHook) detectCertManagerCRD(extClient clientset.Interface, group string) error {
-	testCRD := fmt.Sprintf("certificates.%s", group)
+func detectCertManagerCRD(extClient clientset.Interface, api certManagerVersion) (string, string, error) {
+	testCRD := fmt.Sprintf("certificates.%s", api.group)
 	clog.V(4).Printf("Try to retrieve cert-manager CRD %s", testCRD)
 	crd, err := extClient.ApiextensionsV1().CustomResourceDefinitions().Get(testCRD, metav1.GetOptions{})
 	if err == nil {
-		clog.V(4).Printf("Got CRD. Group: %s, Version: %s", group, crd.Spec.Versions[0].Name)
-		k.certManagerGroup = group
-		k.certManagerAPIVersion = crd.Spec.Versions[0].Name
-		return nil
+		// crd.Spec.Versions[0] must be the one that is stored and served, we should use that one
+		clog.V(4).Printf("Got CRD. Group: %s, Version: %s", api.group, crd.Spec.Versions[0].Name)
+		return api.group, crd.Spec.Versions[0].Name, nil
 	}
 	if !kerrors.IsNotFound(err) {
-		return fmt.Errorf("failed to detect cert manager CRD %s: %v", testCRD, err)
+		return "", "", fmt.Errorf("failed to detect cert manager CRD %s: %v", testCRD, err)
 	}
-	return nil
+	return "", "", nil
 }
 
 func (k *KudoWebHook) validateCertManagerInstallation(client *kube.Client, result *verifier.Result) error {
@@ -193,11 +196,6 @@ func (k *KudoWebHook) validateCertManagerInstallation(client *kube.Client, resul
 	}
 	if !result.IsValid() {
 		return nil
-	}
-	clog.V(4).Printf("Detected cert-manager CRDs %s/%s", k.certManagerGroup, k.certManagerAPIVersion)
-
-	if !funk.Contains(certManagerAPIVersions, k.certManagerAPIVersion) {
-		result.AddWarnings(fmt.Sprintf("Detected cert-manager CRDs with version %s, only versions %v are fully supported. Certificates for webhooks may not work.", k.certManagerAPIVersion, certManagerAPIVersions))
 	}
 
 	certificateCRD := fmt.Sprintf("certificates.%s", k.certManagerGroup)

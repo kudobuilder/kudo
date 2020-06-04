@@ -60,6 +60,7 @@ and finishes with success if KUDO is already installed.
 
 type initCmd struct {
 	out                 io.Writer
+	errOut              io.Writer
 	fs                  afero.Fs
 	image               string
 	imagePullPolicy     string
@@ -77,8 +78,8 @@ type initCmd struct {
 	selfSignedWebhookCA bool
 }
 
-func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
-	i := &initCmd{fs: fs, out: out}
+func newInitCmd(fs afero.Fs, out io.Writer, errOut io.Writer, client *kube.Client) *cobra.Command {
+	i := &initCmd{fs: fs, out: out, errOut: errOut, client: client}
 
 	cmd := &cobra.Command{
 		Use:     "init",
@@ -156,6 +157,34 @@ func (initCmd *initCmd) run() error {
 
 	installer := setup.NewInstaller(opts, initCmd.crdOnly)
 
+	// initialize client
+	if !initCmd.dryRun {
+		if err := initCmd.initialize(); err != nil {
+			return clog.Errorf("error initializing: %s", err)
+		}
+	}
+	clog.Printf("$KUDO_HOME has been configured at %s", Settings.Home)
+	if initCmd.clientOnly {
+		return nil
+	}
+
+	// initialize server
+	clog.V(4).Printf("initializing server")
+	if initCmd.client == nil {
+		client, err := kube.GetKubeClient(Settings.KubeConfig)
+		if err != nil {
+			return clog.Errorf("could not get Kubernetes client: %s", err)
+		}
+		initCmd.client = client
+	}
+	ok, err := initCmd.preInstallVerify(installer)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("failed to verify installation requirements")
+	}
+
 	//TODO: implement output=yaml|json (define a type for output to constrain)
 	//define an Encoder to replace YAMLWriter
 	if strings.ToLower(initCmd.output) == "yaml" {
@@ -168,34 +197,7 @@ func (initCmd *initCmd) run() error {
 		}
 	}
 
-	if initCmd.dryRun {
-		return nil
-	}
-
-	// initialize client
-	if err := initCmd.initialize(); err != nil {
-		return clog.Errorf("error initializing: %s", err)
-	}
-	clog.Printf("$KUDO_HOME has been configured at %s", Settings.Home)
-
-	// initialize server
-	if !initCmd.clientOnly {
-		clog.V(4).Printf("initializing server")
-		if initCmd.client == nil {
-			client, err := kube.GetKubeClient(Settings.KubeConfig)
-			if err != nil {
-				return clog.Errorf("could not get Kubernetes client: %s", err)
-			}
-			initCmd.client = client
-		}
-		ok, err := initCmd.preInstallVerify(installer)
-		if err != nil {
-			return err
-		}
-		if !ok {
-			return fmt.Errorf("failed to verify installation requirements")
-		}
-
+	if !initCmd.dryRun {
 		if err := installer.Install(initCmd.client); err != nil {
 			return clog.Errorf("error installing: %s", err)
 		}
@@ -218,9 +220,9 @@ func (initCmd *initCmd) preInstallVerify(v kudoinit.InstallVerifier) (bool, erro
 	if err := v.PreInstallVerify(initCmd.client, &result); err != nil {
 		return false, err
 	}
-	result.PrintWarnings(initCmd.out)
+	result.PrintWarnings(initCmd.errOut)
 	if !result.IsValid() {
-		result.PrintErrors(initCmd.out)
+		result.PrintErrors(initCmd.errOut)
 		return false, nil
 	}
 	return true, nil

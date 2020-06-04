@@ -51,7 +51,7 @@ func TestPrereq_Fail_PreValidate_Webhook_WrongCertificateVersion(t *testing.T) {
 	_ = init.PreInstallVerify(client, &result)
 
 	assert.EqualValues(t, verifier.NewWarning(
-		"Detected cert-manager CRDs with version v0, only versions [v1alpha2 v1alpha1] are fully supported. Certificates for webhooks may not work.",
+		"Detected cert-manager CRDs with version v0, only versions [v1alpha2 v1alpha3] are fully supported. Certificates for webhooks may not work.",
 	), result)
 }
 

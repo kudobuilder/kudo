@@ -38,13 +38,14 @@ func TestAddBadURLRepo(t *testing.T) {
 	//	setup
 	fs := afero.NewMemMapFs()
 	out := &bytes.Buffer{}
+	errOut := &bytes.Buffer{}
 
 	home := kudohome.Home("kudo_home")
 	err := fs.Mkdir(home.String(), 0755)
 	if err != nil {
 		t.Fatal(err)
 	}
-	i := &initCmd{fs: fs, out: out, home: home}
+	i := &initCmd{fs: fs, out: out, errOut: errOut, home: home}
 	if err := i.initialize(); err != nil {
 		t.Error(err)
 	}
@@ -60,13 +61,14 @@ func TestAddSkipCheck(t *testing.T) {
 	//	setup
 	fs := afero.NewMemMapFs()
 	out := &bytes.Buffer{}
+	errOut := &bytes.Buffer{}
 
 	home := kudohome.Home("kudo_home")
 	err := fs.Mkdir(home.String(), 0755)
 	if err != nil {
 		t.Fatal(err)
 	}
-	i := &initCmd{fs: fs, out: out, home: home}
+	i := &initCmd{fs: fs, out: out, errOut: errOut, home: home}
 	if err := i.initialize(); err != nil {
 		t.Error(err)
 	}
