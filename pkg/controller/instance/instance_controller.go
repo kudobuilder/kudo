@@ -140,20 +140,8 @@ func isForPipePod(e event.DeleteEvent) bool {
 //                  |
 //                  v
 //   +-------------------------------+
-//   | Update finalizers if cleanup  |
-//   | plan exists                   |
-//   +-------------------------------+
-//                  |
-//                  v
-//   +-------------------------------+
-//   | Start new plan if required    |
-//   | and none is running           |
-//   +-------------------------------+
-//                  |
-//                  v
-//   +-------------------------------+
-//   | If there is plan in progress, |
-//   | proceed with the execution    |
+//   | Execute the scheduled plan    |
+//   | if exists                     |
 //   +-------------------------------+
 //                  |
 //                  v
@@ -186,28 +174,19 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err // OV not found has to be retried because it can really have been created after Instance
 	}
 
-	// ---------- 2. Check if we should start execution of new plan ----------
+	// ---------- 2. Execute scheduled plan if exists ----------
+	ensurePlanStatusInitialized(instance, ov)
 
-	newExecutionPlan, err := newExecutionPlan(instance, ov)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if newExecutionPlan != nil {
-		log.Printf("InstanceController: Going to start execution of plan '%s' on instance %s/%s", convert.StringValue(newExecutionPlan), instance.Namespace, instance.Name)
-		err = startPlanExecution(instance, convert.StringValue(newExecutionPlan), ov)
-		if err != nil {
-			return reconcile.Result{}, r.handleError(err, instance, oldInstance)
-		}
-		r.Recorder.Event(instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", convert.StringValue(newExecutionPlan)))
-	}
-
-	// ---------- 3. If there's currently active plan, continue with the execution ----------
-
-	activePlanStatus := instance.GetScheduledPlan()
-	if activePlanStatus == nil { // we have no plan in progress
+	plan, uid := scheduledPlan(instance, ov)
+	if plan == "" {
 		log.Printf("InstanceController: Nothing to do, no plan scheduled for instance %s/%s", instance.Namespace, instance.Name)
 		return reconcile.Result{}, nil
+	}
+
+	planStatus, err := resetPlanStatusIfThePlanIsNew(instance, plan, uid)
+	if err != nil {
+		log.Printf("InstanceController: Error resetting instance %s/%s status. %v", instance.Namespace, instance.Name, err)
+		return reconcile.Result{}, err
 	}
 
 	metadata := &engine.Metadata{
@@ -220,7 +199,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		InstanceName:        instance.Name,
 	}
 
-	activePlan, err := preparePlanExecution(instance, ov, activePlanStatus, metadata)
+	activePlan, err := preparePlanExecution(instance, ov, planStatus, metadata)
 	if err != nil {
 		err = r.handleError(err, instance, oldInstance)
 		return reconcile.Result{}, err
@@ -228,7 +207,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	log.Printf("InstanceController: Going to proceed with execution of the scheduled plan '%s' on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
 	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, r.Discovery, r.Config, r.Scheme)
 
-	// ---------- 4. Update instance and its status after the execution proceeded ----------
+	// ---------- 3. Update instance and its status after the execution proceeded ----------
 
 	if newStatus != nil {
 		instance.UpdateInstanceStatus(newStatus, &metav1.Time{Time: time.Now()})
@@ -240,13 +219,13 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	err = updateInstance(instance, oldInstance, r.Client)
 	if err != nil {
-		log.Printf("InstanceController: Error when updating instance. %v", err)
+		log.Printf("InstanceController: Error when updating instance %s/%s. %v", instance.Namespace, instance.Name, err)
 		return reconcile.Result{}, err
 	}
 
 	// Publish a PlanFinished event after instance and its status were successfully updated
 	if instance.Spec.PlanExecution.Status.IsTerminal() {
-		r.Recorder.Event(instance, "Normal", "PlanFinished", fmt.Sprintf("Execution of plan %s finished with status %s", activePlanStatus.Name, instance.Spec.PlanExecution.Status))
+		r.Recorder.Event(instance, "Normal", "PlanFinished", fmt.Sprintf("Execution of plan %s finished with status %s", newStatus.Name, newStatus.Status))
 	}
 
 	return reconcile.Result{}, nil
@@ -256,7 +235,7 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 
 	// The order of both updates below is important: *first* the instance Spec and Metadata and *then* the Status.
 	// If Status is updated first, a new reconcile request will be scheduled and might fetch the *WRONG* instance
-	// snapshot (which is saved in the annotations). This request will then have wrong "previous state".
+	// Spec.PlanExecution. This request will then try to execute an already finished plan (again).
 
 	// 1. check if the finalizer can be removed (if the instance is being deleted and cleanup is completed) and then
 	// update instance spec and metadata. this will not update Instance.Status field
@@ -429,24 +408,23 @@ func PipesMap(planName string, plan *v1beta1.Plan, tasks []v1beta1.Task, emeta *
 	return pipes, nil
 }
 
-// startPlanExecution mark plan as to be executed
-// this modifies the instance.Status as well as instance.Metadata.Annotation (to save snapshot if needed)
-func startPlanExecution(i *v1beta1.Instance, planName string, ov *v1beta1.OperatorVersion) error {
-	if i.NoPlanEverExecuted() || isUpgradePlan(planName) {
-		ensurePlanStatusInitialized(i, ov)
+// resetPlanStatusIfThePlanIsNew method resets a PlanStatus for a passed plan name and instance *IF* this is a newly
+// scheduled plan (UID has changed). In this case Plan/phase/step statuses are set to ExecutionPending meaning that the
+// controller will restart plan execution. Otherwise (the plan is old), nothing is changed.
+func resetPlanStatusIfThePlanIsNew(i *v1beta1.Instance, plan string, uid types.UID) (*v1beta1.PlanStatus, error) {
+	ps := i.PlanStatus(plan)
+	if ps == nil {
+		return nil, fmt.Errorf("failed to find planStatus for the plan '%s'", plan)
 	}
 
-	// reset newly starting plan status
-	if err := i.ResetPlanStatus(planName, &metav1.Time{Time: time.Now()}); err != nil {
-		return &v1beta1.InstanceError{Err: fmt.Errorf("failed to reset plan status for instance %s/%s: %v", i.Namespace, i.Name, err), EventName: convert.StringPtr("PlanNotFound")}
+	// if plan UID is the same then we continue with the execution of the existing plan
+	if ps.UID == uid {
+		return ps, nil
 	}
 
-	err := i.AnnotateSnapshot()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	// otherwise, we reset the plan phases and steps to ExecutionNeverRun
+	i.ResetPlanStatus(ps, uid, &metav1.Time{Time: time.Now()})
+	return ps, nil
 }
 
 // ensurePlanStatusInitialized initializes plan status for all plans this instance supports
@@ -504,33 +482,9 @@ func ensurePlanStatusInitialized(i *v1beta1.Instance, ov *v1beta1.OperatorVersio
 	}
 }
 
-// isUpgradePlan returns true if this could be an upgrade plan - this is just an approximation because deploy plan can be used for both
-func isUpgradePlan(planName string) bool {
-	return planName == v1beta1.DeployPlanName || planName == v1beta1.UpgradePlanName
-}
-
-// newExecutionPlan method returns a new execution plan (if exists) or nil otherwise. Instance admission webhook has
-// already decided on the plan and the result is saved in the Spec.PlanExecution.PlanName field
-func newExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*string, error) {
-	var plan *string
-	var err error
-	if plan, err = fetchNewExecutionPlan(i, ov); plan != nil && err == nil {
-		log.Printf("InstanceController: Fetched new execution plan '%s' from the spec for instance %s/%s", convert.StringValue(plan), i.Namespace, i.Name)
-	}
-
-	return plan, err
-}
-
-// fetchNewExecutionPlan method fetches a new execution plan from Instance.Spec.PlanExecution field. A plan is actually
-// new if the PlanExecution.UID has changed, otherwise it's just an old plan in progress.
-// - "planName", when there is a new plan that needs to be executed
-// - <nil>, no new plan found e.g. a plan is already in progress
-func fetchNewExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*string, error) {
-	snapshot, err := i.SnapshotSpec()
-	if err != nil {
-		return nil, &v1beta1.InstanceError{Err: fmt.Errorf("failed to unmarshal instance snapshot %s/%s: %v", i.Namespace, i.Name, err), EventName: convert.StringPtr("UnexpectedState")}
-	}
-
+// scheduledPlan method returns currently scheduled plan and its UID from Instance.Spec.PlanExecution field. However, due
+// to an edge case with instance deletion, this method also schedules the 'cleanup' plan if necessary (see the comments below)
+func scheduledPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (string, types.UID) {
 	// Instance deletion is an edge case where the admission webhook *can not* populate the Spec.PlanExecution.PlanName
 	// with the 'cleanup' plan. So we have to do it here ourselves. Only if:
 	// 1. Instance is being deleted
@@ -552,24 +506,5 @@ func fetchNewExecutionPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (*s
 		i.Spec.PlanExecution.Status = v1beta1.ExecutionNeverRun
 	}
 
-	newPlanScheduled := func() bool {
-		// this can happen if the user installed an instance without an active webhook (e.g. in the previous KUDO version)
-		// as long as we don't have an upgrade path, we must handle this
-		if snapshot == nil {
-			return i.Spec.PlanExecution.PlanName != ""
-		}
-		oldPlan := snapshot.PlanExecution.PlanName
-		oldUID := snapshot.PlanExecution.UID
-		newPlan := i.Spec.PlanExecution.PlanName
-		newUID := i.Spec.PlanExecution.UID
-
-		// either there is a non-empty new plan or the same plan with a new UID
-		return newPlan != "" && (newPlan != oldPlan || newUID != oldUID)
-	}
-
-	if newPlanScheduled() {
-		return &i.Spec.PlanExecution.PlanName, nil
-	}
-
-	return nil, nil
+	return i.Spec.PlanExecution.PlanName, i.Spec.PlanExecution.UID
 }

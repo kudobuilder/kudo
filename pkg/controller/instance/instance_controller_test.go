@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -290,7 +290,7 @@ func TestEventFilterForDelete(t *testing.T) {
 	}
 }
 
-func Test_fetchNewExecutionPlan(t *testing.T) {
+func Test_scheduledPlan(t *testing.T) {
 	ov := &v1beta1.OperatorVersion{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
 		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.dev/v1beta1"},
@@ -307,131 +307,145 @@ func Test_fetchNewExecutionPlan(t *testing.T) {
 			},
 		},
 	}
-	if err := idle.AnnotateSnapshot(); err != nil {
-		t.Fatalf("failed to annotate instance snaphot: %v", err)
+
+	tests := []struct {
+		name     string
+		i        *v1beta1.Instance
+		ov       *v1beta1.OperatorVersion
+		wantPlan string
+		wantUid  types.UID
+	}{
+		{
+			name:     "idle instance return an empty plan and uid",
+			i:        idle,
+			ov:       ov,
+			wantPlan: "",
+			wantUid:  "",
+		},
+		{
+			name: "scheduled instance return the scheduled plan and uid",
+			i: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.PlanExecution.PlanName = "deploy"
+				i.Spec.PlanExecution.UID = "111-222-333-444"
+				return i
+			}(),
+			ov:       ov,
+			wantPlan: "deploy",
+			wantUid:  "111-222-333-444",
+		},
+		{
+			name: "instance that is being deleted returns the cleanup plan and uid",
+			i: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)}
+				i.ObjectMeta.Finalizers = []string{"kudo.dev.instance.cleanup"}
+				return i
+			}(),
+			ov:       ov,
+			wantPlan: "cleanup",
+			wantUid:  "",
+		},
+		{
+			name: "cleanup is not scheduled again when already running",
+			i: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.PlanExecution.PlanName = "cleanup"
+				i.Spec.PlanExecution.UID = "111-222-333-444"
+				i.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)}
+				i.ObjectMeta.Finalizers = []string{"kudo.dev.instance.cleanup"}
+				return i
+			}(),
+			ov:       ov,
+			wantPlan: "cleanup",
+			wantUid:  "111-222-333-444",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			plan, uid := scheduledPlan(tt.i, tt.ov)
+
+			assert.Equal(t, tt.wantPlan, plan, "scheduledPlan() got plan = %v, want %v", plan, tt.wantPlan)
+			if tt.wantUid != "" {
+				assert.Equal(t, tt.wantUid, uid, "scheduledPlan() got uid = %v, want %v", uid, tt.wantUid)
+			}
+		})
+	}
+}
+
+func Test_resetPlanStatusIfThePlanIsNew(t *testing.T) {
+	status := v1beta1.PlanStatus{
+		Name:   "deploy",
+		Status: v1beta1.ExecutionInProgress,
+		UID:    "111-222-333",
 	}
 
-	deploy := "deploy"
-	cleanup := "cleanup"
-	backup := "backup"
-	testUUID := uuid.NewUUID()
-
-	deploying := idle.DeepCopy()
-	deploying.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: deploy, UID: testUUID}
-	if err := deploying.AnnotateSnapshot(); err != nil {
-		t.Fatalf("failed to annotate instance snaphot: %v", err)
-	}
-
-	deleted := deploying.DeepCopy()
-	deleted.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)}
-	deleted.ObjectMeta.Finalizers = []string{"kudo.dev.instance.cleanup"}
-
-	uninstalling := deleted.DeepCopy()
-	uninstalling.Spec.PlanExecution.PlanName = cleanup
-	if err := uninstalling.AnnotateSnapshot(); err != nil {
-		t.Fatalf("failed to annotate instance snaphot: %v", err)
+	scheduled := &v1beta1.Instance{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "kudo.dev/v1beta1", Kind: "Instance"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "test"},
+		Spec: v1beta1.InstanceSpec{
+			PlanExecution: v1beta1.PlanExecution{
+				PlanName: "",
+				UID:      "",
+			},
+		},
+		Status: v1beta1.InstanceStatus{
+			PlanStatus: map[string]v1beta1.PlanStatus{
+				"deploy": status,
+			},
+		},
 	}
 
 	tests := []struct {
 		name    string
 		i       *v1beta1.Instance
-		ov      *v1beta1.OperatorVersion
-		want    *string
+		plan    string
+		uid     types.UID
+		want    *v1beta1.PlanStatus
 		wantErr bool
 	}{
 		{
-			name:    "no change means no new plan",
-			i:       idle,
-			ov:      ov,
+			name:    "a non-existing plan returns an error",
+			i:       scheduled,
+			plan:    "fake",
+			uid:     "fake-uid",
 			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "an already running plan status is NOT reset",
+			i:       scheduled,
+			plan:    "deploy",
+			uid:     "111-222-333",
+			want:    status.DeepCopy(),
 			wantErr: false,
 		},
 		{
-			name: "deploy plan is scheduled without new UID",
-			i: func() *v1beta1.Instance {
-				i := idle.DeepCopy()
-				i.Spec.PlanExecution.PlanName = deploy
-				return i
-			}(),
-			ov:      ov,
-			want:    &deploy,
-			wantErr: false,
-		},
-		{
-			name: "deploy plan is scheduled WITH new UID",
-			i: func() *v1beta1.Instance {
-				i := idle.DeepCopy()
-				i.Spec.PlanExecution.PlanName = deploy
-				i.Spec.PlanExecution.UID = uuid.NewUUID()
-				return i
-			}(),
-			ov:      ov,
-			want:    &deploy,
-			wantErr: false,
-		},
-		{
-			name: "no new plan was scheduled WITH a new UID",
-			i: func() *v1beta1.Instance {
-				i := idle.DeepCopy()
-				i.Spec.PlanExecution.UID = uuid.NewUUID()
-				return i
-			}(),
-			ov:      ov,
-			want:    nil,
-			wantErr: false,
-		},
-		{
-			name: "new plan overrides deploy plan",
-			i: func() *v1beta1.Instance {
-				i := deploying.DeepCopy()
-				i.Spec.PlanExecution.PlanName = backup
-				return i
-			}(),
-			ov:      ov,
-			want:    &backup,
-			wantErr: false,
-		},
-		{
-			name: "new plan overrides deploy plan WITH new UID",
-			i: func() *v1beta1.Instance {
-				i := deploying.DeepCopy()
-				i.Spec.PlanExecution.PlanName = backup
-				i.Spec.PlanExecution.UID = uuid.NewUUID()
-				return i
-			}(),
-			ov:      ov,
-			want:    &backup,
-			wantErr: false,
-		},
-		{
-			name:    "cleanup is scheduled for a deleted instance",
-			i:       deleted,
-			ov:      ov,
-			want:    &cleanup,
-			wantErr: false,
-		},
-		{
-			name:    "cleanup is NOT scheduled when it is already scheduled",
-			i:       uninstalling,
-			ov:      ov,
-			want:    nil,
+			name: "a plan status for a new plan IS reset",
+			i:    scheduled,
+			plan: "deploy",
+			uid:  "222-333-444",
+			want: &v1beta1.PlanStatus{
+				Name:   "deploy",
+				Status: v1beta1.ExecutionPending,
+				UID:    "222-333-444",
+			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := fetchNewExecutionPlan(tt.i, tt.ov)
-			assert.Equal(t, tt.wantErr, err != nil, "expected error %v, but got %v", tt.wantErr, err)
-			assert.Equal(t, tt.want, got, "expected '%s' plan returned but got: '%s'", stringPtrToString(tt.want), stringPtrToString(got))
+			got, err := resetPlanStatusIfThePlanIsNew(tt.i, tt.plan, tt.uid)
+
+			assert.True(t, (err != nil) == tt.wantErr, "resetPlanStatusIfThePlanIsNew() error = %v, wantErr %v", err, tt.wantErr)
+
+			if got != nil {
+				assert.Equal(t, tt.want.Name, got.Name, "resetPlanStatusIfThePlanIsNew() got plan = %v, want %v", got.Name, tt.want.Name)
+				assert.Equal(t, tt.want.Status, got.Status, "resetPlanStatusIfThePlanIsNew() got status = %v, want %v", got.Status, tt.want.Status)
+				assert.Equal(t, tt.want.UID, got.UID, "resetPlanStatusIfThePlanIsNew() got uid = %v, want %v", got.UID, tt.want.UID)
+			}
 		})
 	}
-}
-
-func stringPtrToString(p *string) string {
-	if p != nil {
-		return *p
-	}
-	return "<nil>"
 }

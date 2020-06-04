@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 )
@@ -79,80 +78,6 @@ func TestGetLastExecutedPlanStatus(t *testing.T) {
 			t.Errorf("%s: Expected to get plan %s but got plan status of %v", tt.name, tt.expectedPlanName, actual)
 		}
 	}
-}
-
-func TestInstance_ResetPlanStatus(t *testing.T) {
-	// a test instance with 'deploy' plan IN_PROGRESS and 'update' that NEVER_RUN
-	instance := &Instance{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kudo.dev/v1beta1",
-			Kind:       "Instance",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: "test",
-		},
-		Spec: InstanceSpec{
-			OperatorVersion: v1.ObjectReference{
-				Name: "foo-operator",
-			},
-			Parameters: map[string]string{
-				"foo": "foo",
-			},
-		},
-		Status: InstanceStatus{
-			PlanStatus: map[string]PlanStatus{
-				"deploy": {
-					Status:               ExecutionInProgress,
-					Name:                 "deploy",
-					LastUpdatedTimestamp: &metav1.Time{Time: testTime},
-					UID:                  testUUID,
-					Phases:               []PhaseStatus{{Name: "phase", Status: ExecutionInProgress, Steps: []StepStatus{{Status: ExecutionInProgress, Name: "step"}}}},
-				},
-				"update": {
-					Status: ExecutionNeverRun,
-					Name:   "update",
-					Phases: []PhaseStatus{{Name: "phase", Status: ExecutionNeverRun, Steps: []StepStatus{{Status: ExecutionNeverRun, Name: "step"}}}},
-				},
-			},
-		},
-	}
-
-	oldUID := instance.Status.PlanStatus["deploy"].UID
-
-	err := instance.ResetPlanStatus("deploy", &metav1.Time{Time: time.Now()})
-	assert.NoError(t, err)
-
-	// we test that UID has changed. afterwards, we replace it with the old one and compare new
-	// plan status with the desired state
-	assert.NotEqual(t, instance.Status.PlanStatus["deploy"].UID, oldUID)
-	assert.Equal(t, instance.Spec.PlanExecution.Status, ExecutionPending)
-
-	oldPlanStatus := instance.Status.PlanStatus["deploy"]
-	statusCopy := oldPlanStatus.DeepCopy()
-	statusCopy.UID = testUUID
-	statusCopy.LastUpdatedTimestamp = &metav1.Time{Time: testTime}
-	instance.Status.PlanStatus["deploy"] = *statusCopy
-
-	// Expected:
-	// - the status of the 'deploy' plan to be reset: all phases and steps should be PENDING, new UID should be assigned
-	// - 'update' plan status should be unchanged
-	assert.Equal(t, InstanceStatus{
-		PlanStatus: map[string]PlanStatus{
-			"deploy": {
-				Status:               ExecutionPending,
-				Name:                 "deploy",
-				LastUpdatedTimestamp: &metav1.Time{Time: testTime},
-				UID:                  testUUID,
-				Phases:               []PhaseStatus{{Name: "phase", Status: ExecutionPending, Steps: []StepStatus{{Status: ExecutionPending, Name: "step"}}}},
-			},
-			"update": {
-				Status: ExecutionNeverRun,
-				Name:   "update",
-				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionNeverRun, Steps: []StepStatus{{Status: ExecutionNeverRun, Name: "step"}}}},
-			},
-		},
-	}, instance.Status)
 }
 
 func TestGetParamDefinitions(t *testing.T) {

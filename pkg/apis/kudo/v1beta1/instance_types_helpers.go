@@ -2,14 +2,12 @@ package v1beta1
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 
 	"github.com/thoas/go-funk"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -88,34 +86,19 @@ func (i *Instance) UpdateInstanceStatus(planStatus *PlanStatus, updatedTimestamp
 	}
 }
 
-// ResetPlanStatus method resets a PlanStatus for a passed plan name and instance. Plan/phase/step statuses
-// are set to ExecutionPending meaning that the controller will restart plan execution.
-func (i *Instance) ResetPlanStatus(plan string, updatedTimestamp *metav1.Time) error {
-	planStatus := i.PlanStatus(plan)
-	if planStatus == nil {
-		return fmt.Errorf("failed to find planStatus for the plan '%s'", plan)
-	}
-
-	// reset plan's phases and steps by setting them to ExecutionPending
-	planStatus.Set(ExecutionPending)
-	// when using webhooks, instance admission webhook already generates an UID for current plan, otherwise, we generate a new one.
-	if i.Spec.PlanExecution.UID != "" {
-		planStatus.UID = i.Spec.PlanExecution.UID
-	} else {
-		planStatus.UID = uuid.NewUUID()
-	}
-
-	for i, ph := range planStatus.Phases {
-		planStatus.Phases[i].Set(ExecutionPending)
+func (i *Instance) ResetPlanStatus(ps *PlanStatus, uid types.UID, updatedTimestamp *metav1.Time) {
+	ps.UID = uid
+	ps.Status = ExecutionPending
+	for i, ph := range ps.Phases {
+		ps.Phases[i].Set(ExecutionPending)
 
 		for j := range ph.Steps {
-			planStatus.Phases[i].Steps[j].Set(ExecutionPending)
+			ps.Phases[i].Steps[j].Set(ExecutionPending)
 		}
 	}
 
 	// update plan status and instance aggregated status
-	i.UpdateInstanceStatus(planStatus, updatedTimestamp)
-	return nil
+	i.UpdateInstanceStatus(ps, updatedTimestamp)
 }
 
 // IsDeleting returns true is the instance is being deleted.
@@ -143,35 +126,6 @@ func (i *Instance) PlanStatus(plan string) *PlanStatus {
 	}
 
 	return nil
-}
-
-// annotateSnapshot stores the current spec of Instance into the snapshot annotation
-// this information is used when executing update/upgrade plans, this overrides any snapshot that existed before
-func (i *Instance) AnnotateSnapshot() error {
-	jsonBytes, err := json.Marshal(i.Spec)
-	if err != nil {
-		return err
-	}
-	if i.Annotations == nil {
-		i.Annotations = make(map[string]string)
-	}
-	i.Annotations[snapshotAnnotation] = string(jsonBytes)
-	return nil
-}
-
-func (i *Instance) SnapshotSpec() (*InstanceSpec, error) {
-	if i.Annotations != nil {
-		snapshot, ok := i.Annotations[snapshotAnnotation]
-		if ok {
-			var spec *InstanceSpec
-			err := json.Unmarshal([]byte(snapshot), &spec)
-			if err != nil {
-				return nil, err
-			}
-			return spec, nil
-		}
-	}
-	return nil, nil
 }
 
 func (i *Instance) HasCleanupFinalizer() bool {

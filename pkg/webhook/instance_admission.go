@@ -83,11 +83,6 @@ func handleCreate(ia *InstanceAdmission, req admission.Request) admission.Respon
 		new.TryAddFinalizer()
 	}
 
-	// add an instance snapshot *BEFORE* setting new Spec.PlanExecution. this way the controller will recognize the plan as newly scheduled
-	if err = new.AnnotateSnapshot(); err != nil {
-		return admission.Errored(http.StatusInternalServerError, fmt.Errorf("failed to create an Instance snapshot %s/%s: %v", new.Namespace, new.Name, err))
-	}
-
 	// schedule 'deploy' plan for execution (and fail if it doesn't exist)
 	if !kudov1beta1.PlanExists(kudov1beta1.DeployPlanName, ov) {
 		return admission.Denied(fmt.Sprintf("failed to create an Instance %s/%s: couldn't find '%s' plan in the operatorVersion", new.Namespace, new.Name, kudov1beta1.DeployPlanName))
