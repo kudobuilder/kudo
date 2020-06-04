@@ -26,6 +26,7 @@ func TestRemoveWithoutValidName(t *testing.T) {
 	// setup (init client)
 	fs := afero.NewMemMapFs()
 	out := &bytes.Buffer{}
+	errOut := &bytes.Buffer{}
 
 	home := kudohome.Home("kudo_home")
 	err := fs.Mkdir(home.String(), 0755)
@@ -33,7 +34,7 @@ func TestRemoveWithoutValidName(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	i := &initCmd{fs: fs, out: out, home: home}
+	i := &initCmd{fs: fs, out: out, errOut: errOut, home: home}
 	if err := i.initialize(); err != nil {
 		t.Error(err)
 	}
@@ -51,6 +52,7 @@ func TestRemoveValidName(t *testing.T) {
 	// setup (init client)
 	fs := afero.NewMemMapFs()
 	out := &bytes.Buffer{}
+	errOut := &bytes.Buffer{}
 
 	home := kudohome.Home("kudo_home")
 	err := fs.Mkdir(home.String(), 0755)
@@ -58,7 +60,7 @@ func TestRemoveValidName(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	i := &initCmd{fs: fs, out: out, home: home}
+	i := &initCmd{fs: fs, out: out, errOut: errOut, home: home}
 	if err := i.initialize(); err != nil {
 		t.Error(err)
 	}

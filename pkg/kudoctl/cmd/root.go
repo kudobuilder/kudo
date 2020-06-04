@@ -54,7 +54,7 @@ and serves as an API aggregation layer.
 	}
 
 	cmd.AddCommand(newInstallCmd(fs))
-	cmd.AddCommand(newInitCmd(fs, cmd.OutOrStdout()))
+	cmd.AddCommand(newInitCmd(fs, cmd.OutOrStdout(), cmd.ErrOrStderr(), nil))
 	cmd.AddCommand(newUpgradeCmd(fs))
 	cmd.AddCommand(newUpdateCmd())
 	cmd.AddCommand(newUninstallCmd())

@@ -11,8 +11,11 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
+	"github.com/thoas/go-funk"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,24 +31,6 @@ import (
 )
 
 var updateGolden = flag.Bool("update", false, "update .golden files and manifests in /config/crd")
-
-func TestInitCmd_dry(t *testing.T) {
-
-	var buf bytes.Buffer
-
-	cmd := &initCmd{
-		out:    &buf,
-		fs:     afero.NewMemMapFs(),
-		dryRun: true,
-	}
-	if err := cmd.run(); err != nil {
-		t.Errorf("expected error: %v", err)
-	}
-	expected := ""
-	if !strings.Contains(buf.String(), expected) {
-		t.Errorf("expected %q, got %q", expected, buf.String())
-	}
-}
 
 func TestInitCmd_exists(t *testing.T) {
 
@@ -82,14 +67,23 @@ func TestInitCmd_exists(t *testing.T) {
 
 // TestInitCmd_output tests that init -o can be decoded
 func TestInitCmd_output(t *testing.T) {
-
 	fc := fake.NewSimpleClientset()
+	client := &kube.Client{
+		KubeClient: fc,
+		ExtClient:  apiextfake.NewSimpleClientset(),
+	}
+
+	MockCRD(client, "certificates.cert-manager.io", "v1alpha2")
+	MockCRD(client, "issuers.cert-manager.io", "v1alpha2")
+
 	tests := []string{"yaml"}
 	for _, s := range tests {
 		var buf bytes.Buffer
+		var errOut bytes.Buffer
 		cmd := &initCmd{
 			out:    &buf,
-			client: &kube.Client{KubeClient: fc},
+			errOut: &errOut,
+			client: client,
 			output: s,
 			dryRun: true,
 		}
@@ -97,9 +91,12 @@ func TestInitCmd_output(t *testing.T) {
 		if err := cmd.run(); err != nil {
 			t.Fatal(err)
 		}
-		// ensure no calls against the server
-		if got := len(fc.Actions()); got != 0 {
-			t.Errorf("expected no server calls, got %d", got)
+		// ensure no modifying calls against the server
+		forbiddenVerbs := []string{"create", "update", "patch", "delete"}
+		for _, a := range fc.Actions() {
+			if funk.Contains(forbiddenVerbs, a.GetVerb()) {
+				t.Errorf("got modifying server call: %v", a)
+			}
 		}
 
 		assert.True(t, len(buf.Bytes()) > 0, "Buffer needs to have an output")
@@ -119,6 +116,44 @@ func TestInitCmd_output(t *testing.T) {
 }
 
 func TestInitCmd_yamlOutput(t *testing.T) {
+	customNs := &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "foo",
+		},
+	}
+	customSa := &v1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "foo",
+			Name:      "safoo",
+		},
+	}
+	crb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "safoocrb",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Namespace: "foo",
+				Name:      "safoo",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     "cluster-admin",
+		},
+	}
+
+	fc := fake.NewSimpleClientset(crb, customNs, customSa)
+	client := &kube.Client{
+		KubeClient: fc,
+		ExtClient:  apiextfake.NewSimpleClientset(),
+	}
+
+	MockCRD(client, "certificates.cert-manager.io", "v1alpha2")
+	MockCRD(client, "issuers.cert-manager.io", "v1alpha2")
+
 	tests := []struct {
 		name       string
 		goldenFile string
@@ -127,13 +162,14 @@ func TestInitCmd_yamlOutput(t *testing.T) {
 		{"custom namespace", "deploy-kudo-ns.yaml", map[string]string{"dry-run": "true", "output": "yaml", "namespace": "foo"}},
 		{"yaml output", "deploy-kudo.yaml", map[string]string{"dry-run": "true", "output": "yaml"}},
 		{"service account", "deploy-kudo-sa.yaml", map[string]string{"dry-run": "true", "output": "yaml", "service-account": "safoo", "namespace": "foo"}},
-		{"using default cert-manager", "deploy-kudo-webhook.yaml", map[string]string{"dry-run": "true", "output": "yaml"}},
 	}
 
 	for _, tt := range tests {
 		fs := afero.NewMemMapFs()
 		out := &bytes.Buffer{}
-		initCmd := newInitCmd(fs, out)
+		errOut := &bytes.Buffer{}
+		initCmd := newInitCmd(fs, out, errOut, client)
+
 		Settings.AddFlags(initCmd.Flags())
 
 		for f, value := range tt.flags {
@@ -143,7 +179,7 @@ func TestInitCmd_yamlOutput(t *testing.T) {
 		}
 
 		if err := initCmd.RunE(initCmd, []string{}); err != nil {
-			t.Fatal(err)
+			t.Fatal(err, errOut.String())
 		}
 
 		gp := filepath.Join("testdata", tt.goldenFile+".golden")
@@ -183,7 +219,8 @@ func TestNewInitCmd(t *testing.T) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
-			initCmd := newInitCmd(fs, out)
+			errOut := &bytes.Buffer{}
+			initCmd := newInitCmd(fs, out, errOut, nil)
 			for key, value := range tt.flags {
 				if err := initCmd.Flags().Set(key, value); err != nil {
 					t.Fatal(err)
@@ -235,4 +272,34 @@ func TestClientInitialize(t *testing.T) {
 		t.Error(err)
 	}
 	assert.Equal(t, r.CurrentConfiguration().URL, RepositoryURL)
+}
+
+func MockCRD(client *kube.Client, crdName string, apiVersion string) {
+	client.ExtClient.(*apiextfake.Clientset).Fake.PrependReactor("get", "customresourcedefinitions", func(action testcore.Action) (handled bool, ret runtime.Object, err error) {
+
+		getAction, _ := action.(testcore.GetAction)
+		if getAction != nil {
+			if getAction.GetName() == crdName {
+				crd := &extv1.CustomResourceDefinition{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: apiVersion,
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: crdName,
+					},
+					Spec: extv1.CustomResourceDefinitionSpec{
+						Versions: []extv1.CustomResourceDefinitionVersion{
+							{
+								Name: apiVersion,
+							},
+						},
+					},
+					Status: extv1.CustomResourceDefinitionStatus{},
+				}
+				return true, crd, nil
+			}
+		}
+
+		return false, nil, nil
+	})
 }

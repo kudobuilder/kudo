@@ -15,6 +15,7 @@ import (
 
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 )
 
 func isJobTerminallyFailed(job *batchv1.Job) (bool, string) {
@@ -61,7 +62,7 @@ func IsHealthy(obj runtime.Object) error {
 			log.Printf("HealthUtil: Deployment %v is NOT healthy. %s", obj.Name, msg)
 			return errors.New(msg)
 		}
-		log.Printf("Deployment %v is marked healthy\n", obj.Name)
+		clog.V(2).Printf("Deployment %v is marked healthy\n", obj.Name)
 		return nil
 	case *batchv1.Job:
 
