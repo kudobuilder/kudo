@@ -10,7 +10,7 @@ kind: OperatorVersion
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-  name: toy-v1
+  name: "toy-1.0.0"
 spec:
   version: "1.0.0"
   connectionString: ""

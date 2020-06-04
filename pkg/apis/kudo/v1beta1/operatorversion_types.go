@@ -202,6 +202,9 @@ type KudoOperatorTaskSpec struct {
 	// either repo package name, local package folder or an URL to package tarball
 	// +optional
 	Package string `json:"package,omitempty"`
+	// name of installed operator. this field is set by the CLI and should not be set directly by the user
+	// +optional
+	OperatorName string `json:"operatorName,omitempty"`
 	// +optional
 	InstanceName string `json:"instanceName,omitempty"`
 	// a specific app version in the official repo, defaults to the most recent
@@ -210,6 +213,10 @@ type KudoOperatorTaskSpec struct {
 	// a specific operator version in the official repo, defaults to the most recent one
 	// +optional
 	OperatorVersion string `json:"operatorVersion,omitempty"`
+	// name of the template file (located in the `templates` folder) from which the *parent* instance
+	// generates a parameter file used to populate the *child* Instance.Spec.Parameters
+	// +optional
+	ParameterFile string `json:"parameterFile,omitempty"`
 }
 
 // OperatorVersionStatus defines the observed state of OperatorVersion.
