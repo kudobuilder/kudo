@@ -129,6 +129,11 @@ cli-clean:
 
 # Install CLI
 cli-install:
+	@echo "Please installed a released version of KUDO."
+	@echo "See: https://kudo.dev/docs/cli.html#setup-the-kudo-kubectl-plugin"
+	@exit 1
+
+cli-install-for-developers-only:
 	go install -ldflags "${LDFLAGS}" ./cmd/kubectl-kudo
 
 .PHONY: clean
