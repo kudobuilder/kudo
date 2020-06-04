@@ -32,24 +32,6 @@ import (
 
 var updateGolden = flag.Bool("update", false, "update .golden files and manifests in /config/crd")
 
-func TestInitCmd_dry(t *testing.T) {
-
-	var buf bytes.Buffer
-
-	cmd := &initCmd{
-		out:    &buf,
-		fs:     afero.NewMemMapFs(),
-		dryRun: true,
-	}
-	if err := cmd.run(); err != nil {
-		t.Errorf("expected error: %v", err)
-	}
-	expected := ""
-	if !strings.Contains(buf.String(), expected) {
-		t.Errorf("expected %q, got %q", expected, buf.String())
-	}
-}
-
 func TestInitCmd_exists(t *testing.T) {
 
 	var buf bytes.Buffer
