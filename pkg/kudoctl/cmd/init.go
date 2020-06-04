@@ -163,7 +163,11 @@ func (initCmd *initCmd) run() error {
 			return clog.Errorf("error initializing: %s", err)
 		}
 	}
-	clog.Printf("$KUDO_HOME has been configured at %s", Settings.Home)
+
+	// if output is yaml | json, we only print the requested output style.
+	if initCmd.output == "" {
+		clog.Printf("$KUDO_HOME has been configured at %s", Settings.Home)
+	}
 	if initCmd.clientOnly {
 		return nil
 	}
