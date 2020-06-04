@@ -16,6 +16,8 @@ import (
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
+const installNamespace = "default"
+
 func newTestSimpleK2o() *Client {
 	return NewClientFromK8s(fake.NewSimpleClientset(), kubefake.NewSimpleClientset())
 }
@@ -170,7 +172,6 @@ func TestKudoClient_ListInstances(t *testing.T) {
 		},
 	}
 
-	installNamespace := "default"
 	tests := []struct {
 		expectedInstances []string
 		namespace         string
@@ -221,7 +222,6 @@ func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 	objWithSamePrefix.Name = operatorName + "-demo"
 	objWithSamePrefix.Spec.Operator.Name = operatorName + "-demo"
 
-	installNamespace := "default"
 	tests := []struct {
 		name             string
 		expectedVersions []string
@@ -392,7 +392,6 @@ func TestKudoClient_GetInstance(t *testing.T) {
 		},
 	}
 
-	installNamespace := "default"
 	tests := []struct {
 		name             string
 		found            bool
@@ -438,7 +437,6 @@ func TestKudoClient_GetOperatorVersion(t *testing.T) {
 		},
 	}
 
-	installNamespace := "default"
 	tests := []struct {
 		name      string
 		found     bool
@@ -488,7 +486,6 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 		},
 	}
 
-	installNamespace := "default"
 	tests := []struct {
 		name               string
 		patchToVersion     *string
@@ -573,7 +570,6 @@ func TestKudoClient_DeleteInstance(t *testing.T) {
 		},
 	}
 
-	installNamespace := "default"
 	tests := []struct {
 		name         string
 		instanceName string
