@@ -41,6 +41,11 @@ func NewInstaller(options kudoinit.Options, crdOnly bool) *Installer {
 
 // Verifies that the installation is possible. Returns an error if any part of KUDO is already installed
 func (i *Installer) PreInstallVerify(client *kube.Client, result *verifier.Result) error {
+	if _, err := client.KubeClient.Discovery().ServerVersion(); err != nil {
+		result.AddErrors(fmt.Sprintf("Failed to connect to cluster: %v", err))
+		return nil
+	}
+
 	// Check if all steps are installable
 	for _, initStep := range i.steps {
 		if err := initStep.PreInstallVerify(client, result); err != nil {
