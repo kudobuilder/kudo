@@ -13,7 +13,6 @@ import (
 
 const (
 	instanceCleanupFinalizerName = "kudo.dev.instance.cleanup"
-	snapshotAnnotation           = "kudo.dev/last-applied-instance-state"
 )
 
 // ScheduledPlan returns plan status of currently active plan or nil if no plan is running. In most cases this method

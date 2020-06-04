@@ -313,14 +313,14 @@ func Test_scheduledPlan(t *testing.T) {
 		i        *v1beta1.Instance
 		ov       *v1beta1.OperatorVersion
 		wantPlan string
-		wantUid  types.UID
+		wantUID  types.UID
 	}{
 		{
 			name:     "idle instance return an empty plan and uid",
 			i:        idle,
 			ov:       ov,
 			wantPlan: "",
-			wantUid:  "",
+			wantUID:  "",
 		},
 		{
 			name: "scheduled instance return the scheduled plan and uid",
@@ -332,7 +332,7 @@ func Test_scheduledPlan(t *testing.T) {
 			}(),
 			ov:       ov,
 			wantPlan: "deploy",
-			wantUid:  "111-222-333-444",
+			wantUID:  "111-222-333-444",
 		},
 		{
 			name: "instance that is being deleted returns the cleanup plan and uid",
@@ -344,7 +344,7 @@ func Test_scheduledPlan(t *testing.T) {
 			}(),
 			ov:       ov,
 			wantPlan: "cleanup",
-			wantUid:  "",
+			wantUID:  "",
 		},
 		{
 			name: "cleanup is not scheduled again when already running",
@@ -358,7 +358,7 @@ func Test_scheduledPlan(t *testing.T) {
 			}(),
 			ov:       ov,
 			wantPlan: "cleanup",
-			wantUid:  "111-222-333-444",
+			wantUID:  "111-222-333-444",
 		},
 	}
 	for _, tt := range tests {
@@ -367,8 +367,8 @@ func Test_scheduledPlan(t *testing.T) {
 			plan, uid := scheduledPlan(tt.i, tt.ov)
 
 			assert.Equal(t, tt.wantPlan, plan, "scheduledPlan() got plan = %v, want %v", plan, tt.wantPlan)
-			if tt.wantUid != "" {
-				assert.Equal(t, tt.wantUid, uid, "scheduledPlan() got uid = %v, want %v", uid, tt.wantUid)
+			if tt.wantUID != "" {
+				assert.Equal(t, tt.wantUID, uid, "scheduledPlan() got uid = %v, want %v", uid, tt.wantUID)
 			}
 		})
 	}

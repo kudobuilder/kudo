@@ -21,12 +21,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/uuid"
 )
 
 var (
 	testTime = time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)
-	testUUID = uuid.NewUUID()
 )
 
 func TestGetLastExecutedPlanStatus(t *testing.T) {
