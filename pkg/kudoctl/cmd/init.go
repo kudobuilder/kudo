@@ -63,6 +63,7 @@ and finishes with success if KUDO is already installed.
 
 type initCmd struct {
 	out                 io.Writer
+	errOut              io.Writer
 	fs                  afero.Fs
 	image               string
 	imagePullPolicy     string
@@ -82,8 +83,8 @@ type initCmd struct {
 	selfSignedWebhookCA bool
 }
 
-func newInitCmd(fs afero.Fs, out io.Writer) *cobra.Command {
-	i := &initCmd{fs: fs, out: out}
+func newInitCmd(fs afero.Fs, out io.Writer, errOut io.Writer, client *kube.Client) *cobra.Command {
+	i := &initCmd{fs: fs, out: out, errOut: errOut, client: client}
 
 	cmd := &cobra.Command{
 		Use:     "init",
@@ -170,27 +171,22 @@ func (initCmd *initCmd) run() error {
 		}
 	}
 
-	//TODO: implement output=yaml|json (define a type for output to constrain)
-	//define an Encoder to replace YAMLWriter
-	if strings.ToLower(initCmd.output) == "yaml" {
-		manifests, err := setup.AsYamlManifests(opts, initCmd.crdOnly)
-		if err != nil {
-			return err
-		}
-		if err := initCmd.YAMLWriter(initCmd.out, manifests); err != nil {
-			return err
-		}
-	}
-
-	if initCmd.dryRun {
-		return nil
-	}
+	installer := setup.NewInstaller(opts, initCmd.crdOnly)
 
 	// initialize client
-	if err := initCmd.initialize(); err != nil {
-		return clog.Errorf("error initializing: %s", err)
+	if !initCmd.dryRun {
+		if err := initCmd.initialize(); err != nil {
+			return clog.Errorf("error initializing: %s", err)
+		}
 	}
-	clog.Printf("$KUDO_HOME has been configured at %s", Settings.Home)
+
+	// if output is yaml | json, we only print the requested output style.
+	if initCmd.output == "" {
+		clog.Printf("$KUDO_HOME has been configured at %s", Settings.Home)
+	}
+	if initCmd.clientOnly {
+		return nil
+	}
 
 	if initCmd.clientOnly {
 		return nil
@@ -205,38 +201,49 @@ func (initCmd *initCmd) run() error {
 		}
 		initCmd.client = client
 	}
-
 	if initCmd.verify {
-		return initCmd.verifyExistingInstallation(opts)
+		return initCmd.verifyExistingInstallation(installer)
 	}
 
 	if initCmd.upgrade {
-		ok, err := initCmd.preUpgradeVerify(opts)
+		ok, err := initCmd.preUpgradeVerify(installer)
 		if err != nil {
 			return err
 		}
 		if !ok {
 			return fmt.Errorf("failed to verify upgrade requirements")
 		}
-		if initCmd.dryRun {
-			return nil
-		}
-		if err := setup.Upgrade(initCmd.client, opts); err != nil {
-			return clog.Errorf("error upgrading: %s", err)
-		}
 	} else {
-		ok, err := initCmd.preInstallVerify(opts)
+		ok, err := initCmd.preInstallVerify(installer)
 		if err != nil {
 			return err
 		}
 		if !ok {
 			return fmt.Errorf("failed to verify installation requirements")
 		}
-		if initCmd.dryRun {
-			return nil
+	}
+
+	//TODO: implement output=yaml|json (define a type for output to constrain)
+	//define an Encoder to replace YAMLWriter
+	if strings.ToLower(initCmd.output) == "yaml" {
+		manifests, err := installer.AsYamlManifests()
+		if err != nil {
+			return err
 		}
-		if err := setup.Install(initCmd.client, opts, initCmd.crdOnly); err != nil {
-			return clog.Errorf("error installing: %s", err)
+		if err := initCmd.YAMLWriter(initCmd.out, manifests); err != nil {
+			return err
+		}
+	}
+
+	if !initCmd.dryRun {
+		if initCmd.upgrade {
+			if err := installer.Upgrade(initCmd.client, opts); err != nil {
+				return clog.Errorf("error upgrading: %s", err)
+			}
+		} else {
+			if err := installer.Install(initCmd.client); err != nil {
+				return clog.Errorf("error installing: %s", err)
+			}
 		}
 	}
 
@@ -252,9 +259,9 @@ func (initCmd *initCmd) run() error {
 }
 
 // verifyExistingInstallation checks if the current installation is valid and as expected
-func (initCmd *initCmd) verifyExistingInstallation(opts kudoinit.Options) error {
+func (initCmd *initCmd) verifyExistingInstallation(v kudoinit.InstallVerifier) error {
 	result := verifier.NewResult()
-	if err := setup.Validate(initCmd.client, opts, &result); err != nil {
+	if err := v.VerifyInstallation(initCmd.client, &result); err != nil {
 		return err
 	}
 	result.PrintWarnings(initCmd.out)
@@ -265,23 +272,23 @@ func (initCmd *initCmd) verifyExistingInstallation(opts kudoinit.Options) error 
 }
 
 // preInstallVerify runs the pre-installation verification and returns true if the installation can continue
-func (initCmd *initCmd) preInstallVerify(opts kudoinit.Options) (bool, error) {
+func (initCmd *initCmd) preInstallVerify(v kudoinit.InstallVerifier) (bool, error) {
 	result := verifier.NewResult()
-	if err := setup.PreInstallVerify(initCmd.client, opts, initCmd.crdOnly, &result); err != nil {
+	if err := v.PreInstallVerify(initCmd.client, &result); err != nil {
 		return false, err
 	}
-	result.PrintWarnings(initCmd.out)
+	result.PrintWarnings(initCmd.errOut)
 	if !result.IsValid() {
-		result.PrintErrors(initCmd.out)
+		result.PrintErrors(initCmd.errOut)
 		return false, nil
 	}
 	return true, nil
 }
 
 // preUpgradeVerify runs the pre-upgrade verification and returns true if the upgrade can continue
-func (initCmd *initCmd) preUpgradeVerify(opts kudoinit.Options) (bool, error) {
+func (initCmd *initCmd) preUpgradeVerify(v kudoinit.InstallVerifier) (bool, error) {
 	result := verifier.NewResult()
-	if err := setup.PreUpgradeVerify(initCmd.client, opts, &result); err != nil {
+	if err := v.PreUpgradeVerify(initCmd.client, &result); err != nil {
 		return false, err
 	}
 	result.PrintWarnings(initCmd.out)

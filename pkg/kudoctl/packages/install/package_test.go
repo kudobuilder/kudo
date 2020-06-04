@@ -1,10 +1,11 @@
-package kudo
+package install
 
 import (
+	"flag"
 	"fmt"
 	"testing"
 
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/version"
@@ -14,8 +15,11 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
+
+var update = flag.Bool("update", false, "update .golden files")
 
 func Test_InstallPackage(t *testing.T) {
 	resources := packages.Resources{
@@ -78,7 +82,7 @@ func Test_InstallPackage(t *testing.T) {
 
 	for _, tt := range tests {
 		client := fake.NewSimpleClientset()
-		kc := NewClientFromK8s(client, kubefake.NewSimpleClientset())
+		kc := kudo.NewClientFromK8s(client, kubefake.NewSimpleClientset())
 
 		fakeDiscovery, ok := client.Discovery().(*fakediscovery.FakeDiscovery)
 		if !ok {
@@ -90,11 +94,39 @@ func Test_InstallPackage(t *testing.T) {
 
 		testResources := resources
 		testResources.OperatorVersion.Spec.Parameters = tt.parameters
-		namespace := "default" //nolint:goconst
 
-		err := InstallPackage(kc, &testResources, tt.skipInstance, "", namespace, tt.installParameters, false, false, 0)
-		if tt.err != "" {
-			assert.ErrorContains(t, err, tt.err)
+		const namespace = "default"
+
+		options := Options{
+			SkipInstance: tt.skipInstance,
 		}
+
+		err := Package(kc, "", namespace, testResources, tt.installParameters, options)
+		if tt.err != "" {
+			assert.EqualError(t, err, tt.err)
+		}
+	}
+}
+
+func testResources() packages.Resources {
+	return packages.Resources{
+		Operator: &v1beta1.Operator{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "OperatorName",
+				Namespace: "default",
+			},
+		},
+		OperatorVersion: &v1beta1.OperatorVersion{
+			Spec: v1beta1.OperatorVersionSpec{
+				AppVersion: "1.0",
+				Version:    "2.0",
+			},
+		},
+		Instance: &v1beta1.Instance{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "InstanceName",
+				Namespace: "default",
+			},
+		},
 	}
 }

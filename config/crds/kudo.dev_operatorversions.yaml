@@ -183,6 +183,10 @@ spec:
                         type: boolean
                       instanceName:
                         type: string
+                      operatorName:
+                        description: name of installed operator. this field is set
+                          by the CLI and should not be set directly by the user
+                        type: string
                       operatorVersion:
                         description: a specific operator version in the official repo,
                           defaults to the most recent one
@@ -192,6 +196,11 @@ spec:
                           or an URL to package tarball
                         type: string
                       parameter:
+                        type: string
+                      parameterFile:
+                        description: name of the template file (located in the `templates`
+                          folder) from which the *parent* instance generates a parameter
+                          file used to populate the *child* Instance.Spec.Parameters
                         type: string
                       pipe:
                         items:

@@ -6,7 +6,7 @@ metadata:
   name: toy1
 spec:
   operatorVersion:
-    name: toy-v1
+    name: toy-1.0.0
     kind: OperatorVersion
     namespace: default
   parameters:

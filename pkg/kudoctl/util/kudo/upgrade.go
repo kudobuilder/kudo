@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Masterminds/semver"
+	"github.com/thoas/go-funk"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
@@ -46,15 +47,15 @@ func UpgradeOperatorVersion(kc *Client, newOv *v1beta1.OperatorVersion, instance
 	if err != nil {
 		return fmt.Errorf("failed to retrieve operator versions: %v", err)
 	}
-	if !versionExists(newOv.Spec.Version, versionsInstalled) {
+	if !funk.ContainsString(versionsInstalled, newOv.Spec.Version) {
 		if _, err := kc.InstallOperatorVersionObjToCluster(newOv, namespace); err != nil {
 			return fmt.Errorf("failed to update %s-operatorversion.yaml to version %s: %v", operatorName, newOv.Spec.Version, err)
 		}
 		clog.Printf("operatorversion.%s/%s created", newOv.APIVersion, newOv.Name)
 	}
 
-	if err = kc.UpdateInstance(instanceName, namespace, convert.StringPtr(newOv.Name), parameters, nil); err != nil {
-		return fmt.Errorf("failed to update instance for new OperatorVersion %s: %v", newOv.Name, err)
+	if err = kc.UpdateInstance(instanceName, namespace, convert.StringPtr(newOv.Name), parameters, nil, false, 0); err != nil {
+		return fmt.Errorf("failed to update instance for new OperatorVersion %s", newOv.Name)
 	}
 	clog.Printf("instance.%s/%s updated", instance.APIVersion, instanceName)
 

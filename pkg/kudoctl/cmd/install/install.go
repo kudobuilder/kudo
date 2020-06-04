@@ -8,8 +8,8 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/install"
 	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
@@ -79,5 +79,21 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 		return fmt.Errorf("failed to resolve operator package for: %s %w", operatorArgument, err)
 	}
 
-	return kudo.InstallPackage(kc, pkg.Resources, options.SkipInstance, options.InstanceName, settings.Namespace, options.Parameters, options.Wait, options.CreateNameSpace, time.Duration(options.WaitTime)*time.Second)
+	installOpts := install.Options{
+		SkipInstance:    options.SkipInstance,
+		CreateNamespace: options.CreateNameSpace,
+	}
+
+	if options.Wait {
+		waitDuration := time.Duration(options.WaitTime) * time.Second
+		installOpts.Wait = &waitDuration
+	}
+
+	return install.Package(
+		kc,
+		options.InstanceName,
+		settings.Namespace,
+		*pkg.Resources,
+		options.Parameters,
+		installOpts)
 }

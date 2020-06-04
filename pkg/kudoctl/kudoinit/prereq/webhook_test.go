@@ -35,8 +35,7 @@ func TestPrereq_Fail_PreValidate_Webhook_NoCertificate(t *testing.T) {
 	_ = init.PreInstallVerify(client, &result)
 
 	assert.EqualValues(t, verifier.NewError(
-		"failed to find CRD 'certificates.cert-manager.io': customresourcedefinitions.apiextensions.k8s.io \"certificates.cert-manager.io\" not found",
-		"failed to find CRD 'issuers.cert-manager.io': customresourcedefinitions.apiextensions.k8s.io \"issuers.cert-manager.io\" not found",
+		"failed to detect any valid cert-manager CRDs. Make sure cert-manager is installed.",
 	), result)
 }
 
@@ -51,8 +50,23 @@ func TestPrereq_Fail_PreValidate_Webhook_WrongCertificateVersion(t *testing.T) {
 	result := verifier.NewResult()
 	_ = init.PreInstallVerify(client, &result)
 
+	assert.EqualValues(t, verifier.NewWarning(
+		"Detected cert-manager CRDs with version v0, only versions [v1alpha2 v1alpha3] are fully supported. Certificates for webhooks may not work.",
+	), result)
+}
+
+func TestPrereq_Fail_PreValidate_Webhook_WrongCertManagerInstallation(t *testing.T) {
+	client := getFakeClient()
+
+	mockCRD(client, "certificates.cert-manager.io", "v1alpha2")
+	mockCRD(client, "issuers.cert-manager.io", "v0")
+
+	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", false, false))
+
+	result := verifier.NewResult()
+	_ = init.PreInstallVerify(client, &result)
+
 	assert.EqualValues(t, verifier.NewError(
-		"invalid CRD version found for 'certificates.cert-manager.io': v0 instead of v1alpha2",
 		"invalid CRD version found for 'issuers.cert-manager.io': v0 instead of v1alpha2",
 	), result)
 }
@@ -84,11 +98,25 @@ func TestPrereq_Fail_PreValidate_Webhook_WrongIssuerVersion(t *testing.T) {
 	assert.EqualValues(t, verifier.NewError("invalid CRD version found for 'issuers.cert-manager.io': v0 instead of v1alpha2"), result)
 }
 
-func TestPrereq_Ok_PreValidate_Webhook(t *testing.T) {
+func TestPrereq_Ok_PreValidate_Webhook_CertManager_v1alpha2(t *testing.T) {
 	client := getFakeClient()
 
 	mockCRD(client, "certificates.cert-manager.io", "v1alpha2")
 	mockCRD(client, "issuers.cert-manager.io", "v1alpha2")
+
+	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", false, false))
+
+	result := verifier.NewResult()
+	_ = init.PreInstallVerify(client, &result)
+
+	assert.Equal(t, 0, len(result.Errors))
+}
+
+func TestPrereq_Ok_PreValidate_Webhook_CertManager_v1alpha1(t *testing.T) {
+	client := getFakeClient()
+
+	mockCRD(client, "certificates.certmanager.k8s.io", "v1alpha1")
+	mockCRD(client, "issuers.certmanager.k8s.io", "v1alpha1")
 
 	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", false, false))
 

@@ -16,12 +16,36 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
-// Validate checks that the current KUDO installation is correct
-func Validate(client *kube.Client, opts kudoinit.Options, result *verifier.Result) error {
-	initSteps := initSteps(opts, false)
+var _ kudoinit.InstallVerifier = &Installer{}
 
+type Installer struct {
+	steps []kudoinit.Step
+}
+
+func NewInstaller(options kudoinit.Options, crdOnly bool) *Installer {
+	if crdOnly {
+		return &Installer{
+			steps: []kudoinit.Step{
+				crd.NewInitializer(),
+			},
+		}
+	}
+
+	return &Installer{
+		steps: []kudoinit.Step{
+			crd.NewInitializer(),
+			prereq.NewNamespaceInitializer(options),
+			prereq.NewServiceAccountInitializer(options),
+			prereq.NewWebHookInitializer(options),
+			manager.NewInitializer(options),
+		},
+	}
+}
+
+// Validate checks that the current KUDO installation is correct
+func (i *Installer) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
 	// Check if all steps are correctly installed
-	for _, initStep := range initSteps {
+	for _, initStep := range i.steps {
 		if err := initStep.VerifyInstallation(client, result); err != nil {
 			return fmt.Errorf("error while verifying init step %s: %v", initStep.String(), err)
 		}
@@ -38,12 +62,10 @@ func requiredMigrations() []migration.Migrater {
 	}
 }
 
-func PreUpgradeVerify(client *kube.Client, opts kudoinit.Options, result *verifier.Result) error {
-	initSteps := initSteps(opts, false)
-
+func (i *Installer) PreUpgradeVerify(client *kube.Client, result *verifier.Result) error {
 	// Step 1 - Verify that upgrade can be done
 	// Check if all steps are upgradeable
-	for _, initStep := range initSteps {
+	for _, initStep := range i.steps {
 		if err := initStep.PreUpgradeVerify(client, result); err != nil {
 			return fmt.Errorf("error while verifying upgrade step %s: %v", initStep.String(), err)
 		}
@@ -67,7 +89,7 @@ func PreUpgradeVerify(client *kube.Client, opts kudoinit.Options, result *verifi
 }
 
 // Upgrade an existing KUDO installation
-func Upgrade(client *kube.Client, opts kudoinit.Options) error {
+func (i *Installer) Upgrade(client *kube.Client, opts kudoinit.Options) error {
 	clog.Printf("Upgrade KUDO")
 
 	// Step 3 - Shut down/remove manager
@@ -90,15 +112,18 @@ func Upgrade(client *kube.Client, opts kudoinit.Options) error {
 	}
 
 	// Step 6 - Execute Installation/Upgrade (this enables webhooks again and starts new manager
-	return Install(client, opts, false)
+	return i.Install(client)
 }
 
 // Verifies that the installation is possible. Returns an error if any part of KUDO is already installed
-func PreInstallVerify(client *kube.Client, opts kudoinit.Options, crdOnly bool, result *verifier.Result) error {
-	initSteps := initSteps(opts, crdOnly)
+func (i *Installer) PreInstallVerify(client *kube.Client, result *verifier.Result) error {
+	if _, err := client.KubeClient.Discovery().ServerVersion(); err != nil {
+		result.AddErrors(fmt.Sprintf("Failed to connect to cluster: %v", err))
+		return nil
+	}
 
 	// Check if all steps are installable
-	for _, initStep := range initSteps {
+	for _, initStep := range i.steps {
 		if err := initStep.PreInstallVerify(client, result); err != nil {
 			return fmt.Errorf("error while verifying install step %s: %v", initStep.String(), err)
 		}
@@ -108,9 +133,9 @@ func PreInstallVerify(client *kube.Client, opts kudoinit.Options, crdOnly bool, 
 }
 
 // Install uses Kubernetes client to install KUDO.
-func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
+func (i *Installer) Install(client *kube.Client) error {
 	// Install everything
-	initSteps := initSteps(opts, crdOnly)
+	initSteps := i.steps
 	for _, initStep := range initSteps {
 		if err := initStep.Install(client); err != nil {
 			return fmt.Errorf("%s: %v", initStep, err)
@@ -120,27 +145,10 @@ func Install(client *kube.Client, opts kudoinit.Options, crdOnly bool) error {
 	return nil
 }
 
-func initSteps(opts kudoinit.Options, crdOnly bool) []kudoinit.Step {
-	if crdOnly {
-		return []kudoinit.Step{
-			crd.NewInitializer(),
-		}
-	}
-
-	return []kudoinit.Step{
-		crd.NewInitializer(),
-		prereq.NewNamespaceInitializer(opts),
-		prereq.NewServiceAccountInitializer(opts),
-		prereq.NewWebHookInitializer(opts),
-		manager.NewInitializer(opts),
-	}
-}
-
-func AsYamlManifests(opts kudoinit.Options, crdOnly bool) ([]string, error) {
-	initSteps := initSteps(opts, crdOnly)
+func (i *Installer) AsYamlManifests() ([]string, error) {
 	var allManifests []runtime.Object
 
-	for _, initStep := range initSteps {
+	for _, initStep := range i.steps {
 		allManifests = append(allManifests, initStep.Resources()...)
 	}
 
