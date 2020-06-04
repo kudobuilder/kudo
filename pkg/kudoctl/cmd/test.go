@@ -79,7 +79,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 
 			// Load the configuration YAML into options.
 			if configPath != "" {
-				objects, err := testutils.LoadYAML(configPath)
+				objects, err := testutils.LoadYAMLFromFile(configPath)
 				if err != nil {
 					return err
 				}

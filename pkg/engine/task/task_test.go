@@ -169,18 +169,30 @@ spec:
 name: deploy-zk
 kind: KudoOperator
 spec: 
-    package: zookeeper
+    operatorName: zookeeper
     appVersion: 0.0.3
     operatorVersion: 0.0.4
     instanceName: zk`,
 			want: KudoOperatorTask{
 				Name:            "deploy-zk",
-				Package:         "zookeeper",
+				OperatorName:    "zookeeper",
 				AppVersion:      "0.0.3",
 				OperatorVersion: "0.0.4",
 				InstanceName:    "zk",
 			},
 			wantErr: false,
+		},
+		{
+			name: "kudo-operator task without the operator name",
+			taskYaml: `
+name: deploy-zk
+kind: KudoOperator
+spec:
+    appVersion: 0.0.3
+    operatorVersion: 0.0.4
+    instanceName: zk`,
+			want:    nil,
+			wantErr: true,
 		},
 		{
 			name: "unknown task",
