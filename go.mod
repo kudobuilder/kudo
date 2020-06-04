@@ -22,6 +22,7 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/thoas/go-funk v0.6.0
 	github.com/xlab/treeprint v1.0.0
+	github.com/yourbasic/graph v0.0.0-20170921192928-40eb135c0b26
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	golang.org/x/sys v0.0.0-20200408040146-ea54a3c99b9b // indirect
