@@ -182,9 +182,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
-	if instance.NoPlanEverExecuted() || isUpgradePlan(plan) {
-		ensurePlanStatusInitialized(instance, ov)
-	}
+	ensurePlanStatusInitialized(instance, ov)
 
 	// reset its status if the plan is new and log/record it
 	planStatus, err := resetPlanStatusIfPlanIsNew(instance, plan, uid)
@@ -448,49 +446,29 @@ func ensurePlanStatusInitialized(i *v1beta1.Instance, ov *v1beta1.OperatorVersio
 	}
 
 	for planName, plan := range ov.Spec.Plans {
-		planStatus := &v1beta1.PlanStatus{
-			Name:   planName,
-			Status: v1beta1.ExecutionNeverRun,
-			Phases: make([]v1beta1.PhaseStatus, 0),
-		}
-
-		existingPlanStatus, planExists := i.Status.PlanStatus[planName]
-		if planExists {
-			planStatus.SetWithMessage(existingPlanStatus.Status, existingPlanStatus.Message)
-		}
-		for _, phase := range plan.Phases {
-			phaseStatus := &v1beta1.PhaseStatus{
-				Name:   phase.Name,
+		if _, ok := i.Status.PlanStatus[planName]; !ok {
+			planStatus := v1beta1.PlanStatus{
+				Name:   planName,
 				Status: v1beta1.ExecutionNeverRun,
-				Steps:  make([]v1beta1.StepStatus, 0),
+				Phases: make([]v1beta1.PhaseStatus, 0),
 			}
-			existingPhaseStatus, phaseExists := v1beta1.PhaseStatus{}, false
-			if planExists {
-				for _, oldPhase := range existingPlanStatus.Phases {
-					if phase.Name == oldPhase.Name {
-						existingPhaseStatus = oldPhase
-						phaseExists = true
-						phaseStatus.SetWithMessage(existingPhaseStatus.Status, existingPhaseStatus.Message)
-					}
-				}
-			}
-			for _, step := range phase.Steps {
-				stepStatus := v1beta1.StepStatus{
-					Name:   step.Name,
+			for _, phase := range plan.Phases {
+				phaseStatus := v1beta1.PhaseStatus{
+					Name:   phase.Name,
 					Status: v1beta1.ExecutionNeverRun,
+					Steps:  make([]v1beta1.StepStatus, 0),
 				}
-				if phaseExists {
-					for _, oldStep := range existingPhaseStatus.Steps {
-						if step.Name == oldStep.Name {
-							stepStatus.SetWithMessage(oldStep.Status, oldStep.Message)
-						}
+				for _, step := range phase.Steps {
+					stepStatus := v1beta1.StepStatus{
+						Name:   step.Name,
+						Status: v1beta1.ExecutionNeverRun,
 					}
+					phaseStatus.Steps = append(phaseStatus.Steps, stepStatus)
 				}
-				phaseStatus.Steps = append(phaseStatus.Steps, stepStatus)
+				planStatus.Phases = append(planStatus.Phases, phaseStatus)
 			}
-			planStatus.Phases = append(planStatus.Phases, *phaseStatus)
+			i.Status.PlanStatus[planName] = planStatus
 		}
-		i.Status.PlanStatus[planName] = *planStatus
 	}
 }
 

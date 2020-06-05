@@ -1,6 +1,8 @@
 package instance
 
 import (
+	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -374,7 +376,7 @@ func Test_scheduledPlan(t *testing.T) {
 	}
 }
 
-func Test_resetPlanStatusIfThePlanIsNew(t *testing.T) {
+func Test_resetPlanStatusIfPlanIsNew(t *testing.T) {
 	status := v1beta1.PlanStatus{
 		Name:   "deploy",
 		Status: v1beta1.ExecutionInProgress,
@@ -446,6 +448,143 @@ func Test_resetPlanStatusIfThePlanIsNew(t *testing.T) {
 				assert.Equal(t, tt.want.Status, got.Status, "resetPlanStatusIfPlanIsNew() got status = %v, want %v", got.Status, tt.want.Status)
 				assert.Equal(t, tt.want.UID, got.UID, "resetPlanStatusIfPlanIsNew() got uid = %v, want %v", got.UID, tt.want.UID)
 			}
+		})
+	}
+}
+
+func Test_ensurePlanStatusInitialized(t *testing.T) {
+
+	makeStatus := func(planName string, status v1beta1.ExecutionStatus, uid types.UID) v1beta1.PlanStatus {
+		return v1beta1.PlanStatus{
+			Name:   planName,
+			Status: status,
+			UID:    uid,
+			Phases: []v1beta1.PhaseStatus{
+				{
+					Name:   "phase",
+					Status: status,
+					Steps: []v1beta1.StepStatus{
+						{
+							Name:   "step",
+							Status: status,
+						},
+					},
+				},
+			},
+		}
+	}
+
+	deployStatus := makeStatus("deploy", v1beta1.ExecutionNeverRun, "")
+	oldStatus := makeStatus("old", v1beta1.ExecutionComplete, "222-333-444")
+	backupStatus := makeStatus("backup", v1beta1.ExecutionNeverRun, "")
+	backupCompleteStatus := makeStatus("backup", v1beta1.ExecutionComplete, "111-222-333")
+
+	instance := &v1beta1.Instance{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "kudo.dev/v1beta1", Kind: "Instance"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "test"},
+		Spec:       v1beta1.InstanceSpec{},
+		Status:     v1beta1.InstanceStatus{},
+	}
+
+	ov := &v1beta1.OperatorVersion{
+		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
+		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.dev/v1beta1"},
+		Spec: v1beta1.OperatorVersionSpec{
+			Plans: map[string]v1beta1.Plan{
+				"deploy": {
+					Phases: []v1beta1.Phase{
+						{
+							Name: "phase",
+							Steps: []v1beta1.Step{
+								{
+									Name:  "step",
+									Tasks: []string{},
+								},
+							},
+						},
+					},
+				},
+				"backup": {
+					Phases: []v1beta1.Phase{
+						{
+							Name: "phase",
+							Steps: []v1beta1.Step{
+								{
+									Name:  "step",
+									Tasks: []string{},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name string
+		i    *v1beta1.Instance
+		ov   *v1beta1.OperatorVersion
+		want v1beta1.InstanceStatus
+	}{
+		{
+			name: "missing plan status IS updated",
+			i:    instance.DeepCopy(),
+			ov:   ov,
+			want: v1beta1.InstanceStatus{
+				PlanStatus: map[string]v1beta1.PlanStatus{
+					"deploy": deployStatus,
+					"backup": backupStatus,
+				},
+			},
+		},
+		{
+			name: "an existing plan status is NOT updated",
+			i: func() *v1beta1.Instance {
+				i := instance.DeepCopy()
+				i.Status = v1beta1.InstanceStatus{
+					PlanStatus: map[string]v1beta1.PlanStatus{"backup": backupCompleteStatus},
+				}
+				return i
+			}(),
+			ov: ov,
+			want: v1beta1.InstanceStatus{
+				PlanStatus: map[string]v1beta1.PlanStatus{
+					"deploy": deployStatus,
+					"backup": backupCompleteStatus,
+				},
+			},
+		},
+		{
+			name: "an existing but outdated (missing in OV) plan status is NOT modified",
+			i: func() *v1beta1.Instance {
+				i := instance.DeepCopy()
+				i.Status = v1beta1.InstanceStatus{
+					PlanStatus: map[string]v1beta1.PlanStatus{"old": oldStatus},
+				}
+				return i
+			}(),
+			ov: ov,
+			want: v1beta1.InstanceStatus{
+				PlanStatus: map[string]v1beta1.PlanStatus{
+					"old":    oldStatus,
+					"deploy": deployStatus,
+					"backup": backupStatus,
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			ensurePlanStatusInitialized(tt.i, tt.ov)
+
+			assert.Equal(t, tt.want, tt.i.Status)
+
+			fmt.Printf("\n==== %s ====\n", tt.name)
+			s, _ := json.MarshalIndent(tt.i, "", "  ")
+			fmt.Println(string(s))
 		})
 	}
 }
