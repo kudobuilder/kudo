@@ -175,6 +175,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// ---------- 2. Get currently scheduled plan if it exists ----------
+
 	ensurePlanStatusInitialized(instance, ov)
 
 	// get the scheduled plan
@@ -442,7 +443,6 @@ func resetPlanStatusIfPlanIsNew(i *v1beta1.Instance, plan string, uid types.UID)
 // after OV was updated
 func ensurePlanStatusInitialized(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) {
 	if i.Status.PlanStatus == nil {
-		a
 		i.Status.PlanStatus = make(map[string]v1beta1.PlanStatus)
 	}
 
