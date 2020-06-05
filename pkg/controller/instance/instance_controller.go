@@ -175,14 +175,15 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// ---------- 2. Get currently scheduled plan if it exists ----------
-
-	ensurePlanStatusInitialized(instance, ov)
-
 	// get the scheduled plan
 	plan, uid := scheduledPlan(instance, ov)
 	if plan == "" {
 		log.Printf("InstanceController: Nothing to do, no plan scheduled for instance %s/%s", instance.Namespace, instance.Name)
 		return reconcile.Result{}, nil
+	}
+
+	if instance.NoPlanEverExecuted() || isUpgradePlan(plan) {
+		ensurePlanStatusInitialized(instance, ov)
 	}
 
 	// reset its status if the plan is new and log/record it
@@ -491,6 +492,11 @@ func ensurePlanStatusInitialized(i *v1beta1.Instance, ov *v1beta1.OperatorVersio
 		}
 		i.Status.PlanStatus[planName] = *planStatus
 	}
+}
+
+// isUpgradePlan returns true if this could be an upgrade plan - this is just an approximation because deploy plan can be used for both
+func isUpgradePlan(planName string) bool {
+	return planName == v1beta1.DeployPlanName || planName == v1beta1.UpgradePlanName
 }
 
 // scheduledPlan method returns currently scheduled plan and its UID from Instance.Spec.PlanExecution field. However, due
