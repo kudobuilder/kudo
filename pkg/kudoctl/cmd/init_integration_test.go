@@ -382,7 +382,7 @@ func TestReInitFails(t *testing.T) {
 	err = cmd.run()
 
 	assert.Equal(t, "failed to verify installation requirements", err.Error())
-	assertStringContains(t, "CRD operators.kudo.dev is already installed. Did you mean to use --upgrade?", buf.String())
+	assertStringContains(t, "CRD operators.kudo.dev is already installed. Did you mean to use --upgrade?", errBuf.String())
 }
 
 func deleteObjects(objs []runtime.Object, client *testutils.RetryClient) error {
