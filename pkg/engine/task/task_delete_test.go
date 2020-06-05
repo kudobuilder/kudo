@@ -67,14 +67,14 @@ func TestDeleteTask_Run(t *testing.T) {
 			},
 		},
 		{
-			name: "fails when a kustomizing error occurs",
+			name: "does not fail when a kustomizing error occurs",
 			task: DeleteTask{
 				Name:      "task",
 				Resources: []string{"pod"},
 			},
-			done:    false,
-			wantErr: true,
-			fatal:   true,
+			done:    true,
+			wantErr: false,
+			fatal:   false,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
 				Enhancer:  &fatalErrorEnhancer{},
@@ -100,14 +100,17 @@ func TestDeleteTask_Run(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got, err := tt.task.Run(tt.ctx)
-		assert.True(t, tt.done == got, fmt.Sprintf("%s failed: want = %t, wantErr = %v", tt.name, got, err))
-		if tt.wantErr {
-			assert.True(t, errors.Is(err, engine.ErrFatalExecution) == tt.fatal, "expected a fatal: %t error", tt.fatal)
-			assert.Error(t, err)
-		}
-		if !tt.wantErr {
-			assert.NoError(t, err)
-		}
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.task.Run(tt.ctx)
+			assert.True(t, tt.done == got, fmt.Sprintf("%s failed: want = %t, wantErr = %v", tt.name, got, err))
+			if tt.wantErr {
+				assert.True(t, errors.Is(err, engine.ErrFatalExecution) == tt.fatal, "expected a fatal: %t error", tt.fatal)
+				assert.Error(t, err)
+			}
+			if !tt.wantErr {
+				assert.NoError(t, err)
+			}
+		})
 	}
 }

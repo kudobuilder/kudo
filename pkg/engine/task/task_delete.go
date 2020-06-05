@@ -23,14 +23,14 @@ func (dt DeleteTask) Run(ctx Context) (bool, error) {
 		return false, fatalExecutionError(err, taskRenderingError, ctx.Meta)
 	}
 
-	// 2. - Enhance them with metadata -
-	enhanced, err := enhance(rendered, ctx.Meta, ctx.Enhancer)
+	// 2. - Convert to objs
+	objs, err := convert(rendered)
 	if err != nil {
-		return false, err
+		return false, fatalExecutionError(err, taskRenderingError, ctx.Meta)
 	}
 
 	// 3. - Delete them using the client -
-	err = deleteResource(enhanced, ctx.Client)
+	err = deleteResource(objs, ctx.Client)
 	if err != nil {
 		return false, err
 	}

@@ -90,19 +90,25 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 		return false, fatalExecutionError(err, pipeTaskError, ctx.Meta)
 	}
 
-	// 5. - Enhance pod with metadata
-	podObj, err := enhance(map[string]string{"pipe-pod.yaml": podYaml}, ctx.Meta, ctx.Enhancer)
+	// 5. - Convert to object
+	objs, err := convert(map[string]string{"pipe-pod.yaml": podYaml})
+	if err != nil {
+		return false, fatalExecutionError(err, taskRenderingError, ctx.Meta)
+	}
+
+	// 6. - Enhance pod with metadata
+	podObj, err := enhance(objs, ctx.Meta, ctx.Enhancer)
 	if err != nil {
 		return false, err
 	}
 
-	// 6. - Apply pod using the client -
+	// 7. - Apply pod using the client -
 	podObj, err = applyResources(podObj, ctx)
 	if err != nil {
 		return false, err
 	}
 
-	// 7. - Wait for the pod to be ready -
+	// 8. - Wait for the pod to be ready -
 	err = isHealthy(podObj)
 	// once the pod is Ready, it means that its initContainer finished successfully and we can copy
 	// out the generated files. An error during a health check is not treated as task execution error
@@ -112,7 +118,7 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 		return false, nil
 	}
 
-	// 8. - Copy out the pipe files -
+	// 9. - Copy out the pipe files -
 	log.Printf("PipeTask: %s/%s copying pipe files", ctx.Meta.InstanceNamespace, ctx.Meta.InstanceName)
 	fs := afero.NewMemMapFs()
 	pipePod, ok := podObj[0].(*corev1.Pod)
@@ -125,26 +131,32 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 		return false, err
 	}
 
-	// 9. - Create k8s artifacts (ConfigMap/Secret) from the pipe files -
+	// 10. - Create k8s artifacts (ConfigMap/Secret) from the pipe files -
 	log.Printf("PipeTask: %s/%s creating pipe artifacts", ctx.Meta.InstanceNamespace, ctx.Meta.InstanceName)
 	artStr, err := createArtifacts(fs, pt.PipeFiles, ctx.Meta)
 	if err != nil {
 		return false, err
 	}
 
-	// 10. - Enhance artifacts -
-	artObj, err := enhance(artStr, ctx.Meta, ctx.Enhancer)
+	// 11. - Convert to objs
+	artObjs, err := convert(artStr)
+	if err != nil {
+		return false, fatalExecutionError(err, taskRenderingError, ctx.Meta)
+	}
+
+	// 12. - Enhance artifacts -
+	artObj, err := enhance(artObjs, ctx.Meta, ctx.Enhancer)
 	if err != nil {
 		return false, err
 	}
 
-	// 11. - Apply artifacts using the client -
+	// 13. - Apply artifacts using the client -
 	_, err = applyResources(artObj, ctx)
 	if err != nil {
 		return false, err
 	}
 
-	// 12. - Delete pipe pod -
+	// 14. - Delete pipe pod -
 	log.Printf("PipeTask: %s/%s deleting pipe pod", ctx.Meta.InstanceNamespace, ctx.Meta.InstanceName)
 	err = deleteResource(podObj, ctx.Client)
 	if err != nil {

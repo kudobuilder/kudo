@@ -19,7 +19,7 @@ import (
 // and annotations
 // it also takes care of setting an owner of all the resources to the provided object
 type Enhancer interface {
-	Apply(templates map[string]string, metadata Metadata) ([]runtime.Object, error)
+	Apply(objs []runtime.Object, metadata Metadata) ([]runtime.Object, error)
 }
 
 // DefaultEnhancer is implementation of Enhancer that applies the defined conventions by directly editing runtime.Objects (Unstructured).
@@ -31,47 +31,41 @@ type DefaultEnhancer struct {
 
 // Apply accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
-func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) (objsToAdd []runtime.Object, err error) {
-	unstructuredObjs := make([]*unstructured.Unstructured, 0, len(templates))
+func (de *DefaultEnhancer) Apply(sourceObjs []runtime.Object, metadata Metadata) ([]runtime.Object, error) {
+	unstructuredObjs := make([]*unstructured.Unstructured, 0, len(sourceObjs))
 
-	for name, v := range templates {
-		parsed, err := YamlToObject(v)
+	for _, obj := range sourceObjs {
+		unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 		if err != nil {
-			return nil, fmt.Errorf("%wparsing YAML from %s: %v", engine.ErrFatalExecution, name, err)
+			return nil, fmt.Errorf("%wconverting to unstructured failed: %v", engine.ErrFatalExecution, err)
 		}
-		for _, obj := range parsed {
-			unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
-			if err != nil {
-				return nil, fmt.Errorf("%wconverting to unstructured failed: %v", engine.ErrFatalExecution, err)
-			}
 
-			objUnstructured := &unstructured.Unstructured{Object: unstructMap}
+		objUnstructured := &unstructured.Unstructured{Object: unstructMap}
 
-			if err = addLabels(objUnstructured, metadata); err != nil {
-				return nil, fmt.Errorf("%wadding labels on parsed object: %v", engine.ErrFatalExecution, err)
-			}
-			if err = addAnnotations(objUnstructured, metadata); err != nil {
-				return nil, fmt.Errorf("%wadding annotations on parsed object %s: %v", engine.ErrFatalExecution, obj.GetObjectKind(), err)
-			}
-
-			isNamespaced, err := resource.IsNamespacedObject(obj, de.Discovery)
-			if err != nil {
-				return nil, fmt.Errorf("failed to determine if object %s is namespaced: %v", obj.GetObjectKind(), err)
-			}
-
-			// Note: Cross-namespace owner references are disallowed by design. This means:
-			// 1) Namespace-scoped dependents can only specify owners in the same namespace, and owners that are cluster-scoped.
-			// 2) Cluster-scoped dependents can only specify cluster-scoped owners, but not namespace-scoped owners.
-			// More: https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/
-			if isNamespaced {
-				objUnstructured.SetNamespace(metadata.InstanceNamespace)
-				if err := controllerutil.SetControllerReference(metadata.ResourcesOwner, objUnstructured, de.Scheme); err != nil {
-					return nil, fmt.Errorf("%wsetting controller reference on parsed object %s: %v", engine.ErrFatalExecution, obj.GetObjectKind(), err)
-				}
-			}
-
-			unstructuredObjs = append(unstructuredObjs, objUnstructured)
+		if err = addLabels(objUnstructured, metadata); err != nil {
+			return nil, fmt.Errorf("%wadding labels on parsed object: %v", engine.ErrFatalExecution, err)
 		}
+		if err = addAnnotations(objUnstructured, metadata); err != nil {
+			return nil, fmt.Errorf("%wadding annotations on parsed object %s: %v", engine.ErrFatalExecution, obj.GetObjectKind(), err)
+		}
+
+		isNamespaced, err := resource.IsNamespacedObject(obj, de.Discovery)
+		if err != nil {
+			return nil, fmt.Errorf("failed to determine if object %s is namespaced: %v", obj.GetObjectKind(), err)
+		}
+
+		// Note: Cross-namespace owner references are disallowed by design. This means:
+		// 1) Namespace-scoped dependents can only specify owners in the same namespace, and owners that are cluster-scoped.
+		// 2) Cluster-scoped dependents can only specify cluster-scoped owners, but not namespace-scoped owners.
+		// More: https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/
+		if isNamespaced {
+			objUnstructured.SetNamespace(metadata.InstanceNamespace)
+			if err := controllerutil.SetControllerReference(metadata.ResourcesOwner, objUnstructured, de.Scheme); err != nil {
+				return nil, fmt.Errorf("%wsetting controller reference on parsed object %s: %v", engine.ErrFatalExecution, obj.GetObjectKind(), err)
+			}
+		}
+
+		unstructuredObjs = append(unstructuredObjs, objUnstructured)
 	}
 
 	if err := de.addDependenciesHashes(unstructuredObjs); err != nil {
