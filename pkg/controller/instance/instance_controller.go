@@ -174,20 +174,29 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err // OV not found has to be retried because it can really have been created after Instance
 	}
 
-	// ---------- 2. Execute scheduled plan if exists ----------
+	// ---------- 2. Get currently scheduled plan if it exists ----------
 	ensurePlanStatusInitialized(instance, ov)
 
+	// get the scheduled plan
 	plan, uid := scheduledPlan(instance, ov)
 	if plan == "" {
 		log.Printf("InstanceController: Nothing to do, no plan scheduled for instance %s/%s", instance.Namespace, instance.Name)
 		return reconcile.Result{}, nil
 	}
 
-	planStatus, err := resetPlanStatusIfThePlanIsNew(instance, plan, uid)
+	// reset its status if the plan is new and log/record it
+	planStatus, err := resetPlanStatusIfPlanIsNew(instance, plan, uid)
 	if err != nil {
 		log.Printf("InstanceController: Error resetting instance %s/%s status. %v", instance.Namespace, instance.Name, err)
 		return reconcile.Result{}, err
 	}
+
+	if planStatus.Status == v1beta1.ExecutionPending {
+		log.Printf("InstanceController: Going to start execution of plan '%s' on instance %s/%s", plan, instance.Namespace, instance.Name)
+		r.Recorder.Event(instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", plan))
+	}
+
+	// ---------- 3. Execute the scheduled plan ----------
 
 	metadata := &engine.Metadata{
 		OperatorVersionName: ov.Name,
@@ -207,7 +216,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	log.Printf("InstanceController: Going to proceed with execution of the scheduled plan '%s' on instance %s/%s", activePlan.Name, instance.Namespace, instance.Name)
 	newStatus, err := workflow.Execute(activePlan, metadata, r.Client, r.Discovery, r.Config, r.Scheme)
 
-	// ---------- 3. Update instance and its status after the execution proceeded ----------
+	// ---------- 4. Update instance and its status after the execution proceeded ----------
 
 	if newStatus != nil {
 		instance.UpdateInstanceStatus(newStatus, &metav1.Time{Time: time.Now()})
@@ -408,13 +417,14 @@ func PipesMap(planName string, plan *v1beta1.Plan, tasks []v1beta1.Task, emeta *
 	return pipes, nil
 }
 
-// resetPlanStatusIfThePlanIsNew method resets a PlanStatus for a passed plan name and instance *IF* this is a newly
-// scheduled plan (UID has changed). In this case Plan/phase/step statuses are set to ExecutionPending meaning that the
-// controller will restart plan execution. Otherwise (the plan is old), nothing is changed.
-func resetPlanStatusIfThePlanIsNew(i *v1beta1.Instance, plan string, uid types.UID) (*v1beta1.PlanStatus, error) {
+// resetPlanStatusIfPlanIsNew method resets a PlanStatus for a passed plan name and instance *IF* this is a newly
+// scheduled plan (UID has changed) and returns updated plan status. In this case Plan/phase/step statuses are set
+// to ExecutionPending meaning that the controller will restart plan execution. Otherwise (the plan is old),
+// nothing is changed and the existing plan status is returned.
+func resetPlanStatusIfPlanIsNew(i *v1beta1.Instance, plan string, uid types.UID) (*v1beta1.PlanStatus, error) {
 	ps := i.PlanStatus(plan)
 	if ps == nil {
-		return nil, fmt.Errorf("failed to find planStatus for the plan '%s'", plan)
+		return nil, fmt.Errorf("failed to find planStatus for plan '%s'", plan)
 	}
 
 	// if plan UID is the same then we continue with the execution of the existing plan
@@ -427,11 +437,12 @@ func resetPlanStatusIfThePlanIsNew(i *v1beta1.Instance, plan string, uid types.U
 	return ps, nil
 }
 
-// ensurePlanStatusInitialized initializes plan status for all plans this instance supports
-// it does not trigger run of any plan
-// it either initializes everything for a fresh instance without any status or tries to adjust status after OV was updated
+// ensurePlanStatusInitialized initializes plan status for all plans this instance supports  it does not trigger run
+// of any plan it either initializes everything for a fresh instance without any status or tries to adjust status
+// after OV was updated
 func ensurePlanStatusInitialized(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) {
 	if i.Status.PlanStatus == nil {
+		a
 		i.Status.PlanStatus = make(map[string]v1beta1.PlanStatus)
 	}
 

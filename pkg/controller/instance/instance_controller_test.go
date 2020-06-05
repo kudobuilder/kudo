@@ -437,14 +437,14 @@ func Test_resetPlanStatusIfThePlanIsNew(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := resetPlanStatusIfThePlanIsNew(tt.i, tt.plan, tt.uid)
+			got, err := resetPlanStatusIfPlanIsNew(tt.i, tt.plan, tt.uid)
 
-			assert.True(t, (err != nil) == tt.wantErr, "resetPlanStatusIfThePlanIsNew() error = %v, wantErr %v", err, tt.wantErr)
+			assert.True(t, (err != nil) == tt.wantErr, "resetPlanStatusIfPlanIsNew() error = %v, wantErr %v", err, tt.wantErr)
 
 			if got != nil {
-				assert.Equal(t, tt.want.Name, got.Name, "resetPlanStatusIfThePlanIsNew() got plan = %v, want %v", got.Name, tt.want.Name)
-				assert.Equal(t, tt.want.Status, got.Status, "resetPlanStatusIfThePlanIsNew() got status = %v, want %v", got.Status, tt.want.Status)
-				assert.Equal(t, tt.want.UID, got.UID, "resetPlanStatusIfThePlanIsNew() got uid = %v, want %v", got.UID, tt.want.UID)
+				assert.Equal(t, tt.want.Name, got.Name, "resetPlanStatusIfPlanIsNew() got plan = %v, want %v", got.Name, tt.want.Name)
+				assert.Equal(t, tt.want.Status, got.Status, "resetPlanStatusIfPlanIsNew() got status = %v, want %v", got.Status, tt.want.Status)
+				assert.Equal(t, tt.want.UID, got.UID, "resetPlanStatusIfPlanIsNew() got uid = %v, want %v", got.UID, tt.want.UID)
 			}
 		})
 	}

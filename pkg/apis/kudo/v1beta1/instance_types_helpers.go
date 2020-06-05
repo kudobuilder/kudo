@@ -75,23 +75,25 @@ func (i *Instance) NoPlanEverExecuted() bool {
 }
 
 // UpdateInstanceStatus updates `Status.PlanStatus` and `Status.AggregatedStatus` property based on the given plan
-func (i *Instance) UpdateInstanceStatus(planStatus *PlanStatus, updatedTimestamp *metav1.Time) {
+func (i *Instance) UpdateInstanceStatus(ps *PlanStatus, updatedTimestamp *metav1.Time) {
 	for k, v := range i.Status.PlanStatus {
-		if v.Name == planStatus.Name {
-			planStatus.LastUpdatedTimestamp = updatedTimestamp
-			i.Status.PlanStatus[k] = *planStatus
-			i.Spec.PlanExecution.Status = planStatus.Status
+		if v.Name == ps.Name {
+			ps.LastUpdatedTimestamp = updatedTimestamp
+			i.Status.PlanStatus[k] = *ps
+			i.Spec.PlanExecution.Status = ps.Status
 		}
 	}
 }
 
+// ResetPlanStatus method resets a PlanStatus for a passed plan name and instance. Plan/phase/step statuses
+// are set to ExecutionPending meaning that the controller will restart plan execution.
 func (i *Instance) ResetPlanStatus(ps *PlanStatus, uid types.UID, updatedTimestamp *metav1.Time) {
 	ps.UID = uid
 	ps.Status = ExecutionPending
-	for i, ph := range ps.Phases {
+	for i := range ps.Phases {
 		ps.Phases[i].Set(ExecutionPending)
 
-		for j := range ph.Steps {
+		for j := range ps.Phases[i].Steps {
 			ps.Phases[i].Steps[j].Set(ExecutionPending)
 		}
 	}
