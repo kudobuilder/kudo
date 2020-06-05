@@ -38,6 +38,11 @@ func IsNamespacedObject(r runtime.Object, di discovery.CachedDiscoveryInterface)
 	return isNamespaced(gvk, di)
 }
 
+func IsKnownObjectType(r runtime.Object, di discovery.CachedDiscoveryInterface) (bool, error) {
+	gvk := r.GetObjectKind().GroupVersionKind()
+	return isKnownType(gvk, di)
+}
+
 // isNamespaced method return true if given runtime.Object is a namespaced (not cluster-scoped) resource. It uses the
 // discovery client to fetch all API resources (with Groups and Versions), searches for a resource with the passed GVK
 // and returns true if it's namespaced. Method returns an error if passed GVK wasn't found in the discovered resource list.
@@ -65,6 +70,30 @@ func isNamespaced(gvk schema.GroupVersionKind, di discovery.CachedDiscoveryInter
 	}
 
 	return false, fmt.Errorf("a resource with GVK %v seems to be missing in API resource list", gvk)
+}
+
+func isKnownType(gvk schema.GroupVersionKind, di discovery.CachedDiscoveryInterface) (bool, error) {
+	// First try, this may return nil because of the cache
+	apiResource, err := getAPIResource(gvk, di)
+	if err != nil {
+		return false, err
+	}
+	if apiResource != nil {
+		return true, nil
+	}
+
+	// Second try, now with invalidated cache. If we still get nil, we know it's not there.
+	log.Printf("Failed to get APIResource for %v, retry with invalidated cache.", gvk)
+	di.Invalidate()
+	apiResource, err = getAPIResource(gvk, di)
+	if err != nil {
+		return false, err
+	}
+	if apiResource != nil {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // getAPIResource returns a specific APIResource from the DiscoveryInterface or nil if no resource was found.
