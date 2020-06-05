@@ -472,11 +472,6 @@ func ensurePlanStatusInitialized(i *v1beta1.Instance, ov *v1beta1.OperatorVersio
 	}
 }
 
-// isUpgradePlan returns true if this could be an upgrade plan - this is just an approximation because deploy plan can be used for both
-func isUpgradePlan(planName string) bool {
-	return planName == v1beta1.DeployPlanName || planName == v1beta1.UpgradePlanName
-}
-
 // scheduledPlan method returns currently scheduled plan and its UID from Instance.Spec.PlanExecution field. However, due
 // to an edge case with instance deletion, this method also schedules the 'cleanup' plan if necessary (see the comments below)
 func scheduledPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (string, types.UID) {
