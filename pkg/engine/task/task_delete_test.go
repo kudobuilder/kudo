@@ -11,6 +11,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
+	kudofake "github.com/kudobuilder/kudo/pkg/test/fake"
 )
 
 func TestDeleteTask_Run(t *testing.T) {
@@ -45,9 +46,10 @@ func TestDeleteTask_Run(t *testing.T) {
 			done:    true,
 			wantErr: false,
 			ctx: Context{
-				Client:   fake.NewFakeClientWithScheme(scheme.Scheme),
-				Enhancer: &testEnhancer{},
-				Meta:     renderer.Metadata{},
+				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: kudofake.CustomCachedDiscoveryClient(),
+				Enhancer:  &testEnhancer{},
+				Meta:      renderer.Metadata{},
 			},
 		},
 		{
@@ -61,22 +63,24 @@ func TestDeleteTask_Run(t *testing.T) {
 			fatal:   true,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: kudofake.CustomCachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{},
 			},
 		},
 		{
-			name: "does not fail when a kustomizing error occurs",
+			name: "fails when a kustomizing error occurs",
 			task: DeleteTask{
 				Name:      "task",
 				Resources: []string{"pod"},
 			},
-			done:    true,
-			wantErr: false,
-			fatal:   false,
+			done:    false,
+			wantErr: true,
+			fatal:   true,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: kudofake.CustomCachedDiscoveryClient(),
 				Enhancer:  &fatalErrorEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},
@@ -92,6 +96,7 @@ func TestDeleteTask_Run(t *testing.T) {
 			wantErr: false,
 			ctx: Context{
 				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Discovery: kudofake.CustomCachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
 				Templates: map[string]string{"pod": resourceAsString(pod("pod1", "default"))},

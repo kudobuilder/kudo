@@ -1,6 +1,8 @@
 package task
 
 import (
+	"fmt"
+
 	"golang.org/x/net/context"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,11 +56,11 @@ func (dt DeleteTask) Run(ctx Context) (bool, error) {
 }
 
 func filterUnknownObjectTypes(objs []runtime.Object, ctx Context) ([]runtime.Object, error) {
-	knownObjs := make([]runtime.Object, len(objs))
+	knownObjs := make([]runtime.Object, 0)
 	for _, o := range objs {
 		isKnown, err := resource.IsKnownObjectType(o, ctx.Discovery)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to detect if object type is known for %s: %v", o.GetObjectKind(), err)
 		}
 		if isKnown {
 			knownObjs = append(knownObjs, o)
