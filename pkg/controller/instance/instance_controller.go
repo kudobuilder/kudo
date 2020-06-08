@@ -175,6 +175,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// ---------- 2. Get currently scheduled plan if it exists ----------
+
 	// get the scheduled plan
 	plan, uid := scheduledPlan(instance, ov)
 	if plan == "" {
@@ -220,10 +221,6 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 	if newStatus != nil {
 		instance.UpdateInstanceStatus(newStatus, &metav1.Time{Time: time.Now()})
-	}
-	if err != nil {
-		err = r.handleError(err, instance, oldInstance)
-		return reconcile.Result{}, err
 	}
 
 	err = updateInstance(instance, oldInstance, r.Client)

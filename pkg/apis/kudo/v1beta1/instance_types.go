@@ -182,12 +182,12 @@ var (
 	}
 )
 
-// IsTerminal returns true if the status is terminal (either complete, or in a nonrecoverable error)
+// IsTerminal returns true if the status is terminal (either complete, or in a fatal error)
 func (s ExecutionStatus) IsTerminal() bool {
 	return s == ExecutionComplete || s == ExecutionFatalError
 }
 
-// IsFinished returns true if the status is complete regardless of errors
+// IsFinished returns true if the status is complete successfully (not in 'FATAL_ERROR' state)
 func (s ExecutionStatus) IsFinished() bool {
 	return s == ExecutionComplete
 }

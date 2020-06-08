@@ -1,6 +1,16 @@
 apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
+  name: dummy-instance
+status:
+  planStatus:
+    deploy:
+      status: COMPLETE
+
+---
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
   name: dummy-instance.child
 status:
   planStatus:

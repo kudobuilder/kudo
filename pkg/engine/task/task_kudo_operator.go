@@ -137,7 +137,7 @@ func instanceResource(instanceName, operatorName, operatorVersionName, namespace
 		},
 		Status: v1beta1.InstanceStatus{},
 	}
-	if err := controllerutil.SetControllerReference(owner, instance, scheme); err != nil {
+	if err := controllerutil.SetOwnerReference(owner, instance, scheme); err != nil {
 		return nil, fmt.Errorf("failed to set resource ownership for the new instance: %v", err)
 	}
 
