@@ -126,32 +126,47 @@ func TestGatherDependencies(t *testing.T) {
 			expectedDeps: []string{"C", "D", "E"},
 			expectedErr:  "",
 		},
+		{
+			// A
+			// └── B
+			//     ├── C
+			//     │   ├── D
+			//     │   └── A
+			//     ├── E
+			//     └── F
+			name: "complex circular dependency",
+			pkgs: []packages.Package{
+				createPackage("A", "B"),
+				createPackage("B", "C", "E", "F"),
+				createPackage("C", "D", "A"),
+				createPackage("D"),
+				createPackage("E"),
+				createPackage("F"),
+			},
+			expectedDeps: []string{},
+			expectedErr:  "",
+		},
 	}
 
-	for _, test := range tests {
-		test := test
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			resolver := nameResolver{tt.pkgs}
+			actual, err := gatherDependencies(*tt.pkgs[0].Resources, resolver)
 
-		resolver := nameResolver{test.pkgs}
+			assert.Equal(t, err == nil, tt.expectedErr == "")
 
-		actual, err := gatherDependencies(*test.pkgs[0].Resources, resolver)
-		if err != nil {
-			if test.expectedErr == "" {
-				t.Errorf("%s: expected no error but got %v", test.name, err)
+			if err != nil {
+				assert.EqualError(t, err, tt.expectedErr, tt.name)
 			}
 
-			assert.EqualError(t, err, test.expectedErr, test.name)
-		} else {
-			if test.expectedErr != "" {
-				t.Errorf("%s: expected an error but got none", test.name)
-			}
-
-			for _, operatorName := range test.expectedDeps {
+			for _, operatorName := range tt.expectedDeps {
 				operatorName := operatorName
 
 				assert.NotNil(t, funk.Find(actual, func(p packages.Resources) bool {
 					return p.Operator.Name == operatorName
-				}), test.name)
+				}), tt.name)
 			}
-		}
+		})
 	}
 }
