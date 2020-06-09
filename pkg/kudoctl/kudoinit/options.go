@@ -27,6 +27,9 @@ type Options struct {
 func NewOptions(v string, ns string, sa string, selfSignedWebhookCA bool) Options {
 	if v == "" {
 		v = version.Get().GitVersion
+		if v == "not-built-on-tag" {
+			panic("non-release build detected, please override version manually")
+		}
 	}
 	if ns == "" {
 		ns = DefaultNamespace
