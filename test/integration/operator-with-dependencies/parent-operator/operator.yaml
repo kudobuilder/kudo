@@ -10,6 +10,7 @@ tasks:
   - name: deploy-child
     kind: KudoOperator
     spec:
+      package: "./child-operator"
       operatorName: child
       operatorVersion: 0.0.1
 

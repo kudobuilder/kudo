@@ -60,6 +60,9 @@ func gatherDependencies(root packages.Resources, resolver pkgresolver.Resolver) 
 		return nil, err
 	}
 
+	// Remove 'root' from the list of dependencies.
+	pkgs = funk.Drop(pkgs, 1).([]packages.Resources) //nolint:errcheck
+
 	return pkgs, nil
 }
 
@@ -68,7 +71,7 @@ func dependencyWalk(
 	g *dependencyGraph,
 	parent packages.Resources,
 	resolver pkgresolver.Resolver) error {
-	//nolint:errcheck // False positive, 'funk.Filter' doesn't return an error.
+	//nolint:errcheck
 	operatorTasks := funk.Filter(parent.OperatorVersion.Spec.Tasks, func(task v1beta1.Task) bool {
 		return task.Kind == engtask.KudoOperatorTaskKind
 	}).([]v1beta1.Task)

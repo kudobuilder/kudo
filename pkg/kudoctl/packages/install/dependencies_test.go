@@ -67,6 +67,7 @@ func TestGatherDependencies(t *testing.T) {
 		expectedErr string
 	}{
 		{
+			// A <---> A
 			"trivial circular dependency",
 			[]packages.Package{
 				createPackage("A", "A"),
@@ -75,6 +76,7 @@ func TestGatherDependencies(t *testing.T) {
 			"cyclic package dependency found when adding package A--",
 		},
 		{
+			// A <---> B
 			"circular dependency",
 			[]packages.Package{
 				createPackage("A", "B"),
@@ -84,6 +86,7 @@ func TestGatherDependencies(t *testing.T) {
 			"cyclic package dependency found when adding package A--",
 		},
 		{
+			// A ---> (B)
 			"unknown dependency",
 			[]packages.Package{
 				createPackage("A", "B"),
@@ -92,6 +95,7 @@ func TestGatherDependencies(t *testing.T) {
 			"failed to resolve package B--, dependency of package A--: package not found",
 		},
 		{
+			// A ---> B ---> C
 			"simple dependency",
 			[]packages.Package{
 				createPackage("A", "B"),
@@ -102,6 +106,15 @@ func TestGatherDependencies(t *testing.T) {
 			"",
 		},
 		{
+			//        B -----
+			//        |      \
+			//        |      |
+			//        v      |
+			// A ---> C      |
+			// |      |      |
+			// |      |      |
+			// \      v      v
+			//  ----> D ---> E
 			"complex dependency",
 			[]packages.Package{
 				createPackage("A", "C", "D"),

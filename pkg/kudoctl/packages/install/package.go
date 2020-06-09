@@ -65,6 +65,9 @@ func Package(
 	}
 
 	for _, dependency := range dependencies {
+		dependency.Operator.SetNamespace(namespace)
+		dependency.OperatorVersion.SetNamespace(namespace)
+
 		if err := installOperatorAndOperatorVersion(client, dependency); err != nil {
 			return err
 		}
