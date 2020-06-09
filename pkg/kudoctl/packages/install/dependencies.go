@@ -72,32 +72,26 @@ func dependencyWalk(
 	parent packages.Resources,
 	resolver pkgresolver.Resolver) error {
 	//nolint:errcheck
-	operatorTasks := funk.Filter(parent.OperatorVersion.Spec.Tasks, func(task v1beta1.Task) bool {
+	children := funk.Filter(parent.OperatorVersion.Spec.Tasks, func(task v1beta1.Task) bool {
 		return task.Kind == engtask.KudoOperatorTaskKind
 	}).([]v1beta1.Task)
 
 	versionOf := func(pkg packages.Resources) func(packages.Resources) bool {
 		return func(r packages.Resources) bool {
-			return r.Operator.Name == pkg.Operator.Name &&
-				r.OperatorVersion.Spec.AppVersion == pkg.OperatorVersion.Spec.AppVersion &&
-				r.OperatorVersion.Spec.Version == pkg.OperatorVersion.Spec.Version
+			return r.OperatorVersion.EqualOperatorVersion(pkg.OperatorVersion)
 		}
 	}
 
-	for _, operatorTask := range operatorTasks {
+	for _, child := range children {
 		dependency, err := resolver.Resolve(
-			operatorTask.Spec.Package,
-			operatorTask.Spec.AppVersion,
-			operatorTask.Spec.OperatorVersion)
+			child.Spec.KudoOperatorTaskSpec.Package,
+			child.Spec.KudoOperatorTaskSpec.AppVersion,
+			child.Spec.KudoOperatorTaskSpec.OperatorVersion)
 		if err != nil {
 			return fmt.Errorf(
-				"failed to resolve package %s-%s-%s, dependency of package %s-%s-%s: %v",
-				operatorTask.Spec.Package,
-				operatorTask.Spec.AppVersion,
-				operatorTask.Spec.OperatorVersion,
-				parent.Operator.Name,
-				parent.OperatorVersion.Spec.AppVersion,
-				parent.OperatorVersion.Spec.Version,
+				"failed to resolve package %s, dependency of package %s: %v",
+				fullyQualifiedName(child.Spec.KudoOperatorTaskSpec),
+				parent.OperatorVersion.FullyQualifiedName(),
 				err)
 		}
 
@@ -107,11 +101,7 @@ func dependencyWalk(
 		}
 
 		if funk.Find(*pkgs, versionOf(*dependency.Resources)) == nil {
-			clog.Printf(
-				"Adding new dependency %s-%s-%s",
-				dependency.Resources.Operator.Name,
-				dependency.Resources.OperatorVersion.Spec.AppVersion,
-				dependency.Resources.OperatorVersion.Spec.Version)
+			clog.Printf("Adding new dependency %s", dependency.Resources.OperatorVersion.FullyQualifiedName())
 
 			*pkgs = append(*pkgs, *dependency.Resources)
 
@@ -135,12 +125,13 @@ func dependencyWalk(
 
 		if !graph.Acyclic(g) {
 			return fmt.Errorf(
-				"cyclic package dependency found when adding package %s-%s-%s",
-				dependency.Resources.Operator.Name,
-				dependency.Resources.OperatorVersion.Spec.AppVersion,
-				dependency.Resources.OperatorVersion.Spec.Version)
+				"cyclic package dependency found when adding package %s", dependency.Resources.OperatorVersion.FullyQualifiedName())
 		}
 	}
 
 	return nil
+}
+
+func fullyQualifiedName(kt v1beta1.KudoOperatorTaskSpec) string {
+	return fmt.Sprintf("%s:%s", v1beta1.OperatorVersionName(kt.Package, kt.OperatorVersion), kt.AppVersion)
 }
