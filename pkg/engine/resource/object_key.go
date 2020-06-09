@@ -47,39 +47,36 @@ func IsKnownObjectType(r runtime.Object, di discovery.CachedDiscoveryInterface) 
 // discovery client to fetch all API resources (with Groups and Versions), searches for a resource with the passed GVK
 // and returns true if it's namespaced. Method returns an error if passed GVK wasn't found in the discovered resource list.
 func isNamespaced(gvk schema.GroupVersionKind, di discovery.CachedDiscoveryInterface) (bool, error) {
-	// Fetch namespaced API resources
-
-	// First try, this may return nil because of the cache
-	apiResource, err := getAPIResource(gvk, di)
+	apiResource, err := getUncachedAPIResource(gvk, di)
 	if err != nil {
 		return false, err
 	}
 	if apiResource != nil {
 		return apiResource.Namespaced, nil
 	}
-
-	// Second try, now with invalidated cache. If we still get nil, we know it's not there.
-	log.Printf("Failed to get APIResource for %v, retry with invalidated cache.", gvk)
-	di.Invalidate()
-	apiResource, err = getAPIResource(gvk, di)
-	if err != nil {
-		return false, err
-	}
-	if apiResource != nil {
-		return apiResource.Namespaced, nil
-	}
-
 	return false, fmt.Errorf("a resource with GVK %v seems to be missing in API resource list", gvk)
 }
 
 func isKnownType(gvk schema.GroupVersionKind, di discovery.CachedDiscoveryInterface) (bool, error) {
-	// First try, this may return nil because of the cache
-	apiResource, err := getAPIResource(gvk, di)
+	apiResource, err := getUncachedAPIResource(gvk, di)
 	if err != nil {
 		return false, err
 	}
 	if apiResource != nil {
 		return true, nil
+	}
+	return false, nil
+}
+
+// getUncachedAPIResource tries to invalidate the cache and requery the discovery interface to make sure no stale data is returned
+func getUncachedAPIResource(gvk schema.GroupVersionKind, di discovery.CachedDiscoveryInterface) (*metav1.APIResource, error) {
+	// First try, this may return nil because of the cache
+	apiResource, err := getAPIResource(gvk, di)
+	if err != nil {
+		return nil, err
+	}
+	if apiResource != nil {
+		return apiResource, nil
 	}
 
 	// Second try, now with invalidated cache. If we still get nil, we know it's not there.
@@ -87,13 +84,13 @@ func isKnownType(gvk schema.GroupVersionKind, di discovery.CachedDiscoveryInterf
 	di.Invalidate()
 	apiResource, err = getAPIResource(gvk, di)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	if apiResource != nil {
-		return true, nil
+		return apiResource, nil
 	}
 
-	return false, nil
+	return nil, nil
 }
 
 // getAPIResource returns a specific APIResource from the DiscoveryInterface or nil if no resource was found.
