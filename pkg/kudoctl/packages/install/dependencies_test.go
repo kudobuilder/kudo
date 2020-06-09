@@ -68,42 +68,42 @@ func TestGatherDependencies(t *testing.T) {
 	}{
 		{
 			// A <---> A
-			"trivial circular dependency",
-			[]packages.Package{
+			name: "trivial circular dependency",
+			pkgs: []packages.Package{
 				createPackage("A", "A"),
 			},
-			[]string{},
-			"cyclic package dependency found when adding package A--",
+			expectedDeps: []string{},
+			expectedErr:  "cyclic package dependency found when adding package A--",
 		},
 		{
 			// A <---> B
-			"circular dependency",
-			[]packages.Package{
+			name: "circular dependency",
+			pkgs: []packages.Package{
 				createPackage("A", "B"),
 				createPackage("B", "A"),
 			},
-			[]string{},
-			"cyclic package dependency found when adding package B--",
+			expectedDeps: []string{},
+			expectedErr:  "cyclic package dependency found when adding package B--",
 		},
 		{
 			// A ---> (B)
-			"unknown dependency",
-			[]packages.Package{
+			name: "unknown dependency",
+			pkgs: []packages.Package{
 				createPackage("A", "B"),
 			},
-			[]string{},
-			"failed to resolve package B--, dependency of package A--: package not found",
+			expectedDeps: []string{},
+			expectedErr:  "failed to resolve package B--, dependency of package A--: package not found",
 		},
 		{
 			// A ---> B ---> C
-			"simple dependency",
-			[]packages.Package{
+			name: "simple dependency",
+			pkgs: []packages.Package{
 				createPackage("A", "B"),
 				createPackage("B", "C"),
 				createPackage("C"),
 			},
-			[]string{"B", "C"},
-			"",
+			expectedDeps: []string{"B", "C"},
+			expectedErr:  "",
 		},
 		{
 			//        B -----
@@ -115,16 +115,16 @@ func TestGatherDependencies(t *testing.T) {
 			// |      |      |
 			// \      v      v
 			//  ----> D ---> E
-			"complex dependency",
-			[]packages.Package{
+			name: "complex dependency",
+			pkgs: []packages.Package{
 				createPackage("A", "C", "D"),
 				createPackage("B", "C", "E"),
 				createPackage("C", "D"),
 				createPackage("D", "E"),
 				createPackage("E"),
 			},
-			[]string{"C", "D", "E"},
-			"",
+			expectedDeps: []string{"C", "D", "E"},
+			expectedErr:  "",
 		},
 	}
 
