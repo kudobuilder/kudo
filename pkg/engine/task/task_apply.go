@@ -45,8 +45,14 @@ func (at ApplyTask) Run(ctx Context) (bool, error) {
 		return false, fatalExecutionError(err, taskRenderingError, ctx.Meta)
 	}
 
+	// 2. - Convert to objects
+	objs, err := convert(rendered)
+	if err != nil {
+		return false, fatalExecutionError(err, taskRenderingError, ctx.Meta)
+	}
+
 	// 2. - Enhance them with metadata -
-	enhanced, err := enhance(rendered, ctx.Meta, ctx.Enhancer)
+	enhanced, err := enhance(objs, ctx.Meta, ctx.Enhancer)
 	if err != nil {
 		return false, err
 	}

@@ -16,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/kubectl/pkg/scheme"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/yaml"
 
 	"github.com/kudobuilder/kuttl/pkg/test/utils"
 
@@ -27,8 +26,8 @@ import (
 
 func TestEnhancerApply_embeddedMetadataStatefulSet(t *testing.T) {
 
-	tpls := map[string]string{
-		"deployment": resourceAsString(statefulSet("sfs1", "default")),
+	tpls := []runtime.Object{
+		statefulSet("sfs1", "default"),
 	}
 
 	meta := metadata()
@@ -72,8 +71,8 @@ func TestEnhancerApply_embeddedMetadataStatefulSet(t *testing.T) {
 
 func TestEnhancerApply_embeddedMetadataCronjob(t *testing.T) {
 
-	tpls := map[string]string{
-		"cron": resourceAsString(cronjob("cronjob", "default")),
+	tpls := []runtime.Object{
+		cronjob("cronjob", "default"),
 	}
 
 	meta := metadata()
@@ -113,9 +112,9 @@ func TestEnhancerApply_embeddedMetadataCronjob(t *testing.T) {
 
 func TestEnhancerApply_noAdditionalMetadata(t *testing.T) {
 
-	tpls := map[string]string{
-		"pod": resourceAsString(pod("pod", "default")),
-		"crd": resourceAsString(unstructuredCrd("crd", "default")),
+	tpls := []runtime.Object{
+		pod("pod", "default"),
+		unstructuredCrd("crd", "default"),
 	}
 
 	meta := metadata()
@@ -157,9 +156,7 @@ func TestEnhancerApply_noAdditionalMetadata(t *testing.T) {
 func TestEnhancerApply_dependencyHash_noDependencies(t *testing.T) {
 	ss := statefulSet("statefulset", "default")
 
-	tpls := map[string]string{
-		"statefulset": resourceAsString(ss),
-	}
+	tpls := []runtime.Object{ss}
 
 	meta := metadata()
 	meta.PlanUID = uuid.NewUUID()
@@ -202,9 +199,7 @@ func TestEnhancerApply_dependencyHash_unavailableResource(t *testing.T) {
 		},
 	})
 
-	tpls := map[string]string{
-		"statefulset": resourceAsString(ss),
-	}
+	tpls := []runtime.Object{ss}
 
 	meta := metadata()
 	meta.PlanUID = uuid.NewUUID()
@@ -250,9 +245,7 @@ func TestEnhancerApply_dependencyHash_calculatedOnResourceWithoutLastAppliedConf
 		},
 	})
 
-	tpls := map[string]string{
-		"statefulset": resourceAsString(ss),
-	}
+	tpls := []runtime.Object{ss}
 
 	meta := metadata()
 	meta.PlanUID = uuid.NewUUID()
@@ -295,10 +288,7 @@ func TestEnhancerApply_dependencyHash_changes(t *testing.T) {
 		},
 	})
 
-	tpls := map[string]string{
-		"statefulset": resourceAsString(ss),
-		"configmap":   resourceAsString(cm),
-	}
+	tpls := []runtime.Object{ss, cm}
 
 	meta := metadata()
 	meta.PlanUID = uuid.NewUUID()
@@ -327,10 +317,7 @@ func TestEnhancerApply_dependencyHash_changes(t *testing.T) {
 	assert.NotNil(t, hash, "Pod template spec annotations contains no dependency hash field")
 
 	cm.Data["newkey"] = "newvalue"
-	tpls = map[string]string{
-		"statefulset": resourceAsString(ss),
-		"configmap":   resourceAsString(cm),
-	}
+	tpls = []runtime.Object{ss, cm}
 
 	objs, err = e.Apply(tpls, meta)
 	assert.Nil(t, err)
@@ -378,11 +365,6 @@ func owner() *corev1.Pod {
 		Spec:       corev1.PodSpec{},
 		Status:     corev1.PodStatus{},
 	}
-}
-
-func resourceAsString(resource runtime.Object) string {
-	bytes, _ := yaml.Marshal(resource)
-	return string(bytes)
 }
 
 func configMap(name string, namespace string) *corev1.ConfigMap {
