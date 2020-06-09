@@ -83,7 +83,7 @@ func TestGatherDependencies(t *testing.T) {
 				createPackage("B", "A"),
 			},
 			[]string{},
-			"cyclic package dependency found when adding package A--",
+			"cyclic package dependency found when adding package B--",
 		},
 		{
 			// A ---> (B)

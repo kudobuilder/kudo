@@ -84,17 +84,17 @@ func dependencyWalk(
 		}
 	}
 
-	for _, task := range operatorTasks {
-		pkg, err := resolver.Resolve(
-			task.Spec.Package,
-			task.Spec.AppVersion,
-			task.Spec.OperatorVersion)
+	for _, operatorTask := range operatorTasks {
+		dependency, err := resolver.Resolve(
+			operatorTask.Spec.Package,
+			operatorTask.Spec.AppVersion,
+			operatorTask.Spec.OperatorVersion)
 		if err != nil {
 			return fmt.Errorf(
 				"failed to resolve package %s-%s-%s, dependency of package %s-%s-%s: %v",
-				task.Spec.Package,
-				task.Spec.AppVersion,
-				task.Spec.OperatorVersion,
+				operatorTask.Spec.Package,
+				operatorTask.Spec.AppVersion,
+				operatorTask.Spec.OperatorVersion,
 				parent.Operator.Name,
 				parent.OperatorVersion.Spec.AppVersion,
 				parent.OperatorVersion.Spec.Version,
@@ -106,21 +106,25 @@ func dependencyWalk(
 			panic("failed to find parent index in dependency graph")
 		}
 
-		if funk.Find(*pkgs, versionOf(*pkg.Resources)) == nil {
+		if funk.Find(*pkgs, versionOf(*dependency.Resources)) == nil {
 			clog.Printf(
 				"Adding new dependency %s-%s-%s",
-				pkg.Resources.Operator.Name,
-				pkg.Resources.OperatorVersion.Spec.AppVersion,
-				pkg.Resources.OperatorVersion.Spec.Version)
+				dependency.Resources.Operator.Name,
+				dependency.Resources.OperatorVersion.Spec.AppVersion,
+				dependency.Resources.OperatorVersion.Spec.Version)
 
-			*pkgs = append(*pkgs, *pkg.Resources)
+			*pkgs = append(*pkgs, *dependency.Resources)
 
 			// The number of vertices in 'g' has to match the number of packages
 			// we're tracking.
 			g.AddVertex()
+
+			if err := dependencyWalk(pkgs, g, *dependency.Resources, resolver); err != nil {
+				return err
+			}
 		}
 
-		pkgIndex := funk.IndexOf(*pkgs, funk.Find(*pkgs, versionOf(*pkg.Resources)))
+		pkgIndex := funk.IndexOf(*pkgs, funk.Find(*pkgs, versionOf(*dependency.Resources)))
 		if pkgIndex == -1 {
 			panic("failed to find package index in dependency graph")
 		}
@@ -132,13 +136,9 @@ func dependencyWalk(
 		if !graph.Acyclic(g) {
 			return fmt.Errorf(
 				"cyclic package dependency found when adding package %s-%s-%s",
-				pkg.Resources.Operator.Name,
-				pkg.Resources.OperatorVersion.Spec.AppVersion,
-				pkg.Resources.OperatorVersion.Spec.Version)
-		}
-
-		if err := dependencyWalk(pkgs, g, *pkg.Resources, resolver); err != nil {
-			return err
+				dependency.Resources.Operator.Name,
+				dependency.Resources.OperatorVersion.Spec.AppVersion,
+				dependency.Resources.OperatorVersion.Spec.Version)
 		}
 	}
 
