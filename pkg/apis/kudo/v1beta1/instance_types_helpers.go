@@ -208,19 +208,6 @@ func wasRunAfter(p1 PlanStatus, p2 PlanStatus) bool {
 	return p1.LastUpdatedTimestamp.Time.After(p2.LastUpdatedTimestamp.Time)
 }
 
-// GetExistingParamDefinitions retrieves parameter metadata from OperatorVersion
-func GetExistingParamDefinitions(params map[string]string, ov *OperatorVersion) []Parameter {
-	defs := []Parameter{}
-	for p1 := range params {
-		for _, p2 := range ov.Spec.Parameters {
-			if p2.Name == p1 {
-				defs = append(defs, p2)
-			}
-		}
-	}
-	return defs
-}
-
 // GetParamDefinitions retrieves parameter metadata from OperatorVersion but returns an error if any parameter is missing
 func GetParamDefinitions(params map[string]string, ov *OperatorVersion) ([]Parameter, error) {
 	defs := []Parameter{}

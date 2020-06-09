@@ -175,6 +175,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// ---------- 2. Get currently scheduled plan if it exists ----------
+
 	// get the scheduled plan
 	plan, uid := scheduledPlan(instance, ov)
 	if plan == "" {
