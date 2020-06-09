@@ -142,6 +142,8 @@ func (initCmd *initCmd) run() error {
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image
+	} else if opts.Version == "not-built-on-tag" {
+		return errors.New("non-release build detected, please override controller image version")
 	}
 	if initCmd.imagePullPolicy != "" {
 		switch initCmd.imagePullPolicy {
