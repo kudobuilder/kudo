@@ -61,10 +61,10 @@ func createPackage(name string, dependencies ...string) packages.Package {
 
 func TestGatherDependencies(t *testing.T) {
 	tests := []struct {
-		name        string
-		pkgs        []packages.Package
-		expected    []string
-		expectedErr string
+		name         string
+		pkgs         []packages.Package
+		expectedDeps []string
+		expectedErr  string
 	}{
 		{
 			// A <---> A
@@ -102,7 +102,7 @@ func TestGatherDependencies(t *testing.T) {
 				createPackage("B", "C"),
 				createPackage("C"),
 			},
-			[]string{"A", "B", "C"},
+			[]string{"B", "C"},
 			"",
 		},
 		{
@@ -123,7 +123,7 @@ func TestGatherDependencies(t *testing.T) {
 				createPackage("D", "E"),
 				createPackage("E"),
 			},
-			[]string{"A", "C", "D", "E"},
+			[]string{"C", "D", "E"},
 			"",
 		},
 	}
@@ -145,7 +145,7 @@ func TestGatherDependencies(t *testing.T) {
 				t.Errorf("%s: expected an error but got none", test.name)
 			}
 
-			for _, operatorName := range test.expected {
+			for _, operatorName := range test.expectedDeps {
 				operatorName := operatorName
 
 				assert.NotNil(t, funk.Find(actual, func(p packages.Resources) bool {
