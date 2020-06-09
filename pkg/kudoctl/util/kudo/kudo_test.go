@@ -651,7 +651,7 @@ metadata:
 			if test.shouldFail {
 				t.Errorf("expected test %s to fail", test.name)
 			} else {
-				namespace, err := k2o.kubeClientset.
+				namespace, err := k2o.KubeClientset.
 					CoreV1().
 					Namespaces().
 					Get(test.namespace, metav1.GetOptions{})

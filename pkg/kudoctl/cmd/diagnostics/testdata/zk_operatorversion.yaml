@@ -1,0 +1,664 @@
+apiVersion: kudo.dev/v1beta1
+kind: OperatorVersion
+metadata:
+  creationTimestamp: "2020-05-18T20:19:10Z"
+  generation: 1
+  name: zookeeper-0.3.0
+  namespace: my-namespace
+  resourceVersion: "5832428"
+  selfLink: /apis/kudo.dev/v1beta1/namespaces/my-namespace/operatorversions/zookeeper-0.3.0
+  uid: 4dfbef59-705b-4633-b601-8c6e5e8058ad
+spec:
+  appVersion: 3.4.14
+  operator:
+    kind: Operator
+    name: zookeeper
+  parameters:
+  - default: "3"
+    description: Number of nodes spun up for Zookeeper
+    displayName: Node Count
+    name: NODE_COUNT
+    required: true
+  - default: 1024Mi
+    description: Amount of memory to provide to Zookeeper pods
+    name: MEMORY
+    required: true
+  - default: 2048Mi
+    description: Memory (limit) for the Zookeeper nodes pods. spec.containers[].resources.limits.memory
+    name: MEM_LIMIT
+    required: true
+  - default: 250m
+    description: Amount of cpu to provide to Zookeeper pods
+    name: CPUS
+    required: true
+  - default: 1000m
+    description: CPUs (limit) for the Zookeeper nodes pods. spec.containers[].resources.limits.cpu
+    name: CPUS_LIMIT
+    required: true
+  - description: The storage class to be used in volumeClaimTemplates. By default
+      its not required and the default storage class is used.
+    name: STORAGE_CLASS
+    required: false
+    trigger: not-allowed
+  - default: 5Gi
+    description: Disk size for the Zookeeper servers
+    name: DISK_SIZE
+    required: true
+    trigger: not-allowed
+  - default: "2181"
+    description: |
+      The port on which the Zookeeper process will listen for client requests. The default is 2181.
+    name: CLIENT_PORT
+    required: true
+  - default: "2888"
+    description: |
+      The port on which the Zookeeper process will listen for requests from other servers in the ensemble.
+      The default is 2888.
+    name: SERVER_PORT
+    required: true
+  - default: "3888"
+    description: |
+      The port on which the Zookeeper process will perform leader election. The default is 3888.
+    name: ELECTION_PORT
+    required: true
+  plans:
+    deploy:
+      phases:
+      - name: zookeeper
+        steps:
+        - name: deploy
+          tasks:
+          - infra
+          - app
+        strategy: parallel
+      - name: validation
+        steps:
+        - name: validation
+          tasks:
+          - validation
+        - name: cleanup
+          tasks:
+          - validation-cleanup
+        strategy: serial
+      strategy: serial
+    validation:
+      phases:
+      - name: connection
+        steps:
+        - name: connection
+          tasks:
+          - validation
+        - name: cleanup
+          tasks:
+          - validation-cleanup
+        strategy: serial
+      strategy: serial
+  tasks:
+  - kind: Apply
+    name: infra
+    spec:
+      resources:
+      - bootstrap.sh.yaml
+      - healthcheck.sh.yaml
+      - services.yaml
+      - pdb.yaml
+  - kind: Apply
+    name: app
+    spec:
+      resources:
+      - statefulset.yaml
+  - kind: Apply
+    name: validation
+    spec:
+      resources:
+      - validation.yaml
+  - kind: Delete
+    name: validation-cleanup
+    spec:
+      resources:
+      - validation.yaml
+  - kind: Dummy
+    name: not-allowed
+    spec: {}
+  templates:
+    bootstrap.sh.yaml: |-
+      apiVersion: v1
+      data:
+        bootstrap.sh: |
+          #!/usr/bin/env bash
+          # Copyright 2017 The Kubernetes Authors.
+          #
+          # Licensed under the Apache License, Version 2.0 (the "License");
+          # you may not use this file except in compliance with the License.
+          # You may obtain a copy of the License at
+          #
+          #     http://www.apache.org/licenses/LICENSE-2.0
+          #
+          # Unless required by applicable law or agreed to in writing, software
+          # distributed under the License is distributed on an "AS IS" BASIS,
+          # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+          # See the License for the specific language governing permissions and
+          # limitations under the License.
+          #
+          #
+          #Usage: start-zookeeper [OPTIONS]
+          # Starts a ZooKeeper server based on the supplied options.
+          #     --servers           The number of servers in the ensemble. The default
+          #                         value is 1.
+
+          #     --data_dir          The directory where the ZooKeeper process will store its
+          #                         snapshots. The default is /var/lib/zookeeper/data.
+
+          #     --data_log_dir      The directory where the ZooKeeper process will store its
+          #                         write ahead log. The default is
+          #                         /var/lib/zookeeper/data/log.
+
+          #     --conf_dir          The directoyr where the ZooKeeper process will store its
+          #                         configuration. The default is /opt/zookeeper/conf.
+
+          #     --client_port       The port on which the ZooKeeper process will listen for
+          #                         client requests. The default is 2181.
+
+          #     --election_port     The port on which the ZooKeeper process will perform
+          #                         leader election. The default is 3888.
+
+          #     --server_port       The port on which the ZooKeeper process will listen for
+          #                         requests from other servers in the ensemble. The
+          #                         default is 2888.
+
+          #     --tick_time         The length of a ZooKeeper tick in ms. The default is
+          #                         2000.
+
+          #     --init_limit        The number of Ticks that an ensemble member is allowed
+          #                         to perform leader election. The default is 10.
+
+          #     --sync_limit        The maximum session timeout that the ensemble will
+          #                         allows a client to request. The default is 5.
+
+          #     --heap              The maximum amount of heap to use. The format is the
+          #                         same as that used for the Xmx and Xms parameters to the
+          #                         JVM. e.g. --heap=2G. The default is 2G.
+
+          #     --max_client_cnxns  The maximum number of client connections that the
+          #                         ZooKeeper process will accept simultaneously. The
+          #                         default is 60.
+
+          #     --snap_retain_count The maximum number of snapshots the ZooKeeper process
+          #                         will retain if purge_interval is greater than 0. The
+          #                         default is 3.
+
+          #     --purge_interval    The number of hours the ZooKeeper process will wait
+          #                         between purging its old snapshots. If set to 0 old
+          #                         snapshots will never be purged. The default is 0.
+
+          #     --max_session_timeout The maximum time in milliseconds for a client session
+          #                         timeout. The default value is 2 * tick time.
+
+          #     --min_session_timeout The minimum time in milliseconds for a client session
+          #                         timeout. The default value is 20 * tick time.
+
+          #     --log_level         The log level for the zookeeeper server. Either FATAL,
+          #                         ERROR, WARN, INFO, DEBUG. The default is INFO.
+
+
+          USER=`whoami`
+          HOST=`hostname -s`
+          DOMAIN=`hostname -d`
+          LOG_LEVEL=INFO
+          DATA_DIR="/var/lib/zookeeper/data"
+          DATA_LOG_DIR="/var/lib/zookeeper/log"
+          LOG_DIR="/logs"
+          CONF_DIR="/conf"
+          CLIENT_PORT={{ .Params.CLIENT_PORT }}
+          SERVER_PORT={{ .Params.SERVER_PORT }}
+          ELECTION_PORT={{ .Params.ELECTION_PORT }}
+          TICK_TIME=2000
+          INIT_LIMIT=10
+          SYNC_LIMIT=5
+          HEAP=2G
+          MAX_CLIENT_CNXNS=60
+          SNAP_RETAIN_COUNT=3
+          PURGE_INTERVAL=0
+          SERVERS=1
+
+          function print_usage() {
+          echo "\
+          Usage: start-zookeeper [OPTIONS]
+          Starts a ZooKeeper server based on the supplied options.
+              --servers           The number of servers in the ensemble. The default
+                                  value is 1.
+              --data_dir          The directory where the ZooKeeper process will store its
+                                  snapshots. The default is /var/lib/zookeeper/data.
+              --data_log_dir      The directory where the ZooKeeper process will store its
+                                  write ahead log. The default is
+                                  /var/lib/zookeeper/data/log.
+              --conf_dir          The directoyr where the ZooKeeper process will store its
+                                  configuration. The default is /opt/zookeeper/conf.
+              --client_port       The port on which the ZooKeeper process will listen for
+                                  client requests. The default is 2181.
+              --election_port     The port on which the ZooKeeper process will perform
+                                  leader election. The default is 3888.
+              --server_port       The port on which the ZooKeeper process will listen for
+                                  requests from other servers in the ensemble. The
+                                  default is 2888.
+              --tick_time         The length of a ZooKeeper tick in ms. The default is
+                                  2000.
+              --init_limit        The number of Ticks that an ensemble member is allowed
+                                  to perform leader election. The default is 10.
+              --sync_limit        The maximum session timeout that the ensemble will
+                                  allows a client to request. The default is 5.
+              --heap              The maximum amount of heap to use. The format is the
+                                  same as that used for the Xmx and Xms parameters to the
+                                  JVM. e.g. --heap=2G. The default is 2G.
+              --max_client_cnxns  The maximum number of client connections that the
+                                  ZooKeeper process will accept simultaneously. The
+                                  default is 60.
+              --snap_retain_count The maximum number of snapshots the ZooKeeper process
+                                  will retain if purge_interval is greater than 0. The
+                                  default is 3.
+              --purge_interval    The number of hours the ZooKeeper process will wait
+                                  between purging its old snapshots. If set to 0 old
+                                  snapshots will never be purged. The default is 0.
+              --max_session_timeout The maximum time in milliseconds for a client session
+                                  timeout. The default value is 2 * tick time.
+              --min_session_timeout The minimum time in milliseconds for a client session
+                                  timeout. The default value is 20 * tick time.
+              --log_level         The log level for the zookeeeper server. Either FATAL,
+                                  ERROR, WARN, INFO, DEBUG. The default is INFO.
+          "
+          }
+
+          function create_data_dirs() {
+              if [ ! -d $DATA_DIR  ]; then
+                  mkdir -p $DATA_DIR
+                  chown -R $USER:$USER $DATA_DIR
+              fi
+
+              if [ ! -d $DATA_LOG_DIR  ]; then
+                  mkdir -p $DATA_LOG_DIR
+                  chown -R $USER:$USER $DATA_LOG_DIR
+              fi
+
+              if [ ! -d $CONF_DIR  ]; then
+                   mkdir -p $CONF_DIR
+                   chown -R $USER:$USER $CONF_DIR
+              fi
+
+              if [ ! -d $LOG_DIR  ]; then
+                  mkdir -p $LOG_DIR
+                  chown -R $USER:$USER $LOG_DIR
+              fi
+              if [ ! -f $ID_FILE ] && [ $SERVERS -gt 1 ]; then
+                  echo $MY_ID >> $ID_FILE
+              fi
+          }
+
+          function print_servers() {
+              for (( i=1; i<=$SERVERS; i++ ))
+              do
+                  echo "server.$i=$NAME-$((i-1)).$DOMAIN:$SERVER_PORT:$ELECTION_PORT"
+              done
+          }
+
+          function create_config() {
+              rm -f $CONFIG_FILE
+              echo "Zookeeper configuration..."
+              tee $CONFIG_FILE <<EOF >/dev/null
+
+          clientPort=$CLIENT_PORT
+          dataDir=$DATA_DIR
+          dataLogDir=$DATA_LOG_DIR
+          tickTime=$TICK_TIME
+          initLimit=$INIT_LIMIT
+          syncLimit=$SYNC_LIMIT
+          maxClientCnxns=$MAX_CLIENT_CNXNS
+          minSessionTimeout=$MIN_SESSION_TIMEOUT
+          maxSessionTimeout=$MAX_SESSION_TIMEOUT
+          autopurge.snapRetainCount=$SNAP_RETAIN_COUNT
+          autopurge.purgeInteval=$PURGE_INTERVAL
+
+          EOF
+              if [ $SERVERS -gt 1 ]; then
+                  print_servers >> $CONFIG_FILE
+              fi
+              cat $CONFIG_FILE >&2
+          }
+
+          function create_jvm_props() {
+              rm -f $JAVA_ENV_FILE
+              echo "ZOO_LOG_DIR=$LOG_DIR" >> $JAVA_ENV_FILE
+              echo "JVMFLAGS=\"-Xmx$HEAP -Xms$HEAP\"" >> $JAVA_ENV_FILE
+          }
+
+          function create_log_props() {
+              rm -f $LOGGER_PROPS_FILE
+              echo "Creating ZooKeeper log4j configuration"
+              tee $LOGGER_PROPS_FILE <<EOF >/dev/null
+
+          zookeeper.root.logger=CONSOLE,ROLLINGFILE
+          zookeeper.console.threshold=$LOG_LEVEL
+          zookeeper.log.dir=$LOG_DIR
+          log4j.rootLogger=\${zookeeper.root.logger}
+          log4j.appender.CONSOLE=org.apache.log4j.ConsoleAppender
+          log4j.appender.CONSOLE.Threshold=\${zookeeper.console.threshold}
+          log4j.appender.CONSOLE.layout=org.apache.log4j.PatternLayout
+          log4j.appender.CONSOLE.layout.ConversionPattern="%d{ISO8601} [myid:%X{myid}] - %-5p [%t:%C{1}@%L] - %m%n"
+          log4j.appender.ROLLINGFILE.File=\${zookeeper.log.dir}/zookeeper.log
+          log4j.appender.ROLLINGFILE.MaxFileSize=10MB
+          log4j.appender.ROLLINGFILE.MaxBackupIndex=10
+
+          EOF
+
+          }
+
+          optspec=":hv-:"
+          while getopts "$optspec" optchar; do
+
+              case "${optchar}" in
+                  -)
+                      case "${OPTARG}" in
+                          servers=*)
+                              SERVERS=${OPTARG##*=}
+                              ;;
+                          data_dir=*)
+                              DATA_DIR=${OPTARG##*=}
+                              ;;
+                          data_log_dir=*)
+                              DATA_LOG_DIR=${OPTARG##*=}
+                              ;;
+                          log_dir=*)
+                              LOG_DIR=${OPTARG##*=}
+                              ;;
+                          conf_dir=*)
+                              CONF_DIR=${OPTARG##*=}
+                              ;;
+                          client_port=*)
+                              CLIENT_PORT=${OPTARG##*=}
+                              ;;
+                          election_port=*)
+                              ELECTION_PORT=${OPTARG##*=}
+                              ;;
+                          server_port=*)
+                              SERVER_PORT=${OPTARG##*=}
+                              ;;
+                          tick_time=*)
+                              TICK_TIME=${OPTARG##*=}
+                              ;;
+                          init_limit=*)
+                              INIT_LIMIT=${OPTARG##*=}
+                              ;;
+                          sync_limit=*)
+                              SYNC_LIMIT=${OPTARG##*=}
+                              ;;
+                          heap=*)
+                              HEAP=${OPTARG##*=}
+                              ;;
+                          max_client_cnxns=*)
+                              MAX_CLIENT_CNXNS=${OPTARG##*=}
+                              ;;
+                          snap_retain_count=*)
+                              SNAP_RETAIN_COUNT=${OPTARG##*=}
+                              ;;
+                          purge_interval=*)
+                              PURGE_INTERVAL=${OPTARG##*=}
+                              ;;
+                          max_session_timeout=*)
+                              MAX_SESSION_TIMEOUT=${OPTARG##*=}
+                              ;;
+                          min_session_timeout=*)
+                              MIN_SESSION_TIMEOUT=${OPTARG##*=}
+                              ;;
+                          log_level=*)
+                              LOG_LEVEL=${OPTARG##*=}
+                              ;;
+                          *)
+                              echo "Unknown option --${OPTARG}" >&2
+                              exit 1
+                              ;;
+                      esac;;
+                  h)
+                      print_usage
+                      exit
+                      ;;
+                  v)
+                      echo "Parsing option: '-${optchar}'" >&2
+                      ;;
+                  *)
+                      if [ "$OPTERR" != 1 ] || [ "${optspec:0:1}" = ":" ]; then
+                          echo "Non-option argument: '-${OPTARG}'" >&2
+                      fi
+                      ;;
+              esac
+          done
+          export PATH=$PATH:$ZOOKEEPERPATH/bin
+          MIN_SESSION_TIMEOUT=${MIN_SESSION_TIMEOUT:- $((TICK_TIME*2))}
+          MAX_SESSION_TIMEOUT=${MAX_SESSION_TIMEOUT:- $((TICK_TIME*20))}
+          ID_FILE="$DATA_DIR/myid"
+          CONFIG_FILE="$CONF_DIR/zoo.cfg"
+          LOGGER_PROPS_FILE="$CONF_DIR/log4j.properties"
+          JAVA_ENV_FILE="$CONF_DIR/java.env"
+          if [[ $HOST =~ (.*)-([0-9]+)$ ]]; then
+              NAME=${BASH_REMATCH[1]}
+              ORD=${BASH_REMATCH[2]}
+          else
+              echo "Failed to parse name and ordinal of Pod"
+              exit 1
+          fi
+
+          MY_ID=$((ORD+1))
+
+          create_data_dirs && create_config && create_jvm_props && create_log_props && exec zkServer.sh start-foreground
+
+
+      kind: ConfigMap
+      metadata:
+        name: {{ .Name }}-bootstrap
+    healthcheck.sh.yaml: "apiVersion: v1\ndata:\n  healthcheck.sh: |\n    #!/usr/bin/env
+      bash\n    # Copyright 2017 The Kubernetes Authors.\n    #\n    # Licensed under
+      the Apache License, Version 2.0 (the \"License\");\n    # you may not use this
+      file except in compliance with the License.\n    # You may obtain a copy of
+      the License at\n    #\n    #     http://www.apache.org/licenses/LICENSE-2.0\n
+      \   #\n    # Unless required by applicable law or agreed to in writing, software\n
+      \   # distributed under the License is distributed on an \"AS IS\" BASIS,\n
+      \   # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n
+      \   # See the License for the specific language governing permissions and\n
+      \   # limitations under the License.\n\n    # zkOk.sh uses the ruok ZooKeeper
+      four letter work to determine if the instance\n    # is health. The $? variable
+      will be set to 0 if server responds that it is\n    # healthy, or 1 if the server
+      fails to respond.\n\n    OK=$(echo ruok | nc 127.0.0.1 $1)\n    if [ \"$OK\"
+      == \"imok\" ]; then\n    \texit 0\n    else\n    \texit 1\n    fi\n\nkind: ConfigMap\nmetadata:\n
+      \ name: {{ .Name }}-healthcheck"
+    pdb.yaml: |
+      apiVersion: policy/v1beta1
+      kind: PodDisruptionBudget
+      metadata:
+        name: {{ .Name }}-pdb
+        namespace: {{ .Namespace }}
+        labels:
+          app: zookeeper
+          zookeeper: {{ .Name }}
+      spec:
+        selector:
+          matchLabels:
+            app: zookeeper
+            kudo.dev/instance: {{ .Name }}
+        maxUnavailable: 1
+    services.yaml: |-
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: {{ .Name }}-hs
+        namespace: {{ .Namespace }}
+        labels:
+          app: zookeeper
+          zookeeper: {{ .Name }}
+      spec:
+        ports:
+          - port: {{ .Params.SERVER_PORT }}
+            name: server
+          - port: {{ .Params.ELECTION_PORT }}
+            name: leader-election
+        clusterIP: None
+        selector:
+          app: zookeeper
+          instance: {{ .Name }}
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: {{ .Name }}-cs
+        namespace: {{ .Namespace }}
+        labels:
+          app: zookeeper
+          zookeeper: {{ .Name }}
+      spec:
+        ports:
+          - port: {{ .Params.CLIENT_PORT }}
+            name: client
+        selector:
+          app: zookeeper
+          instance: {{ .Name }}
+    statefulset.yaml: |
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: {{ .Name }}-{{ .OperatorName }}
+        namespace: {{ .Namespace }}
+        labels:
+          zookeeper: {{ .OperatorName }}
+          app: zookeeper
+          instance: {{ .Name }}
+        annotations:
+          reloader.kudo.dev/auto: "true"
+      spec:
+        selector:
+          matchLabels:
+            app: zookeeper
+            zookeeper: {{ .OperatorName }}
+            instance: {{ .Name }}
+        serviceName: {{ .Name }}-hs
+        replicas: {{ .Params.NODE_COUNT }}
+        updateStrategy:
+          type: RollingUpdate
+        podManagementPolicy: Parallel
+        template:
+          metadata:
+            labels:
+              app: zookeeper
+              zookeeper: {{ .OperatorName }}
+              instance: {{ .Name }}
+          spec:
+            containers:
+              - name: kubernetes-zookeeper
+                imagePullPolicy: Always
+                image: "zookeeper:3.4.14"
+                resources:
+                  requests:
+                    memory: {{ .Params.MEMORY }}
+                    cpu: {{ .Params.CPUS }}
+                  limits:
+                    memory: {{ .Params.MEM_LIMIT }}
+                    cpu: {{ .Params.CPUS_LIMIT }}
+                ports:
+                  - containerPort: {{ .Params.CLIENT_PORT }}
+                    name: client
+                  - containerPort: {{ .Params.SERVER_PORT }}
+                    name: server
+                  - containerPort: {{ .Params.ELECTION_PORT }}
+                    name: leader-election
+                command:
+                  - sh
+                  - -c
+                  - "ZOOKEEPERPATH=`pwd` /etc/zookeeper/bootstrap.sh \
+                    --servers={{ .Params.NODE_COUNT }} \
+                    --data_dir=/var/lib/zookeeper/data \
+                    --data_log_dir=/logs \
+                    --conf_dir=/conf \
+                    --client_port={{ .Params.CLIENT_PORT }} \
+                    --election_port={{ .Params.ELECTION_PORT }} \
+                    --server_port={{ .Params.SERVER_PORT }} \
+                    --tick_time=2000 \
+                    --init_limit=10 \
+                    --sync_limit=5 \
+                    --heap=512M \
+                    --max_client_cnxns=60 \
+                    --snap_retain_count=3 \
+                    --purge_interval=12 \
+                    --max_session_timeout=40000 \
+                    --min_session_timeout=4000 \
+                    --log_level=INFO"
+                readinessProbe:
+                  exec:
+                    command:
+                      - sh
+                      - -c
+                      - "/etc/healthcheck/healthcheck.sh {{ .Params.CLIENT_PORT }}"
+                  initialDelaySeconds: 10
+                  timeoutSeconds: 5
+                livenessProbe:
+                  exec:
+                    command:
+                      - sh
+                      - -c
+                      - "/etc/healthcheck/healthcheck.sh {{ .Params.CLIENT_PORT }}"
+                  initialDelaySeconds: 10
+                  timeoutSeconds: 5
+                  periodSeconds: 30
+                volumeMounts:
+                  - name: {{ .Name }}-datadir
+                    mountPath: /var/lib/zookeeper
+                  - name: {{ .Name }}-bootstrap
+                    mountPath: /etc/zookeeper
+                  - name: {{ .Name }}-healthcheck
+                    mountPath: /etc/healthcheck
+            securityContext:
+              runAsUser: 1000
+              fsGroup: 1000
+            volumes:
+            - name: {{ .Name }}-bootstrap
+              configMap:
+                name: {{ .Name }}-bootstrap
+                defaultMode: 0777
+            - name: {{ .Name }}-healthcheck
+              configMap:
+                name: {{ .Name }}-healthcheck
+                defaultMode: 0777
+        volumeClaimTemplates:
+        - metadata:
+            name: {{ .Name }}-datadir
+          spec:
+            accessModes: [ "ReadWriteOnce" ]
+            resources:
+              requests:
+                storage: {{ .Params.DISK_SIZE }}
+            {{ if .Params.STORAGE_CLASS }}
+            storageClassName: {{ .Params.STORAGE_CLASS }}
+            {{ end }}
+    validation.yaml: |
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: {{ .Name }}-validation
+      spec:
+        template:
+          metadata:
+            name: "validation"
+          spec:
+            restartPolicy: Never
+            containers:
+              - name: kubernetes-zookeeper
+                imagePullPolicy: Always
+                image: "zookeeper:3.4.14"
+                env:
+                  - name: CONN
+                    value: {{ if gt (int .Params.NODE_COUNT) 0 }} {{ .Name }}-zookeeper-0.{{ .Name }}-hs:{{ .Params.CLIENT_PORT }}{{- $root := . -}}{{ range $i, $v := untilStep 1 (int .Params.NODE_COUNT) 1 }},{{ $root.Name }}-zookeeper-{{ $v }}.{{ $root.Name }}-hs:{{ $root.Params.CLIENT_PORT }}{{ end }}{{ end }}
+                resources:
+                  requests:
+                    memory: "64Mi"
+                    cpu: "0.1"
+                command:
+                  - bash
+                  - -c
+                  - "until bin/zkCli.sh -server $CONN ls /; do sleep 5; done"
+  version: 0.3.0
+status: {}

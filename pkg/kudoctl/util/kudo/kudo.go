@@ -36,7 +36,7 @@ import (
 // Client is a KUDO Client providing access to a kudo clientset and kubernetes clientsets
 type Client struct {
 	kudoClientset versioned.Interface
-	kubeClientset kubernetes.Interface
+	KubeClientset kubernetes.Interface
 }
 
 // NewClient creates new KUDO Client
@@ -82,7 +82,7 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 	}
 	return &Client{
 		kudoClientset: kudoClientset,
-		kubeClientset: kubeClientset,
+		KubeClientset: kubeClientset,
 	}, nil
 }
 
@@ -90,7 +90,7 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 func NewClientFromK8s(kudo versioned.Interface, kube kubernetes.Interface) *Client {
 	result := Client{}
 	result.kudoClientset = kudo
-	result.kubeClientset = kube
+	result.KubeClientset = kube
 	return &result
 }
 
@@ -145,8 +145,8 @@ func (c *Client) InstanceExistsInCluster(operatorName, namespace, version, insta
 
 // Populate the GVK from scheme, since it is cleared by design on typed objects.
 // https://github.com/kubernetes/client-go/issues/413
-func setGVKFromScheme(object runtime.Object) error {
-	gvks, unversioned, err := scheme.Scheme.ObjectKinds(object)
+func SetGVKFromScheme(object runtime.Object, scheme *runtime.Scheme) error {
+	gvks, unversioned, err := scheme.ObjectKinds(object)
 	if err != nil {
 		return err
 	}
@@ -157,6 +157,9 @@ func setGVKFromScheme(object runtime.Object) error {
 		object.GetObjectKind().SetGroupVersionKind(gvks[0])
 	}
 	return nil
+}
+func setGVKFromScheme(object runtime.Object) error {
+	return SetGVKFromScheme(object, scheme.Scheme)
 }
 
 // GetInstance queries kubernetes api for instance of given name in given namespace
@@ -185,6 +188,20 @@ func (c *Client) GetOperatorVersion(name, namespace string) (*v1beta1.OperatorVe
 	}
 	err = setGVKFromScheme(ov)
 	return ov, err
+}
+
+// GetOperatorVersion queries kubernetes api for operator of given name in given namespace
+// returns error for all other errors that not found, not found is treated as result being 'nil, nil'
+func (c *Client) GetOperator(name, namespace string) (*v1beta1.Operator, error) {
+	o, err := c.kudoClientset.KudoV1beta1().Operators(namespace).Get(name, v1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return o, fmt.Errorf("failed to get operator %s/%s: %v", namespace, name, err)
+	}
+	err = setGVKFromScheme(o)
+	return o, err
 }
 
 // UpdateInstance updates operatorversion on instance
@@ -426,7 +443,7 @@ func (c *Client) CreateNamespace(namespace, manifest string) error {
 	}
 	ns.Annotations["created-by"] = "kudo-cli"
 
-	_, err := c.kubeClientset.CoreV1().Namespaces().Create(ns)
+	_, err := c.KubeClientset.CoreV1().Namespaces().Create(ns)
 	return err
 }
 
