@@ -1,4 +1,4 @@
-package install
+package dependencies
 
 import (
 	"fmt"
@@ -49,10 +49,10 @@ type Dependency struct {
 	PackageName string
 }
 
-// ResolveDependencies resolved all dependencies of a package.
+// Resolve resolves all dependencies of a package.
 // Dependencies are resolved recursively.
 // Cyclic dependencies are detected and result in an error.
-func ResolveDependencies(root packages.Resources, resolver pkgresolver.Resolver) ([]Dependency, error) {
+func Resolve(root packages.Resources, resolver pkgresolver.Resolver) ([]Dependency, error) {
 	dependencies := []Dependency{
 		{Resources: root},
 	}

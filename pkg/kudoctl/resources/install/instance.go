@@ -12,7 +12,9 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
-func installInstance(client *kudo.Client, instance *v1beta1.Instance) error {
+// Instance installs a KUDO instance to a cluster.
+// It returns an error if the namespace already contains an instance with the same name.
+func Instance(client *kudo.Client, instance *v1beta1.Instance) error {
 	existingInstance, err := client.GetInstance(instance.Name, instance.Namespace)
 	if err != nil {
 		return fmt.Errorf("failed to verify existing instance: %v", err)
@@ -37,7 +39,8 @@ func installInstance(client *kudo.Client, instance *v1beta1.Instance) error {
 	return nil
 }
 
-func waitForInstance(client *kudo.Client, instance *v1beta1.Instance, timeout time.Duration) error {
+// WaitForInstance waits for an amount of time for an instance to be "complete".
+func WaitForInstance(client *kudo.Client, instance *v1beta1.Instance, timeout time.Duration) error {
 	err := client.WaitForInstance(instance.Name, instance.Namespace, nil, timeout)
 	if errors.Is(err, pollwait.ErrWaitTimeout) {
 		clog.Printf("timeout waiting for instance %s/%s", instance.Namespace, instance.Name)

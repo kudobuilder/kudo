@@ -8,7 +8,9 @@ import (
 	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/dependencies"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/resources/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
@@ -60,7 +62,7 @@ func Package(
 		}
 	}
 
-	dependencies, err := ResolveDependencies(resources, resolver)
+	dependencies, err := dependencies.Resolve(resources, resolver)
 	if err != nil {
 		return err
 	}
@@ -83,12 +85,14 @@ func Package(
 
 		updateKudoOperatorTaskPackageNames(dependencies, dependency.OperatorVersion)
 
-		if err := installOperatorAndOperatorVersion(client, dependency.Resources); err != nil {
+		if err := install.OperatorAndOperatorVersion(
+			client, dependency.Resources.Operator, dependency.Resources.OperatorVersion); err != nil {
 			return err
 		}
 	}
 
-	if err := installOperatorAndOperatorVersion(client, resources); err != nil {
+	if err := install.OperatorAndOperatorVersion(
+		client, resources.Operator, resources.OperatorVersion); err != nil {
 		return err
 	}
 
@@ -96,12 +100,12 @@ func Package(
 		return nil
 	}
 
-	if err := installInstance(client, resources.Instance); err != nil {
+	if err := install.Instance(client, resources.Instance); err != nil {
 		return err
 	}
 
 	if options.Wait != nil {
-		if err := waitForInstance(client, resources.Instance, *options.Wait); err != nil {
+		if err := install.WaitForInstance(client, resources.Instance, *options.Wait); err != nil {
 			return err
 		}
 	}
@@ -158,7 +162,8 @@ func validateParameters(instance v1beta1.Instance, parameters []v1beta1.Paramete
 // updateKudoOperatorTaskPackageNames sets the 'Package' and 'OperatorName'
 // fields of the 'KudoOperatorTaskSpec' of an 'OperatorVersion' to the operator name
 // initially referenced in the 'Package' field.
-func updateKudoOperatorTaskPackageNames(pkgs []Dependency, operatorVersion *v1beta1.OperatorVersion) {
+func updateKudoOperatorTaskPackageNames(
+	pkgs []dependencies.Dependency, operatorVersion *v1beta1.OperatorVersion) {
 	tasks := operatorVersion.Spec.Tasks
 
 	for i := range tasks {

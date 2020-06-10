@@ -1,0 +1,5 @@
+apiVersion: kudo.dev/v1beta1
+kind: TestStep
+commands:
+  - command: kubectl kudo upgrade --instance operator ./operator-2.0
+    namespaced: true
