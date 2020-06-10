@@ -77,12 +77,6 @@ func dependencyWalk(
 		return task.Kind == engtask.KudoOperatorTaskKind
 	}).([]v1beta1.Task)
 
-	versionOf := func(pkg packages.Resources) func(packages.Resources) bool {
-		return func(r packages.Resources) bool {
-			return r.OperatorVersion.EqualOperatorVersion(pkg.OperatorVersion)
-		}
-	}
-
 	for _, childTask := range childrenTasks {
 		childPkg, err := resolver.Resolve(
 			childTask.Spec.KudoOperatorTaskSpec.Package,
@@ -93,9 +87,11 @@ func dependencyWalk(
 				"failed to resolve package %s, dependency of package %s: %v", fullyQualifiedName(childTask.Spec.KudoOperatorTaskSpec), parent.OperatorVersion.FullyQualifiedName(), err)
 		}
 
-		childIndex := funk.IndexOf(*pkgs, funk.Find(*pkgs, versionOf(*childPkg.Resources)))
+		newPackage := false
+		childIndex := indexOf(pkgs, childPkg.Resources)
 		if childIndex == -1 {
 			clog.Printf("Adding new dependency %s", childPkg.Resources.OperatorVersion.FullyQualifiedName())
+			newPackage = true
 
 			*pkgs = append(*pkgs, *childPkg.Resources)
 			childIndex = len(*pkgs) - 1
@@ -112,12 +108,26 @@ func dependencyWalk(
 				"cyclic package dependency found when adding package %s -> %s", parent.OperatorVersion.FullyQualifiedName(), childPkg.Resources.OperatorVersion.FullyQualifiedName())
 		}
 
-		if err := dependencyWalk(pkgs, g, *childPkg.Resources, childIndex, resolver); err != nil {
-			return err
+		// We only need to walk the dependencies if the package is new
+		if newPackage {
+			if err := dependencyWalk(pkgs, g, *childPkg.Resources, childIndex, resolver); err != nil {
+				return err
+			}
 		}
 	}
 
 	return nil
+}
+
+// indexOf method searches for the pkg in pkgs that has the same OperatorVersion/AppVersion (using
+// EqualOperatorVersion method) and returns its index or -1 if not found.
+func indexOf(pkgs *[]packages.Resources, pkg *packages.Resources) int {
+	for i, p := range *pkgs {
+		if p.OperatorVersion.EqualOperatorVersion(pkg.OperatorVersion) {
+			return i
+		}
+	}
+	return -1
 }
 
 func fullyQualifiedName(kt v1beta1.KudoOperatorTaskSpec) string {

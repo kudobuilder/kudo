@@ -65,10 +65,10 @@ func createPackage(name string, dependencies ...string) packages.Package {
 
 func TestGatherDependencies(t *testing.T) {
 	tests := []struct {
-		name         string
-		pkgs         []packages.Package
-		expectedDeps []string
-		expectedErr  string
+		name    string
+		pkgs    []packages.Package
+		want    []string
+		wantErr string
 	}{
 		{
 			// A
@@ -77,8 +77,8 @@ func TestGatherDependencies(t *testing.T) {
 			pkgs: []packages.Package{
 				createPackage("A", "A"),
 			},
-			expectedDeps: []string{},
-			expectedErr:  "cyclic package dependency found when adding package A-- -> A--",
+			want:    []string{},
+			wantErr: "cyclic package dependency found when adding package A-- -> A--",
 		},
 		{
 			// A
@@ -89,8 +89,22 @@ func TestGatherDependencies(t *testing.T) {
 				createPackage("A", "B"),
 				createPackage("B", "A"),
 			},
-			expectedDeps: []string{},
-			expectedErr:  "cyclic package dependency found when adding package B-- -> A--",
+			want:    []string{},
+			wantErr: "cyclic package dependency found when adding package B-- -> A--",
+		},
+		{
+			// A
+			// └── B
+			//     └── C
+			//     	   └── B
+			name: "nested circular dependency",
+			pkgs: []packages.Package{
+				createPackage("A", "B"),
+				createPackage("B", "C"),
+				createPackage("C", "B"),
+			},
+			want:    []string{},
+			wantErr: "cyclic package dependency found when adding package C-- -> B--",
 		},
 		{
 			// A
@@ -99,8 +113,8 @@ func TestGatherDependencies(t *testing.T) {
 			pkgs: []packages.Package{
 				createPackage("A", "B"),
 			},
-			expectedDeps: []string{},
-			expectedErr:  "failed to resolve package B--, dependency of package A--: package not found",
+			want:    []string{},
+			wantErr: "failed to resolve package B--, dependency of package A--: package not found",
 		},
 		{
 			// A
@@ -112,8 +126,8 @@ func TestGatherDependencies(t *testing.T) {
 				createPackage("B", "C"),
 				createPackage("C"),
 			},
-			expectedDeps: []string{"B", "C"},
-			expectedErr:  "",
+			want:    []string{"B", "C"},
+			wantErr: "",
 		},
 		{
 			//        B -----
@@ -133,8 +147,8 @@ func TestGatherDependencies(t *testing.T) {
 				createPackage("D", "E"),
 				createPackage("E"),
 			},
-			expectedDeps: []string{"C", "D", "E"},
-			expectedErr:  "",
+			want:    []string{"C", "D", "E"},
+			wantErr: "",
 		},
 		{
 			// A
@@ -153,8 +167,8 @@ func TestGatherDependencies(t *testing.T) {
 				createPackage("E"),
 				createPackage("F"),
 			},
-			expectedDeps: []string{},
-			expectedErr:  "cyclic package dependency found when adding package C-- -> A--",
+			want:    []string{},
+			wantErr: "cyclic package dependency found when adding package C-- -> A--",
 		},
 	}
 
@@ -162,18 +176,18 @@ func TestGatherDependencies(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			resolver := nameResolver{tt.pkgs}
-			actual, err := gatherDependencies(*tt.pkgs[0].Resources, resolver)
+			got, err := gatherDependencies(*tt.pkgs[0].Resources, resolver)
 
-			assert.Equal(t, err == nil, tt.expectedErr == "")
+			assert.Equal(t, err == nil, tt.wantErr == "")
 
 			if err != nil {
-				assert.EqualError(t, err, tt.expectedErr, tt.name)
+				assert.EqualError(t, err, tt.wantErr, tt.name)
 			}
 
-			for _, operatorName := range tt.expectedDeps {
+			for _, operatorName := range tt.want {
 				operatorName := operatorName
 
-				assert.NotNil(t, funk.Find(actual, func(p packages.Resources) bool {
+				assert.NotNil(t, funk.Find(got, func(p packages.Resources) bool {
 					return p.Operator.Name == operatorName
 				}), tt.name)
 			}
