@@ -72,20 +72,36 @@ The goal here is to make this feel real for users without getting bogged down.
 
 Before any modification of the cluster is made, the CLI should check if the upgrade can be executed correctly.
 
+The Pre-Upgrade Verification includes:
+- That upgrade to the prerequisites are possible
+- That required migrations can be applied
+- That existing operators 
 
 
 #### Upgrade Process
+
+To upgrade the KUDO installation, the following steps are necessary:
+1. Run Pre-Upgrade Verification - Make sure that the upgrade can be performed
+1. Shutdown the KUDO manager - No plans should be executed while the upgrade is performed
+1. Remove the admission webhook - Otherwise migrations to CRDs would fail
+1. Apply the upgrade - Bring the installation to the required state
+1. Optional: Apply required migrations - If changes need to be made that can not be done by simply applying resources
+1. Enable admission webhook again
+1. Start new KUDO manager
 
 #### Upgrade to CRDs
 
 The upgrade process must never delete and recreate the CRDs - this would delete all existing custom resources of that
 type. 
+- CRDs must be patched, not replaced (which may lead to delete/recreate)
+- When CRDs are updated and the changes include incompatible changes (addition of required fields, etc.) a migration
+  must be provided
+- All installed custom resources (Operator, OperatorVersion and Instance) must be converted to fit the new format, installed
+  operators must continue working
 
 ### Risks and Mitigations
 
-What are the risks of this proposal and how do we mitigate.
-Think broadly.
-For example, consider both security and how this will impact the larger kubernetes ecosystem.
+
 
 ## Graduation Criteria
 
