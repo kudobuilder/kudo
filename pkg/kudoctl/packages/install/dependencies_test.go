@@ -148,7 +148,7 @@ func TestGatherDependencies(t *testing.T) {
 				createPackage("F"),
 			},
 			expectedDeps: []string{},
-			expectedErr:  "",
+			expectedErr:  "cyclic package dependency found when adding package B-:",
 		},
 	}
 
