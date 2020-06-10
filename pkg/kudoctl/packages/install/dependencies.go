@@ -93,31 +93,27 @@ func dependencyWalk(
 				"failed to resolve package %s, dependency of package %s: %v", fullyQualifiedName(childTask.Spec.KudoOperatorTaskSpec), parent.OperatorVersion.FullyQualifiedName(), err)
 		}
 
-		if funk.Find(*pkgs, versionOf(*childPkg.Resources)) == nil {
+		childIndex := funk.IndexOf(*pkgs, funk.Find(*pkgs, versionOf(*childPkg.Resources)))
+		if childIndex == -1 {
 			clog.Printf("Adding new dependency %s", childPkg.Resources.OperatorVersion.FullyQualifiedName())
 
 			*pkgs = append(*pkgs, *childPkg.Resources)
+			childIndex = len(*pkgs) - 1
 
 			// The number of vertices in 'g' has to match the number of packages we're tracking.
 			g.AddVertex()
-
-			if err := dependencyWalk(pkgs, g, *childPkg.Resources, len(*pkgs)-1, resolver); err != nil {
-				return err
-			}
 		}
 
-		childIndex := funk.IndexOf(*pkgs, funk.Find(*pkgs, versionOf(*childPkg.Resources)))
-		if childIndex == -1 {
-			panic("failed to find package index in dependency graph")
-		}
-
-		// This is a directed graph. The edge represents a dependency of
-		// the parent package on the current package.
+		// This is a directed graph. The edge represents a dependency of the parent package on the current package.
 		g.AddEdge(parentIndex, childIndex)
 
 		if !graph.Acyclic(g) {
 			return fmt.Errorf(
-				"cyclic package dependency found when adding package %s", childPkg.Resources.OperatorVersion.FullyQualifiedName())
+				"cyclic package dependency found when adding package %s -> %s", parent.OperatorVersion.FullyQualifiedName(), childPkg.Resources.OperatorVersion.FullyQualifiedName())
+		}
+
+		if err := dependencyWalk(pkgs, g, *childPkg.Resources, childIndex, resolver); err != nil {
+			return err
 		}
 	}
 
@@ -125,5 +121,5 @@ func dependencyWalk(
 }
 
 func fullyQualifiedName(kt v1beta1.KudoOperatorTaskSpec) string {
-	return fmt.Sprintf("%s:%s", v1beta1.OperatorVersionName(kt.Package, kt.OperatorVersion), kt.AppVersion)
+	return fmt.Sprintf("%s-%s", v1beta1.OperatorVersionName(kt.Package, kt.OperatorVersion), kt.AppVersion)
 }

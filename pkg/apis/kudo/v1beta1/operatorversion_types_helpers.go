@@ -13,7 +13,7 @@ func OperatorVersionName(operatorName, version string) string {
 }
 
 func (ov *OperatorVersion) FullyQualifiedName() string {
-	return fmt.Sprintf("%s:%s", ov.Name, ov.Spec.AppVersion)
+	return fmt.Sprintf("%s-%s", ov.Name, ov.Spec.AppVersion)
 }
 
 func (some *OperatorVersion) EqualOperatorVersion(other *OperatorVersion) bool {
