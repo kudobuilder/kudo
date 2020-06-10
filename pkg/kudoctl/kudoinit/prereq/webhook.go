@@ -109,7 +109,7 @@ func (k *KudoWebHook) installWithCertManager(client *kube.Client) error {
 	if err := installUnstructured(client.DynamicClient, k.certificate); err != nil {
 		return err
 	}
-	if err := installAdmissionWebhook(client.KubeClient.AdmissionregistrationV1beta1(), InstanceAdmissionWebhook(k.opts.Namespace)); err != nil {
+	if err := installAdmissionWebhook(client.KubeClient.AdmissionregistrationV1beta1(), instanceAdmissionWebhookCertManager(k.opts.Namespace, k.certManagerGroup)); err != nil {
 		return err
 	}
 	return nil
@@ -165,7 +165,7 @@ func (k *KudoWebHook) Resources() []runtime.Object {
 }
 
 func (k *KudoWebHook) resourcesWithCertManager() []runtime.Object {
-	av := InstanceAdmissionWebhook(k.opts.Namespace)
+	av := instanceAdmissionWebhookCertManager(k.opts.Namespace, k.certManagerGroup)
 	objs := []runtime.Object{&av}
 	objs = append(objs, k.issuer)
 	objs = append(objs, k.certificate)
@@ -374,6 +374,13 @@ func instanceAdmissionWebhookWithCABundle(ns string, caData []byte) admissionv1b
 	return iaw
 }
 
+func instanceAdmissionWebhookCertManager(ns string, certManagerGroup string) admissionv1beta1.MutatingWebhookConfiguration {
+	iaw := InstanceAdmissionWebhook(ns)
+	injectCaAnnotationName := fmt.Sprintf("%s/inject-ca-from", certManagerGroup)
+	iaw.Annotations[injectCaAnnotationName] = fmt.Sprintf("%s/kudo-webhook-server-certificate", ns)
+	return iaw
+}
+
 func validateAdmissionWebhookInstallation(client clientv1beta1.MutatingWebhookConfigurationsGetter, webhook admissionv1beta1.MutatingWebhookConfiguration, result *verifier.Result) error {
 	_, err := client.MutatingWebhookConfigurations().Get(webhook.Name, metav1.GetOptions{})
 	if err != nil {
@@ -397,10 +404,8 @@ func InstanceAdmissionWebhook(ns string) admissionv1beta1.MutatingWebhookConfigu
 	noSideEffects := admissionv1beta1.SideEffectClassNone
 	return admissionv1beta1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: instanceAdmissionWebHookName,
-			Annotations: map[string]string{
-				"cert-manager.io/inject-ca-from": fmt.Sprintf("%s/kudo-webhook-server-certificate", ns),
-			},
+			Name:        instanceAdmissionWebHookName,
+			Annotations: map[string]string{},
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MutatingWebhookConfiguration",

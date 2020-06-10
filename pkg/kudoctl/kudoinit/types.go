@@ -14,6 +14,7 @@ const (
 	DefaultNamespace      = "kudo-system"
 	DefaultServiceName    = "kudo-controller-manager-service"
 	DefaultSecretName     = "kudo-webhook-server-secret" //nolint
+	DefaultKudoLabel      = "kudo-manager"
 	defaultGracePeriod    = 10
 	defaultServiceAccount = "kudo-manager"
 )
@@ -49,6 +50,6 @@ type Step interface {
 }
 
 func GenerateLabels(labels map[string]string) map[string]string {
-	labels["app"] = "kudo-manager"
+	labels["app"] = DefaultKudoLabel
 	return labels
 }
