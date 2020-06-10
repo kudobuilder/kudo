@@ -38,7 +38,11 @@ func createPackage(name string, dependencies ...string) packages.Package {
 					Name: name,
 				},
 			},
-			OperatorVersion: &v1beta1.OperatorVersion{},
+			OperatorVersion: &v1beta1.OperatorVersion{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: v1beta1.OperatorVersionName(name, ""),
+				},
+			},
 		},
 	}
 
@@ -73,7 +77,7 @@ func TestGatherDependencies(t *testing.T) {
 				createPackage("A", "A"),
 			},
 			expectedDeps: []string{},
-			expectedErr:  "cyclic package dependency found when adding package A--",
+			expectedErr:  "cyclic package dependency found when adding package A-:",
 		},
 		{
 			// A <---> B
@@ -83,7 +87,7 @@ func TestGatherDependencies(t *testing.T) {
 				createPackage("B", "A"),
 			},
 			expectedDeps: []string{},
-			expectedErr:  "cyclic package dependency found when adding package B--",
+			expectedErr:  "cyclic package dependency found when adding package B-:",
 		},
 		{
 			// A ---> (B)
@@ -92,7 +96,7 @@ func TestGatherDependencies(t *testing.T) {
 				createPackage("A", "B"),
 			},
 			expectedDeps: []string{},
-			expectedErr:  "failed to resolve package B--, dependency of package A--: package not found",
+			expectedErr:  "failed to resolve package B-:, dependency of package A-:: package not found",
 		},
 		{
 			// A ---> B ---> C

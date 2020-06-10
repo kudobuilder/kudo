@@ -56,7 +56,7 @@ func gatherDependencies(root packages.Resources, resolver pkgresolver.Resolver) 
 		edges: []map[int]struct{}{{}},
 	}
 
-	if err := dependencyWalk(&pkgs, &g, root, resolver); err != nil {
+	if err := dependencyWalk(&pkgs, &g, root, 0, resolver); err != nil {
 		return nil, err
 	}
 
@@ -70,9 +70,10 @@ func dependencyWalk(
 	pkgs *[]packages.Resources,
 	g *dependencyGraph,
 	parent packages.Resources,
+	parentIndex int,
 	resolver pkgresolver.Resolver) error {
 	//nolint:errcheck
-	children := funk.Filter(parent.OperatorVersion.Spec.Tasks, func(task v1beta1.Task) bool {
+	childrenTasks := funk.Filter(parent.OperatorVersion.Spec.Tasks, func(task v1beta1.Task) bool {
 		return task.Kind == engtask.KudoOperatorTaskKind
 	}).([]v1beta1.Task)
 
@@ -82,50 +83,41 @@ func dependencyWalk(
 		}
 	}
 
-	for _, child := range children {
-		dependency, err := resolver.Resolve(
-			child.Spec.KudoOperatorTaskSpec.Package,
-			child.Spec.KudoOperatorTaskSpec.AppVersion,
-			child.Spec.KudoOperatorTaskSpec.OperatorVersion)
+	for _, childTask := range childrenTasks {
+		childPkg, err := resolver.Resolve(
+			childTask.Spec.KudoOperatorTaskSpec.Package,
+			childTask.Spec.KudoOperatorTaskSpec.AppVersion,
+			childTask.Spec.KudoOperatorTaskSpec.OperatorVersion)
 		if err != nil {
 			return fmt.Errorf(
-				"failed to resolve package %s, dependency of package %s: %v",
-				fullyQualifiedName(child.Spec.KudoOperatorTaskSpec),
-				parent.OperatorVersion.FullyQualifiedName(),
-				err)
+				"failed to resolve package %s, dependency of package %s: %v", fullyQualifiedName(childTask.Spec.KudoOperatorTaskSpec), parent.OperatorVersion.FullyQualifiedName(), err)
 		}
 
-		parentIndex := funk.IndexOf(*pkgs, funk.Find(*pkgs, versionOf(parent)))
-		if parentIndex == -1 {
-			panic("failed to find parent index in dependency graph")
-		}
+		if funk.Find(*pkgs, versionOf(*childPkg.Resources)) == nil {
+			clog.Printf("Adding new dependency %s", childPkg.Resources.OperatorVersion.FullyQualifiedName())
 
-		if funk.Find(*pkgs, versionOf(*dependency.Resources)) == nil {
-			clog.Printf("Adding new dependency %s", dependency.Resources.OperatorVersion.FullyQualifiedName())
+			*pkgs = append(*pkgs, *childPkg.Resources)
 
-			*pkgs = append(*pkgs, *dependency.Resources)
-
-			// The number of vertices in 'g' has to match the number of packages
-			// we're tracking.
+			// The number of vertices in 'g' has to match the number of packages we're tracking.
 			g.AddVertex()
 
-			if err := dependencyWalk(pkgs, g, *dependency.Resources, resolver); err != nil {
+			if err := dependencyWalk(pkgs, g, *childPkg.Resources, len(*pkgs)-1, resolver); err != nil {
 				return err
 			}
 		}
 
-		pkgIndex := funk.IndexOf(*pkgs, funk.Find(*pkgs, versionOf(*dependency.Resources)))
-		if pkgIndex == -1 {
+		childIndex := funk.IndexOf(*pkgs, funk.Find(*pkgs, versionOf(*childPkg.Resources)))
+		if childIndex == -1 {
 			panic("failed to find package index in dependency graph")
 		}
 
 		// This is a directed graph. The edge represents a dependency of
 		// the parent package on the current package.
-		g.AddEdge(parentIndex, pkgIndex)
+		g.AddEdge(parentIndex, childIndex)
 
 		if !graph.Acyclic(g) {
 			return fmt.Errorf(
-				"cyclic package dependency found when adding package %s", dependency.Resources.OperatorVersion.FullyQualifiedName())
+				"cyclic package dependency found when adding package %s", childPkg.Resources.OperatorVersion.FullyQualifiedName())
 		}
 	}
 
