@@ -65,7 +65,7 @@ func Test_UpgradeOperatorVersion(t *testing.T) {
 		errMessageContains string
 	}{
 		{"instance does not exist", "1.1.1", false, true, "instance default/test does not exist in the cluster"},
-		{"operatorversion does not exist", "1.1.1", true, false, "no operatorversion for this operator installed yet"},
+		{"operatorversion does not exist", "1.1.1", true, false, "operatorversion default/test-1.0 does not exist in the cluster"},
 		{"upgrade to same version", "1.0", true, true, "upgraded version 1.0 is the same or smaller"},
 		{"upgrade to smaller version", "0.1", true, true, "upgraded version 0.1 is the same or smaller"},
 		{"upgrade to smaller version", "1.1.1", true, true, ""},
