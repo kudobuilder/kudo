@@ -101,7 +101,7 @@ func Test_InstallPackage(t *testing.T) {
 			SkipInstance: tt.skipInstance,
 		}
 
-		err := Package(kc, "", namespace, testResources, tt.installParameters, options)
+		err := Package(kc, "", namespace, testResources, tt.installParameters, nil, options)
 		if tt.err != "" {
 			assert.EqualError(t, err, tt.err)
 		}
