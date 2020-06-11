@@ -59,7 +59,7 @@ func Package(
 		}
 	}
 
-	dependencies, err := gatherDependencies(resources, resolver)
+	dependencies, err := Resolve(resources, resolver)
 	if err != nil {
 		return err
 	}

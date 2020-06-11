@@ -43,10 +43,10 @@ func (g *dependencyGraph) Visit(v int, do func(w int, c int64) bool) bool {
 	return false
 }
 
-// gatherDependencies resolved all dependencies of a package.
+// Resolve resolved all dependencies of a package.
 // Dependencies are resolved recursively.
 // Cyclic dependencies are detected and result in an error.
-func gatherDependencies(root packages.Resources, resolver pkgresolver.Resolver) ([]packages.Resources, error) {
+func Resolve(root packages.Resources, resolver pkgresolver.Resolver) ([]packages.Resources, error) {
 	pkgs := []packages.Resources{
 		root,
 	}
@@ -131,5 +131,5 @@ func indexOf(pkgs *[]packages.Resources, pkg *packages.Resources) int {
 }
 
 func fullyQualifiedName(kt v1beta1.KudoOperatorTaskSpec) string {
-	return fmt.Sprintf("%s-%s", v1beta1.OperatorVersionName(kt.Package, kt.OperatorVersion), kt.AppVersion)
+	return fmt.Sprintf("%s-%s", v1beta1.OperatorVersionName(kt.OperatorName, kt.OperatorVersion), kt.AppVersion)
 }

@@ -50,6 +50,8 @@ import (
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/engine/workflow"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/install"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
@@ -197,6 +199,18 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		r.Recorder.Event(instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", plan))
 	}
 
+	// if this is a top-level instance, check for dependency cycles
+	if instance.IsTopLevelInstance() {
+		err := r.resolveDependencies(instance, ov)
+		if err != nil {
+			log.Printf("InstanceController: Instance %s/%s failed the dependency check: %v", instance.Namespace, instance.Name, err)
+			planStatus.SetWithMessage(kudov1beta1.ExecutionFatalError, err.Error())
+
+			err = r.handleError(err, instance, oldInstance)
+			return reconcile.Result{}, err
+		}
+	}
+
 	// ---------- 3. Execute the scheduled plan ----------
 
 	metadata := &engine.Metadata{
@@ -239,6 +253,17 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	}
 
 	return reconcile.Result{}, nil
+}
+
+func (r *Reconciler) resolveDependencies(i *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion) error {
+	resolver := &OnlineResolver{ns: i.Namespace, c: r.Client}
+	root := packages.Resources{OperatorVersion: ov}
+
+	_, err := install.Resolve(root, resolver)
+	if err != nil {
+		return fmt.Errorf("%w%v", engine.ErrFatalExecution, err)
+	}
+	return nil
 }
 
 func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance, client client.Client) error {
@@ -331,22 +356,13 @@ func (r *Reconciler) handleError(err error, instance *kudov1beta1.Instance, oldI
 		}
 	}
 
-	// for code being processed on instance, we need to handle these errors as well
-	var iError *kudov1beta1.InstanceError
-	if errors.As(err, &iError) {
-		if iError.EventName != nil {
-			r.Recorder.Event(instance, "Warning", convert.StringValue(iError.EventName), err.Error())
-		}
-	}
 	return err
 }
 
 // getInstance retrieves the instance by namespaced name
 func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1beta1.Instance, err error) {
-	instance = &kudov1beta1.Instance{}
-	err = r.Get(context.TODO(), request.NamespacedName, instance)
+	instance, err = kudov1beta1.GetInstance(request.NamespacedName, r.Client)
 	if err != nil {
-		// Error reading the object - requeue the request.
 		log.Printf("InstanceController: Error getting instance %v: %v",
 			request.NamespacedName,
 			err)
