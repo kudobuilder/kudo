@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
@@ -64,11 +65,15 @@ func Package(
 		return err
 	}
 
+	updateOperatorTasks(dependencies, resources.OperatorVersion)
+
 	for _, dependency := range dependencies {
 		dependency.Operator.SetNamespace(namespace)
 		dependency.OperatorVersion.SetNamespace(namespace)
 
-		if err := installOperatorAndOperatorVersion(client, dependency); err != nil {
+		updateOperatorTasks(dependencies, dependency.OperatorVersion)
+
+		if err := installOperatorAndOperatorVersion(client, dependency.Resources); err != nil {
 			return err
 		}
 	}
@@ -138,4 +143,23 @@ func validateParameters(instance v1beta1.Instance, parameters []v1beta1.Paramete
 	}
 
 	return nil
+}
+
+func updateOperatorTasks(pkgs []Dependency, operatorVersion *v1beta1.OperatorVersion) {
+	tasks := operatorVersion.Spec.Tasks
+
+	for i := range tasks {
+		if tasks[i].Kind == engtask.KudoOperatorTaskKind {
+			for _, pkg := range pkgs {
+				if tasks[i].Spec.KudoOperatorTaskSpec.Package == pkg.PackageName {
+					// TODO: remove 'OperatorName' once the controller uses 'Package'
+					tasks[i].Spec.KudoOperatorTaskSpec.Package = pkg.Operator.Name
+					tasks[i].Spec.KudoOperatorTaskSpec.OperatorName = pkg.Operator.Name
+					break
+				}
+			}
+		}
+	}
+
+	operatorVersion.Spec.Tasks = tasks
 }

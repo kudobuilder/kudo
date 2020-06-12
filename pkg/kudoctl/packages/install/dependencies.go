@@ -43,12 +43,18 @@ func (g *dependencyGraph) Visit(v int, do func(w int, c int64) bool) bool {
 	return false
 }
 
+type Dependency struct {
+	packages.Resources
+
+	PackageName string
+}
+
 // gatherDependencies resolved all dependencies of a package.
 // Dependencies are resolved recursively.
 // Cyclic dependencies are detected and result in an error.
-func gatherDependencies(root packages.Resources, resolver pkgresolver.Resolver) ([]packages.Resources, error) {
-	pkgs := []packages.Resources{
-		root,
+func gatherDependencies(root packages.Resources, resolver pkgresolver.Resolver) ([]Dependency, error) {
+	pkgs := []Dependency{
+		{Resources: root},
 	}
 
 	// Each vertex in 'g' matches an index in 'pkgs'.
@@ -61,13 +67,13 @@ func gatherDependencies(root packages.Resources, resolver pkgresolver.Resolver) 
 	}
 
 	// Remove 'root' from the list of dependencies.
-	pkgs = funk.Drop(pkgs, 1).([]packages.Resources) //nolint:errcheck
+	pkgs = funk.Drop(pkgs, 1).([]Dependency) //nolint:errcheck
 
 	return pkgs, nil
 }
 
 func dependencyWalk(
-	pkgs *[]packages.Resources,
+	pkgs *[]Dependency,
 	g *dependencyGraph,
 	parent packages.Resources,
 	parentIndex int,
@@ -87,13 +93,18 @@ func dependencyWalk(
 				"failed to resolve package %s, dependency of package %s: %v", fullyQualifiedName(childTask.Spec.KudoOperatorTaskSpec), parent.OperatorVersion.FullyQualifiedName(), err)
 		}
 
+		childFoo := Dependency{
+			Resources:   *childPkg.Resources,
+			PackageName: childTask.Spec.KudoOperatorTaskSpec.Package,
+		}
+
 		newPackage := false
-		childIndex := indexOf(pkgs, childPkg.Resources)
+		childIndex := indexOf(pkgs, &childFoo)
 		if childIndex == -1 {
 			clog.Printf("Adding new dependency %s", childPkg.Resources.OperatorVersion.FullyQualifiedName())
 			newPackage = true
 
-			*pkgs = append(*pkgs, *childPkg.Resources)
+			*pkgs = append(*pkgs, childFoo)
 			childIndex = len(*pkgs) - 1
 
 			// The number of vertices in 'g' has to match the number of packages we're tracking.
@@ -121,7 +132,7 @@ func dependencyWalk(
 
 // indexOf method searches for the pkg in pkgs that has the same OperatorVersion/AppVersion (using
 // EqualOperatorVersion method) and returns its index or -1 if not found.
-func indexOf(pkgs *[]packages.Resources, pkg *packages.Resources) int {
+func indexOf(pkgs *[]Dependency, pkg *Dependency) int {
 	for i, p := range *pkgs {
 		if p.OperatorVersion.EqualOperatorVersion(pkg.OperatorVersion) {
 			return i
