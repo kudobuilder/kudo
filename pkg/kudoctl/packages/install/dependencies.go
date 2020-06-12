@@ -67,9 +67,7 @@ func gatherDependencies(root packages.Resources, resolver pkgresolver.Resolver) 
 	}
 
 	// Remove 'root' from the list of dependencies.
-	dependencies = funk.Drop(dependencies, 1).([]Dependency) //nolint:errcheck
-
-	return dependencies, nil
+	return dependencies[1:], nil
 }
 
 func dependencyWalk(
