@@ -53,27 +53,27 @@ type Dependency struct {
 // Dependencies are resolved recursively.
 // Cyclic dependencies are detected and result in an error.
 func gatherDependencies(root packages.Resources, resolver pkgresolver.Resolver) ([]Dependency, error) {
-	pkgs := []Dependency{
+	dependencies := []Dependency{
 		{Resources: root},
 	}
 
-	// Each vertex in 'g' matches an index in 'pkgs'.
+	// Each vertex in 'g' matches an index in 'dependencies'.
 	g := dependencyGraph{
 		edges: []map[int]struct{}{{}},
 	}
 
-	if err := dependencyWalk(&pkgs, &g, root, 0, resolver); err != nil {
+	if err := dependencyWalk(&dependencies, &g, root, 0, resolver); err != nil {
 		return nil, err
 	}
 
 	// Remove 'root' from the list of dependencies.
-	pkgs = funk.Drop(pkgs, 1).([]Dependency) //nolint:errcheck
+	dependencies = funk.Drop(dependencies, 1).([]Dependency) //nolint:errcheck
 
-	return pkgs, nil
+	return dependencies, nil
 }
 
 func dependencyWalk(
-	pkgs *[]Dependency,
+	dependencies *[]Dependency,
 	g *dependencyGraph,
 	parent packages.Resources,
 	parentIndex int,
@@ -93,19 +93,19 @@ func dependencyWalk(
 				"failed to resolve package %s, dependency of package %s: %v", fullyQualifiedName(childTask.Spec.KudoOperatorTaskSpec), parent.OperatorVersion.FullyQualifiedName(), err)
 		}
 
-		childFoo := Dependency{
+		childDependency := Dependency{
 			Resources:   *childPkg.Resources,
 			PackageName: childTask.Spec.KudoOperatorTaskSpec.Package,
 		}
 
 		newPackage := false
-		childIndex := indexOf(pkgs, &childFoo)
+		childIndex := indexOf(dependencies, &childDependency)
 		if childIndex == -1 {
 			clog.Printf("Adding new dependency %s", childPkg.Resources.OperatorVersion.FullyQualifiedName())
 			newPackage = true
 
-			*pkgs = append(*pkgs, childFoo)
-			childIndex = len(*pkgs) - 1
+			*dependencies = append(*dependencies, childDependency)
+			childIndex = len(*dependencies) - 1
 
 			// The number of vertices in 'g' has to match the number of packages we're tracking.
 			g.AddVertex()
@@ -121,7 +121,7 @@ func dependencyWalk(
 
 		// We only need to walk the dependencies if the package is new
 		if newPackage {
-			if err := dependencyWalk(pkgs, g, *childPkg.Resources, childIndex, resolver); err != nil {
+			if err := dependencyWalk(dependencies, g, *childPkg.Resources, childIndex, resolver); err != nil {
 				return err
 			}
 		}
@@ -130,11 +130,12 @@ func dependencyWalk(
 	return nil
 }
 
-// indexOf method searches for the pkg in pkgs that has the same OperatorVersion/AppVersion (using
-// EqualOperatorVersion method) and returns its index or -1 if not found.
-func indexOf(pkgs *[]Dependency, pkg *Dependency) int {
-	for i, p := range *pkgs {
-		if p.OperatorVersion.EqualOperatorVersion(pkg.OperatorVersion) {
+// indexOf method searches for the dependency in dependencies that has the same
+// OperatorVersion/AppVersion (using EqualOperatorVersion method) and returns
+// its index or -1 if not found.
+func indexOf(dependencies *[]Dependency, dependency *Dependency) int {
+	for i, p := range *dependencies {
+		if p.OperatorVersion.EqualOperatorVersion(dependency.OperatorVersion) {
 			return i
 		}
 	}
