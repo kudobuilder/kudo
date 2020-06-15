@@ -59,7 +59,8 @@ However, such life-cycle dependency presents major challenges e.g.  what happens
 What happens when Zookeeper is upgraded, and the new version is incompatible with the current Kafka `Instance`?
 How can we ensure the compatibility?
 This KEP deliberately ignores this area and instead focuses on installation dependencies.
-Additionally, this KEP does not address output variables or referencing `Instance` resources.
+Additionally, this KEP does not address output variables, referencing `Instance` resources, or installing other dependencies operators other than KUDOs own.
+
 
 ## Proposal
 
