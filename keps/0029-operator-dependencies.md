@@ -53,7 +53,7 @@ Dependencies can be a complex topic. This KEP is not trying to boil the dependen
 
 ### Non-Goals
 
-Dependency on an already running `Instance` is a non-goal. It is easy to imagine a situation when a new operator (e.g Kafka) may want to depend on the existing Zookeeper instance. However, such life-cycle dependency presents major challenges e.g. what happens when Zookeeper is removed? What happens when Zookeeper is upgraded, and the new version is incompatible with the current Kafka `Instance`? How can we ensure the compatibility? This KEP deliberately ignores this area and instead focuses on installation dependencies. Additionally, this KEP does not address output variables, referencing `Instance` resources, or installing other dependencies operators other than KUDOs own.
+Dependency on an already running `Instance` is a non-goal. It is easy to imagine a situation when a new operator (e.g Kafka) may want to depend on the existing Zookeeper instance. However, such life-cycle dependency presents major challenges e.g. what happens when Zookeeper is removed? What happens when Zookeeper is upgraded, and the new version is incompatible with the current Kafka `Instance`? How can we ensure the compatibility? This KEP deliberately ignores this area and instead focuses on installation dependencies. Additionally, this KEP does not address output variables or referencing `Instance` resources.
 
 ## Proposal
 
