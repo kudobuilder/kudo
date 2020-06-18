@@ -29,7 +29,7 @@ status: implementable
    * [Kubernetes clusters](0004-add-testing-infrastructure.md#kubernetes-clusters)
    * [CICD](#cicd)
       * [Pull Requests](#pull-requests)
-      * [Master Branch](#master-branch)
+      * [Main Branch](#main-branch)
          * [Tests](#tests-1)
          * [Pushes](#pushes)
          * [Schedule](#schedule)
@@ -49,7 +49,7 @@ As the complexity and scope of KUDO grows, it becomes impossible to manually val
 
 These testing packages should also assure conformance for the `kudobuilder/operators` repository to particular versions of KUDO.
 
-[KEP-0008](https://github.com/kudobuilder/kudo/blob/master/keps/0008-operator-testing.md) outlines the design of a testing harness for validating KUDO and operators. This document outlines testing procedures and policies - e.g., what, where, when and how we will test.
+[KEP-0008](https://github.com/kudobuilder/kudo/blob/main/keps/0008-operator-testing.md) outlines the design of a testing harness for validating KUDO and operators. This document outlines testing procedures and policies - e.g., what, where, when and how we will test.
 
 ## Motivation
 
@@ -97,11 +97,11 @@ Integration tests will be hidden behind a Go build tag and will only run when th
 
 End to end tests test the KUDO controller on a real Kubernetes cluster (either kubernetes-in-docker or any other Kubernetes cluster). These should exercise KUDO's features and workflows including installing operators from the repository. End-to-end tests can also exercise the CLI to test CLI-based workflows.
 
-End-to-end tests will be triggered on merge to master, for release pull requests, and manually for pull requests containing risky or major changes.
+End-to-end tests will be triggered on merge to main, for release pull requests, and manually for pull requests containing risky or major changes.
 
 #### Operator tests
 
-Operator tests test that an operator works correctly. These require a full Kubernetes cluster to run and will be run in CI for the Operators repository using the latest released version of KUDO. Instead of running every test on every pull request, we will only run the tests that test the operator changed in any given pull request. Operator tests will also be run against master and release builds of KUDO to verify that KUDO changes do not break operators. Operators are tested using the KUDO test harness from KEP-0008.
+Operator tests test that an operator works correctly. These require a full Kubernetes cluster to run and will be run in CI for the Operators repository using the latest released version of KUDO. Instead of running every test on every pull request, we will only run the tests that test the operator changed in any given pull request. Operator tests will also be run against main and release builds of KUDO to verify that KUDO changes do not break operators. Operators are tested using the KUDO test harness from KEP-0008.
 
 Operator tests will also be run in CI for the KUDO repository manually after review, but prior to merging using `/test` command supported by Prow.
 
@@ -126,7 +126,7 @@ CICD is accomplished by a combination of CircleCI and Github Actions enabled for
 
 #### Pull Requests
 
-All Pull Requests into master need to have the following checks pass. These should be ordered in fastest to slowest to reduce the time spent when/if failures occur.
+All Pull Requests into main need to have the following checks pass. These should be ordered in fastest to slowest to reduce the time spent when/if failures occur.
 
 0. Check author has signed CLA
 1. If the user is not a contributor, a contributor must write `/ok-to-test` on the pull request before it will be triggered.
@@ -136,17 +136,17 @@ All Pull Requests into master need to have the following checks pass. These shou
 1. Dockerfile builds (this requires all dependencies in the vendor folder)
 1. All integration tests pass.
 
-Perform the same set of tests after merging master into the branch.
+Perform the same set of tests after merging main into the branch.
 
-#### Master Branch
+#### Main Branch
 
 ##### Tests
 
-The master branch will run all the same tests that pull requests do as well as the complete set of operator tests.
+The main branch will run all the same tests that pull requests do as well as the complete set of operator tests.
 
 ##### Pushes
 
-Once merged into master a build process occurs to deploy the latest image at `kudobuilder/controller:latest`
+Once merged into main a build process occurs to deploy the latest image at `kudobuilder/controller:latest`
 
 ##### Schedule
 

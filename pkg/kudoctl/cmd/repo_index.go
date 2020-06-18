@@ -151,7 +151,7 @@ func (ri *repoIndexCmd) run() error {
 }
 
 func merge(index *repo.IndexFile, mergeIndex *repo.IndexFile) {
-	// index is the master, any dups in the merged in index will have what is local replace those entries
+	// index is the main, any dups in the merged in index will have what is local replace those entries
 	for _, pvs := range mergeIndex.Entries {
 		for _, pv := range pvs {
 			err := index.AddPackageVersion(pv)

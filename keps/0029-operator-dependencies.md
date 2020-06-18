@@ -41,7 +41,7 @@ This KEP aims to improve operator user and developer experience by introducing o
 
 ## Motivation
 
-Recent operator development has shown that complex operators often depend on other operators to function. One workaround commonly seen can be found in the [Flink Demo](https://github.com/kudobuilder/operators/tree/master/repository/flink/docs/demo/financial-fraud) where an `Instance` of Flink needs an `Instance` of Kafka, which in turn needs an `Instance` of Zookeeper. There are two parts to the workaround:
+Recent operator development has shown that complex operators often depend on other operators to function. One workaround commonly seen can be found in the [Flink Demo](https://github.com/kudobuilder/operators/tree/main/repository/flink/docs/demo/financial-fraud) where an `Instance` of Flink needs an `Instance` of Kafka, which in turn needs an `Instance` of Zookeeper. There are two parts to the workaround:
 1. the operator user needs to first **manually** install the `kafka` and `zookeeper` operators while skipping the instance creation (using the `kubectl kudo install ... --skip-instance` CLI option).
 2. then, the user runs a regular `kubectl kudo install flink`, whose `deploy` plan includes `Instance` resources for Kafka and Zookeeper, which are bundled along other Flink operator templates in YAML format (rather than being created on-the-fly from an operator package).
 
@@ -110,7 +110,7 @@ tasks:
     instanceName: # optional, the instance name
 ```
 
-As you can see, this closely mimics the `kudo install` CLI command [options](https://github.com/kudobuilder/kudo/blob/master/pkg/kudoctl/cmd/install.go#L56) because at the end the latter will be executed to install the operator. We omit `parameters` and `parameterFile` options at this point as they are discussed in detail [below](#dependencies-parametrization).
+As you can see, this closely mimics the `kudo install` CLI command [options](https://github.com/kudobuilder/kudo/blob/main/pkg/kudoctl/cmd/install.go#L56) because at the end the latter will be executed to install the operator. We omit `parameters` and `parameterFile` options at this point as they are discussed in detail [below](#dependencies-parametrization).
 
 #### Deployment
 
@@ -130,7 +130,7 @@ Upon receiving a new operator Instance with dependencies KUDO mangers workflow e
 
 1. Build a [dependency graph](https://en.wikipedia.org/wiki/Dependency_graph) by transitively expanding top-level `deploy` plan using operator-tasks as vertices, and their execution order (`a` needs `b` to be installed first) as edges
 2. Perform cycle detection and fail if circular dependencies found. We could additionally run this check on the client-side as part of the `kudo package verify` command to improve the UX
-3. If we haven't found any cycles, start executing the top-level `deploy` plan. When encountering an operator-task, apply the corresponding `Instance` resource. Here it is the same as for any other resource that we create: we check if it is healthy and if not, end current plan execution and "wait" for it to become healthy. KUDO manager already has a [health check](https://github.com/kudobuilder/kudo/blob/master/pkg/engine/health/health.go#L78) for `Instance` resources implemented.
+3. If we haven't found any cycles, start executing the top-level `deploy` plan. When encountering an operator-task, apply the corresponding `Instance` resource. Here it is the same as for any other resource that we create: we check if it is healthy and if not, end current plan execution and "wait" for it to become healthy. KUDO manager already has a [health check](https://github.com/kudobuilder/kudo/blob/main/pkg/engine/health/health.go#L78) for `Instance` resources implemented.
 
 Let's take a look at an example. Here is a simplified operator `AA` with a few dependencies:
 
@@ -266,7 +266,7 @@ While an out-of-band upgrade of the individual dependency operators is possible 
 
 #### Uninstalling
 
-Current `kudo uninstall` CLI command only removes instances (with required `--instance` option) using [Background deletion propagation](https://github.com/kudobuilder/kudo/blob/master/pkg/kudoctl/util/kudo/kudo.go#L281). Remember that we've added top-level `Instance` reference to the dependency operators `ownerReferences` list during [deployment](#deployment). Now we can simply delete the top-level `Instance` and let the GC delete all the others.
+Current `kudo uninstall` CLI command only removes instances (with required `--instance` option) using [Background deletion propagation](https://github.com/kudobuilder/kudo/blob/main/pkg/kudoctl/util/kudo/kudo.go#L281). Remember that we've added top-level `Instance` reference to the dependency operators `ownerReferences` list during [deployment](#deployment). Now we can simply delete the top-level `Instance` and let the GC delete all the others.
 
 #### Other Plans
 

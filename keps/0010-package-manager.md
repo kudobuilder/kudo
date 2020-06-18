@@ -39,7 +39,7 @@ status: implementable
 
 As more and more developers seed our `kubebuilder/operators` repository with incredibly important Operators, we need to define how these operators will be made available.
 
-This KEP aims to define an operator repository structure. This structure indirectly impacts other KEPs, e.g., [KEP-0003 CLI](https://github.com/kudobuilder/kudo/blob/master/keps/0003-kep-cli.md), [KEP-0007 CLI Generation](https://github.com/kudobuilder/kudo/blob/master/keps/0007-cli-generation.md) or [KEP-0008 Operator Testing](https://github.com/kudobuilder/kudo/blob/master/keps/0008-operator-testing.md).
+This KEP aims to define an operator repository structure. This structure indirectly impacts other KEPs, e.g., [KEP-0003 CLI](https://github.com/kudobuilder/kudo/blob/main/keps/0003-kep-cli.md), [KEP-0007 CLI Generation](https://github.com/kudobuilder/kudo/blob/main/keps/0007-cli-generation.md) or [KEP-0008 Operator Testing](https://github.com/kudobuilder/kudo/blob/main/keps/0008-operator-testing.md).
 
 Overall, this KEP captures how we plan to provide a great user experience for installing Operators with KUDO. It focuses on:
 
