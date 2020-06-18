@@ -65,6 +65,16 @@ func Package(
 		return err
 	}
 
+	// The KUDO controller will create Instances for the dependencies. For this
+	// it needs to resolve the dependencies again from 'KudoOperatorTaskSpec'.
+	// But it cannot resolve packages like the CLI, because it may
+	// not have access to the referenced local files or URLs.
+	// It can however resolve the OperatorVersion from the name of the operator
+	// dependency. For this, we overwrite the 'Package' field describing
+	// dependencies in 'KudoOperatorTaskSpec' with the operator name of the
+	// dependency. This has to be done for the operator to install as well as in
+	// all of its dependencies.
+
 	updateKudoOperatorTaskPackageNames(dependencies, resources.OperatorVersion)
 
 	for _, dependency := range dependencies {
@@ -145,6 +155,9 @@ func validateParameters(instance v1beta1.Instance, parameters []v1beta1.Paramete
 	return nil
 }
 
+// updateKudoOperatorTaskPackageNames sets the 'Package' and 'OperatorName'
+// fields of the 'KudoOperatorTaskSpec' of an 'OperatorVersion' to the operator name
+// initially referenced in the 'Package' field.
 func updateKudoOperatorTaskPackageNames(pkgs []Dependency, operatorVersion *v1beta1.OperatorVersion) {
 	tasks := operatorVersion.Spec.Tasks
 
