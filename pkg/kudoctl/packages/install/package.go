@@ -65,13 +65,13 @@ func Package(
 		return err
 	}
 
-	updateOperatorTasks(dependencies, resources.OperatorVersion)
+	updateKudoOperatorTaskPackageNames(dependencies, resources.OperatorVersion)
 
 	for _, dependency := range dependencies {
 		dependency.Operator.SetNamespace(namespace)
 		dependency.OperatorVersion.SetNamespace(namespace)
 
-		updateOperatorTasks(dependencies, dependency.OperatorVersion)
+		updateKudoOperatorTaskPackageNames(dependencies, dependency.OperatorVersion)
 
 		if err := installOperatorAndOperatorVersion(client, dependency.Resources); err != nil {
 			return err

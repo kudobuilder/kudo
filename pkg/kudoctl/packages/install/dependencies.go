@@ -133,7 +133,7 @@ func dependencyWalk(
 // its index or -1 if not found.
 func indexOf(dependencies *[]Dependency, dependency *Dependency) int {
 	for i, d := range *dependencies {
-		if p.OperatorVersion.EqualOperatorVersion(dependency.OperatorVersion) {
+		if d.OperatorVersion.EqualOperatorVersion(dependency.OperatorVersion) {
 			return i
 		}
 	}
