@@ -132,7 +132,7 @@ func dependencyWalk(
 // OperatorVersion/AppVersion (using EqualOperatorVersion method) and returns
 // its index or -1 if not found.
 func indexOf(dependencies *[]Dependency, dependency *Dependency) int {
-	for i, p := range *dependencies {
+	for i, d := range *dependencies {
 		if p.OperatorVersion.EqualOperatorVersion(dependency.OperatorVersion) {
 			return i
 		}

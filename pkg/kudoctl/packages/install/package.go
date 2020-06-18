@@ -145,7 +145,7 @@ func validateParameters(instance v1beta1.Instance, parameters []v1beta1.Paramete
 	return nil
 }
 
-func updateOperatorTasks(pkgs []Dependency, operatorVersion *v1beta1.OperatorVersion) {
+func updateKudoOperatorTaskPackageNames(pkgs []Dependency, operatorVersion *v1beta1.OperatorVersion) {
 	tasks := operatorVersion.Spec.Tasks
 
 	for i := range tasks {
