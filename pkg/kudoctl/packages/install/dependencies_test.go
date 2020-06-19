@@ -199,8 +199,8 @@ func TestGatherDependencies(t *testing.T) {
 			for _, operatorName := range tt.want {
 				operatorName := operatorName
 
-				assert.NotNil(t, funk.Find(got, func(p packages.Resources) bool {
-					return p.Operator.Name == operatorName
+				assert.NotNil(t, funk.Find(got, func(dep Dependency) bool {
+					return dep.Operator.Name == operatorName
 				}), tt.name)
 			}
 		})

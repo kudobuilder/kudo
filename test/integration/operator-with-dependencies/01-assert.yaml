@@ -1,4 +1,16 @@
 apiVersion: kudo.dev/v1beta1
+kind: OperatorVersion
+metadata:
+  name: parent-0.1.0
+spec:
+  tasks:
+    - name: deploy-child
+      kind: KudoOperator
+      spec:
+        package: child
+        operatorName: child
+---
+apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   name: dummy-instance
