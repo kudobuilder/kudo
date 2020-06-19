@@ -24,9 +24,9 @@ func (ov *OperatorVersion) EqualOperatorVersion(other *OperatorVersion) bool {
 	return ov.FullyQualifiedName() == other.FullyQualifiedName()
 }
 
-func GetOperatorVersionByName(namespacedName types.NamespacedName, c client.Reader) (ov *OperatorVersion, err error) {
+func GetOperatorVersionByName(name, ns string, c client.Reader) (ov *OperatorVersion, err error) {
 	ov = &OperatorVersion{}
-	err = c.Get(context.TODO(), namespacedName, ov)
+	err = c.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ns}, ov)
 	if err != nil {
 		return nil, err
 	}

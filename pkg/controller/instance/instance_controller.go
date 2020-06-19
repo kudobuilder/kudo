@@ -203,9 +203,8 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	if instance.IsTopLevelInstance() {
 		err := r.resolveDependencies(instance, ov)
 		if err != nil {
-			log.Printf("InstanceController: Instance %s/%s failed the dependency check: %v", instance.Namespace, instance.Name, err)
 			planStatus.SetWithMessage(kudov1beta1.ExecutionFatalError, err.Error())
-
+			instance.UpdateInstanceStatus(planStatus, &metav1.Time{Time: time.Now()})
 			err = r.handleError(err, instance, oldInstance)
 			return reconcile.Result{}, err
 		}
@@ -256,18 +255,17 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 }
 
 func (r *Reconciler) resolveDependencies(i *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion) error {
-	resolver := &OnlineResolver{ns: i.Namespace, c: r.Client}
+	resolver := &InClusterResolver{ns: i.Namespace, c: r.Client}
 	root := packages.Resources{OperatorVersion: ov}
 
-	_, err := install.Resolve(root, resolver)
+	_, err := install.ResolveDependencies(root, resolver)
 	if err != nil {
-		return fmt.Errorf("%w%v", engine.ErrFatalExecution, err)
+		return engine.ExecutionError{Err: fmt.Errorf("%w%v", engine.ErrFatalExecution, err), EventName: "CircularDependency"}
 	}
 	return nil
 }
 
 func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance, client client.Client) error {
-
 	// The order of both updates below is important: *first* the instance Spec and Metadata and *then* the Status.
 	// If Status is updated first, a new reconcile request will be scheduled and might fetch the *WRONG* instance
 	// Spec.PlanExecution. This request will then try to execute an already finished plan (again).

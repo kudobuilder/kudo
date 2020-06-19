@@ -178,10 +178,7 @@ func remove(values []string, s string) []string {
 
 // GetOperatorVersion retrieves OperatorVersion belonging to the given instance
 func (i *Instance) GetOperatorVersion(c client.Reader) (ov *OperatorVersion, err error) {
-	return GetOperatorVersionByName(types.NamespacedName{
-		Namespace: i.OperatorVersionNamespace(),
-		Name:      i.Spec.OperatorVersion.Name,
-	}, c)
+	return GetOperatorVersionByName(i.Spec.OperatorVersion.Name, i.OperatorVersionNamespace(), c)
 }
 
 // IsChildInstance method return true if this instance is owned by another instance (as a dependency) and false otherwise

@@ -7,9 +7,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func GetOperator(namespacedName types.NamespacedName, c client.Client) (*Operator, error) {
+func GetOperator(name, ns string, c client.Client) (*Operator, error) {
 	o := &Operator{}
-	err := c.Get(context.TODO(), namespacedName, o)
+	err := c.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ns}, o)
 	if err != nil {
 		return nil, err
 	}

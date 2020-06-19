@@ -49,10 +49,10 @@ type Dependency struct {
 	PackageName string
 }
 
-// Resolve resolved all dependencies of a package.
+// ResolveDependencies resolved all dependencies of a package.
 // Dependencies are resolved recursively.
 // Cyclic dependencies are detected and result in an error.
-func Resolve(root packages.Resources, resolver pkgresolver.Resolver) ([]Dependency, error) {
+func ResolveDependencies(root packages.Resources, resolver pkgresolver.Resolver) ([]Dependency, error) {
 	dependencies := []Dependency{
 		{Resources: root},
 	}
@@ -99,7 +99,7 @@ func dependencyWalk(
 		newPackage := false
 		childIndex := indexOf(dependencies, &childDependency)
 		if childIndex == -1 {
-			clog.Printf("Adding new dependency %s", childPkg.Resources.OperatorVersion.FullyQualifiedName())
+			clog.V(2).Printf("Adding new dependency %s", childPkg.Resources.OperatorVersion.FullyQualifiedName())
 			newPackage = true
 
 			*dependencies = append(*dependencies, childDependency)
@@ -141,5 +141,5 @@ func indexOf(dependencies *[]Dependency, dependency *Dependency) int {
 }
 
 func fullyQualifiedName(kt v1beta1.KudoOperatorTaskSpec) string {
-	return fmt.Sprintf("%s-%s", v1beta1.OperatorVersionName(kt.OperatorName, kt.OperatorVersion), kt.AppVersion)
+	return fmt.Sprintf("%s-%s", v1beta1.OperatorVersionName(kt.Package, kt.OperatorVersion), kt.AppVersion)
 }

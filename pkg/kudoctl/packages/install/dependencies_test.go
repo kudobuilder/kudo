@@ -63,7 +63,7 @@ func createPackage(name string, dependencies ...string) packages.Package {
 	return p
 }
 
-func TestGatherDependencies(t *testing.T) {
+func TestResolve(t *testing.T) {
 	tests := []struct {
 		name    string
 		pkgs    []packages.Package
@@ -188,7 +188,7 @@ func TestGatherDependencies(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			resolver := nameResolver{tt.pkgs}
-			got, err := Resolve(*tt.pkgs[0].Resources, resolver)
+			got, err := ResolveDependencies(*tt.pkgs[0].Resources, resolver)
 
 			assert.Equal(t, err == nil, tt.wantErr == "")
 
