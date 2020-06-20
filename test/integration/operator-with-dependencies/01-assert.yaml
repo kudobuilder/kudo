@@ -8,7 +8,6 @@ spec:
       kind: KudoOperator
       spec:
         package: child
-        operatorName: child
 ---
 apiVersion: kudo.dev/v1beta1
 kind: Instance
