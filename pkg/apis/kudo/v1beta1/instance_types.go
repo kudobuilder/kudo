@@ -16,7 +16,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	"fmt"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -221,15 +220,4 @@ type InstanceList struct {
 
 func init() {
 	SchemeBuilder.Register(&Instance{}, &InstanceList{})
-}
-
-// InstanceError indicates error on that can also emit a kubernetes warn event
-// +k8s:deepcopy-gen=false
-type InstanceError struct {
-	Err       error
-	EventName *string // nil if no warn event should be created
-}
-
-func (e *InstanceError) Error() string {
-	return fmt.Sprintf("Error during execution: %v", e.Err)
 }

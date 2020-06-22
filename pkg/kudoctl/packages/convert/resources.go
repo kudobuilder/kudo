@@ -124,10 +124,10 @@ func validateTask(t v1beta1.Task, templates map[string]string) []string {
 		if len(t.Spec.ParameterFile) != 0 {
 			resources = append(resources, t.Spec.ParameterFile)
 		}
-
 	case task.DummyTaskKind:
-	default:
 		log.Printf("no validation for task kind %s implemented", t.Kind)
+	default:
+		errs = append(errs, fmt.Sprintf("unknown task kind %s", t.Kind))
 	}
 
 	for _, res := range resources {

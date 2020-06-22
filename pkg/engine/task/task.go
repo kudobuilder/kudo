@@ -189,8 +189,8 @@ func fatalExecutionError(cause error, eventName string, meta renderer.Metadata) 
 
 func newKudoOperator(task *v1beta1.Task) (Tasker, error) {
 	// validate KudoOperatorTask
-	if task.Spec.KudoOperatorTaskSpec.OperatorName == "" {
-		return nil, fmt.Errorf("task validation error: kudo operator task '%s' has an empty operator name", task.Name)
+	if task.Spec.KudoOperatorTaskSpec.Package == "" {
+		return nil, fmt.Errorf("task validation error: kudo operator task '%s' has an empty package name", task.Name)
 	}
 
 	if task.Spec.KudoOperatorTaskSpec.OperatorVersion == "" {
@@ -199,7 +199,7 @@ func newKudoOperator(task *v1beta1.Task) (Tasker, error) {
 
 	return KudoOperatorTask{
 		Name:            task.Name,
-		OperatorName:    task.Spec.KudoOperatorTaskSpec.OperatorName,
+		OperatorName:    task.Spec.KudoOperatorTaskSpec.Package,
 		InstanceName:    task.Spec.KudoOperatorTaskSpec.InstanceName,
 		AppVersion:      task.Spec.KudoOperatorTaskSpec.AppVersion,
 		OperatorVersion: task.Spec.KudoOperatorTaskSpec.OperatorVersion,

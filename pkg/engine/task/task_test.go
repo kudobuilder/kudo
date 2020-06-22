@@ -169,7 +169,7 @@ spec:
 name: deploy-zk
 kind: KudoOperator
 spec: 
-    operatorName: zookeeper
+    package: zookeeper
     appVersion: 0.0.3
     operatorVersion: 0.0.4
     instanceName: zk`,
