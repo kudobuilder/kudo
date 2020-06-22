@@ -60,7 +60,7 @@ func Package(
 		}
 	}
 
-	dependencies, err := gatherDependencies(resources, resolver)
+	dependencies, err := ResolveDependencies(resources, resolver)
 	if err != nil {
 		return err
 	}
@@ -165,9 +165,7 @@ func updateKudoOperatorTaskPackageNames(pkgs []Dependency, operatorVersion *v1be
 		if tasks[i].Kind == engtask.KudoOperatorTaskKind {
 			for _, pkg := range pkgs {
 				if tasks[i].Spec.KudoOperatorTaskSpec.Package == pkg.PackageName {
-					// TODO: remove 'OperatorName' once the controller uses 'Package'
 					tasks[i].Spec.KudoOperatorTaskSpec.Package = pkg.Operator.Name
-					tasks[i].Spec.KudoOperatorTaskSpec.OperatorName = pkg.Operator.Name
 					break
 				}
 			}

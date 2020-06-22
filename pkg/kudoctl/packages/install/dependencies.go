@@ -49,10 +49,10 @@ type Dependency struct {
 	PackageName string
 }
 
-// gatherDependencies resolved all dependencies of a package.
+// ResolveDependencies resolved all dependencies of a package.
 // Dependencies are resolved recursively.
 // Cyclic dependencies are detected and result in an error.
-func gatherDependencies(root packages.Resources, resolver pkgresolver.Resolver) ([]Dependency, error) {
+func ResolveDependencies(root packages.Resources, resolver pkgresolver.Resolver) ([]Dependency, error) {
 	dependencies := []Dependency{
 		{Resources: root},
 	}
@@ -99,7 +99,7 @@ func dependencyWalk(
 		newPackage := false
 		childIndex := indexOf(dependencies, &childDependency)
 		if childIndex == -1 {
-			clog.Printf("Adding new dependency %s", childPkg.Resources.OperatorVersion.FullyQualifiedName())
+			clog.V(2).Printf("Adding new dependency %s", childPkg.Resources.OperatorVersion.FullyQualifiedName())
 			newPackage = true
 
 			*dependencies = append(*dependencies, childDependency)
