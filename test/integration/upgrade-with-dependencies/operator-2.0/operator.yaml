@@ -15,7 +15,7 @@ tasks:
       operatorVersion: "1.0"
 
 plans:
-  deploy:
+  upgrade:
     strategy: serial
     phases:
       - name: main

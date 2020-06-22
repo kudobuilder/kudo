@@ -7,7 +7,7 @@ spec:
     name: operator-2.0
 status:
   planStatus:
-    deploy:
+    upgrade:
       status: COMPLETE
 ---
 apiVersion: kudo.dev/v1beta1
