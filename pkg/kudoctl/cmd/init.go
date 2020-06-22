@@ -142,8 +142,8 @@ func (initCmd *initCmd) run() error {
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image
-	} else if opts.Version == "not-built-on-tag" {
-		return errors.New("cannot infer controller docker image to use, please override with --kudo-image")
+	} else if opts.Version == "not-built-on-release" {
+		return errors.New("cannot infer controller docker image to use - not a released binary; please override with a command-line flag")
 	}
 	if initCmd.imagePullPolicy != "" {
 		switch initCmd.imagePullPolicy {
