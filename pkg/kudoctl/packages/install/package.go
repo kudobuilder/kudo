@@ -163,14 +163,14 @@ func validateParameters(instance v1beta1.Instance, parameters []v1beta1.Paramete
 // fields of the 'KudoOperatorTaskSpec' of an 'OperatorVersion' to the operator name
 // initially referenced in the 'Package' field.
 func updateKudoOperatorTaskPackageNames(
-	pkgs []dependencies.Dependency, operatorVersion *v1beta1.OperatorVersion) {
+	dependencies []dependencies.Dependency, operatorVersion *v1beta1.OperatorVersion) {
 	tasks := operatorVersion.Spec.Tasks
 
 	for i := range tasks {
 		if tasks[i].Kind == engtask.KudoOperatorTaskKind {
-			for _, pkg := range pkgs {
-				if tasks[i].Spec.KudoOperatorTaskSpec.Package == pkg.PackageName {
-					tasks[i].Spec.KudoOperatorTaskSpec.Package = pkg.Operator.Name
+			for _, dependency := range dependencies {
+				if tasks[i].Spec.KudoOperatorTaskSpec.Package == dependency.PackageName {
+					tasks[i].Spec.KudoOperatorTaskSpec.Package = dependency.Operator.Name
 					break
 				}
 			}
