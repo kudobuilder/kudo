@@ -63,7 +63,7 @@ func createPackage(name string, dependencies ...string) packages.Package {
 	return p
 }
 
-func TestGatherDependencies(t *testing.T) {
+func TestResolve(t *testing.T) {
 	tests := []struct {
 		name    string
 		pkgs    []packages.Package
@@ -79,6 +79,18 @@ func TestGatherDependencies(t *testing.T) {
 			},
 			want:    []string{},
 			wantErr: "cyclic package dependency found when adding package A-- -> A--",
+		},
+		{
+			// A
+			// └── B
+			//     └── B
+			name: "trivial nested circular dependency",
+			pkgs: []packages.Package{
+				createPackage("A", "B"),
+				createPackage("B", "B"),
+			},
+			want:    []string{},
+			wantErr: "cyclic package dependency found when adding package B-- -> B--",
 		},
 		{
 			// A
@@ -176,7 +188,7 @@ func TestGatherDependencies(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			resolver := nameResolver{tt.pkgs}
-			got, err := gatherDependencies(*tt.pkgs[0].Resources, resolver)
+			got, err := ResolveDependencies(*tt.pkgs[0].Resources, resolver)
 
 			assert.Equal(t, err == nil, tt.wantErr == "")
 
