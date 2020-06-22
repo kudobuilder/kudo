@@ -181,7 +181,8 @@ func (i *Instance) GetOperatorVersion(c client.Reader) (ov *OperatorVersion, err
 	return GetOperatorVersionByName(i.Spec.OperatorVersion.Name, i.OperatorVersionNamespace(), c)
 }
 
-// IsChildInstance method return true if this instance is owned by another instance (as a dependency) and false otherwise
+// IsChildInstance method return true if this instance is owned by another instance (as a dependency) and false otherwise.
+// If there is any owner with the same kind 'Instance' then this Instance is owned by another one.
 func (i *Instance) IsChildInstance() bool {
 	for _, or := range i.GetOwnerReferences() {
 		if or.Kind == i.Kind {
