@@ -188,7 +188,7 @@ func TestResolve(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			resolver := nameResolver{tt.pkgs}
-			got, err := Resolve(*tt.pkgs[0].Resources, resolver)
+			got, err := Resolve(tt.pkgs[0].Resources.OperatorVersion, resolver)
 
 			assert.Equal(t, err == nil, tt.wantErr == "")
 

@@ -11,7 +11,6 @@ tasks:
     kind: KudoOperator
     spec:
       package: "./dependency"
-      operatorName: dependency
       operatorVersion: "1.0"
 
 plans:

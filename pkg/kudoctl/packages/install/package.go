@@ -62,7 +62,7 @@ func Package(
 		}
 	}
 
-	dependencies, err := dependencies.Resolve(resources, resolver)
+	dependencies, err := dependencies.Resolve(resources.OperatorVersion, resolver)
 	if err != nil {
 		return err
 	}

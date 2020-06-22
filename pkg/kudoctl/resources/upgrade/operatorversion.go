@@ -8,7 +8,6 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/dependencies"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/resources/install"
@@ -27,7 +26,7 @@ func OperatorVersion(
 	resolver resolver.Resolver) error {
 	operatorName := newOv.Spec.Operator.Name
 
-	instance, ov, err := instanceAndOperatorVersion(kc, instanceName, namespace)
+	ov, err := operatorVersionFromInstance(kc, instanceName, namespace)
 	if err != nil {
 		return err
 	}
@@ -42,7 +41,7 @@ func OperatorVersion(
 	}
 
 	if !funk.ContainsString(versionsInstalled, newOv.Spec.Version) {
-		if err := installDependencies(kc, newOv, instance, namespace, resolver); err != nil {
+		if err := installDependencies(kc, newOv, namespace, resolver); err != nil {
 			return fmt.Errorf("failed to install dependencies of operatorversion %s/%s: %v", namespace, newOv.Name, err)
 		}
 
@@ -62,32 +61,32 @@ func OperatorVersion(
 	return nil
 }
 
-func instanceAndOperatorVersion(
+func operatorVersionFromInstance(
 	kc *kudo.Client,
 	instanceName string,
-	namespace string) (*v1beta1.Instance, *v1beta1.OperatorVersion, error) {
+	namespace string) (*v1beta1.OperatorVersion, error) {
 	instance, err := kc.GetInstance(instanceName, namespace)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get instance: %v", err)
+		return nil, fmt.Errorf("failed to get instance: %v", err)
 	}
 
 	if instance == nil {
-		return nil, nil, fmt.Errorf("instance %s/%s does not exist in the cluster", namespace, instanceName)
+		return nil, fmt.Errorf("instance %s/%s does not exist in the cluster", namespace, instanceName)
 	}
 
 	operatorVersionName := instance.Spec.OperatorVersion.Name
 
 	operatorVersion, err := kc.GetOperatorVersion(operatorVersionName, namespace)
 	if err != nil {
-		return nil, nil, fmt.Errorf(
+		return nil, fmt.Errorf(
 			"failed to retrieve existing operatorversion of instance %s/%s: %v", namespace, instanceName, err)
 	}
 
 	if operatorVersion == nil {
-		return nil, nil, fmt.Errorf("operatorversion %s/%s does not exist in the cluster", namespace, operatorVersionName)
+		return nil, fmt.Errorf("operatorversion %s/%s does not exist in the cluster", namespace, operatorVersionName)
 	}
 
-	return instance, operatorVersion, nil
+	return operatorVersion, nil
 }
 
 func compareVersions(old string, new string) error {
@@ -111,22 +110,15 @@ func compareVersions(old string, new string) error {
 func installDependencies(
 	kc *kudo.Client,
 	ov *v1beta1.OperatorVersion,
-	instance *v1beta1.Instance,
 	namespace string,
 	resolver resolver.Resolver) error {
-	resources := packages.Resources{
-		Operator:        nil,
-		OperatorVersion: ov,
-		Instance:        instance,
-	}
-
-	dependencies, err := dependencies.Resolve(resources, resolver)
+	dependencies, err := dependencies.Resolve(ov, resolver)
 	if err != nil {
 		return err
 	}
 
 	for _, dependency := range dependencies {
-		installed, err := kc.OperatorVersionsInstalled(dependency.OperatorVersion.Name, namespace)
+		installed, err := kc.OperatorVersionsInstalled(dependency.Operator.Name, namespace)
 		if err != nil {
 			return fmt.Errorf(
 				"failed to retrieve operatorversion of dependency %s/%s: %v",

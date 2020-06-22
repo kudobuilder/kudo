@@ -50,7 +50,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/engine/workflow"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/dependencies"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
@@ -256,9 +255,8 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 func (r *Reconciler) resolveDependencies(i *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion) error {
 	resolver := &InClusterResolver{ns: i.Namespace, c: r.Client}
-	root := packages.Resources{OperatorVersion: ov}
 
-	_, err := dependencies.Resolve(root, resolver)
+	_, err := dependencies.Resolve(ov, resolver)
 	if err != nil {
 		return engine.ExecutionError{Err: fmt.Errorf("%w%v", engine.ErrFatalExecution, err), EventName: "CircularDependency"}
 	}

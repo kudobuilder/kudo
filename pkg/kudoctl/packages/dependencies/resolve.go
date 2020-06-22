@@ -49,10 +49,14 @@ type Dependency struct {
 	PackageName string
 }
 
-// Resolve resolves all dependencies of a package.
+// Resolve resolves all dependencies of an OperatorVersion.
 // Dependencies are resolved recursively.
 // Cyclic dependencies are detected and result in an error.
-func Resolve(root packages.Resources, resolver pkgresolver.Resolver) ([]Dependency, error) {
+func Resolve(operatorVersion *v1beta1.OperatorVersion, resolver pkgresolver.Resolver) ([]Dependency, error) {
+	root := packages.Resources{
+		OperatorVersion: operatorVersion,
+	}
+
 	dependencies := []Dependency{
 		{Resources: root},
 	}
