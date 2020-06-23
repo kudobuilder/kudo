@@ -5,10 +5,8 @@ import (
 	"time"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/dependencies"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/resources/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -62,37 +60,8 @@ func Package(
 		}
 	}
 
-	dependencies, err := dependencies.Resolve(resources.OperatorVersion, resolver)
-	if err != nil {
-		return err
-	}
-
-	// The KUDO controller will create Instances for the dependencies. For this
-	// it needs to resolve the dependencies again from 'KudoOperatorTaskSpec'.
-	// But it cannot resolve packages like the CLI, because it may
-	// not have access to the referenced local files or URLs.
-	// It can however resolve the OperatorVersion from the name of the operator
-	// dependency. For this, we overwrite the 'Package' field describing
-	// dependencies in 'KudoOperatorTaskSpec' with the operator name of the
-	// dependency. This has to be done for the operator to install as well as in
-	// all of its dependencies.
-
-	updateKudoOperatorTaskPackageNames(dependencies, resources.OperatorVersion)
-
-	for _, dependency := range dependencies {
-		dependency.Operator.SetNamespace(namespace)
-		dependency.OperatorVersion.SetNamespace(namespace)
-
-		updateKudoOperatorTaskPackageNames(dependencies, dependency.OperatorVersion)
-
-		if err := install.OperatorAndOperatorVersion(
-			client, dependency.Resources.Operator, dependency.Resources.OperatorVersion); err != nil {
-			return err
-		}
-	}
-
 	if err := install.OperatorAndOperatorVersion(
-		client, resources.Operator, resources.OperatorVersion); err != nil {
+		client, resources.Operator, resources.OperatorVersion, resolver); err != nil {
 		return err
 	}
 
@@ -157,25 +126,4 @@ func validateParameters(instance v1beta1.Instance, parameters []v1beta1.Paramete
 	}
 
 	return nil
-}
-
-// updateKudoOperatorTaskPackageNames sets the 'Package' and 'OperatorName'
-// fields of the 'KudoOperatorTaskSpec' of an 'OperatorVersion' to the operator name
-// initially referenced in the 'Package' field.
-func updateKudoOperatorTaskPackageNames(
-	dependencies []dependencies.Dependency, operatorVersion *v1beta1.OperatorVersion) {
-	tasks := operatorVersion.Spec.Tasks
-
-	for i := range tasks {
-		if tasks[i].Kind == engtask.KudoOperatorTaskKind {
-			for _, dependency := range dependencies {
-				if tasks[i].Spec.KudoOperatorTaskSpec.Package == dependency.PackageName {
-					tasks[i].Spec.KudoOperatorTaskSpec.Package = dependency.Operator.Name
-					break
-				}
-			}
-		}
-	}
-
-	operatorVersion.Spec.Tasks = tasks
 }

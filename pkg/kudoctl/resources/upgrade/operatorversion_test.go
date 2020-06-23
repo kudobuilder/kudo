@@ -23,6 +23,16 @@ const (
 )
 
 func Test_UpgradeOperatorVersion(t *testing.T) {
+	testO := v1beta1.Operator{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kudo.dev/v1beta1",
+			Kind:       "Operator",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+	}
+
 	testOv := v1beta1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
@@ -73,6 +83,10 @@ func Test_UpgradeOperatorVersion(t *testing.T) {
 
 	for _, tt := range tests {
 		c := kudo.NewClientFromK8s(fake.NewSimpleClientset(), kubefake.NewSimpleClientset())
+		if _, err := c.InstallOperatorObjToCluster(&testO, installNamespace); err != nil {
+			t.Errorf("%s: failed to install operator: %v", tt.name, err)
+		}
+
 		if tt.instanceExists {
 			if _, err := c.InstallInstanceObjToCluster(&testInstance, installNamespace); err != nil {
 				t.Errorf("%s: failed to install instance: %v", tt.name, err)
@@ -85,8 +99,9 @@ func Test_UpgradeOperatorVersion(t *testing.T) {
 		}
 		newOv := testOv
 		newOv.Spec.Version = tt.newVersion
+		newOv.SetNamespace(installNamespace)
 
-		err := OperatorVersion(c, &newOv, "test", "default", nil, nil)
+		err := OperatorVersion(c, &newOv, "test", nil, nil)
 		if err != nil {
 			if !strings.Contains(err.Error(), tt.errMessageContains) {
 				t.Errorf("%s: expected error '%s' but got '%v'", tt.name, tt.errMessageContains, err)
@@ -116,6 +131,16 @@ func (r *testResolver) Resolve(name string, appVersion string, operatorVersion s
 }
 
 func Test_UpgradeOperatorVersionWithDependency(t *testing.T) {
+	testO := v1beta1.Operator{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kudo.dev/v1beta1",
+			Kind:       "Operator",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+	}
+
 	testOv := v1beta1.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
@@ -173,6 +198,9 @@ func Test_UpgradeOperatorVersionWithDependency(t *testing.T) {
 	_, err = c.InstallOperatorVersionObjToCluster(&testOv, installNamespace)
 	assert.NoError(t, err)
 
+	_, err = c.InstallOperatorObjToCluster(&testO, installNamespace)
+	assert.NoError(t, err)
+
 	newOv := testOv
 	newOv.Name = "test-1.1"
 	newOv.Spec.Version = "1.1"
@@ -185,10 +213,11 @@ func Test_UpgradeOperatorVersionWithDependency(t *testing.T) {
 			},
 		},
 	})
+	newOv.SetNamespace(installNamespace)
 
 	resolver := &testResolver{testDependency}
 
-	err = OperatorVersion(c, &newOv, "test", "default", nil, resolver)
+	err = OperatorVersion(c, &newOv, "test", nil, resolver)
 	assert.NoError(t, err)
 
 	assert.True(t, c.OperatorExistsInCluster("dependency", "default"))

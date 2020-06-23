@@ -4,11 +4,9 @@ import (
 	"fmt"
 
 	"github.com/Masterminds/semver"
-	"github.com/thoas/go-funk"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/dependencies"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/resources/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -21,12 +19,10 @@ func OperatorVersion(
 	kc *kudo.Client,
 	newOv *v1beta1.OperatorVersion,
 	instanceName string,
-	namespace string,
 	parameters map[string]string,
 	resolver resolver.Resolver) error {
-	operatorName := newOv.Spec.Operator.Name
 
-	ov, err := operatorVersionFromInstance(kc, instanceName, namespace)
+	ov, err := operatorVersionFromInstance(kc, instanceName, newOv.Namespace)
 	if err != nil {
 		return err
 	}
@@ -35,29 +31,20 @@ func OperatorVersion(
 		return err
 	}
 
-	versionsInstalled, err := kc.OperatorVersionsInstalled(operatorName, namespace)
+	o, err := kc.GetOperator(newOv.Spec.Operator.Name, newOv.Namespace)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve operatorversions: %v", err)
+		return fmt.Errorf("failed to retrieve operator %s/%s: %v", newOv.Namespace, newOv.Spec.Operator.Name, err)
 	}
 
-	if !funk.ContainsString(versionsInstalled, newOv.Spec.Version) {
-		if err := installDependencies(kc, newOv, namespace, resolver); err != nil {
-			return fmt.Errorf("failed to install dependencies of operatorversion %s/%s: %v", namespace, newOv.Name, err)
-		}
-
-		if _, err := kc.InstallOperatorVersionObjToCluster(newOv, namespace); err != nil {
-			return fmt.Errorf(
-				"failed to update operatorversion %s/%s to version %s: %v", namespace, newOv.Name, newOv.Spec.Version, err)
-		}
-
-		clog.Printf("operatorversion %s/%s created", namespace, newOv.Name)
+	if err := install.OperatorAndOperatorVersion(kc, o, newOv, resolver); err != nil {
+		return fmt.Errorf("failed to install new operatorversion %s/%s: %v", newOv.Namespace, newOv.Name, err)
 	}
 
-	if err = kc.UpdateInstance(instanceName, namespace, convert.StringPtr(newOv.Name), parameters, nil, false, 0); err != nil {
-		return fmt.Errorf("failed to update instance for new operatorversion %s/%s", namespace, newOv.Name)
+	if err = kc.UpdateInstance(instanceName, newOv.Namespace, convert.StringPtr(newOv.Name), parameters, nil, false, 0); err != nil {
+		return fmt.Errorf("failed to update instance for new operatorversion %s/%s: %v", newOv.Namespace, newOv.Name, err)
 	}
 
-	clog.Printf("instance %s/%s updated", namespace, instanceName)
+	clog.Printf("instance %s/%s updated", newOv.Namespace, instanceName)
 	return nil
 }
 
@@ -102,39 +89,6 @@ func compareVersions(old string, new string) error {
 
 	if !oldVersion.LessThan(newVersion) {
 		return fmt.Errorf("upgraded version %s is the same or smaller as current version %s -> not upgrading", new, old)
-	}
-
-	return nil
-}
-
-func installDependencies(
-	kc *kudo.Client,
-	ov *v1beta1.OperatorVersion,
-	namespace string,
-	resolver resolver.Resolver) error {
-	dependencies, err := dependencies.Resolve(ov, resolver)
-	if err != nil {
-		return err
-	}
-
-	for _, dependency := range dependencies {
-		installed, err := kc.OperatorVersionsInstalled(dependency.Operator.Name, namespace)
-		if err != nil {
-			return fmt.Errorf(
-				"failed to retrieve operatorversion of dependency %s/%s: %v",
-				namespace,
-				dependency.OperatorVersion.Name,
-				err)
-		}
-
-		if !funk.ContainsString(installed, dependency.OperatorVersion.Spec.Version) {
-			dependency.Operator.SetNamespace(namespace)
-			dependency.OperatorVersion.SetNamespace(namespace)
-
-			if err := install.OperatorAndOperatorVersion(kc, dependency.Operator, dependency.OperatorVersion); err != nil {
-				return err
-			}
-		}
 	}
 
 	return nil
