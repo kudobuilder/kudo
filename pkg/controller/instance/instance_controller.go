@@ -50,8 +50,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/engine/workflow"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/install"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/resources/dependencies"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
@@ -199,15 +198,13 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		r.Recorder.Event(instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", plan))
 	}
 
-	// if this is a top-level instance, check for dependency cycles
-	if instance.IsTopLevelInstance() {
-		err := r.resolveDependencies(instance, ov)
-		if err != nil {
-			planStatus.SetWithMessage(kudov1beta1.ExecutionFatalError, err.Error())
-			instance.UpdateInstanceStatus(planStatus, &metav1.Time{Time: time.Now()})
-			err = r.handleError(err, instance, oldInstance)
-			return reconcile.Result{}, err
-		}
+	// check if all the dependencies can be resolved (if necessary)
+	err = r.resolveDependencies(instance, ov)
+	if err != nil {
+		planStatus.SetWithMessage(kudov1beta1.ExecutionFatalError, err.Error())
+		instance.UpdateInstanceStatus(planStatus, &metav1.Time{Time: time.Now()})
+		err = r.handleError(err, instance, oldInstance)
+		return reconcile.Result{}, err
 	}
 
 	// ---------- 3. Execute the scheduled plan ----------
@@ -255,10 +252,13 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 }
 
 func (r *Reconciler) resolveDependencies(i *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion) error {
+	// no need to check the dependencies if this is a child-level instance, as the top-level instance will take care of that
+	if i.IsChildInstance() {
+		return nil
+	}
 	resolver := &InClusterResolver{ns: i.Namespace, c: r.Client}
-	root := packages.Resources{OperatorVersion: ov}
 
-	_, err := install.ResolveDependencies(root, resolver)
+	_, err := dependencies.Resolve(ov, resolver)
 	if err != nil {
 		return engine.ExecutionError{Err: fmt.Errorf("%w%v", engine.ErrFatalExecution, err), EventName: "CircularDependency"}
 	}
