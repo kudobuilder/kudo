@@ -6,6 +6,7 @@ import (
 	"github.com/thoas/go-funk"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
 	deps "github.com/kudobuilder/kudo/pkg/kudoctl/resources/dependencies"
@@ -82,7 +83,7 @@ func installDependencies(client *kudo.Client, ov *v1beta1.OperatorVersion, resol
 	// dependency. This has to be done for the operator to upgrade as well as in
 	// all of its new dependencies.
 
-	deps.UpdateKudoOperatorTaskPackageNames(dependencies, ov)
+	updateKudoOperatorTaskPackageNames(dependencies, ov)
 
 	for _, dependency := range dependencies {
 		dependency.Operator.SetNamespace(ov.Namespace)
@@ -109,7 +110,7 @@ func installDependencies(client *kudo.Client, ov *v1beta1.OperatorVersion, resol
 		}
 
 		if !funk.ContainsString(installed, dependency.OperatorVersion.Spec.Version) {
-			deps.UpdateKudoOperatorTaskPackageNames(dependencies, dependency.OperatorVersion)
+			updateKudoOperatorTaskPackageNames(dependencies, dependency.OperatorVersion)
 
 			if _, err := client.InstallOperatorVersionObjToCluster(
 				dependency.OperatorVersion,
@@ -128,4 +129,25 @@ func installDependencies(client *kudo.Client, ov *v1beta1.OperatorVersion, resol
 	}
 
 	return nil
+}
+
+// updateKudoOperatorTaskPackageNames sets the 'Package' and 'OperatorName'
+// fields of the 'KudoOperatorTaskSpec' of an 'OperatorVersion' to the operator name
+// initially referenced in the 'Package' field.
+func updateKudoOperatorTaskPackageNames(
+	dependencies []deps.Dependency, operatorVersion *v1beta1.OperatorVersion) {
+	tasks := operatorVersion.Spec.Tasks
+
+	for i := range tasks {
+		if tasks[i].Kind == engtask.KudoOperatorTaskKind {
+			for _, dependency := range dependencies {
+				if tasks[i].Spec.KudoOperatorTaskSpec.Package == dependency.PackageName {
+					tasks[i].Spec.KudoOperatorTaskSpec.Package = dependency.Operator.Name
+					break
+				}
+			}
+		}
+	}
+
+	operatorVersion.Spec.Tasks = tasks
 }
