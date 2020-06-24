@@ -111,6 +111,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 		fs:      afero.NewMemMapFs(),
 		client:  kclient,
 		crdOnly: true,
+		version: "dev",
 	}
 	err = cmd.run()
 	assert.NoError(t, err)
@@ -156,6 +157,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 		client:              kclient,
 		ns:                  namespace,
 		selfSignedWebhookCA: true,
+		version:             "dev",
 	}
 
 	// On first attempt, the namespace does not exist, so the error is expected.
@@ -282,6 +284,7 @@ func TestInitWithServiceAccount(t *testing.T) {
 				ns:                  namespace,
 				serviceAccount:      "test-account",
 				selfSignedWebhookCA: true,
+				version:             "dev",
 			}
 
 			ns := testutils.NewResource("v1", "Namespace", namespace, "")
@@ -368,6 +371,7 @@ func TestNoErrorOnReInit(t *testing.T) {
 		fs:      afero.NewMemMapFs(),
 		client:  kclient,
 		crdOnly: true,
+		version: "dev",
 	}
 	err = cmd.run()
 	assert.NoError(t, err)

@@ -1,5 +1,5 @@
 apiVersion: kudo.dev/v1beta1
-kudoVersion: dev
+kudoVersion: not-built-on-release
 name: newop
 operatorVersion: 0.1.0
 plans: {}
