@@ -17,7 +17,7 @@ var (
 	// https://github.com/kubernetes/community/blob/master/contributors/design-proposals/release/versioning.md
 	// for a detailed discussion of this field)
 
-	gitVersion = "v0.0.0-master+$Format:%h$"
+	gitVersion = "v0.0.0-main+$Format:%h$"
 	gitCommit  = "$Format:%H$" // sha1 from git, output of $(git rev-parse HEAD)
 
 	buildDate = "1970-01-01T00:00:00Z" // build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')
