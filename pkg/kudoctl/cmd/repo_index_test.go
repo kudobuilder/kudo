@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
@@ -92,7 +93,17 @@ func TestRepoIndexCmd_MergeIndex(t *testing.T) {
 	mergeFile, _ := repo.ParseIndexFile(mergeBytes)
 
 	resultBuf := &bytes.Buffer{}
-	merge(indexFile, mergeFile)
+
+	p, err := filepath.Abs("testdata/include-index")
+	assert.NoError(t, err)
+	config := &repo.Configuration{
+		URL: fmt.Sprintf("file://%s", p),
+	}
+	client, err := repo.NewClient(config)
+	assert.NoError(t, err)
+
+	err = client.Merge(indexFile, mergeFile)
+	assert.NoError(t, err)
 	if err := indexFile.Write(resultBuf); err != nil {
 		t.Fatal(err)
 	}

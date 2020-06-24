@@ -22,6 +22,7 @@ const defaultURL = "http://localhost/"
 type IndexFile struct {
 	APIVersion string                     `json:"apiVersion"`
 	Entries    map[string]PackageVersions `json:"entries"`
+	Includes   []string                   `json:"includes,omitempty"`
 	Generated  *time.Time                 `json:"generated"`
 }
 
@@ -104,13 +105,29 @@ func (i IndexFile) Write(w io.Writer) error {
 	return err
 }
 
+// DuplicateError is returned for a duplicate entry
+type DuplicateError struct {
+	pv *PackageVersion
+}
+
+// Implement the Error interface.
+func (e *DuplicateError) Error() string {
+	return fmt.Sprintf("operator %q version: %v_%v already exists", e.pv.Name, e.pv.AppVersion, e.pv.OperatorVersion)
+}
+
+// Defines what is is
+func (e *DuplicateError) Is(target error) bool {
+	_, ok := target.(*DuplicateError)
+	return ok
+}
+
 // AddPackageVersion adds an entry to the IndexFile (does not allow dups)
 func (i *IndexFile) AddPackageVersion(pv *PackageVersion) error {
 	name := pv.Name
 	appVersion := pv.AppVersion
 	operatorVersion := pv.OperatorVersion
 	if operatorVersion == "" {
-		return fmt.Errorf("operator '%v' is missing operator version", name)
+		return fmt.Errorf("operator %q is missing operator version", name)
 	}
 	if i.Entries == nil {
 		i.Entries = make(map[string]PackageVersions)
@@ -126,7 +143,7 @@ func (i *IndexFile) AddPackageVersion(pv *PackageVersion) error {
 	// loop thru all... don't allow dups
 	for _, ver := range vs {
 		if ver.AppVersion == appVersion && ver.OperatorVersion == operatorVersion {
-			return fmt.Errorf("operator '%v' version: %v_%v already exists", name, appVersion, operatorVersion)
+			return &DuplicateError{ver}
 		}
 	}
 
