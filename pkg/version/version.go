@@ -36,10 +36,9 @@ func Get() Info {
 		// on dev box, lets use a env var for version
 		gitVersion = os.Getenv("KUDO_DEV_VERSION")
 		if gitVersion == "" {
-			gitVersion = "dev"
+			gitVersion = "not-built-on-release"
 		}
 		gitCommit = "dev"
-		//TODO (kensipe): add debug message!
 	}
 
 	return Info{
