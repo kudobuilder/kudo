@@ -81,7 +81,7 @@ Based on the last 3 reasons, it is common for an administrator to create namespa
 
 ### Hierarchical Namespace Controller
 
-Currently in incubation, Kubernetes is introducing a Hierarchical Namespace Controller to more easily create and manage namespaces in the cluster, even if the user doesn't have cluster-level permission to create namespaces, which is something to keep in mind in the future.  See https://github.com/kubernetes-sigs/multi-tenancy/tree/main/incubator/hnc
+Currently in incubation, Kubernetes is introducing a Hierarchical Namespace Controller to more easily create and manage namespaces in the cluster, even if the user doesn't have cluster-level permission to create namespaces, which is something to keep in mind in the future.  See https://github.com/kubernetes-sigs/multi-tenancy/tree/master/incubator/hnc
 
 ## Proposals
 

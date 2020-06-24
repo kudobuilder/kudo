@@ -83,7 +83,7 @@ This also counts with the fact that on the server-side we have an admission webh
 
 Although it’s very easy to do this, it’s not very Kubernetes idiomatic way of doing things especially because Status should never be updated from a client and it should just capture the state of the object.
 
-For some background, including definition of status sub-resource by [API conventions](https://github.com/kubernetes/community/blob/main/contributors/devel/sig-architecture/api-conventions.md#spec-and-status): `The status summarizes the current state of the object in the system, and is usually persisted with the object by an automated processes but may be generated on the fly. At some cost and perhaps some temporary degradation in behavior, the status could be reconstructed by observation if it were lost.`  
+For some background, including definition of status sub-resource by [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#spec-and-status): `The status summarizes the current state of the object in the system, and is usually persisted with the object by an automated processes but may be generated on the fly. At some cost and perhaps some temporary degradation in behavior, the status could be reconstructed by observation if it were lost.`  
 
 #### Pros
 

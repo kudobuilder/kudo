@@ -84,7 +84,7 @@ These layers aren't completely disjoint. This KEP will mostly focus on:
     Does preflight checks, diagnostics collection, and diagnostics analysis for
     Kubernetes applications.
 
-2.  [mesosphere/dcos-sdk-service-diagnostics](https://github.com/mesosphere/dcos-sdk-service-diagnostics/tree/main/python)
+2.  [mesosphere/dcos-sdk-service-diagnostics](https://github.com/mesosphere/dcos-sdk-service-diagnostics/tree/master/python)
 
     Does diagnostics collection for
     [DC/OS SDK services](https://github.com/mesosphere/dcos-commons).

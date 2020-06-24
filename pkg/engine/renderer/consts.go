@@ -32,7 +32,7 @@ func (lp *ResourcePath) matches(gvk schema.GroupVersionKind) bool {
 
 var (
 	// CommonLabelPaths is a list of locations in an object type where labels should be added.
-	// Taken from here: https://github.com/kubernetes-sigs/kustomize/blob/main/api/konfig/builtinpluginconsts/commonlabels.go
+	// Taken from here: https://github.com/kubernetes-sigs/kustomize/blob/master/api/konfig/builtinpluginconsts/commonlabels.go
 	CommonLabelPaths = []ResourcePath{
 		{Group: "", Kind: "", path: "metadata/labels"},
 		{Group: "apps", Kind: "StatefulSet", path: "spec/template/metadata/labels"},
@@ -52,7 +52,7 @@ var (
 	}
 
 	// TemplateAnnotationPaths is a list of locations specific to objects where annotations should be added in
-	// templates. Taken from here https://github.com/kubernetes-sigs/kustomize/blob/main/api/konfig/builtinpluginconsts/commonannotations.go
+	// templates. Taken from here https://github.com/kubernetes-sigs/kustomize/blob/master/api/konfig/builtinpluginconsts/commonannotations.go
 	TemplateAnnotationPaths = []ResourcePath{
 		{Group: "", Kind: "ReplicationController", path: "spec/template/metadata/annotations"},
 		{Group: "apps", Kind: "StatefulSet", path: "spec/template/metadata/annotations"},

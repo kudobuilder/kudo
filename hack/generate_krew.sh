@@ -80,4 +80,4 @@ generate_platform darwin 386 ./kubectl-kudo >> kudo.yaml
 # generate_platform windows amd64 ./kubectl-kudo.exe >> kudo.yaml
 # generate_platform windows 386 ./kubectl-kudo.exe >> kudo.yaml
 
-echo "To publish to the krew index, create a pull request to https://github.com/kubernetes-sigs/krew-index/tree/main/plugins to update kudo.yaml with the newly generated kudo.yaml."
+echo "To publish to the krew index, create a pull request to https://github.com/kubernetes-sigs/krew-index/tree/master/plugins to update kudo.yaml with the newly generated kudo.yaml."

@@ -14,7 +14,7 @@ package version
 
 var (
 	// semantic version, derived by build scripts (see
-	// https://github.com/kubernetes/community/blob/main/contributors/design-proposals/release/versioning.md
+	// https://github.com/kubernetes/community/blob/master/contributors/design-proposals/release/versioning.md
 	// for a detailed discussion of this field)
 
 	gitVersion = "v0.0.0-main+$Format:%h$"
