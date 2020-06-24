@@ -1,4 +1,0 @@
-apiVersion: kudo.dev/v1beta1
-kind: TestStep
-kubectl:
-  - kudo update --instance update-command-instance -p "param2=othervalue"

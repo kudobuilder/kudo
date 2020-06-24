@@ -1,0 +1,5 @@
+apiVersion: kudo.dev/v1beta1
+kind: TestStep
+commands:
+  - command: kubectl kudo install --instance operator-instance ./operator-1.0
+    namespaced: true

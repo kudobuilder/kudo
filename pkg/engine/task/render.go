@@ -1,25 +1,22 @@
 package task
 
 import (
+	"errors"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 )
 
 // render method takes resource names and Instance parameters and then renders passed templates using kudo engine.
 func render(resourceNames []string, ctx Context) (map[string]string, error) {
-	configs := make(map[string]interface{})
-	configs["OperatorName"] = ctx.Meta.OperatorName
-	configs["Name"] = ctx.Meta.InstanceName
-	configs["Namespace"] = ctx.Meta.InstanceNamespace
-	configs["Params"] = ctx.Parameters
-	configs["Pipes"] = ctx.Pipes
-	configs["PlanName"] = ctx.Meta.PlanName
-	configs["PhaseName"] = ctx.Meta.PhaseName
-	configs["StepName"] = ctx.Meta.StepName
-	configs["AppVersion"] = ctx.Meta.AppVersion
+
+	configs := renderer.NewVariableMap().
+		WithMetadata(ctx.Meta).
+		WithParameters(ctx.Parameters).
+		WithPipes(ctx.Pipes)
 
 	resources := map[string]string{}
 	engine := renderer.New()
@@ -41,9 +38,32 @@ func render(resourceNames []string, ctx Context) (map[string]string, error) {
 	return resources, nil
 }
 
-// enhance method takes a slice of rendered templates, applies conventions using Enhancer and
-// returns a slice of k8s objects.
-func enhance(rendered map[string]string, meta renderer.Metadata, enhancer renderer.Enhancer) ([]runtime.Object, error) {
-	enhanced, err := enhancer.Apply(rendered, meta)
+// convert takes a map of rendered yaml templates and converts them to k8s objects
+func convert(rendered map[string]string) ([]runtime.Object, error) {
+	objs := make([]runtime.Object, 0, len(rendered))
+
+	for name, v := range rendered {
+		parsed, err := renderer.YamlToObject(v)
+		if err != nil {
+			return nil, fmt.Errorf("%wparsing YAML from %s: %v", engine.ErrFatalExecution, name, err)
+		}
+		objs = append(objs, parsed...)
+	}
+
+	return objs, nil
+}
+
+// enhance method takes a slice of rendered k8s objects, applies conventions using Enhancer and
+// returns a slice of enhanced k8s objects.
+func enhance(objs []runtime.Object, meta renderer.Metadata, enhancer renderer.Enhancer) ([]runtime.Object, error) {
+	enhanced, err := enhancer.Apply(objs, meta)
+
+	switch {
+	case errors.Is(err, engine.ErrFatalExecution):
+		return nil, fatalExecutionError(err, taskEnhancementError, meta)
+	case err != nil:
+		return nil, err
+	}
+
 	return enhanced, err
 }

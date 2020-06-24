@@ -2,7 +2,6 @@ package manager
 
 import (
 	"fmt"
-	"strconv"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -40,8 +39,9 @@ func NewInitializer(options kudoinit.Options) Initializer {
 	}
 }
 
-func (m Initializer) PreInstallVerify(client *kube.Client) verifier.Result {
-	return verifier.NewResult()
+func (m Initializer) PreInstallVerify(client *kube.Client, result *verifier.Result) error {
+	// Nothing to verify yet
+	return nil
 }
 
 func (m Initializer) String() string {
@@ -98,6 +98,7 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 
 	secretDefaultMode := int32(420)
 	image := opts.Image
+	imagePullPolicy := v1.PullPolicy(opts.ImagePullPolicy)
 	s := &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "StatefulSet",
@@ -105,12 +106,12 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: opts.Namespace,
-			Name:      "kudo-controller-manager",
+			Name:      kudoinit.DefaultManagerName,
 			Labels:    managerLabels,
 		},
 		Spec: appsv1.StatefulSetSpec{
 			Selector:    &metav1.LabelSelector{MatchLabels: managerLabels},
-			ServiceName: "kudo-controller-manager-service",
+			ServiceName: kudoinit.DefaultServiceName,
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: managerLabels,
@@ -122,11 +123,10 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 							Command: []string{"/root/manager"},
 							Env: []v1.EnvVar{
 								{Name: "POD_NAMESPACE", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
-								{Name: "SECRET_NAME", Value: "kudo-webhook-server-secret"},
-								{Name: "ENABLE_WEBHOOKS", Value: strconv.FormatBool(opts.HasWebhooksEnabled())},
+								{Name: "SECRET_NAME", Value: kudoinit.DefaultSecretName},
 							},
 							Image:           image,
-							ImagePullPolicy: "Always",
+							ImagePullPolicy: imagePullPolicy,
 							Name:            "manager",
 							Ports: []v1.ContainerPort{
 								// name matters for service
@@ -137,29 +137,26 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 									"cpu":    resource.MustParse("100m"),
 									"memory": resource.MustParse("50Mi")},
 							},
+							VolumeMounts: []v1.VolumeMount{
+								{Name: "cert", MountPath: "/tmp/cert", ReadOnly: true},
+							},
+						},
+					},
+					Volumes: []v1.Volume{
+						{
+							Name: "cert",
+							VolumeSource: v1.VolumeSource{
+								Secret: &v1.SecretVolumeSource{
+									SecretName:  kudoinit.DefaultSecretName,
+									DefaultMode: &secretDefaultMode,
+								},
+							},
 						},
 					},
 					TerminationGracePeriodSeconds: &opts.TerminationGracePeriodSeconds,
 				},
 			},
 		},
-	}
-
-	if opts.HasWebhooksEnabled() {
-		s.Spec.Template.Spec.Containers[0].VolumeMounts = []v1.VolumeMount{
-			{Name: "cert", MountPath: "/tmp/cert", ReadOnly: true},
-		}
-		s.Spec.Template.Spec.Volumes = []v1.Volume{
-			{
-				Name: "cert",
-				VolumeSource: v1.VolumeSource{
-					Secret: &v1.SecretVolumeSource{
-						SecretName:  "kudo-webhook-server-secret",
-						DefaultMode: &secretDefaultMode,
-					},
-				},
-			},
-		}
 	}
 
 	return s
@@ -174,7 +171,7 @@ func generateService(opts kudoinit.Options) *v1.Service {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: opts.Namespace,
-			Name:      "kudo-controller-manager-service",
+			Name:      kudoinit.DefaultServiceName,
 			Labels:    managerLabels,
 		},
 		Spec: v1.ServiceSpec{

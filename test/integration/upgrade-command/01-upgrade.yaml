@@ -1,4 +1,5 @@
 apiVersion: kudo.dev/v1beta1
 kind: TestStep
-kubectl:
-  - kudo upgrade --instance upgrade-instance ./second-operator -p version=1.7.10
+commands:
+  - command: kubectl kudo upgrade --instance upgrade-instance ./second-operator -p version=1.7.10
+    namespaced: true

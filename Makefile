@@ -13,7 +13,8 @@ BUILD_DATE_PATH := github.com/kudobuilder/kudo/pkg/version.buildDate
 DATE_FMT := "%Y-%m-%dT%H:%M:%SZ"
 BUILD_DATE := $(shell date -u -d "@$SOURCE_DATE_EPOCH" "+${DATE_FMT}" 2>/dev/null || date -u -r "${SOURCE_DATE_EPOCH}" "+${DATE_FMT}" 2>/dev/null || date -u "+${DATE_FMT}")
 LDFLAGS := -X ${GIT_VERSION_PATH}=${GIT_VERSION} -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} -X ${BUILD_DATE_PATH}=${BUILD_DATE}
-ENABLE_WEBHOOKS ?= false
+GOLANGCI_LINT_VER = "1.23.8"
+SUPPORTED_PLATFORMS = amd64 arm64
 
 export GO111MODULE=on
 
@@ -32,13 +33,17 @@ endif
 
 # Run e2e tests
 .PHONY: e2e-test
-e2e-test: cli-fast
+e2e-test: cli-fast manager-fast
 	./hack/run-e2e-tests.sh
 
 .PHONY: integration-test
 # Run integration tests
-integration-test: cli-fast
+integration-test: cli-fast manager-fast
 	./hack/run-integration-tests.sh
+
+.PHONY: operator-test
+operator-test: cli-fast manager-fast
+	./hack/run-operator-tests.sh
 
 .PHONY: test-clean
 # Clean test reports
@@ -47,10 +52,10 @@ test-clean:
 
 .PHONY: lint
 lint:
-ifeq (, $(shell which golangci-lint))
+ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint --version 2>/dev/null | cut -b 27-32)")
 	./hack/install-golangcilint.sh
 endif
-	golangci-lint run
+	golangci-lint --timeout 3m run
 
 .PHONY: download
 download:
@@ -59,11 +64,16 @@ download:
 .PHONY: prebuild
 prebuild: generate lint
 
-.PHONY: manager
+
 # Build manager binary
-manager: prebuild
+manager: prebuild manager-fast
+
+.PHONY: manager-fast
+# Build manager binary
+manager-fast:
 	# developer convenience for platform they are running
 	go build -ldflags "${LDFLAGS}" -o bin/$(EXECUTABLE) github.com/kudobuilder/kudo/cmd/manager
+
 
 .PHONY: manager-clean
 # Clean manager build
@@ -75,7 +85,7 @@ manager-clean:
 run:
     # for local development, webhooks are disabled by default
     # if you enable them, you have to take care of providing the TLS certs locally
-	ENABLE_WEBHOOKS=${ENABLE_WEBHOOKS} go run -ldflags "${LDFLAGS}" ./cmd/manager
+	go run -ldflags "${LDFLAGS}" ./cmd/manager
 
 .PHONY: deploy
 # Install KUDO into a cluster via kubectl kudo init
@@ -89,7 +99,8 @@ deploy-clean:
 .PHONY: generate
 # Generate code
 generate:
-ifeq (, $(shell which controller-gen))
+ifneq ($(shell go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools), $(shell controller-gen --version 2>/dev/null | cut -b 10-))
+	@echo "(Re-)installing controller-gen. Current version:  $(controller-gen --version 2>/dev/null | cut -b 10-). Need $(go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools)"
 	go get sigs.k8s.io/controller-tools/cmd/controller-gen@$$(go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools)
 endif
 	controller-gen crd paths=./pkg/apis/... output:crd:dir=config/crds output:stdout
@@ -103,7 +114,6 @@ endif
 generate-clean:
 	rm -rf hack/code-gen
 
-.PHONY: cli-fast
 # Build CLI but don't lint or run code generation first.
 cli-fast:
 	go build -ldflags "${LDFLAGS}" -o bin/${CLI} ./cmd/kubectl-kudo
@@ -126,23 +136,14 @@ cli-install:
 clean:  cli-clean test-clean manager-clean deploy-clean
 
 .PHONY: docker-build
-# Build the docker image
+# Build the docker image for each supported platform
 docker-build: generate lint
-	docker build --build-arg ldflags_arg="${LDFLAGS}" . -t ${DOCKER_IMG}:${DOCKER_TAG}
-	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:v${GIT_VERSION}
-	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:latest
-
-.PHONY: docker-push
-# Push the docker image
-docker-push:
-	docker push ${DOCKER_IMG}:${DOCKER_TAG}
-	docker push ${DOCKER_IMG}:${GIT_VERSION}
-	docker push ${DOCKER_IMG}:latest
+	docker build --build-arg ldflags_arg="$(LDFLAGS)" -f Dockerfile -t $(DOCKER_IMG):$(DOCKER_TAG) .
 
 .PHONY: imports
 # used to update imports on project.  NOT a linter.
 imports:
-ifeq (, $(shell which golangci-lint))
+ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint --version 2>/dev/null | cut -b 27-32)")
 	./hack/install-golangcilint.sh
 endif
 	golangci-lint run --disable-all -E goimports --fix

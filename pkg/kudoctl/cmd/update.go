@@ -3,11 +3,12 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/params"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
@@ -25,6 +26,8 @@ var (
 type updateOptions struct {
 	InstanceName string
 	Parameters   map[string]string
+	Wait         bool
+	WaitTime     int64
 }
 
 // defaultOptions initializes the install command options to its defaults
@@ -34,6 +37,7 @@ var defaultUpdateOptions = &updateOptions{}
 func newUpdateCmd() *cobra.Command {
 	options := defaultUpdateOptions
 	var parameters []string
+	var parameterFiles []string
 	updateCmd := &cobra.Command{
 		Use:     "update",
 		Short:   "Update KUDO operator instance.",
@@ -42,9 +46,9 @@ func newUpdateCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Prior to command execution we parse and validate passed arguments
 			var err error
-			options.Parameters, err = install.GetParameterMap(parameters)
+			options.Parameters, err = params.GetParameterMap(fs, parameters, parameterFiles)
 			if err != nil {
-				return fmt.Errorf("could not parse arguments: %w", err)
+				return fmt.Errorf("could not parse parameters: %v", err)
 			}
 			return runUpdate(args, options, &Settings)
 		},
@@ -52,6 +56,9 @@ func newUpdateCmd() *cobra.Command {
 
 	updateCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name.")
 	updateCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")
+	updateCmd.Flags().StringArrayVarP(&parameterFiles, "parameter-file", "P", nil, "YAML file with parameters")
+	updateCmd.Flags().BoolVar(&options.Wait, "wait", false, "Specify if the CLI should wait for the update to complete before returning (default \"false\")")
+	updateCmd.Flags().Int64Var(&options.WaitTime, "wait-time", 300, "Specify the max wait time in seconds for CLI for the update to complete before returning (default \"300\")")
 
 	return updateCmd
 }
@@ -96,7 +103,7 @@ func update(instanceToUpdate string, kc *kudo.Client, options *updateOptions, se
 	}
 
 	// Update arguments
-	err = kc.UpdateInstance(instanceToUpdate, settings.Namespace, nil, options.Parameters, nil)
+	err = kc.UpdateInstance(instanceToUpdate, settings.Namespace, nil, options.Parameters, nil, options.Wait, time.Duration(options.WaitTime)*time.Second)
 	if err != nil {
 		return fmt.Errorf("updating instance %s %w", instanceToUpdate, err)
 	}

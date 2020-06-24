@@ -1,0 +1,105 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    annotations:
+      hostPathProvisionerIdentity: 4e1b198e-839b-11ea-84a3-b00cd12cc2cf
+      pv.kubernetes.io/provisioned-by: k8s.io/minikube-hostpath
+    creationTimestamp: "2020-05-18T20:19:11Z"
+    finalizers:
+    - kubernetes.io/pv-protection
+    name: pvc-37800340-a87f-4607-896e-da091174def7
+    resourceVersion: "5832498"
+    selfLink: /api/v1/persistentvolumes/pvc-37800340-a87f-4607-896e-da091174def7
+    uid: 68b866d7-6284-4aab-bbd5-3e447a4844b7
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+      storage: 5Gi
+    claimRef:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      name: zookeeper-instance-datadir-zookeeper-instance-zookeeper-1
+      namespace: my-namespace
+      resourceVersion: "5832449"
+      uid: 37800340-a87f-4607-896e-da091174def7
+    hostPath:
+      path: /tmp/hostpath-provisioner/pvc-37800340-a87f-4607-896e-da091174def7
+      type: ""
+    persistentVolumeReclaimPolicy: Delete
+    storageClassName: standard
+    volumeMode: Filesystem
+  status:
+    phase: Bound
+- apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    annotations:
+      hostPathProvisionerIdentity: 4e1b198e-839b-11ea-84a3-b00cd12cc2cf
+      pv.kubernetes.io/provisioned-by: k8s.io/minikube-hostpath
+    creationTimestamp: "2020-05-18T20:19:11Z"
+    finalizers:
+    - kubernetes.io/pv-protection
+    name: pvc-ac2ffdd6-362a-4204-82b9-1249b2dbf3be
+    resourceVersion: "5832494"
+    selfLink: /api/v1/persistentvolumes/pvc-ac2ffdd6-362a-4204-82b9-1249b2dbf3be
+    uid: f7a92631-d5de-47a6-9437-28d8ae5d2170
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+      storage: 5Gi
+    claimRef:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      name: zookeeper-instance-datadir-zookeeper-instance-zookeeper-0
+      namespace: my-namespace
+      resourceVersion: "5832445"
+      uid: ac2ffdd6-362a-4204-82b9-1249b2dbf3be
+    hostPath:
+      path: /tmp/hostpath-provisioner/pvc-ac2ffdd6-362a-4204-82b9-1249b2dbf3be
+      type: ""
+    persistentVolumeReclaimPolicy: Delete
+    storageClassName: standard
+    volumeMode: Filesystem
+  status:
+    phase: Bound
+- apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    annotations:
+      hostPathProvisionerIdentity: 4e1b198e-839b-11ea-84a3-b00cd12cc2cf
+      pv.kubernetes.io/provisioned-by: k8s.io/minikube-hostpath
+    creationTimestamp: "2020-05-18T20:19:12Z"
+    finalizers:
+    - kubernetes.io/pv-protection
+    name: pvc-dd49319a-03bb-4135-8798-71ceb7bfcbc2
+    resourceVersion: "5832502"
+    selfLink: /api/v1/persistentvolumes/pvc-dd49319a-03bb-4135-8798-71ceb7bfcbc2
+    uid: 6c922bf3-b9be-4043-aff0-b593fbc151ab
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+      storage: 5Gi
+    claimRef:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      name: zookeeper-instance-datadir-zookeeper-instance-zookeeper-2
+      namespace: my-namespace
+      resourceVersion: "5832458"
+      uid: dd49319a-03bb-4135-8798-71ceb7bfcbc2
+    hostPath:
+      path: /tmp/hostpath-provisioner/pvc-dd49319a-03bb-4135-8798-71ceb7bfcbc2
+      type: ""
+    persistentVolumeReclaimPolicy: Delete
+    storageClassName: standard
+    volumeMode: Filesystem
+  status:
+    phase: Bound
+kind: PersistentVolumeList
+metadata:
+  resourceVersion: ""
+  selfLink: ""

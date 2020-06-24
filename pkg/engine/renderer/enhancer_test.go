@@ -3,34 +3,38 @@ package renderer
 import (
 	"testing"
 
-	v1 "k8s.io/api/batch/v1"
-
-	"k8s.io/api/batch/v1beta1"
-
 	"github.com/stretchr/testify/assert"
+	"github.com/thoas/go-funk"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/batch/v1"
+	"k8s.io/api/batch/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/yaml"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/kubectl/pkg/scheme"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"github.com/kudobuilder/kuttl/pkg/test/utils"
 
 	"github.com/kudobuilder/kudo/pkg/engine"
-	"github.com/kudobuilder/kudo/pkg/test/utils"
+	"github.com/kudobuilder/kudo/pkg/test/fake"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 func TestEnhancerApply_embeddedMetadataStatefulSet(t *testing.T) {
 
-	tpls := map[string]string{
-		"deployment": resourceAsString(statefulSet("sfs1", "default")),
+	tpls := []runtime.Object{
+		statefulSet("sfs1", "default"),
 	}
 
 	meta := metadata()
 
 	e := &DefaultEnhancer{
 		Scheme:    utils.Scheme(),
-		Discovery: utils.FakeDiscoveryClient(),
+		Discovery: fake.CachedDiscoveryClient(),
 	}
 
 	objs, err := e.Apply(tpls, meta)
@@ -51,7 +55,6 @@ func TestEnhancerApply_embeddedMetadataStatefulSet(t *testing.T) {
 		// Verify that labels are added
 		assert.Equal(t, meta.InstanceNamespace, sfs.GetNamespace())
 		assert.Equal(t, string(meta.PlanUID), sfs.Annotations[kudo.PlanUIDAnnotation])
-		assert.Equal(t, string(meta.PlanUID), sfs.Spec.Template.Annotations[kudo.PlanUIDAnnotation])
 
 		// Verify that annotations are added
 		assert.Equal(t, "kudo", sfs.Labels[kudo.HeritageLabel])
@@ -68,15 +71,15 @@ func TestEnhancerApply_embeddedMetadataStatefulSet(t *testing.T) {
 
 func TestEnhancerApply_embeddedMetadataCronjob(t *testing.T) {
 
-	tpls := map[string]string{
-		"cron": resourceAsString(cronjob("cronjob", "default")),
+	tpls := []runtime.Object{
+		cronjob("cronjob", "default"),
 	}
 
 	meta := metadata()
 
 	e := &DefaultEnhancer{
 		Scheme:    utils.Scheme(),
-		Discovery: utils.FakeDiscoveryClient(),
+		Discovery: fake.CachedDiscoveryClient(),
 	}
 
 	objs, err := e.Apply(tpls, meta)
@@ -99,7 +102,6 @@ func TestEnhancerApply_embeddedMetadataCronjob(t *testing.T) {
 		assert.Equal(t, string(meta.PlanUID), cron.Annotations[kudo.PlanUIDAnnotation])
 		assert.Equal(t, "kudo", cron.Labels[kudo.HeritageLabel])
 
-		assert.Equal(t, string(meta.PlanUID), cron.Spec.JobTemplate.Spec.Template.Annotations[kudo.PlanUIDAnnotation])
 		assert.Equal(t, "kudo", cron.Spec.JobTemplate.Spec.Template.Labels[kudo.HeritageLabel])
 
 		// Verify that existing labels are not removed
@@ -110,15 +112,23 @@ func TestEnhancerApply_embeddedMetadataCronjob(t *testing.T) {
 
 func TestEnhancerApply_noAdditionalMetadata(t *testing.T) {
 
-	tpls := map[string]string{
-		"pod": resourceAsString(pod("pod", "default")),
+	tpls := []runtime.Object{
+		pod("pod", "default"),
+		unstructuredCrd("crd", "default"),
 	}
 
 	meta := metadata()
 
+	crdType := &metav1.APIResourceList{
+		GroupVersion: "install.istio.io/v1alpha1",
+		APIResources: []metav1.APIResource{
+			{Name: "istiooperator", Namespaced: true, Kind: "IstioOperator"},
+		},
+	}
+
 	e := &DefaultEnhancer{
 		Scheme:    utils.Scheme(),
-		Discovery: utils.FakeDiscoveryClient(),
+		Discovery: fake.CustomCachedDiscoveryClient(crdType),
 	}
 
 	objs, err := e.Apply(tpls, meta)
@@ -132,11 +142,198 @@ func TestEnhancerApply_noAdditionalMetadata(t *testing.T) {
 			t.Errorf("failed to parse object to unstructured: %s", err)
 		}
 
-		f, ok, _ := unstructured.NestedFieldNoCopy(unstructMap, "spec", "template")
+		// Make sure the top-level metadata is there
+		uo := unstructured.Unstructured{Object: unstructMap}
+		assert.Equal(t, string(meta.PlanUID), uo.GetAnnotations()[kudo.PlanUIDAnnotation])
+		assert.Equal(t, "kudo", uo.GetLabels()[kudo.HeritageLabel])
 
+		// But no nested fields
+		f, ok, _ := unstructured.NestedFieldNoCopy(unstructMap, "spec", "template")
 		assert.Nil(t, f)
-		assert.False(t, ok, "Pod struct contains template field")
+		assert.False(t, ok, "%s struct contains template field", o.GetObjectKind())
 	}
+}
+func TestEnhancerApply_dependencyHash_noDependencies(t *testing.T) {
+	ss := statefulSet("statefulset", "default")
+
+	tpls := []runtime.Object{ss}
+
+	meta := metadata()
+	meta.PlanUID = uuid.NewUUID()
+
+	e := &DefaultEnhancer{
+		Scheme:    utils.Scheme(),
+		Discovery: fake.CachedDiscoveryClient(),
+	}
+
+	objs, err := e.Apply(tpls, meta)
+	if err != nil {
+		t.Errorf("failed to apply template %s", err)
+	}
+
+	ssApplied := funk.Find(objs, func(o runtime.Object) bool {
+		return o.GetObjectKind().GroupVersionKind() == schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "StatefulSet"}
+	})
+
+	unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(ssApplied)
+	assert.Nil(t, err, "failed to parse object to unstructured: %s", err)
+
+	annotations, _, _ := unstructured.NestedMap(unstructMap, "spec", "template", "metadata", "annotations")
+	assert.NotNil(t, annotations, "Statefulset pod template spec contains no annotations")
+
+	hash := annotations[kudo.DependenciesHashAnnotation]
+	assert.Nil(t, hash, "Pod template spec annotations contains a dependency hash but no dependencies")
+}
+
+func TestEnhancerApply_dependencyHash_unavailableResource(t *testing.T) {
+	// Test that the dependency calculation does not error out on a resource that is NotAvailable at the moment
+
+	ss := statefulSet("statefulset", "default")
+
+	ss.Spec.Template.Spec.Volumes = append(ss.Spec.Template.Spec.Volumes, corev1.Volume{
+		Name: "configMap",
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: "unvailableConfigMap"},
+			},
+		},
+	})
+
+	tpls := []runtime.Object{ss}
+
+	meta := metadata()
+	meta.PlanUID = uuid.NewUUID()
+
+	e := &DefaultEnhancer{
+		Client:    clientfake.NewFakeClientWithScheme(scheme.Scheme),
+		Scheme:    utils.Scheme(),
+		Discovery: fake.CachedDiscoveryClient(),
+	}
+
+	objs, err := e.Apply(tpls, meta)
+	if err != nil {
+		t.Errorf("failed to apply template %s", err)
+	}
+
+	ssApplied := funk.Find(objs, func(o runtime.Object) bool {
+		return o.GetObjectKind().GroupVersionKind() == schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "StatefulSet"}
+	})
+
+	unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(ssApplied)
+	assert.Nil(t, err, "failed to parse object to unstructured: %s", err)
+
+	annotations, _, _ := unstructured.NestedMap(unstructMap, "spec", "template", "metadata", "annotations")
+	assert.NotNil(t, annotations, "Statefulset pod template spec contains no annotations")
+
+	hash := annotations[kudo.DependenciesHashAnnotation]
+	assert.NotNil(t, hash, "Pod template spec annotations contains no dependency hash field")
+}
+
+func TestEnhancerApply_dependencyHash_calculatedOnResourceWithoutLastAppliedConfigAnnotation(t *testing.T) {
+	// We may encounter references to resources that are not deployed by KUDO and do not have the
+	// LastAppliedConfigAnnotation. We still need to calculate a mostly stable hash from the resource
+
+	ss := statefulSet("statefulset", "default")
+	cm := configMap("configmap", "default")
+
+	ss.Spec.Template.Spec.Volumes = append(ss.Spec.Template.Spec.Volumes, corev1.Volume{
+		Name: "configMap",
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: cm.Name},
+			},
+		},
+	})
+
+	tpls := []runtime.Object{ss}
+
+	meta := metadata()
+	meta.PlanUID = uuid.NewUUID()
+
+	e := &DefaultEnhancer{
+		Scheme:    utils.Scheme(),
+		Discovery: fake.CachedDiscoveryClient(),
+		Client:    clientfake.NewFakeClientWithScheme(scheme.Scheme, cm),
+	}
+
+	objs, err := e.Apply(tpls, meta)
+	if err != nil {
+		t.Errorf("failed to apply template %s", err)
+	}
+
+	ssApplied := funk.Find(objs, func(o runtime.Object) bool {
+		return o.GetObjectKind().GroupVersionKind() == schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "StatefulSet"}
+	})
+
+	unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(ssApplied)
+	assert.Nil(t, err, "failed to parse object to unstructured: %s", err)
+
+	annotations, _, _ := unstructured.NestedMap(unstructMap, "spec", "template", "metadata", "annotations")
+	assert.NotNil(t, annotations, "Statefulset pod template spec contains no annotations")
+
+	hash := annotations[kudo.DependenciesHashAnnotation]
+	assert.NotNil(t, hash, "Pod template spec annotations contains no dependency hash field")
+}
+
+func TestEnhancerApply_dependencyHash_changes(t *testing.T) {
+	ss := statefulSet("statefulset", "default")
+	cm := configMap("configmap", "default")
+
+	ss.Spec.Template.Spec.Volumes = append(ss.Spec.Template.Spec.Volumes, corev1.Volume{
+		Name: "configMap",
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: cm.Name},
+			},
+		},
+	})
+
+	tpls := []runtime.Object{ss, cm}
+
+	meta := metadata()
+	meta.PlanUID = uuid.NewUUID()
+
+	e := &DefaultEnhancer{
+		Scheme:    utils.Scheme(),
+		Discovery: fake.CachedDiscoveryClient(),
+	}
+
+	objs, err := e.Apply(tpls, meta)
+	if err != nil {
+		t.Errorf("failed to apply template %s", err)
+	}
+
+	ssApplied := funk.Find(objs, func(o runtime.Object) bool {
+		return o.GetObjectKind().GroupVersionKind() == schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "StatefulSet"}
+	})
+
+	unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(ssApplied)
+	assert.Nil(t, err, "failed to parse object to unstructured: %s", err)
+
+	annotations, _, _ := unstructured.NestedMap(unstructMap, "spec", "template", "metadata", "annotations")
+	assert.NotNil(t, annotations, "Statefulset pod template spec contains no annotations")
+
+	hash := annotations[kudo.DependenciesHashAnnotation]
+	assert.NotNil(t, hash, "Pod template spec annotations contains no dependency hash field")
+
+	cm.Data["newkey"] = "newvalue"
+	tpls = []runtime.Object{ss, cm}
+
+	objs, err = e.Apply(tpls, meta)
+	assert.Nil(t, err)
+	ssApplied = funk.Find(objs, func(o runtime.Object) bool {
+		return o.GetObjectKind().GroupVersionKind() == schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "StatefulSet"}
+	})
+
+	unstructMap, err = runtime.DefaultUnstructuredConverter.ToUnstructured(ssApplied)
+	assert.Nil(t, err, "failed to parse object to unstructured: %s", err)
+
+	annotations, _, _ = unstructured.NestedMap(unstructMap, "spec", "template", "metadata", "annotations")
+	assert.NotNil(t, annotations, "Statefulset pod template spec contains no annotations")
+
+	newHash := annotations[kudo.DependenciesHashAnnotation]
+	assert.NotNil(t, newHash, "Pod template spec annotations contains no dependency hash field")
+	assert.NotEqual(t, hash, newHash, "Hashes are the same after the config map changed")
 }
 
 func metadata() Metadata {
@@ -170,9 +367,21 @@ func owner() *corev1.Pod {
 	}
 }
 
-func resourceAsString(resource metav1.Object) string {
-	bytes, _ := yaml.Marshal(resource)
-	return string(bytes)
+func configMap(name string, namespace string) *corev1.ConfigMap {
+	configMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"key": "value",
+		},
+	}
+	return configMap
 }
 
 func statefulSet(name string, namespace string) *appsv1.StatefulSet {
@@ -192,6 +401,7 @@ func statefulSet(name string, namespace string) *appsv1.StatefulSet {
 					Labels: map[string]string{
 						"app": "app-type",
 					},
+					Annotations: map[string]string{},
 				},
 				Spec: corev1.PodSpec{},
 			},
@@ -274,4 +484,18 @@ func pod(name string, namespace string) *corev1.Pod {
 		},
 	}
 	return pod
+}
+
+func unstructuredCrd(name string, namespace string) runtime.Object {
+	data := `apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  namespace: ` + namespace + `
+  name: ` + name + `
+spec:
+  profile: default`
+
+	parsed, _ := YamlToObject(data)
+
+	return parsed[0]
 }

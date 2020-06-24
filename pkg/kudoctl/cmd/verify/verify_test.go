@@ -23,11 +23,11 @@ func TestDuplicateVerifier(t *testing.T) {
 		{"duplicate parameter", []packages.Parameter{
 			{Name: "Foo"},
 			{Name: "Foo"},
-		}, []string{}, []string{fmt.Sprintf("parameter \"Foo\" has a duplicate")}},
+		}, []string{}, []string{"parameter \"Foo\" has a duplicate"}},
 		{"duplicate with different casing", []packages.Parameter{
 			{Name: "Foo"},
 			{Name: "foo"},
-		}, []string{}, []string{fmt.Sprintf("parameter \"foo\" has a duplicate")}},
+		}, []string{}, []string{"parameter \"foo\" has a duplicate"}},
 	}
 
 	verifier := DuplicateVerifier{}
@@ -82,19 +82,68 @@ func TestK8sVersionVerifier(t *testing.T) {
 		expectedWarnings []string
 		expectedErrors   []string
 	}{
-		{"no warning or error", &packages.OperatorFile{
+		{"no warning or error with all versions", &packages.OperatorFile{
 			APIVersion:        packages.APIVersion,
 			Name:              "kafka",
 			KubernetesVersion: "1.15",
+			KUDOVersion:       "0.12.0",
+			OperatorVersion:   "0.1.0",
 		}, []string{}, []string{}},
-		{"no warning or error", &packages.OperatorFile{
+		{"no warning or error without kudo version", &packages.OperatorFile{
+			APIVersion:        packages.APIVersion,
+			Name:              "kafka",
+			KubernetesVersion: "1.15",
+			OperatorVersion:   "0.1.0",
+		}, []string{}, []string{}},
+		{"kubernetesVersion required", &packages.OperatorFile{
 			APIVersion:        packages.APIVersion,
 			Name:              "kafka",
 			KubernetesVersion: "",
-		}, []string{}, []string{"Unable to parse operators kubernetes version: Invalid Semantic Version"}},
+			KUDOVersion:       "0.12.0",
+			OperatorVersion:   "0.1.0",
+		}, []string{}, []string{"\"kubernetesVersion\" is required and must be semver"}},
+		{"kubernetesVersion must be semver", &packages.OperatorFile{
+			APIVersion:        packages.APIVersion,
+			Name:              "kafka",
+			KubernetesVersion: "1.",
+			KUDOVersion:       "0.12.0",
+			OperatorVersion:   "0.1.0",
+		}, []string{}, []string{"unable to parse \"kubernetesVersion\": Invalid Semantic Version"}},
+		{"kubernetesVersion required", &packages.OperatorFile{
+			APIVersion:        packages.APIVersion,
+			Name:              "kafka",
+			KubernetesVersion: "1.15",
+			KUDOVersion:       "0.12.0",
+			OperatorVersion:   "",
+		}, []string{}, []string{"\"operatorVersion\" is required and must be semver"}},
+		{"kubernetesVersion must be semver", &packages.OperatorFile{
+			APIVersion:        packages.APIVersion,
+			Name:              "kafka",
+			KubernetesVersion: "1.15",
+			KUDOVersion:       "0.12.0",
+			OperatorVersion:   "0.1.",
+		}, []string{}, []string{"unable to parse \"operatorVersion\": Invalid Semantic Version"}},
+		{"kudoVersion must be semver", &packages.OperatorFile{
+			APIVersion:        packages.APIVersion,
+			Name:              "kafka",
+			KubernetesVersion: "1.15",
+			KUDOVersion:       "0.12.",
+			OperatorVersion:   "0.1.0",
+		}, []string{}, []string{"unable to parse \"kudoVersion\": Invalid Semantic Version"}},
+		{"kubernetesVersion and OperatorVersion missing", &packages.OperatorFile{
+			APIVersion:  packages.APIVersion,
+			Name:        "kafka",
+			KUDOVersion: "0.12.0",
+		}, []string{}, []string{"\"operatorVersion\" is required and must be semver", "\"kubernetesVersion\" is required and must be semver"}},
+		{"kubernetesVersion missing and OperatorVersion not semver", &packages.OperatorFile{
+			APIVersion:      packages.APIVersion,
+			Name:            "kafka",
+			KUDOVersion:     "0.12.0",
+			OperatorVersion: "0.1.",
+		}, []string{}, []string{"unable to parse \"operatorVersion\": Invalid Semantic Version", "\"kubernetesVersion\" is required and must be semver"}},
 	}
 
-	verifier := K8sVersionVerifier{}
+	verifier := VersionVerifier{}
 	for _, tt := range tests {
 		res := verifier.Verify(packageFileForOperator(tt.operatorFile))
 		assert.Equal(t, tt.expectedWarnings, res.Warnings, tt.name)

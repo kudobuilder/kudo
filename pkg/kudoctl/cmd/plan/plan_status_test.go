@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kubefake "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
@@ -125,7 +126,7 @@ func TestStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		var buf bytes.Buffer
-		kc := kudo.NewClientFromK8s(fake.NewSimpleClientset())
+		kc := kudo.NewClientFromK8s(fake.NewSimpleClientset(), kubefake.NewSimpleClientset())
 		if tt.instance != nil {
 			_, err := kc.InstallInstanceObjToCluster(tt.instance, "default")
 			if err != nil {

@@ -1,19 +1,28 @@
 package v1beta1
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"log"
 
 	"github.com/thoas/go-funk"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
 	instanceCleanupFinalizerName = "kudo.dev.instance.cleanup"
-	snapshotAnnotation           = "kudo.dev/last-applied-instance-state"
 )
+
+func GetInstance(namespacedName types.NamespacedName, c client.Client) (i *Instance, err error) {
+	i = &Instance{}
+	err = c.Get(context.TODO(), namespacedName, i)
+	if err != nil {
+		return nil, err
+	}
+	return i, nil
+}
 
 // GetPlanInProgress returns plan status of currently active plan or nil if no plan is running
 func (i *Instance) GetPlanInProgress() *PlanStatus {
@@ -61,47 +70,31 @@ func (i *Instance) NoPlanEverExecuted() bool {
 }
 
 // UpdateInstanceStatus updates `Status.PlanStatus` and `Status.AggregatedStatus` property based on the given plan
-func (i *Instance) UpdateInstanceStatus(planStatus *PlanStatus, updatedTimestamp *metav1.Time) {
+func (i *Instance) UpdateInstanceStatus(ps *PlanStatus, updatedTimestamp *metav1.Time) {
 	for k, v := range i.Status.PlanStatus {
-		if v.Name == planStatus.Name {
-			planStatus.LastUpdatedTimestamp = updatedTimestamp
-			i.Status.PlanStatus[k] = *planStatus
-			i.Status.AggregatedStatus.Status = planStatus.Status
-			if planStatus.Status.IsTerminal() {
-				i.Status.AggregatedStatus.ActivePlanName = ""
-			}
+		if v.Name == ps.Name {
+			ps.LastUpdatedTimestamp = updatedTimestamp
+			i.Status.PlanStatus[k] = *ps
+			i.Spec.PlanExecution.Status = ps.Status
 		}
 	}
 }
 
 // ResetPlanStatus method resets a PlanStatus for a passed plan name and instance. Plan/phase/step statuses
 // are set to ExecutionPending meaning that the controller will restart plan execution.
-func (i *Instance) ResetPlanStatus(plan string, updatedTimestamp *metav1.Time) error {
-	planStatus := i.PlanStatus(plan)
-	if planStatus == nil {
-		return fmt.Errorf("failed to find planStatus for the plan '%s'", plan)
-	}
+func (i *Instance) ResetPlanStatus(ps *PlanStatus, uid types.UID, updatedTimestamp *metav1.Time) {
+	ps.UID = uid
+	ps.Status = ExecutionPending
+	for i := range ps.Phases {
+		ps.Phases[i].Set(ExecutionPending)
 
-	// reset plan's phases and steps by setting them to ExecutionPending
-	planStatus.Set(ExecutionPending)
-	// when using webhooks, instance admission webhook already generates an UID for current plan, otherwise, we generate a new one.
-	if i.Spec.PlanExecution.UID != "" {
-		planStatus.UID = i.Spec.PlanExecution.UID
-	} else {
-		planStatus.UID = uuid.NewUUID()
-	}
-
-	for i, ph := range planStatus.Phases {
-		planStatus.Phases[i].Set(ExecutionPending)
-
-		for j := range ph.Steps {
-			planStatus.Phases[i].Steps[j].Set(ExecutionPending)
+		for j := range ps.Phases[i].Steps {
+			ps.Phases[i].Steps[j].Set(ExecutionPending)
 		}
 	}
 
 	// update plan status and instance aggregated status
-	i.UpdateInstanceStatus(planStatus, updatedTimestamp)
-	return nil
+	i.UpdateInstanceStatus(ps, updatedTimestamp)
 }
 
 // IsDeleting returns true is the instance is being deleted.
@@ -129,35 +122,6 @@ func (i *Instance) PlanStatus(plan string) *PlanStatus {
 	}
 
 	return nil
-}
-
-// annotateSnapshot stores the current spec of Instance into the snapshot annotation
-// this information is used when executing update/upgrade plans, this overrides any snapshot that existed before
-func (i *Instance) AnnotateSnapshot() error {
-	jsonBytes, err := json.Marshal(i.Spec)
-	if err != nil {
-		return err
-	}
-	if i.Annotations == nil {
-		i.Annotations = make(map[string]string)
-	}
-	i.Annotations[snapshotAnnotation] = string(jsonBytes)
-	return nil
-}
-
-func (i *Instance) SnapshotSpec() (*InstanceSpec, error) {
-	if i.Annotations != nil {
-		snapshot, ok := i.Annotations[snapshotAnnotation]
-		if ok {
-			var spec *InstanceSpec
-			err := json.Unmarshal([]byte(snapshot), &spec)
-			if err != nil {
-				return nil, err
-			}
-			return spec, nil
-		}
-	}
-	return nil, nil
 }
 
 func (i *Instance) HasCleanupFinalizer() bool {
@@ -212,6 +176,26 @@ func remove(values []string, s string) []string {
 	})
 }
 
+// GetOperatorVersion retrieves OperatorVersion belonging to the given instance
+func (i *Instance) GetOperatorVersion(c client.Reader) (ov *OperatorVersion, err error) {
+	return GetOperatorVersionByName(i.Spec.OperatorVersion.Name, i.OperatorVersionNamespace(), c)
+}
+
+// IsChildInstance method return true if this instance is owned by another instance (as a dependency) and false otherwise.
+// If there is any owner with the same kind 'Instance' then this Instance is owned by another one.
+func (i *Instance) IsChildInstance() bool {
+	for _, or := range i.GetOwnerReferences() {
+		if or.Kind == i.Kind {
+			return true
+		}
+	}
+	return false
+}
+
+func (i *Instance) IsTopLevelInstance() bool {
+	return !i.IsChildInstance()
+}
+
 // wasRunAfter returns true if p1 was run after p2
 func wasRunAfter(p1 PlanStatus, p2 PlanStatus) bool {
 	if p1.Status == ExecutionNeverRun || p2.Status == ExecutionNeverRun || p1.LastUpdatedTimestamp == nil || p2.LastUpdatedTimestamp == nil {
@@ -220,17 +204,22 @@ func wasRunAfter(p1 PlanStatus, p2 PlanStatus) bool {
 	return p1.LastUpdatedTimestamp.Time.After(p2.LastUpdatedTimestamp.Time)
 }
 
-// GetParamDefinitions retrieves parameter metadata from OperatorVersion CRD
-func GetParamDefinitions(params map[string]string, ov *OperatorVersion) []Parameter {
+// GetParamDefinitions retrieves parameter metadata from OperatorVersion but returns an error if any parameter is missing
+func GetParamDefinitions(params map[string]string, ov *OperatorVersion) ([]Parameter, error) {
 	defs := []Parameter{}
 	for p1 := range params {
-		for _, p2 := range ov.Spec.Parameters {
-			if p2.Name == p1 {
-				defs = append(defs, p2)
-			}
+		p1 := p1
+		p2 := funk.Find(ov.Spec.Parameters, func(e Parameter) bool {
+			return e.Name == p1
+		})
+
+		if p2 == nil {
+			return nil, fmt.Errorf("failed to find parameter %q in the OperatorVersion", p1)
 		}
+
+		defs = append(defs, p2.(Parameter))
 	}
-	return defs
+	return defs, nil
 }
 
 // ParameterDiff returns map containing all parameters that were removed or changed between old and new
@@ -252,6 +241,27 @@ func ParameterDiff(old, new map[string]string) map[string]string {
 	}
 
 	return diff
+}
+
+// RichParameterDiff compares new and old map and returns two maps: first containing all changed/added
+// and second all removed parameters.
+func RichParameterDiff(old, new map[string]string) (changed, removed map[string]string) {
+	changed, removed = make(map[string]string), make(map[string]string)
+
+	for key, val := range old {
+		// If a parameter was removed in the new spec
+		if _, ok := new[key]; !ok {
+			removed[key] = val
+		}
+	}
+
+	for key, val := range new {
+		// If new spec parameter was added or changed
+		if v, ok := old[key]; !ok || v != val {
+			changed[key] = val
+		}
+	}
+	return
 }
 
 func CleanupPlanExists(ov *OperatorVersion) bool { return PlanExists(CleanupPlanName, ov) }

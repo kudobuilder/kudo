@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -57,8 +58,13 @@ func (c *Client) DownloadIndexFile() (*IndexFile, error) {
 	parsedURL.Path = fmt.Sprintf("%s/index.yaml", strings.TrimSuffix(parsedURL.Path, "/"))
 
 	indexURL = parsedURL.String()
-
-	resp, err := c.Client.Get(indexURL)
+	var resp *bytes.Buffer
+	if strings.HasPrefix(indexURL, "file:") {
+		b, _ := ioutil.ReadFile(parsedURL.Path)
+		resp = bytes.NewBuffer(b)
+	} else {
+		resp, err = c.Client.Get(indexURL)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("getting index url: %w", err)
 	}

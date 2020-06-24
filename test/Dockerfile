@@ -1,4 +1,4 @@
-FROM kudobuilder/golang:1.13
+FROM kudobuilder/golang:1.14
 
 WORKDIR $GOPATH/src/github.com/kudobuilder/kudo
 
@@ -19,6 +19,7 @@ COPY pkg/ pkg/
 COPY cmd/ cmd/
 COPY hack/run-integration-tests.sh hack/run-integration-tests.sh
 COPY hack/run-e2e-tests.sh hack/run-e2e-tests.sh
+COPY hack/run-operator-tests.sh hack/run-operator-tests.sh
 COPY test/ test/
 COPY kudo-test.yaml kudo-test.yaml
 COPY kudo-e2e-test.yaml.tmpl kudo-e2e-test.yaml.tmpl

@@ -5,6 +5,12 @@ manifestDirs:
 - ./test/manifests/
 testDirs:
 - ./test/integration
-startKUDO: true
+commands:
+  - command: |-
+      sh -c '
+      KUDO_CERT_DIR="./test/cert" ./bin/manager
+      '
+    background: true
+  - command: sleep 5
 startControlPlane: true
 parallel: 4

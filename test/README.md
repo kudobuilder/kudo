@@ -90,15 +90,20 @@ ok      github.com/kudobuilder/kudo/pkg/kudoctl/cmd     0.048s [no tests to run]
 This will update all golden files.   There is no fear in updating the entire project as any change resulting in a golden file test failure would need to be updated regardless.
 
 
-## How to setup a webhook locally
+## How to set up a webhook locally
 
-Some KUDO features (like triggering plans manually) require the controller to run with enabled webhooks (`ENABLE_WEBHOOKS=true`) It is also common to simply `make run` the controller in the console for local development. However, since the API server running, in most cases inside the minikube, has be able to send POST requests to the webhook, this setup doesn't work out of the box. 
+KUDO uses webhooks that themselves require server certificates. By default, KUDO expects [cert-manager](https://cert-manager.io/) running in the cluster. There is also an option to use self-signed certificates by providing a `kudo inint --unsafe-self-signed-webhook-ca` option during KUDO initialization. It is also common to simply `make run` the controller in the console when developing and debugging KUDO locally. However, since the API server running, in most cases inside the minikube, has be able to send POST requests to the webhook, this setup doesn't work out of the box. 
 
 Here what you need to make this setup work:
 
 1. First of all the webhook needs tls.crt and tls.key files in /tmp/cert to start. You can use openssl to generate them:
 ```shell script
  ❯ openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out /tmp/cert/tls.crt -keyout /tmp/cert/tls.key
+```
+and generate the certificates in the default location `/tmp/cert` or use the certificates that we use of the integration 
+tests and start the manager using `KUDO_CERT_DIR` option:
+```yaml
+KUDO_CERT_DIR=./test/cert/ make run
 ```
 
 2. Install ngrok: https://ngrok.com/ and run a local tunnel on the port 443 which will give you an url to your local machine:
@@ -142,19 +147,19 @@ webhooks:
 ---
 ```
 
-The difference between this one and the one generate by the `kudo init --webhook=InstanceValidation` command, (see this [method](pkg/kudoctl/kudoinit/prereq/webhook.go:163) for more information) is the usage of `webhooks[].clientConfig.url` (which points to our ngrok-tunnel) instead of `webhooks[].clientConfig.Service`.
+The difference between this one and the one generate by the `kudo init --unsafe-self-signed-webhook-ca` command, (see this [method](pkg/kudoctl/kudoinit/prereq/webhook.go:163) for more information) is the usage of `webhooks[].clientConfig.url` (which points to our ngrok-tunnel) instead of `webhooks[].clientConfig.Service`.
 
-4. Finally you can run local manager with the webhook enabled:
+4. Finally, you can run your local manager:
 ```shell script
- ❯ ENABLE_WEBHOOKS=true make run
+ ❯ make run
 ```
 
 and if everything was setup correctly the log should show:
 ```text
 ...
- ⌛ Setting up webhooks
- ✅ Instance admission webhook
- 🏄 Done! Everything is setup, starting KUDO manager now
+ Setting up webhooks
+ Instance admission webhook
+ Done! Everything is setup, starting KUDO manager now
 ```
 
 5. Test the webhook with:

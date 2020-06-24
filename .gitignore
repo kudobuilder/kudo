@@ -6,6 +6,11 @@ hack/controller-gen
 test/.git-credentials
 reports/
 config/manager_image_patch.yaml-e
+# created by /hack/generate_krew.sh during release
+kudo.yaml
+kudo-e2e-test.yaml
+kind-logs-*
+operators
 
 ### mac
 .DS_Store

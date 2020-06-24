@@ -8,9 +8,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/install"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/params"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/resources/upgrade"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
@@ -43,6 +44,7 @@ var defaultOptions = &options{}
 func newUpgradeCmd(fs afero.Fs) *cobra.Command {
 	options := defaultOptions
 	var parameters []string
+	var parameterFiles []string
 	upgradeCmd := &cobra.Command{
 		Use:     "upgrade <name>",
 		Short:   "Upgrade KUDO package.",
@@ -51,9 +53,9 @@ func newUpgradeCmd(fs afero.Fs) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Prior to command execution we parse and validate passed arguments
 			var err error
-			options.Parameters, err = install.GetParameterMap(parameters)
+			options.Parameters, err = params.GetParameterMap(fs, parameters, parameterFiles)
 			if err != nil {
-				return fmt.Errorf("could not parse arguments: %w", err)
+				return fmt.Errorf("could not parse parameters: %v", err)
 			}
 			return runUpgrade(args, options, fs, &Settings)
 		},
@@ -61,6 +63,7 @@ func newUpgradeCmd(fs afero.Fs) *cobra.Command {
 
 	upgradeCmd.Flags().StringVar(&options.InstanceName, "instance", "", "The instance name.")
 	upgradeCmd.Flags().StringArrayVarP(&parameters, "parameter", "p", nil, "The parameter name and value separated by '='")
+	upgradeCmd.Flags().StringArrayVarP(&parameterFiles, "parameter-file", "P", nil, "YAML file with parameters")
 	upgradeCmd.Flags().StringVar(&options.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
 	upgradeCmd.Flags().StringVar(&options.AppVersion, "app-version", "",
 		"A specific app version in the official repository. When installing from other sources than an official repository, a version from inside operator.yaml will be used. (default to the most recent)")
@@ -106,5 +109,7 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 
 	resources := pkg.Resources
 
-	return kudo.UpgradeOperatorVersion(kc, resources.OperatorVersion, options.InstanceName, settings.Namespace, options.Parameters)
+	resources.OperatorVersion.SetNamespace(settings.Namespace)
+
+	return upgrade.OperatorVersion(kc, resources.OperatorVersion, options.InstanceName, options.Parameters, resolver)
 }

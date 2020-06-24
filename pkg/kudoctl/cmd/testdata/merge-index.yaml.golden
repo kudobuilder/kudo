@@ -10,6 +10,15 @@ entries:
     urls:
     - https://kudo-repository.storage.googleapis.com/0.7.0/elastic-0.1.0.tgz
   mysql:
+  - appVersion: "5.8"
+    digest: aafe419e62065c5a3dc2f5d1458f1b5977137918236c3812ba90b5c7f6b8fb20
+    maintainers:
+    - email: kensipe@gmail.com
+      name: Ken Sipe
+    name: mysql
+    operatorVersion: 0.2.0
+    urls:
+    - https://kudo-repository.storage.googleapis.com/0.7.0/mysql-0.2.0.tgz
   - appVersion: "5.7"
     digest: aafe419e62065c5a3dc2f5d1458f1b5977137918236c3812ba90b5c7f6b8fb20
     maintainers:

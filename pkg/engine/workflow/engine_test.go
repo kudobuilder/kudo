@@ -1,7 +1,6 @@
 package workflow
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -10,13 +9,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
-	"github.com/kudobuilder/kudo/pkg/test/utils"
+	kudofake "github.com/kudobuilder/kudo/pkg/test/fake"
 )
 
 var testTime = time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)
@@ -620,10 +620,12 @@ func TestExecutePlan(t *testing.T) {
 		},
 	}
 
+	testScheme := scheme.Scheme
 	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
-	fakeDiscovery := utils.FakeDiscoveryClient()
+	fakeDiscovery := kudofake.CachedDiscoveryClient()
+	fakeCachedDiscovery := memory.NewMemCacheClient(fakeDiscovery)
 	for _, tt := range tests {
-		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, fakeDiscovery, nil, tt.enhancer)
+		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, fakeCachedDiscovery, nil, testScheme)
 		newStatus.LastUpdatedTimestamp = &metav1.Time{Time: testTime}
 
 		if !tt.wantErr && err != nil {
@@ -660,14 +662,6 @@ func instance() *v1beta1.Instance {
 
 type testEnhancer struct{}
 
-func (k *testEnhancer) Apply(templates map[string]string, metadata renderer.Metadata) ([]runtime.Object, error) {
-	result := make([]runtime.Object, 0)
-	for _, t := range templates {
-		objsToAdd, err := renderer.YamlToObject(t)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing kubernetes objects after applying enhance: %v", err)
-		}
-		result = append(result, objsToAdd[0])
-	}
-	return result, nil
+func (k *testEnhancer) Apply(objs []runtime.Object, metadata renderer.Metadata) ([]runtime.Object, error) {
+	return objs, nil
 }

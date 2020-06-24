@@ -1,13 +1,14 @@
 ---
 kep-number: 24
-title: Enabling and Disabling features in KUDO Operators
+title: Enhanced Operator Parameters
+short-desc: Parameter types other than `string`
 authors:
   - "@nfnt"
 owners:
   - "@nfnt"
 creation-date: 2020-02-21
-last-updated: 2020-02-21
-status: provisional
+last-updated: 2020-03-06
+status: implemented
 ---
 
 # Enhanced Operator Parameters
@@ -149,5 +150,6 @@ Support for lists or dictionaries could be added by treating every parameter val
 ## Implementation History
 
 - 2020/02/21 - Initial draft. (@nfnt)
+- 2020/03/06 - [Implemented](https://github.com/kudobuilder/kudo/pull/1376). (@nfnt)
 
 [1]: http://masterminds.github.io/sprig/

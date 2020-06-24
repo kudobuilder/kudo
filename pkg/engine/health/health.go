@@ -14,26 +14,14 @@ import (
 	"k8s.io/kubectl/pkg/polymorphichelpers"
 
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/engine"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 )
-
-// IsTerminallyFailed returns whether an object is in a terminal failed state and has no chance to reach healthy
-func IsTerminallyFailed(obj runtime.Object) (bool, string) {
-	if obj == nil {
-		return false, ""
-	}
-
-	switch obj := obj.(type) {
-	case *batchv1.Job:
-		return isJobTerminallyFailed(obj)
-	default:
-		return false, ""
-	}
-}
 
 func isJobTerminallyFailed(job *batchv1.Job) (bool, string) {
 	for _, c := range job.Status.Conditions {
 		if c.Type == batchv1.JobFailed && c.Status == corev1.ConditionTrue {
-			log.Printf("HealthUtil: Job \"%v\" has failed: %s", job.Name, c.Message)
+			log.Printf("HealthUtil: Job %q has failed: %s", job.Name, c.Message)
 			return true, c.Message
 		}
 	}
@@ -74,29 +62,33 @@ func IsHealthy(obj runtime.Object) error {
 			log.Printf("HealthUtil: Deployment %v is NOT healthy. %s", obj.Name, msg)
 			return errors.New(msg)
 		}
-		log.Printf("Deployment %v is marked healthy\n", obj.Name)
+		clog.V(2).Printf("Deployment %v is marked healthy\n", obj.Name)
 		return nil
 	case *batchv1.Job:
 
 		if obj.Status.Succeeded == int32(1) {
 			// Done!
-			log.Printf("HealthUtil: Job \"%v\" is marked healthy", obj.Name)
+			log.Printf("HealthUtil: Job %q is marked healthy", obj.Name)
 			return nil
 		}
-		return fmt.Errorf("job \"%v\" still running or failed", obj.Name)
-	case *kudov1beta1.Instance:
-		log.Printf("HealthUtil: Instance %v is in state %v", obj.Name, obj.Status.AggregatedStatus.Status)
+		if terminal, msg := isJobTerminallyFailed(obj); terminal {
+			return fmt.Errorf("%wHealthUtil: Job %q has failed terminally: %s", engine.ErrFatalExecution, obj.Name, msg)
+		}
 
-		if obj.Status.AggregatedStatus.Status.IsFinished() {
+		return fmt.Errorf("job %q still running or failed", obj.Name)
+	case *kudov1beta1.Instance:
+		// if there is no scheduled plan, then we're done
+		if obj.Spec.PlanExecution.PlanName == "" {
 			return nil
 		}
-		return fmt.Errorf("instance's active plan is in state %v", obj.Status.AggregatedStatus.Status)
+
+		return fmt.Errorf("instance %s/%s active plan is in state %v", obj.Namespace, obj.Name, obj.Spec.PlanExecution.Status)
 
 	case *corev1.Pod:
 		if obj.Status.Phase == corev1.PodRunning {
 			return nil
 		}
-		return fmt.Errorf("pod \"%v\" is not running yet: %s", obj.Name, obj.Status.Phase)
+		return fmt.Errorf("pod %q is not running yet: %s", obj.Name, obj.Status.Phase)
 
 	// unless we build logic for what a healthy object is, assume it's healthy when created.
 	default:

@@ -10,7 +10,11 @@ import (
 )
 
 const (
+	DefaultManagerName    = "kudo-controller-manager"
 	DefaultNamespace      = "kudo-system"
+	DefaultServiceName    = "kudo-controller-manager-service"
+	DefaultSecretName     = "kudo-webhook-server-secret" //nolint
+	DefaultKudoLabel      = "kudo-manager"
 	defaultGracePeriod    = 10
 	defaultServiceAccount = "kudo-manager"
 )
@@ -22,10 +26,7 @@ type Artifacter interface {
 
 type InstallVerifier interface {
 	// PreInstallVerify verifies that the installation is possible
-	PreInstallVerify(client *kube.Client) verifier.Result
-
-	// TODO: Add verification of existing installation
-	// VerifyInstallation(client *kube.Client) Result
+	PreInstallVerify(client *kube.Client, result *verifier.Result) error
 }
 
 type Installer interface {
@@ -43,6 +44,6 @@ type Step interface {
 }
 
 func GenerateLabels(labels map[string]string) map[string]string {
-	labels["app"] = "kudo-manager"
+	labels["app"] = DefaultKudoLabel
 	return labels
 }

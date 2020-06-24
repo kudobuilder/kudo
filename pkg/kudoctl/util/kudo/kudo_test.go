@@ -8,6 +8,7 @@ import (
 	"gotest.tools/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kubefake "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
@@ -15,15 +16,17 @@ import (
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
+const installNamespace = "default"
+
 func newTestSimpleK2o() *Client {
-	return NewClientFromK8s(fake.NewSimpleClientset())
+	return NewClientFromK8s(fake.NewSimpleClientset(), kubefake.NewSimpleClientset())
 }
 
 func TestKudoClientValidate(t *testing.T) {
 	tests := []struct {
 		err string
 	}{
-		{"CRDs invalid: failed to retrieve CRD"}, // verify that NewClient tries to validate CRDs
+		{"failed to run crd verification: failed to retrieve CRD"}, // verify that NewClient tries to validate CRDs
 	}
 
 	for _, tt := range tests {
@@ -45,7 +48,7 @@ func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 	}
 
 	tests := []struct {
-		bool     bool
+		exists   bool
 		err      string
 		createns string
 		getns    string
@@ -53,16 +56,16 @@ func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 	}{
 		{},                                      // 1
 		{createns: "default", getns: "default"}, // 2
-		{bool: true, obj: &obj},                 // 3
-		{bool: true, createns: "default", obj: &obj}, // 4
-		{getns: "kudo", obj: &obj},                   // 4
+		{exists: true, obj: &obj},               // 3
+		{exists: true, createns: "default", obj: &obj, getns: "default"}, // 4
+		{getns: "kudo", obj: &obj},                                       // 5
 	}
 
 	for i, tt := range tests {
 		k2o := newTestSimpleK2o()
 
 		// create Operator
-		_, err := k2o.clientset.KudoV1beta1().Operators(tt.createns).Create(tt.obj)
+		_, err := k2o.kudoClientset.KudoV1beta1().Operators(tt.createns).Create(tt.obj)
 		if err != nil {
 			if err.Error() != "object does not implement the Object interfaces" {
 				t.Errorf("unexpected error: %+v", err)
@@ -72,8 +75,8 @@ func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 		// test if Operator exists in namespace
 		exist := k2o.OperatorExistsInCluster("test", tt.getns)
 
-		if tt.bool != exist {
-			t.Errorf("%d:\nexpected: %v\n     got: %v", i+1, tt.bool, exist)
+		if tt.exists != exist {
+			t.Errorf("%d:\nexpected: %v\n     got: %v", i+1, tt.exists, exist)
 		}
 	}
 }
@@ -135,7 +138,7 @@ func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
 
 		// create Instance
 		if tt.obj != nil {
-			_, err := k2o.clientset.KudoV1beta1().Instances(instanceNamespace).Create(tt.obj)
+			_, err := k2o.kudoClientset.KudoV1beta1().Instances(instanceNamespace).Create(tt.obj)
 			if err != nil {
 				t.Fatalf("%s: Error during test setup, cannot create test instance %v", tt.name, err)
 			}
@@ -169,7 +172,6 @@ func TestKudoClient_ListInstances(t *testing.T) {
 		},
 	}
 
-	installNamespace := "default"
 	tests := []struct {
 		expectedInstances []string
 		namespace         string
@@ -185,7 +187,7 @@ func TestKudoClient_ListInstances(t *testing.T) {
 
 		// create Instance
 		if tt.obj != nil {
-			_, err := k2o.clientset.KudoV1beta1().Instances(installNamespace).Create(tt.obj)
+			_, err := k2o.kudoClientset.KudoV1beta1().Instances(installNamespace).Create(tt.obj)
 			if err != nil {
 				t.Errorf("%d: Error creating instance in tests setup", i+1)
 			}
@@ -220,7 +222,6 @@ func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 	objWithSamePrefix.Name = operatorName + "-demo"
 	objWithSamePrefix.Spec.Operator.Name = operatorName + "-demo"
 
-	installNamespace := "default"
 	tests := []struct {
 		name             string
 		expectedVersions []string
@@ -238,7 +239,7 @@ func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 
 		// create Instance
 		if tt.obj != nil {
-			_, err := k2o.clientset.KudoV1beta1().OperatorVersions(installNamespace).Create(tt.obj)
+			_, err := k2o.kudoClientset.KudoV1beta1().OperatorVersions(installNamespace).Create(tt.obj)
 			if err != nil {
 				t.Errorf("Error creating operator version in tests setup for %s", tt.name)
 			}
@@ -280,12 +281,12 @@ func TestKudoClient_InstallOperatorObjToCluster(t *testing.T) {
 		k2o := newTestSimpleK2o()
 
 		// create Operator
-		k2o.clientset.KudoV1beta1().Operators(tt.createns).Create(tt.obj) //nolint:errcheck
+		k2o.kudoClientset.KudoV1beta1().Operators(tt.createns).Create(tt.obj) //nolint:errcheck
 
 		// test if Operator exists in namespace
 		k2o.InstallOperatorObjToCluster(tt.obj, tt.createns) //nolint:errcheck
 
-		_, err := k2o.clientset.KudoV1beta1().Operators(tt.createns).Get(tt.name, metav1.GetOptions{})
+		_, err := k2o.kudoClientset.KudoV1beta1().Operators(tt.createns).Get(tt.name, metav1.GetOptions{})
 		if tt.err != "" {
 			assert.ErrorContains(t, err, tt.err, "failure in %v test case", i+1)
 		}
@@ -320,12 +321,12 @@ func TestKudoClient_InstallOperatorVersionObjToCluster(t *testing.T) {
 		k2o := newTestSimpleK2o()
 
 		// create Operator
-		k2o.clientset.KudoV1beta1().OperatorVersions(tt.createns).Create(tt.obj) //nolint:errcheck
+		k2o.kudoClientset.KudoV1beta1().OperatorVersions(tt.createns).Create(tt.obj) //nolint:errcheck
 
 		// test if Operator exists in namespace
 		k2o.InstallOperatorVersionObjToCluster(tt.obj, tt.createns) //nolint:errcheck
 
-		_, err := k2o.clientset.KudoV1beta1().OperatorVersions(tt.createns).Get(tt.name, metav1.GetOptions{})
+		_, err := k2o.kudoClientset.KudoV1beta1().OperatorVersions(tt.createns).Get(tt.name, metav1.GetOptions{})
 		if tt.err != "" {
 			assert.ErrorContains(t, err, tt.err, "failure in %v test case", i+1)
 		}
@@ -360,12 +361,12 @@ func TestKudoClient_InstallInstanceObjToCluster(t *testing.T) {
 		k2o := newTestSimpleK2o()
 
 		// create Operator
-		k2o.clientset.KudoV1beta1().Instances(tt.createns).Create(tt.obj) //nolint:errcheck
+		k2o.kudoClientset.KudoV1beta1().Instances(tt.createns).Create(tt.obj) //nolint:errcheck
 
 		// test if Operator exists in namespace
 		k2o.InstallInstanceObjToCluster(tt.obj, tt.createns) //nolint:errcheck
 
-		_, err := k2o.clientset.KudoV1beta1().Instances(tt.createns).Get(tt.name, metav1.GetOptions{})
+		_, err := k2o.kudoClientset.KudoV1beta1().Instances(tt.createns).Get(tt.name, metav1.GetOptions{})
 		if tt.err != "" {
 			assert.ErrorContains(t, err, tt.err, "failure in %v test case", i+1)
 		}
@@ -391,7 +392,6 @@ func TestKudoClient_GetInstance(t *testing.T) {
 		},
 	}
 
-	installNamespace := "default"
 	tests := []struct {
 		name             string
 		found            bool
@@ -408,7 +408,7 @@ func TestKudoClient_GetInstance(t *testing.T) {
 
 		// create Instance
 		if tt.storedInstance != nil {
-			_, err := k2o.clientset.KudoV1beta1().Instances(installNamespace).Create(tt.storedInstance)
+			_, err := k2o.kudoClientset.KudoV1beta1().Instances(installNamespace).Create(tt.storedInstance)
 			if err != nil {
 				t.Errorf("%d: Error creating instance in tests setup", i+1)
 			}
@@ -437,7 +437,6 @@ func TestKudoClient_GetOperatorVersion(t *testing.T) {
 		},
 	}
 
-	installNamespace := "default"
 	tests := []struct {
 		name      string
 		found     bool
@@ -454,7 +453,7 @@ func TestKudoClient_GetOperatorVersion(t *testing.T) {
 
 		// create Instance
 		if tt.storedOv != nil {
-			_, err := k2o.clientset.KudoV1beta1().OperatorVersions(installNamespace).Create(tt.storedOv)
+			_, err := k2o.kudoClientset.KudoV1beta1().OperatorVersions(installNamespace).Create(tt.storedOv)
 			if err != nil {
 				t.Errorf("Error creating operator version in tests setup for %s", tt.name)
 			}
@@ -487,7 +486,6 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 		},
 	}
 
-	installNamespace := "default"
 	tests := []struct {
 		name               string
 		patchToVersion     *string
@@ -510,12 +508,12 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 		// create Instance
 		instanceToCreate := testInstance
 		instanceToCreate.Spec.Parameters = tt.existingParameters
-		_, err := k2o.clientset.KudoV1beta1().Instances(installNamespace).Create(&instanceToCreate)
+		_, err := k2o.kudoClientset.KudoV1beta1().Instances(installNamespace).Create(&instanceToCreate)
 		if err != nil {
 			t.Errorf("Error creating operator version in tests setup for %s", tt.name)
 		}
 
-		err = k2o.UpdateInstance(testInstance.Name, installNamespace, tt.patchToVersion, tt.parametersToPatch, nil)
+		err = k2o.UpdateInstance(testInstance.Name, installNamespace, tt.patchToVersion, tt.parametersToPatch, nil, false, 0)
 		instance, _ := k2o.GetInstance(testInstance.Name, installNamespace)
 		if tt.patchToVersion != nil {
 			if err != nil || instance.Spec.OperatorVersion.Name != convert.StringValue(tt.patchToVersion) {
@@ -572,7 +570,6 @@ func TestKudoClient_DeleteInstance(t *testing.T) {
 		},
 	}
 
-	installNamespace := "default"
 	tests := []struct {
 		name         string
 		instanceName string
@@ -587,7 +584,7 @@ func TestKudoClient_DeleteInstance(t *testing.T) {
 	for _, test := range tests {
 		k2o := newTestSimpleK2o()
 
-		_, err := k2o.clientset.KudoV1beta1().Instances(installNamespace).Create(&testInstance)
+		_, err := k2o.kudoClientset.KudoV1beta1().Instances(installNamespace).Create(&testInstance)
 		if err != nil {
 			t.Fatalf("error creating instance in tests setup for")
 		}
@@ -607,6 +604,61 @@ func TestKudoClient_DeleteInstance(t *testing.T) {
 				}
 			}
 
+		} else {
+			if !test.shouldFail {
+				t.Errorf("expected test %s to succeed but got error: %v", test.name, err)
+			}
+		}
+	}
+}
+
+func TestKudoClient_CreateNamespace(t *testing.T) {
+	tests := []struct {
+		name       string
+		namespace  string
+		manifest   string
+		shouldFail bool
+	}{
+		{
+			name:       "Invalid manifest",
+			namespace:  "foo-test",
+			manifest:   "invalid namespace resource",
+			shouldFail: true,
+		},
+		{
+			name:       "Namespace without manifest",
+			namespace:  "foo-test",
+			manifest:   "",
+			shouldFail: false,
+		},
+		{
+			name:      "Namespace name overwrites manifest",
+			namespace: "foo-test",
+			manifest: `apiVersion: v1
+kind: Namespace
+metadata:
+  name: bar-test
+`,
+			shouldFail: false,
+		},
+	}
+
+	for _, test := range tests {
+		k2o := newTestSimpleK2o()
+
+		err := k2o.CreateNamespace(test.namespace, test.manifest)
+		if err == nil {
+			if test.shouldFail {
+				t.Errorf("expected test %s to fail", test.name)
+			} else {
+				namespace, err := k2o.KubeClientset.
+					CoreV1().
+					Namespaces().
+					Get(test.namespace, metav1.GetOptions{})
+				assert.NilError(t, err)
+
+				assert.Equal(t, namespace.Annotations["created-by"], "kudo-cli")
+			}
 		} else {
 			if !test.shouldFail {
 				t.Errorf("expected test %s to succeed but got error: %v", test.name, err)

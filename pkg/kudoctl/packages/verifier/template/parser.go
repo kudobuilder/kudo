@@ -99,8 +99,11 @@ func walkNodes(node parse.Node, fname string, nodeMap map[string]map[string]bool
 		for _, n := range node.Nodes {
 			walkNodes(n, fname, nodeMap)
 		}
-	case *parse.RangeNode: // no support for Range, Template or TextNodes
-	case *parse.TemplateNode:
+	case *parse.RangeNode:
+		walkNodes(node.List, fname, nodeMap)
+		walkPipes(node.Pipe, nodeMap)
+	case *parse.TemplateNode: // no support Template or TextNodes
+		clog.V(2).Printf("file %q has a template node: node: %s", fname, node)
 	case *parse.TextNode:
 	default:
 		clog.V(2).Printf("file %q has unknown node: %s", fname, node)
@@ -158,6 +161,9 @@ func walkPipes(node *parse.PipeNode, nodeMap map[string]map[string]bool) {
 				if len(n.Ident) > 3 {
 					clog.V(3).Printf("template node %v has more elements than is supported", arg.String())
 				}
+			//	RangeNode have PipeNode that have PipeNode
+			case *parse.PipeNode:
+				walkPipes(n, nodeMap)
 			}
 		}
 	}

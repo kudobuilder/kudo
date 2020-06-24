@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: configdata
+data:
+  valueA: {{ .Params.CONFIG_MAP_VALUE }}
+  valueB: {{ .Params.OTHER_CONFIG_VALUE }}
