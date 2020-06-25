@@ -97,7 +97,10 @@ func (r *Reconciler) SetupWithManager(
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kudov1beta1.Instance{}).
+		// Owns() is equivalent to Watches(&source.Kind{Type: <ForType-apiType>}, &handler.EnqueueRequestForOwner{OwnerType: apiType, IsController: true})
 		Owns(&kudov1beta1.Instance{}).
+		// the Watches() below is almost the same as Owns() above, but with IsController: false for reconciliation of parent Instances
+		Watches(&source.Kind{Type: &kudov1beta1.Instance{}}, &handler.EnqueueRequestForOwner{OwnerType: &kudov1beta1.Instance{}, IsController: false}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&batchv1.Job{}).
