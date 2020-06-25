@@ -22,7 +22,7 @@ status:
 apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
-  name: dummy-instance.child
+  name: dummy-instance-child
 status:
   planStatus:
     deploy:
