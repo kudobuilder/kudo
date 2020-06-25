@@ -143,6 +143,7 @@ func updateKudoOperatorTaskPackageNames(
 			for _, dependency := range dependencies {
 				if tasks[i].Spec.KudoOperatorTaskSpec.Package == dependency.PackageName {
 					tasks[i].Spec.KudoOperatorTaskSpec.Package = dependency.Operator.Name
+					tasks[i].Spec.KudoOperatorTaskSpec.OperatorVersion = dependency.OperatorVersion.Spec.Version
 					break
 				}
 			}
