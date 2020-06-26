@@ -1,98 +1,17 @@
 apiVersion: v1
+kind: ServiceList
 items:
 - apiVersion: v1
   kind: Service
   metadata:
-    annotations:
-      kudo.dev/last-applied-configuration: |
-        {"kind":"Service","apiVersion":"v1","metadata":{"name":"zookeeper-instance-cs","namespace":"my-namespace","creationTimestamp":null,"labels":{"app":"zookeeper","heritage":"kudo","kudo.dev/instance":"zookeeper-instance","kudo.dev/operator":"zookeeper","zookeeper":"zookeeper-instance"},"annotations":{"kudo.dev/last-plan-execution-uid":"7ce82b37-3638-47c7-8bcb-42b807c3c470","kudo.dev/operator-version":"0.3.0","kudo.dev/phase":"zookeeper","kudo.dev/plan":"deploy","kudo.dev/step":"deploy"},"ownerReferences":[{"apiVersion":"kudo.dev/v1beta1","kind":"Instance","name":"zookeeper-instance","uid":"51b95bd7-03fa-4e25-969a-241ef0467712","controller":true,"blockOwnerDeletion":true}]},"spec":{"ports":[{"name":"client","port":2181,"targetPort":0}],"selector":{"app":"zookeeper","instance":"zookeeper-instance"}},"status":{"loadBalancer":{}}}
-      kudo.dev/last-plan-execution-uid: 7ce82b37-3638-47c7-8bcb-42b807c3c470
-      kudo.dev/operator-version: 0.3.0
-      kudo.dev/phase: zookeeper
-      kudo.dev/plan: deploy
-      kudo.dev/step: deploy
-    creationTimestamp: "2020-05-18T20:19:10Z"
     labels:
-      app: zookeeper
-      heritage: kudo
-      kudo.dev/instance: zookeeper-instance
       kudo.dev/operator: zookeeper
-      zookeeper: zookeeper-instance
     name: zookeeper-instance-cs
     namespace: my-namespace
-    ownerReferences:
-    - apiVersion: kudo.dev/v1beta1
-      blockOwnerDeletion: true
-      controller: true
-      kind: Instance
-      name: zookeeper-instance
-      uid: 51b95bd7-03fa-4e25-969a-241ef0467712
-    resourceVersion: "5832483"
-    selfLink: /api/v1/namespaces/my-namespace/services/zookeeper-instance-cs
-    uid: f400e978-53b1-479b-b176-f18cd5c96e5c
-  spec:
-    clusterIP: 10.98.117.69
-    ports:
-    - name: client
-      port: 2181
-      protocol: TCP
-      targetPort: 2181
-    selector:
-      app: zookeeper
-      instance: zookeeper-instance
-    sessionAffinity: None
-    type: ClusterIP
-  status:
-    loadBalancer: {}
 - apiVersion: v1
   kind: Service
   metadata:
-    annotations:
-      kudo.dev/last-applied-configuration: |
-        {"kind":"Service","apiVersion":"v1","metadata":{"name":"zookeeper-instance-hs","namespace":"my-namespace","creationTimestamp":null,"labels":{"app":"zookeeper","heritage":"kudo","kudo.dev/instance":"zookeeper-instance","kudo.dev/operator":"zookeeper","zookeeper":"zookeeper-instance"},"annotations":{"kudo.dev/last-plan-execution-uid":"7ce82b37-3638-47c7-8bcb-42b807c3c470","kudo.dev/operator-version":"0.3.0","kudo.dev/phase":"zookeeper","kudo.dev/plan":"deploy","kudo.dev/step":"deploy"},"ownerReferences":[{"apiVersion":"kudo.dev/v1beta1","kind":"Instance","name":"zookeeper-instance","uid":"51b95bd7-03fa-4e25-969a-241ef0467712","controller":true,"blockOwnerDeletion":true}]},"spec":{"ports":[{"name":"server","port":2888,"targetPort":0},{"name":"leader-election","port":3888,"targetPort":0}],"selector":{"app":"zookeeper","instance":"zookeeper-instance"},"clusterIP":"None"},"status":{"loadBalancer":{}}}
-      kudo.dev/last-plan-execution-uid: 7ce82b37-3638-47c7-8bcb-42b807c3c470
-      kudo.dev/operator-version: 0.3.0
-      kudo.dev/phase: zookeeper
-      kudo.dev/plan: deploy
-      kudo.dev/step: deploy
-    creationTimestamp: "2020-05-18T20:19:10Z"
     labels:
-      app: zookeeper
-      heritage: kudo
-      kudo.dev/instance: zookeeper-instance
       kudo.dev/operator: zookeeper
-      zookeeper: zookeeper-instance
     name: zookeeper-instance-hs
     namespace: my-namespace
-    ownerReferences:
-    - apiVersion: kudo.dev/v1beta1
-      blockOwnerDeletion: true
-      controller: true
-      kind: Instance
-      name: zookeeper-instance
-      uid: 51b95bd7-03fa-4e25-969a-241ef0467712
-    resourceVersion: "5832476"
-    selfLink: /api/v1/namespaces/my-namespace/services/zookeeper-instance-hs
-    uid: 18210a16-6dc9-4e36-850e-8a527f192ac8
-  spec:
-    clusterIP: None
-    ports:
-    - name: server
-      port: 2888
-      protocol: TCP
-      targetPort: 2888
-    - name: leader-election
-      port: 3888
-      protocol: TCP
-      targetPort: 3888
-    selector:
-      app: zookeeper
-      instance: zookeeper-instance
-    sessionAffinity: None
-    type: ClusterIP
-  status:
-    loadBalancer: {}
-kind: ServiceList
-metadata:
-  resourceVersion: ""
-  selfLink: ""

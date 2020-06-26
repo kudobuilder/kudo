@@ -447,6 +447,26 @@ func (c *Client) CreateNamespace(namespace, manifest string) error {
 	return err
 }
 
+// GetChildInstances returns all instances that were created as dependencies of a parent instance
+func (c *Client) GetChildInstances(parent *v1beta1.Instance) ([]v1beta1.Instance, error) {
+	instances, err := c.kudoClientset.KudoV1beta1().Instances(parent.Namespace).List(v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	children := []v1beta1.Instance{}
+
+	for _, instance := range instances.Items {
+		for _, or := range instance.GetOwnerReferences() {
+			if parent.UID == or.UID {
+				children = append(children, instance)
+			}
+		}
+	}
+
+	return children, nil
+}
+
 // getKubeVersion returns stringified version of k8s server
 func getKubeVersion(client discovery.ServerVersionInterface) (string, error) {
 	v, err := client.ServerVersion()

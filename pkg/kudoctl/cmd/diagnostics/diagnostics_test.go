@@ -33,64 +33,73 @@ const (
 )
 
 const (
-	zkOperatorFile        = "diag/operator_zookeeper/zookeeper.yaml"
-	zkOperatorVersionFile = "diag/operator_zookeeper/operatorversion_zookeeper-0.3.0/zookeeper-0.3.0.yaml"
-	zkPod2File            = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-2/zookeeper-instance-zookeeper-2.yaml"
-	zkLog2Container1File  = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-2/kubernetes-zookeeper.log.gz"
-	zkServicesFile        = "diag/operator_zookeeper/instance_zookeeper-instance/servicelist.yaml"
-	zkPod0File            = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-0/zookeeper-instance-zookeeper-0.yaml"
-	zkLog0Container1File  = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-0/kubernetes-zookeeper.log.gz"
-	zkLog0Container2File  = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-0/pause-debug.log.gz"
-	zkInstanceFile        = "diag/operator_zookeeper/instance_zookeeper-instance/zookeeper-instance.yaml"
-	zkPod1File            = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-1/zookeeper-instance-zookeeper-1.yaml"
-	zkLog1Container1File  = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-1/kubernetes-zookeeper.log.gz"
-	zkStatefulSetsFile    = "diag/operator_zookeeper/instance_zookeeper-instance/statefulsetlist.yaml"
-	versionFile           = "diag/version.yaml"
-	kmServicesFile        = "diag/kudo/servicelist.yaml"
-	kmPodFile             = "diag/kudo/pod_kudo-controller-manager-0/kudo-controller-manager-0.yaml"
-	kmLogFile             = "diag/kudo/pod_kudo-controller-manager-0/manager.log.gz"
-	kmServiceAccountsFile = "diag/kudo/serviceaccountlist.yaml"
-	kmStatefulSetsFile    = "diag/kudo/statefulsetlist.yaml"
-	settingsFile          = "diag/settings.yaml"
+	zkOperatorFile           = "diag/operator_zookeeper/zookeeper.yaml"
+	zkOperatorVersionFile    = "diag/operator_zookeeper/operatorversion_zookeeper-0.3.0/zookeeper-0.3.0.yaml"
+	zkPod2File               = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-2/zookeeper-instance-zookeeper-2.yaml"
+	zkLog2Container1File     = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-2/kubernetes-zookeeper.log.gz"
+	zkServicesFile           = "diag/operator_zookeeper/instance_zookeeper-instance/servicelist.yaml"
+	zkPod0File               = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-0/zookeeper-instance-zookeeper-0.yaml"
+	zkLog0Container1File     = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-0/kubernetes-zookeeper.log.gz"
+	zkLog0Container2File     = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-0/pause-debug.log.gz"
+	zkInstanceFile           = "diag/operator_zookeeper/instance_zookeeper-instance/zookeeper-instance.yaml"
+	zkPod1File               = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-1/zookeeper-instance-zookeeper-1.yaml"
+	zkLog1Container1File     = "diag/operator_zookeeper/instance_zookeeper-instance/pod_zookeeper-instance-zookeeper-1/kubernetes-zookeeper.log.gz"
+	zkStatefulSetsFile       = "diag/operator_zookeeper/instance_zookeeper-instance/statefulsetlist.yaml"
+	childOperatorFile        = "diag/operator_zookeeper-instance-child/zookeeper-instance-child.yaml"
+	childOperatorVersionFile = "diag/operator_zookeeper-instance-child/operatorversion_zookeeper-instance-child-0.1.0/zookeeper-instance-child-0.1.0.yaml"
+	childInstanceFile        = "diag/operator_zookeeper-instance-child/instance_zookeeper-instance-child-instance/zookeeper-instance-child-instance.yaml"
+	versionFile              = "diag/version.yaml"
+	kmServicesFile           = "diag/kudo/servicelist.yaml"
+	kmPodFile                = "diag/kudo/pod_kudo-controller-manager-0/kudo-controller-manager-0.yaml"
+	kmLogFile                = "diag/kudo/pod_kudo-controller-manager-0/manager.log.gz"
+	kmServiceAccountsFile    = "diag/kudo/serviceaccountlist.yaml"
+	kmStatefulSetsFile       = "diag/kudo/statefulsetlist.yaml"
+	settingsFile             = "diag/settings.yaml"
 )
 
 // defaultFileNames - all the files that should be created if no error happens
 func defaultFileNames() map[string]struct{} {
 	return map[string]struct{}{
-		zkOperatorFile:        {},
-		zkOperatorVersionFile: {},
-		zkPod2File:            {},
-		zkLog2Container1File:  {},
-		zkServicesFile:        {},
-		zkPod0File:            {},
-		zkLog0Container1File:  {},
-		zkLog0Container2File:  {},
-		zkInstanceFile:        {},
-		zkPod1File:            {},
-		zkLog1Container1File:  {},
-		zkStatefulSetsFile:    {},
-		versionFile:           {},
-		kmServicesFile:        {},
-		kmPodFile:             {},
-		kmLogFile:             {},
-		kmServiceAccountsFile: {},
-		kmStatefulSetsFile:    {},
-		settingsFile:          {},
+		zkOperatorFile:           {},
+		zkOperatorVersionFile:    {},
+		zkPod2File:               {},
+		zkLog2Container1File:     {},
+		zkServicesFile:           {},
+		zkPod0File:               {},
+		zkLog0Container1File:     {},
+		zkLog0Container2File:     {},
+		zkInstanceFile:           {},
+		zkPod1File:               {},
+		zkLog1Container1File:     {},
+		zkStatefulSetsFile:       {},
+		childOperatorFile:        {},
+		childOperatorVersionFile: {},
+		childInstanceFile:        {},
+		versionFile:              {},
+		kmServicesFile:           {},
+		kmPodFile:                {},
+		kmLogFile:                {},
+		kmServiceAccountsFile:    {},
+		kmStatefulSetsFile:       {},
+		settingsFile:             {},
 	}
 }
 
 // resource to be loaded into fake clients
 var (
 	// resource of the instance for which diagnostics is run
-	pods            corev1.PodList
-	serviceAccounts corev1.ServiceAccountList
-	services        corev1.ServiceList
-	statefulsets    appsv1.StatefulSetList
-	pvs             corev1.PersistentVolumeList
-	pvcs            corev1.PersistentVolumeClaimList
-	operator        v1beta1.Operator
-	operatorVersion v1beta1.OperatorVersion
-	instance        v1beta1.Instance
+	pods                 corev1.PodList
+	serviceAccounts      corev1.ServiceAccountList
+	services             corev1.ServiceList
+	statefulsets         appsv1.StatefulSetList
+	pvs                  corev1.PersistentVolumeList
+	pvcs                 corev1.PersistentVolumeClaimList
+	operator             v1beta1.Operator
+	operatorVersion      v1beta1.OperatorVersion
+	instance             v1beta1.Instance
+	childOperator        v1beta1.Operator
+	childOperatorVersion v1beta1.OperatorVersion
+	childInstance        v1beta1.Instance
 
 	// kudo-manager resources
 	kmNs              corev1.Namespace
@@ -151,6 +160,9 @@ func init() {
 	mustReadObjectFromYaml(osFs, "testdata/zk_operator.yaml", &operator, check)
 	mustReadObjectFromYaml(osFs, "testdata/zk_operatorversion.yaml", &operatorVersion, check)
 	mustReadObjectFromYaml(osFs, "testdata/zk_instance.yaml", &instance, check)
+	mustReadObjectFromYaml(osFs, "testdata/child_operator.yaml", &childOperator, check)
+	mustReadObjectFromYaml(osFs, "testdata/child_operatorversion.yaml", &childOperatorVersion, check)
+	mustReadObjectFromYaml(osFs, "testdata/child_instance.yaml", &childInstance, check)
 	mustReadObjectFromYaml(osFs, "testdata/kudo_ns.yaml", &kmNs, check)
 	mustReadObjectFromYaml(osFs, "testdata/kudo_pod.yaml", &kmPod, check)
 	mustReadObjectFromYaml(osFs, "testdata/kudo_services.yaml", &kmServices, check)
@@ -181,7 +193,10 @@ func init() {
 	kudoObjects = objectList{}.
 		append(&operator).
 		append(&operatorVersion).
-		append(&instance)
+		append(&instance).
+		append(&childOperator).
+		append(&childOperatorVersion).
+		append(&childInstance)
 }
 
 func TestCollect_OK(t *testing.T) {
@@ -210,18 +225,21 @@ func TestCollect_OK(t *testing.T) {
 	})
 
 	var (
-		collectedPod0              corev1.Pod
-		collectedPod1              corev1.Pod
-		collectedPod2              corev1.Pod
-		collectedKmPod             corev1.Pod
-		collectedServices          corev1.ServiceList
-		collectedStatefulsets      appsv1.StatefulSetList
-		collectedOperator          v1beta1.Operator
-		collectedOperatorVersion   v1beta1.OperatorVersion
-		collectedInstance          v1beta1.Instance
-		collectedKmServices        corev1.ServiceList
-		collectedKmServiceAccounts corev1.ServiceAccountList
-		collectedKmStatefulsets    appsv1.StatefulSetList
+		collectedPod0                 corev1.Pod
+		collectedPod1                 corev1.Pod
+		collectedPod2                 corev1.Pod
+		collectedKmPod                corev1.Pod
+		collectedServices             corev1.ServiceList
+		collectedStatefulsets         appsv1.StatefulSetList
+		collectedOperator             v1beta1.Operator
+		collectedOperatorVersion      v1beta1.OperatorVersion
+		collectedInstance             v1beta1.Instance
+		collectedChildOperator        v1beta1.Operator
+		collectedChildOperatorVersion v1beta1.OperatorVersion
+		collectedChildInstance        v1beta1.Instance
+		collectedKmServices           corev1.ServiceList
+		collectedKmServiceAccounts    corev1.ServiceAccountList
+		collectedKmStatefulsets       appsv1.StatefulSetList
 	)
 
 	// read the created files and assert no error
@@ -233,6 +251,9 @@ func TestCollect_OK(t *testing.T) {
 	mustReadObjectFromYaml(fs, zkInstanceFile, &collectedInstance, assertNilError(t))
 	mustReadObjectFromYaml(fs, zkPod1File, &collectedPod1, assertNilError(t))
 	mustReadObjectFromYaml(fs, zkStatefulSetsFile, &collectedStatefulsets, assertNilError(t))
+	mustReadObjectFromYaml(fs, childOperatorFile, &collectedChildOperator, assertNilError(t))
+	mustReadObjectFromYaml(fs, childOperatorVersionFile, &collectedChildOperatorVersion, assertNilError(t))
+	mustReadObjectFromYaml(fs, childInstanceFile, &collectedChildInstance, assertNilError(t))
 	mustReadObjectFromYaml(fs, kmServicesFile, &collectedKmServices, assertNilError(t))
 	mustReadObjectFromYaml(fs, kmPodFile, &collectedKmPod, assertNilError(t))
 	mustReadObjectFromYaml(fs, kmServiceAccountsFile, &collectedKmServiceAccounts, assertNilError(t))
@@ -247,6 +268,9 @@ func TestCollect_OK(t *testing.T) {
 	assert.Equal(t, instance, collectedInstance)
 	assert.Equal(t, pods.Items[1], collectedPod1)
 	assert.Equal(t, statefulsets, collectedStatefulsets)
+	assert.Equal(t, childOperator, collectedChildOperator)
+	assert.Equal(t, childOperatorVersion, collectedChildOperatorVersion)
+	assert.Equal(t, childInstance, collectedChildInstance)
 	assert.Equal(t, kmServices, collectedKmServices)
 	assert.Equal(t, kmPod, collectedKmPod)
 	assert.Equal(t, kmServiceAccounts, collectedKmServiceAccounts)
