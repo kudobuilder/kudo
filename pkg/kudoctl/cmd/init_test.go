@@ -244,7 +244,7 @@ func TestClientInitialize(t *testing.T) {
 	hh := kudohome.Home(home)
 
 	i := &initCmd{fs: fs, out: b, home: hh}
-	if err := i.initialize(); err != nil {
+	if err := i.ensureClient(); err != nil {
 		t.Error(err)
 	}
 

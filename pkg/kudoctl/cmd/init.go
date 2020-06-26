@@ -173,9 +173,9 @@ func (initCmd *initCmd) run() error {
 
 	installer := setup.NewInstaller(opts, initCmd.crdOnly)
 
-	// initialize client
+	// ensureClient client
 	if !initCmd.dryRun {
-		if err := initCmd.initialize(); err != nil {
+		if err := initCmd.ensureClient(); err != nil {
 			return clog.Errorf("error initializing: %s", err)
 		}
 	}
@@ -188,12 +188,8 @@ func (initCmd *initCmd) run() error {
 		return nil
 	}
 
-	if initCmd.clientOnly {
-		return nil
-	}
-
-	// initialize server
-	clog.V(4).Printf("initializing server")
+	// ensureClient server
+	clog.V(4).Printf("create client")
 	if initCmd.client == nil {
 		client, err := kube.GetKubeClient(Settings.KubeConfig)
 		if err != nil {
@@ -206,44 +202,12 @@ func (initCmd *initCmd) run() error {
 	}
 
 	if initCmd.upgrade {
-		ok, err := initCmd.preUpgradeVerify(installer)
-		if err != nil {
+		if err := initCmd.runUpgrade(installer); err != nil {
 			return err
-		}
-		if !ok {
-			return fmt.Errorf("failed to verify upgrade requirements")
 		}
 	} else {
-		ok, err := initCmd.preInstallVerify(installer)
-		if err != nil {
+		if err := initCmd.runInstall(installer); err != nil {
 			return err
-		}
-		if !ok {
-			return fmt.Errorf("failed to verify installation requirements")
-		}
-	}
-
-	//TODO: implement output=yaml|json (define a type for output to constrain)
-	//define an Encoder to replace YAMLWriter
-	if strings.ToLower(initCmd.output) == "yaml" {
-		manifests, err := installer.AsYamlManifests()
-		if err != nil {
-			return err
-		}
-		if err := initCmd.YAMLWriter(initCmd.out, manifests); err != nil {
-			return err
-		}
-	}
-
-	if !initCmd.dryRun {
-		if initCmd.upgrade {
-			if err := installer.Upgrade(initCmd.client, opts); err != nil {
-				return clog.Errorf("error upgrading: %s", err)
-			}
-		} else {
-			if err := installer.Install(initCmd.client); err != nil {
-				return clog.Errorf("error installing: %s", err)
-			}
 		}
 	}
 
@@ -258,8 +222,66 @@ func (initCmd *initCmd) run() error {
 	return nil
 }
 
+func (initCmd *initCmd) runInstall(installer *setup.Installer) error {
+	ok, err := initCmd.preInstallVerify(installer)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("failed to verify installation requirements")
+	}
+
+	if err = initCmd.runYamlOutput(installer); err != nil {
+		return err
+	}
+
+	if !initCmd.dryRun {
+		if err := installer.Install(initCmd.client); err != nil {
+			return clog.Errorf("error installing: %s", err)
+		}
+	}
+	return nil
+}
+
+func (initCmd *initCmd) runUpgrade(installer *setup.Installer) error {
+	ok, err := initCmd.preUpgradeVerify(installer)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("failed to verify upgrade requirements")
+	}
+
+	if err = initCmd.runYamlOutput(installer); err != nil {
+		return err
+	}
+
+	if !initCmd.dryRun {
+		if err := installer.Upgrade(initCmd.client); err != nil {
+			return clog.Errorf("error upgrading: %s", err)
+		}
+	}
+	return nil
+}
+
+func (initCmd *initCmd) runYamlOutput(installer *setup.Installer) error {
+	//TODO: implement output=yaml|json (define a type for output to constrain)
+	//define an Encoder to replace YAMLWriter
+	if strings.ToLower(initCmd.output) == "yaml" {
+		manifests, err := installer.AsYamlManifests()
+		if err != nil {
+			return err
+		}
+		if err := initCmd.YAMLWriter(initCmd.out, manifests); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // verifyExistingInstallation checks if the current installation is valid and as expected
 func (initCmd *initCmd) verifyExistingInstallation(v kudoinit.InstallVerifier) error {
+	clog.V(4).Printf("verify existing installation")
 	result := verifier.NewResult()
 	if err := v.VerifyInstallation(initCmd.client, &result); err != nil {
 		return err
@@ -273,6 +295,7 @@ func (initCmd *initCmd) verifyExistingInstallation(v kudoinit.InstallVerifier) e
 
 // preInstallVerify runs the pre-installation verification and returns true if the installation can continue
 func (initCmd *initCmd) preInstallVerify(v kudoinit.InstallVerifier) (bool, error) {
+	clog.V(4).Printf("Run pre-install verify")
 	result := verifier.NewResult()
 	if err := v.PreInstallVerify(initCmd.client, &result); err != nil {
 		return false, err
@@ -287,6 +310,7 @@ func (initCmd *initCmd) preInstallVerify(v kudoinit.InstallVerifier) (bool, erro
 
 // preUpgradeVerify runs the pre-upgrade verification and returns true if the upgrade can continue
 func (initCmd *initCmd) preUpgradeVerify(v kudoinit.InstallVerifier) (bool, error) {
+	clog.V(4).Printf("Run pre-upgrade verify")
 	result := verifier.NewResult()
 	if err := v.PreUpgradeVerify(initCmd.client, &result); err != nil {
 		return false, err
@@ -318,8 +342,7 @@ func (initCmd *initCmd) YAMLWriter(w io.Writer, manifests []string) error {
 	return err
 }
 
-//func initialize(fs afero.Fs, settings env.Settings, out io.Writer) error {
-func (initCmd *initCmd) initialize() error {
+func (initCmd *initCmd) ensureClient() error {
 
 	if err := ensureDirectories(initCmd.fs, initCmd.home); err != nil {
 		return err

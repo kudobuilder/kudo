@@ -80,8 +80,12 @@ func (k KudoWebHook) PreUpgradeVerify(client *kube.Client, result *verifier.Resu
 
 func (k KudoWebHook) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
 	if k.opts.SelfSignedWebhookCA {
-		return nil
+		return k.verifyWithSelfSignedCA(client, result)
 	}
+	return k.verifyWithCertManager(client, result)
+}
+
+func (k *KudoWebHook) verifyWithCertManager(client *kube.Client, result *verifier.Result) error {
 	if err := k.detectCertManagerVersion(client, result); err != nil {
 		return err
 	}
@@ -95,10 +99,24 @@ func (k KudoWebHook) VerifyInstallation(client *kube.Client, result *verifier.Re
 	if err := validateUnstructuredInstallation(client.DynamicClient, k.certificate, result); err != nil {
 		return err
 	}
-	if err := validateAdmissionWebhookInstallation(client.KubeClient.AdmissionregistrationV1beta1(), InstanceAdmissionWebhook(k.opts.Namespace), result); err != nil {
+	if err := validateAdmissionWebhookInstallation(client.KubeClient.AdmissionregistrationV1beta1(), instanceAdmissionWebhookCertManager(k.opts.Namespace, k.certManagerGroup), result); err != nil {
 		return err
 	}
+	return nil
+}
 
+func (k *KudoWebHook) verifyWithSelfSignedCA(client *kube.Client, result *verifier.Result) error {
+	iaw, s, err := k.resourcesWithSelfSignedCA()
+	if err != nil {
+		return nil
+	}
+
+	if err := validateAdmissionWebhookInstallation(client.KubeClient.AdmissionregistrationV1beta1(), *iaw, result); err != nil {
+		return err
+	}
+	if err := validateWebhookSecretInstallation(client.KubeClient, *s, result); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -359,28 +377,6 @@ func installAdmissionWebhook(client clientv1beta1.MutatingWebhookConfigurationsG
 	return err
 }
 
-func installWebhookSecret(client kubernetes.Interface, secret corev1.Secret) error {
-	_, err := client.CoreV1().Secrets(secret.Namespace).Create(&secret)
-	if kerrors.IsAlreadyExists(err) {
-		clog.V(4).Printf("webhook secret %v already exists", secret.Name)
-		return nil
-	}
-	return err
-}
-
-func instanceAdmissionWebhookWithCABundle(ns string, caData []byte) admissionv1beta1.MutatingWebhookConfiguration {
-	iaw := InstanceAdmissionWebhook(ns)
-	iaw.Webhooks[0].ClientConfig.CABundle = caData
-	return iaw
-}
-
-func instanceAdmissionWebhookCertManager(ns string, certManagerGroup string) admissionv1beta1.MutatingWebhookConfiguration {
-	iaw := InstanceAdmissionWebhook(ns)
-	injectCaAnnotationName := fmt.Sprintf("%s/inject-ca-from", certManagerGroup)
-	iaw.Annotations[injectCaAnnotationName] = fmt.Sprintf("%s/kudo-webhook-server-certificate", ns)
-	return iaw
-}
-
 func validateAdmissionWebhookInstallation(client clientv1beta1.MutatingWebhookConfigurationsGetter, webhook admissionv1beta1.MutatingWebhookConfiguration, result *verifier.Result) error {
 	_, err := client.MutatingWebhookConfigurations().Get(webhook.Name, metav1.GetOptions{})
 	if err != nil {
@@ -394,6 +390,43 @@ func validateAdmissionWebhookInstallation(client clientv1beta1.MutatingWebhookCo
 	// We could add more detailed validation here, regarding the details of the webhook configuration
 
 	return nil
+}
+
+func installWebhookSecret(client kubernetes.Interface, secret corev1.Secret) error {
+	_, err := client.CoreV1().Secrets(secret.Namespace).Create(&secret)
+	if kerrors.IsAlreadyExists(err) {
+		clog.V(4).Printf("webhook secret %v already exists", secret.Name)
+		return nil
+	}
+	return err
+}
+
+func validateWebhookSecretInstallation(client kubernetes.Interface, secret corev1.Secret, result *verifier.Result) error {
+	_, err := client.CoreV1().Secrets(secret.Namespace).Get(secret.Name, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			result.AddErrors(fmt.Sprintf("webhook secret %s is not installed", secret.Name))
+			return nil
+		}
+		return err
+	}
+
+	// We can add more detailed validation here
+
+	return nil
+}
+
+func instanceAdmissionWebhookWithCABundle(ns string, caData []byte) admissionv1beta1.MutatingWebhookConfiguration {
+	iaw := InstanceAdmissionWebhook(ns)
+	iaw.Webhooks[0].ClientConfig.CABundle = caData
+	return iaw
+}
+
+func instanceAdmissionWebhookCertManager(ns string, certManagerGroup string) admissionv1beta1.MutatingWebhookConfiguration {
+	iaw := InstanceAdmissionWebhook(ns)
+	injectCaAnnotationName := fmt.Sprintf("%s/inject-ca-from", certManagerGroup)
+	iaw.Annotations[injectCaAnnotationName] = fmt.Sprintf("%s/kudo-webhook-server-certificate", ns)
+	return iaw
 }
 
 // InstanceAdmissionWebhook returns a MutatingWebhookConfiguration for the instance admission controller.

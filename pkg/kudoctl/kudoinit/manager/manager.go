@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	appsv1client "k8s.io/client-go/kubernetes/typed/apps/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"github.com/kudobuilder/kudo/pkg/engine/health"
@@ -60,7 +59,7 @@ func (m Initializer) String() string {
 
 // Install uses Kubernetes client to install KUDO.
 func (m Initializer) Install(client *kube.Client) error {
-	if err := m.installStatefulSet(client.KubeClient.AppsV1()); err != nil {
+	if err := m.installStatefulSet(client); err != nil {
 		return err
 	}
 	if err := m.installService(client.KubeClient.CoreV1()); err != nil {
@@ -70,9 +69,14 @@ func (m Initializer) Install(client *kube.Client) error {
 }
 
 func UninstallStatefulSet(client *kube.Client, options kudoinit.Options) error {
-	err := client.KubeClient.AppsV1().StatefulSets(options.Namespace).Delete(kudoinit.DefaultManagerName, &metav1.DeleteOptions{})
+	fg := metav1.DeletePropagationForeground
+	err := client.KubeClient.AppsV1().StatefulSets(options.Namespace).Delete(kudoinit.DefaultManagerName, &metav1.DeleteOptions{
+		PropagationPolicy: &fg,
+	})
 	if err != nil {
-		return fmt.Errorf("failed to uninstall KUDO manager: %v", err)
+		if !kerrors.IsNotFound(err) {
+			return fmt.Errorf("failed to uninstall KUDO manager: %v", err)
+		}
 	}
 	return nil
 }
@@ -113,49 +117,32 @@ func (m Initializer) verifyManagerInstalled(client *kube.Client, result *verifie
 	return nil
 }
 
-func (m Initializer) installStatefulSet(client appsv1client.StatefulSetsGetter) error {
-	_, err := client.StatefulSets(m.options.Namespace).Create(m.deployment)
-	if kerrors.IsAlreadyExists(err) {
-		clog.V(4).Printf("manager stateful set %v already exists, recreate it", m.deployment.Name)
-		fg := metav1.DeletePropagationForeground
-		err := client.StatefulSets(m.options.Namespace).Delete(m.deployment.Name, &metav1.DeleteOptions{
-			PropagationPolicy: &fg,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to delete manager stateful set for recreation: %v", err)
-		}
-
-		_, err = client.StatefulSets(m.options.Namespace).Create(m.deployment)
-		if err != nil {
-			return fmt.Errorf("failed to recreate update manager stateful set: %v", err)
-		}
-		return nil
+func (m Initializer) installStatefulSet(client *kube.Client) error {
+	clog.V(4).Printf("try to delete stateful set %v before creating it", m.deployment.Name)
+	if err := UninstallStatefulSet(client, m.options); err != nil {
+		return err
 	}
+	_, err := client.KubeClient.AppsV1().StatefulSets(m.options.Namespace).Create(m.deployment)
 	if err != nil {
-		return fmt.Errorf("failed to create manager stateful set: %v", err)
+		return fmt.Errorf("failed to recreate update manager stateful set: %v", err)
 	}
 	return nil
 }
 
 func (m Initializer) installService(client corev1client.ServicesGetter) error {
-	_, err := client.Services(m.options.Namespace).Create(m.service)
-	if kerrors.IsAlreadyExists(err) {
-		clog.V(4).Printf("manager service %v already exists, recreate ", m.service.Name)
-		err := client.Services(m.options.Namespace).Delete(m.service.Name, &metav1.DeleteOptions{})
-		if err != nil {
+	clog.V(4).Printf("try to delete manager service %v before creating ", m.service.Name)
+	err := client.Services(m.options.Namespace).Delete(m.service.Name, &metav1.DeleteOptions{})
+	if err != nil {
+		if !kerrors.IsNotFound(err) {
 			return fmt.Errorf("failed to delete manager service for recreation: %v", err)
 		}
+	}
 
-		_, err = client.Services(m.options.Namespace).Create(m.service)
-		if err != nil {
-			return fmt.Errorf("failed to recreate manager service: %v", err)
-		}
-		return nil
-	}
+	_, err = client.Services(m.options.Namespace).Create(m.service)
 	if err != nil {
-		return fmt.Errorf("failed to create manager service: %v", err)
+		return fmt.Errorf("failed to recreate manager service: %v", err)
 	}
-	return err
+	return nil
 }
 
 func (m Initializer) Resources() []runtime.Object {

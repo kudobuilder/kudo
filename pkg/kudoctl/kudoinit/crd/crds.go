@@ -80,13 +80,13 @@ func (c Initializer) VerifyInstallation(client *kube.Client, result *verifier.Re
 
 // Install uses Kubernetes client to install KUDO Crds.
 func (c Initializer) Install(client *kube.Client) error {
-	if err := c.createOrUpdate(client.ExtClient.ApiextensionsV1beta1(), c.Operator); err != nil {
+	if err := c.apply(client.ExtClient.ApiextensionsV1beta1(), c.Operator); err != nil {
 		return err
 	}
-	if err := c.createOrUpdate(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion); err != nil {
+	if err := c.apply(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion); err != nil {
 		return err
 	}
-	if err := c.createOrUpdate(client.ExtClient.ApiextensionsV1beta1(), c.Instance); err != nil {
+	if err := c.apply(client.ExtClient.ApiextensionsV1beta1(), c.Instance); err != nil {
 		return err
 	}
 	return nil
@@ -123,7 +123,7 @@ func (c Initializer) verifyInstallation(client v1beta1.CustomResourceDefinitions
 	return nil
 }
 
-func (c Initializer) createOrUpdate(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition) error {
+func (c Initializer) apply(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition) error {
 	_, err := client.CustomResourceDefinitions().Create(crd)
 	if kerrors.IsAlreadyExists(err) {
 		// We need to be careful here and never delete/recreate CRDs, we would delete
@@ -135,6 +135,7 @@ func (c Initializer) createOrUpdate(client v1beta1.CustomResourceDefinitionsGett
 			return fmt.Errorf("failed to get crd for update %s: %v", crd.Name, err)
 		}
 
+		// As we call update, we need to take over the resourceVersion
 		crd.ResourceVersion = oldCrd.ResourceVersion
 		_, err = client.CustomResourceDefinitions().Update(crd)
 		if err != nil {

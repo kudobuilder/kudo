@@ -19,12 +19,14 @@ import (
 var _ kudoinit.InstallVerifier = &Installer{}
 
 type Installer struct {
-	steps []kudoinit.Step
+	options kudoinit.Options
+	steps   []kudoinit.Step
 }
 
 func NewInstaller(options kudoinit.Options, crdOnly bool) *Installer {
 	if crdOnly {
 		return &Installer{
+			options: options,
 			steps: []kudoinit.Step{
 				crd.NewInitializer(),
 			},
@@ -32,6 +34,7 @@ func NewInstaller(options kudoinit.Options, crdOnly bool) *Installer {
 	}
 
 	return &Installer{
+		options: options,
 		steps: []kudoinit.Step{
 			crd.NewInitializer(),
 			prereq.NewNamespaceInitializer(options),
@@ -56,9 +59,9 @@ func (i *Installer) VerifyInstallation(client *kube.Client, result *verifier.Res
 
 func requiredMigrations() []migration.Migrater {
 
-	// TODO: Determine which migrations to run
+	// Determine which migrations to run
 	return []migration.Migrater{
-		// TODO: Implement actual migrations
+		// Implement actual migrations
 	}
 }
 
@@ -89,11 +92,11 @@ func (i *Installer) PreUpgradeVerify(client *kube.Client, result *verifier.Resul
 }
 
 // Upgrade an existing KUDO installation
-func (i *Installer) Upgrade(client *kube.Client, opts kudoinit.Options) error {
+func (i *Installer) Upgrade(client *kube.Client) error {
 	clog.Printf("Upgrade KUDO")
 
 	// Step 3 - Shut down/remove manager
-	if err := manager.UninstallStatefulSet(client, opts); err != nil {
+	if err := manager.UninstallStatefulSet(client, i.options); err != nil {
 		return fmt.Errorf("failed to uninstall existing KUDO manager: %v", err)
 	}
 

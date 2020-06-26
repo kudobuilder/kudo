@@ -1,8 +1,0 @@
-apiVersion: kudo.dev/v1beta1
-kind: TestSuite
-testDirs:
-- ./test/upgrade
-startKIND: true
-kindContainers:
-- kudobuilder/controller:test
-timeout: 300
