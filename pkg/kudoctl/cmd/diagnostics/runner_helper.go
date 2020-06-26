@@ -30,9 +30,12 @@ func diagForInstance(instance string, options *Options, c *kudo.Client, info ver
 	}
 
 	for _, dep := range deps {
-		ctx := &processingContext{root: DiagDir, instanceName: dep.instanceObj.Name}
+		// Nest the dependencies in the parents operator directory
+		root := ctx.operatorDirectory()
 
-		runner := runnerForInstance(dep, ctx)
+		depCtx := &processingContext{root: root, instanceName: dep.instanceObj.Name}
+
+		runner := runnerForInstance(dep, depCtx)
 		if err := runner.run(p); err != nil {
 			return err
 		}
