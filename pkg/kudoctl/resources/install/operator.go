@@ -80,10 +80,10 @@ func installDependencies(client *kudo.Client, ov *v1beta1.OperatorVersion, resol
 	// It can however resolve the OperatorVersion from the name of the operator
 	// dependency. For this, we overwrite the 'Package' field describing
 	// dependencies in 'KudoOperatorTaskSpec' with the operator name of the
-	// dependency. This has to be done for the operator to upgrade as well as in
-	// all of its new dependencies.
+	// dependency and the 'OperatorVersion' with the corresponding version.
+	// This has to be done for the operator to upgrade as well as in  all of its new dependencies.
 
-	updateKudoOperatorTaskPackageNames(dependencies, ov)
+	updateKudoOperatorTasks(dependencies, ov)
 
 	for _, dependency := range dependencies {
 		dependency.Operator.SetNamespace(ov.Namespace)
@@ -110,7 +110,7 @@ func installDependencies(client *kudo.Client, ov *v1beta1.OperatorVersion, resol
 		}
 
 		if !funk.ContainsString(installed, dependency.OperatorVersion.Spec.Version) {
-			updateKudoOperatorTaskPackageNames(dependencies, dependency.OperatorVersion)
+			updateKudoOperatorTasks(dependencies, dependency.OperatorVersion)
 
 			if _, err := client.InstallOperatorVersionObjToCluster(
 				dependency.OperatorVersion,
@@ -131,10 +131,10 @@ func installDependencies(client *kudo.Client, ov *v1beta1.OperatorVersion, resol
 	return nil
 }
 
-// updateKudoOperatorTaskPackageNames sets the 'Package' and 'OperatorName'
-// fields of the 'KudoOperatorTaskSpec' of an 'OperatorVersion' to the operator name
-// initially referenced in the 'Package' field.
-func updateKudoOperatorTaskPackageNames(
+// updateKudoOperatorTasks method updates all 'KudoOperatorTasks' of an OperatorVersion by setting their 'Package' and
+// 'OperatorVersion' fields to the already resolved packages. This is done for the KUDO controller to be able to grab
+// the right 'OperatorVersion' resources from the cluster when the corresponding task is executed.
+func updateKudoOperatorTasks(
 	dependencies []deps.Dependency, operatorVersion *v1beta1.OperatorVersion) {
 	tasks := operatorVersion.Spec.Tasks
 
