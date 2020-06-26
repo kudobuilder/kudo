@@ -83,6 +83,8 @@ func newDependenciesResources(instanceName string, options *Options, c *kudo.Cli
 	configs := make([]*resourceFuncsConfig, 0, len(children))
 
 	for _, child := range children {
+		child := child
+
 		configs = append(configs, &resourceFuncsConfig{
 			c:           c,
 			ns:          s.Namespace,
