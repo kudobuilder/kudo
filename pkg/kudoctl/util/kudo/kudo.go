@@ -105,6 +105,16 @@ func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 	return true
 }
 
+// OperatorVersionExistsInCluster checks if a given OperatorVersion object is installed on the current k8s cluster
+func (c *Client) OperatorVersionExistsInCluster(name, namespace string) bool {
+	operator, err := c.kudoClientset.KudoV1beta1().OperatorVersions(namespace).Get(name, v1.GetOptions{})
+	if err != nil {
+		clog.V(2).Printf("operatorversion.kudo.dev/%s does not exist\n", name)
+		return false
+	}
+	clog.V(2).Printf("operatorversion.kudo.dev/%s unchanged", operator.Name)
+}
+
 // InstanceExistsInCluster checks if any OperatorVersion object matches to the given Operator name
 // in the cluster.
 // An Instance has two identifiers:
