@@ -33,9 +33,6 @@ func diagForInstance(instance string, options *Options, c *kudo.Client, info ver
 		ctx := &processingContext{root: DiagDir, instanceName: dep.instanceObj.Name}
 
 		runner := runnerForInstance(dep, ctx)
-		runner.addObjDump(info, ctx.rootDirectory, "version")
-		runner.addObjDump(s, ctx.rootDirectory, "settings")
-
 		if err := runner.run(p); err != nil {
 			return err
 		}
