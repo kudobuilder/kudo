@@ -13,7 +13,6 @@ docker build . \
     -t "kudobuilder/controller:$KUDO_VERSION"
 
 sed "s/%version%/$KUDO_VERSION/" kudo-e2e-test.yaml.tmpl > kudo-e2e-test.yaml
-sed "s/%version%/$KUDO_VERSION/" kudo-upgrade-test.yaml.tmpl > kudo-upgrade-test.yaml
 
 if [ "$INTEGRATION_OUTPUT_JUNIT" == true ]
 then
@@ -25,15 +24,8 @@ then
         | tee /dev/fd/2 \
         | go-junit-report -set-exit-code \
         > reports/kudo_e2e_test_report.xml
-
-    ./bin/kubectl-kudo test --config kudo-upgrade-test.yaml 2>&1 \
-        | tee /dev/fd/2 \
-        | go-junit-report -set-exit-code \
-        > reports/kudo_upgrade_test_report.xml
 else
     echo "Running E2E tests without junit output"
 
     ./bin/kubectl-kudo test --config kudo-e2e-test.yaml
-
-    ./bin/kubectl-kudo test --config kudo-upgrade-test.yaml
 fi
