@@ -113,6 +113,7 @@ func (c *Client) OperatorVersionExistsInCluster(name, namespace string) bool {
 		return false
 	}
 	clog.V(2).Printf("operatorversion.kudo.dev/%s unchanged", operator.Name)
+	return true
 }
 
 // InstanceExistsInCluster checks if any OperatorVersion object matches to the given Operator name
