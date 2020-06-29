@@ -66,6 +66,37 @@ func newKudoResources(options *Options, c *kudo.Client) (*resourceFuncsConfig, e
 	}, nil
 }
 
+func newDependenciesResources(instanceName string, options *Options, c *kudo.Client, s *env.Settings) ([]*resourceFuncsConfig, error) {
+	instance, err := c.GetInstance(instanceName, s.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get instance %s/%s: %v", s.Namespace, instanceName, err)
+	}
+	if instance == nil {
+		return nil, fmt.Errorf("instance %s/%s not found", s.Namespace, instanceName)
+	}
+
+	children, err := c.GetChildInstances(instance)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get children of instance %s/%s: %v", s.Namespace, instanceName, err)
+	}
+
+	configs := make([]*resourceFuncsConfig, 0, len(children))
+
+	for _, child := range children {
+		child := child
+
+		configs = append(configs, &resourceFuncsConfig{
+			c:           c,
+			ns:          s.Namespace,
+			instanceObj: &child,
+			opts:        metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", kudoutil.OperatorLabel, child.Labels[kudoutil.OperatorLabel])},
+			logOpts:     corev1.PodLogOptions{SinceSeconds: options.LogSince},
+		})
+	}
+
+	return configs, nil
+}
+
 type stringGetter func() string
 
 func (r *resourceFuncsConfig) instance() (runtime.Object, error) {
