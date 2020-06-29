@@ -17,7 +17,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/controller/instance"
 )
 
 // +k8s:deepcopy-gen=false
@@ -73,7 +72,7 @@ func handleCreate(ia *InstanceAdmission, req admission.Request) admission.Respon
 
 	// since we don't yet enforce the existence of the 'deploy' plan in the OV, we check for its existence
 	// and decline Instance creation if the plan is not found
-	ov, err := instance.GetOperatorVersion(new, ia.client)
+	ov, err := new.GetOperatorVersion(ia.client)
 	if err != nil {
 		log.Printf("InstanceAdmission: Error getting operatorVersion %s for instance %s/%s: %v", new.Spec.OperatorVersion.Name, new.Namespace, new.Name, err)
 		return admission.Errored(http.StatusInternalServerError, err)
@@ -82,11 +81,6 @@ func handleCreate(ia *InstanceAdmission, req admission.Request) admission.Respon
 	// if there is a 'cleanup' plan present in the OV, we add a finalizer to the instance
 	if kudov1beta1.CleanupPlanExists(ov) {
 		new.TryAddFinalizer()
-	}
-
-	// add an instance snapshot *BEFORE* setting new Spec.PlanExecution. this way the controller will recognize the plan as newly scheduled
-	if err = new.AnnotateSnapshot(); err != nil {
-		return admission.Errored(http.StatusInternalServerError, fmt.Errorf("failed to create an Instance snapshot %s/%s: %v", new.Namespace, new.Name, err))
 	}
 
 	// schedule 'deploy' plan for execution (and fail if it doesn't exist)
@@ -119,7 +113,7 @@ func handleUpdate(ia *InstanceAdmission, req admission.Request) admission.Respon
 
 	// fetch new OperatorVersion: we always fetch the new one, since if it's an update it's the same as the old one
 	// and if it's an upgrade, we need the new one anyway
-	ov, err := instance.GetOperatorVersion(new, ia.client)
+	ov, err := new.GetOperatorVersion(ia.client)
 	if err != nil {
 		log.Printf("InstanceAdmission: Error getting operatorVersion %s for instance %s/%s: %v", new.Spec.OperatorVersion.Name, new.Namespace, new.Name, err)
 		return admission.Errored(http.StatusInternalServerError, err)

@@ -42,6 +42,10 @@ func (ReferenceVerifier) Verify(pf *packages.Files) verifier.Result {
 	}
 
 	for template := range templates {
+		// skip manifest file as it is already accounted for
+		if template == pf.Operator.NamespaceManifest {
+			continue
+		}
 		if _, ok := requiredTemplates[template]; !ok {
 			res.AddWarnings(fmt.Sprintf("template %q is not referenced from any task", template))
 		}

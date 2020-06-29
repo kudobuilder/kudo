@@ -12,7 +12,7 @@ INTEGRATION_OUTPUT_JUNIT=${INTEGRATION_OUTPUT_JUNIT:-false}
 
 function archive_logs() {
     # Archive test harness artifacts
-    if [ "$TARGET" == "e2e-test" ]; then
+    if [ "$TARGET" == "e2e-test" ] || [ "$TARGET" == "operator-test" ]; then
         tar -cjvf kind-logs.tar.bz2 kind-logs/
     fi
 }

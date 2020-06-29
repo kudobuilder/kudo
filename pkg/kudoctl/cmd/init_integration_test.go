@@ -104,11 +104,14 @@ func TestIntegInitForCRDs(t *testing.T) {
 	crds := crd.NewInitializer().Resources()
 
 	var buf bytes.Buffer
+	var errBuf bytes.Buffer
 	cmd := &initCmd{
 		out:     &buf,
+		errOut:  &errBuf,
 		fs:      afero.NewMemMapFs(),
 		client:  kclient,
 		crdOnly: true,
+		version: "dev",
 	}
 	err = cmd.run()
 	assert.NoError(t, err)
@@ -146,19 +149,22 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	crds := crd.NewInitializer().Resources()
 
 	var buf bytes.Buffer
+	var errBuf bytes.Buffer
 	cmd := &initCmd{
 		out:                 &buf,
+		errOut:              &errBuf,
 		fs:                  afero.NewMemMapFs(),
 		client:              kclient,
 		ns:                  namespace,
 		selfSignedWebhookCA: true,
+		version:             "dev",
 	}
 
 	// On first attempt, the namespace does not exist, so the error is expected.
 	err = cmd.run()
 	require.Error(t, err)
 	assert.Equal(t, "failed to verify installation requirements", err.Error())
-	assertStringContains(t, "Namespace integration-test does not exist - KUDO expects that any namespace except the default kudo-system is created beforehand", buf.String())
+	assertStringContains(t, "Namespace integration-test does not exist - KUDO expects that any namespace except the default kudo-system is created beforehand", errBuf.String())
 
 	// Then we manually create the namespace.
 	ns := testutils.NewResource("v1", "Namespace", namespace, "")
@@ -272,13 +278,16 @@ func TestInitWithServiceAccount(t *testing.T) {
 			crds := crd.NewInitializer().Resources()
 
 			var buf bytes.Buffer
+			var errBuf bytes.Buffer
 			cmd := &initCmd{
 				out:                 &buf,
+				errOut:              &errBuf,
 				fs:                  afero.NewMemMapFs(),
 				client:              kclient,
 				ns:                  namespace,
 				serviceAccount:      "test-account",
 				selfSignedWebhookCA: true,
+				version:             "dev",
 			}
 
 			ns := testutils.NewResource("v1", "Namespace", namespace, "")
@@ -312,7 +321,7 @@ func TestInitWithServiceAccount(t *testing.T) {
 			if tt.errMessageContains != "" {
 				require.Error(t, err)
 				assert.Equal(t, "failed to verify installation requirements", err.Error())
-				assertStringContains(t, tt.errMessageContains, buf.String())
+				assertStringContains(t, tt.errMessageContains, errBuf.String())
 			} else {
 				assert.NoError(t, err)
 				defer func() {
@@ -361,11 +370,14 @@ func TestNoErrorOnReInit(t *testing.T) {
 	clog.InitNoFlag(&buf, clog.Level(4))
 	defer func() { clog.InitNoFlag(&buf, clog.Level(0)) }()
 
+	var errBuf bytes.Buffer
 	cmd := &initCmd{
 		out:     &buf,
+		errOut:  &errBuf,
 		fs:      afero.NewMemMapFs(),
 		client:  kclient,
 		crdOnly: true,
+		version: "dev",
 	}
 	err = cmd.run()
 	assert.NoError(t, err)

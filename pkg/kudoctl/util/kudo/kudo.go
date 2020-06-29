@@ -37,7 +37,7 @@ import (
 // Client is a KUDO Client providing access to a kudo clientset and kubernetes clientsets
 type Client struct {
 	kudoClientset versioned.Interface
-	kubeClientset kubernetes.Interface
+	KubeClientset kubernetes.Interface
 }
 
 // NewClient creates new KUDO Client
@@ -83,7 +83,7 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 	}
 	return &Client{
 		kudoClientset: kudoClientset,
-		kubeClientset: kubeClientset,
+		KubeClientset: kubeClientset,
 	}, nil
 }
 
@@ -91,7 +91,7 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 func NewClientFromK8s(kudo versioned.Interface, kube kubernetes.Interface) *Client {
 	result := Client{}
 	result.kudoClientset = kudo
-	result.kubeClientset = kube
+	result.KubeClientset = kube
 	return &result
 }
 
@@ -99,10 +99,21 @@ func NewClientFromK8s(kudo versioned.Interface, kube kubernetes.Interface) *Clie
 func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 	operator, err := c.kudoClientset.KudoV1beta1().Operators(namespace).Get(context.TODO(), name, v1.GetOptions{})
 	if err != nil {
-		clog.V(2).Printf("operator.kudo.dev/%s does not exist\n", name)
+		clog.V(2).Printf("operator.kudo.dev %s/%s does not exist\n", namespace, name)
 		return false
 	}
-	clog.V(2).Printf("operator.kudo.dev/%s unchanged", operator.Name)
+	clog.V(2).Printf("operator.kudo.dev %s/%s unchanged", operator.Namespace, operator.Name)
+	return true
+}
+
+// OperatorVersionExistsInCluster checks if a given OperatorVersion object is installed on the current k8s cluster
+func (c *Client) OperatorVersionExistsInCluster(name, namespace string) bool {
+	operator, err := c.kudoClientset.KudoV1beta1().OperatorVersions(namespace).Get(context.TODO(), name, v1.GetOptions{})
+	if err != nil {
+		clog.V(2).Printf("operatorversion.kudo.dev %s/%s does not exist\n", namespace, name)
+		return false
+	}
+	clog.V(2).Printf("operatorversion.kudo.dev %s/%s unchanged", operator.Namespace, operator.Name)
 	return true
 }
 
@@ -146,8 +157,8 @@ func (c *Client) InstanceExistsInCluster(operatorName, namespace, version, insta
 
 // Populate the GVK from scheme, since it is cleared by design on typed objects.
 // https://github.com/kubernetes/client-go/issues/413
-func setGVKFromScheme(object runtime.Object) error {
-	gvks, unversioned, err := scheme.Scheme.ObjectKinds(object)
+func SetGVKFromScheme(object runtime.Object, scheme *runtime.Scheme) error {
+	gvks, unversioned, err := scheme.ObjectKinds(object)
 	if err != nil {
 		return err
 	}
@@ -158,6 +169,9 @@ func setGVKFromScheme(object runtime.Object) error {
 		object.GetObjectKind().SetGroupVersionKind(gvks[0])
 	}
 	return nil
+}
+func setGVKFromScheme(object runtime.Object) error {
+	return SetGVKFromScheme(object, scheme.Scheme)
 }
 
 // GetInstance queries kubernetes api for instance of given name in given namespace
@@ -188,8 +202,31 @@ func (c *Client) GetOperatorVersion(name, namespace string) (*v1beta1.OperatorVe
 	return ov, err
 }
 
+// GetOperatorVersion queries kubernetes api for operator of given name in given namespace
+// returns error for all other errors that not found, not found is treated as result being 'nil, nil'
+func (c *Client) GetOperator(name, namespace string) (*v1beta1.Operator, error) {
+	o, err := c.kudoClientset.KudoV1beta1().Operators(namespace).Get(context.TODO(), name, v1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return o, fmt.Errorf("failed to get operator %s/%s: %v", namespace, name, err)
+	}
+	err = setGVKFromScheme(o)
+	return o, err
+}
+
 // UpdateInstance updates operatorversion on instance
-func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersion *string, parameters map[string]string, triggeredPlan *string) error {
+func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersion *string, parameters map[string]string, triggeredPlan *string, wait bool, waitTime time.Duration) error {
+	var oldInstance *v1beta1.Instance
+	if wait {
+		var err error
+		oldInstance, err = c.GetInstance(instanceName, namespace)
+		if err != nil {
+			return err
+		}
+	}
+
 	instanceSpec := v1beta1.InstanceSpec{}
 	// 1. new OperatorVersion
 	if operatorVersion != nil {
@@ -217,7 +254,13 @@ func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersion 
 		return err
 	}
 	_, err = c.kudoClientset.KudoV1beta1().Instances(namespace).Patch(context.TODO(), instanceName, types.MergePatchType, serializedPatch, v1.PatchOptions{})
-	return err
+	if err != nil {
+		return err
+	}
+	if !wait {
+		return nil
+	}
+	return c.WaitForInstance(instanceName, namespace, oldInstance, waitTime)
 }
 
 // WaitForInstance waits for instance to be "complete".
@@ -406,10 +449,34 @@ func (c *Client) CreateNamespace(namespace, manifest string) error {
 	}
 	ns.TypeMeta.Kind = "Namespace"
 	ns.Name = namespace
+
+	if ns.Annotations == nil {
+		ns.Annotations = map[string]string{}
+	}
 	ns.Annotations["created-by"] = "kudo-cli"
 
-	_, err := c.kubeClientset.CoreV1().Namespaces().Create(context.TODO(), ns, v1.CreateOptions{})
+	_, err := c.KubeClientset.CoreV1().Namespaces().Create(context.TODO(), ns, v1.CreateOptions{})
 	return err
+}
+
+// GetChildInstances returns all instances that were created as dependencies of a parent instance
+func (c *Client) GetChildInstances(parent *v1beta1.Instance) ([]v1beta1.Instance, error) {
+	instances, err := c.kudoClientset.KudoV1beta1().Instances(parent.Namespace).List(context.TODO(), v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	children := []v1beta1.Instance{}
+
+	for _, instance := range instances.Items {
+		for _, or := range instance.GetOwnerReferences() {
+			if parent.UID == or.UID {
+				children = append(children, instance)
+			}
+		}
+	}
+
+	return children, nil
 }
 
 // getKubeVersion returns stringified version of k8s server

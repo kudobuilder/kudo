@@ -199,7 +199,8 @@ type PipeSpec struct {
 
 // KudoOperatorSpec specifies how a KUDO operator is installed
 type KudoOperatorTaskSpec struct {
-	// either repo package name, local package folder or an URL to package tarball
+	// either repo package name, local package folder or an URL to package tarball. during operator installation,
+	// kudoctl will resolve the package and override this field with the resolved operator name.
 	// +optional
 	Package string `json:"package,omitempty"`
 	// +optional
@@ -210,6 +211,10 @@ type KudoOperatorTaskSpec struct {
 	// a specific operator version in the official repo, defaults to the most recent one
 	// +optional
 	OperatorVersion string `json:"operatorVersion,omitempty"`
+	// name of the template file (located in the `templates` folder) from which the *parent* instance
+	// generates a parameter file used to populate the *child* Instance.Spec.Parameters
+	// +optional
+	ParameterFile string `json:"parameterFile,omitempty"`
 }
 
 // OperatorVersionStatus defines the observed state of OperatorVersion.

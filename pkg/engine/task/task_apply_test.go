@@ -198,26 +198,18 @@ func resourceAsString(resource metav1.Object) string {
 
 type testEnhancer struct{}
 
-func (k *testEnhancer) Apply(templates map[string]string, metadata renderer.Metadata) ([]runtime.Object, error) {
-	result := make([]runtime.Object, 0)
-	for _, t := range templates {
-		objsToAdd, err := renderer.YamlToObject(t)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing kubernetes objects after applying enhance: %w", err)
-		}
-		result = append(result, objsToAdd[0])
-	}
-	return result, nil
+func (k *testEnhancer) Apply(objs []runtime.Object, metadata renderer.Metadata) ([]runtime.Object, error) {
+	return objs, nil
 }
 
 type fatalErrorEnhancer struct{}
 
-func (k *fatalErrorEnhancer) Apply(templates map[string]string, metadata renderer.Metadata) ([]runtime.Object, error) {
+func (k *fatalErrorEnhancer) Apply(objs []runtime.Object, metadata renderer.Metadata) ([]runtime.Object, error) {
 	return nil, fmt.Errorf("%wsomething fatally bad happens every time", engine.ErrFatalExecution)
 }
 
 type transientErrorEnhancer struct{}
 
-func (k *transientErrorEnhancer) Apply(templates map[string]string, metadata renderer.Metadata) ([]runtime.Object, error) {
+func (k *transientErrorEnhancer) Apply(objs []runtime.Object, metadata renderer.Metadata) ([]runtime.Object, error) {
 	return nil, fmt.Errorf("something transiently bad happens every time")
 }

@@ -1,0 +1,9 @@
+apiVersion: kudo.dev/v1beta1
+kind: Operator
+metadata:
+  name: dependency
+---
+apiVersion: kudo.dev/v1beta1
+kind: OperatorVersion
+metadata:
+  name: dependency-1.0

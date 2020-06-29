@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: kudo-manager
+  name: kudo-controller-manager-0
+  namespace: kudo-system
+spec:
+  containers:
+  - name: manager

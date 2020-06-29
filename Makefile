@@ -5,14 +5,14 @@ DOCKER_IMG ?= kudobuilder/controller
 EXECUTABLE := manager
 CLI := kubectl-kudo
 GIT_VERSION_PATH := github.com/kudobuilder/kudo/pkg/version.gitVersion
-GIT_VERSION := $(shell git describe --abbrev=0 --tags | cut -b 2-)
+GIT_VERSION := $(shell git describe --abbrev=0 --tags --candidates=0 2>/dev/null || echo not-built-on-release)
 GIT_COMMIT_PATH := github.com/kudobuilder/kudo/pkg/version.gitCommit
 GIT_COMMIT := $(shell git rev-parse HEAD | cut -b -8)
 SOURCE_DATE_EPOCH := $(shell git show -s --format=format:%ct HEAD)
 BUILD_DATE_PATH := github.com/kudobuilder/kudo/pkg/version.buildDate
 DATE_FMT := "%Y-%m-%dT%H:%M:%SZ"
 BUILD_DATE := $(shell date -u -d "@$SOURCE_DATE_EPOCH" "+${DATE_FMT}" 2>/dev/null || date -u -r "${SOURCE_DATE_EPOCH}" "+${DATE_FMT}" 2>/dev/null || date -u "+${DATE_FMT}")
-LDFLAGS := -X ${GIT_VERSION_PATH}=${GIT_VERSION} -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} -X ${BUILD_DATE_PATH}=${BUILD_DATE}
+LDFLAGS := -X ${GIT_VERSION_PATH}=${GIT_VERSION:v%=%} -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} -X ${BUILD_DATE_PATH}=${BUILD_DATE}
 GOLANGCI_LINT_VER = "1.23.8"
 SUPPORTED_PLATFORMS = amd64 arm64
 
@@ -40,6 +40,10 @@ e2e-test: cli-fast manager-fast
 # Run integration tests
 integration-test: cli-fast manager-fast
 	./hack/run-integration-tests.sh
+
+.PHONY: operator-test
+operator-test: cli-fast manager-fast
+	./hack/run-operator-tests.sh
 
 .PHONY: test-clean
 # Clean test reports

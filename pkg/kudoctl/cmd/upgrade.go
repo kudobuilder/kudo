@@ -11,7 +11,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/params"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/resources/upgrade"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
@@ -109,5 +109,7 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 
 	resources := pkg.Resources
 
-	return kudo.UpgradeOperatorVersion(kc, resources.OperatorVersion, options.InstanceName, settings.Namespace, options.Parameters)
+	resources.OperatorVersion.SetNamespace(settings.Namespace)
+
+	return upgrade.OperatorVersion(kc, resources.OperatorVersion, options.InstanceName, options.Parameters, resolver)
 }

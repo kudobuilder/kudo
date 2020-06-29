@@ -17,6 +17,8 @@ import (
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
+const installNamespace = "default"
+
 func newTestSimpleK2o() *Client {
 	return NewClientFromK8s(fake.NewSimpleClientset(), kubefake.NewSimpleClientset())
 }
@@ -177,7 +179,6 @@ func TestKudoClient_ListInstances(t *testing.T) {
 		},
 	}
 
-	installNamespace := "default"
 	tests := []struct {
 		expectedInstances []string
 		namespace         string
@@ -231,7 +232,6 @@ func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 	objWithSamePrefix.Name = operatorName + "-demo"
 	objWithSamePrefix.Spec.Operator.Name = operatorName + "-demo"
 
-	installNamespace := "default"
 	tests := []struct {
 		name             string
 		expectedVersions []string
@@ -423,7 +423,6 @@ func TestKudoClient_GetInstance(t *testing.T) {
 		},
 	}
 
-	installNamespace := "default"
 	tests := []struct {
 		name             string
 		found            bool
@@ -472,7 +471,6 @@ func TestKudoClient_GetOperatorVersion(t *testing.T) {
 		},
 	}
 
-	installNamespace := "default"
 	tests := []struct {
 		name      string
 		found     bool
@@ -525,7 +523,6 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 		},
 	}
 
-	installNamespace := "default"
 	tests := []struct {
 		name               string
 		patchToVersion     *string
@@ -556,7 +553,7 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 			t.Errorf("Error creating operator version in tests setup for %s", tt.name)
 		}
 
-		err = k2o.UpdateInstance(testInstance.Name, installNamespace, tt.patchToVersion, tt.parametersToPatch, nil)
+		err = k2o.UpdateInstance(testInstance.Name, installNamespace, tt.patchToVersion, tt.parametersToPatch, nil, false, 0)
 		instance, _ := k2o.GetInstance(testInstance.Name, installNamespace)
 		if tt.patchToVersion != nil {
 			if err != nil || instance.Spec.OperatorVersion.Name != convert.StringValue(tt.patchToVersion) {
@@ -613,7 +610,6 @@ func TestKudoClient_DeleteInstance(t *testing.T) {
 		},
 	}
 
-	installNamespace := "default"
 	tests := []struct {
 		name         string
 		instanceName string
@@ -651,6 +647,61 @@ func TestKudoClient_DeleteInstance(t *testing.T) {
 				}
 			}
 
+		} else {
+			if !test.shouldFail {
+				t.Errorf("expected test %s to succeed but got error: %v", test.name, err)
+			}
+		}
+	}
+}
+
+func TestKudoClient_CreateNamespace(t *testing.T) {
+	tests := []struct {
+		name       string
+		namespace  string
+		manifest   string
+		shouldFail bool
+	}{
+		{
+			name:       "Invalid manifest",
+			namespace:  "foo-test",
+			manifest:   "invalid namespace resource",
+			shouldFail: true,
+		},
+		{
+			name:       "Namespace without manifest",
+			namespace:  "foo-test",
+			manifest:   "",
+			shouldFail: false,
+		},
+		{
+			name:      "Namespace name overwrites manifest",
+			namespace: "foo-test",
+			manifest: `apiVersion: v1
+kind: Namespace
+metadata:
+  name: bar-test
+`,
+			shouldFail: false,
+		},
+	}
+
+	for _, test := range tests {
+		k2o := newTestSimpleK2o()
+
+		err := k2o.CreateNamespace(test.namespace, test.manifest)
+		if err == nil {
+			if test.shouldFail {
+				t.Errorf("expected test %s to fail", test.name)
+			} else {
+				namespace, err := k2o.KubeClientset.
+					CoreV1().
+					Namespaces().
+					Get(context.TODO(), test.namespace, metav1.GetOptions{})
+				assert.NilError(t, err)
+
+				assert.Equal(t, namespace.Annotations["created-by"], "kudo-cli")
+			}
 		} else {
 			if !test.shouldFail {
 				t.Errorf("expected test %s to succeed but got error: %v", test.name, err)
