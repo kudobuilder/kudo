@@ -98,10 +98,10 @@ func NewClientFromK8s(kudo versioned.Interface, kube kubernetes.Interface) *Clie
 func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 	operator, err := c.kudoClientset.KudoV1beta1().Operators(namespace).Get(name, v1.GetOptions{})
 	if err != nil {
-		clog.V(2).Printf("operator.kudo.dev/%s does not exist\n", name)
+		clog.V(2).Printf("operator.kudo.dev %s/%s does not exist\n", namespace, name)
 		return false
 	}
-	clog.V(2).Printf("operator.kudo.dev/%s unchanged", operator.Name)
+	clog.V(2).Printf("operator.kudo.dev %s/%s unchanged", operator.Namespace, operator.Name)
 	return true
 }
 
@@ -109,10 +109,10 @@ func (c *Client) OperatorExistsInCluster(name, namespace string) bool {
 func (c *Client) OperatorVersionExistsInCluster(name, namespace string) bool {
 	operator, err := c.kudoClientset.KudoV1beta1().OperatorVersions(namespace).Get(name, v1.GetOptions{})
 	if err != nil {
-		clog.V(2).Printf("operatorversion.kudo.dev/%s does not exist\n", name)
+		clog.V(2).Printf("operatorversion.kudo.dev %s/%s does not exist\n", namespace, name)
 		return false
 	}
-	clog.V(2).Printf("operatorversion.kudo.dev/%s unchanged", operator.Name)
+	clog.V(2).Printf("operatorversion.kudo.dev %s/%s unchanged", operator.Namespace, operator.Name)
 	return true
 }
 
