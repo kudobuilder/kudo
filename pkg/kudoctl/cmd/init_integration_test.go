@@ -142,7 +142,8 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 
 	instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "ns")
 	// Verify that we cannot create the instance, because the test environment is empty.
-	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
+	err = testClient.Create(context.TODO(), instance)
+	assert.Error(t, err, "Expected an Error but got none")
 
 	// Install all of the CRDs.
 	crds := crd.NewInitializer().Resources()
