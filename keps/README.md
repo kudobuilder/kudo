@@ -31,5 +31,6 @@
 | [0025 - Template toYaml function](0025-template-to-yaml-function.md) | :heavy_check_mark: | implemented | New toYaml function for use in templates |
 | [0026 - Reading parameter values from a file](0026-reading-parameter-values-from-a-file.md) | :heavy_check_mark: | implemented | Reading parameter values from a file |
 | [0027 - Pod restart control](0027-pod-restart-controls.md) | :heavy_plus_sign: | implementable | Detailed control what parameter changes trigger pod restarts |
-| [0029 - Operator Dependencies](0029-operator-dependencies.md) | :question: | provisional | Introducing operators depending on other operators |
+| [0029 - Operator Dependencies](0029-operator-dependencies.md) | :heavy_check_mark: | implemented | Introducing operators depending on other operators |
 | [0030 - Immutable parameters](0030-immutable-parameters.md) | :question: | provisional | Immutable parameters that can only be set on installation |
+| [0031 - Namespace Management](0031-namespace-management.md) | :question: | provisional | Defining the way in which KUDO will work and manage namespaces |

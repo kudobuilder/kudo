@@ -10,7 +10,7 @@ owners:
 editor: @zen-dog
 creation-date: 2020-03-30
 last-updated: 2020-04-16
-status: provisional
+status: implemented
 ---
 
 # Operator Dependencies
