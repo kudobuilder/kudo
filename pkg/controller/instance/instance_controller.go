@@ -96,8 +96,15 @@ func (r *Reconciler) SetupWithManager(
 		})
 
 	return ctrl.NewControllerManagedBy(mgr).
+		// Owns(&kudov1beta1.Instance{}) is equivalent to Watches(&source.Kind{Type: <ForType-apiType>},
+		// &handler.EnqueueRequestForOwner{OwnerType: apiType, IsController: true}) and is responsible for reconciliation
+		// when k8s resources owned by an Instance change.
+		// Watches((&source.Kind{Type: &kudov1beta1.Instance{}}...) is almost the same as Owns(), but with IsController: false
+		// for reconciliation of (parent) instances owning other (child) instances e.g. when a child instance is complete
+		// and parent instance can move on with the plan execution.
 		For(&kudov1beta1.Instance{}).
 		Owns(&kudov1beta1.Instance{}).
+		Watches(&source.Kind{Type: &kudov1beta1.Instance{}}, &handler.EnqueueRequestForOwner{OwnerType: &kudov1beta1.Instance{}, IsController: false}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&batchv1.Job{}).

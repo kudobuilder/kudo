@@ -70,16 +70,18 @@ func (kt KudoOperatorTask) Run(ctx Context) (bool, error) {
 	return true, nil
 }
 
-// dependencyInstanceName returns a name for the child instance in an operator with dependencies looking like
-// <parent-instance.<child-instance> if a child instance name is provided e.g. `kafka-instance.custom-name` or
-// <parent-instance.<child-operator> if not e.g. `kafka-instance.zookeeper`. This way we always have a valid child
-// instance name and user can install the same operator multiple times in the same namespace, because the instance
-// names will be unique thanks to the top-level instance name prefix.
+// dependencyInstanceName returns a name for the child instance. If the name was provided by the user as part of the
+// KudoOperator task definition, it is simply applied. If the name wasn't provided it is generated in the form of
+// <parentInstance-<childOperator> e.g. `kafka-zookeeper`. This way the generated name is always valid and the same
+// operator can be installed multiple times in the same namespace, because the instance names will be unique thanks to
+// the top-level instance name prefix. For self-picked names, it is the responsibility of the user, to pick a unique one.
+// Note: since instance names are often used as service names (DNS-1035 label), we generate instance names using lower case
+// alphanumeric characters or '-', (e.g. 'my-name',  or 'abc-123')
 func dependencyInstanceName(parentInstanceName, instanceName, operatorName string) string {
 	if instanceName != "" {
-		return fmt.Sprintf("%s.%s", parentInstanceName, instanceName)
+		return instanceName
 	}
-	return fmt.Sprintf("%s.%s", parentInstanceName, operatorName)
+	return fmt.Sprintf("%s-%s", parentInstanceName, operatorName)
 }
 
 // instanceParameters method takes templated parameter file and a map of parameters and then renders passed template using kudo engine.

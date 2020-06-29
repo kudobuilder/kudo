@@ -25,11 +25,6 @@ func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersi
 		return nil, fmt.Errorf("failed to resolve operator version %s/%s:%s", r.ns, ovn, appVersion)
 	}
 
-	// sanity check, as there is an explicit 1:1 relationship between an operator and app version
-	if ov.Spec.AppVersion != appVersion {
-		return nil, fmt.Errorf("found operator version %s/%s but found appVersion %s is not equal to the requested %s", r.ns, ovn, ov.Spec.AppVersion, appVersion)
-	}
-
 	o, err := v1beta1.GetOperator(name, r.ns, r.c)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve operator %s/%s", r.ns, name)
