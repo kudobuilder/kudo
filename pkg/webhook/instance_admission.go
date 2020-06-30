@@ -90,6 +90,8 @@ func handleCreate(ia *InstanceAdmission, req admission.Request) admission.Respon
 	new.Spec.PlanExecution.PlanName = kudov1beta1.DeployPlanName
 	new.Spec.PlanExecution.UID = uuid.NewUUID()
 
+	setImmutableParameterDefaults(ov, new)
+
 	marshaled, err := json.Marshal(new)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
@@ -111,6 +113,11 @@ func handleUpdate(ia *InstanceAdmission, req admission.Request) admission.Respon
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
+	// we explicitly ignore Metadata updates
+	if reflect.DeepEqual(old.Spec, new.Spec) && reflect.DeepEqual(old.Status, new.Status) {
+		return admission.Allowed("")
+	}
+
 	// fetch new OperatorVersion: we always fetch the new one, since if it's an update it's the same as the old one
 	// and if it's an upgrade, we need the new one anyway
 	ov, err := new.GetOperatorVersion(ia.client)
@@ -119,12 +126,13 @@ func handleUpdate(ia *InstanceAdmission, req admission.Request) admission.Respon
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	// we explicitly ignore Metadata updates
-	if reflect.DeepEqual(old.Spec, new.Spec) && reflect.DeepEqual(old.Status, new.Status) {
-		return admission.Allowed("")
+	oldOv, err := old.GetOperatorVersion(ia.client)
+	if err != nil {
+		log.Printf("InstanceAdmission: Error getting operatorVersion %s for instance %s/%s: %v", new.Spec.OperatorVersion.Name, new.Namespace, new.Name, err)
+		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	triggered, err := admitUpdate(old, new, ov)
+	triggered, err := admitUpdate(old, new, ov, oldOv)
 	if err != nil {
 		return admission.Denied(err.Error())
 	}
@@ -177,7 +185,7 @@ func handleUpdate(ia *InstanceAdmission, req admission.Request) admission.Respon
 // - <nil> when there is no change to an existing scheduled plan
 // - '' empty string when an existing plan should be canceled (not implemented yet)
 // - 'newPlan' some new plan that should be triggered
-func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion) (*string, error) { //nolint:gocyclo
+func admitUpdate(old, new *kudov1beta1.Instance, ov, oldOv *kudov1beta1.OperatorVersion) (*string, error) { //nolint:gocyclo
 	// PREREQUISITES:
 	newPlan := new.Spec.PlanExecution.PlanName
 	oldPlan := old.Spec.PlanExecution.PlanName
@@ -196,7 +204,7 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion
 	isDeleting := new.IsDeleting() // a non-empty meta.deletionTimestamp is a signal to switch to the uninstalling life-cycle phase
 	isPlanTerminal := new.Spec.PlanExecution.Status.IsTerminal()
 
-	parameterDefs, err := changedParameterDefinitions(old.Spec.Parameters, new.Spec.Parameters, ov)
+	parameterDefs, err := changedParameterDefinitions(old.Spec.Parameters, new.Spec.Parameters, ov, oldOv, isUpgrade)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update Instance %s/%s: %v", old.Namespace, old.Name, err)
 	}
@@ -336,19 +344,43 @@ func triggeredByParameterUpdate(params []kudov1beta1.Parameter, ov *kudov1beta1.
 }
 
 // merge method merges two maps and returns the result. Note, that left map is being modified in process.
-func changedParameterDefinitions(old map[string]string, new map[string]string, ov *kudov1beta1.OperatorVersion) ([]kudov1beta1.Parameter, error) {
-	c, r := kudov1beta1.RichParameterDiff(old, new)
-	cpd, err := kudov1beta1.GetParamDefinitions(c, ov)
+func changedParameterDefinitions(old map[string]string, new map[string]string, ov, oldOv *kudov1beta1.OperatorVersion, isUpgrade bool) ([]kudov1beta1.Parameter, error) {
+	changed, removed := kudov1beta1.RichParameterDiff(old, new)
+	changedDefs, err := kudov1beta1.GetParamDefinitions(changed, ov)
 	if err != nil {
 		return nil, err
+	}
+
+	if !isUpgrade {
+		for _, p := range changedDefs {
+			if *p.Immutable {
+				return nil, fmt.Errorf("parameter '%s' is immutable but changed from '%v' to '%v'", p.Name, old[p.Name], new[p.Name])
+			}
+		}
+	} else {
+		// An OV upgrade happened
+		_, err := kudov1beta1.GetParamDefinitions(changed, oldOv)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// we ignore the error for missing OV parameter definitions for removed parameters. For once, this is a valid use-case when
 	// upgrading an Instance (new OV might remove parameters), but the user can also manually edit current OV and remove parameters.
 	// while discouraged, this is still possible since OV is not immutable.
-	rpd, _ := kudov1beta1.GetParamDefinitions(r, ov)
+	removedDefs, _ := kudov1beta1.GetParamDefinitions(removed, ov)
 
-	return append(cpd, rpd...), nil
+	return append(changedDefs, removedDefs...), nil
+}
+
+func setImmutableParameterDefaults(ov *kudov1beta1.OperatorVersion, instance *kudov1beta1.Instance) {
+	for _, p := range ov.Spec.Parameters {
+		if *p.Immutable && *p.Default != "" {
+			if instance.Spec.Parameters[p.Name] == "" {
+				instance.Spec.Parameters[p.Name] = *p.Default
+			}
+		}
+	}
 }
 
 // InstanceAdmission implements admission.DecoderInjector.

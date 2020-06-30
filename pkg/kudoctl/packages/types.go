@@ -36,6 +36,7 @@ type Parameter struct {
 	Default     interface{}           `json:"default,omitempty"`
 	Trigger     string                `json:"trigger,omitempty"`
 	Type        v1beta1.ParameterType `json:"type,omitempty"`
+	Immutable   *bool                 `json:"immutable,omitempty"`
 }
 
 type Parameters []Parameter

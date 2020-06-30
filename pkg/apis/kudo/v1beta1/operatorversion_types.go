@@ -109,6 +109,9 @@ type Parameter struct {
 
 	// Type specifies the value type. Defaults to `string`.
 	Type ParameterType `json:"value-type,omitempty"`
+
+	// Specifies if the parameter can be changed after the initial installation of the operator
+	Immutable *bool `json:"immutable,omitempty"`
 }
 
 // Phase specifies a list of steps that contain Kubernetes objects.

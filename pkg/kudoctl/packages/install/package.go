@@ -105,6 +105,16 @@ func applyOverrides(
 		clog.V(3).Printf("parameters in use: %v", parameters)
 		resources.Instance.Spec.Parameters = parameters
 	}
+
+	// For immutable parameters, we copy the default value into the instance parameters
+	for _, p := range resources.OperatorVersion.Spec.Parameters {
+		if *p.Immutable && p.Default != nil {
+			if resources.Instance.Spec.Parameters[p.Name] == "" {
+				clog.V(3).Printf("Using default value for immutable parameter %s", p.Name)
+				resources.Instance.Spec.Parameters[p.Name] = *p.Default
+			}
+		}
+	}
 }
 
 func validateParameters(instance v1beta1.Instance, parameters []v1beta1.Parameter) error {

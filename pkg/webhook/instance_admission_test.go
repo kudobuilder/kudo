@@ -381,7 +381,7 @@ func TestValidateUpdate(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := admitUpdate(tt.old, tt.new, tt.ov)
+			got, err := admitUpdate(tt.old, tt.new, tt.ov, nil)
 			assert.Equal(t, tt.wantErr, err != nil, "expected an error: %v but got: %v", tt.wantErr, err)
 			if err != nil {
 				log.Printf("err: %v", err)

@@ -108,9 +108,9 @@ func displayParamsTable(pf *packages.Files, out io.Writer, printRequired, printN
 			}
 		}
 		if found {
-			fmt.Fprintln(out, table)
+			_, _ = fmt.Fprintln(out, table)
 		} else {
-			fmt.Fprintf(out, "no required parameters without default values found\n")
+			_, _ = fmt.Fprintf(out, "no required parameters without default values found\n")
 		}
 	}
 	if printNames {
@@ -118,15 +118,15 @@ func displayParamsTable(pf *packages.Files, out io.Writer, printRequired, printN
 		for _, p := range pf.Params.Parameters {
 			table.AddRow(p.Name)
 		}
-		fmt.Fprintln(out, table)
+		_, _ = fmt.Fprintln(out, table)
 	}
 	table.MaxColWidth = 35
 	table.Wrap = true
 	if printDesc {
-		table.AddRow("Name", "Default", "Required", "Descriptions")
+		table.AddRow("Name", "Default", "Required", "Immutable", "Descriptions")
 
 	} else {
-		table.AddRow("Name", "Default", "Required")
+		table.AddRow("Name", "Default", "Required", "Immutable")
 	}
 	sort.Sort(pf.Params.Parameters)
 	for _, p := range pf.Params.Parameters {
@@ -136,12 +136,12 @@ func displayParamsTable(pf *packages.Files, out io.Writer, printRequired, printN
 		}
 
 		if printDesc {
-			table.AddRow(p.Name, convert.StringValue(pDefault), *p.Required, p.Description)
+			table.AddRow(p.Name, convert.StringValue(pDefault), *p.Required, *p.Immutable, p.Description)
 		} else {
-			table.AddRow(p.Name, convert.StringValue(pDefault), *p.Required)
+			table.AddRow(p.Name, convert.StringValue(pDefault), *p.Required, *p.Immutable)
 		}
 	}
-	fmt.Fprintln(out, table)
+	_, _ = fmt.Fprintln(out, table)
 	return nil
 }
 
