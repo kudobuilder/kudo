@@ -146,7 +146,7 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 		return errors.New("'--dry-run' and '--verify' can not be used at the same time")
 	}
 	if initCmd.crdOnly && initCmd.upgrade {
-		return errors.New("'--upgrade' and '--crd-only' can not be used at the same time")
+		return errors.New("'--upgrade' and '--crd-only' can not be used at the same time: you can not upgrade *only* crds")
 	}
 
 	return nil

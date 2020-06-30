@@ -75,7 +75,7 @@ func UninstallStatefulSet(client *kube.Client, options kudoinit.Options) error {
 	})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
-			return fmt.Errorf("failed to uninstall KUDO manager: %v", err)
+			return fmt.Errorf("failed to uninstall KUDO manager %s/%s: %v", options.Namespace, kudoinit.DefaultManagerName, err)
 		}
 	}
 	return nil
@@ -89,7 +89,7 @@ func (m Initializer) verifyManagerNotInstalled(client *kube.Client, result *veri
 		}
 		return err
 	}
-	result.AddErrors(fmt.Sprintf("KUDO manager seems to be installed. Did you mean to use --upgrade"))
+	result.AddErrors(fmt.Sprintf("KUDO manager %s/%s seems to be installed. Did you mean to use --upgrade", m.options.Namespace, kudoinit.DefaultManagerName))
 	return nil
 }
 
@@ -97,7 +97,7 @@ func (m Initializer) verifyManagerInstalled(client *kube.Client, result *verifie
 	mgr, err := client.KubeClient.AppsV1().StatefulSets(m.options.Namespace).Get(kudoinit.DefaultManagerName, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			result.AddErrors(fmt.Sprintf("failed to find KUDO manager in namespace %s", m.options.Namespace))
+			result.AddErrors(fmt.Sprintf("failed to find KUDO manager %s/%s", m.options.Namespace, kudoinit.DefaultManagerName))
 			return nil
 		}
 		return err
@@ -107,40 +107,41 @@ func (m Initializer) verifyManagerInstalled(client *kube.Client, result *verifie
 		return nil
 	}
 	if mgr.Spec.Template.Spec.Containers[0].Image != m.options.Image {
-		result.AddErrors(fmt.Sprintf("KUDO manager has an unexpected image. Expected %s but found %s", m.options.Image, mgr.Spec.Template.Spec.Containers[0].Image))
+		result.AddWarnings(fmt.Sprintf("KUDO manager has an unexpected image. Expected %s but found %s", m.options.Image, mgr.Spec.Template.Spec.Containers[0].Image))
 		return nil
 	}
 	if err := health.IsHealthy(mgr); err != nil {
 		result.AddErrors("KUDO manager seems to be not healthy")
 		return nil
 	}
+	clog.V(2).Printf("KUDO manager is healthy and running %s", mgr.Spec.Template.Spec.Containers[0].Image)
 	return nil
 }
 
 func (m Initializer) installStatefulSet(client *kube.Client) error {
-	clog.V(4).Printf("try to delete stateful set %v before creating it", m.deployment.Name)
+	clog.V(4).Printf("try to delete manager stateful set %s/%s before creating it", m.deployment.Namespace, m.deployment.Name)
 	if err := UninstallStatefulSet(client, m.options); err != nil {
 		return err
 	}
 	_, err := client.KubeClient.AppsV1().StatefulSets(m.options.Namespace).Create(m.deployment)
 	if err != nil {
-		return fmt.Errorf("failed to recreate update manager stateful set: %v", err)
+		return fmt.Errorf("failed to recreate manager stateful set %s/%s: %v", m.options.Namespace, m.deployment.Name, err)
 	}
 	return nil
 }
 
 func (m Initializer) installService(client corev1client.ServicesGetter) error {
-	clog.V(4).Printf("try to delete manager service %v before creating ", m.service.Name)
+	clog.V(4).Printf("try to delete manager service %s/%s before creating it", m.service.Namespace, m.service.Name)
 	err := client.Services(m.options.Namespace).Delete(m.service.Name, &metav1.DeleteOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
-			return fmt.Errorf("failed to delete manager service for recreation: %v", err)
+			return fmt.Errorf("failed to delete manager service %s/%s for recreation: %v", m.service.Namespace, m.service.Name, err)
 		}
 	}
 
 	_, err = client.Services(m.options.Namespace).Create(m.service)
 	if err != nil {
-		return fmt.Errorf("failed to recreate manager service: %v", err)
+		return fmt.Errorf("failed to recreate manager service %s/%s: %v", m.options.Namespace, m.service.Name, err)
 	}
 	return nil
 }

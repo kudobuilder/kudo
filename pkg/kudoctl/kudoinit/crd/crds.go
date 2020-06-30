@@ -100,7 +100,7 @@ func (c Initializer) verifyIsNotInstalled(client v1beta1.CustomResourceDefinitio
 		}
 		return err
 	}
-	result.AddErrors(fmt.Sprintf("CRD %s is already installed. Did you mean to use --upgrade?", c.Operator.Name))
+	result.AddErrors(fmt.Sprintf("CRD %s is already installed. Did you mean to use --upgrade?", crd.Name))
 	return nil
 }
 
@@ -120,6 +120,7 @@ func (c Initializer) verifyInstallation(client v1beta1.CustomResourceDefinitions
 		result.AddErrors(fmt.Sprintf("Installed CRD %s has invalid version %s, expected %s", crd.Name, existingCrd.Spec.Version, crd.Spec.Version))
 		return nil
 	}
+	clog.V(2).Printf("CRD %s is installed with version %s", crd.Name, existingCrd.Spec.Versions[0].Name)
 	return nil
 }
 

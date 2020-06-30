@@ -230,6 +230,7 @@ func (k *KudoWebHook) detectCertManagerVersion(client *kube.Client, result *veri
 			k.certManagerGroup = group
 			k.certManagerAPIVersion = version
 
+			clog.V(2).Printf("Detected cert-manager %s/%s", group, version)
 			return nil
 		}
 	}
@@ -310,6 +311,8 @@ func (k *KudoWebHook) validateCertManagerInstallation(client *kube.Client, resul
 		result.AddWarnings("cert-manager seems not to be running correctly. Make sure cert-manager is working")
 		return nil
 	}
+
+	clog.V(2).Printf("Cert-Manager %s/%s is running", k.certManagerGroup, k.certManagerAPIVersion)
 	return nil
 }
 
@@ -327,6 +330,7 @@ func validateCrdVersion(extClient clientset.Interface, crdName string, expectedV
 	if crdVersion != expectedVersion {
 		result.AddErrors(fmt.Sprintf("invalid CRD version found for '%s': %s instead of %s", crdName, crdVersion, expectedVersion))
 	}
+	clog.V(2).Printf("CRD %s is installed with version %s", crdName, crdVersion)
 	return nil
 }
 
@@ -365,6 +369,7 @@ func validateUnstructuredInstallation(dynamicClient dynamic.Interface, item *uns
 
 	// We could add more detailed validation here, but DeepEquals doesn't work because of added fields from k8s
 
+	clog.V(2).Printf("Resource %s/%s of type %v is installed", item.GetNamespace(), item.GetName(), item.GroupVersionKind())
 	return nil
 }
 
@@ -389,6 +394,7 @@ func validateAdmissionWebhookInstallation(client clientv1beta1.MutatingWebhookCo
 
 	// We could add more detailed validation here, regarding the details of the webhook configuration
 
+	clog.V(2).Printf("AdmissionWebhook %s is installed", webhook.Name)
 	return nil
 }
 
@@ -413,6 +419,7 @@ func validateWebhookSecretInstallation(client kubernetes.Interface, secret corev
 
 	// We can add more detailed validation here
 
+	clog.V(2).Printf("Webhook Secret %s/%s is installed", secret.Namespace, secret.Name)
 	return nil
 }
 

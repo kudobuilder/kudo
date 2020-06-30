@@ -206,11 +206,11 @@ func TestNewInitCmd(t *testing.T) {
 	}{
 		{name: "arguments invalid", parameters: []string{"foo"}, errorMessage: "this command does not accept arguments"},
 		{name: "name and version together invalid", flags: map[string]string{"kudo-image": "foo", "version": "bar"}, errorMessage: "specify either 'kudo-image' or 'version', not both"},
-		{name: "crd-only and wait together invalid", flags: map[string]string{"crd-only": "true", "wait": "true"}, errorMessage: "wait is not allowed with crd-only"},
+		{name: "crd-only and wait together invalid: there's nothing to wait for", flags: map[string]string{"crd-only": "true", "wait": "true"}, errorMessage: "wait is not allowed with crd-only"},
 		{name: "wait-timeout invalid without wait", flags: map[string]string{"wait-timeout": "400"}, errorMessage: "wait-timeout is only useful when using the flag '--wait'"},
-		{name: "crd-only and upgrade together invalid", flags: map[string]string{"crd-only": "true", "upgrade": "true"}, errorMessage: "'--upgrade' and '--crd-only' can not be used at the same time"},
-		{name: "verify and dry-run together invalid:", flags: map[string]string{"dry-run": "true", "verify": "true"}, errorMessage: "'--dry-run' and '--verify' can not be used at the same time"},
-		{name: "verify and upgrade together invalid:", flags: map[string]string{"upgrade": "true", "verify": "true"}, errorMessage: "'--upgrade' and '--verify' can not be used at the same time"},
+		{name: "crd-only and upgrade together invalid", flags: map[string]string{"crd-only": "true", "upgrade": "true"}, errorMessage: "'--upgrade' and '--crd-only' can not be used at the same time: you can not upgrade *only* crds"},
+		{name: "verify and dry-run together invalid: verify is read-only anyway", flags: map[string]string{"dry-run": "true", "verify": "true"}, errorMessage: "'--dry-run' and '--verify' can not be used at the same time"},
+		{name: "verify and upgrade together invalid: verify is a separate command", flags: map[string]string{"upgrade": "true", "verify": "true"}, errorMessage: "'--upgrade' and '--verify' can not be used at the same time"},
 	}
 
 	for _, tt := range tests {

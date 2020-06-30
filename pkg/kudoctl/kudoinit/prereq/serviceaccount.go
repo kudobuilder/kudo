@@ -103,6 +103,7 @@ func (o KudoServiceAccount) validateServiceAccountExists(client *kube.Client, re
 	}
 	for _, sa := range saList.Items {
 		if sa.Name == o.opts.ServiceAccount {
+			clog.V(2).Printf("Service Account %s/%s exists", o.opts.Namespace, o.opts.ServiceAccount)
 			return nil
 		}
 	}
@@ -121,6 +122,7 @@ func (o KudoServiceAccount) validateClusterAdminRoleForSA(client *kube.Client, r
 	for _, crb := range crbs.Items {
 		for _, subject := range crb.Subjects {
 			if subject.Name == o.opts.ServiceAccount && subject.Namespace == o.opts.Namespace && crb.RoleRef.Name == "cluster-admin" {
+				clog.V(2).Printf("Service Account %s/%s has cluster-admin role", o.opts.Namespace, o.opts.ServiceAccount)
 				return nil
 			}
 		}
