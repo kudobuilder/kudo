@@ -2,6 +2,7 @@
 package crd
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -78,7 +79,7 @@ func (c Initializer) Install(client *kube.Client) error {
 }
 
 func (c Initializer) verifyInstallation(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition, result *verifier.Result) error {
-	existingCrd, err := client.CustomResourceDefinitions().Get(crd.Name, v1.GetOptions{})
+	existingCrd, err := client.CustomResourceDefinitions().Get(context.TODO(), crd.Name, v1.GetOptions{})
 	if err != nil {
 		if os.IsTimeout(err) {
 			return err
@@ -97,7 +98,7 @@ func (c Initializer) verifyInstallation(client v1beta1.CustomResourceDefinitions
 }
 
 func (c Initializer) install(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition) error {
-	_, err := client.CustomResourceDefinitions().Create(crd)
+	_, err := client.CustomResourceDefinitions().Create(context.TODO(), crd, v1.CreateOptions{})
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("crd %v already exists", crd.Name)
 		return nil

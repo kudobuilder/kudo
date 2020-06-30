@@ -1,6 +1,7 @@
 package prereq
 
 import (
+	"context"
 	"fmt"
 
 	v1 "k8s.io/api/core/v1"
@@ -77,7 +78,7 @@ func (o KudoServiceAccount) Resources() []runtime.Object {
 // Validate whether the serviceAccount exists
 func (o KudoServiceAccount) validateServiceAccountExists(client *kube.Client, result *verifier.Result) error {
 	coreClient := client.KubeClient.CoreV1()
-	saList, err := coreClient.ServiceAccounts(o.opts.Namespace).List(metav1.ListOptions{})
+	saList, err := coreClient.ServiceAccounts(o.opts.Namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to retrieve list of service accounts from namespace %v: %v", o.opts.Namespace, err)
 	}
@@ -93,7 +94,7 @@ func (o KudoServiceAccount) validateServiceAccountExists(client *kube.Client, re
 // Validate whether the serviceAccount has cluster-admin role
 func (o KudoServiceAccount) validateClusterAdminRoleForSA(client *kube.Client, result *verifier.Result) error {
 	// Check whether the serviceAccount has clusterrolebinding cluster-admin
-	crbs, err := client.KubeClient.RbacV1().ClusterRoleBindings().List(metav1.ListOptions{})
+	crbs, err := client.KubeClient.RbacV1().ClusterRoleBindings().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to retrieve list of role bindings: %v", err)
 	}
@@ -112,7 +113,7 @@ func (o KudoServiceAccount) validateClusterAdminRoleForSA(client *kube.Client, r
 
 func (o KudoServiceAccount) installServiceAccount(client *kube.Client) error {
 	coreClient := client.KubeClient.CoreV1()
-	_, err := coreClient.ServiceAccounts(o.opts.Namespace).Create(o.serviceAccount)
+	_, err := coreClient.ServiceAccounts(o.opts.Namespace).Create(context.TODO(), o.serviceAccount, metav1.CreateOptions{})
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("service account %v already exists", o.serviceAccount.Name)
 		return nil
@@ -121,7 +122,7 @@ func (o KudoServiceAccount) installServiceAccount(client *kube.Client) error {
 }
 
 func (o KudoServiceAccount) installRoleBinding(client *kube.Client) error {
-	_, err := client.KubeClient.RbacV1().ClusterRoleBindings().Create(o.roleBinding)
+	_, err := client.KubeClient.RbacV1().ClusterRoleBindings().Create(context.TODO(), o.roleBinding, metav1.CreateOptions{})
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("role binding %v already exists", o.roleBinding.Name)
 		return nil
