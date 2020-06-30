@@ -10,7 +10,7 @@ require (
 	github.com/google/go-cmp v0.4.0
 	github.com/gosuri/uitable v0.0.4
 	github.com/huandu/xstrings v1.3.1 // indirect
-	github.com/kudobuilder/kuttl v0.4.0
+	github.com/kudobuilder/kuttl v0.5.0
 	github.com/manifoldco/promptui v0.7.0
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/onsi/ginkgo v1.12.0
@@ -40,6 +40,3 @@ require (
 	sigs.k8s.io/controller-tools v0.3.0
 	sigs.k8s.io/yaml v1.2.0
 )
-
-// Replace this when kuttl 0.5.0 is released
-replace github.com/kudobuilder/kuttl v0.4.0 => github.com/kudobuilder/kuttl v0.4.1-0.20200626203555-914c2ca0a2b5
