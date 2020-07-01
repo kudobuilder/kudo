@@ -95,5 +95,6 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 		settings.Namespace,
 		*pkg.Resources,
 		options.Parameters,
+		resolver,
 		installOpts)
 }

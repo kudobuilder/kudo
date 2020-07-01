@@ -1,0 +1,21 @@
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
+  name: operator-instance
+spec:
+  operatorVersion:
+    name: operator-2.0
+status:
+  planStatus:
+    upgrade:
+      status: COMPLETE
+---
+apiVersion: kudo.dev/v1beta1
+kind: Operator
+metadata:
+  name: dependency
+---
+apiVersion: kudo.dev/v1beta1
+kind: OperatorVersion
+metadata:
+  name: dependency-1.0

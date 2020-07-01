@@ -1,20 +1,5 @@
 apiVersion: kudo.dev/v1beta1
 kind: Operator
 metadata:
-  creationTimestamp: "2020-05-18T20:19:10Z"
-  generation: 1
   name: zookeeper
   namespace: my-namespace
-  resourceVersion: "5832427"
-  selfLink: /apis/kudo.dev/v1beta1/namespaces/my-namespace/operators/zookeeper
-  uid: 0d60dbf5-86c1-40e4-9a7b-88a030e90eaf
-spec:
-  kubernetesVersion: 1.14.8
-  kudoVersion: 0.10.0
-  maintainers:
-  - email: avarkockova@mesosphere.com
-    name: Alena Varkockova
-  - email: runyontr@gmail.com
-    name: Tom Runyon
-  url: https://zookeeper.apache.org/
-status: {}

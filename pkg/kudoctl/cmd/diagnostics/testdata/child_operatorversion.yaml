@@ -1,0 +1,9 @@
+apiVersion: kudo.dev/v1beta1
+kind: OperatorVersion
+metadata:
+  name: zookeeper-instance-child-0.1.0
+  namespace: my-namespace
+spec:
+  operator:
+    kind: Operator
+    name: zookeeper-instance-child

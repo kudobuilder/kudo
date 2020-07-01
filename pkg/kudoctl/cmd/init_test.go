@@ -46,6 +46,7 @@ func TestInitCmd_exists(t *testing.T) {
 		out:                 &buf,
 		fs:                  afero.NewMemMapFs(),
 		client:              &kube.Client{KubeClient: fc, ExtClient: fc2},
+		image:               "fake",
 		selfSignedWebhookCA: true,
 	}
 	clog.InitWithFlags(nil, &buf)
@@ -77,11 +78,12 @@ func TestInitCmd_output(t *testing.T) {
 		var buf bytes.Buffer
 		var errOut bytes.Buffer
 		cmd := &initCmd{
-			out:    &buf,
-			errOut: &errOut,
-			client: client,
-			output: s,
-			dryRun: true,
+			out:     &buf,
+			errOut:  &errOut,
+			client:  client,
+			output:  s,
+			dryRun:  true,
+			version: "dev",
 		}
 		// ensure that we can marshal
 		if err := cmd.run(); err != nil {
@@ -155,9 +157,9 @@ func TestInitCmd_yamlOutput(t *testing.T) {
 		goldenFile string
 		flags      map[string]string
 	}{
-		{"custom namespace", "deploy-kudo-ns.yaml", map[string]string{"dry-run": "true", "output": "yaml", "namespace": "foo"}},
-		{"yaml output", "deploy-kudo.yaml", map[string]string{"dry-run": "true", "output": "yaml"}},
-		{"service account", "deploy-kudo-sa.yaml", map[string]string{"dry-run": "true", "output": "yaml", "service-account": "safoo", "namespace": "foo"}},
+		{"custom namespace", "deploy-kudo-ns.yaml", map[string]string{"dry-run": "true", "output": "yaml", "namespace": "foo", "version": "dev"}},
+		{"yaml output", "deploy-kudo.yaml", map[string]string{"dry-run": "true", "output": "yaml", "version": "dev"}},
+		{"service account", "deploy-kudo-sa.yaml", map[string]string{"dry-run": "true", "output": "yaml", "service-account": "safoo", "namespace": "foo", "version": "dev"}},
 	}
 
 	for _, tt := range tests {

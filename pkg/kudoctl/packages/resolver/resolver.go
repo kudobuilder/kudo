@@ -10,7 +10,7 @@ import (
 // Resolver will try to resolve a given package name to either local tarball, folder, remote url or
 // an operator in the remote repository.
 type Resolver interface {
-	Resolve(name string, version string) (*packages.Package, error)
+	Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error)
 }
 
 // PackageResolver is the source of resolver of operator packages.

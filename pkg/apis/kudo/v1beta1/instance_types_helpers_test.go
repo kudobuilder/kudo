@@ -33,12 +33,12 @@ func TestGetLastExecutedPlanStatus(t *testing.T) {
 		planStatus       map[string]PlanStatus
 		expectedPlanName string
 	}{
-		{"no plan ever run", map[string]PlanStatus{"test": {
+		{name: "no plan ever run", planStatus: map[string]PlanStatus{"test": {
 			Status: ExecutionNeverRun,
 			Name:   "test",
 			Phases: []PhaseStatus{{Name: "phase", Status: ExecutionNeverRun, Steps: []StepStatus{{Status: ExecutionNeverRun, Name: "step"}}}},
-		}}, ""},
-		{"plan in progress", map[string]PlanStatus{
+		}}},
+		{name: "plan in progress", planStatus: map[string]PlanStatus{
 			"test": {
 				Status: ExecutionInProgress,
 				Name:   "test",
@@ -48,8 +48,8 @@ func TestGetLastExecutedPlanStatus(t *testing.T) {
 				Status: ExecutionComplete,
 				Name:   "test2",
 				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
-			}}, "test"},
-		{"last executed plan", map[string]PlanStatus{
+			}}, expectedPlanName: "test"},
+		{name: "last executed plan", planStatus: map[string]PlanStatus{
 			"test": {
 				Status:               ExecutionComplete,
 				Name:                 "test",
@@ -61,19 +61,17 @@ func TestGetLastExecutedPlanStatus(t *testing.T) {
 				Name:                 "test2",
 				LastUpdatedTimestamp: &metav1.Time{Time: testTime.Add(time.Hour)},
 				Phases:               []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
-			}}, "test2"},
+			}}, expectedPlanName: "test2"},
 	}
 
 	for _, tt := range tests {
 		i := Instance{}
 		i.Status.PlanStatus = tt.planStatus
 		actual := i.GetLastExecutedPlanStatus()
-		actualName := ""
 		if actual != nil {
-			actualName = actual.Name
-		}
-		if actualName != tt.expectedPlanName {
-			t.Errorf("%s: Expected to get plan %s but got plan status of %v", tt.name, tt.expectedPlanName, actual)
+			assert.Equal(t, tt.expectedPlanName, actual.Name)
+		} else {
+			assert.True(t, tt.expectedPlanName == "")
 		}
 	}
 }
@@ -128,5 +126,98 @@ func TestGetParamDefinitions(t *testing.T) {
 			assert.True(t, (err != nil) == tt.wantErr, "GetParamDefinitions() error = %v, wantErr %v", err, tt.wantErr)
 			assert.ElementsMatch(t, got, tt.want, "GetParamDefinitions() got = %v, want %v", got, tt.want)
 		})
+	}
+}
+
+func TestGetPlanInProgress(t *testing.T) {
+	tests := []struct {
+		name             string
+		planStatus       map[string]PlanStatus
+		expectedPlanName string
+	}{
+		{name: "no plan ever run", planStatus: map[string]PlanStatus{"test": {
+			Status: ExecutionNeverRun,
+			Name:   "test",
+			Phases: []PhaseStatus{{Name: "phase", Status: ExecutionNeverRun, Steps: []StepStatus{{Status: ExecutionNeverRun, Name: "step"}}}},
+		}}},
+		{name: "plan in progress", planStatus: map[string]PlanStatus{
+			"test": {
+				Status: ExecutionInProgress,
+				Name:   "test",
+				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionInProgress, Steps: []StepStatus{{Status: ExecutionInProgress, Name: "step"}}}},
+			},
+			"test2": {
+				Status: ExecutionComplete,
+				Name:   "test2",
+				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
+			}}, expectedPlanName: "test"},
+		{name: "all plans complete", planStatus: map[string]PlanStatus{
+			"test": {
+				Status: ExecutionComplete,
+				Name:   "test",
+				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
+			},
+			"test2": {
+				Status: ExecutionComplete,
+				Name:   "test2",
+				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
+			}}},
+	}
+
+	for _, tt := range tests {
+		i := Instance{}
+		i.Status.PlanStatus = tt.planStatus
+		actual := i.GetPlanInProgress()
+		if actual != nil {
+			assert.Equal(t, tt.expectedPlanName, actual.Name)
+		} else {
+			assert.True(t, tt.expectedPlanName == "")
+		}
+	}
+}
+
+func TestNoPlanEverExecuted(t *testing.T) {
+	tests := []struct {
+		name           string
+		planStatus     map[string]PlanStatus
+		expectedResult bool
+	}{
+		{name: "no plan ever run", planStatus: map[string]PlanStatus{"test": {
+			Status: ExecutionNeverRun,
+			Name:   "test",
+			Phases: []PhaseStatus{{Name: "phase", Status: ExecutionNeverRun, Steps: []StepStatus{{Status: ExecutionNeverRun, Name: "step"}}}},
+		}}, expectedResult: true},
+		{name: "plan in progress", planStatus: map[string]PlanStatus{
+			"test": {
+				Status: ExecutionInProgress,
+				Name:   "test",
+				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionInProgress, Steps: []StepStatus{{Status: ExecutionInProgress, Name: "step"}}}},
+			},
+			"test2": {
+				Status: ExecutionComplete,
+				Name:   "test2",
+				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
+			}}},
+		{name: "all plans complete", planStatus: map[string]PlanStatus{
+			"test": {
+				Status: ExecutionComplete,
+				Name:   "test",
+				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
+			},
+			"test2": {
+				Status: ExecutionComplete,
+				Name:   "test2",
+				Phases: []PhaseStatus{{Name: "phase", Status: ExecutionComplete, Steps: []StepStatus{{Status: ExecutionComplete, Name: "step"}}}},
+			}}},
+	}
+
+	for _, tt := range tests {
+		i := Instance{}
+		i.Status.PlanStatus = tt.planStatus
+		actual := i.NoPlanEverExecuted()
+		if actual != tt.expectedResult {
+			t.Errorf("%s: Expected to get plan %v but got %v", tt.name, tt.expectedResult, actual)
+		}
+		assert.Equal(t, tt.expectedResult, actual)
 	}
 }

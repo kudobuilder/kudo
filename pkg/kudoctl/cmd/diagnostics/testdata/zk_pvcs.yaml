@@ -1,120 +1,24 @@
 apiVersion: v1
+kind: PersistentVolumeClaimList
 items:
 - apiVersion: v1
   kind: PersistentVolumeClaim
   metadata:
-    annotations:
-      control-plane.alpha.kubernetes.io/leader: '{"holderIdentity":"4e1b1a70-839b-11ea-84a3-b00cd12cc2cf","leaseDurationSeconds":15,"acquireTime":"2020-04-23T13:37:29Z","renewTime":"2020-04-23T13:38:00Z","leaderTransitions":0}'
-      pv.kubernetes.io/bind-completed: "yes"
-      pv.kubernetes.io/bound-by-controller: "yes"
-      volume.beta.kubernetes.io/storage-provisioner: k8s.io/minikube-hostpath
-    creationTimestamp: "2020-04-23T13:37:29Z"
-    finalizers:
-    - kubernetes.io/pvc-protection
     labels:
-      app: zookeeper
-      heritage: kudo
-      instance: zk
-      kudo.dev/instance: zk
       kudo.dev/operator: zookeeper
-      zookeeper: zookeeper
     name: zk-datadir-zk-zookeeper-0
     namespace: default
-    resourceVersion: "1071019"
-    selfLink: /api/v1/namespaces/default/persistentvolumeclaims/zk-datadir-zk-zookeeper-0
-    uid: db46bc7b-da33-4f01-8f37-e69f5e7867ac
-  spec:
-    accessModes:
-    - ReadWriteOnce
-    resources:
-      requests:
-        storage: 5Gi
-    storageClassName: standard
-    volumeMode: Filesystem
-    volumeName: pvc-db46bc7b-da33-4f01-8f37-e69f5e7867ac
-  status:
-    accessModes:
-    - ReadWriteOnce
-    capacity:
-      storage: 5Gi
-    phase: Bound
 - apiVersion: v1
   kind: PersistentVolumeClaim
   metadata:
-    annotations:
-      control-plane.alpha.kubernetes.io/leader: '{"holderIdentity":"4e1b1a70-839b-11ea-84a3-b00cd12cc2cf","leaseDurationSeconds":15,"acquireTime":"2020-04-23T13:37:29Z","renewTime":"2020-04-23T13:38:01Z","leaderTransitions":0}'
-      pv.kubernetes.io/bind-completed: "yes"
-      pv.kubernetes.io/bound-by-controller: "yes"
-      volume.beta.kubernetes.io/storage-provisioner: k8s.io/minikube-hostpath
-    creationTimestamp: "2020-04-23T13:37:29Z"
-    finalizers:
-    - kubernetes.io/pvc-protection
     labels:
-      app: zookeeper
-      heritage: kudo
-      instance: zk
-      kudo.dev/instance: zk
       kudo.dev/operator: zookeeper
-      zookeeper: zookeeper
     name: zk-datadir-zk-zookeeper-1
     namespace: default
-    resourceVersion: "1071020"
-    selfLink: /api/v1/namespaces/default/persistentvolumeclaims/zk-datadir-zk-zookeeper-1
-    uid: 347fbfd2-e2f6-42f1-a1be-458aa34a32f4
-  spec:
-    accessModes:
-    - ReadWriteOnce
-    resources:
-      requests:
-        storage: 5Gi
-    storageClassName: standard
-    volumeMode: Filesystem
-    volumeName: pvc-347fbfd2-e2f6-42f1-a1be-458aa34a32f4
-  status:
-    accessModes:
-    - ReadWriteOnce
-    capacity:
-      storage: 5Gi
-    phase: Bound
 - apiVersion: v1
   kind: PersistentVolumeClaim
   metadata:
-    annotations:
-      control-plane.alpha.kubernetes.io/leader: '{"holderIdentity":"4e1b1a70-839b-11ea-84a3-b00cd12cc2cf","leaseDurationSeconds":15,"acquireTime":"2020-04-23T13:37:29Z","renewTime":"2020-04-23T13:38:01Z","leaderTransitions":0}'
-      pv.kubernetes.io/bind-completed: "yes"
-      pv.kubernetes.io/bound-by-controller: "yes"
-      volume.beta.kubernetes.io/storage-provisioner: k8s.io/minikube-hostpath
-    creationTimestamp: "2020-04-23T13:37:29Z"
-    finalizers:
-    - kubernetes.io/pvc-protection
     labels:
-      app: zookeeper
-      heritage: kudo
-      instance: zk
-      kudo.dev/instance: zk
       kudo.dev/operator: zookeeper
-      zookeeper: zookeeper
     name: zk-datadir-zk-zookeeper-2
     namespace: default
-    resourceVersion: "1071021"
-    selfLink: /api/v1/namespaces/default/persistentvolumeclaims/zk-datadir-zk-zookeeper-2
-    uid: c0dbb58d-70af-4e86-979c-9bab2aa1578c
-  spec:
-    accessModes:
-    - ReadWriteOnce
-    resources:
-      requests:
-        storage: 5Gi
-    storageClassName: standard
-    volumeMode: Filesystem
-    volumeName: pvc-c0dbb58d-70af-4e86-979c-9bab2aa1578c
-  status:
-    accessModes:
-    - ReadWriteOnce
-    capacity:
-      storage: 5Gi
-    phase: Bound
-kind: PersistentVolumeClaimList
-metadata:
-  resourceVersion: ""
-  selfLink: ""

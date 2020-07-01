@@ -7,6 +7,8 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/resources/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
@@ -23,12 +25,16 @@ type Options struct {
 // Instance name, namespace and operator parameters are applied to the
 // operator package resources. These rendered resources are then created
 // on the Kubernetes cluster.
+// Packages can have dependencies on other packages. In that case,
+// dependent packages are resolved and their Operator and
+// Operatorversion resources created on the Kubernetes cluster.
 func Package(
 	client *kudo.Client,
 	instanceName string,
 	namespace string,
 	resources packages.Resources,
 	parameters map[string]string,
+	resolver resolver.Resolver,
 	options Options) error {
 	clog.V(3).Printf(
 		"Preparing %s/%s:%s for installation",
@@ -54,7 +60,8 @@ func Package(
 		}
 	}
 
-	if err := installOperatorAndOperatorVersion(client, resources); err != nil {
+	if err := install.OperatorAndOperatorVersion(
+		client, resources.Operator, resources.OperatorVersion, resolver); err != nil {
 		return err
 	}
 
@@ -62,12 +69,12 @@ func Package(
 		return nil
 	}
 
-	if err := installInstance(client, resources.Instance); err != nil {
+	if err := install.Instance(client, resources.Instance); err != nil {
 		return err
 	}
 
 	if options.Wait != nil {
-		if err := waitForInstance(client, resources.Instance, *options.Wait); err != nil {
+		if err := install.WaitForInstance(client, resources.Instance, *options.Wait); err != nil {
 			return err
 		}
 	}

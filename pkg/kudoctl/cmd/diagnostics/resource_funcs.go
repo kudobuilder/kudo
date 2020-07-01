@@ -2,6 +2,7 @@ package diagnostics
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -51,7 +52,7 @@ func newInstanceResources(instanceName string, options *Options, c *kudo.Client,
 // panics if used to load Kudo CRDs (e.g. instance etc.)
 func newKudoResources(options *Options, c *kudo.Client) (*resourceFuncsConfig, error) {
 	opts := metav1.ListOptions{LabelSelector: fmt.Sprintf("app=%s", kudoinit.DefaultKudoLabel)}
-	ns, err := c.KubeClientset.CoreV1().Namespaces().List(opts)
+	ns, err := c.KubeClientset.CoreV1().Namespaces().List(context.TODO(), opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get kudo system namespace: %v", err)
 	}
@@ -64,6 +65,37 @@ func newKudoResources(options *Options, c *kudo.Client) (*resourceFuncsConfig, e
 		opts:    opts,
 		logOpts: corev1.PodLogOptions{SinceSeconds: options.LogSince},
 	}, nil
+}
+
+func newDependenciesResources(instanceName string, options *Options, c *kudo.Client, s *env.Settings) ([]*resourceFuncsConfig, error) {
+	instance, err := c.GetInstance(instanceName, s.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get instance %s/%s: %v", s.Namespace, instanceName, err)
+	}
+	if instance == nil {
+		return nil, fmt.Errorf("instance %s/%s not found", s.Namespace, instanceName)
+	}
+
+	children, err := c.GetChildInstances(instance)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get children of instance %s/%s: %v", s.Namespace, instanceName, err)
+	}
+
+	configs := make([]*resourceFuncsConfig, 0, len(children))
+
+	for _, child := range children {
+		child := child
+
+		configs = append(configs, &resourceFuncsConfig{
+			c:           c,
+			ns:          s.Namespace,
+			instanceObj: &child,
+			opts:        metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", kudoutil.OperatorLabel, child.Labels[kudoutil.OperatorLabel])},
+			logOpts:     corev1.PodLogOptions{SinceSeconds: options.LogSince},
+		})
+	}
+
+	return configs, nil
 }
 
 type stringGetter func() string
@@ -85,52 +117,52 @@ func (r *resourceFuncsConfig) operator(name stringGetter) func() (runtime.Object
 }
 
 func (r *resourceFuncsConfig) deployments() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.AppsV1().Deployments(r.ns).List(r.opts)
+	obj, err := r.c.KubeClientset.AppsV1().Deployments(r.ns).List(context.TODO(), r.opts)
 	return obj, err
 }
 
 func (r *resourceFuncsConfig) pods() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.CoreV1().Pods(r.ns).List(r.opts)
+	obj, err := r.c.KubeClientset.CoreV1().Pods(r.ns).List(context.TODO(), r.opts)
 	return obj, err
 }
 
 func (r *resourceFuncsConfig) services() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.CoreV1().Services(r.ns).List(r.opts)
+	obj, err := r.c.KubeClientset.CoreV1().Services(r.ns).List(context.TODO(), r.opts)
 	return obj, err
 }
 
 func (r *resourceFuncsConfig) replicaSets() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.AppsV1().ReplicaSets(r.ns).List(r.opts)
+	obj, err := r.c.KubeClientset.AppsV1().ReplicaSets(r.ns).List(context.TODO(), r.opts)
 	return obj, err
 }
 
 func (r *resourceFuncsConfig) statefulSets() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.AppsV1().StatefulSets(r.ns).List(r.opts)
+	obj, err := r.c.KubeClientset.AppsV1().StatefulSets(r.ns).List(context.TODO(), r.opts)
 	return obj, err
 }
 
 func (r *resourceFuncsConfig) serviceAccounts() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.CoreV1().ServiceAccounts(r.ns).List(r.opts)
+	obj, err := r.c.KubeClientset.CoreV1().ServiceAccounts(r.ns).List(context.TODO(), r.opts)
 	return obj, err
 }
 
 func (r *resourceFuncsConfig) clusterRoleBindings() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.RbacV1().ClusterRoleBindings().List(r.opts)
+	obj, err := r.c.KubeClientset.RbacV1().ClusterRoleBindings().List(context.TODO(), r.opts)
 	return obj, err
 }
 
 func (r *resourceFuncsConfig) roleBindings() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.RbacV1().RoleBindings(r.ns).List(r.opts)
+	obj, err := r.c.KubeClientset.RbacV1().RoleBindings(r.ns).List(context.TODO(), r.opts)
 	return obj, err
 }
 
 func (r *resourceFuncsConfig) clusterRoles() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.RbacV1().ClusterRoles().List(r.opts)
+	obj, err := r.c.KubeClientset.RbacV1().ClusterRoles().List(context.TODO(), r.opts)
 	return obj, err
 }
 
 func (r *resourceFuncsConfig) roles() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.RbacV1().Roles(r.ns).List(r.opts)
+	obj, err := r.c.KubeClientset.RbacV1().Roles(r.ns).List(context.TODO(), r.opts)
 	return obj, err
 }
 
@@ -140,5 +172,5 @@ func (r *resourceFuncsConfig) log(podName, containerName string) (io.ReadCloser,
 	if reflect.DeepEqual(*req, rest.Request{}) {
 		return ioutil.NopCloser(&bytes.Buffer{}), nil
 	}
-	return req.Stream()
+	return req.Stream(context.TODO())
 }

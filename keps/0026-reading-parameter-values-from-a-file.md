@@ -40,8 +40,8 @@ updating an operator instance.
 This has two motivations:
 1. A better way for a user to store parameter values than a shell command line.
 1. A more convenient way to pass complex parameter values, especially in the light of
-coming structured parameter values (see [KEP-24](https://github.com/kudobuilder/kudo/blob/master/keps/0024-parameter-enhancement.md))
-and their intended use cases (see [KEP-25](https://github.com/kudobuilder/kudo/blob/master/keps/0025-template-to-yaml-function.md)).
+coming structured parameter values (see [KEP-24](https://github.com/kudobuilder/kudo/blob/main/keps/0024-parameter-enhancement.md))
+and their intended use cases (see [KEP-25](https://github.com/kudobuilder/kudo/blob/main/keps/0025-template-to-yaml-function.md)).
 
 See [User Stories](#user-stories) below for more details.
 
@@ -49,7 +49,7 @@ See [User Stories](#user-stories) below for more details.
 
 - Make it possible to store parameter values in a file, and pass them in this form
 to any `kubectl kudo` command which currently takes the `-p` / `--parameter` flag.
-- Support both currently supported (i.e. `string`) and planned (see [KEP-24](https://github.com/kudobuilder/kudo/blob/master/keps/0024-parameter-enhancement.md))
+- Support both currently supported (i.e. `string`) and planned (see [KEP-24](https://github.com/kudobuilder/kudo/blob/main/keps/0024-parameter-enhancement.md))
 types of parameter values.
 
 ### Non-Goals
@@ -79,8 +79,8 @@ This presents the following two basic problems.
 #### Storing parameter values in version control
 
 Some operators
-([kafka](https://github.com/kudobuilder/operators/blob/master/repository/kafka/operator/params.yaml),
-[cassandra](https://github.com/kudobuilder/operators/blob/master/repository/cassandra/3.11/operator/operator.yaml))
+([kafka](https://github.com/kudobuilder/operators/blob/main/repository/kafka/operator/params.yaml),
+[cassandra](https://github.com/kudobuilder/operators/blob/main/repository/cassandra/3.11/operator/operator.yaml))
 declare nearly 200 parameters which can be overridden, and we can expect this number to grow.
 
 While it is unlikely that a given operator user will override every single one of these parameters,
@@ -107,7 +107,7 @@ powerful than shell command line editing, such as a text editor with syntax high
 
 The top-level element is a mapping from strings which represent parameter names their to values.
 The following example shows a string parameter (supported at the time of writing this KEP)
-as well as an integer and a mapping (to be added in [KEP-24](https://github.com/kudobuilder/kudo/blob/master/keps/0024-parameter-enhancement.md)).
+as well as an integer and a mapping (to be added in [KEP-24](https://github.com/kudobuilder/kudo/blob/main/keps/0024-parameter-enhancement.md)).
 
 ```yaml
 PARAM_FOO: a string

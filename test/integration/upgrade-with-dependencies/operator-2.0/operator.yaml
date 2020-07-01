@@ -1,0 +1,25 @@
+apiVersion: kudo.dev/v1beta1
+name: operator
+operatorVersion: "2.0"
+kubernetesVersion: 1.15.0
+maintainers:
+  - name: nfnt
+    email: <your@email.com>
+url: https://kudo.dev
+tasks:
+  - name: dependency
+    kind: KudoOperator
+    spec:
+      package: "./dependency"
+      operatorVersion: "1.0"
+
+plans:
+  upgrade:
+    strategy: serial
+    phases:
+      - name: main
+        strategy: parallel
+        steps:
+          - name: deploy
+            tasks:
+              - dependency

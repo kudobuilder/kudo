@@ -111,6 +111,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 		fs:      afero.NewMemMapFs(),
 		client:  kclient,
 		crdOnly: true,
+		version: "dev",
 	}
 	err = cmd.run()
 	assert.NoError(t, err)
@@ -157,6 +158,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 		client:              kclient,
 		ns:                  namespace,
 		selfSignedWebhookCA: true,
+		version:             "dev",
 	}
 
 	// On first attempt, the namespace does not exist, so the error is expected.
@@ -184,7 +186,10 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 
 	// make sure that the controller lives in the correct namespace
 	kclient = getKubeClient(t)
-	statefulsets, err := kclient.KubeClient.AppsV1().StatefulSets(namespace).List(metav1.ListOptions{})
+	statefulsets, err := kclient.KubeClient.
+		AppsV1().
+		StatefulSets(namespace).
+		List(context.TODO(), metav1.ListOptions{})
 	assert.NoError(t, err)
 
 	kudoControllerFound := false
@@ -283,6 +288,7 @@ func TestInitWithServiceAccount(t *testing.T) {
 				ns:                  namespace,
 				serviceAccount:      "test-account",
 				selfSignedWebhookCA: true,
+				version:             "dev",
 			}
 
 			ns := testutils.NewResource("v1", "Namespace", namespace, "")
@@ -328,7 +334,10 @@ func TestInitWithServiceAccount(t *testing.T) {
 
 				// make sure that the controller lives in the correct namespace
 				kclient = getKubeClient(t)
-				statefulsets, err := kclient.KubeClient.AppsV1().StatefulSets(namespace).List(metav1.ListOptions{})
+				statefulsets, err := kclient.KubeClient.
+					AppsV1().
+					StatefulSets(namespace).
+					List(context.TODO(), metav1.ListOptions{})
 				assert.NoError(t, err)
 
 				kudoControllerFound := false
@@ -369,6 +378,7 @@ func TestReInitFails(t *testing.T) {
 		fs:      afero.NewMemMapFs(),
 		client:  kclient,
 		crdOnly: true,
+		version: "dev",
 	}
 	err = cmd.run()
 	assert.NoError(t, err)

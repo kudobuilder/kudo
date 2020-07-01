@@ -15,18 +15,13 @@ const (
 	instanceCleanupFinalizerName = "kudo.dev.instance.cleanup"
 )
 
-// ScheduledPlan returns plan status of currently active plan or nil if no plan is running. In most cases this method
-// will return the same plan status as the [GetPlanInProgress](pkg/apis/kudo/v1beta1/instance_types_helpers.go:25) below.
-// However, there is a small window where both might return different results:
-// 1. GetScheduledPlan reads the plan from i.Spec.PlanExecution.PlanName which is set and reset by the instance admission
-//   webhook
-// 2. GetPlanInProgress goes through i.Spec.PlanStatus map and returns the first found plan that is running
-//
-// In (1), i.Spec.PlanExecution.PlanName is set directly when the user updates the instance and reset **after** the plan
-// is terminal
-// In (2) i.Spec.PlanStatus is updated **AFTER** the instance controller is done with the reconciliation call
-func (i *Instance) GetScheduledPlan() *PlanStatus {
-	return i.PlanStatus(i.Spec.PlanExecution.PlanName)
+func GetInstance(namespacedName types.NamespacedName, c client.Client) (i *Instance, err error) {
+	i = &Instance{}
+	err = c.Get(context.TODO(), namespacedName, i)
+	if err != nil {
+		return nil, err
+	}
+	return i, nil
 }
 
 // GetPlanInProgress returns plan status of currently active plan or nil if no plan is running
@@ -186,18 +181,19 @@ func (i *Instance) GetOperatorVersion(c client.Reader) (ov *OperatorVersion, err
 	return GetOperatorVersionByName(i.Spec.OperatorVersion.Name, i.OperatorVersionNamespace(), c)
 }
 
-func GetOperatorVersionByName(ovn, ns string, c client.Reader) (ov *OperatorVersion, err error) {
-	ov = &OperatorVersion{}
-	err = c.Get(context.TODO(),
-		types.NamespacedName{
-			Name:      ovn,
-			Namespace: ns,
-		},
-		ov)
-	if err != nil {
-		return nil, err
+// IsChildInstance method return true if this instance is owned by another instance (as a dependency) and false otherwise.
+// If there is any owner with the same kind 'Instance' then this Instance is owned by another one.
+func (i *Instance) IsChildInstance() bool {
+	for _, or := range i.GetOwnerReferences() {
+		if or.Kind == i.Kind {
+			return true
+		}
 	}
-	return ov, nil
+	return false
+}
+
+func (i *Instance) IsTopLevelInstance() bool {
+	return !i.IsChildInstance()
 }
 
 // wasRunAfter returns true if p1 was run after p2

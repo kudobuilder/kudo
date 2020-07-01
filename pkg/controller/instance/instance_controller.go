@@ -50,6 +50,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/engine/workflow"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/resources/dependencies"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
@@ -95,8 +96,15 @@ func (r *Reconciler) SetupWithManager(
 		})
 
 	return ctrl.NewControllerManagedBy(mgr).
+		// Owns(&kudov1beta1.Instance{}) is equivalent to Watches(&source.Kind{Type: <ForType-apiType>},
+		// &handler.EnqueueRequestForOwner{OwnerType: apiType, IsController: true}) and is responsible for reconciliation
+		// when k8s resources owned by an Instance change.
+		// Watches((&source.Kind{Type: &kudov1beta1.Instance{}}...) is almost the same as Owns(), but with IsController: false
+		// for reconciliation of (parent) instances owning other (child) instances e.g. when a child instance is complete
+		// and parent instance can move on with the plan execution.
 		For(&kudov1beta1.Instance{}).
 		Owns(&kudov1beta1.Instance{}).
+		Watches(&source.Kind{Type: &kudov1beta1.Instance{}}, &handler.EnqueueRequestForOwner{OwnerType: &kudov1beta1.Instance{}, IsController: false}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&batchv1.Job{}).
@@ -197,6 +205,15 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		r.Recorder.Event(instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", plan))
 	}
 
+	// check if all the dependencies can be resolved (if necessary)
+	err = r.resolveDependencies(instance, ov)
+	if err != nil {
+		planStatus.SetWithMessage(kudov1beta1.ExecutionFatalError, err.Error())
+		instance.UpdateInstanceStatus(planStatus, &metav1.Time{Time: time.Now()})
+		err = r.handleError(err, instance, oldInstance)
+		return reconcile.Result{}, err
+	}
+
 	// ---------- 3. Execute the scheduled plan ----------
 
 	metadata := &engine.Metadata{
@@ -241,8 +258,21 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	return reconcile.Result{}, nil
 }
 
-func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance, client client.Client) error {
+func (r *Reconciler) resolveDependencies(i *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion) error {
+	// no need to check the dependencies if this is a child-level instance, as the top-level instance will take care of that
+	if i.IsChildInstance() {
+		return nil
+	}
+	resolver := &InClusterResolver{ns: i.Namespace, c: r.Client}
 
+	_, err := dependencies.Resolve(ov, resolver)
+	if err != nil {
+		return engine.ExecutionError{Err: fmt.Errorf("%w%v", engine.ErrFatalExecution, err), EventName: "CircularDependency"}
+	}
+	return nil
+}
+
+func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance, client client.Client) error {
 	// The order of both updates below is important: *first* the instance Spec and Metadata and *then* the Status.
 	// If Status is updated first, a new reconcile request will be scheduled and might fetch the *WRONG* instance
 	// Spec.PlanExecution. This request will then try to execute an already finished plan (again).
@@ -331,22 +361,13 @@ func (r *Reconciler) handleError(err error, instance *kudov1beta1.Instance, oldI
 		}
 	}
 
-	// for code being processed on instance, we need to handle these errors as well
-	var iError *kudov1beta1.InstanceError
-	if errors.As(err, &iError) {
-		if iError.EventName != nil {
-			r.Recorder.Event(instance, "Warning", convert.StringValue(iError.EventName), err.Error())
-		}
-	}
 	return err
 }
 
 // getInstance retrieves the instance by namespaced name
 func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1beta1.Instance, err error) {
-	instance = &kudov1beta1.Instance{}
-	err = r.Get(context.TODO(), request.NamespacedName, instance)
+	instance, err = kudov1beta1.GetInstance(request.NamespacedName, r.Client)
 	if err != nil {
-		// Error reading the object - requeue the request.
 		log.Printf("InstanceController: Error getting instance %v: %v",
 			request.NamespacedName,
 			err)
