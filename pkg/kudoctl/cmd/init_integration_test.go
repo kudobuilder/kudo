@@ -185,7 +185,10 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 
 	// make sure that the controller lives in the correct namespace
 	kclient = getKubeClient(t)
-	statefulsets, err := kclient.KubeClient.AppsV1().StatefulSets(namespace).List(metav1.ListOptions{})
+	statefulsets, err := kclient.KubeClient.
+		AppsV1().
+		StatefulSets(namespace).
+		List(context.TODO(), metav1.ListOptions{})
 	assert.NoError(t, err)
 
 	kudoControllerFound := false
@@ -330,7 +333,10 @@ func TestInitWithServiceAccount(t *testing.T) {
 
 				// make sure that the controller lives in the correct namespace
 				kclient = getKubeClient(t)
-				statefulsets, err := kclient.KubeClient.AppsV1().StatefulSets(namespace).List(metav1.ListOptions{})
+				statefulsets, err := kclient.KubeClient.
+					AppsV1().
+					StatefulSets(namespace).
+					List(context.TODO(), metav1.ListOptions{})
 				assert.NoError(t, err)
 
 				kudoControllerFound := false

@@ -1,6 +1,7 @@
 package prereq
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -178,7 +179,7 @@ func (k *KudoWebHook) detectCertManagerVersion(client *kube.Client, result *veri
 func detectCertManagerCRD(extClient clientset.Interface, api certManagerVersion) (string, string, error) {
 	testCRD := fmt.Sprintf("certificates.%s", api.group)
 	clog.V(4).Printf("Try to retrieve cert-manager CRD %s", testCRD)
-	crd, err := extClient.ApiextensionsV1().CustomResourceDefinitions().Get(testCRD, metav1.GetOptions{})
+	crd, err := extClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), testCRD, metav1.GetOptions{})
 	if err == nil {
 		// crd.Spec.Versions[0] must be the one that is stored and served, we should use that one
 		clog.V(4).Printf("Got CRD. Group: %s, Version: %s", api.group, crd.Spec.Versions[0].Name)
@@ -218,7 +219,7 @@ func (k *KudoWebHook) validateCertManagerInstallation(client *kube.Client, resul
 
 	// A couple extra checks, checking for cert manager, detection requires the label app=cert-manager which is the
 	// default according to k8s.io docs.
-	deployments, err := client.KubeClient.AppsV1().Deployments("").List(metav1.ListOptions{
+	deployments, err := client.KubeClient.AppsV1().Deployments("").List(context.TODO(), metav1.ListOptions{
 		LabelSelector: "app=cert-manager",
 	})
 	if err != nil {
@@ -251,7 +252,7 @@ func (k *KudoWebHook) validateCertManagerInstallation(client *kube.Client, resul
 }
 
 func validateCrdVersion(extClient clientset.Interface, crdName string, expectedVersion string, result *verifier.Result) error {
-	certCRD, err := extClient.ApiextensionsV1().CustomResourceDefinitions().Get(crdName, metav1.GetOptions{})
+	certCRD, err := extClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), crdName, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			result.AddErrors(fmt.Sprintf("failed to find CRD '%s': %s", crdName, err))
@@ -274,7 +275,7 @@ func installUnstructured(dynamicClient dynamic.Interface, item *unstructured.Uns
 		Group:    gvk.Group,
 		Version:  gvk.Version,
 		Resource: fmt.Sprintf("%ss", strings.ToLower(gvk.Kind)), // since we know what kinds are we dealing with here, this is OK
-	}).Namespace(item.GetNamespace()).Create(item, metav1.CreateOptions{})
+	}).Namespace(item.GetNamespace()).Create(context.TODO(), item, metav1.CreateOptions{})
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("resource %s already registered", item.GetName())
 	} else if err != nil {
@@ -284,7 +285,7 @@ func installUnstructured(dynamicClient dynamic.Interface, item *unstructured.Uns
 }
 
 func installAdmissionWebhook(client clientv1beta1.MutatingWebhookConfigurationsGetter, webhook admissionv1beta1.MutatingWebhookConfiguration) error {
-	_, err := client.MutatingWebhookConfigurations().Create(&webhook)
+	_, err := client.MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("admission webhook %v already registered", webhook.Name)
 		return nil
@@ -293,7 +294,7 @@ func installAdmissionWebhook(client clientv1beta1.MutatingWebhookConfigurationsG
 }
 
 func installWebhookSecret(client kubernetes.Interface, secret corev1.Secret) error {
-	_, err := client.CoreV1().Secrets(secret.Namespace).Create(&secret)
+	_, err := client.CoreV1().Secrets(secret.Namespace).Create(context.TODO(), &secret, metav1.CreateOptions{})
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("webhook secret %v already exists", secret.Name)
 		return nil

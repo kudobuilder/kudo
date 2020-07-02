@@ -2,6 +2,7 @@ package diagnostics
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -51,7 +52,7 @@ func newInstanceResources(instanceName string, options *Options, c *kudo.Client,
 // panics if used to load Kudo CRDs (e.g. instance etc.)
 func newKudoResources(options *Options, c *kudo.Client) (*resourceFuncsConfig, error) {
 	opts := metav1.ListOptions{LabelSelector: fmt.Sprintf("app=%s", kudoinit.DefaultKudoLabel)}
-	ns, err := c.KubeClientset.CoreV1().Namespaces().List(opts)
+	ns, err := c.KubeClientset.CoreV1().Namespaces().List(context.TODO(), opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get kudo system namespace: %v", err)
 	}
@@ -116,52 +117,52 @@ func (r *resourceFuncsConfig) operator(name stringGetter) func() (runtime.Object
 }
 
 func (r *resourceFuncsConfig) deployments() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.AppsV1().Deployments(r.ns).List(r.opts)
+	obj, err := r.c.KubeClientset.AppsV1().Deployments(r.ns).List(context.TODO(), r.opts)
 	return obj, err
 }
 
 func (r *resourceFuncsConfig) pods() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.CoreV1().Pods(r.ns).List(r.opts)
+	obj, err := r.c.KubeClientset.CoreV1().Pods(r.ns).List(context.TODO(), r.opts)
 	return obj, err
 }
 
 func (r *resourceFuncsConfig) services() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.CoreV1().Services(r.ns).List(r.opts)
+	obj, err := r.c.KubeClientset.CoreV1().Services(r.ns).List(context.TODO(), r.opts)
 	return obj, err
 }
 
 func (r *resourceFuncsConfig) replicaSets() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.AppsV1().ReplicaSets(r.ns).List(r.opts)
+	obj, err := r.c.KubeClientset.AppsV1().ReplicaSets(r.ns).List(context.TODO(), r.opts)
 	return obj, err
 }
 
 func (r *resourceFuncsConfig) statefulSets() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.AppsV1().StatefulSets(r.ns).List(r.opts)
+	obj, err := r.c.KubeClientset.AppsV1().StatefulSets(r.ns).List(context.TODO(), r.opts)
 	return obj, err
 }
 
 func (r *resourceFuncsConfig) serviceAccounts() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.CoreV1().ServiceAccounts(r.ns).List(r.opts)
+	obj, err := r.c.KubeClientset.CoreV1().ServiceAccounts(r.ns).List(context.TODO(), r.opts)
 	return obj, err
 }
 
 func (r *resourceFuncsConfig) clusterRoleBindings() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.RbacV1().ClusterRoleBindings().List(r.opts)
+	obj, err := r.c.KubeClientset.RbacV1().ClusterRoleBindings().List(context.TODO(), r.opts)
 	return obj, err
 }
 
 func (r *resourceFuncsConfig) roleBindings() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.RbacV1().RoleBindings(r.ns).List(r.opts)
+	obj, err := r.c.KubeClientset.RbacV1().RoleBindings(r.ns).List(context.TODO(), r.opts)
 	return obj, err
 }
 
 func (r *resourceFuncsConfig) clusterRoles() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.RbacV1().ClusterRoles().List(r.opts)
+	obj, err := r.c.KubeClientset.RbacV1().ClusterRoles().List(context.TODO(), r.opts)
 	return obj, err
 }
 
 func (r *resourceFuncsConfig) roles() (runtime.Object, error) {
-	obj, err := r.c.KubeClientset.RbacV1().Roles(r.ns).List(r.opts)
+	obj, err := r.c.KubeClientset.RbacV1().Roles(r.ns).List(context.TODO(), r.opts)
 	return obj, err
 }
 
@@ -171,5 +172,5 @@ func (r *resourceFuncsConfig) log(podName, containerName string) (io.ReadCloser,
 	if reflect.DeepEqual(*req, rest.Request{}) {
 		return ioutil.NopCloser(&bytes.Buffer{}), nil
 	}
-	return req.Stream()
+	return req.Stream(context.TODO())
 }
