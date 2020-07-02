@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -49,6 +50,7 @@ func newTestCmd() *cobra.Command {
 	skipClusterDelete := false
 	parallel := 0
 	artifactsDir := ""
+	reportFormat := ""
 
 	options := harness.TestSuite{}
 
@@ -150,6 +152,10 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 				options.ArtifactsDir = artifactsDir
 			}
 
+			if isSet(flags, "report") {
+				options.ReportFormat = strings.ToLower(reportFormat)
+			}
+
 			if len(args) != 0 {
 				options.TestDirs = args
 			}
@@ -184,6 +190,7 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 	testCmd.Flags().StringVar(&kindConfig, "kind-config", "", "Specify the KIND configuration file path (implies --start-kind, cannot be used with --start-control-plane).")
 	testCmd.Flags().StringVar(&kindContext, "kind-context", "", "Specify the KIND context name to use (default: kind).")
 	testCmd.Flags().StringVar(&artifactsDir, "artifacts-dir", "", "Directory to output kind logs to (if not specified, the current working directory).")
+	testCmd.Flags().StringVar(&reportFormat, "report", "", "Specify JSON|XML for report.  Report location determined by --artifacts-dir.")
 	testCmd.Flags().BoolVar(&startKUDO, "start-kudo", false, "Start KUDO during the test run.")
 	testCmd.Flags().BoolVar(&skipDelete, "skip-delete", false, "If set, do not delete resources created during tests (helpful for debugging test failures, implies --skip-cluster-delete).")
 	testCmd.Flags().BoolVar(&skipClusterDelete, "skip-cluster-delete", false, "If set, do not delete the mocked control plane or kind cluster.")
