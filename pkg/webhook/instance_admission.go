@@ -204,6 +204,8 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov, oldOv *kudov1beta1.Operator
 	isDeleting := new.IsDeleting() // a non-empty meta.deletionTimestamp is a signal to switch to the uninstalling life-cycle phase
 	isPlanTerminal := new.Spec.PlanExecution.Status.IsTerminal()
 
+	log.Printf("AdmitUpdate: %v <==> %v ==> %t", oldOvRef, newOvRef, isUpgrade)
+
 	parameterDefs, err := changedParameterDefinitions(old.Spec.Parameters, new.Spec.Parameters, ov, oldOv, isUpgrade)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update Instance %s/%s: %v", old.Namespace, old.Name, err)
@@ -343,24 +345,23 @@ func triggeredByParameterUpdate(params []kudov1beta1.Parameter, ov *kudov1beta1.
 	}
 }
 
-// merge method merges two maps and returns the result. Note, that left map is being modified in process.
-func changedParameterDefinitions(old map[string]string, new map[string]string, ov, oldOv *kudov1beta1.OperatorVersion, isUpgrade bool) ([]kudov1beta1.Parameter, error) {
+// changedParameterDefinitions returns a list of parameters that were changed or added from old to new. The new map may be modified in this process
+func changedParameterDefinitions(old, new map[string]string, newOv, oldOv *kudov1beta1.OperatorVersion, isUpgrade bool) ([]kudov1beta1.Parameter, error) {
 	changed, removed := kudov1beta1.RichParameterDiff(old, new)
-	changedDefs, err := kudov1beta1.GetParamDefinitions(changed, ov)
+	changedDefs, err := kudov1beta1.GetParamDefinitions(changed, newOv)
 	if err != nil {
 		return nil, err
 	}
 
 	if !isUpgrade {
 		for _, p := range changedDefs {
-			if *p.Immutable {
-				return nil, fmt.Errorf("parameter '%s' is immutable but changed from '%v' to '%v'", p.Name, old[p.Name], new[p.Name])
+			if p.IsImmutable() {
+				return nil, fmt.Errorf("parameter '%s' is immutable but was changed from '%v' to '%v'", p.Name, old[p.Name], new[p.Name])
 			}
 		}
 	} else {
 		// An OV upgrade happened
-		_, err := kudov1beta1.GetParamDefinitions(changed, oldOv)
-		if err != nil {
+		if err := validateOVUpgrade(new, newOv, oldOv); err != nil {
 			return nil, err
 		}
 	}
@@ -368,14 +369,50 @@ func changedParameterDefinitions(old map[string]string, new map[string]string, o
 	// we ignore the error for missing OV parameter definitions for removed parameters. For once, this is a valid use-case when
 	// upgrading an Instance (new OV might remove parameters), but the user can also manually edit current OV and remove parameters.
 	// while discouraged, this is still possible since OV is not immutable.
-	removedDefs, _ := kudov1beta1.GetParamDefinitions(removed, ov)
+	removedDefs, _ := kudov1beta1.GetParamDefinitions(removed, newOv)
 
 	return append(changedDefs, removedDefs...), nil
 }
 
+func validateOVUpgrade(new map[string]string, newOv, oldOv *kudov1beta1.OperatorVersion) error {
+	isEqualImmutable := func(p1, p2 kudov1beta1.Parameter) bool {
+		return p1.IsImmutable() == p2.IsImmutable()
+	}
+
+	for _, changedParam := range kudov1beta1.GetChangedParameters(oldOv, newOv, isEqualImmutable) {
+		if changedParam.IsImmutable() {
+			// Param was changed from Mutable to Immutable - We need to make sure we have a value set
+			if _, ok := new[changedParam.Name]; !ok {
+				return fmt.Errorf("parameter '%s' was changed to immutable in operator version %s but no value was provided", changedParam.Name, newOv.Name)
+			}
+		}
+		// else {
+		// Param was changed from Immutable to Mutable - Nothing to validate
+		// }
+	}
+
+	for _, removedParam := range kudov1beta1.GetRemovedParameters(oldOv, newOv) {
+		// Param was removed - Remove the value from the parameters if it exists
+		delete(new, removedParam.Name)
+	}
+
+	for _, addedParam := range kudov1beta1.GetAddedParameters(oldOv, newOv) {
+		if addedParam.IsImmutable() {
+			// A new immutable param was added
+			if _, ok := new[addedParam.Name]; !ok {
+				if addedParam.HasDefault() {
+					return fmt.Errorf("parameter '%s' was added in operator version %s, but no value was provided (default would be %s)", addedParam.Name, newOv.Name, *addedParam.Default)
+				}
+				return fmt.Errorf("parameter '%s' was added in operator version %s, but no value was provided", addedParam.Name, newOv.Name)
+			}
+		}
+	}
+	return nil
+}
+
 func setImmutableParameterDefaults(ov *kudov1beta1.OperatorVersion, instance *kudov1beta1.Instance) {
 	for _, p := range ov.Spec.Parameters {
-		if *p.Immutable && *p.Default != "" {
+		if p.IsImmutable() && p.HasDefault() {
 			if instance.Spec.Parameters[p.Name] == "" {
 				instance.Spec.Parameters[p.Name] = *p.Default
 			}
