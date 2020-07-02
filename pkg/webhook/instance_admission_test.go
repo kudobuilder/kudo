@@ -57,6 +57,10 @@ func TestValidateUpdate(t *testing.T) {
 					Trigger:   "deploy",
 					Immutable: &truePtr,
 				},
+				{
+					Name:    "unnamed",
+					Trigger: deploy,
+				},
 			},
 		},
 	}
@@ -456,6 +460,90 @@ func TestValidateUpdate(t *testing.T) {
 			ov: func() *v1beta1.OperatorVersion {
 				modOv := newOv.DeepCopy()
 				modOv.Spec.Parameters, _ = funk.Filter(modOv.Spec.Parameters, func(p v1beta1.Parameter) bool { return p.Name != "readonly" }).([]v1beta1.Parameter)
+				return modOv
+			}(),
+			want: &update,
+		},
+		{
+			name: "ov upgrade where a param with a value is made immutable IS allowed",
+			old:  idle,
+			new: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.OperatorVersion = v1.ObjectReference{Name: newOv.Name}
+				i.Spec.Parameters = map[string]string{}
+				return i
+			}(),
+			oldOv: ov,
+			ov: func() *v1beta1.OperatorVersion {
+				modOv := newOv.DeepCopy()
+				for _, p := range modOv.Spec.Parameters {
+					if p.Name == "foo" {
+						p.Immutable = &truePtr
+					}
+				}
+				return modOv
+			}(),
+			want: &update,
+		},
+		{
+			name: "ov upgrade where a param without a value is made immutable IS NOT allowed",
+			old:  idle,
+			new: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.OperatorVersion = v1.ObjectReference{Name: newOv.Name}
+				i.Spec.Parameters = map[string]string{}
+				return i
+			}(),
+			oldOv: ov,
+			ov: func() *v1beta1.OperatorVersion {
+				modOv := newOv.DeepCopy()
+				for i, p := range modOv.Spec.Parameters {
+					if p.Name == "unnamed" {
+						modOv.Spec.Parameters[i].Immutable = &truePtr
+					}
+				}
+				return modOv
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "ov upgrade where a param without a value is made immutable IS allowed when the value is provided",
+			old:  idle,
+			new: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.OperatorVersion = v1.ObjectReference{Name: newOv.Name}
+				i.Spec.Parameters = map[string]string{"unnamed": "newValue"}
+				return i
+			}(),
+			oldOv: ov,
+			ov: func() *v1beta1.OperatorVersion {
+				modOv := newOv.DeepCopy()
+				for i, p := range modOv.Spec.Parameters {
+					if p.Name == "unnamed" {
+						modOv.Spec.Parameters[i].Immutable = &truePtr
+					}
+				}
+				return modOv
+			}(),
+			want: &update,
+		},
+		{
+			name: "ov upgrade where a param is made mutable IS allowed",
+			old:  idle,
+			new: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.OperatorVersion = v1.ObjectReference{Name: newOv.Name}
+				i.Spec.Parameters = map[string]string{}
+				return i
+			}(),
+			oldOv: ov,
+			ov: func() *v1beta1.OperatorVersion {
+				modOv := newOv.DeepCopy()
+				for i, p := range modOv.Spec.Parameters {
+					if p.Name == "readonly" {
+						modOv.Spec.Parameters[i].Immutable = nil
+					}
+				}
 				return modOv
 			}(),
 			want: &update,
