@@ -136,9 +136,9 @@ func displayParamsTable(pf *packages.Files, out io.Writer, printRequired, printN
 		}
 
 		if printDesc {
-			table.AddRow(p.Name, convert.StringValue(pDefault), *p.Required, *p.Immutable, p.Description)
+			table.AddRow(p.Name, convert.StringValue(pDefault), p.IsRequired(), p.IsImmutable(), p.Description)
 		} else {
-			table.AddRow(p.Name, convert.StringValue(pDefault), *p.Required, *p.Immutable)
+			table.AddRow(p.Name, convert.StringValue(pDefault), p.IsRequired(), p.IsImmutable())
 		}
 	}
 	_, _ = fmt.Fprintln(out, table)

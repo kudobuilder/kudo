@@ -108,7 +108,7 @@ func applyOverrides(
 
 	// For immutable parameters, we copy the default value into the instance parameters
 	for _, p := range resources.OperatorVersion.Spec.Parameters {
-		if *p.Immutable && p.Default != nil {
+		if p.IsImmutable() && p.HasDefault() {
 			if resources.Instance.Spec.Parameters[p.Name] == "" {
 				clog.V(3).Printf("Using default value for immutable parameter %s", p.Name)
 				resources.Instance.Spec.Parameters[p.Name] = *p.Default
@@ -121,7 +121,7 @@ func validateParameters(instance v1beta1.Instance, parameters []v1beta1.Paramete
 	missingParameters := []string{}
 
 	for _, p := range parameters {
-		if *p.Required && p.Default == nil {
+		if p.IsRequired() && !p.HasDefault() {
 			_, ok := instance.Spec.Parameters[p.Name]
 			if !ok {
 				missingParameters = append(missingParameters, p.Name)

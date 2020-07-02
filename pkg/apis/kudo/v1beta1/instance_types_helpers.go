@@ -174,8 +174,12 @@ func (p *Parameter) IsImmutable() bool {
 	return p.Immutable != nil && *p.Immutable
 }
 
+func (p *Parameter) IsRequired() bool {
+	return p.Required != nil && *p.Required
+}
+
 func (p *Parameter) HasDefault() bool {
-	return p.Default != nil && *p.Default != ""
+	return p.Default != nil
 }
 
 func remove(values []string, s string) []string {

@@ -39,6 +39,14 @@ type Parameter struct {
 	Immutable   *bool                 `json:"immutable,omitempty"`
 }
 
+func (p Parameter) IsImmutable() bool {
+	return p.Immutable != nil && *p.Immutable
+}
+
+func (p Parameter) IsRequired() bool {
+	return p.Required != nil && *p.Required
+}
+
 type Parameters []Parameter
 
 // Len returns the number of params.
