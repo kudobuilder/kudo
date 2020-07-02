@@ -204,8 +204,6 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov, oldOv *kudov1beta1.Operator
 	isDeleting := new.IsDeleting() // a non-empty meta.deletionTimestamp is a signal to switch to the uninstalling life-cycle phase
 	isPlanTerminal := new.Spec.PlanExecution.Status.IsTerminal()
 
-	log.Printf("AdmitUpdate: %v <==> %v ==> %t", oldOvRef, newOvRef, isUpgrade)
-
 	parameterDefs, err := changedParameterDefinitions(old.Spec.Parameters, new.Spec.Parameters, ov, oldOv, isUpgrade)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update Instance %s/%s: %v", old.Namespace, old.Name, err)
@@ -360,7 +358,6 @@ func changedParameterDefinitions(old, new map[string]string, newOv, oldOv *kudov
 			}
 		}
 	} else {
-		// An OV upgrade happened
 		if err := validateOVUpgrade(new, newOv, oldOv); err != nil {
 			return nil, err
 		}
@@ -410,10 +407,11 @@ func validateOVUpgrade(new map[string]string, newOv, oldOv *kudov1beta1.Operator
 	return nil
 }
 
+// setImmutableParameterDefaults sets the default values for immutable parameters into the instances parameter map
 func setImmutableParameterDefaults(ov *kudov1beta1.OperatorVersion, instance *kudov1beta1.Instance) {
 	for _, p := range ov.Spec.Parameters {
 		if p.IsImmutable() && p.HasDefault() {
-			if instance.Spec.Parameters[p.Name] == "" {
+			if _, ok := instance.Spec.Parameters[p.Name]; !ok {
 				instance.Spec.Parameters[p.Name] = *p.Default
 			}
 		}
