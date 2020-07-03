@@ -31,7 +31,7 @@ see-also:
 
 ## Summary
 
-By default, every KUDO deployment installs operator packages from the community repository. As we encourage the KUDO community to add new operator packages to this repository, this KEP defines
+By default, every KUDO deployment installs operator packages from the community repository. As we encourage the KUDO community to add new operator packages to this repository, this KEP defines:
 
 - The workflow to add new operator packages to the community repository
 - Rules and means to describe the maturity of operator packages in the community repository
@@ -40,7 +40,7 @@ By default, every KUDO deployment installs operator packages from the community 
 
 Currently, every operator package in the community repository is provided from the `kudobuilder/operators` Git repository. This Git repository contains package definitions, documentation and sometimes tests for each operator. While it is convenient, to have this all in a single repository, this is challenging for larger or third-party operators:
 
-- Large operators usually provide own Docker images and/or additional dependencies. These have to be build, tested and deployed. The tools for this can't be provided by `kudobuilder/operators`.
+- Large operators usually provide their own Docker images and/or additional dependencies. These have to be built, tested and deployed. The tools for this can't be provided by `kudobuilder/operators`.
 - Some operator tests cannot be covered by the test tooling provided in `kudobuilder/operators` making it necessary to host the tests in a separate Git repository.
 - Providing multiple versions of an operator is only possible by using separate folders. Teams developing operators might prefer different workflows (e.g. Git tags)
 
