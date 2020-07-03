@@ -57,28 +57,40 @@ These requirements make it necessary for operator packages to be developed in a 
 
 - Change the practice of creating a PR against a Git repository to add operator packages to the community repository
 - Change operator package management as defined in [KEP-10](0010-package-manager.md) and [KEP-15](0015-repository-management.md)
+- Integration with [ArtifactHub](https://artifacthub.io/)
 
 ## Proposal
 
-Upstream operator developers still create PRs against a Git repository to add their operator packages to the community repository. This Git repository lists references to upstream operator packages instead of a full copy of an operator package. For example, consider an operator package developed at `github.com/example/example-operator` that has a tagged version `1.0.0` and the operator package in the `operator` folder. To add or update this operator package, the developers would create a PR referencing their upstream Git repository and the specific version, e.g. by adding a file `example-operator.yaml` like
+Upstream operator developers still create PRs against a Git repository to add their operator packages to the community repository. This Git repository lists references to upstream operator packages instead of a full copy of an operator package. A reference can point to a Git resitory or a package tarball. A version of an operator package is described by a specific tag of a Git repository or a URL pointing to an operator tarball of that release.
+
+For example, consider an operator package developed at `github.com/example/example-operator` that has  tagged versions `1.0.0`, `1.1.0` and the operator package in the `operator` folder. There's also a tarball for version `0.9.0` hosted at `example.org/example-operator-0.9.0.tgz`. To add or update this operator package, the developers would create a PR referencing their upstream Git repository and the specific version, e.g. by adding a file `example-operator.yaml` like
 
 ```yaml
+api: v1alpha1
 name: Example Operator
+git-sources:
+- name: git-repo
+  url: github.com/example/example-operator.git
 versions:
+- version: "0.9.0"
+  url: example.org/example-operator-0.9.0.tgz
 - version: "1.0.0"
   git:
-    repository: github.com/example/example-operator.git
+    source: git-repo
     tag: "1.0.0"
+    dir: operator
+- version: "1.1.0"
+  git:
+    source: git-repo
+    tag: "1.1.0"
     dir: operator
 ```
 
-Once this PR is merged, CI tooling detects the new YAML file, clones the referenced upstream Git repository, checks out the tag, and adds the operator package in the specified folder to the existing index. Of course, CI tests that don't update the community repository can run before the PR is merged. This workflow is similar to [krew-index](https://github.com/kubernetes-sigs/krew-index)
+Once this PR is merged, CI tooling detects the new YAML file, clones the referenced upstream Git repository, checks out the tag, and adds the operator package in the specified folder to the existing index. This workflow is similar to [krew-index](https://github.com/kubernetes-sigs/krew-index). Of course, CI tests that don't update the community repository can run before the PR is merged. These tests include checking the referenced operator package for validity. Additional conformance testing can be added as well.
 
 We can add more metadata to the YAML reference file. E.g., support for different upstream sources like Mercurial.
 
-The maturity level of an operator package can be provided in this file as well.
-
-Other useful metadata would be links to the operator homepage or documentation.
+The maturity level of an operator package can be provided in this file as well, though this should be added to the operator package instead.
 
 ### Risks and Mitigations
 
