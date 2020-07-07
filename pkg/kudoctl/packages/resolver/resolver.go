@@ -1,6 +1,8 @@
 package resolver
 
 import (
+	"path/filepath"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
@@ -42,8 +44,16 @@ func New(repo *repo.Client) *PackageResolver {
 func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersion string) (p *packages.Package, err error) {
 
 	// Local files/folder have priority
-	if _, err = m.local.fs.Stat(name); err == nil {
-		clog.V(2).Printf("local operator discovered: %v", name)
+	_, err = m.local.fs.Stat(name)
+	// force local operators usage to be either absolute or express a relative path
+	// or put another way, a name can NOT be mistaken to be the name of a local folder
+	if filepath.IsAbs(name) || (filepath.Base(name) != name && err == nil) {
+		var abs string
+		abs, err = filepath.Abs(name)
+		if err != nil {
+			return nil, err
+		}
+		clog.V(2).Printf("local operator discovered: %v", abs)
 		p, err = m.local.Resolve(name, appVersion, operatorVersion)
 		return
 	}
