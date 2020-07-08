@@ -47,7 +47,7 @@ func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersio
 	_, err = m.local.fs.Stat(name)
 	// force local operators usage to be either absolute or express a relative path
 	// or put another way, a name can NOT be mistaken to be the name of a local folder
-	if filepath.IsAbs(name) || (filepath.Base(name) != name && err == nil) {
+	if filepath.Base(name) != name && err == nil {
 		var abs string
 		abs, err = filepath.Abs(name)
 		if err != nil {
