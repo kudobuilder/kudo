@@ -92,16 +92,21 @@ This will update all golden files.   There is no fear in updating the entire pro
 
 ## How to set up a webhook locally
 
-KUDO uses webhooks that themselves require server certificates. By default, KUDO expects [cert-manager](https://cert-manager.io/) running in the cluster. There is also an option to use self-signed certificates by providing a `kudo inint --unsafe-self-signed-webhook-ca` option during KUDO initialization. It is also common to simply `make run` the controller in the console when developing and debugging KUDO locally. However, since the API server running, in most cases inside the minikube, has be able to send POST requests to the webhook, this setup doesn't work out of the box. 
+KUDO uses webhooks which require server certificates. By default, KUDO expects [cert-manager](https://cert-manager.io/) running in the cluster. There is also an option to use self-signed certificates by providing a `kudo init --unsafe-self-signed-webhook-ca` option during KUDO initialization. When developing and debugging KUDO locally, It is common to simply `make run` the controller in the terminal . However, since the API server running, in most cases inside the minikube, has be able to send POST requests to the webhook, additional configuration is necessary.
 
-Here what you need to make this setup work:
+Here is what you need to make this setup work:
 
-1. First of all the webhook needs tls.crt and tls.key files in /tmp/cert to start. You can use openssl to generate them:
+1. First of all the webhook needs access to the tls.crt and tls.key files, which by default is expected in `/tmp/cert` folder . You can (generate them using openssl)[https://www.digitalocean.com/community/tutorials/openssl-essentials-working-with-ssl-certificates-private-keys-and-csrs]:
 ```shell script
- ❯ openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out /tmp/cert/tls.crt -keyout /tmp/cert/tls.key
+ ❯ openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out /tmp/cert/tls.crt -keyout /tmp/cert/tls.key -extensions san -config \
+  <(echo "[req]"; 
+    echo distinguished_name=req; 
+    echo "[san]"; 
+    echo subjectAltName=DNS:localhost,IP:127.0.0.1
+    ) \
+  -subj "/CN=*"
 ```
-and generate the certificates in the default location `/tmp/cert` or use the certificates that we use of the integration 
-tests and start the manager using `KUDO_CERT_DIR` option:
+This command will fail if the `/tmp/cert` folder doesn't exist.  It is also possible to use the certificates that we use for the integration tests and change the default location for the certs when starting the manager using `KUDO_CERT_DIR` option:
 ```yaml
 KUDO_CERT_DIR=./test/cert/ make run
 ```
@@ -112,6 +117,7 @@ KUDO_CERT_DIR=./test/cert/ make run
   ...
   Forwarding                    https://ff6b2dd5.ngrok.io -> https://localhost:443
 ```
+**note:** ngrok requires [registration]( https://ngrok.com/signup) in order to run against port 443.
 
 3. Set webhooks[].clientConfig.url to the url of the above tunnel and apply/edit webhook configuration to the cluster:
 ```yaml
@@ -149,6 +155,8 @@ webhooks:
 
 The difference between this one and the one generate by the `kudo init --unsafe-self-signed-webhook-ca` command, (see this [method](pkg/kudoctl/kudoinit/prereq/webhook.go:163) for more information) is the usage of `webhooks[].clientConfig.url` (which points to our ngrok-tunnel) instead of `webhooks[].clientConfig.Service`.
 
+**note:** The url used by ngrok changes for each run of ngrok.  It is possible to get the current url with `curl -s localhost:4040/api/tunnels | jq '.tunnels[1].public_url'`
+
 4. Finally, you can run your local manager:
 ```shell script
  ❯ make run
@@ -164,6 +172,8 @@ and if everything was setup correctly the log should show:
 
 5. Test the webhook with:
 ```shell script
- ❯ curl -X POST https://ff6b2dd5.ngrok.io/admit-kudo-dev-v1beta1-instance
+ ❯ curl -X POST "`curl -s localhost:4040/api/tunnels | jq '.tunnels[1].public_url' -r`/admit-kudo-dev-v1beta1-instance"
 {"response":{"uid":"","allowed":false,"status":{"metadata":{},"message":"contentType=, expected application/json","code":400}}}
 ```
+
+**troubleshooting:** For a successful response to the test the `make run` controller needs to be running.  If you run `curl -I -X POST "`curl -s localhost:4040/api/tunnels | jq '.tunnels[1].public_url' -r`/admit-kudo-dev-v1beta1-instance"` and get an error `502 Bad Gateway`, then the server isn't running or their is a configuration error.
