@@ -1,0 +1,23 @@
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: kudo-manager-instance-admission-webhook-config
+webhooks:
+- clientConfig:    
+    url: http://8c32c6c5bea7.ngrok.io/admit-kudo-dev-v1beta1-instance
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: instance-admission.kudo.dev
+  rules:
+  - apiGroups:
+    - kudo.dev
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - instances
+    scope: Namespaced
+  sideEffects: None

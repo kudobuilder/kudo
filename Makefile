@@ -166,3 +166,7 @@ todo:
 		--text \
 		--color \
 		-nRo -E " *[^\.]TODO.*|SkipNow" .
+
+.PHONY: update-wh
+update-wh:
+	./hack/update-webhook-config.sh 
