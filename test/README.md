@@ -172,8 +172,8 @@ and if everything was setup correctly the log should show:
 
 5. Test the webhook with:
 ```shell script
- ❯ curl -X POST "`curl -s localhost:4040/api/tunnels | jq '.tunnels[1].public_url' -r`/admit-kudo-dev-v1beta1-instance"
+ ❯ curl -X POST "`curl -s localhost:4040/api/tunnels | jq '.tunnels[] | select(.proto == "https") | .public_url' -r`/admit-kudo-dev-v1beta1-instance"
 {"response":{"uid":"","allowed":false,"status":{"metadata":{},"message":"contentType=, expected application/json","code":400}}}
 ```
 
-**troubleshooting:** For a successful response to the test the `make run` controller needs to be running.  If you run `curl -I -X POST "`curl -s localhost:4040/api/tunnels | jq '.tunnels[1].public_url' -r`/admit-kudo-dev-v1beta1-instance"` and get an error `502 Bad Gateway`, then the server isn't running or their is a configuration error.
+**troubleshooting:** For a successful response to the test the `make run` controller needs to be running.  If you run ```curl -I -X POST "`curl -s localhost:4040/api/tunnels | jq '.tunnels[] | select(.proto == "https") | .public_url' -r`/admit-kudo-dev-v1beta1-instance"``` and get an error `502 Bad Gateway`, then the server isn't running or their is a configuration error.
