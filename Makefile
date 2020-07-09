@@ -108,11 +108,14 @@ ifeq (, $(shell which go-bindata))
 	go get github.com/go-bindata/go-bindata/go-bindata@$$(go list -f '{{.Version}}' -m github.com/go-bindata/go-bindata)
 endif
 	go-bindata -pkg crd -o pkg/kudoctl/kudoinit/crd/bindata.go -ignore README.md -nometadata config/crds
-	./hack/update_codegen.sh
+	./hack/update_codegen.sh	
 
 .PHONY: generate-clean
 generate-clean:
-	rm -rf hack/code-gen
+	rm -rf ./hack/code-gen
+
+generate-manifests:
+	./hack/update-manifests.sh
 
 # Build CLI but don't lint or run code generation first.
 cli-fast:

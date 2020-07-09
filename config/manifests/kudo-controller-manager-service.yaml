@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: kudo-manager
+    control-plane: controller-manager
+  name: kudo-controller-manager-service
+  namespace: kudo-system
+spec:
+  ports:
+  - name: kudo
+    port: 443
+    targetPort: webhook-server
+  selector:
+    app: kudo-manager
+    control-plane: controller-manager
+status:
+  loadBalancer: {}
+
