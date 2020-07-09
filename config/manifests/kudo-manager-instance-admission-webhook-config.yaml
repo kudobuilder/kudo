@@ -5,7 +5,7 @@ metadata:
   name: kudo-manager-instance-admission-webhook-config
 webhooks:
   - clientConfig:
-      url=replace:
+      url: https://replace-url.com
     failurePolicy: Fail
     matchPolicy: Equivalent
     name: instance-admission.kudo.dev

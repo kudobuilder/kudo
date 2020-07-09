@@ -63,7 +63,7 @@ cp $f config/manifests/$NAME
 done
 
 # update webhook (add config.url and remove config.caBundle and config.service)
-yq w -i config/manifests/kudo-manager-instance-admission-webhook-config.yaml webhooks[0].clientConfig.url=replace
+yq w -i config/manifests/kudo-manager-instance-admission-webhook-config.yaml webhooks[0].clientConfig.url https://replace-url.com
 yq d -i config/manifests/kudo-manager-instance-admission-webhook-config.yaml webhooks[0].clientConfig.caBundle
 yq d -i config/manifests/kudo-manager-instance-admission-webhook-config.yaml webhooks[0].clientConfig.service
 
