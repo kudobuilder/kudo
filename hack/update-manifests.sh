@@ -19,22 +19,22 @@ mkdir -p config/manifests
 #  gen manifests to hack/manifest-gen/manifests.yaml
 go run cmd/kubectl-kudo/main.go init  --dry-run --version dev --unsafe-self-signed-webhook-ca -o yaml > hack/manifest-gen/manifests.yaml
 
-cd hack/manifest-gen/
+cd hack/manifest-gen/ || exit
 
 # separate the manifests
 awk 'BEGIN{file = 0; filename = "output_" file ".txt"}
     /---$/ {getline; file ++; filename = "output_" file ".txt"}
     {print $0 > filename}' manifests.yaml
-cd -
+cd - || exit
 
 #  loop through all the files
 for f in hack/manifest-gen/*.txt; 
 do 
-    KIND=`yq r $f kind`
+    KIND=$(yq r "$f" kind)
 
 case "$KIND" in 
     "CustomResourceDefinition") 
-        NAME=`yq r $f spec.names.kind`
+        NAME=$(yq r "$f" spec.names.kind)
         echo "skip '$NAME' crd"
         continue;;
 
@@ -55,9 +55,9 @@ case "$KIND" in
         KIND="";;        
 esac
 
-NAME=`yq r $f metadata.name`
+NAME=$(yq r "$f" metadata.name)
 
-if [ ! -z "$KIND" ]
+if [ -n "$KIND" ]
 then
     NAME="$NAME-$KIND"
 fi 
@@ -65,7 +65,7 @@ NAME="$NAME.yaml"
 
 echo "Working with  $NAME"
 
-cp $f config/manifests/$NAME
+cp "$f" "config/manifests/$NAME"
 done
 
 # update webhook (add config.url and remove config.caBundle and config.service)
