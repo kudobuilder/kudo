@@ -39,8 +39,10 @@ func New(repo *repo.Client) *PackageResolver {
 // - a local directory
 // - a url to a tgz
 // - an operator name in the remote repository
-// in that order. Should there exist a local folder e.g. `cassandra` it will take precedence
-// over the remote repository package with the same name.
+// in that order.
+// For local access there is a need to provide absolute or relative path as part of the name argument. `cassandra` without a path
+// component will resolve to the remote repo.  `./cassandra` will resolve to a folder which is expected to have the operator structure on the filesystem.
+// `../folder/cassandra.tgz` will resolve to the cassandra package tarball on the filesystem.
 func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersion string) (p *packages.Package, err error) {
 
 	// Local files/folder have priority
