@@ -40,7 +40,13 @@ case "$KIND" in
 
     "StatefulSet") 
         echo "skipping statefulset"
-        continue;;        
+        continue;;
+    "Service")
+        echo "skipping service"
+        continue;;
+    "Secret")
+        echo "skipping secret"
+        continue;;
     "Namespace")
         KIND=ns;;    
     "ServiceAccount")
