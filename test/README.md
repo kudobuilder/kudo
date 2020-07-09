@@ -155,7 +155,7 @@ webhooks:
 
 The difference between this one and the one generate by the `kudo init --unsafe-self-signed-webhook-ca` command, (see this [method](pkg/kudoctl/kudoinit/prereq/webhook.go:163) for more information) is the usage of `webhooks[].clientConfig.url` (which points to our ngrok-tunnel) instead of `webhooks[].clientConfig.Service`.
 
-**note:** The url used by ngrok changes for each run of ngrok.  It is possible to get the current url with `curl -s localhost:4040/api/tunnels | jq '.tunnels[1].public_url'`
+**note:** The url used by ngrok changes for each run of ngrok.  It is possible to get the current url with `curl -s localhost:4040/api/tunnels | jq '.tunnels[] | select(.proto == "https") | .public_url'`
 
 4. Finally, you can run your local manager:
 ```shell script
