@@ -114,9 +114,6 @@ endif
 generate-clean:
 	rm -rf ./hack/code-gen
 
-generate-manifests:
-	./hack/update-manifests.sh
-
 # Build CLI but don't lint or run code generation first.
 cli-fast:
 	go build -ldflags "${LDFLAGS}" -o bin/${CLI} ./cmd/kubectl-kudo
@@ -169,3 +166,26 @@ todo:
 		--text \
 		--color \
 		-nRo -E " *[^\.]TODO.*|SkipNow" .
+
+# requires manifests. generate-manifests should be run first
+# updating webhook requires ngrok to be running and updates the wh-config with the latest
+# ngrok configuration.  ngrok config changes for each restart which is why this is a separate target
+.PHONY: update-webhook-config
+update-webhook-config:
+	./hack/update-webhook-config.sh
+
+# generates manifests from the kudo cli (kudo init) and captures the manifests needed for
+# local development.  These are cached under the /hack/manifest-gen folder and are used to quickly
+# start running and debugging kudo controller and webhook locally.
+.PHONY: generate-manifests
+generate-manifests:
+	./hack/update-manifests.sh
+
+# requires manifests. generate-manifests should be run first
+# quickly sets a local dev env with the minimum necessary configurations to run
+# the kudo manager locally.  after running dev-ready, it is possible to 'make run' or run from an editor for debugging.
+# it currently does require ngrok.
+.PHONY: dev-ready
+dev-ready:
+	./hack/deploy-dev-prereqs.sh
+	./hack/update-webhook-config.sh
