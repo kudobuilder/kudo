@@ -30,7 +30,7 @@ func TestRepoContextInvalidArg(t *testing.T) {
 	}
 
 	i := &initCmd{fs: fs, out: out, errOut: errOut, home: home}
-	if err := i.initialize(); err != nil {
+	if err := i.ensureClient(); err != nil {
 		t.Error(err)
 	}
 	cmd := repoContextCmd{name: "foo", home: home, fs: fs}

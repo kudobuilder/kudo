@@ -17,12 +17,11 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	yamlutil "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes/fake"
-	testcore "k8s.io/client-go/testing"
+	testing2 "k8s.io/client-go/testing"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -43,9 +42,6 @@ func TestInitCmd_exists(t *testing.T) {
 	})
 	fc2 := apiextfake.NewSimpleClientset()
 
-	fc.PrependReactor("*", "*", func(action testcore.Action) (bool, runtime.Object, error) {
-		return true, nil, apierrors.NewAlreadyExists(v1.Resource("deployments"), "1")
-	})
 	cmd := &initCmd{
 		out:                 &buf,
 		fs:                  afero.NewMemMapFs(),
@@ -212,8 +208,11 @@ func TestNewInitCmd(t *testing.T) {
 	}{
 		{name: "arguments invalid", parameters: []string{"foo"}, errorMessage: "this command does not accept arguments"},
 		{name: "name and version together invalid", flags: map[string]string{"kudo-image": "foo", "version": "bar"}, errorMessage: "specify either 'kudo-image' or 'version', not both"},
-		{name: "crd-only and wait together invalid", flags: map[string]string{"crd-only": "true", "wait": "true"}, errorMessage: "wait is not allowed with crd-only"},
+		{name: "crd-only and wait together invalid: there's nothing to wait for", flags: map[string]string{"crd-only": "true", "wait": "true"}, errorMessage: "wait is not allowed with crd-only"},
 		{name: "wait-timeout invalid without wait", flags: map[string]string{"wait-timeout": "400"}, errorMessage: "wait-timeout is only useful when using the flag '--wait'"},
+		{name: "crd-only and upgrade together invalid", flags: map[string]string{"crd-only": "true", "upgrade": "true"}, errorMessage: "'--upgrade' and '--crd-only' can not be used at the same time: you can not upgrade *only* crds"},
+		{name: "verify and dry-run together invalid: verify is read-only anyway", flags: map[string]string{"dry-run": "true", "verify": "true"}, errorMessage: "'--dry-run' and '--verify' can not be used at the same time"},
+		{name: "verify and upgrade together invalid: verify is a separate command", flags: map[string]string{"upgrade": "true", "verify": "true"}, errorMessage: "'--upgrade' and '--verify' can not be used at the same time"},
 	}
 
 	for _, tt := range tests {
@@ -247,7 +246,7 @@ func TestClientInitialize(t *testing.T) {
 	hh := kudohome.Home(home)
 
 	i := &initCmd{fs: fs, out: b, home: hh}
-	if err := i.initialize(); err != nil {
+	if err := i.ensureClient(); err != nil {
 		t.Error(err)
 	}
 
@@ -277,9 +276,9 @@ func TestClientInitialize(t *testing.T) {
 }
 
 func MockCRD(client *kube.Client, crdName string, apiVersion string) {
-	client.ExtClient.(*apiextfake.Clientset).Fake.PrependReactor("get", "customresourcedefinitions", func(action testcore.Action) (handled bool, ret runtime.Object, err error) {
+	client.ExtClient.(*apiextfake.Clientset).Fake.PrependReactor("get", "customresourcedefinitions", func(action testing2.Action) (handled bool, ret runtime.Object, err error) {
 
-		getAction, _ := action.(testcore.GetAction)
+		getAction, _ := action.(testing2.GetAction)
 		if getAction != nil {
 			if getAction.GetName() == crdName {
 				crd := &extv1.CustomResourceDefinition{

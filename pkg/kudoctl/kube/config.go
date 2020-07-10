@@ -61,5 +61,8 @@ func GetKubeClient(kubeconfig string) (*Client, error) {
 		return nil, fmt.Errorf("could not create Kubernetes dynamic client: %s", err)
 	}
 
-	return &Client{client, extClient, dynamicClient}, nil
+	return &Client{
+		KubeClient:    client,
+		ExtClient:     extClient,
+		DynamicClient: dynamicClient}, nil
 }

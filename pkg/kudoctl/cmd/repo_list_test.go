@@ -26,7 +26,7 @@ func TestRepoList(t *testing.T) {
 	}
 
 	i := &initCmd{fs: fs, out: out, errOut: errOut, home: home}
-	if err := i.initialize(); err != nil {
+	if err := i.ensureClient(); err != nil {
 		t.Error(err)
 	}
 

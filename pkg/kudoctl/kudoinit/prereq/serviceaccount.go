@@ -55,6 +55,26 @@ func (o KudoServiceAccount) PreInstallVerify(client *kube.Client, result *verifi
 	return nil
 }
 
+func (o KudoServiceAccount) PreUpgradeVerify(client *kube.Client, result *verifier.Result) error {
+	// For the service account we just verify that the installation is valid. Nothing really to upgrade here
+	return o.VerifyInstallation(client, result)
+}
+
+func (o KudoServiceAccount) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
+	if err := o.validateServiceAccountExists(client, result); err != nil {
+		return err
+	}
+
+	if result.IsValid() {
+		// Only validate role if SA is ok
+		if err := o.validateClusterAdminRoleForSA(client, result); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (o KudoServiceAccount) Install(client *kube.Client) error {
 	if !o.opts.IsDefaultServiceAccount() {
 		return nil
@@ -84,6 +104,7 @@ func (o KudoServiceAccount) validateServiceAccountExists(client *kube.Client, re
 	}
 	for _, sa := range saList.Items {
 		if sa.Name == o.opts.ServiceAccount {
+			clog.V(2).Printf("Service Account %s/%s exists", o.opts.Namespace, o.opts.ServiceAccount)
 			return nil
 		}
 	}
@@ -102,6 +123,7 @@ func (o KudoServiceAccount) validateClusterAdminRoleForSA(client *kube.Client, r
 	for _, crb := range crbs.Items {
 		for _, subject := range crb.Subjects {
 			if subject.Name == o.opts.ServiceAccount && subject.Namespace == o.opts.Namespace && crb.RoleRef.Name == "cluster-admin" {
+				clog.V(2).Printf("Service Account %s/%s has cluster-admin role", o.opts.Namespace, o.opts.ServiceAccount)
 				return nil
 			}
 		}

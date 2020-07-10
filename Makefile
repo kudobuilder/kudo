@@ -45,6 +45,10 @@ integration-test: cli-fast manager-fast
 operator-test: cli-fast manager-fast
 	./hack/run-operator-tests.sh
 
+.PHONY: upgrade-test
+upgrade-test: cli-fast manager-fast
+	./hack/run-upgrade-tests.sh
+
 .PHONY: test-clean
 # Clean test reports
 test-clean:

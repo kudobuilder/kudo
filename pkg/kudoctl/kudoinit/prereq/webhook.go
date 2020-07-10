@@ -44,6 +44,10 @@ type certManagerVersion struct {
 	versions []string
 }
 
+const (
+	instanceAdmissionWebHookName = "kudo-manager-instance-admission-webhook-config"
+)
+
 var (
 	// Cert-Manager APIs that we can detect
 	certManagerAPIs = []certManagerVersion{
@@ -68,6 +72,53 @@ func (k *KudoWebHook) PreInstallVerify(client *kube.Client, result *verifier.Res
 		return nil
 	}
 	return k.validateCertManagerInstallation(client, result)
+}
+
+func (k KudoWebHook) PreUpgradeVerify(client *kube.Client, result *verifier.Result) error {
+	// Nothing to verify here at the moment, needs to be extended when we have actual upgrades
+	return nil
+}
+
+func (k KudoWebHook) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
+	if k.opts.SelfSignedWebhookCA {
+		return k.verifyWithSelfSignedCA(client, result)
+	}
+	return k.verifyWithCertManager(client, result)
+}
+
+func (k *KudoWebHook) verifyWithCertManager(client *kube.Client, result *verifier.Result) error {
+	if err := k.detectCertManagerVersion(client, result); err != nil {
+		return err
+	}
+
+	if err := k.validateCertManagerInstallation(client, result); err != nil {
+		return err
+	}
+	if err := validateUnstructuredInstallation(client.DynamicClient, k.issuer, result); err != nil {
+		return err
+	}
+	if err := validateUnstructuredInstallation(client.DynamicClient, k.certificate, result); err != nil {
+		return err
+	}
+	if err := validateAdmissionWebhookInstallation(client.KubeClient.AdmissionregistrationV1beta1(), instanceAdmissionWebhookCertManager(k.opts.Namespace, k.certManagerGroup), result); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (k *KudoWebHook) verifyWithSelfSignedCA(client *kube.Client, result *verifier.Result) error {
+	iaw, s, err := k.resourcesWithSelfSignedCA()
+	if err != nil {
+		return nil
+	}
+
+	if err := validateAdmissionWebhookInstallation(client.KubeClient.AdmissionregistrationV1beta1(), *iaw, result); err != nil {
+		return err
+	}
+	if err := validateWebhookSecretInstallation(client.KubeClient, *s, result); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (k *KudoWebHook) installWithCertManager(client *kube.Client) error {
@@ -105,6 +156,18 @@ func (k *KudoWebHook) Install(client *kube.Client) error {
 		return k.installWithSelfSignedCA(client)
 	}
 	return k.installWithCertManager(client)
+}
+
+func UninstallWebHook(client *kube.Client) error {
+	err := client.KubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(context.TODO(), instanceAdmissionWebHookName, metav1.DeleteOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			// We can ignore this, maybe we upgrade from an old version that did not have webhooks enabled
+			return nil
+		}
+		return fmt.Errorf("failed to uninstall WebHook: %v", err)
+	}
+	return nil
 }
 
 func (k *KudoWebHook) Resources() []runtime.Object {
@@ -168,6 +231,7 @@ func (k *KudoWebHook) detectCertManagerVersion(client *kube.Client, result *veri
 			k.certManagerGroup = group
 			k.certManagerAPIVersion = version
 
+			clog.V(2).Printf("Detected cert-manager %s/%s", group, version)
 			return nil
 		}
 	}
@@ -248,6 +312,8 @@ func (k *KudoWebHook) validateCertManagerInstallation(client *kube.Client, resul
 		result.AddWarnings("cert-manager seems not to be running correctly. Make sure cert-manager is working")
 		return nil
 	}
+
+	clog.V(2).Printf("Cert-Manager %s/%s is running", k.certManagerGroup, k.certManagerAPIVersion)
 	return nil
 }
 
@@ -265,6 +331,7 @@ func validateCrdVersion(extClient clientset.Interface, crdName string, expectedV
 	if crdVersion != expectedVersion {
 		result.AddErrors(fmt.Sprintf("invalid CRD version found for '%s': %s instead of %s", crdName, crdVersion, expectedVersion))
 	}
+	clog.V(2).Printf("CRD %s is installed with version %s", crdName, crdVersion)
 	return nil
 }
 
@@ -284,6 +351,29 @@ func installUnstructured(dynamicClient dynamic.Interface, item *unstructured.Uns
 	return nil
 }
 
+func validateUnstructuredInstallation(dynamicClient dynamic.Interface, item *unstructured.Unstructured, result *verifier.Result) error {
+	gvk := item.GroupVersionKind()
+	gvr := schema.GroupVersionResource{
+		Group:    gvk.Group,
+		Version:  gvk.Version,
+		Resource: fmt.Sprintf("%ss", strings.ToLower(gvk.Kind)), // since we know what kinds are we dealing with here, this is OK
+	}
+
+	_, err := dynamicClient.Resource(gvr).Namespace(item.GetNamespace()).Get(context.TODO(), item.GetName(), metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			result.AddErrors(fmt.Sprintf("%s is not installed in namespace %s", item.GetName(), item.GetNamespace()))
+			return nil
+		}
+		return err
+	}
+
+	// We could add more detailed validation here, but DeepEquals doesn't work because of added fields from k8s
+
+	clog.V(2).Printf("Resource %s/%s of type %v is installed", item.GetNamespace(), item.GetName(), item.GroupVersionKind())
+	return nil
+}
+
 func installAdmissionWebhook(client clientv1beta1.MutatingWebhookConfigurationsGetter, webhook admissionv1beta1.MutatingWebhookConfiguration) error {
 	_, err := client.MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	if kerrors.IsAlreadyExists(err) {
@@ -293,6 +383,22 @@ func installAdmissionWebhook(client clientv1beta1.MutatingWebhookConfigurationsG
 	return err
 }
 
+func validateAdmissionWebhookInstallation(client clientv1beta1.MutatingWebhookConfigurationsGetter, webhook admissionv1beta1.MutatingWebhookConfiguration, result *verifier.Result) error {
+	_, err := client.MutatingWebhookConfigurations().Get(context.TODO(), webhook.Name, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			result.AddErrors(fmt.Sprintf("admission webhook %s is not installed", webhook.Name))
+			return nil
+		}
+		return err
+	}
+
+	// We could add more detailed validation here, regarding the details of the webhook configuration
+
+	clog.V(2).Printf("AdmissionWebhook %s is installed", webhook.Name)
+	return nil
+}
+
 func installWebhookSecret(client kubernetes.Interface, secret corev1.Secret) error {
 	_, err := client.CoreV1().Secrets(secret.Namespace).Create(context.TODO(), &secret, metav1.CreateOptions{})
 	if kerrors.IsAlreadyExists(err) {
@@ -300,6 +406,22 @@ func installWebhookSecret(client kubernetes.Interface, secret corev1.Secret) err
 		return nil
 	}
 	return err
+}
+
+func validateWebhookSecretInstallation(client kubernetes.Interface, secret corev1.Secret, result *verifier.Result) error {
+	_, err := client.CoreV1().Secrets(secret.Namespace).Get(context.TODO(), secret.Name, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			result.AddErrors(fmt.Sprintf("webhook secret %s is not installed", secret.Name))
+			return nil
+		}
+		return err
+	}
+
+	// We can add more detailed validation here
+
+	clog.V(2).Printf("Webhook Secret %s/%s is installed", secret.Namespace, secret.Name)
+	return nil
 }
 
 func instanceAdmissionWebhookWithCABundle(ns string, caData []byte) admissionv1beta1.MutatingWebhookConfiguration {
@@ -323,7 +445,7 @@ func InstanceAdmissionWebhook(ns string) admissionv1beta1.MutatingWebhookConfigu
 	noSideEffects := admissionv1beta1.SideEffectClassNone
 	return admissionv1beta1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        "kudo-manager-instance-admission-webhook-config",
+			Name:        instanceAdmissionWebHookName,
 			Annotations: map[string]string{},
 		},
 		TypeMeta: metav1.TypeMeta{
