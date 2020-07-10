@@ -12,14 +12,18 @@ then
     exit 1
 fi
 
+# cache folder 
+MANCACHE=hack/manifest-gen
+TEMP="$MANCACHE/temp"
+
 # hack/manifest-gen is the build folder
-mkdir -p hack/manifest-gen
-mkdir -p config/manifests
+mkdir -p "$MANCACHE"
+mkdir -p "$TEMP"
 
 #  gen manifests to hack/manifest-gen/manifests.yaml
-go run cmd/kubectl-kudo/main.go init  --dry-run --version dev --unsafe-self-signed-webhook-ca -o yaml > hack/manifest-gen/manifests.yaml
+go run cmd/kubectl-kudo/main.go init  --dry-run --version dev --unsafe-self-signed-webhook-ca -o yaml > "$TEMP/manifests.yaml"
 
-cd hack/manifest-gen/ || exit
+cd "$TEMP" || exit
 
 # separate the manifests
 awk 'BEGIN{file = 0; filename = "output_" file ".txt"}
@@ -28,7 +32,7 @@ awk 'BEGIN{file = 0; filename = "output_" file ".txt"}
 cd - || exit
 
 #  loop through all the files
-for f in hack/manifest-gen/*.txt; 
+for f in "$TEMP"/*.txt; 
 do 
     KIND=$(yq r "$f" kind)
 
@@ -65,13 +69,13 @@ NAME="$NAME.yaml"
 
 echo "Working with  $NAME"
 
-cp "$f" "config/manifests/$NAME"
+cp "$f" "$MANCACHE/$NAME"
 done
 
 # update webhook (add config.url and remove config.caBundle and config.service)
-yq w -i config/manifests/kudo-manager-instance-admission-webhook-config.yaml webhooks[0].clientConfig.url https://replace-url.com
-yq d -i config/manifests/kudo-manager-instance-admission-webhook-config.yaml webhooks[0].clientConfig.caBundle
-yq d -i config/manifests/kudo-manager-instance-admission-webhook-config.yaml webhooks[0].clientConfig.service
+yq w -i "$MANCACHE/kudo-manager-instance-admission-webhook-config.yaml" webhooks[0].clientConfig.url https://replace-url.com
+yq d -i "$MANCACHE/kudo-manager-instance-admission-webhook-config.yaml" webhooks[0].clientConfig.caBundle
+yq d -i "$MANCACHE/kudo-manager-instance-admission-webhook-config.yaml" webhooks[0].clientConfig.service
 
-rm -rf hack/manifest-gen
+rm -rf "$TEMP"
 echo "Finished"
