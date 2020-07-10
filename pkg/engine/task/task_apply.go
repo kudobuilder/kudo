@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/jsonmergepatch"
 	"k8s.io/apimachinery/pkg/util/mergepatch"
@@ -103,6 +104,8 @@ func addLastAppliedConfigAnnotation(r runtime.Object) error {
 // apply method takes a slice of k8s object and applies them using passed client. If an object
 // doesn't exist it will be created. An already existing object will be patched.
 func applyResources(rr []runtime.Object, ctx Context) ([]runtime.Object, error) {
+	var jobGVK = schema.GroupVersionKind{Group: "batch", Version: "v1", Kind: "Job"}
+
 	applied := make([]runtime.Object, 0)
 
 	for _, r := range rr {
@@ -135,9 +138,12 @@ func applyResources(rr []runtime.Object, ctx Context) ([]runtime.Object, error) 
 		case err != nil: // raise any error other than StatusReasonNotFound
 			return nil, err
 		default: // update existing resource
-			err := patchResource(r, existing, ctx)
-			if err != nil {
-				return nil, fmt.Errorf("failed to patch %s/%s: %w", key.Namespace, key.Name, err)
+			// skip updating v1.Job(s): it is not possible to update the Job.Spec after the job was created
+			if r.GetObjectKind().GroupVersionKind() != jobGVK {
+				err := patchResource(r, existing, ctx)
+				if err != nil {
+					return nil, fmt.Errorf("failed to patch %s/%s: %w", key.Namespace, key.Name, err)
+				}
 			}
 			applied = append(applied, r)
 		}
