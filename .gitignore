@@ -2,6 +2,7 @@
 bin/
 vendor/
 hack/code-gen
+hack/manifest-gen
 hack/controller-gen
 test/.git-credentials
 reports/
