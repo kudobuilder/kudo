@@ -1,0 +1,5 @@
+apiVersion: kudo.dev/v1beta1
+kind: TestStep
+commands:
+  - script: '! kubectl kudo update --namespace $NAMESPACE --instance immutable-param -p unchangeable=changedvalue'
+    ignoreFailure: false`

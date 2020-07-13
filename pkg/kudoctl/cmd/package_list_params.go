@@ -108,9 +108,13 @@ func displayParamsTable(pf *packages.Files, out io.Writer, printRequired, printN
 			}
 		}
 		if found {
-			_, _ = fmt.Fprintln(out, table)
+			if _, err := fmt.Fprintln(out, table); err != nil {
+				return err
+			}
 		} else {
-			_, _ = fmt.Fprintf(out, "no required parameters without default values found\n")
+			if _, err := fmt.Fprintf(out, "no required parameters without default values found\n"); err != nil {
+				return err
+			}
 		}
 	}
 	if printNames {
@@ -118,7 +122,9 @@ func displayParamsTable(pf *packages.Files, out io.Writer, printRequired, printN
 		for _, p := range pf.Params.Parameters {
 			table.AddRow(p.Name)
 		}
-		_, _ = fmt.Fprintln(out, table)
+		if _, err := fmt.Fprintln(out, table); err != nil {
+			return err
+		}
 	}
 	table.MaxColWidth = 35
 	table.Wrap = true
