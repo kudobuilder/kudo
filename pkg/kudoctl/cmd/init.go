@@ -175,7 +175,7 @@ func (initCmd *initCmd) run() error {
 
 	installer := setup.NewInstaller(opts, initCmd.crdOnly)
 
-	// ensureClient client
+	// initialize client
 	if !initCmd.dryRun {
 		if err := initCmd.ensureClient(); err != nil {
 			return clog.Errorf("error initializing: %s", err)
