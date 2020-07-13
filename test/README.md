@@ -52,7 +52,7 @@ There are multiple sets of tests using kuttl:
 
 ### KUTTL integration tests
 
-These tests live in the `test/integration` directory and use the `kudo-test.yaml` configuration file. These tests don't start KIND, they run the `etcd` and `kube-apiserver` and therefore only support the most simple use cases. Things that can *not* be tested with these tests:
+These tests live in the `integration` directory and use the `kudo-integration-test.yaml` configuration file. These tests don't start KIND, they run the `etcd` and `kube-apiserver` and therefore only support the most simple use cases. Things that can *not* be tested with these tests:
 
 * Foreground deletion
 * Creation of Pods (when a deployment is applied)
@@ -70,7 +70,7 @@ make TEST=cli-test integration-test
 
 ### End-to-End tests
 
-These tests are located in `test/e2e` and use the `kudo-e2e-test.yaml.tmpl` configuration file. These tests spin up a single KIND cluster for all the tests and KUDO is installed as a part of the test harness. These tests can be used to ensure most of KUDO functionality but they have a bigger footprint than integration tests. 
+These tests are located in `e2e` and use the `kudo-e2e-test.yaml.tmpl` configuration file. These tests spin up a single KIND cluster for all the tests and KUDO is installed as a part of the test harness. These tests can be used to ensure most of KUDO functionality but they have a bigger footprint than integration tests. 
 
 To run all e2e tests:
 ```bash
@@ -84,7 +84,7 @@ make TEST=plan-trigger e2e-test
 
 ### Upgrade tests
 
-These tests are the most heavy ones. They use the `kudo-upgrade-test.yaml.tmpl` and spin up a single KIND cluster but do not install KUDO. Additionally the tests are executed with a parallelism of one. It is therefore possible to install and uninstall KUDO in the tests, which is required for testing upgradability of KUDO.  
+These tests are the most heavy ones. They live in `upgrade` and use the `kudo-upgrade-test.yaml.tmpl`. This suite spins up a single KIND cluster but does not install KUDO. Additionally the tests are executed with a parallelism of one. It is therefore possible to install and uninstall KUDO in the tests, which is required for testing upgradability of KUDO.  
 
 To run all upgrade tests:
 ```bash
