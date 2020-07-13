@@ -34,25 +34,34 @@ The follow are a list of tools needed in order to build, run, test and debug loc
 
 These details will show using kind as a local kubernetes cluster.  These instructions should work with minikube as well.
 You have 2 options when running locally.
-1. you can run the kudo controller and webhooks in the cluster or
-2. you can run the kudo controller and webhooks outside the cluster for debugging
+1. you can run the KUDO controller and webhooks in the cluster or
+2. you can run the KUDO controller and webhooks outside the cluster for debugging
 
-When running locally we assume that you will not be using a CertManager thus initialization is with `--unsafe-self-signed-webhook-ca`.
+When running locally we assume that you will not be using a [CertManager](https://cert-manager.io/docs/) thus initialization is with `--unsafe-self-signed-webhook-ca`.
 
 ### Running KUDO locally in Cluster
 
-When running locally in the cluster, we use the kudo CLI code to deploy the manager. You will either need to launch a released kudo manager which means you have to pick a version.  Example:
+When running locally in the cluster, we use the KUDO CLI code to deploy the manager. You will either need to launch a released KUDO manager which means you have to pick a version.  Example:
 `go run cmd/kubectl-kudo/main.go init --unsafe-self-signed-webhook-ca --version 0.15.0 -w`
 
-In this example, we are choosing a released version of kudo which is compatiable with the current cli version.  The `-w` is to wait until this is running.
+In this example, we are choosing a released version of KUDO which is compatiable with the current cli version.  The `-w` is to wait until this is running.
 This command will initialize the cluster with all the prerequisite configurations for serviceaccounts, namespaces, etc.
 
-If you want to run a non-released version of kudo, then build the latest code with docker.  `make docker-build`.  This process will end with something like:
+If you want to run a non-released version of KUDO, then build the latest code with docker.  `make docker-build`.  This process will end with something like:
 ```
 Successfully built 2eef6479680e
 Successfully tagged kudobuilder/controller:cbe6e68c270221a69b7e1f48f8f22fc39ade5c47
 ```
-Retag and push this image:
+When using kind, you can pre-load controller image:
+```
+kind load docker-image kudobuilder/controller:cbe6e68c270221a69b7e1f48f8f22fc39ade5c47
+```
+Using this `kind load` approach, it is necessary to configurate the controller manifest to pull the image only if not present.
+```
+go run cmd/kubectl-kudo/main.go init --unsafe-self-signed-webhook-ca --kudo-image  kudobuilder/controller:cbe6e68c270221a69b7e1f48f8f22fc39ade5c47 --kudo-image-pull-policy=IfNotPresent -w
+```
+
+The other approach is to retag and push this image:
 ```
  docker tag  kudobuilder/controller:cbe6e68c270221a69b7e1f48f8f22fc39ade5c47 kensipe/controller:latest
  docker push kensipe/controller:latest
@@ -60,13 +69,15 @@ Retag and push this image:
 
 Now run locally with `go run cmd/kubectl-kudo/main.go init --unsafe-self-signed-webhook-ca --kudo-image kensipe/controller:latest -w`
 
-### Debugging KUDO Running locally outside the Cluster
+**note:** The name kensipe/controller:latest was used as a full functional example.  You should choose a name for which you have rights to push to docker hub.  Using kind and the image load technique, you can avoid the push then pull approach completely.
 
-The most significant challenge for running kudo locally outside the cluster is kudo v0.14.0+ requires a webhook.  This webhook configuration requires kube to make a callback to the webhook.  This callback is accomplished via an https call requiring valid certificates to work.  Our current solution to this is to use ngrok which was created for this purpose.
+### Debugging KUDO running locally outside the Cluster
+
+The most significant challenge for running KUDO locally outside the cluster is KUDO v0.14.0+ requires a [webhook](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/).  This webhook configuration requires kubernetes to make a callback to the webhook.  This callback is accomplished via an https call requiring valid certificates to work.  Our current solution to this is to use ngrok which was created for this purpose.
 
 These instructions assume you haven't already initialized the cluster with previously running the manager locally.  If you did you will need to run `kubectl delete MutatingWebhookConfiguration kudo-manager-instance-admission-webhook-config` for this to work.
 
-Steps to run the kudo manager outside the local cluster:
+Steps to run the KUDO manager outside the local cluster:
 
 1. `make generate-manifests`
 1. (separate term) `ngrok http 443`
