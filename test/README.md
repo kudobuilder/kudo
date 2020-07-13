@@ -36,7 +36,7 @@ make test
 
 Or run all tests:
 
-```
+```bash
 make integration-test
 ```
 
@@ -47,6 +47,55 @@ Most tests written for KUDO use the [declarative test harness](https://kudo.dev/
 The test suite is configured by `kudo-test.yaml` and the tests live in `test/integration/`. Prior to running the tests, all KUDO CRDs and manifests in `test/manifests/` are installed into the test cluster.
 
 The test harness also starts KUDO, so it is recommended to use `go run` to run the test suite as this will include the latest built changes from your KUDO checkout.
+
+There are multiple sets of tests using kuttl:
+
+### KUTTL integration tests
+
+These tests live in the `test/integration` directory and use the `kudo-test.yaml` configuration file. These tests don't start KIND, they run the `etcd` and `kube-apiserver` and therefore only support the most simple use cases. Things that can *not* be tested with these tests:
+
+* Foreground deletion
+* Creation of Pods (when a deployment is applied)
+* Finalizers
+* ...
+
+```bash
+make integration-test
+```
+
+If you want to run a single integration test, use:
+```bash
+make TEST=cli-test integration-test
+```
+
+### End-to-End tests
+
+These tests are located in `test/e2e` and use the `kudo-e2e-test.yaml.tmpl` configuration file. These tests spin up a single KIND cluster for all the tests and KUDO is installed as a part of the test harness. These tests can be used to ensure most of KUDO functionality but they have a bigger footprint than integration tests. 
+
+To run all e2e tests:
+```bash
+make e2e-test
+```
+
+To run a single e2e-test
+```bash
+make TEST=plan-trigger e2e-test
+```
+
+### Upgrade tests
+
+These tests are the most heavy ones. They use the `kudo-upgrade-test.yaml.tmpl` and spin up a single KIND cluster but do not install KUDO. Additionally the tests are executed with a parallelism of one. It is therefore possible to install and uninstall KUDO in the tests, which is required for testing upgradability of KUDO.  
+
+To run all upgrade tests:
+```bash
+make upgrade-test
+```
+
+To run a single upgrade-test
+```bash
+make TEST=upgrade-to-current upgrade-test
+```
+
 
 ### CLI examples
 

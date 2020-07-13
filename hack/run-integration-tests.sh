@@ -6,6 +6,7 @@ set -o pipefail
 set -o xtrace
 
 INTEGRATION_OUTPUT_JUNIT=${INTEGRATION_OUTPUT_JUNIT:-false}
+TEST_TO_RUN=${TEST_TO_RUN:+"--test $TEST_TO_RUN"}
 
 if [ "$INTEGRATION_OUTPUT_JUNIT" == true ]
 then
@@ -13,9 +14,9 @@ then
     mkdir -p reports/
     go get github.com/jstemmer/go-junit-report
     go test -tags integration ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover-integration.out 2>&1 |tee /dev/fd/2 |go-junit-report -set-exit-code > reports/integration_report.xml
-    go run ./cmd/kubectl-kudo test 2>&1 |tee /dev/fd/2 |go-junit-report -set-exit-code > reports/kudo_test_report.xml
+    go run ./cmd/kubectl-kudo test ${TEST_TO_RUN} 2>&1 |tee /dev/fd/2 |go-junit-report -set-exit-code > reports/kudo_test_report.xml
 else
     echo "Running integration tests without junit output"
     go test -tags integration ./pkg/... ./cmd/... -v -mod=readonly -coverprofile cover-integration.out
-    go run ./cmd/kubectl-kudo test
+    go run ./cmd/kubectl-kudo test ${TEST_TO_RUN}
 fi
