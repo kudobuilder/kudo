@@ -16,7 +16,7 @@ The contributions guideline provides details on copyright and process.  This doc
 
 ## Toolchain
 
-The follow are a list of tools needed in order to build, run, test and debug locally.
+The follow are a list of tools needed or useful in order to build, run, test and debug locally.
 
 * make - used to build and test locally
 * go - KUDO is written in Go, we use go 1.13+ style of development
@@ -29,6 +29,7 @@ The follow are a list of tools needed in order to build, run, test and debug loc
 * git
 * kubectl
 * [ngrok](https://ngrok.com/) - This is currently needed for full debugging. We are looking at alternatives. It does require signing up for this service.
+* [kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) - Binaries for `kube-apiserver` and `etcd` from kubebuilder are used for integration testing.
 
 ## Running Locally
 
