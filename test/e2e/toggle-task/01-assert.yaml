@@ -10,3 +10,10 @@ status:
   planStatus:
     deploy:
       status: COMPLETE
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: feature-operator-cm
+data:
+  foo: "1234"

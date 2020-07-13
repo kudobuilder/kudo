@@ -2,11 +2,11 @@ apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   labels:
-    kudo.dev/operator: feature-operator
+    kudo.dev/operator: job-timeout-operator
 spec:
   operatorVersion:
-    name: feature-operator-0.1.0
+    name: job-timeout-operator-0.1.0
 status:
   planStatus:
     deploy:
-      status: COMPLETE
+      status: FATAL_ERROR
