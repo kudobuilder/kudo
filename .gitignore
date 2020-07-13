@@ -9,8 +9,8 @@ reports/
 config/manager_image_patch.yaml-e
 # created by /hack/generate_krew.sh during release
 kudo.yaml
-kudo-e2e-test.yaml
-kudo-upgrade-test.yaml
+test/kudo-e2e-test.yaml
+test/kudo-upgrade-test.yaml
 kind-logs-*
 operators
 
