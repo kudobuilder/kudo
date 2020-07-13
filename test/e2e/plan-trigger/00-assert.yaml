@@ -1,9 +1,12 @@
-apiVersion: v1
-kind: Pod
+apiVersion: kudo.dev/v1beta1
+kind: Instance
 metadata:
   labels:
-    app: kudo-manager
-    control-plane: controller-manager
-  namespace: kudo-system
+    kudo.dev/operator: feature-operator
+spec:
+  operatorVersion:
+    name: feature-operator-0.1.0
 status:
-  phase: Running
+  planStatus:
+    deploy:
+      status: COMPLETE
