@@ -21,6 +21,3 @@ COPY hack/run-integration-tests.sh hack/run-integration-tests.sh
 COPY hack/run-e2e-tests.sh hack/run-e2e-tests.sh
 COPY hack/run-operator-tests.sh hack/run-operator-tests.sh
 COPY test/ test/
-COPY kudo-test.yaml kudo-test.yaml
-COPY kudo-e2e-test.yaml.tmpl kudo-e2e-test.yaml.tmpl
-COPY kudo-upgrade-test.yaml.tmpl kudo-upgrade-test.yaml.tmpl
