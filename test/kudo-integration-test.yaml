@@ -14,4 +14,3 @@ commands:
   - command: sleep 5
 startControlPlane: true
 parallel: 4
-artifactsDir: reports

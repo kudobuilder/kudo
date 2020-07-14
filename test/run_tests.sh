@@ -18,12 +18,8 @@ function archive_logs() {
 }
 
 # Set test harness artifacts dir to '/tmp/kudo-e2e-test', as it's easier to copy out from a container.
-sed -i '.bak' "/^artifactsDir:.*/d" test/kudo-e2e-test.yaml.tmpl
 echo 'artifactsDir: /tmp/kudo-test' >> test/kudo-e2e-test.yaml.tmpl
-
-sed -i '.bak' "/^artifactsDir:.*/d" test/kudo-upgrade-test.yaml.tmpl
 echo 'artifactsDir: /tmp/kudo-test' >> test/kudo-upgrade-test.yaml.tmpl
-
 
 # Pull the builder image with retries if it doesn't already exist.
 retries=0
