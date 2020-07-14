@@ -37,7 +37,7 @@ if docker build -f test/Dockerfile -t kudo-test .; then
     if docker run -e INTEGRATION_OUTPUT_JUNIT --net=host -it --rm -m 4g \
         -v /var/run/docker.sock:/var/run/docker.sock \
         -v "$(pwd)"/reports:/go/src/github.com/kudobuilder/kudo/reports \
-        kudo-test bash -c "make $TARGET; ret=\$?; chmod a+r -R /tmp/kudo-test; exit \$ret"
+        kudo-test bash -c "make $TARGET; ret=\$?; chmod a+r -R /go/src/github.com/kudobuilder/kudo/reports; exit \$ret"
     then
         archive_logs
         echo "Tests finished successfully! ヽ(•‿•)ノ"
