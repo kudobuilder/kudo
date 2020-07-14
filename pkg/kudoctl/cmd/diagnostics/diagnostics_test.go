@@ -217,7 +217,8 @@ func TestCollect_OK(t *testing.T) {
 		assert.True(t, exists, "file %s not found", name)
 	}
 	_ = afero.Walk(fs, "diag", func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
+		assert.NotNil(t, info, "No FileInfo for %s", path)
+		if info != nil && !info.IsDir() {
 			_, ok := fileNames[path]
 			assert.True(t, ok, "unexpected file: %s", path)
 		}
@@ -469,6 +470,8 @@ func TestCollect_PrintFailure(t *testing.T) {
 }
 
 func TestCollect_DiagDirExists(t *testing.T) {
+	DiagDir := "diag"
+
 	k8cs := kubefake.NewSimpleClientset()
 	kcs := fake.NewSimpleClientset()
 	client := kudo.NewClientFromK8s(kcs, k8cs)
@@ -503,7 +506,7 @@ func TestNewOptions(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.desc, func(t *testing.T) {
-			opts := NewOptions(tt.logSince)
+			opts := NewOptions(tt.logSince, "diag")
 			assert.True(t, (tt.exp > 0) == (opts.LogSince != nil))
 			if tt.exp > 0 {
 				assert.Equal(t, tt.exp, *opts.LogSince)

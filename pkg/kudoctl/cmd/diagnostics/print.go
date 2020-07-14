@@ -17,11 +17,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
-const (
-	DiagDir = "diag"
-	KudoDir = "diag/kudo"
-)
-
 type printMode string
 
 const (

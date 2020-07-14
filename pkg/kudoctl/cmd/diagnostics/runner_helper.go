@@ -9,11 +9,11 @@ import (
 func diagForInstance(instance string, options *Options, c *kudo.Client, info version.Info, s *env.Settings, p *nonFailingPrinter) error {
 	ir, err := newInstanceResources(instance, options, c, s)
 	if err != nil {
-		p.printError(err, DiagDir, "instance")
+		p.printError(err, options.DiagDir(), "instance")
 		return err
 	}
 
-	ctx := &processingContext{root: DiagDir, instanceName: instance}
+	ctx := &processingContext{root: options.DiagDir(), instanceName: instance}
 
 	runner := runnerForInstance(ir, ctx)
 	runner.addObjDump(info, ctx.rootDirectory, "version")
@@ -25,7 +25,7 @@ func diagForInstance(instance string, options *Options, c *kudo.Client, info ver
 
 	deps, err := newDependenciesResources(instance, options, c, s)
 	if err != nil {
-		p.printError(err, DiagDir, "instance")
+		p.printError(err, options.DiagDir(), "instance")
 		return err
 	}
 
@@ -49,7 +49,7 @@ func diagForKudoManager(options *Options, c *kudo.Client, p *nonFailingPrinter) 
 	if err != nil {
 		return err
 	}
-	ctx := &processingContext{root: KudoDir}
+	ctx := &processingContext{root: options.KudoDir()}
 
 	runner := runnerForKudoManager(kr, ctx)
 

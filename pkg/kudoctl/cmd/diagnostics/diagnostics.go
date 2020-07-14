@@ -2,6 +2,7 @@ package diagnostics
 
 import (
 	"fmt"
+	"path"
 	"strings"
 	"time"
 
@@ -13,20 +14,35 @@ import (
 )
 
 type Options struct {
-	LogSince *int64
+	LogSince  *int64
+	outputDir string
 }
 
-func NewOptions(logSince time.Duration) *Options {
+func (o *Options) DiagDir() string {
+	if o.outputDir == "" {
+		return "diag"
+	}
+	return o.outputDir
+}
+
+func (o *Options) KudoDir() string {
+	return path.Join(o.DiagDir(), "kudo")
+}
+
+func NewOptions(logSince time.Duration, outputDir string) *Options {
 	opts := Options{}
 	if logSince > 0 {
 		sec := int64(logSince.Round(time.Second).Seconds())
 		opts.LogSince = &sec
 	}
+	if outputDir != "" {
+		opts.outputDir = outputDir
+	}
 	return &opts
 }
 
 func Collect(fs afero.Fs, instance string, options *Options, c *kudo.Client, s *env.Settings) error {
-	if err := verifyDiagDirNotExists(fs); err != nil {
+	if err := verifyDiagDirNotExists(fs, options); err != nil {
 		return err
 	}
 	p := &nonFailingPrinter{fs: fs}
@@ -43,13 +59,13 @@ func Collect(fs afero.Fs, instance string, options *Options, c *kudo.Client, s *
 	return nil
 }
 
-func verifyDiagDirNotExists(fs afero.Fs) error {
-	exists, err := afero.Exists(fs, DiagDir)
+func verifyDiagDirNotExists(fs afero.Fs, options *Options) error {
+	exists, err := afero.Exists(fs, options.DiagDir())
 	if err != nil {
-		return fmt.Errorf("failed to verify that target directory %s doesn't exist: %v", DiagDir, err)
+		return fmt.Errorf("failed to verify that target directory %s doesn't exist: %v", options.DiagDir(), err)
 	}
 	if exists {
-		return fmt.Errorf("target directory %s already exists", DiagDir)
+		return fmt.Errorf("target directory %s already exists", options.DiagDir())
 	}
 	return nil
 }
