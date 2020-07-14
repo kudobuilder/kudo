@@ -175,7 +175,7 @@ func (initCmd *initCmd) run() error {
 
 	installer := setup.NewInstaller(opts, initCmd.crdOnly)
 
-	// ensureClient client
+	// initialize client
 	if !initCmd.dryRun {
 		if err := initCmd.ensureClient(); err != nil {
 			return clog.Errorf("error initializing: %s", err)
@@ -190,7 +190,7 @@ func (initCmd *initCmd) run() error {
 		return nil
 	}
 
-	// ensureClient server
+	// initialize server
 	clog.V(4).Printf("create client")
 	if initCmd.client == nil {
 		client, err := kube.GetKubeClient(Settings.KubeConfig)
