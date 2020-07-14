@@ -29,8 +29,11 @@ func NewKudoctlCmd() *cobra.Command {
 and serves as an API aggregation layer.
 `,
 		SilenceUsage: true,
-		Example: `  # Install a KUDO package from the official GitHub repo.
+		Example: `  # Install a KUDO package from the official repo.
   kubectl kudo install <name> [flags]
+
+  # Install a KUDO package from the local filesystem.
+  kubectl kudo install <./path> [flags]
 
   # View plan history of a specific package
   kubectl kudo plan history <name> [flags]
