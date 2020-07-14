@@ -1,19 +1,21 @@
 package diagnostics
 
 import (
+	"path/filepath"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 
-func diagForInstance(instance string, options *Options, c *kudo.Client, info version.Info, s *env.Settings, p *nonFailingPrinter) error {
+func diagForInstance(instance, rootDirectory string, options *Options, c *kudo.Client, info version.Info, s *env.Settings, p *nonFailingPrinter) error {
 	ir, err := newInstanceResources(instance, options, c, s)
 	if err != nil {
-		p.printError(err, DiagDir, "instance")
+		p.printError(err, rootDirectory, "instance")
 		return err
 	}
 
-	ctx := &processingContext{root: DiagDir, instanceName: instance}
+	ctx := &processingContext{root: rootDirectory, instanceName: instance}
 
 	runner := runnerForInstance(ir, ctx)
 	runner.addObjDump(info, ctx.rootDirectory, "version")
@@ -25,12 +27,12 @@ func diagForInstance(instance string, options *Options, c *kudo.Client, info ver
 
 	deps, err := newDependenciesResources(instance, options, c, s)
 	if err != nil {
-		p.printError(err, DiagDir, "instance")
+		p.printError(err, rootDirectory, "instance")
 		return err
 	}
 
 	for _, dep := range deps {
-		// Nest the dependencies in the parents operator directory
+		// Nest the dependencies in the parents operator rootDirectory
 		root := ctx.operatorDirectory()
 
 		depCtx := &processingContext{root: root, instanceName: dep.instanceObj.Name}
@@ -44,12 +46,12 @@ func diagForInstance(instance string, options *Options, c *kudo.Client, info ver
 	return nil
 }
 
-func diagForKudoManager(options *Options, c *kudo.Client, p *nonFailingPrinter) error {
+func diagForKudoManager(options *Options, directory string, c *kudo.Client, p *nonFailingPrinter) error {
 	kr, err := newKudoResources(options, c)
 	if err != nil {
 		return err
 	}
-	ctx := &processingContext{root: KudoDir}
+	ctx := &processingContext{root: filepath.Join(directory, "kudo")}
 
 	runner := runnerForKudoManager(kr, ctx)
 

@@ -25,16 +25,16 @@ func NewOptions(logSince time.Duration) *Options {
 	return &opts
 }
 
-func Collect(fs afero.Fs, instance string, options *Options, c *kudo.Client, s *env.Settings) error {
-	if err := verifyDiagDirNotExists(fs); err != nil {
+func Collect(fs afero.Fs, instance, directory string, options *Options, c *kudo.Client, s *env.Settings) error {
+	if err := verifyDiagDirNotExists(fs, directory); err != nil {
 		return err
 	}
 	p := &nonFailingPrinter{fs: fs}
 
-	if err := diagForInstance(instance, options, c, version.Get(), s, p); err != nil {
+	if err := diagForInstance(instance, directory, options, c, version.Get(), s, p); err != nil {
 		p.errors = append(p.errors, err.Error())
 	}
-	if err := diagForKudoManager(options, c, p); err != nil {
+	if err := diagForKudoManager(options, directory, c, p); err != nil {
 		p.errors = append(p.errors, err.Error())
 	}
 	if len(p.errors) > 0 {
@@ -43,13 +43,13 @@ func Collect(fs afero.Fs, instance string, options *Options, c *kudo.Client, s *
 	return nil
 }
 
-func verifyDiagDirNotExists(fs afero.Fs) error {
-	exists, err := afero.Exists(fs, DiagDir)
+func verifyDiagDirNotExists(fs afero.Fs, directory string) error {
+	exists, err := afero.Exists(fs, directory)
 	if err != nil {
-		return fmt.Errorf("failed to verify that target directory %s doesn't exist: %v", DiagDir, err)
+		return fmt.Errorf("failed to verify that target directory %s doesn't exist: %v", directory, err)
 	}
 	if exists {
-		return fmt.Errorf("target directory %s already exists", DiagDir)
+		return fmt.Errorf("target directory %s already exists", directory)
 	}
 	return nil
 }

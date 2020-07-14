@@ -12,6 +12,7 @@ import (
 )
 
 const (
+	DiagDir            = "diag"
 	diagCollectExample = `  # collect diagnostics example
   kubectl kudo diagnostics collect --instance flink
 `
@@ -30,6 +31,7 @@ func newDiagnosticsCmd(fs afero.Fs) *cobra.Command {
 func newDiagnosticsCollectCmd(fs afero.Fs) *cobra.Command {
 	var logSince time.Duration
 	var instance string
+	var outputDirectory string
 	cmd := &cobra.Command{
 		Use:     "collect",
 		Short:   "collect diagnostics",
@@ -40,10 +42,11 @@ func newDiagnosticsCollectCmd(fs afero.Fs) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to create kudo client: %v", err)
 			}
-			return diagnostics.Collect(fs, instance, diagnostics.NewOptions(logSince), c, &Settings)
+			return diagnostics.Collect(fs, instance, outputDirectory, diagnostics.NewOptions(logSince), c, &Settings)
 		},
 	}
 	cmd.Flags().StringVar(&instance, "instance", "", "The instance name.")
+	cmd.Flags().StringVar(&outputDirectory, "output-directory", DiagDir, "Directory in which diagnostics output will be saved. It is expected to not exist.")
 	cmd.Flags().DurationVar(&logSince, "log-since", 0, "Only return logs newer than a relative duration like 5s, 2m, or 3h. Defaults to all logs.")
 
 	return cmd

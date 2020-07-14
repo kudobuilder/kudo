@@ -205,7 +205,7 @@ func TestCollect_OK(t *testing.T) {
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, "diag", &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 	assert.Nil(t, err)
@@ -293,7 +293,7 @@ func TestCollect_InstanceNotFound(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, "diag", &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 
@@ -318,7 +318,7 @@ func TestCollect_FatalError(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, "diag", &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 
@@ -347,7 +347,7 @@ func TestCollect_FatalNotFound(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, "diag", &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 
@@ -371,7 +371,7 @@ func TestCollect_NonFatalError(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, "diag", &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 
@@ -399,7 +399,7 @@ func TestCollect_NonFatalErrorWithDir(t *testing.T) {
 	k8cs.PrependReactor("list", "pods", reactor)
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, "diag", &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 
@@ -431,7 +431,7 @@ func TestCollect_KudoNameSpaceNotFound(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, "diag", &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 
@@ -446,7 +446,7 @@ func TestCollect_PrintFailure(t *testing.T) {
 	a := &afero.MemMapFs{}
 	fs := &failingFs{Fs: a, failOn: zkPod2File}
 
-	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, "diag", &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 	assert.Error(t, err)
@@ -473,12 +473,13 @@ func TestCollect_DiagDirExists(t *testing.T) {
 	kcs := fake.NewSimpleClientset()
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := afero.NewMemMapFs()
-	_ = fs.Mkdir(DiagDir, 0700)
-	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+	directory := "diag"
+	_ = fs.Mkdir(directory, 0700)
+	err := Collect(fs, fakeZkInstance, directory, &Options{}, client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 	assert.Error(t, err)
-	assert.Equal(t, fmt.Errorf("target directory %s already exists", DiagDir), err)
+	assert.Equal(t, fmt.Errorf("target directory %s already exists", directory), err)
 }
 
 func TestNewOptions(t *testing.T) {
