@@ -1,0 +1,5 @@
+apiVersion: kudo.dev/v1beta1
+kind: TestStep
+commands:
+  - command: kubectl kudo plan trigger --instance feature-operator-instance --name custom
+    namespaced: true

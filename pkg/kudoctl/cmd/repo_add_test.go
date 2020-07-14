@@ -24,7 +24,7 @@ func TestAddDupRepo(t *testing.T) {
 		t.Fatal(err)
 	}
 	i := &initCmd{fs: fs, out: out, home: home}
-	if err := i.initialize(); err != nil {
+	if err := i.ensureClient(); err != nil {
 		t.Error(err)
 	}
 
@@ -46,7 +46,7 @@ func TestAddBadURLRepo(t *testing.T) {
 		t.Fatal(err)
 	}
 	i := &initCmd{fs: fs, out: out, errOut: errOut, home: home}
-	if err := i.initialize(); err != nil {
+	if err := i.ensureClient(); err != nil {
 		t.Error(err)
 	}
 
@@ -69,7 +69,7 @@ func TestAddSkipCheck(t *testing.T) {
 		t.Fatal(err)
 	}
 	i := &initCmd{fs: fs, out: out, errOut: errOut, home: home}
-	if err := i.initialize(); err != nil {
+	if err := i.ensureClient(); err != nil {
 		t.Error(err)
 	}
 

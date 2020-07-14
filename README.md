@@ -27,3 +27,9 @@ We have open community meetings every 2nd and 4th Wednesday of the month at 9:00
 ## Community, Events, Discussion, Contribution, and Support
 
 Learn more on how to engage with the KUDO community on the [community page](https://kudo.dev/community/).
+
+## Getting Involved
+
+* Read the [code of conduct](code-of-conduct.md)
+* Read the [contribution guide](CONTRIBUTING.md)
+* Details on running and debugging locally read [development guide](development.md)

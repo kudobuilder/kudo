@@ -42,24 +42,25 @@ gh_toc_md2html() {
     local gh_file_md=$1
     URL=https://api.github.com/markdown/raw
 
-    if [ ! -z "$GH_TOC_TOKEN" ]; then
+    if [ -n "$GH_TOC_TOKEN" ]; then
         TOKEN=$GH_TOC_TOKEN
     else
         TOKEN_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/token.txt"
         if [ -f "$TOKEN_FILE" ]; then
-            TOKEN="$(cat $TOKEN_FILE)"
+            TOKEN=$(cat "$TOKEN_FILE")
         fi
     fi
-    if [ ! -z "${TOKEN}" ]; then
+    if [ -n "${TOKEN}" ]; then
         AUTHORIZATION="--header \"Authorization: token ${TOKEN}\""
     fi
 
     # echo $URL 1>&2
     OUTPUT="$(curl -s --user-agent "$gh_user_agent" \
         --data-binary @"$gh_file_md" -H "Content-Type:text/plain" \
-        ${AUTHORIZATION} \
+        "$AUTHORIZATION" \
         $URL)"
 
+    # shellcheck disable=SC2181
     if [ "$?" != "0" ]; then
         echo "XXNetworkErrorXX"
     fi
@@ -123,7 +124,8 @@ gh_toc(){
             echo
         fi
     else
-        local rawhtml=$(gh_toc_md2html "$gh_src")
+        local rawhtml
+        rawhtml=$(gh_toc_md2html "$gh_src")
         if [ "$rawhtml" == "XXNetworkErrorXX" ]; then
              echo "Parsing local markdown file requires access to github API"
              echo "Please make sure curl is installed and check your network connectivity"
@@ -136,39 +138,46 @@ gh_toc(){
              echo "or place GitHub auth token here: ${TOKEN_FILE}"
              exit 1
         fi
-        local toc=`echo "$rawhtml" | gh_toc_grab "$gh_src_copy"`
+        local toc
+        toc=$(echo "$rawhtml" | gh_toc_grab "$gh_src_copy")
         echo "$toc"
         if [ "$need_replace" = "yes" ]; then
-            if grep -Fxq "<!--ts-->" $gh_src && grep -Fxq "<!--te-->" $gh_src; then
+            if grep -Fxq "<!--ts-->" "$gh_src" && grep -Fxq "<!--te-->" "$gh_src"; then
                 echo "Found markers"
             else
                 echo "You don't have <!--ts--> or <!--te--> in your file...exiting"
                 exit 1
             fi
-            local ts="<\!--ts-->"
-            local te="<\!--te-->"
-            local dt=`date +'%F_%H%M%S'`
-            local ext=".orig.${dt}"
-            local toc_path="${gh_src}.toc.${dt}"
-            local toc_footer="<!-- Added by: `whoami`, at: `date` -->"
+            local ts
+            ts="<\!--ts-->"
+            local te
+            te="<\!--te-->"
+            local dt
+            dt=$(date +'%F_%H%M%S')
+            local ext
+            ext=".orig.${dt}"
+            local toc_path
+            toc_path="${gh_src}.toc.${dt}"
+            local toc_footer
+            toc_footer="<!-- Added by: $(whoami), at: $(date) -->"
             # http://fahdshariff.blogspot.ru/2012/12/sed-mutli-line-replacement-between-two.html
             # clear old TOC
-            sed -i${ext} "/${ts}/,/${te}/{//!d;}" "$gh_src"
+            sed -i"${ext}" "/${ts}/,/${te}/{//!d;}" "$gh_src"
             # create toc file
             echo "${toc}" > "${toc_path}"
             echo -e "\n${toc_footer}\n" >> "$toc_path"
             # insert toc file
-            if [[ "`uname`" == "Darwin" ]]; then
+            if [[ "$(uname)" == "Darwin" ]]; then
                 sed -i "" "/${ts}/r ${toc_path}" "$gh_src"
             else
                 sed -i "/${ts}/r ${toc_path}" "$gh_src"
             fi
             echo
-            if [ $no_backup = "yes" ]; then
-                rm ${toc_path} ${gh_src}${ext}
+            if [ "$no_backup" = "yes" ]; then
+                rm "${toc_path}" "${gh_src}${ext}"
             fi
             echo "!! TOC was added into: '$gh_src'"
-            if [ -z $no_backup ]; then
+            if [ -z "$no_backup" ]; then
                 echo "!! Origin version of the file: '${gh_src}${ext}'"
                 echo "!! TOC added into a separate file: '${toc_path}'"
 	    fi
@@ -218,10 +227,12 @@ gh_toc_get_filename() {
 # Options handlers
 #
 gh_toc_app() {
-    local need_replace="no"
+    local need_replace
+    need_replace="no"
 
     if [ "$1" = '--help' ] || [ $# -eq 0 ] ; then
-        local app_name=$(basename "$0")
+        local app_name
+        app_name=$(basename "$0")
         echo "GitHub TOC generator ($app_name): $gh_toc_version"
         echo ""
         echo "Usage:"
@@ -236,26 +247,28 @@ gh_toc_app() {
     if [ "$1" = '--version' ]; then
         echo "$gh_toc_version"
         echo
-        echo "os:     `lsb_release -d | cut -f 2`"
-        echo "kernel: `cat /proc/version`"
-        echo "shell:  `$SHELL --version`"
+        echo "os:     $(lsb_release -d | cut -f 2)"
+        echo "kernel: $(cat /proc/version)"
+        echo "shell:  $($SHELL --version)"
         echo
         for tool in curl wget grep awk sed; do
             printf "%-5s: " $tool
-            echo `$tool --version | head -n 1`
+            # shellcheck disable=SC2005
+            echo "$($tool --version | head -n 1)"
         done
         return
     fi
 
+    # shellcheck disable=SC2166
     if [ "$1" = "-" ]; then
         if [ -z "$TMPDIR" ]; then
-            TMPDIR="/tmp"
+            TMPDIR="/tmp"        
         elif [ -n "$TMPDIR" -a ! -d "$TMPDIR" ]; then
             mkdir -p "$TMPDIR"
         fi
         local gh_tmp_md
         gh_tmp_md=$(mktemp $TMPDIR/tmp.XXXXXX)
-        while read input; do
+        while read -r input; do
             echo "$input" >> "$gh_tmp_md"
         done
         gh_toc_md2html "$gh_tmp_md" | gh_toc_grab ""

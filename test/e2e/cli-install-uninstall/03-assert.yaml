@@ -1,3 +1,0 @@
-apiVersion: v1
-kind: Event
-message: 'Execution of plan cleanup finished with status COMPLETE'

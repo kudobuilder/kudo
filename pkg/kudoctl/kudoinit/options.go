@@ -22,9 +22,10 @@ type Options struct {
 	SelfSignedWebhookCA bool
 
 	ServiceAccount string
+	Upgrade        bool
 }
 
-func NewOptions(v string, ns string, sa string, selfSignedWebhookCA bool) Options {
+func NewOptions(v string, ns string, sa string, upgrade bool, selfSignedWebhookCA bool) Options {
 	if v == "" {
 		v = version.Get().GitVersion
 	}
@@ -42,6 +43,7 @@ func NewOptions(v string, ns string, sa string, selfSignedWebhookCA bool) Option
 		Image:                         fmt.Sprintf("kudobuilder/controller:v%v", v),
 		ImagePullPolicy:               "Always",
 		ServiceAccount:                sa,
+		Upgrade:                       upgrade,
 		SelfSignedWebhookCA:           selfSignedWebhookCA,
 	}
 }

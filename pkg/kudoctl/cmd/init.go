@@ -6,8 +6,6 @@ import (
 	"io"
 	"strings"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
-
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
@@ -18,6 +16,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/setup"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
 const (
@@ -55,6 +54,10 @@ and finishes with success if KUDO is already installed.
   kubectl kudo init --service-account testaccount
   # install kudo using self-signed CA bundle for the webhooks (for testing and development)
   kubectl kudo init --unsafe-self-signed-webhook-ca
+  # upgrade an existing KUDO installation
+  kubectl kudo init --upgrade
+  # verify the current KUDO installation
+  kubectl kudo init --verify
 `
 )
 
@@ -73,6 +76,8 @@ type initCmd struct {
 	timeout             int64
 	clientOnly          bool
 	crdOnly             bool
+	upgrade             bool
+	verify              bool
 	home                kudohome.Home
 	client              *kube.Client
 	selfSignedWebhookCA bool
@@ -103,10 +108,12 @@ func newInitCmd(fs afero.Fs, out io.Writer, errOut io.Writer, client *kube.Clien
 	f := cmd.Flags()
 	f.BoolVarP(&i.clientOnly, "client-only", "c", false, "If set does not install KUDO on the server")
 	f.StringVarP(&i.image, "kudo-image", "i", "", "Override KUDO controller image and/or version")
-	f.StringVarP(&i.imagePullPolicy, "kudo-image-pull-policy", "", "", "Override KUDO controller image pull policy")
+	f.StringVarP(&i.imagePullPolicy, "kudo-image-pull-policy", "", "Always", "Override KUDO controller image pull policy")
 	f.StringVarP(&i.version, "version", "", "", "Override KUDO controller version of the KUDO image")
 	f.StringVarP(&i.output, "output", "o", "", "Output format")
 	f.BoolVar(&i.dryRun, "dry-run", false, "Do not install local or remote")
+	f.BoolVar(&i.upgrade, "upgrade", false, "Upgrade an existing KUDO installation")
+	f.BoolVar(&i.verify, "verify", false, "Verify an existing KUDO installation")
 	f.BoolVar(&i.crdOnly, "crd-only", false, "Add only KUDO CRDs to your cluster")
 	f.BoolVarP(&i.wait, "wait", "w", false, "Block until KUDO manager is running and ready to receive requests")
 	f.Int64Var(&i.timeout, "wait-timeout", 300, "Wait timeout to be used")
@@ -132,13 +139,22 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 	if flags.Changed("wait-timeout") && !initCmd.wait {
 		return errors.New("wait-timeout is only useful when using the flag '--wait'")
 	}
+	if initCmd.upgrade && initCmd.verify {
+		return errors.New("'--upgrade' and '--verify' can not be used at the same time")
+	}
+	if initCmd.verify && initCmd.dryRun {
+		return errors.New("'--dry-run' and '--verify' can not be used at the same time")
+	}
+	if initCmd.crdOnly && initCmd.upgrade {
+		return errors.New("'--upgrade' and '--crd-only' can not be used at the same time: you can not upgrade *only* crds")
+	}
 
 	return nil
 }
 
 // run initializes local config and installs KUDO manager to Kubernetes cluster.
 func (initCmd *initCmd) run() error {
-	opts := kudoinit.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, initCmd.selfSignedWebhookCA)
+	opts := kudoinit.NewOptions(initCmd.version, initCmd.ns, initCmd.serviceAccount, initCmd.upgrade, initCmd.selfSignedWebhookCA)
 	// if image provided switch to it.
 	if initCmd.image != "" {
 		opts.Image = initCmd.image
@@ -161,7 +177,7 @@ func (initCmd *initCmd) run() error {
 
 	// initialize client
 	if !initCmd.dryRun {
-		if err := initCmd.initialize(); err != nil {
+		if err := initCmd.ensureClient(); err != nil {
 			return clog.Errorf("error initializing: %s", err)
 		}
 	}
@@ -175,7 +191,7 @@ func (initCmd *initCmd) run() error {
 	}
 
 	// initialize server
-	clog.V(4).Printf("initializing server")
+	clog.V(4).Printf("create client")
 	if initCmd.client == nil {
 		client, err := kube.GetKubeClient(Settings.KubeConfig)
 		if err != nil {
@@ -183,6 +199,32 @@ func (initCmd *initCmd) run() error {
 		}
 		initCmd.client = client
 	}
+	if initCmd.verify {
+		return initCmd.verifyExistingInstallation(installer)
+	}
+
+	if initCmd.upgrade {
+		if err := initCmd.runUpgrade(installer); err != nil {
+			return err
+		}
+	} else {
+		if err := initCmd.runInstall(installer); err != nil {
+			return err
+		}
+	}
+
+	if initCmd.wait {
+		clog.Printf("⌛Waiting for KUDO controller to be ready in your cluster...")
+		err := setup.WatchKUDOUntilReady(initCmd.client.KubeClient, opts, initCmd.timeout)
+		if err != nil {
+			return errors.New("watch timed out, readiness uncertain")
+		}
+	}
+
+	return nil
+}
+
+func (initCmd *initCmd) runInstall(installer *setup.Installer) error {
 	ok, err := initCmd.preInstallVerify(installer)
 	if err != nil {
 		return err
@@ -191,6 +233,40 @@ func (initCmd *initCmd) run() error {
 		return fmt.Errorf("failed to verify installation requirements")
 	}
 
+	if err = initCmd.runYamlOutput(installer); err != nil {
+		return err
+	}
+
+	if !initCmd.dryRun {
+		if err := installer.Install(initCmd.client); err != nil {
+			return clog.Errorf("error installing: %s", err)
+		}
+	}
+	return nil
+}
+
+func (initCmd *initCmd) runUpgrade(installer *setup.Installer) error {
+	ok, err := initCmd.preUpgradeVerify(installer)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("failed to verify upgrade requirements")
+	}
+
+	if err = initCmd.runYamlOutput(installer); err != nil {
+		return err
+	}
+
+	if !initCmd.dryRun {
+		if err := installer.Upgrade(initCmd.client); err != nil {
+			return clog.Errorf("error upgrading: %s", err)
+		}
+	}
+	return nil
+}
+
+func (initCmd *initCmd) runYamlOutput(installer *setup.Installer) error {
 	//TODO: implement output=yaml|json (define a type for output to constrain)
 	//define an Encoder to replace YAMLWriter
 	if strings.ToLower(initCmd.output) == "yaml" {
@@ -202,26 +278,26 @@ func (initCmd *initCmd) run() error {
 			return err
 		}
 	}
+	return nil
+}
 
-	if !initCmd.dryRun {
-		if err := installer.Install(initCmd.client); err != nil {
-			return clog.Errorf("error installing: %s", err)
-		}
-
-		if initCmd.wait {
-			clog.Printf("⌛Waiting for KUDO controller to be ready in your cluster...")
-			err := setup.WatchKUDOUntilReady(initCmd.client.KubeClient, opts, initCmd.timeout)
-			if err != nil {
-				return errors.New("watch timed out, readiness uncertain")
-			}
-		}
+// verifyExistingInstallation checks if the current installation is valid and as expected
+func (initCmd *initCmd) verifyExistingInstallation(v kudoinit.InstallVerifier) error {
+	clog.V(4).Printf("verify existing installation")
+	result := verifier.NewResult()
+	if err := v.VerifyInstallation(initCmd.client, &result); err != nil {
+		return err
 	}
-
+	result.PrintWarnings(initCmd.out)
+	if !result.IsValid() {
+		result.PrintErrors(initCmd.out)
+	}
 	return nil
 }
 
 // preInstallVerify runs the pre-installation verification and returns true if the installation can continue
 func (initCmd *initCmd) preInstallVerify(v kudoinit.InstallVerifier) (bool, error) {
+	clog.V(4).Printf("Run pre-install verify")
 	result := verifier.NewResult()
 	if err := v.PreInstallVerify(initCmd.client, &result); err != nil {
 		return false, err
@@ -229,6 +305,21 @@ func (initCmd *initCmd) preInstallVerify(v kudoinit.InstallVerifier) (bool, erro
 	result.PrintWarnings(initCmd.errOut)
 	if !result.IsValid() {
 		result.PrintErrors(initCmd.errOut)
+		return false, nil
+	}
+	return true, nil
+}
+
+// preUpgradeVerify runs the pre-upgrade verification and returns true if the upgrade can continue
+func (initCmd *initCmd) preUpgradeVerify(v kudoinit.InstallVerifier) (bool, error) {
+	clog.V(4).Printf("Run pre-upgrade verify")
+	result := verifier.NewResult()
+	if err := v.PreUpgradeVerify(initCmd.client, &result); err != nil {
+		return false, err
+	}
+	result.PrintWarnings(initCmd.out)
+	if !result.IsValid() {
+		result.PrintErrors(initCmd.out)
 		return false, nil
 	}
 	return true, nil
@@ -253,8 +344,7 @@ func (initCmd *initCmd) YAMLWriter(w io.Writer, manifests []string) error {
 	return err
 }
 
-//func initialize(fs afero.Fs, settings env.Settings, out io.Writer) error {
-func (initCmd *initCmd) initialize() error {
+func (initCmd *initCmd) ensureClient() error {
 
 	if err := ensureDirectories(initCmd.fs, initCmd.home); err != nil {
 		return err

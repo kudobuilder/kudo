@@ -143,7 +143,8 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 
 	instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "ns")
 	// Verify that we cannot create the instance, because the test environment is empty.
-	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
+	err = testClient.Create(context.TODO(), instance)
+	assert.Error(t, err, "Expected an Error but got none")
 
 	// Install all of the CRDs.
 	crds := crd.NewInitializer().Resources()
@@ -175,7 +176,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 
 	// On second attempt run should succeed.
 	err = cmd.run()
-	assert.NoError(t, err)
+	assert.NoError(t, err, buf.String())
 	defer func() {
 		assert.NoError(t, deleteInitPrereqs(cmd, testClient))
 	}()
@@ -351,7 +352,7 @@ func TestInitWithServiceAccount(t *testing.T) {
 	}
 }
 
-func TestNoErrorOnReInit(t *testing.T) {
+func TestReInitFails(t *testing.T) {
 	//	 if the CRD exists and we init again there should be no error
 	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
 		Scheme: testutils.Scheme(),
@@ -390,8 +391,9 @@ func TestNoErrorOnReInit(t *testing.T) {
 
 	// second run will have an output that it already exists
 	err = cmd.run()
-	assert.NoError(t, err)
-	assert.True(t, strings.Contains(buf.String(), "crd operators.kudo.dev already exists"))
+
+	assert.Equal(t, "failed to verify installation requirements", err.Error())
+	assertStringContains(t, "CRD operators.kudo.dev is already installed. Did you mean to use --upgrade?", errBuf.String())
 }
 
 func deleteObjects(objs []runtime.Object, client *testutils.RetryClient) error {
@@ -405,7 +407,7 @@ func deleteObjects(objs []runtime.Object, client *testutils.RetryClient) error {
 }
 
 func deleteInitPrereqs(cmd *initCmd, client *testutils.RetryClient) error {
-	opts := kudoinit.NewOptions(cmd.version, cmd.ns, cmd.serviceAccount, cmd.selfSignedWebhookCA)
+	opts := kudoinit.NewOptions(cmd.version, cmd.ns, cmd.serviceAccount, cmd.upgrade, cmd.selfSignedWebhookCA)
 
 	objs := append([]runtime.Object{}, prereq.NewWebHookInitializer(opts).Resources()...)
 	objs = append(objs, prereq.NewServiceAccountInitializer(opts).Resources()...)

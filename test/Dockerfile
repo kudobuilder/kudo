@@ -23,3 +23,4 @@ COPY hack/run-operator-tests.sh hack/run-operator-tests.sh
 COPY test/ test/
 COPY kudo-test.yaml kudo-test.yaml
 COPY kudo-e2e-test.yaml.tmpl kudo-e2e-test.yaml.tmpl
+COPY kudo-upgrade-test.yaml.tmpl kudo-upgrade-test.yaml.tmpl

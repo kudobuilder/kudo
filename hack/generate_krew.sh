@@ -18,7 +18,7 @@ function generate_platform {
     fi
 
     local sha
-    PLATFORM=`uname`
+    PLATFORM=$(uname)
     if [ "$PLATFORM" == 'Darwin' ]; then
        sha=$(curl -L https://github.com/kudobuilder/kudo/releases/download/v"${VERSION}"/kudo_"${VERSION}"_"${1}"_"${ARCH}".tar.gz | shasum -a 256 - | awk '{print $1}')
     else
@@ -74,7 +74,6 @@ EOF
 generate_platform linux amd64 ./kubectl-kudo >> kudo.yaml
 generate_platform linux 386 ./kubectl-kudo >> kudo.yaml
 generate_platform darwin amd64 ./kubectl-kudo >> kudo.yaml
-generate_platform darwin 386 ./kubectl-kudo >> kudo.yaml
 
 ### KUDO is not currently built for Windows. Uncomment once it is.
 # generate_platform windows amd64 ./kubectl-kudo.exe >> kudo.yaml

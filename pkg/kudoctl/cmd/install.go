@@ -15,7 +15,7 @@ var (
   or a path to an unpacked package directory.
 
   # Install the most recent Flink package to your cluster.
-  kubectl kudo install flink
+  kubectl kudo install ./flink
   #*Note*: should you have a local  "flink" folder in the current directory it will take precedence over the remote repository.
 
   # Install operator from a local filesystem

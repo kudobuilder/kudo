@@ -1,13 +1,3 @@
-apiVersion: kudo.dev/v1beta1
-kind: Instance
-metadata:
-  name: first-operator
-status:
-  planStatus:
-    deploy:
-      status: COMPLETE
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-deployment
+apiVersion: v1
+kind: Event
+message: 'Execution of plan cleanup finished with status COMPLETE'
