@@ -23,6 +23,7 @@ git clone https://github.com/kudobuilder/operators
 mkdir operators/bin/
 cp ./bin/kubectl-kudo operators/bin/
 sed "s/%version%/$KUDO_VERSION/" operators/kudo-test.yaml.tmpl > operators/kudo-test.yaml
+echo 'artifactsDir: reports/kind-logs' >> operators/kudo-test.yaml
 
 if [ "$INTEGRATION_OUTPUT_JUNIT" == true ]
 then
