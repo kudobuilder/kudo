@@ -11,6 +11,7 @@ config/manager_image_patch.yaml-e
 kudo.yaml
 test/kudo-e2e-test.yaml
 test/kudo-upgrade-test.yaml
+test/*.tmpl.bak
 kind-logs-*
 operators
 
