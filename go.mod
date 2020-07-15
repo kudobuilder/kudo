@@ -10,6 +10,7 @@ require (
 	github.com/google/go-cmp v0.4.0
 	github.com/gosuri/uitable v0.0.4
 	github.com/huandu/xstrings v1.3.1 // indirect
+	github.com/jstemmer/go-junit-report v0.9.1 // indirect
 	github.com/kudobuilder/kuttl v0.5.1
 	github.com/manifoldco/promptui v0.7.0
 	github.com/mitchellh/copystructure v1.0.0 // indirect

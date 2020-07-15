@@ -12,14 +12,10 @@ INTEGRATION_OUTPUT_JUNIT=${INTEGRATION_OUTPUT_JUNIT:-false}
 
 function archive_logs() {
     # Archive test harness artifacts
-    if [ "$TARGET" == "e2e-test" ] || [ "$TARGET" == "operator-test" ]; then
-        tar -cjvf kind-logs.tar.bz2 kind-logs/
+    if [[ "$TARGET" == "e2e-test" ]] || [[ "$TARGET" == "operator-test" ]] || [[ "$TARGET" == "upgrade-test" ]]; then
+        tar -cjvf kind-logs.tar.bz2 reports/kind-logs/
     fi
 }
-
-# Set test harness artifacts dir to '/tmp/kudo-e2e-test', as it's easier to copy out from a container.
-echo 'artifactsDir: /tmp/kudo-e2e-test' >> kudo-e2e-test.yaml.tmpl
-echo 'artifactsDir: /tmp/kudo-e2e-test' >> kudo-upgrade-test.yaml.tmpl
 
 # Pull the builder image with retries if it doesn't already exist.
 retries=0
@@ -41,8 +37,7 @@ if docker build -f test/Dockerfile -t kudo-test .; then
     if docker run -e INTEGRATION_OUTPUT_JUNIT --net=host -it --rm -m 4g \
         -v /var/run/docker.sock:/var/run/docker.sock \
         -v "$(pwd)"/reports:/go/src/github.com/kudobuilder/kudo/reports \
-        -v "$(pwd)"/kind-logs:/tmp/kudo-e2e-test \
-        kudo-test bash -c "make $TARGET; ret=\$?; chmod a+r -R /tmp/kudo-e2e-test; exit \$ret"
+        kudo-test bash -c "make $TARGET; ret=\$?; chmod a+r -R /go/src/github.com/kudobuilder/kudo/reports; exit \$ret"
     then
         archive_logs
         echo "Tests finished successfully! ヽ(•‿•)ノ"

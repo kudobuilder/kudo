@@ -30,12 +30,12 @@ then
     mkdir -p reports/
     go get github.com/jstemmer/go-junit-report
 
-    cd operators && ./bin/kubectl-kudo test --artifacts-dir /tmp/kudo-e2e-test 2>&1 \
+    cd operators && ./bin/kubectl-kudo test --artifacts-dir ../reports/kind-logs 2>&1 \
         | tee /dev/fd/2 \
         | go-junit-report -set-exit-code \
         > ../reports/kudo_operators_test_report.xml
 else
     echo "Running operator tests without junit output"
 
-    cd operators && ./bin/kubectl-kudo test --artifacts-dir /tmp/kudo-e2e-test
+    cd operators && ./bin/kubectl-kudo test --artifacts-dir ../reports/kind-logs
 fi
