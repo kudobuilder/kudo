@@ -13,15 +13,14 @@ import (
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 
+const DefaultDiagDir = "diag"
+
 type Options struct {
 	LogSince  *int64
 	outputDir string
 }
 
 func (o *Options) DiagDir() string {
-	if o.outputDir == "" {
-		return "diag"
-	}
 	return o.outputDir
 }
 
@@ -29,8 +28,15 @@ func (o *Options) KudoDir() string {
 	return path.Join(o.DiagDir(), "kudo")
 }
 
+func NewDefaultOptions() *Options {
+	return &Options{
+		LogSince:  nil,
+		outputDir: DefaultDiagDir,
+	}
+}
+
 func NewOptions(logSince time.Duration, outputDir string) *Options {
-	opts := Options{}
+	opts := NewDefaultOptions()
 	if logSince > 0 {
 		sec := int64(logSince.Round(time.Second).Seconds())
 		opts.LogSince = &sec
@@ -38,7 +44,7 @@ func NewOptions(logSince time.Duration, outputDir string) *Options {
 	if outputDir != "" {
 		opts.outputDir = outputDir
 	}
-	return &opts
+	return opts
 }
 
 func Collect(fs afero.Fs, instance string, options *Options, c *kudo.Client, s *env.Settings) error {
