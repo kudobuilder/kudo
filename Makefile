@@ -34,12 +34,12 @@ endif
 # Run e2e tests
 .PHONY: e2e-test
 e2e-test: cli-fast manager-fast
-	ONLY_TEST=$(TEST) ./hack/run-e2e-tests.sh
+	TEST_ONLY=$(TEST) ./hack/run-e2e-tests.sh
 
 .PHONY: integration-test
 # Run integration tests
 integration-test: cli-fast manager-fast
-	ONLY_TEST=$(TEST) ./hack/run-integration-tests.sh
+	TEST_ONLY=$(TEST) ./hack/run-integration-tests.sh
 
 .PHONY: operator-test
 operator-test: cli-fast manager-fast
@@ -47,7 +47,7 @@ operator-test: cli-fast manager-fast
 
 .PHONY: upgrade-test
 upgrade-test: cli-fast manager-fast
-	ONLY_TEST=$(TEST) ./hack/run-upgrade-tests.sh
+	TEST_ONLY=$(TEST) ./hack/run-upgrade-tests.sh
 
 .PHONY: test-clean
 # Clean test reports
