@@ -61,9 +61,9 @@ These requirements make it necessary for operator packages to be developed in a 
 
 ## Proposal
 
-Upstream operator developers still create PRs against a Git repository to add their operator packages to the community repository. This Git repository lists references to upstream operator packages instead of a full copy of an operator package. A reference can point to a Git resitory or a package tarball. A version of an operator package is described by a specific tag of a Git repository or a URL pointing to an operator tarball of that release.
+Upstream operator developers still create PRs against a Git repository to add their operator packages to the community repository. This Git repository lists references to upstream operator packages instead of a full copy of an operator package. A reference can point to a Git repository or a package tarball. A version of an operator package is described by a specific tag of a Git repository or a URL pointing to an operator tarball of that release.
 
-For example, consider an operator package developed at `github.com/example/example-operator` that has  tagged versions `1.0.0`, `1.1.0` and the operator package in the `operator` folder. There's also a tarball for version `0.9.0` hosted at `example.org/example-operator-0.9.0.tgz`. To add or update this operator package, the developers would create a PR referencing their upstream Git repository and the specific version, e.g. by adding a file `example-operator.yaml` like
+For example, consider an operator package developed at `github.com/example/example-operator` that has tagged versions `1.0.0`, `1.1.0` and the operator package in the `operator` folder. There's also a tarball for version `0.9.0` hosted at `example.org/example-operator-0.9.0.tgz`. To add or update this operator package, the developers would create a PR referencing their upstream Git repository and the specific version, e.g. by adding a file `example-operator.yaml` like
 
 ```yaml
 api: v1alpha1
