@@ -44,7 +44,7 @@ func newDiagnosticsCollectCmd(fs afero.Fs) *cobra.Command {
 			return diagnostics.Collect(fs, instance, diagnostics.NewOptions(logSince, outputDir), c, &Settings)
 		},
 	}
-	cmd.Flags().StringVarP(&outputDir, "output-directory", "-O", diagnostics.DefaultDiagDir, "The output directory. Defaults to 'diag'")
+	cmd.Flags().StringVarP(&outputDir, "output-directory", "O", diagnostics.DefaultDiagDir, "The output directory. Defaults to 'diag'")
 	cmd.Flags().StringVar(&instance, "instance", "", "The instance name.")
 	cmd.Flags().DurationVar(&logSince, "log-since", 0, "Only return logs newer than a relative duration like 5s, 2m, or 3h. Defaults to all logs.")
 
