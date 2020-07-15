@@ -1,6 +1,23 @@
 apiVersion: kudo.dev/v1beta1
+appVersion: 0.1.0
+kubernetesVersion: 0.16.0
 kudoVersion: not-built-on-release
+maintainers:
+- email: MyEmail@invalid
+  name: My Name
 name: newop
 operatorVersion: 0.1.0
-plans: {}
-tasks: []
+plans:
+  deploy:
+    phases:
+    - name: deploy
+      steps:
+      - name: deploy
+        tasks:
+        - deploy
+      strategy: serial
+    strategy: serial
+tasks:
+- kind: Apply
+  name: deploy
+  spec: {}
