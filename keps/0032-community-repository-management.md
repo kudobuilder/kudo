@@ -31,10 +31,7 @@ see-also:
 
 ## Summary
 
-By default, every KUDO deployment installs operator packages from the community repository. As we encourage the KUDO community to add new operator packages to this repository, this KEP defines:
-
-- The workflow to add new operator packages to the community repository
-- Rules and means to describe the maturity of operator packages in the community repository
+By default, every KUDO deployment installs operator packages from the community repository. As we encourage the KUDO community to add new operator packages to this repository, this KEP defines a workflow to add new operator packages to the community repository.
 
 ## Motivation
 
@@ -66,7 +63,8 @@ Upstream operator developers still create PRs against a Git repository to add th
 For example, consider an operator package developed at `github.com/example/example-operator` that has tagged versions `1.0.0`, `1.1.0` and the operator package in the `operator` folder. There's also a tarball for version `0.9.0` hosted at `example.org/example-operator-0.9.0.tgz`. To add or update this operator package, the developers would create a PR referencing their upstream Git repository and the specific version, e.g. by adding a file `example-operator.yaml` like
 
 ```yaml
-api: v1alpha1
+apiVersion: index.kudo.dev/v1alpha1
+kind: Operator
 name: Example Operator
 git-sources:
 - name: git-repo
@@ -78,19 +76,19 @@ versions:
   git:
     source: git-repo
     tag: "1.0.0"
-    dir: operator
+    directory: operator
 - version: "1.1.0"
   git:
     source: git-repo
     tag: "1.1.0"
-    dir: operator
+    directory: operator
 ```
+
+While metadata like `name` and `version` are also present in the referenced operator package, it is helpful for debugging purposes to duplicate this information here. This metadata will be available even if resolving the actual operator package fails.
 
 Once this PR is merged, CI tooling detects the new YAML file, clones the referenced upstream Git repository, checks out the tag, and adds the operator package in the specified folder to the existing index. This workflow is similar to [krew-index](https://github.com/kubernetes-sigs/krew-index). Of course, CI tests that don't update the community repository can run before the PR is merged. These tests include checking the referenced operator package for validity. Additional conformance testing can be added as well.
 
 We can add more metadata to the YAML reference file. E.g., support for different upstream sources like Mercurial.
-
-The maturity level of an operator package can be provided in this file as well, though this should be added to the operator package instead.
 
 ### Risks and Mitigations
 
@@ -106,3 +104,4 @@ The maturity level of an operator package can be provided in this file as well, 
 ## Implementation History
 
 - 2020/07/02 - Initial draft (@nfnt)
+- 2020/07/15 - Updated API after tests with a prototype. Removed maturity levels (@nfnt)
