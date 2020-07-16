@@ -66,24 +66,24 @@ apiVersion: index.kudo.dev/v1alpha1
 kind: Operator
 name: Example Operator
 gitSources:
-- name: git-repo
-  url: github.com/example/example-operator.git
+  - name: git-repo
+    url: github.com/example/example-operator.git
 versions:
-- appVersion: "1.0.0"
-  operatorVersion: "0.9.0"
-  url: example.org/example-operator-1.0.0_0.9.0.tgz
-- appVersion: "1.0.0"
-  operatorVersion: "1.0.0"
-  git:
-    source: git-repo
-    tag: "1.0.0_1.0.0"
-    directory: operator
-- appVersion: "1.1.0"
-  operatorVersion: "1.0.0"
-  git:
-    source: git-repo
-    tag: "1.1.0_1.0.0"
-    directory: operator
+  - appVersion: "1.0.0"
+    operatorVersion: "0.9.0"
+    url: example.org/example-operator-1.0.0_0.9.0.tgz
+  - appVersion: "1.0.0"
+    operatorVersion: "1.0.0"
+    git:
+      source: git-repo
+      tag: "1.0.0_1.0.0"
+      directory: operator
+  - appVersion: "1.1.0"
+    operatorVersion: "1.0.0"
+    git:
+      source: git-repo
+      tag: "1.1.0_1.0.0"
+      directory: operator
 ```
 
 While metadata like `name`, `appVersion`, and `operatorVersion` are also present in the referenced operator package, it is helpful for debugging purposes to duplicate this information here. This metadata will be available even if resolving the actual operator package fails.
