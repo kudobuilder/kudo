@@ -3,7 +3,6 @@ package convert
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -125,7 +124,7 @@ func validateTask(t v1beta1.Task, templates map[string]string) []string {
 			resources = append(resources, t.Spec.ParameterFile)
 		}
 	case task.DummyTaskKind:
-		log.Printf("no validation for task kind %s implemented", t.Kind)
+		// Nothing to validate for Dummy Task
 	default:
 		errs = append(errs, fmt.Sprintf("unknown task kind %s", t.Kind))
 	}
