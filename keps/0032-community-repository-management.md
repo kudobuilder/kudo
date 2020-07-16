@@ -35,7 +35,7 @@ By default, every KUDO deployment installs operator packages from the community 
 
 ## Motivation
 
-Currently, every operator package in the community repository is provided from the `kudobuilder/operators` Git repository. This Git repository contains package definitions, documentation and sometimes tests for each operator. While it is convenient, to have this all in a single repository, this is challenging for larger or third-party operators:
+Currently, most operator packages in the community repository are provided from the `kudobuilder/operators` Git repository. This Git repository contains package definitions, documentation and sometimes tests for each operator. While it is convenient, to have this all in a single repository, this is challenging for larger or third-party operators:
 
 - Large operators usually provide their own Docker images and/or additional dependencies. These have to be built, tested and deployed. The tools for this can't be provided by `kudobuilder/operators`.
 - Some operator tests cannot be covered by the test tooling provided in `kudobuilder/operators` making it necessary to host the tests in a separate Git repository.
@@ -48,7 +48,6 @@ These requirements make it necessary for operator packages to be developed in a 
 - Provide a simple workflow for upstream operator packages to get added to the community repository
 - Remove the need to "host" copies of upstream operator packages in a Git repository
 - Provide a mechanism to define upstream operator package sources
-- Provide a mechanism to define upstream operator package maturity
 
 ### Non-Goals
 
@@ -60,31 +59,34 @@ These requirements make it necessary for operator packages to be developed in a 
 
 Upstream operator developers still create PRs against a Git repository to add their operator packages to the community repository. This Git repository lists references to upstream operator packages instead of a full copy of an operator package. A reference can point to a Git repository or a package tarball. A version of an operator package is described by a specific tag of a Git repository or a URL pointing to an operator tarball of that release.
 
-For example, consider an operator package developed at `github.com/example/example-operator` that has tagged versions `1.0.0`, `1.1.0` and the operator package in the `operator` folder. There's also a tarball for version `0.9.0` hosted at `example.org/example-operator-0.9.0.tgz`. To add or update this operator package, the developers would create a PR referencing their upstream Git repository and the specific version, e.g. by adding a file `example-operator.yaml` like
+For example, consider an operator package developed at `github.com/example/example-operator` that has tagged operator versions `1.0.0`, `1.1.0` and the operator package in the `operator` folder. There's also a tarball for version `0.9.0` hosted at `example.org/example-operator-0.9.0.tgz`. To add or update this operator package, the developers would create a PR referencing their upstream Git repository and the specific version, e.g. by adding a file `example-operator.yaml` like
 
 ```yaml
 apiVersion: index.kudo.dev/v1alpha1
 kind: Operator
 name: Example Operator
-git-sources:
+gitSources:
 - name: git-repo
   url: github.com/example/example-operator.git
 versions:
-- version: "0.9.0"
-  url: example.org/example-operator-0.9.0.tgz
-- version: "1.0.0"
+- appVersion: "1.0.0"
+  operatorVersion: "0.9.0"
+  url: example.org/example-operator-1.0.0_0.9.0.tgz
+- appVersion: "1.0.0"
+  operatorVersion: "1.0.0"
   git:
     source: git-repo
-    tag: "1.0.0"
+    tag: "1.0.0_1.0.0"
     directory: operator
-- version: "1.1.0"
+- appVersion: "1.1.0"
+  operatorVersion: "1.0.0"
   git:
     source: git-repo
-    tag: "1.1.0"
+    tag: "1.1.0_1.0.0"
     directory: operator
 ```
 
-While metadata like `name` and `version` are also present in the referenced operator package, it is helpful for debugging purposes to duplicate this information here. This metadata will be available even if resolving the actual operator package fails.
+While metadata like `name`, `appVersion`, and `operatorVersion` are also present in the referenced operator package, it is helpful for debugging purposes to duplicate this information here. This metadata will be available even if resolving the actual operator package fails.
 
 Once this PR is merged, CI tooling detects the new YAML file, clones the referenced upstream Git repository, checks out the tag, and adds the operator package in the specified folder to the existing index. This workflow is similar to [krew-index](https://github.com/kubernetes-sigs/krew-index). Of course, CI tests that don't update the community repository can run before the PR is merged. These tests include checking the referenced operator package for validity. Additional conformance testing can be added as well.
 
