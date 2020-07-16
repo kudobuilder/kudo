@@ -11,12 +11,11 @@ import (
 )
 
 var (
-	installExample = `  The install argument must be a name of the package in the repository, a path to package in *.tgz format,
+	installExample = `  The install argument must be a name of the package in the repository, a URL or path to package in *.tgz format,
   or a path to an unpacked package directory.
 
-  # Install the most recent Flink package to your cluster.
-  kubectl kudo install ./flink
-  #*Note*: should you have a local  "flink" folder in the current directory it will take precedence over the remote repository.
+  # Install the most recent Flink package from KUDO repository to your cluster.
+  kubectl kudo install flink
 
   # Install operator from a local filesystem
   kubectl kudo install pkg/kudoctl/util/repo/testdata/zk
