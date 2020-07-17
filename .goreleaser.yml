@@ -95,7 +95,7 @@ archives:
     format: binary
 brews:
   - name: kudo-cli
-    github:
+    tap:
       owner: kudobuilder
       name: homebrew-tap
     commit_author:
