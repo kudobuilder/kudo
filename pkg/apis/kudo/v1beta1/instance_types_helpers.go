@@ -170,18 +170,6 @@ func (i *Instance) TryRemoveFinalizer() bool {
 	return false
 }
 
-func (p *Parameter) IsImmutable() bool {
-	return p.Immutable != nil && *p.Immutable
-}
-
-func (p *Parameter) IsRequired() bool {
-	return p.Required != nil && *p.Required
-}
-
-func (p *Parameter) HasDefault() bool {
-	return p.Default != nil
-}
-
 func remove(values []string, s string) []string {
 	return funk.FilterString(values, func(str string) bool {
 		return str != s
@@ -232,86 +220,6 @@ func GetParamDefinitions(params map[string]string, ov *OperatorVersion) ([]Param
 		defs = append(defs, p2.(Parameter))
 	}
 	return defs, nil
-}
-
-// GetChangedParameters returns a list of parameters from ov2 that changed based on the given compare function between ov1 and ov2
-func GetChangedParameters(ov1, ov2 *OperatorVersion, isEqual func(p1, p2 Parameter) bool) []Parameter {
-	changedParams := []Parameter{}
-
-	for _, p1 := range ov1.Spec.Parameters {
-		for _, p2 := range ov2.Spec.Parameters {
-			if p1.Name == p2.Name {
-				if !isEqual(p1, p2) {
-					changedParams = append(changedParams, p2)
-				}
-			}
-		}
-	}
-
-	return changedParams
-}
-
-// GetAddedParameters returns a list of parameters that are in oldOv but not in newOv
-func GetRemovedParameters(oldOv, newOv *OperatorVersion) []Parameter {
-	return GetAddedParameters(newOv, oldOv)
-}
-
-// GetAddedParameters returns a list of parameters that are in newOv but not in oldOv
-func GetAddedParameters(oldOv, newOv *OperatorVersion) []Parameter {
-	addedParams := []Parameter{}
-
-NewParams:
-	for _, newParam := range newOv.Spec.Parameters {
-		for _, oldParam := range oldOv.Spec.Parameters {
-			if newParam.Name == oldParam.Name {
-				continue NewParams
-			}
-		}
-		addedParams = append(addedParams, newParam)
-	}
-	return addedParams
-}
-
-// ParameterDiff returns map containing all parameters that were removed or changed between old and new
-func ParameterDiff(old, new map[string]string) map[string]string {
-	diff := make(map[string]string)
-
-	for key, val := range old {
-		// If a parameter was removed in the new spec
-		if _, ok := new[key]; !ok {
-			diff[key] = val
-		}
-	}
-
-	for key, val := range new {
-		// If new spec parameter was added or changed
-		if v, ok := old[key]; !ok || v != val {
-			diff[key] = val
-		}
-	}
-
-	return diff
-}
-
-// RichParameterDiff compares new and old map and returns two maps: first containing all changed/added
-// and second all removed parameters.
-func RichParameterDiff(old, new map[string]string) (changed, removed map[string]string) {
-	changed, removed = make(map[string]string), make(map[string]string)
-
-	for key, val := range old {
-		// If a parameter was removed in the new spec
-		if _, ok := new[key]; !ok {
-			removed[key] = val
-		}
-	}
-
-	for key, val := range new {
-		// If new spec parameter was added or changed
-		if v, ok := old[key]; !ok || v != val {
-			changed[key] = val
-		}
-	}
-	return
 }
 
 func CleanupPlanExists(ov *OperatorVersion) bool { return PlanExists(CleanupPlanName, ov) }

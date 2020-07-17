@@ -47,6 +47,10 @@ func (p Parameter) IsRequired() bool {
 	return p.Required != nil && *p.Required
 }
 
+func (p *Parameter) HasDefault() bool {
+	return p.Default != nil
+}
+
 type Parameters []Parameter
 
 // Len returns the number of params.

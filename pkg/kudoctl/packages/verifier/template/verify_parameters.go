@@ -55,10 +55,8 @@ func (ParametersVerifier) Verify(pf *packages.Files) verifier.Result {
 func immutableParams(pf *packages.Files) verifier.Result {
 	res := verifier.NewResult()
 	for _, value := range pf.Params.Parameters {
-		if value.Immutable != nil && *value.Immutable {
-			hasDefault := value.Default != nil
-			isRequired := value.Required != nil && *value.Required
-			if !hasDefault && !isRequired {
+		if value.IsImmutable() {
+			if !value.HasDefault() && !value.IsRequired() {
 				res.AddParamError(value.Name, "is immutable but is not marked as required or has a default value")
 			}
 		}
