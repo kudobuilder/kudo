@@ -59,7 +59,7 @@ These requirements make it necessary for operator packages to be developed in a 
 
 Upstream operator developers still create PRs against a Git repository to add their operator packages to the community repository. This Git repository lists references to upstream operator packages instead of a full copy of an operator package. A reference can point to a Git repository or a package tarball. A version of an operator package is described by a specific tag of a Git repository or a URL pointing to an operator tarball of that release.
 
-For example, consider an operator package developed at `github.com/example/example-operator` that has tagged operator versions `1.0.0`, `1.1.0` and the operator package in the `operator` folder. There's also a tarball for version `0.9.0` hosted at `example.org/example-operator-0.9.0.tgz`. To add or update this operator package, the developers would create a PR referencing their upstream Git repository and the specific version, e.g. by adding a file `example-operator.yaml` like
+For example, consider an operator package developed at `github.com/example/example-operator` that has tagged operator versions `1.0.0`, `1.1.0` and the operator package in the `operator` folder. To add or update this operator package, the developers would create a PR referencing their upstream Git repository and the specific version, e.g. by adding a file `example-operator.yaml` like
 
 ```yaml
 apiVersion: index.kudo.dev/v1alpha1
@@ -69,9 +69,6 @@ gitSources:
   - name: git-repo
     url: github.com/example/example-operator.git
 versions:
-  - appVersion: "1.0.0"
-    operatorVersion: "0.9.0"
-    url: example.org/example-operator-1.0.0_0.9.0.tgz
   - appVersion: "1.0.0"
     operatorVersion: "1.0.0"
     git:
@@ -84,6 +81,17 @@ versions:
       source: git-repo
       tag: "1.1.0_1.0.0"
       directory: operator
+```
+
+Another example for an operator package that is provides as a tarball. This package doesn't set the optional application version and provides a URL for the package tarball.
+
+```yaml
+apiVersion: index.kudo.dev/v1alpha1
+kind: Operator
+name: Example Operator
+version:
+  - operatorVersion: "0.9.0"
+    url: example.org/example-operator-0.9.0.tgz
 ```
 
 While metadata like `name`, `appVersion`, and `operatorVersion` are also present in the referenced operator package, it is helpful for debugging purposes to duplicate this information here. This metadata will be available even if resolving the actual operator package fails.
