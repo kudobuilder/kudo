@@ -44,10 +44,12 @@ func Package(
 
 	applyOverrides(&resources, instanceName, namespace, parameters)
 
-	if err := validateParameters(
-		*resources.Instance,
-		resources.OperatorVersion.Spec.Parameters); err != nil {
-		return err
+	if !options.SkipInstance {
+		if err := validateParameters(
+			*resources.Instance,
+			resources.OperatorVersion.Spec.Parameters); err != nil {
+			return err
+		}
 	}
 
 	if err := client.ValidateServerForOperator(resources.Operator); err != nil {
