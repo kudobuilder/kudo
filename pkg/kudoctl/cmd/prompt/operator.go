@@ -71,18 +71,24 @@ func ForOperator(fs afero.Fs, pathDefault string, overwrite bool, operatorDefaul
 		return nil, "", err
 	}
 
+	kubernetesVersion, err := WithDefault("Required Kubernetes Version", operatorDefault.KubernetesVersion)
+	if err != nil {
+		return nil, "", err
+	}
+
 	url, err := WithDefault("Project URL", "")
 	if err != nil {
 		return nil, "", err
 	}
 
 	op := packages.OperatorFile{
-		Name:            name,
-		APIVersion:      operatorDefault.APIVersion,
-		OperatorVersion: opVersion,
-		AppVersion:      appVersion,
-		KUDOVersion:     kudoVersion,
-		URL:             url,
+		Name:              name,
+		APIVersion:        operatorDefault.APIVersion,
+		OperatorVersion:   opVersion,
+		AppVersion:        appVersion,
+		KUDOVersion:       kudoVersion,
+		KubernetesVersion: kubernetesVersion,
+		URL:               url,
 	}
 	return &op, path, nil
 }
@@ -177,7 +183,7 @@ func ForParameter(planNames []string, paramNameList []string) (*packages.Paramet
 	}
 
 	//PlanNameList
-	if Confirm("Add Trigger Plan") {
+	if Confirm("Add Trigger Plan (defaults to deploy)") {
 		var trigger string
 		if len(planNames) == 0 {
 			trigger, err = WithDefault("Trigger Plan", "")

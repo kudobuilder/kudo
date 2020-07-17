@@ -66,14 +66,28 @@ func TestPackageNew_validation(t *testing.T) {
 		args         []string
 		errorMessage string
 	}{
-		{name: "0 argument", args: []string{}, errorMessage: "expecting exactly one argument - directory of the operator or name of package"},
-		{name: "2 arguments", args: []string{"1", "2"}, errorMessage: "expecting exactly one argument - directory of the operator or name of package"},
+		{name: "0 argument", args: []string{}, errorMessage: "expecting exactly one argument - name of the operator. Or use -i for interactive mode"},
+		{name: "1 argument", args: []string{"my-operator"}, errorMessage: ""},
+		{name: "2 arguments", args: []string{"1", "2"}, errorMessage: "expecting exactly one argument - name of the operator. Or use -i for interactive mode"},
+		{name: "2 arguments and -i", args: []string{"-i", "my-operator", "add"}, errorMessage: "expecting at most one argument - name of the operator"},
+
+		// These return ^D as error, because they start the interactive mode which can't be tested here
+		{name: "0 argument and -i", args: []string{"-i"}, errorMessage: "^D"},
+		{name: "1 argument and -i", args: []string{"my-operator", "-i"}, errorMessage: "^D"},
 	}
 
-	for _, test := range tests {
-		cmd := newPackageNewCmd(fs, out)
-		err := cmd.RunE(cmd, test.args)
-		assert.EqualError(t, err, test.errorMessage)
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := newPackageNewCmd(fs, out)
+			cmd.SetArgs(tt.args)
+			err := cmd.Execute()
+			if tt.errorMessage == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.EqualError(t, err, tt.errorMessage)
+			}
+		})
 	}
 
 }
