@@ -263,7 +263,7 @@ func (r *Reconciler) resolveDependencies(i *kudov1beta1.Instance, ov *kudov1beta
 	if i.IsChildInstance() {
 		return nil
 	}
-	resolver := &InClusterResolver{ns: i.Namespace, c: r.Client}
+	resolver := &InClusterResolver{ns: ov.Namespace, c: r.Client}
 
 	_, err := dependencies.Resolve(ov, resolver)
 	if err != nil {
