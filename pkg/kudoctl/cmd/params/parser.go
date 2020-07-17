@@ -90,6 +90,10 @@ func GetParametersFromFile(filePath string, bytes []byte, parameters map[string]
 			errs = append(errs, fmt.Sprintf("%s: %v", key, err))
 			continue
 		}
+		if wrapped == nil {
+			errs = append(errs, fmt.Sprintf("%s has a null value (https://yaml.org/spec/1.2/spec.html#id2803362) which is currently not supported", key))
+			continue
+		}
 		parameters[key] = *wrapped
 	}
 	if errs != nil {
