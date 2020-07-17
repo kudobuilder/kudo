@@ -205,7 +205,7 @@ func TestCollect_OK(t *testing.T) {
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, NewDefaultOptions(), client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 	assert.Nil(t, err)
@@ -217,7 +217,8 @@ func TestCollect_OK(t *testing.T) {
 		assert.True(t, exists, "file %s not found", name)
 	}
 	_ = afero.Walk(fs, "diag", func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
+		assert.NotNil(t, info, "No FileInfo for %s", path)
+		if info != nil && !info.IsDir() {
 			_, ok := fileNames[path]
 			assert.True(t, ok, "unexpected file: %s", path)
 		}
@@ -293,7 +294,7 @@ func TestCollect_InstanceNotFound(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, NewDefaultOptions(), client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 
@@ -318,7 +319,7 @@ func TestCollect_FatalError(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, NewDefaultOptions(), client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 
@@ -347,7 +348,7 @@ func TestCollect_FatalNotFound(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, NewDefaultOptions(), client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 
@@ -371,7 +372,7 @@ func TestCollect_NonFatalError(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, NewDefaultOptions(), client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 
@@ -399,7 +400,7 @@ func TestCollect_NonFatalErrorWithDir(t *testing.T) {
 	k8cs.PrependReactor("list", "pods", reactor)
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, NewDefaultOptions(), client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 
@@ -431,7 +432,7 @@ func TestCollect_KudoNameSpaceNotFound(t *testing.T) {
 
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := &afero.MemMapFs{}
-	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, NewDefaultOptions(), client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 
@@ -446,7 +447,7 @@ func TestCollect_PrintFailure(t *testing.T) {
 	a := &afero.MemMapFs{}
 	fs := &failingFs{Fs: a, failOn: zkPod2File}
 
-	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, NewDefaultOptions(), client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 	assert.Error(t, err)
@@ -469,12 +470,14 @@ func TestCollect_PrintFailure(t *testing.T) {
 }
 
 func TestCollect_DiagDirExists(t *testing.T) {
+	DiagDir := "diag"
+
 	k8cs := kubefake.NewSimpleClientset()
 	kcs := fake.NewSimpleClientset()
 	client := kudo.NewClientFromK8s(kcs, k8cs)
 	fs := afero.NewMemMapFs()
 	_ = fs.Mkdir(DiagDir, 0700)
-	err := Collect(fs, fakeZkInstance, &Options{}, client, &env.Settings{
+	err := Collect(fs, fakeZkInstance, NewDefaultOptions(), client, &env.Settings{
 		Namespace: fakeNamespace,
 	})
 	assert.Error(t, err)
@@ -483,9 +486,10 @@ func TestCollect_DiagDirExists(t *testing.T) {
 
 func TestNewOptions(t *testing.T) {
 	tests := []struct {
-		desc     string
-		logSince time.Duration
-		exp      int64
+		desc      string
+		logSince  time.Duration
+		outputDir string
+		exp       int64
 	}{
 		{
 			desc:     "log-since provided and positive",
@@ -499,14 +503,23 @@ func TestNewOptions(t *testing.T) {
 		{
 			desc: "log-since not provided",
 		},
+		{
+			desc:      "output dir provided",
+			outputDir: "otherDir",
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.desc, func(t *testing.T) {
-			opts := NewOptions(tt.logSince)
+			opts := NewOptions(tt.logSince, tt.outputDir)
 			assert.True(t, (tt.exp > 0) == (opts.LogSince != nil))
 			if tt.exp > 0 {
 				assert.Equal(t, tt.exp, *opts.LogSince)
+			}
+			if tt.outputDir != "" {
+				assert.Equal(t, tt.outputDir, opts.outputDir)
+			} else {
+				assert.Equal(t, DefaultDiagDir, opts.outputDir)
 			}
 		})
 	}
