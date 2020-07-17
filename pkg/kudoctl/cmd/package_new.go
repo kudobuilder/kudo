@@ -62,6 +62,7 @@ func newPackageNewCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 func (pkg *packageNewCmd) validateOperatorArg(args []string) error {
 	if pkg.interactive {
+		// For interactive mode we use a default package name that can be adjusted with the prompt
 		if len(args) > 1 {
 			return errors.New("expecting at most one argument - name of the operator")
 		}
