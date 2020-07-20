@@ -44,10 +44,14 @@ func Package(
 
 	applyOverrides(&resources, instanceName, namespace, parameters)
 
-	if err := validateParameters(
-		*resources.Instance,
-		resources.OperatorVersion.Spec.Parameters); err != nil {
-		return err
+	if !options.SkipInstance {
+		// If skipInstance is specified, we do not need to validate the parameters - If we do, we prevent the
+		// installation of an operator version that has a parameter which is required but has no default.
+		if err := validateParameters(
+			*resources.Instance,
+			resources.OperatorVersion.Spec.Parameters); err != nil {
+			return err
+		}
 	}
 
 	if err := client.ValidateServerForOperator(resources.Operator); err != nil {
