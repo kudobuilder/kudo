@@ -115,7 +115,7 @@ func validateParameters(instance v1beta1.Instance, parameters []v1beta1.Paramete
 	missingParameters := []string{}
 
 	for _, p := range parameters {
-		if *p.Required && p.Default == nil {
+		if p.IsRequired() && !p.HasDefault() {
 			_, ok := instance.Spec.Parameters[p.Name]
 			if !ok {
 				missingParameters = append(missingParameters, p.Name)

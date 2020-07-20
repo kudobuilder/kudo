@@ -81,30 +81,35 @@ func Test_InstallPackage(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		client := fake.NewSimpleClientset()
-		kc := kudo.NewClientFromK8s(client, kubefake.NewSimpleClientset())
+		tt := tt
 
-		fakeDiscovery, ok := client.Discovery().(*fakediscovery.FakeDiscovery)
-		if !ok {
-			t.Fatalf("couldn't convert Discovery() to *FakeDiscovery")
-		}
-		fakeDiscovery.FakedServerVersion = &version.Info{
-			GitVersion: "v1.16.0",
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			client := fake.NewSimpleClientset()
+			kc := kudo.NewClientFromK8s(client, kubefake.NewSimpleClientset())
 
-		testResources := resources
-		testResources.OperatorVersion.Spec.Parameters = tt.parameters
+			fakeDiscovery, ok := client.Discovery().(*fakediscovery.FakeDiscovery)
+			if !ok {
+				t.Fatalf("couldn't convert Discovery() to *FakeDiscovery")
+			}
+			fakeDiscovery.FakedServerVersion = &version.Info{
+				GitVersion: "v1.16.0",
+			}
 
-		const namespace = "default"
+			testResources := resources
+			testResources.OperatorVersion.Spec.Parameters = tt.parameters
 
-		options := Options{
-			SkipInstance: tt.skipInstance,
-		}
+			const namespace = "default"
 
-		err := Package(kc, "", namespace, testResources, tt.installParameters, nil, options)
-		if tt.err != "" {
-			assert.EqualError(t, err, tt.err)
-		}
+			options := Options{
+				SkipInstance: tt.skipInstance,
+			}
+
+			err := Package(kc, "", namespace, testResources, tt.installParameters, nil, options)
+			if tt.err != "" {
+				assert.EqualError(t, err, tt.err)
+			}
+
+		})
 	}
 }
 

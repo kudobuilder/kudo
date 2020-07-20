@@ -424,6 +424,11 @@ func (in *Parameter) DeepCopyInto(out *Parameter) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.Immutable != nil {
+		in, out := &in.Immutable, &out.Immutable
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 

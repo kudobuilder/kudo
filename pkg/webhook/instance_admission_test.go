@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/thoas/go-funk"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
@@ -20,6 +21,8 @@ func TestValidateUpdate(t *testing.T) {
 	cleanup := v1beta1.CleanupPlanName
 	backup := "backup"
 	empty := ""
+
+	truePtr := true
 
 	testUUID := uuid.NewUUID()
 
@@ -49,9 +52,21 @@ func TestValidateUpdate(t *testing.T) {
 					Name:    "invalid",
 					Trigger: "missing",
 				},
+				{
+					Name:      "readonly",
+					Trigger:   "deploy",
+					Immutable: &truePtr,
+				},
+				{
+					Name:    "unnamed",
+					Trigger: deploy,
+				},
 			},
 		},
 	}
+
+	newOv := ov.DeepCopy()
+	newOv.Name = "foo-operator-2.0"
 
 	idle := &v1beta1.Instance{
 		TypeMeta: metav1.TypeMeta{
@@ -67,7 +82,8 @@ func TestValidateUpdate(t *testing.T) {
 				Name: "foo-operator",
 			},
 			Parameters: map[string]string{
-				"foo": "foo",
+				"foo":      "foo",
+				"readonly": "oldvalue",
 			},
 		},
 		Status: v1beta1.InstanceStatus{},
@@ -77,7 +93,7 @@ func TestValidateUpdate(t *testing.T) {
 	scheduled.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: deploy, UID: testUUID}
 
 	upgraded := idle.DeepCopy()
-	upgraded.Spec.OperatorVersion = v1.ObjectReference{Name: "foo-operator-2.0"}
+	upgraded.Spec.OperatorVersion = v1.ObjectReference{Name: newOv.Name}
 
 	deleted := scheduled.DeepCopy()
 	deleted.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)}
@@ -91,6 +107,7 @@ func TestValidateUpdate(t *testing.T) {
 		new     *v1beta1.Instance
 		old     *v1beta1.Instance
 		ov      *v1beta1.OperatorVersion
+		oldOv   *v1beta1.OperatorVersion
 		want    *string
 		wantErr bool
 	}{
@@ -206,10 +223,11 @@ func TestValidateUpdate(t *testing.T) {
 			old:  deleted,
 			new: func() *v1beta1.Instance {
 				i := deleted.DeepCopy()
-				i.Spec.OperatorVersion = v1.ObjectReference{Name: "foo-operator-2.0"}
+				i.Spec.OperatorVersion = v1.ObjectReference{Name: newOv.Name}
 				return i
 			}(),
-			ov:      ov,
+			oldOv:   ov,
+			ov:      newOv,
 			wantErr: true,
 		},
 		{
@@ -376,12 +394,169 @@ func TestValidateUpdate(t *testing.T) {
 			ov:      ov,
 			wantErr: true,
 		},
+		{
+			name: "parameter update to an immutable param IS NOT allowed",
+			old:  idle,
+			new: func() *v1beta1.Instance {
+				i := scheduled.DeepCopy()
+				i.Spec.Parameters = map[string]string{"readonly": "newFoo"}
+				return i
+			}(),
+			ov:      ov,
+			wantErr: true,
+		},
+		{
+			name: "ov upgrade with a new immutable param and no explicit value IS NOT allowed",
+			old:  idle,
+			new: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.OperatorVersion = v1.ObjectReference{Name: newOv.Name}
+				i.Spec.Parameters = map[string]string{}
+				return i
+			}(),
+			oldOv: ov,
+			ov: func() *v1beta1.OperatorVersion {
+				modOv := newOv.DeepCopy()
+				modOv.Spec.Parameters = append(modOv.Spec.Parameters, v1beta1.Parameter{
+					Name:      "newImmutable",
+					Trigger:   "deploy",
+					Immutable: &truePtr,
+				})
+				return modOv
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "ov upgrade with a new immutable param and explicit value IS allowed",
+			old:  idle,
+			new: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.OperatorVersion = v1.ObjectReference{Name: newOv.Name}
+				i.Spec.Parameters = map[string]string{"newImmutable": "someValue"}
+				return i
+			}(),
+			oldOv: ov,
+			ov: func() *v1beta1.OperatorVersion {
+				modOv := newOv.DeepCopy()
+				modOv.Spec.Parameters = append(modOv.Spec.Parameters, v1beta1.Parameter{
+					Name:      "newImmutable",
+					Trigger:   "deploy",
+					Immutable: &truePtr,
+				})
+				return modOv
+			}(),
+			want: &update,
+		},
+		{
+			name: "ov upgrade with a removed immutable param IS allowed",
+			old:  idle,
+			new: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.OperatorVersion = v1.ObjectReference{Name: newOv.Name}
+				i.Spec.Parameters = map[string]string{}
+				return i
+			}(),
+			oldOv: ov,
+			ov: func() *v1beta1.OperatorVersion {
+				modOv := newOv.DeepCopy()
+				modOv.Spec.Parameters, _ = funk.Filter(modOv.Spec.Parameters, func(p v1beta1.Parameter) bool { return p.Name != "readonly" }).([]v1beta1.Parameter)
+				return modOv
+			}(),
+			want: &update,
+		},
+		{
+			name: "ov upgrade where a param with a value is made immutable IS allowed",
+			old:  idle,
+			new: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.OperatorVersion = v1.ObjectReference{Name: newOv.Name}
+				i.Spec.Parameters = map[string]string{}
+				return i
+			}(),
+			oldOv: ov,
+			ov: func() *v1beta1.OperatorVersion {
+				modOv := newOv.DeepCopy()
+				for _, p := range modOv.Spec.Parameters {
+					if p.Name == "foo" {
+						p.Immutable = &truePtr
+					}
+				}
+				return modOv
+			}(),
+			want: &update,
+		},
+		{
+			name: "ov upgrade where a param without a value is made immutable IS NOT allowed",
+			old:  idle,
+			new: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.OperatorVersion = v1.ObjectReference{Name: newOv.Name}
+				i.Spec.Parameters = map[string]string{}
+				return i
+			}(),
+			oldOv: ov,
+			ov: func() *v1beta1.OperatorVersion {
+				modOv := newOv.DeepCopy()
+				for i, p := range modOv.Spec.Parameters {
+					if p.Name == "unnamed" {
+						modOv.Spec.Parameters[i].Immutable = &truePtr
+					}
+				}
+				return modOv
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "ov upgrade where a param without a value is made immutable IS allowed when the value is provided",
+			old:  idle,
+			new: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.OperatorVersion = v1.ObjectReference{Name: newOv.Name}
+				i.Spec.Parameters = map[string]string{"unnamed": "newValue"}
+				return i
+			}(),
+			oldOv: ov,
+			ov: func() *v1beta1.OperatorVersion {
+				modOv := newOv.DeepCopy()
+				for i, p := range modOv.Spec.Parameters {
+					if p.Name == "unnamed" {
+						modOv.Spec.Parameters[i].Immutable = &truePtr
+					}
+				}
+				return modOv
+			}(),
+			want: &update,
+		},
+		{
+			name: "ov upgrade where a param is made mutable IS allowed",
+			old:  idle,
+			new: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.OperatorVersion = v1.ObjectReference{Name: newOv.Name}
+				i.Spec.Parameters = map[string]string{}
+				return i
+			}(),
+			oldOv: ov,
+			ov: func() *v1beta1.OperatorVersion {
+				modOv := newOv.DeepCopy()
+				for i, p := range modOv.Spec.Parameters {
+					if p.Name == "readonly" {
+						modOv.Spec.Parameters[i].Immutable = nil
+					}
+				}
+				return modOv
+			}(),
+			want: &update,
+		},
 	}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := admitUpdate(tt.old, tt.new, tt.ov)
+			if tt.oldOv == nil {
+				tt.oldOv = tt.ov
+			}
+			got, err := admitUpdate(tt.old, tt.new, tt.ov, tt.oldOv)
 			assert.Equal(t, tt.wantErr, err != nil, "expected an error: %v but got: %v", tt.wantErr, err)
 			if err != nil {
 				log.Printf("err: %v", err)
