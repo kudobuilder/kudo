@@ -4,8 +4,6 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"io"
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -121,12 +119,7 @@ func untar(fs afero.Fs, path string, r io.Reader) (err error) {
 
 		// if it's a file create it
 		case tar.TypeReg:
-			buf, err := ioutil.ReadAll(tr)
-			if err != nil {
-				return err
-			}
-
-			if err := afero.WriteFile(fs, target, buf, os.FileMode(header.Mode)); err != nil {
+			if err := afero.WriteReader(fs, target, tr); err != nil {
 				return err
 			}
 		}
