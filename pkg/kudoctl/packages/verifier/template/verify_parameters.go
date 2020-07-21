@@ -81,7 +81,10 @@ func paramsDefinedNotUsed(pf *packages.Files) verifier.Result {
 	}
 	for _, value := range pf.Params.Parameters {
 		if _, ok := tparams[value.Name]; !ok {
-			res.AddParamWarning(value.Name, "defined but not used.")
+			// A parameter could be use to trigger a plan while not being used in templates.
+			if value.Trigger == "" {
+				res.AddParamWarning(value.Name, "defined but not used.")
+			}
 		}
 	}
 	return res

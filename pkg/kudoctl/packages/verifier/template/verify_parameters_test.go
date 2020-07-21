@@ -17,6 +17,7 @@ func TestTemplateParametersVerifier(t *testing.T) {
 		{Name: "UsedViaRoot"},
 		{Name: "BROKER_COUNT"},
 		{Name: "EXTERNAL_NODE_PORT"},
+		{Name: "TRIGGER_ONLY", Trigger: "foo"},
 	}
 	paramFile := packages.ParamsFile{Parameters: params}
 	templates := make(map[string]string)
