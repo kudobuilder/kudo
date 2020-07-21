@@ -209,6 +209,11 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov, oldOv *kudov1beta1.Operator
 	isDeleting := new.IsDeleting() // a non-empty meta.deletionTimestamp is a signal to switch to the uninstalling life-cycle phase
 	isPlanTerminal := new.Spec.PlanExecution.Status.IsTerminal()
 
+	// validate plan first
+	if newPlan != "" && kudov1beta1.SelectPlan([]string{newPlan}, ov) == nil {
+		return nil, fmt.Errorf("plan %s does not exist", newPlan)
+	}
+
 	changedDefs, removedDefs, err := changedParameters(old.Spec.Parameters, new.Spec.Parameters, ov)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update Instance %s/%s: %v", old.Namespace, old.Name, err)

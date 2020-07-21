@@ -548,6 +548,19 @@ func TestValidateUpdate(t *testing.T) {
 			}(),
 			want: &update,
 		},
+		{
+			name: "plan does not exist",
+			old:  idle,
+			new: func() *v1beta1.Instance {
+				i := idle.DeepCopy()
+				i.Spec.PlanExecution = v1beta1.PlanExecution{PlanName: "nonexistingplan"}
+				return i
+			}(),
+			oldOv:   ov,
+			ov:      ov,
+			want:    nil,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
