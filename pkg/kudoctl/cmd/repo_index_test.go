@@ -70,6 +70,8 @@ func TestRepoIndexCmd_IndexCreation(t *testing.T) {
 
 	if *updateGolden {
 		t.Log("update golden file")
+
+		//nolint:gosec
 		if err := ioutil.WriteFile(gp, indexOut, 0644); err != nil {
 			t.Fatalf("failed to update golden file: %s", err)
 		}
@@ -101,6 +103,8 @@ func TestRepoIndexCmd_MergeIndex(t *testing.T) {
 
 	if *updateGolden {
 		t.Log("update golden file")
+
+		//nolint:gosec
 		if err := ioutil.WriteFile(gp, resultBuf.Bytes(), 0644); err != nil {
 			t.Fatalf("failed to update golden file: %s", err)
 		}

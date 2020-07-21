@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubefake "k8s.io/client-go/kubernetes/fake"
@@ -32,7 +32,8 @@ func TestKudoClientValidate(t *testing.T) {
 
 	for _, tt := range tests {
 		_, err := NewClient("testdata/test-config", 0, true)
-		assert.ErrorContains(t, err, tt.err)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), tt.err)
 	}
 }
 
@@ -307,7 +308,7 @@ func TestKudoClient_InstallOperatorObjToCluster(t *testing.T) {
 			Operators(tt.createns).
 			Get(context.TODO(), tt.name, metav1.GetOptions{})
 		if tt.err != "" {
-			assert.ErrorContains(t, err, tt.err, "failure in %v test case", i+1)
+			assert.EqualError(t, err, tt.err, "failure in %v test case", i+1)
 		}
 	}
 }
@@ -353,7 +354,7 @@ func TestKudoClient_InstallOperatorVersionObjToCluster(t *testing.T) {
 			OperatorVersions(tt.createns).
 			Get(context.TODO(), tt.name, metav1.GetOptions{})
 		if tt.err != "" {
-			assert.ErrorContains(t, err, tt.err, "failure in %v test case", i+1)
+			assert.EqualError(t, err, tt.err, "failure in %v test case", i+1)
 		}
 	}
 }
@@ -399,7 +400,7 @@ func TestKudoClient_InstallInstanceObjToCluster(t *testing.T) {
 			Instances(tt.createns).
 			Get(context.TODO(), tt.name, metav1.GetOptions{})
 		if tt.err != "" {
-			assert.ErrorContains(t, err, tt.err, "failure in %v test case", i+1)
+			assert.EqualError(t, err, tt.err, "failure in %v test case", i+1)
 		}
 	}
 }
@@ -588,7 +589,7 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 		// triggered plan
 		if tt.triggeredPlan != nil && err != nil {
 			assert.Equal(t, *tt.triggeredPlan, instance.Spec.PlanExecution.PlanName)
-			assert.Check(t, instance.Spec.PlanExecution.UID != "")
+			assert.NotEmpty(t, instance.Spec.PlanExecution.UID)
 
 		}
 	}
@@ -698,7 +699,7 @@ metadata:
 					CoreV1().
 					Namespaces().
 					Get(context.TODO(), test.namespace, metav1.GetOptions{})
-				assert.NilError(t, err)
+				assert.NoError(t, err)
 
 				assert.Equal(t, namespace.Annotations["created-by"], "kudo-cli")
 			}

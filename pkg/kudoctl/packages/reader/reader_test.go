@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/spf13/afero"
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/yaml"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -42,7 +42,7 @@ func TestReadFileSystemPackage(t *testing.T) {
 				pkg, err = ReadDir(fs, tt.path)
 			}
 
-			assert.NilError(t, err, "unexpected error while reading the package")
+			assert.NoError(t, err, "unexpected error while reading the package")
 			actual := pkg.Resources
 
 			actual.Instance.ObjectMeta.Name = tt.instanceName
@@ -60,7 +60,7 @@ func TestReadFileSystemPackage(t *testing.T) {
 				return golden.OperatorVersion.Spec.Parameters[i].Name < golden.OperatorVersion.Spec.Parameters[j].Name
 			})
 
-			assert.DeepEqual(t, golden, actual)
+			assert.Equal(t, golden, actual)
 		})
 	}
 }
@@ -150,7 +150,7 @@ parameters:
 			got, err := readParametersFile([]byte(tt.paramsYaml))
 			fmt.Printf("%s got: %v\n", tt.name, got)
 			assert.Equal(t, tt.wantErr, err != nil, "readParametersFile() error = %v, wantErr %v", err, tt.wantErr)
-			assert.DeepEqual(t, tt.want, got)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

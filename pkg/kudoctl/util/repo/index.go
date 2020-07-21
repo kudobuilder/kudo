@@ -8,7 +8,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
 

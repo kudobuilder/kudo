@@ -236,7 +236,7 @@ func (k *KudoWebHook) detectCertManagerVersion(client *kube.Client, result *veri
 		}
 	}
 
-	result.AddErrors(fmt.Sprintf("failed to detect any valid cert-manager CRDs. Make sure cert-manager is installed."))
+	result.AddErrors("failed to detect any valid cert-manager CRDs. Make sure cert-manager is installed.")
 	return nil
 }
 
@@ -292,10 +292,10 @@ func (k *KudoWebHook) validateCertManagerInstallation(client *kube.Client, resul
 	}
 	switch cnt := len(deployments.Items); {
 	case cnt == 0:
-		result.AddWarnings(fmt.Sprintf("unable to find cert-manager deployment. Make sure cert-manager is running."))
+		result.AddWarnings("unable to find cert-manager deployment. Make sure cert-manager is running.")
 		return nil
 	case cnt > 1:
-		result.AddWarnings(fmt.Sprintf("more than 1 cert-manager deployment found."))
+		result.AddWarnings("more than 1 cert-manager deployment found.")
 	}
 
 	// for some reason the list of objects (which are []Deployment) are stripped of their kind and apiversions (causing issues with unstructuring in the isHealth func)

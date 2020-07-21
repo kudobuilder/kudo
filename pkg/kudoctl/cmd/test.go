@@ -9,12 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-
 	harness "github.com/kudobuilder/kuttl/pkg/apis/testharness/v1beta1"
 	"github.com/kudobuilder/kuttl/pkg/test"
 	testutils "github.com/kudobuilder/kuttl/pkg/test/utils"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (

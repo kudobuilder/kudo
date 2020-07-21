@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
@@ -185,17 +186,14 @@ func untarFile(fs afero.Fs, r io.Reader, fileName string) error {
 		switch header.Typeflag {
 		// if it's a file create it
 		case tar.TypeReg:
-			f, err := fs.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			buf, err := ioutil.ReadAll(tr)
 			if err != nil {
 				return err
 			}
-			defer f.Close() //nolint:errcheck
 
-			// copy over contents
-			if _, err := io.Copy(f, tr); err != nil {
+			if err := afero.WriteFile(fs, target, buf, os.FileMode(header.Mode)); err != nil {
 				return err
 			}
-
 		default:
 			log.Printf("skipping %s because it is not a regular file or a directory", header.Name)
 		}

@@ -30,6 +30,8 @@ func TestAddTask(t *testing.T) {
 
 	if *updateGolden {
 		t.Logf("updating golden file %s", goldenFile)
+
+		//nolint:gosec
 		if err := ioutil.WriteFile(gp, operator, 0644); err != nil {
 			t.Fatalf("failed to update golden file: %s", err)
 		}

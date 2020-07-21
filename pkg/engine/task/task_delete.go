@@ -1,9 +1,9 @@
 package task
 
 import (
+	"context"
 	"fmt"
 
-	"golang.org/x/net/context"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
