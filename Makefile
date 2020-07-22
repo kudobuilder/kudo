@@ -137,7 +137,7 @@ cli-install:
 
 .PHONY: clean
 # Clean all
-clean:  cli-clean test-clean manager-clean deploy-clean
+clean:  cli-clean test-clean manager-clean
 
 .PHONY: docker-build
 # Build the docker image for each supported platform
