@@ -3,6 +3,7 @@ package renderer
 import (
 	"testing"
 
+	"github.com/kudobuilder/kuttl/pkg/test/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/thoas/go-funk"
 	appsv1 "k8s.io/api/apps/v1"
@@ -16,8 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/kubectl/pkg/scheme"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"github.com/kudobuilder/kuttl/pkg/test/utils"
 
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/test/fake"

@@ -3,7 +3,7 @@ package install
 import (
 	"testing"
 
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestValidate(t *testing.T) {
@@ -20,7 +20,7 @@ func TestValidate(t *testing.T) {
 	for _, tt := range tests {
 		err := validate(tt.arg)
 		if tt.err != "" {
-			assert.ErrorContains(t, err, tt.err)
+			assert.EqualError(t, err, tt.err)
 		}
 	}
 }

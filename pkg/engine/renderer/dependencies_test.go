@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/apps/v1"
 	"k8s.io/api/batch/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -55,10 +55,10 @@ func TestGetResources(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			dc := newDependencyCalculator(tt.client, tt.taskObjects)
 			obj, err := dc.resourceDependency(resourceDependency{gvk: typeConfigMap, name: "configmap", namespace: "namespace"})
-			assert.NilError(t, err, "resourceDependency return error")
+			assert.NoError(t, err, "resourceDependency return error")
 			cmResult := &corev1.ConfigMap{}
 			_ = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), cmResult)
-			assert.DeepEqual(t, cm.Data, cmResult.Data)
+			assert.Equal(t, cm.Data, cmResult.Data)
 		})
 	}
 }
@@ -94,23 +94,23 @@ func TestSetDependenciesHash(t *testing.T) {
 		{name: "statefulset", obj: statefulSet("somename", "namespace"), assert: func(us *unstructured.Unstructured) {
 			sts := &v1.StatefulSet{}
 			err := runtime.DefaultUnstructuredConverter.FromUnstructured(us.UnstructuredContent(), &sts)
-			assert.NilError(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, "fancyHash", sts.Spec.Template.Annotations[kudo.DependenciesHashAnnotation])
 		}},
 		{name: "cronjob", obj: cronjob("somename", "namespace"), assert: func(us *unstructured.Unstructured) {
 			c := &v1beta1.CronJob{}
 			err := runtime.DefaultUnstructuredConverter.FromUnstructured(us.UnstructuredContent(), &c)
-			assert.NilError(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, "fancyHash", c.Spec.JobTemplate.Spec.Template.Annotations[kudo.DependenciesHashAnnotation])
 		}},
 		{name: "no change in pod", obj: pod("somename", "namespace"), assert: func(us *unstructured.Unstructured) {
 			p := &corev1.Pod{}
 			err := runtime.DefaultUnstructuredConverter.FromUnstructured(us.UnstructuredContent(), &p)
-			assert.NilError(t, err)
-			assert.DeepEqual(t, pod("somename", "namespace"), p)
+			assert.NoError(t, err)
+			assert.Equal(t, pod("somename", "namespace"), p)
 		}},
 		{name: "no change in unstructured CRD", obj: unstructuredCrd("crd", "namespace"), assert: func(us *unstructured.Unstructured) {
-			assert.DeepEqual(t, unstructuredCrd("crd", "namespace"), us)
+			assert.Equal(t, unstructuredCrd("crd", "namespace"), us)
 		}},
 	}
 	for _, tt := range tests {
@@ -120,7 +120,7 @@ func TestSetDependenciesHash(t *testing.T) {
 			cmUnstructured := &unstructured.Unstructured{Object: cmUnstructuredData}
 
 			err := setTemplateHash(cmUnstructured, "fancyHash")
-			assert.NilError(t, err)
+			assert.NoError(t, err)
 
 			tt.assert(cmUnstructured)
 		})
@@ -174,10 +174,9 @@ func TestCalculateDependencies(t *testing.T) {
 		cmUnstructured := &unstructured.Unstructured{Object: cmUnstructuredData}
 
 		deps, err := calculateResourceDependencies(cmUnstructured)
-		assert.NilError(t, err)
+		assert.NoError(t, err)
 
 		assert.Equal(t, len(test.expected), len(deps))
-		assert.DeepEqual(t, test.expected, deps, cmp.AllowUnexported(resourceDependency{}))
+		assert.Equal(t, test.expected, deps, cmp.AllowUnexported(resourceDependency{}))
 	}
-
 }

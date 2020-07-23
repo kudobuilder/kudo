@@ -167,6 +167,11 @@ func DownloadFile(fs afero.Fs, file string, pod *v1.Pod, ctrName string, restCfg
 func untarFile(fs afero.Fs, r io.Reader, fileName string) error {
 	tr := tar.NewReader(r)
 
+	// Don't untar more than 4GiB to mitigate uncompression bombs.
+	const writtenLimit int64 = 4294967000
+
+	var written int64
+
 	for {
 		header, err := tr.Next()
 		if err != nil {
@@ -185,15 +190,14 @@ func untarFile(fs afero.Fs, r io.Reader, fileName string) error {
 		switch header.Typeflag {
 		// if it's a file create it
 		case tar.TypeReg:
-			f, err := fs.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			w, err := copyFile(tr, fs, target, os.FileMode(header.Mode))
 			if err != nil {
 				return err
 			}
-			defer f.Close() //nolint:errcheck
 
-			// copy over contents
-			if _, err := io.Copy(f, tr); err != nil {
-				return err
+			written = written + w
+			if written > writtenLimit {
+				return errors.New("untar aborted because archive exceeds 4GiB")
 			}
 
 		default:
@@ -202,6 +206,23 @@ func untarFile(fs afero.Fs, r io.Reader, fileName string) error {
 	}
 
 	return nil
+}
+
+func copyFile(reader io.Reader, fs afero.Fs, target string, fileMode os.FileMode) (written int64, err error) {
+	f, err := fs.OpenFile(target, os.O_CREATE|os.O_WRONLY, fileMode)
+	if err != nil {
+		return 0, err
+	}
+
+	defer func() {
+		if ferr := f.Close(); ferr != nil {
+			err = ferr
+		}
+	}()
+
+	written, err = io.Copy(f, reader)
+
+	return written, err
 }
 
 // HasCommandFailed returns true if PodExec command returned an exit code > 0

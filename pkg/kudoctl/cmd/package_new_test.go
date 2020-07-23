@@ -34,10 +34,15 @@ func TestPackageNew(t *testing.T) {
 
 	if *updateGolden {
 		t.Logf("updating golden file %s", gOperatorFile)
+
+		//nolint:gosec
 		if err := ioutil.WriteFile(gOperatorFile, operator, 0644); err != nil {
 			t.Fatalf("failed to update golden file: %s", err)
 		}
+
 		t.Logf("updating golden file %s", gParamFile)
+
+		//nolint:gosec
 		if err := ioutil.WriteFile(gParamFile, param, 0644); err != nil {
 			t.Fatalf("failed to update golden file: %s", err)
 		}

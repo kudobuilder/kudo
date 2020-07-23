@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 )
 
 // Info contains versioning information.
@@ -70,7 +70,7 @@ func (v *Version) CompareMajorMinor(o *Version) int {
 }
 
 // compares v1 against v2 resulting in -1, 0, 1 for less than, equal, greater than
-func compareSegment(v1, v2 int64) int {
+func compareSegment(v1, v2 uint64) int {
 	if v1 < v2 {
 		return -1
 	}

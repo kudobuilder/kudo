@@ -3,6 +3,7 @@ package task
 import (
 	"testing"
 
+	"github.com/kudobuilder/kuttl/pkg/test/utils"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,7 +16,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
-	"github.com/kudobuilder/kuttl/pkg/test/utils"
 )
 
 func Test_applyInstance(t *testing.T) {

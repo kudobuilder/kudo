@@ -35,6 +35,8 @@ func TestAddParameter(t *testing.T) {
 
 	if *updateGolden {
 		t.Logf("updating golden file %s", goldenFile)
+
+		//nolint:gosec
 		if err := ioutil.WriteFile(gp, params, 0644); err != nil {
 			t.Fatalf("failed to update golden file: %s", err)
 		}

@@ -3,8 +3,7 @@ package get
 import (
 	"testing"
 
-	tassert "github.com/stretchr/testify/assert"
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubefake "k8s.io/client-go/kubernetes/fake"
@@ -28,7 +27,7 @@ func TestValidate(t *testing.T) {
 
 	for _, tt := range tests {
 		err := validate(tt.arg)
-		assert.ErrorContains(t, err, tt.err)
+		assert.EqualError(t, err, tt.err)
 	}
 }
 
@@ -66,7 +65,7 @@ func TestGetInstances(t *testing.T) {
 			t.Fatal(err)
 		}
 		instanceList, err := getInstances(kc, env.DefaultSettings)
-		assert.NilError(t, err)
-		tassert.EqualValues(t, tt.instances, instanceList, "missing instances")
+		assert.NoError(t, err)
+		assert.EqualValues(t, tt.instances, instanceList, "missing instances")
 	}
 }
