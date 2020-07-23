@@ -2,6 +2,9 @@ package task
 
 import (
 	"fmt"
+	"log"
+
+	"github.com/kudobuilder/kudo/pkg/engine/health"
 
 	"golang.org/x/net/context"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -52,6 +55,11 @@ func (dt DeleteTask) Run(ctx Context) (bool, error) {
 	}
 
 	// 6. - Check health: always true for Delete task -
+	err = health.IsDeleted(ctx.Client, ctx.Discovery, objs)
+	if err != nil {
+		log.Printf("TaskExecution: %v", err)
+		return false, nil
+	}
 	return true, nil
 }
 

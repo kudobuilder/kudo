@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -586,5 +588,61 @@ func Test_ensurePlanStatusInitialized(t *testing.T) {
 			s, _ := json.MarshalIndent(tt.i, "", "  ")
 			fmt.Println(string(s))
 		})
+	}
+}
+
+func Test_retryReconciliation(t *testing.T) {
+	instance := &v1beta1.Instance{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "kudo.dev/v1beta1", Kind: "Instance"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "test"},
+		Spec: v1beta1.InstanceSpec{
+			PlanExecution: v1beta1.PlanExecution{
+				Status: v1beta1.ExecutionComplete,
+			},
+		},
+		Status: v1beta1.InstanceStatus{},
+	}
+	timeNow := time.Now()
+	deployPlanName := "deploy"
+
+	tests := []struct {
+		name string
+		i    *v1beta1.Instance
+		want reconcile.Result
+	}{
+		{"finished plan", instance, reconcile.Result{}},
+		{"just started plan", func() *v1beta1.Instance {
+			i := instance.DeepCopy()
+			i.Spec.PlanExecution.Status = v1beta1.ExecutionInProgress
+			i.Spec.PlanExecution.PlanName = deployPlanName
+			i.Status.PlanStatus = map[string]v1beta1.PlanStatus{
+				deployPlanName: {LastUpdatedTimestamp: &metav1.Time{Time: timeNow}},
+			}
+			return i
+		}(), reconcile.Result{Requeue: true, RequeueAfter: 1 * time.Second}},
+		{"2 minutes old update", func() *v1beta1.Instance {
+			i := instance.DeepCopy()
+			i.Spec.PlanExecution.Status = v1beta1.ExecutionInProgress
+			i.Spec.PlanExecution.PlanName = deployPlanName
+			i.Status.PlanStatus = map[string]v1beta1.PlanStatus{
+				deployPlanName: {LastUpdatedTimestamp: &metav1.Time{Time: timeNow.Add(-2 * time.Minute)}},
+			}
+			return i
+		}(), reconcile.Result{Requeue: true, RequeueAfter: 3 * time.Second}},
+		{"long stalled plan", func() *v1beta1.Instance {
+			i := instance.DeepCopy()
+			i.Spec.PlanExecution.Status = v1beta1.ExecutionInProgress
+			i.Spec.PlanExecution.PlanName = deployPlanName
+			i.Status.PlanStatus = map[string]v1beta1.PlanStatus{
+				deployPlanName: {LastUpdatedTimestamp: &metav1.Time{Time: timeNow.Add(-2 * time.Hour)}},
+			}
+			return i
+		}(), reconcile.Result{Requeue: true, RequeueAfter: 60 * time.Second}},
+	}
+	for _, tt := range tests {
+		result := computeTheReconcileResult(tt.i, func() time.Time { return timeNow })
+		if result != tt.want {
+			t.Errorf("%s: expected %v but got %v", tt.name, tt.want, result)
+		}
 	}
 }

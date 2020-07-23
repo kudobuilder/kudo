@@ -126,15 +126,19 @@ func (s *PhaseStatus) SetWithMessage(status ExecutionStatus, message string) {
 }
 
 func (s *PlanStatus) Set(status ExecutionStatus) {
-	s.LastUpdatedTimestamp = &metav1.Time{Time: time.Now()}
-	s.Status = status
-	s.Message = ""
+	if s.Status != status {
+		s.LastUpdatedTimestamp = &metav1.Time{Time: time.Now()}
+		s.Status = status
+		s.Message = ""
+	}
 }
 
 func (s *PlanStatus) SetWithMessage(status ExecutionStatus, message string) {
-	s.LastUpdatedTimestamp = &metav1.Time{Time: time.Now()}
-	s.Status = status
-	s.Message = message
+	if s.Status != status || s.Message != message {
+		s.LastUpdatedTimestamp = &metav1.Time{Time: time.Now()}
+		s.Status = status
+		s.Message = message
+	}
 }
 
 // ExecutionStatus captures the state of the rollout.

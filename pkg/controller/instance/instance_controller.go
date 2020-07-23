@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"reflect"
 	"time"
 
@@ -255,7 +256,25 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		r.Recorder.Event(instance, "Normal", "PlanFinished", fmt.Sprintf("Execution of plan %s finished with status %s", newStatus.Name, newStatus.Status))
 	}
 
-	return reconcile.Result{}, nil
+	return computeTheReconcileResult(instance, time.Now), nil
+}
+
+// computeTheReconcileResult decides whether retry reconciliation or not
+// if plan was finished, reconciliation is not retried
+// for others it uses LastUpdatedTimestamp of a current plan
+// for plan updated less than a minute ago, the backoff would be a second, then it increases linearly for every additional minute of plan runtime
+// maximum backoff is one minute
+//
+// all this is necessary because we have a health check for deletion (waiting for deleted object disappear from client cache)
+// and we cannot setup watches to all types users can create within KUDO (because we don't know ALL the types)
+// a pragmatic solution that prevents stalling is periodically schedule reconciliation for unfinished plan with a backoff
+func computeTheReconcileResult(instance *kudov1beta1.Instance, timeNow func() time.Time) reconcile.Result {
+	if instance.Spec.PlanExecution.Status.IsTerminal() {
+		return reconcile.Result{}
+	}
+	lastUpdatedTime := instance.Status.PlanStatus[instance.Spec.PlanExecution.PlanName].LastUpdatedTimestamp.Time
+	secondsBackoffCount := int(math.Min(59, timeNow().Sub(lastUpdatedTime).Minutes())) + 1
+	return reconcile.Result{Requeue: true, RequeueAfter: time.Duration(secondsBackoffCount) * time.Second}
 }
 
 func (r *Reconciler) resolveDependencies(i *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion) error {
