@@ -6,10 +6,11 @@ require (
 	github.com/Masterminds/goutils v1.1.0 // indirect
 	github.com/Masterminds/semver/v3 v3.1.0
 	github.com/Masterminds/sprig v2.22.0+incompatible
-	github.com/go-bindata/go-bindata v3.1.2+incompatible
+	github.com/go-bindata/go-bindata/v3 v3.1.3
 	github.com/google/go-cmp v0.5.1
 	github.com/gosuri/uitable v0.0.4
 	github.com/huandu/xstrings v1.3.1 // indirect
+	github.com/kisielk/errcheck v1.4.0 // indirect
 	github.com/kudobuilder/kuttl v0.5.1
 	github.com/manifoldco/promptui v0.7.0
 	github.com/mitchellh/copystructure v1.0.0 // indirect
@@ -22,7 +23,9 @@ require (
 	github.com/thoas/go-funk v0.7.0
 	github.com/xlab/treeprint v1.0.0
 	github.com/yourbasic/graph v0.0.0-20170921192928-40eb135c0b26
+	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
+	golang.org/x/tools v0.0.0-20200723000907-a7c6fd066f6d // indirect
 	google.golang.org/genproto v0.0.0-20200117163144-32f20d992d24 // indirect
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.18.6
