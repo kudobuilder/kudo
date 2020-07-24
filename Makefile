@@ -96,10 +96,6 @@ run:
 deploy:
 	go run -ldflags "${LDFLAGS}" ./cmd/kubectl-kudo init
 
-.PHONY: deploy-clean
-deploy-clean:
-	go run ./cmd/kubectl-kudo  init --dry-run --output yaml | kubectl delete -f -
-
 .PHONY: generate
 # Generate code
 generate:
@@ -137,7 +133,7 @@ cli-install:
 
 .PHONY: clean
 # Clean all
-clean:  cli-clean test-clean manager-clean deploy-clean
+clean:  cli-clean test-clean manager-clean
 
 .PHONY: docker-build
 # Build the docker image for each supported platform
