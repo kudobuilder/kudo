@@ -1,0 +1,6 @@
+apiVersion: kudo.dev/v1beta1
+kind: ConfigMap
+metadata:
+  name: test-configmap
+data:
+  foo: bar

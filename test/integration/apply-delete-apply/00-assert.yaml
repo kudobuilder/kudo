@@ -1,0 +1,11 @@
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
+  name: configmap-instance
+spec:
+  operatorVersion:
+    name: configmap-operator-0.1.0
+status:
+  planStatus:
+    deploy:
+      status: COMPLETE
