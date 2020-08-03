@@ -1,0 +1,42 @@
+apiVersion: kudo.dev/v1beta1
+name: "configmap-operator"
+operatorVersion: "0.1.0"
+appVersion: "1.7.9"
+kubernetesVersion: 1.13.0
+maintainers:
+  - name: Your name
+    email: <your@email.com>
+url: https://kudo.dev
+tasks:
+  - name: apply
+    kind: Apply
+    spec:
+      resources:
+        - configmap.yaml
+  - name: delete
+    kind: Delete
+    spec:
+      resources:
+        - configmap.yaml
+plans:
+  deploy:
+    strategy: serial
+    phases:
+      - name: main
+        strategy: serial
+        steps:
+          - name: apply
+            tasks:
+              - apply
+      - name: delete
+        strategy: serial
+        steps:
+          - name: delete
+            tasks:
+              - delete
+      - name: apply
+        strategy: serial
+        steps:
+          - name: apply
+            tasks:
+              - apply
