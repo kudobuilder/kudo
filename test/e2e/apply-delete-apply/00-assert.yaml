@@ -9,3 +9,10 @@ status:
   planStatus:
     deploy:
       status: COMPLETE
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-configmap
+data:
+  foo: bar
