@@ -72,6 +72,9 @@ workflows:
   e2e-test:
     jobs:
       - e2e-test
+  upgrade-test:
+    jobs:
+      - upgrade-test
   operator-test:
     jobs:
       - operator-test
