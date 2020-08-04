@@ -194,6 +194,17 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 							Ports: []corev1.ContainerPort{
 								// name matters for service
 								{ContainerPort: 443, Name: "webhook-server", Protocol: "TCP"},
+								{ContainerPort: 8888, Name: "health-endpoint", Protocol: "TCP"},
+							},
+							ReadinessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Scheme: corev1.URISchemeHTTP,
+										// this port is defined via HealthProbeBindAddress when starting manager
+										Port: intstr.FromInt(8888),
+										Path: "readyz",
+									},
+								},
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{

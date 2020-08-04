@@ -16,6 +16,7 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -83,11 +84,31 @@ func main() {
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		CertDir:    getEnv("KUDO_CERT_DIR", filepath.Join("/tmp", "cert")),
-		SyncPeriod: syncPeriod,
+		CertDir:                getEnv("KUDO_CERT_DIR", filepath.Join("/tmp", "cert")),
+		SyncPeriod:             syncPeriod,
+		HealthProbeBindAddress: ":8888",
 	})
 	if err != nil {
 		log.Printf("Unable to start manager: %v", err)
+		os.Exit(1)
+	}
+
+	// create a readiness check that will mark manager as ready when webhook started
+	// for this we use Elected() - channel for elected is closed as a last step in mgr.Start method
+	// at that point in time, we know that all runnables (including webhook server) were already started
+	started := false
+	go func() {
+		<-mgr.Elected()
+		started = true
+	}()
+	err = mgr.AddReadyzCheck("ready", func(_ *http.Request) error {
+		if started {
+			return nil
+		}
+		return errors.New("Manager not yet started")
+	})
+	if err != nil {
+		log.Printf("Unable to add readiness check: %v", err)
 		os.Exit(1)
 	}
 
