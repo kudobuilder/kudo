@@ -597,6 +597,9 @@ spec:
         - containerPort: 443
           name: webhook-server
           protocol: TCP
+        readinessProbe:
+          tcpSocket:
+            port: 443
         resources:
           requests:
             cpu: 100m

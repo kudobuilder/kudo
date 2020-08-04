@@ -32,6 +32,8 @@ type Initializer struct {
 	deployment *appsv1.StatefulSet
 }
 
+const Name = "manager"
+
 // NewInitializer returns the setup management object
 func NewInitializer(options kudoinit.Options) Initializer {
 	return Initializer{
@@ -190,12 +192,14 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 							},
 							Image:           image,
 							ImagePullPolicy: imagePullPolicy,
-							Name:            "manager",
+							Name:            Name,
 							Ports: []corev1.ContainerPort{
 								// name matters for service
 								{ContainerPort: 443, Name: "webhook-server", Protocol: "TCP"},
 							},
-							StartupProbe: &corev1.Probe{
+							// Prefer for StartupProbe, however that requires 1.16
+							// ReadinessProbe defaults: failureThreshold: 3, periodSeconds: 10, successThreshold: 1, timeoutSeconds: 1
+							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									TCPSocket: &corev1.TCPSocketAction{
 										Port: intstr.FromInt(443),

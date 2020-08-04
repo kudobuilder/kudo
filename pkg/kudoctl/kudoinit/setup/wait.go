@@ -24,30 +24,42 @@ import (
 // Returns true if it exists. If the timeout was reached and it could not find the pod, it returns false.
 func WatchKUDOUntilReady(client kubernetes.Interface, opts kudoinit.Options, timeout int64) error {
 	return wait.PollImmediate(500*time.Millisecond, time.Duration(timeout)*time.Second,
-		func() (bool, error) { return verifyKudoDeployment(client.CoreV1(), opts.Namespace, opts.Image) })
+		func() (bool, error) { return verifyKudoDeployment(client.CoreV1(), opts.Namespace) })
 }
 
-func verifyKudoDeployment(client corev1.PodsGetter, namespace, expectedImage string) (bool, error) {
-	image, err := getKUDOPodImage(client, namespace)
-	if err == nil && image == expectedImage {
+func verifyKudoDeployment(client corev1.PodsGetter, namespace string) (bool, error) {
+	ready, err := isKUDOPodReady(client, namespace)
+	if err == nil && ready {
 		return true, nil
 	}
 	return false, nil
 }
 
-// getKUDOPodImage fetches the image of KUDO pod running in the given namespace.
-func getKUDOPodImage(client corev1.PodsGetter, namespace string) (string, error) {
+// isKUDOPodReady fetches the KUDO pod running in the given namespace and returns true if Ready Condition has a status of true
+func isKUDOPodReady(client corev1.PodsGetter, namespace string) (bool, error) {
 	selector := manager.GenerateLabels().AsSelector()
 	pod, err := getFirstRunningPod(client, namespace, selector)
 	if err != nil {
-		return "", err
+		return false, err
 	}
-	for _, c := range pod.Spec.Containers {
-		if c.Name == "manager" {
-			return c.Image, nil
+
+	s, err := managerContainerStatus(pod)
+	if err != nil {
+		return false, err
+	}
+
+	// status.containerStatues[.name == manager].ready == true
+	return s.Ready, nil
+}
+
+// managerContainerStatus returns containerstatus for manager container or error if no manager or status discovered
+func managerContainerStatus(pod *v1.Pod) (*v1.ContainerStatus, error) {
+	for _, s := range pod.Status.ContainerStatuses {
+		if s.Name == manager.Name {
+			return &s, nil
 		}
 	}
-	return "", errors.New("could not find a KUDO pod")
+	return nil, errors.New("could not find a KUDO pod")
 }
 
 func getFirstRunningPod(client corev1.PodsGetter, namespace string, selector labels.Selector) (*v1.Pod, error) { //nolint:interfacer
