@@ -195,6 +195,13 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 								// name matters for service
 								{ContainerPort: 443, Name: "webhook-server", Protocol: "TCP"},
 							},
+							StartupProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									TCPSocket: &corev1.TCPSocketAction{
+										Port: intstr.FromInt(443),
+									},
+								},
+							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu":    resource.MustParse("100m"),
