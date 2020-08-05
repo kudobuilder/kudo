@@ -26,7 +26,7 @@ Transient parameters allow a specific use-case that is basically one-time-use. E
 - Evict a specific pod from a stateful set
 - Start a repair plan for a specific node or datacenter
 
-All these examples have in common that they require input parameters. The parameters are required, and the user should be forced to set them. If we do not have transient parameters, it might happen that a parameters are still set from a previous invocation and the user forgets to set it. Additionally, using permanent parameters for these use cases would clutter the instance parameter store with values that are not required to be saved.
+All these examples have in common that they require input parameters. The parameters are required, and the user should be forced to set them. If we do not have transient parameters, it might happen that a parameters are still set from a previous invocation and the user forgets to set it. Additionally, using persistent parameters for these use cases would clutter the instance parameter store with values that are not required to be saved.
 
 When parameters are transient, they should be set to their default value after plan execution, and KUDO can error out if a required parameter is not set. 
 
@@ -39,7 +39,9 @@ Make it possible to have transient parameters that are only available withing a 
 - Set parameters to specific values (except for a default)
 - Set or change parameters at other moments than at the end of a plan
 
-## Persistent vs. Transient parameters
+## Proposals
+
+#### Persistent vs. Transient parameters
 
 Add an attribute `persistent` to parameter specifications in `params.yaml`:
 
@@ -55,14 +57,21 @@ If the flag is set to `false`, the parameter is transient and its value will not
 
 Transient parameters can be easily identified and will only be stored in the `planExecution` section of the instance. As the `planExecution` is reset after the plan finishes, the transient parameters from the plan execution will be discarded as well.
 
+- Transient parameters cannot be `immutable`
+  - They are reset after every plan execution and are therefore mutable by design
+- Transient parameters can have a default value
+- Transient parameters cannot be `required`
+  - This would be a desired property and could be theoretically allowed. But transient parameters are often plan specific, and the `required` scope is global, it would be mostly too wide of a scope.
+
 Pros:
 - Easy extension for parameters from the definition point of view
 - Parameters are not bound to specific plans. Multiple plans can use the same transient parameters. (For example `backup` and `restore` could use the same `BACKUP_NAME` parameter)
 
 Cons:
-- The parameters for a specific plan are not separated from permanent parameters - It can be easy to miss the attribute.
+- The parameters for a specific plan are not separated from persistent parameters - It can be easy to miss the attribute.
+- Without plan specific parameters, it is hard to determine if a plan requires a specific parameter. It will be easy for a user to forget to specify a transient parameter, and `kudoctl` will not be able to determine that a parameter is required to render a plan-specific resource.
 
-## Plan specific parameters
+#### Plan specific parameters
 
 Specific plan parameters: These parameters would only be valid inside a specific plan and could be defined inside the operator:
 
@@ -105,16 +114,19 @@ metadata:
 Pros:
 - Would work well for manually triggered plans
 - The parameter scope would be clearly defined
-- Transient and permanent parameters can be used at the same time 
+- Transient and persistent parameters can be used at the same time 
 - A prefix will make it clear which type is used when invoking `kudo install`, `kudo update` or `kudo plan trigger` 
 
 Cons:
 - Could potentially increase the size of the operator.yaml (If parameters are defined there)
 - If the same parameter is used for two different plans, it would have to be repeated. ( for example BACKUP_NAME, used for backup and restore plans)
 - The format of `{{ $.PlanParams.backup.NAME }}` is problematic if the same resource is used in multiple plans
-- Implementation would be more complex (New PlanParams map, enhanced verification to make sure that resources that use a plan parameter are only used in the correct plans, ...)
+- Plan specific parameters are not necessarily transient - Some persistent parameters may be plan specific as well
+- More complex implementation (New PlanParams map, enhanced verification to make sure that resources which use a plan parameter are only used in the correct plans, ...)
 
-## Transient parameters only on `kudo plan trigger`
+Plan specific parameters may not really be the solution for the User stories in this KEP, but they might be useful in other circumstances.
+
+### Transient parameters only on `kudo plan trigger`
 
 This proposal would not require new configuration options in the operator definition. Normal parameter definitions can be used, the handling depends on the usage:
 
@@ -131,13 +143,21 @@ This would use a parameter transiently, the value would be available while rende
 Open Questions:
 - Should transient parameters marked in the parameter definition? 
   - If not, they could be set permanently with `kudo update`, which would reverse most of the ideas of transient parameters
-  - If yes, it may allow setting permanent parameters with `kudo plan trigger`. The question would be if the definition would be more like Proposal 1 or 3 
+  - If yes, it may allow setting persistent parameters with `kudo plan trigger`. The question would be if the definition would be more like Proposal 1 or 3 
 
 Pros:
 - Potentially no change to operator definition
 
+### Implementation Details/Notes/Constraints
 
-### User Stories
+- The parameter value will be discarded when plan reaches a terminal state, either `COMPLETED` or `FATAL_ERROR`.
+- Transient parameters will be safed in the `planExecution` structure in the instance CRD.
+
+
+### Risks and Mitigations
+
+
+## User Stories
 
 - [#1395](https://github.com/kudobuilder/kudo/issues/1395) Resettable parameters
 
@@ -157,7 +177,7 @@ The expected initiation is:
 
 The operator has another parameter, `BACKUP_PREFIX`. This parameter describes the prefix that is used in the S3 bucket. This parameter should be saved in the instance, as it usually does not change often.
 
-It could be an option to set permanent parameters as well on plan trigger:
+It could be an option to set persistent parameters as well on plan trigger:
 
 `kudo plan trigger --instance cassandra backup -p BACKUP_NAME=2020-06 -p BACKUP_PREFIX=monthly`
 
@@ -182,18 +202,8 @@ The usage would be:
 `kudo install cassandra -p RESTORE_FLAG=true -p RESTORE_OLD_NAME=OldCluster -p RESTORE_OLD_NAMESPACE=OldNamespace -p NODECOUNT=3 ...`
 
 - Plan is `deploy`, used on installation
-- The command line includes transient and permanent parameters
+- The command line includes transient and persistent parameters
 - The transient parameters should not be saved in the instance
-
-### Implementation Details/Notes/Constraints
-
-- The parameter value will be discarded when plan reaches a terminal state, either `COMPLETED` or `FATAL_ERROR`.
-- Transient parameters will be safed in the `planExecution` structure in the instance CRD.
-
-
-### Risks and Mitigations
-
-
 
 ## Implementation History
 
@@ -229,7 +239,7 @@ Pros:
 
 Cons:
 - It won't be obvious from the parameter list that this is a plan specific parameter
-- It will be possible for a parameter to be transient for one plan but permanent for another. It would not be possible to store transient parameters in the `planExecution` structure of the instance
+- It will be possible for a parameter to be transient for one plan but persistent for another. It would not be possible to store transient parameters in the `planExecution` structure of the instance
 
 ### SetParameters Task
 
