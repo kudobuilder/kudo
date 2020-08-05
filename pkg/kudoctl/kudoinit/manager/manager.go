@@ -32,8 +32,6 @@ type Initializer struct {
 	deployment *appsv1.StatefulSet
 }
 
-const Name = "manager"
-
 // NewInitializer returns the setup management object
 func NewInitializer(options kudoinit.Options) Initializer {
 	return Initializer{
@@ -192,7 +190,7 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 							},
 							Image:           image,
 							ImagePullPolicy: imagePullPolicy,
-							Name:            Name,
+							Name:            kudoinit.ManagerContainerName,
 							Ports: []corev1.ContainerPort{
 								// name matters for service
 								{ContainerPort: 443, Name: "webhook-server", Protocol: "TCP"},

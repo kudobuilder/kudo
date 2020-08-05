@@ -55,7 +55,7 @@ func isKUDOPodReady(client corev1.PodsGetter, namespace string) (bool, error) {
 // managerContainerStatus returns containerstatus for manager container or error if no manager or status discovered
 func managerContainerStatus(pod *v1.Pod) (*v1.ContainerStatus, error) {
 	for _, s := range pod.Status.ContainerStatuses {
-		if s.Name == manager.Name {
+		if s.Name == kudoinit.ManagerContainerName {
 			return &s, nil
 		}
 	}
