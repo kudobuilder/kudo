@@ -3,24 +3,10 @@ package template
 import (
 	"fmt"
 
+	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
-)
-
-var (
-	// implicits is a set of usable implicits defined in render.go
-	implicits = map[string]bool{
-		"Name":            true, // instance name
-		"Namespace":       true,
-		"OperatorName":    true,
-		"OperatorVersion": true,
-		"Params":          true,
-		"PlanName":        true,
-		"PhaseName":       true,
-		"StepName":        true,
-		"AppVersion":      true,
-	}
 )
 
 var _ packages.Verifier = &ParametersVerifier{}
@@ -35,6 +21,8 @@ func (ParametersVerifier) Verify(pf *packages.Files) verifier.Result {
 	res.Merge(paramsNotDefined(pf))
 	res.Merge(paramsDefinedNotUsed(pf))
 	res.Merge(immutableParams(pf))
+
+	implicits := renderer.NewVariableMap().WithDefaults()
 
 	nodes := getNodeMap(pf.Templates)
 	// additional processing errors
