@@ -39,38 +39,28 @@ Make it possible to have transient parameters that are only available withing a 
 - Set parameters to specific values (except for a default)
 - Set or change parameters at other moments than at the end of a plan
 
-## Resettable parameters
+## Persistent vs. Transient parameters
 
-Add an additional attribute `resettable` or `transient` to parameter specifications in `params.yaml`:
+Add an attribute `persistent` to parameter specifications in `params.yaml`:
 
 ```yaml
   - name: BACKUP_NAME
     description: "The name under which the backup is saved."
-    resettable: "true"
+    persistent: "false"
 ```
 
-The default value for this flag would be `false`.
+The default value for this flag would be `true`, all parameters that are defined without the attribute are persistent by default.
 
-If the flag is set to `true`, the parameter will be set to the default value when *any* plan finishes. This change of parameter value should *not* trigger any plan execution. This is the preferred proposal.
+If the flag is set to `false`, the parameter is transient and its value will not be persisted in the instance resource.
 
-An alternative would be a list of strings that allows a user to set plans after which the parameter is reset:
-
-```yaml
-  - name: BACKUP_NAME
-    description: "The name for backups to create or restore."
-    resetAfterPlan: [ "backup", "restore" ]
-```
-
-This would reset the parameter after the plan `backup` is executed. The downside with this approach is that a parameter could be set at some point and then be unknowingly used later.
-
-Transient parameters can be easily identified and stored only in the `planExecution` section of the instance. As the `planExecution` is reset after the plan is finished, the transient parameters there would be discarded as well.
+Transient parameters can be easily identified and will only be stored in the `planExecution` section of the instance. As the `planExecution` is reset after the plan finishes, the transient parameters from the plan execution will be discarded as well.
 
 Pros:
-- Both variants would be an easy extension for parameters from the definition point of view
+- Easy extension for parameters from the definition point of view
 - Parameters are not bound to specific plans. Multiple plans can use the same transient parameters. (For example `backup` and `restore` could use the same `BACKUP_NAME` parameter)
 
 Cons:
-- The parameters for a specific plan are not separated from permanent parameters - It would be easy to miss the attribute.
+- The parameters for a specific plan are not separated from permanent parameters - It can be easy to miss the attribute.
 
 ## Plan specific parameters
 
@@ -101,10 +91,10 @@ Alternatively it might be possible to define this in the `params.yaml`
 
 The parameters would only be valid during the execution of that plan and can only be used with the defining plan. As with the previous proposal, they can be stored in the `planExecution` part of the instance where the get discarded after plan execution.
 
-To use the parameter, it would have to be prefixed with the plan name in which it is defined:
-`kudo update <instance> -p backup.NAME=MyBackup`
+To specify the parameter, it would have to be prefixed with the plan name in which it is defined:
+`kudo plan trigger <instance> backup -p backup.NAME=MyBackup`
 
-
+Plan parameters will be stored in a separate map named `PlanParams` which contains a map for the currently executed plan.
 ```
 apiVersion: batch/v1
 kind: Job
@@ -121,6 +111,8 @@ Pros:
 Cons:
 - Could potentially increase the size of the operator.yaml (If parameters are defined there)
 - If the same parameter is used for two different plans, it would have to be repeated. ( for example BACKUP_NAME, used for backup and restore plans)
+- The format of `{{ $.PlanParams.backup.NAME }}` is problematic if the same resource is used in multiple plans
+- Implementation would be more complex (New PlanParams map, enhanced verification to make sure that resources that use a plan parameter are only used in the correct plans, ...)
 
 ## Transient parameters only on `kudo plan trigger`
 
@@ -209,6 +201,7 @@ The usage would be:
 - 2020-04-03 - Added alternatives and user stories
 - 2020-04-17 - Added proposal 5
 - 2020-04-28 - Moved two proposals to alternatives, renamed KEP
+- 2020-08-05 - Improved wording, cleaned up naming
 
 ## Alternatives
 
