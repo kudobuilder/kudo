@@ -11,14 +11,15 @@ import (
 var (
 	// implicits is a set of usable implicits defined in render.go
 	implicits = map[string]bool{
-		"Name":         true, // instance name
-		"Namespace":    true,
-		"OperatorName": true,
-		"Params":       true,
-		"PlanName":     true,
-		"PhaseName":    true,
-		"StepName":     true,
-		"AppVersion":   true,
+		"Name":            true, // instance name
+		"Namespace":       true,
+		"OperatorName":    true,
+		"OperatorVersion": true,
+		"Params":          true,
+		"PlanName":        true,
+		"PhaseName":       true,
+		"StepName":        true,
+		"AppVersion":      true,
 	}
 )
 
