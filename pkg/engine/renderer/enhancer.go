@@ -2,13 +2,12 @@ package renderer
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/kudobuilder/kudo/pkg/engine"
@@ -20,118 +19,152 @@ import (
 // and annotations
 // it also takes care of setting an owner of all the resources to the provided object
 type Enhancer interface {
-	Apply(templates map[string]string, metadata Metadata) ([]runtime.Object, error)
+	Apply(objs []runtime.Object, metadata Metadata) ([]runtime.Object, error)
 }
 
 // DefaultEnhancer is implementation of Enhancer that applies the defined conventions by directly editing runtime.Objects (Unstructured).
 type DefaultEnhancer struct {
 	Scheme    *runtime.Scheme
+	Client    client.Client
 	Discovery discovery.CachedDiscoveryInterface
 }
 
 // Apply accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
-func (de *DefaultEnhancer) Apply(templates map[string]string, metadata Metadata) (objsToAdd []runtime.Object, err error) {
-	objs := make([]runtime.Object, 0, len(templates))
+func (de *DefaultEnhancer) Apply(sourceObjs []runtime.Object, metadata Metadata) ([]runtime.Object, error) {
+	unstructuredObjs := make([]*unstructured.Unstructured, 0, len(sourceObjs))
 
-	for name, v := range templates {
-		parsed, err := YamlToObject(v)
+	for _, obj := range sourceObjs {
+		unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 		if err != nil {
-			return nil, fmt.Errorf("%wparsing YAML from %s: %v", engine.ErrFatalExecution, name, err)
+			return nil, fmt.Errorf("%wconverting to unstructured failed: %v", engine.ErrFatalExecution, err)
 		}
-		for _, obj := range parsed {
-			unstructMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
-			if err != nil {
-				return nil, fmt.Errorf("%wconverting to unstructured failed: %v", engine.ErrFatalExecution, err)
-			}
 
-			if err = addLabels(unstructMap, metadata); err != nil {
-				return nil, fmt.Errorf("%wadding labels on parsed object: %v", engine.ErrFatalExecution, err)
-			}
-			if err = addAnnotations(unstructMap, metadata); err != nil {
-				return nil, fmt.Errorf("%wadding annotations on parsed object %s: %v", engine.ErrFatalExecution, obj.GetObjectKind(), err)
-			}
+		objUnstructured := &unstructured.Unstructured{Object: unstructMap}
 
-			objUnstructured := &unstructured.Unstructured{Object: unstructMap}
-
-			isNamespaced, err := resource.IsNamespacedObject(obj, de.Discovery)
-			if err != nil {
-				return nil, fmt.Errorf("failed to determine if object %s is namespaced: %v", obj.GetObjectKind(), err)
-			}
-
-			// Note: Cross-namespace owner references are disallowed by design. This means:
-			// 1) Namespace-scoped dependents can only specify owners in the same namespace, and owners that are cluster-scoped.
-			// 2) Cluster-scoped dependents can only specify cluster-scoped owners, but not namespace-scoped owners.
-			// More: https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/
-			if isNamespaced {
-				objUnstructured.SetNamespace(metadata.InstanceNamespace)
-				if err = setControllerReference(metadata.ResourcesOwner, objUnstructured, de.Scheme); err != nil {
-					return nil, fmt.Errorf("%wsetting controller reference on parsed object %s: %v", engine.ErrFatalExecution, obj.GetObjectKind(), err)
-				}
-			}
-
-			// This is pretty important, if we don't convert it back to the original type everything will be Unstructured.
-			// We depend on types later on in the processing e.g. when evaluating health.
-			// Additionally, as we add annotations and labels to all possible paths, this step gets rid of anything
-			// that doesn't belong to the specific object type.
-			err = runtime.DefaultUnstructuredConverter.FromUnstructured(objUnstructured.UnstructuredContent(), obj)
-			if err != nil {
-				return nil, fmt.Errorf("%wconverting from unstructured failed: %v", engine.ErrFatalExecution, err)
-			}
-			objs = append(objs, obj)
+		if err = addLabels(objUnstructured, metadata); err != nil {
+			return nil, fmt.Errorf("%wadding labels on parsed object: %v", engine.ErrFatalExecution, err)
 		}
+		if err = addAnnotations(objUnstructured, metadata); err != nil {
+			return nil, fmt.Errorf("%wadding annotations on parsed object %s: %v", engine.ErrFatalExecution, obj.GetObjectKind(), err)
+		}
+
+		isNamespaced, err := resource.IsNamespacedObject(obj, de.Discovery)
+		if err != nil {
+			return nil, fmt.Errorf("failed to determine if object %s is namespaced: %v", obj.GetObjectKind(), err)
+		}
+
+		// Note: Cross-namespace owner references are disallowed by design. This means:
+		// 1) Namespace-scoped dependents can only specify owners in the same namespace, and owners that are cluster-scoped.
+		// 2) Cluster-scoped dependents can only specify cluster-scoped owners, but not namespace-scoped owners.
+		// More: https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/
+		if isNamespaced {
+			objUnstructured.SetNamespace(metadata.InstanceNamespace)
+			if err := controllerutil.SetControllerReference(metadata.ResourcesOwner, objUnstructured, de.Scheme); err != nil {
+				return nil, fmt.Errorf("%wsetting controller reference on parsed object %s: %v", engine.ErrFatalExecution, obj.GetObjectKind(), err)
+			}
+		}
+
+		unstructuredObjs = append(unstructuredObjs, objUnstructured)
+	}
+
+	if err := de.addDependenciesHashes(unstructuredObjs); err != nil {
+		return nil, fmt.Errorf("failed to add dependencies hash: %v", err)
+	}
+
+	// This is pretty important, if we don't convert it to the actual type everything will be Unstructured.
+	// We depend on types later on in the processing e.g. when evaluating health.
+	objs, err := de.convertToTyped(unstructuredObjs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert objects to typed: %v", err)
 	}
 
 	return objs, nil
 }
 
-func addLabels(obj map[string]interface{}, metadata Metadata) error {
-	// List of paths for labels from here:
-	// https://github.com/kubernetes-sigs/kustomize/blob/master/api/konfig/builtinpluginconsts/commonlabels.go
-	labelPaths := [][]string{
-		{"metadata", "labels"},
-		{"spec", "template", "metadata", "labels"},
-		{"spec", "volumeClaimTemplates[]", "metadata", "labels"},
-		{"spec", "jobTemplate", "metadata", "labels"},
-		{"spec", "jobTemplate", "spec", "template", "metadata", "labels"},
+func (de *DefaultEnhancer) addDependenciesHashes(unstructuredObjs []*unstructured.Unstructured) error {
+	dc := newDependencyCalculator(de.Client, unstructuredObjs)
+	for _, uo := range unstructuredObjs {
+		deps, err := calculateResourceDependencies(uo)
+		if err != nil {
+			return fmt.Errorf("failed to calculate resource dependencies for %s/%s: %v", uo.GetNamespace(), uo.GetName(), err)
+		}
+		if !deps.empty() {
+			err = dc.calculateAndSetHash(uo, deps)
+			if err != nil {
+				return fmt.Errorf("failed to add dependency hash to %s/%s: %v", uo.GetNamespace(), uo.GetName(), err)
+			}
+		}
 	}
+	return nil
+}
 
+func (de *DefaultEnhancer) convertToTyped(unstructuredObjs []*unstructured.Unstructured) ([]runtime.Object, error) {
+	objs := make([]runtime.Object, 0, len(unstructuredObjs))
+	for _, uo := range unstructuredObjs {
+		obj, err := de.Scheme.New(uo.GroupVersionKind())
+		if err != nil {
+			objs = append(objs, uo)
+			continue
+		}
+
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(uo.UnstructuredContent(), obj)
+		if err != nil {
+			return nil, fmt.Errorf("%wconverting from unstructured failed: %v", engine.ErrFatalExecution, err)
+		}
+
+		objs = append(objs, obj)
+	}
+	return objs, nil
+}
+
+func addLabels(obj *unstructured.Unstructured, metadata Metadata) error {
 	fieldsToAdd := map[string]string{
 		kudo.HeritageLabel: "kudo",
 		kudo.OperatorLabel: metadata.OperatorName,
 		kudo.InstanceLabel: metadata.InstanceName,
 	}
 
-	for _, path := range labelPaths {
-		if err := addMapValues(obj, fieldsToAdd, path...); err != nil {
-			return err
+	gvk := obj.GroupVersionKind()
+	for _, lp := range CommonLabelPaths {
+		if lp.matches(gvk) {
+			if err := addMapValues(obj.UnstructuredContent(), fieldsToAdd, lp.pathFields()...); err != nil {
+				return err
+			}
 		}
 	}
 
 	return nil
 }
 
-func addAnnotations(obj map[string]interface{}, metadata Metadata) error {
-	// List of paths for annotations from here:
-	// https://github.com/kubernetes-sigs/kustomize/blob/master/api/konfig/builtinpluginconsts/commonannotations.go
-	annotationPaths := [][]string{
-		{"metadata", "annotations"},
-		{"spec", "template", "metadata", "annotations"},
-		{"spec", "jobTemplate", "metadata", "annotations"},
-		{"spec", "jobTemplate", "spec", "template", "metadata", "annotations"},
-	}
-
+func addAnnotations(obj *unstructured.Unstructured, metadata Metadata) error {
+	// For all pod template specs, we only add the operator version annotation. It is pretty stable
+	// and shouldn't change often, therefore not trigger an unwanted restart of the created pod
 	fieldsToAdd := map[string]string{
-		kudo.PlanAnnotation:            metadata.PlanName,
-		kudo.PhaseAnnotation:           metadata.PhaseName,
-		kudo.StepAnnotation:            metadata.StepName,
 		kudo.OperatorVersionAnnotation: metadata.OperatorVersion,
-		kudo.PlanUIDAnnotation:         string(metadata.PlanUID),
+	}
+	gvk := obj.GroupVersionKind()
+	for _, lp := range TemplateAnnotationPaths {
+		if lp.matches(gvk) {
+			if err := addMapValues(obj.UnstructuredContent(), fieldsToAdd, lp.pathFields()...); err != nil {
+				return err
+			}
+		}
 	}
 
-	for _, path := range annotationPaths {
-		if err := addMapValues(obj, fieldsToAdd, path...); err != nil {
-			return err
+	// The plan, phase and step annotations are only added to the top level resources, not any pod template specs, as
+	// that may lead to unwanted restarts of the pods
+	topLevelFieldsToAdd := map[string]string{
+		kudo.PlanAnnotation:    metadata.PlanName,
+		kudo.PhaseAnnotation:   metadata.PhaseName,
+		kudo.StepAnnotation:    metadata.StepName,
+		kudo.PlanUIDAnnotation: string(metadata.PlanUID),
+	}
+	for _, lp := range CommonAnnotationPaths {
+		if lp.matches(gvk) {
+			if err := addMapValues(obj.UnstructuredContent(), topLevelFieldsToAdd, lp.pathFields()...); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -183,29 +216,4 @@ func addMapValues(obj map[string]interface{}, fieldsToAdd map[string]string, pat
 		stringMap[k] = v
 	}
 	return unstructured.SetNestedStringMap(obj, stringMap, path...)
-}
-
-func setControllerReference(owner v1.Object, object v1.Object, scheme *runtime.Scheme) error {
-	ownerNs := owner.GetNamespace()
-	if ownerNs != "" {
-		objNs := object.GetNamespace()
-		if objNs == "" {
-			// we're trying to create cluster-scoped resource from and bind Instance as owner of that
-			// that is disallowed by design, see https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/#owners-and-dependents
-			// for now solve by not adding the owner
-			log.Printf("Not adding owner to resource %s because it's cluster-scoped and cannot be owned by namespace-scoped instance %s/%s", object.GetName(), owner.GetNamespace(), owner.GetName())
-			return nil
-		}
-		if ownerNs != objNs {
-			// we're trying to create resource in another namespace as is Instance's namespace, Instance cannot be owner of such resource
-			// that is disallowed by design, see https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/#owners-and-dependents
-			// for now solve by not adding the owner
-			log.Printf("Not adding owner to resource %s/%s because it's in different namespace than instance %s/%s and thus cannot be owned by that instance", object.GetNamespace(), object.GetName(), owner.GetNamespace(), owner.GetName())
-			return nil
-		}
-	}
-	if err := controllerutil.SetControllerReference(owner, object, scheme); err != nil {
-		return err
-	}
-	return nil
 }

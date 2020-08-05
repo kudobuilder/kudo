@@ -2,13 +2,15 @@
 bin/
 vendor/
 hack/code-gen
+hack/manifest-gen
 hack/controller-gen
 test/.git-credentials
 reports/
 config/manager_image_patch.yaml-e
 # created by /hack/generate_krew.sh during release
 kudo.yaml
-kudo-e2e-test.yaml
+test/kudo-e2e-test.yaml
+test/kudo-upgrade-test.yaml
 kind-logs-*
 operators
 

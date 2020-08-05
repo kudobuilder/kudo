@@ -10,6 +10,8 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/engine/task"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 )
@@ -56,8 +58,36 @@ func Operator(fs afero.Fs, dir string, op *packages.OperatorFile, overwrite bool
 	}
 
 	// required empty settings
-	op.Tasks = []v1beta1.Task{}
+	op.Tasks = []v1beta1.Task{
+		{
+			Name: "deploy",
+			Kind: task.ApplyTaskKind,
+			Spec: v1beta1.TaskSpec{
+				ResourceTaskSpec: v1beta1.ResourceTaskSpec{
+					Resources: []string{},
+				},
+			},
+		},
+	}
+
 	op.Plans = make(map[string]v1beta1.Plan)
+	op.Plans["deploy"] = v1beta1.Plan{
+		Strategy: "serial",
+		Phases: []v1beta1.Phase{
+			{
+				Name:     "deploy",
+				Strategy: "serial",
+				Steps: []v1beta1.Step{
+					{
+						Name: "deploy",
+						Tasks: []string{
+							"deploy",
+						},
+					},
+				},
+			},
+		},
+	}
 
 	err = writeOperator(fs, dir, op)
 	if err != nil {
@@ -78,7 +108,14 @@ func Operator(fs afero.Fs, dir string, op *packages.OperatorFile, overwrite bool
 		APIVersion: reader.APIVersion,
 		Parameters: []packages.Parameter{},
 	}
-	return writeParameters(fs, dir, p)
+	err = writeParameters(fs, dir, p)
+	if err != nil {
+		return err
+	}
+
+	clog.V(0).Printf("Operator created. Use \n - package add parameter\n - package add plan\n - package add task\nor other package add commands to extend it.")
+
+	return nil
 }
 
 func writeParameters(fs afero.Fs, dir string, params packages.ParamsFile) error {

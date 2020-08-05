@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/spf13/afero"
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUpgradeCommand_Validation(t *testing.T) {
@@ -28,6 +28,6 @@ func TestUpgradeCommand_Validation(t *testing.T) {
 			}
 		}
 		_, err := cmd.ExecuteC()
-		assert.ErrorContains(t, err, tt.err)
+		assert.EqualError(t, err, tt.err)
 	}
 }

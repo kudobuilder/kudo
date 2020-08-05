@@ -36,6 +36,19 @@ type Parameter struct {
 	Default     interface{}           `json:"default,omitempty"`
 	Trigger     string                `json:"trigger,omitempty"`
 	Type        v1beta1.ParameterType `json:"type,omitempty"`
+	Immutable   *bool                 `json:"immutable,omitempty"`
+}
+
+func (p Parameter) IsImmutable() bool {
+	return p.Immutable != nil && *p.Immutable
+}
+
+func (p Parameter) IsRequired() bool {
+	return p.Required != nil && *p.Required
+}
+
+func (p *Parameter) HasDefault() bool {
+	return p.Default != nil
 }
 
 type Parameters []Parameter
@@ -83,4 +96,5 @@ type OperatorFile struct {
 	URL               string                  `json:"url,omitempty"`
 	Tasks             []v1beta1.Task          `json:"tasks"`
 	Plans             map[string]v1beta1.Plan `json:"plans"`
+	NamespaceManifest string                  `json:"namespaceManifest,omitempty"`
 }

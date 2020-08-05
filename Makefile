@@ -5,16 +5,16 @@ DOCKER_IMG ?= kudobuilder/controller
 EXECUTABLE := manager
 CLI := kubectl-kudo
 GIT_VERSION_PATH := github.com/kudobuilder/kudo/pkg/version.gitVersion
-GIT_VERSION := $(shell git describe --abbrev=0 --tags | cut -b 2-)
+GIT_VERSION := $(shell git describe --abbrev=0 --tags --candidates=0 2>/dev/null || echo not-built-on-release)
 GIT_COMMIT_PATH := github.com/kudobuilder/kudo/pkg/version.gitCommit
 GIT_COMMIT := $(shell git rev-parse HEAD | cut -b -8)
 SOURCE_DATE_EPOCH := $(shell git show -s --format=format:%ct HEAD)
 BUILD_DATE_PATH := github.com/kudobuilder/kudo/pkg/version.buildDate
 DATE_FMT := "%Y-%m-%dT%H:%M:%SZ"
 BUILD_DATE := $(shell date -u -d "@$SOURCE_DATE_EPOCH" "+${DATE_FMT}" 2>/dev/null || date -u -r "${SOURCE_DATE_EPOCH}" "+${DATE_FMT}" 2>/dev/null || date -u "+${DATE_FMT}")
-LDFLAGS := -X ${GIT_VERSION_PATH}=${GIT_VERSION} -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} -X ${BUILD_DATE_PATH}=${BUILD_DATE}
-ENABLE_WEBHOOKS ?= false
-GOLANGCI_LINT_VER = "1.23.8"
+LDFLAGS := -X ${GIT_VERSION_PATH}=${GIT_VERSION:v%=%} -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} -X ${BUILD_DATE_PATH}=${BUILD_DATE}
+GOLANGCI_LINT_VER = "1.29.0"
+SUPPORTED_PLATFORMS = amd64 arm64
 
 export GO111MODULE=on
 
@@ -34,12 +34,20 @@ endif
 # Run e2e tests
 .PHONY: e2e-test
 e2e-test: cli-fast manager-fast
-	./hack/run-e2e-tests.sh
+	TEST_ONLY=$(TEST) ./hack/run-e2e-tests.sh
 
 .PHONY: integration-test
 # Run integration tests
 integration-test: cli-fast manager-fast
-	./hack/run-integration-tests.sh
+	TEST_ONLY=$(TEST) ./hack/run-integration-tests.sh
+
+.PHONY: operator-test
+operator-test: cli-fast manager-fast
+	./hack/run-operator-tests.sh
+
+.PHONY: upgrade-test
+upgrade-test: cli-fast manager-fast
+	TEST_ONLY=$(TEST) ./hack/run-upgrade-tests.sh
 
 .PHONY: test-clean
 # Clean test reports
@@ -51,7 +59,7 @@ lint:
 ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint --version 2>/dev/null | cut -b 27-32)")
 	./hack/install-golangcilint.sh
 endif
-	golangci-lint run
+	golangci-lint --timeout 3m run
 
 .PHONY: download
 download:
@@ -81,16 +89,12 @@ manager-clean:
 run:
     # for local development, webhooks are disabled by default
     # if you enable them, you have to take care of providing the TLS certs locally
-	ENABLE_WEBHOOKS=${ENABLE_WEBHOOKS} go run -ldflags "${LDFLAGS}" ./cmd/manager
+	go run -ldflags "${LDFLAGS}" ./cmd/manager
 
 .PHONY: deploy
 # Install KUDO into a cluster via kubectl kudo init
 deploy:
 	go run -ldflags "${LDFLAGS}" ./cmd/kubectl-kudo init
-
-.PHONY: deploy-clean
-deploy-clean:
-	go run ./cmd/kubectl-kudo  init --dry-run --output yaml | kubectl delete -f -
 
 .PHONY: generate
 # Generate code
@@ -101,14 +105,14 @@ ifneq ($(shell go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools), $(she
 endif
 	controller-gen crd paths=./pkg/apis/... output:crd:dir=config/crds output:stdout
 ifeq (, $(shell which go-bindata))
-	go get github.com/go-bindata/go-bindata/go-bindata@$$(go list -f '{{.Version}}' -m github.com/go-bindata/go-bindata)
+	go get github.com/go-bindata/go-bindata/v3/go-bindata@$$(go list -f '{{.Version}}' -m github.com/go-bindata/go-bindata/v3)
 endif
 	go-bindata -pkg crd -o pkg/kudoctl/kudoinit/crd/bindata.go -ignore README.md -nometadata config/crds
 	./hack/update_codegen.sh
 
 .PHONY: generate-clean
 generate-clean:
-	rm -rf hack/code-gen
+	rm -rf ./hack/code-gen
 
 # Build CLI but don't lint or run code generation first.
 cli-fast:
@@ -129,21 +133,12 @@ cli-install:
 
 .PHONY: clean
 # Clean all
-clean:  cli-clean test-clean manager-clean deploy-clean
+clean:  cli-clean test-clean manager-clean
 
 .PHONY: docker-build
-# Build the docker image
+# Build the docker image for each supported platform
 docker-build: generate lint
-	docker build --build-arg ldflags_arg="${LDFLAGS}" . -t ${DOCKER_IMG}:${DOCKER_TAG}
-	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:v${GIT_VERSION}
-	docker tag ${DOCKER_IMG}:${DOCKER_TAG} ${DOCKER_IMG}:latest
-
-.PHONY: docker-push
-# Push the docker image
-docker-push:
-	docker push ${DOCKER_IMG}:${DOCKER_TAG}
-	docker push ${DOCKER_IMG}:${GIT_VERSION}
-	docker push ${DOCKER_IMG}:latest
+	docker build --build-arg ldflags_arg="$(LDFLAGS)" -f Dockerfile -t $(DOCKER_IMG):$(DOCKER_TAG) .
 
 .PHONY: imports
 # used to update imports on project.  NOT a linter.
@@ -171,3 +166,26 @@ todo:
 		--text \
 		--color \
 		-nRo -E " *[^\.]TODO.*|SkipNow" .
+
+# requires manifests. generate-manifests should be run first
+# updating webhook requires ngrok to be running and updates the wh-config with the latest
+# ngrok configuration.  ngrok config changes for each restart which is why this is a separate target
+.PHONY: update-webhook-config
+update-webhook-config:
+	./hack/update-webhook-config.sh
+
+# generates manifests from the kudo cli (kudo init) and captures the manifests needed for
+# local development.  These are cached under the /hack/manifest-gen folder and are used to quickly
+# start running and debugging kudo controller and webhook locally.
+.PHONY: generate-manifests
+generate-manifests:
+	./hack/update-manifests.sh
+
+# requires manifests. generate-manifests should be run first
+# quickly sets a local dev env with the minimum necessary configurations to run
+# the kudo manager locally.  after running dev-ready, it is possible to 'make run' or run from an editor for debugging.
+# it currently does require ngrok.
+.PHONY: dev-ready
+dev-ready:
+	./hack/deploy-dev-prereqs.sh
+	./hack/update-webhook-config.sh

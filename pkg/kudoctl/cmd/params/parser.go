@@ -19,8 +19,10 @@ import (
 func GetParameterMap(fs afero.Fs, raw []string, filePaths []string) (map[string]string, error) {
 	var errs []string
 
-	paramsFromCmdline, errs := getParamsFromCmdline(raw, errs)
-	paramsFromFiles, errs := getParamsFromFiles(fs, filePaths, errs)
+	paramsFromCmdline, cmdErrs := getParamsFromCmdline(raw)
+	errs = append(errs, cmdErrs...)
+	paramsFromFiles, fileErrs := getParamsFromFiles(fs, filePaths)
+	errs = append(errs, fileErrs...)
 
 	if errs != nil {
 		return nil, errors.New(strings.Join(errs, ", "))
@@ -29,7 +31,8 @@ func GetParameterMap(fs afero.Fs, raw []string, filePaths []string) (map[string]
 	return mergeParams(paramsFromCmdline, paramsFromFiles), nil
 }
 
-func getParamsFromCmdline(raw []string, errs []string) (map[string]string, []string) {
+func getParamsFromCmdline(raw []string) (map[string]string, []string) {
+	var errs []string
 	parameters := make(map[string]string)
 	for _, a := range raw {
 		key, value, err := parseParameter(a)
@@ -42,44 +45,61 @@ func getParamsFromCmdline(raw []string, errs []string) (map[string]string, []str
 	return parameters, errs
 }
 
-func getParamsFromFiles(fs afero.Fs, filePaths []string, errs []string) (map[string]string, []string) {
+func getParamsFromFiles(fs afero.Fs, filePaths []string) (map[string]string, []string) {
+	var errs []string
 	parameters := make(map[string]string)
 	for _, filePath := range filePaths {
-		var err error
 		rawData, err := afero.ReadFile(fs, filePath)
 		if err != nil {
 			errs = append(errs, fmt.Sprintf("error reading from parameter file %s: %v", filePath, err))
 			continue
 		}
-		data := make(map[string]interface{})
-		err = yaml.Unmarshal(rawData, &data)
+
+		err = GetParametersFromFile(filePath, rawData, parameters)
 		if err != nil {
-			errs = append(errs, fmt.Sprintf("error unmarshalling content of parameter file %s: %v", filePath, err))
-			continue
-		}
-		clog.V(2).Printf("Unmarshalling %q...", filePath)
-		for key, value := range data {
-			clog.V(3).Printf("Value of parameter %q is a %T: %v", key, value, value)
-			var valueType v1beta1.ParameterType
-			switch value.(type) {
-			case map[string]interface{}:
-				valueType = v1beta1.MapValueType
-			case []interface{}:
-				valueType = v1beta1.ArrayValueType
-			case string:
-				valueType = v1beta1.StringValueType
-			default:
-				valueType = v1beta1.StringValueType
-			}
-			wrapped, err := convert.WrapParamValue(value, valueType)
-			if err != nil {
-				errs = append(errs, fmt.Sprintf("error converting value of parameter %s from file %s %q to a string: %v", key, filePath, value, err))
-				continue
-			}
-			parameters[key] = *wrapped
+			errs = append(errs, err.Error())
 		}
 	}
 	return parameters, errs
+}
+
+func GetParametersFromFile(filePath string, bytes []byte, parameters map[string]string) error {
+	data := make(map[string]interface{})
+	err := yaml.Unmarshal(bytes, &data)
+	if err != nil {
+		return fmt.Errorf("error unmarshalling content of parameter file %s: %v", filePath, err)
+	}
+
+	clog.V(2).Printf("Unmarshalling %q...", filePath)
+	var errs []string
+	for key, value := range data {
+		clog.V(3).Printf("Value of parameter %q is a %T: %v", key, value, value)
+		var valueType v1beta1.ParameterType
+		switch value.(type) {
+		case map[string]interface{}:
+			valueType = v1beta1.MapValueType
+		case []interface{}:
+			valueType = v1beta1.ArrayValueType
+		case string:
+			valueType = v1beta1.StringValueType
+		default:
+			valueType = v1beta1.StringValueType
+		}
+		wrapped, err := convert.WrapParamValue(value, valueType)
+		if err != nil {
+			errs = append(errs, fmt.Sprintf("%s: %v", key, err))
+			continue
+		}
+		if wrapped == nil {
+			errs = append(errs, fmt.Sprintf("%s has a null value (https://yaml.org/spec/1.2/spec.html#id2803362) which is currently not supported", key))
+			continue
+		}
+		parameters[key] = *wrapped
+	}
+	if errs != nil {
+		return fmt.Errorf("errors while unmarshaling following keys of the parameter file %s: %s", filePath, strings.Join(errs, ", "))
+	}
+	return nil
 }
 
 func mergeParams(paramsFromCmdline map[string]string, paramsFromFiles map[string]string) map[string]string {

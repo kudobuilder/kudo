@@ -81,11 +81,15 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *package
 			return fmt.Errorf("failed to unmarshal parameters file: %s: %w", filePath, err)
 		}
 		defaultRequired := true
+		defaultImmutable := false
 		for i := 0; i < len(paramsFile.Parameters); i++ {
 			p := &paramsFile.Parameters[i]
 			if p.Required == nil {
 				// applying default value of required for all params where not specified
 				p.Required = &defaultRequired
+			}
+			if p.Immutable == nil {
+				p.Immutable = &defaultImmutable
 			}
 		}
 		currentPackage.Params = &paramsFile

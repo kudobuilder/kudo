@@ -124,6 +124,16 @@ func TestGetParameterMap(t *testing.T) {
 				"A": "- foo: bar\n",
 			},
 		},
+		{
+			"regression test for #1602",
+			nil,
+			[]string{"param-file"},
+			map[string]string{
+				"param-file": "a:\nb: 1\n",
+			},
+			"errors while unmarshaling following keys of the parameter file param-file: a has a null value (https://yaml.org/spec/1.2/spec.html#id2803362) which is currently not supported",
+			nil,
+		},
 	}
 	for _, test := range tests {
 		test := test

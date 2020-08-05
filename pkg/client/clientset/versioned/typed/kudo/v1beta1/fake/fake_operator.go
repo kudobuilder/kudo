@@ -17,6 +17,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -37,7 +39,7 @@ var operatorsResource = schema.GroupVersionResource{Group: "kudo.dev", Version: 
 var operatorsKind = schema.GroupVersionKind{Group: "kudo.dev", Version: "v1beta1", Kind: "Operator"}
 
 // Get takes name of the operator, and returns the corresponding operator object, and an error if there is any.
-func (c *FakeOperators) Get(name string, options v1.GetOptions) (result *v1beta1.Operator, err error) {
+func (c *FakeOperators) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.Operator, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(operatorsResource, c.ns, name), &v1beta1.Operator{})
 
@@ -48,7 +50,7 @@ func (c *FakeOperators) Get(name string, options v1.GetOptions) (result *v1beta1
 }
 
 // List takes label and field selectors, and returns the list of Operators that match those selectors.
-func (c *FakeOperators) List(opts v1.ListOptions) (result *v1beta1.OperatorList, err error) {
+func (c *FakeOperators) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.OperatorList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(operatorsResource, operatorsKind, c.ns, opts), &v1beta1.OperatorList{})
 
@@ -70,14 +72,14 @@ func (c *FakeOperators) List(opts v1.ListOptions) (result *v1beta1.OperatorList,
 }
 
 // Watch returns a watch.Interface that watches the requested operators.
-func (c *FakeOperators) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeOperators) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(operatorsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a operator and creates it.  Returns the server's representation of the operator, and an error, if there is any.
-func (c *FakeOperators) Create(operator *v1beta1.Operator) (result *v1beta1.Operator, err error) {
+func (c *FakeOperators) Create(ctx context.Context, operator *v1beta1.Operator, opts v1.CreateOptions) (result *v1beta1.Operator, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(operatorsResource, c.ns, operator), &v1beta1.Operator{})
 
@@ -88,7 +90,7 @@ func (c *FakeOperators) Create(operator *v1beta1.Operator) (result *v1beta1.Oper
 }
 
 // Update takes the representation of a operator and updates it. Returns the server's representation of the operator, and an error, if there is any.
-func (c *FakeOperators) Update(operator *v1beta1.Operator) (result *v1beta1.Operator, err error) {
+func (c *FakeOperators) Update(ctx context.Context, operator *v1beta1.Operator, opts v1.UpdateOptions) (result *v1beta1.Operator, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(operatorsResource, c.ns, operator), &v1beta1.Operator{})
 
@@ -100,7 +102,7 @@ func (c *FakeOperators) Update(operator *v1beta1.Operator) (result *v1beta1.Oper
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeOperators) UpdateStatus(operator *v1beta1.Operator) (*v1beta1.Operator, error) {
+func (c *FakeOperators) UpdateStatus(ctx context.Context, operator *v1beta1.Operator, opts v1.UpdateOptions) (*v1beta1.Operator, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(operatorsResource, "status", c.ns, operator), &v1beta1.Operator{})
 
@@ -111,7 +113,7 @@ func (c *FakeOperators) UpdateStatus(operator *v1beta1.Operator) (*v1beta1.Opera
 }
 
 // Delete takes name of the operator and deletes it. Returns an error if one occurs.
-func (c *FakeOperators) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeOperators) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(operatorsResource, c.ns, name), &v1beta1.Operator{})
 
@@ -119,15 +121,15 @@ func (c *FakeOperators) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeOperators) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(operatorsResource, c.ns, listOptions)
+func (c *FakeOperators) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(operatorsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.OperatorList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched operator.
-func (c *FakeOperators) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.Operator, err error) {
+func (c *FakeOperators) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.Operator, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(operatorsResource, c.ns, name, pt, data, subresources...), &v1beta1.Operator{})
 

@@ -7,8 +7,9 @@ spec:
   operatorVersion:
     name: cli-install-operator-0.1.0
 status:
-  aggregatedStatus:
-    status: COMPLETE
+  planStatus:
+    deploy:
+      status: COMPLETE
 ---
 apiVersion: v1
 kind: Service

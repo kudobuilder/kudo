@@ -1,8 +1,8 @@
-name: Release Master Snapshot
+name: Release Main Snapshot
 on:
   push:
     branches:
-      - master
+      - main
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,16 +27,16 @@ jobs:
              --build-arg git_version_arg=github.com/kudobuilder/kudo/pkg/version.gitVersion=v$GITHUB_SHA \
             --build-arg git_commit_arg=github.com/kudobuilder/kudo/pkg/version.gitCommit=$GITHUB_SHA \
             --build-arg build_date_arg=github.com/kudobuilder/kudo/pkg/version.buildDate=$BUILD_DATE . -t docker.pkg.github.com/$REPOSITORY:$GITHUB_SHA
-      - name: Tag with `master`
+      - name: Tag with `main`
         env:
           REPOSITORY: ${{ secrets.REPOSITORY }}
         run: |
-            docker tag docker.pkg.github.com/$REPOSITORY:$GITHUB_SHA docker.pkg.github.com/$REPOSITORY:master
+          docker tag docker.pkg.github.com/$REPOSITORY:$GITHUB_SHA docker.pkg.github.com/$REPOSITORY:main
       - name: Push image with commit SHA
         env:
           REPOSITORY: ${{ secrets.REPOSITORY }}
         run: docker push docker.pkg.github.com/$REPOSITORY:$GITHUB_SHA
-      - name: Push master tag
+      - name: Push main tag
         env:
           REPOSITORY: ${{ secrets.REPOSITORY }}
-        run: docker push docker.pkg.github.com/$REPOSITORY:master
+        run: docker push docker.pkg.github.com/$REPOSITORY:main

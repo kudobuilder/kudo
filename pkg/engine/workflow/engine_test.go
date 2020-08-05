@@ -1,7 +1,6 @@
 package workflow
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -621,11 +620,12 @@ func TestExecutePlan(t *testing.T) {
 		},
 	}
 
+	testScheme := scheme.Scheme
 	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
 	fakeDiscovery := kudofake.CachedDiscoveryClient()
 	fakeCachedDiscovery := memory.NewMemCacheClient(fakeDiscovery)
 	for _, tt := range tests {
-		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, fakeCachedDiscovery, nil, tt.enhancer)
+		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, fakeCachedDiscovery, nil, testScheme)
 		newStatus.LastUpdatedTimestamp = &metav1.Time{Time: testTime}
 
 		if !tt.wantErr && err != nil {
@@ -662,14 +662,6 @@ func instance() *v1beta1.Instance {
 
 type testEnhancer struct{}
 
-func (k *testEnhancer) Apply(templates map[string]string, metadata renderer.Metadata) ([]runtime.Object, error) {
-	result := make([]runtime.Object, 0)
-	for _, t := range templates {
-		objsToAdd, err := renderer.YamlToObject(t)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing kubernetes objects after applying enhance: %v", err)
-		}
-		result = append(result, objsToAdd[0])
-	}
-	return result, nil
+func (k *testEnhancer) Apply(objs []runtime.Object, metadata renderer.Metadata) ([]runtime.Object, error) {
+	return objs, nil
 }

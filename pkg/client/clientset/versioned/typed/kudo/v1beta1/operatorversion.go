@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
 	"time"
 
 	v1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -35,15 +36,15 @@ type OperatorVersionsGetter interface {
 
 // OperatorVersionInterface has methods to work with OperatorVersion resources.
 type OperatorVersionInterface interface {
-	Create(*v1beta1.OperatorVersion) (*v1beta1.OperatorVersion, error)
-	Update(*v1beta1.OperatorVersion) (*v1beta1.OperatorVersion, error)
-	UpdateStatus(*v1beta1.OperatorVersion) (*v1beta1.OperatorVersion, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1beta1.OperatorVersion, error)
-	List(opts v1.ListOptions) (*v1beta1.OperatorVersionList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.OperatorVersion, err error)
+	Create(ctx context.Context, operatorVersion *v1beta1.OperatorVersion, opts v1.CreateOptions) (*v1beta1.OperatorVersion, error)
+	Update(ctx context.Context, operatorVersion *v1beta1.OperatorVersion, opts v1.UpdateOptions) (*v1beta1.OperatorVersion, error)
+	UpdateStatus(ctx context.Context, operatorVersion *v1beta1.OperatorVersion, opts v1.UpdateOptions) (*v1beta1.OperatorVersion, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1beta1.OperatorVersion, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1beta1.OperatorVersionList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.OperatorVersion, err error)
 	OperatorVersionExpansion
 }
 
@@ -62,20 +63,20 @@ func newOperatorVersions(c *KudoV1beta1Client, namespace string) *operatorVersio
 }
 
 // Get takes name of the operatorVersion, and returns the corresponding operatorVersion object, and an error if there is any.
-func (c *operatorVersions) Get(name string, options v1.GetOptions) (result *v1beta1.OperatorVersion, err error) {
+func (c *operatorVersions) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.OperatorVersion, err error) {
 	result = &v1beta1.OperatorVersion{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("operatorversions").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of OperatorVersions that match those selectors.
-func (c *operatorVersions) List(opts v1.ListOptions) (result *v1beta1.OperatorVersionList, err error) {
+func (c *operatorVersions) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.OperatorVersionList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -86,13 +87,13 @@ func (c *operatorVersions) List(opts v1.ListOptions) (result *v1beta1.OperatorVe
 		Resource("operatorversions").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested operatorVersions.
-func (c *operatorVersions) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *operatorVersions) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -103,87 +104,90 @@ func (c *operatorVersions) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Resource("operatorversions").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a operatorVersion and creates it.  Returns the server's representation of the operatorVersion, and an error, if there is any.
-func (c *operatorVersions) Create(operatorVersion *v1beta1.OperatorVersion) (result *v1beta1.OperatorVersion, err error) {
+func (c *operatorVersions) Create(ctx context.Context, operatorVersion *v1beta1.OperatorVersion, opts v1.CreateOptions) (result *v1beta1.OperatorVersion, err error) {
 	result = &v1beta1.OperatorVersion{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("operatorversions").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(operatorVersion).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a operatorVersion and updates it. Returns the server's representation of the operatorVersion, and an error, if there is any.
-func (c *operatorVersions) Update(operatorVersion *v1beta1.OperatorVersion) (result *v1beta1.OperatorVersion, err error) {
+func (c *operatorVersions) Update(ctx context.Context, operatorVersion *v1beta1.OperatorVersion, opts v1.UpdateOptions) (result *v1beta1.OperatorVersion, err error) {
 	result = &v1beta1.OperatorVersion{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("operatorversions").
 		Name(operatorVersion.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(operatorVersion).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *operatorVersions) UpdateStatus(operatorVersion *v1beta1.OperatorVersion) (result *v1beta1.OperatorVersion, err error) {
+func (c *operatorVersions) UpdateStatus(ctx context.Context, operatorVersion *v1beta1.OperatorVersion, opts v1.UpdateOptions) (result *v1beta1.OperatorVersion, err error) {
 	result = &v1beta1.OperatorVersion{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("operatorversions").
 		Name(operatorVersion.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(operatorVersion).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the operatorVersion and deletes it. Returns an error if one occurs.
-func (c *operatorVersions) Delete(name string, options *v1.DeleteOptions) error {
+func (c *operatorVersions) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("operatorversions").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *operatorVersions) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *operatorVersions) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("operatorversions").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched operatorVersion.
-func (c *operatorVersions) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.OperatorVersion, err error) {
+func (c *operatorVersions) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.OperatorVersion, err error) {
 	result = &v1beta1.OperatorVersion{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("operatorversions").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

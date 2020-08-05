@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeList
+items:
+- apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    name: pvc-37800340-a87f-4607-896e-da091174def7
+- apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    name: pvc-ac2ffdd6-362a-4204-82b9-1249b2dbf3be
+- apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    name: pvc-dd49319a-03bb-4135-8798-71ceb7bfcbc2

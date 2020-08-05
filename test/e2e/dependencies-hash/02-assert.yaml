@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: configdata
+data:
+  valueA: ChangedValue
+---
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+status:
+  planStatus:
+    update-param:
+      status: COMPLETE

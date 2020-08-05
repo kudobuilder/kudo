@@ -91,6 +91,8 @@ func NewPlanTriggerCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&options.Instance, "instance", "", "The instance name available from 'kubectl get instances'")
 	cmd.Flags().StringVar(&options.Plan, "name", "", "The plan name")
+	cmd.Flags().BoolVar(&options.Wait, "wait", false, "Specify if the CLI should wait for the plan to complete before returning (default \"false\")")
+	cmd.Flags().Int64Var(&options.WaitTime, "wait-time", 300, "Specify the max wait time in seconds for CLI for the plan to complete before returning (default \"300\")")
 
 	return cmd
 }

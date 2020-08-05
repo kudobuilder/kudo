@@ -1,15 +1,4 @@
 apiVersion: kudo.dev/v1beta1
-kind: Instance
-metadata:
-  name: immutable-client-ip-instance
-  labels:
-    kudo.dev/operator: service-operator
-spec:
-  operatorVersion:
-    name: service-operator
-    kind: OperatorVersion
----
-apiVersion: kudo.dev/v1beta1
 kind: OperatorVersion
 metadata:
   name: service-operator
@@ -48,3 +37,15 @@ spec:
         selector:
           instance: {{ .Name }}
           label: {{ .Params.LABEL }}
+
+---
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
+  name: immutable-client-ip-instance
+  labels:
+    kudo.dev/operator: service-operator
+spec:
+  operatorVersion:
+    name: service-operator
+    kind: OperatorVersion

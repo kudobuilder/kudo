@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
 	"time"
 
 	v1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -35,15 +36,15 @@ type InstancesGetter interface {
 
 // InstanceInterface has methods to work with Instance resources.
 type InstanceInterface interface {
-	Create(*v1beta1.Instance) (*v1beta1.Instance, error)
-	Update(*v1beta1.Instance) (*v1beta1.Instance, error)
-	UpdateStatus(*v1beta1.Instance) (*v1beta1.Instance, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1beta1.Instance, error)
-	List(opts v1.ListOptions) (*v1beta1.InstanceList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.Instance, err error)
+	Create(ctx context.Context, instance *v1beta1.Instance, opts v1.CreateOptions) (*v1beta1.Instance, error)
+	Update(ctx context.Context, instance *v1beta1.Instance, opts v1.UpdateOptions) (*v1beta1.Instance, error)
+	UpdateStatus(ctx context.Context, instance *v1beta1.Instance, opts v1.UpdateOptions) (*v1beta1.Instance, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1beta1.Instance, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1beta1.InstanceList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.Instance, err error)
 	InstanceExpansion
 }
 
@@ -62,20 +63,20 @@ func newInstances(c *KudoV1beta1Client, namespace string) *instances {
 }
 
 // Get takes name of the instance, and returns the corresponding instance object, and an error if there is any.
-func (c *instances) Get(name string, options v1.GetOptions) (result *v1beta1.Instance, err error) {
+func (c *instances) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.Instance, err error) {
 	result = &v1beta1.Instance{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("instances").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of Instances that match those selectors.
-func (c *instances) List(opts v1.ListOptions) (result *v1beta1.InstanceList, err error) {
+func (c *instances) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.InstanceList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -86,13 +87,13 @@ func (c *instances) List(opts v1.ListOptions) (result *v1beta1.InstanceList, err
 		Resource("instances").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested instances.
-func (c *instances) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *instances) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -103,87 +104,90 @@ func (c *instances) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Resource("instances").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a instance and creates it.  Returns the server's representation of the instance, and an error, if there is any.
-func (c *instances) Create(instance *v1beta1.Instance) (result *v1beta1.Instance, err error) {
+func (c *instances) Create(ctx context.Context, instance *v1beta1.Instance, opts v1.CreateOptions) (result *v1beta1.Instance, err error) {
 	result = &v1beta1.Instance{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("instances").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(instance).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a instance and updates it. Returns the server's representation of the instance, and an error, if there is any.
-func (c *instances) Update(instance *v1beta1.Instance) (result *v1beta1.Instance, err error) {
+func (c *instances) Update(ctx context.Context, instance *v1beta1.Instance, opts v1.UpdateOptions) (result *v1beta1.Instance, err error) {
 	result = &v1beta1.Instance{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("instances").
 		Name(instance.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(instance).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *instances) UpdateStatus(instance *v1beta1.Instance) (result *v1beta1.Instance, err error) {
+func (c *instances) UpdateStatus(ctx context.Context, instance *v1beta1.Instance, opts v1.UpdateOptions) (result *v1beta1.Instance, err error) {
 	result = &v1beta1.Instance{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("instances").
 		Name(instance.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(instance).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the instance and deletes it. Returns an error if one occurs.
-func (c *instances) Delete(name string, options *v1.DeleteOptions) error {
+func (c *instances) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("instances").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *instances) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *instances) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("instances").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched instance.
-func (c *instances) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.Instance, err error) {
+func (c *instances) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.Instance, err error) {
 	result = &v1beta1.Instance{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("instances").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

@@ -3,8 +3,8 @@ package template
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/thoas/go-funk"
-	"gotest.tools/assert"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )

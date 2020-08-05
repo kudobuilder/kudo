@@ -1,0 +1,72 @@
+apiVersion: kudo.dev/v1beta1
+kind: Operator
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: toy
+---
+apiVersion: kudo.dev/v1beta1
+kind: OperatorVersion
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: "toy-1.0.0"
+spec:
+  version: "1.0.0"
+  connectionString: ""
+  operator:
+    name: toy
+    kind: Operator
+  templates:
+    deployment.yaml: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: my-service
+      spec:
+        type: ClusterIP
+        ports:
+        - port: 80
+          name: http
+        selector:
+          replicas: "{{ .Params.Replicas }}"
+          param: "{{ .Params.Param }}"
+  tasks:
+    - name: deploy
+      kind: Apply
+      spec:
+        resources:
+          - deployment.yaml
+  parameters:
+  - name: Param
+    description: "Sample parameter"
+    default: "before"
+  - name: Replicas
+    description: "Sample parameter"
+    default: "1"
+    trigger: scale
+  plans:
+    deploy:
+      strategy: serial
+      phases:
+        - name: deploy
+          steps:
+            - name: deploy
+              tasks:
+              - deploy
+    update:
+      strategy: serial
+      phases:
+        - name: update
+          steps:
+            - name: update
+              tasks:
+              - deploy
+    scale:
+      strategy: serial
+      phases:
+        - name: scale
+          steps:
+            - name: scale
+              tasks:
+              - deploy

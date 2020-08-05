@@ -33,6 +33,7 @@ func (ParametersVerifier) Verify(pf *packages.Files) verifier.Result {
 	res := verifier.NewResult()
 	res.Merge(paramsNotDefined(pf))
 	res.Merge(paramsDefinedNotUsed(pf))
+	res.Merge(immutableParams(pf))
 
 	nodes := getNodeMap(pf.Templates)
 	// additional processing errors
@@ -48,6 +49,18 @@ func (ParametersVerifier) Verify(pf *packages.Files) verifier.Result {
 		}
 	}
 
+	return res
+}
+
+func immutableParams(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
+	for _, value := range pf.Params.Parameters {
+		if value.IsImmutable() {
+			if !value.HasDefault() && !value.IsRequired() {
+				res.AddParamError(value.Name, "is immutable but is not marked as required or has a default value")
+			}
+		}
+	}
 	return res
 }
 
@@ -68,7 +81,10 @@ func paramsDefinedNotUsed(pf *packages.Files) verifier.Result {
 	}
 	for _, value := range pf.Params.Parameters {
 		if _, ok := tparams[value.Name]; !ok {
-			res.AddParamWarning(value.Name, "defined but not used.")
+			// A parameter could be use to trigger a plan while not being used in templates.
+			if value.Trigger == "" {
+				res.AddParamWarning(value.Name, "defined but not used.")
+			}
 		}
 	}
 	return res

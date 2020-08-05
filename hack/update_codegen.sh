@@ -10,15 +10,13 @@ set -o pipefail
 export GO111MODULE=on
 version_and_repo=$(go list -f '{{if .Replace}}{{.Replace.Version}} {{.Replace.Path}}{{else}}{{.Version}} {{.Path}}{{end}}' -m k8s.io/code-generator)
 VERSION="$(echo "${version_and_repo}" | cut -d' ' -f 1 | rev | cut -d"-" -f1 | rev)"
-CODEGEN_REPO="$(echo "${version_and_repo}" | cut -d' ' -f 2)"
 REPO_ROOT="${REPO_ROOT:-$(git rev-parse --show-toplevel)}"
 CODE_GEN_DIR="${REPO_ROOT}/hack/code-gen/$VERSION"
 
 if [[ -d ${CODE_GEN_DIR} ]]; then
     echo "Using cached code generator version: $VERSION"
 else
-    echo "Cloning code-generator from ${CODEGEN_REPO}"
-    git clone https://${CODEGEN_REPO}.git "${CODE_GEN_DIR}"
+    git clone https://github.com/kubernetes/code-generator.git "${CODE_GEN_DIR}"
     git -C "${CODE_GEN_DIR}" reset --hard "${VERSION}"
 fi
 

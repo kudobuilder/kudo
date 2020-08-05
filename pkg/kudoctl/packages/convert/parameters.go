@@ -26,6 +26,7 @@ func ParametersToCRDType(parameters packages.Parameters) ([]kudov1beta1.Paramete
 			Default:     d,
 			Trigger:     parameter.Trigger,
 			Type:        parameter.Type,
+			Immutable:   parameter.Immutable,
 		})
 	}
 

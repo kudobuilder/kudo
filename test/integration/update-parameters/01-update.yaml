@@ -1,0 +1,11 @@
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
+  name: toy1
+spec:
+  parameters:
+    Replicas: "3"
+status:
+  planStatus:
+    deploy:
+      status: COMPLETE

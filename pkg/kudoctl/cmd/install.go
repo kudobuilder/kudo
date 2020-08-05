@@ -11,12 +11,11 @@ import (
 )
 
 var (
-	installExample = `  The install argument must be a name of the package in the repository, a path to package in *.tgz format,
+	installExample = `  The install argument must be a name of the package in the repository, a URL or path to package in *.tgz format,
   or a path to an unpacked package directory.
 
-  # Install the most recent Flink package to your cluster.
+  # Install the most recent Flink package from KUDO repository to your cluster.
   kubectl kudo install flink
-  #*Note*: should you have a local  "flink" folder in the current directory it will take precedence over the remote repository.
 
   # Install operator from a local filesystem
   kubectl kudo install pkg/kudoctl/util/repo/testdata/zk
@@ -62,6 +61,7 @@ func newInstallCmd(fs afero.Fs) *cobra.Command {
 	installCmd.Flags().BoolVar(&options.SkipInstance, "skip-instance", false, "If set, install will install the Operator and OperatorVersion, but not an Instance. (default \"false\")")
 	installCmd.Flags().BoolVar(&options.Wait, "wait", false, "Specify if the CLI should wait for the install to complete before returning (default \"false\")")
 	installCmd.Flags().Int64Var(&options.WaitTime, "wait-time", 300, "Specify the max wait time in seconds for CLI for the install to complete before returning (default \"300\")")
+	installCmd.Flags().BoolVar(&options.CreateNameSpace, "create-namespace", false, "If set, install will create the specified namespace and will fail if it exists. (default \"false\")")
 
 	return installCmd
 }

@@ -10,7 +10,7 @@ owners:
 editor: @zen-dog
 creation-date: 2020-03-30
 last-updated: 2020-04-16
-status: provisional
+status: implemented
 ---
 
 # Operator Dependencies
@@ -23,7 +23,7 @@ status: provisional
   * [Non-Goals](#non-goals)
 * [Proposal](#proposal)
   * [Implementation Details](#implementation-details)
-    * [Operator Task](#operator-task)
+    * [KudoOperator Task](#kudooperator-task)
     * [Deployment](#deployment)
       * [Client-Side](#client-side)
       * [Server-Side](#server-side)
@@ -41,7 +41,7 @@ This KEP aims to improve operator user and developer experience by introducing o
 
 ## Motivation
 
-Recent operator development has shown that complex operators often depend on other operators to function. One workaround commonly seen can be found in the [Flink Demo](https://github.com/kudobuilder/operators/tree/master/repository/flink/docs/demo/financial-fraud) where an `Instance` of Flink needs an `Instance` of Kafka, which in turn needs an `Instance` of Zookeeper. There are two parts to the workaround:
+Recent operator development has shown that complex operators often depend on other operators to function. One workaround commonly seen can be found in the [Flink Demo](https://github.com/kudobuilder/operators/tree/main/repository/flink/docs/demo/financial-fraud) where an `Instance` of Flink needs an `Instance` of Kafka, which in turn needs an `Instance` of Zookeeper. There are two parts to the workaround:
 1. the operator user needs to first **manually** install the `kafka` and `zookeeper` operators while skipping the instance creation (using the `kubectl kudo install ... --skip-instance` CLI option).
 2. then, the user runs a regular `kubectl kudo install flink`, whose `deploy` plan includes `Instance` resources for Kafka and Zookeeper, which are bundled along other Flink operator templates in YAML format (rather than being created on-the-fly from an operator package).
 
@@ -61,9 +61,9 @@ KUDO operators **already have** a mechanism to deal with installation dependenci
 
 ### Implementation details
 
-#### Operator Task
+#### KudoOperator Task
 
-A new task kind `Operator` is introduced which extends `operator.yaml` with the ability to install dependencies. Let's take a look at the Kafka+Zookeeper example:
+A new task kind `KudoOperator` is introduced which extends `operator.yaml` with the ability to install dependencies. Let's take a look at the Kafka+Zookeeper example:
 
 ```yaml
 apiVersion: kudo.dev/v1beta1
@@ -102,7 +102,7 @@ The `zookeeper-operator` task specification is equivalent to `kudo install zooke
 ```yaml
 tasks:
 - name: demo
-  kind: Operator
+  kind: KudoOperator
   spec:
     package: # required, either repo package name, local package folder or an URL to package tarball
     appVersion: # optional, a specific app version in the official repo, defaults to the most recent one
@@ -110,7 +110,7 @@ tasks:
     instanceName: # optional, the instance name
 ```
 
-As you can see, this closely mimics the `kudo install` CLI command [options](https://github.com/kudobuilder/kudo/blob/master/pkg/kudoctl/cmd/install.go#L56) because at the end the latter will be executed to install the operator. We omit `parameters` and `parameterFile` options at this point as they are discussed in detail [below](#dependencies-parametrization).
+As you can see, this closely mimics the `kudo install` CLI command [options](https://github.com/kudobuilder/kudo/blob/main/pkg/kudoctl/cmd/install.go#L56) because at the end the latter will be executed to install the operator. We omit `parameters` and `parameterFile` options at this point as they are discussed in detail [below](#dependencies-parametrization).
 
 #### Deployment
 
@@ -130,7 +130,7 @@ Upon receiving a new operator Instance with dependencies KUDO mangers workflow e
 
 1. Build a [dependency graph](https://en.wikipedia.org/wiki/Dependency_graph) by transitively expanding top-level `deploy` plan using operator-tasks as vertices, and their execution order (`a` needs `b` to be installed first) as edges
 2. Perform cycle detection and fail if circular dependencies found. We could additionally run this check on the client-side as part of the `kudo package verify` command to improve the UX
-3. If we haven't found any cycles, start executing the top-level `deploy` plan. When encountering an operator-task, apply the corresponding `Instance` resource. Here it is the same as for any other resource that we create: we check if it is healthy and if not, end current plan execution and "wait" for it to become healthy. KUDO manager already has a [health check](https://github.com/kudobuilder/kudo/blob/master/pkg/engine/health/health.go#L78) for `Instance` resources implemented.
+3. If we haven't found any cycles, start executing the top-level `deploy` plan. When encountering an operator-task, apply the corresponding `Instance` resource. Here it is the same as for any other resource that we create: we check if it is healthy and if not, end current plan execution and "wait" for it to become healthy. KUDO manager already has a [health check](https://github.com/kudobuilder/kudo/blob/main/pkg/engine/health/health.go#L78) for `Instance` resources implemented.
 
 Let's take a look at an example. Here is a simplified operator `AA` with a few dependencies:
 
@@ -178,7 +178,7 @@ Operator `BB` has a required and empty parameter `PASSWORD`. To provide a way fo
 ```yaml
 tasks:
 - name: deploy-bb
-  kind: Operator
+  kind: KudoOperator
   spec:
     parameterFile: bb-params.yaml # optional, defines the parameter that will be set on the bb-instance  
 ```
@@ -224,7 +224,7 @@ spec:
     required: true
   tasks:
   - name: deploy-bb
-    kind: Operator
+    kind: KudoOperator
     spec:
       parameterFile: bb-params.yaml
   templates:
@@ -266,15 +266,15 @@ While an out-of-band upgrade of the individual dependency operators is possible 
 
 #### Uninstalling
 
-Current `kudo uninstall` CLI command only removes instances (with required `--instance` option) using [Background deletion propagation](https://github.com/kudobuilder/kudo/blob/master/pkg/kudoctl/util/kudo/kudo.go#L281). Remember that we've added top-level `Instance` reference to the dependency operators `ownerReferences` list during [deployment](#deployment). Now we can simply delete the top-level `Instance` and let the GC delete all the others.
+Current `kudo uninstall` CLI command only removes instances (with required `--instance` option) using [Background deletion propagation](https://github.com/kudobuilder/kudo/blob/main/pkg/kudoctl/util/kudo/kudo.go#L281). Remember that we've added top-level `Instance` reference to the dependency operators `ownerReferences` list during [deployment](#deployment). Now we can simply delete the top-level `Instance` and let the GC delete all the others.
 
 #### Other Plans
 
-It can be meaningful to allow [operator-tasks](#operator-task) outside of `deploy`, `update` and `upgrade` plans. A `monitoring` plan might install a monitoring operator package. We could even allow installation from a local disk by doing the same client-side steps for the `monitoring` plan when it is triggered. While the foundation provided by this KEP would make it easy, this KEP focuses on the installation dependencies, so we would probably forbid operator-tasks outside of `deploy`, `update` and `upgrade` in the beginning.
+It can be meaningful to allow [operator-tasks](#kudooperator-task) outside of `deploy`, `update` and `upgrade` plans. A `monitoring` plan might install a monitoring operator package. We could even allow installation from a local disk by doing the same client-side steps for the `monitoring` plan when it is triggered. While the foundation provided by this KEP would make it easy, this KEP focuses on the installation dependencies, so we would probably forbid operator-tasks outside of `deploy`, `update` and `upgrade` in the beginning.
 
 ### Risks and Mitigation
 
-The biggest risk is the increased complexity of the instance controller and the workflow engine. With the above approach, we can reuse much of the code and UX we have currently: plans and phases for flow control, local operators and custom operator repositories for easier development and deployment, and usual status reporting for debugging. The API footprint remains small as the only new API element is the [operator-task](#operator-task). Dependency graph building and traversal will require a graph library and there are a [few](https://github.com/yourbasic/graph) [out](https://godoc.org/github.com/twmb/algoimpl/go/graph) [there](https://godoc.org/gonum.org/v1/gonum/graph) so this will help mitigate some complexity.
+The biggest risk is the increased complexity of the instance controller and the workflow engine. With the above approach, we can reuse much of the code and UX we have currently: plans and phases for flow control, local operators and custom operator repositories for easier development and deployment, and usual status reporting for debugging. The API footprint remains small as the only new API element is the [operator-task](#kudooperator-task). Dependency graph building and traversal will require a graph library and there are a [few](https://github.com/yourbasic/graph) [out](https://godoc.org/github.com/twmb/algoimpl/go/graph) [there](https://godoc.org/gonum.org/v1/gonum/graph) so this will help mitigate some complexity.
 
 ## Alternatives
 

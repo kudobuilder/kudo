@@ -11,15 +11,17 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
+	"github.com/thoas/go-funk"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	extv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	yamlutil "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes/fake"
-	testcore "k8s.io/client-go/testing"
+	testing2 "k8s.io/client-go/testing"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -28,24 +30,6 @@ import (
 )
 
 var updateGolden = flag.Bool("update", false, "update .golden files and manifests in /config/crd")
-
-func TestInitCmd_dry(t *testing.T) {
-
-	var buf bytes.Buffer
-
-	cmd := &initCmd{
-		out:    &buf,
-		fs:     afero.NewMemMapFs(),
-		dryRun: true,
-	}
-	if err := cmd.run(); err != nil {
-		t.Errorf("expected error: %v", err)
-	}
-	expected := ""
-	if !strings.Contains(buf.String(), expected) {
-		t.Errorf("expected %q, got %q", expected, buf.String())
-	}
-}
 
 func TestInitCmd_exists(t *testing.T) {
 
@@ -58,13 +42,12 @@ func TestInitCmd_exists(t *testing.T) {
 	})
 	fc2 := apiextfake.NewSimpleClientset()
 
-	fc.PrependReactor("*", "*", func(action testcore.Action) (bool, runtime.Object, error) {
-		return true, nil, apierrors.NewAlreadyExists(v1.Resource("deployments"), "1")
-	})
 	cmd := &initCmd{
-		out:    &buf,
-		fs:     afero.NewMemMapFs(),
-		client: &kube.Client{KubeClient: fc, ExtClient: fc2},
+		out:                 &buf,
+		fs:                  afero.NewMemMapFs(),
+		client:              &kube.Client{KubeClient: fc, ExtClient: fc2},
+		image:               "fake",
+		selfSignedWebhookCA: true,
 	}
 	clog.InitWithFlags(nil, &buf)
 	Settings.Home = "/opt"
@@ -81,24 +64,37 @@ func TestInitCmd_exists(t *testing.T) {
 
 // TestInitCmd_output tests that init -o can be decoded
 func TestInitCmd_output(t *testing.T) {
-
 	fc := fake.NewSimpleClientset()
+	client := &kube.Client{
+		KubeClient: fc,
+		ExtClient:  apiextfake.NewSimpleClientset(),
+	}
+
+	MockCRD(client, "certificates.cert-manager.io", "v1alpha2")
+	MockCRD(client, "issuers.cert-manager.io", "v1alpha2")
+
 	tests := []string{"yaml"}
 	for _, s := range tests {
 		var buf bytes.Buffer
+		var errOut bytes.Buffer
 		cmd := &initCmd{
-			out:    &buf,
-			client: &kube.Client{KubeClient: fc},
-			output: s,
-			dryRun: true,
+			out:     &buf,
+			errOut:  &errOut,
+			client:  client,
+			output:  s,
+			dryRun:  true,
+			version: "dev",
 		}
 		// ensure that we can marshal
 		if err := cmd.run(); err != nil {
 			t.Fatal(err)
 		}
-		// ensure no calls against the server
-		if got := len(fc.Actions()); got != 0 {
-			t.Errorf("expected no server calls, got %d", got)
+		// ensure no modifying calls against the server
+		forbiddenVerbs := []string{"create", "update", "patch", "delete"}
+		for _, a := range fc.Actions() {
+			if funk.Contains(forbiddenVerbs, a.GetVerb()) {
+				t.Errorf("got modifying server call: %v", a)
+			}
 		}
 
 		assert.True(t, len(buf.Bytes()) > 0, "Buffer needs to have an output")
@@ -118,21 +114,60 @@ func TestInitCmd_output(t *testing.T) {
 }
 
 func TestInitCmd_yamlOutput(t *testing.T) {
+	customNs := &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "foo",
+		},
+	}
+	customSa := &v1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "foo",
+			Name:      "safoo",
+		},
+	}
+	crb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "safoocrb",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Namespace: "foo",
+				Name:      "safoo",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     "cluster-admin",
+		},
+	}
+
+	fc := fake.NewSimpleClientset(crb, customNs, customSa)
+	client := &kube.Client{
+		KubeClient: fc,
+		ExtClient:  apiextfake.NewSimpleClientset(),
+	}
+
+	MockCRD(client, "certificates.cert-manager.io", "v1alpha2")
+	MockCRD(client, "issuers.cert-manager.io", "v1alpha2")
+
 	tests := []struct {
 		name       string
 		goldenFile string
 		flags      map[string]string
 	}{
-		{"custom namespace", "deploy-kudo-ns.yaml", map[string]string{"dry-run": "true", "output": "yaml", "namespace": "foo"}},
-		{"yaml output", "deploy-kudo.yaml", map[string]string{"dry-run": "true", "output": "yaml"}},
-		{"service account", "deploy-kudo-sa.yaml", map[string]string{"dry-run": "true", "output": "yaml", "service-account": "safoo", "namespace": "foo"}},
-		{"with webhook", "deploy-kudo-webhook.yaml", map[string]string{"dry-run": "true", "output": "yaml", "webhook": "InstanceValidation"}},
+		{"custom namespace", "deploy-kudo-ns.yaml", map[string]string{"dry-run": "true", "output": "yaml", "namespace": "foo", "version": "dev"}},
+		{"yaml output", "deploy-kudo.yaml", map[string]string{"dry-run": "true", "output": "yaml", "version": "dev"}},
+		{"service account", "deploy-kudo-sa.yaml", map[string]string{"dry-run": "true", "output": "yaml", "service-account": "safoo", "namespace": "foo", "version": "dev"}},
 	}
 
 	for _, tt := range tests {
 		fs := afero.NewMemMapFs()
 		out := &bytes.Buffer{}
-		initCmd := newInitCmd(fs, out)
+		errOut := &bytes.Buffer{}
+		initCmd := newInitCmd(fs, out, errOut, client)
+
 		Settings.AddFlags(initCmd.Flags())
 
 		for f, value := range tt.flags {
@@ -142,13 +177,15 @@ func TestInitCmd_yamlOutput(t *testing.T) {
 		}
 
 		if err := initCmd.RunE(initCmd, []string{}); err != nil {
-			t.Fatal(err)
+			t.Fatal(err, errOut.String())
 		}
 
 		gp := filepath.Join("testdata", tt.goldenFile+".golden")
 
 		if *updateGolden {
 			t.Logf("updating golden file %s", tt.goldenFile)
+
+			//nolint:gosec
 			if err := ioutil.WriteFile(gp, out.Bytes(), 0644); err != nil {
 				t.Fatalf("failed to update golden file: %s", err)
 			}
@@ -158,7 +195,7 @@ func TestInitCmd_yamlOutput(t *testing.T) {
 			t.Fatalf("failed reading .golden: %s", err)
 		}
 
-		assert.Equal(t, string(g), out.String(), "for golden file: %s", gp)
+		assert.Equal(t, string(g), out.String(), "for golden file: %s, for test %s", gp, tt.name)
 	}
 
 }
@@ -173,8 +210,11 @@ func TestNewInitCmd(t *testing.T) {
 	}{
 		{name: "arguments invalid", parameters: []string{"foo"}, errorMessage: "this command does not accept arguments"},
 		{name: "name and version together invalid", flags: map[string]string{"kudo-image": "foo", "version": "bar"}, errorMessage: "specify either 'kudo-image' or 'version', not both"},
-		{name: "crd-only and wait together invalid", flags: map[string]string{"crd-only": "true", "wait": "true"}, errorMessage: "wait is not allowed with crd-only"},
+		{name: "crd-only and wait together invalid: there's nothing to wait for", flags: map[string]string{"crd-only": "true", "wait": "true"}, errorMessage: "wait is not allowed with crd-only"},
 		{name: "wait-timeout invalid without wait", flags: map[string]string{"wait-timeout": "400"}, errorMessage: "wait-timeout is only useful when using the flag '--wait'"},
+		{name: "crd-only and upgrade together invalid", flags: map[string]string{"crd-only": "true", "upgrade": "true"}, errorMessage: "'--upgrade' and '--crd-only' can not be used at the same time: you can not upgrade *only* crds"},
+		{name: "verify and dry-run together invalid: verify is read-only anyway", flags: map[string]string{"dry-run": "true", "verify": "true"}, errorMessage: "'--dry-run' and '--verify' can not be used at the same time"},
+		{name: "verify and upgrade together invalid: verify is a separate command", flags: map[string]string{"upgrade": "true", "verify": "true"}, errorMessage: "'--upgrade' and '--verify' can not be used at the same time"},
 	}
 
 	for _, tt := range tests {
@@ -182,7 +222,8 @@ func TestNewInitCmd(t *testing.T) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
-			initCmd := newInitCmd(fs, out)
+			errOut := &bytes.Buffer{}
+			initCmd := newInitCmd(fs, out, errOut, nil)
 			for key, value := range tt.flags {
 				if err := initCmd.Flags().Set(key, value); err != nil {
 					t.Fatal(err)
@@ -207,7 +248,7 @@ func TestClientInitialize(t *testing.T) {
 	hh := kudohome.Home(home)
 
 	i := &initCmd{fs: fs, out: b, home: hh}
-	if err := i.initialize(); err != nil {
+	if err := i.ensureClient(); err != nil {
 		t.Error(err)
 	}
 
@@ -234,4 +275,34 @@ func TestClientInitialize(t *testing.T) {
 		t.Error(err)
 	}
 	assert.Equal(t, r.CurrentConfiguration().URL, RepositoryURL)
+}
+
+func MockCRD(client *kube.Client, crdName string, apiVersion string) {
+	client.ExtClient.(*apiextfake.Clientset).Fake.PrependReactor("get", "customresourcedefinitions", func(action testing2.Action) (handled bool, ret runtime.Object, err error) {
+
+		getAction, _ := action.(testing2.GetAction)
+		if getAction != nil {
+			if getAction.GetName() == crdName {
+				crd := &extv1beta1.CustomResourceDefinition{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: apiVersion,
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: crdName,
+					},
+					Spec: extv1beta1.CustomResourceDefinitionSpec{
+						Versions: []extv1beta1.CustomResourceDefinitionVersion{
+							{
+								Name: apiVersion,
+							},
+						},
+					},
+					Status: extv1beta1.CustomResourceDefinitionStatus{},
+				}
+				return true, crd, nil
+			}
+		}
+
+		return false, nil, nil
+	})
 }

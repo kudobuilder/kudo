@@ -21,6 +21,8 @@ func TestPackageListTasks(t *testing.T) {
 
 	if *updateGolden {
 		t.Log("update golden file")
+
+		//nolint:gosec
 		if err := ioutil.WriteFile(gp, out.Bytes(), 0644); err != nil {
 			t.Fatalf("failed to update golden file: %s", err)
 		}

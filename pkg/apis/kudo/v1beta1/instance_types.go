@@ -16,7 +16,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	"fmt"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -55,14 +54,7 @@ type PlanExecution struct {
 // InstanceStatus defines the observed state of Instance
 type InstanceStatus struct {
 	// slice would be enough here but we cannot use slice because order of sequence in yaml is considered significant while here it's not
-	PlanStatus       map[string]PlanStatus `json:"planStatus,omitempty"`
-	AggregatedStatus AggregatedStatus      `json:"aggregatedStatus,omitempty"`
-}
-
-// AggregatedStatus is overview of an instance status derived from the plan status
-type AggregatedStatus struct {
-	Status         ExecutionStatus `json:"status,omitempty"`
-	ActivePlanName string          `json:"activePlanName,omitempty"`
+	PlanStatus map[string]PlanStatus `json:"planStatus,omitempty"`
 }
 
 // PlanStatus is representing status of a plan
@@ -134,15 +126,19 @@ func (s *PhaseStatus) SetWithMessage(status ExecutionStatus, message string) {
 }
 
 func (s *PlanStatus) Set(status ExecutionStatus) {
-	s.LastUpdatedTimestamp = &metav1.Time{Time: time.Now()}
-	s.Status = status
-	s.Message = ""
+	if s.Status != status {
+		s.LastUpdatedTimestamp = &metav1.Time{Time: time.Now()}
+		s.Status = status
+		s.Message = ""
+	}
 }
 
 func (s *PlanStatus) SetWithMessage(status ExecutionStatus, message string) {
-	s.LastUpdatedTimestamp = &metav1.Time{Time: time.Now()}
-	s.Status = status
-	s.Message = message
+	if s.Status != status || s.Message != message {
+		s.LastUpdatedTimestamp = &metav1.Time{Time: time.Now()}
+		s.Status = status
+		s.Message = message
+	}
 }
 
 // ExecutionStatus captures the state of the rollout.
@@ -189,12 +185,12 @@ var (
 	}
 )
 
-// IsTerminal returns true if the status is terminal (either complete, or in a nonrecoverable error)
+// IsTerminal returns true if the status is terminal (either complete, or in a fatal error)
 func (s ExecutionStatus) IsTerminal() bool {
 	return s == ExecutionComplete || s == ExecutionFatalError
 }
 
-// IsFinished returns true if the status is complete regardless of errors
+// IsFinished returns true if the status is complete successfully (not in 'FATAL_ERROR' state)
 func (s ExecutionStatus) IsFinished() bool {
 	return s == ExecutionComplete
 }
@@ -228,15 +224,4 @@ type InstanceList struct {
 
 func init() {
 	SchemeBuilder.Register(&Instance{}, &InstanceList{})
-}
-
-// InstanceError indicates error on that can also emit a kubernetes warn event
-// +k8s:deepcopy-gen=false
-type InstanceError struct {
-	Err       error
-	EventName *string // nil if no warn event should be created
-}
-
-func (e *InstanceError) Error() string {
-	return fmt.Sprintf("Error during execution: %v", e.Err)
 }

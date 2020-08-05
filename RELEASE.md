@@ -2,22 +2,22 @@
 
 ## Development Processes
 
-### Master
+### Main
 
-The `HEAD` of `master` branch is considered the most active development, to which new features and bug fixes are applied. The expectation is that master will always build and pass tests.
+The `HEAD` of `main` branch is considered the most active development, to which new features and bug fixes are applied. The expectation is that main will always build and pass tests.
 Development is incremental. It is expected that pull-requests are either:
  - complete and fully integrated into code execution path, or
  - have a feature switch which must be enabled until code completion is reached.
 
-`HEAD` on master is expected to be in a state that it could be released.
-The next major release will be tagged and released from master.
-If the current released version is `v0.3.1` and the next major release is `v0.4.0`, then when it is deemed appropriate `v0.4.0` will be tagged off master, followed by a release.
-From that tag work will continue on master.
+`HEAD` on main is expected to be in a state that it could be released.
+The next major release will be tagged and released from main.
+If the current released version is `v0.3.1` and the next major release is `v0.4.0`, then when it is deemed appropriate `v0.4.0` will be tagged off main, followed by a release.
+From that tag work will continue on main.
 
 *If* it is necessary in the future to have a patch release for `v0.4.1`, a branch will be created off the `v0.4.0` tag with the nomenclature of `releases/{major.minor}`, in this example `releases/0.4`.
 Branches matching `releases/*` are protected branches in the repository.
 
-The `HEAD` of the release branches follows the same conventions as master.  It is expected that `HEAD` of the release branch is always in a releasable state. The purpose of the release branch is for bug fixes only.  New features should not be targeted to a release branch.
+The `HEAD` of the release branches follows the same conventions as main.  It is expected that `HEAD` of the release branch is always in a releasable state. The purpose of the release branch is for bug fixes only.  New features should not be targeted to a release branch.
 
 ### Documentation
 
@@ -34,7 +34,7 @@ what the exact version number will be up-front.
 
 ### Bug Fixes
 
-Bug fixes are expected to be worked on and applied to `master`.
+Bug fixes are expected to be worked on and applied to `main`.
 
 If the fix is needed for a previously supported release version of KUDO, then a backport is expected.
 The bug fix pull request is expected to be marked with a `backport` label.
@@ -70,15 +70,15 @@ The token must grant full access to: `repo`, `write:packages`, `read:packages`.
 1. Invoke goreleaser `goreleaser --rm-dist`.
 1. Update the GH release with release highlights. There is a draft that contains categorized changes since the last release. It provides categories for highlights, breaking changes, and contributors which should be added the gorelease release notes. The changelog from the draft log is ignored. After the contents are copied, the draft can be deleted.
 1. Merge the [branch](#documentation) of the [`kudo.dev`](https://github.com/kudobuilder/kudo.dev) repo dedicated to current release
-   into `master`, following the regular GitHub pull request process.
+   into `main`, following the regular GitHub pull request process.
 1. Immediately after that, create a `post-v0.2.0` branch for documentation for a *future* release
-   from the tip of `master` of the [`kudo.dev`](https://github.com/kudobuilder/kudo.dev) repo,
+   from the tip of `main` of the [`kudo.dev`](https://github.com/kudobuilder/kudo.dev) repo,
    for example in the GitHub UI:
    
    ![img](.github/new-branch.png)
 1. Send an announcement email to [kudobuilder@googlegroups.com](https://groups.google.com/forum/#!forum/kudobuilder) with the subject `[ANNOUNCE] Kudo $VERSION is released`
 1. Run `./hack/generate_krew.sh` and submit the generated `kudo.yaml` to https://github.com/kubernetes-sigs/krew-index/.
-1. Update KUDO_VERSION [in the Makefile](https://github.com/kudobuilder/operators/blob/master/Makefile#L2) of operators repo
+1. Update KUDO_VERSION [in the Makefile](https://github.com/kudobuilder/operators/blob/main/Makefile#L2) of operators repo
 
 **Note:** If there are issues with the release, any changes to the repository will result in it being considered "dirty" and not in a state to be released.
 It is possible outside of the standard release process to build a "snapshot" release using the following command: `goreleaser release --skip-publish --snapshot --rm-dist`
@@ -88,11 +88,11 @@ This process will create a `dist` folder with all the build artifacts. The chang
 
 ### Cutting a Release Branch
 
-As outlined above, when it is necessary to create a new release branch, it is necessary to update the [circle-ci config](https://github.com/kudobuilder/kudo/blob/master/.circle-ci/config.yml#L13) to test merges against the correct branch. It is necessary replace all references to `master` with the appropriate release branch.
+As outlined above, when it is necessary to create a new release branch, it is necessary to update the [circle-ci config](https://github.com/kudobuilder/kudo/blob/main/.circle-ci/config.yml#L13) to test merges against the correct branch. It is necessary replace all references to `main` with the appropriate release branch.
 
 ### Cutting a Patch Release
 
-When cutting a patch release, for example `v0.3.3`, it is necessary to ensure that all bugs fixed on master after `v0.3.2` have landed on the release branch, `releases/0.3` in this case.
+When cutting a patch release, for example `v0.3.3`, it is necessary to ensure that all bugs fixed on main after `v0.3.2` have landed on the release branch, `releases/0.3` in this case.
 
 ### Cutting a pre-release
 
