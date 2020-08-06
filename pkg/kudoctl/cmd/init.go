@@ -233,8 +233,10 @@ func (initCmd *initCmd) runInstall(installer *setup.Installer) error {
 		return fmt.Errorf("failed to verify installation requirements")
 	}
 
-	if err = initCmd.runYamlOutput(installer); err != nil {
-		return err
+	if initCmd.output != "" {
+		if err = initCmd.runYamlOutput(installer); err != nil {
+			return err
+		}
 	}
 
 	if !initCmd.dryRun {
@@ -254,8 +256,10 @@ func (initCmd *initCmd) runUpgrade(installer *setup.Installer) error {
 		return fmt.Errorf("failed to verify upgrade requirements")
 	}
 
-	if err = initCmd.runYamlOutput(installer); err != nil {
-		return err
+	if initCmd.output != "" {
+		if err = initCmd.runYamlOutput(installer); err != nil {
+			return err
+		}
 	}
 
 	if !initCmd.dryRun {
