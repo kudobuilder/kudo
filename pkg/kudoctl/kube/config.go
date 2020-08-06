@@ -50,6 +50,10 @@ func GetKubeClient(kubeconfig string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	return GetKubeClientForConfig(config)
+}
+
+func GetKubeClientForConfig(config *rest.Config) (*Client, error) {
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("could not get Kubernetes client: %s", err)

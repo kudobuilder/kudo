@@ -20,6 +20,7 @@ import (
 
 	// Import Kubernetes authentication providers to support GKE, etc.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -52,7 +53,13 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 	// set default configs
 	config.Timeout = time.Duration(requestTimeout) * time.Second
 
-	kubeClient, err := kube.GetKubeClient(kubeConfigPath)
+	return NewClientForConfig(config, validateInstall)
+}
+
+// NewClient creates new KUDO Client
+func NewClientForConfig(config *rest.Config, validateInstall bool) (*Client, error) {
+
+	kubeClient, err := kube.GetKubeClientForConfig(config)
 	if err != nil {
 		return nil, clog.Errorf("could not get Kubernetes client: %s", err)
 	}

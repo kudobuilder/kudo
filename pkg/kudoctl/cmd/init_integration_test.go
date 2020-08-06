@@ -30,6 +30,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
 var testenv testutils.TestEnvironment
@@ -57,6 +58,20 @@ const (
 	instanceFileName        = "kudo.dev_instances.yaml"
 	manifestsDir            = "../../../config/crds/"
 )
+
+func TestKudoClientValidate(t *testing.T) {
+	tests := []struct {
+		err string
+	}{
+		{"CRDs invalid: CRD operators.kudo.dev is not installed"}, // verify that NewClient tries to validate CRDs
+	}
+
+	for _, tt := range tests {
+		_, err := kudo.NewClientForConfig(testenv.Config, true)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), tt.err)
+	}
+}
 
 func TestCrds_Config(t *testing.T) {
 	crds := crd.NewInitializer()
@@ -427,5 +442,7 @@ func getKubeClient(t *testing.T) *kube.Client {
 	assert.NoError(t, err)
 	xc, err := apiextensionsclient.NewForConfig(testenv.Config)
 	assert.NoError(t, err)
-	return &kube.Client{KubeClient: c, ExtClient: xc}
+	cc, err := client.New(testenv.Config, client.Options{})
+	assert.NoError(t, err)
+	return &kube.Client{KubeClient: c, ExtClient: xc, CtrlClient: cc}
 }
