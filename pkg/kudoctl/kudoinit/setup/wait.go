@@ -38,31 +38,14 @@ func verifyKudoDeployment(client corev1.PodsGetter, namespace string) (bool, err
 // isKUDOPodReady fetches the KUDO pod running in the given namespace and returns true if Ready Condition has a status of true
 func isKUDOPodReady(client corev1.PodsGetter, namespace string) (bool, error) {
 	selector := manager.GenerateLabels().AsSelector()
-	pod, err := getFirstRunningPod(client, namespace, selector)
-	if err != nil {
+	pod, err := getFirstReadyPod(client, namespace, selector)
+	if err != nil || pod == nil {
 		return false, err
 	}
-
-	s, err := managerContainerStatus(pod)
-	if err != nil {
-		return false, err
-	}
-
-	// status.containerStatues[.name == manager].ready == true
-	return s.Ready, nil
+	return true, nil
 }
 
-// managerContainerStatus returns containerstatus for manager container or error if no manager or status discovered
-func managerContainerStatus(pod *v1.Pod) (*v1.ContainerStatus, error) {
-	for _, s := range pod.Status.ContainerStatuses {
-		if s.Name == kudoinit.ManagerContainerName {
-			return &s, nil
-		}
-	}
-	return nil, errors.New("could not find a KUDO pod")
-}
-
-func getFirstRunningPod(client corev1.PodsGetter, namespace string, selector labels.Selector) (*v1.Pod, error) { //nolint:interfacer
+func getFirstReadyPod(client corev1.PodsGetter, namespace string, selector labels.Selector) (*v1.Pod, error) { //nolint:interfacer
 	options := metav1.ListOptions{LabelSelector: selector.String()}
 	pods, err := client.Pods(namespace).List(context.TODO(), options)
 	if err != nil {
