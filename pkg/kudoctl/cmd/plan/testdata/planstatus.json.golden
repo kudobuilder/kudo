@@ -1,0 +1,22 @@
+{
+  "planStatus": {
+    "deploy": {
+      "name": "deploy",
+      "status": "FATAL_ERROR",
+      "lastUpdatedTimestamp": "2019-10-17T01:01:01Z",
+      "phases": [
+        {
+          "name": "deploy",
+          "status": "FATAL_ERROR",
+          "steps": [
+            {
+              "name": "deploy",
+              "message": "error detail",
+              "status": "FATAL_ERROR"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

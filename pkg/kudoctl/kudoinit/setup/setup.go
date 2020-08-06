@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/yaml"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -148,25 +147,12 @@ func (i *Installer) Install(client *kube.Client) error {
 	return nil
 }
 
-func (i *Installer) AsYamlManifests() ([]string, error) {
+func (i *Installer) Resources() []runtime.Object {
 	var allManifests []runtime.Object
 
 	for _, initStep := range i.steps {
 		allManifests = append(allManifests, initStep.Resources()...)
 	}
 
-	return toYaml(allManifests)
-}
-
-func toYaml(objs []runtime.Object) ([]string, error) {
-	manifests := make([]string, len(objs))
-	for i, obj := range objs {
-		o, err := yaml.Marshal(obj)
-		if err != nil {
-			return []string{}, err
-		}
-		manifests[i] = string(o)
-	}
-
-	return manifests, nil
+	return allManifests
 }

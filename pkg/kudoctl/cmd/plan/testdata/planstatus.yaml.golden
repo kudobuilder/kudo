@@ -1,0 +1,13 @@
+planStatus:
+  deploy:
+    lastUpdatedTimestamp: "2019-10-17T01:01:01Z"
+    name: deploy
+    phases:
+    - name: deploy
+      status: FATAL_ERROR
+      steps:
+      - message: error detail
+        name: deploy
+        status: FATAL_ERROR
+    status: FATAL_ERROR
+

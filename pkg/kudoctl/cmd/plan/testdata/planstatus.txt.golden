@@ -1,0 +1,13 @@
+Plan(s) for "test" in namespace "default":
+.
+└── test (Operator-Version: "test-1.0" Active-Plan: "deploy")
+    ├── Plan deploy ( strategy) [FATAL_ERROR], last updated 2019-10-17 01:01:01
+    │   └── Phase deploy ( strategy) [FATAL_ERROR]
+    │       └── Step deploy [FATAL_ERROR] (error detail)
+    ├── Plan validate ( strategy) [NOT ACTIVE]
+    │   └── Phase validate ( strategy) [NOT ACTIVE]
+    │       └── Step validate [NOT ACTIVE]
+    └── Plan zzzinvalid ( strategy) [NOT ACTIVE]
+        └── Phase zzzinvalid ( strategy) [NOT ACTIVE]
+            └── Step zzzinvalid [NOT ACTIVE]
+

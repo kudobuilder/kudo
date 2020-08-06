@@ -4,13 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
@@ -266,19 +266,14 @@ func (initCmd *initCmd) runUpgrade(installer *setup.Installer) error {
 	return nil
 }
 
-func (initCmd *initCmd) runYamlOutput(installer *setup.Installer) error {
-	//TODO: implement output=yaml|json (define a type for output to constrain)
-	//define an Encoder to replace YAMLWriter
-	if strings.ToLower(initCmd.output) == "yaml" {
-		manifests, err := installer.AsYamlManifests()
-		if err != nil {
-			return err
-		}
-		if err := initCmd.YAMLWriter(initCmd.out, manifests); err != nil {
-			return err
-		}
+func (initCmd *initCmd) runYamlOutput(installer kudoinit.Artifacter) error {
+	r := installer.Resources()
+	res := []interface{}{}
+	for _, rr := range r {
+		res = append(res, rr)
 	}
-	return nil
+
+	return output.WriteObjects(res, initCmd.output, initCmd.out)
 }
 
 // verifyExistingInstallation checks if the current installation is valid and as expected
@@ -323,25 +318,6 @@ func (initCmd *initCmd) preUpgradeVerify(v kudoinit.InstallVerifier) (bool, erro
 		return false, nil
 	}
 	return true, nil
-}
-
-// YAMLWriter writes yaml to writer.   Looked into using https://godoc.org/gopkg.in/yaml.v2#NewEncoder which
-// looks like a better way, however the omitted JSON elements are encoded which results in a very verbose output.
-//TODO: Write a Encoder util which uses the "sigs.k8s.io/yaml" library for marshalling
-func (initCmd *initCmd) YAMLWriter(w io.Writer, manifests []string) error {
-	for _, manifest := range manifests {
-		if _, err := fmt.Fprintln(w, "---"); err != nil {
-			return err
-		}
-
-		if _, err := fmt.Fprintln(w, manifest); err != nil {
-			return err
-		}
-	}
-
-	// YAML ending document boundary marker
-	_, err := fmt.Fprintln(w, "...")
-	return err
 }
 
 func (initCmd *initCmd) ensureClient() error {
