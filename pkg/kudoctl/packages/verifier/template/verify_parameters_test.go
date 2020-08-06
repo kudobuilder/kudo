@@ -30,6 +30,15 @@ func TestTemplateParametersVerifier(t *testing.T) {
 {{.Bar}}
 {{.Name}}
 
+## All other implicits shouldn't fail
+{{.Namespace}}
+{{.OperatorName}}
+{{.OperatorVersion}}
+{{.PlanName}}
+{{.PhaseName}}
+{{.StepName}}
+{{.AppVersion}}
+
 ## $ as a prefix should not cause issues
 {{$.AppVersion}}
 {{$.Params.UsedViaRoot}}
