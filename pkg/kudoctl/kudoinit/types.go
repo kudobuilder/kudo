@@ -15,6 +15,7 @@ const (
 	DefaultServiceName    = "kudo-controller-manager-service"
 	DefaultSecretName     = "kudo-webhook-server-secret" //nolint
 	DefaultKudoLabel      = "kudo-manager"
+	ManagerContainerName  = "manager"
 	defaultGracePeriod    = 10
 	defaultServiceAccount = "kudo-manager"
 )

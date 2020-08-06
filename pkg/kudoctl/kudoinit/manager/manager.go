@@ -190,10 +190,19 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 							},
 							Image:           image,
 							ImagePullPolicy: imagePullPolicy,
-							Name:            "manager",
+							Name:            kudoinit.ManagerContainerName,
 							Ports: []corev1.ContainerPort{
 								// name matters for service
 								{ContainerPort: 443, Name: "webhook-server", Protocol: "TCP"},
+							},
+							// Prefer for StartupProbe, however that requires 1.16
+							// ReadinessProbe defaults: failureThreshold: 3, periodSeconds: 10, successThreshold: 1, timeoutSeconds: 1
+							ReadinessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									TCPSocket: &corev1.TCPSocketAction{
+										Port: intstr.FromInt(443),
+									},
+								},
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
