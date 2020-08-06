@@ -21,7 +21,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	yamlutil "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/kubernetes/scheme"
 	testing2 "k8s.io/client-go/testing"
+	fake2 "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -31,21 +33,42 @@ import (
 
 var updateGolden = flag.Bool("update", false, "update .golden files and manifests in /config/crd")
 
-func TestInitCmd_exists(t *testing.T) {
+type fakeClient struct {
+	client *kube.Client
+	fc     *fake.Clientset
+	fc2    *apiextfake.Clientset
+}
 
-	var buf bytes.Buffer
-	fc := fake.NewSimpleClientset(&v1beta1.Deployment{
+func newFakeClient(objs ...runtime.Object) fakeClient {
+	fc := fake.NewSimpleClientset(objs...)
+	fc2 := apiextfake.NewSimpleClientset()
+	cc := fake2.NewFakeClientWithScheme(scheme.Scheme, objs...)
+
+	return fakeClient{
+		client: &kube.Client{
+			KubeClient: fc,
+			ExtClient:  fc2,
+			CtrlClient: cc,
+		},
+		fc:  fc,
+		fc2: fc2,
+	}
+}
+
+func TestInitCmd_exists(t *testing.T) {
+	c := newFakeClient(&v1beta1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "kudo-system",
 			Name:      "kudo-manager-deploy",
 		},
 	})
-	fc2 := apiextfake.NewSimpleClientset()
+
+	var buf bytes.Buffer
 
 	cmd := &initCmd{
 		out:                 &buf,
 		fs:                  afero.NewMemMapFs(),
-		client:              &kube.Client{KubeClient: fc, ExtClient: fc2},
+		client:              c.client,
 		image:               "fake",
 		selfSignedWebhookCA: true,
 	}
@@ -64,14 +87,10 @@ func TestInitCmd_exists(t *testing.T) {
 
 // TestInitCmd_output tests that init -o can be decoded
 func TestInitCmd_output(t *testing.T) {
-	fc := fake.NewSimpleClientset()
-	client := &kube.Client{
-		KubeClient: fc,
-		ExtClient:  apiextfake.NewSimpleClientset(),
-	}
+	c := newFakeClient()
 
-	MockCRD(client, "certificates.cert-manager.io", "v1alpha2")
-	MockCRD(client, "issuers.cert-manager.io", "v1alpha2")
+	MockCRD(c.client, "certificates.cert-manager.io", "v1alpha2")
+	MockCRD(c.client, "issuers.cert-manager.io", "v1alpha2")
 
 	tests := []string{"yaml"}
 	for _, s := range tests {
@@ -80,7 +99,7 @@ func TestInitCmd_output(t *testing.T) {
 		cmd := &initCmd{
 			out:     &buf,
 			errOut:  &errOut,
-			client:  client,
+			client:  c.client,
 			output:  s,
 			dryRun:  true,
 			version: "dev",
@@ -91,7 +110,7 @@ func TestInitCmd_output(t *testing.T) {
 		}
 		// ensure no modifying calls against the server
 		forbiddenVerbs := []string{"create", "update", "patch", "delete"}
-		for _, a := range fc.Actions() {
+		for _, a := range c.fc.Actions() {
 			if funk.Contains(forbiddenVerbs, a.GetVerb()) {
 				t.Errorf("got modifying server call: %v", a)
 			}
@@ -142,15 +161,10 @@ func TestInitCmd_yamlOutput(t *testing.T) {
 			Name:     "cluster-admin",
 		},
 	}
+	c := newFakeClient(crb, customNs, customSa)
 
-	fc := fake.NewSimpleClientset(crb, customNs, customSa)
-	client := &kube.Client{
-		KubeClient: fc,
-		ExtClient:  apiextfake.NewSimpleClientset(),
-	}
-
-	MockCRD(client, "certificates.cert-manager.io", "v1alpha2")
-	MockCRD(client, "issuers.cert-manager.io", "v1alpha2")
+	MockCRD(c.client, "certificates.cert-manager.io", "v1alpha2")
+	MockCRD(c.client, "issuers.cert-manager.io", "v1alpha2")
 
 	tests := []struct {
 		name       string
@@ -166,7 +180,7 @@ func TestInitCmd_yamlOutput(t *testing.T) {
 		fs := afero.NewMemMapFs()
 		out := &bytes.Buffer{}
 		errOut := &bytes.Buffer{}
-		initCmd := newInitCmd(fs, out, errOut, client)
+		initCmd := newInitCmd(fs, out, errOut, c.client)
 
 		Settings.AddFlags(initCmd.Flags())
 
