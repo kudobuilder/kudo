@@ -1,6 +1,7 @@
 package plan
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"sort"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/thoas/go-funk"
 	"github.com/xlab/treeprint"
+	"sigs.k8s.io/yaml"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
@@ -25,7 +27,39 @@ func Status(options *Options, settings *env.Settings) error {
 	return status(kc, options, settings.Namespace)
 }
 
+func statusFormatted(kc *kudo.Client, options *Options, ns string) error {
+	instance, err := kc.GetInstance(options.Instance, ns)
+	if err != nil {
+		return err
+	}
+	if instance == nil {
+		return fmt.Errorf("instance %s/%s does not exist", ns, options.Instance)
+	}
+
+	var o []byte
+	if strings.ToLower(options.Output) == "yaml" {
+		o, err = yaml.Marshal(instance.Status)
+		if err != nil {
+			return fmt.Errorf("failed to marshal to yaml: %v", err)
+		}
+	} else if strings.ToLower(options.Output) == "json" {
+		o, err = json.MarshalIndent(instance.Status, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to marshal to json: %v", err)
+		}
+	}
+
+	if _, err := fmt.Fprintln(options.Out, string(o)); err != nil {
+		return err
+	}
+	return nil
+}
+
 func status(kc *kudo.Client, options *Options, ns string) error {
+
+	if options.Output != "" {
+		return statusFormatted(kc, options, ns)
+	}
 
 	firstPass := true
 	start := time.Now()
