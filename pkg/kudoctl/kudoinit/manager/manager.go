@@ -3,6 +3,7 @@ package manager
 import (
 	"context"
 	"fmt"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -13,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/wait"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"github.com/kudobuilder/kudo/pkg/engine/health"
@@ -75,10 +77,25 @@ func UninstallStatefulSet(client *kube.Client, options kudoinit.Options) error {
 		PropagationPolicy: &fg,
 	})
 	if err != nil {
-		if !kerrors.IsNotFound(err) {
-			return fmt.Errorf("failed to uninstall KUDO manager %s/%s: %v", options.Namespace, kudoinit.DefaultManagerName, err)
+		if kerrors.IsNotFound(err) {
+			// Stateful set was already delete, we can return
+			return nil
 		}
+		return fmt.Errorf("failed to uninstall KUDO manager %s/%s: %v", options.Namespace, kudoinit.DefaultManagerName, err)
 	}
+
+	// Wait until the stateful set is actually deleted
+	err = wait.PollImmediate(250*time.Millisecond, 30*time.Second, func() (done bool, err error) {
+		_, err = client.KubeClient.AppsV1().StatefulSets(options.Namespace).Get(context.TODO(), kudoinit.DefaultManagerName, metav1.GetOptions{})
+		if err == nil || !kerrors.IsNotFound(err) {
+			return false, err
+		}
+		return true, nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to wait for uninstall of KUDO manager %s/%s: %v", options.Namespace, kudoinit.DefaultManagerName, err)
+	}
+
 	return nil
 }
 
