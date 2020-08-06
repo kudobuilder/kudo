@@ -233,10 +233,8 @@ func (initCmd *initCmd) runInstall(installer *setup.Installer) error {
 		return fmt.Errorf("failed to verify installation requirements")
 	}
 
-	if initCmd.output != "" {
-		if err = initCmd.runYamlOutput(installer); err != nil {
-			return err
-		}
+	if err = initCmd.runYamlOutput(installer); err != nil {
+		return err
 	}
 
 	if !initCmd.dryRun {
@@ -256,10 +254,8 @@ func (initCmd *initCmd) runUpgrade(installer *setup.Installer) error {
 		return fmt.Errorf("failed to verify upgrade requirements")
 	}
 
-	if initCmd.output != "" {
-		if err = initCmd.runYamlOutput(installer); err != nil {
-			return err
-		}
+	if err = initCmd.runYamlOutput(installer); err != nil {
+		return err
 	}
 
 	if !initCmd.dryRun {
@@ -271,6 +267,10 @@ func (initCmd *initCmd) runUpgrade(installer *setup.Installer) error {
 }
 
 func (initCmd *initCmd) runYamlOutput(installer kudoinit.Artifacter) error {
+	if initCmd.output == "" {
+		return nil
+	}
+
 	r := installer.Resources()
 	res := []interface{}{}
 	for _, rr := range r {
