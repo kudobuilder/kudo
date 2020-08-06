@@ -21,6 +21,9 @@ var _ kudoinit.InstallVerifier = &Installer{}
 type Installer struct {
 	options kudoinit.Options
 	steps   []kudoinit.Step
+
+	managerStep *manager.Initializer
+	webhookStep *prereq.KudoWebHook
 }
 
 func NewInstaller(options kudoinit.Options, crdOnly bool) *Installer {
@@ -33,14 +36,22 @@ func NewInstaller(options kudoinit.Options, crdOnly bool) *Installer {
 		}
 	}
 
+	// This is a bit cumbersome - we need to access some funcs from these two
+	// steps for the upgrade process, that's why they are initialized here.
+	// This should be cleaned up
+	managerStep := manager.NewInitializer(options)
+	webhookStep := prereq.NewWebHookInitializer(options)
+
 	return &Installer{
-		options: options,
+		options:     options,
+		managerStep: managerStep,
+		webhookStep: webhookStep,
 		steps: []kudoinit.Step{
 			crd.NewInitializer(),
 			prereq.NewNamespaceInitializer(options),
 			prereq.NewServiceAccountInitializer(options),
-			prereq.NewWebHookInitializer(options),
-			manager.NewInitializer(options),
+			webhookStep,
+			managerStep,
 		},
 	}
 }
@@ -96,12 +107,12 @@ func (i *Installer) Upgrade(client *kube.Client) error {
 	clog.Printf("Upgrade KUDO")
 
 	// Step 3 - Shut down/remove manager
-	if err := manager.UninstallStatefulSet(client, i.options); err != nil {
+	if err := i.managerStep.UninstallStatefulSet(client); err != nil {
 		return fmt.Errorf("failed to uninstall existing KUDO manager: %v", err)
 	}
 
 	// Step 4 - Disable Admission-Webhooks
-	if err := prereq.UninstallWebHook(client); err != nil {
+	if err := i.webhookStep.UninstallWebHook(client); err != nil {
 		return fmt.Errorf("failed to uninstall webhook: %v", err)
 	}
 

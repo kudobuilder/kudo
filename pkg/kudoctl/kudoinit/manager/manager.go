@@ -3,7 +3,6 @@ package manager
 import (
 	"context"
 	"fmt"
-	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -14,10 +13,10 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/apimachinery/pkg/util/wait"
-	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	client2 "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/engine/health"
+	"github.com/kudobuilder/kudo/pkg/kubernetes"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
@@ -35,8 +34,8 @@ type Initializer struct {
 }
 
 // NewInitializer returns the setup management object
-func NewInitializer(options kudoinit.Options) Initializer {
-	return Initializer{
+func NewInitializer(options kudoinit.Options) *Initializer {
+	return &Initializer{
 		options:    options,
 		service:    generateService(options),
 		deployment: generateDeployment(options),
@@ -65,35 +64,27 @@ func (m Initializer) Install(client *kube.Client) error {
 	if err := m.installStatefulSet(client); err != nil {
 		return err
 	}
-	if err := m.installService(client.KubeClient.CoreV1()); err != nil {
+	if err := m.installService(client); err != nil {
 		return err
 	}
 	return nil
 }
 
-func UninstallStatefulSet(client *kube.Client, options kudoinit.Options) error {
-	fg := metav1.DeletePropagationForeground
-	err := client.KubeClient.AppsV1().StatefulSets(options.Namespace).Delete(context.TODO(), kudoinit.DefaultManagerName, metav1.DeleteOptions{
-		PropagationPolicy: &fg,
-	})
+func (m Initializer) UninstallStatefulSet(client *kube.Client) error {
+	clog.V(4).Printf("Uninstall KUDO manager stateful set")
+	err := kubernetes.DeleteAndWait(client.CtrlClient, m.deployment, client2.PropagationPolicy(metav1.DeletePropagationForeground))
 	if err != nil {
-		if kerrors.IsNotFound(err) {
-			// Stateful set was already delete, we can return
-			return nil
-		}
-		return fmt.Errorf("failed to uninstall KUDO manager %s/%s: %v", options.Namespace, kudoinit.DefaultManagerName, err)
+		return fmt.Errorf("failed to uninstall KUDO manager %s/%s: %v", m.options.Namespace, kudoinit.DefaultManagerName, err)
 	}
 
-	// Wait until the stateful set is actually deleted
-	err = wait.PollImmediate(250*time.Millisecond, 30*time.Second, func() (done bool, err error) {
-		_, err = client.KubeClient.AppsV1().StatefulSets(options.Namespace).Get(context.TODO(), kudoinit.DefaultManagerName, metav1.GetOptions{})
-		if err == nil || !kerrors.IsNotFound(err) {
-			return false, err
-		}
-		return true, nil
-	})
+	return nil
+}
+
+func (m Initializer) UninstallService(client *kube.Client) error {
+	clog.V(4).Printf("Uninstall KUDO manager service")
+	err := kubernetes.DeleteAndWait(client.CtrlClient, m.service, client2.PropagationPolicy(metav1.DeletePropagationForeground))
 	if err != nil {
-		return fmt.Errorf("failed to wait for uninstall of KUDO manager %s/%s: %v", options.Namespace, kudoinit.DefaultManagerName, err)
+		return fmt.Errorf("failed to uninstall KUDO manager %s/%s: %v", m.options.Namespace, kudoinit.DefaultManagerName, err)
 	}
 
 	return nil
@@ -138,7 +129,7 @@ func (m Initializer) verifyManagerInstalled(client *kube.Client, result *verifie
 
 func (m Initializer) installStatefulSet(client *kube.Client) error {
 	clog.V(4).Printf("try to delete manager stateful set %s/%s before creating it", m.deployment.Namespace, m.deployment.Name)
-	if err := UninstallStatefulSet(client, m.options); err != nil {
+	if err := m.UninstallStatefulSet(client); err != nil {
 		return err
 	}
 	_, err := client.KubeClient.AppsV1().StatefulSets(m.options.Namespace).Create(context.TODO(), m.deployment, metav1.CreateOptions{})
@@ -148,16 +139,16 @@ func (m Initializer) installStatefulSet(client *kube.Client) error {
 	return nil
 }
 
-func (m Initializer) installService(client corev1client.ServicesGetter) error {
+func (m Initializer) installService(client *kube.Client) error {
+	// We could try to patch the resource here, but without server-side apply we would need the original old resource
+	// to calculate a correct patch. Delete and Recreate is easier for now
+
 	clog.V(4).Printf("try to delete manager service %s/%s before creating it", m.service.Namespace, m.service.Name)
-	err := client.Services(m.options.Namespace).Delete(context.TODO(), m.service.Name, metav1.DeleteOptions{})
-	if err != nil {
-		if !kerrors.IsNotFound(err) {
-			return fmt.Errorf("failed to delete manager service %s/%s for recreation: %v", m.service.Namespace, m.service.Name, err)
-		}
+	if err := m.UninstallService(client); err != nil {
+		return fmt.Errorf("failed to delete manager service %s/%s for recreation: %v", m.service.Namespace, m.service.Name, err)
 	}
 
-	_, err = client.Services(m.options.Namespace).Create(context.TODO(), m.service, metav1.CreateOptions{})
+	_, err := client.KubeClient.CoreV1().Services(m.options.Namespace).Create(context.TODO(), m.service, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to recreate manager service %s/%s: %v", m.options.Namespace, m.service.Name, err)
 	}

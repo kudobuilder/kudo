@@ -19,6 +19,7 @@ import (
 	clientv1beta1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
 
 	"github.com/kudobuilder/kudo/pkg/engine/health"
+	kubeutils "github.com/kudobuilder/kudo/pkg/kubernetes"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
@@ -74,12 +75,18 @@ func (k *KudoWebHook) PreInstallVerify(client *kube.Client, result *verifier.Res
 	return k.validateCertManagerInstallation(client, result)
 }
 
-func (k KudoWebHook) PreUpgradeVerify(client *kube.Client, result *verifier.Result) error {
-	// Nothing to verify here at the moment, needs to be extended when we have actual upgrades
-	return nil
+func (k *KudoWebHook) PreUpgradeVerify(client *kube.Client, result *verifier.Result) error {
+	// Nothing to really verify here at the moment, we just need to make sure the cert-manager resources
+	// are initialized
+
+	if k.opts.SelfSignedWebhookCA {
+		return nil
+	}
+
+	return k.validateCertManagerInstallation(client, result)
 }
 
-func (k KudoWebHook) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
+func (k *KudoWebHook) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
 	if k.opts.SelfSignedWebhookCA {
 		return k.verifyWithSelfSignedCA(client, result)
 	}
@@ -158,13 +165,14 @@ func (k *KudoWebHook) Install(client *kube.Client) error {
 	return k.installWithCertManager(client)
 }
 
-func UninstallWebHook(client *kube.Client) error {
-	err := client.KubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(context.TODO(), instanceAdmissionWebHookName, metav1.DeleteOptions{})
+func (k *KudoWebHook) UninstallWebHook(client *kube.Client) error {
+	clog.V(4).Printf("Uninstall webhook")
+
+	// We can create the generic version here, for delete we don't care about the details
+	obj := InstanceAdmissionWebhook(k.opts.Namespace)
+
+	err := kubeutils.DeleteAndWait(client.CtrlClient, &obj)
 	if err != nil {
-		if kerrors.IsNotFound(err) {
-			// We can ignore this, maybe we upgrade from an old version that did not have webhooks enabled
-			return nil
-		}
 		return fmt.Errorf("failed to uninstall WebHook: %v", err)
 	}
 	return nil
