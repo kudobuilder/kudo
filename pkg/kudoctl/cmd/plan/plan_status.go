@@ -120,7 +120,7 @@ func status(kc *kudo.Client, options *Options, ns string) error {
 		} else {
 			break
 		}
-		done, err := kc.IsInstanceDone(instance, nil)
+		done, err := kc.IsInstanceDone(instance, instance.Spec.PlanExecution.PlanName)
 		if err != nil {
 			return err
 		}

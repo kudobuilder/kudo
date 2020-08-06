@@ -73,12 +73,13 @@ func Package(
 		return nil
 	}
 
-	if err := install.Instance(client, resources.Instance); err != nil {
+	installed, err := install.Instance(client, resources.Instance)
+	if err != nil {
 		return err
 	}
 
 	if options.Wait != nil {
-		if err := install.WaitForInstance(client, resources.Instance, *options.Wait); err != nil {
+		if err := install.WaitForInstance(client, installed, *options.Wait); err != nil {
 			return err
 		}
 	}

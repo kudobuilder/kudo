@@ -14,21 +14,22 @@ import (
 
 // Instance installs a KUDO instance to a cluster.
 // It returns an error if the namespace already contains an instance with the same name.
-func Instance(client *kudo.Client, instance *v1beta1.Instance) error {
+func Instance(client *kudo.Client, instance *v1beta1.Instance) (*v1beta1.Instance, error) {
 	existingInstance, err := client.GetInstance(instance.Name, instance.Namespace)
 	if err != nil {
-		return fmt.Errorf("failed to verify existing instance: %v", err)
+		return nil, fmt.Errorf("failed to verify existing instance: %v", err)
 	}
 
 	if existingInstance != nil {
-		return clog.Errorf(
+		return nil, clog.Errorf(
 			"cannot install instance '%s' because an instance of that name already exists in namespace %s",
 			instance.Name,
 			instance.Namespace)
 	}
 
-	if _, err := client.InstallInstanceObjToCluster(instance, instance.Namespace); err != nil {
-		return fmt.Errorf(
+	installed, err := client.InstallInstanceObjToCluster(instance, instance.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf(
 			"failed to install instance %s/%s: %v",
 			instance.Namespace,
 			instance.Name,
@@ -36,12 +37,12 @@ func Instance(client *kudo.Client, instance *v1beta1.Instance) error {
 	}
 
 	clog.Printf("instance %s/%s created", instance.Namespace, instance.Name)
-	return nil
+	return installed, nil
 }
 
 // WaitForInstance waits for an amount of time for an instance to be "complete".
 func WaitForInstance(client *kudo.Client, instance *v1beta1.Instance, timeout time.Duration) error {
-	err := client.WaitForInstance(instance.Name, instance.Namespace, nil, timeout)
+	err := client.WaitForInstance(instance, timeout)
 	if errors.Is(err, pollwait.ErrWaitTimeout) {
 		clog.Printf("timeout waiting for instance %s/%s", instance.Namespace, instance.Name)
 	}
