@@ -25,7 +25,7 @@ func GetDiscoveryClient(mgr manager.Manager) (*discovery.DiscoveryClient, error)
 	return dc, nil
 }
 
-// DeleteAndWait deletes the given object and waits until it is fully deleted
+// DeleteAndWait deletes the given runtime object and waits until it is fully deleted
 func DeleteAndWait(c client.Client, obj runtime.Object, options ...client.DeleteOption) error {
 	err := c.Delete(context.TODO(), obj, options...)
 
@@ -43,7 +43,7 @@ func DeleteAndWait(c client.Client, obj runtime.Object, options ...client.Delete
 	return WaitForDelete(c, obj)
 }
 
-// WaitForDelete waits for the provide runtime objects to be deleted from cluster
+// WaitForDelete waits for the provided runtime object to be deleted from cluster
 func WaitForDelete(c client.Client, obj runtime.Object) error {
 	key := ObjectKey(obj)
 	clog.V(6).Printf("Waiting for obj %s/%s to be finally deleted", key.Namespace, key.Name)
