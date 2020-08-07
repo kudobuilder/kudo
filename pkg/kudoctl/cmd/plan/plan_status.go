@@ -39,7 +39,7 @@ func status(kc *kudo.Client, options *Options, ns string) error {
 			return err
 		}
 		if instance == nil {
-			return fmt.Errorf("Instance %s/%s does not exist", ns, options.Instance)
+			return fmt.Errorf("instance %s/%s does not exist", ns, options.Instance)
 		}
 
 		ov, err := kc.GetOperatorVersion(instance.Spec.OperatorVersion.Name, ns)

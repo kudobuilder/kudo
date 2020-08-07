@@ -15,6 +15,7 @@ linters:
     - dupl
     - goconst
     - lll
+    - stylecheck
 run:
   build-tags:
     - integration

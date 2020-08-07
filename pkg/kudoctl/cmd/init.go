@@ -169,7 +169,7 @@ func (initCmd *initCmd) run() error {
 			"IfNotPresent":
 			opts.ImagePullPolicy = initCmd.imagePullPolicy
 		default:
-			return fmt.Errorf("Unknown image pull policy %s, must be one of 'Always', 'IfNotPresent' or 'Never'", initCmd.imagePullPolicy)
+			return fmt.Errorf("unknown image pull policy %s, must be one of 'Always', 'IfNotPresent' or 'Never'", initCmd.imagePullPolicy)
 		}
 	}
 
