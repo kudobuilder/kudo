@@ -30,13 +30,14 @@ func DeleteAndWait(c client.Client, obj runtime.Object, options ...client.Delete
 	err := c.Delete(context.TODO(), obj, options...)
 
 	if err != nil {
-		if !kerrors.IsNotFound(err) {
-			key := ObjectKey(obj)
-			clog.V(6).Printf("Deleting obj %s/%s is already NotFound, return now", key.Namespace, key.Name)
+		key := ObjectKey(obj)
 
-			// Obj is already deleted, we can return
-			return fmt.Errorf("failed to delete %s/%s: %v", key.Namespace, key.Name, err)
+		if kerrors.IsNotFound(err) {
+			// Obj is already deleted, we can return directly
+			clog.V(6).Printf("Deleting obj %s/%s is already NotFound, return now", key.Namespace, key.Name)
+			return nil
 		}
+		return fmt.Errorf("failed to delete %s/%s: %v", key.Namespace, key.Name, err)
 	}
 
 	return WaitForDelete(c, obj)
