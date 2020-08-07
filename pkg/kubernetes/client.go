@@ -34,7 +34,7 @@ func DeleteAndWait(c client.Client, obj runtime.Object, options ...client.Delete
 
 		if kerrors.IsNotFound(err) {
 			// Obj is already deleted, we can return directly
-			clog.V(6).Printf("Deleting obj %s/%s is already NotFound, return now", key.Namespace, key.Name)
+			clog.V(4).Printf("Deleting obj %s/%s is already NotFound, return now", key.Namespace, key.Name)
 			return nil
 		}
 		return fmt.Errorf("failed to delete %s/%s: %v", key.Namespace, key.Name, err)
@@ -46,12 +46,12 @@ func DeleteAndWait(c client.Client, obj runtime.Object, options ...client.Delete
 // WaitForDelete waits for the provided runtime object to be deleted from cluster
 func WaitForDelete(c client.Client, obj runtime.Object) error {
 	key := ObjectKey(obj)
-	clog.V(6).Printf("Waiting for obj %s/%s to be finally deleted", key.Namespace, key.Name)
+	clog.V(4).Printf("Waiting for obj %s/%s to be finally deleted", key.Namespace, key.Name)
 
 	// Wait for resources to be deleted.
 	return wait.PollImmediate(250*time.Millisecond, 30*time.Second, func() (done bool, err error) {
 		err = c.Get(context.TODO(), key, obj.DeepCopyObject())
-		clog.V(8).Printf("Fetched %s/%s to wait for delete: %v", key.Namespace, key.Name, err)
+		clog.V(6).Printf("Fetched %s/%s to wait for delete: %v", key.Namespace, key.Name, err)
 
 		if err != nil && kerrors.IsNotFound(err) {
 			return true, nil
