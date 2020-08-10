@@ -11,6 +11,7 @@ import (
 	"github.com/xlab/treeprint"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
@@ -25,7 +26,22 @@ func Status(options *Options, settings *env.Settings) error {
 	return status(kc, options, settings.Namespace)
 }
 
+func statusFormatted(kc *kudo.Client, options *Options, ns string) error {
+	instance, err := kc.GetInstance(options.Instance, ns)
+	if err != nil {
+		return err
+	}
+	if instance == nil {
+		return fmt.Errorf("instance %s/%s does not exist", ns, options.Instance)
+	}
+	return output.WriteObject(instance.Status, options.Output, options.Out)
+}
+
 func status(kc *kudo.Client, options *Options, ns string) error {
+
+	if options.Output != "" {
+		return statusFormatted(kc, options, ns)
+	}
 
 	firstPass := true
 	start := time.Now()
