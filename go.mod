@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/Masterminds/goutils v1.1.0 // indirect
+	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/semver/v3 v3.1.0
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/go-bindata/go-bindata/v3 v3.1.3
@@ -11,7 +12,7 @@ require (
 	github.com/gosuri/uitable v0.0.4
 	github.com/huandu/xstrings v1.3.1 // indirect
 	github.com/kisielk/errcheck v1.4.0 // indirect
-	github.com/kudobuilder/kuttl v0.5.1
+	github.com/kudobuilder/kuttl v0.6.0
 	github.com/manifoldco/promptui v0.7.0
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/onsi/ginkgo v1.14.0
