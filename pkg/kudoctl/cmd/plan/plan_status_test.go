@@ -105,7 +105,7 @@ func TestStatus(t *testing.T) {
 		errorMessage    string
 		expectedOutput  string
 	}{
-		{"nonexisting instance", nil, nil, "nonexisting", "Instance default/nonexisting does not exist", ""},
+		{"nonexisting instance", nil, nil, "nonexisting", "instance default/nonexisting does not exist", ""},
 		{"nonexisting ov", instance, nil, "test", "OperatorVersion test-1.0 from instance default/test does not exist", ""},
 		{"no plan run", instance, ov, "test", "", "No plan ever run for instance - nothing to show for instance test\n"},
 		{"fatal error in a plan", fatalErrInstance, ov, "test", "", `Plan(s) for "test" in namespace "default":
