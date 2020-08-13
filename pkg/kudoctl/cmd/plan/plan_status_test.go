@@ -111,7 +111,7 @@ func TestStatus(t *testing.T) {
 		output          string
 		goldenFile      string
 	}{
-		{name: "nonexisting instance", instanceNameArg: "nonexisting", errorMessage: "Instance default/nonexisting does not exist"},
+		{name: "nonexisting instance", instanceNameArg: "nonexisting", errorMessage: "instance default/nonexisting does not exist"},
 		{name: "nonexisting ov", instance: instance, instanceNameArg: "test", errorMessage: "OperatorVersion test-1.0 from instance default/test does not exist"},
 		{name: "no plan run", instance: instance, ov: ov, instanceNameArg: "test", expectedOutput: "No plan ever run for instance - nothing to show for instance test\n"},
 		{name: "text output", instance: fatalErrInstance, ov: ov, instanceNameArg: "test", goldenFile: "planstatus.txt"},
