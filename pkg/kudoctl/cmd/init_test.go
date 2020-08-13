@@ -160,6 +160,7 @@ func TestInitCmd_yamlOutput(t *testing.T) {
 		{"custom namespace", "deploy-kudo-ns.yaml", map[string]string{"dry-run": "true", "output": "yaml", "namespace": "foo", "version": "dev"}},
 		{"yaml output", "deploy-kudo.yaml", map[string]string{"dry-run": "true", "output": "yaml", "version": "dev"}},
 		{"service account", "deploy-kudo-sa.yaml", map[string]string{"dry-run": "true", "output": "yaml", "service-account": "safoo", "namespace": "foo", "version": "dev"}},
+		{"json output", "deploy-kudo.json", map[string]string{"dry-run": "true", "output": "json", "version": "dev"}},
 	}
 
 	for _, tt := range tests {
