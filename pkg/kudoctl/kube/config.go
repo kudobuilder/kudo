@@ -8,6 +8,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 )
@@ -17,6 +18,7 @@ type Client struct {
 	KubeClient    kubernetes.Interface
 	ExtClient     apiextensionsclient.Interface
 	DynamicClient dynamic.Interface
+	CtrlClient    client.Client
 }
 
 // GetConfig returns a Kubernetes client config for a given kubeconfig.
@@ -48,7 +50,11 @@ func GetKubeClient(kubeconfig string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client, err := kubernetes.NewForConfig(config)
+	return GetKubeClientForConfig(config)
+}
+
+func GetKubeClientForConfig(config *rest.Config) (*Client, error) {
+	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("could not get Kubernetes client: %s", err)
 	}
@@ -60,9 +66,15 @@ func GetKubeClient(kubeconfig string) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not create Kubernetes dynamic client: %s", err)
 	}
+	ctrlClient, err := client.New(config, client.Options{})
+	if err != nil {
+		return nil, fmt.Errorf("could not create Controller Runtime client: %s", err)
+	}
 
 	return &Client{
-		KubeClient:    client,
+		KubeClient:    kubeClient,
 		ExtClient:     extClient,
-		DynamicClient: dynamicClient}, nil
+		DynamicClient: dynamicClient,
+		CtrlClient:    ctrlClient,
+	}, nil
 }

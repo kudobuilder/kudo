@@ -18,36 +18,47 @@ import (
 var _ kudoinit.InstallVerifier = &Installer{}
 
 type Installer struct {
-	options kudoinit.Options
-	steps   []kudoinit.Step
+	options      kudoinit.Options
+	initializers []kudoinit.Step
+
+	managerInitializer *manager.Initializer
+	webhookInitializer *prereq.KudoWebHook
 }
 
 func NewInstaller(options kudoinit.Options, crdOnly bool) *Installer {
 	if crdOnly {
 		return &Installer{
 			options: options,
-			steps: []kudoinit.Step{
+			initializers: []kudoinit.Step{
 				crd.NewInitializer(),
 			},
 		}
 	}
 
+	// Having two of the initializers as separate fields here is not the best solution, but
+	// we need to access some funcs from these two initializers for the upgrade process,
+	// that's why they are initialized here.
+	managerStep := manager.NewInitializer(options)
+	webhookStep := prereq.NewWebHookInitializer(options)
+
 	return &Installer{
-		options: options,
-		steps: []kudoinit.Step{
+		options:            options,
+		managerInitializer: managerStep,
+		webhookInitializer: webhookStep,
+		initializers: []kudoinit.Step{
 			crd.NewInitializer(),
 			prereq.NewNamespaceInitializer(options),
 			prereq.NewServiceAccountInitializer(options),
-			prereq.NewWebHookInitializer(options),
-			manager.NewInitializer(options),
+			webhookStep,
+			managerStep,
 		},
 	}
 }
 
 // Validate checks that the current KUDO installation is correct
 func (i *Installer) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
-	// Check if all steps are correctly installed
-	for _, initStep := range i.steps {
+	// Check if all initializers are correctly installed
+	for _, initStep := range i.initializers {
 		if err := initStep.VerifyInstallation(client, result); err != nil {
 			return fmt.Errorf("error while verifying init step %s: %v", initStep.String(), err)
 		}
@@ -66,8 +77,8 @@ func requiredMigrations() []migration.Migrater {
 
 func (i *Installer) PreUpgradeVerify(client *kube.Client, result *verifier.Result) error {
 	// Step 1 - Verify that upgrade can be done
-	// Check if all steps are upgradeable
-	for _, initStep := range i.steps {
+	// Check if all initializers are upgradeable
+	for _, initStep := range i.initializers {
 		if err := initStep.PreUpgradeVerify(client, result); err != nil {
 			return fmt.Errorf("error while verifying upgrade step %s: %v", initStep.String(), err)
 		}
@@ -95,12 +106,12 @@ func (i *Installer) Upgrade(client *kube.Client) error {
 	clog.Printf("Upgrade KUDO")
 
 	// Step 3 - Shut down/remove manager
-	if err := manager.UninstallStatefulSet(client, i.options); err != nil {
+	if err := i.managerInitializer.UninstallStatefulSet(client); err != nil {
 		return fmt.Errorf("failed to uninstall existing KUDO manager: %v", err)
 	}
 
 	// Step 4 - Disable Admission-Webhooks
-	if err := prereq.UninstallWebHook(client); err != nil {
+	if err := i.webhookInitializer.UninstallWebHook(client); err != nil {
 		return fmt.Errorf("failed to uninstall webhook: %v", err)
 	}
 
@@ -124,8 +135,8 @@ func (i *Installer) PreInstallVerify(client *kube.Client, result *verifier.Resul
 		return nil
 	}
 
-	// Check if all steps are installable
-	for _, initStep := range i.steps {
+	// Check if all initializers are installable
+	for _, initStep := range i.initializers {
 		if err := initStep.PreInstallVerify(client, result); err != nil {
 			return fmt.Errorf("error while verifying install step %s: %v", initStep.String(), err)
 		}
@@ -137,7 +148,7 @@ func (i *Installer) PreInstallVerify(client *kube.Client, result *verifier.Resul
 // Install uses Kubernetes client to install KUDO.
 func (i *Installer) Install(client *kube.Client) error {
 	// Install everything
-	initSteps := i.steps
+	initSteps := i.initializers
 	for _, initStep := range initSteps {
 		if err := initStep.Install(client); err != nil {
 			return fmt.Errorf("%s: %v", initStep, err)
@@ -150,7 +161,7 @@ func (i *Installer) Install(client *kube.Client) error {
 func (i *Installer) Resources() []runtime.Object {
 	var allManifests []runtime.Object
 
-	for _, initStep := range i.steps {
+	for _, initStep := range i.initializers {
 		allManifests = append(allManifests, initStep.Resources()...)
 	}
 
