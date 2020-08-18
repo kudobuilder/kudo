@@ -181,7 +181,7 @@ func TestInitCmd_yamlOutput(t *testing.T) {
 		{name: "yaml output", goldenFile: "deploy-kudo.yaml", flags: map[string]string{"dry-run": "true", "output": "yaml", "version": "dev"}},
 		{name: "service account", goldenFile: "deploy-kudo-sa.yaml", flags: map[string]string{"dry-run": "true", "output": "yaml", "service-account": "safoo", "namespace": "foo", "version": "dev"}},
 		{name: "json output", goldenFile: "deploy-kudo.json", flags: map[string]string{"dry-run": "true", "output": "json", "version": "dev"}},
-		{name: "invalid output", expectedError: "output format must be either 'yaml' or 'json' or empty", flags: map[string]string{"dry-run": "true", "output": "invalid", "version": "dev"}},
+		{name: "invalid output", expectedError: output.InvalidOutputError, flags: map[string]string{"dry-run": "true", "output": "invalid", "version": "dev"}},
 	}
 
 	for _, tt := range tests {
