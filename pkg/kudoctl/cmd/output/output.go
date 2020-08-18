@@ -4,18 +4,38 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"strings"
 
 	"sigs.k8s.io/yaml"
 )
 
+// OutputType specifies the type of output a command produces
+type Type string
+
 const (
-	TypeYAML = "yaml"
-	TypeJSON = "json"
+	// StringValueType is used for parameter values that are provided as a string.
+	TypeYAML Type = "yaml"
+
+	// ArrayValueType is used for parameter values that described an array of values.
+	TypeJSON Type = "json"
+
+	InvalidOutputError = "invalid output format, only support 'yaml' or 'json' or empty"
 )
 
-func WriteObjects(objs []interface{}, outputType string, out io.Writer) error {
-	if strings.ToLower(outputType) == TypeYAML {
+func ValidateType(outputType Type) error {
+	switch outputType {
+	case TypeYAML:
+		fallthrough
+	case TypeJSON:
+		fallthrough
+	case "":
+		return nil
+	default:
+		return fmt.Errorf(InvalidOutputError)
+	}
+}
+
+func WriteObjects(objs []interface{}, outputType Type, out io.Writer) error {
+	if outputType == TypeYAML {
 		// Write YAML objects with separators
 		for _, obj := range objs {
 			if _, err := fmt.Fprintln(out, "---"); err != nil {
@@ -30,21 +50,21 @@ func WriteObjects(objs []interface{}, outputType string, out io.Writer) error {
 		// YAML ending document boundary marker
 		_, err := fmt.Fprintln(out, "...")
 		return err
-	} else if strings.ToLower(outputType) == TypeJSON {
+	} else if outputType == TypeJSON {
 		return writeObjectJSON(objs, out)
 	}
 
-	return fmt.Errorf("invalid output format, only support yaml or json")
+	return fmt.Errorf(InvalidOutputError)
 }
 
-func WriteObject(obj interface{}, outputType string, out io.Writer) error {
-	if strings.ToLower(outputType) == TypeYAML {
+func WriteObject(obj interface{}, outputType Type, out io.Writer) error {
+	if outputType == TypeYAML {
 		return writeObjectYAML(obj, out)
-	} else if strings.ToLower(outputType) == TypeJSON {
+	} else if outputType == TypeJSON {
 		return writeObjectJSON(obj, out)
 	}
 
-	return fmt.Errorf("invalid output format, only support yaml or json")
+	return fmt.Errorf(InvalidOutputError)
 }
 
 func writeObjectJSON(obj interface{}, out io.Writer) error {
