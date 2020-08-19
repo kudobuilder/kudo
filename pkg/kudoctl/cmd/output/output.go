@@ -26,12 +26,8 @@ var (
 	ValidTypes = []Type{TypeYAML, TypeJSON}
 )
 
-func (t Type) AsString() string {
-	return string(t)
-}
-
-func (t Type) AsStringPtr() *string {
-	return (*string)(&t)
+func (t *Type) AsStringPtr() *string {
+	return (*string)(t)
 }
 
 func (t Type) Validate() error {
