@@ -94,17 +94,17 @@ func TestInitCmd_output(t *testing.T) {
 	MockCRD(c.client, "certificates.cert-manager.io", "v1alpha2")
 	MockCRD(c.client, "issuers.cert-manager.io", "v1alpha2")
 
-	tests := []output.Type{output.TypeYAML, output.TypeJSON}
-	for _, s := range tests {
-		s := s
-		t.Run(fmt.Sprintf("output %s", s), func(t *testing.T) {
+	tests := output.ValidTypes
+	for _, tt := range tests {
+		tt := tt
+		t.Run(fmt.Sprintf("output %s", tt), func(t *testing.T) {
 			var buf bytes.Buffer
 			var errOut bytes.Buffer
 			cmd := &initCmd{
 				out:     &buf,
 				errOut:  &errOut,
 				client:  c.client,
-				output:  s,
+				output:  tt,
 				dryRun:  true,
 				version: "dev",
 			}
@@ -130,7 +130,7 @@ func TestInitCmd_output(t *testing.T) {
 					if err == io.EOF {
 						break
 					}
-					t.Errorf("error decoding init %s output %s %s", s, err, buf.String())
+					t.Errorf("error decoding init %s output %s %s", tt, err, buf.String())
 				}
 			}
 		})

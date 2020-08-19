@@ -110,7 +110,7 @@ func newInitCmd(fs afero.Fs, out io.Writer, errOut io.Writer, client *kube.Clien
 	f.StringVarP(&i.image, "kudo-image", "i", "", "Override KUDO controller image and/or version")
 	f.StringVarP(&i.imagePullPolicy, "kudo-image-pull-policy", "", "Always", "Override KUDO controller image pull policy")
 	f.StringVarP(&i.version, "version", "", "", "Override KUDO controller version of the KUDO image")
-	f.StringVarP((*string)(&i.output), "output", "o", "", "Output format")
+	f.StringVarP(i.output.AsStringPtr(), "output", "o", "", "Output format")
 	f.BoolVar(&i.dryRun, "dry-run", false, "Do not install local or remote")
 	f.BoolVar(&i.upgrade, "upgrade", false, "Upgrade an existing KUDO installation")
 	f.BoolVar(&i.verify, "verify", false, "Verify an existing KUDO installation")
@@ -148,7 +148,7 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 	if initCmd.crdOnly && initCmd.upgrade {
 		return errors.New("'--upgrade' and '--crd-only' can not be used at the same time: you can not upgrade *only* crds")
 	}
-	if err := output.ValidateType(initCmd.output); err != nil {
+	if err := initCmd.output.Validate(); err != nil {
 		return err
 	}
 

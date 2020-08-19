@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/thoas/go-funk"
 	"sigs.k8s.io/yaml"
 )
 
@@ -21,17 +22,27 @@ const (
 	InvalidOutputError = "invalid output format, only support 'yaml' or 'json' or empty"
 )
 
-func ValidateType(outputType Type) error {
-	switch outputType {
-	case TypeYAML:
-		fallthrough
-	case TypeJSON:
-		fallthrough
-	case "":
+var (
+	ValidTypes = []Type{TypeYAML, TypeJSON}
+)
+
+func (t Type) AsString() string {
+	return string(t)
+}
+
+func (t Type) AsStringPtr() *string {
+	return (*string)(&t)
+}
+
+func (t Type) Validate() error {
+	if t == "" {
 		return nil
-	default:
-		return fmt.Errorf(InvalidOutputError)
 	}
+	if funk.Contains(ValidTypes, t) {
+		return nil
+	}
+
+	return fmt.Errorf(InvalidOutputError)
 }
 
 func WriteObjects(objs []interface{}, outputType Type, out io.Writer) error {
