@@ -15,6 +15,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
@@ -108,7 +109,7 @@ func TestStatus(t *testing.T) {
 		instanceNameArg string
 		errorMessage    string
 		expectedOutput  string
-		output          string
+		output          output.Type
 		goldenFile      string
 	}{
 		{name: "nonexisting instance", instanceNameArg: "nonexisting", errorMessage: "instance default/nonexisting does not exist"},
@@ -117,6 +118,7 @@ func TestStatus(t *testing.T) {
 		{name: "text output", instance: fatalErrInstance, ov: ov, instanceNameArg: "test", goldenFile: "planstatus.txt"},
 		{name: "json output", instance: fatalErrInstance, ov: ov, instanceNameArg: "test", output: "json", goldenFile: "planstatus.json"},
 		{name: "yaml output", instance: fatalErrInstance, ov: ov, instanceNameArg: "test", output: "yaml", goldenFile: "planstatus.yaml"},
+		{name: "invalid output", instance: fatalErrInstance, ov: ov, instanceNameArg: "test", output: "invalid", errorMessage: output.InvalidOutputError},
 	}
 
 	for _, tt := range tests {
@@ -136,9 +138,9 @@ func TestStatus(t *testing.T) {
 					t.Errorf("%s: error when setting up a test - %v", tt.name, err)
 				}
 			}
-			err := status(kc, &Options{Out: &buf, Instance: tt.instanceNameArg, Output: tt.output}, "default")
+			err := status(kc, &StatusOptions{Out: &buf, Instance: tt.instanceNameArg, Output: tt.output}, "default")
 			if err != nil {
-				assert.Equal(t, err.Error(), tt.errorMessage)
+				assert.Equal(t, tt.errorMessage, err.Error())
 			}
 			if tt.goldenFile != "" {
 				gp := filepath.Join("testdata", tt.goldenFile+".golden")
