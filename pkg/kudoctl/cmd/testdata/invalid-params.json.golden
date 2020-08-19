@@ -1,0 +1,12 @@
+{
+  "errors": [
+    "parameter \"Cpus\" has a duplicate",
+    "parameter \"comma,\" contains invalid character ','",
+    "\"operatorVersion\" is required and must be semver",
+    "plan \"not-existing-plan\" used in parameter \"comma,\" is not defined"
+  ],
+  "warnings": [
+    "parameter \"Cpus\" defined but not used."
+  ],
+  "valid": false
+}
