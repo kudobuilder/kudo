@@ -9,7 +9,6 @@ import (
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
@@ -95,7 +94,7 @@ func (c Initializer) Install(client *kube.Client) error {
 }
 
 func (c Initializer) verifyIsNotInstalled(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition, result *verifier.Result) error {
-	_, err := client.CustomResourceDefinitions().Get(context.TODO(), crd.Name, metav1.GetOptions{})
+	_, err := client.CustomResourceDefinitions().Get(context.TODO(), crd.Name, v1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return nil
@@ -107,7 +106,7 @@ func (c Initializer) verifyIsNotInstalled(client v1beta1.CustomResourceDefinitio
 }
 
 func (c Initializer) verifyInstallation(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition, result *verifier.Result) error {
-	existingCrd, err := client.CustomResourceDefinitions().Get(context.TODO(), crd.Name, metav1.GetOptions{})
+	existingCrd, err := client.CustomResourceDefinitions().Get(context.TODO(), crd.Name, v1.GetOptions{})
 	if err != nil {
 		if os.IsTimeout(err) {
 			return err
@@ -133,14 +132,14 @@ func (c Initializer) apply(client v1beta1.CustomResourceDefinitionsGetter, crd *
 		// all installed custom resources. We must have a correct update!
 		clog.V(4).Printf("crd %v already exists, try to update", crd.Name)
 
-		oldCrd, err := client.CustomResourceDefinitions().Get(context.TODO(), crd.Name, metav1.GetOptions{})
+		oldCrd, err := client.CustomResourceDefinitions().Get(context.TODO(), crd.Name, v1.GetOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to get crd for update %s: %v", crd.Name, err)
 		}
 
 		// As we call update, we need to take over the resourceVersion
 		crd.ResourceVersion = oldCrd.ResourceVersion
-		_, err = client.CustomResourceDefinitions().Update(context.TODO(), crd, metav1.UpdateOptions{})
+		_, err = client.CustomResourceDefinitions().Update(context.TODO(), crd, v1.UpdateOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to update crd %s: %v", crd.Name, err)
 		}
