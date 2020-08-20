@@ -17,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubectl/pkg/polymorphichelpers"
-	"k8s.io/kubectl/pkg/util/podutils"
 
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
@@ -107,7 +106,7 @@ func IsHealthy(obj runtime.Object) error {
 		return fmt.Errorf("instance %s/%s active plan is in state %v", obj.Namespace, obj.Name, obj.Spec.PlanExecution.Status)
 
 	case *corev1.Pod:
-		if podutils.IsPodReady(obj) {
+		if obj.Status.Phase == corev1.PodRunning {
 			return nil
 		}
 		return fmt.Errorf("pod %q is not running yet: %s", obj.Name, obj.Status.Phase)
