@@ -80,7 +80,7 @@ lint:	## Run golangci-lint
 ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint --version 2>/dev/null | cut -b 27-32)")
 	./hack/install-golangcilint.sh
 endif
-	golangci-lint --timeout 3m run
+	golangci-lint --timeout 3m run --allow-parallel-runners
 
 .PHONY: download
 download:
