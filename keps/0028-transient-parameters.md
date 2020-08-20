@@ -43,17 +43,17 @@ Make it possible to have transient parameters that are only available withing a 
 
 #### Persistent vs. Transient parameters
 
-Add an attribute `persistent` to parameter specifications in `params.yaml`:
+Add an attribute `transient` to parameter specifications in `params.yaml`:
 
 ```yaml
   - name: BACKUP_NAME
     description: "The name under which the backup is saved."
-    persistent: "false"
+    transient: "true"
 ```
 
-The default value for this flag would be `true`, all parameters that are defined without the attribute are persistent by default.
+The default value for this flag would be `false`, all parameters that are defined without the attribute are persistent by default.
 
-If the flag is set to `false`, the parameter is transient and its value will not be persisted in the instance resource.
+If the flag is set to `true`, the parameter is transient and its value will not be persisted in the instance resource.
 
 Transient parameters can be easily identified and will only be stored in the `planExecution` section of the instance. As the `planExecution` is reset after the plan finishes, the transient parameters from the plan execution will be discarded as well.
 
@@ -61,7 +61,7 @@ Transient parameters can be easily identified and will only be stored in the `pl
   - They are reset after every plan execution and are therefore mutable by design
 - Transient parameters can have a default value
 - Transient parameters cannot be `required`
-  - This would be a desired property and could be theoretically allowed. But transient parameters are often plan specific, and the `required` scope is global, it would be mostly too wide of a scope.
+  - This would be a desired property and could be theoretically allowed. But transient parameters are often plan specific, and the `required` scope is global, it would be mostly too wide of a scope. Having plan-specific required parameter might be the scope of a different KEP.
 
 Pros:
 - Easy extension for parameters from the definition point of view
@@ -151,7 +151,7 @@ Pros:
 ### Implementation Details/Notes/Constraints
 
 - The parameter value will be discarded when plan reaches a terminal state, either `COMPLETED` or `FATAL_ERROR`.
-- Transient parameters will be safed in the `planExecution` structure in the instance CRD.
+- Transient parameters will be saved in the `planExecution` structure in the instance CRD.
 
 
 ### Risks and Mitigations
