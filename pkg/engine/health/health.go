@@ -7,6 +7,8 @@ import (
 	"log"
 	"reflect"
 
+	"k8s.io/kubectl/pkg/util/podutils"
+
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -106,7 +108,7 @@ func IsHealthy(obj runtime.Object) error {
 		return fmt.Errorf("instance %s/%s active plan is in state %v", obj.Namespace, obj.Name, obj.Spec.PlanExecution.Status)
 
 	case *corev1.Pod:
-		if obj.Status.Phase == corev1.PodRunning {
+		if obj.Status.Phase == corev1.PodRunning && podutils.IsPodReady(obj) {
 			return nil
 		}
 		return fmt.Errorf("pod %q is not running yet: %s", obj.Name, obj.Status.Phase)
