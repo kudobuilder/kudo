@@ -36,7 +36,7 @@ func newPackageVerifyCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP((*string)(&verifyCmd.output), "output", "o", "", "Output format")
+	cmd.Flags().StringVarP((*string)(&verifyCmd.output), "output", "o", "", "Output format for command results.")
 
 	return cmd
 }

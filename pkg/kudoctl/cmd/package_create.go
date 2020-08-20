@@ -59,7 +59,7 @@ func newPackageCreateCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f := cmd.Flags()
 	f.StringVarP(&pkg.destination, "destination", "d", ".", "Location to write the package.")
 	f.BoolVarP(&pkg.overwrite, "overwrite", "w", false, "Overwrite existing package.")
-	f.StringVarP((*string)(&pkg.output), "output", "o", "", "Output format")
+	f.StringVarP((*string)(&pkg.output), "output", "o", "", "Output format for command results, NOT the package format.")
 
 	return cmd
 }
