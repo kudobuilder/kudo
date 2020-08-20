@@ -270,31 +270,8 @@ func (c *Client) WaitForInstance(instance *v1beta1.Instance, timeout time.Durati
 			return false, err
 		}
 
-		return c.IsInstanceDone(i, plan)
+		return i.IsPlanDone(plan)
 	})
-}
-
-// IsInstanceDone provides a check on instance to see if it is "finished" without retries
-// oldInstance is nil if there is no previous instance
-func (c *Client) IsInstanceDone(instance *v1beta1.Instance, plan string) (bool, error) {
-
-	// a shortcut for when there is no scheduled plan
-	if plan == "" {
-		clog.V(2).Printf("%s/%s has no scheduled plan\n", instance.Namespace, instance.Name)
-		return true, nil
-	}
-
-	newPlan := instance.Spec.PlanExecution.PlanName
-
-	// if either new plan was scheduled or if the old one finishes then we're done here. If the same plan was re-triggered
-	// (same plan but new UID) than we continue waiting for this new plan.
-	if newPlan != plan {
-		clog.V(2).Printf("%s/%s plan %q finished\n", instance.Namespace, instance.Name, plan)
-		return true, nil
-	}
-
-	clog.V(4).Printf("\r%s/%s plan %q is still %s", instance.Namespace, instance.Name, plan, instance.Spec.PlanExecution.Status)
-	return false, nil
 }
 
 // ListInstances lists all instances of given operator installed in the cluster in a given ns

@@ -9,6 +9,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 )
 
 const (
@@ -67,6 +69,28 @@ func (i *Instance) NoPlanEverExecuted() bool {
 		}
 	}
 	return true
+}
+
+// IsPlanDone provides a check on instance to see if it has "finished" the given plan
+func (i *Instance) IsPlanDone(plan string) (bool, error) {
+
+	// a shortcut for when there is no scheduled plan
+	if plan == "" {
+		clog.V(2).Printf("%s/%s has no scheduled plan\n", i.Namespace, i.Name)
+		return true, nil
+	}
+
+	newPlan := i.Spec.PlanExecution.PlanName
+
+	// if either new plan was scheduled or if the old one finishes then we're done here. If the same plan was re-triggered
+	// (same plan but new UID) than we continue waiting for this new plan.
+	if newPlan != plan {
+		clog.V(2).Printf("%s/%s plan %q finished\n", i.Namespace, i.Name, plan)
+		return true, nil
+	}
+
+	clog.V(4).Printf("\r%s/%s plan %q is still %s", i.Namespace, i.Name, plan, i.Spec.PlanExecution.Status)
+	return false, nil
 }
 
 // UpdateInstanceStatus updates `Status.PlanStatus` and `Status.AggregatedStatus` property based on the given plan
