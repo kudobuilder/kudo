@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/kudobuilder/kudo/pkg/engine/health"
+
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,6 +27,10 @@ func verifyKudoStatefulset(client appsv1.StatefulSetsGetter, namespace string) (
 	ss, err := client.StatefulSets(namespace).Get(context.TODO(), kudoinit.DefaultManagerName, metav1.GetOptions{})
 	if err != nil || ss == nil {
 		return false, err
+	}
+	err = health.IsHealthy(ss)
+	if err != nil {
+		return false, nil
 	}
 	return true, nil
 }
