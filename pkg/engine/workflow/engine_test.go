@@ -6,7 +6,6 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery/cached/memory"
@@ -48,7 +47,7 @@ func TestExecutePlan(t *testing.T) {
 			},
 		},
 			metadata:       meta,
-			expectedStatus: &v1beta1.PlanStatus{Status: v1beta1.ExecutionComplete, LastUpdatedTimestamp: &metav1.Time{Time: testTime}},
+			expectedStatus: &v1beta1.PlanStatus{Status: v1beta1.ExecutionComplete, LastUpdatedTimestamp: &v1.Time{Time: testTime}},
 			enhancer:       testEnhancer,
 		},
 		{name: "plan with a step to be executed is in progress when the step is not completed", activePlan: &ActivePlan{
@@ -56,7 +55,7 @@ func TestExecutePlan(t *testing.T) {
 			PlanStatus: &v1beta1.PlanStatus{
 				Name:                 "test",
 				Status:               v1beta1.ExecutionInProgress,
-				LastUpdatedTimestamp: &metav1.Time{Time: testTime},
+				LastUpdatedTimestamp: &v1.Time{Time: testTime},
 				Phases:               []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionInProgress, Name: "step"}}}},
 			},
 			Spec: &v1beta1.Plan{
@@ -80,7 +79,7 @@ func TestExecutePlan(t *testing.T) {
 			expectedStatus: &v1beta1.PlanStatus{
 				Name:                 "test",
 				Status:               v1beta1.ExecutionInProgress,
-				LastUpdatedTimestamp: &metav1.Time{Time: testTime},
+				LastUpdatedTimestamp: &v1.Time{Time: testTime},
 				Phases:               []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionInProgress, Name: "step"}}}}},
 			enhancer: testEnhancer,
 		},
@@ -89,7 +88,7 @@ func TestExecutePlan(t *testing.T) {
 			PlanStatus: &v1beta1.PlanStatus{
 				Name:                 "test",
 				Status:               v1beta1.ExecutionPending,
-				LastUpdatedTimestamp: &metav1.Time{Time: testTime},
+				LastUpdatedTimestamp: &v1.Time{Time: testTime},
 				Phases:               []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionPending, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionPending, Name: "step"}}}},
 			},
 			Spec: &v1beta1.Plan{
@@ -122,7 +121,7 @@ func TestExecutePlan(t *testing.T) {
 			Name: "test",
 			PlanStatus: &v1beta1.PlanStatus{
 				Name:                 "test",
-				LastUpdatedTimestamp: &metav1.Time{Time: testTime},
+				LastUpdatedTimestamp: &v1.Time{Time: testTime},
 				Phases:               []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ErrorStatus, Name: "step"}}}},
 			},
 			Spec: &v1beta1.Plan{
@@ -478,7 +477,7 @@ func TestExecutePlan(t *testing.T) {
 			expectedStatus: &v1beta1.PlanStatus{
 				Name:                 "test",
 				Status:               v1beta1.ExecutionInProgress,
-				LastUpdatedTimestamp: &metav1.Time{Time: testTime},
+				LastUpdatedTimestamp: &v1.Time{Time: testTime},
 				Phases: []v1beta1.PhaseStatus{
 					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ErrorStatus, Message: "A transient error when executing task test.phaseOne.step.taskOne. Will retry. dummy error"}}},
 					{Name: "phaseTwo", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
@@ -626,7 +625,7 @@ func TestExecutePlan(t *testing.T) {
 	fakeCachedDiscovery := memory.NewMemCacheClient(fakeDiscovery)
 	for _, tt := range tests {
 		newStatus, err := Execute(tt.activePlan, tt.metadata, testClient, fakeCachedDiscovery, nil, testScheme)
-		newStatus.LastUpdatedTimestamp = &metav1.Time{Time: testTime}
+		newStatus.LastUpdatedTimestamp = &v1.Time{Time: testTime}
 
 		if !tt.wantErr && err != nil {
 			t.Errorf("%s: Expecting no error but got one: %v", tt.name, err)
@@ -644,11 +643,11 @@ func TestExecutePlan(t *testing.T) {
 
 func instance() *v1beta1.Instance {
 	return &v1beta1.Instance{
-		TypeMeta: metav1.TypeMeta{
+		TypeMeta: v1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
 		},
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: v1.ObjectMeta{
 			Name:      "test-instance",
 			Namespace: "default",
 		},

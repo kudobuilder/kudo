@@ -2,6 +2,9 @@ package plan
 
 import (
 	"bytes"
+	"flag"
+	"io/ioutil"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -12,11 +15,13 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
 var (
-	testTime = time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)
+	testTime     = time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)
+	updateGolden = flag.Bool("update", false, "update .golden files")
 )
 
 func TestStatus(t *testing.T) {
@@ -104,45 +109,61 @@ func TestStatus(t *testing.T) {
 		instanceNameArg string
 		errorMessage    string
 		expectedOutput  string
+		output          output.Type
+		goldenFile      string
 	}{
-		{"nonexisting instance", nil, nil, "nonexisting", "Instance default/nonexisting does not exist", ""},
-		{"nonexisting ov", instance, nil, "test", "OperatorVersion test-1.0 from instance default/test does not exist", ""},
-		{"no plan run", instance, ov, "test", "", "No plan ever run for instance - nothing to show for instance test\n"},
-		{"fatal error in a plan", fatalErrInstance, ov, "test", "", `Plan(s) for "test" in namespace "default":
-.
-└── test (Operator-Version: "test-1.0" Active-Plan: "deploy")
-    ├── Plan deploy ( strategy) [FATAL_ERROR], last updated 2019-10-17 01:01:01
-    │   └── Phase deploy ( strategy) [FATAL_ERROR]
-    │       └── Step deploy [FATAL_ERROR] (error detail)
-    ├── Plan validate ( strategy) [NOT ACTIVE]
-    │   └── Phase validate ( strategy) [NOT ACTIVE]
-    │       └── Step validate [NOT ACTIVE]
-    └── Plan zzzinvalid ( strategy) [NOT ACTIVE]
-        └── Phase zzzinvalid ( strategy) [NOT ACTIVE]
-            └── Step zzzinvalid [NOT ACTIVE]
-
-`},
+		{name: "nonexisting instance", instanceNameArg: "nonexisting", errorMessage: "instance default/nonexisting does not exist"},
+		{name: "nonexisting ov", instance: instance, instanceNameArg: "test", errorMessage: "OperatorVersion test-1.0 from instance default/test does not exist"},
+		{name: "no plan run", instance: instance, ov: ov, instanceNameArg: "test", expectedOutput: "No plan ever run for instance - nothing to show for instance test\n"},
+		{name: "text output", instance: fatalErrInstance, ov: ov, instanceNameArg: "test", goldenFile: "planstatus.txt"},
+		{name: "json output", instance: fatalErrInstance, ov: ov, instanceNameArg: "test", output: "json", goldenFile: "planstatus.json"},
+		{name: "yaml output", instance: fatalErrInstance, ov: ov, instanceNameArg: "test", output: "yaml", goldenFile: "planstatus.yaml"},
+		{name: "invalid output", instance: fatalErrInstance, ov: ov, instanceNameArg: "test", output: "invalid", errorMessage: output.InvalidOutputError},
 	}
 
 	for _, tt := range tests {
-		var buf bytes.Buffer
-		kc := kudo.NewClientFromK8s(fake.NewSimpleClientset(), kubefake.NewSimpleClientset())
-		if tt.instance != nil {
-			_, err := kc.InstallInstanceObjToCluster(tt.instance, "default")
-			if err != nil {
-				t.Errorf("%s: error when setting up a test - %v", tt.name, err)
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			kc := kudo.NewClientFromK8s(fake.NewSimpleClientset(), kubefake.NewSimpleClientset())
+			if tt.instance != nil {
+				_, err := kc.InstallInstanceObjToCluster(tt.instance, "default")
+				if err != nil {
+					t.Errorf("%s: error when setting up a test - %v", tt.name, err)
+				}
 			}
-		}
-		if tt.ov != nil {
-			_, err := kc.InstallOperatorVersionObjToCluster(tt.ov, "default")
-			if err != nil {
-				t.Errorf("%s: error when setting up a test - %v", tt.name, err)
+			if tt.ov != nil {
+				_, err := kc.InstallOperatorVersionObjToCluster(tt.ov, "default")
+				if err != nil {
+					t.Errorf("%s: error when setting up a test - %v", tt.name, err)
+				}
 			}
-		}
-		err := status(kc, &Options{Out: &buf, Instance: tt.instanceNameArg}, "default")
-		if err != nil {
-			assert.Equal(t, err.Error(), tt.errorMessage)
-		}
-		assert.Equal(t, buf.String(), tt.expectedOutput)
+			err := status(kc, &StatusOptions{Out: &buf, Instance: tt.instanceNameArg, Output: tt.output}, "default")
+			if err != nil {
+				assert.Equal(t, tt.errorMessage, err.Error())
+			}
+			if tt.goldenFile != "" {
+				gp := filepath.Join("testdata", tt.goldenFile+".golden")
+
+				if *updateGolden {
+					t.Logf("updating golden file %s", tt.goldenFile)
+
+					//nolint:gosec
+					if err := ioutil.WriteFile(gp, buf.Bytes(), 0644); err != nil {
+						t.Fatalf("failed to update golden file: %s", err)
+					}
+				}
+
+				g, err := ioutil.ReadFile(gp)
+				if err != nil {
+					t.Fatalf("failed reading .golden: %s", err)
+				}
+
+				assert.Equal(t, string(g), buf.String(), "for golden file: %s, for test %s", gp, tt.name)
+			}
+			if tt.expectedOutput != "" {
+				assert.Equal(t, buf.String(), tt.expectedOutput)
+			}
+		})
 	}
 }

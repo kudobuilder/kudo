@@ -11,12 +11,21 @@ import (
 	"github.com/xlab/treeprint"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
+// Options are the configurable options for plans
+type StatusOptions struct {
+	Out      io.Writer
+	Instance string
+	Wait     bool
+	Output   output.Type
+}
+
 // Status runs the plan status command
-func Status(options *Options, settings *env.Settings) error {
+func Status(options *StatusOptions, settings *env.Settings) error {
 	kc, err := env.GetClient(settings)
 	if err != nil {
 		return err
@@ -25,7 +34,22 @@ func Status(options *Options, settings *env.Settings) error {
 	return status(kc, options, settings.Namespace)
 }
 
-func status(kc *kudo.Client, options *Options, ns string) error {
+func statusFormatted(kc *kudo.Client, options *StatusOptions, ns string) error {
+	instance, err := kc.GetInstance(options.Instance, ns)
+	if err != nil {
+		return err
+	}
+	if instance == nil {
+		return fmt.Errorf("instance %s/%s does not exist", ns, options.Instance)
+	}
+	return output.WriteObject(instance.Status, options.Output, options.Out)
+}
+
+func status(kc *kudo.Client, options *StatusOptions, ns string) error {
+
+	if options.Output != "" {
+		return statusFormatted(kc, options, ns)
+	}
 
 	firstPass := true
 	start := time.Now()
@@ -39,7 +63,7 @@ func status(kc *kudo.Client, options *Options, ns string) error {
 			return err
 		}
 		if instance == nil {
-			return fmt.Errorf("Instance %s/%s does not exist", ns, options.Instance)
+			return fmt.Errorf("instance %s/%s does not exist", ns, options.Instance)
 		}
 
 		ov, err := kc.GetOperatorVersion(instance.Spec.OperatorVersion.Name, ns)

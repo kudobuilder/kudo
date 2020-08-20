@@ -56,7 +56,7 @@ func NewPlanHistoryCmd() *cobra.Command {
 
 //NewPlanStatusCmd creates a new command that shows the status of an instance by looking at its current plan
 func NewPlanStatusCmd(out io.Writer) *cobra.Command {
-	options := &plan.Options{Out: out}
+	options := &plan.StatusOptions{Out: out}
 	cmd := &cobra.Command{
 		Use:     "status",
 		Short:   "Shows the status of all plans to an particular instance.",
@@ -68,6 +68,7 @@ func NewPlanStatusCmd(out io.Writer) *cobra.Command {
 
 	cmd.Flags().StringVar(&options.Instance, "instance", "", "The instance name available from 'kubectl get instances'")
 	cmd.Flags().BoolVar(&options.Wait, "wait", false, "Specify if the CLI should wait for the plan to complete before returning (default \"false\")")
+	cmd.Flags().StringVarP(options.Output.AsStringPtr(), "output", "o", "", "Output format")
 
 	if err := cmd.MarkFlagRequired("instance"); err != nil {
 		clog.Printf("Please choose the instance with '--instance=<instanceName>': %v", err)

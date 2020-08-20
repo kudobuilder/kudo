@@ -61,7 +61,7 @@ func newUninstallCmd() *cobra.Command {
 		Example: uninstallExample,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) != 0 {
-				return fmt.Errorf("The command expects no arguments and --instance flag must be provided.\n %s", cmd.UsageString())
+				return fmt.Errorf("the command expects no arguments and --instance flag must be provided.\n %s", cmd.UsageString())
 			}
 			return nil
 		},

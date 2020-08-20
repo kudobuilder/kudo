@@ -3,7 +3,6 @@ package plan
 import (
 	"errors"
 	"fmt"
-	"io"
 	"sort"
 
 	"github.com/spf13/cobra"
@@ -16,9 +15,7 @@ import (
 
 // Options are the configurable options for plans
 type Options struct {
-	Out      io.Writer
 	Instance string
-	Wait     bool
 }
 
 var (

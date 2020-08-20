@@ -45,7 +45,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
@@ -201,7 +200,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	if planStatus.Status == v1beta1.ExecutionPending {
+	if planStatus.Status == kudov1beta1.ExecutionPending {
 		log.Printf("InstanceController: Going to start execution of plan '%s' on instance %s/%s", plan, instance.Namespace, instance.Name)
 		r.Recorder.Event(instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", plan))
 	}
@@ -420,8 +419,8 @@ func ParamsMap(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.Oper
 }
 
 // PipesMap generates {{ Pipes.* }} map of keys and values which is later used during template rendering.
-func PipesMap(planName string, plan *v1beta1.Plan, tasks []v1beta1.Task, emeta *engine.Metadata) (map[string]string, error) {
-	taskByName := func(name string) (*v1beta1.Task, bool) {
+func PipesMap(planName string, plan *kudov1beta1.Plan, tasks []kudov1beta1.Task, emeta *engine.Metadata) (map[string]string, error) {
+	taskByName := func(name string) (*kudov1beta1.Task, bool) {
 		for _, t := range tasks {
 			if t.Name == name {
 				return &t, true
@@ -462,7 +461,7 @@ func PipesMap(planName string, plan *v1beta1.Plan, tasks []v1beta1.Task, emeta *
 // scheduled plan (UID has changed) and returns updated plan status. In this case Plan/phase/step statuses are set
 // to ExecutionPending meaning that the controller will restart plan execution. Otherwise (the plan is old),
 // nothing is changed and the existing plan status is returned.
-func resetPlanStatusIfPlanIsNew(i *v1beta1.Instance, plan string, uid types.UID) (*v1beta1.PlanStatus, error) {
+func resetPlanStatusIfPlanIsNew(i *kudov1beta1.Instance, plan string, uid types.UID) (*kudov1beta1.PlanStatus, error) {
 	ps := i.PlanStatus(plan)
 	if ps == nil {
 		return nil, fmt.Errorf("failed to find planStatus for plan '%s'", plan)
@@ -481,28 +480,28 @@ func resetPlanStatusIfPlanIsNew(i *v1beta1.Instance, plan string, uid types.UID)
 // ensurePlanStatusInitialized initializes plan status for all plans this instance supports  it does not trigger run
 // of any plan it either initializes everything for a fresh instance without any status or tries to adjust status
 // after OV was updated
-func ensurePlanStatusInitialized(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) {
+func ensurePlanStatusInitialized(i *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion) {
 	if i.Status.PlanStatus == nil {
-		i.Status.PlanStatus = make(map[string]v1beta1.PlanStatus)
+		i.Status.PlanStatus = make(map[string]kudov1beta1.PlanStatus)
 	}
 
 	for planName, plan := range ov.Spec.Plans {
 		if _, ok := i.Status.PlanStatus[planName]; !ok {
-			planStatus := v1beta1.PlanStatus{
+			planStatus := kudov1beta1.PlanStatus{
 				Name:   planName,
-				Status: v1beta1.ExecutionNeverRun,
-				Phases: make([]v1beta1.PhaseStatus, 0),
+				Status: kudov1beta1.ExecutionNeverRun,
+				Phases: make([]kudov1beta1.PhaseStatus, 0),
 			}
 			for _, phase := range plan.Phases {
-				phaseStatus := v1beta1.PhaseStatus{
+				phaseStatus := kudov1beta1.PhaseStatus{
 					Name:   phase.Name,
-					Status: v1beta1.ExecutionNeverRun,
-					Steps:  make([]v1beta1.StepStatus, 0),
+					Status: kudov1beta1.ExecutionNeverRun,
+					Steps:  make([]kudov1beta1.StepStatus, 0),
 				}
 				for _, step := range phase.Steps {
-					stepStatus := v1beta1.StepStatus{
+					stepStatus := kudov1beta1.StepStatus{
 						Name:   step.Name,
-						Status: v1beta1.ExecutionNeverRun,
+						Status: kudov1beta1.ExecutionNeverRun,
 					}
 					phaseStatus.Steps = append(phaseStatus.Steps, stepStatus)
 				}
@@ -515,7 +514,7 @@ func ensurePlanStatusInitialized(i *v1beta1.Instance, ov *v1beta1.OperatorVersio
 
 // scheduledPlan method returns currently scheduled plan and its UID from Instance.Spec.PlanExecution field. However, due
 // to an edge case with instance deletion, this method also schedules the 'cleanup' plan if necessary (see the comments below)
-func scheduledPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (string, types.UID) {
+func scheduledPlan(i *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion) (string, types.UID) {
 	// Instance deletion is an edge case where the admission webhook *can not* populate the Spec.PlanExecution.PlanName
 	// with the 'cleanup' plan. So we have to do it here ourselves. Only if:
 	// 1. Instance is being deleted
@@ -524,17 +523,17 @@ func scheduledPlan(i *v1beta1.Instance, ov *v1beta1.OperatorVersion) (string, ty
 	// we set the Spec.PlanExecution.PlanName = 'cleanup'
 	hasToScheduleCleanupAfterDeletion := func() bool {
 		shouldCleanup := i.IsDeleting() && kudov1beta1.CleanupPlanExists(ov)
-		cleanupNeverRun := i.PlanStatus(v1beta1.CleanupPlanName) == nil || i.PlanStatus(v1beta1.CleanupPlanName).Status == kudov1beta1.ExecutionNeverRun
-		cleanupNotScheduled := i.Spec.PlanExecution.PlanName != v1beta1.CleanupPlanName
+		cleanupNeverRun := i.PlanStatus(kudov1beta1.CleanupPlanName) == nil || i.PlanStatus(kudov1beta1.CleanupPlanName).Status == kudov1beta1.ExecutionNeverRun
+		cleanupNotScheduled := i.Spec.PlanExecution.PlanName != kudov1beta1.CleanupPlanName
 
 		return shouldCleanup && cleanupNeverRun && cleanupNotScheduled
 	}
 	if hasToScheduleCleanupAfterDeletion() {
-		log.Printf("InstanceController: Instance %s/%s is being deleted. Scheduling '%s' plan.", i.Namespace, i.Name, v1beta1.CleanupPlanName)
+		log.Printf("InstanceController: Instance %s/%s is being deleted. Scheduling '%s' plan.", i.Namespace, i.Name, kudov1beta1.CleanupPlanName)
 
-		i.Spec.PlanExecution.PlanName = v1beta1.CleanupPlanName
+		i.Spec.PlanExecution.PlanName = kudov1beta1.CleanupPlanName
 		i.Spec.PlanExecution.UID = uuid.NewUUID()
-		i.Spec.PlanExecution.Status = v1beta1.ExecutionNeverRun
+		i.Spec.PlanExecution.Status = kudov1beta1.ExecutionNeverRun
 	}
 
 	return i.Spec.PlanExecution.PlanName, i.Spec.PlanExecution.UID

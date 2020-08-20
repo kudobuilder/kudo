@@ -6,16 +6,16 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	client2 "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/engine/health"
+	"github.com/kudobuilder/kudo/pkg/kubernetes"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
@@ -33,56 +33,63 @@ type Initializer struct {
 }
 
 // NewInitializer returns the setup management object
-func NewInitializer(options kudoinit.Options) Initializer {
-	return Initializer{
+func NewInitializer(options kudoinit.Options) *Initializer {
+	return &Initializer{
 		options:    options,
 		service:    generateService(options),
 		deployment: generateDeployment(options),
 	}
 }
 
-func (m Initializer) PreInstallVerify(client *kube.Client, result *verifier.Result) error {
+func (m *Initializer) PreInstallVerify(client *kube.Client, result *verifier.Result) error {
 	return m.verifyManagerNotInstalled(client, result)
 }
 
-func (m Initializer) PreUpgradeVerify(client *kube.Client, result *verifier.Result) error {
+func (m *Initializer) PreUpgradeVerify(client *kube.Client, result *verifier.Result) error {
 	// For upgrade we don't verify anything. We assume the install process can overwrite existing manager
 	return nil
 }
 
-func (m Initializer) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
+func (m *Initializer) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
 	return m.verifyManagerInstalled(client, result)
 }
 
-func (m Initializer) String() string {
+func (m *Initializer) String() string {
 	return "kudo controller"
 }
 
 // Install uses Kubernetes client to install KUDO.
-func (m Initializer) Install(client *kube.Client) error {
+func (m *Initializer) Install(client *kube.Client) error {
 	if err := m.installStatefulSet(client); err != nil {
 		return err
 	}
-	if err := m.installService(client.KubeClient.CoreV1()); err != nil {
+	if err := m.installService(client); err != nil {
 		return err
 	}
 	return nil
 }
 
-func UninstallStatefulSet(client *kube.Client, options kudoinit.Options) error {
-	fg := metav1.DeletePropagationForeground
-	err := client.KubeClient.AppsV1().StatefulSets(options.Namespace).Delete(context.TODO(), kudoinit.DefaultManagerName, metav1.DeleteOptions{
-		PropagationPolicy: &fg,
-	})
+func (m *Initializer) UninstallStatefulSet(client *kube.Client) error {
+	clog.V(2).Printf("Uninstall KUDO manager stateful set")
+	err := kubernetes.DeleteAndWait(client.CtrlClient, m.deployment, client2.PropagationPolicy(metav1.DeletePropagationForeground))
 	if err != nil {
-		if !kerrors.IsNotFound(err) {
-			return fmt.Errorf("failed to uninstall KUDO manager %s/%s: %v", options.Namespace, kudoinit.DefaultManagerName, err)
-		}
+		return fmt.Errorf("failed to uninstall KUDO manager %s/%s: %v", m.options.Namespace, kudoinit.DefaultManagerName, err)
 	}
+
 	return nil
 }
 
-func (m Initializer) verifyManagerNotInstalled(client *kube.Client, result *verifier.Result) error {
+func (m *Initializer) UninstallService(client *kube.Client) error {
+	clog.V(2).Printf("Uninstall KUDO manager service")
+	err := kubernetes.DeleteAndWait(client.CtrlClient, m.service, client2.PropagationPolicy(metav1.DeletePropagationForeground))
+	if err != nil {
+		return fmt.Errorf("failed to uninstall KUDO manager %s/%s: %v", m.options.Namespace, kudoinit.DefaultManagerName, err)
+	}
+
+	return nil
+}
+
+func (m *Initializer) verifyManagerNotInstalled(client *kube.Client, result *verifier.Result) error {
 	_, err := client.KubeClient.AppsV1().StatefulSets(m.options.Namespace).Get(context.TODO(), kudoinit.DefaultManagerName, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
@@ -94,7 +101,7 @@ func (m Initializer) verifyManagerNotInstalled(client *kube.Client, result *veri
 	return nil
 }
 
-func (m Initializer) verifyManagerInstalled(client *kube.Client, result *verifier.Result) error {
+func (m *Initializer) verifyManagerInstalled(client *kube.Client, result *verifier.Result) error {
 	mgr, err := client.KubeClient.AppsV1().StatefulSets(m.options.Namespace).Get(context.TODO(), kudoinit.DefaultManagerName, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
@@ -119,9 +126,9 @@ func (m Initializer) verifyManagerInstalled(client *kube.Client, result *verifie
 	return nil
 }
 
-func (m Initializer) installStatefulSet(client *kube.Client) error {
-	clog.V(4).Printf("try to delete manager stateful set %s/%s before creating it", m.deployment.Namespace, m.deployment.Name)
-	if err := UninstallStatefulSet(client, m.options); err != nil {
+func (m *Initializer) installStatefulSet(client *kube.Client) error {
+	clog.V(2).Printf("try to delete manager stateful set %s/%s before creating it", m.deployment.Namespace, m.deployment.Name)
+	if err := m.UninstallStatefulSet(client); err != nil {
 		return err
 	}
 	_, err := client.KubeClient.AppsV1().StatefulSets(m.options.Namespace).Create(context.TODO(), m.deployment, metav1.CreateOptions{})
@@ -131,23 +138,23 @@ func (m Initializer) installStatefulSet(client *kube.Client) error {
 	return nil
 }
 
-func (m Initializer) installService(client corev1client.ServicesGetter) error {
-	clog.V(4).Printf("try to delete manager service %s/%s before creating it", m.service.Namespace, m.service.Name)
-	err := client.Services(m.options.Namespace).Delete(context.TODO(), m.service.Name, metav1.DeleteOptions{})
-	if err != nil {
-		if !kerrors.IsNotFound(err) {
-			return fmt.Errorf("failed to delete manager service %s/%s for recreation: %v", m.service.Namespace, m.service.Name, err)
-		}
+func (m *Initializer) installService(client *kube.Client) error {
+	// We could try to patch the resource here, but without server-side apply we would need the original old resource
+	// to calculate a correct patch. Delete and Recreate is easier for now
+
+	clog.V(2).Printf("try to delete manager service %s/%s before creating it", m.service.Namespace, m.service.Name)
+	if err := m.UninstallService(client); err != nil {
+		return fmt.Errorf("failed to delete manager service %s/%s for recreation: %v", m.service.Namespace, m.service.Name, err)
 	}
 
-	_, err = client.Services(m.options.Namespace).Create(context.TODO(), m.service, metav1.CreateOptions{})
+	_, err := client.KubeClient.CoreV1().Services(m.options.Namespace).Create(context.TODO(), m.service, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to recreate manager service %s/%s: %v", m.options.Namespace, m.service.Name, err)
 	}
 	return nil
 }
 
-func (m Initializer) Resources() []runtime.Object {
+func (m *Initializer) Resources() []runtime.Object {
 	return []runtime.Object{m.service, m.deployment}
 }
 
@@ -161,7 +168,7 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 
 	secretDefaultMode := int32(420)
 	image := opts.Image
-	imagePullPolicy := v1.PullPolicy(opts.ImagePullPolicy)
+	imagePullPolicy := corev1.PullPolicy(opts.ImagePullPolicy)
 	s := &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "StatefulSet",
@@ -190,10 +197,19 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 							},
 							Image:           image,
 							ImagePullPolicy: imagePullPolicy,
-							Name:            "manager",
+							Name:            kudoinit.ManagerContainerName,
 							Ports: []corev1.ContainerPort{
 								// name matters for service
 								{ContainerPort: 443, Name: "webhook-server", Protocol: "TCP"},
+							},
+							// Prefer for StartupProbe, however that requires 1.16
+							// ReadinessProbe defaults: failureThreshold: 3, periodSeconds: 10, successThreshold: 1, timeoutSeconds: 1
+							ReadinessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									TCPSocket: &corev1.TCPSocketAction{
+										Port: intstr.FromInt(443),
+									},
+								},
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
