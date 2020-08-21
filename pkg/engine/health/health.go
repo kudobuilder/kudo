@@ -7,12 +7,15 @@ import (
 	"log"
 	"reflect"
 
+	"k8s.io/apimachinery/pkg/types"
+
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -50,7 +53,7 @@ func IsDeleted(client client.Client, discovery discovery.CachedDiscoveryInterfac
 }
 
 // IsHealthy returns whether an object is healthy. Must be implemented for each type.
-func IsHealthy(obj runtime.Object) error {
+func IsHealthy(obj runtime.Object, client client.Client) error {
 	if obj == nil {
 		return nil
 	}
@@ -110,6 +113,13 @@ func IsHealthy(obj runtime.Object) error {
 			return nil
 		}
 		return fmt.Errorf("pod %q is not running yet: %s", obj.Name, obj.Status.Phase)
+
+	case *apiextensionsv1beta1.CustomResourceDefinition:
+		newObj := obj.DeepCopyObject()
+		return client.Get(context.TODO(), types.NamespacedName{
+			Namespace: obj.Namespace,
+			Name:      obj.Name,
+		}, newObj)
 
 	// unless we build logic for what a healthy object is, assume it's healthy when created.
 	default:
