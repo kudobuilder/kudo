@@ -35,9 +35,18 @@ func (o KudoNamespace) String() string {
 }
 
 func (o KudoNamespace) PreInstallVerify(client *kube.Client, result *verifier.Result) error {
+	ns, err := client.KubeClient.CoreV1().Namespaces().Get(context.TODO(), o.opts.Namespace, metav1.GetOptions{})
+
+	// If either custom or default ns is terminating, we can't install
+	if err == nil {
+		if ns.Status.Phase == v1.NamespaceTerminating {
+			result.AddErrors(fmt.Sprintf("Namespace %s is being terminated - Wait until it is fully gone and retry", o.opts.Namespace))
+			return nil
+		}
+	}
+
 	// We only manage kudo-system namespace. For others we expect they exist.
 	if !o.opts.IsDefaultNamespace() {
-		_, err := client.KubeClient.CoreV1().Namespaces().Get(context.TODO(), o.opts.Namespace, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				result.AddErrors(fmt.Sprintf("Namespace %s does not exist - KUDO expects that any namespace except the default %s is created beforehand", o.opts.Namespace, kudoinit.DefaultNamespace))
