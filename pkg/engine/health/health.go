@@ -111,6 +111,12 @@ func IsHealthy(obj runtime.Object) error {
 		}
 		return fmt.Errorf("pod %q is not running yet: %s", obj.Name, obj.Status.Phase)
 
+	case *corev1.Namespace:
+		if obj.Status.Phase == corev1.NamespaceActive {
+			return nil
+		}
+		return fmt.Errorf("namespace %s is not active: %s", obj.Name, obj.Status.Phase)
+
 	// unless we build logic for what a healthy object is, assume it's healthy when created.
 	default:
 		log.Printf("HealthUtil: Unknown type %s is marked healthy by default", reflect.TypeOf(obj))

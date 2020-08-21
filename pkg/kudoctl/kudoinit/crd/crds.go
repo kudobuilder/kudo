@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 
+	"github.com/kudobuilder/kudo/pkg/engine/health"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
@@ -119,6 +120,10 @@ func (c Initializer) verifyInstallation(client v1beta1.CustomResourceDefinitions
 	}
 	if existingCrd.Spec.Version != crd.Spec.Version {
 		result.AddErrors(fmt.Sprintf("Installed CRD %s has invalid version %s, expected %s", crd.Name, existingCrd.Spec.Version, crd.Spec.Version))
+		return nil
+	}
+	if err := health.IsHealthy(existingCrd); err != nil {
+		result.AddErrors(fmt.Sprintf("Installed CRD %s is not healthy: %v", crd.Name, err))
 		return nil
 	}
 	clog.V(2).Printf("CRD %s is installed with version %s", crd.Name, existingCrd.Spec.Versions[0].Name)
