@@ -222,6 +222,7 @@ func (initCmd *initCmd) run() error {
 		if err != nil {
 			return errors.New("watch timed out, readiness uncertain")
 		}
+		clog.Printf("✅ KUDO is ready!")
 	}
 
 	return nil
