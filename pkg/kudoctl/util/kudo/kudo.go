@@ -345,9 +345,8 @@ func (c *Client) ListInstances(namespace string) ([]runtime.Object, error) {
 	}
 
 	existingItems := []runtime.Object{}
-	for _, v := range instances.Items {
-		v := v
-		existingItems = append(existingItems, &v)
+	for i := range instances.Items {
+		existingItems = append(existingItems, &instances.Items[i])
 	}
 	return existingItems, nil
 }
@@ -360,9 +359,8 @@ func (c *Client) ListOperatorVersions(namespace string) ([]runtime.Object, error
 	}
 
 	existingItems := []runtime.Object{}
-	for _, v := range ovs.Items {
-		v := v
-		existingItems = append(existingItems, &v)
+	for i := range ovs.Items {
+		existingItems = append(existingItems, &ovs.Items[i])
 	}
 	return existingItems, nil
 }
@@ -375,9 +373,8 @@ func (c *Client) ListOperators(namespace string) ([]runtime.Object, error) {
 	}
 
 	existingItems := []runtime.Object{}
-	for _, v := range operators.Items {
-		v := v
-		existingItems = append(existingItems, &v)
+	for i := range operators.Items {
+		existingItems = append(existingItems, &operators.Items[i])
 	}
 	return existingItems, nil
 }
