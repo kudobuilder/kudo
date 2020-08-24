@@ -337,18 +337,49 @@ func (c *Client) IsInstanceByNameDone(name string, namespace string, oldInstance
 	return c.IsInstanceDone(instance, oldInstance)
 }
 
-// ListInstances lists all instances of given operator installed in the cluster in a given ns
-func (c *Client) ListInstances(namespace string) ([]string, error) {
+// ListInstances lists all instances installed in the cluster in a given ns
+func (c *Client) ListInstances(namespace string) ([]runtime.Object, error) {
 	instances, err := c.kudoClientset.KudoV1beta1().Instances(namespace).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	existingInstances := []string{}
 
+	existingItems := []runtime.Object{}
 	for _, v := range instances.Items {
-		existingInstances = append(existingInstances, v.Name)
+		v := v
+		existingItems = append(existingItems, &v)
 	}
-	return existingInstances, nil
+	return existingItems, nil
+}
+
+// ListOperatorVersions lists all operatorversions installed in the cluster in a given ns
+func (c *Client) ListOperatorVersions(namespace string) ([]runtime.Object, error) {
+	ovs, err := c.kudoClientset.KudoV1beta1().OperatorVersions(namespace).List(context.TODO(), v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	existingItems := []runtime.Object{}
+	for _, v := range ovs.Items {
+		v := v
+		existingItems = append(existingItems, &v)
+	}
+	return existingItems, nil
+}
+
+// ListOperators lists all operators installed in the cluster in a given ns
+func (c *Client) ListOperators(namespace string) ([]runtime.Object, error) {
+	operators, err := c.kudoClientset.KudoV1beta1().Operators(namespace).List(context.TODO(), v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	existingItems := []runtime.Object{}
+	for _, v := range operators.Items {
+		v := v
+		existingItems = append(existingItems, &v)
+	}
+	return existingItems, nil
 }
 
 // OperatorVersionsInstalled lists all the versions of given operator installed in the cluster in given ns

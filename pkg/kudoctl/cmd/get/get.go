@@ -3,60 +3,144 @@ package get
 import (
 	"errors"
 	"fmt"
-	"log"
+	"io"
 
 	"github.com/xlab/treeprint"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
+type CmdOpts struct {
+	Out    io.Writer
+	Output output.Type
+
+	Namespace string
+	Client    *kudo.Client
+}
+
 // Run returns the errors associated with cmd env
-func Run(args []string, settings *env.Settings) error {
+func Run(args []string, opts CmdOpts) error {
+	if err := opts.Output.Validate(); err != nil {
+		return err
+	}
 
 	err := validate(args)
 	if err != nil {
 		return err
 	}
 
-	kc, err := env.GetClient(settings)
+	var objs []runtime.Object
+	switch args[0] {
+	case "instances":
+		objs, err = opts.Client.ListInstances(opts.Namespace)
+	case "operators":
+		objs, err = opts.Client.ListOperators(opts.Namespace)
+	case "operatorversions":
+		objs, err = opts.Client.ListOperatorVersions(opts.Namespace)
+	case "all":
+		return runGetAll(opts)
+	}
 	if err != nil {
-		return fmt.Errorf("creating kudo client: %w", err)
+		return fmt.Errorf("failed to retrieve objects: %v", err)
 	}
 
-	p, err := getInstances(kc, settings)
-	if err != nil {
-		log.Printf("Error: %v", err)
+	if opts.Output != "" {
+		outObj := []interface{}{}
+		for _, o := range objs {
+			outObj = append(outObj, o)
+		}
+		return output.WriteObjects(outObj, opts.Output, opts.Out)
 	}
+
 	tree := treeprint.New()
 
-	for _, plan := range p {
-		tree.AddBranch(plan)
+	metadataAccessor := meta.NewAccessor()
+	for _, obj := range objs {
+		name, err := metadataAccessor.Name(obj)
+		if err != nil {
+			return fmt.Errorf("failed to retrieve name from %v: %v", obj, err)
+		}
+		tree.AddBranch(name)
 	}
-	fmt.Printf("List of current installed instances in namespace \"%s\":\n", settings.Namespace)
-	fmt.Println(tree.String())
+	_, _ = fmt.Fprintf(opts.Out, "List of current installed %s in namespace \"%s\":\n", args[0], opts.Namespace)
+	_, _ = fmt.Fprintln(opts.Out, tree.String())
 	return err
 }
 
-func validate(args []string) error {
-	if len(args) != 1 {
-		return errors.New(`expecting exactly one argument - "instances"`)
+func runGetAll(opts CmdOpts) error {
+	instances, err := opts.Client.ListInstances(opts.Namespace)
+	if err != nil {
+		return fmt.Errorf("failed to get instances")
+	}
+	operatorversions, err := opts.Client.ListOperatorVersions(opts.Namespace)
+	if err != nil {
+		return fmt.Errorf("failed to get operatorversions")
+	}
+	operators, err := opts.Client.ListOperators(opts.Namespace)
+	if err != nil {
+		return fmt.Errorf("failed to get operators")
 	}
 
-	if args[0] != "instances" {
-		return fmt.Errorf(`expecting "instances" and not %q`, args[0])
+	if opts.Output != "" {
+		outObj := []interface{}{}
+		for _, o := range operators {
+			outObj = append(outObj, o)
+		}
+		for _, o := range operatorversions {
+			outObj = append(outObj, o)
+		}
+		for _, o := range instances {
+			outObj = append(outObj, o)
+		}
+		return output.WriteObjects(outObj, opts.Output, opts.Out)
 	}
 
+	return printAllTree(opts, operators, operatorversions, instances)
+}
+
+func printAllTree(opts CmdOpts, operators, operatorversions, instances []runtime.Object) error {
+
+	rootTree := treeprint.New()
+	for _, o := range operators {
+		op, _ := o.(*v1beta1.Operator)
+		opTree := rootTree.AddBranch(op.Name)
+
+		for _, ovo := range operatorversions {
+			ov, _ := ovo.(*v1beta1.OperatorVersion)
+			if ov.Spec.Operator.Name == op.Name {
+				ovTree := opTree.AddBranch(ov.Name)
+
+				for _, io := range instances {
+					i, _ := io.(*v1beta1.Instance)
+					if i.Spec.OperatorVersion.Name == ov.Name {
+						ovTree.AddBranch(i.Name)
+					}
+				}
+			}
+		}
+	}
+
+	_, _ = fmt.Fprintf(opts.Out, "List of current installed operators including versions and instances in namespace \"%s\":\n", opts.Namespace)
+	_, _ = fmt.Fprintln(opts.Out, rootTree.String())
 	return nil
 
 }
 
-func getInstances(kc *kudo.Client, settings *env.Settings) ([]string, error) {
-
-	instanceList, err := kc.ListInstances(settings.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("getting instances: %w", err)
+func validate(args []string) error {
+	if len(args) != 1 {
+		return errors.New(`expecting exactly one argument - "instances, operators, operatorversions or all"`)
 	}
 
-	return instanceList, nil
+	switch args[0] {
+	case "instances", "operators", "operatorversions":
+		fallthrough
+	case "all":
+		return nil
+	default:
+		return fmt.Errorf(`expecting one of "instances, operators, operatorversions or all" and not %q`, args[0])
+	}
 }
