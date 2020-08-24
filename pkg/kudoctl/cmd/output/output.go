@@ -30,6 +30,10 @@ func (t *Type) AsStringPtr() *string {
 	return (*string)(t)
 }
 
+func (t Type) IsFormattedOutput() bool {
+	return t != ""
+}
+
 func (t Type) Validate() error {
 	if t == "" {
 		return nil
