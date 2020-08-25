@@ -1,0 +1,9 @@
+apiVersion: somecrd.invalid/v1
+kind: InvalidCrdType
+metadata:
+  name: {{ .Name }}-resource
+  namespace: {{ .Namespace }}
+spec:
+  this:
+    does-not: "matter"
+    there-is-no: "such-crd"

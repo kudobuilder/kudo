@@ -2,4 +2,4 @@ apiVersion: kudo.dev/v1beta1
 kind: TestStep
 commands:
   - command: ./download-kudo.sh 0.11.1
-  - command: ./kubectl-kudo init
+  - command: ./old-kudo init

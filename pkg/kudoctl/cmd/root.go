@@ -67,7 +67,7 @@ and serves as an API aggregation layer.
 	cmd.AddCommand(newRepoCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newSearchCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newTestCmd())
-	cmd.AddCommand(newVersionCmd())
+	cmd.AddCommand(newVersionCmd(cmd.OutOrStdout()))
 	cmd.AddCommand(newDiagnosticsCmd(fs))
 
 	initGlobalFlags(cmd, cmd.OutOrStdout())

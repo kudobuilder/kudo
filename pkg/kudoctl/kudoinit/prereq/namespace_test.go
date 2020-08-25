@@ -28,7 +28,7 @@ func TestPrereq_Fail_PreValidate_CustomNamespace(t *testing.T) {
 func TestPrereq_Ok_PreValidate_CustomNamespace(t *testing.T) {
 	client := getFakeClient()
 
-	mockGetNamespace(client, "customNS")
+	mockGetNamespace(client, "customNS", false)
 
 	init := NewNamespaceInitializer(kudoinit.NewOptions("", "customNS", "", true, true))
 
@@ -38,12 +38,33 @@ func TestPrereq_Ok_PreValidate_CustomNamespace(t *testing.T) {
 	assert.EqualValues(t, verifier.NewResult(), result)
 }
 
-func mockGetNamespace(client *kube.Client, nsName string) {
+func TestPrereq_Fail_DefaultNamespaceTerminating(t *testing.T) {
+	client := getFakeClient()
+
+	mockGetNamespace(client, "kudo-system", true)
+
+	init := NewNamespaceInitializer(kudoinit.NewOptions("", "", "", true, true))
+
+	result := verifier.NewResult()
+	_ = init.PreInstallVerify(client, &result)
+
+	expectedResult := verifier.NewResult()
+	expectedResult.AddErrors("Namespace kudo-system is being terminated - Wait until it is fully gone and retry")
+
+	assert.EqualValues(t, expectedResult, result)
+}
+
+func mockGetNamespace(client *kube.Client, nsName string, terminating bool) {
 	client.KubeClient.(*fake.Clientset).Fake.PrependReactor("get", "namespaces", func(action testing2.Action) (handled bool, ret runtime.Object, err error) {
 		ns := &core.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: nsName,
 			},
+		}
+		if terminating {
+			ns.Status = core.NamespaceStatus{
+				Phase: core.NamespaceTerminating,
+			}
 		}
 		return true, ns, nil
 	})

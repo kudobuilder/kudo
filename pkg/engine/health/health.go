@@ -7,6 +7,7 @@ import (
 	"log"
 	"reflect"
 
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -61,6 +62,15 @@ func IsHealthy(obj runtime.Object) error {
 
 	objUnstructured := &unstructured.Unstructured{Object: unstructMap}
 	switch obj := obj.(type) {
+	case *v1beta1.CustomResourceDefinition:
+		for _, c := range obj.Status.Conditions {
+			if c.Type == v1beta1.Established && c.Status == v1beta1.ConditionTrue {
+				log.Printf("CRD %s is now healthy", obj.Name)
+				return nil
+			}
+		}
+		msg := fmt.Sprintf("CRD %s is not healthy ( Conditions: %v )", obj.Name, obj.Status.Conditions)
+		return errors.New(msg)
 	case *appsv1.StatefulSet:
 		statusViewer := &polymorphichelpers.StatefulSetStatusViewer{}
 		msg, done, err := statusViewer.Status(objUnstructured, 0)

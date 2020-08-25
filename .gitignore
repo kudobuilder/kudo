@@ -68,4 +68,4 @@ tags
 [._]*.un~
 kubeconfig
 .kube
-/test/upgrade/upgrade-to-current/kubectl-kudo
+/test/upgrade/upgrade-to-current/old-kudo
