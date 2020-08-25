@@ -16,11 +16,19 @@ import (
 
 type CmdOpts struct {
 	Out    io.Writer
-	Output output.Type
+	Client *kudo.Client
 
+	Output    output.Type
 	Namespace string
-	Client    *kudo.Client
 }
+
+const (
+	All = "all"
+
+	Instances        = "instances"
+	Operators        = "operators"
+	OperatorVersions = "operatorversions"
+)
 
 // Run returns the errors associated with cmd env
 func Run(args []string, opts CmdOpts) error {
@@ -35,20 +43,20 @@ func Run(args []string, opts CmdOpts) error {
 
 	var objs []runtime.Object
 	switch args[0] {
-	case "instances":
+	case Instances:
 		objs, err = opts.Client.ListInstances(opts.Namespace)
-	case "operators":
+	case Operators:
 		objs, err = opts.Client.ListOperators(opts.Namespace)
-	case "operatorversions":
+	case OperatorVersions:
 		objs, err = opts.Client.ListOperatorVersions(opts.Namespace)
-	case "all":
+	case All:
 		return runGetAll(opts)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to retrieve objects: %v", err)
 	}
 
-	if opts.Output != "" {
+	if opts.Output.IsFormattedOutput() {
 		outObj := []interface{}{}
 		for _, o := range objs {
 			outObj = append(outObj, o)
@@ -66,7 +74,7 @@ func Run(args []string, opts CmdOpts) error {
 		}
 		tree.AddBranch(name)
 	}
-	_, _ = fmt.Fprintf(opts.Out, "List of current installed %s in namespace \"%s\":\n", args[0], opts.Namespace)
+	_, _ = fmt.Fprintf(opts.Out, "List of current installed %s in namespace %q:\n", args[0], opts.Namespace)
 	_, _ = fmt.Fprintln(opts.Out, tree.String())
 	return err
 }
@@ -85,7 +93,7 @@ func runGetAll(opts CmdOpts) error {
 		return fmt.Errorf("failed to get operators")
 	}
 
-	if opts.Output != "" {
+	if opts.Output.IsFormattedOutput() {
 		outObj := []interface{}{}
 		for _, o := range operators {
 			outObj = append(outObj, o)
@@ -124,7 +132,7 @@ func printAllTree(opts CmdOpts, operators, operatorversions, instances []runtime
 		}
 	}
 
-	_, _ = fmt.Fprintf(opts.Out, "List of current installed operators including versions and instances in namespace \"%s\":\n", opts.Namespace)
+	_, _ = fmt.Fprintf(opts.Out, "List of current installed operators including versions and instances in namespace %q:\n", opts.Namespace)
 	_, _ = fmt.Fprintln(opts.Out, rootTree.String())
 	return nil
 
@@ -136,9 +144,9 @@ func validate(args []string) error {
 	}
 
 	switch args[0] {
-	case "instances", "operators", "operatorversions":
+	case Instances, Operators, OperatorVersions:
 		fallthrough
-	case "all":
+	case All:
 		return nil
 	default:
 		return fmt.Errorf(`expecting one of "instances, operators, operatorversions or all" and not %q`, args[0])
