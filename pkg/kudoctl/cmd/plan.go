@@ -12,7 +12,7 @@ import (
 
 const (
 	planHistoryExample = `  # View plan history
-  kubectl kudo plan history <operatorVersion> --instance=<instanceName>
+  kubectl kudo plan history --instance=<instanceName>
 `
 	planStatusExample = `  # View plan status
   kubectl kudo plan status --instance=<instanceName>
@@ -42,7 +42,7 @@ func NewPlanHistoryCmd() *cobra.Command {
 	options := plan.DefaultHistoryOptions
 	cmd := &cobra.Command{
 		Use:     "history",
-		Short:   "Lists history to a specific operator-version of an instance.",
+		Short:   "Lists history for each plan of an instance.",
 		Example: planHistoryExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return plan.RunHistory(cmd, options, &Settings)
