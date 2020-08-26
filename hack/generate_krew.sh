@@ -58,16 +58,16 @@ spec:
     your applications, give your users the tools they need to operate it, and
     understand how it's behaving in their environments — all without a PhD in
     Kubernetes.
-  caveats: |
-    Requires the KUDO controller to be installed:
-      kubectl kudo init
+
     Example usage:
       Install kafka:
         kubectl kudo install kafka
       List installed operator instances:
         kubectl kudo get instances
     See the documentation for more information: https://kudo.dev/docs/
-
+  caveats: |
+    Requires the KUDO controller to be installed:
+      kubectl kudo init
   platforms:
 EOF
 
