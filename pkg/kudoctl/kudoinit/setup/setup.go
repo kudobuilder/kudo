@@ -2,6 +2,7 @@ package setup
 
 import (
 	"fmt"
+	"io"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -166,4 +167,23 @@ func (i *Installer) Resources() []runtime.Object {
 	}
 
 	return allManifests
+}
+
+// verifyExistingInstallation checks if the current installation is valid and as expected
+func VerifyExistingInstallation(v kudoinit.InstallVerifier, client *kube.Client, out io.Writer) (bool, error) {
+	clog.V(4).Printf("verify existing installation")
+	result := verifier.NewResult()
+	if err := v.VerifyInstallation(client, &result); err != nil {
+		return false, err
+	}
+	if out != nil {
+		result.PrintWarnings(out)
+	}
+	if !result.IsValid() {
+		if out != nil {
+			result.PrintErrors(out)
+		}
+		return false, nil
+	}
+	return true, nil
 }

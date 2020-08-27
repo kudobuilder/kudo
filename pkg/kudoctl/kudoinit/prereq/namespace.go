@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/kudobuilder/kudo/pkg/engine/health"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
@@ -64,13 +65,16 @@ func (o KudoNamespace) PreUpgradeVerify(client *kube.Client, result *verifier.Re
 }
 
 func (o KudoNamespace) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
-	_, err := client.KubeClient.CoreV1().Namespaces().Get(context.TODO(), o.opts.Namespace, metav1.GetOptions{})
+	ns, err := client.KubeClient.CoreV1().Namespaces().Get(context.TODO(), o.opts.Namespace, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			result.AddErrors(fmt.Sprintf("namespace %s does not exist", o.opts.Namespace))
 			return nil
 		}
 		return err
+	}
+	if err := health.IsHealthy(ns); err != nil {
+		result.AddErrors(fmt.Sprintf("namespace %s is not healthy: %v", o.opts.Namespace, err))
 	}
 	return nil
 }
