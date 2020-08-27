@@ -8,11 +8,16 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
+	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensionfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
@@ -21,6 +26,87 @@ const installNamespace = "default"
 
 func newTestSimpleK2o() *Client {
 	return NewClientFromK8s(fake.NewSimpleClientset(), kubefake.NewSimpleClientset())
+}
+
+func newFakeKubeClient() *kube.Client {
+	client := kubefake.NewSimpleClientset()
+	extClient := apiextensionfake.NewSimpleClientset()
+	dynamicClient := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
+
+	return &kube.Client{
+		KubeClient:    client,
+		ExtClient:     extClient,
+		DynamicClient: dynamicClient}
+}
+
+func TestKudoClient_ValidateServedCrds(t *testing.T) {
+	crdWrongVersion := apiextv1beta1.CustomResourceDefinition{
+		Spec: apiextv1beta1.CustomResourceDefinitionSpec{
+			Versions: []apiextv1beta1.CustomResourceDefinitionVersion{
+				{
+					Name:   "v1beta2",
+					Served: true,
+				},
+			},
+		},
+	}
+	crdNotServed := apiextv1beta1.CustomResourceDefinition{
+		Spec: apiextv1beta1.CustomResourceDefinitionSpec{
+			Versions: []apiextv1beta1.CustomResourceDefinitionVersion{
+				{
+					Name:   "v1beta1",
+					Served: false,
+				},
+				{
+					Name:   "v1beta2",
+					Served: true,
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name    string
+		crdBase *apiextv1beta1.CustomResourceDefinition
+		err     string
+	}{
+		{name: "no crd", err: `CRDs invalid: CRD operators.kudo.dev is not installed       
+CRD operatorversions.kudo.dev is not installed
+CRD instances.kudo.dev is not installed       
+`},
+		{name: "wrong version", crdBase: &crdWrongVersion, err: `CRDs invalid: Expected API version v1beta1 was not found, api-server only supports [v1beta2]. Please update your KUDO CLI.
+Expected API version v1beta1 was not found, api-server only supports [v1beta2]. Please update your KUDO CLI.
+Expected API version v1beta1 was not found, api-server only supports [v1beta2]. Please update your KUDO CLI.
+`},
+		{name: "not served", crdBase: &crdNotServed, err: `CRDs invalid: Expected API version v1beta1 is known to api-server, but is not served. Please update your KUDO CLI.
+Expected API version v1beta1 is known to api-server, but is not served. Please update your KUDO CLI.
+Expected API version v1beta1 is known to api-server, but is not served. Please update your KUDO CLI.
+`},
+	}
+
+	crdNames := []string{"instances.kudo.dev", "operators.kudo.dev", "operatorversions.kudo.dev"}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			kudoClient := newTestSimpleK2o()
+			kubeClient := newFakeKubeClient()
+
+			if tt.crdBase != nil {
+				for _, crdName := range crdNames {
+					crd := tt.crdBase.DeepCopy()
+					crd.Name = crdName
+					_, _ = kubeClient.ExtClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(context.TODO(), crd, metav1.CreateOptions{})
+				}
+			}
+
+			err := kudoClient.VerifyServedCRDs(kubeClient)
+
+			assert.EqualError(t, err, tt.err)
+
+		})
+	}
+
 }
 
 func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
