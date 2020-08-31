@@ -27,7 +27,6 @@ import (
 // +genclient
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-// +kubebuilder:unservedversion
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type Instance struct {
 	metav1.TypeMeta   `json:",inline"`

@@ -14,6 +14,7 @@ spec:
     listKind: InstanceList
     plural: instances
     singular: instance
+  preserveUnknownFields: false
   scope: Namespaced
   subresources:
     status: {}
@@ -175,7 +176,7 @@ spec:
                 type: object
             type: object
         type: object
-    served: false
+    served: true
     storage: false
   - name: v1beta2
     schema:

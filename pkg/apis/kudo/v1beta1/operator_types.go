@@ -22,7 +22,6 @@ import (
 // Operator is the Schema for the operator API
 // +genclient
 // +k8s:openapi-gen=true
-// +kubebuilder:unservedversion
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type Operator struct {
 	metav1.TypeMeta   `json:",inline"`

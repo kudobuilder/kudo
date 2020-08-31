@@ -3,7 +3,6 @@ linters:
   enable:
     - errcheck
     - goimports
-    - golint
     - gosec
     - misspell
     - scopelint

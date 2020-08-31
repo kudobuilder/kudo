@@ -42,7 +42,7 @@ func (ov *OperatorVersion) ConvertFrom(src controllerconversion.Hub) error {
 	return myScheme.Converter().Convert(src, ov, 0, nil)
 }
 
-//nolint:golint,stylecheck
+//nolint:stylecheck
 func Convert_v1beta1_InstanceSpec_To_kudo_InstanceSpec(in *InstanceSpec, out *kudo.InstanceSpec, s conversion.Scope) error {
 	if err := autoConvert_v1beta1_InstanceSpec_To_kudo_InstanceSpec(in, out, s); err != nil {
 		return err
@@ -53,7 +53,7 @@ func Convert_v1beta1_InstanceSpec_To_kudo_InstanceSpec(in *InstanceSpec, out *ku
 	return nil
 }
 
-//nolint:golint,stylecheck
+//nolint:stylecheck
 func Convert_v1beta1_OperatorVersionSpec_To_kudo_OperatorVersionSpec(in *OperatorVersionSpec, out *kudo.OperatorVersionSpec, s conversion.Scope) error {
 	if err := autoConvert_v1beta1_OperatorVersionSpec_To_kudo_OperatorVersionSpec(in, out, s); err != nil {
 		return err
@@ -64,12 +64,12 @@ func Convert_v1beta1_OperatorVersionSpec_To_kudo_OperatorVersionSpec(in *Operato
 	return nil
 }
 
-//nolint:golint,stylecheck
+//nolint:stylecheck
 func Convert_kudo_InstanceSpec_To_v1beta1_InstanceSpec(in *kudo.InstanceSpec, out *InstanceSpec, s conversion.Scope) error {
 	return fmt.Errorf("can't convert Hub version to v1beta1")
 }
 
-//nolint:golint,stylecheck
+//nolint:stylecheck
 func Convert_kudo_OperatorVersionSpec_To_v1beta1_OperatorVersionSpec(int *kudo.OperatorVersionSpec, out *OperatorVersionSpec, s conversion.Scope) error {
 	return fmt.Errorf("can't convert Hub version to v1beta1")
 }

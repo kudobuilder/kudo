@@ -22,7 +22,6 @@ import (
 
 // OperatorVersion is the Schema for the operatorversions API.
 // +genclient
-// +kubebuilder:unservedversion
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type OperatorVersion struct {

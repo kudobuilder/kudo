@@ -149,7 +149,6 @@ type PipeSpec struct {
 }
 
 // KudoOperatorSpec specifies how a KUDO operator is installed
-//nolint:golint
 type KudoOperatorTaskSpec struct {
 	// either repo package name, local package folder or an URL to package tarball. during operator installation,
 	// kudoctl will resolve the package and override this field with the resolved operator name.

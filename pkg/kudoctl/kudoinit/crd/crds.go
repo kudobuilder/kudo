@@ -17,7 +17,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
@@ -34,15 +33,10 @@ type Initializer struct {
 
 // CRDs returns the runtime.Object representation of all the CRDs KUDO requires
 func NewInitializer(options kudoinit.Options) Initializer {
-	var tinyCA *prereq.TinyCA
-	if options.SelfSignedWebhookCA {
-		tinyCA, _ = prereq.NewTinyCA(kudoinit.DefaultServiceName, options.Namespace)
-	}
-
 	return Initializer{
-		Operator:        embeddedCRD("config/crds/kudo.dev_operators.yaml", options, tinyCA),
-		OperatorVersion: embeddedCRD("config/crds/kudo.dev_operatorversions.yaml", options, tinyCA),
-		Instance:        embeddedCRD("config/crds/kudo.dev_instances.yaml", options, tinyCA),
+		Operator:        embeddedCRD("config/crds/kudo.dev_operators.yaml", options),
+		OperatorVersion: embeddedCRD("config/crds/kudo.dev_operatorversions.yaml", options),
+		Instance:        embeddedCRD("config/crds/kudo.dev_instances.yaml", options),
 	}
 }
 
@@ -163,7 +157,7 @@ func (c Initializer) apply(client v1beta1.CustomResourceDefinitionsGetter, crd *
 	return nil
 }
 
-func embeddedCRD(path string, options kudoinit.Options, tinyCA *prereq.TinyCA) *apiextv1beta1.CustomResourceDefinition {
+func embeddedCRD(path string, options kudoinit.Options) *apiextv1beta1.CustomResourceDefinition {
 	operatorYaml := MustAsset(path)
 	crd := &apiextv1beta1.CustomResourceDefinition{}
 	err := yaml.UnmarshalStrict(operatorYaml, crd)
@@ -178,13 +172,12 @@ func embeddedCRD(path string, options kudoinit.Options, tinyCA *prereq.TinyCA) *
 			Service: &apiextv1beta1.ServiceReference{
 				Name:      kudoinit.DefaultServiceName,
 				Namespace: options.Namespace,
-				Path:      convert.StringPtr("/admit-kudo-dev-v1beta1-instance"),
+				Path:      convert.StringPtr("/convert"),
 			},
 		},
 	}
-	if tinyCA != nil {
-		crd.Spec.Conversion.WebhookClientConfig.CABundle = tinyCA.CA.CertBytes()
-	}
+	injectCaAnnotationName := "cert-manager.io/inject-ca-from" // TODO: Use detected version
+	crd.Annotations[injectCaAnnotationName] = fmt.Sprintf("%s/kudo-webhook-server-certificate", options.Namespace)
 
 	return crd
 }
