@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	v1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	v1beta2 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta2"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -57,6 +58,14 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Kudo().V1beta1().Operators().Informer()}, nil
 	case v1beta1.SchemeGroupVersion.WithResource("operatorversions"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Kudo().V1beta1().OperatorVersions().Informer()}, nil
+
+		// Group=kudo.dev, Version=v1beta2
+	case v1beta2.SchemeGroupVersion.WithResource("instances"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Kudo().V1beta2().Instances().Informer()}, nil
+	case v1beta2.SchemeGroupVersion.WithResource("operators"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Kudo().V1beta2().Operators().Informer()}, nil
+	case v1beta2.SchemeGroupVersion.WithResource("operatorversions"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Kudo().V1beta2().OperatorVersions().Informer()}, nil
 
 	}
 

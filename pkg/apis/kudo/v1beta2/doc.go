@@ -13,11 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package apis
-
-import "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-
-func init() {
-	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
-	AddToSchemes = append(AddToSchemes, v1beta1.SchemeBuilder.AddToScheme)
-}
+// Package v1beta1 contains API Schema definitions for the kudo v1beta2 API group
+// +k8s:openapi-gen=true
+// +k8s:deepcopy-gen=package
+// +k8s:conversion-gen=github.com/kudobuilder/kudo/pkg/apis/kudo
+// +k8s:defaulter-gen=TypeMeta
+// +groupName=kudo.dev
+package v1beta2

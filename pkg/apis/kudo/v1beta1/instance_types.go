@@ -23,6 +23,28 @@ import (
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 )
 
+// Instance is the Schema for the instances API.
+// +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
+// +kubebuilder:unservedversion
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type Instance struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   InstanceSpec   `json:"spec,omitempty"`
+	Status InstanceStatus `json:"status,omitempty"`
+}
+
+// InstanceList contains a list of Instance.
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type InstanceList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Instance `json:"items"`
+}
+
 // InstanceSpec defines the desired state of Instance.
 type InstanceSpec struct {
 	// OperatorVersion specifies a reference to a specific OperatorVersion object.
@@ -198,30 +220,4 @@ func (s ExecutionStatus) IsFinished() bool {
 // IsRunning returns true if the plan is currently being executed
 func (s ExecutionStatus) IsRunning() bool {
 	return s == ExecutionInProgress || s == ExecutionPending || s == ErrorStatus
-}
-
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// Instance is the Schema for the instances API.
-// +k8s:openapi-gen=true
-// +kubebuilder:subresource:status
-type Instance struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   InstanceSpec   `json:"spec,omitempty"`
-	Status InstanceStatus `json:"status,omitempty"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// InstanceList contains a list of Instance.
-type InstanceList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Instance `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&Instance{}, &InstanceList{})
 }

@@ -31,7 +31,7 @@ func NewInstaller(options kudoinit.Options, crdOnly bool) *Installer {
 		return &Installer{
 			options: options,
 			initializers: []kudoinit.Step{
-				crd.NewInitializer(),
+				crd.NewInitializer(options),
 			},
 		}
 	}
@@ -47,7 +47,7 @@ func NewInstaller(options kudoinit.Options, crdOnly bool) *Installer {
 		managerInitializer: managerStep,
 		webhookInitializer: webhookStep,
 		initializers: []kudoinit.Step{
-			crd.NewInitializer(),
+			crd.NewInitializer(options),
 			prereq.NewNamespaceInitializer(options),
 			prereq.NewServiceAccountInitializer(options),
 			webhookStep,

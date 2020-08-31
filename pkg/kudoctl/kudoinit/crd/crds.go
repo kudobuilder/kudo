@@ -17,7 +17,9 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
+	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
 // Ensure kudoinit.Step is implemented
@@ -31,11 +33,16 @@ type Initializer struct {
 }
 
 // CRDs returns the runtime.Object representation of all the CRDs KUDO requires
-func NewInitializer() Initializer {
+func NewInitializer(options kudoinit.Options) Initializer {
+	var tinyCA *prereq.TinyCA
+	if options.SelfSignedWebhookCA {
+		tinyCA, _ = prereq.NewTinyCA(kudoinit.DefaultServiceName, options.Namespace)
+	}
+
 	return Initializer{
-		Operator:        embeddedCRD("config/crds/kudo.dev_operators.yaml"),
-		OperatorVersion: embeddedCRD("config/crds/kudo.dev_operatorversions.yaml"),
-		Instance:        embeddedCRD("config/crds/kudo.dev_instances.yaml"),
+		Operator:        embeddedCRD("config/crds/kudo.dev_operators.yaml", options, tinyCA),
+		OperatorVersion: embeddedCRD("config/crds/kudo.dev_operatorversions.yaml", options, tinyCA),
+		Instance:        embeddedCRD("config/crds/kudo.dev_instances.yaml", options, tinyCA),
 	}
 }
 
@@ -156,12 +163,28 @@ func (c Initializer) apply(client v1beta1.CustomResourceDefinitionsGetter, crd *
 	return nil
 }
 
-func embeddedCRD(path string) *apiextv1beta1.CustomResourceDefinition {
+func embeddedCRD(path string, options kudoinit.Options, tinyCA *prereq.TinyCA) *apiextv1beta1.CustomResourceDefinition {
 	operatorYaml := MustAsset(path)
 	crd := &apiextv1beta1.CustomResourceDefinition{}
 	err := yaml.UnmarshalStrict(operatorYaml, crd)
 	if err != nil {
 		panic(fmt.Sprintf("cannot unmarshal embedded content of %s: %v", path, err))
 	}
+
+	crd.Spec.Conversion = &apiextv1beta1.CustomResourceConversion{
+		Strategy:                 apiextv1beta1.WebhookConverter,
+		ConversionReviewVersions: []string{"v1beta2", "v1beta1"},
+		WebhookClientConfig: &apiextv1beta1.WebhookClientConfig{
+			Service: &apiextv1beta1.ServiceReference{
+				Name:      kudoinit.DefaultServiceName,
+				Namespace: options.Namespace,
+				Path:      convert.StringPtr("/admit-kudo-dev-v1beta1-instance"),
+			},
+		},
+	}
+	if tinyCA != nil {
+		crd.Spec.Conversion.WebhookClientConfig.CABundle = tinyCA.CA.CertBytes()
+	}
+
 	return crd
 }

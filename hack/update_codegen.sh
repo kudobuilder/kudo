@@ -18,6 +18,11 @@ if [[ -d ${CODE_GEN_DIR} ]]; then
 else
     git clone https://github.com/kubernetes/code-generator.git "${CODE_GEN_DIR}"
     git -C "${CODE_GEN_DIR}" reset --hard "${VERSION}"
+    (
+        cd "${CODE_GEN_DIR}"
+        # Make sure code-gen uses the local kudo codebase, and not a remote module
+        go mod edit -replace=github.com/kudobuilder/kudo=../../../
+    )
 fi
 
 # Fake being in a $GOPATH until kubernetes fully supports modules
@@ -29,9 +34,32 @@ mkdir -p "$(dirname "${FAKE_REPOPATH}")" && ln -s "${REPO_ROOT}" "${FAKE_REPOPAT
 export GOPATH="${FAKE_GOPATH}"
 cd "${FAKE_REPOPATH}"
 
-"${CODE_GEN_DIR}"/generate-groups.sh \
-  all \
-  github.com/kudobuilder/kudo/pkg/client \
-  github.com/kudobuilder/kudo/pkg/apis \
-  "kudo:v1beta1" \
-  --go-header-file hack/boilerplate.go.txt # must be last for some reason
+#"${CODE_GEN_DIR}"/generate-groups.sh \
+#  all \
+#  github.com/kudobuilder/kudo/pkg/client \
+#  github.com/kudobuilder/kudo/pkg/apis \
+#  "kudo:v1beta1,v1beta2" \
+#  --go-header-file hack/boilerplate.go.txt # must be last for some reason
+
+# Generation is split into two parts, in case we want to generate clients for different APIs than for internal conversion
+
+# This part is for generating the client, lister, informer, i.e. everything client related
+#"${CODE_GEN_DIR}"/generate-groups.sh \
+#  deepcopy \
+#  github.com/kudobuilder/kudo/pkg/client \
+#  github.com/kudobuilder/kudo/pkg/apis \
+#  "kudo:v1beta2" \
+#  --go-header-file ${REPO_ROOT}/hack/boilerplate.go.txt # must be last for some reason
+
+# Execute this in a subshell - generate-internal-groups expects the cwd to be the code_gen_dir
+(
+    # This part is for generating the internal conversion, defaulting, etc.
+    cd "${CODE_GEN_DIR}"
+    ./generate-internal-groups.sh \
+      deepcopy,defaulter,conversion \
+      github.com/kudobuilder/kudo/pkg/client \
+      github.com/kudobuilder/kudo/pkg/apis \
+      github.com/kudobuilder/kudo/pkg/apis \
+      "kudo:v1beta1,v1beta2" \
+      --go-header-file ${REPO_ROOT}/hack/boilerplate.go.txt # must be last for some reason
+)

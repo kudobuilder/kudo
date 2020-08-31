@@ -59,6 +59,10 @@ const (
 	manifestsDir            = "../../../config/crds/"
 )
 
+var (
+	defaultOpts = kudoinit.NewOptions("0.0.1", "", "", false, true)
+)
+
 func TestKudoClientValidate(t *testing.T) {
 	tests := []struct {
 		err string
@@ -74,7 +78,7 @@ func TestKudoClientValidate(t *testing.T) {
 }
 
 func TestCrds_Config(t *testing.T) {
-	crds := crd.NewInitializer()
+	crds := crd.NewInitializer(defaultOpts)
 	assertManifestFileMatch(t, operatorFileName, crds.Operator)
 	assertManifestFileMatch(t, operatorVersionFileName, crds.OperatorVersion)
 	assertManifestFileMatch(t, instanceFileName, crds.Instance)
@@ -115,7 +119,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := crd.NewInitializer().Resources()
+	crds := crd.NewInitializer(defaultOpts).Resources()
 
 	var buf bytes.Buffer
 	var errBuf bytes.Buffer
@@ -161,7 +165,7 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	assert.Error(t, err, "Expected an Error but got none")
 
 	// Install all of the CRDs.
-	crds := crd.NewInitializer().Resources()
+	crds := crd.NewInitializer(defaultOpts).Resources()
 
 	var buf bytes.Buffer
 	var errBuf bytes.Buffer
@@ -290,7 +294,7 @@ func TestInitWithServiceAccount(t *testing.T) {
 			assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 			// Install all of the CRDs.
-			crds := crd.NewInitializer().Resources()
+			crds := crd.NewInitializer(defaultOpts).Resources()
 
 			var buf bytes.Buffer
 			var errBuf bytes.Buffer
@@ -379,7 +383,7 @@ func TestReInitFails(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := crd.NewInitializer().Resources()
+	crds := crd.NewInitializer(defaultOpts).Resources()
 
 	var buf bytes.Buffer
 	clog.InitNoFlag(&buf, clog.Level(4))
@@ -425,7 +429,7 @@ func deleteInitPrereqs(cmd *initCmd, client *testutils.RetryClient) error {
 
 	objs := append([]runtime.Object{}, prereq.NewWebHookInitializer(opts).Resources()...)
 	objs = append(objs, prereq.NewServiceAccountInitializer(opts).Resources()...)
-	objs = append(objs, crd.NewInitializer().Resources()...)
+	objs = append(objs, crd.NewInitializer(opts).Resources()...)
 
 	// Namespaced resources aren't waited on after deletion because they aren't GC'ed in this test environment.
 	for _, ns := range prereq.NewNamespaceInitializer(opts).Resources() {

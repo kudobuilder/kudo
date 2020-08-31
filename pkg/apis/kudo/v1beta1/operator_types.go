@@ -19,6 +19,27 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Operator is the Schema for the operator API
+// +genclient
+// +k8s:openapi-gen=true
+// +kubebuilder:unservedversion
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type Operator struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   OperatorSpec   `json:"spec,omitempty"`
+	Status OperatorStatus `json:"status,omitempty"`
+}
+
+// OperatorList contains a list of Operator
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type OperatorList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Operator `json:"items"`
+}
+
 // OperatorSpec defines the desired state of Operator
 type OperatorSpec struct {
 	Description       string        `json:"description,omitempty"`
@@ -42,30 +63,4 @@ type Maintainer struct {
 type OperatorStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-}
-
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// Operator is the Schema for the operator API
-// +k8s:openapi-gen=true
-type Operator struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   OperatorSpec   `json:"spec,omitempty"`
-	Status OperatorStatus `json:"status,omitempty"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// OperatorList contains a list of Operator
-type OperatorList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Operator `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&Operator{}, &OperatorList{})
 }

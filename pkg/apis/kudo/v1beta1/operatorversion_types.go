@@ -20,6 +20,27 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// OperatorVersion is the Schema for the operatorversions API.
+// +genclient
+// +kubebuilder:unservedversion
+// +k8s:openapi-gen=true
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type OperatorVersion struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   OperatorVersionSpec   `json:"spec,omitempty"`
+	Status OperatorVersionStatus `json:"status,omitempty"`
+}
+
+// OperatorVersionList contains a list of OperatorVersion.
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type OperatorVersionList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []OperatorVersion `json:"items"`
+}
+
 // OperatorVersionSpec defines the desired state of OperatorVersion.
 type OperatorVersionSpec struct {
 	// +optional
@@ -192,30 +213,4 @@ type KudoOperatorTaskSpec struct {
 type OperatorVersionStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-}
-
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// OperatorVersion is the Schema for the operatorversions API.
-// +k8s:openapi-gen=true
-type OperatorVersion struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   OperatorVersionSpec   `json:"spec,omitempty"`
-	Status OperatorVersionStatus `json:"status,omitempty"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// OperatorVersionList contains a list of OperatorVersion.
-type OperatorVersionList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []OperatorVersion `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&OperatorVersion{}, &OperatorVersionList{})
 }

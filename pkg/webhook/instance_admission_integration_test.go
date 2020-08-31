@@ -22,6 +22,7 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/apis"
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
 )
@@ -45,9 +46,11 @@ var _ = BeforeSuite(func() {
 
 	env.WebhookInstallOptions = envtest.WebhookInstallOptions{MutatingWebhooks: []runtime.Object{&iaw}}
 
+	initopts := kudoinit.NewOptions("0.0.1", "", "", false, true)
+
 	// 2. add KUDO CRDs
 	log.Print("test.BeforeSuite: initializing CRDs")
-	env.CRDs = crd.NewInitializer().Resources()
+	env.CRDs = crd.NewInitializer(initopts).Resources()
 
 	_, err := env.Start()
 	Expect(err).NotTo(HaveOccurred())

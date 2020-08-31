@@ -28,6 +28,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/scheme"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
@@ -65,7 +66,8 @@ func NewClientForConfig(config *rest.Config, validateInstall bool) (*Client, err
 	}
 
 	result := verifier.NewResult()
-	err = crd.NewInitializer().VerifyInstallation(kubeClient, &result)
+	TODOOpts := kudoinit.NewOptions("0.0.0", "", "", false, true)
+	err = crd.NewInitializer(TODOOpts).VerifyInstallation(kubeClient, &result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run crd verification: %v", err)
 	}

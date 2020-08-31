@@ -157,6 +157,21 @@ func main() {
 
 	// Add more webhooks below using the above registerWebhook method
 
+	log.Printf("Setting up conversion webhooks")
+	if err := ctrl.NewWebhookManagedBy(mgr).For(&v1beta1.Operator{}).Complete(); err != nil {
+		log.Printf("Failed to setup conversion webhhook for Operator: %v", err)
+		os.Exit(1)
+	}
+	if err := ctrl.NewWebhookManagedBy(mgr).For(&v1beta1.OperatorVersion{}).Complete(); err != nil {
+		log.Printf("Failed to setup conversion webhhook for OperatorVersion: %v", err)
+		os.Exit(1)
+	}
+	if err := ctrl.NewWebhookManagedBy(mgr).For(&v1beta1.Instance{}).Complete(); err != nil {
+		log.Printf("Failed to setup conversion webhhook for Instance: %v", err)
+		os.Exit(1)
+	}
+	log.Printf("Conversion webhooks set up")
+
 	// Start the KUDO manager
 	log.Print("Done! Everything is setup, starting KUDO manager now")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
