@@ -1,6 +1,6 @@
 ---
 kep-number: 33
-short-desc: Structured parameters with enhanced metadata
+short-desc: Structured parameters with JSON-schema
 title: Structured Parameters
 authors:
   - "@zen-dog"
@@ -42,7 +42,7 @@ superseded-by:
             * [Partial structured values.yaml](#partial-structured-valuesyaml)
          * [Add Parameter Wizard kudo package add parameter](#add-parameter-wizard-kudo-package-add-parameter)
          * [Parameter Listing kudo package list parameters](#parameter-listing-kudo-package-list-parameters)
-         * [Additional attributes in json-schema](#additional-attributes-in-json-schema)
+         * [Additional attributes in JSON-schema](#additional-attributes-in-json-schema)
             * [Trigger attributes](#trigger-attributes)
             * [Immutability](#immutability)
             * [FlatListName](#flatlistname)
@@ -59,62 +59,75 @@ superseded-by:
 
 ## Summary
 
-Replace the "list of parameters" with a single nested, typed structure described by json-schema.
+Replace current flat "list of parameters" with a single, nested and typed structure described by [JSON-schema](https://json-schema.org/).
 
 ## Motivation
 
-A structured data structure provides a lot more possibilities to organize parameters for an operator. Current operators organize their parameters with prefixes, but this has its limits.
-
-Additionally, we want to enhance parameters with more metadata: 
-- Label
-- Description
-- Grouping of parameters
-- Validation
+Currently, KUDO uses a flat [list of parameter](https://github.com/kudobuilder/kudo/blob/main/pkg/apis/kudo/v1beta1/parameter_types.go#L4) which, while being simple and accessible, has its limits like the need to use name prefixes to group the parameters. [JSON-schema](https://json-schema.org) is a de-facto standard when describing a data format. It can also be expressed as YAML to fit into the Kubernetes ecosystem. Along with naming and descriptions it provides following improvements over the existing parameter schema:   
+- Labels
+- Nested parameters
+- Validation and ranged values
 - More parameter types (enums, numbers, etc.)
-- UI flags (important or low-prio and hidden by default)
+- Easily extendable with custom attributes like `trigger` and `immutable`
+- Rich ecosystem of tools and libraries e.g. [UI generators](http://json-schema.org/implementations.html#generators-from-schemas)
 
-Some of these are already possible with the current `params.yaml` format, some need to be added.
+Latter point might help to build an ecosystem around KUDO operators which might help driving KUDOs adoption.
 
 ### Goals
 
-TODO
+Introduce a new parameter format based on the JSON-schema.
 
 ### Non-Goals
 
-TODO
+Extend the current format to support new features.
 
-## Proposal
+### Proposal Overview
 
-Adopt json-schema as the default format for `params.yaml`.
+One part of the proposal deals the client-side of the new format. This includes:
+ - Introduce new API version (`apiVersion:kudo.dev/v1beta2`) for the operator package `params.yaml`. KUDO should be able to read both old and new formats.
+- Support updating nested values from the command line e.g. `kudo update ... -p some.nested.key=value`
+- Support updating nested values using values file e.g. `kudo update ... -P values.yaml`
+- Add nested parameters via. the wizard `kudo package add parameter`
+- Parameter listing aka `kudo package list parameters`. We need a new output format here - maybe a tree-table?
+- Possible additional validation for our custom attributes e.g. parameter `trigger`
 
-- Json-Schema allows all of our requirements to be fulfilled
-- It is an existing standard
-- It can be expressed as yaml to fit into the Kubernetes ecosystem
-- It can be extended with custom keywords to define our custom attributes like `trigger` and `immutable`
-- There are existing go libraries 
-
-### Overview
-
- - KUDO operator package format
-   The package format has to be adjusted. We need a new version, and KUDO should be able to read both old and new formats.
-- CRDS
-- Instance Updates `kudo update ... -p KEY=value`
-- Values.yaml `kudo update ... -P values.yaml` 
-- Add Parameter Wizard `kudo package add parameter`
-- Parameter Listing`kudo package list parameters`
-  We need a new output format here - maybe a tree-table?
-- Additional attributes in json-schema
-  We want to use json-schema to describe the parameter structure, but we need additional information that is not described json-schema.
+The server-side of the proposal includes:
+- Updating `Operator` and `Instance` CRDs to use JSON-schema as the parameter format  
+- Providing a conversion-webhook to convert in-cluster running operators to the new format 
    
 ### Package Format
 
-TODO: Describe new package format (json-schema)
+JSON-schema is a [well-described](http://json-schema.org/understanding-json-schema/) format. However, here is a little example showing an existing `ZOOKEEPER_URI` and its new counterpart `Zookeeper.URI`:
+
+```yaml
+apiVersion: kudo.dev/v1beta1
+parameters:
+  - name: ZOOKEEPER_URI
+    displayName: "zookeeper cluster URI"
+    description: "host and port information for Zookeeper connection. e.g. zk:2181,zk2:2181,zk3:2181"
+    default: "zookeeper-instance-zookeeper-0.zookeeper-instance-hs:2181"
+    required: true
+```
+
+```yaml
+type: object
+"$schema": "http://json-schema.org/draft-07/schema#"
+apiVersion: kudo.dev/v1beta2
+properties:
+  Zookeeper:
+    properties:
+      URI:
+        type: "string"
+        description: "host and port information for Zookeeper connection. e.g. zk:2181,zk2:2181,zk3:2181"
+        default: "zookeeper-instance-zookeeper-0.zookeeper-instance-hs:2181"
+    required: ["URI"]
+```
 
 ### CRDs
 
 Normally, per Kubernetes conventions, CRDs would evolve over released versions without a breaking change from one version to the next, allowing clients to gradually convert to new CRD versions.
 
-With this change, this will not be possible, as json-schema supports a lot of configuration which will not be mappable from a flat list.
+With this change, this will not be possible, as JSON-schema supports a lot of configurations which will not be mappable from a flat list.
 
 There will be a hard break from the current from `v1beta1` to the new `v1beta2`. We will provide a migration path for existing installed CRDs, but the clients accessing these CRDs will need to be updated.
 
@@ -161,7 +174,7 @@ type OperatorVersionSpec struct {
 }
 ```
 
-This field will be handled by a json-schema library.
+This field will be handled by a JSON-schema library.
 
 #### Instance
 
@@ -196,7 +209,7 @@ This is easy with a flat list of parameters, but becomes more complex with a nes
 
 The key is now be a jsonpath/yamlpath expression, the value can either be a simple value or a more complex json/yaml structure, depending on the specified path.
 
-On Update, the existing parameter structure is modified based on the given parameter updates and only after all updates are applied it is validated against the json-schema of the operator.
+On Update, the existing parameter structure is modified based on the given parameter updates and only after all updates are applied it is validated against the JSON-schema of the operator.
 
 Examples:
 
@@ -270,10 +283,10 @@ TODO: We need a new/extended implementation here
 
 TODO: We need a new output format here - maybe a tree table
 
-### Additional attributes in json-schema
+### Additional attributes in JSON-schema
 
  - `trigger`: Copied from params.yaml, describes the plan that is triggered
- - `immutable`: Copied from params.yaml, specifies if the field is updatable (Could this clash with a future addition to json-schema? Should we rename it?)
+ - `immutable`: Copied from params.yaml, specifies if the field is updatable (Could this clash with a future addition to JSON-schema? Should we rename it?)
  - `flatListName`: Provided for backwards compatibility. If provided, specifies the old name that was used in the flat parameters list in previous versions (alternatives: "oldName", "paramName")? This attribute should be deprecated at some point in the future and phased out.
 - `low-priority`: Optional new boolean parameter that specifies that this parameter is not normally expected to be changed. Very advanced use cases might require a change, but it's usually not required.
 
@@ -332,7 +345,7 @@ The templates in the operator use `{{ .Params.CLUSTER_NAME }}` and `{{ .Params.B
 
 ### After automatic conversion
 
-KUDO will automatically convert this params.yaml into a json-schema inside the operator version:
+KUDO will automatically convert this params.yaml into a JSON-schema inside the operator version:
 
 ```yaml
 title: Parameter Schema
