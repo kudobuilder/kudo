@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 
+	"github.com/kudobuilder/kudo/pkg/engine/health"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
@@ -145,6 +146,10 @@ func (c Initializer) verifyInstallation(client v1beta1.CustomResourceDefinitions
 	if !reflect.DeepEqual(existingCrd.Spec.Versions, crd.Spec.Versions) {
 		result.AddErrors(fmt.Sprintf("Installed CRD versions do not match expected CRD versions (%v vs %v).", existingCrd.Spec.Versions, crd.Spec.Versions))
 	}
+	if err := health.IsHealthy(existingCrd); err != nil {
+		result.AddErrors(fmt.Sprintf("Installed CRD %s is not healthy: %v", crd.Name, err))
+		return nil
+	}
 	clog.V(2).Printf("CRD %s is installed with versions %v", crd.Name, existingCrd.Spec.Versions)
 	return nil
 }
@@ -153,6 +158,10 @@ func (c Initializer) verifyServedVersion(client v1beta1.CustomResourceDefinition
 	existingCrd, err := c.getCrdForVerify(client, crdName, result)
 	if err != nil || existingCrd == nil {
 		return err
+	}
+	if err := health.IsHealthy(existingCrd); err != nil {
+		result.AddErrors(fmt.Sprintf("Installed CRD %s is not healthy: %v", crdName, err))
+		return nil
 	}
 
 	var expectedVersion *apiextv1beta1.CustomResourceDefinitionVersion
