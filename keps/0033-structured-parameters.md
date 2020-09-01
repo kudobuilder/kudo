@@ -125,9 +125,7 @@ properties:
 
 ### CRDs
 
-Normally, per Kubernetes conventions, CRDs would evolve over released versions without a breaking change from one version to the next, allowing clients to gradually convert to new CRD versions.
-
-With this change, this will not be possible, as JSON-schema supports a lot of configurations which will not be mappable from a flat list.
+Normally, per Kubernetes conventions, CRDs would evolve over released versions without a breaking change from one version to the next, allowing clients to gradually convert to new CRD versions. This requires for a CRD to be convertible from the old version to new _and vice versa_ for all clients (new and old) to be able to read/write both old and new CRD versions. However, such a conversion in both directions will not be possible with this change, as JSON-schema supports a lot of configurations which will not be mappable from a flat list. 
 
 There will be a hard break from the current from `v1beta1` to the new `v1beta2`. We will provide a migration path for existing installed CRDs, but the clients accessing these CRDs will need to be updated.
 
@@ -135,16 +133,13 @@ There will be a hard break from the current from `v1beta1` to the new `v1beta2`.
 
 To migrate the existing CRDs, we will implement a Conversion Webhook that only allows `v1beta1` to `v1beta2` conversion, not the other way around. When KUDO is upgraded, it will:
 
-- Run Pre-Migration
-    - Fetch all existing CRDs, run the conversion and check for any errors
-- Deploy the new CRD version
+1. Deploy the new CRD version where the new (`v1beta2`) version will be the _only_ served and stored version:
     - `v1beta1` will be still in the list, but with `storage=false, served=false`
     - `v1beta2` will be marked as `storage=true, served=true`
-- Deploy the new manager with the conversion webhook
-- Run the migration
-    - Fetch all CRDs and issue an update - This will trigger a conversion and save the CRD with the new version
-    - Update the CRD status.storedVersions field
-- With the following KUDO release, we can remove `v1beta1` from the CRD list.
+2. Deploy the new manager with the conversion webhook
+3. Run Pre-Migration: fetch all existing CRs, run the conversion and check for any errors
+4. Run the migration: fetch all CRDs and issue an update - This will trigger a conversion and save the CRD with the new version
+5. With the following major KUDO release, we can remove `v1beta1` from the CRD list.
 
 Reference: [CRD Versioning](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definition-versioning/)
 
@@ -154,9 +149,9 @@ The Operator CRD will not change, but we should keep the version in sync with th
 
 #### OperatorVersion
 
-In `v1beta1` the OV will contain a json-structure. This structure is mapped in the CRD to an `interface{}` type and will be read and interpreted by a go library.
+OperatorVersion `v1beta1` [holds the parameters](https://github.com/kudobuilder/kudo/blob/main/pkg/apis/kudo/v1beta1/operatorversion_types.go#L35) in the `OperatorVersion.Spec.Parameter` field of type `[]Parameter`. `v1beta2` will update this field to hold a JSON-schema instead. This structure will be mapped in the CRD to an `interface{}` type and will be read and interpreted by a go library to e.g. validate input parameters and provide parameter defaults.
 
-Old:
+`v1beta1`:
 ```go
 type OperatorVersionSpec struct {
     ....
@@ -165,7 +160,7 @@ type OperatorVersionSpec struct {
 }
 ```
 
-New:
+`v1beta2`:
 ```go
 type OperatorVersionSpec struct {
     ....
@@ -174,15 +169,11 @@ type OperatorVersionSpec struct {
 }
 ```
 
-This field will be handled by a JSON-schema library.
-
 #### Instance
 
 Instance `v1beta1` saves parameter overrides in the `Instance.Spec.Parameters` field which is of type `map[string]string`. `v1beta2` will have to update this field to `interface{}`.
 
-As the conversion webhook only needs to convert one direction, it can easily convert existing instances without access to the operator version.
-
-Old:
+`v1beta1`:
 ```go
 type InstanceSpec struct {
     ....
@@ -191,41 +182,34 @@ type InstanceSpec struct {
 }
 ```
 
-New:
+`v1beta2`:
 ```go
 type InstanceSpec struct {
     ....
-    Parameters interface{} `json:"parameters"`
+    Parameters map[string]interface{} `json:"parameters"`
     ....
 }
 ```
 
-This field will be read into an untyped `interface{}` structure and must be handled the same as an unstructured CRD - the actual types will be combinations of `map[string]interface{}` and `[]interface{}`, the actual fields will be strings, numbers or booleans. 
+The existing instance parameter values are currently stored as serialized strings. They will have to be unwrapped and stored as `map[string]interface{}`.
 
 ### Instance updates
 
-When updating an operator instance, a user can specify parameters to set: `kudo update --instance my-instance -p KEY=newValue`.
-This is easy with a flat list of parameters, but becomes more complex with a nested structure:
+When updating an operator instance, a user can specify parameters override either in the command line directly (`-p` option) or using an extra file (`-P` option) e.g.: `kudo update --instance my-instance -p KEY=newValue`. This is easy with a flat list of parameters, but becomes more complex with a nested structure. 
 
-The key is now be a jsonpath/yamlpath expression, the value can either be a simple value or a more complex json/yaml structure, depending on the specified path.
-
-On Update, the existing parameter structure is modified based on the given parameter updates and only after all updates are applied it is validated against the JSON-schema of the operator.
+The key is now be a [JSON pointer](https://tools.ietf.org/html/rfc6901) expression, the value can either be a simple value, or a more complex json/yaml structure, depending on the specified path. On an update, the existing parameter structure is modified based on the given parameter overrides and only after all updates are applied it is validated against the JSON-schema of the operator.
 
 Examples:
+- set the top-level `clusterName` parameter: 
+  `kudo update ... -p clusterName="NewClusterName"`
+- set the `datacenterName` field of the first item in the `topology` array
+  `kudo update ... -p topology/0/datacenterName="NewDC1"`
+- replace the first item in the `labels` array of the first `topology` array element
+  `kudo update ... -p topology/0/labels/0={ key: "Usage", value: "newValue" }`
+- replace the full labels array of the first topology element
+`kudo update ... -p topology/0/labels=[ { key: "DCLabel", value: "dc1" }, { key: "Usage", value: "additionalItem" } ]`
 
-This would set the `clusterName` attribute
-`kudo update ... -p clusterName="NewClusterName"`
-
-This would set the datacenterName attribute of the first item in the topology array
-`kudo update ... -p topology[0].datacenterName="NewDC1"`
-
-This would replace the first item in the labels array of the first topology item
-`kudo update ... -p topology[0].labels[0]={ key: "Usage", value: "newValue" }`
-
-This would replace the full labels array of the first topology item
-`kudo update ... -p topology[0].labels=[ { key: "DCLabel", value: "dc1" }, { key: "Usage", value: "additionalItem" } ]`
-
-The `kudo update` command will not allow to add or remove a single entry from an array field, as this would make the command not idempotent anymore.
+The `kudo update` command will not allow adding or removing a single entry from an array field, as this would make the command not idempotent anymore.
 
 We may decide to implement a `kudo patch` later on which is not idempotent an allows add/remove operations.
 
