@@ -1,10 +1,10 @@
 
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.3.0
+    controller-gen.kubebuilder.io/version: v0.4.0
   creationTimestamp: null
   name: operatorversions.kudo.dev
 spec:
@@ -14,9 +14,7 @@ spec:
     listKind: OperatorVersionList
     plural: operatorversions
     singular: operatorversion
-  preserveUnknownFields: false
   scope: Namespaced
-  version: v1beta1
   versions:
   - name: v1beta1
     schema:
@@ -24,14 +22,10 @@ spec:
         description: OperatorVersion is the Schema for the operatorversions API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -41,50 +35,16 @@ spec:
               appVersion:
                 type: string
               connectionString:
-                description: ConnectionString defines a templated string that can
-                  be used to connect to an instance of the Operator.
+                description: ConnectionString defines a templated string that can be used to connect to an instance of the Operator.
                 type: string
               operator:
-                description: 'ObjectReference contains enough information to let you
-                  inspect or modify the referred object. --- New uses of this type
-                  are discouraged because of difficulty describing its usage when
-                  embedded in APIs.  1. Ignored fields.  It includes many fields which
-                  are not generally honored.  For instance, ResourceVersion and FieldPath
-                  are both very rarely valid in actual usage.  2. Invalid usage help.  It
-                  is impossible to add specific help for individual usage.  In most
-                  embedded usages, there are particular     restrictions like, "must
-                  refer only to types A and B" or "UID not honored" or "name must
-                  be restricted".     Those cannot be well described when embedded.  3.
-                  Inconsistent validation.  Because the usages are different, the
-                  validation rules are different by usage, which makes it hard for
-                  users to predict what will happen.  4. The fields are both imprecise
-                  and overly precise.  Kind is not a precise mapping to a URL. This
-                  can produce ambiguity     during interpretation and require a REST
-                  mapping.  In most cases, the dependency is on the group,resource
-                  tuple     and the version of the actual struct is irrelevant.  5.
-                  We cannot easily change it.  Because this type is embedded in many
-                  locations, updates to this type     will affect numerous schemas.  Don''t
-                  make new APIs embed an underspecified API type they do not control.
-                  Instead of using this type, create a locally provided and used type
-                  that is well-focused on your reference. For example, ServiceReferences
-                  for admission registration: https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533
-                  .'
+                description: 'ObjectReference contains enough information to let you inspect or modify the referred object. --- New uses of this type are discouraged because of difficulty describing its usage when embedded in APIs.  1. Ignored fields.  It includes many fields which are not generally honored.  For instance, ResourceVersion and FieldPath are both very rarely valid in actual usage.  2. Invalid usage help.  It is impossible to add specific help for individual usage.  In most embedded usages, there are particular     restrictions like, "must refer only to types A and B" or "UID not honored" or "name must be restricted".     Those cannot be well described when embedded.  3. Inconsistent validation.  Because the usages are different, the validation rules are different by usage, which makes it hard for users to predict what will happen.  4. The fields are both imprecise and overly precise.  Kind is not a precise mapping to a URL. This can produce ambiguity     during interpretation and require a REST mapping.  In most cases, the dependency is on the group,resource tuple     and the version of the actual struct is irrelevant.  5. We cannot easily change it.  Because this type is embedded in many locations, updates to this type     will affect numerous schemas.  Don''t make new APIs embed an underspecified API type they do not control. Instead of using this type, create a locally provided and used type that is well-focused on your reference. For example, ServiceReferences for admission registration: https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533 .'
                 properties:
                   apiVersion:
                     description: API version of the referent.
                     type: string
                   fieldPath:
-                    description: 'If referring to a piece of an object instead of
-                      an entire object, this string should contain a valid JSON/Go
-                      field access statement, such as desiredState.manifest.containers[2].
-                      For example, if the object reference is to a container within
-                      a pod, this would take on a value like: "spec.containers{name}"
-                      (where "name" refers to the name of the container that triggered
-                      the event) or if no container name is specified "spec.containers[2]"
-                      (container with index 2 in this pod). This syntax is chosen
-                      only to have some well-defined way of referencing a part of
-                      an object. TODO: this design is not final and this field is
-                      subject to change in the future.'
+                    description: 'If referring to a piece of an object instead of an entire object, this string should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2]. For example, if the object reference is to a container within a pod, this would take on a value like: "spec.containers{name}" (where "name" refers to the name of the container that triggered the event) or if no container name is specified "spec.containers[2]" (container with index 2 in this pod). This syntax is chosen only to have some well-defined way of referencing a part of an object. TODO: this design is not final and this field is subject to change in the future.'
                     type: string
                   kind:
                     description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
@@ -96,8 +56,7 @@ spec:
                     description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
                     type: string
                   resourceVersion:
-                    description: 'Specific resourceVersion to which this reference
-                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    description: 'Specific resourceVersion to which this reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
                     type: string
                   uid:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
@@ -105,40 +64,28 @@ spec:
                 type: object
               parameters:
                 items:
-                  description: Parameter captures the variability of an OperatorVersion
-                    being instantiated in an instance.
+                  description: Parameter captures the variability of an OperatorVersion being instantiated in an instance.
                   properties:
                     default:
-                      description: Default is a default value if no parameter is provided
-                        by the instance.
+                      description: Default is a default value if no parameter is provided by the instance.
                       type: string
                     description:
-                      description: Description captures a longer description of how
-                        the parameter will be used.
+                      description: Description captures a longer description of how the parameter will be used.
                       type: string
                     displayName:
                       description: DisplayName can be used by UIs.
                       type: string
                     immutable:
-                      description: Specifies if the parameter can be changed after
-                        the initial installation of the operator
+                      description: Specifies if the parameter can be changed after the initial installation of the operator
                       type: boolean
                     name:
-                      description: "Name is the string that should be used in the
-                        template file for example, if `name: COUNT` then using the
-                        variable in a spec like: \n spec:   replicas:  {{ .Params.COUNT
-                        }}"
+                      description: "Name is the string that should be used in the template file for example, if `name: COUNT` then using the variable in a spec like: \n spec:   replicas:  {{ .Params.COUNT }}"
                       type: string
                     required:
-                      description: Required specifies if the parameter is required
-                        to be provided by all instances, or whether a default can
-                        suffice.
+                      description: Required specifies if the parameter is required to be provided by all instances, or whether a default can suffice.
                       type: boolean
                     trigger:
-                      description: Trigger identifies the plan that gets executed
-                        when this parameter changes in the Instance object. Default
-                        is `update` if a plan with that name exists, otherwise it's
-                        `deploy`.
+                      description: Trigger identifies the plan that gets executed when this parameter changes in the Instance object. Default is `update` if a plan with that name exists, otherwise it's `deploy`.
                       type: string
                     value-type:
                       description: Type specifies the value type. Defaults to `string`.
@@ -152,17 +99,14 @@ spec:
                     phases:
                       description: Phases maps a phase name to a Phase object.
                       items:
-                        description: Phase specifies a list of steps that contain
-                          Kubernetes objects.
+                        description: Phase specifies a list of steps that contain Kubernetes objects.
                         properties:
                           name:
                             type: string
                           steps:
-                            description: Steps maps a step name to a list of templated
-                              Kubernetes objects stored as a string.
+                            description: Steps maps a step name to a list of templated Kubernetes objects stored as a string.
                             items:
-                              description: Step defines a specific set of operations
-                                that occur.
+                              description: Step defines a specific set of operations that occur.
                               properties:
                                 name:
                                   type: string
@@ -173,15 +117,13 @@ spec:
                               type: object
                             type: array
                           strategy:
-                            description: Ordering specifies how the subitems in this
-                              plan/phase should be rolled out.
+                            description: Ordering specifies how the subitems in this plan/phase should be rolled out.
                             type: string
                         type: object
                       nullable: true
                       type: array
                     strategy:
-                      description: Ordering specifies how the subitems in this plan/phase
-                        should be rolled out.
+                      description: Ordering specifies how the subitems in this plan/phase should be rolled out.
                       type: string
                   type: object
                 description: Plans maps a plan name to a plan.
@@ -190,25 +132,17 @@ spec:
               tasks:
                 description: List of all tasks available in this OperatorVersion.
                 items:
-                  description: Task is a global, polymorphic implementation of all
-                    publicly available tasks
+                  description: Task is a global, polymorphic implementation of all publicly available tasks
                   properties:
                     kind:
                       type: string
                     name:
                       type: string
                     spec:
-                      description: TaskSpec embeds all possible task specs. This allows
-                        us to avoid writing custom un/marshallers that would only
-                        parse certain fields depending on the task Kind. The downside
-                        of this approach is, that embedded types can not have fields
-                        with the same json names as it would become ambiguous for
-                        the default parser. We might revisit this approach in the
-                        future should this become an issue.
+                      description: TaskSpec embeds all possible task specs. This allows us to avoid writing custom un/marshallers that would only parse certain fields depending on the task Kind. The downside of this approach is, that embedded types can not have fields with the same json names as it would become ambiguous for the default parser. We might revisit this approach in the future should this become an issue.
                       properties:
                         appVersion:
-                          description: a specific app version in the official repo,
-                            defaults to the most recent
+                          description: a specific app version in the official repo, defaults to the most recent
                           type: string
                         done:
                           type: boolean
@@ -217,26 +151,19 @@ spec:
                         instanceName:
                           type: string
                         operatorVersion:
-                          description: a specific operator version in the official
-                            repo, defaults to the most recent one
+                          description: a specific operator version in the official repo, defaults to the most recent one
                           type: string
                         package:
-                          description: either repo package name, local package folder
-                            or an URL to package tarball. during operator installation,
-                            kudoctl will resolve the package and override this field
-                            with the resolved operator name.
+                          description: either repo package name, local package folder or an URL to package tarball. during operator installation, kudoctl will resolve the package and override this field with the resolved operator name.
                           type: string
                         parameter:
                           type: string
                         parameterFile:
-                          description: name of the template file (located in the `templates`
-                            folder) from which the *parent* instance generates a parameter
-                            file used to populate the *child* Instance.Spec.Parameters
+                          description: name of the template file (located in the `templates` folder) from which the *parent* instance generates a parameter file used to populate the *child* Instance.Spec.Parameters
                           type: string
                         pipe:
                           items:
-                            description: PipeSpec describes how a file generated by
-                              a PipeTask is stored and referenced
+                            description: PipeSpec describes how a file generated by a PipeTask is stored and referenced
                             properties:
                               envFile:
                                 type: string
@@ -264,54 +191,18 @@ spec:
               templates:
                 additionalProperties:
                   type: string
-                description: Templates is a list of references to YAML templates located
-                  in the templates folder and later referenced from tasks.
+                description: Templates is a list of references to YAML templates located in the templates folder and later referenced from tasks.
                 type: object
               upgradableFrom:
-                description: UpgradableFrom lists all OperatorVersions that can upgrade
-                  to this OperatorVersion.
+                description: UpgradableFrom lists all OperatorVersions that can upgrade to this OperatorVersion.
                 items:
-                  description: 'ObjectReference contains enough information to let
-                    you inspect or modify the referred object. --- New uses of this
-                    type are discouraged because of difficulty describing its usage
-                    when embedded in APIs.  1. Ignored fields.  It includes many fields
-                    which are not generally honored.  For instance, ResourceVersion
-                    and FieldPath are both very rarely valid in actual usage.  2.
-                    Invalid usage help.  It is impossible to add specific help for
-                    individual usage.  In most embedded usages, there are particular     restrictions
-                    like, "must refer only to types A and B" or "UID not honored"
-                    or "name must be restricted".     Those cannot be well described
-                    when embedded.  3. Inconsistent validation.  Because the usages
-                    are different, the validation rules are different by usage, which
-                    makes it hard for users to predict what will happen.  4. The fields
-                    are both imprecise and overly precise.  Kind is not a precise
-                    mapping to a URL. This can produce ambiguity     during interpretation
-                    and require a REST mapping.  In most cases, the dependency is
-                    on the group,resource tuple     and the version of the actual
-                    struct is irrelevant.  5. We cannot easily change it.  Because
-                    this type is embedded in many locations, updates to this type     will
-                    affect numerous schemas.  Don''t make new APIs embed an underspecified
-                    API type they do not control. Instead of using this type, create
-                    a locally provided and used type that is well-focused on your
-                    reference. For example, ServiceReferences for admission registration:
-                    https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533
-                    .'
+                  description: 'ObjectReference contains enough information to let you inspect or modify the referred object. --- New uses of this type are discouraged because of difficulty describing its usage when embedded in APIs.  1. Ignored fields.  It includes many fields which are not generally honored.  For instance, ResourceVersion and FieldPath are both very rarely valid in actual usage.  2. Invalid usage help.  It is impossible to add specific help for individual usage.  In most embedded usages, there are particular     restrictions like, "must refer only to types A and B" or "UID not honored" or "name must be restricted".     Those cannot be well described when embedded.  3. Inconsistent validation.  Because the usages are different, the validation rules are different by usage, which makes it hard for users to predict what will happen.  4. The fields are both imprecise and overly precise.  Kind is not a precise mapping to a URL. This can produce ambiguity     during interpretation and require a REST mapping.  In most cases, the dependency is on the group,resource tuple     and the version of the actual struct is irrelevant.  5. We cannot easily change it.  Because this type is embedded in many locations, updates to this type     will affect numerous schemas.  Don''t make new APIs embed an underspecified API type they do not control. Instead of using this type, create a locally provided and used type that is well-focused on your reference. For example, ServiceReferences for admission registration: https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533 .'
                   properties:
                     apiVersion:
                       description: API version of the referent.
                       type: string
                     fieldPath:
-                      description: 'If referring to a piece of an object instead of
-                        an entire object, this string should contain a valid JSON/Go
-                        field access statement, such as desiredState.manifest.containers[2].
-                        For example, if the object reference is to a container within
-                        a pod, this would take on a value like: "spec.containers{name}"
-                        (where "name" refers to the name of the container that triggered
-                        the event) or if no container name is specified "spec.containers[2]"
-                        (container with index 2 in this pod). This syntax is chosen
-                        only to have some well-defined way of referencing a part of
-                        an object. TODO: this design is not final and this field is
-                        subject to change in the future.'
+                      description: 'If referring to a piece of an object instead of an entire object, this string should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2]. For example, if the object reference is to a container within a pod, this would take on a value like: "spec.containers{name}" (where "name" refers to the name of the container that triggered the event) or if no container name is specified "spec.containers[2]" (container with index 2 in this pod). This syntax is chosen only to have some well-defined way of referencing a part of an object. TODO: this design is not final and this field is subject to change in the future.'
                       type: string
                     kind:
                       description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
@@ -323,8 +214,7 @@ spec:
                       description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
                       type: string
                     resourceVersion:
-                      description: 'Specific resourceVersion to which this reference
-                        is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                      description: 'Specific resourceVersion to which this reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
                       type: string
                     uid:
                       description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
@@ -346,14 +236,10 @@ spec:
         description: OperatorVersion is the Schema for the operatorversions API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -363,50 +249,16 @@ spec:
               appVersion:
                 type: string
               connectionString:
-                description: ConnectionString defines a templated string that can
-                  be used to connect to an instance of the Operator.
+                description: ConnectionString defines a templated string that can be used to connect to an instance of the Operator.
                 type: string
               operator:
-                description: 'ObjectReference contains enough information to let you
-                  inspect or modify the referred object. --- New uses of this type
-                  are discouraged because of difficulty describing its usage when
-                  embedded in APIs.  1. Ignored fields.  It includes many fields which
-                  are not generally honored.  For instance, ResourceVersion and FieldPath
-                  are both very rarely valid in actual usage.  2. Invalid usage help.  It
-                  is impossible to add specific help for individual usage.  In most
-                  embedded usages, there are particular     restrictions like, "must
-                  refer only to types A and B" or "UID not honored" or "name must
-                  be restricted".     Those cannot be well described when embedded.  3.
-                  Inconsistent validation.  Because the usages are different, the
-                  validation rules are different by usage, which makes it hard for
-                  users to predict what will happen.  4. The fields are both imprecise
-                  and overly precise.  Kind is not a precise mapping to a URL. This
-                  can produce ambiguity     during interpretation and require a REST
-                  mapping.  In most cases, the dependency is on the group,resource
-                  tuple     and the version of the actual struct is irrelevant.  5.
-                  We cannot easily change it.  Because this type is embedded in many
-                  locations, updates to this type     will affect numerous schemas.  Don''t
-                  make new APIs embed an underspecified API type they do not control.
-                  Instead of using this type, create a locally provided and used type
-                  that is well-focused on your reference. For example, ServiceReferences
-                  for admission registration: https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533
-                  .'
+                description: 'ObjectReference contains enough information to let you inspect or modify the referred object. --- New uses of this type are discouraged because of difficulty describing its usage when embedded in APIs.  1. Ignored fields.  It includes many fields which are not generally honored.  For instance, ResourceVersion and FieldPath are both very rarely valid in actual usage.  2. Invalid usage help.  It is impossible to add specific help for individual usage.  In most embedded usages, there are particular     restrictions like, "must refer only to types A and B" or "UID not honored" or "name must be restricted".     Those cannot be well described when embedded.  3. Inconsistent validation.  Because the usages are different, the validation rules are different by usage, which makes it hard for users to predict what will happen.  4. The fields are both imprecise and overly precise.  Kind is not a precise mapping to a URL. This can produce ambiguity     during interpretation and require a REST mapping.  In most cases, the dependency is on the group,resource tuple     and the version of the actual struct is irrelevant.  5. We cannot easily change it.  Because this type is embedded in many locations, updates to this type     will affect numerous schemas.  Don''t make new APIs embed an underspecified API type they do not control. Instead of using this type, create a locally provided and used type that is well-focused on your reference. For example, ServiceReferences for admission registration: https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533 .'
                 properties:
                   apiVersion:
                     description: API version of the referent.
                     type: string
                   fieldPath:
-                    description: 'If referring to a piece of an object instead of
-                      an entire object, this string should contain a valid JSON/Go
-                      field access statement, such as desiredState.manifest.containers[2].
-                      For example, if the object reference is to a container within
-                      a pod, this would take on a value like: "spec.containers{name}"
-                      (where "name" refers to the name of the container that triggered
-                      the event) or if no container name is specified "spec.containers[2]"
-                      (container with index 2 in this pod). This syntax is chosen
-                      only to have some well-defined way of referencing a part of
-                      an object. TODO: this design is not final and this field is
-                      subject to change in the future.'
+                    description: 'If referring to a piece of an object instead of an entire object, this string should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2]. For example, if the object reference is to a container within a pod, this would take on a value like: "spec.containers{name}" (where "name" refers to the name of the container that triggered the event) or if no container name is specified "spec.containers[2]" (container with index 2 in this pod). This syntax is chosen only to have some well-defined way of referencing a part of an object. TODO: this design is not final and this field is subject to change in the future.'
                     type: string
                   kind:
                     description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
@@ -418,15 +270,14 @@ spec:
                     description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
                     type: string
                   resourceVersion:
-                    description: 'Specific resourceVersion to which this reference
-                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    description: 'Specific resourceVersion to which this reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
                     type: string
                   uid:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                     type: string
                 type: object
               parameters:
-                type: object
+                x-kubernetes-preserve-unknown-fields: true
               plans:
                 additionalProperties:
                   description: Plan specifies a series of Phases that need to be completed.
@@ -434,17 +285,14 @@ spec:
                     phases:
                       description: Phases maps a phase name to a Phase object.
                       items:
-                        description: Phase specifies a list of steps that contain
-                          Kubernetes objects.
+                        description: Phase specifies a list of steps that contain Kubernetes objects.
                         properties:
                           name:
                             type: string
                           steps:
-                            description: Steps maps a step name to a list of templated
-                              Kubernetes objects stored as a string.
+                            description: Steps maps a step name to a list of templated Kubernetes objects stored as a string.
                             items:
-                              description: Step defines a specific set of operations
-                                that occur.
+                              description: Step defines a specific set of operations that occur.
                               properties:
                                 name:
                                   type: string
@@ -455,15 +303,13 @@ spec:
                               type: object
                             type: array
                           strategy:
-                            description: Ordering specifies how the subitems in this
-                              plan/phase should be rolled out.
+                            description: Ordering specifies how the subitems in this plan/phase should be rolled out.
                             type: string
                         type: object
                       nullable: true
                       type: array
                     strategy:
-                      description: Ordering specifies how the subitems in this plan/phase
-                        should be rolled out.
+                      description: Ordering specifies how the subitems in this plan/phase should be rolled out.
                       type: string
                   type: object
                 description: Plans maps a plan name to a plan.
@@ -472,25 +318,17 @@ spec:
               tasks:
                 description: List of all tasks available in this OperatorVersion.
                 items:
-                  description: Task is a global, polymorphic implementation of all
-                    publicly available tasks
+                  description: Task is a global, polymorphic implementation of all publicly available tasks
                   properties:
                     kind:
                       type: string
                     name:
                       type: string
                     spec:
-                      description: TaskSpec embeds all possible task specs. This allows
-                        us to avoid writing custom un/marshallers that would only
-                        parse certain fields depending on the task Kind. The downside
-                        of this approach is, that embedded types can not have fields
-                        with the same json names as it would become ambiguous for
-                        the default parser. We might revisit this approach in the
-                        future should this become an issue.
+                      description: TaskSpec embeds all possible task specs. This allows us to avoid writing custom un/marshallers that would only parse certain fields depending on the task Kind. The downside of this approach is, that embedded types can not have fields with the same json names as it would become ambiguous for the default parser. We might revisit this approach in the future should this become an issue.
                       properties:
                         appVersion:
-                          description: a specific app version in the official repo,
-                            defaults to the most recent
+                          description: a specific app version in the official repo, defaults to the most recent
                           type: string
                         done:
                           type: boolean
@@ -499,26 +337,19 @@ spec:
                         instanceName:
                           type: string
                         operatorVersion:
-                          description: a specific operator version in the official
-                            repo, defaults to the most recent one
+                          description: a specific operator version in the official repo, defaults to the most recent one
                           type: string
                         package:
-                          description: either repo package name, local package folder
-                            or an URL to package tarball. during operator installation,
-                            kudoctl will resolve the package and override this field
-                            with the resolved operator name.
+                          description: either repo package name, local package folder or an URL to package tarball. during operator installation, kudoctl will resolve the package and override this field with the resolved operator name.
                           type: string
                         parameter:
                           type: string
                         parameterFile:
-                          description: name of the template file (located in the `templates`
-                            folder) from which the *parent* instance generates a parameter
-                            file used to populate the *child* Instance.Spec.Parameters
+                          description: name of the template file (located in the `templates` folder) from which the *parent* instance generates a parameter file used to populate the *child* Instance.Spec.Parameters
                           type: string
                         pipe:
                           items:
-                            description: PipeSpec describes how a file generated by
-                              a PipeTask is stored and referenced
+                            description: PipeSpec describes how a file generated by a PipeTask is stored and referenced
                             properties:
                               envFile:
                                 type: string
@@ -546,54 +377,18 @@ spec:
               templates:
                 additionalProperties:
                   type: string
-                description: Templates is a list of references to YAML templates located
-                  in the templates folder and later referenced from tasks.
+                description: Templates is a list of references to YAML templates located in the templates folder and later referenced from tasks.
                 type: object
               upgradableFrom:
-                description: UpgradableFrom lists all OperatorVersions that can upgrade
-                  to this OperatorVersion.
+                description: UpgradableFrom lists all OperatorVersions that can upgrade to this OperatorVersion.
                 items:
-                  description: 'ObjectReference contains enough information to let
-                    you inspect or modify the referred object. --- New uses of this
-                    type are discouraged because of difficulty describing its usage
-                    when embedded in APIs.  1. Ignored fields.  It includes many fields
-                    which are not generally honored.  For instance, ResourceVersion
-                    and FieldPath are both very rarely valid in actual usage.  2.
-                    Invalid usage help.  It is impossible to add specific help for
-                    individual usage.  In most embedded usages, there are particular     restrictions
-                    like, "must refer only to types A and B" or "UID not honored"
-                    or "name must be restricted".     Those cannot be well described
-                    when embedded.  3. Inconsistent validation.  Because the usages
-                    are different, the validation rules are different by usage, which
-                    makes it hard for users to predict what will happen.  4. The fields
-                    are both imprecise and overly precise.  Kind is not a precise
-                    mapping to a URL. This can produce ambiguity     during interpretation
-                    and require a REST mapping.  In most cases, the dependency is
-                    on the group,resource tuple     and the version of the actual
-                    struct is irrelevant.  5. We cannot easily change it.  Because
-                    this type is embedded in many locations, updates to this type     will
-                    affect numerous schemas.  Don''t make new APIs embed an underspecified
-                    API type they do not control. Instead of using this type, create
-                    a locally provided and used type that is well-focused on your
-                    reference. For example, ServiceReferences for admission registration:
-                    https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533
-                    .'
+                  description: 'ObjectReference contains enough information to let you inspect or modify the referred object. --- New uses of this type are discouraged because of difficulty describing its usage when embedded in APIs.  1. Ignored fields.  It includes many fields which are not generally honored.  For instance, ResourceVersion and FieldPath are both very rarely valid in actual usage.  2. Invalid usage help.  It is impossible to add specific help for individual usage.  In most embedded usages, there are particular     restrictions like, "must refer only to types A and B" or "UID not honored" or "name must be restricted".     Those cannot be well described when embedded.  3. Inconsistent validation.  Because the usages are different, the validation rules are different by usage, which makes it hard for users to predict what will happen.  4. The fields are both imprecise and overly precise.  Kind is not a precise mapping to a URL. This can produce ambiguity     during interpretation and require a REST mapping.  In most cases, the dependency is on the group,resource tuple     and the version of the actual struct is irrelevant.  5. We cannot easily change it.  Because this type is embedded in many locations, updates to this type     will affect numerous schemas.  Don''t make new APIs embed an underspecified API type they do not control. Instead of using this type, create a locally provided and used type that is well-focused on your reference. For example, ServiceReferences for admission registration: https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533 .'
                   properties:
                     apiVersion:
                       description: API version of the referent.
                       type: string
                     fieldPath:
-                      description: 'If referring to a piece of an object instead of
-                        an entire object, this string should contain a valid JSON/Go
-                        field access statement, such as desiredState.manifest.containers[2].
-                        For example, if the object reference is to a container within
-                        a pod, this would take on a value like: "spec.containers{name}"
-                        (where "name" refers to the name of the container that triggered
-                        the event) or if no container name is specified "spec.containers[2]"
-                        (container with index 2 in this pod). This syntax is chosen
-                        only to have some well-defined way of referencing a part of
-                        an object. TODO: this design is not final and this field is
-                        subject to change in the future.'
+                      description: 'If referring to a piece of an object instead of an entire object, this string should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2]. For example, if the object reference is to a container within a pod, this would take on a value like: "spec.containers{name}" (where "name" refers to the name of the container that triggered the event) or if no container name is specified "spec.containers[2]" (container with index 2 in this pod). This syntax is chosen only to have some well-defined way of referencing a part of an object. TODO: this design is not final and this field is subject to change in the future.'
                       type: string
                     kind:
                       description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
@@ -605,8 +400,7 @@ spec:
                       description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
                       type: string
                     resourceVersion:
-                      description: 'Specific resourceVersion to which this reference
-                        is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                      description: 'Specific resourceVersion to which this reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
                       type: string
                     uid:
                       description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'

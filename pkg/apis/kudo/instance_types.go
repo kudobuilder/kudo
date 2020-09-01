@@ -2,8 +2,8 @@ package kudo
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
@@ -39,7 +39,7 @@ type InstanceSpec struct {
 	// OperatorVersion specifies a reference to a specific OperatorVersion object.
 	OperatorVersion corev1.ObjectReference
 
-	Parameters unstructured.Unstructured
+	Parameters v1beta1.JSON
 
 	PlanExecution PlanExecution
 }

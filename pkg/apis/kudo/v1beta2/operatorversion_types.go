@@ -17,8 +17,8 @@ package v1beta2
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // OperatorVersionSpec defines the desired state of OperatorVersion.
@@ -33,7 +33,7 @@ type OperatorVersionSpec struct {
 	// List of all tasks available in this OperatorVersion.
 	Tasks []Task `json:"tasks,omitempty"`
 
-	Parameters unstructured.Unstructured `json:"parameters,omitempty"`
+	Parameters v1beta1.JSON `json:"parameters,omitempty"`
 
 	// Plans maps a plan name to a plan.
 	// +nullable

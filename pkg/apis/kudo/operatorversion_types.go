@@ -17,8 +17,8 @@ package kudo
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
@@ -59,7 +59,7 @@ type OperatorVersionSpec struct {
 	// List of all tasks available in this OperatorVersion.
 	Tasks []Task
 
-	Parameters unstructured.Unstructured
+	Parameters v1beta1.JSON
 
 	// Plans maps a plan name to a plan.
 	Plans map[string]Plan

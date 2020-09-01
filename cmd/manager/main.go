@@ -31,6 +31,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -68,6 +69,8 @@ func getEnv(key, def string) string {
 func main() {
 	// Get version of KUDO
 	log.Printf("KUDO Version: %#v", version.Get())
+
+	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	// create new controller-runtime manager
 	syncPeriod, err := parseSyncPeriod()

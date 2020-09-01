@@ -19,8 +19,8 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 )
 
@@ -29,7 +29,7 @@ type InstanceSpec struct {
 	// OperatorVersion specifies a reference to a specific OperatorVersion object.
 	OperatorVersion corev1.ObjectReference `json:"operatorVersion,omitempty"`
 
-	Parameters unstructured.Unstructured `json:"parameters,omitempty"`
+	Parameters v1beta1.JSON `json:"parameters,omitempty"`
 
 	PlanExecution PlanExecution `json:"planExecution,omitempty"`
 }

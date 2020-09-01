@@ -38,6 +38,6 @@ require (
 	k8s.io/component-base v0.18.6
 	k8s.io/kubectl v0.18.6
 	sigs.k8s.io/controller-runtime v0.6.1
-	sigs.k8s.io/controller-tools v0.3.0
+	sigs.k8s.io/controller-tools v0.4.0
 	sigs.k8s.io/yaml v1.2.0
 )

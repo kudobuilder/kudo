@@ -429,7 +429,7 @@ func Convert_kudo_InstanceList_To_v1beta1_InstanceList(in *kudo.InstanceList, ou
 
 func autoConvert_v1beta1_InstanceSpec_To_kudo_InstanceSpec(in *InstanceSpec, out *kudo.InstanceSpec, s conversion.Scope) error {
 	out.OperatorVersion = in.OperatorVersion
-	// WARNING: in.Parameters requires manual conversion: inconvertible types (map[string]string vs k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured)
+	// WARNING: in.Parameters requires manual conversion: inconvertible types (map[string]string vs k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.JSON)
 	if err := Convert_v1beta1_PlanExecution_To_kudo_PlanExecution(&in.PlanExecution, &out.PlanExecution, s); err != nil {
 		return err
 	}
@@ -438,7 +438,7 @@ func autoConvert_v1beta1_InstanceSpec_To_kudo_InstanceSpec(in *InstanceSpec, out
 
 func autoConvert_kudo_InstanceSpec_To_v1beta1_InstanceSpec(in *kudo.InstanceSpec, out *InstanceSpec, s conversion.Scope) error {
 	out.OperatorVersion = in.OperatorVersion
-	// WARNING: in.Parameters requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured vs map[string]string)
+	// WARNING: in.Parameters requires manual conversion: inconvertible types (k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.JSON vs map[string]string)
 	if err := Convert_kudo_PlanExecution_To_v1beta1_PlanExecution(&in.PlanExecution, &out.PlanExecution, s); err != nil {
 		return err
 	}
@@ -697,7 +697,7 @@ func autoConvert_v1beta1_OperatorVersionSpec_To_kudo_OperatorVersionSpec(in *Ope
 	out.AppVersion = in.AppVersion
 	out.Templates = *(*map[string]string)(unsafe.Pointer(&in.Templates))
 	out.Tasks = *(*[]kudo.Task)(unsafe.Pointer(&in.Tasks))
-	// WARNING: in.Parameters requires manual conversion: inconvertible types ([]github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1.Parameter vs k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured)
+	// WARNING: in.Parameters requires manual conversion: inconvertible types ([]github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1.Parameter vs k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.JSON)
 	out.Plans = *(*map[string]kudo.Plan)(unsafe.Pointer(&in.Plans))
 	out.ConnectionString = in.ConnectionString
 	out.UpgradableFrom = *(*[]v1.ObjectReference)(unsafe.Pointer(&in.UpgradableFrom))
@@ -710,7 +710,7 @@ func autoConvert_kudo_OperatorVersionSpec_To_v1beta1_OperatorVersionSpec(in *kud
 	out.AppVersion = in.AppVersion
 	out.Templates = *(*map[string]string)(unsafe.Pointer(&in.Templates))
 	out.Tasks = *(*[]Task)(unsafe.Pointer(&in.Tasks))
-	// WARNING: in.Parameters requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured vs []github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1.Parameter)
+	// WARNING: in.Parameters requires manual conversion: inconvertible types (k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.JSON vs []github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1.Parameter)
 	out.Plans = *(*map[string]Plan)(unsafe.Pointer(&in.Plans))
 	out.ConnectionString = in.ConnectionString
 	out.UpgradableFrom = *(*[]v1.ObjectReference)(unsafe.Pointer(&in.UpgradableFrom))
