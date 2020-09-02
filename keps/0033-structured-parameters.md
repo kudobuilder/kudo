@@ -152,7 +152,7 @@ The Operator CRD will not change, but we should keep the version in sync with th
 
 #### OperatorVersion
 
-OperatorVersion `v1beta1` [holds the parameters](https://github.com/kudobuilder/kudo/blob/main/pkg/apis/kudo/v1beta1/operatorversion_types.go#L35) in the `OperatorVersion.Spec.Parameter` field of type `[]Parameter`. `v1beta2` will update this field to hold a JSON-schema instead. This structure will be mapped in the CRD to an `interface{}` type and will be read and interpreted by a go library to e.g. validate input parameters and provide parameter defaults.
+OperatorVersion `v1beta1` [holds the parameters](https://github.com/kudobuilder/kudo/blob/main/pkg/apis/kudo/v1beta1/operatorversion_types.go#L35) in the `OperatorVersion.Spec.Parameter` field of type `[]Parameter`. `v1beta2` will update this field to hold a JSON-schema instead. This structure will be mapped in the CRD to an raw `[]byte` and will be read and interpreted by a go library to e.g. validate input parameters and provide parameter defaults.
 
 `v1beta1`:
 ```go
@@ -167,12 +167,12 @@ type OperatorVersionSpec struct {
 ```go
 type OperatorVersionSpec struct {
     ....
-    Parameters interface{} `json:"parameters"`
+    Parameters extensionapi.JSON `json:"parameters"`
     ....
 }
 ```
 
-CRDs currently cannot describe recursive data structures, as they [don't support $ref or $recursiveRef](https://github.com/kubernetes/kubernetes/issues/54579). The resulting CRD for the operator version will therefore have to look like this:
+CRDs currently cannot describe recursive data structures, as they [don't support $ref or $recursiveRef](https://github.com/kubernetes/kubernetes/issues/54579). The correct way to define an arbitrary JSON structure in a Kubernetes API is with `apiextension.JSON`. The resulting CRD for the operator version will therefore have to look like this:
 
 ```yaml
 ...
@@ -199,12 +199,14 @@ type InstanceSpec struct {
 ```go
 type InstanceSpec struct {
     ....
-    Parameters map[string]interface{} `json:"parameters"`
+    Parameters apiextension.JSON `json:"parameters"`
     ....
 }
 ```
 
 The existing instance parameter values are currently stored as serialized strings. They will have to be unwrapped and stored as `map[string]interface{}`.
+
+As already mentioned on the OperatorVersion, the correct way to define an arbitrary structure is with `apiextension.JSON`. The Instance should have accessor functions to convert the `[]byte` values to structured `interface{}` types.
 
 ### Instance updates
 
@@ -272,20 +274,23 @@ backup:
 
 
 ### Add Parameter Wizard `kudo package add parameter`
-    
-TODO: We need a new/extended implementation here
+
+The `add parameter` wizard needs to be rewritten and adjusted to the new format. In addition to the current data, it must ask the user for:
+- The data type of the new parameter
+- A JSON pointer in the existing structure
 
 
 ### Parameter Listing `kudo package list parameters`
 
-TODO: We need a new output format here - maybe a tree table
+The output for the parameter list must be adjusted. The first column of the `uitable` should contain an indented structure that allows a
+user to see the nested nature of the parameters.
 
 ### Additional attributes in JSON-schema
 
- - `trigger`: Copied from params.yaml, describes the plan that is triggered
- - `immutable`: Copied from params.yaml, specifies if the field is updatable (Could this clash with a future addition to JSON-schema? Should we rename it?)
- - `flatListName`: Provided for backwards compatibility. If provided, specifies the old name that was used in the flat parameters list in previous versions (alternatives: "oldName", "paramName")? This attribute should be deprecated at some point in the future and phased out.
-- `low-priority`: Optional new boolean parameter that specifies that this parameter is not normally expected to be changed. Very advanced use cases might require a change, but it's usually not required.
+ - `trigger` Copied from params.yaml, describes the plan that is triggered
+ - `immutable` Copied from params.yaml, specifies if the field is updatable (Could this clash with a future addition to JSON-schema? Should we rename it?)
+ - `flatListName` Provided for backwards compatibility. If provided, specifies the old name that was used in the flat parameters list in previous versions (alternatives: "oldName", "paramName")? This attribute should be deprecated at some point in the future and phased out.
+- `low-priority` Optional new boolean parameter that specifies that this parameter is not normally expected to be changed. Very advanced use cases might require a change, but it's usually not required.
 
 #### Trigger attributes
 
@@ -293,14 +298,47 @@ With the list of parameters, each parameter had a trigger attribute which specif
 was changed.
 
 With the nested structure, we need to define where and how a plan can be triggered:
- - Every level of the structure can specify a trigger
- - Fields can explicitley specify an empty trigger field. This means to *not* trigger a plan.
+ - Every level of the structure can specify a trigger.
+ - Fields can explicitly specify an empty trigger field. This means to *not* trigger a plan.
+ - A deeper level of the structure must *not* override a higher level trigger. An exception is an empty trigger.
  - The root is allowed to *not* have a trigger
  - If a field changes, KUDO traverses the structure upwards until it finds a field with a trigger or reaches the root.
    If no trigger is found, no plan is triggered.
 
 The previously established rule applies:
  - If more than one plan is triggered in a single update, the update is not allowed.
+
+##### Examples
+
+Invalid: A deeper level triggers a different plan.
+```yaml
+type: object
+properties:
+  Authorization:
+    type: object
+    trigger: "deploy" # <-- triggering "deploy"
+    properties:
+      ENABLED:
+        type: "boolean"
+        trigger: "update-instance" # <-- triggering "update-instance"
+```
+
+Valid: A change to `Authorization.ENABLED` will not trigger any plan, a change to `Authorization.NAME` will trigger the "deploy" plan.
+```yaml
+type: object
+properties:
+  Authorization:
+    type: object
+    trigger: "deploy" # <-- triggering "deploy"
+    properties:
+      NAME:
+        type: "string"
+      ENABLED:
+        type: "boolean"
+        trigger: # <-- triggers no plan
+```
+
+
 
 #### Immutability
 
