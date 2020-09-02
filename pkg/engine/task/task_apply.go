@@ -118,7 +118,7 @@ func applyResources(rr []runtime.Object, ctx Context) ([]runtime.Object, error) 
 		switch {
 		case apierrors.IsNotFound(err): // create resource if it doesn't exist
 			if err := addLastAppliedConfigAnnotation(r); err != nil {
-				return nil, fmt.Errorf("failed to add last applied config annotation to %s/%s: %w", key.Namespace, key.Name, err)
+				return nil, fmt.Errorf("failed to add last applied config annotation to a %s %s: %w", r.GetObjectKind().GroupVersionKind(), key, err)
 			}
 
 			err = ctx.Client.Create(context.TODO(), r)
@@ -137,7 +137,7 @@ func applyResources(rr []runtime.Object, ctx Context) ([]runtime.Object, error) 
 		default: // update existing resource
 			err := patchResource(r, existing, ctx)
 			if err != nil {
-				return nil, fmt.Errorf("failed to patch %s/%s: %w", key.Namespace, key.Name, err)
+				return nil, fmt.Errorf("failed to patch a %s %s: %w", r.GetObjectKind().GroupVersionKind(), key, err)
 			}
 			applied = append(applied, r)
 		}
