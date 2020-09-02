@@ -160,7 +160,7 @@ func (c Initializer) verifyServedVersion(client v1beta1.CustomResourceDefinition
 		return err
 	}
 	if err := health.IsHealthy(existingCrd); err != nil {
-		result.AddErrors(fmt.Sprintf("Installed CRD %s is not healthy: %v", crdName, err))
+		result.AddErrors(err.Error())
 		return nil
 	}
 

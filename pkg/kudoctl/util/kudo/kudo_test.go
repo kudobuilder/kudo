@@ -49,6 +49,14 @@ func TestKudoClient_ValidateServedCrds(t *testing.T) {
 				},
 			},
 		},
+		Status: apiextv1beta1.CustomResourceDefinitionStatus{
+			Conditions: []apiextv1beta1.CustomResourceDefinitionCondition{
+				{
+					Type:   apiextv1beta1.Established,
+					Status: apiextv1beta1.ConditionTrue,
+				},
+			},
+		},
 	}
 	crdNotServed := apiextv1beta1.CustomResourceDefinition{
 		Spec: apiextv1beta1.CustomResourceDefinitionSpec{
@@ -60,6 +68,36 @@ func TestKudoClient_ValidateServedCrds(t *testing.T) {
 				{
 					Name:   "v1beta2",
 					Served: true,
+				},
+			},
+		},
+		Status: apiextv1beta1.CustomResourceDefinitionStatus{
+			Conditions: []apiextv1beta1.CustomResourceDefinitionCondition{
+				{
+					Type:   apiextv1beta1.Established,
+					Status: apiextv1beta1.ConditionTrue,
+				},
+			},
+		},
+	}
+	crdUnHealthy := apiextv1beta1.CustomResourceDefinition{
+		Spec: apiextv1beta1.CustomResourceDefinitionSpec{
+			Versions: []apiextv1beta1.CustomResourceDefinitionVersion{
+				{
+					Name:   "v1beta2",
+					Served: true,
+				},
+			},
+		},
+		Status: apiextv1beta1.CustomResourceDefinitionStatus{
+			Conditions: []apiextv1beta1.CustomResourceDefinitionCondition{
+				{
+					Type:   apiextv1beta1.Established,
+					Status: apiextv1beta1.ConditionFalse,
+				},
+				{
+					Type:   apiextv1beta1.Terminating,
+					Status: apiextv1beta1.ConditionTrue,
 				},
 			},
 		},
@@ -81,6 +119,10 @@ Expected API version v1beta1 was not found, api-server only supports [v1beta2]. 
 		{name: "not served", crdBase: &crdNotServed, err: `CRDs invalid: Expected API version v1beta1 is known to api-server, but is not served. Please update your KUDO CLI.
 Expected API version v1beta1 is known to api-server, but is not served. Please update your KUDO CLI.
 Expected API version v1beta1 is known to api-server, but is not served. Please update your KUDO CLI.
+`},
+		{name: "unhealthy", crdBase: &crdUnHealthy, err: `CRDs invalid: CRD operators.kudo.dev is not healthy ( Conditions: [{Established False 0001-01-01 00:00:00 +0000 UTC  } {Terminating True 0001-01-01 00:00:00 +0000 UTC  }] )       
+CRD operatorversions.kudo.dev is not healthy ( Conditions: [{Established False 0001-01-01 00:00:00 +0000 UTC  } {Terminating True 0001-01-01 00:00:00 +0000 UTC  }] )
+CRD instances.kudo.dev is not healthy ( Conditions: [{Established False 0001-01-01 00:00:00 +0000 UTC  } {Terminating True 0001-01-01 00:00:00 +0000 UTC  }] )       
 `},
 	}
 
