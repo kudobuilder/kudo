@@ -16,6 +16,7 @@ limitations under the License.
 package v1beta2
 
 import (
+	"encoding/json"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -104,6 +105,23 @@ type StepStatus struct {
 	Name    string          `json:"name,omitempty"`
 	Message string          `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
 	Status  ExecutionStatus `json:"status,omitempty"`
+}
+
+func (i *InstanceSpec) ParameterStruct() (interface{}, error) {
+	var output interface{}
+	if err := json.Unmarshal(i.Parameters.Raw, output); err != nil {
+		return nil, err
+	}
+	return output, nil
+}
+
+func (i *InstanceSpec) SetParameters(v interface{}) error {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	i.Parameters.Raw = data
+	return nil
 }
 
 func (s *StepStatus) Set(status ExecutionStatus) {
