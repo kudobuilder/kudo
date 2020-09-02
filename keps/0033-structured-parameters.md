@@ -152,7 +152,7 @@ The Operator CRD will not change, but we should keep the version in sync with th
 
 #### OperatorVersion
 
-OperatorVersion `v1beta1` [holds the parameters](https://github.com/kudobuilder/kudo/blob/main/pkg/apis/kudo/v1beta1/operatorversion_types.go#L35) in the `OperatorVersion.Spec.Parameter` field of type `[]Parameter`. `v1beta2` will update this field to hold a JSON-schema instead. This structure will be mapped in the CRD to an raw `[]byte` and will be read and interpreted by a go library to e.g. validate input parameters and provide parameter defaults.
+OperatorVersion `v1beta1` [holds the parameters](https://github.com/kudobuilder/kudo/blob/main/pkg/apis/kudo/v1beta1/operatorversion_types.go#L35) in the `OperatorVersion.Spec.Parameter` field of type `[]Parameter`. `v1beta2` will update this field to hold a JSON-schema instead. This structure will be mapped in the CRD to a raw `extensionapi.JSON` and will be read and interpreted by a go library to e.g. validate input parameters and provide parameter defaults.
 
 `v1beta1`:
 ```go
@@ -172,7 +172,7 @@ type OperatorVersionSpec struct {
 }
 ```
 
-CRDs currently cannot describe recursive data structures, as they [don't support $ref or $recursiveRef](https://github.com/kubernetes/kubernetes/issues/54579). The correct way to define an arbitrary JSON structure in a Kubernetes API is with `apiextension.JSON`. The resulting CRD for the operator version will therefore have to look like this:
+CRDs currently cannot describe recursive data structures, as they [don't support $ref or $recursiveRef](https://github.com/kubernetes/kubernetes/issues/54579). The correct way to define an arbitrary JSON structure in a Kubernetes API is with `apiextension.JSON`. The resulting CRD for the operator version will therefore looks like this:
 
 ```yaml
 ...
@@ -206,9 +206,11 @@ type InstanceSpec struct {
 
 The existing instance parameter values are currently stored as serialized strings. They will have to be unwrapped and stored as `map[string]interface{}`.
 
-As already mentioned on the OperatorVersion, the correct way to define an arbitrary structure is with `apiextension.JSON`. The Instance should have accessor functions to convert the `[]byte` values to structured `interface{}` types.
+As already mentioned on the OperatorVersion, the correct way to define an arbitrary structure is with `apiextension.JSON`. The Instance should have accessor functions to convert the `apiextension.JSON` values to structured `interface{}` types.
 
-### Instance updates
+### Client-side
+
+#### Instance updates from the command line (`-p` option)
 
 When updating an operator instance, a user can specify parameters override either in the command line directly (`-p` option) or using an extra file (`-P` option) e.g.: `kudo update --instance my-instance -p KEY=newValue`. This is easy with a flat list of parameters, but becomes more complex with a nested structure. 
 
@@ -228,87 +230,39 @@ The `kudo update` command will not allow adding or removing a single entry from 
 
 We may decide to implement a `kudo patch` later on which is not idempotent an allows add/remove operations.
 
-### Values.yaml
+#### Instance updates with a parameter file (`-P` option)
 
-When installing or updating an operator, users can use a file that contains parameter values: `kudo update --instance my-instance -P values.yaml`
+When installing or updating an operator, users can use a file that contains parameter values: `kudo update --instance my-instance -P values.yaml`. We will merge the existing with the updated parameter using [JSON merge patch](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/#use-a-json-merge-patch-to-update-a-deployment). This means, that to e.g. specifying a new array element, the whole array has to be provided. 
 
-There are three different variants:
- - Full structure (and replace)
- - Partial structure (and merge)
+#### Add Parameter Wizard `kudo package add parameter`
 
-#### Full Structured values.yaml
+The `add parameter` wizard needs to be rewritten and adjusted to the new format. In addition to the current data, it must ask the user for the data type of the new parameter and A JSON pointer in the existing structure. This, however, only applies to simple schemas as any advanced functionality like reusing existing schema definitions, schema combinations (`anyOf`, `oneOf` etc) are hard to express in the CLI.
 
-In this variant, the values.yaml will always contain the full parameter structure. It would replace the whole parameter structure. This would be a change from the current behaviour, where the `values.yaml` contains a list of parameters that is merged with the existing list in an instance.
+ It is unclear how practical generating a JSON-schema using a CLI wizard is. There is, however, a number of tools that can [generate a schema](https://www.liquid-technologies.com/online-json-to-schema-converter) given a valid JSON document.
 
-```yaml
-clusterName: my-cluster
-topology:
-- datacenterName: DC1
-  nodeCount: 3
-  labels:
-  - key: DCLabel
-    value: datacenter1
-- datacenterName: DC2
-  nodeCount: 5
-  labels:
-  - key: DCLabel
-    value: datacenter2
-backup:
-  enabled: true
-  name: "MyBackup"
-  credentials:
-    name: my-username
-    password: my-pass
-```
+#### Parameter Listing `kudo package list parameters`
 
-#### Partial structured values.yaml
-
-Similar to the full structure, but we merge the given structure with the existing parameter structure. Object types are merged, arrays are fully replaced.
-
-```yaml
-clusterName: my-cluster
-backup:
-  credentials:
-    name: new-username
-```
-
-
-### Add Parameter Wizard `kudo package add parameter`
-
-The `add parameter` wizard needs to be rewritten and adjusted to the new format. In addition to the current data, it must ask the user for:
-- The data type of the new parameter
-- A JSON pointer in the existing structure
-
-
-### Parameter Listing `kudo package list parameters`
-
-The output for the parameter list must be adjusted. The first column of the `uitable` should contain an indented structure that allows a
-user to see the nested nature of the parameters.
+The output for the parameter list must be adjusted. The first column of the `uitable` should contain an indented structure that allows a user to see the nested nature of the parameters.
 
 ### Additional attributes in JSON-schema
 
  - `trigger` Copied from params.yaml, describes the plan that is triggered
  - `immutable` Copied from params.yaml, specifies if the field is updatable (Could this clash with a future addition to JSON-schema? Should we rename it?)
  - `flatListName` Provided for backwards compatibility. If provided, specifies the old name that was used in the flat parameters list in previous versions (alternatives: "oldName", "paramName")? This attribute should be deprecated at some point in the future and phased out.
-- `low-priority` Optional new boolean parameter that specifies that this parameter is not normally expected to be changed. Very advanced use cases might require a change, but it's usually not required.
 
-#### Trigger attributes
+### Trigger attributes
 
-With the list of parameters, each parameter had a trigger attribute which specified a plan to trigger when the parameter
-was changed.
-
-With the nested structure, we need to define where and how a plan can be triggered:
+With the list of parameters, each parameter had a trigger attribute which specified a plan to trigger when the parameter was changed. With the nested structure, this gets more complicated as one "parameter branch" might have multiple different triggers defined which is clearly not something we want. Here is the new rule set:
  - Every level of the structure can specify a trigger.
- - Fields can explicitly specify an empty trigger field. This means to *not* trigger a plan.
+ - Fields can explicitly specify an empty trigger field. This means that the trigger is inherited from the parent.
  - A deeper level of the structure must *not* override a higher level trigger. An exception is an empty trigger.
- - The root is allowed to *not* have a trigger
+ - The root is allowed to *not* have a trigger. In this case `deploy` plan is triggered, similar to how it is handled today.
  - If a field changes, KUDO traverses the structure upwards until it finds a field with a trigger or reaches the root.
-   If no trigger is found, no plan is triggered.
 
 The previously established rule applies:
  - If more than one plan is triggered in a single update, the update is not allowed.
 
-##### Examples
+#### Examples
 
 Invalid: A deeper level triggers a different plan.
 ```yaml
