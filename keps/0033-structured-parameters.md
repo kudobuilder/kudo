@@ -172,6 +172,16 @@ type OperatorVersionSpec struct {
 }
 ```
 
+CRDs currently cannot describe recursive data structures, as they [don't support $ref or $recursiveRef](https://github.com/kubernetes/kubernetes/issues/54579). The resulting CRD for the operator version will therefore have to look like this:
+
+```yaml
+...
+              parameters:
+                description: The parameter definition. Must be a valid json-schema in version TODO. See https://json-schema.org/
+                x-kubernetes-preserve-unknown-fields: true
+...
+```
+
 #### Instance
 
 Instance `v1beta1` saves parameter overrides in the `Instance.Spec.Parameters` field which is of type `map[string]string`. `v1beta2` will have to update this field to `interface{}`.
