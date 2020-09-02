@@ -11,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
@@ -25,7 +25,7 @@ func newTestSimpleK2o() *Client {
 
 func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 
-	obj := v1beta1.Operator{
+	obj := kudoapi.Operator{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Operator",
@@ -40,7 +40,7 @@ func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 		err      string
 		createns string
 		getns    string
-		obj      *v1beta1.Operator
+		obj      *kudoapi.Operator
 	}{
 		{},                                      // 1
 		{createns: "default", getns: "default"}, // 2
@@ -73,7 +73,7 @@ func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 }
 
 func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
-	obj := v1beta1.Instance{
+	obj := kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -84,14 +84,14 @@ func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
 			},
 			Name: "test",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
 		},
 	}
 
-	wrongObj := v1beta1.Instance{
+	wrongObj := kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -102,7 +102,7 @@ func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
 			},
 			Name: "test",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-0.9",
 			},
@@ -116,7 +116,7 @@ func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
 		instanceExists bool
 		namespace      string
 		instanceName   string
-		obj            *v1beta1.Instance
+		obj            *kudoapi.Instance
 	}{
 		{name: "no existing instance in cluster"}, // 1
 		{name: "same namespace and instance name", instanceExists: true, namespace: instanceNamespace, instanceName: obj.ObjectMeta.Name, obj: &obj}, // 3
@@ -148,7 +148,7 @@ func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
 }
 
 func TestKudoClient_ListInstances(t *testing.T) {
-	obj := v1beta1.Instance{
+	obj := kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -159,7 +159,7 @@ func TestKudoClient_ListInstances(t *testing.T) {
 			},
 			Name: "test",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
@@ -169,7 +169,7 @@ func TestKudoClient_ListInstances(t *testing.T) {
 	tests := []struct {
 		expectedInstances []string
 		namespace         string
-		obj               *v1beta1.Instance
+		obj               *kudoapi.Instance
 	}{
 		{expectedInstances: []string{}, namespace: installNamespace},                    // 1
 		{expectedInstances: []string{obj.Name}, namespace: installNamespace, obj: &obj}, // 2
@@ -200,7 +200,7 @@ func TestKudoClient_ListInstances(t *testing.T) {
 
 func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 	operatorName := "test"
-	obj := v1beta1.OperatorVersion{
+	obj := kudoapi.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "OperatorVersion",
@@ -208,7 +208,7 @@ func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("%s-1.0", operatorName),
 		},
-		Spec: v1beta1.OperatorVersionSpec{
+		Spec: kudoapi.OperatorVersionSpec{
 			Version: "1.0",
 			Operator: v1.ObjectReference{
 				Name: operatorName,
@@ -223,7 +223,7 @@ func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 		name             string
 		expectedVersions []string
 		namespace        string
-		obj              *v1beta1.OperatorVersion
+		obj              *kudoapi.OperatorVersion
 	}{
 		{name: "no operator version defined", expectedVersions: []string{}, namespace: installNamespace},
 		{name: "operator version exists in the same namespace", expectedVersions: []string{obj.Spec.Version}, namespace: installNamespace, obj: &obj},
@@ -254,7 +254,7 @@ func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 }
 
 func TestKudoClient_InstallOperatorObjToCluster(t *testing.T) {
-	obj := v1beta1.Operator{
+	obj := kudoapi.Operator{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Operator",
@@ -268,7 +268,7 @@ func TestKudoClient_InstallOperatorObjToCluster(t *testing.T) {
 		name     string
 		err      string
 		createns string
-		obj      *v1beta1.Operator
+		obj      *kudoapi.Operator
 	}{
 		{err: "operators.kudo.dev \"\" not found"},                                                  // 1
 		{err: "operators.kudo.dev \"\" not found", createns: "default"},                             // 2
@@ -300,7 +300,7 @@ func TestKudoClient_InstallOperatorObjToCluster(t *testing.T) {
 }
 
 func TestKudoClient_InstallOperatorVersionObjToCluster(t *testing.T) {
-	obj := v1beta1.OperatorVersion{
+	obj := kudoapi.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "OperatorVersion",
@@ -314,7 +314,7 @@ func TestKudoClient_InstallOperatorVersionObjToCluster(t *testing.T) {
 		name     string
 		err      string
 		createns string
-		obj      *v1beta1.OperatorVersion
+		obj      *kudoapi.OperatorVersion
 	}{
 		{err: "operatorversions.kudo.dev \"\" not found"},                                                  // 1
 		{err: "operatorversions.kudo.dev \"\" not found", createns: "default"},                             // 2
@@ -346,7 +346,7 @@ func TestKudoClient_InstallOperatorVersionObjToCluster(t *testing.T) {
 }
 
 func TestKudoClient_InstallInstanceObjToCluster(t *testing.T) {
-	obj := v1beta1.Instance{
+	obj := kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "OperatorVersion",
@@ -360,7 +360,7 @@ func TestKudoClient_InstallInstanceObjToCluster(t *testing.T) {
 		name     string
 		err      string
 		createns string
-		obj      *v1beta1.Instance
+		obj      *kudoapi.Instance
 	}{
 		{err: "instances.kudo.dev \"\" not found"},                                                  // 1
 		{err: "instances.kudo.dev \"\" not found", createns: "default"},                             // 2
@@ -392,7 +392,7 @@ func TestKudoClient_InstallInstanceObjToCluster(t *testing.T) {
 }
 
 func TestKudoClient_GetInstance(t *testing.T) {
-	testInstance := v1beta1.Instance{
+	testInstance := kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -403,7 +403,7 @@ func TestKudoClient_GetInstance(t *testing.T) {
 			},
 			Name: "test",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
@@ -414,7 +414,7 @@ func TestKudoClient_GetInstance(t *testing.T) {
 		name             string
 		found            bool
 		namespaceToQuery string
-		storedInstance   *v1beta1.Instance
+		storedInstance   *kudoapi.Instance
 	}{
 		{name: "no instance exists", namespaceToQuery: installNamespace},                                             // 1
 		{name: "instance exists", found: true, namespaceToQuery: installNamespace, storedInstance: &testInstance},    // 2
@@ -445,7 +445,7 @@ func TestKudoClient_GetInstance(t *testing.T) {
 
 func TestKudoClient_GetOperatorVersion(t *testing.T) {
 	operatorName := "test"
-	testOv := v1beta1.OperatorVersion{
+	testOv := kudoapi.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "OperatorVersion",
@@ -453,7 +453,7 @@ func TestKudoClient_GetOperatorVersion(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("%s-1.0", operatorName),
 		},
-		Spec: v1beta1.OperatorVersionSpec{
+		Spec: kudoapi.OperatorVersionSpec{
 			Version: "1.0",
 		},
 	}
@@ -462,7 +462,7 @@ func TestKudoClient_GetOperatorVersion(t *testing.T) {
 		name      string
 		found     bool
 		namespace string
-		storedOv  *v1beta1.OperatorVersion
+		storedOv  *kudoapi.OperatorVersion
 	}{
 		{name: "no operator version defined", namespace: installNamespace},
 		{name: "operator version exists in the same namespace", found: true, namespace: installNamespace, storedOv: &testOv},
@@ -492,7 +492,7 @@ func TestKudoClient_GetOperatorVersion(t *testing.T) {
 }
 
 func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
-	testInstance := v1beta1.Instance{
+	testInstance := kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -503,7 +503,7 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 			},
 			Name: "test",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
@@ -582,7 +582,7 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 }
 
 func TestKudoClient_DeleteInstance(t *testing.T) {
-	testInstance := v1beta1.Instance{
+	testInstance := kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -590,7 +590,7 @@ func TestKudoClient_DeleteInstance(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},

@@ -5,7 +5,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/resources/install"
@@ -17,7 +17,7 @@ import (
 // For the updated Instance, new parameters can be provided.
 func OperatorVersion(
 	kc *kudo.Client,
-	newOv *v1beta1.OperatorVersion,
+	newOv *kudoapi.OperatorVersion,
 	instanceName string,
 	parameters map[string]string,
 	resolver resolver.Resolver) error {
@@ -51,7 +51,7 @@ func OperatorVersion(
 func operatorVersionFromInstance(
 	kc *kudo.Client,
 	instanceName string,
-	namespace string) (*v1beta1.OperatorVersion, error) {
+	namespace string) (*kudoapi.OperatorVersion, error) {
 	instance, err := kc.GetInstance(instanceName, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get instance: %v", err)

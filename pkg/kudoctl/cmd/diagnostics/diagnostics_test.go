@@ -21,7 +21,7 @@ import (
 	clienttesting "k8s.io/client-go/testing"
 	"sigs.k8s.io/yaml"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -94,12 +94,12 @@ var (
 	statefulsets         appsv1.StatefulSetList
 	pvs                  corev1.PersistentVolumeList
 	pvcs                 corev1.PersistentVolumeClaimList
-	operator             v1beta1.Operator
-	operatorVersion      v1beta1.OperatorVersion
-	instance             v1beta1.Instance
-	childOperator        v1beta1.Operator
-	childOperatorVersion v1beta1.OperatorVersion
-	childInstance        v1beta1.Instance
+	operator             kudoapi.Operator
+	operatorVersion      kudoapi.OperatorVersion
+	instance             kudoapi.Instance
+	childOperator        kudoapi.Operator
+	childOperatorVersion kudoapi.OperatorVersion
+	childInstance        kudoapi.Instance
 
 	// kudo-manager resources
 	kmNs              corev1.Namespace
@@ -232,12 +232,12 @@ func TestCollect_OK(t *testing.T) {
 		collectedKmPod                corev1.Pod
 		collectedServices             corev1.ServiceList
 		collectedStatefulsets         appsv1.StatefulSetList
-		collectedOperator             v1beta1.Operator
-		collectedOperatorVersion      v1beta1.OperatorVersion
-		collectedInstance             v1beta1.Instance
-		collectedChildOperator        v1beta1.Operator
-		collectedChildOperatorVersion v1beta1.OperatorVersion
-		collectedChildInstance        v1beta1.Instance
+		collectedOperator             kudoapi.Operator
+		collectedOperatorVersion      kudoapi.OperatorVersion
+		collectedInstance             kudoapi.Instance
+		collectedChildOperator        kudoapi.Operator
+		collectedChildOperatorVersion kudoapi.OperatorVersion
+		collectedChildInstance        kudoapi.Instance
 		collectedKmServices           corev1.ServiceList
 		collectedKmServiceAccounts    corev1.ServiceAccountList
 		collectedKmStatefulsets       appsv1.StatefulSetList

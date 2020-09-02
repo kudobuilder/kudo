@@ -5,7 +5,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
@@ -18,14 +18,14 @@ type InClusterResolver struct {
 }
 
 func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
-	ovn := v1beta1.OperatorVersionName(name, operatorVersion)
+	ovn := kudoapi.OperatorVersionName(name, operatorVersion)
 
-	ov, err := v1beta1.GetOperatorVersionByName(ovn, r.ns, r.c)
+	ov, err := kudoapi.GetOperatorVersionByName(ovn, r.ns, r.c)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve operator version %s/%s:%s", r.ns, ovn, appVersion)
 	}
 
-	o, err := v1beta1.GetOperator(name, r.ns, r.c)
+	o, err := kudoapi.GetOperator(name, r.ns, r.c)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve operator %s/%s", r.ns, name)
 	}

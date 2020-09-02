@@ -21,7 +21,7 @@ import (
 	ctrhook "sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/kudobuilder/kudo/pkg/apis"
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
 )
@@ -105,16 +105,16 @@ var _ = Describe("Test", func() {
 		close(stop)
 	})
 
-	deploy := v1beta1.DeployPlanName
-	update := v1beta1.UpdatePlanName
-	cleanup := v1beta1.CleanupPlanName
+	deploy := kudoapi.DeployPlanName
+	update := kudoapi.UpdatePlanName
+	cleanup := kudoapi.CleanupPlanName
 
-	ov := &v1beta1.OperatorVersion{
+	ov := &kudoapi.OperatorVersion{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
 		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.dev/v1beta1"},
-		Spec: v1beta1.OperatorVersionSpec{
-			Plans: map[string]v1beta1.Plan{deploy: {}, update: {}, cleanup: {}},
-			Parameters: []v1beta1.Parameter{
+		Spec: kudoapi.OperatorVersionSpec{
+			Plans: map[string]kudoapi.Plan{deploy: {}, update: {}, cleanup: {}},
+			Parameters: []kudoapi.Parameter{
 				{
 					Name:    "foo",
 					Trigger: deploy,
@@ -127,7 +127,7 @@ var _ = Describe("Test", func() {
 		},
 	}
 
-	idle := &v1beta1.Instance{
+	idle := &kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -136,7 +136,7 @@ var _ = Describe("Test", func() {
 			Name:      "foo-instance",
 			Namespace: "default",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{Name: "foo-operator"},
 		},
 	}
@@ -191,7 +191,7 @@ var _ = Describe("Test", func() {
 			Expect(i.Spec.PlanExecution.PlanName).Should(Equal(deploy))
 			Expect(i.Spec.PlanExecution.UID).ShouldNot(BeEmpty())
 			Expect(i.Spec.PlanExecution.UID).NotTo(Equal(uid)) // same plan but new UID
-			Expect(i.Spec.PlanExecution.Status).Should(Equal(v1beta1.ExecutionNeverRun))
+			Expect(i.Spec.PlanExecution.Status).Should(Equal(kudoapi.ExecutionNeverRun))
 		}, defaultTimeout)
 
 		It("should NOT allow scheduling of another plan while deploy is running", func() {
@@ -233,7 +233,7 @@ var _ = Describe("Test", func() {
 			i := instanceWith(c, key)
 
 			// 1. finish the 'deploy' plan by updating the status field
-			i.Spec.PlanExecution.Status = v1beta1.ExecutionComplete
+			i.Spec.PlanExecution.Status = kudoapi.ExecutionComplete
 			err := c.Update(context.TODO(), i)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -249,7 +249,7 @@ var _ = Describe("Test", func() {
 			i := instanceWith(c, key)
 
 			// 1. finish the 'deploy' plan by updating the status field
-			i.Spec.PlanExecution.PlanName = v1beta1.CleanupPlanName
+			i.Spec.PlanExecution.PlanName = kudoapi.CleanupPlanName
 			err := c.Update(context.TODO(), i)
 			Expect(err).To(HaveOccurred())
 
@@ -265,14 +265,14 @@ var _ = Describe("Test", func() {
 			i = instanceWith(c, key)
 			uid := i.Spec.PlanExecution.UID
 
-			i.Spec.PlanExecution.PlanName = v1beta1.CleanupPlanName
+			i.Spec.PlanExecution.PlanName = kudoapi.CleanupPlanName
 			i.Spec.PlanExecution.UID = uuid.NewUUID()
 			err = c.Update(context.TODO(), i)
 			Expect(err).NotTo(HaveOccurred())
 
 			// 3. admission controller should reset the Spec.PlanExecution
 			i = instanceWith(c, key)
-			Expect(i.Spec.PlanExecution.PlanName).Should(Equal(v1beta1.CleanupPlanName))
+			Expect(i.Spec.PlanExecution.PlanName).Should(Equal(kudoapi.CleanupPlanName))
 			Expect(i.Spec.PlanExecution.UID).ShouldNot(Equal(uid))
 
 		}, defaultTimeout)
@@ -281,7 +281,7 @@ var _ = Describe("Test", func() {
 			i := instanceWith(c, key)
 
 			// 1. finish the 'deploy' plan by updating the status field
-			i.Spec.PlanExecution.PlanName = v1beta1.DeployPlanName
+			i.Spec.PlanExecution.PlanName = kudoapi.DeployPlanName
 			err := c.Update(context.TODO(), i)
 			Expect(err).To(HaveOccurred())
 
@@ -299,8 +299,8 @@ func keyFrom(obj runtime.Object) client.ObjectKey {
 
 // instanceWith method is a small helper method to retrieve an Instance with the give key. Meant to be used within this test class
 // only as it will fail the test should an error occur.
-func instanceWith(c client.Client, key client.ObjectKey) *v1beta1.Instance {
-	i := &v1beta1.Instance{}
+func instanceWith(c client.Client, key client.ObjectKey) *kudoapi.Instance {
+	i := &kudoapi.Instance{}
 	err := c.Get(context.TODO(), key, i)
 	Expect(err).NotTo(HaveOccurred())
 	return i

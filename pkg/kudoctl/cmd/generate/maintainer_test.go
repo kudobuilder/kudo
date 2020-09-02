@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 )
 
@@ -19,7 +19,7 @@ func TestAddMaintainer(t *testing.T) {
 	goldenFile := "maintainer"
 	fs := afero.NewMemMapFs()
 	files.CopyOperatorToFs(fs, "../../packages/testdata/zk", "/opt")
-	m := v1beta1.Maintainer{
+	m := kudoapi.Maintainer{
 		Name:  "Cat in the hat",
 		Email: "c@hat.com",
 	}

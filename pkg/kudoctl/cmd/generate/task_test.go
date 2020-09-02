@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 )
 
@@ -79,21 +79,21 @@ func TestAddTask_bad_path(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func fooTask() v1beta1.Task {
-	res := v1beta1.ResourceTaskSpec{Resources: []string{"bar.yaml"}}
-	task := v1beta1.Task{
+func fooTask() kudoapi.Task {
+	res := kudoapi.ResourceTaskSpec{Resources: []string{"bar.yaml"}}
+	task := kudoapi.Task{
 		Name: "Foo",
 		Kind: "Apply",
-		Spec: v1beta1.TaskSpec{ResourceTaskSpec: res}}
+		Spec: kudoapi.TaskSpec{ResourceTaskSpec: res}}
 	return task
 }
 
-func pipeTask() v1beta1.Task {
-	res := v1beta1.PipeTaskSpec{Pod: "pipe-pod.yaml"}
-	task := v1beta1.Task{
+func pipeTask() kudoapi.Task {
+	res := kudoapi.PipeTaskSpec{Pod: "pipe-pod.yaml"}
+	task := kudoapi.Task{
 		Name: "Foo",
 		Kind: "Pipe",
-		Spec: v1beta1.TaskSpec{PipeTaskSpec: res}}
+		Spec: kudoapi.TaskSpec{PipeTaskSpec: res}}
 	return task
 }
 

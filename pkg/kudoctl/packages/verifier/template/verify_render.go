@@ -3,7 +3,7 @@ package template
 import (
 	"fmt"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
@@ -80,5 +80,5 @@ func collectParams(pf *packages.Files) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return instance.ParamsMap(&v1beta1.Instance{}, &v1beta1.OperatorVersion{Spec: v1beta1.OperatorVersionSpec{Parameters: parameters}})
+	return instance.ParamsMap(&kudoapi.Instance{}, &kudoapi.OperatorVersion{Spec: kudoapi.OperatorVersionSpec{Parameters: parameters}})
 }

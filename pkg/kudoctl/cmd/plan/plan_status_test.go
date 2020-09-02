@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -25,7 +25,7 @@ var (
 )
 
 func TestStatus(t *testing.T) {
-	ov := &v1beta1.OperatorVersion{
+	ov := &kudoapi.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "OperatorVersion",
@@ -33,15 +33,15 @@ func TestStatus(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-1.0",
 		},
-		Spec: v1beta1.OperatorVersionSpec{
+		Spec: kudoapi.OperatorVersionSpec{
 			Version: "1.0",
-			Plans: map[string]v1beta1.Plan{
+			Plans: map[string]kudoapi.Plan{
 				"zzzinvalid": {
-					Phases: []v1beta1.Phase{
-						v1beta1.Phase{
+					Phases: []kudoapi.Phase{
+						kudoapi.Phase{
 							Name: "zzzinvalid",
-							Steps: []v1beta1.Step{
-								v1beta1.Step{
+							Steps: []kudoapi.Step{
+								kudoapi.Step{
 									Name: "zzzinvalid",
 								},
 							},
@@ -49,11 +49,11 @@ func TestStatus(t *testing.T) {
 					},
 				},
 				"validate": {
-					Phases: []v1beta1.Phase{
-						v1beta1.Phase{
+					Phases: []kudoapi.Phase{
+						kudoapi.Phase{
 							Name: "validate",
-							Steps: []v1beta1.Step{
-								v1beta1.Step{
+							Steps: []kudoapi.Step{
+								kudoapi.Step{
 									Name: "validate",
 								},
 							},
@@ -63,7 +63,7 @@ func TestStatus(t *testing.T) {
 				"deploy": {},
 			},
 		}}
-	instance := &v1beta1.Instance{
+	instance := &kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -71,7 +71,7 @@ func TestStatus(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
@@ -79,20 +79,20 @@ func TestStatus(t *testing.T) {
 	}
 
 	fatalErrInstance := instance.DeepCopy()
-	fatalErrInstance.Status = v1beta1.InstanceStatus{
-		PlanStatus: map[string]v1beta1.PlanStatus{
+	fatalErrInstance.Status = kudoapi.InstanceStatus{
+		PlanStatus: map[string]kudoapi.PlanStatus{
 			"deploy": {
 				Name:                 "deploy",
-				Status:               v1beta1.ExecutionFatalError,
+				Status:               kudoapi.ExecutionFatalError,
 				LastUpdatedTimestamp: &metav1.Time{Time: testTime},
-				Phases: []v1beta1.PhaseStatus{
+				Phases: []kudoapi.PhaseStatus{
 					{
 						Name:   "deploy",
-						Status: v1beta1.ExecutionFatalError,
-						Steps: []v1beta1.StepStatus{
+						Status: kudoapi.ExecutionFatalError,
+						Steps: []kudoapi.StepStatus{
 							{
 								Name:    "deploy",
-								Status:  v1beta1.ExecutionFatalError,
+								Status:  kudoapi.ExecutionFatalError,
 								Message: "error detail",
 							},
 						},
@@ -104,8 +104,8 @@ func TestStatus(t *testing.T) {
 
 	var tests = []struct {
 		name            string
-		instance        *v1beta1.Instance
-		ov              *v1beta1.OperatorVersion
+		instance        *kudoapi.Instance
+		ov              *kudoapi.OperatorVersion
 		instanceNameArg string
 		errorMessage    string
 		expectedOutput  string

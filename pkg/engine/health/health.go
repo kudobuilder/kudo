@@ -19,7 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubectl/pkg/polymorphichelpers"
 
-	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/resource"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
@@ -107,7 +107,7 @@ func IsHealthy(obj runtime.Object) error {
 		}
 
 		return fmt.Errorf("job %q still running or failed", obj.Name)
-	case *kudov1beta1.Instance:
+	case *kudoapi.Instance:
 		// if there is no scheduled plan, then we're done
 		if obj.Spec.PlanExecution.PlanName == "" {
 			return nil

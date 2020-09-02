@@ -6,13 +6,13 @@ import (
 
 	"github.com/spf13/afero"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 )
 
 // AddTask adds a task to the operator.yaml file
-func AddTask(fs afero.Fs, path string, task *v1beta1.Task) error {
+func AddTask(fs afero.Fs, path string, task *kudoapi.Task) error {
 	p, err := reader.ReadDir(fs, path)
 	if err != nil {
 		return err
@@ -25,7 +25,7 @@ func AddTask(fs afero.Fs, path string, task *v1beta1.Task) error {
 }
 
 // TaskList provides a list of operator tasks
-func TaskList(fs afero.Fs, path string) ([]v1beta1.Task, error) {
+func TaskList(fs afero.Fs, path string) ([]kudoapi.Task, error) {
 	p, err := reader.ReadDir(fs, path)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func TaskKinds() []string {
 }
 
 // EnsureTaskResources ensures that all resources used by the given task exist
-func EnsureTaskResources(fs afero.Fs, path string, task *v1beta1.Task) error {
+func EnsureTaskResources(fs afero.Fs, path string, task *kudoapi.Task) error {
 
 	for _, resource := range task.Spec.Resources {
 		err := EnsureResource(fs, path, resource)

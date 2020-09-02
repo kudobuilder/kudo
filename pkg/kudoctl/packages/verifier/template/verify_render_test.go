@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
@@ -40,13 +40,13 @@ correct: {{ .Pipes.existing }}
 wrong: {{ .Pipes.inexistent }}
 `
 	operator := packages.OperatorFile{
-		Tasks: []v1beta1.Task{
+		Tasks: []kudoapi.Task{
 			{
 				Name: "a-task",
 				Kind: "Pipe",
-				Spec: v1beta1.TaskSpec{
-					PipeTaskSpec: v1beta1.PipeTaskSpec{
-						Pipe: []v1beta1.PipeSpec{
+				Spec: kudoapi.TaskSpec{
+					PipeTaskSpec: kudoapi.PipeTaskSpec{
+						Pipe: []kudoapi.PipeSpec{
 							{
 								Key: "existing",
 							},
@@ -55,11 +55,11 @@ wrong: {{ .Pipes.inexistent }}
 				},
 			},
 		},
-		Plans: map[string]v1beta1.Plan{
+		Plans: map[string]kudoapi.Plan{
 			"a-plan": {
-				Phases: []v1beta1.Phase{
+				Phases: []kudoapi.Phase{
 					{
-						Steps: []v1beta1.Step{
+						Steps: []kudoapi.Step{
 							{Tasks: []string{"a-task"}},
 						},
 					},
@@ -118,12 +118,12 @@ func TestTemplateRenderVerifierParameterTypes(t *testing.T) {
 		packages.Parameter{
 			Name:    "labels",
 			Default: map[string]string{"a": "a", "b": "b"},
-			Type:    v1beta1.MapValueType,
+			Type:    kudoapi.MapValueType,
 		},
 		packages.Parameter{
 			Name:    "containers",
 			Default: []string{"a", "b"},
-			Type:    v1beta1.ArrayValueType,
+			Type:    kudoapi.ArrayValueType,
 		},
 	}
 	paramFile := packages.ParamsFile{Parameters: params}
