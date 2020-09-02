@@ -33,6 +33,7 @@ type OperatorVersionSpec struct {
 	// List of all tasks available in this OperatorVersion.
 	Tasks []Task `json:"tasks,omitempty"`
 
+	// The parameter definition. Must be a valid json-schema in version TODO. See https://json-schema.org/
 	Parameters v1beta1.JSON `json:"parameters,omitempty"`
 
 	// Plans maps a plan name to a plan.

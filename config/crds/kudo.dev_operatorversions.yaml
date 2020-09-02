@@ -277,6 +277,7 @@ spec:
                     type: string
                 type: object
               parameters:
+                description: The parameter definition. Must be a valid json-schema in version TODO. See https://json-schema.org/
                 x-kubernetes-preserve-unknown-fields: true
               plans:
                 additionalProperties:
