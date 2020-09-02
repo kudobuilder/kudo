@@ -139,10 +139,13 @@ To migrate the existing CRDs, we will implement a Conversion Webhook that only a
 2. Deploy the new manager with the conversion webhook
 3. Run Pre-Migration: fetch all existing CRs, run the conversion and check for any errors
 4. Run the migration: fetch all CRDs and issue an update - This will trigger a conversion and save the CRD with the new version
-5. With the following major KUDO release, we can remove `v1beta1` from the CRD list.
+5. With a later major KUDO release, we can remove `v1beta1` from the CRD list - this should be at least 6 month later, as soon as we remove support for the `v1beta1` version we can not support migrating existing installations anymore.
 
 Reference: [CRD Versioning](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definition-versioning/)
 
+The actual type that we are going to use in the CRD is undefined yet - The CRD generation fails to accept untyped `interface{}`. There is an option
+to use raw `[]byte` data, or we might be able to define a typed structure to map a JSON schema into.
+ 
 #### Operator
 
 The Operator CRD will not change, but we should keep the version in sync with the other CRDs.
