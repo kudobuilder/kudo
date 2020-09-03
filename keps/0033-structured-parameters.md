@@ -175,7 +175,7 @@ type OperatorVersionSpec struct {
 }
 ```
 
-A better solution than `extensionapi.JSON` would be to have a typed structure, but CRDs currently cannot describe recursive data structures, as they [don't support $ref or $recursiveRef](https://github.com/kubernetes/kubernetes/issues/54579). The only way to define an arbitrary JSON structure in a Kubernetes API is with `apiextension.JSON`. The resulting CRD for the operator version will therefore looks like this:
+A better solution than `extensionapi.JSON` would be to have a typed structure, but CRDs currently cannot describe recursive data structures, as they [don't support $ref or $recursiveRef](https://github.com/kubernetes/kubernetes/issues/54579). The only way to define an arbitrary JSON structure in a Kubernetes API is with `apiextension.JSON`. The resulting CRD for the operator version will therefore look like this:
 
 ```yaml
 ...
@@ -256,11 +256,10 @@ The output for the parameter list must be adjusted. The first column of the `uit
 ### Trigger attributes
 
 With the list of parameters, each parameter had a trigger attribute which specified a plan to trigger when the parameter was changed. With the nested structure, this gets more complicated as one "parameter branch" might have multiple different triggers defined which is clearly not something we want. Here is the new rule set:
- - Every level of the structure can specify a trigger.
- - Fields can explicitly specify an empty trigger field. This means that the trigger is inherited from the parent.
- - A deeper level of the structure must *not* override a higher level trigger. An exception is an empty trigger.
- - The root is allowed to *not* have a trigger. In this case `deploy` plan is triggered, similar to how it is handled today.
- - If a field changes, KUDO traverses the structure upwards until it finds a field with a trigger or reaches the root.
+ - Every level of the structure *may* specify a trigger.
+ - If a field does not explicitly specify a trigger, the trigger is inherited from the parent.
+ - A deeper level of the structure *must not* specify a trigger if any parent specifies a trigger.
+ - If a field changes, KUDO traverses the structure upwards until it finds a field with a trigger or reaches the root. If it does not find a trigger the `deploy` plan is triggered, similar to the old behaviour.
 
 The previously established rule applies:
  - If more than one plan is triggered in a single update, the update is not allowed.
@@ -280,30 +279,78 @@ properties:
         trigger: "update-instance" # <-- triggering "update-instance"
 ```
 
-Valid: A change to `Authorization.ENABLED` will not trigger any plan, a change to `Authorization.NAME` will trigger the "deploy" plan.
+Valid: The following rules apply:
+- A change to `ClusterName` will trigger `deploy` (directly specified)
+- A change to `NodeCount` will trigger `deploy` (no trigger, look at parent. No trigger specified there, and no parent, so `deploy` is the default.)
+- A change to `Authorization.ENABLED` will trigger `auth-update` (directly specified.)
+- A change to `Authorization.NAME` will trigger `auth-update` (no trigger, look at parent. Trigger is specified there.)
 ```yaml
 type: object
 properties:
+  ClusterName:
+    type: string
+    trigger: "deploy"
+  NodeCount: 
+    type: int
   Authorization:
     type: object
-    trigger: "deploy" # <-- triggering "deploy"
+    trigger: "auth-update" # <-- triggering "auth-update"
     properties:
-      NAME:
-        type: "string"
       ENABLED:
         type: "boolean"
-        trigger: # <-- triggers no plan
+        trigger: "auth-update"
+      NAME:
+        type: "string"
 ```
 
+### Immutability
 
+If a field is marked as immutable, this applies to the field itself as well as all children.
 
-#### Immutability
-
-If a field is marked as immutable, this applies to the field itself as well as all potential children.
-
-#### FlatListName
+### FlatListName
 
 This attribute is important for operator developers to provide backwards compatibility. Existing installed versions of an operator contain the parameters as a list, and with the `flatListName` KUDO can automatically convert an  instance with a flat list of parameters to a new nested structure.
+
+#### Examples
+
+```yaml
+type: object
+properties:
+  ClusterName:
+    type: string
+    flatListName: CLUSTER_NAME
+  NodeCount: 
+    type: int
+    flatListName: NODE_COUNT
+  Authorization:
+    type: object
+    properties:
+      ENABLED:
+        type: "boolean"
+        flatListName: AUTHORIZATION_ENABLED
+      NAME:
+        type: "string"
+        flatListName: AUTHORIZATION_NAME
+```
+
+With a parameter definition as above, KUDO can automatically convert an installed operator that had parameters set like this:
+
+```yaml
+CLUSTER_NAME: "MyCluster"
+NODE_COUNT: 3
+AUTHORIZATION_ENABLED: true
+AUTHORIZATION_NAME: "MyAuth"
+```
+
+to this:
+
+```yaml
+ClusterName: "MyCluster"
+NodeCount: 3
+Authorization:
+  Enabled: true
+  Name: "MyAuth"
+```
 
 ### OperatorVersion upgrades
 
