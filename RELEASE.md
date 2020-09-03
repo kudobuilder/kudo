@@ -51,7 +51,7 @@ The KUDO Project is aiming to do monthly minor releases but the period could be 
 1. RM is responsible for following the process below
 1. RM should announce the release in the public [#kudo slack channel](https://kubernetes.slack.com/messages/kudo/) at least two days prior to the date
 1. RM makes sure all PRs that need to go into the release are merged prior to the process starting
-1. RM prepares a pre-release 2 days before the release process is started and makes sure it's manually tested at least in the parts where we lack automatic tests for now (pre-release should be announced in the [#kudo slack channel](https://kubernetes.slack.com/messages/kudo/))
+1. RM prepares a pre-release at least 2 days before the release process is started and makes sure it's manually tested at least in the parts where we lack automatic tests for now (pre-release should be announced in the [#kudo slack channel](https://kubernetes.slack.com/messages/kudo/))
 
 ### Release Process
 
