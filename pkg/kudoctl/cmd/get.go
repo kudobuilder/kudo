@@ -10,7 +10,19 @@ import (
 )
 
 const getExample = `  # Get all available instances
-  kubectl kudo get instances 
+  kubectl kudo get instances
+  
+  # Get all available operators
+  kubectl kudo get operators
+
+  # Get all available operatorversions
+  kubectl kudo get operatorversions
+
+  # Get all installed components
+  kubectl kudo get all
+
+  # Get all installed components as yaml
+  kubectl kudo get all -o yaml
 `
 
 // newGetCmd creates a command that lists the instances in the cluster
@@ -20,8 +32,8 @@ func newGetCmd(out io.Writer) *cobra.Command {
 	}
 
 	getCmd := &cobra.Command{
-		Use:     "get instances",
-		Short:   "Gets all available instances.",
+		Use:     "get <instances|operators|operatorversions|all> [flags]",
+		Short:   "Gets list of installed components (instances, operators, operatorversions or all).",
 		Example: getExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := env.GetClient(&Settings)
@@ -35,7 +47,7 @@ func newGetCmd(out io.Writer) *cobra.Command {
 		},
 	}
 
-	getCmd.Flags().StringVarP(opts.Output.AsStringPtr(), "output", "o", "", "Output format for command results.")
+	getCmd.Flags().StringVarP(opts.Output.AsStringPtr(), "output", "o", "", "Output format. One of: json|yaml")
 
 	return getCmd
 }
