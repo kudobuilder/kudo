@@ -57,7 +57,7 @@ func Run(args []string, opts CmdOpts) error {
 	}
 
 	if opts.Output.IsFormattedOutput() {
-		outObj := []interface{}{}
+		var outObj []interface{}
 		for _, o := range objs {
 			outObj = append(outObj, o)
 		}
@@ -74,8 +74,8 @@ func Run(args []string, opts CmdOpts) error {
 		}
 		tree.AddBranch(name)
 	}
-	_, _ = fmt.Fprintf(opts.Out, "List of current installed %s in namespace %q:\n", args[0], opts.Namespace)
-	_, _ = fmt.Fprintln(opts.Out, tree.String())
+	fmt.Fprintf(opts.Out, "List of current installed %s in namespace %q:\n", args[0], opts.Namespace)
+	fmt.Fprintln(opts.Out, tree.String())
 	return err
 }
 
@@ -94,7 +94,7 @@ func runGetAll(opts CmdOpts) error {
 	}
 
 	if opts.Output.IsFormattedOutput() {
-		outObj := []interface{}{}
+		var outObj []interface{}
 		for _, o := range operators {
 			outObj = append(outObj, o)
 		}
@@ -132,8 +132,8 @@ func printAllTree(opts CmdOpts, operators, operatorversions, instances []runtime
 		}
 	}
 
-	_, _ = fmt.Fprintf(opts.Out, "List of current installed operators including versions and instances in namespace %q:\n", opts.Namespace)
-	_, _ = fmt.Fprintln(opts.Out, rootTree.String())
+	fmt.Fprintf(opts.Out, "List of current installed operators including versions and instances in namespace %q:\n", opts.Namespace)
+	fmt.Fprintln(opts.Out, rootTree.String())
 	return nil
 
 }
