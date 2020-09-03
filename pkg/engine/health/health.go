@@ -7,18 +7,17 @@ import (
 	"log"
 	"reflect"
 
-	"k8s.io/kubectl/pkg/util/podutils"
-
-	"k8s.io/client-go/discovery"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery"
 	"k8s.io/kubectl/pkg/polymorphichelpers"
+	"k8s.io/kubectl/pkg/util/podutils"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
@@ -63,6 +62,15 @@ func IsHealthy(obj runtime.Object) error {
 
 	objUnstructured := &unstructured.Unstructured{Object: unstructMap}
 	switch obj := obj.(type) {
+	case *v1beta1.CustomResourceDefinition:
+		for _, c := range obj.Status.Conditions {
+			if c.Type == v1beta1.Established && c.Status == v1beta1.ConditionTrue {
+				log.Printf("CRD %s is now healthy", obj.Name)
+				return nil
+			}
+		}
+		msg := fmt.Sprintf("CRD %s is not healthy ( Conditions: %v )", obj.Name, obj.Status.Conditions)
+		return errors.New(msg)
 	case *appsv1.StatefulSet:
 		statusViewer := &polymorphichelpers.StatefulSetStatusViewer{}
 		msg, done, err := statusViewer.Status(objUnstructured, 0)
@@ -112,6 +120,12 @@ func IsHealthy(obj runtime.Object) error {
 			return nil
 		}
 		return fmt.Errorf("pod %q is not running yet: %s", obj.Name, obj.Status.Phase)
+
+	case *corev1.Namespace:
+		if obj.Status.Phase == corev1.NamespaceActive {
+			return nil
+		}
+		return fmt.Errorf("namespace %s is not active: %s", obj.Name, obj.Status.Phase)
 
 	// unless we build logic for what a healthy object is, assume it's healthy when created.
 	default:

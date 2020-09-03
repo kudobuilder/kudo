@@ -2,6 +2,7 @@ package setup
 
 import (
 	"fmt"
+	"io"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -89,7 +90,7 @@ func (i *Installer) PreUpgradeVerify(client *kube.Client, result *verifier.Resul
 
 	// Step 2 - Verify that any migration is possible
 	migrations := requiredMigrations()
-	clog.Printf("Verify that %d required migrations can be applied", len(migrations))
+	clog.V(1).Printf("Verify that %d required migrations can be applied", len(migrations))
 	for _, m := range migrations {
 		if err := m.CanMigrate(client); err != nil {
 			result.AddErrors(fmt.Errorf("migration %s failed install check: %v", m, err).Error())
@@ -166,4 +167,23 @@ func (i *Installer) Resources() []runtime.Object {
 	}
 
 	return allManifests
+}
+
+// verifyExistingInstallation checks if the current installation is valid and as expected
+func VerifyExistingInstallation(v kudoinit.InstallVerifier, client *kube.Client, out io.Writer) (bool, error) {
+	clog.V(4).Printf("verify existing installation")
+	result := verifier.NewResult()
+	if err := v.VerifyInstallation(client, &result); err != nil {
+		return false, err
+	}
+	if out != nil {
+		result.PrintWarnings(out)
+	}
+	if !result.IsValid() {
+		if out != nil {
+			result.PrintErrors(out)
+		}
+		return false, nil
+	}
+	return true, nil
 }

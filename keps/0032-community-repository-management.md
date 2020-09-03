@@ -7,8 +7,8 @@ authors:
 owners:
   - "@nfnt"
 creation-date: 2020-07-02
-last-updated: 2020-07-15
-status: provisional
+last-updated: 2020-08-31
+status: implemented
 see-also:
   - KEP-10
   - KEP-15
@@ -115,3 +115,4 @@ We can add more metadata to the YAML reference file. E.g., support for different
 
 - 2020/07/02 - Initial draft (@nfnt)
 - 2020/07/15 - Updated API after tests with a prototype. Removed maturity levels (@nfnt)
+- 2020/08/31 - Changed status to 'implemented' with `kudobuilder/operators-index` (@nfnt)

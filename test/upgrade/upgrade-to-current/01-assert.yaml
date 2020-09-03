@@ -1,13 +1,18 @@
-apiVersion: apps/v1
-kind: StatefulSet
+apiVersion: kudo.dev/v1beta1
+kind: Instance
 metadata:
-  labels:
-    app: kudo-manager
-    control-plane: controller-manager
-  name: kudo-controller-manager
-  namespace: kudo-system
+  name: simple-op
 spec:
-  template:
-    spec:
-      containers:
-        - image: kudobuilder/controller:test
+  operatorVersion:
+    name: simple-op-0.1.0
+status:
+  planStatus:
+    deploy:
+      status: COMPLETE
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 2

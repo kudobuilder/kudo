@@ -218,10 +218,11 @@ func (initCmd *initCmd) run() error {
 
 	if initCmd.wait {
 		clog.Printf("⌛Waiting for KUDO controller to be ready in your cluster...")
-		err := setup.WatchKUDOUntilReady(initCmd.client.KubeClient, opts, initCmd.timeout)
+		err := setup.WatchKUDOUntilReady(installer, initCmd.client, initCmd.timeout)
 		if err != nil {
 			return errors.New("watch timed out, readiness uncertain")
 		}
+		clog.Printf("✅ KUDO is ready!")
 	}
 
 	return nil
@@ -286,13 +287,12 @@ func (initCmd *initCmd) runYamlOutput(installer kudoinit.Artifacter) error {
 // verifyExistingInstallation checks if the current installation is valid and as expected
 func (initCmd *initCmd) verifyExistingInstallation(v kudoinit.InstallVerifier) error {
 	clog.V(4).Printf("verify existing installation")
-	result := verifier.NewResult()
-	if err := v.VerifyInstallation(initCmd.client, &result); err != nil {
+	ok, err := setup.VerifyExistingInstallation(v, initCmd.client, initCmd.out)
+	if err != nil {
 		return err
 	}
-	result.PrintWarnings(initCmd.out)
-	if !result.IsValid() {
-		result.PrintErrors(initCmd.out)
+	if !ok {
+		return fmt.Errorf("KUDO installation is not valid")
 	}
 	return nil
 }

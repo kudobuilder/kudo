@@ -12,7 +12,7 @@ import (
 
 const (
 	planHistoryExample = `  # View plan history
-  kubectl kudo plan history <operatorVersion> --instance=<instanceName>
+  kubectl kudo plan history --instance=<instanceName>
 `
 	planStatusExample = `  # View plan status
   kubectl kudo plan status --instance=<instanceName>
@@ -42,7 +42,7 @@ func NewPlanHistoryCmd() *cobra.Command {
 	options := plan.DefaultHistoryOptions
 	cmd := &cobra.Command{
 		Use:     "history",
-		Short:   "Lists history to a specific operator-version of an instance.",
+		Short:   "Lists history for each plan of an instance.",
 		Example: planHistoryExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return plan.RunHistory(cmd, options, &Settings)
@@ -68,7 +68,7 @@ func NewPlanStatusCmd(out io.Writer) *cobra.Command {
 
 	cmd.Flags().StringVar(&options.Instance, "instance", "", "The instance name available from 'kubectl get instances'")
 	cmd.Flags().BoolVar(&options.Wait, "wait", false, "Specify if the CLI should wait for the plan to complete before returning (default \"false\")")
-	cmd.Flags().StringVarP(options.Output.AsStringPtr(), "output", "o", "", "Output format")
+	cmd.Flags().StringVarP(options.Output.AsStringPtr(), "output", "o", "", "Output format for command results.")
 
 	if err := cmd.MarkFlagRequired("instance"); err != nil {
 		clog.Printf("Please choose the instance with '--instance=<instanceName>': %v", err)
