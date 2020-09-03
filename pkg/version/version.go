@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
@@ -11,12 +12,13 @@ import (
 
 // Info contains versioning information.
 type Info struct {
-	GitVersion string `json:"gitVersion"`
-	GitCommit  string `json:"gitCommit"`
-	BuildDate  string `json:"buildDate"`
-	GoVersion  string `json:"goVersion"`
-	Compiler   string `json:"compiler"`
-	Platform   string `json:"platform"`
+	GitVersion    string `json:"gitVersion"`
+	GitCommit     string `json:"gitCommit"`
+	BuildDate     string `json:"buildDate"`
+	GoVersion     string `json:"goVersion"`
+	Compiler      string `json:"compiler"`
+	Platform      string `json:"platform"`
+	KubernetesAPI string `json:"kubernetesApi"`
 }
 
 // String returns info as a human-friendly version string.
@@ -41,7 +43,7 @@ func Get() Info {
 		gitCommit = "dev"
 	}
 
-	return Info{
+	result := Info{
 		GitVersion: gitVersion,
 		GitCommit:  gitCommit,
 		BuildDate:  buildDate,
@@ -49,6 +51,16 @@ func Get() Info {
 		Compiler:   runtime.Compiler,
 		Platform:   fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	}
+
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, dep := range info.Deps {
+			if dep.Path == "k8s.io/api" {
+				result.KubernetesAPI = dep.Version
+			}
+		}
+	}
+
+	return result
 }
 
 // Version is an extension of semver.Version
