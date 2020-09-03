@@ -123,11 +123,15 @@ properties:
     required: ["URI"]
 ```
 
+KUDO will support both package formats for the future. At some point the old format might become deprecated, but this will not be planned yet.
+
+Note: The apiVersions here (`v1beta1` and `v2beta2`) correspond to the CRD versions, but are separate definitions, even if they seem to be similar in certain aspects.
+
 ### CRDs
 
 Normally, per Kubernetes conventions, CRDs would evolve over released versions without a breaking change from one version to the next, allowing clients to gradually convert to new CRD versions. This requires for a CRD to be convertible from the old version to new _and vice versa_ for all clients (new and old) to be able to read/write both old and new CRD versions. However, such a conversion in both directions will not be possible with this change, as JSON-schema supports a lot of configurations which will not be mappable from a flat list. 
 
-There will be a hard break from the current from `v1beta1` to the new `v1beta2`. We will provide a migration path for existing installed CRDs, but the clients accessing these CRDs will need to be updated.
+There will be a hard break for clients and users of CRDs from `v1beta1` to the new `v1beta2`. We will provide a migration path for existing installed CRDs, but the clients accessing these CRDs will need to be updated.
 
 #### Conversion
 
@@ -139,12 +143,11 @@ To migrate the existing CRDs, we will implement a Conversion Webhook that only a
 2. Deploy the new manager with the conversion webhook
 3. Run Pre-Migration: fetch all existing CRs, run the conversion and check for any errors
 4. Run the migration: fetch all CRDs and issue an update - This will trigger a conversion and save the CRD with the new version
-5. With a later major KUDO release, we can remove `v1beta1` from the CRD list - this should be at least 6 month later, as soon as we remove support for the `v1beta1` version we can not support migrating existing installations anymore.
+5. With a later major KUDO release, we can remove `v1beta1` from the CRD list - this should be at least 6 month later, as soon as we remove support for the `v1beta1` version we cannot support migrating existing installations anymore.
 
 Reference: [CRD Versioning](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definition-versioning/)
 
-The actual type that we are going to use in the CRD is undefined yet - The CRD generation fails to accept untyped `interface{}`. There is an option
-to use raw `[]byte` data, or we might be able to define a typed structure to map a JSON schema into.
+The actual type that we are going to use in the CRD is `extensionapi.JSON` - This type wraps a `[]byte` and allows storage of any data.  
  
 #### Operator
 
@@ -172,7 +175,7 @@ type OperatorVersionSpec struct {
 }
 ```
 
-CRDs currently cannot describe recursive data structures, as they [don't support $ref or $recursiveRef](https://github.com/kubernetes/kubernetes/issues/54579). The correct way to define an arbitrary JSON structure in a Kubernetes API is with `apiextension.JSON`. The resulting CRD for the operator version will therefore looks like this:
+A better solution than `extensionapi.JSON` would be to have a typed structure, but CRDs currently cannot describe recursive data structures, as they [don't support $ref or $recursiveRef](https://github.com/kubernetes/kubernetes/issues/54579). The only way to define an arbitrary JSON structure in a Kubernetes API is with `apiextension.JSON`. The resulting CRD for the operator version will therefore looks like this:
 
 ```yaml
 ...
@@ -206,7 +209,7 @@ type InstanceSpec struct {
 
 The existing instance parameter values are currently stored as serialized strings. They will have to be unwrapped and stored as `map[string]interface{}`.
 
-As already mentioned on the OperatorVersion, the correct way to define an arbitrary structure is with `apiextension.JSON`. The Instance should have accessor functions to convert the `apiextension.JSON` values to structured `interface{}` types.
+As already mentioned on the OperatorVersion, the correct way to define an arbitrary structure is with `apiextension.JSON`. The Instance should have accessor or helper functions to convert the `apiextension.JSON` values to structured `interface{}` types.
 
 ### Client-side
 
