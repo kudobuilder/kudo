@@ -171,6 +171,9 @@ func pod(name string, namespace string) *corev1.Pod { //nolint:unparam
 		Spec: corev1.PodSpec{},
 		Status: corev1.PodStatus{
 			Phase: corev1.PodRunning,
+			Conditions: []corev1.PodCondition{
+				{Type: corev1.PodReady, Status: corev1.ConditionTrue},
+			},
 		},
 	}
 	return pod

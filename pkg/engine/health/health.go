@@ -7,17 +7,17 @@ import (
 	"log"
 	"reflect"
 
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	"k8s.io/client-go/discovery"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery"
 	"k8s.io/kubectl/pkg/polymorphichelpers"
+	"k8s.io/kubectl/pkg/util/podutils"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
@@ -116,7 +116,7 @@ func IsHealthy(obj runtime.Object) error {
 		return fmt.Errorf("instance %s/%s active plan is in state %v", obj.Namespace, obj.Name, obj.Spec.PlanExecution.Status)
 
 	case *corev1.Pod:
-		if obj.Status.Phase == corev1.PodRunning {
+		if obj.Status.Phase == corev1.PodRunning && podutils.IsPodReady(obj) {
 			return nil
 		}
 		return fmt.Errorf("pod %q is not running yet: %s", obj.Name, obj.Status.Phase)
