@@ -59,7 +59,7 @@ func (l *Level) Set(value string) error {
 
 // Type is part of flag.Value interface
 func (l *Level) Type() string {
-	return string(*l)
+	return fmt.Sprint(*l)
 }
 
 //// pflag.Value interface ends
