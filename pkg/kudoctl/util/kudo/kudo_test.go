@@ -8,7 +8,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -167,13 +169,13 @@ func TestKudoClient_ListInstances(t *testing.T) {
 	}
 
 	tests := []struct {
-		expectedInstances []string
+		expectedInstances []runtime.Object
 		namespace         string
 		obj               *v1beta1.Instance
 	}{
-		{expectedInstances: []string{}, namespace: installNamespace},                    // 1
-		{expectedInstances: []string{obj.Name}, namespace: installNamespace, obj: &obj}, // 2
-		{expectedInstances: []string{}, namespace: "otherns", obj: &obj},                // 3
+		{expectedInstances: []runtime.Object{}, namespace: installNamespace},                // 1
+		{expectedInstances: []runtime.Object{&obj}, namespace: installNamespace, obj: &obj}, // 2
+		{expectedInstances: []runtime.Object{}, namespace: "otherns", obj: &obj},            // 3
 	}
 
 	for i, tt := range tests {
@@ -192,8 +194,17 @@ func TestKudoClient_ListInstances(t *testing.T) {
 
 		// test if OperatorVersion exists in namespace
 		existingInstances, _ := k2o.ListInstances(tt.namespace)
-		if !reflect.DeepEqual(tt.expectedInstances, existingInstances) {
-			t.Errorf("%d:\nexpected: %v\n     got: %v", i+1, tt.expectedInstances, existingInstances)
+
+		assert.Equal(t, len(tt.expectedInstances), len(existingInstances))
+
+		metadataAccessor := meta.NewAccessor()
+		for i := range existingInstances {
+			expectedName, err := metadataAccessor.Name(tt.expectedInstances[i])
+			assert.NoError(t, err)
+			existingName, err := metadataAccessor.Name(existingInstances[i])
+			assert.NoError(t, err)
+
+			assert.Equal(t, expectedName, existingName)
 		}
 	}
 }
