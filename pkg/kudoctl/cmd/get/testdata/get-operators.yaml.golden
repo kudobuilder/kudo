@@ -1,0 +1,13 @@
+---
+apiVersion: kudo.dev/v1beta1
+kind: Operator
+metadata:
+  creationTimestamp: null
+  name: some-operator
+  namespace: default
+spec:
+  description: A fancy Operator
+  kudoVersion: 0.16.0
+status: {}
+
+...

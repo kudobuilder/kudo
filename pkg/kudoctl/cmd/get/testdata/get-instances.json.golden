@@ -1,0 +1,21 @@
+[
+  {
+    "kind": "Instance",
+    "apiVersion": "kudo.dev/v1beta1",
+    "metadata": {
+      "name": "test",
+      "namespace": "default",
+      "creationTimestamp": null,
+      "labels": {
+        "operator": "test"
+      }
+    },
+    "spec": {
+      "operatorVersion": {
+        "name": "some-operator-0.1.0"
+      },
+      "planExecution": {}
+    },
+    "status": {}
+  }
+]

@@ -1,0 +1,6 @@
+List of current installed operators including versions and instances in namespace "default":
+.
+└── some-operator
+    └── some-operator-0.1.0
+        └── test
+
