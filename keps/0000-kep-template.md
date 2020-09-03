@@ -10,7 +10,7 @@ owners:
 editor: TBD
 creation-date: yyyy-mm-dd
 last-updated: yyyy-mm-dd
-status: implemented
+status: provisional
 see-also:
   - KEP-1
   - KEP-2
@@ -44,11 +44,11 @@ To get started with this template:
   Aim for single topic PRs to keep discussions focused.
   If you disagree with what is already in a document, open a new PR with suggested changes.
 
-The canonical place for the latest set of instructions (and the likely source of this file) is [here](/keps/0000-kep-template.md).
+The canonical place for the latest set of instructions (and the likely source of this file) is [here](0000-kep-template.md).
 
 The `Metadata` section above is intended to support the creation of tooling around the KEP process.
 This will be a YAML section that is fenced as a code block.
-See the [KEP process](/keps/0001-kep-process.md) for details on each of these items.
+See the [KEP process](0001-kep-process.md) for details on each of these items.
 
 ## Table of Contents
 

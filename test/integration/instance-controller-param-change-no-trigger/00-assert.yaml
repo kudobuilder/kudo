@@ -3,8 +3,6 @@ kind: Instance
 metadata:
   name: icto-no-trigger
 status:
-  aggregatedStatus:
-    status: COMPLETE
   planStatus:
     deploy:
       status: COMPLETE

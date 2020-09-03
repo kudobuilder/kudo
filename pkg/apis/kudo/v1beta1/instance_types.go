@@ -16,7 +16,7 @@ limitations under the License.
 package v1beta1
 
 import (
-	"fmt"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,15 +35,18 @@ type InstanceSpec struct {
 
 // There are two ways a plan execution can be triggered:
 //  1) indirectly through update of a corresponding parameter in the InstanceSpec.Parameters map
-//  2) directly through setting of the InstanceSpec.PlanExecution field
+//  2) directly through setting of the InstanceSpec.PlanExecution.PlanName field
 // While indirect (1) triggers happens every time a user changes a parameter, a directly (2) triggered
 // plan is reserved for the situations when parameters doesn't change e.g. a periodic backup is triggered
 // overriding the existing backup file. Additionally, this opens room for canceling and overriding
 // currently running plans in the future.
 // Note: PlanExecution field defines plan name and corresponding parameters that IS CURRENTLY executed.
 // Once the instance controller (IC) is done with the execution, this field will be cleared.
+// Each plan execution has a unique UID so should the same plan be re-triggered it will have a new UID
 type PlanExecution struct {
-	PlanName string `json:"planName"  validate:"required"`
+	PlanName string                `json:"planName,omitempty"`
+	UID      apimachinerytypes.UID `json:"uid,omitempty"`
+	Status   ExecutionStatus       `json:"status,omitempty"`
 
 	// Future PE options like Force: bool. Not needed for now
 }
@@ -51,14 +54,7 @@ type PlanExecution struct {
 // InstanceStatus defines the observed state of Instance
 type InstanceStatus struct {
 	// slice would be enough here but we cannot use slice because order of sequence in yaml is considered significant while here it's not
-	PlanStatus       map[string]PlanStatus `json:"planStatus,omitempty"`
-	AggregatedStatus AggregatedStatus      `json:"aggregatedStatus,omitempty"`
-}
-
-// AggregatedStatus is overview of an instance status derived from the plan status
-type AggregatedStatus struct {
-	Status         ExecutionStatus `json:"status,omitempty"`
-	ActivePlanName string          `json:"activePlanName,omitempty"`
+	PlanStatus map[string]PlanStatus `json:"planStatus,omitempty"`
 }
 
 // PlanStatus is representing status of a plan
@@ -89,9 +85,9 @@ type PlanStatus struct {
 	Status  ExecutionStatus `json:"status,omitempty"`
 	Message string          `json:"message,omitempty"` // more verbose explanation of the status, e.g. a detailed error message
 	// +nullable
-	LastFinishedRun metav1.Time           `json:"lastFinishedRun,omitempty"`
-	Phases          []PhaseStatus         `json:"phases,omitempty"`
-	UID             apimachinerytypes.UID `json:"uid,omitempty"`
+	LastUpdatedTimestamp *metav1.Time          `json:"lastUpdatedTimestamp,omitempty"`
+	Phases               []PhaseStatus         `json:"phases,omitempty"`
+	UID                  apimachinerytypes.UID `json:"uid,omitempty"`
 }
 
 // PhaseStatus is representing status of a phase
@@ -130,13 +126,19 @@ func (s *PhaseStatus) SetWithMessage(status ExecutionStatus, message string) {
 }
 
 func (s *PlanStatus) Set(status ExecutionStatus) {
-	s.Status = status
-	s.Message = ""
+	if s.Status != status {
+		s.LastUpdatedTimestamp = &metav1.Time{Time: time.Now()}
+		s.Status = status
+		s.Message = ""
+	}
 }
 
 func (s *PlanStatus) SetWithMessage(status ExecutionStatus, message string) {
-	s.Status = status
-	s.Message = message
+	if s.Status != status || s.Message != message {
+		s.LastUpdatedTimestamp = &metav1.Time{Time: time.Now()}
+		s.Status = status
+		s.Message = message
+	}
 }
 
 // ExecutionStatus captures the state of the rollout.
@@ -174,12 +176,21 @@ const (
 	CleanupPlanName = "cleanup"
 )
 
-// IsTerminal returns true if the status is terminal (either complete, or in a nonrecoverable error)
+var (
+	SpecialPlanNames = []string{
+		DeployPlanName,
+		UpgradePlanName,
+		UpdatePlanName,
+		CleanupPlanName,
+	}
+)
+
+// IsTerminal returns true if the status is terminal (either complete, or in a fatal error)
 func (s ExecutionStatus) IsTerminal() bool {
 	return s == ExecutionComplete || s == ExecutionFatalError
 }
 
-// IsFinished returns true if the status is complete regardless of errors
+// IsFinished returns true if the status is complete successfully (not in 'FATAL_ERROR' state)
 func (s ExecutionStatus) IsFinished() bool {
 	return s == ExecutionComplete
 }
@@ -213,15 +224,4 @@ type InstanceList struct {
 
 func init() {
 	SchemeBuilder.Register(&Instance{}, &InstanceList{})
-}
-
-// InstanceError indicates error on that can also emit a kubernetes warn event
-// +k8s:deepcopy-gen=false
-type InstanceError struct {
-	Err       error
-	EventName *string // nil if no warn event should be created
-}
-
-func (e *InstanceError) Error() string {
-	return fmt.Sprintf("Error during execution: %v", e.Err)
 }

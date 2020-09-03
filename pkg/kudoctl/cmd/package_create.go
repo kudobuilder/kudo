@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/writer"
 )
 
@@ -27,6 +28,7 @@ type packageCreateCmd struct {
 	destination string
 	overwrite   bool
 	out         io.Writer
+	output      output.Type
 	fs          afero.Fs
 }
 
@@ -43,6 +45,9 @@ func newPackageCreateCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			if err := validateOperatorArg(args); err != nil {
 				return err
 			}
+			if err := pkg.output.Validate(); err != nil {
+				return err
+			}
 			pkg.path = args[0]
 			if err := pkg.run(); err != nil {
 				return err
@@ -54,6 +59,8 @@ func newPackageCreateCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f := cmd.Flags()
 	f.StringVarP(&pkg.destination, "destination", "d", ".", "Location to write the package.")
 	f.BoolVarP(&pkg.overwrite, "overwrite", "w", false, "Overwrite existing package.")
+	f.StringVarP((*string)(&pkg.output), "output", "o", "", "Output format for command results, NOT the package format.")
+
 	return cmd
 }
 
@@ -66,12 +73,12 @@ func validateOperatorArg(args []string) error {
 
 // run returns the errors associated with cmd env
 func (pkg *packageCreateCmd) run() error {
-	err := verifyPackage(pkg.fs, pkg.path, pkg.out)
+	err := verifyPackage(pkg.fs, pkg.path, pkg.out, pkg.output)
 	if err != nil {
 		return err
 	}
 	tarfile, err := writer.WriteTgz(pkg.fs, pkg.path, pkg.destination, pkg.overwrite)
-	if err == nil {
+	if err == nil && pkg.output == "" {
 		fmt.Fprintf(pkg.out, "Package created: %v\n", tarfile)
 	}
 	return err

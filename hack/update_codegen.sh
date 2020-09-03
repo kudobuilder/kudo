@@ -8,7 +8,8 @@ set -o pipefail
 # borrowed and modified from https://github.com/heptio/contour/pull/1010.
 # it has been modified to enable caching.
 export GO111MODULE=on
-VERSION=$(go list -m all | grep k8s.io/code-generator | rev | cut -d"-" -f1 | cut -d" " -f1 | rev)
+version_and_repo=$(go list -f '{{if .Replace}}{{.Replace.Version}} {{.Replace.Path}}{{else}}{{.Version}} {{.Path}}{{end}}' -m k8s.io/code-generator)
+VERSION="$(echo "${version_and_repo}" | cut -d' ' -f 1 | rev | cut -d"-" -f1 | rev)"
 REPO_ROOT="${REPO_ROOT:-$(git rev-parse --show-toplevel)}"
 CODE_GEN_DIR="${REPO_ROOT}/hack/code-gen/$VERSION"
 
@@ -27,13 +28,6 @@ FAKE_REPOPATH="${FAKE_GOPATH}/src/github.com/kudobuilder/kudo"
 mkdir -p "$(dirname "${FAKE_REPOPATH}")" && ln -s "${REPO_ROOT}" "${FAKE_REPOPATH}"
 export GOPATH="${FAKE_GOPATH}"
 cd "${FAKE_REPOPATH}"
-
-"${CODE_GEN_DIR}"/generate-groups.sh \
-  deepcopy \
-  github.com/kudobuilder/kudo/pkg/client \
-  github.com/kudobuilder/kudo/pkg/apis \
-  "testharness:v1beta1" \
-  --go-header-file hack/boilerplate.go.txt # must be last for some reason
 
 "${CODE_GEN_DIR}"/generate-groups.sh \
   all \

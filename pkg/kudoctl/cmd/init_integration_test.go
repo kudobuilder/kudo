@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	testutils "github.com/kudobuilder/kuttl/pkg/test/utils"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,7 +30,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
-	testutils "github.com/kudobuilder/kudo/pkg/test/utils"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
 var testenv testutils.TestEnvironment
@@ -37,13 +38,17 @@ var testenv testutils.TestEnvironment
 func TestMain(m *testing.M) {
 	var err error
 
-	testenv, err = testutils.StartTestEnvironment()
+	testenv, err = testutils.StartTestEnvironment(testutils.APIServerDefaultArgs)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	exitCode := m.Run()
-	testenv.Environment.Stop()
+	err = testenv.Environment.Stop()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	os.Exit(exitCode)
 }
 
@@ -54,6 +59,20 @@ const (
 	manifestsDir            = "../../../config/crds/"
 )
 
+func TestKudoClientValidate(t *testing.T) {
+	tests := []struct {
+		err string
+	}{
+		{"CRDs invalid: CRD operators.kudo.dev is not installed"}, // verify that NewClient tries to validate CRDs
+	}
+
+	for _, tt := range tests {
+		_, err := kudo.NewClientForConfig(testenv.Config, true)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), tt.err)
+	}
+}
+
 func TestCrds_Config(t *testing.T) {
 	crds := crd.NewInitializer()
 	assertManifestFileMatch(t, operatorFileName, crds.Operator)
@@ -63,12 +82,16 @@ func TestCrds_Config(t *testing.T) {
 
 func assertManifestFileMatch(t *testing.T, fileName string, expectedObject runtime.Object) {
 	expectedContent, err := runtimeObjectAsBytes(expectedObject)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	path := filepath.Join(manifestsDir, fileName)
 	of, err := ioutil.ReadFile(path)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	assert.Equal(t, string(expectedContent), string(of), fmt.Sprintf("embedded file %s does not match the source, run 'make generate'", fileName))
+}
+
+func assertStringContains(t *testing.T, expected string, actual string) {
+	assert.True(t, strings.Contains(actual, expected), "Expected to find '%s' in '%s'", expected, actual)
 }
 
 func runtimeObjectAsBytes(o runtime.Object) ([]byte, error) {
@@ -80,99 +103,112 @@ func runtimeObjectAsBytes(o runtime.Object) ([]byte, error) {
 }
 
 func TestIntegInitForCRDs(t *testing.T) {
-	// Kubernetes client caches the types, se we need to re-initialize it.
+	// Kubernetes client caches the types, so we need to re-initialize it.
 	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
 		Scheme: testutils.Scheme(),
 	})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	kclient := getKubeClient(t)
 
-	instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "ns")
+	instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "default")
 	// Verify that we cannot create the instance, because the test environment is empty.
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := crd.NewInitializer().AsArray()
-	defer deleteInitObjects(testClient)
+	crds := crd.NewInitializer().Resources()
 
 	var buf bytes.Buffer
+	var errBuf bytes.Buffer
 	cmd := &initCmd{
-		out:    &buf,
-		fs:     afero.NewMemMapFs(),
-		client: kclient,
+		out:     &buf,
+		errOut:  &errBuf,
+		fs:      afero.NewMemMapFs(),
+		client:  kclient,
+		crdOnly: true,
+		version: "dev",
 	}
-	err = cmd.run()
-	assert.Nil(t, err)
-
-	// WaitForCRDs to be created... the init cmd did NOT wait
-	assert.Nil(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
-
-	// Kubernetes client caches the types, se we need to re-initialize it.
-	testClient, err = testutils.NewRetryClient(testenv.Config, client.Options{
-		Scheme: testutils.Scheme(),
-	})
-	assert.Nil(t, err)
-
-	// make sure that we can create an object of this type now
-	assert.Nil(t, testClient.Create(context.TODO(), instance))
-}
-
-func TestIntegInitWithNameSpace(t *testing.T) {
-	namespace := "integration-test"
-	// Kubernetes client caches the types, se we need to re-initialize it.
-	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
-		Scheme: testutils.Scheme(),
-	})
-	assert.Nil(t, err)
-	kclient := getKubeClient(t)
-
-	instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "ns")
-	// Verify that we cannot create the instance, because the test environment is empty.
-	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
-
-	// Install all of the CRDs.
-	crds := crd.NewInitializer().AsArray()
-	defer deleteInitObjects(testClient)
-
-	var buf bytes.Buffer
-	cmd := &initCmd{
-		out:    &buf,
-		fs:     afero.NewMemMapFs(),
-		client: kclient,
-		ns:     namespace,
-	}
-
-	// On first attempt, the namespace does not exist, so the error is expected.
-	err = cmd.run()
-	require.Error(t, err)
-	assert.Equal(t, err.Error(), `error installing: prerequisites: failed to install: namespace integration-test does not exist - KUDO expects that any namespace except the default kudo-system is created beforehand`)
-
-	// Then we manually create the namespace.
-	ns := testutils.NewResource("v1", "Namespace", namespace, "")
-	assert.NoError(t, testClient.Create(context.TODO(), ns))
-	defer testClient.Delete(context.TODO(), ns)
-
-	// On second attempt run should succeed.
 	err = cmd.run()
 	assert.NoError(t, err)
-
 	// WaitForCRDs to be created... the init cmd did NOT wait
-	assert.Nil(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+	defer func() {
+		assert.NoError(t, deleteObjects(crds, testClient))
+	}()
 
 	// Kubernetes client caches the types, so we need to re-initialize it.
 	testClient, err = testutils.NewRetryClient(testenv.Config, client.Options{
 		Scheme: testutils.Scheme(),
 	})
-	assert.Nil(t, err)
-	kclient = getKubeClient(t)
+	assert.NoError(t, err)
+
+	// make sure that we can create an object of this type now
+	assert.NoError(t, testClient.Create(context.TODO(), instance))
+	assert.NoError(t, testClient.Delete(context.TODO(), instance))
+}
+
+func TestIntegInitWithNameSpace(t *testing.T) {
+	namespace := "integration-test"
+	// Kubernetes client caches the types, so we need to re-initialize it.
+	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
+		Scheme: testutils.Scheme(),
+	})
+	assert.NoError(t, err)
+	kclient := getKubeClient(t)
+
+	instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "ns")
+	// Verify that we cannot create the instance, because the test environment is empty.
+	err = testClient.Create(context.TODO(), instance)
+	assert.Error(t, err, "Expected an Error but got none")
+
+	// Install all of the CRDs.
+	crds := crd.NewInitializer().Resources()
+
+	var buf bytes.Buffer
+	var errBuf bytes.Buffer
+	cmd := &initCmd{
+		out:                 &buf,
+		errOut:              &errBuf,
+		fs:                  afero.NewMemMapFs(),
+		client:              kclient,
+		ns:                  namespace,
+		selfSignedWebhookCA: true,
+		version:             "dev",
+	}
+
+	// On first attempt, the namespace does not exist, so the error is expected.
+	err = cmd.run()
+	require.Error(t, err)
+	assert.Equal(t, "failed to verify installation requirements", err.Error())
+	assertStringContains(t, "Namespace integration-test does not exist - KUDO expects that any namespace except the default kudo-system is created beforehand", errBuf.String())
+
+	// Then we manually create the namespace.
+	ns := testutils.NewResource("v1", "Namespace", namespace, "")
+	assert.NoError(t, testClient.Create(context.TODO(), ns))
+	defer func() {
+		assert.NoError(t, testClient.Delete(context.TODO(), ns))
+	}()
+
+	// On second attempt run should succeed.
+	err = cmd.run()
+	assert.NoError(t, err, buf.String())
+	defer func() {
+		assert.NoError(t, deleteInitPrereqs(cmd, testClient))
+	}()
+
+	// WaitForCRDs to be created... the init cmd did NOT wait
+	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
 
 	// make sure that the controller lives in the correct namespace
-	statefulsets, err := kclient.KubeClient.AppsV1().StatefulSets(namespace).List(metav1.ListOptions{})
-	assert.Nil(t, err)
+	kclient = getKubeClient(t)
+	statefulsets, err := kclient.KubeClient.
+		AppsV1().
+		StatefulSets(namespace).
+		List(context.TODO(), metav1.ListOptions{})
+	assert.NoError(t, err)
 
 	kudoControllerFound := false
 	for _, ss := range statefulsets.Items {
-		if ss.Name == "kudo-controller-manager" {
+		if ss.Name == kudoinit.DefaultManagerName {
 			kudoControllerFound = true
 		}
 	}
@@ -187,114 +223,150 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 		4. Run Init command with a serviceAccount that does have cluster-admin role, but not in the expected namespace.
 		5. Run Init command with a serviceAccount that is present in the cluster and also has cluster-admin role.
 */
-
-func TestIntegInitWithServiceAccount(t *testing.T) {
-	namespace := "sa-integration-test"
-	serviceAccount := "sa-integration"
-	// Kubernetes client caches the types, se we need to re-initialize it.
-	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
-		Scheme: testutils.Scheme(),
-	})
-	assert.Nil(t, err)
-	kclient := getKubeClient(t)
-
-	instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "ns")
-	// Verify that we cannot create the instance, because the test environment is empty.
-	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
-
-	// Install all of the CRDs.
-	crds := crd.NewInitializer().AsArray()
-	defer deleteInitObjects(testClient)
-
-	var buf bytes.Buffer
-	cmd := &initCmd{
-		out:            &buf,
-		fs:             afero.NewMemMapFs(),
-		client:         kclient,
-		ns:             namespace,
-		serviceAccount: "test-account",
+func TestInitWithServiceAccount(t *testing.T) {
+	tests := []struct {
+		name               string
+		serviceAccount     string
+		roleBindingRole    string
+		roleBindingNs      string
+		errMessageContains string
+	}{
+		{
+			name:               "service account not present",
+			serviceAccount:     "",
+			errMessageContains: "Service Account test-account does not exists - KUDO expects the serviceAccount to be present in the namespace sa-integration-test-0",
+		},
+		{
+			name:               "service account has no rb",
+			serviceAccount:     "test-account",
+			errMessageContains: "Service Account test-account does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test-1 and to have cluster-admin role",
+		},
+		{
+			name:               "rb has no cluster-admin role",
+			serviceAccount:     "test-account",
+			roleBindingRole:    "not-admin",
+			errMessageContains: "Service Account test-account does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test-2 and to have cluster-admin role",
+		},
+		{
+			name:               "rb has different ns",
+			serviceAccount:     "test-account",
+			roleBindingRole:    "not-admin",
+			roleBindingNs:      "otherns",
+			errMessageContains: "Service Account test-account does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test-3 and to have cluster-admin role",
+		},
+		{
+			name:               "rb has admin in different ns",
+			serviceAccount:     "test-account",
+			roleBindingRole:    "cluster-admin",
+			roleBindingNs:      "otherns",
+			errMessageContains: "Service Account test-account does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test-4 and to have cluster-admin role",
+		},
+		{
+			name:               "rb has cluster-admin role",
+			serviceAccount:     "test-account",
+			roleBindingRole:    "cluster-admin",
+			errMessageContains: "",
+		},
 	}
 
-	// Manually create the namespace and the serviceAccount to be used later
-	ns := testutils.NewResource("v1", "Namespace", namespace, "")
-	assert.NoError(t, testClient.Create(context.TODO(), ns))
-	defer testClient.Delete(context.TODO(), ns)
-	sa := testutils.NewResource("v1", "ServiceAccount", serviceAccount, namespace)
-	assert.NoError(t, testClient.Create(context.TODO(), sa))
-	defer testClient.Delete(context.TODO(), sa)
+	namespaceBase := "sa-integration-test"
 
-	// Test Case 1, the serviceAccount does not exist, expect serviceAccount not exists error
-	err = cmd.run()
-	require.Error(t, err)
-	assert.Equal(t, `error installing: prerequisites: failed to install: Service Account test-account does not exists - KUDO expects the serviceAccount to be present in the namespace sa-integration-test`, err.Error())
+	for idx, tt := range tests {
+		idx := idx
+		tt := tt
 
-	// Create the serviceAccount, in the default namespace.
-	ns2 := testutils.NewResource("v1", "Namespace", "test-ns", "")
-	assert.NoError(t, testClient.Create(context.TODO(), ns2))
-	defer testClient.Delete(context.TODO(), ns2)
-	sa2 := testutils.NewResource("v1", "ServiceAccount", "sa-nonadmin", "test-ns")
-	assert.NoError(t, testClient.Create(context.TODO(), sa2))
-	defer testClient.Delete(context.TODO(), sa2)
+		t.Run(tt.name, func(t *testing.T) {
+			namespace := fmt.Sprintf("%s-%d", namespaceBase, idx)
 
-	// Test Case 2, the serviceAccount exists, but does not part of clusterrolebindings
-	cmd.serviceAccount = "sa-nonadmin"
-	cmd.ns = "test-ns"
-	err = cmd.run()
-	require.Error(t, err)
-	assert.Equal(t, `error installing: prerequisites: failed to install: Service Account sa-nonadmin does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace test-ns and to have cluster-admin role`, err.Error())
+			// Kubernetes client caches the types, so we need to re-initialize it.
+			testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
+				Scheme: testutils.Scheme(),
+			})
+			assert.NoError(t, err)
+			kclient := getKubeClient(t)
 
-	// Test case 3: Run Init command with a serviceAccount that does not have cluster-admin role.
-	cmd.serviceAccount = serviceAccount
-	cmd.ns = namespace
-	crb := testutils.NewClusterRoleBinding("rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "kudo-test1", "test-ns", serviceAccount, "cluster-temp")
-	assert.NoError(t, testClient.Create(context.TODO(), crb))
-	defer testClient.Delete(context.TODO(), crb)
+			instance := testutils.NewResource("kudo.dev/v1beta1", "Instance", "zk", "ns")
+			// Verify that we cannot create the instance, because the test environment is empty.
+			assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
-	err = cmd.run()
-	require.Error(t, err)
-	assert.Equal(t, `error installing: prerequisites: failed to install: Service Account sa-integration does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test and to have cluster-admin role`, err.Error())
+			// Install all of the CRDs.
+			crds := crd.NewInitializer().Resources()
 
-	// Test case 4: Run Init command with a serviceAccount that does not have cluster-admin role.
-	crb2 := testutils.NewClusterRoleBinding("rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "kudo-test2", namespace, serviceAccount, "cluster-temp")
-	assert.NoError(t, testClient.Create(context.TODO(), crb2))
-	defer testClient.Delete(context.TODO(), crb2)
+			var buf bytes.Buffer
+			var errBuf bytes.Buffer
+			cmd := &initCmd{
+				out:                 &buf,
+				errOut:              &errBuf,
+				fs:                  afero.NewMemMapFs(),
+				client:              kclient,
+				ns:                  namespace,
+				serviceAccount:      "test-account",
+				selfSignedWebhookCA: true,
+				version:             "dev",
+			}
 
-	err = cmd.run()
-	require.Error(t, err)
-	assert.Equal(t, `error installing: prerequisites: failed to install: Service Account sa-integration does not have cluster-admin role - KUDO expects the serviceAccount passed to be in the namespace sa-integration-test and to have cluster-admin role`, err.Error())
+			ns := testutils.NewResource("v1", "Namespace", namespace, "")
+			assert.NoError(t, testClient.Create(context.TODO(), ns))
+			defer func() {
+				assert.NoError(t, testClient.Delete(context.TODO(), ns))
+			}()
 
-	// Test case 5: Run Init command with a serviceAccount that is present in the cluster and also has cluster-admin role.
-	crb3 := testutils.NewClusterRoleBinding("rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "kudo-clusterrole-binding", namespace, serviceAccount, "cluster-admin")
-	assert.NoError(t, testClient.Create(context.TODO(), crb3))
-	defer testClient.Delete(context.TODO(), crb3)
+			if tt.serviceAccount != "" {
+				sa2 := testutils.NewResource("v1", "ServiceAccount", tt.serviceAccount, namespace)
+				assert.NoError(t, testClient.Create(context.TODO(), sa2))
+				defer func() {
+					assert.NoError(t, testClient.Delete(context.TODO(), sa2))
+				}()
+			}
 
-	err = cmd.run()
-	assert.NoError(t, err)
+			if tt.roleBindingRole != "" {
+				rbNamespace := tt.roleBindingNs
+				if rbNamespace == "" {
+					rbNamespace = namespace
+				}
+				crb := testutils.NewClusterRoleBinding("rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "kudo-clusterrole-binding", rbNamespace, tt.serviceAccount, tt.roleBindingRole)
+				assert.NoError(t, testClient.Create(context.TODO(), crb))
+				defer func() {
+					assert.NoError(t, testClient.Delete(context.TODO(), crb))
+				}()
+			}
 
-	// WaitForCRDs to be created... the init cmd did NOT wait
-	assert.Nil(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+			err = cmd.run()
 
-	// Kubernetes client caches the types, so we need to re-initialize it.
-	testClient, err = testutils.NewRetryClient(testenv.Config, client.Options{
-		Scheme: testutils.Scheme(),
-	})
-	assert.Nil(t, err)
-	kclient = getKubeClient(t)
+			if tt.errMessageContains != "" {
+				require.Error(t, err)
+				assert.Equal(t, "failed to verify installation requirements", err.Error())
+				assertStringContains(t, tt.errMessageContains, errBuf.String())
+			} else {
+				assert.NoError(t, err)
+				defer func() {
+					assert.NoError(t, deleteInitPrereqs(cmd, testClient))
+				}()
 
-	// make sure that the controller lives in the correct namespace
-	statefulsets, err := kclient.KubeClient.AppsV1().StatefulSets(namespace).List(metav1.ListOptions{})
-	assert.Nil(t, err)
+				// WaitForCRDs to be created... the init cmd did NOT wait
+				assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
 
-	kudoControllerFound := false
-	for _, ss := range statefulsets.Items {
-		if ss.Name == "kudo-controller-manager" {
-			kudoControllerFound = true
-		}
+				// make sure that the controller lives in the correct namespace
+				kclient = getKubeClient(t)
+				statefulsets, err := kclient.KubeClient.
+					AppsV1().
+					StatefulSets(namespace).
+					List(context.TODO(), metav1.ListOptions{})
+				assert.NoError(t, err)
+
+				kudoControllerFound := false
+				for _, ss := range statefulsets.Items {
+					if ss.Name == kudoinit.DefaultManagerName {
+						kudoControllerFound = true
+					}
+				}
+				assert.True(t, kudoControllerFound, fmt.Sprintf("No kudo-controller-manager statefulset found in namespace %s", namespace))
+			}
+		})
 	}
-	assert.True(t, kudoControllerFound, fmt.Sprintf("No kudo-controller-manager statefulset found in namespace %s", namespace))
 }
 
-func TestNoErrorOnReInit(t *testing.T) {
+func TestReInitFails(t *testing.T) {
 	//	 if the CRD exists and we init again there should be no error
 	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
 		Scheme: testutils.Scheme(),
@@ -307,64 +379,70 @@ func TestNoErrorOnReInit(t *testing.T) {
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
 	// Install all of the CRDs.
-	crds := crd.NewInitializer().AsArray()
-	defer deleteInitObjects(testClient)
+	crds := crd.NewInitializer().Resources()
 
 	var buf bytes.Buffer
 	clog.InitNoFlag(&buf, clog.Level(4))
 	defer func() { clog.InitNoFlag(&buf, clog.Level(0)) }()
 
+	var errBuf bytes.Buffer
 	cmd := &initCmd{
 		out:     &buf,
+		errOut:  &errBuf,
 		fs:      afero.NewMemMapFs(),
 		client:  kclient,
 		crdOnly: true,
+		version: "dev",
 	}
 	err = cmd.run()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
-	assert.Nil(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
-
-	//	 if the CRD exists and we init again there should be no error
-	testClient, err = testutils.NewRetryClient(testenv.Config, client.Options{
-		Scheme: testutils.Scheme(),
-	})
-	assert.Nil(t, err)
-	kclient = getKubeClient(t)
+	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+	defer func() {
+		assert.NoError(t, deleteObjects(crds, testClient))
+	}()
 
 	// second run will have an output that it already exists
 	err = cmd.run()
-	assert.Nil(t, err)
-	assert.True(t, strings.Contains(buf.String(), "crd operators.kudo.dev already exists"))
+
+	assert.Equal(t, "failed to verify installation requirements", err.Error())
+	assertStringContains(t, "CRD operators.kudo.dev is already installed. Did you mean to use --upgrade?", errBuf.String())
 }
 
-func deleteInitObjects(client *testutils.RetryClient) {
-	crds := crd.NewInitializer()
-	prereqs := prereq.NewInitializer(kudoinit.NewOptions("", "", "", []string{}))
-	deleteCRDs(crds.AsArray(), client)
-	deletePrereq(prereqs.AsArray(), client)
-}
-
-func deleteCRDs(crds []runtime.Object, client *testutils.RetryClient) {
-
-	for _, crd := range crds {
-		client.Delete(context.TODO(), crd)
+func deleteObjects(objs []runtime.Object, client *testutils.RetryClient) error {
+	for _, obj := range objs {
+		if err := client.Delete(context.TODO(), obj); err != nil {
+			return err
+		}
 	}
-	testutils.WaitForDelete(client, crds)
+
+	return testutils.WaitForDelete(client, objs)
 }
 
-func deletePrereq(prereqs []runtime.Object, client *testutils.RetryClient) {
-	for _, prereq := range prereqs {
-		client.Delete(context.TODO(), prereq)
+func deleteInitPrereqs(cmd *initCmd, client *testutils.RetryClient) error {
+	opts := kudoinit.NewOptions(cmd.version, cmd.ns, cmd.serviceAccount, cmd.upgrade, cmd.selfSignedWebhookCA)
+
+	objs := append([]runtime.Object{}, prereq.NewWebHookInitializer(opts).Resources()...)
+	objs = append(objs, prereq.NewServiceAccountInitializer(opts).Resources()...)
+	objs = append(objs, crd.NewInitializer().Resources()...)
+
+	// Namespaced resources aren't waited on after deletion because they aren't GC'ed in this test environment.
+	for _, ns := range prereq.NewNamespaceInitializer(opts).Resources() {
+		if err := client.Delete(context.TODO(), ns); err != nil {
+			return err
+		}
 	}
-	testutils.WaitForDelete(client, prereqs)
+
+	return deleteObjects(objs, client)
 }
 
 func getKubeClient(t *testing.T) *kube.Client {
 	c, err := kubernetes.NewForConfig(testenv.Config)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	xc, err := apiextensionsclient.NewForConfig(testenv.Config)
-	assert.Nil(t, err)
-	return &kube.Client{KubeClient: c, ExtClient: xc}
+	assert.NoError(t, err)
+	cc, err := client.New(testenv.Config, client.Options{})
+	assert.NoError(t, err)
+	return &kube.Client{KubeClient: c, ExtClient: xc, CtrlClient: cc}
 }

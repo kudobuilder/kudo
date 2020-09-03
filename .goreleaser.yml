@@ -9,8 +9,6 @@ before:
     - go mod download
     # you may remove this if you don't need go generate
     - go generate ./...
-    # Pulls down the latest version of the controller's parent image
-    - docker pull ubuntu:18.04
 builds:
   - id: "manager"
     binary: manager
@@ -19,10 +17,15 @@ builds:
       - -s -w -X github.com/kudobuilder/kudo/pkg/version.gitVersion={{ .Version }} -X github.com/kudobuilder/kudo/pkg/version.gitCommit={{ .ShortCommit }} -X github.com/kudobuilder/kudo/pkg/version.buildDate={{ .Date }}
     goos:
       - linux
+      - darwin
     goarch:
       - 386
       - amd64
       - arm
+      - arm64
+    ignore:
+      - goos: darwin
+        goarch: 386
   - id: "kubectl-kudo"
     binary: kubectl-kudo
     main: cmd/kubectl-kudo/main.go
@@ -35,13 +38,44 @@ builds:
       - 386
       - amd64
       - arm
+      - arm64
+    ignore:
+      - goos: darwin
+        goarch: 386
 dockers:
+  # always push a docker image on release for the .Tag version
   - dockerfile: Dockerfile.goreleaser
     binaries:
       - manager
+    goos: linux
+    goarch: amd64
+    image_templates:
+      - "kudobuilder/controller:{{ .Tag }}"
+  # only update the docker :latest for a full release (not RC)
+  - dockerfile: Dockerfile.goreleaser
+    binaries:
+      - manager
+    goos: linux
+    goarch: amd64
     image_templates:
       - "kudobuilder/controller:latest"
-      - "kudobuilder/controller:{{ .Tag }}"
+    skip_push: auto
+  # always push a docker image on release for the .Tag version
+  - dockerfile: Dockerfile.goreleaser
+    binaries:
+      - manager
+    goos: linux
+    goarch: arm64
+    image_templates:
+      - "kudobuilder/controller-arm64:{{ .Tag }}"
+  # only update the docker :latest for a full release (not RC)
+  - dockerfile: Dockerfile.goreleaser
+    binaries:
+      - manager
+    goos: linux
+    goarch: arm64
+    image_templates:
+      - "kudobuilder/controller-arm64:latest"
     skip_push: auto
 archives:
   - id: kubectl-kudo-tarball
@@ -61,7 +95,7 @@ archives:
     format: binary
 brews:
   - name: kudo-cli
-    github:
+    tap:
       owner: kudobuilder
       name: homebrew-tap
     commit_author:

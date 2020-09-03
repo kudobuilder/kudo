@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 	"github.com/spf13/afero"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -20,7 +20,7 @@ func ForOperator(fs afero.Fs, pathDefault string, overwrite bool, operatorDefaul
 
 	nameValid := func(input string) error {
 		if len(input) < 3 {
-			return errors.New("Operator name must have more than 3 characters")
+			return errors.New("operator name must have more than 3 characters")
 		}
 		return nil
 	}
@@ -32,7 +32,7 @@ func ForOperator(fs afero.Fs, pathDefault string, overwrite bool, operatorDefaul
 
 	pathValid := func(input string) error {
 		if len(input) < 1 {
-			return errors.New("Operator directory must have more than 1 character")
+			return errors.New("operator directory must have more than 1 character")
 		}
 		return generate.CanGenerateOperator(fs, input, overwrite)
 	}
@@ -44,7 +44,7 @@ func ForOperator(fs afero.Fs, pathDefault string, overwrite bool, operatorDefaul
 
 	versionValid := func(input string) error {
 		if len(input) < 1 {
-			return errors.New("Operator version is required in semver format")
+			return errors.New("operator version is required in semver format")
 		}
 		_, err := semver.NewVersion(input)
 		return err
@@ -71,18 +71,24 @@ func ForOperator(fs afero.Fs, pathDefault string, overwrite bool, operatorDefaul
 		return nil, "", err
 	}
 
+	kubernetesVersion, err := WithDefault("Required Kubernetes Version", operatorDefault.KubernetesVersion)
+	if err != nil {
+		return nil, "", err
+	}
+
 	url, err := WithDefault("Project URL", "")
 	if err != nil {
 		return nil, "", err
 	}
 
 	op := packages.OperatorFile{
-		Name:            name,
-		APIVersion:      operatorDefault.APIVersion,
-		OperatorVersion: opVersion,
-		AppVersion:      appVersion,
-		KUDOVersion:     kudoVersion,
-		URL:             url,
+		Name:              name,
+		APIVersion:        operatorDefault.APIVersion,
+		OperatorVersion:   opVersion,
+		AppVersion:        appVersion,
+		KUDOVersion:       kudoVersion,
+		KubernetesVersion: kubernetesVersion,
+		URL:               url,
 	}
 	return &op, path, nil
 }
@@ -92,7 +98,7 @@ func ForMaintainer() (*v1beta1.Maintainer, error) {
 
 	nameValid := func(input string) error {
 		if len(input) < 1 {
-			return errors.New("Maintainer name must be > than 1 character")
+			return errors.New("maintainer name must be > than 1 character")
 		}
 		return nil
 	}
@@ -123,13 +129,13 @@ func validEmail(email string) bool {
 }
 
 // ForParameter prompts to gather information to add an operator parameter
-func ForParameter(planNames []string, paramNameList []string) (*v1beta1.Parameter, error) {
+func ForParameter(planNames []string, paramNameList []string) (*packages.Parameter, error) {
 	nameValid := func(input string) error {
 		if len(input) < 1 {
-			return errors.New("Parameter name must be > than 1 character")
+			return errors.New("parameter name must be > than 1 character")
 		}
 		if inArray(input, paramNameList) {
-			return errors.New("Parameter name must be unique")
+			return errors.New("parameter name must be unique")
 		}
 		return nil
 	}
@@ -149,7 +155,7 @@ func ForParameter(planNames []string, paramNameList []string) (*v1beta1.Paramete
 	}
 
 	// building param
-	parameter := v1beta1.Parameter{
+	parameter := packages.Parameter{
 		DisplayName: displayName,
 		Name:        name,
 	}
@@ -177,7 +183,7 @@ func ForParameter(planNames []string, paramNameList []string) (*v1beta1.Paramete
 	}
 
 	//PlanNameList
-	if Confirm("Add Trigger Plan") {
+	if Confirm("Add Trigger Plan (defaults to deploy)") {
 		var trigger string
 		if len(planNames) == 0 {
 			trigger, err = WithDefault("Trigger Plan", "")
@@ -198,10 +204,10 @@ func ForParameter(planNames []string, paramNameList []string) (*v1beta1.Paramete
 func ForTaskName(existingTasks []v1beta1.Task) (string, error) {
 	nameValid := func(input string) error {
 		if len(input) < 1 {
-			return errors.New("Task name must be > than 1 character")
+			return errors.New("task name must be > than 1 character")
 		}
 		if taskExists(input, existingTasks) {
-			return errors.New("Task name must be unique")
+			return errors.New("task name must be unique")
 		}
 		return nil
 	}
@@ -313,10 +319,10 @@ func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string,
 
 	nameValid := func(input string) error {
 		if len(input) < 1 {
-			return errors.New("Plan name must be > than 1 character")
+			return errors.New("plan name must be > than 1 character")
 		}
 		if inArray(input, planNames) {
-			return errors.New("Plan name must be unique")
+			return errors.New("plan name must be unique")
 		}
 		return nil
 	}
@@ -443,10 +449,10 @@ func subtract(allTasksNames []string, currentStepTaskNames []string) (result []s
 func forStep(stepNames []string, stepIndex int, defaultStepName string) (*v1beta1.Step, error) {
 	stepNameValid := func(input string) error {
 		if len(input) < 1 {
-			return errors.New("Step name must be > than 1 character")
+			return errors.New("step name must be > than 1 character")
 		}
 		if inArray(input, stepNames) {
-			return errors.New("Step name must be unique in a Phase")
+			return errors.New("step name must be unique in a Phase")
 		}
 		return nil
 	}
@@ -461,10 +467,10 @@ func forStep(stepNames []string, stepIndex int, defaultStepName string) (*v1beta
 func forPhase(phaseNames []string, index int, defaultPhaseName string) (*v1beta1.Phase, error) {
 	pnameValid := func(input string) error {
 		if len(input) < 1 {
-			return errors.New("Phase name must be > than 1 character")
+			return errors.New("phase name must be > than 1 character")
 		}
 		if inArray(input, phaseNames) {
-			return errors.New("Phase name must be unique in plan")
+			return errors.New("phase name must be unique in plan")
 		}
 		return nil
 	}

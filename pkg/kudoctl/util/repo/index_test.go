@@ -115,6 +115,8 @@ func TestWriteIndexFile(t *testing.T) {
 
 	if *update {
 		t.Log("update golden file")
+
+		//nolint:gosec
 		if err := ioutil.WriteFile(gp, buf.Bytes(), 0644); err != nil {
 			t.Fatalf("failed to update golden file: %s", err)
 		}

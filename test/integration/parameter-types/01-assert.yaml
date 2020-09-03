@@ -1,0 +1,25 @@
+---
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
+  name: parameter-test-instance
+status:
+  planStatus:
+    deploy:
+      status: IN_PROGRESS
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    a: a
+    b: b
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - ports:
+          - containerPort: 80
+          - containerPort: 443

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -20,9 +20,9 @@ func TestUpdateCommand_Validation(t *testing.T) {
 		instanceName string
 		err          string
 	}{
-		{"too many arguments", []string{"aaa"}, "instance", "expecting no arguments provided"},
-		{"no instance name", []string{}, "", "--instance flag has to be provided"},
-		{"no parameter", []string{}, "instance", "need to specify at least one parameter to override "},
+		{"too many arguments", []string{"aaa"}, "instance", "expecting no arguments provided for update. Only named flags are accepted"},
+		{"no instance name", []string{}, "", "--instance flag has to be provided to indicate which instance you want to update"},
+		{"no parameter", []string{}, "instance", "need to specify at least one parameter to override via -p otherwise there is nothing to update"},
 	}
 
 	for _, tt := range tests {
@@ -35,7 +35,7 @@ func TestUpdateCommand_Validation(t *testing.T) {
 			}
 		}
 		_, err := cmd.ExecuteC()
-		assert.ErrorContains(t, err, tt.err)
+		assert.EqualError(t, err, tt.err)
 	}
 }
 
@@ -83,7 +83,7 @@ func TestUpdate(t *testing.T) {
 				t.Errorf("%s: expected error '%s' but got '%v'", tt.name, tt.errMessageContains, err)
 			}
 		} else if tt.errMessageContains != "" {
-			t.Errorf("%s: expected no error but got %v", tt.name, err)
+			t.Errorf("%s: expected error '%s' but got nil", tt.name, tt.errMessageContains)
 		} else {
 			// the upgrade should have passed without error
 			instance, err := c.GetInstance(testInstance.Name, installNamespace)

@@ -13,7 +13,6 @@ import (
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/yaml"
 
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
@@ -50,9 +49,19 @@ type PipeTask struct {
 }
 
 type PipeFile struct {
-	File string
-	Kind PipeFileKind
-	Key  string
+	File    string
+	EnvFile string
+	Kind    PipeFileKind
+	Key     string
+}
+
+// fileSource return either File or EnvFile depending on which one of them is set. Note that only one can be set at a
+// time which is enforced by the validation.
+func (pf PipeFile) fileSource() string {
+	if pf.File != "" {
+		return pf.File
+	}
+	return pf.EnvFile
 }
 
 func (pt PipeTask) Run(ctx Context) (bool, error) {
@@ -81,27 +90,35 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 		return false, fatalExecutionError(err, pipeTaskError, ctx.Meta)
 	}
 
-	// 5. - Enhance pod with metadata
-	podObj, err := enhance(map[string]string{"pipe-pod.yaml": podYaml}, ctx.Meta, ctx.Enhancer)
+	// 5. - Convert to object
+	objs, err := convert(map[string]string{"pipe-pod.yaml": podYaml})
 	if err != nil {
-		return false, fatalExecutionError(err, taskEnhancementError, ctx.Meta)
+		return false, fatalExecutionError(err, taskRenderingError, ctx.Meta)
 	}
 
-	// 6. - Apply pod using the client -
-	podObj, err = apply(podObj, ctx.Client)
+	// 6. - Enhance pod with metadata
+	podObj, err := enhance(objs, ctx.Meta, ctx.Enhancer)
 	if err != nil {
 		return false, err
 	}
 
-	// 7. - Wait for the pod to be ready -
+	// 7. - Apply pod using the client -
+	podObj, err = applyResources(podObj, ctx)
+	if err != nil {
+		return false, err
+	}
+
+	// 8. - Wait for the pod to be ready -
 	err = isHealthy(podObj)
 	// once the pod is Ready, it means that its initContainer finished successfully and we can copy
 	// out the generated files. An error during a health check is not treated as task execution error
 	if err != nil {
+		// our pod can not fail terminally, so we treat it as a transient error
+		log.Printf("TaskExecution: %v", err)
 		return false, nil
 	}
 
-	// 8. - Copy out the pipe files -
+	// 9. - Copy out the pipe files -
 	log.Printf("PipeTask: %s/%s copying pipe files", ctx.Meta.InstanceNamespace, ctx.Meta.InstanceName)
 	fs := afero.NewMemMapFs()
 	pipePod, ok := podObj[0].(*corev1.Pod)
@@ -114,28 +131,34 @@ func (pt PipeTask) Run(ctx Context) (bool, error) {
 		return false, err
 	}
 
-	// 9. - Create k8s artifacts (ConfigMap/Secret) from the pipe files -
+	// 10. - Create k8s artifacts (ConfigMap/Secret) from the pipe files -
 	log.Printf("PipeTask: %s/%s creating pipe artifacts", ctx.Meta.InstanceNamespace, ctx.Meta.InstanceName)
 	artStr, err := createArtifacts(fs, pt.PipeFiles, ctx.Meta)
 	if err != nil {
 		return false, err
 	}
 
-	// 10. - Enhance artifacts -
-	artObj, err := enhance(artStr, ctx.Meta, ctx.Enhancer)
+	// 11. - Convert to objs
+	artObjs, err := convert(artStr)
 	if err != nil {
-		return false, fatalExecutionError(err, taskEnhancementError, ctx.Meta)
+		return false, fatalExecutionError(err, taskRenderingError, ctx.Meta)
 	}
 
-	// 11. - Apply artifacts using the client -
-	_, err = apply(artObj, ctx.Client)
+	// 12. - Enhance artifacts -
+	artObj, err := enhance(artObjs, ctx.Meta, ctx.Enhancer)
 	if err != nil {
 		return false, err
 	}
 
-	// 12. - Delete pipe pod -
+	// 13. - Apply artifacts using the client -
+	_, err = applyResources(artObj, ctx)
+	if err != nil {
+		return false, err
+	}
+
+	// 14. - Delete pipe pod -
 	log.Printf("PipeTask: %s/%s deleting pipe pod", ctx.Meta.InstanceNamespace, ctx.Meta.InstanceName)
-	err = delete(podObj, ctx.Client)
+	err = deleteResource(podObj, ctx.Client)
 	if err != nil {
 		return false, err
 	}
@@ -217,11 +240,11 @@ func validate(pod *corev1.Pod, ff []PipeFile) error {
 
 	// check if all referenced pipe files are children of the container mountPath
 	for _, f := range ff {
-		if !isRelative(mountPath, f.File) {
-			return fmt.Errorf("pipe file %s should be a child of %s mount path", f.File, mountPath)
+		if !isRelative(mountPath, f.fileSource()) {
+			return fmt.Errorf("pipe file %s should be a child of %s mount path", f.fileSource(), mountPath)
 		}
 
-		fileName := path.Base(f.File)
+		fileName := path.Base(f.fileSource())
 		// Same as k8s we use file names as ConfigMap data keys. A valid key name for a ConfigMap must consist
 		// of alphanumeric characters, '-', '_' or '.' (e.g. 'key.name',  or 'KEY_NAME',  or 'key-name', regex
 		// used for validation is '[-._a-zA-Z0-9]+')
@@ -266,21 +289,16 @@ func pipePod(pod *corev1.Pod, name string) (string, error) {
 }
 
 func copyFiles(fs afero.Fs, ff []PipeFile, pod *corev1.Pod, ctx Context) error {
-	restCfg, err := config.GetConfig()
-	if err != nil {
-		return fatalExecutionError(fmt.Errorf("failed to fetch cluster REST config: %v", err), pipeTaskError, ctx.Meta)
-	}
-
 	var g errgroup.Group
 
 	for _, f := range ff {
 		f := f
-		log.Printf("PipeTask: %s/%s copying pipe file %s", ctx.Meta.InstanceNamespace, ctx.Meta.InstanceName, f.File)
+		log.Printf("PipeTask: %s/%s copying pipe file %s", ctx.Meta.InstanceNamespace, ctx.Meta.InstanceName, f.fileSource())
 		g.Go(func() error {
 			// Check the size of the pipe file first. K87 has a inherent limit on the size of
 			// Secret/ConfigMap, so we avoid unnecessary copying of files that are too big by
 			// checking its size first.
-			size, err := podexec.FileSize(f.File, pod, pipePodContainerName, restCfg)
+			size, err := podexec.FileSize(f.fileSource(), pod, pipePodContainerName, ctx.Config)
 			if err != nil {
 				// Any remote command exit code > 0 is treated as a fatal error since retrying it doesn't make sense
 				if podexec.HasCommandFailed(err) {
@@ -290,10 +308,10 @@ func copyFiles(fs afero.Fs, ff []PipeFile, pod *corev1.Pod, ctx Context) error {
 			}
 
 			if size > maxPipeFileSize {
-				return fatalExecutionError(fmt.Errorf("pipe file %s size %d exceeds maximum file size of %d bytes", f.File, size, maxPipeFileSize), pipeTaskError, ctx.Meta)
+				return fatalExecutionError(fmt.Errorf("pipe file %s size %d exceeds maximum file size of %d bytes", f.fileSource(), size, maxPipeFileSize), pipeTaskError, ctx.Meta)
 			}
 
-			if err = podexec.DownloadFile(fs, f.File, pod, pipePodContainerName, restCfg); err != nil {
+			if err = podexec.DownloadFile(fs, f.fileSource(), pod, pipePodContainerName, ctx.Config); err != nil {
 				// Any remote command exit code > 0 is treated as a fatal error since retrying it doesn't make sense
 				if podexec.HasCommandFailed(err) {
 					return fatalExecutionError(err, pipeTaskError, ctx.Meta)
@@ -304,8 +322,7 @@ func copyFiles(fs afero.Fs, ff []PipeFile, pod *corev1.Pod, ctx Context) error {
 		})
 	}
 
-	err = g.Wait()
-	return err
+	return g.Wait()
 }
 
 // createArtifacts iterates through passed pipe files and their copied data, reads them, constructs k8s artifacts
@@ -314,9 +331,9 @@ func createArtifacts(fs afero.Fs, files []PipeFile, meta renderer.Metadata) (map
 	artifacts := map[string]string{}
 
 	for _, pf := range files {
-		data, err := afero.ReadFile(fs, pf.File)
+		data, err := afero.ReadFile(fs, pf.fileSource())
 		if err != nil {
-			return nil, fmt.Errorf("error opening pipe file %s", pf.File)
+			return nil, fmt.Errorf("error opening pipe file %s", pf.fileSource())
 		}
 
 		var art string
@@ -342,7 +359,7 @@ func createArtifacts(fs afero.Fs, files []PipeFile, meta renderer.Metadata) (map
 // as Secret data key. Secret name will be of the form <instance>.<plan>.<phase>.<step>.<task>-<PipeFile.Key>
 func createSecret(pf PipeFile, data []byte, meta renderer.Metadata) (string, error) {
 	name := PipeArtifactName(meta, pf.Key)
-	key := path.Base(pf.File)
+	key := path.Base(pf.fileSource())
 
 	secret := corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -352,8 +369,21 @@ func createSecret(pf PipeFile, data []byte, meta renderer.Metadata) (string, err
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Data: map[string][]byte{key: data},
+		Data: map[string][]byte{},
 		Type: corev1.SecretTypeOpaque,
+	}
+
+	if pf.File != "" {
+		secret.Data = map[string][]byte{key: data}
+	}
+	if pf.EnvFile != "" {
+		err := addFromEnvFile(data, func(key, value string) {
+			secret.Data[key] = []byte(value)
+		})
+
+		if err != nil {
+			return "", fmt.Errorf("failed to read env var file %q: %v", pf.fileSource(), err)
+		}
 	}
 
 	b, err := yaml.Marshal(secret)
@@ -368,7 +398,7 @@ func createSecret(pf PipeFile, data []byte, meta renderer.Metadata) (string, err
 // as ConfigMap data key. ConfigMap name will be of the form <instance>.<plan>.<phase>.<step>.<task>-<PipeFile.Key>
 func createConfigMap(pf PipeFile, data []byte, meta renderer.Metadata) (string, error) {
 	name := PipeArtifactName(meta, pf.Key)
-	key := path.Base(pf.File)
+	key := path.Base(pf.fileSource())
 
 	configMap := corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
@@ -378,7 +408,21 @@ func createConfigMap(pf PipeFile, data []byte, meta renderer.Metadata) (string, 
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		BinaryData: map[string][]byte{key: data},
+		Data:       map[string]string{},
+		BinaryData: map[string][]byte{},
+	}
+
+	if pf.File != "" {
+		configMap.BinaryData = map[string][]byte{key: data}
+	}
+	if pf.EnvFile != "" {
+		err := addFromEnvFile(data, func(key, value string) {
+			configMap.Data[key] = value
+		})
+
+		if err != nil {
+			return "", fmt.Errorf("failed to read env var file %q: %v", pf.fileSource(), err)
+		}
 	}
 
 	b, err := yaml.Marshal(configMap)

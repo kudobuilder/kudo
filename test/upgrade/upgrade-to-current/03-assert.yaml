@@ -1,0 +1,22 @@
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
+  name: simple-op
+spec:
+  operatorVersion:
+    name: simple-op-0.2.0
+status:
+  planStatus:
+    deploy:
+      status: COMPLETE
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        fixedLabel: fixedvalue

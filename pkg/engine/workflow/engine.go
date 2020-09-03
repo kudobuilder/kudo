@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -18,7 +19,7 @@ import (
 
 var (
 	unknownTaskNameEventName = "UnknownTaskName"
-	unknownTaskKindEventName = "UnknownTaskKind"
+	taskBuildError           = "TaskBuildError"
 	missingPhaseStatus       = "MissingPhaseStatus"
 	missingStepStatus        = "MissingStepStatus"
 )
@@ -30,7 +31,7 @@ type ActivePlan struct {
 	Spec      *v1beta1.Plan
 	Tasks     []v1beta1.Task
 	Templates map[string]string
-	Params    map[string]string
+	Params    map[string]interface{}
 	Pipes     map[string]string
 }
 
@@ -63,11 +64,13 @@ func (ap *ActivePlan) taskByName(name string) (*v1beta1.Task, bool) {
 //
 // Furthermore, a transient ERROR during a step execution, means that the next step may be executed if the step strategy
 // is "parallel". In case of a fatal error, it is returned alongside with the new plan status and published on the event bus.
-func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.Enhancer, currentTime time.Time) (*v1beta1.PlanStatus, error) {
+func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, di discovery.CachedDiscoveryInterface, config *rest.Config, scheme *runtime.Scheme) (*v1beta1.PlanStatus, error) {
 	if pl.Status.IsTerminal() {
 		log.Printf("PlanExecution: %s/%s plan %s is terminal, nothing to do", em.InstanceNamespace, em.InstanceName, pl.Name)
 		return pl.PlanStatus, nil
 	}
+
+	enh := &renderer.DefaultEnhancer{Scheme: scheme, Client: c, Discovery: di}
 
 	planStatus := pl.PlanStatus.DeepCopy()
 	planStatus.Set(v1beta1.ExecutionInProgress)
@@ -157,13 +160,16 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 					phaseStatus.Set(v1beta1.ExecutionFatalError)
 					return planStatus, engine.ExecutionError{
 						Err:       err,
-						EventName: unknownTaskKindEventName,
+						EventName: taskBuildError,
 					}
 				}
 
 				// - 3.c build task context -
 				ctx := task.Context{
 					Client:     c,
+					Discovery:  di,
+					Config:     config,
+					Scheme:     scheme,
 					Enhancer:   enh,
 					Meta:       exm,
 					Templates:  pl.Templates,
@@ -223,7 +229,6 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 	if phasesLeft == 0 {
 		log.Printf("PlanExecution: %s/%s all phases of the plan %s are ready", em.InstanceNamespace, em.InstanceName, pl.Name)
 		planStatus.Set(v1beta1.ExecutionComplete)
-		planStatus.LastFinishedRun = v1.Time{Time: currentTime}
 	}
 
 	return planStatus, nil

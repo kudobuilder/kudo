@@ -116,4 +116,4 @@ Admission webhook is an easily separate part of the implementation that should l
 
 ## Graduation Criteria
 
-When current integration tests passes and the new tests passes as well (e.g. I introduced this test [PR #718](https://github.com/kudobuilder/kudo/pull/718) but it's failing on master, that should not be the case when we land this feature).
+When current integration tests passes and the new tests passes as well (e.g. I introduced this test [PR #718](https://github.com/kudobuilder/kudo/pull/718) but it's failing on main, that should not be the case when we land this feature).

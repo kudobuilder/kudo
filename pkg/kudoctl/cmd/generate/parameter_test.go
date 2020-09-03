@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
 func TestAddParameter(t *testing.T) {
@@ -20,7 +20,7 @@ func TestAddParameter(t *testing.T) {
 	files.CopyOperatorToFs(fs, "../../packages/testdata/zk", "/opt")
 
 	bar := "Bar"
-	p := v1beta1.Parameter{
+	p := packages.Parameter{
 		Name:    "Foo",
 		Default: &bar,
 	}
@@ -35,6 +35,8 @@ func TestAddParameter(t *testing.T) {
 
 	if *updateGolden {
 		t.Logf("updating golden file %s", goldenFile)
+
+		//nolint:gosec
 		if err := ioutil.WriteFile(gp, params, 0644); err != nil {
 			t.Fatalf("failed to update golden file: %s", err)
 		}
@@ -52,7 +54,7 @@ func TestAddParameter_bad_path(t *testing.T) {
 	fs := afero.OsFs{}
 
 	bar := "Bar"
-	p := v1beta1.Parameter{
+	p := packages.Parameter{
 		Name:    "Foo",
 		Default: &bar,
 	}

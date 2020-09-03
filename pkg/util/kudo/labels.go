@@ -19,4 +19,13 @@ const (
 
 	// PlanUIDAnnotation is a k8s annotation key for the last time a given plan was run on the referenced object
 	PlanUIDAnnotation = "kudo.dev/last-plan-execution-uid"
+
+	// DependenciesHash is used to trigger pod reloads if one of the dependencies of the resource is changed
+	DependenciesHashAnnotation = "kudo.dev/dependencies-hash"
+
+	// Used to ignore this resource in the calculation of the dependencies hash
+	SkipHashCalculationAnnotation = "kudo.dev/skip-hash-calculation"
+
+	// Last applied state for three way merges
+	LastAppliedConfigAnnotation = "kudo.dev/last-applied-configuration"
 )

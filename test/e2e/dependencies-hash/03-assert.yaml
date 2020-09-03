@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 2
+  template:
+    metadata:
+      annotations:
+        # After the second update to replicas the hash should change, based on the last deployed version of the config map
+        kudo.dev/dependencies-hash: da9f56a62d3c4af2596bebace008d845
+        kudo.dev/operator-version: 0.1.0
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.7.9
+        ports:
+        - containerPort: 80
+---
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+status:
+  # We need to check for IN_PROGRESS here and for COMPLETE in the next step, as update-replica ran before and is still set to COMPLETE from the last run
+  planStatus:
+    update-replica:
+      status: IN_PROGRESS

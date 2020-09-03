@@ -5,6 +5,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kubefake "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
@@ -14,7 +15,7 @@ import (
 )
 
 func newTestClient() *kudo.Client {
-	return kudo.NewClientFromK8s(fake.NewSimpleClientset())
+	return kudo.NewClientFromK8s(fake.NewSimpleClientset(), kubefake.NewSimpleClientset())
 }
 
 func TestUninstall(t *testing.T) {

@@ -42,9 +42,6 @@ type OperatorVersionSpec struct {
 	// +optional
 	ConnectionString string `json:"connectionString,omitempty"`
 
-	// Dependencies a list of all dependencies of the operator.
-	Dependencies []OperatorDependency `json:"dependencies,omitempty"`
-
 	// UpgradableFrom lists all OperatorVersions that can upgrade to this OperatorVersion.
 	UpgradableFrom []corev1.ObjectReference `json:"upgradableFrom,omitempty"`
 }
@@ -71,31 +68,19 @@ type Plan struct {
 	Phases []Phase `json:"phases"`
 }
 
-// Parameter captures the variability of an OperatorVersion being instantiated in an instance.
-type Parameter struct {
-	// DisplayName can be used by UIs.
-	DisplayName string `json:"displayName,omitempty"`
+// ParameterType specifies the type of a parameter value.
+type ParameterType string
 
-	// Name is the string that should be used in the template file for example,
-	// if `name: COUNT` then using the variable in a spec like:
-	//
-	// spec:
-	//   replicas:  {{ .Params.COUNT }}
-	Name string `json:"name,omitempty"`
+const (
+	// StringValueType is used for parameter values that are provided as a string.
+	StringValueType ParameterType = "string"
 
-	// Description captures a longer description of how the parameter will be used.
-	Description string `json:"description,omitempty"`
+	// ArrayValueType is used for parameter values that described an array of values.
+	ArrayValueType ParameterType = "array"
 
-	// Required specifies if the parameter is required to be provided by all instances, or whether a default can suffice.
-	Required *bool `json:"required,omitempty"`
-
-	// Default is a default value if no parameter is provided by the instance.
-	Default *string `json:"default,omitempty"`
-
-	// Trigger identifies the plan that gets executed when this parameter changes in the Instance object.
-	// Default is `update` if a plan with that name exists, otherwise it's `deploy`.
-	Trigger string `json:"trigger,omitempty"`
-}
+	// MapValueType is used for parameter values that describe a mapping type.
+	MapValueType ParameterType = "map"
+)
 
 // Phase specifies a list of steps that contain Kubernetes objects.
 type Phase struct {
@@ -132,9 +117,11 @@ type Task struct {
 // with the same json names as it would become ambiguous for the default parser. We might revisit this approach in the
 // future should this become an issue.
 type TaskSpec struct {
-	ResourceTaskSpec `json:",inline"`
-	DummyTaskSpec    `json:",inline"`
-	PipeTaskSpec     `json:",inline"`
+	ResourceTaskSpec     `json:",inline"`
+	DummyTaskSpec        `json:",inline"`
+	PipeTaskSpec         `json:",inline"`
+	ToggleTaskSpec       `json:",inline"`
+	KudoOperatorTaskSpec `json:",inline"`
 }
 
 // ResourceTaskSpec is referencing a list of resources
@@ -142,6 +129,12 @@ type ResourceTaskSpec struct {
 	// +optional
 	// +nullable
 	Resources []string `json:"resources,omitempty"`
+}
+
+// ToggleTaskSpec is referencing a ResourceTaskSpec and a parameter
+type ToggleTaskSpec struct {
+	// +optional
+	Parameter string `json:"parameter,omitempty"`
 }
 
 // DummyTaskSpec can succeed or fail on demand and is very useful for testing operators
@@ -168,9 +161,31 @@ type PipeSpec struct {
 	// +optional
 	File string `json:"file"`
 	// +optional
+	EnvFile string `json:"envFile"`
+	// +optional
 	Kind string `json:"kind"`
 	// +optional
 	Key string `json:"key"`
+}
+
+// KudoOperatorSpec specifies how a KUDO operator is installed
+type KudoOperatorTaskSpec struct {
+	// either repo package name, local package folder or an URL to package tarball. during operator installation,
+	// kudoctl will resolve the package and override this field with the resolved operator name.
+	// +optional
+	Package string `json:"package,omitempty"`
+	// +optional
+	InstanceName string `json:"instanceName,omitempty"`
+	// a specific app version in the official repo, defaults to the most recent
+	// +optional
+	AppVersion string `json:"appVersion,omitempty"`
+	// a specific operator version in the official repo, defaults to the most recent one
+	// +optional
+	OperatorVersion string `json:"operatorVersion,omitempty"`
+	// name of the template file (located in the `templates` folder) from which the *parent* instance
+	// generates a parameter file used to populate the *child* Instance.Spec.Parameters
+	// +optional
+	ParameterFile string `json:"parameterFile,omitempty"`
 }
 
 // OperatorVersionStatus defines the observed state of OperatorVersion.
@@ -203,17 +218,4 @@ type OperatorVersionList struct {
 
 func init() {
 	SchemeBuilder.Register(&OperatorVersion{}, &OperatorVersionList{})
-}
-
-// OperatorDependency references a defined operator.
-type OperatorDependency struct {
-	// Name specifies the name of the dependency. Referenced via defaults.config.
-	ReferenceName          string `json:"referenceName"`
-	corev1.ObjectReference `json:",inline"`
-
-	// Version captures the requirements for what versions of the above object
-	// are allowed.
-	//
-	// Example: ^3.1.4
-	Version string `json:"version"`
 }

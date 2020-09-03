@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParamsLis(t *testing.T) {
+func TestParamsList(t *testing.T) {
 	file := "params-list"
 	out := &bytes.Buffer{}
 	cmd := newPackageListParamsCmd(fs, out)
@@ -21,6 +21,8 @@ func TestParamsLis(t *testing.T) {
 
 	if *updateGolden {
 		t.Log("update golden file")
+
+		//nolint:gosec
 		if err := ioutil.WriteFile(gp, out.Bytes(), 0644); err != nil {
 			t.Fatalf("failed to update golden file: %s", err)
 		}

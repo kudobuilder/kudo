@@ -1,0 +1,10 @@
+apiVersion: apps/v1
+kind: StatefulSetList
+items:
+- apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    labels:
+      app: kudo-manager
+    name: kudo-controller-manager
+    namespace: kudo-system

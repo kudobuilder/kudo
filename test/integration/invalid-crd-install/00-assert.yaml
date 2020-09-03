@@ -1,0 +1,11 @@
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
+  name: op-with-crd
+spec:
+  operatorVersion:
+    name: op-with-crd-0.1.0
+status:
+  planStatus:
+    deploy:
+      status: FATAL_ERROR

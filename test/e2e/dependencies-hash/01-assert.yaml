@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 3
+  template:
+    metadata:
+      annotations:
+        # This update to the deployment must have the same hash as 00-assert.yaml
+        kudo.dev/dependencies-hash: 6fa812afe527bdb6c9a5fbfcba8193bb
+        kudo.dev/operator-version: 0.1.0
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.7.9
+        ports:
+        - containerPort: 80
+---
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+status:
+  planStatus:
+    update-replica:
+      status: COMPLETE

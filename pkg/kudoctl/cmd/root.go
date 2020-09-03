@@ -29,8 +29,11 @@ func NewKudoctlCmd() *cobra.Command {
 and serves as an API aggregation layer.
 `,
 		SilenceUsage: true,
-		Example: `  # Install a KUDO package from the official GitHub repo.
+		Example: `  # Install a KUDO package from the official repo.
   kubectl kudo install <name> [flags]
+
+  # Install a KUDO package from the local filesystem.
+  kubectl kudo install <./path> [flags]
 
   # View plan history of a specific package
   kubectl kudo plan history <name> [flags]
@@ -54,7 +57,7 @@ and serves as an API aggregation layer.
 	}
 
 	cmd.AddCommand(newInstallCmd(fs))
-	cmd.AddCommand(newInitCmd(fs, cmd.OutOrStdout()))
+	cmd.AddCommand(newInitCmd(fs, cmd.OutOrStdout(), cmd.ErrOrStderr(), nil))
 	cmd.AddCommand(newUpgradeCmd(fs))
 	cmd.AddCommand(newUpdateCmd())
 	cmd.AddCommand(newUninstallCmd())
@@ -62,8 +65,10 @@ and serves as an API aggregation layer.
 	cmd.AddCommand(newGetCmd())
 	cmd.AddCommand(newPlanCmd(cmd.OutOrStdout()))
 	cmd.AddCommand(newRepoCmd(fs, cmd.OutOrStdout()))
+	cmd.AddCommand(newSearchCmd(fs, cmd.OutOrStdout()))
 	cmd.AddCommand(newTestCmd())
-	cmd.AddCommand(newVersionCmd())
+	cmd.AddCommand(newVersionCmd(cmd.OutOrStdout()))
+	cmd.AddCommand(newDiagnosticsCmd(fs))
 
 	initGlobalFlags(cmd, cmd.OutOrStdout())
 

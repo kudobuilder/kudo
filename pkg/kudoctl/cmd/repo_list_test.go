@@ -17,6 +17,7 @@ func TestRepoList(t *testing.T) {
 	file := "repo-list"
 	fs := afero.NewMemMapFs()
 	out := &bytes.Buffer{}
+	errOut := &bytes.Buffer{}
 
 	home := kudohome.Home("kudo_home")
 	err := fs.Mkdir(home.String(), 0755)
@@ -24,8 +25,8 @@ func TestRepoList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	i := &initCmd{fs: fs, out: out, home: home}
-	if err := i.initialize(); err != nil {
+	i := &initCmd{fs: fs, out: out, errOut: errOut, home: home}
+	if err := i.ensureClient(); err != nil {
 		t.Error(err)
 	}
 
@@ -39,6 +40,8 @@ func TestRepoList(t *testing.T) {
 
 	if *updateGolden {
 		t.Log("update golden file")
+
+		//nolint:gosec
 		if err := ioutil.WriteFile(gp, out.Bytes(), 0644); err != nil {
 			t.Fatalf("failed to update golden file: %s", err)
 		}

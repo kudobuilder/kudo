@@ -2,6 +2,7 @@
 package crd
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -12,13 +13,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 
+	"github.com/kudobuilder/kudo/pkg/engine/health"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
-// Ensure kudoinit.InitStep is implemented
-var _ kudoinit.InitStep = &Initializer{}
+// Ensure kudoinit.Step is implemented
+var _ kudoinit.Step = &Initializer{}
 
 // Initializer represents custom resource definitions needed to run KUDO
 type Initializer struct {
@@ -36,74 +39,121 @@ func NewInitializer() Initializer {
 	}
 }
 
-// AsArray returns all CRDs as array of runtime objects
-func (c Initializer) AsArray() []runtime.Object {
+func (c Initializer) String() string {
+	return "crds"
+}
+
+// Resources returns all CRDs as array of runtime objects
+func (c Initializer) Resources() []runtime.Object {
 	return []runtime.Object{c.Operator, c.OperatorVersion, c.Instance}
 }
 
-// AsYamlManifests returns crds as slice of strings
-func (c Initializer) AsYamlManifests() ([]string, error) {
-	objs := c.AsArray()
-	manifests := make([]string, len(objs))
-	for i, obj := range objs {
-		o, err := yaml.Marshal(obj)
-		if err != nil {
-			return []string{}, err
-		}
-		manifests[i] = string(o)
+// PreInstallVerify ensures that CRDs are not installed
+func (c Initializer) PreInstallVerify(client *kube.Client, result *verifier.Result) error {
+	if err := c.verifyIsNotInstalled(client.ExtClient.ApiextensionsV1beta1(), c.Operator, result); (err != nil) || !result.IsValid() {
+		return err
 	}
+	if err := c.verifyIsNotInstalled(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion, result); (err != nil) || !result.IsValid() {
+		return err
+	}
+	if err := c.verifyIsNotInstalled(client.ExtClient.ApiextensionsV1beta1(), c.Instance, result); (err != nil) || !result.IsValid() {
+		return err
+	}
+	return nil
+}
 
-	return manifests, nil
+func (c Initializer) PreUpgradeVerify(client *kube.Client, result *verifier.Result) error {
+	return nil
+}
+
+// VerifyInstallation ensures that the CRDs are installed and have the correct and expected version
+func (c Initializer) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
+	if err := c.verifyInstallation(client.ExtClient.ApiextensionsV1beta1(), c.Operator, result); err != nil {
+		return err
+	}
+	if err := c.verifyInstallation(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion, result); err != nil {
+		return err
+	}
+	if err := c.verifyInstallation(client.ExtClient.ApiextensionsV1beta1(), c.Instance, result); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Install uses Kubernetes client to install KUDO Crds.
 func (c Initializer) Install(client *kube.Client) error {
-	if err := c.install(client.ExtClient.ApiextensionsV1beta1(), c.Operator); err != nil {
+	if err := c.apply(client.ExtClient.ApiextensionsV1beta1(), c.Operator); err != nil {
 		return err
 	}
-	if err := c.install(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion); err != nil {
+	if err := c.apply(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion); err != nil {
 		return err
 	}
-	if err := c.install(client.ExtClient.ApiextensionsV1beta1(), c.Instance); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c Initializer) ValidateInstallation(client *kube.Client) error {
-	if err := c.validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.Operator); err != nil {
-		return err
-	}
-	if err := c.validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion); err != nil {
-		return err
-	}
-	if err := c.validateInstallation(client.ExtClient.ApiextensionsV1beta1(), c.Instance); err != nil {
+	if err := c.apply(client.ExtClient.ApiextensionsV1beta1(), c.Instance); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c Initializer) validateInstallation(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition) error {
-	existingCrd, err := client.CustomResourceDefinitions().Get(crd.Name, v1.GetOptions{})
+func (c Initializer) verifyIsNotInstalled(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition, result *verifier.Result) error {
+	_, err := client.CustomResourceDefinitions().Get(context.TODO(), crd.Name, v1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	result.AddErrors(fmt.Sprintf("CRD %s is already installed. Did you mean to use --upgrade?", crd.Name))
+	return nil
+}
+
+func (c Initializer) verifyInstallation(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition, result *verifier.Result) error {
+	existingCrd, err := client.CustomResourceDefinitions().Get(context.TODO(), crd.Name, v1.GetOptions{})
 	if err != nil {
 		if os.IsTimeout(err) {
 			return err
 		}
+		if kerrors.IsNotFound(err) {
+			result.AddErrors(fmt.Sprintf("CRD %s is not installed", crd.Name))
+			return nil
+		}
 		return fmt.Errorf("failed to retrieve CRD %s: %v", crd.Name, err)
 	}
 	if existingCrd.Spec.Version != crd.Spec.Version {
-		return fmt.Errorf("installed CRD %s has invalid version %s, expected %s", crd.Name, existingCrd.Spec.Version, crd.Spec.Version)
+		result.AddErrors(fmt.Sprintf("Installed CRD %s has invalid version %s, expected %s", crd.Name, existingCrd.Spec.Version, crd.Spec.Version))
+		return nil
 	}
+	if err := health.IsHealthy(existingCrd); err != nil {
+		result.AddErrors(fmt.Sprintf("Installed CRD %s is not healthy: %v", crd.Name, err))
+		return nil
+	}
+	clog.V(2).Printf("CRD %s is installed with version %s", crd.Name, existingCrd.Spec.Versions[0].Name)
 	return nil
 }
 
-func (c Initializer) install(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition) error {
-	_, err := client.CustomResourceDefinitions().Create(crd)
+func (c Initializer) apply(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition) error {
+	_, err := client.CustomResourceDefinitions().Create(context.TODO(), crd, v1.CreateOptions{})
 	if kerrors.IsAlreadyExists(err) {
-		clog.V(4).Printf("crd %v already exists", crd.Name)
+		// We need to be careful here and never delete/recreate CRDs, we would delete
+		// all installed custom resources. We must have a correct update!
+		clog.V(4).Printf("crd %v already exists, try to update", crd.Name)
+
+		oldCrd, err := client.CustomResourceDefinitions().Get(context.TODO(), crd.Name, v1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to get crd for update %s: %v", crd.Name, err)
+		}
+
+		// As we call update, we need to take over the resourceVersion
+		crd.ResourceVersion = oldCrd.ResourceVersion
+		_, err = client.CustomResourceDefinitions().Update(context.TODO(), crd, v1.UpdateOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to update crd %s: %v", crd.Name, err)
+		}
 		return nil
 	}
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to create crd %s: %v", crd.Name, err)
+	}
+	return nil
 }
 
 func embeddedCRD(path string) *apiextv1beta1.CustomResourceDefinition {

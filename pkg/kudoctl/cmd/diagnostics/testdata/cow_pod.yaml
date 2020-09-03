@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cowsay-instance-deployment-6bb9f8dfd6-5cm72
+  namespace: my-namespace
+spec:
+  containers:
+  - name: nginx

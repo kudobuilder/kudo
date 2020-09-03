@@ -86,7 +86,7 @@ will have the EXACT same functionality (plans, parameters, tasks, templates, etc
 
 #### Adding a Task
 
-Tasks can be added via the same `tasks` spec in the `Operator` definition. Templates used to define the task can come from the base operator by pre-fixing `base/` to the template name, or from local templates as defined in [KEP-0009](keps/0009-operator-toolkit.md). The follow example shows two new tasks called `load-data` and `clear-data` defined for the extension operator that uses both a template from the base, with a patch object that is defined in the extension operator.
+Tasks can be added via the same `tasks` spec in the `Operator` definition. Templates used to define the task can come from the base operator by pre-fixing `base/` to the template name, or from local templates as defined in [KEP-0009](0009-operator-toolkit.md). The follow example shows two new tasks called `load-data` and `clear-data` defined for the extension operator that uses both a template from the base, with a patch object that is defined in the extension operator.
 
 ```yaml
 extends:
@@ -321,7 +321,7 @@ backup-pvc-size:
 ### Implementation Details/Notes/Constraints
 
 The implementation of extensions is independent of the ability to run non-KUDO defined
-operators, however there are some relationships that need to be considered when extending an operator that has a different implementation engine. See forthcoming [KEP 0013](keps/0013-external-specs.md)
+operators, however there are some relationships that need to be considered when extending an operator that has a different implementation engine. See forthcoming [KEP 0013](0013-external-specs.md)
 
 ### Outstanding Questions
 
