@@ -51,6 +51,7 @@ The KUDO Project is aiming to do monthly minor releases but the period could be 
 1. RM is responsible for following the process below
 1. RM should announce the release in the public [#kudo slack channel](https://kubernetes.slack.com/messages/kudo/) at least two days prior to the date
 1. RM makes sure all PRs that need to go into the release are merged prior to the process starting
+1. RM prepares a pre-release at least 2 days before the release process is started and makes sure it's manually tested at least in the parts where we lack automatic tests for now (pre-release should be announced in the [#kudo slack channel](https://kubernetes.slack.com/messages/kudo/))
 
 ### Release Process
 
@@ -86,6 +87,8 @@ This process will create a `dist` folder with all the build artifacts. The chang
 
 **Note:** There is value in providing a blog of highlighted features after release against [kudobuilder/kudo.dev](https://github.com/kudobuilder/kudo.dev) with a [blog post](https://kudo.dev/internal-docs/blog-index.html#release-posts). 
 
+**Note:** The release note for a full release should contain all changes since the last non-pre-release. For example a `0.16.0` changelog should contain all changes since `0.15.3`, *not* only the changes since `0.16.0-rc2`.
+
 ### Cutting a Release Branch
 
 As outlined above, when it is necessary to create a new release branch, it is necessary to update the [circle-ci config](https://github.com/kudobuilder/kudo/blob/main/.circle-ci/config.yml#L13) to test merges against the correct branch. It is necessary replace all references to `main` with the appropriate release branch.
@@ -106,3 +109,5 @@ This is the full pre-release step by step:
 1. Tag repo with expected pre-release (the name of the tag has to contain e.g. rc1 or similar) `git tag -a v0.2.0-rc1 -m "v0.2.0-rc1"`  && push tag `git push --tags`.
 1. Invoke goreleaser `goreleaser --rm-dist`.
 1. Push only versioned docker image via `docker push kudobuilder/controller:v0.2.0-rc1`
+
+**Note:** The release notes for a pre-release should contain all changes since any previously released version. For example `0.16.0-rc1` should list all changes since `0.15.3` if that was the latest `0.15` release. `0.16.0-rc2` would contain all changes since `0.16.0-rc1`.
