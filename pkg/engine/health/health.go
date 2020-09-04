@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"reflect"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -28,7 +27,7 @@ import (
 func isJobTerminallyFailed(job *batchv1.Job) (bool, string) {
 	for _, c := range job.Status.Conditions {
 		if c.Type == batchv1.JobFailed && c.Status == corev1.ConditionTrue {
-			log.Printf("HealthUtil: Job %q has failed: %s", job.Name, c.Message)
+			clog.V(2).Printf("HealthUtil: Job %q has failed: %s", job.Name, c.Message)
 			return true, c.Message
 		}
 	}
@@ -65,7 +64,7 @@ func IsHealthy(obj runtime.Object) error {
 	case *v1beta1.CustomResourceDefinition:
 		for _, c := range obj.Status.Conditions {
 			if c.Type == v1beta1.Established && c.Status == v1beta1.ConditionTrue {
-				log.Printf("CRD %s is now healthy", obj.Name)
+				clog.V(2).Printf("CRD %s is now healthy", obj.Name)
 				return nil
 			}
 		}
@@ -78,10 +77,10 @@ func IsHealthy(obj runtime.Object) error {
 			return err
 		}
 		if !done {
-			log.Printf("HealthUtil: Statefulset %v is NOT healthy. %s", obj.Name, msg)
+			clog.V(2).Printf("HealthUtil: Statefulset %v is NOT healthy. %s", obj.Name, msg)
 			return errors.New(msg)
 		}
-		log.Printf("Statefulset %v is marked healthy\n", obj.Name)
+		clog.V(2).Printf("Statefulset %v is marked healthy\n", obj.Name)
 		return nil
 	case *appsv1.Deployment:
 		statusViewer := &polymorphichelpers.DeploymentStatusViewer{}
@@ -90,7 +89,7 @@ func IsHealthy(obj runtime.Object) error {
 			return err
 		}
 		if !done {
-			log.Printf("HealthUtil: Deployment %v is NOT healthy. %s", obj.Name, msg)
+			clog.V(2).Printf("HealthUtil: Deployment %v is NOT healthy. %s", obj.Name, msg)
 			return errors.New(msg)
 		}
 		clog.V(2).Printf("Deployment %v is marked healthy\n", obj.Name)
@@ -99,7 +98,7 @@ func IsHealthy(obj runtime.Object) error {
 
 		if obj.Status.Succeeded == int32(1) {
 			// Done!
-			log.Printf("HealthUtil: Job %q is marked healthy", obj.Name)
+			clog.V(2).Printf("HealthUtil: Job %q is marked healthy", obj.Name)
 			return nil
 		}
 		if terminal, msg := isJobTerminallyFailed(obj); terminal {
@@ -129,7 +128,7 @@ func IsHealthy(obj runtime.Object) error {
 
 	// unless we build logic for what a healthy object is, assume it's healthy when created.
 	default:
-		log.Printf("HealthUtil: Unknown type %s is marked healthy by default", reflect.TypeOf(obj))
+		clog.V(2).Printf("HealthUtil: Unknown type %s is marked healthy by default", reflect.TypeOf(obj))
 		return nil
 	}
 }
