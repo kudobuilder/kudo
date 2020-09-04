@@ -309,60 +309,19 @@ If a field is marked as immutable, this applies to the field itself as well as a
 
 ### FlatListName
 
-This attribute is important for operator developers to provide backwards compatibility. Existing installed versions of an operator contain the parameters as a list, and with the `flatListName` KUDO can automatically convert an  instance with a flat list of parameters to a new nested structure.
-
-#### Examples
-
-```yaml
-type: object
-properties:
-  ClusterName:
-    type: string
-    flatListName: CLUSTER_NAME
-  NodeCount: 
-    type: int
-    flatListName: NODE_COUNT
-  Authorization:
-    type: object
-    properties:
-      ENABLED:
-        type: "boolean"
-        flatListName: AUTHORIZATION_ENABLED
-      NAME:
-        type: "string"
-        flatListName: AUTHORIZATION_NAME
-```
-
-With a parameter definition as above, KUDO can automatically convert an installed operator that had parameters set like this:
-
-```yaml
-CLUSTER_NAME: "MyCluster"
-NODE_COUNT: 3
-AUTHORIZATION_ENABLED: true
-AUTHORIZATION_NAME: "MyAuth"
-```
-
-to this:
-
-```yaml
-ClusterName: "MyCluster"
-NodeCount: 3
-Authorization:
-  Enabled: true
-  Name: "MyAuth"
-```
+This attribute is important for operator developers to provide backwards compatibility. Existing installed versions of an operator contain the parameters as a list, and with the `flatListName` KUDO can automatically convert an  instance with a flat list of parameters to a new nested structure. This is required for seamless upgrades of an operator version, which is described in detail in the next section.
 
 ### OperatorVersion upgrades
 
 Until now, an operator version upgrade did not require any special handling from KUDO. There is a special `upgrade` plan that is triggered in this instance, but apart from that no special code path.
 
-With the structured parameters there is a potential migration
+With the structured parameters there is a potential migration when an operator switches from a flat parameter list to structured parameters. The `flatListName` attribute helps KUDO to correctly convert the actual parameter values from the old representation to the new one.
 
 ## Example
 
 This section provides an example of conversion
 
-### Old `params.yaml`
+### Old `params.yaml` and representation in OperatorVersion
 
 This is the old `params.yaml` from an operator
 
@@ -382,9 +341,9 @@ parameters:
 
 The templates in the operator use `{{ .Params.CLUSTER_NAME }}` and `{{ .Params.BACKUP_CREDENTIALS_USERNAME }}` to insert the parameters.
 
-### After automatic conversion
+### Installed OperatorVersion after automatic conversion
 
-KUDO will automatically convert this params.yaml into a JSON-schema inside the operator version:
+KUDO will automatically convert this params.yaml into a JSON-schema inside the operator version, this conversion happens automatically in the migration process when KUDO is updated. No changes in the Operator are required. The same conversion happens when an old Operator with `v1beta1` `params.yaml` is installed on a cluster with a new KUDO version that supports `v1beta2` CRDs.
 
 ```yaml
 title: Parameter Schema
@@ -407,7 +366,7 @@ properties:
     title: "AWS Credentials Passsword"    
 ```
 
-This converted schema results in a parameter structure like this (depending on the values the user provided):
+This converted schema results in a parameter structure like this (depending on the values the user provided); this is the list of parameters stored in the `Instance`. The representation is the same as with `v1beta1`, therefore the existing templates can be rendered without any changes.
 
 ```yaml
 CLUSTER_NAME: "my-cluster"
@@ -416,8 +375,7 @@ BACKUP_CREDENTIALS_USERNAME: "some value"
 BACKUP_CREDENTIALS_PASSWORD: "some password"
 ```
 
-The templates in the operator contintue to use `{{ .Params.CLUSTER_NAME }}` and `{{ .Params.BACKUP_CREDENTIALS_USERNAME }}` to insert the parameters, no change to Operators is required.
-
+The templates in the operator contintue to use `{{ .Params.CLUSTER_NAME }}` and `{{ .Params.BACKUP_CREDENTIALS_USERNAME }}` to insert the parameters, no change to the Operator is required.
 
 ### Updated OperatorVersion
 
@@ -463,10 +421,17 @@ properties:
             flatListName: BACKUP_CREDENTIALS_PASSWORD
 ```
 
-The templates are updated and use the nested structure now: `{{ .Params.clusterName }}` and `{{ .Params.backup.credentials.name }}` 
+The templates are updated and now use the nested structure: `{{ .Params.clusterName }}` and `{{ .Params.backup.credentials.name }}` 
 
 As the operator developer provided the `flatListName` attributes in the schema, KUDO can automatically update existing operator instances and convert the parameter list into a structure:
 
+```yaml
+CLUSTER_NAME: "my-cluster"
+BACKUP_ENABLED: false
+BACKUP_CREDENTIALS_USERNAME: "some value"
+BACKUP_CREDENTIALS_PASSWORD: "some password"
+```
+is converted into
 ```yaml
 clusterName: "my-cluster"
 backup:
@@ -476,7 +441,7 @@ backup:
     password: "some password"
 ```
 
-TODO: Extend when exactly this should happen and in which part of the code
+This Conversion happens when the `upgrade` plan is executed. KUDO traverses the parameter definition and for every encountered `flatListName` looks up the referenced parameter value in the old `Instance` to build the new parameter value structure.
 
 ## Resources
 
