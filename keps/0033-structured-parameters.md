@@ -28,32 +28,27 @@ superseded-by:
       * [Motivation](#motivation)
          * [Goals](#goals)
          * [Non-Goals](#non-goals)
-      * [Proposal](#proposal)
-         * [Overview](#overview)
+         * [Proposal Overview](#proposal-overview)
          * [Package Format](#package-format)
          * [CRDs](#crds)
             * [Conversion](#conversion)
             * [Operator](#operator)
             * [OperatorVersion](#operatorversion)
             * [Instance](#instance)
-         * [Instance updates](#instance-updates)
-         * [Values.yaml](#valuesyaml)
-            * [Full Structured values.yaml](#full-structured-valuesyaml)
-            * [Partial structured values.yaml](#partial-structured-valuesyaml)
-         * [Add Parameter Wizard kudo package add parameter](#add-parameter-wizard-kudo-package-add-parameter)
-         * [Parameter Listing kudo package list parameters](#parameter-listing-kudo-package-list-parameters)
-         * [Additional attributes in JSON-schema](#additional-attributes-in-json-schema)
-            * [Trigger attributes](#trigger-attributes)
-            * [Immutability](#immutability)
-            * [FlatListName](#flatlistname)
-         * [OperatorVersion upgrades](#operatorversion-upgrades)
-      * [Example](#example)
-         * [Old params.yaml](#old-paramsyaml)
-         * [After automatic conversion](#after-automatic-conversion)
-         * [Updated OperatorVersion](#updated-operatorversion)
+         * [Client-side](#client-side)
+            * [Instance updates from the command line (-p option)](#instance-updates-from-the-command-line--p-option)
+            * [Instance updates with a parameter file (-P option)](#instance-updates-with-a-parameter-file--p-option)
+            * [Add Parameter Wizard kudo package add parameter](#add-parameter-wizard-kudo-package-add-parameter)
+            * [Parameter Listing kudo package list parameters](#parameter-listing-kudo-package-list-parameters)
+      * [Additional attributes in JSON-schema](#additional-attributes-in-json-schema)
+         * [Trigger](#trigger)
+         * [Immutable](#immutable)
+         * [OldName](#oldname)
+      * [Operator conversion and upgrade example](#operator-conversion-and-upgrade-example)
+         * [kudo.dev/v1beta1 operator version](#kudodevv1beta1-operator-version)
+         * [Conversion to kudo.dev/v1beta2](#conversion-to-kudodevv1beta2)
+         * [Upgrading operator](#upgrading-operator)
       * [Resources](#resources)
-
-<!-- Added by: aneumann, at: Mon Aug 31 12:21:58 CEST 2020 -->
 
 <!--te-->
 
@@ -185,6 +180,39 @@ A better solution than `extensionapi.JSON` would be to have a typed structure, b
 ...
 ```
 
+Here is an example: give the `v1beta1` operator version parameters defined as:
+
+```yaml
+spec:
+  parameters:
+  - name: NODE_COUNT
+    description: Number of replicas that should be run as part of the deployment
+    default: 3
+    required: true
+  - name: BACKUP_ENABLED
+    default: false
+```
+
+it will be converted into `v1beta2` and will look like:
+
+```yaml
+title: Parameter Schema
+"$schema": "https://json-schema.org/draft/2019-09/schema"
+type: object
+required:
+- NODE_COUNT
+properties:
+  NODE_COUNT:
+    type: integer
+    default: 3
+    description: "Number of replicas that should be run as part of the deployment"
+  BACKUP_ENABLED:
+    type: boolean
+    default: false
+```
+
+Note, that the parameter named haven't changed, and they all live in the root-level object. This way, they still can be referenced in the templates as e.g. `{{ .Params.NODE_COUNT }}`
+
 #### Instance
 
 Instance `v1beta1` saves parameter overrides in the `Instance.Spec.Parameters` field which is of type `map[string]string`. `v1beta2` will have to update this field to `interface{}`.
@@ -207,9 +235,35 @@ type InstanceSpec struct {
 }
 ```
 
-The existing instance parameter values are currently stored as serialized strings. They will have to be unwrapped and stored as `map[string]interface{}`.
+The existing instance parameter values are currently stored as serialized strings. They will have to be unwrapped and stored as `apiextension.JSON`. The Instance should have accessor or helper functions to convert the `apiextension.JSON` values to their actual types using the JSON-schema provided by the corresponding `OperatorVersion`. 
 
-As already mentioned on the OperatorVersion, the correct way to define an arbitrary structure is with `apiextension.JSON`. The Instance should have accessor or helper functions to convert the `apiextension.JSON` values to structured `interface{}` types.
+Here is an example: give a `v1beta1` instance parameters like:
+
+```yaml
+spec:
+  parameters:
+    NODE_COUNT: "3"
+    BACKUP_ENABLED: "false"
+    ARRAY_PARAM: '[foo,bar,bazz]'
+    MAP_PARAM: '{foo:"bar"}'
+```
+
+they will be converted into `v1beta2` and will look like:
+
+```yaml
+spec:
+  parameters:
+    NODE_COUNT: 3
+    BACKUP_ENABLED: false
+    ARRAY_PARAM:
+    - foo
+    - bar
+    - bazz
+    MAP_PARAM: 
+      foo: "bar"
+```
+
+// TODO: it seems that the conversion webhook doesn't have access to the cluster resources (at least by default). How do we unwrap the values (e.g. `MAP_PARAM`) without access to the `OperatorVersion` JSON-schema?
 
 ### Client-side
 
@@ -247,13 +301,13 @@ The `add parameter` wizard needs to be rewritten and adjusted to the new format.
 
 The output for the parameter list must be adjusted. The first column of the `uitable` should contain an indented structure that allows a user to see the nested nature of the parameters.
 
-### Additional attributes in JSON-schema
+## Additional attributes in JSON-schema
 
  - `trigger` Copied from params.yaml, describes the plan that is triggered
  - `immutable` Copied from params.yaml, specifies if the field is updatable (Could this clash with a future addition to JSON-schema? Should we rename it?)
- - `flatListName` Provided for backwards compatibility. If provided, specifies the old name that was used in the flat parameters list in previous versions (alternatives: "oldName", "paramName")? This attribute should be deprecated at some point in the future and phased out.
+ - `oldName` Provided for backwards compatibility. If provided, specifies the old name that was used in the flat parameters list in the previous version? Having the ability to map a parameter from the previous version to the current one, gives the operator developers the ability to update their schemas and rearrange/rename the parameters.
 
-### Trigger attributes
+### Trigger
 
 With the list of parameters, each parameter had a trigger attribute which specified a plan to trigger when the parameter was changed. With the nested structure, this gets more complicated as one "parameter branch" might have multiple different triggers defined which is clearly not something we want. Here is the new rule set:
  - Every level of the structure *may* specify a trigger.
@@ -264,9 +318,9 @@ With the list of parameters, each parameter had a trigger attribute which specif
 The previously established rule applies:
  - If more than one plan is triggered in a single update, the update is not allowed.
 
-#### Examples
+**Examples:**
 
-Invalid: A deeper level triggers a different plan.
+Invalid: A child object `Authorization.Enabled` level triggers a different plan than its parent `Authorization`
 ```yaml
 type: object
 properties:
@@ -281,9 +335,10 @@ properties:
 
 Valid: The following rules apply:
 - A change to `ClusterName` will trigger `deploy` (directly specified)
-- A change to `NodeCount` will trigger `deploy` (no trigger, look at parent. No trigger specified there, and no parent, so `deploy` is the default.)
+- A change to `NodeCount` will trigger `deploy`. There is no specified trigger, so we look at the parent. Parent doesn't have a trigger too, so `deploy` is triggered by default.
 - A change to `Authorization.ENABLED` will trigger `auth-update` (directly specified.)
-- A change to `Authorization.NAME` will trigger `auth-update` (no trigger, look at parent. Trigger is specified there.)
+- A change to `Authorization.NAME` will trigger `auth-update` (parent trigger is applied)
+
 ```yaml
 type: object
 properties:
@@ -303,86 +358,90 @@ properties:
         type: "string"
 ```
 
-### Immutability
+### Immutable
 
-If a field is marked as immutable, this applies to the field itself as well as all children.
+If a field is marked as `immutable`, this applies to the field itself as well as all children.
 
-### FlatListName
+### OldName
 
-This attribute is important for operator developers to provide backwards compatibility. Existing installed versions of an operator contain the parameters as a list, and with the `flatListName` KUDO can automatically convert an  instance with a flat list of parameters to a new nested structure. This is required for seamless upgrades of an operator version, which is described in detail in the next section.
+This attribute is important for operator developers to provide backwards compatibility. After the conversion from `v1btea1` to `v1beta` an operator developer might want to release a new operator version which fully utilises the JSON-schema possibilities and re-arranges existing parameters. Here,  `oldName` is used to map old parameters to the new ones. Let's walk through a complex example, that takes an already installed `v1beta1` operator, converts it to `v1beta2` and upgrades it to a new operator version, which updates and renames the parameters using the `oldName` attribute. 
 
-### OperatorVersion upgrades
+## Operator conversion and upgrade example
 
-Until now, an operator version upgrade did not require any special handling from KUDO. There is a special `upgrade` plan that is triggered in this instance, but apart from that no special code path.
+### kudo.dev/v1beta1 operator version
 
-With the structured parameters there is a potential migration when an operator switches from a flat parameter list to structured parameters. The `flatListName` attribute helps KUDO to correctly convert the actual parameter values from the old representation to the new one.
-
-## Example
-
-This section provides an example of conversion
-
-### Old `params.yaml` and representation in OperatorVersion
-
-This is the old `params.yaml` from an operator
+Let's assume we have an existing `v1beta1` `OperatorVersion` with parameters looking like this: 
 
 ```yaml
 apiVersion: kudo.dev/v1beta1
-parameters:
-  - name: CLUSTER_NAME
-    default: "my-cluster"
-    required: true
-  - name: BACKUP_ENABLED
-    default: false
-  - name: BACKUP_CREDENTIALS_USERNAME
-    displayName: "AWS Credentials Username"
-  - name: BACKUP_CREDENTIALS_PASSWORD
-    displayName: "AWS Credentials Password"
+kind: OperatorVersion
+spec:
+  parameters:
+    - name: CLUSTER_NAME
+      default: "my-cluster"
+      required: true
+    - name: BACKUP_ENABLED
+      default: false
+    - name: BACKUP_CREDENTIALS_USERNAME
+      description: "AWS Credentials Username"
+    - name: BACKUP_CREDENTIALS_PASSWORD
+      description: "AWS Credentials Password"
 ```
 
-The templates in the operator use `{{ .Params.CLUSTER_NAME }}` and `{{ .Params.BACKUP_CREDENTIALS_USERNAME }}` to insert the parameters.
+this flat parameter list practically mirrors operator's `params.yaml` file. The templates in the operator use e.g. `{{ .Params.CLUSTER_NAME }}` and `{{ .Params.BACKUP_CREDENTIALS_USERNAME }}` to reference the parameters.
 
-### Installed OperatorVersion after automatic conversion
+### Conversion to kudo.dev/v1beta2
 
-KUDO will automatically convert this params.yaml into a JSON-schema inside the operator version, this conversion happens automatically in the migration process when KUDO is updated. No changes in the Operator are required. The same conversion happens when an old Operator with `v1beta1` `params.yaml` is installed on a cluster with a new KUDO version that supports `v1beta2` CRDs.
+When updating to the new KUDO version, KUDO migration process will install the conversion webhook and trigger the conversion on all existing `OperatorVersion` resources (no changes in the `Operator` are required). Note, that the same conversion happens when an old Operator with `v1beta1` `params.yaml` is installed on a cluster with a new `v1beta2` KUDO version.
 
 ```yaml
-title: Parameter Schema
-description: TODO
-type: object
-required:
-- CLUSTER_NAME
-properties:
-  CLUSTER_NAME:
-    type: string
-    default: my-cluster
-  BACKUP_ENABLED:
-    type: boolean
-    default: false
-  BACKUP_CREDENTIALS_USERNAME:
-    type: "string"
-    title: "AWS Credentials Username"
-  BACKUP_CREDENTIALS_PASSWORD:
-    type: "string"
-    title: "AWS Credentials Passsword"    
+apiVersion: kudo.dev/v1beta1
+kind: OperatorVersion
+spec:
+  parameters:
+    title: Parameter Schema
+    "$schema": "https://json-schema.org/draft/2019-09/schema"
+    description: TODO
+    type: object
+    required:
+    - CLUSTER_NAME
+    properties:
+      CLUSTER_NAME:
+        type: string
+        default: my-cluster
+      BACKUP_ENABLED:
+        type: boolean
+        default: false
+      BACKUP_CREDENTIALS_USERNAME:
+        type: "string"
+        description: "AWS Credentials Username"
+      BACKUP_CREDENTIALS_PASSWORD:
+        type: "string"
+        description: "AWS Credentials Password"   
 ```
 
-This converted schema results in a parameter structure like this (depending on the values the user provided); this is the list of parameters stored in the `Instance`. The representation is the same as with `v1beta1`, therefore the existing templates can be rendered without any changes.
+The operator `Instance` spec parameters stay unchanged (provided the user set all four parameters):
 
 ```yaml
-CLUSTER_NAME: "my-cluster"
-BACKUP_ENABLED: false
-BACKUP_CREDENTIALS_USERNAME: "some value"
-BACKUP_CREDENTIALS_PASSWORD: "some password"
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+spec:
+  parameters:
+    CLUSTER_NAME: "my-cluster"
+    BACKUP_ENABLED: false
+    BACKUP_CREDENTIALS_USERNAME: "some value"
+    BACKUP_CREDENTIALS_PASSWORD: "some password"
 ```
 
-The templates in the operator contintue to use `{{ .Params.CLUSTER_NAME }}` and `{{ .Params.BACKUP_CREDENTIALS_USERNAME }}` to insert the parameters, no change to the Operator is required.
+The templates in the operator continue to use `{{ .Params.CLUSTER_NAME }}` and `{{ .Params.BACKUP_CREDENTIALS_USERNAME }}`.
 
-### Updated OperatorVersion
+### Upgrading operator
 
-After a while, the operator developer updates the operator to make use of the structured parameters and provides new templates and a `json-schema.yaml`:
+After a while, the operator developer updates the operator to make use of the structured parameters. The parameters are restructured and renamed, templates are updated. The new parameters schema look like following:
 
 ```yaml
 title: My Operator
+"$schema": "https://json-schema.org/draft/2019-09/schema"
 description: All parameters
 type: object
 required:
@@ -393,7 +452,7 @@ properties:
     title: ClusterName
     description: "The name of the cluster to create"
     default: my-cluster
-    flatListName: CLUSTER_NAME
+    oldName: CLUSTER_NAME
   backup:
     type: object
     title: Backup
@@ -403,7 +462,7 @@ properties:
     properties:
       enabled:
         type: boolean
-        flatListName: BACKUP_ENABLED
+        oldName: BACKUP_ENABLED
       credentials:
         type: object
         title: AWS Credentials
@@ -414,16 +473,16 @@ properties:
           name:
             type: string
             title: Username
-            flatListName: BACKUP_CREDENTIALS_USERNAME
+            oldName: BACKUP_CREDENTIALS_USERNAME
           password:
             type: string
             title: Password
-            flatListName: BACKUP_CREDENTIALS_PASSWORD
+            oldName: BACKUP_CREDENTIALS_PASSWORD
 ```
 
-The templates are updated and now use the nested structure: `{{ .Params.clusterName }}` and `{{ .Params.backup.credentials.name }}` 
+The templates are updated and now use the nested structure: `{{ .Params.clusterName }}` and `{{ .Params.backup.credentials.name }}`. As the operator developer provided the `oldName` attributes in the schema, KUDO can automatically update existing operator instances and convert the parameter map into a structure:
 
-As the operator developer provided the `flatListName` attributes in the schema, KUDO can automatically update existing operator instances and convert the parameter list into a structure:
+Old instance parameters:
 
 ```yaml
 CLUSTER_NAME: "my-cluster"
@@ -431,7 +490,9 @@ BACKUP_ENABLED: false
 BACKUP_CREDENTIALS_USERNAME: "some value"
 BACKUP_CREDENTIALS_PASSWORD: "some password"
 ```
-is converted into
+
+are converted into:
+
 ```yaml
 clusterName: "my-cluster"
 backup:
@@ -441,7 +502,9 @@ backup:
     password: "some password"
 ```
 
-This Conversion happens when the `upgrade` plan is executed. KUDO traverses the parameter definition and for every encountered `flatListName` looks up the referenced parameter value in the old `Instance` to build the new parameter value structure.
+The conversion happens in the instance admission webhook when the upgrade is detected. KUDO traverses the parameter definition and for every encountered `oldName` looks up the referenced parameter value in the old `Instance` to build the new parameter value structure.
+
+While being particularly useful when migrating from old (and flat) parameter into the new (and structured) ones, `oldName` can also be used later by the operator developer to restructure existing parameter schema so that once `CLUSTER_NAME` (operatorVersion 0.1) can be converted into `clusterName` (operatorVersion 0.2) and later moved into `Cluster.Name` (operatorVersion 0.3). This, however, introduces another challenge where some operator versions (e.g. 0.2 in our example) become "none-skippable" as otherwise the `oldName` will not be found. 
 
 ## Resources
 
