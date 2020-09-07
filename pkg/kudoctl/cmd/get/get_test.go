@@ -61,7 +61,7 @@ func TestGetInstances(t *testing.T) {
 		},
 	}
 
-	testOperator := &v1beta1.Operator{
+	testOperator := &kudoapi.Operator{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Operator",
@@ -70,13 +70,13 @@ func TestGetInstances(t *testing.T) {
 			Name:      "some-operator",
 			Namespace: "default",
 		},
-		Spec: v1beta1.OperatorSpec{
+		Spec: kudoapi.OperatorSpec{
 			Description: "A fancy Operator",
 			KudoVersion: "0.16.0",
 		},
 	}
 
-	testOperatorVersion := &v1beta1.OperatorVersion{
+	testOperatorVersion := &kudoapi.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "OperatorVersion",
@@ -85,7 +85,7 @@ func TestGetInstances(t *testing.T) {
 			Name:      "some-operator-0.1.0",
 			Namespace: "default",
 		},
-		Spec: v1beta1.OperatorVersionSpec{
+		Spec: kudoapi.OperatorVersionSpec{
 			Operator: v1.ObjectReference{
 				APIVersion: "kudo.dev/v1beta1",
 				Kind:       "Operator",
