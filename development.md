@@ -33,7 +33,7 @@ The follow are a list of tools needed or useful in order to build, run, test and
 
 ## Supported Kubernetes versions
 
-Use of Kubernetes APIs is limited to APIs supported by the current version of Kubernetes at the time of a KUDO release following its [version skew policy](https://kubernetes.io/docs/setup/release/version-skew-policy/). E.g., for a version of KUDO released while Kubernetes 1.18 is current, only APIs that are supported in Kubernetes 1.16, 1.17 and 1.18 can be used.
+Use of Kubernetes APIs is limited to APIs supported by the current version of Kubernetes' `kube-apiserver` and two minor versions older at the time of a KUDO release. This is similar to the allowed version skew of `kubelet` and `kube-apiserver` following [Kubernetes' version skew policy](https://kubernetes.io/docs/setup/release/version-skew-policy/). E.g., for a version of KUDO released while Kubernetes 1.18 is current, only APIs that are supported in Kubernetes 1.16, 1.17 and 1.18 can be used.
 Functionality using APIs that don't conform to this rule should be placed behind a feature gate.
 
 ## Running Locally
