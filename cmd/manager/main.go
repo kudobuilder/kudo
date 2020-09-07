@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/kudobuilder/kudo/pkg/apis"
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
 	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
@@ -153,7 +153,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := registerWebhook("/admit", &v1beta1.Instance{}, &webhook.Admission{Handler: iac}, mgr); err != nil {
+	if err := registerWebhook("/admit", &kudoapi.Instance{}, &webhook.Admission{Handler: iac}, mgr); err != nil {
 		log.Printf("Unable to create instance admission webhook: %v", err)
 		os.Exit(1)
 	}
@@ -170,8 +170,8 @@ func main() {
 }
 
 // registerWebhook method registers passed webhook using a give prefix (e.g. "/validate") and runtime object
-// (e.g. v1beta1.Instance) to generate a webhook path e.g. "/validate-kudo-dev-v1beta1-instances". Webhook
-// has to implement http.Handler interface (see v1beta1.InstanceAdmission for an example)
+// (e.g. kudoapi.Instance) to generate a webhook path e.g. "/validate-kudo-dev-v1beta1-instances". Webhook
+// has to implement http.Handler interface (see kudoapi.InstanceAdmission for an example)
 //
 // NOTE: generated webhook path HAS to match the one used in the webhook configuration. See for example how
 // MutatingWebhookConfiguration.Webhooks[0].ClientConfig.Service.Path is set in

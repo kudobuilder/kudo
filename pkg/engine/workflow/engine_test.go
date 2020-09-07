@@ -12,7 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	kudofake "github.com/kudobuilder/kudo/pkg/test/fake"
@@ -36,185 +36,185 @@ func TestExecutePlan(t *testing.T) {
 		name           string
 		activePlan     *ActivePlan
 		metadata       *engine.Metadata
-		expectedStatus *v1beta1.PlanStatus
+		expectedStatus *kudoapi.PlanStatus
 		wantErr        bool
 		enhancer       renderer.Enhancer
 	}{
 		{name: "plan already finished will not change its status", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionComplete,
+			PlanStatus: &kudoapi.PlanStatus{
+				Status: kudoapi.ExecutionComplete,
 			},
 		},
 			metadata:       meta,
-			expectedStatus: &v1beta1.PlanStatus{Status: v1beta1.ExecutionComplete, LastUpdatedTimestamp: &v1.Time{Time: testTime}},
+			expectedStatus: &kudoapi.PlanStatus{Status: kudoapi.ExecutionComplete, LastUpdatedTimestamp: &v1.Time{Time: testTime}},
 			enhancer:       testEnhancer,
 		},
 		{name: "plan with a step to be executed is in progress when the step is not completed", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1beta1.PlanStatus{
+			PlanStatus: &kudoapi.PlanStatus{
 				Name:                 "test",
-				Status:               v1beta1.ExecutionInProgress,
+				Status:               kudoapi.ExecutionInProgress,
 				LastUpdatedTimestamp: &v1.Time{Time: testTime},
-				Phases:               []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionInProgress, Name: "step"}}}},
+				Phases:               []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{{Status: kudoapi.ExecutionInProgress, Name: "step"}}}},
 			},
-			Spec: &v1beta1.Plan{
+			Spec: &kudoapi.Plan{
 				Strategy: "serial",
-				Phases: []v1beta1.Phase{
-					{Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"task"}}}},
+				Phases: []kudoapi.Phase{
+					{Name: "phase", Strategy: "serial", Steps: []kudoapi.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			Tasks: []v1beta1.Task{
+			Tasks: []kudoapi.Task{
 				{
 					Name: "task",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{Done: false},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{Done: false},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1beta1.PlanStatus{
+			expectedStatus: &kudoapi.PlanStatus{
 				Name:                 "test",
-				Status:               v1beta1.ExecutionInProgress,
+				Status:               kudoapi.ExecutionInProgress,
 				LastUpdatedTimestamp: &v1.Time{Time: testTime},
-				Phases:               []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionInProgress, Name: "step"}}}}},
+				Phases:               []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{{Status: kudoapi.ExecutionInProgress, Name: "step"}}}}},
 			enhancer: testEnhancer,
 		},
 		{name: "plan with one step that is healthy is marked as completed", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1beta1.PlanStatus{
+			PlanStatus: &kudoapi.PlanStatus{
 				Name:                 "test",
-				Status:               v1beta1.ExecutionPending,
+				Status:               kudoapi.ExecutionPending,
 				LastUpdatedTimestamp: &v1.Time{Time: testTime},
-				Phases:               []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionPending, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionPending, Name: "step"}}}},
+				Phases:               []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionPending, Steps: []kudoapi.StepStatus{{Status: kudoapi.ExecutionPending, Name: "step"}}}},
 			},
-			Spec: &v1beta1.Plan{
+			Spec: &kudoapi.Plan{
 				Strategy: "serial",
-				Phases: []v1beta1.Phase{
-					{Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"task"}}}},
+				Phases: []kudoapi.Phase{
+					{Name: "phase", Strategy: "serial", Steps: []kudoapi.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			Tasks: []v1beta1.Task{
+			Tasks: []kudoapi.Task{
 				{
 					Name: "task",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{Done: true},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{Done: true},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1beta1.PlanStatus{
+			expectedStatus: &kudoapi.PlanStatus{
 				Name:                 "test",
-				Status:               v1beta1.ExecutionComplete,
+				Status:               kudoapi.ExecutionComplete,
 				LastUpdatedTimestamp: &v1.Time{Time: testTime},
-				Phases:               []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionComplete, Name: "step"}}}},
+				Phases:               []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionComplete, Steps: []kudoapi.StepStatus{{Status: kudoapi.ExecutionComplete, Name: "step"}}}},
 			},
 			enhancer: testEnhancer,
 		},
 		{name: "plan in errored state will be retried and completed when the step is done", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1beta1.PlanStatus{
+			PlanStatus: &kudoapi.PlanStatus{
 				Name:                 "test",
 				LastUpdatedTimestamp: &v1.Time{Time: testTime},
-				Phases:               []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ErrorStatus, Name: "step"}}}},
+				Phases:               []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{{Status: kudoapi.ErrorStatus, Name: "step"}}}},
 			},
-			Spec: &v1beta1.Plan{
+			Spec: &kudoapi.Plan{
 				Strategy: "serial",
-				Phases: []v1beta1.Phase{
-					{Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"task"}}}},
+				Phases: []kudoapi.Phase{
+					{Name: "phase", Strategy: "serial", Steps: []kudoapi.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			Tasks: []v1beta1.Task{
+			Tasks: []kudoapi.Task{
 				{
 					Name: "task",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{Done: true},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{Done: true},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1beta1.PlanStatus{
+			expectedStatus: &kudoapi.PlanStatus{
 				Name:                 "test",
-				Status:               v1beta1.ExecutionComplete,
+				Status:               kudoapi.ExecutionComplete,
 				LastUpdatedTimestamp: &v1.Time{Time: testTime},
-				Phases:               []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionComplete, Name: "step"}}}},
+				Phases:               []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionComplete, Steps: []kudoapi.StepStatus{{Status: kudoapi.ExecutionComplete, Name: "step"}}}},
 			},
 			enhancer: testEnhancer,
 		},
 		// --- Proper error and fatal error status propagation ---
 		{name: "plan in progress, will have step error status, when a task fails", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1beta1.PlanStatus{
+			PlanStatus: &kudoapi.PlanStatus{
 				Name:   "test",
-				Status: v1beta1.ExecutionInProgress,
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}}},
+				Status: kudoapi.ExecutionInProgress,
+				Phases: []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{{Name: "step", Status: kudoapi.ExecutionInProgress}}}},
 			},
-			Spec: &v1beta1.Plan{
+			Spec: &kudoapi.Plan{
 				Strategy: "serial",
-				Phases: []v1beta1.Phase{
-					{Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"task"}}}},
+				Phases: []kudoapi.Phase{
+					{Name: "phase", Strategy: "serial", Steps: []kudoapi.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			Tasks: []v1beta1.Task{
+			Tasks: []kudoapi.Task{
 				{
 					Name: "task",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: true},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{WantErr: true},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1beta1.PlanStatus{
+			expectedStatus: &kudoapi.PlanStatus{
 				Name:                 "test",
-				Status:               v1beta1.ExecutionInProgress,
+				Status:               kudoapi.ExecutionInProgress,
 				LastUpdatedTimestamp: &v1.Time{Time: testTime},
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Status: v1beta1.ErrorStatus, Name: "step",
+				Phases: []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{{Status: kudoapi.ErrorStatus, Name: "step",
 					Message: "A transient error when executing task test.phase.step.task. Will retry. dummy error"}}}},
 			},
 			enhancer: testEnhancer,
 		},
 		{name: "plan in progress, will have plan/phase/step fatal error status, when a task fails with a fatal error", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1beta1.PlanStatus{
+			PlanStatus: &kudoapi.PlanStatus{
 				Name:   "test",
-				Status: v1beta1.ExecutionInProgress,
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}}},
+				Status: kudoapi.ExecutionInProgress,
+				Phases: []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{{Name: "step", Status: kudoapi.ExecutionInProgress}}}},
 			},
-			Spec: &v1beta1.Plan{
+			Spec: &kudoapi.Plan{
 				Strategy: "serial",
-				Phases: []v1beta1.Phase{
-					{Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"task"}}}},
+				Phases: []kudoapi.Phase{
+					{Name: "phase", Strategy: "serial", Steps: []kudoapi.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			Tasks: []v1beta1.Task{
+			Tasks: []kudoapi.Task{
 				{
 					Name: "task",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: true, Fatal: true},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{WantErr: true, Fatal: true},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1beta1.PlanStatus{
+			expectedStatus: &kudoapi.PlanStatus{
 				Name:                 "test",
-				Status:               v1beta1.ExecutionFatalError,
+				Status:               kudoapi.ExecutionFatalError,
 				LastUpdatedTimestamp: &v1.Time{Time: testTime},
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError,
+				Phases: []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionFatalError, Steps: []kudoapi.StepStatus{{Status: kudoapi.ExecutionFatalError,
 					Message: "Error during execution: fatal error: default/test-instance failed in test.phase.step.task: dummy error", Name: "step"}}}},
 			},
 			wantErr:  true,
@@ -222,34 +222,34 @@ func TestExecutePlan(t *testing.T) {
 		},
 		{name: "plan in progress with a misconfigured task will fail with a fatal error", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1beta1.PlanStatus{
+			PlanStatus: &kudoapi.PlanStatus{
 				Name:   "test",
-				Status: v1beta1.ExecutionInProgress,
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}}},
+				Status: kudoapi.ExecutionInProgress,
+				Phases: []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{{Name: "step", Status: kudoapi.ExecutionInProgress}}}},
 			},
-			Spec: &v1beta1.Plan{
+			Spec: &kudoapi.Plan{
 				Strategy: "serial",
-				Phases: []v1beta1.Phase{
-					{Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"fake-task"}}}},
+				Phases: []kudoapi.Phase{
+					{Name: "phase", Strategy: "serial", Steps: []kudoapi.Step{{Name: "step", Tasks: []string{"fake-task"}}}},
 				},
 			},
-			Tasks: []v1beta1.Task{
+			Tasks: []kudoapi.Task{
 				{
 					Name: "task",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: false},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{WantErr: false},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1beta1.PlanStatus{
+			expectedStatus: &kudoapi.PlanStatus{
 				Name:                 "test",
-				Status:               v1beta1.ExecutionFatalError,
+				Status:               kudoapi.ExecutionFatalError,
 				LastUpdatedTimestamp: &v1.Time{Time: testTime},
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError,
+				Phases: []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionFatalError, Steps: []kudoapi.StepStatus{{Status: kudoapi.ExecutionFatalError,
 					Message: "default/test-instance fatal error:  missing task test.phase.step.fake-task", Name: "step"}}}},
 			},
 			wantErr:  true,
@@ -257,32 +257,32 @@ func TestExecutePlan(t *testing.T) {
 		},
 		{name: "plan in progress with an unknown task spec will fail with a fatal error", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1beta1.PlanStatus{
+			PlanStatus: &kudoapi.PlanStatus{
 				Name:   "test",
-				Status: v1beta1.ExecutionInProgress,
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}}},
+				Status: kudoapi.ExecutionInProgress,
+				Phases: []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{{Name: "step", Status: kudoapi.ExecutionInProgress}}}},
 			},
-			Spec: &v1beta1.Plan{
+			Spec: &kudoapi.Plan{
 				Strategy: "serial",
-				Phases: []v1beta1.Phase{
-					{Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"task"}}}},
+				Phases: []kudoapi.Phase{
+					{Name: "phase", Strategy: "serial", Steps: []kudoapi.Step{{Name: "step", Tasks: []string{"task"}}}},
 				},
 			},
-			Tasks: []v1beta1.Task{
+			Tasks: []kudoapi.Task{
 				{
 					Name: "task",
 					Kind: "Unknown",
-					Spec: v1beta1.TaskSpec{},
+					Spec: kudoapi.TaskSpec{},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1beta1.PlanStatus{
+			expectedStatus: &kudoapi.PlanStatus{
 				Name:                 "test",
-				Status:               v1beta1.ExecutionFatalError,
+				Status:               kudoapi.ExecutionFatalError,
 				LastUpdatedTimestamp: &v1.Time{Time: testTime},
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Name: "step",
+				Phases: []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionFatalError, Steps: []kudoapi.StepStatus{{Status: kudoapi.ExecutionFatalError, Name: "step",
 					Message: "default/test-instance fatal error:  failed to build task test.phase.step.task: unknown task kind Unknown"}}}},
 			},
 			wantErr:  true,
@@ -291,147 +291,147 @@ func TestExecutePlan(t *testing.T) {
 		// --- Respect the Steps execution strategy ---
 		{name: "plan in progress with multiple serial steps, will respect serial step strategy and stop after first step fails", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1beta1.PlanStatus{
+			PlanStatus: &kudoapi.PlanStatus{
 				Name:   "test",
-				Status: v1beta1.ExecutionInProgress,
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{
-					{Name: "stepOne", Status: v1beta1.ExecutionInProgress},
-					{Name: "stepTwo", Status: v1beta1.ExecutionInProgress},
+				Status: kudoapi.ExecutionInProgress,
+				Phases: []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{
+					{Name: "stepOne", Status: kudoapi.ExecutionInProgress},
+					{Name: "stepTwo", Status: kudoapi.ExecutionInProgress},
 				}}},
 			},
-			Spec: &v1beta1.Plan{
+			Spec: &kudoapi.Plan{
 				Strategy: "serial",
-				Phases: []v1beta1.Phase{
-					{Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{
+				Phases: []kudoapi.Phase{
+					{Name: "phase", Strategy: "serial", Steps: []kudoapi.Step{
 						{Name: "stepOne", Tasks: []string{"taskOne"}},
 						{Name: "stepTwo", Tasks: []string{"taskTwo"}},
 					}},
 				},
 			},
-			Tasks: []v1beta1.Task{
+			Tasks: []kudoapi.Task{
 				{
 					Name: "taskOne",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: true},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{WantErr: true},
 					},
 				},
 				{
 					Name: "taskTwo",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: false},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{WantErr: false},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1beta1.PlanStatus{
+			expectedStatus: &kudoapi.PlanStatus{
 				Name:                 "test",
-				Status:               v1beta1.ExecutionInProgress,
+				Status:               kudoapi.ExecutionInProgress,
 				LastUpdatedTimestamp: &v1.Time{Time: testTime},
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{
-					{Name: "stepOne", Status: v1beta1.ErrorStatus, Message: "A transient error when executing task test.phase.stepOne.taskOne. Will retry. dummy error"},
-					{Name: "stepTwo", Status: v1beta1.ExecutionInProgress},
+				Phases: []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{
+					{Name: "stepOne", Status: kudoapi.ErrorStatus, Message: "A transient error when executing task test.phase.stepOne.taskOne. Will retry. dummy error"},
+					{Name: "stepTwo", Status: kudoapi.ExecutionInProgress},
 				}}},
 			},
 			enhancer: testEnhancer,
 		},
 		{name: "plan in progress with multiple parallel steps, will respect parallel step strategy and continue when first step fails", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1beta1.PlanStatus{
+			PlanStatus: &kudoapi.PlanStatus{
 				Name:   "test",
-				Status: v1beta1.ExecutionInProgress,
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{
-					{Name: "stepOne", Status: v1beta1.ExecutionInProgress},
-					{Name: "stepTwo", Status: v1beta1.ExecutionInProgress},
+				Status: kudoapi.ExecutionInProgress,
+				Phases: []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{
+					{Name: "stepOne", Status: kudoapi.ExecutionInProgress},
+					{Name: "stepTwo", Status: kudoapi.ExecutionInProgress},
 				}}},
 			},
-			Spec: &v1beta1.Plan{
+			Spec: &kudoapi.Plan{
 				Strategy: "serial",
-				Phases: []v1beta1.Phase{
-					{Name: "phase", Strategy: "parallel", Steps: []v1beta1.Step{
+				Phases: []kudoapi.Phase{
+					{Name: "phase", Strategy: "parallel", Steps: []kudoapi.Step{
 						{Name: "stepOne", Tasks: []string{"taskOne"}},
 						{Name: "stepTwo", Tasks: []string{"taskTwo"}},
 					}},
 				},
 			},
-			Tasks: []v1beta1.Task{
+			Tasks: []kudoapi.Task{
 				{
 					Name: "taskOne",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: true},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{WantErr: true},
 					},
 				},
 				{
 					Name: "taskTwo",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{Done: true},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{Done: true},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1beta1.PlanStatus{
+			expectedStatus: &kudoapi.PlanStatus{
 				Name:                 "test",
-				Status:               v1beta1.ExecutionInProgress,
+				Status:               kudoapi.ExecutionInProgress,
 				LastUpdatedTimestamp: &v1.Time{Time: testTime},
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{
-					{Name: "stepOne", Status: v1beta1.ErrorStatus, Message: "A transient error when executing task test.phase.stepOne.taskOne. Will retry. dummy error"},
-					{Name: "stepTwo", Status: v1beta1.ExecutionComplete},
+				Phases: []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{
+					{Name: "stepOne", Status: kudoapi.ErrorStatus, Message: "A transient error when executing task test.phase.stepOne.taskOne. Will retry. dummy error"},
+					{Name: "stepTwo", Status: kudoapi.ExecutionComplete},
 				}}},
 			},
 			enhancer: testEnhancer,
 		},
 		{name: "plan in progress with multiple parallel steps, will stop the execution on the first fatal step error", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionInProgress,
+			PlanStatus: &kudoapi.PlanStatus{
+				Status: kudoapi.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{
-					{Name: "stepOne", Status: v1beta1.ExecutionInProgress},
-					{Name: "stepTwo", Status: v1beta1.ExecutionInProgress},
+				Phases: []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{
+					{Name: "stepOne", Status: kudoapi.ExecutionInProgress},
+					{Name: "stepTwo", Status: kudoapi.ExecutionInProgress},
 				}}},
 			},
-			Spec: &v1beta1.Plan{
+			Spec: &kudoapi.Plan{
 				Strategy: "serial",
-				Phases: []v1beta1.Phase{
-					{Name: "phase", Strategy: "parallel", Steps: []v1beta1.Step{
+				Phases: []kudoapi.Phase{
+					{Name: "phase", Strategy: "parallel", Steps: []kudoapi.Step{
 						{Name: "stepOne", Tasks: []string{"taskOne"}},
 						{Name: "stepTwo", Tasks: []string{"taskTwo"}},
 					}},
 				},
 			},
-			Tasks: []v1beta1.Task{
+			Tasks: []kudoapi.Task{
 				{
 					Name: "taskOne",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: true, Fatal: true},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{WantErr: true, Fatal: true},
 					},
 				},
 				{
 					Name: "taskTwo",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: false},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{WantErr: false},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1beta1.PlanStatus{
+			expectedStatus: &kudoapi.PlanStatus{
 				Name:                 "test",
-				Status:               v1beta1.ExecutionFatalError,
+				Status:               kudoapi.ExecutionFatalError,
 				LastUpdatedTimestamp: &v1.Time{Time: testTime},
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{
-					{Name: "stepOne", Status: v1beta1.ExecutionFatalError, Message: "Error during execution: fatal error: default/test-instance failed in test.phase.stepOne.taskOne: dummy error"},
-					{Name: "stepTwo", Status: v1beta1.ExecutionInProgress},
+				Phases: []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionFatalError, Steps: []kudoapi.StepStatus{
+					{Name: "stepOne", Status: kudoapi.ExecutionFatalError, Message: "Error during execution: fatal error: default/test-instance failed in test.phase.stepOne.taskOne: dummy error"},
+					{Name: "stepTwo", Status: kudoapi.ExecutionInProgress},
 				}}},
 			},
 			wantErr:  true,
@@ -440,142 +440,142 @@ func TestExecutePlan(t *testing.T) {
 		// --- Respect the Phases execution strategy ---
 		{name: "plan in progress with multiple serial phases, will respect serial phase strategy and stop after first phase fails", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1beta1.PlanStatus{
+			PlanStatus: &kudoapi.PlanStatus{
 				Name:   "test",
-				Status: v1beta1.ExecutionInProgress,
-				Phases: []v1beta1.PhaseStatus{
-					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
-					{Name: "phaseTwo", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
+				Status: kudoapi.ExecutionInProgress,
+				Phases: []kudoapi.PhaseStatus{
+					{Name: "phaseOne", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{{Name: "step", Status: kudoapi.ExecutionInProgress}}},
+					{Name: "phaseTwo", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{{Name: "step", Status: kudoapi.ExecutionInProgress}}},
 				},
 			},
-			Spec: &v1beta1.Plan{
+			Spec: &kudoapi.Plan{
 				Strategy: "serial",
-				Phases: []v1beta1.Phase{
-					{Name: "phaseOne", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"taskOne"}}}},
-					{Name: "phaseTwo", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"taskTwo"}}}},
+				Phases: []kudoapi.Phase{
+					{Name: "phaseOne", Strategy: "serial", Steps: []kudoapi.Step{{Name: "step", Tasks: []string{"taskOne"}}}},
+					{Name: "phaseTwo", Strategy: "serial", Steps: []kudoapi.Step{{Name: "step", Tasks: []string{"taskTwo"}}}},
 				},
 			},
-			Tasks: []v1beta1.Task{
+			Tasks: []kudoapi.Task{
 				{
 					Name: "taskOne",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: true},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{WantErr: true},
 					},
 				},
 				{
 					Name: "taskTwo",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: false},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{WantErr: false},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1beta1.PlanStatus{
+			expectedStatus: &kudoapi.PlanStatus{
 				Name:                 "test",
-				Status:               v1beta1.ExecutionInProgress,
+				Status:               kudoapi.ExecutionInProgress,
 				LastUpdatedTimestamp: &v1.Time{Time: testTime},
-				Phases: []v1beta1.PhaseStatus{
-					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ErrorStatus, Message: "A transient error when executing task test.phaseOne.step.taskOne. Will retry. dummy error"}}},
-					{Name: "phaseTwo", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
+				Phases: []kudoapi.PhaseStatus{
+					{Name: "phaseOne", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{{Name: "step", Status: kudoapi.ErrorStatus, Message: "A transient error when executing task test.phaseOne.step.taskOne. Will retry. dummy error"}}},
+					{Name: "phaseTwo", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{{Name: "step", Status: kudoapi.ExecutionInProgress}}},
 				},
 			},
 			enhancer: testEnhancer,
 		},
 		{name: "plan in progress with multiple parallel phases, will respect parallel phase strategy and continue after first phase fails", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1beta1.PlanStatus{
-				Status: v1beta1.ExecutionInProgress,
+			PlanStatus: &kudoapi.PlanStatus{
+				Status: kudoapi.ExecutionInProgress,
 				Name:   "test",
-				Phases: []v1beta1.PhaseStatus{
-					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
-					{Name: "phaseTwo", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
+				Phases: []kudoapi.PhaseStatus{
+					{Name: "phaseOne", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{{Name: "step", Status: kudoapi.ExecutionInProgress}}},
+					{Name: "phaseTwo", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{{Name: "step", Status: kudoapi.ExecutionInProgress}}},
 				},
 			},
-			Spec: &v1beta1.Plan{
+			Spec: &kudoapi.Plan{
 				Strategy: "parallel",
-				Phases: []v1beta1.Phase{
-					{Name: "phaseOne", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"taskOne"}}}},
-					{Name: "phaseTwo", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"taskTwo"}}}},
+				Phases: []kudoapi.Phase{
+					{Name: "phaseOne", Strategy: "serial", Steps: []kudoapi.Step{{Name: "step", Tasks: []string{"taskOne"}}}},
+					{Name: "phaseTwo", Strategy: "serial", Steps: []kudoapi.Step{{Name: "step", Tasks: []string{"taskTwo"}}}},
 				},
 			},
-			Tasks: []v1beta1.Task{
+			Tasks: []kudoapi.Task{
 				{
 					Name: "taskOne",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: true},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{WantErr: true},
 					},
 				},
 				{
 					Name: "taskTwo",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{Done: true},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{Done: true},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1beta1.PlanStatus{
+			expectedStatus: &kudoapi.PlanStatus{
 				Name:                 "test",
-				Status:               v1beta1.ExecutionInProgress,
+				Status:               kudoapi.ExecutionInProgress,
 				LastUpdatedTimestamp: &v1.Time{Time: testTime},
-				Phases: []v1beta1.PhaseStatus{
-					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ErrorStatus, Message: "A transient error when executing task test.phaseOne.step.taskOne. Will retry. dummy error"}}},
-					{Name: "phaseTwo", Status: v1beta1.ExecutionComplete, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionComplete}}},
+				Phases: []kudoapi.PhaseStatus{
+					{Name: "phaseOne", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{{Name: "step", Status: kudoapi.ErrorStatus, Message: "A transient error when executing task test.phaseOne.step.taskOne. Will retry. dummy error"}}},
+					{Name: "phaseTwo", Status: kudoapi.ExecutionComplete, Steps: []kudoapi.StepStatus{{Name: "step", Status: kudoapi.ExecutionComplete}}},
 				},
 			},
 			enhancer: testEnhancer,
 		},
 		{name: "plan in progress with multiple parallel phases, will stop the execution on the first fatal step error", activePlan: &ActivePlan{
 			Name: "test",
-			PlanStatus: &v1beta1.PlanStatus{
+			PlanStatus: &kudoapi.PlanStatus{
 				Name:   "test",
-				Status: v1beta1.ExecutionInProgress,
-				Phases: []v1beta1.PhaseStatus{
-					{Name: "phaseOne", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
-					{Name: "phaseTwo", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
+				Status: kudoapi.ExecutionInProgress,
+				Phases: []kudoapi.PhaseStatus{
+					{Name: "phaseOne", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{{Name: "step", Status: kudoapi.ExecutionInProgress}}},
+					{Name: "phaseTwo", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{{Name: "step", Status: kudoapi.ExecutionInProgress}}},
 				},
 			},
-			Spec: &v1beta1.Plan{
+			Spec: &kudoapi.Plan{
 				Strategy: "parallel",
-				Phases: []v1beta1.Phase{
-					{Name: "phaseOne", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"taskOne"}}}},
-					{Name: "phaseTwo", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"taskTwo"}}}},
+				Phases: []kudoapi.Phase{
+					{Name: "phaseOne", Strategy: "serial", Steps: []kudoapi.Step{{Name: "step", Tasks: []string{"taskOne"}}}},
+					{Name: "phaseTwo", Strategy: "serial", Steps: []kudoapi.Step{{Name: "step", Tasks: []string{"taskTwo"}}}},
 				},
 			},
-			Tasks: []v1beta1.Task{
+			Tasks: []kudoapi.Task{
 				{
 					Name: "taskOne",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: true, Fatal: true},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{WantErr: true, Fatal: true},
 					},
 				},
 				{
 					Name: "taskTwo",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: false},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{WantErr: false},
 					},
 				},
 			},
 			Templates: map[string]string{},
 		},
 			metadata: meta,
-			expectedStatus: &v1beta1.PlanStatus{
+			expectedStatus: &kudoapi.PlanStatus{
 				Name:                 "test",
-				Status:               v1beta1.ExecutionFatalError,
+				Status:               kudoapi.ExecutionFatalError,
 				LastUpdatedTimestamp: &v1.Time{Time: testTime},
-				Phases: []v1beta1.PhaseStatus{
-					{Name: "phaseOne", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionFatalError,
+				Phases: []kudoapi.PhaseStatus{
+					{Name: "phaseOne", Status: kudoapi.ExecutionFatalError, Steps: []kudoapi.StepStatus{{Name: "step", Status: kudoapi.ExecutionFatalError,
 						Message: "Error during execution: fatal error: default/test-instance failed in test.phaseOne.step.taskOne: dummy error"}}},
-					{Name: "phaseTwo", Status: v1beta1.ExecutionInProgress, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionInProgress}}},
+					{Name: "phaseTwo", Status: kudoapi.ExecutionInProgress, Steps: []kudoapi.StepStatus{{Name: "step", Status: kudoapi.ExecutionInProgress}}},
 				},
 			},
 			wantErr:  true,
@@ -585,34 +585,34 @@ func TestExecutePlan(t *testing.T) {
 			name: "plan in a pending status will have fatal plan/phase/step statuses when a step has a fatal error",
 			activePlan: &ActivePlan{
 				Name: "test",
-				PlanStatus: &v1beta1.PlanStatus{
+				PlanStatus: &kudoapi.PlanStatus{
 					Name:   "test",
-					Status: v1beta1.ExecutionPending,
-					Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionPending, Steps: []v1beta1.StepStatus{{Name: "step", Status: v1beta1.ExecutionPending}}}},
+					Status: kudoapi.ExecutionPending,
+					Phases: []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionPending, Steps: []kudoapi.StepStatus{{Name: "step", Status: kudoapi.ExecutionPending}}}},
 				},
-				Spec: &v1beta1.Plan{
+				Spec: &kudoapi.Plan{
 					Strategy: "serial",
-					Phases: []v1beta1.Phase{
-						{Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{{Name: "step", Tasks: []string{"task"}}}},
+					Phases: []kudoapi.Phase{
+						{Name: "phase", Strategy: "serial", Steps: []kudoapi.Step{{Name: "step", Tasks: []string{"task"}}}},
 					},
 				},
-				Tasks: []v1beta1.Task{
+				Tasks: []kudoapi.Task{
 					{
 						Name: "task",
 						Kind: "Dummy",
-						Spec: v1beta1.TaskSpec{
-							DummyTaskSpec: v1beta1.DummyTaskSpec{WantErr: true, Fatal: true},
+						Spec: kudoapi.TaskSpec{
+							DummyTaskSpec: kudoapi.DummyTaskSpec{WantErr: true, Fatal: true},
 						},
 					},
 				},
 				Templates: map[string]string{},
 			},
 			metadata: meta,
-			expectedStatus: &v1beta1.PlanStatus{
+			expectedStatus: &kudoapi.PlanStatus{
 				Name:                 "test",
-				Status:               v1beta1.ExecutionFatalError,
+				Status:               kudoapi.ExecutionFatalError,
 				LastUpdatedTimestamp: &v1.Time{Time: testTime},
-				Phases: []v1beta1.PhaseStatus{{Name: "phase", Status: v1beta1.ExecutionFatalError, Steps: []v1beta1.StepStatus{{Status: v1beta1.ExecutionFatalError, Name: "step",
+				Phases: []kudoapi.PhaseStatus{{Name: "phase", Status: kudoapi.ExecutionFatalError, Steps: []kudoapi.StepStatus{{Status: kudoapi.ExecutionFatalError, Name: "step",
 					Message: "Error during execution: fatal error: default/test-instance failed in test.phase.step.task: dummy error"}}}}},
 			wantErr:  true,
 			enhancer: testEnhancer,
@@ -641,8 +641,8 @@ func TestExecutePlan(t *testing.T) {
 	}
 }
 
-func instance() *v1beta1.Instance {
-	return &v1beta1.Instance{
+func instance() *kudoapi.Instance {
+	return &kudoapi.Instance{
 		TypeMeta: v1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -651,7 +651,7 @@ func instance() *v1beta1.Instance {
 			Name:      "test-instance",
 			Namespace: "default",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: corev1.ObjectReference{
 				Name: "first-operator",
 			},

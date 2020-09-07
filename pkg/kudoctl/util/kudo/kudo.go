@@ -23,7 +23,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/scheme"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
@@ -183,7 +183,7 @@ func setGVKFromScheme(object runtime.Object) error {
 
 // GetInstance queries kubernetes api for instance of given name in given namespace
 // returns error for error conditions. Instance not found is not considered an error and will result in 'nil, nil'
-func (c *Client) GetInstance(name, namespace string) (*v1beta1.Instance, error) {
+func (c *Client) GetInstance(name, namespace string) (*kudoapi.Instance, error) {
 	instance, err := c.kudoClientset.KudoV1beta1().Instances(namespace).Get(context.TODO(), name, v1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return nil, nil
@@ -197,7 +197,7 @@ func (c *Client) GetInstance(name, namespace string) (*v1beta1.Instance, error) 
 
 // GetOperatorVersion queries kubernetes api for operatorversion of given name in given namespace
 // returns error for all other errors that not found, not found is treated as result being 'nil, nil'
-func (c *Client) GetOperatorVersion(name, namespace string) (*v1beta1.OperatorVersion, error) {
+func (c *Client) GetOperatorVersion(name, namespace string) (*kudoapi.OperatorVersion, error) {
 	ov, err := c.kudoClientset.KudoV1beta1().OperatorVersions(namespace).Get(context.TODO(), name, v1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return nil, nil
@@ -211,7 +211,7 @@ func (c *Client) GetOperatorVersion(name, namespace string) (*v1beta1.OperatorVe
 
 // GetOperatorVersion queries kubernetes api for operator of given name in given namespace
 // returns error for all other errors that not found, not found is treated as result being 'nil, nil'
-func (c *Client) GetOperator(name, namespace string) (*v1beta1.Operator, error) {
+func (c *Client) GetOperator(name, namespace string) (*kudoapi.Operator, error) {
 	o, err := c.kudoClientset.KudoV1beta1().Operators(namespace).Get(context.TODO(), name, v1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return nil, nil
@@ -225,7 +225,7 @@ func (c *Client) GetOperator(name, namespace string) (*v1beta1.Operator, error) 
 
 // UpdateInstance updates operatorversion on instance
 func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersion *string, parameters map[string]string, triggeredPlan *string, wait bool, waitTime time.Duration) error {
-	var oldInstance *v1beta1.Instance
+	var oldInstance *kudoapi.Instance
 	if wait {
 		var err error
 		oldInstance, err = c.GetInstance(instanceName, namespace)
@@ -234,7 +234,7 @@ func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersion 
 		}
 	}
 
-	instanceSpec := v1beta1.InstanceSpec{}
+	instanceSpec := kudoapi.InstanceSpec{}
 	// 1. new OperatorVersion
 	if operatorVersion != nil {
 		instanceSpec.OperatorVersion = v1core.ObjectReference{
@@ -253,7 +253,7 @@ func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersion 
 
 	// 4. create new instance object and patch the existing one
 	serializedPatch, err := json.Marshal(struct {
-		Spec *v1beta1.InstanceSpec `json:"spec"`
+		Spec *kudoapi.InstanceSpec `json:"spec"`
 	}{
 		&instanceSpec,
 	})
@@ -279,7 +279,7 @@ func (c *Client) UpdateInstance(instanceName, namespace string, operatorVersion 
 // "current" status could be the old "done" status or the new status... it's hard to know.  If the oldInstance is provided
 // the wait will then initially wait for the "new" plan to activate then return when completed.
 // The error is either an error in working with kubernetes or a wait.ErrWaitTimeout
-func (c *Client) WaitForInstance(name, namespace string, oldInstance *v1beta1.Instance, timeout time.Duration) error {
+func (c *Client) WaitForInstance(name, namespace string, oldInstance *kudoapi.Instance, timeout time.Duration) error {
 	// polling interval 1 sec
 	interval := 1 * time.Second
 	return wait.PollImmediate(interval, timeout, func() (done bool, err error) {
@@ -294,7 +294,7 @@ func (c *Client) WaitForInstance(name, namespace string, oldInstance *v1beta1.In
 
 // IsInstanceDone provides a check on instance to see if it is "finished" without retries
 // oldInstance is nil if there is no previous instance
-func (c *Client) IsInstanceDone(instance, oldInstance *v1beta1.Instance) (bool, error) {
+func (c *Client) IsInstanceDone(instance, oldInstance *kudoapi.Instance) (bool, error) {
 
 	// upgrade wait, needs to make sure the UID switches
 	if oldInstance != nil {
@@ -328,7 +328,7 @@ func (c *Client) IsInstanceDone(instance, oldInstance *v1beta1.Instance) (bool, 
 // IsInstanceByNameDone provides a check on instance based on name to see if it is "finished" without retries
 // returns true if finished otherwise false
 // oldInstance is nil if there is no previous instance
-func (c *Client) IsInstanceByNameDone(name string, namespace string, oldInstance *v1beta1.Instance) (bool, error) {
+func (c *Client) IsInstanceByNameDone(name string, namespace string, oldInstance *kudoapi.Instance) (bool, error) {
 	instance, err := c.GetInstance(name, namespace)
 	if err != nil {
 		return false, err
@@ -396,7 +396,7 @@ func (c *Client) OperatorVersionsInstalled(operatorName, namespace string) ([]st
 }
 
 // InstallOperatorObjToCluster expects a valid Operator obj to install
-func (c *Client) InstallOperatorObjToCluster(obj *v1beta1.Operator, namespace string) (*v1beta1.Operator, error) {
+func (c *Client) InstallOperatorObjToCluster(obj *kudoapi.Operator, namespace string) (*kudoapi.Operator, error) {
 	createdObj, err := c.kudoClientset.KudoV1beta1().Operators(namespace).Create(context.TODO(), obj, v1.CreateOptions{})
 	if err != nil {
 		// we do NOT wrap timeouts
@@ -409,7 +409,7 @@ func (c *Client) InstallOperatorObjToCluster(obj *v1beta1.Operator, namespace st
 }
 
 // InstallOperatorVersionObjToCluster expects a valid Operator obj to install
-func (c *Client) InstallOperatorVersionObjToCluster(obj *v1beta1.OperatorVersion, namespace string) (*v1beta1.OperatorVersion, error) {
+func (c *Client) InstallOperatorVersionObjToCluster(obj *kudoapi.OperatorVersion, namespace string) (*kudoapi.OperatorVersion, error) {
 	createdObj, err := c.kudoClientset.KudoV1beta1().OperatorVersions(namespace).Create(context.TODO(), obj, v1.CreateOptions{})
 	if err != nil {
 		// we do NOT wrap timeouts
@@ -422,7 +422,7 @@ func (c *Client) InstallOperatorVersionObjToCluster(obj *v1beta1.OperatorVersion
 }
 
 // InstallInstanceObjToCluster expects a valid Instance obj to install
-func (c *Client) InstallInstanceObjToCluster(obj *v1beta1.Instance, namespace string) (*v1beta1.Instance, error) {
+func (c *Client) InstallInstanceObjToCluster(obj *kudoapi.Instance, namespace string) (*kudoapi.Instance, error) {
 	createdObj, err := c.kudoClientset.KudoV1beta1().Instances(namespace).Create(context.TODO(), obj, v1.CreateOptions{})
 	if err != nil {
 		// we do NOT wrap timeouts
@@ -447,7 +447,7 @@ func (c *Client) DeleteInstance(instanceName, namespace string) error {
 
 // ValidateServerForOperator validates that the k8s server version and kudo version are valid for operator
 // error message will provide detail of failure, otherwise nil
-func (c *Client) ValidateServerForOperator(operator *v1beta1.Operator) error {
+func (c *Client) ValidateServerForOperator(operator *kudoapi.Operator) error {
 	expectedKubver, err := version.New(operator.Spec.KubernetesVersion)
 	if err != nil {
 		return fmt.Errorf("unable to parse operators kubernetes version: %w", err)
@@ -495,13 +495,13 @@ func (c *Client) CreateNamespace(namespace, manifest string) error {
 }
 
 // GetChildInstances returns all instances that were created as dependencies of a parent instance
-func (c *Client) GetChildInstances(parent *v1beta1.Instance) ([]v1beta1.Instance, error) {
+func (c *Client) GetChildInstances(parent *kudoapi.Instance) ([]kudoapi.Instance, error) {
 	instances, err := c.kudoClientset.KudoV1beta1().Instances(parent.Namespace).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	children := []v1beta1.Instance{}
+	children := []kudoapi.Instance{}
 
 	for _, instance := range instances.Items {
 		for _, or := range instance.GetOwnerReferences() {

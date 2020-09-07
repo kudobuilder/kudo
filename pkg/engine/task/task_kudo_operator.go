@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/health"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	parser "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/params"
@@ -41,7 +41,7 @@ func (kt KudoOperatorTask) Run(ctx Context) (bool, error) {
 	namespace := ctx.Meta.InstanceNamespace
 	operatorName := kt.OperatorName
 	operatorVersion := kt.OperatorVersion
-	operatorVersionName := v1beta1.OperatorVersionName(operatorName, operatorVersion)
+	operatorVersionName := kudoapi.OperatorVersionName(operatorName, operatorVersion)
 	instanceName := dependencyInstanceName(ctx.Meta.InstanceName, kt.InstanceName, operatorName)
 
 	// 1. - Expand parameter file if exists -
@@ -120,8 +120,8 @@ func renderParametersFile(pf string, pft string, meta renderer.Metadata, paramet
 	return engine.Render(pf, pft, vars)
 }
 
-func instanceResource(instanceName, operatorName, operatorVersionName, namespace string, parameters map[string]string, owner metav1.Object, scheme *runtime.Scheme) (*v1beta1.Instance, error) {
-	instance := &v1beta1.Instance{
+func instanceResource(instanceName, operatorName, operatorVersionName, namespace string, parameters map[string]string, owner metav1.Object, scheme *runtime.Scheme) (*kudoapi.Instance, error) {
+	instance := &kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Instance",
 			APIVersion: packages.APIVersion,
@@ -131,13 +131,13 @@ func instanceResource(instanceName, operatorName, operatorVersionName, namespace
 			Namespace: namespace,
 			Labels:    map[string]string{kudo.OperatorLabel: operatorName},
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: corev1.ObjectReference{
 				Name: operatorVersionName,
 			},
 			Parameters: parameters,
 		},
-		Status: v1beta1.InstanceStatus{},
+		Status: kudoapi.InstanceStatus{},
 	}
 	if err := controllerutil.SetOwnerReference(owner, instance, scheme); err != nil {
 		return nil, fmt.Errorf("failed to set resource ownership for the new instance: %v", err)
@@ -149,8 +149,8 @@ func instanceResource(instanceName, operatorName, operatorVersionName, namespace
 // applyInstance creates the passed instance if it doesn't exist or patches the existing one. Patch will override
 // current spec.parameters and Spec.operatorVersion the same way, kudoctl does it. If the was no error, then the passed
 // instance object is updated with the content returned by the server
-func applyInstance(new *v1beta1.Instance, ns string, c client.Client) error {
-	old := &v1beta1.Instance{}
+func applyInstance(new *kudoapi.Instance, ns string, c client.Client) error {
+	old := &kudoapi.Instance{}
 	err := c.Get(context.TODO(), types.NamespacedName{Name: new.Name, Namespace: ns}, old)
 
 	switch {
@@ -168,7 +168,7 @@ func applyInstance(new *v1beta1.Instance, ns string, c client.Client) error {
 	}
 }
 
-func createInstance(i *v1beta1.Instance, c client.Client) error {
+func createInstance(i *kudoapi.Instance, c client.Client) error {
 	gvk := i.GroupVersionKind()
 	err := c.Create(context.TODO(), i)
 
@@ -179,9 +179,9 @@ func createInstance(i *v1beta1.Instance, c client.Client) error {
 	return err
 }
 
-func patchInstance(i *v1beta1.Instance, c client.Client) error {
+func patchInstance(i *kudoapi.Instance, c client.Client) error {
 	patch, err := json.Marshal(struct {
-		Spec *v1beta1.InstanceSpec `json:"spec"`
+		Spec *kudoapi.InstanceSpec `json:"spec"`
 	}{
 		Spec: &i.Spec,
 	})

@@ -3,12 +3,12 @@ package generate
 import (
 	"github.com/spf13/afero"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 )
 
 // AddMaintainer adds a maintainer to the operator.yaml
-func AddMaintainer(fs afero.Fs, path string, m *v1beta1.Maintainer) error {
+func AddMaintainer(fs afero.Fs, path string, m *kudoapi.Maintainer) error {
 
 	p, err := reader.ReadDir(fs, path)
 	if err != nil {
@@ -22,7 +22,7 @@ func AddMaintainer(fs afero.Fs, path string, m *v1beta1.Maintainer) error {
 }
 
 // MaintainerList provides a list of operator maintainers
-func MaintainerList(fs afero.Fs, path string) ([]*v1beta1.Maintainer, error) {
+func MaintainerList(fs afero.Fs, path string) ([]*kudoapi.Maintainer, error) {
 	p, err := reader.ReadDir(fs, path)
 	if err != nil {
 		return nil, err

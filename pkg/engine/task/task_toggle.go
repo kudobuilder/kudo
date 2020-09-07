@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 const (
@@ -28,9 +28,9 @@ func (tt ToggleTask) Run(ctx Context) (bool, error) {
 	return task.Run(ctx)
 }
 
-func (tt ToggleTask) intermediateTaskSpec() v1beta1.TaskSpec {
-	return v1beta1.TaskSpec{
-		ResourceTaskSpec: v1beta1.ResourceTaskSpec{
+func (tt ToggleTask) intermediateTaskSpec() kudoapi.TaskSpec {
+	return kudoapi.TaskSpec{
+		ResourceTaskSpec: kudoapi.ResourceTaskSpec{
 			Resources: tt.Resources,
 		},
 	}
@@ -55,13 +55,13 @@ func (tt ToggleTask) delegateTask(ctx Context) (Tasker, error) {
 	}
 	// 2. - Return the Apply or Delete task based on parameter value
 	if enabled {
-		task, err = newApply(&v1beta1.Task{
+		task, err = newApply(&kudoapi.Task{
 			Name: tt.Name,
 			Kind: ApplyTaskKind,
 			Spec: tt.intermediateTaskSpec(),
 		})
 	} else {
-		task, err = newDelete(&v1beta1.Task{
+		task, err = newDelete(&kudoapi.Task{
 			Name: tt.Name,
 			Kind: DeleteTaskKind,
 			Spec: tt.intermediateTaskSpec(),

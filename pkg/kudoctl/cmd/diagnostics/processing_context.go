@@ -6,7 +6,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 // processingContext - shared data for the resource collectors
@@ -33,11 +33,11 @@ func (ctx *processingContext) instanceDirectory() string {
 }
 
 func (ctx *processingContext) setOperatorNameFromOperatorVersion(obj runtime.Object) {
-	ctx.opName = obj.(*v1beta1.OperatorVersion).Spec.Operator.Name
+	ctx.opName = obj.(*kudoapi.OperatorVersion).Spec.Operator.Name
 }
 
 func (ctx *processingContext) setOperatorVersionNameFromInstance(obj runtime.Object) {
-	ctx.opVersionName = obj.(*v1beta1.Instance).Spec.OperatorVersion.Name
+	ctx.opVersionName = obj.(*kudoapi.Instance).Spec.OperatorVersion.Name
 }
 
 func (ctx *processingContext) setPods(o runtime.Object) {

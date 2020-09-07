@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/generate"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/prompt"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
@@ -94,7 +94,7 @@ func (pkg *packageNewCmd) run() error {
 	}
 
 	if !pkg.interactive {
-		opDefault.Maintainers = []*v1beta1.Maintainer{
+		opDefault.Maintainers = []*kudoapi.Maintainer{
 			{
 				Name:  "My Name",
 				Email: "MyEmail@invalid",

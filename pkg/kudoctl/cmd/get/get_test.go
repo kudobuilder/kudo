@@ -12,7 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -42,7 +42,7 @@ func newTestClient() *kudo.Client {
 }
 
 func TestGetInstances(t *testing.T) {
-	testInstance := &v1beta1.Instance{
+	testInstance := &kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -54,14 +54,14 @@ func TestGetInstances(t *testing.T) {
 			Name:      "test",
 			Namespace: "default",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "some-operator-0.1.0",
 			},
 		},
 	}
 
-	testOperator := &v1beta1.Operator{
+	testOperator := &kudoapi.Operator{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Operator",
@@ -70,13 +70,13 @@ func TestGetInstances(t *testing.T) {
 			Name:      "some-operator",
 			Namespace: "default",
 		},
-		Spec: v1beta1.OperatorSpec{
+		Spec: kudoapi.OperatorSpec{
 			Description: "A fancy Operator",
 			KudoVersion: "0.16.0",
 		},
 	}
 
-	testOperatorVersion := &v1beta1.OperatorVersion{
+	testOperatorVersion := &kudoapi.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "OperatorVersion",
@@ -85,7 +85,7 @@ func TestGetInstances(t *testing.T) {
 			Name:      "some-operator-0.1.0",
 			Namespace: "default",
 		},
-		Spec: v1beta1.OperatorVersionSpec{
+		Spec: kudoapi.OperatorVersionSpec{
 			Operator: v1.ObjectReference{
 				APIVersion: "kudo.dev/v1beta1",
 				Kind:       "Operator",

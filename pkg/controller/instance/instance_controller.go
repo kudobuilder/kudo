@@ -45,7 +45,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
@@ -69,7 +69,7 @@ func (r *Reconciler) SetupWithManager(
 	addOvRelatedInstancesToReconcile := handler.ToRequestsFunc(
 		func(obj handler.MapObject) []reconcile.Request {
 			requests := make([]reconcile.Request, 0)
-			instances := &kudov1beta1.InstanceList{}
+			instances := &kudoapi.InstanceList{}
 			// we are listing all instances here, which could come with some performance penalty
 			// obj possible optimization is to introduce filtering based on operatorversion (or operator)
 			err := mgr.GetClient().List(
@@ -96,22 +96,22 @@ func (r *Reconciler) SetupWithManager(
 		})
 
 	return ctrl.NewControllerManagedBy(mgr).
-		// Owns(&kudov1beta1.Instance{}) is equivalent to Watches(&source.Kind{Type: <ForType-apiType>},
+		// Owns(&kudoapi.Instance{}) is equivalent to Watches(&source.Kind{Type: <ForType-apiType>},
 		// &handler.EnqueueRequestForOwner{OwnerType: apiType, IsController: true}) and is responsible for reconciliation
 		// when k8s resources owned by an Instance change.
-		// Watches((&source.Kind{Type: &kudov1beta1.Instance{}}...) is almost the same as Owns(), but with IsController: false
+		// Watches((&source.Kind{Type: &kudoapi.Instance{}}...) is almost the same as Owns(), but with IsController: false
 		// for reconciliation of (parent) instances owning other (child) instances e.g. when a child instance is complete
 		// and parent instance can move on with the plan execution.
-		For(&kudov1beta1.Instance{}).
-		Owns(&kudov1beta1.Instance{}).
-		Watches(&source.Kind{Type: &kudov1beta1.Instance{}}, &handler.EnqueueRequestForOwner{OwnerType: &kudov1beta1.Instance{}, IsController: false}).
+		For(&kudoapi.Instance{}).
+		Owns(&kudoapi.Instance{}).
+		Watches(&source.Kind{Type: &kudoapi.Instance{}}, &handler.EnqueueRequestForOwner{OwnerType: &kudoapi.Instance{}, IsController: false}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&batchv1.Job{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Pod{}).
 		WithEventFilter(eventFilter()).
-		Watches(&source.Kind{Type: &kudov1beta1.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: addOvRelatedInstancesToReconcile}).
+		Watches(&source.Kind{Type: &kudoapi.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: addOvRelatedInstancesToReconcile}).
 		Complete(r)
 }
 
@@ -200,7 +200,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	if planStatus.Status == kudov1beta1.ExecutionPending {
+	if planStatus.Status == kudoapi.ExecutionPending {
 		log.Printf("InstanceController: Going to start execution of plan '%s' on instance %s/%s", plan, instance.Namespace, instance.Name)
 		r.Recorder.Event(instance, "Normal", "PlanStarted", fmt.Sprintf("Execution of plan %s started", plan))
 	}
@@ -208,7 +208,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	// check if all the dependencies can be resolved (if necessary)
 	err = r.resolveDependencies(instance, ov)
 	if err != nil {
-		planStatus.SetWithMessage(kudov1beta1.ExecutionFatalError, err.Error())
+		planStatus.SetWithMessage(kudoapi.ExecutionFatalError, err.Error())
 		instance.UpdateInstanceStatus(planStatus, &metav1.Time{Time: time.Now()})
 		err = r.handleError(err, instance, oldInstance)
 		return reconcile.Result{}, err
@@ -267,7 +267,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 // all this is necessary because we have a health check for deletion (waiting for deleted object disappear from client cache)
 // and we cannot setup watches to all types users can create within KUDO (because we don't know ALL the types)
 // a pragmatic solution that prevents stalling is periodically schedule reconciliation for unfinished plan with a backoff
-func computeTheReconcileResult(instance *kudov1beta1.Instance, timeNow func() time.Time) reconcile.Result {
+func computeTheReconcileResult(instance *kudoapi.Instance, timeNow func() time.Time) reconcile.Result {
 	if instance.Spec.PlanExecution.Status.IsTerminal() {
 		return reconcile.Result{}
 	}
@@ -276,7 +276,7 @@ func computeTheReconcileResult(instance *kudov1beta1.Instance, timeNow func() ti
 	return reconcile.Result{Requeue: true, RequeueAfter: time.Duration(secondsBackoffCount) * time.Second}
 }
 
-func (r *Reconciler) resolveDependencies(i *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion) error {
+func (r *Reconciler) resolveDependencies(i *kudoapi.Instance, ov *kudoapi.OperatorVersion) error {
 	// no need to check the dependencies if this is a child-level instance, as the top-level instance will take care of that
 	if i.IsChildInstance() {
 		return nil
@@ -290,7 +290,7 @@ func (r *Reconciler) resolveDependencies(i *kudov1beta1.Instance, ov *kudov1beta
 	return nil
 }
 
-func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance, client client.Client) error {
+func updateInstance(instance *kudoapi.Instance, oldInstance *kudoapi.Instance, client client.Client) error {
 	// The order of both updates below is important: *first* the instance Spec and Metadata and *then* the Status.
 	// If Status is updated first, a new reconcile request will be scheduled and might fetch the *WRONG* instance
 	// Spec.PlanExecution. This request will then try to execute an already finished plan (again).
@@ -329,7 +329,7 @@ func updateInstance(instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Ins
 	return nil
 }
 
-func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion, activePlanStatus *kudov1beta1.PlanStatus, meta *engine.Metadata) (*workflow.ActivePlan, error) {
+func preparePlanExecution(instance *kudoapi.Instance, ov *kudoapi.OperatorVersion, activePlanStatus *kudoapi.PlanStatus, meta *engine.Metadata) (*workflow.ActivePlan, error) {
 	planSpec, ok := ov.Spec.Plans[activePlanStatus.Name]
 	if !ok {
 		return nil, &engine.ExecutionError{Err: fmt.Errorf("%wcould not find required plan: '%v'", engine.ErrFatalExecution, activePlanStatus.Name), EventName: "InvalidPlan"}
@@ -359,7 +359,7 @@ func preparePlanExecution(instance *kudov1beta1.Instance, ov *kudov1beta1.Operat
 // handleError handles execution error by logging, updating the plan status and optionally publishing an event
 // specify eventReason as nil if you don't wish to publish a warning event
 // returns err if this err should be retried, nil otherwise
-func (r *Reconciler) handleError(err error, instance *kudov1beta1.Instance, oldInstance *kudov1beta1.Instance) error {
+func (r *Reconciler) handleError(err error, instance *kudoapi.Instance, oldInstance *kudoapi.Instance) error {
 	log.Printf("InstanceController: %v", err)
 
 	// first update instance as we want to propagate errors also to the `Instance.Status.PlanStatus`
@@ -383,8 +383,8 @@ func (r *Reconciler) handleError(err error, instance *kudov1beta1.Instance, oldI
 }
 
 // getInstance retrieves the instance by namespaced name
-func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1beta1.Instance, err error) {
-	instance, err = kudov1beta1.GetInstance(request.NamespacedName, r.Client)
+func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudoapi.Instance, err error) {
+	instance, err = kudoapi.GetInstance(request.NamespacedName, r.Client)
 	if err != nil {
 		log.Printf("InstanceController: Error getting instance %v: %v",
 			request.NamespacedName,
@@ -395,7 +395,7 @@ func (r *Reconciler) getInstance(request ctrl.Request) (instance *kudov1beta1.In
 }
 
 // ParamsMap generates {{ Params.* }} map of keys and values which is later used during template rendering.
-func ParamsMap(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.OperatorVersion) (map[string]interface{}, error) {
+func ParamsMap(instance *kudoapi.Instance, operatorVersion *kudoapi.OperatorVersion) (map[string]interface{}, error) {
 	params := make(map[string]interface{}, len(operatorVersion.Spec.Parameters))
 
 	for _, param := range operatorVersion.Spec.Parameters {
@@ -419,8 +419,8 @@ func ParamsMap(instance *kudov1beta1.Instance, operatorVersion *kudov1beta1.Oper
 }
 
 // PipesMap generates {{ Pipes.* }} map of keys and values which is later used during template rendering.
-func PipesMap(planName string, plan *kudov1beta1.Plan, tasks []kudov1beta1.Task, emeta *engine.Metadata) (map[string]string, error) {
-	taskByName := func(name string) (*kudov1beta1.Task, bool) {
+func PipesMap(planName string, plan *kudoapi.Plan, tasks []kudoapi.Task, emeta *engine.Metadata) (map[string]string, error) {
+	taskByName := func(name string) (*kudoapi.Task, bool) {
 		for _, t := range tasks {
 			if t.Name == name {
 				return &t, true
@@ -461,7 +461,7 @@ func PipesMap(planName string, plan *kudov1beta1.Plan, tasks []kudov1beta1.Task,
 // scheduled plan (UID has changed) and returns updated plan status. In this case Plan/phase/step statuses are set
 // to ExecutionPending meaning that the controller will restart plan execution. Otherwise (the plan is old),
 // nothing is changed and the existing plan status is returned.
-func resetPlanStatusIfPlanIsNew(i *kudov1beta1.Instance, plan string, uid types.UID) (*kudov1beta1.PlanStatus, error) {
+func resetPlanStatusIfPlanIsNew(i *kudoapi.Instance, plan string, uid types.UID) (*kudoapi.PlanStatus, error) {
 	ps := i.PlanStatus(plan)
 	if ps == nil {
 		return nil, fmt.Errorf("failed to find planStatus for plan '%s'", plan)
@@ -480,28 +480,28 @@ func resetPlanStatusIfPlanIsNew(i *kudov1beta1.Instance, plan string, uid types.
 // ensurePlanStatusInitialized initializes plan status for all plans this instance supports  it does not trigger run
 // of any plan it either initializes everything for a fresh instance without any status or tries to adjust status
 // after OV was updated
-func ensurePlanStatusInitialized(i *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion) {
+func ensurePlanStatusInitialized(i *kudoapi.Instance, ov *kudoapi.OperatorVersion) {
 	if i.Status.PlanStatus == nil {
-		i.Status.PlanStatus = make(map[string]kudov1beta1.PlanStatus)
+		i.Status.PlanStatus = make(map[string]kudoapi.PlanStatus)
 	}
 
 	for planName, plan := range ov.Spec.Plans {
 		if _, ok := i.Status.PlanStatus[planName]; !ok {
-			planStatus := kudov1beta1.PlanStatus{
+			planStatus := kudoapi.PlanStatus{
 				Name:   planName,
-				Status: kudov1beta1.ExecutionNeverRun,
-				Phases: make([]kudov1beta1.PhaseStatus, 0),
+				Status: kudoapi.ExecutionNeverRun,
+				Phases: make([]kudoapi.PhaseStatus, 0),
 			}
 			for _, phase := range plan.Phases {
-				phaseStatus := kudov1beta1.PhaseStatus{
+				phaseStatus := kudoapi.PhaseStatus{
 					Name:   phase.Name,
-					Status: kudov1beta1.ExecutionNeverRun,
-					Steps:  make([]kudov1beta1.StepStatus, 0),
+					Status: kudoapi.ExecutionNeverRun,
+					Steps:  make([]kudoapi.StepStatus, 0),
 				}
 				for _, step := range phase.Steps {
-					stepStatus := kudov1beta1.StepStatus{
+					stepStatus := kudoapi.StepStatus{
 						Name:   step.Name,
-						Status: kudov1beta1.ExecutionNeverRun,
+						Status: kudoapi.ExecutionNeverRun,
 					}
 					phaseStatus.Steps = append(phaseStatus.Steps, stepStatus)
 				}
@@ -514,7 +514,7 @@ func ensurePlanStatusInitialized(i *kudov1beta1.Instance, ov *kudov1beta1.Operat
 
 // scheduledPlan method returns currently scheduled plan and its UID from Instance.Spec.PlanExecution field. However, due
 // to an edge case with instance deletion, this method also schedules the 'cleanup' plan if necessary (see the comments below)
-func scheduledPlan(i *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion) (string, types.UID) {
+func scheduledPlan(i *kudoapi.Instance, ov *kudoapi.OperatorVersion) (string, types.UID) {
 	// Instance deletion is an edge case where the admission webhook *can not* populate the Spec.PlanExecution.PlanName
 	// with the 'cleanup' plan. So we have to do it here ourselves. Only if:
 	// 1. Instance is being deleted
@@ -522,18 +522,18 @@ func scheduledPlan(i *kudov1beta1.Instance, ov *kudov1beta1.OperatorVersion) (st
 	// 3. Cleanup hasn't been scheduled yet (first time the deletion is being reconciled)
 	// we set the Spec.PlanExecution.PlanName = 'cleanup'
 	hasToScheduleCleanupAfterDeletion := func() bool {
-		shouldCleanup := i.IsDeleting() && kudov1beta1.CleanupPlanExists(ov)
-		cleanupNeverRun := i.PlanStatus(kudov1beta1.CleanupPlanName) == nil || i.PlanStatus(kudov1beta1.CleanupPlanName).Status == kudov1beta1.ExecutionNeverRun
-		cleanupNotScheduled := i.Spec.PlanExecution.PlanName != kudov1beta1.CleanupPlanName
+		shouldCleanup := i.IsDeleting() && kudoapi.CleanupPlanExists(ov)
+		cleanupNeverRun := i.PlanStatus(kudoapi.CleanupPlanName) == nil || i.PlanStatus(kudoapi.CleanupPlanName).Status == kudoapi.ExecutionNeverRun
+		cleanupNotScheduled := i.Spec.PlanExecution.PlanName != kudoapi.CleanupPlanName
 
 		return shouldCleanup && cleanupNeverRun && cleanupNotScheduled
 	}
 	if hasToScheduleCleanupAfterDeletion() {
-		log.Printf("InstanceController: Instance %s/%s is being deleted. Scheduling '%s' plan.", i.Namespace, i.Name, kudov1beta1.CleanupPlanName)
+		log.Printf("InstanceController: Instance %s/%s is being deleted. Scheduling '%s' plan.", i.Namespace, i.Name, kudoapi.CleanupPlanName)
 
-		i.Spec.PlanExecution.PlanName = kudov1beta1.CleanupPlanName
+		i.Spec.PlanExecution.PlanName = kudoapi.CleanupPlanName
 		i.Spec.PlanExecution.UID = uuid.NewUUID()
-		i.Spec.PlanExecution.Status = kudov1beta1.ExecutionNeverRun
+		i.Spec.PlanExecution.Status = kudoapi.ExecutionNeverRun
 	}
 
 	return i.Spec.PlanExecution.PlanName, i.Spec.PlanExecution.UID

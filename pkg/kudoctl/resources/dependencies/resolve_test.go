@@ -8,7 +8,7 @@ import (
 	"github.com/thoas/go-funk"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
@@ -33,14 +33,14 @@ func (resolver nameResolver) Resolve(
 func createPackage(name string, dependencies ...string) packages.Package {
 	p := packages.Package{
 		Resources: &packages.Resources{
-			Operator: &v1beta1.Operator{
+			Operator: &kudoapi.Operator{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: name,
 				},
 			},
-			OperatorVersion: &v1beta1.OperatorVersion{
+			OperatorVersion: &kudoapi.OperatorVersion{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: v1beta1.OperatorVersionName(name, ""),
+					Name: kudoapi.OperatorVersionName(name, ""),
 				},
 			},
 		},
@@ -49,11 +49,11 @@ func createPackage(name string, dependencies ...string) packages.Package {
 	for _, dependency := range dependencies {
 		p.Resources.OperatorVersion.Spec.Tasks = append(
 			p.Resources.OperatorVersion.Spec.Tasks,
-			v1beta1.Task{
+			kudoapi.Task{
 				Name: "dependency",
 				Kind: engtask.KudoOperatorTaskKind,
-				Spec: v1beta1.TaskSpec{
-					KudoOperatorTaskSpec: v1beta1.KudoOperatorTaskSpec{
+				Spec: kudoapi.TaskSpec{
+					KudoOperatorTaskSpec: kudoapi.KudoOperatorTaskSpec{
 						Package: dependency,
 					},
 				},

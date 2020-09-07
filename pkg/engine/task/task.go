@@ -10,7 +10,7 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 )
@@ -32,7 +32,7 @@ type Context struct {
 // as idempotent and will be called multiple times during the life-cycle of the plan execution.
 // Method returns a boolean, signalizing that the task has finished successfully, and an error.
 // An error can wrap the ErrFatalExecution for errors that should not be retried e.g. failed template
-// rendering. This will result in a v1beta1.ExecutionFatalError in the plan execution status. A normal
+// rendering. This will result in a kudoapi.ExecutionFatalError in the plan execution status. A normal
 // error e.g. failure during accessing the API server will be treated  as "transient", meaning plan
 // execution engine  can retry it next time. Only a (true, nil) return value will be treated as successful
 // task execution.
@@ -59,8 +59,8 @@ var (
 	failedTerminalState     = "FailedTerminalStateError"
 )
 
-// Build factory method takes an v1beta1.Task and returns a corresponding Tasker object
-func Build(task *v1beta1.Task) (Tasker, error) {
+// Build factory method takes an kudoapi.Task and returns a corresponding Tasker object
+func Build(task *kudoapi.Task) (Tasker, error) {
 	switch task.Kind {
 	case ApplyTaskKind:
 		return newApply(task)
@@ -79,7 +79,7 @@ func Build(task *v1beta1.Task) (Tasker, error) {
 	}
 }
 
-func newApply(task *v1beta1.Task) (Tasker, error) {
+func newApply(task *kudoapi.Task) (Tasker, error) {
 	// validate ApplyTask
 	if len(task.Spec.ResourceTaskSpec.Resources) == 0 {
 		return nil, fmt.Errorf("task validation error: apply task '%s' has an empty resource list. if that's what you need, use a Dummy task instead", task.Name)
@@ -91,7 +91,7 @@ func newApply(task *v1beta1.Task) (Tasker, error) {
 	}, nil
 }
 
-func newDelete(task *v1beta1.Task) (Tasker, error) {
+func newDelete(task *kudoapi.Task) (Tasker, error) {
 	// validate DeleteTask
 	if len(task.Spec.ResourceTaskSpec.Resources) == 0 {
 		return nil, fmt.Errorf("task validation error: delete task '%s' has an empty resource list. if that's what you need, use a Dummy task instead", task.Name)
@@ -103,7 +103,7 @@ func newDelete(task *v1beta1.Task) (Tasker, error) {
 	}, nil
 }
 
-func newDummy(task *v1beta1.Task) (Tasker, error) {
+func newDummy(task *kudoapi.Task) (Tasker, error) {
 	return DummyTask{
 		Name:    task.Name,
 		WantErr: task.Spec.DummyTaskSpec.WantErr,
@@ -112,7 +112,7 @@ func newDummy(task *v1beta1.Task) (Tasker, error) {
 	}, nil
 }
 
-func newPipe(task *v1beta1.Task) (Tasker, error) {
+func newPipe(task *kudoapi.Task) (Tasker, error) {
 	// validate PipeTask
 	if len(task.Spec.PipeTaskSpec.Pipe) == 0 {
 		return nil, errors.New("task validation error: pipe task has an empty pipe files list")
@@ -135,7 +135,7 @@ func newPipe(task *v1beta1.Task) (Tasker, error) {
 	}, nil
 }
 
-func newToggle(task *v1beta1.Task) (Tasker, error) {
+func newToggle(task *kudoapi.Task) (Tasker, error) {
 	// validate if resources are present
 	if len(task.Spec.Resources) == 0 {
 		return nil, errors.New("task validation error: toggle task has an empty resource list. if that's what you need, use a Dummy task instead")
@@ -187,7 +187,7 @@ func fatalExecutionError(cause error, eventName string, meta renderer.Metadata) 
 	}
 }
 
-func newKudoOperator(task *v1beta1.Task) (Tasker, error) {
+func newKudoOperator(task *kudoapi.Task) (Tasker, error) {
 	// validate KudoOperatorTask
 	if task.Spec.KudoOperatorTaskSpec.Package == "" {
 		return nil, fmt.Errorf("task validation error: kudo operator task '%s' has an empty package name", task.Name)
