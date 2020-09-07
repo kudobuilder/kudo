@@ -66,7 +66,7 @@ Currently, KUDO uses a flat [list of parameter](https://github.com/kudobuilder/k
 - Easily extendable with custom attributes like `trigger` and `immutable`
 - Rich ecosystem of tools and libraries e.g. [UI generators](http://json-schema.org/implementations.html#generators-from-schemas)
 
-Latter point might help to build an ecosystem around KUDO operators which might help driving KUDOs adoption.
+This latter point might help to build an ecosystem around KUDO operators which might help driving KUDOs adoption.
 
 ### Goals
 
@@ -82,8 +82,8 @@ One part of the proposal deals the client-side of the new format. This includes:
  - Introduce new API version (`apiVersion:kudo.dev/v1beta2`) for the operator package `params.yaml`. KUDO should be able to read both old and new formats.
 - Support updating nested values from the command line e.g. `kudo update ... -p some.nested.key=value`
 - Support updating nested values using values file e.g. `kudo update ... -P values.yaml`
-- Add nested parameters via. the wizard `kudo package add parameter`
-- Parameter listing aka `kudo package list parameters`. We need a new output format here - maybe a tree-table?
+- Add nested parameters via the wizard `kudo package add parameter`
+- Parameter listing aka `kudo package list parameters`. We may need to consider a new output format here - maybe a tree-table?
 - Possible additional validation for our custom attributes e.g. parameter `trigger`
 
 The server-side of the proposal includes:
@@ -118,7 +118,7 @@ properties:
     required: ["URI"]
 ```
 
-KUDO will support both package formats for the future. At some point the old format might become deprecated, but this will not be planned yet.
+KUDO will support both package formats for the future. At some point the old format might become deprecated, but this is not planned yet.
 
 Note: The apiVersions here (`v1beta1` and `v2beta2`) correspond to the CRD versions, but are separate definitions, even if they seem to be similar in certain aspects.
 
