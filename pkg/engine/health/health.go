@@ -10,8 +10,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -63,18 +63,18 @@ func IsHealthy(obj runtime.Object) error {
 
 	objUnstructured := &unstructured.Unstructured{Object: unstructMap}
 	switch obj := obj.(type) {
-	case *apiextensionsv1beta1.CustomResourceDefinition:
+	case *apiextv1beta1.CustomResourceDefinition:
 		for _, c := range obj.Status.Conditions {
-			if c.Type == apiextensionsv1beta1.Established && c.Status == apiextensionsv1beta1.ConditionTrue {
+			if c.Type == apiextv1beta1.Established && c.Status == apiextv1beta1.ConditionTrue {
 				log.Printf("CRD %s is now healthy", obj.Name)
 				return nil
 			}
 		}
 		msg := fmt.Sprintf("CRD %s is not healthy ( Conditions: %v )", obj.Name, obj.Status.Conditions)
 		return errors.New(msg)
-	case *apiextensionsv1.CustomResourceDefinition:
+	case *apiextv1.CustomResourceDefinition:
 		for _, c := range obj.Status.Conditions {
-			if c.Type == apiextensionsv1.Established && c.Status == apiextensionsv1.ConditionTrue {
+			if c.Type == apiextv1.Established && c.Status == apiextv1.ConditionTrue {
 				log.Printf("CRD %s is now healthy", obj.Name)
 				return nil
 			}
