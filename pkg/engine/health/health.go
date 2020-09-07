@@ -9,7 +9,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -18,7 +19,7 @@ import (
 	"k8s.io/kubectl/pkg/util/podutils"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/resource"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
@@ -61,9 +62,18 @@ func IsHealthy(obj runtime.Object) error {
 
 	objUnstructured := &unstructured.Unstructured{Object: unstructMap}
 	switch obj := obj.(type) {
-	case *v1beta1.CustomResourceDefinition:
+	case *apiextv1beta1.CustomResourceDefinition:
 		for _, c := range obj.Status.Conditions {
-			if c.Type == v1beta1.Established && c.Status == v1beta1.ConditionTrue {
+			if c.Type == apiextv1beta1.Established && c.Status == apiextv1beta1.ConditionTrue {
+				clog.V(2).Printf("CRD %s is now healthy", obj.Name)
+				return nil
+			}
+		}
+		msg := fmt.Sprintf("CRD %s is not healthy ( Conditions: %v )", obj.Name, obj.Status.Conditions)
+		return errors.New(msg)
+	case *apiextv1.CustomResourceDefinition:
+		for _, c := range obj.Status.Conditions {
+			if c.Type == apiextv1.Established && c.Status == apiextv1.ConditionTrue {
 				clog.V(2).Printf("CRD %s is now healthy", obj.Name)
 				return nil
 			}
@@ -106,7 +116,7 @@ func IsHealthy(obj runtime.Object) error {
 		}
 
 		return fmt.Errorf("job %q still running or failed", obj.Name)
-	case *kudov1beta1.Instance:
+	case *kudoapi.Instance:
 		// if there is no scheduled plan, then we're done
 		if obj.Spec.PlanExecution.PlanName == "" {
 			return nil
