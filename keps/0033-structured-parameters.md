@@ -140,10 +140,10 @@ To migrate the existing CRDs, we will implement a Conversion Webhook that only a
 4. Run the migration: fetch all CRDs and issue an update - This will trigger a conversion and save the CRD with the new version
 5. With a later major KUDO release, we can remove `v1beta1` from the CRD list - this should be at least 6 month later, as soon as we remove support for the `v1beta1` version we cannot support migrating existing installations anymore.
 
+The conversion webhook is stable in Kubernetes 1.16, and beta (and therefore enabled by default) in Kubernetes 1.15. 
+
 Reference: [CRD Versioning](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definition-versioning/)
 
-The actual type that we are going to use in the CRD is `extensionapi.JSON` - This type wraps a `[]byte` and allows storage of any data.  
- 
 #### Operator
 
 The Operator CRD will not change, but we should keep the version in sync with the other CRDs.
@@ -364,7 +364,7 @@ If a field is marked as `immutable`, this applies to the field itself as well as
 
 ### OldName
 
-This attribute is important for operator developers to provide backwards compatibility. After the conversion from `v1btea1` to `v1beta` an operator developer might want to release a new operator version which fully utilises the JSON-schema possibilities and re-arranges existing parameters. Here,  `oldName` is used to map old parameters to the new ones. Let's walk through a complex example, that takes an already installed `v1beta1` operator, converts it to `v1beta2` and upgrades it to a new operator version, which updates and renames the parameters using the `oldName` attribute. 
+This attribute is important for operator developers to provide backwards compatibility. After the conversion from `v1beta1` to `v1beta2` an operator developer might want to release a new operator version which fully utilises the JSON-schema possibilities and re-arranges existing parameters. Here,  `oldName` is used to map old parameters to the new ones. Let's walk through a complex example, that takes an already installed `v1beta1` operator, converts it to `v1beta2` and upgrades it to a new operator version, which updates and renames the parameters using the `oldName` attribute. 
 
 ## Operator conversion and upgrade example
 
