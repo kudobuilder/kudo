@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
@@ -58,26 +58,26 @@ func Operator(fs afero.Fs, dir string, op *packages.OperatorFile, overwrite bool
 	}
 
 	// required empty settings
-	op.Tasks = []v1beta1.Task{
+	op.Tasks = []kudoapi.Task{
 		{
 			Name: "deploy",
 			Kind: task.ApplyTaskKind,
-			Spec: v1beta1.TaskSpec{
-				ResourceTaskSpec: v1beta1.ResourceTaskSpec{
+			Spec: kudoapi.TaskSpec{
+				ResourceTaskSpec: kudoapi.ResourceTaskSpec{
 					Resources: []string{},
 				},
 			},
 		},
 	}
 
-	op.Plans = make(map[string]v1beta1.Plan)
-	op.Plans["deploy"] = v1beta1.Plan{
+	op.Plans = make(map[string]kudoapi.Plan)
+	op.Plans["deploy"] = kudoapi.Plan{
 		Strategy: "serial",
-		Phases: []v1beta1.Phase{
+		Phases: []kudoapi.Phase{
 			{
 				Name:     "deploy",
 				Strategy: "serial",
-				Steps: []v1beta1.Step{
+				Steps: []kudoapi.Step{
 					{
 						Name: "deploy",
 						Tasks: []string{

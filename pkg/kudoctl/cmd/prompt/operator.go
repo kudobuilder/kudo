@@ -9,7 +9,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/spf13/afero"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/generate"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
@@ -94,7 +94,7 @@ func ForOperator(fs afero.Fs, pathDefault string, overwrite bool, operatorDefaul
 }
 
 // ForMaintainer prompts to gather information to add an operator maintainer
-func ForMaintainer() (*v1beta1.Maintainer, error) {
+func ForMaintainer() (*kudoapi.Maintainer, error) {
 
 	nameValid := func(input string) error {
 		if len(input) < 1 {
@@ -120,7 +120,7 @@ func ForMaintainer() (*v1beta1.Maintainer, error) {
 		return nil, err
 	}
 
-	return &v1beta1.Maintainer{Name: name, Email: email}, nil
+	return &kudoapi.Maintainer{Name: name, Email: email}, nil
 }
 
 func validEmail(email string) bool {
@@ -201,7 +201,7 @@ func ForParameter(planNames []string, paramNameList []string) (*packages.Paramet
 	return &parameter, nil
 }
 
-func ForTaskName(existingTasks []v1beta1.Task) (string, error) {
+func ForTaskName(existingTasks []kudoapi.Task) (string, error) {
 	nameValid := func(input string) error {
 		if len(input) < 1 {
 			return errors.New("task name must be > than 1 character")
@@ -219,13 +219,13 @@ func ForTaskName(existingTasks []v1beta1.Task) (string, error) {
 }
 
 // ForTask prompts to gather information to add new task to operator
-func ForTask(name string) (*v1beta1.Task, error) {
+func ForTask(name string) (*kudoapi.Task, error) {
 
 	kind, err := WithOptions("Task Kind", generate.TaskKinds(), "")
 	if err != nil {
 		return nil, err
 	}
-	spec := v1beta1.TaskSpec{}
+	spec := kudoapi.TaskSpec{}
 
 	switch kind {
 	case task.ApplyTaskKind:
@@ -245,7 +245,7 @@ func ForTask(name string) (*v1beta1.Task, error) {
 				break
 			}
 		}
-		spec.ResourceTaskSpec = v1beta1.ResourceTaskSpec{Resources: resources}
+		spec.ResourceTaskSpec = kudoapi.ResourceTaskSpec{Resources: resources}
 
 	case task.PipeTaskKind:
 		pod, err := WithDefault("Pipe Pod File", "")
@@ -253,7 +253,7 @@ func ForTask(name string) (*v1beta1.Task, error) {
 			return nil, err
 		}
 		var again bool
-		pipes := []v1beta1.PipeSpec{}
+		pipes := []kudoapi.PipeSpec{}
 		for {
 			file, err := WithDefault("Pipe File (internal to pod)", "")
 			if err != nil {
@@ -267,7 +267,7 @@ func ForTask(name string) (*v1beta1.Task, error) {
 			if err != nil {
 				return nil, err
 			}
-			pipes = append(pipes, v1beta1.PipeSpec{
+			pipes = append(pipes, kudoapi.PipeSpec{
 				File: file,
 				Kind: kind,
 				Key:  key,
@@ -277,13 +277,13 @@ func ForTask(name string) (*v1beta1.Task, error) {
 				break
 			}
 		}
-		spec.PipeTaskSpec = v1beta1.PipeTaskSpec{
+		spec.PipeTaskSpec = kudoapi.PipeTaskSpec{
 			Pod:  ensureFileExtension(pod, "yaml"),
 			Pipe: pipes,
 		}
 	}
 
-	t := v1beta1.Task{
+	t := kudoapi.Task{
 		Name: name,
 		Kind: kind,
 		Spec: spec,
@@ -292,7 +292,7 @@ func ForTask(name string) (*v1beta1.Task, error) {
 	return &t, nil
 }
 
-func taskExists(name string, existingTasks []v1beta1.Task) bool {
+func taskExists(name string, existingTasks []kudoapi.Task) bool {
 	for _, task := range existingTasks {
 		if task.Name == name {
 			return true
@@ -308,7 +308,7 @@ func ensureFileExtension(fname, ext string) string {
 	return fmt.Sprintf("%s.%s", fname, ext)
 }
 
-func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string, createTaskFun func(fs afero.Fs, path string, taskName string) error) (string, *v1beta1.Plan, error) {
+func ForPlan(planNames []string, tasks []kudoapi.Task, fs afero.Fs, path string, createTaskFun func(fs afero.Fs, path string, taskName string) error) (string, *kudoapi.Plan, error) {
 
 	// initialized to all TaskNames... tasks can be added in the process of creating a plan which will be
 	// added to this list in the process.
@@ -339,19 +339,19 @@ func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string,
 		return "", nil, err
 	}
 
-	planStrat, err := WithOptions("Plan strategy for phase", []string{string(v1beta1.Serial), string(v1beta1.Parallel)}, "")
+	planStrat, err := WithOptions("Plan strategy for phase", []string{string(kudoapi.Serial), string(kudoapi.Parallel)}, "")
 	if err != nil {
 		return "", nil, err
 	}
-	plan := v1beta1.Plan{
-		Strategy: v1beta1.Ordering(planStrat),
+	plan := kudoapi.Plan{
+		Strategy: kudoapi.Ordering(planStrat),
 	}
 
 	// setting up for array of phases in a plan
 	index := 1
 	anotherPhase := false
 	phaseNames := []string{}
-	phases := []v1beta1.Phase{}
+	phases := []kudoapi.Phase{}
 	for {
 		phase, err := forPhase(phaseNames, index, defaultPhaseName)
 		if err != nil {
@@ -362,7 +362,7 @@ func ForPlan(planNames []string, tasks []v1beta1.Task, fs afero.Fs, path string,
 		stepIndex := 1
 		anotherStep := false
 		var stepNames []string
-		var steps []v1beta1.Step
+		var steps []kudoapi.Step
 		for {
 
 			step, err := forStep(stepNames, stepIndex, defaultStepName)
@@ -446,7 +446,7 @@ func subtract(allTasksNames []string, currentStepTaskNames []string) (result []s
 	return result
 }
 
-func forStep(stepNames []string, stepIndex int, defaultStepName string) (*v1beta1.Step, error) {
+func forStep(stepNames []string, stepIndex int, defaultStepName string) (*kudoapi.Step, error) {
 	stepNameValid := func(input string) error {
 		if len(input) < 1 {
 			return errors.New("step name must be > than 1 character")
@@ -460,11 +460,11 @@ func forStep(stepNames []string, stepIndex int, defaultStepName string) (*v1beta
 	if err != nil {
 		return nil, err
 	}
-	step := v1beta1.Step{Name: stepName}
+	step := kudoapi.Step{Name: stepName}
 	return &step, nil
 }
 
-func forPhase(phaseNames []string, index int, defaultPhaseName string) (*v1beta1.Phase, error) {
+func forPhase(phaseNames []string, index int, defaultPhaseName string) (*kudoapi.Phase, error) {
 	pnameValid := func(input string) error {
 		if len(input) < 1 {
 			return errors.New("phase name must be > than 1 character")
@@ -478,13 +478,13 @@ func forPhase(phaseNames []string, index int, defaultPhaseName string) (*v1beta1
 	if err != nil {
 		return nil, err
 	}
-	phaseStrat, err := WithOptions("Phase strategy for steps", []string{string(v1beta1.Serial), string(v1beta1.Parallel)}, "")
+	phaseStrat, err := WithOptions("Phase strategy for steps", []string{string(kudoapi.Serial), string(kudoapi.Parallel)}, "")
 	if err != nil {
 		return nil, err
 	}
-	phase := v1beta1.Phase{
+	phase := kudoapi.Phase{
 		Name:     pname,
-		Strategy: v1beta1.Ordering(phaseStrat),
+		Strategy: kudoapi.Ordering(phaseStrat),
 	}
 	return &phase, nil
 }

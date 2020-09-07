@@ -15,7 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 
@@ -126,7 +126,7 @@ func TestPrinter_printObject(t *testing.T) {
 		},
 		{
 			desc: "kudo object with dir",
-			obj: &v1beta1.Operator{
+			obj: &kudoapi.Operator{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Operator",
 					APIVersion: "kudo.dev/v1beta1",

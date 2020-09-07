@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
@@ -23,7 +23,7 @@ const (
 )
 
 func Test_UpgradeOperatorVersion(t *testing.T) {
-	testO := v1beta1.Operator{
+	testO := kudoapi.Operator{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Operator",
@@ -33,7 +33,7 @@ func Test_UpgradeOperatorVersion(t *testing.T) {
 		},
 	}
 
-	testOv := v1beta1.OperatorVersion{
+	testOv := kudoapi.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "OperatorVersion",
@@ -41,7 +41,7 @@ func Test_UpgradeOperatorVersion(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-1.0",
 		},
-		Spec: v1beta1.OperatorVersionSpec{
+		Spec: kudoapi.OperatorVersionSpec{
 			Version: "1.0",
 			Operator: v1.ObjectReference{
 				Name: "test",
@@ -49,7 +49,7 @@ func Test_UpgradeOperatorVersion(t *testing.T) {
 		},
 	}
 
-	testInstance := v1beta1.Instance{
+	testInstance := kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -60,7 +60,7 @@ func Test_UpgradeOperatorVersion(t *testing.T) {
 			},
 			Name: "test",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
@@ -131,7 +131,7 @@ func (r *testResolver) Resolve(name string, appVersion string, operatorVersion s
 }
 
 func Test_UpgradeOperatorVersionWithDependency(t *testing.T) {
-	testO := v1beta1.Operator{
+	testO := kudoapi.Operator{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Operator",
@@ -141,7 +141,7 @@ func Test_UpgradeOperatorVersionWithDependency(t *testing.T) {
 		},
 	}
 
-	testOv := v1beta1.OperatorVersion{
+	testOv := kudoapi.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "OperatorVersion",
@@ -149,7 +149,7 @@ func Test_UpgradeOperatorVersionWithDependency(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-1.0",
 		},
-		Spec: v1beta1.OperatorVersionSpec{
+		Spec: kudoapi.OperatorVersionSpec{
 			Version: "1.0",
 			Operator: v1.ObjectReference{
 				Name: "test",
@@ -157,7 +157,7 @@ func Test_UpgradeOperatorVersionWithDependency(t *testing.T) {
 		},
 	}
 
-	testInstance := v1beta1.Instance{
+	testInstance := kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -168,7 +168,7 @@ func Test_UpgradeOperatorVersionWithDependency(t *testing.T) {
 			},
 			Name: "test",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
@@ -177,12 +177,12 @@ func Test_UpgradeOperatorVersionWithDependency(t *testing.T) {
 
 	testDependency := packages.Package{
 		Resources: &packages.Resources{
-			Operator: &v1beta1.Operator{
+			Operator: &kudoapi.Operator{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "dependency",
 				},
 			},
-			OperatorVersion: &v1beta1.OperatorVersion{
+			OperatorVersion: &kudoapi.OperatorVersion{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "dependency-1.0",
 				},
@@ -204,11 +204,11 @@ func Test_UpgradeOperatorVersionWithDependency(t *testing.T) {
 	newOv := testOv
 	newOv.Name = "test-1.1"
 	newOv.Spec.Version = "1.1"
-	newOv.Spec.Tasks = append(newOv.Spec.Tasks, v1beta1.Task{
+	newOv.Spec.Tasks = append(newOv.Spec.Tasks, kudoapi.Task{
 		Name: "dependency",
 		Kind: engtask.KudoOperatorTaskKind,
-		Spec: v1beta1.TaskSpec{
-			KudoOperatorTaskSpec: v1beta1.KudoOperatorTaskSpec{
+		Spec: kudoapi.TaskSpec{
+			KudoOperatorTaskSpec: kudoapi.KudoOperatorTaskSpec{
 				Package: "dependency",
 			},
 		},

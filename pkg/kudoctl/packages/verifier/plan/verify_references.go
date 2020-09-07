@@ -3,7 +3,7 @@ package plan
 import (
 	"fmt"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
@@ -27,8 +27,8 @@ func hasMandatoryPlans(pf *packages.Files) verifier.Result {
 	plans := pf.Operator.Plans
 
 	// Currently only 'deploy' plan is mandatory
-	if _, ok := plans[v1beta1.DeployPlanName]; !ok {
-		res.AddErrors(fmt.Sprintf("an operator is required to have '%s' plan", v1beta1.DeployPlanName))
+	if _, ok := plans[kudoapi.DeployPlanName]; !ok {
+		res.AddErrors(fmt.Sprintf("an operator is required to have '%s' plan", kudoapi.DeployPlanName))
 	}
 
 	return res

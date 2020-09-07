@@ -18,7 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/health"
 	"github.com/kudobuilder/kudo/pkg/engine/resource"
@@ -197,9 +197,9 @@ func useSimpleThreeWayMerge(newObj runtime.Object) bool {
 }
 
 func isKudoType(object runtime.Object) bool {
-	_, isOperator := object.(*v1beta1.OperatorVersion)
-	_, isOperatorVersion := object.(*v1beta1.Operator)
-	_, isInstance := object.(*v1beta1.Instance)
+	_, isOperator := object.(*kudoapi.OperatorVersion)
+	_, isOperatorVersion := object.(*kudoapi.Operator)
+	_, isInstance := object.(*kudoapi.Instance)
 	return isOperator || isOperatorVersion || isInstance
 }
 

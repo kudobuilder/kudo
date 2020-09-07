@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
@@ -54,19 +54,19 @@ func TestTemplateParametersVerifier(t *testing.T) {
 {{ end }}
 `
 	operator := packages.OperatorFile{
-		Tasks: []v1beta1.Task{
+		Tasks: []kudoapi.Task{
 			{
 				Name: "toggleTask",
 				Kind: task.ToggleTaskKind,
-				Spec: v1beta1.TaskSpec{
-					ToggleTaskSpec: v1beta1.ToggleTaskSpec{Parameter: "Foo"},
+				Spec: kudoapi.TaskSpec{
+					ToggleTaskSpec: kudoapi.ToggleTaskSpec{Parameter: "Foo"},
 				},
 			},
 			{
 				Name: "toggleTaskNotDefinedParam",
 				Kind: task.ToggleTaskKind,
-				Spec: v1beta1.TaskSpec{
-					ToggleTaskSpec: v1beta1.ToggleTaskSpec{Parameter: "NotDefined"},
+				Spec: kudoapi.TaskSpec{
+					ToggleTaskSpec: kudoapi.ToggleTaskSpec{Parameter: "NotDefined"},
 				},
 			},
 		},

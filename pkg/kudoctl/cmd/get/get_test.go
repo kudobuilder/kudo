@@ -12,7 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -42,7 +42,7 @@ func newTestClient() *kudo.Client {
 }
 
 func TestGetInstances(t *testing.T) {
-	testInstance := &v1beta1.Instance{
+	testInstance := &kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -54,7 +54,7 @@ func TestGetInstances(t *testing.T) {
 			Name:      "test",
 			Namespace: "default",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "some-operator-0.1.0",
 			},

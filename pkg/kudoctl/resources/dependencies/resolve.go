@@ -6,7 +6,7 @@ import (
 	"github.com/thoas/go-funk"
 	"github.com/yourbasic/graph"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
@@ -52,7 +52,7 @@ type Dependency struct {
 // Resolve resolves all dependencies of an OperatorVersion.
 // Dependencies are resolved recursively.
 // Cyclic dependencies are detected and result in an error.
-func Resolve(operatorVersion *v1beta1.OperatorVersion, resolver pkgresolver.Resolver) ([]Dependency, error) {
+func Resolve(operatorVersion *kudoapi.OperatorVersion, resolver pkgresolver.Resolver) ([]Dependency, error) {
 	root := packages.Resources{
 		OperatorVersion: operatorVersion,
 	}
@@ -81,9 +81,9 @@ func dependencyWalk(
 	parentIndex int,
 	resolver pkgresolver.Resolver) error {
 	//nolint:errcheck
-	childrenTasks := funk.Filter(parent.OperatorVersion.Spec.Tasks, func(task v1beta1.Task) bool {
+	childrenTasks := funk.Filter(parent.OperatorVersion.Spec.Tasks, func(task kudoapi.Task) bool {
 		return task.Kind == engtask.KudoOperatorTaskKind
-	}).([]v1beta1.Task)
+	}).([]kudoapi.Task)
 
 	for _, childTask := range childrenTasks {
 		childPkg, err := resolver.Resolve(
@@ -144,6 +144,6 @@ func indexOf(dependencies *[]Dependency, dependency *Dependency) int {
 	return -1
 }
 
-func fullyQualifiedName(kt v1beta1.KudoOperatorTaskSpec) string {
-	return fmt.Sprintf("%s-%s", v1beta1.OperatorVersionName(kt.Package, kt.OperatorVersion), kt.AppVersion)
+func fullyQualifiedName(kt kudoapi.KudoOperatorTaskSpec) string {
+	return fmt.Sprintf("%s-%s", kudoapi.OperatorVersionName(kt.Package, kt.OperatorVersion), kt.AppVersion)
 }

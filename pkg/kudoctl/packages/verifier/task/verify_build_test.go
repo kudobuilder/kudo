@@ -5,55 +5,55 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
 func TestTaskBasicsVerifier(t *testing.T) {
 	tests := []struct {
 		name     string
-		task     v1beta1.Task
+		task     kudoapi.Task
 		errors   []string
 		warnings []string
 	}{
-		{name: "An Apply task without resources", task: v1beta1.Task{
+		{name: "An Apply task without resources", task: kudoapi.Task{
 			Name: "Task",
 			Kind: "Apply",
-			Spec: v1beta1.TaskSpec{},
+			Spec: kudoapi.TaskSpec{},
 		}, errors: []string{"task validation error: apply task 'Task' has an empty resource list. if that's what you need, use a Dummy task instead"}, warnings: []string{}},
-		{name: "An Apply task with resources", task: v1beta1.Task{
+		{name: "An Apply task with resources", task: kudoapi.Task{
 			Name: "Task",
 			Kind: "Apply",
-			Spec: v1beta1.TaskSpec{
-				ResourceTaskSpec: v1beta1.ResourceTaskSpec{Resources: []string{"someResource"}},
+			Spec: kudoapi.TaskSpec{
+				ResourceTaskSpec: kudoapi.ResourceTaskSpec{Resources: []string{"someResource"}},
 			},
 		}, errors: []string{}, warnings: []string{}},
-		{name: "An Delete task without resources", task: v1beta1.Task{
+		{name: "An Delete task without resources", task: kudoapi.Task{
 			Name: "Task",
 			Kind: "Delete",
-			Spec: v1beta1.TaskSpec{},
+			Spec: kudoapi.TaskSpec{},
 		}, errors: []string{"task validation error: delete task 'Task' has an empty resource list. if that's what you need, use a Dummy task instead"}, warnings: []string{}},
-		{name: "An Delete task with resources", task: v1beta1.Task{
+		{name: "An Delete task with resources", task: kudoapi.Task{
 			Name: "Task",
 			Kind: "Delete",
-			Spec: v1beta1.TaskSpec{
-				ResourceTaskSpec: v1beta1.ResourceTaskSpec{Resources: []string{"someResource"}},
+			Spec: kudoapi.TaskSpec{
+				ResourceTaskSpec: kudoapi.ResourceTaskSpec{Resources: []string{"someResource"}},
 			},
 		}, errors: []string{}, warnings: []string{}},
 
 		// More detailed tests are in engine/task/task_test.go
-		{name: "An empty pipe task", task: v1beta1.Task{
+		{name: "An empty pipe task", task: kudoapi.Task{
 			Name: "Task",
 			Kind: "Pipe",
-			Spec: v1beta1.TaskSpec{},
+			Spec: kudoapi.TaskSpec{},
 		}, errors: []string{"task validation error: pipe task has an empty pipe files list"}, warnings: []string{}},
-		{name: "A valid pipe task", task: v1beta1.Task{
+		{name: "A valid pipe task", task: kudoapi.Task{
 			Name: "Task",
 			Kind: "Pipe",
-			Spec: v1beta1.TaskSpec{
-				PipeTaskSpec: v1beta1.PipeTaskSpec{
+			Spec: kudoapi.TaskSpec{
+				PipeTaskSpec: kudoapi.PipeTaskSpec{
 					Pod: "",
-					Pipe: []v1beta1.PipeSpec{
+					Pipe: []kudoapi.PipeSpec{
 						{
 							Kind: "ConfigMap",
 							File: "someFile",
@@ -76,8 +76,8 @@ func TestTaskBasicsVerifier(t *testing.T) {
 	}
 }
 
-func packageFilesFromWithTask(task v1beta1.Task) packages.Files {
-	steps := []v1beta1.Step{{
+func packageFilesFromWithTask(task kudoapi.Task) packages.Files {
+	steps := []kudoapi.Step{{
 		Name:  "cat-in-hat",
 		Tasks: []string{"thingOne"},
 	}, {
@@ -85,20 +85,20 @@ func packageFilesFromWithTask(task v1beta1.Task) packages.Files {
 		Tasks: []string{"thingThree"},
 	}}
 
-	phases := []v1beta1.Phase{{
+	phases := []kudoapi.Phase{{
 		Name:     "parents leave",
 		Strategy: "serial",
 		Steps:    steps,
 	}}
 
-	plans := make(map[string]v1beta1.Plan)
-	plans["boring-rainy"] = v1beta1.Plan{
+	plans := make(map[string]kudoapi.Plan)
+	plans["boring-rainy"] = kudoapi.Plan{
 		Strategy: "serial",
 		Phases:   phases,
 	}
 
 	operator := packages.OperatorFile{
-		Tasks: []v1beta1.Task{task},
+		Tasks: []kudoapi.Task{task},
 		Plans: plans,
 	}
 

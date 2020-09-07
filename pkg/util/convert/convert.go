@@ -5,7 +5,7 @@ import (
 
 	"sigs.k8s.io/yaml"
 
-	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 // StringPtr returns a pointer to the string value passed in.
@@ -24,13 +24,13 @@ func StringValue(input *string) string {
 
 // UnwrapParamValue unwraps a parameter value to an interface according to its type.
 // Depending on the parameter type, the input value can represent a string or an object described in YAML.
-func UnwrapParamValue(wrapped *string, parameterType kudov1beta1.ParameterType) (unwrapped interface{}, err error) {
+func UnwrapParamValue(wrapped *string, parameterType kudoapi.ParameterType) (unwrapped interface{}, err error) {
 	switch parameterType {
-	case kudov1beta1.MapValueType:
+	case kudoapi.MapValueType:
 		unwrapped, err = ToYAMLMap(StringValue(wrapped))
-	case kudov1beta1.ArrayValueType:
+	case kudoapi.ArrayValueType:
 		unwrapped, err = ToYAMLArray(StringValue(wrapped))
-	case kudov1beta1.StringValueType:
+	case kudoapi.StringValueType:
 		fallthrough
 	default:
 		unwrapped = StringValue(wrapped)
@@ -41,11 +41,11 @@ func UnwrapParamValue(wrapped *string, parameterType kudov1beta1.ParameterType) 
 
 // WrapParamValue wraps a parameter value to a string according to its type.
 // Complex parameter types will be described as YAML, simple parameter types use the string value.
-func WrapParamValue(unwrapped interface{}, parameterType kudov1beta1.ParameterType) (*string, error) {
+func WrapParamValue(unwrapped interface{}, parameterType kudoapi.ParameterType) (*string, error) {
 	switch parameterType {
-	case kudov1beta1.MapValueType:
+	case kudoapi.MapValueType:
 		fallthrough
-	case kudov1beta1.ArrayValueType:
+	case kudoapi.ArrayValueType:
 		bytes, err := yaml.Marshal(unwrapped)
 		if err != nil {
 			return nil, err
@@ -53,7 +53,7 @@ func WrapParamValue(unwrapped interface{}, parameterType kudov1beta1.ParameterTy
 
 		wrapped := string(bytes)
 		return &wrapped, nil
-	case kudov1beta1.StringValueType:
+	case kudoapi.StringValueType:
 		fallthrough
 	default:
 		if unwrapped == nil {

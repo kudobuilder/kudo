@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
@@ -111,7 +111,7 @@ func applyOverrides(
 	}
 }
 
-func validateParameters(instance v1beta1.Instance, parameters []v1beta1.Parameter) error {
+func validateParameters(instance kudoapi.Instance, parameters []kudoapi.Parameter) error {
 	missingParameters := []string{}
 
 	for _, p := range parameters {

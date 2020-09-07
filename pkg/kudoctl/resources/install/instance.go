@@ -7,14 +7,14 @@ import (
 
 	pollwait "k8s.io/apimachinery/pkg/util/wait"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
 // Instance installs a KUDO instance to a cluster.
 // It returns an error if the namespace already contains an instance with the same name.
-func Instance(client *kudo.Client, instance *v1beta1.Instance) error {
+func Instance(client *kudo.Client, instance *kudoapi.Instance) error {
 	existingInstance, err := client.GetInstance(instance.Name, instance.Namespace)
 	if err != nil {
 		return fmt.Errorf("failed to verify existing instance: %v", err)
@@ -40,7 +40,7 @@ func Instance(client *kudo.Client, instance *v1beta1.Instance) error {
 }
 
 // WaitForInstance waits for an amount of time for an instance to be "complete".
-func WaitForInstance(client *kudo.Client, instance *v1beta1.Instance, timeout time.Duration) error {
+func WaitForInstance(client *kudo.Client, instance *kudoapi.Instance, timeout time.Duration) error {
 	err := client.WaitForInstance(instance.Name, instance.Namespace, nil, timeout)
 	if errors.Is(err, pollwait.ErrWaitTimeout) {
 		clog.Printf("timeout waiting for instance %s/%s", instance.Namespace, instance.Name)
