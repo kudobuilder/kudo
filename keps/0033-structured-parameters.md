@@ -11,7 +11,7 @@ owners:
 editor: TBD
 creation-date: 2020-08-27
 last-updated: 2020-08-31
-status: draft
+status: provisional
 see-also:
 replaces:
 superseded-by:
@@ -132,12 +132,12 @@ There will be a hard break for clients and users of CRDs from `v1beta1` to the n
 
 To migrate the existing CRDs, we will implement a Conversion Webhook that only allows `v1beta1` to `v1beta2` conversion, not the other way around. When KUDO is upgraded, it will:
 
-1. Deploy the new CRD version where the new (`v1beta2`) version will be the _only_ served and stored version:
+1. Run Pre-Migration: fetch all existing CRs in version `v1beta1`, run the conversion to `v1beta2` and check for any errors. If this fails, the upgrade will be aborted and the user need to manually investigate why the conversion failed.
+2. Deploy the new CRD version where the new (`v1beta2`) version will be the _only_ served and stored version:
     - `v1beta1` will be still in the list, but with `storage=false, served=false`
     - `v1beta2` will be marked as `storage=true, served=true`
-2. Deploy the new manager with the conversion webhook
-3. Run Pre-Migration: fetch all existing CRs, run the conversion and check for any errors
-4. Run the migration: fetch all CRDs and issue an update - This will trigger a conversion and save the CRD with the new version
+3. Deploy the new manager with the conversion webhook. This will start the reconciliation loop again and KUDO will start working.
+4. Run the migration: fetch all CRDs and issue an update - This will trigger a conversion and save the CRD with the new version. This is not neccessarily required, but it will make sure that all existing CRs are saved as `v1beta2`. When the migration has finished, we can remove the `v1beta1` from the CRDs `status.storedVersions` list to indicate that no more old versions are stored in the etcd.
 5. With a later major KUDO release, we can remove `v1beta1` from the CRD list - this should be at least 6 month later, as soon as we remove support for the `v1beta1` version we cannot support migrating existing installations anymore.
 
 The conversion webhook is stable in Kubernetes 1.16, and beta (and therefore enabled by default) in Kubernetes 1.15. 
