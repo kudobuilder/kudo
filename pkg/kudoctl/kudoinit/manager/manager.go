@@ -14,8 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	client2 "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kudobuilder/kudo/pkg/engine/health"
 	"github.com/kudobuilder/kudo/pkg/kubernetes"
+	"github.com/kudobuilder/kudo/pkg/kubernetes/status"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
@@ -118,8 +118,11 @@ func (m *Initializer) verifyManagerInstalled(client *kube.Client, result *verifi
 		result.AddWarnings(fmt.Sprintf("KUDO manager has an unexpected image. Expected %s but found %s", m.options.Image, mgr.Spec.Template.Spec.Containers[0].Image))
 		return nil
 	}
-	if err := health.IsHealthy(mgr); err != nil {
-		result.AddErrors("KUDO manager seems to be not healthy")
+	if healthy, msg, err := status.IsHealthy(mgr); !healthy || err != nil {
+		if err != nil {
+			return err
+		}
+		result.AddErrors("KUDO manager seems to be not healthy: %s", msg)
 		return nil
 	}
 	clog.V(2).Printf("KUDO manager is healthy and running %s", mgr.Spec.Template.Spec.Containers[0].Image)

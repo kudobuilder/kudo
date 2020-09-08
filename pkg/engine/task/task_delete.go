@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/kudobuilder/kudo/pkg/engine/health"
+	"github.com/kudobuilder/kudo/pkg/kubernetes/status"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,7 +55,7 @@ func (dt DeleteTask) Run(ctx Context) (bool, error) {
 	}
 
 	// 6. - Check health: always true for Delete task -
-	err = health.IsDeleted(ctx.Client, ctx.Discovery, objs)
+	err = status.IsDeleted(ctx.Client, ctx.Discovery, objs)
 	if err != nil {
 		log.Printf("TaskExecution: %v", err)
 		return false, nil
