@@ -36,10 +36,7 @@ func New(repo *repo.Client) Resolver {
 
 // NewInClusterResolver returns an initialized InClusterResolver for resolving already installed packages
 func NewInClusterResolver(c *kudo.Client, ns string) Resolver {
-	return &InClusterResolver{
-		Client:    c,
-		Namespace: ns,
-	}
+	return &InClusterResolver{c: c, ns: ns}
 }
 
 // Resolve provides a one stop to acquire any non-repo packages by trying to look for package files

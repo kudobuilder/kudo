@@ -13,21 +13,21 @@ import (
 // other resolvers, the resulting 'packages.Package' struct does not contain package 'packages.Files' (we don't have
 // the original files).
 type InClusterResolver struct {
-	Client    *kudo.Client
-	Namespace string
+	c  *kudo.Client
+	ns string
 }
 
 func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
 	ovn := kudoapi.OperatorVersionName(name, operatorVersion)
 
-	ov, err := r.Client.GetOperatorVersion(ovn, r.Namespace)
+	ov, err := r.c.GetOperatorVersion(ovn, r.ns)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve operator version %s/%s:%s", r.Namespace, ovn, appVersion)
+		return nil, fmt.Errorf("failed to resolve operator version %s/%s:%s", r.ns, ovn, appVersion)
 	}
 
-	o, err := r.Client.GetOperator(name, r.Namespace)
+	o, err := r.c.GetOperator(name, r.ns)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve operator %s/%s", r.Namespace, name)
+		return nil, fmt.Errorf("failed to resolve operator %s/%s", r.ns, name)
 	}
 
 	i := convert.BuildInstanceResource(name, operatorVersion)
