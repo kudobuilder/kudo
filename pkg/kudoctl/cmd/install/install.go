@@ -30,6 +30,7 @@ type Options struct {
 	Wait            bool
 	WaitTime        int64
 	CreateNameSpace bool
+	InCluster       bool
 }
 
 // DefaultOptions initializes the install command options to its defaults
@@ -38,7 +39,7 @@ var DefaultOptions = &Options{}
 // Run returns the errors associated with cmd env
 func Run(args []string, options *Options, fs afero.Fs, settings *env.Settings) error {
 
-	err := validate(args)
+	err := validate(args, options)
 	if err != nil {
 		return err
 	}
@@ -47,24 +48,29 @@ func Run(args []string, options *Options, fs afero.Fs, settings *env.Settings) e
 	return err
 }
 
-func validate(args []string) error {
+func validate(args []string, opts *Options) error {
 	if len(args) != 1 {
 		return clog.Errorf("expecting exactly one argument - name of the package or path to install")
 	}
 
+	if opts.InCluster {
+		if opts.RepoName != "" || opts.AppVersion != "" || opts.SkipInstance {
+			return clog.Errorf("you can't use repo-name, app-version or skip-instance options when installing from in-cluster operators")
+		}
+	}
 	return nil
 }
 
 // installOperator is installing single operator into cluster and returns error in case of error
 func installOperator(operatorArgument string, options *Options, fs afero.Fs, settings *env.Settings) error {
 
-	repository, err := repo.ClientFromSettings(fs, settings.Home, options.RepoName)
+	repoClient, err := repo.ClientFromSettings(fs, settings.Home, options.RepoName)
 	if err != nil {
 		return fmt.Errorf("could not build operator repository: %w", err)
 	}
-	clog.V(4).Printf("repository used %s", repository)
+	clog.V(4).Printf("repository used %s", repoClient)
 
-	kc, err := env.GetClient(settings)
+	kudoClient, err := env.GetClient(settings)
 	clog.V(3).Printf("acquiring kudo client")
 	if err != nil {
 		clog.V(3).Printf("failed to acquire client")
@@ -73,7 +79,13 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 
 	clog.V(3).Printf("getting operator package")
 
-	resolver := pkgresolver.New(repository)
+	var resolver pkgresolver.Resolver
+	if options.InCluster {
+		resolver = pkgresolver.NewInClusterResolver(kudoClient, settings.Namespace)
+	} else {
+		resolver = pkgresolver.New(repoClient)
+	}
+
 	pkg, err := resolver.Resolve(operatorArgument, options.AppVersion, options.OperatorVersion)
 	if err != nil {
 		return fmt.Errorf("failed to resolve operator package for: %s %w", operatorArgument, err)
@@ -90,7 +102,7 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 	}
 
 	return install.Package(
-		kc,
+		kudoClient,
 		options.InstanceName,
 		settings.Namespace,
 		*pkg.Resources,

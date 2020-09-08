@@ -78,28 +78,32 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 		Status: kudoapi.OperatorVersionStatus{},
 	}
 
-	instance := &kudoapi.Instance{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Instance",
-			APIVersion: packages.APIVersion,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   kudoapi.OperatorInstanceName(files.Operator.Name),
-			Labels: map[string]string{kudo.OperatorLabel: files.Operator.Name},
-		},
-		Spec: kudoapi.InstanceSpec{
-			OperatorVersion: corev1.ObjectReference{
-				Name: kudoapi.OperatorVersionName(files.Operator.Name, files.Operator.OperatorVersion),
-			},
-		},
-		Status: kudoapi.InstanceStatus{},
-	}
+	instance := BuildInstanceResource(files.Operator.Name, files.Operator.OperatorVersion)
 
 	return &packages.Resources{
 		Operator:        operator,
 		OperatorVersion: fv,
 		Instance:        instance,
 	}, nil
+}
+
+func BuildInstanceResource(operatorName, operatorVersion string) *kudoapi.Instance {
+	return &kudoapi.Instance{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Instance",
+			APIVersion: packages.APIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   kudoapi.OperatorInstanceName(operatorName),
+			Labels: map[string]string{kudo.OperatorLabel: operatorName},
+		},
+		Spec: kudoapi.InstanceSpec{
+			OperatorVersion: corev1.ObjectReference{
+				Name: kudoapi.OperatorVersionName(operatorName, operatorVersion),
+			},
+		},
+		Status: kudoapi.InstanceStatus{},
+	}
 }
 
 func validateTask(t kudoapi.Task, templates map[string]string) []string {

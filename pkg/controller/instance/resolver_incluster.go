@@ -9,9 +9,10 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
-// InClusterResolver resolves packages that are already installed in the cluster. Note, that unlike other resolvers, the
-// resulting 'packages.Package' struct does not contain package 'packages.Files' (we don't have the original files) and
-// doesn't have an Instance resource because multiple Instances of the same Operator/OperatorVersion can exist
+// InClusterResolver resolves packages that are already installed in the cluster on the server-side. Note, that unlike
+// other resolvers, the resulting 'packages.Package' struct does not contain package 'packages.Files' (we don't have
+// the original files) and doesn't have an Instance resource because multiple Instances of the same Operator/OperatorVersion
+// can exist.
 type InClusterResolver struct {
 	c  client.Client
 	ns string
