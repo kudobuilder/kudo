@@ -40,7 +40,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/controller/operator"
 	"github.com/kudobuilder/kudo/pkg/controller/operatorversion"
 	"github.com/kudobuilder/kudo/pkg/kubernetes"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/version"
 	kudohook "github.com/kudobuilder/kudo/pkg/webhook"
 )
@@ -67,9 +66,6 @@ func getEnv(key, def string) string {
 }
 
 func main() {
-	// We use code that is shared with the CLI, which uses clog
-	clog.InitNoFlag(os.Stdout, 4)
-
 	// Get version of KUDO
 	log.Printf("KUDO Version: %#v", version.Get())
 
