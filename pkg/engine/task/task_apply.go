@@ -240,7 +240,7 @@ func isHealthy(ro []runtime.Object) error {
 	for _, r := range ro {
 		err := isResourceHealthy(r)
 		if err != nil {
-			key, _ := client.ObjectKeyFromObject(r)
+			key, _ := client.ObjectKeyFromObject(r) // err not possible as all runtime.Objects have metadata
 			return fmt.Errorf("object %s/%s is NOT healthy: %w", key.Namespace, key.Name, err)
 		}
 	}

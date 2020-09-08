@@ -20,7 +20,6 @@ import (
 
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/resource"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 )
 
 func isJobTerminallyFailed(job *batchv1.Job) (bool, string, error) {
@@ -111,7 +110,6 @@ func IsHealthy(obj runtime.Object) (bool, string, error) {
 		if done {
 			return true, fmt.Sprintf("deployment %v is marked healthy", obj.Name), nil
 		}
-		clog.V(2).Printf("deployment %v is NOT healthy. %s", obj.Name, msg)
 		return false, msg, nil
 
 	case *batchv1.Job:
