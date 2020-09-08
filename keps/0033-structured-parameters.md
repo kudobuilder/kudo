@@ -281,11 +281,18 @@ Examples:
 - replace the first item in the `labels` array of the first `topology` array element
   `kudo update ... -p topology/0/labels/0={ key: "Usage", value: "newValue" }`
 - replace the full labels array of the first topology element
-`kudo update ... -p topology/0/labels=[ { key: "DCLabel", value: "dc1" }, { key: "Usage", value: "additionalItem" } ]`
+  `kudo update ... -p topology/0/labels=[ { key: "DCLabel", value: "dc1" }, { key: "Usage", value: "additionalItem" } ]`
 
-The `kudo update` command will not allow adding or removing a single entry from an array field, as this would make the command not idempotent anymore.
+The `kudo update` command will not allow adding or removing a single entry from an array field, as this would make the command not idempotent anymore. The only way to add or remove an entry from an array field is to replace the full array.
 
-We may decide to implement a `kudo patch` later on which is not idempotent an allows add/remove operations.
+We may decide to implement a `kudo patch` later on which is not idempotent an allows add/remove operations. For example:
+
+- Add a new label entry to the first topology array element
+  `kudo patch ... --add topology/0/labels={ key: "NewKey", value: "NewValue" }`
+- Remove the second label entry of the first topology array element
+  `kudo patch ... --remove topology/0/labels/1`
+
+The implementation of a `patch` command is *not* part of this KEP, these examples are to show possible options.
 
 #### Instance updates with a parameter file (`-P` option)
 
