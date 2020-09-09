@@ -57,6 +57,10 @@ func validate(args []string, opts *Options) error {
 		if opts.RepoName != "" || opts.AppVersion != "" || opts.SkipInstance {
 			return clog.Errorf("you can't use repo-name, app-version or skip-instance options when installing from in-cluster operators")
 		}
+
+		if opts.OperatorVersion == "" {
+			return clog.Errorf("when installing from in-cluster operators, please provide an operator-version")
+		}
 	}
 	return nil
 }

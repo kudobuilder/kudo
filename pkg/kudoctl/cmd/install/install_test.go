@@ -28,6 +28,10 @@ func TestValidate(t *testing.T) {
 			AppVersion: "foo",
 			InCluster:  true,
 		}, err: "you can't use repo-name, app-version or skip-instance options when installing from in-cluster operators"},
+		{args: []string{"arg"}, opts: &Options{
+			InCluster:       true,
+			OperatorVersion: "",
+		}, err: "when installing from in-cluster operators, please provide an operator-version"},
 	}
 
 	for _, tt := range tests {
