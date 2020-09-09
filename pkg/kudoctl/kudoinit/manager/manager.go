@@ -122,7 +122,7 @@ func (m *Initializer) verifyManagerInstalled(client *kube.Client, result *verifi
 		if err != nil {
 			return err
 		}
-		result.AddErrors("KUDO manager seems to be not healthy: %s", msg)
+		result.AddErrors("KUDO manager is not healthy: %s", msg)
 		return nil
 	}
 	clog.V(2).Printf("KUDO manager is healthy and running %s", mgr.Spec.Template.Spec.Containers[0].Image)
