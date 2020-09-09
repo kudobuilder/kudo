@@ -12,13 +12,13 @@ import (
 
 // Info contains versioning information.
 type Info struct {
-	GitVersion        string `json:"gitVersion"`
-	GitCommit         string `json:"gitCommit"`
-	BuildDate         string `json:"buildDate"`
-	GoVersion         string `json:"goVersion"`
-	Compiler          string `json:"compiler"`
-	Platform          string `json:"platform"`
-	KubernetesVersion string `json:"kubernetesClientApi"`
+	GitVersion              string `json:"gitVersion"`
+	GitCommit               string `json:"gitCommit"`
+	BuildDate               string `json:"buildDate"`
+	GoVersion               string `json:"goVersion"`
+	Compiler                string `json:"compiler"`
+	Platform                string `json:"platform"`
+	KubernetesClientVersion string `json:"kubernetesClientVersion"`
 }
 
 // String returns info as a human-friendly version string.
@@ -55,7 +55,7 @@ func Get() Info {
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, dep := range info.Deps {
 			if dep.Path == "k8s.io/client-go" {
-				result.KubernetesVersion = dep.Version
+				result.KubernetesClientVersion = dep.Version
 			}
 		}
 	}
