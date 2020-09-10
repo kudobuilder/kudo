@@ -6,6 +6,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 func OperatorInstanceName(operatorName string) string {
@@ -17,6 +19,20 @@ func OperatorVersionName(operatorName, ovVersion, appVersion string) string {
 		return fmt.Sprintf("%s-%s", operatorName, ovVersion)
 	}
 	return fmt.Sprintf("%s-%s-%s", operatorName, appVersion, ovVersion)
+}
+
+var _ kudo.SortableOperator = &OperatorVersion{}
+
+func (ov *OperatorVersion) OperatorName() string {
+	return ov.Spec.Operator.Name
+}
+
+func (ov *OperatorVersion) OperatorVersion() string {
+	return ov.Spec.Version
+}
+
+func (ov *OperatorVersion) AppVersion() string {
+	return ov.Spec.AppVersion
 }
 
 func (ov *OperatorVersion) FullyQualifiedName() string {

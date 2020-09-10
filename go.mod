@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/Masterminds/goutils v1.1.0 // indirect
-	github.com/Masterminds/semver v1.5.0 // indirect
+	github.com/Masterminds/semver v1.5.0
 	github.com/Masterminds/semver/v3 v3.1.0
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/go-bindata/go-bindata/v3 v3.1.3
