@@ -48,32 +48,49 @@ func (b SortableOperatorList) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
 // Less returns true if the version of entry a is less than the version of entry b.
 // This is needed to allow sorting.
 func (b SortableOperatorList) Less(x, y int) bool {
-
 	// First compare Operator name
 	if b[x].OperatorName() != b[y].OperatorName() {
-		return b[x].OperatorName() < b[y].OperatorName()
+		// We compare in the other direction here - this way we get the operator names sorted alphabetically,
+		// and the version from high to low
+		return b[x].OperatorName() > b[y].OperatorName()
 	}
 
-	// Compare OperatorVersion - Use SemVer if possible
-	xVersion, _ := semver.NewVersion(b[x].OperatorVersion())
-	yVersion, _ := semver.NewVersion(b[y].OperatorVersion())
+	appVersionCompare := compareVersion(b[x].AppVersion(), b[y].AppVersion())
+	if appVersionCompare != 0 {
+		return appVersionCompare < 0
+	}
+	ovVersionCompare := compareVersion(b[x].OperatorVersion(), b[y].OperatorVersion())
+	return ovVersionCompare < 0
+}
+
+// Compares two versions - tries to use semantic versioning first, falls back to string compare.
+// non-semantic versions are always ordered lower than semantic ones
+// abc
+// cde
+// 1.0.0
+// 1.0.1
+// 2.0.0
+// 2.1.0
+// 10.0.0
+func compareVersion(x, y string) int {
+	if x == y {
+		return 0
+	}
+	xVersion, _ := semver.NewVersion(x)
+	yVersion, _ := semver.NewVersion(y)
+
 	if xVersion != nil && yVersion != nil {
-		res := xVersion.Compare(yVersion)
-		if res != 0 {
-			return res < 0
-		}
-	} else {
-		if b[x].OperatorVersion() != b[y].OperatorVersion() {
-			return b[x].OperatorVersion() < b[y].OperatorVersion()
-		}
+		return xVersion.Compare(yVersion)
 	}
 
-	// Compare AppVersion - Use SemVer if possible
-	xAppVersion, _ := semver.NewVersion(b[x].AppVersion())
-	yAppVersion, _ := semver.NewVersion(b[y].AppVersion())
-	if xAppVersion != nil && yAppVersion != nil {
-		res := xAppVersion.Compare(yAppVersion)
-		return res < 0
+	if xVersion == nil {
+		return -1
 	}
-	return b[x].AppVersion() < b[y].AppVersion()
+	if yVersion == nil {
+		return 1
+	}
+	if x < y {
+		return -1
+	}
+	return 1
 }
