@@ -144,6 +144,16 @@ func indexOf(dependencies *[]Dependency, dependency *Dependency) int {
 	return -1
 }
 
+// fullyQualifiedName formats a TaskSpec for human readable consumption.
 func fullyQualifiedName(kt kudoapi.KudoOperatorTaskSpec) string {
-	return fmt.Sprintf("%s-%s", kudoapi.OperatorVersionName(kt.Package, kt.OperatorVersion), kt.AppVersion)
+	operatorVersion := kt.OperatorVersion
+	if operatorVersion == "" {
+		operatorVersion = "any"
+	}
+	appVersion := kt.AppVersion
+	if appVersion == "" {
+		appVersion = "any"
+	}
+
+	return fmt.Sprintf("Operator: %q, OperatorVersion: %q, AppVersion %q", kt.Package, operatorVersion, appVersion)
 }

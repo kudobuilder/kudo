@@ -4,21 +4,27 @@ import (
 	"fmt"
 
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/kudobuilder/kudo/pkg/apis"
+	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 )
 
 // Client provides access different K8S clients
 type Client struct {
+	Scheme        *runtime.Scheme
 	KubeClient    kubernetes.Interface
 	ExtClient     apiextensionsclient.Interface
 	DynamicClient dynamic.Interface
 	CtrlClient    client.Client
+	KudoClient    versioned.Interface
 }
 
 // GetConfig returns a Kubernetes client config for a given kubeconfig.
@@ -70,11 +76,22 @@ func GetKubeClientForConfig(config *rest.Config) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not create Controller Runtime client: %s", err)
 	}
+	kudoClient, err := versioned.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("could not create KUDO client: %v", err)
+	}
+
+	fullScheme := scheme.Scheme
+	if err := apis.AddToScheme(fullScheme); err != nil {
+		return nil, fmt.Errorf("failed to create runtime.Scheme: %v", err)
+	}
 
 	return &Client{
 		KubeClient:    kubeClient,
 		ExtClient:     extClient,
 		DynamicClient: dynamicClient,
 		CtrlClient:    ctrlClient,
+		KudoClient:    kudoClient,
+		Scheme:        fullScheme,
 	}, nil
 }

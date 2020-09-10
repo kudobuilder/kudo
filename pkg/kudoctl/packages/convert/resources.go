@@ -60,7 +60,7 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 			APIVersion: packages.APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: kudoapi.OperatorVersionName(files.Operator.Name, files.Operator.OperatorVersion),
+			Name: kudoapi.OperatorVersionName(files.Operator.Name, files.Operator.OperatorVersion, files.Operator.AppVersion),
 		},
 		Spec: kudoapi.OperatorVersionSpec{
 			Operator: corev1.ObjectReference{
@@ -89,7 +89,7 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 		},
 		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: corev1.ObjectReference{
-				Name: kudoapi.OperatorVersionName(files.Operator.Name, files.Operator.OperatorVersion),
+				Name: kudoapi.OperatorVersionName(files.Operator.Name, files.Operator.OperatorVersion, files.Operator.AppVersion),
 			},
 		},
 		Status: kudoapi.InstanceStatus{},
