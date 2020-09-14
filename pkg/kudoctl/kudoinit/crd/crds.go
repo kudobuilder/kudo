@@ -67,7 +67,7 @@ func (c Initializer) PreUpgradeVerify(client *kube.Client, result *verifier.Resu
 	return nil
 }
 
-// VerifyInstallation ensures that the CRDs are installed and are the same as this CLI would install
+// VerifyInstallation ensures that all CRDs are installed and are the same as this CLI would install
 func (c Initializer) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
 	apiClient := client.ExtClient.ApiextensionsV1beta1()
 	if err := c.verifyInstallation(apiClient, c.Operator, result); err != nil {
@@ -82,7 +82,7 @@ func (c Initializer) VerifyInstallation(client *kube.Client, result *verifier.Re
 	return nil
 }
 
-// VerifyServedVersion ensures that the api server provides the version of the CRDs that this client understands
+// VerifyServedVersion ensures that the api server provides the correct version of all CRDs that this client understands
 func (c Initializer) VerifyServedVersion(client *kube.Client, expectedVersion string, result *verifier.Result) error {
 	apiClient := client.ExtClient.ApiextensionsV1beta1()
 	if err := c.verifyServedVersion(apiClient, c.Operator.Name, expectedVersion, result); err != nil {
@@ -111,6 +111,7 @@ func (c Initializer) Install(client *kube.Client) error {
 	return nil
 }
 
+// verifyIsNotInstalled is used to ensure that the cluster has no old KUDO version installed
 func (c Initializer) verifyIsNotInstalled(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition, result *verifier.Result) error {
 	_, err := client.CustomResourceDefinitions().Get(context.TODO(), crd.Name, v1.GetOptions{})
 	if err != nil {
@@ -138,6 +139,7 @@ func (c Initializer) getCrdForVerify(client v1beta1.CustomResourceDefinitionsGet
 	return existingCrd, nil
 }
 
+// VerifyInstallation ensures that a single CRD is installed and is the same as this CLI would install
 func (c Initializer) verifyInstallation(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition, result *verifier.Result) error {
 	existingCrd, err := c.getCrdForVerify(client, crd.Name, result)
 	if err != nil || existingCrd == nil {
@@ -154,6 +156,7 @@ func (c Initializer) verifyInstallation(client v1beta1.CustomResourceDefinitions
 	return nil
 }
 
+// VerifyServedVersion ensures that the api server provides the correct version of a specific CRDs that this client understands
 func (c Initializer) verifyServedVersion(client v1beta1.CustomResourceDefinitionsGetter, crdName, version string, result *verifier.Result) error {
 	existingCrd, err := c.getCrdForVerify(client, crdName, result)
 	if err != nil || existingCrd == nil {
@@ -175,11 +178,11 @@ func (c Initializer) verifyServedVersion(client v1beta1.CustomResourceDefinition
 		}
 	}
 	if expectedVersion == nil {
-		result.AddErrors(fmt.Sprintf("Expected API version %s was not found, api-server only supports %v. Please update your KUDO CLI.", version, allNames))
+		result.AddErrors(fmt.Sprintf("Expected API version %s was not found for %s, api-server only supports %v. Please update your KUDO CLI.", version, crdName, allNames))
 		return nil
 	}
 	if !expectedVersion.Served {
-		result.AddErrors(fmt.Sprintf("Expected API version %s is known to api-server, but is not served. Please update your KUDO CLI.", version))
+		result.AddErrors(fmt.Sprintf("Expected API version %s for %s is known to api-server, but is not served. Please update your KUDO CLI.", version, crdName))
 	}
 	return nil
 }

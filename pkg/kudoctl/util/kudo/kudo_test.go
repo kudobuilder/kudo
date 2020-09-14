@@ -113,13 +113,13 @@ func TestKudoClient_ValidateServedCrds(t *testing.T) {
 CRD operatorversions.kudo.dev is not installed
 CRD instances.kudo.dev is not installed       
 `},
-		{name: "wrong version", crdBase: &crdWrongVersion, err: `CRDs invalid: Expected API version v1beta1 was not found, api-server only supports [v1beta2]. Please update your KUDO CLI.
-Expected API version v1beta1 was not found, api-server only supports [v1beta2]. Please update your KUDO CLI.
-Expected API version v1beta1 was not found, api-server only supports [v1beta2]. Please update your KUDO CLI.
+		{name: "wrong version", crdBase: &crdWrongVersion, err: `CRDs invalid: Expected API version v1beta1 was not found for operators.kudo.dev, api-server only supports [v1beta2]. Please update your KUDO CLI.       
+Expected API version v1beta1 was not found for operatorversions.kudo.dev, api-server only supports [v1beta2]. Please update your KUDO CLI.
+Expected API version v1beta1 was not found for instances.kudo.dev, api-server only supports [v1beta2]. Please update your KUDO CLI.       
 `},
-		{name: "not served", crdBase: &crdNotServed, err: `CRDs invalid: Expected API version v1beta1 is known to api-server, but is not served. Please update your KUDO CLI.
-Expected API version v1beta1 is known to api-server, but is not served. Please update your KUDO CLI.
-Expected API version v1beta1 is known to api-server, but is not served. Please update your KUDO CLI.
+		{name: "not served", crdBase: &crdNotServed, err: `CRDs invalid: Expected API version v1beta1 for operators.kudo.dev is known to api-server, but is not served. Please update your KUDO CLI.       
+Expected API version v1beta1 for operatorversions.kudo.dev is known to api-server, but is not served. Please update your KUDO CLI.
+Expected API version v1beta1 for instances.kudo.dev is known to api-server, but is not served. Please update your KUDO CLI.       
 `},
 		{name: "unhealthy", crdBase: &crdUnHealthy, err: `CRDs invalid: CRD operators.kudo.dev is not healthy ( Conditions: [{Established False 0001-01-01 00:00:00 +0000 UTC  } {Terminating True 0001-01-01 00:00:00 +0000 UTC  }] )       
 CRD operatorversions.kudo.dev is not healthy ( Conditions: [{Established False 0001-01-01 00:00:00 +0000 UTC  } {Terminating True 0001-01-01 00:00:00 +0000 UTC  }] )
