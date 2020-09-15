@@ -374,18 +374,27 @@ func (c *Client) ListInstances(namespace string) ([]runtime.Object, error) {
 	return existingItems, nil
 }
 
-// ListOperatorVersions lists all operatorversions installed in the cluster in a given ns
-func (c *Client) ListOperatorVersions(namespace string) ([]runtime.Object, error) {
+func (c *Client) ListOperatorVersions(namespace string) ([]kudoapi.OperatorVersion, error) {
 	ovs, err := c.kudoClientset.KudoV1beta1().OperatorVersions(namespace).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	existingItems := []runtime.Object{}
-	for i := range ovs.Items {
-		existingItems = append(existingItems, &ovs.Items[i])
+	return ovs.Items, nil
+}
+
+// ListOperatorVersionsAsRuntimeObject lists all operatorversions installed in the cluster in a given ns
+func (c *Client) ListOperatorVersionsAsRuntimeObject(namespace string) ([]runtime.Object, error) {
+	ovs, err := c.ListOperatorVersions(namespace)
+	if err != nil {
+		return nil, err
 	}
-	return existingItems, nil
+
+	asObjs := []runtime.Object{}
+	for i := range ovs {
+		asObjs = append(asObjs, &ovs[i])
+	}
+	return asObjs, nil
 }
 
 // ListOperators lists all operators installed in the cluster in a given ns

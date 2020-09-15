@@ -19,19 +19,7 @@ func TestValidate(t *testing.T) {
 		{args: []string{"arg"}, opts: &Options{
 			SkipInstance: true,
 			InCluster:    true,
-		}, err: "you can't use repo-name, app-version or skip-instance options when installing from in-cluster operators"},
-		{args: []string{"arg"}, opts: &Options{
-			RepositoryOptions: RepositoryOptions{RepoName: "foo"},
-			InCluster:         true,
-		}, err: "you can't use repo-name, app-version or skip-instance options when installing from in-cluster operators"},
-		{args: []string{"arg"}, opts: &Options{
-			AppVersion: "foo",
-			InCluster:  true,
-		}, err: "you can't use repo-name, app-version or skip-instance options when installing from in-cluster operators"},
-		{args: []string{"arg"}, opts: &Options{
-			InCluster:       true,
-			OperatorVersion: "",
-		}, err: "when installing from in-cluster operators, please provide an operator-version"},
+		}, err: "you can't use skip-instance option when installing from in-cluster operators"},
 	}
 
 	for _, tt := range tests {
