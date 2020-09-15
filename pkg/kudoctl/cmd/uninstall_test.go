@@ -45,8 +45,12 @@ func TestUninstall(t *testing.T) {
 		t.Fatalf("failed to install instance: %v", err)
 	}
 
+	options := uninstallOptions{
+		InstanceName: "nonexisting-instance",
+	}
+
 	cmd := uninstallCmd{}
-	err = cmd.uninstall(kc, "nonexisting-instance", settings)
+	err = cmd.uninstall(kc, options, settings)
 	if err == nil {
 		t.Errorf("expected an error but got none")
 	}
@@ -56,7 +60,10 @@ func TestUninstall(t *testing.T) {
 		t.Errorf("expected error message '%s' but got '%v'", errMsg, err)
 	}
 
-	err = cmd.uninstall(kc, testInstance.Name, settings)
+	options.InstanceName = testInstance.Name
+	options.Wait = true
+
+	err = cmd.uninstall(kc, options, settings)
 	if err != nil {
 		t.Errorf("failed to uninstall instance: %v", err)
 	}

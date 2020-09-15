@@ -295,6 +295,26 @@ func (c *Client) WaitForInstance(name, namespace string, oldInstance *kudoapi.In
 	})
 }
 
+// WaitForInstanceDeleted waits for instance to be removed from the cluster.
+func (c *Client) WaitForInstanceDeleted(name, namespace string, timeout time.Duration) error {
+	interval := 1 * time.Second
+
+	return wait.PollImmediate(interval, timeout, func() (done bool, err error) {
+		instance, err := c.GetInstance(name, namespace)
+		if err != nil {
+			return false, err
+		}
+
+		if instance == nil {
+			clog.V(2).Printf("instance %q was deleted\n", name)
+			return true, nil
+		}
+
+		clog.V(4).Printf("instance %q is still running\n", name)
+		return false, nil
+	})
+}
+
 // IsInstanceDone provides a check on instance to see if it is "finished" without retries
 // oldInstance is nil if there is no previous instance
 func (c *Client) IsInstanceDone(instance, oldInstance *kudoapi.Instance) (bool, error) {
