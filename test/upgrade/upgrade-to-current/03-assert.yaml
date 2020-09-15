@@ -4,7 +4,7 @@ metadata:
   name: simple-op
 spec:
   operatorVersion:
-    name: simple-op-0.2.0
+    name: simple-op-1.2.3-0.2.0
 status:
   planStatus:
     deploy:

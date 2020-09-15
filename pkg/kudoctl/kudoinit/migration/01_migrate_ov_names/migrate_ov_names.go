@@ -65,6 +65,14 @@ func (m *MigrateOvNames) migrateOperatorVersion(ov *kudoapi.OperatorVersion) err
 	clog.V(0).Printf("Migrate OperatorVersion from %q to %q", ov.Name, ov.FullyQualifiedName())
 
 	ov.Name = expectedName
+
+	// Reset Read-Only fields
+	ov.Status = kudoapi.OperatorVersionStatus{}
+	ov.ResourceVersion = ""
+	ov.Generation = 0
+	ov.UID = ""
+	ov.CreationTimestamp = v1.Time{}
+
 	if !m.dryRun {
 		var err error
 		clog.V(4).Printf("Create copy of OperatorVersion with name %q", ov.Name)
