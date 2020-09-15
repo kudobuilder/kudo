@@ -35,6 +35,7 @@ func New(client *kube.Client, dryRun bool) *MigrateOvNames {
 }
 
 func (m *MigrateOvNames) CanMigrate() error {
+	// No migrate check required for this migration
 	return nil
 }
 

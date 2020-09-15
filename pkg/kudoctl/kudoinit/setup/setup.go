@@ -70,7 +70,6 @@ func (i *Installer) VerifyInstallation(client *kube.Client, result *verifier.Res
 }
 
 func requiredMigrations(client *kube.Client, dryRun bool) []migration.Migrater {
-
 	// Determine which migrations to run
 	return []migration.Migrater{
 		_01_migrate_ov_names.New(client, dryRun),
@@ -89,12 +88,15 @@ func (i *Installer) PreUpgradeVerify(client *kube.Client, result *verifier.Resul
 		return nil
 	}
 
-	// Step 2 - Verify that any migration is possible
+	// Step 2 - Verify that all migrations can run (with dryRun)
 	migrations := requiredMigrations(client, true)
 	clog.V(1).Printf("Verify that %d required migrations can be applied", len(migrations))
 	for _, m := range migrations {
 		if err := m.CanMigrate(); err != nil {
 			result.AddErrors(fmt.Errorf("migration %s failed install check: %v", m, err).Error())
+		}
+		if err := m.Migrate(); err != nil {
+			result.AddErrors(fmt.Errorf("migration %s failed dry-run: %v", m, err).Error())
 		}
 	}
 
