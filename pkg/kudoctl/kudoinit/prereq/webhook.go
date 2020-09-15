@@ -18,8 +18,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientv1beta1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
 
-	"github.com/kudobuilder/kudo/pkg/engine/health"
 	kubeutils "github.com/kudobuilder/kudo/pkg/kubernetes"
+	"github.com/kudobuilder/kudo/pkg/kubernetes/status"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
@@ -316,7 +316,7 @@ func (k *KudoWebHook) validateCertManagerInstallation(client *kube.Client, resul
 		result.AddWarnings("unable to validate cert-manager controller deployment. Spec had no containers")
 		return nil
 	}
-	if err := health.IsHealthy(&deployment); err != nil {
+	if healthy, _, err := status.IsHealthy(&deployment); !healthy || err != nil {
 		result.AddWarnings("cert-manager seems not to be running correctly. Make sure cert-manager is working")
 		return nil
 	}

@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	"github.com/kudobuilder/kudo/pkg/engine/health"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	parser "github.com/kudobuilder/kudo/pkg/kudoctl/cmd/params"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
@@ -64,7 +63,7 @@ func (kt KudoOperatorTask) Run(ctx Context) (bool, error) {
 	}
 
 	// 4. - Check the Instance health -
-	if err := health.IsHealthy(instance); err != nil {
+	if err := isResourceHealthy(instance); err != nil {
 		return false, nil
 	}
 

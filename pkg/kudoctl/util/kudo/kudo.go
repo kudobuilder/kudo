@@ -58,23 +58,9 @@ func NewClient(kubeConfigPath string, requestTimeout int64, validateInstall bool
 
 // NewClient creates new KUDO Client
 func NewClientForConfig(config *rest.Config, validateInstall bool) (*Client, error) {
-
 	kubeClient, err := kube.GetKubeClientForConfig(config)
 	if err != nil {
 		return nil, clog.Errorf("could not get Kubernetes client: %s", err)
-	}
-
-	result := verifier.NewResult()
-	err = crd.NewInitializer().VerifyInstallation(kubeClient, &result)
-	if err != nil {
-		return nil, fmt.Errorf("failed to run crd verification: %v", err)
-	}
-	if !result.IsValid() {
-		clog.V(0).Printf("KUDO CRDs are not set up correctly. Do you need to run kudo init?")
-
-		if validateInstall {
-			return nil, fmt.Errorf("CRDs invalid: %v", result.ErrorsAsString())
-		}
 	}
 
 	// create the kudo clientset
@@ -84,14 +70,17 @@ func NewClientForConfig(config *rest.Config, validateInstall bool) (*Client, err
 	}
 
 	// create the kubernetes clientset
-	kubeClientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-	return &Client{
+	client := &Client{
 		kudoClientset: kudoClientset,
-		KubeClientset: kubeClientset,
-	}, nil
+		KubeClientset: kubeClient.KubeClient,
+	}
+
+	validationErr := client.VerifyServedCRDs(kubeClient)
+	if validateInstall && validationErr != nil {
+		return nil, validationErr
+	}
+
+	return client, nil
 }
 
 // NewClientFromK8s creates KUDO client from kubernetes client interface
@@ -100,6 +89,20 @@ func NewClientFromK8s(kudo versioned.Interface, kube kubernetes.Interface) *Clie
 	result.kudoClientset = kudo
 	result.KubeClientset = kube
 	return &result
+}
+
+func (c *Client) VerifyServedCRDs(kubeClient *kube.Client) error {
+	result := verifier.NewResult()
+	err := crd.NewInitializer().VerifyServedVersion(kubeClient, v1beta1.SchemeGroupVersion.Version, &result)
+	if err != nil {
+		return fmt.Errorf("failed to run crd verification: %v", err)
+	}
+	if !result.IsValid() {
+		clog.V(0).Printf("KUDO CRDs are not served in the expected version.")
+		return fmt.Errorf("CRDs invalid: %v", result.ErrorsAsString())
+	}
+
+	return nil
 }
 
 // OperatorExistsInCluster checks if a given Operator object is installed on the current k8s cluster
@@ -289,6 +292,26 @@ func (c *Client) WaitForInstance(name, namespace string, oldInstance *kudoapi.In
 		}
 
 		return c.IsInstanceDone(instance, oldInstance)
+	})
+}
+
+// WaitForInstanceDeleted waits for instance to be removed from the cluster.
+func (c *Client) WaitForInstanceDeleted(name, namespace string, timeout time.Duration) error {
+	interval := 1 * time.Second
+
+	return wait.PollImmediate(interval, timeout, func() (done bool, err error) {
+		instance, err := c.GetInstance(name, namespace)
+		if err != nil {
+			return false, err
+		}
+
+		if instance == nil {
+			clog.V(2).Printf("instance %q was deleted\n", name)
+			return true, nil
+		}
+
+		clog.V(4).Printf("instance %q is still running\n", name)
+		return false, nil
 	})
 }
 
