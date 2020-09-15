@@ -93,7 +93,7 @@ func NewClientFromK8s(kudo versioned.Interface, kube kubernetes.Interface) *Clie
 
 func (c *Client) VerifyServedCRDs(kubeClient *kube.Client) error {
 	result := verifier.NewResult()
-	err := crd.NewInitializer().VerifyServedVersion(kubeClient, v1beta1.SchemeGroupVersion.Version, &result)
+	err := crd.NewInitializer().VerifyServedVersion(kubeClient, kudoapi.SchemeGroupVersion.Version, &result)
 	if err != nil {
 		return fmt.Errorf("failed to run crd verification: %v", err)
 	}
