@@ -25,7 +25,7 @@ func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersi
 		return nil, err
 	}
 
-	//2.  sorting packages in descending order same as the repo does it: pkg/kudoctl/util/repo/index.go::sortPackages
+	//2. sorting packages in descending order same as the repo does it: pkg/kudoctl/util/repo/index.go::sortPackages
 	// to preserve the selection rules. See sortPackages method description for more details.
 	sort.Sort(sort.Reverse(versions))
 
