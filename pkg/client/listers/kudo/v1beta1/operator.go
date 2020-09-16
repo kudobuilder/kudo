@@ -24,8 +24,10 @@ import (
 )
 
 // OperatorLister helps list Operators.
+// All objects returned here must be treated as read-only.
 type OperatorLister interface {
 	// List lists all Operators in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.Operator, err error)
 	// Operators returns an object that can list and get Operators.
 	Operators(namespace string) OperatorNamespaceLister
@@ -56,10 +58,13 @@ func (s *operatorLister) Operators(namespace string) OperatorNamespaceLister {
 }
 
 // OperatorNamespaceLister helps list and get Operators.
+// All objects returned here must be treated as read-only.
 type OperatorNamespaceLister interface {
 	// List lists all Operators in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.Operator, err error)
 	// Get retrieves the Operator from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.Operator, error)
 	OperatorNamespaceListerExpansion
 }
