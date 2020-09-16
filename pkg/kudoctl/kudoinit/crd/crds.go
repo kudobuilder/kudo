@@ -165,8 +165,12 @@ func (c Initializer) verifyServedVersion(client v1beta1.CustomResourceDefinition
 	if err != nil || existingCrd == nil {
 		return err
 	}
-	if err := health.IsHealthy(existingCrd); err != nil {
-		result.AddErrors(err.Error())
+	if healthy, msg, err := status.IsHealthy(existingCrd); !healthy || err != nil {
+		if !healthy {
+			result.AddErrors(msg)
+		} else {
+			result.AddErrors(err.Error())
+		}
 		return nil
 	}
 
