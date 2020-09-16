@@ -19,7 +19,7 @@ type InClusterResolver struct {
 }
 
 func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
-	ovList, err := kudoapi.ListOperatorVersions(r.c, r.ns)
+	ovList, err := kudoapi.ListOperatorVersions(r.ns, r.c)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list operator versions in namespace %q: %v", r.ns, err)
 	}
