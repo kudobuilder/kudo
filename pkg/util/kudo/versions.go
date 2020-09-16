@@ -17,7 +17,7 @@ type SortableOperatorList []SortableOperator
 
 func (b SortableOperatorList) FilterByName(name string) SortableOperatorList {
 	// nolint:errcheck
-	return funk.Filter(b, func(o SortableOperator) bool { return o.OperatorName() == name }).(SortableOperatorList)
+	return funk.Filter(b, func(o SortableOperator) bool { return o.OperatorName() == name }).([]SortableOperator)
 }
 
 func (b SortableOperatorList) Sort() {
@@ -59,6 +59,7 @@ func (b SortableOperatorList) Less(x, y int) bool {
 	if appVersionCompare != 0 {
 		return appVersionCompare < 0
 	}
+
 	ovVersionCompare := compareVersion(b[x].OperatorVersion(), b[y].OperatorVersion())
 	return ovVersionCompare < 0
 }
@@ -83,14 +84,17 @@ func compareVersion(x, y string) int {
 		return xVersion.Compare(yVersion)
 	}
 
+	if xVersion == nil && yVersion == nil {
+		if x < y {
+			return -1
+		}
+		return 1
+	}
 	if xVersion == nil {
 		return -1
 	}
 	if yVersion == nil {
 		return 1
-	}
-	if x < y {
-		return -1
 	}
 	return 1
 }

@@ -47,6 +47,7 @@ func TestVersions(t *testing.T) {
 		sortableOp{name: "abc", appVersion: "1.0.0", ovVersion: "0.0.1"},
 		sortableOp{name: "abc", appVersion: "10.0.0", ovVersion: "0.1.1"},
 		sortableOp{name: "abc", appVersion: "10.0.0", ovVersion: "0.1.0"},
+		sortableOp{name: "cde", appVersion: "1.0.0", ovVersion: "1.0.0"},
 	}
 
 	sortedList := SortableOperatorList{
@@ -63,16 +64,25 @@ func TestVersions(t *testing.T) {
 		sortableOp{name: "abc", appVersion: "0.0.1", ovVersion: "10.1.0"},
 		sortableOp{name: "abc", appVersion: "0.0.1", ovVersion: "1.0.0"},
 		sortableOp{name: "abc", appVersion: "bbb", ovVersion: "10.1.0"},
-		sortableOp{name: "abc", appVersion: "aaa", ovVersion: "0.0.2"},
 		sortableOp{name: "abc", appVersion: "bbb", ovVersion: "1.1.0"},
 		sortableOp{name: "abc", appVersion: "bbb", ovVersion: "0.1.0"},
 		sortableOp{name: "abc", appVersion: "bbb", ovVersion: "0.0.1"},
+		sortableOp{name: "abc", appVersion: "aaa", ovVersion: "0.0.2"},
 		sortableOp{name: "abc", appVersion: "aaa", ovVersion: "0.0.1"},
+		sortableOp{name: "cde", appVersion: "1.0.0", ovVersion: "1.0.0"},
+	}
+
+	filteredList := SortableOperatorList{
+		sortableOp{name: "cde", appVersion: "1.0.0", ovVersion: "1.0.0"},
 	}
 
 	l.Sort()
+	//for _, i := range l {
+	//	fmt.Printf("sortableOp{name: %q, appVersion: %q, ovVersion: %q},\n", i.OperatorName(), i.AppVersion(), i.OperatorVersion())
+	//}
 
 	assert.Equal(t, l, sortedList)
 
-	//assert.DeepEqual(t, l, sortedList, cmp.AllowUnexported(sortableOp{}))
+	filtered := l.FilterByName("cde")
+	assert.Equal(t, filtered, filteredList)
 }
