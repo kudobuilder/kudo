@@ -19,7 +19,7 @@ func TestValidate(t *testing.T) {
 		{args: []string{"arg"}, opts: &Options{
 			SkipInstance: true,
 			InCluster:    true,
-		}, err: "you can't use skip-instance option when installing from in-cluster operators"},
+		}, err: "you can't use skip-instance or repo option when installing from in-cluster operators"},
 	}
 
 	for _, tt := range tests {

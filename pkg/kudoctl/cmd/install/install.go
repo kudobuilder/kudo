@@ -53,8 +53,10 @@ func validate(args []string, opts *Options) error {
 		return clog.Errorf("expecting exactly one argument - name of the package or path to install")
 	}
 
-	if opts.InCluster && opts.SkipInstance {
-		return clog.Errorf("you can't use skip-instance option when installing from in-cluster operators")
+	if opts.InCluster {
+		if opts.SkipInstance || opts.RepoName != "" {
+			return clog.Errorf("you can't use skip-instance or repo option when installing from in-cluster operators")
+		}
 	}
 	return nil
 }
