@@ -30,14 +30,14 @@ require (
 	golang.org/x/sys v0.0.0-20200916030750-2334cc1a136f // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/yaml.v2 v2.3.0
-	k8s.io/api v0.19.1
-	k8s.io/apiextensions-apiserver v0.19.1
-	k8s.io/apimachinery v0.19.1
-	k8s.io/cli-runtime v0.19.1
-	k8s.io/client-go v0.19.1
-	k8s.io/code-generator v0.19.1
-	k8s.io/component-base v0.19.1
-	k8s.io/kubectl v0.19.1
+	k8s.io/api v0.19.2
+	k8s.io/apiextensions-apiserver v0.19.2
+	k8s.io/apimachinery v0.19.2
+	k8s.io/cli-runtime v0.19.2
+	k8s.io/client-go v0.19.2
+	k8s.io/code-generator v0.19.2
+	k8s.io/component-base v0.19.2
+	k8s.io/kubectl v0.19.2
 	sigs.k8s.io/controller-runtime v0.6.3
 	sigs.k8s.io/controller-tools v0.4.0
 	sigs.k8s.io/yaml v1.2.0
