@@ -35,7 +35,7 @@ func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersi
 		return nil, err
 	}
 
-	// 4. fetch the existing O/OV and install the instance
+	// 4. fetch the existing O/OV and make the instance to install
 	ovn := version.Name
 	operatorVersion = version.OperatorVersion
 

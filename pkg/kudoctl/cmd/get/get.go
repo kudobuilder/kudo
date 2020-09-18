@@ -44,9 +44,9 @@ func Run(args []string, opts CmdOpts) error {
 	var objs []runtime.Object
 	switch args[0] {
 	case Instances:
-		objs, err = opts.Client.ListInstances(opts.Namespace)
+		objs, err = opts.Client.ListInstancesAsRuntimeObject(opts.Namespace)
 	case Operators:
-		objs, err = opts.Client.ListOperators(opts.Namespace)
+		objs, err = opts.Client.ListOperatorsAsRuntimeObject(opts.Namespace)
 	case OperatorVersions:
 		objs, err = opts.Client.ListOperatorVersionsAsRuntimeObject(opts.Namespace)
 	case All:
@@ -80,7 +80,7 @@ func Run(args []string, opts CmdOpts) error {
 }
 
 func runGetAll(opts CmdOpts) error {
-	instances, err := opts.Client.ListInstances(opts.Namespace)
+	instances, err := opts.Client.ListInstancesAsRuntimeObject(opts.Namespace)
 	if err != nil {
 		return fmt.Errorf("failed to get instances")
 	}
@@ -88,7 +88,7 @@ func runGetAll(opts CmdOpts) error {
 	if err != nil {
 		return fmt.Errorf("failed to get operatorversions")
 	}
-	operators, err := opts.Client.ListOperators(opts.Namespace)
+	operators, err := opts.Client.ListOperatorsAsRuntimeObject(opts.Namespace)
 	if err != nil {
 		return fmt.Errorf("failed to get operators")
 	}

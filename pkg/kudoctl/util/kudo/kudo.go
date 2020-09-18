@@ -360,8 +360,8 @@ func (c *Client) IsInstanceByNameDone(name string, namespace string, oldInstance
 	return c.IsInstanceDone(instance, oldInstance)
 }
 
-// ListInstances lists all instances installed in the cluster in a given ns
-func (c *Client) ListInstances(namespace string) ([]runtime.Object, error) {
+// ListInstancesAsRuntimeObject lists all instances installed in the cluster in a given ns
+func (c *Client) ListInstancesAsRuntimeObject(namespace string) ([]runtime.Object, error) {
 	instances, err := c.kudoClientset.KudoV1beta1().Instances(namespace).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -397,8 +397,8 @@ func (c *Client) ListOperatorVersionsAsRuntimeObject(namespace string) ([]runtim
 	return asObjs, nil
 }
 
-// ListOperators lists all operators installed in the cluster in a given ns
-func (c *Client) ListOperators(namespace string) ([]runtime.Object, error) {
+// ListOperatorsAsRuntimeObject lists all operators installed in the cluster in a given ns
+func (c *Client) ListOperatorsAsRuntimeObject(namespace string) ([]runtime.Object, error) {
 	operators, err := c.kudoClientset.KudoV1beta1().Operators(namespace).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
