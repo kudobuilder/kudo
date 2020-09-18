@@ -188,7 +188,7 @@ generate-clean:
 # used to update imports on project.  NOT a linter.
 imports:
 ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint --version 2>/dev/null | cut -b 27-32)")
-	./hack/install-golangcilint.sh
+	./hack/install-golangcilint.sh ${GOLANGCI_LINT_VER}
 endif
 	golangci-lint run --disable-all -E goimports --fix
 
