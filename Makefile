@@ -83,7 +83,7 @@ all: test manager  ## Build manager and runs unit tests
 .PHONY: lint
 lint:	## Run golangci-lint
 ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint --version 2>/dev/null | cut -b 27-32)")
-	./hack/install-golangcilint.sh
+	./hack/install-golangcilint.sh ${GOLANGCI_LINT_VER}
 endif
 	golangci-lint --timeout 3m run --allow-parallel-runners
 
