@@ -320,7 +320,7 @@ func TestKudoClient_ListInstances(t *testing.T) {
 		}
 
 		// test if OperatorVersion exists in namespace
-		existingInstances, _ := k2o.ListInstances(tt.namespace)
+		existingInstances, _ := k2o.ListInstancesAsRuntimeObject(tt.namespace)
 
 		assert.Equal(t, len(tt.expectedInstances), len(existingInstances))
 

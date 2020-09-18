@@ -26,6 +26,9 @@ var (
   # Install operator from tarball at URL
   kubectl kudo install http://kudo.dev/zk.tgz
 
+  # Install operator from an in-cluster operator version
+  kubectl kudo install zookeeper --operator-version=0.3.0 --in-cluster
+
   # Specify an operator version of Kafka to install to your cluster
   kubectl kudo install kafka --operator-version=1.1.1`
 )
@@ -62,6 +65,7 @@ func newInstallCmd(fs afero.Fs) *cobra.Command {
 	installCmd.Flags().BoolVar(&options.Wait, "wait", false, "Specify if the CLI should wait for the install to complete before returning (default \"false\")")
 	installCmd.Flags().Int64Var(&options.WaitTime, "wait-time", 300, "Specify the max wait time in seconds for CLI for the install to complete before returning (default \"300\")")
 	installCmd.Flags().BoolVar(&options.CreateNameSpace, "create-namespace", false, "If set, install will create the specified namespace and will fail if it exists. (default \"false\")")
+	installCmd.Flags().BoolVar(&options.InCluster, "in-cluster", false, "Specify if the CLI should resolve the package using the operator version already installed in the cluster. (default \"false\")")
 
 	return installCmd
 }
