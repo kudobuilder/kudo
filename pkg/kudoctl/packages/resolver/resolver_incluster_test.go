@@ -54,7 +54,7 @@ func TestInClusterResolver_Resolve(t *testing.T) {
 	}
 
 	c := kudo.NewClientFromK8s(fake.NewSimpleClientset(), kubefake.NewSimpleClientset())
-	r := InClusterResolver{c: c, ns: "default"}
+	r := NewInClusterResolver(c, "default")
 
 	// Init the fake client with an operator and three operator versions:
 	_, err := c.InstallOperatorObjToCluster(testOperator, "default")

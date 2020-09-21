@@ -2,12 +2,12 @@ package resolver
 
 import (
 	"fmt"
-	"sort"
 
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/convert"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
+	kudoutil "github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 // InClusterResolver resolves packages that are already installed in the cluster on the client-side. Note, that unlike
@@ -19,68 +19,45 @@ type InClusterResolver struct {
 }
 
 func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
-	// 1. find all in-cluster operator versions with the passed operator name
-	versions, err := r.FindInClusterOperatorVersions(name)
+	ovList, err := r.c.ListOperatorVersions(r.ns)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list operator versions in namespace %q: %v", r.ns, err)
 	}
 
-	//2. sorting packages in descending order same as the repo does it: pkg/kudoctl/util/repo/index.go::sortPackages
-	// to preserve the selection rules. See sortPackages method description for more details.
-	sort.Sort(sort.Reverse(versions))
-
-	// 3. find first matching operator version
-	version, err := repo.FindFirstMatchForEntries(versions, name, appVersion, operatorVersion)
-	if err != nil {
-		return nil, err
+	if len(ovList) == 0 {
+		return nil, fmt.Errorf("failed to find any operator version in namespace %s", r.ns)
 	}
 
-	// 4. fetch the existing O/OV and make the instance to install
-	ovn := version.Name
-	operatorVersion = version.OperatorVersion
-
-	ov, err := r.c.GetOperatorVersion(ovn, r.ns)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve operator version %s/%s:%s", r.ns, ovn, appVersion)
+	// Put all items into a new list to be sortable
+	newOvList := kudoutil.SortableOperatorList{}
+	for _, ovFromList := range ovList {
+		ovFromList := ovFromList
+		newOvList = append(newOvList, &ovFromList)
 	}
 
+	// Only consider OVs for the given name
+	newOvList = newOvList.FilterByName(name)
+
+	// Sort items
+	newOvList.Sort()
+
+	// Find first matching OV
+	ov, _ := newOvList.FindFirstMatch(name, operatorVersion, appVersion).(*kudoapi.OperatorVersion) // nolint:errcheck
+
+	if ov == nil {
+		return nil, fmt.Errorf("failed to resolve operator version in namespace %q for name %q, version %q, appVersion %q", r.ns, name, operatorVersion, appVersion)
+	}
 	o, err := r.c.GetOperator(name, r.ns)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve operator %s/%s", r.ns, name)
 	}
 
-	i := convert.BuildInstanceResource(name, operatorVersion, appVersion)
-
 	return &packages.Package{
 		Resources: &packages.Resources{
 			Operator:        o,
 			OperatorVersion: ov,
-			Instance:        i,
+			Instance:        convert.BuildInstanceResource(name, operatorVersion, appVersion),
 		},
 		Files: nil,
 	}, nil
-}
-
-// FindInClusterOperatorVersions method searches for all in-cluster operator versions for the passed operator name
-// and returns them as an []*PackageVersion array
-func (r InClusterResolver) FindInClusterOperatorVersions(operatorName string) (repo.PackageVersions, error) {
-	ovs, err := r.c.ListOperatorVersions(r.ns)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list in-cluster operator %s versions: %v", operatorName, err)
-	}
-
-	versions := repo.PackageVersions{}
-	for _, ov := range ovs {
-		if ov.Spec.Operator.Name == operatorName {
-			versions = append(versions, &repo.PackageVersion{
-				Metadata: &repo.Metadata{
-					Name:            ov.Name,
-					OperatorVersion: ov.Spec.Version,
-					AppVersion:      ov.Spec.AppVersion,
-				},
-			})
-		}
-	}
-
-	return versions, nil
 }

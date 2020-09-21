@@ -7,7 +7,6 @@ import (
 
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 // InClusterResolver is a server-side package resolver for packages that are already installed in the cluster. It is a simpler
@@ -26,33 +25,11 @@ type InClusterResolver struct {
 }
 
 func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
-	ovList, err := kudoapi.ListOperatorVersions(r.ns, r.c)
+	ovn := kudoapi.OperatorVersionName(name, operatorVersion, appVersion)
+
+	ov, err := kudoapi.GetOperatorVersionByName(ovn, r.ns, r.c)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list operator versions in namespace %q: %v", r.ns, err)
-	}
-
-	if len(ovList.Items) == 0 {
-		return nil, fmt.Errorf("failed to find any operator version in namespace %s", r.ns)
-	}
-
-	// Put all items into a new list to be sortable
-	newOvList := kudo.SortableOperatorList{}
-	for _, ovFromList := range ovList.Items {
-		ovFromList := ovFromList
-		newOvList = append(newOvList, &ovFromList)
-	}
-
-	// Only consider OVs for the given name
-	newOvList = newOvList.FilterByName(name)
-
-	// Sort items
-	newOvList.Sort()
-
-	// Find first matching OV
-	ov := newOvList.FindFirstMatch(name, operatorVersion, appVersion).(*kudoapi.OperatorVersion) // nolint:errcheck
-
-	if ov == nil {
-		return nil, fmt.Errorf("failed to resolve operator version in namespace %q for name %q, version %q, appVersion %q", r.ns, name, operatorVersion, appVersion)
+		return nil, fmt.Errorf("failed to resolve operator version %s/%s:%s", r.ns, ovn, appVersion)
 	}
 
 	o, err := kudoapi.GetOperator(name, r.ns, r.c)
