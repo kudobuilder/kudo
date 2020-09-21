@@ -60,3 +60,12 @@ func (ov *OperatorVersion) OperatorVersion() string {
 func (ov *OperatorVersion) AppVersion() string {
 	return ov.Spec.AppVersion
 }
+
+func ToSortableOperatorList(ovList []OperatorVersion) kudo.SortableOperatorList {
+	newOvList := kudo.SortableOperatorList{}
+	for _, ovFromList := range ovList {
+		ovFromList := ovFromList
+		newOvList = append(newOvList, &ovFromList)
+	}
+	return newOvList
+}

@@ -7,7 +7,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/convert"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
-	kudoutil "github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 // InClusterResolver resolves packages that are already installed in the cluster on the client-side. Note, that unlike
@@ -19,6 +18,7 @@ type InClusterResolver struct {
 }
 
 func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
+	// Fetch all OVs
 	ovList, err := r.c.ListOperatorVersions(r.ns)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list operator versions in namespace %q: %v", r.ns, err)
@@ -29,11 +29,7 @@ func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersi
 	}
 
 	// Put all items into a new list to be sortable
-	newOvList := kudoutil.SortableOperatorList{}
-	for _, ovFromList := range ovList {
-		ovFromList := ovFromList
-		newOvList = append(newOvList, &ovFromList)
-	}
+	newOvList := kudoapi.ToSortableOperatorList(ovList)
 
 	// Only consider OVs for the given name
 	newOvList = newOvList.FilterByName(name)

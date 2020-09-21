@@ -1,3 +1,4 @@
+// This package contains helper functions that can be reused by all migrations
 package migration
 
 import (
@@ -10,6 +11,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 )
 
+// ForEachNamespace calls the given function for all namespaces in the cluster
 func ForEachNamespace(client *kube.Client, f func(ns string) error) error {
 	nsList, err := client.KubeClient.CoreV1().Namespaces().List(context.TODO(), v1.ListOptions{})
 	if err != nil {
@@ -23,6 +25,7 @@ func ForEachNamespace(client *kube.Client, f func(ns string) error) error {
 	return nil
 }
 
+// ForEachOperatorVersion calls the given function for all operatorversions in the given namespace
 func ForEachOperatorVersion(client *kube.Client, ns string, f func(ov *kudoapi.OperatorVersion) error) error {
 	ovList, err := client.KudoClient.KudoV1beta1().OperatorVersions(ns).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
@@ -37,6 +40,7 @@ func ForEachOperatorVersion(client *kube.Client, ns string, f func(ov *kudoapi.O
 	return nil
 }
 
+// ForEachInstance calls the given function for all instances in the given namespace
 func ForEachInstance(client *kube.Client, ns string, f func(ov *kudoapi.Instance) error) error {
 	iList, err := client.KudoClient.KudoV1beta1().Instances(ns).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
