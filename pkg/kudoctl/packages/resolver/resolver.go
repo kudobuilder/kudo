@@ -6,6 +6,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
@@ -23,7 +24,7 @@ type PackageResolver struct {
 }
 
 // New creates an operator package resolver for non-repository packages
-func New(repo *repo.Client) *PackageResolver {
+func New(repo *repo.Client) Resolver {
 	lf := NewLocal()
 	uf := NewURL()
 	return &PackageResolver{
@@ -31,6 +32,11 @@ func New(repo *repo.Client) *PackageResolver {
 		uri:   uf,
 		repo:  repo,
 	}
+}
+
+// NewInClusterResolver returns an initialized InClusterResolver for resolving already installed packages
+func NewInClusterResolver(c *kudo.Client, ns string) Resolver {
+	return &InClusterResolver{c: c, ns: ns}
 }
 
 // Resolve provides a one stop to acquire any non-repo packages by trying to look for package files

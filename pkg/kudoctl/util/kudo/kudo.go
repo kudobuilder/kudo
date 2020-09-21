@@ -360,8 +360,8 @@ func (c *Client) IsInstanceByNameDone(name string, namespace string, oldInstance
 	return c.IsInstanceDone(instance, oldInstance)
 }
 
-// ListInstances lists all instances installed in the cluster in a given ns
-func (c *Client) ListInstances(namespace string) ([]runtime.Object, error) {
+// ListInstancesAsRuntimeObject lists all instances installed in the cluster in a given ns
+func (c *Client) ListInstancesAsRuntimeObject(namespace string) ([]runtime.Object, error) {
 	instances, err := c.kudoClientset.KudoV1beta1().Instances(namespace).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -374,22 +374,31 @@ func (c *Client) ListInstances(namespace string) ([]runtime.Object, error) {
 	return existingItems, nil
 }
 
-// ListOperatorVersions lists all operatorversions installed in the cluster in a given ns
-func (c *Client) ListOperatorVersions(namespace string) ([]runtime.Object, error) {
+func (c *Client) ListOperatorVersions(namespace string) ([]kudoapi.OperatorVersion, error) {
 	ovs, err := c.kudoClientset.KudoV1beta1().OperatorVersions(namespace).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	existingItems := []runtime.Object{}
-	for i := range ovs.Items {
-		existingItems = append(existingItems, &ovs.Items[i])
-	}
-	return existingItems, nil
+	return ovs.Items, nil
 }
 
-// ListOperators lists all operators installed in the cluster in a given ns
-func (c *Client) ListOperators(namespace string) ([]runtime.Object, error) {
+// ListOperatorVersionsAsRuntimeObject lists all operatorversions installed in the cluster in a given ns
+func (c *Client) ListOperatorVersionsAsRuntimeObject(namespace string) ([]runtime.Object, error) {
+	ovs, err := c.ListOperatorVersions(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	asObjs := []runtime.Object{}
+	for i := range ovs {
+		asObjs = append(asObjs, &ovs[i])
+	}
+	return asObjs, nil
+}
+
+// ListOperatorsAsRuntimeObject lists all operators installed in the cluster in a given ns
+func (c *Client) ListOperatorsAsRuntimeObject(namespace string) ([]runtime.Object, error) {
 	operators, err := c.kudoClientset.KudoV1beta1().Operators(namespace).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		return nil, err

@@ -13,7 +13,7 @@ BUILD_DATE_PATH := github.com/kudobuilder/kudo/pkg/version.buildDate
 DATE_FMT := "%Y-%m-%dT%H:%M:%SZ"
 BUILD_DATE := $(shell date -u -d "@$SOURCE_DATE_EPOCH" "+${DATE_FMT}" 2>/dev/null || date -u -r "${SOURCE_DATE_EPOCH}" "+${DATE_FMT}" 2>/dev/null || date -u "+${DATE_FMT}")
 LDFLAGS := -X ${GIT_VERSION_PATH}=${GIT_VERSION:v%=%} -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} -X ${BUILD_DATE_PATH}=${BUILD_DATE}
-GOLANGCI_LINT_VER = "1.29.0"
+GOLANGCI_LINT_VER = "v1.31.0"
 SUPPORTED_PLATFORMS = amd64 arm64
 
 export GO111MODULE=on
@@ -82,8 +82,8 @@ all: test manager  ## Build manager and runs unit tests
 
 .PHONY: lint
 lint:	## Run golangci-lint
-ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint --version 2>/dev/null | cut -b 27-32)")
-	./hack/install-golangcilint.sh
+ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint version --format short 2>&1)")
+	./hack/install-golangcilint.sh ${GOLANGCI_LINT_VER}
 endif
 	golangci-lint --timeout 3m run --allow-parallel-runners
 
@@ -187,8 +187,8 @@ generate-clean:
 .PHONY: imports
 # used to update imports on project.  NOT a linter.
 imports:
-ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint --version 2>/dev/null | cut -b 27-32)")
-	./hack/install-golangcilint.sh
+ifneq (${GOLANGCI_LINT_VER}, "$(shell golangci-lint version --format short 2>&1)")
+	./hack/install-golangcilint.sh ${GOLANGCI_LINT_VER}
 endif
 	golangci-lint run --disable-all -E goimports --fix
 
