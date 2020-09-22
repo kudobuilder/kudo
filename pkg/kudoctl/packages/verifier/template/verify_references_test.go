@@ -5,23 +5,23 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
 func TestTemplateReferenceVerifier(t *testing.T) {
-	params := []v1beta1.Parameter{}
+	params := []packages.Parameter{}
 	paramFile := packages.ParamsFile{Parameters: params}
 	templates := make(map[string]string)
 	templates["foo.yaml"] = "does not matter"
 	templates["baz.yaml"] = "does not matter"
 
 	resources := []string{"foo.yaml", "bar.yaml"}
-	tasks := []v1beta1.Task{{
+	tasks := []kudoapi.Task{{
 		Name: "foo",
 		Kind: "Apply",
-		Spec: v1beta1.TaskSpec{
-			ResourceTaskSpec: v1beta1.ResourceTaskSpec{Resources: resources},
+		Spec: kudoapi.TaskSpec{
+			ResourceTaskSpec: kudoapi.ResourceTaskSpec{Resources: resources},
 		},
 	}}
 	operator := packages.OperatorFile{

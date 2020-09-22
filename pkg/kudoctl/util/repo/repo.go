@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 )
@@ -59,7 +59,7 @@ func (c Configurations) String() string {
 // Default initialized repository.
 var Default = &Configuration{
 	Name: defaultRepoName,
-	URL:  "https://kudo-repository.storage.googleapis.com",
+	URL:  "https://kudo-repository.storage.googleapis.com/v1",
 }
 
 // NewRepositories creates a new repo with only defaults populated
@@ -178,15 +178,15 @@ type Metadata struct {
 	// Name is the name of the operator.
 	Name string `json:"name,omitempty"`
 
-	// Version is a A SemVer 2 conformant version string of the operator.
-	Version string `protobuf:"bytes,4,opt,name=version" json:"version,omitempty"`
+	// OperatorVersion is a A SemVer 2 conformant version string of the operator.
+	OperatorVersion string `protobuf:"bytes,4,opt,name=version" json:"operatorVersion"`
 
-	// AppVersion is the underlying service version (the format is not in our control)
+	// AppVersion is a SemVer 2 conformant version string of the underlying service.
 	AppVersion string `json:"appVersion,omitempty"`
 
 	// Description is a one-sentence description of the operator.
 	Description string `json:"description,omitempty"`
 
 	// Maintainers is a list of name and URL/email addresses of the maintainer(s).
-	Maintainers []*v1beta1.Maintainer `json:"maintainers,omitempty"`
+	Maintainers []*kudoapi.Maintainer `json:"maintainers,omitempty"`
 }

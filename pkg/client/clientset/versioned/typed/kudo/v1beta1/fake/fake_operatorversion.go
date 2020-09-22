@@ -17,6 +17,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -37,7 +39,7 @@ var operatorversionsResource = schema.GroupVersionResource{Group: "kudo.dev", Ve
 var operatorversionsKind = schema.GroupVersionKind{Group: "kudo.dev", Version: "v1beta1", Kind: "OperatorVersion"}
 
 // Get takes name of the operatorVersion, and returns the corresponding operatorVersion object, and an error if there is any.
-func (c *FakeOperatorVersions) Get(name string, options v1.GetOptions) (result *v1beta1.OperatorVersion, err error) {
+func (c *FakeOperatorVersions) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.OperatorVersion, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(operatorversionsResource, c.ns, name), &v1beta1.OperatorVersion{})
 
@@ -48,7 +50,7 @@ func (c *FakeOperatorVersions) Get(name string, options v1.GetOptions) (result *
 }
 
 // List takes label and field selectors, and returns the list of OperatorVersions that match those selectors.
-func (c *FakeOperatorVersions) List(opts v1.ListOptions) (result *v1beta1.OperatorVersionList, err error) {
+func (c *FakeOperatorVersions) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.OperatorVersionList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(operatorversionsResource, operatorversionsKind, c.ns, opts), &v1beta1.OperatorVersionList{})
 
@@ -70,14 +72,14 @@ func (c *FakeOperatorVersions) List(opts v1.ListOptions) (result *v1beta1.Operat
 }
 
 // Watch returns a watch.Interface that watches the requested operatorVersions.
-func (c *FakeOperatorVersions) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeOperatorVersions) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(operatorversionsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a operatorVersion and creates it.  Returns the server's representation of the operatorVersion, and an error, if there is any.
-func (c *FakeOperatorVersions) Create(operatorVersion *v1beta1.OperatorVersion) (result *v1beta1.OperatorVersion, err error) {
+func (c *FakeOperatorVersions) Create(ctx context.Context, operatorVersion *v1beta1.OperatorVersion, opts v1.CreateOptions) (result *v1beta1.OperatorVersion, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(operatorversionsResource, c.ns, operatorVersion), &v1beta1.OperatorVersion{})
 
@@ -88,7 +90,7 @@ func (c *FakeOperatorVersions) Create(operatorVersion *v1beta1.OperatorVersion) 
 }
 
 // Update takes the representation of a operatorVersion and updates it. Returns the server's representation of the operatorVersion, and an error, if there is any.
-func (c *FakeOperatorVersions) Update(operatorVersion *v1beta1.OperatorVersion) (result *v1beta1.OperatorVersion, err error) {
+func (c *FakeOperatorVersions) Update(ctx context.Context, operatorVersion *v1beta1.OperatorVersion, opts v1.UpdateOptions) (result *v1beta1.OperatorVersion, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(operatorversionsResource, c.ns, operatorVersion), &v1beta1.OperatorVersion{})
 
@@ -100,7 +102,7 @@ func (c *FakeOperatorVersions) Update(operatorVersion *v1beta1.OperatorVersion) 
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeOperatorVersions) UpdateStatus(operatorVersion *v1beta1.OperatorVersion) (*v1beta1.OperatorVersion, error) {
+func (c *FakeOperatorVersions) UpdateStatus(ctx context.Context, operatorVersion *v1beta1.OperatorVersion, opts v1.UpdateOptions) (*v1beta1.OperatorVersion, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(operatorversionsResource, "status", c.ns, operatorVersion), &v1beta1.OperatorVersion{})
 
@@ -111,7 +113,7 @@ func (c *FakeOperatorVersions) UpdateStatus(operatorVersion *v1beta1.OperatorVer
 }
 
 // Delete takes name of the operatorVersion and deletes it. Returns an error if one occurs.
-func (c *FakeOperatorVersions) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeOperatorVersions) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(operatorversionsResource, c.ns, name), &v1beta1.OperatorVersion{})
 
@@ -119,15 +121,15 @@ func (c *FakeOperatorVersions) Delete(name string, options *v1.DeleteOptions) er
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeOperatorVersions) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(operatorversionsResource, c.ns, listOptions)
+func (c *FakeOperatorVersions) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(operatorversionsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.OperatorVersionList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched operatorVersion.
-func (c *FakeOperatorVersions) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.OperatorVersion, err error) {
+func (c *FakeOperatorVersions) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.OperatorVersion, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(operatorversionsResource, c.ns, name, pt, data, subresources...), &v1beta1.OperatorVersion{})
 

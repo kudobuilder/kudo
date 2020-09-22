@@ -29,6 +29,8 @@ func TestRepoIndexCmd(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
 			out := &bytes.Buffer{}
 			time := time.Now()
@@ -68,6 +70,8 @@ func TestRepoIndexCmd_IndexCreation(t *testing.T) {
 
 	if *updateGolden {
 		t.Log("update golden file")
+
+		//nolint:gosec
 		if err := ioutil.WriteFile(gp, indexOut, 0644); err != nil {
 			t.Fatalf("failed to update golden file: %s", err)
 		}
@@ -99,6 +103,8 @@ func TestRepoIndexCmd_MergeIndex(t *testing.T) {
 
 	if *updateGolden {
 		t.Log("update golden file")
+
+		//nolint:gosec
 		if err := ioutil.WriteFile(gp, resultBuf.Bytes(), 0644); err != nil {
 			t.Fatalf("failed to update golden file: %s", err)
 		}
@@ -113,6 +119,6 @@ func TestRepoIndexCmd_MergeIndex(t *testing.T) {
 	}
 
 	// local operator takes precedence
-	o, _ := indexFile.GetByNameAndVersion("mysql", "0.1.0")
+	o, _ := indexFile.FindFirstMatch("mysql", "5.7", "0.1.0")
 	assert.Equal(t, o.Maintainers[0].Name, "Ken Sipe")
 }

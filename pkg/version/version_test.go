@@ -3,7 +3,7 @@ package version
 import (
 	"testing"
 
-	"github.com/magiconair/properties/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_validVersion(t *testing.T) {
@@ -20,9 +20,11 @@ func Test_validVersion(t *testing.T) {
 		{"full semver is not a factor", MustParse("1.5.8"), MustParse("1.5.0"), 0},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
 			val := tt.expected.CompareMajorMinor(tt.actual)
-			assert.Equal(t, tt.val, val)
+			assert.Equal(t, val, tt.val)
 		})
 	}
 }
@@ -38,9 +40,11 @@ func TestClean(t *testing.T) {
 		{"short ver", "v1.0", "1.0"},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
 			result := Clean(tt.actual)
-			assert.Equal(t, result, tt.expected)
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }

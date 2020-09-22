@@ -5,10 +5,10 @@ import (
 
 	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
-var _ verifier.PackageVerifier = &ReferenceVerifier{}
+var _ packages.Verifier = &ReferenceVerifier{}
 
 // ReferenceVerifier checks that all referenced templates exists (without errors)
 // and warns if a template exists but isn't referenced in a plan
@@ -26,9 +26,7 @@ func (ReferenceVerifier) Verify(pf *packages.Files) verifier.Result {
 	for _, task := range pf.Operator.Tasks {
 		var resources []string
 		switch task.Kind {
-		case engtask.ApplyTaskKind:
-			resources = task.Spec.ResourceTaskSpec.Resources
-		case engtask.DeleteTaskKind:
+		case engtask.ApplyTaskKind, engtask.DeleteTaskKind, engtask.ToggleTaskKind:
 			resources = task.Spec.ResourceTaskSpec.Resources
 		case engtask.PipeTaskKind:
 			resources = append(resources, task.Spec.PipeTaskSpec.Pod)
@@ -44,6 +42,10 @@ func (ReferenceVerifier) Verify(pf *packages.Files) verifier.Result {
 	}
 
 	for template := range templates {
+		// skip manifest file as it is already accounted for
+		if template == pf.Operator.NamespaceManifest {
+			continue
+		}
 		if _, ok := requiredTemplates[template]; !ok {
 			res.AddWarnings(fmt.Sprintf("template %q is not referenced from any task", template))
 		}

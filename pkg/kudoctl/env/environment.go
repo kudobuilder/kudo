@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/util/homedir"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
@@ -54,9 +55,11 @@ var DefaultSettings = &Settings{
 
 // AddFlags binds flags to the given flagset.
 func (s *Settings) AddFlags(fs *pflag.FlagSet) {
+	namespace, _, _ := kube.GetConfig(s.KubeConfig).Namespace()
+
 	fs.StringVar((*string)(&s.Home), "home", kudoHome(), "Location of your KUDO config.")
 	fs.StringVar(&s.KubeConfig, "kubeconfig", kubeConfigHome(), "Path to your Kubernetes configuration file.")
-	fs.StringVarP(&s.Namespace, "namespace", "n", "default", "Target namespace for the object.")
+	fs.StringVarP(&s.Namespace, "namespace", "n", namespace, "Target namespace for the object.")
 	fs.Int64Var(&s.RequestTimeout, "request-timeout", 0, "Request timeout value, in seconds.  Defaults to 0 (unlimited)")
 	fs.BoolVar(&s.Validate, "validate-install", true, "Validate KUDO installation before running.")
 }

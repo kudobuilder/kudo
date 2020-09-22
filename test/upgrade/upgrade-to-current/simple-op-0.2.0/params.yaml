@@ -1,0 +1,9 @@
+apiVersion: kudo.dev/v1beta1
+parameters:
+  - name: replicas
+    description: Number of replicas that should be run as part of the deployment
+    default: 2
+  - name: unchangeable
+    description: An unchangeable parameter
+    required: true
+    immutable: true

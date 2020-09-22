@@ -7,6 +7,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/convert"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 )
 
@@ -16,7 +17,7 @@ type URLResolver struct {
 }
 
 // Resolve returns a package for the provided url
-func (f *URLResolver) Resolve(name string, version string) (*packages.Package, error) {
+func (f *URLResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
 	// check to see if name is url
 	if !http.IsValidURL(name) {
 		return nil, fmt.Errorf("resolver: url %v invalid", name)
@@ -30,7 +31,7 @@ func (f *URLResolver) Resolve(name string, version string) (*packages.Package, e
 		return nil, err
 	}
 
-	resources, err := files.Resources()
+	resources, err := convert.FilesToResources(files)
 	if err != nil {
 		return nil, err
 	}

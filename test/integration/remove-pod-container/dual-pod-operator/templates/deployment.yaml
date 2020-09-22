@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      {{ if eq .Params.WITH_PRIORITY "true" }}
+      priority: 100
+      {{ end }}
+      containers:
+        - name: nginx
+          image: nginx:{{ .AppVersion }}
+          ports:
+            - containerPort: 80
+      {{ if eq .Params.SECOND_CONTAINER "true"}}
+        - name: nginx2
+          image: nginx:{{ .AppVersion }}
+          ports:
+            - containerPort: 8080
+      {{ end }}

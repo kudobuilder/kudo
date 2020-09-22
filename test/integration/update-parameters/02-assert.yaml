@@ -4,18 +4,14 @@ metadata:
   name: my-service
 spec:
   selector:
-    param: "after"
+    param: "long-after"
+    replicas: "3"
 ---
 apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   name: toy1
 status:
-  aggregatedStatus:
-    status: COMPLETE
   planStatus:
     update:
       status: COMPLETE
-      phases:
-        - name: update
-          status: COMPLETE

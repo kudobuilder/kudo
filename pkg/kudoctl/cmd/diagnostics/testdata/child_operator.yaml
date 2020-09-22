@@ -1,0 +1,5 @@
+apiVersion: kudo.dev/v1beta1
+kind: Operator
+metadata:
+  name: zookeeper-instance-child
+  namespace: my-namespace

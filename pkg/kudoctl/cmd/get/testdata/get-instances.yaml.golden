@@ -1,0 +1,16 @@
+---
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
+  creationTimestamp: null
+  labels:
+    operator: test
+  name: test
+  namespace: default
+spec:
+  operatorVersion:
+    name: some-operator-0.1.0
+  planExecution: {}
+status: {}
+
+...

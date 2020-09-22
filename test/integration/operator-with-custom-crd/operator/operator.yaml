@@ -1,6 +1,6 @@
 apiVersion: kudo.dev/v1beta1
 name: "crd-operator"
-version: "0.1.0"
+operatorVersion: "0.1.0"
 kubernetesVersion: 1.13
 maintainers:
   - name: Your name
@@ -11,14 +11,22 @@ tasks:
     kind: Apply
     spec:
       resources:
+        - crd.yaml
+  - name: sm
+    kind: Apply
+    spec:
+      resources:
         - sm.yaml
 plans:
   deploy:
     strategy: serial
     phases:
       - name: main
-        strategy: parallel
+        strategy: serial
         steps:
-          - name: everything
+          - name: crd
             tasks:
               - crd
+          - name: everything
+            tasks:
+              - sm

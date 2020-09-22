@@ -388,4 +388,4 @@ Controllers are typically tested using test libraries in the same language that 
 
 ## Infrastructure Needed
 
-A CI system and cloud infrastructure for running the test suite are required (see [0004-add-testing-infrastructure](https://github.com/kudobuilder/kudo/blob/master/keps/0004-add-testing-infrastructure.md)).
+A CI system and cloud infrastructure for running the test suite are required (see [0004-add-testing-infrastructure](https://github.com/kudobuilder/kudo/blob/main/keps/0004-add-testing-infrastructure.md)).

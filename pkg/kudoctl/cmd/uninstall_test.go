@@ -5,8 +5,9 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kubefake "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -14,11 +15,11 @@ import (
 )
 
 func newTestClient() *kudo.Client {
-	return kudo.NewClientFromK8s(fake.NewSimpleClientset())
+	return kudo.NewClientFromK8s(fake.NewSimpleClientset(), kubefake.NewSimpleClientset())
 }
 
 func TestUninstall(t *testing.T) {
-	testInstance := v1beta1.Instance{
+	testInstance := kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -29,7 +30,7 @@ func TestUninstall(t *testing.T) {
 			},
 			Name: "test",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
@@ -44,8 +45,12 @@ func TestUninstall(t *testing.T) {
 		t.Fatalf("failed to install instance: %v", err)
 	}
 
+	options := uninstallOptions{
+		InstanceName: "nonexisting-instance",
+	}
+
 	cmd := uninstallCmd{}
-	err = cmd.uninstall(kc, "nonexisting-instance", settings)
+	err = cmd.uninstall(kc, options, settings)
 	if err == nil {
 		t.Errorf("expected an error but got none")
 	}
@@ -55,7 +60,10 @@ func TestUninstall(t *testing.T) {
 		t.Errorf("expected error message '%s' but got '%v'", errMsg, err)
 	}
 
-	err = cmd.uninstall(kc, testInstance.Name, settings)
+	options.InstanceName = testInstance.Name
+	options.Wait = true
+
+	err = cmd.uninstall(kc, options, settings)
 	if err != nil {
 		t.Errorf("failed to uninstall instance: %v", err)
 	}

@@ -10,7 +10,9 @@ import (
 
 	"github.com/spf13/afero"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/convert"
 )
 
 func ReadTar(fs afero.Fs, path string) (*packages.Package, error) {
@@ -28,7 +30,7 @@ func ReadTar(fs afero.Fs, path string) (*packages.Package, error) {
 	}
 
 	// 3. convert to resources
-	resources, err := files.Resources()
+	resources, err := convert.FilesToResources(files)
 	if err != nil {
 		return nil, fmt.Errorf("while getting package resources from %s: %v", path, err)
 	}
@@ -47,7 +49,7 @@ func ParseTgz(r io.Reader) (*packages.Files, error) {
 	defer func() {
 		err := gzr.Close()
 		if err != nil {
-			fmt.Printf("Error when closing gzip reader: %s", err)
+			clog.Printf("Error when closing gzip reader: %s", err)
 		}
 	}()
 

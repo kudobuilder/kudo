@@ -1,0 +1,9 @@
+apiVersion: kudo.dev/v1beta1
+kind: OperatorVersion
+metadata:
+  name: zookeeper-0.3.0
+  namespace: my-namespace
+spec:
+  operator:
+    kind: Operator
+    name: zookeeper

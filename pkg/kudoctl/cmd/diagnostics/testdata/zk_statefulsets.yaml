@@ -1,0 +1,10 @@
+apiVersion: apps/v1
+kind: StatefulSetList
+items:
+- apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    labels:
+      kudo.dev/operator: zookeeper
+    name: zookeeper-instance-zookeeper
+    namespace: my-namespace

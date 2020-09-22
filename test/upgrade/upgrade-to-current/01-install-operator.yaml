@@ -1,0 +1,5 @@
+apiVersion: kudo.dev/v1beta1
+kind: TestStep
+commands:
+  - command: ./old-kudo install --instance simple-op ./simple-op-0.1.0
+    namespaced: true

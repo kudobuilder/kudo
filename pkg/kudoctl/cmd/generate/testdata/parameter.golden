@@ -1,0 +1,14 @@
+apiVersion: kudo.dev/v1beta1
+parameters:
+- default: 1Gi
+  description: Amount of memory to provide to Zookeeper pods
+  immutable: false
+  name: memory
+  required: true
+- default: "0.25"
+  description: Amount of cpu to provide to Zookeeper pods
+  immutable: false
+  name: cpus
+  required: true
+- default: Bar
+  name: Foo

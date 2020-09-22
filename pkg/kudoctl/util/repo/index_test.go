@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/magiconair/properties/assert"
+	"github.com/stretchr/testify/assert"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
@@ -24,31 +24,54 @@ apiVersion: v1
 entries:
   flink:
   - apiVersion: v1beta1
-    appVersion: 1.7.2
     name: flink
     urls:
     - https://kudo-repository.storage.googleapis.com/flink-0.1.0.tgz
-    version: 0.1.0
+    operatorVersion: 0.1.0
+  - apiVersion: v1beta1
+    appVersion: 1.7.2
+    name: flink
+    urls:
+    - https://kudo-repository.storage.googleapis.com/flink-1.7.2_0.1.0.tgz
+    operatorVersion: 0.1.0
   kafka:
   - apiVersion: v1beta1
     appVersion: 2.2.1
     name: kafka
     urls:
-    - https://kudo-repository.storage.googleapis.com/kafka-0.1.0.tgz
-    version: 0.1.0
+    - https://kudo-repository.storage.googleapis.com/kafka-2.2.1_0.1.0.tgz
+    operatorVersion: 0.1.0
+  - apiVersion: v1beta1
+    appVersion: 2.2.1
+    name: kafka
+    urls:
+    - https://kudo-repository.storage.googleapis.com/kafka-2.2.1_0.2.0.tgz
+    operatorVersion: 0.2.0
   - apiVersion: v1beta1
     appVersion: 2.3.0
     name: kafka
     urls:
-    - https://kudo-repository.storage.googleapis.com/kafka-0.2.0.tgz
-    version: 0.2.0
+    - https://kudo-repository.storage.googleapis.com/kafka-2.3.0_0.2.0.tgz
+    operatorVersion: 0.2.0
 `
 	b := []byte(indexString)
 	index, _ := ParseIndexFile(b)
 
-	assert.Equal(t, len(index.Entries), 2, "number of operator entries is 2")
-	assert.Equal(t, len(index.Entries["kafka"]), 2, "number of kafka operators is 2")
-	assert.Equal(t, index.Entries["flink"][0].AppVersion, "1.7.2", "flink app version")
+	assert.Equal(t, 2, len(index.Entries), "number of operator entries is 2")
+
+	assert.Equal(t, 2, len(index.Entries["flink"]), "number of flink operators is 2")
+	assert.Equal(t, "1.7.2", index.Entries["flink"][0].AppVersion, "flink app version")
+	assert.Equal(t, "0.1.0", index.Entries["flink"][0].OperatorVersion, "flink operator version")
+	assert.Equal(t, "", index.Entries["flink"][1].AppVersion, "flink app version")
+	assert.Equal(t, "0.1.0", index.Entries["flink"][1].OperatorVersion, "flink operator version")
+
+	assert.Equal(t, 3, len(index.Entries["kafka"]), "number of kafka operators is 3")
+	assert.Equal(t, "2.3.0", index.Entries["kafka"][0].AppVersion, "kafka app version")
+	assert.Equal(t, "0.2.0", index.Entries["kafka"][0].OperatorVersion, "kafka operator version")
+	assert.Equal(t, "2.2.1", index.Entries["kafka"][1].AppVersion, "kafka app version")
+	assert.Equal(t, "0.2.0", index.Entries["kafka"][1].OperatorVersion, "kafka operator version")
+	assert.Equal(t, "2.2.1", index.Entries["kafka"][2].AppVersion, "kafka app version")
+	assert.Equal(t, "0.1.0", index.Entries["kafka"][2].OperatorVersion, "kafka operator version")
 }
 
 // TestParsingGoldenIndex and parses the index file catching marshalling issues.
@@ -92,6 +115,8 @@ func TestWriteIndexFile(t *testing.T) {
 
 	if *update {
 		t.Log("update golden file")
+
+		//nolint:gosec
 		if err := ioutil.WriteFile(gp, buf.Bytes(), 0644); err != nil {
 			t.Fatalf("failed to update golden file: %s", err)
 		}
@@ -120,11 +145,11 @@ func getTestPackageVersion(name string, version string) PackageVersion {
 	urls := []string{fmt.Sprintf("http://kudo.dev/%v", name)}
 	bv := PackageVersion{
 		Metadata: &Metadata{
-			Name:        name,
-			Version:     version,
-			AppVersion:  "0.7.0",
-			Description: "fancy description is here",
-			Maintainers: []*v1beta1.Maintainer{
+			Name:            name,
+			OperatorVersion: version,
+			AppVersion:      "0.7.0",
+			Description:     "fancy description is here",
+			Maintainers: []*kudoapi.Maintainer{
 				{Name: "Fabian Baier", Email: "<fabian@mesosphere.io>"},
 				{Name: "Tom Runyon", Email: "<runyontr@gmail.com>"},
 				{Name: "Ken Sipe", Email: "<kensipe@gmail.com>"}},
@@ -151,8 +176,8 @@ func TestAddPackageVersionErrorConditions(t *testing.T) {
 		pv   *PackageVersion
 		err  string
 	}{
-		{"duplicate version", dup, "operator 'flink' version: 0.3.0 already exists"},
-		{"no version", &missing, "operator 'flink' is missing version"},
+		{"duplicate version", dup, "operator 'flink' version: 0.7.0_0.3.0 already exists"},
+		{"no version", &missing, "operator 'flink' is missing operator version"},
 		{"good additional version", &good, ""},
 		{"good additional package", &g2, ""},
 	}
@@ -170,11 +195,11 @@ func TestMapPackageFileToPackageVersion(t *testing.T) {
 		APIVersion:        packages.APIVersion,
 		Name:              "kafka",
 		Description:       "",
-		Version:           "1.0.0",
+		OperatorVersion:   "1.0.0",
 		AppVersion:        "2.2.2",
 		KUDOVersion:       "0.5.0",
 		KubernetesVersion: "1.15",
-		Maintainers:       []*v1beta1.Maintainer{{Name: "Ken Sipe"}},
+		Maintainers:       []*kudoapi.Maintainer{{Name: "Ken Sipe"}},
 		URL:               "http://kudo.dev/kafka",
 	}
 	pf := packages.Files{
@@ -183,8 +208,9 @@ func TestMapPackageFileToPackageVersion(t *testing.T) {
 
 	pv := ToPackageVersion(&pf, "1234", "http://localhost")
 
-	assert.Equal(t, pv.Name, o.Name)
-	assert.Equal(t, pv.Version, o.Version)
-	assert.Equal(t, pv.URLs[0], "http://localhost/kafka-1.0.0.tgz")
-	assert.Equal(t, pv.Digest, "1234")
+	assert.Equal(t, o.Name, pv.Name)
+	assert.Equal(t, o.OperatorVersion, pv.OperatorVersion)
+	assert.Equal(t, o.AppVersion, pv.AppVersion)
+	assert.Equal(t, "http://localhost/kafka-2.2.2_1.0.0.tgz", pv.URLs[0])
+	assert.Equal(t, "1234", pv.Digest)
 }

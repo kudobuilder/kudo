@@ -22,34 +22,28 @@ see-also:
 
 ## Table of Contents
 
-- [New KUDO package format](#new-kudo-package-format)
-  - [Table of Contents](#table-of-contents)
-  - [Summary](#summary)
-  - [Motivation](#motivation)
-  - [Goals](#goals)
-  - [Proposal](#proposal)
-    - [Definitions](#definitions)
-    - [Operator Organization](#operator-organization)
-      - [operator.yaml](#operatoryaml)
-      - [params.yaml](#paramsyaml)
-      - [common/](#common)
-      - [templates/](#templates)
-    - [Plans](#plans)
-    - [Steps](#steps)
-    - [Tasks](#tasks)
-      - [Files](#files)
-      - [Resources vs. Patches](#resources-vs-patches)
-      - [Task Application](#task-application)
-    - [Parameters](#parameters)
-    - [Templates](#templates-1)
-  - [Extensions and Bases](#extensions-and-bases)
-    - [Task Extensions](#task-extensions)
-    - [Plan Extensions](#plan-extensions)
-    - [Example Operator Extension](#example-operator-extension)
-      - [operator.yaml](#operatoryaml-1)
-      - [params.yaml](#paramsyaml-1)
-  - [Future Work](#future-work)
-    - [Allow for other templating engines](#allow-for-other-templating-engines)
+* [New KUDO package format](#new-kudo-package-format)
+   * [Table of Contents](#table-of-contents)
+   * [Summary](#summary)
+   * [Motivation](#motivation)
+   * [Goals](#goals)
+   * [Proposal](#proposal)
+      * [Definitions](#definitions)
+      * [Operator Organization](#operator-organization)
+         * [operator.yaml](#operatoryaml)
+         * [params.yaml](#paramsyaml)
+         * [common/](#common)
+         * [templates/](#templates)
+      * [Plans](#plans)
+      * [Steps](#steps)
+      * [Tasks](#tasks)
+         * [Files](#files)
+         * [Resources vs. Patches](#resources-vs-patches)
+         * [Task Application](#task-application)
+      * [Parameters](#parameters)
+      * [Templates](#templates-1)
+   * [Future Work](#future-work)
+      * [Allow for other templating engines](#allow-for-other-templating-engines)
 
 ## Summary
 
@@ -107,18 +101,52 @@ An operator package is a folder that contains all of the manifests needed to cre
 
 #### operator.yaml
 
-`operator.yaml` is the base definition of an operator. It follows the following format, extracted from the MySQL example:
+`operator.yaml` is the base definition of an operator.  It follows the following reference format.
 
 ```yaml
-name: operator
-description: operator
-version: "5.7"
-kudoVersion: ">= 0.2.0"
-kubeVersion: ">= 1.14"
+name: "operator"
+description: "operator desc"
+version: "0.3.0"
+appVersion: "v1.0-rc2"
+kudoVersion: "0.8.0"
+kubernetesVersion: "1.16"
 maintainers:
-  - Bob <bob@example.com>
-  - Alice <alice@example.com>
-url: https://github.com/myoperator/myoperator
+  - name: "Billy Bob"
+    email: "bb@kudo.dev"
+url: "kudo.dev"
+tasks:
+  deploy:
+    resources:
+      - pvc.yaml
+      - deployment.yaml
+  validation:
+    resources:
+      - validation.yaml
+plans:
+  deploy:
+    strategy: serial
+    phases:
+      - name: zookeeper
+        strategy: parallel
+        steps:
+         - name: validation
+           tasks:
+             - validation
+           delete: true
+```
+
+An example looks like:
+
+```
+name: "zookeeper"
+version: 0.2.0
+kudoVersion: 0.5.0
+appVersion: 3.4.14
+kubernetesVersion: 1.15.0
+maintainers:
+  - name: Tom Runyon
+    email: runyontr@gmail.com
+url: https://zookeeper.apache.org/
 tasks:
   - name: deploy
     kind: Apply
@@ -239,16 +267,34 @@ This file undergoes a Go template pass on Instance instantiation before being pa
 The `params.yaml` file is a struct that defines parameters for operator. This can articulate descriptions, defaults, and triggers, etc. In the MySQL example, this looks like:
 
 ```yaml
-backupFile:
-  description: "The name of the backup file"
-  default: backup.sql
-password:
-  default: password
-  description: "Password for the mysql instance"
-  displayName: "Password"
-  trigger: deploy
-notrequiredparam:
-  description: "This parameter is not required"
+apiVersion: kudo.dev/v1beta1
+parameters:
+  - name: "parameter_name"
+    displayName: "parameter display"
+    description: "parameter desc"
+    required: true
+    default: "param default"
+    trigger: "backup"    
+```
+
+An example looks like:
+
+```yaml
+NODE_COUNT:
+  description: "Number of nodes spun up for Zookeeper"
+  default: 3
+  displayName: "Node Count"
+
+MEMORY:
+  description: Amount of memory to provide to Zookeeper pods
+  default: "1Gi"
+
+CPUS:
+  description: Amount of cpu to provide to Zookeeper pods
+  default: "0.25"
+
+STORAGE_CLASS:
+  description: "The storage class to be used in volumeClaimTemplates. By default its not required and the default storage class is used."
   required: false
 ```
 

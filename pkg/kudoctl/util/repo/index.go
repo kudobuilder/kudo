@@ -8,10 +8,11 @@ import (
 	"sort"
 	"time"
 
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
 
+	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
@@ -48,27 +49,32 @@ func (b PackageVersions) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
 // This is needed to allow sorting of packages.
 func (b PackageVersions) Less(x, y int) bool {
 	// Failed parse pushes to the back.
-	i, err := semver.NewVersion(b[x].Version)
+	appVersionX, err := semver.NewVersion(b[x].AppVersion)
 	if err != nil {
 		return true
 	}
-	j, err := semver.NewVersion(b[y].Version)
+
+	appVersionY, err := semver.NewVersion(b[y].AppVersion)
 	if err != nil {
 		return false
 	}
-	return i.LessThan(j)
-}
 
-// sortPackages sorts the entries by version in descending order.
-//
-// In canonical form, the individual version records should be sorted so that
-// the most recent release for every version is in the 0th slot in the
-// Entries.PackageVersions array. That way, tooling can predict the newest
-// version without needing to parse SemVers.
-func (i IndexFile) sortPackages() {
-	for _, versions := range i.Entries {
-		sort.Sort(sort.Reverse(versions))
+	if appVersionX.Equal(appVersionY) {
+		// Failed parse pushes to the back.
+		versionX, err := semver.NewVersion(b[x].OperatorVersion)
+		if err != nil {
+			return true
+		}
+
+		versionY, err := semver.NewVersion(b[y].OperatorVersion)
+		if err != nil {
+			return false
+		}
+
+		return versionX.LessThan(versionY)
 	}
+
+	return appVersionX.LessThan(appVersionY)
 }
 
 // ParseIndexFile loads an index file and sorts the included packages by version.
@@ -78,9 +84,10 @@ func ParseIndexFile(data []byte) (*IndexFile, error) {
 	if err := yaml.Unmarshal(data, i); err != nil {
 		return nil, fmt.Errorf("unmarshalling index file: %w", err)
 	}
-	if i.APIVersion == "" {
-		return nil, errors.New("no API version specified")
+	if err := i.validate(); err != nil {
+		return nil, fmt.Errorf("validating index file: %w", err)
 	}
+
 	i.sortPackages()
 	return i, nil
 }
@@ -92,7 +99,7 @@ func (i IndexFile) Write(w io.Writer) error {
 	}
 	_, err = w.Write(b)
 	if err != nil {
-		fmt.Printf("err: %v", err)
+		clog.Printf("Error writing index file: %v", err)
 	}
 	return err
 }
@@ -100,9 +107,10 @@ func (i IndexFile) Write(w io.Writer) error {
 // AddPackageVersion adds an entry to the IndexFile (does not allow dups)
 func (i *IndexFile) AddPackageVersion(pv *PackageVersion) error {
 	name := pv.Name
-	version := pv.Version
-	if version == "" {
-		return fmt.Errorf("operator '%v' is missing version", name)
+	appVersion := pv.AppVersion
+	operatorVersion := pv.OperatorVersion
+	if operatorVersion == "" {
+		return fmt.Errorf("operator '%v' is missing operator version", name)
 	}
 	if i.Entries == nil {
 		i.Entries = make(map[string]PackageVersions)
@@ -117,8 +125,8 @@ func (i *IndexFile) AddPackageVersion(pv *PackageVersion) error {
 
 	// loop thru all... don't allow dups
 	for _, ver := range vs {
-		if ver.Version == version {
-			return fmt.Errorf("operator '%v' version: %v already exists", name, version)
+		if ver.AppVersion == appVersion && ver.OperatorVersion == operatorVersion {
+			return fmt.Errorf("operator '%v' version: %v_%v already exists", name, appVersion, operatorVersion)
 		}
 	}
 
@@ -144,6 +152,34 @@ func (i *IndexFile) WriteFile(fs afero.Fs, file string) (err error) {
 	return i.Write(f)
 }
 
+func (i *IndexFile) validate() error {
+	if i.APIVersion == "" {
+		return errors.New("no API version defined")
+	}
+
+	for _, packageVersions := range i.Entries {
+		for _, packageVersion := range packageVersions {
+			if packageVersion.OperatorVersion == "" {
+				return fmt.Errorf("package %s is missing an operator version", packageVersion.Name)
+			}
+		}
+	}
+
+	return nil
+}
+
+// sortPackages sorts the entries by version in descending order.
+//
+// In canonical form, the individual version records should be sorted so that
+// the most recent release for every version is in the 0th slot in the
+// Entries.PackageVersions array. That way, tooling can predict the newest
+// version without needing to parse SemVers.
+func (i IndexFile) sortPackages() {
+	for _, versions := range i.Entries {
+		sort.Sort(sort.Reverse(versions))
+	}
+}
+
 // Map transforms a slice of packagefiles with file digests into a slice of PackageVersions
 func Map(pkgs []*PackageFilesDigest, url string) PackageVersions {
 	return mapPackages(pkgs, url, ToPackageVersion)
@@ -166,14 +202,18 @@ func ToPackageVersion(pf *packages.Files, digest string, url string) *PackageVer
 	if url[len(url)-1:] != "/" {
 		url = url + "/"
 	}
-	url = fmt.Sprintf("%s%s-%v.tgz", url, o.Name, o.Version)
+	if o.AppVersion == "" {
+		url = fmt.Sprintf("%s%s-%v.tgz", url, o.Name, o.OperatorVersion)
+	} else {
+		url = fmt.Sprintf("%s%s-%v_%v.tgz", url, o.Name, o.AppVersion, o.OperatorVersion)
+	}
 	pv := PackageVersion{
 		Metadata: &Metadata{
-			Name:        o.Name,
-			Version:     o.Version,
-			Description: o.Description,
-			Maintainers: o.Maintainers,
-			AppVersion:  o.AppVersion,
+			Name:            o.Name,
+			OperatorVersion: o.OperatorVersion,
+			Description:     o.Description,
+			Maintainers:     o.Maintainers,
+			AppVersion:      o.AppVersion,
 		},
 		URLs:   []string{url},
 		Digest: digest,

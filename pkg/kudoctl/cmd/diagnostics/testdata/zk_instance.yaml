@@ -1,0 +1,11 @@
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
+  labels:
+    kudo.dev/operator: zookeeper
+  name: zookeeper-instance
+  namespace: my-namespace
+  uid: 4c46f7a2-3571-4047-9a15-be5043c6b357
+spec:
+  operatorVersion:
+    name: zookeeper-0.3.0

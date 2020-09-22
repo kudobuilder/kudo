@@ -4,19 +4,21 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"strings"
 
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 )
 
 // Info contains versioning information.
 type Info struct {
-	GitVersion string `json:"gitVersion"`
-	GitCommit  string `json:"gitCommit"`
-	BuildDate  string `json:"buildDate"`
-	GoVersion  string `json:"goVersion"`
-	Compiler   string `json:"compiler"`
-	Platform   string `json:"platform"`
+	GitVersion              string `json:"gitVersion"`
+	GitCommit               string `json:"gitCommit"`
+	BuildDate               string `json:"buildDate"`
+	GoVersion               string `json:"goVersion"`
+	Compiler                string `json:"compiler"`
+	Platform                string `json:"platform"`
+	KubernetesClientVersion string `json:"kubernetesClientVersion"`
 }
 
 // String returns info as a human-friendly version string.
@@ -36,13 +38,12 @@ func Get() Info {
 		// on dev box, lets use a env var for version
 		gitVersion = os.Getenv("KUDO_DEV_VERSION")
 		if gitVersion == "" {
-			gitVersion = "dev"
+			gitVersion = "not-built-on-release"
 		}
 		gitCommit = "dev"
-		//TODO (kensipe): add debug message!
 	}
 
-	return Info{
+	result := Info{
 		GitVersion: gitVersion,
 		GitCommit:  gitCommit,
 		BuildDate:  buildDate,
@@ -50,6 +51,16 @@ func Get() Info {
 		Compiler:   runtime.Compiler,
 		Platform:   fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	}
+
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, dep := range info.Deps {
+			if dep.Path == "k8s.io/client-go" {
+				result.KubernetesClientVersion = dep.Version
+			}
+		}
+	}
+
+	return result
 }
 
 // Version is an extension of semver.Version
@@ -71,7 +82,7 @@ func (v *Version) CompareMajorMinor(o *Version) int {
 }
 
 // compares v1 against v2 resulting in -1, 0, 1 for less than, equal, greater than
-func compareSegment(v1, v2 int64) int {
+func compareSegment(v1, v2 uint64) int {
 	if v1 < v2 {
 		return -1
 	}

@@ -8,7 +8,7 @@ jobs:
     steps:
       - checkout
       - run: echo 'export INTEGRATION_OUTPUT_JUNIT="true"' >> $BASH_ENV
-      - run: ./test/run_tests.sh integration-test
+      - run: ./test/run_tests.sh "integration-test kuttl-test"
       - store_test_results:
           path: reports/
 
@@ -20,10 +20,34 @@ jobs:
       - run: ./test/run_tests.sh e2e-test
       - store_test_results:
           path: reports/
+      - store_artifacts:
+          path: kind-logs.tar.bz2
+
+  upgrade-test:
+    machine: true
+    steps:
+      - checkout
+      - run: echo 'export INTEGRATION_OUTPUT_JUNIT="true"' >> $BASH_ENV
+      - run: ./test/run_tests.sh upgrade-test
+      - store_test_results:
+          path: reports/
+      - store_artifacts:
+          path: kind-logs.tar.bz2
+
+  operator-test:
+    machine: true
+    steps:
+      - checkout
+      - run: echo 'export INTEGRATION_OUTPUT_JUNIT="true"' >> $BASH_ENV
+      - run: ./test/run_tests.sh operator-test
+      - store_test_results:
+          path: reports/
+      - store_artifacts:
+          path: kind-logs.tar.bz2
 
   lint:
     docker:
-      - image: kudobuilder/golang:1.13
+      - image: kudobuilder/golang:1.14
     working_directory: /go/src/github.com/kudobuilder/kudo
     steps:
       - checkout
@@ -48,3 +72,9 @@ workflows:
   e2e-test:
     jobs:
       - e2e-test
+  upgrade-test:
+    jobs:
+      - upgrade-test
+  operator-test:
+    jobs:
+      - operator-test

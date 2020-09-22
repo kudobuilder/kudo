@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: PodList
+items:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      kudo.dev/operator: zookeeper
+    name: zookeeper-instance-zookeeper-0
+    namespace: my-namespace
+  spec:
+    containers:
+    - name: kubernetes-zookeeper
+    - name: pause-debug
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      kudo.dev/operator: zookeeper
+    name: zookeeper-instance-zookeeper-1
+    namespace: my-namespace
+  spec:
+    containers:
+    - name: kubernetes-zookeeper
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      kudo.dev/operator: zookeeper
+    name: zookeeper-instance-zookeeper-2
+    namespace: my-namespace
+  spec:
+    containers:
+    - name: kubernetes-zookeeper

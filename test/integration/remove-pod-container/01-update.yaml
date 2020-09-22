@@ -1,0 +1,5 @@
+apiVersion: kudo.dev/v1beta1
+kind: TestStep
+commands:
+  - command: kubectl kudo update --instance dual-pod -p SECOND_CONTAINER="false" -p WITH_PRIORITY="true"
+    namespaced: true

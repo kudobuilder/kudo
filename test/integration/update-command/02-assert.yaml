@@ -1,8 +1,11 @@
 apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
-  name: update-command-instance
+  name: toy1
 spec:
   parameters:
-    param: value
-    param2: value2
+    Param: after
+status:
+  planStatus:
+    deploy:
+      status: COMPLETE

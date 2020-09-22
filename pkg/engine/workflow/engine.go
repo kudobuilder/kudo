@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
@@ -18,7 +19,7 @@ import (
 
 var (
 	unknownTaskNameEventName = "UnknownTaskName"
-	unknownTaskKindEventName = "UnknownTaskKind"
+	taskBuildError           = "TaskBuildError"
 	missingPhaseStatus       = "MissingPhaseStatus"
 	missingStepStatus        = "MissingStepStatus"
 )
@@ -26,15 +27,15 @@ var (
 // ActivePlan wraps over all data that is needed for its execution including tasks, templates, parameters etc.
 type ActivePlan struct {
 	Name string
-	*v1beta1.PlanStatus
-	Spec      *v1beta1.Plan
-	Tasks     []v1beta1.Task
+	*kudoapi.PlanStatus
+	Spec      *kudoapi.Plan
+	Tasks     []kudoapi.Task
 	Templates map[string]string
-	Params    map[string]string
+	Params    map[string]interface{}
 	Pipes     map[string]string
 }
 
-func (ap *ActivePlan) taskByName(name string) (*v1beta1.Task, bool) {
+func (ap *ActivePlan) taskByName(name string) (*kudoapi.Task, bool) {
 	for _, t := range ap.Tasks {
 		if t.Name == name {
 			return &t, true
@@ -63,23 +64,25 @@ func (ap *ActivePlan) taskByName(name string) (*v1beta1.Task, bool) {
 //
 // Furthermore, a transient ERROR during a step execution, means that the next step may be executed if the step strategy
 // is "parallel". In case of a fatal error, it is returned alongside with the new plan status and published on the event bus.
-func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.Enhancer, currentTime time.Time) (*v1beta1.PlanStatus, error) {
+func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, di discovery.CachedDiscoveryInterface, config *rest.Config, scheme *runtime.Scheme) (*kudoapi.PlanStatus, error) {
 	if pl.Status.IsTerminal() {
 		log.Printf("PlanExecution: %s/%s plan %s is terminal, nothing to do", em.InstanceNamespace, em.InstanceName, pl.Name)
 		return pl.PlanStatus, nil
 	}
 
+	enh := &renderer.DefaultEnhancer{Scheme: scheme, Client: c, Discovery: di}
+
 	planStatus := pl.PlanStatus.DeepCopy()
-	planStatus.Set(v1beta1.ExecutionInProgress)
+	planStatus.Set(kudoapi.ExecutionInProgress)
 
 	phasesLeft := len(pl.Spec.Phases)
 	// --- 1. Iterate over plan phases ---
 	for _, ph := range pl.Spec.Phases {
-		phaseStatus := getPhaseStatus(ph.Name, planStatus)
+		phaseStatus := kudoapi.GetPhaseStatus(ph.Name, planStatus)
 		if phaseStatus == nil {
 			err := fmt.Errorf("%s/%s %w missing phase status: %s.%s", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name)
 
-			planStatus.SetWithMessage(v1beta1.ExecutionFatalError, err.Error())
+			planStatus.SetWithMessage(kudoapi.ExecutionFatalError, err.Error())
 			return planStatus, engine.ExecutionError{
 				Err:       err,
 				EventName: missingPhaseStatus,
@@ -87,11 +90,11 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 		}
 
 		// Check current phase status: skip if finished, proceed if in progress, break out if a fatal error has occurred
-		if isFinished(phaseStatus.Status) {
+		if phaseStatus.Status.IsFinished() {
 			phasesLeft = phasesLeft - 1
 			continue
-		} else if isInProgress(phaseStatus.Status) {
-			phaseStatus.Set(v1beta1.ExecutionInProgress)
+		} else if phaseStatus.Status.IsRunning() {
+			phaseStatus.Set(kudoapi.ExecutionInProgress)
 		} else {
 			break
 		}
@@ -99,12 +102,12 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 		stepsLeft := stepNamesToSet(ph.Steps)
 		// --- 2. Iterate over phase steps ---
 		for _, st := range ph.Steps {
-			stepStatus := getStepStatus(st.Name, phaseStatus)
+			stepStatus := kudoapi.GetStepStatus(st.Name, phaseStatus)
 			if stepStatus == nil {
 				err := fmt.Errorf("%s/%s %w missing step status: %s.%s.%s", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name, st.Name)
 
-				phaseStatus.SetWithMessage(v1beta1.ExecutionFatalError, err.Error())
-				planStatus.Set(v1beta1.ExecutionFatalError)
+				phaseStatus.SetWithMessage(kudoapi.ExecutionFatalError, err.Error())
+				planStatus.Set(kudoapi.ExecutionFatalError)
 				return planStatus, engine.ExecutionError{
 					Err:       err,
 					EventName: missingStepStatus,
@@ -112,11 +115,11 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 			}
 
 			// Check current phase status: skip if finished, proceed if in progress, break out if a fatal error has occurred
-			if isFinished(stepStatus.Status) {
+			if stepStatus.Status.IsFinished() {
 				delete(stepsLeft, stepStatus.Name)
 				continue
-			} else if isInProgress(stepStatus.Status) {
-				stepStatus.Set(v1beta1.ExecutionInProgress)
+			} else if stepStatus.Status.IsRunning() {
+				stepStatus.Set(kudoapi.ExecutionInProgress)
 			} else {
 				// we are not in progress and not finished. An unexpected error occurred so that we can not proceed to the next phase
 				break
@@ -129,9 +132,9 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 				if !ok {
 					err := fmt.Errorf("%s/%s %w missing task %s.%s.%s.%s", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name, st.Name, tn)
 
-					phaseStatus.Set(v1beta1.ExecutionFatalError)
-					planStatus.Set(v1beta1.ExecutionFatalError)
-					stepStatus.SetWithMessage(v1beta1.ExecutionFatalError, err.Error())
+					phaseStatus.Set(kudoapi.ExecutionFatalError)
+					planStatus.Set(kudoapi.ExecutionFatalError)
+					stepStatus.SetWithMessage(kudoapi.ExecutionFatalError, err.Error())
 					return planStatus, engine.ExecutionError{
 						Err:       err,
 						EventName: unknownTaskNameEventName,
@@ -152,18 +155,21 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 				if err != nil {
 					err := fmt.Errorf("%s/%s %w failed to build task %s.%s.%s.%s: %v", em.InstanceNamespace, em.InstanceName, engine.ErrFatalExecution, pl.Name, ph.Name, st.Name, tn, err)
 
-					stepStatus.SetWithMessage(v1beta1.ExecutionFatalError, err.Error())
-					planStatus.Set(v1beta1.ExecutionFatalError)
-					phaseStatus.Set(v1beta1.ExecutionFatalError)
+					stepStatus.SetWithMessage(kudoapi.ExecutionFatalError, err.Error())
+					planStatus.Set(kudoapi.ExecutionFatalError)
+					phaseStatus.Set(kudoapi.ExecutionFatalError)
 					return planStatus, engine.ExecutionError{
 						Err:       err,
-						EventName: unknownTaskKindEventName,
+						EventName: taskBuildError,
 					}
 				}
 
 				// - 3.c build task context -
 				ctx := task.Context{
 					Client:     c,
+					Discovery:  di,
+					Config:     config,
+					Scheme:     scheme,
 					Enhancer:   enh,
 					Meta:       exm,
 					Templates:  pl.Templates,
@@ -178,13 +184,13 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 				// stopped in the spirit of "fail-loud-and-proud".
 				switch {
 				case errors.Is(err, engine.ErrFatalExecution):
-					phaseStatus.Set(v1beta1.ExecutionFatalError)
-					planStatus.Set(v1beta1.ExecutionFatalError)
-					stepStatus.SetWithMessage(v1beta1.ExecutionFatalError, err.Error())
+					phaseStatus.Set(kudoapi.ExecutionFatalError)
+					planStatus.Set(kudoapi.ExecutionFatalError)
+					stepStatus.SetWithMessage(kudoapi.ExecutionFatalError, err.Error())
 					return planStatus, err
 				case err != nil:
 					message := fmt.Sprintf("A transient error when executing task %s.%s.%s.%s. Will retry. %v", pl.Name, ph.Name, st.Name, t.Name, err)
-					stepStatus.SetWithMessage(v1beta1.ErrorStatus, message)
+					stepStatus.SetWithMessage(kudoapi.ErrorStatus, message)
 					log.Printf("PlanExecution: %s", message)
 				case done:
 					delete(tasksLeft, t.Name)
@@ -195,12 +201,12 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 			// if some TASKs aren't ready yet and STEPs strategy is serial we can not proceed
 			// otherwise, if STEPs strategy is parallel or all TASKs are finished, we can go to the next STEP
 			if len(tasksLeft) > 0 {
-				if ph.Strategy == v1beta1.Serial {
+				if ph.Strategy == kudoapi.Serial {
 					log.Printf("PlanExecution: '%s' task(s) (instance: %s/%s) of the %s.%s.%s are not ready", mapKeysToString(tasksLeft), em.InstanceNamespace, em.InstanceName, pl.Name, ph.Name, st.Name)
 					break
 				}
 			} else {
-				stepStatus.Set(v1beta1.ExecutionComplete)
+				stepStatus.Set(kudoapi.ExecutionComplete)
 				delete(stepsLeft, stepStatus.Name)
 			}
 		}
@@ -209,12 +215,12 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 		// if some STEPs aren't ready yet and PHASEs strategy is serial we can not proceed
 		// otherwise, if PHASEs strategy is parallel or all STEPs are finished, we can go to the next PHASE
 		if len(stepsLeft) > 0 {
-			if pl.Spec.Strategy == v1beta1.Serial {
+			if pl.Spec.Strategy == kudoapi.Serial {
 				log.Printf("PlanExecution: '%s' step(s) (instance: %s/%s) of the %s.%s are not ready", mapKeysToString(stepsLeft), em.InstanceNamespace, em.InstanceName, pl.Name, ph.Name)
 				break
 			}
 		} else {
-			phaseStatus.Set(v1beta1.ExecutionComplete)
+			phaseStatus.Set(kudoapi.ExecutionComplete)
 			phasesLeft = phasesLeft - 1
 		}
 	}
@@ -222,8 +228,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, enh renderer.
 	// --- 7. Check if all PHASEs are finished ---
 	if phasesLeft == 0 {
 		log.Printf("PlanExecution: %s/%s all phases of the plan %s are ready", em.InstanceNamespace, em.InstanceName, pl.Name)
-		planStatus.Set(v1beta1.ExecutionComplete)
-		planStatus.LastFinishedRun = v1.Time{Time: currentTime}
+		planStatus.Set(kudoapi.ExecutionComplete)
 	}
 
 	return planStatus, nil
@@ -251,38 +256,10 @@ func stringArrayToSet(values []string) map[string]bool {
 
 // stepNamesToSet converts slice of steps to map (set)
 // this is useful to make it easier to remove from the collection and track what steps are finished
-func stepNamesToSet(steps []v1beta1.Step) map[string]bool {
+func stepNamesToSet(steps []kudoapi.Step) map[string]bool {
 	set := make(map[string]bool)
 	for _, s := range steps {
 		set[s.Name] = true
 	}
 	return set
-}
-
-func getStepStatus(stepName string, phaseStatus *v1beta1.PhaseStatus) *v1beta1.StepStatus {
-	for i, p := range phaseStatus.Steps {
-		if p.Name == stepName {
-			return &phaseStatus.Steps[i]
-		}
-	}
-
-	return nil
-}
-
-func getPhaseStatus(phaseName string, planStatus *v1beta1.PlanStatus) *v1beta1.PhaseStatus {
-	for i, p := range planStatus.Phases {
-		if p.Name == phaseName {
-			return &planStatus.Phases[i]
-		}
-	}
-
-	return nil
-}
-
-func isFinished(state v1beta1.ExecutionStatus) bool {
-	return state == v1beta1.ExecutionComplete
-}
-
-func isInProgress(state v1beta1.ExecutionStatus) bool {
-	return state == v1beta1.ExecutionInProgress || state == v1beta1.ExecutionPending || state == v1beta1.ErrorStatus
 }

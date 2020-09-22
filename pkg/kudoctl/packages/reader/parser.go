@@ -27,9 +27,14 @@ func newPackageFiles() packages.Files {
 	}
 }
 
+// parsePackageFile parses the passed file into the correct type and adds it to the currentPackage
+// The filePath needs to be relative to the package root
 func parsePackageFile(filePath string, fileBytes []byte, currentPackage *packages.Files) error {
 	isOperatorFile := func(name string) bool {
-		return strings.HasSuffix(name, OperatorFileName)
+		dir, file := filepath.Split(name)
+		base := filepath.Base(dir)
+
+		return base == "." && file == OperatorFileName
 	}
 
 	isTemplateFile := func(name string) bool {
@@ -46,13 +51,19 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *package
 	}
 
 	isParametersFile := func(name string) bool {
-		return strings.HasSuffix(name, ParamsFileName)
+		dir, file := filepath.Split(name)
+		base := filepath.Base(dir)
+
+		return base == "." && file == ParamsFileName
 	}
 
 	switch {
 	case isOperatorFile(filePath):
 		if err := yaml.Unmarshal(fileBytes, &currentPackage.Operator); err != nil {
 			return fmt.Errorf("failed to unmarshal operator file: %w", err)
+		}
+		if currentPackage.Operator == nil {
+			return fmt.Errorf("failed to parse yaml into valid operator %s", filePath)
 		}
 		if currentPackage.Operator.APIVersion == "" {
 			currentPackage.Operator.APIVersion = APIVersion
@@ -70,11 +81,15 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *package
 			return fmt.Errorf("failed to unmarshal parameters file: %s: %w", filePath, err)
 		}
 		defaultRequired := true
+		defaultImmutable := false
 		for i := 0; i < len(paramsFile.Parameters); i++ {
 			p := &paramsFile.Parameters[i]
 			if p.Required == nil {
 				// applying default value of required for all params where not specified
 				p.Required = &defaultRequired
+			}
+			if p.Immutable == nil {
+				p.Immutable = &defaultImmutable
 			}
 		}
 		currentPackage.Params = &paramsFile

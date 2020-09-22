@@ -1,7 +1,7 @@
 package packages
 
 import (
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 const (
@@ -22,29 +22,53 @@ type Package struct {
 // Resources is collection of CRDs that are used when installing operator
 // during installation, package format is converted to this structure
 type Resources struct {
-	Operator        *v1beta1.Operator
-	OperatorVersion *v1beta1.OperatorVersion
-	Instance        *v1beta1.Instance
+	Operator        *kudoapi.Operator
+	OperatorVersion *kudoapi.OperatorVersion
+	Instance        *kudoapi.Instance
 }
 
-type Parameter []v1beta1.Parameter
+// Modified kudoapi.Parameter that allows for defaults provided as YAML.
+type Parameter struct {
+	DisplayName string                `json:"displayName,omitempty"`
+	Name        string                `json:"name,omitempty"`
+	Description string                `json:"description,omitempty"`
+	Required    *bool                 `json:"required,omitempty"`
+	Default     interface{}           `json:"default,omitempty"`
+	Trigger     string                `json:"trigger,omitempty"`
+	Type        kudoapi.ParameterType `json:"type,omitempty"`
+	Immutable   *bool                 `json:"immutable,omitempty"`
+}
 
-// Templates is a map of file names and stringified files in the template folder of an operator
-type Templates map[string]string
+func (p Parameter) IsImmutable() bool {
+	return p.Immutable != nil && *p.Immutable
+}
+
+func (p Parameter) IsRequired() bool {
+	return p.Required != nil && *p.Required
+}
+
+func (p *Parameter) HasDefault() bool {
+	return p.Default != nil
+}
+
+type Parameters []Parameter
 
 // Len returns the number of params.
 // This is needed to allow sorting of params.
-func (p Parameter) Len() int { return len(p) }
+func (p Parameters) Len() int { return len(p) }
 
 // Swap swaps the position of two items in the params slice.
 // This is needed to allow sorting of params.
-func (p Parameter) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
+func (p Parameters) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 
 // Less returns true if the name of a param a is less than the name of param b.
 // This is needed to allow sorting of params.
-func (p Parameter) Less(x, y int) bool {
+func (p Parameters) Less(x, y int) bool {
 	return p[x].Name < p[y].Name
 }
+
+// Templates is a map of file names and stringified files in the template folder of an operator
+type Templates map[string]string
 
 // Files represents the raw operator package format the way it is found in the tgz packages
 type Files struct {
@@ -55,8 +79,8 @@ type Files struct {
 
 // ParamsFile is a representation of the package params.yaml
 type ParamsFile struct {
-	APIVersion string    `json:"apiVersion,omitempty"`
-	Parameters Parameter `json:"parameters"`
+	APIVersion string     `json:"apiVersion,omitempty"`
+	Parameters Parameters `json:"parameters"`
 }
 
 // OperatorFile is a representation of the package operator.yaml
@@ -64,12 +88,13 @@ type OperatorFile struct {
 	APIVersion        string                  `json:"apiVersion,omitempty"`
 	Name              string                  `json:"name"`
 	Description       string                  `json:"description,omitempty"`
-	Version           string                  `json:"version"`
+	OperatorVersion   string                  `json:"operatorVersion"`
 	AppVersion        string                  `json:"appVersion,omitempty"`
 	KUDOVersion       string                  `json:"kudoVersion,omitempty"`
 	KubernetesVersion string                  `json:"kubernetesVersion,omitempty"`
-	Maintainers       []*v1beta1.Maintainer   `json:"maintainers,omitempty"`
+	Maintainers       []*kudoapi.Maintainer   `json:"maintainers,omitempty"`
 	URL               string                  `json:"url,omitempty"`
-	Tasks             []v1beta1.Task          `json:"tasks"`
-	Plans             map[string]v1beta1.Plan `json:"plans"`
+	Tasks             []kudoapi.Task          `json:"tasks"`
+	Plans             map[string]kudoapi.Plan `json:"plans"`
+	NamespaceManifest string                  `json:"namespaceManifest,omitempty"`
 }

@@ -18,7 +18,7 @@ function generate_platform {
     fi
 
     local sha
-    PLATFORM=`uname`
+    PLATFORM=$(uname)
     if [ "$PLATFORM" == 'Darwin' ]; then
        sha=$(curl -L https://github.com/kudobuilder/kudo/releases/download/v"${VERSION}"/kudo_"${VERSION}"_"${1}"_"${ARCH}".tar.gz | shasum -a 256 - | awk '{print $1}')
     else
@@ -58,23 +58,22 @@ spec:
     your applications, give your users the tools they need to operate it, and
     understand how it's behaving in their environments — all without a PhD in
     Kubernetes.
-  caveats: |
-    Requires the KUDO controller to be installed:
-      kubectl kudo init
+
     Example usage:
       Install kafka:
         kubectl kudo install kafka
       List installed operator instances:
         kubectl kudo get instances
     See the documentation for more information: https://kudo.dev/docs/
-
+  caveats: |
+    Requires the KUDO controller to be installed:
+      kubectl kudo init
   platforms:
 EOF
 
 generate_platform linux amd64 ./kubectl-kudo >> kudo.yaml
 generate_platform linux 386 ./kubectl-kudo >> kudo.yaml
 generate_platform darwin amd64 ./kubectl-kudo >> kudo.yaml
-generate_platform darwin 386 ./kubectl-kudo >> kudo.yaml
 
 ### KUDO is not currently built for Windows. Uncomment once it is.
 # generate_platform windows amd64 ./kubectl-kudo.exe >> kudo.yaml

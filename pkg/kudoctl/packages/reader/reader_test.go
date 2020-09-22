@@ -10,10 +10,10 @@ import (
 	"testing"
 
 	"github.com/spf13/afero"
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/yaml"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
@@ -30,6 +30,8 @@ func TestReadFileSystemPackage(t *testing.T) {
 	var fs = afero.NewOsFs()
 
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(fmt.Sprintf("%s-from-%s", tt.name, tt.path), func(t *testing.T) {
 			var err error
 			var pkg *packages.Package
@@ -40,7 +42,7 @@ func TestReadFileSystemPackage(t *testing.T) {
 				pkg, err = ReadDir(fs, tt.path)
 			}
 
-			assert.NilError(t, err, "unexpected error while reading the package")
+			assert.NoError(t, err, "unexpected error while reading the package")
 			actual := pkg.Resources
 
 			actual.Instance.ObjectMeta.Name = tt.instanceName
@@ -58,7 +60,7 @@ func TestReadFileSystemPackage(t *testing.T) {
 				return golden.OperatorVersion.Spec.Parameters[i].Name < golden.OperatorVersion.Spec.Parameters[j].Name
 			})
 
-			assert.DeepEqual(t, golden, actual)
+			assert.Equal(t, golden, actual)
 		})
 	}
 }
@@ -91,19 +93,19 @@ func loadResourcesFromPath(goldenPath string) (*packages.Resources, error) {
 		}
 		switch {
 		case isOperatorFile(info.Name()):
-			var f v1beta1.Operator
+			var f kudoapi.Operator
 			if err = yaml.Unmarshal(bytes, &f); err != nil {
 				return fmt.Errorf("cannot unmarshal %s content: %w", info.Name(), err)
 			}
 			result.Operator = &f
 		case isVersionFile(info.Name()):
-			var fv v1beta1.OperatorVersion
+			var fv kudoapi.OperatorVersion
 			if err = yaml.Unmarshal(bytes, &fv); err != nil {
 				return fmt.Errorf("cannot unmarshal %s content: %w", info.Name(), err)
 			}
 			result.OperatorVersion = &fv
 		case isInstanceFile(info.Name()):
-			var i v1beta1.Instance
+			var i kudoapi.Instance
 			if err = yaml.Unmarshal(bytes, &i); err != nil {
 				return fmt.Errorf("cannot unmarshal %s content: %w", info.Name(), err)
 			}
@@ -129,7 +131,7 @@ apiVersion: kudo.dev/v1beta1
 parameters:
     - name: example
 `
-	example := []v1beta1.Parameter{{Name: "example"}}
+	example := []packages.Parameter{{Name: "example"}}
 
 	tests := []struct {
 		name       string
@@ -142,11 +144,13 @@ parameters:
 		{"parameters", oneParam, packages.ParamsFile{APIVersion: APIVersion, Parameters: example}, false},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := readParametersFile([]byte(tt.paramsYaml))
 			fmt.Printf("%s got: %v\n", tt.name, got)
 			assert.Equal(t, tt.wantErr, err != nil, "readParametersFile() error = %v, wantErr %v", err, tt.wantErr)
-			assert.DeepEqual(t, tt.want, got)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
