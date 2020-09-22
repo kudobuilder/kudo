@@ -3,7 +3,7 @@ package kudo
 import (
 	"sort"
 
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 	"github.com/thoas/go-funk"
 )
 
