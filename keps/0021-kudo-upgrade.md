@@ -1,6 +1,7 @@
 ---
 kep-number: 21
-title: Upgrades of KUDO installation
+title: KUDO Upgrades
+short-desc: Details how KUDO installations are upgraded
 authors:
   - "@aneumann82"
 owners:
@@ -8,7 +9,7 @@ owners:
 editor: TBD
 creation-date: 2019-11-28
 last-updated: 2020-09-22
-status: provisional
+status: implemented
 ---
 
 # Upgrading KUDO
