@@ -40,13 +40,11 @@ status: provisional
          * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
          * [Risks and Mitigations](#risks-and-mitigations)
             * [Failure cases](#failure-cases)
-      * [Graduation Criteria TODO](#graduation-criteria-todo)
       * [Infrastructure Needed](#infrastructure-needed)
       * [Resources](#resources)
       * [Implementation History](#implementation-history)
-      * [Action Items (to be converted into issues/tasks)](#action-items-to-be-converted-into-issuestasks)
 
-<!-- Added by: aneumann, at: Tue Jan  7 17:20:40 CET 2020 -->
+<!-- Added by: aneumann, at: Tue Sep 22 14:24:00 CEST 2020 -->
 
 <!--te-->
 
