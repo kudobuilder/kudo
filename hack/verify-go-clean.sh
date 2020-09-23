@@ -10,7 +10,7 @@ set -o pipefail
 # intentionally not setting 'set -o errexit' because we want to print custom error messages
 
 # versions of tools
-echo "go $(go version)"
+echo "$(go version)"
 
 # make sure make generate can be invoked
 go mod tidy
