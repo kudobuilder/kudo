@@ -36,3 +36,4 @@
 | [0030 - Immutable parameters](0030-immutable-parameters.md) | :question: | provisional | Immutable parameters that can only be set on installation |
 | [0031 - Namespace Management](0031-namespace-management.md) | :question: | provisional | Defining the way in which KUDO will work and manage namespaces |
 | [0032 - Community Repository Management](0032-community-repository-management.md) | :heavy_check_mark: | implemented | Details on how to add operator to the community repository |
+| [0034 - KUDO instance health](0034-instance-health.md) | :question: | provisional | Provide a way to monitor health of KUDO instance post-deployment |
