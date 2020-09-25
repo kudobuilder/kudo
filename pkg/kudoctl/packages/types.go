@@ -1,7 +1,7 @@
 package packages
 
 import (
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 const (
@@ -22,12 +22,12 @@ type Package struct {
 // Resources is collection of CRDs that are used when installing operator
 // during installation, package format is converted to this structure
 type Resources struct {
-	Operator        *v1beta1.Operator
-	OperatorVersion *v1beta1.OperatorVersion
-	Instance        *v1beta1.Instance
+	Operator        *kudoapi.Operator
+	OperatorVersion *kudoapi.OperatorVersion
+	Instance        *kudoapi.Instance
 }
 
-// Modified v1beta1.Parameter that allows for defaults provided as YAML.
+// Modified kudoapi.Parameter that allows for defaults provided as YAML.
 type Parameter struct {
 	DisplayName string                `json:"displayName,omitempty"`
 	Name        string                `json:"name,omitempty"`
@@ -35,7 +35,7 @@ type Parameter struct {
 	Required    *bool                 `json:"required,omitempty"`
 	Default     interface{}           `json:"default,omitempty"`
 	Trigger     string                `json:"trigger,omitempty"`
-	Type        v1beta1.ParameterType `json:"type,omitempty"`
+	Type        kudoapi.ParameterType `json:"type,omitempty"`
 	Immutable   *bool                 `json:"immutable,omitempty"`
 }
 
@@ -92,9 +92,9 @@ type OperatorFile struct {
 	AppVersion        string                  `json:"appVersion,omitempty"`
 	KUDOVersion       string                  `json:"kudoVersion,omitempty"`
 	KubernetesVersion string                  `json:"kubernetesVersion,omitempty"`
-	Maintainers       []*v1beta1.Maintainer   `json:"maintainers,omitempty"`
+	Maintainers       []*kudoapi.Maintainer   `json:"maintainers,omitempty"`
 	URL               string                  `json:"url,omitempty"`
-	Tasks             []v1beta1.Task          `json:"tasks"`
-	Plans             map[string]v1beta1.Plan `json:"plans"`
+	Tasks             []kudoapi.Task          `json:"tasks"`
+	Plans             map[string]kudoapi.Plan `json:"plans"`
 	NamespaceManifest string                  `json:"namespaceManifest,omitempty"`
 }

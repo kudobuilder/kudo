@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/kudobuilder/kudo/pkg/engine/health"
+	"github.com/kudobuilder/kudo/pkg/kubernetes/status"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
@@ -73,8 +73,11 @@ func (o KudoNamespace) VerifyInstallation(client *kube.Client, result *verifier.
 		}
 		return err
 	}
-	if err := health.IsHealthy(ns); err != nil {
-		result.AddErrors(fmt.Sprintf("namespace %s is not healthy: %v", o.opts.Namespace, err))
+	if healthy, msg, err := status.IsHealthy(ns); !healthy || err != nil {
+		if err != nil {
+			return err
+		}
+		result.AddErrors(fmt.Sprintf("namespace %s is not healthy: %v", o.opts.Namespace, msg))
 	}
 	return nil
 }

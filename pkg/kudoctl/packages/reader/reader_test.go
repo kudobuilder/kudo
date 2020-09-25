@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/yaml"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
@@ -93,19 +93,19 @@ func loadResourcesFromPath(goldenPath string) (*packages.Resources, error) {
 		}
 		switch {
 		case isOperatorFile(info.Name()):
-			var f v1beta1.Operator
+			var f kudoapi.Operator
 			if err = yaml.Unmarshal(bytes, &f); err != nil {
 				return fmt.Errorf("cannot unmarshal %s content: %w", info.Name(), err)
 			}
 			result.Operator = &f
 		case isVersionFile(info.Name()):
-			var fv v1beta1.OperatorVersion
+			var fv kudoapi.OperatorVersion
 			if err = yaml.Unmarshal(bytes, &fv); err != nil {
 				return fmt.Errorf("cannot unmarshal %s content: %w", info.Name(), err)
 			}
 			result.OperatorVersion = &fv
 		case isInstanceFile(info.Name()):
-			var i v1beta1.Instance
+			var i kudoapi.Instance
 			if err = yaml.Unmarshal(bytes, &i); err != nil {
 				return fmt.Errorf("cannot unmarshal %s content: %w", info.Name(), err)
 			}

@@ -5,12 +5,12 @@ import (
 
 	"github.com/spf13/afero"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
 )
 
 // AddPlan adds a plan to the operator.yaml file
-func AddPlan(fs afero.Fs, path string, planName string, plan *v1beta1.Plan) error {
+func AddPlan(fs afero.Fs, path string, planName string, plan *kudoapi.Plan) error {
 
 	pf, err := reader.ReadDir(fs, path)
 	if err != nil {
@@ -19,7 +19,7 @@ func AddPlan(fs afero.Fs, path string, planName string, plan *v1beta1.Plan) erro
 
 	o := pf.Files.Operator
 	if o.Plans == nil {
-		o.Plans = make(map[string]v1beta1.Plan)
+		o.Plans = make(map[string]kudoapi.Plan)
 	}
 	plans := o.Plans
 	plans[planName] = *plan
@@ -29,7 +29,7 @@ func AddPlan(fs afero.Fs, path string, planName string, plan *v1beta1.Plan) erro
 }
 
 // PlanList provides a list of operator plans
-func PlanList(fs afero.Fs, path string) (map[string]v1beta1.Plan, error) {
+func PlanList(fs afero.Fs, path string) (map[string]kudoapi.Plan, error) {
 	p, err := reader.ReadDir(fs, path)
 	if err != nil {
 		return nil, err

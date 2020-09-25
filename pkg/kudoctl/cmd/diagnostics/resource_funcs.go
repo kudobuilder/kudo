@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"reflect"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -25,7 +25,7 @@ import (
 type resourceFuncsConfig struct {
 	c           *kudo.Client
 	ns          string
-	instanceObj *v1beta1.Instance
+	instanceObj *kudoapi.Instance
 	opts        metav1.ListOptions
 	logOpts     corev1.PodLogOptions
 }

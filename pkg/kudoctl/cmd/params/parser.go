@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/afero"
 	"sigs.k8s.io/yaml"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
@@ -74,16 +74,16 @@ func GetParametersFromFile(filePath string, bytes []byte, parameters map[string]
 	var errs []string
 	for key, value := range data {
 		clog.V(3).Printf("Value of parameter %q is a %T: %v", key, value, value)
-		var valueType v1beta1.ParameterType
+		var valueType kudoapi.ParameterType
 		switch value.(type) {
 		case map[string]interface{}:
-			valueType = v1beta1.MapValueType
+			valueType = kudoapi.MapValueType
 		case []interface{}:
-			valueType = v1beta1.ArrayValueType
+			valueType = kudoapi.ArrayValueType
 		case string:
-			valueType = v1beta1.StringValueType
+			valueType = kudoapi.StringValueType
 		default:
-			valueType = v1beta1.StringValueType
+			valueType = kudoapi.StringValueType
 		}
 		wrapped, err := convert.WrapParamValue(value, valueType)
 		if err != nil {

@@ -18,10 +18,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
-	"github.com/kudobuilder/kudo/pkg/engine/health"
 	"github.com/kudobuilder/kudo/pkg/engine/resource"
+	"github.com/kudobuilder/kudo/pkg/kubernetes/status"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
@@ -197,9 +197,9 @@ func useSimpleThreeWayMerge(newObj runtime.Object) bool {
 }
 
 func isKudoType(object runtime.Object) bool {
-	_, isOperator := object.(*v1beta1.OperatorVersion)
-	_, isOperatorVersion := object.(*v1beta1.Operator)
-	_, isInstance := object.(*v1beta1.Instance)
+	_, isOperator := object.(*kudoapi.OperatorVersion)
+	_, isOperatorVersion := object.(*kudoapi.Operator)
+	_, isInstance := object.(*kudoapi.Instance)
 	return isOperator || isOperatorVersion || isInstance
 }
 
@@ -238,13 +238,37 @@ func strategicThreeWayMergePatch(r runtime.Object, original, modified, current [
 
 func isHealthy(ro []runtime.Object) error {
 	for _, r := range ro {
-		err := health.IsHealthy(r)
+		err := isResourceHealthy(r)
 		if err != nil {
-			key, _ := client.ObjectKeyFromObject(r)
+			key, _ := client.ObjectKeyFromObject(r) // err not possible as all runtime.Objects have metadata
 			return fmt.Errorf("object %s/%s is NOT healthy: %w", key.Namespace, key.Name, err)
 		}
 	}
 	return nil
+}
+
+func isResourceHealthy(obj runtime.Object) error {
+	healthy, msg, err := status.IsHealthy(obj)
+	if err != nil {
+		return err
+	}
+	if healthy {
+		if msg != "" {
+			log.Printf("HealthUtil: %s", msg)
+		}
+		return nil
+	}
+	isTerminal, terminalMsg, err := status.IsTerminallyFailed(obj)
+	if err != nil {
+		return err
+	}
+	if isTerminal {
+		log.Printf("HealthUtil: %s", terminalMsg)
+		return fmt.Errorf("%wHealthUtil: %s", engine.ErrFatalExecution, terminalMsg)
+	}
+
+	log.Printf("HealthUtil: %s", msg)
+	return errors.New(msg)
 }
 
 // copy from k8s.io/kubectl@v0.16.6/pkg/util/apply.go, with adjustments

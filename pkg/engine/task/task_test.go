@@ -6,7 +6,7 @@ import (
 
 	"sigs.k8s.io/yaml"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 func TestBuild(t *testing.T) {
@@ -210,7 +210,7 @@ spec:
 		tt := tt
 
 		t.Run(tt.name, func(t *testing.T) {
-			task := &v1beta1.Task{}
+			task := &kudoapi.Task{}
 			err := yaml.Unmarshal([]byte(tt.taskYaml), task)
 			if err != nil {
 				t.Errorf("Failed to unmarshal task yaml %s: %v", tt.taskYaml, err)

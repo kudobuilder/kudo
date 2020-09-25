@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 )
 
@@ -45,19 +45,19 @@ func TestAddPlan(t *testing.T) {
 	assert.Equal(t, golden, params, "for golden file: %s", gp)
 }
 
-func planToFlush() v1beta1.Plan {
-	steps := []v1beta1.Step{{
+func planToFlush() kudoapi.Plan {
+	steps := []kudoapi.Step{{
 		Name:  "push-lever",
 		Tasks: []string{"lower-lever"},
 	}}
 
-	phases := []v1beta1.Phase{{
+	phases := []kudoapi.Phase{{
 		Name:     "flush",
 		Strategy: "serial",
 		Steps:    steps,
 	}}
 
-	p := v1beta1.Plan{
+	p := kudoapi.Plan{
 		Strategy: "serial",
 		Phases:   phases,
 	}

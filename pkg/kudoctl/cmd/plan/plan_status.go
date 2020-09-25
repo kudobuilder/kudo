@@ -10,7 +10,7 @@ import (
 	"github.com/thoas/go-funk"
 	"github.com/xlab/treeprint"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -81,7 +81,7 @@ func status(kc *kudo.Client, options *StatusOptions, ns string) error {
 			return nil
 		}
 
-		getPhaseStrategy := func(s string) v1beta1.Ordering {
+		getPhaseStrategy := func(s string) kudoapi.Ordering {
 			for _, plan := range ov.Spec.Plans {
 				for _, phase := range plan.Phases {
 					if phase.Name == s {

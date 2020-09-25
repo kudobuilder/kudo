@@ -1,0 +1,53 @@
+[
+  {
+    "kind": "Operator",
+    "apiVersion": "kudo.dev/v1beta1",
+    "metadata": {
+      "name": "some-operator",
+      "namespace": "default",
+      "creationTimestamp": null
+    },
+    "spec": {
+      "description": "A fancy Operator",
+      "kudoVersion": "0.16.0"
+    },
+    "status": {}
+  },
+  {
+    "kind": "OperatorVersion",
+    "apiVersion": "kudo.dev/v1beta1",
+    "metadata": {
+      "name": "some-operator-0.1.0",
+      "namespace": "default",
+      "creationTimestamp": null
+    },
+    "spec": {
+      "operator": {
+        "kind": "Operator",
+        "name": "some-operator",
+        "apiVersion": "kudo.dev/v1beta1"
+      },
+      "version": "0.1.0"
+    },
+    "status": {}
+  },
+  {
+    "kind": "Instance",
+    "apiVersion": "kudo.dev/v1beta1",
+    "metadata": {
+      "name": "test",
+      "namespace": "default",
+      "creationTimestamp": null,
+      "labels": {
+        "operator": "test"
+      }
+    },
+    "spec": {
+      "operatorVersion": {
+        "name": "some-operator-0.1.0"
+      },
+      "planExecution": {}
+    },
+    "status": {}
+  }
+]

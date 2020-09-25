@@ -5,7 +5,7 @@ import (
 
 	"github.com/thoas/go-funk"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
@@ -18,8 +18,8 @@ import (
 // the O/OV of dependencies are installed as well.
 func OperatorAndOperatorVersion(
 	client *kudo.Client,
-	operator *v1beta1.Operator,
-	operatorVersion *v1beta1.OperatorVersion,
+	operator *kudoapi.Operator,
+	operatorVersion *kudoapi.OperatorVersion,
 	resolver resolver.Resolver) error {
 	if !client.OperatorExistsInCluster(operator.Name, operator.Namespace) {
 		if _, err := client.InstallOperatorObjToCluster(operator, operator.Namespace); err != nil {
@@ -67,7 +67,7 @@ func OperatorAndOperatorVersion(
 	return nil
 }
 
-func installDependencies(client *kudo.Client, ov *v1beta1.OperatorVersion, resolver resolver.Resolver) error {
+func installDependencies(client *kudo.Client, ov *kudoapi.OperatorVersion, resolver resolver.Resolver) error {
 	dependencies, err := deps.Resolve(ov, resolver)
 	if err != nil {
 		return err
@@ -135,7 +135,7 @@ func installDependencies(client *kudo.Client, ov *v1beta1.OperatorVersion, resol
 // 'OperatorVersion' fields to the already resolved packages. This is done for the KUDO controller to be able to grab
 // the right 'OperatorVersion' resources from the cluster when the corresponding task is executed.
 func updateKudoOperatorTasks(
-	dependencies []deps.Dependency, operatorVersion *v1beta1.OperatorVersion) {
+	dependencies []deps.Dependency, operatorVersion *kudoapi.OperatorVersion) {
 	tasks := operatorVersion.Spec.Tasks
 
 	for i := range tasks {

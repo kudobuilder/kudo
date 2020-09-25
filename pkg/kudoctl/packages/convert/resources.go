@@ -8,7 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
@@ -30,7 +30,7 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 		return nil, errors.New(strings.Join(errs, "\n"))
 	}
 
-	operator := &v1beta1.Operator{
+	operator := &kudoapi.Operator{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Operator",
 			APIVersion: packages.APIVersion,
@@ -38,7 +38,7 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: files.Operator.Name,
 		},
-		Spec: v1beta1.OperatorSpec{
+		Spec: kudoapi.OperatorSpec{
 			Description:       files.Operator.Description,
 			KudoVersion:       files.Operator.KUDOVersion,
 			KubernetesVersion: files.Operator.KubernetesVersion,
@@ -46,7 +46,7 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 			URL:               files.Operator.URL,
 			NamespaceManifest: files.Operator.NamespaceManifest,
 		},
-		Status: v1beta1.OperatorStatus{},
+		Status: kudoapi.OperatorStatus{},
 	}
 
 	parameters, err := ParametersToCRDType(files.Params.Parameters)
@@ -54,15 +54,15 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 		return nil, err
 	}
 
-	fv := &v1beta1.OperatorVersion{
+	fv := &kudoapi.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "OperatorVersion",
 			APIVersion: packages.APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: v1beta1.OperatorVersionName(files.Operator.Name, files.Operator.OperatorVersion),
+			Name: kudoapi.OperatorVersionName(files.Operator.Name, files.Operator.OperatorVersion),
 		},
-		Spec: v1beta1.OperatorVersionSpec{
+		Spec: kudoapi.OperatorVersionSpec{
 			Operator: corev1.ObjectReference{
 				Name: files.Operator.Name,
 				Kind: "Operator",
@@ -75,25 +75,10 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 			Plans:          files.Operator.Plans,
 			UpgradableFrom: nil,
 		},
-		Status: v1beta1.OperatorVersionStatus{},
+		Status: kudoapi.OperatorVersionStatus{},
 	}
 
-	instance := &v1beta1.Instance{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Instance",
-			APIVersion: packages.APIVersion,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   v1beta1.OperatorInstanceName(files.Operator.Name),
-			Labels: map[string]string{kudo.OperatorLabel: files.Operator.Name},
-		},
-		Spec: v1beta1.InstanceSpec{
-			OperatorVersion: corev1.ObjectReference{
-				Name: v1beta1.OperatorVersionName(files.Operator.Name, files.Operator.OperatorVersion),
-			},
-		},
-		Status: v1beta1.InstanceStatus{},
-	}
+	instance := BuildInstanceResource(files.Operator.Name, files.Operator.OperatorVersion)
 
 	return &packages.Resources{
 		Operator:        operator,
@@ -102,7 +87,26 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 	}, nil
 }
 
-func validateTask(t v1beta1.Task, templates map[string]string) []string {
+func BuildInstanceResource(operatorName, operatorVersion string) *kudoapi.Instance {
+	return &kudoapi.Instance{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Instance",
+			APIVersion: packages.APIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   kudoapi.OperatorInstanceName(operatorName),
+			Labels: map[string]string{kudo.OperatorLabel: operatorName},
+		},
+		Spec: kudoapi.InstanceSpec{
+			OperatorVersion: corev1.ObjectReference{
+				Name: kudoapi.OperatorVersionName(operatorName, operatorVersion),
+			},
+		},
+		Status: kudoapi.InstanceStatus{},
+	}
+}
+
+func validateTask(t kudoapi.Task, templates map[string]string) []string {
 	var errs []string
 	var resources []string
 	switch t.Kind {
