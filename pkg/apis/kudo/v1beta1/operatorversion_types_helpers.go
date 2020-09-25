@@ -29,12 +29,12 @@ func (ov *OperatorVersion) EqualOperatorVersion(other *OperatorVersion) bool {
 	return ov.FullyQualifiedName() == other.FullyQualifiedName()
 }
 
-func ListOperatorVersions(ns string, c client.Reader) (ovList *OperatorVersionList, err error) {
-	ovList = &OperatorVersionList{}
-	if err := c.List(context.TODO(), ovList, client.InNamespace(ns)); err != nil {
+func ListOperatorVersions(ns string, c client.Reader) (l *OperatorVersionList, err error) {
+	l = &OperatorVersionList{}
+	if err := c.List(context.TODO(), l, client.InNamespace(ns)); err != nil {
 		return nil, err
 	}
-	return ovList, nil
+	return l, nil
 }
 
 func GetOperatorVersionByName(name, ns string, c client.Reader) (ov *OperatorVersion, err error) {
@@ -62,10 +62,10 @@ func (ov *OperatorVersion) AppVersion() string {
 }
 
 func ToSortableOperatorList(ovList []OperatorVersion) kudo.SortableOperatorList {
-	newOvList := kudo.SortableOperatorList{}
-	for _, ovFromList := range ovList {
-		ovFromList := ovFromList
-		newOvList = append(newOvList, &ovFromList)
+	l := kudo.SortableOperatorList{}
+	for _, ov := range ovList {
+		ov := ov
+		l = append(l, &ov)
 	}
-	return newOvList
+	return l
 }

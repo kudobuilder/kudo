@@ -27,10 +27,10 @@ func (b SortableOperatorList) Sort() {
 
 func (b SortableOperatorList) FindFirstMatch(name, operatorVersion, appVersion string) SortableOperator {
 	for _, o := range b {
-		ovFromList := o
-		if name == ovFromList.OperatorName() &&
-			(operatorVersion == "" || operatorVersion == ovFromList.OperatorVersion()) &&
-			(appVersion == "" || appVersion == ovFromList.AppVersion()) {
+		o := o
+		if name == o.OperatorName() &&
+			(operatorVersion == "" || operatorVersion == o.OperatorVersion()) &&
+			(appVersion == "" || appVersion == o.AppVersion()) {
 			return o
 		}
 	}
@@ -55,13 +55,13 @@ func (b SortableOperatorList) Less(x, y int) bool {
 		return b[x].OperatorName() > b[y].OperatorName()
 	}
 
-	appVersionCompare := compareVersion(b[x].AppVersion(), b[y].AppVersion())
-	if appVersionCompare != 0 {
-		return appVersionCompare < 0
+	avCompare := compareVersion(b[x].AppVersion(), b[y].AppVersion())
+	if avCompare != 0 {
+		return avCompare < 0
 	}
 
-	ovVersionCompare := compareVersion(b[x].OperatorVersion(), b[y].OperatorVersion())
-	return ovVersionCompare < 0
+	ovCompare := compareVersion(b[x].OperatorVersion(), b[y].OperatorVersion())
+	return ovCompare < 0
 }
 
 // Compares two versions - tries to use semantic versioning first, falls back to string compare.
