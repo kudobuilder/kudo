@@ -89,6 +89,7 @@ func (VersionVerifier) Verify(pf *packages.Files) verifier.Result {
 		return res
 	}
 	verifySemVer(pf.Operator.OperatorVersion, "operatorVersion", &res, true)
+	verifySemVer(pf.Operator.AppVersion, "appVersion", &res, false)
 	verifySemVer(pf.Operator.KubernetesVersion, "kubernetesVersion", &res, true)
 	verifySemVer(pf.Operator.KUDOVersion, "kudoVersion", &res, false)
 	return res
