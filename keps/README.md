@@ -38,3 +38,4 @@
 | [0032 - Community Repository Management](0032-community-repository-management.md) | :heavy_check_mark: | implemented | Details on how to add operator to the community repository |
 | [0033 - Structured Parameters](0033-structured-parameters.md) | :question: | provisional | Structured parameters with JSON-schema |
 | [0034 - KUDO instance readiness](0034-instance-health.md) | :question: | provisional | Provide a way to monitor readiness of KUDO instance post-deployment |
+| [0035 - JSON-schema export](0035-json-schema-export.md) | :question: | provisional | JSON-schema export |

@@ -7,7 +7,7 @@ authors:
 owners:
   - "@aneumann82"
 creation-date: 2020-09-22
-last-updated: 2020-09-22
+last-updated: 2020-09-29
 status: provisional
 see-also:
   - KEP-33
@@ -18,6 +18,25 @@ see-also:
 ## Table of Contents
 
 <!--ts-->
+   * [JSON-schema export](#json-schema-export)
+      * [Table of Contents](#table-of-contents)
+      * [Summary](#summary)
+      * [Motivation](#motivation)
+         * [Goals](#goals)
+         * [Non-Goals](#non-goals)
+      * [Proposal](#proposal)
+         * [User Stories](#user-stories)
+            * [Story 1](#story-1)
+         * [Implementation Details](#implementation-details)
+            * [Additional Types:](#additional-types)
+            * [Additional Attributes](#additional-attributes)
+            * [Groups](#groups)
+         * [JSON-Schema export](#json-schema-export-1)
+      * [Alternatives](#alternatives)
+      * [Implementation History](#implementation-history)
+
+<!-- Added by: aneumann, at: Tue Sep 29 15:37:14 CEST 2020 -->
+
 <!--te-->
 
 ## Summary
@@ -36,18 +55,19 @@ This KEP proposes to enhance the flat list parameters with additional attributes
 
 - Add additional attributes required for a useful JSON-schema
 - Add support to export a JSON-schema that describes the parameters
-- Maybe: Allow installation/update of an operator instance with a structured object described by the exported JSON-schema? 
 - Prepare Implementation of KEP-33 in the future 
 
 ### Non-Goals
 
 - Handle multiple CRD versions
 - Replace the `params.yaml` with a json-schema
-- Add validation for parametersKEP-34
+- Add validation for parameters
 
 ## Proposal
 
-This is where we get down to the nitty gritty of what the proposal actually is.
+Add new types as well as optional new attributes to enhance the parameters and bring them closer to JSON-Schema.
+
+Implement an export that generates a valid JSON-Schema out of the flat parameter list.
 
 ### User Stories
 
@@ -96,6 +116,21 @@ An array of values that are allowed to be used. Each entry must be of the type d
     advanced: true
     required: true
 ```
+
+#### Groups
+
+Add a top-level element `groups` that describes the groups used:
+
+```
+apiVersion: kudo.dev/v1beta1
+groups:
+  - name: "Node"
+    title: "Node Configuration"
+    description: "This section contains parameters that are related to the Node"
+parameters:
+...
+```
+
 
 ### JSON-Schema export
 
@@ -211,36 +246,11 @@ The exported JSON-Schema for this parameter definition should look as following:
 }
 ```
 
-### Risks and Mitigations
+## Alternatives
 
-What are the risks of this proposal and how do we mitigate.
-Think broadly.
-For example, consider both security and how this will impact the larger kubernetes ecosystem.
-
-## Graduation Criteria
-
-How will we know that this has succeeded?
-Gathering user feedback is crucial for building high quality experiences and owners have the important responsibility of setting milestones for stability and completeness.
-Hopefully the content previously contained in [umbrella issues][] will be tracked in the `Graduation Criteria` section.
-
-[umbrella issues]: https://github.com/kubernetes/kubernetes/issues/42752
+Fully adopt JSON-Schema, this is described in [KEP-33](0033-structured-parameters.md)
 
 ## Implementation History
 
-Major milestones in the life cycle of a KEP should be tracked in `Implementation History`.
-Major milestones might include
-
-- the `Summary` and `Motivation` sections being merged signaling owner acceptance
-- the `Proposal` section being merged signaling agreement on a proposed design
-- the date implementation started
-- the first KUDO release where an initial version of the KEP was available
-- the version of KUDO where the KEP graduated to general availability
-- when the KEP was retired or superseded
-
-## Drawbacks [optional]
-
-Why should this KEP _not_ be implemented.
-
-## Alternatives
-
-Fully adopt JSON-Schema, this is described in KEP-33
+- 2020-09-22 - Initial draft (@aneumann82)
+- 2020-09-29 - Updated KEP with examples and enum (@aneumann82)
