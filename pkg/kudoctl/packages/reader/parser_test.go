@@ -67,7 +67,7 @@ func TestParsePackageFile(t *testing.T) {
 			assert.Equal(t, 1, len(pf.Templates), "%v was not parsed as a template file", tt.filePath)
 
 			fileName := strings.TrimPrefix(tt.filePath, "templates/")
-			assert.NotNil(t, pf.Templates[fileName], "%v was not stored in template map", tt.filePath)
+			assert.NotEmpty(t, pf.Templates[fileName], "%v was not stored in template map", tt.filePath)
 		}
 
 	}
