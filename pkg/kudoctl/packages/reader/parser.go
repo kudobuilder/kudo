@@ -39,7 +39,8 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *package
 
 	isTemplateFile := func(name string) bool {
 		dir, file := filepath.Split(name)
-		base := filepath.Base(dir)
+		dir = filepath.Clean(dir)
+		parts := strings.Split(dir, string(os.PathSeparator))
 
 		match, err := regexp.MatchString(templateFileName, file)
 		if err != nil {
@@ -47,7 +48,7 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *package
 			os.Exit(1)
 		}
 
-		return base == templateBase && match
+		return len(parts) > 0 && parts[0] == templateBase && match
 	}
 
 	isParametersFile := func(name string) bool {

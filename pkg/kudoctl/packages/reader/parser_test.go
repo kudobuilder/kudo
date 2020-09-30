@@ -2,6 +2,7 @@ package reader
 
 import (
 	"errors"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -35,38 +36,43 @@ func TestParsePackageFile(t *testing.T) {
 	}{
 		{filePath: "operator.yaml", fileContent: validOperator, isOperator: true},
 		{filePath: "params.yaml", fileContent: validParams, isParam: true},
-		{filePath: "templates/pod-params.yaml", isTemplate: true},
-		{filePath: "templates/pod-operator.yaml", isTemplate: true},
-		{filePath: "templates/some-template.yaml", isTemplate: true},
+		{filePath: "templates/pod-params.yaml", isTemplate: true, fileContent: "not-empty"},
+		{filePath: "templates/pod-operator.yaml", isTemplate: true, fileContent: "not-empty"},
+		{filePath: "templates/some-template.yaml", isTemplate: true, fileContent: "not-empty"},
+		{filePath: "templates/subdirectory/some-template.yaml", isTemplate: true, fileContent: "not-empty"},
+		{filePath: "templates/a/really/nested/dir/with/some-template.yaml", isTemplate: true, fileContent: "not-empty"},
+		{filePath: "./templates/some-template.yaml", isTemplate: true, fileContent: "not-empty"},
+		{filePath: "./templates/with/subdirectory/some-template.yaml", isTemplate: true, fileContent: "not-empty"},
 		{filePath: "operator.yaml", isOperator: true, expectedError: errors.New("failed to parse yaml into valid operator operator.yaml")},
 	}
 
 	for _, tt := range tests {
 		tt := tt
+		t.Run(tt.filePath, func(t *testing.T) {
+			pf := newPackageFiles()
 
-		pf := newPackageFiles()
+			err := parsePackageFile(tt.filePath, []byte(tt.fileContent), &pf)
 
-		err := parsePackageFile(tt.filePath, []byte(tt.fileContent), &pf)
-
-		if tt.expectedError != nil {
-			assert.Equal(t, tt.expectedError.Error(), err.Error())
-			continue
-		} else {
+			if tt.expectedError != nil {
+				assert.Equal(t, tt.expectedError.Error(), err.Error())
+				return
+			}
 			assert.Nil(t, err)
-		}
 
-		if tt.isOperator {
-			assert.NotNil(t, pf.Operator, "%v was not parsed as an operator file", tt.filePath)
-		}
-		if tt.isParam {
-			assert.NotNil(t, pf.Params, "%v was not parsed as a param file", tt.filePath)
-		}
-		if tt.isTemplate {
-			assert.Equal(t, 1, len(pf.Templates), "%v was not parsed as a template file", tt.filePath)
+			if tt.isOperator {
+				assert.NotNil(t, pf.Operator, "%v was not parsed as an operator file", tt.filePath)
+			}
+			if tt.isParam {
+				assert.NotNil(t, pf.Params, "%v was not parsed as a param file", tt.filePath)
+			}
+			if tt.isTemplate {
+				assert.Equal(t, 1, len(pf.Templates), "%v was not parsed as a template file", tt.filePath)
 
-			fileName := strings.TrimPrefix(tt.filePath, "templates/")
-			assert.NotNil(t, pf.Templates[fileName], "%v was not stored in template map", tt.filePath)
-		}
+				cleanPath := filepath.Clean(tt.filePath)
+				fileName := strings.TrimPrefix(cleanPath, "templates/")
 
+				assert.NotEmpty(t, pf.Templates[fileName], "%v was not stored in template map", tt.filePath)
+			}
+		})
 	}
 }
