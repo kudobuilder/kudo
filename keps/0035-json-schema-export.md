@@ -41,7 +41,7 @@ see-also:
 
 ## Summary
 
-Extend the existing `params.yaml` with metadata and support for an export of a simple JSON-schema.
+Extend the existing `params.yaml` with metadata and new types and add an export as JSON-schema.
 
 ## Motivation
 
@@ -49,11 +49,11 @@ JSON-schema is the preferred way to generate a user-friendly UI to configure a n
 
 KEP-33 proposes a full replacement of the existing flat list `params.yaml` with a nested and typed structure described by JSON-schema. This is a big breaking change and requires a lot of work to get right in a single release.
 
-This KEP proposes to enhance the flat list parameters with additional attributes and add support to export a JSON-schema. This is a first step towards KEP-33
+This KEP proposes to enhance the flat list parameters with additional attributes and add support to export a JSON-schema. This is a first step towards KEP-33, it allows tooling to be build based on JSON-Schema while not introducing breaking changes on the operator level.
 
 ### Goals
 
-- Add additional attributes required for a useful JSON-schema
+- Add additional attributes required for a useful JSON-schema and UI generation
 - Add support to export a JSON-schema that describes the parameters
 - Prepare Implementation of KEP-33 in the future 
 
@@ -85,7 +85,7 @@ To bring the parameters up to par with JSON-schema, we add these additional type
 
 #### Additional Attributes
 
-JSON-Schema already provides good support for generated UIs, but it can be enhanced. Additionally, we do not want to adopt the full schema yet, there is a different KEP for that.
+JSON-Schema already provides good support for generated UIs, but it can be enhanced. Additionally, we do not want to adopt the full nested structure with alternatives and references yet, there is a different KEP for that. The additional attributes should provide a step in the direction to generate a good UI from it
 
 All of the additional attributes are fully optional.
 
@@ -93,13 +93,16 @@ All of the additional attributes are fully optional.
 An attribute of type "string". This attribute describes a top-level group used for this parameter.
 
 `advanced` 
-An attribute of type "boolean" that indicates that this parameter is for advanced configuration and can be hidden by default. Defaults to "false". Parameters that have "advanced=true" *must* have a default value, as they might not be visible at first
+An attribute of type "boolean" that indicates that this parameter is for advanced configuration and can be hidden by default. Defaults to "false". Parameters that have "advanced=true" *must* have a default value, as they might not be visible immediately.
 
 `hint`
 An attribute of type "string" that should provide a short description about the syntax of this parameter. Usually shown below the actual input element.
 
 `enum` 
 An array of values that are allowed to be used. Each entry must be of the type defined by the `type` attribute. If a default is specified, it must be listed as well.
+
+
+Example:
 
 ```yaml
   - name: NODE_DOCKER_IMAGE_PULL_POLICY
@@ -131,6 +134,7 @@ parameters:
 ...
 ```
 
+This `groups` element is fully optional and does not affect any behaviour of KUDO. We may decide to not add this to the OperatorVersion CRD but to keep it only in the `params.yaml` package format, that is an implementation detail. The data provided in this element can be used by the JSON-Schema export to fill in the metadata (title and description) of top level groups.
 
 ### JSON-Schema export
 
@@ -143,6 +147,10 @@ Example:
 
 ```yaml
 apiVersion: kudo.dev/v1beta1
+groups:
+  - name: "Node"
+    title: "Node Configuration"
+    description: "This section contains parameters that are related to the Node"
 parameters:
   - name: NODE_COUNT
     title: "Node Count"
@@ -199,7 +207,8 @@ The exported JSON-Schema for this parameter definition should look as following:
     },
     "Node": {
       "type": "object",
-      "title": "Node",
+      "title": "Node Configuration",
+      "description": "This section contains parameters that are related to the Node",
       "required": [
         "NODE_CPU_MC",
         "NODE_MEM_MIB"
