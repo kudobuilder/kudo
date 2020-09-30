@@ -45,7 +45,7 @@ Extend the existing `params.yaml` with metadata and new types and add an export 
 
 ## Motivation
 
-JSON-schema is the preferred way to generate a user-friendly UI to configure a new instance of a KUDO operator or to trigger plans with parameters. KUDO should be able to export a JSON-schema that describes the required parameters.
+JSON-schema is the preferred way to describe datastructures for parameters and generate user-friendly UIs. KUDO should be able to export a JSON-schema that describes the required parameters.
 
 KEP-33 proposes a full replacement of the existing flat list `params.yaml` with a nested and typed structure described by JSON-schema. This is a big breaking change and requires a lot of work to get right in a single release.
 
