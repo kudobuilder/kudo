@@ -3,6 +3,7 @@ package template
 import (
 	"fmt"
 
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
@@ -21,6 +22,8 @@ func (ParametersVerifier) Verify(pf *packages.Files) verifier.Result {
 	res.Merge(paramsNotDefined(pf))
 	res.Merge(paramsDefinedNotUsed(pf))
 	res.Merge(immutableParams(pf))
+	res.Merge(enumParams(pf))
+	res.Merge(paramDefaults(pf))
 
 	implicits := renderer.NewVariableMap().WithDefaults()
 
@@ -43,10 +46,52 @@ func (ParametersVerifier) Verify(pf *packages.Files) verifier.Result {
 
 func immutableParams(pf *packages.Files) verifier.Result {
 	res := verifier.NewResult()
-	for _, value := range pf.Params.Parameters {
-		if value.IsImmutable() {
-			if !value.HasDefault() && !value.IsRequired() {
-				res.AddParamError(value.Name, "is immutable but is not marked as required or has a default value")
+	for _, p := range pf.Params.Parameters {
+		if p.IsImmutable() {
+			if !p.HasDefault() && !p.IsRequired() {
+				res.AddParamError(p.Name, "is immutable but is not marked as required or has a default value")
+			}
+		}
+	}
+	return res
+}
+
+func paramDefaults(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
+	for _, p := range pf.Params.Parameters {
+		if p.HasDefault() {
+			defaultAsString, ok := p.Default.(string)
+			if !ok {
+				res.AddParamError(p.Name, fmt.Sprintf("failed to convert default value %q to string", p.Default))
+				continue
+			}
+			if err := kudoapi.ValidateParameterValueForType(p.Type, defaultAsString); err != nil {
+				res.AddParamError(p.Name, fmt.Sprintf("has an invalid default value: %v", err))
+			}
+			if p.IsEnum() {
+				if err := kudoapi.ValidateParameterValueForEnum(p.EnumValues(), defaultAsString); err != nil {
+					res.AddParamError(p.Name, fmt.Sprintf("has an invalid default value: %v", err))
+				}
+			}
+		}
+	}
+	return res
+}
+
+func enumParams(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
+	for _, p := range pf.Params.Parameters {
+
+		if p.IsEnum() {
+			if len(p.EnumValues()) == 0 {
+				res.AddParamError(p.Name, "is an enum but has no allowed values")
+				continue
+			}
+			for _, enumVal := range p.EnumValues() {
+
+				if err := kudoapi.ValidateParameterValueForType(p.Type, enumVal); err != nil {
+					res.AddParamError(p.Name, fmt.Sprintf("has an invalid enum value: %v", err))
+				}
 			}
 		}
 	}

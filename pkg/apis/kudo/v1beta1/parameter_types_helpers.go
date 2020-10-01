@@ -1,5 +1,10 @@
 package v1beta1
 
+import (
+	"fmt"
+	"strconv"
+)
+
 func (p *Parameter) IsImmutable() bool {
 	return p.Immutable != nil && *p.Immutable
 }
@@ -8,8 +13,60 @@ func (p *Parameter) IsRequired() bool {
 	return p.Required != nil && *p.Required
 }
 
+func (p *Parameter) IsEnum() bool {
+	return p.Enum != nil
+}
+
 func (p *Parameter) HasDefault() bool {
 	return p.Default != nil
+}
+
+func (p *Parameter) EnumValues() []string {
+	if p.IsEnum() {
+		return *p.Enum
+	}
+	return []string{}
+}
+
+func ValidateParameterValueForType(pType ParameterType, pValue string) error {
+	switch pType {
+	case StringValueType:
+		// Nothing to validate here
+	case IntegerValueType:
+		_, err := strconv.ParseInt(pValue, 10, 64)
+		if err != nil {
+			return fmt.Errorf("type is %q but format is invalid: %v", pType, err)
+		}
+	case NumberValueType:
+		_, err := strconv.ParseFloat(pValue, 64)
+		if err != nil {
+			return fmt.Errorf("type is %q but format is invalid: %v", pType, err)
+		}
+	case BooleanValueType:
+		_, err := strconv.ParseBool(pValue)
+		if err != nil {
+			return fmt.Errorf("type is %q but format is invalid: %v", pType, err)
+		}
+	case ArrayValueType:
+		// TODO: Validate array type
+	case MapValueType:
+		// TODO: Validate map type
+	}
+	return nil
+}
+
+func ValidateParameterValueForEnum(enumValues []string, pValue string) error {
+	foundInEnumValues := false
+	for _, eValue := range enumValues {
+		if pValue == eValue {
+			foundInEnumValues = true
+			break
+		}
+	}
+	if !foundInEnumValues {
+		return fmt.Errorf("value is %q, but only allowed values are %v", pValue, enumValues)
+	}
+	return nil
 }
 
 // GetChangedParamDefs returns a list of parameters from ov2 that changed based on the given compare function between ov1 and ov2

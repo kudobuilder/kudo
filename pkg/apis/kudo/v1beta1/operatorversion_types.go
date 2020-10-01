@@ -75,7 +75,16 @@ const (
 	// StringValueType is used for parameter values that are provided as a string.
 	StringValueType ParameterType = "string"
 
-	// ArrayValueType is used for parameter values that described an array of values.
+	// IntegerValueType is used for parameter values that describe an integral number without any fractional part
+	IntegerValueType ParameterType = "integer"
+
+	// NumberValueType is used for parameter values that describe any numeric value, with or without a fractional part
+	NumberValueType ParameterType = "number"
+
+	// BooleanValueType is used for parameter values that are "true" or "false"
+	BooleanValueType ParameterType = "boolean"
+
+	// ArrayValueType is used for parameter values that describe an array of values.
 	ArrayValueType ParameterType = "array"
 
 	// MapValueType is used for parameter values that describe a mapping type.

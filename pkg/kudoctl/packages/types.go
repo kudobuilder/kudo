@@ -37,6 +37,10 @@ type Parameter struct {
 	Trigger     string                `json:"trigger,omitempty"`
 	Type        kudoapi.ParameterType `json:"type,omitempty"`
 	Immutable   *bool                 `json:"immutable,omitempty"`
+	Enum        *[]string             `json:"enum,omitempty"`
+	Group       string                `json:"group,omitempty"`
+	Advanced    *bool                 `json:"advanced,omitempty"`
+	Hint        string                `json:"hint,omitempty"`
 }
 
 func (p Parameter) IsImmutable() bool {
@@ -47,8 +51,23 @@ func (p Parameter) IsRequired() bool {
 	return p.Required != nil && *p.Required
 }
 
+func (p Parameter) IsAdvanced() bool {
+	return p.Advanced != nil && *p.Advanced
+}
+
+func (p Parameter) IsEnum() bool {
+	return p.Enum != nil
+}
+
 func (p *Parameter) HasDefault() bool {
 	return p.Default != nil
+}
+
+func (p *Parameter) EnumValues() []string {
+	if p.IsEnum() {
+		return *p.Enum
+	}
+	return []string{}
 }
 
 type Parameters []Parameter

@@ -27,6 +27,7 @@ func ParametersToCRDType(parameters packages.Parameters) ([]kudoapi.Parameter, e
 			Trigger:     parameter.Trigger,
 			Type:        parameter.Type,
 			Immutable:   parameter.Immutable,
+			Enum:        parameter.Enum,
 		})
 	}
 
