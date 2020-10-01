@@ -1,0 +1,26 @@
+apiVersion: kudo.dev/v1beta1
+name: "subdir-operator"
+operatorVersion: "0.1.0"
+appVersion: "1.7.9"
+kubernetesVersion: 1.13
+maintainers:
+  - name: Your name
+    email: <your@email.com>
+url: https://kudo.dev
+tasks:
+  - name: deploy
+    kind: Apply
+    spec:
+      resources:
+        - deployments/deployment.yaml
+        - service/service.yaml
+plans:
+  deploy:
+    strategy: serial
+    phases:
+      - name: main
+        strategy: serial
+        steps:
+          - name: deploy
+            tasks:
+              - deploy

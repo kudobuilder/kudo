@@ -6,7 +6,8 @@ plans
 │           │   ├── services.yaml
 │           │   └── pdb.yaml
 │           └── [apply]  app
-│               └── statefulset.yaml
+│               ├── statefulset.yaml
+│               └── subfolder/statefulset2.yaml
 └── validation (serial)
     └── [phase]  connection (parallel)
         └── [step]  connection

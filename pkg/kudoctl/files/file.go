@@ -17,9 +17,10 @@ import (
 // CopyOperatorToFs used with afero usually for tests to copy files into a filesystem.
 // copy from local file system into in mem
 func CopyOperatorToFs(fs afero.Fs, opath string, base string) {
-	dir := filepath.Clean(base)
+	baseDir := filepath.Clean(base)
+	root, _ := filepath.Split(opath)
 	failed := false
-	err := fs.MkdirAll(dir, 0755)
+	err := fs.MkdirAll(baseDir, 0755)
 	if err != nil {
 		fmt.Println("FAILED: ", err)
 		failed = true
@@ -28,16 +29,16 @@ func CopyOperatorToFs(fs afero.Fs, opath string, base string) {
 		if e != nil {
 			return e
 		}
-
+		// remove original path base
+		fileBase := filepath.Clean(strings.Replace(path, root, "", 1))
+		// add to new base dir
+		file := filepath.Join(baseDir, fileBase)
 		// directory copy
 		if info.IsDir() {
-			if dir != info.Name() {
-				dir = filepath.Join(dir, info.Name())
-				err := fs.MkdirAll(dir, 0755)
-				if err != nil {
-					fmt.Println("FAILED: ", err)
-					failed = true
-				}
+			err := fs.MkdirAll(file, 0755)
+			if err != nil {
+				fmt.Println("FAILED: ", err)
+				failed = true
 			}
 			return nil
 		}
@@ -46,18 +47,17 @@ func CopyOperatorToFs(fs afero.Fs, opath string, base string) {
 			return errors.New("unable to write file, as mkdir failed")
 		}
 
-		fn := filepath.Join(dir, info.Name())
-		fmt.Println(fn)
+		fmt.Println(file)
 
-		w, err := fs.Create(fn)
+		w, err := fs.Create(file)
 		if err != nil {
 			fmt.Println("FAILED: ", err)
-			return fmt.Errorf("unable to create file %s", fn)
+			return fmt.Errorf("unable to create file %s", file)
 		}
 		defer func() {
 			if ferr := w.Close(); ferr != nil {
 				fmt.Println("FAILED: ", err)
-				err = fmt.Errorf("unable to close file %s", fn)
+				err = fmt.Errorf("unable to close file %s", file)
 			}
 		}()
 
@@ -76,7 +76,7 @@ func CopyOperatorToFs(fs afero.Fs, opath string, base string) {
 		_, err = io.Copy(w, r)
 		if err != nil {
 			fmt.Println("FAILED: ", err)
-			return fmt.Errorf("unable to copy from %s into %s", fn, path)
+			return fmt.Errorf("unable to copy from %s into %s", file, path)
 		}
 
 		return nil
