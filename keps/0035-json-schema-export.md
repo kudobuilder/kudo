@@ -140,27 +140,23 @@ This `groups` element is fully optional and does not affect any behaviour of KUD
 
 ### JSON-Schema export
 
-Extend the `kudo package list parameters` command with two new flags:
-
-`--output` As with other commands, this defines either yaml or json (or human readable, if not specified)
-
-`--format` This allows the user to select either `list` or `json-schema`.
+Extend the `kudo package list parameters` command with the `--output` flag:
 
 Examples:
 
 `kudo package list parameters`  
-`kudo package list parameters --format list`  
 Outputs a human readable list as before
 
 `kudo package list parameters --output yaml`  
-`kudo package list parameters --format list --output yaml`  
 Outputs the `params.yaml` file as is
 
-`kudo package list parameters --format json-schema`  
-`kudo package list parameters --format json-schema --output json`  
+`kudo package list parameters --output json`  
+Outputs the `params.yaml` file in json format
+
+`kudo package list parameters --output json-schema`  
 Outputs the parameters as JSON-Schema
 
-`kudo package list parameters --format json-schema --output yaml`  
+`kudo package list parameters --output json-schema-yaml`  
 Outputs the parameters as JSON-Schema in YAML format
 
 #### JSON-Schema output
