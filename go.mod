@@ -8,6 +8,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.1.0
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/go-bindata/go-bindata/v3 v3.1.3
+	github.com/go-logr/logr v0.2.1 // indirect
 	github.com/google/go-cmp v0.5.1
 	github.com/gosuri/uitable v0.0.4
 	github.com/huandu/xstrings v1.3.1 // indirect
@@ -27,16 +28,15 @@ require (
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	golang.org/x/tools v0.0.0-20200723000907-a7c6fd066f6d // indirect
-	google.golang.org/genproto v0.0.0-20200117163144-32f20d992d24 // indirect
 	gopkg.in/yaml.v2 v2.3.0
-	k8s.io/api v0.18.6
+	k8s.io/api v0.19.2
 	k8s.io/apiextensions-apiserver v0.18.6
-	k8s.io/apimachinery v0.18.6
-	k8s.io/cli-runtime v0.18.6
-	k8s.io/client-go v0.18.6
-	k8s.io/code-generator v0.18.6
-	k8s.io/component-base v0.18.6
-	k8s.io/kubectl v0.18.6
+	k8s.io/apimachinery v0.19.2
+	k8s.io/cli-runtime v0.19.2
+	k8s.io/client-go v0.19.2
+	k8s.io/code-generator v0.19.2
+	k8s.io/component-base v0.19.2
+	k8s.io/kubectl v0.19.2
 	sigs.k8s.io/controller-runtime v0.6.1
 	sigs.k8s.io/controller-tools v0.3.0
 	sigs.k8s.io/yaml v1.2.0

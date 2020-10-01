@@ -24,8 +24,10 @@ import (
 )
 
 // OperatorVersionLister helps list OperatorVersions.
+// All objects returned here must be treated as read-only.
 type OperatorVersionLister interface {
 	// List lists all OperatorVersions in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.OperatorVersion, err error)
 	// OperatorVersions returns an object that can list and get OperatorVersions.
 	OperatorVersions(namespace string) OperatorVersionNamespaceLister
@@ -56,10 +58,13 @@ func (s *operatorVersionLister) OperatorVersions(namespace string) OperatorVersi
 }
 
 // OperatorVersionNamespaceLister helps list and get OperatorVersions.
+// All objects returned here must be treated as read-only.
 type OperatorVersionNamespaceLister interface {
 	// List lists all OperatorVersions in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.OperatorVersion, err error)
 	// Get retrieves the OperatorVersion from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.OperatorVersion, error)
 	OperatorVersionNamespaceListerExpansion
 }
