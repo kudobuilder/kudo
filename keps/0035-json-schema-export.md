@@ -82,8 +82,9 @@ A user wants to generate a UI to install a KUDO operator. He wants to use an aut
 #### Additional Types: 
 
 To bring the parameters up to par with JSON-schema, we add these additional types:
-- `boolean` A "true" or "false" value, from the JSON "true" or "false" productions
-- `number` An arbitrary-precision, base-10 decimal number value, from the JSON "number" production
+- `boolean` A "true" or "false" value, from the JSON "true" or "false" productions.
+- `integer` An integral number without any fractional part.
+- `number` Any numeric type, either integers or floating point numbers.
 
 #### Additional Attributes
 
