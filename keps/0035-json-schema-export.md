@@ -32,10 +32,11 @@ see-also:
             * [Additional Attributes](#additional-attributes)
             * [Groups](#groups)
          * [JSON-Schema export](#json-schema-export-1)
+            * [JSON-Schema output](#json-schema-output)
       * [Alternatives](#alternatives)
       * [Implementation History](#implementation-history)
 
-<!-- Added by: aneumann, at: Tue Sep 29 15:37:14 CEST 2020 -->
+<!-- Added by: aneumann, at: Thu Oct  1 09:47:25 CEST 2020 -->
 
 <!--te-->
 
@@ -62,6 +63,7 @@ This KEP proposes to enhance the flat list parameters with additional attributes
 - Handle multiple CRD versions
 - Replace the `params.yaml` with a json-schema
 - Add validation for parameters
+- Change the format how KUDO reads parameters
 
 ## Proposal
 
@@ -85,12 +87,12 @@ To bring the parameters up to par with JSON-schema, we add these additional type
 
 #### Additional Attributes
 
-JSON-Schema already provides good support for generated UIs, but it can be enhanced. Additionally, we do not want to adopt the full nested structure with alternatives and references yet, there is a different KEP for that. The additional attributes should provide a step in the direction to generate a good UI from it
+JSON-Schema already provides good support for generated UIs, but it can be enhanced. Additionally, we do not want to adopt the full nested structure with alternatives and references yet, there is a different KEP for that. The new attributes should provide a step in the direction to generate a good UI from it
 
-All of the additional attributes are fully optional.
+All of the new attributes introduced below are fully optional.
 
 `group` 
-An attribute of type "string". This attribute describes a top-level group used for this parameter.
+An attribute of type "string". This attribute describes a top-level group used for this parameter. The value must not contain the character `/` as this is reserved for future support of nested groups. At the moment, nested groups are *not* supported.
 
 `advanced` 
 An attribute of type "boolean" that indicates that this parameter is for advanced configuration and can be hidden by default. Defaults to "false". Parameters that have "advanced=true" *must* have a default value, as they might not be visible immediately.
@@ -138,10 +140,31 @@ This `groups` element is fully optional and does not affect any behaviour of KUD
 
 ### JSON-Schema export
 
-Extend the `kudo package list parameters` with an option `--output json-schema` to describe the parameters as JSON-Schema.
+Extend the `kudo package list parameters` command with two new flags:
 
-Alternatively, add a new command `kudo package list json-schema`, which then could be used with `--output json` or `--output yaml` to export the JSON-Schema in both variants.
+`--output` As with other commands, this defines either yaml or json (or human readable, if not specified)
 
+`--format` This allows the user to select either `list` or `json-schema`.
+
+Examples:
+
+`kudo package list parameters`  
+`kudo package list parameters --format list`  
+Outputs a human readable list as before
+
+`kudo package list parameters --output yaml`  
+`kudo package list parameters --format list --output yaml`  
+Outputs the `params.yaml` file as is
+
+`kudo package list parameters --format json-schema`  
+`kudo package list parameters --format json-schema --output json`  
+Outputs the parameters as JSON-Schema
+
+`kudo package list parameters --format json-schema --output yaml`  
+Outputs the parameters as JSON-Schema in YAML format
+
+#### JSON-Schema output
+ 
 The output must include the additional attributes as well as an attribute `listName` that includes the `name` of the parameter to allow a user to generate the correct list of parameters. The group should describe a top-level group. 
 Example:
 
@@ -200,6 +223,7 @@ The exported JSON-Schema for this parameter definition should look as following:
   "type": "object",
   "properties": {
     "NODE_COUNT": {
+      "listName": "NODE_COUNT",
       "type": "number",
       "title": "Node Count",
       "description": "Number of Cassandra nodes.",
@@ -254,6 +278,17 @@ The exported JSON-Schema for this parameter definition should look as following:
   }
 }
 ```
+
+A potential UI is expected to only use the `listName` attribute to generate the parameters for KUDO, the output from the JSON-Schema above should result in a list similar to this:
+
+```
+NODE_COUNT: 3
+NODE_CPU_MC: 4000
+NODE_MEM_MIB: 4096
+NODE_DOCKER_IMAGE_PULL_POLICY: IfNotPresent
+```
+
+Fields unchanged from the default can of course always be skipped from the final list of parameter values.
 
 ## Alternatives
 
