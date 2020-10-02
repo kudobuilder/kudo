@@ -36,7 +36,7 @@ func Test_isNamespaced(t *testing.T) {
 		},
 		{
 			name:    "customresourcedefinition",
-			gvk:     schema.GroupVersionKind{Group: "apiextensions.k8s.io", Version: "v1", Kind: "CustomResourceDefinition"},
+			gvk:     schema.GroupVersionKind{Group: "apiextensions.k8s.io", Version: "v1beta1", Kind: "CustomResourceDefinition"},
 			di:      fdc,
 			want:    false,
 			wantErr: false,
