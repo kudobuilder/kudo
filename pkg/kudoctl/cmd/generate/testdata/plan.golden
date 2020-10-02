@@ -52,6 +52,7 @@ tasks:
   spec:
     resources:
     - statefulset.yaml
+    - subfolder/statefulset2.yaml
 - kind: Apply
   name: validation
   spec:

@@ -1,4 +1,4 @@
-Name      	Kind 	Resources               
-infra     	Apply	[services.yaml pdb.yaml]
-app       	Apply	[statefulset.yaml]      
-validation	Apply	[validation.yaml]       
+Name      	Kind 	Resources                                     
+infra     	Apply	[services.yaml pdb.yaml]                      
+app       	Apply	[statefulset.yaml subfolder/statefulset2.yaml]
+validation	Apply	[validation.yaml]                             

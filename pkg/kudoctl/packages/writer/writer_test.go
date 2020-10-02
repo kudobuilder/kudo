@@ -13,7 +13,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/files"
 )
 
-const expectedTarballSHA = "0f5716c50420540e5ff60a18fe2c7aa231c0e554d359960929283375fcb98b4c"
+const expectedTarballSHA = "a7137cf3c640eb28c7a80f8e4f4d24792cbd3f59ae4d8d11bc9ea83ef79d7d92"
 
 func TestRegularFileTarball(t *testing.T) {
 	var fs = afero.NewMemMapFs()

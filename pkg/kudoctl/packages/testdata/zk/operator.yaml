@@ -24,6 +24,7 @@ tasks:
     spec:
       resources:
         - statefulset.yaml
+        - subfolder/statefulset2.yaml
   - name: validation
     kind: Apply
     spec:
