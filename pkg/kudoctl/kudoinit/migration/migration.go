@@ -1,7 +1,6 @@
 package migration
 
 // Migrater is the base interface for migrations.
-
 type Migrater interface {
 	// CanMigrate checks if there are any conditions that would prevent this migration to run
 	// This function should only return an error if it is sure that the migration can not be executed
