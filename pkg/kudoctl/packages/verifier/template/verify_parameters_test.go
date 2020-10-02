@@ -139,3 +139,24 @@ func TestEnumParams(t *testing.T) {
 	assert.Equal(t, `parameter "EnumWrongValues" has an invalid enum value: type is "integer" but format is invalid: strconv.ParseInt: parsing "1.23": invalid syntax`, res.Errors[2])
 	assert.Equal(t, `parameter "EnumWithDefault" has an invalid default value: value is "someOtherVal", but only allowed values are [someVal]`, res.Errors[3])
 }
+
+func TestMetadata(t *testing.T) {
+	params := []packages.Parameter{
+		{Name: "InvalidGroup", Group: "some/group"},
+	}
+	paramFile := packages.ParamsFile{Parameters: params}
+	templates := make(map[string]string)
+
+	operator := packages.OperatorFile{}
+	pf := packages.Files{
+		Templates: templates,
+		Operator:  &operator,
+		Params:    &paramFile,
+	}
+	verifier := ParametersVerifier{}
+	res := verifier.Verify(&pf)
+
+	assert.Equal(t, 1, len(res.Warnings)) // NotUsed Warnings
+	assert.Equal(t, 1, len(res.Errors))
+	assert.Equal(t, `parameter "InvalidGroup" has a group with invalid character '/'`, res.Errors[0])
+}

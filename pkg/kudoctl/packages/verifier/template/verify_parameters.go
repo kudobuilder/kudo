@@ -2,6 +2,7 @@ package template
 
 import (
 	"fmt"
+	"strings"
 
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
@@ -24,6 +25,7 @@ func (ParametersVerifier) Verify(pf *packages.Files) verifier.Result {
 	res.Merge(immutableParams(pf))
 	res.Merge(enumParams(pf))
 	res.Merge(paramDefaults(pf))
+	res.Merge(metadata(pf))
 
 	implicits := renderer.NewVariableMap().WithDefaults()
 
@@ -98,6 +100,17 @@ func enumParams(pf *packages.Files) verifier.Result {
 	return res
 }
 
+func metadata(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
+	for _, p := range pf.Params.Parameters {
+		if p.Group != "" {
+			if strings.Contains(p.Group, "/") {
+				res.AddParamError(p.Name, "has a group with invalid character '/'")
+			}
+		}
+	}
+	return res
+}
 func paramsDefinedNotUsed(pf *packages.Files) verifier.Result {
 	res := verifier.NewResult()
 	tparams := make(map[string]bool)
