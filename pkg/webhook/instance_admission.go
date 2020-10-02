@@ -461,7 +461,7 @@ func validateParameters(ov *kudoapi.OperatorVersion, instance *kudoapi.Instance)
 
 // validateParameter ensures that a single parameter has a correct value set
 func validateParameter(p *kudoapi.Parameter, pValue string) error {
-	if p.IsRequired() && pValue == "" {
+	if p.IsRequired() && !p.HasDefault() && pValue == "" {
 		return fmt.Errorf("required but no value set")
 	}
 

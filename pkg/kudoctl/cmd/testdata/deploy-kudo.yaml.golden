@@ -142,6 +142,11 @@ spec:
                   displayName:
                     description: DisplayName can be used by UIs.
                     type: string
+                  enum:
+                    description: Defines a list of allowed values. If Default is set and Enum is not nil, the value must be in this list as well
+                    items:
+                      type: string
+                    type: array
                   immutable:
                     description: Specifies if the parameter can be changed after the initial installation of the operator
                     type: boolean
