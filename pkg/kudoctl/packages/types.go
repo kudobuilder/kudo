@@ -88,6 +88,15 @@ func (p Parameters) Less(x, y int) bool {
 	return p[x].Name < p[y].Name
 }
 
+type Groups []Group
+
+type Group struct {
+	Name        string `json:"name,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
+	Description string `json:"description,omitempty"`
+	Priority    int    `json:"prio,omitempty"`
+}
+
 // Templates is a map of file names and stringified files in the template folder of an operator
 type Templates map[string]string
 
@@ -101,6 +110,7 @@ type Files struct {
 // ParamsFile is a representation of the package params.yaml
 type ParamsFile struct {
 	APIVersion string     `json:"apiVersion,omitempty"`
+	Groups     Groups     `json:"groups,omitempty"`
 	Parameters Parameters `json:"parameters"`
 }
 

@@ -429,6 +429,15 @@ func (in *Parameter) DeepCopyInto(out *Parameter) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.Enum != nil {
+		in, out := &in.Enum, &out.Enum
+		*out = new([]string)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
+	}
 	return
 }
 
