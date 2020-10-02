@@ -38,9 +38,11 @@ type Parameter struct {
 	Type        kudoapi.ParameterType `json:"type,omitempty"`
 	Immutable   *bool                 `json:"immutable,omitempty"`
 	Enum        *[]string             `json:"enum,omitempty"`
-	Group       string                `json:"group,omitempty"`
-	Advanced    *bool                 `json:"advanced,omitempty"`
-	Hint        string                `json:"hint,omitempty"`
+
+	// The following fields are descriptive only and are not used in the OperatorVersion
+	Group    string `json:"group,omitempty"`
+	Advanced *bool  `json:"advanced,omitempty"`
+	Hint     string `json:"hint,omitempty"`
 }
 
 func (p Parameter) IsImmutable() bool {

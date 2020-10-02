@@ -56,17 +56,12 @@ func ValidateParameterValueForType(pType ParameterType, pValue string) error {
 }
 
 func ValidateParameterValueForEnum(enumValues []string, pValue string) error {
-	foundInEnumValues := false
 	for _, eValue := range enumValues {
 		if pValue == eValue {
-			foundInEnumValues = true
-			break
+			return nil
 		}
 	}
-	if !foundInEnumValues {
-		return fmt.Errorf("value is %q, but only allowed values are %v", pValue, enumValues)
-	}
-	return nil
+	return fmt.Errorf("value is %q, but only allowed values are %v", pValue, enumValues)
 }
 
 // GetChangedParamDefs returns a list of parameters from ov2 that changed based on the given compare function between ov1 and ov2
