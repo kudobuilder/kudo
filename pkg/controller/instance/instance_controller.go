@@ -24,6 +24,8 @@ import (
 	"reflect"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/discovery"
@@ -50,6 +52,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/engine/workflow"
+	"github.com/kudobuilder/kudo/pkg/kubernetes/status"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/resources/dependencies"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
@@ -157,6 +160,12 @@ func isForPipePod(e event.DeleteEvent) bool {
 //   | Update instance with new      |
 //   | state of the execution        |
 //   +-------------------------------+
+//                  |
+//                  v
+//   +-------------------------------+
+//   | Update readiness even if      |
+//   | no plan running               |
+//   +-------------------------------+
 //
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
@@ -187,10 +196,21 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	// get the scheduled plan
 	plan, uid := scheduledPlan(instance, ov)
 	if plan == "" {
-		log.Printf("InstanceController: Nothing to do, no plan scheduled for instance %s/%s", instance.Namespace, instance.Name)
-		return reconcile.Result{}, nil
+		// no plan is running, we still need to make sure the readiness property is up to date
+		err := setReadinessOnInstance(instance, r.Client)
+		if err != nil {
+			log.Printf("InstanceController: Error when computing readiness for %s/%s: %v", instance.Namespace, instance.Name, err)
+			return reconcile.Result{}, err
+		}
+		if readinessChanged(oldInstance, instance) {
+			err = updateInstance(instance, oldInstance, r.Client)
+		} else {
+			log.Printf("InstanceController: Readiness did not change for %s/%s. Not updating.", instance.Namespace, instance.Name)
+		}
+		return reconcile.Result{}, err
 	}
 
+	ensureReadinessInitialized(instance)
 	ensurePlanStatusInitialized(instance, ov)
 
 	// reset its status if the plan is new and log/record it
@@ -256,6 +276,33 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	}
 
 	return computeTheReconcileResult(instance, time.Now), nil
+}
+
+func ensureReadinessInitialized(i *kudoapi.Instance) {
+	if i.Spec.PlanExecution.PlanName == kudoapi.DeployPlanName || i.Spec.PlanExecution.PlanName == kudoapi.UpgradePlanName || i.Spec.PlanExecution.PlanName == kudoapi.UpdatePlanName {
+		i.SetReadinessUnknown()
+	}
+}
+
+func readinessChanged(instance *kudoapi.Instance, instance2 *kudoapi.Instance) bool {
+	ready := meta.FindStatusCondition(instance.Status.Conditions, "Ready")
+	ready2 := meta.FindStatusCondition(instance2.Status.Conditions, "Ready")
+
+	return ready != ready2 && (ready == nil || ready2 == nil || !reflect.DeepEqual(*ready, *ready2))
+}
+
+func setReadinessOnInstance(instance *kudoapi.Instance, c client.Client) error {
+	ready, msg, err := status.IsReady(*instance, c)
+	log.Printf("Updating instance %s/%s readiness to: : %t", instance.Namespace, instance.Name, ready)
+	if err != nil {
+		return err
+	}
+	if ready {
+		instance.SetReadinessTrue(msg)
+	} else {
+		instance.SetReadinessFalse(msg)
+	}
+	return nil
 }
 
 // computeTheReconcileResult decides whether retry reconciliation or not

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+
 	"github.com/thoas/go-funk"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -70,6 +72,7 @@ func (i *Instance) NoPlanEverExecuted() bool {
 }
 
 // UpdateInstanceStatus updates `Status.PlanStatus` and `Status.AggregatedStatus` property based on the given plan
+// also updates Ready condition for finished plans
 func (i *Instance) UpdateInstanceStatus(ps *PlanStatus, updatedTimestamp *metav1.Time) {
 	for k, v := range i.Status.PlanStatus {
 		if v.Name == ps.Name {
@@ -77,6 +80,12 @@ func (i *Instance) UpdateInstanceStatus(ps *PlanStatus, updatedTimestamp *metav1
 			i.Status.PlanStatus[k] = *ps
 			i.Spec.PlanExecution.Status = ps.Status
 		}
+	}
+	if i.Spec.PlanExecution.Status.IsFinished() {
+		i.SetReadinessTrue("")
+	}
+	if i.Spec.PlanExecution.Status == ExecutionFatalError {
+		i.SetReadinessFatalError("")
 	}
 }
 
@@ -194,6 +203,35 @@ func (i *Instance) IsChildInstance() bool {
 
 func (i *Instance) IsTopLevelInstance() bool {
 	return !i.IsChildInstance()
+}
+
+const (
+	planInProgressReason   = "PlanInProgress"
+	planInFatalErrorReason = "PlanInFatalError"
+	resourceNotReadyReason = "ResourceNotReady"
+	resourcesReadyReason   = "ResourcesReady"
+	readyConditionType     = "Ready"
+)
+
+func (i *Instance) SetReadinessTrue(msg string) {
+	condition := metav1.Condition{Type: readyConditionType, Status: metav1.ConditionTrue, Message: msg, Reason: resourcesReadyReason}
+	meta.SetStatusCondition(&i.Status.Conditions, condition)
+}
+
+func (i *Instance) SetReadinessFalse(msg string) {
+	condition := metav1.Condition{Type: readyConditionType, Status: metav1.ConditionFalse, Message: msg, Reason: resourceNotReadyReason}
+	meta.SetStatusCondition(&i.Status.Conditions, condition)
+}
+
+func (i *Instance) SetReadinessFatalError(msg string) {
+	condition := metav1.Condition{Type: readyConditionType, Status: metav1.ConditionUnknown, Message: msg, Reason: planInFatalErrorReason}
+	meta.SetStatusCondition(&i.Status.Conditions, condition)
+}
+
+// SetReadinessUnknown sets an unknown state for Status.Conditions.Ready
+func (i *Instance) SetReadinessUnknown() {
+	condition := metav1.Condition{Type: readyConditionType, Status: metav1.ConditionUnknown, Reason: planInProgressReason}
+	meta.SetStatusCondition(&i.Status.Conditions, condition)
 }
 
 // wasRunAfter returns true if p1 was run after p2

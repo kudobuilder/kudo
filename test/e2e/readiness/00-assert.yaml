@@ -1,0 +1,16 @@
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
+  name: first-operator
+status:
+  conditions:
+    - type: Ready
+      status: "True"
+  planStatus:
+    deploy:
+      status: COMPLETE
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
