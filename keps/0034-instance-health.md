@@ -8,8 +8,8 @@ owners:
   - "@alenkacz"
 editor: TBD
 creation-date: 2020-09-24
-last-updated: 2020-09-24
-status: provisional
+last-updated: 2020-09-29
+status: implementable
 ---
 
 # KUDO instance readiness
@@ -51,8 +51,6 @@ Readiness of an `Instance` will be communicated via a newly introduced `Status.C
 - False - the last observation of readiness on this instance is that it’s NOT ready
 - Unknown - deploy/upgrade/update plan is running or last plan execution of these plans ended with FATAL_ERROR
 
-Keeping an unknown state for plan running is important from the fact that resources can be applied sequentially so in time when pre-install steps are running, we would be saying the instance is ready even though no deployments were applied as that happens in later steps.
-
 Example of Instance status being ready:
 ```
 apiVersion: kudo.dev/v1beta1
@@ -92,7 +90,7 @@ Status:
 
 Ready is expected to be an oscillating condition and it will indicate the resources owned by the instance were believed to be ready at the time it was last verified. There’s an expectation that the value won’t be stalled for more than 1 minute (at least one minute after the state changes, status should be reflecting it).
 
-Unknown state will be set whenever deploy/upgrade/update plan is running - this is because plan run should be an atomic operation going from stable state to another stable state, evaluating health of all resources involved in the plan as part of the execution. It feels redundant to be also checking for readiness additionally to the health checks of the plan execution. 
+Unknown state will be set whenever deploy/upgrade/update plan is running - this is because a plan run should be an atomic operation going from stable state to another stable state, evaluating health of all resources involved in the plan as part of the execution. To document why having an unknown state for plan running is important let's think of the following example: plan has a pre-install phase and install phase. While pre-install is running, no deployments exist yet, but that would mean that we would mark that instance as `Ready:true` even though not all deployments were applied yet. The same goes for FATAL_ERROR state - in this case we simply cannot tell at which phase the execution was stopped so we cannot really guarantee that the computed `Ready:true` signal would be meaningful and user can consider that installation to be ready. 
 
 The reason for using Conditions field rather than introducing a separate field is mainly that it’s starting to be established as a go-to pattern in kubernetes world. Also conditions have a standard set of fields attached with metadata that are useful for our case (namely Reason, Message). Having a ‘Ready’ condition is also [encouraged by sig-architecture](https://github.com/kubernetes/community/pull/4521/files). (excerpt from that document: *Although they are not a consistent standard, the `Ready` and `Succeeded` condition types may be used by API designers for long-running and bounded-execution objects, respectively.*)
 
@@ -106,6 +104,8 @@ From all these resources it would compute readiness based on `Condition: Ready`,
 
 For operators installing their app via e.g. `Deployment`, there’s no need at this point to also check the Status of the underlying Pods because Deployment `Status` already mirrors the readiness of the underlying Pods. This is true to all higher-level types like StatefulSet etc.
 
+To mitigate situation when a plan adds a resource we don't want to include in `Ready` condition, it's possible to opt-out from this by adding annotation `kudo.dev/skip-for-readiness-computation:true`
+
 ### Risks and Mitigations
 
 On a big cluster with a huge number of Pods and Deployments, it’s possible that a controller might have a scaling issues because of number of items it need to process.
@@ -113,3 +113,9 @@ On a big cluster with a huge number of Pods and Deployments, it’s possible tha
 This is mitigated by a fact that inside event handlers we’re filtering only for events that belong to KUDO which should limit the scope of events to only a very few (the expectation is that majority of the Deployments does not come from KUDO).
 
 Also this feature is not making this situation any worse as it’s right now because KUDO controller already watches for Pods and Deployments, so we’re not introducing new overhead. That said the controller will have to perform much more work in times where it was just "idling" before - because it was working only when plan was run, otherwise the reconcile ended right after it started. This could pose problem on bigger clusters with many KUDO operators and could be mitigated by running KUDO controller with multiple workers (right now 1 worker is enough on most installations we're aware of).
+
+### Future work
+
+To support even more complex cases and operator, we should think about adding possibility to specify `kudo.dev/readiness-strategy:selected` which will switch readiness computation to OPT-IN mode. With this one set, only resources with `kudo.dev/allow-readiness-computation:true` will be considered for readiness computation.
+
+A plan is also to add more Conditions like `InProgress` capturing currently running plan.
