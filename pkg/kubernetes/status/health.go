@@ -156,6 +156,34 @@ func IsHealthy(obj runtime.Object) (healthy bool, msg string, err error) {
 		}
 		return false, fmt.Sprintf("namespace %s is not active: %s", obj.Name, obj.Status.Phase), nil
 
+	// Service health depends on the ingress type.
+	// To be considered healthy, a service needs to be accessible by its cluster IP.
+	// If the service is load-balanced, the balancer need to have an ingress defined.
+	// Adapted from https://github.com/helm/helm/blob/v3.3.4/pkg/kube/wait.go#L185.
+	case *corev1.Service:
+		// ExternalName services are external to cluster. KUDO shouldn't be checking to see if they're 'ready' (i.e. have an IP set).
+		if obj.Spec.Type == corev1.ServiceTypeExternalName {
+			return true, fmt.Sprintf("external name service %s/%s is marked healthy", obj.Namespace, obj.Name), nil
+		}
+
+		if obj.Spec.ClusterIP == "" {
+			return false, fmt.Sprintf("service %s/%s does not have cluster IP address", obj.Namespace, obj.Name), nil
+		}
+
+		// Check if the service has a LoadBalancer and that balancer has an Ingress defined.
+		if obj.Spec.Type == corev1.ServiceTypeLoadBalancer {
+			if len(obj.Spec.ExternalIPs) > 0 {
+				return true, fmt.Sprintf("service %s/%s has external IP addresses (%v), marked healthy", obj.Namespace, obj.Name, obj.Spec.ExternalIPs), nil
+			}
+
+			if obj.Status.LoadBalancer.Ingress == nil {
+				return false, fmt.Sprintf("service %s/%s does not have load balancer ingress IP address", obj.Namespace, obj.Name), nil
+			}
+		}
+
+		// If none of the above conditions are met, we can assume that the service is healthy.
+		return true, fmt.Sprintf("service %s/%s is marked healthy", obj.Namespace, obj.Name), nil
+
 	// unless we build logic for what a healthy object is, assume it's healthy when created.
 	default:
 		return true, fmt.Sprintf("unknown type %s is marked healthy by default", reflect.TypeOf(obj)), nil
