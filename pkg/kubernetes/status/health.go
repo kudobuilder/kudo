@@ -157,7 +157,7 @@ func IsHealthy(obj runtime.Object) (healthy bool, msg string, err error) {
 		return false, fmt.Sprintf("namespace %s is not active: %s", obj.Name, obj.Status.Phase), nil
 
 	case *corev1.Service:
-		return serviceHealthy(obj)
+		return isServiceHealthy(obj)
 
 	// unless we build logic for what a healthy object is, assume it's healthy when created.
 	default:
