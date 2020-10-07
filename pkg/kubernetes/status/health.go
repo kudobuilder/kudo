@@ -169,7 +169,7 @@ func IsHealthy(obj runtime.Object) (healthy bool, msg string, err error) {
 // To be considered healthy, a service needs to be accessible by its cluster IP.
 // If the service is load-balanced, the balancer need to have an ingress defined.
 // Adapted from https://github.com/helm/helm/blob/v3.3.4/pkg/kube/wait.go#L185.
-func serviceHealthy(obj *corev1.Service) (healthy bool, msg string, err error) {
+func isServiceHealthy(obj *corev1.Service) (healthy bool, msg string, err error) {
 	// ExternalName services are external to cluster. KUDO shouldn't be checking to see if they're 'ready' (i.e. have an IP set).
 	if obj.Spec.Type == corev1.ServiceTypeExternalName {
 		return true, fmt.Sprintf("external name service %s/%s is marked healthy", obj.Namespace, obj.Name), nil
