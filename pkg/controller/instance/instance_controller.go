@@ -280,6 +280,7 @@ func ensureReadinessInitialized(i *kudoapi.Instance) {
 	if i.Spec.PlanExecution.PlanName == kudoapi.DeployPlanName || i.Spec.PlanExecution.PlanName == kudoapi.UpgradePlanName || i.Spec.PlanExecution.PlanName == kudoapi.UpdatePlanName {
 		i.SetReadinessUnknown()
 	}
+	// For any other plan we keep the existing Readiness. As the deploy plan is always the first plan to run, the Readiness is always initialized.
 }
 
 func readinessChanged(instance *kudoapi.Instance, instance2 *kudoapi.Instance) bool {
