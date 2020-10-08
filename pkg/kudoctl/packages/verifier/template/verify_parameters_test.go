@@ -141,8 +141,12 @@ func TestEnumParams(t *testing.T) {
 }
 
 func TestMetadata(t *testing.T) {
+	trueFlag := true
 	params := []packages.Parameter{
 		{Name: "InvalidGroup", Group: "some/group"},
+		{Name: "InvalidAdvanced", Advanced: &trueFlag, Required: &trueFlag},
+		{Name: "ValidAdvanced", Advanced: &trueFlag, Required: &trueFlag, Default: "someValue"},
+		{Name: "AnotherValidAdvanced", Advanced: &trueFlag},
 	}
 	paramFile := packages.ParamsFile{Parameters: params}
 	templates := make(map[string]string)
@@ -156,7 +160,9 @@ func TestMetadata(t *testing.T) {
 	verifier := ParametersVerifier{}
 	res := verifier.Verify(&pf)
 
-	assert.Equal(t, 1, len(res.Warnings)) // NotUsed Warnings
-	assert.Equal(t, 1, len(res.Errors))
+	assert.Equal(t, 5, len(res.Warnings)) // NotUsed Warnings
+	assert.Equal(t, 2, len(res.Errors))
+	assert.Equal(t, `parameter "InvalidGroup" has a group that is not defined in the group section`, res.Warnings[4])
 	assert.Equal(t, `parameter "InvalidGroup" has a group with invalid character '/'`, res.Errors[0])
+	assert.Equal(t, `parameter "InvalidAdvanced" is marked as advanced, but also as required and has no default. An advanced parameter must either be optional or have a default value`, res.Errors[1])
 }
