@@ -287,7 +287,7 @@ func readinessChanged(instance *kudoapi.Instance, instance2 *kudoapi.Instance) b
 	ready := meta.FindStatusCondition(instance.Status.Conditions, "Ready")
 	ready2 := meta.FindStatusCondition(instance2.Status.Conditions, "Ready")
 
-	return ready != ready2 && (ready == nil || ready2 == nil || !reflect.DeepEqual(*ready, *ready2))
+	return !reflect.DeepEqual(*ready, *ready2)
 }
 
 func setReadinessOnInstance(instance *kudoapi.Instance, c client.Client) error {
