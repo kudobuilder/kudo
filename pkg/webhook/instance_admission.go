@@ -452,31 +452,10 @@ func validateParameters(ov *kudoapi.OperatorVersion, instance *kudoapi.Instance)
 		p := p
 		pValue := instance.Spec.Parameters[p.Name]
 
-		if err := validateParameter(&p, pValue); err != nil {
-			return fmt.Errorf("parameter %q is invalid: %v", p.Name, err)
-		}
-	}
-	return nil
-}
-
-// validateParameter ensures that a single parameter has a correct value set
-func validateParameter(p *kudoapi.Parameter, pValue string) error {
-	if p.IsRequired() && !p.HasDefault() && pValue == "" {
-		return fmt.Errorf("required but no value set")
-	}
-
-	if pValue == "" {
-		return nil
-	}
-
-	if err := kudoapi.ValidateParameterValueForType(p.Type, pValue); err != nil {
-		return err
-	}
-
-	if p.IsEnum() {
-		if err := kudoapi.ValidateParameterValueForEnum(p.EnumValues(), pValue); err != nil {
+		if err := p.ValidateValue(pValue); err != nil {
 			return err
 		}
+
 	}
 	return nil
 }

@@ -63,18 +63,8 @@ func paramDefaults(pf *packages.Files) verifier.Result {
 	res := verifier.NewResult()
 	for _, p := range pf.Params.Parameters {
 		if p.HasDefault() {
-			defaultAsString, ok := p.Default.(string)
-			if !ok {
-				res.AddParamError(p.Name, fmt.Sprintf("failed to convert default value %q to string", p.Default))
-				continue
-			}
-			if err := kudoapi.ValidateParameterValueForType(p.Type, defaultAsString); err != nil {
-				res.AddParamError(p.Name, fmt.Sprintf("has an invalid default value: %v", err))
-			}
-			if p.IsEnum() {
-				if err := kudoapi.ValidateParameterValueForEnum(p.EnumValues(), defaultAsString); err != nil {
-					res.AddParamError(p.Name, fmt.Sprintf("has an invalid default value: %v", err))
-				}
+			if err := p.ValidateDefault(); err != nil {
+				res.AddErrors(err.Error())
 			}
 		}
 	}

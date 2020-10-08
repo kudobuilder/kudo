@@ -2,6 +2,7 @@ package v1beta1
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 )
 
@@ -28,34 +29,132 @@ func (p *Parameter) EnumValues() []string {
 	return []string{}
 }
 
-func ValidateParameterValueForType(pType ParameterType, pValue string) error {
-	switch pType {
-	case StringValueType:
-		// Nothing to validate here
-	case IntegerValueType:
-		_, err := strconv.ParseInt(pValue, 10, 64)
-		if err != nil {
-			return fmt.Errorf("type is %q but format is invalid: %v", pType, err)
+func (p *Parameter) ValidateDefault() error {
+	if err := ValidateParameterValueForType(p.Type, p.Default); err != nil {
+		return fmt.Errorf("parameter %q has an invalid default value: %v", p.Name, err)
+	}
+	if p.IsEnum() {
+		if err := ValidateParameterValueForEnum(p.EnumValues(), p.Default); err != nil {
+			return fmt.Errorf("parameter %q has an invalid default value: %v", p.Name, err)
 		}
-	case NumberValueType:
-		_, err := strconv.ParseFloat(pValue, 64)
-		if err != nil {
-			return fmt.Errorf("type is %q but format is invalid: %v", pType, err)
-		}
-	case BooleanValueType:
-		_, err := strconv.ParseBool(pValue)
-		if err != nil {
-			return fmt.Errorf("type is %q but format is invalid: %v", pType, err)
-		}
-	case ArrayValueType:
-		// TODO: Validate array type
-	case MapValueType:
-		// TODO: Validate map type
 	}
 	return nil
 }
 
-func ValidateParameterValueForEnum(enumValues []string, pValue string) error {
+// ValidateValue ensures that a the given value is valid for this parameter
+func (p *Parameter) ValidateValue(pValue string) error {
+	if p.IsRequired() && !p.HasDefault() && pValue == "" {
+		return fmt.Errorf("parameter %q is required but has no value set", p.Name)
+	}
+
+	if pValue == "" {
+		return nil
+	}
+
+	if err := ValidateParameterValueForType(p.Type, pValue); err != nil {
+		return fmt.Errorf("parameter %q has an invalid value %q: %v", p.Name, pValue, err)
+	}
+	if p.IsEnum() {
+		if err := ValidateParameterValueForEnum(p.EnumValues(), pValue); err != nil {
+			return fmt.Errorf("parameter %q has an invalid value %q: %v", p.Name, pValue, err)
+		}
+	}
+	return nil
+}
+
+func ValidateParameterValueForType(pType ParameterType, pValue interface{}) error {
+	switch pType {
+	case StringValueType:
+		_, ok := pValue.(string)
+		if !ok {
+			return fmt.Errorf("type is %q but format is invalid: %s", pType, pValue)
+		}
+	case IntegerValueType:
+		return validateIntegerType(pValue)
+	case NumberValueType:
+		return validateNumberType(pValue)
+	case BooleanValueType:
+		return validateBooleanType(pValue)
+	case ArrayValueType:
+		return validateArrayType(pValue)
+	case MapValueType:
+		return validateMapType(pValue)
+	}
+	return nil
+}
+
+func validateIntegerType(pValue interface{}) error {
+	switch v := pValue.(type) {
+	case int, int8, int16, int32, int64:
+		return nil
+	case uint, uint8, uint16, uint32, uint64:
+		return nil
+	case string:
+		_, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return fmt.Errorf("type is %q but format of %q is invalid: %v", IntegerValueType, pValue, err)
+		}
+	default:
+		return fmt.Errorf("type is %q but format of %s is invalid", IntegerValueType, pValue)
+	}
+	return nil
+}
+
+func validateNumberType(pValue interface{}) error {
+	switch v := pValue.(type) {
+	case int, int8, int16, int32, int64:
+		return nil
+	case uint, uint8, uint16, uint32, uint64:
+		return nil
+	case float32, float64:
+		return nil
+	case string:
+		_, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return fmt.Errorf("type is %q but format of %q is invalid: %v", NumberValueType, pValue, err)
+		}
+	default:
+		return fmt.Errorf("type is %q but format of %s is invalid", NumberValueType, v)
+	}
+	return nil
+}
+
+func validateBooleanType(pValue interface{}) error {
+	switch v := pValue.(type) {
+	case bool:
+		return nil
+	case string:
+		_, err := strconv.ParseBool(v)
+		if err != nil {
+			return fmt.Errorf("type is %q but format of %q is invalid: %v", BooleanValueType, pValue, err)
+		}
+	default:
+		return fmt.Errorf("type is %q but format of %s is invalid", BooleanValueType, pValue)
+	}
+	return nil
+}
+
+func validateArrayType(pValue interface{}) error {
+	t := reflect.TypeOf(pValue)
+	switch t.Kind() {
+	case reflect.Slice, reflect.Array:
+		return nil
+	default:
+		return fmt.Errorf("type is %q but value %s is not an array", ArrayValueType, pValue)
+	}
+}
+
+func validateMapType(pValue interface{}) error {
+	t := reflect.TypeOf(pValue)
+	switch t.Kind() {
+	case reflect.Map, reflect.Struct:
+		return nil
+	default:
+		return fmt.Errorf("type is %q but value %s is not an array", ArrayValueType, pValue)
+	}
+}
+
+func ValidateParameterValueForEnum(enumValues []string, pValue interface{}) error {
 	for _, eValue := range enumValues {
 		if pValue == eValue {
 			return nil

@@ -18,6 +18,7 @@ func TestTemplateParametersVerifier(t *testing.T) {
 		{Name: "BROKER_COUNT"},
 		{Name: "EXTERNAL_NODE_PORT"},
 		{Name: "TRIGGER_ONLY", Trigger: "foo"},
+		{Name: "ValidDefault", Type: kudoapi.IntegerValueType, Default: 42},
 	}
 	paramFile := packages.ParamsFile{Parameters: params}
 	templates := make(map[string]string)
@@ -52,6 +53,8 @@ func TestTemplateParametersVerifier(t *testing.T) {
 - containerPort: {{ add (int $.Params.EXTERNAL_NODE_PORT) $v}}
   name: node-port-{{ $v }}
 {{ end }}
+
+{{.Params.ValidDefault}}
 `
 	operator := packages.OperatorFile{
 		Tasks: []kudoapi.Task{
@@ -115,10 +118,10 @@ func TestEnumParams(t *testing.T) {
 
 	params := []packages.Parameter{
 		{Name: "NoDefaultNoEnum"},
-		{Name: "EnumNoDefault", Enum: &[]string{"someVal"}},
-		{Name: "EnumWithDefault", Enum: &[]string{"someVal"}, Default: "someOtherVal"},
-		{Name: "EnumNoValues", Enum: &[]string{}},
-		{Name: "EnumWrongValues", Enum: &[]string{"noint", "23", "42", "1.23"}, Type: kudoapi.IntegerValueType},
+		{Name: "EnumNoDefault", Enum: &[]interface{}{"someVal"}},
+		{Name: "EnumWithDefault", Enum: &[]interface{}{"someVal"}, Default: "someOtherVal"},
+		{Name: "EnumNoValues", Enum: &[]interface{}{}},
+		{Name: "EnumWrongValues", Enum: &[]interface{}{"noint", "23", "42", "1.23"}, Type: kudoapi.IntegerValueType},
 	}
 	paramFile := packages.ParamsFile{Parameters: params}
 	templates := make(map[string]string)

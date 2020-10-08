@@ -1,6 +1,8 @@
 package packages
 
 import (
+	"fmt"
+
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
@@ -37,9 +39,11 @@ type Parameter struct {
 	Trigger     string                `json:"trigger,omitempty"`
 	Type        kudoapi.ParameterType `json:"type,omitempty"`
 	Immutable   *bool                 `json:"immutable,omitempty"`
-	Enum        *[]string             `json:"enum,omitempty"`
+	Enum        *[]interface{}        `json:"enum,omitempty"`
 
-	// The following fields are descriptive only and are not used in the OperatorVersion
+	// The following fields are descriptive only and are not used in the OperatorVersion. They are only used on the
+	// package level and are not converted to the CRDs, as they are only used during installation of an operator and
+	// are not necessary server-side.
 	Group    string `json:"group,omitempty"`
 	Advanced *bool  `json:"advanced,omitempty"`
 	Hint     string `json:"hint,omitempty"`
@@ -65,11 +69,26 @@ func (p *Parameter) HasDefault() bool {
 	return p.Default != nil
 }
 
-func (p *Parameter) EnumValues() []string {
+func (p *Parameter) ValidateDefault() error {
+	if err := kudoapi.ValidateParameterValueForType(p.Type, p.Default); err != nil {
+		return fmt.Errorf("parameter \"%s\" has an invalid default value: %v", p.Name, err)
+	}
+	if p.IsEnum() {
+		for _, eValue := range p.EnumValues() {
+			if p.Default == eValue {
+				return nil
+			}
+		}
+		return fmt.Errorf("parameter \"%s\" has an invalid default value: value is %q, but only allowed values are %v", p.Name, p.Default, p.EnumValues())
+	}
+	return nil
+}
+
+func (p *Parameter) EnumValues() []interface{} {
 	if p.IsEnum() {
 		return *p.Enum
 	}
-	return []string{}
+	return []interface{}{}
 }
 
 type Parameters []Parameter
