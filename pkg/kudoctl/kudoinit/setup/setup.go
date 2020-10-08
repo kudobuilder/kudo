@@ -12,7 +12,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/crd"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/manager"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/migration"
-	_01_migrate_ov_names "github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/migration/01_migrate_ov_names"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit/prereq"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
@@ -71,9 +70,7 @@ func (i *Installer) VerifyInstallation(client *kube.Client, result *verifier.Res
 
 func requiredMigrations(client *kube.Client, dryRun bool) []migration.Migrater {
 	// Determine which migrations to run
-	return []migration.Migrater{
-		_01_migrate_ov_names.New(client, dryRun),
-	}
+	return []migration.Migrater{}
 }
 
 func (i *Installer) PreUpgradeVerify(client *kube.Client, result *verifier.Result) error {

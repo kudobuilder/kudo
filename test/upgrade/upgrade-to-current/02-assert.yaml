@@ -12,11 +12,11 @@ spec:
       containers:
         - image: kudobuilder/controller:test
 ---
-# Assert that the operator name migration has worked
+# Assert that the operator names are still the same as before
 apiVersion: kudo.dev/v1beta1
 kind: OperatorVersion
 metadata:
-  name: simple-op-1.2.3-0.1.0
+  name: simple-op-0.1.0
 spec:
   version: 0.1.0
   appVersion: 1.2.3
@@ -24,11 +24,11 @@ spec:
     kind: Operator
     name: simple-op
 ---
-# Assert that the operator name migration has worked
+# Assert that the operator names are still the same as before
 apiVersion: kudo.dev/v1beta1
 kind: Instance
 metadata:
   name: simple-op
 spec:
   operatorVersion:
-    name: simple-op-1.2.3-0.1.0
+    name: simple-op-0.1.0
