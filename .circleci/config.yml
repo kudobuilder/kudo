@@ -47,7 +47,7 @@ jobs:
 
   lint:
     docker:
-      - image: kudobuilder/golang:1.14
+      - image: kudobuilder/golang:1.15
     working_directory: /go/src/github.com/kudobuilder/kudo
     steps:
       - checkout
@@ -56,6 +56,7 @@ jobs:
             - go-mod-v1-{{ checksum "go.sum" }}
       - run: make lint
       - run: ./hack/verify-generate.sh
+      - run: ./hack/verify-go-clean.sh
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
