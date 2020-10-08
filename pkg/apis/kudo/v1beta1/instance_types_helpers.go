@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"k8s.io/apimachinery/pkg/api/meta"
-
 	"github.com/thoas/go-funk"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"

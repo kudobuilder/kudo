@@ -5,29 +5,28 @@ import (
 	"fmt"
 	"log"
 
-	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	label "github.com/kudobuilder/kudo/pkg/util/kudo"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	label "github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
 // IsReady computes instance readiness based on current state of underlying resources
 // currently readiness examines the following types: Pods, StatefulSets, Deployments, ReplicaSets and DaemonSets
 // Instance is considered ready if all the resources linked to this instance are also ready (healthy)
-func IsReady(i kudoapi.Instance, c client.Client) (ready bool, msg string, err error) {
+func IsReady(i kudoapi.Instance, c client.Client) (bool, string, error) {
 	resources, err := healthResources(c, i.Name, i.Namespace)
 	if err != nil {
 		return false, "", err
 	}
-	ready = true
+	ready := true
 	readinessMessage := ""
 	for _, res := range resources {
-		healthy, _, err := IsHealthy(res)
+		healthy, msg, err := IsHealthy(res)
 		if err != nil {
 			return false, "", err
 		}

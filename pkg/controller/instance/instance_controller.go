@@ -24,20 +24,18 @@ import (
 	"reflect"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/meta"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/uuid"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/rest"
-
 	"github.com/thoas/go-funk"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -293,7 +291,7 @@ func readinessChanged(instance *kudoapi.Instance, instance2 *kudoapi.Instance) b
 
 func setReadinessOnInstance(instance *kudoapi.Instance, c client.Client) error {
 	ready, msg, err := status.IsReady(*instance, c)
-	log.Printf("Updating instance %s/%s readiness to: : %t", instance.Namespace, instance.Name, ready)
+	log.Printf("Updating instance %s/%s readiness to: %t", instance.Namespace, instance.Name, ready)
 	if err != nil {
 		return err
 	}
