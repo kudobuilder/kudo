@@ -21,16 +21,13 @@ type MigrateOvNames struct {
 	client *kube.Client
 	dryRun bool
 	ctx    context.Context
-
-	migratedOVs map[string]*kudoapi.OperatorVersion
 }
 
 func New(client *kube.Client, dryRun bool) *MigrateOvNames {
 	return &MigrateOvNames{
-		client:      client,
-		dryRun:      dryRun,
-		ctx:         context.TODO(),
-		migratedOVs: map[string]*kudoapi.OperatorVersion{},
+		client: client,
+		dryRun: dryRun,
+		ctx:    context.TODO(),
 	}
 }
 
@@ -54,7 +51,9 @@ func (m *MigrateOvNames) migrateInNamespace(ns string) error {
 	if err := migration.ForEachInstance(m.client, ns, m.migrateInstance); err != nil {
 		return fmt.Errorf("failed to migrate Instance ownership in namespace %q: %v", ns, err)
 	}
-
+	if err := migration.ForEachOperatorVersion(m.client, ns, m.cleanupOldOperatorVersion); err != nil {
+		return fmt.Errorf("failed to clean up old OperatorVersions in namespace %q: %v", ns, err)
+	}
 	return nil
 }
 
@@ -64,8 +63,6 @@ func (m *MigrateOvNames) migrateOperatorVersion(ov *kudoapi.OperatorVersion) err
 		// Nothing to migrate
 		return nil
 	}
-
-	oldName := ov.Name
 	clog.V(0).Printf("Migrate OperatorVersion from %q to %q", ov.Name, ov.FullyQualifiedName())
 
 	ov.Name = expectedName
@@ -80,40 +77,59 @@ func (m *MigrateOvNames) migrateOperatorVersion(ov *kudoapi.OperatorVersion) err
 	if !m.dryRun {
 		var err error
 		clog.V(4).Printf("Create copy of OperatorVersion with name %q", ov.Name)
-		ov, err = m.client.KudoClient.KudoV1beta1().OperatorVersions(ov.Namespace).Create(m.ctx, ov, v1.CreateOptions{})
+		_, err = m.client.KudoClient.KudoV1beta1().OperatorVersions(ov.Namespace).Create(m.ctx, ov, v1.CreateOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to create copy of operator version: %v", err)
 		}
 	}
+	return nil
+}
 
-	// Store migrated operator versions for instance migration
-	m.migratedOVs[oldName] = ov
+func (m *MigrateOvNames) cleanupOldOperatorVersion(ov *kudoapi.OperatorVersion) error {
+	expectedName := ov.FullyQualifiedName()
+	if ov.Name == expectedName {
+		// Nothing to migrate
+		return nil
+	}
 
 	if !m.dryRun {
-		clog.V(4).Printf("Delete old OperatorVersion with name %q", oldName)
-		if err := m.client.KudoClient.KudoV1beta1().OperatorVersions(ov.Namespace).Delete(m.ctx, oldName, v1.DeleteOptions{}); err != nil {
-			return fmt.Errorf("failed to delete old OperatorVersion %q: %v", oldName, err)
+		clog.V(4).Printf("Delete old OperatorVersion with name %q", ov.Name)
+		if err := m.client.KudoClient.KudoV1beta1().OperatorVersions(ov.Namespace).Delete(m.ctx, ov.Name, v1.DeleteOptions{}); err != nil {
+			return fmt.Errorf("failed to delete old OperatorVersion %q: %v", ov.Name, err)
 		}
 	}
 	return nil
 }
 
 func (m *MigrateOvNames) migrateInstance(i *kudoapi.Instance) error {
-	newOwner, ovWasMigrated := m.migratedOVs[i.Spec.OperatorVersion.Name]
-	if ovWasMigrated {
-		clog.V(1).Printf("Adjust OperatorVersion of Instance %q", i.Name)
+	ov, err := m.client.KudoClient.KudoV1beta1().OperatorVersions(i.Namespace).Get(m.ctx, i.Spec.OperatorVersion.Name, v1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get OperatorVersion %s for instance migration: %v", i.Spec.OperatorVersion.Name, err)
+	}
+	expectedName := ov.FullyQualifiedName()
+	if ov.Name == expectedName {
+		// Operatorversion was already migrated
+		return nil
+	}
 
-		// Set OperatorVersion
-		i.Spec.OperatorVersion.Name = newOwner.Name
+	newOv, err := m.client.KudoClient.KudoV1beta1().OperatorVersions(i.Namespace).Get(m.ctx, expectedName, v1.GetOptions{})
+	if err != nil || newOv == nil {
+		return fmt.Errorf("failed to get new OperatorVersion %s for instance migration: %v", i.Spec.OperatorVersion.Name, err)
+	}
 
-		// Save update
-		if !m.dryRun {
-			clog.V(4).Printf("Update instance %q with new owner reference", i.Name)
-			_, err := m.client.KudoClient.KudoV1beta1().Instances(i.Namespace).Update(m.ctx, i, v1.UpdateOptions{})
-			if err != nil {
-				return fmt.Errorf("failed to update Instance %q with new operator version: %v", i.Name, err)
-			}
+	clog.V(1).Printf("Adjust OperatorVersion of Instance %q", i.Name)
+
+	// Set OperatorVersion
+	i.Spec.OperatorVersion.Name = expectedName
+
+	// Save update
+	if !m.dryRun {
+		clog.V(4).Printf("Update instance %q with new owner reference", i.Name)
+		_, err := m.client.KudoClient.KudoV1beta1().Instances(i.Namespace).Update(m.ctx, i, v1.UpdateOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to update Instance %q with new operator version: %v", i.Name, err)
 		}
 	}
+
 	return nil
 }
