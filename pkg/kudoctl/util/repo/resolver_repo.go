@@ -126,10 +126,10 @@ func (i IndexFile) FindFirstMatch(name string, appVersion string, operatorVersio
 	if !ok || len(vs) == 0 {
 		return nil, fmt.Errorf("no operator found for: %s", name)
 	}
-	return FindFirstMatchForEntries(vs, name, appVersion, operatorVersion)
+	return findFirstMatchForEntries(vs, name, appVersion, operatorVersion)
 }
 
-func FindFirstMatchForEntries(versions PackageVersions, name, appVersion, operatorVersion string) (*PackageVersion, error) {
+func findFirstMatchForEntries(versions PackageVersions, name, appVersion, operatorVersion string) (*PackageVersion, error) {
 	for _, ver := range versions {
 		if (ver.AppVersion == appVersion || appVersion == "") &&
 			(ver.OperatorVersion == operatorVersion || operatorVersion == "") {

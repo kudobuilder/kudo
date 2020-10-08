@@ -38,7 +38,7 @@ func TestInClusterResolver_Resolve(t *testing.T) {
 				Kind:       "OperatorVersion",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      kudoapi.OperatorVersionName("foo-operator", operatorVersion, appVersion),
+				Name:      kudoapi.OperatorVersionName("foo-operator", appVersion, operatorVersion),
 				Namespace: "default",
 			},
 			Spec: kudoapi.OperatorVersionSpec{

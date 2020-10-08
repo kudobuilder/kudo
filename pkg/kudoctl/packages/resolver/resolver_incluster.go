@@ -38,6 +38,7 @@ func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersi
 	newOvList.Sort()
 
 	// Find first matching OV
+	// The ignored error here is from the cast to OperatorVersion and we can ignore it, as we handle the nil case below
 	ov, _ := newOvList.FindFirstMatch(name, operatorVersion, appVersion).(*kudoapi.OperatorVersion) // nolint:errcheck
 
 	if ov == nil {

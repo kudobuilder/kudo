@@ -23,9 +23,9 @@ func (resolver nameResolver) Resolve(
 	appVersion string,
 	operatorVersion string) (*packages.Package, error) {
 	for _, pkg := range resolver.Pkgs {
-		if pkg.Resources.Operator.Name == name &&
-			(operatorVersion == "" || pkg.Resources.OperatorVersion.Spec.Version == operatorVersion) &&
-			(appVersion == "" || pkg.Resources.OperatorVersion.Spec.AppVersion == appVersion) {
+		if pkg.OperatorName() == name &&
+			(operatorVersion == "" || pkg.OperatorVersionString() == operatorVersion) &&
+			(appVersion == "" || pkg.AppVersionString() == appVersion) {
 			return &pkg, nil
 		}
 	}
@@ -34,7 +34,7 @@ func (resolver nameResolver) Resolve(
 }
 
 func createPackage(name string, dependencies ...string) packages.Package {
-	ovVersion := "0.0.1"
+	opVersion := "0.0.1"
 	appVersion := ""
 
 	deps := []kudoapi.Task{}
@@ -42,24 +42,24 @@ func createPackage(name string, dependencies ...string) packages.Package {
 		deps = append(deps, createDependency(d, "", ""))
 	}
 
-	return createPackageWithVersions(name, ovVersion, appVersion, deps...)
+	return createPackageWithVersions(name, opVersion, appVersion, deps...)
 }
 
-func createDependency(name, ovVersion, appVersion string) kudoapi.Task {
+func createDependency(name, opVersion, appVersion string) kudoapi.Task {
 	return kudoapi.Task{
 		Name: "dependency",
 		Kind: engtask.KudoOperatorTaskKind,
 		Spec: kudoapi.TaskSpec{
 			KudoOperatorTaskSpec: kudoapi.KudoOperatorTaskSpec{
 				Package:         name,
-				OperatorVersion: ovVersion,
+				OperatorVersion: opVersion,
 				AppVersion:      appVersion,
 			},
 		},
 	}
 }
 
-func createPackageWithVersions(name, ovVersion, appVersion string, dependencies ...kudoapi.Task) packages.Package {
+func createPackageWithVersions(name, opVersion, appVersion string, dependencies ...kudoapi.Task) packages.Package {
 	p := packages.Package{
 		Resources: &packages.Resources{
 			Operator: &kudoapi.Operator{
@@ -69,13 +69,13 @@ func createPackageWithVersions(name, ovVersion, appVersion string, dependencies 
 			},
 			OperatorVersion: &kudoapi.OperatorVersion{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: kudoapi.OperatorVersionName(name, ovVersion, appVersion),
+					Name: kudoapi.OperatorVersionName(name, appVersion, opVersion),
 				},
 				Spec: kudoapi.OperatorVersionSpec{
 					Operator: v1.ObjectReference{
 						Name: name,
 					},
-					Version:    ovVersion,
+					Version:    opVersion,
 					AppVersion: appVersion,
 				},
 			},

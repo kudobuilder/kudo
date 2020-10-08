@@ -41,7 +41,7 @@ func (kt KudoOperatorTask) Run(ctx Context) (bool, error) {
 	operatorName := kt.OperatorName
 	operatorVersion := kt.OperatorVersion
 	appVersion := kt.AppVersion
-	operatorVersionName := kudoapi.OperatorVersionName(operatorName, operatorVersion, appVersion)
+	operatorVersionName := kudoapi.OperatorVersionName(operatorName, appVersion, operatorVersion)
 	instanceName := dependencyInstanceName(ctx.Meta.InstanceName, kt.InstanceName, operatorName)
 
 	// 1. - Expand parameter file if exists -

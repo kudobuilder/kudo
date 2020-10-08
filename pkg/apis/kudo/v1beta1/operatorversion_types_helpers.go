@@ -14,15 +14,15 @@ func OperatorInstanceName(operatorName string) string {
 	return fmt.Sprintf("%s-instance", operatorName)
 }
 
-func OperatorVersionName(operatorName, ovVersion, appVersion string) string {
+func OperatorVersionName(operatorName, appVersion, opVersion string) string {
 	if appVersion == "" {
-		return fmt.Sprintf("%s-%s", operatorName, ovVersion)
+		return fmt.Sprintf("%s-%s", operatorName, opVersion)
 	}
-	return fmt.Sprintf("%s-%s-%s", operatorName, appVersion, ovVersion)
+	return fmt.Sprintf("%s-%s-%s", operatorName, appVersion, opVersion)
 }
 
 func (ov *OperatorVersion) FullyQualifiedName() string {
-	return OperatorVersionName(ov.Spec.Operator.Name, ov.Spec.Version, ov.Spec.AppVersion)
+	return OperatorVersionName(ov.Spec.Operator.Name, ov.Spec.AppVersion, ov.Spec.Version)
 }
 
 func (ov *OperatorVersion) EqualOperatorVersion(other *OperatorVersion) bool {
