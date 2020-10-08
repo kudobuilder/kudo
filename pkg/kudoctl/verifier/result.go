@@ -60,6 +60,10 @@ func (vr *Result) AddParamError(paramName string, reason string) {
 	vr.AddErrors(fmt.Sprintf("parameter %q %s", paramName, reason))
 }
 
+func (vr *Result) AddGroupError(groupName string, reason string) {
+	vr.AddErrors(fmt.Sprintf("parameter group %q %s", groupName, reason))
+}
+
 // AddParamWarning adds a formatted warning string for a package parameter error
 func (vr *Result) AddParamWarning(paramName string, reason string) {
 	vr.AddWarnings(fmt.Sprintf("parameter %q %s", paramName, reason))

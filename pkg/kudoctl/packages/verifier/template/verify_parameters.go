@@ -26,6 +26,7 @@ func (ParametersVerifier) Verify(pf *packages.Files) verifier.Result {
 	res.Merge(enumParams(pf))
 	res.Merge(paramDefaults(pf))
 	res.Merge(metadata(pf))
+	res.Merge(paramGroups(pf))
 
 	implicits := renderer.NewVariableMap().WithDefaults()
 
@@ -108,9 +109,38 @@ func metadata(pf *packages.Files) verifier.Result {
 				res.AddParamError(p.Name, "has a group with invalid character '/'")
 			}
 		}
+		if p.IsAdvanced() && !p.HasDefault() && p.IsRequired() {
+			res.AddParamError(p.Name, "is marked as advanced, but also as required and has no default. An advanced parameter must either be optional or have a default value")
+		}
 	}
 	return res
 }
+
+func paramGroups(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
+
+	groups := map[string]packages.Group{}
+	for _, g := range pf.Params.Groups {
+		if strings.Contains(g.Name, "/") {
+			res.AddGroupError(g.Name, "contains invalid character '/'")
+		}
+		if _, ok := groups[g.Name]; ok {
+			res.AddGroupError(g.Name, "is duplicated")
+		}
+		groups[g.Name] = g
+	}
+
+	for _, p := range pf.Params.Parameters {
+		if p.Group != "" {
+			if _, ok := groups[p.Group]; !ok {
+				res.AddParamWarning(p.Name, "has a group that is not defined in the group section")
+			}
+		}
+	}
+
+	return res
+}
+
 func paramsDefinedNotUsed(pf *packages.Files) verifier.Result {
 	res := verifier.NewResult()
 	tparams := make(map[string]bool)
