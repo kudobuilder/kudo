@@ -1,6 +1,8 @@
 package packages
 
 import (
+	"fmt"
+
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
@@ -58,6 +60,14 @@ type Parameter struct {
 	Trigger     string                `json:"trigger,omitempty"`
 	Type        kudoapi.ParameterType `json:"type,omitempty"`
 	Immutable   *bool                 `json:"immutable,omitempty"`
+	Enum        *[]interface{}        `json:"enum,omitempty"`
+
+	// The following fields are descriptive only and are not used in the OperatorVersion. They are only used on the
+	// package level and are not converted to the CRDs, as they are only used during installation of an operator and
+	// are not necessary server-side.
+	Group    string `json:"group,omitempty"`
+	Advanced *bool  `json:"advanced,omitempty"`
+	Hint     string `json:"hint,omitempty"`
 }
 
 func (p Parameter) IsImmutable() bool {
@@ -68,8 +78,38 @@ func (p Parameter) IsRequired() bool {
 	return p.Required != nil && *p.Required
 }
 
+func (p Parameter) IsAdvanced() bool {
+	return p.Advanced != nil && *p.Advanced
+}
+
+func (p Parameter) IsEnum() bool {
+	return p.Enum != nil
+}
+
 func (p *Parameter) HasDefault() bool {
 	return p.Default != nil
+}
+
+func (p *Parameter) ValidateDefault() error {
+	if err := kudoapi.ValidateParameterValueForType(p.Type, p.Default); err != nil {
+		return fmt.Errorf("parameter \"%s\" has an invalid default value: %v", p.Name, err)
+	}
+	if p.IsEnum() {
+		for _, eValue := range p.EnumValues() {
+			if p.Default == eValue {
+				return nil
+			}
+		}
+		return fmt.Errorf("parameter \"%s\" has an invalid default value: value is %q, but only allowed values are %v", p.Name, p.Default, p.EnumValues())
+	}
+	return nil
+}
+
+func (p *Parameter) EnumValues() []interface{} {
+	if p.IsEnum() {
+		return *p.Enum
+	}
+	return []interface{}{}
 }
 
 type Parameters []Parameter
@@ -88,6 +128,15 @@ func (p Parameters) Less(x, y int) bool {
 	return p[x].Name < p[y].Name
 }
 
+type Groups []Group
+
+type Group struct {
+	Name        string `json:"name,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
+	Description string `json:"description,omitempty"`
+	Priority    int    `json:"prio,omitempty"`
+}
+
 // Templates is a map of file names and stringified files in the template folder of an operator
 type Templates map[string]string
 
@@ -101,6 +150,7 @@ type Files struct {
 // ParamsFile is a representation of the package params.yaml
 type ParamsFile struct {
 	APIVersion string     `json:"apiVersion,omitempty"`
+	Groups     Groups     `json:"groups,omitempty"`
 	Parameters Parameters `json:"parameters"`
 }
 

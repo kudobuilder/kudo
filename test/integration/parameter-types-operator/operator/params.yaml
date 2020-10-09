@@ -12,3 +12,13 @@ parameters:
       - 80
       - 443
     type: array
+  - name: PULL_POLICY
+    type: string
+    enum:
+      - IfNotPresent
+      - Always
+      - Never
+    default: IfNotPresent
+  - name: REPLICAS
+    type: integer
+    default: 1

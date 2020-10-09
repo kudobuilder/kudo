@@ -137,3 +137,92 @@ func TestGetAddedRemovedParamDefs(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateType(t *testing.T) {
+
+	tests := []struct {
+		name        string
+		pValue      interface{}
+		pType       ParameterType
+		expectedErr bool
+	}{
+		{
+			name:   "simple int",
+			pValue: 23,
+			pType:  IntegerValueType,
+		},
+		{
+			name:   "int8",
+			pValue: int8(23),
+			pType:  IntegerValueType,
+		},
+		{
+			name:   "int64",
+			pValue: int64(23),
+			pType:  IntegerValueType,
+		},
+		{
+			name:   "intAsString",
+			pValue: "42",
+			pType:  IntegerValueType,
+		},
+		{
+			name:   "float32",
+			pValue: float32(3.14),
+			pType:  NumberValueType,
+		},
+		{
+			name:   "float64",
+			pValue: float64(3.1415),
+			pType:  NumberValueType,
+		},
+		{
+			name:   "floatAsString",
+			pValue: "3.1415",
+			pType:  NumberValueType,
+		},
+		{
+			name:   "bool",
+			pValue: true,
+			pType:  BooleanValueType,
+		},
+		{
+			name:   "boolAsString",
+			pValue: "true",
+			pType:  BooleanValueType,
+		},
+		{
+			name:   "array",
+			pValue: []string{"oneString", "twoString"},
+			pType:  ArrayValueType,
+		},
+		{
+			name:   "arrayAsString",
+			pValue: `[ "oneString", "twoString" ]`,
+			pType:  ArrayValueType,
+		},
+		{
+			name:   "map",
+			pValue: map[string]string{"oneString": "oneValue", "twoString": "twoValue"},
+			pType:  MapValueType,
+		},
+		{
+			name:   "mapAsString",
+			pValue: `{ "oneString": "oneValue", "twoString": "twoValue" }`,
+			pType:  MapValueType,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateParameterValueForType(tt.pType, tt.pValue)
+
+			if tt.expectedErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

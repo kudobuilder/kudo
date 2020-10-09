@@ -91,6 +91,9 @@ func handleCreate(ia *InstanceAdmission, req admission.Request) admission.Respon
 	new.Spec.PlanExecution.UID = uuid.NewUUID()
 
 	setImmutableParameterDefaults(ov, new)
+	if err := validateParameters(ov, new); err != nil {
+		return admission.Denied(fmt.Sprintf("failed to create an Instance %s/%s: parameters are not valid: %v", new.Namespace, new.Name, err))
+	}
 
 	marshaled, err := json.Marshal(new)
 	if err != nil {
@@ -221,6 +224,9 @@ func admitUpdate(old, new *kudoapi.Instance, ov, oldOv *kudoapi.OperatorVersion)
 
 	if err = checkImmutableParameters(old.Spec.Parameters, new.Spec.Parameters, ov, oldOv, changedDefs, isUpgrade); err != nil {
 		return nil, fmt.Errorf("failed to check immutable parameters for Instance %s/%s: %v", old.Namespace, old.Name, err)
+	}
+	if err := validateParameters(ov, new); err != nil {
+		return nil, fmt.Errorf("failed to validate parameters for Instance %s/%s: %v", new.Namespace, new.Name, err)
 	}
 
 	parameterDefs := append(changedDefs, removedDefs...)
@@ -436,6 +442,20 @@ func validateOVUpgrade(new map[string]string, newOv, oldOv *kudoapi.OperatorVers
 				return fmt.Errorf("parameter '%s' was added in operator version %s, but no value was provided", addedParamDefs.Name, newOv.Name)
 			}
 		}
+	}
+	return nil
+}
+
+// validateParameters ensures that all parameters have correct values
+func validateParameters(ov *kudoapi.OperatorVersion, instance *kudoapi.Instance) error {
+	for _, p := range ov.Spec.Parameters {
+		p := p
+		pValue := instance.Spec.Parameters[p.Name]
+
+		if err := p.ValidateValue(pValue); err != nil {
+			return err
+		}
+
 	}
 	return nil
 }
