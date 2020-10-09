@@ -278,7 +278,7 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 
 func ensureReadinessInitialized(i *kudoapi.Instance) {
 	if i.Spec.PlanExecution.PlanName == kudoapi.DeployPlanName || i.Spec.PlanExecution.PlanName == kudoapi.UpgradePlanName || i.Spec.PlanExecution.PlanName == kudoapi.UpdatePlanName {
-		i.SetReadinessUnknown()
+		i.SetReadiness(kudoapi.ReadinessPlanInProgress, "")
 	}
 	// For any other plan we keep the existing Readiness. As the deploy plan is always the first plan to run, the Readiness is always initialized.
 }
@@ -297,9 +297,9 @@ func setReadinessOnInstance(instance *kudoapi.Instance, c client.Client) error {
 		return err
 	}
 	if ready {
-		instance.SetReadinessTrue(msg)
+		instance.SetReadiness(kudoapi.ReadinessResourcesReady, msg)
 	} else {
-		instance.SetReadinessFalse(msg)
+		instance.SetReadiness(kudoapi.ReadinessResourceNotReady, msg)
 	}
 	return nil
 }

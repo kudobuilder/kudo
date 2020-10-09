@@ -81,10 +81,10 @@ func (i *Instance) UpdateInstanceStatus(ps *PlanStatus, updatedTimestamp *metav1
 		}
 	}
 	if i.Spec.PlanExecution.Status.IsFinished() {
-		i.SetReadinessTrue("")
+		i.SetReadiness(ReadinessResourcesReady, "")
 	}
 	if i.Spec.PlanExecution.Status == ExecutionFatalError {
-		i.SetReadinessFatalError("")
+		i.SetReadiness(ReadinessPlanInFatalError, "")
 	}
 }
 
@@ -204,32 +204,30 @@ func (i *Instance) IsTopLevelInstance() bool {
 	return !i.IsChildInstance()
 }
 
+type ReadinessType string
+
 const (
-	planInProgressReason   = "PlanInProgress"
-	planInFatalErrorReason = "PlanInFatalError"
-	resourceNotReadyReason = "ResourceNotReady"
-	resourcesReadyReason   = "ResourcesReady"
-	readyConditionType     = "Ready"
+	ReadinessPlanInProgress   ReadinessType = "PlanInProgress"
+	ReadinessPlanInFatalError ReadinessType = "PlanInFatalError"
+	ReadinessResourceNotReady ReadinessType = "ResourceNotReady"
+	ReadinessResourcesReady   ReadinessType = "ResourcesReady"
+
+	readyConditionType = "Ready"
 )
 
-func (i *Instance) SetReadinessTrue(msg string) {
-	condition := metav1.Condition{Type: readyConditionType, Status: metav1.ConditionTrue, Message: msg, Reason: resourcesReadyReason}
-	meta.SetStatusCondition(&i.Status.Conditions, condition)
-}
+func (i *Instance) SetReadiness(reason ReadinessType, msg string) {
+	var status metav1.ConditionStatus
 
-func (i *Instance) SetReadinessFalse(msg string) {
-	condition := metav1.Condition{Type: readyConditionType, Status: metav1.ConditionFalse, Message: msg, Reason: resourceNotReadyReason}
-	meta.SetStatusCondition(&i.Status.Conditions, condition)
-}
+	switch reason {
+	case ReadinessResourcesReady:
+		status = metav1.ConditionTrue
+	case ReadinessResourceNotReady:
+		status = metav1.ConditionFalse
+	case ReadinessPlanInFatalError, ReadinessPlanInProgress:
+		status = metav1.ConditionUnknown
+	}
 
-func (i *Instance) SetReadinessFatalError(msg string) {
-	condition := metav1.Condition{Type: readyConditionType, Status: metav1.ConditionUnknown, Message: msg, Reason: planInFatalErrorReason}
-	meta.SetStatusCondition(&i.Status.Conditions, condition)
-}
-
-// SetReadinessUnknown sets an unknown state for Status.Conditions.Ready
-func (i *Instance) SetReadinessUnknown() {
-	condition := metav1.Condition{Type: readyConditionType, Status: metav1.ConditionUnknown, Reason: planInProgressReason}
+	condition := metav1.Condition{Type: readyConditionType, Status: status, Message: msg, Reason: string(reason)}
 	meta.SetStatusCondition(&i.Status.Conditions, condition)
 }
 
