@@ -138,8 +138,8 @@ func TestEnumParams(t *testing.T) {
 	assert.Equal(t, 5, len(res.Warnings)) // NotUsed Warnings
 	assert.Equal(t, 4, len(res.Errors))
 	assert.Equal(t, `parameter "EnumNoValues" is an enum but has no allowed values`, res.Errors[0])
-	assert.Equal(t, `parameter "EnumWrongValues" has an invalid enum value: type is "integer" but format is invalid: strconv.ParseInt: parsing "noint": invalid syntax`, res.Errors[1])
-	assert.Equal(t, `parameter "EnumWrongValues" has an invalid enum value: type is "integer" but format is invalid: strconv.ParseInt: parsing "1.23": invalid syntax`, res.Errors[2])
+	assert.Equal(t, `parameter "EnumWrongValues" has an invalid enum value: type is "integer" but format of "noint" is invalid: strconv.ParseInt: parsing "noint": invalid syntax`, res.Errors[1])
+	assert.Equal(t, `parameter "EnumWrongValues" has an invalid enum value: type is "integer" but format of "1.23" is invalid: strconv.ParseInt: parsing "1.23": invalid syntax`, res.Errors[2])
 	assert.Equal(t, `parameter "EnumWithDefault" has an invalid default value: value is "someOtherVal", but only allowed values are [someVal]`, res.Errors[3])
 }
 
