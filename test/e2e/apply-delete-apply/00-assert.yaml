@@ -4,7 +4,7 @@ metadata:
   name: configmap-instance
 spec:
   operatorVersion:
-    name: configmap-operator-0.1.0
+    name: configmap-operator-1.7.9-0.1.0
 status:
   planStatus:
     deploy:

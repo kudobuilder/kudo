@@ -19,7 +19,7 @@ docker build . \
     -t "kudobuilder/controller:$KUDO_VERSION"
 
 rm -rf operators
-git clone https://github.com/kudobuilder/operators
+git clone --branch "an/rename-operatorversions" https://github.com/kudobuilder/operators
 mkdir operators/bin/
 cp ./bin/kubectl-kudo operators/bin/
 sed "s/%version%/$KUDO_VERSION/" operators/kudo-test.yaml.tmpl > operators/kudo-test.yaml

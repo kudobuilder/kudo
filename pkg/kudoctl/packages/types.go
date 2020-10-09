@@ -19,6 +19,27 @@ type Package struct {
 	Files *Files
 }
 
+func (p Package) OperatorName() string {
+	if p.Resources == nil || p.Resources.Operator == nil {
+		return ""
+	}
+	return p.Resources.Operator.Name
+}
+
+func (p Package) OperatorVersionString() string {
+	if p.Resources == nil || p.Resources.OperatorVersion == nil {
+		return ""
+	}
+	return p.Resources.OperatorVersion.Spec.Version
+}
+
+func (p Package) AppVersionString() string {
+	if p.Resources == nil || p.Resources.OperatorVersion == nil {
+		return ""
+	}
+	return p.Resources.OperatorVersion.Spec.AppVersion
+}
+
 // Resources is collection of CRDs that are used when installing operator
 // during installation, package format is converted to this structure
 type Resources struct {

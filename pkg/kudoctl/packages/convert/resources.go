@@ -60,7 +60,7 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 			APIVersion: packages.APIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: kudoapi.OperatorVersionName(files.Operator.Name, files.Operator.OperatorVersion),
+			Name: kudoapi.OperatorVersionName(files.Operator.Name, files.Operator.AppVersion, files.Operator.OperatorVersion),
 		},
 		Spec: kudoapi.OperatorVersionSpec{
 			Operator: corev1.ObjectReference{
@@ -78,7 +78,7 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 		Status: kudoapi.OperatorVersionStatus{},
 	}
 
-	instance := BuildInstanceResource(files.Operator.Name, files.Operator.OperatorVersion)
+	instance := BuildInstanceResource(files.Operator.Name, files.Operator.AppVersion, files.Operator.OperatorVersion)
 
 	return &packages.Resources{
 		Operator:        operator,
@@ -87,7 +87,7 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 	}, nil
 }
 
-func BuildInstanceResource(operatorName, operatorVersion string) *kudoapi.Instance {
+func BuildInstanceResource(operatorName, appVersion, operatorVersion string) *kudoapi.Instance {
 	return &kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Instance",
@@ -99,7 +99,7 @@ func BuildInstanceResource(operatorName, operatorVersion string) *kudoapi.Instan
 		},
 		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: corev1.ObjectReference{
-				Name: kudoapi.OperatorVersionName(operatorName, operatorVersion),
+				Name: kudoapi.OperatorVersionName(operatorName, appVersion, operatorVersion),
 			},
 		},
 		Status: kudoapi.InstanceStatus{},

@@ -1,8 +1,12 @@
 package migration
 
-import "github.com/kudobuilder/kudo/pkg/kudoctl/kube"
-
+// Migrater is the base interface for migrations.
 type Migrater interface {
-	CanMigrate(client *kube.Client) error
-	Migrate(client *kube.Client) error
+	// CanMigrate checks if there are any conditions that would prevent this migration to run
+	// This function should only return an error if it is sure that the migration can not be executed
+	CanMigrate() error
+
+	// Migrate executes the migration. The call must be idempotent and ignore already migrated resources
+	// It can be called multiple times on the same cluster and encounter migrated and unmigrated resources.
+	Migrate() error
 }

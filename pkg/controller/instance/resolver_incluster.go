@@ -25,7 +25,7 @@ type InClusterResolver struct {
 }
 
 func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
-	ovn := kudoapi.OperatorVersionName(name, operatorVersion)
+	ovn := kudoapi.OperatorVersionName(name, appVersion, operatorVersion)
 
 	ov, err := kudoapi.GetOperatorVersionByName(ovn, r.ns, r.c)
 	if err != nil {
