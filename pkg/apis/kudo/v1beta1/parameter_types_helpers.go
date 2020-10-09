@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+
+	"sigs.k8s.io/yaml"
 )
 
 func (p *Parameter) IsImmutable() bool {
@@ -139,6 +141,15 @@ func validateArrayType(pValue interface{}) error {
 	switch t.Kind() {
 	case reflect.Slice, reflect.Array:
 		return nil
+	case reflect.String:
+		str, _ := pValue.(string) // We know here this is a string
+
+		var result []interface{}
+		if err := yaml.Unmarshal([]byte(str), &result); err != nil {
+			return fmt.Errorf("type is %q, but format of %s is invalid", ArrayValueType, pValue)
+		}
+
+		return nil
 	default:
 		return fmt.Errorf("type is %q but value %s is not an array", ArrayValueType, pValue)
 	}
@@ -149,8 +160,17 @@ func validateMapType(pValue interface{}) error {
 	switch t.Kind() {
 	case reflect.Map, reflect.Struct:
 		return nil
+	case reflect.String:
+		str, _ := pValue.(string) // We know here this is a string
+
+		var result map[string]interface{}
+		if err := yaml.Unmarshal([]byte(str), &result); err != nil {
+			return fmt.Errorf("type is %q, but format of %s is invalid", MapValueType, pValue)
+		}
+
+		return nil
 	default:
-		return fmt.Errorf("type is %q but value %s is not an array", ArrayValueType, pValue)
+		return fmt.Errorf("type is %q but value %s is not a map", MapValueType, pValue)
 	}
 }
 

@@ -197,8 +197,18 @@ func TestValidateType(t *testing.T) {
 			pType:  ArrayValueType,
 		},
 		{
+			name:   "arrayAsString",
+			pValue: `[ "oneString", "twoString" ]`,
+			pType:  ArrayValueType,
+		},
+		{
 			name:   "map",
 			pValue: map[string]string{"oneString": "oneValue", "twoString": "twoValue"},
+			pType:  MapValueType,
+		},
+		{
+			name:   "mapAsString",
+			pValue: `{ "oneString": "oneValue", "twoString": "twoValue" }`,
 			pType:  MapValueType,
 		},
 	}
