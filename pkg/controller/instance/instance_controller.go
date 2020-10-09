@@ -24,18 +24,18 @@ import (
 	"reflect"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/uuid"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/rest"
-
 	"github.com/thoas/go-funk"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -50,6 +50,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/engine/workflow"
+	"github.com/kudobuilder/kudo/pkg/kubernetes/status"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/resources/dependencies"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
@@ -157,6 +158,12 @@ func isForPipePod(e event.DeleteEvent) bool {
 //   | Update instance with new      |
 //   | state of the execution        |
 //   +-------------------------------+
+//                  |
+//                  v
+//   +-------------------------------+
+//   | Update readiness even if      |
+//   | no plan running               |
+//   +-------------------------------+
 //
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
@@ -187,10 +194,21 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	// get the scheduled plan
 	plan, uid := scheduledPlan(instance, ov)
 	if plan == "" {
-		log.Printf("InstanceController: Nothing to do, no plan scheduled for instance %s/%s", instance.Namespace, instance.Name)
-		return reconcile.Result{}, nil
+		// no plan is running, we still need to make sure the readiness property is up to date
+		err := setReadinessOnInstance(instance, r.Client)
+		if err != nil {
+			log.Printf("InstanceController: Error when computing readiness for %s/%s: %v", instance.Namespace, instance.Name, err)
+			return reconcile.Result{}, err
+		}
+		if readinessChanged(oldInstance, instance) {
+			err = updateInstance(instance, oldInstance, r.Client)
+		} else {
+			log.Printf("InstanceController: Readiness did not change for %s/%s. Not updating.", instance.Namespace, instance.Name)
+		}
+		return reconcile.Result{}, err
 	}
 
+	ensureReadinessInitialized(instance)
 	ensurePlanStatusInitialized(instance, ov)
 
 	// reset its status if the plan is new and log/record it
@@ -256,6 +274,34 @@ func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	}
 
 	return computeTheReconcileResult(instance, time.Now), nil
+}
+
+func ensureReadinessInitialized(i *kudoapi.Instance) {
+	if i.Spec.PlanExecution.PlanName == kudoapi.DeployPlanName || i.Spec.PlanExecution.PlanName == kudoapi.UpgradePlanName || i.Spec.PlanExecution.PlanName == kudoapi.UpdatePlanName {
+		i.SetReadiness(kudoapi.ReadinessPlanInProgress, "")
+	}
+	// For any other plan we keep the existing Readiness. As the deploy plan is always the first plan to run, the Readiness is always initialized.
+}
+
+func readinessChanged(instance *kudoapi.Instance, instance2 *kudoapi.Instance) bool {
+	ready := meta.FindStatusCondition(instance.Status.Conditions, "Ready")
+	ready2 := meta.FindStatusCondition(instance2.Status.Conditions, "Ready")
+
+	return !reflect.DeepEqual(ready, ready2)
+}
+
+func setReadinessOnInstance(instance *kudoapi.Instance, c client.Client) error {
+	ready, msg, err := status.IsReady(*instance, c)
+	log.Printf("Updating instance %s/%s readiness to: %t", instance.Namespace, instance.Name, ready)
+	if err != nil {
+		return err
+	}
+	if ready {
+		instance.SetReadiness(kudoapi.ReadinessResourcesReady, msg)
+	} else {
+		instance.SetReadiness(kudoapi.ReadinessResourceNotReady, msg)
+	}
+	return nil
 }
 
 // computeTheReconcileResult decides whether retry reconciliation or not

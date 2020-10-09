@@ -55,6 +55,7 @@ type PlanExecution struct {
 type InstanceStatus struct {
 	// slice would be enough here but we cannot use slice because order of sequence in yaml is considered significant while here it's not
 	PlanStatus map[string]PlanStatus `json:"planStatus,omitempty"`
+	Conditions []metav1.Condition    `json:"conditions,omitempty"`
 }
 
 // PlanStatus is representing status of a plan
