@@ -52,8 +52,8 @@ const (
 var (
 	// Cert-Manager APIs that we can detect
 	certManagerAPIs = []certManagerVersion{
-		{group: "cert-manager.io", versions: []string{"v1alpha2", "v1alpha3"}}, // 0.11.0+
-		{group: "certmanager.k8s.io", versions: []string{"v1alpha1"}},          // 0.10.1
+		{group: "cert-manager.io", versions: []string{"v1", "v1beta1", "v1alpha3", "v1alpha2"}}, // 0.11.0+
+		{group: "certmanager.k8s.io", versions: []string{"v1alpha1"}},                           // 0.10.1
 	}
 )
 
