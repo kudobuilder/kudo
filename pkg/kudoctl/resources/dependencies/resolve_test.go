@@ -1,9 +1,7 @@
 package dependencies
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -271,7 +269,4 @@ func TestResolveLocalDependencies(t *testing.T) {
 	assert.Equal(t, dependencies[0].Operator.Name, "child")
 	assert.Equal(t, dependencies[0].OperatorVersion.Name, kudoapi.OperatorVersionName("child", "0.0.1"))
 	assert.Equal(t, dependencies[0].Instance.Name, kudoapi.OperatorInstanceName("child"))
-
-	s, _ := json.MarshalIndent(dependencies, "", "  ")
-	log.Printf(string(s))
 }
