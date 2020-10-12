@@ -101,7 +101,7 @@ func Test_UpgradeOperatorVersion(t *testing.T) {
 		newOv.Spec.Version = tt.newVersion
 		newOv.SetNamespace(installNamespace)
 
-		err := OperatorVersion(c, &newOv, "test", nil, nil)
+		err := OperatorVersion(c, "test", &newOv, "test", nil, nil)
 		if err != nil {
 			if !strings.Contains(err.Error(), tt.errMessageContains) {
 				t.Errorf("%s: expected error '%s' but got '%v'", tt.name, tt.errMessageContains, err)
@@ -217,7 +217,7 @@ func Test_UpgradeOperatorVersionWithDependency(t *testing.T) {
 
 	resolver := &testResolver{testDependency}
 
-	err = OperatorVersion(c, &newOv, "test", nil, resolver)
+	err = OperatorVersion(c, "test-1.1", &newOv, "test", nil, resolver)
 	assert.NoError(t, err)
 
 	assert.True(t, c.OperatorExistsInCluster("dependency", "default"))

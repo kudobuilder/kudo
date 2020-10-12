@@ -1,7 +1,9 @@
 package dependencies
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,6 +13,7 @@ import (
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
 )
 
 type nameResolver struct {
@@ -188,7 +191,8 @@ func TestResolve(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			resolver := nameResolver{tt.pkgs}
-			got, err := Resolve(tt.pkgs[0].Resources.OperatorVersion, resolver)
+			operatorArg := tt.pkgs[0].Resources.OperatorVersion.Name
+			got, err := Resolve(operatorArg, tt.pkgs[0].Resources.OperatorVersion, resolver)
 
 			assert.Equal(t, err == nil, tt.wantErr == "")
 
@@ -205,4 +209,69 @@ func TestResolve(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_isLocalDirPackage(t *testing.T) {
+	tests := []struct {
+		name        string
+		path        string
+		wantNilPath bool
+		wantErr     bool
+	}{
+		{
+			name:        "./",
+			path:        "./",
+			wantNilPath: false,
+			wantErr:     false,
+		},
+		{
+			name:        "../install",
+			path:        "../install",
+			wantNilPath: false,
+			wantErr:     false,
+		},
+		{
+			name:        "./some-fake-path",
+			path:        "./some-fake-path",
+			wantNilPath: true,
+			wantErr:     true,
+		},
+		{
+			name:        "./",
+			path:        "./resolve_test.go",
+			wantNilPath: true,
+			wantErr:     true,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			absPath, err := operatorAbsPath(tt.path)
+			assert.Equal(t, tt.wantErr, err != nil)
+			assert.Equal(t, tt.wantNilPath, absPath == nil)
+		})
+	}
+}
+
+func TestResolveLocalDependencies(t *testing.T) {
+	var resolver = pkgresolver.NewLocal()
+	var operatorArgument = "./testdata/operator-with-dependencies/parent-operator"
+
+	pkg, err := resolver.Resolve(operatorArgument, "", "")
+	assert.NoError(t, err, "failed to resolve operator package for %s", operatorArgument)
+
+	dependencies, err := Resolve(operatorArgument, pkg.Resources.OperatorVersion, resolver)
+	assert.NoError(t, err, "failed to resolve dependencies for %s", operatorArgument)
+	assert.Equal(t, len(dependencies), 1, "expecting to find child-operator dependency")
+
+	assert.NotNil(t, dependencies[0].Operator, "expecting to find child-operator OperatorVersion resource")
+	assert.NotNil(t, dependencies[0].OperatorVersion, "expecting to find child-operator OperatorVersion resource")
+	assert.NotNil(t, dependencies[0].Instance, "expecting to find child-operator OperatorVersion resource")
+
+	assert.Equal(t, dependencies[0].Operator.Name, "child")
+	assert.Equal(t, dependencies[0].OperatorVersion.Name, kudoapi.OperatorVersionName("child", "0.0.1"))
+	assert.Equal(t, dependencies[0].Instance.Name, kudoapi.OperatorInstanceName("child"))
+
+	s, _ := json.MarshalIndent(dependencies, "", "  ")
+	log.Printf(string(s))
 }

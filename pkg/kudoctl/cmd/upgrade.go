@@ -111,5 +111,5 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 
 	resources.OperatorVersion.SetNamespace(settings.Namespace)
 
-	return upgrade.OperatorVersion(kc, resources.OperatorVersion, options.InstanceName, options.Parameters, resolver)
+	return upgrade.OperatorVersion(kc, packageToUpgrade, resources.OperatorVersion, options.InstanceName, options.Parameters, resolver)
 }
