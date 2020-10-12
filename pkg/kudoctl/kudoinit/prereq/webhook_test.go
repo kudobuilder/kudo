@@ -51,7 +51,7 @@ func TestPrereq_Fail_PreValidate_Webhook_WrongCertificateVersion(t *testing.T) {
 	_ = init.PreInstallVerify(client, &result)
 
 	assert.EqualValues(t, verifier.NewWarning(
-		"Detected cert-manager CRDs with version v0, only versions [v1alpha2 v1alpha3] are fully supported. Certificates for webhooks may not work.",
+		"Detected cert-manager CRDs with version v0, only versions [v1 v1beta1 v1alpha3 v1alpha2] are fully supported. Certificates for webhooks may not work.",
 	), result)
 }
 
@@ -67,7 +67,7 @@ func TestPrereq_Fail_PreValidate_Webhook_WrongCertManagerInstallation(t *testing
 	_ = init.PreInstallVerify(client, &result)
 
 	assert.EqualValues(t, verifier.NewError(
-		"invalid CRD version found for 'issuers.cert-manager.io': v0 instead of v1alpha2",
+		"CRD versions for 'issuers.cert-manager.io' are [v0], did not find expected version v1alpha2",
 	), result)
 }
 
@@ -142,7 +142,9 @@ func mockCRD(client *kube.Client, crdName string, apiVersion string) {
 					Spec: apiextensions.CustomResourceDefinitionSpec{
 						Versions: []apiextensions.CustomResourceDefinitionVersion{
 							{
-								Name: apiVersion,
+								Name:    apiVersion,
+								Served:  true,
+								Storage: true,
 							},
 						},
 					},

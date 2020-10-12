@@ -253,9 +253,14 @@ func detectCertManagerCRD(extClient clientset.Interface, api certManagerVersion)
 	clog.V(4).Printf("Try to retrieve cert-manager CRD %s", testCRD)
 	crd, err := extClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), testCRD, metav1.GetOptions{})
 	if err == nil {
-		// crd.Spec.Versions[0] must be the one that is stored and served, we should use that one
-		clog.V(4).Printf("Got CRD. Group: %s, Version: %s", api.group, crd.Spec.Versions[0].Name)
-		return api.group, crd.Spec.Versions[0].Name, nil
+		// Look through the versions and find the one that is the stored one
+		for _, v := range crd.Spec.Versions {
+			if v.Storage {
+				clog.V(4).Printf("Got CRD. Group: %s, Version: %s", api.group, v.Name)
+				return api.group, v.Name, nil
+			}
+		}
+		return "", "", fmt.Errorf("failed to detect cert manager CRD %s: no stored version found", testCRD)
 	}
 	if !kerrors.IsNotFound(err) {
 		return "", "", fmt.Errorf("failed to detect cert manager CRD %s: %v", testCRD, err)
@@ -334,12 +339,20 @@ func validateCrdVersion(extClient clientset.Interface, crdName string, expectedV
 		}
 		return err
 	}
-	crdVersion := certCRD.Spec.Versions[0].Name
-
-	if crdVersion != expectedVersion {
-		result.AddErrors(fmt.Sprintf("invalid CRD version found for '%s': %s instead of %s", crdName, crdVersion, expectedVersion))
+	allVersions := []string{}
+	for _, v := range certCRD.Spec.Versions {
+		if v.Name == expectedVersion {
+			if v.Served {
+				clog.V(2).Printf("CRD %s is installed with version %s", crdName, v.Name)
+				return nil
+			}
+			result.AddErrors(fmt.Sprintf("invalid CRD version found for '%s': %s is known but not served", crdName, v.Name))
+			return nil
+		}
+		allVersions = append(allVersions, v.Name)
 	}
-	clog.V(2).Printf("CRD %s is installed with version %s", crdName, crdVersion)
+
+	result.AddErrors(fmt.Sprintf("CRD versions for '%s' are %v, did not find expected version %s", crdName, allVersions, expectedVersion))
 	return nil
 }
 
