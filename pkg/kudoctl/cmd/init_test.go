@@ -325,7 +325,9 @@ func MockCRD(client *kube.Client, crdName string, apiVersion string) {
 					Spec: extv1beta1.CustomResourceDefinitionSpec{
 						Versions: []extv1beta1.CustomResourceDefinitionVersion{
 							{
-								Name: apiVersion,
+								Name:    apiVersion,
+								Served:  true,
+								Storage: true,
 							},
 						},
 					},
