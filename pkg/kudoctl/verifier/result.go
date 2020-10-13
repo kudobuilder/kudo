@@ -69,6 +69,10 @@ func (vr *Result) AddParamWarning(paramName string, reason string) {
 	vr.AddWarnings(fmt.Sprintf("parameter %q %s", paramName, reason))
 }
 
+func (vr *Result) AddGroupWarning(groupName string, reason string) {
+	vr.AddWarnings(fmt.Sprintf("parameter group %q %s", groupName, reason))
+}
+
 // Merge method merges the errors and warnings from two verification results
 func (vr *Result) Merge(other Result) {
 	vr.AddErrors(other.Errors...)

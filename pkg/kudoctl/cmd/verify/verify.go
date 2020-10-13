@@ -13,6 +13,14 @@ import (
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 
+type Options struct {
+	VerifyParamDescription bool
+	VerifyParamHint        bool
+	VerifyParamDisplayName bool
+	VerifyParamType        bool
+	VerifyParamGroup       bool
+}
+
 var verifiers = []packages.Verifier{
 	DuplicateVerifier{},
 	InvalidCharVerifier{";,"},
@@ -26,11 +34,28 @@ var verifiers = []packages.Verifier{
 	template.NamespaceVerifier{},
 }
 
+var extendedVerifier = template.ExtendedParametersVerifier{}
+
 // PackageFiles verifies operator package files
-func PackageFiles(pf *packages.Files) verifier.Result {
+func PackageFiles(pf *packages.Files, options *Options) verifier.Result {
 	res := verifier.NewResult()
 	for _, vv := range verifiers {
 		res.Merge(vv.Verify(pf))
+	}
+	if options.VerifyParamDescription {
+		res.Merge(extendedVerifier.VerifyDescription(pf))
+	}
+	if options.VerifyParamHint {
+		res.Merge(extendedVerifier.VerifyHint(pf))
+	}
+	if options.VerifyParamDisplayName {
+		res.Merge(extendedVerifier.VerifyDisplayName(pf))
+	}
+	if options.VerifyParamGroup {
+		res.Merge(extendedVerifier.VerifyGroup(pf))
+	}
+	if options.VerifyParamType {
+		res.Merge(extendedVerifier.VerifyType(pf))
 	}
 	return res
 }

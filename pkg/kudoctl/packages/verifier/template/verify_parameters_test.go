@@ -115,9 +115,13 @@ func TestImmutableParams(t *testing.T) {
 }
 
 func TestEnumParams(t *testing.T) {
+	trueRef := true
+	falseRef := false
 
 	params := []packages.Parameter{
 		{Name: "NoDefaultNoEnum"},
+		{Name: "EmptyDefaultNotRequiredEnum", Enum: &[]interface{}{"someVal"}, Default: "", Required: &falseRef},
+		{Name: "EmptyDefaultRequiredEnum", Enum: &[]interface{}{"someVal"}, Default: "", Required: &trueRef},
 		{Name: "EnumNoDefault", Enum: &[]interface{}{"someVal"}},
 		{Name: "EnumWithDefault", Enum: &[]interface{}{"someVal"}, Default: "someOtherVal"},
 		{Name: "EnumNoValues", Enum: &[]interface{}{}},
@@ -135,8 +139,8 @@ func TestEnumParams(t *testing.T) {
 	verifier := ParametersVerifier{}
 	res := verifier.Verify(&pf)
 
-	assert.Equal(t, 5, len(res.Warnings)) // NotUsed Warnings
-	assert.Equal(t, 4, len(res.Errors))
+	assert.Equal(t, 7, len(res.Warnings)) // NotUsed Warnings
+	assert.Equal(t, 5, len(res.Errors))
 	assert.Equal(t, `parameter "EnumNoValues" is an enum but has no allowed values`, res.Errors[0])
 	assert.Equal(t, `parameter "EnumWrongValues" has an invalid enum value: type is "integer" but format of "noint" is invalid: strconv.ParseInt: parsing "noint": invalid syntax`, res.Errors[1])
 	assert.Equal(t, `parameter "EnumWrongValues" has an invalid enum value: type is "integer" but format of "1.23" is invalid: strconv.ParseInt: parsing "1.23": invalid syntax`, res.Errors[2])
@@ -167,5 +171,5 @@ func TestMetadata(t *testing.T) {
 	assert.Equal(t, 3, len(res.Errors))
 	assert.Equal(t, `parameter "InvalidGroup" has a group with invalid character '/'`, res.Errors[0])
 	assert.Equal(t, `parameter "InvalidAdvanced" is marked as advanced, but also as required and has no default. An advanced parameter must either be optional or have a default value`, res.Errors[1])
-	assert.Equal(t, `parameter "InvalidGroup" has a group that is not defined in the group section`, res.Errors[2])
+	assert.Equal(t, `parameter "InvalidGroup" has a group "some/group" that is not defined in the group section`, res.Errors[2])
 }
