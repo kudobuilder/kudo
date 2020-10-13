@@ -54,6 +54,7 @@ func GetKubeClient(kubeconfig string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	config.WarningHandler = rest.NewWarningWriter(os.Stderr, rest.WarningWriterOptions{Deduplicate: true, Color: term.AllowsColorOutput(os.Stderr)})
 	return GetKubeClientForConfig(config)
 }
 
