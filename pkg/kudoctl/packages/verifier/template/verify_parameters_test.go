@@ -123,7 +123,8 @@ func TestEnumParams(t *testing.T) {
 		{Name: "EmptyDefaultNotRequiredEnum", Enum: &[]interface{}{"someVal"}, Default: "", Required: &falseRef},
 		{Name: "EmptyDefaultRequiredEnum", Enum: &[]interface{}{"someVal"}, Default: "", Required: &trueRef},
 		{Name: "EnumNoDefault", Enum: &[]interface{}{"someVal"}},
-		{Name: "EnumWithDefault", Enum: &[]interface{}{"someVal"}, Default: "someOtherVal"},
+		{Name: "EnumWithWrongDefault", Enum: &[]interface{}{"someVal"}, Default: "someOtherVal"},
+		{Name: "EnumWithDefault", Enum: &[]interface{}{"someVal"}, Default: "someVal"},
 		{Name: "EnumNoValues", Enum: &[]interface{}{}},
 		{Name: "EnumWrongValues", Enum: &[]interface{}{"noint", "23", "42", "1.23"}, Type: kudoapi.IntegerValueType},
 	}
@@ -139,12 +140,13 @@ func TestEnumParams(t *testing.T) {
 	verifier := ParametersVerifier{}
 	res := verifier.Verify(&pf)
 
-	assert.Equal(t, 7, len(res.Warnings)) // NotUsed Warnings
+	assert.Equal(t, 8, len(res.Warnings)) // NotUsed Warnings
 	assert.Equal(t, 5, len(res.Errors))
 	assert.Equal(t, `parameter "EnumNoValues" is an enum but has no allowed values`, res.Errors[0])
 	assert.Equal(t, `parameter "EnumWrongValues" has an invalid enum value: type is "integer" but format of "noint" is invalid: strconv.ParseInt: parsing "noint": invalid syntax`, res.Errors[1])
 	assert.Equal(t, `parameter "EnumWrongValues" has an invalid enum value: type is "integer" but format of "1.23" is invalid: strconv.ParseInt: parsing "1.23": invalid syntax`, res.Errors[2])
-	assert.Equal(t, `parameter "EnumWithDefault" has an invalid default value: value is "someOtherVal", but only allowed values are [someVal]`, res.Errors[3])
+	assert.Equal(t, `parameter "EmptyDefaultRequiredEnum" has an invalid default value: value is "", but only allowed values are [someVal]`, res.Errors[3])
+	assert.Equal(t, `parameter "EnumWithWrongDefault" has an invalid default value: value is "someOtherVal", but only allowed values are [someVal]`, res.Errors[4])
 }
 
 func TestMetadata(t *testing.T) {
