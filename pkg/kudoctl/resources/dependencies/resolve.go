@@ -72,6 +72,7 @@ func Resolve(operatorArgument string, operatorVersion *kudoapi.OperatorVersion, 
 		edges: []map[int]struct{}{{}},
 	}
 
+	// Here we only care whether the path is absolute or not so we can ignore the error
 	operatorDir, _ := operatorAbsPath(operatorArgument)
 
 	if err := dependencyWalk(&dependencies, &g, root, 0, resolver, operatorDir); err != nil {
