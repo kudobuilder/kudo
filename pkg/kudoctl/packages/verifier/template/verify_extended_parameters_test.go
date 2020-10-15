@@ -39,7 +39,7 @@ func TestExtendedParameters(t *testing.T) {
 		{
 			param:    packages.Parameter{Name: "MissingDotInDescription", Description: "Description without a final dot"},
 			verifier: ExtendedParametersVerifier{VerifyParamDescription: true},
-			warnings: []string{`parameter "MissingDotInDescription" has a description not ending with a '.'`},
+			warnings: []string{`parameter "MissingDotInDescription" has a description not ending with one of '.!?)'`},
 		},
 		{
 			param:    packages.Parameter{Name: "ValidDescription", Description: "Description with a final dot."},
@@ -79,7 +79,7 @@ func TestExtendedParameters(t *testing.T) {
 			verifier: ExtendedParametersVerifier{VerifyGroups: true},
 			warnings: []string{
 				`parameter group "GroupWithInvalidFields" has a displayName ending with ':'`,
-				`parameter group "GroupWithInvalidFields" has a description not ending with a '.'`,
+				`parameter group "GroupWithInvalidFields" has a description not ending with one of '.!?)'`,
 			},
 		},
 		{

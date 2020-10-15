@@ -46,12 +46,8 @@ func (v *ExtendedParametersVerifier) Verify(pf *packages.Files) verifier.Result 
 func (ExtendedParametersVerifier) verifyDescription(pf *packages.Files) verifier.Result {
 	res := verifier.NewResult()
 	for _, p := range pf.Params.Parameters {
-		if p.Description == "" {
-			res.AddParamWarning(p.Name, "has no description")
-		} else {
-			if !strings.HasSuffix(p.Description, ".") {
-				res.AddParamWarning(p.Name, "has a description not ending with a '.'")
-			}
+		if ok, msg := validDescription(p.Description); !ok {
+			res.AddParamWarning(p.Name, msg)
 		}
 	}
 	return res
@@ -60,11 +56,8 @@ func (ExtendedParametersVerifier) verifyDescription(pf *packages.Files) verifier
 func (ExtendedParametersVerifier) verifyDisplayName(pf *packages.Files) verifier.Result {
 	res := verifier.NewResult()
 	for _, p := range pf.Params.Parameters {
-		if p.DisplayName == "" {
-			res.AddParamWarning(p.Name, "has no displayName")
-		}
-		if strings.HasSuffix(p.DisplayName, ":") {
-			res.AddParamWarning(p.Name, "has a displayName ending with ':'")
+		if ok, msg := validDisplayName(p.DisplayName); !ok {
+			res.AddParamWarning(p.Name, msg)
 		}
 	}
 	return res
@@ -91,37 +84,17 @@ func (v ExtendedParametersVerifier) verifyParamGroup(pf *packages.Files) verifie
 			res.AddParamWarning(p.Name, "has no group")
 		}
 	}
-	for _, g := range pf.Params.Groups {
-		if v.VerifyParamDescription && g.Description != "" {
-			if !strings.HasSuffix(g.Description, ".") {
-				res.AddGroupWarning(g.Name, "has a description not ending with a '.'")
-			}
-		}
-		if v.VerifyParamDisplayName && g.DisplayName != "" {
-			if strings.HasSuffix(g.DisplayName, ":") {
-				res.AddGroupWarning(g.Name, "has a displayName ending with ':'")
-			}
-		}
-	}
 	return res
 }
 
 func (v ExtendedParametersVerifier) verifyGroups(pf *packages.Files) verifier.Result {
 	res := verifier.NewResult()
 	for _, g := range pf.Params.Groups {
-		if g.DisplayName == "" {
-			res.AddGroupWarning(g.Name, "has no displayName")
-		} else {
-			if strings.HasSuffix(g.DisplayName, ":") {
-				res.AddGroupWarning(g.Name, "has a displayName ending with ':'")
-			}
+		if ok, msg := validDisplayName(g.DisplayName); !ok {
+			res.AddGroupWarning(g.Name, msg)
 		}
-		if g.Description == "" {
-			res.AddGroupWarning(g.Name, "has no description")
-		} else {
-			if !strings.HasSuffix(g.Description, ".") {
-				res.AddGroupWarning(g.Name, "has a description not ending with a '.'")
-			}
+		if ok, msg := validDescription(g.Description); !ok {
+			res.AddGroupWarning(g.Name, msg)
 		}
 	}
 	return res
@@ -135,4 +108,25 @@ func (ExtendedParametersVerifier) verifyType(pf *packages.Files) verifier.Result
 		}
 	}
 	return res
+}
+
+func validDisplayName(displayName string) (bool, string) {
+	if displayName == "" {
+		return false, "has no displayName"
+	}
+	if strings.HasSuffix(displayName, ":") {
+		return false, "has a displayName ending with ':'"
+	}
+	return true, ""
+}
+
+func validDescription(description string) (bool, string) {
+	if description == "" {
+		return false, "has no description"
+	}
+	lastChar := description[len(description)-1:]
+	if !strings.Contains(".!?)", lastChar) {
+		return false, "has a description not ending with one of '.!?)'"
+	}
+	return true, ""
 }
