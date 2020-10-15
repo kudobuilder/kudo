@@ -67,7 +67,7 @@ func TestPrereq_Fail_PreValidate_Webhook_WrongCertManagerInstallation(t *testing
 	_ = init.PreInstallVerify(client, &result)
 
 	assert.EqualValues(t, verifier.NewError(
-		"CRD versions for 'issuers.cert-manager.io' are [v0], did not find expected version v1alpha2",
+		"CRD versions for 'issuers.cert-manager.io' are [v0], did not find expected version v1alpha2 or it is not served",
 	), result)
 }
 
@@ -95,7 +95,7 @@ func TestPrereq_Fail_PreValidate_Webhook_WrongIssuerVersion(t *testing.T) {
 	result := verifier.NewResult()
 	_ = init.PreInstallVerify(client, &result)
 
-	assert.EqualValues(t, verifier.NewError("CRD versions for 'issuers.cert-manager.io' are [v0], did not find expected version v1alpha2"), result)
+	assert.EqualValues(t, verifier.NewError("CRD versions for 'issuers.cert-manager.io' are [v0], did not find expected version v1alpha2 or it is not served"), result)
 }
 
 func TestPrereq_Ok_PreValidate_Webhook_CertManager_v1alpha2(t *testing.T) {
