@@ -36,7 +36,7 @@ func (p *Parameter) ValidateDefault() error {
 		return fmt.Errorf("parameter %q has an invalid default value: %v", p.Name, err)
 	}
 	if p.IsEnum() {
-		if p.IsRequired() && *p.Default == "" {
+		if *p.Default == "" && !p.IsRequired() {
 			// Even for an enum, if the parameter is not required we want to allow the empty string as a way to define
 			// an unset parameter
 			return nil
@@ -62,7 +62,7 @@ func (p *Parameter) ValidateValue(pValue string) error {
 		return fmt.Errorf("parameter %q has an invalid value %q: %v", p.Name, pValue, err)
 	}
 	if p.IsEnum() {
-		if p.IsRequired() && *p.Default == "" {
+		if *p.Default == "" && !p.IsRequired() {
 			// Even for an enum, if the parameter is not required we want to allow the empty string as a way to define
 			// an unset parameter
 			return nil
