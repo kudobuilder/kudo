@@ -45,6 +45,17 @@ jobs:
       - store_artifacts:
           path: kind-logs.tar.bz2
 
+  test:
+    docker:
+      - image: kudobuilder/golang:1.15
+    working_directory: /go/src/github.com/kudobuilder/kudo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+      - run: make test
+
   lint:
     docker:
       - image: kudobuilder/golang:1.15
@@ -67,6 +78,9 @@ workflows:
   lint:
     jobs:
       - lint
+  test:
+    jobs:
+      - test
   integration-test:
     jobs:
       - integration-test
