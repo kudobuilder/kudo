@@ -302,6 +302,6 @@ func TestResolveLocalDependencies(t *testing.T) {
 	assert.NotNil(t, dependencies[0].Instance, "expecting to find child-operator OperatorVersion resource")
 
 	assert.Equal(t, dependencies[0].Operator.Name, "child")
-	assert.Equal(t, dependencies[0].OperatorVersion.Name, kudoapi.OperatorVersionName("child", "0.0.1"))
+	assert.Equal(t, dependencies[0].OperatorVersion.Name, kudoapi.OperatorVersionName("child", "", "0.0.1"))
 	assert.Equal(t, dependencies[0].Instance.Name, kudoapi.OperatorInstanceName("child"))
 }
