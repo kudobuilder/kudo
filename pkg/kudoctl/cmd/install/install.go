@@ -10,6 +10,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/install"
 	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
+	deps "github.com/kudobuilder/kudo/pkg/kudoctl/resources/dependencies"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
@@ -91,6 +92,11 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 		return fmt.Errorf("failed to resolve operator package for: %s %w", operatorArgument, err)
 	}
 
+	dependencies, err := deps.Resolve(operatorArgument, pkg.Resources.OperatorVersion, resolver)
+	if err != nil {
+		return err
+	}
+
 	installOpts := install.Options{
 		SkipInstance:    options.SkipInstance,
 		CreateNamespace: options.CreateNameSpace,
@@ -107,6 +113,6 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 		settings.Namespace,
 		*pkg.Resources,
 		options.Parameters,
-		resolver,
+		dependencies,
 		installOpts)
 }

@@ -10,7 +10,7 @@ tasks:
   - name: dependency
     kind: KudoOperator
     spec:
-      package: "./dependency"
+      package: "../dependency"
       operatorVersion: "1.0"
 
 plans:

@@ -8,7 +8,6 @@ import (
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
 	deps "github.com/kudobuilder/kudo/pkg/kudoctl/resources/dependencies"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
@@ -20,7 +19,7 @@ func OperatorAndOperatorVersion(
 	client *kudo.Client,
 	operator *kudoapi.Operator,
 	operatorVersion *kudoapi.OperatorVersion,
-	resolver resolver.Resolver) error {
+	dependencies []deps.Dependency) error {
 	if !client.OperatorExistsInCluster(operator.Name, operator.Namespace) {
 		if _, err := client.InstallOperatorObjToCluster(operator, operator.Namespace); err != nil {
 			return fmt.Errorf(
@@ -42,7 +41,7 @@ func OperatorAndOperatorVersion(
 	}
 
 	if !funk.ContainsString(versionsInstalled, operatorVersion.Spec.Version) {
-		if err := installDependencies(client, operatorVersion, resolver); err != nil {
+		if err := installDependencies(client, operatorVersion, dependencies); err != nil {
 			return fmt.Errorf(
 				"failed to install dependencies of operatorversion %s/%s: %v",
 				operatorVersion.Namespace,
@@ -67,12 +66,7 @@ func OperatorAndOperatorVersion(
 	return nil
 }
 
-func installDependencies(client *kudo.Client, ov *kudoapi.OperatorVersion, resolver resolver.Resolver) error {
-	dependencies, err := deps.Resolve(ov, resolver)
-	if err != nil {
-		return err
-	}
-
+func installDependencies(client *kudo.Client, ov *kudoapi.OperatorVersion, dependencies []deps.Dependency) error {
 	// The KUDO controller will create Instances for the dependencies. For this
 	// it needs to resolve the dependencies again from 'KudoOperatorTaskSpec'.
 	// But it cannot resolve packages like the CLI, because it may

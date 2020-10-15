@@ -329,7 +329,7 @@ func (r *Reconciler) resolveDependencies(i *kudoapi.Instance, ov *kudoapi.Operat
 	}
 	resolver := &InClusterResolver{ns: ov.Namespace, c: r.Client}
 
-	_, err := dependencies.Resolve(ov, resolver)
+	_, err := dependencies.Resolve(ov.Name, ov, resolver)
 	if err != nil {
 		return engine.ExecutionError{Err: fmt.Errorf("%w%v", engine.ErrFatalExecution, err), EventName: "CircularDependency"}
 	}

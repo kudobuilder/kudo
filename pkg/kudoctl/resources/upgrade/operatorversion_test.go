@@ -14,6 +14,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	deps "github.com/kudobuilder/kudo/pkg/kudoctl/resources/dependencies"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	util "github.com/kudobuilder/kudo/pkg/util/kudo"
 )
@@ -122,14 +123,6 @@ func Test_UpgradeOperatorVersion(t *testing.T) {
 	}
 }
 
-type testResolver struct {
-	pkg packages.Package
-}
-
-func (r *testResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
-	return &r.pkg, nil
-}
-
 func Test_UpgradeOperatorVersionWithDependency(t *testing.T) {
 	testO := kudoapi.Operator{
 		TypeMeta: metav1.TypeMeta{
@@ -175,8 +168,8 @@ func Test_UpgradeOperatorVersionWithDependency(t *testing.T) {
 		},
 	}
 
-	testDependency := packages.Package{
-		Resources: &packages.Resources{
+	testDependency := deps.Dependency{
+		Resources: packages.Resources{
 			Operator: &kudoapi.Operator{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "dependency",
@@ -188,6 +181,7 @@ func Test_UpgradeOperatorVersionWithDependency(t *testing.T) {
 				},
 			},
 		},
+		PackageName: "dependency",
 	}
 
 	c := kudo.NewClientFromK8s(fake.NewSimpleClientset(), kubefake.NewSimpleClientset())
@@ -215,9 +209,7 @@ func Test_UpgradeOperatorVersionWithDependency(t *testing.T) {
 	})
 	newOv.SetNamespace(installNamespace)
 
-	resolver := &testResolver{testDependency}
-
-	err = OperatorVersion(c, &newOv, "test", nil, resolver)
+	err = OperatorVersion(c, &newOv, "test", nil, []deps.Dependency{testDependency})
 	assert.NoError(t, err)
 
 	assert.True(t, c.OperatorExistsInCluster("dependency", "default"))
