@@ -95,6 +95,12 @@ func (p *Parameter) ValidateDefault() error {
 		return fmt.Errorf("parameter \"%s\" has an invalid default value: %v", p.Name, err)
 	}
 	if p.IsEnum() {
+		// Even if we have an enum parameter, we want to allow the empty value to unset
+		// a parameter
+		if p.Default == "" && !p.IsRequired() {
+			return nil
+		}
+
 		for _, eValue := range p.EnumValues() {
 			if p.Default == eValue {
 				return nil
