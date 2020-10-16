@@ -75,9 +75,10 @@ func NewClientForConfig(config *rest.Config, validateInstall bool) (*Client, err
 		KubeClientset: kubeClient.KubeClient,
 	}
 
-	validationErr := client.VerifyServedCRDs(kubeClient)
-	if validateInstall && validationErr != nil {
-		return nil, validationErr
+	if validateInstall {
+		if err := client.VerifyServedCRDs(kubeClient); err != nil {
+			return nil, err
+		}
 	}
 
 	return client, nil
