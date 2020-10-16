@@ -138,6 +138,7 @@ func updateKudoOperatorTasks(
 				if tasks[i].Spec.KudoOperatorTaskSpec.Package == dependency.PackageName {
 					tasks[i].Spec.KudoOperatorTaskSpec.Package = dependency.Operator.Name
 					tasks[i].Spec.KudoOperatorTaskSpec.OperatorVersion = dependency.OperatorVersion.Spec.Version
+					tasks[i].Spec.KudoOperatorTaskSpec.AppVersion = dependency.OperatorVersion.Spec.AppVersion
 					break
 				}
 			}
