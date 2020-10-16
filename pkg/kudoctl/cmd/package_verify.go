@@ -40,7 +40,7 @@ func newPackageVerifyCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP((*string)(&verifyCmd.output), "output", "o", "", "Output format for command results.")
-	cmd.Flags().StringSliceVar(&verifyCmd.paramChecks, "param-checks", []string{}, "Additional parameter checks: [display, hint, desc, type, groups]")
+	cmd.Flags().StringSliceVar(&verifyCmd.paramChecks, "param-checks", []string{}, fmt.Sprintf("Additional parameter checks: %v", template.ParamVerifyArguments))
 	return cmd
 }
 
@@ -49,22 +49,8 @@ func (c *packageVerifyCmd) run(path string) error {
 		return err
 	}
 	opts := template.ExtendedParametersVerifier{}
-	for _, c := range c.paramChecks {
-		switch c {
-		case "display":
-			opts.VerifyParamDisplayName = true
-		case "hint":
-			opts.VerifyParamHint = true
-		case "desc":
-			opts.VerifyParamDescription = true
-		case "type":
-			opts.VerifyParamType = true
-		case "groups":
-			opts.VerifyParamGroup = true
-			opts.VerifyGroups = true
-		default:
-			return fmt.Errorf("unknown parameter check: %s", c)
-		}
+	if err := opts.SetFromArguments(c.paramChecks); err != nil {
+		return err
 	}
 	return verifyPackage(c.fs, path, c.out, c.output, []packages.Verifier{&opts})
 }

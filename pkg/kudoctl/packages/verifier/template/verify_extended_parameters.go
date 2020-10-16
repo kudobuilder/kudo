@@ -1,13 +1,39 @@
 package template
 
 import (
+	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
 )
 
 var _ packages.Verifier = &ExtendedParametersVerifier{}
+
+type ParamVerifyArgumentType string
+
+const (
+	ParamVerifyDisplayName ParamVerifyArgumentType = "display"
+	ParamVerifyHint        ParamVerifyArgumentType = "hint"
+	ParamVerifyDescription ParamVerifyArgumentType = "desc"
+	ParamVerifyType        ParamVerifyArgumentType = "type"
+	ParamVerifyHasGroup    ParamVerifyArgumentType = "hasgroup"
+	ParamVerifyGroups      ParamVerifyArgumentType = "groups"
+	ParamVerifyAll         ParamVerifyArgumentType = "all"
+)
+
+var (
+	ParamVerifyArguments = []ParamVerifyArgumentType{
+		ParamVerifyDisplayName,
+		ParamVerifyHint,
+		ParamVerifyDescription,
+		ParamVerifyType,
+		ParamVerifyHasGroup,
+		ParamVerifyGroups,
+		ParamVerifyAll,
+	}
+)
 
 type ExtendedParametersVerifier struct {
 	VerifyParamDescription bool
@@ -16,6 +42,36 @@ type ExtendedParametersVerifier struct {
 	VerifyParamType        bool
 	VerifyParamGroup       bool
 	VerifyGroups           bool
+}
+
+func (v *ExtendedParametersVerifier) SetFromArguments(args []string) error {
+	for _, c := range args {
+
+		switch ParamVerifyArgumentType(c) {
+		case ParamVerifyDisplayName:
+			v.VerifyParamDisplayName = true
+		case ParamVerifyHint:
+			v.VerifyParamHint = true
+		case ParamVerifyDescription:
+			v.VerifyParamDescription = true
+		case ParamVerifyType:
+			v.VerifyParamType = true
+		case ParamVerifyHasGroup:
+			v.VerifyParamGroup = true
+		case ParamVerifyGroups:
+			v.VerifyGroups = true
+		case ParamVerifyAll:
+			v.VerifyParamDisplayName = true
+			v.VerifyParamHint = true
+			v.VerifyParamDescription = true
+			v.VerifyParamType = true
+			v.VerifyParamGroup = true
+			v.VerifyGroups = true
+		default:
+			return fmt.Errorf("unknown parameter check: %s, must be one of %v", c, ParamVerifyArguments)
+		}
+	}
+	return nil
 }
 
 // Verify implements packages.Verifier for parameter verification
@@ -66,12 +122,8 @@ func (ExtendedParametersVerifier) verifyDisplayName(pf *packages.Files) verifier
 func (ExtendedParametersVerifier) verifyHint(pf *packages.Files) verifier.Result {
 	res := verifier.NewResult()
 	for _, p := range pf.Params.Parameters {
-		if p.Hint == "" {
-			res.AddParamWarning(p.Name, "has no hint")
-		} else {
-			if !strings.HasSuffix(p.Hint, ".") {
-				res.AddParamWarning(p.Name, "has a hint not ending with a '.'")
-			}
+		if ok, msg := validHint(p.Hint); !ok {
+			res.AddParamWarning(p.Name, msg)
 		}
 	}
 	return res
@@ -83,6 +135,8 @@ func (v ExtendedParametersVerifier) verifyParamGroup(pf *packages.Files) verifie
 		if p.Group == "" {
 			res.AddParamWarning(p.Name, "has no group")
 		}
+		// The check if a specified group is defined in the groups section is in verify_parameters.go, as it
+		// is a required check and not an optional one.
 	}
 	return res
 }
@@ -117,6 +171,9 @@ func validDisplayName(displayName string) (bool, string) {
 	if strings.HasSuffix(displayName, ":") {
 		return false, "has a displayName ending with ':'"
 	}
+	if !IsUpper(displayName[0:1]) {
+		return false, "has a displayName that does not start with a capital letter"
+	}
 	return true, ""
 }
 
@@ -128,5 +185,30 @@ func validDescription(description string) (bool, string) {
 	if !strings.Contains(".!?)", lastChar) {
 		return false, "has a description not ending with one of '.!?)'"
 	}
+	if !IsUpper(description[0:1]) {
+		return false, "has a description that does not start with a capital letter"
+	}
 	return true, ""
+}
+
+func validHint(hint string) (bool, string) {
+	if hint == "" {
+		return false, "has no hint"
+	}
+	if !strings.HasSuffix(hint, ".") {
+		return false, "has a hint not ending with a '.'"
+	}
+	if !IsUpper(hint[0:1]) {
+		return false, "has a hint that does not start with a capital letter"
+	}
+	return true, ""
+}
+
+func IsUpper(s string) bool {
+	for _, r := range s {
+		if !unicode.IsUpper(r) && unicode.IsLetter(r) {
+			return false
+		}
+	}
+	return true
 }
