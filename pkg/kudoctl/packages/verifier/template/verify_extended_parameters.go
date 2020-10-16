@@ -198,9 +198,6 @@ func validHint(hint string) (bool, string) {
 	if !strings.HasSuffix(hint, ".") {
 		return false, "has a hint not ending with a '.'"
 	}
-	if !IsUpper(hint[0:1]) {
-		return false, "has a hint that does not start with a capital letter"
-	}
 	return true, ""
 }
 
