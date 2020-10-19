@@ -54,11 +54,11 @@ func GetKubeClient(kubeconfig string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	config.WarningHandler = rest.NewWarningWriter(os.Stderr, rest.WarningWriterOptions{Deduplicate: true, Color: term.AllowsColorOutput(os.Stderr)})
 	return GetKubeClientForConfig(config)
 }
 
 func GetKubeClientForConfig(config *rest.Config) (*Client, error) {
+	config.WarningHandler = rest.NewWarningWriter(os.Stderr, rest.WarningWriterOptions{Deduplicate: true, Color: term.AllowsColorOutput(os.Stderr)})
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("could not get Kubernetes client: %s", err)

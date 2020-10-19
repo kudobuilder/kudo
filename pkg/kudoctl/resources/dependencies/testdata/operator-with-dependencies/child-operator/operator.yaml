@@ -1,17 +1,17 @@
 apiVersion: kudo.dev/v1beta1
-name: "parent"
-operatorVersion: "0.1.0"
+name: "child"
+operatorVersion: "0.0.1"
 kubernetesVersion: 1.15.0
 maintainers:
   - name: zen-dog
     email: <your@email.com>
 url: https://kudo.dev
 tasks:
-  - name: deploy-child
-    kind: KudoOperator
+  - name: deploy
+    kind: Dummy
     spec:
-      package: "../child-operator"
-      operatorVersion: 0.0.1
+      done: true
+      wantErr: false
 
 plans:
   deploy:
@@ -22,4 +22,4 @@ plans:
         steps:
           - name: deploy
             tasks:
-              - deploy-child
+              - deploy

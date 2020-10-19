@@ -1,0 +1,24 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: issuers.cert-manager.io
+spec:
+  versions:
+    - name: v1alpha2
+    - name: v1alpha3
+    - name: v1beta1
+    - name: v1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cert-manager-webhook
+  namespace: cert-manager
+status:
+  readyReplicas: 1
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cert-manager-webhook-ca
+  namespace: cert-manager

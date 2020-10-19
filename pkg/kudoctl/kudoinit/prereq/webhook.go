@@ -3,6 +3,7 @@ package prereq
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/thoas/go-funk"
@@ -14,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	clientv1beta1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
@@ -52,10 +54,18 @@ const (
 var (
 	// Cert-Manager APIs that we can detect
 	certManagerAPIs = []certManagerVersion{
-		{group: "cert-manager.io", versions: []string{"v1alpha2", "v1alpha3"}}, // 0.11.0+
-		{group: "certmanager.k8s.io", versions: []string{"v1alpha1"}},          // 0.10.1
+		{group: "cert-manager.io", versions: []string{"v1", "v1beta1", "v1alpha3", "v1alpha2"}}, // 0.11.0+
+		{group: "certmanager.k8s.io", versions: []string{"v1alpha1"}},                           // 0.10.1
 	}
 )
+
+type kubeLikeVersions []string
+
+func (a kubeLikeVersions) Len() int      { return len(a) }
+func (a kubeLikeVersions) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a kubeLikeVersions) Less(i, j int) bool {
+	return version.CompareKubeAwareVersionStrings(a[i], a[j]) < 0
+}
 
 func NewWebHookInitializer(options kudoinit.Options) *KudoWebHook {
 	return &KudoWebHook{
@@ -253,9 +263,22 @@ func detectCertManagerCRD(extClient clientset.Interface, api certManagerVersion)
 	clog.V(4).Printf("Try to retrieve cert-manager CRD %s", testCRD)
 	crd, err := extClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), testCRD, metav1.GetOptions{})
 	if err == nil {
-		// crd.Spec.Versions[0] must be the one that is stored and served, we should use that one
-		clog.V(4).Printf("Got CRD. Group: %s, Version: %s", api.group, crd.Spec.Versions[0].Name)
-		return api.group, crd.Spec.Versions[0].Name, nil
+		servedVersions := kubeLikeVersions{}
+		// Look through the versions and find the one that is the stored one
+		for _, v := range crd.Spec.Versions {
+			v := v
+			if v.Served {
+				servedVersions = append(servedVersions, v.Name)
+			}
+		}
+		if len(servedVersions) == 0 {
+			return "", "", fmt.Errorf("failed to detect cert manager CRD %s: no served version found", testCRD)
+		}
+		sort.Sort(servedVersions)
+		bestVersion := servedVersions[len(servedVersions)-1]
+
+		clog.V(4).Printf("Got CRD. Group: %s, Version: %s", api.group, bestVersion)
+		return api.group, bestVersion, nil
 	}
 	if !kerrors.IsNotFound(err) {
 		return "", "", fmt.Errorf("failed to detect cert manager CRD %s: %v", testCRD, err)
@@ -334,12 +357,20 @@ func validateCrdVersion(extClient clientset.Interface, crdName string, expectedV
 		}
 		return err
 	}
-	crdVersion := certCRD.Spec.Versions[0].Name
-
-	if crdVersion != expectedVersion {
-		result.AddErrors(fmt.Sprintf("invalid CRD version found for '%s': %s instead of %s", crdName, crdVersion, expectedVersion))
+	allVersions := []string{}
+	for _, v := range certCRD.Spec.Versions {
+		if v.Name == expectedVersion {
+			if v.Served {
+				clog.V(2).Printf("CRD %s is served with version %s", crdName, v.Name)
+				return nil
+			}
+			result.AddErrors(fmt.Sprintf("outdated CRD version found for '%s': %s is known but not served", crdName, v.Name))
+			return nil
+		}
+		allVersions = append(allVersions, v.Name)
 	}
-	clog.V(2).Printf("CRD %s is installed with version %s", crdName, crdVersion)
+
+	result.AddErrors(fmt.Sprintf("CRD versions for '%s' are %v, did not find expected version %s or it is not served", crdName, allVersions, expectedVersion))
 	return nil
 }
 
