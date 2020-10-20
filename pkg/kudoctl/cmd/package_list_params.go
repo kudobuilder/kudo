@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/generate"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
@@ -26,6 +26,22 @@ type packageListParamsCmd struct {
 	RepoName        string
 	AppVersion      string
 	OperatorVersion string
+}
+
+type Parameters []kudoapi.Parameter
+
+// Len returns the number of params.
+// This is needed to allow sorting of params.
+func (p Parameters) Len() int { return len(p) }
+
+// Swap swaps the position of two items in the params slice.
+// This is needed to allow sorting of params.
+func (p Parameters) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
+
+// Less returns true if the name of a param a is less than the name of param b.
+// This is needed to allow sorting of params.
+func (p Parameters) Less(x, y int) bool {
+	return p[x].Name < p[y].Name
 }
 
 const (
@@ -94,7 +110,7 @@ func (c *packageListParamsCmd) run(settings *env.Settings) error {
 	return nil
 }
 
-func displayParamsTable(params v1beta1.Parameters, out io.Writer, printRequired, printNames, printDesc bool) error {
+func displayParamsTable(params Parameters, out io.Writer, printRequired, printNames, printDesc bool) error {
 	sort.Sort(params)
 	table := uitable.New()
 	tValue := true

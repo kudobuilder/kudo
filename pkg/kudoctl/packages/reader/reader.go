@@ -27,7 +27,7 @@ func Read(fs afero.Fs, path string) (*packages.Resources, error) {
 		return ReadTar(fs, path)
 	} else if fi.IsDir() {
 		clog.V(0).Printf("%v is a file package", path)
-		return ReadDir(fs, path)
+		return ResourcesFromDir(fs, path)
 	} else {
 		return nil, fmt.Errorf("unsupported file system format %v. Expect either a *.tgz file or a folder", path)
 	}

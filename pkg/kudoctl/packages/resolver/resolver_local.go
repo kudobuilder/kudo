@@ -39,7 +39,7 @@ func (f *LocalResolver) Resolve(name string, appVersion string, operatorVersion 
 		return reader.ReadTar(f.fs, name)
 	} else if fi.IsDir() {
 		clog.V(1).Printf("%v is a local file package", name)
-		return reader.ReadDir(f.fs, name)
+		return reader.ResourcesFromDir(f.fs, name)
 	} else {
 		return nil, fmt.Errorf("unsupported file system format %v. Expect either a *.tgz file or a folder", name)
 	}

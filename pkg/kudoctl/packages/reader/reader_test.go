@@ -39,7 +39,7 @@ func TestReadFileSystemPackage(t *testing.T) {
 			if strings.HasSuffix(tt.path, ".tgz") {
 				pr, err = ReadTar(fs, tt.path)
 			} else {
-				pr, err = ReadDir(fs, tt.path)
+				pr, err = ResourcesFromDir(fs, tt.path)
 			}
 
 			assert.NoError(t, err, "unexpected error while reading the package")

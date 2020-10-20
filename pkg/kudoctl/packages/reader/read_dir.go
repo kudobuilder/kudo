@@ -14,7 +14,7 @@ import (
 
 // ReadPackage creates the implementation of the packages based on the path. The expectation is the packages
 // is always local. The path can be relative or absolute location of the packages.
-func ReadDir(fs afero.Fs, path string) (*packages.Resources, error) {
+func ResourcesFromDir(fs afero.Fs, path string) (*packages.Resources, error) {
 	// 1. get files
 	files, err := PackageFilesFromDir(fs, path)
 	if err != nil {
