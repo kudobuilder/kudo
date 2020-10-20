@@ -16,25 +16,25 @@ import (
 )
 
 type nameResolver struct {
-	Pkgs []packages.Package
+	Prs []packages.Resources
 }
 
 func (resolver nameResolver) Resolve(
 	name string,
 	appVersion string,
-	operatorVersion string) (*packages.Package, error) {
-	for _, pkg := range resolver.Pkgs {
-		if pkg.OperatorName() == name &&
-			(operatorVersion == "" || pkg.OperatorVersionString() == operatorVersion) &&
-			(appVersion == "" || pkg.AppVersionString() == appVersion) {
-			return &pkg, nil
+	operatorVersion string) (*packages.Resources, error) {
+	for _, pr := range resolver.Prs {
+		if pr.Operator.Name == name &&
+			(operatorVersion == "" || pr.OperatorVersion.Spec.Version == operatorVersion) &&
+			(appVersion == "" || pr.OperatorVersion.Spec.AppVersion == appVersion) {
+			return &pr, nil
 		}
 	}
 
 	return nil, fmt.Errorf("package not found")
 }
 
-func createPackage(name string, dependencies ...string) packages.Package {
+func createResources(name string, dependencies ...string) packages.Resources {
 	opVersion := "0.0.1"
 	appVersion := ""
 
@@ -43,7 +43,7 @@ func createPackage(name string, dependencies ...string) packages.Package {
 		deps = append(deps, createDependency(d, "", ""))
 	}
 
-	return createPackageWithVersions(name, opVersion, appVersion, deps...)
+	return createResourcesWithVersions(name, opVersion, appVersion, deps...)
 }
 
 func createDependency(name, opVersion, appVersion string) kudoapi.Task {
@@ -60,30 +60,28 @@ func createDependency(name, opVersion, appVersion string) kudoapi.Task {
 	}
 }
 
-func createPackageWithVersions(name, opVersion, appVersion string, dependencies ...kudoapi.Task) packages.Package {
-	p := packages.Package{
-		Resources: &packages.Resources{
-			Operator: &kudoapi.Operator{
-				ObjectMeta: metav1.ObjectMeta{
+func createResourcesWithVersions(name, opVersion, appVersion string, dependencies ...kudoapi.Task) packages.Resources {
+	p := packages.Resources{
+		Operator: &kudoapi.Operator{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: name,
+			},
+		},
+		OperatorVersion: &kudoapi.OperatorVersion{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: kudoapi.OperatorVersionName(name, appVersion, opVersion),
+			},
+			Spec: kudoapi.OperatorVersionSpec{
+				Operator: v1.ObjectReference{
 					Name: name,
 				},
-			},
-			OperatorVersion: &kudoapi.OperatorVersion{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: kudoapi.OperatorVersionName(name, appVersion, opVersion),
-				},
-				Spec: kudoapi.OperatorVersionSpec{
-					Operator: v1.ObjectReference{
-						Name: name,
-					},
-					Version:    opVersion,
-					AppVersion: appVersion,
-				},
+				Version:    opVersion,
+				AppVersion: appVersion,
 			},
 		},
 	}
 
-	p.Resources.OperatorVersion.Spec.Tasks = append(p.Resources.OperatorVersion.Spec.Tasks, dependencies...)
+	p.OperatorVersion.Spec.Tasks = append(p.OperatorVersion.Spec.Tasks, dependencies...)
 
 	return p
 }
@@ -91,7 +89,7 @@ func createPackageWithVersions(name, opVersion, appVersion string, dependencies 
 func TestResolve(t *testing.T) {
 	tests := []struct {
 		name    string
-		pkgs    []packages.Package
+		prs     []packages.Resources
 		want    []string
 		wantErr string
 	}{
@@ -99,8 +97,8 @@ func TestResolve(t *testing.T) {
 			// A
 			// └── A
 			name: "trivial circular dependency",
-			pkgs: []packages.Package{
-				createPackage("A", "A"),
+			prs: []packages.Resources{
+				createResources("A", "A"),
 			},
 			want:    []string{},
 			wantErr: "cyclic package dependency found when adding package A-0.0.1 -> A-0.0.1",
@@ -110,9 +108,9 @@ func TestResolve(t *testing.T) {
 			// └── B
 			//     └── B
 			name: "trivial nested circular dependency",
-			pkgs: []packages.Package{
-				createPackage("A", "B"),
-				createPackage("B", "B"),
+			prs: []packages.Resources{
+				createResources("A", "B"),
+				createResources("B", "B"),
 			},
 			want:    []string{},
 			wantErr: "cyclic package dependency found when adding package B-0.0.1 -> B-0.0.1",
@@ -122,9 +120,9 @@ func TestResolve(t *testing.T) {
 			// └── B
 			//     └── A
 			name: "circular dependency",
-			pkgs: []packages.Package{
-				createPackage("A", "B"),
-				createPackage("B", "A"),
+			prs: []packages.Resources{
+				createResources("A", "B"),
+				createResources("B", "A"),
 			},
 			want:    []string{},
 			wantErr: "cyclic package dependency found when adding package B-0.0.1 -> A-0.0.1",
@@ -135,10 +133,10 @@ func TestResolve(t *testing.T) {
 			//     └── C
 			//     	   └── B
 			name: "nested circular dependency",
-			pkgs: []packages.Package{
-				createPackage("A", "B"),
-				createPackage("B", "C"),
-				createPackage("C", "B"),
+			prs: []packages.Resources{
+				createResources("A", "B"),
+				createResources("B", "C"),
+				createResources("C", "B"),
 			},
 			want:    []string{},
 			wantErr: "cyclic package dependency found when adding package C-0.0.1 -> B-0.0.1",
@@ -147,8 +145,8 @@ func TestResolve(t *testing.T) {
 			// A
 			// └── (B)
 			name: "unknown dependency",
-			pkgs: []packages.Package{
-				createPackage("A", "B"),
+			prs: []packages.Resources{
+				createResources("A", "B"),
 			},
 			want:    []string{},
 			wantErr: "failed to resolve package Operator: \"B\", OperatorVersion: \"any\", AppVersion \"any\", dependency of package A-0.0.1: package not found",
@@ -158,10 +156,10 @@ func TestResolve(t *testing.T) {
 			// └── B
 			//     └── C
 			name: "simple dependency",
-			pkgs: []packages.Package{
-				createPackage("A", "B"),
-				createPackage("B", "C"),
-				createPackage("C"),
+			prs: []packages.Resources{
+				createResources("A", "B"),
+				createResources("B", "C"),
+				createResources("C"),
 			},
 			want:    []string{"B", "C"},
 			wantErr: "",
@@ -177,12 +175,12 @@ func TestResolve(t *testing.T) {
 			// \      v      v
 			//  ----> D ---> E
 			name: "complex dependency",
-			pkgs: []packages.Package{
-				createPackage("A", "C", "D"),
-				createPackage("B", "C", "E"),
-				createPackage("C", "D"),
-				createPackage("D", "E"),
-				createPackage("E"),
+			prs: []packages.Resources{
+				createResources("A", "C", "D"),
+				createResources("B", "C", "E"),
+				createResources("C", "D"),
+				createResources("D", "E"),
+				createResources("E"),
 			},
 			want:    []string{"C", "D", "E"},
 			wantErr: "",
@@ -196,13 +194,13 @@ func TestResolve(t *testing.T) {
 			//     ├── E
 			//     └── F
 			name: "complex circular dependency",
-			pkgs: []packages.Package{
-				createPackage("A", "B"),
-				createPackage("B", "C", "E", "F"),
-				createPackage("C", "D", "A"),
-				createPackage("D"),
-				createPackage("E"),
-				createPackage("F"),
+			prs: []packages.Resources{
+				createResources("A", "B"),
+				createResources("B", "C", "E", "F"),
+				createResources("C", "D", "A"),
+				createResources("D"),
+				createResources("E"),
+				createResources("F"),
 			},
 			want:    []string{},
 			wantErr: "cyclic package dependency found when adding package C-0.0.1 -> A-0.0.1",
@@ -211,9 +209,9 @@ func TestResolve(t *testing.T) {
 			// A
 			// └── B
 			name: "versioned dependency",
-			pkgs: []packages.Package{
-				createPackageWithVersions("A", "0.0.1", "1.2.3", createDependency("B", "0.0.2", "")),
-				createPackageWithVersions("B", "0.0.1", ""),
+			prs: []packages.Resources{
+				createResourcesWithVersions("A", "0.0.1", "1.2.3", createDependency("B", "0.0.2", "")),
+				createResourcesWithVersions("B", "0.0.1", ""),
 			},
 			want:    []string{},
 			wantErr: "failed to resolve package Operator: \"B\", OperatorVersion: \"0.0.2\", AppVersion \"any\", dependency of package A-1.2.3-0.0.1: package not found",
@@ -223,9 +221,9 @@ func TestResolve(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			resolver := nameResolver{tt.pkgs}
-			operatorArg := tt.pkgs[0].Resources.OperatorVersion.Name
-			got, err := Resolve(operatorArg, tt.pkgs[0].Resources.OperatorVersion, resolver)
+			resolver := nameResolver{tt.prs}
+			operatorArg := tt.prs[0].OperatorVersion.Name
+			got, err := Resolve(operatorArg, tt.prs[0].OperatorVersion, resolver)
 
 			assert.Equal(t, err == nil, tt.wantErr == "")
 
@@ -290,10 +288,10 @@ func TestResolveLocalDependencies(t *testing.T) {
 	var resolver = pkgresolver.NewLocal()
 	var operatorArgument = "./testdata/operator-with-dependencies/parent-operator"
 
-	pkg, err := resolver.Resolve(operatorArgument, "", "")
+	pr, err := resolver.Resolve(operatorArgument, "", "")
 	assert.NoError(t, err, "failed to resolve operator package for %s", operatorArgument)
 
-	dependencies, err := Resolve(operatorArgument, pkg.Resources.OperatorVersion, resolver)
+	dependencies, err := Resolve(operatorArgument, pr.OperatorVersion, resolver)
 	assert.NoError(t, err, "failed to resolve dependencies for %s", operatorArgument)
 	assert.Equal(t, len(dependencies), 1, "expecting to find child-operator dependency")
 

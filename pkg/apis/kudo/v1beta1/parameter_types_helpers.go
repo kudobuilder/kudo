@@ -8,6 +8,22 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+type Parameters []Parameter
+
+// Len returns the number of params.
+// This is needed to allow sorting of params.
+func (p Parameters) Len() int { return len(p) }
+
+// Swap swaps the position of two items in the params slice.
+// This is needed to allow sorting of params.
+func (p Parameters) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
+
+// Less returns true if the name of a param a is less than the name of param b.
+// This is needed to allow sorting of params.
+func (p Parameters) Less(x, y int) bool {
+	return p[x].Name < p[y].Name
+}
+
 func (p *Parameter) IsImmutable() bool {
 	return p.Immutable != nil && *p.Immutable
 }

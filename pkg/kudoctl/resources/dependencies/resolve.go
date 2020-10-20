@@ -114,7 +114,7 @@ func dependencyWalk(
 
 		}
 
-		childPkg, err := resolver.Resolve(
+		childRes, err := resolver.Resolve(
 			childPackageName,
 			childTask.Spec.KudoOperatorTaskSpec.AppVersion,
 			childTask.Spec.KudoOperatorTaskSpec.OperatorVersion)
@@ -124,14 +124,14 @@ func dependencyWalk(
 		}
 
 		childDependency := Dependency{
-			Resources:   *childPkg.Resources,
+			Resources:   *childRes,
 			PackageName: childTask.Spec.KudoOperatorTaskSpec.Package,
 		}
 
 		newPackage := false
 		childIndex := indexOf(dependencies, &childDependency)
 		if childIndex == -1 {
-			clog.V(2).Printf("Adding new dependency %s", childPkg.Resources.OperatorVersion.FullyQualifiedName())
+			clog.V(2).Printf("Adding new dependency %s", childRes.OperatorVersion.FullyQualifiedName())
 			newPackage = true
 
 			*dependencies = append(*dependencies, childDependency)
@@ -146,7 +146,7 @@ func dependencyWalk(
 
 		if !graph.Acyclic(g) {
 			return fmt.Errorf(
-				"cyclic package dependency found when adding package %s -> %s", parent.OperatorVersion.FullyQualifiedName(), childPkg.Resources.OperatorVersion.FullyQualifiedName())
+				"cyclic package dependency found when adding package %s -> %s", parent.OperatorVersion.FullyQualifiedName(), childRes.OperatorVersion.FullyQualifiedName())
 		}
 
 		// We only need to walk the dependencies if the package is new
@@ -155,7 +155,7 @@ func dependencyWalk(
 			if isRelativePackage {
 				childOperatorDirectory = &childPackageName
 			}
-			if err := dependencyWalk(dependencies, g, *childPkg.Resources, childIndex, resolver, childOperatorDirectory); err != nil {
+			if err := dependencyWalk(dependencies, g, *childRes, childIndex, resolver, childOperatorDirectory); err != nil {
 				return err
 			}
 		}

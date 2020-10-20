@@ -15,7 +15,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/convert"
 )
 
-func ReadTar(fs afero.Fs, path string) (*packages.Package, error) {
+func ReadTar(fs afero.Fs, path string) (*packages.Resources, error) {
 	// 1. read the tarball
 	b, err := afero.ReadFile(fs, path)
 	if err != nil {
@@ -35,10 +35,7 @@ func ReadTar(fs afero.Fs, path string) (*packages.Package, error) {
 		return nil, fmt.Errorf("while getting package resources from %s: %v", path, err)
 	}
 
-	return &packages.Package{
-		Resources: resources,
-		Files:     files,
-	}, nil
+	return resources, nil
 }
 
 func ParseTgz(r io.Reader) (*packages.Files, error) {

@@ -24,7 +24,7 @@ type InClusterResolver struct {
 	ns string
 }
 
-func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
+func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Resources, error) {
 	ovn := kudoapi.OperatorVersionName(name, appVersion, operatorVersion)
 
 	ov, err := kudoapi.GetOperatorVersionByName(ovn, r.ns, r.c)
@@ -37,12 +37,9 @@ func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersi
 		return nil, fmt.Errorf("failed to resolve operator %s/%s", r.ns, name)
 	}
 
-	return &packages.Package{
-		Resources: &packages.Resources{
-			Operator:        o,
-			OperatorVersion: ov,
-			Instance:        nil,
-		},
-		Files: nil,
+	return &packages.Resources{
+		Operator:        o,
+		OperatorVersion: ov,
+		Instance:        nil,
 	}, nil
 }

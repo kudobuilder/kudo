@@ -14,7 +14,7 @@ import (
 // is always local. The path can be relative or absolute location of the packages. Order of the discovery is:
 // 1. tarball
 // 2. dir based
-func Read(fs afero.Fs, path string) (*packages.Package, error) {
+func Read(fs afero.Fs, path string) (*packages.Resources, error) {
 	//	make sure file exists
 	fi, err := fs.Stat(path)
 	if err != nil {

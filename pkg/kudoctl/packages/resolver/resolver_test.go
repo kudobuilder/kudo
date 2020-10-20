@@ -11,11 +11,11 @@ func TestManager_GetPackage(t *testing.T) {
 		local: NewLocal(),
 		uri:   nil,
 	}
-	pkg, err := m.Resolve("../testdata/zk", "", "")
+	pr, err := m.Resolve("../testdata/zk", "", "")
 	if err != nil {
 		t.Errorf("PackageResolver.Resolve() error = %v", err)
 		return
 	}
 
-	assert.EqualValues(t, "zookeeper", pkg.Resources.Operator.Name)
+	assert.EqualValues(t, "zookeeper", pr.Operator.Name)
 }

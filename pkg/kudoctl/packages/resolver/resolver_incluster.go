@@ -17,7 +17,7 @@ type InClusterResolver struct {
 	ns string
 }
 
-func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
+func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Resources, error) {
 	// Fetch all OVs
 	ovList, err := r.c.ListOperatorVersions(r.ns)
 	if err != nil {
@@ -49,12 +49,9 @@ func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersi
 		return nil, fmt.Errorf("failed to resolve operator %s/%s", r.ns, name)
 	}
 
-	return &packages.Package{
-		Resources: &packages.Resources{
-			Operator:        o,
-			OperatorVersion: ov,
-			Instance:        convert.BuildInstanceResource(name, operatorVersion, appVersion),
-		},
-		Files: nil,
+	return &packages.Resources{
+		Operator:        o,
+		OperatorVersion: ov,
+		Instance:        convert.BuildInstanceResource(name, operatorVersion, appVersion),
 	}, nil
 }

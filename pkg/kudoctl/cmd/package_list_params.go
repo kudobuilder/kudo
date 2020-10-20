@@ -9,10 +9,10 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
+	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/generate"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
@@ -82,26 +82,26 @@ func (c *packageListParamsCmd) run(settings *env.Settings) error {
 	if !onlyOneSet(c.requiredOnly, c.namesOnly, c.descriptions) {
 		return fmt.Errorf("only one of the flags 'required', 'names', 'descriptions' can be set")
 	}
-	pf, err := packageDiscovery(c.fs, settings, c.RepoName, c.pathOrName, c.AppVersion, c.OperatorVersion)
+	pr, err := packageDiscovery(c.fs, settings, c.RepoName, c.pathOrName, c.AppVersion, c.OperatorVersion)
 	if err != nil {
 		return err
 	}
 
-	if err := displayParamsTable(pf.Files, c.out, c.requiredOnly, c.namesOnly, c.descriptions); err != nil {
+	if err := displayParamsTable(pr.OperatorVersion.Spec.Parameters, c.out, c.requiredOnly, c.namesOnly, c.descriptions); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func displayParamsTable(pf *packages.Files, out io.Writer, printRequired, printNames, printDesc bool) error {
-	sort.Sort(pf.Params.Parameters)
+func displayParamsTable(params v1beta1.Parameters, out io.Writer, printRequired, printNames, printDesc bool) error {
+	sort.Sort(params)
 	table := uitable.New()
 	tValue := true
 	if printRequired {
 		table.AddRow("Name")
 		found := false
-		for _, p := range pf.Params.Parameters {
+		for _, p := range params {
 			if p.Default == nil && p.Required == &tValue {
 				found = true
 				table.AddRow(p.Name)
@@ -119,7 +119,7 @@ func displayParamsTable(pf *packages.Files, out io.Writer, printRequired, printN
 	}
 	if printNames {
 		table.AddRow("Name")
-		for _, p := range pf.Params.Parameters {
+		for _, p := range params {
 			table.AddRow(p.Name)
 		}
 		if _, err := fmt.Fprintln(out, table); err != nil {
@@ -134,17 +134,12 @@ func displayParamsTable(pf *packages.Files, out io.Writer, printRequired, printN
 	} else {
 		table.AddRow("Name", "Default", "Required", "Immutable")
 	}
-	sort.Sort(pf.Params.Parameters)
-	for _, p := range pf.Params.Parameters {
-		pDefault, err := convert.WrapParamValue(p.Default, p.Type)
-		if err != nil {
-			return err
-		}
-
+	sort.Sort(params)
+	for _, p := range params {
 		if printDesc {
-			table.AddRow(p.Name, convert.StringValue(pDefault), p.IsRequired(), p.IsImmutable(), p.Description)
+			table.AddRow(p.Name, convert.StringValue(p.Default), p.IsRequired(), p.IsImmutable(), p.Description)
 		} else {
-			table.AddRow(p.Name, convert.StringValue(pDefault), p.IsRequired(), p.IsImmutable())
+			table.AddRow(p.Name, convert.StringValue(p.Default), p.IsRequired(), p.IsImmutable())
 		}
 	}
 	_, _ = fmt.Fprintln(out, table)
