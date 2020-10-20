@@ -28,18 +28,18 @@ func (p Package) OperatorName() string {
 	return p.Resources.Operator.Name
 }
 
-func (p Package) OperatorVersionString() string {
-	if p.Resources == nil || p.Resources.OperatorVersion == nil {
+func (p *Resources) OperatorVersionString() string {
+	if p == nil || p.OperatorVersion == nil {
 		return ""
 	}
-	return p.Resources.OperatorVersion.Spec.Version
+	return p.OperatorVersion.Spec.Version
 }
 
-func (p Package) AppVersionString() string {
-	if p.Resources == nil || p.Resources.OperatorVersion == nil {
+func (p *Resources) AppVersionString() string {
+	if p == nil || p.OperatorVersion == nil {
 		return ""
 	}
-	return p.Resources.OperatorVersion.Spec.AppVersion
+	return p.OperatorVersion.Spec.AppVersion
 }
 
 // Resources is collection of CRDs that are used when installing operator

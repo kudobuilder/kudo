@@ -25,8 +25,8 @@ func (resolver nameResolver) Resolve(
 	operatorVersion string) (*packages.Resources, error) {
 	for _, pr := range resolver.Prs {
 		if pr.Operator.Name == name &&
-			(operatorVersion == "" || pr.OperatorVersion.Spec.Version == operatorVersion) &&
-			(appVersion == "" || pr.OperatorVersion.Spec.AppVersion == appVersion) {
+			(operatorVersion == "" || pr.OperatorVersionString() == operatorVersion) &&
+			(appVersion == "" || pr.AppVersionString() == appVersion) {
 			return &pr, nil
 		}
 	}

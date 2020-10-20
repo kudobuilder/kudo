@@ -12,7 +12,7 @@ import (
 // AddPlan adds a plan to the operator.yaml file
 func AddPlan(fs afero.Fs, path string, planName string, plan *kudoapi.Plan) error {
 
-	pf, err := reader.FromDir(fs, path)
+	pf, err := reader.PackageFilesFromDir(fs, path)
 	if err != nil {
 		return err
 	}
@@ -30,7 +30,7 @@ func AddPlan(fs afero.Fs, path string, planName string, plan *kudoapi.Plan) erro
 
 // PlanList provides a list of operator plans
 func PlanList(fs afero.Fs, path string) (map[string]kudoapi.Plan, error) {
-	p, err := reader.FromDir(fs, path)
+	p, err := reader.PackageFilesFromDir(fs, path)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func PlanList(fs afero.Fs, path string) (map[string]kudoapi.Plan, error) {
 func PlanNameList(fs afero.Fs, path string) ([]string, error) {
 
 	names := []string{}
-	p, err := reader.FromDir(fs, path)
+	p, err := reader.PackageFilesFromDir(fs, path)
 	if err != nil {
 		return nil, err
 	}

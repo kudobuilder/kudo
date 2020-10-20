@@ -10,7 +10,7 @@ import (
 // AddParameter writes a parameter to the params.yaml file
 func AddParameter(fs afero.Fs, path string, p *packages.Parameter) error {
 
-	pf, err := reader.FromDir(fs, path)
+	pf, err := reader.PackageFilesFromDir(fs, path)
 	if err != nil {
 		return err
 	}
@@ -22,7 +22,7 @@ func AddParameter(fs afero.Fs, path string, p *packages.Parameter) error {
 }
 
 func ParameterNameList(fs afero.Fs, path string) (paramNames []string, err error) {
-	pf, err := reader.FromDir(fs, path)
+	pf, err := reader.PackageFilesFromDir(fs, path)
 	if err != nil {
 		return nil, err
 	}

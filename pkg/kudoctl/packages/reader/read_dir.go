@@ -16,7 +16,7 @@ import (
 // is always local. The path can be relative or absolute location of the packages.
 func ReadDir(fs afero.Fs, path string) (*packages.Resources, error) {
 	// 1. get files
-	files, err := FromDir(fs, path)
+	files, err := PackageFilesFromDir(fs, path)
 	if err != nil {
 		return nil, fmt.Errorf("while parsing package files: %v", err)
 	}
@@ -30,8 +30,8 @@ func ReadDir(fs afero.Fs, path string) (*packages.Resources, error) {
 	return resources, nil
 }
 
-// FromDir walks the path provided and returns package files or an error
-func FromDir(fs afero.Fs, packagePath string) (*packages.Files, error) {
+// PackageFilesFromDir walks the path provided and returns package files or an error
+func PackageFilesFromDir(fs afero.Fs, packagePath string) (*packages.Files, error) {
 	if packagePath == "" {
 		return nil, fmt.Errorf("path must be specified")
 	}
