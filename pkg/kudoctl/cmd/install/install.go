@@ -87,12 +87,12 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 		resolver = pkgresolver.New(repoClient)
 	}
 
-	pkg, err := resolver.Resolve(operatorArgument, options.AppVersion, options.OperatorVersion)
+	pr, err := resolver.Resolve(operatorArgument, options.AppVersion, options.OperatorVersion)
 	if err != nil {
 		return fmt.Errorf("failed to resolve operator package for: %s %w", operatorArgument, err)
 	}
 
-	dependencies, err := deps.Resolve(operatorArgument, pkg.Resources.OperatorVersion, resolver)
+	dependencies, err := deps.Resolve(operatorArgument, pr.OperatorVersion, resolver)
 	if err != nil {
 		return err
 	}
@@ -111,7 +111,7 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 		kudoClient,
 		options.InstanceName,
 		settings.Namespace,
-		*pkg.Resources,
+		*pr,
 		options.Parameters,
 		dependencies,
 		installOpts)

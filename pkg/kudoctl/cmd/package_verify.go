@@ -56,7 +56,7 @@ func (c *packageVerifyCmd) run(path string) error {
 }
 
 func verifyPackage(fs afero.Fs, path string, out io.Writer, outType output.Type, additionalVerifiers []packages.Verifier) error {
-	pf, err := reader.FromDir(fs, path)
+	pf, err := reader.PackageFilesFromDir(fs, path)
 	if err != nil {
 		return err
 	}

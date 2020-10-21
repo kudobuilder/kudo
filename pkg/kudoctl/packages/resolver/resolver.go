@@ -13,7 +13,7 @@ import (
 // Resolver will try to resolve a given package name to either local tarball, folder, remote url or
 // an operator in the remote repository.
 type Resolver interface {
-	Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error)
+	Resolve(name string, appVersion string, operatorVersion string) (*packages.Resources, error)
 }
 
 // PackageResolver is the source of resolver of operator packages.
@@ -49,7 +49,7 @@ func NewInClusterResolver(c *kudo.Client, ns string) Resolver {
 // For local access there is a need to provide absolute or relative path as part of the name argument. `cassandra` without a path
 // component will resolve to the remote repo.  `./cassandra` will resolve to a folder which is expected to have the operator structure on the filesystem.
 // `../folder/cassandra.tgz` will resolve to the cassandra package tarball on the filesystem.
-func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersion string) (p *packages.Package, err error) {
+func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersion string) (p *packages.Resources, err error) {
 
 	// Local files/folder have priority
 	_, err = m.local.fs.Stat(name)
