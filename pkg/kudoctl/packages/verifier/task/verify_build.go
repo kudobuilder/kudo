@@ -1,6 +1,8 @@
 package task
 
 import (
+	"fmt"
+
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
@@ -22,8 +24,15 @@ func tasksWellDefined(pf *packages.Files) verifier.Result {
 	for _, tt := range pf.Operator.Tasks {
 		tt := tt
 
-		if _, err := task.Build(&tt); err != nil {
-			result.AddErrors(err.Error())
+		switch tt.Kind {
+		case task.KudoOperatorTaskKind:
+			if tt.Spec.KudoOperatorTaskSpec.Package == "" {
+				result.AddErrors(fmt.Sprintf("task validation error: kudo operator task '%s' has an empty package name", tt.Name))
+			}
+		default:
+			if _, err := task.Build(&tt); err != nil {
+				result.AddErrors(err.Error())
+			}
 		}
 	}
 	return result

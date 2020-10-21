@@ -16,15 +16,12 @@ import (
 // This resolver is only used to make sure that all the dependencies of an operator exist and that referenced operator versions
 // are installed and uniquely identifiable by the passed operator name, appVersion and operatorVersion parameters
 // (see pkg/apis/kudo/v1beta1/operatorversion_types_helpers.go::OperatorVersionName method).
-// Also, note that unlike other resolvers, the resulting 'packages.Package' struct does not contain package 'packages.Files'
-// (we don't have the original files) and doesn't have an Instance resource because multiple Instances of the same
-// Operator/OperatorVersion  can exist.
 type InClusterResolver struct {
 	c  client.Client
 	ns string
 }
 
-func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
+func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Resources, error) {
 	ovn := kudoapi.OperatorVersionName(name, appVersion, operatorVersion)
 
 	ov, err := kudoapi.GetOperatorVersionByName(ovn, r.ns, r.c)
@@ -37,12 +34,9 @@ func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersi
 		return nil, fmt.Errorf("failed to resolve operator %s/%s", r.ns, name)
 	}
 
-	return &packages.Package{
-		Resources: &packages.Resources{
-			Operator:        o,
-			OperatorVersion: ov,
-			Instance:        nil,
-		},
-		Files: nil,
+	return &packages.Resources{
+		Operator:        o,
+		OperatorVersion: ov,
+		Instance:        nil,
 	}, nil
 }

@@ -7,7 +7,7 @@ import (
 
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
+	deps "github.com/kudobuilder/kudo/pkg/kudoctl/resources/dependencies"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/resources/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
@@ -20,7 +20,7 @@ func OperatorVersion(
 	newOv *kudoapi.OperatorVersion,
 	instanceName string,
 	parameters map[string]string,
-	resolver resolver.Resolver) error {
+	dependencies []deps.Dependency) error {
 
 	ov, err := operatorVersionFromInstance(kc, instanceName, newOv.Namespace)
 	if err != nil {
@@ -36,7 +36,7 @@ func OperatorVersion(
 		return fmt.Errorf("failed to retrieve operator %s/%s: %v", newOv.Namespace, newOv.Spec.Operator.Name, err)
 	}
 
-	if err := install.OperatorAndOperatorVersion(kc, o, newOv, resolver); err != nil {
+	if err := install.OperatorAndOperatorVersion(kc, o, newOv, dependencies); err != nil {
 		return fmt.Errorf("failed to install new operatorversion %s/%s: %v", newOv.Namespace, newOv.Name, err)
 	}
 

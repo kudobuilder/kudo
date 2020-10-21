@@ -1,0 +1,4 @@
+apiVersion: kudo.dev/v1beta1
+kind: TestStep
+commands:
+  - command: kubectl delete -f cert-manager/cert-manager-0.16.0.yaml

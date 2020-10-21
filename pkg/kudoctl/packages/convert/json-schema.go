@@ -37,8 +37,8 @@ func newSchema() *jsonSchema {
 	}
 }
 
-func buildGroups(pkg *packages.Package) map[string]packages.Group {
-	params := pkg.Files.Params
+func buildGroups(pkg *packages.Files) map[string]packages.Group {
+	params := pkg.Params
 
 	groups := map[string]packages.Group{}
 	for _, g := range params.Groups {
@@ -128,16 +128,16 @@ func buildParamSchema(p packages.Parameter) *jsonSchema {
 	return param
 }
 
-func WriteJSONSchema(pkg *packages.Package, outputType output.Type, out io.Writer) error {
+func WriteJSONSchema(pkg *packages.Files, outputType output.Type, out io.Writer) error {
 	root := newSchema()
 	topLevelGroups := buildTopLevelGroups(buildGroups(pkg))
 
 	root.Properties = topLevelGroups
 	root.Type = "object"
 	root.Description = "All parameters for this operator"
-	root.Title = fmt.Sprintf("Parameters for %s", pkg.Files.Operator.Name)
+	root.Title = fmt.Sprintf("Parameters for %s", pkg.Operator.Name)
 
-	for _, p := range pkg.Files.Params.Parameters {
+	for _, p := range pkg.Params.Parameters {
 		param := buildParamSchema(p)
 
 		// Assign to correct parent
