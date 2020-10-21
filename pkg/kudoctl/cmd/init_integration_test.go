@@ -1,5 +1,3 @@
-// +build integration
-
 package cmd
 
 import (
@@ -12,11 +10,17 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	testutils "github.com/kudobuilder/kuttl/pkg/test/utils"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
+	"github.com/kudobuilder/kudo/pkg/apis"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
@@ -102,10 +107,19 @@ func runtimeObjectAsBytes(o runtime.Object) ([]byte, error) {
 	return append([]byte("\n---\n"), bytes...), nil
 }
 
+// Scheme returns an initialized Kubernetes Scheme.
+func testScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(apis.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
+
+	return scheme
+}
+
 func TestIntegInitForCRDs(t *testing.T) {
 	// Kubernetes client caches the types, so we need to re-initialize it.
 	testClient, err := testutils.NewRetryClient(testenv.Config, client.Options{
-		Scheme: testutils.Scheme(),
+		Scheme: testScheme(),
 	})
 	assert.NoError(t, err)
 	kclient := getKubeClient(t)
@@ -130,7 +144,10 @@ func TestIntegInitForCRDs(t *testing.T) {
 	err = cmd.run()
 	assert.NoError(t, err)
 	// WaitForCRDs to be created... the init cmd did NOT wait
-	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+	assert.NoError(t, envtest.WaitForCRDs(testenv.Config, crds, envtest.CRDInstallOptions{
+		PollInterval: 100 * time.Millisecond,
+		MaxTime:      10 * time.Second,
+	}))
 	defer func() {
 		assert.NoError(t, deleteObjects(crds, testClient))
 	}()

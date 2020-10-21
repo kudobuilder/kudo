@@ -172,7 +172,7 @@ ifneq ($(shell go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools), $(she
 	@echo "(Re-)installing controller-gen. Current version:  $(controller-gen --version 2>/dev/null | cut -b 10-). Need $(go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools)"
 	go get sigs.k8s.io/controller-tools/cmd/controller-gen@$$(go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools)
 endif
-	controller-gen crd:crdVersions=v1beta1 paths=./pkg/apis/... output:crd:dir=config/crds output:stdout
+	controller-gen crd paths=./pkg/apis/... output:crd:dir=config/crds output:stdout
 ifeq (, $(shell which go-bindata))
 	go get github.com/go-bindata/go-bindata/v3/go-bindata@$$(go list -f '{{.Version}}' -m github.com/go-bindata/go-bindata/v3)
 endif
