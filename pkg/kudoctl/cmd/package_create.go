@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/writer"
 )
 
@@ -73,7 +74,7 @@ func validateOperatorArg(args []string) error {
 
 // run returns the errors associated with cmd env
 func (pkg *packageCreateCmd) run() error {
-	err := verifyPackage(pkg.fs, pkg.path, pkg.out, pkg.output)
+	err := verifyPackage(pkg.fs, pkg.path, pkg.out, pkg.output, []packages.Verifier{})
 	if err != nil {
 		return err
 	}

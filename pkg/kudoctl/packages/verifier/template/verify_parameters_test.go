@@ -167,5 +167,5 @@ func TestMetadata(t *testing.T) {
 	assert.Equal(t, 3, len(res.Errors))
 	assert.Equal(t, `parameter "InvalidGroup" has a group with invalid character '/'`, res.Errors[0])
 	assert.Equal(t, `parameter "InvalidAdvanced" is marked as advanced, but also as required and has no default. An advanced parameter must either be optional or have a default value`, res.Errors[1])
-	assert.Equal(t, `parameter "InvalidGroup" has a group that is not defined in the group section`, res.Errors[2])
+	assert.Equal(t, `parameter "InvalidGroup" has a group "some/group" that is not defined in the group section`, res.Errors[2])
 }
