@@ -104,18 +104,17 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 	}
 
 	resolver := pkgresolver.New(repository)
-	pkg, err := resolver.Resolve(packageToUpgrade, options.AppVersion, options.OperatorVersion)
+	pr, err := resolver.Resolve(packageToUpgrade, options.AppVersion, options.OperatorVersion)
 	if err != nil {
 		return fmt.Errorf("failed to resolve operator package for: %s: %w", packageToUpgrade, err)
 	}
 
-	resources := pkg.Resources
-	resources.OperatorVersion.SetNamespace(settings.Namespace)
+	pr.OperatorVersion.SetNamespace(settings.Namespace)
 
-	dependencies, err := deps.Resolve(packageToUpgrade, resources.OperatorVersion, resolver)
+	dependencies, err := deps.Resolve(packageToUpgrade, pr.OperatorVersion, resolver)
 	if err != nil {
 		return err
 	}
 
-	return upgrade.OperatorVersion(kc, resources.OperatorVersion, options.InstanceName, options.Parameters, dependencies)
+	return upgrade.OperatorVersion(kc, pr.OperatorVersion, options.InstanceName, options.Parameters, dependencies)
 }

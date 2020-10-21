@@ -10,44 +10,33 @@ const (
 	APIVersion = "kudo.dev/v1beta1"
 )
 
-// This is an abstraction which abstracts the underlying packages, which is likely file system or compressed file.
-// There should be a complete separation between retrieving a packages if not local and working with a packages.
-
-// Package is an abstraction of the collection of files that makes up a package.  It is anything we can retrieve the Resources from.
-type Package struct {
-	// transformed server view
-	Resources *Resources
-	// working with local package files
-	Files *Files
-}
-
-func (p Package) OperatorName() string {
-	if p.Resources == nil || p.Resources.Operator == nil {
-		return ""
-	}
-	return p.Resources.Operator.Name
-}
-
-func (p Package) OperatorVersionString() string {
-	if p.Resources == nil || p.Resources.OperatorVersion == nil {
-		return ""
-	}
-	return p.Resources.OperatorVersion.Spec.Version
-}
-
-func (p Package) AppVersionString() string {
-	if p.Resources == nil || p.Resources.OperatorVersion == nil {
-		return ""
-	}
-	return p.Resources.OperatorVersion.Spec.AppVersion
-}
-
 // Resources is collection of CRDs that are used when installing operator
 // during installation, package format is converted to this structure
 type Resources struct {
 	Operator        *kudoapi.Operator
 	OperatorVersion *kudoapi.OperatorVersion
 	Instance        *kudoapi.Instance
+}
+
+func (p *Resources) OperatorName() string {
+	if p == nil || p.Operator == nil {
+		return ""
+	}
+	return p.Operator.Name
+}
+
+func (p *Resources) OperatorVersionString() string {
+	if p == nil || p.OperatorVersion == nil {
+		return ""
+	}
+	return p.OperatorVersion.Spec.Version
+}
+
+func (p *Resources) AppVersionString() string {
+	if p == nil || p.OperatorVersion == nil {
+		return ""
+	}
+	return p.OperatorVersion.Spec.AppVersion
 }
 
 // Modified kudoapi.Parameter that allows for defaults provided as YAML.

@@ -10,11 +10,11 @@ import (
 // AddMaintainer adds a maintainer to the operator.yaml
 func AddMaintainer(fs afero.Fs, path string, m *kudoapi.Maintainer) error {
 
-	p, err := reader.ReadDir(fs, path)
+	pf, err := reader.PackageFilesFromDir(fs, path)
 	if err != nil {
 		return err
 	}
-	o := p.Files.Operator
+	o := pf.Operator
 
 	o.Maintainers = append(o.Maintainers, m)
 
@@ -23,10 +23,10 @@ func AddMaintainer(fs afero.Fs, path string, m *kudoapi.Maintainer) error {
 
 // MaintainerList provides a list of operator maintainers
 func MaintainerList(fs afero.Fs, path string) ([]*kudoapi.Maintainer, error) {
-	p, err := reader.ReadDir(fs, path)
+	pf, err := reader.PackageFilesFromDir(fs, path)
 	if err != nil {
 		return nil, err
 	}
 
-	return p.Files.Operator.Maintainers, nil
+	return pf.Operator.Maintainers, nil
 }

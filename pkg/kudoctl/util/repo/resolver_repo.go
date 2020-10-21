@@ -36,7 +36,7 @@ func (b EntrySummaries) Less(x, y int) bool {
 
 // Resolve returns a Package for a passed package name and optional version. This is an implementation
 // of the Resolver interface located in packages/resolver/resolver.go
-func (c *Client) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
+func (c *Client) Resolve(name string, appVersion string, operatorVersion string) (*packages.Resources, error) {
 	buf, err := c.GetPackageBytes(name, appVersion, operatorVersion)
 	if err != nil {
 		return nil, err
@@ -53,10 +53,7 @@ func (c *Client) Resolve(name string, appVersion string, operatorVersion string)
 		return nil, err
 	}
 
-	return &packages.Package{
-		Resources: resources,
-		Files:     files,
-	}, nil
+	return resources, nil
 }
 
 func (c *Client) Find(search string, allVersions bool) (EntrySummaries, error) {

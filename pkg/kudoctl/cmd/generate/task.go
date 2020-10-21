@@ -13,11 +13,11 @@ import (
 
 // AddTask adds a task to the operator.yaml file
 func AddTask(fs afero.Fs, path string, task *kudoapi.Task) error {
-	p, err := reader.ReadDir(fs, path)
+	p, err := reader.PackageFilesFromDir(fs, path)
 	if err != nil {
 		return err
 	}
-	o := p.Files.Operator
+	o := p.Operator
 
 	o.Tasks = append(o.Tasks, *task)
 
@@ -26,12 +26,12 @@ func AddTask(fs afero.Fs, path string, task *kudoapi.Task) error {
 
 // TaskList provides a list of operator tasks
 func TaskList(fs afero.Fs, path string) ([]kudoapi.Task, error) {
-	p, err := reader.ReadDir(fs, path)
+	p, err := reader.PackageFilesFromDir(fs, path)
 	if err != nil {
 		return nil, err
 	}
 
-	return p.Files.Operator.Tasks, nil
+	return p.Operator.Tasks, nil
 }
 
 func TaskInList(fs afero.Fs, path, taskName string) (bool, error) {

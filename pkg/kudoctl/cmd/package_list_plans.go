@@ -10,9 +10,9 @@ import (
 	"github.com/thoas/go-funk"
 	"github.com/xlab/treeprint"
 
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
 type packageListPlansCmd struct {
@@ -59,21 +59,21 @@ func newPackageListPlansCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 }
 
 func (c *packageListPlansCmd) run(settings *env.Settings) error {
-	pf, err := packageDiscovery(c.fs, settings, c.RepoName, c.pathOrName, c.AppVersion, c.OperatorVersion)
+	pr, err := packageDiscovery(c.fs, settings, c.RepoName, c.pathOrName, c.AppVersion, c.OperatorVersion)
 	if err != nil {
 		return err
 	}
 
-	displayPlanTable(pf.Files, c.WithTasksResources, c.out)
+	displayPlanTable(pr.OperatorVersion, c.WithTasksResources, c.out)
 	return nil
 }
 
-func displayPlanTable(pf *packages.Files, withTasks bool, out io.Writer) {
+func displayPlanTable(ov *kudoapi.OperatorVersion, withTasks bool, out io.Writer) {
 	tree := treeprint.New()
-	planNames := sortedPlanNames(pf)
+	planNames := sortedPlanNames(ov.Spec.Plans)
 	tree.SetValue("plans")
 	for _, name := range planNames {
-		plan := pf.Operator.Plans[name]
+		plan := ov.Spec.Plans[name]
 		pNode := tree.AddBranch(fmt.Sprintf("%s (%s)", name, plan.Strategy))
 
 		for _, phase := range plan.Phases {
@@ -82,7 +82,7 @@ func displayPlanTable(pf *packages.Files, withTasks bool, out io.Writer) {
 				sNode := phNode.AddMetaBranch("step", step.Name)
 				for _, taskName := range step.Tasks {
 					if withTasks {
-						addTaskNodeWithResources(sNode, taskName, pf)
+						addTaskNodeWithResources(sNode, taskName, ov.Spec.Tasks)
 					} else {
 						sNode.AddNode(taskName)
 					}
@@ -91,15 +91,15 @@ func displayPlanTable(pf *packages.Files, withTasks bool, out io.Writer) {
 		}
 	}
 
-	if len(pf.Operator.Plans) == 0 {
+	if len(ov.Spec.Plans) == 0 {
 		fmt.Fprintf(out, "no plans found\n")
 	} else {
 		fmt.Fprintln(out, tree.String())
 	}
 }
 
-func sortedPlanNames(pf *packages.Files) []string {
-	planNames, ok := funk.Keys(pf.Operator.Plans).([]string)
+func sortedPlanNames(plans map[string]kudoapi.Plan) []string {
+	planNames, ok := funk.Keys(plans).([]string)
 	if !ok {
 		panic("funk.Keys returned unexpected type")
 	}
@@ -107,8 +107,8 @@ func sortedPlanNames(pf *packages.Files) []string {
 	return planNames
 }
 
-func addTaskNodeWithResources(sNode treeprint.Tree, taskName string, pf *packages.Files) {
-	for _, t := range pf.Operator.Tasks {
+func addTaskNodeWithResources(sNode treeprint.Tree, taskName string, tasks []kudoapi.Task) {
+	for _, t := range tasks {
 		if t.Name == taskName {
 			switch t.Kind {
 			case task.ApplyTaskKind:

@@ -14,20 +14,9 @@ import (
 
 // ReadPackage creates the implementation of the packages based on the path. The expectation is the packages
 // is always local. The path can be relative or absolute location of the packages.
-func ReadDir(fs afero.Fs, path string) (*packages.Package, error) {
-	//	make sure file exists
-	fi, err := fs.Stat(path)
-	if err != nil {
-		clog.V(4).Printf("error reading package directory %s", path)
-		return nil, err
-	}
-	if !fi.IsDir() {
-		clog.V(0).Printf("%s is not a package directory", path)
-		return nil, err
-	}
-
+func ResourcesFromDir(fs afero.Fs, path string) (*packages.Resources, error) {
 	// 1. get files
-	files, err := FromDir(fs, path)
+	files, err := PackageFilesFromDir(fs, path)
 	if err != nil {
 		return nil, fmt.Errorf("while parsing package files: %v", err)
 	}
@@ -38,14 +27,11 @@ func ReadDir(fs afero.Fs, path string) (*packages.Package, error) {
 		return nil, fmt.Errorf("while getting package resources: %v", err)
 	}
 
-	return &packages.Package{
-		Resources: resources,
-		Files:     files,
-	}, nil
+	return resources, nil
 }
 
-// FromDir walks the path provided and returns package files or an error
-func FromDir(fs afero.Fs, packagePath string) (*packages.Files, error) {
+// PackageFilesFromDir walks the path provided and returns package files or an error
+func PackageFilesFromDir(fs afero.Fs, packagePath string) (*packages.Files, error) {
 	if packagePath == "" {
 		return nil, fmt.Errorf("path must be specified")
 	}
@@ -59,9 +45,20 @@ func FromDir(fs afero.Fs, packagePath string) (*packages.Files, error) {
 		packagePath = absPackagePath
 	}
 
+	//	make sure file exists
+	fi, err := fs.Stat(packagePath)
+	if err != nil {
+		clog.V(4).Printf("error reading package directory %s", packagePath)
+		return nil, err
+	}
+	if !fi.IsDir() {
+		clog.V(0).Printf("%s is not a package directory", packagePath)
+		return nil, err
+	}
+
 	result := newPackageFiles()
 
-	err := afero.Walk(fs, packagePath, func(path string, file os.FileInfo, err error) error {
+	err = afero.Walk(fs, packagePath, func(path string, file os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}

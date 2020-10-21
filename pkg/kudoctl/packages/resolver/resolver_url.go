@@ -17,7 +17,7 @@ type URLResolver struct {
 }
 
 // Resolve returns a package for the provided url
-func (f *URLResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error) {
+func (f *URLResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.Resources, error) {
 	// check to see if name is url
 	if !http.IsValidURL(name) {
 		return nil, fmt.Errorf("resolver: url %v invalid", name)
@@ -38,10 +38,7 @@ func (f *URLResolver) Resolve(name string, appVersion string, operatorVersion st
 
 	clog.V(0).Printf("%v is a remote tgz package", name)
 
-	return &packages.Package{
-		Resources: resources,
-		Files:     files,
-	}, nil
+	return resources, nil
 }
 
 func (f *URLResolver) getPackageByURL(url string) (*bytes.Buffer, error) {
