@@ -12,6 +12,7 @@ import (
 
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
+	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
 type jsonSchema struct {
@@ -20,6 +21,7 @@ type jsonSchema struct {
 	Description string                 `json:"description,omitempty"`
 	Priority    int                    `json:"priority,omitempty"`
 	Default     interface{}            `json:"default,omitempty"`
+	Enum        []interface{}          `json:"enum,omitempty"`
 	Type        string                 `json:"type,omitempty"`
 	Immutable   bool                   `json:"immutable,omitempty"`
 	Advanced    bool                   `json:"advanced,omitempty"`
@@ -27,6 +29,20 @@ type jsonSchema struct {
 	ListName    string                 `json:"listName,omitempty"`
 	Properties  map[string]*jsonSchema `json:"properties,omitempty"`
 	Required    []string               `json:"required,omitempty"`
+}
+
+func (j *jsonSchema) hasRequiredPropertyWithoutDefault() bool {
+	for _, pName := range j.Required {
+		prop := j.Properties[pName]
+
+		if prop.Default == nil {
+			return true
+		}
+		if prop.hasRequiredPropertyWithoutDefault() {
+			return true
+		}
+	}
+	return false
 }
 
 func newSchema() *jsonSchema {
@@ -98,7 +114,37 @@ func jsonSchemaTypeFromKudoType(parameterType kudoapi.ParameterType) string {
 	}
 }
 
-func buildParamSchema(p kudoapi.Parameter) *jsonSchema {
+func UnwrapToJSONType(wrapped string, parameterType kudoapi.ParameterType) (unwrapped interface{}, err error) {
+	switch parameterType {
+	case kudoapi.MapValueType,
+		kudoapi.ArrayValueType,
+		kudoapi.NumberValueType,
+		kudoapi.BooleanValueType:
+		return convert.UnwrapParamValue(&wrapped, parameterType)
+	case kudoapi.IntegerValueType,
+		kudoapi.StringValueType:
+		// We keep integers as strings, as JSON only supports numbers, which may not always map correctly to integers
+		return wrapped, nil
+	default:
+		return wrapped, nil
+	}
+}
+
+func UnwrapEnumValues(values []string, parameterType kudoapi.ParameterType) ([]interface{}, error) {
+	result := make([]interface{}, 0, len(values))
+	for _, v := range values {
+		vUnwrapped, err := UnwrapToJSONType(v, parameterType)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, vUnwrapped)
+	}
+	return result, nil
+}
+
+func buildParamSchema(p kudoapi.Parameter) (*jsonSchema, error) {
+	var err error
+
 	param := newSchema()
 
 	if p.DisplayName != "" {
@@ -108,7 +154,9 @@ func buildParamSchema(p kudoapi.Parameter) *jsonSchema {
 		param.Description = p.Description
 	}
 	if p.HasDefault() {
-		param.Default = p.Default
+		if param.Default, err = UnwrapToJSONType(*p.Default, p.Type); err != nil {
+			return nil, fmt.Errorf("failed to convert default value %s: %v", *p.Default, err)
+		}
 	}
 	param.Type = jsonSchemaTypeFromKudoType(p.Type)
 	if p.IsImmutable() {
@@ -121,8 +169,13 @@ func buildParamSchema(p kudoapi.Parameter) *jsonSchema {
 		param.Hint = p.Hint
 	}
 	param.ListName = p.Name
+	if p.IsEnum() {
+		if param.Enum, err = UnwrapEnumValues(p.EnumValues(), p.Type); err != nil {
+			return nil, fmt.Errorf("failed to convert enum values: %v", err)
+		}
+	}
 
-	return param
+	return param, nil
 }
 
 func WriteJSONSchema(ov *kudoapi.OperatorVersion, outputType output.Type, out io.Writer) error {
@@ -135,7 +188,10 @@ func WriteJSONSchema(ov *kudoapi.OperatorVersion, outputType output.Type, out io
 	root.Title = fmt.Sprintf("Parameters for %s", ov.Name)
 
 	for _, p := range ov.Spec.Parameters {
-		param := buildParamSchema(p)
+		param, err := buildParamSchema(p)
+		if err != nil {
+			return fmt.Errorf("failed to convert parameter %s: %v", p.Name, err)
+		}
 
 		// Assign to correct parent
 		parent := topLevelGroups[p.Group]
@@ -148,6 +204,12 @@ func WriteJSONSchema(ov *kudoapi.OperatorVersion, outputType output.Type, out io
 		}
 
 		parent.Properties[p.Name] = param
+	}
+
+	for k, v := range topLevelGroups {
+		if v.hasRequiredPropertyWithoutDefault() {
+			root.Required = append(root.Required, k)
+		}
 	}
 
 	buf := new(bytes.Buffer)
@@ -171,7 +233,6 @@ func WriteJSONSchema(ov *kudoapi.OperatorVersion, outputType output.Type, out io
 		return fmt.Errorf("error parsing JSON bytes: %s", err.Error())
 	}
 
-	fmt.Printf("Start validating...\n")
 	vs := s.Validate(context.TODO(), doc)
 	errs := *vs.Errs
 	if len(errs) > 0 {

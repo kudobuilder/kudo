@@ -35,6 +35,8 @@ func UnwrapParamValue(wrapped *string, parameterType kudoapi.ParameterType) (unw
 		unwrapped, err = strconv.ParseInt(StringValue(wrapped), 10, 32)
 	case kudoapi.NumberValueType:
 		unwrapped, err = strconv.ParseFloat(StringValue(wrapped), 64)
+	case kudoapi.BooleanValueType:
+		unwrapped, err = strconv.ParseBool(StringValue(wrapped))
 	case kudoapi.StringValueType:
 		fallthrough
 	default:
