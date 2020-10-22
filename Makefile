@@ -197,7 +197,13 @@ endif
 # example: make update-golden
 # tests in update==true mode show as failures
 update-golden: ## Updates golden files
+ifdef _INTELLIJ_FORCE_SET_GOFLAGS
+	# Run tests from a Goland terminal. Goland already set '-mod=readonly'
+	go test ./pkg/... --update=true
+else
 	go test ./pkg/... -v -mod=readonly --update=true
+endif
+
 
 .PHONY: todo
 # Show to-do items per file.
