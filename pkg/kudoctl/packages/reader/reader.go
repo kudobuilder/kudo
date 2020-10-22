@@ -14,7 +14,7 @@ import (
 // is always local. The path can be relative or absolute location of the packages. Order of the discovery is:
 // 1. tarball
 // 2. dir based
-func Read(fs afero.Fs, path string) (*packages.Package, error) {
+func Read(fs afero.Fs, path string) (*packages.Resources, error) {
 	//	make sure file exists
 	fi, err := fs.Stat(path)
 	if err != nil {
@@ -27,7 +27,7 @@ func Read(fs afero.Fs, path string) (*packages.Package, error) {
 		return ReadTar(fs, path)
 	} else if fi.IsDir() {
 		clog.V(0).Printf("%v is a file package", path)
-		return ReadDir(fs, path)
+		return ResourcesFromDir(fs, path)
 	} else {
 		return nil, fmt.Errorf("unsupported file system format %v. Expect either a *.tgz file or a folder", path)
 	}

@@ -51,7 +51,7 @@ func TestPrereq_Fail_PreValidate_Webhook_WrongCertificateVersion(t *testing.T) {
 	_ = init.PreInstallVerify(client, &result)
 
 	assert.EqualValues(t, verifier.NewWarning(
-		"Detected cert-manager CRDs with version v0, only versions [v1alpha2 v1alpha3] are fully supported. Certificates for webhooks may not work.",
+		"Detected cert-manager CRDs with version v0, only versions [v1 v1beta1 v1alpha3 v1alpha2] are fully supported. Certificates for webhooks may not work.",
 	), result)
 }
 
@@ -67,7 +67,7 @@ func TestPrereq_Fail_PreValidate_Webhook_WrongCertManagerInstallation(t *testing
 	_ = init.PreInstallVerify(client, &result)
 
 	assert.EqualValues(t, verifier.NewError(
-		"invalid CRD version found for 'issuers.cert-manager.io': v0 instead of v1alpha2",
+		"CRD versions for 'issuers.cert-manager.io' are [v0], did not find expected version v1alpha2 or it is not served",
 	), result)
 }
 
@@ -95,7 +95,7 @@ func TestPrereq_Fail_PreValidate_Webhook_WrongIssuerVersion(t *testing.T) {
 	result := verifier.NewResult()
 	_ = init.PreInstallVerify(client, &result)
 
-	assert.EqualValues(t, verifier.NewError("invalid CRD version found for 'issuers.cert-manager.io': v0 instead of v1alpha2"), result)
+	assert.EqualValues(t, verifier.NewError("CRD versions for 'issuers.cert-manager.io' are [v0], did not find expected version v1alpha2 or it is not served"), result)
 }
 
 func TestPrereq_Ok_PreValidate_Webhook_CertManager_v1alpha2(t *testing.T) {
@@ -126,32 +126,81 @@ func TestPrereq_Ok_PreValidate_Webhook_CertManager_v1alpha1(t *testing.T) {
 	assert.Equal(t, 0, len(result.Errors))
 }
 
-func mockCRD(client *kube.Client, crdName string, apiVersion string) {
-	client.ExtClient.(*apiextensionsfake.Clientset).Fake.PrependReactor("get", "customresourcedefinitions", func(action testing2.Action) (handled bool, ret runtime.Object, err error) {
+func TestPrereq_Ok_PreValidate_Webhook_CertManager_MultipleVersions(t *testing.T) {
+	client := getFakeClient()
 
+	cert := createCrd("certificates.certmanager.k8s.io", "v1alpha1")
+	cert.Spec.Versions = append(cert.Spec.Versions, apiextensions.CustomResourceDefinitionVersion{
+		Name:    "v1beta1",
+		Served:  true,
+		Storage: false,
+	})
+	cert.Spec.Versions = append(cert.Spec.Versions, apiextensions.CustomResourceDefinitionVersion{
+		Name:    "v1beta2",
+		Served:  true,
+		Storage: false,
+	})
+
+	issuer := createCrd("issuers.certmanager.k8s.io", "v1alpha1")
+	issuer.Spec.Versions = append(cert.Spec.Versions, apiextensions.CustomResourceDefinitionVersion{
+		Name:    "v1beta1",
+		Served:  true,
+		Storage: false,
+	})
+	issuer.Spec.Versions = append(cert.Spec.Versions, apiextensions.CustomResourceDefinitionVersion{
+		Name:    "v1beta2",
+		Served:  true,
+		Storage: false,
+	})
+
+	mockFullCRD(client, cert)
+	mockFullCRD(client, issuer)
+
+	init := NewWebHookInitializer(kudoinit.NewOptions("", "", "", false, false))
+
+	result := verifier.NewResult()
+	_ = init.PreInstallVerify(client, &result)
+
+	assert.Equal(t, init.certManagerAPIVersion, "v1beta2")
+
+	assert.Equal(t, 0, len(result.Errors))
+}
+
+func mockFullCRD(client *kube.Client, definition *apiextensions.CustomResourceDefinition) {
+	client.ExtClient.(*apiextensionsfake.Clientset).Fake.PrependReactor("get", "customresourcedefinitions", func(action testing2.Action) (handled bool, ret runtime.Object, err error) {
 		getAction, _ := action.(testing2.GetAction)
 		if getAction != nil {
-			if getAction.GetName() == crdName {
-				crd := &apiextensions.CustomResourceDefinition{
-					TypeMeta: metav1.TypeMeta{
-						APIVersion: apiVersion,
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name: crdName,
-					},
-					Spec: apiextensions.CustomResourceDefinitionSpec{
-						Versions: []apiextensions.CustomResourceDefinitionVersion{
-							{
-								Name: apiVersion,
-							},
-						},
-					},
-					Status: apiextensions.CustomResourceDefinitionStatus{},
-				}
-				return true, crd, nil
+			if getAction.GetName() == definition.Name {
+				return true, definition, nil
 			}
 		}
-
 		return false, nil, nil
 	})
+}
+
+func createCrd(crdName string, apiVersion string) *apiextensions.CustomResourceDefinition {
+	return &apiextensions.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: apiVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: crdName,
+		},
+		Spec: apiextensions.CustomResourceDefinitionSpec{
+			Versions: []apiextensions.CustomResourceDefinitionVersion{
+				{
+					Name:    apiVersion,
+					Served:  true,
+					Storage: true,
+				},
+			},
+		},
+		Status: apiextensions.CustomResourceDefinitionStatus{},
+	}
+}
+
+func mockCRD(client *kube.Client, crdName string, apiVersion string) {
+	def := createCrd(crdName, apiVersion)
+	mockFullCRD(client, def)
+
 }

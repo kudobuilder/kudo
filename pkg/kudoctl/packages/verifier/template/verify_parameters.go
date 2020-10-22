@@ -124,7 +124,7 @@ func paramGroups(pf *packages.Files) verifier.Result {
 	for _, p := range pf.Params.Parameters {
 		if p.Group != "" {
 			if _, ok := groups[p.Group]; !ok {
-				res.AddParamError(p.Name, "has a group that is not defined in the group section")
+				res.AddParamError(p.Name, fmt.Sprintf("has a group %q that is not defined in the group section", p.Group))
 			}
 		}
 	}

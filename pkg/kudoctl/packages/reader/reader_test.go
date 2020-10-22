@@ -34,16 +34,16 @@ func TestReadFileSystemPackage(t *testing.T) {
 
 		t.Run(fmt.Sprintf("%s-from-%s", tt.name, tt.path), func(t *testing.T) {
 			var err error
-			var pkg *packages.Package
+			var pr *packages.Resources
 
 			if strings.HasSuffix(tt.path, ".tgz") {
-				pkg, err = ReadTar(fs, tt.path)
+				pr, err = ReadTar(fs, tt.path)
 			} else {
-				pkg, err = ReadDir(fs, tt.path)
+				pr, err = ResourcesFromDir(fs, tt.path)
 			}
 
 			assert.NoError(t, err, "unexpected error while reading the package")
-			actual := pkg.Resources
+			actual := pr
 
 			actual.Instance.ObjectMeta.Name = tt.instanceName
 			golden, err := loadResourcesFromPath(tt.goldenFiles)
