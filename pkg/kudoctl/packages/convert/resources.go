@@ -14,6 +14,21 @@ import (
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
 
+func ResourcesToParamFile(resources *packages.Resources) (*packages.ParamsFile, error) {
+	groups := ParameterGroupsToPackageType(resources.OperatorVersion.Spec.Groups)
+	params, err := ParametersToPackageType(resources.OperatorVersion.Spec.Parameters)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &packages.ParamsFile{
+		APIVersion: packages.APIVersion,
+		Groups:     groups,
+		Parameters: params,
+	}
+	return result, nil
+}
+
 func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 	if files.Operator == nil {
 		return nil, errors.New("operator.yaml file is missing")
@@ -54,6 +69,8 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 		return nil, err
 	}
 
+	groups := ParameterGroupsToCRDType(files.Params.Groups)
+
 	fv := &kudoapi.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "OperatorVersion",
@@ -72,6 +89,7 @@ func FilesToResources(files *packages.Files) (*packages.Resources, error) {
 			Templates:      files.Templates,
 			Tasks:          files.Operator.Tasks,
 			Parameters:     parameters,
+			Groups:         groups,
 			Plans:          files.Operator.Plans,
 			UpgradableFrom: nil,
 		},

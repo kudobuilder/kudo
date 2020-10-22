@@ -134,9 +134,13 @@ func (c *packageListParamsCmd) run(settings *env.Settings) error {
 
 	switch c.Format {
 	case outputFormatList:
-		return output.WriteObject(pr.OperatorVersion.Spec.Parameters, c.Output, c.out)
+		paramFile, err := packageconvert.ResourcesToParamFile(pr)
+		if err != nil {
+			return err
+		}
+		return output.WriteObject(paramFile, c.Output, c.out)
 	case outputFormatJSONSchema:
-		return packageconvert.WriteJSONSchema(nil, c.Output, c.out)
+		return packageconvert.WriteJSONSchema(pr.OperatorVersion, c.Output, c.out)
 	default:
 		return displayParamsTable(pr.OperatorVersion.Spec.Parameters, c.out, c.requiredOnly, c.namesOnly, c.descriptions)
 	}

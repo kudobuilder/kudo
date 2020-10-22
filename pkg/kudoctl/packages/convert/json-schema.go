@@ -12,7 +12,6 @@ import (
 
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
 type jsonSchema struct {
@@ -37,17 +36,15 @@ func newSchema() *jsonSchema {
 	}
 }
 
-func buildGroups(pkg *packages.Files) map[string]packages.Group {
-	params := pkg.Params
-
-	groups := map[string]packages.Group{}
-	for _, g := range params.Groups {
+func buildGroups(ov *kudoapi.OperatorVersion) map[string]kudoapi.ParameterGroup {
+	groups := map[string]kudoapi.ParameterGroup{}
+	for _, g := range ov.Spec.Groups {
 		groups[g.Name] = g
 	}
-	for _, p := range params.Parameters {
+	for _, p := range ov.Spec.Parameters {
 		if p.Group != "" {
 			if _, ok := groups[p.Group]; !ok {
-				groups[p.Group] = packages.Group{
+				groups[p.Group] = kudoapi.ParameterGroup{
 					Name: p.Group,
 				}
 			}
@@ -57,7 +54,7 @@ func buildGroups(pkg *packages.Files) map[string]packages.Group {
 	return groups
 }
 
-func buildTopLevelGroups(groups map[string]packages.Group) map[string]*jsonSchema {
+func buildTopLevelGroups(groups map[string]kudoapi.ParameterGroup) map[string]*jsonSchema {
 	topLevelGroups := map[string]*jsonSchema{}
 
 	for _, v := range groups {
@@ -101,7 +98,7 @@ func jsonSchemaTypeFromKudoType(parameterType kudoapi.ParameterType) string {
 	}
 }
 
-func buildParamSchema(p packages.Parameter) *jsonSchema {
+func buildParamSchema(p kudoapi.Parameter) *jsonSchema {
 	param := newSchema()
 
 	if p.DisplayName != "" {
@@ -128,16 +125,16 @@ func buildParamSchema(p packages.Parameter) *jsonSchema {
 	return param
 }
 
-func WriteJSONSchema(pkg *packages.Files, outputType output.Type, out io.Writer) error {
+func WriteJSONSchema(ov *kudoapi.OperatorVersion, outputType output.Type, out io.Writer) error {
 	root := newSchema()
-	topLevelGroups := buildTopLevelGroups(buildGroups(pkg))
+	topLevelGroups := buildTopLevelGroups(buildGroups(ov))
 
 	root.Properties = topLevelGroups
 	root.Type = "object"
 	root.Description = "All parameters for this operator"
-	root.Title = fmt.Sprintf("Parameters for %s", pkg.Operator.Name)
+	root.Title = fmt.Sprintf("Parameters for %s", ov.Name)
 
-	for _, p := range pkg.Params.Parameters {
+	for _, p := range ov.Spec.Parameters {
 		param := buildParamSchema(p)
 
 		// Assign to correct parent

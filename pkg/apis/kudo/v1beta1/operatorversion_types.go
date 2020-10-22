@@ -32,7 +32,8 @@ type OperatorVersionSpec struct {
 	// List of all tasks available in this OperatorVersion.
 	Tasks []Task `json:"tasks,omitempty"`
 
-	Parameters []Parameter `json:"parameters,omitempty"`
+	Groups     []ParameterGroup `json:"groups,omitempty"`
+	Parameters []Parameter      `json:"parameters,omitempty"`
 
 	// Plans maps a plan name to a plan.
 	// +nullable
