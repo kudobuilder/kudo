@@ -8,11 +8,10 @@ require (
 	github.com/Masterminds/semver/v3 v3.1.0
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/go-bindata/go-bindata/v3 v3.1.3
-	github.com/go-logr/logr v0.2.1 // indirect
 	github.com/google/go-cmp v0.5.2
 	github.com/gosuri/uitable v0.0.4
 	github.com/huandu/xstrings v1.3.2 // indirect
-	github.com/kudobuilder/kuttl v0.6.1
+	github.com/kudobuilder/kuttl v0.7.0
 	github.com/manifoldco/promptui v0.8.0
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/moby/term v0.0.0-20200915141129-7f0af18e79f2 // indirect
